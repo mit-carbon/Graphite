@@ -1,3 +1,6 @@
+Simulator meeting: 2/1/2008
+Attendees: Jason, Jonathan, Harshad
+
 Performance modeling:
    - In order to guarantee an accurate local clock at every
       important event, we have to update the clock at every

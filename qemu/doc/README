@@ -1,0 +1,9 @@
+This directory is for documentation of the QEMU-based simulator implementation.
+This may include:
+
+ - How to use the simulator
+ - The internal operation of some piece of the simulator
+ - How to extend or modify the simulator
+ - Anything else that we want to write down and remember
+    related to the operation or use of the simulator
+

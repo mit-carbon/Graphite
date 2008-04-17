@@ -1,0 +1,56 @@
+Simulator meeting: 2/1/2008
+Attendees: Jason, Jonathan, Harshad
+
+Performance modeling:
+   - In order to guarantee an accurate local clock at every
+      important event, we have to update the clock at every
+      interruption (or at least every interrupt that cares
+      about the clock).  This update should be the first action
+      performed in the trap routine.
+
+   - When we update the clock, we will calculate the elapsed
+      simulation time since the last update (stored in a
+      global variable), add it to the clock, and then update
+      the "last update" pointer.  The "last update" pointer
+      indicates the last instruction that has been accounted
+      for in the simulation clock.  The update routine will
+      look at all the instructions between the "last update"
+      pointer and the current instruction and calculate how
+      much time would have been required to execute them.
+
+   - We think that Pin may not keep enough information to allow
+      you to determine the complete path from the last update to
+      the current instruction if that path spans multiple basic
+      blocks.  In this case, we can add a call to the clock
+      update routine at the end of each basic block.
+
+Other thoughts:
+    - We should start with a "magic" network model (which is really
+       the same as a bus) that transports a packet directly to the
+       destination with a fixed latency.  We can improve later.
+
+    - Getting shared memory working is more important than accurate
+       performance modeling right now.  This will allow Jonathan to
+       start developing his code.
+
+    - For now, let's not try to keep threads in sync.  Synchronization
+       should not be required for correct functionality, only
+       determinism and performance modeling.  LAter, we may want to
+       sync periodically or on specific events.
+
+    - Make sure we preserve the ability to swap in different network,
+       cache, etc. models at run time (using function pointers?).
+       This will allow us to fast-forward with low accuracy and then
+       switch to high accuracy in region of interest.
+
+    - Maybe we should use macros to define a standard template for
+       instrumentation routines.  That way, we can force things like
+       the clock update to occur before the user routine is called.
+
+    - In the long run, we really need to be able to write new device
+       models and swap them into the simulation.
+
+    - Maybe we need to have multiple threads per core so that things
+       like the cache model can be running in the background to handle
+       prefetching, DMA, cache coherence, etc. with interrupting the
+       main program.

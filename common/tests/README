@@ -1,0 +1,9 @@
+This folder is for tests common to all implementations of the simulator. 
+
+Some test style guidelines:
+1. Avoid tests which require human interaction if possible. In other words, 
+   try to return a boolean which indicates success or failure instead of human
+   readable output.
+2. If human interaction is needed to verify an output, print the expected 
+   output alongside the actual output instead of putting the expected output
+   as a comment in the code. 

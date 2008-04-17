@@ -1,0 +1,60 @@
+Below is the license info that was originally included in the code for
+the portable cache simulator available on Rodric Rabbah's webpage. This
+refers to the code in cache.h
+
+http://web.mit.edu/rabbah/www/download/cache-pintools/
+
+The portable organic cache simulator extends that functionality. The
+rest of the simulation code is totally unrelated. 
+
+
+
+/*BEGIN_LEGAL 
+Intel Open Source License 
+
+Copyright (c) 2002-2005 Intel Corporation 
+All rights reserved. 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.  Redistributions
+in binary form must reproduce the above copyright notice, this list of
+conditions and the following disclaimer in the documentation and/or
+other materials provided with the distribution.  Neither the name of
+the Intel Corporation nor the names of its contributors may be used to
+endorse or promote products derived from this software without
+specific prior written permission.
+ 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE INTEL OR
+ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+END_LEGAL */
+//
+// @ORIGINAL_AUTHOR: Artur Klauser
+//
+
+/*! @file
+ *  This file contains an ISA-portable cache simulator
+ *  data cache hierarchies
+ */
+
+// RMR (rodric@gmail.com) {
+//   - added command line switches -c -b and -a to
+//     configure cache size, block size, and associativity
+//   - added command line switch -z  to ignore size of all
+//     references
+//   - added command line switch -ns to ignore stores
+//   - renamed some knobs since the previously used "-h"
+//     switch conflicts with pin's -h switch for help
+//   - print out cache configuration in addition to statistics
+// } RMR

@@ -1,0 +1,3 @@
+This test tests basic functionality in the performance modeler, the cache 
+models, etc. Presently, it probably isn't working due to code refactoring 
+changes. 

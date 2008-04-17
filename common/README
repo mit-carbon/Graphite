@@ -1,0 +1,4 @@
+This folder contains code common to the various simulator implementations.
+
+Style note: 
+The files in this folder should not depend upon Pin or QEMU if possible. Or, they should be made portable. 

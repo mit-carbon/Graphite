@@ -43,7 +43,7 @@ NetPacket Network::netRecv(NetMatch match)
 
 	 // HK
 	 // De-allocate dynamic memory
-	 // delete [] buffer;
+	 delete [] buffer;
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
       }
 		

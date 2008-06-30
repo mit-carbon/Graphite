@@ -40,6 +40,10 @@ NetPacket Network::netRecv(NetMatch match)
       while(transport->ptQuery()){
          buffer = transport->ptRecv();
 	 Network::netExPacket(buffer, entry.packet, entry.time);
+
+	 // HK
+	 // De-allocate dynamic memory
+	 // delete [] buffer;
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
       }
 		

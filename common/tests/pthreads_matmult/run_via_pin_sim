@@ -1,2 +1,2 @@
 make
-/home/carbon/pin-2.3-16358-gcc.3.2.3-ia32-linux/Bin/pin -mt -t ../../../pin/bin/pin_sim -n 9 -mic -mdc -mpf -- cannon -m 9 -s 9
+/home/carbon/pin-2.3-16358-gcc.3.2.3-ia32-linux/Bin/pin -mt -t ../../../pin/bin/pin_sim -n 9 -- ./cannon -m 9 -s 9

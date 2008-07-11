@@ -22,6 +22,10 @@ int Network::netInit(Chip *chip, int tid, int num_mod)
 int Network::netSend(NetPacket packet)
 {
    char *buffer;
+   
+   // Perform network entry tasks
+   netEntryTasks();
+   
    buffer = netCreateBuf(packet);
    transport->ptSend(packet.receiver, buffer, packet.length);
    return packet.length;
@@ -30,38 +34,103 @@ int Network::netSend(NetPacket packet)
 
 NetPacket Network::netRecv(NetMatch match)
 {
+   int sender;
+   PacketType type;
    char *buffer;
    NetPacket packet;
    NetQueueEntry entry;
-   bool loop = true;
+   bool loop;
+
+   loop = true;
 
    while(loop)
    {
-      while(transport->ptQuery()){
-         buffer = transport->ptRecv();
-	 Network::netExPacket(buffer, entry.packet, entry.time);
+   
+      entry.time = the_chip->getProcTime(net_tid);
+      // Initialized to garbage values
+      sender = -1;
+      type = INVALID;
+      
+      // Perform network entry tasks
+      netEntryTasks();
 
-	 // HK
-	 // De-allocate dynamic memory
-	 delete [] buffer;
-         net_queue[entry.packet.sender][entry.packet.type].push(entry);
-      }
-		
-      if( !(net_queue[match.sender][match.type].empty()) )
+      if(match.sender_flag && match.type_flag)
       {
-	 loop = false;
+         if( !(net_queue[match.sender][match.type].empty()) )
+         {
+	         if(entry.time >= net_queue[match.sender][match.type].top().time)
+            {
+               entry = net_queue[match.sender][match.type].top();
+               sender = match.sender;
+               type = match.type;
+               loop = false;
+            }
+         }
+      }
+      else if(match.sender_flag && (!match.type_flag))
+      {
+         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+         for(int i = 0; i < num_pac_type; i++)
+         {
+            if( !(net_queue[match.sender][i].empty()) )
+            {
+               if(entry.time >= net_queue[match.sender][i].top().time)
+               {
+                  entry = net_queue[match.sender][i].top();
+                  sender = match.sender;
+                  type = (PacketType)i;
+                  loop = false;
+               }
+            }
+         }
+      }
+      else if((!match.sender_flag) && match.type_flag)
+      {
+         for(int i = 0; i < net_num_mod; i++)
+         {
+            if( !(net_queue[i][match.type].empty()) )
+            {
+               if(entry.time >= net_queue[i][match.type].top().time)
+               {
+                  entry = net_queue[i][match.type].top();
+                  sender = (PacketType)i;
+                  type = match.type;
+                  loop = false;
+               }
+            }
+         }
       }
       else
       {
+         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+         for(int i = 0; i < net_num_mod; i++)
+         {
+            for(int j = 0; j < num_pac_type; j++)
+            {
+               if( !(net_queue[i][j].empty()) )
+               {
+                  if(entry.time >= net_queue[i][j].top().time)
+                  {
+                     entry = net_queue[i][j].top();
+                     sender = i;
+                     type = (PacketType)j;
+                     loop = false;
+                  }
+               }
+            }
+         }
+      }
+      
+      if(loop)
+      {
          buffer = transport->ptRecv();
-	 Network::netExPacket(buffer, entry.packet, entry.time);
+	      Network::netExPacket(buffer, entry.packet, entry.time);
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
       }
 			
    }
 
-   entry = net_queue[match.sender][match.type].top();
-   net_queue[match.sender][match.type].pop();
+   net_queue[sender][type].pop();
    packet = entry.packet;
    the_chip->setProcTime(net_tid, (the_chip->getProcTime(net_tid) > entry.time) ? 
 		                   the_chip->getProcTime(net_tid) : entry.time);
@@ -72,11 +141,85 @@ NetPacket Network::netRecv(NetMatch match)
 bool Network::netQuery(NetMatch match)
 {
    NetQueueEntry entry;
-   entry = net_queue[match.sender][match.type].top();
-   if(entry.time > the_chip->getProcTime(net_tid))
-      return false;
+   bool found;
+   
+   found = false;
+   entry.time = the_chip->getProcTime(net_tid);
+   
+   // HK
+   // Perform network entry tasks
+   netEntryTasks(); 
+   
+   if(match.sender_flag && match.type_flag)
+   {
+      if(!net_queue[match.sender][match.type].empty())
+      {
+         if(entry.time >= net_queue[match.sender][match.type].top().time)
+         {
+            found = true;
+            entry = net_queue[match.sender][match.type].top();
+         }
+      }
+   }
+   else if(match.sender_flag && (!match.type_flag))
+   {
+      int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+      for(int i = 0; i < num_pac_type; i++)
+      {
+         if(!net_queue[match.sender][i].empty())
+         {
+            if(entry.time >= net_queue[match.sender][i].top().time)
+            {
+               found = true;
+               entry = net_queue[match.sender][i].top();
+               break;
+            }
+         }
+      }
+   }
+   else if((!match.sender_flag) && match.type_flag)
+   {
+      for(int i = 0; i < net_num_mod; i++)
+      {
+         if(!net_queue[i][match.type].empty())
+         {
+            if(entry.time >= net_queue[i][match.type].top().time)
+            {
+               found = true;
+               entry = net_queue[i][match.type].top();
+               break;
+            }
+         }
+      }
+   }
    else
-      return true;
+   {
+      int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+      for(int i = 0; i < net_num_mod; i++)
+      {
+         for(int j = 0; j < num_pac_type; j++)
+         {
+            if(!net_queue[i][j].empty())
+            {
+               if(entry.time >= net_queue[i][j].top().time)
+               {
+                  found = true;
+                  entry = net_queue[i][j].top();
+                  break;
+               }
+            }
+         }
+      }
+   }
+
+   if(found)
+   {
+         return true;
+   }
+   else
+   {
+      return false;
+   }
 };
 
 
@@ -171,5 +314,69 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
 
    for(i = 0; i < sizeof(time); i++)
       ptr[i] = buffer[running_length + i];
+
+   // HK
+   // De-allocate dynamic memory
+   delete [] buffer;
 }
 
+inline void Network::netEntryTasks()
+{
+   // These are a set of tasks to be performed every time the network layer is
+   // entered
+   char *buffer;
+   NetQueueEntry entry;
+   int sender;
+   PacketType type;
+   
+   // Pull up packets waiting in the physical transport layer
+   while(transport->ptQuery())
+   {
+      buffer = transport->ptRecv();
+      Network::netExPacket(buffer, entry.packet, entry.time);
+      net_queue[entry.packet.sender][entry.packet.type].push(entry);
+   }
+   
+   do
+   {
+      sender = -1;
+      type = INVALID;
+      entry.time = the_chip->getProcTime(net_tid);
+      
+      for(int i = 0; i < net_num_mod; i++)
+      {
+         if(entry.time > net_queue[i][SHARED_MEM_REQ].top().time)
+         {
+           entry = net_queue[i][SHARED_MEM_REQ].top();
+           sender = i;
+           type = SHARED_MEM_REQ;
+         }
+      }
+
+      for(int i = 0; i < net_num_mod; i++)
+      {
+         if(entry.time > net_queue[i][SHARED_MEM_UPDATE].top().time)
+         {
+            entry = net_queue[i][SHARED_MEM_UPDATE].top();
+            sender = i;
+            type = SHARED_MEM_UPDATE;
+         }
+      }
+
+      if(type != INVALID)
+      {
+         net_queue[sender][type].pop();
+         processSharedMemReq(entry.packet);
+      }
+   } while(type != INVALID);
+}
+
+
+// FIXME:
+// Only here for debugging
+// To be removed as soon as Jim plugs his function in
+void Network::processSharedMemReq(NetPacket packet)
+{
+   // Do nothing
+   // Only for debugging
+};

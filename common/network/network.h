@@ -25,8 +25,9 @@ enum PacketType
    INVALID = MIN_PACKET_TYPE, 
    USER,
    SHARED_MEM_REQ,
-   SHARED_MEM_UPDATE,
-   MAX_PACKET_TYPE = SHARED_MEM_UPDATE
+   SHARED_MEM_UPDATE_EXPECTED,
+   SHARED_MEM_UPDATE_UNEXPECTED,
+   MAX_PACKET_TYPE = SHARED_MEM_UPDATE_UNEXPECTED
 };
 
 // network packet
@@ -78,9 +79,10 @@ class Network{
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       inline void netEntryTasks();
       //FIXME:
-      //This is only here till Jim plugs his function in, for debugging
+      //This is only here till Jim plugs in his functions, for debugging
       //purposes. To be deleted after that
       void processSharedMemReq(NetPacket packet); 
+      void processUnexpectedSharedMemUpdate(NetPacket packet);
       NetQueue **net_queue;
       Transport *transport;
 

@@ -342,32 +342,52 @@ inline void Network::netEntryTasks()
       sender = -1;
       type = INVALID;
       entry.time = the_chip->getProcTime(net_tid);
-      
+     
       for(int i = 0; i < net_num_mod; i++)
       {
-         if(entry.time > net_queue[i][SHARED_MEM_REQ].top().time)
+         if(!net_queue[i][SHARED_MEM_REQ].empty())
          {
-           entry = net_queue[i][SHARED_MEM_REQ].top();
-           sender = i;
-           type = SHARED_MEM_REQ;
+            if(entry.time > net_queue[i][SHARED_MEM_REQ].top().time)
+            {
+              entry = net_queue[i][SHARED_MEM_REQ].top();
+              sender = i;
+              type = SHARED_MEM_REQ;
+            }
          }
       }
 
       for(int i = 0; i < net_num_mod; i++)
       {
-         if(entry.time > net_queue[i][SHARED_MEM_UPDATE].top().time)
+         if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
          {
-            entry = net_queue[i][SHARED_MEM_UPDATE].top();
-            sender = i;
-            type = SHARED_MEM_UPDATE;
+            if(entry.time > net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time)
+            {
+               entry = net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top();
+               sender = i;
+               type = SHARED_MEM_UPDATE_UNEXPECTED;
+            }
          }
       }
 
-      if(type != INVALID)
+      if(type == SHARED_MEM_REQ)
       {
          net_queue[sender][type].pop();
+         // FIXME:
+         // processSharedMemReq will be a memeber function of the shared memory object
+         // This function invocation should be replaced by something along the lines of
+         // shared_mem_obj->processSharedMemReq(entry.packet)
          processSharedMemReq(entry.packet);
       }
+      else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
+      {
+         net_queue[sender][type].pop();
+         // FIXME:
+         // processUnexpectedSharedMemUpdate will be a memeber function of the shared memory object
+         // This function invocation should be replaced by something along the lines of
+         // shared_mem_obj->processUnexpectedSharedMemUpdate(entry.packet)
+         processUnexpectedSharedMemUpdate(entry.packet);
+      }
+
    } while(type != INVALID);
 }
 
@@ -379,4 +399,12 @@ void Network::processSharedMemReq(NetPacket packet)
 {
    // Do nothing
    // Only for debugging
+   // Jim will provide the correct methods for this in the shared memory object
+};
+
+void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
+{
+   // Do nothing
+   // Only for debugging
+   // Jim will provide the correct methods for this in the shared memory object
 };

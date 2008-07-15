@@ -140,6 +140,7 @@ class OCache
    public:
 
       // These are just wrappers around the Cache class equivalents for the OCache dcache field
+      bool dCacheInvalidateLine(ADDRINT d_addr) { return dl1->invalidateLine(d_addr); }
       UINT32 dCacheSize() { return dl1->getCacheSize(); }
       UINT32 dCacheLineSize() { return dl1->getLineSize(); }
       UINT32 dCacheAssociativity() { return dl1->getNumWays(); }
@@ -149,6 +150,7 @@ class OCache
       { return dl1->statsLong(prefix,type); }
 
       // These are just wrappers around the Cache class equivalents for the OCache icache field
+      bool iCacheInvalidateLine(ADDRINT i_addr) { return il1->invalidateLine(i_addr); }
       UINT32 iCacheSize() { return il1->getCacheSize(); }
       UINT32 iCacheLineSize() { return il1->getLineSize(); }
       UINT32 iCacheAssociativity() { return il1->getNumWays(); }

@@ -62,9 +62,14 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    assert( !do_network_modeling );
    assert( !do_bpred_modeling );
 
-   assert( !(!do_icache_modeling && (do_network_modeling || 
-                                     do_dcache_read_modeling || do_dcache_write_modeling ||
-                                     do_bpred_modeling || do_perf_modeling)) );
+   // JME: think this was an error; want some other model on if icache modeling is on
+   //   assert( !(!do_icache_modeling && (do_network_modeling || 
+   //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
+   //                                  do_bpred_modeling || do_perf_modeling)) );
+   assert( !do_icache_modeling || (do_network_modeling || 
+                                   do_dcache_read_modeling || do_dcache_write_modeling ||
+                                   do_bpred_modeling || do_perf_modeling) );
+
    if ( do_icache_modeling )
    {
       for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
@@ -84,8 +89,8 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    {
       // it's not possible to delay the evaluation of the performance impact for these. 
       // get the cycle counter up to date then account for dependency stalls
-      perfModelRun(stats, reads, num_reads);
-   }
+      perfModelRun(stats, reads, num_reads); 
+  }
 
    if ( do_dcache_read_modeling )
    {

@@ -5,13 +5,13 @@ OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## Build rules
 
+all: cannon
+
 %.o : %.cc
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 cannon: $(OBJECTS)
 	$(CC) -pthread -o $@ $(OBJECTS)
-
-all: cannon
 
 ## Cleaning
 

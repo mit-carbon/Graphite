@@ -79,13 +79,17 @@ VOID PerfModel::run(PerfModelIntervalStat *interval_stats)
    // store miss penalty assumed to be zero.
 
    // icache miss penalty
-   for (list<bool>::iterator it = interval_stats->icache_load_miss_history.begin(); 
-        it != interval_stats->icache_load_miss_history.end();
-        it++)
-   { 
-      // FIXME: this is not a constant. at minimum it should be a 
-      // constant exposed to outside world
-      interval_cycle_count += ((*it) ? 10 : 0); 
+   //for (list<bool>::iterator it = interval_stats->icache_load_miss_history.begin(); 
+   //     it != interval_stats->icache_load_miss_history.end();
+   //     it++)
+   //{ 
+   //   // FIXME: this is not a constant. at minimum it should be a 
+   //   // constant exposed to outside world
+   //   interval_cycle_count += ((*it) ? 10 : 0); 
+   // }
+   for (UINT32 i = 0; i < interval_stats->getICacheLoadAccessCount(); i++)
+   {
+      interval_cycle_count += interval_stats->getICacheLoadAccessMissStatus(i) ? 10 : 0;
    }
 
    cycle_count += interval_cycle_count;
@@ -140,7 +144,9 @@ VOID PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 {
    run(interval_stats);
 
-   interval_stats->dcache_load_miss_history.push_back( !dcache_load_hit );
+   //interval_stats->dcache_load_miss_history.push_back( !dcache_load_hit );
+   interval_stats->logDCacheLoadAccess(dcache_load_hit);
+
    if ( g_knob_enable_performance_modeling && !dcache_load_hit ) {
       for (UINT32 i = 0; i < numWrites; i++) {
          REG w = writes[i];

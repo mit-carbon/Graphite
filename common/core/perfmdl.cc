@@ -45,7 +45,7 @@ PerfModelIntervalStat* PerfModel::analyzeInterval(const string& parent_routine,
       // cout << hex << "0x" << INS_Address(BBL_InsTail(bbl)) << dec << ": " 
       //      << INS_Mnemonic(BBL_InsTail(bbl)) << endl;
 
-      inst_trace.push_back( pair<ADDRINT, UINT32>(INS_Address(ins), INS_Size(ins)) );        
+      inst_trace.push_back( pair<ADDRINT, UINT32>(INS_Address(ins), INS_Size(ins)) );
       UINT32 micro_ops = getInsMicroOpsCount(ins);
       microop_count += micro_ops;                
       // FIXME

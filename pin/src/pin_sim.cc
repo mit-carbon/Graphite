@@ -56,7 +56,6 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
                bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
                bool check_scoreboard)
 {
-
    //cout << "parent = " << stats->parent_routine << endl;
 
    assert( !do_network_modeling );
@@ -66,9 +65,11 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    //   assert( !(!do_icache_modeling && (do_network_modeling || 
    //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
    //                                  do_bpred_modeling || do_perf_modeling)) );
-   assert( !do_icache_modeling || (do_network_modeling || 
-                                   do_dcache_read_modeling || do_dcache_write_modeling ||
-                                   do_bpred_modeling || do_perf_modeling) );
+
+   // no longer needed since we guarantee icache model will run at basic block boundary
+   //assert( !do_icache_modeling || (do_network_modeling || 
+   //                                do_dcache_read_modeling || do_dcache_write_modeling ||
+   //                                do_bpred_modeling || do_perf_modeling) );
 
    if ( do_icache_modeling )
    {
@@ -153,10 +154,13 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    bool do_dcache_write_modeling = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores && 
                                    INS_IsMemoryWrite(ins);
    bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
+
+   // when icache modeling is on, we need to call the model also at basic block boundaries 
    bool do_icache_modeling       = g_knob_enable_icache_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_bpred_modeling || is_bbl_ins_tail || 
                                      check_scoreboard );
+
    bool do_perf_modeling         = g_knob_enable_performance_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_icache_modeling || 
@@ -182,7 +186,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 
       PerfModelIntervalStat *stats;
       INS end_ins = INS_Next(ins);
-      stats = g_knob_enable_performance_modeling ? 
+      // stats also needs to get allocated if icache modeling is turned on
+      stats = (do_perf_modeling || do_icache_modeling) ? 
               perfModelAnalyzeInterval(rtn_name, start_ins, end_ins) : 
               NULL; 
 

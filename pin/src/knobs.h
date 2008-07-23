@@ -62,7 +62,7 @@ KNOB<UINT32> g_knob_line_size(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<UINT32> g_knob_associativity(KNOB_MODE_WRITEONCE, "pintool",
    "a","8", "cache associativity (1 for direct mapped)");
 KNOB<UINT32> g_knob_mutation_interval(KNOB_MODE_WRITEONCE, "pintool",
-   "m","1000", "cache auto-reconfiguration period in number of accesses");
+   "m","0", "cache auto-reconfiguration period in number of accesses");
 
 KNOB<UINT32> g_knob_dcache_size(KNOB_MODE_WRITEONCE, "pintool",
    "dc","32", "data cache size in kilobytes");

@@ -56,15 +56,21 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
                bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
                bool check_scoreboard)
 {
-
    //cout << "parent = " << stats->parent_routine << endl;
 
    assert( !do_network_modeling );
    assert( !do_bpred_modeling );
 
-   assert( !(!do_icache_modeling && (do_network_modeling || 
-                                     do_dcache_read_modeling || do_dcache_write_modeling ||
-                                     do_bpred_modeling || do_perf_modeling)) );
+   // JME: think this was an error; want some other model on if icache modeling is on
+   //   assert( !(!do_icache_modeling && (do_network_modeling || 
+   //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
+   //                                  do_bpred_modeling || do_perf_modeling)) );
+
+   // no longer needed since we guarantee icache model will run at basic block boundary
+   //assert( !do_icache_modeling || (do_network_modeling || 
+   //                                do_dcache_read_modeling || do_dcache_write_modeling ||
+   //                                do_bpred_modeling || do_perf_modeling) );
+
    if ( do_icache_modeling )
    {
       for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
@@ -84,7 +90,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    {
       // it's not possible to delay the evaluation of the performance impact for these. 
       // get the cycle counter up to date then account for dependency stalls
-      perfModelRun(stats, reads, num_reads);
+      perfModelRun(stats, reads, num_reads); 
    }
 
    if ( do_dcache_read_modeling )
@@ -135,7 +141,9 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head, 
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
-   bool check_scoreboard         = g_knob_enable_dcache_modeling && 
+   // added constraint that perf model must be on
+   bool check_scoreboard         = g_knob_enable_performance_modeling && 
+                                   g_knob_enable_dcache_modeling && 
                                    !g_knob_dcache_ignore_loads &&
                                    is_potential_load_use;
 
@@ -146,10 +154,13 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    bool do_dcache_write_modeling = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores && 
                                    INS_IsMemoryWrite(ins);
    bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
+
+   // when icache modeling is on, we need to call the model also at basic block boundaries 
    bool do_icache_modeling       = g_knob_enable_icache_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_bpred_modeling || is_bbl_ins_tail || 
                                      check_scoreboard );
+
    bool do_perf_modeling         = g_knob_enable_performance_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_icache_modeling || 
@@ -175,21 +186,47 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 
       PerfModelIntervalStat *stats;
       INS end_ins = INS_Next(ins);
-      stats = g_knob_enable_performance_modeling ? 
+      // stats also needs to get allocated if icache modeling is turned on
+      stats = (do_perf_modeling || do_icache_modeling) ? 
               perfModelAnalyzeInterval(rtn_name, start_ins, end_ins) : 
               NULL; 
 
-      UINT32 num_reads = INS_MaxNumRRegs(ins);
-      REG *reads = new REG[num_reads];
-      for (UINT32 i = 0; i < num_reads; i++) {
-        reads[i] = INS_RegR(ins, i);
+
+      // UINT32 num_reads = INS_MaxNumRRegs(ins);
+      // REG *reads = new REG[num_reads];
+      // for (UINT32 i = 0; i < num_reads; i++) {
+      //   reads[i] = INS_RegR(ins, i);
+      // }
+
+      UINT32 num_reads = 0;
+      REG *reads = NULL;      
+      if ( g_knob_enable_performance_modeling )
+      {
+         num_reads = INS_MaxNumRRegs(ins);
+         reads = new REG[num_reads];
+         for (UINT32 i = 0; i < num_reads; i++) {
+            reads[i] = INS_RegR(ins, i);
+         }
+      } 
+
+
+      // UINT32 num_writes = INS_MaxNumWRegs(ins);
+      // REG *writes = new REG[num_writes];
+      // for (UINT32 i = 0; i < num_writes; i++) {
+      //   writes[i] = INS_RegW(ins, i);
+      // }
+
+      UINT32 num_writes = 0;
+      REG *writes = NULL;
+      if ( g_knob_enable_performance_modeling )
+      {
+         num_writes = INS_MaxNumWRegs(ins);         
+         writes = new REG[num_writes];
+         for (UINT32 i = 0; i < num_writes; i++) {
+           writes[i] = INS_RegW(ins, i);
+         }
       }
 
-      UINT32 num_writes = INS_MaxNumWRegs(ins);
-      REG *writes = new REG[num_writes];
-      for (UINT32 i = 0; i < num_writes; i++) {
-        writes[i] = INS_RegW(ins, i);
-      }
 
       //for building the arguments to the function which dispatches calls to the various modelers
       IARGLIST args = IARGLIST_Alloc();

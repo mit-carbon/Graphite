@@ -16,7 +16,6 @@
 #ifndef PERFMDL_H
 #define PERFMDL_H
 
-#include <list>
 #include <vector>
 #include <utility>
 #include <iostream>
@@ -36,21 +35,32 @@ extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
 /* ===================================================================== */
 
 #define k_PERFMDL_CYCLE_INVALID  (~ ((UINT64) 0) )
+#define k_PERFMDL_INT_STATE_SIZE 5
 
-
-// JME. I feel like this class is exempt from some of the style guidelines
-// since it's a class that's more or less used like a struct 
+// JME. FIXME. many of these members should be private.
 
 class PerfModelIntervalStat {
+   private:
+
+      // keeps track of miss status for icache and dcache loads and stores
+      // set true for miss
+      // too expensive in terms of memory footprint
+      // list<bool> icache_load_miss_history;
+      // list<bool> dcache_load_miss_history;
+      // list<bool> dcache_store_miss_history;
+
+      bool icache_load_miss_history[k_PERFMDL_INT_STATE_SIZE];
+      bool dcache_load_miss_history[k_PERFMDL_INT_STATE_SIZE];
+      bool dcache_store_miss_history[k_PERFMDL_INT_STATE_SIZE];
+      UINT32 icache_load_miss_history_index;
+      UINT32 dcache_load_miss_history_index;
+      UINT32 dcache_store_miss_history_index;
+
    public:
       // holds instruction addresses and sizes 
       vector< pair<ADDRINT, UINT32> > inst_trace;
 
-      // keeps track of miss status for icache and dcache loads and stores
-      // set true for miss
-      list<bool> icache_load_miss_history;
-      list<bool> dcache_load_miss_history;
-      list<bool> dcache_store_miss_history;
+
 
       // set when instrumenting the code to add calls to analysis
       UINT32 microops_count;
@@ -66,17 +76,69 @@ class PerfModelIntervalStat {
       // methods
       PerfModelIntervalStat(const string& parent, const vector< pair<ADDRINT, UINT32> >& trace, 
                             UINT32 uops, UINT32 cyc_subtotal): 
-         inst_trace(trace), microops_count(uops), cycles_subtotal(cyc_subtotal), 
+	 icache_load_miss_history_index(0), dcache_load_miss_history_index(0), dcache_store_miss_history_index(0),
+         inst_trace(trace), 
+         microops_count(uops), cycles_subtotal(cyc_subtotal), 
          branch_mispredict(false), parent_routine(parent)
       {
+      }
+
+      VOID logICacheLoadAccess(bool hit)
+      {
+	 assert( icache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+ 	 icache_load_miss_history[icache_load_miss_history_index++] = !hit;
+      }      
+
+      UINT32 getICacheLoadAccessCount()
+      {  return icache_load_miss_history_index; }
+
+      bool getICacheLoadAccessMissStatus(UINT32 which)
+      {  return icache_load_miss_history[which]; }
+
+
+      VOID logDCacheLoadAccess(bool hit)
+      {
+         assert( dcache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         dcache_load_miss_history[dcache_load_miss_history_index++] = !hit;
+      }
+
+      UINT32 getDCacheLoadAccessCount()
+      {  return dcache_load_miss_history_index; }
+
+      bool getDCacheLoadAccessMissStatus(UINT32 which)
+      {  return dcache_load_miss_history[which]; }
+
+
+      VOID logDCacheStoreAccess(bool hit)
+      {
+	 assert( dcache_store_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+	 dcache_store_miss_history[dcache_store_miss_history_index++] = !hit;
+      }
+
+      UINT32 getDCacheStoreAccessCount()
+      {  return dcache_store_miss_history_index; }
+
+      bool getDCacheStoreAccessMissStatus(UINT32 which)
+      {  return dcache_store_miss_history[which]; }
+
+
+      VOID logBranchPrediction(bool correct)
+      {
+         branch_mispredict = !correct; 
       }
 
       VOID reset()
       {
          // resets everything but inst_trace and parent
-         dcache_load_miss_history.resize(0);
-         dcache_store_miss_history.resize(0);
-         icache_load_miss_history.resize(0);
+
+         // changed because lists were too memory intensive
+         // dcache_load_miss_history.resize(0);
+         // dcache_store_miss_history.resize(0);
+         // icache_load_miss_history.resize(0);
+	 icache_load_miss_history_index = 0;
+         dcache_load_miss_history_index = 0;
+         dcache_store_miss_history_index = 0;
+
          branch_mispredict = false; 
          microops_count = 0;
          cycles_subtotal = 0;
@@ -119,13 +181,26 @@ class PerfModel {
       // may be lazily evaluated later when the performance model is next run. 
 
       VOID logICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-      { stats->icache_load_miss_history.push_back( !hit ); }
+      { 
+	 // stats->icache_load_miss_history.push_back( !hit ); 
+	 stats->logICacheLoadAccess(hit);
+      }
+     
+      VOID logDCacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+      {
+	 stats->logDCacheLoadAccess(hit);
+      }
 
       VOID logDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-      { stats->dcache_store_miss_history.push_back( !hit ); }
+      { 
+	 // stats->dcache_store_miss_history.push_back( !hit ); 
+	 stats->logDCacheStoreAccess(hit);
+      }
 
       VOID logBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-      { stats->branch_mispredict = !correct; }
+      {  // stats->branch_mispredict = !correct; 
+	 stats->logBranchPrediction(correct);
+      }
 
 
       // Called at first encounter of an interval. Fills out stats for the interval

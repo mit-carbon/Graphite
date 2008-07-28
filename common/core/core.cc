@@ -57,10 +57,14 @@ int Core::coreSendW(int sender, int receiver, char *buffer, int size)
    packet.receiver= receiver;
    packet.type = USER;
    packet.length = size;
+   packet.data = buffer;
+
+   /*
    packet.data = new char[size];
    for(int i = 0; i < size; i++)
       packet.data[i] = buffer[i];
-
+   */
+   
    network->netSend(packet);
    return 0;
 }
@@ -85,6 +89,9 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    for(int i = 0; i < size; i++)
       buffer[i] = packet.data[i];
+
+   // De-allocate dynamic memory
+   delete [] packet.data;
 
    return 0;
 }

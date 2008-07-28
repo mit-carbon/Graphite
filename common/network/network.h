@@ -24,7 +24,10 @@ enum PacketType
    MIN_PACKET_TYPE = 0, 
    INVALID = MIN_PACKET_TYPE, 
    USER,
-   MAX_PACKET_TYPE = USER
+   SHARED_MEM_REQ,
+   SHARED_MEM_UPDATE_EXPECTED,
+   SHARED_MEM_UPDATE_UNEXPECTED,
+   MAX_PACKET_TYPE = SHARED_MEM_UPDATE_UNEXPECTED
 };
 
 // network packet
@@ -54,7 +57,7 @@ class Network{
 
       typedef struct NetQueueEntry{
          NetPacket packet;
-	 UINT64 time;
+	      UINT64 time;
       } NetQueueEntry;
       
       class earlier{
@@ -74,6 +77,12 @@ class Network{
       int net_num_mod;
       char* netCreateBuf(NetPacket packet);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
+      inline void netEntryTasks();
+      //FIXME:
+      //This is only here till Jim plugs in his functions, for debugging
+      //purposes. To be deleted after that
+      void processSharedMemReq(NetPacket packet); 
+      void processUnexpectedSharedMemUpdate(NetPacket packet);
       NetQueue **net_queue;
       Transport *transport;
 

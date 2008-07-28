@@ -61,7 +61,7 @@ namespace CACHE_SET
          DirectMapped(UINT32 assoc = 1) 
          { 
             ASSERTX(assoc == 1); 
-            the_tag = CacheTag(~0);
+            the_tag = CacheTag();
          }
 
          VOID setAssociativity(UINT32 assoc) { ASSERTX(assoc == 1); }
@@ -75,6 +75,16 @@ namespace CACHE_SET
          VOID modifyAssociativity(UINT32 assoc) { ASSERTX(assoc == 1); }
 
          VOID print() { cout << the_tag << endl; }
+
+         bool invalidateTag(CacheTag tag) 
+         { 
+	    if ( tag == the_tag )
+	    {
+               the_tag = CacheTag(); 
+               return true;
+            }
+            return false;
+         }
    };
 
 
@@ -97,7 +107,7 @@ namespace CACHE_SET
 
             for (INT32 index = tags_last_index; index >= 0; index--)
             {
-               the_tags[index] = CacheTag(~0);
+               the_tags[index] = CacheTag();
             }
          }
 
@@ -126,6 +136,26 @@ namespace CACHE_SET
             return result;
          }
 
+         bool invalidateTag(CacheTag tag) 
+         { 
+            bool result = true;
+
+            INT32 index;
+            for (index = tags_last_index; index >= 0; index--)
+            {
+               // this is an ugly micro-optimization, but it does cause a
+               // tighter assembly loop for ARM that way ...
+               if(the_tags[index] == tag) goto end;
+            }
+            result = false;
+
+         end: 
+            if ( result )
+ 	       the_tags[index] = CacheTag();
+
+            return result;
+         }
+
          VOID replace(CacheTag tag)
          {
             // g++ -O3 too dumb to do CSE on following lines?!
@@ -144,7 +174,7 @@ namespace CACHE_SET
             if ( assoc > associativity ) {
             for (UINT32 i = tags_last_index + 1; i < assoc; i++)
 	    {
-               the_tags[i] = CacheTag(~0);
+               the_tags[i] = CacheTag();
 	    }
             tags_last_index = assoc - 1;
             next_replace_index = tags_last_index;
@@ -156,7 +186,7 @@ namespace CACHE_SET
                // this is where evictions happen in the real world
                for (UINT32 i = tags_last_index; i >= assoc; i--)
 	       {
-                  the_tags[i] = CacheTag(~0);
+                  the_tags[i] = CacheTag();
 	       }
 
                tags_last_index = assoc - 1;
@@ -367,6 +397,16 @@ class Cache : public CacheBase
 
 
       // functions for accessing the cache
+
+      // External interface for invalidating a cache line. Returns whether or not line was in cache
+      bool invalidateLine(ADDRINT addr)
+      {
+         CacheTag tag;
+         UINT32 index;
+
+         splitAddress(addr, tag, index);
+         return sets[index].invalidateTag(tag);
+      }
 
       // Multi-line cache access from addr to addr+size-1
       bool accessMultiLine(ADDRINT addr, UINT32 size, AccessType access_type)

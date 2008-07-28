@@ -50,7 +50,7 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads,
 VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes);
 
-PerfModelIntervalStat* PerfModelAnalyzeInterval(const string& parent_routine, 
+PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
                                                 const INS& start_ins, const INS& end_ins);
 
 VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);

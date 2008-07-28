@@ -16,9 +16,8 @@
 #include <stdlib.h>
 #include "capi.h"
 
-#define DEBUG
-
 using namespace std;
+
 
 // Declare global variables
 float **a, **b, **c;

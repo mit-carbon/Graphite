@@ -22,6 +22,10 @@ KNOB<BOOL>   g_knob_enable_bpred_modeling(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<BOOL>   g_knob_enable_performance_modeling(KNOB_MODE_WRITEONCE, "pintool",
    "mpf", "0", "turns on performance modeler");
 
+KNOB<BOOL>   g_knob_simarch_has_shared_mem(KNOB_MODE_WRITEONCE, "pintool", 
+   "ashm", "1", "toggles simulation of shared memory");
+
+
 /* ===================================================================== */
 /* Performance Modeler Knobs */
 /* ===================================================================== */

@@ -267,6 +267,7 @@ class CacheBase
          set_index = tag & set_index_mask;
       }
 
+      // FIXME: change the name? 
       VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index, 
                         UINT32& line_index) const
       {

@@ -10,13 +10,14 @@
 
 // JME: not entirely sure why this is needed...
 class Network;
+class MemoryManager;
 
+#include "memory_manager.h"
 #include "pin.H"
 #include "chip.h"
 #include "network.h"
 #include "perfmdl.h"
 #include "ocache.h"
-
 
 // externally defined vars
 
@@ -43,14 +44,23 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth;
 class Core
 {
    private:
-      Chip *the_chip;
-      int core_tid;
-      int core_num_mod;
-      Network *network;
-      PerfModel *perf_model;
-      OCache *ocache;
-
+	Chip *the_chip;
+	int core_tid;
+	int core_num_mod;
+	Network *network;
+	PerfModel *perf_model;
+	
+	// JP: shouldn't this be only a part of MemoryManager?
+	OCache *ocache;
+	MemoryManager *memory_manager;
+	
    public:
+
+      int getRank() 
+         { return core_tid; }
+
+      int getNumCores()
+         { return core_num_mod; }
 
       int coreInit(Chip *chip, int tid, int num_mod);
 
@@ -95,10 +105,10 @@ class Core
       { return ocache->runICacheLoadModel(i_addr, size); }
 
       inline bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
-      { return ocache->runDCacheLoadModel(d_addr, size); }
+      { return memory_manager->runDCacheLoadModel(d_addr, size); }
 
       inline bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
-      { return ocache->runDCacheStoreModel(d_addr, size); }
+      { return memory_manager->runDCacheStoreModel(d_addr, size); }
 
 };
 

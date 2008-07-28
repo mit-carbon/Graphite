@@ -45,6 +45,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
       ocache = (OCache *) NULL;
    }   
 
+   memory_manager = new MemoryManager(this, ocache);
    return 0;
 }
 

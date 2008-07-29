@@ -85,7 +85,7 @@ class PerfModelIntervalStat {
 
       VOID logICacheLoadAccess(bool hit)
       {
-	 assert( icache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+	 ASSERTX( icache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
  	 icache_load_miss_history[icache_load_miss_history_index++] = !hit;
       }      
 
@@ -98,7 +98,7 @@ class PerfModelIntervalStat {
 
       VOID logDCacheLoadAccess(bool hit)
       {
-         assert( dcache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         ASSERTX( dcache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
          dcache_load_miss_history[dcache_load_miss_history_index++] = !hit;
       }
 
@@ -111,7 +111,7 @@ class PerfModelIntervalStat {
 
       VOID logDCacheStoreAccess(bool hit)
       {
-	 assert( dcache_store_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+	 ASSERTX( dcache_store_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
 	 dcache_store_miss_history[dcache_store_miss_history_index++] = !hit;
       }
 

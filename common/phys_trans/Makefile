@@ -2,7 +2,7 @@ include ../makefile.gnu.config
 
 DBG=-g
 OPT=-O2
-CFLAGS=-c -I$(PIN_HOME)/InstLib -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CFLAGS=-c -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
 SOURCES = transport.cc

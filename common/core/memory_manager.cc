@@ -1,3 +1,6 @@
+
+
+
 #include "memory_manager.h"
 
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
@@ -55,7 +58,6 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
    int cache_index = address / ocache->dCacheLineSize();
 
    PacketType req_msg_type, resp_msg_type;
-   bool (*action_readily_permissable_fn)();
 	
    // first, check local cache
    CacheDirectoryEntry cache_dir_entry = cache_dir->getEntry(cache_index);
@@ -63,47 +65,12 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
 
-
-
-
-
-
-
-
-
-
-   // TODO: * set up private helper which calls the right funtion
-   //       * initialize cache_dir and dram_dir to invalid
-
-
-
-
-
-
-   if ( shmem_req_type == READ )
-   {
-	   action_readily_permissable_fn = cache_dir_entry.readable;
-   }
-   else
-   {
-	   if ( shmem_req_type == WRITE )
-	   {
-		   action_readily_permissable_fn = cache_dir_entry.writable;
-		   break;
-	   }
-	   else 
-	   {
-		   throw("unsupported memory transaction type.");
-	   }
-   }
-   
-   
-   while( !action_readily_permissable_fn() )
+   while( !action_readily_permissable(cache_dir_entry, shmem_req_type) )
    {
 	   // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
 	   unsigned int home_node_rank = addr_home_lookup.find_home_for_addr(address);
 	   assert(home_node_rank >= 0 && home_node_rank < the_core->getNumCores());
-
+	   
 	   // TODO: optimize for case when home node is self? what are the assumptions about where DRAM exists?
 	   
 	   // send message here to home node to request data
@@ -151,6 +118,29 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
    // do nothing shared mem related
    
 }
+
+
+bool action_readily_permissable(CacheDirectoryEntry cache_dir_entry_arg, shmem_req_t shmem_req_type_arg)
+{
+	bool ret;
+	if ( shmem_req_type_arg == READ )
+	{
+		ret = cache_dir_entry_arg.readable();
+	}
+	else
+	{
+		if ( shmem_req_type_arg == WRITE )
+		{
+			ret = cache_dir_entry_arg.writable();
+		}
+		else 
+		{
+			throw("action_readily_permissable: unsupported memory transaction type.");
+		}
+	}
+	return ret;
+}
+
 
 
 /*

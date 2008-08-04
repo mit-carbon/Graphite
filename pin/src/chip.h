@@ -130,6 +130,8 @@ class Chip
       void setProcTime(int module, unsigned long long new_time) 
       { proc_time[module] = new_time; }
 
+      int getNumModules() { return num_modules; }
+
       Chip(int num_mods);
 
       VOID fini(int code, VOID *v);

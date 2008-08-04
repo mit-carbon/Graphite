@@ -19,13 +19,35 @@ CAPI_return_t chipRank(int *rank)
       g_chip->tid_map[g_chip->prev_rank] = pin_tid;     
       g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
       *rank = g_chip->prev_rank; 
-      ++g_chip->prev_rank;
+      ++(g_chip->prev_rank);
    }
    else {
       *rank = e->second;
    }
 	
    ReleaseLock(&(g_chip->maps_lock));
+
+   bool rank_ok = (*rank >= 0) & (*rank < g_chip->getNumModules());
+   if (!rank_ok) {
+     //printf("Bad rank: %d @ %p\n", *rank, rank);
+     LOG("Bad rank: " + decstr(*rank) + " @ ptr: " + hexstr(rank) + "\n");
+
+     LOG("  ThreadID: " + decstr(pin_tid));
+     if ( e == g_chip->core_map.end() ) {
+       LOG(" was NOT found in core_map!\n");
+     } else {
+       LOG(" was found in map: <" + decstr(e->first) + ", " + 
+	   decstr(e->second) + ">\n");
+     }
+
+     LOG("  core_map:  <pin_tid, rank>\n             -----------------\n");
+     map<THREADID, int>::iterator f;
+     for (f = g_chip->core_map.begin(); f != g_chip->core_map.end(); f++) {
+       LOG("               <" + decstr(f->first) + ", " + 
+	   decstr(f->second) + ">\n");
+     }
+   }
+   ASSERT(rank_ok, "Illegal rank value returned by chipRank!\n");
 
    return 0;
 }

@@ -104,6 +104,10 @@ int main(int argc, char* argv[]){ // main begins
 		for(unsigned int j = 0; j < matSize; j++) c[i][j] = 0;
 	}
 	
+	// FIXME: we get a compiler warning here because the output of
+	// sqrt is being converted to an int.  We really should be doing
+	// some sanity checking of numThreads and matSize to be sure
+	// these calculations go alright.
         double tmp = numThreads;
 	sqrtNumProcs = sqrt(tmp);
 	blockSize = matSize / sqrtNumProcs;

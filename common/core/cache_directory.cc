@@ -4,10 +4,7 @@ CacheDirectory::CacheDirectory(int num_lines)
 {
    cache_directory_entries = new CacheDirectoryEntry[num_lines];
 
-
-
-   // TODO: initialize
-
+   // note: all cache_directory_entries are initialized properly by the cache_directory_entry constructor
 }
 
 CacheDirectory::~CacheDirectory()

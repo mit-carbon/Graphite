@@ -5,16 +5,16 @@
 
 class CacheDirectory
 {
-   private:
-      int num_lines;
-	  CacheDirectoryEntry *cache_directory_entries;
-
-   public:
-      CacheDirectory(int num_lines);
-      virtual ~CacheDirectory();
-
-      CacheDirectoryEntry& getEntry(int index);
-
+private:
+	int num_lines;
+	CacheDirectoryEntry *cache_directory_entries;
+	
+public:
+	CacheDirectory(int num_lines);
+	virtual ~CacheDirectory();
+	
+	CacheDirectoryEntry getEntry(int index);
+	
 };
 
 #endif

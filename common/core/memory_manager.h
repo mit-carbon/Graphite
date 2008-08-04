@@ -58,9 +58,14 @@
 
 
 
-
-
 extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem; 
+
+enum shmem_req_t {
+	READ, 
+	WRITE,
+	INVALIDATE,
+	NUM_STATES
+};
 
 class MemoryManager
 {
@@ -69,21 +74,17 @@ private:
 	OCache *ocache;
 	DramDirectory *dram_dir;
 	CacheDirectory *cache_dir;
-    AddressHomeLookup addr_home_lookup;
-	
-    enum shmem_req_t {
-		READ, 
-		WRITE,
-		INVALIDATE,
-		NUM_STATES
-	};
+    AddressHomeLookup *addr_home_lookup;
 	
 public:
-	MemoryManager(Core *the_core, OCache *ocache);
+	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
 	virtual ~MemoryManager();
+	void initiateSharedMemReq(int address, shmem_req_t shmem_req_type);
+	void processSharedMemReq(NetPacket req_packet);
+	void processUnexpectedSharedMemUpdate(NetPacket update_packet);
 	bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
 	bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
-};
 
+};
 
 #endif

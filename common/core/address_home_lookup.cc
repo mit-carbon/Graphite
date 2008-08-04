@@ -26,7 +26,7 @@ AddressHomeLookup::AddressHomeLookup(unsigned int total_num_cache_lines_arg, uns
 	*/
 }
 
-AddressHomeLookup::~AddressHomeLookup()
+virtual AddressHomeLookup::~AddressHomeLookup()
 {
 }
 

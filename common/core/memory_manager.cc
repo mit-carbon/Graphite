@@ -12,13 +12,15 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	int total_num_cache_lines = 67108864;
 	
 	int dram_lines_per_core = total_num_cache_lines / the_core->getNumCores();
-	assert( (num_dram_lines * the_core->getNumCores()) == total_num_cache_lines );
-	
-	int num_cache_lines_per_core = ocache->getCacheSize() / ocache->getLineSize();
+	assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_cache_lines );
+
+
+	// TODO: verify correct semantics with Jonathan
+	int num_cache_lines_per_core = ocache->dCacheSize() / ocache->dCacheLineSize();
 
 	dram_dir = new DramDirectory(dram_lines_per_core);
 	cache_dir = new CacheDirectory(num_cache_lines_per_core);
-	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->GetNumNodes());
+	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->getNumCores());
 }
 
 MemoryManager::~MemoryManager()
@@ -27,17 +29,16 @@ MemoryManager::~MemoryManager()
 
 void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type)
 {
-
    unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
    if ( shmem_req_type == READ )
    {
-	  native_cache_hit = ocache->runDCacheLoadModel(d_addr, size);
+	  native_cache_hit = ocache->runDCacheLoadModel(address, ocache->dCacheLineSize());
    }
    else
    {
 	  if ( shmem_req_type == WRITE )
-  	     native_cache_hit = ocache->runDCacheStoreModel(d_addr, size);
+  	     native_cache_hit = ocache->runDCacheStoreModel(address, ocache->dCacheLineSize());
       else
 		  throw("unsupported memory transaction type.");
    }
@@ -51,16 +52,34 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
    }
  
    // FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
-   int cache_index = address / ocache->getLineSize();
+   int cache_index = address / ocache->dCacheLineSize();
 
-   Network::PacketType req_msg_type, resp_msg_type;
+   PacketType req_msg_type, resp_msg_type;
    bool (*action_readily_permissable_fn)();
 	
    // first, check local cache
-   CacheDirectoryEntry& cache_dir_entry = cache_dir.getEntry(cache_index);
+   CacheDirectoryEntry cache_dir_entry = cache_dir->getEntry(cache_index);
 
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
+
+
+
+
+
+
+
+
+
+
+   // TODO: * set up private helper which calls the right funtion
+   //       * initialize cache_dir and dram_dir to invalid
+
+
+
+
+
+
    if ( shmem_req_type == READ )
    {
 	   action_readily_permissable_fn = cache_dir_entry.readable;
@@ -88,7 +107,7 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
 	   // TODO: optimize for case when home node is self? what are the assumptions about where DRAM exists?
 	   
 	   // send message here to home node to request data
-	   Network::NetPacket packet;
+	   NetPacket packet;
 	   packet.type = req_msg_type;
 	   packet.sender = my_rank;
 	   packet.receiver = home_node_rank;
@@ -98,17 +117,17 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
 	   int payload[SH_MEM_REQ_NUM_INTS_SIZE];
 	   payload[SH_MEM_REQ_IDX_REQ_TYPE] = shmem_req_type;
 	   payload[SH_MEM_REQ_IDX_ADDR] = address;                         // TODO: cache line align?
-	   payload[SH_MEM_REQ_IDX_NUM_BYTES_REQ] = ocache->getLineSize();  // TODO: make sure getLineSize returns bytes
+	   payload[SH_MEM_REQ_IDX_NUM_BYTES_REQ] = ocache->dCacheLineSize();  // TODO: make sure getLineSize returns bytes
 	   packet.data = (char *)(payload);
 	   the_core->network->netSend(packet);
 
 	   // receive the requested data (blocking receive)
-	   Network::NetMatch net_match;
+	   NetMatch net_match;
 	   net_match.sender = home_node_rank;
 	   net_match.sender_flag = true;
 	   net_match.type = resp_msg_type;
 	   net_match.type_flag = true;
-	   Network::NetPacket recv_packet = the_core->network->netRecv(net_match);
+	   NetPacket recv_packet = the_core->network->netRecv(net_match);
 
 	   // NOTE: we don't actually send back the data because we're just modeling performance (for now)
 
@@ -140,7 +159,7 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
  * the shared request type indicates either a read or a write
  */
 
-void MemoryManager::processSharedMemReq(Network::NetPacket req_packet) {
+void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 	
 	// extract relevant values from incoming request packet
 	shmem_req_t shmem_req_type = ((int *)(packet.data))[SH_MEM_REQ_IDX_REQ_TYPE];
@@ -164,7 +183,7 @@ void MemoryManager::processSharedMemReq(Network::NetPacket req_packet) {
 			unsigned int current_owner = dram_dir_entry.sharers[0];
 				
 			// reqeust a data write back data and downgrade to shared
-			Network::NetPacket packet;
+			NetPacket packet;
 			packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
 			packet.sender = my_rank;
 			packet.receiver = current_owner;
@@ -178,12 +197,12 @@ void MemoryManager::processSharedMemReq(Network::NetPacket req_packet) {
 			the_core->network->netSend(packet);
 			
 			// wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
-			Network::NetMatch net_match;
+			NetMatch net_match;
 			net_match.sender = current_owner;
 			net_match.sender_flag = true;
 			net_match.type = SH_MEM_ACK;
 			net_match.type_flag = true;
-			Network::NetPacket recv_packet = the_core->network->netRecv(net_match);
+			NetPacket recv_packet = the_core->network->netRecv(net_match);
 
 			// assert a few things in the ack packet (sanity checks)
 			assert(recv_packet.sender == current_owner);
@@ -212,7 +231,7 @@ void MemoryManager::processSharedMemReq(Network::NetPacket req_packet) {
 			while( sharers_iterator != sharers.end()) {
 				
 				// send message to sharer to invalidate it
-				Network::NetPacket packet;
+				NetPacket packet;
 				packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
 				packet.sender = my_rank;
 				packet.receiver = *sharers_iterator;
@@ -239,12 +258,12 @@ void MemoryManager::processSharedMemReq(Network::NetPacket req_packet) {
 				// TODO: optimize this by receiving acks out of order
 				
 				// wait for all of the invalidation acknowledgements
-				Network::NetMatch net_match;
+				NetMatch net_match;
 				net_match.sender = *sharers_iterator;
 				net_match.sender_flag = true;
 				net_match.type = SH_MEM_ACK;
 				net_match.type_flag = true;
-				Network::NetPacket recv_packet = the_core->network->netRecv(net_match);
+				NetPacket recv_packet = the_core->network->netRecv(net_match);
 				
 				// assert a few things in the ack packet (sanity checks)
 				assert(recv_packet.sender == *sharers_iterator);  // I would hope so
@@ -268,7 +287,7 @@ void MemoryManager::processSharedMemReq(Network::NetPacket req_packet) {
 	}
 	
     // 3. return data back to requestor (note: actual data doesn't have to be sent at this time (6/08))
-	Network::NetPacket packet;
+	NetPacket packet;
 	packet.type = SHARED_MEM_UPDATE_EXPECTED;
 	packet.sender = my_rank;
 	packet.receiver = requestor;
@@ -288,7 +307,7 @@ void MemoryManager::processSharedMemReq(Network::NetPacket req_packet) {
  * (for example, an invalidation message). "expected" shared memory update messages are processed
  * in band by explicit receive messages
  */ 
-void MemoryManager::processUnexpectedSharedMemUpdate(Network::NetPacket update_packet) {
+void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 
 	// verify packet type is correct
 	assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
@@ -298,12 +317,12 @@ void MemoryManager::processUnexpectedSharedMemUpdate(Network::NetPacket update_p
 	int address = ((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_ADDRESS];
 
 	// FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
-	int cache_index = address / ocache->getLineSize();
-	CacheDirectoryEntry& cache_dir_entry = cache_dir.getDirectorEntry(cache_index);
+	int cache_index = address / ocache->dCacheLineSize();
+	CacheDirectoryEntry cache_dir_entry = cache_dir->getEntry(cache_index);
 	cache_entry.setCState(new_cstate);
 	
 	// send back acknowledgement of receiveing this message
-	Network::NetPacket packet;
+	NetPacket packet;
 	packet.type = SHARED_MEM_ACK;
 	packet.sender = the_core->getRank();
 	packet.receiver = update_packet.sender;
@@ -350,10 +369,3 @@ bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
       return ocache->runDCacheStoreModel(d_addr, size);
    }
 }
-
-
-
-/*
- * Private Methods
- */
-

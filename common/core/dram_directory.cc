@@ -2,7 +2,12 @@
 
 DramDirectory::DramDirectory(int num_lines)
 {
-   dram_directory_entries = new DramDirectoryEntry[num_lines];
+	dram_directory_entries = new DramDirectoryEntry[num_lines];
+
+
+	// TODO: initialize
+
+
 }
 
 DramDirectory::~DramDirectory()

@@ -58,82 +58,87 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 {
    //cout << "parent = " << stats->parent_routine << endl;
 
-   assert( !do_network_modeling );
-   assert( !do_bpred_modeling );
-
-   // JME: think this was an error; want some other model on if icache modeling is on
-   //   assert( !(!do_icache_modeling && (do_network_modeling || 
-   //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
-   //                                  do_bpred_modeling || do_perf_modeling)) );
-
-   // no longer needed since we guarantee icache model will run at basic block boundary
-   //assert( !do_icache_modeling || (do_network_modeling || 
-   //                                do_dcache_read_modeling || do_dcache_write_modeling ||
-   //                                do_bpred_modeling || do_perf_modeling) );
-
-   if ( do_icache_modeling )
+   int rank;
+   chipRank(&rank);
+   if(rank > -1)
    {
-      for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
+      assert( !do_network_modeling );
+      assert( !do_bpred_modeling );
+
+      // JME: think this was an error; want some other model on if icache modeling is on
+      //   assert( !(!do_icache_modeling && (do_network_modeling || 
+      //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
+      //                                  do_bpred_modeling || do_perf_modeling)) );
+
+      // no longer needed since we guarantee icache model will run at basic block boundary
+      //assert( !do_icache_modeling || (do_network_modeling || 
+      //                                do_dcache_read_modeling || do_dcache_write_modeling ||
+      //                                do_bpred_modeling || do_perf_modeling) );
+
+      if ( do_icache_modeling )
       {
-	 // first = PC, second = size
-         bool i_hit = icacheRunLoadModel(stats->inst_trace[i].first,
-                                         stats->inst_trace[i].second);
-         if ( do_perf_modeling ) {
-            perfModelLogICacheLoadAccess(stats, i_hit);
-	 }
-      }
-   }
-
-   // this check must go before everything but the icache check
-   assert( !check_scoreboard || do_perf_modeling );
-   if ( check_scoreboard )
-   {
-      // it's not possible to delay the evaluation of the performance impact for these. 
-      // get the cycle counter up to date then account for dependency stalls
-      perfModelRun(stats, reads, num_reads); 
-   }
-
-   if ( do_dcache_read_modeling )
-   {
-      // it's not possible to delay the evaluation of the performance impact for these. 
-      // get cycle count up to date so time stamp for when miss is ready is correct
-
-      bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
-      if ( do_perf_modeling ) {
-	 perfModelRun(stats, d_hit, writes, num_writes);
-      }
-
-      if ( is_dual_read ) {
-         bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-         if ( do_perf_modeling ) {
-	    perfModelRun(stats, d_hit2, writes, num_writes);
+         for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
+         {
+       // first = PC, second = size
+            bool i_hit = icacheRunLoadModel(stats->inst_trace[i].first,
+                                            stats->inst_trace[i].second);
+            if ( do_perf_modeling ) {
+               perfModelLogICacheLoadAccess(stats, i_hit);
+       }
          }
       }
-   } 
-   else 
-   {
-      assert(dcache_ld_addr == (ADDRINT) NULL);
-      assert(dcache_ld_addr2 == (ADDRINT) NULL);
-      assert(dcache_ld_size == 0);
-   }
 
-   if ( do_dcache_write_modeling )
-   {
-      bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
-      if ( do_perf_modeling )
-      { 
-         perfModelLogDCacheStoreAccess(stats, d_hit); 
+      // this check must go before everything but the icache check
+      assert( !check_scoreboard || do_perf_modeling );
+      if ( check_scoreboard )
+      {
+         // it's not possible to delay the evaluation of the performance impact for these. 
+         // get the cycle counter up to date then account for dependency stalls
+         perfModelRun(stats, reads, num_reads); 
       }
-   } 
-   else 
-   {
-      assert(dcache_st_addr == (ADDRINT) NULL);
-      assert(dcache_st_size == 0);
-   }
 
-   if ( do_perf_modeling )
-   {
-      perfModelRun(stats);
+      if ( do_dcache_read_modeling )
+      {
+         // it's not possible to delay the evaluation of the performance impact for these. 
+         // get cycle count up to date so time stamp for when miss is ready is correct
+
+         bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+         if ( do_perf_modeling ) {
+       perfModelRun(stats, d_hit, writes, num_writes);
+         }
+
+         if ( is_dual_read ) {
+            bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+            if ( do_perf_modeling ) {
+          perfModelRun(stats, d_hit2, writes, num_writes);
+            }
+         }
+      } 
+      else 
+      {
+         assert(dcache_ld_addr == (ADDRINT) NULL);
+         assert(dcache_ld_addr2 == (ADDRINT) NULL);
+         assert(dcache_ld_size == 0);
+      }
+
+      if ( do_dcache_write_modeling )
+      {
+         bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
+         if ( do_perf_modeling )
+         { 
+            perfModelLogDCacheStoreAccess(stats, d_hit); 
+         }
+      } 
+      else 
+      {
+         assert(dcache_st_addr == (ADDRINT) NULL);
+         assert(dcache_st_size == 0);
+      }
+
+      if ( do_perf_modeling )
+      {
+         perfModelRun(stats);
+      }
    }
 }
 

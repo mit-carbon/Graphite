@@ -1,2 +1,2 @@
 make
-/afs/csail.mit.edu/group/carbon/tools/pin/current/intel64/bin/pin -mt -t ../../../pin/bin/pin_sim -n 9 -- ./cannon -m 9 -s 9
+/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -mdc -mpf -n 9 -- ./cannon -m 9 -s 9

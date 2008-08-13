@@ -87,14 +87,14 @@ int main(int argc, char* argv[]){ // main begins
 	a = (float**) new float*[matSize];
 	for(unsigned int i = 0; i < matSize; i++){
 		a[i] = (float*) new float[matSize];
-		for(unsigned int j = 0; j < matSize; j++) a[i][j] = 1;
+		for(unsigned int j = 0; j < matSize; j++) a[i][j] = 2;
 	}
 
 	// Initialize b
 	b = (float**) new float*[matSize];
 	for(unsigned int i = 0; i < matSize; i++){
 		b[i] = (float*) new float[matSize];
-		for(unsigned int j = 0; j < matSize; j++) b[i][j] = 1;
+		for(unsigned int j = 0; j < matSize; j++) b[i][j] = 3;
 	}
 
 	// Initialize c
@@ -155,7 +155,7 @@ void* cannon(void *threadid){
 	int ai, aj, bi, bj;
 	CAPI_return_t rtnVal;
 
-	rtnVal = CAPI_Initialize();
+	rtnVal = CAPI_Initialize(&tid);
 
 	// Initialize local variables
 

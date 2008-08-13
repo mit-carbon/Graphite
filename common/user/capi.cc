@@ -5,8 +5,9 @@
 // These functions are replaced by the pintool with functions that implement the 
 // corresponding message passing primitives.
 
-CAPI_return_t CAPI_Initialize(void)
+CAPI_return_t CAPI_Initialize(int *rank)
 { 
+   rank = 0;
    return 0; 
 }
 

@@ -29,7 +29,7 @@ extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
 // FIXME: if possible, these shouldn't be globals. Pin callbacks may need them to be. 
 
-CAPI_return_t chipInit(void);
+CAPI_return_t chipInit(int *rank);
 
 CAPI_return_t chipRank(int *rank);
 
@@ -79,7 +79,7 @@ class Chip
 
       // messaging wrappers
 
-      friend CAPI_return_t chipInit(void); 
+      friend CAPI_return_t chipInit(int *rank); 
       friend CAPI_return_t chipRank(int *rank);
       friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
                                      CAPI_endpoint_t receiver, char *buffer, 

@@ -1,0 +1,56 @@
+# DCACHE configuration [c = 32KB, b = 32B, a = 4]
+#
+# DCACHE stats
+#
+# organic cache_dl1:
+# Load-Hits:                14919   95.32%
+# Load-Misses:                732    4.68%
+# Load-Accesses:            15651  100.00%
+# 
+# Store-Hits:                7269   98.94%
+# Store-Misses:                78    1.06%
+# Store-Accesses:            7347  100.00%
+# 
+# Total-Hits:               22188   96.48%
+# Total-Misses:               810    3.52%
+# Total-Accesses:           22998  100.00%
+
+
+
+# ICACHE configuration [c = 32KB, b = 32B, a = 4]
+#
+# ICACHE stats
+#
+# organic cache_il1:
+# Total-Hits:                   0     nan%
+# Total-Misses:                 0     nan%
+# Total-Accesses:               0     nan%
+
+# DCACHE configuration [c = 32KB, b = 32B, a = 4]
+#
+# DCACHE stats
+#
+# organic cache_dl1:
+# Load-Hits:                15381   95.83%
+# Load-Misses:                670    4.17%
+# Load-Accesses:            16051  100.00%
+# 
+# Store-Hits:                7531   99.05%
+# Store-Misses:                72    0.95%
+# Store-Accesses:            7603  100.00%
+# 
+# Total-Hits:               22912   96.86%
+# Total-Misses:               742    3.14%
+# Total-Accesses:           23654  100.00%
+
+
+
+# ICACHE configuration [c = 32KB, b = 32B, a = 4]
+#
+# ICACHE stats
+#
+# organic cache_il1:
+# Total-Hits:                   0     nan%
+# Total-Misses:                 0     nan%
+# Total-Accesses:               0     nan%
+

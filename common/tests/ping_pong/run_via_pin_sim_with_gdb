@@ -1,0 +1,2 @@
+make
+/afs/csail.mit.edu/u/j/jasonm/pin/pin-2.5-20751-gcc.4.0.0-ia32_intel64-linux/intel64/bin/pinbin -pause_tool 20 -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -mpf -- ./ping_pong

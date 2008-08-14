@@ -1,5 +1,5 @@
 CC = /usr/bin/g++
-CFLAGS = -I../../user -c -g -Wall -DDEBUG
+CFLAGS = -I../../user -c -g -Wall
 SOURCES = ../../user/capi.cc cannon.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 

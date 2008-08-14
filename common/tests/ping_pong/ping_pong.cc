@@ -63,7 +63,7 @@ void* ping(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
 
-   // CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &tid, sizeof(int));
+   CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &tid, sizeof(int));
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -71,7 +71,7 @@ void* ping(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
 
-   // CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &tid, sizeof(int));  
+   CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &tid, sizeof(int));  
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -94,7 +94,7 @@ void* pong(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
  
-   // CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &tid, sizeof(int)); 
+   CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &tid, sizeof(int)); 
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -102,7 +102,7 @@ void* pong(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
 
-   // CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &tid, sizeof(int));  
+   CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &tid, sizeof(int));  
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);

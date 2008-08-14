@@ -3,17 +3,17 @@
 # DCACHE stats
 #
 # organic cache_dl1:
-# Load-Hits:                14919   95.32%
-# Load-Misses:                732    4.68%
-# Load-Accesses:            15651  100.00%
+# Load-Hits:                13806   95.93%
+# Load-Misses:                585    4.07%
+# Load-Accesses:            14391  100.00%
 # 
-# Store-Hits:                7269   98.94%
-# Store-Misses:                78    1.06%
-# Store-Accesses:            7347  100.00%
+# Store-Hits:                6778   99.02%
+# Store-Misses:                67    0.98%
+# Store-Accesses:            6845  100.00%
 # 
-# Total-Hits:               22188   96.48%
-# Total-Misses:               810    3.52%
-# Total-Accesses:           22998  100.00%
+# Total-Hits:               20584   96.93%
+# Total-Misses:               652    3.07%
+# Total-Accesses:           21236  100.00%
 
 
 
@@ -31,17 +31,17 @@
 # DCACHE stats
 #
 # organic cache_dl1:
-# Load-Hits:                15381   95.83%
-# Load-Misses:                670    4.17%
-# Load-Accesses:            16051  100.00%
+# Load-Hits:                 9603   95.02%
+# Load-Misses:                503    4.98%
+# Load-Accesses:            10106  100.00%
 # 
-# Store-Hits:                7531   99.05%
-# Store-Misses:                72    0.95%
-# Store-Accesses:            7603  100.00%
+# Store-Hits:                5013   98.72%
+# Store-Misses:                65    1.28%
+# Store-Accesses:            5078  100.00%
 # 
-# Total-Hits:               22912   96.86%
-# Total-Misses:               742    3.14%
-# Total-Accesses:           23654  100.00%
+# Total-Hits:               14616   96.26%
+# Total-Misses:               568    3.74%
+# Total-Accesses:           15184  100.00%
 
 
 

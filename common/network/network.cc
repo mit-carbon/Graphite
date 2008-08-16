@@ -2,9 +2,10 @@
 
 using namespace std;
 
-int Network::netInit(Chip *chip, int tid, int num_mod)
+int Network::netInit(Chip *chip, int tid, int num_mod, Core *the_core_arg)
 {
    the_chip = chip;
+   the_core = the_core_arg;
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
    net_tid = tid;
@@ -369,6 +370,8 @@ inline void Network::netEntryTasks()
          }
       }
 
+      cout << "Stuff " << endl;
+
       if(type == SHARED_MEM_REQ)
       {
          net_queue[sender][type].pop();
@@ -376,7 +379,17 @@ inline void Network::netEntryTasks()
          // processSharedMemReq will be a memeber function of the shared memory object
          // This function invocation should be replaced by something along the lines of
          // shared_mem_obj->processSharedMemReq(entry.packet)
-         processSharedMemReq(entry.packet);
+         
+        cout << "Hello World " << endl; 
+#ifdef SMEM_DEBUG
+         cout << "   core(" << net_tid << ") received shared memory request. " << endl;
+#endif
+         the_core->getMemoryManager()->processSharedMemReq(entry.packet);
+
+#ifdef SMEM_DEBUG
+         cout << "   core(" << net_tid << ") finished processing shared memory request. " << endl;
+#endif
+      
       }
       else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
       {
@@ -395,13 +408,6 @@ inline void Network::netEntryTasks()
 // FIXME:
 // Only here for debugging
 // To be removed as soon as Jim plugs his function in
-void Network::processSharedMemReq(NetPacket packet)
-{
-   // Do nothing
-   // Only for debugging
-   // Jim will provide the correct methods for this in the shared memory object
-};
-
 void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
 {
    // Do nothing

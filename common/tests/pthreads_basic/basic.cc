@@ -18,7 +18,24 @@ pthread_mutex_t lock;
 // Function executed by each thread
 void* do_nothing(void *threadid);
 
-int main(int argc, char* argv[]){ // main begins
+
+int main(int argc, char* argv[]) {
+  
+   int tid;
+   CAPI_Initialize(&tid);
+   
+   int size = 1;
+   int array[size];
+
+   for(int i=0; i < size; i++) {
+      array[i] = i;
+   }
+
+   return 0;
+}
+
+
+int main1(int argc, char* argv[]){ // main begins
 
 	// Declare threads and related variables
 	pthread_t threads[2];
@@ -38,9 +55,11 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	pthread_mutex_init(&write_lock, NULL);
+
 #ifdef DEBUG
 	cout << "Spawning threads" << endl << endl;
 #endif
+
       pthread_create(&threads[0], &attr, do_nothing, (void *) 0);    
       pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
 
@@ -57,71 +76,21 @@ int main(int argc, char* argv[]){ // main begins
 #ifdef DEBUG
 	cout << "End of execution" << endl << endl;
 #endif
-        return 0;
+        
+   return 0;
 } // main ends
 
-
-
+//spawned threads run this function
 void* do_nothing(void *threadid)
 {
-//   int tid;
-//   CAPI_Initialize(&tid);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cout << "executing do_nothing function" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
-/*
-//   CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &tid, sizeof(int));
-
-#ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "ping sent to pong" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
-
-//   CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &tid, sizeof(int));  
-
-#ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "ping received from pong" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
-*/
+   
    pthread_exit(NULL);  
    // return 0;
 }
 
-/*
-void* pong(void *threadid)
-{
-   int tid;
-   CAPI_Initialize(&tid);
-
-#ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "executing pong function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
- 
-   CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &tid, sizeof(int)); 
-
-#ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "pong sent to ping" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
-
-   CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &tid, sizeof(int));  
-
-#ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "pong received from ping" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
-
-   pthread_exit(NULL);  
-   // return 0;
-}
-*/

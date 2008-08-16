@@ -147,8 +147,6 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
    return g_chip->core[rank].dcacheRunStoreModel(d_addr, size); 
 }
 
-
-
 // Chip class method definitions
 
 Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)

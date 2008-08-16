@@ -15,7 +15,6 @@ class Chip;
 #include "chip.h"
 #include "transport.h"
 
-
 // Define data types
 
 // enums for type of network packet
@@ -74,6 +73,7 @@ class Network{
               NetQueue;
 
       Chip *the_chip;		
+      Core *the_core;
       int net_tid;
       int net_num_mod;
       char* netCreateBuf(NetPacket packet);
@@ -82,14 +82,14 @@ class Network{
       //FIXME:
       //This is only here till Jim plugs in his functions, for debugging
       //purposes. To be deleted after that
-      void processSharedMemReq(NetPacket packet); 
+//      void processSharedMemReq(NetPacket packet); 
       void processUnexpectedSharedMemUpdate(NetPacket packet);
       NetQueue **net_queue;
       Transport *transport;
 
    public:
 
-      int netInit(Chip *chip, int tid, int num_threads);
+      int netInit(Chip *chip, int tid, int num_threads, Core *the_core_arg);
       int netSend(NetPacket packet);
       NetPacket netRecv(NetMatch match);
       bool netQuery(NetMatch match);

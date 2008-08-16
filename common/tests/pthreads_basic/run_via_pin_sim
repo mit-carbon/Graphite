@@ -1,4 +1,4 @@
 #!/usr/bin/tcsh
 make
 #/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -mpf -- ./basic
-/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -- ./basic
+/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 16  -- ./basic

@@ -5,7 +5,7 @@
 
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
-	the_core = the_core_arg;
+   the_core = the_core_arg;
 	ocache = ocache_arg;
 	
 	//FIXME; need to add infrastructure for specifying core architecture details (e.g. DRAM size)
@@ -17,8 +17,8 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	int dram_lines_per_core = total_num_cache_lines / the_core->getNumCores();
 	assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_cache_lines );
 
-
 	// TODO: verify correct semantics with Jonathan
+   assert( ocache != NULL );
 	int num_cache_lines_per_core = ocache->dCacheSize() / ocache->dCacheLineSize();
 
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize());
@@ -52,19 +52,19 @@ bool action_readily_permissable(CacheDirectoryEntry cache_dir_entry_arg, shmem_r
 }
 
 
-
-void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type)
+//FIXME deal with the size argument (ie, rename the darn thing)
+bool MemoryManager::initiateSharedMemReq(int address, UINT32 size, shmem_req_t shmem_req_type)
 {
    unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
    if ( shmem_req_type == READ )
    {
-	  native_cache_hit = ocache->runDCacheLoadModel(address, ocache->dCacheLineSize());
+	  native_cache_hit = ocache->runDCacheLoadModel(address, size);
    }
    else
    {
 	  if ( shmem_req_type == WRITE )
-  	     native_cache_hit = ocache->runDCacheStoreModel(address, ocache->dCacheLineSize());
+  	     native_cache_hit = ocache->runDCacheStoreModel(address, size);
       else
 		  throw("unsupported memory transaction type.");
    }
@@ -146,7 +146,8 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
    }
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
    // do nothing shared mem related
-   
+  
+   return native_cache_hit;
 }
 
 
@@ -158,6 +159,13 @@ void MemoryManager::initiateSharedMemReq(int address, shmem_req_t shmem_req_type
 
 void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 	
+  cout << "Hello from procesSharedMemRequst " << endl;
+
+#ifdef SMEM_DEBUG
+  cout << "   MMU: processing shared mem request " << endl;
+#endif
+   
+   
   // extract relevant values from incoming request packet
   shmem_req_t shmem_req_type = (shmem_req_t)((int *)(req_packet.data))[SH_MEM_REQ_IDX_REQ_TYPE];
   int address = ((int *)(req_packet.data))[SH_MEM_REQ_IDX_ADDR];
@@ -354,14 +362,18 @@ bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
  *
  *
  */
-
+/*
 bool MemoryManager::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
 {
-  return false;
+ 
+   //entry point
+   cout << "Fix Me: MMU: runDCacheLoadModel" << endl;
+   return false;
 }
 
 bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
 {
+   cout << "Fix Me: MMU: runDCacheLoadModel" << endl;
   return false;
 }
 
@@ -409,3 +421,4 @@ bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
 
 
 #endif
+*/

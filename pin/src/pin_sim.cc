@@ -536,12 +536,27 @@ VOID fini(int code, VOID * v)
 
 VOID init_globals()
 {
+  
+   if( g_knob_simarch_has_shared_mem ) {
+
+      if( !g_knob_enable_dcache_modeling ) {
+   
+         cout << endl << "**********************************************************************" << endl;
+         cout << endl << "  User must set dcache modeling on (-mdc) to use shared memory model. " << endl;
+         cout << endl << "**********************************************************************" << endl;
+
+         cout << endl << "Exiting Program...." << endl;
+         exit(-1); 
+      }
+   }
+   
    // NOTE: transport and queues must be inited before the chip
    Transport *transport_init;
    // FIXME: Do something *way* more elegant
    transport_init->ptInitQueue(g_knob_num_cores);
 
    g_chip = new Chip(g_knob_num_cores);
+
 }
 
 
@@ -553,7 +568,7 @@ int main(int argc, char *argv[])
       return usage();
 
    init_globals();
-    
+   
    RTN_AddInstrumentFunction(routine, 0);
 
    PIN_AddFiniFunction(fini, 0);

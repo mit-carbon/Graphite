@@ -1,7 +1,7 @@
 include common/makefile.gnu.config
 
 all:
-	$(MAKE) -C common
+	$(MAKE) -C common 
 	$(MAKE) -C pin
 	$(MAKE) -C qemu
 

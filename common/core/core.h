@@ -73,6 +73,9 @@ class Core
       // network accessor since network is private
       Network* getNetwork(void);
 
+      MemoryManager* getMemoryManager(void)
+         { return memory_manager; }
+      
       VOID fini(int code, VOID *v, ofstream& out);
 	
 	VOID perfModelRun(PerfModelIntervalStat *interval_stats);

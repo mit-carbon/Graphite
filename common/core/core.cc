@@ -9,7 +9,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    core_num_mod = num_mod;
 
    network = new Network;
-   network->netInit(chip, tid, num_mod);
+   network->netInit(chip, tid, num_mod, this);
    
    if ( g_knob_enable_performance_modeling ) 
    {
@@ -40,12 +40,28 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
       cout << "Core[" << tid << "]: instantiated organic cache model" << endl;
       cout << ocache->statsLong() << endl;
+  
+   
    } else 
    {
       ocache = (OCache *) NULL;
    }   
 
-   memory_manager = new MemoryManager(this, ocache);
+
+   if ( g_knob_simarch_has_shared_mem ) {
+     
+      assert( g_knob_enable_dcache_modeling ); 
+
+      cout << "Core[" << tid << "]: instantiated memory manager model" << endl;
+      memory_manager = new MemoryManager(this, ocache);
+
+   } else {
+
+      memory_manager = (MemoryManager *) NULL;
+   
+   }
+
+
    return 0;
 }
 
@@ -147,7 +163,21 @@ bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 { return ocache->runICacheLoadModel(i_addr, size); }
 
 bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
-{ return memory_manager->runDCacheLoadModel(d_addr, size); }
+{ 
+#ifdef SMEM_DEBUG
+   cout << "  Core::dcache Load ADDR: " << d_addr << ", SIZE: " << size << endl;
+#endif
+
+   if( g_knob_simarch_has_shared_mem ) { 
+      return memory_manager->initiateSharedMemReq(d_addr, size, READ); 
+   } else {
+      return ocache->runDCacheLoadModel(d_addr, size);
+   }
+}
 
 bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
-{ return memory_manager->runDCacheStoreModel(d_addr, size); }
+{ 
+   //FIXME
+   //return memory_manager->runDCacheStoreModel(d_addr, size);
+   return true;   
+}

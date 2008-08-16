@@ -2,32 +2,35 @@
 
 // definitions
 
-CAPI_return_t chipInit(void)
+CAPI_return_t chipInit(int *rank)
 {
+   THREADID pin_tid = PIN_ThreadId();
+
+   GetLock(&(g_chip->maps_lock), 1); 
+
+   map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
+
+   if ( e == g_chip->core_map.end() ) { 
+      g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
+      g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
+      *rank = g_chip->prev_rank; 
+      ++(g_chip->prev_rank);
+   }   
+   else {
+      *rank = e->second;
+   }
+   
+   ReleaseLock(&(g_chip->maps_lock));
+   
    return 0;
 };
 
 CAPI_return_t chipRank(int *rank)
 {
    THREADID pin_tid = PIN_ThreadId();
-
-   GetLock(&(g_chip->maps_lock), 1);
-
    map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
-
-   if ( e == g_chip->core_map.end() ) {
-      g_chip->tid_map[g_chip->prev_rank] = pin_tid;     
-      g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
-      *rank = g_chip->prev_rank; 
-      ++(g_chip->prev_rank);
-   }
-   else {
-      *rank = e->second;
-   }
-	
-   ReleaseLock(&(g_chip->maps_lock));
-
-   bool rank_ok = (*rank >= 0) & (*rank < g_chip->getNumModules());
+   *rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
+   bool rank_ok = (*rank < g_chip->getNumModules());
    if (!rank_ok) {
      //printf("Bad rank: %d @ %p\n", *rank, rank);
      LOG("Bad rank: " + decstr(*rank) + " @ ptr: " + hexstr(rank) + "\n");

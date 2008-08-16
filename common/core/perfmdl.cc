@@ -125,14 +125,14 @@ VOID PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
 
          // first use encountered so release scoreboard slot
          scoreboard[r] = k_PERFMDL_CYCLE_INVALID;
-         cout << "removed " << REG_StringShort(r) << " from scoreboard: " 
-              << cycle << endl;
+         //cout << "removed " << REG_StringShort(r) << " from scoreboard: " 
+         //     << cycle << endl;
       }
    } 
   
    if ( max != cycle_count ) {
-      cout << "stalled from " << cycle_count << " to " << max << " on " 
-           << REG_StringShort(max_reg) << endl;
+      // cout << "stalled from " << cycle_count << " to " << max << " on " 
+      //     << REG_StringShort(max_reg) << endl;
    }
 
    // stall for latest load dependency if needed
@@ -151,8 +151,8 @@ VOID PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
       for (UINT32 i = 0; i < numWrites; i++) {
          REG w = writes[i];
          scoreboard[w] = cycle_count + 100;  //FIXME: make this parameterizable
-         cout << "added " << REG_StringShort(w) << " to scoreboard: " 
-              << cycle_count << " + 100 = " << scoreboard[w] << endl;
+         // cout << "added " << REG_StringShort(w) << " to scoreboard: " 
+         //     << cycle_count << " + 100 = " << scoreboard[w] << endl;
       }
    }
 }

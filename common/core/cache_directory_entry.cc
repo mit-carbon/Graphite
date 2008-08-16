@@ -6,9 +6,9 @@ CacheDirectoryEntry::CacheDirectoryEntry() : cstate(CacheDirectoryEntry::INVALID
 CacheDirectoryEntry::~CacheDirectoryEntry()
 {}
 
-void setCState(c_state_t state)
+void CacheDirectoryEntry::setCState(cstate_t state)
 {
-   c_state = state;
+   cstate = state;
 }
 
 bool CacheDirectoryEntry::readable() {
@@ -21,6 +21,6 @@ bool CacheDirectoryEntry::writable() {
 
 void CacheDirectoryEntry::toString()
 {
-   cout << "state= " << cstate << endl;
-   return;
+  cout << "state= " << cstate << endl;
+  return;
 }

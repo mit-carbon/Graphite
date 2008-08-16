@@ -96,6 +96,11 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    return 0;
 }
 
+Network* Core::getNetwork()
+{
+  return network;
+}
+
 VOID Core::fini(int code, VOID *v, ofstream& out)
 {
    if ( g_knob_enable_performance_modeling )

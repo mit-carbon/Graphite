@@ -70,6 +70,9 @@ class Core
 
       int coreRecvW(int sender, int receiver, char *buffer, int size);
 
+      // network accessor since network is private
+      Network* getNetwork(void);
+
       VOID fini(int code, VOID *v, ofstream& out);
 	
 	inline VOID perfModelRun(PerfModelIntervalStat *interval_stats);

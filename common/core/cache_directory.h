@@ -7,10 +7,11 @@ class CacheDirectory
 {
 private:
 	int num_lines;
+	unsigned int bytes_per_cache_line;
 	CacheDirectoryEntry *cache_directory_entries;
 	
 public:
-	CacheDirectory(int num_lines);
+	CacheDirectory(int num_lines, unsigned int bytes_per_cache_line);
 	virtual ~CacheDirectory();
 	
 	CacheDirectoryEntry getEntry(int index);

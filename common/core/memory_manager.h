@@ -5,10 +5,21 @@
 #include <iostream>
 #include "assert.h"
 
+
+// some forward declarations for cross includes
+class Core;
+
+// TODO: this is a hack that is due to the fact that network.h 
+// is already included by the time this is handled, so NetPacket is 
+// never getting defined. Fine some more elegant way to solve this.
+typedef struct NetPacket NetPacket;
+
 #include "core.h"
 #include "ocache.h"
 #include "dram_directory.h"
 #include "cache_directory.h"
+#include "dram_directory_entry.h"
+#include "cache_directory_entry.h"
 #include "network.h"
 #include "address_home_lookup.h"
 
@@ -60,31 +71,33 @@
 
 extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem; 
 
+
+// TODO: move this into MemoryManager class?
 enum shmem_req_t {
-	READ, 
-	WRITE,
-	INVALIDATE,
-	NUM_STATES
+  READ, 
+  WRITE,
+  INVALIDATE,
+  NUM_STATES
 };
 
 class MemoryManager
 {
-private:
-    Core *the_core;
-	OCache *ocache;
-	DramDirectory *dram_dir;
-	CacheDirectory *cache_dir;
-    AddressHomeLookup *addr_home_lookup;
-	
-public:
-	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
-	virtual ~MemoryManager();
-	void initiateSharedMemReq(int address, shmem_req_t shmem_req_type);
-	void processSharedMemReq(NetPacket req_packet);
-	void processUnexpectedSharedMemUpdate(NetPacket update_packet);
-	bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
-	bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
-
+ private:
+  Core *the_core;
+  OCache *ocache;
+  DramDirectory *dram_dir;
+  CacheDirectory *cache_dir;
+  AddressHomeLookup *addr_home_lookup;
+  
+ public:
+  MemoryManager(Core *the_core_arg, OCache *ocache_arg);
+  virtual ~MemoryManager();
+  void initiateSharedMemReq(int address, shmem_req_t shmem_req_type);
+  void processSharedMemReq(NetPacket req_packet);
+  void processUnexpectedSharedMemUpdate(NetPacket update_packet);
+  bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
+  bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
+  
 };
 
 #endif

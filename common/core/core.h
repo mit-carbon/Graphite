@@ -75,32 +75,32 @@ class Core
 
       VOID fini(int code, VOID *v, ofstream& out);
 	
-	inline VOID perfModelRun(PerfModelIntervalStat *interval_stats);
+	VOID perfModelRun(PerfModelIntervalStat *interval_stats);
 	
-	inline VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
+	VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
 							 UINT32 num_reads);
 	
-	inline VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+	VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
 							 REG *writes, UINT32 num_writes);
 	
-	inline PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
+	PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
 														   const INS& start_ins, 
 														   const INS& end_ins);
 	
-	inline VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
+	VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
 	
-	inline VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
+	VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
 	
-	inline VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);
+	VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);
 	
 	
 	// organic cache wrappers
 	
-	inline bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
+	bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
 	
-	inline bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
+	bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
 	
-	inline bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+	bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 	
 };
 

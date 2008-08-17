@@ -105,7 +105,7 @@ class OCache
 
    private:
 
-      inline VOID resetIntervalCounters()
+      VOID resetIntervalCounters()
       {
          dcache_misses = 0;
          dcacheAccesses = 0;

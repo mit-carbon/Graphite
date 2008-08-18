@@ -164,14 +164,20 @@ bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 
 bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
-#ifdef SMEM_DEBUG
-   cout << "  Core::dcache Load ADDR: " << d_addr << ", SIZE: " << size << endl;
-#endif
-
    if( g_knob_simarch_has_shared_mem ) { 
-      return memory_manager->initiateSharedMemReq(d_addr, size, READ); 
+#ifdef SMEM_DEBUG
+	   cout << "  Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
+#endif
+	   bool ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
+#ifdef SMEM_DEBUG
+	   cout << "  COMPLETED: Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
+#endif
+	   return ret;
    } else {
-      return ocache->runDCacheLoadModel(d_addr, size);
+#ifdef SMEM_DEBUG
+	   cout << "  Core[" << getRank() << "]::dcache initiating NON-shared memory request (READ)" << endl;
+#endif
+	   return ocache->runDCacheLoadModel(d_addr, size);
    }
 }
 

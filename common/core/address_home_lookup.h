@@ -2,15 +2,16 @@
 #define ADDRESSHOMELOOKUP_H_
 
 #include "assert.h"
+#include "pin.H"
 
 class AddressHomeLookup
 {
 public:
-  AddressHomeLookup(unsigned int, unsigned int, unsigned int);
+  AddressHomeLookup(UINT32, UINT32, UINT32);
   virtual ~AddressHomeLookup();
   
   /* TODO: change this return type to a node number type */
-  unsigned int find_home_for_addr(unsigned int) const;
+  UINT32 find_home_for_addr(ADDRINT) const;
   
  private:
   unsigned int total_num_cache_lines;

@@ -10,6 +10,8 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	
 	//FIXME; need to add infrastructure for specifying core architecture details (e.g. DRAM size)
 	// this also assumes 1 dram per core
+
+	// TODO: fixme to allow this to scale to all of DRAM
 	
 	// assume 4GB / 64 bytes/line = 67108864 
 	int total_num_cache_lines = 67108864;
@@ -53,7 +55,7 @@ bool action_readily_permissable(CacheDirectoryEntry cache_dir_entry_arg, shmem_r
 
 
 //FIXME deal with the size argument (ie, rename the darn thing)
-bool MemoryManager::initiateSharedMemReq(int address, UINT32 size, shmem_req_t shmem_req_type)
+bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
    unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
@@ -91,8 +93,16 @@ bool MemoryManager::initiateSharedMemReq(int address, UINT32 size, shmem_req_t s
    while( !action_readily_permissable(cache_dir_entry, shmem_req_type) )
    {
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
-     int home_node_rank = addr_home_lookup->find_home_for_addr(address);
-     assert(home_node_rank >= 0 && home_node_rank < the_core->getNumCores());
+     UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
+
+	 
+#ifdef SMEM_DEBUG
+	 cout << "  MemoryManager[" << the_core->getRank() << "]:: home_node_rank for addr " << address << " = " << home_node_rank  << endl;
+#endif
+
+
+
+	 assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
 	   
 	   // TODO: optimize for case when home node is self? what are the assumptions about where DRAM exists?
 	   
@@ -133,7 +143,7 @@ bool MemoryManager::initiateSharedMemReq(int address, UINT32 size, shmem_req_t s
 	   
 	   assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	   
-	   int incoming_starting_addr = recv_payload[SH_MEM_UPDATE_IDX_ADDRESS];
+	   ADDRINT incoming_starting_addr = recv_payload[SH_MEM_UPDATE_IDX_ADDRESS];
 	   // TODO: remove starting addr from data. this is just in there temporarily to debug
 	   assert(incoming_starting_addr == address);
 	   

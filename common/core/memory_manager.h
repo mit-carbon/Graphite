@@ -92,7 +92,7 @@ class MemoryManager
  public:
   MemoryManager(Core *the_core_arg, OCache *ocache_arg);
   virtual ~MemoryManager();
-  bool initiateSharedMemReq(int address, UINT32 size, shmem_req_t shmem_req_type);
+  bool initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type);
   void processSharedMemReq(NetPacket req_packet);
   void processUnexpectedSharedMemUpdate(NetPacket update_packet);
 //  bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);

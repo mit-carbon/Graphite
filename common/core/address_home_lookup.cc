@@ -5,7 +5,7 @@ using namespace std;
 #include "address_home_lookup.h"
 
 
-AddressHomeLookup::AddressHomeLookup(unsigned int total_num_cache_lines_arg, unsigned int num_nodes_arg, unsigned int bytes_per_cache_line_arg)
+AddressHomeLookup::AddressHomeLookup(UINT32 total_num_cache_lines_arg, UINT32 num_nodes_arg, UINT32 bytes_per_cache_line_arg)
 {
   total_num_cache_lines = total_num_cache_lines_arg;
   num_nodes = num_nodes_arg;
@@ -36,7 +36,7 @@ AddressHomeLookup::~AddressHomeLookup()
 /*
  * Given an address, returns the home node number where the address's dram directory lives
  */
-unsigned int AddressHomeLookup::find_home_for_addr(unsigned int address) const {
+UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
   /* TODO: error check bound */
   
   /* TODO: something more sophisticated? */
@@ -48,6 +48,12 @@ unsigned int AddressHomeLookup::find_home_for_addr(unsigned int address) const {
   
 
   // TODO: check this index arithmetic
+
+#ifdef SMEM_DEBUG
+	cout << " find_home_for_address " << address << " bytes_per_cache_line = " << bytes_per_cache_line << " cache_lines_per_node " << endl;
+#endif
+
+	
   int dram_line = address / bytes_per_cache_line;
   return dram_line / cache_lines_per_node;
 }

@@ -19,10 +19,12 @@ pthread_mutex_t lock;
 void* do_nothing(void *threadid);
 
 
-int main(int argc, char* argv[]) {
+int main2(int argc, char* argv[]) {
   
+  cout << "Begin Main " << endl;
    int tid;
    CAPI_Initialize(&tid);
+  cout << " After CAPI Initialization " << endl;
    
    int size = 1;
    int array[size];
@@ -35,7 +37,7 @@ int main(int argc, char* argv[]) {
 }
 
 
-int main1(int argc, char* argv[]){ // main begins
+int main(int argc, char* argv[]){ // main begins
 
 	// Declare threads and related variables
 	pthread_t threads[2];
@@ -83,6 +85,8 @@ int main1(int argc, char* argv[]){ // main begins
 //spawned threads run this function
 void* do_nothing(void *threadid)
 {
+	int tid;
+	CAPI_Initialize(&tid);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);

@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 #include "assert.h"
-
+#include <math.h>
 
 // some forward declarations for cross includes
 class Core;

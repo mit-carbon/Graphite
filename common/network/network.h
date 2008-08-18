@@ -93,7 +93,9 @@ class Network{
       int netSend(NetPacket packet);
       NetPacket netRecv(NetMatch match);
       bool netQuery(NetMatch match);
-		
+	  //TODO make this a class with its own method cpc 
+	  void printNetPacket(NetPacket packet);  
+	  void printNetMatch(NetMatch match, int receiver);  
 };
 
 #endif

@@ -22,16 +22,38 @@ int Network::netInit(Chip *chip, int tid, int num_mod, Core *the_core_arg)
 
 int Network::netSend(NetPacket packet)
 {
+   cout << "  Network::netSend";
+   printNetPacket(packet);
+   
    char *buffer;
    
    // Perform network entry tasks
+   cout << "  Network: netSend -- calling netEntryTasks " << endl;
    netEntryTasks();
+   cout << "  Network: netSend -- finishd netEntryTasks " << endl;
    
    buffer = netCreateBuf(packet);
    transport->ptSend(packet.receiver, buffer, packet.length);
    return packet.length;
 }
 
+void Network::printNetPacket(NetPacket packet) {
+    cout << endl << " == Packet Print Out ==  " <<endl;
+	cout << "     Type     : " << packet.type << endl;
+	cout << "     sender   : " << packet.sender << endl;
+	cout << "     receiver : " << packet.receiver << endl;
+	cout << "     length   : " << packet.length << endl;
+	cout << "     data     : " << packet.data << endl << endl;
+}
+
+void Network::printNetMatch(NetMatch match, int receiver) {
+	cout << " == NetMatch Print Out == " << endl;
+	cout << "   packet type : " << match.type << endl;
+	cout << "   sender      : " << match.sender << endl;
+	cout << "   receiver    : " << receiver << endl;
+	cout << "   sender_flag : " << match.sender_flag << endl;
+	cout << "   type_flag   : " << match.type_flag << endl;
+}
 
 NetPacket Network::netRecv(NetMatch match)
 {
@@ -42,6 +64,11 @@ NetPacket Network::netRecv(NetMatch match)
    NetQueueEntry entry;
    bool loop;
 
+
+   cout << endl << " ** Network::netRecv ** " << endl;
+  
+  printNetMatch(match, net_tid);
+   
    loop = true;
 
    while(loop)
@@ -53,7 +80,9 @@ NetPacket Network::netRecv(NetMatch match)
       type = INVALID;
       
       // Perform network entry tasks
-      netEntryTasks();
+      cout << "  Network: netRecv-- calling netEntryTasks " << endl;
+	  netEntryTasks();
+      cout << "  Network: netRecv-- finished netEntryTasks " << endl;
 
       if(match.sender_flag && match.type_flag)
       {
@@ -136,6 +165,7 @@ NetPacket Network::netRecv(NetMatch match)
    the_chip->setProcTime(net_tid, (the_chip->getProcTime(net_tid) > entry.time) ? 
 		                   the_chip->getProcTime(net_tid) : entry.time);
 
+	cout << " ** Network: Leaving new Recv ** " << endl;
    return packet;
 };
 
@@ -149,7 +179,9 @@ bool Network::netQuery(NetMatch match)
    
    // HK
    // Perform network entry tasks
+   cout << "  Network: netQuery -- calling netEntryTasks " << endl;
    netEntryTasks(); 
+   cout << "  Network: netQuery -- finished netEntryTasks " << endl;
    
    if(match.sender_flag && match.type_flag)
    {
@@ -330,12 +362,14 @@ inline void Network::netEntryTasks()
    int sender;
    PacketType type;
    
+   cout << "  Network: netEntryTasks.... " << endl;
    // Pull up packets waiting in the physical transport layer
    while(transport->ptQuery())
    {
       buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
+
    }
    
    do
@@ -348,7 +382,7 @@ inline void Network::netEntryTasks()
       {
          if(!net_queue[i][SHARED_MEM_REQ].empty())
          {
-            if(entry.time > net_queue[i][SHARED_MEM_REQ].top().time)
+            if(entry.time >= net_queue[i][SHARED_MEM_REQ].top().time)
             {
               entry = net_queue[i][SHARED_MEM_REQ].top();
               sender = i;
@@ -361,7 +395,7 @@ inline void Network::netEntryTasks()
       {
          if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
          {
-            if(entry.time > net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time)
+            if(entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time)
             {
                entry = net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top();
                sender = i;
@@ -370,9 +404,11 @@ inline void Network::netEntryTasks()
          }
       }
 
-      cout << "Stuff " << endl;
 
-      if(type == SHARED_MEM_REQ)
+	cout << "SHARED_MEM_REQ= " << SHARED_MEM_REQ << endl; 
+    cout << "Packet Type is : " << type << endl; 
+
+	  if(type == SHARED_MEM_REQ)
       {
          net_queue[sender][type].pop();
          // FIXME:
@@ -380,14 +416,14 @@ inline void Network::netEntryTasks()
          // This function invocation should be replaced by something along the lines of
          // shared_mem_obj->processSharedMemReq(entry.packet)
          
-        cout << "Hello World " << endl; 
+        cout << "Hello World from NetSend, shared mem req" << endl; 
 #ifdef SMEM_DEBUG
-         cout << "   core(" << net_tid << ") received shared memory request. " << endl;
+         cout << "   Network: core(" << net_tid << ") received shared memory request. " << endl;
 #endif
          the_core->getMemoryManager()->processSharedMemReq(entry.packet);
 
 #ifdef SMEM_DEBUG
-         cout << "   core(" << net_tid << ") finished processing shared memory request. " << endl;
+         cout << "   Network: core(" << net_tid << ") finished processing shared memory request. " << endl;
 #endif
       
       }
@@ -402,6 +438,7 @@ inline void Network::netEntryTasks()
       }
 
    } while(type != INVALID);
+	
 }
 
 

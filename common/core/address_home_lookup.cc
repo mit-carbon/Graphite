@@ -9,6 +9,10 @@ AddressHomeLookup::AddressHomeLookup(UINT32 total_num_cache_lines_arg, UINT32 nu
 {
   total_num_cache_lines = total_num_cache_lines_arg;
   num_nodes = num_nodes_arg;
+  
+  cout << "total num cache lines: " << total_num_cache_lines << endl;
+  cout << "Num_Nodes: " << num_nodes << endl;
+
   cache_lines_per_node = total_num_cache_lines / num_nodes;
   bytes_per_cache_line = bytes_per_cache_line_arg;
 
@@ -49,11 +53,19 @@ UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
 
   // TODO: check this index arithmetic
 
+//BUG: bytes_per_cache_line is 32 bytes, not 64
 #ifdef SMEM_DEBUG
-	cout << " find_home_for_address " << address << " bytes_per_cache_line = " << bytes_per_cache_line << " cache_lines_per_node " << endl;
+	cout << " AHL: find_home_for_address  =" << address << endl;
+	printf(" AHL: find_home_for_address  = %x\n" ,address);
+	cout << " AHL: bytes_per_cache_line   = " << bytes_per_cache_line << endl;
+	cout << " AHL: cache_lines_per_node   = " << cache_lines_per_node << endl;
 #endif
 
 	
   int dram_line = address / bytes_per_cache_line;
-  return dram_line / cache_lines_per_node;
+  UINT32 return_core_id = dram_line / cache_lines_per_node;
+
+	assert( return_core_id < num_nodes);
+	return return_core_id;
+//	return 0; //force it to home DRAM on core #1 TODO
 }

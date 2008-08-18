@@ -13,8 +13,10 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
 	// TODO: fixme to allow this to scale to all of DRAM
 	
-	// assume 4GB / 64 bytes/line = 67108864 
-	int total_num_cache_lines = 67108864;
+	// assume 4GB / dCacheLineSize  bytes/line 
+	
+	//setting this to pow(2,32) (4GB) causes PIN to throw an outofmemory error
+	int total_num_cache_lines = (int) (pow(2,32) / ocache->dCacheLineSize()); 
 	
 	int dram_lines_per_core = total_num_cache_lines / the_core->getNumCores();
 	assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_cache_lines );
@@ -23,7 +25,7 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
    assert( ocache != NULL );
 	int num_cache_lines_per_core = ocache->dCacheSize() / ocache->dCacheLineSize();
 
-	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize());
+	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank());
 	cache_dir = new CacheDirectory(num_cache_lines_per_core, ocache->dCacheLineSize());
 	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->getNumCores(), ocache->dCacheLineSize());
 }

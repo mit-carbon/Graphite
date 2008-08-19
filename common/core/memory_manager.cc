@@ -1,6 +1,4 @@
-
-
-
+#include "debug.h"
 #include "memory_manager.h"
 
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
@@ -99,11 +97,17 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 
 	 
 #ifdef SMEM_DEBUG
-	 cout << "  MemoryManager[" << the_core->getRank() << "]:: home_node_rank for addr " << address << " = " << home_node_rank  << endl;
+
+
+	char value_str[20];
+	char line[80];
+	sprintf(value_str, "%x", address); //convert int to string (with hex formatting)
+	sprintf(line, "address           : %s\n", value_str);
+
+	 debugPrint(the_core->getRank(), "MMU", line);
+	 debugPrint(the_core->getRank(), "MMU", "home_node_rank ", home_node_rank);
 #endif
-
-
-
+	 
 	 assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
 	   
 	   // TODO: optimize for case when home node is self? what are the assumptions about where DRAM exists?
@@ -170,11 +174,10 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
  */
 
 void MemoryManager::processSharedMemReq(NetPacket req_packet) {
-	
-  cout << "Hello from procesSharedMemRequst " << endl;
 
+ cout << "Hello in MMU process SharedMemReq" << endl;
 #ifdef SMEM_DEBUG
-  cout << "   MMU: processing shared mem request " << endl;
+  debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
 #endif
    
    
@@ -325,7 +328,10 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
  */ 
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   
-  // verify packet type is correct
+ debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate");
+ 
+ 
+ // verify packet type is correct
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
   
   // extract relevant values from incoming request packet

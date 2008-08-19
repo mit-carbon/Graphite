@@ -1,4 +1,5 @@
 #include "core.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -14,7 +15,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
-      cout << "Core[" << tid << "]: instantiated performance model" << endl;
+      debugPrint(tid, "Core", "instantiated performance model");
    } else 
    {
       perf_model = (PerfModel *) NULL;    
@@ -38,7 +39,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_associativity.Value(),
                           g_knob_icache_max_search_depth.Value());                        
 
-      cout << "Core[" << tid << "]: instantiated organic cache model" << endl;
+      debugPrint(tid, "Core", "instantiated organic cache model");
       cout << ocache->statsLong() << endl;
   
    
@@ -166,16 +167,19 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
    if( g_knob_simarch_has_shared_mem ) { 
 #ifdef SMEM_DEBUG
-	   cout << "  Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
+//	   cout << "  Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
+       debugPrint(getRank(), "Core", "dcache initiating shared memory request (READ)");
 #endif
 	   bool ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
 #ifdef SMEM_DEBUG
-	   cout << "  COMPLETED: Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
+//	   cout << "  COMPLETED: Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
+       debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (READ)");
 #endif
 	   return ret;
    } else {
 #ifdef SMEM_DEBUG
-	   cout << "  Core[" << getRank() << "]::dcache initiating NON-shared memory request (READ)" << endl;
+//	   cout << "  Core[" << getRank() << "]::dcache initiating NON-shared memory request (READ)" << endl;
+       debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
 #endif
 	   return ocache->runDCacheLoadModel(d_addr, size);
    }

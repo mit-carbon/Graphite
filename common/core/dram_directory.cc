@@ -25,14 +25,15 @@ DramDirectory::~DramDirectory()
 DramDirectoryEntry DramDirectory::getEntry(ADDRINT address)
 {
   // note: the directory is an array indexed by cache line. so, first we need to determine the associated cache line
-  
-  
-	cout << " DRAM_DIR: getEntry: address        = " << address << endl;
-
   UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
+  
+#ifdef DRAM_DEBUG
+  cout << " DRAM_DIR: getEntry: address        = " << address << endl;
   cout << " DRAM_DIR: getEntry: bytes_per_$line= " << bytes_per_cache_line << endl;
   cout << " DRAM_DIR: getEntry: cachline_index = " << cache_line_index << endl;
   cout << " DRAM_DIR: getEntry: number of lines= " << num_lines << endl;
+#endif
+  
   assert( cache_line_index < num_lines);
   assert( cache_line_index >= 0);
   return dram_directory_entries[cache_line_index];

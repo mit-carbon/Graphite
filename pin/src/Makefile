@@ -1,8 +1,9 @@
 include ../../common/makefile.gnu.config
+include ../../common/makefile.debug
 
 DBG=-g
 OPT=-O2
-CFLAGS=-c -I../../common/user -I../../common/core -I../../common/network -I../../common/phys_trans -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CFLAGS+=-c -I../../common/user -I../../common/core -I../../common/network -I../../common/phys_trans -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
 TOOL_ROOTS = ../bin/pin_sim

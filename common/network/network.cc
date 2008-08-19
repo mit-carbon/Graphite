@@ -1,4 +1,5 @@
 #include "network.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -22,15 +23,16 @@ int Network::netInit(Chip *chip, int tid, int num_mod, Core *the_core_arg)
 
 int Network::netSend(NetPacket packet)
 {
-   cout << "  Network::netSend";
+//   cout << "[" << net_tid <<"] Network::netSend for Network #"; 
+	debugPrint(net_tid, "Network", "netSend Begin");
    printNetPacket(packet);
    
    char *buffer;
    
    // Perform network entry tasks
-   cout << "  Network: netSend -- calling netEntryTasks " << endl;
+   debugPrint(net_tid, "Network", "netSend -calling netEntryTasks");
    netEntryTasks();
-   cout << "  Network: netSend -- finishd netEntryTasks " << endl;
+   debugPrint(net_tid, "Network", "netSend -finished netEntryTasks");
    
    buffer = netCreateBuf(packet);
    transport->ptSend(packet.receiver, buffer, packet.length);
@@ -38,21 +40,24 @@ int Network::netSend(NetPacket packet)
 }
 
 void Network::printNetPacket(NetPacket packet) {
-    cout << endl << " == Packet Print Out ==  " <<endl;
+	cout << endl;
+    debugPrint(net_tid, "Network", "Packet Print Out ####################");
 	cout << "     Type     : " << packet.type << endl;
 	cout << "     sender   : " << packet.sender << endl;
 	cout << "     receiver : " << packet.receiver << endl;
-	cout << "     length   : " << packet.length << endl;
-	cout << "     data     : " << packet.data << endl << endl;
+	printf( "     address  : 0x%x\n\n" ,((int *)(packet.data))[SH_MEM_REQ_IDX_ADDR] );
+//	cout << "     length   : " << packet.length << endl;
+//	cout << "     data     : " << packet.data << endl << endl;
 }
 
 void Network::printNetMatch(NetMatch match, int receiver) {
-	cout << " == NetMatch Print Out == " << endl;
+	cout << endl;
+    debugPrint(net_tid, "Network", "Packet Print Out ==Match== ***********");
 	cout << "   packet type : " << match.type << endl;
 	cout << "   sender      : " << match.sender << endl;
-	cout << "   receiver    : " << receiver << endl;
-	cout << "   sender_flag : " << match.sender_flag << endl;
-	cout << "   type_flag   : " << match.type_flag << endl;
+	cout << "   receiver    : " << receiver << endl << endl;
+//	cout << "   sender_flag : " << match.sender_flag << endl;
+//	cout << "   type_flag   : " << match.type_flag << endl << endl;
 }
 
 NetPacket Network::netRecv(NetMatch match)
@@ -64,8 +69,7 @@ NetPacket Network::netRecv(NetMatch match)
    NetQueueEntry entry;
    bool loop;
 
-
-   cout << endl << " ** Network::netRecv ** " << endl;
+   debugPrint(net_tid, "Network", "netRecv starting...");
   
   printNetMatch(match, net_tid);
    
@@ -80,9 +84,9 @@ NetPacket Network::netRecv(NetMatch match)
       type = INVALID;
       
       // Perform network entry tasks
-      cout << "  Network: netRecv-- calling netEntryTasks " << endl;
+	  debugPrint(net_tid, "Network", "netRecv -calling netEntryTasks");
 	  netEntryTasks();
-      cout << "  Network: netRecv-- finished netEntryTasks " << endl;
+	  debugPrint(net_tid, "Network", "netRecv -finished netEntryTasks");
 
       if(match.sender_flag && match.type_flag)
       {
@@ -153,7 +157,9 @@ NetPacket Network::netRecv(NetMatch match)
       
       if(loop)
       {
-         buffer = transport->ptRecv();
+         debugPrint(net_tid, "Network", "netRecv: calling transport->ptRecv");
+		 buffer = transport->ptRecv();
+		 debugPrint(net_tid, "Network", "netRecv: finished transport->ptRecv");
 	      Network::netExPacket(buffer, entry.packet, entry.time);
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
       }
@@ -165,7 +171,8 @@ NetPacket Network::netRecv(NetMatch match)
    the_chip->setProcTime(net_tid, (the_chip->getProcTime(net_tid) > entry.time) ? 
 		                   the_chip->getProcTime(net_tid) : entry.time);
 
-	cout << " ** Network: Leaving new Recv ** " << endl;
+   printNetPacket(packet);
+   debugPrint(net_tid, "Network", "netRecv - leaving");
    return packet;
 };
 
@@ -179,9 +186,9 @@ bool Network::netQuery(NetMatch match)
    
    // HK
    // Perform network entry tasks
-   cout << "  Network: netQuery -- calling netEntryTasks " << endl;
+   debugPrint(net_tid, "Network", "netQuery -calling netEntryTasks");
    netEntryTasks(); 
-   cout << "  Network: netQuery -- finished netEntryTasks " << endl;
+   debugPrint(net_tid, "Network", "netQuery -finished netEntryTasks");
    
    if(match.sender_flag && match.type_flag)
    {
@@ -362,7 +369,7 @@ inline void Network::netEntryTasks()
    int sender;
    PacketType type;
    
-   cout << "  Network: netEntryTasks.... " << endl;
+   debugPrint(net_tid, "Network", "netEntryTasks start....");
    // Pull up packets waiting in the physical transport layer
    while(transport->ptQuery())
    {
@@ -404,10 +411,6 @@ inline void Network::netEntryTasks()
          }
       }
 
-
-	cout << "SHARED_MEM_REQ= " << SHARED_MEM_REQ << endl; 
-    cout << "Packet Type is : " << type << endl; 
-
 	  if(type == SHARED_MEM_REQ)
       {
          net_queue[sender][type].pop();
@@ -416,14 +419,13 @@ inline void Network::netEntryTasks()
          // This function invocation should be replaced by something along the lines of
          // shared_mem_obj->processSharedMemReq(entry.packet)
          
-        cout << "Hello World from NetSend, shared mem req" << endl; 
 #ifdef SMEM_DEBUG
-         cout << "   Network: core(" << net_tid << ") received shared memory request. " << endl;
+         debugPrint(net_tid, "Network", "core received shared memory request.");
 #endif
          the_core->getMemoryManager()->processSharedMemReq(entry.packet);
 
 #ifdef SMEM_DEBUG
-         cout << "   Network: core(" << net_tid << ") finished processing shared memory request. " << endl;
+         debugPrint(net_tid, "Network", "core finished processing shared memory request.");
 #endif
       
       }

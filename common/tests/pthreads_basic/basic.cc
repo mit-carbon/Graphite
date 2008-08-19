@@ -8,6 +8,9 @@ using namespace std;
 
 pthread_mutex_t write_lock;
 
+int global_integer;
+int* global_integer_ptr;
+
 #define DEBUG 1
 
 #ifdef DEBUG
@@ -18,6 +21,9 @@ pthread_mutex_t lock;
 // Function executed by each thread
 void* do_nothing(void *threadid);
 
+//pintool will ONLY instrument this function (hopefully)
+//int instrument_me(int tid, int* ptr);
+void instrument_me();
 
 int main2(int argc, char* argv[]) {
   
@@ -85,6 +91,12 @@ int main(int argc, char* argv[]){ // main begins
 //spawned threads run this function
 void* do_nothing(void *threadid)
 {
+#ifdef DEBUG  
+   pthread_mutex_lock(&lock);
+   cout << "beginning of do_nothing function" << endl << endl;
+   pthread_mutex_unlock(&lock);
+#endif
+   
 	int tid;
 	CAPI_Initialize(&tid);
 
@@ -94,7 +106,41 @@ void* do_nothing(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
    
+   int size = 1;
+   global_integer = 10;
+   global_integer_ptr = &global_integer;
+   if(tid==0) {
+		pthread_mutex_lock(&lock);
+		cout << "Core: " << tid << " being instrumented." << endl;
+		cout << "size addr: " << &size << endl;
+		cout << "gint addr: " << &global_integer << endl;
+		cout << "gint_ptr : " << global_integer_ptr << endl;
+		pthread_mutex_unlock(&lock);
+//		instrument_me(tid, &size);
+		instrument_me();
+		pthread_mutex_lock(&lock);
+		cout << "Core: " << tid << " finished instrumenting." << endl;
+		pthread_mutex_unlock(&lock);
+   } else {
+		pthread_mutex_lock(&lock);
+		cout << "Core: " << tid << " not being instrumented." << endl;
+		instrument_me();
+		pthread_mutex_unlock(&lock);
+   }
    pthread_exit(NULL);  
    // return 0;
 }
 
+//int instrument_me(int tid, int* ptr) 
+void instrument_me()
+{
+//   int size = *global_integer_ptr; //*ptr;
+
+//   cout << "inside instrument me" << endl;
+//   int array[size];
+
+//   for(int i=0; i < size; i++) {
+//      array[i] = i;
+//   }
+//   return tid;
+}

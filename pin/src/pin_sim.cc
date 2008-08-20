@@ -464,6 +464,11 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    else if(name == "CAPI_message_receive_w"){
       return AFUNPTR(chipRecvW);
    }
+   //FIXME added by cpc as a hack to get around calling Network for finished cores
+   else if(name == "_Z11CAPI_Finishi"){
+      cout << "replacing CAPI_Finish" << endl;
+	  return AFUNPTR(chipHackFinish);
+   }
    return NULL;
 }
 
@@ -482,7 +487,8 @@ VOID routine(RTN rtn, VOID *v)
       RTN_Replace(rtn, msg_ptr);
    } 
 //   else if(rtn_name != "_Z13instrument_meiPi") { //INSTRUMENTED_FUNCTION) {
-   else if(rtn_name != "_Z13instrument_mev") { //INSTRUMENTED_FUNCTION) {
+//   else if(rtn_name != "_Z13instrument_mev") { //INSTRUMENTED_FUNCTION) {
+   else if(rtn_name != "_Z13instrument_mei") { //INSTRUMENTED_FUNCTION) {
 	//don't do anything
    } 
    else 

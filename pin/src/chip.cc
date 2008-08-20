@@ -66,8 +66,19 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 {
    return g_chip->core[receiver].coreRecvW(sender, receiver, buffer, size);
 }
+ //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
+CAPI_return_t chipHackFinish(int my_rank)
+{
+	cout << "FINISHED: CORE [" << my_rank << "] " << endl;
+	bool volatile finished = false;
+	while(!finished) {
+		g_chip->core[my_rank].getNetwork()->netCheckMessages();
+		//sleep? and conditionally check if we should end loop?
+		//
+	}
 
-
+   return 0;
+}
 // performance model wrappers
 
 VOID perfModelRun(PerfModelIntervalStat *interval_stats)

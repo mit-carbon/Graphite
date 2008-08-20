@@ -175,7 +175,6 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 
 void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 
- cout << "Hello in MMU process SharedMemReq" << endl;
 #ifdef SMEM_DEBUG
   debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
 #endif
@@ -366,7 +365,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 // TODO: implement me
 bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
 {
-  cout << "TODO: implement me: MemoryManager.cc issueDramRequest";
+  cout << "TODO: implement me: MemoryManager.cc issueDramRequest"<< endl;
   return true;
 }
 

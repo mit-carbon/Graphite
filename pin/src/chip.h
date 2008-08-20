@@ -38,7 +38,7 @@ CAPI_return_t chipSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 
 CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                         char *buffer, int size);
-
+CAPI_return_t chipHackFinish(int my_rank);
 
 // performance model wrappers
 
@@ -81,7 +81,11 @@ class Chip
 
       friend CAPI_return_t chipInit(int *rank); 
       friend CAPI_return_t chipRank(int *rank);
-      friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
+      
+	  //FIXME: this is a hack function 
+	  friend CAPI_return_t chipHackFinish(int my_rank);
+      
+	  friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
                                      CAPI_endpoint_t receiver, char *buffer, 
                                      int size);
       friend CAPI_return_t chipRecvW(CAPI_endpoint_t sender, 

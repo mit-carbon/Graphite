@@ -21,6 +21,11 @@ int Network::netInit(Chip *chip, int tid, int num_mod, Core *the_core_arg)
    return 0;
 }
 
+void Network::netCheckMessages()
+{
+	netEntryTasks();
+}
+
 int Network::netSend(NetPacket packet)
 {
 //   cout << "[" << net_tid <<"] Network::netSend for Network #"; 
@@ -369,7 +374,7 @@ inline void Network::netEntryTasks()
    int sender;
    PacketType type;
    
-   debugPrint(net_tid, "Network", "netEntryTasks start....");
+//   debugPrint(net_tid, "Network", "netEntryTasks start....");
    // Pull up packets waiting in the physical transport layer
    while(transport->ptQuery())
    {

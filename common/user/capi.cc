@@ -33,3 +33,13 @@ CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t send_endpoint, CAPI_endpoin
    cout << "Running Application Without Pintool in Uniprocessor mode" << endl;
    return 0; 
 }
+
+
+//FIXME this is a hacked stub to get around network/message issue
+CAPI_return_t CAPI_Finish(int my_rank)
+{
+
+ return 0;
+}
+
+

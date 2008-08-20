@@ -23,5 +23,7 @@ extern "C" {
    CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t send_endpoint, CAPI_endpoint_t receive_endpoint, 
                                         char * buffer, int size);
 }
-
+	
+	//FIXME this is a temp hack function
+	CAPI_return_t CAPI_Finish(int my_rank);
 #endif

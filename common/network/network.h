@@ -93,7 +93,10 @@ class Network{
       int netSend(NetPacket packet);
       NetPacket netRecv(NetMatch match);
       bool netQuery(NetMatch match);
-	  //TODO make this a class with its own method cpc 
+	  //checkMessages is a hack to force core to check its messages cpc (can we use an interrupt to call it?
+	  //FIXME
+	  void netCheckMessages();
+	  //TODO make these debug prints  a class with its own method? cpc 
 	  void printNetPacket(NetPacket packet);  
 	  void printNetMatch(NetMatch match, int receiver);  
 };

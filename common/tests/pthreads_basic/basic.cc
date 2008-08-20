@@ -23,7 +23,7 @@ void* do_nothing(void *threadid);
 
 //pintool will ONLY instrument this function (hopefully)
 //int instrument_me(int tid, int* ptr);
-void instrument_me();
+void instrument_me(int tid);
 
 int main2(int argc, char* argv[]) {
   
@@ -116,15 +116,21 @@ void* do_nothing(void *threadid)
 		cout << "gint addr: " << &global_integer << endl;
 		cout << "gint_ptr : " << global_integer_ptr << endl;
 		pthread_mutex_unlock(&lock);
-//		instrument_me(tid, &size);
-		instrument_me();
+		
+		instrument_me(tid);
+		
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
    } else {
 		pthread_mutex_lock(&lock);
-		cout << "Core: " << tid << " not being instrumented." << endl;
-		instrument_me();
+		cout << "Core: " << tid << " being instrumented." << endl;
+		pthread_mutex_unlock(&lock);
+
+		instrument_me(tid);
+		
+		pthread_mutex_lock(&lock);
+		cout << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
    }
    pthread_exit(NULL);  
@@ -132,7 +138,7 @@ void* do_nothing(void *threadid)
 }
 
 //int instrument_me(int tid, int* ptr) 
-void instrument_me()
+void instrument_me(int tid)
 {
 //   int size = *global_integer_ptr; //*ptr;
 
@@ -143,4 +149,7 @@ void instrument_me()
 //      array[i] = i;
 //   }
 //   return tid;
+    cout << "Core [" << tid << "] Finished with Instrumenting Me " << endl;
+	CAPI_Finish(tid);
 }
+

@@ -441,7 +441,9 @@ inline void Network::netEntryTasks()
          // processUnexpectedSharedMemUpdate will be a memeber function of the shared memory object
          // This function invocation should be replaced by something along the lines of
          // shared_mem_obj->processUnexpectedSharedMemUpdate(entry.packet)
-         processUnexpectedSharedMemUpdate(entry.packet);
+         //processUnexpectedSharedMemUpdate(entry.packet);
+		 //TODO for cpc, do code review of below MMU function
+         the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
       }
 
    } while(type != INVALID);
@@ -452,9 +454,9 @@ inline void Network::netEntryTasks()
 // FIXME:
 // Only here for debugging
 // To be removed as soon as Jim plugs his function in
-void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
-{
+//void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
+//{
    // Do nothing
    // Only for debugging
    // Jim will provide the correct methods for this in the shared memory object
-};
+//};

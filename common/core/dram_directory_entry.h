@@ -7,6 +7,8 @@
 #include <iostream>
 
 #include "assert.h"
+#include "utils.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -21,25 +23,31 @@ class DramDirectoryEntry
   };
   
   DramDirectoryEntry();
+  DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_cores);
   virtual ~DramDirectoryEntry();
   
   dstate_t getDState();
   void setDState(dstate_t new_dstate);
   
-  bool addSharer(unsigned int sharer_rank);
-  void addExclusiveSharer(unsigned int sharer_rank);
+  bool addSharer(UINT32 sharer_rank);
+  void addExclusiveSharer(UINT32 sharer_rank);
   
   int numSharers();
-  unsigned int getExclusiveSharerRank();
-  vector<unsigned int>::iterator getSharersIterator();
-  vector<unsigned int>::iterator getSharersSentinel(); // useful for a sentinel value in iterators
-  
+  UINT32 getExclusiveSharerRank();
+	
+	vector<UINT32> getSharersList();
+
   //FIXME: return string (don't cout)
-  void toString();
+  void dirDebugPrint();
   
  private:
   dstate_t dstate;
-  vector<unsigned int> sharers;
+  BitVector* sharers;
+  UINT32 number_of_sharers;
+  UINT32 exclusive_sharer_rank;
+  UINT32 cache_line_address;	//only here for debugging purposes (its nice to know it)
+										//(address / cache_line_size) = cache_line_address
+										//called cache_line_index, and used as the key to find this entry
   
 };
 

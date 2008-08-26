@@ -187,7 +187,7 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 
 bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 { 
-   //FIXME
-   //return memory_manager->runDCacheStoreModel(d_addr, size);
+   //FIXME TODO for cpc, enable store model 
+//   return memory_manager->runDCacheStoreModel(d_addr, size);
    return true;   
 }

@@ -1,6 +1,7 @@
 # this file should contain DEBUG flags
-CFLAGS += -DSMEM_DEBUG=1 #blanket shared memory debug flag
+#CFLAGS += -DSMEM_DEBUG=1 #blanket shared memory debug flag
 #CFLAGS += -DAHL_DEBUG  #address_home_lookup
 #CFLAGS += -DCDIR_DEBUG #cache_directory
-CFLAGS += -DNETWORK_DEBUG #network.cc
+#CFLAGS += -DDRAM_DEBUG #Dram_directory
+#CFLAGS += -DNETWORK_DEBUG #network.cc
 CFLAGS += -DINSTRUMENTED_FUNCTION="\"instrument_me\""

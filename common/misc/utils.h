@@ -11,7 +11,9 @@
 #include <vector>
 #include <assert.h>
 #include <sstream>
+#include <iostream>
 
+using namespace std;
 
 /* ================================================================ */
 /* Utility function declarations */
@@ -49,12 +51,15 @@ INT32 ceilLog2(UINT32 n);
 /* ================================================================ */ 
 
 
-#define BITVECT_DEBUG 0
+#define BITVECT_DEBUG 1
 
 class BitVector {
    private:
       UINT32 size;
       vector<UINT64> words;
+      INT32 last_pos; //used in find function, for iterating through the set bits
+							  //marks the position of the last set bit found.
+							  //value of -1 means no last_pos bit 
 
    public:
 
@@ -62,9 +67,23 @@ class BitVector {
       void debug();
       #endif
 
-      BitVector(UINT32 bits): size(bits), words( (bits + 64 - 1) >> 6 ) { }
+		BitVector(UINT32 bits): size(bits), words( (bits + 64 - 1) >> 6 ), last_pos(-1) {} 
 
-      UINT32 getSize() { return size; }
+		//starting from position 'last_pos', find the next "1" bit. 
+		//private variable 'last_pos' remembers the last position found,
+		//allowing subsequent calls to "find" to effectively iterate
+		//through the entire BitVector
+		//returns -1 if no bits set (after last_pos)
+		
+		INT32 find();
+	
+		bool resetFind();
+		
+		//given an 8bit word, test to see if 'bit' is set
+		//this is a helper function to the "find" function
+		bool bTestBit(UINT8 word, UINT32 bit);
+
+		UINT32 getSize() { return size; }
 
       void reset();
 

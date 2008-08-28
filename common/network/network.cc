@@ -46,23 +46,41 @@ int Network::netSend(NetPacket packet)
 
 void Network::printNetPacket(NetPacket packet) {
 	cout << endl;
-    debugPrint(net_tid, "Network", "Packet Print Out ####################");
-	cout << "     Type     : " << packet.type << endl;
-	cout << "     sender   : " << packet.sender << endl;
-	cout << "     receiver : " << packet.receiver << endl;
-	printf( "     address  : 0x%x\n\n" ,((int *)(packet.data))[SH_MEM_REQ_IDX_ADDR] );
-//	cout << "     length   : " << packet.length << endl;
-//	cout << "     data     : " << packet.data << endl << endl;
+	cout << "  [" << net_tid << "] Network Packet (0x" << hex << ((int *) (packet.data))[SH_MEM_REQ_IDX_ADDR] 
+		<< ") (" << packet.sender << " -> " << packet.receiver 
+		<< ") -- Type: " << packetTypeToString(packet.type) << " ++++" << endl << endl;
 }
 
 void Network::printNetMatch(NetMatch match, int receiver) {
 	cout << endl;
-    debugPrint(net_tid, "Network", "Packet Print Out ==Match== ***********");
-	cout << "   packet type : " << match.type << endl;
-	cout << "   sender      : " << match.sender << endl;
-	cout << "   receiver    : " << receiver << endl << endl;
+	cout << "  [" << net_tid << "] Network Match " 
+		<< match.sender << " -> " << receiver 
+		<< " SenderFlag: " << match.sender_flag
+		<< " Type: " << packetTypeToString(match.type)
+		<< " TypeFlag: " << match.type_flag 
+		<< "----" << endl << endl;
+	
 //	cout << "   sender_flag : " << match.sender_flag << endl;
 //	cout << "   type_flag   : " << match.type_flag << endl << endl;
+}
+
+string Network::packetTypeToString(PacketType type) 
+{
+	switch(type) {
+		case INVALID:
+			return "INVALID                     ";
+		case USER:
+			return "USER                        ";
+		case SHARED_MEM_REQ:
+			return "SHARED_MEM_REQ              ";
+		case SHARED_MEM_UPDATE_EXPECTED:
+			return "SHARED_MEM_UPDATE_EXPECTED  ";
+		case SHARED_MEM_UPDATE_UNEXPECTED:
+			return "SHARED_MEM_UPDATE_UNEXPECTED";
+		case SHARED_MEM_ACK:
+			return "SHARED_MEM_ACK              ";
+	}
+	return "ERROR in PacketTypeToString";
 }
 
 NetPacket Network::netRecv(NetMatch match)

@@ -1,6 +1,6 @@
 #include "dram_directory_entry.h"
 
-DramDirectoryEntry::DramDirectoryEntry(): dstate(UNCACHED), number_of_sharers(0), exclusive_sharer_rank(0), cache_line_address(0)
+DramDirectoryEntry::DramDirectoryEntry(): dstate(UNCACHED), number_of_sharers(0), exclusive_sharer_rank(0), memory_line_address(0)
 {
 }                                                                          
 
@@ -8,7 +8,7 @@ DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_
 																													dstate(UNCACHED),
 																													number_of_sharers(0),
 																													exclusive_sharer_rank(0),
-																													cache_line_address(cache_line_addr)
+																													memory_line_address(cache_line_addr)
 {
 	sharers = new BitVector(number_of_cores);
 }                                                                          
@@ -79,15 +79,18 @@ vector<UINT32> DramDirectoryEntry::getSharersList()
 
 	int new_sharer = -1;
 
-	cout << "  Getting Sharers List: (";
+//	cout << "  Getting Sharers List<size= " << number_of_sharers << " > : (";
 	
+	int i = 0;
 	while( (new_sharer = sharers->find()) != -1) {
-		cout << new_sharer << " ,  ";
+//		cout << new_sharer << " ,  ";
       //is [ ] accessor faster?
-		sharers_list.push_back(new_sharer);
+//		sharers_list.push_back(new_sharer);
+		sharers_list[i] = new_sharer;
+		++i;
 	}
 	
-	cout << ") " << endl;
+//	cout << ") " << endl;
 	return sharers_list;
 }
 

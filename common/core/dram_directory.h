@@ -18,6 +18,9 @@ class DramDirectory
   DramDirectory(UINT32 num_lines, UINT32 bytes_per_cache_line, UINT32 dram_id_arg, UINT32 num_of_cores);
   virtual ~DramDirectory();
   DramDirectoryEntry* getEntry(ADDRINT address);
+  
+  //for debug purposes
+  void print();
 };
 
 #endif

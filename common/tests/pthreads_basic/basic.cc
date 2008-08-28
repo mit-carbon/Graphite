@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){ // main begins
 #endif
 
       pthread_create(&threads[0], &attr, do_nothing, (void *) 0);    
-//      pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
+      pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
 
 #ifdef DEBUG
    pthread_mutex_lock(&lock);
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]){ // main begins
 
 	// Wait for all threads to complete
         pthread_join(threads[0], NULL);         
-//        pthread_join(threads[1], NULL);
+        pthread_join(threads[1], NULL);
 
 #ifdef DEBUG
 	cout << "End of execution" << endl << endl;
@@ -116,7 +116,7 @@ void* do_nothing(void *threadid)
 		cout << "gint addr: " << &global_integer << endl;
 		cout << "gint_ptr : " << global_integer_ptr << endl;
 		pthread_mutex_unlock(&lock);
-		
+
 		instrument_me(tid);
 		
 		pthread_mutex_lock(&lock);
@@ -138,6 +138,8 @@ void* do_nothing(void *threadid)
    // return 0;
 }
 
+
+
 //int instrument_me(int tid, int* ptr) 
 void instrument_me(int tid)
 {
@@ -151,6 +153,5 @@ void instrument_me(int tid)
 //   }
 //   return tid;
     cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
-//	CAPI_Finish(tid);
 }
 

@@ -38,6 +38,7 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
 	printf(" DRAM_DIR: getEntry: address        = 0x %x\n" ,address );
 	cout << " DRAM_DIR: getEntry: bytes_per_$line= " << bytes_per_cache_line << endl;
 	cout << " DRAM_DIR: getEntry: cachline_index = " << cache_line_index << endl;
+	cout << " DRAM_DIR: getEntry: mem line addr  = " << (cache_line_index * bytes_per_cache_line) + (num_lines * dram_id) << endl;
 	cout << " DRAM_DIR: getEntry: number of lines= " << num_lines << endl;
 #endif
   
@@ -47,8 +48,33 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
   
 	if( entry_ptr == NULL ) {
-		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry(cache_line_index, number_of_cores);
+		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;//cache_line_index * bytes_per_cache_line + ( num_lines * dram_id);
+		cout << "DRAM_DIR: memory_line_address" << memory_line_address << endl;
+		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
+																								, number_of_cores);
 	}
 
 	return dram_directory_entries[cache_line_index];
+}
+
+void DramDirectory::print()
+{
+	cout << endl << endl << " <<<<<<<<<<<<<<< PRINTING DRAMDIRECTORY INFO [" << dram_id << "] >>>>>>>>>>>>>>>>> " << endl << endl;
+	std::map<UINT32, DramDirectoryEntry*>::iterator iter = dram_directory_entries.begin();
+	while(iter != dram_directory_entries.end())
+	{
+		cout << "   ADDR (aligned): 0x" << hex << iter->second->getMemLineAddress() 
+				<< "  DState: " << iter->second->getDState();
+
+		vector<UINT32> sharers = iter->second->getSharersList();
+		cout << "  SharerList <size= " << sharers.size() << " > = { ";
+		
+		for(unsigned int i = 0; i < sharers.size(); i++) {
+			cout << sharers[i] << " ";
+		}
+		
+		cout << "} "<< endl;
+		iter++;
+	}
+	cout << endl << " <<<<<<<<<<<<<<<<<<<<< ----------------- >>>>>>>>>>>>>>>>>>>>>>>>> " << endl << endl;
 }

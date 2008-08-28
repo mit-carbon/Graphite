@@ -9,11 +9,7 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	//FIXME; need to add infrastructure for specifying core architecture details (e.g. DRAM size)
 	// this also assumes 1 dram per core
 
-	// TODO: fixme to allow this to scale to all of DRAM
-	
 	// assume 4GB / dCacheLineSize  bytes/line 
-	
-	//setting this to pow(2,32) (4GB) causes PIN to throw an outofmemory error
 	int total_num_cache_lines = (int) (pow(2,32) / ocache->dCacheLineSize()); 
 	
 	int dram_lines_per_core = total_num_cache_lines / the_core->getNumCores();
@@ -57,6 +53,8 @@ bool action_readily_permissable(CacheDirectoryEntry cache_dir_entry_arg, shmem_r
 //FIXME deal with the size argument (ie, rename the darn thing)
 bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
+	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq ++++++++++++++++++++");
+   dram_dir->print();
    unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
    if ( shmem_req_type == READ )
@@ -80,6 +78,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    }
  
    // FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
+//   int cache_index = address / ocache->dCacheLineSize();
    int cache_index = address / ocache->dCacheLineSize();
 
    PacketType req_msg_type, resp_msg_type;
@@ -164,7 +163,9 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    }
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
    // do nothing shared mem related
-  
+
+	dram_dir->print();
+	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------------");
    return native_cache_hit;
 }
 
@@ -176,6 +177,8 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
  */
 
 void MemoryManager::processSharedMemReq(NetPacket req_packet) {
+
+  dram_dir->print();
 
 #ifdef SMEM_DEBUG
   debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
@@ -339,6 +342,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
   ret_packet.data = (char *)(payload);
   (the_core->getNetwork())->netSend(ret_packet);
 
+	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of sharedMemReq function");
 
 }
@@ -350,8 +354,9 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
  */ 
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   
- debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate");
+ debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
  
+	dram_dir->print();
  
  // verify packet type is correct
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
@@ -382,10 +387,9 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   (the_core->getNetwork())->netSend(packet);
   
   // TODO: invalidate/flush from cache? Talk to Jonathan
+	dram_dir->print();
+	debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate");
 }
-
-
-
 
 // TODO: implement me
 bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
@@ -393,9 +397,6 @@ bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
   cout << "TODO: implement me: MemoryManager.cc issueDramRequest"<< endl;
   return true;
 }
-
-
-
 
 /* 
  *

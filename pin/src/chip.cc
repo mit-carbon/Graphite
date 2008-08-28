@@ -71,6 +71,10 @@ CAPI_return_t chipHackFinish(int my_rank)
 {
 	cout << "FINISHED: CORE [" << my_rank << "] " << endl;
 	bool volatile finished = false;
+	
+	//debugging shared memory
+//  g_chip->core[my_rank]. 
+
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
 		//sleep? and conditionally check if we should end loop?

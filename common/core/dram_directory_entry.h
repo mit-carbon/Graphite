@@ -23,7 +23,7 @@ class DramDirectoryEntry
   };
   
   DramDirectoryEntry();
-  DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_cores);
+  DramDirectoryEntry(UINT32 mem_line_addr, UINT32 number_of_cores);
   virtual ~DramDirectoryEntry();
   
   dstate_t getDState();
@@ -39,15 +39,17 @@ class DramDirectoryEntry
 
   //FIXME: return string (don't cout)
   void dirDebugPrint();
+  UINT32 getMemLineAddress() { return memory_line_address; }
   
  private:
   dstate_t dstate;
   BitVector* sharers;
   UINT32 number_of_sharers;
   UINT32 exclusive_sharer_rank;
-  UINT32 cache_line_address;	//only here for debugging purposes (its nice to know it)
-										//(address / cache_line_size) = cache_line_address
-										//called cache_line_index, and used as the key to find this entry
+  UINT32 memory_line_address;	//only here for debugging purposes (its nice to know it)
+										//(address / cache_line_size) * cache_line_size = memory_line_address
+										//this is a memory line aligned address (the above operation shaves off
+										//the insignificant digits)
   
 };
 

@@ -14,6 +14,7 @@ class Chip;
 
 #include "chip.h"
 #include "transport.h"
+#include <string>
 
 // Define data types
 
@@ -45,7 +46,7 @@ typedef struct NetPacket
 typedef struct NetMatch
 {
    int sender;
-   bool sender_flag;
+   bool sender_flag; //if wildcard or not (should you look at sender or not)
    PacketType type;
    bool type_flag;
 } NetMatch;
@@ -99,6 +100,7 @@ class Network{
 	  //TODO make these debug prints  a class with its own method? cpc 
 	  void printNetPacket(NetPacket packet);  
 	  void printNetMatch(NetMatch match, int receiver);  
+	  string packetTypeToString(PacketType type);  
 };
 
 #endif

@@ -12,11 +12,15 @@ private:
 	unsigned int bytes_per_cache_line;
 	CacheDirectoryEntry *cache_directory_entries;
 	
+	//debugging
+	UINT32 cache_id;
+	
 public:
-	CacheDirectory(UINT32 num_lines, unsigned int bytes_per_cache_line);
+	CacheDirectory(UINT32 num_lines, unsigned int bytes_per_cache_line, UINT32 cache_id);
 	virtual ~CacheDirectory();
 	
-	CacheDirectoryEntry getEntry(ADDRINT index);
+	CacheDirectoryEntry* getEntry(ADDRINT index);
+	void print();
 	
 };
 

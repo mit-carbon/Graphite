@@ -342,7 +342,7 @@ bool OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
    {
       return dCacheLoadSingleFast(d_addr);
    }
-   else
+	else
    {
       return dCacheLoadMultiFast(d_addr, size);
    }

@@ -26,6 +26,8 @@ class CacheDirectoryEntry
   //FIXME: return string (don't cout)
   void toString();
   
+  //for debugging only
+  cstate_t getCState() { return cstate; }
  private:
   cstate_t cstate;
   

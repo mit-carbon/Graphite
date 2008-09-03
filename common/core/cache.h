@@ -19,6 +19,7 @@
 
 #include "pin.H"
 #include "utils.h"
+#include "cache_directory_entry.h"
 
 #define k_KILO 1024
 #define k_MEGA (k_KILO*k_KILO)
@@ -27,7 +28,7 @@
 // type of cache hit/miss counters
 typedef UINT64 CacheStats; 
 
-
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
 
 // Cache tag - self clearing on creation
 
@@ -35,13 +36,23 @@ class CacheTag
 {
    private:
       ADDRINT the_tag;
+      CacheDirectoryEntry::cstate_t the_cstate;
 
    public:
-      CacheTag(ADDRINT tag = ~0) { the_tag = tag; }
+      CacheTag(ADDRINT tag = ~0, CacheDirectoryEntry::cstate_t cstate = CacheDirectoryEntry::INVALID) : 
+         the_tag(tag), the_cstate(cstate) { }
 
-      bool operator==(const CacheTag &right) const { return the_tag == right.the_tag; }
+      bool operator==(const CacheTag &right) const 
+      { 
+	 //return (the_tag == right.the_tag) && (the_cstate == right.the_cstate); 
+	 return (the_tag == right.the_tag);
+      }
 
       operator ADDRINT() const { return the_tag; }
+
+      CacheDirectoryEntry::cstate_t getCState() { return the_cstate; }
+
+      void setCState(CacheDirectoryEntry::cstate_t cstate) { the_cstate = cstate; }
 };
 
 
@@ -68,15 +79,15 @@ namespace CACHE_SET
 
          UINT32 getAssociativity(UINT32 assoc) { return 1; }
 
-         UINT32 find(CacheTag tag) { return(the_tag == tag); }
+         UINT32 find(CacheTag& tag) { return(the_tag == tag); }
 
-         VOID replace(CacheTag tag) { the_tag = tag; }
+         VOID replace(CacheTag& tag) { the_tag = tag; }
 
          VOID modifyAssociativity(UINT32 assoc) { ASSERTX(assoc == 1); }
 
          VOID print() { cout << the_tag << endl; }
 
-         bool invalidateTag(CacheTag tag) 
+         bool invalidateTag(CacheTag& tag) 
          { 
 	    if ( tag == the_tag )
 	    {
@@ -86,7 +97,6 @@ namespace CACHE_SET
             return false;
          }
    };
-
 
    // Cache set with round robin replacement
    template <UINT32 k_MAX_ASSOCIATIVITY = 8>
@@ -119,8 +129,9 @@ namespace CACHE_SET
          }
 
          UINT32 getAssociativity() { return tags_last_index + 1; }
-    
-         UINT32 find(CacheTag tag)
+
+#if 0    
+         UINT32 find(CacheTag& tag)
          {
             bool result = true;
 
@@ -135,8 +146,26 @@ namespace CACHE_SET
          end: 
             return result;
          }
+#endif
 
-         bool invalidateTag(CacheTag tag) 
+         pair<bool, CacheTag*> find(CacheTag& tag)
+         {
+            bool result = true;
+            INT32 index;
+
+            for (index = tags_last_index; index >= 0; index--)
+            {
+               // this is an ugly micro-optimization, but it does cause a
+               // tighter assembly loop for ARM that way ...
+               if(the_tags[index] == tag) goto end;
+            }
+            result = false;
+
+         end: 
+            return result ? make_pair(true, &the_tags[index]) : make_pair(false, (CacheTag*) NULL);
+	 }
+
+         bool invalidateTag(CacheTag& tag) 
          { 
             bool result = true;
 
@@ -156,7 +185,7 @@ namespace CACHE_SET
             return result;
          }
 
-         VOID replace(CacheTag tag)
+         VOID replace(CacheTag& tag)
          {
             // g++ -O3 too dumb to do CSE on following lines?!
             const UINT32 index = next_replace_index;
@@ -172,43 +201,48 @@ namespace CACHE_SET
             UINT32 associativity = getAssociativity();
 
             if ( assoc > associativity ) {
-            for (UINT32 i = tags_last_index + 1; i < assoc; i++)
-	    {
-               the_tags[i] = CacheTag();
-	    }
-            tags_last_index = assoc - 1;
-            next_replace_index = tags_last_index;
-         } 
-         else 
-         {
-            if ( assoc < associativity ) 
-	    {
-               // this is where evictions happen in the real world
-               for (UINT32 i = tags_last_index; i >= assoc; i--)
+               for (UINT32 i = tags_last_index + 1; i < assoc; i++)
 	       {
                   the_tags[i] = CacheTag();
 	       }
-
                tags_last_index = assoc - 1;
-               if ( next_replace_index > tags_last_index )
+               next_replace_index = tags_last_index;
+            } 
+            else 
+            {
+               if ( assoc < associativity ) 
 	       {
-                  next_replace_index = tags_last_index;
-	       }
-            }
-         }      
-      }
+		  // FIXME: if cache model ever starts including data in addition to just tags
+                  // need to perform evictions here. Also if we have shared mem?
 
-      VOID print()
-      {
-         cout << tags_last_index + 1 << " " << next_replace_index << "     ";
-         for (UINT32 i = 0; i < getAssociativity(); i++)
-         {
-            cout << hex << the_tags[i] << " ";
+		  ASSERTX( !g_knob_simarch_has_shared_mem );
+
+                  for (UINT32 i = tags_last_index; i >= assoc; i--)
+	          {
+                     the_tags[i] = CacheTag();
+	          }
+
+                  tags_last_index = assoc - 1;
+                  if ( next_replace_index > tags_last_index )
+	          {
+                     next_replace_index = tags_last_index;
+	          }
+               }
+            }      
          }
-         cout << endl;
-      }
+
+         VOID print()
+         {
+            cout << tags_last_index + 1 << " " << next_replace_index << "     ";
+            for (UINT32 i = 0; i < getAssociativity(); i++)
+            {
+               cout << hex << the_tags[i] << " ";
+            }
+            cout << endl;
+         }
 
    };
+
 
 }; 
 // end namespace CACHE_SET
@@ -293,7 +327,7 @@ class CacheBase
       // utilities
       VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index) const
       {
-         tag = addr >> line_shift;
+	 tag = CacheTag(addr >> line_shift);
          set_index = tag & set_index_mask;
       }
 
@@ -408,6 +442,7 @@ class Cache : public CacheBase
          return sets[index].invalidateTag(tag);
       }
 
+#if 0
       // Multi-line cache access from addr to addr+size-1
       bool accessMultiLine(ADDRINT addr, UINT32 size, AccessType access_type)
       {
@@ -437,7 +472,7 @@ class Cache : public CacheBase
 	        //cout << "index = " << index << endl;
                 history[depth] = index;
                 SET_t &set = sets[index];
-                local_hit = set.find(tag);
+                local_hit = set.find(tag).first;
                 index = set_ptrs[index];
              } while ( !local_hit && ((++depth) < max_search) && (index < k_MAX_SETS));
 
@@ -484,7 +519,7 @@ class Cache : public CacheBase
             history[depth] = index;
             SET_t &set = sets[index];
             //set.print();
-            hit = set.find(tag);
+            hit = set.find(tag).first;
             index = set_ptrs[index];
          } while( !hit && ((++depth) < max_search ) && (index < k_MAX_SETS));
 
@@ -503,6 +538,59 @@ class Cache : public CacheBase
 
          return hit;
       }
+
+#endif
+
+
+      // Single line cache access at addr 
+      pair<bool, CacheTag*> accessSingleLine(ADDRINT addr, AccessType access_type)
+      {
+         UINT32 history[k_MAX_SEARCH];
+
+         CacheTag tag;
+         UINT32 set_index;
+
+         splitAddress(addr, tag, set_index);
+
+         UINT32 index = set_index;
+         UINT32 depth = 0;
+         bool hit; 
+
+         pair<bool, CacheTag*> res;
+         CacheTag *tagptr = (CacheTag*) NULL;
+
+         do 
+         {
+            //cout << "index = " << index << endl;
+            history[depth] = index;
+            SET_t &set = sets[index];
+            //set.print();
+            res = set.find(tag);
+            hit = res.first;
+            index = set_ptrs[index];
+         } while( !hit && ((++depth) < max_search ) && (index < k_MAX_SETS));
+
+         if ( hit )
+	    tagptr = res.second;
+
+         // on miss, loads always allocate, stores optionally
+         if ( (! hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
+                          (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
+         {
+            UINT32 r_num = rand() % depth;
+            UINT32 which = history[r_num];
+            sets[which].replace(tag);
+            tagptr = sets[which].find(tag).second;
+            if ( depth > 1 )
+               cout << "which = " << dec << which << endl;
+         }
+
+         access[access_type][hit]++;
+
+         return make_pair(hit, tagptr);
+      }
+
+
 
 };
 

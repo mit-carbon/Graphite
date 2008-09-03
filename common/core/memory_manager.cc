@@ -63,7 +63,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	cout << " SHMEM Request Type: " << shmem_req_type << endl;
 	if ( shmem_req_type == READ )
    {
-	  native_cache_hit = ocache->runDCacheLoadModel(address, size);
+	  native_cache_hit = ocache->runDCacheLoadModel(address, size).first;
 	  if(native_cache_hit) {
 		  cout << "NATIVE CACHE HIT" << endl;
 	  } else {
@@ -73,7 +73,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    else
    {
 	  if ( shmem_req_type == WRITE )
-  	     native_cache_hit = ocache->runDCacheStoreModel(address, size);
+  	     native_cache_hit = ocache->runDCacheStoreModel(address, size).first;
       else
 		  throw("unsupported memory transaction type.");
    }
@@ -427,7 +427,7 @@ bool MemoryManager::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
   bool ret;
   if( g_knob_simarch_has_shared_mem )
     {
-      if( !ocache->runDCacheLoadModel(d_addr, size) )
+      if( !ocache->runDCacheLoadModel(d_addr, size).first )
 	{
 	  // not a hit. model this in the performance model
 	  // TODO: Jonathan
@@ -436,7 +436,7 @@ bool MemoryManager::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
     } else
       {
 	// non shared-memory
-	ret = ocache->runDCacheLoadModel(d_addr, size);
+	ret = ocache->runDCacheLoadModel(d_addr, size).first;
       }
   return ret;
 }
@@ -446,7 +446,7 @@ bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
 {
   if ( g_knob_simarch_has_shared_mem )
     {
-      if ( !ocache->runDCacheLoadModel(d_addr, size) )
+      if ( !ocache->runDCacheLoadModel(d_addr, size).first )
 	{
 	  // not a hit. model this in the performance model
 	  // TODO: Jonathan

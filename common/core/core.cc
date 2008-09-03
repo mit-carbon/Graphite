@@ -161,7 +161,7 @@ VOID Core::perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool corre
 // organic cache wrappers
 
 bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
-{ return ocache->runICacheLoadModel(i_addr, size); }
+{ return ocache->runICacheLoadModel(i_addr, size).first; }
 
 bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
@@ -181,7 +181,7 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 //	   cout << "  Core[" << getRank() << "]::dcache initiating NON-shared memory request (READ)" << endl;
        debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
 #endif
-	   return ocache->runDCacheLoadModel(d_addr, size);
+	   return ocache->runDCacheLoadModel(d_addr, size).first;
    }
 }
 

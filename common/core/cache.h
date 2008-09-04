@@ -19,7 +19,7 @@
 
 #include "pin.H"
 #include "utils.h"
-#include "cache_directory_entry.h"
+#include "cache_state.h"
 
 #define k_KILO 1024
 #define k_MEGA (k_KILO*k_KILO)
@@ -36,10 +36,10 @@ class CacheTag
 {
    private:
       ADDRINT the_tag;
-      CacheDirectoryEntry::cstate_t the_cstate;
+      CacheState::cstate_t the_cstate;
    
 	public:
-      CacheTag(ADDRINT tag = ~0, CacheDirectoryEntry::cstate_t cstate = CacheDirectoryEntry::INVALID) : 
+      CacheTag(ADDRINT tag = ~0, CacheState::cstate_t cstate = CacheState::INVALID) : 
          the_tag(tag), the_cstate(cstate) { }
 
       bool operator==(const CacheTag &right) const 
@@ -50,9 +50,9 @@ class CacheTag
 
       operator ADDRINT() const { return the_tag; }
 
-      CacheDirectoryEntry::cstate_t getCState() { return the_cstate; }
+      CacheState::cstate_t getCState() { return the_cstate; }
 
-      void setCState(CacheDirectoryEntry::cstate_t cstate) { the_cstate = cstate; }
+      void setCState(CacheState::cstate_t cstate) { the_cstate = cstate; }
 };
 
 
@@ -177,6 +177,11 @@ namespace CACHE_SET
          { 
             bool result = true;
 
+
+//>>>>>>>> this is where jonahtan's code got cut off >>>>>>>>>
+//==============
+#if 0
+
 /*
 template <UINT32 k_MAX_ASSOCIATIVITY = 8>
 class RoundRoundSharedMem: public RoundRobin<k_MAX_ASSOCIATIVITY>
@@ -240,6 +245,10 @@ class RoundRobin
 		bool invalidateTag(CacheTag tag) 
 		{ 
 			bool result = true;
+#endif
+//cut above this i believe
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<================
+
 
 			INT32 index;
 			for (index = tags_last_index; index >= 0; index--)

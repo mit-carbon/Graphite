@@ -194,7 +194,6 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 #ifdef CORE_DEBUG
 	  debugPrintHex(getRank(), "Core", "dcache (WRITE) : ADDR: ", d_addr);
 #endif	
-	
 
    if( g_knob_simarch_has_shared_mem ) { 
 #ifdef SMEM_DEBUG
@@ -209,6 +208,6 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
 #endif
-	   return ocache->runDCacheStoreModel(d_addr, size);
+	   return ocache->runDCacheStoreModel(d_addr, size).first;
    }
 }

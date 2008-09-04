@@ -17,10 +17,10 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
 	// TODO: verify correct semantics with Jonathan
    assert( ocache != NULL );
-	int num_cache_lines_per_core = ocache->dCacheSize() / ocache->dCacheLineSize();
+//	int num_cache_lines_per_core = ocache->dCacheSize() / ocache->dCacheLineSize();
 
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
-	cache_dir = new CacheDirectory(num_cache_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank());
+//	cache_dir = new CacheDirectory(num_cache_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank());
 	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->getNumCores(), ocache->dCacheLineSize());
 }
 
@@ -28,18 +28,18 @@ MemoryManager::~MemoryManager()
 {
 }
 
-bool action_readily_permissable(CacheDirectoryEntry* cache_dir_entry_ptr, shmem_req_t shmem_req_type)
+bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_type)
 {
 	bool ret;
 	if ( shmem_req_type == READ )
 	{
-		ret = cache_dir_entry_ptr->readable();
+		ret = cache_state.readable();
 	}
 	else
 	{
 		if ( shmem_req_type == WRITE )
 		{
-			ret = cache_dir_entry_ptr->writable();
+			ret = cache_state.writable();
 		}
 		else 
 		{
@@ -60,6 +60,10 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 
    unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
+	//first-> is the line available in the cache? (Native cache hit)
+	//second-> pointer to cache tag to update cache state
+   pair<bool, CacheTag*> cache_model_results;  // independent of shared memory, is the line available in the cache?
+															  
    
 #ifdef MMU_DEBUG
 	cache_dir->print(); 
@@ -68,27 +72,26 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 
 	if ( shmem_req_type == READ )
    {
-<<<<<<< HEAD:common/core/memory_manager.cc
-	  native_cache_hit = ocache->runDCacheLoadModel(address, size);
-	  
+	  cache_model_results = ocache->runDCacheLoadModel(address, size);
+	  native_cache_hit = cache_model_results.first;
+
 #ifdef MMU_DEBUG
-=======
-	  native_cache_hit = ocache->runDCacheLoadModel(address, size).first;
->>>>>>> 2ea3623f31769ec220067e2b2669b6e56f25d6e8:common/core/memory_manager.cc
-	  if(native_cache_hit) {
-		  cout << "NATIVE CACHE HIT" << endl;
-	  } else {
-		  cout << "not a NATIVE CACHE HIT" << endl;
-	  }
+		if(native_cache_hit) {
+			  debugPrint(my_rank,"MMU", "NATIVE CACHE HIT"); 
+		} else {
+			  debugPrint(my_rank,"MMU","not a NATIVE CACHE HIT");
+		}
 #endif
 
    }
    else
    {
-	  if ( shmem_req_type == WRITE )
-  	     native_cache_hit = ocache->runDCacheStoreModel(address, size).first;
-      else
+	  if ( shmem_req_type == WRITE ) {
+  	     cache_model_results = ocache->runDCacheStoreModel(address, size);
+  	     native_cache_hit = cache_model_results.first;
+      } else {
 		  throw("unsupported memory transaction type.");
+		}
    }
    
    if ( !native_cache_hit )
@@ -100,23 +103,17 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    }
  
    // FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
-   int cache_index = address / ocache->dCacheLineSize();
+   // delete this junk, since we no longer use seperate cache stuff
+//   int cache_index = address / ocache->dCacheLineSize();
 
    PacketType req_msg_type, resp_msg_type;
 	
    // first, check local cache
-#ifdef MMU_DEBUG
-	debugPrint(the_core->getRank(), "MMU", "getting $Entry (intiateSharedMemReq)");
-#endif
-	CacheDirectoryEntry* cache_dir_entry_ptr = cache_dir->getEntry(cache_index);
-#ifdef MMU_DEBUG
-   debugPrint(the_core->getRank(), "MMU", "retrieved $Entry (initiateSharedMemReq)");
-#endif
-                      
+//	CacheDirectoryEntry* cache_dir_entry_ptr = cache_dir->getEntry(cache_index);
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
 
-   while( !action_readily_permissable(cache_dir_entry_ptr, shmem_req_type) )
+   while( !action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
    {
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
      UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
@@ -160,7 +157,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	   int* recv_payload = (int *)(recv_packet.data);
 
 	   // TODO: properly cast from int to cstate_t type. may need a helper conversion method
-	   CacheDirectoryEntry::cstate_t resp_c_state = (CacheDirectoryEntry::cstate_t)(recv_payload[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
+	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
 	   
 	   assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	   
@@ -170,8 +167,8 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	   
 	   // update cache_entry
 	   // TODO: add support for actually updating data when we move to systems with software shared memory         
-	   //BUG FIXME updating the copy
-		cache_dir_entry_ptr->setCState(resp_c_state);         
+//		cache_dir_entry_ptr->setCState(resp_c_state);         
+		cache_model_results.second->setCState(resp_c_state);         
 	   
 	   // TODO: update performance model
 
@@ -388,15 +385,20 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
   
   // extract relevant values from incoming request packet
-  CacheDirectoryEntry::cstate_t new_cstate = (CacheDirectoryEntry::cstate_t)(((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
+  CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
   int address = ((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_ADDRESS];
   
   // FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
-  int cache_index = address / ocache->dCacheLineSize();
-  debugPrint(the_core->getRank(), "MMU", "getting $Entry (processUnexpectedSMemUpdate)");
-  CacheDirectoryEntry* cache_dir_entry_ptr = cache_dir->getEntry(cache_index);
-  debugPrint(the_core->getRank(), "MMU", "getting $Entry (processUnexpectedSMemUpdate)");
-  cache_dir_entry_ptr->setCState(new_cstate);
+//  int cache_index = address / ocache->dCacheLineSize();
+//  debugPrint(the_core->getRank(), "MMU", "getting $Entry (processUnexpectedSMemUpdate)");
+//  CacheDirectoryEntry* cache_dir_entry_ptr = cache_dir->getEntry(cache_index);
+//  debugPrint(the_core->getRank(), "MMU", "getting $Entry (processUnexpectedSMemUpdate)");
+  
+  //FIXME: adding in Jonathan's new state stuff in the ocache......
+  //is it okay to model the ocache here, required to get a pointer
+	pair<bool, CacheTag*> cache_model_results = ocache->runDCacheLoadModel(address, 4); //FIXME what the hell is size??
+//  cache_dir_entry_ptr->setCState(new_cstate);
+  cache_model_results.second->setCState(new_cstate);
   
   // send back acknowledgement of receiveing this message
   NetPacket packet;

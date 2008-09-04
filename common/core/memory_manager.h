@@ -86,7 +86,7 @@ class MemoryManager
   Core *the_core;
   OCache *ocache;
   DramDirectory *dram_dir;
-  CacheDirectory *cache_dir;
+//  CacheDirectory *cache_dir;
   AddressHomeLookup *addr_home_lookup;
   
  public:
@@ -95,6 +95,8 @@ class MemoryManager
   bool initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type);
   void processSharedMemReq(NetPacket req_packet);
   void processUnexpectedSharedMemUpdate(NetPacket update_packet);
+
+// these below functions have been pushed into initiateSharedMemReq (which directly calls ocache->runModel...)
 //  bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
 //  bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
   

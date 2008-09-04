@@ -38,6 +38,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_size.Value() * k_KILO,
                           g_knob_icache_associativity.Value(),
                           g_knob_icache_max_search_depth.Value());                        
+//                          g_knob_simarch_is_shared_mem.Value());                        
 
       debugPrint(tid, "Core", "instantiated organic cache model");
       cout << ocache->statsLong() << endl;
@@ -165,20 +166,22 @@ bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 
 bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
-   if( g_knob_simarch_has_shared_mem ) { 
+   
+#ifdef CORE_DEBUG
+	  debugPrintHex(getRank(), "Core", "dcache (READ)  : ADDR: ", d_addr);
+#endif	
+	
+	if( g_knob_simarch_has_shared_mem ) { 
 #ifdef SMEM_DEBUG
-//	   cout << "  Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
        debugPrint(getRank(), "Core", "dcache initiating shared memory request (READ)");
 #endif
 	   bool ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
 #ifdef SMEM_DEBUG
-//	   cout << "  COMPLETED: Core[" << getRank() << "]::dcache initiating shared memory request (READ)" << endl;
        debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (READ)");
 #endif
 	   return ret;
    } else {
 #ifdef SMEM_DEBUG
-//	   cout << "  Core[" << getRank() << "]::dcache initiating NON-shared memory request (READ)" << endl;
        debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
 #endif
 	   return ocache->runDCacheLoadModel(d_addr, size);
@@ -187,7 +190,25 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 
 bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 { 
-   //FIXME TODO for cpc, enable store model 
-//   return memory_manager->runDCacheStoreModel(d_addr, size);
-   return true;   
+
+#ifdef CORE_DEBUG
+	  debugPrintHex(getRank(), "Core", "dcache (WRITE) : ADDR: ", d_addr);
+#endif	
+	
+
+   if( g_knob_simarch_has_shared_mem ) { 
+#ifdef SMEM_DEBUG
+       debugPrint(getRank(), "Core", "dcache initiating shared memory request (WRITE)");
+#endif
+	   bool ret = memory_manager->initiateSharedMemReq(d_addr, size, WRITE); 
+#ifdef SMEM_DEBUG
+       debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (WRITE)");
+#endif
+	   return ret;
+   } else {
+#ifdef SMEM_DEBUG
+       debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
+#endif
+	   return ocache->runDCacheStoreModel(d_addr, size);
+   }
 }

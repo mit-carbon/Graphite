@@ -35,7 +35,6 @@ class CacheTag
 {
    private:
       ADDRINT the_tag;
-
    public:
       CacheTag(ADDRINT tag = ~0) { the_tag = tag; }
 
@@ -74,74 +73,94 @@ namespace CACHE_SET
 
          VOID modifyAssociativity(UINT32 assoc) { ASSERTX(assoc == 1); }
 
-         VOID print() { cout << the_tag << endl; }
+		VOID print() { cout << the_tag << endl; }
 
-         bool invalidateTag(CacheTag tag) 
-         { 
-	    if ( tag == the_tag )
-	    {
-               the_tag = CacheTag(); 
-               return true;
-            }
-            return false;
-         }
-   };
+		bool invalidateTag(CacheTag tag) 
+		{ 
+	 if ( tag == the_tag )
+	 {
+				the_tag = CacheTag(); 
+				return true;
+			}
+			return false;
+		}
+};
 
 
-   // Cache set with round robin replacement
-   template <UINT32 k_MAX_ASSOCIATIVITY = 8>
-   class RoundRobin
-   {
-      private:
-         CacheTag the_tags[k_MAX_ASSOCIATIVITY];
-         UINT32 tags_last_index;
-         UINT32 next_replace_index;
+// CELIO TODO make a subclass inherent this, that has the necessary shared memory tags/hooks to work
+// set_base -> set RoundRobin (cche) -> setRoundRobin with SMem 
+// need to make certain privates protected
+// set flag in ocache to see if shmem is on, then instantiate correct class
+//
+//
+// Cache set with round robin replacement
 
-      public:
+/*
+template <UINT32 k_MAX_ASSOCIATIVITY = 8>
+class RoundRoundSharedMem: public RoundRobin<k_MAX_ASSOCIATIVITY>
+{
+	private:
+	public:
+		setCSTate();
+		getCSTate();
+}
+  */
 
-         RoundRobin(UINT32 assoc = k_MAX_ASSOCIATIVITY): 
-            tags_last_index(assoc - 1)
-         {
-            ASSERTX(assoc <= k_MAX_ASSOCIATIVITY);
-            next_replace_index = tags_last_index;
+template <UINT32 k_MAX_ASSOCIATIVITY = 8>
+class RoundRobin                                                        
+{
+	private:
+		UINT32 tags_last_index;
+		UINT32 next_replace_index;
+	
+	protected:
+		CacheTag the_tags[k_MAX_ASSOCIATIVITY];
 
-            for (INT32 index = tags_last_index; index >= 0; index--)
-            {
-               the_tags[index] = CacheTag();
-            }
-         }
+	public:
 
-         VOID setAssociativity(UINT32 assoc)
-         {
-            ASSERTX(assoc <= k_MAX_ASSOCIATIVITY);
-            tags_last_index = assoc - 1;
-            next_replace_index = tags_last_index;
-         }
+		RoundRobin(UINT32 assoc = k_MAX_ASSOCIATIVITY): 
+			tags_last_index(assoc - 1)
+		{
+			ASSERTX(assoc <= k_MAX_ASSOCIATIVITY);
+			next_replace_index = tags_last_index;
 
-         UINT32 getAssociativity() { return tags_last_index + 1; }
-    
-         UINT32 find(CacheTag tag)
-         {
-            bool result = true;
+			for (INT32 index = tags_last_index; index >= 0; index--)
+			{
+				the_tags[index] = CacheTag();
+			}
+		}
 
-            for (INT32 index = tags_last_index; index >= 0; index--)
-            {
-               // this is an ugly micro-optimization, but it does cause a
-               // tighter assembly loop for ARM that way ...
-               if(the_tags[index] == tag) goto end;
-            }
-            result = false;
+		VOID setAssociativity(UINT32 assoc)
+		{
+			ASSERTX(assoc <= k_MAX_ASSOCIATIVITY);
+			tags_last_index = assoc - 1;
+			next_replace_index = tags_last_index;
+		}
 
-         end: 
-            return result;
-         }
+		UINT32 getAssociativity() { return tags_last_index + 1; }
+ 
+		UINT32 find(CacheTag tag)
+		{
+			bool result = true;
 
-         bool invalidateTag(CacheTag tag) 
-         { 
-            bool result = true;
+			for (INT32 index = tags_last_index; index >= 0; index--)
+			{
+				// this is an ugly micro-optimization, but it does cause a
+				// tighter assembly loop for ARM that way ...
+				if(the_tags[index] == tag) goto end;
+			}
+			result = false;
 
-            INT32 index;
-            for (index = tags_last_index; index >= 0; index--)
+		end: 
+			return result;
+		}
+
+		bool invalidateTag(CacheTag tag) 
+		{ 
+			bool result = true;
+
+			INT32 index;
+			for (index = tags_last_index; index >= 0; index--)
             {
                // this is an ugly micro-optimization, but it does cause a
                // tighter assembly loop for ARM that way ...

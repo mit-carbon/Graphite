@@ -49,7 +49,10 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
   
 	if( entry_ptr == NULL ) {
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;//cache_line_index * bytes_per_cache_line + ( num_lines * dram_id);
-		cout << "DRAM_DIR: memory_line_address" << memory_line_address << endl;
+#ifdef DRAM_DEBUG	  
+//		cout << "DRAM_DIR: memory_line_address" << memory_line_address << endl;
+		debugPrint(dram_id, "DRAM_DIR", "memory_line_address", memory_line_address );
+#endif		
 		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
 	}

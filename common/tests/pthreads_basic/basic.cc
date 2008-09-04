@@ -23,7 +23,8 @@ void* do_nothing(void *threadid);
 
 //pintool will ONLY instrument this function (hopefully)
 //int instrument_me(int tid, int* ptr);
-void instrument_me(int tid);
+//void instrument_me(int tid);
+void instrument_me();
 
 int main2(int argc, char* argv[]) {
   
@@ -92,18 +93,18 @@ int main(int argc, char* argv[]){ // main begins
 void* do_nothing(void *threadid)
 {
 #ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "beginning of do_nothing function" << endl << endl;
-   pthread_mutex_unlock(&lock);
+//   pthread_mutex_lock(&lock);
+//   cout << "beginning of do_nothing function" << endl << endl;
+//   pthread_mutex_unlock(&lock);
 #endif
    
 	int tid;
 	CAPI_Initialize(&tid);
 
 #ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "executing do_nothing function" << endl << endl;
-   pthread_mutex_unlock(&lock);
+//   pthread_mutex_lock(&lock);
+//   cout << "executing do_nothing function" << endl << endl;
+//   pthread_mutex_unlock(&lock);
 #endif
    
    int size = 1;
@@ -112,25 +113,25 @@ void* do_nothing(void *threadid)
    if(tid==0) {
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " being instrumented." << endl;
-		cout << "size addr: " << &size << endl;
-		cout << "gint addr: " << &global_integer << endl;
-		cout << "gint_ptr : " << global_integer_ptr << endl;
+//		cout << "size addr: " << &size << endl;
+//		cout << "gint addr: " << &global_integer << endl;
+//		cout << "gint_ptr : " << global_integer_ptr << endl;
 		pthread_mutex_unlock(&lock);
 
-		instrument_me(tid);
+		instrument_me();
 		
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
    } else {
 		pthread_mutex_lock(&lock);
-		cout << "Core: " << tid << " being instrumented." << endl;
+//		cout << "Core: " << tid << " being instrumented." << endl;
 		pthread_mutex_unlock(&lock);
 
-		instrument_me(tid);
+//		instrument_me();
 		
 		pthread_mutex_lock(&lock);
-		cout << "Core: " << tid << " finished instrumenting." << endl;
+//		cout << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
    }
    CAPI_Finish(tid);
@@ -141,7 +142,7 @@ void* do_nothing(void *threadid)
 
 
 //int instrument_me(int tid, int* ptr) 
-void instrument_me(int tid)
+void instrument_me()
 {
 //   int size = *global_integer_ptr; //*ptr;
 
@@ -152,6 +153,6 @@ void instrument_me(int tid)
 //      array[i] = i;
 //   }
 //   return tid;
-    cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
+//    cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
 }
 

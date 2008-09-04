@@ -487,8 +487,8 @@ VOID routine(RTN rtn, VOID *v)
       RTN_Replace(rtn, msg_ptr);
    } 
 //   else if(rtn_name != "_Z13instrument_meiPi") { //INSTRUMENTED_FUNCTION) {
-//   else if(rtn_name != "_Z13instrument_mev") { //INSTRUMENTED_FUNCTION) {
-   else if(rtn_name != "_Z13instrument_mei") { //INSTRUMENTED_FUNCTION) {
+   else if(rtn_name != "_Z13instrument_mev") { //INSTRUMENTED_FUNCTION) {
+//   else if(rtn_name != "_Z13instrument_mei") { //INSTRUMENTED_FUNCTION) {
 	//don't do anything
    } 
    else 

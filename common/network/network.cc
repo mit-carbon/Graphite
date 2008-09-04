@@ -28,17 +28,21 @@ void Network::netCheckMessages()
 
 int Network::netSend(NetPacket packet)
 {
-//   cout << "[" << net_tid <<"] Network::netSend for Network #"; 
-	debugPrint(net_tid, "Network", "netSend Begin");
+#ifdef NETWORK_DEBUG
+	debugPrint(net_tid, "NETWORK", "netSend Begin");
    printNetPacket(packet);
-   
+#endif
+
    char *buffer;
    
-   // Perform network entry tasks
-   debugPrint(net_tid, "Network", "netSend -calling netEntryTasks");
+   // Perform SMEM entry tasks
+#ifdef NETWORK_DEBUG   
+	debugPrint(net_tid, "NETWORK", "netSend -calling netEntryTasks");
+#endif	
    netEntryTasks();
-   debugPrint(net_tid, "Network", "netSend -finished netEntryTasks");
-   
+#ifdef NETWORK_DEBUG
+	debugPrint(net_tid, "NETWORK", "netSend -finished netEntryTasks");
+#endif   
    buffer = netCreateBuf(packet);
    transport->ptSend(packet.receiver, buffer, packet.length);
    return packet.length;
@@ -92,9 +96,10 @@ NetPacket Network::netRecv(NetMatch match)
    NetQueueEntry entry;
    bool loop;
 
-   debugPrint(net_tid, "Network", "netRecv starting...");
-  
-  printNetMatch(match, net_tid);
+#ifdef NETWORK_DEBUG
+   debugPrint(net_tid, "NETWORK", "netRecv starting...");
+	printNetMatch(match, net_tid);
+#endif  
    
    loop = true;
 
@@ -106,10 +111,14 @@ NetPacket Network::netRecv(NetMatch match)
       sender = -1;
       type = INVALID;
       
-      // Perform network entry tasks
-	  debugPrint(net_tid, "Network", "netRecv -calling netEntryTasks");
+      // Perform Network entry tasks
+	  #ifdef NETWORK_DEBUG
+	  debugPrint(net_tid, "NETWORK", "netRecv -calling netEntryTasks");
+	  #endif
 	  netEntryTasks();
-	  debugPrint(net_tid, "Network", "netRecv -finished netEntryTasks");
+	  #ifdef NETWORK_DEBUG
+	  debugPrint(net_tid, "NETWORK", "netRecv -finished netEntryTasks");
+	  #endif
 
       if(match.sender_flag && match.type_flag)
       {
@@ -180,10 +189,15 @@ NetPacket Network::netRecv(NetMatch match)
       
       if(loop)
       {
-         debugPrint(net_tid, "Network", "netRecv: calling transport->ptRecv");
-		 buffer = transport->ptRecv();
-		 debugPrint(net_tid, "Network", "netRecv: finished transport->ptRecv");
-	      Network::netExPacket(buffer, entry.packet, entry.time);
+#ifdef NETWORK_DEBUG         
+			debugPrint(net_tid, "NETWORK", "netRecv: calling transport->ptRecv");
+#endif			
+			buffer = transport->ptRecv();
+#ifdef NETWORK_DEBUG         
+			debugPrint(net_tid, "NETWORK", "netRecv: finished transport->ptRecv");
+#endif			
+	      
+			Network::netExPacket(buffer, entry.packet, entry.time);
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
       }
 			
@@ -193,10 +207,11 @@ NetPacket Network::netRecv(NetMatch match)
    packet = entry.packet;
    the_chip->setProcTime(net_tid, (the_chip->getProcTime(net_tid) > entry.time) ? 
 		                   the_chip->getProcTime(net_tid) : entry.time);
-
+#ifdef NETWORK_DEBUG
    printNetPacket(packet);
-   debugPrint(net_tid, "Network", "netRecv - leaving");
-   return packet;
+   debugPrint(net_tid, "NETWORK", "netRecv - leaving");
+#endif
+	return packet;
 };
 
 bool Network::netQuery(NetMatch match)
@@ -208,10 +223,14 @@ bool Network::netQuery(NetMatch match)
    entry.time = the_chip->getProcTime(net_tid);
    
    // HK
-   // Perform network entry tasks
-   debugPrint(net_tid, "Network", "netQuery -calling netEntryTasks");
+   // Perform SMEM entry tasks
+#ifdef NETWORK_DEBUG
+	debugPrint(net_tid, "NETWORK", "netQuery -calling netEntryTasks");
+#endif	
    netEntryTasks(); 
-   debugPrint(net_tid, "Network", "netQuery -finished netEntryTasks");
+#ifdef NETWORK_DEBUG   
+   debugPrint(net_tid, "NETWORK", "netQuery -finished netEntryTasks");
+#endif   
    
    if(match.sender_flag && match.type_flag)
    {
@@ -385,14 +404,14 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
 
 inline void Network::netEntryTasks()
 {
-   // These are a set of tasks to be performed every time the network layer is
+   // These are a set of tasks to be performed every time the SMEM layer is
    // entered
    char *buffer;
    NetQueueEntry entry;
    int sender;
    PacketType type;
    
-//   debugPrint(net_tid, "Network", "netEntryTasks start....");
+//   debugPrint(net_tid, "SMEM", "netEntryTasks start....");
    // Pull up packets waiting in the physical transport layer
    while(transport->ptQuery())
    {
@@ -437,29 +456,20 @@ inline void Network::netEntryTasks()
 	  if(type == SHARED_MEM_REQ)
       {
          net_queue[sender][type].pop();
-         // FIXME:
-         // processSharedMemReq will be a memeber function of the shared memory object
-         // This function invocation should be replaced by something along the lines of
-         // shared_mem_obj->processSharedMemReq(entry.packet)
          
-#ifdef SMEM_DEBUG
-         debugPrint(net_tid, "Network", "core received shared memory request.");
+#ifdef NETWORK_DEBUG
+         debugPrint(net_tid, "NETWORK", "core received shared memory request.");
 #endif
          the_core->getMemoryManager()->processSharedMemReq(entry.packet);
 
-#ifdef SMEM_DEBUG
-         debugPrint(net_tid, "Network", "core finished processing shared memory request.");
+#ifdef NETWORK_DEBUG
+         debugPrint(net_tid, "NETWORK", "core finished processing shared memory request.");
 #endif
       
       }
       else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
       {
          net_queue[sender][type].pop();
-         // FIXME:
-         // processUnexpectedSharedMemUpdate will be a memeber function of the shared memory object
-         // This function invocation should be replaced by something along the lines of
-         // shared_mem_obj->processUnexpectedSharedMemUpdate(entry.packet)
-         //processUnexpectedSharedMemUpdate(entry.packet);
 		 //TODO for cpc, do code review of below MMU function
          the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
       }
@@ -468,13 +478,3 @@ inline void Network::netEntryTasks()
 	
 }
 
-
-// FIXME:
-// Only here for debugging
-// To be removed as soon as Jim plugs his function in
-//void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
-//{
-   // Do nothing
-   // Only for debugging
-   // Jim will provide the correct methods for this in the shared memory object
-//};

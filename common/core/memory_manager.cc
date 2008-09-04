@@ -53,22 +53,31 @@ bool action_readily_permissable(CacheDirectoryEntry* cache_dir_entry_ptr, shmem_
 //FIXME deal with the size argument (ie, rename the darn thing)
 bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
+#ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq ++++++++++++++++++++");
    dram_dir->print();
+#endif
+
    unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
    
-  cache_dir->print(); 
-	
+#ifdef MMU_DEBUG
+	cache_dir->print(); 
 	cout << " SHMEM Request Type: " << shmem_req_type << endl;
+#endif
+
 	if ( shmem_req_type == READ )
    {
 	  native_cache_hit = ocache->runDCacheLoadModel(address, size);
+	  
+#ifdef MMU_DEBUG
 	  if(native_cache_hit) {
 		  cout << "NATIVE CACHE HIT" << endl;
 	  } else {
 		  cout << "not a NATIVE CACHE HIT" << endl;
 	  }
+#endif
+
    }
    else
    {
@@ -92,9 +101,13 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    PacketType req_msg_type, resp_msg_type;
 	
    // first, check local cache
-   debugPrint(the_core->getRank(), "MMU", "getting $Entry (intiateSharedMemReq)");
+#ifdef MMU_DEBUG
+	debugPrint(the_core->getRank(), "MMU", "getting $Entry (intiateSharedMemReq)");
+#endif
 	CacheDirectoryEntry* cache_dir_entry_ptr = cache_dir->getEntry(cache_index);
+#ifdef MMU_DEBUG
    debugPrint(the_core->getRank(), "MMU", "retrieved $Entry (initiateSharedMemReq)");
+#endif
                       
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
@@ -104,7 +117,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
      UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
-#ifdef SMEM_DEBUG
+#ifdef MMU_DEBUG
 	char value_str[20];
 	char line[80];
 	sprintf(value_str, "%x", address); //convert int to string (with hex formatting)
@@ -162,8 +175,10 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
    // do nothing shared mem related
 
+#ifdef MMU_DEBUG
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------------");
+#endif
    return native_cache_hit;
 }
 
@@ -176,9 +191,8 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 
 void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 
+#ifdef MMU_DEBUG
   dram_dir->print();
-
-#ifdef SMEM_DEBUG
   debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
 #endif
    
@@ -189,19 +203,24 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
   unsigned int my_rank = the_core->getRank();
   
   // 0. get the DRAM directory entry associated with this address
+#ifdef MMU_DEBUG
   debugPrint(the_core->getRank(), "MMU", "getting $Entry (processSMemReq)");
+#endif
   DramDirectoryEntry* dram_dir_entry = dram_dir->getEntry(address);
+#ifdef MMU_DEBUG
   debugPrint(the_core->getRank(), "MMU", "retrieved $Entry (processSMemReq)");
-
 
   printf("Addr: %x  DState: %d, shmem_req_type %d\n", address, dram_dir_entry->getDState(), shmem_req_type);
   debugPrint(the_core->getRank(), "MMU", "printed dstate (processSMemReq)");
-	
+#endif
+
   // 1. based on requested operation (read or write), make necessary updates to current owners
   // 2. update directory state in DRAM and sharers array
 	if ( shmem_req_type == READ ) {
   
+#ifdef MMU_DEBUG
 		printf("Addr: %x  DState: %d, shmem_req_type %d\n", address, dram_dir_entry->getDState(), shmem_req_type);
+#endif		
     
 		// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
       if(dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) {
@@ -247,12 +266,12 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
       // TODO: is there a race condition here in the case when the directory gets updated and then
       // this thread gets swapped out? should we atomize the state update and the response message
       // this get executed no matter what state the dram directory entry was in
-		
-		debugPrint(the_core->getRank(), "MMU", "addSharer");
+
+#ifdef MMU_DEBUG
+		debugPrint(the_core->getRank(), "MMU", "addSharer & Set DState");
+#endif
       dram_dir_entry->addSharer(requestor);
-		debugPrint(the_core->getRank(), "MMU", "SetDState");
-      dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
-		debugPrint(the_core->getRank(), "MMU", "finished mesing with dram_entry");
+		dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
 	}
 	else
 	{
@@ -265,7 +284,9 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 		
 //		vector<unsigned int>::iterator sharers_iterator = dram_dir_entry.getSharersIterator();
 //	  while( sharers_iterator != dram_dir_entry.getSharersSentinel() ) bracketwenthere
+#ifdef MMU_DEBUG
 		cout << "Getting Sharrers List" << endl;		
+#endif
       vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
 		
 		for(UINT32 i = 0; i < sharers_list.size(); i++) {
@@ -340,9 +361,10 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
   ret_packet.data = (char *)(payload);
   (the_core->getNetwork())->netSend(ret_packet);
 
+#ifdef MMU_DEBUG
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of sharedMemReq function");
-
+#endif
 }
 
 /*
@@ -352,10 +374,12 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
  */ 
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   
- debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+#ifdef MMU_DEBUG
+	debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
  
 	dram_dir->print();
- 
+#endif
+
  // verify packet type is correct
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
   
@@ -386,81 +410,18 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   (the_core->getNetwork())->netSend(packet);
   
   // TODO: invalidate/flush from cache? Talk to Jonathan
+#ifdef MMU_DEBUG	
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate");
+#endif	
 }
 
-// TODO: implement me
+// TODO: implement DramRequest 
+// if cache lookup is not a hit, we want to model dram request.
+// and when we push around data, this function will deal with this
 bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
 {
   cout << "TODO: implement me: MemoryManager.cc issueDramRequest"<< endl;
   return true;
 }
 
-/* 
- *
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
- *
- *
- */
-/*
-bool MemoryManager::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
-{
- 
-   //entry point
-   cout << "Fix Me: MMU: runDCacheLoadModel" << endl;
-   return false;
-}
-
-bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
-{
-   cout << "Fix Me: MMU: runDCacheLoadModel" << endl;
-  return false;
-}
-
-
-#ifdef I_DONT_UNDERSTAND_THIS_MODEL
-
-bool MemoryManager::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
-{
-  bool ret;
-  if( g_knob_simarch_has_shared_mem )
-    {
-      if( !ocache->runDCacheLoadModel(d_addr, size) )
-	{
-	  // not a hit. model this in the performance model
-	  // TODO: Jonathan
-	  ret = issueDramRequest(d_addr, READ);
-	}
-    } else
-      {
-	// non shared-memory
-	ret = ocache->runDCacheLoadModel(d_addr, size);
-      }
-  return ret;
-}
-
-
-bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
-{
-  if ( g_knob_simarch_has_shared_mem )
-    {
-      if ( !ocache->runDCacheLoadModel(d_addr, size) )
-	{
-	  // not a hit. model this in the performance model
-	  // TODO: Jonathan
-	  return issueDramRequest(d_addr, WRITE);
-	}
-    }
-  else
-    {
-      // non shared-memory
-      return ocache->runDCacheStoreModel(d_addr, size);
-    }
-}
-
-
-
-#endif
-*/

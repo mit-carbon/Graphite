@@ -42,12 +42,15 @@ void CacheDirectory::print()
 
 	for( unsigned int i = 0; i < num_lines; i++)
 	{
+
+		if( cache_directory_entries[i].getCState() != CacheDirectoryEntry::INVALID ) {
 //		cout << "   ADDR (aligned): 0x" << hex << cache_directory_entries[i].getMemLineAddress() 
 		cout << "   ADDR (aligned): 0x" << hex << (i * bytes_per_cache_line)
 			<< "  CState: " << cache_directory_entries[i].getCState()
 			<< " READ?: " << cache_directory_entries[i].readable()
 			<< " WRITE?: " << cache_directory_entries[i].writable()
 			<< endl;
+		}
 		
 	}
 	cout << endl << " <<<<<<<<<<<<<<<<<<<<< ----------------- >>>>>>>>>>>>>>>>>>>>>>>>> " << endl << endl;

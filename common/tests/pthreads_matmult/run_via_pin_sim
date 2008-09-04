@@ -1,8 +1,4 @@
 #!/usr/bin/tcsh
 make
-<<<<<<< HEAD:common/tests/pthreads_matmult/run_via_pin_sim
 setenv NUM 4
 /afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -msm -mdc -mpf -b 128 -n $NUM -- ./cannon -m $NUM -s $NUM
-=======
-/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -mdc -mpf -n 4 -- ./cannon -m 4 -s 4
->>>>>>> 2ea3623f31769ec220067e2b2669b6e56f25d6e8:common/tests/pthreads_matmult/run_via_pin_sim

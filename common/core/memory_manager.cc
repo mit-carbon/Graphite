@@ -68,9 +68,13 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 
 	if ( shmem_req_type == READ )
    {
+<<<<<<< HEAD:common/core/memory_manager.cc
 	  native_cache_hit = ocache->runDCacheLoadModel(address, size);
 	  
 #ifdef MMU_DEBUG
+=======
+	  native_cache_hit = ocache->runDCacheLoadModel(address, size).first;
+>>>>>>> 2ea3623f31769ec220067e2b2669b6e56f25d6e8:common/core/memory_manager.cc
 	  if(native_cache_hit) {
 		  cout << "NATIVE CACHE HIT" << endl;
 	  } else {
@@ -82,7 +86,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    else
    {
 	  if ( shmem_req_type == WRITE )
-  	     native_cache_hit = ocache->runDCacheStoreModel(address, size);
+  	     native_cache_hit = ocache->runDCacheStoreModel(address, size).first;
       else
 		  throw("unsupported memory transaction type.");
    }
@@ -425,3 +429,73 @@ bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
   return true;
 }
 
+<<<<<<< HEAD:common/core/memory_manager.cc
+=======
+/* 
+ *
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+ *
+ *
+ */
+/*
+bool MemoryManager::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
+{
+ 
+   //entry point
+   cout << "Fix Me: MMU: runDCacheLoadModel" << endl;
+   return false;
+}
+
+bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
+{
+   cout << "Fix Me: MMU: runDCacheLoadModel" << endl;
+  return false;
+}
+
+
+#ifdef I_DONT_UNDERSTAND_THIS_MODEL
+
+bool MemoryManager::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
+{
+  bool ret;
+  if( g_knob_simarch_has_shared_mem )
+    {
+      if( !ocache->runDCacheLoadModel(d_addr, size).first )
+	{
+	  // not a hit. model this in the performance model
+	  // TODO: Jonathan
+	  ret = issueDramRequest(d_addr, READ);
+	}
+    } else
+      {
+	// non shared-memory
+	ret = ocache->runDCacheLoadModel(d_addr, size).first;
+      }
+  return ret;
+}
+
+
+bool MemoryManager::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
+{
+  if ( g_knob_simarch_has_shared_mem )
+    {
+      if ( !ocache->runDCacheLoadModel(d_addr, size).first )
+	{
+	  // not a hit. model this in the performance model
+	  // TODO: Jonathan
+	  return issueDramRequest(d_addr, WRITE);
+	}
+    }
+  else
+    {
+      // non shared-memory
+      return ocache->runDCacheStoreModel(d_addr, size);
+    }
+}
+
+
+
+#endif
+*/
+>>>>>>> 2ea3623f31769ec220067e2b2669b6e56f25d6e8:common/core/memory_manager.cc

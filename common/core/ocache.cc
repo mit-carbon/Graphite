@@ -218,6 +218,7 @@ pair<bool, CacheTag*> OCache::iCacheLoadSingleFast(ADDRINT addr)
    return res;
 }
 
+
 pair<bool, CacheTag*> OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
 {
    ASSERTX(size <= 4);
@@ -236,6 +237,23 @@ pair<bool, CacheTag*> OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
    return dCacheStoreSingleFast(d_addr);     
 }
 
+pair<bool, CacheTag*> OCache::runICacheLoadModelPeek(ADDRINT i_addr, UINT32 size)
+{
+   ASSERTX(size <= 4);
+   return il1->accessSingleLinePeek(i_addr);
+}
+
+pair<bool, CacheTag*> OCache::runDCacheLoadModelPeek(ADDRINT d_addr, UINT32 size)
+{
+   ASSERTX(size <= 4);
+   return dl1->accessSingleLinePeek(d_addr);
+}
+
+pair<bool, CacheTag*> OCache::runDCacheStoreModelPeek(ADDRINT d_addr, UINT32 size)
+{
+   ASSERTX(size <= 4);
+   return dl1->accessSingleLinePeek(d_addr);     
+}
 
 
 // constructor

@@ -622,7 +622,6 @@ class Cache : public CacheBase
 
 #endif
 
-
       // Single line cache access at addr 
       pair<bool, CacheTag*> accessSingleLine(ADDRINT addr, AccessType access_type)
       {
@@ -671,6 +670,37 @@ class Cache : public CacheBase
          return make_pair(hit, tagptr);
       }
 
+
+      // Single line cache access at addr 
+      pair<bool, CacheTag*> accessSingleLinePeek(ADDRINT addr)
+      {
+         CacheTag tag;
+         UINT32 set_index;
+
+         splitAddress(addr, tag, set_index);
+
+         UINT32 index = set_index;
+         UINT32 depth = 0;
+         bool hit; 
+
+         pair<bool, CacheTag*> res;
+         CacheTag *tagptr = (CacheTag*) NULL;
+
+         do 
+         {
+            //cout << "index = " << index << endl;
+            SET_t &set = sets[index];
+            //set.print();
+            res = set.find(tag);
+            hit = res.first;
+            index = set_ptrs[index];
+         } while( !hit && ((++depth) < max_search ) && (index < k_MAX_SETS));
+
+         if ( hit )
+	    tagptr = res.second;
+
+         return make_pair(hit, tagptr);
+      }
 
 
 };

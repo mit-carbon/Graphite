@@ -237,13 +237,13 @@ pair<bool, CacheTag*> OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
    return dCacheStoreSingleFast(d_addr);     
 }
 
-pair<bool, CacheTag*> OCache::runICacheModelPeek(ADDRINT i_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runICachePeekModel(ADDRINT i_addr, UINT32 size)
 {
    ASSERTX(size <= 4);
    return il1->accessSingleLinePeek(i_addr);
 }
 
-pair<bool, CacheTag*> OCache::runDCacheModelPeek(ADDRINT d_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runDCachePeekModel(ADDRINT d_addr, UINT32 size)
 {
    ASSERTX(size <= 4);
    return dl1->accessSingleLinePeek(d_addr);     

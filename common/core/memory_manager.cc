@@ -385,16 +385,8 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 	stringstream ss;
 	ss << "Unexpected: address: " << hex << address;
 	debugPrint(the_core->getRank(), "MMU", ss.str());
-  // FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
-//  int cache_index = address / ocache->dCacheLineSize();
-//  debugPrint(the_core->getRank(), "MMU", "getting $Entry (processUnexpectedSMemUpdate)");
-//  CacheDirectoryEntry* cache_dir_entry_ptr = cache_dir->getEntry(cache_index);
-//  debugPrint(the_core->getRank(), "MMU", "getting $Entry (processUnexpectedSMemUpdate)");
   
-  //FIXME: adding in Jonathan's new state stuff in the ocache......
-  //is it okay to model the ocache here, required to get a pointer
-	pair<bool, CacheTag*> cache_model_results = ocache->runDCacheLoadModel(address, 4); //FIXME what the hell is size??
-//  cache_dir_entry_ptr->setCState(new_cstate);
+	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address, 4); //size(4) is meaningless (how many bytes to access)
 	assert( cache_model_results.second != NULL );
 	cache_model_results.second->setCState(new_cstate);
   
@@ -407,18 +399,13 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   packet.length = sizeof(int) * SH_MEM_ACK_NUM_INTS_SIZE;
   
   // initialize packet payload for downgrade
-  // FIXME make this malloced? in which case we need to free it!
-  int* payload;
-  payload = new int[SH_MEM_UPDATE_NUM_INTS_SIZE];
-  assert( payload != NULL );
- //TODO FREE THE PAYLOAD
-//  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
   payload[SH_MEM_ACK_IDX_NEW_CSTATE] = new_cstate;
   payload[SH_MEM_ACK_IDX_ADDRESS] = address;               // TODO: cache line align?
   packet.data = (char *)(payload);
   
   ss.str("");
-  ss << " Payload Attached: data Addr: " << hex << (int) packet.data << ", Addr: " << hex << ((int*) (packet.data))[SH_MEM_ACK_IDX_ADDRESS];
+  ss << " Payload Attached: data Addr: " << hex << (int) packet.data << ", Addr: " << hex << ((int*) (packet.data))[SH_MEM_ACK_IDX_ADDRESS] << " packet.length = " << packet.length;
   debugPrint(the_core->getRank(), "MMU", ss.str());
 
   (the_core->getNetwork())->netSend(packet);

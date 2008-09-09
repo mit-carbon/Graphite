@@ -28,7 +28,8 @@ typedef struct NetPacket NetPacket;
 
 
 // TODO: is there a better way to set up these index constants
-
+//TODO: refactor into a Payload Class/Struct
+//
 // define indecies/offsets for shared memory requests. indicies assume integer (4 byte) data sizes
 
 // ***** defines for a shared memory update message (there exist two types, expected updates and unexpected updates)
@@ -61,7 +62,7 @@ typedef struct NetPacket NetPacket;
 // ***** defines for a shared memory update message (there exist two types, expected updates and unexpected updates)
 
 // size of the request payload (in integer data sizes)
-#define SH_MEM_ACK_NUM_INTS_SIZE     (1)
+#define SH_MEM_ACK_NUM_INTS_SIZE     (2)
 
 // new cstate cache was set to
 #define SH_MEM_ACK_IDX_NEW_CSTATE    (0)

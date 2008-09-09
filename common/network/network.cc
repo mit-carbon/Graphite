@@ -351,7 +351,6 @@ char* Network::netCreateBuf(NetPacket packet)
 
    for(i = 0; i < packet.length; i++) {
       buffer[running_length + i] = temp[i];
-//		cout << "Buffer [" << i << "] = " << hex << (int) buffer[i +  running_length] << ", temp: " << hex << (int) temp[i] << endl;
    }
 
    running_length += packet.length;
@@ -359,7 +358,6 @@ char* Network::netCreateBuf(NetPacket packet)
 
    for(i = 0; i < sizeof(time); i++) {
       buffer[running_length + i] = temp[i];
-//		cout << "Buffer [" << i << "] = " << hex << (int) buffer[running_length + i] << endl;
 	}
    
    return buffer;

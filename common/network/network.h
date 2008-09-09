@@ -15,6 +15,7 @@ class Chip;
 #include "chip.h"
 #include "transport.h"
 #include <string>
+#include <sstream>
 
 // Define data types
 

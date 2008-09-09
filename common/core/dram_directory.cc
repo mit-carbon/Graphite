@@ -67,7 +67,7 @@ void DramDirectory::print()
 	while(iter != dram_directory_entries.end())
 	{
 		cout << "   ADDR (aligned): 0x" << hex << iter->second->getMemLineAddress() 
-				<< "  DState: " << iter->second->getDState();
+				<< "  DState: " << DramDirectoryEntry::dStateToString(iter->second->getDState());
 
 		vector<UINT32> sharers = iter->second->getSharersList();
 		cout << "  SharerList <size= " << sharers.size() << " > = { ";

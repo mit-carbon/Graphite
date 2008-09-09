@@ -486,15 +486,15 @@ VOID routine(RTN rtn, VOID *v)
    if ( (msg_ptr = mapMsgAPICall(rtn, rtn_name)) != NULL ) {
       RTN_Replace(rtn, msg_ptr);
    } 
-//   else if(rtn_name != "_Z13instrument_meiPi") { //INSTRUMENTED_FUNCTION) {
-   else if(rtn_name != "_Z13instrument_mev") { //INSTRUMENTED_FUNCTION) {
+   else if(rtn_name != "_Z13instrument_meiPi") { }//INSTRUMENTED_FUNCTION) {
+//   else if(rtn_name != "_Z13instrument_mev") { //INSTRUMENTED_FUNCTION) {
 //   else if(rtn_name != "_Z13instrument_mei") { //INSTRUMENTED_FUNCTION) {
 	//don't do anything
-   } 
+//   } 
    else 
    {
       
-	  cout << "Routine name is: " << rtn_name << endl;
+//	  cout << "Routine name is: " << rtn_name << endl;
 	  
 	  
 	  if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 

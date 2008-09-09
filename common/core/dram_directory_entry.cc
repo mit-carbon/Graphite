@@ -106,3 +106,15 @@ void DramDirectoryEntry::dirDebugPrint()
 	}
 	cout << "}" << endl << endl;
 }
+
+string DramDirectoryEntry::dStateToString(dstate_t dstate)
+{
+	switch(dstate) {
+		case UNCACHED:	 return "UNCACHED  ";
+		case EXCLUSIVE: return "EXCLUSIVE ";
+		case SHARED :   return "SHARED    ";
+		default: return "ERROR: DSTATETOSTRING";
+	}
+
+	return "ERROR: DSTATETOSTRING";
+}

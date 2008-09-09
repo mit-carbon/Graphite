@@ -1,5 +1,6 @@
-#include "debug.h"
 #include "memory_manager.h"
+
+using namespace std;
 
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
@@ -17,10 +18,8 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
 	// TODO: verify correct semantics with Jonathan
    assert( ocache != NULL );
-//	int num_cache_lines_per_core = ocache->dCacheSize() / ocache->dCacheLineSize();
 
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
-//	cache_dir = new CacheDirectory(num_cache_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank());
 	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->getNumCores(), ocache->dCacheLineSize());
 }
 
@@ -53,9 +52,11 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 //FIXME deal with the size argument (ie, rename the darn thing)
 bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
+	dram_dir->print();
 #ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq ++++++++++++++++++++");
    dram_dir->print();
+	debugPrintString(my_rank, "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
 #endif
 
    unsigned int my_rank = the_core->getRank();
@@ -64,37 +65,39 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	//second-> pointer to cache tag to update cache state
    pair<bool, CacheTag*> cache_model_results;  // independent of shared memory, is the line available in the cache?
 															  
-   
-#ifdef MMU_DEBUG
-	cache_dir->print(); 
-	cout << " SHMEM Request Type: " << shmem_req_type << endl;
-#endif
-
-	if ( shmem_req_type == READ )
-   {
-	  cache_model_results = ocache->runDCacheLoadModel(address, size);
-	  native_cache_hit = cache_model_results.first;
-
-#ifdef MMU_DEBUG
-		if(native_cache_hit) {
-			  debugPrint(my_rank,"MMU", "NATIVE CACHE HIT"); 
-		} else {
-			  debugPrint(my_rank,"MMU","not a NATIVE CACHE HIT");
-		}
-#endif
-
-   }
-   else
-   {
-	  if ( shmem_req_type == WRITE ) {
+	switch( shmem_req_type ) {
+		
+		case READ:
+			cache_model_results = ocache->runDCacheLoadModel(address, size);
+			native_cache_hit = cache_model_results.first;
+		break;
+		
+		case WRITE:
   	     cache_model_results = ocache->runDCacheStoreModel(address, size);
   	     native_cache_hit = cache_model_results.first;
-      } else {
+		break;
+		
+		default: 
 		  throw("unsupported memory transaction type.");
-		}
+		break;
    }
    
-   if ( !native_cache_hit )
+#ifdef MMU_CACHEHIT_DEBUG                                    
+			if(native_cache_hit) {
+				//god i hate c++
+				stringstream ss;
+				ss << "NATIVE CACHE (HIT) : ADDR: = " <<  hex << address 
+					<< " - CState: "<< CacheState::cStateToString(cache_model_results.second->getCState());
+				debugPrint(my_rank,"MMU", ss.str()); 
+			} else {
+				stringstream ss;
+				ss << "NATIVE CACHE (MISS): ADDR: = " << hex << address 
+					<< " - CState: " << CacheState::cStateToString(cache_model_results.second->getCState());
+				debugPrint(my_rank,"MMU", ss.str());
+			}
+#endif
+   
+	if ( !native_cache_hit )
    {
 	   // simulate going to get it (cache tags updated automagically). need to update directory state
 	   // TODO: deal with the case where the address is homed on another core
@@ -102,30 +105,23 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	   
    }
  
-   // FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
-   // delete this junk, since we no longer use seperate cache stuff
-//   int cache_index = address / ocache->dCacheLineSize();
-
    PacketType req_msg_type, resp_msg_type;
 	
    // first, check local cache
-//	CacheDirectoryEntry* cache_dir_entry_ptr = cache_dir->getEntry(cache_index);
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
 
+	assert( cache_model_results.second != NULL );
    while( !action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
    {
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
      UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
 #ifdef MMU_DEBUG
-	char value_str[20];
-	char line[80];
-	sprintf(value_str, "%x", address); //convert int to string (with hex formatting)
-	sprintf(line, "address           : %s\n", value_str);
-
-	 debugPrint(the_core->getRank(), "MMU", line);
-	 debugPrint(the_core->getRank(), "MMU", "home_node_rank ", home_node_rank);
+	stringstream ss;
+	ss << "address           : " << hex << address << endl;
+	debugPrint(the_core->getRank(), "MMU", ss.str());
+	debugPrint(the_core->getRank(), "MMU", "home_node_rank ", home_node_rank);
 #endif
 	 
 	 assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
@@ -167,7 +163,8 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	   
 	   // update cache_entry
 	   // TODO: add support for actually updating data when we move to systems with software shared memory         
-//		cache_dir_entry_ptr->setCState(resp_c_state);         
+		//TODO: is there a better way to deal with null cache_model_results.second?
+		assert( cache_model_results.second != NULL );
 		cache_model_results.second->setCState(resp_c_state);         
 	   
 	   // TODO: update performance model
@@ -176,6 +173,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
    // do nothing shared mem related
 
+	dram_dir->print();
 #ifdef MMU_DEBUG
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------------");
@@ -217,135 +215,130 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 
   // 1. based on requested operation (read or write), make necessary updates to current owners
   // 2. update directory state in DRAM and sharers array
-	if ( shmem_req_type == READ ) {
-  
+	switch( shmem_req_type ) {
+	
+		case READ:
+		{
+	  
 #ifdef MMU_DEBUG
-		printf("Addr: %x  DState: %d, shmem_req_type %d\n", address, dram_dir_entry->getDState(), shmem_req_type);
+			printf("Addr: %x  DState: %d, shmem_req_type %d\n", address, dram_dir_entry->getDState(), shmem_req_type);
 #endif		
-    
-		// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
-      if(dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) {
-	
-			// make sure there is only one sharerer since this dram_directory_entry is in the exclusive state
-			assert(dram_dir_entry->numSharers() == 1);
-	
-			unsigned int current_owner = dram_dir_entry->getExclusiveSharerRank();
-	
-			// reqeust a data write back data and downgrade to shared
-			NetPacket packet;
-			packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
-			packet.sender = my_rank;
-			packet.receiver = current_owner;
-			packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
-	
-			// initialize packet payload for downgrade
-			int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
-			payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheDirectoryEntry::SHARED;
-			payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;               // TODO: cache line align?
-			packet.data = (char *)(payload);
-			(the_core->getNetwork())->netSend(packet);
-	
-			// wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
-			NetMatch net_match;
-			net_match.sender = current_owner;
-			net_match.sender_flag = true;
-			net_match.type = SHARED_MEM_ACK;
-			net_match.type_flag = true;
-			NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-	
-			// assert a few things in the ack packet (sanity checks)
-			assert((unsigned int)(recv_packet.sender) == current_owner);
-			assert(recv_packet.type == SHARED_MEM_ACK);
-	
-			int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
-			assert(received_address == address);
-	
-			CacheDirectoryEntry::cstate_t received_new_cstate = (CacheDirectoryEntry::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
-			assert(received_new_cstate == CacheDirectoryEntry::SHARED);
-		}
+		 
+			// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
+			if(dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) {
+		
+				// make sure there is only one sharerer since this dram_directory_entry is in the exclusive state
+				assert(dram_dir_entry->numSharers() == 1);
+		
+				unsigned int current_owner = dram_dir_entry->getExclusiveSharerRank();
+		
+				// reqeust a data write back data and downgrade to shared
+				NetPacket packet;
+				packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
+				packet.sender = my_rank;
+				packet.receiver = current_owner;
+				packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
+		
+				// initialize packet payload for downgrade
+				int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+				payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheDirectoryEntry::SHARED;
+				payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;               // TODO: cache line align?
+				packet.data = (char *)(payload);
+				(the_core->getNetwork())->netSend(packet);
+		
+				// wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
+				NetMatch net_match;
+				net_match.sender = current_owner;
+				net_match.sender_flag = true;
+				net_match.type = SHARED_MEM_ACK;
+				net_match.type_flag = true;
+				NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+		
+				// assert a few things in the ack packet (sanity checks)
+				assert((unsigned int)(recv_packet.sender) == current_owner);
+				assert(recv_packet.type == SHARED_MEM_ACK);
+		
+				int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
+				assert(received_address == address);
+		
+				CacheDirectoryEntry::cstate_t received_new_cstate = (CacheDirectoryEntry::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
+				assert(received_new_cstate == CacheDirectoryEntry::SHARED);
+			}
+			
+			// TODO: is there a race condition here in the case when the directory gets updated and then
+			// this thread gets swapped out? should we atomize the state update and the response message
+			// this get executed no matter what state the dram directory entry was in
+
+#ifdef MMU_DEBUG
+			debugPrint(the_core->getRank(), "MMU", "addSharer & Set DState");
+#endif
+			dram_dir_entry->addSharer(requestor);
+			dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
+	   } 
+		break;
       
-      // TODO: is there a race condition here in the case when the directory gets updated and then
-      // this thread gets swapped out? should we atomize the state update and the response message
-      // this get executed no matter what state the dram directory entry was in
+		case WRITE: 
+		{	
+		  // invalidate current sharers
+			vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
+			
+			for(UINT32 i = 0; i < sharers_list.size(); i++) {
+			 
+			 // send message to sharer to invalidate it
+			 NetPacket packet;
+			 packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
+			 packet.sender = my_rank;
+			 packet.receiver = sharers_list[i];//*sharers_iterator;
+			 packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
+			 
+			 /* format of shared memory request packet data
+				 req_type | starting addr | length (in bytes) requested
+			 */
+			 
+			 // initialize packet payload for invalidation 
+			 int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+			 payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheDirectoryEntry::INVALID;
+			 payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;               // TODO: cache line align?
+			 packet.data = (char *)(payload);
+			 (the_core->getNetwork())->netSend(packet);
+			 
+		  }
+		  
+		  // receive invalidation acks from all sharers
+			for(UINT32 i = 0; i < sharers_list.size(); i++) {     
+				// TODO: optimize this by receiving acks out of order
+				 
+				// wait for all of the invalidation acknowledgements
+				NetMatch net_match;
+				net_match.sender = sharers_list[i];//*sharers_iterator;
+				net_match.sender_flag = true;
+				net_match.type = SHARED_MEM_ACK;
+				net_match.type_flag = true;
+				NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+				 
+				// assert a few things in the ack packet (sanity checks)
+				assert((unsigned int)(recv_packet.sender) == sharers_list[i]); // I would hope so
+				 
+				int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
+				stringstream ss;
+				ss << "Data Addr: " << hex << ((int *)(recv_packet.data)) << ", Received Addr: " << hex << received_address << "  Addr: " << hex << address;
+				debugPrint(my_rank, "MMU", ss.str());
+				assert(received_address == address);
+				 
+				 CacheDirectoryEntry::cstate_t received_new_cstate = (CacheDirectoryEntry::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
+				 assert(received_new_cstate == CacheDirectoryEntry::INVALID);
+		  }
+		  
+		  dram_dir_entry->addExclusiveSharer(requestor);
+		  dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
+		}
+		break;
 
-#ifdef MMU_DEBUG
-		debugPrint(the_core->getRank(), "MMU", "addSharer & Set DState");
-#endif
-      dram_dir_entry->addSharer(requestor);
-		dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
-	}
-	else
-	{
-      if ( shmem_req_type == WRITE ) {
-		
-	  // invalidate current sharers
-
-      //FIXME!!! I'm taking out this and replacing sharers with a BitVector
-		//need to address this code - CELIO
-		
-//		vector<unsigned int>::iterator sharers_iterator = dram_dir_entry.getSharersIterator();
-//	  while( sharers_iterator != dram_dir_entry.getSharersSentinel() ) bracketwenthere
-#ifdef MMU_DEBUG
-		cout << "Getting Sharrers List" << endl;		
-#endif
-      vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
-		
-		for(UINT32 i = 0; i < sharers_list.size(); i++) {
-	    
-		 // send message to sharer to invalidate it
-	    NetPacket packet;
-	    packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
-	    packet.sender = my_rank;
-	    packet.receiver = sharers_list[i];//*sharers_iterator;
-	    packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
-	    
-	    /* format of shared memory request packet data
-	       req_type | starting addr | length (in bytes) requested
-	    */
-	    
-	    // initialize packet payload for invalidation 
-	    int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
-	    payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheDirectoryEntry::INVALID;
-	    payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;               // TODO: cache line align?
-	    packet.data = (char *)(payload);
-	    (the_core->getNetwork())->netSend(packet);
-	    
-//	    sharers_iterator++;
-	  }
-	  
-	  // receive invalidation acks from all sharers
-//	  sharers_iterator = dram_dir_entry.getSharersIterator();
-//	  while( sharers_iterator != dram_dir_entry.getSharersSentinel()) bracketgoeshere
-		for(UINT32 i = 0; i < sharers_list.size(); i++) {     
-	    // TODO: optimize this by receiving acks out of order
-	    
-	    // wait for all of the invalidation acknowledgements
-	    NetMatch net_match;
-	    net_match.sender = sharers_list[i];//*sharers_iterator;
-	    net_match.sender_flag = true;
-	    net_match.type = SHARED_MEM_ACK;
-	    net_match.type_flag = true;
-	    NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-	    
-	    // assert a few things in the ack packet (sanity checks)
-	    assert((unsigned int)(recv_packet.sender) == sharers_list[i]); //*sharers_iterator);  // I would hope so
-	    
-	    int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
-	    assert(received_address == address);
-	    
-	    CacheDirectoryEntry::cstate_t received_new_cstate = (CacheDirectoryEntry::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
-       assert(received_new_cstate == CacheDirectoryEntry::INVALID);
-	    
-//	    sharers_iterator++;
-	  }
-	  
-	  dram_dir_entry->addExclusiveSharer(requestor);
-	  dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
-	 }
-      else
+		default:
 		{
 			throw("unsupported memory transaction type.");
 		}
+		break;
    }
   
   // 3. return data back to requestor (note: actual data doesn't have to be sent at this time (6/08))
@@ -380,6 +373,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
  
 	dram_dir->print();
 #endif
+	dram_dir->print();
 
  // verify packet type is correct
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
@@ -387,7 +381,10 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   // extract relevant values from incoming request packet
   CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
   int address = ((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_ADDRESS];
-  
+
+	stringstream ss;
+	ss << "Unexpected: address: " << hex << address;
+	debugPrint(the_core->getRank(), "MMU", ss.str());
   // FIXME: turn this into a cache method which standardizes the parsing of addresses into indeces
 //  int cache_index = address / ocache->dCacheLineSize();
 //  debugPrint(the_core->getRank(), "MMU", "getting $Entry (processUnexpectedSMemUpdate)");
@@ -398,7 +395,8 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   //is it okay to model the ocache here, required to get a pointer
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCacheLoadModel(address, 4); //FIXME what the hell is size??
 //  cache_dir_entry_ptr->setCState(new_cstate);
-  cache_model_results.second->setCState(new_cstate);
+	assert( cache_model_results.second != NULL );
+	cache_model_results.second->setCState(new_cstate);
   
   // send back acknowledgement of receiveing this message
   NetPacket packet;
@@ -409,10 +407,20 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   packet.length = sizeof(int) * SH_MEM_ACK_NUM_INTS_SIZE;
   
   // initialize packet payload for downgrade
-  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+  // FIXME make this malloced? in which case we need to free it!
+  int* payload;
+  payload = new int[SH_MEM_UPDATE_NUM_INTS_SIZE];
+  assert( payload != NULL );
+ //TODO FREE THE PAYLOAD
+//  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
   payload[SH_MEM_ACK_IDX_NEW_CSTATE] = new_cstate;
   payload[SH_MEM_ACK_IDX_ADDRESS] = address;               // TODO: cache line align?
   packet.data = (char *)(payload);
+  
+  ss.str("");
+  ss << " Payload Attached: data Addr: " << hex << (int) packet.data << ", Addr: " << hex << ((int*) (packet.data))[SH_MEM_ACK_IDX_ADDRESS];
+  debugPrint(the_core->getRank(), "MMU", ss.str());
+
   (the_core->getNetwork())->netSend(packet);
   
   // TODO: invalidate/flush from cache? Talk to Jonathan
@@ -420,6 +428,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate");
 #endif	
+	dram_dir->print();
 }
 
 // TODO: implement DramRequest 
@@ -431,3 +440,13 @@ bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
   return true;
 }
 
+string MemoryManager::sMemReqTypeToString(shmem_req_t type)
+{
+	switch(type) {
+		case READ: return	"READ      ";
+		case WRITE: return "WRITE     ";
+		case INVALIDATE: return "INVALIDATE";
+		default: return "ERROR SMEMREQTYPE";
+	}
+	return "ERROR SMEMREQTYPE";
+}

@@ -22,9 +22,9 @@ pthread_mutex_t lock;
 void* do_nothing(void *threadid);
 
 //pintool will ONLY instrument this function (hopefully)
-//int instrument_me(int tid, int* ptr);
+int instrument_me(int tid, int* ptr);
 //void instrument_me(int tid);
-void instrument_me();
+//void instrument_me();
 
 int main2(int argc, char* argv[]) {
   
@@ -108,30 +108,30 @@ void* do_nothing(void *threadid)
 #endif
    
    int size = 1;
-   global_integer = 10;
+   global_integer = 1;
    global_integer_ptr = &global_integer;
    if(tid==0) {
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " being instrumented." << endl;
-//		cout << "size addr: " << &size << endl;
-//		cout << "gint addr: " << &global_integer << endl;
-//		cout << "gint_ptr : " << global_integer_ptr << endl;
+		cout << "size addr: " << &size << endl;
+		cout << "gint addr: " << &global_integer << endl;
+		cout << "gint_ptr : " << global_integer_ptr << endl;
 		pthread_mutex_unlock(&lock);
 
-		instrument_me();
+		instrument_me( tid , &size);
 		
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
    } else {
 		pthread_mutex_lock(&lock);
-//		cout << "Core: " << tid << " being instrumented." << endl;
+		cout << "Core: " << tid << " being instrumented." << endl;
 		pthread_mutex_unlock(&lock);
 
-//		instrument_me();
+//		instrument_me( tid , &size );
 		
 		pthread_mutex_lock(&lock);
-//		cout << "Core: " << tid << " finished instrumenting." << endl;
+		cout << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
    }
    CAPI_Finish(tid);
@@ -139,20 +139,26 @@ void* do_nothing(void *threadid)
    // return 0;
 }
 
+/*
+	asm ( assembler template
+		: output operands				(optional)
+		: input operands				(optional)
+		: list of clobbered registers		(optional)
+	);	
+*/
 
-
-//int instrument_me(int tid, int* ptr) 
-void instrument_me()
+int instrument_me(int tid, int* ptr) 
+//void instrument_me()
 {
-//   int size = *global_integer_ptr; //*ptr;
+   int size = *global_integer_ptr; //*ptr;
 
-//   cout << "inside instrument me" << endl;
-//   int array[size];
+   cout << "inside instrument me, size=" << size << endl;
+   int array[size];
 
-//   for(int i=0; i < size; i++) {
-//      array[i] = i;
-//   }
-//   return tid;
-//    cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
+   for(int i=0; i < size; i++) {
+      array[i] = i;
+   }
+    cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
+   return tid;
 }
 

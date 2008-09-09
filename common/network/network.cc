@@ -31,6 +31,9 @@ int Network::netSend(NetPacket packet)
 #ifdef NETWORK_DEBUG
 	debugPrint(net_tid, "NETWORK", "netSend Begin");
    printNetPacket(packet);
+	stringstream ss;
+	ss << "Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
+	debugPrint(net_tid, "NETWORK", ss.str());
 #endif
 
    char *buffer;
@@ -209,6 +212,9 @@ NetPacket Network::netRecv(NetMatch match)
 		                   the_chip->getProcTime(net_tid) : entry.time);
 #ifdef NETWORK_DEBUG
    printNetPacket(packet);
+	stringstream ss;
+	ss << "Received Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
+	debugPrint(net_tid, "NETWORK", ss.str());
    debugPrint(net_tid, "NETWORK", "netRecv - leaving");
 #endif
 	return packet;
@@ -343,15 +349,19 @@ char* Network::netCreateBuf(NetPacket packet)
    running_length += sizeof(packet.length);
    temp = packet.data;
 
-   for(i = 0; i < packet.length; i++)
+   for(i = 0; i < packet.length; i++) {
       buffer[running_length + i] = temp[i];
+//		cout << "Buffer [" << i << "] = " << hex << (int) buffer[i +  running_length] << ", temp: " << hex << (int) temp[i] << endl;
+   }
 
    running_length += packet.length;
    temp = (char*) &time;
 
-   for(i = 0; i < sizeof(time); i++)
+   for(i = 0; i < sizeof(time); i++) {
       buffer[running_length + i] = temp[i];
-
+//		cout << "Buffer [" << i << "] = " << hex << (int) buffer[running_length + i] << endl;
+	}
+   
    return buffer;
 };
 

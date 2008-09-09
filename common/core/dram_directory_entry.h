@@ -39,6 +39,7 @@ class DramDirectoryEntry
 
   //FIXME: return string (don't cout)
   void dirDebugPrint();
+  static string dStateToString(dstate_t dstate);
   UINT32 getMemLineAddress() { return memory_line_address; }
   
  private:

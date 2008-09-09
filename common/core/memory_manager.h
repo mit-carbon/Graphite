@@ -2,9 +2,11 @@
 #define MEMORY_MANAGER_H
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include "assert.h"
 #include <math.h>
+#include "debug.h"
 
 // some forward declarations for cross includes
 class Core;
@@ -22,7 +24,7 @@ typedef struct NetPacket NetPacket;
 #include "cache_directory_entry.h"
 #include "network.h"
 #include "address_home_lookup.h"
-
+#include "cache_state.h"
 
 
 // TODO: is there a better way to set up these index constants
@@ -90,12 +92,13 @@ class MemoryManager
   AddressHomeLookup *addr_home_lookup;
   
  public:
-  MemoryManager(Core *the_core_arg, OCache *ocache_arg);
-  virtual ~MemoryManager();
-  bool initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type);
-  void processSharedMemReq(NetPacket req_packet);
-  void processUnexpectedSharedMemUpdate(NetPacket update_packet);
+	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
+	virtual ~MemoryManager();
+	bool initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type);
+	void processSharedMemReq(NetPacket req_packet);
+	void processUnexpectedSharedMemUpdate(NetPacket update_packet);
 
+	static string sMemReqTypeToString(shmem_req_t type);
 // these below functions have been pushed into initiateSharedMemReq (which directly calls ocache->runModel...)
 //  bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
 //  bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);

@@ -10,7 +10,8 @@ using namespace std;
 	VOID debugPrint(INT32 id, string class_name, string output_string);
   
 	VOID debugPrint(INT32 id, string class_name, string output_string, int value);
-	VOID debugPrintFloat(INT32 id, string class_name, string output_string, float value);
 	VOID debugPrintHex(INT32 id, string class_name, string output_string, int value);
+	VOID debugPrintFloat(INT32 id, string class_name, string output_string, float value);
+	VOID debugPrintString(INT32 id, string class_name, string output_string, string value);
 
 #endif

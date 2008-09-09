@@ -52,7 +52,7 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 //FIXME deal with the size argument (ie, rename the darn thing)
 bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
-	dram_dir->print();
+//	dram_dir->print();
 #ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq ++++++++++++++++++++");
    dram_dir->print();
@@ -173,7 +173,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
    // do nothing shared mem related
 
-	dram_dir->print();
+//	dram_dir->print();
 #ifdef MMU_DEBUG
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------------");
@@ -371,7 +371,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 #ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
  
-	dram_dir->print();
+//	dram_dir->print();
 #endif
 	dram_dir->print();
 
@@ -428,7 +428,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate");
 #endif	
-	dram_dir->print();
+//	dram_dir->print();
 }
 
 // TODO: implement DramRequest 

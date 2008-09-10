@@ -172,20 +172,29 @@ void instrument_me()
    
 	
    pthread_mutex_unlock(&lock);
-   
+
 //    cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
 //   return tid;
 
-
-/*	int x = 10, y;
+/*
+	int x = 10, y;
 	
-	__asm ("movl %1, %%eax;
+	asm ("movl %1, %%eax;
 			movl %%eax, %0;"
-			:"=r"(y)	/* y is output operand */
-//			:"r"(x)		/* x is input operand */
-//			:"%eax");	/* %eax is clobbered register */
+			:"=r"(y)	// y is output operand 
+			:"r"(x)	//	x is input operand 
+			:"%eax");//	%eax is clobbered register 
 
-//   cout << " y = " << y;
-//	*/
+   cout << " y = " << y;
+	*/
+/* int foo = 10, bar = 15;
+ asm volatile("addl  %%ebx,%%eax;
+					addl  %%ebx, %%eax;"
+						 :"=a"(foo)
+						 :"a"(foo), "b"(bar)
+				 );
+
+	printf("foo+bar=%d\n", foo);
+*/
 }
 

@@ -1,6 +1,6 @@
 # this file should contain DEBUG flags
 #CFLAGS += -DSMEM_DEBUG=1 #blanket shared memory debug flag, probably not used much anymore
-#CFLAGS += -DAHL_DEBUG  #address_home_lookup
+CFLAGS += -DAHL_DEBUG  #address_home_lookup
 #CFLAGS += -DCDIR_DEBUG #cache_directory
 #CFLAGS += -DDRAM_DEBUG #Dram_directory
 #CFLAGS += -DNETWORK_DEBUG #network.cc

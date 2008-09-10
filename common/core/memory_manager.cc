@@ -20,7 +20,8 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
    assert( ocache != NULL );
 
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
-	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->getNumCores(), ocache->dCacheLineSize());
+//	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->getNumCores(), ocache->dCacheLineSize());
+	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores());
 }
 
 MemoryManager::~MemoryManager()

@@ -1,74 +1,85 @@
-/* for debugging -- remove this eventually */
-#include <iostream> 
-#include "debug.h"
-using namespace std; 
-
 #include "address_home_lookup.h"
 
-
-AddressHomeLookup::AddressHomeLookup(UINT32 total_num_cache_lines_arg, UINT32 num_nodes_arg, UINT32 bytes_per_cache_line_arg)
+AddressHomeLookup::AddressHomeLookup(UINT32 num_nodes_arg)
 {
-  total_num_cache_lines = total_num_cache_lines_arg;
   num_nodes = num_nodes_arg;
   
+	// default: divide up dram memory evenly between all of the cores 
+	for(int i = 0; i < (int) num_nodes; i++) 
+	{
+		//TODO: verify that this math is correct. i think i'm orphaning some memory
+		bytes_per_core.push_back( (UINT64) (TOTAL_DRAM_MEMORY_BYTES / num_nodes) );
+		ADDRINT start_addr = bytes_per_core[i] * i;
+		ADDRINT end_addr = (ADDRINT) bytes_per_core[i] * (i + 1) - 1;
+		address_boundaries.push_back( pair<ADDRINT, ADDRINT>(start_addr, end_addr) );
 #ifdef AHL_DEBUG
-  cout << "  AHL: total num cache lines: " << total_num_cache_lines << endl;
-  cout << "  AHL: Num_Nodes: " << num_nodes << endl;
+		cout << " Start Addr: " << hex << start_addr << " End_Addr: " << hex << end_addr << endl;
 #endif
-  
-  cache_lines_per_node = total_num_cache_lines / num_nodes;
-  bytes_per_cache_line = bytes_per_cache_line_arg;
+	}
+}
 
-  assert(total_num_cache_lines % num_nodes == 0); // make sure each node has the same number of lines, and that there are no orphan lines
-  
-  /* we may want to handle this case in the future. for now, we assume easy memory allocation */
-  if(total_num_cache_lines % num_nodes != 0)
-    {
-      throw "Memory size must be evenly divisible by the number of nodes.";
-    }
-  
-  /*
-    cout << "Initializing Address Home Lookup" << endl;
-    cout << "total memory size: " << total_mem_size_bytes << " bytes" << endl;
-    cout << "num nodes: " << num_nodes << endl;
-  */
+AddressHomeLookup::AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds)
+{
+	address_boundaries = addr_bounds;
+	num_nodes = address_boundaries.size();
 }
 
 AddressHomeLookup::~AddressHomeLookup()
 {
+	//TODO deallocate vectors?
+//	~address_boundaries;
 }
 
-// TODO: proper return type -- node number
+
+void AddressHomeLookup::setAddrBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_bounds) 
+{
+	//FIXME memory issue. is this correct? do i need to deallocate old addr_boundaries?
+	//copymethod? etc. etc.
+	address_boundaries = addr_bounds;
+}
 
 /*
  * Given an address, returns the home node number where the address's dram directory lives
  */
 UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
-  /* TODO: error check bound */
-  
-  /* TODO: something more sophisticated? */
-  
-  /* Memory Allocation Scheme:
-   *   each node, of which there are num_nodes of them, gets an equally-sized
-   *   statically-defined segment of memory.
-   */
-  
 
-  // TODO: check this index arithmetic
-
-//BUG: bytes_per_cache_line is 32 bytes, not 64
-#ifdef AHL_DEBUG
-	cout << "   AHL: find_home_for_address  =" << address << endl;
-	printf( "   AHL: find_home_for_address  = %x\n" ,(UINT32) address);
-	cout << "   AHL: bytes_per_cache_line   = " << bytes_per_cache_line << endl;
-	debugPrint(-1, "AHL", "cache_line_per_node", cache_lines_per_node);
-#endif
-
+	INT32 return_core_id = -1;
+	UINT32 index = 0;
 	
-  int dram_line = address / bytes_per_cache_line;
-  UINT32 return_core_id = dram_line / cache_lines_per_node;
+	//TODO OPTIMIZE? can we make address home lookup faster than this, but still flexible?
+	while(return_core_id == -1 && index < num_nodes) {
+		
+		if( (ADDRINT) address >= address_boundaries[index].first
+			&& (ADDRINT) address < address_boundaries[index].second ) 
+		{
+#ifdef AHL_DEBUG
+			cout << "ADDR: " << hex << address << " Index: " << dec << index << ", NumCores: " << num_nodes << endl;
+#endif
+			return_core_id = index;
+		}
+	
+	   ++index;
+	}
+	
+#ifdef AHL_DEBUG
+	stringstream ss;
+	ss << "ADDR: " << hex << address << "  HOME_CORE: " << dec << return_core_id;
+	debugPrint(-1, "AHL", ss.str());
+#endif
+	
+	assert( return_core_id < (INT32) num_nodes);
+	//hard to say what behavior should be for addresses "out of bounds"
+	//perhaps only set up shared memory, and anything not "in bounds"
+	//would be considered private memory?  Or just automatically home it
+	//on core 0?
+	return_core_id = ( return_core_id == -1 ) ? 0 : return_core_id;
+	assert( return_core_id >= 0 );
+	
+	//a bit of incompatibilities of int32 vs uint32
+	return (UINT32) return_core_id;
 
-	assert( return_core_id < num_nodes);
-	return return_core_id;
-//	return 0; //force it to home DRAM on core #1 TODO
+//commented out old static style of even distribution
+//  int dram_line = address / bytes_per_cache_line;
+//  UINT32 return_core_id = dram_line / cache_lines_per_node;
+//  return return_core_id;
 }

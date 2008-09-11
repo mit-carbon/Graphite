@@ -29,8 +29,8 @@ using namespace std;
 class AddressHomeLookup
 {
 	public:
-		AddressHomeLookup(UINT32 num_nodes);
-		AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds);
+		AddressHomeLookup(UINT32 num_nodes, INT32 ahl_id);
+		AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds, INT32 ahl_id);
 		virtual ~AddressHomeLookup();
 	  
 		/* TODO: change this return type to a node number type */
@@ -43,6 +43,7 @@ class AddressHomeLookup
 		vector<UINT64> bytes_per_core;
 
 	   UINT32 num_nodes;
+		INT32 ahl_id; //debugging purposes only. tie to core id
 };
 
 #endif /*ADDRESSHOMELOOKUP_H_*/

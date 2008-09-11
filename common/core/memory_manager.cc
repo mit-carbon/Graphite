@@ -11,17 +11,26 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	// this also assumes 1 dram per core
 
 	// assume 4GB / dCacheLineSize  bytes/line 
-	int total_num_cache_lines = (int) (pow(2,32) / ocache->dCacheLineSize()); 
+	int total_num_dram_lines = (int) (pow(2,32) / ocache->dCacheLineSize()); 
 	
-	int dram_lines_per_core = total_num_cache_lines / the_core->getNumCores();
-	assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_cache_lines );
+	int dram_lines_per_core = total_num_dram_lines / the_core->getNumCores();
+	assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_dram_lines );
 
 	// TODO: verify correct semantics with Jonathan
    assert( ocache != NULL );
 
+	//TODO can probably delete "dram_lines_per_core" b/c it not necessary.
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
-//	addr_home_lookup = new AddressHomeLookup(total_num_cache_lines, the_core->getNumCores(), ocache->dCacheLineSize());
-	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores());
+//	addr_home_lookup = new AddressHomeLookup(total_num_dram_lines, the_core->getNumCores(), ocache->dCacheLineSize());
+	
+	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores(), the_core->getRank());
+	vector< pair<ADDRINT, ADDRINT> > addr_boundaries;
+   //hand code address boundaries between cores
+	if( the_core->getNumCores() > 2)
+		debugPrint(the_core->getRank(), "CORE", "YOU'RE DOING IT WRONG (only two cores plz)");
+	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0, 0x89FFFFFF));
+	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0x8a000000, 0xFFFFFFFF));
+	addr_home_lookup->setAddrBoundaries(addr_boundaries);
 }
 
 MemoryManager::~MemoryManager()

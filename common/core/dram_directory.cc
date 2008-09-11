@@ -9,14 +9,7 @@ DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_a
   cout << "Init Dram with num_lines: " << num_lines << endl;
   cout << "   bytes_per_cache_linew: " << bytes_per_cache_line_arg << endl;
   assert( num_lines >= 0 );
-//  dram_directory_entries = new DramDirectoryEntry[num_lines];
-//  for(UINT32 i =0; i < num_lines; i++) {
-	  //FIXME is this correct or is there a better way of initializing dramEntry?
-//	  dram_directory_entries[i].dramDirEntryInit(number_of_cores);
-//  }
   bytes_per_cache_line = bytes_per_cache_line_arg;
-  
-  // note: all dram_directory_entries are initialized properly by the dram_directory_entry constructor
 }
 
 DramDirectory::~DramDirectory()
@@ -32,25 +25,25 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
 {
 
 	// note: the directory is a map key'ed by cache line. so, first we need to determine the associated cache line
+	//TODO i think i can take out the ( - (num_lines*dram_id) ) since its just a key.
+	//and, its not a cache line.
 	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
   
 #ifdef DRAM_DEBUG
 	printf(" DRAM_DIR: getEntry: address        = 0x %x\n" ,address );
 	cout << " DRAM_DIR: getEntry: bytes_per_$line= " << bytes_per_cache_line << endl;
 	cout << " DRAM_DIR: getEntry: cachline_index = " << cache_line_index << endl;
-	cout << " DRAM_DIR: getEntry: mem line addr  = " << (cache_line_index * bytes_per_cache_line) + (num_lines * dram_id) << endl;
 	cout << " DRAM_DIR: getEntry: number of lines= " << num_lines << endl;
 #endif
   
-	assert( cache_line_index < num_lines);
+//	assert( cache_line_index < num_lines);
 	assert( cache_line_index >= 0);
 
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
   
 	if( entry_ptr == NULL ) {
-		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;//cache_line_index * bytes_per_cache_line + ( num_lines * dram_id);
+		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
 #ifdef DRAM_DEBUG	  
-//		cout << "DRAM_DIR: memory_line_address" << memory_line_address << endl;
 		debugPrint(dram_id, "DRAM_DIR", "memory_line_address", memory_line_address );
 #endif		
 		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address

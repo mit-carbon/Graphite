@@ -1,8 +1,9 @@
 #include "address_home_lookup.h"
 
-AddressHomeLookup::AddressHomeLookup(UINT32 num_nodes_arg)
+AddressHomeLookup::AddressHomeLookup(UINT32 num_nodes_arg, INT32 ahl_id_arg)
 {
   num_nodes = num_nodes_arg;
+  ahl_id = ahl_id_arg;
   
 	// default: divide up dram memory evenly between all of the cores 
 	for(int i = 0; i < (int) num_nodes; i++) 
@@ -18,8 +19,9 @@ AddressHomeLookup::AddressHomeLookup(UINT32 num_nodes_arg)
 	}
 }
 
-AddressHomeLookup::AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds)
+AddressHomeLookup::AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds, INT32 ahl_id_arg)
 {
+	ahl_id = ahl_id_arg;
 	address_boundaries = addr_bounds;
 	num_nodes = address_boundaries.size();
 }
@@ -64,7 +66,7 @@ UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
 #ifdef AHL_DEBUG
 	stringstream ss;
 	ss << "ADDR: " << hex << address << "  HOME_CORE: " << dec << return_core_id;
-	debugPrint(-1, "AHL", ss.str());
+	debugPrint(ahl_id, "AHL", ss.str());
 #endif
 	
 	assert( return_core_id < (INT32) num_nodes);

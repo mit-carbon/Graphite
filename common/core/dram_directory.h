@@ -14,10 +14,12 @@ class DramDirectory
   //key dram entries on cache_line (assumes cache_line is 1:1 to dram memory lines)
   std::map<UINT32, DramDirectoryEntry*> dram_directory_entries;
   UINT32 dram_id;
- public:
+
+public:
   DramDirectory(UINT32 num_lines, UINT32 bytes_per_cache_line, UINT32 dram_id_arg, UINT32 num_of_cores);
   virtual ~DramDirectory();
   DramDirectoryEntry* getEntry(ADDRINT address);
+  void setNumberOfLines(UINT32 number_of_lines) { num_lines = number_of_lines; }
   
   //for debug purposes
   void print();

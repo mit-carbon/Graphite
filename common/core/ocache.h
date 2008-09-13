@@ -126,10 +126,13 @@ class OCache
       // Fast accesses skip adding the access to the profiler
       pair<bool, CacheTag*> dCacheLoadSingle(ADDRINT addr, UINT32 inst_id);
       pair<bool, CacheTag*> dCacheLoadSingleFast(ADDRINT addr);
+      pair<bool, CacheTag*> dCacheLoadMultiFast(ADDRINT addr, UINT32 size);
       pair<bool, CacheTag*> dCacheStoreSingle(ADDRINT addr, UINT32 inst_id);
       pair<bool, CacheTag*> dCacheStoreSingleFast(ADDRINT addr);
+      pair<bool, CacheTag*> dCacheStoreMultiFast(ADDRINT addr, UINT32 size);
       pair<bool, CacheTag*> iCacheLoadSingle(ADDRINT addr, UINT32 inst_id);
       pair<bool, CacheTag*> iCacheLoadSingleFast(ADDRINT addr);
+      pair<bool, CacheTag*> iCacheLoadMultiFast(ADDRINT addr, UINT32 size);
 
    public:
 

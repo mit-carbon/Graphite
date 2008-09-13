@@ -127,8 +127,8 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
      UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
-#ifdef MMU_DEBUG
 	stringstream ss;
+#ifdef MMU_DEBUG
 	ss << "address           : " << hex << address << endl;
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 	debugPrint(the_core->getRank(), "MMU", "home_node_rank ", home_node_rank);

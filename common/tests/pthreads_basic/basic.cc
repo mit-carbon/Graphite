@@ -93,18 +93,20 @@ int main(int argc, char* argv[]){ // main begins
 void* do_nothing(void *threadid)
 {
 #ifdef DEBUG  
-//   pthread_mutex_lock(&lock);
-//   cout << "beginning of do_nothing function" << endl << endl;
-//   pthread_mutex_unlock(&lock);
+   pthread_mutex_lock(&lock);
+   cout << "beginning of do_nothing function" << endl << endl;
+   pthread_mutex_unlock(&lock);
 #endif
    
 	int tid;
+	cout << "blah" << endl;
 	CAPI_Initialize(&tid);
+	cout << "end cap init" << endl;
 
 #ifdef DEBUG  
-//   pthread_mutex_lock(&lock);
-//   cout << "executing do_nothing function" << endl << endl;
-//   pthread_mutex_unlock(&lock);
+   pthread_mutex_lock(&lock);
+   cout << "executing do_nothing function: " << tid << endl << endl;
+   pthread_mutex_unlock(&lock);
 #endif
    
    int size = 1;
@@ -130,7 +132,7 @@ void* do_nothing(void *threadid)
 		pthread_mutex_unlock(&lock);
 
 //		instrument_me( tid , &size );
-		instrument_me( );
+//		instrument_me( );
 		
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " finished instrumenting." << endl;
@@ -198,3 +200,32 @@ void instrument_me()
 */
 }
 
+//test suit of all cases. barrier at each step.
+void awesome_test_suite_msi(int tid) 
+{
+   //allocate global structures that both can see, make addr of one struct for one tile, one struct for other tile
+
+	//read address on home address
+	//
+	//read address on other core
+	//
+	////write address on home address
+	//
+	//write addr on other core
+	//
+	//
+
+	//do all of these again (should be in cache)
+	//do a write for an address you just read.
+	//
+	//read someone else's write addr
+	//
+	//write someone else's write addr
+
+   //test each edge
+	//assert cache state
+	//assert dram state
+	//pass in addr, and expected state.
+	//test sharers list. assert the sharers list.
+
+}

@@ -175,7 +175,7 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", "dcache initiating shared memory request (READ)");
 #endif
-	   bool ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
+		bool ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (READ)");
 #endif

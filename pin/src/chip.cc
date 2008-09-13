@@ -6,10 +6,14 @@ CAPI_return_t chipInit(int *rank)
 {
    THREADID pin_tid = PIN_ThreadId();
 
-   GetLock(&(g_chip->maps_lock), 1); 
+   cout << "grtettings3" << endl;
+	
+	GetLock(&(g_chip->maps_lock), 1); 
 
+   cout << "grtettings4" << endl;
    map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
 
+   cout << "grtettings5" << endl;
    if ( e == g_chip->core_map.end() ) { 
       g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
       g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
@@ -20,8 +24,10 @@ CAPI_return_t chipInit(int *rank)
       *rank = e->second;
    }
    
+   cout << "grtettings6" << endl;
    ReleaseLock(&(g_chip->maps_lock));
    
+   cout << "grtettings7" << endl;
    return 0;
 };
 
@@ -152,6 +158,7 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
+//	assert( size <= 4 );
    return g_chip->core[rank].dcacheRunLoadModel(d_addr, size); 
 }
 

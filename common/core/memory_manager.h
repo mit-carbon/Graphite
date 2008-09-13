@@ -19,17 +19,12 @@ typedef struct NetPacket NetPacket;
 #include "core.h"
 #include "ocache.h"
 #include "dram_directory.h"
-#include "cache_directory.h"
 #include "dram_directory_entry.h"
-#include "cache_directory_entry.h"
 #include "network.h"
 #include "address_home_lookup.h"
 #include "cache_state.h"
 
 
-// TODO: is there a better way to set up these index constants
-//TODO: refactor into a Payload Class/Struct
-//
 // define indecies/offsets for shared memory requests. indicies assume integer (4 byte) data sizes
 
 // ***** defines for a shared memory update message (there exist two types, expected updates and unexpected updates)
@@ -83,13 +78,46 @@ enum shmem_req_t {
   NUM_STATES
 };
 
+//TODO: refactor into a Payload Class/Struct
+//
+
+/*
+ * memory coherency message payloads can vary depending
+ * on the type of message that needs to be seen
+ */
+
+enum sm_payload_t {
+	REQUEST,
+	UPDATE,
+	ACK,
+	PAYLOAD_NUM_STATES
+};
+
+/* one could make the argument to have one payload
+ * with fields that may not be used....
+ */
+struct RequestPayload {
+	shmem_req_t request_type;
+	ADDRINT request_address;
+	UINT32 request_num_bytes; 
+};	
+
+struct UpdatePayload {
+	CacheState::cstate_t update_new_cstate;
+	ADDRINT update_address;
+};
+
+struct AckPayload {
+	CacheState::cstate_t ack_new_cstate;
+	ADDRINT ack_address;
+};
+
 class MemoryManager
 {
  private:
   Core *the_core;
   OCache *ocache;
   DramDirectory *dram_dir;
-//  CacheDirectory *cache_dir;
   AddressHomeLookup *addr_home_lookup;
   
  public:

@@ -28,8 +28,8 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
    //hand code address boundaries between cores
 	if( the_core->getNumCores() > 2)
 		debugPrint(the_core->getRank(), "CORE", "YOU'RE DOING IT WRONG (only two cores plz)");
-	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0, 0x89FFFFFF));
-	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0x8a000000, 0xFFFFFFFF));
+	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0, 0xe9FFFFFF));
+	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0xea000000, 0xFFFFFFFF));
 	addr_home_lookup->setAddrBoundaries(addr_boundaries);
 }
 
@@ -66,7 +66,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 #ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq ++++++++++++++++++++");
    dram_dir->print();
-	debugPrintString(my_rank, "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
+	debugPrintString(the_core->getRank(), "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
 #endif
 
    unsigned int my_rank = the_core->getRank();
@@ -141,14 +141,28 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	   packet.type = req_msg_type;
 	   packet.sender = my_rank;
 	   packet.receiver = home_node_rank;
-	   packet.length = sizeof(int) * SH_MEM_REQ_NUM_INTS_SIZE;
+	   packet.length = sizeof(RequestPayload);
 
 	   // initialize packet payload
+/*
 	   int payload[SH_MEM_REQ_NUM_INTS_SIZE];
 	   payload[SH_MEM_REQ_IDX_REQ_TYPE] = shmem_req_type;
 	   payload[SH_MEM_REQ_IDX_ADDR] = address;                         // TODO: cache line align?
 	   payload[SH_MEM_REQ_IDX_NUM_BYTES_REQ] = ocache->dCacheLineSize();  // TODO: make sure getLineSize returns bytes
-	   packet.data = (char *)(payload);
+*/	   
+		
+		RequestPayload payload;
+		payload.request_type = shmem_req_type;
+		payload.request_address = address;
+		payload.request_num_bytes = ocache->dCacheLineSize();
+
+		packet.data = (char *)(&payload);
+
+		ss.clear();
+		ss << "Addr: " << hex << address 
+				<< " Payload.Addr: " << hex << payload.request_address
+				<< " Packet.data: " << hex << ((RequestPayload*) packet.data)->request_address;
+		debugPrint(the_core->getRank(), "MMU", ss.str());
 	   (the_core->getNetwork())->netSend(packet);
 
 	   // receive the requested data (blocking receive)
@@ -160,16 +174,21 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	   NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
 
 	   // NOTE: we don't actually send back the data because we're just modeling performance (for now)
-	   int* recv_payload = (int *)(recv_packet.data);
+//	   int* recv_payload = (int *)(recv_packet.data);
+	   UpdatePayload* recv_payload = (UpdatePayload*)(recv_packet.data);
 
 	   // TODO: properly cast from int to cstate_t type. may need a helper conversion method
-	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
+//	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
+	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload->update_new_cstate);
 	   
 	   assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	   
-	   ADDRINT incoming_starting_addr = recv_payload[SH_MEM_UPDATE_IDX_ADDRESS];
+//	   ADDRINT incoming_starting_addr = recv_payload[SH_MEM_UPDATE_IDX_ADDRESS];
+	   ADDRINT incoming_starting_addr = recv_payload->update_address;
 	   // TODO: remove starting addr from data. this is just in there temporarily to debug
-	   assert(incoming_starting_addr == address);
+	   cout << "Incoming Starting Addr: " << hex << incoming_starting_addr << endl;
+	   cout << "Expected Addr         : " << hex << address << endl;
+		assert(incoming_starting_addr == address);
 	   
 	   // update cache_entry
 	   // TODO: add support for actually updating data when we move to systems with software shared memory         
@@ -178,6 +197,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 		cache_model_results.second->setCState(resp_c_state);         
 	   
 	   // TODO: update performance model
+		// TODO FIXME we aren't deallocating the new packet/ data are we?
 
    }
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
@@ -200,14 +220,17 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 
 void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 
+	stringstream ss;
 #ifdef MMU_DEBUG
   dram_dir->print();
   debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
 #endif
    
   // extract relevant values from incoming request packet
-  shmem_req_t shmem_req_type = (shmem_req_t)((int *)(req_packet.data))[SH_MEM_REQ_IDX_REQ_TYPE];
-  int address = ((int *)(req_packet.data))[SH_MEM_REQ_IDX_ADDR];
+//  shmem_req_t shmem_req_type = (shmem_req_t)((int *)(req_packet.data))[SH_MEM_REQ_IDX_REQ_TYPE];
+//  int address = ((int *)(req_packet.data))[SH_MEM_REQ_IDX_ADDR];
+  shmem_req_t shmem_req_type = (shmem_req_t)((RequestPayload*)(req_packet.data))->request_type;
+  ADDRINT address = ((RequestPayload*)(req_packet.data))->request_address;
   unsigned int requestor = req_packet.sender;
   unsigned int my_rank = the_core->getRank();
   
@@ -219,7 +242,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 #ifdef MMU_DEBUG
   debugPrint(the_core->getRank(), "MMU", "retrieved $Entry (processSMemReq)");
 
-  printf("Addr: %x  DState: %d, shmem_req_type %d\n", address, dram_dir_entry->getDState(), shmem_req_type);
+  printf("Process SharedMemReq (received a packet with this info->) Addr: %x  DState: %d, shmem_req_type %d\n", address, dram_dir_entry->getDState(), shmem_req_type);
   debugPrint(the_core->getRank(), "MMU", "printed dstate (processSMemReq)");
 #endif
 
@@ -247,13 +270,18 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 				packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
 				packet.sender = my_rank;
 				packet.receiver = current_owner;
-				packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
+//				packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
+				packet.length = sizeof(UpdatePayload);
 		
 				// initialize packet payload for downgrade
-				int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
-				payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheDirectoryEntry::SHARED;
+/*				int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+				payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheState::SHARED;
 				payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;               // TODO: cache line align?
-				packet.data = (char *)(payload);
+*/
+				UpdatePayload payload;
+				payload.update_new_cstate = CacheState::SHARED;
+				payload.update_address= address;
+				packet.data = (char *)(&payload);
 				(the_core->getNetwork())->netSend(packet);
 		
 				// wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
@@ -268,11 +296,13 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 				assert((unsigned int)(recv_packet.sender) == current_owner);
 				assert(recv_packet.type == SHARED_MEM_ACK);
 		
-				int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
+//				int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
+				ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
 				assert(received_address == address);
 		
-				CacheDirectoryEntry::cstate_t received_new_cstate = (CacheDirectoryEntry::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
-				assert(received_new_cstate == CacheDirectoryEntry::SHARED);
+//				CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
+				CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
+				assert(received_new_cstate == CacheState::SHARED);
 			}
 			
 			// TODO: is there a race condition here in the case when the directory gets updated and then
@@ -292,31 +322,54 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 		  // invalidate current sharers
 			vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
 			
-			for(UINT32 i = 0; i < sharers_list.size(); i++) {
+#ifdef MMU_DEBUG
+			ss.clear();
+			ss << "ProcessSharedMemReq: Write Case, Addr: " << hex << address;
+			debugPrint(the_core->getRank(), "MMU", ss.str());
+#endif			 
+			
+			for(UINT32 i = 0; i < sharers_list.size(); i++) 
+			{
 			 
-			 // send message to sharer to invalidate it
-			 NetPacket packet;
-			 packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
-			 packet.sender = my_rank;
-			 packet.receiver = sharers_list[i];//*sharers_iterator;
-			 packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
-			 
-			 /* format of shared memory request packet data
-				 req_type | starting addr | length (in bytes) requested
-			 */
-			 
-			 // initialize packet payload for invalidation 
-			 int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
-			 payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheDirectoryEntry::INVALID;
-			 payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;               // TODO: cache line align?
-			 packet.data = (char *)(payload);
-			 (the_core->getNetwork())->netSend(packet);
-			 
+#ifdef MMU_DEBUG
+				ss.clear();
+				ss << "Sending Invalidation Message to Sharer [" << sharers_list[i] << "]";
+				debugPrint(the_core->getRank(), "MMU", "Sending Invalidation Message to Sharer");
+#endif			 
+				// send message to sharer to invalidate it
+				NetPacket packet;
+				packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
+				packet.sender = my_rank;
+				packet.receiver = sharers_list[i];//*sharers_iterator;
+	//			packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
+				packet.length = sizeof(UpdatePayload);
+				 
+				/* format of shared memory request packet data
+				   req_type | starting addr | length (in bytes) requested
+				*/
+				 
+				// initialize packet payload for invalidation 
+	/*			int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+				payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheState::INVALID;
+				payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;               // TODO: cache line align?
+	 */  		 
+				 
+				//TODO does receiver use the correct payload type?
+				UpdatePayload payload;
+				payload.update_new_cstate = CacheState::INVALID;
+				payload.update_address = address;
+				packet.data = (char *)(&payload);
+				(the_core->getNetwork())->netSend(packet);
+				 
 		  }
 		  
 		  // receive invalidation acks from all sharers
-			for(UINT32 i = 0; i < sharers_list.size(); i++) {     
+		  for(UINT32 i = 0; i < sharers_list.size(); i++)      
+		  {				
 				// TODO: optimize this by receiving acks out of order
+				ss.clear();
+				ss << "Recieving Invalidation Ack Message from Sharer [" << sharers_list[i] << "]";
+				debugPrint(the_core->getRank(), "MMU", ss.str());
 				 
 				// wait for all of the invalidation acknowledgements
 				NetMatch net_match;
@@ -329,15 +382,17 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 				// assert a few things in the ack packet (sanity checks)
 				assert((unsigned int)(recv_packet.sender) == sharers_list[i]); // I would hope so
 				 
-				int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
-				stringstream ss;
-				ss << "Data Addr: " << hex << ((int *)(recv_packet.data)) << ", Received Addr: " << hex << received_address << "  Addr: " << hex << address;
+//				ADDRINT received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
+				ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
+//				stringstream ss;
+				ss << " Recieving Invalidation Ack Messages.... Data Addr: " << hex << ((int *)(recv_packet.data)) << ", Received Addr: " << hex << received_address << "  Addr: " << hex << address;
 				debugPrint(my_rank, "MMU", ss.str());
 				assert(received_address == address);
 				 
-				 CacheDirectoryEntry::cstate_t received_new_cstate = (CacheDirectoryEntry::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
-				 assert(received_new_cstate == CacheDirectoryEntry::INVALID);
-		  }
+//				 CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
+				 CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
+				 assert(received_new_cstate == CacheState::INVALID);
+			}
 		  
 		  dram_dir_entry->addExclusiveSharer(requestor);
 		  dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
@@ -356,14 +411,41 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
   ret_packet.type = SHARED_MEM_UPDATE_EXPECTED;
   ret_packet.sender = my_rank;
   ret_packet.receiver = requestor;
-  ret_packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
+//  ret_packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
+  ret_packet.length = sizeof(UpdatePayload);
   
   // initialize packet payload
-  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+/*  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
   payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = dram_dir_entry->getDState();  // TODO: make proper mapping to cstate
   payload[SH_MEM_UPDATE_IDX_ADDRESS] = address;                  // TODO: cache line align?
-  ret_packet.data = (char *)(payload);
-  (the_core->getNetwork())->netSend(ret_packet);
+*/
+
+	cout << "I THINK ITS CORRUPTING DATA HERE!" << endl;
+	
+	UpdatePayload payload;
+	CacheState::cstate_t new_cstate;
+
+	//i don't get what new_cstate does,
+	//but we need to map from dstate to cstate
+	switch(dram_dir_entry->getDState()) {
+		case DramDirectoryEntry::UNCACHED:
+			assert ( 0 ); //so this situation ever happen?
+			new_cstate = CacheState::INVALID;
+			break;
+		case DramDirectoryEntry::SHARED:
+			new_cstate = CacheState::SHARED;
+			break;
+		case DramDirectoryEntry::EXCLUSIVE:
+			new_cstate = CacheState::EXCLUSIVE;
+			break;
+		default:
+			assert( 0 ); //something else must've gone wrong!
+	}
+
+	payload.update_new_cstate = new_cstate;
+	payload.update_address = address;
+	ret_packet.data = (char *)(&payload);
+	(the_core->getNetwork())->netSend(ret_packet);
 
 #ifdef MMU_DEBUG
 	dram_dir->print();
@@ -389,9 +471,12 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
   
   // extract relevant values from incoming request packet
-  CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
-  int address = ((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_ADDRESS];
+//  CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
+//  int address = ((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_ADDRESS];
 
+  CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((UpdatePayload*)(update_packet.data))->update_new_cstate);
+  int address = ((UpdatePayload*)(update_packet.data))->update_address;
+	
 	stringstream ss;
 	ss << "Unexpected: address: " << hex << address;
 	debugPrint(the_core->getRank(), "MMU", ss.str());
@@ -406,16 +491,22 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   packet.sender = the_core->getRank();
   packet.receiver = update_packet.sender;
   //FIXME is this gonna choke on 64bit machines?
-  packet.length = sizeof(int) * SH_MEM_ACK_NUM_INTS_SIZE;
+  packet.length = sizeof(AckPayload);
   
   // initialize packet payload for downgrade
-  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
+/*  int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
   payload[SH_MEM_ACK_IDX_NEW_CSTATE] = new_cstate;
   payload[SH_MEM_ACK_IDX_ADDRESS] = address;               // TODO: cache line align?
-  packet.data = (char *)(payload);
+*/
+	
+	AckPayload payload;
+	payload.ack_new_cstate = new_cstate;
+	payload.ack_address = address;
+
+	packet.data = (char *)(&payload);
   
   ss.str("");
-  ss << " Payload Attached: data Addr: " << hex << (int) packet.data << ", Addr: " << hex << ((int*) (packet.data))[SH_MEM_ACK_IDX_ADDRESS] << " packet.length = " << packet.length;
+  ss << " Payload Attached: data Addr: " << hex << (int) packet.data << ", Addr: " << hex << ((AckPayload*) (packet.data))->ack_address << " packet.length = " << sizeof(AckPayload);
   debugPrint(the_core->getRank(), "MMU", ss.str());
 
   (the_core->getNetwork())->netSend(packet);

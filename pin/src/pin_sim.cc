@@ -30,6 +30,8 @@
 #include "knobs.h"
 
 
+//#define INSTRUMENT_ALLOWED_FUNCTIONS
+
 Chip *g_chip;
 
 
@@ -486,7 +488,8 @@ VOID routine(RTN rtn, VOID *v)
    if ( (msg_ptr = mapMsgAPICall(rtn, rtn_name)) != NULL ) {
       RTN_Replace(rtn, msg_ptr);
    } 
-   else if(
+#ifdef INSTRUMENT_ALLOWED_FUNCTIONS
+	else if(
 //		rtn_name != "_Z13instrument_meiPi" 
 //		&& 
 		rtn_name != "_Z13instrument_mev" 
@@ -495,7 +498,7 @@ VOID routine(RTN rtn, VOID *v)
 //		&& rtn_name != "_Z13instrument_mei") { } //INSTRUMENTED_FUNCTION) {
 	//don't do anything
 	) {}
-
+#endif
    else 
    {
       

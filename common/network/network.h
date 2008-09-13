@@ -4,6 +4,7 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+#include "memory_manager.h"
 #include <iostream>
 #include <sched.h>
 #include <unistd.h>

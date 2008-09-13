@@ -32,7 +32,8 @@ int Network::netSend(NetPacket packet)
 	debugPrint(net_tid, "NETWORK", "netSend Begin");
    printNetPacket(packet);
 	stringstream ss;
-	ss << "Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
+	ss << "NetSend Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1] 
+		<< " Pretending Its a RequestPayload, payload.addr: " << hex << ((RequestPayload*) packet.data)->request_address;
 	debugPrint(net_tid, "NETWORK", ss.str());
 #endif
 
@@ -54,6 +55,7 @@ int Network::netSend(NetPacket packet)
 void Network::printNetPacket(NetPacket packet) {
 	cout << endl;
 	cout << "  [" << net_tid << "] Network Packet (0x" << hex << ((int *) (packet.data))[SH_MEM_REQ_IDX_ADDR] 
+//	cout << "  [" << net_tid << "] Network Packet (0x" << hex << ((Payload*) (packet.data))->address; 
 		<< ") (" << packet.sender << " -> " << packet.receiver 
 		<< ") -- Type: " << packetTypeToString(packet.type) << " ++++" << endl << endl;
 }
@@ -213,7 +215,7 @@ NetPacket Network::netRecv(NetMatch match)
 #ifdef NETWORK_DEBUG
    printNetPacket(packet);
 	stringstream ss;
-	ss << "Received Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
+	ss << "Net Recv Received Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
 	debugPrint(net_tid, "NETWORK", ss.str());
    debugPrint(net_tid, "NETWORK", "netRecv - leaving");
 #endif

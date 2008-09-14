@@ -228,13 +228,14 @@ pair<bool, CacheTag*> OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
 pair<bool, CacheTag*> OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
 {
    cout << "Ocache: size=" << size << endl;
-   ASSERTX(size <= 4);
+//   ASSERTX(size <= 4);
    return dCacheLoadSingleFast(d_addr);
 }
 
 pair<bool, CacheTag*> OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
 {
-   ASSERTX(size <= 4);
+   cout << "Ocache: size=" << size << endl;
+//   ASSERTX(size <= 4);
    return dCacheStoreSingleFast(d_addr);     
 }
 

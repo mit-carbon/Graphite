@@ -481,7 +481,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 	ss << "Unexpected: address: " << hex << address;
 	debugPrint(the_core->getRank(), "MMU", ss.str());
   
-	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address, 4); //size(4) is meaningless (how many bytes to access)
+	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
 	assert( cache_model_results.second != NULL );
 	cache_model_results.second->setCState(new_cstate);
   

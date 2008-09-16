@@ -1,0 +1,212 @@
+C++ style guidelines for the Carbon multicore simulator
+========================================================
+
+Summary
+--------
+classes, structs:
+    UpperCamelCase
+    1 file for each class
+methods:
+    lowerCamelCase
+    trivial methods in .h file
+fields:
+    lowercase_underscore
+    always Private 
+parameters, local variables:
+    lowercase_underscore
+constants:
+    k_ + UPPERCASE_UNDERSCORE
+global variables:
+    g_ + lowercase_underscore
+typedefs and types:
+    UpperCamelCase
+    use length-specific types (e.g., UInt32)
+include files:
+    ALWAYS use guard defines
+comments:
+    no side comments
+    do not use /* */ for multi-line comments
+formatting:
+    use 3 spaces for each indentation level (NO tabs)
+    prefer lines < 80 characters, NO lines > 120 characters
+
+Detailed Instructions
+----------------------
+general naming guidelines
+   0. these rules apply to names used for all classes, structs,
+      methods, fields, variables, constants, etc.
+   1. keep names short but descriptive
+   2. preferably two or three words
+   3. most should be less than 18 characters total, NO names
+      over 30 characters
+
+classes and structs
+   1. names are all lower case, except for the first letters of
+      each word, which are capitalized (i.e. "UpperCamelCase")
+   2. words are not separated by underscores
+   3. each major class is stored in its own file, which has
+      exactly the same name as the class
+   4. minimize "emergent behaviour." in other words, have a clear
+      hierarchy of classes, where the interaction between classes
+      is a tree. If one has to think about the mutual interaction
+      of several classes with the class one is  currently writing,
+      then something is probably wrong.
+
+methods
+   1. names are all lower case, except any words that are not the
+      first word are capitalized (i.e., "lowerCamelCase")
+   2. no underscores
+   3. trivial methods (accessors, setters) are placed in the .h
+      file so they can be inlined. functions which are more than
+      10 lines of code should be placed in the .cc and not inlined.
+   4. list inputs first, then outputs
+
+fields
+   0. always ask if this can replaced through use of parameters or
+      local variables. should be used only for state which must be
+      maintained when control-flow leaves the set of methods defined
+      by the class. and even then, attempt to return a value which
+      can be passed in to the next client of the field. this makes
+      the communication and dependence structure of the class more
+      explicit.
+   1. names are all lower case, words are separated by underscore
+       (i.e., "lowercase_underscore")
+   2. if the variable is only one word, but must be capitalized
+      (e.g., because it is an acronym) a "the_" may be prepended.
+
+        example:   UInt32 the_EPC;
+
+   3. all fields should be PRIVATE
+   4. if a class contains a field of type MyClass, if there is only
+      one of them instantiated, and its purpose is clear from the
+      class name, then the recommended name is my_class.
+
+      For instance, the Proc class defines:
+
+      FetchUnit *fetch_unit;
+
+      This saves one the trouble of coming up with a clever name.
+      It also makes it easy to remember what names were assigned
+      to a given field.
+   5. group elements of equal size together.
+   6. group elements that are used mostly frequently towards the
+      beginning of the structure.
+
+parameters and local variables
+   1. lowercase_underscore
+   2. if a parameter's purpose is clear from its class name (let's
+      say "MyClass", its default name is my_class. However, in the
+      case where the parameter is being passed into a "setter"
+      function, in which case there is a field already so named,
+      one should append a "in_", e.g.,  in_my_class.
+
+      example:
+
+      MainProc(UInt32 in_imem_size, UInt32 in_dmem_size,
+                DecodeMap *in_decode_map);
+
+constants
+   1. UPPERCASE_UNDERSCORE, but names are prepended with "k_",
+        e.g.,  k_NUMBER_OF_REGS
+
+global variables
+   0. obviously discouraged
+   1. sames as local variables, but names are prepended with "g_",
+        e.g.,  g_number_of_hits
+
+typedefs and types
+   1. typedefs are the same as classes, i.e., UpperCamelCase
+   1. use "SInt32", "UInt32", "SInt64", "UInt64", "SInt8", "UInt8"
+      "SInt16", "UInt16" instead of chars, ints or longs
+   2. use "int" only for variables which you never store into memory,
+      and which are never intermingled (e.g., added) with elements of
+      the types in (2)
+
+acronyms in names:
+   1. when an acronym is used in a name, all of the letters in the
+      acronym should have case consistent with the first letter of
+      the acronym. For instance if "spr" is an acronym:
+
+        SPRShephard, getSPRShephard(), spr_shephard, g_spr_shephard
+
+include files
+   1. do not include "include" files within include files, UNLESS
+      it is a "master" include file which every .cc file includes.
+      this is important because the order of includes affects
+      inlining
+   2. protect the text of each include file using guard defines.
+      For example, in "BufCrossbar.h" use:
+
+      #ifndef BUF_CROSSBAR_H
+      #define BUF_CROSSBAR_H
+      <text>
+      #endif  // BUF_CROSSBAR_H
+
+error conditions
+   1. (optional but suggested) since this is not user level software,
+      errors should be checked but not recovered from unless it is
+      trivial.  Use the "verify" macro (from "Error.h"):
+
+      verify (addr < dmem_size, "write past end of memory");
+
+      do not put code that has side effects in the macro,
+      because the macros may be redefined in any number of ways,
+      for instance:
+
+      verify (addr++ < dmem_size, "write past end of memory");
+
+      the verify macro will print out file name, line number, and
+      your error message, and then exit.
+
+      there is also a "verifyXp" macro which provides X parameters
+      to the print routine:
+
+      verify3p(addr < dmem_size,
+              "write past end of mem: addr = %x, dmemSize = %x",
+              addr, dmem_size, 0);
+
+   2. Avoid sentinels. Return a boolean to indicate success or
+      failure (presence or absence) instead.
+
+comments
+   1. in general, don't use "side" comments like this:
+
+        stall_reason = blah(&in);    // garner inputs from source
+
+      they are annoying to line up, make long lines, and are a
+      hassle to convert to multi-line comments when they get too
+      long.  The two places where side comments can be used are
+      variable declarations and reminders on block closings, e.g.,
+        #define BUF_CROSSBAR_H
+        <text>
+        #endif  // BUF_CROSSBAR_H
+      or
+        if (foo < bar) {
+           <very long block>
+        } // if (foo < bar) 
+   2. instead use block comments:
+
+        // garner inputs from the ports
+        // does not actually dequeue the data,
+        // but registers them as candidates for popping
+
+        stall_reason = blah(&in);
+
+      use "//" instead of "/*" and "*/" for multi-line comments as
+      shown above.  "/*" and "*/" should be reserved for commenting
+      out large sections of code.
+   3. do not use
+       #if 0
+       #endif
+      to comment out large sections of code _unless_ the code already
+      contains sections commented out using "/*" and "*/"
+
+formatting
+   1. indent using spaces instead of tabs.  Different people may have
+      their tab-stops set differently leading to messes when tabs and
+      spaces are mixed.  Configured your editor to insert multiple
+      spaces instead of tabs when you hit the "tab" key.
+   2. use 3 spaces for each new level of indentation.
+   3. try to keep lines less than 80 characters
+    3b. no lines longer than 120 characters under any circumstances
+        (shorten your names or breakup your strings)

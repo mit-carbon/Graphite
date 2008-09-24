@@ -379,6 +379,11 @@ OCache::OCache(std::string name, UINT32 size, UINT32 line_bytes, UINT32 assoc, U
    total_resize_evictions(0),
    last_dcache_misses(0), last_icache_misses(0), name(name)
 {   
+   //limitations due to RRSACache typedef, from RoundRobin template parameters
+   ASSERTX( assoc <= 16 );
+   ASSERTX( line_bytes <= 128 );
+   ASSERTX( (dl1->getNumSets() < 1024) && (il1->getNumSets() < 1024) );
+
    ASSERTX( (size & 1) == 0 );
    ASSERTX( (assoc & 1) == 0 );
    ASSERTX( (dcache_size + icache_size) == size );

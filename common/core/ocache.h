@@ -61,7 +61,7 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth;
 class OCache
 {
    private:
-      typedef Cache<CACHE_SET::RoundRobin<16>, k_MEGA, 64, CACHE_ALLOC::k_STORE_ALLOCATE> 
+      typedef Cache<CACHE_SET::RoundRobin<16>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> 
               RRSACache;
 
    public:

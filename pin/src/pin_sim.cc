@@ -23,6 +23,7 @@
 
 #include "pin.H"
 #include "utils.h"
+#include "config.h"
 #include "chip.h"
 #include "cache.h"
 #include "ocache.h"
@@ -31,7 +32,7 @@
 
 
 Chip *g_chip;
-
+Config *g_config;
 
 INT32 usage()
 {
@@ -536,10 +537,11 @@ VOID fini(int code, VOID * v)
 
 VOID init_globals()
 {
+   g_config = new Config;
+   //g_config->loadFromFile(FIXME);
+
    // NOTE: transport and queues must be inited before the chip
-   Transport *transport_init;
-   // FIXME: Do something *way* more elegant
-   transport_init->ptInitQueue(g_knob_num_cores);
+   Transport::ptInitQueue(g_knob_num_cores);
 
    g_chip = new Chip(g_knob_num_cores);
 }

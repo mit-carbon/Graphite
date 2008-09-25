@@ -9,7 +9,9 @@
 KNOB<string> g_knob_output_file(KNOB_MODE_WRITEONCE, "pintool",
    "o", "sim.out", "specify ocache file name");
 KNOB<UINT32> g_knob_num_cores(KNOB_MODE_WRITEONCE, "pintool", 
-   "n", "0", "Specifies the number of threads in the application");
+   "n", "0", "Specifies the number of cores in this process");
+KNOB<UINT32> g_knob_total_cores(KNOB_MODE_WRITEONCE, "pintool", 
+   "tc", "0", "Specifies the total number of cores in all processes");
 
 KNOB<BOOL>   g_knob_enable_network_modeling(KNOB_MODE_WRITEONCE, "pintool",
    "mnt", "0", "turn on modeling for the on-chip network(s)");

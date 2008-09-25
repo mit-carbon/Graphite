@@ -320,7 +320,7 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
    delete [] buffer;
 }
 
-inline void Network::netEntryTasks()
+void Network::netEntryTasks()
 {
    // These are a set of tasks to be performed every time the network layer is
    // entered

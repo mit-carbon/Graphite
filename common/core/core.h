@@ -63,41 +63,41 @@ class Core
 
       //performance model wrappers
 
-      inline VOID perfModelRun(PerfModelIntervalStat *interval_stats)
+      VOID perfModelRun(PerfModelIntervalStat *interval_stats)
       { perf_model->run(interval_stats); }
 
-      inline VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
+      VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
                                UINT32 num_reads)
       { perf_model->run(interval_stats, reads, num_reads); }
 
-      inline VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+      VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                                REG *writes, UINT32 num_writes)
       { perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
 
-      inline PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
+      PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
                                                              const INS& start_ins, 
                                                              const INS& end_ins)
       { return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
 
-      inline VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+      VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
       { perf_model->logICacheLoadAccess(stats, hit); }
 
-      inline VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
+      VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
       { perf_model->logDCacheStoreAccess(stats, hit); }
 
-      inline VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
+      VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
       { perf_model->logBranchPrediction(stats, correct); }
       
 
       // organic cache wrappers
 
-      inline bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
+      bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
       { return ocache->runICacheLoadModel(i_addr, size); }
 
-      inline bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
+      bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
       { return ocache->runDCacheLoadModel(d_addr, size); }
 
-      inline bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
+      bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
       { return ocache->runDCacheStoreModel(d_addr, size); }
 
 };

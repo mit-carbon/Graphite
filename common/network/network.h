@@ -77,7 +77,7 @@ class Network{
       int net_num_mod;
       char* netCreateBuf(NetPacket packet);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
-      inline void netEntryTasks();
+      void netEntryTasks();
       //FIXME:
       //This is only here till Jim plugs in his functions, for debugging
       //purposes. To be deleted after that

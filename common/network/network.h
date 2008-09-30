@@ -30,6 +30,13 @@ enum PacketType
    MAX_PACKET_TYPE = SHARED_MEM_UPDATE_UNEXPECTED
 };
 
+enum NetworkModel
+{
+    NETWORK_BUS,
+    NETWORK_ANALYTICAL_MESH,
+    NUM_NETWORK_TYPES
+};
+
 // network packet
 typedef struct NetPacket
 {
@@ -88,11 +95,13 @@ class Network{
 
    public:
 
-      int netInit(Chip *chip, int tid, int num_threads);
-      int netSend(NetPacket packet);
-      NetPacket netRecv(NetMatch match);
+      Network(Chip *chip, int tid, int num_threads);
+      virtual ~Network(){};
+      
       bool netQuery(NetMatch match);
 		
+      virtual int netSend(NetPacket packet);
+      virtual NetPacket netRecv(NetMatch match);
 };
 
 #endif

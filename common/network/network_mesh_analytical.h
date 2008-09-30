@@ -12,6 +12,11 @@ class NetworkMeshAnalytical : public Network
     virtual int netSend(NetPacket packet);
     virtual NetPacket netRecv(NetMatch match);
 
+    private:
+    //For statistical purposes
+    unsigned int bytes_sent;
+    unsigned int bytes_recv;
+
 };
 
 #endif

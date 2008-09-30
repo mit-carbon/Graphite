@@ -2,7 +2,7 @@
 
 using namespace std;
 
-int Network::netInit(Chip *chip, int tid, int num_mod)
+Network::Network(Chip *chip, int tid, int num_mod)
 {
    the_chip = chip;
    int i;
@@ -16,7 +16,6 @@ int Network::netInit(Chip *chip, int tid, int num_mod)
    {
       net_queue[i] = new NetQueue [num_pac_type];
    }
-   return 0;
 }
 
 int Network::netSend(NetPacket packet)

@@ -1,5 +1,7 @@
 #include "core.h"
 
+#include "network_mesh_analytical.h"
+
 using namespace std;
 
 int Core::coreInit(Chip *chip, int tid, int num_mod)
@@ -8,9 +10,27 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-   network = new Network;
-   network->netInit(chip, tid, num_mod);
-   
+   //Switch which line is commented to choose the different 
+   //network models
+   //FIXME: Make this runtime configurable
+   NetworkModel net_model = NETWORK_BUS;
+   //NetworkModel net_model = NETWORK_ANALYTICAL_MESH;
+
+   switch(net_model)
+   {
+       case NETWORK_BUS:
+           network = new Network(chip, tid, num_mod);
+           break;
+       case NETWORK_ANALYTICAL_MESH:
+           network = new NetworkMeshAnalytical(chip, tid, num_mod);
+           break;
+       case NUM_NETWORK_TYPES:
+       default:
+           cout << "ERROR: Unknown Network Model!";
+           break;
+   }
+  
+
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
@@ -97,6 +117,8 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
 VOID Core::fini(int code, VOID *v, ofstream& out)
 {
+   delete network;
+
    if ( g_knob_enable_performance_modeling )
       perf_model->fini(code, v, out);
 

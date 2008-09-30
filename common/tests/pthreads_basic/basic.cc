@@ -178,33 +178,94 @@ void instrument_me()
 //    cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
 //   return tid;
 
-/*
-	int x = 10, y;
-	
-	asm ("movl %1, %%eax;
-			movl %%eax, %0;"
-			:"=r"(y)	// y is output operand 
-			:"r"(x)	//	x is input operand 
-			:"%eax");//	%eax is clobbered register 
 
-   cout << " y = " << y;
-	*/
+//	int x = 10, y;
+/*	int x,y;
+	
+	asm volatile (
+			"movl 0x8000000, %0;"
+//			"movl %1, %%eax;"
+//	asm ("movl %1, %%eax;"
+//			"movl %%eax, %0;"
+			:"=r"(x)	// y is output operand 
+			:"r"(x)	//	x is input operand 
+//			:"%eax");//	%eax is clobbered register 
+			:);//	%eax is clobbered register 
+*/
+//   cout << "   Addr of x: " << hex << &x << endl;
+//	cout << "   Addr of y: " << hex << &y << endl;
+//	cout << "          x = " << x << endl;
+	
 /* int foo = 10, bar = 15;
- asm volatile("addl  %%ebx,%%eax;
-					addl  %%ebx, %%eax;"
+ asm volatile("addl  %%ebx,%%eax"
+				  "addl  %%ebx, %%eax"
 						 :"=a"(foo)
 						 :"a"(foo), "b"(bar)
 				 );
-
-	printf("foo+bar=%d\n", foo);
 */
+//	printf("foo+bar=%d\n", foo);
+
 }
 
 //test suit of all cases. barrier at each step.
 void awesome_test_suite_msi(int tid) 
 {
-   //allocate global structures that both can see, make addr of one struct for one tile, one struct for other tile
+   
+	//TO DO LIST:
+	//allocate global data
+	//reallocate AHL boundaries to evenly divide global data
+	//
+	//ability to set up test
+	//
+	//ability to instrument only test
+	//
+	//ability to test end condition, and assert correct cache state
+	//
+	//
+	
+	//allocate global structures that both can see, make addr of one struct for one tile, one struct for other tile
 
+	//state transitions:
+	//
+	//Directory:
+	//Single Core.
+	//read value. (invalidate->shared)
+	//read a shared value (shared->shared). (but cache hit?).
+	//write value.(invalidate->exclusive)
+	//write a shared value (shared->exclusive).
+	//read an exclusive value (exclusive->exclusive).
+	//
+	//Two Cores:
+	//	each test-> address is shared on other core.
+	//
+	//	read shared value (shared->shared)
+	//	write shared value (shared->exclusive).
+	//
+	//	each test-> address is exclusive on other core.
+	//
+	//	read shared value (exclusive->shared)
+	//	write shared value (exclusive->exclusive).  (what if the value was loaded to other core, but invalidated but directory still marks it exclusive?)
+	//
+	//
+	//
+	//	Do Action.
+	//	1. Uncached.
+	//	2. Repeat Again.
+	//	3. Invalidate and repeat action.
+	//
+	//	4. Shared.
+	//	5. Repeat.
+	//	6. Invalidate and repeat.
+	//
+	//	7. Exclusive.
+	//	8. Repeat.
+	//	9. Invalidate and repeat.
+	//
+	//	Repeat above but with it located on another core.
+	//	Repeat above but with the data homed on another core.
+	
+	
+	
 	//read address on home address
 	//
 	//read address on other core
@@ -228,4 +289,11 @@ void awesome_test_suite_msi(int tid)
 	//pass in addr, and expected state.
 	//test sharers list. assert the sharers list.
 
+	/*
+	 * 4 test situations
+	 * 1) excercise all state permutations (locally homed)
+	 * 2) excercise #1, but on other cores (remotely homed)
+	 * 3) excercise all permutations on other core, (~15 states)
+	 * 4) race situations
+	 */
 }

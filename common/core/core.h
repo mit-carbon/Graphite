@@ -12,13 +12,14 @@
 class Network;
 class MemoryManager;
 
-
 #include "memory_manager.h"
 #include "pin.H"
 #include "chip.h"
 #include "network.h"
 #include "perfmdl.h"
 #include "ocache.h"
+#include "cache_state.h"
+#include "dram_directory_entry.h"
 
 // externally defined vars
 
@@ -104,7 +105,16 @@ class Core
 	bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
 	
 	bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+
+	//debug hook to smash cache state
+	void debugSetCacheState(ADDRINT addr, CacheState::cstate_t cstate);
+	//return true if assertion is true  (that's a good thing)
+	bool debugAssertCacheState(ADDRINT addr, CacheState::cstate_t cstate);
+
+	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	
+	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
 };
 
 #endif

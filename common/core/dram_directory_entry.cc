@@ -34,6 +34,12 @@ bool DramDirectoryEntry::addSharer(UINT32 sharer_rank)
 	}
 }
 
+void DramDirectoryEntry::removeSharer(UINT32 sharer_rank)
+{
+	sharers->clear(sharer_rank);
+	number_of_sharers--;
+}
+
 void DramDirectoryEntry::addExclusiveSharer(UINT32 sharer_rank)
 {
 	sharers->reset();
@@ -97,7 +103,7 @@ vector<UINT32> DramDirectoryEntry::getSharersList()
 void DramDirectoryEntry::dirDebugPrint()
 {
 	cout << " -== DramDirectoryEntry ==-" << endl;
-	cout << "     state= " << dstate;
+	cout << "     state= " << dStateToString(dstate);
     cout << "; sharers = { ";
 	for(unsigned int i=0; i < sharers->getSize(); i++) {
 		if(sharers->at(i)) {
@@ -117,4 +123,14 @@ string DramDirectoryEntry::dStateToString(dstate_t dstate)
 	}
 
 	return "ERROR: DSTATETOSTRING";
+}
+
+/* This function is used for unit testing dram,
+ * in which we need to clear and set the sharers list
+ */
+void DramDirectoryEntry::debugClearSharersList()
+{
+	sharers->reset();
+	number_of_sharers = 0;
+	exclusive_sharer_rank = 0;
 }

@@ -32,12 +32,16 @@ class DramDirectoryEntry
   bool addSharer(UINT32 sharer_rank);
   void addExclusiveSharer(UINT32 sharer_rank);
   
+  //the directory may remove someone if they've invalidated it from their cache
+  void removeSharer(UINT32 sharer_rank);
+  void debugClearSharersList();
+  
   int numSharers();
   UINT32 getExclusiveSharerRank();
 	
-	vector<UINT32> getSharersList();
+  vector<UINT32> getSharersList();
 
-  //FIXME: return string (don't cout)
+  //TODO: return string (don't cout)
   void dirDebugPrint();
   static string dStateToString(dstate_t dstate);
   UINT32 getMemLineAddress() { return memory_line_address; }

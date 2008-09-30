@@ -35,6 +35,7 @@ class AddressHomeLookup
 	  
 		/* TODO: change this return type to a node number type */
 		UINT32 find_home_for_addr(ADDRINT) const;
+		//TODO make this static
 		void setAddrBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_bounds);
 
 	private:

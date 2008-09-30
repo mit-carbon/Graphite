@@ -2,7 +2,7 @@ include ../makefile.gnu.config
 
 DBG=-g
 OPT=-O2
-CFLAGS+=-c -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CFLAGS+=-c -I../../pin/src -I../../common/core -I../../common/misc -I../../common/network -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
 SOURCES = capi.cc

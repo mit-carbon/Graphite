@@ -1,5 +1,7 @@
+include ../../makefile.gnu.config
+
 CC = /usr/bin/g++
-CFLAGS = -I../../user -c -g -Wall
+CFLAGS = -I../../user -I../../../pin/src -I../../core -I../../misc -c -g -Wall
 SOURCES = ../../user/capi.cc cannon.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 

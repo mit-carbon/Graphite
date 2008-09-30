@@ -27,9 +27,9 @@ class CacheState
 
 	string toString() {
 		switch (cstate) {
-			case INVALID: return "INVALID";
+			case INVALID: return   "INVALID  ";
 			case EXCLUSIVE: return "EXCLUSIVE";
-			case SHARED: return "SHARED";
+			case SHARED: return    "SHARED   ";
 			default: return "ERROR: BAD CACHE STATE";
 		}
 			return "ERROR: BAD CACHE STATE out of default";
@@ -37,9 +37,9 @@ class CacheState
  
 	static string cStateToString(cstate_t state) {
 		switch (state) {
-			case INVALID: return "INVALID";
+			case INVALID: return   "INVALID  ";
 			case EXCLUSIVE: return "EXCLUSIVE";
-			case SHARED: return "SHARED";
+			case SHARED: return    "SHARED   ";
 			default: return "ERROR: BAD CACHE STATE";
 		}
 		return "ERROR: SOMETHING BAD CACHE STATE";

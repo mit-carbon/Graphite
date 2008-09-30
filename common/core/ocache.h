@@ -191,5 +191,4 @@ bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
 VOID oCacheModelInit();
 VOID oCacheModelFini(int code, VOID *v, ofstream& out);
 
- 
 #endif

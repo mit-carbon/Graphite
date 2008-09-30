@@ -74,3 +74,133 @@ void DramDirectory::print()
 	}
 	cout << endl << " <<<<<<<<<<<<<<<<<<<<< ----------------- >>>>>>>>>>>>>>>>>>>>>>>>> " << endl << endl;
 }
+
+void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+{
+
+	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
+  
+	assert( cache_line_index >= 0);
+
+	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
+  
+	if( entry_ptr == NULL ) {
+		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
+		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
+																								, number_of_cores);
+		entry_ptr = dram_directory_entries[cache_line_index];
+	}
+
+	assert( entry_ptr != NULL );
+
+//	entry_ptr->dirDebugPrint();
+//	dram_directory_entries[cache_line_index]->setDState(dstate);
+	entry_ptr->setDState(dstate);
+	
+	//set sharer's list
+	entry_ptr->debugClearSharersList();
+//	entry_ptr->dirDebugPrint();
+	while(!sharers_list.empty())
+	{
+		assert( dstate != DramDirectoryEntry::UNCACHED );
+		UINT32 new_sharer = sharers_list.back();
+//		cout << "ADDING SHARER-< " << new_sharer << " > " << endl;
+		sharers_list.pop_back();
+		entry_ptr->addSharer(new_sharer);
+	}
+//	entry_ptr->dirDebugPrint();
+}
+
+bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t	expected_dstate, vector<UINT32> expected_sharers_vector)
+{
+
+	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
+  
+	assert( cache_line_index >= 0);
+
+	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
+  
+	if( entry_ptr == NULL ) {
+		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
+		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
+																								, number_of_cores);
+	}
+
+//	entry_ptr->dirDebugPrint();
+	DramDirectoryEntry::dstate_t actual_dstate = dram_directory_entries[cache_line_index]->getDState();
+	bool is_assert_true = ( actual_dstate == expected_dstate ); 
+	
+	//copy STL vectors (which are just glorified stacks) and put data into array (for easier comparsion)
+	bool* actual_sharers_array = new bool[number_of_cores];
+	bool* expected_sharers_array = new bool[number_of_cores];
+	
+	for(int i=0; i < (int) number_of_cores; i++) {
+		actual_sharers_array[i] = false;
+		expected_sharers_array[i] = false;
+	}
+
+	vector<UINT32> actual_sharers_vector = entry_ptr->getSharersList();
+
+	while(!actual_sharers_vector.empty())
+	{
+		UINT32 sharer = actual_sharers_vector.back();
+		actual_sharers_vector.pop_back();
+		assert( sharer >= 0);
+		assert( sharer < number_of_cores );
+		actual_sharers_array[sharer] = true;
+//	  cout << "Actual Sharers Vector Sharer-> Core# " << sharer << endl;
+	}
+
+	while(!expected_sharers_vector.empty())
+	{
+		UINT32 sharer = expected_sharers_vector.back();
+		expected_sharers_vector.pop_back();
+		assert( sharer >= 0);
+		assert( sharer < number_of_cores );
+		expected_sharers_array[sharer] = true;
+//		cout << "Expected Sharers Vector Sharer-> Core# " << sharer << endl;
+	}
+
+	//do actual comparision of both arrays
+	for( int i=0; i < (int) number_of_cores; i++)
+	{
+		if( actual_sharers_array[i] != expected_sharers_array[i])
+		{
+			is_assert_true = false;
+		}
+	}
+	
+	cout << "   Asserting Dram     : Expected: " << DramDirectoryEntry::dStateToString(expected_dstate);
+	cout << ",  Actual: " <<  DramDirectoryEntry::dStateToString(actual_dstate);
+
+	cout << ", E {";
+
+			for(int i=0; i < (int) number_of_cores; i++) 
+			{
+				if(expected_sharers_array[i]) {
+					cout << " " << i << " ";
+				}
+			}
+
+	cout << "}, A {";
+			
+			for(int i=0; i < (int) number_of_cores; i++) 
+			{
+				if(actual_sharers_array[i]) {
+					cout << " " << i << " ";
+				}
+			}
+	cout << "}";	
+	
+	//check sharers list
+	//1. check that for every sharer expected, that he is set.
+	//2. verify that no extra sharers are set. 
+	if(is_assert_true) {
+      cout << " TEST PASSED " << endl;
+	} else {
+		cout << " TEST FAILED ****** " << endl;
+//		print();
+	}
+	
+	return is_assert_true;
+}

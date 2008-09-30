@@ -199,15 +199,93 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", "dcache initiating shared memory request (WRITE)");
 #endif
-	   bool ret = memory_manager->initiateSharedMemReq(d_addr, size, WRITE); 
+
+/*		bool all_hits = true; //return true if all cache lines are in the cache
+		//FIXME BUG doesn't handle the very last line, ie, if size= 34 and cache line size = 32
+		for( ADDRINT temp_addr = d_addr; temp_addr < d_addr+size; ocache->dCacheLineSize()) 
+		{
+			//access one cache line at a time
+			if(!memory_manager->initiateSharedMemReq(temp_addr, 1, WRITE))  {
+				all_hits = false;
+			}
+		}
+*/		
+		bool ret = memory_manager->initiateSharedMemReq(d_addr, size, WRITE); 
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (WRITE)");
 #endif
 	   return ret;
+//	   return all_hits;
    } else {
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
 #endif
 	   return ocache->runDCacheStoreModel(d_addr, size).first;
    }
+}
+
+void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate)
+{
+	//using Load Model, so that way we garuntee the tag isn't null
+	pair<bool, CacheTag*> cache_result;
+	
+	switch(cstate) {
+		case CacheState::INVALID:
+			ocache->dCacheInvalidateLine(address);
+			break;
+		case CacheState::SHARED:
+			cache_result = ocache->runDCacheLoadModel(address,1);
+			cache_result.second->setCState(cstate);
+			break;
+		case CacheState::EXCLUSIVE:
+			cache_result = ocache->runDCacheLoadModel(address,1);
+			cache_result.second->setCState(cstate);
+			break;
+		default:
+			cout << "ERROR in switch for Core::debugSetCacheState" << endl;
+	}
+}
+
+bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate)
+{
+	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address, 1);
+   
+	bool is_assert_true;
+   CacheState::cstate_t actual_cstate;
+
+	if( cache_result.second != NULL ) {
+		actual_cstate = cache_result.second->getCState();
+		is_assert_true = ( actual_cstate  == expected_cstate );
+	} else {
+		actual_cstate = CacheState::INVALID; 
+		is_assert_true = ( actual_cstate  == expected_cstate );
+	}
+	
+	cout << "   Asserting Cache[" << getRank() << "] : Expected: " << CacheState::cStateToString(expected_cstate) << " ,  Actual: " <<  CacheState::cStateToString(actual_cstate);
+	
+	if(is_assert_true) {
+      cout << "                    TEST PASSED " << endl;
+	} else {
+		cout << "                    TEST FAILED ****** " << endl;
+	}
+
+	return is_assert_true;
+	
+}
+
+void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+{
+	memory_manager->debugSetDramState(address, dstate, sharers_list);		   
+}
+
+bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+{
+	return memory_manager->debugAssertDramState(address, dstate, sharers_list);
+
+}
+
+
+void Core::setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
+{
+	memory_manager->setDramBoundaries(addr_boundaries);
 }

@@ -6,14 +6,10 @@ CAPI_return_t chipInit(int *rank)
 {
    THREADID pin_tid = PIN_ThreadId();
 
-   cout << "grtettings3" << endl;
-	
 	GetLock(&(g_chip->maps_lock), 1); 
 
-   cout << "grtettings4" << endl;
    map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
 
-   cout << "grtettings5" << endl;
    if ( e == g_chip->core_map.end() ) { 
       g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
       g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
@@ -24,10 +20,8 @@ CAPI_return_t chipInit(int *rank)
       *rank = e->second;
    }
    
-   cout << "grtettings6" << endl;
    ReleaseLock(&(g_chip->maps_lock));
    
-   cout << "grtettings7" << endl;
    return 0;
 };
 
@@ -199,4 +193,124 @@ VOID Chip::fini(int code, VOID *v)
    }
 
    out.close();
+}
+
+void Chip::debugSetInitialMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list)
+{
+	INT32 temp_dram_id, temp_cache_id;
+	DramDirectoryEntry::dstate_t temp_dstate;
+	CacheState::cstate_t temp_cstate;
+
+	while(!dram_vector.empty()) 
+	{  //TODO does this assume 1:1 core/dram allocation?
+		temp_dram_id = dram_vector.back().first;
+		temp_dstate = dram_vector.back().second;
+      dram_vector.pop_back();
+
+		core[temp_dram_id].debugSetDramState(address, temp_dstate, sharers_list);
+   }
+
+	while(!cache_vector.empty()) 
+	{
+		temp_cache_id = cache_vector.back().first;
+		temp_cstate = cache_vector.back().second;
+      cache_vector.pop_back();
+
+		core[temp_cache_id].debugSetCacheState(address, temp_cstate);
+   }
+
+}
+
+bool Chip::debugAssertMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list, string test_code, string error_string)
+{
+
+//	cout << "    ## Asserting Memory Conditions ## [" << test_code <<" ] " << endl;
+   bool all_asserts_passed = true; //return false if any assertions fail
+	
+	INT32 temp_dram_id, temp_cache_id;
+	DramDirectoryEntry::dstate_t temp_dstate;
+	CacheState::cstate_t temp_cstate;
+
+	while(!dram_vector.empty()) 
+	{
+		temp_dram_id = dram_vector.back().first;
+		temp_dstate = dram_vector.back().second;
+      dram_vector.pop_back();
+
+		if(!core[temp_dram_id].debugAssertDramState(address, temp_dstate, sharers_list))
+			all_asserts_passed = false;
+   }
+
+	while(!cache_vector.empty()) 
+	{
+		temp_cache_id = cache_vector.back().first;
+		temp_cstate = cache_vector.back().second;
+      cache_vector.pop_back();
+
+		if(!core[temp_cache_id].debugAssertCacheState(address, temp_cstate))
+			all_asserts_passed = false;
+   }
+
+	if(!all_asserts_passed) 
+	{
+ //  	cout << "    *** ASSERTION FAILED *** : " << error_string << endl;
+	}
+
+	return all_asserts_passed;
+}
+
+void Chip::setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries) 
+{
+
+	cout << " CHIP: setting Dram Boundaries " << endl; 
+   for(int i = 0; i < num_modules; i++) 
+   {
+      core[i].setDramBoundaries(addr_boundaries);
+   }
+
+	//static function that should affect all AHL's on every core
+	cout << " CHIP: Finished Dram Boundaries " << endl; 
+}
+/*user program calls get routed through this */
+CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list) 
+{
+	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
+	vector< pair<INT32, CacheState::cstate_t> > cache_vector;
+
+	dram_vector.push_back( pair<INT32, DramDirectoryEntry::dstate_t>(dram_address_home_id, dstate) );
+
+	cache_vector.push_back( pair<INT32, CacheState::cstate_t>(0, cstate0) );
+	cache_vector.push_back( pair<INT32, CacheState::cstate_t>(1, cstate1) );
+	
+	g_chip->debugSetInitialMemConditions(address,  dram_vector, cache_vector, sharers_list);
+
+	return 0;
+}
+
+CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_code) 
+{
+//	cout << " [Chip] Asserting Mem State " << endl;
+	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
+	vector< pair<INT32, CacheState::cstate_t> > cache_vector;
+			
+	dram_vector.push_back( pair<INT32, DramDirectoryEntry::dstate_t>(dram_address_home_id, dstate) );
+					
+	cache_vector.push_back( pair<INT32, CacheState::cstate_t>(1, cstate1) );
+	cache_vector.push_back( pair<INT32, CacheState::cstate_t>(0, cstate0) );
+
+	//TODO return true/false based on whether assert is true or not?
+	if(g_chip->debugAssertMemConditions(address, dram_vector, cache_vector, sharers_list, test_code, error_code))
+	{
+		return 1;
+	} else {
+		return 0;
+	}
+	
+
+}
+
+CAPI_return_t chipSetDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
+{
+	g_chip->setDramBoundaries(addr_boundaries);
+	return 0;
 }

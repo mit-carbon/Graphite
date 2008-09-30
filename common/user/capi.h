@@ -6,6 +6,12 @@
 #ifndef CAPI_H
 #define CAPI_H
 
+#include <iostream>
+#include <string>
+#include "pin.H"
+#include "dram_directory_entry.h"
+#include "cache_state.h"
+
 typedef int CAPI_return_t;
 
 typedef int CAPI_endpoint_t;
@@ -22,6 +28,13 @@ extern "C" {
 
    CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t send_endpoint, CAPI_endpoint_t receive_endpoint, 
                                         char * buffer, int size);
+                                        
+	//these two are for unit testing shared memory from user program (setMemState and assertMemState) provides hooks into the chip
+	CAPI_return_t CAPI_debugSetMemState( ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1 , vector<UINT32> sharers_list);
+	
+	CAPI_return_t CAPI_debugAssertMemState( ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_string);
+
+	CAPI_return_t CAPI_setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries);
 }
 	
 	//FIXME this is a temp hack function

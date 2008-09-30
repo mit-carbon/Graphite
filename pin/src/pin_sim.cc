@@ -30,10 +30,17 @@
 #include "knobs.h"
 
 
-//#define INSTRUMENT_ALLOWED_FUNCTIONS
+#define INSTRUMENT_ALLOWED_FUNCTIONS
 
 Chip *g_chip;
 
+
+//for debugging purposes, shared_mem_test needs
+//to be able to directly point to any piece 
+//of the chip (ie, dram directories, caches, etc.).
+//This will allow us to dynamically force states
+//and assert conditions for testing purposes.
+//static Chip* debugGetChip() { return g_chip; }
 
 INT32 usage()
 {
@@ -453,7 +460,8 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
 {
-   if(name == "CAPI_Initialize"){
+   
+	if(name == "CAPI_Initialize"){
 	   cout << "Replacing CAPI_initialize" << endl;
       return AFUNPTR(chipInit);
    }
@@ -471,6 +479,18 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
       cout << "replacing CAPI_Finish" << endl;
 	  return AFUNPTR(chipHackFinish);
    }
+	else if(name == "CAPI_debugSetMemState") {
+		cout << "replacing CAPI_debugSetMemState" << endl;
+		return AFUNPTR(chipDebugSetMemState);
+	}
+	else if(name == "CAPI_debugAssertMemState") {
+		cout << "replacing CAPI_debugAssertMemState" << endl;
+		return AFUNPTR(chipDebugAssertMemState);
+	}
+	else if(name == "CAPI_setDramBoundaries") {
+		cout << "replacing CAPI_setDramBoundaries" << endl;
+		return AFUNPTR(chipSetDramBoundaries);
+	}
    return NULL;
 }
 
@@ -495,6 +515,8 @@ VOID routine(RTN rtn, VOID *v)
 		rtn_name != "_Z13instrument_mev" 
 		&& rtn_name != "_Z4pongPv"
 		&& rtn_name != "_Z4pingPv"
+		&& rtn_name != "_Z22awesome_test_suite_msii" 
+		&& rtn_name != "_Z22awesome_test_suite_msiv" 
 //		&& rtn_name != "_Z13instrument_mei") { } //INSTRUMENTED_FUNCTION) {
 	//don't do anything
 	) {}
@@ -502,7 +524,7 @@ VOID routine(RTN rtn, VOID *v)
    else 
    {
       
-//	  cout << "Routine name is: " << rtn_name << endl;
+	  cout << "Routine name is: " << rtn_name << endl;
 	  
 	  
 	  if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 

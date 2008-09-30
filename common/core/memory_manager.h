@@ -110,6 +110,10 @@ struct UpdatePayload {
 struct AckPayload {
 	CacheState::cstate_t ack_new_cstate;
 	ADDRINT ack_address;
+	//if sent a downgrade message (E->S), but cache
+	//no longer has the line, send a bit to tell dram directory
+	//to remove it from the sharers' list
+	BOOL remove_from_sharers;
 };
 
 class MemoryManager
@@ -131,7 +135,10 @@ class MemoryManager
 // these below functions have been pushed into initiateSharedMemReq (which directly calls ocache->runModel...)
 //  bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
 //  bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
-  
-};
+    void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+	 bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 
+	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+
+};
 #endif

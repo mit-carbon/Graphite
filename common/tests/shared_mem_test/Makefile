@@ -1,26 +1,25 @@
 include ../../makefile.gnu.config
 include ../../makefile.debug
 
-CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
 CC = /usr/bin/g++
-#CFLAGS = -I../../user -c -g -Wall
-SOURCES = ../../user/capi.cc ping_pong.cc
+CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
+SOURCES = ../../user/capi.cc test.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## Build rules
 
-all: ping_pong
+all: test
 
 %.o : %.cc
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-ping_pong: $(OBJECTS)
+test: $(OBJECTS)
 	$(CC) -pthread -o $@ $(OBJECTS)
 
 ## Cleaning
 
 clean:
-	-rm -f *.o ping_pong sim.out
+	-rm -f *.o test sim.out
 
 squeaky: clean
 	-rm -f *~

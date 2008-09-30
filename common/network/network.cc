@@ -27,6 +27,7 @@ int Network::netSend(NetPacket packet)
    
    buffer = netCreateBuf(packet);
    transport->ptSend(packet.receiver, buffer, packet.length);
+   the_chip->setProcTime(net_tid, the_chip->getProcTime(net_tid) + netProcCost(packet));
    return packet.length;
 }
 
@@ -226,7 +227,7 @@ char* Network::netCreateBuf(NetPacket packet)
 {
    char *buffer;
    char *temp;
-   UINT64 time = the_chip->getProcTime(net_tid);
+   UINT64 time = the_chip->getProcTime(net_tid) + netLatency(packet) + netProcCost(packet);
    int running_length = 0;
    unsigned int i;
 
@@ -389,6 +390,16 @@ void Network::netEntryTasks()
 
    } while(type != INVALID);
 }
+
+UINT64 Network::netProcCost(NetPacket packet)
+{
+      return 10;
+};
+
+UINT64 Network::netLatency(NetPacket packet)
+{
+      return 30;
+};
 
 
 // FIXME:

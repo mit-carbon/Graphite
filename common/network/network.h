@@ -82,6 +82,9 @@ class Network{
       Chip *the_chip;		
       int net_tid;
       int net_num_mod;
+      
+      UINT64 netProcCost(NetPacket packet);
+      UINT64 netLatency(NetPacket packet);
       char* netCreateBuf(NetPacket packet);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       void netEntryTasks();

@@ -169,8 +169,8 @@ class OCache
       pair<bool, CacheTag*> runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
       pair<bool, CacheTag*> runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
       // These are side-effect free (don't update stats, don't cause eviction, etc.)
-      pair<bool, CacheTag*> runICachePeekModel(ADDRINT i_addr, UINT32 size);
-      pair<bool, CacheTag*> runDCachePeekModel(ADDRINT d_addr, UINT32 size);    
+      pair<bool, CacheTag*> runICachePeekModel(ADDRINT i_addr);
+      pair<bool, CacheTag*> runDCachePeekModel(ADDRINT d_addr);    
 
       // This function is called at the end of simulation
       void fini(int code, VOID *v, ofstream& out);

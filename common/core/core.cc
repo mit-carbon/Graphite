@@ -248,7 +248,8 @@ void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate)
 
 bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate)
 {
-	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address, 1);
+//	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address, 1);
+	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address);
    
 	bool is_assert_true;
    CacheState::cstate_t actual_cstate;

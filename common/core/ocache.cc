@@ -274,7 +274,10 @@ pair<bool, CacheTag*> OCache::iCacheLoadMultiFast(ADDRINT addr, UINT32 size)
 
 pair<bool, CacheTag*> OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
 {
-   if (size <= 4)
+   UINT32 a1 = (UINT32) i_addr;
+   UINT32 a2 = ((UINT32) i_addr) + size - 1;
+
+   if ( (a1/line_size) == (a2/line_size) )
       return iCacheLoadSingleFast(i_addr);
    else 
       return iCacheLoadMultiFast(i_addr, size);
@@ -282,7 +285,10 @@ pair<bool, CacheTag*> OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
 
 pair<bool, CacheTag*> OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
 {
-   if (size <= 4)
+   UINT32 a1 = (UINT32) d_addr;
+   UINT32 a2 = ((UINT32) d_addr) + size - 1;
+
+   if ( (a1/line_size) == (a2/line_size) )
       return dCacheLoadSingleFast(d_addr);
    else
       return dCacheLoadMultiFast(d_addr, size);
@@ -290,21 +296,22 @@ pair<bool, CacheTag*> OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
 
 pair<bool, CacheTag*> OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
 {
-   if (size <= 4)
+   UINT32 a1 = (UINT32) d_addr;
+   UINT32 a2 = ((UINT32) d_addr) + size - 1;
+
+   if ( (a1/line_size) == (a2/line_size) )
       return dCacheStoreSingleFast(d_addr);     
    else
       return dCacheStoreMultiFast(d_addr, size);
 }
 
-pair<bool, CacheTag*> OCache::runICachePeekModel(ADDRINT i_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runICachePeekModel(ADDRINT i_addr)
 {
-   ASSERTX(size <= 4);
    return il1->accessSingleLinePeek(i_addr);
 }
 
-pair<bool, CacheTag*> OCache::runDCachePeekModel(ADDRINT d_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runDCachePeekModel(ADDRINT d_addr)
 {
-   ASSERTX(size <= 4);
    return dl1->accessSingleLinePeek(d_addr);     
 }
 

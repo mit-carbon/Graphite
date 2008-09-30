@@ -489,9 +489,15 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
 
   CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((UpdatePayload*)(update_packet.data))->update_new_cstate);
   int address = ((UpdatePayload*)(update_packet.data))->update_address;
-	
-  
-  pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address, 1); //size(4) is meaningless (how many bytes to access)
+
+#ifdef MMU_DEBUG
+	stringstream ss;
+	ss << "Unexpected: address: " << hex << address;
+	debugPrint(the_core->getRank(), "MMU", ss.str());
+#endif
+
+	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
+//  pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address, 1); //size(4) is meaningless (how many bytes to access)
   // if it is null, it means the address has been invalidated
 	
   // send back acknowledgement of receiveing this message
@@ -519,7 +525,6 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   }
   
 #ifdef MMU_DEBUG
-  stringstream ss;
   ss.str("");
   ss << " Payload Attached: data Addr: " << hex << (int) packet.data << ", Addr: " << hex << ((AckPayload*) (packet.data))->ack_address << " packet.length = " << sizeof(AckPayload);
   debugPrint(the_core->getRank(), "MMU", ss.str());

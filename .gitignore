@@ -1,0 +1,9 @@
+# object files
+*.d
+*.o
+
+# emacs temp files
+*~
+
+# test output
+sim.out

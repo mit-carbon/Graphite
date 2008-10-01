@@ -1,5 +1,6 @@
 CC = /usr/bin/g++
-CFLAGS = -I../../user -c -g -Wall
+CFLAGS = -I../../user -c -g -Wall -m32
+LDFLAGS = -m32 -m elf_i386
 SOURCES = ../../user/capi.cc ping_pong.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
@@ -11,7 +12,7 @@ all: ping_pong
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 ping_pong: $(OBJECTS)
-	$(CC) -pthread -o $@ $(OBJECTS)
+	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 

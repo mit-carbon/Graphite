@@ -1,5 +1,6 @@
 CC = /usr/bin/g++
-CFLAGS = -I../../user -c -g -Wall
+CFLAGS = -I../../user -c -g -Wall -m32
+LDFLAGS = -m32 -m elf_i386
 SOURCES = ../../user/capi.cc cannon.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
@@ -11,7 +12,7 @@ all: cannon
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 cannon: $(OBJECTS)
-	$(CC) -pthread -o $@ $(OBJECTS)
+	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 

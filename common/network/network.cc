@@ -45,8 +45,8 @@ NetPacket Network::netRecv(NetMatch match)
 
    while(loop)
    {
-   
-      entry.time = the_chip->getProcTime(net_tid);
+  
+      entry.time = 0; 
       // Initialized to garbage values
       sender = -1;
       type = INVALID;
@@ -58,13 +58,13 @@ NetPacket Network::netRecv(NetMatch match)
       {
          if( !(net_queue[match.sender][match.type].empty()) )
          {
-	         if(entry.time >= net_queue[match.sender][match.type].top().time)
-            {
+	         // if(entry.time >= net_queue[match.sender][match.type].top().time)
+            // {
                entry = net_queue[match.sender][match.type].top();
                sender = match.sender;
                type = match.type;
                loop = false;
-            }
+            // }
          }
       }
       else if(match.sender_flag && (!match.type_flag))
@@ -74,7 +74,7 @@ NetPacket Network::netRecv(NetMatch match)
          {
             if( !(net_queue[match.sender][i].empty()) )
             {
-               if(entry.time >= net_queue[match.sender][i].top().time)
+               if((entry.time == 0) || (entry.time > net_queue[match.sender][i].top().time))
                {
                   entry = net_queue[match.sender][i].top();
                   sender = match.sender;
@@ -90,7 +90,7 @@ NetPacket Network::netRecv(NetMatch match)
          {
             if( !(net_queue[i][match.type].empty()) )
             {
-               if(entry.time >= net_queue[i][match.type].top().time)
+               if((entry.time == 0) || (entry.time > net_queue[i][match.type].top().time))
                {
                   entry = net_queue[i][match.type].top();
                   sender = (PacketType)i;
@@ -109,7 +109,7 @@ NetPacket Network::netRecv(NetMatch match)
             {
                if( !(net_queue[i][j].empty()) )
                {
-                  if(entry.time >= net_queue[i][j].top().time)
+                  if((entry.time == 0) || (entry.time > net_queue[i][j].top().time))
                   {
                      entry = net_queue[i][j].top();
                      sender = i;
@@ -130,10 +130,12 @@ NetPacket Network::netRecv(NetMatch match)
 			
    }
 
-   net_queue[sender][type].pop();
+   net_queue[entry.packet.sender][entry.packet.type].pop();
    packet = entry.packet;
-   the_chip->setProcTime(net_tid, (the_chip->getProcTime(net_tid) > entry.time) ? 
-		                   the_chip->getProcTime(net_tid) : entry.time);
+   if(the_chip->getProcTime(net_tid) < entry.time)
+   {
+      the_chip->setProcTime(net_tid, entry.time);
+   }
 
    return packet;
 };
@@ -347,7 +349,7 @@ void Network::netEntryTasks()
       {
          if(!net_queue[i][SHARED_MEM_REQ].empty())
          {
-            if(entry.time > net_queue[i][SHARED_MEM_REQ].top().time)
+            if(entry.time >= net_queue[i][SHARED_MEM_REQ].top().time)
             {
               entry = net_queue[i][SHARED_MEM_REQ].top();
               sender = i;
@@ -360,7 +362,7 @@ void Network::netEntryTasks()
       {
          if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
          {
-            if(entry.time > net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time)
+            if(entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time)
             {
                entry = net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top();
                sender = i;

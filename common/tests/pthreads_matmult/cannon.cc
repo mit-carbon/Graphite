@@ -24,8 +24,6 @@ float **a, **b, **c;
 int blockSize, sqrtNumProcs;
 pthread_mutex_t write_lock;
 
-#define DEBUG
-
 #ifdef DEBUG
 pthread_mutex_t lock;
 #endif

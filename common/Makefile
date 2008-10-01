@@ -1,7 +1,8 @@
 include ./makefile.gnu.config
 
-all: userobjs coreobjs networkobjs phystransobjs miscobjs testobjs
-
+sim: userobjs coreobjs networkobjs phystransobjs miscobjs 
+tests: testobjs
+all: sim tests
 
 userobjs:
 	$(MAKE) -C user

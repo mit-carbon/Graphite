@@ -22,7 +22,7 @@ tools: $(TOOLS) $(SOURCES)
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 commonsubsystem:
-	$(MAKE) -C ../../common
+	$(MAKE) -C ../../common sim
 
 $(TOOLS): $(PIN_LIBNAMES)
 $(TOOLS): $(OBJECTS)

@@ -13,9 +13,15 @@ class NetworkMeshAnalytical : public Network
     virtual NetPacket netRecv(NetMatch match);
 
     private:
+    virtual UINT64 netProcCost(NetPacket packet);
+    virtual UINT64 netLatency(NetPacket packet);
+
     //For statistical purposes
     unsigned int bytes_sent;
     unsigned int bytes_recv;
+
+    unsigned int cycles_spent_proc;
+    unsigned int cycles_spent_latency;
 
 };
 

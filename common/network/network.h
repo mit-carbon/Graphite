@@ -79,12 +79,9 @@ class Network{
       typedef priority_queue <NetQueueEntry, vector<NetQueueEntry>, earlier>
               NetQueue;
 
-      Chip *the_chip;		
-      int net_tid;
-      int net_num_mod;
       
-      UINT64 netProcCost(NetPacket packet);
-      UINT64 netLatency(NetPacket packet);
+      virtual UINT64 netProcCost(NetPacket packet);
+      virtual UINT64 netLatency(NetPacket packet);
       char* netCreateBuf(NetPacket packet);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       void netEntryTasks();
@@ -95,6 +92,11 @@ class Network{
       void processUnexpectedSharedMemUpdate(NetPacket packet);
       NetQueue **net_queue;
       Transport *transport;
+
+   protected:
+      Chip *the_chip;		
+      int net_tid;
+      int net_num_mod;
 
    public:
 

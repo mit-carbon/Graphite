@@ -8,7 +8,7 @@ Network::Network(Chip *chip, int tid, int num_mod)
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
    net_tid = tid;
-   net_num_mod = num_mod;
+   net_num_mod = g_config->totalMods();
    transport = new Transport;
    transport->ptInit(tid, num_mod);
    net_queue = new NetQueue* [net_num_mod];

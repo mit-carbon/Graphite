@@ -33,6 +33,8 @@ CAPI_return_t chipInit(int *rank);
 
 CAPI_return_t chipRank(int *rank);
 
+CAPI_return_t commRank(int *rank);
+
 CAPI_return_t chipSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                         char *buffer, int size);
 
@@ -81,6 +83,7 @@ class Chip
 
       friend CAPI_return_t chipInit(int *rank); 
       friend CAPI_return_t chipRank(int *rank);
+      friend CAPI_return_t commRank(int *rank);
       friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
                                      CAPI_endpoint_t receiver, char *buffer, 
                                      int size);

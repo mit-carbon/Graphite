@@ -12,9 +12,11 @@
 // JME: not entirely sure why this is needed...
 class Chip;
 
+#include "config.h"
 #include "chip.h"
 #include "transport.h"
 
+extern Config* g_config;
 
 // Define data types
 
@@ -96,13 +98,14 @@ class Network{
    protected:
       Chip *the_chip;		
       int net_tid;
-      int net_num_mod;
+      int net_num_mod;   // Total number of cores in the simulation
 
    public:
 
       Network(Chip *chip, int tid, int num_threads);
       virtual ~Network(){};
       
+      int netCommID() { return transport->ptCommID(); }
       bool netQuery(NetMatch match);
 		
       virtual int netSend(NetPacket packet);

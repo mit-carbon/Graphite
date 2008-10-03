@@ -68,6 +68,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    return 0;
 }
 
+int Core::coreCommID() { return network->netCommID(); }
+
 int Core::coreSendW(int sender, int receiver, char *buffer, int size)
 {
    // Create a net packet

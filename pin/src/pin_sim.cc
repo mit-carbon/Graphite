@@ -456,7 +456,7 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
       return AFUNPTR(chipInit);
    }
    else if(name == "CAPI_rank"){
-      return AFUNPTR(chipRank);
+      return AFUNPTR(commRank);
    }
    else if(name == "CAPI_message_send_w"){
       return AFUNPTR(chipSendW);
@@ -530,6 +530,7 @@ VOID routine(RTN rtn, VOID *v)
 
 VOID fini(int code, VOID * v)
 {
+   Transport::ptFinish();
    g_chip->fini(code, v);
 }
 

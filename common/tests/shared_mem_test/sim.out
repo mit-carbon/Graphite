@@ -3,16 +3,16 @@
 # DCACHE stats
 #
 # organic cache_dl1:
-# Load-Hits:                 2741   98.10%
-# Load-Misses:                 53    1.90%
+# Load-Hits:                 2742   98.14%
+# Load-Misses:                 52    1.86%
 # Load-Accesses:             2794  100.00%
 # 
 # Store-Hits:                9299   99.73%
 # Store-Misses:                25    0.27%
 # Store-Accesses:            9324  100.00%
 # 
-# Total-Hits:               12040   99.36%
-# Total-Misses:                78    0.64%
+# Total-Hits:               12041   99.36%
+# Total-Misses:                77    0.64%
 # Total-Accesses:           12118  100.00%
 
 

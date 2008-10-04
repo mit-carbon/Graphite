@@ -1,26 +1,25 @@
 include ../../makefile.gnu.config
 include ../../makefile.debug
 
-
 CC = /usr/bin/g++
-CFLAGS = -I../../misc -I../../core -I../../user -c -g -Wall
-SOURCES = ../../user/capi.cc basic.cc
+CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
+SOURCES = ../../user/capi.cc jacobi.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## Build rules
 
-all: basic 
+all: jacobi
 
 %.o : %.cc
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-basic: $(OBJECTS)
+jacobi: $(OBJECTS)
 	$(CC) -pthread -o $@ $(OBJECTS)
 
 ## Cleaning
 
 clean:
-	-rm -f *.o basic sim.out
+	-rm -f *.o jacobi sim.out
 
 squeaky: clean
 	-rm -f *~

@@ -1,5 +1,5 @@
 #!/usr/bin/tcsh
 make
-setenv NUM 2
+setenv NUM 1
 #/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -msm -mdc -mpf -b 128 -n $NUM -- ./cannon -m $NUM -s $NUM
-/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -msm -mdc -b 128 -n $NUM -- ./cannon -m $NUM -s $NUM
+/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -mdc -b 128 -n $NUM -msm -- ./cannon -m $NUM -s $NUM

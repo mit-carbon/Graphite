@@ -142,6 +142,7 @@ void* starter_function(void *threadid)
 	int tid;
 	CAPI_Initialize(&tid);
 
+cout << "OH HAI" << endl;
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cout << "executing do_nothing function: " << tid << endl << endl;

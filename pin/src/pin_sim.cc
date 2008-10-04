@@ -30,7 +30,7 @@
 #include "knobs.h"
 
 
-#define INSTRUMENT_ALLOWED_FUNCTIONS
+//#define INSTRUMENT_ALLOWED_FUNCTIONS
 
 Chip *g_chip;
 
@@ -510,22 +510,20 @@ VOID routine(RTN rtn, VOID *v)
    } 
 #ifdef INSTRUMENT_ALLOWED_FUNCTIONS
 	else if(
-//		rtn_name != "_Z13instrument_meiPi" 
-//		&& 
 		rtn_name != "_Z13instrument_mev" 
 		&& rtn_name != "_Z4pongPv"
 		&& rtn_name != "_Z4pingPv"
 		&& rtn_name != "_Z22awesome_test_suite_msii" 
 		&& rtn_name != "_Z22awesome_test_suite_msiv" 
-//		&& rtn_name != "_Z13instrument_mei") { } //INSTRUMENTED_FUNCTION) {
 	//don't do anything
 	) {}
 #endif
    else 
    {
       
-	  cout << "Routine name is: " << rtn_name << endl;
-	  
+#ifdef INSTRUMENT_ALLOWED_FUNCTIONS
+		cout << "Routine name is: " << rtn_name << endl;
+#endif
 	  
 	  if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 
       { 

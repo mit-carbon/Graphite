@@ -61,16 +61,20 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 
 
 //FIXME deal with the size argument (ie, rename the darn thing)
+//TODO take out size, b/c we're only accessing a single cache line anyways
 bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
-//	dram_dir->print();
+
 #ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq ++++++++++++++++++++");
    dram_dir->print();
 	debugPrintString(the_core->getRank(), "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
 #endif
 
-   unsigned int my_rank = the_core->getRank();
+   //FIXME this is to fix a null pointer CacheTag bug that occurs when size== 0 i'll just fake it and make it size==1
+	if( size == 0 ) size = 1;
+	
+	unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
 	//first-> is the line available in the cache? (Native cache hit)
 	//second-> pointer to cache tag to update cache state
@@ -79,6 +83,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	switch( shmem_req_type ) {
 		
 		case READ:
+			//TODO make size == 1, since we're only accessing a single cache line (or push size==1 from higher up level)
 			cache_model_results = ocache->runDCacheLoadModel(address, size);
 			native_cache_hit = cache_model_results.first;
 		break;
@@ -89,14 +94,16 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 		break;
 		
 		default: 
+		  cout << "ERROR: shmem_req_type is incorrect! (switch statement failure) " << endl;
 		  throw("unsupported memory transaction type.");
 		break;
    }
+	
+	stringstream ss;
    
 #ifdef MMU_CACHEHIT_DEBUG                                    
 			if(native_cache_hit) {
 				//god i hate c++
-				stringstream ss;
 				ss << "NATIVE CACHE (HIT) : ADDR: = " <<  hex << address 
 					<< " - CState: "<< CacheState::cStateToString(cache_model_results.second->getCState());
 				debugPrint(my_rank,"MMU", ss.str()); 
@@ -122,8 +129,15 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
 
+	if( cache_model_results.second == NULL) {
+		//before we crash let's print out some important state info
+		ss.str("");
+		ss << "  Address: " << hex << address << " , type: " << sMemReqTypeToString(shmem_req_type) << ", size= " << size;
+		debugPrint(my_rank, "MMU", ss.str());
+	}
 	assert( cache_model_results.second != NULL );
-   while( !action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
+   
+	while( !action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
    {
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
      
@@ -304,6 +318,20 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 		
 //				int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
 				ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
+				 /* TODO BUG this was an assertion failure that occured for received_address != address
+				  * and the condition was size == 0, and i forced it to size = 1, and now this came up.
+				  * a new, different bug, or was it caused by the whole size =1 thing? 
+				 WRITE size == 0! -- ADDR: 842be000 , size = 0
+				 executing do_nothing function: 1
+				 pinbin: memory_manager.cc:321: void MemoryManager::processSharedMemReq(NetPacket): Assertion `received_address == address' failed.
+             */
+				stringstream ss;
+				if(received_address != address) {
+					//print out info before we crash
+					ss.str("");
+					ss << "ADDR: " << hex << address << "  , Received ADDR: " << hex << received_address;
+					debugPrint(my_rank, "MMU", ss.str());
+				}	
 				assert(received_address == address);
 		
 //				CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);

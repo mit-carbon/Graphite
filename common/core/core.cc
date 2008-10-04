@@ -175,14 +175,25 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", "dcache initiating shared memory request (READ)");
 #endif
-		bool ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
+		//TODO multi-line cache accesses
+		bool ret = false; 
+		  
+		if( size <= 0) {
+			cout << " READ  size == 0! -- ADDR: " << hex << d_addr << " , size = " << dec << size << endl;
+		}
+		
+		if( size > 0) {
+			ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
+		}
+      
+		
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (READ)");
 #endif
 	   return ret;
    } else {
 #ifdef SMEM_DEBUG
-       debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
+      debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
 #endif
 	   return ocache->runDCacheLoadModel(d_addr, size).first;
    }
@@ -210,7 +221,16 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 			}
 		}
 */		
-		bool ret = memory_manager->initiateSharedMemReq(d_addr, size, WRITE); 
+		//FIXME remove this, this is to track how many times we're told to write to zero bytes! this caused a failure when CacheTag is returned as null for size= 0
+		if( size <= 0) {
+			cout << " WRITE size == 0! -- ADDR: " << hex << d_addr << " , size = " << dec << size << endl;
+		}
+		
+		bool ret = false;
+//		cout << "WRITE SIZE = " << size << endl;
+		if( size > 0) {
+			ret = memory_manager->initiateSharedMemReq(d_addr, size, WRITE); 
+		}
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (WRITE)");
 #endif
@@ -220,6 +240,7 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
 #endif
+       debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
 	   return ocache->runDCacheStoreModel(d_addr, size).first;
    }
 }

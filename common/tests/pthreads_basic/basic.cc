@@ -132,7 +132,7 @@ void* do_nothing(void *threadid)
 		pthread_mutex_unlock(&lock);
 
 //		instrument_me( tid , &size );
-//		instrument_me( );
+		instrument_me( );
 		
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " finished instrumenting." << endl;
@@ -207,93 +207,3 @@ void instrument_me()
 
 }
 
-//test suit of all cases. barrier at each step.
-void awesome_test_suite_msi(int tid) 
-{
-   
-	//TO DO LIST:
-	//allocate global data
-	//reallocate AHL boundaries to evenly divide global data
-	//
-	//ability to set up test
-	//
-	//ability to instrument only test
-	//
-	//ability to test end condition, and assert correct cache state
-	//
-	//
-	
-	//allocate global structures that both can see, make addr of one struct for one tile, one struct for other tile
-
-	//state transitions:
-	//
-	//Directory:
-	//Single Core.
-	//read value. (invalidate->shared)
-	//read a shared value (shared->shared). (but cache hit?).
-	//write value.(invalidate->exclusive)
-	//write a shared value (shared->exclusive).
-	//read an exclusive value (exclusive->exclusive).
-	//
-	//Two Cores:
-	//	each test-> address is shared on other core.
-	//
-	//	read shared value (shared->shared)
-	//	write shared value (shared->exclusive).
-	//
-	//	each test-> address is exclusive on other core.
-	//
-	//	read shared value (exclusive->shared)
-	//	write shared value (exclusive->exclusive).  (what if the value was loaded to other core, but invalidated but directory still marks it exclusive?)
-	//
-	//
-	//
-	//	Do Action.
-	//	1. Uncached.
-	//	2. Repeat Again.
-	//	3. Invalidate and repeat action.
-	//
-	//	4. Shared.
-	//	5. Repeat.
-	//	6. Invalidate and repeat.
-	//
-	//	7. Exclusive.
-	//	8. Repeat.
-	//	9. Invalidate and repeat.
-	//
-	//	Repeat above but with it located on another core.
-	//	Repeat above but with the data homed on another core.
-	
-	
-	
-	//read address on home address
-	//
-	//read address on other core
-	//
-	////write address on home address
-	//
-	//write addr on other core
-	//
-	//
-
-	//do all of these again (should be in cache)
-	//do a write for an address you just read.
-	//
-	//read someone else's write addr
-	//
-	//write someone else's write addr
-
-   //test each edge
-	//assert cache state
-	//assert dram state
-	//pass in addr, and expected state.
-	//test sharers list. assert the sharers list.
-
-	/*
-	 * 4 test situations
-	 * 1) excercise all state permutations (locally homed)
-	 * 2) excercise #1, but on other cores (remotely homed)
-	 * 3) excercise all permutations on other core, (~15 states)
-	 * 4) race situations
-	 */
-}

@@ -30,8 +30,6 @@
 #include "perfmdl.h"
 #include "knobs.h"
 
-
-
 Chip *g_chip;
 Config *g_config;
 
@@ -51,14 +49,12 @@ INT32 usage()
 
 VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
                ADDRINT dcache_st_addr, UINT32 dcache_st_size,
-               CONTEXT *ctx, SYSCALL_STANDARD syscall_standard,
                PerfModelIntervalStat *stats,
                REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
                bool do_network_modeling, bool do_icache_modeling, 
                bool do_dcache_read_modeling, bool is_dual_read, 
                bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
-               bool check_scoreboard,
-               bool do_syscall_modeling)
+               bool check_scoreboard)
 {
    //cout << "parent = " << stats->parent_routine << endl;
 
@@ -139,12 +135,6 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
          assert(dcache_st_size == 0);
       }
 
-      // map syscalls if necessary
-      if ( do_syscall_modeling )
-      {
-         syscallRunModel(ctx, syscall_standard);
-      }
-
       // this should probably go last
       if ( do_perf_modeling )
       {
@@ -172,8 +162,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    INS_IsMemoryWrite(ins);
    bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
 
-   bool do_syscall_modeling      = g_knob_enable_syscall_modeling;
-
    //TODO: if we run on multiple machines we need shared memory
    //TODO: if we run on multiple machines we need syscall_modeling
 
@@ -191,7 +179,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 
    // Exit early if we aren't modeling anything
    if ( !do_network_modeling && !do_icache_modeling && !do_dcache_read_modeling  &&
-        !do_dcache_write_modeling && !do_bpred_modeling && !do_perf_modeling && !do_syscall_modeling)
+        !do_dcache_write_modeling && !do_bpred_modeling && !do_perf_modeling)
    {
       return false;
    }
@@ -263,25 +251,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    else
       IARGLIST_AddArguments(args,IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0, IARG_END);
 
-   IARGLIST_AddArguments(args, IARG_CONTEXT, IARG_UINT32, INS_SyscallStd(ins), IARG_END);
-
-   // if(do_syscall_modeling)
-   // {
-   //    IARGLIST_AddArguments(args, IARG_SYSCALL_NUMBER,
-   //                     IARG_SYSARG_VALUE, 0, IARG_SYSARG_VALUE, 1,
-   //                     IARG_SYSARG_VALUE, 2, IARG_SYSARG_VALUE, 3,
-   //                     IARG_SYSARG_VALUE, 4, IARG_SYSARG_VALUE, 5,
-   //                     IARG_END);
-   // }
-   // else
-   // {
-   //    IARGLIST_AddArguments(args, IARG_ADDRINT, (ADDRINT)NULL,
-   //                     IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
-   //                     IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
-   //                     IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
-   //                     IARG_END);
-   // }
-
    // Now pass on our values for the appropriate models
    IARGLIST_AddArguments(args, 
          // perf modeling
@@ -293,7 +262,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
          IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
          IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, 
-         IARG_BOOL, do_syscall_modeling, 
          IARG_END); 
 
    INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
@@ -478,6 +446,15 @@ VOID init_globals()
 
 }
 
+void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
+{
+   syscallEnterRunModel(ctxt, std);
+}
+
+void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
+{
+   syscallExitRunModel(ctxt, std);
+}
 
 int main(int argc, char *argv[])
 {
@@ -489,6 +466,8 @@ int main(int argc, char *argv[])
    init_globals();
     
    RTN_AddInstrumentFunction(routine, 0);
+   PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+   PIN_AddSyscallExitFunction(SyscallExit, 0);
 
    PIN_AddFiniFunction(fini, 0);
  

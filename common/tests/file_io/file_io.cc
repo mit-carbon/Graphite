@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include "capi.h"
+#include <fcntl.h>
 
 using namespace std;
 
@@ -63,8 +64,8 @@ void* read_and_write(void *threadid){
 	CAPI_rank(&tid);
 
     // Do the work
-    FILE *fid;
-    fid = fopen("./input", "r");
+    int fid;
+    fid = open("./input", O_RDONLY);
 
     printf("File Descriptor: 0x%x\n", (unsigned int)fid);
 

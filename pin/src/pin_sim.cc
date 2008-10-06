@@ -161,7 +161,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    INS_IsMemoryWrite(ins);
    bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
 
-   // when icache modeling is on, we need to call the model also at basic block boundaries 
+   // If we are doing any other type of modeling then we need to do icache modeling
    bool do_icache_modeling       = g_knob_enable_icache_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_bpred_modeling || is_bbl_ins_tail || 
@@ -171,204 +171,99 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_icache_modeling || 
                                      do_bpred_modeling || is_bbl_ins_tail || check_scoreboard );
-  
-#if 0
-   cout << "do_network_modeling=" << do_network_modeling << " do_dcache_read_modeling=" 
-        << do_dcache_read_modeling << " do_dcache_write_modeling=" << do_dcache_write_modeling 
-        << " do_bpred_modeling=" << do_bpred_modeling << " do_icache_modeling=" << do_icache_modeling 
-        << " do_perf_modeling=" << do_perf_modeling << endl;
-   cout << "looking at instruction " << inst_offset << endl;
-#endif
 
-   if ( do_network_modeling || do_icache_modeling || do_dcache_read_modeling || 
-        do_dcache_write_modeling || do_bpred_modeling || do_perf_modeling )
+
+   // Exit early if we aren't modeling anything
+   if ( !do_network_modeling && !do_icache_modeling && !do_dcache_read_modeling  &&
+        !do_dcache_write_modeling && !do_bpred_modeling && !do_perf_modeling)
    {
-
-      assert( !do_network_modeling );
-      assert( !do_bpred_modeling );
-
-      //this flag may or may not get used
-      bool is_dual_read = INS_HasMemoryRead2(ins);
-
-      PerfModelIntervalStat *stats;
-      INS end_ins = INS_Next(ins);
-      // stats also needs to get allocated if icache modeling is turned on
-      stats = (do_perf_modeling || do_icache_modeling) ? 
-              perfModelAnalyzeInterval(rtn_name, start_ins, end_ins) : 
-              NULL; 
-
-
-      // UINT32 num_reads = INS_MaxNumRRegs(ins);
-      // REG *reads = new REG[num_reads];
-      // for (UINT32 i = 0; i < num_reads; i++) {
-      //   reads[i] = INS_RegR(ins, i);
-      // }
-
-      UINT32 num_reads = 0;
-      REG *reads = NULL;      
-      if ( g_knob_enable_performance_modeling )
-      {
-         num_reads = INS_MaxNumRRegs(ins);
-         reads = new REG[num_reads];
-         for (UINT32 i = 0; i < num_reads; i++) {
-            reads[i] = INS_RegR(ins, i);
-         }
-      } 
-
-
-      // UINT32 num_writes = INS_MaxNumWRegs(ins);
-      // REG *writes = new REG[num_writes];
-      // for (UINT32 i = 0; i < num_writes; i++) {
-      //   writes[i] = INS_RegW(ins, i);
-      // }
-
-      UINT32 num_writes = 0;
-      REG *writes = NULL;
-      if ( g_knob_enable_performance_modeling )
-      {
-         num_writes = INS_MaxNumWRegs(ins);         
-         writes = new REG[num_writes];
-         for (UINT32 i = 0; i < num_writes; i++) {
-           writes[i] = INS_RegW(ins, i);
-         }
-      }
-
-
-      //for building the arguments to the function which dispatches calls to the various modelers
-      IARGLIST args = IARGLIST_Alloc();
-      UINT32 which_case = (( do_dcache_read_modeling ? 0 : 1) << 2) | 
-                          ((         is_dual_read ? 0 : 1) << 1) | 
-                          ((do_dcache_write_modeling ? 0 : 1) << 0);
-
-      //cout << INS_Disassemble(ins) << " " << which_case << " " << do_dcache_read_modeling 
-      //     << " " << is_dual_read << " " << do_dcache_write_modeling << " " << do_icache_modeling 
-      //     << " " << do_bpred_modeling << " " << do_perf_modeling << endl;
-
-      //cout << "adding trap on instruction " << inst_offset << ". which_case = " << which_case << endl;
-      //cout << hex << "adding trap: prev=" << startInstOffset << " this=" << inst_offset << dec << endl;
-  
-      switch(which_case) 
-      {
-      case 0:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling 
-            // dcache load modeling  
-                                        IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE,
-	    // dcache store modeling 
-                                        IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE,
-	    // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-	    // model-enable flags    
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   		                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-            break;
-      case 1:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling
-            // dcache load modeling  
-                                        IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE,
-	    // dcache store modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-	    // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-	    // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-	   	                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-         break;
-      case 2:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling
-            // dcache load modeling  
-                                        IARG_MEMORYREAD_EA, IARG_ADDRINT, (ADDRINT) NULL, IARG_MEMORYREAD_SIZE,
-	    // dcache store modeling
-                                        IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE,
-	    // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-	    // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-		                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-         break;
-      case 3:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling
-            // dcache load modeling
-                                        IARG_MEMORYREAD_EA, IARG_ADDRINT, (ADDRINT) NULL, IARG_MEMORYREAD_SIZE,
-            // dcache store modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            //perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-            // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   	                                IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-         break;
-      case 4:
-      case 6:
-         IARGLIST_AddArguments(args, 
-            // icache load modeling 
-            // dcache load modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            // dcache store modeling
-                                        IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE,
-            // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-            // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   	                                IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
-         break;
-      case 5:
-      case 7:
-         IARGLIST_AddArguments(args, 
-            // icache load modeling
-            // dcache load modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            // dcache store modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-            // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   	  	                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
-         break;   
-      default:
-         assert( false );
-      }
-
-      INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
-      IARGLIST_Free(args);
-
-      return true;
-   } 
-   else 
-   {
-
-
+      return false;
    }
 
-   return false;
+   assert( !do_network_modeling );
+   assert( !do_bpred_modeling );
+
+   //this flag may or may not get used
+   bool is_dual_read = INS_HasMemoryRead2(ins);
+
+   PerfModelIntervalStat *stats;
+   INS end_ins = INS_Next(ins);
+   // stats also needs to get allocated if icache modeling is turned on
+   stats = (do_perf_modeling || do_icache_modeling) ? 
+      perfModelAnalyzeInterval(rtn_name, start_ins, end_ins) : 
+      NULL; 
+
+
+   // Build a list of read registers if relevant
+   UINT32 num_reads = 0;
+   REG *reads = NULL;      
+   if ( g_knob_enable_performance_modeling )
+   {
+      num_reads = INS_MaxNumRRegs(ins);
+      reads = new REG[num_reads];
+      for (UINT32 i = 0; i < num_reads; i++) {
+         reads[i] = INS_RegR(ins, i);
+      }
+   } 
+
+
+   // Build a list of write registers if relevant
+   UINT32 num_writes = 0;
+   REG *writes = NULL;
+   if ( g_knob_enable_performance_modeling )
+   {
+      num_writes = INS_MaxNumWRegs(ins);         
+      writes = new REG[num_writes];
+      for (UINT32 i = 0; i < num_writes; i++) {
+         writes[i] = INS_RegW(ins, i);
+      }
+   }
+
+
+   //for building the arguments to the function which dispatches calls to the various modelers
+   IARGLIST args = IARGLIST_Alloc();
+
+   // Properly add the associated addresses for the argument call
+   if(do_dcache_read_modeling)
+   {
+      IARGLIST_AddArguments(args, IARG_MEMORYREAD_EA, IARG_END);
+
+      // If it's a dual read then we need the read2 ea otherwise, null
+      if(is_dual_read)
+         IARGLIST_AddArguments(args, IARG_MEMORYREAD2_EA, IARG_END);
+      else
+         IARGLIST_AddArguments(args, IARG_ADDRINT, (ADDRINT) NULL, IARG_END);
+
+      IARGLIST_AddArguments(args, IARG_MEMORYREAD_SIZE, IARG_END);
+   }
+   else
+   {
+      IARGLIST_AddArguments(args, IARG_ADDRINT, (ADDRINT) NULL, IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0, IARG_END);
+   }
+
+   // Do this after those first three
+   if(do_dcache_write_modeling)
+      IARGLIST_AddArguments(args,IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
+   else
+      IARGLIST_AddArguments(args,IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0, IARG_END);
+
+
+   // Now pass on our values for the appropriate models
+   IARGLIST_AddArguments(args, 
+         // perf modeling
+         IARG_PTR, (VOID *) stats,
+         IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
+         IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
+         // model-enable flags
+         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
+         IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
+         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
+         IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
+
+   INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
+   IARGLIST_Free(args);
+
+   return true;
 }
 
 

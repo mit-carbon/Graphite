@@ -151,11 +151,11 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 
 
 // syscall model wrappers
-void syscallRunModel(ADDRINT syscall_number, ADDRINT syscall_arg_0, ADDRINT syscall_arg_1,
-        ADDRINT syscall_arg_2, ADDRINT syscall_arg_3, ADDRINT syscall_arg_4, ADDRINT syscall_arg_5)
+void syscallRunModel(CONTEXT *ctx)
 {
-   g_chip->syscall_model.run(syscall_number, syscall_arg_0, syscall_arg_1,
-            syscall_arg_2,  syscall_arg_3,  syscall_arg_4,  syscall_arg_5);
+   int rank;
+   chipRank(&rank);
+   g_chip->syscall_model.run(rank, ctx);
 }
 
 // Chip class method definitions

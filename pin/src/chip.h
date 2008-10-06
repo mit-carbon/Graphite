@@ -69,8 +69,7 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
 bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
 // syscall model wrappers
-void syscallRunModel(ADDRINT syscall_number, ADDRINT syscall_arg_0, ADDRINT syscall_arg_1,
-        ADDRINT syscall_arg_2, ADDRINT syscall_arg_3, ADDRINT syscall_arg_4, ADDRINT syscall_arg_5);
+void syscallRunModel(CONTEXT *ctx);
 
 
 
@@ -108,8 +107,7 @@ class Chip
       friend void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);      
 
       // syscall modeling wrapper
-      friend void syscallRunModel(ADDRINT syscall_number, ADDRINT syscall_arg_0, ADDRINT syscall_arg_1,
-              ADDRINT syscall_arg_2, ADDRINT syscall_arg_3, ADDRINT syscall_arg_4, ADDRINT syscall_arg_5);
+      friend void syscallRunModel(CONTEXT *ctx);
 
       
       // organic cache modeling wrappers

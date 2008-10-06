@@ -51,8 +51,7 @@ INT32 usage()
 
 VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
                ADDRINT dcache_st_addr, UINT32 dcache_st_size,
-               ADDRINT syscall_number, ADDRINT syscall_arg_0, ADDRINT syscall_arg_1,
-               ADDRINT syscall_arg_2, ADDRINT syscall_arg_3, ADDRINT syscall_arg_4, ADDRINT syscall_arg_5,
+               CONTEXT *ctx,
                PerfModelIntervalStat *stats,
                REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
                bool do_network_modeling, bool do_icache_modeling, 
@@ -143,8 +142,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
       // map syscalls if necessary
       if ( do_syscall_modeling )
       {
-         syscallRunModel(syscall_number, syscall_arg_0, syscall_arg_1,
-               syscall_arg_2, syscall_arg_3, syscall_arg_4, syscall_arg_5);
+         syscallRunModel(ctx);
       }
 
       // this should probably go last
@@ -265,22 +263,24 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    else
       IARGLIST_AddArguments(args,IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0, IARG_END);
 
-   if(do_syscall_modeling)
-   {
-      IARGLIST_AddArguments(args, IARG_SYSCALL_NUMBER,
-                       IARG_SYSARG_VALUE, 0, IARG_SYSARG_VALUE, 1,
-                       IARG_SYSARG_VALUE, 2, IARG_SYSARG_VALUE, 3,
-                       IARG_SYSARG_VALUE, 4, IARG_SYSARG_VALUE, 5,
-                       IARG_END);
-   }
-   else
-   {
-      IARGLIST_AddArguments(args, IARG_ADDRINT, (ADDRINT)NULL,
-                       IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
-                       IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
-                       IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
-                       IARG_END);
-   }
+   IARGLIST_AddArguments(args, IARG_CONTEXT, IARG_END);
+
+   // if(do_syscall_modeling)
+   // {
+   //    IARGLIST_AddArguments(args, IARG_SYSCALL_NUMBER,
+   //                     IARG_SYSARG_VALUE, 0, IARG_SYSARG_VALUE, 1,
+   //                     IARG_SYSARG_VALUE, 2, IARG_SYSARG_VALUE, 3,
+   //                     IARG_SYSARG_VALUE, 4, IARG_SYSARG_VALUE, 5,
+   //                     IARG_END);
+   // }
+   // else
+   // {
+   //    IARGLIST_AddArguments(args, IARG_ADDRINT, (ADDRINT)NULL,
+   //                     IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
+   //                     IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
+   //                     IARG_ADDRINT, (ADDRINT)NULL, IARG_ADDRINT, (ADDRINT)NULL,
+   //                     IARG_END);
+   // }
 
    // Now pass on our values for the appropriate models
    IARGLIST_AddArguments(args, 

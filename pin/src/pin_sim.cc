@@ -51,7 +51,7 @@ INT32 usage()
 
 VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
                ADDRINT dcache_st_addr, UINT32 dcache_st_size,
-               CONTEXT *ctx,
+               CONTEXT *ctx, SYSCALL_STANDARD syscall_standard,
                PerfModelIntervalStat *stats,
                REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
                bool do_network_modeling, bool do_icache_modeling, 
@@ -142,7 +142,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
       // map syscalls if necessary
       if ( do_syscall_modeling )
       {
-         syscallRunModel(ctx);
+         syscallRunModel(ctx, syscall_standard);
       }
 
       // this should probably go last
@@ -263,7 +263,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    else
       IARGLIST_AddArguments(args,IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0, IARG_END);
 
-   IARGLIST_AddArguments(args, IARG_CONTEXT, IARG_END);
+   IARGLIST_AddArguments(args, IARG_CONTEXT, IARG_UINT32, INS_SyscallStd(ins), IARG_END);
 
    // if(do_syscall_modeling)
    // {

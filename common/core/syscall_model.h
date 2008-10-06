@@ -8,7 +8,7 @@ class SyscallMdl
 {
    public:
       SyscallMdl();
-      void run(int rank, CONTEXT *ctx);
+      void run(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
    private:
 };
 

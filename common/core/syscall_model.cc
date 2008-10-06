@@ -6,20 +6,21 @@ SyscallMdl::SyscallMdl()
 {
 }
 
-void SyscallMdl::run(int rank, CONTEXT *ctx)
+void SyscallMdl::run(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    // No need to make this call remote
-   if(rank == 0)
-      return; 
+   // if(rank == 0)
+   //    return; 
 
 //   int syscall_number = 0;
-   int syscall_number = PIN_GetSyscallNumber(ctx, SYSCALL_STANDARD_IA32_LINUX);
+#if 0
+   int syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
 
    switch(syscall_number)
    {
       case SYS_open:
       {
-         char *path = (char *)PIN_GetSyscallArgument(ctx, SYSCALL_STANDARD_IA32_LINUX, 0);
+         char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          cout << "open(" << path << ")" << endl;
          //open((char *)syscall_arg_0);
 
@@ -42,5 +43,6 @@ void SyscallMdl::run(int rank, CONTEXT *ctx)
          cout << "SysCall: " << (int)syscall_number << endl;
          break;
    }
+#endif
 }
 

@@ -66,13 +66,16 @@ void* read_and_write(void *threadid){
     FILE *fid;
     fid = fopen("./input", "r");
 
-    int data_size = 1024 * sizeof(char);
+    printf("File Descriptor: 0x%x\n", (unsigned int)fid);
 
-    char *the_data = (char *)malloc(data_size);
+    // Actually read and close the FID
+    // int data_size = 1024 * sizeof(char);
+    // char *the_data = (char *)malloc(data_size);
+    // int read = fread(the_data,data_size, sizeof(char), fid);
 
-    int read = fread(the_data,data_size, sizeof(char), fid);
+    // fclose(fid);
 
-    printf("Read: %s\n", the_data);
+    // printf("Read: %s\n", the_data);
 
 	pthread_exit(NULL);
 }

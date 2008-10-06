@@ -62,7 +62,7 @@ PerfModelIntervalStat* PerfModel::analyzeInterval(const string& parent_routine,
 }
 
 
-VOID PerfModel::run(PerfModelIntervalStat *interval_stats)
+void PerfModel::run(PerfModelIntervalStat *interval_stats)
 {
    // NOTE: must function such that it can be called more than once per 
    // interval and still work
@@ -103,7 +103,7 @@ VOID PerfModel::run(PerfModelIntervalStat *interval_stats)
 
 
 // run method which accounts for load data dependency stalls
-VOID PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads, 
+void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads, 
                     UINT32 numReads)
 {
 
@@ -140,7 +140,7 @@ VOID PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
 }
 
 
-VOID PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes, UINT32 numWrites)
+void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes, UINT32 numWrites)
 {
    run(interval_stats);
 

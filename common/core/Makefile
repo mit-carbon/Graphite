@@ -5,7 +5,7 @@ OPT=-O2
 CFLAGS=-c -I../../pin/src -I../user -I../network -I../phys_trans -I../misc -I../ -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = cache.cc ocache.cc perfmdl.cc core.cc
+SOURCES = cache.cc ocache.cc perfmdl.cc core.cc syscall_model.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 

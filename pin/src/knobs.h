@@ -28,6 +28,8 @@ KNOB<BOOL>   g_knob_enable_performance_modeling(KNOB_MODE_WRITEONCE, "pintool",
 /* Performance Modeler Knobs */
 /* ===================================================================== */
 
+KNOB<BOOL>   g_knob_enable_syscall_modeling(KNOB_MODE_WRITEONCE, "pintool",
+   "msys", "0", "turns on syscall modeler");
 
 /* ===================================================================== */
 /* Organic Cache Knobs */

@@ -2,8 +2,10 @@
 
 // definitions
 
+//TODO: c++-ize this, please oh please!
 CAPI_return_t chipInit(int *rank)
 {
+   
    THREADID pin_tid = PIN_ThreadId();
 
    GetLock(&(g_chip->maps_lock), 1); 
@@ -148,6 +150,13 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 }
 
 
+// syscall model wrappers
+void syscallRunModel(ADDRINT syscall_number, ADDRINT syscall_arg_0, ADDRINT syscall_arg_1,
+        ADDRINT syscall_arg_2, ADDRINT syscall_arg_3, ADDRINT syscall_arg_4, ADDRINT syscall_arg_5)
+{
+   g_chip->syscall_model.run(syscall_number, syscall_arg_0, syscall_arg_1,
+            syscall_arg_2,  syscall_arg_3,  syscall_arg_4,  syscall_arg_5);
+}
 
 // Chip class method definitions
 

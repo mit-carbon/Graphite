@@ -148,30 +148,42 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head, 
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
+   // make sure rank is valid
+   int rank; 
+   chipRank(&rank);
+   bool rank_is_valid = (rank >= 0);
+
    // added constraint that perf model must be on
-   bool check_scoreboard         = g_knob_enable_performance_modeling && 
+   bool check_scoreboard         = rank_is_valid &&
+                                   g_knob_enable_performance_modeling && 
                                    g_knob_enable_dcache_modeling && 
                                    !g_knob_dcache_ignore_loads &&
                                    is_potential_load_use;
 
    //FIXME: check for API routine
-   bool do_network_modeling      = g_knob_enable_network_modeling && is_rtn_ins_head; 
-   bool do_dcache_read_modeling  = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads && 
+   bool do_network_modeling      = rank_is_valid &&
+                                   g_knob_enable_network_modeling && is_rtn_ins_head; 
+   bool do_dcache_read_modeling  = rank_is_valid &&
+                                   g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads && 
                                    INS_IsMemoryRead(ins);
-   bool do_dcache_write_modeling = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores && 
+   bool do_dcache_write_modeling = rank_is_valid &&
+                                   g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores && 
                                    INS_IsMemoryWrite(ins);
-   bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
+   bool do_bpred_modeling        = rank_is_valid &&
+                                   g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
 
    //TODO: if we run on multiple machines we need shared memory
    //TODO: if we run on multiple machines we need syscall_modeling
 
    // If we are doing any other type of modeling then we need to do icache modeling
-   bool do_icache_modeling       = g_knob_enable_icache_modeling && 
+   bool do_icache_modeling       = rank_is_valid &&
+                                   g_knob_enable_icache_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_bpred_modeling || is_bbl_ins_tail || 
                                      check_scoreboard );
 
-   bool do_perf_modeling         = g_knob_enable_performance_modeling && 
+   bool do_perf_modeling         = rank_is_valid &&
+                                   g_knob_enable_performance_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_icache_modeling || 
                                      do_bpred_modeling || is_bbl_ins_tail || check_scoreboard );
@@ -188,7 +200,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    assert( !do_bpred_modeling );
 
    //this flag may or may not get used
-   bool is_dual_read = INS_HasMemoryRead2(ins);
+   bool is_dual_read = rank_is_valid && INS_HasMemoryRead2(ins);
 
    PerfModelIntervalStat *stats;
    INS end_ins = INS_Next(ins);

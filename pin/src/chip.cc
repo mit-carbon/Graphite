@@ -107,6 +107,7 @@ PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine,
 { 
    int rank;
    chipRank(&rank);
+   if (rank < 0) return NULL;
    assert(0 <= rank && rank < g_chip->num_modules);
    return g_chip->core[rank].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins); 
 }

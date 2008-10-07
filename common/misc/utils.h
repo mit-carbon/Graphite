@@ -54,6 +54,7 @@ INT32 ceilLog2(UINT32 n);
 class BitVector {
    private:
       UINT32 size;
+      const UINT32 VECTOR_SIZE;
       vector<UINT64> words;
 
    public:
@@ -62,7 +63,7 @@ class BitVector {
       void debug();
       #endif
 
-      BitVector(UINT32 bits): size(bits), words( (bits + 64 - 1) >> 6 ) { }
+      BitVector(UINT32 bits): size(bits), VECTOR_SIZE((bits+64-1)>>6), words(VECTOR_SIZE) { }
 
       UINT32 getSize() { return size; }
 

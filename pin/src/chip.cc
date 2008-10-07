@@ -105,11 +105,16 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
                                                 const INS& start_ins, const INS& end_ins)
 { 
+   /*   
    int rank;
    chipRank(&rank);
    if (rank < 0) return NULL;
-   assert(0 <= rank && rank < g_chip->num_modules);
-   return g_chip->core[rank].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins); 
+   assert(0 <= rank && rank < g_chip->num_modules); 
+   */
+   // using zero is a dirty hack -- should be using rank to index into core array
+   // assuming its safe to use core zero to generate perfmodels for all cores
+   assert(g_chip->num_modules > 0);
+   return g_chip->core[0].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins); 
 }
 
 VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)

@@ -2,4 +2,4 @@
 make clean
 make
 echo running
-/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ./pin_sim -- ./test
+/afs/csail.mit.edu/group/carbon/tools/pin/current/pin -mt -t ./pin_sim -- ./test

@@ -1,5 +1,5 @@
 #!/bin/tcsh
 make clean
 make
-/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -mdc -mpf -msys -n 2 -- ./file_io
+/afs/csail.mit.edu/group/carbon/tools/pin/current/pin -mt -t ../../../pin/bin/pin_sim -mdc -mpf -msys -n 2 -- ./file_io
 

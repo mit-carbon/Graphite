@@ -9,7 +9,6 @@ using namespace std;
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
 {
-
    int syscall_number = PIN_GetSyscallNumber(ctxt, std);
 
    switch(syscall_number)
@@ -39,7 +38,11 @@ void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOI
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
 {
-    PIN_SetContextReg(ctxt, REG_EAX, 0x7);
+   if(called_open)
+   {
+      called_open = false;
+      PIN_SetContextReg(ctxt, REG_EAX, 0x7);
+   }
 }
 
 

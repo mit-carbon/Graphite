@@ -290,6 +290,7 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
          for (UINT32 i = 0; i < INS_MaxNumRRegs(ins); i++)
          {
             REG r = INS_RegR(ins, i);
+	    assert(0 <= r && r < LEVEL_BASE::REG_LAST);
             if ( bbl_dest_regs.at(r) ) {
                bbl_dest_regs.clear(r);
                ins_uses.insert( ins );
@@ -330,6 +331,7 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
          for (UINT32 i = 0; i < INS_MaxNumRRegs(ins); i++)
          {      
             REG r = INS_RegR(ins, i);
+	    assert(0 <= r && r < LEVEL_BASE::REG_LAST);
             if ( dest_regs.at(r) )
                ins_uses.insert(ins);
          }

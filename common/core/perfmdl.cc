@@ -1,4 +1,5 @@
 #include "perfmdl.h"
+#include <cassert>
 
 
 UINT32 PerfModel::getInsMicroOpsCount(const INS& ins)
@@ -115,6 +116,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
    for ( UINT32 i = 0; i < numReads; i++ )
    {
       REG r = reads[i];
+      assert((UINT32)r < scoreboard.size());
       UINT64 cycle = scoreboard[r];
 
       if ( cycle != k_PERFMDL_CYCLE_INVALID ) {
@@ -150,6 +152,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
    if ( g_knob_enable_performance_modeling && !dcache_load_hit ) {
       for (UINT32 i = 0; i < numWrites; i++) {
          REG w = writes[i];
+	 assert((UINT32)w < scoreboard.size());
          scoreboard[w] = cycle_count + 100;  //FIXME: make this parameterizable
          // cout << "added " << REG_StringShort(w) << " to scoreboard: " 
          //     << cycle_count << " + 100 = " << scoreboard[w] << endl;

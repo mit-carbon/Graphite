@@ -13,6 +13,7 @@ void SyscallMdl::runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    //int return_addr = PIN_GetContextReg(ctx, REG_INST_PTR);
    //return_addr += 2;
    //PIN_SetContextReg(ctx, REG_INST_PTR, return_addr);
+   //PIN_ExecuteAt(ctx);
 
    if(called_open)
    {
@@ -35,6 +36,9 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
          {
             called_open = true;
             cout << "open(" << path << ")" << endl;
+
+            // safer than letting the original syscall go
+            PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
          }
 
          break;

@@ -1,6 +1,0 @@
-#!/bin/bash
-make clean
-make
-export cores=64
-/afs/csail.mit.edu/group/carbon/tools/pin/current/pin -mt -t ../../../pin/bin/pin_sim -mdc -mpf -n ${cores} -- ./cannon -m ${cores} -s ${cores}
-

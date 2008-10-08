@@ -194,7 +194,8 @@ bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirect
 
 void initialize_test_parameters()
 {
-	dram0_address = (ADDRINT) global_array_ptr;
+//	dram0_address = (ADDRINT) global_array_ptr; this doesn't work! because it may be on the same cache line as the stack/ or other addresses that the simulator may need to use, thus polluting your test results!
+	dram0_address = (ADDRINT) &(global_array_ptr[10000]);
 	UINT32 number_of_elements = ((UINT32) TEST_MEMORY_SIZE ) / sizeof(UINT32);
 	dram1_address = (ADDRINT) &(global_array_ptr[33000]); //FIXME this crashes if i make the number much larger (seg fault when reading from the addres
 
@@ -998,7 +999,7 @@ void awesome_test_suite_msi(int tid)
 				cout << "Starting TIndex: " << dec << core_id*(fini_test_state_vector.size()/2) << endl;
 				cout << "Ending   TIndex: " << dec << (core_id + 1) * (fini_test_state_vector.size()/2) << endl;
 				
-				for(int test_index = core_id*(fini_test_state_vector.size() / 2); test_index < (core_id + 1) * (fini_test_state_vector.size() / 2); test_index++)
+				for(int test_index = core_id*(fini_test_state_vector.size() / 2); test_index < (int) (core_id + 1) * (fini_test_state_vector.size() / 2); test_index++)
 				{
 					//starts counting from Test#1
 					++test_count;

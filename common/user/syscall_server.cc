@@ -1,17 +1,39 @@
 #include "syscall_server.h"
 
 
-SyscallServer *g_syscall_server;
+SyscallServer *g_syscall_server = NULL;
 
 
 void initSyscallServer()
 {
-   g_syscall_server = new SyscallServer();
+   if(!g_syscall_server)
+   {
+      g_syscall_server = new SyscallServer();
+   }
+   else
+   {
+       cout << "Error: tried to double init syscall server" << endl;
+   }
 }
 
 void runSyscallServer() 
 {
-   g_syscall_server->run();
+   if(g_syscall_server)
+   {
+      g_syscall_server->run();
+   }
+   else
+   {
+      cout << "Error: tried to run syscall server without initializing it." << endl;
+   }
+}
+
+void finiSyscallServer()
+{
+   if(g_syscall_server)
+   {
+       delete g_syscall_server;
+   }
 }
 
 

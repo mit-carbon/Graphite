@@ -82,8 +82,6 @@ class Network{
               NetQueue;
 
       
-      virtual UINT64 netProcCost(NetPacket packet);
-      virtual UINT64 netLatency(NetPacket packet);
       char* netCreateBuf(NetPacket packet, UInt32* buf_size);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       void netEntryTasks();
@@ -99,6 +97,9 @@ class Network{
       Chip *the_chip;		
       int net_tid;
       int net_num_mod;   // Total number of cores in the simulation
+
+      virtual UINT64 netProcCost(NetPacket packet);
+      virtual UINT64 netLatency(NetPacket packet);
 
    public:
 

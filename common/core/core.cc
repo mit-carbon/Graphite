@@ -13,8 +13,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    //Switch which line is commented to choose the different 
    //network models
    //FIXME: Make this runtime configurable
-   NetworkModel net_model = NETWORK_BUS;
-   //NetworkModel net_model = NETWORK_ANALYTICAL_MESH;
+   //NetworkModel net_model = NETWORK_BUS;
+   NetworkModel net_model = NETWORK_ANALYTICAL_MESH;
 
    switch(net_model)
    {

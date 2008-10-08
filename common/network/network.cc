@@ -59,6 +59,8 @@ NetPacket Network::netRecv(NetMatch match)
 
       if(match.sender_flag && match.type_flag)
       {
+	 assert(0 <= match.sender && match.sender < net_num_mod);
+	 assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          if( !(net_queue[match.sender][match.type].empty()) )
          {
 	         // if(entry.time >= net_queue[match.sender][match.type].top().time)
@@ -72,9 +74,10 @@ NetPacket Network::netRecv(NetMatch match)
       }
       else if(match.sender_flag && (!match.type_flag))
       {
-         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+	 int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
          for(int i = 0; i < num_pac_type; i++)
          {
+            assert(0 <= match.sender && match.sender < net_num_mod);
             if( !(net_queue[match.sender][i].empty()) )
             {
                if((entry.time == 0) || (entry.time > net_queue[match.sender][i].top().time))
@@ -91,6 +94,7 @@ NetPacket Network::netRecv(NetMatch match)
       {
          for(int i = 0; i < net_num_mod; i++)
          {
+            assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
             if( !(net_queue[i][match.type].empty()) )
             {
                if((entry.time == 0) || (entry.time > net_queue[i][match.type].top().time))
@@ -129,11 +133,15 @@ NetPacket Network::netRecv(NetMatch match)
       {
          buffer = transport->ptRecv();
 	      Network::netExPacket(buffer, entry.packet, entry.time);
+         assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
+	 assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
       }
 			
    }
 
+   assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
+   assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
    net_queue[entry.packet.sender][entry.packet.type].pop();
    packet = entry.packet;
    if(the_chip->getProcTime(net_tid) < entry.time)
@@ -158,6 +166,8 @@ bool Network::netQuery(NetMatch match)
    
    if(match.sender_flag && match.type_flag)
    {
+      assert(0 <= match.sender && match.sender < net_num_mod);
+      assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
       if(!net_queue[match.sender][match.type].empty())
       {
          if(entry.time >= net_queue[match.sender][match.type].top().time)
@@ -172,6 +182,7 @@ bool Network::netQuery(NetMatch match)
       int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
       for(int i = 0; i < num_pac_type; i++)
       {
+	 assert(0 <= match.sender && match.sender < net_num_mod);
          if(!net_queue[match.sender][i].empty())
          {
             if(entry.time >= net_queue[match.sender][i].top().time)
@@ -187,6 +198,7 @@ bool Network::netQuery(NetMatch match)
    {
       for(int i = 0; i < net_num_mod; i++)
       {
+         assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          if(!net_queue[i][match.type].empty())
          {
             if(entry.time >= net_queue[i][match.type].top().time)
@@ -244,37 +256,55 @@ char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size)
    temp = (char*) &(packet.type);
 
    for(i = 0; i < sizeof(packet.type); i++)
-     buffer[running_length + i] = temp[i];
+     {
+       assert(running_length+i < *buffer_size);
+       buffer[running_length + i] = temp[i];
+     }
 	
    running_length += sizeof(packet.type);
    temp = (char*) &(packet.sender);
 
    for(i = 0; i < sizeof(packet.sender); i++)
-      buffer[running_length + i] = temp[i];
+     {
+       assert(running_length+i < *buffer_size);
+       buffer[running_length + i] = temp[i];
+     }
 
    running_length += sizeof(packet.sender);
    temp = (char*) &(packet.receiver);
 
    for(i = 0; i < sizeof(packet.receiver); i++)
-      buffer[running_length + i] = temp[i];
+     {
+       assert(running_length+i < *buffer_size);
+       buffer[running_length + i] = temp[i];
+     }
 
    running_length += sizeof(packet.receiver);
    temp = (char*) &(packet.length);
 
    for(i = 0; i < sizeof(packet.length); i++)
-      buffer[running_length + i] = temp[i];
+     {
+       assert(running_length+i < *buffer_size);
+       buffer[running_length + i] = temp[i];
+     }
 
    running_length += sizeof(packet.length);
    temp = packet.data;
 
    for(i = 0; i < packet.length; i++)
-      buffer[running_length + i] = temp[i];
+     {
+       assert(running_length+i < *buffer_size);
+       buffer[running_length + i] = temp[i];
+     }
 
    running_length += packet.length;
    temp = (char*) &time;
 
    for(i = 0; i < sizeof(time); i++)
-      buffer[running_length + i] = temp[i];
+     {
+       assert(running_length+i < *buffer_size);
+       buffer[running_length + i] = temp[i];
+     }
 
    return buffer;
 };
@@ -285,6 +315,8 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
    unsigned int i;
    int running_length = 0;
    char *ptr;
+
+   // TODO: This is ugly. Clean it up.
 
    ptr = (char*) &packet.type;
    for(i = 0; i < sizeof(packet.type); i++)
@@ -309,6 +341,7 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
       ptr[i] = buffer[running_length + i];
 
    running_length += sizeof(packet.length);
+   assert(running_length == sizeof(packet)-sizeof(packet.data));
    packet.data = new char[packet.length];
    ptr = packet.data;
 
@@ -340,6 +373,8 @@ void Network::netEntryTasks()
    {
       buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
+      assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
+      assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
    }
    
@@ -377,17 +412,21 @@ void Network::netEntryTasks()
 
       if(type == SHARED_MEM_REQ)
       {
-         net_queue[sender][type].pop();
-         // FIXME:
-         // processSharedMemReq will be a memeber function of the shared memory object
-         // This function invocation should be replaced by something along the lines of
-         // shared_mem_obj->processSharedMemReq(entry.packet)
-         processSharedMemReq(entry.packet);
+	assert(0 <= sender && sender < net_num_mod);
+	assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+	net_queue[sender][type].pop();
+	// FIXME:
+	// processSharedMemReq will be a memeber function of the shared memory object
+	// This function invocation should be replaced by something along the lines of
+	// shared_mem_obj->processSharedMemReq(entry.packet)
+	processSharedMemReq(entry.packet);
       }
       else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
-      {
-         net_queue[sender][type].pop();
-         // FIXME:
+	{
+	  assert(0 <= sender && sender < net_num_mod);
+	  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+	  net_queue[sender][type].pop();
+	  // FIXME:
          // processUnexpectedSharedMemUpdate will be a memeber function of the shared memory object
          // This function invocation should be replaced by something along the lines of
          // shared_mem_obj->processUnexpectedSharedMemUpdate(entry.packet)

@@ -100,7 +100,7 @@ bool OCache::dCacheLoadMulti(ADDRINT addr, UINT32 size, UINT32 inst_id)
    const BOOL dl1_hit = dl1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_LOAD);
    const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   dcache_profile[inst_id][counter]++;
+   dcache_profile.at(inst_id).at(counter)++;
    dcacheAccesses++; 
    dcache_total_accesses++;
 
@@ -138,7 +138,7 @@ bool OCache::dCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
    const BOOL dl1_hit = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
    const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   dcache_profile[inst_id][counter]++;
+   dcache_profile.at(inst_id).at(counter)++;
    dcacheAccesses++; 
    dcache_total_accesses++;
 
@@ -175,7 +175,7 @@ bool OCache::dCacheStoreMulti(ADDRINT addr, UINT32 size, UINT32 inst_id)
    const BOOL dl1_hit = dl1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_STORE);
    const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   dcache_profile[inst_id][counter]++;
+   dcache_profile.at(inst_id).at(counter)++;
    dcacheAccesses++; 
    dcache_total_accesses++;
 
@@ -214,7 +214,7 @@ bool OCache::dCacheStoreSingle(ADDRINT addr, UINT32 inst_id)
    const BOOL dl1_hit = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE);
    const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   dcache_profile[inst_id][counter]++;
+   dcache_profile.at(inst_id).at(counter)++;
    dcacheAccesses++; 
    dcache_total_accesses++;
 
@@ -252,7 +252,7 @@ bool OCache::iCacheLoadMulti(ADDRINT addr, UINT32 size, UINT32 inst_id)
    const BOOL il1_hit = il1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_LOAD);
    const Counter counter = il1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   icache_profile[inst_id][counter]++;
+   icache_profile.at(inst_id).at(counter)++;
    icache_accesses++; 
    icache_total_accesses++;
 
@@ -290,7 +290,7 @@ bool OCache::iCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
    const BOOL il1_hit = il1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
    const Counter counter = il1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   icache_profile[inst_id][counter]++;
+   icache_profile.at(inst_id).at(counter)++;
    icache_accesses++; 
    icache_total_accesses++;
 
@@ -398,13 +398,13 @@ OCache::OCache(std::string name, UINT32 size, UINT32 line_bytes, UINT32 assoc, U
    icache_profile.SetCounterName("icache:miss        icache:hit");
 
    CounterArray dcache_threshold;
-   dcache_threshold[k_COUNTER_HIT] = dcache_threshold_hit_value;
-   dcache_threshold[k_COUNTER_MISS] = dcache_threshold_miss_value;
+   dcache_threshold.at(k_COUNTER_HIT) = dcache_threshold_hit_value;
+   dcache_threshold.at(k_COUNTER_MISS) = dcache_threshold_miss_value;
    dcache_profile.SetThreshold( dcache_threshold );
 
    CounterArray icache_threshold;
-   icache_threshold[k_COUNTER_HIT] = icache_threshold_hit_value;
-   icache_threshold[k_COUNTER_MISS] = icache_threshold_miss_value;
+   icache_threshold.at(k_COUNTER_HIT) = icache_threshold_hit_value;
+   icache_threshold.at(k_COUNTER_MISS) = icache_threshold_miss_value;
    icache_profile.SetThreshold( icache_threshold );
 }
 

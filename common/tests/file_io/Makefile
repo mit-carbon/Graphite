@@ -8,23 +8,25 @@ else
   CFLAGS = -I../../user -c -g -Wall
   LDFLAGS = 
 endif
-SOURCES = ../../user/capi.cc cannon.cc
+SOURCES = ../../user/capi.cc ../../user/syscall_server.cc file_io.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## Build rules
 
-all: cannon
+all: file_io
 
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CC) -DDEBUG $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-cannon: $(OBJECTS)
+file_io: $(OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 
 clean:
-	-rm -f *.o cannon sim.out
+	-rm -f *.o file_io sim.out
 
 squeaky: clean
 	-rm -f *~
+
+

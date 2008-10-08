@@ -10,7 +10,7 @@ typedef int CAPI_return_t;
 
 typedef int CAPI_endpoint_t;
 
-
+// externed so the names don't get name-mangled
 extern "C" {
 
    CAPI_return_t CAPI_Initialize(int *rank);

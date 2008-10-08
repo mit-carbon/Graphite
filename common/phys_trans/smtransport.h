@@ -34,6 +34,8 @@ class Transport{
       } Futex;
 
       static Futex *pt_futx;
+
+      static UINT32 s_pt_num_mod; // used for bounds checking only
 	
    public:	
       int ptInit(int tid, int num_mod);

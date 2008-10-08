@@ -47,7 +47,7 @@ INT32 ceilLog2(UINT32 n)
 
 void BitVector::reset()
 {
-   for( UINT32 i = 0; i < ((size + 64 - 1) >> 6); i++)
+   for( UINT32 i = 0; i < VECTOR_SIZE; i++)
       words[i] = 0;
 }
 
@@ -88,7 +88,7 @@ void BitVector::set(const BitVector& vec2)
 {
    assert( size == vec2.size );
 
-   for (UINT32 i = 0; i < ((size + 64 - 1) >> 6); i++)
+   for (UINT32 i = 0; i < VECTOR_SIZE; i++)
       words[i] |= vec2.words[i];
 }
 
@@ -96,7 +96,7 @@ void BitVector::clear(const BitVector& vec2)
 {
    assert( size == vec2.size );
 
-   for (UINT32 i = 0; i < ((size + 64 - 1) >> 6); i++)
+   for (UINT32 i = 0; i < VECTOR_SIZE; i++)
       words[i] &= ~vec2.words[i];
 }
 
@@ -104,7 +104,7 @@ bool BitVector::test(const BitVector& vec2)
 {
    assert( vec2.size == size );
 
-   for (UINT32 i = 0; i < ((size + 64 - 1) >> 6); i++) {
+   for (UINT32 i = 0; i < VECTOR_SIZE; i++) {
       if ( vec2.words[i] & words[i] )
          return true;
    }

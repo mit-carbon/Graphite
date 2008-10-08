@@ -2,8 +2,10 @@
 
 // definitions
 
+//TODO: c++-ize this, please oh please!
 CAPI_return_t chipInit(int *rank)
 {
+   
    THREADID pin_tid = PIN_ThreadId();
 
    GetLock(&(g_chip->maps_lock), 1); 
@@ -11,6 +13,7 @@ CAPI_return_t chipInit(int *rank)
    map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
 
    if ( e == g_chip->core_map.end() ) { 
+      assert(0 <= g_chip->prev_rank && g_chip->prev_rank < g_chip->num_modules);
       g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
       g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
       *rank = g_chip->prev_rank; 
@@ -87,13 +90,13 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
    return g_chip->core[rank].coreRecvW(sender, receiver, buffer, size);
 }
 
-
 // performance model wrappers
 
 VOID perfModelRun(PerfModelIntervalStat *interval_stats)
 { 
    int rank; 
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats); 
 }
 
@@ -102,6 +105,7 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads,
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats, reads, num_reads); 
 }
 
@@ -110,6 +114,7 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats, dcache_load_hit, writes, num_writes); 
 }
 
@@ -117,15 +122,23 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
                                                 const INS& start_ins, const INS& end_ins)
 { 
+   /*   
    int rank;
    chipRank(&rank);
-   return g_chip->core[rank].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins); 
+   if (rank < 0) return NULL;
+   assert(0 <= rank && rank < g_chip->num_modules); 
+   */
+   // using zero is a dirty hack -- should be using rank to index into core array
+   // assuming its safe to use core zero to generate perfmodels for all cores
+   assert(g_chip->num_modules > 0);
+   return g_chip->core[0].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins); 
 }
 
 VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogICacheLoadAccess(stats, hit); 
 }
      
@@ -133,6 +146,7 @@ VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogDCacheStoreAccess(stats, hit); 
 }
 
@@ -140,6 +154,7 @@ VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogBranchPrediction(stats, correct); 
 }
 
@@ -150,6 +165,7 @@ bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    return g_chip->core[rank].icacheRunLoadModel(i_addr, size); 
 }
 
@@ -157,6 +173,7 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    return g_chip->core[rank].dcacheRunLoadModel(d_addr, size); 
 }
 
@@ -164,10 +181,25 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    return g_chip->core[rank].dcacheRunStoreModel(d_addr, size); 
 }
 
 
+// syscall model wrappers
+void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+{
+   int rank;
+   chipRank(&rank);
+   g_chip->syscall_model.runEnter(rank, ctx, syscall_standard);
+}
+
+void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+{
+   int rank;
+   chipRank(&rank);
+   g_chip->syscall_model.runExit(rank, ctx, syscall_standard);
+}
 
 // Chip class method definitions
 

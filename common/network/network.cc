@@ -470,7 +470,8 @@ inline void Network::netEntryTasks()
 #ifdef NETWORK_DEBUG
          debugPrint(net_tid, "NETWORK", "core received shared memory request.");
 #endif
-         the_core->getMemoryManager()->processSharedMemReq(entry.packet);
+         the_core->getMemoryManager()->addMemRequest(entry.packet);
+//         the_core->getMemoryManager()->processSharedMemReq(entry.packet);
 
 #ifdef NETWORK_DEBUG
          debugPrint(net_tid, "NETWORK", "core finished processing shared memory request.");
@@ -481,7 +482,11 @@ inline void Network::netEntryTasks()
       {
          net_queue[sender][type].pop();
 		 //TODO for cpc, do code review of below MMU function
+//         debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
+         //TODO possibly rename this to addUnexpectedShareMemUpdate(packet)
          the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
+//         the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
+//         debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
       }
 
    } while(type != INVALID);

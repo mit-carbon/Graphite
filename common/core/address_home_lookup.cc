@@ -23,6 +23,7 @@ AddressHomeLookup::AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds
 {
 	ahl_id = ahl_id_arg;
 	address_boundaries = addr_bounds;
+	//poorly assumes that each node is given contingious section of memory
 	num_nodes = address_boundaries.size();
 }
 

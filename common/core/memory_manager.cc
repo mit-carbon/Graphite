@@ -1,4 +1,4 @@
-#include "memory_manager.h"
+ "memory_manager.h"
 
 using namespace std;
 
@@ -16,32 +16,60 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	int dram_lines_per_core = total_num_dram_lines / the_core->getNumCores();
 	assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_dram_lines );
 
-	// TODO: verify correct semantics with Jonathan
    assert( ocache != NULL );
 
 	//TODO can probably delete "dram_lines_per_core" b/c it not necessary.
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
-//	addr_home_lookup = new AddressHomeLookup(total_num_dram_lines, the_core->getNumCores(), ocache->dCacheLineSize());
-	
+
+	//TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
 	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores(), the_core->getRank());
-	vector< pair<ADDRINT, ADDRINT> > addr_boundaries;
-   //hand code address boundaries between cores
-   //this can also be set by CAPI_setDramBoundaries()
-	if( the_core->getNumCores() > 2)
-		debugPrint(the_core->getRank(), "CORE", "YOU'RE DOING IT WRONG (only two cores plz)");
-	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0, 0x6FFFFFFF));
-	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0x70000000, 0xFFFFFFFF));
-	addr_home_lookup->setAddrBoundaries(addr_boundaries);
 }
 
 MemoryManager::~MemoryManager()
 {
 }
 
+NetPacket makePacket(PacketType packet_type, int sender_rank, int receiver_rank, UINT32 payload_size)
+{
+	NetPacket packet;
+	packet.type = packet_type;
+	packet.sender = sender_rank;
+	packet.receiver = receiver_rank;
+	packet.length = payload_size;
+
+	return packet;
+}
+
+//assumes we want to match both sender_rank and packet_type
+NetMatch makeNetMatch(PacketType packet_type, int sender_rank)
+{
+	   NetMatch net_match;
+	   net_match.sender = sender_rank;
+	   net_match.sender_flag = true;
+	   net_match.type = packet_type;
+	   net_match.type_flag = true;
+
+		return net_match;
+}
+
 bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_type)
 {
 	bool ret;
-	if ( shmem_req_type == READ )
+	
+	switch( shmem_req_type ) {
+		case READ:
+			ret = cache_state.readable();
+			break;
+		case WRITE:
+			ret = cache_state.writable();
+			break;
+		default:
+		   cout << "ERROR in Actionreadily permissiable " << endl;
+			throw("action_readily_permissable: unsupported memory transaction type.");
+	      break;
+	}
+
+/*	if ( shmem_req_type == READ )
 	{
 		ret = cache_state.readable();
 	}
@@ -56,6 +84,7 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 			throw("action_readily_permissable: unsupported memory transaction type.");
 		}
 	}
+*/
 	return ret;
 }
 
@@ -65,15 +94,13 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
 
+//	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq +++++++++");
 #ifdef MMU_DEBUG
-	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq ++++++++++++++++++++");
+	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq +++++++++");
    dram_dir->print();
 	debugPrintString(the_core->getRank(), "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
 #endif
 
-   //FIXME this is to fix a null pointer CacheTag bug that occurs when size== 0 i'll just fake it and make it size==1
-	if( size == 0 ) size = 1;
-	
 	unsigned int my_rank = the_core->getRank();
    bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
 	//first-> is the line available in the cache? (Native cache hit)
@@ -83,7 +110,6 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	switch( shmem_req_type ) {
 		
 		case READ:
-			//TODO make size == 1, since we're only accessing a single cache line (or push size==1 from higher up level)
 			cache_model_results = ocache->runDCacheLoadModel(address, size);
 			native_cache_hit = cache_model_results.first;
 		break;
@@ -102,17 +128,17 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	stringstream ss;
    
 #ifdef MMU_CACHEHIT_DEBUG                                    
-			if(native_cache_hit) {
-				//god i hate c++
-				ss << "NATIVE CACHE (HIT) : ADDR: = " <<  hex << address 
-					<< " - CState: "<< CacheState::cStateToString(cache_model_results.second->getCState());
-				debugPrint(my_rank,"MMU", ss.str()); 
-			} else {
-				stringstream ss;
-				ss << "NATIVE CACHE (MISS): ADDR: = " << hex << address 
-					<< " - CState: " << CacheState::cStateToString(cache_model_results.second->getCState());
-				debugPrint(my_rank,"MMU", ss.str());
-			}
+	if(native_cache_hit) {
+		//god i hate c++
+		ss << "NATIVE CACHE (HIT) : ADDR: = " <<  hex << address 
+			<< " - CState: "<< CacheState::cStateToString(cache_model_results.second->getCState());
+		debugPrint(my_rank,"MMU", ss.str()); 
+	} else {
+		stringstream ss;
+		ss << "NATIVE CACHE (MISS): ADDR: = " << hex << address 
+			<< " - CState: " << CacheState::cStateToString(cache_model_results.second->getCState());
+		debugPrint(my_rank,"MMU", ss.str());
+	}
 #endif
    
 	if ( !native_cache_hit )
@@ -129,50 +155,42 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
 
+	//TODO take this out, b/c its just debugging info
 	if( cache_model_results.second == NULL) {
 		//before we crash let's print out some important state info
 		ss.str("");
 		ss << "  Address: " << hex << address << " , type: " << sMemReqTypeToString(shmem_req_type) << ", size= " << size;
-		debugPrint(my_rank, "MMU", ss.str());
+//		debugPrint(my_rank, "MMU", ss.str());
 	}
 	assert( cache_model_results.second != NULL );
    
+	
+	//I think this should just be an "if" statement...
 	while( !action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
    {
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
+//		debugPrint(the_core->getRank(), "MMU", "start of initiateSharedMemReq ++++++");
      
-  //   cout << "Action Not Readily Permissable, cache_model_results.second->GetCState():" 
-  // 		<< CacheState::cStateToString(cache_model_results.second->getCState()) << endl;
+      UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
-     UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
-
-	stringstream ss;
+		stringstream ss;
 #ifdef MMU_DEBUG
-	ss << "address           : " << hex << address << endl;
-	debugPrint(the_core->getRank(), "MMU", ss.str());
-	debugPrint(the_core->getRank(), "MMU", "home_node_rank ", home_node_rank);
+		ss << "address           : " << hex << address << endl;
+		debugPrint(the_core->getRank(), "MMU", ss.str());
+		debugPrint(the_core->getRank(), "MMU", "home_node_rank ", home_node_rank);
 #endif
 	 
-	 assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
+		assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
 	   
 	   // send message here to home node to request data
-	   NetPacket packet;
-	   packet.type = req_msg_type;
-	   packet.sender = my_rank;
-	   packet.receiver = home_node_rank;
-	   packet.length = sizeof(RequestPayload);
-
-	   // initialize packet payload
-/*
-	   int payload[SH_MEM_REQ_NUM_INTS_SIZE];
-	   payload[SH_MEM_REQ_IDX_REQ_TYPE] = shmem_req_type;
-	   payload[SH_MEM_REQ_IDX_ADDR] = address;                         // TODO: cache line align?
-	   payload[SH_MEM_REQ_IDX_NUM_BYTES_REQ] = ocache->dCacheLineSize();  // TODO: make sure getLineSize returns bytes
-*/	   
+		//packet.type, sender, receiver, packet.length
+	   NetPacket packet = makePacket(req_msg_type, my_rank, home_node_rank, sizeof(RequestPayload)); 
 		
+		// initialize packet payload
+//		addRequestPayload(packet, shmem_req_type, address, ocache->dCacheLineSize());
 		RequestPayload payload;
 		payload.request_type = shmem_req_type;
-		payload.request_address = address;
+		payload.request_address = address;  // TODO: cache line align?
 		payload.request_num_bytes = ocache->dCacheLineSize();
 
 		packet.data = (char *)(&payload);
@@ -185,27 +203,28 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 		debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
+		ss.str("");
+      ss << "   START netSend: to Tile<" << home_node_rank << "> " ;
+//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
 	   (the_core->getNetwork())->netSend(packet);
+//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netSend ");
 
 	   // receive the requested data (blocking receive)
-	   NetMatch net_match;
-	   net_match.sender = home_node_rank;
-	   net_match.sender_flag = true;
-	   net_match.type = resp_msg_type;
-	   net_match.type_flag = true;
-	   NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+		NetMatch net_match = makeNetMatch( resp_msg_type, home_node_rank );
+		ss.str("");
+		ss << "   START netRecv: from Tile <" << net_match.sender << "> " ; 
+//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
+		NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netRecv");
 
-	   // NOTE: we don't actually send back the data because we're just modeling performance (for now)
-//	   int* recv_payload = (int *)(recv_packet.data);
+	   // TODO: we don't actually send back the data because we're just modeling performance (for now)
 	   UpdatePayload* recv_payload = (UpdatePayload*)(recv_packet.data);
 
 	   //TODO: properly cast from int to cstate_t type. may need a helper conversion method
-//	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
 	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload->update_new_cstate);
 	   
 	   assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	   
-//	   ADDRINT incoming_starting_addr = recv_payload[SH_MEM_UPDATE_IDX_ADDRESS];
 	   ADDRINT incoming_starting_addr = recv_payload->update_address;
 	   //TODO: remove starting addr from data. this is just in there temporarily to debug
 		assert(incoming_starting_addr == address);
@@ -219,13 +238,14 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	   //TODO: update performance model
 		//TODO FIXME we aren't deallocating the new packet/ data are we?
 
+//		debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------");
    }
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
    // do nothing shared mem related
 
 #ifdef MMU_DEBUG
 	dram_dir->print();
-	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------------");
+	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------");
 #endif
    return native_cache_hit;
 }
@@ -237,17 +257,137 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
  * the shared request type indicates either a read or a write
  */
 
-void MemoryManager::processSharedMemReq(NetPacket req_packet) {
+//TODO make this a PQueue
+void MemoryManager::addRequestToQueue(NetPacket packet)
+{
+	++incoming_requests_count;
+	request_queue.push(packet);
+}
+
+NetPacket MemoryManager::getNextRequest()
+{
+	assert( incoming_requests_count > 0 );
+	
+	--incoming_requests_count;
+	NetPacket packet = request_queue.front();
+	request_queue.pop();
+
+	return packet;
+}
+
+void MemoryManager::addMemRequest(NetPacket req_packet)
+{
+	//TODO need way to get back to current request!
+	//TODO need way to *not* leave MMU until we're finished with requests
+	//TODO make this stuff vilotile?
+	stringstream ss;
+
+	bool first_time = true;
+
+	addRequestToQueue(req_packet);
+	
+	if( processing_request_flag ) 
+	{
+		ss.str("");
+		ss << "[" << debug_counter << "] NewRequest Added while Busy!: Incoming ReQuests: " << incoming_requests_count;
+//		debugPrint(the_core->getRank(), "MMU", ss.str());
+	} 
+
+	while( incoming_requests_count > 0 && !processing_request_flag )
+	{
+		
+		processing_request_flag = true;
+		if( first_time ) {
+			debug_counter++;
+			first_time = false;
+//			cout << "**********************************************" << endl;
+		}
+		
+		ss.str("");
+		ss << "[" << debug_counter << "] START: Incoming ReQuests: " << incoming_requests_count;
+//		debugPrint(the_core->getRank(), "MMU", ss.str());
+		
+		processSharedMemReq(getNextRequest());
+		
+		ss.str("");
+		
+		if( incoming_requests_count == 0)
+			ss << "[" << debug_counter << "] END  : Incoming ReQuests: " << incoming_requests_count << endl << "*********************************";
+		else
+			ss << "[" << debug_counter << "] END  : Incoming ReQuests: " << incoming_requests_count;
+		
+//		debugPrint(the_core->getRank(), "MMU", ss.str());
+		
+		processing_request_flag = false;
+	}
+
+}
+
+/*
+void MemoryManager::addMemRequest(NetPacket req_packet)
+{
+	//TODO need way to get back to current request!
+	//TODO need way to *not* leave MMU until we're finished with requests
+	//TODO make this stuff vilotile?
+	stringstream ss;
+
+	bool first_time = true;
+
+	//stl priorityqueue
+	addRequestToQueue(req_packet);
+	
+	if( processing_request_flag ) 
+	{
+		ss.str("");
+		ss << "[" << debug_counter << "] NewRequest Added while Busy!: Incoming ReQuests: " << incoming_requests_count;
+		debugPrint(the_core->getRank(), "MMU", ss.str());
+
+//		assert( !first_time );
+	}
+
+	while( incoming_requests_count > 0 && !processing_request_flag )
+	{
+		processing_request_flag = true;
+		if( first_time ) {
+			debug_counter++;
+			first_time = false;
+		}
+		ss.str("");
+		ss << "[" << debug_counter << "] START: Incoming ReQuests: " << incoming_requests_count;
+		debugPrint(the_core->getRank(), "MMU", ss.str());
+		
+		processSharedMemReq(getNextRequest());
+		
+		ss.str("");
+		if( incoming_requests_count == 0)
+			ss << "[" << debug_counter << "] END  : Incoming ReQuests: " << incoming_requests_count << endl << "*********************************";
+		else
+			ss << "[" << debug_counter << "] END  : Incoming ReQuests: " << incoming_requests_count;
+		debugPrint(the_core->getRank(), "MMU", ss.str());
+		
+		processing_request_flag = false;
+	}
+
+}
+*/
+
+/*
+ * this function is called by the "interrupt handler" when a shared memory request message is destined for this node
+ * this function would be called on the home node (owner) of the address specified in the arguments
+ * the shared request type indicates either a read or a write
+ */
+//TODO this should be put into the directory code? Is this when the directory gets a message requesting a dram memory line? I am receiving a Request Packet.
+void MemoryManager::processSharedMemReq(NetPacket req_packet) 
+{
 
 	stringstream ss;
 #ifdef MMU_DEBUG
   dram_dir->print();
   debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
 #endif
+//  debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
    
   // extract relevant values from incoming request packet
-//  shmem_req_t shmem_req_type = (shmem_req_t)((int *)(req_packet.data))[SH_MEM_REQ_IDX_REQ_TYPE];
-//  int address = ((int *)(req_packet.data))[SH_MEM_REQ_IDX_ADDR];
   shmem_req_t shmem_req_type = (shmem_req_t)((RequestPayload*)(req_packet.data))->request_type;
   ADDRINT address = ((RequestPayload*)(req_packet.data))->request_address;
   unsigned int requestor = req_packet.sender;
@@ -267,20 +407,27 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 
   // 1. based on requested operation (read or write), make necessary updates to current owners
   // 2. update directory state in DRAM and sharers array
+	
+//	ss.str("");
+//	ss << "Addr: " << hex << address << "  Requester #ID: " << requestor << ",  DState: "  << DramDirectoryEntry::dStateToString( dram_dir_entry->getDState() ) << " shmem_req_type: " << sMemReqTypeToString( shmem_req_type );
+//	debugPrint(my_rank, "MMU", ss.str());
+	
+	
 	switch( shmem_req_type ) {
 	
 		case READ:
 		{
 	  
 #ifdef MMU_DEBUG
-			printf("Addr: %x  DState: %d, shmem_req_type %d\n", address, dram_dir_entry->getDState(), shmem_req_type);
+			ss.str("");
+			ss << "Addr: " << hex << address << "  DState: "  << DramDirectoryEntry::dStateToString( dram_dir_entry->getDState() ) << " shmem_req_type: " << sMemReqTypeToString( shmem_req_type );
+//			debugPrint(my_rank, "MMU", ss.str());
 #endif		
 		 
 			// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
 			if(dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) {
 		
 				// make sure there is only one sharerer since this dram_directory_entry is in the exclusive state
-//				cout << "Number of Sharers: " << dram_dir_entry->numSharers() << endl;
 				assert(dram_dir_entry->numSharers() == 1);
 		
 				unsigned int current_owner = dram_dir_entry->getExclusiveSharerRank();
@@ -290,9 +437,9 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 				packet.type = SHARED_MEM_UPDATE_UNEXPECTED;
 				packet.sender = my_rank;
 				packet.receiver = current_owner;
-//				packet.length = sizeof(int) * SH_MEM_UPDATE_NUM_INTS_SIZE;
 				packet.length = sizeof(UpdatePayload);
-		
+//				NetPacket packet = makePacket( SHARED_MEM_UPDATE_UNEXPECTED, my_rank, current_owner, sizeof(UpdatePayload));
+
 				// initialize packet payload for downgrade
 /*				int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
 				payload[SH_MEM_UPDATE_IDX_NEW_CSTATE] = CacheState::SHARED;
@@ -300,41 +447,47 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 */
 				UpdatePayload payload;
 				payload.update_new_cstate = CacheState::SHARED;
-				payload.update_address= address;
+   			payload.update_address= address;
 				packet.data = (char *)(&payload);
+				ss.str("");
+				ss << "   START netSend to <" << packet.receiver << "> ";
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", ss.str());
 				(the_core->getNetwork())->netSend(packet);
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", "   END   netSend");
 		
+
+				/******* MAGIC HAPPENS HERE ******** 
+				 * I think I'm receiving the wrong packet back (failed assert below for receive_addr != addr)
+				 * the stupid ccrash that is */
+
+
 				// wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
 				NetMatch net_match;
 				net_match.sender = current_owner;
 				net_match.sender_flag = true;
 				net_match.type = SHARED_MEM_ACK;
 				net_match.type_flag = true;
+				ss.str("");
+				ss << "   START netRecv: from Core <" << net_match.sender << "> " ; 
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", ss.str());
 				NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", "   END   netRecv");
 		
 				// assert a few things in the ack packet (sanity checks)
 				assert((unsigned int)(recv_packet.sender) == current_owner);
 				assert(recv_packet.type == SHARED_MEM_ACK);
 		
-//				int received_address = ((int *)(recv_packet.data))[SH_MEM_ACK_IDX_ADDRESS];
 				ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
-				 /* TODO BUG this was an assertion failure that occured for received_address != address
-				  * and the condition was size == 0, and i forced it to size = 1, and now this came up.
-				  * a new, different bug, or was it caused by the whole size =1 thing? 
-				 WRITE size == 0! -- ADDR: 842be000 , size = 0
-				 executing do_nothing function: 1
-				 pinbin: memory_manager.cc:321: void MemoryManager::processSharedMemReq(NetPacket): Assertion `received_address == address' failed.
-             */
 				stringstream ss;
+				//TODO bug here b/c we're servicing multiple outstanding requests (and netMatch gives us the wrong packet)
 				if(received_address != address) {
 					//print out info before we crash
 					ss.str("");
-					ss << "ADDR: " << hex << address << "  , Received ADDR: " << hex << received_address;
-					debugPrint(my_rank, "MMU", ss.str());
+					ss << "EXCLUSIVE OWNER: " << current_owner << ", ADDR: " << hex << address << "  , Received ADDR: " << hex << received_address << ", MemRequestType: " << sMemReqTypeToString( shmem_req_type ); 
+//					debugPrint(my_rank, "MMU", ss.str());
 				}	
 				assert(received_address == address);
 		
-//				CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
 				CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
 				assert(received_new_cstate == CacheState::SHARED);
 				
@@ -400,8 +553,11 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 				payload.update_new_cstate = CacheState::INVALID;
 				payload.update_address = address;
 				packet.data = (char *)(&payload);
+				ss.str("");
+				ss << "   START netSend to <" << packet.receiver << "> ";
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", ss.str());
 				(the_core->getNetwork())->netSend(packet);
-				 
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", "   END   netSend");
 		  }
 		  
 		  // receive invalidation acks from all sharers
@@ -420,7 +576,11 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 				net_match.sender_flag = true;
 				net_match.type = SHARED_MEM_ACK;
 				net_match.type_flag = true;
+				ss.str("");
+				ss << "   START netRecv1 ( awaiting ACK from <" << net_match.sender << "> )";
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", ss.str());
 				NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+//				debugPrint(the_core->getRank(), "MMU::processSMemReq", "   END   netRecv1");
 				 
 				// assert a few things in the ack packet (sanity checks)
 				assert((unsigned int)(recv_packet.sender) == sharers_list[i]); // I would hope so
@@ -451,6 +611,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
    }
   
   // 3. return data back to requestor (note: actual data doesn't have to be sent at this time (6/08))
+  // 3. TODO send actual data here!
   NetPacket ret_packet;
   ret_packet.type = SHARED_MEM_UPDATE_EXPECTED;
   ret_packet.sender = my_rank;
@@ -467,8 +628,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 	UpdatePayload payload;
 	CacheState::cstate_t new_cstate;
 
-	//i don't get what new_cstate does,
-	//but we need to map from dstate to cstate
+	//we need to map from dstate to cstate
 	switch(dram_dir_entry->getDState()) {
 		case DramDirectoryEntry::UNCACHED:
 			assert ( 0 ); //so this situation ever happen?
@@ -487,45 +647,50 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet) {
 	payload.update_new_cstate = new_cstate;
 	payload.update_address = address;
 	ret_packet.data = (char *)(&payload);
+	ss.str("");
+	ss << "   START netSend to <" << ret_packet.receiver << "> ";
+//	debugPrint(the_core->getRank(), "MMU::processSMemReq", ss.str());
 	(the_core->getNetwork())->netSend(ret_packet);
+//	debugPrint(the_core->getRank(), "MMU::processSMemReq", "   END   netSend");
 
 #ifdef MMU_DEBUG
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of sharedMemReq function");
 #endif
+//	debugPrint(the_core->getRank(), "MMU", "end of sharedMemReq function");
 }
 
 /*
  * this function is called by the "interrupt handler" when an unexpected shared memory update arrives
  * (for example, an invalidation message). "expected" shared memory update messages are processed
  * in band by explicit receive messages
+ * Essentially, the Core is being told by someone else to set their cache_tag for a given address to something new.
+ * However, that part is only done if the address is still in the cache.  But an ACK is sent either way. 
  */ 
-void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
+void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) 
+{
   
 #ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
  
 	dram_dir->print();
 #endif
+//	debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate $$$$$");
 
  // verify packet type is correct
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
   
   // extract relevant values from incoming request packet
-//  CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_NEW_CSTATE]);
-//  int address = ((int *)(update_packet.data))[SH_MEM_UPDATE_IDX_ADDRESS];
-
   CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((UpdatePayload*)(update_packet.data))->update_new_cstate);
   int address = ((UpdatePayload*)(update_packet.data))->update_address;
 
-#ifdef MMU_DEBUG
 	stringstream ss;
+#ifdef MMU_DEBUG
 	ss << "Unexpected: address: " << hex << address;
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
-//  pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address, 1); //size(4) is meaningless (how many bytes to access)
   // if it is null, it means the address has been invalidated
 	
   // send back acknowledgement of receiveing this message
@@ -539,7 +704,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   // initialize packet payload for downgrade
   AckPayload payload;
   payload.ack_new_cstate = new_cstate;
-  payload.ack_address = address;
+  payload.ack_address = address; //only sent for debugging purposes
 
   packet.data = (char *)(&payload);
 
@@ -558,14 +723,20 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) {
   debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
+	ss.str("");
+	ss << "   START netSend to <" << update_packet.sender << "> ";
+//  debugPrint(the_core->getRank(), "MMU::processUnexpectedUpdate", ss.str());
   (the_core->getNetwork())->netSend(packet);
+//  debugPrint(the_core->getRank(), "MMU::processUnexpectedUpdate", "   END   netSend");
   
   // TODO: invalidate/flush from cache? Talk to Jonathan
 #ifdef MMU_DEBUG	
 	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate");
 #endif	
-//	dram_dir->print();
+	
+//	debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate $$$$");
+
 }
 
 // TODO: implement DramRequest 
@@ -604,3 +775,5 @@ void MemoryManager::setDramBoundaries( vector< pair<ADDRINT, ADDRINT> > addr_bou
 	addr_home_lookup->setAddrBoundaries(addr_boundaries);
 	cout << " MMU: Finished setting Dram Boundaries " << endl;
 }
+
+

@@ -3,6 +3,8 @@ make clean
 make
 #/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -mpf -- ./test
 
+#/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -- ./test
+#/afs/csail.mit.edu/group/carbon/tools/pin/previous/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -- ./test
 /afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -- ./test
 #/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 1 -mdc -msm -- ./test
 

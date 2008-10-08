@@ -77,6 +77,7 @@ CAPI_return_t chipHackFinish(int my_rank)
 
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
+//		cout << "FINISHED lawls [" << my_rank << "] " << endl;
 		//sleep? and conditionally check if we should end loop?
 		//
 	}

@@ -21,7 +21,7 @@ class Chip;
 // Define data types
 
 // enums for type of network packet
-enum PacketType 
+enum  PacketType 
 {
    MIN_PACKET_TYPE = 0, 
    INVALID = MIN_PACKET_TYPE, 

@@ -14,6 +14,10 @@ class DramDirectory
    //key dram entries on cache_line (assumes cache_line is 1:1 to dram memory lines)
    std::map<UINT32, DramDirectoryEntry*> dram_directory_entries;
    UINT32 dram_id;
+   
+	//TODO debugAssertValidStates();
+	//scan the directory occasionally for invalid state configurations.
+	//can that be done here? or only in the MMU since we may need cache access.
 
 public:
    DramDirectory(UINT32 num_lines, UINT32 bytes_per_cache_line, UINT32 dram_id_arg, UINT32 num_of_cores);

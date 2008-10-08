@@ -66,7 +66,7 @@ char* Transport::ptRecv()
 
     // HK
     // FIXME: Should this be pt_queue.top()?
-    ptr = pt_queue[pt_tid].pt_queue.front();
+	 ptr = pt_queue[pt_tid].pt_queue.front();
     pt_queue[pt_tid].pt_queue.pop();
     ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));
 

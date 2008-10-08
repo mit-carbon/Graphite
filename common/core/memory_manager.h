@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <queue>
 #include "assert.h"
 #include <math.h>
 #include "debug.h"
@@ -119,15 +120,31 @@ struct AckPayload {
 class MemoryManager
 {
  private:
-  Core *the_core;
-  OCache *ocache;
-  DramDirectory *dram_dir;
-  AddressHomeLookup *addr_home_lookup;
-  
+	Core *the_core;
+   OCache *ocache;
+   DramDirectory *dram_dir;
+   AddressHomeLookup *addr_home_lookup;
+
+	//This is here to serialize the requests
+	// do not process a new request until finished with current request
+	// do not exit MMU until no more incoming requests
+   UINT64 volatile debug_counter; //a primitive clock for debugging
+   bool volatile processing_request_flag;
+   int volatile incoming_requests_count;
+	//FIFO queue
+	queue<NetPacket> request_queue;
+	void addRequestToQueue( NetPacket packet );
+	NetPacket getNextRequest();
+
  public:
+//	NetPacket makePacket( PacketType pt, int sender, int receiver, UINT32 payload_size);
+//	NetMatch makeNetMatch( PacketType pt, int sender);
 	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
 	virtual ~MemoryManager();
 	bool initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type);
+
+	//TODO rename this function (and others that interface with Network)
+	void addMemRequest(NetPacket req_packet);
 	void processSharedMemReq(NetPacket req_packet);
 	void processUnexpectedSharedMemUpdate(NetPacket update_packet);
 

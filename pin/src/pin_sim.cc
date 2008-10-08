@@ -34,13 +34,20 @@
 
 Chip *g_chip;
 
+//TODO only here for debugging ins in runModel
 
-//for debugging purposes, shared_mem_test needs
-//to be able to directly point to any piece 
-//of the chip (ie, dram directories, caches, etc.).
-//This will allow us to dynamically force states
-//and assert conditions for testing purposes.
-//static Chip* debugGetChip() { return g_chip; }
+struct InsInfo {
+	OPCODE opcode;
+	bool is_sys_call;
+	bool is_sys_enter;
+	SYSCALL_STANDARD sys_call_std;
+	
+	bool next_is_valid;
+	OPCODE next_opcode;
+	bool next_is_sys_call;
+	bool next_is_sys_enter;
+	SYSCALL_STANDARD next_sys_call_std;
+};
 
 INT32 usage()
 {
@@ -63,13 +70,49 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
                bool do_network_modeling, bool do_icache_modeling, 
                bool do_dcache_read_modeling, bool is_dual_read, 
                bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
-               bool check_scoreboard)
+//               bool check_scoreboard)
+               bool check_scoreboard,
+					VOID* ins_info)
 {
    //cout << "parent = " << stats->parent_routine << endl;
 
    int rank;
    chipRank(&rank);
-   if(rank > -1)
+
+#ifdef PRINTOUT_FLAGS
+	if(rank == 0) {
+
+		cout << " ----------------------------------" << endl;
+		cout <<  " CORE#0 START  running runModels!" << endl;
+	}
+	
+	if(rank == 1) {
+		cout << " ----------------------------------" << endl;
+		cout << " CORE#1 START running runModels!" << endl;
+	}
+
+	if(rank > -1) {
+
+		if(((InsInfo*) ins_info)->opcode == 608 || ((InsInfo*) ins_info)->next_opcode == 608) {
+	//		cout << "[" << rank << "] PINSIM -: OPCODE      = " << ((InsInfo*) ins_info)->opcode << endl;
+			cout << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->opcode) << " (" << ((InsInfo*) ins_info)->opcode << ") " << endl;
+			cout << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ((InsInfo*) ins_info)->is_sys_call << endl;
+			cout << "[" << rank << "] PINSIM -: SYSCALL STD = " << ((InsInfo*) ins_info)->sys_call_std << endl;
+			cout << "[" << rank << "] PINSIM -: IS SYSENTER = " << ((InsInfo*) ins_info)->is_sys_enter << endl;
+			cout << "----------" << endl;
+			
+			if(((InsInfo*) ins_info)->next_is_valid) {
+				cout << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->next_opcode) << " (" << ((InsInfo*) ins_info)->next_opcode << ") " << endl;
+				cout << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ((InsInfo*) ins_info)->next_is_sys_call << endl;
+				cout << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ((InsInfo*) ins_info)->next_sys_call_std << endl;
+				cout << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ((InsInfo*) ins_info)->next_is_sys_enter << endl;
+			}
+		}
+	}
+
+#endif
+
+	if(rank > -1)
    {
       assert( !do_network_modeling );
       assert( !do_bpred_modeling );
@@ -149,13 +192,28 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
          perfModelRun(stats);
       }
    }
+#ifdef PRINTOUT_FLAGS
+	if(rank == 0) {
+
+		cout <<  " CORE#0 I'm FINISHED w/ runModels!" << endl;
+		cout << " ----------------------------------" << endl;
+	}
+	
+	if(rank == 1) {
+		cout << " CORE#1 I'm FINISHED w/ runModels!" << endl;
+		cout << " ----------------------------------" << endl;
+	}
+#endif
 }
 
 bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins, 
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head, 
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
-   // added constraint that perf model must be on
+   
+//      cout << "--[" << rank << "] START insertModeling" << endl;
+	
+	// added constraint that perf model must be on
    bool check_scoreboard         = g_knob_enable_performance_modeling && 
                                    g_knob_enable_dcache_modeling && 
                                    !g_knob_dcache_ignore_loads &&
@@ -255,6 +313,26 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
       //cout << "adding trap on instruction " << inst_offset << ". which_case = " << which_case << endl;
       //cout << hex << "adding trap: prev=" << startInstOffset << " this=" << inst_offset << dec << endl;
   
+	/**** TAKE OUT LATER TODO *****/
+	//only for debugging instruction in runModels
+	//at run time
+	InsInfo* ins_info = (InsInfo*) malloc(sizeof(InsInfo));
+	ins_info->opcode = INS_Opcode(ins);
+	ins_info->is_sys_call = INS_IsSyscall(ins);
+	ins_info->is_sys_enter = INS_IsSysenter(ins);
+	ins_info->sys_call_std = INS_SyscallStd(ins);
+	
+	INS next_ins = INS_Next(ins);
+	if(!INS_Valid(next_ins)) {
+		ins_info->next_is_valid = false;
+	} else {
+		ins_info->next_is_valid = true;
+		ins_info->next_opcode = INS_Opcode(next_ins);
+		ins_info->next_is_sys_call = INS_IsSyscall(next_ins);
+		ins_info->next_is_sys_enter = INS_IsSysenter(next_ins);
+		ins_info->next_sys_call_std = INS_SyscallStd(next_ins);
+	}
+
       switch(which_case) 
       {
       case 0:
@@ -272,7 +350,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
    		                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
                                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
+                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID *) ins_info, IARG_END);
+//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
             break;
       case 1:
          IARGLIST_AddArguments(args, 
@@ -289,7 +368,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
 	   	                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
                                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
+//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
+                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID*) ins_info, IARG_END);
          break;
       case 2:
          IARGLIST_AddArguments(args, 
@@ -306,7 +386,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
 		                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
                                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
+//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
+                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID *) ins_info, IARG_END);
          break;
       case 3:
          IARGLIST_AddArguments(args, 
@@ -323,7 +404,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
    	                                IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
                                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
+//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
+                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID*) ins_info, IARG_END);
          break;
       case 4:
       case 6:
@@ -341,7 +423,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
    	                                IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
                                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
+//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
+                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID *) ins_info, IARG_END); 
          break;
       case 5:
       case 7:
@@ -359,16 +442,20 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
    	  	                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
                                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
+//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
+                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID*) ins_info, IARG_END); 
          break;   
       default:
          assert( false );
       }
 
-      INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
+		
+		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
       IARGLIST_Free(args);
 
-      return true;
+//		cout << "--[" << rank << "] END     insertModeling TRUE ending" << endl;
+
+		return true;
    } 
    else 
    {
@@ -376,6 +463,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 
    }
 
+//   cout << "--[" << rank << "] END     insertModeling FALSE ending" << endl;
    return false;
 }
 

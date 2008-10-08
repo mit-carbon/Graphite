@@ -42,10 +42,14 @@ class Config {
    void loadFromFile(char* filename);
    void loadFromCmdLine();
 
+   // Return the number of processes involved in this simulation
+   UInt32 numProcs() { return num_process; }
+
    // Return the number of modules (cores) in a given process
    UInt32 numMods() { return num_modules[my_proc_num]; }
    UInt32 numMods(UInt32 proc_num) { return num_modules[proc_num]; }
 
+   // Return the total number of modules in all processes
    UInt32 totalMods() { return total_cores; }
 
    // Return an array of core numbers for a given process

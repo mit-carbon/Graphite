@@ -84,7 +84,7 @@ class Network{
       
       virtual UINT64 netProcCost(NetPacket packet);
       virtual UINT64 netLatency(NetPacket packet);
-      char* netCreateBuf(NetPacket packet);
+      char* netCreateBuf(NetPacket packet, UInt32* buf_size);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       void netEntryTasks();
       //FIXME:

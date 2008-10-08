@@ -57,133 +57,130 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
                bool check_scoreboard)
 {
    //cout << "parent = " << stats->parent_routine << endl;
-
+ 
    int rank;
    chipRank(&rank);
-   if(rank > -1)
-   {
-      assert( !do_network_modeling );
-      assert( !do_bpred_modeling );
 
-      // JME: think this was an error; want some other model on if icache modeling is on
-      //   assert( !(!do_icache_modeling && (do_network_modeling || 
-      //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
-      //                                  do_bpred_modeling || do_perf_modeling)) );
+   // This must be consistent with the behavior of
+   // insertInstructionModelingCall.
 
-      // no longer needed since we guarantee icache model will run at basic block boundary
-      //assert( !do_icache_modeling || (do_network_modeling || 
-      //                                do_dcache_read_modeling || do_dcache_write_modeling ||
-      //                                do_bpred_modeling || do_perf_modeling) );
+   // Trying to prevent using NULL stats. This happens when
+   // instrumenting portions of the main thread.
+   bool skip_modeling = (rank < 0) ||
+     ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
-      if ( do_icache_modeling )
-      {
-         for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
+   if (skip_modeling)
+     return;
+
+   assert( !do_network_modeling );
+   assert( !do_bpred_modeling );
+
+   // JME: think this was an error; want some other model on if icache modeling is on
+   //   assert( !(!do_icache_modeling && (do_network_modeling || 
+   //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
+   //                                  do_bpred_modeling || do_perf_modeling)) );
+
+   // no longer needed since we guarantee icache model will run at basic block boundary
+   //assert( !do_icache_modeling || (do_network_modeling || 
+   //                                do_dcache_read_modeling || do_dcache_write_modeling ||
+   //                                do_bpred_modeling || do_perf_modeling) );
+
+   if ( do_icache_modeling )
+     {
+       for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
          {
-       // first = PC, second = size
-            bool i_hit = icacheRunLoadModel(stats->inst_trace[i].first,
-                                            stats->inst_trace[i].second);
-            if ( do_perf_modeling ) {
-               perfModelLogICacheLoadAccess(stats, i_hit);
+	   // first = PC, second = size
+	   bool i_hit = icacheRunLoadModel(stats->inst_trace[i].first,
+					   stats->inst_trace[i].second);
+	   if ( do_perf_modeling ) {
+	     perfModelLogICacheLoadAccess(stats, i_hit);
+	   }
+         }
+     }
+
+   // this check must go before everything but the icache check
+   assert( !check_scoreboard || do_perf_modeling );
+   if ( check_scoreboard )
+     {
+       // it's not possible to delay the evaluation of the performance impact for these. 
+       // get the cycle counter up to date then account for dependency stalls
+       perfModelRun(stats, reads, num_reads); 
+     }
+
+   if ( do_dcache_read_modeling )
+     {
+       // it's not possible to delay the evaluation of the performance impact for these. 
+       // get cycle count up to date so time stamp for when miss is ready is correct
+
+       bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+       if ( do_perf_modeling ) {
+	 perfModelRun(stats, d_hit, writes, num_writes);
        }
-         }
-      }
 
-      // this check must go before everything but the icache check
-      assert( !check_scoreboard || do_perf_modeling );
-      if ( check_scoreboard )
-      {
-         // it's not possible to delay the evaluation of the performance impact for these. 
-         // get the cycle counter up to date then account for dependency stalls
-         perfModelRun(stats, reads, num_reads); 
-      }
+       if ( is_dual_read ) {
+	 bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+	 if ( do_perf_modeling ) {
+	   perfModelRun(stats, d_hit2, writes, num_writes);
+	 }
+       }
+     } 
+   else 
+     {
+       assert(dcache_ld_addr == (ADDRINT) NULL);
+       assert(dcache_ld_addr2 == (ADDRINT) NULL);
+       assert(dcache_ld_size == 0);
+     }
 
-      if ( do_dcache_read_modeling )
-      {
-         // it's not possible to delay the evaluation of the performance impact for these. 
-         // get cycle count up to date so time stamp for when miss is ready is correct
-
-         bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
-         if ( do_perf_modeling ) {
-       perfModelRun(stats, d_hit, writes, num_writes);
-         }
-
-         if ( is_dual_read ) {
-            bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-            if ( do_perf_modeling ) {
-          perfModelRun(stats, d_hit2, writes, num_writes);
-            }
-         }
-      } 
-      else 
-      {
-         assert(dcache_ld_addr == (ADDRINT) NULL);
-         assert(dcache_ld_addr2 == (ADDRINT) NULL);
-         assert(dcache_ld_size == 0);
-      }
-
-      if ( do_dcache_write_modeling )
-      {
-         bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
-         if ( do_perf_modeling )
+   if ( do_dcache_write_modeling )
+     {
+       bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
+       if ( do_perf_modeling )
          { 
-            perfModelLogDCacheStoreAccess(stats, d_hit); 
+	   perfModelLogDCacheStoreAccess(stats, d_hit); 
          }
-      } 
-      else 
-      {
-         assert(dcache_st_addr == (ADDRINT) NULL);
-         assert(dcache_st_size == 0);
-      }
+     } 
+   else 
+     {
+       assert(dcache_st_addr == (ADDRINT) NULL);
+       assert(dcache_st_size == 0);
+     }
 
-      // this should probably go last
-      if ( do_perf_modeling )
-      {
-         perfModelRun(stats);
-      }
+   // this should probably go last
+   if ( do_perf_modeling )
+     {
+       perfModelRun(stats);
+     }
 
-   }
 }
 
 bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins, 
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head, 
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
-   // make sure rank is valid
-   int rank; 
-   chipRank(&rank);
-   bool rank_is_valid = (rank >= 0);
-
    // added constraint that perf model must be on
-   bool check_scoreboard         = rank_is_valid &&
-                                   g_knob_enable_performance_modeling && 
+   bool check_scoreboard         = g_knob_enable_performance_modeling && 
                                    g_knob_enable_dcache_modeling && 
                                    !g_knob_dcache_ignore_loads &&
                                    is_potential_load_use;
 
    //FIXME: check for API routine
-   bool do_network_modeling      = rank_is_valid &&
-                                   g_knob_enable_network_modeling && is_rtn_ins_head; 
-   bool do_dcache_read_modeling  = rank_is_valid &&
-                                   g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads && 
+   bool do_network_modeling      = g_knob_enable_network_modeling && is_rtn_ins_head; 
+   bool do_dcache_read_modeling  = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads && 
                                    INS_IsMemoryRead(ins);
-   bool do_dcache_write_modeling = rank_is_valid &&
-                                   g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores && 
+   bool do_dcache_write_modeling = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores && 
                                    INS_IsMemoryWrite(ins);
-   bool do_bpred_modeling        = rank_is_valid &&
-                                   g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
+   bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
 
    //TODO: if we run on multiple machines we need shared memory
    //TODO: if we run on multiple machines we need syscall_modeling
 
    // If we are doing any other type of modeling then we need to do icache modeling
-   bool do_icache_modeling       = rank_is_valid &&
-                                   g_knob_enable_icache_modeling && 
+   bool do_icache_modeling       = g_knob_enable_icache_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_bpred_modeling || is_bbl_ins_tail || 
                                      check_scoreboard );
 
-   bool do_perf_modeling         = rank_is_valid &&
-                                   g_knob_enable_performance_modeling && 
+   bool do_perf_modeling         = g_knob_enable_performance_modeling && 
                                    ( do_network_modeling || do_dcache_read_modeling || 
                                      do_dcache_write_modeling || do_icache_modeling || 
                                      do_bpred_modeling || is_bbl_ins_tail || check_scoreboard );
@@ -200,12 +197,12 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    assert( !do_bpred_modeling );
 
    //this flag may or may not get used
-   bool is_dual_read = rank_is_valid && INS_HasMemoryRead2(ins);
+   bool is_dual_read = INS_HasMemoryRead2(ins);
 
    PerfModelIntervalStat *stats;
    INS end_ins = INS_Next(ins);
    // stats also needs to get allocated if icache modeling is turned on
-   stats = (do_perf_modeling || do_icache_modeling) ? 
+   stats = (do_perf_modeling || do_icache_modeling || check_scoreboard) ? 
       perfModelAnalyzeInterval(rtn_name, start_ins, end_ins) : 
       NULL; 
 
@@ -377,6 +374,7 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    else if(name == "CAPI_message_receive_w"){
       return AFUNPTR(chipRecvW);
    }
+   
    return NULL;
 }
 

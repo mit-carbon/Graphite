@@ -1,7 +1,14 @@
+FORCE32 ?= 1
+
 CC = /usr/bin/g++
-CFLAGS = -I../../user -c -g -Wall -m32
-LDFLAGS = -m32 -m elf_i386
-SOURCES = ../../user/capi.cc file_io.cc
+ifeq (${FORCE32},1)
+  CFLAGS = -I../../user -c -g -Wall -m32
+  LDFLAGS = -m32 -m elf_i386
+else
+  CFLAGS = -I../../user -c -g -Wall
+  LDFLAGS = 
+endif
+SOURCES = ../../user/capi.cc ../../user/syscall_server.cc file_io.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## Build rules
@@ -9,7 +16,7 @@ OBJECTS = $(SOURCES:%.cc=%.o)
 all: file_io
 
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CC) -DDEBUG $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 file_io: $(OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)

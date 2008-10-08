@@ -23,6 +23,8 @@ void SyscallMdl::runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
 
 void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
+   // FIXME: need to use PT_get_from_server_reply_buff and PT_put_to_server_buff
+   // for marshalling data around
 
    int syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
 

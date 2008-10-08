@@ -5,7 +5,7 @@ OPT=-O2
 CFLAGS=-c -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = capi.cc
+SOURCES = capi.cc syscall_server.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 

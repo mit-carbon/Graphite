@@ -8,7 +8,7 @@ else
   CFLAGS = -I../../user -c -g -Wall
   LDFLAGS = 
 endif
-SOURCES = ../../user/capi.cc file_io.cc
+SOURCES = ../../user/capi.cc ../../user/syscall_server.cc file_io.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## Build rules
@@ -16,7 +16,7 @@ OBJECTS = $(SOURCES:%.cc=%.o)
 all: file_io
 
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CC) -DDEBUG $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 file_io: $(OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)

@@ -374,6 +374,7 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    else if(name == "CAPI_message_receive_w"){
       return AFUNPTR(chipRecvW);
    }
+   
    return NULL;
 }
 

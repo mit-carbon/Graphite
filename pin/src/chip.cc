@@ -72,7 +72,6 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
    return g_chip->core[receiver].coreRecvW(sender, receiver, buffer, size);
 }
 
-
 // performance model wrappers
 
 VOID perfModelRun(PerfModelIntervalStat *interval_stats)

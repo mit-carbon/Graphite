@@ -12,6 +12,7 @@
 class Network;
 
 #include "pin.H"
+#include "config.h"
 #include "chip.h"
 #include "network.h"
 #include "perfmdl.h"
@@ -53,6 +54,9 @@ class Core
    public:
 
       int coreInit(Chip *chip, int tid, int num_mod);
+
+      // Return the communication endpoint ID for this core
+      int coreCommID();
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
 

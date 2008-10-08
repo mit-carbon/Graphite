@@ -8,7 +8,7 @@ Network::Network(Chip *chip, int tid, int num_mod)
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
    net_tid = tid;
-   net_num_mod = num_mod;
+   net_num_mod = g_config->totalMods();
    transport = new Transport;
    transport->ptInit(tid, num_mod);
    net_queue = new NetQueue* [net_num_mod];
@@ -21,13 +21,16 @@ Network::Network(Chip *chip, int tid, int num_mod)
 int Network::netSend(NetPacket packet)
 {
    char *buffer;
+   UInt32 buf_size;
    
    // Perform network entry tasks
    netEntryTasks();
    
-   buffer = netCreateBuf(packet);
-   transport->ptSend(packet.receiver, buffer, packet.length);
+   buffer = netCreateBuf(packet, &buf_size);
+   transport->ptSend(packet.receiver, buffer, buf_size);
    the_chip->setProcTime(net_tid, the_chip->getProcTime(net_tid) + netProcCost(packet));
+
+   // FIXME?: Should we be returning buf_size instead?
    return packet.length;
 }
 
@@ -97,7 +100,8 @@ NetPacket Network::netRecv(NetMatch match)
                if((entry.time == 0) || (entry.time > net_queue[i][match.type].top().time))
                {
                   entry = net_queue[i][match.type].top();
-                  sender = (PacketType)i;
+                  //sender = (PacketType)i;
+                  sender = i;
                   type = match.type;
                   loop = false;
                }
@@ -237,7 +241,7 @@ bool Network::netQuery(NetMatch match)
 };
 
 
-char* Network::netCreateBuf(NetPacket packet)
+char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size)
 {
    char *buffer;
    char *temp;
@@ -245,15 +249,15 @@ char* Network::netCreateBuf(NetPacket packet)
    int running_length = 0;
    unsigned int i;
 
-   unsigned int buffer_size = sizeof(packet.type) + sizeof(packet.sender) +
-     sizeof(packet.receiver) + sizeof(packet.length) +
-     packet.length + sizeof(time);
-   buffer = new char [buffer_size];
+   *buffer_size = sizeof(packet.type) + sizeof(packet.sender) +
+                     sizeof(packet.receiver) + sizeof(packet.length) +
+                     packet.length + sizeof(time);
+   buffer = new char [*buffer_size];
    temp = (char*) &(packet.type);
 
    for(i = 0; i < sizeof(packet.type); i++)
      {
-       assert(running_length+i < buffer_size);
+       assert(running_length+i < *buffer_size);
        buffer[running_length + i] = temp[i];
      }
 	
@@ -262,7 +266,7 @@ char* Network::netCreateBuf(NetPacket packet)
 
    for(i = 0; i < sizeof(packet.sender); i++)
      {
-       assert(running_length+i < buffer_size);
+       assert(running_length+i < *buffer_size);
        buffer[running_length + i] = temp[i];
      }
 
@@ -271,7 +275,7 @@ char* Network::netCreateBuf(NetPacket packet)
 
    for(i = 0; i < sizeof(packet.receiver); i++)
      {
-       assert(running_length+i < buffer_size);
+       assert(running_length+i < *buffer_size);
        buffer[running_length + i] = temp[i];
      }
 
@@ -280,7 +284,7 @@ char* Network::netCreateBuf(NetPacket packet)
 
    for(i = 0; i < sizeof(packet.length); i++)
      {
-       assert(running_length+i < buffer_size);
+       assert(running_length+i < *buffer_size);
        buffer[running_length + i] = temp[i];
      }
 
@@ -289,7 +293,7 @@ char* Network::netCreateBuf(NetPacket packet)
 
    for(i = 0; i < packet.length; i++)
      {
-       assert(running_length+i < buffer_size);
+       assert(running_length+i < *buffer_size);
        buffer[running_length + i] = temp[i];
      }
 
@@ -298,7 +302,7 @@ char* Network::netCreateBuf(NetPacket packet)
 
    for(i = 0; i < sizeof(time); i++)
      {
-       assert(running_length+i < buffer_size);
+       assert(running_length+i < *buffer_size);
        buffer[running_length + i] = temp[i];
      }
 

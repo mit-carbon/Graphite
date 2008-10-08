@@ -12,9 +12,11 @@
 // JME: not entirely sure why this is needed...
 class Chip;
 
+#include "config.h"
 #include "chip.h"
 #include "transport.h"
 
+extern Config* g_config;
 
 // Define data types
 
@@ -80,7 +82,7 @@ class Network{
               NetQueue;
 
       
-      char* netCreateBuf(NetPacket packet);
+      char* netCreateBuf(NetPacket packet, UInt32* buf_size);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       void netEntryTasks();
       //FIXME:
@@ -94,7 +96,7 @@ class Network{
    protected:
       Chip *the_chip;		
       int net_tid;
-      int net_num_mod;
+      int net_num_mod;   // Total number of cores in the simulation
 
       virtual UINT64 netProcCost(NetPacket packet);
       virtual UINT64 netLatency(NetPacket packet);
@@ -104,6 +106,7 @@ class Network{
       Network(Chip *chip, int tid, int num_threads);
       virtual ~Network(){};
       
+      int netCommID() { return transport->ptCommID(); }
       bool netQuery(NetMatch match);
 		
       virtual int netSend(NetPacket packet);

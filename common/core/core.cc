@@ -68,6 +68,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    return 0;
 }
 
+int Core::coreCommID() { return network->netCommID(); }
+
 int Core::coreSendW(int sender, int receiver, char *buffer, int size)
 {
    // Create a net packet
@@ -100,9 +102,18 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    packet = network->netRecv(match);
 
+#ifdef DEBUG
+   cout << "Got packet: "
+	<< "Send=" << packet.sender
+	<< ", Recv=" << packet.receiver
+	<< ", Type=" << packet.type
+	<< ", Len=" << packet.length << endl;
+#endif
+
    if((unsigned)size != packet.length){
-      cout << "ERROR:" << endl
-           << "Received packet length is not as expected" << endl;
+      cerr << "ERROR (comm_id: " << coreCommID() << "):" << endl
+           << "Received packet length (" << packet.length
+	   << ") is not as expected (" << size << ")" << endl;
       exit(-1);
    }
 

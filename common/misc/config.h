@@ -8,9 +8,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <list>
+#include <iostream>
 #include "pin.H"
 #include "fixed_types.h"
-#include <list>
 
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
@@ -20,6 +21,7 @@ using namespace std;
 class Config {
  public:
    typedef list<UInt32> CoreList;
+   typedef list<UInt32>::const_iterator CLCI;
  private:
    UInt32  num_process;          // Total number of processes (incl myself)
    UInt32* num_modules;          // Number of cores each process
@@ -40,9 +42,15 @@ class Config {
    void loadFromFile(char* filename);
    void loadFromCmdLine();
 
+   // Return the number of processes involved in this simulation
+   UInt32 numProcs() { return num_process; }
+
    // Return the number of modules (cores) in a given process
    UInt32 numMods() { return num_modules[my_proc_num]; }
    UInt32 numMods(UInt32 proc_num) { return num_modules[proc_num]; }
+
+   // Return the total number of modules in all processes
+   UInt32 totalMods() { return total_cores; }
 
    // Return an array of core numbers for a given process
    //  The returned array will have numMods(proc_num) elements

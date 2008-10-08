@@ -58,18 +58,36 @@ CAPI_return_t chipRank(int *rank)
    return 0;
 }
 
+CAPI_return_t commRank(int *rank)
+{
+   int my_tid;
+   chipRank(&my_tid);
+   // FIXME: The network nodes should be moved up from within a core to
+   //  directly within a chip.  When this happens, this will have to change.
+   *rank = g_chip->core[my_tid].coreCommID();
+
+   return 0;
+}
+
 CAPI_return_t chipSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
                         char *buffer, int size)
 {
-   assert(0 <= sender && sender < g_chip->num_modules);
-   return g_chip->core[sender].coreSendW(sender, receiver, buffer, size);
+   int rank;
+   chipRank(&rank);
+   return g_chip->core[rank].coreSendW(sender, receiver, buffer, size);
 }
 
 CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
                         char *buffer, int size)
 {
-   assert(0 <= receiver && receiver < g_chip->num_modules);
-   return g_chip->core[receiver].coreRecvW(sender, receiver, buffer, size);
+   int rank;
+   chipRank(&rank);
+   /*
+   cout << "Starting receive on core " << rank << " (from:" << sender 
+	<< ", to:" << receiver << ", ptr:" << hex << &buffer << dec
+	<< ", size:" << size << ")" << endl;
+   */ 
+   return g_chip->core[rank].coreRecvW(sender, receiver, buffer, size);
 }
 
 // performance model wrappers

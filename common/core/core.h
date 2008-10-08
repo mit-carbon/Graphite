@@ -14,6 +14,7 @@ class MemoryManager;
 
 #include "memory_manager.h"
 #include "pin.H"
+#include "config.h"
 #include "chip.h"
 #include "network.h"
 #include "perfmdl.h"
@@ -67,10 +68,14 @@ class Core
 
       int coreInit(Chip *chip, int tid, int num_mod);
 
+      // Return the communication endpoint ID for this core
+      int coreCommID();
+
       int coreSendW(int sender, int receiver, char *buffer, int size);
 
       int coreRecvW(int sender, int receiver, char *buffer, int size);
 
+//<<<<<<< HEAD:common/core/core.h
       // network accessor since network is private
       Network* getNetwork(void);
 
@@ -78,25 +83,6 @@ class Core
          { return memory_manager; }
       
       VOID fini(int code, VOID *v, ofstream& out);
-	
-	VOID perfModelRun(PerfModelIntervalStat *interval_stats);
-	
-	VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-							 UINT32 num_reads);
-	
-	VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-							 REG *writes, UINT32 num_writes);
-	
-	PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
-														   const INS& start_ins, 
-														   const INS& end_ins);
-	
-	VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
-	
-	VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
-	
-	VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);
-	
 	
 	// organic cache wrappers
 	
@@ -115,6 +101,48 @@ class Core
 	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	
 	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+//=======
+
+      //performance model wrappers
+
+      VOID perfModelRun(PerfModelIntervalStat *interval_stats)
+      { perf_model->run(interval_stats); }
+
+      VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
+                               UINT32 num_reads)
+      { perf_model->run(interval_stats, reads, num_reads); }
+
+      VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+                               REG *writes, UINT32 num_writes)
+      { perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
+
+      PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
+                                                             const INS& start_ins, 
+                                                             const INS& end_ins)
+      { return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
+
+      VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+      { perf_model->logICacheLoadAccess(stats, hit); }
+
+      VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
+      { perf_model->logDCacheStoreAccess(stats, hit); }
+
+      VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
+      { perf_model->logBranchPrediction(stats, correct); }
+      
+
+      // organic cache wrappers
+
+//      bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
+//      { return ocache->runICacheLoadModel(i_addr, size); }
+
+//      bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
+//      { return ocache->runDCacheLoadModel(d_addr, size); }
+
+//      bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
+//      { return ocache->runDCacheStoreModel(d_addr, size); }
+
+//>>>>>>> master:common/core/core.h
 };
 
 #endif

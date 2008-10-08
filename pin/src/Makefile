@@ -4,7 +4,7 @@ include ../../common/makefile.debug
 DBG=-g
 OPT=-O2
 CFLAGS+=-c -I../../common/user -I../../common/core -I../../common/network -I../../common/phys_trans -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
-LDFLAGS=
+LDFLAGS= -pthread
 
 TOOL_ROOTS = ../bin/pin_sim
 SOURCES = chip.cc pin_sim.cc
@@ -23,7 +23,7 @@ tools: $(TOOLS) $(SOURCES)
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 commonsubsystem:
-	$(MAKE) -C ../../common
+	$(MAKE) -C ../../common sim
 
 $(TOOLS): $(PIN_LIBNAMES)
 $(TOOLS): $(OBJECTS)

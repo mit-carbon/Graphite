@@ -24,3 +24,8 @@ squeaky: clean
 	$(MAKE) -C pin squeaky
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
+
+io_test: all
+	cd common/tests/file_io && ./run_via_pin_sim
+
+

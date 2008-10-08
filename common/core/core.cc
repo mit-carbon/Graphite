@@ -1,6 +1,8 @@
 #include "core.h"
 #include "debug.h"
 
+#include "network_mesh_analytical.h"
+
 using namespace std;
 
 int Core::coreInit(Chip *chip, int tid, int num_mod)
@@ -9,9 +11,33 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-   network = new Network;
-   network->netInit(chip, tid, num_mod, this);
+//<<<<<<< HEAD:common/core/core.cc
+//   network = new Network;
+//   network->netInit(chip, tid, num_mod, this);
    
+//=======
+   //Switch which line is commented to choose the different 
+   //network models
+   //FIXME: Make this runtime configurable
+   //NetworkModel net_model = NETWORK_BUS;
+   NetworkModel net_model = NETWORK_ANALYTICAL_MESH;
+
+   switch(net_model)
+   {
+       case NETWORK_BUS:
+           network = new Network(chip, tid, num_mod);
+           break;
+       case NETWORK_ANALYTICAL_MESH:
+           network = new NetworkMeshAnalytical(chip, tid, num_mod);
+           break;
+       case NUM_NETWORK_TYPES:
+       default:
+           cout << "ERROR: Unknown Network Model!";
+           break;
+   }
+  
+
+//>>>>>>> master:common/core/core.cc
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
@@ -67,6 +93,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    return 0;
 }
 
+int Core::coreCommID() { return network->netCommID(); }
+
 int Core::coreSendW(int sender, int receiver, char *buffer, int size)
 {
    // Create a net packet
@@ -99,9 +127,18 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    packet = network->netRecv(match);
 
+#ifdef DEBUG
+   cout << "Got packet: "
+	<< "Send=" << packet.sender
+	<< ", Recv=" << packet.receiver
+	<< ", Type=" << packet.type
+	<< ", Len=" << packet.length << endl;
+#endif
+
    if((unsigned)size != packet.length){
-      cout << "ERROR:" << endl
-           << "Received packet length is not as expected" << endl;
+      cerr << "ERROR (comm_id: " << coreCommID() << "):" << endl
+           << "Received packet length (" << packet.length
+	   << ") is not as expected (" << size << ")" << endl;
       exit(-1);
    }
 
@@ -121,6 +158,8 @@ Network* Core::getNetwork()
 
 VOID Core::fini(int code, VOID *v, ofstream& out)
 {
+   delete network;
+
    if ( g_knob_enable_performance_modeling )
       perf_model->fini(code, v, out);
 
@@ -131,32 +170,31 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
 
 //performance model wrappers
 
-//BUG the following ten functions *should* be inlined, but 
-//we end up with undefined symbols at run-time. -cpc
-VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats)
-{ perf_model->run(interval_stats); }
+//these have been moved into the .h file
+//m VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats)
+//m { perf_model->run(interval_stats); }
 
-VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-						 UINT32 num_reads)
-{ perf_model->run(interval_stats, reads, num_reads); }
+//VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
+//						 UINT32 num_reads)
+//{ perf_model->run(interval_stats, reads, num_reads); }
 
-VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-						 REG *writes, UINT32 num_writes)
-{ perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
+//VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+//						 REG *writes, UINT32 num_writes)
+//{ perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
 
-PerfModelIntervalStat* Core::perfModelAnalyzeInterval(const string& parent_routine, 
-													   const INS& start_ins, 
-													   const INS& end_ins)
-{ return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
+//PerfModelIntervalStat* Core::perfModelAnalyzeInterval(const string& parent_routine, 
+//													   const INS& start_ins, 
+//													   const INS& end_ins)
+//{ return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
 
-VOID Core::perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-{ perf_model->logICacheLoadAccess(stats, hit); }
+//VOID Core::perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+//{ perf_model->logICacheLoadAccess(stats, hit); }
 
-VOID Core::perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-{ perf_model->logDCacheStoreAccess(stats, hit); }
+//VOID Core::perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
+//{ perf_model->logDCacheStoreAccess(stats, hit); }
 
-VOID Core::perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-{ perf_model->logBranchPrediction(stats, correct); }
+//VOID Core::perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
+//{ perf_model->logBranchPrediction(stats, correct); }
 
 
 // organic cache wrappers

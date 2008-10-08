@@ -1,15 +1,20 @@
 #include "transport.h"
+#include <cassert>
 
 
 Transport::PTQueue* Transport::pt_queue = NULL;
 
 Transport::Futex* Transport::pt_futx = NULL;
 
+UINT32 Transport::s_pt_num_mod = 0;
+
 void Transport::ptInitQueue(int num_mod)
 {
    int i;
+   assert(num_mod > 0);
    pt_queue = new PTQueue[num_mod];
    pt_futx = new Futex[num_mod];
+   s_pt_num_mod = (UINT32)num_mod;
 
    for(i = 0; i < num_mod; i++)
    {
@@ -23,12 +28,15 @@ int Transport::ptInit(int tid, int num_mod)
 {
    pt_tid = tid;
    pt_num_mod = num_mod;
+   assert((UINT32)pt_tid < s_pt_num_mod);
+   assert((UINT32)pt_num_mod == s_pt_num_mod);
    InitLock(&(pt_futx[tid].futx_lock));
    return 0;
 }
 
 int Transport::ptSend(int receiver, char *buffer, int size)
 {
+   assert(0 <= receiver && receiver < pt_num_mod);
    GetLock(&(pt_queue[receiver].pt_q_lock), 1);
    pt_queue[receiver].pt_queue.push(buffer);
    ReleaseLock(&(pt_queue[receiver].pt_q_lock));
@@ -49,6 +57,7 @@ int Transport::ptSend(int receiver, char *buffer, int size)
 char* Transport::ptRecv()
 {
    char *ptr;
+   assert(0 <= pt_tid && pt_tid < pt_num_mod);
    while(1)
    {
       GetLock(&(pt_futx[pt_tid].futx_lock), 1);
@@ -75,5 +84,6 @@ char* Transport::ptRecv()
 
 bool Transport::ptQuery()
 {
+   assert(0 <= pt_tid && pt_tid < pt_num_mod);
    return !(pt_queue[pt_tid].pt_queue.empty());
 }

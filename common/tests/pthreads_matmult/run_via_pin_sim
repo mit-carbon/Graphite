@@ -1,5 +1,12 @@
 #!/usr/bin/tcsh
 make
 setenv NUM 1
-#/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -msm -mdc -mpf -b 128 -n $NUM -- ./cannon -m $NUM -s $NUM
 /afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -mdc -b 128 -n $NUM -msm -- ./cannon -m $NUM -s $NUM
+#=======
+#!/bin/bash
+#make clean
+#make
+#export cores=64
+#/afs/csail.mit.edu/group/carbon/tools/pin/current/pin -mt -t ../../../pin/bin/pin_sim -mdc -mpf -n ${cores} -- ./cannon -m ${cores} -s ${cores}
+
+#>>>>>>> master:common/tests/pthreads_matmult/run_via_pin_sim

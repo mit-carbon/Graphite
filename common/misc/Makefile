@@ -5,7 +5,7 @@ OPT=-O2
 CFLAGS=-c -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = utils.cc 
+SOURCES = utils.cc config.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 
@@ -14,7 +14,7 @@ all: $(OBJECTS)
 
 ## build rules
 
-%.o : %.cc
+%.o : %.cc %.h
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 clean:

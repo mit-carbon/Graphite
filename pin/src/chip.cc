@@ -2,8 +2,10 @@
 
 // definitions
 
+//TODO: c++-ize this, please oh please!
 CAPI_return_t chipInit(int *rank)
 {
+   
    THREADID pin_tid = PIN_ThreadId();
 
 	GetLock(&(g_chip->maps_lock), 1); 
@@ -11,6 +13,7 @@ CAPI_return_t chipInit(int *rank)
    map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
 
    if ( e == g_chip->core_map.end() ) { 
+      assert(0 <= g_chip->prev_rank && g_chip->prev_rank < g_chip->num_modules);
       g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
       g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
       *rank = g_chip->prev_rank; 
@@ -55,16 +58,36 @@ CAPI_return_t chipRank(int *rank)
    return 0;
 }
 
+CAPI_return_t commRank(int *rank)
+{
+   int my_tid;
+   chipRank(&my_tid);
+   // FIXME: The network nodes should be moved up from within a core to
+   //  directly within a chip.  When this happens, this will have to change.
+   *rank = g_chip->core[my_tid].coreCommID();
+
+   return 0;
+}
+
 CAPI_return_t chipSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
                         char *buffer, int size)
 {
-   return g_chip->core[sender].coreSendW(sender, receiver, buffer, size);
+   int rank;
+   chipRank(&rank);
+   return g_chip->core[rank].coreSendW(sender, receiver, buffer, size);
 }
 
 CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
                         char *buffer, int size)
 {
-   return g_chip->core[receiver].coreRecvW(sender, receiver, buffer, size);
+   int rank;
+   chipRank(&rank);
+   /*
+   cout << "Starting receive on core " << rank << " (from:" << sender 
+	<< ", to:" << receiver << ", ptr:" << hex << &buffer << dec
+	<< ", size:" << size << ")" << endl;
+   */ 
+   return g_chip->core[rank].coreRecvW(sender, receiver, buffer, size);
 }
  //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
 CAPI_return_t chipHackFinish(int my_rank)
@@ -90,6 +113,7 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats)
 { 
    int rank; 
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats); 
 }
 
@@ -98,6 +122,7 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads,
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats, reads, num_reads); 
 }
 
@@ -106,6 +131,7 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats, dcache_load_hit, writes, num_writes); 
 }
 
@@ -113,15 +139,23 @@ VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
                                                 const INS& start_ins, const INS& end_ins)
 { 
+   /*   
    int rank;
    chipRank(&rank);
-   return g_chip->core[rank].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins); 
+   if (rank < 0) return NULL;
+   assert(0 <= rank && rank < g_chip->num_modules); 
+   */
+   // using zero is a dirty hack -- should be using rank to index into core array
+   // assuming its safe to use core zero to generate perfmodels for all cores
+   assert(g_chip->num_modules > 0);
+   return g_chip->core[0].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins); 
 }
 
 VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogICacheLoadAccess(stats, hit); 
 }
      
@@ -129,6 +163,7 @@ VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogDCacheStoreAccess(stats, hit); 
 }
 
@@ -136,6 +171,7 @@ VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogBranchPrediction(stats, correct); 
 }
 
@@ -146,6 +182,7 @@ bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    return g_chip->core[rank].icacheRunLoadModel(i_addr, size); 
 }
 
@@ -153,7 +190,7 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
-//	assert( size <= 4 );
+   assert(0 <= rank && rank < g_chip->num_modules);
    return g_chip->core[rank].dcacheRunLoadModel(d_addr, size); 
 }
 
@@ -161,7 +198,23 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
    return g_chip->core[rank].dcacheRunStoreModel(d_addr, size); 
+}
+
+// syscall model wrappers
+void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+{
+   int rank;
+   chipRank(&rank);
+   g_chip->syscall_model.runEnter(rank, ctx, syscall_standard);
+}
+
+void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+{
+   int rank;
+   chipRank(&rank);
+   g_chip->syscall_model.runExit(rank, ctx, syscall_standard);
 }
 
 // Chip class method definitions

@@ -34,9 +34,18 @@ class Transport{
       } Futex;
 
       static Futex *pt_futx;
+
+      static UINT32 s_pt_num_mod; // used for bounds checking only
 	
    public:	
       int ptInit(int tid, int num_mod);
+
+      // This does nothing but is needed so the interface matches the
+      //  other versions of the PT layer
+      static void ptFinish() {};
+
+      // CommID and ThreadID are the same in this version of the PT layer
+      int ptCommID() { return pt_tid; }
       int ptSend(int receiver, char *buffer, int length);
       char* ptRecv();
       bool ptQuery();

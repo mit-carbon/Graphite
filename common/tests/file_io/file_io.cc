@@ -15,7 +15,6 @@
 
 using namespace std;
 
-bool finished;
 
 #ifdef DEBUG
    pthread_mutex_t lock;
@@ -23,9 +22,10 @@ bool finished;
 
 // Functions executed by threads
 void* read_and_write(void * threadid);
-void* server_thread(void *dummy);
 
 int main(int argc, char* argv[]){ // main begins
+
+   initSyscallServer();
 	
    // Read in the command line arguments
    unsigned int numThreads = 1;
@@ -45,10 +45,6 @@ int main(int argc, char* argv[]){ // main begins
 #ifdef DEBUG
    cout << "Spawning threads" << endl;
 #endif
-   // FIXME: for now, this is how we give the syscall server a place to run
-   finished = false;
-   pthread_t server;
-   pthread_create(&server, &attr, server_thread, (void *) 0);
 
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_create(&threads[i], &attr, read_and_write, (void *) i);
@@ -57,9 +53,7 @@ int main(int argc, char* argv[]){ // main begins
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   // FIXME: for now, this is how we terminate the syscall server thread
-   finished = true;
-   pthread_join(server, NULL);
+   finiSyscallServer();
 
 #ifdef DEBUG
    cout << "This is the function main ending" << endl;
@@ -68,16 +62,6 @@ int main(int argc, char* argv[]){ // main begins
 
 } // main ends
 
-void* server_thread(void *dummy)
-{
-   initSyscallServer();
-
-   while( !finished )
-   {
-      runSyscallServer();
-   }   
-   pthread_exit(NULL);
-}
 
 void* read_and_write(void *threadid)
 {

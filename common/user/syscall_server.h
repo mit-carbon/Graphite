@@ -22,6 +22,7 @@ extern "C" {
    
    void initSyscallServer();
    void runSyscallServer();
+   void finiSyscallServer();
 
 }
 

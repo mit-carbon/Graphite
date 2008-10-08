@@ -1,19 +1,44 @@
+#include <pthread.h>
 #include "syscall_server.h"
 
+// Thread function
+void* server_thread(void *dummy);
 
+// Globals required for the syscall server
 SyscallServer *g_syscall_server = NULL;
-
+bool finished;
+pthread_t server;
 
 void initSyscallServer()
 {
-   if(!g_syscall_server)
-   {
-      g_syscall_server = new SyscallServer();
-   }
-   else
+   // Make sure this hasn't been called yet
+   if(g_syscall_server)
    {
        cout << "Error: tried to double init syscall server" << endl;
+       return;
    }
+
+   // Create the syscall server object
+   g_syscall_server = new SyscallServer();
+
+   // Create the syscall server thread
+   pthread_attr_t attr;
+   pthread_attr_init(&attr);
+   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+   // FIXME: for now, this is how we give the syscall server a place to run
+   finished = false;
+   pthread_create(&server, &attr, server_thread, (void *) 0);
+}
+
+void* server_thread(void *dummy)
+{
+
+   while( !finished )
+   {
+      runSyscallServer();
+   }   
+   pthread_exit(NULL);
 }
 
 void runSyscallServer() 
@@ -32,7 +57,10 @@ void finiSyscallServer()
 {
    if(g_syscall_server)
    {
-       delete g_syscall_server;
+      // FIXME: for now, this is how we terminate the syscall server thread
+      finished = true;
+      pthread_join(server, NULL);
+      delete g_syscall_server;
    }
 }
 

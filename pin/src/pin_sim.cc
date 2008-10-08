@@ -72,6 +72,8 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    if (skip_modeling)
      return;
 
+   assert( rank >= 0 && rank < g_chip->getNumModules() );
+
    assert( !do_network_modeling );
    assert( !do_bpred_modeling );
 

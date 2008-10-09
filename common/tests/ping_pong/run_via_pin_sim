@@ -1,3 +1,0 @@
-#!/bin/tcsh
-make
-/afs/csail.mit.edu/group/carbon/tools/pin/current/pin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -mpf -- ./ping_pong

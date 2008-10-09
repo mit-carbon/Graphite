@@ -1,10 +1,11 @@
-#include "transport.h"
+#include "mpitransport.h"
 
 //#define PT_DEBUG 1
 
 // Initialize class static variables (these are useless but required by C++)
 int Transport::pt_num_mod = 0;
 int* Transport::dest_ranks = NULL;
+UInt32 Transport::MCP_tag = 32767;
 
 // This routine should be executed once in each process
 void Transport::ptInitQueue(int num_mod)
@@ -21,6 +22,16 @@ void Transport::ptInitQueue(int num_mod)
    int provided;
    MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
    assert(provided >= MPI_THREAD_MULTIPLE);      
+
+   // Determine the tag to use for communication with the MCP by asking
+   //  for the maximum allowable tag value (tags must be between 0 and
+   //  this upper bound, inclusive).
+   int flag;
+   int* max_tag;
+   MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &max_tag, &flag);
+   // flag==false means that the attribute was not set
+   assert(flag == true);
+   MCP_tag = *max_tag;
 
    // FIXME?: We should probably just read the entire map of cores to
    //  processes from the config and skip all this swapping of core IDs.
@@ -99,6 +110,7 @@ int Transport::ptInit(int tid, int num_mod)
    int MPI_rank;
    // tid is my thread ID
    pt_tid = tid;
+   i_am_the_MCP = false;
 
    // comm_id is my communication network endpoint ID and is equivalent
    //  to module number
@@ -128,6 +140,22 @@ int Transport::ptInit(int tid, int num_mod)
    }
 
    return 0;
+}
+
+// This routine should be executed once in each thread
+void Transport::ptInitMCP()
+{
+   int MPI_rank;
+   i_am_the_MCP = true;
+   pt_tid = -1;
+
+   // Fill in the comm_id with the rank of my process (should always be
+   //  zero for now)
+   MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
+   comm_id = MPI_rank;  // Convert from int to whatever comm_id is
+   assert(comm_id == 0);
+
+   return;
 }
 
 int Transport::ptSend(int receiver, char *buffer, int size)
@@ -169,7 +197,7 @@ char* Transport::ptRecv()
    // Now we know that there is a message ready, check status to see how
    //  big it is and who the source is.
    MPI_Get_count(&status, MPI_BYTE, &pkt_size);
-   ASSERTX(status.MPI_SOURCE != MPI_UNDEFINED);
+   assert(status.MPI_SOURCE != MPI_UNDEFINED);
    source = status.MPI_SOURCE;
    
    // Allocate a buffer for the incoming message
@@ -205,4 +233,133 @@ bool Transport::ptQuery()
 
    // flag == 0 indicates that no message is waiting
    return (flag != 0);
+}
+
+void Transport::ptSendToMCP(UInt8* buffer, UInt32 num_bytes)
+{
+   // Arguments:
+   //   buffer = input, pointer to buffer of data to send
+   //   num_bytes = input, number of bytes to send starting from buffer
+   // Notes:
+   //  - The data is sent using MPI_BYTE so that MPI won't do any conversions.
+   //  - The MCP should always be located in the process with MPI rank 0
+   //  - We use MCP_tag to indicate messages to the MCP
+
+#ifdef PT_DEBUG
+   cout << "PT sending msg to MCP ==> tid:" << pt_tid
+	<< ", comm_id:" << comm_id <<
+	<< ", size:" << num_bytes << " ... ";
+#endif
+   //MPI_Send(data ptr, # elms, elm type, rank, tag, communicator);
+   MPI_Send((char*)buffer, num_bytes, MPI_BYTE, 0, MCP_tag, MPI_COMM_WORLD);
+#ifdef PT_DEBUG
+   cout << "done." << endl;
+#endif
+
+   return;
+}
+
+UInt8* Transport::ptRecvFromMCP(UInt32* num_bytes)
+{
+   MPI_Status status;
+
+#ifdef PT_DEBUG
+   cout << "PT (tid:" << pt_tid << ",cid:" << comm_id
+	<< ") attempting receive from MCP ..." << endl;
+#endif
+
+   // Probe for a message from the MCP process with our MCP comm tag.
+   // Use a blocking probe so that we wait until a message arrives.
+   int MCP_comm_tag = (MCP_tag-1) - comm_id;
+   MPI_Probe(0, MCP_comm_tag, MPI_COMM_WORLD, &status);
+ 
+   // Now we know that there is a message ready, check status to see how
+   //  big it is.
+   int pkt_size;
+   MPI_Get_count(&status, MPI_BYTE, &pkt_size);
+   *num_bytes = pkt_size;
+   
+   // Allocate a buffer for the incoming message
+   UInt8* buffer = new UInt8[*num_bytes];
+
+#ifdef PT_DEBUG
+   cout << "PT found msg from MCP ==> tid:" << pt_tid
+	<< ", comm_id:" << comm_id
+	<< ", size:" << *num_bytes << " ...";
+#endif
+
+   MPI_Recv(buffer, *num_bytes, MPI_BYTE, 0, MCP_comm_tag, MPI_COMM_WORLD,
+	    &status);
+   
+#ifdef PT_DEBUG
+   cout << "received." << endl;
+#endif
+
+   return buffer;
+   // NOTE: the caller should free the buffer when it's finished with it
+}
+
+void Transport::ptMCPSend(UInt32 dest, UInt8* buffer, UInt32 num_bytes)
+{
+   // Notes:
+   //  - The data is sent using MPI_BYTE so that MPI won't do any conversions.
+   //  - We can't use the destination comm_id as the tag because then
+   //    messages could get mixed up with regular user messages.  Instead
+   //    we pick a tag by subtracting our comm_id from the MCP_tag (which
+   //    should be the maximum allowable tag)
+
+#ifdef PT_DEBUG
+   cout << "PT (MCP) sending msg ==> dest:" << dest
+	<< ", size:" << num_bytes << " ... ";
+#endif
+   MPI_Send(buffer, num_bytes, MPI_BYTE, dest_ranks[dest], (MCP_tag-1)-dest,
+	    MPI_COMM_WORLD);
+#ifdef PT_DEBUG
+   cout << "done." << endl;
+#endif
+
+   return;
+}
+
+UInt8* Transport::ptMCPRecv(UInt32* num_bytes)
+{
+   MPI_Status status;
+   int pkt_size, source;
+   UInt8* buffer;
+
+#ifdef PT_DEBUG
+   cout << "PT (MCP) attempting receive..." << endl;
+#endif
+
+   // Probe for a message from any source but with the MCP tag.
+   // Use a blocking probe so that we wait until a message arrives.
+   MPI_Probe(MPI_ANY_SOURCE, MCP_tag, MPI_COMM_WORLD, &status);
+ 
+   // Now we know that there is a message ready, check status to see how
+   //  big it is and who the source is.
+   MPI_Get_count(&status, MPI_BYTE, &pkt_size);
+   assert(status.MPI_SOURCE != MPI_UNDEFINED);
+   source = status.MPI_SOURCE;
+   *num_bytes = pkt_size;
+   
+   // Allocate a buffer for the incoming message
+   buffer = new UInt8[*num_bytes];
+
+#ifdef PT_DEBUG
+   cout << "PT (MCP) found msg ==> source rank:" << source
+	<< ", size:" << *num_bytes << " ...";
+#endif
+
+   // We need to make sure the source here is the same as the one returned
+   //  by the call to Probe above.  Otherwise, we might get a message from
+   //  a different sender that could have a different size.
+   MPI_Recv(buffer, *num_bytes, MPI_BYTE, source, MCP_tag, MPI_COMM_WORLD,
+	    &status);
+   
+#ifdef PT_DEBUG
+   cout << "received." << endl;
+#endif
+
+   return buffer;
+   // NOTE: the caller should free the buffer when it's finished with it
 }

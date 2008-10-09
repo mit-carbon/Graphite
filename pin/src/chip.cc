@@ -208,6 +208,13 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    g_chip->syscall_model.runExit(rank, ctx, syscall_standard);
 }
 
+// syscall server wrappers
+void syscallServerRun()
+{
+   assert(g_syscall_server != NULL);
+   g_syscall_server->run();
+}
+
 // Chip class method definitions
 
 Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)

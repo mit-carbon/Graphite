@@ -2,12 +2,12 @@ include ../../common/makefile.gnu.config
 
 DBG=-g
 OPT=-O2
-CFLAGS=-c -I../../common/user -I../../common/core -I../../common/network -I../../common/phys_trans -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CFLAGS=-c -I../../common/user -I../../common/system -I../../common/core -I../../common/network -I../../common/phys_trans -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS= -pthread
 
 TOOL_ROOTS = ../bin/pin_sim
 SOURCES = chip.cc pin_sim.cc
-SRCOBJS = ../../common/user/*.o ../../common/core/*.o ../../common/network/*.o ../../common/phys_trans/*.o ../../common/misc/*.o
+SRCOBJS = ../../common/user/*.o ../../common/core/*.o ../../common/network/*.o ../../common/phys_trans/*.o ../../common/misc/*.o ../../common/system/*.o
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 TOOLS = $(TOOL_ROOTS:%=%$(PINTOOL_SUFFIX))

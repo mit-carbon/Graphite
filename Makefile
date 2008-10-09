@@ -2,7 +2,7 @@ include common/makefile.gnu.config
 
 PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
 PIN_TOOL=pin/bin/pin_sim
-PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
+PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 TESTS_DIR=./common/tests
 
 all:
@@ -12,9 +12,11 @@ all:
 
 use-mpi:
 	$(MAKE) use-mpi -C common/phys_trans
+	$(MAKE) clean -C common/phys_trans
 
 use-sm:
 	$(MAKE) use-sm -C common/phys_trans
+	$(MAKE) clean -C common/phys_trans
 
 pinbin:
 	$(MAKE) -C common

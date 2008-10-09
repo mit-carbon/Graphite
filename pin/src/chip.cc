@@ -31,6 +31,11 @@ CAPI_return_t chipInit(int *rank)
 CAPI_return_t chipRank(int *rank)
 {
    THREADID pin_tid = PIN_ThreadId();
+
+   // FIXME: This could be a big slow-down. Might want to do a full
+   // read/write lock.
+   GetLock(&(g_chip->maps_lock), 1);
+
    map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
    *rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
    bool rank_ok = (*rank < g_chip->getNumModules());
@@ -53,6 +58,8 @@ CAPI_return_t chipRank(int *rank)
 	   decstr(f->second) + ">\n");
      }
    }
+
+   ReleaseLock(&(g_chip->maps_lock));
    ASSERT(rank_ok, "Illegal rank value returned by chipRank!\n");
 
    return 0;

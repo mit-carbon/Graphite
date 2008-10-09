@@ -12,6 +12,7 @@
 #ifndef SYSCALL_SERVER_H
 #define SYSCALL_SERVER_H
 
+#include "transport.h"
 #include <iostream>
 
 using namespace std;
@@ -27,11 +28,14 @@ extern "C" {
 }
 
 class SyscallServer {
-private:
+   private:
+      Transport pt_endpt;
 
-public:
-   // interfaces with queues in PT layer to carry out syscalls 
-   void run();
+   public:
+      SyscallServer();
+
+      // interfaces with queues in PT layer to carry out syscalls 
+      void run();
 
 };
 

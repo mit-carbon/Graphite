@@ -65,6 +65,12 @@ void finiSyscallServer()
 }
 
 
+SyscallServer::SyscallServer()
+{
+   pt_endpt.ptInitMCP();
+}
+
+
 void SyscallServer::run()
 {
   // using PT_get_from_server_buff and PT_put_to_server_reply_buff, pull syscall

@@ -2,7 +2,7 @@ include ../makefile.gnu.config
 
 DBG=-g
 OPT=-O2
-CFLAGS=-c -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CFLAGS=-c -I../phys_trans -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
 SOURCES = capi.cc syscall_server.cc

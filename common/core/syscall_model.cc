@@ -41,6 +41,7 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
+            marshallOpenCall(ctx, syscall_standard);
          }
 
          break;
@@ -68,3 +69,7 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
    }
 }
 
+void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_number)
+{
+
+}

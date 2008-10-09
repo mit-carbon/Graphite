@@ -10,6 +10,7 @@
 
 #include <list>
 #include <iostream>
+#include <cassert>
 #include "pin.H"
 #include "fixed_types.h"
 
@@ -46,16 +47,16 @@ class Config {
    UInt32 numProcs() { return num_process; }
 
    // Return the number of modules (cores) in a given process
-   UInt32 numMods() { return num_modules[my_proc_num]; }
-   UInt32 numMods(UInt32 proc_num) { return num_modules[proc_num]; }
+   UInt32 numMods() { assert(my_proc_num < num_process); return num_modules[my_proc_num]; }
+   UInt32 numMods(UInt32 proc_num) { assert(proc_num < num_process); return num_modules[proc_num]; }
 
    // Return the total number of modules in all processes
    UInt32 totalMods() { return total_cores; }
 
    // Return an array of core numbers for a given process
    //  The returned array will have numMods(proc_num) elements
-   const CoreList getModuleList() { return core_map[my_proc_num]; }
-   const CoreList getModuleList(UInt32 proc_num) { return core_map[proc_num]; }
+   const CoreList getModuleList() { assert(my_proc_num < num_process); return core_map[my_proc_num]; }
+   const CoreList getModuleList(UInt32 proc_num) { assert(proc_num < num_process); return core_map[proc_num]; }
    
 };
 

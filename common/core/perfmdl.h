@@ -93,7 +93,10 @@ class PerfModelIntervalStat {
       {  return icache_load_miss_history_index; }
 
       bool getICacheLoadAccessMissStatus(UINT32 which)
-      {  return icache_load_miss_history[which]; }
+      {
+         ASSERTX( which < k_PERFMDL_INT_STATE_SIZE );
+         return icache_load_miss_history[which];
+      }
 
 
       VOID logDCacheLoadAccess(bool hit)
@@ -106,7 +109,10 @@ class PerfModelIntervalStat {
       {  return dcache_load_miss_history_index; }
 
       bool getDCacheLoadAccessMissStatus(UINT32 which)
-      {  return dcache_load_miss_history[which]; }
+      {
+         ASSERTX( which < k_PERFMDL_INT_STATE_SIZE );
+         return dcache_load_miss_history[which]; 
+      }
 
 
       VOID logDCacheStoreAccess(bool hit)
@@ -119,7 +125,10 @@ class PerfModelIntervalStat {
       {  return dcache_store_miss_history_index; }
 
       bool getDCacheStoreAccessMissStatus(UINT32 which)
-      {  return dcache_store_miss_history[which]; }
+      {
+         ASSERTX( which < k_PERFMDL_INT_STATE_SIZE );
+         return dcache_store_miss_history[which]; 
+      }
 
 
       VOID logBranchPrediction(bool correct)

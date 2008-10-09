@@ -198,14 +198,16 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    int rank;
    chipRank(&rank);
-   g_chip->syscall_model.runEnter(rank, ctx, syscall_standard);
+   if(rank >= 0)
+      g_chip->core[rank].getSyscallMdl()->runEnter(rank, ctx, syscall_standard);
 }
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    int rank;
    chipRank(&rank);
-   g_chip->syscall_model.runExit(rank, ctx, syscall_standard);
+   if(rank >= 0)
+      g_chip->core[rank].getSyscallMdl()->runExit(rank, ctx, syscall_standard);
 }
 
 // syscall server wrappers

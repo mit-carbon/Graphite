@@ -111,6 +111,8 @@ class Network{
 		
       virtual int netSend(NetPacket packet);
       virtual NetPacket netRecv(NetMatch match);
+
+      Transport *getTransport() { return transport; }
 };
 
 #endif

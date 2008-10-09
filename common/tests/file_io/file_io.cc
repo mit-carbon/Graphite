@@ -78,7 +78,7 @@ void* read_and_write(void *threadid)
 
    // Do the work
    int fid;
-   fid = open("./input", O_RDONLY);
+   fid = open("./common/tests/file_io/input", O_RDONLY);
 
    printf("File Descriptor: 0x%x\n", (unsigned int)fid);
 

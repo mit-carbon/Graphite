@@ -65,6 +65,9 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
       ocache = (OCache *) NULL;
    }   
 
+
+   syscall_model = new SyscallMdl(network);
+
    return 0;
 }
 

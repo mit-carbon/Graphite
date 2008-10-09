@@ -10,6 +10,7 @@
 
 // JME: not entirely sure why this is needed...
 class Network;
+class SyscallMdl;
 
 #include "pin.H"
 #include "config.h"
@@ -17,6 +18,7 @@ class Network;
 #include "network.h"
 #include "perfmdl.h"
 #include "ocache.h"
+#include "syscall_model.h"
 
 
 // externally defined vars
@@ -50,6 +52,7 @@ class Core
       Network *network;
       PerfModel *perf_model;
       OCache *ocache;
+      SyscallMdl *syscall_model;
 
    public:
 
@@ -61,6 +64,8 @@ class Core
       int coreSendW(int sender, int receiver, char *buffer, int size);
 
       int coreRecvW(int sender, int receiver, char *buffer, int size);
+
+      SyscallMdl *getSyscallMdl() { return syscall_model; }
 
       VOID fini(int code, VOID *v, ofstream& out);
 

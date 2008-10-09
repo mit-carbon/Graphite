@@ -140,7 +140,6 @@ class Chip
 
       Core *core;
 
-      SyscallMdl syscall_model;
 
    public:
 

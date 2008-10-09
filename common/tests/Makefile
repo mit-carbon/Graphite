@@ -1,13 +1,14 @@
 include ../makefile.gnu.config
 
-all: pthreadsmatmult pingpong
+#all: pthreadsmatmult pingpong
+all: pthreadsmatmult 
 
 
 pthreadsmatmult:
 	$(MAKE) -C pthreads_matmult
 
-pingpong:
-	$(MAKE) -C ping_pong
+#pingpong:
+#	$(MAKE) -C ping_pong
 
 clean:
 	$(MAKE) -C pthreads_matmult clean

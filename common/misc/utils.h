@@ -56,7 +56,7 @@ INT32 ceilLog2(UINT32 n);
 class BitVector {
    private:
       UINT32 size;
-//      const UINT32 VECTOR_SIZE;
+      const UINT32 VECTOR_SIZE;
       vector<UINT64> words;
       INT32 last_pos; //used in find function, for iterating through the set bits
 							  //marks the position of the last set bit found.
@@ -69,7 +69,8 @@ class BitVector {
       #endif
 
 //<<<<<<< HEAD:common/misc/utils.h
-		BitVector(UINT32 bits): size(bits), words( (bits + 64 - 1) >> 6 ), last_pos(-1) {} 
+//		BitVector(UINT32 bits): size(bits), words( (bits + 64 - 1) >> 6 ), last_pos(-1) {} 
+		BitVector(UINT32 bits): size(bits), VECTOR_SIZE((bits+64-1)>>6), words( (bits + 64 - 1) >> 6 ), last_pos(-1) {} 
 
 		//starting from position 'last_pos', find the next "1" bit. 
 		//private variable 'last_pos' remembers the last position found,

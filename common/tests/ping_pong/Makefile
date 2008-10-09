@@ -2,18 +2,17 @@
 include ../../makefile.gnu.config
 include ../../makefile.debug
 
-CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
-CC = /usr/bin/g++
+#CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
 #=======
 FORCE32 ?= 1
 
-CC += /usr/bin/g++
+#CC += /usr/bin/g++ #use mpi pushed from above
 ifeq (${FORCE32},1)
-  CFLAGS += -I../../user -c -g -Wall -m32
+  CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -I../../user -c -g -Wall -m32
   LDFLAGS = -m32 -m elf_i386
 else
-  CFLAGS += -I../../user -c -g -Wall
-  LDFLAGS = 
+  CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -I../../user -c -g -Wall
+  LDFLAGS += 
 endif
 #>>>>>>> master:common/tests/ping_pong/Makefile
 SOURCES = ../../user/capi.cc ping_pong.cc
@@ -24,10 +23,12 @@ OBJECTS = $(SOURCES:%.cc=%.o)
 all: ping_pong
 
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+#	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 ping_pong: $(OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
+#	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 

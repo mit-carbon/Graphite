@@ -5,7 +5,8 @@ make
 
 #/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -- ./test
 #/afs/csail.mit.edu/group/carbon/tools/pin/previous/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -- ./test
-/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -- ./test
+#mpirun -np 1 /afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -tc 2 -- ./test
+/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -tc 3 -- ./test
 #/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 1 -mdc -msm -- ./test
 
 #/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 16  -- ./test

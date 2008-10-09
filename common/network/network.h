@@ -128,7 +128,7 @@ class Network{
 	  string packetTypeToString(PacketType type);  
 //=======
 //      Network(Chip *chip, int tid, int num_threads); original, i think it needs the core arg though
-      Network(Chip *chip, int tid, int num_threads, Core *the_core_arg);
+      Network(Chip *chip, int tid, int num_threads, Core* the_core_arg);
       virtual ~Network(){};
       
       int netCommID() { return transport->ptCommID(); }

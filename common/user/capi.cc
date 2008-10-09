@@ -1,5 +1,5 @@
 #include "capi.h"
-
+#include <iostream>
 using namespace std;
 
 // Stub implementations of user level message passing functions declared in capi.h

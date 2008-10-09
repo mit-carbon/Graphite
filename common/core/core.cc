@@ -25,10 +25,10 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    switch(net_model)
    {
        case NETWORK_BUS:
-           network = new Network(chip, tid, num_mod);
+           network = new Network(chip, tid, num_mod, this);
            break;
        case NETWORK_ANALYTICAL_MESH:
-           network = new NetworkMeshAnalytical(chip, tid, num_mod);
+           network = new NetworkMeshAnalytical(chip, tid, num_mod, this);
            break;
        case NUM_NETWORK_TYPES:
        default:

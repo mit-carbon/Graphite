@@ -2,11 +2,12 @@
 #define NETWORK_MESH_ANALYTICAL_H
 
 #include "network.h"
+#include "core.h"
 
 class NetworkMeshAnalytical : public Network
 {
  public:
-    NetworkMeshAnalytical(Chip *chip, int tid, int num_threads);
+    NetworkMeshAnalytical(Chip *chip, int tid, int num_threads, Core* the_core);
     virtual ~NetworkMeshAnalytical();
 
     virtual int netSend(NetPacket packet);

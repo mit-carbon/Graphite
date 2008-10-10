@@ -64,7 +64,7 @@ int main(int argc, char* argv[]){ // main begins
 #endif
 
       pthread_create(&threads[0], &attr, do_nothing, (void *) 0);    
-      pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
+//      pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
 
 #ifdef DEBUG
    pthread_mutex_lock(&lock);
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]){ // main begins
 
 	// Wait for all threads to complete
         pthread_join(threads[0], NULL);         
-        pthread_join(threads[1], NULL);
+//        pthread_join(threads[1], NULL);
 
 #ifdef DEBUG
 	cout << "End of execution" << endl << endl;
@@ -124,7 +124,7 @@ void* do_nothing(void *threadid)
 		cout << "Core: " << tid << " being instrumented." << endl;
 		pthread_mutex_unlock(&lock);
 
-		instrument_me( );
+//		instrument_me( );
 		
 		pthread_mutex_lock(&lock);
 		cout << "Core: " << tid << " finished instrumenting." << endl;

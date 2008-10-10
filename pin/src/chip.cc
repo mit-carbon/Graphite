@@ -98,7 +98,8 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
  //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
 CAPI_return_t chipHackFinish(int my_rank)
 {
-	cout << "FINISHED: CORE [" << my_rank << "] " << endl;
+	cerr << "HACK---- please remove chipHackFInish...... " << endl;
+	cerr << "FINISHED: CORE [" << my_rank << "] " << endl;
 	bool volatile finished = false;
 	
 	//debugging shared memory

@@ -211,22 +211,27 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 				<< " Packet.data: " << hex << ((RequestPayload*) packet.data)->request_address;
 //		debugPrint(the_core->getRank(), "MMU", ss.str());
 		debugPrintReqPayload(payload);
-#endif
 
 		ss.str("");
       ss << "   START netSend: to Tile<" << home_node_rank << "> " ;
 		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
+#endif
 	   (the_core->getNetwork())->netSend(packet);
+#ifdef MMU_DEBUG
 		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netSend ");
+#endif
 
 	   // receive the requested data (blocking receive)
 		NetMatch net_match = makeNetMatch( resp_msg_type, home_node_rank );
+#ifdef MMU_DEBUG
 		ss.str("");
 		ss << "   START netRecv: from Tile <" << net_match.sender << "> " ; 
 		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
+#endif
 		NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+#ifdef MMU_DEBUG
 		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netRecv");
-
+#endif
 	   // TODO: we don't actually send back the data because we're just modeling performance (for now)
 	   UpdatePayload* recv_payload = (UpdatePayload*)(recv_packet.data);
 

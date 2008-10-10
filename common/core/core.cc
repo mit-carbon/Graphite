@@ -227,7 +227,7 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 		
 		//NOTE: this method of multi-line accesses cache-aligns the addresses.  
 		ADDRINT begin_addr = d_addr - ( d_addr % ocache->dCacheLineSize() );
-		debugPrint(getRank(), "Core", "TRapping ++++++ into SHARED_MEMORY");
+//		debugPrint(getRank(), "Core", "TRapping ++++++ into SHARED_MEMORY");
 		for( ADDRINT temp_addr = begin_addr ; temp_addr < ( d_addr + size ); temp_addr += ocache->dCacheLineSize() ) 
 		{
 			//access one cache line at a time
@@ -241,7 +241,7 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 			}
 		}
 		
-		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY");
+//		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY");
 	return all_hits;		    
 /******************************************/		
 /*		bool ret = false; 
@@ -293,7 +293,7 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 
 //		for( ADDRINT temp_addr = d_addr; temp_addr < ( ( d_addr+size ) - (( d_addr+size ) % ocache->dCacheLineSize() ) + ocache->dCacheLineSize() ); temp_addr += ocache->dCacheLineSize()) 
 		ADDRINT begin_addr = d_addr - ( d_addr % ocache->dCacheLineSize() );
-		debugPrint(getRank(), "Core", "TRapping ++++++ into SHARED_MEMORY STORE");
+//		debugPrint(getRank(), "Core", "TRapping ++++++ into SHARED_MEMORY STORE");
 		for( ADDRINT temp_addr = begin_addr ; temp_addr < ( d_addr + size ); temp_addr += ocache->dCacheLineSize() ) 
 		{
 			//access one cache line at a time
@@ -304,7 +304,7 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 			}
 		}
 		
-		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY STORE");
+//		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY STORE");
 	return all_hits;		    
 /******************************************/		
 /*		

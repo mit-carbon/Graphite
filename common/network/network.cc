@@ -1,6 +1,6 @@
 #include "network.h"
 #include "debug.h"
-#define NETWORK_DEBUG
+//#define NETWORK_DEBUG
 using namespace std;
 
 //<<<<<<< HEAD:common/network/network.cc
@@ -535,10 +535,6 @@ void Network::netEntryTasks()
             }
          }
       }
-
-		stringstream ss;
-		ss << "NetEntryTasks: received message TYPE: " << type;
-		debugPrint(net_tid, "NETWORK", ss.str());
 
 	  if(type == SHARED_MEM_REQ)
       {

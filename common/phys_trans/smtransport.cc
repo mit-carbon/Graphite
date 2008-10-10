@@ -58,26 +58,36 @@ char* Transport::ptRecv()
 {
    char *ptr;
    assert(0 <= pt_tid && pt_tid < pt_num_mod);
+
+//		cerr << "[" << pt_tid << "] TRANSPORT: before WHILE LOOP, inside ptRecv" << endl;
    while(1)
    {
       GetLock(&(pt_futx[pt_tid].futx_lock), 1);
+//   	cerr << "[" << pt_tid << "] TRANSPORT: before futex, gotten lock 1" << endl;
 
       if(pt_queue[pt_tid].pt_queue.empty())
          pt_futx[pt_tid].futx = 0;
 
       ReleaseLock(&(pt_futx[pt_tid].futx_lock));
+   	cerr << "[" << pt_tid << "] TRANSPORT: before SYSCALL futex, 2" << endl;
+//both cores are freezing before syscall for futex.
       syscall(SYS_futex, (void*)&(pt_futx[pt_tid].futx), FUTEX_WAIT, 0, NULL, NULL, 1);
+//   	cerr << "[" << pt_tid << "] TRANSPORT: after SYSCALL futex, 2" << endl;
       if(!pt_queue[pt_tid].pt_queue.empty())
          break;
     }
-
+                                                           
+//	cerr << "[" << pt_tid << "] TRANSPORT: after futex, getting lock " << endl;
     GetLock(&(pt_queue[pt_tid].pt_q_lock), 1);
+
+
 
     // HK
     // FIXME: Should this be pt_queue.top()?
 	 ptr = pt_queue[pt_tid].pt_queue.front();
     pt_queue[pt_tid].pt_queue.pop();
-    ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));
+    ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));                               
+	cerr << "[" << pt_tid << "] TRANSPORT: after futex, releasing lock , RETURNING from ptRecv" << endl;
 
     return ptr;
 }

@@ -21,9 +21,7 @@ pthread_mutex_t lock;
 // Function executed by each thread
 void* do_nothing(void *threadid);
 
-//pintool will ONLY instrument this function (hopefully)
-//int instrument_me(int tid, int* ptr);
-//void instrument_me(int tid);
+//you can set pinsim to ONLY instrument this function
 void instrument_me();
 
 int main2(int argc, char* argv[]) {
@@ -52,10 +50,6 @@ int main(int argc, char* argv[]){ // main begins
 	
 #ifdef DEBUG
 	cout << "This is the function main()" << endl;
-#endif
-	// Initialize global variables
-
-#ifdef DEBUG
 	cout << "Initializing thread structures" << endl << endl;
 	pthread_mutex_init(&lock, NULL);
 #endif
@@ -99,9 +93,9 @@ void* do_nothing(void *threadid)
 #endif
    
 	int tid;
-	cout << "blah" << endl;
+	cout << "start capi_init" << endl;
 	CAPI_Initialize(&tid);
-	cout << "end cap init" << endl;
+	cout << "end   capi_init" << endl;
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -120,7 +114,6 @@ void* do_nothing(void *threadid)
 		cout << "gint_ptr : " << global_integer_ptr << endl;
 		pthread_mutex_unlock(&lock);
 
-//		instrument_me( tid , &size);
 		instrument_me( );
 		
 		pthread_mutex_lock(&lock);
@@ -131,7 +124,6 @@ void* do_nothing(void *threadid)
 		cout << "Core: " << tid << " being instrumented." << endl;
 		pthread_mutex_unlock(&lock);
 
-//		instrument_me( tid , &size );
 		instrument_me( );
 		
 		pthread_mutex_lock(&lock);
@@ -140,7 +132,6 @@ void* do_nothing(void *threadid)
    }
    CAPI_Finish(tid);
 	pthread_exit(NULL);  
-   // return 0;
 }
 
 /*
@@ -174,10 +165,6 @@ void instrument_me()
    
 	
    pthread_mutex_unlock(&lock);
-
-//    cout << "Core [" << tid << "] Finished with Instrumenting Me Addr of tid: " << &tid << endl;
-//   return tid;
-
 
 //	int x = 10, y;
 /*	int x,y;

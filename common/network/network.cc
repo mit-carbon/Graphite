@@ -1,6 +1,6 @@
 #include "network.h"
 #include "debug.h"
-
+#define NETWORK_DEBUG
 using namespace std;
 
 //<<<<<<< HEAD:common/network/network.cc
@@ -116,6 +116,9 @@ NetPacket Network::netRecv(NetMatch match)
 
 #ifdef NETWORK_DEBUG
    debugPrint(net_tid, "NETWORK", "netRecv starting...");
+   stringstream ss;
+	ss <<  "Receiving packet type: " << match.type << " from " << match.sender;
+	debugPrint(net_tid, "NETWORK", ss.str());
 	printNetMatch(match, net_tid);
 #endif  
    
@@ -221,6 +224,16 @@ NetPacket Network::netRecv(NetMatch match)
 #endif			
 	      
 			Network::netExPacket(buffer, entry.packet, entry.time);
+#ifdef NETWORK_DEBUG
+			printf("\n\n\n\n*******************\n\n\n\n");
+			stringstream ss;
+			ss <<  "Network received packetType: " << entry.packet.type  << " from " << entry.packet.sender;
+			debugPrint(net_tid, "NETWORK",  ss.str());
+			ss.str("");
+			ss <<  "Clock: " << the_chip->getProcTime(net_tid) << "  packet time stamp: " << entry.time;
+			debugPrint(net_tid, "NETWORK", ss.str());
+			printf("\n\n\n\n*******************\n\n\n\n");
+#endif
          assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
 			assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
@@ -243,7 +256,7 @@ NetPacket Network::netRecv(NetMatch match)
 
 #ifdef NETWORK_DEBUG
    printNetPacket(packet);
-	stringstream ss;
+	ss.str("");
 	ss << "Net Recv Received Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
 	debugPrint(net_tid, "NETWORK", ss.str());
    debugPrint(net_tid, "NETWORK", "netRecv - leaving");
@@ -467,6 +480,10 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
 
 void Network::netEntryTasks()
 {
+	// HK
+	// FIXME
+	// The clock updation model for interrupts could be made smarter
+	
    // These are a set of tasks to be performed every time the SMEM layer is
    // entered
    char *buffer;
@@ -486,17 +503,18 @@ void Network::netEntryTasks()
 
    }
    
-   do
+   do //while(type!=INVALID)
    {
       sender = -1;
       type = INVALID;
-      entry.time = the_chip->getProcTime(net_tid);
+      entry.time = 0;
+		//entry.time = the_chip->getProcTime(net_tid);
      
       for(int i = 0; i < net_num_mod; i++)
       {
          if(!net_queue[i][SHARED_MEM_REQ].empty())
          {
-            if(entry.time >= net_queue[i][SHARED_MEM_REQ].top().time)
+            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_REQ].top().time))
             {
               entry = net_queue[i][SHARED_MEM_REQ].top();
               sender = i;
@@ -509,7 +527,7 @@ void Network::netEntryTasks()
       {
          if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
          {
-            if(entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time)
+            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time))
             {
                entry = net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top();
                sender = i;
@@ -517,6 +535,10 @@ void Network::netEntryTasks()
             }
          }
       }
+
+		stringstream ss;
+		ss << "NetEntryTasks: received message TYPE: " << type;
+		debugPrint(net_tid, "NETWORK", ss.str());
 
 	  if(type == SHARED_MEM_REQ)
       {
@@ -529,6 +551,10 @@ void Network::netEntryTasks()
          debugPrint(net_tid, "NETWORK", "core received shared memory request.");
 #endif
          the_core->getMemoryManager()->addMemRequest(entry.packet);
+			if(the_chip->getProcTime(net_tid) < entry.time)
+			{
+				the_chip->setProcTime(net_tid, entry.time);
+			}
 //         the_core->getMemoryManager()->processSharedMemReq(entry.packet);
 
 #ifdef NETWORK_DEBUG
@@ -541,11 +567,14 @@ void Network::netEntryTasks()
 		  assert(0 <= sender && sender < net_num_mod);
 		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
         net_queue[sender][type].pop();
-//      debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
+      debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
         //TODO possibly rename this to addUnexpectedShareMemUpdate(packet)
         the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
-//      the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
-//      debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
+		  if(the_chip->getProcTime(net_tid) < entry.time)
+		  {
+			  the_chip->setProcTime(net_tid, entry.time);
+		  }
+      debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
       }
 //=======
 //	assert(0 <= sender && sender < net_num_mod);
@@ -576,12 +605,12 @@ void Network::netEntryTasks()
 
 UINT64 Network::netProcCost(NetPacket packet)
 {
-      return 10;
+      return 0;
 };
 
 UINT64 Network::netLatency(NetPacket packet)
 {
-      return 30;
+      return 0;
 };
 
 // Only here for debugging

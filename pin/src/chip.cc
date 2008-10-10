@@ -5,7 +5,6 @@
 //TODO: c++-ize this, please oh please!
 CAPI_return_t chipInit(int *rank)
 {
-   
    THREADID pin_tid = PIN_ThreadId();
 
 	GetLock(&(g_chip->maps_lock), 1); 

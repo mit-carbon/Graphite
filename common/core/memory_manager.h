@@ -136,6 +136,7 @@ class MemoryManager
 	void addRequestToQueue( NetPacket packet );
 	NetPacket getNextRequest();
 
+	void debugPrintReqPayload(RequestPayload payload);
  public:
 //	NetPacket makePacket( PacketType pt, int sender, int receiver, UINT32 payload_size);
 //	NetMatch makeNetMatch( PacketType pt, int sender);

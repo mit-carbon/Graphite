@@ -69,7 +69,16 @@ int main(int argc, char* argv[]){ // main begins
 void* ping(void *threadid)
 {
    int tid;
+#ifdef DEBUG  
+   pthread_mutex_lock(&lock);
+   cout << "executing ping function" << endl << endl;
+   pthread_mutex_unlock(&lock);
+#endif
    CAPI_Initialize(&tid);
+
+   pthread_mutex_lock(&lock);
+	cout << "ping says finished capi_init" << endl;
+   pthread_mutex_unlock(&lock);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -100,7 +109,16 @@ void* ping(void *threadid)
 void* pong(void *threadid)
 {
    int tid;
+#ifdef DEBUG  
+   pthread_mutex_lock(&lock);
+   cout << "executing pong function" << endl << endl;
+   pthread_mutex_unlock(&lock);
+#endif
    CAPI_Initialize(&tid);
+ 
+   pthread_mutex_lock(&lock);
+	cout << "pong finished with capi_init" << endl;
+   pthread_mutex_unlock(&lock);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);

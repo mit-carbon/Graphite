@@ -1,5 +1,6 @@
 #include "memory_manager.h"
-
+//#define MMU_DEBUG
+//#define MMU_CACHEHIT_DEBUG
 using namespace std;
 
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
@@ -27,6 +28,15 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
 MemoryManager::~MemoryManager()
 {
+}
+
+
+void MemoryManager::debugPrintReqPayload(RequestPayload payload)
+{
+	stringstream ss;
+	ss << " RequestPayload - RequestType(" << sMemReqTypeToString(payload.request_type)
+		<< ") ADDR( " << hex << payload.request_address << ")"; 
+	debugPrint(the_core->getRank(), "MMU", ss.str());
 }
 
 NetPacket makePacket(PacketType packet_type, int sender_rank, int receiver_rank, UINT32 payload_size)
@@ -94,10 +104,9 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 {
 
-//	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq +++++++++");
 #ifdef MMU_DEBUG
 	debugPrint(the_core->getRank(), "MMU", "initiateSharedMemReq +++++++++");
-   dram_dir->print();
+//   dram_dir->print();
 	debugPrintString(the_core->getRank(), "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
 #endif
 
@@ -160,7 +169,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 		//before we crash let's print out some important state info
 		ss.str("");
 		ss << "  Address: " << hex << address << " , type: " << sMemReqTypeToString(shmem_req_type) << ", size= " << size;
-//		debugPrint(my_rank, "MMU", ss.str());
+		debugPrint(my_rank, "MMU", ss.str());
 	}
 	assert( cache_model_results.second != NULL );
    
@@ -200,22 +209,23 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 		ss << "Addr: " << hex << address 
 				<< " Payload.Addr: " << hex << payload.request_address
 				<< " Packet.data: " << hex << ((RequestPayload*) packet.data)->request_address;
-		debugPrint(the_core->getRank(), "MMU", ss.str());
+//		debugPrint(the_core->getRank(), "MMU", ss.str());
+		debugPrintReqPayload(payload);
 #endif
 
 		ss.str("");
       ss << "   START netSend: to Tile<" << home_node_rank << "> " ;
-//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
+		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
 	   (the_core->getNetwork())->netSend(packet);
-//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netSend ");
+		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netSend ");
 
 	   // receive the requested data (blocking receive)
 		NetMatch net_match = makeNetMatch( resp_msg_type, home_node_rank );
 		ss.str("");
 		ss << "   START netRecv: from Tile <" << net_match.sender << "> " ; 
-//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
+		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
 		NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-//		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netRecv");
+		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", "   END   netRecv");
 
 	   // TODO: we don't actually send back the data because we're just modeling performance (for now)
 	   UpdatePayload* recv_payload = (UpdatePayload*)(recv_packet.data);
@@ -244,7 +254,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    // do nothing shared mem related
 
 #ifdef MMU_DEBUG
-	dram_dir->print();
+//	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------");
 #endif
    return native_cache_hit;

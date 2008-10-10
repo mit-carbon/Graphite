@@ -65,13 +65,13 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
          if ( fd == 8 )
 	 {
 	    called_read = true;
-            cout << "read(" << fd << hex << ", 0x" << read_buf << dec << ", " << read_count << endl;
+            cout << "read(" << fd << hex << ", " << read_buf << dec << ", " << read_count << ")" << endl;
 
             marshallReadCall(ctx, syscall_standard);
 
 
             // safer than letting the original syscall go
-            PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
+            // PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
 	 }
 
 	 break;
@@ -103,8 +103,27 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
 void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
+   /*
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       MSGTYPE_SYSCALL     int
+       COMM_ID             int
+       SYSCALL_NUMBER      char
+       FILE_NAME           char[]
+       STATUS_FLAGS        int
+
+       Receive
+       
+       Field               Type
+       -----------------|--------
+       STATUS              int       
+
+   */
+
    int commid;
-   UInt8 buf [1024];
+   char buf[1024];
 
    int syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
    char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
@@ -112,33 +131,35 @@ void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
 
    commRank(&commid);
-   UInt32 *buf32 = (UInt32 *)buf;
-   buf32[0] = 0;
-   buf32[1] = commid;
-   buf[sizeof(UInt32)*2] = syscall_number;
+   int *buf_int = (int *) buf;
+   buf_int[0] = 0;
+   buf_int[1] = commid;
+   buf[sizeof(int)*2] = syscall_number;
 
    cout << "sending syscall number: " << (int)syscall_number << endl;
 
-   UInt32 len = sizeof(UInt32)*2+1;
-
-   memcpy(&buf[len], path, strlen(path));
-   len += strlen(path);
+   UInt32 offset = sizeof(int)*2+1;
+   UInt32 size = strlen(path);
+   memcpy(&buf[offset], path, size);
+   offset += size;
 
    // null terminate
-   buf[len] = 0;
-   len++;
+   buf[offset] = '\0';
+   offset++;
 
    cout << "flags expected: " << flags << endl;
 
-   memcpy(&buf[len], &flags, sizeof(flags));
-   len += sizeof(flags);
+   memcpy(&buf[offset], &flags, sizeof(flags));
+   offset += sizeof(flags);
 
-   the_network->getTransport()->ptSendToMCP(buf, len);
+   // offset is now the total length
+   the_network->getTransport()->ptSendToMCP((UInt8 *) buf, offset);
 
-   // re-use our old lenth variable now that it is already sent
-   UInt8 *reply = the_network->getTransport()->ptRecvFromMCP(&len);
+   UInt32 len;
+   char *reply = (char *) the_network->getTransport()->ptRecvFromMCP(&len);
+   assert( len == sizeof(int) );
 
-   int *reply_int = (int *)reply;
+   int *reply_int = (int *) reply;
    ret_val = reply_int[0];
 
    cout << "got retval: " << ret_val << endl;
@@ -148,6 +169,10 @@ void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
 void SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
+  //int syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
+   
+
+
 
 
 }

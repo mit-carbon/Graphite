@@ -39,10 +39,10 @@ class SyscallServer {
 
    private:
 
-      void handleSyscall(UInt32 comm_id, UInt8* buf);
+      void handleSyscall(UInt32 comm_id, char* buf);
 
-      void marshallOpenCall(UInt32 from, UInt8* buf);
-      void marshallReadCall(UInt32 from, UInt8* buf);
+      void marshallOpenCall(UInt32 comm_id, char* buf);
+      void marshallReadCall(UInt32 comm_id, char* buf);
 };
 
 

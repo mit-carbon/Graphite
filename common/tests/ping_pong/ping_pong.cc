@@ -42,12 +42,24 @@ int main(int argc, char* argv[]){ // main begins
 #ifdef DEBUG
 	cout << "Spawning threads" << endl << endl;
 #endif
+   pthread_mutex_lock(&lock);
+	cout << "Creating Thread#0." << endl << endl;
+   pthread_mutex_unlock(&lock);
         pthread_create(&threads[0], &attr, ping, (void *) 0);    
+   pthread_mutex_lock(&lock);
+	cout << "Creating Thread#1." << endl << endl;
+   pthread_mutex_unlock(&lock);
         pthread_create(&threads[1], &attr, pong, (void *) 1);    
+
+   pthread_mutex_lock(&lock);
+	cout << "Starter thread is waiting for the other threads to join." << endl << endl;
+   pthread_mutex_unlock(&lock);
 
 	// Wait for all threads to complete
         pthread_join(threads[0], NULL);         
         pthread_join(threads[1], NULL);
+	
+	cout << "Finished running PingPong!." << endl << endl;
 
         return 0;
 } // main ends

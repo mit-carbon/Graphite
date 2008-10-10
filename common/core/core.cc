@@ -324,7 +324,6 @@ bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
 #endif
-       debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
 	   return ocache->runDCacheStoreModel(d_addr, size).first;
    }
 }

@@ -44,11 +44,16 @@ io_test: all
 
 ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
+#	$(PIN_RUN) -mdc -mpf -msm -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 pthread_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 	$(PIN_RUN) -mdc -mpf -msys -n 64 -- $(TESTS_DIR)/pthreads_matmult/cannon -m 64 -s 64
+
+shmem_test: all
+	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
+	$(PIN_RUN) -mdc -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test
 
 love:
 	echo "not war!"

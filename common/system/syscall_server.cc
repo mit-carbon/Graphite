@@ -104,6 +104,24 @@ void SyscallServer::marshallOpenCall(UInt32 comm_id, char* buf)
 
 void SyscallServer::marshallReadCall(UInt32 comm_id, char* buf)
 {
+
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       FILE_DESCRIPTOR     int
+       COUNT               size_t
+
+       Transmit
+       
+       Field               Type
+       -----------------|--------
+       STATUS              int
+       BUFFER              void *      
+
+   */   
+
    cout << "Read syscall from: " << comm_id << endl;
 
   

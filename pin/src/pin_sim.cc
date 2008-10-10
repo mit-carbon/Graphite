@@ -23,6 +23,7 @@
 
 #include "pin.H"
 #include "utils.h"
+#include "bit_vector.h"
 #include "config.h"
 #include "chip.h"
 #include "cache.h"

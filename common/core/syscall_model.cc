@@ -169,7 +169,28 @@ void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
 void SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-  //int syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
+
+   /*
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       MSGTYPE_SYSCALL     int
+       COMM_ID             int
+       SYSCALL_NUMBER      char
+       FILE_DESCRIPTOR     int
+       COUNT               size_t
+
+       Receive
+       
+       Field               Type
+       -----------------|--------
+       STATUS              int
+       BUFFER              void *       
+
+   */
+
+   //int syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
    
 
 

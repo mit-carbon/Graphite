@@ -49,6 +49,11 @@ void SyscallServer::handleSyscall(UInt32 comm_id, UInt8* buf)
          marshallOpenCall(comm_id, (UInt8*)&buf[1]);
          break;
       }
+      case SYS_read:
+      {
+	 marshallReadCall(comm_id, (UInt8*)&buf[1]);
+         break;
+      }
       default:
       {
          cout << "Unhandled syscall number: " << (int)syscall_number << " from: " << comm_id << endl;
@@ -80,4 +85,9 @@ void SyscallServer::marshallOpenCall(UInt32 comm_id, UInt8* buf)
    pt_endpt.ptMCPSend(comm_id,reply,sizeof(int));
 }
 
+void SyscallServer::marshallReadCall(UInt32 comm_id, UInt8* buf)
+{
+   cout << "Read syscall from: " << comm_id << endl;
 
+  
+}

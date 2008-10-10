@@ -4,6 +4,7 @@
 #include "transport.h"
 
 bool called_open = false;
+bool called_read = false;
 int ret_val = 0;
 
 SyscallMdl::SyscallMdl(Network *net)
@@ -23,6 +24,11 @@ void SyscallMdl::runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    {
       PIN_SetContextReg(ctx, REG_EAX, ret_val);
       called_open = false;
+   }
+   if(called_read)
+   {
+      
+
    }
 }
 
@@ -51,6 +57,26 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
          break;
       }
+      case SYS_read:
+      {
+	 int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+         void *read_buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
+         size_t read_count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
+         if ( fd == 8 )
+	 {
+	    called_read = true;
+            cout << "read(" << fd << hex << ", 0x" << read_buf << dec << ", " << read_count << endl;
+
+            marshallReadCall(ctx, syscall_standard);
+
+
+            // safer than letting the original syscall go
+            PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
+	 }
+
+	 break;
+      }
+
       // case SYS_write:
       // {
       //    cout << "write(";
@@ -72,6 +98,7 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 //         cout << "SysCall: " << (int)syscall_number << endl;
          break;
    }
+
 }
 
 void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
@@ -115,5 +142,12 @@ void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    ret_val = reply_int[0];
 
    cout << "got retval: " << ret_val << endl;
+
+}
+
+
+void SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+{
+
 
 }

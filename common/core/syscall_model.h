@@ -11,8 +11,8 @@ class SyscallMdl
    private:
       Network *the_network;
 
-
       void marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      void marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
    public:
       SyscallMdl(Network *net);

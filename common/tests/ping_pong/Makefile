@@ -1,5 +1,5 @@
 #<<<<<<< HEAD:common/tests/ping_pong/Makefile
-#include ../../makefile.gnu.config
+include ../../makefile.gnu.config
 #include ../../makefile.debug
 
 #CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall

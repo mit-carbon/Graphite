@@ -244,8 +244,7 @@ class CacheBase
       } CacheType;
 
    protected:
-      static const UINT32 k_HIT_MISS_NUM = 2;
-      CacheStats access[k_ACCESS_TYPE_NUM][k_HIT_MISS_NUM];
+      CacheStats access[k_ACCESS_TYPE_NUM][2];
 
    protected:
       // input params

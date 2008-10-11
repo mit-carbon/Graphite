@@ -33,9 +33,12 @@ class SyscallServer {
       Transport pt_endpt;
       UnstructuredBuffer send_buff;
       UnstructuredBuffer recv_buff;
+      const UInt32 SYSCALL_SERVER_MAX_BUFF;
+      char *scratch;
 
    public:
       SyscallServer();
+      ~SyscallServer();
 
       // interfaces with queues in PT layer to carry out syscalls 
       void run();

@@ -3,8 +3,7 @@
 #include "chip.h"
 #include "transport.h"
 
-bool called_open = false;
-bool called_read = false;
+bool called_enter = false;
 int ret_val = 0;
 
 SyscallMdl::SyscallMdl(Network *net)
@@ -20,15 +19,10 @@ void SyscallMdl::runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    //PIN_SetContextReg(ctx, REG_INST_PTR, return_addr);
    //PIN_ExecuteAt(ctx);
 
-   if(called_open)
+   if(called_enter)
    {
       PIN_SetContextReg(ctx, REG_EAX, ret_val);
-      called_open = false;
-   }
-   if(called_read)
-   {
-      
-
+      called_enter = false;
    }
 }
 
@@ -55,10 +49,10 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
          char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          if(!strcmp(path,"./common/tests/file_io/input"))
          {
-            called_open = true;
-            cout << "open(" << path << ")" << endl;
+            called_enter = true;
+            cerr << "open(" << path << ")" << endl;
 
-            marshallOpenCall(ctx, syscall_standard);
+            ret_val = marshallOpenCall(ctx, syscall_standard);
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
@@ -73,14 +67,13 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
          size_t read_count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
          if ( fd == 8 )
 	 {
-	    called_read = true;
-            cout << "read(" << fd << hex << ", " << read_buf << dec << ", " << read_count << ")" << endl;
+	    called_enter = true;
+            cerr << "read(" << fd << hex << ", " << read_buf << dec << ", " << read_count << ")" << endl;
 
-            marshallReadCall(ctx, syscall_standard);
-
+            ret_val = marshallReadCall(ctx, syscall_standard);
 
             // safer than letting the original syscall go
-            // PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
+            PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
 	 }
 
 	 break;
@@ -88,30 +81,30 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
       // case SYS_write:
       // {
-      //    cout << "write(";
-      //    cout << (int)PIN_GetSyscallArgument(ctx, syscall_standard, 0) << ", \"";
-      //    cout << (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 1) << "\")" << endl;
+      //    cerr << "write(";
+      //    cerr << (int)PIN_GetSyscallArgument(ctx, syscall_standard, 0) << ", \"";
+      //    cerr << (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 1) << "\")" << endl;
       //    break;
       // }
       // case SYS_close:
       // {
-      //    cout << "close(" << (int)PIN_GetSyscallArgument(ctx, syscall_standard, 0) << ")" << endl;
+      //    cerr << "close(" << (int)PIN_GetSyscallArgument(ctx, syscall_standard, 0) << ")" << endl;
       //    break;
       // }
       // case SYS_exit:
-      //    cout << "exit()" << endl;
+      //    cerr << "exit()" << endl;
       //    break;
       case -1:
          break;
       default:
-//         cout << "SysCall: " << (int)syscall_number << endl;
+//         cerr << "SysCall: " << (int)syscall_number << endl;
          break;
    }
 
 }
 
 
-void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    /*
        Syscall Args
@@ -143,18 +136,20 @@ void SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    send_buff.put(flags);
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());
 
-   cerr << "waiting for reply" << endl;
    UInt32 length;
    UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
    assert( length == sizeof(int) );
    recv_buff.put(res_buff, length);
-   bool res = recv_buff.get(ret_val);
+
+   int status;
+   bool res = recv_buff.get(status);
    assert( res == true );
+
+   return status;
 }
 
 
-
-void SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
 
    /*
@@ -173,15 +168,44 @@ void SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
        
        Field               Type
        -----------------|--------
-       STATUS              int
+       BYTES               int
        BUFFER              void *       
 
    */
 
-   //int syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
+   cerr << "Entering syscall model marshall read" << endl;
+
+   int fd = (int) PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+   void *buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
+   size_t count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
+      
+   send_buff.put(fd);
+   send_buff.put(count);
+   the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());   
    
+   cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
 
+   UInt32 length;
+   UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
+   cerr << "received from mcp" << endl;
 
+   assert( length >= sizeof(int) );
+   recv_buff.put(res_buff, length);
 
+   int bytes;
+   bool res = recv_buff.get(bytes);
+   assert( res == true );
 
+   if ( bytes != -1 )
+   {
+      res = recv_buff.get((UInt8 *) buf, bytes);
+      assert( res == true );
+   } 
+   else 
+   {
+      assert( recv_buff.size() == 0 );
+   }
+   cerr << "Exiting syscall model marshall read" << endl;
+
+   return bytes;
 }

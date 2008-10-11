@@ -14,8 +14,8 @@ class SyscallMdl
       UnstructuredBuffer recv_buff;
       Network *the_network;
 
-      void marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      void marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      int marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      int marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
    public:
       SyscallMdl(Network *net);

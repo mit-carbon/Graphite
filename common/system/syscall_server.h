@@ -12,6 +12,7 @@
 #ifndef SYSCALL_SERVER_H
 #define SYSCALL_SERVER_H
 
+#include "packetize.h"
 #include "transport.h"
 #include <iostream>
 
@@ -30,6 +31,8 @@ extern "C" {
 class SyscallServer {
    private:
       Transport pt_endpt;
+      UnstructuredBuffer send_buff;
+      UnstructuredBuffer recv_buff;
 
    public:
       SyscallServer();
@@ -39,10 +42,10 @@ class SyscallServer {
 
    private:
 
-      void handleSyscall(UInt32 comm_id, char* buf);
+      void handleSyscall(int comm_id);
 
-      void marshallOpenCall(UInt32 comm_id, char* buf);
-      void marshallReadCall(UInt32 comm_id, char* buf);
+      void marshallOpenCall(int comm_id);
+      void marshallReadCall(int comm_id);
 };
 
 

@@ -17,41 +17,42 @@ SyscallServer::SyscallServer()
 
 void SyscallServer::run()
 {
-   // using PT_get_from_server_buff and PT_put_to_server_reply_buff, pull syscall
-   // messages from queue in PT, process them, then marshall results back
-   // via another queue in PT
+   send_buff.clear();
+   recv_buff.clear();
 
-   UInt32 len;
-   UInt8* buf = pt_endpt.ptMCPRecv(&len); 
+   UInt32 length;
+   UInt8* buf = pt_endpt.ptMCPRecv(&length); 
+   recv_buff.put(buf, length);
   
-   UInt32 type = ((UInt32*)buf)[0];
-   UInt32 comm_id = ((UInt32*)buf)[1];
+   int msg_type;
+   int comm_id;
 
-   switch(type)
+   recv_buff.get(msg_type);
+   recv_buff.get(comm_id);
+
+   switch(msg_type)
    {
       case 0:
-	 handleSyscall(comm_id, (char *) &buf[2 * sizeof(UInt32)]);
+	 handleSyscall(comm_id);
          break;
    }
-  
-   delete [] buf;
-
 }
 
-void SyscallServer::handleSyscall(UInt32 comm_id, char* buf)
+void SyscallServer::handleSyscall(int comm_id)
 {
-   UInt32 syscall_number = (UINT32) buf[0];
+   UInt8 syscall_number;
+   recv_buff.get(syscall_number);   
 
    switch(syscall_number)
    {
       case SYS_open:
       {
-         marshallOpenCall(comm_id, (char *) &buf[1]);
+         marshallOpenCall(comm_id);
          break;
       }
       case SYS_read:
       {
-	 marshallReadCall(comm_id, (char *) &buf[1]);
+	 marshallReadCall(comm_id);
          break;
       }
       default:
@@ -61,7 +62,7 @@ void SyscallServer::handleSyscall(UInt32 comm_id, char* buf)
    }
 }
 
-void SyscallServer::marshallOpenCall(UInt32 comm_id, char* buf)
+void SyscallServer::marshallOpenCall(int comm_id)
 {
 
    /*
@@ -69,8 +70,9 @@ void SyscallServer::marshallOpenCall(UInt32 comm_id, char* buf)
 
        Field               Type
        -----------------|--------
+       LEN_FNAME           UInt32
        FILE_NAME           char[]
-       STATUS_FLAGS        int
+       FLAGS               int
 
        Transmit
        
@@ -82,27 +84,39 @@ void SyscallServer::marshallOpenCall(UInt32 comm_id, char* buf)
 
    cout << "Open syscall from: " << comm_id << endl;
 
-   //extract the flags out of the end of the 
-   //of the path
-   int flags_index = strlen(buf) + 1;
-   int *flag_ptr = (int *) &(buf[flags_index]);
-   int flags = flag_ptr[0];
+   bool res;
+   UInt32 len_fname;
+   char buff[256];
+   char *path = (char *) buff;
+   int flags;      
+
+   res = recv_buff.get(len_fname);
+   assert( res == true );
+
+   if (len_fname > 256)
+      path = new char[len_fname];
+   res = recv_buff.get((UInt8 *) path, len_fname);
+   assert( res == true );
+   
+   res = recv_buff.get(flags);
+   assert( res == true );
 
    //actually do the open call
-   int ret = open(buf, flags);
+   int ret = open(path, flags);
 
-   cout << "path: " << buf << endl;
+   cout << "path: " << path << endl;
    cout << "flags: " << flags << endl;
    cout << "ret: " << ret << endl;
 
-   char reply[1024];
-   int *reply_int = (int *) reply;
-   reply_int[0] = ret;
+   send_buff.put(ret);
 
-   pt_endpt.ptMCPSend(comm_id, (UInt8 *) reply, sizeof(int));
+   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());
+
+   if ( len_fname > 256 )
+      delete[] path;
 }
 
-void SyscallServer::marshallReadCall(UInt32 comm_id, char* buf)
+void SyscallServer::marshallReadCall(int comm_id)
 {
 
    /*

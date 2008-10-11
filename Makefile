@@ -50,7 +50,12 @@ pthread_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 	$(PIN_RUN) -mdc -mpf -msys -n 64 -- $(TESTS_DIR)/pthreads_matmult/cannon -m 64 -s 64
 
-love:
-	echo "not war!"
+war:
+	killall -s 9 mpirun
 
+love:
+	@echo "not war!"
+
+out:
+	@echo "I think we should just be friends..."
 

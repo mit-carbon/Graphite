@@ -136,7 +136,7 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    send_buff.put(flags);
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());
 
-   UInt32 length;
+   UInt32 length = 0;
    UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
    assert( length == sizeof(int) );
    recv_buff.put(res_buff, length);
@@ -185,7 +185,7 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    
    cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
 
-   UInt32 length;
+   UInt32 length = 0;
    UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
    cerr << "received from mcp" << endl;
 

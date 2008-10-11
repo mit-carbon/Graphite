@@ -28,7 +28,7 @@ void SyscallServer::run()
    send_buff.clear();
    recv_buff.clear();
 
-   UInt32 length;
+   UInt32 length = 0;
    UInt8* buf = pt_endpt.ptMCPRecv(&length); 
    recv_buff.put(buf, length);
   

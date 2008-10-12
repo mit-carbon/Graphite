@@ -85,13 +85,10 @@ class Network{
       typedef priority_queue <NetQueueEntry, vector<NetQueueEntry>, earlier>
               NetQueue;
 
-//<<<<<<< HEAD:common/network/network.h
       Chip *the_chip;		
       Core *the_core;
       int net_tid;
       int net_num_mod;
-//      char* netCreateBuf(NetPacket packet);
-//=======
       
       char* netCreateBuf(NetPacket packet, UInt32* buf_size);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
@@ -114,11 +111,6 @@ class Network{
 
    public:
 
-//<<<<<<< HEAD:common/network/network.h
-//      int netInit(Chip *chip, int tid, int num_threads, Core *the_core_arg);
-//      int netSend(NetPacket packet);
-//      NetPacket netRecv(NetMatch match);
-//      bool netQuery(NetMatch match);
 	  //checkMessages is a hack to force core to check its messages cpc (can we use an interrupt to call it?
 	  //FIXME
 	  void netCheckMessages();
@@ -126,17 +118,15 @@ class Network{
 	  void printNetPacket(NetPacket packet);  
 	  void printNetMatch(NetMatch match, int receiver);  
 	  string packetTypeToString(PacketType type);  
-//=======
-//      Network(Chip *chip, int tid, int num_threads); original, i think it needs the core arg though
-      Network(Chip *chip, int tid, int num_threads, Core* the_core_arg);
-      virtual ~Network(){};
+     Network(Chip *chip, int tid, int num_threads, Core* the_core_arg);
+     virtual ~Network(){};
       
-      int netCommID() { return transport->ptCommID(); }
-      bool netQuery(NetMatch match);
+     int netCommID() { return transport->ptCommID(); }
+     bool netQuery(NetMatch match);
 		
-      virtual int netSend(NetPacket packet);
-      virtual NetPacket netRecv(NetMatch match);
-//>>>>>>> master:common/network/network.h
+     virtual int netSend(NetPacket packet);
+     virtual NetPacket netRecv(NetMatch match);
+     Transport *getTransport() { return transport; }
 };
 
 #endif

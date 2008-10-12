@@ -7,7 +7,7 @@ OPT=-O2
 CFLAGS=-c -I../core -I../phys_trans -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = capi.cc syscall_server.cc
+SOURCES = capi.cc syscall_api.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 
@@ -23,3 +23,5 @@ clean:
 	-rm -f *.o *.d *.rpo
 squeaky: clean
 	-rm -f *~
+
+

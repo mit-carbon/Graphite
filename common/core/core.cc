@@ -12,11 +12,6 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-//<<<<<<< HEAD:common/core/core.cc
-//   network = new Network;
-//   network->netInit(chip, tid, num_mod, this);
-   
-//=======
    //Switch which line is commented to choose the different 
    //network models
    //FIXME: Make this runtime configurable
@@ -38,7 +33,6 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    }
   
 
-//>>>>>>> master:common/core/core.cc
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
@@ -90,6 +84,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    
    }
 
+   syscall_model = new SyscallMdl(network);
 
    return 0;
 }

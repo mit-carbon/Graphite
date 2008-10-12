@@ -17,6 +17,7 @@
 #include "address_home_lookup.h"
 #include "perfmdl.h"
 #include "syscall_model.h"
+#include "syscall_server.h"
 
 // external variables
 
@@ -25,6 +26,8 @@ class Chip;
 class Core;
 
 extern Chip *g_chip;
+extern SyscallServer *g_syscall_server;
+
 extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
 // prototypes
@@ -84,6 +87,8 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
+// syscall server wrappers
+void syscallServerRun();
 
 
 // chip class
@@ -149,7 +154,6 @@ class Chip
 
       Core *core;
 
-      SyscallMdl syscall_model;
 
    public:
 

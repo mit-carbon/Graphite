@@ -1,6 +1,7 @@
 FORCE32 ?= 1
 
-CC = /usr/bin/g++
+CC = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
+
 ifeq (${FORCE32},1)
   CFLAGS = -I../../user -I../../phys_trans -c -g -Wall -m32
   LDFLAGS = -m32 -m elf_i386
@@ -8,8 +9,9 @@ else
   CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
   LDFLAGS = 
 endif
-SOURCES = ../../user/capi.cc ../../user/syscall_server.cc ../../phys_trans/transport.cc file_io.cc
-OBJECTS = $(SOURCES:%.cc=%.o)
+
+SOURCES = ../../user/capi.cc ../../user/syscall_api.cc file_io.cc
+OBJECTS = $(SOURCES:%.cc=%.o) 
 
 ## Build rules
 

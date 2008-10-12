@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include "capi.h"
-#include "syscall_server.h"
+#include "syscall_api.h"
 
 using namespace std;
 
@@ -53,7 +53,8 @@ int main(int argc, char* argv[]){ // main begins
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   finiSyscallServer();
+   cout << "quitting syscall server!" << endl;
+   quitSyscallServer();
 
 #ifdef DEBUG
    cout << "This is the function main ending" << endl;
@@ -77,7 +78,7 @@ void* read_and_write(void *threadid)
 
    // Do the work
    int fid;
-   fid = open("./input", O_RDONLY);
+   fid = open("./common/tests/file_io/input", O_RDONLY);
 
    printf("File Descriptor: 0x%x\n", (unsigned int)fid);
 

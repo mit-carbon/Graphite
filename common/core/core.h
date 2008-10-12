@@ -11,6 +11,7 @@
 // some forward declarations for cross includes
 class Network;
 class MemoryManager;
+class SyscallMdl;
 
 #include "memory_manager.h"
 #include "pin.H"
@@ -21,6 +22,7 @@ class MemoryManager;
 #include "ocache.h"
 #include "cache_state.h"
 #include "dram_directory_entry.h"
+#include "syscall_model.h"
 
 // externally defined vars
 
@@ -55,9 +57,9 @@ class Core
 	
 	// JP: shouldn't this be only a part of MemoryManager?
 	OCache *ocache;
-
 	MemoryManager *memory_manager;
-	
+   SyscallMdl *syscall_model;
+
    public:
 
       int getRank() 
@@ -75,9 +77,9 @@ class Core
 
       int coreRecvW(int sender, int receiver, char *buffer, int size);
 
-//<<<<<<< HEAD:common/core/core.h
       // network accessor since network is private
       Network* getNetwork(void);
+      SyscallMdl *getSyscallMdl() { return syscall_model; }
 
       MemoryManager* getMemoryManager(void)
          { return memory_manager; }
@@ -101,37 +103,36 @@ class Core
 	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	
 	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
-//=======
 
-      //performance model wrappers
+	//performance model wrappers
 
-      VOID perfModelRun(PerfModelIntervalStat *interval_stats)
-      { perf_model->run(interval_stats); }
+	VOID perfModelRun(PerfModelIntervalStat *interval_stats)
+	{ perf_model->run(interval_stats); }
 
-      VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-                               UINT32 num_reads)
-      { perf_model->run(interval_stats, reads, num_reads); }
+	VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
+									 UINT32 num_reads)
+	{ perf_model->run(interval_stats, reads, num_reads); }
 
-      VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-                               REG *writes, UINT32 num_writes)
-      { perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
+	VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+									 REG *writes, UINT32 num_writes)
+	{ perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
 
-      PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
-                                                             const INS& start_ins, 
-                                                             const INS& end_ins)
-      { return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
+	PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
+																			 const INS& start_ins, 
+																			 const INS& end_ins)
+	{ return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
 
-      VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-      { perf_model->logICacheLoadAccess(stats, hit); }
+	VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+	{ perf_model->logICacheLoadAccess(stats, hit); }
 
-      VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-      { perf_model->logDCacheStoreAccess(stats, hit); }
+	VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
+	{ perf_model->logDCacheStoreAccess(stats, hit); }
 
-      VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-      { perf_model->logBranchPrediction(stats, correct); }
-      
+	VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
+	{ perf_model->logBranchPrediction(stats, correct); }
+	
 
-      // organic cache wrappers
+	// organic cache wrappers
 
 //      bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 //      { return ocache->runICacheLoadModel(i_addr, size); }

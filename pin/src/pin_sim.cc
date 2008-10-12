@@ -30,10 +30,11 @@
 #include "perfmdl.h"
 #include "knobs.h"
 
-#define INSTRUMENT_ALLOWED_FUNCTIONS
+//#define INSTRUMENT_ALLOWED_FUNCTIONS
 
-Chip *g_chip;
-Config *g_config;
+Chip *g_chip = NULL;
+Config *g_config = NULL;
+SyscallServer *g_syscall_server = NULL;
 
 //TODO only here for debugging ins in runModel
 
@@ -79,7 +80,6 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
  
    int rank;
    chipRank(&rank);
-//<<<<<<< HEAD:pin/src/pin_sim.cc
 
 #ifdef PRINTOUT_FLAGS
 	if(rank == 0) {
@@ -175,14 +175,14 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
        bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        if ( do_perf_modeling ) {
-	 perfModelRun(stats, d_hit, writes, num_writes);
+           perfModelRun(stats, d_hit, writes, num_writes);
        }
 
        if ( is_dual_read ) {
-	 bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-	 if ( do_perf_modeling ) {
-	   perfModelRun(stats, d_hit2, writes, num_writes);
-	 }
+           bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+           if ( do_perf_modeling ) {
+               perfModelRun(stats, d_hit2, writes, num_writes);
+           }
        }
      } 
    else 
@@ -231,9 +231,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
    
-//      cout << "--[" << rank << "] START insertModeling" << endl;
-	
-	// added constraint that perf model must be on
+   // added constraint that perf model must be on
    bool check_scoreboard         = g_knob_enable_performance_modeling && 
                                    g_knob_enable_dcache_modeling && 
                                    !g_knob_dcache_ignore_loads &&
@@ -636,6 +634,9 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
 		cout << "replacing CAPI_setDramBoundaries" << endl;
 		return AFUNPTR(chipSetDramBoundaries);
 	}
+   else if(name == "runSyscallServer"){
+      return AFUNPTR(syscallServerRun);
+   }
    
    return NULL;
 }
@@ -748,6 +749,8 @@ VOID init_globals()
 
    g_chip = new Chip(g_knob_num_cores);
 
+   // Note the syscall server has a dependency on the transport layer and the chip
+   g_syscall_server = new SyscallServer();
 }
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)

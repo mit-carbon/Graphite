@@ -37,6 +37,10 @@ class SyscallServer {
       // interfaces with queues in PT layer to carry out syscalls 
       void run();
 
+   private:
+      void marshallOpenCall(UInt32 from, UInt8* buf);
+      void handleSyscall(UInt32 comm_id, UInt8* buf);
+
 };
 
 

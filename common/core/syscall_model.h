@@ -17,6 +17,7 @@ class SyscallMdl
       int marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
       int marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
       int marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      int marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
    public:
       SyscallMdl(Network *net);

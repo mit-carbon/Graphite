@@ -72,6 +72,11 @@ void SyscallServer::handleSyscall(int comm_id)
 	 marshallWriteCall(comm_id);
          break;
       }
+      case SYS_close:
+      {
+	 marshallCloseCall(comm_id);
+         break;
+      }
       default:
       {
          cerr << "Unhandled syscall number: " << (int)syscall_number << " from: " << comm_id << endl;
@@ -224,7 +229,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
    res = recv_buff.get((UInt8 *) buf, count);
    assert( res == true );
    
-   // Actually do the read call
+   // Actually do the write call
    int bytes = write(fd, (void *) buf, count);  
    if ( bytes != -1 )
       cerr << "wrote: " << buf << endl;
@@ -240,5 +245,41 @@ void SyscallServer::marshallWriteCall(int comm_id)
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
+
+}
+
+
+void SyscallServer::marshallCloseCall(int comm_id)
+{
+
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       FILE_DESCRIPTOR     int
+
+       Transmit
+       
+       Field               Type
+       -----------------|--------
+       STATUS              int      
+
+   */   
+
+   cerr << "Close syscall from: " << comm_id << endl;
+
+   int fd;
+   bool res = recv_buff.get(fd);
+   assert( res == true );
+   
+   // Actually do the close call
+   int status = close(fd);  
+
+   cerr << "fd: " << fd << endl;
+   cerr << "status: " << status << endl;
+   
+   send_buff.put(status);
+   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
 
 }

@@ -93,7 +93,7 @@ void* read_and_write(void *threadid)
    printf("Write from fid %d returned %d\n", fid, status);
 
    // Close the FID
-   // fclose(fid);
+   close(fid);
 
    // printf("Read: %s\n", the_data);
 

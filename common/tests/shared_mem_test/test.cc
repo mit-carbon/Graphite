@@ -142,7 +142,6 @@ void* starter_function(void *threadid)
 	int tid;
 	CAPI_Initialize(&tid);
 
-cout << "OH HAI" << endl;
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cout << "executing do_nothing function: " << tid << endl << endl;
@@ -973,10 +972,8 @@ void awesome_test_suite_msi(int tid)
 	for(int core_id=0; core_id < CORE_COUNT; core_id++)                 
 	{
 		
-		cout << "Oh hai, CoreLoop: [" << core_id << "] " << endl;
 		if(tid==core_id)
 		{
-		cout << "Oh hai, Executing Tests : [" << core_id << "] " << endl;
 			//execute all of the tests below
 			
 			//loop through all of the addresses (homed on diffrent DRAMs...)
@@ -993,22 +990,14 @@ void awesome_test_suite_msi(int tid)
 				cout << "****************************************" << endl << endl;
 				
 				//loop througha ll of the test cases
-//				for(int test_index = core_test_indices[core_id].first(); test_index < (int) fini_test_state_vector.size(); test_index++)
-//				for(int test_index = core_test_indices[core_id].first(); test_index < core_test_indices[core_id].second(); test_index++)
-				
-				cout << "Starting TIndex: " << dec << core_id*(fini_test_state_vector.size()/2) << endl;
-				cout << "Ending   TIndex: " << dec << (core_id + 1) * (fini_test_state_vector.size()/2) << endl;
-				
 				for(int test_index = core_id*(fini_test_state_vector.size() / 2); test_index < (int) (core_id + 1) * (fini_test_state_vector.size() / 2); test_index++)
 				{
 					//starts counting from Test#1
 					++test_count;
 					//the fini arrays have to specify what the initial parameters are (which must be pulled from the init arrays)
 					state_index =  fini_mem_state_id[test_index];
-//					state_index =  fini_mem_state_id[test_count - 1];
 					
 					operation_t operation = operation_vector[test_index];
-//					operation_t operation = operation_vector[test_index];
 
 					test_code.str(""); //error_str.str(""); 
 					test_code << "Test #" << test_count << "Tindex[" << test_index << "], State#:" << state_index << " " << " -- Core # " << tid << " OP: "

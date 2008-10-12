@@ -30,7 +30,7 @@
 #include "perfmdl.h"
 #include "knobs.h"
 
-//#define INSTRUMENT_ALLOWED_FUNCTIONS
+#define INSTRUMENT_ALLOWED_FUNCTIONS
 
 Chip *g_chip;
 Config *g_config;

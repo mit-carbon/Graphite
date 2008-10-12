@@ -1,6 +1,7 @@
 #include "address_home_lookup.h"
 //move this back into the makefile system...
 #define TOTAL_DRAM_MEMORY_BYTES (pow(2,32))
+#define AHL_DEBUG
 
 AddressHomeLookup::AddressHomeLookup(UINT32 num_nodes_arg, INT32 ahl_id_arg)
 {
@@ -40,7 +41,9 @@ void AddressHomeLookup::setAddrBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_
 {
 	//FIXME memory issue. is this correct? do i need to deallocate old addr_boundaries?
 	//copymethod? etc. etc.
+	cerr << "Inside AHL " << endl;
 	address_boundaries = addr_bounds;
+	cerr << "Finished AHL " << endl;
 }
 
 /*

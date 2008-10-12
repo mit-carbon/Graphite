@@ -323,14 +323,15 @@ bool Chip::debugAssertMemConditions(ADDRINT address, vector< pair<INT32, DramDir
 void Chip::setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries) 
 {
 
-	cout << " CHIP: setting Dram Boundaries " << endl; 
+	cerr << " CHIP: setting Dram Boundaries " << endl; 
    for(int i = 0; i < num_modules; i++) 
    {
-      core[i].setDramBoundaries(addr_boundaries);
+      cerr << " CHIP: core[" << i << "] of [" << num_modules << "] setting dram boundaries " << endl;
+		core[i].setDramBoundaries(addr_boundaries);
    }
 
-	//static function that should affect all AHL's on every core
-	cout << " CHIP: Finished Dram Boundaries " << endl; 
+	//static function that should affect all AHL's on every core?
+	cerr << " CHIP: Finished Dram Boundaries " << endl; 
 }
 /*user program calls get routed through this */
 CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list) 

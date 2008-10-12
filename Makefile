@@ -53,7 +53,7 @@ pthread_test: all
 
 shmem_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
-	$(PIN_RUN) -mdc -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test
+	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test
 
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
@@ -64,7 +64,7 @@ war:
 	killall -s 9 mpirun
 
 love:
-	echo "not war!"
+	@echo "not war!"
 
 out:
-	echo "I think we should just be friends..."
+	@echo "I think we should just be friends..."

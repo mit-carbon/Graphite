@@ -76,17 +76,17 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
       ocache = (OCache *) NULL;
    }   
 
-
    if ( g_knob_simarch_has_shared_mem ) {
      
       assert( g_knob_enable_dcache_modeling ); 
 
-      cout << "Core[" << tid << "]: instantiated memory manager model" << endl;
+      cerr << "Core[" << tid << "]: instantiated memory manager model" << endl;
       memory_manager = new MemoryManager(this, ocache);
 
    } else {
 
       memory_manager = (MemoryManager *) NULL;
+      cerr << "No Memory Manager being used. " << endl;
    
    }
 
@@ -396,5 +396,7 @@ bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t ds
 
 void Core::setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
 {
+	cerr << "CORE: setting dram boundaries" << endl;
 	memory_manager->setDramBoundaries(addr_boundaries);
+	cerr << "CORE: finished setting dram boundaries" << endl;
 }

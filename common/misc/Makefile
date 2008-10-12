@@ -8,9 +8,7 @@ LDFLAGS=
 SOURCES = utils.cc config.cc bit_vector.cc packetize.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-
 all: $(OBJECTS)
-
 
 ## build rules
 

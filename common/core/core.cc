@@ -365,12 +365,12 @@ bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_
 		is_assert_true = ( actual_cstate  == expected_cstate );
 	}
 	
-	cout << "   Asserting Cache[" << getRank() << "] : Expected: " << CacheState::cStateToString(expected_cstate) << " ,  Actual: " <<  CacheState::cStateToString(actual_cstate);
+	cerr << "   Asserting Cache[" << getRank() << "] : Expected: " << CacheState::cStateToString(expected_cstate) << " ,  Actual: " <<  CacheState::cStateToString(actual_cstate);
 	
 	if(is_assert_true) {
-      cout << "                    TEST PASSED " << endl;
+      cerr << "                    TEST PASSED " << endl;
 	} else {
-		cout << "                    TEST FAILED ****** " << endl;
+		cerr << "                    TEST FAILED ****** " << endl;
 	}
 
 	return is_assert_true;
@@ -392,6 +392,7 @@ bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t ds
 void Core::setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
 {
 	cerr << "CORE: setting dram boundaries" << endl;
+	assert( g_knob_simarch_has_shared_mem );
 	memory_manager->setDramBoundaries(addr_boundaries);
 	cerr << "CORE: finished setting dram boundaries" << endl;
 }

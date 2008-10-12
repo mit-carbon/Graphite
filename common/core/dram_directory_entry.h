@@ -7,7 +7,8 @@
 #include <iostream>
 
 #include "assert.h"
-#include "utils.h"
+//#include "utils.h"
+#include "bit_vector.h"
 #include "debug.h"
 
 using namespace std;

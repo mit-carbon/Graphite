@@ -31,7 +31,9 @@
 #include "perfmdl.h"
 #include "knobs.h"
 
-//#define INSTRUMENT_ALLOWED_FUNCTIONS
+#define INSTRUMENT_ALLOWED_FUNCTIONS
+
+//#define PRINTOUT_FLAGS
 
 Chip *g_chip = NULL;
 Config *g_config = NULL;
@@ -84,34 +86,44 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    int rank;
    chipRank(&rank);
 
+
+
 #ifdef PRINTOUT_FLAGS
 	if(rank == 0) {
 
 		cout << " ----------------------------------" << endl;
 		cout <<  " CORE#0 START  running runModels!" << endl;
+		cout << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
 	}
 	
 	if(rank == 1) {
 		cout << " ----------------------------------" << endl;
 		cout << " CORE#1 START running runModels!" << endl;
+		cout << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
 	}
 
-	if(rank > -1) {
+	if(rank > -1) 
+	{
 
-		if(((InsInfo*) ins_info)->opcode == 608 || ((InsInfo*) ins_info)->next_opcode == 608) {
+		cout << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
+		if( true || ((InsInfo*) ins_info)->opcode == 608 || ((InsInfo*) ins_info)->next_opcode == 608) 
+		{
 			cout << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->opcode) << " (" << ((InsInfo*) ins_info)->opcode << ") " << endl;
 			cout << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ((InsInfo*) ins_info)->is_sys_call << endl;
 			cout << "[" << rank << "] PINSIM -: SYSCALL STD = " << ((InsInfo*) ins_info)->sys_call_std << endl;
 			cout << "[" << rank << "] PINSIM -: IS SYSENTER = " << ((InsInfo*) ins_info)->is_sys_enter << endl;
 			cout << "----------" << endl;
 			
-			if(((InsInfo*) ins_info)->next_is_valid) {
+			if(((InsInfo*) ins_info)->next_is_valid) 
+			{
 				cout << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->next_opcode) << " (" << ((InsInfo*) ins_info)->next_opcode << ") " << endl;
 				cout << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ((InsInfo*) ins_info)->next_is_sys_call << endl;
 				cout << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ((InsInfo*) ins_info)->next_sys_call_std << endl;
 				cout << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ((InsInfo*) ins_info)->next_is_sys_enter << endl;
 			}
 		}
+		
+		cout << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
 	}
 
 #endif
@@ -176,9 +188,11 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get cycle count up to date so time stamp for when miss is ready is correct
 
-       GetLock(&dcache_read_lock, 1);
-       GetLock(&dcache_write_lock, 1);
+//		cerr << "[" << rank << "] dCache READ Modeling: before getting locks " << endl;
+//       GetLock(&dcache_read_lock, 1);
+//       GetLock(&dcache_write_lock, 1);
 
+//			cerr << "[" << rank << "] dCache READ Modeling: GOT LOCKS " << endl;
        bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        if ( do_perf_modeling ) {
            perfModelRun(stats, d_hit, writes, num_writes);
@@ -191,8 +205,9 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
            }
        }
 
-       ReleaseLock(&dcache_write_lock);
-       ReleaseLock(&dcache_read_lock);
+//       ReleaseLock(&dcache_write_lock);
+//       ReleaseLock(&dcache_read_lock);
+//		 cerr << "[" << rank << "] dCache READ Modeling: RELEASED LOCKS " << endl;
      } 
    else 
      {
@@ -203,15 +218,18 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
    if ( do_dcache_write_modeling )
      {
-       GetLock(&dcache_read_lock, 1);
-       GetLock(&dcache_write_lock, 1);
+//		 cerr << "[" << rank << "] dCache WRITE Modeling: before locks" << endl;
+//       GetLock(&dcache_read_lock, 1);
+//      GetLock(&dcache_write_lock, 1);
+//		 cerr << "[" << rank << "] dCache WRITE Modeling: GOT LOCKS " << endl;
        bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
        if ( do_perf_modeling )
          { 
 	   perfModelLogDCacheStoreAccess(stats, d_hit); 
          }
-       ReleaseLock(&dcache_write_lock);
-       ReleaseLock(&dcache_read_lock);
+//       ReleaseLock(&dcache_write_lock);
+//       ReleaseLock(&dcache_read_lock);
+//		 cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
      } 
    else 
      {
@@ -225,9 +243,9 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        perfModelRun(stats);
      }
    }
+
 #ifdef PRINTOUT_FLAGS
 	if(rank == 0) {
-
 		cout <<  " CORE#0 I'm FINISHED w/ runModels!" << endl;
 		cout << " ----------------------------------" << endl;
 	}
@@ -237,7 +255,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 		cout << " ----------------------------------" << endl;
 	}
 #endif
-}
+} //end of runModels
 
 bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins, 
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head, 
@@ -306,22 +324,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
       }
    } 
 
-/*
-<<<<<<< HEAD:pin/src/pin_sim.cc
-      //for building the arguments to the function which dispatches calls to the various modelers
-      IARGLIST args = IARGLIST_Alloc();
-      UINT32 which_case = (( do_dcache_read_modeling ? 0 : 1) << 2) | 
-                          ((         is_dual_read ? 0 : 1) << 1) | 
-                          ((do_dcache_write_modeling ? 0 : 1) << 0);
-
-      //cout << INS_Disassemble(ins) << " " << which_case << " " << do_dcache_read_modeling 
-      //     << " " << is_dual_read << " " << do_dcache_write_modeling << " " << do_icache_modeling 
-      //     << " " << do_bpred_modeling << " " << do_perf_modeling << endl;
-
-      //cout << "adding trap on instruction " << inst_offset << ". which_case = " << which_case << endl;
-      //cout << hex << "adding trap: prev=" << startInstOffset << " this=" << inst_offset << dec << endl;
-  
-	/ **** TAKE OUT LATER TODO ***** /
+	/**** TAKE OUT LATER TODO *****/
 	//only for debugging instruction in runModels
 	//at run time
 	InsInfo* ins_info = (InsInfo*) malloc(sizeof(InsInfo));
@@ -340,7 +343,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 		ins_info->next_is_sys_enter = INS_IsSysenter(next_ins);
 		ins_info->next_sys_call_std = INS_SyscallStd(next_ins);
 	}
-
+/*
+ 
       switch(which_case) 
       {
       case 0:
@@ -526,7 +530,9 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, 
          IARG_END); 
 
-   INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
+   IARGLIST_AddArguments(args, IARG_PTR, (VOID *) ins_info);
+	
+	INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
    IARGLIST_Free(args);
 
    return true;

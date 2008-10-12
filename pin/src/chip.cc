@@ -249,6 +249,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
    }
 
    InitLock(&maps_lock);
+   InitLock(&dcache_lock);
 }
 
 VOID Chip::fini(int code, VOID *v)
@@ -384,4 +385,22 @@ CAPI_return_t chipSetDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_bounda
 {
 	g_chip->setDramBoundaries(addr_boundaries);
 	return 0;
+}
+
+
+//TODO this are here as a temporary fix to the dcache synro bug (code hangs if we don't serilize cache accesses).  i suspect this will NOT work once we go across clusters.
+// rank only used for debug output
+void Chip::getDCacheModelLock(int rank)
+{
+//	cerr << "[" << rank << "] Getting Lock " << endl;
+	GetLock(&dcache_lock, 1);
+//	cerr << "[" << rank << "] GOTTEN Lock " << endl;
+	
+}
+
+void Chip::releaseDCacheModelLock(int rank)
+{
+//	cerr << "[" << rank << "] about to release Lock " << endl;
+	ReleaseLock(&dcache_lock);       
+//	cerr << "[" << rank << "] RELASED Lock " << endl;
 }

@@ -175,11 +175,11 @@ namespace CACHE_SET
 
          end: 
             return result ? make_pair(true, &the_tags[index]) : make_pair(false, (CacheTag*) NULL);
-	 }
+			}
 
-         bool invalidateTag(CacheTag& tag) 
-         { 
-            bool result = true;
+//         bool invalidateTag(CacheTag& tag) 
+//         { 
+//            bool result = true;
 
 
 //>>>>>>>> this is where jonahtan's code got cut off >>>>>>>>>
@@ -254,6 +254,10 @@ class RoundRobin
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<================
 
 
+         bool invalidateTag(CacheTag& tag) 
+         { 
+            bool result = true;
+
 			INT32 index;
 			for (index = tags_last_index; index >= 0; index--)
             {
@@ -265,10 +269,10 @@ class RoundRobin
 
          end: 
             if ( result )
-	      {
-		assert(0 < index && (UINT32)index < k_MAX_ASSOCIATIVITY);
-		the_tags[index] = CacheTag();
-	      }
+				{
+					assert(0 <= index && (UINT32)index < k_MAX_ASSOCIATIVITY);
+					the_tags[index] = CacheTag();
+				}
 
             return result;
          }
@@ -289,54 +293,56 @@ class RoundRobin
             ASSERTX(assoc != 0 && assoc <= k_MAX_ASSOCIATIVITY);
             UINT32 associativity = getAssociativity();
 
-            if ( assoc > associativity ) {
+            if ( assoc > associativity ) 
+				{
 //<<<<<<< HEAD:common/core/cache.h
 //               for (UINT32 i = tags_last_index + 1; i < assoc; i++)
 //=======
-            for (UINT32 i = tags_last_index + 1; i < assoc; i++)
-	    {
-               assert(i < k_MAX_ASSOCIATIVITY);
-               the_tags[i] = CacheTag();
-	    }
-            tags_last_index = assoc - 1;
-            next_replace_index = tags_last_index;
-         } 
-         else 
-         {
-            if ( assoc < associativity ) 
-	    {
-               // this is where evictions happen in the real world
-               for (UINT32 i = tags_last_index; i >= assoc; i--)
-//>>>>>>> origin/HEAD:common/core/cache.h
-	       {
-                  assert(i < k_MAX_ASSOCIATIVITY);
-                  the_tags[i] = CacheTag();
-	       }
-               tags_last_index = assoc - 1;
-               next_replace_index = tags_last_index;
-            } 
-            else 
-            {
-               if ( assoc < associativity ) 
-	       {
-		  // FIXME: if cache model ever starts including data in addition to just tags
-                  // need to perform evictions here. Also if we have shared mem?
+					for (UINT32 i = tags_last_index + 1; i < assoc; i++)
+					{
+						assert(i < k_MAX_ASSOCIATIVITY);
+						the_tags[i] = CacheTag();
+					}
+					tags_last_index = assoc - 1;
+					next_replace_index = tags_last_index;
+				} 
+				else 
+				{
+					if ( assoc < associativity ) 
+					{
+						// this is where evictions happen in the real world
+						for (UINT32 i = tags_last_index; i >= assoc; i--)
+	//>>>>>>> origin/HEAD:common/core/cache.h
+						{
+							assert(i < k_MAX_ASSOCIATIVITY);
+							the_tags[i] = CacheTag();
+						}
+						tags_last_index = assoc - 1;
+						next_replace_index = tags_last_index;
+					} 
+					else 
+					{
+						if ( assoc < associativity ) 
+						{
+			  // FIXME: if cache model ever starts including data in addition to just tags
+							// need to perform evictions here. Also if we have shared mem?
 
-		  ASSERTX( !g_knob_simarch_has_shared_mem );
+							ASSERTX( !g_knob_simarch_has_shared_mem );
 
-                  for (UINT32 i = tags_last_index; i >= assoc; i--)
-	          {
-                     the_tags[i] = CacheTag();
-	          }
+							for (UINT32 i = tags_last_index; i >= assoc; i--)
+							{
+								the_tags[i] = CacheTag();
+							}
 
-                  tags_last_index = assoc - 1;
-                  if ( next_replace_index > tags_last_index )
-	          {
-                     next_replace_index = tags_last_index;
-	          }
-               }
-            }      
-         }
+							tags_last_index = assoc - 1;
+							if ( next_replace_index > tags_last_index )
+							{
+								next_replace_index = tags_last_index;
+							}
+						}
+					}      
+				}        
+			}
 
          VOID print()
          {
@@ -549,6 +555,7 @@ class Cache : public CacheBase
 
          splitAddress(addr, tag, index);
          assert(index < k_MAX_SETS);
+         cout << "About to Invalidate a LIne! for addr : " << hex << addr << " , index: " << dec << index << endl;
          return sets[index].invalidateTag(tag);
       }
 

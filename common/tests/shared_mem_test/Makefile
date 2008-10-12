@@ -2,7 +2,7 @@ include ../../makefile.gnu.config
 include ../../makefile.debug
 
 CC = /usr/bin/g++
-CFLAGS += -I../../phys_trans -I../../network -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
+CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
 SOURCES = ../../user/capi.cc test.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 

@@ -93,15 +93,15 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_t attr;
 	
 #ifdef DEBUG
-	cout << "This is the function main()" << endl;
+	cerr << "This is the function main()" << endl;
 #endif
 	// Initialize global variables
 	global_array_ptr = new UINT32(((UINT64) TEST_MEMORY_SIZE/(sizeof(UINT32))));
-	cout << "What is the Number of Elements that are being made? = " << (((int) TEST_MEMORY_SIZE/(sizeof(UINT32)))) << endl;
+	cerr << "What is the Number of Elements that are being made? = " << (((int) TEST_MEMORY_SIZE/(sizeof(UINT32)))) << endl;
 //	global_array_ptr = new UINT64[BAJILLION];
 
 #ifdef DEBUG
-	cout << "Initializing thread structures" << endl << endl;
+	cerr << "Initializing thread structures" << endl << endl;
 	pthread_mutex_init(&lock, NULL);
 #endif
 
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]){ // main begins
 	initialize_test_parameters();
 
 #ifdef DEBUG
-	cout << "Spawning threads" << endl << endl;
+	cerr << "Spawning threads" << endl << endl;
 #endif
 
       pthread_create(&threads[0], &attr, starter_function, (void *) 0);    
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]){ // main begins
 
 #ifdef DEBUG
    pthread_mutex_lock(&lock);
-	cout << "Waiting to join" << endl << endl;
+	cerr << "Waiting to join" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]){ // main begins
         pthread_join(threads[1], NULL);
 
 #ifdef DEBUG
-	cout << "End of execution" << endl << endl;
+	cerr << "End of execution" << endl << endl;
 #endif
         
    return 0;
@@ -144,14 +144,18 @@ void* starter_function(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "executing do_nothing function: " << tid << endl << endl;
+   cerr << "executing do_nothing function: " << tid << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
    
    if(tid==0) {
+		cerr << "Executing awesome test suite Core # 0 " << endl;
 		awesome_test_suite_msi(tid);
+		cerr << "FInished Executing awesome test suite  Core #0" << endl;
    } else {
+		cerr << "Executing awesome test suite Core #1 " << endl;
 		awesome_test_suite_msi(tid);
+		cerr << "FInished Executing awesome test suite  Core #1" << endl;
    }
    CAPI_Finish(tid);
 	pthread_exit(NULL);  
@@ -162,6 +166,7 @@ void BARRIER_DUAL_CORE(int tid)
 	//this is a stupid barrier just for the test purposes
 	int payload;
 
+	cerr << "BARRIER DUAL CORE for ID(" << tid << ")" << endl;
 	if(tid==0) {
 		CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &payload, sizeof(int));
 		CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &payload, sizeof(int));
@@ -173,10 +178,10 @@ void BARRIER_DUAL_CORE(int tid)
 
 void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code)
 {
-	cout << endl << endl;
-	cout << "   ******************************************************************************************************" << endl;
-	cout << "   ************* " << test_code << endl;
-	cout << "   ******************************************************************************************************" << endl;                    
+	cerr << endl << endl;
+	cerr << "   ******************************************************************************************************" << endl;
+	cerr << "   ************* " << test_code << endl;
+	cerr << "   ******************************************************************************************************" << endl;                    
 
 	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list);
 }     
@@ -204,12 +209,12 @@ void initialize_test_parameters()
 	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( dram0_address + 1000, 0xFFFFFFFF));
 	CAPI_setDramBoundaries(addr_boundaries);
 	
-	cout << "dram0 ADDR: " << hex << dram0_address << endl;
-	cout << "dram1 ADDR: " << hex << dram1_address << endl;
-	cout << "MEMORY_SIZE: " << dec << TEST_MEMORY_SIZE << endl;
-	cout << "NUM of Elme: " << dec << number_of_elements << endl;
-	cout << "MAX   ADDR: " << hex << ((UINT32) global_array_ptr + (TEST_MEMORY_SIZE )) << endl;
-	cout << "MAX   ADDR: " << hex << &(global_array_ptr[number_of_elements]) << endl;
+	cerr << "dram0 ADDR: " << hex << dram0_address << endl;
+	cerr << "dram1 ADDR: " << hex << dram1_address << endl;
+	cerr << "MEMORY_SIZE: " << dec << TEST_MEMORY_SIZE << endl;
+	cerr << "NUM of Elme: " << dec << number_of_elements << endl;
+	cerr << "MAX   ADDR: " << hex << ((UINT32) global_array_ptr + (TEST_MEMORY_SIZE )) << endl;
+	cerr << "MAX   ADDR: " << hex << &(global_array_ptr[number_of_elements]) << endl;
 
    /*
 	 * run test suite on different addresses
@@ -370,7 +375,7 @@ void initialize_test_parameters()
 	/******************************************************/
 	/******** SETTING EXPECTED FINAL MEMORY STATES ********/ 
 	/******************************************************/
-	cout << "Setting expected final memory states " << endl;	
+	cerr << "Setting expected final memory states " << endl;	
 	operation_vector.resize(TEST_COUNT);
 	fini_mem_state_id.resize(TEST_COUNT);
 	fini_test_state_vector.resize(TEST_COUNT);
@@ -383,7 +388,7 @@ void initialize_test_parameters()
 	
 	/******************************************************/
 	//III-{} -> SSI-{0}
-	cout << "Test_Index should be 0: " << test_index << endl;
+	cerr << "Test_Index should be 0: " << test_index << endl;
 	fini_mem_state_id[test_index] = 0;
 	fini_state_str_vector[test_index] = "SSI-{0}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -393,7 +398,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
 	++test_index;
-	cout << "Setting expected final memory states 1" << endl;	
+	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//SII-{0} -> SSI-{0}
 	fini_mem_state_id[test_index] = 1;
@@ -427,7 +432,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
 	++test_index;
-	cout << "Setting expected final memory states 1" << endl;	
+	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//EII-{0} -> SSI-{0}
 	fini_mem_state_id[test_index] = 4;
@@ -542,7 +547,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
 	++test_index;
-	cout << "Setting expected final memory states 1" << endl;	
+	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//SII-{0} -> EEI-{0}
 	fini_mem_state_id[test_index] = 1;
@@ -816,7 +821,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
 	++test_index;
-	cout << "Setting expected final memory states 1" << endl;	
+	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//SII-{0} -> EEI-{1}
 	fini_mem_state_id[test_index] = 1;
@@ -982,12 +987,12 @@ void awesome_test_suite_msi(int tid)
 				address = address_vector[addr_index].addr;
 				dram_addr_home_id = address_vector[addr_index].dram_home_id;
 
-				cout << endl << endl;	
-				cout << "****************************************" << endl;
-				cout << "****************************************" << endl;
-				cout << "************  NEW ADDRESS  *************" << endl;
-				cout << "****************************************" << endl;
-				cout << "****************************************" << endl << endl;
+				cerr << endl << endl;	
+				cerr << "****************************************" << endl;
+				cerr << "****************************************" << endl;
+				cerr << "************  NEW ADDRESS  *************" << endl;
+				cerr << "****************************************" << endl;
+				cerr << "****************************************" << endl << endl;
 				
 				//loop througha ll of the test cases
 				for(int test_index = core_id*(fini_test_state_vector.size() / 2); test_index < (int) (core_id + 1) * (fini_test_state_vector.size() / 2); test_index++)
@@ -1040,7 +1045,7 @@ void awesome_test_suite_msi(int tid)
 								*((int*) address) = write_value;
 							break;
 						default:
-							cout << "ERROR IN OPERATION SWITCH " << endl;
+							cerr << "ERROR IN OPERATION SWITCH " << endl;
 							break;
 					}
 
@@ -1064,14 +1069,14 @@ void awesome_test_suite_msi(int tid)
 	/********************************************/
 	
 	if(tid==0) {
-		cout << endl << endl;
-		cout << " *** Core # " << tid << endl;
-		cout << " *** Tests Passed: " << dec << tests_passed << endl;
-		cout << " *** Tests Failed: " << dec << tests_failed << endl;
-		cout << " *** TOTAL TESTS : " << dec << test_count << endl;
+		cerr << endl << endl;
+		cerr << " *** Core # " << tid << endl;
+		cerr << " *** Tests Passed: " << dec << tests_passed << endl;
+		cerr << " *** Tests Failed: " << dec << tests_failed << endl;
+		cerr << " *** TOTAL TESTS : " << dec << test_count << endl;
 		
-		cout << endl;
-		cout	<< "********************************************* " << endl 
+		cerr << endl;
+		cerr	<< "********************************************* " << endl 
 				<< " Finished Dual Core Shared Memory Test Suite  " << endl
 				<< "********************************************* " << endl;
 	}

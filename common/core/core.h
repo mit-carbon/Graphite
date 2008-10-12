@@ -68,7 +68,13 @@ class Core
       int getNumCores()
          { return core_num_mod; }
 
-      int coreInit(Chip *chip, int tid, int num_mod);
+      
+		//TODO added to allow the MMU to get/release locks in the chip.
+		//there has to be a better way to do all of this.
+		Chip* getChip() 
+			{ return the_chip; }
+		
+		int coreInit(Chip *chip, int tid, int num_mod);
 
       // Return the communication endpoint ID for this core
       int coreCommID();

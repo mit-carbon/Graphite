@@ -151,6 +151,7 @@ class Chip
       map<THREADID, int> core_map;
       int prev_rank;
       PIN_LOCK maps_lock;
+      PIN_LOCK dcache_lock;
 
       Core *core;
 
@@ -177,6 +178,8 @@ class Chip
 		
 		void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
 
+		void getDCacheModelLock(int rank);
+		void releaseDCacheModelLock(int rank);
 };
 
 #endif

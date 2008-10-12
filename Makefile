@@ -50,18 +50,17 @@ io_test: all
 ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
 	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
+#	$(PIN_RUN) -mdc -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 #	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 
-war:
-kill:
-	killall -s 9 $(PROCESS)
 
 shmem_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
+#	$(PIN_RUN) -mdc -msm -n 2 -- $(TESTS_DIR)/shared_mem_test/test
 	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test
 
 basic_test: all
@@ -69,8 +68,13 @@ basic_test: all
 	#$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/pthreads_basic/basic
 	$(PIN_RUN) -mdc -msm -msys -n 1 -- $(TESTS_DIR)/pthreads_basic/basic
 
+kill:
 war:
-	killall -s 9 mpirun
+	@echo "Killing All Possible Processes"
+	killall -s 9 $(PROCESS)
+	killall -s 9 test
+	killall -s 9 ping_pong
+	killall -s 9 basic
 
 love:
 	@echo "not war!"

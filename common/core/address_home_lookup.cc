@@ -1,7 +1,7 @@
 #include "address_home_lookup.h"
 //move this back into the makefile system...
 #define TOTAL_DRAM_MEMORY_BYTES (pow(2,32))
-#define AHL_DEBUG
+//#define AHL_DEBUG
 
 AddressHomeLookup::AddressHomeLookup(UINT32 num_nodes_arg, INT32 ahl_id_arg)
 {

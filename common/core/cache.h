@@ -123,6 +123,7 @@ namespace CACHE_SET
             ASSERTX(assoc <= k_MAX_ASSOCIATIVITY);
             next_replace_index = tags_last_index;
 
+	    assert(tags_last_index < k_MAX_ASSOCIATIVITY);
             for (INT32 index = tags_last_index; index >= 0; index--)
             {
                the_tags[index] = CacheTag();
@@ -143,6 +144,7 @@ namespace CACHE_SET
          {
             bool result = true;
 
+	    assert(tags_last_index < k_MAX_ASSOCIATIVITY);
             for (INT32 index = tags_last_index; index >= 0; index--)
             {
                // this is an ugly micro-optimization, but it does cause a
@@ -161,7 +163,9 @@ namespace CACHE_SET
             bool result = true;
             INT32 index;
 
-            for (index = tags_last_index; index >= 0; index--)
+				assert(tags_last_index < k_MAX_ASSOCIATIVITY);
+            
+				for (index = tags_last_index; index >= 0; index--)
             {
                // this is an ugly micro-optimization, but it does cause a
                // tighter assembly loop for ARM that way ...
@@ -261,7 +265,10 @@ class RoundRobin
 
          end: 
             if ( result )
- 	       the_tags[index] = CacheTag();
+	      {
+		assert(0 < index && (UINT32)index < k_MAX_ASSOCIATIVITY);
+		the_tags[index] = CacheTag();
+	      }
 
             return result;
          }
@@ -271,6 +278,7 @@ class RoundRobin
             // g++ -O3 too dumb to do CSE on following lines?!
             const UINT32 index = next_replace_index;
 
+	    assert(index < k_MAX_ASSOCIATIVITY);
             the_tags[index] = tag;
             // condition typically faster than modulo
             next_replace_index = (index == 0 ? tags_last_index : index - 1);
@@ -282,8 +290,26 @@ class RoundRobin
             UINT32 associativity = getAssociativity();
 
             if ( assoc > associativity ) {
-               for (UINT32 i = tags_last_index + 1; i < assoc; i++)
+//<<<<<<< HEAD:common/core/cache.h
+//               for (UINT32 i = tags_last_index + 1; i < assoc; i++)
+//=======
+            for (UINT32 i = tags_last_index + 1; i < assoc; i++)
+	    {
+               assert(i < k_MAX_ASSOCIATIVITY);
+               the_tags[i] = CacheTag();
+	    }
+            tags_last_index = assoc - 1;
+            next_replace_index = tags_last_index;
+         } 
+         else 
+         {
+            if ( assoc < associativity ) 
+	    {
+               // this is where evictions happen in the real world
+               for (UINT32 i = tags_last_index; i >= assoc; i--)
+//>>>>>>> origin/HEAD:common/core/cache.h
 	       {
+                  assert(i < k_MAX_ASSOCIATIVITY);
                   the_tags[i] = CacheTag();
 	       }
                tags_last_index = assoc - 1;
@@ -359,8 +385,7 @@ class CacheBase
       } CacheType;
 
    protected:
-      static const UINT32 k_HIT_MISS_NUM = 2;
-      CacheStats access[k_ACCESS_TYPE_NUM][k_HIT_MISS_NUM];
+      CacheStats access[k_ACCESS_TYPE_NUM][2];
 
    protected:
       // input params
@@ -397,8 +422,8 @@ class CacheBase
       UINT32 getNumSets() const { return set_index_mask + 1; }
     
       // stats
-      CacheStats getHits(AccessType access_type) const { return access[access_type][true]; }
-      CacheStats getMisses(AccessType access_type) const { return access[access_type][false]; }
+      CacheStats getHits(AccessType access_type) const { assert(access_type < k_ACCESS_TYPE_NUM); return access[access_type][true]; }
+      CacheStats getMisses(AccessType access_type) const { assert(access_type < k_ACCESS_TYPE_NUM); return access[access_type][false]; }
       CacheStats getAccesses(AccessType access_type) const 
          { return getHits(access_type) + getMisses(access_type); }
       CacheStats getHits() const { return sumAccess(true); }
@@ -446,6 +471,7 @@ class Cache : public CacheBase
    public:
       VOID resetCounters()
       {
+         assert(getNumSets() <= k_MAX_SETS);
          for(UINT32 i = 0; i < getNumSets(); i++) {
             accesses[i] = misses[i] = 0;
          }
@@ -455,6 +481,7 @@ class Cache : public CacheBase
       UINT32 getSetPtr(UINT32 set_index) 
       { 
          ASSERTX( set_index < getNumSets() ); 
+         assert(getNumSets() <= k_MAX_SETS+1);
          return set_ptrs[set_index];
       }
       void setSetPtr(UINT32 set_index, UINT32 value)
@@ -497,6 +524,7 @@ class Cache : public CacheBase
          //    _newLineShift = line_shift;
          //    _newSetIndexMask = set_index_mask;        
    
+         assert(getNumSets() <= k_MAX_SETS);
          cache_size = getNumSets() * assoc * line_size;
          associativity = assoc;
 
@@ -520,6 +548,7 @@ class Cache : public CacheBase
          UINT32 index;
 
          splitAddress(addr, tag, index);
+         assert(index < k_MAX_SETS);
          return sets[index].invalidateTag(tag);
       }
 
@@ -565,6 +594,7 @@ class Cache : public CacheBase
              {
 	        UINT32 r_num = rand() % depth;
                 UINT32 which = history[r_num];
+                assert(which < k_MAX_SETS);
                 sets[which].replace(tag);
                 //if ( depth > 1 )
 	        //cout << "which = " << which << endl;
@@ -575,6 +605,7 @@ class Cache : public CacheBase
          }
          while (addr < high_addr);
 
+         assert(access_type < k_ACCESS_TYPE_NUM);
          access[access_type][all_hit]++;
 
          return all_hit;
@@ -610,11 +641,13 @@ class Cache : public CacheBase
          {
             UINT32 r_num = rand() % depth;
             UINT32 which = history[r_num];
+            assert(which < k_MAX_SETS);
             sets[which].replace(tag);
             if ( depth > 1 )
                cout << "which = " << dec << which << endl;
          }
-
+         
+         assert(access_type < k_ACCESS_TYPE_NUM);
          access[access_type][hit]++;
 
          return hit;

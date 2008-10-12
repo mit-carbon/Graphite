@@ -157,10 +157,10 @@ class Chip
 
    public:
 
-      UINT64 getProcTime(int module) { return proc_time[module]; }
+      UINT64 getProcTime(int module) { assert(module < num_modules); return proc_time[module]; }
 
       void setProcTime(int module, unsigned long long new_time) 
-      { proc_time[module] = new_time; }
+      { assert(module < num_modules); proc_time[module] = new_time; }
 
       int getNumModules() { return num_modules; }
 

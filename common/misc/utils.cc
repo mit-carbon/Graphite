@@ -39,6 +39,7 @@ INT32 ceilLog2(UINT32 n)
 { return floorLog2(n - 1) + 1; }
 
 
+//<<<<<<< HEAD:common/misc/utils.cc
 
 /* ================================================================ */
 /* Bit vector class method definitions */
@@ -246,3 +247,5 @@ void BitVector::debug()
 }
 
 #endif
+//endif=======
+//>>>>>>> origin/HEAD:common/misc/utils.cc

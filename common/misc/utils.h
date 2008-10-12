@@ -1,23 +1,17 @@
 // Jonathan Eastep (eastep@mit.edu)
 // 04.07.08
-// This file provides some useful bit-manipulating classes and 
-// functions
+// This file provides some useful bit-manipulating functions
 
 
 #ifndef UTILS_H
 #define UTILS_H
 
 #include "pin.H"
-#include <vector>
 #include <assert.h>
 #include <sstream>
 #include <iostream>
 
 using namespace std;
-
-/* ================================================================ */
-/* Utility function declarations */
-/* ================================================================ */ 
 
 
 string myDecStr(UINT64 v, UINT32 w);
@@ -46,6 +40,7 @@ INT32 floorLog2(UINT32 n);
 INT32 ceilLog2(UINT32 n);
 
 
+//<<<<<<< HEAD:common/misc/utils.h
 /* ================================================================ */
 /* BITVECT class */
 /* ================================================================ */ 
@@ -109,4 +104,6 @@ class BitVector {
 };
 
 
+//=======
+//>>>>>>> origin/HEAD:common/misc/utils.h
 #endif

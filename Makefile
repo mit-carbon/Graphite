@@ -5,6 +5,11 @@ PIN_TOOL=pin/bin/pin_sim
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 TESTS_DIR=./common/tests
 
+CORES=64
+..PHONY: cores
+PROCESS=mpirun
+..PHONY: process
+
 all:
 	$(MAKE) -C common 
 	$(MAKE) -C pin
@@ -47,9 +52,13 @@ ping_pong_test: all
 	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 #	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
-pthread_test: all
+matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
-	$(PIN_RUN) -mdc -mpf -msys -n 64 -- $(TESTS_DIR)/pthreads_matmult/cannon -m 64 -s 64
+	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
+
+war:
+kill:
+	killall -s 9 $(PROCESS)
 
 shmem_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test

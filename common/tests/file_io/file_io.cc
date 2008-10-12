@@ -78,15 +78,18 @@ void* read_and_write(void *threadid)
 
    // Do the work
    int fid;
-   fid = open("./common/tests/file_io/input", O_RDONLY);
+   fid = open("./common/tests/file_io/input2", O_RDONLY);
 
    printf("File Descriptor: 0x%x\n", (unsigned int)fid);
 
-   // Actually read and close the FID
-   // int data_size = 1024 * sizeof(char);
-   // char *the_data = (char *)malloc(data_size);
-   // int read = fread(the_data,data_size, sizeof(char), fid);
+   // Actually read the FID
+   char the_data[1024] = {'\0'};
+   int status = read(fid, (void *) the_data, 1024);
 
+   printf("Read from fid %d returned %d and %s\n", fid, status, the_data);
+
+
+   // Close the FID
    // fclose(fid);
 
    // printf("Read: %s\n", the_data);

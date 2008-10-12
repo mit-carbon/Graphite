@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include "capi.h"
-#include "syscall_api.h"
+#include "mcp_api.h"
 
 using namespace std;
 
@@ -25,7 +25,7 @@ void* read_and_write(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
-   initSyscallServer();
+   initMCP();
 	
    // Read in the command line arguments
    unsigned int numThreads = 1;
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    cout << "quitting syscall server!" << endl;
-   quitSyscallServer();
+   quitMCP();
 
 #ifdef DEBUG
    cout << "This is the function main ending" << endl;

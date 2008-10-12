@@ -209,11 +209,11 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       g_chip->core[rank].getSyscallMdl()->runExit(rank, ctx, syscall_standard);
 }
 
-// syscall server wrappers
-void syscallServerRun()
+// MCP wrappers
+void MCPRun()
 {
-   assert(g_syscall_server != NULL);
-   g_syscall_server->run();
+   assert(g_MCP != NULL);
+   g_MCP->run();
 }
 
 // Chip class method definitions

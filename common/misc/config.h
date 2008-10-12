@@ -17,7 +17,6 @@
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
 
-using namespace std;
 
 class Config {
  public:

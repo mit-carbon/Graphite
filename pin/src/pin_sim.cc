@@ -34,7 +34,7 @@
 
 Chip *g_chip = NULL;
 Config *g_config = NULL;
-SyscallServer *g_syscall_server = NULL;
+MCP *g_MCP = NULL;
 
 INT32 usage()
 {
@@ -392,8 +392,8 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    else if(name == "CAPI_message_receive_w"){
       return AFUNPTR(chipRecvW);
    }
-   else if(name == "runSyscallServer"){
-      return AFUNPTR(syscallServerRun);
+   else if(name == "runMCP"){
+      return AFUNPTR(MCPRun);
    }
    
    return NULL;
@@ -480,7 +480,7 @@ VOID init_globals()
    g_chip = new Chip(g_knob_num_cores);
 
    // Note the syscall server has a dependency on the transport layer and the chip
-   g_syscall_server = new SyscallServer();
+   g_MCP = new MCP();
 
    InitLock(&dcache_read_lock);
    InitLock(&dcache_write_lock);

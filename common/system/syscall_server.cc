@@ -5,50 +5,25 @@
 #include "sys/syscall.h"
 
 
+using namespace std;
 
-// Thread function
-void* server_thread(void *dummy);
-
-
-SyscallServer::SyscallServer() : SYSCALL_SERVER_MAX_BUFF(256*1024)
+SyscallServer::SyscallServer(Transport & pt_endpt_, 
+      UnstructuredBuffer & send_buff_, UnstructuredBuffer &recv_buff_,
+      const UInt32 SERVER_MAX_BUFF,
+      char *scratch_)
+: 
+   pt_endpt(pt_endpt_),
+   send_buff(send_buff_),
+   recv_buff(recv_buff_),
+   SYSCALL_SERVER_MAX_BUFF(SERVER_MAX_BUFF),
+   scratch(scratch_)
 {
-   pt_endpt.ptInitMCP();
-   scratch = new char[SYSCALL_SERVER_MAX_BUFF];
 }
 
 SyscallServer::~SyscallServer()
 {
-   delete[] scratch;
 }
 
-void SyscallServer::run()
-{
-   cerr << "Waiting for syscall request..." << endl;
-
-   send_buff.clear();
-   recv_buff.clear();
-
-   UInt32 length = 0;
-   UInt8* buf = pt_endpt.ptMCPRecv(&length); 
-   recv_buff.put(buf, length);
-  
-   int msg_type;
-   int comm_id;
-
-   recv_buff.get(msg_type);
-   recv_buff.get(comm_id);
-
-   switch(msg_type)
-   {
-      case 0:
-	 handleSyscall(comm_id);
-         break;
-      default:
-	 cerr << "Unhandled MCP message type: " << msg_type << " from: " << comm_id << endl;
-   }
-
-   cerr << "Finished syscall request" << endl;
-}
 
 void SyscallServer::handleSyscall(int comm_id)
 {
@@ -64,17 +39,17 @@ void SyscallServer::handleSyscall(int comm_id)
       }
       case SYS_read:
       {
-	 marshallReadCall(comm_id);
+         marshallReadCall(comm_id);
          break;
       }
       case SYS_write:
       {
-	 marshallWriteCall(comm_id);
+         marshallWriteCall(comm_id);
          break;
       }
       case SYS_close:
       {
-	 marshallCloseCall(comm_id);
+         marshallCloseCall(comm_id);
          break;
       }
       default:
@@ -283,3 +258,4 @@ void SyscallServer::marshallCloseCall(int comm_id)
    pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
 
 }
+

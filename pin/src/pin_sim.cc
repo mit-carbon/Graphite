@@ -31,7 +31,7 @@
 #include "perfmdl.h"
 #include "knobs.h"
 
-#define INSTRUMENT_ALLOWED_FUNCTIONS
+//#define INSTRUMENT_ALLOWED_FUNCTIONS
 
 //#define PRINTOUT_FLAGS
 
@@ -42,6 +42,7 @@ SyscallServer *g_syscall_server = NULL;
 //TODO only here for debugging ins in runModel
 
 struct InsInfo {
+	ADDRINT ip_address;
 	OPCODE opcode;
 	bool is_sys_call;
 	bool is_sys_enter;
@@ -81,49 +82,64 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
                bool check_scoreboard,
 					VOID* ins_info)
 {
-   //cout << "parent = " << stats->parent_routine << endl;
+   //cerr << "parent = " << stats->parent_routine << endl;
  
    int rank;
    chipRank(&rank);
 
-
-
 #ifdef PRINTOUT_FLAGS
 	if(rank == 0) {
 
-		cout << " ----------------------------------" << endl;
-		cout <<  " CORE#0 START  running runModels!" << endl;
-		cout << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
+		cerr << " ----------------------------------" << endl;
+		cerr <<  " CORE#0 START  running runModels!" << endl;
+	
+	   INT32 col;
+		INT32 ln;
+		const CHAR* file;
+		assert( ins_info != NULL );
+		PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
+		if( file != NULL )
+			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+		else
+			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
 	}
 	
 	if(rank == 1) {
-		cout << " ----------------------------------" << endl;
-		cout << " CORE#1 START running runModels!" << endl;
-		cout << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
+		cerr << " ----------------------------------" << endl;
+		cerr << " CORE#1 START running runModels!" << endl;
+		cerr << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
+	   INT32 col;
+		INT32 ln;
+		const CHAR* file;
+		assert( ins_info != NULL );
+		PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
+		if( file != NULL )
+			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+		else
+			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
 	}
 
 	if(rank > -1) 
 	{
 
-		cout << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
 		if( true || ((InsInfo*) ins_info)->opcode == 608 || ((InsInfo*) ins_info)->next_opcode == 608) 
 		{
-			cout << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->opcode) << " (" << ((InsInfo*) ins_info)->opcode << ") " << endl;
-			cout << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ((InsInfo*) ins_info)->is_sys_call << endl;
-			cout << "[" << rank << "] PINSIM -: SYSCALL STD = " << ((InsInfo*) ins_info)->sys_call_std << endl;
-			cout << "[" << rank << "] PINSIM -: IS SYSENTER = " << ((InsInfo*) ins_info)->is_sys_enter << endl;
-			cout << "----------" << endl;
+			cerr << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->opcode) << " (" << ((InsInfo*) ins_info)->opcode << ") " << endl;
+			cerr << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ((InsInfo*) ins_info)->is_sys_call << endl;
+			cerr << "[" << rank << "] PINSIM -: SYSCALL STD = " << ((InsInfo*) ins_info)->sys_call_std << endl;
+			cerr << "[" << rank << "] PINSIM -: IS SYSENTER = " << ((InsInfo*) ins_info)->is_sys_enter << endl;
+			cerr << "----------" << endl;
 			
 			if(((InsInfo*) ins_info)->next_is_valid) 
 			{
-				cout << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->next_opcode) << " (" << ((InsInfo*) ins_info)->next_opcode << ") " << endl;
-				cout << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ((InsInfo*) ins_info)->next_is_sys_call << endl;
-				cout << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ((InsInfo*) ins_info)->next_sys_call_std << endl;
-				cout << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ((InsInfo*) ins_info)->next_is_sys_enter << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->next_opcode) << " (" << ((InsInfo*) ins_info)->next_opcode << ") " << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ((InsInfo*) ins_info)->next_is_sys_call << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ((InsInfo*) ins_info)->next_sys_call_std << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ((InsInfo*) ins_info)->next_is_sys_enter << endl;
 			}
 		}
 		
-		cout << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
+		cerr << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
 	}
 
 #endif
@@ -246,13 +262,13 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
 #ifdef PRINTOUT_FLAGS
 	if(rank == 0) {
-		cout <<  " CORE#0 I'm FINISHED w/ runModels!" << endl;
-		cout << " ----------------------------------" << endl;
+		cerr <<  " CORE#0 I'm FINISHED w/ runModels!" << endl;
+		cerr << " ----------------------------------" << endl;
 	}
 	
 	if(rank == 1) {
-		cout << " CORE#1 I'm FINISHED w/ runModels!" << endl;
-		cout << " ----------------------------------" << endl;
+		cerr << " CORE#1 I'm FINISHED w/ runModels!" << endl;
+		cerr << " ----------------------------------" << endl;
 	}
 #endif
 } //end of runModels
@@ -328,6 +344,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 	//only for debugging instruction in runModels
 	//at run time
 	InsInfo* ins_info = (InsInfo*) malloc(sizeof(InsInfo));
+	ins_info->ip_address = INS_Address(ins);
 	ins_info->opcode = INS_Opcode(ins);
 	ins_info->is_sys_call = INS_IsSyscall(ins);
 	ins_info->is_sys_enter = INS_IsSysenter(ins);
@@ -479,7 +496,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
       IARGLIST_Free(args);
 
-//		cout << "--[" << rank << "] END     insertModeling TRUE ending" << endl;
+//		cerr << "--[" << rank << "] END     insertModeling TRUE ending" << endl;
 
 		return true;
    } 
@@ -608,10 +625,10 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
    }      
 
 #if 0  
-   cout << "Routine " << RTN_Name(rtn) << endl;
-   cout << "  instrumented " << ins_uses.size() << " of " << rtn_ins_count << endl;
+   cerr << "Routine " << RTN_Name(rtn) << endl;
+   cerr << "  instrumented " << ins_uses.size() << " of " << rtn_ins_count << endl;
    for (set<INS>::iterator it = ins_uses.begin(); it != ins_uses.end(); it++) {
-      cout << "  " << INS_Disassemble( *it ) << endl;
+      cerr << "  " << INS_Disassemble( *it ) << endl;
    }
 #endif
 
@@ -624,7 +641,7 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
 {
    
 	if(name == "CAPI_Initialize"){
-	   cout << "Replacing CAPI_initialize" << endl;
+	   cerr << "Replacing CAPI_initialize" << endl;
       return AFUNPTR(chipInit);
    }
    else if(name == "CAPI_rank"){
@@ -638,19 +655,19 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    }
    //FIXME added by cpc as a hack to get around calling Network for finished cores
    else if(name == "_Z11CAPI_Finishi"){
-      cout << "replacing CAPI_Finish" << endl;
+      cerr << "replacing CAPI_Finish" << endl;
 	  return AFUNPTR(chipHackFinish);
    }
 	else if(name == "CAPI_debugSetMemState") {
-		cout << "replacing CAPI_debugSetMemState" << endl;
+		cerr << "replacing CAPI_debugSetMemState" << endl;
 		return AFUNPTR(chipDebugSetMemState);
 	}
 	else if(name == "CAPI_debugAssertMemState") {
-		cout << "replacing CAPI_debugAssertMemState" << endl;
+		cerr << "replacing CAPI_debugAssertMemState" << endl;
 		return AFUNPTR(chipDebugAssertMemState);
 	}
 	else if(name == "CAPI_setDramBoundaries") {
-		cout << "replacing CAPI_setDramBoundaries" << endl;
+		cerr << "replacing CAPI_setDramBoundaries" << endl;
 		return AFUNPTR(chipSetDramBoundaries);
 	}
    else if(name == "runSyscallServer"){
@@ -669,7 +686,7 @@ VOID routine(RTN rtn, VOID *v)
    bool is_rtn_ins_head = true;
    set<INS> ins_uses;
 
-//    cout << "routine " << RTN_Name(rtn) << endl;
+//    cerr << "routine " << RTN_Name(rtn) << endl;
 
    if ( (msg_ptr = mapMsgAPICall(rtn, rtn_name)) != NULL ) {
       RTN_Replace(rtn, msg_ptr);
@@ -688,7 +705,7 @@ VOID routine(RTN rtn, VOID *v)
    {
       
 #ifdef INSTRUMENT_ALLOWED_FUNCTIONS
-		cout << "Routine name is: " << rtn_name << endl;
+		cerr << "Routine name is: " << rtn_name << endl;
 #endif
 	  
 	  if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 
@@ -751,11 +768,11 @@ VOID init_globals()
 
       if( !g_knob_enable_dcache_modeling ) {
    
-         cout << endl << "**********************************************************************" << endl;
-         cout << endl << "  User must set dcache modeling on (-mdc) to use shared memory model. " << endl;
-         cout << endl << "**********************************************************************" << endl;
+         cerr << endl << "**********************************************************************" << endl;
+         cerr << endl << "  User must set dcache modeling on (-mdc) to use shared memory model. " << endl;
+         cerr << endl << "**********************************************************************" << endl;
 
-         cout << endl << "Exiting Program...." << endl;
+         cerr << endl << "Exiting Program...." << endl;
          exit(-1); 
       }
    }

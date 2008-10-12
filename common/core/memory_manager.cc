@@ -151,17 +151,20 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 	switch( shmem_req_type ) {
 		
 		case READ:
-			the_core->getChip()->getDCacheModelLock(my_rank);
+//			the_core->getChip()->getDCacheModelLock(my_rank);
+//			the_core->getDCacheModelLock();
 			cache_model_results = ocache->runDCacheLoadModel(address, size);
 			native_cache_hit = cache_model_results.first;
-			the_core->getChip()->releaseDCacheModelLock(my_rank);
+//			the_core->getChip()->releaseDCacheModelLock(my_rank);
+//			the_core->releaseDCacheModelLock();
 		break;
 		
 		case WRITE:
-		   the_core->getChip()->getDCacheModelLock(my_rank);
+//		   the_core->getChip()->getDCacheModelLock(my_rank);
+//		   the_core->getDCacheModelLock();
   	      cache_model_results = ocache->runDCacheStoreModel(address, size);
   	      native_cache_hit = cache_model_results.first;
-		   the_core->getChip()->releaseDCacheModelLock(my_rank);
+//		   the_core->releaseDCacheModelLock();
 		break;
 		
 		default: 
@@ -662,9 +665,11 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
-	the_core->getChip()->getDCacheModelLock(the_core->getRank());
+//	the_core->getChip()->getDCacheModelLock(the_core->getRank());
+//	the_core->getDCacheModelLock();
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
-	the_core->getChip()->releaseDCacheModelLock(the_core->getRank());
+//	the_core->getChip()->releaseDCacheModelLock(the_core->getRank());
+//	the_core->releaseDCacheModelLock();
   // if it is null, it means the address has been invalidated
 	
   // send back acknowledgement of receiveing this message

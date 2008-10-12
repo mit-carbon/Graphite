@@ -85,6 +85,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    }
 
    syscall_model = new SyscallMdl(network);
+   InitLock(&dcache_lock);
 
    return 0;
 }

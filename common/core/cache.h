@@ -166,7 +166,7 @@ namespace CACHE_SET
          pair<bool, CacheTag*> find(CacheTag& tag, UINT32* set_index = NULL)
          {
 				// useful for debuggin
-				print();
+//				print();
 
 				assert(tags_last_index < k_MAX_ASSOCIATIVITY);
 

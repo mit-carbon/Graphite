@@ -60,6 +60,8 @@ class Core
 	MemoryManager *memory_manager;
    SyscallMdl *syscall_model;
 
+	PIN_LOCK dcache_lock;
+
    public:
 
       int getRank() 
@@ -71,9 +73,34 @@ class Core
       
 		//TODO added to allow the MMU to get/release locks in the chip.
 		//there has to be a better way to do all of this.
-		Chip* getChip() 
-			{ return the_chip; }
+      /*******************/
 		
+//		Chip* getChip() 
+//			{ return the_chip; }
+	
+		//TODO this are here as a temporary fix to the dcache synro bug (code hangs if we don't serilize cache accesses).  i suspect this will NOT work once we go across clusters.
+		/*
+		THREADID last_id;
+		
+		void getDCacheModelLock()
+			{
+				if(last_id != PIN_ThreadId()) {
+					cerr << "CONFLICT in CACHE ACCESS, Prev: " << last_id << " , Current: " << PIN_ThreadId() << endl;
+				}
+
+				last_id = PIN_ThreadId();
+
+				GetLock(&dcache_lock, 1);
+			}
+
+		void releaseDCacheModelLock()
+			{
+				ReleaseLock(&dcache_lock);
+			}
+       */
+		
+		/*******************/
+
 		int coreInit(Chip *chip, int tid, int num_mod);
 
       // Return the communication endpoint ID for this core

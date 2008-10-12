@@ -170,35 +170,35 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 		}
 	}
 	
-	cout << "   Asserting Dram     : Expected: " << DramDirectoryEntry::dStateToString(expected_dstate);
-	cout << ",  Actual: " <<  DramDirectoryEntry::dStateToString(actual_dstate);
+	cerr << "   Asserting Dram     : Expected: " << DramDirectoryEntry::dStateToString(expected_dstate);
+	cerr << ",  Actual: " <<  DramDirectoryEntry::dStateToString(actual_dstate);
 
-	cout << ", E {";
+	cerr << ", E {";
 
 			for(int i=0; i < (int) number_of_cores; i++) 
 			{
 				if(expected_sharers_array[i]) {
-					cout << " " << i << " ";
+					cerr << " " << i << " ";
 				}
 			}
 
-	cout << "}, A {";
+	cerr << "}, A {";
 			
 			for(int i=0; i < (int) number_of_cores; i++) 
 			{
 				if(actual_sharers_array[i]) {
-					cout << " " << i << " ";
+					cerr << " " << i << " ";
 				}
 			}
-	cout << "}";	
+	cerr << "}";	
 	
 	//check sharers list
 	//1. check that for every sharer expected, that he is set.
 	//2. verify that no extra sharers are set. 
 	if(is_assert_true) {
-      cout << " TEST PASSED " << endl;
+      cerr << " TEST PASSED " << endl;
 	} else {
-		cout << " TEST FAILED ****** " << endl;
+		cerr << " TEST FAILED ****** " << endl;
 //		print();
 	}
 	

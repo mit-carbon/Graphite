@@ -120,9 +120,9 @@ int main(int argc, char* argv[]){ // main begins
       pthread_create(&threads[1], &attr, starter_function, (void *) 1);    
 
 #ifdef DEBUG
-   pthread_mutex_lock(&lock);
+//   pthread_mutex_lock(&lock);
 	cerr << "Waiting to join" << endl << endl;
-   pthread_mutex_unlock(&lock);
+//   pthread_mutex_unlock(&lock);
 #endif
 
 	// Wait for all threads to complete
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]){ // main begins
         pthread_join(threads[1], NULL);
 
 #ifdef DEBUG
-	cerr << "End of execution" << endl << endl;
+//	cerr << "End of execution" << endl << endl;
 #endif
         
    return 0;
@@ -143,19 +143,20 @@ void* starter_function(void *threadid)
 	CAPI_Initialize(&tid);
 
 #ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cerr << "executing do_nothing function: " << tid << endl << endl;
-   pthread_mutex_unlock(&lock);
+//   pthread_mutex_lock(&lock);
+   
+//	cerr << "executing do_nothing function: " << tid << endl << endl;
+//   pthread_mutex_unlock(&lock);
 #endif
    
    if(tid==0) {
-		cerr << "Executing awesome test suite Core # 0 " << endl;
+//		cerr << "Executing awesome test suite Core # 0 " << endl;
 		awesome_test_suite_msi(tid);
-		cerr << "FInished Executing awesome test suite  Core #0" << endl;
+//		cerr << "FInished Executing awesome test suite  Core #0" << endl;
    } else {
-		cerr << "Executing awesome test suite Core #1 " << endl;
+//		cerr << "Executing awesome test suite Core #1 " << endl;
 		awesome_test_suite_msi(tid);
-		cerr << "FInished Executing awesome test suite  Core #1" << endl;
+//		cerr << "FInished Executing awesome test suite  Core #1" << endl;
    }
    CAPI_Finish(tid);
 	pthread_exit(NULL);  
@@ -179,7 +180,7 @@ void BARRIER_DUAL_CORE(int tid)
 void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code)
 {
 	cerr << endl << endl;
-	cerr << "   ******************************************************************************************************" << endl;
+   cerr << "   ******************************************************************************************************" << endl;
 	cerr << "   ************* " << test_code << endl;
 	cerr << "   ******************************************************************************************************" << endl;                    
 
@@ -398,7 +399,6 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
 	++test_index;
-	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//SII-{0} -> SSI-{0}
 	fini_mem_state_id[test_index] = 1;
@@ -432,7 +432,6 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
 	++test_index;
-	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//EII-{0} -> SSI-{0}
 	fini_mem_state_id[test_index] = 4;
@@ -547,7 +546,6 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
 	++test_index;
-	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//SII-{0} -> EEI-{0}
 	fini_mem_state_id[test_index] = 1;
@@ -821,7 +819,6 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
 	++test_index;
-	cerr << "Setting expected final memory states 1" << endl;	
 	/******************************************************/
 	//SII-{0} -> EEI-{1}
 	fini_mem_state_id[test_index] = 1;

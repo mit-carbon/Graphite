@@ -1,5 +1,6 @@
-// Jonathan Eastep, Jason Miller, Harshad Kasture, Jim Psota
-// 04.08.08
+// Jonathan Eastep, Harshad Kasture, Jason Miller, Chris Celio, Charles Gruenwald,
+// Nathan Beckmann, David Wentzlaff, James Psota
+// 10.12.08
 //
 // Carbon Computer Simulator
 //
@@ -53,7 +54,7 @@ PIN_LOCK dcache_write_lock;
 
 VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
                ADDRINT dcache_st_addr, UINT32 dcache_st_size,
-               PerfModelIntervalStat *stats,
+               PerfModelIntervalStat* *stats,
                REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
                bool do_network_modeling, bool do_icache_modeling, 
                bool do_dcache_read_modeling, bool is_dual_read, 
@@ -93,13 +94,13 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
    if ( do_icache_modeling )
      {
-       for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
+       for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
          {
 	   // first = PC, second = size
-	   bool i_hit = icacheRunLoadModel(stats->inst_trace[i].first,
-					   stats->inst_trace[i].second);
+	   bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
+					   stats[rank]->inst_trace[i].second);
 	   if ( do_perf_modeling ) {
-	     perfModelLogICacheLoadAccess(stats, i_hit);
+	     perfModelLogICacheLoadAccess(stats[rank], i_hit);
 	   }
          }
      }
@@ -110,7 +111,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
      {
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get the cycle counter up to date then account for dependency stalls
-       perfModelRun(stats, reads, num_reads); 
+       perfModelRun(stats[rank], reads, num_reads); 
      }
 
    if ( do_dcache_read_modeling )
@@ -123,13 +124,13 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
        bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        if ( do_perf_modeling ) {
-           perfModelRun(stats, d_hit, writes, num_writes);
+           perfModelRun(stats[rank], d_hit, writes, num_writes);
        }
 
        if ( is_dual_read ) {
            bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
            if ( do_perf_modeling ) {
-               perfModelRun(stats, d_hit2, writes, num_writes);
+               perfModelRun(stats[rank], d_hit2, writes, num_writes);
            }
        }
 
@@ -150,7 +151,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
        if ( do_perf_modeling )
          { 
-	   perfModelLogDCacheStoreAccess(stats, d_hit); 
+	   perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
          }
        ReleaseLock(&dcache_write_lock);
        ReleaseLock(&dcache_read_lock);
@@ -164,7 +165,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    // this should probably go last
    if ( do_perf_modeling )
      {
-       perfModelRun(stats);
+       perfModelRun(stats[rank]);
      }
 
 }
@@ -216,7 +217,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    //this flag may or may not get used
    bool is_dual_read = INS_HasMemoryRead2(ins);
 
-   PerfModelIntervalStat *stats;
+   PerfModelIntervalStat* *stats;
    INS end_ins = INS_Next(ins);
    // stats also needs to get allocated if icache modeling is turned on
    stats = (do_perf_modeling || do_icache_modeling || check_scoreboard) ? 

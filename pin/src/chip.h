@@ -55,8 +55,8 @@ void perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads,
 void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes);
 
-PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
-                                                const INS& start_ins, const INS& end_ins);
+PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
+                                                 const INS& start_ins, const INS& end_ins);
 
 void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
      
@@ -108,9 +108,9 @@ class Chip
                                UINT32 num_reads);
       friend void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                                REG *writes, UINT32 num_writes);
-      friend PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
-                                                             const INS& start_ins, 
-                                                             const INS& end_ins);
+      friend PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
+                                                              const INS& start_ins, 
+                                                              const INS& end_ins);
       friend void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
       friend void perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
       friend void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);      

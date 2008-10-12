@@ -118,17 +118,13 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get cycle count up to date so time stamp for when miss is ready is correct
 
-       GetLock(&dcache_lock, 1);
        bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
-       ReleaseLock(&dcache_lock);
        if ( do_perf_modeling ) {
            perfModelRun(stats[rank], d_hit, writes, num_writes);
        }
 
        if ( is_dual_read ) {
-           GetLock(&dcache_lock, 1);
            bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-           ReleaseLock(&dcache_lock);
            if ( do_perf_modeling ) {
                perfModelRun(stats[rank], d_hit2, writes, num_writes);
            }
@@ -144,9 +140,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
    if ( do_dcache_write_modeling )
      {
-       GetLock(&dcache_lock, 1);
        bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
-       ReleaseLock(&dcache_lock);
        if ( do_perf_modeling )
          { 
 	   perfModelLogDCacheStoreAccess(stats[rank], d_hit); 

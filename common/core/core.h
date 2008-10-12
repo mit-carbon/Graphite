@@ -42,6 +42,7 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_size;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_associativity;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth; 
 
+extern PIN_LOCK dcache_lock;
 
 class Core
 {
@@ -101,13 +102,26 @@ class Core
       // organic cache wrappers
 
       bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
-      { return ocache->runICacheLoadModel(i_addr, size); }
+      { 
+        bool ret = ocache->runICacheLoadModel(i_addr, size);
+        return ret;
+      }
 
       bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
-      { return ocache->runDCacheLoadModel(d_addr, size); }
+      {
+        GetLock(&dcache_lock, 1);
+        bool ret = ocache->runDCacheLoadModel(d_addr, size);
+        ReleaseLock(&dcache_lock);
+        return ret;
+      }
 
       bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
-      { return ocache->runDCacheStoreModel(d_addr, size); }
+      {
+        GetLock(&dcache_lock, 1);
+        bool ret = ocache->runDCacheStoreModel(d_addr, size); 
+        ReleaseLock(&dcache_lock);
+        return ret;
+      }
 
 };
 

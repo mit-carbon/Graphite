@@ -31,6 +31,7 @@
 #include "ocache.h"
 #include "perfmdl.h"
 #include "knobs.h"
+#include "mcp.h"
 
 Chip *g_chip = NULL;
 Config *g_config = NULL;
@@ -469,7 +470,7 @@ VOID init_globals()
 
    g_chip = new Chip(g_knob_num_cores);
 
-   // Note the syscall server has a dependency on the transport layer and the chip
+   // Note the MCP has a dependency on the transport layer and the chip
    g_MCP = new MCP();
 
    InitLock(&dcache_lock);

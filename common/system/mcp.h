@@ -4,6 +4,7 @@
 #include "packetize.h"
 #include "transport.h"
 #include "syscall_server.h"
+#include "fixed_types.h"
 #include <iostream>
 
 // externed so the names don't get name-mangled

@@ -45,8 +45,7 @@ INT32 usage()
    return -1;
 }
 
-PIN_LOCK dcache_read_lock;
-PIN_LOCK dcache_write_lock;
+PIN_LOCK dcache_lock;
 
 /* ===================================================================== */
 /* For instrumentation / modeling */
@@ -120,9 +119,6 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get cycle count up to date so time stamp for when miss is ready is correct
 
-       GetLock(&dcache_read_lock, 1);
-       GetLock(&dcache_write_lock, 1);
-
        bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        if ( do_perf_modeling ) {
            perfModelRun(stats[rank], d_hit, writes, num_writes);
@@ -135,8 +131,6 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
            }
        }
 
-       ReleaseLock(&dcache_write_lock);
-       ReleaseLock(&dcache_read_lock);
      } 
    else 
      {
@@ -147,15 +141,11 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
    if ( do_dcache_write_modeling )
      {
-       GetLock(&dcache_read_lock, 1);
-       GetLock(&dcache_write_lock, 1);
        bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
        if ( do_perf_modeling )
          { 
 	   perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
          }
-       ReleaseLock(&dcache_write_lock);
-       ReleaseLock(&dcache_read_lock);
      } 
    else 
      {
@@ -483,8 +473,7 @@ VOID init_globals()
    // Note the MCP has a dependency on the transport layer and the chip
    g_MCP = new MCP();
 
-   InitLock(&dcache_read_lock);
-   InitLock(&dcache_write_lock);
+   InitLock(&dcache_lock);
 }
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)

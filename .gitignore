@@ -2,6 +2,9 @@
 *.d
 *.o
 
+# transport files
+common/phys_trans/transport.*
+
 # emacs temp files
 *~
 

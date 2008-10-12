@@ -61,7 +61,7 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth;
 class OCache
 {
    private:
-      typedef Cache<CACHE_SET::RoundRobin<16>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> 
+      typedef Cache<CACHE_SET::RoundRobin<16, 128>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> 
               RRSACache;
 
    public:
@@ -191,4 +191,5 @@ bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
 VOID oCacheModelInit();
 VOID oCacheModelFini(int code, VOID *v, ofstream& out);
 
+ 
 #endif

@@ -68,6 +68,10 @@ basic_test: all
 	#$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/pthreads_basic/basic
 	$(PIN_RUN) -mdc -msm -msys -n 1 -- $(TESTS_DIR)/pthreads_basic/basic
 
+cache_test: all
+	$(MAKE) -C $(TESTS_DIR)/cache_model
+	$(PIN_RUN) -mdc -mpf -n 2 -- $(TESTS_DIR)/cache_model/cache_test
+
 kill:
 war:
 	@echo "Killing All Possible Processes"

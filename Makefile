@@ -60,6 +60,10 @@ war:	kill
 kill:
 	killall -s 9 $(PROCESS)
 
+barnes_test: all
+	$(MAKE) -C $(TESTS_DIR)/barnes
+	$(PIN_RUN) -mdc -mpf -msys -n 4 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
+
 love:
 	@echo "not war!"
 

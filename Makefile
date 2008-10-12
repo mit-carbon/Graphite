@@ -55,7 +55,8 @@ matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 
-war:
+war:	kill
+
 kill:
 	killall -s 9 $(PROCESS)
 

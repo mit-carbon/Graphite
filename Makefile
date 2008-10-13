@@ -6,7 +6,7 @@ PIN_TOOL=pin/bin/pin_sim
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 TESTS_DIR=./common/tests
 
-CORES=64
+CORES=16
 ..PHONY: cores
 PROCESS=mpirun
 ..PHONY: process
@@ -58,7 +58,6 @@ matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 
-
 shmem_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 #	$(PIN_RUN) -mdc -msm -n 2 -- $(TESTS_DIR)/shared_mem_test/test
@@ -73,8 +72,12 @@ cache_test: all
 	$(MAKE) -C $(TESTS_DIR)/cache_model
 	$(PIN_RUN) -mdc -mpf -n 2 -- $(TESTS_DIR)/cache_model/cache_test
 
+barnes_test: all
+	$(MAKE) -C $(TESTS_DIR)/barnes
+	$(PIN_RUN) -mdc -mpf -msys -n 4 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
+
+war:	kill
 kill:
-war:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
 	killall -s 9 test

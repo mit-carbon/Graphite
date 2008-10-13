@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include "capi.h"
-#include "syscall_api.h"
+#include "mcp_api.h"
 
 using namespace std;
 
@@ -25,7 +25,7 @@ void* read_and_write(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
-   initSyscallServer();
+   initMCP();
 	
    // Read in the command line arguments
    unsigned int numThreads = 1;
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    cout << "quitting syscall server!" << endl;
-   quitSyscallServer();
+   quitMCP();
 
 #ifdef DEBUG
    cout << "This is the function main ending" << endl;
@@ -76,21 +76,24 @@ void* read_and_write(void *threadid)
    // Initialize local variables
    CAPI_rank(&tid);
 
-   // Do the work
+   // Open the file
    int fid;
-   fid = open("./common/tests/file_io/input2", O_RDONLY);
+   fid = open("./common/tests/file_io/input2", O_RDWR);
 
    printf("File Descriptor: 0x%x\n", (unsigned int)fid);
 
-   // Actually read the FID
+   // Read the FID
    char the_data[1024] = {'\0'};
    int status = read(fid, (void *) the_data, 1024);
-
    printf("Read from fid %d returned %d and %s\n", fid, status, the_data);
 
+   // Write the FID
+   char the_write_data[14] = "goodbye world";
+   status = write(fid, (void *) the_write_data, 13); 
+   printf("Write from fid %d returned %d\n", fid, status);
 
    // Close the FID
-   // fclose(fid);
+   close(fid);
 
    // printf("Read: %s\n", the_data);
 

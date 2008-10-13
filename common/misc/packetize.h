@@ -12,12 +12,11 @@
 #include <iostream>
 #include "fixed_types.h"
 
-using namespace std;
 
 class UnstructuredBuffer {
 
    private:
-      string the_chars;
+      std::string the_chars;
 
       // These put / get scalars
       template<class T> void put(T& data);

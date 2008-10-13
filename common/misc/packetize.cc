@@ -1,5 +1,7 @@
 #include "packetize.h"
 
+using namespace std;
+
 UnstructuredBuffer::UnstructuredBuffer()
 {
 }

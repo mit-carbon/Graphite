@@ -6,7 +6,7 @@ OPT=-O2
 CFLAGS=-c -I../misc -I../phys_trans -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = syscall_server.cc
+SOURCES = syscall_server.cc mcp.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 

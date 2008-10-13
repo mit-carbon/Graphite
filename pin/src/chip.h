@@ -17,7 +17,7 @@
 #include "address_home_lookup.h"
 #include "perfmdl.h"
 #include "syscall_model.h"
-#include "syscall_server.h"
+#include "mcp.h"
 
 // external variables
 
@@ -26,7 +26,7 @@ class Chip;
 class Core;
 
 extern Chip *g_chip;
-extern SyscallServer *g_syscall_server;
+extern MCP *g_MCP;
 
 extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
@@ -65,8 +65,8 @@ void perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads,
 void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes);
 
-PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
-                                                const INS& start_ins, const INS& end_ins);
+PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
+                                                 const INS& start_ins, const INS& end_ins);
 
 void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
      
@@ -87,8 +87,8 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
-// syscall server wrappers
-void syscallServerRun();
+// MCP server wrappers
+void MCPRun();
 
 
 // chip class
@@ -122,9 +122,9 @@ class Chip
                                UINT32 num_reads);
       friend void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                                REG *writes, UINT32 num_writes);
-      friend PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
-                                                             const INS& start_ins, 
-                                                             const INS& end_ins);
+      friend PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
+                                                              const INS& start_ins, 
+                                                              const INS& end_ins);
       friend void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
       friend void perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
       friend void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);      

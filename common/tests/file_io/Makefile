@@ -10,7 +10,7 @@ else
   LDFLAGS = 
 endif
 
-SOURCES = ../../user/capi.cc ../../user/syscall_api.cc file_io.cc
+SOURCES = ../../user/capi.cc ../../user/mcp_api.cc file_io.cc
 OBJECTS = $(SOURCES:%.cc=%.o) 
 
 ## Build rules

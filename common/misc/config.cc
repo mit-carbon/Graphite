@@ -1,5 +1,7 @@
 #include "config.h"
 
+using namespace std;
+
 Config::Config()
 {
    UInt32 i;

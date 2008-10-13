@@ -1,6 +1,7 @@
 #include "memory_manager.h"
 //#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
+//#define ADDR_HOME_LOOKUP_DEBUG
 using namespace std;
 
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
@@ -10,6 +11,11 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	
 	//FIXME; need to add infrastructure for specifying core architecture details (e.g. DRAM size)
 	// this also assumes 1 dram per core
+
+	/* ================================================================= */
+	/* Added by George */
+	dramAccessCost = 0;
+	/* ================================================================= */
 
 	// assume 4GB / dCacheLineSize  bytes/line 
 	int total_num_dram_lines = (int) (pow(2,32) / ocache->dCacheLineSize()); 
@@ -23,7 +29,10 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
 
 	//TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
-	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores(), the_core->getRank());
+	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores(), g_knob_ahl_param.Value(), the_core->getRank());
+#ifdef ADDR_HOME_LOOKUP_DEBUG
+	cerr << "Creating New Addr Home Lookup Structure: " << the_core->getNumCores() << ", " << g_knob_ahl_param.Value() << ", " << the_core->getRank() << "\n";
+#endif
 }
 
 MemoryManager::~MemoryManager()
@@ -220,6 +229,10 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
      
       UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
+#ifdef ADDR_HOME_LOOKUP_DEBUG
+	  cerr << "Addr_Home_lookup: Address = " << hex << address << ", Home Node = " << dec << home_node_rank << endl;
+#endif
+
 		stringstream ss;
 #ifdef MMU_DEBUG
 		ss << "address           : " << hex << address << endl;
@@ -359,6 +372,35 @@ void MemoryManager::addMemRequest(NetPacket req_packet)
 //TODO this should be put into the directory code? Is this when the directory gets a message requesting a dram memory line? I am receiving a Request Packet.
 void MemoryManager::processSharedMemReq(NetPacket req_packet) 
 {
+	 /* ============================================================== */
+	 /* Added by George */
+	 
+	 // XXX: Here, I add the DRAM access cost
+	 // TODO: This is just a temporary hack. The actual DRAM access cost has to incorporated 
+	 //       while adding data storage to all the coherence messages
+	 //
+	 // 1) READ request:
+	 //    a) Case (EXCLUSIVE):
+	 //       There is only 1 AckPayload message we need to look at 
+	 //	    i) AckPayload::remove_from_sharers = false
+	 //	      * Do '2' runDramAccessModel()
+	 //	    ii) AckPayload::remove_from_sharers = true
+	 //	      * Do '1' runDramAccessModel()
+	 //	 b) Case (SHARED or INVALID):
+	 //	   * Do '1' runDramAccessModel()
+	 //
+	 // 2) WRITE request
+	 //    a) Case (EXCLUSIVE):
+	 //    	 There is only 1 AckPayload message we need to look at
+	 //       i) AckPayload::remove_from_sharers = false
+	 //         * Do '2' runDramAccessModel()
+	 //       ii) AckPayload::remove_from_sharers = true
+	 //         * Do '1' runDramAccessModel()
+	 //    b) Case (SHARED or INVALID):
+	 //      * Do '1' runDramAccessModel()
+	 //
+
+	 /* =============================================================== */
 
 	stringstream ss;
 #ifdef MMU_DEBUG
@@ -366,17 +408,19 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
   debugPrint(the_core->getRank(), "MMU", "Processing shared memory request.");
 #endif
    
-  // extract relevant values from incoming request packet
-  shmem_req_t shmem_req_type = (shmem_req_t)((RequestPayload*)(req_packet.data))->request_type;
-  ADDRINT address = ((RequestPayload*)(req_packet.data))->request_address;
-  unsigned int requestor = req_packet.sender;
-  unsigned int my_rank = the_core->getRank();
+  	// extract relevant values from incoming request packet
+  	shmem_req_t shmem_req_type = (shmem_req_t)((RequestPayload*)(req_packet.data))->request_type;
+  	ADDRINT address = ((RequestPayload*)(req_packet.data))->request_address;
+  	unsigned int requestor = req_packet.sender;
+  	unsigned int my_rank = the_core->getRank();
   
   // 0. get the DRAM directory entry associated with this address
 #ifdef MMU_DEBUG
   debugPrint(the_core->getRank(), "MMU", "getting $Entry (processSMemReq)");
 #endif
-  DramDirectoryEntry* dram_dir_entry = dram_dir->getEntry(address);
+  
+  	DramDirectoryEntry* dram_dir_entry = dram_dir->getEntry(address);
+
 #ifdef MMU_DEBUG
   debugPrint(the_core->getRank(), "MMU", "retrieved $Entry (processSMemReq)");
 
@@ -384,8 +428,8 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
   debugPrint(the_core->getRank(), "MMU", "printed dstate (processSMemReq)");
 #endif
 
-  // 1. based on requested operation (read or write), make necessary updates to current owners
-  // 2. update directory state in DRAM and sharers array
+  	// 1. based on requested operation (read or write), make necessary updates to current owners
+  	// 2. update directory state in DRAM and sharers array
 	
 	switch( shmem_req_type ) {
 	
@@ -412,7 +456,8 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 //				packet.sender = my_rank;
 //				packet.receiver = current_owner;
 //				packet.length = sizeof(UpdatePayload);
-				NetPacket packet = makePacket( SHARED_MEM_UPDATE_UNEXPECTED, my_rank, current_owner, sizeof(UpdatePayload));
+				
+				NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, my_rank, current_owner, sizeof(UpdatePayload));
 
 				// initialize packet payload for downgrade
 /*				int payload[SH_MEM_UPDATE_NUM_INTS_SIZE];
@@ -423,9 +468,12 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 				payload.update_new_cstate = CacheState::SHARED;
    			payload.update_address= address;
 				packet.data = (char *)(&payload);
+				
+#ifdef MMU_DEBUG
 				ss.str("");
 				ss << "   START netSend to <" << packet.receiver << "> ";
 //				debugPrint(the_core->getRank(), "MMU::processSMemReq", ss.str());
+#endif
 				(the_core->getNetwork())->netSend(packet);
 //				debugPrint(the_core->getRank(), "MMU::processSMemReq", "   END   netSend");
 		
@@ -441,9 +489,13 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 				net_match.sender_flag = true;
 				net_match.type = SHARED_MEM_ACK;
 				net_match.type_flag = true;
+				
+#ifdef MMU_DEBUG
 				ss.str("");
 				ss << "   START netRecv: from Core <" << net_match.sender << "> " ; 
 //				debugPrint(the_core->getRank(), "MMU::processSMemReq", ss.str());
+#endif
+
 				NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
 //				debugPrint(the_core->getRank(), "MMU::processSMemReq", "   END   netRecv");
 		
@@ -454,6 +506,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 				ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
 				stringstream ss;
 				//TODO bug here b/c we're servicing multiple outstanding requests (and netMatch gives us the wrong packet)
+				// How is this possible? We wait for our request to be serviced. right??
 				if(received_address != address) {
 					//print out info before we crash
 					ss.str("");
@@ -465,17 +518,32 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 				CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
 				assert(received_new_cstate == CacheState::SHARED);
 				
-            //did the former owner invalidate it already? if yes, we should remove him from the sharers list
+            // did the former owner invalidate it already? if yes, we should remove him from the sharers list
 				if( ((AckPayload*)(recv_packet.data))->remove_from_sharers )
 				{
 					dram_dir_entry->removeSharer( current_owner );
 				}
+				/* ========================================================================== */
+				/* Modified by George */
+				else {
+					 // In this case, the former owner needs to write back to the DRAM before the current requestor
+					 // can read from it - so, we need to add to the cost once
+					 runDramAccessModel();
+				}
+				/* =========================================================================== */
 
 			}
 			
 			// TODO: is there a race condition here in the case when the directory gets updated and then
 			// this thread gets swapped out? should we atomize the state update and the response message
 			// this get executed no matter what state the dram directory entry was in
+
+			/* =================================================================== */
+			/* Modified by George */
+			// FIXME: One memory to cache transfer always needs to take place
+			// Dont know whether this is the right place to put this in
+			runDramAccessModel();
+			/* =================================================================== */
 
 #ifdef MMU_DEBUG
 			debugPrint(the_core->getRank(), "MMU", "addSharer & Set DState");
@@ -488,6 +556,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 		case WRITE: 
 		{	
 		  // invalidate current sharers
+		  	bool already_invalidated = false;
 			vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
 			
 #ifdef MMU_DEBUG
@@ -495,6 +564,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 			ss << "ProcessSharedMemReq: Write Case, Addr: " << hex << address;
 			debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif			 
+			
 			
 			for(UINT32 i = 0; i < sharers_list.size(); i++) 
 			{
@@ -541,13 +611,13 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 				// TODO: optimize this by receiving acks out of order
 #ifdef MMU_DEBUG				
 				ss.clear();
-				ss << "Recieving Invalidation Ack Message from Sharer [" << sharers_list[i] << "]";
+				ss << "Receiving Invalidation Ack Message from Sharer [" << sharers_list[i] << "]";
 				debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 				 
 				// wait for all of the invalidation acknowledgements
 				NetMatch net_match;
-				net_match.sender = sharers_list[i];//*sharers_iterator;
+				net_match.sender = sharers_list[i]; //*sharers_iterator;
 				net_match.sender_flag = true;
 				net_match.type = SHARED_MEM_ACK;
 				net_match.type_flag = true;
@@ -571,10 +641,35 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 //				 CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((int *)(recv_packet.data))[SH_MEM_ACK_IDX_NEW_CSTATE]);
 				 CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
 				 assert(received_new_cstate == CacheState::INVALID);
+
+				 /* =========================================================== */
+				 /* Modified by George */
+				 // FIXME: Verify that this is correct
+				 if (((AckPayload*)(recv_packet.data))->remove_from_sharers) {
+					  // Remove this core from the sharers list
+					  already_invalidated = true;
+				 }
+				 /* =========================================================== */
+
 			}
+			
+		  	/* ============================================================= */
+		  	/* Modified by George */
+		    // FIXME: Verify that this is correct
+			// TODO: Test my understanding of runDCachePeekModel() and runDCache[(Load)/(Store)]Model()
+		  	if (dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) {
+				// We need to write back this cache line to the DRAM 	
+				if (! already_invalidated)
+					runDramAccessModel();
+
+		  	}
+			
+			// An call to the access model has to be there anyways for getting the data from the DRAM
+			runDramAccessModel();
+		  	/* ============================================================= */
 		  
-		  dram_dir_entry->addExclusiveSharer(requestor);
-		  dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
+		  	dram_dir_entry->addExclusiveSharer(requestor);
+		  	dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
 		}
 		break;
 
@@ -604,7 +699,7 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 	CacheState::cstate_t new_cstate;
 
 	//we need to map from dstate to cstate
-	switch(dram_dir_entry->getDState()) {
+	switch (dram_dir_entry->getDState()) {
 		case DramDirectoryEntry::UNCACHED:
 			assert ( 0 ); //so this situation ever happen?
 			new_cstate = CacheState::INVALID;
@@ -727,6 +822,20 @@ bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
   return true;
 }
 
+/* ========================================================== */
+/* Added by George */
+void MemoryManager::runDramAccessModel () {
+
+	dramAccessCost += g_knob_dram_access_cost.Value();
+}
+
+UINT64 MemoryManager::getDramAccessCost() {
+	
+	return (dramAccessCost);
+}
+/* =========================================================== */
+
+
 string MemoryManager::sMemReqTypeToString(shmem_req_t type)
 {
 	switch(type) {
@@ -748,6 +857,7 @@ bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstat
 	return dram_dir->debugAssertDramState(addr, dstate, sharers_list);	
 }
 
+/*
 void MemoryManager::setDramBoundaries( vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
 {
 	cerr << " MMU: setting Dram Boundaries " << endl;
@@ -761,5 +871,5 @@ void MemoryManager::setDramBoundaries( vector< pair<ADDRINT, ADDRINT> > addr_bou
 	addr_home_lookup->setAddrBoundaries(addr_boundaries);
 	cerr << " MMU: Finished setting Dram Boundaries " << endl;
 }
-
+*/
 

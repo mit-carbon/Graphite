@@ -652,10 +652,12 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
 		cerr << "replacing CAPI_debugAssertMemState" << endl;
 		return AFUNPTR(chipDebugAssertMemState);
 	}
+	/*
 	else if(name == "CAPI_setDramBoundaries") {
 		cerr << "replacing CAPI_setDramBoundaries" << endl;
 		return AFUNPTR(chipSetDramBoundaries);
 	}
+	*/
    else if(name == "runSyscallServer"){
 		cerr << endl << endl << "!!!!!!!!! Trying to replace runSyscallServer! !!!!!!!!!! " << endl << endl;
 //      return AFUNPTR(syscallServerRun);

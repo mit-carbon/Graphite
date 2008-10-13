@@ -68,7 +68,9 @@ typedef struct NetPacket NetPacket;
 
 
 
-extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem; 
+extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
+extern LEVEL_BASE::KNOB<UINT32> g_knob_ahl_param;
+extern LEVEL_BASE::KNOB<UINT32> g_knob_dram_access_cost;
 
 
 // TODO: move this into MemoryManager class?
@@ -128,9 +130,16 @@ class MemoryManager
 	//This is here to serialize the requests
 	// do not process a new request until finished with current request
 	// do not exit MMU until no more incoming requests
+	
    UINT64 volatile debug_counter; //a primitive clock for debugging
    bool volatile processing_request_flag;
    int volatile incoming_requests_count;
+
+    /* ============================================= */
+    /* Added by George */
+    UINT64 dramAccessCost;
+	/* ============================================= */
+
 	//FIFO queue
 	queue<NetPacket> request_queue;
 	void addRequestToQueue( NetPacket packet );
@@ -156,7 +165,14 @@ class MemoryManager
     void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	 bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 
-	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+	 /* ============================================== */
+	 /* Added by George */
+	 void runDramAccessModel(void);
+	 UINT64 getDramAccessCost(void);
+	 /* ============================================== */
 
+	/*
+	 void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+	*/
 };
 #endif

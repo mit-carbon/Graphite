@@ -1,6 +1,6 @@
 include ../makefile.gnu.config
 
-all: pthreadsmatmult pingpong cache_model
+all: pthreadsmatmult pingpong
 
 pthreadsmatmult:
 	$(MAKE) -C pthreads_matmult
@@ -10,8 +10,7 @@ pingpong:
 
 clean:
 	$(MAKE) -C pthreads_matmult clean
-	$(MAKE) -C pingpong clean
-	$(MAKE) -C cache_model clean
+	$(MAKE) -C ping_pong clean
 	-rm -f *.o $(TOOLS) *.d *.rpo
 
 squeaky: clean

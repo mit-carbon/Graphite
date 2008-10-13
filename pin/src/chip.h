@@ -176,7 +176,9 @@ class Chip
 		void debugSetInitialMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list);
 		bool debugAssertMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list, string test_code, string error_string);
 		
+		/*
 		void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+		*/
 
 		void getDCacheModelLock(int rank);
 		void releaseDCacheModelLock(int rank);

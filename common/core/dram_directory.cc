@@ -27,6 +27,7 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
 	// note: the directory is a map key'ed by cache line. so, first we need to determine the associated cache line
 	//TODO i think i can take out the ( - (num_lines*dram_id) ) since its just a key.
 	//and, its not a cache line.
+	// I really dont understand what this is..why do you need "dram_id" in any case ?? 
 	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
   
 #ifdef DRAM_DEBUG

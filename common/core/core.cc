@@ -390,6 +390,7 @@ bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t ds
 }
 
 
+/*
 void Core::setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
 {
 	cerr << "CORE: setting dram boundaries" << endl;
@@ -397,3 +398,4 @@ void Core::setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
 	memory_manager->setDramBoundaries(addr_boundaries);
 	cerr << "CORE: finished setting dram boundaries" << endl;
 }
+*/

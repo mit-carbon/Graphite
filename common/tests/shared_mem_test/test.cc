@@ -207,7 +207,7 @@ void initialize_test_parameters()
    //hand code address boundaries between cores
 	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0, dram0_address + 1000));
 	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( dram0_address + 1000, 0xFFFFFFFF));
-	CAPI_setDramBoundaries(addr_boundaries);
+	// CAPI_setDramBoundaries(addr_boundaries);
 	
 	cerr << "dram0 ADDR: " << hex << dram0_address << endl;
 	cerr << "dram1 ADDR: " << hex << dram1_address << endl;

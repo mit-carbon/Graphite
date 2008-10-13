@@ -54,7 +54,9 @@ CAPI_return_t CAPI_debugAssertMemState( ADDRINT address, INT32 dram_address_home
 	return 0;
 }
 
+/*
 CAPI_return_t CAPI_setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
 {
 	return 0;
 }
+*/

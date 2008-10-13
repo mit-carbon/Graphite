@@ -100,6 +100,12 @@ CAPI_return_t chipHackFinish(int my_rank)
 {
 	cerr << "HACK---- please remove chipHackFInish...... " << endl;
 	cerr << "FINISHED: CORE [" << my_rank << "] " << endl;
+	
+	/* ========================================================================== */
+	/* Added by George */
+	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
+	/* ========================================================================== */
+
 	bool volatile finished = false;
 	
 	//debugging shared memory
@@ -329,6 +335,7 @@ bool Chip::debugAssertMemConditions(ADDRINT address, vector< pair<INT32, DramDir
 	return all_asserts_passed;
 }
 
+/*
 void Chip::setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries) 
 {
 
@@ -342,6 +349,7 @@ void Chip::setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries)
 	//static function that should affect all AHL's on every core?
 	cerr << " CHIP: Finished Dram Boundaries " << endl; 
 }
+*/
 /*user program calls get routed through this */
 CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list) 
 {
@@ -380,11 +388,13 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 
 }
 
+/*
 CAPI_return_t chipSetDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
 {
 	g_chip->setDramBoundaries(addr_boundaries);
 	return 0;
 }
+*/
 
 
 //TODO this are here as a temporary fix to the dcache synro bug (code hangs if we don't serilize cache accesses).  i suspect this will NOT work once we go across clusters.

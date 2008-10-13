@@ -563,14 +563,14 @@ void Network::netEntryTasks()
 		  assert(0 <= sender && sender < net_num_mod);
 		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
         net_queue[sender][type].pop();
-      debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
+//      debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
         //TODO possibly rename this to addUnexpectedShareMemUpdate(packet)
         the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
 		  if(the_chip->getProcTime(net_tid) < entry.time)
 		  {
 			  the_chip->setProcTime(net_tid, entry.time);
 		  }
-      debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
+//      debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
       }
 //=======
 //	assert(0 <= sender && sender < net_num_mod);

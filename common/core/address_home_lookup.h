@@ -26,6 +26,20 @@ using namespace std;
  * Maybe allow the ability to have public and private memory space?
  */
 
+
+class AddressHomeLookup {
+	public:
+		AddressHomeLookup (UINT32 num_nodes, UINT32 ahl_param, INT32 ahl_id);
+		~AddressHomeLookup(void);
+		UINT32 find_home_for_addr(ADDRINT address) const;
+
+	private:
+		UINT32 num_nodes;
+		INT32 ahl_id;
+		ADDRINT mask;
+		UINT32 ahl_param;
+};
+/*
 class AddressHomeLookup
 {
 	public:
@@ -33,7 +47,7 @@ class AddressHomeLookup
 		AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds, INT32 ahl_id);
 		virtual ~AddressHomeLookup();
 	  
-		/* TODO: change this return type to a node number type */
+		// TODO: change this return type to a node number type 
 		UINT32 find_home_for_addr(ADDRINT) const;
 		//TODO make this static
 		void setAddrBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_bounds);
@@ -45,6 +59,10 @@ class AddressHomeLookup
 
 	   UINT32 num_nodes;
 		INT32 ahl_id; //debugging purposes only. tie to core id
+		ADDRINT mask;
+		UINT32 m;
 };
+*/
+
 
 #endif /*ADDRESSHOMELOOKUP_H_*/

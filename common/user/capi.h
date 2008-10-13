@@ -34,7 +34,9 @@ extern "C" {
 	
 	CAPI_return_t CAPI_debugAssertMemState( ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_string);
 
+	/*
 	CAPI_return_t CAPI_setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries);
+	*/
 }
 	
 	//FIXME this is a temp hack function

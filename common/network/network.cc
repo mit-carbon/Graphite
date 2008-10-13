@@ -143,8 +143,8 @@ NetPacket Network::netRecv(NetMatch match)
 
       if(match.sender_flag && match.type_flag)
       {
-	 assert(0 <= match.sender && match.sender < net_num_mod);
-	 assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+	 		assert(0 <= match.sender && match.sender < net_num_mod);
+	 		assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          if( !(net_queue[match.sender][match.type].empty()) )
          {
 	         // if(entry.time >= net_queue[match.sender][match.type].top().time)
@@ -158,7 +158,7 @@ NetPacket Network::netRecv(NetMatch match)
       }
       else if(match.sender_flag && (!match.type_flag))
       {
-	 int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+	 		int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
          for(int i = 0; i < num_pac_type; i++)
          {
             assert(0 <= match.sender && match.sender < net_num_mod);
@@ -563,14 +563,18 @@ void Network::netEntryTasks()
 		  assert(0 <= sender && sender < net_num_mod);
 		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
         net_queue[sender][type].pop();
-      debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
+#ifdef NETWORK_DEBUG
+		debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
+#endif
         //TODO possibly rename this to addUnexpectedShareMemUpdate(packet)
         the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
 		  if(the_chip->getProcTime(net_tid) < entry.time)
 		  {
 			  the_chip->setProcTime(net_tid, entry.time);
 		  }
-      debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
+#ifdef NETWORK_DEBUG
+		  debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
+#endif
       }
 //=======
 //	assert(0 <= sender && sender < net_num_mod);

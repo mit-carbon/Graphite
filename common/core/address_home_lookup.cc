@@ -1,15 +1,66 @@
 #include "address_home_lookup.h"
-//move this back into the makefile system...
-#define TOTAL_DRAM_MEMORY_BYTES (pow(2,32))
-//#define AHL_DEBUG
+
+AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 ahl_param_arg, INT32 ahl_id_arg) {
+
+	// Find number of directory cache banks
+	// Let them be 2^k (so, we just need 'k' bits of input to differentiate between them)
+	//
+	// Lets say you get 'N' bit addresses
+	// Divide the address into 3 portions as shown below
+	// ***************************************
+	// |   N-m-k     |    k    |     m       |
+	// ***************************************
+	//
+	// Here, we just build a mask so that given any address, we can just do a bitwise 'AND' followed 
+	// by a shift to the right by 'm' bits to get the home node number 
+  
+	// Inputs:
+	//   m, k
+	// m = log_block_size
+	
+	UINT32 k = 0;
+
+	// Now, num_nodes must be a power of 2
+	ahl_id = ahl_id_arg;
+	num_nodes = num_nodes_arg;
+	
+	//  k = log(num_nodes) to the base 2
+	
+	assert (num_nodes > 0);
+	
+	while (!(num_nodes_arg & 0x1)) {
+		k++;
+		num_nodes_arg = num_nodes_arg >> 1;
+	}
+	assert (k > 0);
+	
+	ahl_param = ahl_param_arg;
+	assert (ahl_param > 0);
+	mask = ((1u << k) - 1) << ahl_param;
+
+}
+
+UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
+
+	UINT32 node = (address & mask) >> ahl_param;
+	assert (0 <= node && node <= num_nodes);
+	return (node);
+
+}
+
+AddressHomeLookup::~AddressHomeLookup() {
+	// TODO: Some meaningful scheme
+}
+
+/*
 
 AddressHomeLookup::AddressHomeLookup(UINT32 num_nodes_arg, INT32 ahl_id_arg)
 {
-  num_nodes = num_nodes_arg;
-  ahl_id = ahl_id_arg;
-  
+	num_nodes = num_nodes_arg;
+  	ahl_id = ahl_id_arg;
+
 	// default: divide up dram memory evenly between all of the cores 
-	for(int i = 0; i < (int) num_nodes; i++) 
+	for(int i = 0; i < (int) num_nodes; i++)
 	{
 		//TODO: verify that this math is correct. i think i'm orphaning some memory
 		bytes_per_core.push_back( (UINT64) (TOTAL_DRAM_MEMORY_BYTES / num_nodes) );
@@ -26,7 +77,6 @@ AddressHomeLookup::AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds
 {
 	ahl_id = ahl_id_arg;
 	address_boundaries = addr_bounds;
-	//poorly assumes that each node is given contingious section of memory
 	num_nodes = address_boundaries.size();
 }
 
@@ -41,18 +91,24 @@ void AddressHomeLookup::setAddrBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_
 {
 	//FIXME memory issue. is this correct? do i need to deallocate old addr_boundaries?
 	//copymethod? etc. etc.
-	cerr << "Inside AHL " << endl;
 	address_boundaries = addr_bounds;
-	cerr << "Finished AHL " << endl;
 }
+
+*/
 
 /*
  * Given an address, returns the home node number where the address's dram directory lives
  */
+
+/*
+
 UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
 
 	INT32 return_core_id = -1;
 	UINT32 index = 0;
+
+
+	
 	
 	//TODO OPTIMIZE? can we make address home lookup faster than this, but still flexible?
 	while(return_core_id == -1 && index < num_nodes) {
@@ -90,4 +146,9 @@ UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
 //  int dram_line = address / bytes_per_cache_line;
 //  UINT32 return_core_id = dram_line / cache_lines_per_node;
 //  return return_core_id;
+//  
+
 }
+
+*/
+

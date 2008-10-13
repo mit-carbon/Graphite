@@ -86,6 +86,16 @@ KNOB<UINT32> g_knob_icache_associativity(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<UINT32> g_knob_icache_max_search_depth(KNOB_MODE_WRITEONCE, "pintool",
    "id","1", "instruction cache max hash search depth (1 for no multi-cycle hashing)");
 
+/* =================================================================== */
+/* Address Home Lookup */
+/* =================================================================== */
+KNOB<UINT32> g_knob_ahl_param(KNOB_MODE_WRITEONCE, "pintool",
+	"ahl","5", "AHL parameter (See File addr_home_lookup.cc)");
 
+/* =================================================================== */
+/* DRAM cost parameter */
+/* =================================================================== */
+KNOB<UINT32> g_knob_dram_access_cost(KNOB_MODE_WRITEONCE, "pintool",
+	"dac","100", "The default cost is totally arbitrary");
 
 #endif

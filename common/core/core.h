@@ -112,6 +112,7 @@ class Core
 
       // network accessor since network is private
       Network* getNetwork(void);
+
       SyscallMdl *getSyscallMdl() { return syscall_model; }
 
       MemoryManager* getMemoryManager(void)
@@ -135,8 +136,9 @@ class Core
 	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	
+	/*
 	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
-
+	*/
 	//performance model wrappers
 
 	VOID perfModelRun(PerfModelIntervalStat *interval_stats)

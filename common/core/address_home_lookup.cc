@@ -1,6 +1,6 @@
 #include "address_home_lookup.h"
 
-AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 ahl_param_arg, INT32 ahl_id_arg) {
+AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 log_block_size_arg, INT32 ahl_id_arg) {
 
 	// Find number of directory cache banks
 	// Let them be 2^k (so, we just need 'k' bits of input to differentiate between them)
@@ -16,7 +16,8 @@ AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 ahl_param_arg
   
 	// Inputs:
 	//   m, k
-	// m = log_block_size
+	// m = log(block_size_arg)
+	// k = log(core_count)
 	
 	UINT32 k = 0;
 
@@ -26,6 +27,9 @@ AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 ahl_param_arg
 	
 	//  k = log(num_nodes) to the base 2
 	
+	//  make sure that the block boundaries coincide with cache_line boundaries
+	//TODO extern the cache_line_size knob
+	assert ( ( (1 << log_block_size_arg) % g_knob_line_size ) == 0 );	
 	assert (num_nodes > 0);
 	
 	while (!(num_nodes_arg & 0x1)) {
@@ -34,15 +38,15 @@ AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 ahl_param_arg
 	}
 	assert (k > 0);
 	
-	ahl_param = ahl_param_arg;
-	assert (ahl_param > 0);
-	mask = ((1u << k) - 1) << ahl_param;
+	log_block_size = log_block_size_arg;
+	assert (log_block_size > 0);
+	mask = ((1u << k) - 1) << log_block_size;
 
 }
 
 UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
 
-	UINT32 node = (address & mask) >> ahl_param;
+	UINT32 node = (address & mask) >> log_block_size;
 	assert (0 <= node && node <= num_nodes);
 	return (node);
 

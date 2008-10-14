@@ -33,7 +33,7 @@
 #include "knobs.h"
 #include "mcp.h"
 
-#define INSTRUMENT_ALLOWED_FUNCTIONS
+//#define INSTRUMENT_ALLOWED_FUNCTIONS
 
 //#define PRINTOUT_FLAGS
 

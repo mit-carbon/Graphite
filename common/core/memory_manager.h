@@ -25,53 +25,10 @@ typedef struct NetPacket NetPacket;
 #include "address_home_lookup.h"
 #include "cache_state.h"
 
-
-// define indecies/offsets for shared memory requests. indicies assume integer (4 byte) data sizes
-
-// ***** defines for a shared memory update message (there exist two types, expected updates and unexpected updates)
-
-// size of the request payload (in integer data sizes)
-#define SH_MEM_REQ_NUM_INTS_SIZE     (3)
-
-// request type (read or write)
-#define SH_MEM_REQ_IDX_REQ_TYPE      (0)
-
-// requested base memory address
-#define SH_MEM_REQ_IDX_ADDR          (1)
-
-// number of bytes requested (starting at the base memory address)
-#define SH_MEM_REQ_IDX_NUM_BYTES_REQ (2)
-
-
-// ***** defines for a shared memory update message (there exist two types, expected updates and unexpected updates)
-
-// size of the request payload (in integer data sizes)
-#define SH_MEM_UPDATE_NUM_INTS_SIZE     (2)
-
-// new cstate to set cache to
-#define SH_MEM_UPDATE_IDX_NEW_CSTATE    (0)
-
-// requested base memory address
-#define SH_MEM_UPDATE_IDX_ADDRESS  (1)
-
-
-// ***** defines for a shared memory update message (there exist two types, expected updates and unexpected updates)
-
-// size of the request payload (in integer data sizes)
-#define SH_MEM_ACK_NUM_INTS_SIZE     (2)
-
-// new cstate cache was set to
-#define SH_MEM_ACK_IDX_NEW_CSTATE    (0)
-
-// updated base memory address
-#define SH_MEM_ACK_IDX_ADDRESS  (1)
-
-
-
 extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_ahl_param;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_dram_access_cost;
-
+extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
 
 // TODO: move this into MemoryManager class?
 enum shmem_req_t {
@@ -81,47 +38,15 @@ enum shmem_req_t {
   NUM_STATES
 };
 
-//TODO: refactor into a Payload Class/Struct
-//
-
-/*
- * memory coherency message payloads can vary depending
- * on the type of message that needs to be seen
- */
-
-enum sm_payload_t {
-	REQUEST,
-	UPDATE,
-	ACK,
-	PAYLOAD_NUM_STATES
-};
-
-/* one could make the argument to have one payload
- * with fields that may not be used....
- */
-struct RequestPayload {
-	shmem_req_t request_type;
-	ADDRINT request_address;
-	UINT32 request_num_bytes; 
-};	
-
-struct UpdatePayload {
-	CacheState::cstate_t update_new_cstate;
-	ADDRINT update_address;
-};
-
-struct AckPayload {
-	CacheState::cstate_t ack_new_cstate;
-	ADDRINT ack_address;
-	//if sent a downgrade message (E->S), but cache
-	//no longer has the line, send a bit to tell dram directory
-	//to remove it from the sharers' list
-	BOOL remove_from_sharers;
-};
-
 class MemoryManager
 {
- private:
+  public: 
+	//i hate forward declarations
+	struct RequestPayload;
+	struct AckPayload;
+	struct UpdatePayload;
+ 
+  private:
 	Core *the_core;
    OCache *ocache;
    DramDirectory *dram_dir;
@@ -130,27 +55,74 @@ class MemoryManager
 	//This is here to serialize the requests
 	// do not process a new request until finished with current request
 	// do not exit MMU until no more incoming requests
-	
    UINT64 volatile debug_counter; //a primitive clock for debugging
    bool volatile processing_request_flag;
    int volatile incoming_requests_count;
 
-    /* ============================================= */
-    /* Added by George */
-    UINT64 dramAccessCost;
+   /* ============================================= */
+   /* Added by George */
+   UINT64 dramAccessCost;
 	/* ============================================= */
 
+	//evictions from the cache are written into this buffer
+	char* eviction_buffer;
+	//dram must fill this buffer and give it to the cache
+	char* fill_buffer; 
+	
 	//FIFO queue
 	queue<NetPacket> request_queue;
 	void addRequestToQueue( NetPacket packet );
 	NetPacket getNextRequest();
 
-	void debugPrintReqPayload(RequestPayload payload);
+	void debugPrintReqPayload(MemoryManager::RequestPayload payload);
+ 
  public:
-//	NetPacket makePacket( PacketType pt, int sender, int receiver, UINT32 payload_size);
-//	NetMatch makeNetMatch( PacketType pt, int sender);
+
+	/*
+	 * memory coherency message payloads can vary depending
+	 * on the type of message that needs to be seen
+	 */
+
+	enum sm_payload_t {
+		REQUEST,
+		UPDATE,
+		ACK,
+		PAYLOAD_NUM_STATES
+	};
+
+	/* one could make the argument to have one payload
+	 * with fields that may not be used....
+	 */
+	struct RequestPayload {
+		shmem_req_t request_type;
+		ADDRINT request_address;
+		UINT32 request_num_bytes; 
+	};	
+
+	struct UpdatePayload {
+		CacheState::cstate_t update_new_cstate;
+		ADDRINT update_address;
+		char* data_buffer;
+		UINT32 data_size; //in bytes
+	};
+
+	struct AckPayload {
+		CacheState::cstate_t ack_new_cstate;
+		ADDRINT ack_address;
+		char* data_buffer;
+		UINT32 data_size;
+		//if sent a downgrade message (E->S), but cache
+		//no longer has the line, send a bit to tell dram directory
+		//to remove it from the sharers' list
+		BOOL remove_from_sharers;
+	};
+
 	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
 	virtual ~MemoryManager();
+
+//	NetPacket makePacket( PacketType pt, int sender, int receiver, UINT32 payload_size);
+//	NetMatch makeNetMatch( PacketType pt, int sender);
+	
 	bool initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type);
 
 	//TODO rename this function (and others that interface with Network)
@@ -159,20 +131,22 @@ class MemoryManager
 	void processUnexpectedSharedMemUpdate(NetPacket update_packet);
 
 	static string sMemReqTypeToString(shmem_req_t type);
-// these below functions have been pushed into initiateSharedMemReq (which directly calls ocache->runModel...)
-//  bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
-//  bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
-    void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
-	 bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+   void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 
-	 /* ============================================== */
-	 /* Added by George */
-	 void runDramAccessModel(void);
-	 UINT64 getDramAccessCost(void);
-	 /* ============================================== */
+	/* ============================================== */
+	/* Added by George */
+	void runDramAccessModel(void);
+	UINT64 getDramAccessCost(void);
+	/* ============================================== */
 
+	//write-back cache-line to DRAM
+	void writeBackToDRAM();
+
+	/* ============================================== */
+	
 	/*
-	 void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
 	*/
 };
 #endif

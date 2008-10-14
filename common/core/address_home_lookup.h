@@ -26,10 +26,12 @@ using namespace std;
  * Maybe allow the ability to have public and private memory space?
  */
 
+//bytes per cache_line
+extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
 
 class AddressHomeLookup {
 	public:
-		AddressHomeLookup (UINT32 num_nodes, UINT32 ahl_param, INT32 ahl_id);
+		AddressHomeLookup (UINT32 num_nodes, UINT32 log_block_size, INT32 ahl_id);
 		~AddressHomeLookup(void);
 		UINT32 find_home_for_addr(ADDRINT address) const;
 
@@ -37,7 +39,7 @@ class AddressHomeLookup {
 		UINT32 num_nodes;
 		INT32 ahl_id;
 		ADDRINT mask;
-		UINT32 ahl_param;
+		UINT32 log_block_size;
 };
 /*
 class AddressHomeLookup

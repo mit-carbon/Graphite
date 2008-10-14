@@ -63,9 +63,10 @@ int Network::netSend(NetPacket packet)
 
 void Network::printNetPacket(NetPacket packet) {
 	cout << endl;
-	cout << "  [" << net_tid << "] Network Packet (0x" << hex << ((int *) (packet.data))[SH_MEM_REQ_IDX_ADDR] 
-		<< ") (" << packet.sender << " -> " << packet.receiver 
-		<< ") -- Type: " << packetTypeToString(packet.type) << " ++++" << endl << endl;
+	cout << "DON'T CALL ME";
+//	cout << "  [" << net_tid << "] Network Packet (0x" << hex << ((int *) (packet.data))[SH_MEM_REQ_IDX_ADDR] 
+//		<< ") (" << packet.sender << " -> " << packet.receiver 
+//		<< ") -- Type: " << packetTypeToString(packet.type) << " ++++" << endl << endl;
 }
 
 void Network::printNetMatch(NetMatch match, int receiver) {

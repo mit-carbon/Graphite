@@ -45,7 +45,8 @@ namespace CACHE_ALLOC
 
 
 // Cache tag - self clearing on creation
-
+//TODO change the name of this:
+//it isn't a cachtag, its a CacheLineInfo
 class CacheTag
 {
    private:

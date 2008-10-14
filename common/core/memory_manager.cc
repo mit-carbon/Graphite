@@ -2,7 +2,19 @@
 //#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
+
 using namespace std;
+
+/* TODO for data sharing integration
+ *
+ * 1. put data into update-payload (requests)
+ *    put data into ack-payload (when we sent invalidate/demote to an exclusive, need to do WB)
+ *
+ * 2. write back to DRAM
+ *			WB on evictions
+ *			WB on demotions (E->{S,I}) (owner sends data back)
+ *
+ */
 
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
@@ -28,6 +40,11 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	//TODO can probably delete "dram_lines_per_core" b/c it not necessary.
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
 
+	
+	/**** Data Passing Stuff ****/
+	eviction_buffer = new char[g_knob_line_size];
+	fill_buffer = new char[g_knob_line_size];
+	
 	//TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
 	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores(), g_knob_ahl_param.Value(), the_core->getRank());
 #ifdef ADDR_HOME_LOOKUP_DEBUG
@@ -51,9 +68,9 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 
 void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT address, UINT32 size_bytes)
 {
-	//TODO BUG this shit doesn't work b/c it gets deallocated before the network copies it
+	//TODO BUG this code doesn't work b/c it gets deallocated before the network copies it
 	cerr << "Starting adding Request Payload;" << endl;
-	RequestPayload payload;
+	MemoryManager::RequestPayload payload;
 	payload.request_type = shmem_req_type;
 	payload.request_address = address;  // TODO: cache line align?
 	payload.request_num_bytes = size_bytes;
@@ -64,7 +81,7 @@ void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT ad
 
 void addAckPayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_cstate)
 {
-	AckPayload payload;
+	MemoryManager::AckPayload payload;
 	payload.ack_new_cstate = new_cstate;
 	payload.ack_address = address; //only sent for debugging purposes
 
@@ -73,7 +90,7 @@ void addAckPayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_
 
 void addUpdatePayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_cstate)
 {
-	UpdatePayload payload;
+	MemoryManager::UpdatePayload payload;
 	payload.update_new_cstate = new_cstate;
 	payload.update_address= address;
 	
@@ -120,22 +137,6 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 	      break;
 	}
 
-/*	if ( shmem_req_type == READ )
-	{
-		ret = cache_state.readable();
-	}
-	else
-	{
-		if ( shmem_req_type == WRITE )
-		{
-			ret = cache_state.writable();
-		}
-		else 
-		{
-			throw("action_readily_permissable: unsupported memory transaction type.");
-		}
-	}
-*/
 	return ret;
 }
 
@@ -152,28 +153,31 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 #endif
 
 	unsigned int my_rank = the_core->getRank();
-   bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
+   
+	bool native_cache_hit;  // independent of shared memory, is the line available in the cache?
 	//first-> is the line available in the cache? (Native cache hit)
 	//second-> pointer to cache tag to update cache state
    pair<bool, CacheTag*> cache_model_results;  // independent of shared memory, is the line available in the cache?
 															  
+	CacheBase::AccessType access_type;
+/*	bool fail_need_fill;
+   bool eviction;
+	ADDRINT evict_addr;
+	char* scratch_line[g_knob_line_size];
+	char* data_buffer[g_knob_line_size];	
+ */  
 	switch( shmem_req_type ) {
 		
 		case READ:
-//			the_core->getChip()->getDCacheModelLock(my_rank);
-//			the_core->getDCacheModelLock();
+			access_type = CacheBase::k_ACCESS_TYPE_LOAD;
 			cache_model_results = ocache->runDCacheLoadModel(address, size);
 			native_cache_hit = cache_model_results.first;
-//			the_core->getChip()->releaseDCacheModelLock(my_rank);
-//			the_core->releaseDCacheModelLock();
 		break;
 		
 		case WRITE:
-//		   the_core->getChip()->getDCacheModelLock(my_rank);
-//		   the_core->getDCacheModelLock();
+			access_type = CacheBase::k_ACCESS_TYPE_STORE;
   	      cache_model_results = ocache->runDCacheStoreModel(address, size);
   	      native_cache_hit = cache_model_results.first;
-//		   the_core->releaseDCacheModelLock();
 		break;
 		
 		default: 
@@ -181,6 +185,14 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 		  throw("unsupported memory transaction type.");
 		break;
    }
+	
+//	cache_model_results = ocache->accessSingleLine(address, access_type,
+//																	&fail_need_fill, NULL,
+//																	data_buffer, g_knob_line_size,
+//																	&eviction, &evict_addr, eviction_buffer);
+																	
+	//TODO question: is fail_need_fill the same as cache_hit??
+	native_cache_hit = cache_model_results.first;
 	
 	stringstream ss;
    
@@ -257,13 +269,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
 		packet.data = (char *)(&payload);
 
 #ifdef MMU_DEBUG
-		ss.clear();
-		ss << "Addr: " << hex << address 
-				<< " Payload.Addr: " << hex << payload.request_address
-				<< " Packet.data: " << hex << ((RequestPayload*) packet.data)->request_address;
-//		debugPrint(the_core->getRank(), "MMU", ss.str());
 		debugPrintReqPayload(payload);
-
 		ss.str("");
       ss << "   START netSend: to Tile<" << home_node_rank << "> " ;
 		debugPrint(the_core->getRank(), "MMU::initiateSMemReq", ss.str());
@@ -310,7 +316,6 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
    // if the while loop is never entered, the line is already in the cache in an appropriate state.
 
 #ifdef MMU_DEBUG
-//	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------");
 #endif
    return native_cache_hit;
@@ -323,7 +328,7 @@ bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req
  * the shared request type indicates either a read or a write
  */
 
-//TODO make this a PQueue
+//TODO make this a PQueue on the time stamp
 void MemoryManager::addRequestToQueue(NetPacket packet)
 {
 	++incoming_requests_count;
@@ -343,19 +348,12 @@ NetPacket MemoryManager::getNextRequest()
 
 void MemoryManager::addMemRequest(NetPacket req_packet)
 {
-//	bool first_time = true; //for debugging purposes
-
 	addRequestToQueue(req_packet);
 	
 	while( incoming_requests_count > 0 && !processing_request_flag )
 	{
 		//"Lock" the processRequest code
 		processing_request_flag = true;
-		
-//		if( first_time ) {
-//			debug_counter++;
-//			first_time = false;
-//		}
 		
 		processSharedMemReq(getNextRequest());
 		
@@ -659,8 +657,9 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 			// TODO: Test my understanding of runDCachePeekModel() and runDCache[(Load)/(Store)]Model()
 		  	if (dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) {
 				// We need to write back this cache line to the DRAM 	
-				if (! already_invalidated)
+				if (! already_invalidated) {
 					runDramAccessModel();
+				}
 
 		  	}
 			

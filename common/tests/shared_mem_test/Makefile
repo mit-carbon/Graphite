@@ -1,10 +1,19 @@
 include ../../makefile.gnu.config
 include ../../makefile.debug
 
+FORCE32 ?= 1
+
 CC = /usr/bin/g++
-CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
 SOURCES = ../../user/capi.cc test.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
+
+ifeq (${FORCE32},1)
+	CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall -m32
+	LDFLAGS = -m32 -m elf_i386
+else
+	CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
+	LDFLAGS =
+endif
 
 ## Build rules
 
@@ -14,7 +23,7 @@ all: test
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 test: $(OBJECTS)
-	$(CC) -pthread -o $@ $(OBJECTS)
+	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 

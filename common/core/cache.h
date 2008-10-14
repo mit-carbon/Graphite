@@ -335,6 +335,12 @@ class CacheBase
       const UINT32 line_shift;
       const UINT32 set_index_mask;
 
+      // This will count through accesses to the cache and give us
+      // effective random replacement. We do not care if there are
+      // race conditions on this counter, because behavior will be
+      // ultimately random regardless.
+      static UINT32 rand_counter;
+
    private:
       CacheStats sumAccess(bool hit) const
       {
@@ -393,8 +399,6 @@ class CacheBase
                        CacheType cache_type = k_CACHE_TYPE_DCACHE) const;
 };
 
-
-
 //  Templated cache class with specific cache set allocation policies
 //  All that remains to be done here is allocate and deallocate the right
 //  type of cache sets.
@@ -410,7 +414,7 @@ class Cache : public CacheBase
       UINT64 total_misses[k_MAX_SETS];
       UINT32 set_ptrs[k_MAX_SETS+1];
       UINT32 max_search;
-
+      
    public:
       VOID resetCounters()
       {
@@ -502,6 +506,7 @@ class Cache : public CacheBase
                                              char* buff = NULL, UINT32 bytes = 0, 
                                              bool* eviction = NULL, ADDRINT* evict_addr = NULL, char* evict_buff = NULL)
       {
+//<<<<<<< HEAD:common/core/cache.h
 
 	 /*
             Usage:
@@ -524,7 +529,69 @@ class Cache : public CacheBase
          assert( ((eviction == NULL) == (evict_addr == NULL)) && ((eviction == NULL) == (evict_buff == NULL)) );
 
          UINT32 history[k_MAX_SEARCH];
+ /*
+=======
+         const ADDRINT high_addr = addr + size;
+         bool all_hit = true;
 
+         const ADDRINT line_bytes = getLineSize();
+         const ADDRINT not_line_mask = ~(line_bytes - 1);
+
+         UINT32 history[k_MAX_SEARCH];
+
+         do
+         {
+             CacheTag tag;
+             UINT32 set_index;
+
+             splitAddress(addr, tag, set_index);
+
+             UINT32 index = set_index;
+             UINT32 depth = 0;
+             bool local_hit;
+        
+             do
+	     {
+                //if ( depth > 0)
+	        //cout << "index = " << index << endl;
+                history[depth] = index;
+                SET_t &set = sets[index];
+                local_hit = set.find(tag);
+                index = set_ptrs[index];
+             } while ( !local_hit && ((++depth) < max_search) && (index < k_MAX_SETS));
+
+             all_hit &= local_hit;
+
+             // on miss, loads always allocate, stores optionally
+             if ( (! local_hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
+                                   (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
+             {
+					 UINT32 r_num = ++rand_counter % depth;
+                UINT32 which = history[r_num];
+                assert(which < k_MAX_SETS);
+                sets[which].replace(tag);
+                //if ( depth > 1 )
+	        //cout << "which = " << which << endl;
+             }
+
+            // start of next cache line
+            addr = (addr & not_line_mask) + line_bytes;
+         }
+         while (addr < high_addr);
+
+         assert(access_type < k_ACCESS_TYPE_NUM);
+         access[access_type][all_hit]++;
+
+         return all_hit;
+      }
+
+      // Single line cache access at addr 
+      bool accessSingleLine(ADDRINT addr, AccessType access_type)
+      {
+         UINT32 history[k_MAX_SEARCH];
+
+>>>>>>> origin/HEAD:common/core/cache.h
+*/
          CacheTag tag;
          UINT32 set_index;
 
@@ -581,7 +648,7 @@ class Cache : public CacheBase
          if ( (! hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                           (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
          {
-            UINT32 r_num = rand() % depth;
+            UINT32 r_num = ++rand_counter % depth;
             UINT32 which = history[r_num];
             sets[which].replace(tag, fill_buff, eviction, evict_addr, evict_buff);
             tagptr = sets[which].find(tag, &line_index).second;

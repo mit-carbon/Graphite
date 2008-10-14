@@ -45,8 +45,6 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_size;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_associativity;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth; 
 
-extern PIN_LOCK dcache_lock;
-
 class Core
 {
    private:
@@ -188,17 +186,13 @@ class Core
 
       bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
       {
-        GetLock(&dcache_lock, 1);
         bool ret = ocache->runDCacheLoadModel(d_addr, size);
-        ReleaseLock(&dcache_lock);
         return ret;
       }
 
       bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
       {
-        GetLock(&dcache_lock, 1);
         bool ret = ocache->runDCacheStoreModel(d_addr, size); 
-        ReleaseLock(&dcache_lock);
         return ret;
       }
 */

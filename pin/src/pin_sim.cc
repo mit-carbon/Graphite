@@ -65,8 +65,6 @@ INT32 usage()
    return -1;
 }
 
-PIN_LOCK dcache_lock;
-
 /* ===================================================================== */
 /* For instrumentation / modeling */
 /* ===================================================================== */
@@ -779,8 +777,6 @@ VOID init_globals()
 
    // Note the MCP has a dependency on the transport layer and the chip
    g_MCP = new MCP();
-
-   InitLock(&dcache_lock);
 }
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)

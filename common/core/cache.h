@@ -266,6 +266,12 @@ class CacheBase
       const UINT32 line_shift;
       const UINT32 set_index_mask;
 
+      // This will count through accesses to the cache and give us
+      // effective random replacement. We do not care if there are
+      // race conditions on this counter, because behavior will be
+      // ultimately random regardless.
+      static UINT32 rand_counter;
+
    private:
       CacheStats sumAccess(bool hit) const
       {
@@ -317,8 +323,6 @@ class CacheBase
                        CacheType cache_type = k_CACHE_TYPE_DCACHE) const;
 };
 
-
-
 //  Templated cache class with specific cache set allocation policies
 //  All that remains to be done here is allocate and deallocate the right
 //  type of cache sets.
@@ -334,7 +338,7 @@ class Cache : public CacheBase
       UINT64 total_misses[k_MAX_SETS];
       UINT32 set_ptrs[k_MAX_SETS+1];
       UINT32 max_search;
-
+      
    public:
       VOID resetCounters()
       {
@@ -422,7 +426,6 @@ class Cache : public CacheBase
       // Multi-line cache access from addr to addr+size-1
       bool accessMultiLine(ADDRINT addr, UINT32 size, AccessType access_type)
       {
-
          const ADDRINT high_addr = addr + size;
          bool all_hit = true;
 
@@ -458,7 +461,7 @@ class Cache : public CacheBase
              if ( (! local_hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                                    (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
              {
-	        UINT32 r_num = rand() % depth;
+	        UINT32 r_num = ++rand_counter % depth;
                 UINT32 which = history[r_num];
                 assert(which < k_MAX_SETS);
                 sets[which].replace(tag);
@@ -505,7 +508,7 @@ class Cache : public CacheBase
          if ( (! hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                           (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
          {
-            UINT32 r_num = rand() % depth;
+            UINT32 r_num = ++rand_counter % depth;
             UINT32 which = history[r_num];
             assert(which < k_MAX_SETS);
             sets[which].replace(tag);

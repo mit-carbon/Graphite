@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <string>
 #include <iostream>
+#include <utility>
 #include "fixed_types.h"
 
 
@@ -17,6 +18,13 @@ class UnstructuredBuffer {
 
    private:
       std::string the_chars;
+      
+   public:
+
+      UnstructuredBuffer();
+      const char* getBuffer();
+      void clear();
+      int size();
 
       // These put / get scalars
       template<class T> void put(T& data);
@@ -24,43 +32,33 @@ class UnstructuredBuffer {
 
       // These put / get arrays
       // Note: these are shallow copy only
-      template<class T> void put(T* data, size_t num);
-      template<class T> bool get(T* data, size_t num);
-      
-   public:
-
-      UnstructuredBuffer();
-      const char* getBuffer();
-      void clear();
-      size_t size();
+      template<class T> void put(T* data, int num);
+      template<class T> bool get(T* data, int num);
 
 
       // Wrappers
 
       // put scalar
-      void put(UInt64& data);
-      void put(SInt64& data);
-      void put(UInt32& data);
-      void put(SInt32& data);
-      void put(UInt8&  data);
-      void put(SInt8&  data);
+      UnstructuredBuffer& operator<<(UInt64& data);
+      UnstructuredBuffer& operator<<(SInt64& data);
+      UnstructuredBuffer& operator<<(UInt32& data);
+      UnstructuredBuffer& operator<<(SInt32& data);
+      UnstructuredBuffer& operator<<(UInt8&  data);
+      UnstructuredBuffer& operator<<(SInt8&  data);
 
-      // get scalar
-      bool get(UInt64& data);
-      bool get(SInt64& data);
-      bool get(UInt32& data);
-      bool get(SInt32& data);
-      bool get(UInt8&  data);
-      bool get(SInt8&  data);      
+      UnstructuredBuffer& operator>>(UInt64& data);
+      UnstructuredBuffer& operator>>(SInt64& data);
+      UnstructuredBuffer& operator>>(UInt32& data);
+      UnstructuredBuffer& operator>>(SInt32& data);
+      UnstructuredBuffer& operator>>(UInt8&  data);
+      UnstructuredBuffer& operator>>(SInt8&  data);      
       
       // put buffer
-      void put(UInt8* data, size_t bytes);
-      void put(SInt8* data, size_t bytes);      
+      UnstructuredBuffer& operator<<(std::pair<void*, int> buffer);
 
       // get buffer
-      bool get(UInt8* data, size_t bytes);
-      bool get(SInt8* data, size_t bytes);
-      
+      UnstructuredBuffer& operator>>(std::pair<void*, int> buffer);
+
 };
 
 #endif

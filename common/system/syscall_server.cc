@@ -28,7 +28,7 @@ SyscallServer::~SyscallServer()
 void SyscallServer::handleSyscall(int comm_id)
 {
    UInt8 syscall_number;
-   recv_buff.get(syscall_number);   
+   recv_buff >> syscall_number;   
 
    switch(syscall_number)
    {
@@ -81,30 +81,26 @@ void SyscallServer::marshallOpenCall(int comm_id)
 
    cerr << "Open syscall from: " << comm_id << endl;
 
-   bool res;
    UInt32 len_fname;
    char *path = (char *) scratch;
    int flags;      
 
-   res = recv_buff.get(len_fname);
-   assert( res == true );
+   recv_buff >> len_fname;
 
    if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
       path = new char[len_fname];
-   res = recv_buff.get((UInt8 *) path, len_fname);
-   assert( res == true );
-   
-   res = recv_buff.get(flags);
-   assert( res == true );
+
+   recv_buff >> make_pair(path, len_fname) >> flags;
 
    // Actually do the open call
    int ret = open(path, flags);
 
+   cerr << "len: " << len_fname << endl;
    cerr << "path: " << path << endl;
    cerr << "flags: " << flags << endl;
    cerr << "ret: " << ret << endl;
 
-   send_buff.put(ret);
+   send_buff << ret;
 
    pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());
 
@@ -138,11 +134,7 @@ void SyscallServer::marshallReadCall(int comm_id)
    char *buf = (char *) scratch;
    size_t count;
 
-   bool res = recv_buff.get(fd);
-   assert( res == true );
-   
-   res = recv_buff.get(count);
-   assert( res == true );
+   recv_buff >> fd >> count;
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
@@ -155,9 +147,9 @@ void SyscallServer::marshallReadCall(int comm_id)
    cerr << "count: " << count << endl;
    cerr << "bytes: " << bytes << endl;
    
-   send_buff.put(bytes);
+   send_buff << bytes;
    if ( bytes != -1 )
-      send_buff.put((UInt8 *) buf, bytes);
+     send_buff << make_pair(buf, bytes);
 
    pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
 
@@ -193,17 +185,13 @@ void SyscallServer::marshallWriteCall(int comm_id)
    char *buf = (char *) scratch;
    size_t count;
 
-   bool res = recv_buff.get(fd);
-   assert( res == true );
+   recv_buff >> fd >> count;
    
-   res = recv_buff.get(count);
-   assert( res == true );
-
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
-   res = recv_buff.get((UInt8 *) buf, count);
-   assert( res == true );
-   
+
+   recv_buff >> make_pair(buf, count);
+
    // Actually do the write call
    int bytes = write(fd, (void *) buf, count);  
    if ( bytes != -1 )
@@ -214,7 +202,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
    cerr << "count: " << count << endl;
    cerr << "bytes: " << bytes << endl;
    
-   send_buff.put(bytes);
+   send_buff << bytes;
 
    pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
 
@@ -245,8 +233,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
    cerr << "Close syscall from: " << comm_id << endl;
 
    int fd;
-   bool res = recv_buff.get(fd);
-   assert( res == true );
+   recv_buff >> fd;
    
    // Actually do the close call
    int status = close(fd);  
@@ -254,7 +241,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
    cerr << "fd: " << fd << endl;
    cerr << "status: " << status << endl;
    
-   send_buff.put(status);
+   send_buff << status;
    pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
 
 }

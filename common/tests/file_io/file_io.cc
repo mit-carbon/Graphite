@@ -78,24 +78,23 @@ void* read_and_write(void *threadid)
 
    // Open the file
    int fid;
-   fid = open("./common/tests/file_io/input2", O_RDWR);
+   fid = open("./common/tests/file_io/input", O_RDWR);
 
-   printf("File Descriptor: 0x%x\n", (unsigned int)fid);
+   printf("User: File Descriptor: 0x%x\n", (unsigned int)fid);
 
    // Read the FID
    char the_data[1024] = {'\0'};
    int status = read(fid, (void *) the_data, 1024);
-   printf("Read from fid %d returned %d and %s\n", fid, status, the_data);
+   printf("User: Read from fid %d returned %d and %s\n", fid, status, the_data);
 
    // Write the FID
    char the_write_data[14] = "goodbye world";
    status = write(fid, (void *) the_write_data, 13); 
-   printf("Write from fid %d returned %d\n", fid, status);
+   printf("User: Write from fid %d returned %d\n", fid, status);
 
    // Close the FID
-   close(fid);
-
-   // printf("Read: %s\n", the_data);
+   status = close(fid);
+   printf("User: Close from fid %d returned %d\n", fid, status);
 
    pthread_exit(NULL);
 }

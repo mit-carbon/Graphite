@@ -2,17 +2,21 @@
 
 using namespace std;
 
+
 UnstructuredBuffer::UnstructuredBuffer()
 {
 }
 
-template<class T> void UnstructuredBuffer::put(T* data, size_t num)
+
+template<class T> void UnstructuredBuffer::put(T* data, int num)
 {
+   assert( num >= 0 );
    the_chars.append((char *) data, num * sizeof(T));
 }
 
-template<class T> bool UnstructuredBuffer::get(T* data, size_t num)
+template<class T> bool UnstructuredBuffer::get(T* data, int num)
 {
+   assert( num >= 0 );
    if ( the_chars.size() < (num * sizeof(T)) )
       return false;
 
@@ -43,7 +47,7 @@ void UnstructuredBuffer::clear()
    the_chars.erase();
 }
 
-size_t UnstructuredBuffer::size()
+int UnstructuredBuffer::size()
 {
    return the_chars.size();
 }
@@ -52,28 +56,103 @@ size_t UnstructuredBuffer::size()
 // Wrappers
 
 // put scalar
-void UnstructuredBuffer::put(UInt64& data) { put<UInt64>(data); }
-void UnstructuredBuffer::put(SInt64& data) { put<SInt64>(data); }
-void UnstructuredBuffer::put(UInt32& data) { put<UInt32>(data); }
-void UnstructuredBuffer::put(SInt32& data) { put<SInt32>(data); }
-void UnstructuredBuffer::put(UInt8&  data) { put<UInt8>(data); }
-void UnstructuredBuffer::put(SInt8&  data) { put<SInt8>(data); }
+UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt64& data)
+{ 
+   put<UInt64>(data); 
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt64& data) 
+{ 
+   put<SInt64>(data); 
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt32& data) 
+{ 
+   put<UInt32>(data); 
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt32& data) 
+{ 
+   put<SInt32>(data); 
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt8&  data) 
+{ 
+   put<UInt8>(data); 
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt8&  data) 
+{ 
+   put<SInt8>(data); 
+   return *this;
+}
 
 // get scalar
-bool UnstructuredBuffer::get(UInt64& data) { return get<UInt64>(data); }
-bool UnstructuredBuffer::get(SInt64& data) { return get<SInt64>(data); }
-bool UnstructuredBuffer::get(UInt32& data) { return get<UInt32>(data); }
-bool UnstructuredBuffer::get(SInt32& data) { return get<SInt32>(data); }
-bool UnstructuredBuffer::get(UInt8&  data) { return get<UInt8>(data); }
-bool UnstructuredBuffer::get(SInt8&  data) { return get<SInt8>(data); }      
+UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt64& data) 
+{ 
+   bool res = get<UInt64>(data); 
+   assert( res == true );
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt64& data) 
+{ 
+   bool res = get<SInt64>(data); 
+   assert( res == true );
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt32& data) 
+{ 
+   bool res = get<UInt32>(data); 
+   assert( res = true );
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt32& data) 
+{ 
+   bool res = get<SInt32>(data); 
+   assert( res == true );
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt8&  data) 
+{ 
+   bool res = get<UInt8>(data); 
+   assert( res == true );
+   return *this;
+}
+UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt8&  data) 
+{  
+   bool res = get<SInt8>(data); 
+   assert( res == true );
+   return *this;
+}      
+
       
 // put buffer
-void UnstructuredBuffer::put(UInt8* data, size_t bytes) { put<UInt8>(data, bytes); }
-void UnstructuredBuffer::put(SInt8* data, size_t bytes) { put<SInt8>(data, bytes); }      
+   
+UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<void*, int> buffer)
+{
+   void *buff = buffer.first;
+   int size = buffer.second;
 
-// get buffer
-bool UnstructuredBuffer::get(UInt8* data, size_t bytes) { return get<UInt8>(data, bytes); }
-bool UnstructuredBuffer::get(SInt8* data, size_t bytes) { return get<SInt8>(data, bytes); }
+   assert( size >= 0 );
+   put<UInt8>((UInt8*) buff, size);
+   return *this;
+}
+
+
+
+// get buffer 
+
+UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<void*, int> buffer)
+{
+   void *buff = buffer.first;
+   int size = buffer.second;
+   cerr << buff << " " << size << endl;
+
+   assert( size >= 0 );
+   bool res = get<UInt8>((UInt8*) buff, size);
+   assert( res == true );
+   return *this;
+}
 
 
 
@@ -85,44 +164,54 @@ int main(int argc, char* argv[])
    UInt32 data1 = 1;
    UInt8 data2 = 'a';
    UInt32 data3 = 3;
-
-   buff.put(data1);
-   buff.put(data2);
-   buff.put(data3);
+   buff << data1 << data2 << data3;
 
    UInt32 data1prime;
    UInt8 data2prime;
    UInt32 data3prime;
-
-   buff.get(data1prime);
-   buff.get(data2prime);
-   buff.get(data3prime);
+   buff >> data1prime >> data2prime >> data3prime;
 
    cout << data1prime << " " << data2prime << " " << data3prime << endl;
-
    assert( data1 == data1prime );
    assert( data2 == data2prime );
    assert( data3 == data3prime );
+   cout << "success: test 1" << endl;
 
    char data4[] = "hello world";
-   char data4prime[] = "aaaaaaaaaaaa";
-   buff.put((UInt8*) data4, 12);
-   buff.get((UInt8*) data4prime, 12);
-  
+   char data4prime[] = "aaaaaaaaaaaa"; 
+   buff << make_pair(data4, 12);
+   buff >> make_pair(data4prime, 12);    
+ 
+
    cout << data4prime << endl;  
-   assert( strcmp(data4, data4prime) == 0 );
+   assert( strcmp(data4prime, data4) == 0 );
+   cout << "success: test 2" << endl;
 
    int data5 = 42;
-   buff.put(data5);
+   buff << data5;
    int data5prime = -1;
-   buff.get(data5prime);
+   buff >> data5prime;
    
    cout << data5prime << endl;
    assert( data5 == data5prime );
+   cout << "success: test 3" << endl;
+
+   UInt64 data6 = 40;
+   UInt64 data7 = 41;
+   buff << data6 << data7;
+   UInt64 data6prime = 0;
+   UInt64 data7prime = 0;
+   buff >> data6prime >> data7prime;
+
+   cout << data6prime << " " << data7prime << endl;
+   assert( data6 == data6prime );
+   assert( data7 == data7prime );
+   cout << "success: test 4" << endl;
 
    cout << "All tests passed" << endl;
  
    return 0;   
 }
+
 
 #endif

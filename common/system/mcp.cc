@@ -23,13 +23,12 @@ void MCP::run()
 
    UInt32 length = 0;
    UInt8* buf = pt_endpt.ptMCPRecv(&length); 
-   recv_buff.put(buf, length);
+   recv_buff << make_pair(buf, length);
   
    int msg_type;
    int comm_id;
 
-   recv_buff.get(msg_type);
-   recv_buff.get(comm_id);
+   recv_buff >> msg_type >> comm_id;
 
    switch(msg_type)
    {

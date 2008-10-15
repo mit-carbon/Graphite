@@ -19,6 +19,7 @@
 
 #include "pin.H"
 #include "utils.h"
+#include "random.h"
 
 #define k_KILO 1024
 #define k_MEGA (k_KILO*k_KILO)
@@ -266,12 +267,6 @@ class CacheBase
       const UINT32 line_shift;
       const UINT32 set_index_mask;
 
-      // This will count through accesses to the cache and give us
-      // effective random replacement. We do not care if there are
-      // race conditions on this counter, because behavior will be
-      // ultimately random regardless.
-      static UINT32 rand_counter;
-
    private:
       CacheStats sumAccess(bool hit) const
       {
@@ -338,6 +333,7 @@ class Cache : public CacheBase
       UINT64 total_misses[k_MAX_SETS];
       UINT32 set_ptrs[k_MAX_SETS+1];
       UINT32 max_search;
+      Random rand;
       
    public:
       VOID resetCounters()
@@ -370,10 +366,13 @@ class Cache : public CacheBase
          ASSERTX(getNumSets() <= k_MAX_SETS);
          ASSERTX(max_search_depth < k_MAX_SEARCH);
 
-         max_search = max_search_depth;
+         // caches are initialized during instrumentation, which is
+         // single-threaded, so it is safe to use a static var to seed
+         // the random number generators
+         static Random::value_t cache_number = 0;
+         rand.seed(++cache_number);
 
-         //initialization for cache hashing
-         srand( time(NULL) );
+         max_search = max_search_depth;
 
          for (UINT32 i = 0; i < getNumSets(); i++)
          {
@@ -461,7 +460,7 @@ class Cache : public CacheBase
              if ( (! local_hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                                    (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
              {
-	        UINT32 r_num = ++rand_counter % depth;
+                UINT32 r_num = rand.next(depth);
                 UINT32 which = history[r_num];
                 assert(which < k_MAX_SETS);
                 sets[which].replace(tag);
@@ -508,7 +507,7 @@ class Cache : public CacheBase
          if ( (! hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                           (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
          {
-            UINT32 r_num = ++rand_counter % depth;
+            UINT32 r_num = rand.next(depth);
             UINT32 which = history[r_num];
             assert(which < k_MAX_SETS);
             sets[which].replace(tag);

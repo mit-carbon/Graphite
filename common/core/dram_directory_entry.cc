@@ -5,18 +5,72 @@ DramDirectoryEntry::DramDirectoryEntry(): dstate(UNCACHED), number_of_sharers(0)
 }                                                                          
 
 DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_cores): 
-																													dstate(UNCACHED),
-																													number_of_sharers(0),
-																													exclusive_sharer_rank(0),
-																													memory_line_address(cache_line_addr)
+																											dstate(UNCACHED),
+																											number_of_sharers(0),
+																											exclusive_sharer_rank(0),
+																											memory_line_size(g_knob_cache_line_size),
+																											memory_line_address(cache_line_addr)
 {
 	sharers = new BitVector(number_of_cores);
+	memory_line = new char(memory_line_size);
+
+	//clear memory_line
+	for(int i=0 ; i < memory_line_size; i++)
+		memory_line[i] = (char) 0;
+
 }                                                                          
 
 DramDirectoryEntry::~DramDirectoryEntry()
 {
 	if(sharers!=NULL)
 		delete sharers;	
+}
+
+DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_cores, char* data_buffer): 
+																											dstate(UNCACHED),
+																											number_of_sharers(0),
+																											exclusive_sharer_rank(0),
+																											memory_line_size(g_knob_cache_line_size),
+																											memory_line_address(cache_line_addr)
+{
+	sharers = new BitVector(number_of_cores);
+	memory_line = new char(memory_line_size);
+
+	//copy memory_line
+	for(int i=0 ; i < memory_line_size; i++)
+		memory_line[i] = data_buffer[i];
+
+}                                                                          
+
+DramDirectoryEntry::~DramDirectoryEntry()
+{
+	if(sharers!=NULL)
+		delete sharers;	
+
+	//TODO deal with memory_line
+}
+
+
+void DramDirectoryEntry::fillDramDataLine(char* input_buffer)
+{
+	assert( input_buffer != NULL );
+	assert( memory_line != NULL );
+	
+	for( int i=0; i < memory_line_size; i++)
+		memory_line[i] = input_buffer[i];
+
+}
+
+void DramDirectoryEntry::getDramDataLine(char* fill_buffer, int* line_size)
+{
+	assert( fill_buffer != NULL );
+	assert( memory_line != NULL );
+	
+	*line_size = memory_line_size;
+
+	for( int i=0; i < memory_line_size; i++)
+		fill_buffer[i] = memory_line[i];
+
 }
 
 // returns true if the sharer was added and wasn't already on the list. returns false if the sharer wasn't added since it was already there

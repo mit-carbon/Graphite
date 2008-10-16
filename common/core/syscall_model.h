@@ -6,6 +6,7 @@
 #include "transport.h"
 #include "network.h"
 #include "pin.H"
+#include "mcp.h" //has the enum for mcp message types
 
 class SyscallMdl
 {

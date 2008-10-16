@@ -79,7 +79,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
 // MCP server wrappers
 void MCPRun();
-
+void MCPFinish();
 
 // chip class
 

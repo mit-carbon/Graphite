@@ -32,8 +32,7 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
    recv_buff.clear(); 
    send_buff.clear(); 
    
-   // FIXME: this should be taken from an enum not hardcoded to 0
-   int msg_type = 0;
+   int msg_type = MCP_MESSAGE_SYS_CALL;
    int commid;
    commRank(&commid);
    UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
@@ -60,56 +59,56 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
       }
       case SYS_read:
       {
-	 int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          void *read_buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
          size_t read_count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
-         if ( fd == 0xcc )
-	 {
-	    called_enter = true;
+         if ( fd == 0x07 )
+         {
+            called_enter = true;
             cerr << "read(" << fd << hex << ", " << read_buf << dec << ", " << read_count << ")" << endl;
 
             ret_val = marshallReadCall(ctx, syscall_standard);
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
-	 }
+         }
 
-	 break;
+         break;
       }
 
       case SYS_write:
       {
-	 int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          void *write_buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
          size_t write_count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
-         if ( fd == 0xcc )
-	 {
-	    called_enter = true;
+         if ( fd == 0x07 )
+         {
+            called_enter = true;
             cerr << "write(" << fd << hex << ", " << write_buf << dec << ", " << write_count << ")" << endl;
 
             ret_val = marshallWriteCall(ctx, syscall_standard);
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
-	 }         
+         }         
 
-	 break;
+         break;
       }
       case SYS_close:
       {
-	 int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0xcc )
-	 {
-	    called_enter = true;
+         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+         if ( fd == 0x07 )
+         {
+            called_enter = true;
             cerr << "close(" << fd << ")" << endl;
 
             ret_val = marshallCloseCall(ctx, syscall_standard);
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
-	 }
+         }
 
-	 break;
+         break;
       }
       // case SYS_exit:
       //    cerr << "exit()" << endl;
@@ -117,7 +116,7 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
       case -1:
          break;
       default:
-//         cerr << "SysCall: " << (int)syscall_number << endl;
+         //         cerr << "SysCall: " << (int)syscall_number << endl;
          break;
    }
 

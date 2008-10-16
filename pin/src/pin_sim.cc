@@ -384,6 +384,9 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    else if(name == "runMCP"){
       return AFUNPTR(MCPRun);
    }
+   else if(name == "finishMCP"){
+      return AFUNPTR(MCPFinish);
+   }
    
    return NULL;
 }

@@ -216,6 +216,13 @@ void MCPRun()
    g_MCP->run();
 }
 
+void MCPFinish()
+{
+   assert(g_MCP != NULL);
+   g_MCP->finish();
+}
+
+
 // Chip class method definitions
 
 Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)

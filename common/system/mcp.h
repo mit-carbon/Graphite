@@ -7,14 +7,12 @@
 #include "fixed_types.h"
 #include <iostream>
 
-// externed so the names don't get name-mangled
-extern "C" {
-   
-   void initMCP();
-   void runMCP();
-   void finiMCP();
+// Different types of messages that get passed to the MCP
+typedef enum {
+   MCP_MESSAGE_SYS_CALL,
+   MCP_MESSAGE_QUIT
 
-}
+} MessageTypes;
 
 class MCP
 {
@@ -29,6 +27,7 @@ class MCP
 
    public:
       void run();
+      void finish();
       MCP();
       ~MCP();
       

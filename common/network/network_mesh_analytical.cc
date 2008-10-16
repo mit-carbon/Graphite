@@ -103,7 +103,12 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
         div_t q1, q2;
         q1 = div(src, ki);
         q2 = div(dest, ki);
-        network_distance += abs(q1.rem - q2.rem);
+        // This models a unidirectional network distance
+        // Should use abs() for bidirectional.
+        if (q1.rem > q2.rem)
+          network_distance += k - (q1.rem - q2.rem);
+        else
+          network_distance += q2.rem - q1.rem;
         src = q1.quot;
         dest = q2.quot;
       }
@@ -118,6 +123,9 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     w  = p * B / (1. - p);
     w *= (kd-1.)/(kd*kd);
     w *= 1.+1./((double)n);
+
+    if (w < 0) w = 0; // correct negative contention values for small
+                      // networks
 
     double hops_with_contention;
     double Tc;                // latency, with contention

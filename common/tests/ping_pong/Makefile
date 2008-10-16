@@ -1,4 +1,4 @@
-FORCE32 ?= 1
+FORCE32 ?= 0
 
 CC = /usr/bin/g++
 ifeq (${FORCE32},1)

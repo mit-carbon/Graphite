@@ -624,23 +624,25 @@ class Cache : public CacheBase
 	    {
 	       *fail_need_fill = true;
 
-               if ( eviction != NULL )
-		  *eviction = false;
+          if ( eviction != NULL )
+				*eviction = false;
 
-               return make_pair(false, (CacheTag*) NULL);
-	    } else {
+          return make_pair(false, (CacheTag*) NULL);
+	    } 
+		 else 
+		 {
 	       *fail_need_fill = false;
 	    }
-	 }
+	}
 
          if ( hit )
-	 {
+			{
 	    tagptr = res.second;
 
             if ( access_type == k_ACCESS_TYPE_LOAD )
-	       sets[index].read_line(line_index, addr & (line_size - 1), buff, bytes);
+					sets[index].read_line(line_index, addr & (line_size - 1), buff, bytes);
             else
-	       sets[index].write_line(line_index, addr & (line_size - 1), buff, bytes);
+					sets[index].write_line(line_index, addr & (line_size - 1), buff, bytes);
 
          }
 
@@ -657,16 +659,16 @@ class Cache : public CacheBase
                cout << "which = " << dec << which << endl;
 
             if ( access_type == k_ACCESS_TYPE_LOAD )
-	       sets[which].read_line(line_index, addr & (line_size - 1), buff, bytes);
+					sets[which].read_line(line_index, addr & (line_size - 1), buff, bytes);
             else
-	       sets[which].write_line(line_index, addr & (line_size - 1), buff, bytes);
+					sets[which].write_line(line_index, addr & (line_size - 1), buff, bytes);
 
          }
          else 
-	 {
-	    if ( eviction != NULL )
-	       *eviction = false;
-	 }
+			 {
+				 if ( eviction != NULL )
+					 *eviction = false;
+			 }
 
          access[access_type][hit]++;
 

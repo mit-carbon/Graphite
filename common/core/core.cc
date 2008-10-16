@@ -200,6 +200,7 @@ bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 { return ocache->runICacheLoadModel(i_addr, size).first; }
 
 bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
+bool Core::dcacheRunLoadModel(ADDRINT d_addr, char* data_buffer, UINT32 data_size)
 { 
    
 #ifdef CORE_DEBUG

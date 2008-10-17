@@ -147,10 +147,36 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 //we may give the cache less than a cache_line of data, but never more than a cache_line_size of data
 //ca_address is "cache-aligned" address
 //addr_offset provides the offset that points to the requested address
-//TODO i don't think this will work correctly for multi-line requests!
+//TODO this will not work correctly for multi-line requests!
 bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size)
 {
 
+	/*
+	 
+    1. check cache for ca_address;
+
+	 2. if permissable -> return
+
+	 3. we need to request data and/or permission to use the ca_address
+	 (can I assume we just need to reget the entire thing from dram?)
+
+	 4. Send message to dram_directory and request address.
+
+	 5. extract the data from the update_data_payload
+
+
+	 * 
+	 *
+	 *
+	 *
+	 *
+	 *
+	 *
+	 *
+	 *
+	 */
+	
+	
 	stringstream ss;
    
 #ifdef MMU_DEBUG
@@ -163,46 +189,35 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	
 	unsigned int my_rank = the_core->getRank();
    
-   pair<bool, CacheTag*> cache_model_results;  
+   //TODO rename CacheTag as CacheLineInfo
+	pair<bool, CacheTag*> cache_model_results;  
 	//first-> is the line available in the cache? (Native cache hit)
 	//second-> pointer to cache tag to update cache state
 	bool native_cache_hit;  
 															  
 	CacheBase::AccessType access_type;
-/*	bool fail_need_fill;
+	bool fail_need_fill;
    bool eviction;
 	ADDRINT evict_addr;
 	char* scratch_line[g_knob_line_size];
 	char* data_buffer[g_knob_line_size];	
- */  
+   
 	switch( shmem_req_type ) {
-		
-		case READ:
-			access_type = CacheBase::k_ACCESS_TYPE_LOAD;
-//			cache_model_results = ocache->runDCacheLoadModel(address, buffer_size);
-//			native_cache_hit = cache_model_results.first;
-		break;
-		
-		case WRITE:
-			access_type = CacheBase::k_ACCESS_TYPE_STORE;
-//  	      cache_model_results = ocache->runDCacheStoreModel(address, buffer_size);
-//  	      native_cache_hit = cache_model_results.first;
-		break;
-		
-		default: 
-		  cerr << "ERROR: shmem_req_type is incorrect! (switch statement failure) " << endl;
-		  throw("unsupported memory transaction type.");
-		break;
+		case READ:	access_type = CacheBase::k_ACCESS_TYPE_LOAD; break;
+		case WRITE:	access_type = CacheBase::k_ACCESS_TYPE_STORE; break;
+		default: throw("unsupported memory transaction type."); break;
    }
 	
-	cache_model_results = ocache->accessSingleLine(address, access_type,
-																	&fail_need_fill, NULL,
-																	data_buffer, g_knob_line_size,
-																	&eviction, &evict_addr, eviction_buffer);
+	cache_model_results = getCacheLineInfo(); //check hit status, get CState
+//	cache_model_results = ocache->accessSingleLine(address, access_type,
+//  																&fail_need_fill, NULL,
+//																	data_buffer, g_knob_line_size,
+//																	&eviction, &evict_addr, eviction_buffer);
 																	
 	//TODO question: is fail_need_fill the same as cache_hit??
 	native_cache_hit = cache_model_results.first;
 	assert( native_cache_hit != fail_need_fill );
+	assert( cache_model_results.second != NULL );
 	
 #ifdef MMU_CACHEHIT_DEBUG                                    
 	if(native_cache_hit) {
@@ -218,40 +233,19 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	}
 #endif
 
-	if ( !native_cache_hit )
-   {
-	   // simulate going to get it (cache tags updated automagically). need to update directory state
-	   // TODO: deal with the case where the address is homed on another core
-	   // simulate miss
-	   
-   }
- 
    PacketType req_msg_type, resp_msg_type;
-	
-   // first, check local cache
    req_msg_type = SHARED_MEM_REQ;
    resp_msg_type = SHARED_MEM_UPDATE_EXPECTED;
 
-	//TODO take this out, b/c its just debugging info
-	if( cache_model_results.second == NULL) {
-		//before we crash let's print out some important state info
-		ss.str("");
-		ss << "  Address: " << hex << address << " , type: " << sMemReqTypeToString(shmem_req_type) << ", size= " << buffer_size;
-		debugPrint(my_rank, "MMU", ss.str());
-	}
-	assert( cache_model_results.second != NULL );
-   
-	
-	//I think this should just be an "if" statement...
-	int while_loop_counter = 0;
-	while( !action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
+	if( action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
    {
+		assert( native_cache_hit == true );
+		return native_cache_hit;
+	}
+	else
+	{
      // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
      
-	  //if this assert fails, i will be shocked.  i want to remove this while loop because its misleading and confusing.
-      while_loop_counter++;
-		assert( while_loop_counter <= 1 );
-
 		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
 #ifdef ADDR_HOME_LOOKUP_DEBUG
@@ -274,8 +268,8 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		//Request the entire cache-line
 		RequestPayload payload;
 		payload.request_type = shmem_req_type;
-		payload.request_address = ca_address;  // TODO: cache line align? ie, why are we requesting entire cache line unless it *is* cache line aligned
-		payload.request_num_bytes = ocache->dCacheLineSize(); //TODO this should actually be "size" from the inputs I believe (though size should be the same as cacheLineSize()
+		payload.request_address = ca_address;  
+		payload.request_num_bytes = ocache->dCacheLineSize(); 
 
 		packet.data = (char *)(&payload);
 
@@ -310,8 +304,10 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		/* ============= Handle Update Payload =============== */
 		/* =================================================== */
 		
-		// TODO: we don't actually send back the data because we're just modeling performance (for now)
-	   UpdatePayload* recv_payload = (UpdatePayload*)(recv_packet.data);
+//	   UpdatePayload* recv_payload = (UpdatePayload*)(recv_packet.data);
+	   UpdatePayload recv_payload;
+		//TODO for George
+		mmuExtractUpdatePayloadBuffer(recv_packet, &recv_payload);
 		
 	   assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	   
@@ -319,37 +315,27 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	   ADDRINT incoming_starting_addr = recv_payload->update_address;
 		assert(incoming_starting_addr == address);
 	   
-	   // update cache_entry
-	   //TODO: properly cast from int to cstate_t type. may need a helper conversion method
 	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload->update_new_cstate);
 	   
 	   //TODO: add support for actually updating data when we move to systems with software shared memory         
 		//TODO: is there a better way to deal with null cache_model_results.second?
-		assert( cache_model_results.second != NULL );
-		cache_model_results.second->setCState(resp_c_state);         
+//		assert( cache_model_results.second != NULL );
+//		cache_model_results.second->setCState(resp_c_state);         
 
-		//TODO deal with only partial lines and multi-lines (calc addr_offset?
-		
-		//this assert may fail, since it may have to be ocache->getDCacheLineSize()
-		assert( buffer_size == recv_payload->data_size );
-		copyBuffer(fill_buffer, recv_payload->data_buffer, recv_payload->data_size);
-		ocache->fillCacheLine(ca_address, recv_payload->data_buffer); 
-//		ocache->accessSingleLine(ca_address, access_type,
-//										NULL, fill_buffer,
-//										data_buffer, data_size //TODO ocache->getDCacheLineSize() ?
-//										&eviction, &evict_addr, evict_buff);
+		ocache->fillCacheLine(ca_address, resp_c_state, recv_payload->data_buffer, recv_payload->data_size); 
 		
 		/* =================================================== */
 		/* =========== End Handle Update Payload ============= */
 		/* =================================================== */
-	   
-   }
-   // if the while loop is never entered, the line is already in the cache in an appropriate state.
+		
+		assert( action_readily_permissable() );
 
 #ifdef MMU_DEBUG
-	debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------");
+		debugPrint(the_core->getRank(), "MMU", "end of initiateSharedMemReq -------");
 #endif
-   return native_cache_hit;
+   
+		return native_cache_hit;
+   }
 }
 
 

@@ -49,7 +49,6 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
             called_enter = true;
             ret_val = marshallOpenCall(ctx, syscall_standard);
          }
-
          break;
       }
       case SYS_read:
@@ -60,7 +59,6 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
             called_enter = true;
             ret_val = marshallReadCall(ctx, syscall_standard);
          }
-
          break;
       }
 
@@ -73,15 +71,13 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
             ret_val = marshallWriteCall(ctx, syscall_standard);
          }         
          break;
-      }
+      }         
       case SYS_close:
       {
          int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          if ( fd == 0x03 )
          {
             called_enter = true;
-            cerr << "close(" << fd << ")" << endl;
-
             ret_val = marshallCloseCall(ctx, syscall_standard);
          }
          break;

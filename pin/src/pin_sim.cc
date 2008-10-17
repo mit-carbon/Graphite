@@ -95,10 +95,11 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
          {
 	   // first = PC, second = size
-	   bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
+	   bool i_hit = icacheRunLoadModel(rank,
+                                           stats[rank]->inst_trace[i].first,
 					   stats[rank]->inst_trace[i].second);
 	   if ( do_perf_modeling ) {
-	     perfModelLogICacheLoadAccess(stats[rank], i_hit);
+	     perfModelLogICacheLoadAccess(rank, stats[rank], i_hit);
 	   }
          }
      }
@@ -109,7 +110,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
      {
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get the cycle counter up to date then account for dependency stalls
-       perfModelRun(stats[rank], reads, num_reads); 
+       perfModelRun(rank, stats[rank], reads, num_reads); 
      }
 
    if ( do_dcache_read_modeling )
@@ -117,15 +118,15 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get cycle count up to date so time stamp for when miss is ready is correct
 
-       bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+       bool d_hit = dcacheRunLoadModel(rank, dcache_ld_addr, dcache_ld_size);
        if ( do_perf_modeling ) {
-           perfModelRun(stats[rank], d_hit, writes, num_writes);
+          perfModelRun(rank, stats[rank], d_hit, writes, num_writes);
        }
 
        if ( is_dual_read ) {
-           bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+	   bool d_hit2 = dcacheRunLoadModel(rank, dcache_ld_addr2, dcache_ld_size);
            if ( do_perf_modeling ) {
-               perfModelRun(stats[rank], d_hit2, writes, num_writes);
+	      perfModelRun(rank, stats[rank], d_hit2, writes, num_writes);
            }
        }
 
@@ -139,10 +140,10 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
    if ( do_dcache_write_modeling )
      {
-       bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
+       bool d_hit = dcacheRunStoreModel(rank, dcache_st_addr, dcache_st_size);
        if ( do_perf_modeling )
          { 
-	   perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
+	   perfModelLogDCacheStoreAccess(rank, stats[rank], d_hit); 
          }
      } 
    else 
@@ -154,7 +155,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    // this should probably go last
    if ( do_perf_modeling )
      {
-       perfModelRun(stats[rank]);
+       perfModelRun(rank, stats[rank]);
      }
 
 }
@@ -477,12 +478,16 @@ VOID init_globals()
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   syscallEnterRunModel(ctxt, std);
+   int rank;
+   chipRank(&rank);
+   syscallEnterRunModel(rank, ctxt, std);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   syscallExitRunModel(ctxt, std);
+   int rank;
+   chipRank(&rank);
+   syscallExitRunModel(rank, ctxt, std);
 }
 
 int main(int argc, char *argv[])

@@ -106,7 +106,7 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
         // This models a unidirectional network distance
         // Should use abs() for bidirectional.
         if (q1.rem > q2.rem)
-          network_distance += k - (q1.rem - q2.rem);
+          network_distance += ki - (q1.rem - q2.rem);
         else
           network_distance += q2.rem - q1.rem;
         src = q1.quot;

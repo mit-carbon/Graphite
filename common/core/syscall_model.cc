@@ -43,7 +43,7 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
    {
       case SYS_open:
       {
-         char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+	 char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          if(!strcmp(path,"./common/tests/file_io/input"))
          {
             called_enter = true;
@@ -53,13 +53,13 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
-         }
+	 }
 
          break;
       }
       case SYS_read:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+	 int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          void *read_buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
          size_t read_count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
          if ( fd == 0x07 )
@@ -71,14 +71,14 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
-         }
+	 }
 
          break;
       }
 
       case SYS_write:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+	 int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          void *write_buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
          size_t write_count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
          if ( fd == 0x07 )
@@ -90,13 +90,13 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
-         }         
+	 }         
 
          break;
       }
       case SYS_close:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
+	 int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          if ( fd == 0x07 )
          {
             called_enter = true;
@@ -106,7 +106,7 @@ void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_stand
 
             // safer than letting the original syscall go
             PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
-         }
+	 }
 
          break;
       }

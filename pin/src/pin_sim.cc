@@ -478,16 +478,16 @@ VOID init_globals()
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   int rank;
-   chipRank(&rank);
-   syscallEnterRunModel(rank, ctxt, std);
+   int commid;
+   commRank(&commid);
+   syscallEnterRunModel(commid, ctxt, std);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   int rank;
-   chipRank(&rank);
-   syscallExitRunModel(rank, ctxt, std);
+   int commid;
+   commRank(&commid);
+   syscallExitRunModel(commid, ctxt, std);
 }
 
 int main(int argc, char *argv[])

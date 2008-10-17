@@ -33,25 +33,20 @@ void SyscallServer::handleSyscall(int comm_id)
    switch(syscall_number)
    {
       case SYS_open:
-      {
          marshallOpenCall(comm_id);
          break;
-      }
       case SYS_read:
-      {
          marshallReadCall(comm_id);
          break;
-      }
       case SYS_write:
-      {
          marshallWriteCall(comm_id);
          break;
-      }
       case SYS_close:
-      {
          marshallCloseCall(comm_id);
          break;
-      }
+      case SYS_access:
+         marshallAccessCall(comm_id);
+         break;
       default:
       {
          cerr << "Unhandled syscall number: " << (int)syscall_number << " from: " << comm_id << endl;
@@ -246,3 +241,33 @@ void SyscallServer::marshallCloseCall(int comm_id)
 
 }
 
+void SyscallServer::marshallAccessCall(int comm_id)
+{
+   cerr << "access syscall from: " << comm_id << endl;
+
+   UInt32 len_fname;
+   char *path = (char *) scratch;
+   int mode;      
+
+   recv_buff >> len_fname;
+
+   if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
+      path = new char[len_fname];
+
+   recv_buff >> make_pair(path, len_fname) >> mode;
+
+   // Actually do the open call
+   int ret = access(path, mode);
+
+   cerr << "len: " << len_fname << endl;
+   cerr << "path: " << path << endl;
+   cerr << "mode: " << mode << endl;
+   cerr << "ret: " << ret << endl;
+
+   send_buff << ret;
+
+   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());
+
+   if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
+      delete[] path;
+}

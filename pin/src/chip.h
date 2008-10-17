@@ -13,6 +13,7 @@
 #include "core.h"
 #include "ocache.h"
 #include "perfmdl.h"
+#include "lockfree_hash.h"
 #include "syscall_model.h"
 #include "mcp.h"
 
@@ -139,6 +140,7 @@ class Chip
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
       map<THREADID, int> core_map;
+      LockFreeHash core_map2;
       int prev_rank;
       PIN_LOCK maps_lock;
 

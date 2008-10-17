@@ -24,8 +24,8 @@ class SyscallMdl
    public:
       SyscallMdl(Network *net);
 
-      void runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      void runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      void runEnter(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      void runExit(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 };
 
 #endif

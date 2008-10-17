@@ -26,15 +26,13 @@ void SyscallMdl::runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    }
 }
 
-void SyscallMdl::runEnter(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+void SyscallMdl::runEnter(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    // Reset the buffers for the new transmission
    recv_buff.clear(); 
    send_buff.clear(); 
    
    int msg_type = MCP_MESSAGE_SYS_CALL;
-   int commid;
-   commRank(&commid);
    UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
    
    send_buff << msg_type << commid << syscall_number;   

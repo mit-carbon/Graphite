@@ -28,7 +28,7 @@ void* mcp_thread_func(void *dummy)
    while( !finished )
    {
       runMCP();
-      usleep(1);
+      //usleep(1);
    }   
    pthread_exit(NULL);
 }

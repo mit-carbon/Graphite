@@ -129,7 +129,7 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
 
    */
 
-   cerr << "Entering SyscallMdl::marshallOpen()" << endl;
+   //cerr << "Entering SyscallMdl::marshallOpen()" << endl;
 
    char *path = (char *) PIN_GetSyscallArgument(ctx, syscall_standard, 0);
    int flags = (int) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
@@ -176,7 +176,7 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
 
    */
 
-   cerr << "Entering syscall model marshall read" << endl;
+   //cerr << "Entering syscall model marshall read" << endl;
 
    int fd = (int) PIN_GetSyscallArgument(ctx, syscall_standard, 0);
    void *buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
@@ -187,11 +187,11 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    send_buff << fd << count;
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());   
    
-   cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
+   //cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
 
    UInt32 length = 0;
    UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
-   cerr << "received from mcp" << endl;
+   //cerr << "received from mcp" << endl;
 
    assert( length >= sizeof(int) );
    recv_buff << make_pair(res_buff, length);
@@ -207,7 +207,7 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    {
       assert( recv_buff.size() == 0 );
    }
-   cerr << "Exiting syscall model marshall read" << endl;
+   //cerr << "Exiting syscall model marshall read" << endl;
 
    return bytes;
 }
@@ -236,7 +236,7 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
    */
 
-   cerr << "Entering syscall model marshall write" << endl;
+   //cerr << "Entering syscall model marshall write" << endl;
 
    int fd = (int) PIN_GetSyscallArgument(ctx, syscall_standard, 0);
    void *buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
@@ -279,9 +279,12 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
    */
 
-   cerr << "Entering syscall model marshall close" << endl;
+   //cerr << "Entering syscall model marshall close" << endl;
 
    int fd = (int) PIN_GetSyscallArgument(ctx, syscall_standard, 0);      
+
+   cerr << "close(" << fd  << ")" << endl;
+
    send_buff << fd;
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());      
 
@@ -298,7 +301,7 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
 int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   cerr << "Entering SyscallMdl::marshallAccessCall()" << endl;
+   //cerr << "Entering SyscallMdl::marshallAccessCall()" << endl;
 
    char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
    int mode = (int)PIN_GetSyscallArgument(ctx, syscall_standard, 1);

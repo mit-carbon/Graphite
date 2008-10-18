@@ -90,10 +90,10 @@ void SyscallServer::marshallOpenCall(int comm_id)
    // Actually do the open call
    int ret = open(path, flags);
 
-   cerr << "len: " << len_fname << endl;
-   cerr << "path: " << path << endl;
-   cerr << "flags: " << flags << endl;
-   cerr << "ret: " << ret << endl;
+   //cerr << "len: " << len_fname << endl;
+   //cerr << "path: " << path << endl;
+   //cerr << "flags: " << flags << endl;
+   //cerr << "ret: " << ret << endl;
 
    send_buff << ret;
 
@@ -137,10 +137,10 @@ void SyscallServer::marshallReadCall(int comm_id)
    // Actually do the read call
    int bytes = read(fd, (void *) buf, count);  
 
-   cerr << "fd: " << fd << endl;
-   cerr << "buf: " << buf << endl;
-   cerr << "count: " << count << endl;
-   cerr << "bytes: " << bytes << endl;
+   //cerr << "fd: " << fd << endl;
+   //cerr << "buf: " << buf << endl;
+   //cerr << "count: " << count << endl;
+   //cerr << "bytes: " << bytes << endl;
    
    send_buff << bytes;
    if ( bytes != -1 )
@@ -192,10 +192,10 @@ void SyscallServer::marshallWriteCall(int comm_id)
    if ( bytes != -1 )
       cerr << "wrote: " << buf << endl;
 
-   cerr << "fd: " << fd << endl;
-   cerr << "buf: " << buf << endl;
-   cerr << "count: " << count << endl;
-   cerr << "bytes: " << bytes << endl;
+   //cerr << "fd: " << fd << endl;
+   //cerr << "buf: " << buf << endl;
+   //cerr << "count: " << count << endl;
+   //cerr << "bytes: " << bytes << endl;
    
    send_buff << bytes;
 
@@ -233,8 +233,8 @@ void SyscallServer::marshallCloseCall(int comm_id)
    // Actually do the close call
    int status = close(fd);  
 
-   cerr << "fd: " << fd << endl;
-   cerr << "status: " << status << endl;
+   //cerr << "fd: " << fd << endl;
+   //cerr << "status: " << status << endl;
    
    send_buff << status;
    pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
@@ -259,10 +259,10 @@ void SyscallServer::marshallAccessCall(int comm_id)
    // Actually do the open call
    int ret = access(path, mode);
 
-   cerr << "len: " << len_fname << endl;
-   cerr << "path: " << path << endl;
-   cerr << "mode: " << mode << endl;
-   cerr << "ret: " << ret << endl;
+   //cerr << "len: " << len_fname << endl;
+   //cerr << "path: " << path << endl;
+   //cerr << "mode: " << mode << endl;
+   //cerr << "ret: " << ret << endl;
 
    send_buff << ret;
 

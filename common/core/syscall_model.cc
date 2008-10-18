@@ -34,7 +34,8 @@ void SyscallMdl::runEnter(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_sta
    
    int msg_type = MCP_MESSAGE_SYS_CALL;
    UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
-   
+  
+   commRank(&commid);
    send_buff << msg_type << commid << syscall_number;   
 
    switch(syscall_number)

@@ -8,26 +8,18 @@ CAPI_return_t chipInit(int *rank)
    
    THREADID pin_tid = PIN_ThreadId();
 
-   //GetLock(&(g_chip->maps_lock), 1); 
+   pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
-   //map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
-   pair<bool, UINT64> e = g_chip->core_map2.find(pin_tid);
-
-   //if ( e == g_chip->core_map.end() ) { 
    if ( e.first == false ) {
       assert(0 <= g_chip->prev_rank && g_chip->prev_rank < g_chip->num_modules);
       g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
-      //g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
-      g_chip->core_map2.insert( pin_tid, g_chip->prev_rank );
+      g_chip->core_map.insert( pin_tid, g_chip->prev_rank );
       *rank = g_chip->prev_rank; 
       ++(g_chip->prev_rank);
    }   
    else {
-      //*rank = e->second;
       *rank = e.second;
    }
-   
-   //ReleaseLock(&(g_chip->maps_lock));
    
    return 0;
 };
@@ -36,41 +28,11 @@ CAPI_return_t chipRank(int *rank)
 {
    THREADID pin_tid = PIN_ThreadId();
 
-   // FIXME: This could be a big slow-down. Might want to do a full
-   // read/write lock.
-   //GetLock(&(g_chip->maps_lock), 1);
+   pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
-   //map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
-   pair<bool, UINT64> e = g_chip->core_map2.find(pin_tid);
-
-   //*rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
    *rank = (e.first == false) ? -1 : e.second;
 
    bool rank_ok = (*rank < g_chip->getNumModules());
-#if 0
-   if (!rank_ok) {
-     //printf("Bad rank: %d @ %p\n", *rank, rank);
-     LOG("Bad rank: " + decstr(*rank) + " @ ptr: " + hexstr(rank) + "\n");
-
-     LOG("  ThreadID: " + decstr(pin_tid));
-     //if ( e == g_chip->core_map.end() ) {
-     if ( e.first == false ) {
-       LOG(" was NOT found in core_map!\n");
-     } else {
-       LOG(" was found in map: <" + decstr(e->first) + ", " + 
-	   decstr(e->second) + ">\n");
-     }
-
-     LOG("  core_map:  <pin_tid, rank>\n             -----------------\n");
-     map<THREADID, int>::iterator f;
-     for (f = g_chip->core_map.begin(); f != g_chip->core_map.end(); f++) {
-       LOG("               <" + decstr(f->first) + ", " + 
-	   decstr(f->second) + ">\n");
-     }
-   }
-#endif
-
-   //ReleaseLock(&(g_chip->maps_lock));
    ASSERT(rank_ok, "Illegal rank value returned by chipRank!\n");
 
    return 0;
@@ -236,7 +198,7 @@ void MCPFinish()
 
 // Chip class method definitions
 
-Chip::Chip(int num_mods): num_modules(num_mods), core_map2(2*num_mods), prev_rank(0) 
+Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0) 
 {
    proc_time = new UINT64[num_mods];
    tid_map = new THREADID [num_mods];

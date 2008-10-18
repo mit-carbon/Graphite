@@ -139,8 +139,7 @@ class Chip
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
-      map<THREADID, int> core_map;
-      LockFreeHash core_map2;
+      LockFreeHash core_map;
       int prev_rank;
       PIN_LOCK maps_lock;
 

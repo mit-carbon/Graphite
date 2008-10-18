@@ -11,7 +11,7 @@ SyscallMdl::SyscallMdl(Network *net)
 {
 }
 
-void SyscallMdl::runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+void SyscallMdl::runExit(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    //if only the code below worked in enter...
    //int return_addr = PIN_GetContextReg(ctx, REG_INST_PTR);
@@ -26,16 +26,19 @@ void SyscallMdl::runExit(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    }
 }
 
-void SyscallMdl::runEnter(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    // Reset the buffers for the new transmission
    recv_buff.clear(); 
    send_buff.clear(); 
    
    int msg_type = MCP_MESSAGE_SYS_CALL;
-   UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
-  
+
+   int commid;  
    commRank(&commid);
+
+   UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
+
    send_buff << msg_type << commid << syscall_number;   
 
    switch(syscall_number)
@@ -53,7 +56,7 @@ void SyscallMdl::runEnter(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_sta
       case SYS_read:
       {
          int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x03 )
+         if ( fd == 0x08 )
          {
             called_enter = true;
             ret_val = marshallReadCall(ctx, syscall_standard);
@@ -64,7 +67,7 @@ void SyscallMdl::runEnter(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_sta
       case SYS_write:
       {
          int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x03 )
+         if ( fd == 0x08 )
          {
             called_enter = true;
             ret_val = marshallWriteCall(ctx, syscall_standard);
@@ -74,7 +77,7 @@ void SyscallMdl::runEnter(int commid, CONTEXT *ctx, SYSCALL_STANDARD syscall_sta
       case SYS_close:
       {
          int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x03 )
+         if ( fd == 0x08 )
          {
             called_enter = true;
             ret_val = marshallCloseCall(ctx, syscall_standard);
@@ -302,7 +305,7 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    UInt32 len_fname = strlen(path) + 1;
 
    // pack the data
-   send_buff << make_pair(path, len_fname) << mode;
+   send_buff << len_fname << make_pair(path, len_fname) << mode;
 
    // send the data
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size()); 

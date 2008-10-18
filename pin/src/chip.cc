@@ -166,20 +166,22 @@ bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size)
 
 
 // syscall model wrappers
-void syscallEnterRunModel(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   //int rank;
-   //chipRank(&rank);
+   int rank;
+   chipRank(&rank);
+
    if(rank >= 0)
-      g_chip->core[rank].getSyscallMdl()->runEnter(rank, ctx, syscall_standard);
+      g_chip->core[rank].getSyscallMdl()->runEnter(ctx, syscall_standard);
 }
 
-void syscallExitRunModel(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   //int rank;
-   //chipRank(&rank);
+   int rank;
+   chipRank(&rank);
+
    if(rank >= 0)
-      g_chip->core[rank].getSyscallMdl()->runExit(rank, ctx, syscall_standard);
+      g_chip->core[rank].getSyscallMdl()->runExit(ctx, syscall_standard);
 }
 
 // MCP wrappers

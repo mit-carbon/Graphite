@@ -77,9 +77,9 @@ bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size);
 
 // syscall model wrappers
 
-void syscallEnterRunModel(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
-void syscallExitRunModel(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
 
 // MCP server wrappers
@@ -121,8 +121,8 @@ class Chip
       friend void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct);      
 
       // syscall modeling wrapper
-      friend void syscallEnterRunModel(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      friend void syscallExitRunModel(int rank, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      friend void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      friend void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
       
       // organic cache modeling wrappers

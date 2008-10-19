@@ -11,6 +11,9 @@
 class SyscallMdl
 {
    private:
+      bool called_enter;
+      int ret_val;
+
       UnstructuredBuffer send_buff;
       UnstructuredBuffer recv_buff;
       Network *the_network;

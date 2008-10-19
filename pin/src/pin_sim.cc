@@ -37,6 +37,10 @@ Chip *g_chip = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
 
+//FIXME
+//PIN_LOCK g_lock1;
+//PIN_LOCK g_lock2;
+
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -368,7 +372,7 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 /* ===================================================================== */
 
-AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
+AFUNPTR mapMsgAPICall(string& name)
 {
    if(name == "CAPI_Initialize"){
       return AFUNPTR(chipInit);
@@ -403,7 +407,7 @@ VOID routine(RTN rtn, VOID *v)
 
    // cout << "routine " << RTN_Name(rtn) << endl;
 
-   if ( (msg_ptr = mapMsgAPICall(rtn, rtn_name)) != NULL ) {
+   if ( (msg_ptr = mapMsgAPICall(rtn_name)) != NULL ) {
       RTN_Replace(rtn, msg_ptr);
    } 
    else 
@@ -463,7 +467,10 @@ VOID fini(int code, VOID * v)
 
 VOID init_globals()
 {
-
+   //FIXME
+   //InitLock(&g_lock1);
+   //InitLock(&g_lock2);
+ 
    g_config = new Config;
    //g_config->loadFromFile(FIXME);
 
@@ -478,12 +485,16 @@ VOID init_globals()
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
+   //GetLock(&g_lock1, 1);
    syscallEnterRunModel(ctxt, std);
+   //ReleaseLock(&g_lock1);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
+   //GetLock(&g_lock2, 1);
    syscallExitRunModel(ctxt, std);
+   //ReleaseLock(&g_lock2);
 }
 
 int main(int argc, char *argv[])

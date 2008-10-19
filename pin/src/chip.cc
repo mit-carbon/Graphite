@@ -38,13 +38,14 @@ CAPI_return_t chipRank(int *rank)
    return 0;
 }
 
-CAPI_return_t commRank(int *rank)
+CAPI_return_t commRank(int *commid)
 {
    int my_tid;
    chipRank(&my_tid);
    // FIXME: The network nodes should be moved up from within a core to
    //  directly within a chip.  When this happens, this will have to change.
-   *rank = g_chip->core[my_tid].coreCommID();
+   
+   *commid = (my_tid < 0) ? -1 : g_chip->core[my_tid].coreCommID();
 
    return 0;
 }

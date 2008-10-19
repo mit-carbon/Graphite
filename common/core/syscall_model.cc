@@ -3,11 +3,11 @@
 #include "chip.h"
 #include "transport.h"
 
-bool called_enter = false;
-int ret_val = 0;
 
 SyscallMdl::SyscallMdl(Network *net)
-   :the_network(net)
+  : called_enter(false), 
+    ret_val(0), 
+    the_network(net)
 {
 }
 
@@ -36,6 +36,8 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
    int commid;  
    commRank(&commid);
+   assert( commid >= 0 );
+
 
    UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
 

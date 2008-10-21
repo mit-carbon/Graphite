@@ -21,7 +21,11 @@ void SyscallMdl::runExit(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
    if(called_enter)
    {
+#ifdef TARGET_IA32E
+      PIN_SetContextReg(ctx, REG_RAX, ret_val);
+#else
       PIN_SetContextReg(ctx, REG_EAX, ret_val);
+#endif
       called_enter = false;
    }
 }

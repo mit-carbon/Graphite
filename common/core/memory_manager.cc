@@ -552,3 +552,26 @@ bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstat
 	return dram_dir->debugAssertDramState(addr, dstate, sharers_list);	
 }
 
+void mmuCreateUpdatePayloadBuffer (UpdatePayload& send_payload, char *data_buffer, char *payload_buffer, int& payload_size) {
+
+	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
+	// FIXME: Make sure that payload_buffer is not allocated before
+	payload_size = sizeof(send_payload) + ocache->dCacheLineSize();
+	payload_buffer = (char *) malloc (payload_size);
+
+	memcpy ((void*) payload_buffer, (void*) &send_payload, sizeof(send_payload));
+	memcpy ((void*) (payload_buffer + sizeof(send_payload)), (void*) data_buffer, ocache->dCacheLineSize());
+
+}
+
+void mmuExtractUpdatePayloadBuffer (NetPacket& recv_packet, UpdatePayload& recv_payload, char *data_buffer) { 
+	
+	// FIXME: Make sure that data_buffer is not allocated before
+	data_buffer = (char*) malloc (sizeof(ocache->dCacheLineSize()));
+
+	memcpy ((void*) &recv_payload, (void*) (&recv_packet.data), sizeof(recv_payload));
+	memcpy ((void*) data_buffer, (void*) ( ((char*) &recv_packet.data) + sizeof(recv_payload) ), ocache->dCacheLineSize());
+
+}
+
+

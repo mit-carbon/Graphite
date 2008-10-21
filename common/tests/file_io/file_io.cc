@@ -28,7 +28,7 @@ int main(int argc, char* argv[]){ // main begins
    initMCP();
 	
    // Read in the command line arguments
-   const unsigned int numThreads = 2;
+   const unsigned int numThreads = 1;
 
    // Declare threads and related variables
    pthread_t threads[numThreads];

@@ -372,46 +372,102 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 /* ===================================================================== */
 
-AFUNPTR mapMsgAPICall(string& name)
+bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
-   if(name == "CAPI_Initialize"){
-      return AFUNPTR(chipInit);
+   AFUNPTR msg_ptr = NULL;
+   PROTO proto = NULL;
+
+   if(name == "CAPI_Initialize")
+   {
+      msg_ptr = AFUNPTR(chipInit);
    }
-   else if(name == "CAPI_rank"){
-      return AFUNPTR(commRank);
+   else if(name == "CAPI_rank")
+   {
+      msg_ptr = AFUNPTR(commRank);
    }
-   else if(name == "CAPI_message_send_w"){
-      return AFUNPTR(chipSendW);
+   else if(name == "CAPI_message_send_w")
+   {
+      msg_ptr = AFUNPTR(chipSendW);
    }
-   else if(name == "CAPI_message_receive_w"){
-      return AFUNPTR(chipRecvW);
+   else if(name == "CAPI_message_receive_w")
+   {
+      msg_ptr = AFUNPTR(chipRecvW);
    }
-   else if(name == "runMCP"){
-      return AFUNPTR(MCPRun);
+   else if(name == "runMCP")
+   {
+      msg_ptr = AFUNPTR(MCPRun);
    }
-   else if(name == "finishMCP"){
-      return AFUNPTR(MCPFinish);
+   else if(name == "finishMCP")
+   {
+      msg_ptr = AFUNPTR(MCPFinish);
    }
    
-   return NULL;
+   if ( (msg_ptr == AFUNPTR(chipInit)) || (msg_ptr == AFUNPTR(commRank)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int*),
+                             PIN_PARG_END() );         
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);      
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if ( (msg_ptr == AFUNPTR(chipSendW)) || (msg_ptr == AFUNPTR(chipRecvW) ) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(CAPI_endpoint_t),
+                             PIN_PARG(CAPI_endpoint_t),
+                             PIN_PARG(char*),
+                             PIN_PARG(int),
+                             PIN_PARG_END() );  
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+                           IARG_END);  
+      //RTN_Close(rtn);    
+      PROTO_Free(proto); 
+      return true;
+   }
+   else if ( (msg_ptr == AFUNPTR(MCPRun)) || (msg_ptr == AFUNPTR(MCPFinish)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG_END() );   
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_END);  
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   } 
+
+   return false;
 }
 
 VOID routine(RTN rtn, VOID *v)
 {
-   AFUNPTR msg_ptr = NULL;
-   RTN_Open(rtn);
-   INS rtn_head = RTN_InsHead(rtn);
-   string rtn_name = RTN_Name(rtn);
-   bool is_rtn_ins_head = true;
-   set<INS> ins_uses;
 
+   string rtn_name = RTN_Name(rtn);
    // cout << "routine " << RTN_Name(rtn) << endl;
 
-   if ( (msg_ptr = mapMsgAPICall(rtn_name)) != NULL ) {
-      RTN_Replace(rtn, msg_ptr);
-   } 
-   else 
+   bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
+   if ( did_func_replace == false )
    {
+
+      RTN_Open(rtn);
+      INS rtn_head = RTN_InsHead(rtn);
+      bool is_rtn_ins_head = true;
+      set<INS> ins_uses;
+
       if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 
       { 
          getPotentialLoadFirstUses(rtn, ins_uses);
@@ -449,9 +505,10 @@ VOID routine(RTN rtn, VOID *v)
          }
          assert( inst_offset == last_offset );
       }  
+
+      RTN_Close(rtn);
    }
 
-   RTN_Close(rtn);
 }
 
 
@@ -495,6 +552,7 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
    //GetLock(&g_lock2, 1);
    syscallExitRunModel(ctxt, std);
    //ReleaseLock(&g_lock2);
+   //ReleaseLock(&g_lock1);
 }
 
 int main(int argc, char *argv[])

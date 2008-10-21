@@ -63,6 +63,11 @@ class Core
 
    public:
 
+		enum mem_operation_t {
+			LOAD,
+			STORE
+		};
+
       int getRank() 
          { return core_tid; }
 
@@ -123,9 +128,9 @@ class Core
 	
 	bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
 	
-	bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-	
-	bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+	bool dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size);
+//	bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
+//	bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
 	//debug hook to smash cache state
 	void debugSetCacheState(ADDRINT addr, CacheState::cstate_t cstate);

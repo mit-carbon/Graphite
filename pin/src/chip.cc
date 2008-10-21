@@ -203,7 +203,10 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
    int rank;
    chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
-   return g_chip->core[rank].dcacheRunLoadModel(d_addr, size); 
+//   return g_chip->core[rank].dcacheRunLoadModel(d_addr, size); 
+	char data_buffer[size];
+   //TODO load data from cache into data_buffer. should buffer be on the stack?
+	return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, size); 
 }
 
 bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
@@ -211,7 +214,12 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
    int rank;
    chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
-   return g_chip->core[rank].dcacheRunStoreModel(d_addr, size); 
+//   return g_chip->core[rank].dcacheRunStoreModel(d_addr, size); 
+	//TODO just passing in dummy data for now
+	char data_buffer[size];
+	for(int i = 0; i < size; i++)
+		data_buffer[i] = (char) i;
+   return g_chip->core[rank].dcacheRunModel(Core::STORE, d_addr, data_buffer, size); 
 }
 
 // syscall model wrappers

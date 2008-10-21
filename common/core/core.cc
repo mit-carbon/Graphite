@@ -200,6 +200,31 @@ bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 { return ocache->runICacheLoadModel(i_addr, size).first; }
 
 bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
+
+/*
+ * dcacheRunModel (ADDRINT d_addr, shmem_req_t shmem_req_type, char* data_buffer, UINT32 data_size)
+ *
+ * Arguments:
+ *   d_addr :: address of location we want to access (read or write)
+ *   shmem_req_t :: READ or WRITE
+ *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
+ *   data_size :: size of data we must read/write
+ *
+ * Return Type:
+ *   hit :: Say whether there has been a cache hit or not (Problem here - There may be cache hits for some blocks and misses for others
+ */
+bool Core::dcacheRunModel (ADDRINT d_addr, shmem_req_t shmem_req_type, char* data_buffer, UINT32 data_size)
+{
+	if (g_knob_simarch_has_shared_mem) {
+
+		bool all_hits = true;
+
+		if (size <= 0) {
+			return (false);
+			// FIXME: Why false - we are not encountering any cache misses anyway
+		}
+
+		ADDRINT begin_addr
 bool Core::dcacheRunLoadModel(ADDRINT d_addr, char* data_buffer, UINT32 data_size)
 { 
    
@@ -239,7 +264,7 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, char* data_buffer, UINT32 data_siz
 		}
 		
 //		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY");
-	return all_hits;		    
+		return all_hits;		    
 /******************************************/		
 /*		bool ret = false; 
 		  
@@ -256,12 +281,13 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, char* data_buffer, UINT32 data_siz
 #endif
 	   return ret;
 */
-   } else {
+   } 
+	else {
 #ifdef SMEM_DEBUG
-      debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
+      	debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
 #endif
-	   return ocache->runDCacheLoadModel(d_addr, size).first;
-   }
+		return ocache->runDCacheLoadModel(d_addr, size).first;
+   	}
 }
 
 bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)

@@ -8,5 +8,16 @@ common/phys_trans/transport.*
 # emacs temp files
 *~
 
+# test executables
+common/tests/pthreads_matmult/cannon
+common/tests/file_io/file_io
+common/tests/ping_pong/ping_pong
+common/tests/signals/signals
+common/tests/barnes/BARNES
+
 # test output
+pin.log
 sim.out
+
+# misc
+pin/bin/

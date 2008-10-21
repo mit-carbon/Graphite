@@ -199,10 +199,8 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
 bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 { return ocache->runICacheLoadModel(i_addr, size).first; }
 
-bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
-
 /*
- * dcacheRunModel (ADDRINT d_addr, shmem_req_t shmem_req_type, char* data_buffer, UINT32 data_size)
+ * dcacheRunModel (mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
  *
  * Arguments:
  *   d_addr :: address of location we want to access (read or write)
@@ -210,11 +208,18 @@ bool Core::dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
  *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
  *   data_size :: size of data we must read/write
  *
- * Return Type:
- *   hit :: Say whether there has been a cache hit or not (Problem here - There may be cache hits for some blocks and misses for others
+ * Return Value:
+ *   hit :: Say whether there has been at least one cache hit or not
  */
-bool Core::dcacheRunModel (ADDRINT d_addr, shmem_req_t shmem_req_type, char* data_buffer, UINT32 data_size)
+bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
 {
+	shmem_req_t shmem_operation;
+	
+	if (operation == LOAD)
+		shmem_operaiton = READ;
+	else
+		shmem_operation = WRITE;
+
 	if (g_knob_simarch_has_shared_mem) {
 
 		bool all_hits = true;
@@ -224,135 +229,68 @@ bool Core::dcacheRunModel (ADDRINT d_addr, shmem_req_t shmem_req_type, char* dat
 			// FIXME: Why false - we are not encountering any cache misses anyway
 		}
 
-		ADDRINT begin_addr
-bool Core::dcacheRunLoadModel(ADDRINT d_addr, char* data_buffer, UINT32 data_size)
-{ 
-   
-#ifdef CORE_DEBUG
-	  debugPrintHex(getRank(), "CORE", "dcache (READ)  : ADDR: ", d_addr);
-#endif	
-	
-	if( g_knob_simarch_has_shared_mem ) { 
 #ifdef SMEM_DEBUG
        debugPrint(getRank(), "CORE", "dcache initiating shared memory request (READ)");
 #endif
+		
+		ADDRINT begin_addr = d_addr;
+		ADDRINT end_addr = d_addr + data_size;
+	   	ADDRINT begin_addr_aligned = begin_addr - (begin_addr % ocache->dCacheLineSize());
+		ADDRINT end_addr_aligned = end_addr - (end_addr % ocache->dCacheLineSize());
+		char *curr_data_buffer_head = data_buffer;
 
-/**********  MULTI-LINE SUPPORT ************/		
-		bool all_hits = true; //return true if all cache lines are in the cache
-		
-		if( size <= 0 ) {
-//			cout << " CORE.CC: READ  size == 0! -- ADDR: " << hex << d_addr << " , size = " << dec << size << endl;
-			return false;
-		}
-// this method of for-looping does *not* cache-align addresses. 
-//		for( ADDRINT temp_addr = d_addr; temp_addr < ( ( d_addr+size ) - (( d_addr+size ) % ocache->dCacheLineSize() ) + ocache->dCacheLineSize() ); temp_addr += ocache->dCacheLineSize()) 
-		
-		//NOTE: this method of multi-line accesses cache-aligns the addresses.  
-		ADDRINT begin_addr = d_addr - ( d_addr % ocache->dCacheLineSize() );
-//		debugPrint(getRank(), "Core", "TRapping ++++++ into SHARED_MEMORY");
-		for( ADDRINT temp_addr = begin_addr ; temp_addr < ( d_addr + size ); temp_addr += ocache->dCacheLineSize() ) 
+		for (ADDRINT curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += ocache->dCacheLineSize())
 		{
-			//access one cache line at a time
-			//NOTE: temp_addr is cache-aligned
-			//TODO what should size paramter be? 1? Do we even need it now?
-			//TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
-			//have set_initial_parameters KILL all other dram lines! and assert check that only one has changed?
-			if(!memory_manager->initiateSharedMemReq(temp_addr, ocache->dCacheLineSize(), READ))  
-			{
+			// Access the cache one line at a time
+			ADDRINT curr_offset;
+			UINT32 curr_size;
+
+			// Determine the offset
+			if (curr_addr_aligned == begin_addr_aligned) {
+				curr_offset = begin_addr % ocache->dCacheLineSize();
+			}
+			else {
+				curr_offset = 0;
+			}
+
+			// Determine the size
+			if (curr_addr_aligned = end_addr_aligned) {
+				curr_size = (end_addr % ocache->dCacheLineSize()) - (curr_offset);
+			}
+			else {
+				curr_size = ocache->dCacheLineSize();
+			}
+
+			if (!memory_manager->initiateSharedMemReq (shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
+				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
+				// If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
 				all_hits = false;
 			}
+
+			// Increment the buffer head
+			curr_data_buffer_head += curr_size;
 		}
+
+
+		//NOTE: this method of multi-line accesses cache-aligns the addresses.  
+		//TODO have this deal with data
+			//access one cache line at a time
+			//TODO set the size parameter correctly, based on the size of the data buffer
+			//TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
+			//the "0" below is the addr_offset. important for partial-line operations when the data_size is less than cache_line_size
 		
 //		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY");
 		return all_hits;		    
-/******************************************/		
-/*		bool ret = false; 
-		  
-		if( size <= 0) {
-			cout << " READ  size == 0! -- ADDR: " << hex << d_addr << " , size = " << dec << size << endl;
-		}
-		
-		if( size > 0) {
-			ret = memory_manager->initiateSharedMemReq(d_addr, size, READ); 
-		}
-		
-#ifdef SMEM_DEBUG
-       debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (READ)");
-#endif
-	   return ret;
-*/
-   } 
+   
+	} 
 	else {
-#ifdef SMEM_DEBUG
-      	debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (READ)");
-#endif
-		return ocache->runDCacheLoadModel(d_addr, size).first;
+	   	//run this if we aren't using shared_memory
+		// FIXME: I am not sure this is right
+		if(operation == LOAD)
+			return ocache->runDCacheLoadModel(d_addr, size).first;
+	   	else
+			return ocache->runDCacheStoreModel(d_addr, size).first;
    	}
-}
-
-bool Core::dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
-{ 
-
-#ifdef CORE_DEBUG
-	  stringstream ss;
-	  ss << "dcache (WRITE): ADDR: " << hex << d_addr << " with size: " << dec << size;
-	  debugPrint(getRank(), "Core", ss.str());
-//	  debugPrintHex(getRank(), "Core", "dcache (WRITE) : ADDR: ", d_addr);
-#endif	
-
-   if( g_knob_simarch_has_shared_mem ) { 
-#ifdef SMEM_DEBUG
-       debugPrint(getRank(), "Core", "dcache initiating shared memory request (WRITE)");
-#endif
-
-/**********  MULTI-LINE SUPPORT ************/		
-		bool all_hits = true; //return true if all cache lines are in the cache
-		//FIXME BUG doesn't handle the very last line, ie, if size= 34 and cache line size = 32
-		
-		if( size <= 0) {
-//			cout << " CORE.CC: WRITE size == 0! -- ADDR: " << hex << d_addr << " , size = " << dec << size << endl;
-			return false;
-		}
-
-//		for( ADDRINT temp_addr = d_addr; temp_addr < ( ( d_addr+size ) - (( d_addr+size ) % ocache->dCacheLineSize() ) + ocache->dCacheLineSize() ); temp_addr += ocache->dCacheLineSize()) 
-		ADDRINT begin_addr = d_addr - ( d_addr % ocache->dCacheLineSize() );
-//		debugPrint(getRank(), "Core", "TRapping ++++++ into SHARED_MEMORY STORE");
-		for( ADDRINT temp_addr = begin_addr ; temp_addr < ( d_addr + size ); temp_addr += ocache->dCacheLineSize() ) 
-		{
-			//access one cache line at a time
-			//NOTE: temp_addr is cache-aligned
-			if(!memory_manager->initiateSharedMemReq(temp_addr, ocache->dCacheLineSize(), WRITE))  
-			{
-				all_hits = false;
-			}
-		}
-		
-//		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY STORE");
-	return all_hits;		    
-/******************************************/		
-/*		
-		//FIXME remove this, this is to track how many times we're told to write to zero bytes! this caused a failure when CacheTag is returned as null for size= 0
-		if( size <= 0) {
-			cout << " CORE.CC: WRITE size == 0! -- ADDR: " << hex << d_addr << " , size = " << dec << size << endl;
-		}
-		
-		bool ret = false;
-//		cout << "WRITE SIZE = " << size << endl;
-		if( size > 0) {
-			ret = memory_manager->initiateSharedMemReq(d_addr, size, WRITE); 
-		}
-#ifdef SMEM_DEBUG
-       debugPrint(getRank(), "Core", " COMPLETED - dcache initiating shared memory request (WRITE)");
-#endif
-	   return ret;
-*/
-
-   } else {
-#ifdef SMEM_DEBUG
-       debugPrint(getRank(), "Core", "dcache initiating NON-shared memory request (WRITE)");
-#endif
-	   return ocache->runDCacheStoreModel(d_addr, size).first;
-   }
 }
 
 void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate)

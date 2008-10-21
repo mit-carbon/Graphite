@@ -140,6 +140,161 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 	return ret;
 }
 
+void setCacheLineCState(CacheTag* c_line_info, CacheState::cstate_t new_cstate)
+{
+
+}
+
+void readCacheLineData(ADDRINT addres, UINT32 offset, char* data_buffer, UINT32 data_size)
+{
+	//copy data at cache to data_buffer
+	//
+	
+}
+
+void writeCacheLineData( awefoiajwefpoijawepfoijawepfoij )
+{
+
+//TODO handle evictions
+
+}
+
+
+//send request to DRAM Directory to request a given address, for a certain operation
+//does NOT touch the cache.
+void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, char* data_buffer, UINT32 data_size)
+{
+	UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
+
+	assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
+	
+	/* ==================================================== */
+	/* =========== Send Request & Recv Update ============= */
+	/* ==================================================== */
+	
+	// send message here to home directory node to request data
+	//packet.type, sender, receiver, packet.length
+	NetPacket packet = makePacket(req_msg_type, sizeof(RequestPayload), the_core->getRank(), home_node_rank); 
+	
+	// initialize packet payload
+	//Request the entire cache-line
+	RequestPayload payload;
+	payload.request_type = shmem_req_type;
+	payload.request_address = ca_address;  
+	payload.request_num_bytes = ocache->dCacheLineSize(); 
+
+	packet.data = (char *)(&payload);
+
+	(the_core->getNetwork())->netSend(packet);
+
+	// receive the requested data (blocking receive)
+	NetMatch net_match = makeNetMatch( resp_msg_type, home_node_rank );
+	NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+	
+	/* ===================================================== */
+	/* ============== Handle Update Payload ================ */
+	/* ===================================================== */
+	
+	UpdatePayload recv_payload;
+	mmuExtractUpdatePayloadBuffer(recv_packet, &recv_payload);
+	assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
+	
+	//debug check
+	ADDRINT incoming_starting_addr = recv_payload->update_address;
+	assert(incoming_starting_addr == address);
+	
+	CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload->update_new_cstate);
+	
+	/* ==================================================== */
+	/* =============== Put Data Into Cache ================ */
+	/* ==================================================== */
+	
+	if(shmem_req_type == READ)
+	{
+		ocache->fillCacheLine(ca_address + offset, data_buffer, data_size);
+	}
+	else
+	{
+		//set cache state
+}
+
+//buffer_size is the size in bytes of the char* data_buffer
+//we may give the cache less than a cache_line of data, but never more than a cache_line_size of data
+//ca_address is "cache-aligned" address
+//addr_offset provides the offset that points to the requested address
+//TODO this will not work correctly for multi-line requests!
+//TODO what is "return bool" used for?  cache hits? or immediately permissable?
+bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size)
+{
+   /* ========================================================================= */
+	pair<bool, CacheTag*> cache_results = ocache->getCacheLineInfo(ca_address);
+	bool hit cache_results.first;
+
+	if(permissable()) 
+	{
+		//do nothing?
+	}
+	else
+	{
+		request_address(ca_address);
+			READ: writeCacheLine(ca_address) 
+			WRITE: 
+		set cstate
+	}
+
+	READ: readCacheLineData(ca_address)
+	WRITE: writeCacheLineData(ca_address)
+
+   /* ========================================================================= */
+	
+   //TODO rename CacheTag as CacheLineInfo
+	pair<bool, CacheTag*> cache_model_results;  
+	//first-> is the line available in the cache? (Native cache hit)
+	//second-> pointer to cache tag to update cache state
+	bool native_cache_hit;  
+	
+	/*************** CACHE ACCESS *****************/
+	cache_model_results = ocache->getCacheLineInfo(); //check hit status, get CState
+	native_cache_hit = cache_model_results.first;
+
+	char read_buffer[ocache->getCacheLineSize()]; //a dram request writes data into this buffer
+	
+	if( action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
+   {
+		assert( native_cache_hit == true );
+		//do nothing
+	}
+	else
+	{
+		//fill_buffer is only used if req_type is a READ
+		requestPermission(shmem_req_type, ca_address, &new_cstate, fill_buffer);
+		
+		if(shmem_req_type == READ) {
+         writeCacheLine(ca_address + offset, fill_buffer);
+		}
+
+		setCacheLineInfo(ca_address, new_cstate);
+	}
+	
+	assert( action_readily_permissable() );
+	
+	//now that we know we have the address in the cache, let's do what we wanted to do!
+	if(shmem_req_type==READ)
+	{
+		/*************** CACHE ACCESS *****************/
+		readCacheLine(ca_address, offset, data_buffer, data_size); //ocache->readCacheLineData(ca_address));
+	}
+	else
+	{
+		/*************** CACHE ACCESS *****************/
+		//TODO handle evictions!
+		writeCacheLine(ca_address + offset, data_buffer, data_size);
+	}
+	
+	
+	return native_cache_hit;
+
+}
 
 //bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 
@@ -148,34 +303,26 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 //ca_address is "cache-aligned" address
 //addr_offset provides the offset that points to the requested address
 //TODO this will not work correctly for multi-line requests!
+//TODO what is "return bool" used for?  cache hits? or immediately permissable?
 bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size)
 {
+   /* ========================================================================= */
+	pair<bool, CacheTag*> cache_results = ocache->getCacheLineInfo(ca_address);
+	bool hit cache_results.first;
 
-	/*
-	 
-    1. check cache for ca_address;
+	if(permissable()) 
+	{
+		setDataBuffer();
+		return true; 
+	}
+	else
+	{
+		request_address(ca_address);
+		setDataBuffer();
+		return cache_hit;
+	}
 
-	 2. if permissable -> return
-
-	 3. we need to request data and/or permission to use the ca_address
-	 (can I assume we just need to reget the entire thing from dram?)
-
-	 4. Send message to dram_directory and request address.
-
-	 5. extract the data from the update_data_payload
-
-
-	 * 
-	 *
-	 *
-	 *
-	 *
-	 *
-	 *
-	 *
-	 *
-	 */
-	
+   /* ========================================================================= */
 	
 	stringstream ss;
    
@@ -184,11 +331,6 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	debugPrintString(the_core->getRank(), "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
 #endif
 
-	//data_buffer is null if req_type == READ
-	assert( shmem_req_type == READ ? data_buffer == NULL : true ); 
-	
-	unsigned int my_rank = the_core->getRank();
-   
    //TODO rename CacheTag as CacheLineInfo
 	pair<bool, CacheTag*> cache_model_results;  
 	//first-> is the line available in the cache? (Native cache hit)
@@ -208,7 +350,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		default: throw("unsupported memory transaction type."); break;
    }
 	
-	cache_model_results = getCacheLineInfo(); //check hit status, get CState
+	cache_model_results = ocache->getCacheLineInfo(); //check hit status, get CState
 //	cache_model_results = ocache->accessSingleLine(address, access_type,
 //  																&fail_need_fill, NULL,
 //																	data_buffer, g_knob_line_size,
@@ -224,12 +366,12 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		//god i hate c++
 		ss << "NATIVE CACHE (HIT) : ADDR: = " <<  hex << address 
 			<< " - CState: "<< CacheState::cStateToString(cache_model_results.second->getCState());
-		debugPrint(my_rank,"MMU", ss.str()); 
+		debugPrint(the_core->getRank(),"MMU", ss.str()); 
 	} else {
 		stringstream ss;
 		ss << "NATIVE CACHE (MISS): ADDR: = " << hex << address 
 			<< " - CState: " << CacheState::cStateToString(cache_model_results.second->getCState());
-		debugPrint(my_rank,"MMU", ss.str());
+		debugPrint(the_core->getRank(),"MMU", ss.str());
 	}
 #endif
 
@@ -244,7 +386,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	}
 	else
 	{
-     // it was not readable in the cache, so find out where it should be, and send a read request to the home directory
+		// it was not readable in the cache, so find out where it should be, and send a read request to the home directory
      
 		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
@@ -261,7 +403,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	   
 	   // send message here to home node to request data
 		//packet.type, sender, receiver, packet.length
-	   NetPacket packet = makePacket(req_msg_type, sizeof(RequestPayload), my_rank, home_node_rank); 
+	   NetPacket packet = makePacket(req_msg_type, sizeof(RequestPayload), the_core->getRank(), home_node_rank); 
 		
 		// initialize packet payload
 		//payload is on the stack, so it gets de-allocated once we exit this loop

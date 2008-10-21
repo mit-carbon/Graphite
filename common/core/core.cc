@@ -220,7 +220,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 	else
 		shmem_operation = WRITE;
 
-	if (g_knob_simarch_has_shared_mem) {
+	if (g_knob_simarch_has_shared_mem)  {
 
 		bool all_hits = true;
 

@@ -70,16 +70,16 @@ INT32 usage()
 /* ===================================================================== */
 
 
-VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
-               ADDRINT dcache_st_addr, UINT32 dcache_st_size,
-               PerfModelIntervalStat* *stats,
-               REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
-               bool do_network_modeling, bool do_icache_modeling, 
-               bool do_dcache_read_modeling, bool is_dual_read, 
-               bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
+VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
+               	ADDRINT dcache_st_addr, UINT32 dcache_st_size,
+               	PerfModelIntervalStat* *stats,
+               	REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
+               	bool do_network_modeling, bool do_icache_modeling, 
+               	bool do_dcache_read_modeling, bool is_dual_read, 
+               	bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
 //               bool check_scoreboard)
-               bool check_scoreboard,
-					VOID* ins_info)
+               	bool check_scoreboard,
+				VOID* ins_info)
 {
    //cerr << "parent = " << stats->parent_routine << endl;
  
@@ -92,12 +92,12 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 		cerr << " ----------------------------------" << endl;
 		cerr <<  " CORE#0 START  running runModels!" << endl;
 	
-	   INT32 col;
+	   	INT32 col;
 		INT32 ln;
 		const CHAR* file;
 		assert( ins_info != NULL );
 		PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
-		if( file != NULL )
+		if ( file != NULL )
 			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
 		else
 			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
@@ -107,7 +107,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 		cerr << " ----------------------------------" << endl;
 		cerr << " CORE#1 START running runModels!" << endl;
 		cerr << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
-	   INT32 col;
+	   	INT32 col;
 		INT32 ln;
 		const CHAR* file;
 		assert( ins_info != NULL );
@@ -129,7 +129,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 			cerr << "[" << rank << "] PINSIM -: IS SYSENTER = " << ((InsInfo*) ins_info)->is_sys_enter << endl;
 			cerr << "----------" << endl;
 			
-			if(((InsInfo*) ins_info)->next_is_valid) 
+			if(((InsInfo*) ins_info)->next_is_valid)
 			{
 				cerr << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->next_opcode) << " (" << ((InsInfo*) ins_info)->next_opcode << ") " << endl;
 				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ((InsInfo*) ins_info)->next_is_sys_call << endl;
@@ -144,123 +144,130 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 #endif
 
 	if(rank > -1)
-   {
-      assert( !do_network_modeling );
-      assert( !do_bpred_modeling );
-//=======
-//>>>>>>> master:pin/src/pin_sim.cc
+   	{
+      	assert( !do_network_modeling );
+      	assert( !do_bpred_modeling );
 
-   // This must be consistent with the behavior of
-   // insertInstructionModelingCall.
+   		// This must be consistent with the behavior of
+   		// insertInstructionModelingCall.
 
-   // Trying to prevent using NULL stats. This happens when
-   // instrumenting portions of the main thread.
-   bool skip_modeling = (rank < 0) ||
-     ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
+   		// Trying to prevent using NULL stats. This happens when
+   		// instrumenting portions of the main thread.
+  		bool skip_modeling = (rank < 0) ||
+     		((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
-   if (skip_modeling)
-     return;
+   		if (skip_modeling)
+     		return;
 
-   assert( rank >= 0 && rank < g_chip->getNumModules() );
+   		assert ( rank >= 0 && rank < g_chip->getNumModules() );
 
-   assert( !do_network_modeling );
-   assert( !do_bpred_modeling );
+   		assert ( !do_network_modeling );
+   		assert ( !do_bpred_modeling );
 
-   // JME: think this was an error; want some other model on if icache modeling is on
-   //   assert( !(!do_icache_modeling && (do_network_modeling || 
-   //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
-   //                                  do_bpred_modeling || do_perf_modeling)) );
+   		// JME: think this was an error; want some other model on if icache modeling is on
+   		//   assert( !(!do_icache_modeling && (do_network_modeling || 
+   		//                                  do_dcache_read_modeling || do_dcache_write_modeling ||
+   		//                                  do_bpred_modeling || do_perf_modeling)) );
 
-   // no longer needed since we guarantee icache model will run at basic block boundary
-   //assert( !do_icache_modeling || (do_network_modeling || 
-   //                                do_dcache_read_modeling || do_dcache_write_modeling ||
-   //                                do_bpred_modeling || do_perf_modeling) );
+   		// no longer needed since we guarantee icache model will run at basic block boundary
+   		// assert( !do_icache_modeling || (do_network_modeling || 
+   		//                                do_dcache_read_modeling || do_dcache_write_modeling ||
+   		//                                do_bpred_modeling || do_perf_modeling) );
 
-   if ( do_icache_modeling )
-     {
-       for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
-         {
-	   // first = PC, second = size
-	   bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
+   		if ( do_icache_modeling )
+     	{
+       		for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
+         	{
+	   			// first = PC, second = size
+	   			bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
 					   stats[rank]->inst_trace[i].second);
-	   if ( do_perf_modeling ) {
-	     perfModelLogICacheLoadAccess(stats[rank], i_hit);
-	   }
-         }
-     }
+	   			if ( do_perf_modeling ) {
+	     			perfModelLogICacheLoadAccess(stats[rank], i_hit);
+	   			}
+         	}
+     	}
 
-   // this check must go before everything but the icache check
-   assert( !check_scoreboard || do_perf_modeling );
-   if ( check_scoreboard )
-     {
-       // it's not possible to delay the evaluation of the performance impact for these. 
-       // get the cycle counter up to date then account for dependency stalls
-       perfModelRun(stats[rank], reads, num_reads); 
-     }
+   		// this check must go before everything but the icache check
+   		assert( !check_scoreboard || do_perf_modeling );
+   		if ( check_scoreboard )
+     	{
+       		// it's not possible to delay the evaluation of the performance impact for these. 
+       		// get the cycle counter up to date then account for dependency stalls
+       		perfModelRun(stats[rank], reads, num_reads); 
+     	}
 
-   if ( do_dcache_read_modeling )
-     {
-       // it's not possible to delay the evaluation of the performance impact for these. 
-       // get cycle count up to date so time stamp for when miss is ready is correct
+   		if ( do_dcache_read_modeling )
+    	{
+        	// it's not possible to delay the evaluation of the performance impact for these. 
+       		// get cycle count up to date so time stamp for when miss is ready is correct
 
-//		cerr << "[" << rank << "] dCache READ Modeling: before getting locks " << endl;
-//       GetLock(&dcache_read_lock, 1);
-//       GetLock(&dcache_write_lock, 1);
+//			cerr << "[" << rank << "] dCache READ Modeling: before getting locks " << endl;
+//      	GetLock(&dcache_read_lock, 1);
+//      	GetLock(&dcache_write_lock, 1);
 
 //			cerr << "[" << rank << "] dCache READ Modeling: GOT LOCKS " << endl;
        
-		 bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
-       if ( do_perf_modeling ) {
-           perfModelRun(stats[rank], d_hit, writes, num_writes);
-       }
+        	// FIXME: This should actually be a UINT32 which tells how many read misses occured
+		
+			data_ld_buffer = (char*) malloc (dcache_ld_size);
+			bool d_hit = dcacheRunModel(LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+			// bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+       	
+			if ( do_perf_modeling ) {
+           		perfModelRun(stats[rank], d_hit, writes, num_writes);
+       		}
 
-       if ( is_dual_read ) {
-           bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-           if ( do_perf_modeling ) {
-               perfModelRun(stats[rank], d_hit2, writes, num_writes);
-           }
-       }
+       		if ( is_dual_read ) {
+				data_ld_buffer_2 = (char*) malloc (dcache_ld_size);
+				bool d_hit_2 = dCacheRunModel (LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+           		// bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+           		if ( do_perf_modeling ) {
+               		perfModelRun(stats[rank], d_hit2, writes, num_writes);
+           		}
+       		}
 
-//       ReleaseLock(&dcache_write_lock);
-//       ReleaseLock(&dcache_read_lock);
-//		 cerr << "[" << rank << "] dCache READ Modeling: RELEASED LOCKS " << endl;
+//       	ReleaseLock(&dcache_write_lock);
+//       	ReleaseLock(&dcache_read_lock);
+//		 	cerr << "[" << rank << "] dCache READ Modeling: RELEASED LOCKS " << endl;
      
-	  } 
-   else 
-     {
-       assert(dcache_ld_addr == (ADDRINT) NULL);
-       assert(dcache_ld_addr2 == (ADDRINT) NULL);
-       assert(dcache_ld_size == 0);
-     }
+		} 
+   		else 
+    	{
+       		assert(dcache_ld_addr == (ADDRINT) NULL);
+       		assert(dcache_ld_addr2 == (ADDRINT) NULL);
+       		assert(dcache_ld_size == 0);
+    	}
 
-   if ( do_dcache_write_modeling )
-     {
-//		 cerr << "[" << rank << "] dCache WRITE Modeling: before locks" << endl;
-//       GetLock(&dcache_read_lock, 1);
-//      GetLock(&dcache_write_lock, 1);
-//		 cerr << "[" << rank << "] dCache WRITE Modeling: GOT LOCKS " << endl;
+   		if ( do_dcache_write_modeling )
+    	{
+//	    	cerr << "[" << rank << "] dCache WRITE Modeling: before locks" << endl;
+//      	GetLock(&dcache_read_lock, 1);
+//      	GetLock(&dcache_write_lock, 1);
+//			cerr << "[" << rank << "] dCache WRITE Modeling: GOT LOCKS " << endl;
        
-		 bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
-       if ( do_perf_modeling )
-         { 
-	   perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
-         }
-//       ReleaseLock(&dcache_write_lock);
-//       ReleaseLock(&dcache_read_lock);
-//		 cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
-     } 
-   else 
-     {
-       assert(dcache_st_addr == (ADDRINT) NULL);
-       assert(dcache_st_size == 0);
-     }
+			// FIXME: This should actually be a UINT32 which tells how many write misses occurred
+			bool d_hit = dCacheRunModel (STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+			// bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
+       		if ( do_perf_modeling )
+        	{ 
+	   			perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
+        	}
+//      	ReleaseLock(&dcache_write_lock);
+//      	ReleaseLock(&dcache_read_lock);
+//			cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
+    	} 
+   		else 
+    	{
+       		assert(dcache_st_addr == (ADDRINT) NULL);
+       		assert(dcache_st_size == 0);
+    	}
 
-   // this should probably go last
-   if ( do_perf_modeling )
-     {
-       perfModelRun(stats[rank]);
-     }
-   }
+   		// this should probably go last
+   		if ( do_perf_modeling )
+   		{
+       		perfModelRun(stats[rank]);
+    	}
+	}
 
 #ifdef PRINTOUT_FLAGS
 	if(rank == 0) {

@@ -216,7 +216,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 	shmem_req_t shmem_operation;
 	
 	if (operation == LOAD)
-		shmem_operaiton = READ;
+		shmem_operation = READ;
 	else
 		shmem_operation = WRITE;
 
@@ -287,6 +287,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 	else {
 	   	//run this if we aren't using shared_memory
 		// FIXME: I am not sure this is right
+		// What if the initial data for this address is in some other core's DRAM (which is on some other host machine)
 		if(operation == LOAD)
 			return ocache->runDCacheLoadModel(d_addr, size).first;
 	   	else

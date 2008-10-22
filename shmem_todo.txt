@@ -51,8 +51,6 @@ TODO:
 
 6a. DramDir needs to hold data.
 
-7. DramDir code needs a hook into AHL to deduce "memory_data_line" from a given address. Ideally, the Dram is told
-
 8. User program is not loaded into dram! So global variables, etc., are completely unknown.
 	(need dram server?).
 

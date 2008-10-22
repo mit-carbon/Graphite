@@ -224,28 +224,28 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 
 		bool all_hits = true;
 
-		if (size <= 0) {
+		if (data_size <= 0) {
 			return (false);
 			// FIXME: Why false - we are not encountering any cache misses anyway
 		}
 
-#ifdef SMEM_DEBUG
-       debugPrint(getRank(), "CORE", "dcache initiating shared memory request (READ)");
-#endif
-		
 		ADDRINT begin_addr = d_addr;
 		ADDRINT end_addr = d_addr + data_size;
-	   	ADDRINT begin_addr_aligned = begin_addr - (begin_addr % ocache->dCacheLineSize());
+	  	ADDRINT begin_addr_aligned = begin_addr - (begin_addr % ocache->dCacheLineSize());
 		ADDRINT end_addr_aligned = end_addr - (end_addr % ocache->dCacheLineSize());
 		char *curr_data_buffer_head = data_buffer;
 
+		//TODO set the size parameter correctly, based on the size of the data buffer
+		//TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
 		for (ADDRINT curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += ocache->dCacheLineSize())
 		{
 			// Access the cache one line at a time
-			ADDRINT curr_offset;
+//			ADDRINT curr_offset;
+			UINT32 curr_offset;
 			UINT32 curr_size;
 
 			// Determine the offset
+			// TODO fix curr_size calculations
 			// FIXME: Check if all this is correct
 			if (curr_addr_aligned == begin_addr_aligned) {
 				curr_offset = begin_addr % ocache->dCacheLineSize();
@@ -255,14 +255,14 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			}
 
 			// Determine the size
-			if (curr_addr_aligned = end_addr_aligned) {
+			if (curr_addr_aligned == end_addr_aligned) {
 				curr_size = (end_addr % ocache->dCacheLineSize()) - (curr_offset);
 			}
 			else {
 				curr_size = ocache->dCacheLineSize() - (curr_offset);
 			}
 
-			if (!memory_manager->initiateSharedMemReq (shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
+			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
 				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
 				// If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
 				all_hits = false;
@@ -272,27 +272,20 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			curr_data_buffer_head += curr_size;
 		}
 
-
-		//NOTE: this method of multi-line accesses cache-aligns the addresses.  
-		//TODO have this deal with data
-			//access one cache line at a time
-			//TODO set the size parameter correctly, based on the size of the data buffer
-			//TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
-			//the "0" below is the addr_offset. important for partial-line operations when the data_size is less than cache_line_size
 		
-//		debugPrint(getRank(), "Core", "FINISHED ---- TRapping into SHARED_MEMORY");
 		return all_hits;		    
    
 	} 
-	else {
-	   	//run this if we aren't using shared_memory
+	else 
+	{
+	   // run this if we aren't using shared_memory
 		// FIXME: I am not sure this is right
 		// What if the initial data for this address is in some other core's DRAM (which is on some other host machine)
 		if(operation == LOAD)
-			return ocache->runDCacheLoadModel(d_addr, size).first;
-	   	else
-			return ocache->runDCacheStoreModel(d_addr, size).first;
-   	}
+			return ocache->runDCacheLoadModel(d_addr, data_size).first;
+		else
+			return ocache->runDCacheStoreModel(d_addr, data_size).first;
+   }
 }
 
 void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate)

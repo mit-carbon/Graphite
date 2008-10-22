@@ -28,9 +28,9 @@ public:
    virtual ~DramDirectory();
    
 	//receive and process request for memory_block
-	void processSharedMemReq(Netpacket req_packet);
+	void processSharedMemReq(NetPacket req_packet);
 	
-	void processWriteBack(Netpacket req_packet);
+	void processWriteBack(NetPacket req_packet);
 	
    void setNumberOfLines(UINT32 number_of_lines) { num_lines = number_of_lines; }
 

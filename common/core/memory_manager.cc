@@ -5,17 +5,6 @@
 
 using namespace std;
 
-/* TODO for data sharing integration
- *
- * 1. put data into update-payload (requests)
- *    put data into ack-payload (when we sent invalidate/demote to an exclusive, need to do WB)
- *
- * 2. write back to DRAM
- *			WB on evictions
- *			WB on demotions (E->{S,I}) (owner sends data back)
- *
- */
-
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
    the_core = the_core_arg;
@@ -43,7 +32,7 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	
 	/**** Data Passing Stuff ****/
 	eviction_buffer = new char[g_knob_line_size];
-	fill_buffer = new char[g_knob_line_size];
+	fill_buffer = new char[g_knob_line_size]; //dram writes to this buffer
 	
 	//TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
 	addr_home_lookup = new AddressHomeLookup(the_core->getNumCores(), g_knob_ahl_param.Value(), the_core->getRank());
@@ -72,7 +61,7 @@ void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT ad
 	cerr << "Starting adding Request Payload;" << endl;
 	MemoryManager::RequestPayload payload;
 	payload.request_type = shmem_req_type;
-	payload.request_address = address;  // TODO: cache line align?
+	payload.request_address = address;  
 	payload.request_num_bytes = size_bytes;
 
 	packet->data = (char *)(&payload);
@@ -140,29 +129,103 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 	return ret;
 }
 
-void setCacheLineCState(CacheTag* c_line_info, CacheState::cstate_t new_cstate)
+void MemoryManager::setCacheLineCState(CacheTag* c_line_info, CacheState::cstate_t new_cstate)
 {
 
 }
 
-void readCacheLineData(ADDRINT addres, UINT32 offset, char* data_buffer, UINT32 data_size)
+//fill_buffer is a global inside the memory_manager
+//the dram writes data to the fill_buffer
+//before the fill_buffer is pushed to the cache
+//the core can read or write the fill buffer
+void MemoryManager::readFillBuffer( UINT32 offset, char* data_buffer, UINT32 data_size)
 {
-	//copy data at cache to data_buffer
-	//
+	assert( (offset + data_size) < ocache->dCacheLineSize() );
 	
+	for(unsigned int i=0; i < data_size; i++)
+		data_buffer[i] = fill_buffer[offset + i];
 }
 
-void writeCacheLineData( awefoiajwefpoijawepfoijawepfoij )
+void MemoryManager::writeFillBuffer(UINT32 offset, char* data_buffer, UINT32 data_size)
+{
+	asert( (offset + data_size) < ocache->dCacheLineSize() );
+
+	for(unsigned int i=0; i < data_size; i++)
+		fill_buffer[offset+i] = data_buffer[i];
+}
+
+//copy data at cache to data_buffer
+void MemoryManager::readCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size)
 {
 
-//TODO handle evictions
+	//assumes that the cache_line is already in the cache
+   UINT32 line_size = ocache->dCacheLineSize();
+	bool fail_need_fill;
+
+	//TODO do i need this here? we're not doing a STORE
+   bool eviction;
+   ADDRINT evict_addr;
+   char evict_buff[line_size];
+
+   pair<bool, CacheTag*> result;
+	ADDRINT addr = ca_address + offset;
+
+	result = ocache->accessSingleLine(addr, k_ACCESS_TYPE_LOAD,
+										&fail_need_fill, NULL
+										data_buffer, data_size,
+										&eviction, &evict_addr, evict_buff);
+
+	assert( result.first );
+	assert( !fail_need_fill);
+	assert( !eviction );
 
 }
 
+void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size)
+{
+
+   UINT32 line_size = ocache->dCacheLineSize();
+	bool fail_need_fill;
+
+   bool eviction;
+   ADDRINT evict_addr;
+   char evict_buff[line_size];
+
+   ADDRINT addr = ca_address + offset;
+
+   pair<bool, CacheTag*> result;
+	
+	result = ocache->accessSingleLine(addr, k_ACCESS_TYPE_STORE,
+										&fail_need_fill, NULL
+										data_buffer, line_size,
+										&eviction, &evict_addr, evict_buff);
+
+	if(eviction) {
+		//TODO can race conditions occur due to eviction messages?
+		//send write-back to dram
+		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
+		UpdatePayload payload;
+		payload.update_address = evict_addr;
+		payload.is_writeback = true;
+		mmuCreateUpdatePayloadBuffer(&payload, evict_buff, line_size);
+		NetPacket packet = makePacket(UPDATE, sizeof(payload), the_core->getRank(), home_node_rank);
+
+		packet.data = (char *)(&payload);
+		(the_core->getNetwork())->netSend(packet);
+	}
+
+}
+
+void MemoryManager::invalidateCacheLine(ADDRINT address)
+{
+	bool hit = ocache->invalidateCacheLine(address);
+	assert( hit );
+	//we shouldn't be invalidating lines unless we know it's in the cache
+}
 
 //send request to DRAM Directory to request a given address, for a certain operation
 //does NOT touch the cache.
-void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, char* data_buffer, UINT32 data_size)
+void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT address, char* data_buffer, UINT32 data_size)
 {
 	UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(address);
 
@@ -216,6 +279,7 @@ void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, char* data_b
 	else
 	{
 		//set cache state
+	}
 }
 
 //buffer_size is the size in bytes of the char* data_buffer
@@ -227,24 +291,24 @@ void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, char* data_b
 bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size)
 {
    /* ========================================================================= */
-	pair<bool, CacheTag*> cache_results = ocache->getCacheLineInfo(ca_address);
+/*
+   pair<bool, CacheTag*> cache_results = ocache->getCacheLineInfo(ca_address);
 	bool hit cache_results.first;
 
 	if(permissable()) 
 	{
-		//do nothing?
+		READ: readCacheLineData(ca_address)
+		WRITE: writeCacheLineData(ca_address)
 	}
 	else
 	{
-		request_address(ca_address);
-			READ: writeCacheLine(ca_address) 
-			WRITE: 
+		request_address(ca_address, &fill_buffer);
 		set cstate
+			READ: readDataFromFillBuffer();
+			WRITE: modifyFillBuffer();
+		writeCacheLineData(ca_address, fill_buffer)
 	}
-
-	READ: readCacheLineData(ca_address)
-	WRITE: writeCacheLineData(ca_address)
-
+*/
    /* ========================================================================= */
 	
    //TODO rename CacheTag as CacheLineInfo
@@ -257,72 +321,46 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	cache_model_results = ocache->getCacheLineInfo(); //check hit status, get CState
 	native_cache_hit = cache_model_results.first;
 
-	char read_buffer[ocache->getCacheLineSize()]; //a dram request writes data into this buffer
+	char read_buffer[ocache->dCacheLineSize()]; //a dram request writes data into this buffer
 	
 	if( action_readily_permissable(cache_model_results.second->getCState(), shmem_req_type) )
    {
 		assert( native_cache_hit == true );
-		//do nothing
+		
+		if(shmem_req_type==READ)
+			readCacheLineData(ca_address, offset, data_buffer, data_size); 
+		else
+			writeCacheLineData(ca_address, offset, data_buffer, data_size);
+
+		return native_cache_hit;
 	}
 	else
 	{
-		//fill_buffer is only used if req_type is a READ
-		requestPermission(shmem_req_type, ca_address, &new_cstate, fill_buffer);
+		//requested dram data is written to the fill_buffer
+		requestPermission(shmem_req_type, ca_address, &new_cstate);
 		
-		if(shmem_req_type == READ) {
-         writeCacheLine(ca_address + offset, fill_buffer);
+		setCacheLineInfo(ca_address, new_cstate);
+		
+		if(shmem_req_type==READ) {
+			readFillBuffer(ca_address, offset, data_buffer, data_size);
+		} else {
+			writeFillBuffer(ca_address, offset, data_buffer, data_size);
 		}
 
-		setCacheLineInfo(ca_address, new_cstate);
-	}
-	
-	assert( action_readily_permissable() );
-	
-	//now that we know we have the address in the cache, let's do what we wanted to do!
-	if(shmem_req_type==READ)
-	{
-		/*************** CACHE ACCESS *****************/
-		readCacheLine(ca_address, offset, data_buffer, data_size); //ocache->readCacheLineData(ca_address));
-	}
-	else
-	{
-		/*************** CACHE ACCESS *****************/
-		//TODO handle evictions!
-		writeCacheLine(ca_address + offset, data_buffer, data_size);
-	}
-	
-	
-	return native_cache_hit;
+		writeCacheLineData(ca_address, offset, fill_buffer, ocache->dCacheLineSize());
 
+		return native_cache_hit;
+	}
+	
 }
 
-//bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
-
+#if 0
+bool MemoryManager::initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type)
 //buffer_size is the size in bytes of the char* data_buffer
 //we may give the cache less than a cache_line of data, but never more than a cache_line_size of data
 //ca_address is "cache-aligned" address
 //addr_offset provides the offset that points to the requested address
-//TODO this will not work correctly for multi-line requests!
-//TODO what is "return bool" used for?  cache hits? or immediately permissable?
-bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size)
 {
-   /* ========================================================================= */
-	pair<bool, CacheTag*> cache_results = ocache->getCacheLineInfo(ca_address);
-	bool hit cache_results.first;
-
-	if(permissable()) 
-	{
-		setDataBuffer();
-		return true; 
-	}
-	else
-	{
-		request_address(ca_address);
-		setDataBuffer();
-		return cache_hit;
-	}
-
-   /* ========================================================================= */
 	
 	stringstream ss;
    
@@ -331,7 +369,6 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	debugPrintString(the_core->getRank(), "MMU", " SHMEM Request Type: ", MemoryManager::sMemReqTypeToString(shmem_req_type));
 #endif
 
-   //TODO rename CacheTag as CacheLineInfo
 	pair<bool, CacheTag*> cache_model_results;  
 	//first-> is the line available in the cache? (Native cache hit)
 	//second-> pointer to cache tag to update cache state
@@ -356,7 +393,6 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 //																	data_buffer, g_knob_line_size,
 //																	&eviction, &evict_addr, eviction_buffer);
 																	
-	//TODO question: is fail_need_fill the same as cache_hit??
 	native_cache_hit = cache_model_results.first;
 	assert( native_cache_hit != fail_need_fill );
 	assert( cache_model_results.second != NULL );
@@ -448,19 +484,15 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		
 //	   UpdatePayload* recv_payload = (UpdatePayload*)(recv_packet.data);
 	   UpdatePayload recv_payload;
-		//TODO for George
 		mmuExtractUpdatePayloadBuffer(recv_packet, &recv_payload);
 		
 	   assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	   
-	   //TODO: remove starting addr from data. this is just in there temporarily to debug
 	   ADDRINT incoming_starting_addr = recv_payload->update_address;
 		assert(incoming_starting_addr == address);
 	   
 	   CacheState::cstate_t resp_c_state = (CacheState::cstate_t)(recv_payload->update_new_cstate);
 	   
-	   //TODO: add support for actually updating data when we move to systems with software shared memory         
-		//TODO: is there a better way to deal with null cache_model_results.second?
 //		assert( cache_model_results.second != NULL );
 //		cache_model_results.second->setCState(resp_c_state);         
 
@@ -480,6 +512,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
    }
 }
 
+#endif
 
 /*
  * this function is called by the "interrupt handler" when a shared memory request message is destined for this node
@@ -598,11 +631,11 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			
 			//send data for write-back
 			payload.data_buffer = getCacheLine(address); 
-			payload.data_size = ocache->getDCacheLineSize(); 
+			payload.data_size = ocache->dCacheLineSize(); 
 			payload.remove_from_sharers = false;
 			
 			if( new_cstate == INVALID ) 
-				invalidateCacheLine();
+				invalidateCacheLine(address);
 			
 			break;
 		
@@ -613,11 +646,11 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			//TODO make payloads a class.  we can't have data_buffer as a pointer, b/c
 			//the Network needs to copy ever payload byte by byte.
 			payload.data_buffer = getCacheLine(address); 
-			payload.data_size = ocache->getDCacheLineSize(); 
+			payload.data_size = ocache->dCacheLineSize(); 
 			payload.remove_from_sharers = false;
 			
 			if( new_cstate == INVALID ) 
-				invalidateCacheLine();
+				invalidateCacheLine(address);
 			
 			break;
 		
@@ -636,17 +669,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 
    packet.data = (char *)(&payload);
    
-#ifdef MMU_DEBUG
-  ss.str("");
-  ss << " Payload Attached: data Addr: " << hex << (int) packet.data << ", Addr: " << hex << ((AckPayload*) (packet.data))->ack_address << " packet.length = " << sizeof(AckPayload);
-  debugPrint(the_core->getRank(), "MMU", ss.str());
-#endif
-
-	ss.str("");
-	ss << "   START netSend to <" << update_packet.sender << "> ";
-//  debugPrint(the_core->getRank(), "MMU::processUnexpectedUpdate", ss.str());
   (the_core->getNetwork())->netSend(packet);
-//  debugPrint(the_core->getRank(), "MMU::processUnexpectedUpdate", "   END   netSend");
   
   // TODO: invalidate/flush from cache? 
 #ifdef MMU_DEBUG	
@@ -694,7 +717,8 @@ bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstat
 	return dram_dir->debugAssertDramState(addr, dstate, sharers_list);	
 }
 
-void mmuCreateUpdatePayloadBuffer (UpdatePayload& send_payload, char *data_buffer, char *payload_buffer, int& payload_size) {
+void MemoryManager::mmuCreateUpdatePayloadBuffer (UpdatePayload& send_payload, char *data_buffer, char *payload_buffer, int& payload_size) 
+{
 
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	// FIXME: Make sure that payload_buffer is not allocated before
@@ -706,7 +730,8 @@ void mmuCreateUpdatePayloadBuffer (UpdatePayload& send_payload, char *data_buffe
 
 }
 
-void mmuExtractUpdatePayloadBuffer (NetPacket& recv_packet, UpdatePayload& recv_payload, char *data_buffer) { 
+void MemoryManager::mmuExtractUpdatePayloadBuffer (NetPacket& recv_packet, UpdatePayload& recv_payload, char *data_buffer) i
+{ 
 	
 	// FIXME: Make sure that data_buffer is not allocated before
 	data_buffer = (char*) malloc (sizeof(ocache->dCacheLineSize()));

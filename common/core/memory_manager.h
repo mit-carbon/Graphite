@@ -104,6 +104,7 @@ class MemoryManager
 		ADDRINT update_address;
 		char* data_buffer;
 		UINT32 data_size; //in bytes
+		bool is_writeback; //is this payload serving as a writeback message to dram?
 	};
 
 	struct AckPayload {
@@ -126,13 +127,21 @@ class MemoryManager
 
 	void readFillBuffer( UINT32 offset, char* data_buffer, UINT32 data_size);
 	void writeFillBuffer(UINT32 offset, char* data_buffer, UINT32 data_size);
+	
+	//cache interfacing functions.
+	//TODO these functions should probably be moved into the ocache interface!
+	void setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t new_cstate);
+	pair<bool, CacheTag*> getCacheLineInfo(ADDRINT address);
 	void readCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
 	void writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
 	void invalidateCacheLine(ADDRINT address);
 	
 	//request from DRAM permission to use an address
-	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, char* data_buffer, UINT32 data_size);
+	//writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
+	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, CacheState::cstate_t* new_cstate);
 
+	void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, int* payload_size);
+	void extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer);
 
 	/********************************/	
 	

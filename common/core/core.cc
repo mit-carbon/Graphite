@@ -246,6 +246,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			UINT32 curr_size;
 
 			// Determine the offset
+			// FIXME: Check if all this is correct
 			if (curr_addr_aligned == begin_addr_aligned) {
 				curr_offset = begin_addr % ocache->dCacheLineSize();
 			}
@@ -258,7 +259,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 				curr_size = (end_addr % ocache->dCacheLineSize()) - (curr_offset);
 			}
 			else {
-				curr_size = ocache->dCacheLineSize();
+				curr_size = ocache->dCacheLineSize() - (curr_offset);
 			}
 
 			if (!memory_manager->initiateSharedMemReq (shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {

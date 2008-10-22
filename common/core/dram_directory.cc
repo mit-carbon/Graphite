@@ -86,6 +86,7 @@ void DramDirectory::processWriteBack(NetPacket req_packet)
 	char data_buffer[cache_line_size];
 
 	extractAckPayload(wb_packet, &payload, &data_buffer); 
+	assert( payload.is_writeback );
 	copyDataToDram(data_buffer, data_size);
 	
 	runDramAccessModel();

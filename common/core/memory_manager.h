@@ -120,14 +120,28 @@ class MemoryManager
 	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
 	virtual ~MemoryManager();
 
-//	NetPacket makePacket( PacketType pt, int sender, int receiver, UINT32 payload_size);
-//	NetMatch makeNetMatch( PacketType pt, int sender);
+	/**** Added for Data Sharing ****/	
 	
-	bool initiateSharedMemReq(ADDRINT address, UINT32 size, shmem_req_t shmem_req_type);
+	void setCacheLineCState(CacheTag* c_line_info, CacheState::cstate_t new_cstate);
+
+	void readFillBuffer( UINT32 offset, char* data_buffer, UINT32 data_size);
+	void writeFillBuffer(UINT32 offset, char* data_buffer, UINT32 data_size);
+	void readCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
+	void writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
+	void invalidateCacheLine(ADDRINT address);
+	
+	//request from DRAM permission to use an address
+	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, char* data_buffer, UINT32 data_size);
+
+
+	/********************************/	
+	
+	
+	bool initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size);
 
 	//TODO rename this function (and others that interface with Network)
 	void addMemRequest(NetPacket req_packet);
-	void processSharedMemReq(NetPacket req_packet);
+//	void processSharedMemReq(NetPacket req_packet); << Moved to DRAM DIRECTORY
 	void processUnexpectedSharedMemUpdate(NetPacket update_packet);
 
 	static string sMemReqTypeToString(shmem_req_t type);

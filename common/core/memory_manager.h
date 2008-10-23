@@ -143,12 +143,12 @@ class MemoryManager
 	//writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
 	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, CacheState::cstate_t* new_cstate);
 
-	void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, int* payload_size);
+	static void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, int* payload_size);
 	static void extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer);
 	static void extractAckPayloadBuffer (NetPacket* packet, AckPayload* payload, char* data_buffer);
 
-	NetPacket makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank );
-	NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
+	static NetPacket makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank );
+	static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 	/********************************/	
 	
 	bool initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size);

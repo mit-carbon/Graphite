@@ -154,21 +154,24 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 	/* ============================================================== */
 
   	// extract relevant values from incoming request packet
-	shmem_req_t shmem_req_type = (shmem_req_t)((RequestPayload*)(req_packet.data))->request_type;
-  	ADDRINT address = ((RequestPayload*)(req_packet.data))->request_address;
+	shmem_req_t shmem_req_type = (shmem_req_t)((MemoryManager::RequestPayload*)(req_packet.data))->request_type;
+  	ADDRINT address = ((MemoryManager::RequestPayload*)(req_packet.data))->request_address;
   	UINT32 requestor = req_packet.sender;
   
   	DramDirectoryEntry* dram_dir_entry = this->getEntry(address);
   	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
+   CacheState::cstate_t new_cstate;
 
 	switch( shmem_req_type ) {
 	
 		case WRITE: 
-			if( current_dstate == DramDirectoryEntry:EXCLUSIVE )
+			new_cstate = CacheState::EXCLUSIVE;
+
+			if( current_dstate == DramDirectoryEntry::EXCLUSIVE )
 			{
 				//invalidate owner. receive write_back packet
 				NetPacket wb_packet;
-				wb_packet = demoteOwner(dram_dir_entry, INVALID); //CHRIS TODO write demote owner, and process write-back
+				wb_packet = demoteOwner(dram_dir_entry, CacheState::INVALID); 
 				processWriteBack(wb_packet);
 			}
 			else
@@ -178,6 +181,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 		break;
 
 		case READ:
+			new_cstate = CacheState::SHARED;
 		{
 			// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
 			if(current_dstate == DramDirectoryEntry::EXCLUSIVE)
@@ -268,7 +272,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	payload.update_new_cstate = new_cstate;
 	payload.update_address = dram_dir_entry->getMemLineAddress();
 	
-	char data_buffer[cache_line_size];
+	char data_buffer[bytes_per_cache_line];
 	int data_size;
 	dram_dir_entry->getDramDataLine(data_buffer, &data_size);
 	
@@ -283,7 +287,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 
 }
 
-NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, cstate_t new_cstate)
+NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheState::cstate_t new_cstate)
 {
 	//demote exclusive owner
 	assert( dram_dir_entry->numSharers() == 1 );
@@ -293,10 +297,11 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, cstate_
 
 	// reqeust a write back data payload and downgrade to new_dstate
 //	MemoryManager::AckPayload payload; //this was orginally here, but i don't think ackpayload is correct.
-	MemoryManager::UpdatePayload payload;
-	payload.update_new_cstate = new_cstate;
-	payload.update_address= address;
-	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), dram_id, current_owner, sizeof(MemoryManager::UpdatePayload));
+	MemoryManager::UpdatePayload upd_payload;
+	upd_payload.update_new_cstate = new_cstate;
+	ADDRINT address = dram_dir_entry->getMemLineAddress();
+	upd_payload.update_address= address;
+	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), dram_id, current_owner);
 	
 	the_network->netSend(packet);
 
@@ -310,24 +315,24 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, cstate_
 	NetPacket wb_packet = the_network->netRecv(net_match);
 	
 	// assert a few things in the ack packet (sanity checks)
-	MemoryManager::AckPayload payload;
+	MemoryManager::AckPayload ack_payload;
 	//null because we aren't interested in extracting the data_buffer here
 	char* data_buffer;
-	extractAckPayloadBuffer(wb_packet, &payload, data_buffer); //TODO the data_buffer here isn't used! remove it from the code! MEMORY LEAK
+	MemoryManager::extractAckPayloadBuffer(&wb_packet, &ack_payload, data_buffer); //TODO the data_buffer here isn't used! remove it from the code! MEMORY LEAK
 	
 	assert((unsigned int)(wb_packet.sender) == current_owner);
 	assert(wb_packet.type == SHARED_MEM_ACK);
 
-	ADDRINT received_address = payload.ack_address; 
+	ADDRINT received_address = ack_payload.ack_address; 
 	assert(received_address == address);
 
-	CacheState::cstate_t received_new_cstate = payload.ack_new_cstate; 
+	CacheState::cstate_t received_new_cstate = ack_payload.ack_new_cstate; 
 	assert(received_new_cstate == new_cstate);
 	
 	// TODO DOES THIS CASE EVER HAPPEN? ie, an owner that had already been evicted
 	// did the former owner invalidate it already? if yes, we should remove him from the sharers list
-	assert( payload.remove_from_sharers == false );
-	if( new_cstate == INVALID || payload.remove_from_sharers )
+	assert( ack_payload.remove_from_sharers == false );
+	if( new_cstate == CacheState::INVALID || ack_payload.remove_from_sharers )
 		dram_dir_entry->removeSharer( current_owner );
 
 	return wb_packet; //let the calling function perform the WriteBack so we don't implicitly do write backs

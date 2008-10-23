@@ -59,3 +59,11 @@ Situation.
 	dram_directory sends update payload.
 	eviction occurs. must send writeback_payload to dram_directory.
 
+
+############
+Move these functions to 'ocache.(h/cc)'
+1) getCacheLineInfo
+2) SetData
+3) getData
+4) setLineInfo
+5) CacheTag -> CacheLineInfo

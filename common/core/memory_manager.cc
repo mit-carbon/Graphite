@@ -740,11 +740,11 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	// FIXME: Make sure that payload_buffer is not allocated before
-	assert( payload_buffer == NULL );
+	// assert( payload_buffer == NULL );
 	//TODO is data_buffer being sent ALWAYS cacheLineSize??? or do we also need to pass in data_size?
 	//TODO check all sizeof 's in this file when finished. pointers/dereferences etc. will probaly be wrong somewhere
 	// *payload_size = sizeof(&send_payload) + g_knob_line_size;
-//	*payload_size = sizeof(&send_payload) + ocache->dCacheLineSize();
+//	*payload_size = sizeof(*send_payload) + ocache->dCacheLineSize();
 	// payload_buffer = (char *) malloc ((int) *payload_size);
 
 	memcpy ((void*) payload_buffer, (void*) &send_payload, sizeof(send_payload));

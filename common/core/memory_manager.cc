@@ -761,7 +761,7 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 	// FIXME: Make sure that data_buffer is not allocated before
 	// TODO what if there is no data buffer??? BUG
 //	data_buffer = (char*) malloc (ocache->dCacheLineSize());
-	data_buffer = (char*) malloc (g_knob_line_size);
+	// data_buffer = (char*) malloc (g_knob_line_size);
 	//TODO bug is g_knob_line_size correct? and does ocache change this? I can't use ocache in a static method
 	//BUG TODO i don't think it's sizeof
 //	data_buffer = (char*) malloc (sizeof(ocache->dCacheLineSize()));

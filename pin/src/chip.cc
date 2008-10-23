@@ -103,7 +103,8 @@ CAPI_return_t chipHackFinish(int my_rank)
 	
 	/* ========================================================================== */
 	/* Added by George */
-	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
+	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
+//	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
 	/* ========================================================================== */
 
 	bool volatile finished = false;
@@ -198,6 +199,22 @@ bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
    return g_chip->core[rank].icacheRunLoadModel(i_addr, size); 
 }
 
+bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
+{
+
+   int rank;
+   chipRank(&rank);
+   assert(0 <= rank && rank < g_chip->num_modules);
+	//TODO make everything use the cachebase::accesstype enum
+	//TODO just passing in dummy data for now
+	for(unsigned int i = 0; i < data_size; i++)
+		data_buffer[i] = (char) i;
+	if( access_type == CacheBase::k_ACCESS_TYPE_LOAD)
+		return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, data_size); 
+	else
+		return g_chip->core[rank].dcacheRunModel(Core::STORE, d_addr, data_buffer, data_size); 
+}
+
 bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
    int rank;
@@ -217,7 +234,7 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 //   return g_chip->core[rank].dcacheRunStoreModel(d_addr, size); 
 	//TODO just passing in dummy data for now
 	char data_buffer[size];
-	for(int i = 0; i < size; i++)
+	for(unsigned int i = 0; i < size; i++)
 		data_buffer[i] = (char) i;
    return g_chip->core[rank].dcacheRunModel(Core::STORE, d_addr, data_buffer, size); 
 }

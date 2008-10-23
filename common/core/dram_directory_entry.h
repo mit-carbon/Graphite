@@ -12,7 +12,7 @@
 
 using namespace std;
 
-extern LEVEL_BASE::KNOB<UINT32> g_knob_cache_line_size;
+extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
 
 class DramDirectoryEntry
 {
@@ -58,11 +58,13 @@ class DramDirectoryEntry
   
  private:
   dstate_t dstate;
+  
   BitVector* sharers;
   UINT32 exclusive_sharer_rank;
+  UINT32 number_of_sharers;
+  
   char* memory_line; //store the actual data in this buffer
   UINT32 memory_line_size; //assume to be the same size of the cache_line_size
-  UINT32 number_of_sharers;
   UINT32 memory_line_address;	//only here for debugging purposes (its nice to know it)
 										//(address / cache_line_size) * cache_line_size = memory_line_address
 										//this is a memory line aligned address (the above operation shaves off

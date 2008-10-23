@@ -168,7 +168,13 @@ class MemoryManager
 	/* ============================================== */
 	/* Added by George */
 //	void runDramAccessModel(void);
-//	UINT64 getDramAccessCost(void);
+//	UINT64 getDramAccessCost(void) {
+//		return dram_dir->getDramAccessCost();
+//	}
+
+	DramDirectory* getDramDirectory() {
+		return dram_dir;
+	}
 	/* ============================================== */
 
 	//write-back cache-line to DRAM

@@ -209,8 +209,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
        
         	// FIXME: This should actually be a UINT32 which tells how many read misses occured
 		
-			data_ld_buffer = (char*) malloc (dcache_ld_size);
-			bool d_hit = dcacheRunModel(LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+			char* data_ld_buffer = (char*) malloc (dcache_ld_size);
+			bool d_hit = dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 			// bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        	
 			if ( do_perf_modeling ) {
@@ -218,8 +218,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
        		}
 
        		if ( is_dual_read ) {
-				data_ld_buffer_2 = (char*) malloc (dcache_ld_size);
-				bool d_hit_2 = dCacheRunModel (LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+					char* data_ld_buffer_2 = (char*) malloc (dcache_ld_size);
+					bool d_hit2 = dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
            		// bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
            		if ( do_perf_modeling ) {
                		perfModelRun(stats[rank], d_hit2, writes, num_writes);
@@ -246,7 +246,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 //			cerr << "[" << rank << "] dCache WRITE Modeling: GOT LOCKS " << endl;
        
 			// FIXME: This should actually be a UINT32 which tells how many write misses occurred
-			bool d_hit = dCacheRunModel (STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+			char* data_st_buffer = (char*) malloc (dcache_ld_size);  //TODO memory leak, we need to deallocate this guy
+			bool d_hit = dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
 			// bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
        		if ( do_perf_modeling )
         	{ 

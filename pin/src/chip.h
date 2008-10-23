@@ -79,8 +79,10 @@ void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);
 
 bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
 
+bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 size);
+//TODO removed these because it's unneccsary
+//shared memory doesn't care, but for legacy sake, i'm leaving them here for now
 bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-
 bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
 // syscall model wrappers
@@ -136,6 +138,8 @@ class Chip
       
       // organic cache modeling wrappers
       friend bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
+      friend bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size);
+		//TODO deprecate these two bottom functions
       friend bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
       friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);      
 

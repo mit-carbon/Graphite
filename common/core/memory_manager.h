@@ -11,11 +11,13 @@
 
 // some forward declarations for cross includes
 class Core;
+class DramDirectory; //i hate compiling c++ code
 
 // TODO: this is a hack that is due to the fact that network.h 
 // is already included by the time this is handled, so NetPacket is 
 // never getting defined. Fine some more elegant way to solve this.
 typedef struct NetPacket NetPacket;
+typedef struct NetMatch NetMatch;
 
 #include "core.h"
 #include "ocache.h"
@@ -60,8 +62,8 @@ class MemoryManager
    int volatile incoming_requests_count;
 
    /* ============================================= */
-   /* Added by George */
-   UINT64 dramAccessCost;
+   /* Added by George */ //moved to dram directory
+//   UINT64 dramAccessCost;
 	/* ============================================= */
 
 	//evictions from the cache are written into this buffer
@@ -112,6 +114,7 @@ class MemoryManager
 		ADDRINT ack_address;
 		char* data_buffer;
 		UINT32 data_size;
+		bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
 		//if sent a downgrade message (E->S), but cache
 		//no longer has the line, send a bit to tell dram directory
 		//to remove it from the sharers' list
@@ -141,10 +144,12 @@ class MemoryManager
 	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, CacheState::cstate_t* new_cstate);
 
 	void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, int* payload_size);
-	void extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer);
+	static void extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer);
+	static void extractAckPayloadBuffer (NetPacket* packet, AckPayload* payload, char* data_buffer);
 
+	NetPacket makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank );
+	NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 	/********************************/	
-	
 	
 	bool initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size);
 
@@ -159,8 +164,8 @@ class MemoryManager
 
 	/* ============================================== */
 	/* Added by George */
-	void runDramAccessModel(void);
-	UINT64 getDramAccessCost(void);
+//	void runDramAccessModel(void);
+//	UINT64 getDramAccessCost(void);
 	/* ============================================== */
 
 	//write-back cache-line to DRAM

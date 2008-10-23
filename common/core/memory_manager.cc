@@ -17,7 +17,7 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
 	/* ================================================================= */
 	/* Added by George */
-	dramAccessCost = 0;
+//	dramAccessCost = 0;
 	/* ================================================================= */
 
 	// assume 4GB / dCacheLineSize  bytes/line 
@@ -29,7 +29,7 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
    assert( ocache != NULL );
 
 	//TODO can probably delete "dram_lines_per_core" b/c it not necessary.
-	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores());
+	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores(), the_core_arg->getNetwork());
 
 	
 	/**** Data Passing Stuff ****/
@@ -88,7 +88,7 @@ void addUpdatePayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t n
 	packet->data = (char *)(&payload);
 }
 
-NetPacket makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank )
+NetPacket MemoryManager::makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank )
 {
 	NetPacket packet;
 	packet.type = packet_type;
@@ -101,7 +101,7 @@ NetPacket makePacket(PacketType packet_type, char* payload_buffer, UINT32 payloa
 }
 
 //assumes we want to match both sender_rank and packet_type
-NetMatch makeNetMatch(PacketType packet_type, int sender_rank)
+NetMatch MemoryManager::makeNetMatch(PacketType packet_type, int sender_rank)
 {
 	   NetMatch net_match;
 	   net_match.sender = sender_rank;
@@ -757,10 +757,32 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 { 
 	
 	// FIXME: Make sure that data_buffer is not allocated before
-	data_buffer = (char*) malloc (sizeof(ocache->dCacheLineSize()));
+	// TODO what if there is no data buffer??? BUG
+//	data_buffer = (char*) malloc (ocache->dCacheLineSize());
+	data_buffer = (char*) malloc (g_knob_line_size);
+	//TODO bug is g_knob_line_size correct? and does ocache change this? I can't use ocache in a static method
+	//BUG TODO i don't think it's sizeof
+//	data_buffer = (char*) malloc (sizeof(ocache->dCacheLineSize()));
 
 	memcpy ((void*) &payload, (void*) (packet->data), sizeof(payload));
-	memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(payload) ), ocache->dCacheLineSize());
+//	memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(payload) ), ocache->dCacheLineSize());
+	memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(payload) ), g_knob_line_size);
+
+}
+
+//TODO should we turn payloads from structs to classes so we don't have to have seperate methods to do this stuff?
+//TODO put this as a static memorymanager function? so we can access ocache if he changes the line_size
+void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, MemoryManager::AckPayload* payload, char* data_buffer) 
+{ 
+	
+	// FIXME: Make sure that data_buffer is not allocated before
+	// TODO what if there is no data buffer??? BUG
+//	data_buffer = (char*) malloc (sizeof(ocache->dCacheLineSize()));
+	data_buffer = (char*) malloc (g_knob_line_size);
+
+	memcpy ((void*) &payload, (void*) (packet->data), sizeof(payload));
+//	memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(payload) ), ocache->dCacheLineSize());
+	memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(payload) ), g_knob_line_size);
 
 }
 

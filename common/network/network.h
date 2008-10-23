@@ -4,11 +4,12 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
-#include "memory_manager.h"
 #include <iostream>
 #include <sched.h>
 #include <unistd.h>
 #include <queue>
+#include <string>
+#include <sstream>
 
 // JME: not entirely sure why this is needed...
 class Chip;
@@ -16,15 +17,14 @@ class Chip;
 #include "config.h"
 #include "chip.h"
 #include "transport.h"
-#include <string>
-#include <sstream>
+#include "memory_manager.h"
 
 extern Config* g_config;
 
 // Define data types
 
 // enums for type of network packet
-enum  PacketType 
+enum PacketType 
 {
    MIN_PACKET_TYPE = 0, 
    INVALID = MIN_PACKET_TYPE, 

@@ -1,15 +1,18 @@
 #include "dram_directory.h"
-#include "debug.h"
 
-DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg)
+DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {
+	the_network = network_arg;
 	num_lines = num_lines_arg;
 	number_of_cores = num_of_cores_arg;
 	dram_id = dram_id_arg;
-  cout << "Init Dram with num_lines: " << num_lines << endl;
-  cout << "   bytes_per_cache_linew: " << bytes_per_cache_line_arg << endl;
-  assert( num_lines >= 0 );
-  bytes_per_cache_line = bytes_per_cache_line_arg;
+   cout << "Init Dram with num_lines: " << num_lines << endl;
+   cout << "   bytes_per_cache_linew: " << bytes_per_cache_line_arg << endl;
+   assert( num_lines >= 0 );
+   bytes_per_cache_line = bytes_per_cache_line_arg;
+
+   /* Added by George */
+   dramAccessCost = 0;
 }
 
 DramDirectory::~DramDirectory()
@@ -47,11 +50,11 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
 
 //George's stuff for modeling dram access costs
 //TODO can I actually have all dram requests go through the directory?
-void MemoryManager::runDramAccessModel () {
+void DramDirectory::runDramAccessModel () {
 	dramAccessCost += g_knob_dram_access_cost.Value();
 }
 
-UINT64 MemoryManager::getDramAccessCost() {
+UINT64 DramDirectory::getDramAccessCost() {
 	return (dramAccessCost);
 }
 
@@ -64,34 +67,35 @@ bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
   return true;
 }
 
-void copyDataToDram(ADDRINT address, char* data_buffer, UINT32 data_size)
+void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT32 data_size)
 {
 
 	//TODO provide a unique key, 
 	UINT32 data_line_index = ( address / bytes_per_cache_line );
+	DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
 
 	if( entry_ptr == NULL ) {
-		dram_directory_entries[data_line_index] = new DramDirectoryEntry( memory_line_address, number_of_cores, data_buffer );
+		dram_directory_entries[data_line_index] = new DramDirectoryEntry( address, number_of_cores, data_buffer );
 		entry_ptr = dram_directory_entries[data_line_index];
 		assert(entry_ptr != NULL );
 	} 
 	
-	entry_ptr->addData(data_buffer, data_size);
+	entry_ptr->fillDramDataLine(data_buffer); //TODO verify that data_buffer is correctly the size of the memory_line
 
 }
 
-void DramDirectory::processWriteBack(NetPacket req_packet)
+void DramDirectory::processWriteBack(NetPacket wb_packet)
 {
-	AckPayload payload; //TODO is it always acks? i think not! :(
-	char data_buffer[cache_line_size];
+	MemoryManager::AckPayload payload; //TODO is it always acks? i think not! :(
+	char data_buffer[bytes_per_cache_line];
 
-	extractAckPayload(wb_packet, &payload, &data_buffer); 
+	MemoryManager::extractAckPayloadBuffer(&wb_packet, &payload, data_buffer); 
 	assert( payload.is_writeback );
-	copyDataToDram(data_buffer, data_size);
+	
+	copyDataToDram(payload.ack_address, data_buffer); //is data size needed? , data_size);
 	
 	runDramAccessModel();
 }
-
 
 /* ======================================================== */
 /* The Network sends memory requests to the MMU.
@@ -99,15 +103,19 @@ void DramDirectory::processWriteBack(NetPacket req_packet)
  * to the DRAM_Directory.
  * ======================================================== */
 
-void MemoryManager::processSharedMemReq(NetPacket req_packet) 
+void DramDirectory::processSharedMemReq(NetPacket req_packet) 
 {
 	/* ============================================================== */
-	extract(req_packet);
-	DramDirectoryEntry* dram_entry = getEntry(address);
+/*	
+	MemoryManager::UpdatePayload payload;
+	char* data_buffer;
+	//TODO what is data_buffer used for?  I think nothing!
+	MemoryManager::extractUpdatePayloadBuffer(&req_packet, &payload, data_buffer);
+	DramDirectoryEntry* dram_entry = this->getEntry(address);
 	 
 	switch(req_d_state)
 	{
-		WRITE: 
+		case WRITE: 
 			if(current_d_state)
 			{
 				invalidate_owner();
@@ -119,8 +127,8 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 			}
 			break;
 
-		READ:
-			if(current_d_state==EXCLUSIVE)
+		case READ:
+			if(current_d_state == DramDirectoryEntry::EXCLUSIVE)
 			{
 				demote_owner();
 				write_back(); //Dram cost model
@@ -140,30 +148,23 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 			break;
 	}
 	 
-	addToSharers(requestor);
+	dram_dir_entry->addSharer(requestor);
 	sendDataLine(); //Dram cost model
-
+*/
 	/* ============================================================== */
 
-	stringstream ss;
-#ifdef MMU_DEBUG
-   dram_dir->print();
-   debugPrint(the_core->getRank(), "DRAM_DIR", "Processing shared memory request.");
-#endif
-   
   	// extract relevant values from incoming request packet
 	shmem_req_t shmem_req_type = (shmem_req_t)((RequestPayload*)(req_packet.data))->request_type;
   	ADDRINT address = ((RequestPayload*)(req_packet.data))->request_address;
-  	unsigned int requestor = req_packet.sender;
+  	UINT32 requestor = req_packet.sender;
   
-  	DramDirectoryEntry* dram_dir_entry = dram_dir->getEntry(address);
-  	dstate_t current_dstate = dram_dir_entry->getDState();
+  	DramDirectoryEntry* dram_dir_entry = this->getEntry(address);
+  	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
 
 	switch( shmem_req_type ) {
 	
 		case WRITE: 
-		{	
-			if( current_dstate == EXCLUSIVE )
+			if( current_dstate == DramDirectoryEntry:EXCLUSIVE )
 			{
 				//invalidate owner. receive write_back packet
 				NetPacket wb_packet;
@@ -174,17 +175,16 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 			{
 				invalidateSharers(dram_dir_entry);
 			}
-		}
 		break;
 
 		case READ:
 		{
 			// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
-			if(current_dstate == DramDirectoryEntry::EXCLUSIVE) i
+			if(current_dstate == DramDirectoryEntry::EXCLUSIVE)
 			{
 				//demote exclusive owner
 				NetPacket wb_packet;
-				wb_packet = demoteOwner(dram_dir_entry, SHARED);
+				wb_packet = demoteOwner(dram_dir_entry, CacheState::SHARED);
 				processWriteBack(wb_packet);
 			}
 			else
@@ -200,60 +200,13 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
    }
   
 	// 3. return data back to requestor 
-	addToSharers(requestor);
+	dram_dir_entry->addSharer(requestor);
 	sendDataLine(dram_dir_entry, requestor, new_cstate); //Dram cost model
 
-#ifdef MMU_DEBUG
-	debugPrint(the_core->getRank(), "MMU", "end of sharedMemReq function");
+#ifdef DRAM_DEBUG
+	debugPrint(the_core->getRank(), "DRAM", "end of sharedMemReq function");
 #endif
 }
-
-//TODO this is a "untouched copy of process shared Mem Req
-void MemoryManager::processSharedMemReq(NetPacket req_packet) 
-{
-	 
-	/* ============================================================== */
-	
-	extract(req_packet);
-	DramDirectoryEntry* dram_entry = getEntry(address);
-	 
-	switch(req_d_state)
-	{
-		WRITE: 
-			if(current_d_state)
-			{
-				invalidate_owner();
-				write_back(); //Dram cost model
-			}
-			else
-			{
-				invalidate_sharers();
-			}
-			break;
-
-		READ:
-			if(current_d_state==EXCLUSIVE)
-			{
-				demote_owner();
-				write_back(); //Dram cost model
-	      }
-			else
-			{
-			 //nothing.
-			}
-			
-			addSharer();
-			setDState(Shared);
-
-			break;
-		default:
-			cerr << "ERROR in ProcessSharedMemReq" << endl;
-			assert( false );
-			break;
-	}
-	 
-	addToSharers(requestor);
-	sendDataLine(); //Dram cost model
 
 	/* ============================================================== */
 	//
@@ -288,224 +241,13 @@ void MemoryManager::processSharedMemReq(NetPacket req_packet)
 
 	 /* =============================================================== */
 
-	stringstream ss;
-#ifdef MMU_DEBUG
-  dram_dir->print();
-  debugPrint(the_core->getRank(), "DRAM_DIR", "Processing shared memory request.");
-#endif
-   
-  	// extract relevant values from incoming request packet
-	shmem_req_t shmem_req_type = (shmem_req_t)((RequestPayload*)(req_packet.data))->request_type;
-  	ADDRINT address = ((RequestPayload*)(req_packet.data))->request_address;
-  	unsigned int requestor = req_packet.sender;
-  
-   // 0. get the DRAM directory entry associated with this address
-  	DramDirectoryEntry* dram_dir_entry = dram_dir->getEntry(address);
-
-  	// 1. based on requested operation (read or write), make necessary updates to current owners
-  	// 2. update directory state in DRAM and sharers array
-	
-	switch( shmem_req_type ) {
-	
-		case READ:
-		{
-			// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
-			if(dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) i
-			{
-				//demote exclusive owner
-				assert(dram_dir_entry->numSharers() == 1);
-		
-				unsigned int current_owner = dram_dir_entry->getExclusiveSharerRank();
-		
-				// reqeust a data write back data and downgrade to shared
-				NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, dram_id, current_owner, sizeof(UpdatePayload));
-				payload.update_new_cstate = CacheState::SHARED;
-   			payload.update_address= address;
-				packet.data = (char *)(&payload);
-				
-				(the_core->getNetwork())->netSend(packet);
-
-				// wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
-				NetMatch net_match;
-				net_match.sender = current_owner;
-				net_match.sender_flag = true;
-				net_match.type = SHARED_MEM_ACK;
-				net_match.type_flag = true;
-				
-				NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-				
-				// assert a few things in the ack packet (sanity checks)
-				assert((unsigned int)(recv_packet.sender) == current_owner);
-				assert(recv_packet.type == SHARED_MEM_ACK);
-		
-				ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
-				assert(received_address == address);
-		
-				CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
-				assert(received_new_cstate == CacheState::SHARED);
-				
-            // did the former owner invalidate it already? if yes, we should remove him from the sharers list
-				if( ((AckPayload*)(recv_packet.data))->remove_from_sharers )
-				{
-					dram_dir_entry->removeSharer( current_owner );
-				}
-				else 
-				{
-					 // In this case, the former owner needs to write back to the DRAM before the current requestor
-					 // can read from it - so, we need to add to the cost once
-//					 runDramAccessModel();
-				}
-
-			}
-			
-			/* Modified by George */
-			// FIXME: One memory to cache transfer always needs to take place
-			// Dont know whether this is the right place to put this in
-//			runDramAccessModel();
-
-//			dram_dir_entry->addSharer(requestor);
-//			dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
-	   } 
-		break;
-      
-		case WRITE: 
-		{	
-		  // invalidate current sharers
-		  	bool already_invalidated = false;
-			vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
-			
-			for(UINT32 i = 0; i < sharers_list.size(); i++) 
-			{
-			 
-#ifdef MMU_DEBUG
-				ss.clear();
-				ss << "Sending Invalidation Message to Sharer [" << sharers_list[i] << "]";
-				debugPrint(the_core->getRank(), "MMU", "Sending Invalidation Message to Sharer");
-#endif			 
-				// send message to sharer to invalidate it
-				NetPacket packet = makePacket( SHARED_MEM_UPDATE_UNEXPECTED, my_rank, sharers_list[i], sizeof(UpdatePayload));
-				 
-				/* format of shared memory request packet data
-				   req_type | starting addr | length (in bytes) requested
-				*/
-				 
-				UpdatePayload payload;
-				payload.update_new_cstate = CacheState::INVALID;
-				payload.update_address = address;
-				packet.data = (char *)(&payload);
-				(the_core->getNetwork())->netSend(packet);
-		  }
-		  
-		  // receive invalidation acks from all sharers
-		  for(UINT32 i = 0; i < sharers_list.size(); i++)      
-		  {				
-				// TODO: optimize this by receiving acks out of order
-				 
-				// wait for all of the invalidation acknowledgements
-				NetMatch net_match;
-				net_match.sender = sharers_list[i]; //*sharers_iterator;
-				net_match.sender_flag = true;
-				net_match.type = SHARED_MEM_ACK;
-				net_match.type_flag = true;
-				NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-				 
-				// assert a few things in the ack packet (sanity checks)
-				assert((unsigned int)(recv_packet.sender) == sharers_list[i]); // I would hope so
-				 
-				ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
-#ifdef MMU_DEBUG
-				ss << " Recieving Invalidation Ack Messages.... Data Addr: " << hex << ((int *)(recv_packet.data)) << ", Received Addr: " << hex << received_address << "  Addr: " << hex << address;
-				debugPrint(my_rank, "MMU", ss.str());
-#endif				
-				assert(received_address == address);
-				 
-				 CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
-				 assert(received_new_cstate == CacheState::INVALID);
-
-				 /* Modified by George */
-				 // FIXME: Verify that this is correct
-				 if (((AckPayload*)(recv_packet.data))->remove_from_sharers) {
-					  // Remove this core from the sharers list
-					  already_invalidated = true;
-				 }
-
-			}
-			
-		  	/* Modified by George */
-		    // FIXME: Verify that this is correct
-		  	if (dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE) {
-				// We need to write back this cache line to the DRAM 	
-				if (! already_invalidated) {
-					runDramAccessModel();
-				}
-
-		  	}
-			
-			// An call to the access model has to be there anyways for getting the data from the DRAM
-			runDramAccessModel();
-		  
-		  	dram_dir_entry->addExclusiveSharer(requestor);
-		  	dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
-		}
-		break;
-
-		default:
-		{
-			throw("unsupported memory transaction type.");
-		}
-		break;
-   }
-  
-  // 3. return data back to requestor 
-  NetPacket ret_packet;
-  ret_packet.type = SHARED_MEM_UPDATE_EXPECTED;
-  ret_packet.sender = my_rank;
-  ret_packet.receiver = requestor;
-  ret_packet.length = sizeof(UpdatePayload);
-  
-  // initialize packet payload
-	UpdatePayload payload;
-	CacheState::cstate_t new_cstate;
-
-	//we need to map from dstate to cstate
-	switch (dram_dir_entry->getDState()) {
-		case DramDirectoryEntry::UNCACHED:
-			assert ( 0 ); 
-			new_cstate = CacheState::INVALID;
-			break;
-		case DramDirectoryEntry::SHARED:
-			new_cstate = CacheState::SHARED;
-			break;
-		case DramDirectoryEntry::EXCLUSIVE:
-			new_cstate = CacheState::EXCLUSIVE;
-			break;
-		default:
-			assert( 0 ); //something else must've gone wrong!
-	}
-
-	payload.update_new_cstate = new_cstate;
-	payload.update_address = address;
-	
-	char data_buffer[cache_line_size];
-	getDramMemoryLine(some_address, &data_buffer); //GEORGE <- put your dramAccessCost into this function?
-
-	int data_size;
-	MemoryManager->createUpdatePayloadBuffer(payload, data_buffer, &data_size);
-	NetPacket ret_packet = makePacket(SHARED_MEM_UPDATE_EXPECTED, my_rank, requestor, data_buffer);
-	(the_core->getNetwork())->netSend(ret_packet);
-
-#ifdef MMU_DEBUG
-	debugPrint(the_core->getRank(), "MMU", "end of sharedMemReq function");
-#endif
-}
-
 //TODO go through this code again. i think a lot of it is unnecessary.
 //TODO rename this to something more descriptive about what it does (sending a memory line to another core)
-void sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheState::cstate_t new_cstate)
+void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheState::cstate_t new_cstate)
 {
 
    // initialize packet payload
-	UpdatePayload payload;
+	MemoryManager::UpdatePayload payload;
 
 	//we need to map from dstate to cstate
 	switch (dram_dir_entry->getDState()) {
@@ -524,37 +266,39 @@ void sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheSta
 	}
 
 	payload.update_new_cstate = new_cstate;
-	payload.update_address = address;
+	payload.update_address = dram_dir_entry->getMemLineAddress();
 	
 	char data_buffer[cache_line_size];
-	getDramMemoryLine(some_address, &data_buffer); //GEORGE <- put your dramAccessCost into this function?
-
 	int data_size;
-	MemoryManager->createUpdatePayloadBuffer(payload, data_buffer, &data_size);
-	NetPacket packet = makePacket(SHARED_MEM_UPDATE_EXPECTED, my_rank, requestor, data_buffer);
+	dram_dir_entry->getDramDataLine(data_buffer, &data_size);
+	
+	int payload_size;                                                                  
+	char* payload_buffer;
+	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, &payload_size);
+	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	packet.type = SHARED_MEM_UPDATE_EXPECTED;
 	packet.sender = dram_id;
 	packet.receiver = requestor;
-//	packet.length = sizeof(UpdatePayload); //TODO remove this. not correct.
-	(the_core->getNetwork())->netSend(packet);
+	the_network->netSend(packet);
 
 }
 
-NetPacket demoteOwner(DramDirectoryEntry* dram_dir_entry, cstate_t new_cstate)
+NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, cstate_t new_cstate)
 {
 	//demote exclusive owner
 	assert( dram_dir_entry->numSharers() == 1 );
-	assert( new_cstate == SHARED || new_cstate == INVALID );
+	assert( new_cstate == CacheState::SHARED || new_cstate == CacheState::INVALID );
 
 	unsigned int current_owner = dram_dir_entry->getExclusiveSharerRank();
 
 	// reqeust a write back data payload and downgrade to new_dstate
-	NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, dram_id, current_owner, sizeof(UpdatePayload));
+//	MemoryManager::AckPayload payload; //this was orginally here, but i don't think ackpayload is correct.
+	MemoryManager::UpdatePayload payload;
 	payload.update_new_cstate = new_cstate;
 	payload.update_address= address;
-	packet.data = (char *)(&payload);
+	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), dram_id, current_owner, sizeof(MemoryManager::UpdatePayload));
 	
-	(the_core->getNetwork())->netSend(packet);
+	the_network->netSend(packet);
 
 	// wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
 	NetMatch net_match;
@@ -563,15 +307,14 @@ NetPacket demoteOwner(DramDirectoryEntry* dram_dir_entry, cstate_t new_cstate)
 	net_match.type = SHARED_MEM_ACK;
 	net_match.type_flag = true;
 	
-	NetPacket wb_packet = (the_core->getNetwork())->netRecv(net_match);
+	NetPacket wb_packet = the_network->netRecv(net_match);
 	
 	// assert a few things in the ack packet (sanity checks)
-	AckPayload payload;
+	MemoryManager::AckPayload payload;
 	//null because we aren't interested in extracting the data_buffer here
-	extractAckPayloadBuffer(wb_packet, &payload, NULL);
+	char* data_buffer;
+	extractAckPayloadBuffer(wb_packet, &payload, data_buffer); //TODO the data_buffer here isn't used! remove it from the code! MEMORY LEAK
 	
-//	processWriteBack(wb_packet);
-
 	assert((unsigned int)(wb_packet.sender) == current_owner);
 	assert(wb_packet.type == SHARED_MEM_ACK);
 
@@ -594,22 +337,25 @@ NetPacket demoteOwner(DramDirectoryEntry* dram_dir_entry, cstate_t new_cstate)
 //private utility function
 //send invalidate messages to all of the sharers
 //and wait on acks.
-void invalidateSharers(DramDirectoryEntry* dram_dir_entry)
+void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 {
    //invalidate current sharers
 	//bool already_invalidated = false;
+	
+	ADDRINT address = dram_dir_entry->getMemLineAddress();
+	//TODO I'm not positive this address is correctly calculated!
 	vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
 	
 	for(UINT32 i = 0; i < sharers_list.size(); i++) 
 	{
 		// send message to sharer to invalidate it
-		NetPacket packet = makePacket( SHARED_MEM_UPDATE_UNEXPECTED, my_rank, sharers_list[i], sizeof(UpdatePayload));
 		 
-		UpdatePayload payload;
+		MemoryManager::UpdatePayload payload;
 		payload.update_new_cstate = CacheState::INVALID;
 		payload.update_address = address;
-		packet.data = (char *)(&payload);
-		(the_core->getNetwork())->netSend(packet);
+		NetPacket packet = MemoryManager::makePacket( SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, sharers_list[i]);
+//		packet.data = (char *)(&payload);
+		the_network->netSend(packet);
   }
   
   // receive invalidation acks from all sharers
@@ -622,14 +368,14 @@ void invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 		net_match.sender_flag = true;
 		net_match.type = SHARED_MEM_ACK;
 		net_match.type_flag = true;
-		NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+		NetPacket recv_packet = the_network->netRecv(net_match);
 		 
 		// assert a few things in the ack packet (sanity checks)
 		assert((unsigned int)(recv_packet.sender) == sharers_list[i]); 
-		ADDRINT received_address = ((AckPayload*)(recv_packet.data))->ack_address;
+		ADDRINT received_address = ((MemoryManager::AckPayload*)(recv_packet.data))->ack_address;
 		assert(received_address == address);
 		 
-		CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((AckPayload*)(recv_packet.data))->ack_new_cstate);
+		CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((MemoryManager::AckPayload*)(recv_packet.data))->ack_new_cstate);
 		assert(received_new_cstate == CacheState::INVALID);
 	}
 

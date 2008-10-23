@@ -743,9 +743,9 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	assert( payload_buffer == NULL );
 	//TODO is data_buffer being sent ALWAYS cacheLineSize??? or do we also need to pass in data_size?
 	//TODO check all sizeof 's in this file when finished. pointers/dereferences etc. will probaly be wrong somewhere
-	*payload_size = sizeof(&send_payload) + g_knob_line_size;
+	// *payload_size = sizeof(&send_payload) + g_knob_line_size;
 //	*payload_size = sizeof(&send_payload) + ocache->dCacheLineSize();
-	payload_buffer = (char *) malloc ((int) &payload_size);
+	// payload_buffer = (char *) malloc ((int) *payload_size);
 
 	memcpy ((void*) payload_buffer, (void*) &send_payload, sizeof(send_payload));
 	memcpy ((void*) (payload_buffer + sizeof(send_payload)), (void*) data_buffer, g_knob_line_size);
@@ -780,7 +780,7 @@ void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, MemoryManager::A
 	// FIXME: Make sure that data_buffer is not allocated before
 	// TODO what if there is no data buffer??? BUG
 //	data_buffer = (char*) malloc (sizeof(ocache->dCacheLineSize()));
-	data_buffer = (char*) malloc (g_knob_line_size);
+	// data_buffer = (char*) malloc (g_knob_line_size);
 
 	memcpy ((void*) &payload, (void*) (packet->data), sizeof(payload));
 //	memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(payload) ), ocache->dCacheLineSize());

@@ -278,6 +278,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	
 	int payload_size;                                                                  
 	char* payload_buffer;
+	payload_buffer = (char*) malloc(bytes_per_cache_line + sizeof(payload));
 	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, &payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	packet.type = SHARED_MEM_UPDATE_EXPECTED;
@@ -318,6 +319,8 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	MemoryManager::AckPayload ack_payload;
 	//null because we aren't interested in extracting the data_buffer here
 	char* data_buffer;
+
+	data_buffer = (char*) malloc (g_knob_line_size);
 	MemoryManager::extractAckPayloadBuffer(&wb_packet, &ack_payload, data_buffer); //TODO the data_buffer here isn't used! remove it from the code! MEMORY LEAK
 	
 	assert((unsigned int)(wb_packet.sender) == current_owner);

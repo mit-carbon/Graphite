@@ -4,6 +4,7 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+
 #include <iostream>
 #include <sched.h>
 #include <unistd.h>
@@ -13,7 +14,7 @@
 
 // JME: not entirely sure why this is needed...
 class Chip;
-
+#include "packet_type.h"
 #include "config.h"
 #include "chip.h"
 #include "transport.h"
@@ -23,18 +24,6 @@ extern Config* g_config;
 
 // Define data types
 
-// enums for type of network packet
-enum PacketType 
-{
-   MIN_PACKET_TYPE = 0, 
-   INVALID = MIN_PACKET_TYPE, 
-   USER,
-   SHARED_MEM_REQ,
-   SHARED_MEM_UPDATE_EXPECTED,
-   SHARED_MEM_UPDATE_UNEXPECTED,
-   SHARED_MEM_ACK,
-   MAX_PACKET_TYPE = SHARED_MEM_ACK
-};
 
 enum NetworkModel
 {

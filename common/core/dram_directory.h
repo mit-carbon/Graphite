@@ -3,9 +3,8 @@
 
 #include "debug.h"
 #include "pin.H"
-// #include "dram_directory_entry.h"
-// #include "network.h"
-#include "memory_manager.h"
+#include "dram_directory_entry.h"
+#include "network.h"
 #include <map>
 
 //TODO i don't think this is used

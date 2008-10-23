@@ -19,6 +19,7 @@ class DramDirectory; //i hate compiling c++ code
 typedef struct NetPacket NetPacket;
 typedef struct NetMatch NetMatch;
 
+#include "packet_type.h"
 #include "core.h"
 #include "ocache.h"
 #include "dram_directory.h"
@@ -31,6 +32,8 @@ extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_ahl_param;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_dram_access_cost;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
+
+enum PacketType;
 
 // TODO: move this into MemoryManager class?
 enum shmem_req_t {

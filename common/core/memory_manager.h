@@ -107,7 +107,6 @@ class MemoryManager
 	struct UpdatePayload {
 		CacheState::cstate_t update_new_cstate;
 		ADDRINT update_address;
-		char* data_buffer;
 		UINT32 data_size; //in bytes
 		bool is_writeback; //is this payload serving as a writeback message to dram?
 	};
@@ -115,8 +114,7 @@ class MemoryManager
 	struct AckPayload {
 		CacheState::cstate_t ack_new_cstate;
 		ADDRINT ack_address;
-		char* data_buffer;
-		UINT32 data_size;
+		UINT32 data_size; //this is used to tell us how much data to extract 
 		bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
 		//if sent a downgrade message (E->S), but cache
 		//no longer has the line, send a bit to tell dram directory
@@ -146,7 +144,8 @@ class MemoryManager
 	//writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
 	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, CacheState::cstate_t* new_cstate);
 
-	static void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, int* payload_size);
+	static void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, UINT32 payload_size);
+	static void createAckPayloadBuffer (AckPayload* send_payload, char *data_buffer, char *payload_buffer, UINT32 payload_size);
 	static void extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer);
 	static void extractAckPayloadBuffer (NetPacket* packet, AckPayload* payload, char* data_buffer);
 

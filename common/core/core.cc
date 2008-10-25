@@ -222,6 +222,10 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 
 	if (g_knob_simarch_has_shared_mem)  {
 
+		stringstream ss;
+		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - start " << endl;
+		debugPrint(core_tid, "CORE", ss.str());
+		
 		bool all_hits = true;
 
 		if (data_size <= 0) {
@@ -272,6 +276,10 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			curr_data_buffer_head += curr_size;
 		}
 
+
+		ss.str("");
+		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - end" << endl;
+		debugPrint(core_tid, "CORE", ss.str());
 		
 		return all_hits;		    
    

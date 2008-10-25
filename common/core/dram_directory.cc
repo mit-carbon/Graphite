@@ -1,4 +1,5 @@
 #include "dram_directory.h"
+//#define DRAM_DEBUG
 
 DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {
@@ -6,8 +7,8 @@ DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_a
 	num_lines = num_lines_arg;
 	number_of_cores = num_of_cores_arg;
 	dram_id = dram_id_arg;
-   cout << "Init Dram with num_lines: " << num_lines << endl;
-   cout << "   bytes_per_cache_linew: " << bytes_per_cache_line_arg << endl;
+   cerr << "Init Dram with num_lines: " << num_lines << endl;
+   cerr << "   bytes_per_cache_linew: " << bytes_per_cache_line_arg << endl;
    assert( num_lines >= 0 );
    bytes_per_cache_line = bytes_per_cache_line_arg;
 
@@ -31,7 +32,7 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
   
 #ifdef DRAM_DEBUG
 	printf(" DRAM_DIR: getEntry: address        = 0x %x\n" ,address );
-	cout << " DRAM_DIR: getEntry: cachline_index = " << data_line_index << endl;
+	cerr << " DRAM_DIR: getEntry: cachline_index = " << data_line_index << endl;
 #endif
   
 	assert( data_line_index >= 0);
@@ -40,9 +41,11 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
   
 	//TODO FIXME we need to handle the data_buffer correctly! what do we fill it with?!
 	if( entry_ptr == NULL ) {
+		cerr << " Making a new dram entry " << endl;
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
 		dram_directory_entries[data_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
+		this->print();
 	}
 
 	return dram_directory_entries[data_line_index];
@@ -158,6 +161,8 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
   	ADDRINT address = ((MemoryManager::RequestPayload*)(req_packet.data))->request_address;
   	UINT32 requestor = req_packet.sender;
   
+   cerr << " Requested Address: " << hex << address << endl;
+
   	DramDirectoryEntry* dram_dir_entry = this->getEntry(address);
   	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
    CacheState::cstate_t new_cstate;
@@ -177,6 +182,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			else
 			{
 				invalidateSharers(dram_dir_entry);
+				dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
 			}
 		break;
 
@@ -190,10 +196,13 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 				NetPacket wb_packet;
 				wb_packet = demoteOwner(dram_dir_entry, CacheState::SHARED);
 				processWriteBack(wb_packet);
+				dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
 			}
 			else
 			{
 				//do nothing. no need to contact other sharers in this case.
+				if(current_dstate == DramDirectoryEntry::UNCACHED)
+					dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
 			}
 		}
 		break;
@@ -208,7 +217,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 	sendDataLine(dram_dir_entry, requestor, new_cstate); //Dram cost model
 
 #ifdef DRAM_DEBUG
-	debugPrint(the_core->getRank(), "DRAM", "end of sharedMemReq function");
+	debugPrint(dram_id, "DRAM", "end of sharedMemReq function");
 #endif
 }
 
@@ -249,42 +258,28 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 //TODO rename this to something more descriptive about what it does (sending a memory line to another core)
 void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheState::cstate_t new_cstate)
 {
-
    // initialize packet payload
 	MemoryManager::UpdatePayload payload;
-
-	//we need to map from dstate to cstate
-	switch (dram_dir_entry->getDState()) {
-		case DramDirectoryEntry::UNCACHED:
-			assert ( 0 ); 
-			new_cstate = CacheState::INVALID;
-			break;
-		case DramDirectoryEntry::SHARED:
-			new_cstate = CacheState::SHARED;
-			break;
-		case DramDirectoryEntry::EXCLUSIVE:
-			new_cstate = CacheState::EXCLUSIVE;
-			break;
-		default:
-			assert( 0 ); //something else must've gone wrong!
-	}
 
 	payload.update_new_cstate = new_cstate;
 	payload.update_address = dram_dir_entry->getMemLineAddress();
 	
+	stringstream ss;
+	ss << " Sending Back UpdateAddr: " << hex << payload.update_address;
+	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
+
 	char data_buffer[bytes_per_cache_line];
 	int data_size;
 	dram_dir_entry->getDramDataLine(data_buffer, &data_size);
 	
-	int payload_size;                                                                  
-	char* payload_buffer;
-	payload_buffer = (char*) malloc(bytes_per_cache_line + sizeof(payload));
-	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, &payload_size);
+	int payload_size = sizeof(payload) + bytes_per_cache_line;
+	char payload_buffer[payload_size];
+	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
-	packet.type = SHARED_MEM_UPDATE_EXPECTED;
-	packet.sender = dram_id;
-	packet.receiver = requestor;
+	
+	debugPrint(dram_id, "DRAM: SendDataLine", "sending update expected packet");
 	the_network->netSend(packet);
+	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
 
 }
 
@@ -391,24 +386,24 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 
 void DramDirectory::print()
 {
-	cout << endl << endl << " <<<<<<<<<<<<<<< PRINTING DRAMDIRECTORY INFO [" << dram_id << "] >>>>>>>>>>>>>>>>> " << endl << endl;
+	cerr << endl << endl << " <<<<<<<<<<<<<<< PRINTING DRAMDIRECTORY INFO [" << dram_id << "] >>>>>>>>>>>>>>>>> " << endl << endl;
 	std::map<UINT32, DramDirectoryEntry*>::iterator iter = dram_directory_entries.begin();
 	while(iter != dram_directory_entries.end())
 	{
-		cout << "   ADDR (aligned): 0x" << hex << iter->second->getMemLineAddress() 
+		cerr << "   ADDR (aligned): 0x" << hex << iter->second->getMemLineAddress() 
 				<< "  DState: " << DramDirectoryEntry::dStateToString(iter->second->getDState());
 
 		vector<UINT32> sharers = iter->second->getSharersList();
-		cout << "  SharerList <size= " << sharers.size() << " > = { ";
+		cerr << "  SharerList <size= " << sharers.size() << " > = { ";
 		
 		for(unsigned int i = 0; i < sharers.size(); i++) {
-			cout << sharers[i] << " ";
+			cerr << sharers[i] << " ";
 		}
 		
-		cout << "} "<< endl;
+		cerr << "} "<< endl;
 		iter++;
 	}
-	cout << endl << " <<<<<<<<<<<<<<<<<<<<< ----------------- >>>>>>>>>>>>>>>>>>>>>>>>> " << endl << endl;
+	cerr << endl << " <<<<<<<<<<<<<<<<<<<<< ----------------- >>>>>>>>>>>>>>>>>>>>>>>>> " << endl << endl;
 }
 
 void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
@@ -440,7 +435,7 @@ void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstat
 	{
 		assert( dstate != DramDirectoryEntry::UNCACHED );
 		UINT32 new_sharer = sharers_list.back();
-//		cout << "ADDING SHARER-< " << new_sharer << " > " << endl;
+//		cerr << "ADDING SHARER-< " << new_sharer << " > " << endl;
 		sharers_list.pop_back();
 		entry_ptr->addSharer(new_sharer);
 	}
@@ -484,7 +479,7 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 		assert( sharer >= 0);
 		assert( sharer < number_of_cores );
 		actual_sharers_array[sharer] = true;
-//	  cout << "Actual Sharers Vector Sharer-> Core# " << sharer << endl;
+//	  cerr << "Actual Sharers Vector Sharer-> Core# " << sharer << endl;
 	}
 
 	while(!expected_sharers_vector.empty())
@@ -494,7 +489,7 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 		assert( sharer >= 0);
 		assert( sharer < number_of_cores );
 		expected_sharers_array[sharer] = true;
-//		cout << "Expected Sharers Vector Sharer-> Core# " << sharer << endl;
+//		cerr << "Expected Sharers Vector Sharer-> Core# " << sharer << endl;
 	}
 
 	//do actual comparision of both arrays

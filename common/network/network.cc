@@ -31,9 +31,9 @@ int Network::netSend(NetPacket packet)
 	debugPrint(net_tid, "NETWORK", "netSend Begin");
    printNetPacket(packet);
 	stringstream ss;
-	ss << "NetSend Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1] 
-		<< " Pretending Its a RequestPayload, payload.addr: " << hex << ((RequestPayload*) packet.data)->request_address;
-	debugPrint(net_tid, "NETWORK", ss.str());
+//	ss << "NetSend Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1] 
+//		<< " Pretending Its a RequestPayload, payload.addr: " << hex << ((RequestPayload*) packet.data)->request_address;
+//	debugPrint(net_tid, "NETWORK", ss.str());
 #endif
 
    char *buffer;
@@ -44,34 +44,35 @@ int Network::netSend(NetPacket packet)
 	debugPrint(net_tid, "NETWORK", "netSend -calling netEntryTasks");
 #endif	
    netEntryTasks();
-//<<<<<<< HEAD:common/network/network.cc
 #ifdef NETWORK_DEBUG
 	debugPrint(net_tid, "NETWORK", "netSend -finished netEntryTasks");
 #endif   
-//   buffer = netCreateBuf(packet);
-//   transport->ptSend(packet.receiver, buffer, packet.length);
-//=======
-   
+
+//	cerr << "BufferSize: " << dec << buf_size << endl;
+
    buffer = netCreateBuf(packet, &buf_size);
+//	debugPrint(net_tid, "NETWORK", "netSend -ptSend");
    transport->ptSend(packet.receiver, buffer, buf_size);
+//	debugPrint(net_tid, "NETWORK", "netSend -end of ptSend");
    the_chip->setProcTime(net_tid, the_chip->getProcTime(net_tid) + netProcCost(packet));
 
+//	debugPrint(net_tid, "NETWORK", "netSend -finished netSend");
    // FIXME?: Should we be returning buf_size instead?
-//>>>>>>> master:common/network/network.cc
    return packet.length;
 }
 
 void Network::printNetPacket(NetPacket packet) {
-	cout << endl;
-	cout << "DON'T CALL ME";
-//	cout << "  [" << net_tid << "] Network Packet (0x" << hex << ((int *) (packet.data))[SH_MEM_REQ_IDX_ADDR] 
+	cerr << endl;
+	cerr << "printNetPacket: DON'T CALL ME" << endl;
+	//this stuff is all deprecated since we changed how we do this
+//	cerr << "  [" << net_tid << "] Network Packet (0x" << hex << ((int *) (packet.data))[SH_MEM_REQ_IDX_ADDR] 
 //		<< ") (" << packet.sender << " -> " << packet.receiver 
 //		<< ") -- Type: " << packetTypeToString(packet.type) << " ++++" << endl << endl;
 }
 
 void Network::printNetMatch(NetMatch match, int receiver) {
-	cout << endl;
-	cout << "  [" << net_tid << "] Network Match " 
+	cerr << endl;
+	cerr << "  [" << net_tid << "] Network Match " 
 		<< match.sender << " -> " << receiver 
 		<< " SenderFlag: " << match.sender_flag
 		<< " Type: " << packetTypeToString(match.type)

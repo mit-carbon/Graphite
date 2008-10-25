@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-//#define DRAM_DEBUG
+#define DRAM_DEBUG
 
 DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {
@@ -269,11 +269,13 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
 
 	char data_buffer[bytes_per_cache_line];
-	int data_size;
+	UINT32 data_size;
 	dram_dir_entry->getDramDataLine(data_buffer, &data_size);
 	
-	int payload_size = sizeof(payload) + bytes_per_cache_line;
+	assert( data_size == bytes_per_cache_line );
+	UINT32 payload_size = sizeof(payload) + data_size;
 	char payload_buffer[payload_size];
+	payload.data_size = data_size;
 	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	

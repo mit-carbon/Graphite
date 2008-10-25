@@ -60,7 +60,7 @@ void DramDirectoryEntry::fillDramDataLine(char* input_buffer)
 
 }
 
-void DramDirectoryEntry::getDramDataLine(char* fill_buffer, int* line_size)
+void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UINT32* line_size)
 {
 	assert( fill_buffer != NULL );
 	assert( memory_line != NULL );

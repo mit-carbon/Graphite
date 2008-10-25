@@ -48,7 +48,7 @@ class DramDirectoryEntry
   void fillDramDataLine(char* fill_buffer);
   //input NULL fill_buffer, line_size
   //function fills the buffer and line_size values
-  void getDramDataLine(char* fill_buffer, int* line_size);
+  void getDramDataLine(char* fill_buffer, UINT32* line_size);
   
   
   

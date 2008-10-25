@@ -1,9 +1,19 @@
 include ../../makefile.gnu.config
 include ../../makefile.debug
 
+FORCE32 ?= 1
+CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
+#old cflags
+#CFLAGS = -I../../misc -I../../core -I../../user -c -g -Wall
 
-CC = /usr/bin/g++
-CFLAGS = -I../../misc -I../../core -I../../user -c -g -Wall
+ifeq (${FORCE32},1)
+  CFLAGS = -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -I../../user -c -g -Wall -m32
+  LDFLAGS = -m32 -m elf_i386
+else
+  CFLAGS = -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -I../../user -c -g -Wall
+  LDFLAGS = 
+endif
+
 SOURCES = ../../user/capi.cc basic.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
@@ -12,10 +22,10 @@ OBJECTS = $(SOURCES:%.cc=%.o)
 all: basic 
 
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 basic: $(OBJECTS)
-	$(CC) -pthread -o $@ $(OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 

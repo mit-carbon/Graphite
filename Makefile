@@ -65,8 +65,8 @@ shmem_test: all
 
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
-	#$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/pthreads_basic/basic
-	$(PIN_RUN) -mdc -msm -msys -n 1 -- $(TESTS_DIR)/pthreads_basic/basic
+	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/pthreads_basic/basic
+	#$(PIN_RUN) -mdc -msm -msys -n 1 -- $(TESTS_DIR)/pthreads_basic/basic
 
 cache_test: all
 	$(MAKE) -C $(TESTS_DIR)/cache_model

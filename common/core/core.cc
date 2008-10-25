@@ -229,7 +229,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 		bool all_hits = true;
 
 		if (data_size <= 0) {
-			return (false);
+			return (true);
 			// FIXME: Why false - we are not encountering any cache misses anyway
 		}
 
@@ -266,11 +266,14 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 				curr_size = ocache->dCacheLineSize() - (curr_offset);
 			}
 
+			cerr << "[" << getRank() << "] start InitiateSharedMemReq " << endl;
 			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
 				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
 				// If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
 				all_hits = false;
 			}
+			
+			cerr << "[" << getRank() << "] end InitiateSharedMemReq " << endl;
 
 			// Increment the buffer head
 			curr_data_buffer_head += curr_size;

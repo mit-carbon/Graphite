@@ -146,6 +146,7 @@ void* do_nothing(void *threadid)
 void instrument_me()
 {
 
+/*
  int size = *global_integer_ptr; 
 
    cout << "inside instrument me, size=" << size << endl;
@@ -165,7 +166,7 @@ void instrument_me()
    
 	
    pthread_mutex_unlock(&lock);
-
+*/
 //	int x = 10, y;
 /*	int x,y;
 	

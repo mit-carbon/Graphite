@@ -28,7 +28,6 @@ AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 log_block_siz
 	//  k = log(num_nodes) to the base 2
 	
 	//  make sure that the block boundaries coincide with cache_line boundaries
-	//TODO extern the cache_line_size knob
 	assert ( ( (1 << log_block_size_arg) % g_knob_line_size ) == 0 );	
 	assert (num_nodes > 0);
 	

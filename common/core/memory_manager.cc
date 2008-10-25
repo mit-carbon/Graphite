@@ -208,13 +208,21 @@ void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* 
    ADDRINT addr = ca_address + offset;
 
    pair<bool, CacheTag*> result;
-	
+
+
 	result = ocache->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE,
 										&fail_need_fill, NULL,
 										data_buffer, line_size,
 										&eviction, &evict_addr, evict_buff);
+	
+/*	result = ocache->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE,
+										NULL, data_buffer,
+										data_buffer, data_size,
+										&eviction, &evict_addr, evict_buff);
+*/
 
-	if(eviction) {
+	if(eviction) 
+	{
 		//TODO can race conditions occur due to eviction messages?
 		//send write-back to dram
 		//TODO make sure I'm requesting the right size
@@ -222,7 +230,8 @@ void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* 
 		UpdatePayload payload;
 		payload.update_address = evict_addr;
 		payload.is_writeback = true;
-		int payload_size = sizeof(payload) + ocache->dCacheLineSize();
+		UINT32 payload_size = sizeof(payload) + ocache->dCacheLineSize();
+		payload.data_size = ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
 		
 		createUpdatePayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
@@ -278,8 +287,10 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	/* ============ Put Data Into Fill Buffer ============= */
 	/* ===================================================== */
 	
+	debugPrint(the_core->getRank(), "MMU", "requestPermission before extract update");	
 	UpdatePayload recv_payload;
 	extractUpdatePayloadBuffer(&recv_packet, &recv_payload, fill_buffer);
+	debugPrint(the_core->getRank(), "MMU", "requestPermission end of extract update");	
 	
 	*new_cstate = (CacheState::cstate_t)(recv_payload.update_new_cstate);
 	
@@ -297,7 +308,7 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	
 	//if a read occurs, then it reads the fill buffer and then puts fill buffer into cache
 	//if a write ocurs, then it modifies the fill buffer and then puts the fill buffer into cache
-	
+	debugPrint(the_core->getRank(), "MMU", "end of requestPermission");	
 }
 
 //buffer_size is the size in bytes of the char* data_buffer
@@ -797,16 +808,22 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 { 
 	//copy packet->data to payload (extract payload)
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
+	cerr << "Greetings in payload daa size" << dec << payload->data_size << endl;
 	//copy data_buffer over
+	assert( payload->data_size <= g_knob_line_size );
+
 	if(payload->data_size > 0)
 		memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(*payload) ), payload->data_size);
 
+	cerr << "Exiting in Extracdt" << endl;
 }
 
 //TODO should we turn payloads from structs to classes so we don't have to have seperate methods to do this stuff?
 void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, AckPayload* payload, char* data_buffer) 
 { 
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
+	
+	assert( payload->data_size <= g_knob_line_size );
 	
 	if(payload->data_size > 0)
 		memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(*payload) ), payload->data_size);

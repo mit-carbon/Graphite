@@ -221,12 +221,12 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 		shmem_operation = WRITE;
 
 	if (g_knob_simarch_has_shared_mem)  {
-
-		cerr << "Cache Line Size = " << ocache->dCacheLineSize() << endl;
+#ifdef CORE_DEBUG
 		stringstream ss;
-		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - start " << endl;
+		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - ADDR: " << hex << d_addr << ", data_size: " << dec << data_size << " , - START ";
 		debugPrint(core_tid, "CORE", ss.str());
-		
+#endif
+
 		bool all_hits = true;
 
 		if (data_size <= 0) {
@@ -270,9 +270,11 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			}
          
 			stringstream ss;
+#ifdef CORE_DEBUG
 			ss.str("");
 			ss << "[" << getRank() << "] start InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
 			debugPrint(getRank(), "CORE", ss.str());
+#endif
 
 			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
 				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
@@ -280,16 +282,33 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 				all_hits = false;
 			}
 			
-			cerr << "[" << getRank() << "] end InitiateSharedMemReq " << endl;
+#ifdef CORE_DEBUG
+			ss.str("");
+			ss << "[" << getRank() << "] end  InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
+			debugPrint(getRank(), "CORE", ss.str());
+#endif
+
+			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
+				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
+				// If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
+				all_hits = false;
+			}
+			
+#ifdef CORE_DEBUG
+			ss.str("");
+			ss << "[" << getRank() << "] end  InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
+			debugPrint(getRank(), "CORE", ss.str());
+#endif
 
 			// Increment the buffer head
 			curr_data_buffer_head += curr_size;
 		}
 
-
+#ifdef CORE_DEBUG
 		ss.str("");
-		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - end" << endl;
+		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - ADDR: " << hex << d_addr << ", data_size: " << dec << data_size << ", END!! " << endl;
 		debugPrint(core_tid, "CORE", ss.str());
+#endif
 		
 		return all_hits;		    
    

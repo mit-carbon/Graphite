@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-#define DRAM_DEBUG
+//#define DRAM_DEBUG
 
 DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {
@@ -41,11 +41,11 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
   
 	//TODO FIXME we need to handle the data_buffer correctly! what do we fill it with?!
 	if( entry_ptr == NULL ) {
-		cerr << " Making a new dram entry " << endl;
+//		debugPrint(dram_id, "DRAMDIR", "Making a new dram entry");
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
 		dram_directory_entries[data_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
-		this->print();
+//		this->print();
 	}
 
 	return dram_directory_entries[data_line_index];
@@ -161,7 +161,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
   	ADDRINT address = ((MemoryManager::RequestPayload*)(req_packet.data))->request_address;
   	UINT32 requestor = req_packet.sender;
   
-   cerr << " Requested Address: " << hex << address << endl;
+//   cerr << " Requested Address: " << hex << address << endl;
 
   	DramDirectoryEntry* dram_dir_entry = this->getEntry(address);
   	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
@@ -266,7 +266,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	
 	stringstream ss;
 	ss << " Sending Back UpdateAddr: " << hex << payload.update_address;
-	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
+//	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
 
 	char data_buffer[bytes_per_cache_line];
 	UINT32 data_size;
@@ -279,9 +279,9 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	
-	debugPrint(dram_id, "DRAM: SendDataLine", "sending update expected packet");
+//	debugPrint(dram_id, "DRAM: SendDataLine", "sending update expected packet");
 	the_network->netSend(packet);
-	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
+//	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
 
 }
 
@@ -331,7 +331,10 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	
 	// TODO DOES THIS CASE EVER HAPPEN? ie, an owner that had already been evicted
 	// did the former owner invalidate it already? if yes, we should remove him from the sharers list
-	assert( ack_payload.remove_from_sharers == false );
+//	assert( ack_payload.remove_from_sharers == false );
+	if( ack_payload.remove_from_sharers == false ) 
+		cerr << "*** ERROR ***** DRAM DIRECTORY: DEMOTE OWNER.  OWNER HAS EVICTED ADDRESS, AND THE DRAM DIR WAS NOT UPDATED!!!!! ***** " << endl;
+	
 	if( new_cstate == CacheState::INVALID || ack_payload.remove_from_sharers )
 		dram_dir_entry->removeSharer( current_owner );
 

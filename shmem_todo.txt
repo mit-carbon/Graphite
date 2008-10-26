@@ -67,3 +67,4 @@ Move these functions to 'ocache.(h/cc)'
 3) getData
 4) setLineInfo
 5) CacheTag -> CacheLineInfo
+6) getCState(), setCState()

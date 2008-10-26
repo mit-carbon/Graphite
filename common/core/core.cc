@@ -222,6 +222,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 
 	if (g_knob_simarch_has_shared_mem)  {
 
+		cerr << "Cache Line Size = " << ocache->dCacheLineSize() << endl;
 		stringstream ss;
 		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - start " << endl;
 		debugPrint(core_tid, "CORE", ss.str());
@@ -260,6 +261,9 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			// Determine the size
 			if (curr_addr_aligned == end_addr_aligned) {
 				curr_size = (end_addr % ocache->dCacheLineSize()) - (curr_offset);
+				if (curr_size == 0) {
+					continue;
+				}
 			}
 			else {
 				curr_size = ocache->dCacheLineSize() - (curr_offset);

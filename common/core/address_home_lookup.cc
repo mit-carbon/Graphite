@@ -35,7 +35,7 @@ AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 log_block_siz
 		k++;
 		num_nodes_arg = num_nodes_arg >> 1;
 	}
-	assert (k > 0);
+	assert (k >= 0);
 	
 	log_block_size = log_block_size_arg;
 	assert (log_block_size > 0);
@@ -46,7 +46,7 @@ AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 log_block_siz
 UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
 
 	UINT32 node = (address & mask) >> log_block_size;
-	assert (0 <= node && node <= num_nodes);
+	assert (0 <= node && node < num_nodes);
 	return (node);
 
 }

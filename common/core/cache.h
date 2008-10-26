@@ -193,10 +193,10 @@ namespace CACHE_SET
 
          void write_line(UINT32 index, UINT32 offset, char *buff, UINT32 bytes)
          {
-				cerr << "WriteLine " << endl;
-				cerr << "Offset    : " << offset << endl;
-				cerr << "bytes     : " << bytes << endl;
-				cerr << "blocksize : " << blocksize << endl;
+//				cerr << "WriteLine " << endl;
+//				cerr << "Offset    : " << offset << endl;
+//				cerr << "bytes     : " << bytes << endl;
+//				cerr << "blocksize : " << blocksize << endl;
 				assert( offset + bytes <= blocksize );
 
 				if ( (buff != NULL) && (bytes != 0) )
@@ -646,11 +646,11 @@ class Cache : public CacheBase
             if ( access_type == k_ACCESS_TYPE_LOAD )
 					sets[index].read_line(line_index, addr & (line_size - 1), buff, bytes);
             else {
-					cerr << "ADDR: " << hex << addr << endl;
-					cerr << "ln_sz: " << dec << line_size << endl;
-					cerr << "Hit -> strt write_line: offset= " << dec << (addr & (line_size -1)) << " bytes= " << bytes << endl;
+//					cerr << "ADDR: " << hex << addr << endl;
+//					cerr << "ln_sz: " << dec << line_size << endl;
+//					cerr << "Hit -> strt write_line: offset= " << dec << (addr & (line_size -1)) << " bytes= " << bytes << endl;
 					sets[index].write_line(line_index, addr & (line_size - 1), buff, bytes);
-					cerr << "Hit -> end  write_line" << endl;
+//					cerr << "Hit -> end  write_line" << endl;
 				}
 
          }
@@ -670,9 +670,9 @@ class Cache : public CacheBase
             if ( access_type == k_ACCESS_TYPE_LOAD )
 					sets[which].read_line(line_index, addr & (line_size - 1), buff, bytes);
             else{
-					cerr << "!Hit -> strt write_line: offset= " << (addr & (line_size -1)) << " bytes= " << bytes << endl;
+//					cerr << "!Hit -> strt write_line: offset= " << (addr & (line_size -1)) << " bytes= " << bytes << endl;
 					sets[which].write_line(line_index, addr & (line_size - 1), buff, bytes);
-					cerr << "!Hit -> end  write_line" << endl;
+//					cerr << "!Hit -> end  write_line" << endl;
 				}
 
          }

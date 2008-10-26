@@ -983,12 +983,12 @@ void awesome_test_suite_msi(int tid)
 				address = address_vector[addr_index].addr;
 				dram_addr_home_id = address_vector[addr_index].dram_home_id;
 
-				cerr << endl << endl;	
-				cerr << "****************************************" << endl;
-				cerr << "****************************************" << endl;
-				cerr << "************  NEW ADDRESS  *************" << endl;
-				cerr << "****************************************" << endl;
-				cerr << "****************************************" << endl << endl;
+//				cerr << endl << endl;	
+//				cerr << "****************************************" << endl;
+//				cerr << "****************************************" << endl;
+//				cerr << "************  NEW ADDRESS  *************" << endl;
+//				cerr << "****************************************" << endl;
+//				cerr << "****************************************" << endl << endl;
 				
 				//loop througha ll of the test cases
 				for(int test_index = core_id*(fini_test_state_vector.size() / 2); test_index < (int) (core_id + 1) * (fini_test_state_vector.size() / 2); test_index++)

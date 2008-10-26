@@ -266,14 +266,14 @@ bool debug_evict1 = eviction;
 		//send write-back to dram
 		//TODO make sure I'm requesting the right size
 		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(ca_address);
-		UpdatePayload payload;
-		payload.update_address = evict_addr;
+		AckPayload payload;
+		payload.ack_address = evict_addr;
 		payload.is_writeback = true;
 		UINT32 payload_size = sizeof(payload) + ocache->dCacheLineSize();
 		payload.data_size = ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
 		
-		createUpdatePayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
+		createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
 		//TODO do i need to create a new network packetType for write-backs?
 		//since we do NOT want to run "processUnexpectedSharedMemUpdate", but rather "processWribteBack"
 		NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, payload_buffer, payload_size, the_core->getRank(), home_node_rank);
@@ -702,28 +702,38 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
   	// verify packet type is correct
   	assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
   
+  //FIXME BUG we have no idea how much memory to allocate to data_buffer! 
+  char data_buffer[ocache->dCacheLineSize()];
 
   //FIXME this is probably a hack that we want to clean up concerning write_backs.
   //we might want to make a new network packettype specically for write-backs, since
   //calling processunexpectedsharedmemupdate is not entirely correct for write-backs.
   //FIXME ERROR: why are we not using extractUpdatePayloadBuffer?  Does that break anything here to use it?
-  UpdatePayload update_payload;
-  //FIXME BUG we have no idea how much memory to allocate to data_buffer! 
-  char data_buffer[ocache->dCacheLineSize()];
-  extractUpdatePayloadBuffer(&update_packet, &update_payload, data_buffer );
-  bool is_writeback = update_payload.is_writeback;
+  
+   //FIXME: this is a bad way of doing things, but until we fix it, here is it
+   //(i have no way to know if the packet contains an Ack payload or an Update payload
+   //so I extract twice - once for each. this only works because the payloads are built
+   //in memory in an indentical fashion (at least for the first four fields).
+   //check for eviction write-backs (all write-backs are found in ack payloads)
+   AckPayload ack_payload;
+   extractAckPayloadBuffer(&update_packet, &ack_payload, data_buffer );
+   bool is_writeback = ack_payload.is_writeback;
+   if(is_writeback) {
+		cerr << "!!!!!!!!!!!! PROCESSING EVICTION WRITE_BACK !!!!!!!!!!!!! " << endl;
+	   dram_dir->processWriteBack(update_packet);
+	   return;
+   }
 
-  if(is_writeback) {
-	  dram_dir->processWriteBack(update_packet);
-	  return;
-  }
+  //if it's not a write-back message, continue onwards
+  UpdatePayload update_payload;
+  extractUpdatePayloadBuffer(&update_packet, &update_payload, data_buffer );
 
   // extract relevant values from incoming request packet
-  CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((UpdatePayload*)(update_packet.data))->update_new_cstate);
-  ADDRINT address = ((UpdatePayload*)(update_packet.data))->update_address;
+//  CacheState::cstate_t new_cstate = (CacheState::cstate_t)(((UpdatePayload*)(update_packet.data))->update_new_cstate);
+//  ADDRINT address = ((UpdatePayload*)(update_packet.data))->update_address;
+   CacheState::cstate_t new_cstate = update_payload.update_new_cstate;
+   ADDRINT address = update_payload.update_address;
   
-  assert( update_payload.update_address = address );
-  assert( update_payload.update_new_cstate = new_cstate );
   	// extract relevant values from incoming request packet
 
 #ifdef MMU_DEBUG
@@ -858,10 +868,20 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );
-
-	//copy send_payload
-	memcpy ((void*) payload_buffer, (void*) send_payload, sizeof(*send_payload));
 	
+	//copy send_payload
+	memcpy ( (void*) payload_buffer, (void*) send_payload, sizeof(*send_payload) );
+
+	//this is very important on the recieving end, so the extractor knows how big data_size is
+   assert( send_payload->data_size == (payload_size - sizeof(*send_payload)) );
+	
+	//copy data_buffer over
+	if(send_payload->data_size > g_knob_line_size) {
+		cerr << "****ERROR **** dataIsze > g_knob_line_size: ...... data_size = " << send_payload->data_size << endl;
+	}
+
+	assert (send_payload->data_size <= g_knob_line_size);
+
 	//copy data_buffer
 	if(data_buffer != NULL) 
 		memcpy ((void*) (payload_buffer + sizeof(*send_payload)), (void*) data_buffer, payload_size - sizeof(*send_payload));
@@ -875,6 +895,9 @@ void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data
 	
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );
+	
+	//this is very important on the recieving end, so the extractor knows how big data_size is
+   assert( send_payload->data_size == (payload_size - sizeof(*send_payload)) );
 
 	//copy send_payload
 	memcpy ((void*) payload_buffer, (void*) send_payload, sizeof(*send_payload));
@@ -892,9 +915,13 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 	
 	//copy packet->data to payload (extract payload)
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
-	cerr << "		Greetings in payload data size" << dec << payload->data_size << endl;
+	cerr << "		Greetings in payload data size " << dec << payload->data_size << endl;
 	
 	//copy data_buffer over
+	if(payload->data_size > g_knob_line_size) {
+		cerr << "****ERROR **** dataIsze > g_knob_line_size: ...... data_size = " << payload->data_size << endl;
+	}
+	
 	assert (payload->data_size <= g_knob_line_size);
 
 	if (payload->data_size > 0)
@@ -910,6 +937,7 @@ void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, AckPayload* payl
 	
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
 	
+	cerr << "		[ack extract] Greetings in payload data size " << dec << payload->data_size << endl;
 	assert( payload->data_size <= g_knob_line_size );
 	
 	if(payload->data_size > 0)

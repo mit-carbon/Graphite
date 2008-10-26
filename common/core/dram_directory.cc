@@ -89,6 +89,7 @@ void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT3
 
 void DramDirectory::processWriteBack(NetPacket wb_packet)
 {
+	cerr << "processing writeback" << endl;
 	MemoryManager::AckPayload payload; //TODO is it always acks? i think not! :(
 	char data_buffer[bytes_per_cache_line];
 
@@ -98,6 +99,7 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 	copyDataToDram(payload.ack_address, data_buffer); //is data size needed? , data_size);
 	
 	runDramAccessModel();
+	cerr << "finished processing writeback" << endl;
 }
 
 /* ======================================================== */
@@ -155,17 +157,20 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 	sendDataLine(); //Dram cost model
 */
 	/* ============================================================== */
+   stringstream ss;
 
   	// extract relevant values from incoming request packet
 	shmem_req_t shmem_req_type = (shmem_req_t)((MemoryManager::RequestPayload*)(req_packet.data))->request_type;
   	ADDRINT address = ((MemoryManager::RequestPayload*)(req_packet.data))->request_address;
   	UINT32 requestor = req_packet.sender;
   
-//   cerr << " Requested Address: " << hex << address << endl;
-
   	DramDirectoryEntry* dram_dir_entry = this->getEntry(address);
   	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
    CacheState::cstate_t new_cstate;
+
+	ss.str("");
+	ss << "Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
+	debugPrint(dram_id, "DRAMDIR", ss.str());
 
 	switch( shmem_req_type ) {
 	
@@ -181,8 +186,10 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			}
 			else
 			{
+				cerr << "OH HAI SSTARTING" << endl;
 				invalidateSharers(dram_dir_entry);
 				dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
+				cerr << "OH HAI FINISHED" << endl;
 			}
 		break;
 
@@ -299,6 +306,7 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	upd_payload.update_new_cstate = new_cstate;
 	ADDRINT address = dram_dir_entry->getMemLineAddress();
 	upd_payload.update_address= address;
+	upd_payload.data_size = 0;
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), dram_id, current_owner);
 	
 	the_network->netSend(packet);
@@ -315,10 +323,8 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	// assert a few things in the ack packet (sanity checks)
 	MemoryManager::AckPayload ack_payload;
 	//null because we aren't interested in extracting the data_buffer here
-	char* data_buffer;
-
-	data_buffer = (char*) malloc (g_knob_line_size);
-	MemoryManager::extractAckPayloadBuffer(&wb_packet, &ack_payload, data_buffer); //TODO the data_buffer here isn't used! remove it from the code! MEMORY LEAK
+	char data_buffer[(int) g_knob_line_size];
+	MemoryManager::extractAckPayloadBuffer(&wb_packet, &ack_payload, data_buffer); //TODO the data_buffer here isn't used! 
 	
 	assert((unsigned int)(wb_packet.sender) == current_owner);
 	assert(wb_packet.type == SHARED_MEM_ACK);
@@ -332,7 +338,7 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	// TODO DOES THIS CASE EVER HAPPEN? ie, an owner that had already been evicted
 	// did the former owner invalidate it already? if yes, we should remove him from the sharers list
 //	assert( ack_payload.remove_from_sharers == false );
-	if( ack_payload.remove_from_sharers == false ) 
+	if( ack_payload.remove_from_sharers != false ) 
 		cerr << "*** ERROR ***** DRAM DIRECTORY: DEMOTE OWNER.  OWNER HAS EVICTED ADDRESS, AND THE DRAM DIR WAS NOT UPDATED!!!!! ***** " << endl;
 	
 	if( new_cstate == CacheState::INVALID || ack_payload.remove_from_sharers )
@@ -354,15 +360,14 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 	//TODO I'm not positive this address is correctly calculated!
 	vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
 	
+	// send message to sharer to invalidate it
 	for(UINT32 i = 0; i < sharers_list.size(); i++) 
 	{
-		// send message to sharer to invalidate it
-		 
 		MemoryManager::UpdatePayload payload;
 		payload.update_new_cstate = CacheState::INVALID;
 		payload.update_address = address;
+		payload.data_size = 0;
 		NetPacket packet = MemoryManager::makePacket( SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, sharers_list[i]);
-//		packet.data = (char *)(&payload);
 		the_network->netSend(packet);
   }
   

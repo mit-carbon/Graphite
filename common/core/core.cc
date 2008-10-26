@@ -230,7 +230,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 
 		if (data_size <= 0) {
 			return (true);
-			// FIXME: Why false - we are not encountering any cache misses anyway
+			// TODO: this is going to affect the statistics even though no shared_mem action is taking place
 		}
 
 		ADDRINT begin_addr = d_addr;
@@ -244,7 +244,6 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 		for (ADDRINT curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += ocache->dCacheLineSize())
 		{
 			// Access the cache one line at a time
-//			ADDRINT curr_offset;
 			UINT32 curr_offset;
 			UINT32 curr_size;
 
@@ -265,8 +264,12 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			else {
 				curr_size = ocache->dCacheLineSize() - (curr_offset);
 			}
+         
+			stringstream ss;
+			ss.str("");
+			ss << "[" << getRank() << "] start InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
+			debugPrint(getRank(), "CORE", ss.str());
 
-			cerr << "[" << getRank() << "] start InitiateSharedMemReq " << endl;
 			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
 				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
 				// If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head

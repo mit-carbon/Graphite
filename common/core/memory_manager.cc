@@ -148,7 +148,7 @@ void MemoryManager::setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t ne
 //the core can read or write the fill buffer
 void MemoryManager::readFillBuffer( UINT32 offset, char* data_buffer, UINT32 data_size)
 {
-	assert( (offset + data_size) < ocache->dCacheLineSize() );
+	assert( (offset + data_size) <= ocache->dCacheLineSize() );
 	
 	for(unsigned int i=0; i < data_size; i++)
 		data_buffer[i] = fill_buffer[offset + i];
@@ -156,10 +156,27 @@ void MemoryManager::readFillBuffer( UINT32 offset, char* data_buffer, UINT32 dat
 
 void MemoryManager::writeFillBuffer(UINT32 offset, char* data_buffer, UINT32 data_size)
 {
+	debugPrint(the_core->getRank(), "MMU", "writeFullBuffer");
 	assert( (offset + data_size) < ocache->dCacheLineSize() );
+
+	cerr << " Write Data   : ";
+	for(unsigned int i=0; i < data_size; i++)
+		cerr << hex << (int) data_buffer[i];
+	cerr << endl;
+
+	cerr << " Buffer Before: ";
+	for(unsigned int i=0; i < g_knob_line_size; i++)
+		cerr << hex << (int) fill_buffer[i];
+	cerr << endl;
 
 	for(unsigned int i=0; i < data_size; i++)
 		fill_buffer[offset+i] = data_buffer[i];
+	
+	cerr << " Buffer After : ";
+	for(unsigned int i=0; i < g_knob_line_size; i++)
+		cerr << hex << (int) fill_buffer[i];
+	cerr << endl;
+
 }
 
 //get cacheLineInfo
@@ -195,6 +212,7 @@ void MemoryManager::readCacheLineData(ADDRINT ca_address, UINT32 offset, char* d
 
 }
 
+//TODO remember, the data_size isn't always the entire cache_line!
 void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size)
 {
 
@@ -209,12 +227,31 @@ void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* 
 
    pair<bool, CacheTag*> result;
 
+	cerr << "CA ADDRESS: " << hex << ca_address << endl;
+	cerr << "offset    : " << dec << ( ca_address & (ocache->dCacheLineSize() -1) ) << endl;
+	cerr << "line size : " << dec << ocache->dCacheLineSize() << endl;
 
+	debugPrint(the_core->getRank(), "MMU", "Start Access (1)");
 	result = ocache->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE,
 										&fail_need_fill, NULL,
-										data_buffer, line_size,
+										data_buffer, data_size,
 										&eviction, &evict_addr, evict_buff);
+
+	debugPrint(the_core->getRank(), "MMU", "End   Access (1)");
 	
+	cerr << "Fail_Need_Fill" << ( fail_need_fill ? " TRUE " : " FALSE ") << endl;
+	
+	if(fail_need_fill) {
+		assert( data_size == ocache->dCacheLineSize() );
+		debugPrint(the_core->getRank(), "MMU", "Start Access (2)");
+		result = ocache->accessSingleLine(ca_address, CacheBase::k_ACCESS_TYPE_STORE,
+											NULL, data_buffer,
+											NULL, 0,
+											&eviction, &evict_addr, evict_buff);
+		debugPrint(the_core->getRank(), "MMU", "End   Access (2)");
+	}
+
+
 /*	result = ocache->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE,
 										NULL, data_buffer,
 										data_buffer, data_size,
@@ -223,6 +260,8 @@ void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* 
 
 	if(eviction) 
 	{
+		debugPrint(the_core->getRank(), "MMU", "writeCacheLineData: Evicting Line");
+		
 		//TODO can race conditions occur due to eviction messages?
 		//send write-back to dram
 		//TODO make sure I'm requesting the right size
@@ -363,7 +402,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	if( action_readily_permissable(curr_cstate, shmem_req_type) )
    {
 		ss.str("");
-		ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - action permissable";
+		ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - action permissable, ADDR: " << hex << ca_address << " , offset: " << dec << addr_offset << ", buffer_size: " << dec << buffer_size;
 		debugPrint(the_core->getRank(), "MMU", ss.str());
 
 		assert( native_cache_hit == true );

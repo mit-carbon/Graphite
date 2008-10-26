@@ -43,8 +43,8 @@ int main(int argc, char* argv[])
       test 1: load (cold miss) 
    */
    cout << "**** running test 1 ****" << endl;
-   memset(buff, 0, DC_BLOCKSIZE);
-   memset(fill_buff, 'a', DC_BLOCKSIZE);
+   memset( buff, 0, DC_BLOCKSIZE );
+   memset( fill_buff, 'a', DC_BLOCKSIZE );
    addr = dummy;
    access_type = CacheBase::k_ACCESS_TYPE_LOAD;
    res = dc->accessSingleLine(addr, access_type, 
@@ -60,17 +60,17 @@ int main(int argc, char* argv[])
 			      buff, DC_BLOCKSIZE,
 			      &eviction, &evict_addr, evict_buff);
    assert( res.first == false );
-   assert( res.second != NULL );
+   assert( res.second != NULL ); //why is this != NULL?
    assert( eviction == false );
    //buff should be equal to the fill
    for(UINT32 i = 0; i < DC_BLOCKSIZE; i++)
    {
       char tmp = 'a';
       if ( fill_buff[i] != tmp )
-	cout << "got unexpected value at fill_buff[" << i << "]: " << fill_buff[i] << endl;
+			cout << "got unexpected value at fill_buff[" << i << "]: " << fill_buff[i] << endl;
 
       if ( buff[i] != tmp )
-	cout << "got unexpected value at buff[" << i << "]: " << buff[i] << endl;
+			cout << "got unexpected value at buff[" << i << "]: " << buff[i] << endl;
       assert(buff[i] == tmp);
    }
    cout << "**** test 1 passed  ****" << endl << endl;
@@ -98,10 +98,10 @@ int main(int argc, char* argv[])
    {
       char tmp = 'a';
       if ( scratch[i] != tmp )
-	cout << "got unexpected value at scratch[" << i << "]: " << scratch[i] << endl;
+			cout << "got unexpected value at scratch[" << i << "]: " << scratch[i] << endl;
 
       if ( buff[i] != tmp )
-	cout << "got unexpected value at buff[" << i << "]: " << buff[i] << endl;
+			cout << "got unexpected value at buff[" << i << "]: " << buff[i] << endl;
       assert(buff[i] == tmp);
    }
    cout << "**** test 2 passed  ****" << endl << endl;

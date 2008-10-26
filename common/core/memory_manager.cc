@@ -190,15 +190,15 @@ void MemoryManager::readCacheLineData(ADDRINT ca_address, UINT32 offset, char* d
 {
 
 	//assumes that the cache_line is already in the cache
-   UINT32 line_size = ocache->dCacheLineSize();
+   	UINT32 line_size = ocache->dCacheLineSize();
 	bool fail_need_fill;
 
 	//TODO do i need this here? we're not doing a STORE
-   bool eviction;
-   ADDRINT evict_addr;
-   char evict_buff[line_size];
+   	bool eviction;
+   	ADDRINT evict_addr;
+   	char evict_buff[line_size];
 
-   pair<bool, CacheTag*> result;
+   	pair<bool, CacheTag*> result;
 	ADDRINT addr = ca_address + offset;
 
 	result = ocache->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD,
@@ -239,7 +239,7 @@ void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* 
 
 	debugPrint(the_core->getRank(), "MMU", "End   Access (1)");
 	
-	cerr << "Fail_Need_Fill" << ( fail_need_fill ? " TRUE " : " FALSE ") << endl;
+	cerr << "Fail_Need_Fill" << (fail_need_fill ? " TRUE " : " FALSE ") << endl;
 	
 	if(fail_need_fill) {
 		assert( data_size == ocache->dCacheLineSize() );
@@ -730,7 +730,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			payload_size = sizeof(payload) + ocache->dCacheLineSize();
 			payload_buffer = new char[payload_size];
 			// FIXME: Why dont you allocate this on the stack
-			// char payload_buffer[payload_size]
+			// char payload_buffer[payload_size];
 			payload.data_size = ocache->dCacheLineSize();
 			payload.remove_from_sharers = false;
 			createAckPayloadBuffer(&payload, writeback_data, payload_buffer, payload_size);

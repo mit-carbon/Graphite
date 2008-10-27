@@ -269,6 +269,7 @@ void MemoryManager::writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* 
 		AckPayload payload;
 		payload.ack_address = evict_addr;
 		payload.is_writeback = true;
+		payload.is_eviction = true;
 		UINT32 payload_size = sizeof(payload) + ocache->dCacheLineSize();
 		payload.data_size = ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
@@ -741,16 +742,18 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
   	// extract relevant values from incoming request packet
 
 #ifdef MMU_DEBUG
-	ss << "Unexpected: address: " << hex << address;
+	ss << "Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
+	ss << "Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
+	debugPrint(the_core->getRank(), "MMU", ss.str());
 
 	//TODO rename CacheTag to CacheLineInfo
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
-   	// if it is null, it means the address has been invalidated
-   	CacheState::cstate_t current_cstate = ( cache_model_results.second != NULL ) ?
-																							cache_model_results.second->getCState() :
-																							CacheState::INVALID;
+   // if it is null, it means the address has been invalidated
+   CacheState::cstate_t current_cstate = ( cache_model_results.second != NULL ) ?
+																						cache_model_results.second->getCState() :
+																						CacheState::INVALID;
 																							
    // send back acknowledgement of receiveing this message
    // initialize packet payload for downgrade
@@ -760,7 +763,9 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    char writeback_data[ocache->dCacheLineSize()]; 
 	
 	UINT32 payload_size = 0;
-	char* payload_buffer = NULL;
+//	char* payload_buffer = NULL;
+	char payload_buffer[ocache->dCacheLineSize()];
+
 
 	switch( current_cstate ) {
 
@@ -770,10 +775,9 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			//send data for write-back
 			readCacheLineData(address, 0, writeback_data, ocache->dCacheLineSize());
 			payload_size = sizeof(payload) + ocache->dCacheLineSize();
-			payload_buffer = new char[payload_size];
-			// FIXME: Why dont you allocate this on the stack
-			//char payload_buffer[payload_size]
+//			payload_buffer = new char[payload_size];
 			payload.is_writeback = true;
+			payload.is_eviction = false; //TODO is this true? code-review DRAM to make sure it handles setting the sharer's list correctly
 			payload.data_size = ocache->dCacheLineSize();
 			payload.remove_from_sharers = false;
 			createAckPayloadBuffer(&payload, writeback_data, payload_buffer, payload_size);
@@ -787,10 +791,9 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			cache_model_results.second->setCState(new_cstate);
 			
 			payload_size = sizeof(payload);
-			payload_buffer = new char[payload_size];
-			// FIXME: Why dont you allocate this on the stack
-			// char payload_buffer[payload_size]
+//			payload_buffer = new char[payload_size];
 			payload.is_writeback = false;
+			payload.is_eviction = false;
 			payload.data_size = 0;
 			payload.remove_from_sharers = false;
 			createAckPayloadBuffer(&payload, NULL, payload_buffer, payload_size);
@@ -801,12 +804,12 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			break;
 		
 		case CacheState::INVALID:
+			
+			debugPrint(the_core->getRank(), "CORE", " processUnexpectedShareMemReq: ERROR ******** CACHE STATE INVALID ********* (I should've given eviction info to dram_dir)");
 			//address has been invalidated -> tell directory to remove us from sharers' list
 			payload_size = sizeof(payload);
-			payload_buffer = new char[payload_size];
-			// FIXME: Why dont you allocate this on the stack
-			// char payload_buffer[payload_size]
 			payload.is_writeback = false;
+			payload.is_eviction = false;
 			payload.data_size = 0;
 			payload.remove_from_sharers = true;
 			createAckPayloadBuffer(&payload, NULL, payload_buffer, payload_size);
@@ -822,7 +825,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    
   (the_core->getNetwork())->netSend(packet);
   
-  delete[] payload_buffer;
+//  delete[] payload_buffer;
 
 #ifdef MMU_DEBUG	
 //	dram_dir->print();
@@ -932,6 +935,7 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 		cerr << "****ERROR **** dataIsze > g_knob_line_size: ...... data_size = " << payload->data_size << endl;
 	}
 	
+	cerr << "		[update extract] Greetings in payload data size " << dec << payload->data_size << endl;
 	assert (payload->data_size <= g_knob_line_size);
 
 	if (payload->data_size > 0)

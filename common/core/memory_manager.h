@@ -116,10 +116,11 @@ class MemoryManager
 		ADDRINT ack_address;
 		UINT32 data_size; //this is used to tell us how much data to extract 
 		bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
+		BOOL is_eviction; // need to know if "is_writeback" is true, if also is an eviction 
 		//if sent a downgrade message (E->S), but cache
 		//no longer has the line, send a bit to tell dram directory
 		//to remove it from the sharers' list
-		BOOL remove_from_sharers;
+		BOOL remove_from_sharers; //DEPRECATED
 	};
 
 	MemoryManager(Core *the_core_arg, OCache *ocache_arg);

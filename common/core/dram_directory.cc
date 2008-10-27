@@ -89,17 +89,31 @@ void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT3
 
 void DramDirectory::processWriteBack(NetPacket wb_packet)
 {
-//	cerr << "processing writeback" << endl;
-	MemoryManager::AckPayload payload; //TODO is it always acks? i think not! :(
+	cerr << endl << "processing writeback" << endl << endl;
+	
+	this->print();
+
+	MemoryManager::AckPayload payload; //TODO writebacks must always be an Ackpayload
 	char data_buffer[bytes_per_cache_line];
 
 	MemoryManager::extractAckPayloadBuffer(&wb_packet, &payload, data_buffer); 
-	assert( payload.is_writeback );
 	
 	copyDataToDram(payload.ack_address, data_buffer); //is data size needed? , data_size);
 	
+	if( payload.is_eviction ) {
+		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
+		dir_entry->removeSharer( wb_packet.sender );
+	}
+
+	this->print();
+	
+	assert( payload.is_writeback );
+	
 	runDramAccessModel();
-//	cerr << "finished processing writeback" << endl;
+	
+	cerr << endl;
+	cerr << "finished processing writeback" << endl;
+	cerr << endl;
 }
 
 /* ======================================================== */
@@ -284,6 +298,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	char payload_buffer[payload_size];
 	payload.data_size = data_size;
 	payload.is_writeback = false;
+//	payload.is_eviction = false;
 	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	
@@ -308,6 +323,7 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	ADDRINT address = dram_dir_entry->getMemLineAddress();
 	upd_payload.update_address= address;
 	upd_payload.is_writeback = false;
+//	upd_payload.is_eviction = false;
 	upd_payload.data_size = 0;
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), dram_id, current_owner);
 	
@@ -370,6 +386,7 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 		payload.update_address = address;
 		payload.data_size = 0;
 		payload.is_writeback = false;
+//		payload.is_eviction = false;
 		NetPacket packet = MemoryManager::makePacket( SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, sharers_list[i]);
 		the_network->netSend(packet);
   }

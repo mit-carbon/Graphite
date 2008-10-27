@@ -103,7 +103,7 @@ void* do_nothing(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
    
-   int size = 1;
+   int size = 10;
    global_integer = 10;
    global_integer_ptr = &global_integer;
    if(tid==0) {
@@ -151,11 +151,20 @@ void instrument_me()
 
    cout << "inside instrument me, size=" << size << endl;
    int array[size];
+   int x;
 
    for(int i=1; i < size-1; i++) {
 		array[i] = array[i-1] + i + (int) global_integer_ptr + array[i+1];
    }
    
+   for(int i=1; i < size-1; i++) {
+		x = array[i];
+	}
+
+	for(int i=1; i < size-1; i++) {
+		array[i] = x;
+	}
+
 	pthread_mutex_lock(&lock);
 
    cout << "inside lock " << endl;

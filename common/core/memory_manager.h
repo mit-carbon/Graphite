@@ -102,6 +102,12 @@ class MemoryManager
 		shmem_req_t request_type;
 		ADDRINT request_address;
 		UINT32 request_num_bytes; 
+
+		RequestPayload()
+			: request_type(READ), 
+				request_address(0), 
+				request_num_bytes(0)
+		{}
 	};	
 
 	struct UpdatePayload {
@@ -109,6 +115,13 @@ class MemoryManager
 		ADDRINT update_address;
 		UINT32 data_size; //in bytes
 		bool is_writeback; //is this payload serving as a writeback message to dram?
+		
+		UpdatePayload()
+			: update_new_cstate(CacheState::INVALID), 
+				update_address(0),
+				data_size(0),
+				is_writeback(false)
+		{}
 	};
 
 	struct AckPayload {
@@ -121,6 +134,15 @@ class MemoryManager
 		//no longer has the line, send a bit to tell dram directory
 		//to remove it from the sharers' list
 		BOOL remove_from_sharers; //DEPRECATED
+		
+		AckPayload()
+			:	ack_new_cstate(CacheState::INVALID),
+				ack_address(0),
+				data_size(0),
+				is_writeback(false),
+				is_eviction(false),
+				remove_from_sharers(false)
+		{}
 	};
 
 	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
@@ -128,17 +150,10 @@ class MemoryManager
 
 	/**** Added for Data Sharing ****/	
 	
-	void setCacheLineCState(CacheTag* c_line_info, CacheState::cstate_t new_cstate);
-
-	void readFillBuffer( UINT32 offset, char* data_buffer, UINT32 data_size);
-	void writeFillBuffer(UINT32 offset, char* data_buffer, UINT32 data_size);
-	
 	//cache interfacing functions.
-	//TODO these functions should probably be moved into the ocache interface!
 	void setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t new_cstate);
 	pair<bool, CacheTag*> getCacheLineInfo(ADDRINT address);
-	void readCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
-	void writeCacheLineData(ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
+	void accessCacheLineData(CacheBase::AccessType access_type, ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
 	void invalidateCacheLine(ADDRINT address);
 	
 	//request from DRAM permission to use an address

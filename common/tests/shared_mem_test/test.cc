@@ -179,9 +179,9 @@ void BARRIER_DUAL_CORE(int tid)
 void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code)
 {
 	cerr << endl << endl;
-   cerr << "   ******************************************************************************************************" << endl;
+   cerr << "   *****************************************************************************************************************" << endl;
 	cerr << "   ************* " << test_code << endl;
-	cerr << "   ******************************************************************************************************" << endl;                    
+	cerr << "   *****************************************************************************************************************" << endl;                    
 
 	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list);
 }     

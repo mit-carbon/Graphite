@@ -89,31 +89,37 @@ void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT3
 
 void DramDirectory::processWriteBack(NetPacket wb_packet)
 {
-	cerr << endl << "processing writeback" << endl << endl;
+//	cerr << endl << "processing writeback" << endl << endl;
 	
-	this->print();
+//is it always acks? i think not! 
+//	this->print();
 
-	MemoryManager::AckPayload payload; //TODO writebacks must always be an Ackpayload
+	MemoryManager::AckPayload payload; 
 	char data_buffer[bytes_per_cache_line];
 
 	MemoryManager::extractAckPayloadBuffer(&wb_packet, &payload, data_buffer); 
 	
 	copyDataToDram(payload.ack_address, data_buffer); //is data size needed? , data_size);
 	
+	if( !payload.is_writeback ) {
+		//it is possible that we expected write-back message, but core had evicted the line
+		//and dram has not gotten the write-back message yet
+		//TODO stop us from running processWriteBack if that is the case!
+		return;
+	}
+	
 	if( payload.is_eviction ) {
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
 	}
 
-	this->print();
-	
-	assert( payload.is_writeback );
+//	this->print();
 	
 	runDramAccessModel();
 	
-	cerr << endl;
-	cerr << "finished processing writeback" << endl;
-	cerr << endl;
+//	cerr << endl;
+//	cerr << "finished processing writeback" << endl;
+//	cerr << endl;
 }
 
 /* ======================================================== */
@@ -200,10 +206,8 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			}
 			else
 			{
-//				cerr << "OH HAI SSTARTING Invalidating Sharers" << endl;
 				invalidateSharers(dram_dir_entry);
 				dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
-//				cerr << "OH HAI FINISHED Invalidating Sharers" << endl;
 			}
 		break;
 
@@ -312,18 +316,17 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 {
 	//demote exclusive owner
 	assert( dram_dir_entry->numSharers() == 1 );
+	assert( dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE );
 	assert( new_cstate == CacheState::SHARED || new_cstate == CacheState::INVALID );
 
-	unsigned int current_owner = dram_dir_entry->getExclusiveSharerRank();
+	UINT32 current_owner = dram_dir_entry->getExclusiveSharerRank();
 
 	// reqeust a write back data payload and downgrade to new_dstate
-//	MemoryManager::AckPayload payload; //this was orginally here, but i don't think ackpayload is correct.
 	MemoryManager::UpdatePayload upd_payload;
 	upd_payload.update_new_cstate = new_cstate;
 	ADDRINT address = dram_dir_entry->getMemLineAddress();
 	upd_payload.update_address= address;
 	upd_payload.is_writeback = false;
-//	upd_payload.is_eviction = false;
 	upd_payload.data_size = 0;
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), dram_id, current_owner);
 	
@@ -353,12 +356,8 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	CacheState::cstate_t received_new_cstate = ack_payload.ack_new_cstate; 
 	assert(received_new_cstate == new_cstate);
 	
-	// TODO DOES THIS CASE EVER HAPPEN? ie, an owner that had already been evicted
 	// did the former owner invalidate it already? if yes, we should remove him from the sharers list
-//	assert( ack_payload.remove_from_sharers == false );
-	if( ack_payload.remove_from_sharers != false ) 
-		cerr << "*** ERROR ***** DRAM DIRECTORY: DEMOTE OWNER.  OWNER HAS EVICTED ADDRESS, AND THE DRAM DIR WAS NOT UPDATED!!!!! ***** " << endl;
-	
+	// can happen in race situation: write-back eviction message is in flight while DRAM demotes core
 	if( new_cstate == CacheState::INVALID || ack_payload.remove_from_sharers )
 		dram_dir_entry->removeSharer( current_owner );
 

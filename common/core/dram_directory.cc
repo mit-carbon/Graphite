@@ -166,7 +166,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
   
   	DramDirectoryEntry* dram_dir_entry = this->getEntry(address);
   	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
-   CacheState::cstate_t new_cstate;
+   	CacheState::cstate_t new_cstate;
 
 	ss.str("");
 	ss << "Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
@@ -279,7 +279,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	UINT32 data_size;
 	dram_dir_entry->getDramDataLine(data_buffer, &data_size);
 	
-	assert( data_size == bytes_per_cache_line );
+	assert (data_size == bytes_per_cache_line);
 	UINT32 payload_size = sizeof(payload) + data_size;
 	char payload_buffer[payload_size];
 	payload.data_size = data_size;

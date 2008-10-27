@@ -1,6 +1,6 @@
-FORCE32 ?= 0
+FORCE32 ?= 1
 
-CC = g++
+CC = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
 
 ifeq (${FORCE32},1)
   CFLAGS = -I../../user -I../../phys_trans -c -g -Wall -m32

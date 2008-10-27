@@ -89,7 +89,7 @@ void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT3
 
 void DramDirectory::processWriteBack(NetPacket wb_packet)
 {
-	cerr << "processing writeback" << endl;
+//	cerr << "processing writeback" << endl;
 	MemoryManager::AckPayload payload; //TODO is it always acks? i think not! :(
 	char data_buffer[bytes_per_cache_line];
 
@@ -99,7 +99,7 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 	copyDataToDram(payload.ack_address, data_buffer); //is data size needed? , data_size);
 	
 	runDramAccessModel();
-	cerr << "finished processing writeback" << endl;
+//	cerr << "finished processing writeback" << endl;
 }
 
 /* ======================================================== */
@@ -186,10 +186,10 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			}
 			else
 			{
-				cerr << "OH HAI SSTARTING" << endl;
+//				cerr << "OH HAI SSTARTING Invalidating Sharers" << endl;
 				invalidateSharers(dram_dir_entry);
 				dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
-				cerr << "OH HAI FINISHED" << endl;
+//				cerr << "OH HAI FINISHED Invalidating Sharers" << endl;
 			}
 		break;
 
@@ -273,7 +273,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	
 	stringstream ss;
 	ss << " Sending Back UpdateAddr: " << hex << payload.update_address;
-//	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
+	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
 
 	char data_buffer[bytes_per_cache_line];
 	UINT32 data_size;
@@ -283,12 +283,13 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	UINT32 payload_size = sizeof(payload) + data_size;
 	char payload_buffer[payload_size];
 	payload.data_size = data_size;
+	payload.is_writeback = false;
 	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	
 //	debugPrint(dram_id, "DRAM: SendDataLine", "sending update expected packet");
 	the_network->netSend(packet);
-//	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
+	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
 
 }
 
@@ -306,6 +307,7 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	upd_payload.update_new_cstate = new_cstate;
 	ADDRINT address = dram_dir_entry->getMemLineAddress();
 	upd_payload.update_address= address;
+	upd_payload.is_writeback = false;
 	upd_payload.data_size = 0;
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), dram_id, current_owner);
 	
@@ -367,6 +369,7 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 		payload.update_new_cstate = CacheState::INVALID;
 		payload.update_address = address;
 		payload.data_size = 0;
+		payload.is_writeback = false;
 		NetPacket packet = MemoryManager::makePacket( SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, sharers_list[i]);
 		the_network->netSend(packet);
   }

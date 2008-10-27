@@ -1,7 +1,7 @@
 //TODO also take care of write-backs on Ack payloads (processUnexpectedSharedMem)
 
 #include "memory_manager.h"
-#define MMU_DEBUG
+//#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
@@ -273,6 +273,7 @@ bool debug_evict1 = eviction;
 		payload.data_size = ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
 		
+		cerr << "Eviction Payload DataSize: " << payload.data_size << endl;
 		createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
 		//TODO do i need to create a new network packetType for write-backs?
 		//since we do NOT want to run "processUnexpectedSharedMemUpdate", but rather "processWribteBack"
@@ -318,12 +319,15 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	// send message here to home directory node to request data
 	//packet.type, sender, receiver, packet.length
 	NetPacket packet = makePacket(SHARED_MEM_REQ, (char *)(&payload), sizeof(RequestPayload), the_core->getRank(), home_node_rank); 
-
+   cerr << "requestPermission: netSend start" << endl;
 	(the_core->getNetwork())->netSend(packet);
+   cerr << "requestPermission: netSend end" << endl;
 
 	// receive the requested data (blocking receive)
 	NetMatch net_match = makeNetMatch( SHARED_MEM_UPDATE_EXPECTED, home_node_rank );
+   cerr << "requestPermission: netRecv start" << endl;
 	NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+   cerr << "requestPermission: netRecv end" << endl;
 	
 	/* ===================================================== */
 	/* ============== Handle Update Payload ================ */
@@ -768,7 +772,8 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			payload_size = sizeof(payload) + ocache->dCacheLineSize();
 			payload_buffer = new char[payload_size];
 			// FIXME: Why dont you allocate this on the stack
-			// char payload_buffer[payload_size]
+			//char payload_buffer[payload_size]
+			payload.is_writeback = true;
 			payload.data_size = ocache->dCacheLineSize();
 			payload.remove_from_sharers = false;
 			createAckPayloadBuffer(&payload, writeback_data, payload_buffer, payload_size);
@@ -785,6 +790,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			payload_buffer = new char[payload_size];
 			// FIXME: Why dont you allocate this on the stack
 			// char payload_buffer[payload_size]
+			payload.is_writeback = false;
 			payload.data_size = 0;
 			payload.remove_from_sharers = false;
 			createAckPayloadBuffer(&payload, NULL, payload_buffer, payload_size);
@@ -800,6 +806,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			payload_buffer = new char[payload_size];
 			// FIXME: Why dont you allocate this on the stack
 			// char payload_buffer[payload_size]
+			payload.is_writeback = false;
 			payload.data_size = 0;
 			payload.remove_from_sharers = true;
 			createAckPayloadBuffer(&payload, NULL, payload_buffer, payload_size);
@@ -864,7 +871,7 @@ bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstat
 
 void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)
 {
-	debugPrint(-1, "MMU", "createUpdatePayloadbuffer START");
+//	debugPrint(-1, "MMU", "createUpdatePayloadbuffer START");
 	
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );
@@ -874,6 +881,8 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 
 	//this is very important on the recieving end, so the extractor knows how big data_size is
    assert( send_payload->data_size == (payload_size - sizeof(*send_payload)) );
+	
+ //  cerr << "Sending UpdatPayload.data_size = " << send_payload->data_size << endl;
 	
 	//copy data_buffer over
 	if(send_payload->data_size > g_knob_line_size) {
@@ -886,12 +895,12 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	if(data_buffer != NULL) 
 		memcpy ((void*) (payload_buffer + sizeof(*send_payload)), (void*) data_buffer, payload_size - sizeof(*send_payload));
 	
-	debugPrint(-1, "MMU", "createUpdatePayloadbuffer END");
+//	debugPrint(-1, "MMU", "createUpdatePayloadbuffer END");
 }
 
 void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)
 {
-	debugPrint(-1, "MMU", "createAckPayloadbuffer START");
+//	debugPrint(-1, "MMU", "createAckPayloadbuffer START");
 	
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );
@@ -899,6 +908,7 @@ void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data
 	//this is very important on the recieving end, so the extractor knows how big data_size is
    assert( send_payload->data_size == (payload_size - sizeof(*send_payload)) );
 
+//	cerr << "Sending AckPayload.data_size = " << send_payload->data_size << endl;
 	//copy send_payload
 	memcpy ((void*) payload_buffer, (void*) send_payload, sizeof(*send_payload));
 	
@@ -906,16 +916,16 @@ void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data
 	if(data_buffer != NULL) 
 		memcpy ((void*) (payload_buffer + sizeof(*send_payload)), (void*) data_buffer, payload_size - sizeof(*send_payload));
 	
-	debugPrint(-1, "MMU", "createAckPayloadbuffer END");
+//	debugPrint(-1, "MMU", "createAckPayloadbuffer END");
 }
 
 void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer) 
 { 
-	debugPrint(-1, "MMU", "extractUpdatePayloadbuffer START");
+//	debugPrint(-1, "MMU", "extractUpdatePayloadbuffer START");
 	
 	//copy packet->data to payload (extract payload)
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
-	cerr << "		Greetings in payload data size " << dec << payload->data_size << endl;
+//	cerr << "		Greetings in payload data size " << dec << payload->data_size << endl;
 	
 	//copy data_buffer over
 	if(payload->data_size > g_knob_line_size) {
@@ -927,13 +937,13 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 	if (payload->data_size > 0)
 		memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(*payload) ), payload->data_size);
 
-	debugPrint(-1, "MMU", "extractUpdatePayloadbuffer END");
+//	debugPrint(-1, "MMU", "extractUpdatePayloadbuffer END");
 }
 
 //TODO should we turn payloads from structs to classes so we don't have to have seperate methods to do this stuff?
 void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, AckPayload* payload, char* data_buffer) 
 { 
-	debugPrint(-1, "MMU", "extractAckPayloadbuffer START");
+//	debugPrint(-1, "MMU", "extractAckPayloadbuffer START");
 	
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
 	
@@ -943,7 +953,7 @@ void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, AckPayload* payl
 	if(payload->data_size > 0)
 		memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(*payload) ), payload->data_size);
 
-	debugPrint(-1, "MMU", "extractAckPayloadbuffer END");
+//	debugPrint(-1, "MMU", "extractAckPayloadbuffer END");
 }
 
 

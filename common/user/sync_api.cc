@@ -4,22 +4,26 @@
 
 using namespace std;
 
-bool mutexInit(carbon_mutex_t *mux)
+void mutexInit(carbon_mutex_t *mux)
 {
    cerr << "Made it to the dummy mutexInit() function." << endl;
    assert(false);
 }
 
-bool mutexLock(carbon_mutex_t *mux)
+void mutexLock(carbon_mutex_t *mux)
 {
    cerr << "Made it to the dummy mutexLock() function." << endl;
    assert(false);
 }
 
-bool mutexUnlock(carbon_mutex_t *mux)
+void mutexUnlock(carbon_mutex_t *mux)
 {
    cerr << "Made it to the dummy mutexUnlock() function." << endl;
    assert(false);
 }
 
 
+bool isMutexValid(carbon_mutex_t *mux)
+{
+    return(!(*mux == -1));
+}

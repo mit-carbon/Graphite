@@ -7,9 +7,11 @@ typedef int carbon_mutex_t;
 // These are the dummy functions that will get replaced
 // by the simulator
 extern "C" {
-   bool mutexInit(carbon_mutex_t *mux);
-   bool mutexLock(carbon_mutex_t *mux);
-   bool mutexUnlock(carbon_mutex_t *mux);
+   void mutexInit(carbon_mutex_t *mux);
+   void mutexLock(carbon_mutex_t *mux);
+   void mutexUnlock(carbon_mutex_t *mux);
 }
+
+bool isMutexValid(carbon_mutex_t *mux);
 
 #endif

@@ -199,6 +199,7 @@ void MCPFinish()
 }
 
 
+
 // Chip class method definitions
 
 Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0) 

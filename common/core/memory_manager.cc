@@ -510,8 +510,6 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 	ss << "Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
-	ss << "Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
-	debugPrint(the_core->getRank(), "MMU", ss.str());
 
 	//TODO rename CacheTag to CacheLineInfo
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
@@ -572,7 +570,6 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 		
 		case CacheState::INVALID:
 			//THIS can happen due to race conditions where core evalidates at the same time dram sends demotion message
-			debugPrint(the_core->getRank(), "CORE", " processUnexpectedShareMemReq: ERROR ******** CACHE STATE INVALID ********* (I should've given eviction info to dram_dir)");
 			//address has been invalidated -> tell directory to remove us from sharers' list
 			payload_size = sizeof(payload);
 			payload.is_writeback = false;
@@ -592,10 +589,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    
   (the_core->getNetwork())->netSend(packet);
   
-//  delete[] payload_buffer;
-
 #ifdef MMU_DEBUG	
-//	dram_dir->print();
 	debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate");
 #endif	
 

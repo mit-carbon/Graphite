@@ -209,6 +209,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			else
 			{
 				invalidateSharers(dram_dir_entry);
+				dram_dir_entry->addExclusiveSharer(requestor);
 				dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
 			}
 		break;
@@ -390,7 +391,6 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 		payload.update_address = address;
 		payload.data_size = 0;
 		payload.is_writeback = false;
-//		payload.is_eviction = false;
 		NetPacket packet = MemoryManager::makePacket( SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, sharers_list[i]);
 		the_network->netSend(packet);
   }

@@ -702,7 +702,7 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 		cerr << "****ERROR **** dataIsze > g_knob_line_size: ...... data_size = " << payload->data_size << endl;
 	}
 	
-	cerr << "		[update extract] Greetings in payload data size " << dec << payload->data_size << endl;
+//	cerr << "		[update extract] Greetings in payload data size " << dec << payload->data_size << endl;
 	assert (payload->data_size <= g_knob_line_size);
 
 	if (payload->data_size > 0)
@@ -718,7 +718,7 @@ void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, AckPayload* payl
 	
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
 	
-	cerr << "		[ack extract] Greetings in payload data size " << dec << payload->data_size << endl;
+//	cerr << "		[ack extract] Greetings in payload data size " << dec << payload->data_size << endl;
 	assert( payload->data_size <= g_knob_line_size );
 	
 	if(payload->data_size > 0)

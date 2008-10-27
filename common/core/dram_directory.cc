@@ -188,9 +188,11 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
   	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
    	CacheState::cstate_t new_cstate;
 
+#ifdef DRAM_DEBUG
 	ss.str("");
 	ss << "Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
 	debugPrint(dram_id, "DRAMDIR", ss.str());
+#endif
 
 	switch( shmem_req_type ) {
 	
@@ -283,16 +285,18 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 //TODO rename this to something more descriptive about what it does (sending a memory line to another core)
 void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheState::cstate_t new_cstate)
 {
+	stringstream ss;
+#ifdef DRAM_DEBUG
+	ss << " Sending Back UpdateAddr: " << hex << payload.update_address;
+	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
+#endif	
+
    // initialize packet payload
 	MemoryManager::UpdatePayload payload;
 
 	payload.update_new_cstate = new_cstate;
 	payload.update_address = dram_dir_entry->getMemLineAddress();
 	
-	stringstream ss;
-	ss << " Sending Back UpdateAddr: " << hex << payload.update_address;
-	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
-
 	char data_buffer[bytes_per_cache_line];
 	UINT32 data_size;
 	dram_dir_entry->getDramDataLine(data_buffer, &data_size);
@@ -302,14 +306,15 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	char payload_buffer[payload_size];
 	payload.data_size = data_size;
 	payload.is_writeback = false;
-//	payload.is_eviction = false;
 	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	
 //	debugPrint(dram_id, "DRAM: SendDataLine", "sending update expected packet");
 	the_network->netSend(packet);
-	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
 
+#ifdef DRAM_DEBUG
+	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
+#endif
 }
 
 NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheState::cstate_t new_cstate)

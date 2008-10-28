@@ -8,13 +8,18 @@ common/phys_trans/transport.*
 # emacs temp files
 *~
 
+# vi temp files
+*.swp
+
 # test executables
 common/tests/pthreads_matmult/cannon
 common/tests/file_io/file_io
 common/tests/ping_pong/ping_pong
 common/tests/signals/signals
 common/tests/barnes/BARNES
-common/tests/mutex/mutes_test
+common/tests/mutex/mutex_test
+common/tests/cond/cond_test
+common/tests/broadcast/broadcast_test
 
 # test output
 pin.log

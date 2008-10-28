@@ -181,6 +181,7 @@ void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, Dra
 	cerr << endl << endl;
    cerr << "   *****************************************************************************************************************" << endl;
 	cerr << "   ************* " << test_code << endl;
+	cerr << "   ************* " << "ADDR: " << hex << address << " , DramID#: " << dec << dram_address_home_id << endl;
 	cerr << "   *****************************************************************************************************************" << endl;                    
 
 	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list);

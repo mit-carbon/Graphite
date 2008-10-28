@@ -229,8 +229,18 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			else
 			{
 				//do nothing. no need to contact other sharers in this case.
-				if(current_dstate == DramDirectoryEntry::UNCACHED)
+				ss.str("");
+				ss << " processSharedMemReq ------ READ, Not exclusive ---- Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
+				debugPrint(dram_id, "DRAMDIR", ss.str());
+				
+				if(current_dstate == DramDirectoryEntry::UNCACHED) {
+					ss.str("");
+					ss << " processSharedMemReq ------ UNCACHED ---- Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
+					debugPrint(dram_id, "DRAMDIR", ss.str());
+					
 					dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
+				}
+
 			}
 		}
 		break;
@@ -442,57 +452,55 @@ void DramDirectory::print()
 
 void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
 {
+	UINT32 data_line_index = (address / bytes_per_cache_line); 
+	assert( data_line_index >= 0);
 
-	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
-  
-	assert( cache_line_index >= 0);
-
-	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
+	DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
   
 	if( entry_ptr == NULL ) {
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
-		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
+		dram_directory_entries[data_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
-		entry_ptr = dram_directory_entries[cache_line_index];
+		entry_ptr = dram_directory_entries[data_line_index];
 	}
 
 	assert( entry_ptr != NULL );
 
-//	entry_ptr->dirDebugPrint();
-//	dram_directory_entries[cache_line_index]->setDState(dstate);
 	entry_ptr->setDState(dstate);
 	
 	//set sharer's list
 	entry_ptr->debugClearSharersList();
-//	entry_ptr->dirDebugPrint();
 	while(!sharers_list.empty())
 	{
 		assert( dstate != DramDirectoryEntry::UNCACHED );
 		UINT32 new_sharer = sharers_list.back();
-//		cerr << "ADDING SHARER-< " << new_sharer << " > " << endl;
 		sharers_list.pop_back();
 		entry_ptr->addSharer(new_sharer);
 	}
-//	entry_ptr->dirDebugPrint();
 }
 
 bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t	expected_dstate, vector<UINT32> expected_sharers_vector)
 {
 
-	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
-  
-	assert( cache_line_index >= 0);
+	stringstream ss;
+	ss << "DebugAssertDramState for ADDR: " << hex << address; 
+	debugPrint(dram_id, "DRAMDIR", ss.str());
 
-	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
+	UINT32 data_line_index = (address / bytes_per_cache_line); 
+  
+	assert( data_line_index >= 0);
+
+	DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
   
 	if( entry_ptr == NULL ) {
+		debugPrint(dram_id, "DRAMDIR", " debugAssertDramState: ENTRY IS NULL!!!!!!! " );
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
-		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
+		dram_directory_entries[data_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
 	}
 
-//	entry_ptr->dirDebugPrint();
-	DramDirectoryEntry::dstate_t actual_dstate = dram_directory_entries[cache_line_index]->getDState();
+	entry_ptr->dirDebugPrint();
+	DramDirectoryEntry::dstate_t actual_dstate = dram_directory_entries[data_line_index]->getDState();
 	bool is_assert_true = ( actual_dstate == expected_dstate ); 
 	
 	//copy STL vectors (which are just glorified stacks) and put data into array (for easier comparsion)

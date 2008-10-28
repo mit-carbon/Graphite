@@ -77,6 +77,9 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UINT32* line_size)
 //FIXME: is it necessary to track exclusive sharer rank here?
 bool DramDirectoryEntry::addSharer(UINT32 sharer_rank)
 {
+	
+	cerr << "ADDR: " << hex << memory_line_address << " , Adding Sharer (" << dec << sharer_rank << ") to Entry" << endl;
+	
 	if(!sharers->at(sharer_rank)) {
 		sharers->set(sharer_rank);
 		exclusive_sharer_rank = sharer_rank;

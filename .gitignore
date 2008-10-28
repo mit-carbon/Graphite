@@ -14,6 +14,7 @@ common/tests/file_io/file_io
 common/tests/ping_pong/ping_pong
 common/tests/signals/signals
 common/tests/barnes/BARNES
+common/tests/mutex/mutes_test
 
 # test output
 pin.log

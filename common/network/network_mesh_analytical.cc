@@ -1,4 +1,5 @@
 #include "network_mesh_analytical.h"
+#include "chip.h"
 #include <math.h>
 
 using namespace std;

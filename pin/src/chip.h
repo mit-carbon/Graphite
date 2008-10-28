@@ -81,6 +81,11 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
+// sync wrappers
+
+void SimMutexInit(carbon_mutex_t *mux);
+void SimMutexLock(carbon_mutex_t *mux);
+void SimMutexUnlock(carbon_mutex_t *mux);
 
 // MCP server wrappers
 void MCPRun();
@@ -124,6 +129,10 @@ class Chip
       friend void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
       friend void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
+      // sync wrappers
+      friend void SimMutexInit(carbon_mutex_t *mux);
+      friend void SimMutexLock(carbon_mutex_t *mux);
+      friend void SimMutexUnlock(carbon_mutex_t *mux);
       
       // organic cache modeling wrappers
       friend bool icacheRunLoadModel(int rank, ADDRINT i_addr, UINT32 size);

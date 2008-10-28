@@ -32,7 +32,6 @@
 #include "perfmdl.h"
 #include "knobs.h"
 #include "mcp.h"
-#include "sync_client.h"
 
 Chip *g_chip = NULL;
 Config *g_config = NULL;

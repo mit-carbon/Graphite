@@ -1,4 +1,5 @@
 #include "mcp_api.h"
+#include "capi.h"
 #include <pthread.h>
 #include <iostream>
 #include <unistd.h>

@@ -19,7 +19,7 @@ class SyscallMdl;
 #include "perfmdl.h"
 #include "ocache.h"
 #include "syscall_model.h"
-
+#include "sync_client.h"
 
 // externally defined vars
 
@@ -52,6 +52,7 @@ class Core
       PerfModel *perf_model;
       OCache *ocache;
       SyscallMdl *syscall_model;
+      SyncClient *sync_client;
 
    public:
 
@@ -65,6 +66,7 @@ class Core
       int coreRecvW(int sender, int receiver, char *buffer, int size);
 
       SyscallMdl *getSyscallMdl() { return syscall_model; }
+      SyncClient *getSyncClient() { return sync_client; }
 
       VOID fini(int code, VOID *v, ofstream& out);
 

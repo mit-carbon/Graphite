@@ -27,9 +27,6 @@ int main(int argc, char* argv[]){ // main begins
 
    initMCP();
 
-   mutexInit(&my_mux);
-
-
    // Read in the command line arguments
    const unsigned int numThreads = 1;
 
@@ -79,10 +76,17 @@ void* test_mutex(void *threadid)
   CAPI_rank(&tid);
 
   // Thread starts here
+
+  // FIXME: This should be in the main thread or something.
+  cerr << "Initializing the mutex." << endl;
+  mutexInit(&my_mux);
+  cerr << "After: " << hex << my_mux << endl;
   cerr << "Locking the mutex." << endl;
   mutexLock(&my_mux);
+  cerr << "After: " << hex << my_mux << endl;
   cerr << "Unlocking the mutex." << endl;
   mutexUnlock(&my_mux);
+  cerr << "After: " << hex << my_mux << endl;
   cerr << "Done with the mutex test." << endl;
 
   pthread_exit(NULL);

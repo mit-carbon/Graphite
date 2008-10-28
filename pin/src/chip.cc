@@ -185,6 +185,47 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       g_chip->core[rank].getSyscallMdl()->runExit(ctx, syscall_standard);
 }
 
+// Sync client wrappers
+
+void SimMutexInit(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexInit(commid, mux);
+}
+
+void SimMutexLock(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexLock(commid, mux);
+}
+
+void SimMutexUnlock(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexUnlock(commid, mux);
+}
+
 // MCP wrappers
 void MCPRun()
 {

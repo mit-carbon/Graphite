@@ -13,7 +13,7 @@
 class Chip;
 
 #include "config.h"
-#include "chip.h"
+//#include "chip.h"
 #include "transport.h"
 
 extern Config* g_config;

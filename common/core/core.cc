@@ -67,6 +67,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
 
    syscall_model = new SyscallMdl(network);
+   sync_client = new SyncClient(network);
 
    return 0;
 }

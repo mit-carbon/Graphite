@@ -1,4 +1,5 @@
 #include "network.h"
+#include "chip.h"
 
 using namespace std;
 

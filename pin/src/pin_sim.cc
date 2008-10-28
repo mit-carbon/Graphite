@@ -413,12 +413,31 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
         msg_ptr = AFUNPTR(SimMutexUnlock);
    }
+   else if(name == "condInit")
+   {
+        msg_ptr = AFUNPTR(SimCondInit);
+   }
+   else if(name == "condWait")
+   {
+        msg_ptr = AFUNPTR(SimCondWait);
+   }
+   else if(name == "condSignal")
+   {
+        msg_ptr = AFUNPTR(SimCondSignal);
+   }
+   else if(name == "condBroadcast")
+   {
+        msg_ptr = AFUNPTR(SimCondBroadcast);
+   }
 
    if ( (msg_ptr == AFUNPTR(chipInit)) 
         || (msg_ptr == AFUNPTR(commRank)) 
         || (msg_ptr == AFUNPTR(SimMutexInit)) 
         || (msg_ptr == AFUNPTR(SimMutexLock)) 
         || (msg_ptr == AFUNPTR(SimMutexUnlock)) 
+        || (msg_ptr == AFUNPTR(SimCondInit)) 
+        || (msg_ptr == AFUNPTR(SimCondSignal)) 
+        || (msg_ptr == AFUNPTR(SimCondBroadcast)) 
         )
    {
       proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
@@ -461,6 +480,22 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
                              name.c_str(),
                              PIN_PARG_END() );   
       RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_END);  
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   } 
+   else if ( (msg_ptr == AFUNPTR(SimCondWait)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int*),
+                             PIN_PARG(int*),
+                             PIN_PARG_END() );   
+      RTN_ReplaceSignature(rtn, msg_ptr, 
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
                            IARG_END);  
       //RTN_Close(rtn);
       PROTO_Free(proto);

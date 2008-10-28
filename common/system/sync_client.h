@@ -19,6 +19,18 @@ class SyncClient
   void mutexInit(int commid, carbon_mutex_t *mux);
   void mutexLock(int commid, carbon_mutex_t *mux);
   void mutexUnlock(int commid, carbon_mutex_t *mux);
+
+  void condInit(int commid, carbon_cond_t *cond);
+  void condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux);
+  void condSignal(int commid, carbon_cond_t *cond);
+  void condBroadcast(int commid, carbon_cond_t *cond);
+
+  static const int MUTEX_LOCK_RESPONSE   = 0xDEADBEEF;
+  static const int MUTEX_UNLOCK_RESPONSE = 0xBABECAFE;
+  static const int COND_WAIT_RESPONSE    = 0xBABEBEEF;
+  static const int COND_SIGNAL_RESPONSE  = 0xBEEFCAFE;
+  static const int COND_BROADCAST_RESPONSE = 0xDEADCAFE;
+
 };
 
 #endif

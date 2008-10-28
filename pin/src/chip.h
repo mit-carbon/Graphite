@@ -87,6 +87,11 @@ void SimMutexInit(carbon_mutex_t *mux);
 void SimMutexLock(carbon_mutex_t *mux);
 void SimMutexUnlock(carbon_mutex_t *mux);
 
+void SimCondInit(carbon_cond_t *cond);
+void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
+void SimCondSignal(carbon_cond_t *cond);
+void SimCondSignal(carbon_cond_t *cond);
+
 // MCP server wrappers
 void MCPRun();
 void MCPFinish();
@@ -133,6 +138,11 @@ class Chip
       friend void SimMutexInit(carbon_mutex_t *mux);
       friend void SimMutexLock(carbon_mutex_t *mux);
       friend void SimMutexUnlock(carbon_mutex_t *mux);
+
+      friend void SimCondInit(carbon_cond_t *cond);
+      friend void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
+      friend void SimCondLock(carbon_cond_t *cond);
+      friend void SimCondUnlock(carbon_cond_t *cond);
       
       // organic cache modeling wrappers
       friend bool icacheRunLoadModel(int rank, ADDRINT i_addr, UINT32 size);

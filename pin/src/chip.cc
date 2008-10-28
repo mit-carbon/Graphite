@@ -226,6 +226,58 @@ void SimMutexUnlock(carbon_mutex_t *mux)
      g_chip->core[rank].getSyncClient()->mutexUnlock(commid, mux);
 }
 
+void SimCondInit(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condInit(commid, cond);
+}
+
+void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condWait(commid, cond, mux);
+}
+
+void SimCondSignal(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condSignal(commid, cond);
+}
+
+void SimCondBroadcast(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condBroadcast(commid, cond);
+}
+
 // MCP wrappers
 void MCPRun()
 {

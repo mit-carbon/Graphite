@@ -56,7 +56,7 @@ void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
   unsigned int dummy;
   _recv_buff << make_pair(res_buff, length);
   _recv_buff >> dummy;
-  assert( dummy == 0xDEADBEEF );
+  assert( dummy == MUTEX_LOCK_RESPONSE );
 }
 
 void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
@@ -78,5 +78,91 @@ void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
   unsigned int dummy;
   _recv_buff << make_pair(res_buff, length);
   _recv_buff >> dummy;
-  assert( dummy == 0xBABECAFE );
+  assert( dummy == MUTEX_UNLOCK_RESPONSE );
 }
+
+void SyncClient::condInit(int commid, carbon_cond_t *cond)
+{
+  // Reset the buffers for the new transmission
+  _recv_buff.clear(); 
+  _send_buff.clear(); 
+   
+  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+
+  _send_buff << msg_type << commid << *cond;
+
+  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+
+  UInt32 length = 0;
+  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
+  assert( length == sizeof(carbon_cond_t) );
+
+  *cond = *((carbon_cond_t*)res_buff);
+}
+
+void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mux_t *mux)
+{
+  // Reset the buffers for the new transmission
+  _recv_buff.clear(); 
+  _send_buff.clear(); 
+   
+  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+
+  _send_buff << msg_type << commid << *cond << *mux;
+
+  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+
+  UInt32 length = 0;
+  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
+  assert( length == sizeof(unsigned int) );
+
+  unsigned int dummy;
+  _recv_buff << make_pair(res_buff, length);
+  _recv_buff >> dummy;
+  assert( dummy == COND_WAIT_RESPONSE );
+}
+
+void SyncClient::condSignal(int commid, carbon_cond_t *cond)
+{
+  // Reset the buffers for the new transmission
+  _recv_buff.clear(); 
+  _send_buff.clear(); 
+   
+  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+
+  _send_buff << msg_type << commid << *cond;
+
+  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+
+  UInt32 length = 0;
+  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
+  assert( length == sizeof(unsigned int) );
+
+  unsigned int dummy;
+  _recv_buff << make_pair(res_buff, length);
+  _recv_buff >> dummy;
+  assert( dummy == COND_SIGNAL_RESPONSE );
+}
+
+void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
+{
+  // Reset the buffers for the new transmission
+  _recv_buff.clear(); 
+  _send_buff.clear(); 
+   
+  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+
+  _send_buff << msg_type << commid << *cond;
+
+  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+
+  UInt32 length = 0;
+  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
+  assert( length == sizeof(unsigned int) );
+
+  unsigned int dummy;
+  _recv_buff << make_pair(res_buff, length);
+  _recv_buff >> dummy;
+  assert( dummy == COND_BROADCAST_RESPONSE );
+}
+

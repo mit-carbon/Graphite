@@ -11,6 +11,7 @@
 #include "capi.h"
 #include "mcp_api.h"
 #include "sync_api.h"
+#include <stdio.h>
 
 using namespace std;
 
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]){ // main begins
 
 void* test_broadcast_cond(void *threadid)
 {
-   usleep(500000);
+  sleep(3);
   // Declare local variables
   int tid;
   CAPI_return_t rtnVal;
@@ -79,13 +80,13 @@ void* test_broadcast_cond(void *threadid)
   CAPI_rank(&tid);
 
   // Thread starts here
-  cerr << "UserBroadcast: Cond broadcasting." << endl;
+  fprintf(stderr, "UserBroadcast: Cond broadcasting.\n");
   condBroadcast(&my_cond);
-  cerr << "UserBroadcast: Cond broadcasted." << endl;
+  fprintf(stderr, "UserBroadcast: Cond broadcasted.\n");
   mutexLock(&my_mux);
-  cerr << "UserBroadcast: Mutex locked after broadcast." << endl;
+  fprintf(stderr, "UserBroadcast: Mutex locked after broadcast.\n");
   mutexUnlock(&my_mux);
-  cerr << "UserBroadcast: Broadcast thread done." << endl;
+  fprintf(stderr, "UserBroadcast: Broadcast thread done.\n");
 
   pthread_exit(NULL);
 }
@@ -106,22 +107,22 @@ void* test_wait_cond(void *threadid)
   // FIXME: This should be in the main thread or something.
   if ((int)threadid == 0)
     {
-      cerr << "UserWait: Initting mutex." << endl;
+      fprintf(stderr, "UserWait: Initting mutex.\n");
       mutexInit(&my_mux);
-      cerr << "UserWait: Initting cond." << endl;
+      fprintf(stderr, "UserWait: Initting cond.\n");
       condInit(&my_cond);
     }
 
   sleep(1);
 
-  cerr << "UserWait: Locking mux." << endl;
+  fprintf(stderr, "UserWait: Locking mux.\n");
   mutexLock(&my_mux);
-  cerr << "UserWait: Cond wait." << endl;
+  fprintf(stderr, "UserWait: Cond wait.\n");
   condWait(&my_cond, &my_mux);
-  cerr << "UserWait: Cond done." << endl;
+  fprintf(stderr, "UserWait: Cond done.\n");
 
   mutexUnlock(&my_mux);
-  cerr << "UserWait: test_wait_cond mutex unlock done." << endl;
+  fprintf(stderr, "UserWait: test_wait_cond mutex unlock done.\n");
 
   pthread_exit(NULL);
 }

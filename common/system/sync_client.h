@@ -25,9 +25,18 @@ class SyncClient
   void condSignal(int commid, carbon_cond_t *cond);
   void condBroadcast(int commid, carbon_cond_t *cond);
 
+  /* Unique return codes for each function call
+     - Note: It is NOT a mistake that 
+       > COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE
+
+       This is necessary because when several threads wait on a
+       condition variable and condBroadcast() is called, they will be
+       woken by the mutexUnlock() of the thread that holds the lock.
+
+  */
   static const unsigned int MUTEX_LOCK_RESPONSE   = 0xDEADBEEF;
   static const unsigned int MUTEX_UNLOCK_RESPONSE = 0xBABECAFE;
-  static const unsigned int COND_WAIT_RESPONSE    = 0xBABEBEEF;
+  static const unsigned int COND_WAIT_RESPONSE    = MUTEX_LOCK_RESPONSE;
   static const unsigned int COND_SIGNAL_RESPONSE  = 0xBEEFCAFE;
   static const unsigned int COND_BROADCAST_RESPONSE = 0xDEADCAFE;
 

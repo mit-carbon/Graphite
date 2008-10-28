@@ -201,7 +201,8 @@ void SyncServer::condSignal(comm_id_t commid)
   if (woken != INVALID_COMMID)
   {
       // wake up the new owner
-      UInt32 dummy=SyncClient::COND_WAIT_RESPONSE;
+      // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
+      UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
       _pt_endpt.ptMCPSend(woken, (UInt8*)&dummy, sizeof(dummy));
   }
   else
@@ -230,11 +231,11 @@ void SyncServer::condBroadcast(comm_id_t commid)
   {
       assert(*it != INVALID_COMMID);
 
-      // wake up the new owner
-      UInt32 dummy=SyncClient::COND_WAIT_RESPONSE;
+      // wake up the new owner 
+      // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
+      UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
       _pt_endpt.ptMCPSend(*it, (UInt8*)&dummy, sizeof(dummy));
   }
-
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_BROADCAST_RESPONSE;

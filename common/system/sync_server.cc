@@ -104,9 +104,7 @@ void SyncServer::mutexInit(comm_id_t commid)
   _mutexes.push_back(SimMutex());
   UInt32 mux = (UInt32)_mutexes.size()-1;
 
-  _send_buffer.clear();
-  _send_buffer << mux;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+  _pt_endpt.ptMCPSend(commid, (UInt8*)&mux, sizeof(mux));
 }
 
 void SyncServer::mutexLock(comm_id_t commid)
@@ -122,9 +120,7 @@ void SyncServer::mutexLock(comm_id_t commid)
     {
       // notify the owner
       UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _send_buffer.clear();
-      _send_buffer << dummy;
-      _pt_endpt.ptMCPSend(commid, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+      _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
     }
   else
     {
@@ -147,9 +143,7 @@ void SyncServer::mutexUnlock(comm_id_t commid)
     {
       // wake up the new owner
       UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _send_buffer2.clear();
-      _send_buffer2 << dummy;
-      _pt_endpt.ptMCPSend(new_owner, (UInt8*)_send_buffer2.getBuffer(), _send_buffer2.size());
+      _pt_endpt.ptMCPSend(new_owner, (UInt8*)&dummy, sizeof(dummy));
     }
   else
     {
@@ -157,9 +151,7 @@ void SyncServer::mutexUnlock(comm_id_t commid)
     }
 
   UInt32 dummy=SyncClient::MUTEX_UNLOCK_RESPONSE;
-  _send_buffer.clear();
-  _send_buffer << dummy;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+  _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
 }
 
 // -- Condition Variable Stuffs -- //
@@ -168,9 +160,7 @@ void SyncServer::condInit(comm_id_t commid)
   _conds.push_back(SimCond());
   UInt32 cond = (UInt32)_conds.size()-1;
 
-  _send_buffer.clear();
-  _send_buffer << cond;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+  _pt_endpt.ptMCPSend(commid, (UInt8*)&cond, sizeof(cond));
 }
 
 void SyncServer::condWait(comm_id_t commid)
@@ -192,9 +182,7 @@ void SyncServer::condWait(comm_id_t commid)
   {
       // wake up the new owner
       UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _send_buffer.clear();
-      _send_buffer << dummy;
-      _pt_endpt.ptMCPSend(new_mutex_owner, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+      _pt_endpt.ptMCPSend(new_mutex_owner, (UInt8*)&dummy, sizeof(dummy));
   }
 }
 
@@ -214,10 +202,7 @@ void SyncServer::condSignal(comm_id_t commid)
   {
       // wake up the new owner
       UInt32 dummy=SyncClient::COND_WAIT_RESPONSE;
-      _send_buffer2.clear();
-      _send_buffer2 << dummy;
-      _pt_endpt.ptMCPSend(woken, (UInt8*)_send_buffer2.getBuffer(), _send_buffer2.size());
-      //_pt_endpt.ptMCPSend(woken, (UInt8*)&dummy, sizeof(dummy));
+      _pt_endpt.ptMCPSend(woken, (UInt8*)&dummy, sizeof(dummy));
   }
   else
   {
@@ -226,9 +211,7 @@ void SyncServer::condSignal(comm_id_t commid)
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_SIGNAL_RESPONSE;
-  _send_buffer.clear();
-  _send_buffer << dummy;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+  _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
 }
 
 void SyncServer::condBroadcast(comm_id_t commid)
@@ -249,16 +232,12 @@ void SyncServer::condBroadcast(comm_id_t commid)
 
       // wake up the new owner
       UInt32 dummy=SyncClient::COND_WAIT_RESPONSE;
-      _send_buffer.clear();
-      _send_buffer << dummy;
-      _pt_endpt.ptMCPSend(*it, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+      _pt_endpt.ptMCPSend(*it, (UInt8*)&dummy, sizeof(dummy));
   }
 
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_BROADCAST_RESPONSE;
-  _send_buffer.clear();
-  _send_buffer << dummy;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+  _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
 }
 

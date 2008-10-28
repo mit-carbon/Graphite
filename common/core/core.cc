@@ -58,8 +58,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_associativity.Value(),
                           g_knob_icache_max_search_depth.Value());                        
 
-      cout << "Core[" << tid << "]: instantiated organic cache model" << endl;
-      cout << ocache->statsLong() << endl;
+//       cout << "Core[" << tid << "]: instantiated organic cache model" << endl;
+//       cout << ocache->statsLong() << endl;
    } else 
    {
       ocache = (OCache *) NULL;

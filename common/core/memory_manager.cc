@@ -1,5 +1,3 @@
-//TODO also take care of write-backs on Ack payloads (processUnexpectedSharedMem)
-
 #include "memory_manager.h"
 //#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
@@ -17,7 +15,7 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
 	/* ================================================================= */
 	/* Added by George */
-//	dramAccessCost = 0;
+	//	dramAccessCost = 0;
 	/* ================================================================= */
 
 	// assume 4GB / dCacheLineSize  bytes/line 
@@ -31,7 +29,6 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	//TODO can probably delete "dram_lines_per_core" b/c it not necessary.
 	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores(), the_core_arg->getNetwork());
 
-	
 	/**** Data Passing Stuff ****/
 	eviction_buffer = new char[g_knob_line_size];
 	fill_buffer = new char[g_knob_line_size]; //dram writes to this buffer
@@ -55,7 +52,6 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 		<< ") ADDR( " << hex << payload.request_address << ")"; 
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 }
-
 
 void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT address, UINT32 size_bytes)
 {
@@ -180,7 +176,6 @@ void MemoryManager::writeFillBuffer(UINT32 offset, char* data_buffer, UINT32 dat
 
 }
 */
-//get cacheLineInfo
 pair<bool, CacheTag*> MemoryManager::getCacheLineInfo(ADDRINT address)
 {
 	return ocache->runDCachePeekModel(address);
@@ -190,8 +185,7 @@ pair<bool, CacheTag*> MemoryManager::getCacheLineInfo(ADDRINT address)
 void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size)
 {
 	bool fail_need_fill = false;
-  	bool eviction1 = false;
-  	bool eviction2 = false;
+  	bool eviction = false;
    ADDRINT evict_addr;
    char evict_buff[ocache->dCacheLineSize()];
 
@@ -201,9 +195,9 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 	result = ocache->accessSingleLine(data_addr, access_type,
 										&fail_need_fill, NULL,
 										data_buffer, data_size,
-										&eviction1, &evict_addr, evict_buff);
+										&eviction, &evict_addr, evict_buff);
 	
-	assert(eviction1 == false);
+	assert(eviction == false);
 
 	if(fail_need_fill) {
 		//note: fail_need_fill is known beforehand, 
@@ -211,11 +205,11 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		result = ocache->accessSingleLine(data_addr, access_type,
 											NULL, fill_buffer,
 											data_buffer, data_size,
-											&eviction2, &evict_addr, evict_buff);
+											&eviction, &evict_addr, evict_buff);
 	
 	}
 
-	if(eviction2) 
+	if(eviction) 
 	{
 		debugPrint(the_core->getRank(), "MMU", "accessCacheLineData: Evicting Line");
 		
@@ -229,13 +223,17 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		payload.data_size = ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
 		
-		cerr << "Eviction Payload DataSize: " << payload.data_size << endl;
 		createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
-		NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, payload_buffer, payload_size, the_core->getRank(), home_node_rank);
+		NetPacket packet = makePacket(SHARED_MEM_EVICT, payload_buffer, payload_size, the_core->getRank(), home_node_rank);
 
 		(the_core->getNetwork())->netSend(packet);
 	}
 
+}
+
+void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
+{
+	dram_dir->processWriteBack(wb_packet);
 }
 
 void MemoryManager::invalidateCacheLine(ADDRINT address)
@@ -333,8 +331,10 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
    /* ========================================================================= */
 	
    stringstream ss;
+#ifdef MMU_DEBUG	
 	ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - start : REQUESTING ADDR: " << hex << ca_address;
-//	debugPrint(the_core->getRank(), "MMU", ss.str());
+	debugPrint(the_core->getRank(), "MMU", ss.str());
+#endif
 
 	assert(buffer_size > 0);
 
@@ -355,10 +355,6 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 
 	if ( action_readily_permissable(curr_cstate, shmem_req_type) )
    {
-		ss.str("");
-		ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - action permissable, ADDR: " << hex << ca_address << " , offset: " << dec << addr_offset << ", buffer_size: " << dec << buffer_size;
-//		debugPrint(the_core->getRank(), "MMU", ss.str());
-
 		assert( native_cache_hit == true );
 		
 		accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size); 
@@ -367,10 +363,6 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	}
 	else
 	{
-		ss.str("");
-		ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - action is not permissable";
-//		debugPrint(the_core->getRank(), "MMU", ss.str());
-		
 		//requested dram data is written to the fill_buffer
 		CacheState::cstate_t new_cstate;
 		requestPermission(shmem_req_type, ca_address, &new_cstate);
@@ -378,10 +370,6 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size);
 		setCacheLineInfo(ca_address, new_cstate);                                        
 	
-		ss.str("");
-		ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - end (wasn't permissable) ";
-//		debugPrint(the_core->getRank(), "MMU", ss.str());
-
 		return native_cache_hit;
 	}
 	
@@ -436,7 +424,6 @@ void MemoryManager::addMemRequest(NetPacket req_packet)
 	}
 }
 
-
 /*
  * this function is called by the "interrupt handler" when an unexpected shared memory update arrives
  * (for example, an invalidation message). "expected" shared memory update messages are processed
@@ -448,55 +435,14 @@ void MemoryManager::addMemRequest(NetPacket req_packet)
 //ie, write_backs need to go elsewhere!
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) 
 {
-	// TODO: This kind of argument passing is bad for performance. Try to pass by reference or pass pointers
+  // TODO: This kind of argument passing is bad for performance. Try to pass by reference or pass pointers
+  stringstream ss;
 
-/* E, S I
- *
- * These are the different states we need to deal with
- * E->I = invalidate cache_line, set cache_state, send back data on ack (for WB in DRAM)
- *
- * E->S = set cache_state, send back data on ack (for WB in DRAM)
- *
- * S->I = no data payload (e/o for debugging)
- *
- * ***** This case never happens anymore, no more silent evictions ******
- * E|I->I = it got evicted (already WB). the DRAM will need to supply cache_line to the requestor.
- * 
- * E|I->S = it got evicted (already WB). the DRAM will need to supply cache_line to the requestor.
- * 
- * S|I->I
- */
-	stringstream ss;
-#ifdef MMU_DEBUG
-	debugPrint(the_core->getRank(), "MMU", "processUnexpectedSharedMemUpdate $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-#endif
-
-  	// verify packet type is correct
-  	assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
+  // verify packet type is correct
+  assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
   
-  //FIXME BUG we have no idea how much memory to allocate to data_buffer! 
   char data_buffer[ocache->dCacheLineSize()];
 
-  //FIXME this is probably a hack that we want to clean up concerning write_backs.
-  //we might want to make a new network packettype specically for write-backs, since
-  //calling processunexpectedsharedmemupdate is not entirely correct for write-backs.
-  //FIXME ERROR: why are we not using extractUpdatePayloadBuffer?  Does that break anything here to use it?
-  
-   //FIXME: this is a bad way of doing things, but until we fix it, here is it
-   //(i have no way to know if the packet contains an Ack payload or an Update payload
-   //so I extract twice - once for each. this only works because the payloads are built
-   //in memory in an indentical fashion (at least for the first four fields).
-   //check for eviction write-backs (all write-backs are found in ack payloads)
-   AckPayload ack_payload;
-   extractAckPayloadBuffer(&update_packet, &ack_payload, data_buffer );
-   bool is_writeback = ack_payload.is_writeback;
-   if(is_writeback) {
-		cerr << "!!!!!!!!!!!! PROCESSING EVICTION WRITE_BACK !!!!!!!!!!!!! " << endl;
-	   dram_dir->processWriteBack(update_packet);
-	   return;
-   }
-
-  //if it's not a write-back message, continue onwards
   UpdatePayload update_payload;
   extractUpdatePayloadBuffer(&update_packet, &update_payload, data_buffer );
 
@@ -504,14 +450,11 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    CacheState::cstate_t new_cstate = update_payload.update_new_cstate;
    ADDRINT address = update_payload.update_address;
   
-  	// extract relevant values from incoming request packet
-
 #ifdef MMU_DEBUG
 	ss << "Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
-	//TODO rename CacheTag to CacheLineInfo
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
    // if it is null, it means the address has been invalidated
    CacheState::cstate_t current_cstate = ( cache_model_results.second != NULL ) ?
@@ -519,7 +462,6 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 																						CacheState::INVALID;
 																							
    // send back acknowledgement of receiveing this message
-   // initialize packet payload for downgrade
    AckPayload payload;
    payload.ack_new_cstate = new_cstate; //verify you set it to the correct cstate
 	payload.ack_address = address; //only sent for debugging purposes
@@ -527,9 +469,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    char writeback_data[line_size]; 
 	
 	UINT32 payload_size = 0;
-//	char* payload_buffer = NULL;
 	char payload_buffer[line_size];
-
 
 	switch( current_cstate ) {
 
@@ -537,14 +477,11 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			cache_model_results.second->setCState(new_cstate);
 			
 			//send data for write-back
-//			readCacheLineData(address, 0, writeback_data, ocache->dCacheLineSize());
+			//TODO this is going to trigger a read-statistic for the cache. 
 			accessCacheLineData(CacheBase::k_ACCESS_TYPE_LOAD, address, 0, writeback_data, line_size);
 			payload_size = sizeof(payload) + line_size;
-//			payload_buffer = new char[payload_size];
 			payload.is_writeback = true;
-			payload.is_eviction = false; 
 			payload.data_size = line_size;
-			payload.remove_from_sharers = false;
 			createAckPayloadBuffer(&payload, writeback_data, payload_buffer, payload_size);
 			
 			if (new_cstate == CacheState::INVALID) 
@@ -556,11 +493,6 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			cache_model_results.second->setCState(new_cstate);
 			
 			payload_size = sizeof(payload);
-//			payload_buffer = new char[payload_size];
-			payload.is_writeback = false;
-			payload.is_eviction = false;
-			payload.data_size = 0;
-			payload.remove_from_sharers = false;
 			createAckPayloadBuffer(&payload, NULL, payload_buffer, payload_size);
 			
 			if (new_cstate == CacheState::INVALID) 
@@ -572,9 +504,6 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			//THIS can happen due to race conditions where core evalidates at the same time dram sends demotion message
 			//address has been invalidated -> tell directory to remove us from sharers' list
 			payload_size = sizeof(payload);
-			payload.is_writeback = false;
-			payload.is_eviction = false;
-			payload.data_size = 0;
 			payload.remove_from_sharers = true; 
 			createAckPayloadBuffer(&payload, NULL, payload_buffer, payload_size);
 			
@@ -595,23 +524,6 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 
 }
 
-// TODO: implement DramRequest 
-// if cache lookup is not a hit, we want to model dram request.
-// and when we push around data, this function will deal with this
-/*bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
-{
-  cerr << "TODO: implement me: MemoryManager.cc issueDramRequest"<< endl;
-  return true;
-}
-
-void MemoryManager::runDramAccessModel () {
-	dramAccessCost += g_knob_dram_access_cost.Value();
-}
-
-UINT64 MemoryManager::getDramAccessCost() {
-	return (dramAccessCost);
-}
-*/
 string MemoryManager::sMemReqTypeToString(shmem_req_t type)
 {
 	switch(type) {
@@ -635,8 +547,6 @@ bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstat
 
 void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)
 {
-//	debugPrint(-1, "MMU", "createUpdatePayloadbuffer START");
-	
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );
 	
@@ -645,8 +555,6 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 
 	//this is very important on the recieving end, so the extractor knows how big data_size is
    assert( send_payload->data_size == (payload_size - sizeof(*send_payload)) );
-	
- //  cerr << "Sending UpdatPayload.data_size = " << send_payload->data_size << endl;
 	
 	//copy data_buffer over
 	if(send_payload->data_size > g_knob_line_size) {
@@ -659,20 +567,16 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	if(data_buffer != NULL) 
 		memcpy ((void*) (payload_buffer + sizeof(*send_payload)), (void*) data_buffer, payload_size - sizeof(*send_payload));
 	
-//	debugPrint(-1, "MMU", "createUpdatePayloadbuffer END");
 }
 
 void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)
 {
-//	debugPrint(-1, "MMU", "createAckPayloadbuffer START");
-	
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );
 	
 	//this is very important on the recieving end, so the extractor knows how big data_size is
    assert( send_payload->data_size == (payload_size - sizeof(*send_payload)) );
 
-//	cerr << "Sending AckPayload.data_size = " << send_payload->data_size << endl;
 	//copy send_payload
 	memcpy ((void*) payload_buffer, (void*) send_payload, sizeof(*send_payload));
 	
@@ -680,45 +584,29 @@ void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data
 	if(data_buffer != NULL) 
 		memcpy ((void*) (payload_buffer + sizeof(*send_payload)), (void*) data_buffer, payload_size - sizeof(*send_payload));
 	
-//	debugPrint(-1, "MMU", "createAckPayloadbuffer END");
 }
 
 void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer) 
 { 
-//	debugPrint(-1, "MMU", "extractUpdatePayloadbuffer START");
-	
 	//copy packet->data to payload (extract payload)
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
-//	cerr << "		Greetings in payload data size " << dec << payload->data_size << endl;
 	
 	//copy data_buffer over
-	if(payload->data_size > g_knob_line_size) {
-		cerr << "****ERROR **** dataIsze > g_knob_line_size: ...... data_size = " << payload->data_size << endl;
-	}
-	
-//	cerr << "		[update extract] Greetings in payload data size " << dec << payload->data_size << endl;
 	assert (payload->data_size <= g_knob_line_size);
 
 	if (payload->data_size > 0)
 		memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(*payload) ), payload->data_size);
-
-//	debugPrint(-1, "MMU", "extractUpdatePayloadbuffer END");
 }
 
 //TODO should we turn payloads from structs to classes so we don't have to have seperate methods to do this stuff?
 void MemoryManager::extractAckPayloadBuffer (NetPacket* packet, AckPayload* payload, char* data_buffer) 
 { 
-//	debugPrint(-1, "MMU", "extractAckPayloadbuffer START");
-	
 	memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
 	
-//	cerr << "		[ack extract] Greetings in payload data size " << dec << payload->data_size << endl;
 	assert( payload->data_size <= g_knob_line_size );
 	
 	if(payload->data_size > 0)
 		memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(*payload) ), payload->data_size);
-
-//	debugPrint(-1, "MMU", "extractAckPayloadbuffer END");
 }
 
 

@@ -41,14 +41,18 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
   
 	//TODO FIXME we need to handle the data_buffer correctly! what do we fill it with?!
 	if( entry_ptr == NULL ) {
-//		debugPrint(dram_id, "DRAMDIR", "Making a new dram entry");
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
 		dram_directory_entries[data_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
-//		this->print();
 	}
 
 	return dram_directory_entries[data_line_index];
+}
+
+void DramDirectory::setDramMemoryLine(ADDRINT addr, char* data_buffer, UINT32 data_size)
+{
+	assert( data_size == g_knob_line_size );
+	copyDataToDram(addr, data_buffer);
 }
 
 //George's stuff for modeling dram access costs
@@ -70,10 +74,9 @@ bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
   return true;
 }
 
-void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT32 data_size)
+void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) 
 {
 
-	//TODO provide a unique key, 
 	UINT32 data_line_index = ( address / bytes_per_cache_line );
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
 
@@ -89,37 +92,27 @@ void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT3
 
 void DramDirectory::processWriteBack(NetPacket wb_packet)
 {
-//	cerr << endl << "processing writeback" << endl << endl;
-	
-//is it always acks? i think not! 
-//	this->print();
-
 	MemoryManager::AckPayload payload; 
 	char data_buffer[bytes_per_cache_line];
 
 	MemoryManager::extractAckPayloadBuffer(&wb_packet, &payload, data_buffer); 
 	
-	copyDataToDram(payload.ack_address, data_buffer); //is data size needed? , data_size);
-	
 	if( !payload.is_writeback ) {
 		//it is possible that we expected write-back message, but core had evicted the line
 		//and dram has not gotten the write-back message yet
-		//TODO stop us from running processWriteBack if that is the case!
+		//stop us from running processWriteBack if that is the case!
 		return;
 	}
+	
+	copyDataToDram(payload.ack_address, data_buffer); //TODO verify that all wb_packets would give us the entire cache_line
 	
 	if( payload.is_eviction ) {
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
 	}
 
-//	this->print();
-	
 	runDramAccessModel();
 	
-//	cerr << endl;
-//	cerr << "finished processing writeback" << endl;
-//	cerr << endl;
 }
 
 /* ======================================================== */
@@ -186,11 +179,12 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
   
   	DramDirectoryEntry* dram_dir_entry = this->getEntry(address);
   	DramDirectoryEntry::dstate_t current_dstate = dram_dir_entry->getDState();
-   	CacheState::cstate_t new_cstate;
+   CacheState::cstate_t new_cstate;
 
 #ifdef DRAM_DEBUG
 	ss.str("");
-	ss << "Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
+	ss << "Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ");
+	ss << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
 	debugPrint(dram_id, "DRAMDIR", ss.str());
 #endif
 
@@ -209,7 +203,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			else
 			{
 				invalidateSharers(dram_dir_entry);
-				dram_dir_entry->addExclusiveSharer(requestor);
+				dram_dir_entry->addExclusiveSharer(requestor); //this also implicitly clears the sharer's list
 				dram_dir_entry->setDState(DramDirectoryEntry::EXCLUSIVE);
 			}
 		break;
@@ -229,17 +223,8 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			else
 			{
 				//do nothing. no need to contact other sharers in this case.
-				ss.str("");
-				ss << " processSharedMemReq ------ READ, Not exclusive ---- Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
-				debugPrint(dram_id, "DRAMDIR", ss.str());
-				
-				if(current_dstate == DramDirectoryEntry::UNCACHED) {
-					ss.str("");
-					ss << " processSharedMemReq ------ UNCACHED ---- Requested Addr: " << hex << address << ",ReqType: " << ((shmem_req_type==WRITE) ? "WRITE" : "READ ") << ", CurrentDState: " << DramDirectoryEntry::dStateToString(current_dstate) << " ";
-					debugPrint(dram_id, "DRAMDIR", ss.str());
-					
+				if(current_dstate == DramDirectoryEntry::UNCACHED) 
 					dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
-				}
 
 			}
 		}
@@ -296,12 +281,6 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 //TODO rename this to something more descriptive about what it does (sending a memory line to another core)
 void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheState::cstate_t new_cstate)
 {
-	stringstream ss;
-#ifdef DRAM_DEBUG
-	ss << " Sending Back UpdateAddr: " << hex << payload.update_address;
-	debugPrint(dram_id, "DRAM: SendDataLine", ss.str());
-#endif	
-
    // initialize packet payload
 	MemoryManager::UpdatePayload payload;
 
@@ -320,12 +299,8 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requ
 	MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_EXPECTED, payload_buffer, payload_size, dram_id, requestor );
 	
-//	debugPrint(dram_id, "DRAM: SendDataLine", "sending update expected packet");
 	the_network->netSend(packet);
 
-#ifdef DRAM_DEBUG
-	debugPrint(dram_id, "DRAM: SendDataLine", "finished sending update expected packet");
-#endif
 }
 
 NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheState::cstate_t new_cstate)
@@ -481,11 +456,6 @@ void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstat
 
 bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t	expected_dstate, vector<UINT32> expected_sharers_vector)
 {
-
-	stringstream ss;
-	ss << "DebugAssertDramState for ADDR: " << hex << address; 
-	debugPrint(dram_id, "DRAMDIR", ss.str());
-
 	UINT32 data_line_index = (address / bytes_per_cache_line); 
   
 	assert( data_line_index >= 0);
@@ -493,13 +463,12 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
   
 	if( entry_ptr == NULL ) {
-		debugPrint(dram_id, "DRAMDIR", " debugAssertDramState: ENTRY IS NULL!!!!!!! " );
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
 		dram_directory_entries[data_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
 	}
 
-	entry_ptr->dirDebugPrint();
+//	entry_ptr->dirDebugPrint();
 	DramDirectoryEntry::dstate_t actual_dstate = dram_directory_entries[data_line_index]->getDState();
 	bool is_assert_true = ( actual_dstate == expected_dstate ); 
 	

@@ -61,7 +61,11 @@ public:
 	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 
-   //for debug purposes
+   /***************************************/
+
+	void setDramMemoryLine(ADDRINT addr, char* data_buffer, UINT32 data_size);
+	
+	//for debug purposes
    void print();
 };
 

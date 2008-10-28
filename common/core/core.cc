@@ -382,9 +382,7 @@ void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstat
 
 bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
 {
-	debugPrint(getRank(), "CORE", "Debugging Assert Dram State");
 	return memory_manager->debugAssertDramState(address, dstate, sharers_list);
-
 }
 
 

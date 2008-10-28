@@ -148,7 +148,9 @@ class MemoryManager
 	MemoryManager(Core *the_core_arg, OCache *ocache_arg);
 	virtual ~MemoryManager();
 
-	/**** Added for Data Sharing ****/	
+	DramDirectory* getDramDirectory() { return dram_dir;}
+	
+	/* ============================================== */
 	
 	//cache interfacing functions.
 	void setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t new_cstate);
@@ -156,10 +158,6 @@ class MemoryManager
 	void accessCacheLineData(CacheBase::AccessType access_type, ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
 	void invalidateCacheLine(ADDRINT address);
 	
-	//request from DRAM permission to use an address
-	//writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
-	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, CacheState::cstate_t* new_cstate);
-
 	static void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, UINT32 payload_size);
 	static void createAckPayloadBuffer (AckPayload* send_payload, char *data_buffer, char *payload_buffer, UINT32 payload_size);
 	static void extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer);
@@ -167,38 +165,36 @@ class MemoryManager
 
 	static NetPacket makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank );
 	static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
-	/********************************/	
 	
+	/* ============================================== */
+	
+	//core traps all memory accesses here.
 	bool initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size);
+	
+	//request from DRAM permission to use an address
+	//writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
+	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, CacheState::cstate_t* new_cstate);
 
-	//TODO rename this function (and others that interface with Network)
+	//network interrupt calls this.
+	//Any requests are serialized onto a stack,
+	//and then forwarded to the DRAM for processing.
 	void addMemRequest(NetPacket req_packet);
-//	void processSharedMemReq(NetPacket req_packet); << Moved to DRAM DIRECTORY
+	
+	//network interrupt calls this. 
+	//All UPDATE_UNEXPECTED packets are sent here.
 	void processUnexpectedSharedMemUpdate(NetPacket update_packet);
+	
+	//network interrupt calls this.  
+	//the MMU then forwards write-back packet to the DRAM.
+	void forwardWriteBackToDram(NetPacket wb_packet);
+	
+	/* ============================================== */
 
+	//debugging stuff
 	static string sMemReqTypeToString(shmem_req_t type);
-   void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
 
-	/* ============================================== */
-	/* Added by George */
-//	void runDramAccessModel(void);
-//	UINT64 getDramAccessCost(void) {
-//		return dram_dir->getDramAccessCost();
-//	}
-
-	DramDirectory* getDramDirectory() {
-		return dram_dir;
-	}
-	/* ============================================== */
-
-	//write-back cache-line to DRAM
-	void writeBackToDRAM();
-
-	/* ============================================== */
 	
-	/*
-	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
-	*/
 };
 #endif

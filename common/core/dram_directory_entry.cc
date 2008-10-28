@@ -36,6 +36,7 @@ DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_
 	memory_line = new char(memory_line_size);
 
 	//copy memory_line
+	//assumes data_buffer is the entire line
 	for(unsigned int i=0 ; i < memory_line_size; i++)
 		memory_line[i] = data_buffer[i];
 
@@ -77,9 +78,6 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UINT32* line_size)
 //FIXME: is it necessary to track exclusive sharer rank here?
 bool DramDirectoryEntry::addSharer(UINT32 sharer_rank)
 {
-	
-	cerr << "ADDR: " << hex << memory_line_address << " , Adding Sharer (" << dec << sharer_rank << ") to Entry" << endl;
-	
 	if(!sharers->at(sharer_rank)) {
 		sharers->set(sharer_rank);
 		exclusive_sharer_rank = sharer_rank;
@@ -159,6 +157,7 @@ vector<UINT32> DramDirectoryEntry::getSharersList()
 void DramDirectoryEntry::dirDebugPrint()
 {
 	cout << " -== DramDirectoryEntry ==-" << endl;
+	cout << "     Addr= " << hex << memory_line_address << dec;
 	cout << "     state= " << dStateToString(dstate);
     cout << "; sharers = { ";
 	for(unsigned int i=0; i < sharers->getSize(); i++) {

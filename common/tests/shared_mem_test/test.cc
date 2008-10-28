@@ -186,7 +186,7 @@ void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, Dra
 	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list);
 }     
 
-bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_code) 
+bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_code)
 {  
 	if(CAPI_debugAssertMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, test_code, error_code) == 1) 
 	{
@@ -198,34 +198,7 @@ bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirect
 
 void initialize_test_parameters()
 {
-//	dram0_address = (ADDRINT) global_array_ptr; this doesn't work! because it may be on the same cache line as the stack/ or other addresses that the simulator may need to use, thus polluting your test results!
-	dram0_address = (ADDRINT) &(global_array_ptr[10000]);
 	UINT32 number_of_elements = ((UINT32) TEST_MEMORY_SIZE ) / sizeof(UINT32);
-	dram1_address = (ADDRINT) &(global_array_ptr[33000]); //FIXME this crashes if i make the number much larger (seg fault when reading from the addres
-
-	vector< pair<ADDRINT, ADDRINT> > addr_boundaries;
-   //hand code address boundaries between cores
-	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( 0, dram0_address + 1000));
-	addr_boundaries.push_back( pair<ADDRINT,ADDRINT>( dram0_address + 1000, 0xFFFFFFFF));
-	// CAPI_setDramBoundaries(addr_boundaries);
-	
-	cerr << "dram0 ADDR: " << hex << dram0_address << endl;
-	cerr << "dram1 ADDR: " << hex << dram1_address << endl;
-	cerr << "MEMORY_SIZE: " << dec << TEST_MEMORY_SIZE << endl;
-	cerr << "NUM of Elme: " << dec << number_of_elements << endl;
-	cerr << "MAX   ADDR: " << hex << ((UINT32) global_array_ptr + (TEST_MEMORY_SIZE )) << endl;
-	cerr << "MAX   ADDR: " << hex << &(global_array_ptr[number_of_elements]) << endl;
-
-   /*
-	 * run test suite on different addresses
-	 */
-	addrVectStruct new_addr_struct;
-	new_addr_struct.addr = dram0_address;
-	new_addr_struct.dram_home_id = 0;
-	address_vector.push_back(new_addr_struct);
-	new_addr_struct.addr = dram1_address;
-	new_addr_struct.dram_home_id = 1; 
-	address_vector.push_back(new_addr_struct);
 
    /*
 	 * loop through different operations
@@ -291,6 +264,7 @@ void initialize_test_parameters()
 	state_index++;
 	/******************************************************/
 	//Init Test State#4 EII-{0}
+	/* NOT POSSIBLE: Such a silent eviction
 	test_code_vector[state_index] = ", InitState#4 EII-{0}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -298,8 +272,10 @@ void initialize_test_parameters()
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#5 EII-{1}
+	/* NOT POSSIBLE: Such a silent eviction
 	test_code_vector[state_index] = ", InitState#5 EII-{1}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -307,6 +283,7 @@ void initialize_test_parameters()
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_1;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#6 SSI-{0}
 	test_code_vector[state_index] = ", InitState#6 SSI-{0}";
@@ -433,6 +410,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> SSI-{0}
+	/*
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "SSI-{0}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -442,8 +420,10 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//EII-{1} -> SSI-{0}
+	/*
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "SSI-{0}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -453,6 +433,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSI-{0} -> SSI-{0}
 	fini_mem_state_id[test_index] = 6;
@@ -574,6 +555,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> EEI-{0}
+	/*
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
@@ -581,8 +563,10 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//EII-{1} -> EEI-{0}
+	/*
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
@@ -590,6 +574,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSI-{0} -> EEI-{0}
 	fini_mem_state_id[test_index] = 6;
@@ -706,6 +691,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> SIS-{1}
+	/*
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -715,8 +701,10 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//EII-{1} -> SIS-{1}
+	/*
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -726,6 +714,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSI-{0} -> SSS-{0,1}
 	fini_mem_state_id[test_index] = 6;
@@ -847,6 +836,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> EEI-{1}
+	/*
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
@@ -854,8 +844,10 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//EII-{1} -> EEI-{1}
+	/*
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
@@ -863,6 +855,7 @@ void initialize_test_parameters()
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSI-{0} -> EEI-{1}
 	fini_mem_state_id[test_index] = 6;
@@ -973,7 +966,7 @@ void awesome_test_suite_msi(int tid)
 	for(int core_id=0; core_id < CORE_COUNT; core_id++)                 
 	{
 		
-		if(tid==core_id)
+		if(tid == core_id)
 		{
 			//execute all of the tests below
 			
@@ -1015,6 +1008,7 @@ void awesome_test_suite_msi(int tid)
 					fini_cstate1 = fini_test_state_vector[test_index].cstate1;
 					fini_sharers_list = fini_sharers_vector[test_index];
 					
+					/* I need a mechanism here to do "addr_home_lookup()" */
 					SET_INITIAL_MEM_CONDITIONS(address, dram_addr_home_id, init_dstate, init_cstate0, init_cstate1, init_sharers_list, test_code.str());
 
 					switch(operation) {

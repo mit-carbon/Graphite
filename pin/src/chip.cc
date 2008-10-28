@@ -286,7 +286,7 @@ VOID Chip::fini(int code, VOID *v)
 {
    ofstream out( g_knob_output_file.Value().c_str() );
 
-   for(int i = 0; i < num_modules; i++) 
+   for(int i = 0; i < num_modules; i++)
    {
       cout << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
@@ -296,28 +296,59 @@ VOID Chip::fini(int code, VOID *v)
    out.close();
 }
 
-void Chip::debugSetInitialMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list)
+void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector, 
+		  											  vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
+													  vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
+		  											  vector<char*>& d_data_vector, 
+													  vector<char*>& c_data_vector)
 {
-	INT32 temp_dram_id, temp_cache_id;
-	DramDirectoryEntry::dstate_t temp_dstate;
-	CacheState::cstate_t temp_cstate;
+	vector<ADDRINT> temp_address_vector = address_vector;
 
-	while(!dram_vector.empty()) 
+	assert (d_data_array.size() == c_data_array.size());
+	assert (d_data_array.size() == dram_vector.size());
+	assert (cache_vector.size() == ( (num_modules) * dram_vector.size() ) );
+
+	while (!dram_vector.empty())
 	{  //TODO does this assume 1:1 core/dram allocation?
-		temp_dram_id = dram_vector.back().first;
-		temp_dstate = dram_vector.back().second;
+
+		ADDRINT curr_address = address_vector.back();
+		address_vector.pop_back();
+
+		INT32 curr_dram_id = dram_vector.back().first;
+		DramDirectoryEntry::dstate_t curr_dstate = dram_vector.back().second;
       dram_vector.pop_back();
 
-		core[temp_dram_id].debugSetDramState(address, temp_dstate, sharers_list);
+		vector<UINT32> curr_sharers_list = sharers_list_vector.back();
+		sharers_list_vector.pop_back();
+
+		char *curr_d_data = d_data_vector.back();
+		d_data_vector.pop_back();
+
+		core[curr_dram_id].debugSetDramState(curr_address, curr_dstate, curr_sharers_list, curr_d_data);
    }
+
+	address_vector = temp_address_vector;
 
 	while(!cache_vector.empty()) 
 	{
-		temp_cache_id = cache_vector.back().first;
-		temp_cstate = cache_vector.back().second;
-      cache_vector.pop_back();
 
-		core[temp_cache_id].debugSetCacheState(address, temp_cstate);
+		ADDRINT curr_address = address_vector.back();
+		address_vector.pop_back();
+		
+		vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector = cache_vector.back();
+		cache_vector.pop_back();
+
+		char *curr_c_data = c_data_vector.back();
+		c_data_vector.pop_back();
+
+		while (!curr_cache_vector.empty()) {
+			 
+			INT32 curr_cache_id = curr_cache_vector.back().first;
+			CacheState::cstate_t curr_cstate = curr_cache_vector.back().second;
+      	curr_cache_vector.pop_back();
+
+			core[curr_cache_id].debugSetCacheState(curr_address, curr_cstate, curr_c_data);
+		}
    }
 
 }
@@ -376,24 +407,77 @@ void Chip::setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries)
 }
 */
 /*user program calls get routed through this */
-CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list) 
+CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32>& sharers_list, char *d_data, char *c_data)
 {
+	vector<ADDRINT> address_vector;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
-	vector< pair<INT32, CacheState::cstate_t> > cache_vector;
+	vector< vector <UINT32> > sharers_list_vector;
+	vector< vector < pair<INT32, CacheState::cstate_t> > > cache_vector;
+	vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector;
+
+	vector<char*> d_data_vector;
+	vector<char*> c_data_vector;
+
+	address_vector.push_back(address);
 
 	dram_vector.push_back( pair<INT32, DramDirectoryEntry::dstate_t>(dram_address_home_id, dstate) );
+	sharers_list_vector.push_back(sharers_list);
 
-	cache_vector.push_back( pair<INT32, CacheState::cstate_t>(0, cstate0) );
-	cache_vector.push_back( pair<INT32, CacheState::cstate_t>(1, cstate1) );
+	curr_cache_vector.push_back( pair<INT32, CacheState::cstate_t>(0, cstate0) );
+	curr_cache_vector.push_back( pair<INT32, CacheState::cstate_t>(1, cstate1) );
+	cache_vector.push_back(curr_cache_vector);
+
+	d_data_vector.push_back(d_data);
+	c_data_vector.push_back(c_data);
 	
-	g_chip->debugSetInitialMemConditions(address,  dram_vector, cache_vector, sharers_list);
+	g_chip->debugSetInitialMemConditions (address_vector, 
+		  											  dram_vector, sharers_list_vector, 
+													  cache_vector, 
+		  											  d_data_vector, 
+													  c_data_vector);
 
 	return 0;
 }
 
-CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_code) 
+CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32>& sharers_list, string test_code, string error_code)
 {
-//	cout << " [Chip] Asserting Mem State " << endl;
+	vector<ADDRINT> address_vector;
+	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
+	vector< vector <UINT32> > sharers_list_vector;
+	vector< vector < pair<INT32, CacheState::cstate_t> > > cache_vector;
+	vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector;
+
+	vector<char*> d_data_vector;
+	vector<char*> c_data_vector;
+
+	address_vector.push_back(address);
+
+	dram_vector.push_back( pair<INT32, DramDirectoryEntry::dstate_t>(dram_address_home_id, dstate) );
+	sharers_list_vector.push_back(sharers_list);
+
+	curr_cache_vector.push_back( pair<INT32, CacheState::cstate_t>(0, cstate0) );
+	curr_cache_vector.push_back( pair<INT32, CacheState::cstate_t>(1, cstate1) );
+	cache_vector.push_back(curr_cache_vector);
+
+	d_data_vector.push_back(d_data);
+	c_data_vector.push_back(c_data);
+	
+	if (g_chip->debugAssertMemConditions (address_vector, 
+		  											  dram_vector, sharers_list_vector, 
+													  cache_vector, 
+		  											  d_data_vector, 
+													  c_data_vector,
+													  error_code) )
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+
+	/*
+	//	cout << " [Chip] Asserting Mem State " << endl;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
 	vector< pair<INT32, CacheState::cstate_t> > cache_vector;
 			
@@ -409,7 +493,7 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 	} else {
 		return 0;
 	}
-	
+	*/
 
 }
 

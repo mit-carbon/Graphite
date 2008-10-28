@@ -15,11 +15,6 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	//FIXME; need to add infrastructure for specifying core architecture details (e.g. DRAM size)
 	// this also assumes 1 dram per core
 
-	/* ================================================================= */
-	/* Added by George */
-//	dramAccessCost = 0;
-	/* ================================================================= */
-
 	// assume 4GB / dCacheLineSize  bytes/line 
 	int total_num_dram_lines = (int) (pow(2,32) / ocache->dCacheLineSize()); 
 	
@@ -862,14 +857,15 @@ string MemoryManager::sMemReqTypeToString(shmem_req_t type)
 	return "ERROR SMEMREQTYPE";
 }
 
-void MemoryManager::debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+void MemoryManager::debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
-	dram_dir->debugSetDramState(addr, dstate, sharers_list);	
+   // Assume d_data is a pointer to the entire memory block
+	dram_dir->debugSetDramState(addr, dstate, sharers_list, d_data);	
 }
 
-bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
-	return dram_dir->debugAssertDramState(addr, dstate, sharers_list);	
+	return dram_dir->debugAssertDramState(addr, dstate, sharers_list, d_data);	
 }
 
 void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)

@@ -386,7 +386,7 @@ class CacheBase
       // utilities
       VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index) const
       {
-	 tag = CacheTag(addr >> line_shift);
+	 		tag = CacheTag(addr >> line_shift);
          set_index = tag & set_index_mask;
       }
 
@@ -510,7 +510,6 @@ class Cache : public CacheBase
                                              char* buff = NULL, UINT32 bytes = 0, 
                                              bool* eviction = NULL, ADDRINT* evict_addr = NULL, char* evict_buff = NULL)
       {
-//<<<<<<< HEAD:common/core/cache.h
 
 	 /*
             Usage:
@@ -612,7 +611,7 @@ class Cache : public CacheBase
 
          do 
          {
-	    index = next_index;
+	    		index = next_index;
             history[depth] = index;
             SET_t &set = sets[index];
             //set.print();
@@ -623,21 +622,21 @@ class Cache : public CacheBase
 
 
          if ( fail_need_fill != NULL )
-	 {
-	    if ( (fill_buff == NULL) && !hit )
-	    {
-	       *fail_need_fill = true;
+	 		{
+	    		if ( (fill_buff == NULL) && !hit )
+	    		{
+	       		*fail_need_fill = true;
 
-          if ( eviction != NULL )
-				*eviction = false;
+          		if ( eviction != NULL )
+						*eviction = false;
 
-          return make_pair(false, (CacheTag*) NULL);
-	    } 
-		 else 
-		 {
-	       *fail_need_fill = false;
-	    }
-	}
+          		return make_pair(false, (CacheTag*) NULL);
+	    		} 
+		 		else 
+		 		{
+	       		*fail_need_fill = false;
+	    		}
+			}
 
          if ( hit )
 			{
@@ -669,7 +668,7 @@ class Cache : public CacheBase
 
             if ( access_type == k_ACCESS_TYPE_LOAD )
 					sets[which].read_line(line_index, addr & (line_size - 1), buff, bytes);
-            else{
+            else {
 //					cerr << "!Hit -> strt write_line: offset= " << (addr & (line_size -1)) << " bytes= " << bytes << endl;
 					sets[which].write_line(line_index, addr & (line_size - 1), buff, bytes);
 //					cerr << "!Hit -> end  write_line" << endl;
@@ -677,10 +676,10 @@ class Cache : public CacheBase
 
          }
          else 
-			 {
-				 if ( eviction != NULL )
-					 *eviction = false;
-			 }
+			{
+				if ( eviction != NULL )
+					*eviction = false;
+			}
 
          access[access_type][hit]++;
 
@@ -713,7 +712,7 @@ class Cache : public CacheBase
          } while( !hit && ((++depth) < max_search ) && (index < k_MAX_SETS));
 
          if ( hit )
-	    tagptr = res.second;
+	    		tagptr = res.second;
 
          return make_pair(hit, tagptr);
       }

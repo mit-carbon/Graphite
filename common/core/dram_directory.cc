@@ -87,6 +87,7 @@ void DramDirectory::copyDataToDram(ADDRINT address, char* data_buffer) //, UINT3
 
 }
 
+// FIXME: In case this was a writeback, we need to set the state bits also properly in addition to the sharers list
 void DramDirectory::processWriteBack(NetPacket wb_packet)
 {
 	cerr << endl << "processing writeback" << endl << endl;
@@ -103,6 +104,14 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 	if( payload.is_eviction ) {
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
+		// XXX: This is to fix the state of the directory entry
+		if (dir_entry->numSharers() == 0) {
+			 dir_entry->setDState(DramDirectoryEntry::UNCACHED);
+		}
+		else {
+			 dir_entry->setDState(DramDirectoryEntry::SHARED);
+		}
+
 	}
 
 	this->print();
@@ -209,7 +218,6 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 
 		case READ:
 			new_cstate = CacheState::SHARED;
-		{
 			// handle the case where this line is in the exclusive state (so data has to be written back first and that entry is downgraded to SHARED)
 			if(current_dstate == DramDirectoryEntry::EXCLUSIVE)
 			{
@@ -225,7 +233,6 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 				if(current_dstate == DramDirectoryEntry::UNCACHED)
 					dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
 			}
-		}
 		break;
       
 		default:
@@ -436,19 +443,21 @@ void DramDirectory::print()
 	cerr << endl << " <<<<<<<<<<<<<<<<<<<<< ----------------- >>>>>>>>>>>>>>>>>>>>>>>>> " << endl << endl;
 }
 
-void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
 
-	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
-  
+	// UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
+   // This key is unique for a particular DRAM directory
+	UINT32 cache_line_index = (address / bytes_per_cache_line);
+
 	assert( cache_line_index >= 0);
 
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
+
   
 	if( entry_ptr == NULL ) {
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
-		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
-																								, number_of_cores);
+		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address, number_of_cores, d_data);
 		entry_ptr = dram_directory_entries[cache_line_index];
 	}
 
@@ -472,30 +481,46 @@ void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstat
 //	entry_ptr->dirDebugPrint();
 }
 
-bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t	expected_dstate, vector<UINT32> expected_sharers_vector)
+bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t	expected_dstate, vector<UINT32> expected_sharers_vector, char *expected_data)
 {
 
-	UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
+	// UINT32 cache_line_index = (address / bytes_per_cache_line) - ( num_lines * dram_id );
+   // This key is unique for a particular DRAM directory
+	UINT32 cache_line_index = (address / bytes_per_cache_line);
+	UINT32 memory_line_size;
+	DramDirectoryEntry::dstate_t actual_dstate;
+	char actual_data[g_knob_line_size];
   
-	assert( cache_line_index >= 0);
+	assert (cache_line_index >= 0);
 
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[cache_line_index];
   
+	assert (entry_ptr != NULL);
+	// It cant be NULL
+	/*
 	if( entry_ptr == NULL ) {
 		UINT32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
 		dram_directory_entries[cache_line_index] =  new DramDirectoryEntry( memory_line_address
 																								, number_of_cores);
 	}
+	*/
 
 //	entry_ptr->dirDebugPrint();
-	DramDirectoryEntry::dstate_t actual_dstate = dram_directory_entries[cache_line_index]->getDState();
-	bool is_assert_true = ( actual_dstate == expected_dstate ); 
+//	DramDirectoryEntry::dstate_t actual_dstate = dram_directory_entries[cache_line_index]->getDState();
+	
+	actual_dstate = entry_ptr->getDState();
+	entry_ptr->getDramDataLine (actual_data, &memory_line_size);
+
+	assert (memory_line_size == g_knob_line_size);
+
+	bool is_assert_true = ( (actual_dstate == expected_dstate) &&
+			  						(memcmp(actual_data, expected_data, g_knob_line_size) == 0) ); 
 	
 	//copy STL vectors (which are just glorified stacks) and put data into array (for easier comparsion)
 	bool* actual_sharers_array = new bool[number_of_cores];
 	bool* expected_sharers_array = new bool[number_of_cores];
 	
-	for(int i=0; i < (int) number_of_cores; i++) {
+	for(int i = 0; i < (int) number_of_cores; i++) {
 		actual_sharers_array[i] = false;
 		expected_sharers_array[i] = false;
 	}
@@ -509,7 +534,7 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 		assert( sharer >= 0);
 		assert( sharer < number_of_cores );
 		actual_sharers_array[sharer] = true;
-//	  cerr << "Actual Sharers Vector Sharer-> Core# " << sharer << endl;
+//	  	cerr << "Actual Sharers Vector Sharer-> Core# " << sharer << endl;
 	}
 
 	while(!expected_sharers_vector.empty())

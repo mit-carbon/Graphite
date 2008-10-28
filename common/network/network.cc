@@ -102,114 +102,110 @@ string Network::packetTypeToString(PacketType type)
 
 NetPacket Network::netRecv(NetMatch match)
 {
-   int sender;
-   PacketType type;
-   char *buffer;
-   NetPacket packet;
-   NetQueueEntry entry;
-   bool loop;
+   	int sender;
+   	PacketType type;
+   	char *buffer;
+   	NetPacket packet;
+   	NetQueueEntry entry;
+   	bool loop;
 
 #ifdef NETWORK_DEBUG
-   debugPrint(net_tid, "NETWORK", "netRecv starting...");
-   stringstream ss;
+   	debugPrint(net_tid, "NETWORK", "netRecv starting...");
+   	stringstream ss;
 	ss <<  "Receiving packet type: " << match.type << " from " << match.sender;
 	debugPrint(net_tid, "NETWORK", ss.str());
 	printNetMatch(match, net_tid);
 #endif  
    
-   loop = true;
+   	loop = true;
 
-   while(loop)
-   {
-  
-      entry.time = 0; 
-      // Initialized to garbage values
-      sender = -1;
-      type = INVALID;
+   	while(loop)
+   	{
+      	entry.time = 0; 
+      	// Initialized to garbage values
+      	sender = -1;
+      	type = INVALID;
       
-      // Perform Network entry tasks
-	  #ifdef NETWORK_DEBUG
-	  debugPrint(net_tid, "NETWORK", "netRecv -calling netEntryTasks");
-	  #endif
-	  netEntryTasks();
-	  #ifdef NETWORK_DEBUG
-	  debugPrint(net_tid, "NETWORK", "netRecv -finished netEntryTasks");
-	  #endif
+      	// Perform Network entry tasks
+#ifdef NETWORK_DEBUG
+	  	debugPrint(net_tid, "NETWORK", "netRecv -calling netEntryTasks");
+#endif
+	  	netEntryTasks();
+#ifdef NETWORK_DEBUG
+	  	debugPrint(net_tid, "NETWORK", "netRecv -finished netEntryTasks");
+#endif
 
-      if(match.sender_flag && match.type_flag)
-      {
+		if(match.sender_flag && match.type_flag)
+      	{
 	 		assert(0 <= match.sender && match.sender < net_num_mod);
 	 		assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         if( !(net_queue[match.sender][match.type].empty()) )
-         {
-	         // if(entry.time >= net_queue[match.sender][match.type].top().time)
-            // {
-               entry = net_queue[match.sender][match.type].top();
-               sender = match.sender;
-               type = match.type;
-               loop = false;
-            // }
-         }
-      }
-      else if(match.sender_flag && (!match.type_flag))
-      {
+         	if( !(net_queue[match.sender][match.type].empty()) )
+         	{
+               	entry = net_queue[match.sender][match.type].top();
+               	sender = match.sender;
+               	type = match.type;
+               	loop = false;
+         	}
+      	}
+      	else if(match.sender_flag && (!match.type_flag))
+      	{
 	 		int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-         for(int i = 0; i < num_pac_type; i++)
-         {
-            assert(0 <= match.sender && match.sender < net_num_mod);
-            if( !(net_queue[match.sender][i].empty()) )
-            {
-               if((entry.time == 0) || (entry.time > net_queue[match.sender][i].top().time))
-               {
-                  entry = net_queue[match.sender][i].top();
-                  sender = match.sender;
-                  type = (PacketType)i;
-                  loop = false;
-               }
-            }
-         }
-      }
-      else if((!match.sender_flag) && match.type_flag)
-      {
-         for(int i = 0; i < net_num_mod; i++)
-         {
-            assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-            if( !(net_queue[i][match.type].empty()) )
-            {
-               if((entry.time == 0) || (entry.time > net_queue[i][match.type].top().time))
-               {
-                  entry = net_queue[i][match.type].top();
-                  //sender = (PacketType)i;
-                  sender = i;
-                  type = match.type;
-                  loop = false;
-               }
-            }
-         }
-      }
-      else
-      {
-         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-         for(int i = 0; i < net_num_mod; i++)
-         {
-            for(int j = 0; j < num_pac_type; j++)
-            {
-               if( !(net_queue[i][j].empty()) )
-               {
-                  if((entry.time == 0) || (entry.time > net_queue[i][j].top().time))
-                  {
-                     entry = net_queue[i][j].top();
-                     sender = i;
-                     type = (PacketType)j;
-                     loop = false;
-                  }
-               }
-            }
-         }
-      }
+         	for (int i = 0; i < num_pac_type; i++)
+         	{
+            	assert(0 <= match.sender && match.sender < net_num_mod);
+            	if( !(net_queue[match.sender][i].empty()) )
+            	{
+               		if((entry.time == 0) || (entry.time > net_queue[match.sender][i].top().time))
+               		{
+                  		entry = net_queue[match.sender][i].top();
+                  		sender = match.sender;
+                  		type = (PacketType)i;
+                  		loop = false;
+               		}
+            	}
+         	}
+      	}
+      	else if((!match.sender_flag) && match.type_flag)
+      	{
+         	for(int i = 0; i < net_num_mod; i++)
+         	{
+            	assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+            	if( !(net_queue[i][match.type].empty()) )
+            	{
+               		if((entry.time == 0) || (entry.time > net_queue[i][match.type].top().time))
+               		{
+                  		entry = net_queue[i][match.type].top();
+                  		//sender = (PacketType)i;
+                  		sender = i;
+                  		type = match.type;
+                  		loop = false;
+               		}
+            	}
+         	}
+      	}
+      	else
+      	{
+         	int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+         	for(int i = 0; i < net_num_mod; i++)
+         	{
+            	for(int j = 0; j < num_pac_type; j++)
+            	{
+               		if( !(net_queue[i][j].empty()) )
+               		{
+                  		if((entry.time == 0) || (entry.time > net_queue[i][j].top().time))
+                  		{
+                     		entry = net_queue[i][j].top();
+                     		sender = i;
+                     		type = (PacketType)j;
+                     		loop = false;
+                  		}
+               		}
+            	}
+         	}
+      	}
       
-      if(loop)
-      {
+      	if(loop)
+      	{
 #ifdef NETWORK_DEBUG         
 			debugPrint(net_tid, "NETWORK", "netRecv: calling transport->ptRecv");
 #endif			
@@ -229,35 +225,35 @@ NetPacket Network::netRecv(NetMatch match)
 			debugPrint(net_tid, "NETWORK", ss.str());
 			printf("\n\n\n\n*******************\n\n\n\n");
 #endif
-         assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
+         	assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
 			assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         net_queue[entry.packet.sender][entry.packet.type].push(entry);
-      }
+         	net_queue[entry.packet.sender][entry.packet.type].push(entry);
+      	}
 			
-   }
+   	}
 
-   assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
-   assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-   net_queue[entry.packet.sender][entry.packet.type].pop();
-   packet = entry.packet;
+   	assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
+   	assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+   	net_queue[entry.packet.sender][entry.packet.type].pop();
+   	packet = entry.packet;
 
 //   the_chip->setProcTime(net_tid, (the_chip->getProcTime(net_tid) > entry.time) ? 
 //		                   the_chip->getProcTime(net_tid) : entry.time);
 	
 	if(the_chip->getProcTime(net_tid) < entry.time)
-   {
-      the_chip->setProcTime(net_tid, entry.time);
-   }
+   	{
+      	the_chip->setProcTime(net_tid, entry.time);
+   	}
 
 #ifdef NETWORK_DEBUG
-   printNetPacket(packet);
+   	printNetPacket(packet);
 	ss.str("");
 	ss << "Net Recv Received Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
 	debugPrint(net_tid, "NETWORK", ss.str());
-   debugPrint(net_tid, "NETWORK", "netRecv - leaving");
+   	debugPrint(net_tid, "NETWORK", "netRecv - leaving");
 #endif
    
-   return packet;
+   	return packet;
 };
 
 bool Network::netQuery(NetMatch match)
@@ -431,6 +427,7 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
    char *ptr;
 
    // TODO: This is ugly. Clean it up.
+   // What is memcpy() for ?
 
    ptr = (char*) &packet.type;
    for(i = 0; i < sizeof(packet.type); i++)

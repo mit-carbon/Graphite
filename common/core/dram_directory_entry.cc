@@ -20,10 +20,9 @@ DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_
 	memory_line = new char[memory_line_size];
 
 	//clear memory_line
-	for(unsigned int i=0 ; i < memory_line_size; i++)
-		memory_line[i] = (char) 0;
+	memset (memory_line, '\0', memory_line_size);
 
-}                                                                          
+}                                                                         
 
 DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_cores, char* data_buffer): 
 																	dstate(UNCACHED),
@@ -33,18 +32,18 @@ DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_
 																	memory_line_address(cache_line_addr)
 {
 	sharers = new BitVector(number_of_cores);
-	memory_line = new char(memory_line_size);
+	memory_line = new char[memory_line_size];
 
 	//copy memory_line
-	for(unsigned int i=0 ; i < memory_line_size; i++)
-		memory_line[i] = data_buffer[i];
+	memcpy (memory_line, data_buffer, memory_line_size);
 
 }                                                                          
 
 DramDirectoryEntry::~DramDirectoryEntry()
 {
-	if(sharers!=NULL)
-		delete sharers;	
+	if(sharers != NULL)
+		delete sharers;
+	delete [] memory_line;
 
 		//TODO memory leak deallocate memory_line
 }
@@ -55,8 +54,7 @@ void DramDirectoryEntry::fillDramDataLine(char* input_buffer)
 	assert( input_buffer != NULL );
 	assert( memory_line != NULL );
 	
-	for( unsigned int i=0; i < memory_line_size; i++)
-		memory_line[i] = input_buffer[i];
+	memcpy (memory_line, input_buffer, memory_line_size);
 
 }
 
@@ -67,8 +65,7 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UINT32* line_size)
 	
 	*line_size = memory_line_size;
 
-	for( unsigned int i=0; i < memory_line_size; i++)
-		fill_buffer[i] = memory_line[i];
+	memcpy (fill_buffer, memory_line, memory_line_size);
 
 }
 

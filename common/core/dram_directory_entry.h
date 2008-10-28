@@ -55,6 +55,7 @@ class DramDirectoryEntry
   void dirDebugPrint();
   static string dStateToString(dstate_t dstate);
   UINT32 getMemLineAddress() { return memory_line_address; }
+  UINT32 getMemLineSize() {return memory_line_size; }
   
  private:
   dstate_t dstate;

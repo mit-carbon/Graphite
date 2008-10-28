@@ -325,41 +325,84 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
    }
 }
 
-void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate)
+void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate, char *c_data)
 {
 	//using Load Model, so that way we garuntee the tag isn't null
+	// Assume that address is always cache aligned
 	pair<bool, CacheTag*> cache_result;
+
+	bool fail_need_flag;
+	char buf[ocache->dCacheLineSize()];
+	bool eviction;
+	ADDRINT evict_addr;
+	char evict_buf[ocache->dCacheLineSize()];
 	
 	switch(cstate) {
 		case CacheState::INVALID:
 			ocache->dCacheInvalidateLine(address);
 			break;
 		case CacheState::SHARED:
-			cache_result = ocache->runDCacheLoadModel(address,1);
-			cache_result.second->setCState(cstate);
-			break;
+			// cache_result = ocache->runDCacheLoadModel(address,1);
+			// Falls through. Hope this is fine
 		case CacheState::EXCLUSIVE:
-			cache_result = ocache->runDCacheLoadModel(address,1);
+			// cache_result = ocache->runDCacheLoadModel(address,1);
+			assert ( (cstate == CacheState::SHARED) || (cstate == CacheState::EXCLUSIVE) );
+			cache_result = ocache->accessSingleLine (address, CacheBase::k_ACCESS_TYPE_STORE, 
+					  				&fail_need_fill, NULL, 
+									buff, ocache->dCacheLineSize(), 
+									&eviction, &evict_addr, &evict_buf);
+			if (fail_need_fill) {
+				// Note 'c_data' is a pointer to the entire cache line
+				cache_result = ocache->accessSingleLine (address, CacheBase::k_ACCESS_TYPE_STORE, 
+						  			NULL, c_data, 
+									NULL, NULL, 
+									&eviction, &evict_addr, &evict_buf);
+
+				if (eviction) {
+					cerr << "**** Problem ****: Some data has been evicted !!!\n";
+				}
+			}
+			
 			cache_result.second->setCState(cstate);
+			// Now I have set the state as well as data
 			break;
 		default:
 			cout << "ERROR in switch for Core::debugSetCacheState" << endl;
 	}
 }
 
-bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate)
+bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data)
 {
 //	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address, 1);
-	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address);
-   
+	// pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address);
+	// We cant run peek model because it does not give us the data
+	// Instead, we do "accessSingleLine" using a STORE request
+	
 	bool is_assert_true;
    CacheState::cstate_t actual_cstate;
+	char actual_data[ocache->dCacheLineSize()];
 
+	pair <bool, CacheTag*> cache_result;
+
+	assert ( (expected_cstate == CacheState::INVALID) == (expected_data == NULL) );
+
+	cache_result = ocache->accessSingleLine(address, CacheBase::k_ACCESS_TYPE_LOAD, 
+			  				&fail_need_fill, NULL, 
+							actual_data, ocache->dCacheLineSize(), 
+							NULL, NULL, NULL); 
+   
+	// Note: (cache_result.second == NULL)  =>  (fail_need_fill == true)
+	assert ( (cache_result.second == NULL) == (fail_need_fill == true) );
+	assert ( (cache_result.second == NULL) == (actual_data == NULL) );
+	assert ( (fail_need_fill == true) == (actual_data == NULL) );
+	
 	if( cache_result.second != NULL ) {
 		actual_cstate = cache_result.second->getCState();
-		is_assert_true = ( actual_cstate  == expected_cstate );
+		is_assert_true = ( (actual_cstate  == expected_cstate) &&
+				  				 (memcmp(actual_data, expected_data, ocache->dCacheLineSize()) == 0) );
 	} else {
-		actual_cstate = CacheState::INVALID; 
+		actual_cstate = CacheState::INVALID;
+		// There is no point in looking at the expected data here
 		is_assert_true = ( actual_cstate  == expected_cstate );
 	}
 	
@@ -375,14 +418,14 @@ bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_
 	
 }
 
-void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
-	memory_manager->debugSetDramState(address, dstate, sharers_list);		   
+	memory_manager->debugSetDramState(address, dstate, sharers_list, d_data);		   
 }
 
-bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list)
+bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
-	return memory_manager->debugAssertDramState(address, dstate, sharers_list);
+	return memory_manager->debugAssertDramState(address, dstate, sharers_list, d_data);
 
 }
 

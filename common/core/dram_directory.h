@@ -19,7 +19,8 @@ class DramDirectory
    UINT32 number_of_cores;
    //key dram entries on cache_line (assumes cache_line is 1:1 to dram memory lines)
    std::map<UINT32, DramDirectoryEntry*> dram_directory_entries;
-   std::map<UINT32, char*> dram_directory_data;
+	// Do we need this? Aren't we storing the data as part of "DramDirectoryEntry" anyway
+   // std::map<UINT32, char*> dram_directory_data;
    UINT32 dram_id;
    
 	/* Added by George */
@@ -58,8 +59,8 @@ public:
    
 	/***************************************/
 	
-	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
-	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
+	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
 
    //for debug purposes
    void print();

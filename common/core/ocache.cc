@@ -145,9 +145,9 @@ pair<bool, CacheTag*> OCache::dCacheLoadMultiFast(ADDRINT addr, UINT32 size)
    {
       pair<bool, CacheTag*> res = dCacheLoadSingleFast(a);
       if (hit && !res.first)
-	 hit = false;
+	 		hit = false;
       if (a == addr)
-	 tag = res.second;
+	 		tag = res.second;
    }
 
    return make_pair(hit, tag);

@@ -9,6 +9,7 @@ Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
    the_core = the_core_arg;
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+	cerr << "num_pack_type(expected 7): " << dec << num_pac_type << endl;
    net_tid = tid;
    net_num_mod = g_config->totalMods();
    transport = new Transport;

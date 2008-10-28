@@ -109,6 +109,8 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 	if( payload.is_eviction ) {
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
+		if(dir_entry->numSharers() == 0) 
+			dir_entry->setDState(DramDirectoryEntry::UNCACHED);
 	}
 
 	runDramAccessModel();
@@ -441,10 +443,10 @@ void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstat
 
 	assert( entry_ptr != NULL );
 
-	entry_ptr->setDState(dstate);
-	
 	//set sharer's list
 	entry_ptr->debugClearSharersList();
+	entry_ptr->setDState(dstate);
+	
 	while(!sharers_list.empty())
 	{
 		assert( dstate != DramDirectoryEntry::UNCACHED );

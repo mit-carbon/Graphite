@@ -111,11 +111,13 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 		INT32 ln;
 		const CHAR* file;
 		assert( ins_info != NULL );
-		PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
-		if( file != NULL )
-			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
-		else
-			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+		if(ins_info != NULL) {
+			PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
+			if( file != NULL )
+				cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+			else
+				cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+		}
 	}
 
 	if(rank > -1) 

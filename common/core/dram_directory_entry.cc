@@ -90,8 +90,11 @@ bool DramDirectoryEntry::addSharer(UINT32 sharer_rank)
 
 void DramDirectoryEntry::removeSharer(UINT32 sharer_rank)
 {
-	sharers->clear(sharer_rank);
-	number_of_sharers--;
+	if(sharers->at(sharer_rank)) {
+		assert( number_of_sharers != 0 );
+		sharers->clear(sharer_rank);
+		number_of_sharers--;
+	}
 }
 
 void DramDirectoryEntry::addExclusiveSharer(UINT32 sharer_rank)
@@ -109,8 +112,16 @@ DramDirectoryEntry::dstate_t DramDirectoryEntry::getDState()
 
 void DramDirectoryEntry::setDState(dstate_t new_dstate)
 {
-  assert((int)(new_dstate) >= 0 && (int)(new_dstate) < NUM_DSTATE_STATES);
-  dstate = new_dstate;
+	assert((int)(new_dstate) >= 0 && (int)(new_dstate) < NUM_DSTATE_STATES);
+  
+
+	if( (new_dstate == UNCACHED) && (number_of_sharers != 0) ) {
+		cerr << "UH OH!  Settingi to UNCached.... number_of_sharers == " << number_of_sharers << endl;
+		dirDebugPrint();
+	}
+	assert( (new_dstate == UNCACHED) ? (number_of_sharers == 0) : true );
+  
+	dstate = new_dstate;
 }
 
 /* Return the number of cores currently sharing this entry */

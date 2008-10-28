@@ -143,9 +143,9 @@ void* starter_function(void *threadid)
 	CAPI_Initialize(&tid);
 
 #ifdef DEBUG  
-   pthread_mutex_lock(&lock);
+//   pthread_mutex_lock(&lock);
 //	cerr << "executing do_nothing function: " << tid << endl << endl;
-   pthread_mutex_unlock(&lock);
+//   pthread_mutex_unlock(&lock);
 #endif
    
    if(tid==0) {

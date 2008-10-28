@@ -39,7 +39,29 @@ class Transport{
       static Futex *pt_futx;
 
       //***** Data structures for MCP communication *****//
-      typedef pair<UInt8*, UInt32> MCPEntry;
+      //typedef pair<UInt8*, UInt32> MCPEntry;
+      struct MCPEntry
+      {
+        struct
+        {
+          UInt8 *first;
+          UInt32 second;
+        };
+
+        MCPEntry(const UInt8* data, UInt32 size)
+        {
+          first = new UInt8[size];
+          memcpy(first, data, size);
+          second = size;
+        }
+
+        ~MCPEntry()
+        {
+          // It is the responsibility of whoever receives the data
+          // to delete it (see recvFromMCPHelper...)
+          //delete [] first;
+        }
+      };
 
       typedef struct MCPQueue
       {

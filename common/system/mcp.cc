@@ -24,6 +24,7 @@ void MCP::run()
 
    UInt32 length = 0;
    UInt8* buf = pt_endpt.ptMCPRecv(&length); 
+
    recv_buff << make_pair(buf, length);
   
    int msg_type;
@@ -64,6 +65,8 @@ void MCP::run()
          cerr << "Unhandled MCP message type: " << msg_type << " from: " << comm_id << endl;
          assert(false);
    }
+
+   delete [] buf;
 
 //   cerr << "Finished MCP request" << endl;
 }

@@ -154,6 +154,8 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    int status;
    recv_buff >> status;
 
+   delete [] res_buff;
+
    return status;
 }
 
@@ -215,6 +217,8 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    }
    //cerr << "Exiting syscall model marshall read" << endl;
 
+   delete [] res_buff;
+
    return bytes;
 }
 
@@ -261,6 +265,8 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    int status;
    recv_buff >> status;
 
+   delete [] res_buff;
+
    return status;
 }
 
@@ -302,6 +308,8 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    int status;
    recv_buff >> status;
 
+   delete [] res_buff;
+
    return status;
 }
 
@@ -329,6 +337,9 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    // return the result
    int result;
    recv_buff >> result;
+
+   delete [] res_buff;
+
    return result;
 }
 

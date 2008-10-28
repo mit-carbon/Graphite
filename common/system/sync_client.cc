@@ -57,6 +57,8 @@ void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
   _recv_buff << make_pair(res_buff, length);
   _recv_buff >> dummy;
   assert( dummy == MUTEX_LOCK_RESPONSE );
+
+  delete [] res_buff;
 }
 
 void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
@@ -79,6 +81,8 @@ void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
   _recv_buff << make_pair(res_buff, length);
   _recv_buff >> dummy;
   assert( dummy == MUTEX_UNLOCK_RESPONSE );
+
+  delete [] res_buff;
 }
 
 void SyncClient::condInit(int commid, carbon_cond_t *cond)
@@ -98,6 +102,8 @@ void SyncClient::condInit(int commid, carbon_cond_t *cond)
   assert( length == sizeof(carbon_cond_t) );
 
   *cond = *((carbon_cond_t*)res_buff);
+
+  delete [] res_buff;
 }
 
 void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
@@ -120,6 +126,8 @@ void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
   _recv_buff << make_pair(res_buff, length);
   _recv_buff >> dummy;
   assert( dummy == COND_WAIT_RESPONSE );
+
+  delete [] res_buff;
 }
 
 void SyncClient::condSignal(int commid, carbon_cond_t *cond)
@@ -142,6 +150,8 @@ void SyncClient::condSignal(int commid, carbon_cond_t *cond)
   _recv_buff << make_pair(res_buff, length);
   _recv_buff >> dummy;
   assert( dummy == COND_SIGNAL_RESPONSE );
+
+  delete [] res_buff;
 }
 
 void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
@@ -164,5 +174,7 @@ void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
   _recv_buff << make_pair(res_buff, length);
   _recv_buff >> dummy;
   assert( dummy == COND_BROADCAST_RESPONSE );
+
+  delete [] res_buff;
 }
 

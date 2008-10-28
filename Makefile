@@ -2,7 +2,7 @@ include common/makefile.gnu.config
 
 PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
 PIN_TOOL=pin/bin/pin_sim
-PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
+PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 TESTS_DIR=./common/tests
 
 CORES=16

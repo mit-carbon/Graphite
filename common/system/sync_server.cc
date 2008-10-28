@@ -33,8 +33,15 @@ bool SimMutex::lock(comm_id_t commid)
 comm_id_t SimMutex::unlock(comm_id_t commid)
 {
   assert(_owner == commid);
-  _owner = (_waiting.empty() ? NO_OWNER : _waiting.front());
-  _waiting.pop();
+  if(_waiting.empty())
+  {
+      _owner = NO_OWNER;
+  }
+  else 
+  {
+      _owner =  _waiting.front();
+      _waiting.pop();
+  }
   return _owner;
 }
 
@@ -42,11 +49,11 @@ comm_id_t SimMutex::unlock(comm_id_t commid)
 SimCond::SimCond() {}
 SimCond::~SimCond() 
 {
-    assert(_waiting.empty());
+  assert(_waiting.empty());
 }
 
 
-comm_id_t SimCond::wait(comm_id_t commid, StableIterator<SimMutex> simMux)
+comm_id_t SimCond::wait(comm_id_t commid, StableIterator<SimMutex> & simMux)
 {
   _waiting.push(make_pair(commid, simMux));
   return simMux->unlock(commid);
@@ -140,9 +147,9 @@ void SyncServer::mutexUnlock(comm_id_t commid)
     {
       // wake up the new owner
       UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _send_buffer.clear();
-      _send_buffer << dummy;
-      _pt_endpt.ptMCPSend(new_owner, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+      _send_buffer2.clear();
+      _send_buffer2 << dummy;
+      _pt_endpt.ptMCPSend(new_owner, (UInt8*)_send_buffer2.getBuffer(), _send_buffer2.size());
     }
   else
     {
@@ -207,9 +214,10 @@ void SyncServer::condSignal(comm_id_t commid)
   {
       // wake up the new owner
       UInt32 dummy=SyncClient::COND_WAIT_RESPONSE;
-      _send_buffer.clear();
-      _send_buffer << dummy;
-      _pt_endpt.ptMCPSend(woken, (UInt8*)_send_buffer.getBuffer(), _send_buffer.size());
+      _send_buffer2.clear();
+      _send_buffer2 << dummy;
+      _pt_endpt.ptMCPSend(woken, (UInt8*)_send_buffer2.getBuffer(), _send_buffer2.size());
+      //_pt_endpt.ptMCPSend(woken, (UInt8*)&dummy, sizeof(dummy));
   }
   else
   {
@@ -232,10 +240,10 @@ void SyncServer::condBroadcast(comm_id_t commid)
 
   SimCond *psimcond = &_conds[cond];
 
-  WakeupList woken_list;
+  SimCond::WakeupList woken_list;
   psimcond->broadcast(commid, woken_list);
 
-  for(WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
+  for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {
       assert(*it != INVALID_COMMID);
 

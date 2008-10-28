@@ -90,7 +90,7 @@ void SimMutexUnlock(carbon_mutex_t *mux);
 void SimCondInit(carbon_cond_t *cond);
 void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
 void SimCondSignal(carbon_cond_t *cond);
-void SimCondSignal(carbon_cond_t *cond);
+void SimCondBroadcast(carbon_cond_t *cond);
 
 // MCP server wrappers
 void MCPRun();
@@ -141,8 +141,8 @@ class Chip
 
       friend void SimCondInit(carbon_cond_t *cond);
       friend void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
-      friend void SimCondLock(carbon_cond_t *cond);
-      friend void SimCondUnlock(carbon_cond_t *cond);
+      friend void SimCondSignal(carbon_cond_t *cond);
+      friend void SimCondBroadcast(carbon_cond_t *cond);
       
       // organic cache modeling wrappers
       friend bool icacheRunLoadModel(int rank, ADDRINT i_addr, UINT32 size);
@@ -163,7 +163,6 @@ class Chip
       PIN_LOCK maps_lock;
 
       Core *core;
-
 
    public:
 

@@ -66,6 +66,7 @@ class SyncServer
   Transport & _pt_endpt;
   UnstructuredBuffer &_recv_buffer;
   UnstructuredBuffer _send_buffer;
+  UnstructuredBuffer _send_buffer2;
 
  public:
   SyncServer(Transport &pt_endpt, UnstructuredBuffer &recv_buffer);

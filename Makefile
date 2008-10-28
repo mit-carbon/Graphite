@@ -61,7 +61,7 @@ mutex_test: all
 
 cond_test: all
 	$(MAKE) -C $(TESTS_DIR)/cond
-	$(PIN_RUN) -mdc -mpf -msys -n 1 -- $(TESTS_DIR)/cond/cond_test
+	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/cond/cond_test
 
 war:	kill
 

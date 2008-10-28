@@ -252,7 +252,7 @@ void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
      g_chip->core[rank].getSyncClient()->condWait(commid, cond, mux);
 }
 
-void SimCondSignal(carbon_mutex_t *mux)
+void SimCondSignal(carbon_cond_t *cond)
 {
    int rank;
    chipRank(&rank);

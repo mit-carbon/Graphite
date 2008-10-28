@@ -17,7 +17,7 @@ MCP::~MCP()
 
 void MCP::run()
 {
-   cerr << "Waiting for MCP request..." << endl;
+//   cerr << "Waiting for MCP request..." << endl;
 
    send_buff.clear();
    recv_buff.clear();
@@ -48,11 +48,24 @@ void MCP::run()
       case MCP_MESSAGE_MUTEX_UNLOCK:
          sync_server.mutexUnlock(comm_id);
          break;
+      case MCP_MESSAGE_COND_INIT:
+         sync_server.condInit(comm_id);
+         break;
+      case MCP_MESSAGE_COND_WAIT:
+         sync_server.condWait(comm_id);
+         break;
+      case MCP_MESSAGE_COND_SIGNAL:
+         sync_server.condSignal(comm_id);
+         break;
+      case MCP_MESSAGE_COND_BROADCAST:
+         sync_server.condBroadcast(comm_id);
+         break;
       default:
          cerr << "Unhandled MCP message type: " << msg_type << " from: " << comm_id << endl;
+         assert(false);
    }
 
-   cerr << "Finished MCP request" << endl;
+//   cerr << "Finished MCP request" << endl;
 }
 
 void MCP::finish()

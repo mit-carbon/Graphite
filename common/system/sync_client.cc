@@ -87,7 +87,7 @@ void SyncClient::condInit(int commid, carbon_cond_t *cond)
   _recv_buff.clear(); 
   _send_buff.clear(); 
    
-  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+  int msg_type = MCP_MESSAGE_COND_INIT;
 
   _send_buff << msg_type << commid << *cond;
 
@@ -100,13 +100,13 @@ void SyncClient::condInit(int commid, carbon_cond_t *cond)
   *cond = *((carbon_cond_t*)res_buff);
 }
 
-void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mux_t *mux)
+void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
   _send_buff.clear(); 
    
-  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+  int msg_type = MCP_MESSAGE_COND_WAIT;
 
   _send_buff << msg_type << commid << *cond << *mux;
 
@@ -128,7 +128,7 @@ void SyncClient::condSignal(int commid, carbon_cond_t *cond)
   _recv_buff.clear(); 
   _send_buff.clear(); 
    
-  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+  int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
   _send_buff << msg_type << commid << *cond;
 
@@ -150,7 +150,7 @@ void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
   _recv_buff.clear(); 
   _send_buff.clear(); 
    
-  int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
+  int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
   _send_buff << msg_type << commid << *cond;
 

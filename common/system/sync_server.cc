@@ -89,6 +89,27 @@ void SimCond::broadcast(comm_id_t commid, WakeupList &woken_list)
   }
 }
 
+// -- SimBarrier -- //
+SimBarrier::SimBarrier(UINT32 count) : _count(count) {}
+SimBarrier::~SimBarrier() 
+{
+  assert(_waiting.empty());
+}
+
+void SimBarrier::wait(comm_id_t commid, WakeupList &woken_list)
+{
+  _waiting.push_back(commid);
+
+  assert(_waiting.size() <= _count);
+
+  // All threads have reached the barrier
+  if(_waiting.size() == _count)
+  {
+      woken_list = _waiting;
+      _waiting.clear();
+  }
+}
+
 // -- SyncServer -- //
 
 SyncServer::SyncServer(Transport &pt_endpt, UnstructuredBuffer &recv_buffer)
@@ -240,5 +261,36 @@ void SyncServer::condBroadcast(comm_id_t commid)
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_BROADCAST_RESPONSE;
   _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
+}
+
+void SyncServer::barrierInit(comm_id_t commid)
+{
+  UInt32 count;
+  _recv_buffer >> count;
+
+  _barriers.push_back(SimBarrier(count));
+  UInt32 barrier = (UInt32)_barriers.size()-1;
+
+  _pt_endpt.ptMCPSend(commid, (UInt8*)&barrier, sizeof(barrier));
+}
+
+void SyncServer::barrierWait(comm_id_t commid)
+{
+  carbon_barrier_t barrier;
+  _recv_buffer >> barrier;
+
+  assert((size_t)barrier < _barriers.size());
+
+  SimBarrier *psimbarrier = &_barriers[barrier];
+
+  SimCond::WakeupList woken_list;
+  psimbarrier->wait(commid, woken_list);
+
+  for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
+  {
+      assert(*it != INVALID_COMMID);
+      UInt32 dummy=SyncClient::BARRIER_WAIT_RESPONSE;
+      _pt_endpt.ptMCPSend(*it, (UInt8*)&dummy, sizeof(dummy));
+  }
 }
 

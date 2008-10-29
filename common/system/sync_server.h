@@ -53,13 +53,32 @@ class SimCond
   void broadcast(comm_id_t commid, WakeupList &woken);
 };
 
+class SimBarrier
+{
+  typedef std::vector< comm_id_t > ThreadQueue;
+
+  ThreadQueue _waiting;
+  UINT32 _count;
+
+ public:
+  typedef std::vector<comm_id_t> WakeupList;
+
+  SimBarrier(UINT32 count);
+  ~SimBarrier();
+
+  // returns a list of threads to wake up if all have reached barrier
+  void wait(comm_id_t commid, WakeupList &woken);
+};
+
 class SyncServer
 {
   typedef std::vector<SimMutex> MutexVector;
   typedef std::vector<SimCond> CondVector;
+  typedef std::vector<SimBarrier> BarrierVector;
 
   MutexVector _mutexes;
   CondVector _conds;
+  BarrierVector _barriers;
 
   // FIXME: This should be better organized -- too much redundant crap
  private:
@@ -80,6 +99,9 @@ class SyncServer
   void condWait(comm_id_t);
   void condSignal(comm_id_t);
   void condBroadcast(comm_id_t);
+
+  void barrierInit(comm_id_t);
+  void barrierWait(comm_id_t);
 };
 
 #endif // SYNC_SERVER_H

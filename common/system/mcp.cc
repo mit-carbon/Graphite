@@ -61,6 +61,12 @@ void MCP::run()
       case MCP_MESSAGE_COND_BROADCAST:
          sync_server.condBroadcast(comm_id);
          break;
+      case MCP_MESSAGE_BARRIER_INIT:
+         sync_server.barrierInit(comm_id);
+         break;
+      case MCP_MESSAGE_BARRIER_WAIT:
+         sync_server.barrierWait(comm_id);
+         break;
       default:
          cerr << "Unhandled MCP message type: " << msg_type << " from: " << comm_id << endl;
          assert(false);

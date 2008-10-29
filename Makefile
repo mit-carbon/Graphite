@@ -67,6 +67,10 @@ broadcast_test: all
 	$(MAKE) -C $(TESTS_DIR)/broadcast
 	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/broadcast/broadcast_test
 
+barrier_test: all
+	$(MAKE) -C $(TESTS_DIR)/barrier
+	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barrier/barrier_test
+
 war:	kill
 
 kill:

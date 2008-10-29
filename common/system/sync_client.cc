@@ -178,3 +178,48 @@ void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
   delete [] res_buff;
 }
 
+void SyncClient::barrierInit(int commid, carbon_barrier_t *barrier, UINT32 count)
+{
+  // Reset the buffers for the new transmission
+  _recv_buff.clear(); 
+  _send_buff.clear(); 
+   
+  int msg_type = MCP_MESSAGE_BARRIER_INIT;
+
+  _send_buff << msg_type << commid << count;
+
+  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+
+  UInt32 length = 0;
+  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
+  assert( length == sizeof(carbon_barrier_t) );
+
+  *barrier = *((carbon_barrier_t*)res_buff);
+
+  delete [] res_buff;
+}
+
+void SyncClient::barrierWait(int commid, carbon_barrier_t *barrier)
+{
+  // Reset the buffers for the new transmission
+  _recv_buff.clear(); 
+  _send_buff.clear(); 
+   
+  int msg_type = MCP_MESSAGE_BARRIER_WAIT;
+
+  _send_buff << msg_type << commid << *barrier;
+
+  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+
+  UInt32 length = 0;
+  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
+  assert( length == sizeof(unsigned int) );
+
+  unsigned int dummy;
+  _recv_buff << make_pair(res_buff, length);
+  _recv_buff >> dummy;
+  assert( dummy == BARRIER_WAIT_RESPONSE );
+
+  delete [] res_buff;
+}
+

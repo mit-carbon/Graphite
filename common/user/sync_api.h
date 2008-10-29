@@ -4,6 +4,7 @@
 //FIXME: Make this a more proper type
 typedef int carbon_mutex_t;
 typedef int carbon_cond_t;
+typedef int carbon_barrier_t;
 
 // These are the dummy functions that will get replaced
 // by the simulator
@@ -22,9 +23,13 @@ extern "C" {
     void condSignal(carbon_cond_t *cond);
     void condBroadcast(carbon_cond_t *cond);
 }
-
-
-
 bool isCondValid(carbon_cond_t *cond);
+
+// Related to barriers
+extern "C" {
+    void barrierInit(carbon_barrier_t *barrier, unsigned int count);
+    void barrierWait(carbon_barrier_t *barrier);
+}
+bool isBarrierValid(carbon_barrier_t *barrier);
 
 #endif

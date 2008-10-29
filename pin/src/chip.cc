@@ -278,6 +278,32 @@ void SimCondBroadcast(carbon_cond_t *cond)
      g_chip->core[rank].getSyncClient()->condBroadcast(commid, cond);
 }
 
+void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->barrierInit(commid, barrier, count);
+}
+
+void SimBarrierWait(carbon_barrier_t *barrier)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->barrierWait(commid, barrier);
+}
+
 // MCP wrappers
 void MCPRun()
 {

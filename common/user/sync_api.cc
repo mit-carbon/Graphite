@@ -46,6 +46,17 @@ void condBroadcast(carbon_cond_t *cond)
    assert(false);
 }
 
+void barrierInit(carbon_barrier_t *barrier, unsigned int count)
+{
+   cerr << "Made it to the dummy barrierInit() function." << endl;
+   assert(false);
+}
+
+void barrierWait(carbon_barrier_t *barrier)
+{
+   cerr << "Made it to the dummy barrierWait() function." << endl;
+   assert(false);
+}
 
 bool isMutexValid(carbon_mutex_t *mux)
 {
@@ -57,3 +68,7 @@ bool isCondValid(carbon_cond_t *cond)
     return(!(*cond == -1));
 }
 
+bool isBarrierValid(carbon_barrier_t *barrier)
+{
+    return(!(*barrier == -1));
+}

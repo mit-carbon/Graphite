@@ -111,11 +111,13 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 		INT32 ln;
 		const CHAR* file;
 		assert( ins_info != NULL );
-		PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
-		if( file != NULL )
-			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
-		else
-			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+		if(ins_info != NULL) {
+			PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
+			if( file != NULL )
+				cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+			else
+				cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+		}
 	}
 
 	if(rank > -1) 
@@ -209,26 +211,31 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
        
         	// FIXME: This should actually be a UINT32 which tells how many read misses occured
 		
-			char* data_ld_buffer = (char*) malloc (dcache_ld_size);
+//			char* data_ld_buffer = (char*) malloc (dcache_ld_size);
+			char data_ld_buffer[dcache_ld_size];
+			//TODO HARSHAD sharedmemory will fill ld_buffer
 			bool d_hit = dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 			// bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        	
 			if ( do_perf_modeling ) {
-      		perfModelRun(stats[rank], d_hit, writes, num_writes);
-      	}
+        		perfModelRun(stats[rank], d_hit, writes, num_writes);
+     		}
 
-      	if ( is_dual_read ) {
-				char* data_ld_buffer_2 = (char*) malloc (dcache_ld_size);
+     		if ( is_dual_read ) {
+
+//				char* data_ld_buffer_2 = (char*) malloc (dcache_ld_size);
+				char data_ld_buffer_2[dcache_ld_size];
+				//TODO HARSHAD sharedmemory will fill ld_buffer
 				bool d_hit2 = dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
-      		// bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-      		if ( do_perf_modeling ) {
-        			perfModelRun(stats[rank], d_hit2, writes, num_writes);
-      		}
-      	}
+        		// bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+        		if ( do_perf_modeling ) {
+           		perfModelRun(stats[rank], d_hit2, writes, num_writes);
+     			}
+   		}
 
-//       	ReleaseLock(&dcache_write_lock);
-//       	ReleaseLock(&dcache_read_lock);
-//		 		cerr << "[" << rank << "] dCache READ Modeling: RELEASED LOCKS " << endl;
+//      	ReleaseLock(&dcache_write_lock);
+//      	ReleaseLock(&dcache_read_lock);
+//	 		cerr << "[" << rank << "] dCache READ Modeling: RELEASED LOCKS " << endl;
      
 		} 
    	else 
@@ -246,7 +253,10 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 //			cerr << "[" << rank << "] dCache WRITE Modeling: GOT LOCKS " << endl;
        
 			// FIXME: This should actually be a UINT32 which tells how many write misses occurred
-			char* data_st_buffer = (char*) malloc (dcache_ld_size);  //TODO memory leak, we need to deallocate this guy
+//			char* data_st_buffer = (char*) malloc (dcache_ld_size);  
+			char data_st_buffer[dcache_ld_size];  
+			//TODO Harshad: st buffer needs to be written
+			//TODO Harshad: shared memory expects all data_buffers to be pre-allocated
 			bool d_hit = dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
 			// bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
    		if ( do_perf_modeling )

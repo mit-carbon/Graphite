@@ -208,7 +208,7 @@ bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* dat
 	//TODO make everything use the cachebase::accesstype enum
 	//TODO just passing in dummy data for now
 	for(unsigned int i = 0; i < data_size; i++)
-		data_buffer[i] = (char) i;
+		data_buffer[i] = (char) i+1;
 	if( access_type == CacheBase::k_ACCESS_TYPE_LOAD)
 		return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, data_size); 
 	else

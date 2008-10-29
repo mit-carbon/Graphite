@@ -9,6 +9,7 @@ Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
    the_core = the_core_arg;
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+	cerr << "num_pack_type(expected 7): " << dec << num_pac_type << endl;
    net_tid = tid;
    net_num_mod = g_config->totalMods();
    transport = new Transport;
@@ -96,6 +97,10 @@ string Network::packetTypeToString(PacketType type)
 			return "SHARED_MEM_UPDATE_UNEXPECTED";
 		case SHARED_MEM_ACK:
 			return "SHARED_MEM_ACK              ";
+		case SHARED_MEM_EVICT:
+			return "SHARED_MEM_EVICT            ";
+		default:
+			return "ERROR in PacketTypeToString";
 	}
 	return "ERROR in PacketTypeToString";
 }
@@ -530,66 +535,43 @@ void Network::netEntryTasks()
 
 	  if(type == SHARED_MEM_REQ)
       {
-//<<<<<<< HEAD:common/network/network.cc
 			assert(0 <= sender && sender < net_num_mod);
 			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          net_queue[sender][type].pop();
          
-#ifdef NETWORK_DEBUG
-         debugPrint(net_tid, "NETWORK", "core received shared memory request.");
-#endif
          the_core->getMemoryManager()->addMemRequest(entry.packet);
+			
 			if(the_chip->getProcTime(net_tid) < entry.time)
 			{
 				the_chip->setProcTime(net_tid, entry.time);
 			}
-//         the_core->getMemoryManager()->processSharedMemReq(entry.packet);
-
-#ifdef NETWORK_DEBUG
-         debugPrint(net_tid, "NETWORK", "core finished processing shared memory request.");
-#endif
-      
       }
+		else if(type == SHARED_MEM_EVICT)
+		{
+			assert(0 <= sender && sender < net_num_mod);
+			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+         net_queue[sender][type].pop();
+         
+         the_core->getMemoryManager()->forwardWriteBackToDram(entry.packet);
+
+			if(the_chip->getProcTime(net_tid) < entry.time)
+			{
+				the_chip->setProcTime(net_tid, entry.time);
+			}
+		}
       else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
       {
 		  assert(0 <= sender && sender < net_num_mod);
 		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
         net_queue[sender][type].pop();
-#ifdef NETWORK_DEBUG
-		debugPrint(net_tid, "NETWORK", "core processing shared memory unexpected update.");
-#endif
-        //TODO possibly rename this to addUnexpectedShareMemUpdate(packet)
-        the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
+        
+		  the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
+		  
 		  if(the_chip->getProcTime(net_tid) < entry.time)
 		  {
 			  the_chip->setProcTime(net_tid, entry.time);
 		  }
-#ifdef NETWORK_DEBUG
-		  debugPrint(net_tid, "NETWORK", "core finished processing shared memory unexpected update.");
-#endif
       }
-//=======
-//	assert(0 <= sender && sender < net_num_mod);
-//	assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-//	net_queue[sender][type].pop();
-	// FIXME:
-	// processSharedMemReq will be a memeber function of the shared memory object
-	// This function invocation should be replaced by something along the lines of
-	// shared_mem_obj->processSharedMemReq(entry.packet)
-//	processSharedMemReq(entry.packet);
-//      }
-//      else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
-//		{
-//		  assert(0 <= sender && sender < net_num_mod);
-//		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-//		  net_queue[sender][type].pop();
-			// FIXME:
-         // processUnexpectedSharedMemUpdate will be a memeber function of the shared memory object
-         // This function invocation should be replaced by something along the lines of
-         // shared_mem_obj->processUnexpectedSharedMemUpdate(entry.packet)
-//         processUnexpectedSharedMemUpdate(entry.packet);
-//      }
-//>>>>>>> master:common/network/network.cc
 
    } while(type != INVALID);
 	
@@ -605,20 +587,3 @@ UINT64 Network::netLatency(NetPacket packet)
       return 0;
 };
 
-// Only here for debugging
-// To be removed as soon as Jim plugs his function in
-/*
-void Network::processSharedMemReq(NetPacket packet)
-{
-   // Do nothing
-   // Only for debugging
-   // Jim will provide the correct methods for this in the shared memory object
-};
-
-void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
-{
-   // Do nothing
-   // Only for debugging
-   // Jim will provide the correct methods for this in the shared memory object
-};
-*/

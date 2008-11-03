@@ -57,7 +57,12 @@ class Network{
 
    private:
 
-      typedef struct NetQueueEntry{
+      //TODO here to try and sort out hangs/crashes when instrumenting 
+		//all of shared_memory.  gdb was showing a grasph in stl_push_back,
+		//allocate_new.
+		PIN_LOCK network_lock;
+		
+		typedef struct NetQueueEntry{
          NetPacket packet;
 	      UINT64 time;
       } NetQueueEntry;

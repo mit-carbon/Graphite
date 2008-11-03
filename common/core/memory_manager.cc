@@ -233,6 +233,7 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 
 void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 {
+	debugPrint(the_core->getRank(), "MMU", "Forwarding WriteBack to DRAM");
 	dram_dir->processWriteBack(wb_packet);
 }
 

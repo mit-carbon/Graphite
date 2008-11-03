@@ -108,6 +108,7 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 	copyDataToDram(payload.ack_address, data_buffer); //TODO verify that all wb_packets would give us the entire cache_line
 	
 	if( payload.is_eviction ) {
+		debugPrint(dram_id, "DRAMDIR", "Payload is an eviction... removingSharer!");
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
 

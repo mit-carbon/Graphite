@@ -94,6 +94,8 @@ char* Transport::ptRecv()
 
 bool Transport::ptQuery()
 {
+   if(0 >  pt_tid || pt_tid >= pt_num_mod)
+		cerr << "INVALID pt_tid: " << pt_tid << endl;
    assert(0 <= pt_tid && pt_tid < pt_num_mod);
    return !(pt_queue[pt_tid].pt_queue.empty());
 }

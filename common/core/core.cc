@@ -294,18 +294,6 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			debugPrint(getRank(), "CORE", ss.str());
 #endif
 
-			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
-				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
-				// If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
-				all_hits = false;
-			}
-			
-#ifdef CORE_DEBUG
-			ss.str("");
-			ss << "[" << getRank() << "] end  InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
-			debugPrint(getRank(), "CORE", ss.str());
-#endif
-
 			// Increment the buffer head
 			curr_data_buffer_head += curr_size;
 		}

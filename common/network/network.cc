@@ -5,7 +5,7 @@ using namespace std;
 
 Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
 {
-   the_chip = chip;
+	the_chip = chip;
    the_core = the_core_arg;
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
@@ -19,6 +19,10 @@ Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
    {
       net_queue[i] = new NetQueue [num_pac_type];
    }
+   
+	//lock for debugging only
+	InitLock(&network_lock);
+	
 }
 
 void Network::netCheckMessages()
@@ -492,14 +496,17 @@ void Network::netEntryTasks()
    // Pull up packets waiting in the physical transport layer
    while(transport->ptQuery())
    {
-      buffer = transport->ptRecv();
+//      GetLock(&network_lock, 1);
+		buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
+//      ReleaseLock(&network_lock);
 
    }
    
+//   debugPrint(net_tid, "SMEM", "netEntryTasks after while ptQuery....");
    do //while(type!=INVALID)
    {
       sender = -1;
@@ -535,6 +542,7 @@ void Network::netEntryTasks()
 
 	  if(type == SHARED_MEM_REQ)
       {
+//			debugPrint(net_tid, "SMEM", "netEntryTasks shared_meM-req....");
 			assert(0 <= sender && sender < net_num_mod);
 			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          net_queue[sender][type].pop();
@@ -575,6 +583,7 @@ void Network::netEntryTasks()
 
    } while(type != INVALID);
 	
+//	debugPrint(net_tid, "SMEM", "netEntryTasks finished....");
 }
 
 UINT64 Network::netProcCost(NetPacket packet)

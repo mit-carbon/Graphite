@@ -61,7 +61,7 @@ matmult_test: all
 shmem_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 #	$(PIN_RUN) -mdc -msm -n 2 -- $(TESTS_DIR)/shared_mem_test/test
-	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test
+	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test 5 
 
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic

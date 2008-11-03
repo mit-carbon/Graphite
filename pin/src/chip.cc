@@ -207,8 +207,8 @@ bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* dat
    assert(0 <= rank && rank < g_chip->num_modules);
 	//TODO make everything use the cachebase::accesstype enum
 	//TODO just passing in dummy data for now
-	for(unsigned int i = 0; i < data_size; i++)
-		data_buffer[i] = (char) i+1;
+	// for(unsigned int i = 0; i < data_size; i++)
+	//	data_buffer[i] = (char) i+1;
 	if( access_type == CacheBase::k_ACCESS_TYPE_LOAD)
 		return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, data_size); 
 	else
@@ -280,6 +280,9 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 
    InitLock(&maps_lock);
    InitLock(&dcache_lock);
+
+	// FIXME: A hack
+	aliasEnable = false;
 }
 
 VOID Chip::fini(int code, VOID *v)
@@ -288,9 +291,9 @@ VOID Chip::fini(int code, VOID *v)
 
    for(int i = 0; i < num_modules; i++)
    {
-      cout << "*** Core[" << i << "] summary ***" << endl;
+      cerr << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
-      cout << endl;
+      cerr << endl;
    }
 
    out.close();
@@ -304,9 +307,9 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 {
 	vector<ADDRINT> temp_address_vector = address_vector;
 
-	assert (d_data_array.size() == c_data_array.size());
-	assert (d_data_array.size() == dram_vector.size());
-	assert (cache_vector.size() == ( (num_modules) * dram_vector.size() ) );
+	assert (d_data_vector.size() == c_data_vector.size());
+	assert (d_data_vector.size() == dram_vector.size());
+	assert (cache_vector.size() == dram_vector.size() );
 
 	while (!dram_vector.empty())
 	{  //TODO does this assume 1:1 core/dram allocation?
@@ -353,39 +356,68 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 
 }
 
-bool Chip::debugAssertMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list, string test_code, string error_string)
+bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector, 
+		  										 vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
+												 vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
+		  										 vector<char*>& d_data_vector, 
+												 vector<char*>& c_data_vector,
+												 string test_code, string error_string)
 {
+	bool all_asserts_passed = true;
+	vector<ADDRINT> temp_address_vector = address_vector;
 
-//	cout << "    ## Asserting Memory Conditions ## [" << test_code <<" ] " << endl;
-   bool all_asserts_passed = true; //return false if any assertions fail
-	
-	INT32 temp_dram_id, temp_cache_id;
-	DramDirectoryEntry::dstate_t temp_dstate;
-	CacheState::cstate_t temp_cstate;
+	assert (d_data_vector.size() == c_data_vector.size());
+	assert (d_data_vector.size() == dram_vector.size());
+	assert (cache_vector.size() == dram_vector.size() );
 
-	while(!dram_vector.empty()) 
-	{
-		temp_dram_id = dram_vector.back().first;
-		temp_dstate = dram_vector.back().second;
+	while (!dram_vector.empty())
+	{  //TODO does this assume 1:1 core/dram allocation?
+
+		ADDRINT curr_address = address_vector.back();
+		address_vector.pop_back();
+
+		INT32 curr_dram_id = dram_vector.back().first;
+		DramDirectoryEntry::dstate_t curr_dstate = dram_vector.back().second;
       dram_vector.pop_back();
 
-		if(!core[temp_dram_id].debugAssertDramState(address, temp_dstate, sharers_list))
-			all_asserts_passed = false;
+		vector<UINT32> curr_sharers_list = sharers_list_vector.back();
+		sharers_list_vector.pop_back();
+
+		char *curr_d_data = d_data_vector.back();
+		d_data_vector.pop_back();
+
+		if (! core[curr_dram_id].debugAssertDramState(curr_address, curr_dstate, curr_sharers_list, curr_d_data))
+			 all_asserts_passed = false;
    }
+
+	address_vector = temp_address_vector;
 
 	while(!cache_vector.empty()) 
 	{
-		temp_cache_id = cache_vector.back().first;
-		temp_cstate = cache_vector.back().second;
-      cache_vector.pop_back();
 
-		if(!core[temp_cache_id].debugAssertCacheState(address, temp_cstate))
-			all_asserts_passed = false;
+		ADDRINT curr_address = address_vector.back();
+		address_vector.pop_back();
+		
+		vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector = cache_vector.back();
+		cache_vector.pop_back();
+
+		char *curr_c_data = c_data_vector.back();
+		c_data_vector.pop_back();
+
+		while (!curr_cache_vector.empty()) {
+			 
+			INT32 curr_cache_id = curr_cache_vector.back().first;
+			CacheState::cstate_t curr_cstate = curr_cache_vector.back().second;
+      	curr_cache_vector.pop_back();
+
+			if (! core[curr_cache_id].debugAssertCacheState(curr_address, curr_cstate, curr_c_data))
+				 all_asserts_passed = false;
+		}
    }
 
 	if(!all_asserts_passed) 
 	{
- //  	cout << "    *** ASSERTION FAILED *** : " << error_string << endl;
+   	cerr << "    *** ASSERTION FAILED *** : " << error_string << endl;
 	}
 
 	return all_asserts_passed;
@@ -407,7 +439,7 @@ void Chip::setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries)
 }
 */
 /*user program calls get routed through this */
-CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32>& sharers_list, char *d_data, char *c_data)
+CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
 {
 	vector<ADDRINT> address_vector;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
@@ -418,6 +450,8 @@ CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, 
 	vector<char*> d_data_vector;
 	vector<char*> c_data_vector;
 
+	assert (g_chip->aliasMap.find(address) != g_chip->aliasMap.end());
+	address = g_chip->aliasMap[address];
 	address_vector.push_back(address);
 
 	dram_vector.push_back( pair<INT32, DramDirectoryEntry::dstate_t>(dram_address_home_id, dstate) );
@@ -429,6 +463,8 @@ CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, 
 
 	d_data_vector.push_back(d_data);
 	c_data_vector.push_back(c_data);
+
+	cerr << "ChipDebug Set: d_data = 0x" << hex << (UINT32) d_data << ", c_data = 0x" << hex << (UINT32) c_data << endl; 
 	
 	g_chip->debugSetInitialMemConditions (address_vector, 
 		  											  dram_vector, sharers_list_vector, 
@@ -439,7 +475,7 @@ CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, 
 	return 0;
 }
 
-CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32>& sharers_list, string test_code, string error_code)
+CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
 {
 	vector<ADDRINT> address_vector;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
@@ -450,6 +486,9 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 	vector<char*> d_data_vector;
 	vector<char*> c_data_vector;
 
+	assert (g_chip->aliasMap.find(address) != g_chip->aliasMap.end());
+	
+	address = g_chip->aliasMap[address];
 	address_vector.push_back(address);
 
 	dram_vector.push_back( pair<INT32, DramDirectoryEntry::dstate_t>(dram_address_home_id, dstate) );
@@ -462,12 +501,14 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 	d_data_vector.push_back(d_data);
 	c_data_vector.push_back(c_data);
 	
+	cerr << "ChipDebug Assert: d_data = 0x" << hex << (UINT32) d_data << ", c_data = 0x" << hex << (UINT32) c_data << endl; 
+	
 	if (g_chip->debugAssertMemConditions (address_vector, 
 		  											  dram_vector, sharers_list_vector, 
 													  cache_vector, 
 		  											  d_data_vector, 
 													  c_data_vector,
-													  error_code) )
+													  test_code, error_code) )
 	{
 		return 1;
 	}
@@ -522,3 +563,23 @@ void Chip::releaseDCacheModelLock(int rank)
 	ReleaseLock(&dcache_lock);       
 //	cerr << "[" << rank << "] RELASED Lock " << endl;
 }
+
+// FIXME: Stupid Hack Functions
+
+CAPI_return_t chipAlias (ADDRINT address0, ADDRINT address1)
+{
+	// It is better to create an alias map here. An assciative array
+	assert (g_chip->num_modules == 2);
+	g_chip->aliasMap[address0] = (0 << g_knob_ahl_param);
+	g_chip->aliasMap[address1] = (1 << g_knob_ahl_param);
+	g_chip->aliasEnable = true;
+
+	cerr << "Aliasing address 0x" << hex << address0 << "  ==>  Node 0"  << endl;  
+	cerr << "Aliasing address 0x" << hex << address1 << "  ==>  Node 1"  << endl;  
+	return 0;
+}
+
+bool isAliasEnabled () {
+ 	return (g_chip->aliasEnable);
+}
+

@@ -192,8 +192,10 @@ class MemoryManager
 
 	//debugging stuff
 	static string sMemReqTypeToString(shmem_req_t type);
-	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
-	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
+	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
+	void debugSetCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data);
+	bool debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data);
 
 	
 };

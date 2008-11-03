@@ -133,12 +133,12 @@ class Core
 //	bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
 	//debug hook to smash cache state
-	void debugSetCacheState(ADDRINT addr, CacheState::cstate_t cstate);
+	void debugSetCacheState(ADDRINT addr, CacheState::cstate_t cstate, char *c_data);
 	//return true if assertion is true  (that's a good thing)
-	bool debugAssertCacheState(ADDRINT addr, CacheState::cstate_t cstate);
+	bool debugAssertCacheState(ADDRINT addr, CacheState::cstate_t cstate, char *c_data);
 
-	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
-	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list);
+	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
+	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
 	
 	/*
 	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);

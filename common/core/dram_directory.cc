@@ -448,6 +448,7 @@ void DramDirectory::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstat
 	//set sharer's list
 	entry_ptr->debugClearSharersList();
 	entry_ptr->setDState(dstate);
+	entry_ptr->fillDramDataLine(d_data);
 	
 	while(!sharers_list.empty())
 	{
@@ -467,7 +468,7 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 	
 	UINT32 memory_line_size;
 	DramDirectoryEntry::dstate_t actual_dstate;
-	char actual_data[g_knob_line_size];
+	char actual_data[(int) g_knob_line_size];
   
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
   
@@ -489,9 +490,26 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 
 	assert (memory_line_size == g_knob_line_size);
 
+	cerr << "Expected Data ptr = 0x" << hex << (UINT32) expected_data << endl;
+	cerr << "Actual Data: 0x";
+	for (UINT32 i = 0; i < memory_line_size; i++) {
+		cerr << hex << (UINT32) actual_data[i];
+	}
+	cerr << endl;
+
+	cerr << "Expected Data: 0x";
+	for (UINT32 i = 0; i < memory_line_size; i++) {
+		cerr << hex << (UINT32) expected_data[i];
+	}
+	cerr << dec << endl;
+
+	cerr << "Actual State: " << DramDirectoryEntry::dStateToString(actual_dstate) << endl; 
+	cerr << "Expected State: " << DramDirectoryEntry::dStateToString(expected_dstate) << endl; 
+
 	bool is_assert_true = ( (actual_dstate == expected_dstate) &&
 			  						(memcmp(actual_data, expected_data, g_knob_line_size) == 0) ); 
 	
+
 	//copy STL vectors (which are just glorified stacks) and put data into array (for easier comparsion)
 	bool* actual_sharers_array = new bool[number_of_cores];
 	bool* expected_sharers_array = new bool[number_of_cores];
@@ -564,5 +582,7 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 //		print();
 	}
 	
+	assert (is_assert_true == true);
+
 	return is_assert_true;
 }

@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <pthread.h>
 #include <stdlib.h>
@@ -70,6 +69,18 @@ vector<testStateStruct> fini_test_state_vector;
 vector< vector<UINT32> > init_sharers_vector;
 vector< vector<UINT32> > fini_sharers_vector;
 
+vector<char*> fini_dram_block_vector;
+vector<char*> init_cache_block_vector;
+vector<char*> fini_cache_block_vector;
+
+char* dramBlock;
+char* cacheBlockS;
+char* cacheBlockSW;
+char* cacheBlockE;
+char* cacheBlockEW;
+
+UINT32 cacheBlockSize;
+
 vector<UINT32> fini_mem_state_id; //allow the "fini state arrays to point to the init state arrays
 
 //dynamically set these values to point
@@ -89,6 +100,13 @@ void initialize_test_parameters();
 int main(int argc, char* argv[]){ // main begins
 
 	// Declare threads and related variables
+	
+	// 2 important Simulator variables are initialized here
+	UINT32 logCacheBlockSize;
+
+	logCacheBlockSize = atoi(argv[1]);
+	cacheBlockSize = 1 << logCacheBlockSize;
+	
 	pthread_t threads[2];
 	pthread_attr_t attr;
 	
@@ -96,7 +114,7 @@ int main(int argc, char* argv[]){ // main begins
 	cerr << "This is the function main()" << endl;
 #endif
 	// Initialize global variables
-	global_array_ptr = new UINT32(((UINT64) TEST_MEMORY_SIZE/(sizeof(UINT32))));
+	global_array_ptr = new UINT32[(UINT64) TEST_MEMORY_SIZE/ (sizeof(UINT32)) ];
 	cerr << "What is the Number of Elements that are being made? = " << (((int) TEST_MEMORY_SIZE/(sizeof(UINT32)))) << endl;
 //	global_array_ptr = new UINT64[BAJILLION];
 
@@ -176,7 +194,7 @@ void BARRIER_DUAL_CORE(int tid)
 	}
 }
 
-void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code)
+void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code)
 {
 	cerr << endl << endl;
    cerr << "   *****************************************************************************************************************" << endl;
@@ -184,12 +202,12 @@ void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, Dra
 	cerr << "   ************* " << "ADDR: " << hex << address << " , DramID#: " << dec << dram_address_home_id << endl;
 	cerr << "   *****************************************************************************************************************" << endl;                    
 
-	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list);
+	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, d_data, c_data);
 }     
 
-bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_code)
-{  
-	if(CAPI_debugAssertMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, test_code, error_code) == 1) 
+bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
+{
+	if(CAPI_debugAssertMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, d_data, c_data, test_code, error_code) == 1)
 	{
 		return true;
 	} else {
@@ -197,14 +215,81 @@ bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirect
 	}
 }
 
+/*
+ADDRINT getAddressOnCore (UINT32 coreId, UINT32 *global_array_ptr) {
+
+	// This is a big big hack
+	// Uses 'logDRAMContiguousBlockSize'
+	// Lets assume that the address is always cache block aligned for now
+	ADDRINT start_addr = (ADDRINT) global_array_ptr;
+	cerr << "test.cc :: start_addr = 0x" << hex << start_addr << endl;
+	cerr << "Wanted Address = 0x" << hex << (coreId << logDRAMContiguousBlockSize) << endl;
+	// assert (start_addr < (coreId << logDRAMContiguousBlockSize));
+	if (start_addr < (coreId << logDRAMContiguousBlockSize))
+		return ( (ADDRINT) ((coreId << logDRAMContiguousBlockSize) - start_addr) );
+	else
+		 return (0);
+}
+*/
+
 void initialize_test_parameters()
 {
-	UINT32 number_of_elements = ((UINT32) TEST_MEMORY_SIZE ) / sizeof(UINT32);
+	// UINT32 number_of_elements = ((UINT32) TEST_MEMORY_SIZE ) / sizeof(UINT32);
 
    /*
 	 * loop through different operations
 	 */
    
+	// Get the right addresses and the corresponding home nodes here. After we get the home nodes, add it to the address_vector structure
+	// Construct the address_vector
+	// Arguments:
+	//  tid: thread ID. This will also give me my core ID
+	//  This will be a replaceable routine again. This will call into the simulator code to get an address on a particular home node 
+	// 
+	// The MemoryState structure gives the state of the memory system (DRAM directory + cache) for a particular address. We operate at the granularity of cache blocks here 
+	// since we want to test the directory based cache coherence system
+	// I must be able to easily modify the code to test evictions and all other complex scenarios that can occur
+	// Address: 
+	
+	
+	// CAPI_getAddress(coreId) : will get an address homed at core with ID 'coreId'
+	// Responsible for addresses
+	ADDRINT dram0_address = (ADDRINT) &global_array_ptr[0];
+	ADDRINT dram1_address = (ADDRINT) &global_array_ptr[1];
+
+	// dram0_address is aliased to an address homed on core '0'
+	// dram1_address is aliased to an address homed on core '1'
+	
+	CAPI_alias (dram0_address, dram1_address);
+
+	addrVectStruct new_addr_struct;
+	new_addr_struct.addr = dram0_address;
+	new_addr_struct.dram_home_id = 0;
+	address_vector.push_back(new_addr_struct);
+	new_addr_struct.addr = dram1_address;
+	new_addr_struct.dram_home_id = 1; 
+	address_vector.push_back(new_addr_struct);
+
+	// Responsible for data
+	dramBlock = new char[cacheBlockSize];
+	cacheBlockS = new char[cacheBlockSize];
+	cacheBlockSW = new char[cacheBlockSize];
+	cacheBlockE = new char[cacheBlockSize];
+	cacheBlockEW = new char[cacheBlockSize];
+	
+	memset (dramBlock, 'a', cacheBlockSize);
+	memset (cacheBlockS, 'a', cacheBlockSize);
+	memset (cacheBlockSW, 'a', cacheBlockSize);
+	memset (cacheBlockE, 'A', cacheBlockSize);
+	memset (cacheBlockEW, 'A', cacheBlockSize);
+
+	for (UINT32 i = 0; i < sizeof(UINT32); i++) {
+		cacheBlockSW[i] = 'z';
+		cacheBlockEW[i] = 'z';
+	}
+	
+	
+	// Rest of code is same
 	int state_index = 0;
 	int test_index = 0;
 
@@ -227,6 +312,7 @@ void initialize_test_parameters()
 	test_code_vector.resize(STATE_COUNT);
 	init_test_state_vector.resize(STATE_COUNT);
 	init_sharers_vector.resize(STATE_COUNT);
+	init_cache_block_vector.resize(STATE_COUNT);
 	/******************************************************/
 	//Init Test State#0 III-{}
 	test_code_vector[state_index] = ", InitState#0 III-{}";
@@ -235,6 +321,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_null;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#1 SII-{0}
@@ -244,6 +331,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#2 SII-{1}
@@ -253,6 +341,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_1;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#3 SII-{0,1}
@@ -262,29 +351,28 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0_1;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#4 EII-{0}
-	/* NOT POSSIBLE: Such a silent eviction
 	test_code_vector[state_index] = ", InitState#4 EII-{0}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::INVALID;
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0;
+	init_cache_block_vector[state_index] = cacheBlockE;
 	state_index++;
-	*/
 	/******************************************************/
 	//Init Test State#5 EII-{1}
-	/* NOT POSSIBLE: Such a silent eviction
 	test_code_vector[state_index] = ", InitState#5 EII-{1}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::INVALID;
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_1;
+	init_cache_block_vector[state_index] = cacheBlockE;
 	state_index++;
-	*/
 	/******************************************************/
 	//Init Test State#6 SSI-{0}
 	test_code_vector[state_index] = ", InitState#6 SSI-{0}";
@@ -293,6 +381,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#7 SSI-{0,1}
@@ -302,6 +391,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0_1;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#8 EEI-{0}
@@ -311,6 +401,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::INVALID;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0;
+	init_cache_block_vector[state_index] = cacheBlockE;
 	state_index++;
 	/******************************************************/
 	//Init Test State#9 SIS-{1}
@@ -320,6 +411,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::SHARED;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_1;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#10 SIS-{0,1}
@@ -329,6 +421,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::SHARED;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0_1;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#11 SSS-{0,1}
@@ -338,6 +431,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::SHARED;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_0_1;
+	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
 	/******************************************************/
 	//Init Test State#12 EIE-{1}
@@ -347,6 +441,7 @@ void initialize_test_parameters()
 	new_init_state.cstate1 = CacheState::EXCLUSIVE;
 	init_test_state_vector[state_index] = new_init_state;
 	init_sharers_vector[state_index] = sharers_list_1;
+	init_cache_block_vector[state_index] = cacheBlockE;
 	state_index++;
 	/******************************************************/
 	
@@ -359,6 +454,8 @@ void initialize_test_parameters()
 	fini_test_state_vector.resize(TEST_COUNT);
 	fini_sharers_vector.resize(TEST_COUNT);
 	fini_state_str_vector.resize(TEST_COUNT);
+	fini_dram_block_vector.resize(TEST_COUNT);
+	fini_cache_block_vector.resize(TEST_COUNT);
 	
 	/******************************************************/
 	/*****************     CORE#0 READ   ******************/
@@ -375,6 +472,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> SSI-{0}
@@ -386,6 +485,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SII-{1} -> SSI-{0,1}
@@ -397,6 +498,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SII-{0,1} -> SSI-{0,1}
@@ -408,10 +511,12 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> SSI-{0}
-	/*
+	
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "SSI-{0}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -420,11 +525,13 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//EII-{1} -> SSI-{0}
-	/*
+	
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "SSI-{0}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -433,8 +540,10 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//SSI-{0} -> SSI-{0}
 	fini_mem_state_id[test_index] = 6;
@@ -445,6 +554,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SSI-{0,1} -> SSI-{0,1}
@@ -456,6 +567,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//EEI-{0} -> EEI-{0}
@@ -467,6 +580,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockE;
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> SSS-{0,1}
@@ -478,6 +593,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> SSS-{0,1}
@@ -489,6 +606,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SSS-{0,1} -> SSS-{0,1}
@@ -500,6 +619,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> SSS-{0,1}
@@ -511,6 +632,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockE;
+	fini_cache_block_vector[test_index] = cacheBlockE;
 	++test_index;
 	/******************************************************/
 	/*****************    CORE#0 WRITE   ******************/
@@ -526,6 +649,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> EEI-{0}
@@ -535,6 +660,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SII-{1} -> EEI-{0}
@@ -544,6 +671,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SII-{0,1} -> EEI-{0}
@@ -553,29 +682,35 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> EEI-{0}
-	/*
+	
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//EII-{1} -> EEI-{0}
-	/*
+	
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//SSI-{0} -> EEI-{0}
 	fini_mem_state_id[test_index] = 6;
@@ -584,6 +719,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SSI-{0,1} -> EEI-{0}
@@ -593,6 +730,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//EEI-{0} -> EEI-{0}
@@ -602,6 +741,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockEW;
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> EEI-{0}
@@ -611,6 +752,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> EEI-{0}
@@ -620,6 +763,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SSS-{0,1} -> EEI-{0}
@@ -629,6 +774,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> EEI-{0}
@@ -638,6 +785,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0;
 	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockE;
+	fini_cache_block_vector[test_index] = cacheBlockEW;
 	++test_index;
 	/******************************************************/
 	/******************************************************/
@@ -656,6 +805,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> SIS-{1}
@@ -667,6 +818,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SII-{1} -> SIS-{1}
@@ -678,6 +831,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SII-{0,1} -> SIS-{0,1}
@@ -689,10 +844,12 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> SIS-{1}
-	/*
+	
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -701,11 +858,13 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//EII-{1} -> SIS-{1}
-	/*
+	
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -714,8 +873,10 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//SSI-{0} -> SSS-{0,1}
 	fini_mem_state_id[test_index] = 6;
@@ -726,6 +887,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SSI-{0,1} -> SSS-{0,1}
@@ -737,6 +900,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//EEI-{0} -> SSS-{0,1}
@@ -748,6 +913,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockE;
+	fini_cache_block_vector[test_index] = cacheBlockE;
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> SIS-{1}
@@ -759,6 +926,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> SIS-{0,1}
@@ -770,6 +939,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//SSS-{0,1} -> SSS-{0,1}
@@ -781,6 +952,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_0_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> EIE-{1}
@@ -792,6 +965,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockE;
 	++test_index;
 	/******************************************************/
 	/*****************    CORE#1 WRITE   ******************/
@@ -807,6 +982,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> EEI-{1}
@@ -816,6 +993,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SII-{1} -> EEI-{1}
@@ -825,6 +1004,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SII-{0,1} -> EEI-{1}
@@ -834,29 +1015,35 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//EII-{0} -> EEI-{1}
-	/*
+	
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//EII-{1} -> EEI-{1}
-	/*
+	
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
-	*/
+	
 	/******************************************************/
 	//SSI-{0} -> EEI-{1}
 	fini_mem_state_id[test_index] = 6;
@@ -865,6 +1052,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SSI-{0,1} -> EEI-{1}
@@ -874,6 +1063,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//EEI-{0} -> EEI-{1}
@@ -883,6 +1074,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockE;
+	fini_cache_block_vector[test_index] = cacheBlockEW;
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> EEI-{1}
@@ -892,6 +1085,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> EEI-{1}
@@ -901,6 +1096,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//SSS-{0,1} -> EEI-{1}
@@ -910,6 +1107,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> EEI-{1}
@@ -919,6 +1118,8 @@ void initialize_test_parameters()
 	fini_test_state_vector[test_index] = new_fini_state;
 	fini_sharers_vector[test_index] = sharers_list_1;
 	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockEW;
 	++test_index;
 	/******************************************************/
 
@@ -939,10 +1140,10 @@ string operationToString(operation_t op)
 }
 
 //hand in the thread id#, or tid
-void awesome_test_suite_msi(int tid) 
+void awesome_test_suite_msi(int tid)
 {
 	
-	UINT32 write_value = 777; //dummy load/write variable
+	UINT32 write_value = 0xaaaaaaaa; //dummy load/write variable
    stringstream test_code;//, error_str;
 	
 	int dram_addr_home_id = 0;
@@ -954,6 +1155,11 @@ void awesome_test_suite_msi(int tid)
 	CacheState::cstate_t fini_cstate0;
 	CacheState::cstate_t fini_cstate1;
 
+	char *init_dram_block;
+	char *fini_dram_block;
+	char *init_cache_block;
+	char *fini_cache_block;
+
 	int state_index = 0;
 	ADDRINT address;
 
@@ -964,7 +1170,7 @@ void awesome_test_suite_msi(int tid)
 	/********************************************/
 	/********************************************/
 
-	for(int core_id=0; core_id < CORE_COUNT; core_id++)                 
+	for (int core_id=0; core_id < CORE_COUNT; core_id++)
 	{
 		
 		if(tid == core_id)
@@ -973,7 +1179,7 @@ void awesome_test_suite_msi(int tid)
 			
 			//loop through all of the addresses (homed on diffrent DRAMs...)
 			for(int addr_index = 0; addr_index < (int) address_vector.size(); addr_index++)
-			{ 
+			{
 				address = address_vector[addr_index].addr;
 				dram_addr_home_id = address_vector[addr_index].dram_home_id;
 
@@ -984,8 +1190,8 @@ void awesome_test_suite_msi(int tid)
 //				cerr << "****************************************" << endl;
 //				cerr << "****************************************" << endl << endl;
 				
-				//loop througha ll of the test cases
-				for(int test_index = core_id*(fini_test_state_vector.size() / 2); test_index < (int) (core_id + 1) * (fini_test_state_vector.size() / 2); test_index++)
+				//loop through all of the test cases
+				for(int test_index = core_id * (fini_test_state_vector.size() / 2); test_index < (int) ((core_id + 1) * (fini_test_state_vector.size() / 2)); test_index++)
 				{
 					//starts counting from Test#1
 					++test_count;
@@ -1003,14 +1209,20 @@ void awesome_test_suite_msi(int tid)
 					init_cstate0 = init_test_state_vector[state_index].cstate0;
 					init_cstate1 = init_test_state_vector[state_index].cstate1;
 					init_sharers_list = init_sharers_vector[state_index];
+
+					init_dram_block = dramBlock;
+					init_cache_block = init_cache_block_vector[state_index];
 					
 					fini_dstate = fini_test_state_vector[test_index].dstate;
 					fini_cstate0 = fini_test_state_vector[test_index].cstate0;
 					fini_cstate1 = fini_test_state_vector[test_index].cstate1;
 					fini_sharers_list = fini_sharers_vector[test_index];
+
+					fini_dram_block = fini_dram_block_vector[test_index];
+					fini_cache_block = fini_cache_block_vector[test_index];
 					
 					/* I need a mechanism here to do "addr_home_lookup()" */
-					SET_INITIAL_MEM_CONDITIONS(address, dram_addr_home_id, init_dstate, init_cstate0, init_cstate1, init_sharers_list, test_code.str());
+					SET_INITIAL_MEM_CONDITIONS (address, dram_addr_home_id, init_dstate, init_cstate0, init_cstate1, init_sharers_list, (char*) init_dram_block, (char*) init_cache_block, test_code.str());
 
 					switch(operation) {
 						case CORE_0_READ_OP: 
@@ -1022,7 +1234,7 @@ void awesome_test_suite_msi(int tid)
 						case CORE_0_WRITE_OP:
 							//WRITE OPERATION
 							if(tid==0)
-								*((int*) address) = write_value;
+								*((UINT32*) address) = write_value;
 							break;
 						case CORE_1_READ_OP: 
 							//write_value misnomer
@@ -1033,14 +1245,14 @@ void awesome_test_suite_msi(int tid)
 						case CORE_1_WRITE_OP:
 							//WRITE OPERATION
 							if(tid==1)
-								*((int*) address) = write_value;
+								*((UINT32*) address) = write_value;
 							break;
 						default:
 							cerr << "ERROR IN OPERATION SWITCH " << endl;
 							break;
 					}
 
-					if(ASSERT_MEMORY_STATE(address, dram_addr_home_id, fini_dstate, fini_cstate0, fini_cstate1, fini_sharers_list, test_code.str(), "no error codes yet")) //error_str.str());
+					if(ASSERT_MEMORY_STATE(address, dram_addr_home_id, fini_dstate, fini_cstate0, fini_cstate1, fini_sharers_list, fini_dram_block, fini_cache_block, test_code.str(), "no error codes yet")) //error_str.str());
 					{
 						++tests_passed;
 					} else {
@@ -1073,3 +1285,4 @@ void awesome_test_suite_msi(int tid)
 	}
 		
 }
+

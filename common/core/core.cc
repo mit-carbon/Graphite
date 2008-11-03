@@ -28,7 +28,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
            break;
        case NUM_NETWORK_TYPES:
        default:
-           cout << "ERROR: Unknown Network Model!";
+           cerr << "ERROR: Unknown Network Model!";
            break;
    }
   
@@ -62,7 +62,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 //                          g_knob_simarch_is_shared_mem.Value());                        
 
       debugPrint(tid, "Core", "instantiated organic cache model");
-      cout << ocache->statsLong() << endl;
+      cerr << ocache->statsLong() << endl;
   
    
    } else 
@@ -125,7 +125,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    packet = network->netRecv(match);
 
 #ifdef DEBUG
-   cout << "Got packet: "
+   cerr << "Got packet: "
 	<< "Send=" << packet.sender
 	<< ", Recv=" << packet.receiver
 	<< ", Type=" << packet.type
@@ -217,8 +217,14 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 	
 	if (operation == LOAD)
 		shmem_operation = READ;
-	else
+	else {
+		cerr << "Core.cc: data_buffer: 0x";
+		for (UINT32 i = 0; i < data_size; i++)
+			cerr << hex << (UINT32) data_buffer[i];
+		cerr << dec << endl;
+
 		shmem_operation = WRITE;
+	}
 
 	if (g_knob_simarch_has_shared_mem)  {
 #ifdef CORE_DEBUG
@@ -321,101 +327,18 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 		if(operation == LOAD)
 			return ocache->runDCacheLoadModel(d_addr, data_size).first;
 		else
-			return ocache->runDCacheStoreModel(d_addr, data_size).first;
+				return ocache->runDCacheStoreModel(d_addr, data_size).first;
    }
 }
 
 void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate, char *c_data)
 {
-	//using Load Model, so that way we garuntee the tag isn't null
-	// Assume that address is always cache aligned
-	pair<bool, CacheTag*> cache_result;
-
-	bool fail_need_flag;
-	char buf[ocache->dCacheLineSize()];
-	bool eviction;
-	ADDRINT evict_addr;
-	char evict_buf[ocache->dCacheLineSize()];
-	
-	switch(cstate) {
-		case CacheState::INVALID:
-			ocache->dCacheInvalidateLine(address);
-			break;
-		case CacheState::SHARED:
-			// cache_result = ocache->runDCacheLoadModel(address,1);
-			// Falls through. Hope this is fine
-		case CacheState::EXCLUSIVE:
-			// cache_result = ocache->runDCacheLoadModel(address,1);
-			assert ( (cstate == CacheState::SHARED) || (cstate == CacheState::EXCLUSIVE) );
-			cache_result = ocache->accessSingleLine (address, CacheBase::k_ACCESS_TYPE_STORE, 
-					  				&fail_need_fill, NULL, 
-									buff, ocache->dCacheLineSize(), 
-									&eviction, &evict_addr, &evict_buf);
-			if (fail_need_fill) {
-				// Note 'c_data' is a pointer to the entire cache line
-				cache_result = ocache->accessSingleLine (address, CacheBase::k_ACCESS_TYPE_STORE, 
-						  			NULL, c_data, 
-									NULL, NULL, 
-									&eviction, &evict_addr, &evict_buf);
-
-				if (eviction) {
-					cerr << "**** Problem ****: Some data has been evicted !!!\n";
-				}
-			}
-			
-			cache_result.second->setCState(cstate);
-			// Now I have set the state as well as data
-			break;
-		default:
-			cout << "ERROR in switch for Core::debugSetCacheState" << endl;
-	}
+	memory_manager->debugSetCacheState(address, cstate, c_data);
 }
 
 bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data)
 {
-//	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address, 1);
-	// pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address);
-	// We cant run peek model because it does not give us the data
-	// Instead, we do "accessSingleLine" using a STORE request
-	
-	bool is_assert_true;
-   CacheState::cstate_t actual_cstate;
-	char actual_data[ocache->dCacheLineSize()];
-
-	pair <bool, CacheTag*> cache_result;
-
-	assert ( (expected_cstate == CacheState::INVALID) == (expected_data == NULL) );
-
-	cache_result = ocache->accessSingleLine(address, CacheBase::k_ACCESS_TYPE_LOAD, 
-			  				&fail_need_fill, NULL, 
-							actual_data, ocache->dCacheLineSize(), 
-							NULL, NULL, NULL); 
-   
-	// Note: (cache_result.second == NULL)  =>  (fail_need_fill == true)
-	assert ( (cache_result.second == NULL) == (fail_need_fill == true) );
-	assert ( (cache_result.second == NULL) == (actual_data == NULL) );
-	assert ( (fail_need_fill == true) == (actual_data == NULL) );
-	
-	if( cache_result.second != NULL ) {
-		actual_cstate = cache_result.second->getCState();
-		is_assert_true = ( (actual_cstate  == expected_cstate) &&
-				  				 (memcmp(actual_data, expected_data, ocache->dCacheLineSize()) == 0) );
-	} else {
-		actual_cstate = CacheState::INVALID;
-		// There is no point in looking at the expected data here
-		is_assert_true = ( actual_cstate  == expected_cstate );
-	}
-	
-	cerr << "   Asserting Cache[" << getRank() << "] : Expected: " << CacheState::cStateToString(expected_cstate) << " ,  Actual: " <<  CacheState::cStateToString(actual_cstate);
-	
-	if(is_assert_true) {
-      cerr << "                    TEST PASSED " << endl;
-	} else {
-		cerr << "                    TEST FAILED ****** " << endl;
-	}
-
-	return is_assert_true;
-	
+	return memory_manager->debugAssertCacheState(address, expected_cstate, expected_data);
 }
 
 void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)

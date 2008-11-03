@@ -192,12 +192,26 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
    ADDRINT data_addr = ca_address + offset;
    pair<bool, CacheTag*> result;
 
+	// FIXME: Hack
 	result = ocache->accessSingleLine(data_addr, access_type,
 										&fail_need_fill, NULL,
 										data_buffer, data_size,
 										&eviction, &evict_addr, evict_buff);
 	
 	assert(eviction == false);
+
+	if (access_type == CacheBase::k_ACCESS_TYPE_STORE) {
+		cerr << "accessCacheLineData: data_buffer: 0x";
+		for (UINT32 i = 0; i < data_size; i++)
+			cerr << hex << (UINT32) data_buffer[i];
+		cerr << dec << endl;
+
+		cerr << "accessCacheLineData: fill_buffer: 0x";
+		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
+			cerr << hex << (UINT32) fill_buffer[i];
+		cerr << dec << endl;
+
+	}
 
 	if(fail_need_fill) {
 		//note: fail_need_fill is known beforehand, 
@@ -544,6 +558,116 @@ void MemoryManager::debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t
 bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
 	return dram_dir->debugAssertDramState(addr, dstate, sharers_list, d_data);	
+}
+
+void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate, char *c_data) {
+	
+	//using Load Model, so that way we garuntee the tag isn't null
+	// Assume that address is always cache aligned
+	pair<bool, CacheTag*> cache_result;
+
+	bool fail_need_fill;
+	// char buff[ocache->dCacheLineSize()];
+	bool eviction;
+	ADDRINT evict_addr;
+	char evict_buff[ocache->dCacheLineSize()];
+
+	switch(cstate) {
+		case CacheState::INVALID:
+			ocache->dCacheInvalidateLine(address);
+			break;
+		case CacheState::SHARED:
+			// cache_result = ocache->runDCacheLoadModel(address,1);
+			// Falls through. Hope this is fine
+		case CacheState::EXCLUSIVE:
+			// cache_result = ocache->runDCacheLoadModel(address,1);
+			assert ( (cstate == CacheState::SHARED) || (cstate == CacheState::EXCLUSIVE) );
+			cache_result = ocache->accessSingleLine (address, CacheBase::k_ACCESS_TYPE_STORE,   
+					  				&fail_need_fill, NULL, 
+									c_data, ocache->dCacheLineSize(),  
+									&eviction, &evict_addr, evict_buff);
+			// Make sure that this is the first time this cache block is being written into
+			// assert (fail_need_fill == true);
+			if (fail_need_fill) {
+				// Note 'c_data' is a pointer to the entire cache line
+				cache_result = ocache->accessSingleLine (address, CacheBase::k_ACCESS_TYPE_STORE, 
+						  			NULL, c_data, 
+									NULL, 0, 
+									&eviction, &evict_addr, evict_buff);
+
+				if (eviction) {
+					// Actually, this is OK !!
+					cerr << "**** Problem ****: Some data has been evicted !!!\n";
+				}
+			}
+			
+			cache_result.second->setCState(cstate);
+			// Now I have set the state as well as data
+			break;
+		default:
+			cerr << "ERROR in switch for Core::debugSetCacheState" << endl;
+	}
+}
+
+bool MemoryManager::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data) {
+
+	//	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address, 1);
+	// pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address);
+	// We cant run peek model because it does not give us the data
+	// Instead, we do "accessSingleLine" using a STORE request
+	
+	bool is_assert_true;
+	bool fail_need_fill;
+   CacheState::cstate_t actual_cstate;
+	char actual_data[ocache->dCacheLineSize()];
+
+	pair <bool, CacheTag*> cache_result;
+
+	// assert ( (expected_cstate == CacheState::INVALID) == (expected_data == NULL) );
+
+	cache_result = ocache->accessSingleLine(address, CacheBase::k_ACCESS_TYPE_LOAD, 
+			  				&fail_need_fill, NULL, 
+							actual_data, ocache->dCacheLineSize(), 
+							NULL, NULL, NULL); 
+   
+	// Note: (cache_result.second == NULL)  =>  (fail_need_fill == true)
+	assert ( (cache_result.second == NULL) == (fail_need_fill == true) );
+	// assert ( (cache_result.second == NULL) == (actual_data == NULL) );
+	// assert ( (fail_need_fill == true) == (actual_data == NULL) );
+	
+	if( cache_result.second != NULL ) {
+		actual_cstate = cache_result.second->getCState();
+		is_assert_true = ( (actual_cstate  == expected_cstate) &&
+				  				 (memcmp(actual_data, expected_data, ocache->dCacheLineSize()) == 0) );
+		// assert (is_assert_true == true);
+		
+		cerr << "Actual Data: 0x";
+		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
+			cerr << hex << (UINT32) actual_data[i];
+		cerr << endl;
+		
+		cerr << "Expected Data: 0x";
+		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
+			cerr << hex << (UINT32) expected_data[i];
+		cerr << endl;
+
+	} else {
+		actual_cstate = CacheState::INVALID;
+		// There is no point in looking at the expected data here
+		is_assert_true = ( actual_cstate  == expected_cstate );
+	}
+	
+	cerr << "   Asserting Cache[" << dec << the_core->getRank() << "] : Expected: " << CacheState::cStateToString(expected_cstate) << " ,  Actual: " <<  CacheState::cStateToString(actual_cstate);
+	
+	if(is_assert_true) {
+      cerr << "                    TEST PASSED " << endl;
+	} else {
+		cerr << "                    TEST FAILED ****** " << endl;
+	}
+
+	assert (is_assert_true == true);
+	return is_assert_true;
+	
 }
 
 void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)

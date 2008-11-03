@@ -200,6 +200,29 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
    	if ( do_dcache_read_modeling )
     	{
+		 if (g_chip->aliasEnable) {
+
+			if (g_chip->aliasMap.find(dcache_ld_addr) != g_chip->aliasMap.end()) {
+				dcache_ld_addr = g_chip->aliasMap[dcache_ld_addr];
+
+				assert (dcache_ld_size == sizeof(UINT32));
+				char data_ld_buffer[dcache_ld_size];
+
+				cerr << "Doing read modelling for address: 0x" << hex << dcache_ld_addr << endl;
+
+				dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+
+				cerr << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec << endl;
+
+				assert (is_dual_read == false);
+			}
+			else {
+				// Discard all other read requests without any modelling
+			}
+		 }
+
+		 else {
+
         	// it's not possible to delay the evaluation of the performance impact for these. 
        		// get cycle count up to date so time stamp for when miss is ready is correct
 
@@ -236,6 +259,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 //      	ReleaseLock(&dcache_write_lock);
 //      	ReleaseLock(&dcache_read_lock);
 //	 		cerr << "[" << rank << "] dCache READ Modeling: RELEASED LOCKS " << endl;
+//
+	 	 }
      
 		} 
    	else 
@@ -247,6 +272,29 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
    	if ( do_dcache_write_modeling )
    	{
+		 if (g_chip->aliasEnable) {
+
+			if (g_chip->aliasMap.find(dcache_st_addr) != g_chip->aliasMap.end()) {
+				dcache_st_addr = g_chip->aliasMap[dcache_st_addr];
+
+				assert (dcache_st_size == sizeof(UINT32));
+				char data_st_buffer[dcache_st_size];
+				memset (data_st_buffer, 'z', sizeof(UINT32));
+
+				cerr << "Doing write modelling for address: 0x" << hex << dcache_st_addr << endl;
+				
+				cerr << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec << endl;
+				dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+
+			}
+			else {
+				// Discard all other write requests without any modelling
+			}
+
+		 }
+		 
+		 else {
+
 //	    	cerr << "[" << rank << "] dCache WRITE Modeling: before locks" << endl;
 //      	GetLock(&dcache_read_lock, 1);
 //      	GetLock(&dcache_write_lock, 1);
@@ -254,7 +302,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
        
 			// FIXME: This should actually be a UINT32 which tells how many write misses occurred
 //			char* data_st_buffer = (char*) malloc (dcache_ld_size);  
-			char data_st_buffer[dcache_ld_size];  
+			char data_st_buffer[dcache_ld_size]; 
+
 			//TODO Harshad: st buffer needs to be written
 			//TODO Harshad: shared memory expects all data_buffers to be pre-allocated
 			bool d_hit = dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
@@ -266,6 +315,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 //      	ReleaseLock(&dcache_write_lock);
 //      	ReleaseLock(&dcache_read_lock);
 //			cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
+		 }
    	} 
    	else 
    	{
@@ -646,12 +696,15 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
       return AFUNPTR(chipInit);
    }
    else if(name == "CAPI_rank"){
+		cerr << "replacing CAPI_rank" << endl;
       return AFUNPTR(commRank);
    }
    else if(name == "CAPI_message_send_w"){
+		cerr << "replacing CAPI_message_send_w" << endl;
       return AFUNPTR(chipSendW);
    }
    else if(name == "CAPI_message_receive_w"){
+		cerr << "replacing CAPI_message_receive_w" << endl;
       return AFUNPTR(chipRecvW);
    }
    //FIXME added by cpc as a hack to get around calling Network for finished cores
@@ -666,6 +719,10 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
 	else if(name == "CAPI_debugAssertMemState") {
 		cerr << "replacing CAPI_debugAssertMemState" << endl;
 		return AFUNPTR(chipDebugAssertMemState);
+	}
+	else if (name == "_Z10CAPI_aliasjj") {
+		cerr << "replacing CAPI_alias" << endl;
+	 	return AFUNPTR(chipAlias);
 	}
 	/*
 	else if(name == "CAPI_setDramBoundaries") {

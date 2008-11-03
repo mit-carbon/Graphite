@@ -48,12 +48,15 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 //harshad should replace this -cpc
 CAPI_return_t chipHackFinish(int my_rank);
 
-CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list);
+CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data);
 
-CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, string test_code, string error_code);
+CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code);
 
 
 CAPI_return_t chipSetDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+
+// Stupid Hack
+CAPI_return_t chipAlias (ADDRINT address0, ADDRINT address1);
 
 // performance model wrappers
 
@@ -141,7 +144,11 @@ class Chip
       friend bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size);
 		//TODO deprecate these two bottom functions
       friend bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-      friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);      
+      friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+
+		// FIXME: A hack for testing purposes
+		friend CAPI_return_t chipAlias(ADDRINT address0, ADDRINT address1);
+		friend bool isAliasEnabled(void);
 
    private:
 
@@ -161,6 +168,12 @@ class Chip
 
 
    public:
+		
+		// FIXME: This is strictly a hack for testing data storage
+		bool aliasEnable;
+		std::map<ADDRINT,ADDRINT> aliasMap;
+		//////////////////////////////////////////////////////////
+
 
       UINT64 getProcTime(int module) { assert(module < num_modules); return proc_time[module]; }
 
@@ -177,8 +190,17 @@ class Chip
 		//an address to set the conditions for
 		//a dram vector, with a pair for the id's of the dram directories to set, and the value to set it to
 		//a cache vector, with a pair for the id's of the caches to set, and the value to set it to
-		void debugSetInitialMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list);
-		bool debugAssertMemConditions(ADDRINT address, vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector, vector< pair<INT32, CacheState::cstate_t> > cache_vector, vector<UINT32> sharers_list, string test_code, string error_string);
+		void debugSetInitialMemConditions (vector<ADDRINT>& address_vector, 
+		  											  vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
+													  vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
+		  											  vector<char*>& d_data_vector, 
+													  vector<char*>& c_data_vector);
+		bool debugAssertMemConditions (vector<ADDRINT>& address_vector, 
+		  										 vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
+												 vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
+		  										 vector<char*>& d_data_vector, 
+												 vector<char*>& c_data_vector,
+												 string test_code, string error_string);
 		
 		/*
 		void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
@@ -186,6 +208,7 @@ class Chip
 
 		void getDCacheModelLock(int rank);
 		void releaseDCacheModelLock(int rank);
+
 };
 
 #endif

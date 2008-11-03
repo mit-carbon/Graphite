@@ -90,7 +90,7 @@ KNOB<UINT32> g_knob_icache_max_search_depth(KNOB_MODE_WRITEONCE, "pintool",
 /* Address Home Lookup */
 /* =================================================================== */
 KNOB<UINT32> g_knob_ahl_param(KNOB_MODE_WRITEONCE, "pintool",
-	"ahl","5", "AHL parameter (See File addr_home_lookup.cc)");
+	"ahl","31", "AHL parameter (See File addr_home_lookup.cc)");
 
 /* =================================================================== */
 /* DRAM cost parameter */

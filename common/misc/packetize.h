@@ -39,12 +39,12 @@ class UnstructuredBuffer {
       // Wrappers
 
       // put scalar
-      UnstructuredBuffer& operator<<(UInt64& data);
-      UnstructuredBuffer& operator<<(SInt64& data);
-      UnstructuredBuffer& operator<<(UInt32& data);
-      UnstructuredBuffer& operator<<(SInt32& data);
-      UnstructuredBuffer& operator<<(UInt8&  data);
-      UnstructuredBuffer& operator<<(SInt8&  data);
+      UnstructuredBuffer& operator<<(UInt64 data);
+      UnstructuredBuffer& operator<<(SInt64 data);
+      UnstructuredBuffer& operator<<(UInt32 data);
+      UnstructuredBuffer& operator<<(SInt32 data);
+      UnstructuredBuffer& operator<<(UInt8  data);
+      UnstructuredBuffer& operator<<(SInt8  data);
 
       UnstructuredBuffer& operator>>(UInt64& data);
       UnstructuredBuffer& operator>>(SInt64& data);

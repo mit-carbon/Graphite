@@ -133,13 +133,21 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
 VOID Core::fini(int code, VOID *v, ofstream& out)
 {
-   delete network;
-
    if ( g_knob_enable_performance_modeling )
-      perf_model->fini(code, v, out);
+     {
+       out << "Total cycles: " << getProcTime() << endl;
+       cout << "Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
+       perf_model->fini(code, v, out);
+     }
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )
       ocache->fini(code,v,out);
+
+   delete sync_client;
+   delete syscall_model;
+   delete ocache;
+   delete perf_model;
+   delete network;
 }
 
 void Core::setProcTime(UInt64 time)

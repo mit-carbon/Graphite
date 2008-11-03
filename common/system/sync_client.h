@@ -4,16 +4,18 @@
 #include "sync_api.h"
 #include "packetize.h"
 
+class Core;
 class Network;
 
 class SyncClient
 {
+  Core *_core;
   Network *_network;
   UnstructuredBuffer _send_buff, _recv_buff;
 
  public:
 
-  SyncClient(Network*);
+  SyncClient(Core*);
   ~SyncClient();
 
   void mutexInit(int commid, carbon_mutex_t *mux);

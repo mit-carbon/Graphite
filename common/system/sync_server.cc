@@ -5,6 +5,12 @@ using namespace std;
 
 static const comm_id_t INVALID_COMMID = -1;
 
+struct Reply
+{
+  UInt32 dummy;
+  UInt64 time;
+};
+
 // -- SimMutex -- //
 
 SimMutex::SimMutex()
@@ -133,6 +139,9 @@ void SyncServer::mutexLock(comm_id_t commid)
   carbon_mutex_t mux;
   _recv_buffer >> mux;
 
+  UInt64 time;
+  _recv_buffer >> time;
+
   assert((size_t)mux < _mutexes.size());
 
   SimMutex *psimmux = &_mutexes[mux];
@@ -140,8 +149,10 @@ void SyncServer::mutexLock(comm_id_t commid)
   if (psimmux->lock(commid))
     {
       // notify the owner
-      UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
+      Reply r;
+      r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
+      r.time = time;
+      _pt_endpt.ptMCPSend(commid, (UInt8*)&r, sizeof(r));
     }
   else
     {
@@ -154,6 +165,9 @@ void SyncServer::mutexUnlock(comm_id_t commid)
   carbon_mutex_t mux;
   _recv_buffer >> mux;
 
+  UInt64 time;
+  _recv_buffer >> time;
+
   assert((size_t)mux < _mutexes.size());
 
   SimMutex *psimmux = &_mutexes[mux];
@@ -163,8 +177,10 @@ void SyncServer::mutexUnlock(comm_id_t commid)
   if (new_owner != SimMutex::NO_OWNER)
     {
       // wake up the new owner
-      UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _pt_endpt.ptMCPSend(new_owner, (UInt8*)&dummy, sizeof(dummy));
+      Reply r;
+      r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
+      r.time = time;
+      _pt_endpt.ptMCPSend(new_owner, (UInt8*)&r, sizeof(r));
     }
   else
     {
@@ -191,6 +207,9 @@ void SyncServer::condWait(comm_id_t commid)
   _recv_buffer >> cond;
   _recv_buffer >> mux; 
 
+  UInt64 time;
+  _recv_buffer >> time;
+
   assert((size_t)mux < _mutexes.size());
   assert((size_t)cond < _conds.size());
 
@@ -202,8 +221,10 @@ void SyncServer::condWait(comm_id_t commid)
   if (new_mutex_owner != SimMutex::NO_OWNER)
   {
       // wake up the new owner
-      UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _pt_endpt.ptMCPSend(new_mutex_owner, (UInt8*)&dummy, sizeof(dummy));
+      Reply r;
+      r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
+      r.time = time;
+      _pt_endpt.ptMCPSend(new_mutex_owner, (UInt8*)&r, sizeof(r));
   }
 }
 
@@ -212,6 +233,9 @@ void SyncServer::condSignal(comm_id_t commid)
 {
   carbon_cond_t cond;
   _recv_buffer >> cond;
+  
+  UInt64 time;
+  _recv_buffer >> time;
 
   assert((size_t)cond < _conds.size());
 
@@ -223,8 +247,10 @@ void SyncServer::condSignal(comm_id_t commid)
   {
       // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
-      UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _pt_endpt.ptMCPSend(woken, (UInt8*)&dummy, sizeof(dummy));
+      Reply r;
+      r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
+      r.time = time;
+      _pt_endpt.ptMCPSend(woken, (UInt8*)&r, sizeof(r));
   }
   else
   {
@@ -241,6 +267,9 @@ void SyncServer::condBroadcast(comm_id_t commid)
   carbon_cond_t cond;
   _recv_buffer >> cond;
 
+  UInt64 time;
+  _recv_buffer >> time;
+
   assert((size_t)cond < _conds.size());
 
   SimCond *psimcond = &_conds[cond];
@@ -252,10 +281,12 @@ void SyncServer::condBroadcast(comm_id_t commid)
   {
       assert(*it != INVALID_COMMID);
 
-      // wake up the new owner 
+      // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
-      UInt32 dummy=SyncClient::MUTEX_LOCK_RESPONSE;
-      _pt_endpt.ptMCPSend(*it, (UInt8*)&dummy, sizeof(dummy));
+      Reply r;
+      r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
+      r.time = time;
+      _pt_endpt.ptMCPSend(*it, (UInt8*)&r, sizeof(r));
   }
 
   // Alert the signaler
@@ -279,6 +310,9 @@ void SyncServer::barrierWait(comm_id_t commid)
   carbon_barrier_t barrier;
   _recv_buffer >> barrier;
 
+  UInt64 time;
+  _recv_buffer >> time;
+
   assert((size_t)barrier < _barriers.size());
 
   SimBarrier *psimbarrier = &_barriers[barrier];
@@ -289,8 +323,10 @@ void SyncServer::barrierWait(comm_id_t commid)
   for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {
       assert(*it != INVALID_COMMID);
-      UInt32 dummy=SyncClient::BARRIER_WAIT_RESPONSE;
-      _pt_endpt.ptMCPSend(*it, (UInt8*)&dummy, sizeof(dummy));
+      Reply r;
+      r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
+      r.time = time;
+      _pt_endpt.ptMCPSend(*it, (UInt8*)&r, sizeof(r));
   }
 }
 

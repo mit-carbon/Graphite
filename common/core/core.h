@@ -14,7 +14,6 @@ class SyscallMdl;
 
 #include "pin.H"
 #include "config.h"
-#include "chip.h"
 #include "network.h"
 #include "perfmdl.h"
 #include "ocache.h"
@@ -41,6 +40,8 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_threshold_miss;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_size;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_associativity;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth; 
+
+class Chip;
 
 class Core
 {
@@ -121,9 +122,12 @@ class Core
 
       // add proc time management to core
       
-      void setProcTime(UINT64 time);
-      UINT64 getProcTime();
+      void setProcTime(UInt64 time);
+      void updateProcTime(UInt64 time); // only if newer
+      UInt64 getProcTime();
       int getId() const { return core_tid; }
+
+      Network *getNetwork() { return network; }
 };
 
 #endif

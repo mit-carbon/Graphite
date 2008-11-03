@@ -1,4 +1,5 @@
 #include "core.h"
+#include "chip.h"
 
 #include "network_mesh_analytical.h"
 
@@ -67,7 +68,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
 
    syscall_model = new SyscallMdl(network);
-   sync_client = new SyncClient(network);
+   sync_client = new SyncClient(this);
 
    return 0;
 }
@@ -141,12 +142,18 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
       ocache->fini(code,v,out);
 }
 
-void Core::setProcTime(UINT64 time)
+void Core::setProcTime(UInt64 time)
 {
   the_chip->setProcTime(core_tid, time);
 }
 
-UINT64 Core::getProcTime()
+void Core::updateProcTime(UInt64 time)
+{
+  if (time > getProcTime())
+    setProcTime(time);
+}
+
+UInt64 Core::getProcTime()
 {
   return the_chip->getProcTime(core_tid);
 }

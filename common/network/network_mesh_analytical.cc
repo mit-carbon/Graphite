@@ -4,9 +4,9 @@
 
 using namespace std;
 
-NetworkMeshAnalytical::NetworkMeshAnalytical(Chip *chip, int tid, int num_threads)
+NetworkMeshAnalytical::NetworkMeshAnalytical(Core *core, int num_threads)
     :
-        Network(chip,tid,num_threads),
+        Network(core, num_threads),
         bytes_sent(0),
         cycles_spent_proc(0),
         cycles_spent_latency(0),

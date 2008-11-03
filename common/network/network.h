@@ -59,6 +59,7 @@ typedef struct NetMatch
    bool type_flag;
 } NetMatch;
 
+class Core;
 
 class Network{
 
@@ -94,8 +95,7 @@ class Network{
       Transport *transport;
 
    protected:
-      Chip *the_chip;		
-      int net_tid;
+      Core *_core;
       int net_num_mod;   // Total number of cores in the simulation
 
       virtual UINT64 netProcCost(NetPacket packet);
@@ -103,7 +103,7 @@ class Network{
 
    public:
 
-      Network(Chip *chip, int tid, int num_threads);
+      Network(Core *core, int num_threads);
       virtual ~Network(){};
       
       int netCommID() { return transport->ptCommID(); }

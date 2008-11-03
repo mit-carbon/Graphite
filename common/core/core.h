@@ -119,6 +119,11 @@ class Core
         return ret;
       }
 
+      // add proc time management to core
+      
+      void setProcTime(UINT64 time);
+      UINT64 getProcTime();
+      int getId() const { return core_tid; }
 };
 
 #endif

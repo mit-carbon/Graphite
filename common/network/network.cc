@@ -3,15 +3,14 @@
 
 using namespace std;
 
-Network::Network(Chip *chip, int tid, int num_mod)
+Network::Network(Core *core, int num_mod)
+  : _core(core)
 {
-   the_chip = chip;
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-   net_tid = tid;
    net_num_mod = g_config->totalMods();
    transport = new Transport;
-   transport->ptInit(tid, num_mod);
+   transport->ptInit(core->getId(), num_mod);
    net_queue = new NetQueue* [net_num_mod];
    for(i = 0; i < net_num_mod; i++)
    {
@@ -29,7 +28,7 @@ int Network::netSend(NetPacket packet)
    
    buffer = netCreateBuf(packet, &buf_size);
    transport->ptSend(packet.receiver, buffer, buf_size);
-   the_chip->setProcTime(net_tid, the_chip->getProcTime(net_tid) + netProcCost(packet));
+   _core->setProcTime(_core->getProcTime() + netProcCost(packet));
 
    // FIXME?: Should we be returning buf_size instead?
    return packet.length;
@@ -145,9 +144,9 @@ NetPacket Network::netRecv(NetMatch match)
    assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
    net_queue[entry.packet.sender][entry.packet.type].pop();
    packet = entry.packet;
-   if(the_chip->getProcTime(net_tid) < entry.time)
+   if(_core->getProcTime() < entry.time)
    {
-      the_chip->setProcTime(net_tid, entry.time);
+      _core->setProcTime(entry.time);
    }
 
    return packet;
@@ -159,7 +158,7 @@ bool Network::netQuery(NetMatch match)
    bool found;
    
    found = false;
-   entry.time = the_chip->getProcTime(net_tid);
+   entry.time = _core->getProcTime();
    
    // HK
    // Perform network entry tasks
@@ -246,7 +245,7 @@ char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size)
 {
    char *buffer;
    char *temp;
-   UINT64 time = the_chip->getProcTime(net_tid) + netLatency(packet) + netProcCost(packet);
+   UINT64 time = _core->getProcTime() + netLatency(packet) + netProcCost(packet);
    int running_length = 0;
    unsigned int i;
 
@@ -383,7 +382,7 @@ void Network::netEntryTasks()
    {
       sender = -1;
       type = INVALID;
-      entry.time = the_chip->getProcTime(net_tid);
+      entry.time = _core->getProcTime();
      
       for(int i = 0; i < net_num_mod; i++)
       {

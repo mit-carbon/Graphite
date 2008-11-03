@@ -19,10 +19,10 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    switch(net_model)
    {
        case NETWORK_BUS:
-           network = new Network(chip, tid, num_mod);
+           network = new Network(this, num_mod);
            break;
        case NETWORK_ANALYTICAL_MESH:
-           network = new NetworkMeshAnalytical(chip, tid, num_mod);
+           network = new NetworkMeshAnalytical(this, num_mod);
            break;
        case NUM_NETWORK_TYPES:
        default:
@@ -139,4 +139,14 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )
       ocache->fini(code,v,out);
+}
+
+void Core::setProcTime(UINT64 time)
+{
+  the_chip->setProcTime(core_tid, time);
+}
+
+UINT64 Core::getProcTime()
+{
+  return the_chip->getProcTime(core_tid);
 }

@@ -12,7 +12,6 @@
 // FIXME: we need to put this somewhere that makes sense
 typedef int comm_id_t;
 
-
 class SimMutex
 {
   typedef std::queue<comm_id_t> ThreadQueue;
@@ -59,6 +58,7 @@ class SimBarrier
 
   ThreadQueue _waiting;
   UINT32 _count;
+  UINT64 _max_time;
 
  public:
   typedef std::vector<comm_id_t> WakeupList;
@@ -67,7 +67,9 @@ class SimBarrier
   ~SimBarrier();
 
   // returns a list of threads to wake up if all have reached barrier
-  void wait(comm_id_t commid, WakeupList &woken);
+  void wait(comm_id_t commid, UInt64 time, WakeupList &woken);
+  UInt64 getMaxTime() { return _max_time; }
+
 };
 
 class SyncServer

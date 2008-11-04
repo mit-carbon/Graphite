@@ -96,23 +96,34 @@ void SimCond::broadcast(comm_id_t commid, WakeupList &woken_list)
 }
 
 // -- SimBarrier -- //
-SimBarrier::SimBarrier(UINT32 count) : _count(count) {}
+SimBarrier::SimBarrier(UINT32 count) 
+   : _count(count)
+   , _max_time(0)
+{
+}
+
 SimBarrier::~SimBarrier() 
 {
   assert(_waiting.empty());
 }
 
-void SimBarrier::wait(comm_id_t commid, WakeupList &woken_list)
+void SimBarrier::wait(comm_id_t commid, UInt64 time, WakeupList &woken_list)
 {
   _waiting.push_back(commid);
 
   assert(_waiting.size() <= _count);
+
+  if(_waiting.size() == 1)
+     _max_time = time;
+  else if(time > _max_time)
+     _max_time = time;
 
   // All threads have reached the barrier
   if(_waiting.size() == _count)
   {
       woken_list = _waiting;
       _waiting.clear();
+      _max_time = 0;
   }
 }
 
@@ -318,14 +329,16 @@ void SyncServer::barrierWait(comm_id_t commid)
   SimBarrier *psimbarrier = &_barriers[barrier];
 
   SimCond::WakeupList woken_list;
-  psimbarrier->wait(commid, woken_list);
+  psimbarrier->wait(commid, time, woken_list);
+
+  UInt64 max_time = psimbarrier->getMaxTime();
 
   for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {
       assert(*it != INVALID_COMMID);
       Reply r;
       r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
-      r.time = time;
+      r.time = max_time;
       _pt_endpt.ptMCPSend(*it, (UInt8*)&r, sizeof(r));
   }
 }

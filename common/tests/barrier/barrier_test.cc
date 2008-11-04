@@ -89,6 +89,16 @@ void* test_wait_barrier(void *threadid)
       sleep(1);
     }
 
+  if(tid == 1)
+  {
+     fprintf(stderr, "UserWait: THREAD (%d).\n", tid);
+     int j = 0;
+     for(unsigned int i = 0; i < 10000; i++)
+     {
+        j += i;
+        asm volatile("nop");
+     }
+  }
 
   fprintf(stderr, "UserWait: Waiting for barrier.\n");
   barrierWait(&my_barrier);

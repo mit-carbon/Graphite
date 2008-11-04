@@ -323,13 +323,11 @@ void MCPFinish()
 
 Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0) 
 {
-   proc_time = new UINT64[num_mods];
    tid_map = new THREADID [num_mods];
    core = new Core[num_mods];
 
    for(int i = 0; i < num_mods; i++) 
    {
-      proc_time[i] = 0;
       tid_map[i] = 0;
       core[i].coreInit(this, i, num_mods);
    }

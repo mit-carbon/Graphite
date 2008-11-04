@@ -121,7 +121,7 @@ class Core
       }
 
       // add proc time management to core
-      
+      //FIXME: These should actually be accessed THROUGH the perfmodel
       void setProcTime(UInt64 time);
       void updateProcTime(UInt64 time); // only if newer
       UInt64 getProcTime();

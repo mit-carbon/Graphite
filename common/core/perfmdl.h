@@ -182,6 +182,8 @@ class PerfModel {
 	 scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID), name(n)
       { }
 
+      void setCycleCount(UINT64 new_cycle_count) { cycle_count = new_cycle_count; }
+      void updateCycleCount(UINT64 new_cycle_count) { cycle_count = max(cycle_count, new_cycle_count); }
       UINT64 getCycleCount() { return cycle_count; }
       UINT64 getMicroOpCount() { return microop_issue_count; }
 

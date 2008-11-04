@@ -123,7 +123,6 @@ void SimBarrier::wait(comm_id_t commid, UInt64 time, WakeupList &woken_list)
   {
       woken_list = _waiting;
       _waiting.clear();
-      _max_time = 0;
   }
 }
 

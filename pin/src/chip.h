@@ -159,8 +159,6 @@ class Chip
 
       int num_modules;
 
-      UINT64 *proc_time;
-
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
@@ -172,17 +170,10 @@ class Chip
 
    public:
 
-      UINT64 getProcTime(int module) { assert(module < num_modules); return proc_time[module]; }
-
-      void setProcTime(int module, unsigned long long new_time) 
-      { assert(module < num_modules); proc_time[module] = new_time; }
-
-      int getNumModules() { return num_modules; }
-
       Chip(int num_mods);
 
+      int getNumModules() { return num_modules; }
       void fini(int code, void *v);
-
 };
 
 #endif

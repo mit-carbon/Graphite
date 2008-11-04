@@ -135,6 +135,7 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
 {
    if ( g_knob_enable_performance_modeling )
      {
+       //FIXME: This should be placed in perfmodel
        out << "  Total cycles: " << getProcTime() << endl;
        cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
        perf_model->fini(code, v, out);
@@ -152,18 +153,19 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
    delete network;
 }
 
+//FIXME: These should actually be accessed THROUGH the perfmodel
 void Core::setProcTime(UInt64 time)
 {
-  the_chip->setProcTime(core_tid, time);
+  perf_model->setCycleCount(time);
 }
 
 void Core::updateProcTime(UInt64 time)
 {
-  if (time > getProcTime())
-    setProcTime(time);
+  perf_model->updateCycleCount(time);
 }
 
 UInt64 Core::getProcTime()
 {
-  return the_chip->getProcTime(core_tid);
+  return perf_model->getCycleCount();
 }
+

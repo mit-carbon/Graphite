@@ -113,6 +113,8 @@ class Network{
       virtual NetPacket netRecv(NetMatch match);
 
       Transport *getTransport() { return transport; }
+
+      virtual void outputSummary(ostream &out);
 };
 
 #endif

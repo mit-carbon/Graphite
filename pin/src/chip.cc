@@ -344,8 +344,10 @@ VOID Chip::fini(int code, VOID *v)
    for(int i = 0; i < num_modules; i++) 
    {
       cout << "*** Core[" << i << "] summary ***" << endl;
+      out << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
       cout << endl;
+      out << endl;
    }
 
    out.close();

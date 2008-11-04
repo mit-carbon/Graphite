@@ -455,11 +455,17 @@ void Network::processSharedMemReq(NetPacket packet)
    // Do nothing
    // Only for debugging
    // Jim will provide the correct methods for this in the shared memory object
-};
+}
 
 void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
 {
    // Do nothing
    // Only for debugging
    // Jim will provide the correct methods for this in the shared memory object
-};
+}
+
+void Network::outputSummary(ostream &out)
+{
+
+}
+

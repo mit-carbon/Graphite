@@ -11,6 +11,7 @@ class NetworkMeshAnalytical : public Network
 
     virtual int netSend(NetPacket packet);
     virtual NetPacket netRecv(NetMatch match);
+    virtual void outputSummary(ostream &out);
 
  protected:
     virtual UINT64 netProcCost(NetPacket packet);

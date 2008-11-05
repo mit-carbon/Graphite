@@ -11,7 +11,7 @@ typedef int CAPI_return_t;
 typedef int CAPI_endpoint_t;
 
 // externed so the names don't get name-mangled
-extern "C" {
+//extern "C" {
 
    CAPI_return_t CAPI_Initialize(int *rank);
 
@@ -22,6 +22,6 @@ extern "C" {
 
    CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t send_endpoint, CAPI_endpoint_t receive_endpoint, 
                                         char * buffer, int size);
-}
+//}
 
 #endif

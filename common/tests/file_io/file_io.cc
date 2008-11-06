@@ -28,7 +28,7 @@ int main(int argc, char* argv[]){ // main begins
    initMCP();
 	
    // Read in the command line arguments
-   unsigned int numThreads = 1;
+   const unsigned int numThreads = 2;
 
    // Declare threads and related variables
    pthread_t threads[numThreads];
@@ -66,36 +66,48 @@ int main(int argc, char* argv[]){ // main begins
 
 void* read_and_write(void *threadid)
 {
+  // Declare local variables
+  int tid;
+  CAPI_return_t rtnVal;
+  char file_name[256];
 
-   // Declare local variables
-   int tid;
-   CAPI_return_t rtnVal;
+  rtnVal = CAPI_Initialize(&tid);
 
-   rtnVal = CAPI_Initialize(&tid);
+  // Initialize local variables
+  CAPI_rank(&tid);
 
-   // Initialize local variables
-   CAPI_rank(&tid);
+  sprintf(file_name, "./common/tests/file_io/input%d", tid);
+  
+  for (int i = 0; i < 100; i++)
+    {
+      // Open the file
+      int fid;
+      fid = open(file_name, O_RDWR);
+      printf("User %d: File Descriptor: 0x%x\n", tid, (unsigned int)fid);
 
-   // Open the file
-   int fid;
-   fid = open("./common/tests/file_io/input", O_RDWR);
+      // Read the FID
+      char the_data[1024] = {'\0'};
+      int status = read(fid, (void *) the_data, 1024);
+      printf("User %d: Read from fid %d returned %d and %s\n", tid, fid, status, the_data);
 
-   printf("User: File Descriptor: 0x%x\n", (unsigned int)fid);
+      // Close the FID
+      status = close(fid);
+      printf("User %d: Close from fid %d returned %d\n", tid, fid, status);
 
-   // Read the FID
-   char the_data[1024] = {'\0'};
-   int status = read(fid, (void *) the_data, 1024);
-   printf("User: Read from fid %d returned %d and %s\n", fid, status, the_data);
+      // Open the FID
+      fid = open(file_name, O_RDWR | O_TRUNC);
+      printf("User %d: File Descriptor: 0x%x\n", tid, (unsigned int)fid);
 
-   // Write the FID
-   char the_write_data[14] = "goodbye world";
-   status = write(fid, (void *) the_write_data, 13); 
-   printf("User: Write from fid %d returned %d\n", fid, status);
+      // Write the FID
+      char the_write_data[12] = "hello world";
+      status = write(fid, (void *) the_write_data, 11); 
+      printf("User %d: Write from fid %d returned %d\n", tid, fid, status);
 
-   // Close the FID
-   status = close(fid);
-   printf("User: Close from fid %d returned %d\n", fid, status);
+      // Close the FID
+      status = close(fid);
+      printf("User %d: Close from fid %d returned %d\n", tid, fid, status);
+    }
 
-   pthread_exit(NULL);
+  pthread_exit(NULL);
 }
 

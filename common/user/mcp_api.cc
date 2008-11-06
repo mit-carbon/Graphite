@@ -28,19 +28,26 @@ void* mcp_thread_func(void *dummy)
    while( !finished )
    {
       runMCP();
-      usleep(1);
+      //usleep(1);
    }   
    pthread_exit(NULL);
 }
 
 void runMCP()
 {
-   cout << "Made it to the dummy function." << endl;
+   cerr << "Made it to the dummy runMCP() function." << endl;
+}
+
+void finishMCP()
+{
+   cerr << "Made it to the dummy finishMCP() function." << endl;
 }
 
 void quitMCP()
 {
    finished = true;
+   cerr << "quitting the mcp..." << endl;
+   finishMCP();
    pthread_join(mcp_thread, NULL);
 }
 

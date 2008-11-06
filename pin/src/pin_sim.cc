@@ -37,6 +37,10 @@ Chip *g_chip = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
 
+//FIXME
+//PIN_LOCK g_lock1;
+//PIN_LOCK g_lock2;
+
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -95,10 +99,11 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
          {
 	   // first = PC, second = size
-	   bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
+	   bool i_hit = icacheRunLoadModel(rank,
+                                           stats[rank]->inst_trace[i].first,
 					   stats[rank]->inst_trace[i].second);
 	   if ( do_perf_modeling ) {
-	     perfModelLogICacheLoadAccess(stats[rank], i_hit);
+	     perfModelLogICacheLoadAccess(rank, stats[rank], i_hit);
 	   }
          }
      }
@@ -109,7 +114,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
      {
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get the cycle counter up to date then account for dependency stalls
-       perfModelRun(stats[rank], reads, num_reads); 
+       perfModelRun(rank, stats[rank], reads, num_reads); 
      }
 
    if ( do_dcache_read_modeling )
@@ -117,15 +122,15 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
        // it's not possible to delay the evaluation of the performance impact for these. 
        // get cycle count up to date so time stamp for when miss is ready is correct
 
-       bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+       bool d_hit = dcacheRunLoadModel(rank, dcache_ld_addr, dcache_ld_size);
        if ( do_perf_modeling ) {
-           perfModelRun(stats[rank], d_hit, writes, num_writes);
+          perfModelRun(rank, stats[rank], d_hit, writes, num_writes);
        }
 
        if ( is_dual_read ) {
-           bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+	   bool d_hit2 = dcacheRunLoadModel(rank, dcache_ld_addr2, dcache_ld_size);
            if ( do_perf_modeling ) {
-               perfModelRun(stats[rank], d_hit2, writes, num_writes);
+	      perfModelRun(rank, stats[rank], d_hit2, writes, num_writes);
            }
        }
 
@@ -139,10 +144,10 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
 
    if ( do_dcache_write_modeling )
      {
-       bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
+       bool d_hit = dcacheRunStoreModel(rank, dcache_st_addr, dcache_st_size);
        if ( do_perf_modeling )
          { 
-	   perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
+	   perfModelLogDCacheStoreAccess(rank, stats[rank], d_hit); 
          }
      } 
    else 
@@ -154,7 +159,7 @@ VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld
    // this should probably go last
    if ( do_perf_modeling )
      {
-       perfModelRun(stats[rank]);
+       perfModelRun(rank, stats[rank]);
      }
 
 }
@@ -367,43 +372,102 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 /* ===================================================================== */
 
-AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
+bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
-   if(name == "CAPI_Initialize"){
-      return AFUNPTR(chipInit);
+   AFUNPTR msg_ptr = NULL;
+   PROTO proto = NULL;
+
+   if(name == "CAPI_Initialize")
+   {
+      msg_ptr = AFUNPTR(chipInit);
    }
-   else if(name == "CAPI_rank"){
-      return AFUNPTR(commRank);
+   else if(name == "CAPI_rank")
+   {
+      msg_ptr = AFUNPTR(commRank);
    }
-   else if(name == "CAPI_message_send_w"){
-      return AFUNPTR(chipSendW);
+   else if(name == "CAPI_message_send_w")
+   {
+      msg_ptr = AFUNPTR(chipSendW);
    }
-   else if(name == "CAPI_message_receive_w"){
-      return AFUNPTR(chipRecvW);
+   else if(name == "CAPI_message_receive_w")
+   {
+      msg_ptr = AFUNPTR(chipRecvW);
    }
-   else if(name == "runMCP"){
-      return AFUNPTR(MCPRun);
+   else if(name == "runMCP")
+   {
+      msg_ptr = AFUNPTR(MCPRun);
+   }
+   else if(name == "finishMCP")
+   {
+      msg_ptr = AFUNPTR(MCPFinish);
    }
    
-   return NULL;
+   if ( (msg_ptr == AFUNPTR(chipInit)) || (msg_ptr == AFUNPTR(commRank)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int*),
+                             PIN_PARG_END() );         
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);      
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if ( (msg_ptr == AFUNPTR(chipSendW)) || (msg_ptr == AFUNPTR(chipRecvW) ) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(CAPI_endpoint_t),
+                             PIN_PARG(CAPI_endpoint_t),
+                             PIN_PARG(char*),
+                             PIN_PARG(int),
+                             PIN_PARG_END() );  
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+                           IARG_END);  
+      //RTN_Close(rtn);    
+      PROTO_Free(proto); 
+      return true;
+   }
+   else if ( (msg_ptr == AFUNPTR(MCPRun)) || (msg_ptr == AFUNPTR(MCPFinish)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG_END() );   
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_END);  
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   } 
+
+   return false;
 }
 
 VOID routine(RTN rtn, VOID *v)
 {
-   AFUNPTR msg_ptr = NULL;
-   RTN_Open(rtn);
-   INS rtn_head = RTN_InsHead(rtn);
-   string rtn_name = RTN_Name(rtn);
-   bool is_rtn_ins_head = true;
-   set<INS> ins_uses;
 
+   string rtn_name = RTN_Name(rtn);
    // cout << "routine " << RTN_Name(rtn) << endl;
 
-   if ( (msg_ptr = mapMsgAPICall(rtn, rtn_name)) != NULL ) {
-      RTN_Replace(rtn, msg_ptr);
-   } 
-   else 
+   bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
+   if ( did_func_replace == false )
    {
+
+      RTN_Open(rtn);
+      INS rtn_head = RTN_InsHead(rtn);
+      bool is_rtn_ins_head = true;
+      set<INS> ins_uses;
+
       if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 
       { 
          getPotentialLoadFirstUses(rtn, ins_uses);
@@ -441,9 +505,10 @@ VOID routine(RTN rtn, VOID *v)
          }
          assert( inst_offset == last_offset );
       }  
+
+      RTN_Close(rtn);
    }
 
-   RTN_Close(rtn);
 }
 
 
@@ -459,7 +524,10 @@ VOID fini(int code, VOID * v)
 
 VOID init_globals()
 {
-
+   //FIXME
+   //InitLock(&g_lock1);
+   //InitLock(&g_lock2);
+ 
    g_config = new Config;
    //g_config->loadFromFile(FIXME);
 
@@ -479,12 +547,17 @@ VOID init_globals()
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
+   //GetLock(&g_lock1, 1);
    syscallEnterRunModel(ctxt, std);
+   //ReleaseLock(&g_lock1);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
+   //GetLock(&g_lock2, 1);
    syscallExitRunModel(ctxt, std);
+   //ReleaseLock(&g_lock2);
+   //ReleaseLock(&g_lock1);
 }
 
 int main(int argc, char *argv[])

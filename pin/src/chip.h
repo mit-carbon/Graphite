@@ -13,6 +13,7 @@
 #include "core.h"
 #include "ocache.h"
 #include "perfmdl.h"
+#include "lockfree_hash.h"
 #include "syscall_model.h"
 #include "mcp.h"
 
@@ -36,7 +37,7 @@ CAPI_return_t chipInit(int *rank);
 
 CAPI_return_t chipRank(int *rank);
 
-CAPI_return_t commRank(int *rank);
+CAPI_return_t commRank(int *commid);
 
 CAPI_return_t chipSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                         char *buffer, int size);
@@ -47,39 +48,43 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 
 // performance model wrappers
 
-void perfModelRun(PerfModelIntervalStat *interval_stats);
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats);
 
-void perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-                  UINT32 num_reads);
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
+                  REG *reads, UINT32 num_reads);
 
-void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes);
 
 PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                  const INS& start_ins, const INS& end_ins);
 
-void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
+void perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit);
      
-void perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
+void perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit);
 
-void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);
+void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct);
 
 
 // organic cache model wrappers
 
-bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
+bool icacheRunLoadModel(int rank, ADDRINT i_addr, UINT32 size);
 
-bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
+bool dcacheRunLoadModel(int rank, ADDRINT d_addr, UINT32 size);
 
-bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size);
+
 
 // syscall model wrappers
+
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+
 
 // MCP server wrappers
 void MCPRun();
-
+void MCPFinish();
 
 // chip class
 
@@ -103,17 +108,17 @@ class Chip
 
       // performance modeling wrappers
  
-      friend void perfModelRun(PerfModelIntervalStat *interval_stats);
-      friend void perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-                               UINT32 num_reads);
-      friend void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats);
+      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
+                               REG *reads, UINT32 num_reads);
+      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                                REG *writes, UINT32 num_writes);
       friend PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                               const INS& start_ins, 
                                                               const INS& end_ins);
-      friend void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
-      friend void perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
-      friend void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);      
+      friend void perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit);
+      friend void perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit);
+      friend void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct);      
 
       // syscall modeling wrapper
       friend void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
@@ -121,9 +126,9 @@ class Chip
 
       
       // organic cache modeling wrappers
-      friend bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
-      friend bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-      friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);      
+      friend bool icacheRunLoadModel(int rank, ADDRINT i_addr, UINT32 size);
+      friend bool dcacheRunLoadModel(int rank, ADDRINT d_addr, UINT32 size);
+      friend bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size);      
 
    private:
 
@@ -134,7 +139,7 @@ class Chip
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
-      map<THREADID, int> core_map;
+      LockFreeHash core_map;
       int prev_rank;
       PIN_LOCK maps_lock;
 

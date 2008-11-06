@@ -111,7 +111,7 @@ bool Transport::ptQuery()
 
 void Transport::ptSendToMCP(UInt8* buffer, UInt32 num_bytes)
 {
-   assert(!i_am_the_MCP);
+   //assert(!i_am_the_MCP);
    ptMCPSendHelper(mcp_idx, buffer, num_bytes);
 }
 

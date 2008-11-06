@@ -41,6 +41,7 @@ class SyscallServer {
       void marshallReadCall(int comm_id);
       void marshallWriteCall(int comm_id);
       void marshallCloseCall(int comm_id);
+      void marshallAccessCall(int comm_id);
 };
 
 #endif

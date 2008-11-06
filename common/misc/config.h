@@ -16,6 +16,7 @@
 
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
+extern LEVEL_BASE::KNOB<UINT32> g_knob_num_process;
 
 
 class Config {
@@ -35,6 +36,8 @@ class Config {
    // process.
    CoreList* core_map;
    
+   UInt32  MCP_process;          // The process where the MCP lives
+
  public:
    Config();
    ~Config();
@@ -44,19 +47,33 @@ class Config {
 
    // Return the number of processes involved in this simulation
    UInt32 numProcs() { return num_process; }
+   void setNumProcs(UInt32 in_num_process) { num_process = in_num_process; }
+
+   // Retrieve and set the process number for this process (I'm expecting
+   //  that the initialization routine of the Transport layer will set this)
+   UInt32 myProcNum() { return my_proc_num; }
+   void setProcNum(UInt32 in_my_proc_num) { my_proc_num = in_my_proc_num; }
+
+   // Return the number of the process that should contain the MCP
+   UInt32 MCPProcNum() { return MCP_process; }
 
    // Return the number of modules (cores) in a given process
-   UInt32 numMods() { assert(my_proc_num < num_process); return num_modules[my_proc_num]; }
-   UInt32 numMods(UInt32 proc_num) { assert(proc_num < num_process); return num_modules[proc_num]; }
+   UInt32 numMods()
+      { assert(my_proc_num < num_process); return num_modules[my_proc_num]; }
+   UInt32 numMods(UInt32 proc_num)
+      { assert(proc_num < num_process); return num_modules[proc_num]; }
 
    // Return the total number of modules in all processes
    UInt32 totalMods() { return total_cores; }
 
    // Return an array of core numbers for a given process
    //  The returned array will have numMods(proc_num) elements
-   const CoreList getModuleList() { assert(my_proc_num < num_process); return core_map[my_proc_num]; }
-   const CoreList getModuleList(UInt32 proc_num) { assert(proc_num < num_process); return core_map[proc_num]; }
+   const CoreList getModuleList()
+      { assert(my_proc_num < num_process); return core_map[my_proc_num]; }
+   const CoreList getModuleList(UInt32 proc_num)
+      { assert(proc_num < num_process); return core_map[proc_num]; }
    
+
 };
 
 #endif

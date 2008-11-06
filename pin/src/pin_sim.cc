@@ -468,8 +468,13 @@ VOID init_globals()
 
    g_chip = new Chip(g_knob_num_cores);
 
-   // Note the MCP has a dependency on the transport layer and the chip
-   g_MCP = new MCP();
+   // Note the MCP has a dependency on the transport layer and the chip.
+   // Only create an MCP on the correct process.
+   if (g_config->myProcNum() == g_config->MCPProcNum()) {
+      cout << "Creating new MCP object in process " << g_config->myProcNum()
+	   << endl;
+      g_MCP = new MCP();
+   }
 }
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)

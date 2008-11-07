@@ -112,6 +112,8 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
 
+		cerr << "DRAM Directory: Address = 0x" << hex << (UINT32) payload.ack_address << dec << ", Sharer = " << wb_packet.sender << ", numSharers = " << dir_entry->numSharers() << endl;
+
 		if(dir_entry->numSharers() == 0) {
 			dir_entry->setDState(DramDirectoryEntry::UNCACHED);
 		}
@@ -583,7 +585,7 @@ bool DramDirectory::debugAssertDramState(ADDRINT address, DramDirectoryEntry::ds
 //		print();
 	}
 	
-	assert (is_assert_true == true);
+	// assert (is_assert_true == true);
 
 	return is_assert_true;
 }

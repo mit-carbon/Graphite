@@ -261,6 +261,10 @@ void initialize_test_parameters()
 	// dram1_address is aliased to an address homed on core '1'
 	
 	CAPI_alias (dram0_address, dram1_address);
+	CAPI_alias (dram_address_00, SPREAD_00); // First cache block in dram0, second cache block also on dram0
+	CAPI_alias (dram_address_01, SPREAD_01);
+	CAPI_alias (dram_address_10, SPREAD_10); 
+	CAPI_alias (dram_address_11, SPREAD_11); 
 
 	addrVectStruct new_addr_struct;
 	new_addr_struct.addr = dram0_address;

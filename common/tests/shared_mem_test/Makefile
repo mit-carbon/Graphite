@@ -4,7 +4,7 @@ include ../../makefile.debug
 FORCE32 ?= 1
 
 CC = /usr/bin/g++
-SOURCES = ../../user/capi.cc test.cc
+SOURCES = ../../user/capi.cc test_1.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 ifeq (${FORCE32},1)
@@ -17,12 +17,12 @@ endif
 
 ## Build rules
 
-all: test
+all: test_1
 
 %.o : %.cc
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-test: $(OBJECTS)
+test_1: $(OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning

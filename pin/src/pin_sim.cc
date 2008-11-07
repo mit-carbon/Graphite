@@ -279,7 +279,12 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
 				assert (dcache_st_size == sizeof(UINT32));
 				char data_st_buffer[dcache_st_size];
-				memset (data_st_buffer, 'z', sizeof(UINT32));
+				if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
+					memset (data_st_buffer, 'C', sizeof(UINT32));
+				}
+				else {
+					memset (data_st_buffer, 'A', sizeof(UINT32));
+				}
 
 				cerr << "Doing write modelling for address: 0x" << hex << dcache_st_addr << endl;
 				
@@ -708,7 +713,7 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
       return AFUNPTR(chipRecvW);
    }
    //FIXME added by cpc as a hack to get around calling Network for finished cores
-   else if(name == "_Z11CAPI_Finishi"){
+   else if(name == "CAPI_Finish"){
       cerr << "replacing CAPI_Finish" << endl;
 	  	return AFUNPTR(chipHackFinish);
    }
@@ -720,7 +725,7 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
 		cerr << "replacing CAPI_debugAssertMemState" << endl;
 		return AFUNPTR(chipDebugAssertMemState);
 	}
-	else if (name == "_Z10CAPI_aliasjj") {
+	else if (name == "CAPI_alias") {
 		cerr << "replacing CAPI_alias" << endl;
 	 	return AFUNPTR(chipAlias);
 	}

@@ -56,8 +56,9 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 CAPI_return_t chipSetDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
 
 // Stupid Hack
-CAPI_return_t chipAlias (ADDRINT address0, ADDRINT address1);
-
+CAPI_return_t chipAlias (ADDRINT address0, addr_t addrType, UINT32 num);
+ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2);
+UINT32 log(UINT32);
 // performance model wrappers
 
 void perfModelRun(PerfModelIntervalStat *interval_stats);
@@ -147,7 +148,7 @@ class Chip
       friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
 		// FIXME: A hack for testing purposes
-		friend CAPI_return_t chipAlias(ADDRINT address0, ADDRINT address1);
+		friend CAPI_return_t chipAlias(ADDRINT address0, addr_t addType, UINT32 num);
 		friend bool isAliasEnabled(void);
 
    private:

@@ -565,18 +565,75 @@ void Chip::releaseDCacheModelLock(int rank)
 }
 
 // FIXME: Stupid Hack Functions
-
-CAPI_return_t chipAlias (ADDRINT address0, ADDRINT address1)
+CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 {
 	// It is better to create an alias map here. An assciative array
 	assert (g_chip->num_modules == 2);
-	g_chip->aliasMap[address0] = (0 << g_knob_ahl_param);
-	g_chip->aliasMap[address1] = (1 << g_knob_ahl_param);
+	switch (addrType) {
+
+		case(DRAM_0):
+			g_chip->aliasMap[address] = createAddress(num,0,false,false);
+			break;
+		case(DRAM_1):
+			g_chip->aliasMap[address] = createAddress(num,1,false,false);
+			break;
+		case(DRAM_00):
+			g_chip->aliasMap[address] = createAddress(num,0,false,true);
+			break;
+		case(DRAM_01):
+			g_chip->aliasMap[address] = createAddress(num,0,true,true);
+			break;
+		case(DRAM_10):
+			g_chip->aliasMap[address] = createAddress(num,1,true,true);
+			break;
+		case(DRAM_11):
+			g_chip->aliasMap[address] = createAddress(num,1,false,true);
+			break;
+		default:
+			cerr << "ERROR: chip.cc: Should not reach here\n";
+			break;
+	}
+	   
+		   
 	g_chip->aliasEnable = true;
 
-	cerr << "Aliasing address 0x" << hex << address0 << "  ==>  Node 0"  << endl;  
-	cerr << "Aliasing address 0x" << hex << address1 << "  ==>  Node 1"  << endl;  
+	cerr << "Aliasing address 0x" << hex << address << "  ==>  0x"  << hex << g_chip->aliasMap[address] << endl;  
 	return 0;
+}
+
+ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
+
+	/*
+	 * ADDRESS breaks down as follows
+	 * ****************************************
+	 * Assume logCacheBlockSize = 5
+	 * Assume logBlockSize = 10
+	 * Assume sizeof(ADDRINT) = 32
+	 * ****************************************
+	 *  31             11 |    10    | 9               5 | 4                0 |
+	 * |                  |          |                   |                    | 
+	 * |       num        |  coreId  |  DRAMBlockOffset  |  cacheBlockOffset  |
+	 * |                  |          |                   |                    |
+	 */
+	
+	UINT32 logCacheBlockSize = log(g_knob_line_size);
+	UINT32 cacheBlockOffset = ( (pack2) ? (g_knob_line_size - 2) : 0 );
+	UINT32 DRAMBlockOffset = ( (pack1) ? ( (1 << (g_knob_ahl_param - logCacheBlockSize)) - 1) : 0 );
+
+	return ( (num << (g_knob_ahl_param + 1) )  |  (coreId << g_knob_ahl_param)  |  (DRAMBlockOffset << logCacheBlockSize)  |  (cacheBlockOffset)  );
+
+}
+
+UINT32 log(UINT32 value) {
+	
+	UINT32 k = 0; 
+	while (!(value & 0x1)) {
+		k++;
+		value = value >> 1;
+	}
+	assert (k >= 0);
+
+	return (k);
 }
 
 bool isAliasEnabled () {

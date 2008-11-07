@@ -1,6 +1,6 @@
 #include "network.h"
 #include "debug.h"
-//#define NETWORK_DEBUG
+// #define NETWORK_DEBUG
 using namespace std;
 
 Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
@@ -41,7 +41,11 @@ int Network::netSend(NetPacket packet)
 //	debugPrint(net_tid, "NETWORK", ss.str());
 #endif
 
-   char *buffer;
+   if (packet.type == SHARED_MEM_EVICT) {
+		cerr << "Sending an eviction packet from [" << packet.sender << "] => [" << packet.receiver << "]\n";
+	}
+
+	char *buffer;
    UInt32 buf_size;
    
    // Perform SMEM entry tasks
@@ -111,7 +115,7 @@ string Network::packetTypeToString(PacketType type)
 
 NetPacket Network::netRecv(NetMatch match)
 {
-   	int sender;
+		int sender;
    	PacketType type;
    	char *buffer;
    	NetPacket packet;
@@ -121,9 +125,9 @@ NetPacket Network::netRecv(NetMatch match)
 #ifdef NETWORK_DEBUG
    	debugPrint(net_tid, "NETWORK", "netRecv starting...");
    	stringstream ss;
-	ss <<  "Receiving packet type: " << match.type << " from " << match.sender;
-	debugPrint(net_tid, "NETWORK", ss.str());
-	printNetMatch(match, net_tid);
+		ss <<  "Receiving packet type: " << match.type << " from " << match.sender;
+		debugPrint(net_tid, "NETWORK", ss.str());
+		printNetMatch(match, net_tid);
 #endif  
    
    	loop = true;
@@ -137,17 +141,17 @@ NetPacket Network::netRecv(NetMatch match)
       
       	// Perform Network entry tasks
 #ifdef NETWORK_DEBUG
-	  	debugPrint(net_tid, "NETWORK", "netRecv -calling netEntryTasks");
+	  		debugPrint(net_tid, "NETWORK", "netRecv -calling netEntryTasks");
 #endif
-	  	netEntryTasks();
+	  		netEntryTasks();
 #ifdef NETWORK_DEBUG
-	  	debugPrint(net_tid, "NETWORK", "netRecv -finished netEntryTasks");
+	  		debugPrint(net_tid, "NETWORK", "netRecv -finished netEntryTasks");
 #endif
 
-		if(match.sender_flag && match.type_flag)
+			if(match.sender_flag && match.type_flag)
       	{
-	 		assert(0 <= match.sender && match.sender < net_num_mod);
-	 		assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+	 			assert(0 <= match.sender && match.sender < net_num_mod);
+	 			assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          	if( !(net_queue[match.sender][match.type].empty()) )
          	{
                	entry = net_queue[match.sender][match.type].top();
@@ -158,7 +162,7 @@ NetPacket Network::netRecv(NetMatch match)
       	}
       	else if(match.sender_flag && (!match.type_flag))
       	{
-	 		int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+	 			int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
          	for (int i = 0; i < num_pac_type; i++)
          	{
             	assert(0 <= match.sender && match.sender < net_num_mod);
@@ -216,26 +220,26 @@ NetPacket Network::netRecv(NetMatch match)
       	if(loop)
       	{
 #ifdef NETWORK_DEBUG         
-			debugPrint(net_tid, "NETWORK", "netRecv: calling transport->ptRecv");
+				debugPrint(net_tid, "NETWORK", "netRecv: calling transport->ptRecv");
 #endif			
-			buffer = transport->ptRecv();
+				buffer = transport->ptRecv();
 #ifdef NETWORK_DEBUG         
-			debugPrint(net_tid, "NETWORK", "netRecv: finished transport->ptRecv");
+				debugPrint(net_tid, "NETWORK", "netRecv: finished transport->ptRecv");
 #endif			
 	      
-			Network::netExPacket(buffer, entry.packet, entry.time);
+				Network::netExPacket(buffer, entry.packet, entry.time);
 #ifdef NETWORK_DEBUG
-			printf("\n\n\n\n*******************\n\n\n\n");
-			stringstream ss;
-			ss <<  "Network received packetType: " << entry.packet.type  << " from " << entry.packet.sender;
-			debugPrint(net_tid, "NETWORK",  ss.str());
-			ss.str("");
-			ss <<  "Clock: " << the_chip->getProcTime(net_tid) << "  packet time stamp: " << entry.time;
-			debugPrint(net_tid, "NETWORK", ss.str());
-			printf("\n\n\n\n*******************\n\n\n\n");
+				printf("\n\n\n\n*******************\n\n\n\n");
+				stringstream ss;
+				ss <<  "Network received packetType: " << entry.packet.type  << " from " << entry.packet.sender;
+				debugPrint(net_tid, "NETWORK",  ss.str());
+				ss.str("");
+				ss <<  "Clock: " << the_chip->getProcTime(net_tid) << "  packet time stamp: " << entry.time;
+				debugPrint(net_tid, "NETWORK", ss.str());
+				printf("\n\n\n\n*******************\n\n\n\n");
 #endif
          	assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
-			assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+				assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          	net_queue[entry.packet.sender][entry.packet.type].push(entry);
       	}
 			
@@ -249,16 +253,16 @@ NetPacket Network::netRecv(NetMatch match)
 //   the_chip->setProcTime(net_tid, (the_chip->getProcTime(net_tid) > entry.time) ? 
 //		                   the_chip->getProcTime(net_tid) : entry.time);
 	
-	if(the_chip->getProcTime(net_tid) < entry.time)
+		if(the_chip->getProcTime(net_tid) < entry.time)
    	{
       	the_chip->setProcTime(net_tid, entry.time);
    	}
 
 #ifdef NETWORK_DEBUG
    	printNetPacket(packet);
-	ss.str("");
-	ss << "Net Recv Received Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
-	debugPrint(net_tid, "NETWORK", ss.str());
+		ss.str("");
+		ss << "Net Recv Received Packet Data Addr: " << hex << (int*) packet.data << ", PAYLOAD ADDR: " << hex << ((int*)(packet.data))[1];
+		debugPrint(net_tid, "NETWORK", ss.str());
    	debugPrint(net_tid, "NETWORK", "netRecv - leaving");
 #endif
    
@@ -527,6 +531,20 @@ void Network::netEntryTasks()
          }
       }
 
+		for(int i = 0; i < net_num_mod; i++)
+      {
+         if(!net_queue[i][SHARED_MEM_EVICT].empty())
+         {
+            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_EVICT].top().time))
+            {
+              entry = net_queue[i][SHARED_MEM_EVICT].top();
+              sender = i;
+              type = SHARED_MEM_EVICT;
+            }
+         }
+      }
+
+
       for(int i = 0; i < net_num_mod; i++)
       {
          if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
@@ -556,6 +574,7 @@ void Network::netEntryTasks()
       }
 		else if(type == SHARED_MEM_EVICT)
 		{
+			cerr << "Core: " << the_core->getRank() << ": Got an evicted packet\n";
 			assert(0 <= sender && sender < net_num_mod);
 			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          net_queue[sender][type].pop();

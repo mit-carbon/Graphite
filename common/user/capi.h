@@ -16,12 +16,23 @@ typedef int CAPI_return_t;
 
 typedef int CAPI_endpoint_t;
 
+enum addr_t
+{
+	DRAM_0,
+	DRAM_1,
+	DRAM_00,
+	DRAM_01,
+	DRAM_10,
+	DRAM_11,
+	NUM_ADDR_TYPES
+};
+
 // externed so the names don't get name-mangled
 extern "C" {
 
    CAPI_return_t CAPI_Initialize(int *rank);
 
-   CAPI_return_t CAPI_rank(int * rank);
+   CAPI_return_t CAPI_rank(int *rank);
 
    CAPI_return_t CAPI_message_send_w(CAPI_endpoint_t send_endpoint, CAPI_endpoint_t receive_endpoint, 
                                      char * buffer, int size);
@@ -37,11 +48,11 @@ extern "C" {
 	/*
 	CAPI_return_t CAPI_setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries);
 	*/
-}
-	
 	//FIXME this is a temp hack function
 	CAPI_return_t CAPI_Finish(int my_rank);
 
 	// FIXME: A hack
-	CAPI_return_t CAPI_alias (ADDRINT address0, ADDRINT address1);
+	CAPI_return_t CAPI_alias (ADDRINT address, addr_t addrType, UINT32 num);
+}
+	
 #endif

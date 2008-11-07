@@ -201,20 +201,18 @@ bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
 
 bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
 {
-
    int rank;
    chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
 	//TODO make everything use the cachebase::accesstype enum
-	//TODO just passing in dummy data for now
-	// for(unsigned int i = 0; i < data_size; i++)
-	//	data_buffer[i] = (char) i+1;
+
 	if( access_type == CacheBase::k_ACCESS_TYPE_LOAD)
 		return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, data_size); 
 	else
 		return g_chip->core[rank].dcacheRunModel(Core::STORE, d_addr, data_buffer, data_size); 
 }
 
+/*
 bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
    int rank;
@@ -238,7 +236,7 @@ bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
 		data_buffer[i] = (char) i;
    return g_chip->core[rank].dcacheRunModel(Core::STORE, d_addr, data_buffer, size); 
 }
-
+*/
 // syscall model wrappers
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
@@ -280,6 +278,8 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 
    InitLock(&maps_lock);
    InitLock(&dcache_lock);
+   
+	InitLock(&global_lock);
 
 	// FIXME: A hack
 	aliasEnable = false;

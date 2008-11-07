@@ -334,7 +334,9 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	net_match.type = SHARED_MEM_ACK;
 	net_match.type_flag = true;
 	
+//	debugPrint(dram_id, "DRAMDIR", "demoteOwner - netRecv start");
 	NetPacket wb_packet = the_network->netRecv(net_match);
+//	debugPrint(dram_id, "DRAMDIR", "demoteOwner - netRecv finished");
 	
 	// assert a few things in the ack packet (sanity checks)
 	MemoryManager::AckPayload ack_payload;
@@ -394,7 +396,9 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 		net_match.sender_flag = true;
 		net_match.type = SHARED_MEM_ACK;
 		net_match.type_flag = true;
+//		debugPrint(dram_id, "DRAMDIR", "invalidateSharers - netRecv start");
 		NetPacket recv_packet = the_network->netRecv(net_match);
+//		debugPrint(dram_id, "DRAMDIR", "invalidateSharers - netRecv finished");
 		 
 		// assert a few things in the ack packet (sanity checks)
 		assert((unsigned int)(recv_packet.sender) == sharers_list[i]); 

@@ -23,7 +23,7 @@ class Transport{
       typedef struct PTQueue
       {
          queue <char*, deque<char*> > pt_queue;
-	 PIN_LOCK pt_q_lock;
+			PIN_LOCK pt_q_lock;
       } PTQueue;
 
       static PTQueue *pt_queue;
@@ -31,7 +31,7 @@ class Transport{
       typedef struct Futex
       {
          int futx;
-	 PIN_LOCK futx_lock;
+			PIN_LOCK futx_lock;
       } Futex;
 
       static Futex *pt_futx;

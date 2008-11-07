@@ -200,18 +200,17 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 	
 	assert(eviction == false);
 
-	if (access_type == CacheBase::k_ACCESS_TYPE_STORE) {
-		cerr << "accessCacheLineData: data_buffer: 0x";
-		for (UINT32 i = 0; i < data_size; i++)
-			cerr << hex << (UINT32) data_buffer[i];
-		cerr << dec << endl;
+//	if (access_type == CacheBase::k_ACCESS_TYPE_STORE) {
+//		cerr << "accessCacheLineData: data_buffer: 0x";
+//		for (UINT32 i = 0; i < data_size; i++)
+//			cerr << hex << (UINT32) data_buffer[i];
+//		cerr << dec << endl;
 
-		cerr << "accessCacheLineData: fill_buffer: 0x";
-		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
-			cerr << hex << (UINT32) fill_buffer[i];
-		cerr << dec << endl;
-
-	}
+//		cerr << "accessCacheLineData: fill_buffer: 0x";
+//		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
+//			cerr << hex << (UINT32) fill_buffer[i];
+//		cerr << dec << endl;
+//	}
 
 	if(fail_need_fill) {
 		//note: fail_need_fill is known beforehand, 
@@ -228,7 +227,7 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		debugPrint(the_core->getRank(), "MMU", "accessCacheLineData: Evicting Line");
 		
 		//send write-back to dram
-		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(ca_address);
+		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(evict_addr);
 		AckPayload payload;
 		payload.ack_address = evict_addr;
 		payload.is_writeback = true;
@@ -286,7 +285,9 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 
 	// receive the requested data (blocking receive)
 	NetMatch net_match = makeNetMatch( SHARED_MEM_UPDATE_EXPECTED, home_node_rank );
+//	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv start");
 	NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
+//	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv finished");
 	
 	/* ===================================================== */
 	/* ============== Handle Update Payload ================ */
@@ -466,9 +467,11 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    ADDRINT address = update_payload.update_address;
   
 #ifdef MMU_DEBUG
-	ss << "Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
+	ss << "Processing Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
+	ss << "Processing Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
+	debugPrint(the_core->getRank(), "MMU", ss.str());
 
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
    // if it is null, it means the address has been invalidated

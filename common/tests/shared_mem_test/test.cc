@@ -161,19 +161,19 @@ void* starter_function(void *threadid)
 	CAPI_Initialize(&tid);
 
 #ifdef DEBUG  
-//   pthread_mutex_lock(&lock);
-//	cerr << "executing do_nothing function: " << tid << endl << endl;
-//   pthread_mutex_unlock(&lock);
+   pthread_mutex_lock(&lock);
+	cerr << "executing do_nothing function: " << tid << endl << endl;
+   pthread_mutex_unlock(&lock);
 #endif
    
    if(tid==0) {
-//		cerr << "Executing awesome test suite Core # 0 " << endl;
+		cerr << "Executing awesome test suite Core # 0 " << endl;
 		awesome_test_suite_msi(tid);
-//		cerr << "FInished Executing awesome test suite  Core #0" << endl;
+		cerr << "FInished Executing awesome test suite  Core #0" << endl;
    } else {
-//		cerr << "Executing awesome test suite Core #1 " << endl;
+		cerr << "Executing awesome test suite Core #1 " << endl;
 		awesome_test_suite_msi(tid);
-//		cerr << "FInished Executing awesome test suite  Core #1" << endl;
+		cerr << "FInished Executing awesome test suite  Core #1" << endl;
    }
    CAPI_Finish(tid);
 	pthread_exit(NULL);  

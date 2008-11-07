@@ -21,6 +21,7 @@ class Chip;
 #include "memory_manager.h"
 
 extern Config* g_config;
+extern Chip* g_chip; //only here for global_lock debugging purposes
 
 // Define data types
 

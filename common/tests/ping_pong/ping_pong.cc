@@ -26,12 +26,12 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_t attr;
 	
 #ifdef DEBUG
-	cout << "This is the function main()" << endl;
+	cerr << "This is the function main()" << endl;
 #endif
 	// Initialize global variables
 
 #ifdef DEBUG
-	cout << "Initializing thread structures" << endl << endl;
+	cerr << "Initializing thread structures" << endl << endl;
 	pthread_mutex_init(&lock, NULL);
 #endif
 
@@ -40,26 +40,26 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	pthread_mutex_init(&write_lock, NULL);
 #ifdef DEBUG
-	cout << "Spawning threads" << endl << endl;
+	cerr << "Spawning threads" << endl << endl;
 #endif
    pthread_mutex_lock(&lock);
-	cout << "Creating Thread#0." << endl << endl;
+	cerr << "Creating Thread#0." << endl << endl;
    pthread_mutex_unlock(&lock);
         pthread_create(&threads[0], &attr, ping, (void *) 0);    
    pthread_mutex_lock(&lock);
-	cout << "Creating Thread#1." << endl << endl;
+	cerr << "Creating Thread#1." << endl << endl;
    pthread_mutex_unlock(&lock);
         pthread_create(&threads[1], &attr, pong, (void *) 1);    
 
    pthread_mutex_lock(&lock);
-	cout << "Starter thread is waiting for the other threads to join." << endl << endl;
+	cerr << "Starter thread is waiting for the other threads to join." << endl << endl;
    pthread_mutex_unlock(&lock);
 
 	// Wait for all threads to complete
         pthread_join(threads[0], NULL);         
         pthread_join(threads[1], NULL);
 	
-	cout << "Finished running PingPong!." << endl << endl;
+	cerr << "Finished running PingPong!." << endl << endl;
 
         return 0;
 } // main ends
@@ -71,18 +71,18 @@ void* ping(void *threadid)
    int tid;
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "executing ping function" << endl << endl;
+   cerr << "executing ping function" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
    CAPI_Initialize(&tid);
 
    pthread_mutex_lock(&lock);
-	cout << "ping says finished capi_init" << endl;
+	cerr << "ping says finished capi_init" << endl;
    pthread_mutex_unlock(&lock);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "executing ping function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl << endl;
+   cerr << "executing ping function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -90,7 +90,7 @@ void* ping(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "ping sent to pong" << endl << endl;
+   cerr << "ping sent to pong" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -98,7 +98,7 @@ void* ping(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "ping received from pong" << endl << endl;
+   cerr << "ping received from pong" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -111,18 +111,18 @@ void* pong(void *threadid)
    int tid;
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "executing pong function" << endl << endl;
+   cerr << "executing pong function" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
    CAPI_Initialize(&tid);
  
    pthread_mutex_lock(&lock);
-	cout << "pong finished with capi_init" << endl;
+	cerr << "pong finished with capi_init" << endl;
    pthread_mutex_unlock(&lock);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "executing pong function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl << endl;
+   cerr << "executing pong function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
  
@@ -130,7 +130,7 @@ void* pong(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "pong sent to ping" << endl << endl;
+   cerr << "pong sent to ping" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -138,7 +138,7 @@ void* pong(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cout << "pong received from ping" << endl << endl;
+   cerr << "pong received from ping" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
 

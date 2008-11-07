@@ -2,7 +2,7 @@
 #include "debug.h"
 
 #include "network_mesh_analytical.h"
-//#define CORE_DEBUG
+#define CORE_DEBUG
 
 using namespace std;
 
@@ -218,10 +218,10 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 	if (operation == LOAD)
 		shmem_operation = READ;
 	else {
-		cerr << "Core.cc: data_buffer: 0x";
-		for (UINT32 i = 0; i < data_size; i++)
-			cerr << hex << (UINT32) data_buffer[i];
-		cerr << dec << endl;
+//		cerr << "Core.cc: data_buffer: 0x";
+//		for (UINT32 i = 0; i < data_size; i++)
+//			cerr << hex << (UINT32) data_buffer[i];
+//		cerr << dec << endl;
 
 		shmem_operation = WRITE;
 	}

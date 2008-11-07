@@ -59,12 +59,15 @@ class CacheTag
 
       bool operator==(const CacheTag& right) const 
       { 
-	 return (the_tag == right.the_tag);
+			return (the_tag == right.the_tag);
       }
 
       bool isValid() const { return (the_tag != ((ADDRINT) ~0)); }
 
+		//BUG FIXME i think this needs to be left shifted if you actually want the address
       operator ADDRINT() const { return the_tag; }
+      
+		ADDRINT getTag() { return the_tag; }
 
       CacheState::cstate_t getCState() { return the_cstate; }
 
@@ -218,7 +221,7 @@ namespace CACHE_SET
             return false;
          }
 
-         VOID replace(CacheTag& tag, char* fill_buff, bool* eviction, ADDRINT* evict_addr, char* evict_buff)
+         VOID replace(CacheTag& tag, char* fill_buff, bool* eviction, CacheTag* evict_tag, char* evict_buff)
          {
             const UINT32 index = next_replace_index;
             //cout << "*** replacing index " << index << " ***" << endl;
@@ -227,8 +230,8 @@ namespace CACHE_SET
 				{
 					if ( eviction != NULL )
 						*eviction = true;
-					if ( evict_addr != NULL )
-						*evict_addr = the_tags[index];
+					if ( evict_tag != NULL )
+						*evict_tag = the_tags[index];
 					if ( evict_buff != NULL )
 						memcpy(evict_buff, &the_blocks[index * blocksize], blocksize);
             }
@@ -384,13 +387,18 @@ class CacheBase
       CacheStats getAccesses() const { return getHits() + getMisses(); }
 
       // utilities
-      VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index) const
+		ADDRINT tagToAddress(CacheTag& tag)
+		{
+			return tag.getTag() << line_shift;
+		}
+		
+		VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index) const
       {
 	 		tag = CacheTag(addr >> line_shift);
          set_index = tag & set_index_mask;
       }
 
-      // FIXME: change the name? 
+      // FIXME: change the name?  (adddressToTag?)
       VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index, 
                         UINT32& line_index) const
       {
@@ -660,8 +668,12 @@ class Cache : public CacheBase
          {
             UINT32 r_num = ++rand_counter % depth;
             UINT32 which = history[r_num];
-            sets[which].replace(tag, fill_buff, eviction, evict_addr, evict_buff);
-            tagptr = sets[which].find(tag, &line_index).second;
+				//evict_tag is set by replace, need to translate tag to address
+				CacheTag evict_tag;
+            sets[which].replace(tag, fill_buff, eviction, &evict_tag, evict_buff);
+            if(evict_addr != NULL)
+					*evict_addr = tagToAddress(evict_tag);
+				tagptr = sets[which].find(tag, &line_index).second;
 
             if ( depth > 1 )
                cout << "which = " << dec << which << endl;

@@ -496,22 +496,22 @@ void Network::netEntryTasks()
    int sender;
    PacketType type;
    
-//   debugPrint(net_tid, "SMEM", "netEntryTasks start....");
-   // Pull up packets waiting in the physical transport layer
+	// Pull up packets waiting in the physical transport layer
    while(transport->ptQuery())
    {
 //      GetLock(&network_lock, 1);
+//      g_chip->getGlobalLock();
 		buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
 //      ReleaseLock(&network_lock);
+//      g_chip->releaseGlobalLock();
 
    }
    
-//   debugPrint(net_tid, "SMEM", "netEntryTasks after while ptQuery....");
-   do //while(type!=INVALID)
+	do //while(type!=INVALID)
    {
       sender = -1;
       type = INVALID;
@@ -602,7 +602,7 @@ void Network::netEntryTasks()
 
    } while(type != INVALID);
 	
-//	debugPrint(net_tid, "SMEM", "netEntryTasks finished....");
+//   debugPrint(net_tid, "NETWORK", "netEntryTasks finished....");
 }
 
 UINT64 Network::netProcCost(NetPacket packet)

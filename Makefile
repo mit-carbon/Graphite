@@ -66,7 +66,6 @@ shmem_test: all
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
 	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/pthreads_basic/basic
-	#$(PIN_RUN) -mdc -msm -msys -n 1 -- $(TESTS_DIR)/pthreads_basic/basic
 
 cache_test: all
 	$(MAKE) -C $(TESTS_DIR)/cache_model
@@ -80,9 +79,9 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
+	killall -s 9 basic
 	killall -s 9 test
 	killall -s 9 ping_pong
-	killall -s 9 basic
 
 love:
 	@echo "not war!"

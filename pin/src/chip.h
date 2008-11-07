@@ -86,8 +86,8 @@ bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
 bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 size);
 //TODO removed these because it's unneccsary
 //shared memory doesn't care, but for legacy sake, i'm leaving them here for now
-bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+//bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
+//bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
 // syscall model wrappers
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
@@ -167,9 +167,18 @@ class Chip
 
       Core *core;
 
+		//debugging crap: 
+		PIN_LOCK global_lock;
 
    public:
+
+      //debugging crap
+		void getGlobalLock() { GetLock(&global_lock, 1); }
+		void releaseGlobalLock() { ReleaseLock(&global_lock); }
+
+		//**************
 		
+
 		// FIXME: This is strictly a hack for testing data storage
 		bool aliasEnable;
 		std::map<ADDRINT,ADDRINT> aliasMap;

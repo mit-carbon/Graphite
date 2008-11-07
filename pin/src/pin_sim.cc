@@ -79,7 +79,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
                	bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
 //               bool check_scoreboard)
                	bool check_scoreboard,
-				VOID* ins_info)
+				VOID* ins_info_array)
 {
    //cerr << "parent = " << stats->parent_routine << endl;
  
@@ -92,61 +92,80 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 		cerr << " ----------------------------------" << endl;
 		cerr <<  " CORE#0 START  running runModels!" << endl;
 	
-	   	INT32 col;
+	   INT32 col;
 		INT32 ln;
 		const CHAR* file;
-		assert( ins_info != NULL );
-		PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
+		assert( ins_info_array != NULL );
+		assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+		
+		InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+
+		PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
 		if ( file != NULL )
-			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+			cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
 		else
-			cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+			cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
 	}
 	
 	if(rank == 1) {
 		cerr << " ----------------------------------" << endl;
 		cerr << " CORE#1 START running runModels!" << endl;
+		assert( ins_info_array != NULL );
+		assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+		
+		InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+
 		cerr << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
-	   	INT32 col;
+	   INT32 col;
 		INT32 ln;
 		const CHAR* file;
 		assert( ins_info != NULL );
 		if(ins_info != NULL) {
-			PIN_FindColumnLineFileByAddress( ((InsInfo*) ins_info)->ip_address , &col, &ln, &file);
+			PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
 			if( file != NULL )
-				cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
 			else
-				cerr << " Instruction Pointer : 0x" << hex << ((InsInfo*) ins_info)->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
 		}
 	}
 
 	if(rank > -1) 
 	{
 
-		if( true || ((InsInfo*) ins_info)->opcode == 608 || ((InsInfo*) ins_info)->next_opcode == 608) 
+		assert( ins_info_array != NULL );
+		assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+		
+		InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+
+		assert( ins_info != NULL );
+		if( true || ins_info->opcode == 608 || ins_info->next_opcode == 608) 
 		{
-			cerr << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->opcode) << " (" << ((InsInfo*) ins_info)->opcode << ") " << endl;
-			cerr << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ((InsInfo*) ins_info)->is_sys_call << endl;
-			cerr << "[" << rank << "] PINSIM -: SYSCALL STD = " << ((InsInfo*) ins_info)->sys_call_std << endl;
-			cerr << "[" << rank << "] PINSIM -: IS SYSENTER = " << ((InsInfo*) ins_info)->is_sys_enter << endl;
+			cerr << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort( ins_info->opcode) << " (" << ins_info->opcode << ") " << endl;
+			cerr << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ins_info->is_sys_call << endl;
+			cerr << "[" << rank << "] PINSIM -: SYSCALL STD = " << ins_info->sys_call_std << endl;
+			cerr << "[" << rank << "] PINSIM -: IS SYSENTER = " << ins_info->is_sys_enter << endl;
 			cerr << "----------" << endl;
 			
-			if(((InsInfo*) ins_info)->next_is_valid)
+			if(ins_info->next_is_valid)
 			{
-				cerr << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(((InsInfo*) ins_info)->next_opcode) << " (" << ((InsInfo*) ins_info)->next_opcode << ") " << endl;
-				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ((InsInfo*) ins_info)->next_is_sys_call << endl;
-				cerr << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ((InsInfo*) ins_info)->next_sys_call_std << endl;
-				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ((InsInfo*) ins_info)->next_is_sys_enter << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(ins_info->next_opcode) << " (" << ins_info->next_opcode << ") " << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ins_info->next_is_sys_call << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ins_info->next_sys_call_std << endl;
+				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ins_info->next_is_sys_enter << endl;
 			}
 		}
 		
-		cerr << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
+//		cerr << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
 	}
 
 #endif
 
 	if(rank > -1)
    {
+		
+//		cerr << " ----------------------------------" << endl;
+//		cerr << "  [" << rank << "] executing runModels " << endl;
+		
      	assert( !do_network_modeling );
      	assert( !do_bpred_modeling );
 
@@ -333,6 +352,10 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
    	{
    		perfModelRun(stats[rank]);
    	}
+
+//		cerr << "  [" << rank << "] finished runModels " << endl;
+//		cerr << " ----------------------------------" << endl;
+
 	}
 
 #ifdef PRINTOUT_FLAGS
@@ -415,144 +438,40 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
       }
    } 
 
+	InsInfo** ins_info_array = NULL;
+#ifdef PRINOUT_FLAGS
 	/**** TAKE OUT LATER TODO *****/
 	//only for debugging instruction in runModels
 	//at run time
-	InsInfo* ins_info = (InsInfo*) malloc(sizeof(InsInfo));
-	ins_info->ip_address = INS_Address(ins);
-	ins_info->opcode = INS_Opcode(ins);
-	ins_info->is_sys_call = INS_IsSyscall(ins);
-	ins_info->is_sys_enter = INS_IsSysenter(ins);
-	ins_info->sys_call_std = INS_SyscallStd(ins);
-	
-	INS next_ins = INS_Next(ins);
-	if(!INS_Valid(next_ins)) {
-		ins_info->next_is_valid = false;
-	} else {
-		ins_info->next_is_valid = true;
-		ins_info->next_opcode = INS_Opcode(next_ins);
-		ins_info->next_is_sys_call = INS_IsSyscall(next_ins);
-		ins_info->next_is_sys_enter = INS_IsSysenter(next_ins);
-		ins_info->next_sys_call_std = INS_SyscallStd(next_ins);
+	//provide each core it's own copy of the ins_info
+	ins_info_array = (InsInfo**) malloc(sizeof(InsInfo*));
+   int NUMBER_OF_CORES = 2;
+
+	for(int i=0; i < NUMBER_OF_CORES; i++) 
+	{
+		ins_info_array[i] = (InsInfo*) malloc(sizeof(InsInfo));
+		InsInfo* ins_info = ins_info_array[i];
+
+		ins_info->ip_address = INS_Address(ins);
+		ins_info->opcode = INS_Opcode(ins);
+		ins_info->is_sys_call = INS_IsSyscall(ins);
+		ins_info->is_sys_enter = INS_IsSysenter(ins);
+		ins_info->sys_call_std = INS_SyscallStd(ins);
+		
+		INS next_ins = INS_Next(ins);
+		if(!INS_Valid(next_ins)) {
+			ins_info->next_is_valid = false;
+		} else {
+			ins_info->next_is_valid = true;
+			ins_info->next_opcode = INS_Opcode(next_ins);
+			ins_info->next_is_sys_call = INS_IsSyscall(next_ins);
+			ins_info->next_is_sys_enter = INS_IsSysenter(next_ins);
+			ins_info->next_sys_call_std = INS_SyscallStd(next_ins);
+		}
 	}
-/*
- 
-      switch(which_case) 
-      {
-      case 0:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling 
-            // dcache load modeling  
-                                        IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE,
-	    // dcache store modeling 
-                                        IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE,
-	    // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-	    // model-enable flags    
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   		                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID *) ins_info, IARG_END);
-//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-            break;
-      case 1:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling
-            // dcache load modeling  
-                                        IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE,
-	    // dcache store modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-	    // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-	    // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-	   	                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID*) ins_info, IARG_END);
-         break;
-      case 2:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling
-            // dcache load modeling  
-                                        IARG_MEMORYREAD_EA, IARG_ADDRINT, (ADDRINT) NULL, IARG_MEMORYREAD_SIZE,
-	    // dcache store modeling
-                                        IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE,
-	    // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-	    // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-		                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID *) ins_info, IARG_END);
-         break;
-      case 3:
-         IARGLIST_AddArguments(args, 
-	    // icache load modeling
-            // dcache load modeling
-                                        IARG_MEMORYREAD_EA, IARG_ADDRINT, (ADDRINT) NULL, IARG_MEMORYREAD_SIZE,
-            // dcache store modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            //perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-            // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   	                                IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END);
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID*) ins_info, IARG_END);
-         break;
-      case 4:
-      case 6:
-         IARGLIST_AddArguments(args, 
-            // icache load modeling 
-            // dcache load modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            // dcache store modeling
-                                        IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE,
-            // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-            // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   	                                IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID *) ins_info, IARG_END); 
-         break;
-      case 5:
-      case 7:
-         IARGLIST_AddArguments(args, 
-            // icache load modeling
-            // dcache load modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            // dcache store modeling
-                                        IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0,
-            // perf modeling
-                                        IARG_PTR, (VOID *) stats,
-                                        IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-                                        IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
-            // model-enable flags
-                                        IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
-   	  	                        IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                                        IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
-//                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_END); 
-                                        IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, IARG_PTR, (VOID*) ins_info, IARG_END); 
-         break;   
-      default:
-         assert( false );
-======= */
-   // Build a list of write registers if relevant
+#endif
+
+	// Build a list of write registers if relevant
    UINT32 num_writes = 0;
    REG *writes = NULL;
    if ( g_knob_enable_performance_modeling )
@@ -602,9 +521,10 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
          IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
          IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, 
+			IARG_PTR, (VOID *) ins_info_array,
          IARG_END); 
 
-   IARGLIST_AddArguments(args, IARG_PTR, (VOID *) ins_info);
+//   IARGLIST_AddArguments(args, IARG_PTR, (VOID *) ins_info);
 	
 	INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
    IARGLIST_Free(args);

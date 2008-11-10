@@ -12,23 +12,28 @@ else
   LDFLAGS = 
 endif
 
-SOURCES = ../../user/capi.cc ping_pong.cc
-OBJECTS = $(SOURCES:%.cc=%.o)
+OLD_SOURCES = ../../user/capi.cc ping_pong.cc
+NEW_SOURCES = ../../user/capi.cc ping_pong_1.cc
+OLD_OBJECTS = $(OLD_SOURCES:%.cc=%.o)
+NEW_OBJECTS = $(NEW_SOURCES:%.cc=%.o)
 
 ## Build rules
 
-all: ping_pong
+all: ping_pong ping_pong_1
 
 %.o : %.cc
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-ping_pong: $(OBJECTS)
-	$(CXX) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
+ping_pong: $(OLD_OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(OLD_OBJECTS)
+
+ping_pong_1: $(NEW_OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(NEW_OBJECTS)
 
 ## Cleaning
 
 clean:
-	-rm -f *.o ping_pong sim.out
+	-rm -f *.o ping_pong ping_pong_1 sim.out
 
 squeaky: clean
 	-rm -f *~

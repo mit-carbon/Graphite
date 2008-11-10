@@ -464,7 +464,7 @@ CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, 
 	d_data_vector.push_back(d_data);
 	c_data_vector.push_back(c_data);
 
-	cerr << "ChipDebug Set: d_data = 0x" << hex << (UINT32) d_data << ", c_data = 0x" << hex << (UINT32) c_data << endl; 
+	// cerr << "ChipDebug Set: d_data = 0x" << hex << (UINT32) d_data << ", c_data = 0x" << hex << (UINT32) c_data << endl; 
 	
 	g_chip->debugSetInitialMemConditions (address_vector, 
 		  											  dram_vector, sharers_list_vector, 
@@ -501,7 +501,7 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 	d_data_vector.push_back(d_data);
 	c_data_vector.push_back(c_data);
 	
-	cerr << "ChipDebug Assert: d_data = 0x" << hex << (UINT32) d_data << ", c_data = 0x" << hex << (UINT32) c_data << endl; 
+	// cerr << "ChipDebug Assert: d_data = 0x" << hex << (UINT32) d_data << ", c_data = 0x" << hex << (UINT32) c_data << endl; 
 	
 	if (g_chip->debugAssertMemConditions (address_vector, 
 		  											  dram_vector, sharers_list_vector, 

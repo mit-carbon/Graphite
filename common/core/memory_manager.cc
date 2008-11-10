@@ -236,6 +236,7 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		payload.data_size = ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
 
+		
 		cerr << "Evicted data: 0x";
 		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++) {
 			cerr << hex << (UINT32) evict_buff[i];
@@ -243,6 +244,7 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		cerr << dec << endl;
 
 		cerr << "Evicted Addr: 0x" << hex << (UINT32) evict_addr << endl;
+		
 		
 		createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
 		NetPacket packet = makePacket(SHARED_MEM_EVICT, payload_buffer, payload_size, the_core->getRank(), home_node_rank);

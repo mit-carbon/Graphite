@@ -1,6 +1,6 @@
 #include "network.h"
 #include "debug.h"
-// #define NETWORK_DEBUG
+#define NETWORK_DEBUG
 using namespace std;
 
 Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
@@ -41,9 +41,11 @@ int Network::netSend(NetPacket packet)
 //	debugPrint(net_tid, "NETWORK", ss.str());
 #endif
 
-   if (packet.type == SHARED_MEM_EVICT) {
+   /*
+	if (packet.type == SHARED_MEM_EVICT) {
 		cerr << "Sending an eviction packet from [" << packet.sender << "] => [" << packet.receiver << "]\n";
 	}
+	*/
 
 	char *buffer;
    UInt32 buf_size;
@@ -574,7 +576,7 @@ void Network::netEntryTasks()
       }
 		else if(type == SHARED_MEM_EVICT)
 		{
-			cerr << "Core: " << the_core->getRank() << ": Got an evicted packet\n";
+			// cerr << "Core: " << the_core->getRank() << ": Got an evicted packet\n";
 			assert(0 <= sender && sender < net_num_mod);
 			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          net_queue[sender][type].pop();

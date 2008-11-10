@@ -79,7 +79,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
                	bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
 //               bool check_scoreboard)
                	bool check_scoreboard,
-				VOID* ins_info_array)
+						VOID* ins_info_array)
 {
    //cerr << "parent = " << stats->parent_routine << endl;
  
@@ -277,7 +277,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
 //      	ReleaseLock(&dcache_write_lock);
 //      	ReleaseLock(&dcache_read_lock);
-//	 		cerr << "[" << rank << "] dCache READ Modeling: RELEASED LOCKS " << endl;
+	 		cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
 //
 	 	 }
      
@@ -298,12 +298,16 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
 				assert (dcache_st_size == sizeof(UINT32));
 				char data_st_buffer[dcache_st_size];
+				
+				
 				if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
 					memset (data_st_buffer, 'C', sizeof(UINT32));
 				}
 				else {
 					memset (data_st_buffer, 'A', sizeof(UINT32));
 				}
+				
+				// memset (data_st_buffer, 'z', sizeof(UINT32));
 
 				cerr << "Doing write modelling for address: 0x" << hex << dcache_st_addr << endl;
 				
@@ -353,8 +357,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
    		perfModelRun(stats[rank]);
    	}
 
-//		cerr << "  [" << rank << "] finished runModels " << endl;
-//		cerr << " ----------------------------------" << endl;
+		cerr << "  [" << rank << "] finished runModels " << endl;
+		cerr << " ----------------------------------" << endl;
 
 	}
 

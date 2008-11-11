@@ -55,7 +55,7 @@ int Transport::ptSend(int receiver, char *buffer, int size)
 }
 
 char* Transport::ptRecv()
-{
+{     
    char *ptr;
    assert(0 <= pt_tid && pt_tid < pt_num_mod);
 
@@ -95,13 +95,7 @@ char* Transport::ptRecv()
 bool Transport::ptQuery()
 {
 	//original code
-//   assert(0 <= pt_tid && pt_tid < pt_num_mod);
-//   return !(pt_queue[pt_tid].pt_queue.empty());
-   
-	//debugging version
-	assert(0 <= pt_tid && pt_tid < pt_num_mod);
-//	g_chip->getGlobalLock();
-   bool ret = !(pt_queue[pt_tid].pt_queue.empty());
-//	g_chip->releaseGlobalLock();
+   assert(0 <= pt_tid && pt_tid < pt_num_mod);
+   return !(pt_queue[pt_tid].pt_queue.empty());
    return ret;
 }

@@ -21,7 +21,7 @@ Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
    }
    
 	//lock for debugging only
-	InitLock(&network_lock);
+//	InitLock(&network_lock);
 	
 }
 

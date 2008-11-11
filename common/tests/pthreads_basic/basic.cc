@@ -31,10 +31,10 @@ void instrument_me();
 
 int main2(int argc, char* argv[]) {
   
-  cerr << "Begin Main " << endl;
+  cout << "Begin Main " << endl;
    int tid;
    CAPI_Initialize(&tid);
-  cerr << " After CAPI Initialization " << endl;
+//  cout << " After CAPI Initialization " << endl;
    
    int size = 1;
    int array[size];
@@ -54,8 +54,8 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_t attr;
 	
 #ifdef DEBUG
-	cerr << "This is the function main()" << endl;
-	cerr << "Initializing thread structures" << endl << endl;
+	cout << "This is the function main()" << endl;
+	cout << "Initializing thread structures" << endl << endl;
 	pthread_mutex_init(&lock, NULL);
 #endif
 
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_mutex_init(&write_lock, NULL);
 
 #ifdef DEBUG
-	cerr << "Spawning threads" << endl << endl;
+	cout << "Spawning threads" << endl << endl;
 #endif
 
       pthread_create(&threads[0], &attr, do_nothing, (void *) 0);    
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){ // main begins
 
 #ifdef DEBUG
    pthread_mutex_lock(&lock);
-	cerr << "Waiting to join" << endl << endl;
+	cout << "Waiting to join" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]){ // main begins
         pthread_join(threads[1], NULL);
 
 #ifdef DEBUG
-	cerr << "End of execution" << endl << endl;
+	cout << "End of execution" << endl << endl;
 #endif
         
    return 0;
@@ -96,7 +96,7 @@ void BARRIER_DUAL_CORE(int tid)
 	//this is a stupid barrier just for the test purposes
 	int payload;
 
-	cerr << "BARRIER DUAL CORE for ID(" << tid << ")" << endl;
+	cout << "BARRIER DUAL CORE for ID(" << tid << ")" << endl;
 	if(tid==0) {
 		CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &payload, sizeof(int));
 		CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &payload, sizeof(int));
@@ -111,14 +111,14 @@ void* do_nothing(void *threadid)
 {
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "beginning of do_nothing function" << endl << endl;
+   cout << "beginning of do_nothing function" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
    
 	int tid;
-//	cerr << "start capi_init" << endl;
+	cout << "start capi_init" << endl;
 	CAPI_Initialize(&tid);
-//	cerr << "end   capi_init" << endl;
+//	cout << "end   capi_init" << endl;
 #if 0	
    int i = 0;
    int j = 0;
@@ -139,7 +139,7 @@ asm volatile("addl  %%ebx, %%eax \n\t"
 				 );
 */
 if(tid==0) {
-//	cerr << endl << "i = " << i << endl;
+//	cout << endl << "i = " << i << endl;
  	
 	asm (
 //		"movl %1, %%eax    \n\t"
@@ -169,13 +169,13 @@ if(tid==0) {
 //		cpuid
 //		mov cpeinfo, edx   ;Get the info stored by CPUID
 //		mov cpsse3, ecx    ;info about SSE3 is stored in ECX
-//	cerr << endl << "i = " << i << endl;
-	cerr << endl << " cpuid =  " << dec << i << endl;
-	cerr << endl << " cpsse3 = " << dec << k << endl;
+//	cout << endl << "i = " << i << endl;
+	cout << endl << " cpuid =  " << dec << i << endl;
+	cout << endl << " cpsse3 = " << dec << k << endl;
 	
-	cerr << "MMX:  " << ((cpeinfo >> 23) & 0x1 ) << "\tSSE:  " << ((cpeinfo >> 25) & 0x1 ) << "\tSSE2: " << ((cpeinfo >> 26) & 0x1 ) << "\n"; 
-	cerr << "SSE3: " << ((cpsse3       ) & 0x1 ); 
-	cerr << vector.x << " " << vector.y << " " << vector.z << endl;
+	cout << "MMX:  " << ((cpeinfo >> 23) & 0x1 ) << "\tSSE:  " << ((cpeinfo >> 25) & 0x1 ) << "\tSSE2: " << ((cpeinfo >> 26) & 0x1 ) << "\n"; 
+	cout << "SSE3: " << ((cpsse3       ) & 0x1 ); 
+	cout << vector.x << " " << vector.y << " " << vector.z << endl;
 //
 }
 else
@@ -193,45 +193,45 @@ else
 	//		:"%eax"  //clobbered register
 	);
 
-	cerr << endl << "j = " << j << endl;
+	cout << endl << "j = " << j << endl;
 }
 
 #endif
 
 #ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-//   cerr << "executing do_nothing function: " << tid << endl << endl;
-   pthread_mutex_unlock(&lock);
+//   pthread_mutex_lock(&lock);
+//   cout << "executing do_nothing function: " << tid << endl << endl;
+//   pthread_mutex_unlock(&lock);
 #endif
    
    int size = 10;
    global_integer = 10;
    global_integer_ptr = &global_integer;
    if(tid==0) {
-		pthread_mutex_lock(&lock);
-		cerr << "Core: " << tid << " being instrumented." << endl;
-		cerr << "size addr: " << &size << endl;
-		cerr << "gint addr: " << &global_integer << endl;
-		cerr << "gint_ptr : " << global_integer_ptr << endl;
-		pthread_mutex_unlock(&lock);
+//		pthread_mutex_lock(&lock);
+//		cout << "Core: " << tid << " being instrumented." << endl;
+//		cout << "size addr: " << &size << endl;
+//		cout << "gint addr: " << &global_integer << endl;
+//		cout << "gint_ptr : " << global_integer_ptr << endl;
+//		pthread_mutex_unlock(&lock);
 
-		BARRIER_DUAL_CORE(tid);
+//		BARRIER_DUAL_CORE(tid);
 		instrument_me( );
 		
-		pthread_mutex_lock(&lock);
-		cerr << "Core: " << tid << " finished instrumenting." << endl;
-		pthread_mutex_unlock(&lock);
+//		pthread_mutex_lock(&lock);
+//		cout << "Core: " << tid << " finished instrumenting." << endl;
+//		pthread_mutex_unlock(&lock);
    } else {
-		pthread_mutex_lock(&lock);
-		cerr << "Core: " << tid << " being instrumented." << endl;
-		pthread_mutex_unlock(&lock);
+//		pthread_mutex_lock(&lock);
+//		cout << "Core: " << tid << " being instrumented." << endl;
+//		pthread_mutex_unlock(&lock);
 
-		BARRIER_DUAL_CORE(tid);
+//		BARRIER_DUAL_CORE(tid);
 		instrument_me( );
 		
-		pthread_mutex_lock(&lock);
-		cerr << "Core: " << tid << " finished instrumenting." << endl;
-		pthread_mutex_unlock(&lock);
+//		pthread_mutex_lock(&lock);
+//		cout << "Core: " << tid << " finished instrumenting." << endl;
+//		pthread_mutex_unlock(&lock);
    }
    
 	CAPI_Finish(tid);
@@ -249,7 +249,7 @@ else
 //int instrument_me(int tid, int* ptr) 
 void instrument_me()
 {
-//	cerr << "Greetings I wonder if this will cause any crashes or anything else interesting?1" << endl;
+//	cout << "Greetings I wonder if this will cause any crashes or anything else interesting?1" << endl;
 int size = 128;
 char array[size];
 
@@ -259,12 +259,12 @@ char array[size];
 	*((UINT64*) addr)  = 0xFFFF;
    UINT64 x = *((UINT64*) addr);
 
-   cerr << hex << "x = " << ((UINT64) x) << endl;
+//   cout << hex << "x = " << ((UINT64) x) << endl;
 
 /*
  int size = *global_integer_ptr; 
 
-   cerr << "inside instrument me, size=" << size << endl;
+   cout << "inside instrument me, size=" << size << endl;
    int array[size];
    int x;
 
@@ -282,7 +282,7 @@ char array[size];
 
 	pthread_mutex_lock(&lock);
 
-   cerr << "inside lock " << endl;
+   cout << "inside lock " << endl;
 
    for(int i=1; i < size-1; i++) {
 		array[i] = array[i-1] + i + (int) global_integer_ptr + array[i+1];
@@ -304,9 +304,9 @@ char array[size];
 //			:"%eax");//	%eax is clobbered register 
 			:);//	%eax is clobbered register 
 */
-//   cerr << "   Addr of x: " << hex << &x << endl;
-//	cerr << "   Addr of y: " << hex << &y << endl;
-//	cerr << "          x = " << x << endl;
+//   cout << "   Addr of x: " << hex << &x << endl;
+//	cout << "   Addr of y: " << hex << &y << endl;
+//	cout << "          x = " << x << endl;
 	
 /* int foo = 10, bar = 15;
  asm volatile("addl  %%ebx,%%eax"

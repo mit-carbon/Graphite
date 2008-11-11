@@ -3,7 +3,9 @@ include ../../makefile.debug
 
 FORCE32 ?= 1
 
-CC = /usr/bin/g++
+#CC = /usr/bin/g++
+CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
+
 SOURCES = ../../user/capi.cc test.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
@@ -20,10 +22,10 @@ endif
 all: test
 
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 test: $(OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 

@@ -54,7 +54,7 @@ CAPI_return_t CAPI_debugAssertMemState( ADDRINT address, INT32 dram_address_home
 	return 0;
 }
 
-CAPI_return_t CAPI_alias (ADDRINT address0, ADDRINT address1) {
+CAPI_return_t CAPI_alias (ADDRINT address, addr_t addrType, UINT32 num) {
 	 return 0;
 }
 

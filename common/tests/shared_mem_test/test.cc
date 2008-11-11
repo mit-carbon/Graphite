@@ -99,6 +99,10 @@ void initialize_test_parameters();
 
 int main(int argc, char* argv[]){ // main begins
 
+	if (argc != 2) {
+		cerr << "[Usage]: ./test <logCacheBlockSize>\n";
+	}
+	 
 	// Declare threads and related variables
 	
 	// 2 important Simulator variables are initialized here
@@ -260,7 +264,8 @@ void initialize_test_parameters()
 	// dram0_address is aliased to an address homed on core '0'
 	// dram1_address is aliased to an address homed on core '1'
 	
-	CAPI_alias (dram0_address, dram1_address);
+	CAPI_alias (dram0_address, DRAM_0, 0);
+	CAPI_alias (dram1_address, DRAM_1, 0); // First cache block in dram0, second cache block also on dram0
 
 	addrVectStruct new_addr_struct;
 	new_addr_struct.addr = dram0_address;

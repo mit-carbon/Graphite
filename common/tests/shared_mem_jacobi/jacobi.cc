@@ -136,7 +136,8 @@ int send_array(int my_rank, int *arr, int array_size)
 	return 0;
 }
 
-/*proc#0 receives all other proc's private arrays
+/*
+ * proc#0 receives all other proc's private arrays
  * and consolidates them into a single, "global" array
  */
 int consolidate_arrays( int *global_array, int *proc0_arr) 
@@ -334,6 +335,7 @@ int main(int argc, char* argv[]) {
    pthread_create(&threads[0], &attr, thread_main, (void *) 0);    
    pthread_create(&threads[1], &attr, thread_main, (void *) 1);    
 
+	while(1);
 	pthread_join(threads[0], NULL);         
    pthread_join(threads[1], NULL);
 

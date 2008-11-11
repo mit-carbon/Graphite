@@ -69,10 +69,10 @@ char* Transport::ptRecv()
          pt_futx[pt_tid].futx = 0;
 
       ReleaseLock(&(pt_futx[pt_tid].futx_lock));
-//   	cerr << "[" << pt_tid << "] TRANSPORT: before SYSCALL futex, 2" << endl;
+   	cerr << "[" << pt_tid << "] TRANSPORT: before SYSCALL futex" << endl;
 //both cores are freezing before syscall for futex.
       syscall(SYS_futex, (void*)&(pt_futx[pt_tid].futx), FUTEX_WAIT, 0, NULL, NULL, 1);
-//   	cerr << "[" << pt_tid << "] TRANSPORT: after SYSCALL futex, 2" << endl;
+   	cerr << "[" << pt_tid << "] TRANSPORT: after SYSCALL futex" << endl;
       if(!pt_queue[pt_tid].pt_queue.empty())
          break;
     }

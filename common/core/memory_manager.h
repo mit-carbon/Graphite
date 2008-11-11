@@ -64,11 +64,6 @@ class MemoryManager
    bool volatile processing_request_flag;
    int volatile incoming_requests_count;
 
-   /* ============================================= */
-   /* Added by George */ //moved to dram directory
-//   UINT64 dramAccessCost;
-	/* ============================================= */
-
 	//evictions from the cache are written into this buffer
 	char* eviction_buffer;
 	//dram must fill this buffer and give it to the cache

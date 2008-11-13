@@ -33,7 +33,7 @@
 #include "knobs.h"
 #include "mcp.h"
 
-#define INSTRUMENT_ALLOWED_FUNCTIONS
+//#define INSTRUMENT_ALLOWED_FUNCTIONS
 
 //#define PRINTOUT_FLAGS
 
@@ -287,7 +287,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
 //      	ReleaseLock(&dcache_write_lock);
 //      	ReleaseLock(&dcache_read_lock);
-	 		cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
+//	 		cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
 //
 	 	 }
      
@@ -367,8 +367,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
    		perfModelRun(stats[rank]);
    	}
 
-		cerr << "  [" << rank << "] finished runModels " << endl;
-		cerr << " ----------------------------------" << endl;
+//		cerr << "  [" << rank << "] finished runModels " << endl;
+//		cerr << " ----------------------------------" << endl;
 
 	}
 
@@ -651,6 +651,10 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    else if(name == "CAPI_Finish"){
       cerr << "replacing CAPI_Finish" << endl;
 	  	return AFUNPTR(chipHackFinish);
+   }
+   else if(name == "CAPI_Print"){
+      cerr << "replacing CAPI_Print" << endl;
+	  	return AFUNPTR(chipPrint);
    }
 	else if(name == "CAPI_debugSetMemState") {
 		cerr << "replacing CAPI_debugSetMemState" << endl;

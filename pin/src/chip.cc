@@ -107,20 +107,37 @@ CAPI_return_t chipHackFinish(int my_rank)
 //	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
 	/* ========================================================================== */
 
+	//check in to chip, tell them we're finished
+   g_chip->finished_cores[my_rank] = true;
 	bool volatile finished = false;
 	
-	//debugging shared memory
-//  g_chip->core[my_rank]. 
+	cerr << "FinshedCores look like this: " << endl;
+	for(int i=0; i < g_chip->getNumModules(); i++) {
+		cerr << "  finished_cores[" << i << "] : " << (g_chip->finished_cores[i] ? "TRUE":"FALSE") << endl;
+	}
 
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
-//		cout << "FINISHED lawls [" << my_rank << "] " << endl;
-		//sleep? and conditionally check if we should end loop?
-		//
-	}
+		bool cores_still_working = false;
+		for(int i=0; i < g_chip->getNumModules(); i++) {
+			if(!g_chip->finished_cores[i])
+				cores_still_working = true;
+		}
 
+		if(!cores_still_working)
+			finished = true;
+	}
+	cerr << " [" << my_rank << "] ENDING PROGRAM...." << endl;
    return 0;
 }
+
+CAPI_return_t chipPrint(string s) 
+{
+	cerr << s;
+	return 0;
+}
+
+
 // performance model wrappers
 
 VOID perfModelRun(PerfModelIntervalStat *interval_stats)
@@ -283,6 +300,8 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 
 	// FIXME: A hack
 	aliasEnable = false;
+	//hack for chipFInishHack
+	finished_cores = new bool[num_modules];
 }
 
 VOID Chip::fini(int code, VOID *v)

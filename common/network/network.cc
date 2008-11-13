@@ -1,6 +1,6 @@
 #include "network.h"
 #include "debug.h"
-#define NETWORK_DEBUG
+//#define NETWORK_DEBUG
 using namespace std;
 
 Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
@@ -231,14 +231,14 @@ NetPacket Network::netRecv(NetMatch match)
 	      
 				Network::netExPacket(buffer, entry.packet, entry.time);
 #ifdef NETWORK_DEBUG
-				printf("\n\n\n\n*******************\n\n\n\n");
+//				printf("\n\n\n\n*******************\n\n\n\n");
 				stringstream ss;
 				ss <<  "Network received packetType: " << entry.packet.type  << " from " << entry.packet.sender;
 				debugPrint(net_tid, "NETWORK",  ss.str());
 				ss.str("");
 				ss <<  "Clock: " << the_chip->getProcTime(net_tid) << "  packet time stamp: " << entry.time;
 				debugPrint(net_tid, "NETWORK", ss.str());
-				printf("\n\n\n\n*******************\n\n\n\n");
+//				printf("\n\n\n\n*******************\n\n\n\n");
 #endif
          	assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
 				assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);

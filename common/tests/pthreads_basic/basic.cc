@@ -117,7 +117,7 @@ void* do_nothing(void *threadid)
    
 	int tid;
 	cout << "start capi_init" << endl;
-	CAPI_Initialize(&tid);
+//	CAPI_Initialize(&tid);
 //	cout << "end   capi_init" << endl;
 #if 0	
    int i = 0;
@@ -204,35 +204,37 @@ else
 //   pthread_mutex_unlock(&lock);
 #endif
    
+	CAPI_Initialize(&tid);
    int size = 10;
    global_integer = 10;
-   global_integer_ptr = &global_integer;
-   if(tid==0) {
+//   global_integer_ptr = &global_integer;
+//   if(tid==0) {
 //		pthread_mutex_lock(&lock);
 //		cout << "Core: " << tid << " being instrumented." << endl;
-//		cout << "size addr: " << &size << endl;
+//		cout << "\n\nsize addr: " << &size << endl << endl;
+		CAPI_Print("\n\nsize addr: \n\n");
 //		cout << "gint addr: " << &global_integer << endl;
 //		cout << "gint_ptr : " << global_integer_ptr << endl;
 //		pthread_mutex_unlock(&lock);
 
 //		BARRIER_DUAL_CORE(tid);
-		instrument_me( );
+//		instrument_me( );
 		
 //		pthread_mutex_lock(&lock);
 //		cout << "Core: " << tid << " finished instrumenting." << endl;
 //		pthread_mutex_unlock(&lock);
-   } else {
+//   } else {
 //		pthread_mutex_lock(&lock);
 //		cout << "Core: " << tid << " being instrumented." << endl;
 //		pthread_mutex_unlock(&lock);
 
 //		BARRIER_DUAL_CORE(tid);
-		instrument_me( );
+//		instrument_me( );
 		
 //		pthread_mutex_lock(&lock);
 //		cout << "Core: " << tid << " finished instrumenting." << endl;
 //		pthread_mutex_unlock(&lock);
-   }
+//   }
    
 	CAPI_Finish(tid);
 	pthread_exit(NULL);  

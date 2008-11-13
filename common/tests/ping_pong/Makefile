@@ -13,13 +13,11 @@ else
 endif
 
 OLD_SOURCES = ../../user/capi.cc ping_pong.cc
-NEW_SOURCES = ../../user/capi.cc ping_pong_1.cc
 OLD_OBJECTS = $(OLD_SOURCES:%.cc=%.o)
-NEW_OBJECTS = $(NEW_SOURCES:%.cc=%.o)
 
 ## Build rules
 
-all: ping_pong ping_pong_1
+all: ping_pong 
 
 %.o : %.cc
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
@@ -27,13 +25,10 @@ all: ping_pong ping_pong_1
 ping_pong: $(OLD_OBJECTS)
 	$(CXX) -pthread $(LDFLAGS) -o $@ $(OLD_OBJECTS)
 
-ping_pong_1: $(NEW_OBJECTS)
-	$(CXX) -pthread $(LDFLAGS) -o $@ $(NEW_OBJECTS)
-
 ## Cleaning
 
 clean:
-	-rm -f *.o ping_pong ping_pong_1 sim.out
+	-rm -f *.o ping_pong sim.out
 
 squeaky: clean
 	-rm -f *~

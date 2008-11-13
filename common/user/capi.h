@@ -51,6 +51,10 @@ extern "C" {
 	//FIXME this is a temp hack function
 	CAPI_return_t CAPI_Finish(int my_rank);
 
+	//i believe locks in cout are screwing up out-of-band messages, 
+	//so let's not instrument print outs.
+	CAPI_return_t CAPI_Print(string s);
+
 	// FIXME: A hack
 	CAPI_return_t CAPI_alias (ADDRINT address, addr_t addrType, UINT32 num);
 }

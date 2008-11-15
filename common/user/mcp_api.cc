@@ -1,10 +1,10 @@
 #include "mcp_api.h"
 #include "capi.h"
 #include <pthread.h>
-#include <iostream>
 #include <unistd.h>
+#include <assert.h>
+#include <stdio.h>
 
-using namespace std;
 
 // Globals required for the syscall server
 volatile static bool finished = false;
@@ -36,18 +36,19 @@ void* mcp_thread_func(void *dummy)
 
 void runMCP()
 {
-   cerr << "Made it to the dummy runMCP() function." << endl;
+   fprintf(stderr, "Made it to the dummy runMCP() function.\n");
+   assert(false);
 }
 
 void finishMCP()
 {
-   cerr << "Made it to the dummy finishMCP() function." << endl;
+   fprintf(stderr, "Made it to the dummy finishMCP() function.\n");
 }
 
 void quitMCP()
 {
    finished = true;
-   cerr << "quitting the mcp..." << endl;
+   fprintf(stderr, "quitting the mcp...\n");
    finishMCP();
    pthread_join(mcp_thread, NULL);
 }

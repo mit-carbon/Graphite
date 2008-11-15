@@ -3,7 +3,7 @@
 
 // This is the dummy function that will get replaced
 // by the simulator
-extern "C" {
+//extern "C" {
 
    // This is the routine that we instrument that 
    // handles the MCP code but the actual function
@@ -14,7 +14,7 @@ extern "C" {
    // send the final exit message to the MCP so that
    // it will close properly.
    void finishMCP();
-}
+//}
 
 void initMCP();
 void quitMCP();

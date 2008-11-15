@@ -1,0 +1,233 @@
+#	$Header: /usr/people/sam/tiff/libtiff/RCS/Makefile.aix,v 1.13 92/03/18 12:11:22 sam Exp $
+#
+# Tag Image File Format Library
+#
+# Copyright (c) 1988, 1989, 1990, 1991, 1992 Sam Leffler
+# Copyright (c) 1991, 1992 Silicon Graphics, Inc.
+# 
+# Permission to use, copy, modify, distribute, and sell this software and 
+# its documentation for any purpose is hereby granted without fee, provided
+# that (i) the above copyright notices and this permission notice appear in
+# all copies of the software and related documentation, and (ii) the names of
+# Sam Leffler and Silicon Graphics may not be used in any advertising or
+# publicity relating to the software without the specific, prior written
+# permission of Stanford and Silicon Graphics.
+# 
+# THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
+# EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
+# WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+# 
+# IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
+# ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+# OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+# WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+# LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+# OF THIS SOFTWARE.
+#
+# This Makefile is designed for IBM RS6000, AIX 3.x.
+# Check up the CONFIGURE: comments for AIX 2.2.1 and building shared library
+#
+# The library will be installed in $(DESTDIR)/lib and the included
+# files in $(DESTDIR)/include
+DESTDIR=/usr/local
+#
+AR=	/bin/ar
+#
+# SHELL, CTAGS, RANLIB and INSTALL is not defined in standard make for AIX
+#
+#	CONFIGURE: AIX2.2.1 "RANLIB=echo ranlib"
+#		( ranlib for AIX3.x is for compatibility only )
+RANLIB=/usr/bin/ranlib
+SHELL=/bin/sh
+#	CONFIGURE: AIX2.2.1 "CTAGS=ctags -w"
+CTAGS=ctags -tw
+#
+# NOTE: The AIX versions of install is execute by root only, or SYSV versions.
+#	CONFIGURE: (The /bin/cp variant should work on both 2.2 and 3.x)
+# INSTALL=/usr/ucb/install -c -m 444
+INSTALL=/bin/cp
+#
+NULL=
+
+IPATH=	-I.
+#
+# Library-wide configuration defines:
+#    MMAP_SUPPORT	add support for memory mapping read-only files
+#    COLORIMETRY_SUPPORT add support for 6.0 colorimetry tags
+#    JPEG_SUPPORT	add support for 6.0 JPEG tags & JPEG algorithms
+#    YCBCR_SUPPORT	add support for 6.0 YCbCr tags
+#    CMYK_SUPPORT	add support for 6.0 CMYK tags
+#
+# Compression configuration defines:
+#    CCITT_SUPPORT	add support for CCITT Group 3 & 4 algorithms
+#    PACKBITS_SUPPORT	add support for Macintosh PackBits algorithm
+#    LZW_SUPPORT	add support for LZW algorithm
+#    THUNDER_SUPPORT	add support for ThunderScan 4-bit RLE algorithm
+#    NEXT_SUPPORT	add support for NeXT 2-bit RLE algorithm
+#    JPEG_SUPPORT	add support for JPEG DCT algorithm
+#
+# Note that if you change the library-wide configuration, you'll
+# need to manual force a full rebuild.  Changing the configuration
+# of which compression algorithms are included in the library is
+# automatically handled (i.e. tif_compress.o has a dependency on
+# the Makefile).
+#
+# CONFIGURE:
+CONF_COMPRESSION=\
+	-DPACKBITS_SUPPORT \
+	-DLZW_SUPPORT \
+	-DCCITT_SUPPORT \
+	-DTHUNDER_SUPPORT  \
+	-DNEXT_SUPPORT  \
+	${NULL}
+#
+# CONFIGURE: AIX 3.2	: add -DMMAP_SUPPORT (?)
+#            AIX 2.1.1	: -DUSE_VARARGS=1 -DUSE_PROTOTYPES=0 -DUSE_CONST=0
+CONF_LIBRARY=\
+	-DUSE_VARARGS=0 \
+	-DUSE_PROTOTYPES=1 \
+	-DUSE_CONST=1 \
+	-DHAVE_IEEEFP=1 \
+	-DCOLORIMETRY_SUPPORT \
+	-DJPEG_SUPPORT \
+	-DYCBCR_SUPPORT \
+	-DCMYK_SUPPORT \
+	${NULL}
+CFLAGS=	-O -Dunix ${SHLIB_FLAGS} ${IPATH} ${CONF_LIBRARY}
+#
+INCS=	tiff.h tiffio.h
+SRCS=	tif_fax3.c \
+	tif_fax4.c \
+	tif_aux.c \
+	tif_ccittrle.c \
+	tif_close.c \
+	tif_compat.c \
+	tif_compress.c \
+	tif_dir.c \
+	tif_dirinfo.c \
+	tif_dirread.c \
+	tif_dirwrite.c \
+	tif_dumpmode.c \
+	tif_error.c \
+	tif_getimage.c \
+	tif_jpeg.c \
+	tif_flush.c \
+	tif_lzw.c \
+	tif_next.c \
+	tif_open.c \
+	tif_packbits.c \
+	tif_print.c \
+	tif_read.c \
+	tif_swab.c \
+	tif_strip.c \
+	tif_thunder.c \
+	tif_tile.c \
+	tif_version.c \
+	tif_warning.c \
+	tif_write.c \
+	${NULL}
+OBJS=	tif_fax3.o \
+	tif_fax4.o \
+	tif_aux.o \
+	tif_ccittrle.o \
+	tif_close.o \
+	tif_compat.o \
+	tif_compress.o \
+	tif_dir.o \
+	tif_dirinfo.o \
+	tif_dirread.o \
+	tif_dirwrite.o \
+	tif_dumpmode.o \
+	tif_error.o \
+	tif_getimage.o \
+	tif_jpeg.o \
+	tif_flush.o \
+	tif_lzw.o \
+	tif_next.o \
+	tif_open.o \
+	tif_packbits.o \
+	tif_print.o \
+	tif_read.o \
+	tif_strip.o \
+	tif_swab.o \
+	tif_thunder.o \
+	tif_tile.o \
+	tif_version.o \
+	tif_warning.o \
+	tif_write.o \
+	${NULL}
+
+# CONFIGURE: Compile libtiff as a Shared Library
+# Remove the comment if you want to build libtiff as a shared library:
+#
+#SHLIB_FLAGS=	-bM\:SRE
+
+#
+ALL=	libtiff.a
+
+all:	 ${ALL}
+
+${ALL}:	${OBJS}
+	@if [ -n "$(SHLIB_FLAGS)" ]; then \
+	    echo "\n\tBuilding $@ as a shared libary, assumes that" ;\
+	    echo "\t\tall .o files is compiled with $(SHLIB_FLAGS).\n" ;\
+	    set -x ;\
+	    rm -f $@~ ; \
+	    $(AR) clq $@~ $(OBJS) ;\
+	    dump -g $@~ | sed -n -e 's/^[ 	]*[0-9][0-9]*[	 ]*\([^	 .][^	 ]*\)$$/\1/p' > $@.syms ;\
+	    $(LD) -o shr.o $@~ -H512 -T512 -bM\:SRE -bE\:$@.syms -lc -lm ;\
+	    rm -f $@~ ;\
+	    $(AR) clq $@~ shr.o ;\
+	    rm -f $@.syms $@ shr.o ;\
+	    mv $@~ $@ ;\
+	else \
+	    echo "\t${AR} rc libtiff.a $?" ;\
+	    ${AR} rc libtiff.a $? ;\
+	fi
+	#	ranlib for AIX is for compatibility only
+	# ${RANLIB} libtiff.a
+
+${OBJS}: tiffio.h tiff.h tiffcompat.h tiffioP.h
+tif_compress.o: tif_compress.c Makefile
+	${CC} -c ${CFLAGS} ${CONF_COMPRESSION} tif_compress.c
+tif_fax3.o: tif_fax3.c g3states.h t4.h tif_fax3.h
+
+# CONFIGURE: Remove '-c' in AIX 2.1.1
+g3states.h: mkg3states.c t4.h
+	${CC} -o mkg3states ${CFLAGS} mkg3states.c
+	./mkg3states -c > g3states.h
+
+install: all installh
+	-test -d ${DESTDIR}/lib || mkdir ${DESTDIR}/lib
+	-@for i in ${ALL}; do \
+	    if cmp -s $$i ${DESTDIR}/lib/$$i ; then \
+		echo "${DESTDIR}/lib/$$i is up to date" ; \
+	    else \
+		rm -f ${DESTDIR}/lib/$$i ;\
+	        echo "	${INSTALL} $$i ${DESTDIR}/lib/$$i" ; \
+	        ${INSTALL} $$i ${DESTDIR}/lib/$$i; \
+	    fi \
+	done
+	#	ranlib for AIX is for compatibility only
+	# ${RANLIB} -t ${DESTDIR}/lib/libtiff.a
+
+installh: ${INCS}
+	-test -d ${DESTDIR}/include || mkdir ${DESTDIR}/include
+	-@for i in ${INCS}; do \
+	    h=`basename $$i`; \
+	    if cmp -s $$i ${DESTDIR}/include/$$h ; then \
+		echo "${DESTDIR}/include/$$h is up to date" ; \
+	    else \
+		rm -f ${DESTDIR}/include/$$h ;\
+	        echo "	${INSTALL} $$i ${DESTDIR}/include/$$h" ; \
+	        ${INSTALL} $$i ${DESTDIR}/include/$$h; \
+	    fi \
+	done
+
+clean:
+	rm -f ${ALL} ${OBJS} core a.out mkg3states g3states.h err errs
+ 
+tags:	${SRCS}
+	${CTAGS} ${SRCS}
+
+# EOF

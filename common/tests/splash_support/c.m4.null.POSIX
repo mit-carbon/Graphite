@@ -3,7 +3,8 @@ define(NEWPROC,) dnl
 
 define(BARRIER, `{
 	unsigned long	Error, Cycle;
-	long		Cancel, Temp;
+	int		Temp;
+    int         Cancel;
 
 	Error = pthread_mutex_lock(&($1).mutex);
 	if (Error != 0) {
@@ -206,6 +207,11 @@ define(EXTERN_ENV, `
 #include <stdlib.h>
 extern pthread_t PThreadTable[];
 ')
+
+
+define(THREAD_INIT, `{;}')
+define(THREAD_INIT_FREE, `{;}')
+
 
 define(G_MALLOC, `valloc($1);')
 define(G_FREE, `;')

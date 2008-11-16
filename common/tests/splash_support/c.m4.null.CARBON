@@ -173,10 +173,16 @@ extern pthread_t PThreadTable[];
 define(THREAD_INIT, `{
   int tid;
   CAPI_return_t rtnVal;
-  rtnVal = CAPI_Initialize(&tid);
+  rtnVal = CAPI_Initialize($1);
   CAPI_rank(&tid);
   }')
 
+define(THREAD_INIT_FREE, `{
+  int tid;
+  CAPI_return_t rtnVal;
+  rtnVal = CAPI_Initialize_FreeRank(&tid);
+  CAPI_rank(&tid);
+  }')
 
 define(G_MALLOC, `valloc($1);')
 define(G_FREE, `;')

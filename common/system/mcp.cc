@@ -88,9 +88,9 @@ void MCP::finish()
    quit_buff << msg_type << commid;   
 
    cerr << "Sending message to MCP to quit..." << endl;
-   _network.netSendToMCP(quit_buff.getBuffer(), quit_buff.size());
-
    _finished = true;
+
+   _network.netSendToMCP(quit_buff.getBuffer(), quit_buff.size());
 
    cerr << "End of MCP::finish();" << endl;
 }

@@ -77,8 +77,14 @@ kill:
 	killall -s 9 $(PROCESS)
 
 barnes_test: all
+	# note, the last line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/barnes
 	$(PIN_RUN) -mdc -mpf -msys -n 4 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
+
+fmm_test: all
+	# note, the 5th line in the input file must match the number of procs passed to pin
+	$(MAKE) -C $(TESTS_DIR)/fmm
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
 love:
 	@echo "not war!"

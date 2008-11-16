@@ -36,10 +36,21 @@ class SimMutex
 
 class SimCond
 {
-  typedef std::pair<comm_id_t, StableIterator<SimMutex> > WaitPair;
-  typedef std::queue< WaitPair > ThreadQueue;
+  class CondWaiter
+  {
+    public:
+      CondWaiter(comm_id_t comm_id, StableIterator<SimMutex> mutex, UINT64 time)
+          : _comm_id(comm_id), _mutex(mutex), _arrival_time(time) {}
+      comm_id_t _comm_id;
+      StableIterator<SimMutex> _mutex;
+      UINT64 _arrival_time;
+  };
+
+  typedef std::vector< CondWaiter > ThreadQueue;
+  typedef std::vector< UINT64 > SignalQueue;
 
   ThreadQueue _waiting;
+  SignalQueue _signals;
 
  public:
   typedef std::vector<comm_id_t> WakeupList;
@@ -48,9 +59,9 @@ class SimCond
   ~SimCond();
 
   // returns the thread that gets woken up when the mux is unlocked
-  comm_id_t wait(comm_id_t commid, StableIterator<SimMutex> & it);
-  comm_id_t signal(comm_id_t commid);
-  void broadcast(comm_id_t commid, WakeupList &woken);
+  comm_id_t wait(comm_id_t commid, UINT64 time, StableIterator<SimMutex> & it);
+  comm_id_t signal(comm_id_t commid, UINT64 time);
+  void broadcast(comm_id_t commid, UINT64 time, WakeupList &woken);
 };
 
 class SimBarrier

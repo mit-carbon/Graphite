@@ -59,39 +59,73 @@ SimCond::~SimCond()
 }
 
 
-comm_id_t SimCond::wait(comm_id_t commid, StableIterator<SimMutex> & simMux)
+comm_id_t SimCond::wait(comm_id_t commid, UINT64 time, StableIterator<SimMutex> & simMux)
 {
-  _waiting.push(make_pair(commid, simMux));
+
+  // First check to see if we have gotten any signals later in 'virtual time'
+  for(SignalQueue::iterator i = _signals.begin(); i != _signals.end(); i++)
+  {
+      if((*i) > time)
+      {
+          //Remove the pending signal
+          _signals.erase(i,i+1);
+
+          //Let the manager know to wake up this thread
+          return commid;
+      }
+  }
+
+  // If we don't have any later signals, then put this request in the queue
+  _waiting.push_back(CondWaiter(commid, simMux, time));
   return simMux->unlock(commid);
 }
 
-comm_id_t SimCond::signal(comm_id_t commid)
+comm_id_t SimCond::signal(comm_id_t commid, UINT64 time)
 {
+  // If no threads are waiting, store this cond incase a new
+  // thread arrives with an earlier time
   if(_waiting.empty())
+  {
+    _signals.push_back(time);
     return INVALID_COMMID;
-
-  WaitPair woken = _waiting.front();
-  _waiting.pop();
-
-  if(woken.second->lock(woken.first))
-  {
-      return woken.first;
   }
-  else
+
+  // If there is a list of threads waiting, wake up one of them
+  // if it has a time later than this signal
+  for(ThreadQueue::iterator i = _waiting.begin(); i != _waiting.end(); i++)
   {
-      return INVALID_COMMID;
+      //FIXME: This should be uncommented once the proper timings are working
+      //cerr << "comparing: " << (int)time << " with: " << (*i)._arrival_time << endl;
+      //if(time > (*i)._arrival_time)
+      {
+          CondWaiter woken = (*i);
+          _waiting.erase(i);
+
+          if(woken._mutex->lock(woken._comm_id))
+              return woken._comm_id;
+          else
+              return INVALID_COMMID;
+      }
   }
+
+  // If none of the waiting threads have a later time, then save this
+  // signal for later usage (incase a thread arrives at later physical
+  // time but earlier virtual time).
+  _signals.push_back(time);
+  return INVALID_COMMID;
+
 }
 
-void SimCond::broadcast(comm_id_t commid, WakeupList &woken_list)
+//FIXME: cond broadcast does not properly handle out of order signals
+void SimCond::broadcast(comm_id_t commid, UINT64 time, WakeupList &woken_list)
 {
   while(!_waiting.empty())
   {
-      WaitPair woken = _waiting.front();
-      _waiting.pop();
+      CondWaiter woken = *(_waiting.begin());
+      _waiting.erase(_waiting.begin(), _waiting.begin()+1);
 
-      if(woken.second->lock(woken.first))
-          woken_list.push_back(woken.first);
+      if(woken._mutex->lock(woken._comm_id))
+          woken_list.push_back(woken._comm_id);
   }
 }
 
@@ -226,12 +260,13 @@ void SyncServer::condWait(comm_id_t commid)
   SimCond *psimcond = &_conds[cond];
 
   StableIterator<SimMutex> it(_mutexes, mux);
-  comm_id_t new_mutex_owner = psimcond->wait(commid, it);
+  comm_id_t new_mutex_owner = psimcond->wait(commid, time, it);
 
   if (new_mutex_owner != SimMutex::NO_OWNER)
   {
       // wake up the new owner
       Reply r;
+
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
       _network.netMCPSend(new_mutex_owner, (char*)&r, sizeof(r));
@@ -251,7 +286,7 @@ void SyncServer::condSignal(comm_id_t commid)
 
   SimCond *psimcond = &_conds[cond];
 
-  comm_id_t woken = psimcond->signal(commid);
+  comm_id_t woken = psimcond->signal(commid, time);
 
   if (woken != INVALID_COMMID)
   {
@@ -285,7 +320,7 @@ void SyncServer::condBroadcast(comm_id_t commid)
   SimCond *psimcond = &_conds[cond];
 
   SimCond::WakeupList woken_list;
-  psimcond->broadcast(commid, woken_list);
+  psimcond->broadcast(commid, time, woken_list);
 
   for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {

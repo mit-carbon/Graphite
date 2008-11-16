@@ -1,28 +1,74 @@
 #include "chip.h"
 
 // definitions
+using namespace std;
 
 //TODO: c++-ize this, please oh please!
-CAPI_return_t chipInit(int *rank)
+CAPI_return_t chipInit(int rank)
 {
    
    THREADID pin_tid = PIN_ThreadId();
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
+
+   //FIXME: Not sure what tid_map is, this should be enabled
+   // if( g_chip->tid_map.find(rank)->first != false)
+   // {
+   //    ASSERT(false, "Error: Two cores tried to init the same rank!\n");
+   // }
+
    if ( e.first == false ) {
-      assert(0 <= g_chip->prev_rank && g_chip->prev_rank < g_chip->num_modules);
-      g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
-      g_chip->core_map.insert( pin_tid, g_chip->prev_rank );
-      *rank = g_chip->prev_rank; 
-      ++(g_chip->prev_rank);
+      g_chip->tid_map[rank] = pin_tid;    
+      g_chip->core_map.insert( pin_tid, rank );
+      cerr << "chipInit initializing core: " << rank << endl;
    }   
-   else {
-      *rank = e.second;
+   else
+   {
+      cerr << "chipInit Error initializing core twice: " << rank << endl;
+//      ASSERT(false, "Error: Core tried to init more than once!\n");
    }
-   
+
    return 0;
-};
+}
+
+CAPI_return_t chipInitFreeRank(int *rank)
+{
+   
+   THREADID pin_tid = PIN_ThreadId();
+
+   pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
+
+
+   //FIXME: Not sure what tid_map is, this should be enabled
+   // if( g_chip->tid_map.find(rank)->first != false)
+   // {
+   //    ASSERT(false, "Error: Two cores tried to init the same rank!\n");
+   // }
+
+   if ( e.first == false ) {
+      for(int i = 0; i < g_chip->num_modules - 1; i++)
+      {
+          if(g_chip->tid_map[i] == UINT_MAX)
+          {
+              g_chip->tid_map[i] = pin_tid;    
+              g_chip->core_map.insert( pin_tid, i );
+              *rank = i;
+              cerr << "chipInit initializing core: " << i << endl;
+              return 0;
+          }
+      }
+
+      cerr << "chipInit Error: No Free Cores." << endl;
+   }   
+   else
+   {
+      cerr << "chipInit Error initializing core twice: " << rank << endl;
+//      ASSERT(false, "Error: Core tried to init more than once!\n");
+   }
+
+   return 0;
+}
 
 CAPI_return_t chipRank(int *rank)
 {
@@ -305,12 +351,6 @@ void SimBarrierWait(carbon_barrier_t *barrier)
 }
 
 // MCP wrappers
-void MCPRun()
-{
-   assert(g_MCP != NULL);
-   g_MCP->run();
-}
-
 void MCPFinish()
 {
    assert(g_MCP != NULL);
@@ -318,6 +358,21 @@ void MCPFinish()
 }
 
 
+void* MCPThreadFunc(void *dummy)
+{
+  // Declare local variables
+  CAPI_return_t rtnVal;
+  rtnVal = CAPI_Initialize(g_knob_total_cores);
+
+   while( !g_MCP->finished() )
+   {
+      g_MCP->run();
+      //usleep(1);
+   }   
+   cerr << "MCPThreadFunc - end!" << endl;
+   return NULL;
+//   pthread_exit(NULL);
+}
 
 // Chip class method definitions
 
@@ -328,7 +383,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank
 
    for(int i = 0; i < num_mods; i++) 
    {
-      tid_map[i] = 0;
+      tid_map[i] = UINT_MAX;
       core[i].coreInit(this, i, num_mods);
    }
 
@@ -350,3 +405,5 @@ VOID Chip::fini(int code, VOID *v)
 
    out.close();
 }
+
+

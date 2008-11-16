@@ -29,7 +29,8 @@ enum PacketType
    SHARED_MEM_REQ,
    SHARED_MEM_UPDATE_EXPECTED,
    SHARED_MEM_UPDATE_UNEXPECTED,
-   MAX_PACKET_TYPE = SHARED_MEM_UPDATE_UNEXPECTED
+   MCP_NETWORK_TYPE,
+   MAX_PACKET_TYPE = MCP_NETWORK_TYPE
 };
 
 enum NetworkModel
@@ -83,7 +84,7 @@ class Network{
               NetQueue;
 
       
-      char* netCreateBuf(NetPacket packet, UInt32* buf_size);
+      char* netCreateBuf(NetPacket packet, UInt32* buf_size, UINT64 time);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       void netEntryTasks();
       //FIXME:
@@ -108,9 +109,19 @@ class Network{
       
       int netCommID() { return transport->ptCommID(); }
       bool netQuery(NetMatch match);
+
+
+      virtual int netSendToMCP(const char *buf, unsigned int len, bool is_magic = false);
+      virtual NetPacket netRecvFromMCP();
+
+      virtual int netMCPSend(int commid, const char *buf, unsigned int len, bool is_magic = false);
+      virtual NetPacket netMCPRecv();
 		
       virtual int netSend(NetPacket packet);
       virtual NetPacket netRecv(NetMatch match);
+
+      int netSendMagic(NetPacket packet);
+      NetPacket netRecvMagic(NetMatch match);
 
       Transport *getTransport() { return transport; }
 

@@ -28,13 +28,13 @@ void SyncClient::mutexInit(int commid, carbon_mutex_t *mux)
 
   _send_buff << msg_type << commid;
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(carbon_mutex_t) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(carbon_mutex_t) );
 
-  *mux = *((carbon_mutex_t*)res_buff);
+  *mux = *((carbon_mutex_t*)recv_pkt.data);
   //  _recv_buff << make_pair(res_buff, length);
   //  _recv_buff >> *mux;
 }
@@ -49,22 +49,20 @@ void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
 
   _send_buff << msg_type << commid << *mux << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(unsigned int) + sizeof(UInt64) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64) );
 
   unsigned int dummy;
   UInt64 time;
-  _recv_buff << make_pair(res_buff, length);
+  _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == MUTEX_LOCK_RESPONSE );
 
   _recv_buff >> time;
   _core->updateProcTime(time);
-  
-  delete [] res_buff;
 }
 
 void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
@@ -77,18 +75,16 @@ void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
 
   _send_buff << msg_type << commid << *mux << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(unsigned int) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(unsigned int) );
 
   unsigned int dummy;
-  _recv_buff << make_pair(res_buff, length);
+  _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == MUTEX_UNLOCK_RESPONSE );
-
-  delete [] res_buff;
 }
 
 void SyncClient::condInit(int commid, carbon_cond_t *cond)
@@ -101,15 +97,13 @@ void SyncClient::condInit(int commid, carbon_cond_t *cond)
 
   _send_buff << msg_type << commid << *cond << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(carbon_cond_t) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(carbon_cond_t) );
 
-  *cond = *((carbon_cond_t*)res_buff);
-
-  delete [] res_buff;
+  *cond = *((carbon_cond_t*)recv_pkt.data);
 }
 
 void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
@@ -122,22 +116,20 @@ void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
 
   _send_buff << msg_type << commid << *cond << *mux << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(unsigned int) + sizeof(UInt64) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64) );
 
   unsigned int dummy;
-  _recv_buff << make_pair(res_buff, length);
+  _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == COND_WAIT_RESPONSE );
 
   UInt64 time;
   _recv_buff >> time;
   _core->updateProcTime(time);
-
-  delete [] res_buff;
 }
 
 void SyncClient::condSignal(int commid, carbon_cond_t *cond)
@@ -150,18 +142,17 @@ void SyncClient::condSignal(int commid, carbon_cond_t *cond)
 
   _send_buff << msg_type << commid << *cond << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(unsigned int) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(unsigned int) );
 
   unsigned int dummy;
-  _recv_buff << make_pair(res_buff, length);
+  _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == COND_SIGNAL_RESPONSE );
 
-  delete [] res_buff;
 }
 
 void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
@@ -174,18 +165,16 @@ void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
 
   _send_buff << msg_type << commid << *cond << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(unsigned int) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(unsigned int) );
 
   unsigned int dummy;
-  _recv_buff << make_pair(res_buff, length);
+  _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == COND_BROADCAST_RESPONSE );
-
-  delete [] res_buff;
 }
 
 void SyncClient::barrierInit(int commid, carbon_barrier_t *barrier, UINT32 count)
@@ -198,15 +187,13 @@ void SyncClient::barrierInit(int commid, carbon_barrier_t *barrier, UINT32 count
 
   _send_buff << msg_type << commid << count << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(carbon_barrier_t) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(carbon_barrier_t) );
 
-  *barrier = *((carbon_barrier_t*)res_buff);
-
-  delete [] res_buff;
+  *barrier = *((carbon_barrier_t*)recv_pkt.data);
 }
 
 void SyncClient::barrierWait(int commid, carbon_barrier_t *barrier)
@@ -219,21 +206,19 @@ void SyncClient::barrierWait(int commid, carbon_barrier_t *barrier)
 
   _send_buff << msg_type << commid << *barrier << _core->getProcTime();
 
-  _network->getTransport()->ptSendToMCP((UInt8 *) _send_buff.getBuffer(), _send_buff.size());
+  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
-  UInt32 length = 0;
-  UInt8 *res_buff = _network->getTransport()->ptRecvFromMCP(&length);
-  assert( length == sizeof(unsigned int) + sizeof(UInt64) );
+  NetPacket recv_pkt;
+  recv_pkt = _network->netRecvFromMCP();
+  assert( recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64) );
 
   unsigned int dummy;
-  _recv_buff << make_pair(res_buff, length);
+  _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == BARRIER_WAIT_RESPONSE );
 
   UInt64 time;
   _recv_buff >> time;
   _core->updateProcTime(time);
-
-  delete [] res_buff;
 }
 

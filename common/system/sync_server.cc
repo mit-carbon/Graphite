@@ -128,8 +128,8 @@ void SimBarrier::wait(comm_id_t commid, UInt64 time, WakeupList &woken_list)
 
 // -- SyncServer -- //
 
-SyncServer::SyncServer(Transport &pt_endpt, UnstructuredBuffer &recv_buffer)
-  : _pt_endpt(pt_endpt),
+SyncServer::SyncServer(Network &network, UnstructuredBuffer &recv_buffer)
+  : _network(network),
     _recv_buffer(recv_buffer)
 { }
 
@@ -141,7 +141,7 @@ void SyncServer::mutexInit(comm_id_t commid)
   _mutexes.push_back(SimMutex());
   UInt32 mux = (UInt32)_mutexes.size()-1;
 
-  _pt_endpt.ptMCPSend(commid, (UInt8*)&mux, sizeof(mux));
+  _network.netMCPSend(commid, (char*)&mux, sizeof(mux));
 }
 
 void SyncServer::mutexLock(comm_id_t commid)
@@ -162,7 +162,7 @@ void SyncServer::mutexLock(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _pt_endpt.ptMCPSend(commid, (UInt8*)&r, sizeof(r));
+      _network.netMCPSend(commid, (char*)&r, sizeof(r));
     }
   else
     {
@@ -190,7 +190,7 @@ void SyncServer::mutexUnlock(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _pt_endpt.ptMCPSend(new_owner, (UInt8*)&r, sizeof(r));
+      _network.netMCPSend(new_owner, (char*)&r, sizeof(r));
     }
   else
     {
@@ -198,7 +198,7 @@ void SyncServer::mutexUnlock(comm_id_t commid)
     }
 
   UInt32 dummy=SyncClient::MUTEX_UNLOCK_RESPONSE;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
+  _network.netMCPSend(commid, (char*)&dummy, sizeof(dummy));
 }
 
 // -- Condition Variable Stuffs -- //
@@ -207,7 +207,7 @@ void SyncServer::condInit(comm_id_t commid)
   _conds.push_back(SimCond());
   UInt32 cond = (UInt32)_conds.size()-1;
 
-  _pt_endpt.ptMCPSend(commid, (UInt8*)&cond, sizeof(cond));
+  _network.netMCPSend(commid, (char*)&cond, sizeof(cond));
 }
 
 void SyncServer::condWait(comm_id_t commid)
@@ -234,7 +234,7 @@ void SyncServer::condWait(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _pt_endpt.ptMCPSend(new_mutex_owner, (UInt8*)&r, sizeof(r));
+      _network.netMCPSend(new_mutex_owner, (char*)&r, sizeof(r));
   }
 }
 
@@ -260,7 +260,7 @@ void SyncServer::condSignal(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _pt_endpt.ptMCPSend(woken, (UInt8*)&r, sizeof(r));
+      _network.netMCPSend(woken, (char*)&r, sizeof(r));
   }
   else
   {
@@ -269,7 +269,7 @@ void SyncServer::condSignal(comm_id_t commid)
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_SIGNAL_RESPONSE;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
+  _network.netMCPSend(commid, (char*)&dummy, sizeof(dummy));
 }
 
 void SyncServer::condBroadcast(comm_id_t commid)
@@ -296,12 +296,12 @@ void SyncServer::condBroadcast(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _pt_endpt.ptMCPSend(*it, (UInt8*)&r, sizeof(r));
+      _network.netMCPSend(*it, (char*)&r, sizeof(r));
   }
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_BROADCAST_RESPONSE;
-  _pt_endpt.ptMCPSend(commid, (UInt8*)&dummy, sizeof(dummy));
+  _network.netMCPSend(commid, (char*)&dummy, sizeof(dummy));
 }
 
 void SyncServer::barrierInit(comm_id_t commid)
@@ -312,7 +312,7 @@ void SyncServer::barrierInit(comm_id_t commid)
   _barriers.push_back(SimBarrier(count));
   UInt32 barrier = (UInt32)_barriers.size()-1;
 
-  _pt_endpt.ptMCPSend(commid, (UInt8*)&barrier, sizeof(barrier));
+  _network.netMCPSend(commid, (char*)&barrier, sizeof(barrier));
 }
 
 void SyncServer::barrierWait(comm_id_t commid)
@@ -338,7 +338,7 @@ void SyncServer::barrierWait(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
       r.time = max_time;
-      _pt_endpt.ptMCPSend(*it, (UInt8*)&r, sizeof(r));
+      _network.netMCPSend(*it, (char*)&r, sizeof(r));
   }
 }
 

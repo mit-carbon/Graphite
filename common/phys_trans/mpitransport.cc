@@ -321,7 +321,7 @@ void Transport::ptMCPSend(UInt32 dest, UInt8* buffer, UInt32 num_bytes)
    return;
 }
 
-UInt8* Transport::ptMCPRecv(UInt32* num_bytes)
+UInt8* Transport::ptMCPRecv(UInt32* num_bytes, bool count_in_network)
 {
    MPI_Status status;
    int pkt_size, source;

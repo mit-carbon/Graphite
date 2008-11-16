@@ -1,13 +1,14 @@
 #include "mcp.h"
 
-MCP::MCP()
+MCP::MCP(Network & network)
    :
+      _finished(false),
+      _network(network),
       MCP_SERVER_MAX_BUFF(256*1024),
       scratch(new char[MCP_SERVER_MAX_BUFF]),
-      syscall_server(pt_endpt, send_buff, recv_buff, MCP_SERVER_MAX_BUFF, scratch),
-      sync_server(pt_endpt, recv_buff)
+      syscall_server(_network, send_buff, recv_buff, MCP_SERVER_MAX_BUFF, scratch),
+      sync_server(_network, recv_buff)
 {
-   pt_endpt.ptInitMCP();
 }
 
 MCP::~MCP()
@@ -22,10 +23,11 @@ void MCP::run()
    send_buff.clear();
    recv_buff.clear();
 
-   UInt32 length = 0;
-   UInt8* buf = pt_endpt.ptMCPRecv(&length); 
+   NetPacket recv_pkt;
 
-   recv_buff << make_pair(buf, length);
+   recv_pkt = _network.netMCPRecv(); 
+
+   recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   
    int msg_type;
    int comm_id;
@@ -72,8 +74,6 @@ void MCP::run()
          assert(false);
    }
 
-   delete [] buf;
-
 //   cerr << "Finished MCP request" << endl;
 }
 
@@ -88,7 +88,11 @@ void MCP::finish()
    quit_buff << msg_type << commid;   
 
    cerr << "Sending message to MCP to quit..." << endl;
-   pt_endpt.ptSendToMCP((UInt8 *) quit_buff.getBuffer(), quit_buff.size());
+   _network.netSendToMCP(quit_buff.getBuffer(), quit_buff.size());
+
+   _finished = true;
+
+   cerr << "End of MCP::finish();" << endl;
 }
 
 

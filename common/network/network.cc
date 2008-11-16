@@ -25,15 +25,37 @@ int Network::netSend(NetPacket packet)
    
    // Perform network entry tasks
    netEntryTasks();
-   
-   buffer = netCreateBuf(packet, &buf_size);
+
+   UINT64 time = _core->getProcTime() + netLatency(packet) + netProcCost(packet);
+   buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
+   
    _core->setProcTime(_core->getProcTime() + netProcCost(packet));
 
    // FIXME?: Should we be returning buf_size instead?
    return packet.length;
 }
 
+int Network::netSendMagic(NetPacket packet)
+{
+   char *buffer;
+   UInt32 buf_size;
+   
+   // Perform network entry tasks
+   netEntryTasks();
+
+   UINT64 time = _core->getProcTime();
+   buffer = netCreateBuf(packet, &buf_size, time);
+   transport->ptSend(packet.receiver, buffer, buf_size);
+   
+   // FIXME?: Should we be returning buf_size instead?
+   return packet.length;
+}
+
+NetPacket Network::netRecvMagic(NetMatch match)
+{
+   return netRecv(match);
+}
 
 NetPacket Network::netRecv(NetMatch match)
 {
@@ -134,7 +156,7 @@ NetPacket Network::netRecv(NetMatch match)
          buffer = transport->ptRecv();
 	      Network::netExPacket(buffer, entry.packet, entry.time);
          assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
-	 assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+         assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          net_queue[entry.packet.sender][entry.packet.type].push(entry);
       }
 			
@@ -150,7 +172,61 @@ NetPacket Network::netRecv(NetMatch match)
    }
 
    return packet;
-};
+}
+
+int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
+{
+   NetPacket packet;
+   packet.sender = netCommID();
+   packet.receiver = g_config->totalMods() - 1;
+   packet.length = len;
+   packet.type = MCP_NETWORK_TYPE;
+
+
+   //FIXME: This is bad casting away constness
+   packet.data = (char *)buf;
+
+   if(is_magic)
+      return netSendMagic(packet);
+   else
+      return netSend(packet);
+}
+
+NetPacket Network::netRecvFromMCP()
+{
+   NetMatch match;
+   match.sender = g_config->totalMods() - 1;
+   match.sender_flag = true;
+   match.type = MCP_NETWORK_TYPE;
+   match.type_flag = true;
+   return netRecv(match);
+}
+
+int Network::netMCPSend(int commid, const char *buf, unsigned int len, bool is_magic)
+{
+   NetPacket packet;
+   packet.sender = g_config->totalMods() - 1;
+   packet.receiver = commid;
+   packet.length = len;
+   packet.type = MCP_NETWORK_TYPE;
+
+   //FIXME: This is bad casting away constness
+   packet.data = (char *)buf;
+   if(is_magic)
+      return netSendMagic(packet);
+   else
+      return netSend(packet);
+}
+
+NetPacket Network::netMCPRecv()
+{
+   NetMatch match;
+   match.sender_flag = false;
+   match.type = MCP_NETWORK_TYPE;
+   match.type_flag = true;
+   return netRecv(match);
+}
+
 
 bool Network::netQuery(NetMatch match)
 {
@@ -241,11 +317,10 @@ bool Network::netQuery(NetMatch match)
 };
 
 
-char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size)
+char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size, UINT64 time)
 {
    char *buffer;
    char *temp;
-   UINT64 time = _core->getProcTime() + netLatency(packet) + netProcCost(packet);
    int running_length = 0;
    unsigned int i;
 

@@ -6,6 +6,7 @@
 
 #include "sync_api.h"
 #include "transport.h"
+#include "network.h"
 #include "packetize.h"
 #include "stable_iterator.h"
 
@@ -84,11 +85,11 @@ class SyncServer
 
   // FIXME: This should be better organized -- too much redundant crap
  private:
-  Transport & _pt_endpt;
+  Network & _network;
   UnstructuredBuffer &_recv_buffer;
 
  public:
-  SyncServer(Transport &pt_endpt, UnstructuredBuffer &recv_buffer);
+  SyncServer(Network &network, UnstructuredBuffer &recv_buffer);
   ~SyncServer();
 
   // Remaining parameters to these functions are stored

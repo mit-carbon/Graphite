@@ -155,7 +155,7 @@ void* cannon(void *threadid){
 	int ai, aj, bi, bj;
 	CAPI_return_t rtnVal;
 
-	rtnVal = CAPI_Initialize(&tid);
+	rtnVal = CAPI_Initialize((int)threadid);
 
 	// Initialize local variables
 

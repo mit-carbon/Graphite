@@ -23,6 +23,9 @@ Config::Config()
       total_cores = g_knob_total_cores;
    }
 
+   //Add one to account for the MCP
+   total_cores += 1;
+
    num_modules = new UInt32[num_process];
    // FIXME: This is not really correct if there is more than 1 process.
    //  Each entry should be filled in with a different value.

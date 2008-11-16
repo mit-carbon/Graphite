@@ -33,7 +33,8 @@ extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
 // FIXME: if possible, these shouldn't be globals. Pin callbacks may need them to be. 
 
-CAPI_return_t chipInit(int *rank);
+CAPI_return_t chipInit(int rank);
+CAPI_return_t chipInitFreeRank(int *rank);
 
 CAPI_return_t chipRank(int *rank);
 
@@ -98,6 +99,7 @@ void SimBarrierWait(carbon_barrier_t *barrier);
 // MCP server wrappers
 void MCPRun();
 void MCPFinish();
+void *MCPThreadFunc(void *dummy);
 
 // chip class
 
@@ -109,7 +111,8 @@ class Chip
 
       // messaging wrappers
 
-      friend CAPI_return_t chipInit(int *rank); 
+      friend CAPI_return_t chipInit(int rank); 
+      friend CAPI_return_t chipInitFreeRank(int *rank); 
       friend CAPI_return_t chipRank(int *rank);
       friend CAPI_return_t commRank(int *rank);
       friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
@@ -173,6 +176,7 @@ class Chip
       Chip(int num_mods);
 
       int getNumModules() { return num_modules; }
+      Core *getCore(unsigned int id) { return &(core[id]); }
       void fini(int code, void *v);
 };
 

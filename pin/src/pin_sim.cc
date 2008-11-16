@@ -381,6 +381,14 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(chipInit);
    }
+   else if(name == "CAPI_Initialize_FreeRank")
+   {
+      msg_ptr = AFUNPTR(chipInitFreeRank);
+   }
+   else if(name == "mcp_thread_func")
+   {
+      msg_ptr = AFUNPTR(MCPThreadFunc);
+   }
    else if(name == "CAPI_rank")
    {
       msg_ptr = AFUNPTR(commRank);
@@ -392,10 +400,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if(name == "CAPI_message_receive_w")
    {
       msg_ptr = AFUNPTR(chipRecvW);
-   }
-   else if(name == "runMCP")
-   {
-      msg_ptr = AFUNPTR(MCPRun);
    }
    else if(name == "finishMCP")
    {
@@ -438,8 +442,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
         msg_ptr = AFUNPTR(SimBarrierWait);
    }
 
-   if ( (msg_ptr == AFUNPTR(chipInit)) 
-        || (msg_ptr == AFUNPTR(commRank)) 
+   if ( msg_ptr == AFUNPTR(commRank) 
+        || (msg_ptr == AFUNPTR(chipInitFreeRank)) 
+        || (msg_ptr == AFUNPTR(MCPThreadFunc)) 
         || (msg_ptr == AFUNPTR(SimMutexInit)) 
         || (msg_ptr == AFUNPTR(SimMutexLock)) 
         || (msg_ptr == AFUNPTR(SimMutexUnlock)) 
@@ -482,7 +487,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto); 
       return true;
    }
-   else if ( (msg_ptr == AFUNPTR(MCPRun)) || (msg_ptr == AFUNPTR(MCPFinish)) )
+   else if ( msg_ptr == AFUNPTR(MCPFinish) )
    {
       proto = PROTO_Allocate(PIN_PARG(void),
                              CALLINGSTD_DEFAULT,
@@ -526,6 +531,21 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    } 
+   else if ( (msg_ptr == AFUNPTR(chipInit)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int),
+                             PIN_PARG_END() );         
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);      
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   }
 
    return false;
 }
@@ -604,17 +624,18 @@ VOID init_globals()
    //FIXME
    //InitLock(&g_lock1);
    //InitLock(&g_lock2);
+   unsigned int num_cores = g_knob_num_cores + 1;
  
    g_config = new Config;
    //g_config->loadFromFile(FIXME);
 
    // NOTE: transport and queues must be inited before the chip
-   Transport::ptInitQueue(g_knob_num_cores);
+   Transport::ptInitQueue(num_cores);
 
-   g_chip = new Chip(g_knob_num_cores);
+   g_chip = new Chip(num_cores);
 
    // Note the MCP has a dependency on the transport layer and the chip
-   g_MCP = new MCP();
+   g_MCP = new MCP(*(g_chip->getCore(num_cores-1)->getNetwork()));
 }
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)

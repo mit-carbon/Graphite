@@ -7,7 +7,6 @@
 
 
 // Globals required for the syscall server
-volatile static bool finished = false;
 static pthread_t mcp_thread;
 
 
@@ -19,19 +18,13 @@ void initMCP()
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
    // FIXME: for now, this is how we give the syscall server a place to run
-   finished = false;
    pthread_create(&mcp_thread, &attr, mcp_thread_func, (void *) 0);
 }
 
 void* mcp_thread_func(void *dummy)
 {
-
-   while( !finished )
-   {
-      runMCP();
-      //usleep(1);
-   }   
-   pthread_exit(NULL);
+   fprintf(stderr, "Made it to the dummy mcp_thread_func() function.\n");
+   assert(false);
 }
 
 void runMCP()
@@ -47,8 +40,6 @@ void finishMCP()
 
 void quitMCP()
 {
-   finished = true;
-   fprintf(stderr, "quitting the mcp...\n");
    finishMCP();
    pthread_join(mcp_thread, NULL);
 }

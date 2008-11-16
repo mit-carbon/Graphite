@@ -7,12 +7,12 @@
 
 using namespace std;
 
-SyscallServer::SyscallServer(Transport & pt_endpt_, 
+SyscallServer::SyscallServer(Network & network, 
       UnstructuredBuffer & send_buff_, UnstructuredBuffer &recv_buff_,
       const UInt32 SERVER_MAX_BUFF,
       char *scratch_)
 : 
-   pt_endpt(pt_endpt_),
+   _network(network),
    send_buff(send_buff_),
    recv_buff(recv_buff_),
    SYSCALL_SERVER_MAX_BUFF(SERVER_MAX_BUFF),
@@ -97,7 +97,7 @@ void SyscallServer::marshallOpenCall(int comm_id)
 
    send_buff << ret;
 
-   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());
+   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());
 
    if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
       delete[] path;
@@ -146,7 +146,7 @@ void SyscallServer::marshallReadCall(int comm_id)
    if ( bytes != -1 )
      send_buff << make_pair(buf, bytes);
 
-   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
+   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
@@ -199,7 +199,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
    
    send_buff << bytes;
 
-   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
+   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
@@ -237,7 +237,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
    //cerr << "status: " << status << endl;
    
    send_buff << status;
-   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());   
+   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
 
 }
 
@@ -266,7 +266,7 @@ void SyscallServer::marshallAccessCall(int comm_id)
 
    send_buff << ret;
 
-   pt_endpt.ptMCPSend(comm_id, (UInt8 *) send_buff.getBuffer(), send_buff.size());
+   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());
 
    if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
       delete[] path;

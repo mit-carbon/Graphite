@@ -2,7 +2,7 @@
 #define MCP_H
 
 #include "packetize.h"
-#include "transport.h"
+#include "network.h"
 #include "syscall_server.h"
 #include "sync_server.h"
 #include "fixed_types.h"
@@ -27,7 +27,8 @@ typedef enum {
 class MCP
 {
    private:
-      Transport pt_endpt;
+      bool _finished;
+      Network & _network;
       UnstructuredBuffer send_buff;
       UnstructuredBuffer recv_buff;
       const UInt32 MCP_SERVER_MAX_BUFF;
@@ -39,7 +40,8 @@ class MCP
    public:
       void run();
       void finish();
-      MCP();
+      bool finished() { return _finished; };
+      MCP(Network & network);
       ~MCP();
       
 };

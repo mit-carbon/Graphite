@@ -70,7 +70,7 @@ void* test_wait_barrier(void *threadid)
   int tid;
   CAPI_return_t rtnVal;
 
-  rtnVal = CAPI_Initialize(&tid);
+  rtnVal = CAPI_Initialize((int)threadid);
 
   // Initialize local variables
   CAPI_rank(&tid);
@@ -80,15 +80,17 @@ void* test_wait_barrier(void *threadid)
   // FIXME: This should be in the main thread or something.
   if ((int)threadid == 0)
     {
-      fprintf(stderr, "UserWait: Initting barrier.\n");
+      fprintf(stderr, "UserWait(%d): Initting barrier.\n", (int)threadid);
       // FIXME: shouldn't be hardcoding the barrier count here
       barrierInit(&my_barrier, 5);
+      fprintf(stderr, "UserWait(%d): Barrier Initialized.\n", (int)threadid);
     }
   else
     {
       sleep(1);
     }
 
+/*
   if(tid == 1)
   {
      fprintf(stderr, "UserWait: THREAD (%d).\n", tid);
@@ -99,10 +101,10 @@ void* test_wait_barrier(void *threadid)
         asm volatile("nop");
      }
   }
-
-  fprintf(stderr, "UserWait: Waiting for barrier.\n");
+*/
+  fprintf(stderr, "UserWait(%d): Waiting for barrier.\n", (int)threadid);
   barrierWait(&my_barrier);
-  fprintf(stderr, "UserWait: barrier done.\n");
+  fprintf(stderr, "UserWait(%d): barrier done.\n", (int)threadid);
 
   pthread_exit(NULL);
 }

@@ -3,11 +3,15 @@ OBJS = box.o construct_grid.o cost_zones.o defs.o fmm.o interactions.o memory.o 
 
 
 MACROS := ../splash_support/c.m4.null.CARBON
+#MACROS := ../splash_support/c.m4.null.POSIX
 include ../splash_support/Makefile.config
 include ../../makefile.gnu.config
 TARGET = FMM
 
 CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
+
+# Just build c++ for now
+CC=$(CXX)
 #ifeq (${FORCE32},1)
 #  CFLAGS = -I../../user -I../../phys_trans -c -g -Wall -m32
 #  LDFLAGS = -m32 -m elf_i386

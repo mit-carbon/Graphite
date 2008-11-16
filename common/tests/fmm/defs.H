@@ -162,7 +162,7 @@ struct _Time_Info {
   unsigned long total_time;
 };
 
-extern long Number_Of_Processors;
+extern unsigned long Number_Of_Processors;
 extern double Timestep_Dur;
 extern real Softening_Param;
 extern long Expansion_Terms;

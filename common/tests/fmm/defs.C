@@ -20,7 +20,7 @@
 #include "defs.h"
 #include "memory.h"
 
-long Number_Of_Processors;
+unsigned long Number_Of_Processors;
 double Timestep_Dur;
 real Softening_Param;
 long Expansion_Terms;

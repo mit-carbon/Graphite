@@ -131,6 +131,11 @@ main (int argc, char *argv[])
    MAIN_INITENV(,40000000);
 
    GetArguments();
+
+   printf("Number of processors: %d\n", Number_Of_Processors);
+
+   THREAD_INIT(Number_Of_Processors);
+
    InitGlobalMemory();
    InitExpTables();
    CreateDistribution(Cluster, Model);
@@ -163,7 +168,7 @@ ParallelExecute ()
    time_info *timing;
    unsigned long local_init_done = 0;
 
-   THREAD_INIT;
+   THREAD_INIT_FREE();
 
    BARINCLUDE(G_Memory->synch);
    local_time = (time_info *) malloc(sizeof(struct _Time_Info) * MAX_TIME_STEPS);
@@ -172,6 +177,7 @@ ParallelExecute ()
      my_id = G_Memory->id;
      G_Memory->id++;
    UNLOCK(G_Memory->count_lock);
+
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */

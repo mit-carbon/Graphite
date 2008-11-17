@@ -95,8 +95,8 @@ comm_id_t SimCond::signal(comm_id_t commid, UINT64 time)
   for(ThreadQueue::iterator i = _waiting.begin(); i != _waiting.end(); i++)
   {
       //FIXME: This should be uncommented once the proper timings are working
-      //cerr << "comparing: " << (int)time << " with: " << (*i)._arrival_time << endl;
-      //if(time > (*i)._arrival_time)
+      //cerr << "comparing signal time: " << (int)time << " with: " << (*i)._arrival_time << endl;
+      if(time > (*i)._arrival_time)
       {
           CondWaiter woken = (*i);
           _waiting.erase(i);

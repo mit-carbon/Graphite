@@ -1,5 +1,5 @@
 #include "memory_manager.h"
-//#define MMU_DEBUG
+#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
@@ -38,6 +38,10 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 #ifdef ADDR_HOME_LOOKUP_DEBUG
 	cerr << "Creating New Addr Home Lookup Structure: " << the_core->getNumCores() << ", " << g_knob_ahl_param.Value() << ", " << the_core->getRank() << "\n";
 #endif
+
+	// Initializing request queue parameters
+	processing_request_flag = false;
+	incoming_requests_count = 0;
 }
 
 MemoryManager::~MemoryManager()
@@ -295,9 +299,9 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 
 	// receive the requested data (blocking receive)
 	NetMatch net_match = makeNetMatch( SHARED_MEM_UPDATE_EXPECTED, home_node_rank );
-//	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv start");
+	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv start");
 	NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-//	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv finished");
+	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv finished");
 	
 	/* ===================================================== */
 	/* ============== Handle Update Payload ================ */
@@ -315,10 +319,8 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	ADDRINT incoming_starting_addr = recv_payload.update_address;
 	if(incoming_starting_addr != ca_address) {
-		stringstream ss;
-		ss << "[" << the_core->getRank() << "] Incoming Address: " << hex << incoming_starting_addr << endl;
-      	ss << "CA Address         : " << hex << ca_address;
-			debugPrint(the_core->getRank(),"MMU",  ss.str());
+		debugPrintHex (the_core->getRank(), "MMU", "Incoming Address", incoming_starting_addr);
+     	debugPrintHex (the_core->getRank(), "MMU", "CA Address", ca_address);;
 	}
 	assert(incoming_starting_addr == ca_address);
 	
@@ -358,8 +360,8 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 */
    /* ========================================================================= */
 	
-   stringstream ss;
 #ifdef MMU_DEBUG	
+   stringstream ss;
 	ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - start : REQUESTING ADDR: " << hex << ca_address;
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
@@ -474,7 +476,6 @@ void MemoryManager::addMemRequest(NetPacket req_packet)
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) 
 {
   // TODO: This kind of argument passing is bad for performance. Try to pass by reference or pass pointers
-  stringstream ss;
 
   // verify packet type is correct
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
@@ -489,11 +490,10 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    ADDRINT address = update_payload.update_address;
   
 #ifdef MMU_DEBUG
+  	stringstream ss;
 	ss << "Processing Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
-//	ss << "Processing Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
-//	debugPrint(the_core->getRank(), "MMU", ss.str());
 
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
    // if it is null, it means the address has been invalidated
@@ -708,7 +708,8 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	
 	//copy data_buffer over
 	if(send_payload->data_size > g_knob_line_size) {
-		cerr << "****ERROR **** dataIsze > g_knob_line_size: ...... data_size = " << send_payload->data_size << endl;
+		// debugPrint(the_core->getRank(), "MMU", "****ERROR **** dataSize > g_knob_line_size: ...... data_size = ", send_payload->data_size);
+		cerr << "CreateUpdatePayloadBuffer: Error\n";
 	}
 
 	assert (send_payload->data_size <= g_knob_line_size);

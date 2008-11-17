@@ -100,12 +100,16 @@ CAPI_return_t chipHackFinish(int my_rank)
 {
 	GetLock(&print_lock, 1);
 	cerr << "HACK---- please remove chipHackFInish...... " << endl;
-	cerr << "FINISHED: CORE [" << my_rank << "] " << endl;
+	cerr << "[" << my_rank << "] FINISHED\n";
+	debugPrint (my_rank, "CHIP", "HACK---- please remove chipHackFinish...... ");
+	debugPrint (my_rank, "CHIP", "FINISHED");
+
+	debugFinish(my_rank);
 	
 	assert( my_rank < g_chip->getNumModules() );
 	/* ========================================================================== */
 	/* Added by George */
-	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
+	// cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
 //	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
 	/* ========================================================================== */
 
@@ -113,15 +117,18 @@ CAPI_return_t chipHackFinish(int my_rank)
 	g_chip->finished_cores[my_rank] = true;
 	bool volatile finished = false;
 	
+	/*
 	cerr << "FinshedCores look like this: " << endl;
 	for(int i=0; i < g_chip->getNumModules(); i++) {
 		cerr << "  finished_cores[" << i << "] : " << (g_chip->finished_cores[i] ? "TRUE":"FALSE") << endl;
 	}
+	*/
 
 	ReleaseLock(&print_lock);
 
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
+		
 		bool cores_still_working = false;
 		for(int i=0; i < g_chip->getNumModules(); i++) {
 			if(!g_chip->finished_cores[i])
@@ -306,9 +313,12 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 
 	// FIXME: A hack
 	aliasEnable = false;
-	//hack for chipFInishHack
-	finished_cores = new bool[num_modules];
 	
+	// Hack for chipFInishHack
+	finished_cores = new bool[num_modules];
+	for (int i = 0; i < num_modules; i++) {
+		finished_cores[i] = false;
+	}
 }
 
 VOID Chip::fini(int code, VOID *v)

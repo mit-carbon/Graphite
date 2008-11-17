@@ -61,8 +61,9 @@ class MemoryManager
 	// do not process a new request until finished with current request
 	// do not exit MMU until no more incoming requests
    UINT64 volatile debug_counter; //a primitive clock for debugging
-   bool volatile processing_request_flag;
-   int volatile incoming_requests_count;
+   // Why volatile ??
+	bool processing_request_flag;
+   int incoming_requests_count;
 
 	//evictions from the cache are written into this buffer
 	char* eviction_buffer;

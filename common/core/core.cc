@@ -12,7 +12,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-   //Switch which line is commented to choose the different 
+   debugInit(core_tid);
+	//Switch which line is commented to choose the different 
    //network models
    //FIXME: Make this runtime configurable
    //NetworkModel net_model = NETWORK_BUS;
@@ -31,12 +32,12 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
            debugPrint(tid, "CORE", "ERROR: Unknown Network Model!");
            break;
    }
-  
+
 
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
-      debugPrint(tid, "Core", "instantiated performance model");
+      debugPrint(core_tid, "Core", "instantiated performance model");
    } else 
    {
       perf_model = (PerfModel *) NULL;    
@@ -61,11 +62,9 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_max_search_depth.Value());                        
 //                          g_knob_simarch_is_shared_mem.Value());                        
 
-      stringstream ss;
-		ss <<"instantiated organic cache model:";
-      ss << ocache->statsLong() << endl;
-      debugPrint(tid, "CORE", ss.str());
-   
+      debugPrint(core_tid, "Core", "instantiated organic cache model");
+      // cerr << ocache->statsLong() << endl;
+  
    } else 
    {
       ocache = (OCache *) NULL;
@@ -75,13 +74,13 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
      
       assert( g_knob_enable_dcache_modeling ); 
 
-      debugPrint(tid, "CORE", "instantiated memory manager model");
+      debugPrint (core_tid, "CORE", "instantiated memory manager model");
       memory_manager = new MemoryManager(this, ocache);
 
    } else {
 
       memory_manager = (MemoryManager *) NULL;
-      debugPrint(tid, "CORE", "No Memory Manager being used. ");
+      debugPrint (core_tid, "CORE", "No Memory Manager being used");
    
    }
 
@@ -125,18 +124,22 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    packet = network->netRecv(match);
 
-#ifdef DEBUG
-   cerr << "Got packet: "
+#ifdef CORE_DEBUG
+   stringstream ss;
+	ss << "Got packet: "
 	<< "Send=" << packet.sender
 	<< ", Recv=" << packet.receiver
 	<< ", Type=" << packet.type
 	<< ", Len=" << packet.length << endl;
+	debugPrint (getRank(), "CORE", ss.str());
 #endif
 
    if((unsigned)size != packet.length){
-      cerr << "ERROR (comm_id: " << coreCommID() << "):" << endl
-           << "Received packet length (" << packet.length
-	   << ") is not as expected (" << size << ")" << endl;
+      stringstream ss;
+		ss << "ERROR (comm_id: " << coreCommID() << "):" << endl
+         << "Received packet length (" << packet.length
+	   	<< ") is not as expected (" << size << ")" << endl;
+		debugPrint (getRank(), "CORE", ss.str());
       exit(-1);
    }
 
@@ -219,10 +222,6 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 	if (operation == LOAD)
 		shmem_operation = READ;
 	else {
-//		cerr << "Core.cc: data_buffer: 0x";
-//		for (UINT32 i = 0; i < data_size; i++)
-//			cerr << hex << (UINT32) data_buffer[i];
-//		cerr << dec << endl;
 
 		shmem_operation = WRITE;
 	}
@@ -276,8 +275,8 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 				curr_size = ocache->dCacheLineSize() - (curr_offset);
 			}
          
-			stringstream ss;
 #ifdef CORE_DEBUG
+			stringstream ss;
 			ss.str("");
 			ss << "[" << getRank() << "] start InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
 			debugPrint(getRank(), "CORE", ss.str());
@@ -316,7 +315,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 		if(operation == LOAD)
 			return ocache->runDCacheLoadModel(d_addr, data_size).first;
 		else
-				return ocache->runDCacheStoreModel(d_addr, data_size).first;
+			return ocache->runDCacheStoreModel(d_addr, data_size).first;
    }
 }
 

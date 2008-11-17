@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-//#define DRAM_DEBUG
+#define DRAM_DEBUG
 
 DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {
@@ -7,10 +7,13 @@ DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_a
 	num_lines = num_lines_arg;
 	number_of_cores = num_of_cores_arg;
 	dram_id = dram_id_arg;
-   cerr << "Init Dram with num_lines: " << num_lines << endl;
-   cerr << "   bytes_per_cache_linew: " << bytes_per_cache_line_arg << endl;
-   assert( num_lines >= 0 );
    bytes_per_cache_line = bytes_per_cache_line_arg;
+
+#ifdef DRAM_DEBUG
+   debugPrint (dram_id, "DRAMDIR", "Init Dram with num_lines", num_lines);
+   debugPrint (dram_id, "DRAMDIR", "bytes_per_cache_linew", bytes_per_cache_line);
+#endif
+   assert( num_lines >= 0 );
 
    /* Added by George */
    dramAccessCost = 0;
@@ -31,8 +34,8 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
 	UINT32 data_line_index = (address / bytes_per_cache_line);
   
 #ifdef DRAM_DEBUG
-	printf(" DRAM_DIR: getEntry: address        = 0x %x\n" ,address );
-	cerr << " DRAM_DIR: getEntry: cachline_index = " << data_line_index << endl;
+	debugPrintHex (dram_id, "DRAMDIR", "getEntry: address", address);
+	debugPrint (dram_id, "DRAMDIR", "getEntry: cachline_index", data_line_index);
 #endif
   
 	assert( data_line_index >= 0);
@@ -112,7 +115,7 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
 
-//		cerr << "DRAM Directory: Address = 0x" << hex << (UINT32) payload.ack_address << dec << ", Sharer = " << wb_packet.sender << ", numSharers = " << dir_entry->numSharers() << endl;
+		// cerr << "DRAM Directory: Address = 0x" << hex << (UINT32) payload.ack_address << dec << ", Sharer = " << wb_packet.sender << ", numSharers = " << dir_entry->numSharers() << endl;
 
 		if(dir_entry->numSharers() == 0) {
 			dir_entry->setDState(DramDirectoryEntry::UNCACHED);

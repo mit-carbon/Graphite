@@ -1,6 +1,6 @@
 #include "network.h"
 #include "debug.h"
-//#define NETWORK_DEBUG
+#define NETWORK_DEBUG
 using namespace std;
 
 Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
@@ -9,7 +9,7 @@ Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)
    the_core = the_core_arg;
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-	cerr << "num_pack_type(expected 7): " << dec << num_pac_type << endl;
+	debugPrint (the_core->getRank(), "NETWORK",  "num_pack_type(expected 7)", num_pac_type);
    net_tid = tid;
    net_num_mod = g_config->totalMods();
    transport = new Transport;
@@ -41,11 +41,6 @@ int Network::netSend(NetPacket packet)
 //	debugPrint(net_tid, "NETWORK", ss.str());
 #endif
 
-   /*
-	if (packet.type == SHARED_MEM_EVICT) {
-		cerr << "Sending an eviction packet from [" << packet.sender << "] => [" << packet.receiver << "]\n";
-	}
-	*/
 
 	char *buffer;
    UInt32 buf_size;
@@ -73,8 +68,10 @@ int Network::netSend(NetPacket packet)
 }
 
 void Network::printNetPacket(NetPacket packet) {
-	cerr << endl;
-	cerr << "printNetPacket: DON'T CALL ME" << endl;
+	stringstream ss;
+	ss << endl;
+	ss << "printNetPacket: DON'T CALL ME" << endl;
+	debugPrint (net_tid, "NETWORK", ss.str());
 	//this stuff is all deprecated since we changed how we do this
 //	cerr << "  [" << net_tid << "] Network Packet (0x" << hex << ((int *) (packet.data))[SH_MEM_REQ_IDX_ADDR] 
 //		<< ") (" << packet.sender << " -> " << packet.receiver 
@@ -82,13 +79,15 @@ void Network::printNetPacket(NetPacket packet) {
 }
 
 void Network::printNetMatch(NetMatch match, int receiver) {
-	cerr << endl;
-	cerr << "  [" << net_tid << "] Network Match " 
+	stringstream ss;
+	ss << endl;
+	ss << "Network Match " 
 		<< match.sender << " -> " << receiver 
 		<< " SenderFlag: " << match.sender_flag
 		<< " Type: " << packetTypeToString(match.type)
 		<< " TypeFlag: " << match.type_flag 
-		<< "----" << endl << endl;
+		<< "----";
+	debugPrint (net_tid, "NETWORK", ss.str());
 	
 }
 
@@ -231,14 +230,12 @@ NetPacket Network::netRecv(NetMatch match)
 	      
 				Network::netExPacket(buffer, entry.packet, entry.time);
 #ifdef NETWORK_DEBUG
-//				printf("\n\n\n\n*******************\n\n\n\n");
 				stringstream ss;
 				ss <<  "Network received packetType: " << entry.packet.type  << " from " << entry.packet.sender;
 				debugPrint(net_tid, "NETWORK",  ss.str());
 				ss.str("");
 				ss <<  "Clock: " << the_chip->getProcTime(net_tid) << "  packet time stamp: " << entry.time;
 				debugPrint(net_tid, "NETWORK", ss.str());
-//				printf("\n\n\n\n*******************\n\n\n\n");
 #endif
          	assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
 				assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
@@ -467,8 +464,9 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
       ptr[i] = buffer[running_length + i];
 
    running_length += sizeof(packet.length);
-   assert(running_length == sizeof(packet)-sizeof(packet.data));
-   packet.data = new char[packet.length];
+   assert (running_length == (sizeof(packet)-sizeof(packet.data)) );
+   // There will be memory leaks here !!
+	packet.data = new char[packet.length];
    ptr = packet.data;
 
    for(i = 0; i < packet.length; i++)
@@ -499,18 +497,12 @@ void Network::netEntryTasks()
    PacketType type;
    
 	// Pull up packets waiting in the physical transport layer
-   while(transport->ptQuery())
-   {
-//      GetLock(&network_lock, 1);
-//      g_chip->getGlobalLock();
+   while(transport->ptQuery()) {
 		buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
-//      ReleaseLock(&network_lock);
-//      g_chip->releaseGlobalLock();
-
    }
    
 	do //while(type!=INVALID)

@@ -18,6 +18,7 @@
 #include "perfmdl.h"
 #include "syscall_model.h"
 #include "mcp.h"
+#include "debug.h"
 
 // external variables
 

@@ -64,6 +64,16 @@ int main(int argc, char* argv[]){ // main begins
 
 } // main ends
 
+void wait_some()
+{
+   int j = 0;
+   for(unsigned int i = 0; i < 200000; i++)
+   {
+      j += i;
+      asm volatile("nop");
+   }
+}
+
 void* test_wait_barrier(void *threadid)
 {
   // Declare local variables
@@ -74,6 +84,9 @@ void* test_wait_barrier(void *threadid)
 
   // Initialize local variables
   CAPI_rank(&tid);
+
+  if(tid != (int)threadid)
+      fprintf(stderr, "UserWait(%d != %d): tid didn't match threadid.\n", tid, (int)threadid);
 
   // Thread starts here
 
@@ -90,18 +103,13 @@ void* test_wait_barrier(void *threadid)
       sleep(1);
     }
 
-/*
+
   if(tid == 1)
   {
      fprintf(stderr, "UserWait: THREAD (%d).\n", tid);
-     int j = 0;
-     for(unsigned int i = 0; i < 10000; i++)
-     {
-        j += i;
-        asm volatile("nop");
-     }
+     wait_some();
   }
-*/
+
   fprintf(stderr, "UserWait(%d): Waiting for barrier.\n", (int)threadid);
   barrierWait(&my_barrier);
   fprintf(stderr, "UserWait(%d): barrier done.\n", (int)threadid);

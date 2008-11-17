@@ -65,6 +65,16 @@ int main(int argc, char* argv[]){ // main begins
 
 } // main ends
 
+void wait_some()
+{
+   int j = 0;
+   for(unsigned int i = 0; i < 200000; i++)
+   {
+      j += i;
+      asm volatile("nop");
+   }
+}
+
 void* test_signal_cond(void *threadid)
 {
    usleep(500000);
@@ -76,6 +86,9 @@ void* test_signal_cond(void *threadid)
 
   // Initialize local variables
   CAPI_rank(&tid);
+
+  // Make sure that the signal comes after the wait
+  wait_some();
 
   // Thread starts here
   cerr << "UserSignal: Cond Signaling." << endl;

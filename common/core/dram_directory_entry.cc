@@ -163,16 +163,16 @@ vector<UINT32> DramDirectoryEntry::getSharersList()
 
 void DramDirectoryEntry::dirDebugPrint()
 {
-	cout << " -== DramDirectoryEntry ==-" << endl;
-	cout << "     Addr= " << hex << memory_line_address << dec;
-	cout << "     state= " << dStateToString(dstate);
-    cout << "; sharers = { ";
+	cerr << " -== DramDirectoryEntry ==-" << endl;
+	cerr << "     Addr= " << hex << memory_line_address << dec;
+	cerr << "     state= " << dStateToString(dstate);
+   cerr << "; sharers = { ";
 	for(unsigned int i=0; i < sharers->getSize(); i++) {
 		if(sharers->at(i)) {
-			cout << i << ", ";
+			cerr << i << ", ";
 		}
 	}
-	cout << "}" << endl << endl;
+	cerr << "}" << endl << endl;
 }
 
 string DramDirectoryEntry::dStateToString(dstate_t dstate)

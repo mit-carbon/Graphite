@@ -32,8 +32,10 @@
 #include "perfmdl.h"
 #include "knobs.h"
 #include "mcp.h"
+// FIXME: Hack: Please remove me later
+#include "debug.h"
 
-#define INSTRUMENT_ALLOWED_FUNCTIONS
+// #define INSTRUMENT_ALLOWED_FUNCTIONS
 
 //#define PRINTOUT_FLAGS
 
@@ -162,6 +164,10 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
 	if(rank > -1)
    {
+		// InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+		// stringstream ss;
+		// ss << "OPCODE$ = " << LEVEL_CORE::OPCODE_StringShort(ins_info->opcode) << " (" << ins_info->opcode << ") ";
+		// debugPrint (rank, "PINSIM", ss.str());
 		
 //		cerr << " ----------------------------------" << endl;
 //		cerr << "  [" << rank << "] executing runModels " << endl;
@@ -227,11 +233,11 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 				assert (dcache_ld_size == sizeof(UINT32));
 				char data_ld_buffer[dcache_ld_size];
 
-				cerr << "Doing read modelling for address: 0x" << hex << dcache_ld_addr << endl;
+				// cerr << "Doing read modelling for address: 0x" << hex << dcache_ld_addr << endl;
 
 				dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 
-				cerr << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec << endl;
+				// cerr << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec << endl;
 
 				assert (is_dual_read == false);
 			}
@@ -277,7 +283,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
 //      	ReleaseLock(&dcache_write_lock);
 //      	ReleaseLock(&dcache_read_lock);
-	 		cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
+	 		// cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
 //
 	 	 }
      
@@ -309,9 +315,9 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 				
 				// memset (data_st_buffer, 'z', sizeof(UINT32));
 
-				cerr << "Doing write modelling for address: 0x" << hex << dcache_st_addr << endl;
+				// cerr << "Doing write modelling for address: 0x" << hex << dcache_st_addr << endl;
 				
-				cerr << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec << endl;
+				// cerr << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec << endl;
 				dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
 
 			}
@@ -357,8 +363,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
    		perfModelRun(stats[rank]);
    	}
 
-		cerr << "  [" << rank << "] finished runModels " << endl;
-		cerr << " ----------------------------------" << endl;
+		// cerr << "  [" << rank << "] finished runModels " << endl;
+		// cerr << " ----------------------------------" << endl;
 
 	}
 

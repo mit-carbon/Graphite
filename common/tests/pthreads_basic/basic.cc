@@ -5,16 +5,19 @@
 #include "capi.h"
 
 using namespace std;
-
+/*
 struct cVector
 {
 		float x,y,z;
 };
+*/
 
 pthread_mutex_t write_lock;
 
+
 int global_integer;
 int* global_integer_ptr;
+
 
 #define DEBUG 1
 
@@ -29,6 +32,7 @@ void* do_nothing(void *threadid);
 //you can set pinsim to ONLY instrument this function
 void instrument_me();
 
+/*
 int main2(int argc, char* argv[]) {
   
   cerr << "Begin Main " << endl;
@@ -45,6 +49,7 @@ int main2(int argc, char* argv[]) {
 
    return 0;
 }
+*/
 
 
 int main(int argc, char* argv[]){ // main begins
@@ -72,7 +77,7 @@ int main(int argc, char* argv[]){ // main begins
       pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
 
 	// Wait for all threads to complete
-//	while(true);
+	while(1);
 
 #ifdef DEBUG
    pthread_mutex_lock(&lock);
@@ -96,7 +101,7 @@ void BARRIER_DUAL_CORE(int tid)
 	//this is a stupid barrier just for the test purposes
 	int payload;
 
-	cerr << "BARRIER DUAL CORE for ID(" << tid << ")" << endl;
+	// cerr << "BARRIER DUAL CORE for ID(" << tid << ")" << endl;
 	if(tid==0) {
 		CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &payload, sizeof(int));
 		CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &payload, sizeof(int));
@@ -109,11 +114,13 @@ void BARRIER_DUAL_CORE(int tid)
 //spawned threads run this function
 void* do_nothing(void *threadid)
 {
+/*
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cerr << "beginning of do_nothing function" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
+*/
    
 	int tid;
 //	cerr << "start capi_init" << endl;
@@ -198,40 +205,50 @@ else
 
 #endif
 
+/*
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
 //   cerr << "executing do_nothing function: " << tid << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
+*/
    
    int size = 10;
    global_integer = 10;
    global_integer_ptr = &global_integer;
    if(tid==0) {
+		/*
 		pthread_mutex_lock(&lock);
 		cerr << "Core: " << tid << " being instrumented." << endl;
 		cerr << "size addr: " << &size << endl;
 		cerr << "gint addr: " << &global_integer << endl;
 		cerr << "gint_ptr : " << global_integer_ptr << endl;
 		pthread_mutex_unlock(&lock);
+		*/
 
 		BARRIER_DUAL_CORE(tid);
 		instrument_me( );
 		
+		/*
 		pthread_mutex_lock(&lock);
 		cerr << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
+		*/
    } else {
+		/*
 		pthread_mutex_lock(&lock);
 		cerr << "Core: " << tid << " being instrumented." << endl;
 		pthread_mutex_unlock(&lock);
+		*/
 
 		BARRIER_DUAL_CORE(tid);
 		instrument_me( );
 		
+		/*
 		pthread_mutex_lock(&lock);
 		cerr << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
+		*/
    }
    
 	CAPI_Finish(tid);
@@ -250,16 +267,16 @@ else
 void instrument_me()
 {
 //	cerr << "Greetings I wonder if this will cause any crashes or anything else interesting?1" << endl;
-int size = 128;
-char array[size];
+	int size = 128;
+	char array[size];
 
 
 	//4 bytes first line (at the end), 4 bytes overflow onto second line
-	int addr = (((int)array) / 32) * 32 + 30;
-	*((UINT64*) addr)  = 0xFFFF;
-   UINT64 x = *((UINT64*) addr);
+	UINT32 addr = ((((UINT32) array) >> 5) << 5) + 31;	// Ensure that there is no segmentation fault
+	*((UINT32*) addr)  = 0xFFFF;
+   UINT32 x = *((UINT32*) addr);
 
-   cerr << hex << "x = " << ((UINT64) x) << endl;
+   // cerr << hex << "x = " << ((UINT64) x) << endl;
 
 /*
  int size = *global_integer_ptr; 

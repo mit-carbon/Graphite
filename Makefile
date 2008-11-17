@@ -84,8 +84,8 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
-	killall -s 9 ping_pong
 	killall -s 9 basic
+	killall -s 9 ping_pong
 	killall -s 9 test
 	killall -s 9 test_evic
 

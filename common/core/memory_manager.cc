@@ -1,5 +1,5 @@
 #include "memory_manager.h"
-//#define MMU_DEBUG
+#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
@@ -38,6 +38,10 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 #ifdef ADDR_HOME_LOOKUP_DEBUG
 	cerr << "Creating New Addr Home Lookup Structure: " << the_core->getNumCores() << ", " << g_knob_ahl_param.Value() << ", " << the_core->getRank() << "\n";
 #endif
+
+	// Initializing request queue parameters
+	processing_request_flag = false;
+	incoming_requests_count = 0;
 }
 
 MemoryManager::~MemoryManager()
@@ -56,14 +60,14 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT address, UINT32 size_bytes)
 {
 	//TODO BUG this code doesn't work b/c it gets deallocated before the network copies it
-	cerr << "Starting adding Request Payload;" << endl;
+	// debugPrint (the_core->getRank(), "MMU", "Starting adding Request Payload");
 	MemoryManager::RequestPayload payload;
 	payload.request_type = shmem_req_type;
 	payload.request_address = address;  
 	payload.request_num_bytes = size_bytes;
 
 	packet->data = (char *)(&payload);
-	cerr << "Finished adding Request Payload;" << endl;
+	// debugPrint (the_core->getRank(), "MMU", "Finished adding Request Payload");
 }
 
 void addAckPayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_cstate)
@@ -237,15 +241,6 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		char payload_buffer[payload_size];
 
 		
-		cerr << "Evicted data: 0x";
-		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++) {
-			cerr << hex << (UINT32) evict_buff[i];
-		}
-		cerr << dec << endl;
-
-		cerr << "Evicted Addr: 0x" << hex << (UINT32) evict_addr << endl;
-		
-		
 		createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
 		NetPacket packet = makePacket(SHARED_MEM_EVICT, payload_buffer, payload_size, the_core->getRank(), home_node_rank);
 
@@ -295,9 +290,9 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 
 	// receive the requested data (blocking receive)
 	NetMatch net_match = makeNetMatch( SHARED_MEM_UPDATE_EXPECTED, home_node_rank );
-//	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv start");
+	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv start");
 	NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-//	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv finished");
+	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv finished");
 	
 	/* ===================================================== */
 	/* ============== Handle Update Payload ================ */
@@ -315,8 +310,8 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	ADDRINT incoming_starting_addr = recv_payload.update_address;
 	if(incoming_starting_addr != ca_address) {
-		cerr << "[" << the_core->getRank() << "] Incoming Address: " << hex << incoming_starting_addr << endl;
-      	cerr << "CA Address         : " << hex << ca_address << endl;
+		debugPrintHex (the_core->getRank(), "MMU", "Incoming Address", incoming_starting_addr);
+     	debugPrintHex (the_core->getRank(), "MMU", "CA Address", ca_address);;
 	}
 	assert(incoming_starting_addr == ca_address);
 	
@@ -356,8 +351,8 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 */
    /* ========================================================================= */
 	
-   stringstream ss;
 #ifdef MMU_DEBUG	
+   stringstream ss;
 	ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - start : REQUESTING ADDR: " << hex << ca_address;
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
@@ -462,7 +457,6 @@ void MemoryManager::addMemRequest(NetPacket req_packet)
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) 
 {
   // TODO: This kind of argument passing is bad for performance. Try to pass by reference or pass pointers
-  stringstream ss;
 
   // verify packet type is correct
   assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
@@ -477,11 +471,10 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    ADDRINT address = update_payload.update_address;
   
 #ifdef MMU_DEBUG
+  	stringstream ss;
 	ss << "Processing Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
-	ss << "Processing Unexpected: address: " << hex << address << ", new CState: " << CacheState::cStateToString(new_cstate);
-	debugPrint(the_core->getRank(), "MMU", ss.str());
 
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
    // if it is null, it means the address has been invalidated
@@ -538,7 +531,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			break;
 		
 		default:
-			cerr << "ERROR in MMU switch statement." << endl;
+			debugPrint (the_core->getRank(), "MMU", "ERROR in MMU switch statement");
 			break;
 	}
 
@@ -697,7 +690,8 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	
 	//copy data_buffer over
 	if(send_payload->data_size > g_knob_line_size) {
-		cerr << "****ERROR **** dataIsze > g_knob_line_size: ...... data_size = " << send_payload->data_size << endl;
+		// debugPrint(the_core->getRank(), "MMU", "****ERROR **** dataSize > g_knob_line_size: ...... data_size = ", send_payload->data_size);
+		cerr << "CreateUpdatePayloadBuffer: Error\n";
 	}
 
 	assert (send_payload->data_size <= g_knob_line_size);

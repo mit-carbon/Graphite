@@ -7,7 +7,8 @@ PT_VERSION ?= sm
 
 DBG=-g
 OPT=-O2
-CFLAGS=-c -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+#CFLAGS=-c -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CFLAGS=-c -I../core -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
 SOURCES = transport.cc

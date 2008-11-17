@@ -98,12 +98,15 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
  //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
 CAPI_return_t chipHackFinish(int my_rank)
 {
-	cerr << "HACK---- please remove chipHackFInish...... " << endl;
-	cerr << "FINISHED: CORE [" << my_rank << "] " << endl;
+	cerr << "[" << my_rank << "] FINISHED\n";
+	debugPrint (my_rank, "CHIP", "HACK---- please remove chipHackFinish...... ");
+	debugPrint (my_rank, "CHIP", "FINISHED");
+
+	debugFinish(my_rank);
 	
 	/* ========================================================================== */
 	/* Added by George */
-	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
+	// cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
 //	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
 	/* ========================================================================== */
 
@@ -114,9 +117,6 @@ CAPI_return_t chipHackFinish(int my_rank)
 
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
-//		cout << "FINISHED lawls [" << my_rank << "] " << endl;
-		//sleep? and conditionally check if we should end loop?
-		//
 	}
 
    return 0;

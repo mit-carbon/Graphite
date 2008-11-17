@@ -2,7 +2,7 @@
 #include "debug.h"
 
 #include "network_mesh_analytical.h"
-#define CORE_DEBUG
+//#//define CORE_DEBUG
 
 using namespace std;
 
@@ -316,7 +316,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 		if(operation == LOAD)
 			return ocache->runDCacheLoadModel(d_addr, data_size).first;
 		else
-				return ocache->runDCacheStoreModel(d_addr, data_size).first;
+			return ocache->runDCacheStoreModel(d_addr, data_size).first;
    }
 }
 

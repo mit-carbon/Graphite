@@ -97,68 +97,78 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 	   INT32 col;
 		INT32 ln;
 		const CHAR* file;
-		assert( ins_info_array != NULL );
-		assert( ((InsInfo**) ins_info_array)[rank] != NULL );
-		
-		InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+		if( ins_info_array!=NULL) {
+			assert( ins_info_array != NULL );
+			assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+			
+			InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
 
-		PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
-		if ( file != NULL )
-			cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
-		else
-			cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+			PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
+			if ( file != NULL )
+				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+			else
+				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+		} else {
+			cerr << "[" << rank << "] ins info is NULL" << endl;
+		}
 	}
 	
 	if(rank == 1) {
 		cerr << " ----------------------------------" << endl;
 		cerr << " CORE#1 START running runModels!" << endl;
-		assert( ins_info_array != NULL );
-		assert( ((InsInfo**) ins_info_array)[rank] != NULL );
-		
-		InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+		if(ins_info_array != NULL) {
+			assert( ins_info_array != NULL );
+			assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+			
+			InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
 
-		cerr << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
-	   INT32 col;
-		INT32 ln;
-		const CHAR* file;
-		assert( ins_info != NULL );
-		if(ins_info != NULL) {
-			PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
-			if( file != NULL )
-				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
-			else
-				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+			cerr << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
+			INT32 col;
+			INT32 ln;
+			const CHAR* file;
+			assert( ins_info != NULL );
+			if(ins_info != NULL) {
+				PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
+				if( file != NULL )
+					cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+				else
+					cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+			}
+		} else {
+			cerr << "[" << rank << "] ins info is NULL" << endl;
 		}
 	}
 
 	if(rank > -1) 
 	{
 
-		assert( ins_info_array != NULL );
-		assert( ((InsInfo**) ins_info_array)[rank] != NULL );
-		
-		InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
-
-		assert( ins_info != NULL );
-		if( true || ins_info->opcode == 608 || ins_info->next_opcode == 608) 
-		{
-			cerr << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort( ins_info->opcode) << " (" << ins_info->opcode << ") " << endl;
-			cerr << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ins_info->is_sys_call << endl;
-			cerr << "[" << rank << "] PINSIM -: SYSCALL STD = " << ins_info->sys_call_std << endl;
-			cerr << "[" << rank << "] PINSIM -: IS SYSENTER = " << ins_info->is_sys_enter << endl;
-			cerr << "----------" << endl;
+		if(ins_info_array != NULL) {
+			assert( ins_info_array != NULL );
+			assert( ((InsInfo**) ins_info_array)[rank] != NULL );
 			
-			if(ins_info->next_is_valid)
+			InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+
+			assert( ins_info != NULL );
+			if( true || ins_info->opcode == 608 || ins_info->next_opcode == 608) 
 			{
-				cerr << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(ins_info->next_opcode) << " (" << ins_info->next_opcode << ") " << endl;
-				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ins_info->next_is_sys_call << endl;
-				cerr << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ins_info->next_sys_call_std << endl;
-				cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ins_info->next_is_sys_enter << endl;
+				cerr << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort( ins_info->opcode) << " (" << ins_info->opcode << ") " << endl;
+				cerr << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ins_info->is_sys_call << endl;
+				cerr << "[" << rank << "] PINSIM -: SYSCALL STD = " << ins_info->sys_call_std << endl;
+				cerr << "[" << rank << "] PINSIM -: IS SYSENTER = " << ins_info->is_sys_enter << endl;
+				cerr << "----------" << endl;
+				
+				if(ins_info->next_is_valid)
+				{
+					cerr << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(ins_info->next_opcode) << " (" << ins_info->next_opcode << ") " << endl;
+					cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ins_info->next_is_sys_call << endl;
+					cerr << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ins_info->next_sys_call_std << endl;
+					cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ins_info->next_is_sys_enter << endl;
+				}
 			}
+		} else {
+//			cerr << "[" << rank << "] ins info is NULL" << endl;
 		}
-		
-//		cerr << "[" << rank << "] Is ins_info NULL? : " << (ins_info == NULL) << endl;
-	}
+  }
 
 #endif
 
@@ -455,7 +465,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 	//at run time
 	//provide each core it's own copy of the ins_info
 	ins_info_array = (InsInfo**) malloc(sizeof(InsInfo*));
-   int NUMBER_OF_CORES = 2;
+   assert( ins_info_array != NULL );
+	int NUMBER_OF_CORES = 2;
 
 	for(int i=0; i < NUMBER_OF_CORES; i++) 
 	{
@@ -646,6 +657,10 @@ AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
    else if(name == "CAPI_Finish"){
       cerr << "replacing CAPI_Finish" << endl;
 	  	return AFUNPTR(chipHackFinish);
+   }
+   else if(name == "CAPI_Print"){
+      cerr << "replacing CAPI_Print" << endl;
+	  	return AFUNPTR(chipPrint);
    }
 	else if(name == "CAPI_debugSetMemState") {
 		cerr << "replacing CAPI_debugSetMemState" << endl;

@@ -49,6 +49,9 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 //harshad should replace this -cpc
 CAPI_return_t chipHackFinish(int my_rank);
 
+//deal with locks in cout
+CAPI_return_t chipPrint(string s);
+
 CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data);
 
 CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code);
@@ -113,6 +116,8 @@ class Chip
       
 	  //FIXME: this is a hack function 
 	  friend CAPI_return_t chipHackFinish(int my_rank);
+	  
+	  friend CAPI_return_t chipPrint(string s);
       
       friend CAPI_return_t commRank(int *rank);
       friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
@@ -170,6 +175,11 @@ class Chip
 
 		//debugging crap: 
 		PIN_LOCK global_lock;
+		//chipFinishHack (remove later)
+		//i'm tracking which cores have finished
+		//running the user program. when all cores
+		//have checked in, we can tell them to quit the program.
+		bool* finished_cores;
 
    public:
 

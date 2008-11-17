@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-#define DRAM_DEBUG
+//#define DRAM_DEBUG
 
 DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {
@@ -111,7 +111,7 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 	copyDataToDram(payload.ack_address, data_buffer); //TODO verify that all wb_packets would give us the entire cache_line
 	
 	if( payload.is_eviction ) {
-		debugPrint(dram_id, "DRAMDIR", "Payload is an eviction... removingSharer!");
+//		debugPrint(dram_id, "DRAMDIR", "Payload is an eviction... removingSharer!");
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
 

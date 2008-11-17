@@ -228,7 +228,7 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 
 	if(eviction) 
 	{
-		debugPrint(the_core->getRank(), "MMU", "accessCacheLineData: Evicting Line");
+//		debugPrint(the_core->getRank(), "MMU", "accessCacheLineData: Evicting Line");
 		
 		//send write-back to dram
 		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(evict_addr);
@@ -241,6 +241,15 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		char payload_buffer[payload_size];
 
 		
+//		cerr << "Evicted data: 0x";
+//		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++) {
+//			cerr << hex << (UINT32) evict_buff[i];
+//		}
+//		cerr << dec << endl;
+
+//		cerr << "Evicted Addr: 0x" << hex << (UINT32) evict_addr << endl;
+		
+		
 		createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
 		NetPacket packet = makePacket(SHARED_MEM_EVICT, payload_buffer, payload_size, the_core->getRank(), home_node_rank);
 
@@ -251,7 +260,7 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 
 void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 {
-	debugPrint(the_core->getRank(), "MMU", "Forwarding WriteBack to DRAM");
+//	debugPrint(the_core->getRank(), "MMU", "Forwarding WriteBack to DRAM");
 	dram_dir->processWriteBack(wb_packet);
 }
 
@@ -379,6 +388,11 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		assert( native_cache_hit == true );
 		
 		accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size); 
+#ifdef MMU_DEBUG	
+	ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - FINISHED(cache_hit) : REQUESTING ADDR: " << hex << ca_address;
+	debugPrint(the_core->getRank(), "MMU", ss.str());
+#endif
+
 		
 		return native_cache_hit;
 	}
@@ -390,6 +404,11 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		
 		accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size);
 		setCacheLineInfo(ca_address, new_cstate);                                        
+#ifdef MMU_DEBUG	
+	ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - FINISHED(cache_miss) : REQUESTING ADDR: " << hex << ca_address;
+	debugPrint(the_core->getRank(), "MMU", ss.str());
+#endif
+
 	
 		return native_cache_hit;
 	}

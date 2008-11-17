@@ -1,6 +1,6 @@
 #include "network.h"
 #include "debug.h"
-//#define NETWORK_DEBUG
+#define NETWORK_DEBUG
 using namespace std;
 
 Network::Network(Chip *chip, int tid, int num_mod, Core* the_core_arg)

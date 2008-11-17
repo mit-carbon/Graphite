@@ -2,7 +2,7 @@
 #include "debug.h"
 
 #include "network_mesh_analytical.h"
-//#//define CORE_DEBUG
+#define CORE_DEBUG
 
 using namespace std;
 

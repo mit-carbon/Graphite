@@ -43,25 +43,26 @@ int main(int argc, char* argv[]){ // main begins
 	cerr << "Spawning threads" << endl << endl;
 #endif
    
-	/*
+	
+	
 	pthread_mutex_lock(&lock);
 	cerr << "Creating Thread#0." << endl << endl;
    pthread_mutex_unlock(&lock);
-	 */
+	
    pthread_create(&threads[0], &attr, ping, (void *) 0);
 
-   /*
+   
 	pthread_mutex_lock(&lock);
 	cerr << "Creating Thread#1." << endl << endl;
    pthread_mutex_unlock(&lock);
-	 */
+	
    pthread_create(&threads[1], &attr, pong, (void *) 1);
 
-   /*
+   
 	pthread_mutex_lock(&lock);
 	cerr << "Starter thread is waiting for the other threads to join." << endl << endl;
    pthread_mutex_unlock(&lock);
-	 */
+	
 
 	while(1);
 
@@ -132,6 +133,12 @@ void* ping(void *threadid)
 
 
 	CAPI_Finish(tid);
+
+#ifdef DEBUG  
+   pthread_mutex_lock(&lock);
+   cerr << "ping finished CAPI_Finish" << endl << endl;
+   pthread_mutex_unlock(&lock);
+#endif
 
    pthread_exit(NULL);  
    // return 0;

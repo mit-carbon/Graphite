@@ -309,7 +309,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 	
 	// Hack for chipFInishHack
 	finished_cores = new bool[num_modules];
-	for (UINT32 i = 0; i < num_modules; i++) {
+	for (int i = 0; i < num_modules; i++) {
 		finished_cores[i] = false;
 	}
 }

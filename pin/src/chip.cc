@@ -152,11 +152,13 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    // using zero is a dirty hack 
    // assumes its safe to use core zero to generate perfmodels for all cores
    assert(g_chip->num_modules > 0);
+   
+   //FIXME: These stats should be deleted at the end of execution
    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_chip->num_modules];
 
    for (INT32 i = 0; i < g_chip->num_modules; i++)
       array[i] = g_chip->core[0].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins);
- 
+
    return array; 
 }
 
@@ -356,7 +358,6 @@ void MCPFinish()
    assert(g_MCP != NULL);
    g_MCP->finish();
 }
-
 
 void* MCPThreadFunc(void *dummy)
 {

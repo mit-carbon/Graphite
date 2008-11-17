@@ -42,6 +42,7 @@
 Chip *g_chip = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
+PIN_LOCK print_lock;
 
 //TODO only here for debugging ins in runModel
 
@@ -801,6 +802,8 @@ VOID init_globals()
 
    // Note the MCP has a dependency on the transport layer and the chip
    g_MCP = new MCP();
+   
+	InitLock(&print_lock);
 }
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)

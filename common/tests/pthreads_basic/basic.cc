@@ -149,8 +149,6 @@ void* do_nothing(void *threadid)
 		cerr << "Core: " << tid << " finished instrumenting." << endl;
 		pthread_mutex_unlock(&lock);
 		*/
-   }
-
    
 	CAPI_Finish(tid);
 //	cerr << "finished running... and now pthread exit!" << endl;

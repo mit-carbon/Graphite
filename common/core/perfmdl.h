@@ -149,8 +149,9 @@ class PerfModelIntervalStat {
          dcache_store_miss_history_index = 0;
 
          branch_mispredict = false; 
-         microops_count = 0;
-         cycles_subtotal = 0;
+         //FIXME: why were these getting reset to zero?
+//         microops_count = 0;
+//         cycles_subtotal = 0;
       }
 };
 

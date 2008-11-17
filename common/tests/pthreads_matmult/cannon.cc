@@ -109,7 +109,7 @@ int main(int argc, char* argv[]){ // main begins
 	// some sanity checking of numThreads and matSize to be sure
 	// these calculations go alright.
         double tmp = numThreads;
-	sqrtNumProcs = sqrt(tmp);
+	sqrtNumProcs = (float) sqrt(tmp);
 	blockSize = matSize / sqrtNumProcs;
 
 #ifdef DEBUG

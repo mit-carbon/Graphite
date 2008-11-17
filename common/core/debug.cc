@@ -2,6 +2,7 @@
 
 VOID debugPrint(INT32 id, string class_name, string output_string) 
 {
+	//TODO FIXME can i use a static lock instead? 
 	cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << endl;
 }
 

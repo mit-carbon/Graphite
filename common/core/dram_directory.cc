@@ -70,7 +70,7 @@ UINT64 DramDirectory::getDramAccessCost() {
 // and when we push around data, this function will deal with this
 bool issueDramRequest(ADDRINT d_addr, shmem_req_t mem_req_type)
 {
-  cerr << "TODO: implement me: dram_directory.cc issueDramRequest"<< endl;
+  debugPrint(-1, "DRAM", "TODO: implement me: dram_directory.cc issueDramRequest");
   return true;
 }
 

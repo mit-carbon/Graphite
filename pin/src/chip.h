@@ -27,6 +27,7 @@ class Core;
 
 extern Chip *g_chip;
 extern MCP *g_MCP;
+extern PIN_LOCK print_lock;
 
 extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
@@ -169,7 +170,7 @@ class Chip
       int prev_rank;
       PIN_LOCK maps_lock;
       PIN_LOCK dcache_lock;
-
+      
       Core *core;
 
 		//debugging crap: 

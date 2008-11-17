@@ -56,14 +56,14 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT address, UINT32 size_bytes)
 {
 	//TODO BUG this code doesn't work b/c it gets deallocated before the network copies it
-	cerr << "Starting adding Request Payload;" << endl;
+	debugPrint(-1,"MMU",  "Starting adding Request Payload;"); 
 	MemoryManager::RequestPayload payload;
 	payload.request_type = shmem_req_type;
 	payload.request_address = address;  
 	payload.request_num_bytes = size_bytes;
 
 	packet->data = (char *)(&payload);
-	cerr << "Finished adding Request Payload;" << endl;
+	debugPrint(-1,"MMU",  "Finished adding Request Payload;"); 
 }
 
 void addAckPayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_cstate)
@@ -120,7 +120,7 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 			ret = cache_state.writable();
 			break;
 		default:
-		   cerr << "ERROR in Actionreadily permissiable " << endl;
+			debugPrint(-1,"MMU",  "ERROR in Actionreadily permissiable");
 			throw("action_readily_permissable: unsupported memory transaction type.");
 	      break;
 	}
@@ -315,8 +315,10 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	assert(recv_packet.type == SHARED_MEM_UPDATE_EXPECTED);
 	ADDRINT incoming_starting_addr = recv_payload.update_address;
 	if(incoming_starting_addr != ca_address) {
-		cerr << "[" << the_core->getRank() << "] Incoming Address: " << hex << incoming_starting_addr << endl;
-      	cerr << "CA Address         : " << hex << ca_address << endl;
+		stringstream ss;
+		ss << "[" << the_core->getRank() << "] Incoming Address: " << hex << incoming_starting_addr << endl;
+      	ss << "CA Address         : " << hex << ca_address;
+			debugPrint(the_core->getRank(),"MMU",  ss.str());
 	}
 	assert(incoming_starting_addr == ca_address);
 	
@@ -548,7 +550,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			break;
 		
 		default:
-			cerr << "ERROR in MMU switch statement." << endl;
+			debugPrint(the_core->getRank(), "MMU", "ERROR in MMU switch statement.");
 			break;
 	}
 
@@ -620,8 +622,7 @@ void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cst
 									&eviction, &evict_addr, evict_buff);
 
 				if (eviction) {
-					// Actually, this is OK !!
-					cerr << "**** Problem ****: Some data has been evicted !!!\n";
+					debugPrint(the_core->getRank(), "MMU", "Some data has been evicted.");
 				}
 			}
 			
@@ -629,7 +630,7 @@ void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cst
 			// Now I have set the state as well as data
 			break;
 		default:
-			cerr << "ERROR in switch for Core::debugSetCacheState" << endl;
+			debugPrint(the_core->getRank(), "MMU", "ERROR in switch for Core::debugSetCacheState");
 	}
 }
 

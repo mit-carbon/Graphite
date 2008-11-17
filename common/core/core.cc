@@ -2,7 +2,7 @@
 #include "debug.h"
 
 #include "network_mesh_analytical.h"
-//#//define CORE_DEBUG
+#define CORE_DEBUG
 
 using namespace std;
 
@@ -28,7 +28,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
            break;
        case NUM_NETWORK_TYPES:
        default:
-           cerr << "ERROR: Unknown Network Model!";
+           debugPrint(tid, "CORE", "ERROR: Unknown Network Model!");
            break;
    }
   
@@ -61,9 +61,10 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_max_search_depth.Value());                        
 //                          g_knob_simarch_is_shared_mem.Value());                        
 
-      debugPrint(tid, "Core", "instantiated organic cache model");
-      cerr << ocache->statsLong() << endl;
-  
+      stringstream ss;
+		ss <<"instantiated organic cache model:";
+      ss << ocache->statsLong() << endl;
+      debugPrint(tid, "CORE", ss.str());
    
    } else 
    {
@@ -74,13 +75,13 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
      
       assert( g_knob_enable_dcache_modeling ); 
 
-      cerr << "Core[" << tid << "]: instantiated memory manager model" << endl;
+      debugPrint(tid, "CORE", "instantiated memory manager model");
       memory_manager = new MemoryManager(this, ocache);
 
    } else {
 
       memory_manager = (MemoryManager *) NULL;
-      cerr << "No Memory Manager being used. " << endl;
+      debugPrint(tid, "CORE", "No Memory Manager being used. ");
    
    }
 

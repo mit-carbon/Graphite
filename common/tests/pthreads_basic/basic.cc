@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
+#include <sstream>
 
 using namespace std;
 
@@ -71,9 +72,6 @@ int main(int argc, char* argv[]){ // main begins
       pthread_create(&threads[0], &attr, do_nothing, (void *) 0);    
       pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
 
-	// Wait for all threads to complete
-//	while(true);
-
 #ifdef DEBUG
    pthread_mutex_lock(&lock);
 	cout << "Waiting to join" << endl << endl;
@@ -117,86 +115,8 @@ void* do_nothing(void *threadid)
    
 	int tid;
 	cout << "start capi_init" << endl;
-//	CAPI_Initialize(&tid);
+	CAPI_Initialize(&tid);
 //	cout << "end   capi_init" << endl;
-#if 0	
-   int i = 0;
-   int j = 0;
-   int k = 0;
-	unsigned int cpeinfo;
-	unsigned int cpsse3;
-   int foo = 10, bar = 15;
-
-	cVector vector;
-	vector.x=0.5;
-	vector.y=1.5;
-	vector.z=-3.141;
-/*
-asm volatile("addl  %%ebx, %%eax \n\t"
-				  "addl  %%ebx, %%eax \n\t"
-						 :"=a"(foo)
-						 :"a"(foo), "b"(bar)
-				 );
-*/
-if(tid==0) {
-//	cout << endl << "i = " << i << endl;
- 	
-	asm (
-//		"movl %1, %%eax    \n\t"
-//		"addl %%eax, %0   \n\t"
-//		"movl i, %eax    \n\t"
-//		"movl %1, %%eax  "
-//		"movl %%eax, %0  "
-//		"movl %2, %%eax \n\t;"
-//		"movl %%eax, %0 \n\t"
-		"movl $1, %%eax \n\t"
-		"cpuid \n\t"
-		"movl %%edx, %0 \n\t"
-		"movl %%ecx, %1 \n\t"
-//		"movups %3, %%xmm1 \n\t"
-//		"mulps %%xmm1, %%xmm1 \n\t"
-//		"movups %%xmm1, %3 \n\t"
-		:"=a"(cpeinfo),"=b"(cpsse3)//, "=c"(vector) //output
-		:"a"(i)//, "b"(vector)  //input
-//		:"%eax"  //clobbered register
-	);
-
-//THE INSTRUCTION I WANT IS LDDQU  vector load, unaligned int
-//try to 
-
-
-//		mov eax, 01h       ;01h is the parameter for the CPUID command below
-//		cpuid
-//		mov cpeinfo, edx   ;Get the info stored by CPUID
-//		mov cpsse3, ecx    ;info about SSE3 is stored in ECX
-//	cout << endl << "i = " << i << endl;
-	cout << endl << " cpuid =  " << dec << i << endl;
-	cout << endl << " cpsse3 = " << dec << k << endl;
-	
-	cout << "MMX:  " << ((cpeinfo >> 23) & 0x1 ) << "\tSSE:  " << ((cpeinfo >> 25) & 0x1 ) << "\tSSE2: " << ((cpeinfo >> 26) & 0x1 ) << "\n"; 
-	cout << "SSE3: " << ((cpsse3       ) & 0x1 ); 
-	cout << vector.x << " " << vector.y << " " << vector.z << endl;
-//
-}
-else
-{
-	asm (
-	//		"movl %1, %%eax    \n\t"
-	//		"addl %%eax, %0   \n\t"
-	//		"movl i, %eax    \n\t"
-	//		"movl %1, %%eax  "
-	//		"movl %%eax, %0  "
-		"movl %1, %%eax \n\t;"
-		"movl %%eax, %0 \n\t"
-		:"=a"(j) //output
-		:"a"(j)  //input
-	//		:"%eax"  //clobbered register
-	);
-
-	cout << endl << "j = " << j << endl;
-}
-
-#endif
 
 #ifdef DEBUG  
 //   pthread_mutex_lock(&lock);
@@ -204,30 +124,12 @@ else
 //   pthread_mutex_unlock(&lock);
 #endif
    
-	CAPI_Initialize(&tid);
    int size = 10;
    global_integer = 10;
-//   global_integer_ptr = &global_integer;
-//   if(tid==0) {
-//		pthread_mutex_lock(&lock);
-//		cout << "Core: " << tid << " being instrumented." << endl;
-//		cout << "\n\nsize addr: " << &size << endl << endl;
-		CAPI_Print("\n\nsize addr: \n\n");
-//		cout << "gint addr: " << &global_integer << endl;
-//		cout << "gint_ptr : " << global_integer_ptr << endl;
-//		pthread_mutex_unlock(&lock);
-
-//		BARRIER_DUAL_CORE(tid);
-//		instrument_me( );
-		
-//		pthread_mutex_lock(&lock);
-//		cout << "Core: " << tid << " finished instrumenting." << endl;
-//		pthread_mutex_unlock(&lock);
-//   } else {
-//		pthread_mutex_lock(&lock);
-//		cout << "Core: " << tid << " being instrumented." << endl;
-//		pthread_mutex_unlock(&lock);
-
+   global_integer_ptr = &global_integer;
+//		stringstream ss;
+//		ss << "\n\nsize addr: " << &size << endl << endl;
+//		CAPI_Print(ss.str());
 //		BARRIER_DUAL_CORE(tid);
 //		instrument_me( );
 		
@@ -237,16 +139,9 @@ else
 //   }
    
 	CAPI_Finish(tid);
+//	cerr << "finished running... and now pthread exit!" << endl;
 	pthread_exit(NULL);  
 }
-
-/*
-	asm ( assembler template
-		: output operands				(optional)
-		: input operands				(optional)
-		: list of clobbered registers		(optional)
-	);	
-*/
 
 //int instrument_me(int tid, int* ptr) 
 void instrument_me()
@@ -255,69 +150,11 @@ void instrument_me()
 int size = 128;
 char array[size];
 
-
 	//4 bytes first line (at the end), 4 bytes overflow onto second line
 	int addr = (((int)array) / 32) * 32 + 30;
 	*((UINT64*) addr)  = 0xFFFF;
    UINT64 x = *((UINT64*) addr);
 
 //   cout << hex << "x = " << ((UINT64) x) << endl;
-
-/*
- int size = *global_integer_ptr; 
-
-   cout << "inside instrument me, size=" << size << endl;
-   int array[size];
-   int x;
-
-   for(int i=1; i < size-1; i++) {
-		array[i] = array[i-1] + i + (int) global_integer_ptr + array[i+1];
-   }
-   
-   for(int i=1; i < size-1; i++) {
-		x = array[i];
-	}
-
-	for(int i=1; i < size-1; i++) {
-		array[i] = x;
-	}
-
-	pthread_mutex_lock(&lock);
-
-   cout << "inside lock " << endl;
-
-   for(int i=1; i < size-1; i++) {
-		array[i] = array[i-1] + i + (int) global_integer_ptr + array[i+1];
-   }
-   
-	
-   pthread_mutex_unlock(&lock);
-*/
-//	int x = 10, y;
-/*	int x,y;
-	
-	asm volatile (
-			"movl 0x8000000, %0;"
-//			"movl %1, %%eax;"
-//	asm ("movl %1, %%eax;"
-//			"movl %%eax, %0;"
-			:"=r"(x)	// y is output operand 
-			:"r"(x)	//	x is input operand 
-//			:"%eax");//	%eax is clobbered register 
-			:);//	%eax is clobbered register 
-*/
-//   cout << "   Addr of x: " << hex << &x << endl;
-//	cout << "   Addr of y: " << hex << &y << endl;
-//	cout << "          x = " << x << endl;
-	
-/* int foo = 10, bar = 15;
- asm volatile("addl  %%ebx,%%eax"
-				  "addl  %%ebx, %%eax"
-						 :"=a"(foo)
-						 :"a"(foo), "b"(bar)
-				 );
-*/
-//	printf("foo+bar=%d\n", foo);
-
 }
 

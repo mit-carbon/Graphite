@@ -98,9 +98,11 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
  //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
 CAPI_return_t chipHackFinish(int my_rank)
 {
+	GetLock(&print_lock, 1);
 	cerr << "HACK---- please remove chipHackFInish...... " << endl;
 	cerr << "FINISHED: CORE [" << my_rank << "] " << endl;
 	
+	assert( my_rank < g_chip->getNumModules() );
 	/* ========================================================================== */
 	/* Added by George */
 	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
@@ -108,13 +110,15 @@ CAPI_return_t chipHackFinish(int my_rank)
 	/* ========================================================================== */
 
 	//check in to chip, tell them we're finished
-   g_chip->finished_cores[my_rank] = true;
+	g_chip->finished_cores[my_rank] = true;
 	bool volatile finished = false;
 	
 	cerr << "FinshedCores look like this: " << endl;
 	for(int i=0; i < g_chip->getNumModules(); i++) {
 		cerr << "  finished_cores[" << i << "] : " << (g_chip->finished_cores[i] ? "TRUE":"FALSE") << endl;
 	}
+
+	ReleaseLock(&print_lock);
 
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
@@ -127,7 +131,9 @@ CAPI_return_t chipHackFinish(int my_rank)
 		if(!cores_still_working)
 			finished = true;
 	}
+	GetLock(&print_lock,1);
 	cerr << " [" << my_rank << "] ENDING PROGRAM...." << endl;
+	ReleaseLock(&print_lock);
    return 0;
 }
 
@@ -302,6 +308,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 	aliasEnable = false;
 	//hack for chipFInishHack
 	finished_cores = new bool[num_modules];
+	
 }
 
 VOID Chip::fini(int code, VOID *v)

@@ -33,7 +33,8 @@ extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
 // FIXME: if possible, these shouldn't be globals. Pin callbacks may need them to be. 
 
-CAPI_return_t chipInit(int *rank);
+CAPI_return_t chipInit(int rank);
+CAPI_return_t chipInitFreeRank(int *rank);
 
 CAPI_return_t chipRank(int *rank);
 
@@ -81,10 +82,24 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
+// sync wrappers
+
+void SimMutexInit(carbon_mutex_t *mux);
+void SimMutexLock(carbon_mutex_t *mux);
+void SimMutexUnlock(carbon_mutex_t *mux);
+
+void SimCondInit(carbon_cond_t *cond);
+void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
+void SimCondSignal(carbon_cond_t *cond);
+void SimCondBroadcast(carbon_cond_t *cond);
+
+void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count);
+void SimBarrierWait(carbon_barrier_t *barrier);
 
 // MCP server wrappers
 void MCPRun();
 void MCPFinish();
+void *MCPThreadFunc(void *dummy);
 
 // chip class
 
@@ -96,7 +111,8 @@ class Chip
 
       // messaging wrappers
 
-      friend CAPI_return_t chipInit(int *rank); 
+      friend CAPI_return_t chipInit(int rank); 
+      friend CAPI_return_t chipInitFreeRank(int *rank); 
       friend CAPI_return_t chipRank(int *rank);
       friend CAPI_return_t commRank(int *rank);
       friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
@@ -124,6 +140,18 @@ class Chip
       friend void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
       friend void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
+      // sync wrappers
+      friend void SimMutexInit(carbon_mutex_t *mux);
+      friend void SimMutexLock(carbon_mutex_t *mux);
+      friend void SimMutexUnlock(carbon_mutex_t *mux);
+
+      friend void SimCondInit(carbon_cond_t *cond);
+      friend void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
+      friend void SimCondSignal(carbon_cond_t *cond);
+      friend void SimCondBroadcast(carbon_cond_t *cond);
+
+      friend void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count);
+      friend void SimBarrierWait(carbon_barrier_t *barrier);
       
       // organic cache modeling wrappers
       friend bool icacheRunLoadModel(int rank, ADDRINT i_addr, UINT32 size);
@@ -134,8 +162,6 @@ class Chip
 
       int num_modules;
 
-      UINT64 *proc_time;
-
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
@@ -145,20 +171,13 @@ class Chip
 
       Core *core;
 
-
    public:
-
-      UINT64 getProcTime(int module) { assert(module < num_modules); return proc_time[module]; }
-
-      void setProcTime(int module, unsigned long long new_time) 
-      { assert(module < num_modules); proc_time[module] = new_time; }
-
-      int getNumModules() { return num_modules; }
 
       Chip(int num_mods);
 
+      int getNumModules() { return num_modules; }
+      Core *getCore(unsigned int id) { return &(core[id]); }
       void fini(int code, void *v);
-
 };
 
 #endif

@@ -1,0 +1,39 @@
+GENERAL INFORMATION:
+
+The FMM application implements a parallel adaptive Fast Multipole Method
+to simulate the interaction of a system of bodies (N-body problem).  A
+description of this implementation can be found in:
+
+Singh, J. P., et. al.  A Parallel Adaptive Fast Multipole Method.
+     Proceedings of Supercomputing 93, November 1993.
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top of the
+file fmm.C, or run the application with the "-h" command line option.
+Optional command line parameters allow for individual processor timing 
+statistics to be printed out, as well as the final particle positions.
+Input parameters can be placed in an input file and redirected through 
+standard input.  Of the nine input parameters, the ones which would 
+normally be changed are the number of particles and the number of 
+processors.  If other parameters are changed, these changes should be 
+reported in any results that are presented.  Sample input files are 
+included in the inputs subdirectory.  
+
+Sample output for a 1 processor run with the input file inputs/input.256
+and the timing and output flags specified is contained in the file 
+correct.out.
+
+BASE PROBLEM SIZE:
+
+The base problem size for an upto-64 processor machine is 16,384 
+particles.  For this many particles, you can use the input file provided 
+(and change only the number of processors).
+
+DATA DISTRIBUTION:
+
+Our "POSSIBLE ENHANCEMENT" comments in the source code tell where one
+might want to distribute data and how. Data distribution, however, does
+not make much difference to performance on the Stanford DASH
+multiprocessor.
+

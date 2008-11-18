@@ -1,28 +1,74 @@
 #include "chip.h"
 
 // definitions
+using namespace std;
 
 //TODO: c++-ize this, please oh please!
-CAPI_return_t chipInit(int *rank)
+CAPI_return_t chipInit(int rank)
 {
    
    THREADID pin_tid = PIN_ThreadId();
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
+
+   //FIXME: Not sure what tid_map is, this should be enabled
+   // if( g_chip->tid_map.find(rank)->first != false)
+   // {
+   //    ASSERT(false, "Error: Two cores tried to init the same rank!\n");
+   // }
+
    if ( e.first == false ) {
-      assert(0 <= g_chip->prev_rank && g_chip->prev_rank < g_chip->num_modules);
-      g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
-      g_chip->core_map.insert( pin_tid, g_chip->prev_rank );
-      *rank = g_chip->prev_rank; 
-      ++(g_chip->prev_rank);
+      g_chip->tid_map[rank] = pin_tid;    
+      g_chip->core_map.insert( pin_tid, rank );
+      cerr << "chipInit initializing core: " << rank << endl;
    }   
-   else {
-      *rank = e.second;
+   else
+   {
+      cerr << "chipInit Error initializing core twice: " << rank << endl;
+//      ASSERT(false, "Error: Core tried to init more than once!\n");
    }
-   
+
    return 0;
-};
+}
+
+CAPI_return_t chipInitFreeRank(int *rank)
+{
+   
+   THREADID pin_tid = PIN_ThreadId();
+
+   pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
+
+
+   //FIXME: Not sure what tid_map is, this should be enabled
+   // if( g_chip->tid_map.find(rank)->first != false)
+   // {
+   //    ASSERT(false, "Error: Two cores tried to init the same rank!\n");
+   // }
+
+   if ( e.first == false ) {
+      for(int i = 0; i < g_chip->num_modules - 1; i++)
+      {
+          if(g_chip->tid_map[i] == UINT_MAX)
+          {
+              g_chip->tid_map[i] = pin_tid;    
+              g_chip->core_map.insert( pin_tid, i );
+              *rank = i;
+              cerr << "chipInit initializing core: " << i << endl;
+              return 0;
+          }
+      }
+
+      cerr << "chipInit Error: No Free Cores." << endl;
+   }   
+   else
+   {
+      cerr << "chipInit Error initializing core twice: " << rank << endl;
+//      ASSERT(false, "Error: Core tried to init more than once!\n");
+   }
+
+   return 0;
+}
 
 CAPI_return_t chipRank(int *rank)
 {
@@ -106,11 +152,13 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    // using zero is a dirty hack 
    // assumes its safe to use core zero to generate perfmodels for all cores
    assert(g_chip->num_modules > 0);
+   
+   //FIXME: These stats should be deleted at the end of execution
    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_chip->num_modules];
 
    for (INT32 i = 0; i < g_chip->num_modules; i++)
       array[i] = g_chip->core[0].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins);
- 
+
    return array; 
 }
 
@@ -185,32 +233,158 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       g_chip->core[rank].getSyscallMdl()->runExit(ctx, syscall_standard);
 }
 
-// MCP wrappers
-void MCPRun()
+// Sync client wrappers
+
+void SimMutexInit(carbon_mutex_t *mux)
 {
-   assert(g_MCP != NULL);
-   g_MCP->run();
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexInit(commid, mux);
 }
 
+void SimMutexLock(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexLock(commid, mux);
+}
+
+void SimMutexUnlock(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexUnlock(commid, mux);
+}
+
+void SimCondInit(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condInit(commid, cond);
+}
+
+void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condWait(commid, cond, mux);
+}
+
+void SimCondSignal(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condSignal(commid, cond);
+}
+
+void SimCondBroadcast(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condBroadcast(commid, cond);
+}
+
+void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->barrierInit(commid, barrier, count);
+}
+
+void SimBarrierWait(carbon_barrier_t *barrier)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->barrierWait(commid, barrier);
+}
+
+// MCP wrappers
 void MCPFinish()
 {
    assert(g_MCP != NULL);
    g_MCP->finish();
 }
 
+void* MCPThreadFunc(void *dummy)
+{
+  // Declare local variables
+  CAPI_return_t rtnVal;
+  rtnVal = CAPI_Initialize(g_knob_total_cores);
+
+   while( !g_MCP->finished() )
+   {
+      g_MCP->run();
+      //usleep(1);
+   }   
+   cerr << "MCPThreadFunc - end!" << endl;
+   return NULL;
+//   pthread_exit(NULL);
+}
 
 // Chip class method definitions
 
 Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0) 
 {
-   proc_time = new UINT64[num_mods];
    tid_map = new THREADID [num_mods];
    core = new Core[num_mods];
 
    for(int i = 0; i < num_mods; i++) 
    {
-      proc_time[i] = 0;
-      tid_map[i] = 0;
+      tid_map[i] = UINT_MAX;
       core[i].coreInit(this, i, num_mods);
    }
 
@@ -224,9 +398,13 @@ VOID Chip::fini(int code, VOID *v)
    for(int i = 0; i < num_modules; i++) 
    {
       cout << "*** Core[" << i << "] summary ***" << endl;
+      out << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
       cout << endl;
+      out << endl;
    }
 
    out.close();
 }
+
+

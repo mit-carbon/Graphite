@@ -1,0 +1,51 @@
+GENERAL INFORMATION:
+
+This code is an improvement over the original Water code in SPLASH,
+but is mostly the same.  The best source of descriptive information,
+therefore is the original SPLASH report.  The main change is that 
+the locking strategy around the updates to the water accelerations 
+(in interf.C) is improved: a process updates a local copy of the 
+relevant particle accelerations, and then accumulates into the shared 
+copy once at the end.  
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top 
+of the water.C file or run it as "WATER-NSQUARED -h".  The input file 
+has 10 parameters, of which the ones you would normally change 
+are the number of molecules and the number of processors.  The other
+parameters should be left at their values in the supplied input file
+in the normal case.  Please do not set the CUTOFF value (the last 
+parameter) to a nonzero number in the normal case.  
+
+The only compile-time option (ifdef) is one that says to change the
+input distribution.  The default input distribution of molecules
+arranges them on a cubical lattice.  For this, the number of molecules
+must be an integer cube (8, 27, 64, 343, 512 ...).  If one wants
+to use a non-cube number of molecules, one can ignore the lattice
+and use a random distribution of particles in a cubical space
+by invoking the -DRANDOM compile-time option (see file initia.C). 
+Note that a random distribution does not make too much physical sense,
+since it does not preserve chemical intermolecular distance ranges. 
+If you do not use the lattice but use -DRANDOM, please say so explicitly
+in any results you report.
+
+The program reads random numbers, to compute initial velocities, from
+a file called random.in in the current working directory.  It does
+this rather than generate random numbers to facilitate repeatability
+and comparability of experiments.  The supplied file random.in
+has enough numbers for about 512 molecules.  If you need more, add
+more random numbers between -4.0 and +4.0 to the file.
+
+BASE PROBLEM SIZE:
+
+The base problem size for an upto-64 processor machine is 512 molecules.
+For this number of molecules, you can use the input file provided (and 
+change only the number of processors).
+
+DATA DISTRIBUTION:
+
+Our "POSSIBLE ENHANCEMENT" comments in the source code tell where one
+might want to distribute data and how.  Data distribution, however,
+does not make much difference to performance on the Stanford DASH 
+multiprocessor. 

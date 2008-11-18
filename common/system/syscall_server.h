@@ -15,19 +15,20 @@
 #include <iostream>
 #include "packetize.h"
 #include "transport.h"
+#include "network.h"
 #include "fixed_types.h"
 
 class SyscallServer {
    //Note: These structures are shared with the MCP
    private:
-      Transport & pt_endpt;
+      Network & _network;
       UnstructuredBuffer & send_buff;
       UnstructuredBuffer & recv_buff;
       const UInt32 SYSCALL_SERVER_MAX_BUFF;
       char * const scratch;
 
    public:
-      SyscallServer(Transport &pt_endpt_, 
+      SyscallServer(Network &network, 
             UnstructuredBuffer &send_buff_, UnstructuredBuffer &recv_buff_,
             const UInt32 SERVER_MAX_BUFF,
             char *scratch_);

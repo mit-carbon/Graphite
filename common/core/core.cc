@@ -1,4 +1,5 @@
 #include "core.h"
+#include "chip.h"
 
 #include "network_mesh_analytical.h"
 
@@ -19,10 +20,10 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    switch(net_model)
    {
        case NETWORK_BUS:
-           network = new Network(chip, tid, num_mod);
+           network = new Network(this, num_mod);
            break;
        case NETWORK_ANALYTICAL_MESH:
-           network = new NetworkMeshAnalytical(chip, tid, num_mod);
+           network = new NetworkMeshAnalytical(this, num_mod);
            break;
        case NUM_NETWORK_TYPES:
        default:
@@ -58,8 +59,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_associativity.Value(),
                           g_knob_icache_max_search_depth.Value());                        
 
-      cout << "Core[" << tid << "]: instantiated organic cache model" << endl;
-      cout << ocache->statsLong() << endl;
+//       cout << "Core[" << tid << "]: instantiated organic cache model" << endl;
+//       cout << ocache->statsLong() << endl;
    } else 
    {
       ocache = (OCache *) NULL;
@@ -67,6 +68,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
 
    syscall_model = new SyscallMdl(network);
+   sync_client = new SyncClient(this);
 
    return 0;
 }
@@ -131,11 +133,39 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
 VOID Core::fini(int code, VOID *v, ofstream& out)
 {
-   delete network;
-
    if ( g_knob_enable_performance_modeling )
-      perf_model->fini(code, v, out);
+     {
+       //FIXME: This should be placed in perfmodel
+       out << "  Total cycles: " << getProcTime() << endl;
+       cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
+       perf_model->fini(code, v, out);
+
+       network->outputSummary(out);
+     }
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )
       ocache->fini(code,v,out);
+
+   delete sync_client;
+   delete syscall_model;
+   delete ocache;
+   delete perf_model;
+   delete network;
 }
+
+//FIXME: These should actually be accessed THROUGH the perfmodel
+void Core::setProcTime(UInt64 time)
+{
+  perf_model->setCycleCount(time);
+}
+
+void Core::updateProcTime(UInt64 time)
+{
+  perf_model->updateCycleCount(time);
+}
+
+UInt64 Core::getProcTime()
+{
+  return perf_model->getCycleCount();
+}
+

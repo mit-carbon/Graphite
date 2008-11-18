@@ -1,11 +1,12 @@
 #include "network_mesh_analytical.h"
+#include "chip.h"
 #include <math.h>
 
 using namespace std;
 
-NetworkMeshAnalytical::NetworkMeshAnalytical(Chip *chip, int tid, int num_threads)
+NetworkMeshAnalytical::NetworkMeshAnalytical(Core *core, int num_threads)
     :
-        Network(chip,tid,num_threads),
+        Network(core, num_threads),
         bytes_sent(0),
         cycles_spent_proc(0),
         cycles_spent_latency(0),
@@ -15,12 +16,8 @@ NetworkMeshAnalytical::NetworkMeshAnalytical(Chip *chip, int tid, int num_thread
 
 NetworkMeshAnalytical::~NetworkMeshAnalytical()
 {
-    cout << "  Network summary:" << endl;
-    cout << "    bytes sent: " << bytes_sent << endl;
-    cout << "    cycles spent proc: " << cycles_spent_proc << endl;
-    cout << "    cycles spent latency: " << cycles_spent_latency << endl;
-    cout << "    cycles spent contention: " << cycles_spent_contention << endl;
 }
+
 
 int NetworkMeshAnalytical::netSend(NetPacket packet)
 {
@@ -139,3 +136,13 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     cycles_spent_contention += (UINT64)(Tc - Tb);
     return Tci;
 }
+
+void NetworkMeshAnalytical::outputSummary(ostream &out)
+{
+   out << "  Network summary:" << endl;
+   out << "    bytes sent: " << bytes_sent << endl;
+   out << "    cycles spent proc: " << cycles_spent_proc << endl;
+   out << "    cycles spent latency: " << cycles_spent_latency << endl;
+   out << "    cycles spent contention: " << cycles_spent_contention << endl;
+}
+

@@ -159,3 +159,5 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
       }
    }
 }
+
+

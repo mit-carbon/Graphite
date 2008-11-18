@@ -1,0 +1,129 @@
+GENERAL INFORMATION:
+
+This code renders a three-dimensional volume onto a two-dimensional
+image plane using an optimized ray casting technique developed by 
+Marc Levoy.  A hierarchical octree data structure is used to represent 
+the scene for efficient access, and early ray termination and antialiasing 
+are implemented.   The best description of the algorithm can be found in:
+
+Jason Nieh and Marc Levoy, "Volume Rendering on Scalable Shared-Memory
+MIMD Architectures", Proc. Boston Workshop on Volume Visualization", 
+October 1992. 
+
+A briefer description can also be found in
+
+Jaswinder Pal Singh, Anoop Gupta and Marc Levoy, "Parallel
+Visualization Algorithms: Performance and Architectural Implications",
+IEEE Computer, July 1994.
+
+Further references to the sequential algorithm are contained in those
+papers, and a detailed description will be in the SPLASH-2 report. 
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top 
+of the main.C file or run it as "VOLREND -h".  The base problem we 
+recommend does not use adaptive pixel sampling, so it would not use 
+the -a flag.  
+
+One compile-time parameter that can be specified in the makefile
+is FLIP.  This is used only in the I/O routines in file.H, and
+specifies whether to reverse byte ordering when reading or writing
+files.  Thus, if input files were written previously with one
+byte ordering and are read using another byte ordering, the program
+will crash with an error message ("Can't load version ... file").  
+If this happens, you need to define/undefine FLIP to make sure the byte
+ordering that is in the input file and what the program is expecting 
+are the same.
+
+The file user_options.H contains a number of compile-time options that
+dictate what the program does.  That file describes how to use them.
+Basically, there are two steps in the application: the first preprocesses 
+the input .den file and generates the octree, the normal table, and the
+opacity table; the next phase takes these structures as inputs and
+does the parallel rendering.  One mode of the program is to only render,
+reading in the octree, opacity table and normal table from precomputed
+input files (.pyr, .opc and .norm, respectively).  This is the default
+mode of the program, and is obtained by setting the RENDER_ONLY compile
+time flag. If RENDER_ONLY is not defined, then the program will
+not use these files but start from the .den file itself.  In this case,
+there are two options:  if PREPROCESS is defined, then the program will
+not render, but will create the .norm, .opc and .pyr files from the .den
+file for a future run of the program to render. If PREPROCESS is not
+defined either, then the program will not produce these intermediate
+files:  It will start from the .den file, create the normal and opacity
+tables etc as internal data structures, and render from them directly.
+
+The SERIAL_PREPROC option tells whether the preprocessing phases (computing
+the normal table or .norm file, etc.), should be done serially or in
+parallel, when they are done.
+
+If none of the three options are defined (RENDER_ONLY, PREPROCESS and 
+SERIAL_PREPROC), the default is to do parallel preprocessing and 
+rendering without storing intermediate array values.
+
+In the base problem we recommend, we suggest doing the preprocessing first
+off-line (perhaps serially), and then timing the parallel rendering part 
+only.
+
+We provide three input .den files.  head.den is a file containing a
+256-by-256-by-126 voxel head.  head-scaleddown2.den scales this down
+by a factor of two in each dimension, and head-scaleddown4.den by 
+a factor of 4 in each dimension (head-scaleddown4 is thus clearly
+only for testing).
+
+There is a run-time command-line flag (-a) that controls whether 
+adaptive pixel sampling is done.  We do not do it in our base problem.
+If you use it, please say so explicitly in any results you present. 
+Please also report the block size used for adaptive sampling (see code,
+HBOXLEN parameter in user_options.H) in this case. 
+
+There are several other compile-time parameters in the code, mainly in
+user_options.H and const.H. They have default values which we describe 
+below.  These are the values that we recommend for the base problem.  If 
+you change them, please say so explicitly in any results you present. 
+The main parameters of interest are:
+
+user_options.H:
+
+  BLOCK_LEN is the size of an image tile (in pixels: BLOCK_LEN by 
+	BLOCK_LEN) which is the unit of task stealing (see papers
+	cited above).  We recommend leaving this at 4.
+  DIM: if set, DIM says to perform rotations of the volume (from
+	one frame to the next) in each of the three spatial dimensions.
+	Default is to do it only in one preset (the Y) dimension. 
+	We recommend not setting DIM in the base problem.
+
+const.H:
+  
+  ROTATE_STEPS:  The number of frames to be rendered (if DIM is set,
+	then 3*ROTATE_STEPS frames are rendered).
+  STEP_SIZE: the degree of rotation between frames.
+  Other parameters should be left as they are. 
+
+The volrend program generates a number of tiff files, one per frame,
+that can then be viewed on a workstation.   Thus, the program
+needs a tiff library to run (see Makefile).  The PBMPLUS tiff library 
+works with this application.
+
+BASE PROBLEM SIZE:
+
+As stated above, we provide a 256-by-256-by-126 voxel human head data set, 
+and two scaled down versions of the same data set.  The base problem
+we recommend is the 256-by-256-by-126 data set. We shall soon provide 
+a way to generate larger data sets.  Our base problem renders 4 frames, 
+with DIM turned off (i.e. rotating in only one --- the Y --- dimension). 
+The STEP_SIZE is 3 degrees.  And the BLOCK_LEN (the length of the square 
+tile of pixels that is the unit of task stealing) is 4.
+
+DATA DISTRIBUTION:
+
+Data distribution is difficult in a shared address space version
+of volume rendering (and, if it is required as in a message-passing 
+abstraction, requires a different algorithm: see the paper
+cited above).  One could place a processor's portion of the image
+plane in its local memory. For the volume, however, particularly given 
+changing viewpoints from which the scene might be rendered,
+it is very difficult to place scene data appropriately in physically 
+distributed main memory. Data distribution, however, does not make 
+much difference to performance on the Stanford DASH multiprocessor. 

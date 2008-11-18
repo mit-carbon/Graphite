@@ -40,6 +40,9 @@ Config::Config()
    //  all processes have the same number of cores.
    assert((num_process*g_knob_num_cores) == total_cores);
 
+   //Add one to account for the MCP
+   total_cores += 1;
+
    num_modules = new UInt32[num_process];
    // FIXME: This assumes that every process has the same number of modules.
    //  Each entry should be filled in with a different value.

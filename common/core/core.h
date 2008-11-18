@@ -14,12 +14,11 @@ class SyscallMdl;
 
 #include "pin.H"
 #include "config.h"
-#include "chip.h"
 #include "network.h"
 #include "perfmdl.h"
 #include "ocache.h"
 #include "syscall_model.h"
-
+#include "sync_client.h"
 
 // externally defined vars
 
@@ -42,6 +41,8 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_size;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_associativity;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth; 
 
+class Chip;
+
 class Core
 {
    private:
@@ -52,6 +53,7 @@ class Core
       PerfModel *perf_model;
       OCache *ocache;
       SyscallMdl *syscall_model;
+      SyncClient *sync_client;
 
    public:
 
@@ -65,6 +67,7 @@ class Core
       int coreRecvW(int sender, int receiver, char *buffer, int size);
 
       SyscallMdl *getSyscallMdl() { return syscall_model; }
+      SyncClient *getSyncClient() { return sync_client; }
 
       VOID fini(int code, VOID *v, ofstream& out);
 
@@ -117,6 +120,14 @@ class Core
         return ret;
       }
 
+      // add proc time management to core
+      //FIXME: These should actually be accessed THROUGH the perfmodel
+      void setProcTime(UInt64 time);
+      void updateProcTime(UInt64 time); // only if newer
+      UInt64 getProcTime();
+      int getId() const { return core_tid; }
+
+      Network *getNetwork() { return network; }
 };
 
 #endif

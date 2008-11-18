@@ -1,0 +1,83 @@
+GENERAL INFORMATION:
+
+The OCEAN program simulates large-scale ocean movements based on eddy and
+boundary currents, and is an enhanced version of the SPLASH Ocean code.
+A description of the functionality of this code can be found in the 
+original SPLASH report.  The implementations contained in SPLASH-2 
+differ from the original SPLASH implementation in the following ways:
+
+  (1) The SPLASH-2 implementations are written in C rather than 
+      FORTRAN.
+  (2) Grids are partitioned into square-like subgrids rather than 
+      groups of columns to improve the communication to computation 
+      ratio.
+  (3) The SOR solver in the SPLASH Ocean code has been replaced with a
+      restricted Red-Black Gauss-Seidel Multigrid solver based on that 
+      presented in:
+
+      Brandt, A. Multi-Level Adaptive Solutions to Boundary-Value Problems.
+           Mathematics of Computation, 31(138):333-390, April 1977.
+
+      The solver is restricted so that each processor has as least two
+      grid points in each dimension in each grid subpartition.
+
+Two implementations are provided in the SPLASH-2 distribution:
+
+  (1) Non-contiguous partition allocation
+
+      This implementation (contained in the non_contiguous_partitions
+      subdirectory) implements the grids to be operated on with
+      two-dimensional arrays.  This data structure prevents partitions 
+      from being allocated contiguously, but leads to a conceptually 
+      simple programming implementation.
+
+  (2) Contiguous partition allocation
+
+      This implementation (contained in the contiguous_partitions 
+      subdirectory) implements the grids to be operated on with
+      3-dimensional arrays.  The first dimension specifies the processor
+      which owns the partition, and the second and third dimensions 
+      specify the x and y offset within a partition.  This data structure 
+      allows partitions to be allocated contiguously and entirely in the 
+      local memory of processors that "own" them, thus enhancing data
+      locality properties.
+
+The contiguous partition allocation implementation is described in:
+
+Woo, S. C., Singh, J. P., and Hennessy, J. L.  The Performance Advantages
+     of Integrating Message Passing in Cache-Coherent Multiprocessors.
+     Technical Report CSL-TR-93-593, Stanford University, December 1993.
+
+A detailed description of both versions will appear in the SPLASH-2 report.
+The non-contiguous partition allocation implementation is conceptually
+similar, except for the use of statically allocated 2-dimensional arrays.
+
+These programs work under both the Unix FORK and SPROC models.
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top of the
+file main.C, or run the application with the "-h" command line option.
+Five command line parameters can be specified, of which the ones which
+would normally be changed are the number of grid points in each dimension,
+and the number of processors.  The number of grid points must be a
+(power of 2+2) in each dimension (e.g. 130, 258, etc.).  The number of
+processors must be a power of 2.  Timing information is printed out at 
+the end of the program.  The first timestep is considered part of the 
+initialization phase of the program, and hence is not included in the 
+"Total time without initialization."
+
+BASE PROBLEM SIZE:
+
+The base problem size for an upto-64 processor machine is a 258x258 grid.
+The default values should be used for other parameters (except the number
+of processors, which can be varied).  In addition, sample output files 
+for the default parameters for each version of the code are contained in 
+the file correct.out in each subdirectory.
+
+DATA DISTRIBUTION:
+
+Our "POSSIBLE ENHANCEMENT" comments in the source code tell where one
+might want to distribute data and how.  Data distribution has an impact
+on performance on the Stanford DASH multiprocessor.
+

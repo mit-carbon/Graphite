@@ -56,32 +56,32 @@ int UnstructuredBuffer::size()
 // Wrappers
 
 // put scalar
-UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt64& data)
+UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt64 data)
 { 
    put<UInt64>(data); 
    return *this;
 }
-UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt64& data) 
+UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt64 data) 
 { 
    put<SInt64>(data); 
    return *this;
 }
-UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt32& data) 
+UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt32 data) 
 { 
    put<UInt32>(data); 
    return *this;
 }
-UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt32& data) 
+UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt32 data) 
 { 
    put<SInt32>(data); 
    return *this;
 }
-UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt8&  data) 
+UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt8 data) 
 { 
    put<UInt8>(data); 
    return *this;
 }
-UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt8&  data) 
+UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt8 data) 
 { 
    put<SInt8>(data); 
    return *this;

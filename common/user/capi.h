@@ -15,7 +15,8 @@ typedef int CAPI_endpoint_t;
 extern "C" {
 #endif
 
-   CAPI_return_t CAPI_Initialize(int *rank);
+   CAPI_return_t CAPI_Initialize(int rank);
+   CAPI_return_t CAPI_Initialize_FreeRank(int *rank);
 
    CAPI_return_t CAPI_rank(int * rank);
 

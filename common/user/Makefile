@@ -6,7 +6,7 @@ CFLAGS=-c -I../phys_trans -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unkn
 LDFLAGS=
 
 C_SOURCES = capi.c
-CPP_SOURCES = mcp_api.cc
+CPP_SOURCES = mcp_api.cc sync_api.cc
 OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o)
 
 all: $(OBJECTS)
@@ -15,7 +15,7 @@ all: $(OBJECTS)
 ## build rules
 
 %.o : %.cc
-	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 %.o : %.c
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<

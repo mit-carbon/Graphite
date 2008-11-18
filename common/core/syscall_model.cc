@@ -144,16 +144,15 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    cerr << "open(" << path << ")" << endl;
 
    send_buff << len_fname << make_pair(path, len_fname) << flags;
-   the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());
+   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());
 
-   UInt32 length = 0;
-   UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
-   assert( length == sizeof(int) );
-   recv_buff << make_pair(res_buff, length);
+   NetPacket recv_pkt;
+   recv_pkt = the_network->netRecvFromMCP();
+   assert( recv_pkt.length == sizeof(int) );
+   recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int status;
    recv_buff >> status;
-
    return status;
 }
 
@@ -191,16 +190,16 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    cerr << "read(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
       
    send_buff << fd << count;
-   the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());   
+   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());   
    
    //cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
 
-   UInt32 length = 0;
-   UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
+   NetPacket recv_pkt;
+   recv_pkt = the_network->netRecvFromMCP();
    //cerr << "received from mcp" << endl;
 
-   assert( length >= sizeof(int) );
-   recv_buff << make_pair(res_buff, length);
+   assert( recv_pkt.length >= sizeof(int) );
+   recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int bytes;
    recv_buff >> bytes;
@@ -253,10 +252,10 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    send_buff << fd << count << make_pair(buf, count);
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());      
 
-   UInt32 length = 0;
-   UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
-   assert( length == sizeof(int) );
-   recv_buff << make_pair(res_buff, length);
+   NetPacket recv_pkt;
+   recv_pkt = the_network->netRecvFromMCP();
+   assert( recv_pkt.length == sizeof(int) );
+   recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int status;
    recv_buff >> status;
@@ -294,10 +293,10 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    send_buff << fd;
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());      
 
-   UInt32 length = 0;
-   UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
-   assert( length == sizeof(int) );
-   recv_buff << make_pair(res_buff, length);
+   NetPacket recv_pkt;
+   recv_pkt = the_network->netRecvFromMCP();
+   assert( recv_pkt.length == sizeof(int) );
+   recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int status;
    recv_buff >> status;
@@ -320,15 +319,16 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size()); 
 
    // get a result
-   UInt32 length;
-   UInt8 *res_buff = the_network->getTransport()->ptRecvFromMCP(&length);
+   NetPacket recv_pkt;
+   recv_pkt = the_network->netRecvFromMCP();
 
    // Create a buffer out of the result
-   recv_buff << make_pair(res_buff, length);
+   recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    // return the result
    int result;
    recv_buff >> result;
+
    return result;
 }
 

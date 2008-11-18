@@ -55,14 +55,36 @@ matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 
+mutex_test: all
+	$(MAKE) -C $(TESTS_DIR)/mutex
+	$(PIN_RUN) -mdc -mpf -msys -n 1 -- $(TESTS_DIR)/mutex/mutex_test
+
+cond_test: all
+	$(MAKE) -C $(TESTS_DIR)/cond
+	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/cond/cond_test
+
+broadcast_test: all
+	$(MAKE) -C $(TESTS_DIR)/broadcast
+	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/broadcast/broadcast_test
+
+barrier_test: all
+	$(MAKE) -C $(TESTS_DIR)/barrier
+	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barrier/barrier_test
+
 war:	kill
 
 kill:
 	killall -s 9 $(PROCESS)
 
 barnes_test: all
+	# note, the last line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/barnes
 	$(PIN_RUN) -mdc -mpf -msys -n 4 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
+
+fmm_test: all
+	# note, the 5th line in the input file must match the number of procs passed to pin
+	$(MAKE) -C $(TESTS_DIR)/fmm
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
 love:
 	@echo "not war!"

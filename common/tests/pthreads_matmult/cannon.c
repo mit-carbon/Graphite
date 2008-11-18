@@ -178,7 +178,7 @@ void* cannon(void *threadid){
 	printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
-	rtnVal = CAPI_Initialize(&tid);
+	rtnVal = CAPI_Initialize((int)threadid);
 
 	// Initialize local variables
 

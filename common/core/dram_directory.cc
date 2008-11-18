@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-#define DRAM_DEBUG
+//#define DRAM_DEBUG
 
 DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {

@@ -14,11 +14,15 @@ pthreadsmatmult:
 pingpong:
 	$(MAKE) -C ping_pong
 
+jacobi:
+	$(MAKE) -C shared_mem_jacobi
+
 clean:
 	$(MAKE) -C pthreads_matmult clean
 	$(MAKE) -C shared_mem_test clean
 	$(MAKE) -C ping_pong clean
 	$(MAKE) -C pthreads_basic clean
+	$(MAKE) -C shared_mem_jacobi clean
 	-rm -f *.o $(TOOLS) *.d *.rpo
 
 squeaky: clean

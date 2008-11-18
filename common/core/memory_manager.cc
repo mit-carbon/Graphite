@@ -1,5 +1,5 @@
 #include "memory_manager.h"
-#define MMU_DEBUG
+//#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
@@ -299,9 +299,7 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 
 	// receive the requested data (blocking receive)
 	NetMatch net_match = makeNetMatch( SHARED_MEM_UPDATE_EXPECTED, home_node_rank );
-	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv start");
 	NetPacket recv_packet = (the_core->getNetwork())->netRecv(net_match);
-	debugPrint(the_core->getRank(), "MMU", "requestPermission - netRecv finished");
 	
 	/* ===================================================== */
 	/* ============== Handle Update Payload ================ */

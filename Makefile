@@ -36,7 +36,7 @@ clean:
 	$(MAKE) -C common clean
 	$(MAKE) -C pin clean
 	$(MAKE) -C qemu clean
-	-rm -f *.o *.d *.rpo
+	-rm -f *.o *.d *.rpo output_files/*
 
 squeaky: clean
 	$(MAKE) -C common squeaky
@@ -66,7 +66,11 @@ shmem_test: all
 shmem_test_evic: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test_evic 5 
-	
+
+jacobi_test: all
+	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
+	$(PIN_RUN) -mdc -msm -msys -n 16 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n 16
+
 
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
@@ -84,6 +88,7 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
+	killall -s 9 jacobi
 	killall -s 9 basic
 	killall -s 9 ping_pong
 	killall -s 9 test

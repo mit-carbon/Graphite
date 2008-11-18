@@ -3,13 +3,13 @@
 #include <sstream>
 using namespace std;
 
-#define MAX_CORE_COUNT (2)
+#define MAX_CORE_COUNT (128)
 ofstream outfile[(MAX_CORE_COUNT+1)];
 
 VOID debugInit (INT32 tid) {
 	stringstream fileName;
-
-	fileName << "Core" << tid << ".txt";
+	string folder = "output_files/";
+	fileName << folder << "Core" << tid << ".txt";
 	outfile[tid].open( (fileName.str()).c_str() );
 }
 
@@ -21,6 +21,7 @@ VOID debugPrint(INT32 id, string class_name, string output_string)
 {
 	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << endl;
 	assert( id < MAX_CORE_COUNT );
+	assert( id >= 0 );
 	if( id == -1 )
 		id = MAX_CORE_COUNT;
 	outfile[id] << " [" << id << "] - " << class_name << " - : " << output_string << endl;

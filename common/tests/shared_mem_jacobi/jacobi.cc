@@ -1,4 +1,5 @@
 /**
+		 i allow core#0 to print out progress
  * This code is being re-purposed for testing the manycore simulator's shared memory
  * (originall written in c)
  */
@@ -28,12 +29,14 @@
 #include "capi.h"
 #include <pthread.h> //not sure this is needed
 
-#define SIZE 64
+//set by command-line argument
+unsigned int coreCount;
+
+#define SIZE (64*8)
 	//arraysize and the allotment of boundary cells
 	//is taken care of in the spawning logic
 	
-#define CORE_COUNT 2
-#define ITERS 256 
+#define ITERS (64*8) 
 #define SWAP(a,b,t) (((t) = (a)), ((a) = (b)), ((b) = (t))) 
 
 //all of the threads run this function
@@ -55,7 +58,7 @@ void update_array(int *oldarr, int *newarr, int array_size,
 { 
 	int from, to, i; 
 	from = (my_rank==0) ? 1 : 0; 
-	to = (my_rank==(CORE_COUNT-1)) ? array_size-2 : array_size -1; 
+	to = (my_rank==(coreCount-1)) ? array_size-2 : array_size -1; 
 	
 	int left, right;
 	
@@ -68,17 +71,26 @@ void update_array(int *oldarr, int *newarr, int array_size,
 
 } 
 
-void BARRIER_DUAL_CORE(int tid)
+void BARRIER(int tid)
 {
-	//this is a stupid barrier just for the test purposes
-	int payload;
-
-	if(tid==0) {
-		CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &payload, sizeof(int));
-		CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &payload, sizeof(int));
-	} else {
-		CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &payload, sizeof(int));
-		CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &payload, sizeof(int));
+	int payload; //unused
+	
+	if(coreCount > 1) 
+	{
+		if(tid==0) 
+		{
+			//gather all receiver messages, then send a continue to all cores
+			for(int i=1; i < coreCount; i++) {
+				CAPI_message_receive_w(i, 0, (char *) &payload, sizeof(int));
+			}
+			for(int i=1; i < coreCount; i++) {
+				CAPI_message_send_w(0, i, (char *) &payload, sizeof(int));
+			}
+		} else 
+		{
+			CAPI_message_send_w(tid, 0, (char *) &payload, sizeof(int));
+			CAPI_message_receive_w(0, tid, (char *) &payload, sizeof(int));
+		}
 	}
 }
 
@@ -146,21 +158,21 @@ int consolidate_arrays( int *global_array, int *proc0_arr)
 //	int MSG_ID = 0;
 //	ilibStatus status;
 	int my_rank = 0;
-	int temp_arr[SIZE/CORE_COUNT + 1];
+	int temp_arr[SIZE/coreCount+ 1];
 	int temp_size;
 	int offset;
 	
 	//place proc#0's array info into the global array
 	//ignore boundary condition at i=0 in proc0_arr
-	for(int i=0; i < (SIZE/CORE_COUNT) + 1; i++) {
+	for(unsigned int i=0; i < (SIZE/coreCount) + 1; i++) {
 		global_array[i] = proc0_arr[i+1];
 	}
 	
 	//for every core, get its personal array, add it to global_array
-	for(int i=1; i < CORE_COUNT; i++) {
+	for(unsigned int i=1; i < coreCount; i++) {
 		
-		temp_size = (i== CORE_COUNT-1) ? (SIZE/CORE_COUNT) + 1 
-										: (SIZE/CORE_COUNT);
+		temp_size = (i== coreCount -1) ? (SIZE/coreCount) + 1 
+										: (SIZE/coreCount);
 			
 		/*
 		if(	ilib_msg_receive(group, i, MSG_ID, 
@@ -171,9 +183,9 @@ int consolidate_arrays( int *global_array, int *proc0_arr)
 		
 		CAPI_message_receive_w(i, my_rank, (char*) temp_arr, sizeof(int)*temp_size);
 
-		offset = i*(SIZE/CORE_COUNT);
+		offset = i*(SIZE/coreCount);
 			
-		for(int j = 0; j < (SIZE/CORE_COUNT); j++) {
+		for(unsigned int j = 0; j < (SIZE/coreCount); j++) {
 			global_array[j  + offset] = temp_arr[j];
 		}
 	}
@@ -193,19 +205,19 @@ void* thread_main(void *threadid)
 	int neighbor_left_info = 0, neighbor_right_info = 0;
 	int my_left = 0,  my_right = 0;
 	
-	int my_rank = tid;
-	int myArraySize = 0;
+	unsigned int my_rank = tid;
+	unsigned int myArraySize = 0;
 	
 	//each tile allocates its own personal, tiny arrays.
-	if(CORE_COUNT == 1) {
+	if(coreCount == 1) {
 		//if only one core, it must have *two* boundary cells
 		myArraySize = SIZE + 2;
 	} else {
-		if(my_rank==0 || my_rank==CORE_COUNT-1) {
+		if(my_rank==0 || my_rank==coreCount-1) {
 			//plus one accounts for the boundary cell needed by boundary procs
-			myArraySize = (SIZE/CORE_COUNT) + 1;
+			myArraySize = (SIZE/coreCount) + 1;
 		} else {
-			myArraySize = (SIZE/CORE_COUNT);
+			myArraySize = (SIZE/coreCount);
 		}
 	}
 	
@@ -225,12 +237,16 @@ void* thread_main(void *threadid)
 	}
 	
 //	ilib_msg_barrier(ILIB_GROUP_SIBLINGS);
-	BARRIER_DUAL_CORE(tid);
+	BARRIER(tid);
 	//TODO get a cycle counter?
 //	start = get_cycle_count(); 	
 		
 	for (t = 0; t < ITERS; ++t) { 
 		
+		/**************************
+		 **************************/
+		if(tid==0) printf("--Iteration[%d of %d]--\n", t, ITERS);
+
 		/**************************
 		 * UPDATE ARRAY
 		 * send the two neighboring integers in as well.
@@ -255,14 +271,14 @@ void* thread_main(void *threadid)
 			//send my boundary information to my neighbor
 			if(my_rank > 0) 
 				send_info( my_rank, my_rank-1, &my_left );
-			if(my_rank < CORE_COUNT -1) 
+			if(my_rank < coreCount-1) 
 				send_info( my_rank, my_rank+1, &my_right );
 			
 			//now let's receive the information from my neighbor
 			neighbor_left_info = (my_rank > 0) ?
 								 	receive_info( my_rank, my_rank-1 )
 								 	: -1337;
-			neighbor_right_info = (my_rank < CORE_COUNT -1) ?
+			neighbor_right_info = (my_rank < coreCount-1) ?
 									receive_info( my_rank, my_rank+1 )
 									: -1338;
 
@@ -272,13 +288,13 @@ void* thread_main(void *threadid)
 			neighbor_left_info = (my_rank > 0) ?
 								 	receive_info( my_rank, my_rank-1 )
 								 	: -1337;
-			neighbor_right_info = (my_rank < CORE_COUNT -1) ?
+			neighbor_right_info = (my_rank < coreCount-1) ?
 									receive_info( my_rank, my_rank+1 )
 									: -1338;
 
 			if(my_rank > 0)
 				send_info( my_rank, my_rank-1, &my_left );
-			if(my_rank < CORE_COUNT -1) 
+			if(my_rank < coreCount-1) 
 				send_info( my_rank, my_rank+1, &my_right );
 		}
 		
@@ -293,7 +309,7 @@ void* thread_main(void *threadid)
 	 *************************************/
 //	ilib_msg_barrier(ILIB_GROUP_SIBLINGS);
 //	TODO we need a real BARRIER
-	BARRIER_DUAL_CORE(tid);
+	BARRIER(tid);
 	
 	if(my_rank ==0) {
 //		stop = get_cycle_count();
@@ -302,7 +318,7 @@ void* thread_main(void *threadid)
 	
 		int global_array[SIZE];
 		consolidate_arrays(global_array, oldarr);
-		printf("\n****GLOBAL ARRAY****\n  (ITERATIONS: %d)\n  (SIZE: %d)\n  (CORE_COUNT: %d)\n", ITERS, SIZE, CORE_COUNT);
+		printf("\n****GLOBAL ARRAY****\n  (ITERATIONS: %d)\n  (SIZE: %d)\n  (CORE_COUNT: %d)\n", ITERS, SIZE, coreCount);
 		print_array(global_array, SIZE);
 		printf("\n");
 	} else {
@@ -310,7 +326,6 @@ void* thread_main(void *threadid)
 	}
 	
 //	ilib_finish();
-	//TODO currently an infinitei while loop that will not finish (for checking network messages)
 	CAPI_Finish(tid);
 	pthread_exit(NULL);
 	
@@ -320,24 +335,36 @@ void* thread_main(void *threadid)
 //create the threads, have them run thread_main
 int main(int argc, char* argv[]) {
 
+   // Read in the command line arguments
+	
+	if(argc != 3) {
+		cout << "Invalid command line options. The correct format is:" << endl;
+		cout << "jacobi -n num_of_threads" << endl;
+		exit(EXIT_FAILURE);
+	}
+	else if((strcmp(argv[1], "-n\0") == 0)){
+		coreCount = atoi(argv[2]);
+	}
+	else {
+		cout << "Invalid command line options. The correct format is:" << endl;
+		cout << "jacobi -n num_of_threads" << endl;
+		exit(EXIT_FAILURE);
+	}
+
 	// Declare threads and related variables
-	pthread_t threads[2];
+	pthread_t threads[coreCount];
 	pthread_attr_t attr;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
+   for(unsigned int i=0; i < coreCount; i++) {
+		pthread_create(&threads[i], &attr, thread_main, (void *) i);    
+	}
 
-	//TODO do this for CORECOUNT times
-	if(CORE_COUNT != 2)
-		cout << "ERROR on CORE COUNT " << endl;
-
-   pthread_create(&threads[0], &attr, thread_main, (void *) 0);    
-   pthread_create(&threads[1], &attr, thread_main, (void *) 1);    
-
-	while(1);
-	pthread_join(threads[0], NULL);         
-   pthread_join(threads[1], NULL);
+   for(unsigned int i=0; i < coreCount; i++) {
+		pthread_join(threads[i], NULL);         
+	}
 
    return 0;
 

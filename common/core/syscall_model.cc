@@ -94,6 +94,10 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          called_enter = true;
          ret_val = marshallAccessCall(ctx, syscall_standard);
          break;
+      case SYS_brk:
+         //uncomment the following when our shared-mem handles mallocs properly
+         //called_enter = true;
+         break;
 
       // case SYS_exit:
       //    cerr << "exit()" << endl;
@@ -196,7 +200,6 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
 
    NetPacket recv_pkt;
    recv_pkt = the_network->netRecvFromMCP();
-   //cerr << "received from mcp" << endl;
 
    assert( recv_pkt.length >= sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);

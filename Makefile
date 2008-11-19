@@ -76,15 +76,41 @@ war:	kill
 kill:
 	killall -s 9 $(PROCESS)
 
+# below here is the splash benchmarks
+
 barnes_test: all
 	# note, the last line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/barnes
-	$(PIN_RUN) -mdc -mpf -msys -n 4 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
+	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
 
 fmm_test: all
 	# note, the 5th line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/fmm
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
+
+radiosity_test: all
+	$(MAKE) -C $(TESTS_DIR)/radiosity
+	$(PIN_RUN) -mdc -mpf -msys -n 10 -- $(TESTS_DIR)/radiosity/RADIOSITY -p 8 -batch -room
+
+ocean_test: all
+	$(MAKE) -C $(TESTS_DIR)/ocean_contig
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/ocean_contig/OCEAN -p8
+
+raytrace_test: all
+	$(MAKE) -C $(TESTS_DIR)/raytrace
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/raytrace/RAYTRACE -p8 $(TESTS_DIR)/raytrace/inputs/teapot.env
+
+volrend_test: all
+	$(MAKE) -C $(TESTS_DIR)/volrend
+	$(PIN_RUN) -mdc -mpf -msys -n 45 -- $(TESTS_DIR)/volrend/VOLREND 8 $(TESTS_DIR)/volrend/inputs/head-scaleddown2
+
+watern_test: all
+	$(MAKE) -C $(TESTS_DIR)/water-nsquared
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/water-nsquared/WATER-NSQUARED < $(TESTS_DIR)/water-nsquared/input
+
+waters_test: all
+	$(MAKE) -C $(TESTS_DIR)/water-spatial
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/water-spatial/WATER-SPATIAL < $(TESTS_DIR)/water-spatial/input
 
 love:
 	@echo "not war!"

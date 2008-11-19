@@ -21,11 +21,10 @@ CAPI_return_t chipInit(int rank)
    if ( e.first == false ) {
       g_chip->tid_map[rank] = pin_tid;    
       g_chip->core_map.insert( pin_tid, rank );
-      cerr << "chipInit initializing core: " << rank << endl;
    }   
    else
    {
-      cerr << "chipInit Error initializing core twice: " << rank << endl;
+      cerr << "chipInit Error initializing core twice: " << dec << rank << endl;
 //      ASSERT(false, "Error: Core tried to init more than once!\n");
    }
 
@@ -54,7 +53,7 @@ CAPI_return_t chipInitFreeRank(int *rank)
               g_chip->tid_map[i] = pin_tid;    
               g_chip->core_map.insert( pin_tid, i );
               *rank = i;
-              cerr << "chipInit initializing core: " << i << endl;
+//              cerr << "chipInit initializing core: " << i << endl;
               return 0;
           }
       }
@@ -63,7 +62,8 @@ CAPI_return_t chipInitFreeRank(int *rank)
    }   
    else
    {
-      cerr << "chipInit Error initializing core twice: " << rank << endl;
+//      cerr << "chipInit Error initializing FREE core twice (pin_tid): " << (int)pin_tid << endl;
+//      cerr << "chipInit: Keeping old rank: " << dec << (int)(g_chip->core_map.find(pin_tid).second) << endl;
 //      ASSERT(false, "Error: Core tried to init more than once!\n");
    }
 

@@ -108,7 +108,7 @@ VOID	InitRayTreeStack(INT TreeDepth, INT pid)
 	{
 	raystruct[pid].StackSize   = powint(2, TreeDepth) - 1;
 	raystruct[pid].StackSize  += NumSubRays;
-	raystruct[pid].Stack	    = LocalMalloc(raystruct[pid].StackSize*sizeof(RAY), "raystack.c");
+	raystruct[pid].Stack	    = (RAY *)LocalMalloc(raystruct[pid].StackSize*sizeof(RAY), "raystack.c");
 	raystruct[pid].StackTop    = -1;	  /* Empty condition. */
 	}
 

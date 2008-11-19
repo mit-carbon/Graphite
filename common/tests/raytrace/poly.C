@@ -684,8 +684,8 @@ VOID	PolyRead(OBJECT *po, FILE *pf)
 		exit(-1);
 		}
 
-	pp    = GlobalMalloc(sizeof(POLY)*po->numelements,  "poly.c");
-	vlist = GlobalMalloc(sizeof(VEC3)*(totalverts + 1), "poly.c");
+	pp    = (POLY*)GlobalMalloc(sizeof(POLY)*po->numelements,  "poly.c");
+	vlist = (VEC3*)GlobalMalloc(sizeof(VEC3)*(totalverts + 1), "poly.c");
 	vptr  = vlist;
 
 
@@ -753,7 +753,7 @@ VOID	PolyRead(OBJECT *po, FILE *pf)
 			}
 
 		pp->vptr   = vlist;
-		pp->vindex = GlobalMalloc(sizeof(INT)*pp->nverts, "poly.c");
+		pp->vindex = (INT*)GlobalMalloc(sizeof(INT)*pp->nverts, "poly.c");
 		vindex	   = pp->vindex;
 
 		for (j = 0; j < pp->nverts; j++)

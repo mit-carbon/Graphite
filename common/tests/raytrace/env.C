@@ -341,7 +341,7 @@ VOID	InitEnv()
 	 *	Stats.coverage		  = 0;
 	 */
 
-	lights	= GlobalMalloc(sizeof(LIGHT), "env.c");
+	lights	= (LIGHT*)GlobalMalloc(sizeof(LIGHT), "env.c");
 
 	bundlex = 25;
 	bundley = 25;
@@ -807,7 +807,7 @@ VOID	ReadEnvFile(CHAR *EnvFileName)
 			case OP_LIGHT:
 				lights_set = TRUE;
 				if (nlights > 0)
-					lptr = GlobalMalloc(sizeof(LIGHT), "env.c");
+					lptr = (LIGHT*)GlobalMalloc(sizeof(LIGHT), "env.c");
 				else
 					lptr = lights;
 

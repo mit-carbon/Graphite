@@ -4,7 +4,8 @@ OBJS = display.o elemman.o modelman.o patchman.o rad_main.o rad_tools.o room_mod
 HHS = model.H parallel.H patch.H radiosity.H task.H
 HS = model.h parallel.h patch.h radiosity.h task.h
 
-MACROS := ../splash_support/c.m4.null.CARBON
+# MACROS := ../splash_support/c.m4.null.CARBON
+MACROS := ../splash_support/c.m4.null.POSIX
 include ../splash_support/Makefile.config
 include ../../makefile.gnu.config
 TARGET = RADIOSITY
@@ -20,7 +21,7 @@ CFLAGS := $(CFLAGS) -I../../user -I../../phys_trans -c -g -Wall
 LOADLIBES = glibdumb/glib.a glibps/glibps.a
 
 $(TARGET): $(OBJS)
-	$(CC) $(OBJS) $(CFLAGS) $(LOADLIBES) -o $(TARGET) $(LDFLAGS)
+	$(CC) $(OBJS) $(CARBON_OBJECTS) $(LOADLIBES) -o $(TARGET) $(LDFLAGS)
 
 radiosity.h: patch.h model.h parallel.h task.h
 rad_main.c: rad_main.C $(HS)

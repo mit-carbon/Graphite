@@ -740,9 +740,9 @@ VOID	TriRead(OBJECT *po, FILE *pf)
 		exit(-1);
 		}
 
-	pt    = GlobalMalloc(sizeof(TRI )*po->numelements,  "tri.c");
-	vlist = GlobalMalloc(sizeof(VEC3)*(totalverts + 1), "tri.c");
-	nlist = GlobalMalloc(sizeof(VEC3)*totalverts,	    "tri.c");
+	pt    = (TRI*)GlobalMalloc(sizeof(TRI )*po->numelements,  "tri.c");
+	vlist = (VEC3*)GlobalMalloc(sizeof(VEC3)*(totalverts + 1), "tri.c");
+	nlist = (VEC3*)GlobalMalloc(sizeof(VEC3)*totalverts,	    "tri.c");
 
 	vptr  = vlist;
 	nptr  = nlist;

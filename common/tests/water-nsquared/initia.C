@@ -43,7 +43,8 @@ void INITIA()
     long atom=0;
     long deriv;
 
-    random_numbers = fopen("random.in","r");
+    //random_numbers = fopen("random.in","r");
+    random_numbers = fopen("common/tests/water-nsquared/random.in","r");
     if (random_numbers == NULL) {
         fprintf(stderr,"Error in opening file random.in\n");
         fflush(stderr);

@@ -201,6 +201,7 @@ int main(int argc, char *argv[])
    }
 
    MAIN_INITENV(,60000000)
+   THREAD_INIT_FREE();    
 
    jm = im;
    printf("\n");

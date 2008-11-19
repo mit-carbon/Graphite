@@ -265,7 +265,8 @@ void create_visibility_tasks(Element *e, void (*k)(), long process_id)
         {
             /* No process needs to be created. Call the continuation
                immediately */
-            (*k)( e, process_id ) ;
+            void (*_k)(Element *, long) = (void (*)(Element *, long))k;
+            (*_k)( e, process_id ) ;
             return ;
         }
 

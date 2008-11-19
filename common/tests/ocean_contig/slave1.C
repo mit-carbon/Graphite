@@ -73,6 +73,8 @@ void slave()
    double *t1c;
    double *t1d;
 
+   THREAD_INIT_FREE();    
+
    ressqr = lev_res[numlev-1] * lev_res[numlev-1];
 
    LOCK(locks->idlock)

@@ -52,11 +52,11 @@ void radiosity_averaging(Element *elem, long mode, long process_id)
             center_point( &elem->ev1->p, &elem->ev2->p, &elem->ev3->p, &pc ) ;
 
             reverse = EDGE_REVERSE( elem->e12, elem->ev1, elem->ev2 ) ;
-            foreach_leaf_edge( elem->e12, reverse, add_radiosity_to_vertex, (long)elem, (long)&pc, process_id ) ;
+            foreach_leaf_edge( elem->e12, reverse, (void (*)())add_radiosity_to_vertex, (long)elem, (long)&pc, process_id ) ;
             reverse = EDGE_REVERSE( elem->e23, elem->ev2, elem->ev3 ) ;
-            foreach_leaf_edge( elem->e23, reverse, add_radiosity_to_vertex, (long)elem, (long)&pc, process_id ) ;
+            foreach_leaf_edge( elem->e23, reverse, (void (*)())add_radiosity_to_vertex, (long)elem, (long)&pc, process_id ) ;
             reverse = EDGE_REVERSE( elem->e31, elem->ev3, elem->ev1 ) ;
-            foreach_leaf_edge( elem->e31, reverse, add_radiosity_to_vertex, (long)elem, (long)&pc, process_id ) ;
+            foreach_leaf_edge( elem->e31, reverse, (void (*)())add_radiosity_to_vertex, (long)elem, (long)&pc, process_id ) ;
         }
     else
         {
@@ -260,7 +260,7 @@ void display_patch(Patch *patch, long mode, long process_id)
 
 void display_patches_in_bsp_tree(long mode, long process_id)
 {
-    foreach_depth_sorted_patch( &view_vec, display_patch, (long)mode, process_id ) ;
+    foreach_depth_sorted_patch( &view_vec, (void (*)())display_patch, (long)mode, process_id ) ;
 }
 
 
@@ -324,7 +324,7 @@ static void _display_shaded_triangle(ElemVertex *ev1, ElemVertex *ev2, ElemVerte
 
 void display_elements_in_patch(Patch *patch, long mode, long process_id)
 {
-    foreach_leaf_element_in_patch( patch, display_element, mode, process_id ) ;
+    foreach_leaf_element_in_patch( patch, (void (*)())display_element, mode, process_id ) ;
     g_flush() ;
 }
 
@@ -337,7 +337,7 @@ void display_elements_in_patch(Patch *patch, long mode, long process_id)
 
 void display_elements_in_bsp_tree(long mode, long process_id)
 {
-    foreach_depth_sorted_patch( &view_vec, display_elements_in_patch, mode, process_id );
+    foreach_depth_sorted_patch( &view_vec, (void (*)())display_elements_in_patch, mode, process_id );
 }
 
 /************************************************************************
@@ -349,7 +349,7 @@ void display_elements_in_bsp_tree(long mode, long process_id)
 void display_interactions_in_element(Element *elem, long mode, long process_id)
 {
 
-    foreach_interaction_in_element( elem, _disp_interactions, mode, process_id ) ;
+    foreach_interaction_in_element( elem, (void (*)())_disp_interactions, mode, process_id ) ;
     g_flush() ;
 }
 
@@ -384,7 +384,7 @@ static void _disp_interactions(Element *elem, Interaction *inter, long mode, lon
 
 void display_interactions_in_patch(Patch *patch, long mode, long process_id)
 {
-    foreach_element_in_patch( patch, display_interactions_in_element, mode, process_id );
+    foreach_element_in_patch( patch, (void (*)())display_interactions_in_element, mode, process_id );
 }
 
 /************************************************************************
@@ -395,7 +395,7 @@ void display_interactions_in_patch(Patch *patch, long mode, long process_id)
 
 void display_interactions_in_bsp_tree(long process_id)
 {
-    foreach_patch_in_bsp( display_interactions_in_patch, DISPLAY_ALL_INTERACTIONS, process_id ) ;
+    foreach_patch_in_bsp( (void (*)())display_interactions_in_patch, DISPLAY_ALL_INTERACTIONS, process_id ) ;
 }
 
 
@@ -496,7 +496,7 @@ void ps_display_patch(Patch *patch, long mode, long process_id)
 
 void ps_display_patches_in_bsp_tree(long mode, long process_id)
 {
-    foreach_depth_sorted_patch( &view_vec, ps_display_patch, (long)mode, process_id ) ;
+    foreach_depth_sorted_patch( &view_vec, (void (*)())ps_display_patch, (long)mode, process_id ) ;
 }
 
 
@@ -556,7 +556,7 @@ void ps_display_element(Element *element, long mode, long process_id)
 
 void ps_display_elements_in_patch(Patch *patch, long mode, long process_id)
 {
-    foreach_leaf_element_in_patch( patch, ps_display_element, mode, process_id ) ;
+    foreach_leaf_element_in_patch( patch, (void (*)())ps_display_element, mode, process_id ) ;
 }
 
 
@@ -568,7 +568,7 @@ void ps_display_elements_in_patch(Patch *patch, long mode, long process_id)
 
 void ps_display_elements_in_bsp_tree(long mode, long process_id)
 {
-    foreach_depth_sorted_patch( &view_vec, ps_display_elements_in_patch, mode, process_id ) ;
+    foreach_depth_sorted_patch( &view_vec, (void (*)())ps_display_elements_in_patch, mode, process_id ) ;
 }
 
 /************************************************************************
@@ -579,7 +579,7 @@ void ps_display_elements_in_bsp_tree(long mode, long process_id)
 
 void ps_display_interactions_in_element(Element *elem, long mode, long process_id)
 {
-    foreach_interaction_in_element( elem, _ps_disp_interactions, mode, process_id ) ;
+    foreach_interaction_in_element( elem, (void (*)())_ps_disp_interactions, mode, process_id ) ;
 }
 
 
@@ -612,7 +612,7 @@ static void _ps_disp_interactions(Element *elem, Interaction *inter, long mode, 
 
 void ps_display_interactions_in_patch(Patch *patch, long mode, long process_id)
 {
-    foreach_element_in_patch( patch, ps_display_interactions_in_element, mode, process_id );
+    foreach_element_in_patch( patch, (void (*)())ps_display_interactions_in_element, mode, process_id );
 }
 
 /************************************************************************
@@ -623,6 +623,6 @@ void ps_display_interactions_in_patch(Patch *patch, long mode, long process_id)
 
 void ps_display_interactions_in_bsp_tree(long process_id)
 {
-    foreach_patch_in_bsp( ps_display_interactions_in_patch, DISPLAY_ALL_INTERACTIONS, process_id ) ;
+    foreach_patch_in_bsp( (void (*)())ps_display_interactions_in_patch, DISPLAY_ALL_INTERACTIONS, process_id ) ;
 }
 

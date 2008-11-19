@@ -101,7 +101,7 @@ VOID	PutJob(INT xs, INT ys, INT xe, INT ye, INT xbe, INT ybe, INT pid)
 
 			/* Initialize work pool entry. */
 
-			wpentry = GlobalMalloc(sizeof(WPJOB), "workpool.c");
+			wpentry = (WPJOB*)GlobalMalloc(sizeof(WPJOB), "workpool.c");
 
 			wpentry->xpix = xb_addr;
 			wpentry->ypix = yb_addr;

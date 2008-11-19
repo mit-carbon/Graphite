@@ -298,6 +298,7 @@ int main (int argc, string argv[])
 void ANLinit()
 {
    MAIN_INITENV(,70000000,);
+   THREAD_INIT_FREE();
    /* Allocate global, shared memory */
 
    Global = (struct GlobalMemory *) G_MALLOC(sizeof(struct GlobalMemory));
@@ -385,6 +386,8 @@ void tab_init()
 void SlaveStart()
 {
    long ProcessId;
+
+   THREAD_INIT_FREE();
 
    /* Get unique ProcessId */
    LOCK(Global->CountLock);
@@ -660,7 +663,7 @@ void stepsystem(long ProcessId)
     }
 
     Local[ProcessId].mynbody = 0;
-    find_my_bodies(Global->G_root, 0, BRC_FUC, ProcessId );
+    find_my_bodies((node*)Global->G_root, 0, BRC_FUC, ProcessId );
 
 /*     B*RRIER(Global->Barcom,NPROC); */
     if ((ProcessId == 0) && (Local[ProcessId].nstep >= 2)) {

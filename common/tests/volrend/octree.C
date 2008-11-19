@@ -150,6 +150,8 @@ void Compute_Base()
   long xstart,xstop,ystart,ystop;
   long my_node;
 
+  THREAD_INIT_FREE();
+
   LOCK(Global->IndexLock);
   my_node = Global->Index++;
   UNLOCK(Global->IndexLock);
@@ -213,6 +215,8 @@ void Or_Neighbors_In_Base()
   long pmap_partition,zstart,zstop;
   long my_node;
 
+  THREAD_INIT_FREE();
+
   LOCK(Global->IndexLock);
   my_node = Global->Index++;
   UNLOCK(Global->IndexLock);
@@ -269,9 +273,7 @@ need this barrier either.
 }
 
 
-void Allocate_Pyramid_Level(address, length)
-     BYTE **address;
-     long length;
+void Allocate_Pyramid_Level(BYTE **address,long length)
 {
   long i;
 
@@ -296,8 +298,7 @@ on all processors, then replace the macro below with a regular malloc.
 }
 
 
-void Compute_Pyramid_Level(level)
-     long level;
+void Compute_Pyramid_Level(long level)
 {
   long outx,outy,outz;	/* Loop indices in image space               */
   long inx,iny,inz;
@@ -332,8 +333,7 @@ void Compute_Pyramid_Level(level)
 }
 
 
-void Load_Octree(filename)
-     char filename[];
+void Load_Octree(char filename [])
 {
   char local_filename[FILENAME_STRING_SIZE];
   int fd;
@@ -362,8 +362,7 @@ void Load_Octree(filename)
 }
 
 
-void Store_Octree(filename)
-char filename[];
+void Store_Octree(char filename [])
 {
   char local_filename[FILENAME_STRING_SIZE];
   int fd;

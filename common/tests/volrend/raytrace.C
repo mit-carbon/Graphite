@@ -37,9 +37,7 @@ extern long traversal_time,trilirp_time,init_time,composite_time;
 
 EXTERN_ENV
 
-void Trace_Ray(foutx, fouty, pixel_address)
-     float foutx, fouty;
-     PIXEL *pixel_address;
+void Trace_Ray(double foutx, double fouty, PIXEL *pixel_address)
 {
   float ray[2][NM];	        /* Frustrum and option, but not input map,   */
                                 /*   clipped object space coordinates of ray */

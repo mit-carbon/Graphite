@@ -95,7 +95,7 @@ void gravsub(register nodeptr p, long ProcessId)
 
 void hackwalk(long ProcessId)
 {
-    walksub(Global->G_root, Global->rsize * Global->rsize, ProcessId);
+    walksub((node*)Global->G_root, Global->rsize * Global->rsize, ProcessId);
 }
 
 /*
@@ -122,7 +122,7 @@ void walksub(nodeptr n, real dsq, long ProcessId)
 	 for (i = 0; i < l->num_bodies; i++) {
 	    p = Bodyp(l)[i];
 	    if (p != Local[ProcessId].pskip) {
-	       gravsub(p, ProcessId);
+	       gravsub((node*)p, ProcessId);
 	    }
 	    else {
 	       Local[ProcessId].skipself = TRUE;

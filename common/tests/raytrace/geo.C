@@ -41,16 +41,16 @@
 
 static	PPROCS	SphProcs =
 	{
-	SphName,
-	SphPrint,
-	SphRead,
+	(CHAR* (*)())SphName,
+	(VOID (*)())SphPrint,
+	(VOID (*)())SphRead,
 	NULL,
-	SphTransform,
-	SphIntersect,
-	SphPeIntersect,
-	SphNormal,
-	SphDataNormalize,
-	SphBoundBox
+	(VOID (*)())SphTransform,
+	(INT (*)())SphIntersect,
+	(INT (*)())SphPeIntersect,
+	(VOID (*)())SphNormal,
+	(VOID (*)())SphDataNormalize,
+	(VOID (*)())SphBoundBox
 	};
 
 /*
@@ -59,16 +59,16 @@ static	PPROCS	SphProcs =
 
 static	PPROCS	PolyProcs =
 	{
-	PolyName,
-	PolyPrint,
-	PolyRead,
+	(CHAR* (*)())PolyName,
+	(VOID (*)())PolyPrint,
+	(VOID (*)())PolyRead,
 	NULL,
-	PolyTransform,
-	PolyIntersect,
-	PolyPeIntersect,
-	PolyNormal,
-	PolyDataNormalize,
-	PolyBoundBox
+	(VOID (*)())PolyTransform,
+	(INT (*)())PolyIntersect,
+	(INT (*)())PolyPeIntersect,
+	(VOID (*)())PolyNormal,
+	(VOID (*)())PolyDataNormalize,
+	(VOID (*)())PolyBoundBox
 	};
 
 
@@ -79,16 +79,16 @@ static	PPROCS	PolyProcs =
 
 static	PPROCS	TriProcs =
 	{
-	TriName,
-	TriPrint,
-	TriRead,
+	(CHAR* (*)())TriName,
+	(VOID (*)())TriPrint,
+	(VOID (*)())TriRead,
 	NULL,
-	TriTransform,
-	TriIntersect,
-	TriPeIntersect,
-	TriNormal,
-	TriDataNormalize,
-	TriBoundBox
+	(VOID (*)())TriTransform,
+	(INT (*)())TriIntersect,
+	(INT (*)())TriPeIntersect,
+	(VOID (*)())TriNormal,
+	(VOID (*)())TriDataNormalize,
+	(VOID (*)())TriBoundBox
 	};
 
 
@@ -123,7 +123,7 @@ ELEMENT **MakeElementArray(INT *totalElements)
 		}
 
 	po    = gm->modelroot;
-	npepa = ObjectMalloc(OT_PEPARRAY, *totalElements);
+	npepa = (ELEMENT**)ObjectMalloc(OT_PEPARRAY, *totalElements);
 
 	while (po)
 		{
@@ -164,7 +164,7 @@ VOID	PrintGeo(OBJECT *po)
 			po->surf->kdiff, po->surf->kspec, po->surf->ktran,
 			po->surf->refrindex, po->surf->kspecn);
 
-		(*po->procs->print)(po);
+		((void (*)(OBJECT*))(*po->procs->print))(po);
 		po = po->next;
 		}
 	}
@@ -245,7 +245,7 @@ VOID	NormalizeGeo(OBJECT *po, MATRIX model, MATRIX modelInvT)
 
 		while (po)
 			{
-			(*po->procs->normalize)(po, normMat);
+			((void (*)(OBJECT*,MATRIX))(*po->procs->normalize))(po, normMat);
 			po = po->next;
 			}
 		}
@@ -351,7 +351,7 @@ VOID	ReadGeoFile(CHAR *GeoFileName)
 
 		prim_obj_cnt++;
 
-		curr	    = GlobalMalloc(sizeof(OBJECT), "geo.c");
+		curr	    = (OBJECT*)GlobalMalloc(sizeof(OBJECT), "geo.c");
 		curr->index = prim_obj_cnt;
 		curr->next  = NULL;
 
@@ -365,7 +365,7 @@ VOID	ReadGeoFile(CHAR *GeoFileName)
 
 		/* Get surface characteristics. */
 
-		ps = GlobalMalloc(sizeof(SURF), "geo.c");
+		ps = (SURF*)GlobalMalloc(sizeof(SURF), "geo.c");
 		curr->surf = ps;
 
 		stat = fscanf(pf, "%lf %lf %lf %lf %lf %lf",
@@ -437,7 +437,7 @@ VOID	ReadGeoFile(CHAR *GeoFileName)
 
 		/* Allocate primitive elements and create indices. */
 
-		pe = GlobalMalloc(sizeof(ELEMENT)*curr->numelements, "geo.c");
+		pe = (ELEMENT*)GlobalMalloc(sizeof(ELEMENT)*curr->numelements, "geo.c");
 		curr->pelem = pe;
 
 		prim_elem_cnt += curr->numelements;
@@ -448,9 +448,9 @@ VOID	ReadGeoFile(CHAR *GeoFileName)
 
 		/* Read, transform, and compute bounding box for object. */
 
-		(*curr->procs->read)(curr, pf);
-		(*curr->procs->transform)(curr, model, modelInvT);
-		(*curr->procs->bbox)(curr);
+		((void (*)(OBJECT*, FILE*))(*curr->procs->read))(curr, pf);
+		((void (*)(OBJECT*, MATRIX, MATRIX))(*curr->procs->transform))(curr, model, modelInvT);
+		((void (*)(OBJECT*))(*curr->procs->bbox))(curr);
 
 		prev = curr;
 		}

@@ -158,15 +158,15 @@ GRID	*init_world_grid(VOXEL	*v, ELEMENT **pepa, INT	num_pe)
 	GRID	*g;
 	VOXEL	**ht;
 
-	g  = ObjectMalloc(OT_GRID, 1);
+	g  = (GRID*)ObjectMalloc(OT_GRID, 1);
 	g->id = grids++;
 
-	ht = ObjectMalloc(OT_HASHTABLE, 1);
+	ht = (VOXEL**)ObjectMalloc(OT_HASHTABLE, 1);
 
 	g->hashtable	= ht;
 	g->hashtable[0] = v;
 
-	ec = ObjectMalloc(OT_EMPTYCELLS, 1);
+	ec = (UINT*)ObjectMalloc(OT_EMPTYCELLS, 1);
 
 	g->emptycells	 = ec;
 	g->emptycells[0] = 0;	    /* nonempty */
@@ -220,7 +220,7 @@ VOXEL	*init_world_voxel(ELEMENT **pepa, INT	numelements)
 	{
 	VOXEL	*v;
 
-	v = ObjectMalloc(OT_VOXEL, 1);
+	v = (VOXEL*)ObjectMalloc(OT_VOXEL, 1);
 
 	nonempty_voxels++;
 
@@ -352,7 +352,7 @@ ELEMENT **prims_in_box2(ELEMENT **pepa, INT n_in, BBOX b, INT *n)
 	eps  = max * 1.0E-6;
 
 	if (n_in > 0)
-		npepa = ObjectMalloc(OT_PEPARRAY, n_in);
+		npepa = (ELEMENT**)ObjectMalloc(OT_PEPARRAY, n_in);
 	else
 		{
 		npepa = NULL;
@@ -437,7 +437,7 @@ BTNODE	*init_bintree(GRID *ng)
 	{
 	BTNODE	*btn;
 
-	btn = ObjectMalloc(OT_BINTREE, 1);
+	btn = (BTNODE*)ObjectMalloc(OT_BINTREE, 1);
 
 	btn->btn[0] = NULL;
 	btn->btn[1] = NULL;
@@ -519,8 +519,8 @@ VOID	subdiv_bintree(BTNODE *btn, GRID *g)
 		n1 = btn->n[imax] / 2;
 		n2 = btn->n[imax] - n1;
 
-		btn1 = ObjectMalloc(OT_BINTREE, 1);
-		btn2 = ObjectMalloc(OT_BINTREE, 1);
+		btn1 = (BTNODE*)ObjectMalloc(OT_BINTREE, 1);
+		btn2 = (BTNODE*)ObjectMalloc(OT_BINTREE, 1);
 
 		btn->btn[0] = btn1;
 		btn->btn[1] = btn2;
@@ -807,16 +807,16 @@ GRID	*create_grid(VOXEL *v, GRID *g, INT num_prims)
 	BTNODE	*bintree;
 	ELEMENT **pepa;
 
-	ng = ObjectMalloc(OT_GRID, 1);
+	ng = (GRID*)ObjectMalloc(OT_GRID, 1);
 	ng->id = grids++;
 
-	ht = ObjectMalloc(OT_HASHTABLE, hu_numbuckets);
+	ht = (VOXEL**)ObjectMalloc(OT_HASHTABLE, hu_numbuckets);
 	ng->hashtable = ht;
 
 	ncells = (R64)(hu_gridsize * hu_gridsize * hu_gridsize);
 	total_cells += ncells;
 
-	ec = ObjectMalloc(OT_EMPTYCELLS, (INT)ncells);
+	ec = (UINT*)ObjectMalloc(OT_EMPTYCELLS, (INT)ncells);
 	ng->emptycells = ec;
 
 	ng->num_prims	= num_prims;
@@ -877,7 +877,7 @@ GRID	*create_grid(VOXEL *v, GRID *g, INT num_prims)
 					nonempty_voxels++;
 					mark_nonempty(index1D, ng);
 
-					nv = ObjectMalloc(OT_VOXEL, 1);
+					nv = (VOXEL*)ObjectMalloc(OT_VOXEL, 1);
 
 					nv->id		= index1D;
 					nv->celltype	= GSM_VOXEL;

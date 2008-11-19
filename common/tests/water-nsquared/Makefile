@@ -1,6 +1,7 @@
 TARGET = WATER-NSQUARED
 OBJS = bndry.o cnstnt.o cshift.o initia.o interf.o intraf.o kineti.o mdmain.o poteng.o predcor.o syscons.o water.o
 
+# MACROS := ../splash_support/c.m4.null.POSIX
 MACROS := ../splash_support/c.m4.null.CARBON
 include ../splash_support/Makefile.config
 include ../../makefile.gnu.config

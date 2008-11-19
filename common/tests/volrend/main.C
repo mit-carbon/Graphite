@@ -74,6 +74,7 @@ int main(int argc, char *argv[])
   }
 
   MAIN_INITENV(, SH_MEM_AMT);
+  THREAD_INIT_FREE();
 
   num_nodes = atol(argv[1]);
 
@@ -233,6 +234,8 @@ void Render_Loop()
   long image_partition,mask_image_partition;
   float inv_num_nodes;
   long my_node;
+
+  THREAD_INIT_FREE();
 
   LOCK(Global->IndexLock);
   my_node = Global->Index++;

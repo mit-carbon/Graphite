@@ -56,7 +56,7 @@ BOOL	Intersect(RAY *pr, IRECORD *hit)
 
 	while (po)
 		{
-		if ((*po->procs->intersect)(pr, po, &newhit))
+		if (((int (*)(RAY *, OBJECT*, IRECORD*))(*po->procs->intersect))(pr, po, &newhit))
 			if (newhit.t < hit[0].t)
 				*hit = newhit;
 
@@ -99,7 +99,7 @@ REAL	ShadowIntersect(RAY *pr, REAL lightdist, ELEMENT *pe)
 
 	while (po && trans > 0.0)
 		{
-		if ((*po->procs->intersect)(pr, po, &newhit) && newhit.pelem != pe && newhit.t < lightdist)
+		if (((int (*)(RAY*, OBJECT*, IRECORD*)) (*po->procs->intersect))(pr, po, &newhit) && newhit.pelem != pe && newhit.t < lightdist)
 			trans *= newhit.pelem->parent->surf->ktran;
 
 		po = po->next;

@@ -67,8 +67,10 @@ static void _foreach_patch(Patch *node, void (*func)(), long   arg1, long proces
     if( node->bsp_negative )
         _foreach_patch( node->bsp_negative, func, arg1, process_id ) ;
 
+    void (*_func)(Patch *, long, long) = (void (*)(Patch *, long, long))func;
+
     /* Apply function to this node */
-    func( node, arg1, process_id ) ;
+    _func( node, arg1, process_id ) ;
 
     /* Process subtree(+) */
     if( node->bsp_positive )
@@ -113,8 +115,10 @@ static void _foreach_d_s_patch(Vertex *svec, Patch *node, void (*func)(), long a
             if( node->bsp_negative )
                 _foreach_d_s_patch( svec, node->bsp_negative, func, arg1, process_id ) ;
 
+            void (*_func)(Patch *, long, long) = (void (*)(Patch *, long, long))func;
+
             /* Apply function to this node */
-            func( node, arg1, process_id ) ;
+            _func( node, arg1, process_id ) ;
 
             /* Process subtree(+) */
             if( node->bsp_positive )
@@ -126,8 +130,10 @@ static void _foreach_d_s_patch(Vertex *svec, Patch *node, void (*func)(), long a
             if( node->bsp_positive )
                 _foreach_d_s_patch( svec, node->bsp_positive, func, arg1, process_id ) ;
 
+            void (*_func)( Patch *, long, long) = (void (*)(Patch *, long, long))func;
+
             /* Apply function to this node */
-            func( node, arg1, process_id ) ;
+            _func( node, arg1, process_id ) ;
 
             /* Process subtree(-) */
             if( node->bsp_negative )
@@ -193,7 +199,7 @@ void define_patch(Patch *patch, Patch *root, long process_id)
                             attach_element( patch, process_id ) ;
                             UNLOCK(global->bsp_tree_lock);
 
-                            foreach_patch_in_bsp( refine_newpatch, (long)patch, process_id ) ;
+                            foreach_patch_in_bsp( (void (*)())refine_newpatch, (long)patch, process_id ) ;
                             return ;
                         }
                     else
@@ -210,7 +216,7 @@ void define_patch(Patch *patch, Patch *root, long process_id)
                             attach_element( patch, process_id ) ;
                             UNLOCK(global->bsp_tree_lock);
 
-                            foreach_patch_in_bsp( refine_newpatch, (long)patch, process_id ) ;
+                            foreach_patch_in_bsp( (void (*)())refine_newpatch, (long)patch, process_id ) ;
                             return ;
                         }
                     else
@@ -289,7 +295,7 @@ static void split_into_3(Patch *patch, ElemVertex *ev1, ElemVertex *ev2, ElemVer
     ElemVertex *ev_b ;	   /* Intersection of P1-P3 & the patch */
     float h1, h2, h3 ;
     float u2, u3 ;
-    Patch *new ;
+    Patch *_new ;
     Edge  *e_ab, *e_3a ;
     long   rev_e12, rev_e31 ;
 
@@ -318,44 +324,44 @@ static void split_into_3(Patch *patch, ElemVertex *ev1, ElemVertex *ev2, ElemVer
     /* Now insert patches in the tree */
 
     /* (1) Put P1-Pa-Pb */
-    new = get_patch(process_id) ;
-    new->p1        = ev1->p ;
-    new->p2        = ev_a->p ;
-    new->p3        = ev_b->p ;
+    _new = get_patch(process_id) ;
+    _new->p1        = ev1->p ;
+    _new->p2        = ev_a->p ;
+    _new->p3        = ev_b->p ;
 
-    new->ev1       = ev1 ;
-    new->ev2       = e12->ea->pb ;
-    new->ev3       = e31->ea->pb ;
+    _new->ev1       = ev1 ;
+    _new->ev2       = e12->ea->pb ;
+    _new->ev3       = e31->ea->pb ;
 
-    new->e12       = (!rev_e12)? e12->ea : e12->eb ;
-    new->e23       = e_ab = create_edge(ev_a, ev_b, process_id ) ;
-    new->e31       = (!rev_e31)? e31->eb : e31->ea ;
+    _new->e12       = (!rev_e12)? e12->ea : e12->eb ;
+    _new->e23       = e_ab = create_edge(ev_a, ev_b, process_id ) ;
+    _new->e31       = (!rev_e31)? e31->eb : e31->ea ;
 
-    new->plane_equ = patch->plane_equ ;
-    new->area      = u2 * u3 * patch->area ;
-    new->color     = patch->color ;
-    new->emittance = patch->emittance ;
-    define_patch( new, parent, process_id ) ;
+    _new->plane_equ = patch->plane_equ ;
+    _new->area      = u2 * u3 * patch->area ;
+    _new->color     = patch->color ;
+    _new->emittance = patch->emittance ;
+    define_patch( _new, parent, process_id ) ;
 
     /* (2) Put Pa-P2-P3 */
-    new = get_patch(process_id) ;
-    new->p1        = ev_a->p ;
-    new->p2        = ev2->p ;
-    new->p3        = ev3->p ;
+    _new = get_patch(process_id) ;
+    _new->p1        = ev_a->p ;
+    _new->p2        = ev2->p ;
+    _new->p3        = ev3->p ;
 
-    new->ev1       = ev_a ;
-    new->ev2       = ev2 ;
-    new->ev3       = ev3 ;
+    _new->ev1       = ev_a ;
+    _new->ev2       = ev2 ;
+    _new->ev3       = ev3 ;
 
-    new->e12       = (!rev_e12)? e12->eb : e12->ea ;
-    new->e23       = e23 ;
-    new->e31       = e_3a = create_edge( ev3, ev_a, process_id ) ;
+    _new->e12       = (!rev_e12)? e12->eb : e12->ea ;
+    _new->e23       = e23 ;
+    _new->e31       = e_3a = create_edge( ev3, ev_a, process_id ) ;
 
-    new->plane_equ = patch->plane_equ ;
-    new->area      = (1.0 - u2) * patch->area ;
-    new->color     = patch->color ;
-    new->emittance = patch->emittance ;
-    define_patch( new, parent, process_id ) ;
+    _new->plane_equ = patch->plane_equ ;
+    _new->area      = (1.0 - u2) * patch->area ;
+    _new->color     = patch->color ;
+    _new->emittance = patch->emittance ;
+    define_patch( _new, parent, process_id ) ;
 
     /* (3) Put Pa-P3-Pb. Reuse the original patch */
     patch->p1      = ev_a->p ;
@@ -381,7 +387,7 @@ static void split_into_2(Patch *patch, ElemVertex *ev1, ElemVertex *ev2, ElemVer
     Edge *e_a1 ;
     float h2, h3 ;
     float u2 ;
-    Patch *new ;
+    Patch *_new ;
     long  rev_e23 ;
 
     /* Compute intersection in terms of parameterized distance from P2 */
@@ -401,25 +407,25 @@ static void split_into_2(Patch *patch, ElemVertex *ev1, ElemVertex *ev2, ElemVer
     /* Now put patches in the tree */
 
     /* (1) Put P1-P2-Pa */
-    new = get_patch(process_id) ;
+    _new = get_patch(process_id) ;
 
-    new->p1        = ev1->p ;
-    new->p2        = ev2->p ;
-    new->p3        = ev_a->p ;
+    _new->p1        = ev1->p ;
+    _new->p2        = ev2->p ;
+    _new->p3        = ev_a->p ;
 
-    new->ev1       = ev1 ;
-    new->ev2       = ev2 ;
-    new->ev3       = ev_a ;
+    _new->ev1       = ev1 ;
+    _new->ev2       = ev2 ;
+    _new->ev3       = ev_a ;
 
-    new->e12       = e12 ;
-    new->e23       = (!rev_e23)? e23->ea : e23->eb ;
-    new->e31       = e_a1 = create_edge( ev_a, ev1, process_id ) ;
+    _new->e12       = e12 ;
+    _new->e23       = (!rev_e23)? e23->ea : e23->eb ;
+    _new->e31       = e_a1 = create_edge( ev_a, ev1, process_id ) ;
 
-    new->plane_equ = patch->plane_equ ;
-    new->area      = u2 * patch->area ;
-    new->color     = patch->color ;
-    new->emittance = patch->emittance ;
-    define_patch( new, parent, process_id ) ;
+    _new->plane_equ = patch->plane_equ ;
+    _new->area      = u2 * patch->area ;
+    _new->color     = patch->color ;
+    _new->emittance = patch->emittance ;
+    define_patch( _new, parent, process_id ) ;
 
     /* (2) Put P1-Pa-P3.  Reuse the original patch */
     patch->p1      = ev1->p ;
@@ -629,7 +635,7 @@ void print_patch(Patch *patch, long process_id)
 void print_bsp_tree(long process_id)
 {
     printf( "**** BSP TREE ***\n" ) ;
-    foreach_patch_in_bsp( _pr_patch, 0, process_id ) ;
+    foreach_patch_in_bsp( (void (*)())_pr_patch, 0, process_id ) ;
     printf( "\n\n" ) ;
 }
 

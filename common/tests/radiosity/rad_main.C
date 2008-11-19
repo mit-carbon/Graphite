@@ -88,13 +88,13 @@ include(radiosity.h)
 #define N_SLIDERS (5)
 
   slider sliders[N_SLIDERS] = {
-      { "View(X)  deg ", -100,  100, (long)DFLT_VIEW_ROT_X,  5,  change_view_x },
-      { "View(Y)  deg ", -100,  100, (long)DFLT_VIEW_ROT_Y,  5,  change_view_y },
-      { "View(Zoom)   ",   0,  50, (long)DFLT_VIEW_ZOOM*10,6,  change_view_zoom },
+      { "View(X)  deg ", -100,  100, (long)DFLT_VIEW_ROT_X,  5,  (void (*)())change_view_x },
+      { "View(Y)  deg ", -100,  100, (long)DFLT_VIEW_ROT_Y,  5,  (void (*)())change_view_y },
+      { "View(Zoom)   ",   0,  50, (long)DFLT_VIEW_ZOOM*10,6,  (void (*)())change_view_zoom },
       { "BF-e      0.1%",  0,  50,  (long)(DEFAULT_BFEPSILON *1000.0),
-            11, change_BFepsilon },
+            11, (void (*)())change_BFepsilon },
       { "Area-e       ",   0, 5000, (long)DEFAULT_AREA_EPSILON,
-            11, change_area_epsilon },
+            11, (void (*)())change_area_epsilon },
   } ;
 
 #define N_CHOICES (4)
@@ -117,18 +117,18 @@ include(radiosity.h)
   choice choices[N_CHOICES] = {
       { "Run",
             { "Run", "Step", "Reset", 0 },
-            0, start_radiosity },
+            0, (void (*)())start_radiosity },
       { "Display",
             { "Filled",   "Smooth shading", "Show polygon edges",
                   "Show element edges",  "Show interactions", 0 },
-            0, change_display },
+            0, (void (*)())change_display },
       { "Models",
             { "Test", "Room", "LargeRoom", 0 },
-            0, select_model },
+            0, (void (*)())select_model },
       { "Tools",
             { "HardCopy(PS)", "Statistics", "Statistics(file)",
                   "Clear Radiosity Value", 0 },
-            0, utility_tools },
+            0, (void (*)())utility_tools },
   } ;
 
   /***************************************
@@ -166,6 +166,8 @@ int main(int argc, char *argv[])
 
     /* Initialize ANL macro */
     MAIN_INITENV(,60000000) ;
+
+    THREAD_INIT_FREE();
 
     /* Allocate global shared memory and initialize */
     global = (Global *) G_MALLOC(sizeof(Global)) ;
@@ -783,6 +785,8 @@ void radiosity()
     long process_id;
     long rad_start, refine_done, vertex_start, vertex_done;
 
+    THREAD_INIT_FREE();
+
     LOCK(global->index_lock);
     process_id = global->index++;
     UNLOCK(global->index_lock);
@@ -920,12 +924,12 @@ long init_ray_tasks(long process_id)
     global->cost_estimate_sum = 0 ;
 
     /* layered selection of tasks */
-    foreach_patch_in_bsp( _INIT_RAY_TASK, 2, process_id ) ;
-    foreach_patch_in_bsp( _INIT_RAY_TASK, 1, process_id ) ;
+    foreach_patch_in_bsp( (void (*)())_INIT_RAY_TASK, 2, process_id ) ;
+    foreach_patch_in_bsp( (void (*)())_INIT_RAY_TASK, 1, process_id ) ;
 #endif
 
     /* Create BF refinement tasks */
-    foreach_patch_in_bsp( _INIT_RAY_TASK, 0, process_id ) ;
+    foreach_patch_in_bsp( (void (*)())_INIT_RAY_TASK, 0, process_id ) ;
 
     return( 1 ) ;
 }
@@ -1019,7 +1023,7 @@ void init_radavg_tasks(long mode, long process_id)
         return ;
 
     /* Create RadAvg tasks */
-    foreach_patch_in_bsp( _init_radavg_tasks, mode, process_id ) ;
+    foreach_patch_in_bsp( (void (*)())_init_radavg_tasks, mode, process_id ) ;
 }
 
 

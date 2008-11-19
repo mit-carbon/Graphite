@@ -55,8 +55,7 @@ DENSITY *map_address;		/* Pointer to map                            */
 EXTERN_ENV
 
 
-void Load_Map(filename)
-     char filename[];
+void Load_Map(char filename [])
 {
   char local_filename[FILENAME_STRING_SIZE];
   int fd;
@@ -92,9 +91,7 @@ void Load_Map(filename)
 }
 
 
-void Allocate_Map(address, length)
-     DENSITY **address;
-     long length;
+void Allocate_Map(DENSITY **address,long length)
 {
   long i;
 
@@ -111,8 +108,7 @@ void Allocate_Map(address, length)
 }
 
 
-void Deallocate_Map(address)
-DENSITY **address;
+void Deallocate_Map(DENSITY **address)
 {
   printf("    Deallocating density map...\n");
 

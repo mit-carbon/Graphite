@@ -7,7 +7,7 @@
 TARGET = glibps.a
 OBJS   = glibps.o
 
-include ../../splash_support/Makefile.config
+# include ../../splash_support/Makefile.config
 
 $(TARGET): $(OBJS)
 	ar crv $(TARGET) $(OBJS)

@@ -765,5 +765,8 @@ void visibility_task(Element *elem, Interaction *inter, long n_inter, void (*k)(
 
     /* Call continuation if this is the last task finished. */
     if( new_vis_undef_count == 0 )
-        k( elem, process_id ) ;
+    {
+       void (*_k)(Element *, long) = (void (*)(Element *, long))k;
+        _k( elem, process_id ) ;
+    }
 }

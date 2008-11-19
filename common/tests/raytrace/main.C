@@ -183,6 +183,8 @@ VOID	StartRayTrace()
 	UINT	begin;
 	UINT	end;
 
+   THREAD_INIT_FREE();
+
 	LOCK(gm->pidlock)
 	pid = gm->pid++;
 	UNLOCK(gm->pidlock)
@@ -336,6 +338,7 @@ int	main(int argc, CHAR *argv[])
 
 	MaxGlobMem <<= 20;			/* Convert MB to bytes.      */
 	MAIN_INITENV(,MaxGlobMem + 512*1024)
+   THREAD_INIT_FREE();
 	gm = (GMEM *)G_MALLOC(sizeof(GMEM));
 
 

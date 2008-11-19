@@ -26,6 +26,7 @@
  *
  */
 
+#include "stdio.h"
 
 #define huge
 
@@ -714,56 +715,56 @@ typedef struct  tri
  *	Define flags and associated types.
  */
 
-INT	DataType;			/* Ascii or binary geometry file.    */
+extern INT	DataType;			/* Ascii or binary geometry file.    */
 
-INT	TraversalType;			/* Linked list or HUG traversal.     */
+extern INT	TraversalType;			/* Linked list or HUG traversal.     */
 
-INT	bundlex, bundley;		/* Bundle sizes for workpools.	     */
-INT	blockx, blocky; 		/* Block sizes for workpools.	     */
-INT	NumSubRays;			/* Number of subpixel rays to calc.  */
+extern INT	bundlex, bundley;		/* Bundle sizes for workpools.	     */
+extern INT	blockx, blocky; 		/* Block sizes for workpools.	     */
+extern INT	NumSubRays;			/* Number of subpixel rays to calc.  */
 
-BOOL	GeoFile;			/* TRUE if geometry file name found. */
-BOOL	PicFile;			/* TRUE if picture file name found.  */
-BOOL	ModelNorm;			/* TRUE if model must be normalized. */
-BOOL	ModelTransform; 		/* TRUE if model transform present.  */
-BOOL	AntiAlias;			/* TRUE if antialiasing enabled.     */
+extern BOOL	GeoFile;			/* TRUE if geometry file name found. */
+extern BOOL	PicFile;			/* TRUE if picture file name found.  */
+extern BOOL	ModelNorm;			/* TRUE if model must be normalized. */
+extern BOOL	ModelTransform; 		/* TRUE if model transform present.  */
+extern BOOL	AntiAlias;			/* TRUE if antialiasing enabled.     */
 
-CHAR	*ProgName;			/* The program name.		     */
-CHAR	GeoFileName[80];		/* Geometry file name.		     */
-CHAR	PicFileName[80];		/* Picture file name.		     */
+extern CHAR	*ProgName;			/* The program name.		     */
+extern CHAR	GeoFileName[80];		/* Geometry file name.		     */
+extern CHAR	PicFileName[80];		/* Picture file name.		     */
 
-VIEW	View;				/* Viewing parameters.		     */
-DISPLAY Display;			/* Display parameters.		     */
-LIGHT	*lights;			/* Ptr to light list.		     */
-INT	nlights;			/* Number of lights in scene.	     */
+extern VIEW	View;				/* Viewing parameters.		     */
+extern DISPLAY Display;			/* Display parameters.		     */
+extern LIGHT	*lights;			/* Ptr to light list.		     */
+extern INT	nlights;			/* Number of lights in scene.	     */
 
-GMEM	*gm;				/* Ptr to global memory structure.   */
+extern GMEM	*gm;				/* Ptr to global memory structure.   */
 
 
 
-GRID	*world_level_grid;		/* Zero level grid pointer.	     */
-GRID	*gridlist;
+extern GRID	*world_level_grid;		/* Zero level grid pointer.	     */
+extern GRID	*gridlist;
 
-INT	hu_max_prims_cell;		/* Max # of prims per cell.	     */
-INT	hu_gridsize;			/* Grid size.			     */
-INT	hu_numbuckets;			/* Hash table bucket size.	     */
-INT	hu_max_subdiv_level;		/* Maximum level of hierarchy.	     */
-INT	hu_lazy;			/* Lazy evaluation indicator.	     */
+extern INT	hu_max_prims_cell;		/* Max # of prims per cell.	     */
+extern INT	hu_gridsize;			/* Grid size.			     */
+extern INT	hu_numbuckets;			/* Hash table bucket size.	     */
+extern INT	hu_max_subdiv_level;		/* Maximum level of hierarchy.	     */
+extern INT	hu_lazy;			/* Lazy evaluation indicator.	     */
 
-INT	prim_obj_cnt;			/* Totals for model.		     */
-INT	prim_elem_cnt;
-INT	subdiv_cnt;
-INT	bintree_cnt;
+extern INT	prim_obj_cnt;			/* Totals for model.		     */
+extern INT	prim_elem_cnt;
+extern INT	subdiv_cnt;
+extern INT	bintree_cnt;
 
-INT	grids;
-INT	total_cells;
-INT	empty_voxels;
-INT	nonempty_voxels;
-INT	nonempty_leafs;
-INT	prims_in_leafs;
+extern INT	grids;
+extern INT	total_cells;
+extern INT	empty_voxels;
+extern INT	nonempty_voxels;
+extern INT	nonempty_leafs;
+extern INT	prims_in_leafs;
 
-UINT	empty_masks[sizeof(UINT)*8];
-UINT	nonempty_masks[sizeof(UINT)*8];
+extern UINT	empty_masks[sizeof(UINT)*8];
+extern UINT	nonempty_masks[sizeof(UINT)*8];
 
 
 

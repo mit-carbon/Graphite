@@ -69,9 +69,7 @@ void Compute_Opacity()
 }
 
 
-void Allocate_Opacity(address, length)
-     OPACITY **address;
-     long length;
+void Allocate_Opacity(OPACITY **address,long length)
 {
   long i;
 
@@ -103,6 +101,8 @@ void Opacity_Compute()
   long num_xqueue,num_yqueue,num_zqueue,num_queue;
   long xstart,xstop,ystart,ystop;
   long my_node;
+
+  THREAD_INIT_FREE();
 
   LOCK(Global->IndexLock);
   my_node = Global->Index++;
@@ -174,8 +174,7 @@ void Opacity_Compute()
 }
 
 
-void Load_Opacity(filename)
-     char filename[];
+void Load_Opacity(char filename [])
 {
   char local_filename[FILENAME_STRING_SIZE];
   int fd;
@@ -200,8 +199,7 @@ void Load_Opacity(filename)
 }
 
 
-void Store_Opacity(filename)
-char filename[];
+void Store_Opacity(char filename [])
 {
   char local_filename[FILENAME_STRING_SIZE];
   int fd;
@@ -225,8 +223,7 @@ char filename[];
 }
 
 
-void Deallocate_Opacity(address)
-OPACITY **address;
+void Deallocate_Opacity(OPACITY **address)
 {
   printf("    Deallocating opacity map...\n");
 

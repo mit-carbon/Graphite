@@ -152,6 +152,7 @@ int main(int argc, char **argv)
 
         MAIN_INITENV(,70000000,);  /* macro call to initialize
                                       shared memory etc. */
+        THREAD_INIT_FREE();
 
         /* allocate space for main (VAR) data structure as well as
            synchronization variables */
@@ -269,6 +270,10 @@ void WorkStart() /* routine that each created process starts at;
 {
     long ProcID;
     double LocalXTT;
+
+    printf("Initializing the worker thread\n");
+
+    THREAD_INIT_FREE();
 
     LOCK(gl->IndexLock);
     ProcID = gl->Index++;

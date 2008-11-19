@@ -77,8 +77,10 @@ static void _foreach_element(Element *elem, void (*func)(), long   arg1, long pr
             _foreach_element( elem->right,  func, arg1, process_id ) ;
         }
 
+    void (*_func)(Element *, long, long) = (void (*)(Element *, long, long))func;
+
     /* Apply function to this node */
-    func( elem, arg1, process_id ) ;
+    _func( elem, arg1, process_id ) ;
 }
 
 
@@ -95,7 +97,10 @@ static void _foreach_leaf_element(Element *elem, void (*func)(), long arg1, long
 
     /* Process children */
     if( LEAF_ELEMENT( elem ) )
-        func( elem, arg1, process_id ) ;
+    {
+       void (*_func)(Element *, long, long) = (void (*)(Element *, long, long))func;
+        _func( elem, arg1, process_id ) ;
+    }
     else
         {
             _foreach_leaf_element( elem->center, func, arg1, process_id ) ;
@@ -715,7 +720,7 @@ void process_rays(Element *e, long process_id)
     else
         /* Some interactions were refined.
            Compute visibility and do BF-analysis again */
-        create_visibility_tasks( e, process_rays2, process_id ) ;
+        create_visibility_tasks( e, (void (*)())process_rays2, process_id ) ;
 }
 
 
@@ -741,7 +746,7 @@ static void process_rays2(Element *e, long process_id)
     else
         /* Some interactions were refined.
            Compute visibility and do BF-analysis again */
-        create_visibility_tasks( e, process_rays2, process_id ) ;
+        create_visibility_tasks( e, (void (*)())process_rays2, process_id ) ;
 }
 
 
@@ -1114,7 +1119,10 @@ void foreach_interaction_in_element(Element *elem, void (*func)(), long arg1, lo
         return ;
 
     for( inter = elem->interactions ; inter ; inter = inter->next )
-        func( elem, inter, arg1, process_id ) ;
+    {
+       void (*_func)(Element *, Interaction *, long, long); 
+       _func( elem, inter, arg1, process_id ) ;
+    }
 }
 
 

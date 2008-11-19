@@ -129,7 +129,7 @@ VOID	OpenFrameBuffer()
 	INT	i;
 	PIXEL	*fb;
 
-	fb = Display.framebuffer = GlobalMalloc(Display.numpixels*sizeof(PIXEL), "fbuf.c");
+	fb = Display.framebuffer = (PIXEL*)GlobalMalloc(Display.numpixels*sizeof(PIXEL), "fbuf.c");
 
 	for (i = 0; i < Display.numpixels; i++)
 		{

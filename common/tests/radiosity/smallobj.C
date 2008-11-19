@@ -394,7 +394,10 @@ void foreach_leaf_edge(Edge *edge, long reverse, void (*func)(), long arg1, long
         return ;
 
     if( (edge->ea == 0) && (edge->eb == 0) )
-        func( edge, reverse, arg1, arg2, process_id ) ;
+    {
+       void (*_func)(Edge *, long, long, long, long) = (void (*)(Edge *, long, long, long, long))func;
+       _func( edge, reverse, arg1, arg2, process_id ) ;
+    }
     else
         {
             if( reverse )

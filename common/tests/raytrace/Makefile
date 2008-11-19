@@ -2,7 +2,7 @@ TARGET = RAYTRACE
 
 OBJS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
 	main.o matrix.o memory.o poly.o raystack.o shade.o sph.o trace.o \
-	tri.o workpool.o
+	tri.o workpool.o globals.o
 
 MACROS := ../splash_support/c.m4.null.CARBON
 include ../splash_support/Makefile.config
@@ -13,6 +13,7 @@ CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
 
 bbox.c: bbox.C rt.h
 cr.c:	cr.C rt.h
+globals.c: globals.C rt.h
 env.c:	env.C rt.h
 fbuf.c: fbuf.C rt.h
 geo.c:	geo.C rt.h

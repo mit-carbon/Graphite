@@ -24,6 +24,7 @@ EXTERN_ENV
 #include "mddata.h"
 #include "split.h"
 #include "global.h"
+#include "stdio.h"
 
 void POTENG(double *POTA, double *POTR, double *PTRF, long ProcID)
 {

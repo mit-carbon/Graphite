@@ -157,7 +157,7 @@ void printtree(nodeptr n)
 
 nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
 {
-   long l, xp[NDIM], xor[NDIM], flag;
+   long l, xp[NDIM], _xor[NDIM], flag;
    long i, j, root_level;
    bool valid_root;
    long kidIndex;
@@ -167,11 +167,11 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
    intcoord(xp, Pos(p));
    valid_root = TRUE;
    for (i = 0; i < NDIM; i++) {
-      xor[i] = xp[i] ^ Local[ProcessId].Root_Coords[i];
+      _xor[i] = xp[i] ^ Local[ProcessId].Root_Coords[i];
    }
    for (i = IMAX >> 1; i > Level(root); i >>= 1) {
       for (j = 0; j < NDIM; j++) {
-	 if (xor[j] & i) {
+	 if (_xor[j] & i) {
 	    valid_root = FALSE;
 	    break;
 	 }
@@ -189,7 +189,7 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
 	 valid_root = TRUE;
 	 for (i = IMAX >> 1; i > Level(root); i >>= 1) {
 	    for (j = 0; j < NDIM; j++) {
-	       if (xor[j] & i) {
+	       if (_xor[j] & i) {
 		  valid_root = FALSE;
 		  break;
 	       }

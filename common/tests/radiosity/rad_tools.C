@@ -85,7 +85,7 @@ void print_statistics(FILE *fd, long process_id)
     many_interaction.count = 0 ;
     many_interaction.area  = 0 ;
 
-    foreach_patch_in_bsp( get_patch_stat,  0, 0 ) ;
+    foreach_patch_in_bsp( (void (*)())get_patch_stat,  0, 0 ) ;
 
     fprintf( fd, "Rasiosity Statistics\n\n" ) ;
 
@@ -278,7 +278,7 @@ void get_patch_stat(Patch *patch, long dummy, long process_id)
     n_invisible_interactions = 0 ;
 
     /* Traverse the quad tree */
-    foreach_element_in_patch( patch, get_elem_stat, 0, process_id ) ;
+    foreach_element_in_patch( patch, (void (*)())get_elem_stat, 0, process_id ) ;
 
     /* Update global stat variables */
     total_patches++ ;
@@ -509,13 +509,13 @@ void init_stat_info(long process_id)
 
 void clear_radiosity(long process_id)
 {
-    foreach_patch_in_bsp( clear_patch_radiosity,  0, 0 ) ;
+    foreach_patch_in_bsp( (void (*)())clear_patch_radiosity,  0, 0 ) ;
 }
 
 
 void clear_patch_radiosity(Patch *patch, long dummy, long process_id)
 {
-    foreach_element_in_patch( patch, clear_element_radiosity, 0, process_id ) ;
+    foreach_element_in_patch( patch, (void (*)())clear_element_radiosity, 0, process_id ) ;
 }
 
 

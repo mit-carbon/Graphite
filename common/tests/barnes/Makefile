@@ -1,7 +1,13 @@
 TARGET = BARNES
 OBJS = code.o code_io.o load.o grav.o getparam.o util.o
 
-include Makefile.config
+MACROS := ../splash_support/c.m4.null.CARBON
+#MACROS := ../splash_support/c.m4.null.POSIX
+include ../splash_support/Makefile.config
+include ../../makefile.gnu.config
+TARGET = BARNES
+
+CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
 
 stdinc.h: code.h defs.h util.h vectmath.h load.h code_io.h grav.h getparam.h stdinc.H 
 code.o: code.C stdinc.h

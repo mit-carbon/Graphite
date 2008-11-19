@@ -70,9 +70,7 @@ void Compute_Normal()
 }
 
 
-void Allocate_Normal(address, length)
-     NORMAL **address;
-     long length;
+void Allocate_Normal(NORMAL **address,long length)
 {
   long i;
 
@@ -95,6 +93,7 @@ void Allocate_Normal(address, length)
 
 void Normal_Compute()
 {
+
   long inx,iny,inz;	/* Voxel location in object space            */
   long outx,outy,outz;	/* Loop indices in image space               */
   NORMAL *local_norm_address;
@@ -104,6 +103,8 @@ void Normal_Compute()
   long num_xqueue,num_yqueue,num_zqueue,num_queue;
   long xstart,xstop,ystart,ystop;
   long my_node;
+
+  THREAD_INIT_FREE();
 
   LOCK(Global->IndexLock);
   my_node = Global->Index++;
@@ -179,8 +180,7 @@ void Normal_Compute()
 }
 
 
-void Load_Normal(filename)
-     char filename[];
+void Load_Normal(char filename [])
 {
   char local_filename[FILENAME_STRING_SIZE];
   int fd;
@@ -206,8 +206,7 @@ void Load_Normal(filename)
 }
 
 
-void Store_Normal(filename)
-char filename[];
+void Store_Normal(char filename[])
 {
   char local_filename[FILENAME_STRING_SIZE];
   int fd;
@@ -231,8 +230,7 @@ char filename[];
 }
 
 
-void Deallocate_Normal(address)
-NORMAL **address;
+void Deallocate_Normal(NORMAL **address)
 {
   printf("    Deallocating normal map...\n");
 

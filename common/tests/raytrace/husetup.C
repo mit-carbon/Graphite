@@ -125,7 +125,7 @@ VOID	IntersectHuniformPrimlist(INT *intersectPrim, IRECORD *hit, VOXEL *v, RAY *
 		{
 		pe	 = pptr[i];
 		peParent = pe->parent;
-		hitcode  = (*peParent->procs->pe_intersect)(r, pe, newhit);
+		hitcode  = ((INT (*)(RAY *, ELEMENT*, IRECORD*))(*peParent->procs->pe_intersect))(r, pe, newhit);
 
 		if (hitcode)
 			if (newhit[0].t < hit[0].t && newhit[0].t < t_out)
@@ -193,7 +193,7 @@ REAL	HuniformShadowIntersect(RAY *r, REAL lightlength, ELEMENT *pe, INT pid)
 			{
 			pe2	 = pptr[i];
 			peParent = pe2->parent;
-			hitcode  = (*peParent->procs->pe_intersect)(r, pe2, newhit);
+			hitcode  = ((INT (*)(RAY *, ELEMENT*, IRECORD*))(*peParent->procs->pe_intersect))(r, pe2, newhit);
 
 			if (hitcode && newhit[0].pelem != pe && newhit[0].t < lightlength)
 				trans *= newhit[0].pelem->parent->surf->ktran;

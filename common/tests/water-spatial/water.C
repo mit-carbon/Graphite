@@ -177,6 +177,8 @@ int main(int argc, char **argv)
         MAIN_INITENV(,40000000,);  /* macro call to initialize
                                       shared memory etc. */
 
+        THREAD_INIT_FREE();
+
 
         /* Allocate space for main (BOX) data structure as well as
          * synchronization variables
@@ -363,6 +365,8 @@ void WorkStart() /* routine that each created process starts at;
 {
     long ProcID;
     double LocalXTT;
+
+    THREAD_INIT_FREE();
 
     LOCK(gl->IndexLock);
     ProcID = gl->Index++;

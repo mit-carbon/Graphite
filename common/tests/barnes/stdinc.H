@@ -39,7 +39,7 @@ typedef FILE *stream;
  * BOOL, TRUE and FALSE: standard names for logical values.
  */
 
-typedef long bool;
+//typedef long bool;
 
 #ifndef TRUE
 

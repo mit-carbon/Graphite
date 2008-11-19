@@ -464,7 +464,7 @@ VOID	SphRead(OBJECT *po, FILE *pf)
 	ELEMENT *pe;			/* Ptr to sphere element.	     */
 
 	pe = po->pelem;
-	ps = GlobalMalloc(sizeof(SPHERE)*po->numelements, "sph.c");
+	ps = (SPHERE*)GlobalMalloc(sizeof(SPHERE)*po->numelements, "sph.c");
 
 	for (i = 0; i < po->numelements; i++)
 		{

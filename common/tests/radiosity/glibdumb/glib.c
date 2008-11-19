@@ -57,9 +57,7 @@ void g_color(long color)
 {
 }
 
-void g_rgb( color )
-
-    Rgb color ;
+void g_rgb(Rgb color )
 {
 }
 

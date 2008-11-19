@@ -374,7 +374,8 @@ VOID	*GlobalCalloc(UINT n, UINT size)
 
 	nbytes = ROUND_UP(n*size);
 
-	p = q = GlobalMalloc(nbytes, "GlobalCalloc");
+	q = GlobalMalloc(nbytes, "GlobalCalloc");
+   p = (UINT huge *)q;
 
 	nbytes >>= 2;				/* Need size in words.	     */
 	while (nbytes--)
@@ -585,7 +586,9 @@ VOID	*GlobalRealloc(VOID *p, UINT size)
 
 	UNLOCK(gm->memlock)
 
-	s = q = GlobalMalloc(newsize, "GlobalRealloc");
+	q = (UINT*)GlobalMalloc(newsize, "GlobalRealloc");
+   s = (UINT huge *)q;
+
 	if (!q)
 		return (NULL);
 
@@ -919,7 +922,7 @@ VOID	*ObjectMalloc(INT ObjectType, INT count)
 
 			n = count*sizeof(VOXEL *);
 			p = GlobalMalloc(n, "HASHTABLE");
-			x = p;
+			x = (VOXEL**)p;
 
 			for (i = 0; i < count; i++)
 				x[i] = NULL;
@@ -937,7 +940,7 @@ VOID	*ObjectMalloc(INT ObjectType, INT count)
 			w = 1 + count/(8*sizeof(UINT));
 			n = w*sizeof(UINT);
 			p = GlobalMalloc(n, "EMPTYCELLS");
-			x = p;
+			x = (UINT*)p;
 
 			for (i = 0; i < w; i++)
 				x[i] = ~0;		/* 1 => empty */

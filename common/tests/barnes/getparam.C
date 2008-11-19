@@ -52,7 +52,7 @@ string getparam(string name)
    gets(buf);
    leng = strlen(buf) + 1;
    if (leng > 1) {
-      return (strcpy(malloc(leng), buf));
+      return (strcpy((char *)malloc(leng), buf));
    }
    else {
       return (def);

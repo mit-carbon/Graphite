@@ -284,7 +284,7 @@ VOID	RayTrace(INT pid)
 					RayPoint(Ipoint, ray, hitrecord.t);
 
 					/* Calculate normal at this point. */
-					(*po->procs->normal)(&hitrecord, Ipoint, N);
+					((void (*)(IRECORD *, VEC3, VEC3))(*po->procs->normal))(&hitrecord, Ipoint, N);
 
 					/* Make sure normal is pointing toward ray origin. */
 					if ((VecDot(ray->D, N)) >  0.0)

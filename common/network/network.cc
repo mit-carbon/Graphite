@@ -4,16 +4,19 @@
 using namespace std;
 
 Network::Network(Core *core, int num_mod)
-  : _core(core)
+  :
+      net_queue(new NetQueue* [net_num_mod]),
+      transport(new Transport),
+      user_queue_lock(new PIN_LOCK [net_num_mod]),
+      _core(core)
 {
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
    net_num_mod = g_config->totalMods();
-   transport = new Transport;
    transport->ptInit(core->getId(), num_mod);
-   net_queue = new NetQueue* [net_num_mod];
    for(i = 0; i < net_num_mod; i++)
    {
+      InitLock(&user_queue_lock[i]);
       net_queue[i] = new NetQueue [num_pac_type];
    }
 }
@@ -23,9 +26,6 @@ int Network::netSend(NetPacket packet)
    char *buffer;
    UInt32 buf_size;
    
-   // Perform network entry tasks
-   netEntryTasks();
-
    UINT64 time = _core->getProcTime() + netLatency(packet) + netProcCost(packet);
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
@@ -41,9 +41,6 @@ int Network::netSendMagic(NetPacket packet)
    char *buffer;
    UInt32 buf_size;
    
-   // Perform network entry tasks
-   netEntryTasks();
-
    UINT64 time = _core->getProcTime();
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
@@ -61,7 +58,6 @@ NetPacket Network::netRecv(NetMatch match)
 {
    int sender;
    PacketType type;
-   char *buffer;
    NetPacket packet;
    NetQueueEntry entry;
    bool loop;
@@ -76,13 +72,14 @@ NetPacket Network::netRecv(NetMatch match)
       sender = -1;
       type = INVALID;
       
-      // Perform network entry tasks
-      netEntryTasks();
-
       if(match.sender_flag && match.type_flag)
       {
-	 assert(0 <= match.sender && match.sender < net_num_mod);
-	 assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+          assert(0 <= match.sender && match.sender < net_num_mod);
+          assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+
+         if(match.type == USER) 
+             GetLock(&user_queue_lock[match.sender], 1);
+
          if( !(net_queue[match.sender][match.type].empty()) )
          {
 	         // if(entry.time >= net_queue[match.sender][match.type].top().time)
@@ -93,12 +90,17 @@ NetPacket Network::netRecv(NetMatch match)
                loop = false;
             // }
          }
+         if(match.type == USER) 
+             ReleaseLock(&user_queue_lock[match.sender]);
+
       }
       else if(match.sender_flag && (!match.type_flag))
       {
-	 int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
          for(int i = 0; i < num_pac_type; i++)
          {
+             if(i == USER)
+                 GetLock(&user_queue_lock[match.sender], 1);
             assert(0 <= match.sender && match.sender < net_num_mod);
             if( !(net_queue[match.sender][i].empty()) )
             {
@@ -110,12 +112,18 @@ NetPacket Network::netRecv(NetMatch match)
                   loop = false;
                }
             }
+            if(i == USER)
+                ReleaseLock(&user_queue_lock[match.sender]);
          }
       }
       else if((!match.sender_flag) && match.type_flag)
       {
+
          for(int i = 0; i < net_num_mod; i++)
          {
+             if(match.type == USER) 
+                 GetLock(&user_queue_lock[i], 1);
+
             assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
             if( !(net_queue[i][match.type].empty()) )
             {
@@ -128,7 +136,11 @@ NetPacket Network::netRecv(NetMatch match)
                   loop = false;
                }
             }
+
+            if(match.type == USER) 
+                ReleaseLock(&user_queue_lock[i]);
          }
+
       }
       else
       {
@@ -137,6 +149,9 @@ NetPacket Network::netRecv(NetMatch match)
          {
             for(int j = 0; j < num_pac_type; j++)
             {
+               if(j == USER)
+                   GetLock(&user_queue_lock[i], 1);
+
                if( !(net_queue[i][j].empty()) )
                {
                   if((entry.time == 0) || (entry.time > net_queue[i][j].top().time))
@@ -147,29 +162,40 @@ NetPacket Network::netRecv(NetMatch match)
                      loop = false;
                   }
                }
+
+               if(j == USER)
+                   ReleaseLock(&user_queue_lock[i]);
+
             }
          }
       }
-      
-      if(loop)
-      {
-         buffer = transport->ptRecv();
-	      Network::netExPacket(buffer, entry.packet, entry.time);
-         assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
-         assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         net_queue[entry.packet.sender][entry.packet.type].push(entry);
-      }
-			
+
+
+      // No valid packets found in our queue, wait for the
+      // "network manager" thread to wake us up
+      waitForUserPacket();
    }
 
    assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
    assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+
+   if(entry.packet.type == USER)
+       GetLock(&user_queue_lock[entry.packet.sender], 1);
+
    net_queue[entry.packet.sender][entry.packet.type].pop();
+
+   if(entry.packet.type == USER)
+       ReleaseLock(&user_queue_lock[entry.packet.sender]);
+
    packet = entry.packet;
+
+   //Atomically update the time
+   _core->lockClock();
    if(_core->getProcTime() < entry.time)
    {
       _core->setProcTime(entry.time);
    }
+   _core->unlockClock();
 
    return packet;
 }
@@ -236,12 +262,11 @@ bool Network::netQuery(NetMatch match)
    found = false;
    entry.time = _core->getProcTime();
    
-   // HK
-   // Perform network entry tasks
-   netEntryTasks(); 
-   
    if(match.sender_flag && match.type_flag)
    {
+       if(match.type == USER) 
+           GetLock(&user_queue_lock[match.sender], 1);
+
       assert(0 <= match.sender && match.sender < net_num_mod);
       assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
       if(!net_queue[match.sender][match.type].empty())
@@ -252,12 +277,17 @@ bool Network::netQuery(NetMatch match)
             entry = net_queue[match.sender][match.type].top();
          }
       }
+
+      if(match.type == USER) 
+          ReleaseLock(&user_queue_lock[match.sender]);
    }
    else if(match.sender_flag && (!match.type_flag))
    {
       int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
       for(int i = 0; i < num_pac_type; i++)
       {
+          if(i == USER)
+              GetLock(&user_queue_lock[match.sender], 1);
 	 assert(0 <= match.sender && match.sender < net_num_mod);
          if(!net_queue[match.sender][i].empty())
          {
@@ -268,12 +298,17 @@ bool Network::netQuery(NetMatch match)
                break;
             }
          }
+         if(i == USER)
+             ReleaseLock(&user_queue_lock[match.sender]);
       }
    }
    else if((!match.sender_flag) && match.type_flag)
    {
       for(int i = 0; i < net_num_mod; i++)
       {
+         if(match.type == USER) 
+             GetLock(&user_queue_lock[i], 1);
+
          assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
          if(!net_queue[i][match.type].empty())
          {
@@ -284,6 +319,8 @@ bool Network::netQuery(NetMatch match)
                break;
             }
          }
+         if(match.type == USER) 
+             ReleaseLock(&user_queue_lock[i]);
       }
    }
    else
@@ -293,6 +330,9 @@ bool Network::netQuery(NetMatch match)
       {
          for(int j = 0; j < num_pac_type; j++)
          {
+            if(j == USER)
+                GetLock(&user_queue_lock[i], 1);
+
             if(!net_queue[i][j].empty())
             {
                if(entry.time >= net_queue[i][j].top().time)
@@ -302,20 +342,15 @@ bool Network::netQuery(NetMatch match)
                   break;
                }
             }
+
+            if(j == USER)
+                ReleaseLock(&user_queue_lock[i]);
          }
       }
    }
 
-   if(found)
-   {
-         return true;
-   }
-   else
-   {
-      return false;
-   }
-};
-
+   return found;
+}
 
 char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size, UINT64 time)
 {
@@ -434,7 +469,7 @@ void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
    delete [] buffer;
 }
 
-void Network::netEntryTasks()
+void Network::netPullFromTransport()
 {
    // These are a set of tasks to be performed every time the network layer is
    // entered
@@ -450,9 +485,16 @@ void Network::netEntryTasks()
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+
+      if(entry.packet.type == USER)
+         GetLock(&user_queue_lock[entry.packet.sender], 1);
+
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
+
+      if(entry.packet.type == USER)
+         ReleaseLock(&user_queue_lock[entry.packet.sender]);
    }
-   
+
    do
    {
       sender = -1;
@@ -509,6 +551,16 @@ void Network::netEntryTasks()
       }
 
    } while(type != INVALID);
+}
+
+void Network::waitForUserPacket()
+{
+
+}
+
+void Network::notifyWaitingUserThread()
+{
+
 }
 
 UINT64 Network::netProcCost(NetPacket packet)

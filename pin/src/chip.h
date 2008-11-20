@@ -101,6 +101,14 @@ void MCPRun();
 void MCPFinish();
 void *MCPThreadFunc(void *dummy);
 
+// Shared Memory Functions
+void SimSharedMemQuit();
+void* SimSharedMemThreadFunc(void *dummy);
+
+
+// Helper functions
+int SimGetCoreCount();
+
 // chip class
 
 class Chip 
@@ -158,6 +166,9 @@ class Chip
       friend bool dcacheRunLoadModel(int rank, ADDRINT d_addr, UINT32 size);
       friend bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size);      
 
+      // Shared Memory Thread Func
+      friend void* SimSharedMemThreadFunc(void *);
+
    private:
 
       int num_modules;
@@ -166,6 +177,11 @@ class Chip
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
       LockFreeHash core_map;
+
+      // Mapping for the shared memory threads
+      THREADID *core_to_shmem_tid_map;
+      LockFreeHash shmem_tid_to_core_map;
+
       int prev_rank;
       PIN_LOCK maps_lock;
 
@@ -178,6 +194,8 @@ class Chip
       int getNumModules() { return num_modules; }
       Core *getCore(unsigned int id) { return &(core[id]); }
       void fini(int code, void *v);
+
+      int registerSharedMemThread();
 };
 
 #endif

@@ -41,14 +41,17 @@ enum NetworkModel
 };
 
 // network packet
-typedef struct NetPacket
+class NetPacket
 {
+public:
    PacketType type;
    int sender;
    int receiver;
    unsigned int length;
    char *data;
-} NetPacket;
+
+   NetPacket() : type(INVALID), sender(-1), receiver(-1), length(0), data(NULL) {}
+};
 
 
 // network query struct
@@ -86,7 +89,10 @@ class Network{
       
       char* netCreateBuf(NetPacket packet, UInt32* buf_size, UINT64 time);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
-      void netEntryTasks();
+
+      void waitForUserPacket();
+      void notifyWaitingUserThread();
+
       //FIXME:
       //This is only here till Jim plugs in his functions, for debugging
       //purposes. To be deleted after that
@@ -94,6 +100,8 @@ class Network{
       void processUnexpectedSharedMemUpdate(NetPacket packet);
       NetQueue **net_queue;
       Transport *transport;
+
+      PIN_LOCK *user_queue_lock;
 
    protected:
       Core *_core;
@@ -126,6 +134,8 @@ class Network{
       Transport *getTransport() { return transport; }
 
       virtual void outputSummary(ostream &out);
+
+      void netPullFromTransport();
 };
 
 #endif

@@ -11,6 +11,8 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
+   InitLock(&clock_lock);
+
    //Switch which line is commented to choose the different 
    //network models
    //FIXME: Make this runtime configurable
@@ -161,7 +163,9 @@ void Core::setProcTime(UInt64 time)
 
 void Core::updateProcTime(UInt64 time)
 {
+  lockClock();
   perf_model->updateCycleCount(time);
+  unlockClock();
 }
 
 UInt64 Core::getProcTime()

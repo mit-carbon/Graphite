@@ -1,4 +1,5 @@
 #include "chip.h"
+#include <sched.h>
 
 // definitions
 using namespace std;
@@ -38,7 +39,6 @@ CAPI_return_t chipInitFreeRank(int *rank)
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
-
    //FIXME: Not sure what tid_map is, this should be enabled
    // if( g_chip->tid_map.find(rank)->first != false)
    // {
@@ -46,6 +46,8 @@ CAPI_return_t chipInitFreeRank(int *rank)
    // }
 
    if ( e.first == false ) {
+      // Don't allow free initializion of the MCP which claimes the
+      // highest core.
       for(int i = 0; i < g_chip->num_modules - 1; i++)
       {
           if(g_chip->tid_map[i] == UINT_MAX)
@@ -359,6 +361,7 @@ void MCPFinish()
    g_MCP->finish();
 }
 
+
 void* MCPThreadFunc(void *dummy)
 {
   // Declare local variables
@@ -370,21 +373,53 @@ void* MCPThreadFunc(void *dummy)
       g_MCP->run();
       //usleep(1);
    }   
-   cerr << "MCPThreadFunc - end!" << endl;
+//   cerr << "MCPThreadFunc - end!" << endl;
    return NULL;
 //   pthread_exit(NULL);
 }
 
+// Shared Memory Functions
+static bool shared_memory_continue = true;
+void SimSharedMemQuit()
+{
+    shared_memory_continue = false;
+}
+
+void* SimSharedMemThreadFunc(void *)
+{
+    int core_id = g_chip->registerSharedMemThread();
+    Network *net = g_chip->core[core_id].getNetwork();
+
+    while(shared_memory_continue)
+    {
+        net->netPullFromTransport();
+    }
+
+    return 0;
+}
+
+
+// Helper Functions
+int SimGetCoreCount()
+{
+    return g_chip->getNumModules();
+}
+
 // Chip class method definitions
 
-Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0) 
+Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid_to_core_map(3*num_mods), prev_rank(0) 
 {
    tid_map = new THREADID [num_mods];
+   core_to_shmem_tid_map = new THREADID [num_mods];
+
    core = new Core[num_mods];
+
+//   cerr << "Chip initializing this many num_mods: " << num_mods << endl;
 
    for(int i = 0; i < num_mods; i++) 
    {
       tid_map[i] = UINT_MAX;
+      core_to_shmem_tid_map[i] = UINT_MAX;
       core[i].coreInit(this, i, num_mods);
    }
 
@@ -405,6 +440,40 @@ VOID Chip::fini(int code, VOID *v)
    }
 
    out.close();
+}
+
+int Chip::registerSharedMemThread()
+{
+   THREADID pin_tid = PIN_ThreadId();
+
+   pair<bool, UINT64> e = g_chip->shmem_tid_to_core_map.find(pin_tid);
+
+   // If this thread isn't registered
+   if ( e.first == false ) {
+
+       // Search for an unused core to map this shmem thread to
+       // one less to account for the MCP
+      for(int i = 0; i < g_chip->num_modules; i++)
+      {
+          // Unused slots are set to UINT_MAX
+          // FIXME: Use a different constant than UINT_MAX
+          if(g_chip->core_to_shmem_tid_map[i] == UINT_MAX)
+          {
+              g_chip->core_to_shmem_tid_map[i] = pin_tid;    
+              g_chip->shmem_tid_to_core_map.insert( pin_tid, i );
+              return i;
+          }
+      }
+
+      cerr << "chipInit Error: No Free Cores." << endl;
+   }   
+   else
+   {
+       cerr << "Initialized shared mem thread twice -- id: " << pin_tid << endl;
+       return g_chip->shmem_tid_to_core_map.find(pin_tid).second;
+   }
+
+   return -1;
 }
 
 

@@ -55,6 +55,8 @@ class Core
       SyscallMdl *syscall_model;
       SyncClient *sync_client;
 
+      PIN_LOCK clock_lock;
+
    public:
 
       int coreInit(Chip *chip, int tid, int num_mod);
@@ -128,6 +130,9 @@ class Core
       int getId() const { return core_tid; }
 
       Network *getNetwork() { return network; }
+
+      void lockClock() { GetLock(&clock_lock, 1); }
+      void unlockClock() { ReleaseLock(&clock_lock); }
 };
 
 #endif

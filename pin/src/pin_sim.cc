@@ -385,10 +385,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(chipInitFreeRank);
    }
-   else if(name == "mcp_thread_func")
-   {
-      msg_ptr = AFUNPTR(MCPThreadFunc);
-   }
    else if(name == "CAPI_rank")
    {
       msg_ptr = AFUNPTR(commRank);
@@ -400,6 +396,22 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if(name == "CAPI_message_receive_w")
    {
       msg_ptr = AFUNPTR(chipRecvW);
+   }
+   else if(name == "getCoreCount")
+   {
+      msg_ptr = AFUNPTR(SimGetCoreCount);
+   }
+   else if(name == "sharedMemQuit")
+   {
+      msg_ptr = AFUNPTR(SimSharedMemQuit);
+   }
+   else if(name == "shmem_thread_func")
+   {
+      msg_ptr = AFUNPTR(SimSharedMemThreadFunc);
+   }
+   else if(name == "mcp_thread_func")
+   {
+      msg_ptr = AFUNPTR(MCPThreadFunc);
    }
    else if(name == "finishMCP")
    {
@@ -445,6 +457,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    if ( msg_ptr == AFUNPTR(commRank) 
         || (msg_ptr == AFUNPTR(chipInitFreeRank)) 
         || (msg_ptr == AFUNPTR(MCPThreadFunc)) 
+        || (msg_ptr == AFUNPTR(SimSharedMemThreadFunc)) 
         || (msg_ptr == AFUNPTR(SimMutexInit)) 
         || (msg_ptr == AFUNPTR(SimMutexLock)) 
         || (msg_ptr == AFUNPTR(SimMutexUnlock)) 
@@ -487,7 +500,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto); 
       return true;
    }
-   else if ( msg_ptr == AFUNPTR(MCPFinish) )
+   else if ( msg_ptr == AFUNPTR(MCPFinish)        || 
+            (msg_ptr == AFUNPTR(SimGetCoreCount)) || 
+            (msg_ptr == AFUNPTR(SimSharedMemQuit)) )
    {
       proto = PROTO_Allocate(PIN_PARG(void),
                              CALLINGSTD_DEFAULT,

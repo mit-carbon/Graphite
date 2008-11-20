@@ -12,14 +12,8 @@
 
 using namespace std;
 
-carbon_mutex_t my_mux;
-
-#ifdef DEBUG
-   pthread_mutex_t lock;
-#endif
-
 // Functions executed by threads
-void* test_mutex(void * threadid);
+void* thread_func(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
@@ -32,37 +26,35 @@ int main(int argc, char* argv[]){ // main begins
    pthread_t threads[numThreads];
    pthread_attr_t attr;
 	
-#ifdef DEBUG
-   cout << "This is the function main()" << endl;
-#endif
-
    // Initialize threads and related variables
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-#ifdef DEBUG
-   cout << "Spawning threads" << endl;
-#endif
+   // Initialize the main thread as a core
+   int tid;
+   CAPI_return_t rtnVal;
+
+   rtnVal = CAPI_Initialize(0);
+
+   // Initialize local variables
+   CAPI_rank(&tid);
 
    for(unsigned int i = 0; i < numThreads; i++) 
-      pthread_create(&threads[i], &attr, test_mutex, (void *) i);
+      pthread_create(&threads[i], &attr, thread_func, (void *) (i + 1));
 
    // Wait for all threads to complete
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   cout << "quitting syscall server!" << endl;
+   cout << "UserApplication: About to call carbon finish!" << endl;
    carbonFinish();
 
-#ifdef DEBUG
-   cout << "This is the function main ending" << endl;
-#endif
    pthread_exit(NULL);
 
 } // main ends
 
 
-void* test_mutex(void *threadid)
+void* thread_func(void *threadid)
 {
   // Declare local variables
   int tid;
@@ -74,18 +66,7 @@ void* test_mutex(void *threadid)
   CAPI_rank(&tid);
 
   // Thread starts here
-
-  // FIXME: This should be in the main thread or something.
-  cerr << "Initializing the mutex." << endl;
-  mutexInit(&my_mux);
-  cerr << "After: " << hex << my_mux << endl;
-  cerr << "Locking the mutex." << endl;
-  mutexLock(&my_mux);
-  cerr << "After: " << hex << my_mux << endl;
-  cerr << "Unlocking the mutex." << endl;
-  mutexUnlock(&my_mux);
-  cerr << "After: " << hex << my_mux << endl;
-  cerr << "Done with the mutex test." << endl;
+  cerr << "UserThread: CAPI Rank: " << tid << endl;
 
   pthread_exit(NULL);
 }

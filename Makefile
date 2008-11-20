@@ -43,6 +43,10 @@ squeaky: clean
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
 
+simple_test: all
+	$(MAKE) -C $(TESTS_DIR)/simple
+	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/simple/simple_test
+
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io
 	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/file_io/file_io

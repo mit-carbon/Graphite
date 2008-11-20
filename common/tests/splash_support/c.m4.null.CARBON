@@ -138,10 +138,10 @@ define(CREATE, `{
 }')
 
 define(MAIN_INITENV, `{
-      initMCP();
+      carbonInit();
       }')
 define(MAIN_END, `{
-      quitMCP();
+      carbonFinish();
       exit(0);
       }')
 
@@ -151,9 +151,7 @@ define(MAIN_ENV,`
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "mcp_api.h"
-#include "sync_api.h"
-#include "capi.h"
+#include "user_api.h"
 #define MAX_THREADS 32
 pthread_t PThreadTable[MAX_THREADS];
 ')
@@ -164,9 +162,6 @@ define(EXTERN_ENV, `
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "mcp_api.h"
-#include "sync_api.h"
-#include "capi.h"
 extern pthread_t PThreadTable[];
 ')
 

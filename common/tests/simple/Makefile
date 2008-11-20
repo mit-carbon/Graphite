@@ -10,22 +10,22 @@ else
   LDFLAGS = 
 endif
 
-SOURCES = ../../user/capi.cc ../../user/mcp_api.cc ../../user/sync_api.cc ../../user/user_api.cc barrier_test.cc
+SOURCES = ../../user/capi.cc ../../user/mcp_api.cc ../../user/sync_api.cc ../../user/user_api.cc simple_test.cc
 OBJECTS = $(SOURCES:%.cc=%.o) 
 
 ## Build rules
 
-all: barrier_test
+all: simple_test
 
 %.o : %.cc
 	$(CC) -DDEBUG $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-barrier_test: $(OBJECTS)
+simple_test: $(OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
 
 ## Cleaning
 clean:
-	-rm -f *.o barrier_test sim.out
+	-rm -f *.o simple_test sim.out
 
 squeaky: clean
 	-rm -f *~

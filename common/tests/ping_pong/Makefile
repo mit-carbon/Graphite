@@ -1,30 +1,8 @@
-FORCE32 ?= 1
+TARGET=ping_pong
 
-CC = /usr/bin/g++
-ifeq (${FORCE32},1)
-  CFLAGS = -I../../user -c -g -Wall -m32
-  LDFLAGS = -m32 -m elf_i386
-else
-  CFLAGS = -I../../user -c -g -Wall
-  LDFLAGS = 
-endif
-SOURCES = ../../user/capi.cc ping_pong.cc
-OBJECTS = $(SOURCES:%.cc=%.o)
+C_SOURCES = 
+CPP_SOURCES = ping_pong.cc 
+OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
 
-## Build rules
+include ../Makefile.common
 
-all: ping_pong
-
-%.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
-
-ping_pong: $(OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
-
-## Cleaning
-
-clean:
-	-rm -f *.o ping_pong sim.out
-
-squeaky: clean
-	-rm -f *~

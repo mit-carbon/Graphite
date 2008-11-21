@@ -3,10 +3,13 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
+#include "user_api.h"
 
 using namespace std;
 
 pthread_mutex_t write_lock;
+
+//#define DEBUG
 
 #ifdef DEBUG
 pthread_mutex_t lock;
@@ -18,6 +21,8 @@ void* ping(void *threadid);
 void* pong(void *threadid);
 
 int main(int argc, char* argv[]){ // main begins
+
+    carbonInit();
 
 	// Declare threads and related variables
 	pthread_t threads[2];
@@ -47,15 +52,17 @@ int main(int argc, char* argv[]){ // main begins
         pthread_join(threads[0], NULL);         
         pthread_join(threads[1], NULL);
 
-        return 0;
-} // main ends
+    carbonFinish();
+    return 0;
 
+
+} // main ends
 
 
 void* ping(void *threadid)
 {
-   int tid;
-   CAPI_Initialize(&tid);
+   int tid = (int)threadid;
+   CAPI_Initialize((int)threadid);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -85,8 +92,8 @@ void* ping(void *threadid)
 
 void* pong(void *threadid)
 {
-   int tid;
-   CAPI_Initialize(&tid);
+   int tid = (int)threadid;
+   CAPI_Initialize((int)threadid);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -113,3 +120,4 @@ void* pong(void *threadid)
    pthread_exit(NULL);  
    // return 0;
 }
+

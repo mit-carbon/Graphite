@@ -5,10 +5,11 @@ using namespace std;
 
 Network::Network(Core *core, int num_mod)
   :
-      net_queue(new NetQueue* [net_num_mod]),
+      net_queue(new NetQueue* [num_mod]),
       transport(new Transport),
-      user_queue_lock(new PIN_LOCK [net_num_mod]),
-      _core(core)
+      user_queue_lock(new PIN_LOCK [num_mod]),
+      _core(core),
+      net_num_mod(num_mod)
 {
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
@@ -56,121 +57,58 @@ NetPacket Network::netRecvMagic(NetMatch match)
 
 NetPacket Network::netRecv(NetMatch match)
 {
-   int sender;
-   PacketType type;
    NetPacket packet;
    NetQueueEntry entry;
-   bool loop;
+   bool loop = true;
 
-   loop = true;
+   int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+
+   int sender_start = 0;
+   int sender_end = net_num_mod;
+
+   int type_start = 0;
+   int type_end = num_pac_type;
+
+   if(match.sender_flag)
+   {
+       assert(0 <= match.sender && match.sender < net_num_mod);
+       sender_start = match.sender;
+       sender_end = sender_start + 1;
+   }
+
+   if(match.type_flag)
+   {
+       assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+       type_start = match.type;
+       type_end = type_start + 1;
+   }
 
    while(loop)
    {
-  
-      entry.time = 0; 
       // Initialized to garbage values
-      sender = -1;
-      type = INVALID;
-      
-      if(match.sender_flag && match.type_flag)
+      entry.time = 0; 
+
+      for(int i = sender_start; i < sender_end; i++)
       {
-          assert(0 <= match.sender && match.sender < net_num_mod);
-          assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+          for(int j = type_start; j < type_end; j++)
+          {
+              if(j == USER)
+                  GetLock(&user_queue_lock[i], 1);
 
-         if(match.type == USER) 
-             GetLock(&user_queue_lock[match.sender], 1);
-
-         if( !(net_queue[match.sender][match.type].empty()) )
-         {
-	         // if(entry.time >= net_queue[match.sender][match.type].top().time)
-            // {
-               entry = net_queue[match.sender][match.type].top();
-               sender = match.sender;
-               type = match.type;
-               loop = false;
-            // }
-         }
-         if(match.type == USER) 
-             ReleaseLock(&user_queue_lock[match.sender]);
-
-      }
-      else if(match.sender_flag && (!match.type_flag))
-      {
-         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-         for(int i = 0; i < num_pac_type; i++)
-         {
-             if(i == USER)
-                 GetLock(&user_queue_lock[match.sender], 1);
-            assert(0 <= match.sender && match.sender < net_num_mod);
-            if( !(net_queue[match.sender][i].empty()) )
-            {
-               if((entry.time == 0) || (entry.time > net_queue[match.sender][i].top().time))
-               {
-                  entry = net_queue[match.sender][i].top();
-                  sender = match.sender;
-                  type = (PacketType)i;
-                  loop = false;
-               }
-            }
-            if(i == USER)
-                ReleaseLock(&user_queue_lock[match.sender]);
-         }
-      }
-      else if((!match.sender_flag) && match.type_flag)
-      {
-
-         for(int i = 0; i < net_num_mod; i++)
-         {
-             if(match.type == USER) 
-                 GetLock(&user_queue_lock[i], 1);
-
-            assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-            if( !(net_queue[i][match.type].empty()) )
-            {
-               if((entry.time == 0) || (entry.time > net_queue[i][match.type].top().time))
-               {
-                  entry = net_queue[i][match.type].top();
-                  //sender = (PacketType)i;
-                  sender = i;
-                  type = match.type;
-                  loop = false;
-               }
-            }
-
-            if(match.type == USER) 
-                ReleaseLock(&user_queue_lock[i]);
-         }
-
-      }
-      else
-      {
-         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-         for(int i = 0; i < net_num_mod; i++)
-         {
-            for(int j = 0; j < num_pac_type; j++)
-            {
-               if(j == USER)
-                   GetLock(&user_queue_lock[i], 1);
-
-               if( !(net_queue[i][j].empty()) )
-               {
+              if( !(net_queue[i][j].empty()) )
+              {
                   if((entry.time == 0) || (entry.time > net_queue[i][j].top().time))
                   {
-                     entry = net_queue[i][j].top();
-                     sender = i;
-                     type = (PacketType)j;
-                     loop = false;
+                      entry = net_queue[i][j].top();
+                      loop = false;
                   }
-               }
+              }
 
-               if(j == USER)
-                   ReleaseLock(&user_queue_lock[i]);
-
-            }
-         }
+              if(j == USER)
+                  ReleaseLock(&user_queue_lock[i]);
+          }
       }
-
-
+      
       // No valid packets found in our queue, wait for the
       // "network manager" thread to wake us up
       waitForUserPacket();
@@ -192,9 +130,7 @@ NetPacket Network::netRecv(NetMatch match)
    //Atomically update the time
    _core->lockClock();
    if(_core->getProcTime() < entry.time)
-   {
       _core->setProcTime(entry.time);
-   }
    _core->unlockClock();
 
    return packet;
@@ -257,97 +193,50 @@ NetPacket Network::netMCPRecv()
 bool Network::netQuery(NetMatch match)
 {
    NetQueueEntry entry;
-   bool found;
-   
-   found = false;
+   bool found = false;
+ 
+   int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+
+   int sender_start = 0;
+   int sender_end = net_num_mod;
+
+   int type_start = 0;
+   int type_end = num_pac_type;
+
+   if(match.sender_flag)
+   {
+       assert(0 <= match.sender && match.sender < net_num_mod);
+       sender_start = match.sender;
+       sender_end = sender_start + 1;
+   }
+
+   if(match.type_flag)
+   {
+       assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+       type_start = match.type;
+       type_end = type_start + 1;
+   }
+
    entry.time = _core->getProcTime();
+
+   for(int i = sender_start; i < sender_end; i++)
+   {
+       for(int j = type_start; j < type_end; j++)
+       {
+           if(j == USER)
+               GetLock(&user_queue_lock[i], 1);
+
+           if(!net_queue[i][j].empty() && entry.time >= net_queue[i][j].top().time)
+           {
+               found = true;
+               break;
+           }
+
+           if(j == USER)
+               ReleaseLock(&user_queue_lock[i]);
+       }
+   }
    
-   if(match.sender_flag && match.type_flag)
-   {
-       if(match.type == USER) 
-           GetLock(&user_queue_lock[match.sender], 1);
-
-      assert(0 <= match.sender && match.sender < net_num_mod);
-      assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-      if(!net_queue[match.sender][match.type].empty())
-      {
-         if(entry.time >= net_queue[match.sender][match.type].top().time)
-         {
-            found = true;
-            entry = net_queue[match.sender][match.type].top();
-         }
-      }
-
-      if(match.type == USER) 
-          ReleaseLock(&user_queue_lock[match.sender]);
-   }
-   else if(match.sender_flag && (!match.type_flag))
-   {
-      int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-      for(int i = 0; i < num_pac_type; i++)
-      {
-          if(i == USER)
-              GetLock(&user_queue_lock[match.sender], 1);
-	 assert(0 <= match.sender && match.sender < net_num_mod);
-         if(!net_queue[match.sender][i].empty())
-         {
-            if(entry.time >= net_queue[match.sender][i].top().time)
-            {
-               found = true;
-               entry = net_queue[match.sender][i].top();
-               break;
-            }
-         }
-         if(i == USER)
-             ReleaseLock(&user_queue_lock[match.sender]);
-      }
-   }
-   else if((!match.sender_flag) && match.type_flag)
-   {
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         if(match.type == USER) 
-             GetLock(&user_queue_lock[i], 1);
-
-         assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         if(!net_queue[i][match.type].empty())
-         {
-            if(entry.time >= net_queue[i][match.type].top().time)
-            {
-               found = true;
-               entry = net_queue[i][match.type].top();
-               break;
-            }
-         }
-         if(match.type == USER) 
-             ReleaseLock(&user_queue_lock[i]);
-      }
-   }
-   else
-   {
-      int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         for(int j = 0; j < num_pac_type; j++)
-         {
-            if(j == USER)
-                GetLock(&user_queue_lock[i], 1);
-
-            if(!net_queue[i][j].empty())
-            {
-               if(entry.time >= net_queue[i][j].top().time)
-               {
-                  found = true;
-                  entry = net_queue[i][j].top();
-                  break;
-               }
-            }
-
-            if(j == USER)
-                ReleaseLock(&user_queue_lock[i]);
-         }
-      }
-   }
 
    return found;
 }
@@ -355,114 +244,60 @@ bool Network::netQuery(NetMatch match)
 char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size, UINT64 time)
 {
    char *buffer;
-   char *temp;
-   int running_length = 0;
-   unsigned int i;
 
    *buffer_size = sizeof(packet.type) + sizeof(packet.sender) +
                      sizeof(packet.receiver) + sizeof(packet.length) +
                      packet.length + sizeof(time);
+
    buffer = new char [*buffer_size];
-   temp = (char*) &(packet.type);
 
-   for(i = 0; i < sizeof(packet.type); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
-	
-   running_length += sizeof(packet.type);
-   temp = (char*) &(packet.sender);
+   char *dest = buffer;
 
-   for(i = 0; i < sizeof(packet.sender); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)&packet.type, sizeof(packet.type));
+   dest += sizeof(packet.type);
 
-   running_length += sizeof(packet.sender);
-   temp = (char*) &(packet.receiver);
+   memcpy(dest, (char*)&packet.sender, sizeof(packet.sender));
+   dest += sizeof(packet.sender);
 
-   for(i = 0; i < sizeof(packet.receiver); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)&packet.receiver, sizeof(packet.receiver));
+   dest += sizeof(packet.receiver);
 
-   running_length += sizeof(packet.receiver);
-   temp = (char*) &(packet.length);
+   memcpy(dest, (char*)&packet.length, sizeof(packet.length));
+   dest += sizeof(packet.length);
 
-   for(i = 0; i < sizeof(packet.length); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)packet.data, packet.length);
+   dest += packet.length;
 
-   running_length += sizeof(packet.length);
-   temp = packet.data;
-
-   for(i = 0; i < packet.length; i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
-
-   running_length += packet.length;
-   temp = (char*) &time;
-
-   for(i = 0; i < sizeof(time); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)&time, sizeof(time));
+   dest += sizeof(time);
 
    return buffer;
-};
+}
 
 
 void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
 {
-   unsigned int i;
-   int running_length = 0;
-   char *ptr;
+   char *ptr = buffer;
 
-   // TODO: This is ugly. Clean it up.
+   memcpy((char *) &packet.type, ptr, sizeof(packet.type));
+   ptr += sizeof(packet.type);
 
-   ptr = (char*) &packet.type;
-   for(i = 0; i < sizeof(packet.type); i++)
-      ptr[i] = buffer[running_length + i];
+   memcpy((char *) &packet.sender, ptr, sizeof(packet.sender));
+   ptr += sizeof(packet.sender);
 
-   running_length += sizeof(packet.type);
-   ptr = (char*) &packet.sender;
+   memcpy((char *) &packet.receiver, ptr, sizeof(packet.receiver));
+   ptr += sizeof(packet.receiver);
 
-   for(i = 0; i < sizeof(packet.sender); i++)
-      ptr[i] = buffer[running_length + i];
-	
-   running_length += sizeof(packet.sender);
-   ptr = (char*) &packet.receiver;
+   memcpy((char *) &packet.length, ptr, sizeof(packet.length));
+   ptr += sizeof(packet.length);
 
-   for(i = 0; i < sizeof(packet.receiver); i++)
-      ptr[i] = buffer[running_length + i];
-
-   running_length += sizeof(packet.receiver);
-   ptr = (char*) &packet.length;
-
-   for(i = 0; i < sizeof(packet.length); i++)
-      ptr[i] = buffer[running_length + i];
-
-   running_length += sizeof(packet.length);
-   assert(running_length == sizeof(packet)-sizeof(packet.data));
    packet.data = new char[packet.length];
-   ptr = packet.data;
 
-   for(i = 0; i < packet.length; i++)
-      ptr[i] = buffer[running_length + i];
-	
-   running_length += packet.length;
-   ptr = (char *)&time;
+   memcpy((char *) packet.data, ptr, packet.length);
+   ptr += packet.length;
 
-   for(i = 0; i < sizeof(time); i++)
-      ptr[i] = buffer[running_length + i];
+   memcpy((char *) &time, ptr, sizeof(time));
+   ptr += sizeof(time);
 
    // HK
    // De-allocate dynamic memory

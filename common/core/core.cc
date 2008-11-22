@@ -124,8 +124,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
       exit(-1);
    }
 
-   for(int i = 0; i < size; i++)
-      buffer[i] = packet.data[i];
+   memcpy(buffer, packet.data, size);
 
    // De-allocate dynamic memory
    delete [] packet.data;

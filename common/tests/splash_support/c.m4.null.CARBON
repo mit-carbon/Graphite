@@ -162,6 +162,7 @@ define(EXTERN_ENV, `
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "user_api.h"
 extern pthread_t PThreadTable[];
 ')
 

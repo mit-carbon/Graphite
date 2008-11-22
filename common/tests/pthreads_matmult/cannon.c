@@ -187,8 +187,6 @@ void* cannon(void *threadid){
    
 	CAPI_rank(&tid);
 
-	printf("Thread %d got rank: %d\n", (unsigned int)threadid, tid);
-
 	// Convert 1-D rank to 2-D rank
 	i = tid / sqrtNumProcs;
 	j = tid % sqrtNumProcs;

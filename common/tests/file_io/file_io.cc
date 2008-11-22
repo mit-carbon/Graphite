@@ -10,8 +10,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include "capi.h"
-#include "mcp_api.h"
+#include "user_api.h"
 
 using namespace std;
 
@@ -25,7 +24,7 @@ void* read_and_write(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
-   initMCP();
+   carbonInit();
 	
    // Read in the command line arguments
    const unsigned int numThreads = 2;
@@ -54,7 +53,7 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    cout << "quitting syscall server!" << endl;
-   quitMCP();
+   carbonFinish();
 
 #ifdef DEBUG
    cout << "This is the function main ending" << endl;
@@ -71,7 +70,7 @@ void* read_and_write(void *threadid)
   CAPI_return_t rtnVal;
   char file_name[256];
 
-  rtnVal = CAPI_Initialize(&tid);
+  rtnVal = CAPI_Initialize((int)threadid);
 
   // Initialize local variables
   CAPI_rank(&tid);

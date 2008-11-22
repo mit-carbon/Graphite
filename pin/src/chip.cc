@@ -1,76 +1,95 @@
 #include "chip.h"
 
 // definitions
+using namespace std;
 
 //TODO: c++-ize this, please oh please!
-CAPI_return_t chipInit(int *rank)
+CAPI_return_t chipInit(int rank)
 {
    THREADID pin_tid = PIN_ThreadId();
 
-	GetLock(&(g_chip->maps_lock), 1); 
+   pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
-   map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
+   //FIXME: Not sure what tid_map is, this should be enabled
+   // if( g_chip->tid_map.find(rank)->first != false)
+   // {
+   //    ASSERT(false, "Error: Two cores tried to init the same rank!\n");
+   // }
 
-   if ( e == g_chip->core_map.end() ) { 
-      assert(0 <= g_chip->prev_rank && g_chip->prev_rank < g_chip->num_modules);
-      g_chip->tid_map[g_chip->prev_rank] = pin_tid;    
-      g_chip->core_map.insert( make_pair(pin_tid, g_chip->prev_rank) );
-      *rank = g_chip->prev_rank; 
-      ++(g_chip->prev_rank);
+   if ( e.first == false ) {
+      g_chip->tid_map[rank] = pin_tid;    
+      g_chip->core_map.insert( pin_tid, rank );
+      // cerr << "chipInit initializing core: " << rank << endl;
    }   
-   else {
-      *rank = e->second;
+   else
+   {
+      // cerr << "chipInit Error initializing core twice: " << rank << endl;
+//      ASSERT(false, "Error: Core tried to init more than once!\n");
    }
-   
-   ReleaseLock(&(g_chip->maps_lock));
-   
+
    return 0;
-};
+}
+
+CAPI_return_t chipInitFreeRank(int *rank)
+{
+   
+   THREADID pin_tid = PIN_ThreadId();
+
+   pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
+
+
+   //FIXME: Not sure what tid_map is, this should be enabled
+   // if( g_chip->tid_map.find(rank)->first != false)
+   // {
+   //    ASSERT(false, "Error: Two cores tried to init the same rank!\n");
+   // }
+
+   if ( e.first == false ) {
+      for(int i = 0; i < g_chip->num_modules - 1; i++)
+      {
+          if(g_chip->tid_map[i] == UINT_MAX)
+          {
+              g_chip->tid_map[i] = pin_tid;    
+              g_chip->core_map.insert( pin_tid, i );
+              *rank = i;
+              // cerr << "chipInit initializing core: " << i << endl;
+              return 0;
+          }
+      }
+
+      // cerr << "chipInit Error: No Free Cores." << endl;
+   }   
+   else
+   {
+      // cerr << "chipInit Error initializing core twice: " << rank << endl;
+//      ASSERT(false, "Error: Core tried to init more than once!\n");
+   }
+
+   return 0;
+}
 
 CAPI_return_t chipRank(int *rank)
 {
    THREADID pin_tid = PIN_ThreadId();
 
-   // FIXME: This could be a big slow-down. Might want to do a full
-   // read/write lock.
-   GetLock(&(g_chip->maps_lock), 1);
+   pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
-   map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
-   *rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
+   *rank = (e.first == false) ? -1 : e.second;
+
    bool rank_ok = (*rank < g_chip->getNumModules());
-   if (!rank_ok) {
-     //printf("Bad rank: %d @ %p\n", *rank, rank);
-     LOG("Bad rank: " + decstr(*rank) + " @ ptr: " + hexstr(rank) + "\n");
-
-     LOG("  ThreadID: " + decstr(pin_tid));
-     if ( e == g_chip->core_map.end() ) {
-       LOG(" was NOT found in core_map!\n");
-     } else {
-       LOG(" was found in map: <" + decstr(e->first) + ", " + 
-	   decstr(e->second) + ">\n");
-     }
-
-     LOG("  core_map:  <pin_tid, rank>\n             -----------------\n");
-     map<THREADID, int>::iterator f;
-     for (f = g_chip->core_map.begin(); f != g_chip->core_map.end(); f++) {
-       LOG("               <" + decstr(f->first) + ", " + 
-	   decstr(f->second) + ">\n");
-     }
-   }
-
-   ReleaseLock(&(g_chip->maps_lock));
    ASSERT(rank_ok, "Illegal rank value returned by chipRank!\n");
 
    return 0;
 }
 
-CAPI_return_t commRank(int *rank)
+CAPI_return_t commRank(int *commid)
 {
    int my_tid;
    chipRank(&my_tid);
    // FIXME: The network nodes should be moved up from within a core to
    //  directly within a chip.  When this happens, this will have to change.
-   *rank = g_chip->core[my_tid].coreCommID();
+   
+   *commid = (my_tid < 0) ? -1 : g_chip->core[my_tid].coreCommID();
 
    return 0;
 }
@@ -96,22 +115,20 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
    return g_chip->core[rank].coreRecvW(sender, receiver, buffer, size);
 }
  //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
-CAPI_return_t chipHackFinish(int my_rank)
+CAPI_return_t chipFinish(int my_rank)
 {
 	GetLock(&print_lock, 1);
-	cerr << "HACK---- please remove chipHackFInish...... " << endl;
-	cerr << "[" << my_rank << "] FINISHED\n";
+	// cerr << "HACK---- please remove chipHackFinish...... " << endl;
+	// cerr << "[" << my_rank << "] FINISHED\n";
 	debugPrint (my_rank, "CHIP", "HACK---- please remove chipHackFinish...... ");
 	debugPrint (my_rank, "CHIP", "FINISHED");
 
 	debugFinish(my_rank);
 	
 	assert( my_rank < g_chip->getNumModules() );
-	/* ========================================================================== */
 	/* Added by George */
 	// cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
 //	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
-	/* ========================================================================== */
 
 	//check in to chip, tell them we're finished
 	g_chip->finished_cores[my_rank] = true;
@@ -144,6 +161,7 @@ CAPI_return_t chipHackFinish(int my_rank)
    return 0;
 }
 
+
 CAPI_return_t chipPrint(string s) 
 {
 	cerr << s;
@@ -151,30 +169,31 @@ CAPI_return_t chipPrint(string s)
 }
 
 
+
 // performance model wrappers
 
-VOID perfModelRun(PerfModelIntervalStat *interval_stats)
+VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats)
 { 
-   int rank; 
-   chipRank(&rank);
+   //int rank; 
+   //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats); 
 }
 
-VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-                  UINT32 num_reads)
+VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
+                  REG *reads, UINT32 num_reads)
 { 
-   int rank;
-   chipRank(&rank);
+   //int rank;
+   //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats, reads, num_reads); 
 }
 
-VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes)
 { 
-   int rank;
-   chipRank(&rank);
+   //int rank;
+   //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelRun(interval_stats, dcache_load_hit, writes, num_writes); 
 }
@@ -186,34 +205,36 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    // using zero is a dirty hack 
    // assumes its safe to use core zero to generate perfmodels for all cores
    assert(g_chip->num_modules > 0);
+   
+   //FIXME: These stats should be deleted at the end of execution
    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_chip->num_modules];
 
    for (INT32 i = 0; i < g_chip->num_modules; i++)
       array[i] = g_chip->core[0].perfModelAnalyzeInterval(parent_routine, start_ins, end_ins);
- 
+
    return array; 
 }
 
-VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+VOID perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit)
 { 
-   int rank;
-   chipRank(&rank);
+   //int rank;
+   //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogICacheLoadAccess(stats, hit); 
 }
      
-VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
+VOID perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit)
 { 
-   int rank;
-   chipRank(&rank);
+    //int rank;
+    //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogDCacheStoreAccess(stats, hit); 
 }
 
-VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
+VOID perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct)
 { 
-   int rank;
-   chipRank(&rank);
+   //int rank;
+   //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
    g_chip->core[rank].perfModelLogBranchPrediction(stats, correct); 
 }
@@ -245,8 +266,8 @@ bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* dat
 /*
 bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 { 
-   int rank;
-   chipRank(&rank);
+   //int rank;
+   //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
 //   return g_chip->core[rank].dcacheRunLoadModel(d_addr, size); 
 	char data_buffer[size];
@@ -254,10 +275,10 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 	return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, size); 
 }
 
-bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
+bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size)
 { 
-   int rank;
-   chipRank(&rank);
+   //int rank;
+   //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
 //   return g_chip->core[rank].dcacheRunStoreModel(d_addr, size); 
 	//TODO just passing in dummy data for now
@@ -272,44 +293,174 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    int rank;
    chipRank(&rank);
+
    if(rank >= 0)
-      g_chip->core[rank].getSyscallMdl()->runEnter(rank, ctx, syscall_standard);
+      g_chip->core[rank].getSyscallMdl()->runEnter(ctx, syscall_standard);
 }
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    int rank;
    chipRank(&rank);
+
    if(rank >= 0)
-      g_chip->core[rank].getSyscallMdl()->runExit(rank, ctx, syscall_standard);
+      g_chip->core[rank].getSyscallMdl()->runExit(ctx, syscall_standard);
+}
+
+// Sync client wrappers
+
+void SimMutexInit(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexInit(commid, mux);
+}
+
+void SimMutexLock(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexLock(commid, mux);
+}
+
+void SimMutexUnlock(carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->mutexUnlock(commid, mux);
+}
+
+void SimCondInit(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condInit(commid, cond);
+}
+
+void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condWait(commid, cond, mux);
+}
+
+void SimCondSignal(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condSignal(commid, cond);
+}
+
+void SimCondBroadcast(carbon_cond_t *cond)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->condBroadcast(commid, cond);
+}
+
+void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->barrierInit(commid, barrier, count);
+}
+
+void SimBarrierWait(carbon_barrier_t *barrier)
+{
+   int rank;
+   chipRank(&rank);
+
+   int commid;  
+   commRank(&commid);
+   assert( commid >= 0 );
+
+   if(rank >= 0)
+     g_chip->core[rank].getSyncClient()->barrierWait(commid, barrier);
 }
 
 // MCP wrappers
-void MCPRun()
+void MCPFinish()
 {
    assert(g_MCP != NULL);
-   g_MCP->run();
+   g_MCP->finish();
+}
+
+void* MCPThreadFunc(void *dummy)
+{
+  // Declare local variables
+  CAPI_return_t rtnVal;
+  rtnVal = CAPI_Initialize(g_knob_total_cores);
+
+   while( !g_MCP->finished() )
+   {
+      g_MCP->run();
+      //usleep(1);
+   } 
+	debugPrint (g_knob_total_cores /* rank */, "CHIP", "MCPThreadFunc - end!");
+   return NULL;
+//   pthread_exit(NULL);
 }
 
 // Chip class method definitions
 
-Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
+Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0)
 {
-   proc_time = new UINT64[num_mods];
    tid_map = new THREADID [num_mods];
    core = new Core[num_mods];
 
-   for(int i = 0; i < num_mods; i++) 
+   for(int i = 0; i < num_mods; i++)
    {
-      proc_time[i] = 0;
-      tid_map[i] = 0;
-      core[i].coreInit(this, i, num_mods);
+      tid_map[i] = UINT_MAX;
+      core[i].coreInit(i, num_mods);
    }
-
-   InitLock(&maps_lock);
-   InitLock(&dcache_lock);
-   
-	InitLock(&global_lock);
 
 	// FIXME: A hack
 	aliasEnable = false;
@@ -327,9 +478,11 @@ VOID Chip::fini(int code, VOID *v)
 
    for(int i = 0; i < num_modules; i++)
    {
-      cerr << "*** Core[" << i << "] summary ***" << endl;
+      cout << "*** Core[" << i << "] summary ***" << endl;
+      out << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
-      cerr << endl;
+      cout << endl;
+      out << endl;
    }
 
    out.close();
@@ -459,21 +612,6 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 	return all_asserts_passed;
 }
 
-/*
-void Chip::setDramBoundaries( vector< pair< ADDRINT, ADDRINT> > addr_boundaries) 
-{
-
-	cerr << " CHIP: setting Dram Boundaries " << endl; 
-   for(int i = 0; i < num_modules; i++) 
-   {
-      cerr << " CHIP: core[" << i << "] of [" << num_modules << "] setting dram boundaries " << endl;
-		core[i].setDramBoundaries(addr_boundaries);
-   }
-
-	//static function that should affect all AHL's on every core?
-	cerr << " CHIP: Finished Dram Boundaries " << endl; 
-}
-*/
 /*user program calls get routed through this */
 CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
 {
@@ -574,37 +712,12 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 
 }
 
-/*
-CAPI_return_t chipSetDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
-{
-	g_chip->setDramBoundaries(addr_boundaries);
-	return 0;
-}
-*/
 
-
-//TODO this are here as a temporary fix to the dcache synro bug (code hangs if we don't serilize cache accesses).  i suspect this will NOT work once we go across clusters.
-// rank only used for debug output
-void Chip::getDCacheModelLock(int rank)
-{
-//	cerr << "[" << rank << "] Getting Lock " << endl;
-	GetLock(&dcache_lock, 1);
-//	cerr << "[" << rank << "] GOTTEN Lock " << endl;
-	
-}
-
-void Chip::releaseDCacheModelLock(int rank)
-{
-//	cerr << "[" << rank << "] about to release Lock " << endl;
-	ReleaseLock(&dcache_lock);       
-//	cerr << "[" << rank << "] RELASED Lock " << endl;
-}
-
-// FIXME: Stupid Hack Functions
+// FIXME: Stupid Hack for debugging purpose 
 CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 {
 	// It is better to create an alias map here. An assciative array
-	assert (g_chip->num_modules == 2);
+	assert (g_chip->num_modules == 3);
 	switch (addrType) {
 
 		case(DRAM_0):
@@ -613,6 +726,7 @@ CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 		case(DRAM_1):
 			g_chip->aliasMap[address] = createAddress(num,1,false,false);
 			break;
+		/*
 		case(DRAM_00):
 			g_chip->aliasMap[address] = createAddress(num,0,false,true);
 			break;
@@ -625,6 +739,7 @@ CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 		case(DRAM_11):
 			g_chip->aliasMap[address] = createAddress(num,1,false,true);
 			break;
+		*/
 		default:
 			cerr << "ERROR: chip.cc: Should not reach here\n";
 			break;
@@ -652,11 +767,16 @@ ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
 	 * |                  |          |                   |                    |
 	 */
 	
+	/*
 	UINT32 logCacheBlockSize = log(g_knob_line_size);
 	UINT32 cacheBlockOffset = ( (pack2) ? (g_knob_line_size - 2) : 0 );
 	UINT32 DRAMBlockOffset = ( (pack1) ? ( (1 << (g_knob_ahl_param - logCacheBlockSize)) - 1) : 0 );
 
 	return ( (num << (g_knob_ahl_param + 1) )  |  (coreId << g_knob_ahl_param)  |  (DRAMBlockOffset << logCacheBlockSize)  |  (cacheBlockOffset)  );
+	*/
+	
+	// UINT32 num_modules = g_chip->num_modules;
+	return ( ( (num * 3) + coreId) << g_knob_ahl_param);
 
 }
 

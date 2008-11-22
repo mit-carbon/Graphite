@@ -60,6 +60,10 @@ struct InsInfo {
 	SYSCALL_STANDARD next_sys_call_std;
 };
 
+//FIXME
+//PIN_LOCK g_lock1;
+//PIN_LOCK g_lock2;
+
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -220,7 +224,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 	   		bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
 					   stats[rank]->inst_trace[i].second);
 	   		if ( do_perf_modeling ) {
-	     			perfModelLogICacheLoadAccess(stats[rank], i_hit);
+	     			perfModelLogICacheLoadAccess(rank, stats[rank], i_hit);
 	   		}
          }
      	}
@@ -231,7 +235,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
      	{
       	// it's not possible to delay the evaluation of the performance impact for these. 
       	// get the cycle counter up to date then account for dependency stalls
-      	perfModelRun(stats[rank], reads, num_reads); 
+      	perfModelRun(rank, stats[rank], reads, num_reads); 
      	}
 
    	if ( do_dcache_read_modeling )
@@ -244,11 +248,15 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 				assert (dcache_ld_size == sizeof(UINT32));
 				char data_ld_buffer[dcache_ld_size];
 
-				// cerr << "Doing read modelling for address: 0x" << hex << dcache_ld_addr << endl;
+				stringstream ss;
+				ss << "Doing read modelling for address: 0x" << hex << dcache_ld_addr;
+				debugPrint (rank, "PINSIM", ss.str());
+				ss.str("");
 
 				dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 
-				// cerr << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec << endl;
+				ss << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec;
+				debugPrint (rank, "PINSIM", ss.str());
 
 				assert (is_dual_read == false);
 			}
@@ -259,43 +267,29 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 
 		 else {
 
-        	// it's not possible to delay the evaluation of the performance impact for these. 
-       		// get cycle count up to date so time stamp for when miss is ready is correct
-
-//			cerr << "[" << rank << "] dCache READ Modeling: before getting locks " << endl;
-//      	GetLock(&dcache_read_lock, 1);
-//      	GetLock(&dcache_write_lock, 1);
-
-//			cerr << "[" << rank << "] dCache READ Modeling: GOT LOCKS " << endl;
-       
         	// FIXME: This should actually be a UINT32 which tells how many read misses occured
 		
-//			char* data_ld_buffer = (char*) malloc (dcache_ld_size);
 			char data_ld_buffer[dcache_ld_size];
 			//TODO HARSHAD sharedmemory will fill ld_buffer
 			bool d_hit = dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 			// bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        	
 			if ( do_perf_modeling ) {
-        		perfModelRun(stats[rank], d_hit, writes, num_writes);
+        		perfModelRun(rank, stats[rank], d_hit, writes, num_writes);
      		}
 
      		if ( is_dual_read ) {
 
-//				char* data_ld_buffer_2 = (char*) malloc (dcache_ld_size);
 				char data_ld_buffer_2[dcache_ld_size];
 				//TODO HARSHAD sharedmemory will fill ld_buffer
 				bool d_hit2 = dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
         		// bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
         		if ( do_perf_modeling ) {
-           		perfModelRun(stats[rank], d_hit2, writes, num_writes);
+           		perfModelRun(rank, stats[rank], d_hit2, writes, num_writes);
      			}
    		}
 
-//      	ReleaseLock(&dcache_write_lock);
-//      	ReleaseLock(&dcache_read_lock);
 	 		// cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
-//
 	 	 }
      
 		} 
@@ -317,18 +311,25 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 				char data_st_buffer[dcache_st_size];
 				
 				
+			
 				if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
 					memset (data_st_buffer, 'C', sizeof(UINT32));
 				}
 				else {
 					memset (data_st_buffer, 'A', sizeof(UINT32));
 				}
+			
 				
 				// memset (data_st_buffer, 'z', sizeof(UINT32));
 
-				// cerr << "Doing write modelling for address: 0x" << hex << dcache_st_addr << endl;
+				stringstream ss;
+				ss << "Doing write modelling for address: 0x" << hex << dcache_st_addr << dec;
+				debugPrint (rank, "PINSIM", ss.str());
 				
-				// cerr << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec << endl;
+				ss.str("");
+				ss << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec;
+				debugPrint (rank, "PINSIM", ss.str());
+
 				dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
 
 			}
@@ -340,25 +341,17 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 		 
 		 else {
 
-//	    	cerr << "[" << rank << "] dCache WRITE Modeling: before locks" << endl;
-//      	GetLock(&dcache_read_lock, 1);
-//      	GetLock(&dcache_write_lock, 1);
-//			cerr << "[" << rank << "] dCache WRITE Modeling: GOT LOCKS " << endl;
        
 			// FIXME: This should actually be a UINT32 which tells how many write misses occurred
-//			char* data_st_buffer = (char*) malloc (dcache_ld_size);  
 			char data_st_buffer[dcache_ld_size]; 
 
 			//TODO Harshad: st buffer needs to be written
 			//TODO Harshad: shared memory expects all data_buffers to be pre-allocated
 			bool d_hit = dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
-			// bool d_hit = dcacheRunStoreModel(dcache_st_addr, dcache_st_size);
    		if ( do_perf_modeling )
      		{ 
-				perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
+				perfModelLogDCacheStoreAccess(rank, stats[rank], d_hit); 
      		}
-//      	ReleaseLock(&dcache_write_lock);
-//      	ReleaseLock(&dcache_read_lock);
 //			cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
 		 }
    	} 
@@ -371,7 +364,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
    	// this should probably go last
    	if ( do_perf_modeling )
    	{
-   		perfModelRun(stats[rank]);
+   		perfModelRun(rank, stats[rank]);
    	}
 
 		// cerr << "  [" << rank << "] finished runModels " << endl;
@@ -391,6 +384,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 	}
 #endif
 } //end of runModels
+
 
 bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins, 
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head, 
@@ -635,98 +629,250 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 /* ===================================================================== */
 
-AFUNPTR mapMsgAPICall(RTN& rtn, string& name)
+bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
    
-	if(name == "CAPI_Initialize"){
-	   cerr << "Replacing CAPI_initialize" << endl;
-      return AFUNPTR(chipInit);
-   }
-   else if(name == "CAPI_rank"){
-		cerr << "replacing CAPI_rank" << endl;
-      return AFUNPTR(commRank);
-   }
-   else if(name == "CAPI_message_send_w"){
-		cerr << "replacing CAPI_message_send_w" << endl;
-      return AFUNPTR(chipSendW);
-   }
-   else if(name == "CAPI_message_receive_w"){
-		cerr << "replacing CAPI_message_receive_w" << endl;
-      return AFUNPTR(chipRecvW);
-   }
+   AFUNPTR msg_ptr = NULL;
+   PROTO proto = NULL;
+
    //FIXME added by cpc as a hack to get around calling Network for finished cores
+	if(name == "CAPI_Initialize")
+   {
+      msg_ptr = AFUNPTR(chipInit);
+   }
+   else if(name == "CAPI_Initialize_FreeRank")
+   {
+      msg_ptr = AFUNPTR(chipInitFreeRank);
+   }
    else if(name == "CAPI_Finish"){
-      cerr << "replacing CAPI_Finish" << endl;
-	  	return AFUNPTR(chipHackFinish);
+      msg_ptr = AFUNPTR(chipFinish);
    }
+	
    else if(name == "CAPI_Print"){
-      cerr << "replacing CAPI_Print" << endl;
-	  	return AFUNPTR(chipPrint);
+      msg_ptr = AFUNPTR(chipPrint);
    }
+	
+   else if(name == "mcp_thread_func")
+   {
+      msg_ptr = AFUNPTR(MCPThreadFunc);
+   }
+   else if(name == "CAPI_rank")
+   {
+      msg_ptr = AFUNPTR(commRank);
+   }
+   else if(name == "CAPI_message_send_w")
+   {
+      msg_ptr = AFUNPTR(chipSendW);
+   }
+   else if(name == "CAPI_message_receive_w")
+   {
+      msg_ptr = AFUNPTR(chipRecvW);
+   }
+   else if(name == "finishMCP")
+   {
+      msg_ptr = AFUNPTR(MCPFinish);
+   }
+   else if(name == "mutexInit")
+   {
+        msg_ptr = AFUNPTR(SimMutexInit);
+   }
+   else if(name == "mutexLock")
+   {
+        msg_ptr = AFUNPTR(SimMutexLock);
+   }
+   else if(name == "mutexUnlock")
+   {
+        msg_ptr = AFUNPTR(SimMutexUnlock);
+   }
+   else if(name == "condInit")
+   {
+        msg_ptr = AFUNPTR(SimCondInit);
+   }
+   else if(name == "condWait")
+   {
+        msg_ptr = AFUNPTR(SimCondWait);
+   }
+   else if(name == "condSignal")
+   {
+        msg_ptr = AFUNPTR(SimCondSignal);
+   }
+   else if(name == "condBroadcast")
+   {
+        msg_ptr = AFUNPTR(SimCondBroadcast);
+   }
+   else if(name == "barrierInit")
+   {
+        msg_ptr = AFUNPTR(SimBarrierInit);    
+	}
+   else if(name == "barrierWait")
+   {
+        msg_ptr = AFUNPTR(SimBarrierWait);
+   }
+	
 	else if(name == "CAPI_debugSetMemState") {
-		cerr << "replacing CAPI_debugSetMemState" << endl;
-		return AFUNPTR(chipDebugSetMemState);
+		msg_ptr = AFUNPTR(chipDebugSetMemState);
 	}
 	else if(name == "CAPI_debugAssertMemState") {
-		cerr << "replacing CAPI_debugAssertMemState" << endl;
-		return AFUNPTR(chipDebugAssertMemState);
+		msg_ptr = AFUNPTR(chipDebugAssertMemState);
 	}
-	else if (name == "CAPI_alias") {
-		cerr << "replacing CAPI_alias" << endl;
-	 	return AFUNPTR(chipAlias);
+	
+	else if(name == "CAPI_alias") {
+		msg_ptr = AFUNPTR(chipAlias);
 	}
-	/*
-	else if(name == "CAPI_setDramBoundaries") {
-		cerr << "replacing CAPI_setDramBoundaries" << endl;
-		return AFUNPTR(chipSetDramBoundaries);
-	}
-	*/
-   else if(name == "runSyscallServer"){
-		cerr << endl << endl << "!!!!!!!!! Trying to replace runSyscallServer! !!!!!!!!!! " << endl << endl;
-//      return AFUNPTR(syscallServerRun);
-	}
-   else if(name == "runMCP"){
-      return AFUNPTR(MCPRun);
+
+   if ( msg_ptr == AFUNPTR(commRank) 
+        || (msg_ptr == AFUNPTR(chipInitFreeRank)) 
+        || (msg_ptr == AFUNPTR(MCPThreadFunc)) 
+        || (msg_ptr == AFUNPTR(SimMutexInit)) 
+        || (msg_ptr == AFUNPTR(SimMutexLock)) 
+        || (msg_ptr == AFUNPTR(SimMutexUnlock)) 
+        || (msg_ptr == AFUNPTR(SimCondInit))          
+		  || (msg_ptr == AFUNPTR(SimCondSignal)) 
+        || (msg_ptr == AFUNPTR(SimCondBroadcast)) 
+        || (msg_ptr == AFUNPTR(SimBarrierWait)) 
+        )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int*),
+                             PIN_PARG_END() );         
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);      
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
    }
-   
-   return NULL;
+	else if ( (msg_ptr == AFUNPTR(chipSendW)) || (msg_ptr == AFUNPTR(chipRecvW) ) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(CAPI_endpoint_t),
+                             PIN_PARG(CAPI_endpoint_t),
+                             PIN_PARG(char*),
+                             PIN_PARG(int),
+                             PIN_PARG_END() );  
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+                           IARG_END);  
+      //RTN_Close(rtn);    
+      PROTO_Free(proto); 
+      return true;
+   }
+   else if ( msg_ptr == AFUNPTR(MCPFinish) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG_END() );   
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_END);  
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   } 
+   else if ( (msg_ptr == AFUNPTR(SimCondWait)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int*),
+                             PIN_PARG(int*),
+                             PIN_PARG_END() );   
+      RTN_ReplaceSignature(rtn, msg_ptr, 
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_END);  
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   } 
+   else if ( (msg_ptr == AFUNPTR(SimBarrierInit)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int*),
+                             PIN_PARG(int),
+                             PIN_PARG_END() );   
+      RTN_ReplaceSignature(rtn, msg_ptr, 
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_END);  
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   } 
+   else if ( (msg_ptr == AFUNPTR(chipInit)) || (msg_ptr == AFUNPTR(chipFinish)) )
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int),
+                             PIN_PARG_END() );         
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);      
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   }
+	else if ( (msg_ptr == AFUNPTR(chipDebugSetMemState)) || (msg_ptr == AFUNPTR(chipDebugAssertMemState)) || (msg_ptr == AFUNPTR(chipPrint)) 
+			    || (msg_ptr == AFUNPTR(chipAlias)) )
+	{
+		RTN_Replace (rtn, msg_ptr);
+	}
+
+   return false;
 }
 
 VOID routine(RTN rtn, VOID *v)
 {
-   AFUNPTR msg_ptr = NULL;
-   RTN_Open(rtn);
-   INS rtn_head = RTN_InsHead(rtn);
+
    string rtn_name = RTN_Name(rtn);
-   bool is_rtn_ins_head = true;
-   set<INS> ins_uses;
 
-//    cerr << "routine " << RTN_Name(rtn) << endl;
-
-   if ( (msg_ptr = mapMsgAPICall(rtn, rtn_name)) != NULL ) {
-      RTN_Replace(rtn, msg_ptr);
-   } 
+   bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
+   
+	if ( did_func_replace == true )
+	{
+		// Do nothing
+	}
 #ifdef INSTRUMENT_ALLOWED_FUNCTIONS
-	else if(
-		rtn_name != "_Z13instrument_mev" 
-		&& rtn_name != "_Z4pongPv"
-		&& rtn_name != "_Z4pingPv"
-		&& rtn_name != "_Z22awesome_test_suite_msii" 
-		&& rtn_name != "_Z22awesome_test_suite_msiv" 
-	//don't do anything
-	) {}
+	else if ( 
+					rtn_name != "_Z13instrument_mev" 
+				&& rtn_name != "_Z4pongPv"
+		 		&& rtn_name != "_Z4pingPv"
+		 		&& rtn_name != "_Z22awesome_test_suite_msii" 
+		 		&& rtn_name != "_Z22awesome_test_suite_msiv" 
+				) 
+	{
+		// Do nothing
+	}
 #endif
+
 	else 
-   {
-      
+	{
+
 #ifdef INSTRUMENT_ALLOWED_FUNCTIONS
 		cerr << "Routine name is: " << rtn_name << endl;
 #endif
-	  
-	  	if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 
-     	{ 
-			getPotentialLoadFirstUses(rtn, ins_uses);
-     	}
+
+      RTN_Open(rtn);
+      INS rtn_head = RTN_InsHead(rtn);
+      bool is_rtn_ins_head = true;
+      set<INS> ins_uses;
+
+      if ( g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads ) 
+      { 
+         getPotentialLoadFirstUses(rtn, ins_uses);
+      }
 
       // Add instrumentation to each basic block for modeling
       for (BBL bbl = RTN_BblHead(rtn); BBL_Valid(bbl); bbl = BBL_Next(bbl))
@@ -760,9 +906,10 @@ VOID routine(RTN rtn, VOID *v)
          }
          assert( inst_offset == last_offset );
       }  
+
+      RTN_Close(rtn);
    }
 
-   RTN_Close(rtn);
 }
 
 
@@ -792,18 +939,25 @@ VOID init_globals()
       }
    }
    
+   //FIXME
+	// Make Sure that this is right !!
+   unsigned int num_cores = g_knob_num_cores + 1;
+ 
    g_config = new Config;
    //g_config->loadFromFile(FIXME);
 
    // NOTE: transport and queues must be inited before the chip
-   Transport::ptInitQueue(g_knob_num_cores);
+   Transport::ptInitQueue(num_cores);
 
-   g_chip = new Chip(g_knob_num_cores);
+   g_chip = new Chip(num_cores);
 
-   // Note the MCP has a dependency on the transport layer and the chip
-   g_MCP = new MCP();
-   
-	InitLock(&print_lock);
+   // Note the MCP has a dependency on the transport layer and the chip.
+   // Only create an MCP on the correct process.
+   if (g_config->myProcNum() == g_config->MCPProcNum()) {
+      cout << "Creating new MCP object in process " << g_config->myProcNum()
+	   << endl;
+      g_MCP = new MCP(*(g_chip->getCore(num_cores-1)->getNetwork()));
+   }
 }
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)

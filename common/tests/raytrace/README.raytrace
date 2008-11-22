@@ -1,0 +1,78 @@
+
+GENERAL INFORMATION:
+
+This code renders a three-dimensional scene onto a two-dimensional
+image plane using optimized ray tracing.  A hierarchical uniform grid
+is used to represent the scene for efficient access, and early ray
+termination and antialiasing are implemented.   The best description
+of the algorithm can be found in
+
+Jaswinder Pal Singh, Anoop Gupta and Marc Levoy, "Parallel
+Visualization Algorithms: Performance and Architectural Implications",
+IEEE Computer, July 1994.
+
+A detailed description will be in the SPLASH-2 report. 
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top 
+of the main.C file or run it as "RAYTRACE -h".  The base problem
+we recommend does not use antialiasing, so it would not use the -a
+flag.  
+
+The program reads an environment file (.env) which sets up parameters
+and also points to an input geometry file (.geo) and an output file (.rl)
+in which to store the image.  The input file can be found in the
+"inputs" directory.  At the bottom of the .env input file are
+some parameters (optionally) that control the building of the
+hierarchical uniform grid (the hierarchical representation of the
+scene for efficient access).   They control how much memory
+the program needs and how fast it runs. We recommend leaving these 
+parameters as they are for each input file in the base
+problems.  If you change them, the characteristics of the computation 
+will change. 
+
+There are no compile-time flags to vary in the code. 
+
+The raytrace program does not use any graphics utilities.  It produces 
+a .rl file that contains the image in a special format.  The rltotiff 
+program that we provide takes the output .rl file from raytrace and 
+converts it to a tiff file which can then be viewed on most workstations.
+The rltotiff program is provided in the "rltotiff" directory.  To see 
+how to use it, see the beginning of the file rltotiff.c in that 
+directory. You should use the Makefile in that directory to compile 
+rltotiff for your workstation. The rltotiff program requires a tiff
+library in order to function correctly.  The PBMPLUS tiff library works 
+with this application.  Simply install the tiff library and replace the 
+directory specified in the makefile in the rltotiff directory with the 
+path to the tiff library.
+
+BASE PROBLEM SIZE:
+
+Since the raytracer generates images, we provide some sample input 
+scenes that can be used.   These include car.env, balls4.env and 
+teapot.env (a small input, provided mostly for testing purposes). 
+Ways to increase the problem "size" for a given scene include using 
+antialiasing to improve quality and changing the hierarchical uniform 
+grid parameters to improve computation time at the cost of more memory 
+(say).  For now, we recommend using anti-aliasing to change problem 
+size (i.e. using the -a command line parameter).  More details on the 
+hierarchical uniform grid parameters and their effects can be gleaned 
+from the code and will be provided in the SPLASH-2 report. 
+
+If you change the antialiasing level from the default or change any 
+parameters in the input .env file, please say so explicitly in any 
+results you present.
+
+DATA DISTRIBUTION:
+
+Data distribution is difficult in a shared address space version
+of ray tracing (and, if it is required as in a message-passing 
+abstraction, requires a very different algorithm: see the paper
+cited above).  One could place a processor's portion of the image
+plane in its local memory. For the scene, however, particularly given 
+changing viewpoints from which the scene might be rendered
+and the unpredictable paths of rays due to reflections, refractions etc. 
+it is very difficult to place scene data appropriately in physically 
+distributed main memory. Data distribution, however, does not make 
+much difference to performance on the Stanford DASH multiprocessor. 

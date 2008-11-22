@@ -14,7 +14,7 @@ else
   LDFLAGS = 
 endif
 
-SOURCES = ../../user/capi.cc basic.cc
+SOURCES = ../../user/mcp_api.cc ../../user/capi.cc basic.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## Build rules

@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
+#include "mcp_api.h"
 #include <sstream>
 
 using namespace std;
@@ -59,6 +60,7 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_t threads[2];
 	pthread_attr_t attr;
 	
+	initMCP();
 #ifdef DEBUG
 	cout << "This is the function main()" << endl;
 	cout << "Initializing thread structures" << endl << endl;
@@ -93,6 +95,8 @@ int main(int argc, char* argv[]){ // main begins
 #ifdef DEBUG
 	cout << "End of execution" << endl << endl;
 #endif
+
+	quitMCP();
         
    return 0;
 } // main ends
@@ -125,8 +129,7 @@ void* do_nothing(void *threadid)
    
 	int tid;
 	cout << "start capi_init" << endl;
-	CAPI_Initialize(&tid);
-//	cout << "end   capi_init" << endl;
+	CAPI_Initialize_FreeRank(&tid);
 
 /*
 #ifdef DEBUG  
@@ -143,7 +146,8 @@ void* do_nothing(void *threadid)
 //		ss << "\n\nsize addr: " << &size << endl << endl;
 //		CAPI_Print(ss.str());
 //		BARRIER_DUAL_CORE(tid);
-//		instrument_me( );
+
+	instrument_me( );
 		/*
 		pthread_mutex_lock(&lock);
 		cerr << "Core: " << tid << " finished instrumenting." << endl;
@@ -163,9 +167,9 @@ void instrument_me()
 	char array[size];
 
 	//4 bytes first line (at the end), 4 bytes overflow onto second line
-	UINT32 addr = ((((UINT32) array) >> 5) << 5) + 31;	// Ensure that there is no segmentation fault
-	*((UINT32*) addr)  = 0xFFFF;
-   UINT32 x = *((UINT32*) addr);
+	unsigned int addr = ((((unsigned int) array) >> 5) << 5) + 31;	// Ensure that there is no segmentation fault
+	*((unsigned int*) addr)  = 0xFFFF;
+   unsigned int x = *((unsigned int*) addr);
 
 //   cout << hex << "x = " << ((UINT64) x) << endl;
 }

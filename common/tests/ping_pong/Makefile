@@ -12,7 +12,7 @@ else
   LDFLAGS = 
 endif
 
-OLD_SOURCES = ../../user/capi.cc ping_pong.cc
+OLD_SOURCES = ../../user/mcp_api.cc ../../user/capi.cc ping_pong.cc
 OLD_OBJECTS = $(OLD_SOURCES:%.cc=%.o)
 
 ## Build rules

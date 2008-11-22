@@ -72,9 +72,9 @@ VOID OCache::mutationRuntime()
 
    if ( mutation_interval && ((icache_misses + dcache_misses) >= mutation_interval) )
    {
-      cout << "Mutation Interval Elapsed" << endl
-           << "config before mutation:" << endl
-           << statsLong() << endl;
+//       cout << "Mutation Interval Elapsed" << endl
+//            << "config before mutation:" << endl
+//            << statsLong() << endl;
       evolveNaive();
       //evolveDataIntensive();
 
@@ -83,9 +83,9 @@ VOID OCache::mutationRuntime()
    else 
    {
       if ( mutation_interval==0 && ((icache_misses + dcache_misses) >= 1000) ) {
-         cout << "Mutation Interval Elapsed" << endl
-              << "config before mutation:" << endl
-              << statsLong() << endl;
+//          cout << "Mutation Interval Elapsed" << endl
+//               << "config before mutation:" << endl
+//               << statsLong() << endl;
          resetIntervalCounters();
       }
    }

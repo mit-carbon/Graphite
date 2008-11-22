@@ -7,24 +7,27 @@ include ../../makefile.gnu.config
 
 FORCE32 ?= 1
 
-#	CFLAGS = -I../../user -c -g -Wall -m32
-CC = /usr/bin/g++
+CC = /usr/bin/gcc
+CXX = /usr/bin/g++
+CFLAGS = -I../../user -c -g -Wall -std=c99
+LDFLAGS = -lm
 ifeq (${FORCE32},1)
-	CFLAGS = -I../../user -I../../core -I../../misc -I../../../pin/src -c -g -Wall -m32
-	LDFLAGS = -m32 -m elf_i386
-else
-	CFLAGS = -I../../user -c -g -Wall
-	LDFLAGS =
+  CFLAGS += -m32
+  LDFLAGS += -m32 -m elf_i386
 endif
-SOURCES = ../../user/capi.cc cannon.cc
-OBJECTS = $(SOURCES:%.cc=%.o)
+#C_SOURCES = ../../user/capi.c cannon.c
+CPP_SOURCES = 
+OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
 
 ## Build rules
 
 all: cannon
 
+%.o : %.c
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 cannon: $(OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
@@ -40,40 +43,4 @@ squeaky: clean
 out:
 	echo $(PIN_CXXFLAGS)
 
-#<<<<<<< HEAD:common/tests/pthreads_matmult/Makefile
-#include ../../makefile.gnu.config
 
-#CFLAGS = -I../../user -I../../../pin/src -I../../core -I../../misc -c -g -Wall
-#=======
-
-#CC = /usr/bin/g++
-#ifeq (${FORCE32},1)
-#  CFLAGS = -I../../user -I../../core -I../../misc -I../../../pin/src -c -g -Wall -m32
-#  LDFLAGS = -m32 -m elf_i386
-#else
-#  CFLAGS = -I../../user -c -g -Wall
-#  LDFLAGS = 
-#endif
-#>>>>>>> master:common/tests/pthreads_matmult/Makefile
-#SOURCES = ../../user/capi.cc cannon.cc
-#OBJECTS = $(SOURCES:%.cc=%.o)
-
-## Build rules
-
-#all: cannon
-
-#%.o : %.cc
-#	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
-#	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
-
-#cannon: $(OBJECTS)
-#	$(CXX) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
-#	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS)
-
-## Cleaning
-
-#clean:
-#	-rm -f *.o cannon sim.out
-
-#squeaky: clean
-#	-rm -f *~

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sstream>
 #include "capi.h"
+#include "mcp_api.h"
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "core.h"
@@ -102,6 +103,7 @@ int main(int argc, char* argv[]){ // main begins
 	}
 	// Declare threads and related variables
 	
+	initMCP();
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
@@ -152,6 +154,7 @@ int main(int argc, char* argv[]){ // main begins
 #ifdef DEBUG
 //	cerr << "End of execution" << endl << endl;
 #endif
+	quitMCP();
         
    return 0;
 } // main ends
@@ -160,7 +163,7 @@ int main(int argc, char* argv[]){ // main begins
 void* starter_function(void *threadid)
 {
 	int tid;
-	CAPI_Initialize(&tid);
+	CAPI_Initialize_FreeRank(&tid);
 
 #ifdef DEBUG  
 //   pthread_mutex_lock(&lock);

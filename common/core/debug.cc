@@ -1,5 +1,6 @@
 #include "debug.h"
 #include <assert.h>
+#include <fstream>
 #include <sstream>
 using namespace std;
 
@@ -9,8 +10,13 @@ ofstream outfile[(MAX_CORE_COUNT+1)];
 VOID debugInit (INT32 tid) {
 	stringstream fileName;
 	string folder = "output_files/";
-	fileName << folder << "Core" << tid << ".txt";
+	fileName << "Core" << tid << ".txt";
+	cerr << fileName.str() << endl;
 	outfile[tid].open( (fileName.str()).c_str() );
+
+	assert (outfile[tid].is_open());
+
+	outfile[tid] << "Starting Thread: " << tid << endl;
 }
 
 VOID debugFinish (INT32 tid) {
@@ -24,6 +30,8 @@ VOID debugPrint(INT32 id, string class_name, string output_string)
 	assert( id >= 0 );
 	if( id == -1 )
 		id = MAX_CORE_COUNT;
+
+	assert (outfile[id].is_open());
 	outfile[id] << " [" << id << "] - " << class_name << " - : " << output_string << endl;
 }
 
@@ -35,6 +43,7 @@ VOID debugPrint(INT32 id, string class_name, string output_string, int value)
 	assert( id < MAX_CORE_COUNT );
 	if( id == -1 )
 		id = MAX_CORE_COUNT;
+	assert (outfile[id].is_open());
 	outfile[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 
 }
@@ -46,6 +55,7 @@ VOID debugPrintFloat(INT32 id, string class_name, string output_string, float va
 	assert( id < MAX_CORE_COUNT );
 	if( id == -1 )
 		id = MAX_CORE_COUNT;
+	assert (outfile[id].is_open());
 	outfile[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 
 }
@@ -57,7 +67,8 @@ VOID debugPrintHex(INT32 id, string class_name, string output_string, int value)
 	assert( id < MAX_CORE_COUNT );
 	if( id == -1 )
 		id = MAX_CORE_COUNT;
-	outfile[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << hex << value << endl;
+	assert (outfile[id].is_open());
+	outfile[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << hex << value << dec << endl;
 
 }
 
@@ -68,5 +79,6 @@ VOID debugPrintString(INT32 id, string class_name, string output_string, string 
 	assert( id < MAX_CORE_COUNT );
 	if( id == -1 )
 		id = MAX_CORE_COUNT;
+	assert (outfile[id].is_open());
 	outfile[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 }

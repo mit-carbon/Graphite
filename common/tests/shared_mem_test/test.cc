@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sstream>
 #include "capi.h"
+#include "mcp_api.h"
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "core.h"
@@ -108,6 +109,8 @@ int main(int argc, char* argv[]){ // main begins
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
+	initMCP();
+
 	logCacheBlockSize = atoi(argv[1]);
 	cacheBlockSize = 1 << logCacheBlockSize;
 	
@@ -138,8 +141,8 @@ int main(int argc, char* argv[]){ // main begins
 	cerr << "Spawning threads" << endl << endl;
 #endif
 
-      pthread_create(&threads[0], &attr, starter_function, (void *) 0);    
-      pthread_create(&threads[1], &attr, starter_function, (void *) 1);    
+   pthread_create(&threads[0], &attr, starter_function, (void *) 0);    
+   pthread_create(&threads[1], &attr, starter_function, (void *) 1);    
 
 #ifdef DEBUG
 //   pthread_mutex_lock(&lock);
@@ -148,8 +151,10 @@ int main(int argc, char* argv[]){ // main begins
 #endif
 
 	// Wait for all threads to complete
-        pthread_join(threads[0], NULL);         
-        pthread_join(threads[1], NULL);
+   pthread_join(threads[0], NULL);         
+	pthread_join(threads[1], NULL);
+
+	quitMCP();
 
 #ifdef DEBUG
 //	cerr << "End of execution" << endl << endl;
@@ -162,7 +167,7 @@ int main(int argc, char* argv[]){ // main begins
 void* starter_function(void *threadid)
 {
 	int tid;
-	CAPI_Initialize(&tid);
+	CAPI_Initialize_FreeRank(&tid);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);

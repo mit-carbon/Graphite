@@ -16,6 +16,7 @@
 #include "cache_state.h"
 #include "address_home_lookup.h"
 #include "perfmdl.h"
+#include "lockfree_hash.h"
 #include "syscall_model.h"
 #include "mcp.h"
 #include "debug.h"
@@ -36,11 +37,12 @@ extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
 // FIXME: if possible, these shouldn't be globals. Pin callbacks may need them to be. 
 
-CAPI_return_t chipInit(int *rank);
+CAPI_return_t chipInit(int rank);
+CAPI_return_t chipInitFreeRank(int *rank);
 
 CAPI_return_t chipRank(int *rank);
 
-CAPI_return_t commRank(int *rank);
+CAPI_return_t commRank(int *commid);
 
 CAPI_return_t chipSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                         char *buffer, int size);
@@ -48,7 +50,7 @@ CAPI_return_t chipSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                         char *buffer, int size);
 //harshad should replace this -cpc
-CAPI_return_t chipHackFinish(int my_rank);
+CAPI_return_t chipFinish(int my_rank);
 
 //deal with locks in cout
 CAPI_return_t chipPrint(string s);
@@ -66,22 +68,22 @@ ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2);
 UINT32 log(UINT32);
 // performance model wrappers
 
-void perfModelRun(PerfModelIntervalStat *interval_stats);
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats);
 
-void perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-                  UINT32 num_reads);
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
+                  REG *reads, UINT32 num_reads);
 
-void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes);
 
 PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                  const INS& start_ins, const INS& end_ins);
 
-void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
+void perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit);
      
-void perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
+void perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit);
 
-void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);
+void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct);
 
 
 // organic cache model wrappers
@@ -95,30 +97,45 @@ bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* dat
 //bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
 // syscall model wrappers
+
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+
+// sync wrappers
+
+void SimMutexInit(carbon_mutex_t *mux);
+void SimMutexLock(carbon_mutex_t *mux);
+void SimMutexUnlock(carbon_mutex_t *mux);
+
+void SimCondInit(carbon_cond_t *cond);
+void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
+void SimCondSignal(carbon_cond_t *cond);
+void SimCondBroadcast(carbon_cond_t *cond);
+
+void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count);
+void SimBarrierWait(carbon_barrier_t *barrier);
 
 // MCP server wrappers
 void MCPRun();
-
+void MCPFinish();
+void *MCPThreadFunc(void *dummy);
 
 // chip class
 
 class Chip 
 {
-
-   // wrappers
-   public:
-
+	public:
       // messaging wrappers
 
-      friend CAPI_return_t chipInit(int *rank); 
+      friend CAPI_return_t chipInit(int rank); 
+      friend CAPI_return_t chipInitFreeRank(int *rank); 
       friend CAPI_return_t chipRank(int *rank);
       
-	  //FIXME: this is a hack function 
-	  friend CAPI_return_t chipHackFinish(int my_rank);
+	  	//FIXME: this is a hack function 
+	  	friend CAPI_return_t chipFinish(int my_rank);
 	  
-	  friend CAPI_return_t chipPrint(string s);
+	  	friend CAPI_return_t chipPrint(string s);
       
       friend CAPI_return_t commRank(int *rank);
       friend CAPI_return_t chipSendW(CAPI_endpoint_t sender, 
@@ -130,31 +147,43 @@ class Chip
 
       // performance modeling wrappers
  
-      friend void perfModelRun(PerfModelIntervalStat *interval_stats);
-      friend void perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-                               UINT32 num_reads);
-      friend void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats);
+      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
+                               REG *reads, UINT32 num_reads);
+      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                                REG *writes, UINT32 num_writes);
       friend PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                               const INS& start_ins, 
                                                               const INS& end_ins);
-      friend void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit);
-      friend void perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit);
-      friend void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct);      
+      friend void perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit);
+      friend void perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit);
+      friend void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct);      
 
       // syscall modeling wrapper
       friend void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
       friend void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 
+      // sync wrappers
+      friend void SimMutexInit(carbon_mutex_t *mux);
+      friend void SimMutexLock(carbon_mutex_t *mux);
+      friend void SimMutexUnlock(carbon_mutex_t *mux);
+
+      friend void SimCondInit(carbon_cond_t *cond);
+      friend void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
+      friend void SimCondSignal(carbon_cond_t *cond);
+      friend void SimCondBroadcast(carbon_cond_t *cond);
+
+      friend void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count);
+      friend void SimBarrierWait(carbon_barrier_t *barrier);
       
       // organic cache modeling wrappers
       friend bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
       friend bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size);
 		//TODO deprecate these two bottom functions
-      friend bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-      friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+      // friend bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
+      // friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
 
-		// FIXME: A hack for testing purposes
+		// FIXME: A hack for DEBUG purposes
 		friend CAPI_return_t chipAlias(ADDRINT address0, addr_t addType, UINT32 num);
 		friend bool isAliasEnabled(void);
 
@@ -162,50 +191,27 @@ class Chip
 
       int num_modules;
 
-      UINT64 *proc_time;
-
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
-      map<THREADID, int> core_map;
+      LockFreeHash core_map;
       int prev_rank;
-      PIN_LOCK maps_lock;
-      PIN_LOCK dcache_lock;
       
       Core *core;
 
-		//debugging crap: 
-		PIN_LOCK global_lock;
-		//chipFinishHack (remove later)
-		//i'm tracking which cores have finished
-		//running the user program. when all cores
-		//have checked in, we can tell them to quit the program.
-		bool* finished_cores;
+	 	bool* finished_cores;
 
    public:
-
-      //debugging crap
-		void getGlobalLock() { GetLock(&global_lock, 1); }
-		void releaseGlobalLock() { ReleaseLock(&global_lock); }
-
-		//**************
-		
 
 		// FIXME: This is strictly a hack for testing data storage
 		bool aliasEnable;
 		std::map<ADDRINT,ADDRINT> aliasMap;
 		//////////////////////////////////////////////////////////
 
-
-      UINT64 getProcTime(int module) { assert(module < num_modules); return proc_time[module]; }
-
-      void setProcTime(int module, unsigned long long new_time) 
-      { assert(module < num_modules); proc_time[module] = new_time; }
-
-      int getNumModules() { return num_modules; }
-
       Chip(int num_mods);
 
+      int getNumModules() { return num_modules; }
+      Core *getCore(unsigned int id) { return &(core[id]); }
       void fini(int code, void *v);
 
 		//input parameters: 
@@ -224,13 +230,6 @@ class Chip
 												 vector<char*>& c_data_vector,
 												 string test_code, string error_string);
 		
-		/*
-		void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
-		*/
-
-		void getDCacheModelLock(int rank);
-		void releaseDCacheModelLock(int rank);
-
 };
 
 #endif

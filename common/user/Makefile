@@ -7,9 +7,9 @@ OPT=-O2
 CFLAGS=-c -I../core -I../phys_trans -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = capi.cc mcp_api.cc
-OBJECTS = $(SOURCES:%.cc=%.o)
-
+C_SOURCES = capi.c
+CPP_SOURCES = mcp_api.cc sync_api.cc
+OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o)
 
 all: $(OBJECTS)
 
@@ -17,7 +17,10 @@ all: $(OBJECTS)
 ## build rules
 
 %.o : %.cc
-	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+
+%.o : %.c
+	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 clean:
 	-rm -f *.o *.d *.rpo

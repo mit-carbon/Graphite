@@ -23,6 +23,7 @@
 #include "pin.H"
 #include "utils.h"
 #include "cache_state.h"
+#include "random.h"
 
 #define k_KILO 1024
 #define k_MEGA (k_KILO*k_KILO)
@@ -105,13 +106,15 @@ namespace CACHE_SET
 
          VOID modifyAssociativity(UINT32 assoc) { assert(assoc == 1); }
 
-         VOID print() { cout << the_tag << endl; }
+         VOID print() { 
+				//cout << the_tag << endl; 
+			}
 
          bool invalidateTag(CacheTag& tag) 
          { 
-	    if ( tag == the_tag )
-	    {
-               the_tag = CacheTag(); 
+	    		if ( tag == the_tag )
+	    		{
+            	the_tag = CacheTag(); 
                return true;
             }
             return false;
@@ -291,13 +294,15 @@ namespace CACHE_SET
 
          VOID print()
          {
-            cout << "associativity = " << tags_last_index + 1 << "; next set to replace = " 
+            /*
+				cout << "associativity = " << tags_last_index + 1 << "; next set to replace = " 
                  << next_replace_index << "     tags = ";
             for (UINT32 i = 0; i < getAssociativity(); i++)
             {
-	       cout << hex << the_tags[i] << " ";
+	       		cout << hex << the_tags[i] << " ";
             }
             cout << endl;
+				*/
          }
 
    };
@@ -341,12 +346,6 @@ class CacheBase
       // computed params
       const UINT32 line_shift;
       const UINT32 set_index_mask;
-
-      // This will count through accesses to the cache and give us
-      // effective random replacement. We do not care if there are
-      // race conditions on this counter, because behavior will be
-      // ultimately random regardless.
-      static UINT32 rand_counter;
 
    private:
       CacheStats sumAccess(bool hit) const
@@ -426,6 +425,7 @@ class Cache : public CacheBase
       UINT64 total_misses[k_MAX_SETS];
       UINT32 set_ptrs[k_MAX_SETS+1];
       UINT32 max_search;
+      Random rand;
       
    public:
       VOID resetCounters()
@@ -458,10 +458,13 @@ class Cache : public CacheBase
          assert(getNumSets() <= k_MAX_SETS);
          assert(max_search_depth < k_MAX_SEARCH);
 
-         max_search = max_search_depth;
+         // caches are initialized during instrumentation, which is
+         // single-threaded, so it is safe to use a static var to seed
+         // the random number generators
+         static Random::value_t cache_number = 0;
+         rand.seed(++cache_number);
 
-         //initialization for cache hashing
-         srand( time(NULL) );
+         max_search = max_search_depth;
 
          for (UINT32 i = 0; i < getNumSets(); i++)
          {
@@ -577,7 +580,6 @@ class Cache : public CacheBase
              if ( (! local_hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                                    (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
              {
-					 UINT32 r_num = ++rand_counter % depth;
                 UINT32 which = history[r_num];
                 assert(which < k_MAX_SETS);
                 sets[which].replace(tag);
@@ -601,7 +603,6 @@ class Cache : public CacheBase
       {
          UINT32 history[k_MAX_SEARCH];
 
->>>>>>> origin/HEAD:common/core/cache.h
 */
          CacheTag tag;
          UINT32 set_index;
@@ -666,7 +667,7 @@ class Cache : public CacheBase
          if ( (! hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                           (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
          {
-            UINT32 r_num = ++rand_counter % depth;
+            UINT32 r_num = rand.next(depth);
             UINT32 which = history[r_num];
 				//evict_tag is set by replace, need to translate tag to address
 				CacheTag evict_tag;
@@ -675,8 +676,9 @@ class Cache : public CacheBase
 					*evict_addr = tagToAddress(evict_tag);
 				tagptr = sets[which].find(tag, &line_index).second;
 
-            if ( depth > 1 )
-               cout << "which = " << dec << which << endl;
+            if ( depth > 1 ) {
+               // cout << "which = " << dec << which << endl;
+				}
 
             if ( access_type == k_ACCESS_TYPE_LOAD )
 					sets[which].read_line(line_index, addr & (line_size - 1), buff, bytes);

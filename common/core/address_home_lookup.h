@@ -38,33 +38,8 @@ class AddressHomeLookup {
 	private:
 		UINT32 num_nodes;
 		INT32 ahl_id;
-		ADDRINT mask;
 		UINT32 log_block_size;
 };
-/*
-class AddressHomeLookup
-{
-	public:
-		AddressHomeLookup(UINT32 num_nodes, INT32 ahl_id);
-		AddressHomeLookup(vector< pair<ADDRINT,ADDRINT> > addr_bounds, INT32 ahl_id);
-		virtual ~AddressHomeLookup();
-	  
-		// TODO: change this return type to a node number type 
-		UINT32 find_home_for_addr(ADDRINT) const;
-		//TODO make this static
-		void setAddrBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_bounds);
-
-	private:
-		//TODO make these static since all instances need to be consistent?
-		vector< pair<ADDRINT, ADDRINT> > address_boundaries;
-		vector<UINT64> bytes_per_core;
-
-	   UINT32 num_nodes;
-		INT32 ahl_id; //debugging purposes only. tie to core id
-		ADDRINT mask;
-		UINT32 m;
-};
-*/
 
 
 #endif /*ADDRESSHOMELOOKUP_H_*/

@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
+#include "mcp_api.h"
 #include <sstream>
 
 using namespace std;
@@ -48,7 +49,14 @@ int main(int argc, char* argv[]){ // main begins
 	// declare threads and related variables
 	pthread_t threads[coreCount];
 	pthread_attr_t attr;
-
+	
+	initMCP();
+#ifdef DEBUG
+	cout << "This is the function main()" << endl;
+	cout << "Initializing thread structures" << endl << endl;
+	pthread_mutex_init(&lock, NULL);
+#endif
+	
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
@@ -62,7 +70,11 @@ int main(int argc, char* argv[]){ // main begins
 		pthread_join(threads[i], NULL);         
 	}
 	
-	cerr << "end of execution." << endl << endl;
+#ifdef DEBUG
+	cout << "End of execution" << endl << endl;
+#endif
+
+	quitMCP();
         
    return 0;
 } // main ends
@@ -91,12 +103,11 @@ void barrier(int tid)
 void* thread_main(void *threadid)
 {
 	int tid;
-	CAPI_Initialize(&tid);
+//	CAPI_Initialize(&tid);
+	CAPI_Initialize_FreeRank(&tid);
 
-//   int size = 10;
    global_integer = 10;
    global_integer_ptr = &global_integer;
-//   global_integer_ptr = g_array;
   
 	for(int i=0; i < SIZE; i++) {
 //		if(tid==0 && (i % 10) == 0 ) printf("Loop: %d\n", i);
@@ -113,9 +124,9 @@ void instrument_me()
 	char array[size];
 
 	//4 bytes first line (at the end), 4 bytes overflow onto second line
-	UINT32 addr = ((((UINT32) array) >> 5) << 5) + 31;	// Ensure that there is no segmentation fault
-	*((UINT32*) addr)  = 0xFFFF;
-   UINT32 x = *((UINT32*) addr);
+	unsigned int addr = ((((unsigned int) array) >> 5) << 5) + 31;	// Ensure that there is no segmentation fault
+	*((unsigned int*) addr)  = 0xFFFF;
+   unsigned int x = *((unsigned int*) addr);
 
 }
 

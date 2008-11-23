@@ -5,9 +5,15 @@
 #include <sstream>
 #include <iostream>
 #include <queue>
-#include "assert.h"
 #include <math.h>
+
+#include "assert.h"
 #include "debug.h"
+#include "packet_type.h"
+#include "core.h"
+#include "ocache.h"
+#include "address_home_lookup.h"
+#include "cache_state.h"
 
 // some forward declarations for cross includes
 class Core;
@@ -19,14 +25,10 @@ class DramDirectory; //i hate compiling c++ code
 typedef struct NetPacket NetPacket;
 typedef struct NetMatch NetMatch;
 
-#include "packet_type.h"
-#include "core.h"
-#include "ocache.h"
 #include "dram_directory.h"
 #include "dram_directory_entry.h"
 #include "network.h"
-#include "address_home_lookup.h"
-#include "cache_state.h"
+
 
 extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_ahl_param;

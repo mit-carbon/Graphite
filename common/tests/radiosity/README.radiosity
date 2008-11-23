@@ -1,0 +1,107 @@
+GENERAL INFORMATION:
+
+This code computes the equilibrium distribution of light in a scene
+using the hierarchical diffuse radiosity method.  A description of the
+sequential hierarchical radiosity method can be found in 
+
+Pat Hanrahan, David Salzman and Larry Aupperle, "A Rapid Hierarchical
+Radiosity Algorithm", Proc. SIGGRAPH 1991. 
+
+Descriptions of the parallel algorithm can be found in
+
+Jaswinder Pal Singh, Anoop Gupta and Marc Levoy, "Parallel
+Visualization Algorithms: Performance and Architectural Implications",
+IEEE Computer, July 1994.
+
+or in 
+
+Jaswinder Pal Singh, et al, "Load Balancing and Data Locality in
+Hierarchical N-body Methods", Stanford Univ. Tech Report CSL-TR-92-505
+(to appear in JPDC).  
+
+A detailed description will also be in the SPLASH-2 report. 
+
+The parallelism is managed with distributed task queues and task
+stealing, and there is one task queue per processor.
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top 
+of the main.C file or run it as "RADIOSITY -h".  Many of the
+command-line options control the accuracy of the program's computation
+and have default values set in the program (which can be overridden by
+command-line specifications).  These are indicated as such in the
+comments or usage statement, and we recommend that they be left at
+their default values for base SPLASH-2 runs.
+
+The program runs in different modes, either interactive (using the SGI
+GL library) or batch.  The batch mode does not attempt to display the
+rendered image, while the interactive mode brings up a GL window with
+knobs and dials to set parameters and run the program. If you are
+running on a system that does not support GL or you do not want to
+display the resulting scene, please use the -batch option on the
+command line.  The makefile shows  you how to link the GL libraries.
+This sample makefile is for a machine on which we do not want to
+display, in which case we use the glibdumb and glibps libraries, which
+do not support displaying and are provided with the code.  The only
+real way to verify the correctness of the program is to view the
+result using GL. The commented lines in the print_statistics routine
+can be uncommented to print several runtime statistics, but these are
+nondeterministic in parallel since the program does not follow a
+deterministic execution path and does not arrive at exactly the same
+result in different parallel runs (the radiosity algorithm is
+iterative to convergence, and even the path is nondeterministic).  
+
+The way the program is written, it compiles in the input description
+of the scene in polygon coordinates. This is in the file room_model.C,
+which contains the descriptions of two scenes.  One is the room scene
+originally used by Hanrahan et al in their SIGGRAPH paper, and the
+other is an artificial extension of this scene (removing a wall of the
+room and introducing some of the features of this room in the
+neighboring room thus created). To use the former, use the -room
+command line option; for the latter, use -largeroom.  -room is what we
+call the base SPLASH problem. If you don't specify -room or
+-largeroom, the program will default to a small dummy test scene which
+is useful only for debugging the program and verifying that it works. 
+
+There are two types of compile-time flags that can be set in the code.
+One controls the manner in which patches are assigned to processors at
+the beginning of each time-step in the radiosity iteration.  The simple
+case is to assign the same statically chosen set of patches to the
+same processor in every iteration (and rely completely on task
+stealing for load balancing); this is what happens by default, or if
+-DPATCH_ASSIGNMENT_STATIC is used as a compile-time flag. The more
+sophisticated case is to do an assignment at the beginning of a time
+step based on the costs of patches profiled in the previous time step;
+this is what  happens if the -DPATCH_ASSIGNMENT_COSTBASED flag is used
+at compile-time.  The latter can yield less stealing, but uses more
+synchronization to keep track of costs and hence has more overhead.
+We recommend using the default (not defining anything, so static is
+used) in the base SPLASH runs. 
+
+The other type of compile-time flag special cases some machines in
+terms of maximum number of processors etc. (grep for #if in *.C and
+*.H to find these) and even memory consistency model in one instance. 
+
+BASE PROBLEM SIZE:
+
+The base problem size we recommend is to use the program as follows: 
+
+RADIOSITY -p ? -batch -room
+
+where ? is the number of processors.  This sets the ae, bf etc flags
+(see comment at top of rad_main.C or run "RADIOSITY -h" to see what
+these are) to their default values.  The default values can be found
+by looking at the comment at the top of rad_main.C or running
+"RADIOSITY -h".
+
+DATA DISTRIBUTION:
+
+Data distribution is very difficult in this code, except for some
+per-process data structures (typically arrays of structures indexed by
+process_id; grep for MAX_PROCESSORS to find them).  
+General data distribution of other (scene, e.g.), however, does not
+make much difference to performance on the Stanford DASH
+multiprocessor.  
+
+

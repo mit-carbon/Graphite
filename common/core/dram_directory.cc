@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-//#define DRAM_DEBUG
+#define DRAM_DEBUG
 
 //TODO LIST (ccelio)
 //add support for limited directory scheme.
@@ -19,7 +19,6 @@ DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_a
 #endif
    assert( num_lines >= 0 );
 
-   /* Added by George */
    dramAccessCost = 0;
 }
 

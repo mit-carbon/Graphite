@@ -20,9 +20,16 @@ class Transport {
       int    pt_tid;
       int    comm_id;
       bool   i_am_the_MCP;     // True if this node belongs to the MCP
+      static int MCP_rank;     // MPI rank of the process containing the MCP
       static UInt32 MCP_tag;   // The tag to use when sending to the MCP
       static int pt_num_mod;
-      static int* dest_ranks;
+      static int* dest_ranks;  // Map from comm_id to MPI rank
+
+      //***** Private helper functions *****//
+
+      // Return the process number for this process.  Process numbers are
+      //  integers between 0 and (g_config->numProcs() - 1), inclusive.
+      static UInt32 ptProcessNum();
 
    public:	
 

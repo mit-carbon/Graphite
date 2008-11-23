@@ -1,5 +1,6 @@
 #include "debug.h"
 #include <assert.h>
+#include <fstream>
 #include <sstream>
 using namespace std;
 
@@ -39,6 +40,7 @@ VOID debugPrint(INT32 id, string class_name, string output_string)
 	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << endl;
 	//TODO handle "-1" ids or other ids that may want to write
 	assert( id < (INT32) core_count );
+	assert (outfile[id].is_open());
 	if( id >= 0 ) 
 		outfiles[id] << " [" << id << "] - " << class_name << " - : " << output_string << endl;
 #endif
@@ -50,12 +52,10 @@ VOID debugPrint(INT32 id, string class_name, string output_string, int value)
 #ifdef WRITE_FLAG
 	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 	assert( id < (INT32) core_count );
-//	if( id == -1 )
-//		id = MAX_CORE_COUNT;
+	assert (outfile[id].is_open());
 	if( id >= 0 ) 
 		outfiles[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 #endif
-
 }
 
 VOID debugPrintFloat(INT32 id, string class_name, string output_string, float value) 
@@ -63,36 +63,27 @@ VOID debugPrintFloat(INT32 id, string class_name, string output_string, float va
 #ifdef WRITE_FLAG
 	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 	assert( id < (INT32) core_count );
-//	if( id == -1 )
-//		id = MAX_CORE_COUNT;
+	assert (outfile[id].is_open());
 	if( id >= 0)
 		outfiles[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 #endif
-
 }
 
 VOID debugPrintHex(INT32 id, string class_name, string output_string, int value) 
 {
 #ifdef WRITE_FLAG
-//	assert ( (id == 0) || (id == 1) );
-	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << hex << value << endl;
 	assert( id < (INT32) core_count );
-//	if( id == -1 )
-//		id = MAX_CORE_COUNT;
+	assert (outfile[id].is_open());
 	if( id >= 0)
 		outfiles[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << hex << value << endl;
-
 #endif
 }
 
 VOID debugPrintString(INT32 id, string class_name, string output_string, string value) 
 {
 #ifdef WRITE_FLAG
-//	assert ( (id == 0) || (id == 1) );
-	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 	assert( id < (INT32) core_count );
-//	if( id == -1 )
-//		id = MAX_CORE_COUNT;
+	assert (outfile[id].is_open());
 	if( id >= 0)
 		outfiles[id] << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
 #endif

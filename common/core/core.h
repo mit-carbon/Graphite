@@ -16,13 +16,13 @@ class SyscallMdl;
 #include "memory_manager.h"
 #include "pin.H"
 #include "config.h"
-#include "chip.h"
 #include "network.h"
 #include "perfmdl.h"
 #include "ocache.h"
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "syscall_model.h"
+#include "sync_client.h"
 
 // externally defined vars
 
@@ -48,18 +48,14 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth;
 class Core
 {
    private:
-	Chip *the_chip;
-	int core_tid;
-	int core_num_mod;
-	Network *network;
-	PerfModel *perf_model;
-	
-	// JP: shouldn't this be only a part of MemoryManager?
-	OCache *ocache;
-	MemoryManager *memory_manager;
-   SyscallMdl *syscall_model;
-
-	PIN_LOCK dcache_lock;
+      int core_tid;
+      int core_num_mod;
+		MemoryManager *memory_manager;
+      Network *network;
+      PerfModel *perf_model;
+      OCache *ocache;
+      SyscallMdl *syscall_model;
+      SyncClient *sync_client;
 
    public:
 
@@ -75,37 +71,7 @@ class Core
          { return core_num_mod; }
 
       
-		//TODO added to allow the MMU to get/release locks in the chip.
-		//there has to be a better way to do all of this.
-      /*******************/
-		
-//		Chip* getChip() 
-//			{ return the_chip; }
-	
-		//TODO this are here as a temporary fix to the dcache synro bug (code hangs if we don't serilize cache accesses).  i suspect this will NOT work once we go across clusters.
-		/*
-		THREADID last_id;
-		
-		void getDCacheModelLock()
-			{
-				if(last_id != PIN_ThreadId()) {
-					cerr << "CONFLICT in CACHE ACCESS, Prev: " << last_id << " , Current: " << PIN_ThreadId() << endl;
-				}
-
-				last_id = PIN_ThreadId();
-
-				GetLock(&dcache_lock, 1);
-			}
-
-		void releaseDCacheModelLock()
-			{
-				ReleaseLock(&dcache_lock);
-			}
-       */
-		
-		/*******************/
-
-		int coreInit(Chip *chip, int tid, int num_mod);
+		int coreInit(int tid, int num_mod);
 
       // Return the communication endpoint ID for this core
       int coreCommID();
@@ -117,91 +83,64 @@ class Core
       // network accessor since network is private
       Network* getNetwork(void);
 
-      SyscallMdl *getSyscallMdl() { return syscall_model; }
-
       MemoryManager* getMemoryManager(void)
          { return memory_manager; }
       
+      //performance model wrappers
+		SyscallMdl *getSyscallMdl() { return syscall_model; }
+      SyncClient *getSyncClient() { return sync_client; }
+      
       VOID fini(int code, VOID *v, ofstream& out);
 	
-	// organic cache wrappers
+		// organic cache wrappers
 	
-	bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
+		bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
 	
-	bool dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size);
-//	bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-//	bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+		bool dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size);
 
-	//debug hook to smash cache state
-	void debugSetCacheState(ADDRINT addr, CacheState::cstate_t cstate, char *c_data);
-	//return true if assertion is true  (that's a good thing)
-	bool debugAssertCacheState(ADDRINT addr, CacheState::cstate_t cstate, char *c_data);
+		// FIXME: Debug Functions. Debug hook to smash cache state
+		void debugSetCacheState(ADDRINT addr, CacheState::cstate_t cstate, char *c_data);
+		//return true if assertion is true  (that's a good thing)
+		bool debugAssertCacheState(ADDRINT addr, CacheState::cstate_t cstate, char *c_data);
 
-	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
-	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
+		void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
+		bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
 	
-	/*
-	void setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
-	*/
-	//performance model wrappers
+		//performance model wrappers
 
-	VOID perfModelRun(PerfModelIntervalStat *interval_stats)
-	{ perf_model->run(interval_stats); }
+		VOID perfModelRun(PerfModelIntervalStat *interval_stats)
+		{ perf_model->run(interval_stats); }
 
-	VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
+		VOID perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
 									 UINT32 num_reads)
-	{ perf_model->run(interval_stats, reads, num_reads); }
+		{ perf_model->run(interval_stats, reads, num_reads); }
 
-	VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+		VOID perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
 									 REG *writes, UINT32 num_writes)
-	{ perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
+		{ perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
 
-	PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
+		PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine, 
 																			 const INS& start_ins, 
 																			 const INS& end_ins)
-	{ return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
+		{ return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
 
-	VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-	{ perf_model->logICacheLoadAccess(stats, hit); }
+		VOID perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+		{ perf_model->logICacheLoadAccess(stats, hit); }
 
-	VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-	{ perf_model->logDCacheStoreAccess(stats, hit); }
+		VOID perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
+		{ perf_model->logDCacheStoreAccess(stats, hit); }
 
-	VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-	{ perf_model->logBranchPrediction(stats, correct); }
+		VOID perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
+		{ perf_model->logBranchPrediction(stats, correct); }
 	
 
-	// organic cache wrappers
+      // add proc time management to core
+      //FIXME: These should actually be accessed THROUGH the perfmodel
+      void setProcTime(UInt64 time);
+      void updateProcTime(UInt64 time); // only if newer
+      UInt64 getProcTime();
+      // int getId() const { return core_tid; }
 
-//<<<<<<< HEAD:common/core/core.h
-//      bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
-//      { return ocache->runICacheLoadModel(i_addr, size); }
-
-//      bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
-//      { return ocache->runDCacheLoadModel(d_addr, size); }
-
-//      bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
-//      { return ocache->runDCacheStoreModel(d_addr, size); }
-//=======
-/*      bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
-      { 
-        bool ret = ocache->runICacheLoadModel(i_addr, size);
-        return ret;
-      }
-
-      bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
-      {
-        bool ret = ocache->runDCacheLoadModel(d_addr, size);
-        return ret;
-      }
-
-      bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size)
-      {
-        bool ret = ocache->runDCacheStoreModel(d_addr, size); 
-        return ret;
-      }
-*/
-//>>>>>>> origin/HEAD:common/core/core.h
 };
 
 #endif

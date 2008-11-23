@@ -7,11 +7,12 @@
 class NetworkMeshAnalytical : public Network
 {
  public:
-    NetworkMeshAnalytical(Chip *chip, int tid, int num_threads, Core* the_core);
+    NetworkMeshAnalytical(int tid, int num_threads, Core *core);
     virtual ~NetworkMeshAnalytical();
 
     virtual int netSend(NetPacket packet);
     virtual NetPacket netRecv(NetMatch match);
+    // virtual void outputSummary(ostream &out);
 
  protected:
     virtual UINT64 netProcCost(NetPacket packet);

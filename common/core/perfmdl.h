@@ -149,8 +149,9 @@ class PerfModelIntervalStat {
          dcache_store_miss_history_index = 0;
 
          branch_mispredict = false; 
-         microops_count = 0;
-         cycles_subtotal = 0;
+         //FIXME: why were these getting reset to zero?
+//         microops_count = 0;
+//         cycles_subtotal = 0;
       }
 };
 
@@ -182,6 +183,8 @@ class PerfModel {
 	 scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID), name(n)
       { }
 
+      void setCycleCount(UINT64 new_cycle_count) { cycle_count = new_cycle_count; }
+      void updateCycleCount(UINT64 new_cycle_count) { cycle_count = max(cycle_count, new_cycle_count); }
       UINT64 getCycleCount() { return cycle_count; }
       UINT64 getMicroOpCount() { return microop_issue_count; }
 

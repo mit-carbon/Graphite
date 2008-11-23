@@ -12,6 +12,8 @@ KNOB<UINT32> g_knob_num_cores(KNOB_MODE_WRITEONCE, "pintool",
    "n", "0", "Specifies the number of cores in this process");
 KNOB<UINT32> g_knob_total_cores(KNOB_MODE_WRITEONCE, "pintool", 
    "tc", "0", "Specifies the total number of cores in all processes");
+KNOB<UINT32> g_knob_num_process(KNOB_MODE_WRITEONCE, "pintool", 
+   "np", "0", "Specifies the total number of processes in the simulation");
 
 KNOB<BOOL>   g_knob_enable_network_modeling(KNOB_MODE_WRITEONCE, "pintool",
    "mnt", "0", "turn on modeling for the on-chip network(s)");

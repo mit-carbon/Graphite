@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
+#include "mcp_api.h"
 
 using namespace std;
 
@@ -21,6 +22,7 @@ void* pong(void *threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
+	initMCP();
 	// Declare threads and related variables
 	pthread_t threads[2];
 	pthread_attr_t attr;
@@ -72,6 +74,8 @@ int main(int argc, char* argv[]){ // main begins
 	
 	cerr << "Finished running PingPong!." << endl << endl;
 
+	quitMCP();
+
    return 0;
 } // main ends
 
@@ -90,7 +94,7 @@ void* ping(void *threadid)
 #endif
 
 
-   CAPI_Initialize(&tid);
+   CAPI_Initialize_FreeRank(&tid);
 
 	
 #ifdef DEBUG  
@@ -155,7 +159,7 @@ void* pong(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
 */
-   CAPI_Initialize(&tid);
+   CAPI_Initialize_FreeRank(&tid);
  
 /*
    pthread_mutex_lock(&lock);

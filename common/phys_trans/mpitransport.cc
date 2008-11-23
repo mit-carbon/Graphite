@@ -5,7 +5,27 @@
 // Initialize class static variables (these are useless but required by C++)
 int Transport::pt_num_mod = 0;
 int* Transport::dest_ranks = NULL;
+// MCP_tag will be set to the maximum allowable tag later on.  Just in case
+//  that fails, set the initial value to 32767.  According to the MPI spec,
+//  all implementations must allow tags up to 32767.
 UInt32 Transport::MCP_tag = 32767;
+int Transport::MCP_rank = 0;
+
+UInt32 Transport::ptProcessNum()
+{
+   // MPI already takes care of assigning a number to each process so just
+   //  return the MPI rank.
+   int MPI_rank;
+   int mpi_initialized;
+
+   // MPI is initialized by ptInitQueue.  This routine cannot be called
+   //  before ptInitQueue.
+   MPI_Initialized(&mpi_initialized);
+   assert(mpi_initialized == true);
+
+   MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
+   return (UInt32)MPI_rank;
+}
 
 // This routine should be executed once in each process
 void Transport::ptInitQueue(int num_mod)
@@ -19,22 +39,61 @@ void Transport::ptInitQueue(int num_mod)
    // num_mod is the number of threads in this process
    pt_num_mod = num_mod;
   
-   int provided;
-   MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
-   assert(provided >= MPI_THREAD_MULTIPLE);      
+   //***** Initialize MPI *****//
+   // NOTE: MPI barfs if I call MPI_Init_thread with MPI_THREAD_MULTIPLE
+   //  in a non-threaded process.  I think this is a bug but I'll work
+   //  around it for now.
+   int required, provided;
+   if (g_config->numMods() > 1) {
+      required = MPI_THREAD_MULTIPLE;
+   } else {
+      required = MPI_THREAD_SINGLE;
+   }
+   MPI_Init_thread(NULL, NULL, required, &provided);
+   assert(provided >= required);
+
+   //***** Fill in g_config with values that we are responsible for *****//
+   g_config->setProcNum(ptProcessNum());
+#ifdef PT_DEBUG
+   cout << "Process number set to " << g_config->myProcNum() << endl;
+#endif
+
+   //***** Setup the info we need to communicate with the MCP *****//
+
+   // FIXME: I should probably be separating the concepts of MPI rank and
+   //  process number.  In that case, I would want to see if I'm in the MCP
+   //  process and, if so, send my rank to everyone else.  However, that's
+   //  a pain because I can't do a broadcast without everyone knowing who
+   //  the root of the bcast is apriori.  For now, I'll just assume that
+   //  g_config->MCPProcNum() can be directly used as a destination rank.
+   //  This should be OK because I (the PT layer) get to assign process
+   //  numbers and can therefore enforce (process num == MPI rank).
+   MCP_rank = (int)g_config->MCPProcNum();
 
    // Determine the tag to use for communication with the MCP by asking
    //  for the maximum allowable tag value (tags must be between 0 and
    //  this upper bound, inclusive).
-   int flag;
+   int attr_flag;
    int* max_tag;
-   MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &max_tag, &flag);
-   // flag==false means that the attribute was not set
-   assert(flag == true);
-   MCP_tag = *max_tag;
+   MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &max_tag, &attr_flag);
+   // flag==false means the attribute wasn't set so just use the default
+   if(attr_flag == true) { MCP_tag = *max_tag; }
 
+   //***** Setup the info we need to communicate between modules *****//
+
+   // When using MPI, we can have multiple processes, each potentially
+   //  containing multiple threads.  MPI treats each process (not each
+   //  thread) as a communication endpoint with its own unique rank.
+   //  Therefore, to communicate with a particular thread, we need to know
+   //  the rank of the process that contains it.  Here we build a map from
+   //  core (thread) number to MPI rank.  To do this, we ask every process
+   //  for a list of the cores it contains.
    // FIXME?: We should probably just read the entire map of cores to
    //  processes from the config and skip all this swapping of core IDs.
+  
+   // Create an empty map from modules to processes
+   dest_ranks = new int[g_config->totalMods()];
+
    /* Quick hack
    MPI_Comm_rank(MPI_COMM_WORLD, &temp);
    my_threads = new int[num_mod];
@@ -47,17 +106,11 @@ void Transport::ptInitQueue(int num_mod)
       my_threads[i++] = *m;
    }
 
-   // When using MPI, we can have multiple processes, each potentially
-   //  containing multiple threads.  MPI treats each process (not each
-   //  thread) as a communication endpoint with its own unique rank.
-   //  Therefore, to communicate with a particular thread, we need to know
-   //  the rank of the process that contains it.  Here we build a map from
-   //  core (thread) number to MPI rank.  To do this, we ask every process
-   //  for a list of the cores it contains.
-  
    // First, find out how many cores each process contains
+   // FIXME: I should just read num_procs from g_config instead of asking MPI
    MPI_Comm_size(MPI_COMM_WORLD, &temp);
    num_procs = temp;  // convert from int to UINT32
+   if (g_config->numProcs() != num_procs) MPI_Abort(MPI_COMM_WORLD, -1);
 #ifdef PT_DEBUG
    cout << "Number of processes: " << num_procs << endl;
 #endif
@@ -86,7 +139,6 @@ void Transport::ptInitQueue(int num_mod)
 
    // Now we have a complete list of all the cores in each process.
    // Convert it into a map from core to process ID:
-   dest_ranks = new int[num_cores];
 #ifdef PT_DEBUG
    cout << "Core to MPI rank map: ";
 #endif
@@ -102,6 +154,10 @@ void Transport::ptInitQueue(int num_mod)
    cout << endl;
 #endif
    
+   delete [] rbuf;
+   delete [] displs;
+   delete [] thread_counts;
+   delete [] my_threads;
 }
 
 // This routine should be executed once in each thread
@@ -142,18 +198,17 @@ int Transport::ptInit(int tid, int num_mod)
    return 0;
 }
 
-// This routine should be executed once in each thread
+// This routine should be executed once in the MCP thread
 void Transport::ptInitMCP()
 {
-   int MPI_rank;
-   i_am_the_MCP = true;
-   pt_tid = -1;
+   // Check to make sure this is only getting executed in the correct process
+   assert(ptProcessNum() == g_config->MCPProcNum());
 
-   // Fill in the comm_id with the rank of my process (should always be
-   //  zero for now)
-   MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
-   comm_id = MPI_rank;  // Convert from int to whatever comm_id is
-   assert(comm_id == 0);
+   i_am_the_MCP = true;
+   // I don't think these should be used but set them to something funky
+   //  just in case.
+   pt_tid = -1;
+   comm_id = -1;
 
    return;
 }
@@ -241,17 +296,18 @@ void Transport::ptSendToMCP(UInt8* buffer, UInt32 num_bytes)
    //   buffer = input, pointer to buffer of data to send
    //   num_bytes = input, number of bytes to send starting from buffer
    // Notes:
-   //  - The data is sent using MPI_BYTE so that MPI won't do any conversions.
-   //  - The MCP should always be located in the process with MPI rank 0
+   //  - The data is sent using MPI_BYTE so that MPI won't do any conversions
+   //  - The MCP is located in the process with rank MCP_rank
    //  - We use MCP_tag to indicate messages to the MCP
 
 #ifdef PT_DEBUG
    cout << "PT sending msg to MCP ==> tid:" << pt_tid
-	<< ", comm_id:" << comm_id <<
+	<< ", comm_id:" << comm_id
 	<< ", size:" << num_bytes << " ... ";
 #endif
    //MPI_Send(data ptr, # elms, elm type, rank, tag, communicator);
-   MPI_Send((char*)buffer, num_bytes, MPI_BYTE, 0, MCP_tag, MPI_COMM_WORLD);
+   MPI_Send((char*)buffer, num_bytes, MPI_BYTE,
+	    MCP_rank, MCP_tag, MPI_COMM_WORLD);
 #ifdef PT_DEBUG
    cout << "done." << endl;
 #endif
@@ -270,8 +326,10 @@ UInt8* Transport::ptRecvFromMCP(UInt32* num_bytes)
 
    // Probe for a message from the MCP process with our MCP comm tag.
    // Use a blocking probe so that we wait until a message arrives.
+   // FIXME: Move the calculation of MCP_comm_tag to ptInit so we only
+   //  do it once
    int MCP_comm_tag = (MCP_tag-1) - comm_id;
-   MPI_Probe(0, MCP_comm_tag, MPI_COMM_WORLD, &status);
+   MPI_Probe(MCP_rank, MCP_comm_tag, MPI_COMM_WORLD, &status);
  
    // Now we know that there is a message ready, check status to see how
    //  big it is.
@@ -288,7 +346,8 @@ UInt8* Transport::ptRecvFromMCP(UInt32* num_bytes)
 	<< ", size:" << *num_bytes << " ...";
 #endif
 
-   MPI_Recv(buffer, *num_bytes, MPI_BYTE, 0, MCP_comm_tag, MPI_COMM_WORLD,
+   MPI_Recv(buffer, *num_bytes, MPI_BYTE,
+	    MCP_rank, MCP_comm_tag, MPI_COMM_WORLD,
 	    &status);
    
 #ifdef PT_DEBUG
@@ -305,15 +364,15 @@ void Transport::ptMCPSend(UInt32 dest, UInt8* buffer, UInt32 num_bytes)
    //  - The data is sent using MPI_BYTE so that MPI won't do any conversions.
    //  - We can't use the destination comm_id as the tag because then
    //    messages could get mixed up with regular user messages.  Instead
-   //    we pick a tag by subtracting our comm_id from the MCP_tag (which
-   //    should be the maximum allowable tag)
+   //    we pick a tag by subtracting the dest comm_id from the MCP_tag (which
+   //    should be the maximum allowable tag).
 
 #ifdef PT_DEBUG
    cout << "PT (MCP) sending msg ==> dest:" << dest
 	<< ", size:" << num_bytes << " ... ";
 #endif
-   MPI_Send(buffer, num_bytes, MPI_BYTE, dest_ranks[dest], (MCP_tag-1)-dest,
-	    MPI_COMM_WORLD);
+   MPI_Send(buffer, num_bytes, MPI_BYTE,
+	    dest_ranks[dest], (MCP_tag-1)-dest, MPI_COMM_WORLD);
 #ifdef PT_DEBUG
    cout << "done." << endl;
 #endif
@@ -321,7 +380,7 @@ void Transport::ptMCPSend(UInt32 dest, UInt8* buffer, UInt32 num_bytes)
    return;
 }
 
-UInt8* Transport::ptMCPRecv(UInt32* num_bytes)
+UInt8* Transport::ptMCPRecv(UInt32* num_bytes, bool count_in_network)
 {
    MPI_Status status;
    int pkt_size, source;
@@ -353,7 +412,8 @@ UInt8* Transport::ptMCPRecv(UInt32* num_bytes)
    // We need to make sure the source here is the same as the one returned
    //  by the call to Probe above.  Otherwise, we might get a message from
    //  a different sender that could have a different size.
-   MPI_Recv(buffer, *num_bytes, MPI_BYTE, source, MCP_tag, MPI_COMM_WORLD,
+   MPI_Recv(buffer, *num_bytes, MPI_BYTE,
+	    source, MCP_tag, MPI_COMM_WORLD,
 	    &status);
    
 #ifdef PT_DEBUG

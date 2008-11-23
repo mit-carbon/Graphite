@@ -1,11 +1,12 @@
 #include "network_mesh_analytical.h"
+#include "chip.h"
 #include <math.h>
 
 using namespace std;
 
-NetworkMeshAnalytical::NetworkMeshAnalytical(Chip *chip, int tid, int num_threads, Core* the_core)
+NetworkMeshAnalytical::NetworkMeshAnalytical(int tid, int num_threads, Core *core)
     :
-        Network(chip,tid,num_threads, the_core),
+        Network(tid, num_threads, core),
         bytes_sent(0),
         cycles_spent_proc(0),
         cycles_spent_latency(0),
@@ -15,12 +16,8 @@ NetworkMeshAnalytical::NetworkMeshAnalytical(Chip *chip, int tid, int num_thread
 
 NetworkMeshAnalytical::~NetworkMeshAnalytical()
 {
-    cout << "  Network summary:" << endl;
-    cout << "    bytes sent: " << bytes_sent << endl;
-    cout << "    cycles spent proc: " << cycles_spent_proc << endl;
-    cout << "    cycles spent latency: " << cycles_spent_latency << endl;
-    cout << "    cycles spent contention: " << cycles_spent_contention << endl;
 }
+
 
 int NetworkMeshAnalytical::netSend(NetPacket packet)
 {
@@ -103,7 +100,12 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
         div_t q1, q2;
         q1 = div(src, ki);
         q2 = div(dest, ki);
-        network_distance += abs(q1.rem - q2.rem);
+        // This models a unidirectional network distance
+        // Should use abs() for bidirectional.
+        if (q1.rem > q2.rem)
+          network_distance += ki - (q1.rem - q2.rem);
+        else
+          network_distance += q2.rem - q1.rem;
         src = q1.quot;
         dest = q2.quot;
       }
@@ -119,6 +121,9 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     w *= (kd-1.)/(kd*kd);
     w *= 1.+1./((double)n);
 
+    if (w < 0) w = 0; // correct negative contention values for small
+                      // networks
+
     double hops_with_contention;
     double Tc;                // latency, with contention
     hops_with_contention = network_distance * (1. + w) + B;
@@ -131,3 +136,15 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     cycles_spent_contention += (UINT64)(Tc - Tb);
     return Tci;
 }
+
+/*
+void NetworkMeshAnalytical::outputSummary(ostream &out)
+{
+   out << "  Network summary:" << endl;
+   out << "    bytes sent: " << bytes_sent << endl;
+   out << "    cycles spent proc: " << cycles_spent_proc << endl;
+   out << "    cycles spent latency: " << cycles_spent_latency << endl;
+   out << "    cycles spent contention: " << cycles_spent_contention << endl;
+}
+*/
+

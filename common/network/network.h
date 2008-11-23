@@ -16,7 +16,6 @@
 class Chip;
 #include "packet_type.h"
 #include "config.h"
-#include "chip.h"
 #include "transport.h"
 #include "memory_manager.h"
 
@@ -24,7 +23,6 @@ extern Config* g_config;
 extern Chip* g_chip; //only here for global_lock debugging purposes
 
 // Define data types
-
 
 enum NetworkModel
 {
@@ -53,6 +51,7 @@ typedef struct NetMatch
    bool type_flag;
 } NetMatch;
 
+class Core;
 
 class Network{
 
@@ -61,7 +60,6 @@ class Network{
       //TODO here to try and sort out hangs/crashes when instrumenting 
 		//all of shared_memory.  gdb was showing a grasph in stl_push_back,
 		//allocate_new.
-		PIN_LOCK network_lock;
 		
 		typedef struct NetQueueEntry{
          NetPacket packet;
@@ -80,48 +78,57 @@ class Network{
       typedef priority_queue <NetQueueEntry, vector<NetQueueEntry>, earlier>
               NetQueue;
 
-      Chip *the_chip;		
-      Core *the_core;
-      int net_tid;
-      int net_num_mod;
       
-      char* netCreateBuf(NetPacket packet, UInt32* buf_size);
+      char* netCreateBuf(NetPacket packet, UInt32* buf_size, UINT64 time);
       void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
       void netEntryTasks();
       //FIXME:
       //This is only here till Jim plugs in his functions, for debugging
       //purposes. To be deleted after that
-//      void processSharedMemReq(NetPacket packet); 
       void processUnexpectedSharedMemUpdate(NetPacket packet);
       NetQueue **net_queue;
       Transport *transport;
 
    protected:
-//      Chip *the_chip;		
-//      int net_tid;
-//      int net_num_mod;   // Total number of cores in the simulation
+      Core *the_core;
+      int net_tid;
+      int net_num_mod;   // Total number of cores in the simulation
 
       virtual UINT64 netProcCost(NetPacket packet);
-      virtual UINT64 netLatency(NetPacket packet);
+		virtual UINT64 netLatency(NetPacket packet);
 
    public:
 
-	  //checkMessages is a hack to force core to check its messages cpc (can we use an interrupt to call it?
-	  //FIXME
-	  void netCheckMessages();
-	  //TODO make these debug prints  a class with its own method? cpc 
-	  void printNetPacket(NetPacket packet);  
-	  void printNetMatch(NetMatch match, int receiver);  
-	  string packetTypeToString(PacketType type);  
-     Network(Chip *chip, int tid, int num_threads, Core* the_core_arg);
-     virtual ~Network(){};
+      Network(int tid, int num_threads, Core* the_core_arg);
+      virtual ~Network(){};
+	   
+		//checkMessages is a hack to force core to check its messages cpc (can we use an interrupt to call it?
+	   //FIXME
+	   //TODO make these debug prints  a class with its own method? cpc 
+	   void printNetPacket(NetPacket packet);  
+	   void printNetMatch(NetMatch match, int receiver);  
+	   string packetTypeToString(PacketType type);  
       
-     int netCommID() { return transport->ptCommID(); }
-     bool netQuery(NetMatch match);
+      
+      int netCommID() { return transport->ptCommID(); }
+	   void netCheckMessages();
+      bool netQuery(NetMatch match);
+
+      virtual int netSendToMCP(const char *buf, unsigned int len, bool is_magic = false);
+      virtual NetPacket netRecvFromMCP();
+
+      virtual int netMCPSend(int commid, const char *buf, unsigned int len, bool is_magic = false);
+      virtual NetPacket netMCPRecv();
 		
-     virtual int netSend(NetPacket packet);
-     virtual NetPacket netRecv(NetMatch match);
-     Transport *getTransport() { return transport; }
+      virtual int netSend(NetPacket packet);
+      virtual NetPacket netRecv(NetMatch match);
+
+      int netSendMagic(NetPacket packet);
+      NetPacket netRecvMagic(NetMatch match);
+
+      Transport *getTransport() { return transport; }
+
+      // virtual void outputSummary(ostream &out);
 };
 
 #endif

@@ -3,10 +3,10 @@ include ../../makefile.debug
 
 FORCE32 ?= 1
 
-CC = /usr/bin/g++
-#CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
-TEST_SOURCES = ../../user/capi.cc test.cc 
-TEST_EVIC_SOURCES = ../../user/capi.cc test_evic.cc
+# CC = /usr/bin/g++
+CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
+TEST_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc test.cc 
+TEST_EVIC_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc test_evic.cc
 TEST_OBJECTS = $(TEST_SOURCES:%.cc=%.o)
 TEST_EVIC_OBJECTS = $(TEST_EVIC_SOURCES:%.cc=%.o)
 

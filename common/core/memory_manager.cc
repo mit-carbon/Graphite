@@ -1,5 +1,5 @@
 #include "memory_manager.h"
-//#define MMU_DEBUG
+#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
@@ -22,12 +22,12 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	int total_num_dram_lines = (int) (pow(2,32) / ocache->dCacheLineSize()); 
 	
 	int dram_lines_per_core = total_num_dram_lines / the_core->getNumCores();
-	assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_dram_lines );
+	// assert( (dram_lines_per_core * the_core->getNumCores()) == total_num_dram_lines );
 
    assert( ocache != NULL );
 
 	//TODO can probably delete "dram_lines_per_core" b/c it not necessary.
-	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core_arg->getRank(), the_core_arg->getNumCores(), the_core_arg->getNetwork());
+	dram_dir = new DramDirectory(dram_lines_per_core, ocache->dCacheLineSize(), the_core->getRank(), the_core->getNumCores(), the_core->getNetwork());
 
 	/**** Data Passing Stuff ****/
 	eviction_buffer = new char[g_knob_line_size];
@@ -295,7 +295,10 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	// send message here to home directory node to request data
 	//packet.type, sender, receiver, packet.length
 	NetPacket packet = makePacket(SHARED_MEM_REQ, (char *)(&payload), sizeof(RequestPayload), the_core->getRank(), home_node_rank); 
+	debugPrint (the_core->getRank(), "MMU", "request Permission: Before netSend()");
 	(the_core->getNetwork())->netSend(packet);
+
+	debugPrint (the_core->getRank(), "MMU", "request Permission: After netSend()");
 
 	// receive the requested data (blocking receive)
 	NetMatch net_match = makeNetMatch( SHARED_MEM_UPDATE_EXPECTED, home_node_rank );

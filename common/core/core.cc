@@ -2,13 +2,12 @@
 #include "debug.h"
 
 #include "network_mesh_analytical.h"
-//#define CORE_DEBUG
+#define CORE_DEBUG
 
 using namespace std;
 
-int Core::coreInit(Chip *chip, int tid, int num_mod)
+int Core::coreInit(int tid, int num_mod)
 {
-   the_chip = chip;
    core_tid = tid;
    core_num_mod = num_mod;
 
@@ -20,16 +19,17 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
    switch(net_model)
    {
-       case NETWORK_BUS:
-           network = new Network(chip, tid, num_mod, this);
-           break;
-       case NETWORK_ANALYTICAL_MESH:
-           network = new NetworkMeshAnalytical(chip, tid, num_mod, this);
-           break;
-       case NUM_NETWORK_TYPES:
-       default:
-           debugPrint(tid, "CORE", "ERROR: Unknown Network Model!");
-           break;
+      case NETWORK_BUS:
+      	network = new Network(tid, num_mod, this);
+         break;
+      case NETWORK_ANALYTICAL_MESH:
+         network = new NetworkMeshAnalytical(tid, num_mod, this);
+         break;
+      case NUM_NETWORK_TYPES:
+
+      default:
+      	debugPrint(tid, "CORE", "ERROR: Unknown Network Model!");
+         break;
    }
 
 
@@ -44,7 +44,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling ) 
    {
-      ocache = new OCache("organic cache", 
+		ocache = new OCache("organic cache", 
                           g_knob_cache_size.Value() * k_KILO,
                           g_knob_line_size.Value(),
                           g_knob_associativity.Value(),
@@ -61,10 +61,9 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_max_search_depth.Value());                        
 //                          g_knob_simarch_is_shared_mem.Value());                        
 
-      debugPrint(core_tid, "Core", "instantiated organic cache model");
-      // cerr << ocache->statsLong() << endl;
+     	debugPrint(core_tid, "Core", "instantiated organic cache model");
   
-   } else 
+	} else 
    {
       ocache = (OCache *) NULL;
    }   
@@ -84,8 +83,9 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    }
 
    syscall_model = new SyscallMdl(network);
-   InitLock(&dcache_lock);
-   debugPrint( core_tid, "CORE", "FInished Core Constructor");
+//   InitLock(&dcache_lock);
+   sync_client = new SyncClient(this);
+
    return 0;
 }
 
@@ -158,43 +158,25 @@ Network* Core::getNetwork()
 
 VOID Core::fini(int code, VOID *v, ofstream& out)
 {
-   delete network;
-
    if ( g_knob_enable_performance_modeling )
-      perf_model->fini(code, v, out);
+     {
+       //FIXME: This should be placed in perfmodel
+       out << "  Total cycles: " << getProcTime() << endl;
+       // cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
+       perf_model->fini(code, v, out);
+
+       // network->outputSummary(out);
+     }
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )
       ocache->fini(code,v,out);
+
+   delete sync_client;
+   delete syscall_model;
+   delete ocache;
+   delete perf_model;
+   delete network;
 }
-
-
-//performance model wrappers
-
-//these have been moved into the .h file
-//m VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats)
-//m { perf_model->run(interval_stats); }
-
-//VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-//						 UINT32 num_reads)
-//{ perf_model->run(interval_stats, reads, num_reads); }
-
-//VOID Core::perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-//						 REG *writes, UINT32 num_writes)
-//{ perf_model->run(interval_stats, dcache_load_hit, writes, num_writes); }
-
-//PerfModelIntervalStat* Core::perfModelAnalyzeInterval(const string& parent_routine, 
-//													   const INS& start_ins, 
-//													   const INS& end_ins)
-//{ return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
-
-//VOID Core::perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-//{ perf_model->logICacheLoadAccess(stats, hit); }
-
-//VOID Core::perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-//{ perf_model->logDCacheStoreAccess(stats, hit); }
-
-//VOID Core::perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-//{ perf_model->logBranchPrediction(stats, correct); }
 
 
 // organic cache wrappers
@@ -338,13 +320,25 @@ bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t ds
 	return memory_manager->debugAssertDramState(address, dstate, sharers_list, d_data);
 }
 
-
-/*
-void Core::setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
+void Core::setProcTime(UInt64 time)
 {
-	cerr << "CORE: setting dram boundaries" << endl;
-	assert( g_knob_simarch_has_shared_mem );
-	memory_manager->setDramBoundaries(addr_boundaries);
-	cerr << "CORE: finished setting dram boundaries" << endl;
+  	if (g_knob_enable_performance_modeling)
+		perf_model->setCycleCount(time);
 }
-*/
+
+
+void Core::updateProcTime(UInt64 time)
+{
+  	if (g_knob_enable_performance_modeling)
+		perf_model->updateCycleCount(time);
+}
+
+UInt64 Core::getProcTime()
+{
+  	debugPrint (getRank(), "CORE", "Before getCycleCount()");
+	if (g_knob_enable_performance_modeling)
+		return perf_model->getCycleCount();
+	else
+		return (0);
+}
+

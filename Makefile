@@ -72,6 +72,27 @@ jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
 	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -dms 1000 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n $(CORES)
 
+mutex_test: all
+	$(MAKE) -C $(TESTS_DIR)/mutex
+	$(PIN_RUN) -mdc -mpf -msys -n 1 -- $(TESTS_DIR)/mutex/mutex_test
+
+cond_test: all
+	$(MAKE) -C $(TESTS_DIR)/cond
+	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/cond/cond_test
+
+broadcast_test: all
+	$(MAKE) -C $(TESTS_DIR)/broadcast
+	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/broadcast/broadcast_test
+
+barrier_test: all
+	$(MAKE) -C $(TESTS_DIR)/barrier
+	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barrier/barrier_test
+
+
+fmm_test: all
+	# note, the 5th line in the input file must match the number of procs passed to pin
+	$(MAKE) -C $(TESTS_DIR)/fmm
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
@@ -82,18 +103,20 @@ cache_test: all
 	$(PIN_RUN) -mdc -mpf -n 2 -- $(TESTS_DIR)/cache_model/cache_test
 
 barnes_test: all
+	# note, the last line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/barnes
 	$(PIN_RUN) -mdc -mpf -msys -n 4 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
 
 war:	kill
+
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
 	killall -s 9 basic
 	killall -s 9 jacobi
 	killall -s 9 ping_pong
-	killall -s 9 test
 	killall -s 9 test_evic
+	killall -s 9 test
 
 love:
 	@echo "not war!"

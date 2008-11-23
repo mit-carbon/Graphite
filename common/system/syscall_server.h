@@ -16,18 +16,19 @@
 #include "packetize.h"
 #include "transport.h"
 #include "fixed_types.h"
+#include "network.h"
 
 class SyscallServer {
    //Note: These structures are shared with the MCP
    private:
-      Transport & pt_endpt;
+      Network & _network;
       UnstructuredBuffer & send_buff;
       UnstructuredBuffer & recv_buff;
       const UInt32 SYSCALL_SERVER_MAX_BUFF;
       char * const scratch;
 
    public:
-      SyscallServer(Transport &pt_endpt_, 
+      SyscallServer(Network &network, 
             UnstructuredBuffer &send_buff_, UnstructuredBuffer &recv_buff_,
             const UInt32 SERVER_MAX_BUFF,
             char *scratch_);
@@ -41,6 +42,8 @@ class SyscallServer {
       void marshallReadCall(int comm_id);
       void marshallWriteCall(int comm_id);
       void marshallCloseCall(int comm_id);
+      void marshallAccessCall(int comm_id);
 };
+
 
 #endif

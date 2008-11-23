@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <pthread.h>
 #include <stdlib.h>
@@ -6,19 +5,16 @@
 #include <sstream>
 
 using namespace std;
-/*
-struct cVector
-{
-		float x,y,z;
-};
-*/
 
 pthread_mutex_t write_lock;
 
+#define SIZE (100)
 
 int global_integer;
 int* global_integer_ptr;
+int g_array[SIZE];
 
+unsigned int coreCount;
 
 #define DEBUG 1
 
@@ -26,139 +22,93 @@ int* global_integer_ptr;
 pthread_mutex_t lock;
 #endif
 
-
 // Function executed by each thread
-void* do_nothing(void *threadid);
+void* thread_main(void *threadid);
 
 //you can set pinsim to ONLY instrument this function
 void instrument_me();
 
-/*
-int main2(int argc, char* argv[]) {
-  
-  cout << "Begin Main " << endl;
-   int tid;
-   CAPI_Initialize(&tid);
-//  cout << " After CAPI Initialization " << endl;
-   
-   int size = 1;
-   int array[size];
-
-   for(int i=0; i < size; i++) {
-      array[i] = i;
-   }
-
-   return 0;
-}
-*/
-
-
 int main(int argc, char* argv[]){ // main begins
 
-	// Declare threads and related variables
-	pthread_t threads[2];
-	pthread_attr_t attr;
-	
-#ifdef DEBUG
-	cout << "This is the function main()" << endl;
-	cout << "Initializing thread structures" << endl << endl;
-	pthread_mutex_init(&lock, NULL);
-#endif
+   // Read in the command line arguments
+	if(argc != 3) {
+		cout << "invalid command line options. the correct format is:" << endl;
+		cout << "basic -n num_of_threads" << endl;
+		exit(EXIT_FAILURE);
+	}
+	else if((strcmp(argv[1], "-n\0") == 0)){
+		coreCount = atoi(argv[2]);
+	}
+	else {
+		cout << "invalid command line options. the correct format is:" << endl;
+		cout << "basic -n num_of_threads" << endl;
+		exit(EXIT_FAILURE);
+	}
 
-	// Initialize threads and related variables
+	// declare threads and related variables
+	pthread_t threads[coreCount];
+	pthread_attr_t attr;
+
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-	pthread_mutex_init(&write_lock, NULL);
 
-#ifdef DEBUG
-	cout << "Spawning threads" << endl << endl;
-#endif
+   for(unsigned int i=0; i < coreCount; i++) {
+		pthread_create(&threads[i], &attr, thread_main, (void *) i);    
+	}
 
-      pthread_create(&threads[0], &attr, do_nothing, (void *) 0);    
-      pthread_create(&threads[1], &attr, do_nothing, (void *) 1);    
+	cerr << "finished starting threads" << endl;
 
-	// Wait for all threads to complete
-//	while(1);
-
-#ifdef DEBUG
-   pthread_mutex_lock(&lock);
-	cout << "Waiting to join" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
-
-
-        pthread_join(threads[0], NULL);         
-        pthread_join(threads[1], NULL);
-
-#ifdef DEBUG
-	cout << "End of execution" << endl << endl;
-#endif
+   for(unsigned int i=0; i < coreCount; i++) {
+		pthread_join(threads[i], NULL);         
+	}
+	
+	cerr << "end of execution." << endl << endl;
         
    return 0;
 } // main ends
 
-void BARRIER_DUAL_CORE(int tid)
+void barrier(int tid)
 {
-	//this is a stupid barrier just for the test purposes
-	int payload;
+	int payload; //unused
 
-	// cerr << "BARRIER DUAL CORE for ID(" << tid << ")" << endl;
-	if(tid==0) {
-		CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &payload, sizeof(int));
-		CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &payload, sizeof(int));
-	} else {
-		CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &payload, sizeof(int));
-		CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &payload, sizeof(int));
+	if(tid==0) 
+	{
+		//gather all receiver messages, then send a continue to all cores
+		for(unsigned int i=1; i < coreCount; i++) {
+			CAPI_message_receive_w(i, 0, (char *) &payload, sizeof(int));
+		}
+		for(unsigned int i=1; i < coreCount; i++) {
+			CAPI_message_send_w(0, i, (char *) &payload, sizeof(int));
+		}
+	} else 
+	{
+		CAPI_message_send_w(tid, 0, (char *) &payload, sizeof(int));
+		CAPI_message_receive_w(0, tid, (char *) &payload, sizeof(int));
 	}
 }
 
 //spawned threads run this function
-void* do_nothing(void *threadid)
+void* thread_main(void *threadid)
 {
-/*
-#ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cout << "beginning of do_nothing function" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
-*/
-   
 	int tid;
-	cout << "start capi_init" << endl;
 	CAPI_Initialize(&tid);
-//	cout << "end   capi_init" << endl;
 
-/*
-#ifdef DEBUG  
-//   pthread_mutex_lock(&lock);
-//   cout << "executing do_nothing function: " << tid << endl << endl;
-//   pthread_mutex_unlock(&lock);
-#endif
-*/
-   
-   int size = 10;
+//   int size = 10;
    global_integer = 10;
    global_integer_ptr = &global_integer;
-//		stringstream ss;
-//		ss << "\n\nsize addr: " << &size << endl << endl;
-//		CAPI_Print(ss.str());
-//		BARRIER_DUAL_CORE(tid);
-//		instrument_me( );
-		/*
-		pthread_mutex_lock(&lock);
-		cerr << "Core: " << tid << " finished instrumenting." << endl;
-		pthread_mutex_unlock(&lock);
-		*/
+//   global_integer_ptr = g_array;
+  
+	for(int i=0; i < SIZE; i++) {
+//		if(tid==0 && (i % 10) == 0 ) printf("Loop: %d\n", i);
+		g_array[(i + tid*(SIZE/coreCount)) % SIZE] = g_array[((i + tid*(SIZE/coreCount) + (INT32) (SIZE/4)) % SIZE)];
+	}
    
 	CAPI_Finish(tid);
-//	cerr << "finished running... and now pthread exit!" << endl;
 	pthread_exit(NULL);  
 }
 
-//int instrument_me(int tid, int* ptr) 
 void instrument_me()
 {
-//	cerr << "Greetings I wonder if this will cause any crashes or anything else interesting?1" << endl;
 	int size = 128;
 	char array[size];
 
@@ -167,7 +117,5 @@ void instrument_me()
 	*((UINT32*) addr)  = 0xFFFF;
    UINT32 x = *((UINT32*) addr);
 
-//   cout << hex << "x = " << ((UINT64) x) << endl;
 }
-
 

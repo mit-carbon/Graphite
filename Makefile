@@ -6,7 +6,7 @@ PIN_TOOL=pin/bin/pin_sim
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 TESTS_DIR=./common/tests
 
-CORES=16
+CORES=128
 ..PHONY: cores
 PROCESS=mpirun
 ..PHONY: process
@@ -56,7 +56,8 @@ ping_pong_test: all
 
 matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
-	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
+#	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 
 shmem_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
@@ -69,12 +70,12 @@ shmem_test_evic: all
 
 jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
-	$(PIN_RUN) -mdc -msm -msys -n 16 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n 16
+	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -dms 1000 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n $(CORES)
 
 
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
-	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/pthreads_basic/basic
+	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_basic/basic -n $(CORES)
 
 cache_test: all
 	$(MAKE) -C $(TESTS_DIR)/cache_model
@@ -88,8 +89,8 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
-	killall -s 9 jacobi
 	killall -s 9 basic
+	killall -s 9 jacobi
 	killall -s 9 ping_pong
 	killall -s 9 test
 	killall -s 9 test_evic

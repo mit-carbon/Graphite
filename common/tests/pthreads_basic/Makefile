@@ -3,8 +3,6 @@ include ../../makefile.debug
 
 FORCE32 ?= 1
 CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
-#old cflags
-#CFLAGS = -I../../misc -I../../core -I../../user -c -g -Wall
 
 ifeq (${FORCE32},1)
   CFLAGS = -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -I../../user -c -g -Wall -m32

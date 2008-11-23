@@ -10,18 +10,29 @@
 //TODO i don't think this is used
 extern LEVEL_BASE::KNOB<UINT32> g_knob_dram_access_cost;
 
+//LIMITED_DIRECTORY Flag
+//Dir(i)NB ; i = number of pointers
+//if MAX_SHARERS >= total number of cores, then the directory
+//collaspes into the full-mapped case.
+//TODO use a knob to set this instead
+//(-dms) : directory_max_sharers
+//TODO provide easy mechanism to initiate a broadcast invalidation
+//	static const UINT32 MAX_SHARERS = 2;
+extern LEVEL_BASE::KNOB<UINT32> g_knob_dir_max_sharers;
+
 class DramDirectory
 {
  private:
-   Network* the_network; //assumption: each dram_directory is tied to a given network (node), and is addressed at dram_id
+   //assumption: each dram_directory is tied to a given network (node), and is addressed at dram_id
+	Network* the_network; 
 	UINT32 num_lines;
    unsigned int bytes_per_cache_line;
    UINT32 number_of_cores;
    //key dram entries on cache_line (assumes cache_line is 1:1 to dram memory lines)
    std::map<UINT32, DramDirectoryEntry*> dram_directory_entries;
-	// Do we need this? Aren't we storing the data as part of "DramDirectoryEntry" anyway
-   // std::map<UINT32, char*> dram_directory_data;
    UINT32 dram_id;
+
+	
    
 	/* Added by George */
    UINT64 dramAccessCost;
@@ -43,6 +54,7 @@ public:
 	//sending another memory line to another core. rename.
 	void sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheState::cstate_t new_cstate);
 	void invalidateSharers(DramDirectoryEntry* dram_dir_entry);
+	void invalidateSharer(DramDirectoryEntry* dram_dir_entry, UINT32 eviction_id);
 
 	NetPacket demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheState::cstate_t new_cstate);
 

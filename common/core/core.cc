@@ -12,7 +12,6 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-   debugInit(core_tid);
 	//Switch which line is commented to choose the different 
    //network models
    //FIXME: Make this runtime configurable
@@ -86,7 +85,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
    syscall_model = new SyscallMdl(network);
    InitLock(&dcache_lock);
-
+   debugPrint( core_tid, "CORE", "FInished Core Constructor");
    return 0;
 }
 

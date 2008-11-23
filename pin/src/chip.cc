@@ -104,8 +104,6 @@ CAPI_return_t chipHackFinish(int my_rank)
 	debugPrint (my_rank, "CHIP", "HACK---- please remove chipHackFinish...... ");
 	debugPrint (my_rank, "CHIP", "FINISHED");
 
-	debugFinish(my_rank);
-	
 	assert( my_rank < g_chip->getNumModules() );
 	/* ========================================================================== */
 	/* Added by George */
@@ -125,6 +123,14 @@ CAPI_return_t chipHackFinish(int my_rank)
 	*/
 
 	ReleaseLock(&print_lock);
+
+	//IMPORTANT: clear my id from the core_map so we are not instrumented anymore
+	//if we forget this we deadline while servicing the exit before pthread_join
+   THREADID pin_tid = PIN_ThreadId();
+	map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
+   int rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
+   assert( rank == my_rank );
+	g_chip->core_map.erase(e);
 
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
@@ -295,7 +301,9 @@ void MCPRun()
 
 Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 {
-   proc_time = new UINT64[num_mods];
+   debugInit(num_mods);
+	
+	proc_time = new UINT64[num_mods];
    tid_map = new THREADID [num_mods];
    core = new Core[num_mods];
 
@@ -319,6 +327,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), prev_rank(0)
 	for (int i = 0; i < num_modules; i++) {
 		finished_cores[i] = false;
 	}
+
 }
 
 VOID Chip::fini(int code, VOID *v)
@@ -332,6 +341,7 @@ VOID Chip::fini(int code, VOID *v)
       cerr << endl;
    }
 
+	debugFinish(); //close debug logs
    out.close();
 }
 

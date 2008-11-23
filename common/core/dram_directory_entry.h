@@ -12,6 +12,7 @@
 
 using namespace std;
 
+extern LEVEL_BASE::KNOB<UINT32> g_knob_dir_max_sharers;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
 
 class DramDirectoryEntry
@@ -33,7 +34,8 @@ class DramDirectoryEntry
   dstate_t getDState();
   void setDState(dstate_t new_dstate);
   
-  bool addSharer(UINT32 sharer_rank);
+  pair<bool,UINT32> addSharer(UINT32 sharer_rank);
+  UINT32 getEvictedId();
   void addExclusiveSharer(UINT32 sharer_rank);
   
   //the directory may remove someone if they've invalidated it from their cache
@@ -63,13 +65,18 @@ class DramDirectoryEntry
   BitVector* sharers;
   UINT32 exclusive_sharer_rank;
   UINT32 number_of_sharers;
+  unsigned int MAX_SHARERS; //for limited directories
   
   char* memory_line; //store the actual data in this buffer
   UINT32 memory_line_size; //assume to be the same size of the cache_line_size
-  UINT32 memory_line_address;	//only here for debugging purposes (its nice to know it)
-										//(address / cache_line_size) * cache_line_size = memory_line_address
-										//this is a memory line aligned address (the above operation shaves off
-										//the insignificant digits)
+  UINT32 memory_line_address;	
+
+  /*** STAT TRACKING ***/
+  //TODO
+  UINT32 stat_min_sharers;
+  UINT32 stat_max_sharers;
+  UINT32 stat_access_count;  //when do we increment this?
+  UINT32 stat_avg_sharers; 
   
 };
 

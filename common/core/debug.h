@@ -9,8 +9,8 @@
 using namespace std;
 
 	//id is signed, because we may want to pass "-1" to denote we don't know the id
-	VOID debugInit(INT32 tid);
-	VOID debugFinish (INT32 tid);
+	VOID debugInit(UINT32 core_count);
+	VOID debugFinish ();
 	VOID debugPrint(INT32 id, string class_name, string output_string);
   
 	VOID debugPrint(INT32 id, string class_name, string output_string, int value);

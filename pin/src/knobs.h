@@ -26,7 +26,8 @@ KNOB<BOOL>   g_knob_enable_performance_modeling(KNOB_MODE_WRITEONCE, "pintool",
 
 KNOB<BOOL>   g_knob_simarch_has_shared_mem(KNOB_MODE_WRITEONCE, "pintool", 
    "msm", "0", "toggles simulation of shared memory");
-
+KNOB<UINT32>   g_knob_dir_max_sharers(KNOB_MODE_WRITEONCE, "pintool", 
+   "dms", "9001", "Specifies the maximum number of sharer pointers kept in directory.");
 
 /* ===================================================================== */
 /* Performance Modeler Knobs */

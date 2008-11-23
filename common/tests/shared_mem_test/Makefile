@@ -26,10 +26,10 @@ all: test test_evic
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 test: $(TEST_OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $@ $(TEST_OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(TEST_OBJECTS)
 
 test_evic: $(TEST_EVIC_OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $@ $(TEST_EVIC_OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(TEST_EVIC_OBJECTS)
 
 ## Cleaning
 

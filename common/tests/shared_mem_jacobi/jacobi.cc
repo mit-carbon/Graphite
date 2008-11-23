@@ -79,11 +79,14 @@ void BARRIER(int tid)
 	{
 		if(tid==0) 
 		{
+			printf("*********\ntid0 is beginning to receive messages for barrier.\n");
 			//gather all receiver messages, then send a continue to all cores
 			for(int i=1; i < coreCount; i++) {
+				printf("core0 is waiting for[%d]\n", i);
 				CAPI_message_receive_w(i, 0, (char *) &payload, sizeof(int));
 			}
 			for(int i=1; i < coreCount; i++) {
+				printf("core0 is waiting for[%d]\n", i);
 				CAPI_message_send_w(0, i, (char *) &payload, sizeof(int));
 			}
 		} else 
@@ -92,6 +95,7 @@ void BARRIER(int tid)
 			CAPI_message_receive_w(0, tid, (char *) &payload, sizeof(int));
 		}
 	}
+	if(tid==0) printf(" YAH! FINISHED WITH BARRIER: \n");
 }
 
 int send_info(int my_rank, int receiver_rank, int *info_ptr)
@@ -123,7 +127,6 @@ int receive_info(int my_rank, int sender_rank)
 			ilib_die("Failed to receive message from proc %d", sender_rank);
 	*/		
 	
-	//TODO use typedef's for all of the int sizes
 	int info;
 
 	CAPI_message_receive_w(sender_rank, my_rank, (char*) &info, sizeof(int));
@@ -221,6 +224,7 @@ void* thread_main(void *threadid)
 		}
 	}
 	
+	//TODO BUG!!!! malloc will lock everyone
 	oldarr = (int *) malloc(myArraySize * sizeof(int)); 
 	newarr = (int *) malloc(myArraySize * sizeof(int)); 
 	

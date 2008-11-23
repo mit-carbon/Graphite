@@ -1,6 +1,10 @@
 #include "dram_directory.h"
 //#define DRAM_DEBUG
 
+//TODO LIST (ccelio)
+//add support for limited directory scheme.
+//supply MAX_SHARERS, evict one (LRU? Random?) to add new sharers.
+
 DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_arg, UINT32 dram_id_arg, UINT32 num_of_cores_arg, Network* network_arg)
 {
 	the_network = network_arg;
@@ -21,7 +25,7 @@ DramDirectory::DramDirectory(UINT32 num_lines_arg, UINT32 bytes_per_cache_line_a
 
 DramDirectory::~DramDirectory()
 {
-  //FIXME is this correct way to delete a std::map? and is std::map going to deallocate all of the entries?
+//FIXME is this correct way to delete a std::map? and is std::map going to deallocate all of the entries?
 //  delete dram_directory_entries;
 }
 
@@ -111,7 +115,6 @@ void DramDirectory::processWriteBack(NetPacket wb_packet)
 	copyDataToDram(payload.ack_address, data_buffer); //TODO verify that all wb_packets would give us the entire cache_line
 	
 	if( payload.is_eviction ) {
-//		debugPrint(dram_id, "DRAMDIR", "Payload is an eviction... removingSharer!");
 		DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 		dir_entry->removeSharer( wb_packet.sender );
 
@@ -145,7 +148,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 	switch(req_d_state)
 	{
 		case WRITE: 
-			if(current_d_state)
+			if(current_d_state == DramDirectoryEntry::EXCLUSIVE)
 			{
 				invalidate_owner();
 				write_back(); //Dram cost model
@@ -154,6 +157,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			{
 				invalidate_sharers();
 			}
+			setDState(Exclusive);
 			break;
 
 		case READ:
@@ -167,7 +171,6 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			 //nothing.
 			}
 			
-			addSharer();
 			setDState(Shared);
 
 			break;
@@ -177,7 +180,8 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 			break;
 	}
 	 
-	dram_dir_entry->addSharer(requestor);
+	<bool evictSharer, int eviction_id>  = dram_dir_entry->addSharer(requestor);
+	if(evictSharer) sendInvalidation(eviction_id);
 	sendDataLine(); //Dram cost model
 */
 	/* ============================================================== */
@@ -245,7 +249,18 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
    }
   
 	// 3. return data back to requestor 
-	dram_dir_entry->addSharer(requestor);
+	// pair<eviction? , eviction_id>
+	pair<bool, UINT32> result;
+	result = dram_dir_entry->addSharer(requestor);
+	
+   if(result.first) {
+		//wait for acknowledgement back before we continue!
+		if(dram_id==0)
+			debugPrint(dram_id,"DRAMDIR", "evicting sharer!");
+		invalidateSharer(dram_dir_entry, result.second);
+	}
+
+
 	sendDataLine(dram_dir_entry, requestor, new_cstate); //Dram cost model
 
 #ifdef DRAM_DEBUG
@@ -370,13 +385,11 @@ NetPacket DramDirectory::demoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 //private utility function
 //send invalidate messages to all of the sharers
 //and wait on acks.
+//TODO add in ability to do a broadcast invalidateSharers if #of sharers is greater than #of pointers.
 void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 {
    //invalidate current sharers
-	//bool already_invalidated = false;
-	
 	ADDRINT address = dram_dir_entry->getMemLineAddress();
-	//TODO I'm not positive this address is correctly calculated!
 	vector<UINT32> sharers_list = dram_dir_entry->getSharersList();
 	
 	// send message to sharer to invalidate it
@@ -401,9 +414,7 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 		net_match.sender_flag = true;
 		net_match.type = SHARED_MEM_ACK;
 		net_match.type_flag = true;
-//		debugPrint(dram_id, "DRAMDIR", "invalidateSharers - netRecv start");
 		NetPacket recv_packet = the_network->netRecv(net_match);
-//		debugPrint(dram_id, "DRAMDIR", "invalidateSharers - netRecv finished");
 		 
 		// assert a few things in the ack packet (sanity checks)
 		assert((unsigned int)(recv_packet.sender) == sharers_list[i]); 
@@ -413,6 +424,42 @@ void DramDirectory::invalidateSharers(DramDirectoryEntry* dram_dir_entry)
 		CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((MemoryManager::AckPayload*)(recv_packet.data))->ack_new_cstate);
 		assert(received_new_cstate == CacheState::INVALID);
 	}
+
+}
+
+//private utility function
+//send invalidate messages to only one sharer (e.g., limited directories need to evict a sharer)
+//and wait on acks.
+void DramDirectory::invalidateSharer(DramDirectoryEntry* dram_dir_entry, UINT32 eviction_id)
+{
+	ADDRINT address = dram_dir_entry->getMemLineAddress();
+	
+	// send message to sharer to invalidate it
+	MemoryManager::UpdatePayload payload;
+	payload.update_new_cstate = CacheState::INVALID;
+	payload.update_address = address;
+	payload.data_size = 0;
+	payload.is_writeback = false;
+	NetPacket packet = MemoryManager::makePacket( SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, eviction_id);
+	the_network->netSend(packet);
+
+  // receive invalidation acks from all sharers
+	// TODO: optimize this by receiving acks out of order
+	// wait for all of the invalidation acknowledgements
+	NetMatch net_match;
+	net_match.sender = eviction_id;
+	net_match.sender_flag = true;
+	net_match.type = SHARED_MEM_ACK;
+	net_match.type_flag = true;
+	NetPacket recv_packet = the_network->netRecv(net_match);
+	 
+	// assert a few things in the ack packet (sanity checks)
+	assert((unsigned int)(recv_packet.sender) == eviction_id); 
+	ADDRINT received_address = ((MemoryManager::AckPayload*)(recv_packet.data))->ack_address;
+	assert(received_address == address);
+	 
+	CacheState::cstate_t received_new_cstate = (CacheState::cstate_t)(((MemoryManager::AckPayload*)(recv_packet.data))->ack_new_cstate);
+	assert(received_new_cstate == CacheState::INVALID);
 
 }
 

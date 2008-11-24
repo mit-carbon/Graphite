@@ -6,7 +6,7 @@ PIN_TOOL=pin/bin/pin_sim
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 TESTS_DIR=./common/tests
 
-CORES=128
+CORES=8
 ..PHONY: cores
 PROCESS=mpirun
 ..PHONY: process

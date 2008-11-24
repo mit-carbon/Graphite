@@ -17,10 +17,12 @@ all: $(OBJECTS)
 ## build rules
 
 %.o : %.cc
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+#	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 %.o : %.c
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+#	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 clean:
 	-rm -f *.o *.d *.rpo

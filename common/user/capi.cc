@@ -45,7 +45,7 @@ CAPI_return_t CAPI_Finish(int my_rank)
 	return 0;
 }
 
-/*
+
 CAPI_return_t CAPI_Print(string s)
 {
    cout << "Running Application Without Pintool in Uniprocessor mode" << endl;
@@ -70,11 +70,4 @@ CAPI_return_t CAPI_debugAssertMemState( ADDRINT address, INT32 dram_address_home
 CAPI_return_t CAPI_alias (ADDRINT address, addr_t addrType, UINT32 num) {
 	 return 0;
 }
-*/
 
-/*
-CAPI_return_t CAPI_setDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries)
-{
-	return 0;
-}
-*/

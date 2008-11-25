@@ -103,14 +103,16 @@ void barrier(int tid)
 void* thread_main(void *threadid)
 {
 	int tid;
+	printf(" Thread Main\n");
 //	CAPI_Initialize(&tid);
 	CAPI_Initialize_FreeRank(&tid);
 
+	if(tid==0) printf("after capi init\n");
    global_integer = 10;
    global_integer_ptr = &global_integer;
   
 	for(int i=0; i < SIZE; i++) {
-//		if(tid==0 && (i % 10) == 0 ) printf("Loop: %d\n", i);
+		if(tid==0 && (i % 10) == 0 ) printf("Loop: %d\n", i);
 		g_array[(i + tid*(SIZE/coreCount)) % SIZE] = g_array[((i + tid*(SIZE/coreCount) + (INT32) (SIZE/4)) % SIZE)];
 	}
    

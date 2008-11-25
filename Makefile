@@ -96,7 +96,7 @@ fmm_test: all
 
 basic_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
-	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_basic/basic -n $(CORES)
+	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -dms 4 -- $(TESTS_DIR)/pthreads_basic/basic -n $(CORES)
 
 cache_test: all
 	$(MAKE) -C $(TESTS_DIR)/cache_model

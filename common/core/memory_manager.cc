@@ -1,5 +1,5 @@
 #include "memory_manager.h"
-#define MMU_DEBUG
+//#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 

@@ -1,7 +1,7 @@
 #ifndef MCP_H
 #define MCP_H
 
-//#include "message_types.h"
+#include "message_types.h"
 #include "packetize.h"
 #include "network.h"
 #include "syscall_server.h"

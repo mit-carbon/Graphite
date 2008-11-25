@@ -115,11 +115,11 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
    return g_chip->core[rank].coreRecvW(sender, receiver, buffer, size);
 }
  //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
+ //FIXME BUG doesn't correctly finish b/c we have a new process (sys server?), AND we can't erase guys from core_map -CPC
 CAPI_return_t chipFinish(int my_rank)
 {
 	GetLock(&print_lock, 1);
-	// cerr << "HACK---- please remove chipHackFinish...... " << endl;
-	// cerr << "[" << my_rank << "] FINISHED\n";
+	cerr << "[" << my_rank << "] FINISHED\n";
 	debugPrint (my_rank, "CHIP", "HACK---- please remove chipHackFinish...... ");
 	debugPrint (my_rank, "CHIP", "FINISHED");
 
@@ -132,22 +132,23 @@ CAPI_return_t chipFinish(int my_rank)
 	g_chip->finished_cores[my_rank] = true;
 	bool volatile finished = false;
 	
-	/*
-	cerr << "FinshedCores look like this: " << endl;
-	for(int i=0; i < g_chip->getNumModules(); i++) {
-		cerr << "  finished_cores[" << i << "] : " << (g_chip->finished_cores[i] ? "TRUE":"FALSE") << endl;
-	}
-	*/
+	
+//	cerr << "FinshedCores look like this: " << endl;
+//	for(int i=0; i < g_chip->getNumModules(); i++) {
+//		cerr << "  finished_cores[" << i << "] : " << (g_chip->finished_cores[i] ? "TRUE":"FALSE") << endl;
+//	}
+	
 
 	ReleaseLock(&print_lock);
 
 	//IMPORTANT: clear my id from the core_map so we are not instrumented anymore
 	//if we forget this we deadline while servicing the exit before pthread_join
-   THREADID pin_tid = PIN_ThreadId();
-	map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
-   int rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
-   assert( rank == my_rank );
-	g_chip->core_map.erase(e);
+//   THREADID pin_tid = PIN_ThreadId();
+//	map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
+//   int rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
+//	pair<bool, UINT64> e  = g_chip->core_map.find(pin_tid);
+//   assert( e.first == true );
+//	g_chip->core_map.erase(e);
 
 	while(!finished) {
 		g_chip->core[my_rank].getNetwork()->netCheckMessages();
@@ -462,7 +463,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank
    debugInit(num_mods);
 	
 //<<<<<<< HEAD:pin/src/chip.cc
-	proc_time = new UINT64[num_mods];
+//	proc_time = new UINT64[num_mods];
 //=======
 //>>>>>>> 5950c4ce7c721811a28faa6c82b2324a5eb9c2fd:pin/src/chip.cc
    tid_map = new THREADID [num_mods];

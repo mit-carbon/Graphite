@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-#define DRAM_DEBUG
+//#define DRAM_DEBUG
 
 //TODO LIST (ccelio)
 //add support for limited directory scheme.
@@ -254,8 +254,7 @@ void DramDirectory::processSharedMemReq(NetPacket req_packet)
 	
    if(result.first) {
 		//wait for acknowledgement back before we continue!
-		if(dram_id==0)
-			debugPrint(dram_id,"DRAMDIR", "evicting sharer!");
+//		debugPrint(dram_id,"DRAMDIR", "evicting sharer!");
 		invalidateSharer(dram_dir_entry, result.second);
 	}
 

@@ -100,7 +100,6 @@ pair<bool, UINT32> DramDirectoryEntry::addSharer(UINT32 sharer_rank)
 		if(number_of_sharers == MAX_SHARERS) {
 //			cerr << "Number of Sharers: " << number_of_sharers << endl;
 //			cerr << "MAX_SHARERS:       " << MAX_SHARERS << endl;
-//			cerr << "g_knob_dir_max_shr:" << g_knob_dir_max_sharers << endl;
 			eviction = true;
 			eviction_id = getEvictedId();
 			assert( sharers->at(eviction_id) );

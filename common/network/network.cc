@@ -663,7 +663,6 @@ void Network::netEntryTasks()
 
    } while(type != INVALID);
 	
-//   debugPrint(net_tid, "NETWORK", "netEntryTasks finished....");
 }
 
 UINT64 Network::netProcCost(NetPacket packet)

@@ -700,7 +700,6 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	
 	//copy data_buffer over
 	if(send_payload->data_size > g_knob_line_size) {
-		// debugPrint(the_core->getRank(), "MMU", "****ERROR **** dataSize > g_knob_line_size: ...... data_size = ", send_payload->data_size);
 		cerr << "CreateUpdatePayloadBuffer: Error\n";
 	}
 

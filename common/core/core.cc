@@ -333,6 +333,12 @@ void Core::updateProcTime(UInt64 time)
 		perf_model->updateCycleCount(time);
 }
 
+void Core::addProcTime(UInt64 cycles)
+{
+  	if (g_knob_enable_performance_modeling)
+		perf_model->addToCycleCount(cycles);
+}
+
 UInt64 Core::getProcTime()
 {
   	debugPrint (getRank(), "CORE", "Before getCycleCount()");

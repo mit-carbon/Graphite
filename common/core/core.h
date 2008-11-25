@@ -138,6 +138,7 @@ class Core
       //FIXME: These should actually be accessed THROUGH the perfmodel
       void setProcTime(UInt64 time);
       void updateProcTime(UInt64 time); // only if newer
+      void addProcTime(UInt64 cycles); // time += cycles
       UInt64 getProcTime();
       // int getId() const { return core_tid; }
 

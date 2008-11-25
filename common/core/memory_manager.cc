@@ -216,20 +216,18 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 //		cerr << dec << endl;
 //	}
 
-	if(fail_need_fill) {
+	if(fail_need_fill) 
+	{
 		//note: fail_need_fill is known beforehand, 
 		//so that fill_buffer can be fetched from DRAM
 		result = ocache->accessSingleLine(data_addr, access_type,
 											NULL, fill_buffer,
 											data_buffer, data_size,
 											&eviction, &evict_addr, evict_buff);
-	
 	}
 
 	if(eviction) 
 	{
-//		debugPrint(the_core->getRank(), "MMU", "accessCacheLineData: Evicting Line");
-		
 		//send write-back to dram
 		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(evict_addr);
 		AckPayload payload;
@@ -240,15 +238,12 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 		payload.data_size = ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
 
-		
 //		cerr << "Evicted data: 0x";
 //		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++) {
 //			cerr << hex << (UINT32) evict_buff[i];
 //		}
 //		cerr << dec << endl;
-
 //		cerr << "Evicted Addr: 0x" << hex << (UINT32) evict_addr << endl;
-		
 		
 		createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
 		NetPacket packet = makePacket(SHARED_MEM_EVICT, payload_buffer, payload_size, the_core->getRank(), home_node_rank);
@@ -276,7 +271,6 @@ void MemoryManager::invalidateCacheLine(ADDRINT address)
 //sets what the new_cstate should be set to on the receiving end
 void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_address, CacheState::cstate_t* new_cstate)
 {
-//	debugPrint(the_core->getRank(), "MMU", "start of requestPermission");	
 	UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(ca_address);
 
 	assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
@@ -309,10 +303,8 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	/* ============ Put Data Into Fill Buffer ============= */
 	/* ===================================================== */
 	
-//	debugPrint(the_core->getRank(), "MMU", "requestPermission before extract update");	
 	UpdatePayload recv_payload;
 	extractUpdatePayloadBuffer(&recv_packet, &recv_payload, fill_buffer);
-//	debugPrint(the_core->getRank(), "MMU", "requestPermission end of extract update");	
 	
 	*new_cstate = (CacheState::cstate_t)(recv_payload.update_new_cstate);
 	
@@ -330,7 +322,6 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 	
 	//if a read occurs, then it reads the fill buffer and then puts fill buffer into cache
 	//if a write ocurs, then it modifies the fill buffer and then puts the fill buffer into cache
-//	debugPrint(the_core->getRank(), "MMU", "end of requestPermission");	
 }
 
 //buffer_size is the size in bytes of the char* data_buffer

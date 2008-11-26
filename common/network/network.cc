@@ -18,10 +18,10 @@ Network::Network(Core *the_core_arg, int num_mod)
    the_core = the_core_arg;
    net_tid = the_core->getRank(); //FIXME network needs a unique id to provide debugging
    net_num_mod = g_config->totalMods();
+
    transport->ptInit(the_core->getId(), num_mod);
 //   transport->ptInit(the_core->getRank(), num_mod);
-   transport = new Transport;
-   net_queue = new NetQueue* [net_num_mod];
+
    for(i = 0; i < net_num_mod; i++)
    {
       net_queue[i] = new NetQueue [num_pac_type];

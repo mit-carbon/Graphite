@@ -74,7 +74,7 @@ void SyscallServer::marshallOpenCall(int comm_id)
 
    */   
 
-   cerr << "Open syscall from: " << comm_id << endl;
+   // cerr << "Open syscall from: " << comm_id << endl;
 
    UInt32 len_fname;
    char *path = (char *) scratch;
@@ -123,7 +123,7 @@ void SyscallServer::marshallReadCall(int comm_id)
 
    */   
 
-   cerr << "Read syscall from: " << comm_id << endl;
+   // cerr << "Read syscall from: " << comm_id << endl;
 
    int fd;
    char *buf = (char *) scratch;
@@ -174,7 +174,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
 
    */   
 
-   cerr << "Write syscall from: " << comm_id << endl;
+   // cerr << "Write syscall from: " << comm_id << endl;
 
    int fd;
    char *buf = (char *) scratch;
@@ -225,7 +225,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
 
    */   
 
-   cerr << "Close syscall from: " << comm_id << endl;
+   // cerr << "Close syscall from: " << comm_id << endl;
 
    int fd;
    recv_buff >> fd;
@@ -243,7 +243,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
 
 void SyscallServer::marshallAccessCall(int comm_id)
 {
-   cerr << "access syscall from: " << comm_id << endl;
+   // cerr << "access syscall from: " << comm_id << endl;
 
    UInt32 len_fname;
    char *path = (char *) scratch;

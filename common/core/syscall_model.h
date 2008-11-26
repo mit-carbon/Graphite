@@ -2,11 +2,12 @@
 #define SYSCALL_MODEL_H
 
 #include <iostream>
+#include "message_types.h"
 #include "packetize.h"
 #include "transport.h"
 #include "network.h"
 #include "pin.H"
-#include "mcp.h" //has the enum for mcp message types
+//#include "mcp.h" //has the enum for mcp message types
 
 class SyscallMdl
 {

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# pushes only the shared_mem git branch to the remote shared_mem
+# repository
+
+git push origin shared_mem

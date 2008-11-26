@@ -1,0 +1,40 @@
+include ../../makefile.gnu.config
+include ../../makefile.debug
+
+FORCE32 ?= 1
+
+# CC = /usr/bin/g++
+CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
+TEST_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc test.cc 
+TEST_EVIC_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc test_evic.cc
+TEST_OBJECTS = $(TEST_SOURCES:%.cc=%.o)
+TEST_EVIC_OBJECTS = $(TEST_EVIC_SOURCES:%.cc=%.o)
+
+ifeq (${FORCE32},1)
+	CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall -m32
+	LDFLAGS = -m32 -m elf_i386
+else
+	CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
+	LDFLAGS =
+endif
+
+## Build rules
+
+all: test test_evic
+
+%.o : %.cc
+	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+
+test: $(TEST_OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(TEST_OBJECTS)
+
+test_evic: $(TEST_EVIC_OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(TEST_EVIC_OBJECTS)
+
+## Cleaning
+
+clean:
+	-rm -f *.o test test_evic sim.out
+
+squeaky: clean
+	-rm -f *~

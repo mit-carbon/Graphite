@@ -185,6 +185,7 @@ class PerfModel {
 
       void setCycleCount(UINT64 new_cycle_count) { cycle_count = new_cycle_count; }
       void updateCycleCount(UINT64 new_cycle_count) { cycle_count = max(cycle_count, new_cycle_count); }
+      void addToCycleCount(UINT64 cycles) { cycle_count += cycles; } 
       UINT64 getCycleCount() { return cycle_count; }
       UINT64 getMicroOpCount() { return microop_issue_count; }
 

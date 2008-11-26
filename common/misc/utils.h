@@ -9,7 +9,9 @@
 #include "pin.H"
 #include <assert.h>
 #include <sstream>
+#include <iostream>
 
+using namespace std;
 
 
 string myDecStr(UINT64 v, UINT32 w);
@@ -36,6 +38,5 @@ INT32 floorLog2(UINT32 n);
 // returns -1 if n == 0.
 
 INT32 ceilLog2(UINT32 n);
-
 
 #endif

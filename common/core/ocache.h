@@ -61,7 +61,7 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_icache_max_search_depth;
 class OCache
 {
    private:
-      typedef Cache<CACHE_SET::RoundRobin<16>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> 
+      typedef Cache<CACHE_SET::RoundRobin<16, 128>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> 
               RRSACache;
 
    public:
@@ -124,18 +124,15 @@ class OCache
       // These functions access the dcache and icache
       // You can access either a single line or multi lines
       // Fast accesses skip adding the access to the profiler
-      bool dCacheLoadMulti(ADDRINT addr, UINT32 size, UINT32 inst_id);
-      bool dCacheLoadMultiFast(ADDRINT addr, UINT32 size);
-      bool dCacheLoadSingle(ADDRINT addr, UINT32 inst_id);
-      bool dCacheLoadSingleFast(ADDRINT addr);
-      bool dCacheStoreMulti(ADDRINT addr, UINT32 size, UINT32 inst_id);
-      bool dCacheStoreMultiFast(ADDRINT addr, UINT32 size);
-      bool dCacheStoreSingle(ADDRINT addr, UINT32 inst_id);
-      bool dCacheStoreSingleFast(ADDRINT addr);
-      bool iCacheLoadMulti(ADDRINT addr, UINT32 size, UINT32 inst_id);
-      bool iCacheLoadMultiFast(ADDRINT addr, UINT32 size);
-      bool iCacheLoadSingle(ADDRINT addr, UINT32 inst_id);
-      bool iCacheLoadSingleFast(ADDRINT addr);
+      pair<bool, CacheTag*> dCacheLoadSingle(ADDRINT addr, UINT32 inst_id);
+      pair<bool, CacheTag*> dCacheLoadSingleFast(ADDRINT addr);
+      pair<bool, CacheTag*> dCacheLoadMultiFast(ADDRINT addr, UINT32 size);
+      pair<bool, CacheTag*> dCacheStoreSingle(ADDRINT addr, UINT32 inst_id);
+      pair<bool, CacheTag*> dCacheStoreSingleFast(ADDRINT addr);
+      pair<bool, CacheTag*> dCacheStoreMultiFast(ADDRINT addr, UINT32 size);
+      pair<bool, CacheTag*> iCacheLoadSingle(ADDRINT addr, UINT32 inst_id);
+      pair<bool, CacheTag*> iCacheLoadSingleFast(ADDRINT addr);
+      pair<bool, CacheTag*> iCacheLoadMultiFast(ADDRINT addr, UINT32 size);
 
    public:
 
@@ -168,9 +165,29 @@ class OCache
              UINT32 icache_max_search_depth);
 
       // These functions provide the public interface to accessing the caches
-      bool runICacheLoadModel(ADDRINT i_addr, UINT32 size);
-      bool runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
-      bool runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
+      pair<bool, CacheTag*> runICacheLoadModel(ADDRINT i_addr, UINT32 size);
+      pair<bool, CacheTag*> runDCacheLoadModel(ADDRINT d_addr, UINT32 size);
+      pair<bool, CacheTag*> runDCacheStoreModel(ADDRINT d_addr, UINT32 size);
+      // These are side-effect free (don't update stats, don't cause eviction, etc.)
+      pair<bool, CacheTag*> runICachePeekModel(ADDRINT i_addr);
+      pair<bool, CacheTag*> runDCachePeekModel(ADDRINT d_addr);    
+
+		/********** CELIO WAS HERE **************/
+      pair<bool, CacheTag*> accessSingleLine(ADDRINT addr, CacheBase::AccessType access_type, 
+                                             bool* fail_need_fill = NULL, char* fill_buff = NULL,
+                                             char* buff = NULL, UINT32 bytes = 0, 
+                                             bool* eviction = NULL, ADDRINT* evict_addr = NULL, char* evict_buff = NULL)
+		{
+			//TODO !!!! I don't have direct access to dl1 from the memoryManager, and until i have better stubs to talk to the dl1,
+			//I'm just gonna pass accessSingleLine calls straight through.
+			return dl1->accessSingleLine(addr, access_type, fail_need_fill, fill_buff, buff, bytes, eviction, evict_addr, evict_buff);
+		}
+
+		bool invalidateLine(ADDRINT addr)
+		{
+			return dl1->invalidateLine(addr);
+		}
+		/****************************************/
 
       // This function is called at the end of simulation
       void fini(int code, VOID *v, ofstream& out);

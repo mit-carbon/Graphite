@@ -1,9 +1,10 @@
+include ../../makefile.gnu.config
 FORCE32 ?= 1
 
 CC = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
 CXX = $(CC)
 
-CXXFLAGS = -I../../user -I../../phys_trans -c -g -Wall 
+CXXFLAGS = -I../../user -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
 LDFLAGS = 
 ifeq (${FORCE32},1)
   CXXFLAGS += -m32

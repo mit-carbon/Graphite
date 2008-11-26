@@ -38,4 +38,3 @@ INT32 floorLog2(UINT32 n)
 INT32 ceilLog2(UINT32 n)
 { return floorLog2(n - 1) + 1; }
 
-

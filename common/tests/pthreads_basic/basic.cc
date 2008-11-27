@@ -111,10 +111,10 @@ void* thread_main(void *threadid)
    global_integer = 10;
    global_integer_ptr = &global_integer;
   
-	for(int i=0; i < SIZE; i++) {
-		if(tid==0 && (i % 10) == 0 ) printf("Loop: %d\n", i);
-		g_array[(i + tid*(SIZE/coreCount)) % SIZE] = g_array[((i + tid*(SIZE/coreCount) + (INT32) (SIZE/4)) % SIZE)];
-	}
+//	for(int i=0; i < SIZE; i++) {
+//		if(tid==0 && (i % 10) == 0 ) printf("Loop: %d\n", i);
+//		g_array[(i + tid*(SIZE/coreCount)) % SIZE] = g_array[((i + tid*(SIZE/coreCount) + (INT32) (SIZE/4)) % SIZE)];
+//	}
    
 	CAPI_Finish(tid);
 	pthread_exit(NULL);  

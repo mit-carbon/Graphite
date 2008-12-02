@@ -111,9 +111,7 @@ int main(int argc, char* argv[]) { // main begins
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
-	initMCP();
-
-	sharedMemThreadsInit();
+	carbonInit();
 
 	logCacheBlockSize = atoi(argv[1]);
 	cacheBlockSize = 1 << logCacheBlockSize;
@@ -158,11 +156,8 @@ int main(int argc, char* argv[]) { // main begins
    pthread_join(threads[0], NULL);         
 	pthread_join(threads[1], NULL);
 
-	sharedMemThreadsFinish();
 
-	cerr << "Shared Memory Threads Joined\n";
-
-	quitMCP();
+   carbonFinish();
 
 #ifdef DEBUG
 	cerr << "End of execution" << endl << endl;

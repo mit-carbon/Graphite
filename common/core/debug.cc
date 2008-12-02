@@ -9,6 +9,7 @@ using namespace std;
 #define WRITE_FLAG
 ofstream* outfiles;
 UINT32 core_count;
+UINT32 pin_thread_count;
 
 //open debug logs
 VOID debugInit (UINT32 core_count_arg) {

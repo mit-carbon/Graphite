@@ -31,7 +31,7 @@ all: $(TARGET)
 	$(CXX) $(CXXFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 $(TARGET): $(OBJECTS) $(CARBON_OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $@ $(OBJECTS) $(CARBON_OBJECTS)
+	$(CC) -pthread $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(CARBON_OBJECTS)
 
 ## Cleaning
 

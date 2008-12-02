@@ -523,6 +523,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid
 		finished_cores[i] = false;
 	}
 
+	cerr << "Finished Chip Constructor." << endl;
 }
 
 VOID Chip::fini(int code, VOID *v)

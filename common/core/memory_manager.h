@@ -19,11 +19,16 @@
 class Core;
 class DramDirectory; //i hate compiling c++ code
 
+/*
 // TODO: this is a hack that is due to the fact that network.h 
 // is already included by the time this is handled, so NetPacket is 
 // never getting defined. Fine some more elegant way to solve this.
 typedef struct NetPacket NetPacket;
 typedef struct NetMatch NetMatch;
+*/
+
+class NetPacket;
+class NetMatch;
 
 // TODO: move this into MemoryManager class?
 enum shmem_req_t {
@@ -41,8 +46,6 @@ extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_ahl_param;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_dram_access_cost;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
-
-enum PacketType;
 
 class MemoryManager
 {
@@ -73,11 +76,6 @@ class MemoryManager
 	//dram must fill this buffer and give it to the cache
 	char* fill_buffer; 
 	
-	//FIFO queue
-	queue<NetPacket> request_queue;
-	void addRequestToQueue( NetPacket packet );
-	NetPacket getNextRequest();
-
 	void debugPrintReqPayload(MemoryManager::RequestPayload payload);
  
  public:
@@ -113,13 +111,13 @@ class MemoryManager
 		CacheState::cstate_t update_new_cstate;
 		ADDRINT update_address;
 		UINT32 data_size; //in bytes
-		bool is_writeback; //is this payload serving as a writeback message to dram?
+		// bool is_writeback; //is this payload serving as a writeback message to dram?
 		
 		UpdatePayload()
 			: update_new_cstate(CacheState::INVALID), 
 				update_address(0),
-				data_size(0),
-				is_writeback(false)
+				data_size(0)
+				// is_writeback(false)
 		{}
 	};
 
@@ -128,7 +126,7 @@ class MemoryManager
 		ADDRINT ack_address;
 		UINT32 data_size; //this is used to tell us how much data to extract 
 		bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
-		BOOL is_eviction; // need to know if "is_writeback" is true, if also is an eviction 
+		// BOOL is_eviction; // need to know if "is_writeback" is true, if also is an eviction 
 		//if sent a downgrade message (E->S), but cache
 		//no longer has the line, send a bit to tell dram directory
 		//to remove it from the sharers' list
@@ -139,7 +137,7 @@ class MemoryManager
 				ack_address(0),
 				data_size(0),
 				is_writeback(false),
-				is_eviction(false),
+				// is_eviction(false),
 				remove_from_sharers(false)
 		{}
 	};

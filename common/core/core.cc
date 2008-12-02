@@ -2,7 +2,7 @@
 #include "debug.h"
 
 #include "network_mesh_analytical.h"
-//#define CORE_DEBUG
+#define CORE_DEBUG
 
 using namespace std;
 
@@ -30,7 +30,7 @@ int Core::coreInit(int tid, int num_mod)
       case NUM_NETWORK_TYPES:
 
       default:
-      	debugPrint(tid, "CORE", "ERROR: Unknown Network Model!");
+      	debugPrintStart(tid, "CORE", "ERROR: Unknown Network Model!");
          break;
    }
 
@@ -38,7 +38,7 @@ int Core::coreInit(int tid, int num_mod)
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
-      debugPrint(core_tid, "Core", "instantiated performance model");
+      debugPrintStart(core_tid, "Core", "instantiated performance model");
    } else 
    {
       perf_model = (PerfModel *) NULL;    
@@ -63,7 +63,7 @@ int Core::coreInit(int tid, int num_mod)
                           g_knob_icache_max_search_depth.Value());                        
 //                          g_knob_simarch_is_shared_mem.Value());                        
 
-     	debugPrint(core_tid, "Core", "instantiated organic cache model");
+     	debugPrintStart(core_tid, "Core", "instantiated organic cache model");
   
 	} else 
    {
@@ -74,13 +74,13 @@ int Core::coreInit(int tid, int num_mod)
      
       assert( g_knob_enable_dcache_modeling ); 
 
-      debugPrint (core_tid, "CORE", "instantiated memory manager model");
+      debugPrintStart (core_tid, "CORE", "instantiated memory manager model");
       memory_manager = new MemoryManager(this, ocache);
 
    } else {
 
       memory_manager = (MemoryManager *) NULL;
-      debugPrint (core_tid, "CORE", "No Memory Manager being used");
+      debugPrintStart (core_tid, "CORE", "No Memory Manager being used");
    
    }
 
@@ -338,9 +338,6 @@ void Core::addProcTime(UInt64 cycles)
 UInt64 Core::getProcTime()
 {
   	debugPrint (getRank(), "CORE", "Before getCycleCount()");
-//	if (g_knob_enable_performance_modeling)
-		return perf_model->getCycleCount();
-//	else
-//		return (0);
+	return perf_model->getCycleCount();
 }
 

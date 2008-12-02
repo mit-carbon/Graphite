@@ -34,7 +34,7 @@ enum NetworkModel
 // network packet
 class NetPacket
 {
-public:
+  public:
    PacketType type;
    int sender;
    int receiver;
@@ -46,13 +46,16 @@ public:
 
 
 // network query struct
-typedef struct NetMatch
+class NetMatch
 {
+  public:
    int sender;
    bool sender_flag; //if wildcard or not (should you look at sender or not)
    PacketType type;
    bool type_flag;
-} NetMatch;
+
+	NetMatch() : sender(-1), sender_flag(false), type(INVALID), type_flag(false) {}
+};
 
 class Core;
 

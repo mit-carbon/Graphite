@@ -5,6 +5,7 @@
 #include <sstream>
 #include "capi.h"
 #include "mcp_api.h"
+#include "user_api.h"
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "core.h"
@@ -104,6 +105,10 @@ int main(int argc, char* argv[]){ // main begins
 	// Declare threads and related variables
 	
 	initMCP();
+
+	// Spawn off the shared memory threads
+	sharedMemThreadsInit();
+
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
@@ -137,23 +142,25 @@ int main(int argc, char* argv[]){ // main begins
 	cerr << "Spawning threads" << endl << endl;
 #endif
 
-      pthread_create(&threads[0], &attr, starter_function, (void *) 0);    
-      pthread_create(&threads[1], &attr, starter_function, (void *) 1);    
+   pthread_create(&threads[0], &attr, starter_function, (void *) 0);    
+   pthread_create(&threads[1], &attr, starter_function, (void *) 1);    
 
 #ifdef DEBUG
-//   pthread_mutex_lock(&lock);
 	cerr << "Waiting to join" << endl << endl;
-//   pthread_mutex_unlock(&lock);
 #endif
 
 	// Wait for all threads to complete
-	while(1);
-        pthread_join(threads[0], NULL);         
-        pthread_join(threads[1], NULL);
+	// while(1);
+   pthread_join(threads[0], NULL);         
+   pthread_join(threads[1], NULL);
 
 #ifdef DEBUG
-//	cerr << "End of execution" << endl << endl;
+	cerr << "End of execution" << endl << endl;
 #endif
+	
+	// Join the shared memory threads
+	sharedMemThreadsFinish();
+
 	quitMCP();
         
    return 0;
@@ -180,7 +187,7 @@ void* starter_function(void *threadid)
 		awesome_test_suite_msi(tid);
 //		cerr << "FInished Executing awesome test suite  Core #1" << endl;
    }
-   CAPI_Finish(tid);
+   // CAPI_Finish(tid);
 	pthread_exit(NULL);  
 }
                                       

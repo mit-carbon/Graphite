@@ -1,5 +1,5 @@
 #include "memory_manager.h"
-//#define MMU_DEBUG
+#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
@@ -85,7 +85,7 @@ void addUpdatePayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t n
 {
 	MemoryManager::UpdatePayload payload;
 	payload.update_new_cstate = new_cstate;
-	payload.update_address= address;
+	payload.update_address = address;
 	
 	packet->data = (char *)(&payload);
 }
@@ -231,13 +231,16 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 	if(eviction) 
 	{
 		//send write-back to dram
+		// TODO: We need a way to find differentiate between the CLEAN and the DIRTY states
+		// of a cache line. This is because we need to write back the cache block only when
+		// it was DIRTY. The 'accessSingleLine()' interface should tell us whether the 
+		// cache block was dirty or clean
 		UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(evict_addr);
 		AckPayload payload;
 		payload.ack_address = evict_addr;
 		payload.is_writeback = true;
-		payload.is_eviction = true;
-		UINT32 payload_size = sizeof(payload) + ocache->dCacheLineSize();
 		payload.data_size = ocache->dCacheLineSize();
+		UINT32 payload_size = sizeof(payload) + ocache->dCacheLineSize();
 		char payload_buffer[payload_size];
 
 //		cerr << "Evicted data: 0x";
@@ -418,53 +421,12 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 	
 }
 
-/*
- * this function is called by the "interrupt handler" when a shared memory request message is destined for this node
- * this function would be called on the home node (owner) of the address specified in the arguments
- * the shared request type indicates either a read or a write
- */
-
-//TODO make this a PQueue on the time stamp
-void MemoryManager::addRequestToQueue(NetPacket packet)
-{
-	++incoming_requests_count;
-	request_queue.push(packet);
-}
-
-NetPacket MemoryManager::getNextRequest()
-{
-	assert( incoming_requests_count > 0 );
-	
-	--incoming_requests_count;
-	NetPacket packet = request_queue.front();
-	request_queue.pop();
-
-	return packet;
-}
-
-/* ======================================================== */
-/* The Network sends memory requests to the MMU.
- * The MMU serializes the requests, and forwards them
- * to the DRAM_Directory.
- * ======================================================== */
-
 //only the first request called drops into the while loop
 //all additional requests add to the request_queue, 
 //but then skip over the while loop.
 void MemoryManager::addMemRequest(NetPacket req_packet)
 {
-	addRequestToQueue(req_packet);
-	
-	while( incoming_requests_count > 0 && !processing_request_flag )
-	{
-		//"Lock" the processRequest code
-		processing_request_flag = true;
-		
-		dram_dir->processSharedMemReq(getNextRequest());
-		
-		//"Release" the processRequest code
-		processing_request_flag = false;
-	}
+	dram_dir->startSharedMemRequest (req_packet);
 }
 
 void MemoryManager::processAck(NetPacket req_packet)
@@ -483,17 +445,16 @@ void MemoryManager::processAck(NetPacket req_packet)
 //ie, write_backs need to go elsewhere!
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet) 
 {
-  // TODO: This kind of argument passing is bad for performance. Try to pass by reference or pass pointers
+  	// TODO: This kind of argument passing is bad for performance. Try to pass by reference or pass pointers
 
-  // verify packet type is correct
-  assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
-  
-  char data_buffer[ocache->dCacheLineSize()];
+  	// verify packet type is correct
+  	assert(update_packet.type == SHARED_MEM_UPDATE_UNEXPECTED);
+ 
+	// We dont expect any data from the Dram Directory
+  	UpdatePayload update_payload;
+  	extractUpdatePayloadBuffer(&update_packet, &update_payload, NULL );
 
-  UpdatePayload update_payload;
-  extractUpdatePayloadBuffer(&update_packet, &update_payload, data_buffer );
-
-  // extract relevant values from incoming request packet
+  	// extract relevant values from incoming request packet
    CacheState::cstate_t new_cstate = update_payload.update_new_cstate;
    ADDRINT address = update_payload.update_address;
   
@@ -509,6 +470,8 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    CacheState::cstate_t current_cstate = ( cache_model_results.second != NULL ) ?
 																						cache_model_results.second->getCState() :
 																						CacheState::INVALID;
+
+	// cerr << "MMU: [" << the_core->getRank() << "] Address = 0x" << hex << address << dec << ", Current State = " << CacheState::cStateToString(current_cstate) << endl;
 																							
    // send back acknowledgement of receiveing this message
    AckPayload payload;
@@ -518,7 +481,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    char writeback_data[line_size]; 
 	
 	UINT32 payload_size = 0;
-	char payload_buffer[line_size];
+	char payload_buffer[sizeof(payload) + line_size];
 
 	switch( current_cstate ) {
 
@@ -553,6 +516,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 			//THIS can happen due to race conditions where core evalidates at the same time dram sends demotion message
 			//address has been invalidated -> tell directory to remove us from sharers' list
 			payload_size = sizeof(payload);
+			payload.ack_new_cstate = CacheState::INVALID;
 			payload.remove_from_sharers = true; 
 			createAckPayloadBuffer(&payload, NULL, payload_buffer, payload_size);
 			
@@ -604,6 +568,12 @@ void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cst
 	// Assume that address is always cache aligned
 	pair<bool, CacheTag*> cache_result;
 
+#ifdef MMU_DEBUG
+	pair<bool, CacheTag*> cache_model_results;
+	CacheState::cstate_t current_cstate;
+#endif
+
+
 	bool fail_need_fill;
 	// char buff[ocache->dCacheLineSize()];
 	bool eviction;
@@ -634,15 +604,27 @@ void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cst
 									&eviction, &evict_addr, evict_buff);
 
 				if (eviction) {
-					debugPrint(the_core->getRank(), "MMU", "Some data has been evicted.");
+					cerr << "[" << the_core->getRank() << "] MMU: Some data has been evicted\n";
+					cerr << "[" << the_core->getRank() << "] MMU: Evicted Address = 0x" << hex << evict_addr << dec << endl;
 				}
+
 			}
 			
 			cache_result.second->setCState(cstate);
+			cerr << "MMU: [" << the_core->getRank() << "] DebugSet: Setting State to: " << CacheState::cStateToString(cstate) << endl;
+
+			cache_model_results = ocache->runDCachePeekModel(address);
+   		// if it is null, it means the address has been invalidated
+   		current_cstate = ( cache_model_results.second != NULL ) ?
+											cache_model_results.second->getCState() : CacheState::INVALID;
+
+			cerr << "MMU: [" << the_core->getRank() << "] Address = 0x" << hex << address << dec << ", Current State (Debug) = " << CacheState::cStateToString(current_cstate) << endl;
+
 			// Now I have set the state as well as data
 			break;
+		
 		default:
-			debugPrint(the_core->getRank(), "MMU", "ERROR in switch for Core::debugSetCacheState");
+			cerr << "[" << the_core->getRank() << "] MMU: ERROR in switch for Core::debugSetCacheState";
 	}
 }
 
@@ -756,6 +738,7 @@ void MemoryManager::extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload
 	//copy data_buffer over
 	assert (payload->data_size <= g_knob_line_size);
 
+	assert ( (payload->data_size == 0) == (data_buffer == NULL) );
 	if (payload->data_size > 0)
 		memcpy ((void*) data_buffer, (void*) ( ((char*) packet->data) + sizeof(*payload) ), payload->data_size);
 }

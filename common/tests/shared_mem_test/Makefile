@@ -5,9 +5,9 @@ FORCE32 ?= 1
 
 # CC = /usr/bin/g++
 CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
-TEST_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc test.cc 
-TEST_EVIC_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc test_evic.cc
-TEST_OBJECTS = $(TEST_SOURCES:%.cc=%.o)
+TEST_NEW_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc ../../user/user_api.cc test_new.cc 
+TEST_EVIC_SOURCES = ../../user/capi.cc ../../user/mcp_api.cc ../../user/user_api.cc test_evic.cc
+TEST_NEW_OBJECTS = $(TEST_NEW_SOURCES:%.cc=%.o)
 TEST_EVIC_OBJECTS = $(TEST_EVIC_SOURCES:%.cc=%.o)
 
 ifeq (${FORCE32},1)
@@ -20,13 +20,13 @@ endif
 
 ## Build rules
 
-all: test test_evic
+all: test_new test_evic
 
 %.o : %.cc
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-test: $(TEST_OBJECTS)
-	$(CXX) -pthread $(LDFLAGS) -o $@ $(TEST_OBJECTS)
+test_new: $(TEST_NEW_OBJECTS)
+	$(CXX) -pthread $(LDFLAGS) -o $@ $(TEST_NEW_OBJECTS)
 
 test_evic: $(TEST_EVIC_OBJECTS)
 	$(CXX) -pthread $(LDFLAGS) -o $@ $(TEST_EVIC_OBJECTS)

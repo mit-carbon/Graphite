@@ -311,16 +311,17 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 				char data_st_buffer[dcache_st_size];
 				
 				
-			
+				/*
 				if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
 					memset (data_st_buffer, 'C', sizeof(UINT32));
 				}
 				else {
 					memset (data_st_buffer, 'A', sizeof(UINT32));
 				}
+				*/
 			
 				
-				// memset (data_st_buffer, 'z', sizeof(UINT32));
+				memset (data_st_buffer, 'z', sizeof(UINT32));
 
 				stringstream ss;
 				ss << "Doing write modelling for address: 0x" << hex << dcache_st_addr << dec;

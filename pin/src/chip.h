@@ -202,6 +202,8 @@ class Chip
 
       int num_modules;
 
+		PIN_LOCK maps_lock;
+
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;

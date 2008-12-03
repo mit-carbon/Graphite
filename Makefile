@@ -54,7 +54,7 @@ io_test: all
 
 ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(PIN_RUN) -mdc -msm -mpf -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 #	$(PIN_RUN) -mdc -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 #	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 

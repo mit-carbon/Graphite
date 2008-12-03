@@ -65,9 +65,6 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_mutex_lock(&lock);
 	cerr << "Starter thread is waiting for the other threads to join." << endl << endl;
    pthread_mutex_unlock(&lock);
-	
-
-	while(1);
 
 	// Wait for all threads to complete
    pthread_join(threads[0], NULL);         
@@ -95,6 +92,7 @@ void* ping(void *threadid)
 #endif
 
 
+   CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &junk, sizeof(int));  
    CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &junk, sizeof(int));  
 
 
@@ -104,7 +102,7 @@ void* ping(void *threadid)
    pthread_mutex_unlock(&lock);
 #endif
 
-	CAPI_Finish(tid);
+   //CAPI_Finish(tid);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -148,7 +146,7 @@ void* pong(void *threadid)
 #endif
 */
 
-   CAPI_Finish(tid);
+   //CAPI_Finish(tid);
 	pthread_exit(NULL);  
    // return 0;
 }

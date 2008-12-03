@@ -54,7 +54,7 @@ io_test: all
 
 ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 #	$(PIN_RUN) -mdc -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 #	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
@@ -118,11 +118,11 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
+	killall -s 9 ping_pong
 	killall -s 9 test_new
 	killall -s 9 test_evic
 	killall -s 9 basic
 	killall -s 9 jacobi
-	killall -s 9 ping_pong
 	killall -s 9 test
 
 radiosity_test: all

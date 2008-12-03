@@ -10,7 +10,7 @@ using namespace std;
 
 pthread_mutex_t write_lock;
 
-#define DEBUG
+// #define DEBUG
 
 #ifdef DEBUG
 pthread_mutex_t lock;
@@ -47,24 +47,27 @@ int main(int argc, char* argv[]){ // main begins
 #endif
    
 	
-	
+#ifdef DEBUG	
 	pthread_mutex_lock(&lock);
 	cerr << "Creating Thread#0." << endl << endl;
    pthread_mutex_unlock(&lock);
+#endif
 	
    pthread_create(&threads[0], &attr, ping, (void *) 0);
 
-   
+#ifdef DEBUG
 	pthread_mutex_lock(&lock);
 	cerr << "Creating Thread#1." << endl << endl;
    pthread_mutex_unlock(&lock);
-	
+#endif
+
    pthread_create(&threads[1], &attr, pong, (void *) 1);
 
-   
+#ifdef DEBUG 
 	pthread_mutex_lock(&lock);
 	cerr << "Starter thread is waiting for the other threads to join." << endl << endl;
    pthread_mutex_unlock(&lock);
+#endif
 
 	// Wait for all threads to complete
    pthread_join(threads[0], NULL);         
@@ -72,16 +75,21 @@ int main(int argc, char* argv[]){ // main begins
 	
 	cerr << "Finished running PingPong!." << endl << endl;
 
-    carbonFinish();
-    return 0;
+   carbonFinish();
+   return 0;
 
 } // main ends
 
 
 void* ping(void *threadid)
 {
-   int tid = (int)threadid;
+	int tid = (int)threadid;
    CAPI_Initialize((int)threadid);
+
+	/*
+	int tid;
+	CAPI_Initialize_FreeRank(&tid);
+	*/
 	
 	int junk;
 
@@ -93,6 +101,7 @@ void* ping(void *threadid)
 
 
    CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &junk, sizeof(int));  
+
    CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &junk, sizeof(int));  
 
 
@@ -101,8 +110,6 @@ void* ping(void *threadid)
    cerr << "ping received from pong" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
-
-   //CAPI_Finish(tid);
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
@@ -116,16 +123,24 @@ void* ping(void *threadid)
 
 void* pong(void *threadid)
 {
-   int tid = (int)threadid;
+   
+	int tid = (int)threadid;
    CAPI_Initialize((int)threadid);
+	
+	/*
+	int tid;
+	CAPI_Initialize_FreeRank(&tid);
+	*/
+
 	int junk;
 
+/*
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cerr << "executing pong function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
- 
+ */
    CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &junk, sizeof(int)); 
 
 /*
@@ -146,7 +161,6 @@ void* pong(void *threadid)
 #endif
 */
 
-   //CAPI_Finish(tid);
 	pthread_exit(NULL);  
    // return 0;
 }

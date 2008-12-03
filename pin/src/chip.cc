@@ -33,7 +33,9 @@ CAPI_return_t chipInit(int rank)
 CAPI_return_t chipInitFreeRank(int *rank)
 {
    
-   THREADID pin_tid = PIN_ThreadId();
+	THREADID pin_tid = PIN_ThreadId();
+
+   GetLock (&g_chip->maps_lock, 1);
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
@@ -48,12 +50,14 @@ CAPI_return_t chipInitFreeRank(int *rank)
       // highest core.
       for(int i = 0; i < g_chip->num_modules - 1; i++)
       {
-          if(g_chip->tid_map[i] == UINT_MAX)
+          if (g_chip->tid_map[i] == UINT_MAX)
           {
               g_chip->tid_map[i] = pin_tid;    
               g_chip->core_map.insert( pin_tid, i );
               *rank = i;
-//              cerr << "chipInit initializing core: " << i << endl;
+				  // cerr << "chipInit initializing core: " << i << endl;
+				  
+				  ReleaseLock (&g_chip->maps_lock);
               return 0;
           }
       }
@@ -66,6 +70,8 @@ CAPI_return_t chipInitFreeRank(int *rank)
 //      cerr << "chipInit: Keeping old rank: " << dec << (int)(g_chip->core_map.find(pin_tid).second) << endl;
 //      ASSERT(false, "Error: Core tried to init more than once!\n");
    }
+
+	ReleaseLock (&g_chip->maps_lock);
 
    return 0;
 }
@@ -446,9 +452,9 @@ void MCPFinish()
 
 void* MCPThreadFunc(void *dummy)
 {
-  // Declare local variables
-  CAPI_return_t rtnVal;
-  rtnVal = CAPI_Initialize(g_knob_total_cores);
+  	// Declare local variables
+  	CAPI_return_t rtnVal;
+  	rtnVal = CAPI_Initialize(g_knob_total_cores);
 
    while( !g_MCP->finished() )
    {
@@ -457,7 +463,7 @@ void* MCPThreadFunc(void *dummy)
    }   
 	debugPrint (g_knob_total_cores /* rank */, "CHIP", "MCPThreadFunc - end!");
    return NULL;
-//   pthread_exit(NULL);
+
 }
 
 // Shared Memory Functions
@@ -493,13 +499,16 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid
 //Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0)
 {
    debugInit(num_mods);
+
+	InitLock (&maps_lock);
 	
    tid_map = new THREADID [num_mods];
    core_to_shmem_tid_map = new THREADID [num_mods];
 
    core = new Core[num_mods];
 
-   for(int i = 0; i < num_mods; i++) 
+   // Need to subtract 1 for the MCP
+	for(int i = 0; i < num_mods; i++) 
    {
       tid_map[i] = UINT_MAX;
       core_to_shmem_tid_map[i] = UINT_MAX;
@@ -537,15 +546,17 @@ VOID Chip::fini(int code, VOID *v)
 
 int Chip::registerSharedMemThread()
 {
-   THREADID pin_tid = PIN_ThreadId();
+	// FIXME: I need to lock because there is a race condition
+	THREADID pin_tid = PIN_ThreadId();
 
+   GetLock (&maps_lock, 1);
    pair<bool, UINT64> e = g_chip->shmem_tid_to_core_map.find(pin_tid);
 
    // If this thread isn't registered
    if ( e.first == false ) {
 
-       // Search for an unused core to map this shmem thread to
-       // one less to account for the MCP
+      // Search for an unused core to map this shmem thread to
+      // one less to account for the MCP
       for(int i = 0; i < g_chip->num_modules; i++)
       {
           // Unused slots are set to UINT_MAX
@@ -554,6 +565,7 @@ int Chip::registerSharedMemThread()
           {
               g_chip->core_to_shmem_tid_map[i] = pin_tid;    
               g_chip->shmem_tid_to_core_map.insert( pin_tid, i );
+				  ReleaseLock (&maps_lock);
               return i;
           }
       }
@@ -563,9 +575,12 @@ int Chip::registerSharedMemThread()
    else
    {
        cerr << "Initialized shared mem thread twice -- id: " << pin_tid << endl;
+		 ReleaseLock (&maps_lock);
+		 // FIXME: I think this is OK
        return g_chip->shmem_tid_to_core_map.find(pin_tid).second;
    }
 
+	ReleaseLock (&maps_lock);
    return -1;
 }
 

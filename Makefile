@@ -63,14 +63,14 @@ matmult_test: all
 #	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 
-shmem_test: all
+shmem_test_new: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 #	$(PIN_RUN) -mdc -msm -n 2 -- $(TESTS_DIR)/shared_mem_test/test
-	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test 5 
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_new 5 
 
 shmem_test_evic: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
-	$(PIN_RUN) -mdc -msm -msys -n 2 -- $(TESTS_DIR)/shared_mem_test/test_evic 5 
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_evic 5 
 
 jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
@@ -118,10 +118,11 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
+	killall -s 9 test_new
+	killall -s 9 test_evic
 	killall -s 9 basic
 	killall -s 9 jacobi
 	killall -s 9 ping_pong
-	killall -s 9 test_evic
 	killall -s 9 test
 
 radiosity_test: all

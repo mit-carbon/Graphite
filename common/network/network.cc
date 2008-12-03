@@ -30,8 +30,8 @@ Network::Network(Core *the_core_arg, int num_mod)
 
 void Network::netCheckMessages()
 {
-//	netEntryTasks();
- cerr << "DONT CALL ME" << endl;
+	//	netEntryTasks();
+ 	cerr << "DONT CALL ME" << endl;
 }
 
 int Network::netSend(NetPacket packet)
@@ -143,7 +143,8 @@ NetPacket Network::netRecv(NetMatch match)
    assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
    assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
 
-   net_queue[entry.packet.sender][entry.packet.type].lock();
+   // FIXME: Will the reference stay the same (Note this is a priority queue)?? 
+	net_queue[entry.packet.sender][entry.packet.type].lock();
    net_queue[entry.packet.sender][entry.packet.type].pop();
    net_queue[entry.packet.sender][entry.packet.type].unlock();
 
@@ -180,8 +181,6 @@ string Network::packetTypeToString(PacketType type)
 			return "USER                        ";
 		case SHARED_MEM_REQ:
 			return "SHARED_MEM_REQ              ";
-		case SHARED_MEM_UPDATE_EXPECTED:
-			return "SHARED_MEM_UPDATE_EXPECTED  ";
 		case SHARED_MEM_RESPONSE:
 			return "SHARED_MEM_RESPONSE			";
 		case SHARED_MEM_UPDATE_UNEXPECTED:
@@ -383,7 +382,11 @@ void Network::netPullFromTransport()
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
 
-
+		// TODO: Performance Consideration
+		// We need to lock only when 'entry.packet.type' is one of the following:
+		// 1) USER
+		// 2) SHARED_MEM_RESPONSE
+		// 3) MCP_NETWORK_TYPE
       net_queue[entry.packet.sender][entry.packet.type].lock();
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
       net_queue[entry.packet.sender][entry.packet.type].unlock();
@@ -449,7 +452,7 @@ void Network::netPullFromTransport()
          }
       }
 
-	  if(type == SHARED_MEM_REQ)
+	  	if(type == SHARED_MEM_REQ)
       {
 			assert(0 <= sender && sender < net_num_mod);
 			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);

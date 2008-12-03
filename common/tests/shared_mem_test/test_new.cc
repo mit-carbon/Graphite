@@ -20,8 +20,9 @@ UINT32* global_array_ptr;
 #define DEBUG 1
 #define TEST_MEMORY_SIZE (pow(2,30))
 
-#define STATE_COUNT 13
-#define TEST_COUNT 52
+// FIXME: Modifications
+#define STATE_COUNT 6
+#define TEST_COUNT 24
 
 //count the number of tests performed
 //output it for each test
@@ -110,9 +111,7 @@ int main(int argc, char* argv[]) { // main begins
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
-	initMCP();
-
-	sharedMemThreadsInit();
+	carbonInit();
 
 	logCacheBlockSize = atoi(argv[1]);
 	cacheBlockSize = 1 << logCacheBlockSize;
@@ -157,11 +156,8 @@ int main(int argc, char* argv[]) { // main begins
    pthread_join(threads[0], NULL);         
 	pthread_join(threads[1], NULL);
 
-	sharedMemThreadsFinish();
 
-	cerr << "Shared Memory Threads Joined\n";
-
-	quitMCP();
+   carbonFinish();
 
 #ifdef DEBUG
 	cerr << "End of execution" << endl << endl;
@@ -342,6 +338,7 @@ void initialize_test_parameters()
 	state_index++;
 	/******************************************************/
 	//Init Test State#1 SII-{0}
+	/*
 	test_code_vector[state_index] = ", InitState#1 SII-{0}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -350,8 +347,10 @@ void initialize_test_parameters()
 	init_sharers_vector[state_index] = sharers_list_0;
 	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#2 SII-{1}
+	/*
 	test_code_vector[state_index] = ", InitState#2 SII-{1}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -360,8 +359,10 @@ void initialize_test_parameters()
 	init_sharers_vector[state_index] = sharers_list_1;
 	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#3 SII-{0,1}
+	/*
 	test_code_vector[state_index] = ", InitState#3 SII-{0,1}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -370,8 +371,10 @@ void initialize_test_parameters()
 	init_sharers_vector[state_index] = sharers_list_0_1;
 	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#4 EII-{0}
+	/*
 	test_code_vector[state_index] = ", InitState#4 EII-{0}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -380,8 +383,10 @@ void initialize_test_parameters()
 	init_sharers_vector[state_index] = sharers_list_0;
 	init_cache_block_vector[state_index] = cacheBlockE;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#5 EII-{1}
+	/*
 	test_code_vector[state_index] = ", InitState#5 EII-{1}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -390,9 +395,10 @@ void initialize_test_parameters()
 	init_sharers_vector[state_index] = sharers_list_1;
 	init_cache_block_vector[state_index] = cacheBlockE;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#6 SSI-{0}
-	test_code_vector[state_index] = ", InitState#6 SSI-{0}";
+	test_code_vector[state_index] = ", InitState#1 SSI-{0}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::SHARED;
 	new_init_state.cstate1 = CacheState::INVALID;
@@ -402,6 +408,7 @@ void initialize_test_parameters()
 	state_index++;
 	/******************************************************/
 	//Init Test State#7 SSI-{0,1}
+	/*
 	test_code_vector[state_index] = ", InitState#7 SSI-{0,1}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::SHARED;
@@ -410,9 +417,10 @@ void initialize_test_parameters()
 	init_sharers_vector[state_index] = sharers_list_0_1;
 	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#8 EEI-{0}
-	test_code_vector[state_index] = ", InitState#8 EEI-{0}";
+	test_code_vector[state_index] = ", InitState#2 EEI-{0}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::EXCLUSIVE;
 	new_init_state.cstate1 = CacheState::INVALID;
@@ -422,7 +430,7 @@ void initialize_test_parameters()
 	state_index++;
 	/******************************************************/
 	//Init Test State#9 SIS-{1}
-	test_code_vector[state_index] = ", InitState#9 SIS-{1}";
+	test_code_vector[state_index] = ", InitState#3 SIS-{1}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::INVALID;
 	new_init_state.cstate1 = CacheState::SHARED;
@@ -432,6 +440,7 @@ void initialize_test_parameters()
 	state_index++;
 	/******************************************************/
 	//Init Test State#10 SIS-{0,1}
+	/*
 	test_code_vector[state_index] = ", InitState#10 SIS-{0,1}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::INVALID;
@@ -440,9 +449,10 @@ void initialize_test_parameters()
 	init_sharers_vector[state_index] = sharers_list_0_1;
 	init_cache_block_vector[state_index] = cacheBlockS;
 	state_index++;
+	*/
 	/******************************************************/
 	//Init Test State#11 SSS-{0,1}
-	test_code_vector[state_index] = ", InitState#11 SSS-{0,1}";
+	test_code_vector[state_index] = ", InitState#4 SSS-{0,1}";
 	new_init_state.dstate = DramDirectoryEntry::SHARED;
 	new_init_state.cstate0 = CacheState::SHARED;
 	new_init_state.cstate1 = CacheState::SHARED;
@@ -452,7 +462,7 @@ void initialize_test_parameters()
 	state_index++;
 	/******************************************************/
 	//Init Test State#12 EIE-{1}
-	test_code_vector[state_index] = ", InitState#12 EIE-{1}";
+	test_code_vector[state_index] = ", InitState#5 EIE-{1}";
 	new_init_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_init_state.cstate0 = CacheState::INVALID;
 	new_init_state.cstate1 = CacheState::EXCLUSIVE;
@@ -494,6 +504,84 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> SSI-{0}
+	/*
+	fini_mem_state_id[test_index] = 1;
+	fini_state_str_vector[test_index] = "SSI-{0}";
+	new_fini_state.dstate = DramDirectoryEntry::SHARED;
+	new_fini_state.cstate0 = CacheState::SHARED;
+	new_fini_state.cstate1 = CacheState::INVALID;
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
+	++test_index;
+	*/
+	/******************************************************/
+	//SII-{1} -> SSI-{0,1}
+	/*
+	fini_mem_state_id[test_index] = 2;
+	fini_state_str_vector[test_index] = "SSI-{0,1}";
+	new_fini_state.dstate = DramDirectoryEntry::SHARED;
+	new_fini_state.cstate0 = CacheState::SHARED;
+	new_fini_state.cstate1 = CacheState::INVALID;
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0_1;
+	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
+	++test_index;
+	*/
+	/******************************************************/
+	//SII-{0,1} -> SSI-{0,1}
+	/*
+	fini_mem_state_id[test_index] = 3;
+	fini_state_str_vector[test_index] = "SSI-{0,1}";
+	new_fini_state.dstate = DramDirectoryEntry::SHARED;
+	new_fini_state.cstate0 = CacheState::SHARED;
+	new_fini_state.cstate1 = CacheState::INVALID;
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0_1;
+	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
+	++test_index;
+	*/
+	/******************************************************/
+	//EII-{0} -> SSI-{0}
+	/*
+	fini_mem_state_id[test_index] = 4;
+	fini_state_str_vector[test_index] = "SSI-{0}";
+	new_fini_state.dstate = DramDirectoryEntry::SHARED;
+	new_fini_state.cstate0 = CacheState::SHARED;
+	new_fini_state.cstate1 = CacheState::INVALID;
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
+	++test_index;
+	*/
+	
+	/******************************************************/
+	//EII-{1} -> SSI-{0}
+	
+	/*
+	fini_mem_state_id[test_index] = 5;
+	fini_state_str_vector[test_index] = "SSI-{0}";
+	new_fini_state.dstate = DramDirectoryEntry::SHARED;
+	new_fini_state.cstate0 = CacheState::SHARED;
+	new_fini_state.cstate1 = CacheState::INVALID;
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_READ_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockS;
+	++test_index;
+	*/
+	
+	/******************************************************/
+	//SSI-{0} -> SSI-{0}
 	fini_mem_state_id[test_index] = 1;
 	fini_state_str_vector[test_index] = "SSI-{0}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -506,76 +594,8 @@ void initialize_test_parameters()
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
 	/******************************************************/
-	//SII-{1} -> SSI-{0,1}
-	fini_mem_state_id[test_index] = 2;
-	fini_state_str_vector[test_index] = "SSI-{0,1}";
-	new_fini_state.dstate = DramDirectoryEntry::SHARED;
-	new_fini_state.cstate0 = CacheState::SHARED;
-	new_fini_state.cstate1 = CacheState::INVALID;
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0_1;
-	operation_vector[test_index] = CORE_0_READ_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockS;
-	++test_index;
-	/******************************************************/
-	//SII-{0,1} -> SSI-{0,1}
-	fini_mem_state_id[test_index] = 3;
-	fini_state_str_vector[test_index] = "SSI-{0,1}";
-	new_fini_state.dstate = DramDirectoryEntry::SHARED;
-	new_fini_state.cstate0 = CacheState::SHARED;
-	new_fini_state.cstate1 = CacheState::INVALID;
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0_1;
-	operation_vector[test_index] = CORE_0_READ_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockS;
-	++test_index;
-	/******************************************************/
-	//EII-{0} -> SSI-{0}
-	
-	fini_mem_state_id[test_index] = 4;
-	fini_state_str_vector[test_index] = "SSI-{0}";
-	new_fini_state.dstate = DramDirectoryEntry::SHARED;
-	new_fini_state.cstate0 = CacheState::SHARED;
-	new_fini_state.cstate1 = CacheState::INVALID;
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_READ_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockS;
-	++test_index;
-	
-	/******************************************************/
-	//EII-{1} -> SSI-{0}
-	
-	fini_mem_state_id[test_index] = 5;
-	fini_state_str_vector[test_index] = "SSI-{0}";
-	new_fini_state.dstate = DramDirectoryEntry::SHARED;
-	new_fini_state.cstate0 = CacheState::SHARED;
-	new_fini_state.cstate1 = CacheState::INVALID;
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_READ_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockS;
-	++test_index;
-	
-	/******************************************************/
-	//SSI-{0} -> SSI-{0}
-	fini_mem_state_id[test_index] = 6;
-	fini_state_str_vector[test_index] = "SSI-{0}";
-	new_fini_state.dstate = DramDirectoryEntry::SHARED;
-	new_fini_state.cstate0 = CacheState::SHARED;
-	new_fini_state.cstate1 = CacheState::INVALID;
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_READ_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockS;
-	++test_index;
-	/******************************************************/
 	//SSI-{0,1} -> SSI-{0,1}
+	/*
 	fini_mem_state_id[test_index] = 7;
 	fini_state_str_vector[test_index] = "SSI-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -587,9 +607,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
+	*/
 	/******************************************************/
 	//EEI-{0} -> EEI-{0}
-	fini_mem_state_id[test_index] = 8;
+	fini_mem_state_id[test_index] = 2;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	new_fini_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_fini_state.cstate0 = CacheState::EXCLUSIVE;
@@ -602,7 +623,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> SSS-{0,1}
-	fini_mem_state_id[test_index] = 9;
+	fini_mem_state_id[test_index] = 3;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
 	new_fini_state.cstate0 = CacheState::SHARED;
@@ -615,6 +636,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> SSS-{0,1}
+	/*
 	fini_mem_state_id[test_index] = 10;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -626,9 +648,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSS-{0,1} -> SSS-{0,1}
-	fini_mem_state_id[test_index] = 11;
+	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
 	new_fini_state.cstate0 = CacheState::SHARED;
@@ -641,7 +664,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> SSS-{0,1}
-	fini_mem_state_id[test_index] = 12;
+	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
 	new_fini_state.cstate0 = CacheState::SHARED;
@@ -671,6 +694,71 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> EEI-{0}
+	/*
+	fini_mem_state_id[test_index] = 1;
+	fini_state_str_vector[test_index] = "EEI-{0}";
+	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//SII-{1} -> EEI-{0}
+	/*
+	fini_mem_state_id[test_index] = 2;
+	fini_state_str_vector[test_index] = "EEI-{0}";
+	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//SII-{0,1} -> EEI-{0}
+	/*
+	fini_mem_state_id[test_index] = 3;
+	fini_state_str_vector[test_index] = "EEI-{0}";
+	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//EII-{0} -> EEI-{0}
+	/*
+	fini_mem_state_id[test_index] = 4;
+	fini_state_str_vector[test_index] = "EEI-{0}";
+	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//EII-{1} -> EEI-{0}
+	/*
+	fini_mem_state_id[test_index] = 5;
+	fini_state_str_vector[test_index] = "EEI-{0}";
+	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_0;
+	operation_vector[test_index] = CORE_0_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//SSI-{0} -> EEI-{0}
 	fini_mem_state_id[test_index] = 1;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
@@ -681,66 +769,8 @@ void initialize_test_parameters()
 	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
-	//SII-{1} -> EEI-{0}
-	fini_mem_state_id[test_index] = 2;
-	fini_state_str_vector[test_index] = "EEI-{0}";
-	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	/******************************************************/
-	//SII-{0,1} -> EEI-{0}
-	fini_mem_state_id[test_index] = 3;
-	fini_state_str_vector[test_index] = "EEI-{0}";
-	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	/******************************************************/
-	//EII-{0} -> EEI-{0}
-	
-	fini_mem_state_id[test_index] = 4;
-	fini_state_str_vector[test_index] = "EEI-{0}";
-	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	
-	/******************************************************/
-	//EII-{1} -> EEI-{0}
-	
-	fini_mem_state_id[test_index] = 5;
-	fini_state_str_vector[test_index] = "EEI-{0}";
-	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	
-	/******************************************************/
-	//SSI-{0} -> EEI-{0}
-	fini_mem_state_id[test_index] = 6;
-	fini_state_str_vector[test_index] = "EEI-{0}";
-	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_0;
-	operation_vector[test_index] = CORE_0_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	/******************************************************/
 	//SSI-{0,1} -> EEI-{0}
+	/*
 	fini_mem_state_id[test_index] = 7;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
@@ -750,9 +780,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
+	*/
 	/******************************************************/
 	//EEI-{0} -> EEI-{0}
-	fini_mem_state_id[test_index] = 8;
+	fini_mem_state_id[test_index] = 2;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
@@ -763,7 +794,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> EEI-{0}
-	fini_mem_state_id[test_index] = 9;
+	fini_mem_state_id[test_index] = 3;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
@@ -774,6 +805,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> EEI-{0}
+	/*
 	fini_mem_state_id[test_index] = 10;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
@@ -783,9 +815,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSS-{0,1} -> EEI-{0}
-	fini_mem_state_id[test_index] = 11;
+	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
@@ -796,7 +829,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> EEI-{0}
-	fini_mem_state_id[test_index] = 12;
+	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "EEI-{0}";
 	//EEI-{0} is consistent throughout the entire CORE#0 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
@@ -827,6 +860,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> SIS-{1}
+	/*
 	fini_mem_state_id[test_index] = 1;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -838,8 +872,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
+	*/
 	/******************************************************/
 	//SII-{1} -> SIS-{1}
+	/*
 	fini_mem_state_id[test_index] = 2;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -851,8 +887,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
+	*/
 	/******************************************************/
 	//SII-{0,1} -> SIS-{0,1}
+	/*
 	fini_mem_state_id[test_index] = 3;
 	fini_state_str_vector[test_index] = "SIS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -864,9 +902,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
+	*/
 	/******************************************************/
 	//EII-{0} -> SIS-{1}
-	
+	/*
 	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -878,10 +917,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
-	
+	*/
 	/******************************************************/
 	//EII-{1} -> SIS-{1}
-	
+	/*
 	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -893,10 +932,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
-	
+	*/
 	/******************************************************/
 	//SSI-{0} -> SSS-{0,1}
-	fini_mem_state_id[test_index] = 6;
+	fini_mem_state_id[test_index] = 1;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
 	new_fini_state.cstate0 = CacheState::SHARED;
@@ -909,6 +948,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SSI-{0,1} -> SSS-{0,1}
+	/*
 	fini_mem_state_id[test_index] = 7;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -920,9 +960,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
+	*/
 	/******************************************************/
 	//EEI-{0} -> SSS-{0,1}
-	fini_mem_state_id[test_index] = 8;
+	fini_mem_state_id[test_index] = 2;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
 	new_fini_state.cstate0 = CacheState::SHARED;
@@ -935,7 +976,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> SIS-{1}
-	fini_mem_state_id[test_index] = 9;
+	fini_mem_state_id[test_index] = 3;
 	fini_state_str_vector[test_index] = "SIS-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
 	new_fini_state.cstate0 = CacheState::INVALID;
@@ -948,6 +989,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> SIS-{0,1}
+	/*
 	fini_mem_state_id[test_index] = 10;
 	fini_state_str_vector[test_index] = "SIS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
@@ -959,9 +1001,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockS;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSS-{0,1} -> SSS-{0,1}
-	fini_mem_state_id[test_index] = 11;
+	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "SSS-{0,1}";
 	new_fini_state.dstate = DramDirectoryEntry::SHARED;
 	new_fini_state.cstate0 = CacheState::SHARED;
@@ -974,7 +1017,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> EIE-{1}
-	fini_mem_state_id[test_index] = 12;
+	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "EIE-{1}";
 	new_fini_state.dstate = DramDirectoryEntry::EXCLUSIVE;
 	new_fini_state.cstate0 = CacheState::INVALID;
@@ -1004,6 +1047,71 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SII-{0} -> EEI-{1}
+	/*
+	fini_mem_state_id[test_index] = 1;
+	fini_state_str_vector[test_index] = "EEI-{1}";
+	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_1;
+	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//SII-{1} -> EEI-{1}
+	/*
+	fini_mem_state_id[test_index] = 2;
+	fini_state_str_vector[test_index] = "EEI-{1}";
+	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_1;
+	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//SII-{0,1} -> EEI-{1}
+	/*
+	fini_mem_state_id[test_index] = 3;
+	fini_state_str_vector[test_index] = "EEI-{1}";
+	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_1;
+	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//EII-{0} -> EEI-{1}
+	/*
+	fini_mem_state_id[test_index] = 4;
+	fini_state_str_vector[test_index] = "EEI-{1}";
+	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_1;
+	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//EII-{1} -> EEI-{1}
+	/*
+	fini_mem_state_id[test_index] = 5;
+	fini_state_str_vector[test_index] = "EEI-{1}";
+	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
+	fini_test_state_vector[test_index] = new_fini_state;
+	fini_sharers_vector[test_index] = sharers_list_1;
+	operation_vector[test_index] = CORE_1_WRITE_OP;
+	fini_dram_block_vector[test_index] = cacheBlockS;
+	fini_cache_block_vector[test_index] = cacheBlockSW;
+	++test_index;
+	*/
+	/******************************************************/
+	//SSI-{0} -> EEI-{1}
 	fini_mem_state_id[test_index] = 1;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
@@ -1014,66 +1122,8 @@ void initialize_test_parameters()
 	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
 	/******************************************************/
-	//SII-{1} -> EEI-{1}
-	fini_mem_state_id[test_index] = 2;
-	fini_state_str_vector[test_index] = "EEI-{1}";
-	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_1;
-	operation_vector[test_index] = CORE_1_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	/******************************************************/
-	//SII-{0,1} -> EEI-{1}
-	fini_mem_state_id[test_index] = 3;
-	fini_state_str_vector[test_index] = "EEI-{1}";
-	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_1;
-	operation_vector[test_index] = CORE_1_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	/******************************************************/
-	//EII-{0} -> EEI-{1}
-	
-	fini_mem_state_id[test_index] = 4;
-	fini_state_str_vector[test_index] = "EEI-{1}";
-	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_1;
-	operation_vector[test_index] = CORE_1_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	
-	/******************************************************/
-	//EII-{1} -> EEI-{1}
-	
-	fini_mem_state_id[test_index] = 5;
-	fini_state_str_vector[test_index] = "EEI-{1}";
-	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_1;
-	operation_vector[test_index] = CORE_1_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	
-	/******************************************************/
-	//SSI-{0} -> EEI-{1}
-	fini_mem_state_id[test_index] = 6;
-	fini_state_str_vector[test_index] = "EEI-{1}";
-	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
-	fini_test_state_vector[test_index] = new_fini_state;
-	fini_sharers_vector[test_index] = sharers_list_1;
-	operation_vector[test_index] = CORE_1_WRITE_OP;
-	fini_dram_block_vector[test_index] = cacheBlockS;
-	fini_cache_block_vector[test_index] = cacheBlockSW;
-	++test_index;
-	/******************************************************/
 	//SSI-{0,1} -> EEI-{1}
+	/*
 	fini_mem_state_id[test_index] = 7;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
@@ -1083,9 +1133,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
+	*/
 	/******************************************************/
 	//EEI-{0} -> EEI-{1}
-	fini_mem_state_id[test_index] = 8;
+	fini_mem_state_id[test_index] = 2;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
@@ -1096,7 +1147,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{1} -> EEI-{1}
-	fini_mem_state_id[test_index] = 9;
+	fini_mem_state_id[test_index] = 3;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
@@ -1107,6 +1158,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//SIS-{0,1} -> EEI-{1}
+	/*
 	fini_mem_state_id[test_index] = 10;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
@@ -1116,9 +1168,10 @@ void initialize_test_parameters()
 	fini_dram_block_vector[test_index] = cacheBlockS;
 	fini_cache_block_vector[test_index] = cacheBlockSW;
 	++test_index;
+	*/
 	/******************************************************/
 	//SSS-{0,1} -> EEI-{1}
-	fini_mem_state_id[test_index] = 11;
+	fini_mem_state_id[test_index] = 4;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;
@@ -1129,7 +1182,7 @@ void initialize_test_parameters()
 	++test_index;
 	/******************************************************/
 	//EIE-{1} -> EEI-{1}
-	fini_mem_state_id[test_index] = 12;
+	fini_mem_state_id[test_index] = 5;
 	fini_state_str_vector[test_index] = "EEI-{1}";
 	//EEI-{1} is consistent throughout the entire CORE#1 WRITE tests
 	fini_test_state_vector[test_index] = new_fini_state;

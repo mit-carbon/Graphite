@@ -74,7 +74,7 @@ shmem_test_evic: all
 
 jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
-	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -dms 1000 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n $(CORES)
+	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -dms 1000 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n $(CORES)
 
 mutex_test: all
 	$(MAKE) -C $(TESTS_DIR)/mutex
@@ -118,11 +118,11 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
+	killall -s 9 jacobi
 	killall -s 9 ping_pong
 	killall -s 9 test_new
 	killall -s 9 test_evic
 	killall -s 9 basic
-	killall -s 9 jacobi
 	killall -s 9 test
 
 radiosity_test: all

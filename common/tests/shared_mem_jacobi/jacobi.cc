@@ -27,6 +27,9 @@
 
 #include <stdio.h> 
 #include "capi.h"
+#include "user_api.h"
+#include "fixed_types.h"
+
 #include <pthread.h> //not sure this is needed
 
 //set by command-line argument
@@ -58,7 +61,7 @@ void update_array(int *oldarr, int *newarr, int array_size,
 { 
 	int from, to, i; 
 	from = (my_rank==0) ? 1 : 0; 
-	to = (my_rank==(coreCount-1)) ? array_size-2 : array_size -1; 
+	to = ( (UInt32) my_rank == (coreCount-1) ) ? array_size-2 : array_size -1; 
 	
 	int left, right;
 	
@@ -81,11 +84,11 @@ void BARRIER(int tid)
 		{
 			printf("*********\ntid0 is beginning to receive messages for barrier.\n");
 			//gather all receiver messages, then send a continue to all cores
-			for(int i=1; i < coreCount; i++) {
+			for (UInt32 i = 1; i < coreCount; i++) {
 				printf("core0 is waiting for[%d]\n", i);
 				CAPI_message_receive_w(i, 0, (char *) &payload, sizeof(int));
 			}
-			for(int i=1; i < coreCount; i++) {
+			for (UInt32 i = 1; i < coreCount; i++) {
 				printf("core0 is waiting for[%d]\n", i);
 				CAPI_message_send_w(0, i, (char *) &payload, sizeof(int));
 			}
@@ -199,9 +202,9 @@ int consolidate_arrays( int *global_array, int *proc0_arr)
 void* thread_main(void *threadid) 
 { 
 	int tid;
-	CAPI_Initialize(&tid);
+	CAPI_Initialize_FreeRank(&tid);
 	
-	int i, t; 
+	int t; 
 	int *oldarr, *newarr, *tmp; 
 //	int start, stop; 
 	//this is the two integers from the left and right boundaries.
@@ -229,7 +232,7 @@ void* thread_main(void *threadid)
 	newarr = (int *) malloc(myArraySize * sizeof(int)); 
 	
 	//initialize every element to zero
-	for(i = 0; i < myArraySize-1; i++)
+	for(UInt32 i = 0; i < myArraySize-1; i++)
 //		oldarr[i] = newarr[i] = 0.0; 
 		oldarr[i] = newarr[i] = 0; 
 		
@@ -315,7 +318,7 @@ void* thread_main(void *threadid)
 //	TODO we need a real BARRIER
 	BARRIER(tid);
 	
-	if(my_rank ==0) {
+	if (my_rank == 0) {
 //		stop = get_cycle_count();
 //		printf("\nProgram took %d cycles\n", stop-start); 
 //		printf("Program took %f (s)\n", ((float) (stop-start)) / PROC_CLK_FREQ);
@@ -329,8 +332,6 @@ void* thread_main(void *threadid)
 		send_array( my_rank, oldarr, myArraySize);
 	}
 	
-//	ilib_finish();
-	CAPI_Finish(tid);
 	pthread_exit(NULL);
 	
 	return 0; 
@@ -355,6 +356,8 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	carbonInit();
+
 	// Declare threads and related variables
 	pthread_t threads[coreCount];
 	pthread_attr_t attr;
@@ -369,6 +372,8 @@ int main(int argc, char* argv[]) {
    for(unsigned int i=0; i < coreCount; i++) {
 		pthread_join(threads[i], NULL);         
 	}
+
+	carbonFinish();
 
    return 0;
 

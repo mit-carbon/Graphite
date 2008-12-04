@@ -388,8 +388,8 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_
 		
 		accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size); 
 #ifdef MMU_DEBUG	
-	ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - FINISHED(cache_hit) : REQUESTING ADDR: " << hex << ca_address;
-	debugPrint(the_core->getRank(), "MMU", ss.str());
+		ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - FINISHED(cache_hit) : REQUESTING ADDR: " << hex << ca_address;
+		debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
 		ReleaseLock(&mmu_lock);

@@ -2,7 +2,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
-#include "mcp_api.h"
+#include "user_api.h"
 #include <sstream>
 
 using namespace std;
@@ -46,11 +46,12 @@ int main(int argc, char* argv[]){ // main begins
 		exit(EXIT_FAILURE);
 	}
 
+	carbonInit();
+
 	// declare threads and related variables
 	pthread_t threads[coreCount];
 	pthread_attr_t attr;
 	
-	initMCP();
 #ifdef DEBUG
 	cout << "This is the function main()" << endl;
 	cout << "Initializing thread structures" << endl << endl;
@@ -74,7 +75,7 @@ int main(int argc, char* argv[]){ // main begins
 	cout << "End of execution" << endl << endl;
 #endif
 
-	quitMCP();
+	carbonFinish();
         
    return 0;
 } // main ends
@@ -116,7 +117,6 @@ void* thread_main(void *threadid)
 //		g_array[(i + tid*(SIZE/coreCount)) % SIZE] = g_array[((i + tid*(SIZE/coreCount) + (INT32) (SIZE/4)) % SIZE)];
 //	}
    
-	CAPI_Finish(tid);
 	pthread_exit(NULL);  
 }
 

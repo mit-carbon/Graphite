@@ -10,7 +10,7 @@ using namespace std;
 
 pthread_mutex_t write_lock;
 
-// #define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 pthread_mutex_t lock;
@@ -22,7 +22,7 @@ void* pong(void *threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
-    carbonInit();
+   carbonInit();
 
 	// Declare threads and related variables
 	pthread_t threads[2];
@@ -95,28 +95,28 @@ void* ping(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "ping sent to pong" << endl << endl;
+   cerr << "executing ping function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl;
    pthread_mutex_unlock(&lock);
 #endif
-
-
+ 
    CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &junk, sizeof(int));  
 
-   CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &junk, sizeof(int));  
+#ifdef DEBUG  
+   pthread_mutex_lock(&lock);
+   cerr << "ping sent to pong" << endl;
+   pthread_mutex_unlock(&lock);
+#endif
+   
+	
+	CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &junk, sizeof(int));  
 
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "ping received from pong" << endl << endl;
+   cerr << "ping received from pong" << endl;
    pthread_mutex_unlock(&lock);
 #endif
 
-
-#ifdef DEBUG  
-   pthread_mutex_lock(&lock);
-   cerr << "ping finished CAPI_Finish" << endl << endl;
-   pthread_mutex_unlock(&lock);
-#endif
 
    pthread_exit(NULL);  
    // return 0;
@@ -135,32 +135,32 @@ void* pong(void *threadid)
 
 	int junk;
 
-/*
+
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "executing pong function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl << endl;
+   cerr << "executing pong function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl;
    pthread_mutex_unlock(&lock);
 #endif
- */
+ 
    CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &junk, sizeof(int)); 
 
-/*
+
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cerr << "pong sent to ping" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
-*/
+
 
    CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &junk, sizeof(int));  
 
-/*
+
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cerr << "pong received from ping" << endl << endl;
    pthread_mutex_unlock(&lock);
 #endif
-*/
+
 
 	pthread_exit(NULL);  
    // return 0;

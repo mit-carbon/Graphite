@@ -110,7 +110,6 @@ void* ping(void *threadid)
 	
 	CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &junk, sizeof(int));  
 
-
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
    cerr << "ping received from pong" << endl;

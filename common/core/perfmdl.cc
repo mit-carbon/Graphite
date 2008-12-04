@@ -63,14 +63,16 @@ PerfModelIntervalStat* PerfModel::analyzeInterval(const string& parent_routine,
 }
 
 
-void PerfModel::run(PerfModelIntervalStat *interval_stats)
+void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
 {
    // NOTE: must function such that it can be called more than once per 
    // interval and still work
  
    UINT32 interval_cycle_count = 0;
 
-   interval_cycle_count += interval_stats->cycles_subtotal;
+   if ( firstCallInIntrvl )
+      interval_cycle_count += interval_stats->cycles_subtotal;
+
    interval_cycle_count += (interval_stats->branch_mispredict ? 10 : 0);
 
    // Note: dcache load miss penalty is already 
@@ -94,7 +96,9 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats)
    }
 
    cycle_count += interval_cycle_count;
-   microop_issue_count += interval_stats->microops_count;
+
+   if ( firstCallInIntrvl )
+      microop_issue_count += interval_stats->microops_count;
 
    // clear out values in case Run gets called again this interval
    interval_stats->reset();
@@ -105,10 +109,10 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats)
 
 // run method which accounts for load data dependency stalls
 void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads, 
-                    UINT32 numReads)
+                    UINT32 numReads, bool firstCallInIntrvl)
 {
 
-   run(interval_stats);
+   run(interval_stats, firstCallInIntrvl);
 
    UINT64 max = cycle_count;
    REG max_reg = LEVEL_BASE::REG_LAST;
@@ -142,9 +146,10 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
 }
 
 
-void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes, UINT32 numWrites)
+void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes, 
+                    UINT32 numWrites, bool firstCallInIntrvl)
 {
-   run(interval_stats);
+   run(interval_stats, firstCallInIntrvl);
 
    //interval_stats->dcache_load_miss_history.push_back( !dcache_load_hit );
    interval_stats->logDCacheLoadAccess(dcache_load_hit);

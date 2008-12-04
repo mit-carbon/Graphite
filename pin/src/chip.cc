@@ -187,30 +187,31 @@ CAPI_return_t chipPrint(string s)
 
 // performance model wrappers
 
-VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats)
+VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
 { 
    //int rank; 
    //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
-   g_chip->core[rank].perfModelRun(interval_stats); 
+   g_chip->core[rank].perfModelRun(interval_stats, firstCallInIntrvl); 
 }
 
 VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
-                  REG *reads, UINT32 num_reads)
+                  REG *reads, UINT32 num_reads, bool firstCallInIntrvl)
 { 
    //int rank;
    //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
-   g_chip->core[rank].perfModelRun(interval_stats, reads, num_reads); 
+   g_chip->core[rank].perfModelRun(interval_stats, reads, num_reads, firstCallInIntrvl); 
 }
 
 VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-                  REG *writes, UINT32 num_writes)
+                  REG *writes, UINT32 num_writes, bool firstCallInIntrvl)
 { 
    //int rank;
    //chipRank(&rank);
    assert(0 <= rank && rank < g_chip->num_modules);
-   g_chip->core[rank].perfModelRun(interval_stats, dcache_load_hit, writes, num_writes); 
+   g_chip->core[rank].perfModelRun(interval_stats, dcache_load_hit, writes, num_writes, 
+                                   firstCallInIntrvl); 
 }
 
 

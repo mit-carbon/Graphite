@@ -68,13 +68,13 @@ ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2);
 UINT32 log(UINT32);
 // performance model wrappers
 
-void perfModelRun(int rank, PerfModelIntervalStat *interval_stats);
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
 
 void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
-                  REG *reads, UINT32 num_reads);
+                  REG *reads, UINT32 num_reads, bool firstCallInIntrvl);
 
 void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-                  REG *writes, UINT32 num_writes);
+                  REG *writes, UINT32 num_writes, bool firstCallInIntrvl);
 
 PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                  const INS& start_ins, const INS& end_ins);
@@ -155,11 +155,11 @@ class Chip
 
       // performance modeling wrappers
  
-      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats);
+      friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
       friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
-                               REG *reads, UINT32 num_reads);
+                               REG *reads, UINT32 num_reads, bool firstCallInIntrvl);
       friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-                               REG *writes, UINT32 num_writes);
+                               REG *writes, UINT32 num_writes, bool firstCallInIntrvl);
       friend PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                               const INS& start_ins, 
                                                               const INS& end_ins);

@@ -171,40 +171,41 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
 				}
 			}
 		} else {
-//			cerr << "[" << rank << "] ins info is NULL" << endl;
+                        // cerr << "[" << rank << "] ins info is NULL" << endl;
 		}
-  }
+        }
 
 #endif
 
 	if(rank > -1)
-   {
+        {
 		// InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
 		// stringstream ss;
 		// ss << "OPCODE$ = " << LEVEL_CORE::OPCODE_StringShort(ins_info->opcode) << " (" << ins_info->opcode << ") ";
 		// debugPrint (rank, "PINSIM", ss.str());
 		
-//		cerr << " ----------------------------------" << endl;
-//		cerr << "  [" << rank << "] executing runModels " << endl;
-		
-     	assert( !do_network_modeling );
-     	assert( !do_bpred_modeling );
+        // cerr << " ----------------------------------" << endl;
+        // cerr << "  [" << rank << "] executing runModels " << endl;
 
    	// This must be consistent with the behavior of
    	// insertInstructionModelingCall.
 
    	// Trying to prevent using NULL stats. This happens when
    	// instrumenting portions of the main thread.
-  		bool skip_modeling = (rank < 0) ||
-     		((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
+        bool skip_modeling = (rank < 0) ||
+                             ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
    	if (skip_modeling)
      		return;
 
    	assert ( rank >= 0 && rank < g_chip->getNumModules() );
-
    	assert ( !do_network_modeling );
    	assert ( !do_bpred_modeling );
+
+        // flag passed to perfModelRun to prevent it from double-counting things on successive
+        // calls to perfModelRun
+        bool firstCallInIntvl = true;
+
 
    	// JME: think this was an error; want some other model on if icache modeling is on
    	//   assert( !(!do_icache_modeling && (do_network_modeling || 
@@ -216,160 +217,172 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
    	//                                do_dcache_read_modeling || do_dcache_write_modeling ||
    	//                                do_bpred_modeling || do_perf_modeling) );
 
-   	if ( do_icache_modeling )
-     	{
-      	for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
-         {
-	   		// first = PC, second = size
-	   		bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
-					   stats[rank]->inst_trace[i].second);
-	   		if ( do_perf_modeling ) {
-	     			perfModelLogICacheLoadAccess(rank, stats[rank], i_hit);
-	   		}
-         }
-     	}
+        if ( do_icache_modeling )
+        {
+           for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
+           {
+              // first = PC, second = size
+              bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
+                                              stats[rank]->inst_trace[i].second);
+              if ( do_perf_modeling ) 
+              {
+                 perfModelLogICacheLoadAccess(rank, stats[rank], i_hit);
+              }
+           }
+        }
 
-   	// this check must go before everything but the icache check
-   	assert( !check_scoreboard || do_perf_modeling );
-   	if ( check_scoreboard )
-     	{
-      	// it's not possible to delay the evaluation of the performance impact for these. 
-      	// get the cycle counter up to date then account for dependency stalls
-      	perfModelRun(rank, stats[rank], reads, num_reads); 
-     	}
+        // this check must go before everything but the icache check
+        assert( !check_scoreboard || do_perf_modeling );
 
-   	if ( do_dcache_read_modeling )
-    	{
-		 if (g_chip->aliasEnable) {
+        if ( check_scoreboard )
+        {
+           // it's not possible to delay the evaluation of the performance impact for these. 
+           // get the cycle counter up to date then account for dependency stalls
+           perfModelRun(rank, stats[rank], reads, num_reads, firstCallInIntvl); 
+           firstCallInIntvl = false;
+        }
 
-			if (g_chip->aliasMap.find(dcache_ld_addr) != g_chip->aliasMap.end()) {
-				dcache_ld_addr = g_chip->aliasMap[dcache_ld_addr];
+        if ( do_dcache_read_modeling )
+        {
+           if (g_chip->aliasEnable) 
+           {
+              if (g_chip->aliasMap.find(dcache_ld_addr) != g_chip->aliasMap.end()) 
+              {
+                 dcache_ld_addr = g_chip->aliasMap[dcache_ld_addr];
 
-				assert (dcache_ld_size == sizeof(UINT32));
-				char data_ld_buffer[dcache_ld_size];
+                 assert (dcache_ld_size == sizeof(UINT32));
+                 char data_ld_buffer[dcache_ld_size];
 
-				stringstream ss;
-				ss << "Doing read modelling for address: 0x" << hex << dcache_ld_addr;
-				debugPrint (rank, "PINSIM", ss.str());
-				ss.str("");
+                 stringstream ss;
+                 ss << "Doing read modelling for address: 0x" << hex << dcache_ld_addr;
+                 debugPrint (rank, "PINSIM", ss.str());
+                 ss.str("");
 
-				dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+                 dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 
-				ss << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec;
-				debugPrint (rank, "PINSIM", ss.str());
+                 ss << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec;
+                 debugPrint (rank, "PINSIM", ss.str());
 
-				assert (is_dual_read == false);
-			}
-			else {
-				// Discard all other read requests without any modelling
-			}
-		 }
+                 assert (is_dual_read == false);
+              }
+              else {
+                 // Discard all other read requests without any modelling
+              }
+           }
 
-		 else {
+           else {
 
-        	// FIXME: This should actually be a UINT32 which tells how many read misses occured
+              // FIXME: This should actually be a UINT32 which tells how many read misses occured
 		
-			char data_ld_buffer[dcache_ld_size];
-			//TODO HARSHAD sharedmemory will fill ld_buffer
-			bool d_hit = dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
-			// bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+              char data_ld_buffer[dcache_ld_size];
+              //TODO HARSHAD sharedmemory will fill ld_buffer
+              bool d_hit = dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+              // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
        	
-			if ( do_perf_modeling ) {
-        		perfModelRun(rank, stats[rank], d_hit, writes, num_writes);
-     		}
+              if ( do_perf_modeling ) {
+                 perfModelRun(rank, stats[rank], d_hit, writes, num_writes, firstCallInIntvl);
+                 firstCallInIntvl = false;
+              }
 
-     		if ( is_dual_read ) {
+              if ( is_dual_read ) 
+              {
+                 char data_ld_buffer_2[dcache_ld_size];
+                 //TODO HARSHAD sharedmemory will fill ld_buffer
+                 bool d_hit2 = dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+                 // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+                 if ( do_perf_modeling ) {
+                    perfModelRun(rank, stats[rank], d_hit2, writes, num_writes, firstCallInIntvl);
+                    firstCallInIntvl = false;
+                 }
+              }
 
-				char data_ld_buffer_2[dcache_ld_size];
-				//TODO HARSHAD sharedmemory will fill ld_buffer
-				bool d_hit2 = dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
-        		// bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-        		if ( do_perf_modeling ) {
-           		perfModelRun(rank, stats[rank], d_hit2, writes, num_writes);
-     			}
-   		}
-
-	 		// cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
-	 	 }
+              // cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
+           }
      
-		} 
-   	else 
-   	{
-   		assert(dcache_ld_addr == (ADDRINT) NULL);
-   		assert(dcache_ld_addr2 == (ADDRINT) NULL);
-   		assert(dcache_ld_size == 0);
-		}
+        } 
+        else 
+        {
+           assert(dcache_ld_addr == (ADDRINT) NULL);
+           assert(dcache_ld_addr2 == (ADDRINT) NULL);
+           assert(dcache_ld_size == 0);
+        }
 
-   	if ( do_dcache_write_modeling )
-   	{
-		 if (g_chip->aliasEnable) {
+        if ( do_dcache_write_modeling )
+        {
+           if (g_chip->aliasEnable) 
+           {
+              if (g_chip->aliasMap.find(dcache_st_addr) != g_chip->aliasMap.end()) 
+              {
+                 dcache_st_addr = g_chip->aliasMap[dcache_st_addr];
 
-			if (g_chip->aliasMap.find(dcache_st_addr) != g_chip->aliasMap.end()) {
-				dcache_st_addr = g_chip->aliasMap[dcache_st_addr];
-
-				assert (dcache_st_size == sizeof(UINT32));
-				char data_st_buffer[dcache_st_size];
+                 assert (dcache_st_size == sizeof(UINT32));
+                 char data_st_buffer[dcache_st_size];
 				
+                 if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
+                    memset (data_st_buffer, 'C', sizeof(UINT32));
+                 }
+                 else {
+                    memset (data_st_buffer, 'A', sizeof(UINT32));
+                 }
 				
-				/*
-				if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
-					memset (data_st_buffer, 'C', sizeof(UINT32));
-				}
-				else {
-					memset (data_st_buffer, 'A', sizeof(UINT32));
-				}
-				*/
-			
+                 /*
+                 if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
+                    memset (data_st_buffer, 'C', sizeof(UINT32));
+                 }
+                 else {
+                    memset (data_st_buffer, 'A', sizeof(UINT32));
+                 }
+                 */
 				
-				memset (data_st_buffer, 'z', sizeof(UINT32));
+                 memset (data_st_buffer, 'z', sizeof(UINT32));
 
-				stringstream ss;
-				ss << "Doing write modelling for address: 0x" << hex << dcache_st_addr << dec;
-				debugPrint (rank, "PINSIM", ss.str());
+                 stringstream ss;
+                 ss << "Doing write modelling for address: 0x" << hex << dcache_st_addr << dec;
+                 debugPrint (rank, "PINSIM", ss.str());
 				
-				ss.str("");
-				ss << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec;
-				debugPrint (rank, "PINSIM", ss.str());
+                 ss.str("");
+                 ss << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec;
+                 debugPrint (rank, "PINSIM", ss.str());
 
-				dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+                 dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
 
-			}
-			else {
-				// Discard all other write requests without any modelling
-			}
+              }
+              else 
+              {
+                 // Discard all other write requests without any modelling
+              }
 
-		 }
-		 
-		 else {
+           }		 
+	   else 
+           {
+              // FIXME: This should actually be a UINT32 which tells how many write misses occurred
+              char data_st_buffer[dcache_ld_size]; 
 
-       
-			// FIXME: This should actually be a UINT32 which tells how many write misses occurred
-			char data_st_buffer[dcache_ld_size]; 
+              //TODO Harshad: st buffer needs to be written
+              //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
+              bool d_hit = dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+              if ( do_perf_modeling )
+              { 
+                 perfModelLogDCacheStoreAccess(rank, stats[rank], d_hit); 
+              }
+                 //cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
+           }
+        } 
+        else 
+        {
+           assert(dcache_st_addr == (ADDRINT) NULL);
+           assert(dcache_st_size == 0);
+        }
 
-			//TODO Harshad: st buffer needs to be written
-			//TODO Harshad: shared memory expects all data_buffers to be pre-allocated
-			bool d_hit = dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
-   		if ( do_perf_modeling )
-     		{ 
-				perfModelLogDCacheStoreAccess(rank, stats[rank], d_hit); 
-     		}
-//			cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
-		 }
-   	} 
-   	else 
-   	{
-   		assert(dcache_st_addr == (ADDRINT) NULL);
-   		assert(dcache_st_size == 0);
-		}
+        // this should probably go last
+        if ( do_perf_modeling )
+        {
+           perfModelRun(rank, stats[rank], firstCallInIntvl);
+           firstCallInIntvl = false;
+        }
 
-   	// this should probably go last
-   	if ( do_perf_modeling )
-   	{
-   		perfModelRun(rank, stats[rank]);
-   	}
-
-		// cerr << "  [" << rank << "] finished runModels " << endl;
-		// cerr << " ----------------------------------" << endl;
+        // cerr << "  [" << rank << "] finished runModels " << endl;
+        // cerr << " ----------------------------------" << endl;
 
 	}
 

@@ -51,6 +51,7 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    {
       case SYS_open:
       {
+         // Filter on the input
          char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          if(!strcmp(path,"./common/tests/file_io/input"))
          {
@@ -61,23 +62,15 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       }
       case SYS_read:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x08 )
-         {
-            called_enter = true;
-            ret_val = marshallReadCall(ctx, syscall_standard);
-         }
+         called_enter = true;
+         ret_val = marshallReadCall(ctx, syscall_standard);
          break;
       }
 
       case SYS_write:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x08 )
-         {
-            called_enter = true;
-            ret_val = marshallWriteCall(ctx, syscall_standard);
-         }         
+         called_enter = true;
+         ret_val = marshallWriteCall(ctx, syscall_standard);
          break;
       }         
       case SYS_close:
@@ -193,7 +186,7 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
 
    // cerr << "read(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
       
-   send_buff << fd << count;
+   send_buff << fd << count << (int)buf;
    the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());   
    
    //cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
@@ -251,8 +244,13 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    size_t count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
 
    // cerr << "write(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
-      
-   send_buff << fd << count << make_pair(buf, count);
+   
+   // Previously we would pass the actual data, now we pass the
+   // address and the syscall server will pull the data from the
+   // shared memory. --cg3
+   //send_buff << fd << count << make_pair(buf, count);
+
+   send_buff << fd << count << (int)buf;
    the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;

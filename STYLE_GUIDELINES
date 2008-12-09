@@ -58,7 +58,8 @@ methods
    2. no underscores
    3. trivial methods (accessors, setters) are placed in the .h
       file so they can be inlined. functions which are more than
-      10 lines of code should be placed in the .cc and not inlined.
+      10 lines of code should be placed in the .cc file and not
+      inlined.
    4. list inputs first, then outputs
 
 fields
@@ -89,7 +90,7 @@ fields
       It also makes it easy to remember what names were assigned
       to a given field.
    5. group elements of equal size together.
-   6. group elements that are used mostly frequently towards the
+   6. group elements that are used most frequently towards the
       beginning of the structure.
 
 parameters and local variables
@@ -116,13 +117,13 @@ global variables
 
 typedefs and types
    1. typedefs are the same as classes, i.e., UpperCamelCase
-   1. use "SInt32", "UInt32", "SInt64", "UInt64", "SInt8", "UInt8"
+   2. use "SInt32", "UInt32", "SInt64", "UInt64", "SInt8", "UInt8"
       "SInt16", "UInt16" instead of chars, ints or longs
-   2. use "int" only for variables which you never store into memory,
+   3. use "int" only for variables which you never store into memory,
       and which are never intermingled (e.g., added) with elements of
       the types in (2)
 
-acronyms in names:
+acronyms in names
    1. when an acronym is used in a name, all of the letters in the
       acronym should have case consistent with the first letter of
       the acronym. For instance if "spr" is an acronym:
@@ -145,7 +146,7 @@ include files
 error conditions
    1. (optional but suggested) since this is not user level software,
       errors should be checked but not recovered from unless it is
-      trivial.  Use the "verify" macro (from "Error.h"):
+      trivial.  use the "verify" macro (from "Error.h"):
 
       verify (addr < dmem_size, "write past end of memory");
 
@@ -165,7 +166,7 @@ error conditions
               "write past end of mem: addr = %x, dmemSize = %x",
               addr, dmem_size, 0);
 
-   2. Avoid sentinels. Return a boolean to indicate success or
+   2. avoid sentinels.  return a boolean to indicate success or
       failure (presence or absence) instead.
 
 comments
@@ -175,7 +176,7 @@ comments
 
       they are annoying to line up, make long lines, and are a
       hassle to convert to multi-line comments when they get too
-      long.  The two places where side comments can be used are
+      long.  the two places where side comments can be used are
       variable declarations and reminders on block closings, e.g.,
         #define BUF_CROSSBAR_H
         <text>
@@ -202,11 +203,11 @@ comments
       contains sections commented out using "/*" and "*/"
 
 formatting
-   1. indent using spaces instead of tabs.  Different people may have
+   1. indent using spaces instead of tabs.  different people may have
       their tab-stops set differently leading to messes when tabs and
-      spaces are mixed.  Configured your editor to insert multiple
+      spaces are mixed.  configure your editor to insert multiple
       spaces instead of tabs when you hit the "tab" key.
    2. use 3 spaces for each new level of indentation.
    3. try to keep lines less than 80 characters
     3b. no lines longer than 120 characters under any circumstances
-        (shorten your names or breakup your strings)
+        (shorten your names or break up your strings)

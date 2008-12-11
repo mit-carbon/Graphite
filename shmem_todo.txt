@@ -1,0 +1,70 @@
+Chris Celio
+Below is list of stuff to do for shared memory data handling.
+16 Oct 2008
+
+------------------
+
+List for Cache API
+
+
+== With Sideeffects ==
+
+"runDCacheModel" (check hit)
+
+dc->accessSingleLine(access_type)
+
+
+== Without Side-effects ==
+
+getCacheTag
+
+getCacheLine
+
+fillCacheLine
+
+------------------
+------------------
+
+TODO:
+1. write psuedo-code in MMU to deal with data handling.
+
+2. re-write core.cc dcacheRunModels(access_type) to deal with multi-line and partial-line data handling.
+
+3. classify or deal with payloads (b/c we need to copy data_buffer). dynamically change network packet size, copy data_buffer to payload.
+	Some Ideas:
+	mmuCreatePayloadBuffer() (we need to write data to a payload buffer to give network code)
+	mmuExtractPayloadBuffer()
+
+
+4. user-friendly-fy the cache.
+- invalidateCacheLine
+- copyCacheLine
+
+5. Harshad? 
+-> have pin give us write data. 
+-> have us give pin read data.
+
+
+6. DramDir need unexpected WB message
+	if eviction occurs, send dram an writebackPayload
+	(does core need to receive an Ack message?).
+
+6a. DramDir needs to hold data.
+
+8. User program is not loaded into dram! So global variables, etc., are completely unknown.
+	(need dram server?).
+
+Situation.
+	write-miss.  request addr from dram_directory.
+	dram_directory sends update payload.
+	eviction occurs. must send writeback_payload to dram_directory.
+
+
+############
+Move these functions to 'ocache.(h/cc)'
+1) getCacheLineInfo
+2) SetData
+3) getData
+4) setLineInfo
+5) CacheTag -> CacheLineInfo
+6) getCState(), setCState()

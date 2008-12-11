@@ -138,7 +138,9 @@ class PerfModelIntervalStat {
 
       VOID reset()
       {
-         // resets everything but inst_trace and parent
+         // resets everything but inst_trace, parent, 
+         // microops_count and cyc_subtotal
+         // (all the dynamic stuff)
 
          // changed because lists were too memory intensive
          // dcache_load_miss_history.resize(0);
@@ -149,9 +151,6 @@ class PerfModelIntervalStat {
          dcache_store_miss_history_index = 0;
 
          branch_mispredict = false; 
-         //FIXME: why were these getting reset to zero?
-//         microops_count = 0;
-//         cycles_subtotal = 0;
       }
 };
 
@@ -185,6 +184,7 @@ class PerfModel {
 
       void setCycleCount(UINT64 new_cycle_count) { cycle_count = new_cycle_count; }
       void updateCycleCount(UINT64 new_cycle_count) { cycle_count = max(cycle_count, new_cycle_count); }
+      void addToCycleCount(UINT64 cycles) { cycle_count += cycles; } 
       UINT64 getCycleCount() { return cycle_count; }
       UINT64 getMicroOpCount() { return microop_issue_count; }
 
@@ -225,14 +225,14 @@ class PerfModel {
       // instructions.
 
       // the vanilla run method.
-      VOID run(PerfModelIntervalStat *interval_stats);
+      VOID run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
 
       // run method which accounts for load data dependency stalls
-      VOID run(PerfModelIntervalStat *interval_stats, REG *reads, UINT32 num_reads);
+      VOID run(PerfModelIntervalStat *interval_stats, REG *reads, UINT32 num_reads, bool firstCallInIntrvl);
 
       // run method which registers destination registers in the scoreboard
       VOID run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-               REG *writes, UINT32 num_writes);
+               REG *writes, UINT32 num_writes, bool firstCallInIntrvl);
 
 
       // this method is called at the end of simulation

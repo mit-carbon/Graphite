@@ -1,13 +1,16 @@
 #include "smtransport.h"
+#include "debug.h"
 #include <cassert>
 
 
 Transport::PTQueue* Transport::pt_queue = NULL;
 Transport::Futex* Transport::pt_futx = NULL;
 
+/*
 Transport::MCPQueue* Transport::mcp_queue = NULL;
 Transport::Futex* Transport::mcp_futx = NULL;
 UInt32 Transport::mcp_idx = 0;
+ */
 
 UINT32 Transport::s_pt_num_mod = 0;
 
@@ -17,9 +20,13 @@ void Transport::ptInitQueue(int num_mod)
    assert(num_mod > 0);
    pt_queue = new PTQueue[num_mod];
    pt_futx = new Futex[num_mod];
+
+	/*
    mcp_queue = new MCPQueue[num_mod+1];
    mcp_futx = new Futex[num_mod+1];
    mcp_idx = (UInt32)num_mod;
+	 */
+
    s_pt_num_mod = (UINT32)num_mod;
 
    for(i = 0; i < num_mod; i++)
@@ -30,15 +37,19 @@ void Transport::ptInitQueue(int num_mod)
 
       // Initialize the queues that the MCP will use to send messages
       //  back to the modules
+		/*
       InitLock(&(mcp_queue[i].q_lock));
       mcp_futx[i].futx = 1;
       InitLock(&(mcp_futx[i].futx_lock));
+		 */
    }
 
-   // Initialize the extra queue for the MCP 
+   // Initialize the extra queue for the MCP
+	/*
    InitLock(&(mcp_queue[mcp_idx].q_lock));
    mcp_futx[mcp_idx].futx = 1;
    InitLock(&(mcp_futx[mcp_idx].futx_lock));
+	 */
    
 }
 
@@ -49,7 +60,7 @@ int Transport::ptInit(int tid, int num_mod)
    assert((UINT32)pt_tid < s_pt_num_mod);
    assert((UINT32)pt_num_mod == s_pt_num_mod);
    InitLock(&(pt_futx[tid].futx_lock));
-   i_am_the_MCP = false;
+   // i_am_the_MCP = false;
    return 0;
 }
 
@@ -74,41 +85,51 @@ int Transport::ptSend(int receiver, char *buffer, int size)
 }
 
 char* Transport::ptRecv()
-{
+{     
    char *ptr;
    assert(0 <= pt_tid && pt_tid < pt_num_mod);
+
+//		cerr << "[" << pt_tid << "] TRANSPORT: before WHILE LOOP, inside ptRecv" << endl;
    while(1)
    {
       GetLock(&(pt_futx[pt_tid].futx_lock), 1);
+//   	cerr << "[" << pt_tid << "] TRANSPORT: before futex, gotten lock 1" << endl;
 
       if(pt_queue[pt_tid].pt_queue.empty())
          pt_futx[pt_tid].futx = 0;
 
       ReleaseLock(&(pt_futx[pt_tid].futx_lock));
+   	debugPrint (pt_tid, "TRANSPORT", "before SYSCALL futex");
+
       syscall(SYS_futex, (void*)&(pt_futx[pt_tid].futx), FUTEX_WAIT, 0, NULL, NULL, 1);
+   	debugPrint (pt_tid, "TRANSPORT", "after SYSCALL futex");
       if(!pt_queue[pt_tid].pt_queue.empty())
          break;
     }
+                                                           
+	// cerr << "[" << pt_tid << "] TRANSPORT: after futex, getting lock " << endl;
+   GetLock(&(pt_queue[pt_tid].pt_q_lock), 1);
 
-    GetLock(&(pt_queue[pt_tid].pt_q_lock), 1);
 
-    // HK
-    // FIXME: Should this be pt_queue.top()?
-    ptr = pt_queue[pt_tid].pt_queue.front();
-    pt_queue[pt_tid].pt_queue.pop();
-    ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));
+   // FIXME: Should this be pt_queue.top()?
+	ptr = pt_queue[pt_tid].pt_queue.front();
+   pt_queue[pt_tid].pt_queue.pop();
+   ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));                               
+	//	cerr << "[" << pt_tid << "] TRANSPORT: after futex, releasing lock , RETURNING from ptRecv" << endl;
 
     return ptr;
 }
 
 bool Transport::ptQuery()
 {
+	//original code
    assert(0 <= pt_tid && pt_tid < pt_num_mod);
    return !(pt_queue[pt_tid].pt_queue.empty());
 }
 
 //********** Begin MCP communication functions **********//
 
+/*
 void Transport::ptSendToMCP(UInt8* buffer, UInt32 num_bytes)
 {
    //assert(!i_am_the_MCP);
@@ -179,3 +200,5 @@ UInt8* Transport::ptMCPRecvHelper(UInt32 my_idx, UInt32* num_bytes)
 
    return ptr;
 }
+
+*/

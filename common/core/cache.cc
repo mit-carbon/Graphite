@@ -9,8 +9,8 @@ CacheBase::CacheBase(std::string name, UINT32 size, UINT32 line_bytes, UINT32 as
    line_shift(floorLog2(line_bytes)), set_index_mask((size / (assoc * line_bytes)) - 1)
 {
 
-   ASSERTX(isPower2(line_size));
-   ASSERTX(isPower2(set_index_mask + 1));
+   assert(isPower2(line_size));
+   assert(isPower2(set_index_mask + 1));
 
    for (UINT32 access_type = 0; access_type < k_ACCESS_TYPE_NUM; access_type++)
    {
@@ -21,7 +21,9 @@ CacheBase::CacheBase(std::string name, UINT32 size, UINT32 line_bytes, UINT32 as
 
 
 // Stats output method
-
+#ifndef PERFORMING_CACHE_TEST
+// FIXME: the above is a hack to fix a compilation error. I guess ljstr, fltstr are in a Pin library
+// We should remove the dependency on Pin
 string CacheBase::statsLong(string prefix, CacheType cache_type) const
 {
    const UINT32 header_width = 19;
@@ -74,3 +76,4 @@ string CacheBase::statsLong(string prefix, CacheType cache_type) const
    return out;
 }
 
+#endif

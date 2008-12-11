@@ -32,10 +32,33 @@
 #include "perfmdl.h"
 #include "knobs.h"
 #include "mcp.h"
+// FIXME: Hack: Please remove me later
+#include "debug.h"
+
+// #define INSTRUMENT_ALLOWED_FUNCTIONS
+
+//#define PRINTOUT_FLAGS
 
 Chip *g_chip = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
+PIN_LOCK print_lock;
+
+//TODO only here for debugging ins in runModel
+
+struct InsInfo {
+	ADDRINT ip_address;
+	OPCODE opcode;
+	bool is_sys_call;
+	bool is_sys_enter;
+	SYSCALL_STANDARD sys_call_std;
+	
+	bool next_is_valid;
+	OPCODE next_opcode;
+	bool next_is_sys_call;
+	bool next_is_sys_enter;
+	SYSCALL_STANDARD next_sys_call_std;
+};
 
 //FIXME
 //PIN_LOCK g_lock1;
@@ -54,121 +77,334 @@ INT32 usage()
 /* ===================================================================== */
 
 
-VOID runModels(ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
-               ADDRINT dcache_st_addr, UINT32 dcache_st_size,
-               PerfModelIntervalStat* *stats,
-               REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
-               bool do_network_modeling, bool do_icache_modeling, 
-               bool do_dcache_read_modeling, bool is_dual_read, 
-               bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
-               bool check_scoreboard)
+VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
+               	ADDRINT dcache_st_addr, UINT32 dcache_st_size,
+               	PerfModelIntervalStat* *stats,
+               	REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
+               	bool do_network_modeling, bool do_icache_modeling, 
+               	bool do_dcache_read_modeling, bool is_dual_read, 
+               	bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
+//               bool check_scoreboard)
+               	bool check_scoreboard,
+						VOID* ins_info_array)
 {
-   //cout << "parent = " << stats->parent_routine << endl;
+   //cerr << "parent = " << stats->parent_routine << endl;
  
    int rank;
    chipRank(&rank);
 
-   // This must be consistent with the behavior of
-   // insertInstructionModelingCall.
+#ifdef PRINTOUT_FLAGS
+	if(rank == 0) {
 
-   // Trying to prevent using NULL stats. This happens when
-   // instrumenting portions of the main thread.
-   bool skip_modeling = (rank < 0) ||
-     ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
+		cerr << " ----------------------------------" << endl;
+		cerr <<  " CORE#0 START  running runModels!" << endl;
+	
+	   INT32 col;
+		INT32 ln;
+		const CHAR* file;
+		if( ins_info_array!=NULL) {
+			assert( ins_info_array != NULL );
+			assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+			
+			InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
 
-   if (skip_modeling)
-     return;
+			PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
+			if ( file != NULL )
+				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+			else
+				cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+		} else {
+			cerr << "[" << rank << "] ins info is NULL" << endl;
+		}
+	}
+	
+	if(rank == 1) {
+		cerr << " ----------------------------------" << endl;
+		cerr << " CORE#1 START running runModels!" << endl;
+		if(ins_info_array != NULL) {
+			assert( ins_info_array != NULL );
+			assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+			
+			InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
 
-   assert( rank >= 0 && rank < g_chip->getNumModules() );
+			cerr << "Is ins_info NULL? : " << (ins_info == NULL) << endl;
+			INT32 col;
+			INT32 ln;
+			const CHAR* file;
+			assert( ins_info != NULL );
+			if(ins_info != NULL) {
+				PIN_FindColumnLineFileByAddress( ins_info->ip_address , &col, &ln, &file);
+				if( file != NULL )
+					cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (" << file << ") Line: " << dec << ln << " , Col: " << dec << col << endl;
+				else
+					cerr << " Instruction Pointer : 0x" << hex << ins_info->ip_address << "  , File (NULL) Line: " << dec << ln << " , Col: " << dec << col << endl;
+			}
+		} else {
+			cerr << "[" << rank << "] ins info is NULL" << endl;
+		}
+	}
 
-   assert( !do_network_modeling );
-   assert( !do_bpred_modeling );
+	if(rank > -1) 
+	{
 
-   // JME: think this was an error; want some other model on if icache modeling is on
-   //   assert( !(!do_icache_modeling && (do_network_modeling || 
-   //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
-   //                                  do_bpred_modeling || do_perf_modeling)) );
+		if(ins_info_array != NULL) {
+			assert( ins_info_array != NULL );
+			assert( ((InsInfo**) ins_info_array)[rank] != NULL );
+			
+			InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
 
-   // no longer needed since we guarantee icache model will run at basic block boundary
-   //assert( !do_icache_modeling || (do_network_modeling || 
-   //                                do_dcache_read_modeling || do_dcache_write_modeling ||
-   //                                do_bpred_modeling || do_perf_modeling) );
+			assert( ins_info != NULL );
+			if( true || ins_info->opcode == 608 || ins_info->next_opcode == 608) 
+			{
+				cerr << "[" << rank << "] PINSIM -: OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort( ins_info->opcode) << " (" << ins_info->opcode << ") " << endl;
+				cerr << "[" << rank << "] PINSIM -: IS SYSCALL  = " << ins_info->is_sys_call << endl;
+				cerr << "[" << rank << "] PINSIM -: SYSCALL STD = " << ins_info->sys_call_std << endl;
+				cerr << "[" << rank << "] PINSIM -: IS SYSENTER = " << ins_info->is_sys_enter << endl;
+				cerr << "----------" << endl;
+				
+				if(ins_info->next_is_valid)
+				{
+					cerr << "[" << rank << "] PINSIM -: NEXT_OPCODE$     = " << LEVEL_CORE::OPCODE_StringShort(ins_info->next_opcode) << " (" << ins_info->next_opcode << ") " << endl;
+					cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSCALL  = " << ins_info->next_is_sys_call << endl;
+					cerr << "[" << rank << "] PINSIM -: NEXT_SYSCALL STD = " << ins_info->next_sys_call_std << endl;
+					cerr << "[" << rank << "] PINSIM -: NEXT_IS SYSENTER = " << ins_info->next_is_sys_enter << endl;
+				}
+			}
+		} else {
+                        // cerr << "[" << rank << "] ins info is NULL" << endl;
+		}
+        }
 
-   if ( do_icache_modeling )
-     {
-       for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
-         {
-	   // first = PC, second = size
-	   bool i_hit = icacheRunLoadModel(rank,
-                                           stats[rank]->inst_trace[i].first,
-					   stats[rank]->inst_trace[i].second);
-	   if ( do_perf_modeling ) {
-	     perfModelLogICacheLoadAccess(rank, stats[rank], i_hit);
-	   }
-         }
-     }
+#endif
 
-   // this check must go before everything but the icache check
-   assert( !check_scoreboard || do_perf_modeling );
-   if ( check_scoreboard )
-     {
-       // it's not possible to delay the evaluation of the performance impact for these. 
-       // get the cycle counter up to date then account for dependency stalls
-       perfModelRun(rank, stats[rank], reads, num_reads); 
-     }
+	if(rank > -1)
+        {
+		// InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+		// stringstream ss;
+		// ss << "OPCODE$ = " << LEVEL_CORE::OPCODE_StringShort(ins_info->opcode) << " (" << ins_info->opcode << ") ";
+		// debugPrint (rank, "PINSIM", ss.str());
+		
+        // cerr << " ----------------------------------" << endl;
+        // cerr << "  [" << rank << "] executing runModels " << endl;
 
-   if ( do_dcache_read_modeling )
-     {
-       // it's not possible to delay the evaluation of the performance impact for these. 
-       // get cycle count up to date so time stamp for when miss is ready is correct
+   	// This must be consistent with the behavior of
+   	// insertInstructionModelingCall.
 
-       bool d_hit = dcacheRunLoadModel(rank, dcache_ld_addr, dcache_ld_size);
-       if ( do_perf_modeling ) {
-          perfModelRun(rank, stats[rank], d_hit, writes, num_writes);
-       }
+   	// Trying to prevent using NULL stats. This happens when
+   	// instrumenting portions of the main thread.
+        bool skip_modeling = (rank < 0) ||
+                             ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
-       if ( is_dual_read ) {
-	   bool d_hit2 = dcacheRunLoadModel(rank, dcache_ld_addr2, dcache_ld_size);
-           if ( do_perf_modeling ) {
-	      perfModelRun(rank, stats[rank], d_hit2, writes, num_writes);
+   	if (skip_modeling)
+     		return;
+
+   	assert ( rank >= 0 && rank < g_chip->getNumModules() );
+   	assert ( !do_network_modeling );
+   	assert ( !do_bpred_modeling );
+
+        // flag passed to perfModelRun to prevent it from double-counting things on successive
+        // calls to perfModelRun
+        bool firstCallInIntvl = true;
+
+
+   	// JME: think this was an error; want some other model on if icache modeling is on
+   	//   assert( !(!do_icache_modeling && (do_network_modeling || 
+   	//                                  do_dcache_read_modeling || do_dcache_write_modeling ||
+   	//                                  do_bpred_modeling || do_perf_modeling)) );
+
+   	// no longer needed since we guarantee icache model will run at basic block boundary
+   	// assert( !do_icache_modeling || (do_network_modeling || 
+   	//                                do_dcache_read_modeling || do_dcache_write_modeling ||
+   	//                                do_bpred_modeling || do_perf_modeling) );
+
+        if ( do_icache_modeling )
+        {
+           for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
+           {
+              // first = PC, second = size
+              bool i_hit = icacheRunLoadModel(stats[rank]->inst_trace[i].first,
+                                              stats[rank]->inst_trace[i].second);
+              if ( do_perf_modeling ) 
+              {
+                 perfModelLogICacheLoadAccess(rank, stats[rank], i_hit);
+              }
            }
-       }
+        }
 
-     } 
-   else 
-     {
-       assert(dcache_ld_addr == (ADDRINT) NULL);
-       assert(dcache_ld_addr2 == (ADDRINT) NULL);
-       assert(dcache_ld_size == 0);
-     }
+        // this check must go before everything but the icache check
+        assert( !check_scoreboard || do_perf_modeling );
 
-   if ( do_dcache_write_modeling )
-     {
-       bool d_hit = dcacheRunStoreModel(rank, dcache_st_addr, dcache_st_size);
-       if ( do_perf_modeling )
-         { 
-	   perfModelLogDCacheStoreAccess(rank, stats[rank], d_hit); 
-         }
-     } 
-   else 
-     {
-       assert(dcache_st_addr == (ADDRINT) NULL);
-       assert(dcache_st_size == 0);
-     }
+        if ( check_scoreboard )
+        {
+           // it's not possible to delay the evaluation of the performance impact for these. 
+           // get the cycle counter up to date then account for dependency stalls
+           perfModelRun(rank, stats[rank], reads, num_reads, firstCallInIntvl); 
+           firstCallInIntvl = false;
+        }
 
-   // this should probably go last
-   if ( do_perf_modeling )
-     {
-       perfModelRun(rank, stats[rank]);
-     }
+        if ( do_dcache_read_modeling )
+        {
+           if (g_chip->aliasEnable) 
+           {
+              if (g_chip->aliasMap.find(dcache_ld_addr) != g_chip->aliasMap.end()) 
+              {
+                 dcache_ld_addr = g_chip->aliasMap[dcache_ld_addr];
 
-}
+                 assert (dcache_ld_size == sizeof(UINT32));
+                 char data_ld_buffer[dcache_ld_size];
+
+                 stringstream ss;
+                 ss << "Doing read modelling for address: 0x" << hex << dcache_ld_addr;
+                 debugPrint (rank, "PINSIM", ss.str());
+                 ss.str("");
+
+                 dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+
+                 ss << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec;
+                 debugPrint (rank, "PINSIM", ss.str());
+
+                 assert (is_dual_read == false);
+              }
+              else {
+                 // Discard all other read requests without any modelling
+              }
+           }
+
+           else {
+
+              // FIXME: This should actually be a UINT32 which tells how many read misses occured
+		
+              char data_ld_buffer[dcache_ld_size];
+              //TODO HARSHAD sharedmemory will fill ld_buffer
+              bool d_hit = dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+              // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+       	
+              if ( do_perf_modeling ) {
+                 perfModelRun(rank, stats[rank], d_hit, writes, num_writes, firstCallInIntvl);
+                 firstCallInIntvl = false;
+              }
+
+              if ( is_dual_read ) 
+              {
+                 char data_ld_buffer_2[dcache_ld_size];
+                 //TODO HARSHAD sharedmemory will fill ld_buffer
+                 bool d_hit2 = dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+                 // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
+                 if ( do_perf_modeling ) {
+                    perfModelRun(rank, stats[rank], d_hit2, writes, num_writes, firstCallInIntvl);
+                    firstCallInIntvl = false;
+                 }
+              }
+
+              // cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
+           }
+     
+        } 
+        else 
+        {
+           assert(dcache_ld_addr == (ADDRINT) NULL);
+           assert(dcache_ld_addr2 == (ADDRINT) NULL);
+           assert(dcache_ld_size == 0);
+        }
+
+        if ( do_dcache_write_modeling )
+        {
+           if (g_chip->aliasEnable) 
+           {
+              if (g_chip->aliasMap.find(dcache_st_addr) != g_chip->aliasMap.end()) 
+              {
+                 dcache_st_addr = g_chip->aliasMap[dcache_st_addr];
+
+                 assert (dcache_st_size == sizeof(UINT32));
+                 char data_st_buffer[dcache_st_size];
+				
+                 if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
+                    memset (data_st_buffer, 'C', sizeof(UINT32));
+                 }
+                 else {
+                    memset (data_st_buffer, 'A', sizeof(UINT32));
+                 }
+				
+                 /*
+                 if ((dcache_st_addr >> g_knob_ahl_param) & 0x1) {
+                    memset (data_st_buffer, 'C', sizeof(UINT32));
+                 }
+                 else {
+                    memset (data_st_buffer, 'A', sizeof(UINT32));
+                 }
+                 */
+				
+                 memset (data_st_buffer, 'z', sizeof(UINT32));
+
+                 stringstream ss;
+                 ss << "Doing write modelling for address: 0x" << hex << dcache_st_addr << dec;
+                 debugPrint (rank, "PINSIM", ss.str());
+				
+                 ss.str("");
+                 ss << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec;
+                 debugPrint (rank, "PINSIM", ss.str());
+
+                 dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+
+              }
+              else 
+              {
+                 // Discard all other write requests without any modelling
+              }
+
+           }		 
+	   else 
+           {
+              // FIXME: This should actually be a UINT32 which tells how many write misses occurred
+              char data_st_buffer[dcache_ld_size]; 
+
+              //TODO Harshad: st buffer needs to be written
+              //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
+              bool d_hit = dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+              if ( do_perf_modeling )
+              { 
+                 perfModelLogDCacheStoreAccess(rank, stats[rank], d_hit); 
+              }
+                 //cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
+           }
+        } 
+        else 
+        {
+           assert(dcache_st_addr == (ADDRINT) NULL);
+           assert(dcache_st_size == 0);
+        }
+
+        // this should probably go last
+        if ( do_perf_modeling )
+        {
+           perfModelRun(rank, stats[rank], firstCallInIntvl);
+           firstCallInIntvl = false;
+        }
+
+        // cerr << "  [" << rank << "] finished runModels " << endl;
+        // cerr << " ----------------------------------" << endl;
+
+	}
+
+#ifdef PRINTOUT_FLAGS
+	if(rank == 0) {
+		cerr <<  " CORE#0 I'm FINISHED w/ runModels!" << endl;
+		cerr << " ----------------------------------" << endl;
+	}
+	
+	if(rank == 1) {
+		cerr << " CORE#1 I'm FINISHED w/ runModels!" << endl;
+		cerr << " ----------------------------------" << endl;
+	}
+#endif
+} //end of runModels
+
 
 bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins, 
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head, 
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
-
+   
    // added constraint that perf model must be on
    bool check_scoreboard         = g_knob_enable_performance_modeling && 
                                    g_knob_enable_dcache_modeling && 
@@ -231,8 +467,41 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
       }
    } 
 
+	InsInfo** ins_info_array = NULL;
+#ifdef PRINOUT_FLAGS
+	/**** TAKE OUT LATER TODO *****/
+	//only for debugging instruction in runModels
+	//at run time
+	//provide each core it's own copy of the ins_info
+	ins_info_array = (InsInfo**) malloc(sizeof(InsInfo*));
+   assert( ins_info_array != NULL );
+	int NUMBER_OF_CORES = 2;
 
-   // Build a list of write registers if relevant
+	for(int i=0; i < NUMBER_OF_CORES; i++) 
+	{
+		ins_info_array[i] = (InsInfo*) malloc(sizeof(InsInfo));
+		InsInfo* ins_info = ins_info_array[i];
+
+		ins_info->ip_address = INS_Address(ins);
+		ins_info->opcode = INS_Opcode(ins);
+		ins_info->is_sys_call = INS_IsSyscall(ins);
+		ins_info->is_sys_enter = INS_IsSysenter(ins);
+		ins_info->sys_call_std = INS_SyscallStd(ins);
+		
+		INS next_ins = INS_Next(ins);
+		if(!INS_Valid(next_ins)) {
+			ins_info->next_is_valid = false;
+		} else {
+			ins_info->next_is_valid = true;
+			ins_info->next_opcode = INS_Opcode(next_ins);
+			ins_info->next_is_sys_call = INS_IsSyscall(next_ins);
+			ins_info->next_is_sys_enter = INS_IsSysenter(next_ins);
+			ins_info->next_sys_call_std = INS_SyscallStd(next_ins);
+		}
+	}
+#endif
+
+	// Build a list of write registers if relevant
    UINT32 num_writes = 0;
    REG *writes = NULL;
    if ( g_knob_enable_performance_modeling )
@@ -243,7 +512,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
          writes[i] = INS_RegW(ins, i);
       }
    }
-
 
    //for building the arguments to the function which dispatches calls to the various modelers
    IARGLIST args = IARGLIST_Alloc();
@@ -283,9 +551,12 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
          IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
          IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, 
+			IARG_PTR, (VOID *) ins_info_array,
          IARG_END); 
 
-   INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
+//   IARGLIST_AddArguments(args, IARG_PTR, (VOID *) ins_info);
+	
+	INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
    IARGLIST_Free(args);
 
    return true;
@@ -311,7 +582,7 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
          for (UINT32 i = 0; i < INS_MaxNumRRegs(ins); i++)
          {
             REG r = INS_RegR(ins, i);
-	    assert(0 <= r && r < LEVEL_BASE::REG_LAST);
+	    		assert(0 <= r && r < LEVEL_BASE::REG_LAST);
             if ( bbl_dest_regs.at(r) ) {
                bbl_dest_regs.clear(r);
                ins_uses.insert( ins );
@@ -352,7 +623,7 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
          for (UINT32 i = 0; i < INS_MaxNumRRegs(ins); i++)
          {      
             REG r = INS_RegR(ins, i);
-	    assert(0 <= r && r < LEVEL_BASE::REG_LAST);
+	    		assert(0 <= r && r < LEVEL_BASE::REG_LAST);
             if ( dest_regs.at(r) )
                ins_uses.insert(ins);
          }
@@ -360,10 +631,10 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
    }      
 
 #if 0  
-   cout << "Routine " << RTN_Name(rtn) << endl;
-   cout << "  instrumented " << ins_uses.size() << " of " << rtn_ins_count << endl;
+   cerr << "Routine " << RTN_Name(rtn) << endl;
+   cerr << "  instrumented " << ins_uses.size() << " of " << rtn_ins_count << endl;
    for (set<INS>::iterator it = ins_uses.begin(); it != ins_uses.end(); it++) {
-      cout << "  " << INS_Disassemble( *it ) << endl;
+      cerr << "  " << INS_Disassemble( *it ) << endl;
    }
 #endif
 
@@ -374,10 +645,12 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
+   
    AFUNPTR msg_ptr = NULL;
    PROTO proto = NULL;
 
-   if(name == "CAPI_Initialize")
+   //FIXME added by cpc as a hack to get around calling Network for finished cores
+	if(name == "CAPI_Initialize")
    {
       msg_ptr = AFUNPTR(chipInit);
    }
@@ -385,6 +658,13 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(chipInitFreeRank);
    }
+   else if(name == "CAPI_Finish"){
+      msg_ptr = AFUNPTR(chipFinish);
+   }
+   else if(name == "CAPI_Print"){
+      msg_ptr = AFUNPTR(chipPrint);
+   }
+	
    else if(name == "mcp_thread_func")
    {
       msg_ptr = AFUNPTR(MCPThreadFunc);
@@ -400,6 +680,22 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if(name == "CAPI_message_receive_w")
    {
       msg_ptr = AFUNPTR(chipRecvW);
+   }
+   else if(name == "getCoreCount")
+   {
+      msg_ptr = AFUNPTR(SimGetCoreCount);
+   }
+   else if(name == "sharedMemQuit")
+   {
+      msg_ptr = AFUNPTR(SimSharedMemQuit);
+   }
+   else if(name == "shmem_thread_func")
+   {
+      msg_ptr = AFUNPTR(SimSharedMemThreadFunc);
+   }
+   else if(name == "mcp_thread_func")
+   {
+      msg_ptr = AFUNPTR(MCPThreadFunc);
    }
    else if(name == "finishMCP")
    {
@@ -435,21 +731,33 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    }
    else if(name == "barrierInit")
    {
-        msg_ptr = AFUNPTR(SimBarrierInit);
-   }
+        msg_ptr = AFUNPTR(SimBarrierInit);    
+	}
    else if(name == "barrierWait")
    {
         msg_ptr = AFUNPTR(SimBarrierWait);
    }
+	
+	else if(name == "CAPI_debugSetMemState") {
+		msg_ptr = AFUNPTR(chipDebugSetMemState);
+	}
+	else if(name == "CAPI_debugAssertMemState") {
+		msg_ptr = AFUNPTR(chipDebugAssertMemState);
+	}
+	
+	else if(name == "CAPI_alias") {
+		msg_ptr = AFUNPTR(chipAlias);
+	}
 
    if ( msg_ptr == AFUNPTR(commRank) 
         || (msg_ptr == AFUNPTR(chipInitFreeRank)) 
         || (msg_ptr == AFUNPTR(MCPThreadFunc)) 
+        || (msg_ptr == AFUNPTR(SimSharedMemThreadFunc)) 
         || (msg_ptr == AFUNPTR(SimMutexInit)) 
         || (msg_ptr == AFUNPTR(SimMutexLock)) 
         || (msg_ptr == AFUNPTR(SimMutexUnlock)) 
-        || (msg_ptr == AFUNPTR(SimCondInit)) 
-        || (msg_ptr == AFUNPTR(SimCondSignal)) 
+        || (msg_ptr == AFUNPTR(SimCondInit))          
+		  || (msg_ptr == AFUNPTR(SimCondSignal)) 
         || (msg_ptr == AFUNPTR(SimCondBroadcast)) 
         || (msg_ptr == AFUNPTR(SimBarrierWait)) 
         )
@@ -467,7 +775,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
-   else if ( (msg_ptr == AFUNPTR(chipSendW)) || (msg_ptr == AFUNPTR(chipRecvW) ) )
+	else if ( (msg_ptr == AFUNPTR(chipSendW)) || (msg_ptr == AFUNPTR(chipRecvW) ) )
    {
       proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
                              CALLINGSTD_DEFAULT,
@@ -487,7 +795,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto); 
       return true;
    }
-   else if ( msg_ptr == AFUNPTR(MCPFinish) )
+   else if ( msg_ptr == AFUNPTR(MCPFinish)        || 
+            (msg_ptr == AFUNPTR(SimGetCoreCount)) || 
+            (msg_ptr == AFUNPTR(SimSharedMemQuit)) )
    {
       proto = PROTO_Allocate(PIN_PARG(void),
                              CALLINGSTD_DEFAULT,
@@ -531,7 +841,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    } 
-   else if ( (msg_ptr == AFUNPTR(chipInit)) )
+   else if ( (msg_ptr == AFUNPTR(chipInit)) || (msg_ptr == AFUNPTR(chipFinish)) )
    {
       proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
                              CALLINGSTD_DEFAULT,
@@ -546,6 +856,11 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
+	else if ( (msg_ptr == AFUNPTR(chipDebugSetMemState)) || (msg_ptr == AFUNPTR(chipDebugAssertMemState)) || (msg_ptr == AFUNPTR(chipPrint)) 
+			    || (msg_ptr == AFUNPTR(chipAlias)) )
+	{
+		RTN_Replace (rtn, msg_ptr);
+	}
 
    return false;
 }
@@ -554,11 +869,32 @@ VOID routine(RTN rtn, VOID *v)
 {
 
    string rtn_name = RTN_Name(rtn);
-   // cout << "routine " << RTN_Name(rtn) << endl;
 
    bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
-   if ( did_func_replace == false )
-   {
+   
+	if ( did_func_replace == true )
+	{
+		// Do nothing
+	}
+#ifdef INSTRUMENT_ALLOWED_FUNCTIONS
+	else if ( 
+					rtn_name != "_Z13instrument_mev" 
+				&& rtn_name != "_Z4pongPv"
+		 		&& rtn_name != "_Z4pingPv"
+		 		&& rtn_name != "_Z22awesome_test_suite_msii" 
+		 		&& rtn_name != "_Z22awesome_test_suite_msiv" 
+				) 
+	{
+		// Do nothing
+	}
+#endif
+
+	else 
+	{
+
+#ifdef INSTRUMENT_ALLOWED_FUNCTIONS
+		cerr << "Routine name is: " << rtn_name << endl;
+#endif
 
       RTN_Open(rtn);
       INS rtn_head = RTN_InsHead(rtn);
@@ -596,7 +932,7 @@ VOID routine(RTN rtn, VOID *v)
                                              !INS_Valid(next), is_potential_load_use );
             if ( instrumented ) {
                start_ins = INS_Next(ins);
-	    }
+	    		}
             ++inst_offset;
             is_rtn_ins_head = false;
          }
@@ -621,9 +957,22 @@ VOID fini(int code, VOID * v)
 
 VOID init_globals()
 {
+  
+   if( g_knob_simarch_has_shared_mem ) {
+
+      if( !g_knob_enable_dcache_modeling ) {
+   
+         cerr << endl << "**********************************************************************" << endl;
+         cerr << endl << "  User must set dcache modeling on (-mdc) to use shared memory model. " << endl;
+         cerr << endl << "**********************************************************************" << endl;
+
+         cerr << endl << "Exiting Program...." << endl;
+         exit(-1); 
+      }
+   }
+   
    //FIXME
-   //InitLock(&g_lock1);
-   //InitLock(&g_lock2);
+	// Make Sure that this is right !!
    unsigned int num_cores = g_knob_num_cores + 1;
  
    g_config = new Config;
@@ -645,17 +994,12 @@ VOID init_globals()
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   //GetLock(&g_lock1, 1);
    syscallEnterRunModel(ctxt, std);
-   //ReleaseLock(&g_lock1);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   //GetLock(&g_lock2, 1);
    syscallExitRunModel(ctxt, std);
-   //ReleaseLock(&g_lock2);
-   //ReleaseLock(&g_lock1);
 }
 
 int main(int argc, char *argv[])

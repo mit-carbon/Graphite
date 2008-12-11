@@ -1,5 +1,5 @@
 #include "ocache.h"
-
+#include "cache.h"
 
 /* =================================================== */
 /* OCache method definitions */
@@ -94,13 +94,16 @@ VOID OCache::mutationRuntime()
 
 // cache access related
 
-bool OCache::dCacheLoadMulti(ADDRINT addr, UINT32 size, UINT32 inst_id)
+
+pair<bool, CacheTag*> OCache::dCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
 {
+   // @todo we may access several cache lines for 
    // first level D-cache
-   const BOOL dl1_hit = dl1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_LOAD);
+   pair<bool, CacheTag*> res = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
+   const bool dl1_hit = res.first;
    const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   dcache_profile.at(inst_id).at(counter)++;
+   dcache_profile[inst_id][counter]++;
    dcacheAccesses++; 
    dcache_total_accesses++;
 
@@ -108,113 +111,57 @@ bool OCache::dCacheLoadMulti(ADDRINT addr, UINT32 size, UINT32 inst_id)
    {
       dcache_misses++; 
       dcache_total_misses++;
+   }      
+   mutationRuntime();
+
+   return res;
+}
+
+pair<bool, CacheTag*> OCache::dCacheLoadSingleFast(ADDRINT addr)
+{
+   pair<bool, CacheTag*> res = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
+   const bool dl1_hit = res.first;
+
+   dcacheAccesses++; 
+   dcache_total_accesses++;
+
+   if ( !dl1_hit ) 
+   {
+      dcache_misses++; 
+      dcache_total_misses++;
+   }      
+   mutationRuntime();
+
+   return res;
+}
+
+pair<bool, CacheTag*> OCache::dCacheLoadMultiFast(ADDRINT addr, UINT32 size)
+{
+   //NOTE: only returns pointer to cachetag of first line spanned
+   bool hit = true;
+   CacheTag* tag = NULL;
+
+   for(ADDRINT a = addr; a < addr + size; a += line_size)
+   {
+      pair<bool, CacheTag*> res = dCacheLoadSingleFast(a);
+      if (hit && !res.first)
+	 		hit = false;
+      if (a == addr)
+	 		tag = res.second;
    }
-   mutationRuntime();
 
-   return dl1_hit;
+   return make_pair(hit, tag);
 }
 
-bool OCache::dCacheLoadMultiFast(ADDRINT addr, UINT32 size)
-{
-   const BOOL dl1_hit = dl1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_LOAD);
-
-   dcacheAccesses++; 
-   dcache_total_accesses++;
-
-   if ( !dl1_hit ) 
-   {
-      dcache_misses++; 
-      dcache_total_misses++;
-   }      
-   mutationRuntime();
-
-   return dl1_hit;
-}
-
-bool OCache::dCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
-{
-   // @todo we may access several cache lines for 
-   // first level D-cache
-   const BOOL dl1_hit = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
-   const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
-
-   dcache_profile.at(inst_id).at(counter)++;
-   dcacheAccesses++; 
-   dcache_total_accesses++;
-
-   if ( !dl1_hit ) 
-   {
-      dcache_misses++; 
-      dcache_total_misses++;
-   }      
-   mutationRuntime();
-
-   return dl1_hit;
-}
-
-bool OCache::dCacheLoadSingleFast(ADDRINT addr)
-{
-   const BOOL dl1_hit = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
-
-   dcacheAccesses++; 
-   dcache_total_accesses++;
-
-   if ( !dl1_hit ) 
-   {
-      dcache_misses++; 
-      dcache_total_misses++;
-   }      
-   mutationRuntime();
-
-   return dl1_hit;
-}
-
-bool OCache::dCacheStoreMulti(ADDRINT addr, UINT32 size, UINT32 inst_id)
-{
-   // first level D-cache; we only model stores to dcache
-   const BOOL dl1_hit = dl1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_STORE);
-   const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
-
-   dcache_profile.at(inst_id).at(counter)++;
-   dcacheAccesses++; 
-   dcache_total_accesses++;
-
-   if ( !dl1_hit ) 
-   {
-      dcache_misses++; 
-      dcache_total_misses++;
-   }      
-   mutationRuntime();
-
-   return dl1_hit;
-}
-
-bool OCache::dCacheStoreMultiFast(ADDRINT addr, UINT32 size)
-{
-   // we only model stores for dcache
-   const BOOL dl1_hit = dl1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_STORE);
-
-   dcacheAccesses++; 
-   dcache_total_accesses++;
-
-   if ( !dl1_hit ) 
-   {
-      dcache_misses++; 
-      dcache_total_misses++;
-   }      
-   mutationRuntime();
-
-   return dl1_hit;
-}
-
-bool OCache::dCacheStoreSingle(ADDRINT addr, UINT32 inst_id)
+pair<bool, CacheTag*> OCache::dCacheStoreSingle(ADDRINT addr, UINT32 inst_id)
 {
    // @todo we may access several cache lines for 
    // first level D-cache; we only model stores to dcache
-   const BOOL dl1_hit = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE);
+   pair<bool, CacheTag*> res = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE);
+   const bool dl1_hit = res.first;
    const Counter counter = dl1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   dcache_profile.at(inst_id).at(counter)++;
+   dcache_profile[inst_id][counter]++;
    dcacheAccesses++; 
    dcache_total_accesses++;
 
@@ -225,13 +172,14 @@ bool OCache::dCacheStoreSingle(ADDRINT addr, UINT32 inst_id)
    }      
    mutationRuntime();
 
-   return dl1_hit;
+   return res;
 }
 
-bool OCache::dCacheStoreSingleFast(ADDRINT addr)
+pair<bool, CacheTag*> OCache::dCacheStoreSingleFast(ADDRINT addr)
 {
    // we only model stores for dcache
-   const BOOL dl1_hit = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE);    
+   pair<bool, CacheTag*> res = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE);
+   const bool dl1_hit = res.first;    
 
    dcacheAccesses++; 
    dcache_total_accesses++;
@@ -243,54 +191,37 @@ bool OCache::dCacheStoreSingleFast(ADDRINT addr)
    }      
    mutationRuntime();
 
-   return dl1_hit;
+   return res;
 }
 
-bool OCache::iCacheLoadMulti(ADDRINT addr, UINT32 size, UINT32 inst_id)
+pair<bool, CacheTag*> OCache::dCacheStoreMultiFast(ADDRINT addr, UINT32 size)
 {
-   // first level I-cache
-   const BOOL il1_hit = il1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_LOAD);
-   const Counter counter = il1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
+   //NOTE: only returns pointer to cachetag of first line spanned
+   bool hit = true;
+   CacheTag *tag = NULL;
 
-   icache_profile.at(inst_id).at(counter)++;
-   icache_accesses++; 
-   icache_total_accesses++;
-
-   if ( !il1_hit ) 
+   for(ADDRINT a = addr; a < addr + size; a += line_size)
    {
-      icache_misses++; 
-      icache_total_misses++;
-   }      
-   mutationRuntime();
+      pair<bool, CacheTag*> res = dCacheStoreSingleFast(a);
+      if (hit && !res.first)
+	 hit = false;
+      if (a == addr)
+	 tag = res.second;
+   }
 
-   return il1_hit;
+   return make_pair(hit, tag);
 }
 
-bool OCache::iCacheLoadMultiFast(ADDRINT addr, UINT32 size)
-{
-   const BOOL il1_hit = il1->accessMultiLine(addr, size, CacheBase::k_ACCESS_TYPE_LOAD);
 
-   icache_accesses++; 
-   icache_total_accesses++;
-
-   if ( !il1_hit ) 
-   {
-      icache_misses++; 
-      icache_total_misses++;
-   }           
-   mutationRuntime();
-
-   return il1_hit;
-}
-
-bool OCache::iCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
+pair<bool, CacheTag*> OCache::iCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
 {
    // @todo we may access several cache lines for 
    // first level I-cache
-   const BOOL il1_hit = il1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
+   pair<bool, CacheTag*> res = il1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
+   const bool il1_hit = res.first;
    const Counter counter = il1_hit ? k_COUNTER_HIT : k_COUNTER_MISS;
 
-   icache_profile.at(inst_id).at(counter)++;
+   icache_profile[inst_id][counter]++;
    icache_accesses++; 
    icache_total_accesses++;
 
@@ -301,12 +232,13 @@ bool OCache::iCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
    }           
    mutationRuntime();
 
-   return il1_hit;
+   return res;
 }
 
-bool OCache::iCacheLoadSingleFast(ADDRINT addr)
+pair<bool, CacheTag*> OCache::iCacheLoadSingleFast(ADDRINT addr)
 {
-   const BOOL il1_hit = il1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);    
+   pair<bool, CacheTag*> res = il1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
+   const bool il1_hit = res.first;    
 
    icache_accesses++; 
    icache_total_accesses++;
@@ -318,48 +250,69 @@ bool OCache::iCacheLoadSingleFast(ADDRINT addr)
    }           
    mutationRuntime();
 
-   return il1_hit;
+   return res;
 }
 
-bool OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::iCacheLoadMultiFast(ADDRINT addr, UINT32 size)
 {
-   const BOOL   single = (size <= 4) | g_knob_icache_ignore_size;
+   //NOTE: only returns pointer to cachetag of first line spanned
+   bool hit = true;
+   CacheTag *tag = NULL;
 
-   if (single) {
+   for(ADDRINT a = addr; a < addr + size; a += line_size)
+   {
+      pair<bool, CacheTag*> res = iCacheLoadSingleFast(a);
+      if (hit && !res.first)
+	 hit = false;
+      if (a == addr)
+	 tag = res.second;
+   }
+
+   return make_pair(hit, tag);
+}
+
+
+pair<bool, CacheTag*> OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
+{
+   UINT32 a1 = (UINT32) i_addr;
+   UINT32 a2 = ((UINT32) i_addr) + size - 1;
+
+   if ( (a1/line_size) == (a2/line_size) )
       return iCacheLoadSingleFast(i_addr);
-   }
    else 
-   {
       return iCacheLoadMultiFast(i_addr, size);
-   }
 }
 
-bool OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
 {
-   const BOOL   single = (size <= 4) | g_knob_dcache_ignore_size;      
+   UINT32 a1 = (UINT32) d_addr;
+   UINT32 a2 = ((UINT32) d_addr) + size - 1;
 
-   if( single )
-   {
+   if ( (a1/line_size) == (a2/line_size) )
       return dCacheLoadSingleFast(d_addr);
-   }
    else
-   {
       return dCacheLoadMultiFast(d_addr, size);
-   }
 }
 
-bool OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
 {
-   const BOOL   single = (size <= 4) | g_knob_dcache_ignore_size;
+   UINT32 a1 = (UINT32) d_addr;
+   UINT32 a2 = ((UINT32) d_addr) + size - 1;
 
-   if( single )
-   {
-      return dCacheStoreSingleFast(d_addr);
-   }
+   if ( (a1/line_size) == (a2/line_size) )
+      return dCacheStoreSingleFast(d_addr);     
    else
-   {
-      return dCacheStoreMultiFast(d_addr,size);
-   }       
+      return dCacheStoreMultiFast(d_addr, size);
+}
+
+pair<bool, CacheTag*> OCache::runICachePeekModel(ADDRINT i_addr)
+{
+   return il1->accessSingleLinePeek(i_addr);
+}
+
+pair<bool, CacheTag*> OCache::runDCachePeekModel(ADDRINT d_addr)
+{
+   return dl1->accessSingleLinePeek(d_addr);     
 }
 
 
@@ -379,10 +332,11 @@ OCache::OCache(std::string name, UINT32 size, UINT32 line_bytes, UINT32 assoc, U
    total_resize_evictions(0),
    last_dcache_misses(0), last_icache_misses(0), name(name)
 {   
-   //limitations due to RRSACache typedef, from RoundRobin template parameters
+   
+   // limitations due to RRSACache typedef RoundRobin set template parameters
    ASSERTX( assoc <= 16 );
    ASSERTX( line_bytes <= 128 );
-   ASSERTX( (dl1->getNumSets() < 1024) && (il1->getNumSets() < 1024) );
+   ASSERTX( dl1->getNumSets() <= 1024 && il1->getNumSets() <= 1024 );
 
    ASSERTX( (size & 1) == 0 );
    ASSERTX( (assoc & 1) == 0 );
@@ -398,13 +352,13 @@ OCache::OCache(std::string name, UINT32 size, UINT32 line_bytes, UINT32 assoc, U
    icache_profile.SetCounterName("icache:miss        icache:hit");
 
    CounterArray dcache_threshold;
-   dcache_threshold.at(k_COUNTER_HIT) = dcache_threshold_hit_value;
-   dcache_threshold.at(k_COUNTER_MISS) = dcache_threshold_miss_value;
+   dcache_threshold[k_COUNTER_HIT] = dcache_threshold_hit_value;
+   dcache_threshold[k_COUNTER_MISS] = dcache_threshold_miss_value;
    dcache_profile.SetThreshold( dcache_threshold );
 
    CounterArray icache_threshold;
-   icache_threshold.at(k_COUNTER_HIT) = icache_threshold_hit_value;
-   icache_threshold.at(k_COUNTER_MISS) = icache_threshold_miss_value;
+   icache_threshold[k_COUNTER_HIT] = icache_threshold_hit_value;
+   icache_threshold[k_COUNTER_MISS] = icache_threshold_miss_value;
    icache_profile.SetThreshold( icache_threshold );
 }
 

@@ -1,4 +1,5 @@
 include ../common/makefile.gnu.config
+include ../common/makefile.debug
 
 all:
 	-rm -rf bin

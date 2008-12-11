@@ -1,6 +1,7 @@
 #ifndef MCP_H
 #define MCP_H
 
+#include "message_types.h"
 #include "packetize.h"
 #include "network.h"
 #include "syscall_server.h"
@@ -8,6 +9,7 @@
 #include "fixed_types.h"
 #include <iostream>
 
+/*
 // Different types of messages that get passed to the MCP
 typedef enum {
    MCP_MESSAGE_SYS_CALL,
@@ -23,6 +25,7 @@ typedef enum {
    MCP_MESSAGE_BARRIER_WAIT,
 
 } MessageTypes;
+*/
 
 class MCP
 {

@@ -25,7 +25,7 @@ class Transport{
       typedef struct PTQueue
       {
          queue <char*, deque<char*> > pt_queue;
-	 PIN_LOCK pt_q_lock;
+			PIN_LOCK pt_q_lock;
       } PTQueue;
 
       static PTQueue *pt_queue;
@@ -33,14 +33,15 @@ class Transport{
       typedef struct Futex
       {
          int futx;
-	 PIN_LOCK futx_lock;
+			PIN_LOCK futx_lock;
       } Futex;
 
       static Futex *pt_futx;
 
       //***** Data structures for MCP communication *****//
       //typedef pair<UInt8*, UInt32> MCPEntry;
-      struct MCPEntry
+      /*
+		struct MCPEntry
       {
         struct
         {
@@ -66,7 +67,7 @@ class Transport{
       typedef struct MCPQueue
       {
          queue < MCPEntry*, deque<MCPEntry*> > q;
-	 PIN_LOCK q_lock;
+	 		PIN_LOCK q_lock;
       } MCPQueue;
 
       static MCPQueue *mcp_queue;
@@ -75,6 +76,7 @@ class Transport{
       // mcp_idx is the mcp_queue entry used to send messages to the MCP
       static UInt32 mcp_idx;
       bool i_am_the_MCP;
+		 */
 
       //***** Miscellaneous *****//
       static UINT32 s_pt_num_mod; // used for bounds checking only
@@ -83,7 +85,9 @@ class Transport{
       int ptInit(int tid, int num_mod);
 
       // The MCP should use this initialization routine instead of ptInit
+		/*
       void ptInitMCP() { i_am_the_MCP = true; }
+		 */
 
       // This does nothing but is needed so the interface matches the
       //  other versions of the PT layer
@@ -91,12 +95,15 @@ class Transport{
 
       // CommID and ThreadID are the same in this version of the PT layer
       int ptCommID() { return pt_tid; }
+		
+
       int ptSend(int receiver, char *buffer, int length);
       char* ptRecv();
       bool ptQuery();
       static void ptInitQueue(int num_mod);
 
-      // These routines are used to communicate with the central server
+      /*
+		// These routines are used to communicate with the central server
       //  process (known as the "MCP").  There is exactly one server for
       //  the entire simulation but the user shouldn't have to know
       //  anything about where it is or how to get to it.
@@ -109,6 +116,7 @@ class Transport{
    private:
       void ptMCPSendHelper(UInt32 dest, UInt8* buffer, UInt32 num_bytes);
       UInt8* ptMCPRecvHelper(UInt32 my_idx, UInt32* num_bytes);
+		*/
 };
 
 #endif

@@ -2,6 +2,7 @@
 #define NETWORK_MESH_ANALYTICAL_H
 
 #include "network.h"
+#include "core.h"
 
 class NetworkMeshAnalytical : public Network
 {

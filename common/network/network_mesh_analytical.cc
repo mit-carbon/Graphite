@@ -51,11 +51,6 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     // We combine the contention model (eq. 12) with the model for
     // limited bisection width (sec. 4.2).
 
-    // TODO: Evaluate if bisection constraint is really the behavior
-    // we want in general. (It changes the channel width from the
-    // initial parameters and is only useful in comparing different
-    // dimensions of networks with similar parameters.)
-
     // TODO: Fix (if necessary) distance calculation for uneven
     // topologies, i.e. 8-node 2d mesh or 10-node 3d mesh.
 
@@ -67,7 +62,7 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     double Tw2 = pParams->Tw2;
     double s = pParams->s;
     int n = pParams->n;
-    double W2 = pParams->W2;
+    double W = pParams->W;
     double p = pParams->p;
 
     // This lets us derive the latency, ignoring contention
@@ -76,7 +71,6 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     double k;                 // length of mesh in one dimension
     double kd;                // number of hops per dimension
     double time_per_hop;      // time spent in one hop through the network
-    double W;                 // channel width
     double B;                 // number of flits for packet
     double hops_in_network;   // number of nodes visited
     double Tb;                // latency, without contention
@@ -87,7 +81,6 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
       // different for different network configurations...say,
       // bidirectional networks)
     time_per_hop = s + pow(k, n/2.-1.);  // pg 6
-    W = W2 * k / 2.;                   // pg 16 (bisection constraint)
     B = ceil(packet.length * 8. / W);
 
     // Compute the number of hops based on src, dest

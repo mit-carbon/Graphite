@@ -67,8 +67,8 @@ Config::Config()
    analytic_network_parms = new NetworkMeshAnalyticalParameters();
    analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
    analytic_network_parms->s = 1; // single cycle switching time
-   analytic_network_parms->n = 2; // 2d mesh network
-   analytic_network_parms->W2 = 32; // arbitrary
+   analytic_network_parms->n = 2; // 2-d mesh network
+   analytic_network_parms->W = 32; // 32-bit wide channels
    analytic_network_parms->p = 0.8; // high utilization
 
 #ifdef DEBUG  

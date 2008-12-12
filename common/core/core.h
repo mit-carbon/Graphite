@@ -12,15 +12,17 @@
 class Network;
 class MemoryManager;
 class SyscallMdl;
+class SyncClient;
+class OCache;
+class PerfModel;
+class Network;
 
 #include "pin.H"
 #include "config.h"
-#include "network.h"
-#include "perfmdl.h"
-#include "ocache.h"
+
 #include "cache_state.h"
-//#include "syscall_model.h"
-//#include "sync_client.h"
+#include "dram_directory_entry.h"
+#include "perfmdl.h"
 
 // externally defined vars
 

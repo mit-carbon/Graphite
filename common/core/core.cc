@@ -2,7 +2,13 @@
 #include "chip.h"
 #include "debug.h"
 
+#include "network.h"
+#include "ocache.h"
+#include "syscall_model.h"
+#include "sync_client.h"
 #include "network_mesh_analytical.h"
+#include "memory_manager.h"
+
 #define CORE_DEBUG
 
 using namespace std;

@@ -1,6 +1,8 @@
 #include "chip.h"
 #include <sched.h>
 
+#include "sync_client.h"
+
 // definitions
 using namespace std;
 
@@ -850,6 +852,8 @@ CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 	cerr << "Aliasing address 0x" << hex << address << "  ==>  0x"  << hex << g_chip->aliasMap[address] << endl;  
 	return 0;
 }
+
+extern KNOB<UINT32> g_knob_ahl_param;
 
 ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
 

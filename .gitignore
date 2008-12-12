@@ -21,6 +21,10 @@ common/tests/mutex/mutex_test
 common/tests/cond/cond_test
 common/tests/broadcast/broadcast_test
 common/tests/barrier/barrier_test
+common/tests/pthreads_basic/basic
+common/tests/shared_mem_test/test_evic
+common/tests/shared_mem_test/test_new
+common/tests/simple/simple_test
 
 #benchmark generated source files
 common/tests/water-spatial/*.[ch]
@@ -45,6 +49,7 @@ common/tests/ocean_contig/OCEAN
 # test output
 pin.log
 sim.out
+output_files
 
 # misc
 pin/bin/

@@ -454,14 +454,17 @@ void* MCPThreadFunc(void *dummy)
 {
   	// Declare local variables
   	CAPI_return_t rtnVal;
-  	rtnVal = CAPI_Initialize(g_knob_total_cores);
+
+   //FIXME: this should probably be total cores, but that was returning
+   //zero when I tried it. --cg3
+   rtnVal = chipInit(g_knob_num_cores);
 
    while( !g_MCP->finished() )
    {
       g_MCP->run();
       //usleep(1);
    }   
-	debugPrint (g_knob_total_cores /* rank */, "CHIP", "MCPThreadFunc - end!");
+	debugPrint (g_knob_num_cores /* rank */, "CHIP", "MCPThreadFunc - end!");
    return NULL;
 
 }

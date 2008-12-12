@@ -46,7 +46,7 @@ Config::Config()
    num_modules = new UInt32[num_process];
    // FIXME: This assumes that every process has the same number of modules.
    //  Each entry should be filled in with a different value.
-   for (i=0; i<num_process; i++) { num_modules[i] = g_knob_num_cores; }  
+   for (i=0; i<num_process; i++) { num_modules[i] = total_cores; }  
   
    // Create an empty list for each process
    core_map = new CoreList[num_process];

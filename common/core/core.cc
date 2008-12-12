@@ -1,4 +1,5 @@
 #include "core.h"
+#include "chip.h"
 #include "debug.h"
 
 #include "network_mesh_analytical.h"
@@ -337,7 +338,12 @@ void Core::addProcTime(UInt64 cycles)
 
 UInt64 Core::getProcTime()
 {
-  	debugPrint (getRank(), "CORE", "Before getCycleCount()");
+   // Since, technically this could be called from any thread
+   // we can't really just use the rank of this core, but 
+   // we can obtain a rank from the calling thread... --cg3
+   int rank;
+   chipRank(&rank);
+  	debugPrint (rank, "CORE", "Before getCycleCount()");
 	return perf_model->getCycleCount();
 }
 

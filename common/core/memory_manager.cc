@@ -5,7 +5,7 @@
 
 using namespace std;
 
-bool MemoryManagerNetworkCallback(void *obj, NetPacket packet)
+void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
 {
    MemoryManager *mm = (MemoryManager*) obj;
 
@@ -13,23 +13,23 @@ bool MemoryManagerNetworkCallback(void *obj, NetPacket packet)
       {
       case SHARED_MEM_REQ:
          mm->addMemRequest(packet);
-         return true;
+         return;
 
       case SHARED_MEM_EVICT:
          mm->forwardWriteBackToDram(packet);
-         return true;
+         return;
 
       case SHARED_MEM_UPDATE_UNEXPECTED:
          mm->processUnexpectedSharedMemUpdate(packet);
-         return true;
+         return;
 
       case SHARED_MEM_ACK:
          mm->processAck(packet);
-         return true;
+         return;
 
       default:
-         // don't dequeue
-         return false;
+         // whoops
+         assert(false);
       };
 }
 

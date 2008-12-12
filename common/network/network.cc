@@ -384,58 +384,21 @@ void Network::netPullFromTransport()
    // entered
    char *buffer;
    NetQueueEntry entry;
-   int sender;
-   PacketType type;
    
 	// Pull up packets waiting in the physical transport layer
    while(transport->ptQuery()) {
-		buffer = transport->ptRecv();
+      buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
 
-		// TODO: Performance Consideration
-		// We need to lock only when 'entry.packet.type' is one of the following:
-		// 1) USER
-		// 2) SHARED_MEM_RESPONSE
-		// 3) MCP_NETWORK_TYPE
-      net_queue[entry.packet.sender][entry.packet.type].lock();
-      net_queue[entry.packet.sender][entry.packet.type].push(entry);
-      net_queue[entry.packet.sender][entry.packet.type].unlock();
-   }
+      // asynchronous I/O support
+      NetworkCallback callback = callbacks[entry.packet.type];
 
-   do
-   {
-      sender = -1;
-      type = INVALID;
-      entry.time = 0;
-      // FIXME: entry.time = _core->getProcTime();
-
-      for (int i = 0; i < net_num_mod; i++)
+      if (callback != NULL)
          {
-            for (int t = 0; t < MAX_PACKET_TYPE; t++)
-               {
-                  if (callbacks[t] == NULL)
-                     continue;
-
-                  net_queue[i][t].lock();
-                  if(!net_queue[i][t].empty())
-                     {
-                        if((entry.time == 0) || (entry.time >= net_queue[i][t].top().time))
-                           {
-                              entry = net_queue[i][t].top();
-                              sender = i;
-                              type = (PacketType)t;
-                           }
-                     }
-                  net_queue[i][t].unlock();
-               }
-         }
-
-      if (callbacks[type] != NULL)
-         {
-            assert(0 <= sender && sender < net_num_mod);
-            assert(MIN_PACKET_TYPE <= type && type <= MAX_PACKET_TYPE);
+            assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
+            assert(MIN_PACKET_TYPE <= entry.packet.type && entry.packet.type <= MAX_PACKET_TYPE);
 
             the_core->lockClock();
             if(the_core->getProcTime() < entry.time)
@@ -444,16 +407,22 @@ void Network::netPullFromTransport()
                }
             the_core->unlockClock();
 
-            if (callbacks[type](callback_objs[type], entry.packet))
-               {
-                  net_queue[sender][type].lock();
-                  net_queue[sender][type].pop();
-                  net_queue[sender][type].unlock();
-               }
+            callback(callback_objs[entry.packet.type], entry.packet);
          }
 
-   } while(type != INVALID);
-	
+      // synchronous I/O support
+      else
+         {
+            // TODO: Performance Consideration
+            // We need to lock only when 'entry.packet.type' is one of the following:
+            // 1) USER
+            // 2) SHARED_MEM_RESPONSE
+            // 3) MCP_NETWORK_TYPE
+            net_queue[entry.packet.sender][entry.packet.type].lock();
+            net_queue[entry.packet.sender][entry.packet.type].push(entry);
+            net_queue[entry.packet.sender][entry.packet.type].unlock();
+         }
+   }
 }
 
 void Network::registerCallback(PacketType type, NetworkCallback callback, void *obj)

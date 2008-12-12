@@ -143,7 +143,7 @@ class Network{
    Transport *transport;
 
  public:
-   typedef bool (*NetworkCallback)(void *, NetPacket);
+   typedef void (*NetworkCallback)(void *, NetPacket);
  private:
 
    NetworkCallback *callbacks;

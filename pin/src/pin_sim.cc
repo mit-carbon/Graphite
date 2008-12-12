@@ -32,6 +32,7 @@
 #include "perfmdl.h"
 #include "knobs.h"
 #include "mcp.h"
+#include "thread_test.h"
 // FIXME: Hack: Please remove me later
 #include "debug.h"
 
@@ -1002,6 +1003,17 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
    syscallExitRunModel(ctxt, std);
 }
 
+void StartTheThreads()
+{
+   OS_SERVICES::ITHREAD *my_thread_p;
+   TestThread my_thread_runner;
+   my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, &my_thread_runner);
+   //my_thread_runner.RunThread(my_thread_p);
+   //cout << "===================================" << endl;
+   //cout << "And that thread has been started..." << endl;
+   //cout << "===================================" << endl;
+}
+
 int main(int argc, char *argv[])
 {
    PIN_InitSymbols();
@@ -1010,7 +1022,9 @@ int main(int argc, char *argv[])
       return usage();
 
    init_globals();
-    
+   
+   StartTheThreads();
+
    RTN_AddInstrumentFunction(routine, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);

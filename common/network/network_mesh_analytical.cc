@@ -58,7 +58,7 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     // of network hops.
 
     // Retrieve parameters
-    const NetworkMeshAnalyticalParameters *pParams = Config::getSingleton()->getAnalyticNetworkParms();
+    const NetworkMeshAnalyticalParameters *pParams = g_config->getAnalyticNetworkParms();
     double Tw2 = pParams->Tw2;
     double s = pParams->s;
     int n = pParams->n;
@@ -140,5 +140,3 @@ void NetworkMeshAnalytical::outputSummary(ostream &out)
    out << "    cycles spent latency: " << cycles_spent_latency << endl;
    out << "    cycles spent contention: " << cycles_spent_contention << endl;
 }
-
-

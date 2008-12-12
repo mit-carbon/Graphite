@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){ // main begins
    cout << "Spawning threads" << endl;
 #endif
 
-   for (int i = 0; i < numThreads - 1; i++)
+   for (unsigned int i = 0; i < numThreads - 1; i++)
      pthread_create(&threads[i], &attr, test_wait_cond, (void *) i);
    pthread_create(&threads[numThreads-1], &attr, test_broadcast_cond, (void *) NULL);
 
@@ -74,7 +74,7 @@ void* test_broadcast_cond(void *threadid)
   int tid;
   CAPI_return_t rtnVal;
 
-  rtnVal = CAPI_Initialize(&tid);
+  rtnVal = CAPI_Initialize((int)threadid);
 
   // Initialize local variables
   CAPI_rank(&tid);
@@ -97,7 +97,7 @@ void* test_wait_cond(void *threadid)
   int tid;
   CAPI_return_t rtnVal;
 
-  rtnVal = CAPI_Initialize(&tid);
+  rtnVal = CAPI_Initialize((int)threadid);
 
   // Initialize local variables
   CAPI_rank(&tid);

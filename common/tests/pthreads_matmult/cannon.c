@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "capi.h"
+#include "user_api.h"
 
 
 //#define DEBUG 1
@@ -41,6 +41,7 @@ void* cannon(void * threadid);
 int main(int argc, char* argv[]){ // main begins
 	
 	// Read in the command line arguments
+   carbonInit();
 	
 	unsigned int matSize, numThreads;
 	pthread_t* threads;
@@ -119,7 +120,7 @@ int main(int argc, char* argv[]){ // main begins
 	// some sanity checking of numThreads and matSize to be sure
 	// these calculations go alright.
         double tmp = numThreads;
-	sqrtNumProcs = sqrt(tmp);
+	sqrtNumProcs = (float) sqrt(tmp);
 	blockSize = matSize / sqrtNumProcs;
 
 #ifdef DEBUG
@@ -161,6 +162,8 @@ int main(int argc, char* argv[]){ // main begins
 	printf("Number of sends = %ld\n", numSendCalls);
 	printf("Number of receives = %ld\n", numReceiveCalls);
 
+   carbonFinish();
+
 	pthread_exit(NULL);
 } // main ends
 
@@ -178,10 +181,10 @@ void* cannon(void *threadid){
 	printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
-	rtnVal = CAPI_Initialize((int)threadid);
+	rtnVal = CAPI_Initialize((unsigned int)threadid);
 
 	// Initialize local variables
-
+   
 	CAPI_rank(&tid);
 
 	// Convert 1-D rank to 2-D rank

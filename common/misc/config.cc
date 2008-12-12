@@ -57,15 +57,15 @@ Config::Config()
    UInt32 k = 0;
    for (i=0; i<num_process; i++) {
       for (j=0; j<num_modules[i]; j++) {
-	 core_map[i].push_back(k++);
+	 		core_map[i].push_back(k++);
       }
    }
 
 #ifdef DEBUG  
-   for (i=0; i<num_process; i++) {      
+   for (i=0; i<num_process; i++) {   
       cout << "Process " << i << ": ";
       for (CLCI m = core_map[i].begin(); m != core_map[i].end(); m++)
-	 cout << "[" << *m << "]";
+	 		cout << "[" << *m << "]";
       cout << endl;
    }
 #endif
@@ -83,7 +83,6 @@ Config::~Config()
 // to override only the specific options given in the file.
 void Config::loadFromFile(char* filename)
 {
-
    return;
 }
 
@@ -92,6 +91,5 @@ void Config::loadFromFile(char* filename)
 // override only the specific options given.
 void Config::loadFromCmdLine()
 {
-
    return;
 }

@@ -15,8 +15,8 @@
 #include <iostream>
 #include "packetize.h"
 #include "transport.h"
-#include "network.h"
 #include "fixed_types.h"
+#include "network.h"
 
 class SyscallServer {
    //Note: These structures are shared with the MCP
@@ -44,5 +44,6 @@ class SyscallServer {
       void marshallCloseCall(int comm_id);
       void marshallAccessCall(int comm_id);
 };
+
 
 #endif

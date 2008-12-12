@@ -1,0 +1,42 @@
+include ../../makefile.gnu.config
+FORCE32 ?= 1
+
+CC = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
+CXX = $(CC)
+
+CXXFLAGS = -I../../user -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
+LDFLAGS = 
+ifeq (${FORCE32},1)
+  CXXFLAGS += -m32
+  LDFLAGS += -m32 -m elf_i386
+else
+  CXXFLAGS += 
+  LDFLAGS += 
+endif
+
+CFLAGS = $(CXXFLAGS) -std=c99
+
+CARBON_SOURCES = ../../user/mcp_api.cc ../../user/user_api.cc ../../user/sync_api.cc
+CARBON_C_SOURCES = ../../user/capi.c
+CARBON_OBJECTS = $(CARBON_SOURCES:%.cc=%.o) $(CARBON_C_SOURCES:%.c=%.o) 
+
+## Build rules
+
+all: $(TARGET)
+
+%.o : %.c
+	$(CXX) $(CXXFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+
+%.o : %.cc
+	$(CXX) $(CXXFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+
+$(TARGET): $(OBJECTS) $(CARBON_OBJECTS)
+	$(CC) -pthread $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(CARBON_OBJECTS)
+
+## Cleaning
+
+clean:
+	-rm -f *.o $(TARGET) sim.out
+
+squeaky: clean
+	-rm -f *~

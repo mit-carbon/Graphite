@@ -1,39 +1,62 @@
 #include "network.h"
 #include "chip.h"
-
+#include "debug.h"
+//#define NETWORK_DEBUG
 using namespace std;
 
-Network::Network(Core *core, int num_mod)
-  : _core(core)
+Network::Network(Core *the_core_arg, int num_mod)
+  :
+      net_queue(new NetQueue* [num_mod]),
+      transport(new Transport),
+      the_core(the_core_arg),
+      net_num_mod(num_mod)
+//Network::Network(int tid, int num_mod, Core* the_core_arg)
 {
    int i;
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+
+   the_core = the_core_arg;
+   net_tid = the_core->getRank(); //FIXME network needs a unique id to provide debugging
    net_num_mod = g_config->totalMods();
-   transport = new Transport;
-   transport->ptInit(core->getId(), num_mod);
-   net_queue = new NetQueue* [net_num_mod];
+
+   transport->ptInit(the_core->getId(), num_mod);
+//   transport->ptInit(the_core->getRank(), num_mod);
+
    for(i = 0; i < net_num_mod; i++)
    {
       net_queue[i] = new NetQueue [num_pac_type];
    }
 }
 
+void Network::netCheckMessages()
+{
+	//	netEntryTasks();
+ 	cerr << "DONT CALL ME" << endl;
+}
+
 int Network::netSend(NetPacket packet)
 {
-   char *buffer;
+	char *buffer;
    UInt32 buf_size;
    
-   // Perform network entry tasks
-   netEntryTasks();
+   UINT64 time = the_core->getProcTime() + netLatency(packet) + netProcCost(packet);
+   // Perform SMEM entry tasks
+//   netEntryTasks(); obselete call
 
-   UINT64 time = _core->getProcTime() + netLatency(packet) + netProcCost(packet);
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
    
-   _core->setProcTime(_core->getProcTime() + netProcCost(packet));
+   the_core->setProcTime(the_core->getProcTime() + netProcCost(packet));
 
    // FIXME?: Should we be returning buf_size instead?
    return packet.length;
+}
+
+void Network::printNetPacket(NetPacket packet) {
+	stringstream ss;
+	ss << endl;
+	ss << "printNetPacket: DON'T CALL ME" << endl;
+	debugPrint (net_tid, "NETWORK", ss.str());
 }
 
 int Network::netSendMagic(NetPacket packet)
@@ -41,10 +64,10 @@ int Network::netSendMagic(NetPacket packet)
    char *buffer;
    UInt32 buf_size;
    
+   UINT64 time = the_core->getProcTime();
    // Perform network entry tasks
-   netEntryTasks();
+//   netEntryTasks();
 
-   UINT64 time = _core->getProcTime();
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
    
@@ -59,119 +82,119 @@ NetPacket Network::netRecvMagic(NetMatch match)
 
 NetPacket Network::netRecv(NetMatch match)
 {
-   int sender;
-   PacketType type;
-   char *buffer;
    NetPacket packet;
    NetQueueEntry entry;
-   bool loop;
+   bool loop = true;
 
-   loop = true;
+   int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+
+   int sender_start = 0;
+   int sender_end = net_num_mod;
+
+   int type_start = 0;
+   int type_end = num_pac_type;
+
+   if(match.sender_flag)
+   {
+       assert(0 <= match.sender && match.sender < net_num_mod);
+       sender_start = match.sender;
+       sender_end = sender_start + 1;
+   }
+
+   if(match.type_flag)
+   {
+       assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+       type_start = match.type;
+       type_end = type_start + 1;
+   }
 
    while(loop)
    {
-  
-      entry.time = 0; 
       // Initialized to garbage values
-      sender = -1;
-      type = INVALID;
-      
-      // Perform network entry tasks
-      netEntryTasks();
+      entry.time = 0; 
 
-      if(match.sender_flag && match.type_flag)
+      for(int i = sender_start; i < sender_end; i++)
       {
-	 assert(0 <= match.sender && match.sender < net_num_mod);
-	 assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         if( !(net_queue[match.sender][match.type].empty()) )
-         {
-	         // if(entry.time >= net_queue[match.sender][match.type].top().time)
-            // {
-               entry = net_queue[match.sender][match.type].top();
-               sender = match.sender;
-               type = match.type;
-               loop = false;
-            // }
-         }
-      }
-      else if(match.sender_flag && (!match.type_flag))
-      {
-	 int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-         for(int i = 0; i < num_pac_type; i++)
-         {
-            assert(0 <= match.sender && match.sender < net_num_mod);
-            if( !(net_queue[match.sender][i].empty()) )
-            {
-               if((entry.time == 0) || (entry.time > net_queue[match.sender][i].top().time))
-               {
-                  entry = net_queue[match.sender][i].top();
-                  sender = match.sender;
-                  type = (PacketType)i;
-                  loop = false;
-               }
-            }
-         }
-      }
-      else if((!match.sender_flag) && match.type_flag)
-      {
-         for(int i = 0; i < net_num_mod; i++)
-         {
-            assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-            if( !(net_queue[i][match.type].empty()) )
-            {
-               if((entry.time == 0) || (entry.time > net_queue[i][match.type].top().time))
-               {
-                  entry = net_queue[i][match.type].top();
-                  //sender = (PacketType)i;
-                  sender = i;
-                  type = match.type;
-                  loop = false;
-               }
-            }
-         }
-      }
-      else
-      {
-         int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-         for(int i = 0; i < net_num_mod; i++)
-         {
-            for(int j = 0; j < num_pac_type; j++)
-            {
-               if( !(net_queue[i][j].empty()) )
-               {
-                  if((entry.time == 0) || (entry.time > net_queue[i][j].top().time))
-                  {
-                     entry = net_queue[i][j].top();
-                     sender = i;
-                     type = (PacketType)j;
-                     loop = false;
-                  }
-               }
-            }
-         }
+          for(int j = type_start; j < type_end; j++)
+          {
+				 net_queue [ i ][ j ] . lock ();
+
+				 if( !(net_queue[i][j].empty()) )
+				 {
+					 if((entry.time == 0) || (entry.time > net_queue[i][j].top().time))
+					 {
+						 entry = net_queue[i][j].top();
+						 loop = false;
+					 }
+				 }
+				 
+				 net_queue [ i ][ j ] . unlock ();
+          }
       }
       
-      if(loop)
-      {
-         buffer = transport->ptRecv();
-	      Network::netExPacket(buffer, entry.packet, entry.time);
-         assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
-         assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         net_queue[entry.packet.sender][entry.packet.type].push(entry);
-      }
-			
+      // No valid packets found in our queue, wait for the
+      // "network manager" thread to wake us up
+      if ( loop ) 
+		{
+			waitForUserPacket();
+		};
    }
 
    assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
    assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+
+   // FIXME: Will the reference stay the same (Note this is a priority queue)?? 
+	net_queue[entry.packet.sender][entry.packet.type].lock();
    net_queue[entry.packet.sender][entry.packet.type].pop();
+   net_queue[entry.packet.sender][entry.packet.type].unlock();
+
    packet = entry.packet;
-   if(_core->getProcTime() < entry.time)
-   {
-      _core->setProcTime(entry.time);
-   }
+
+   //Atomically update the time
+   the_core->lockClock();
+   if(the_core->getProcTime() < entry.time)
+      the_core->setProcTime(entry.time);
+   the_core->unlockClock();
 
    return packet;
+}
+
+void Network::printNetMatch(NetMatch match, int receiver) {
+	stringstream ss;
+	ss << endl;
+	ss << "Network Match " 
+		<< match.sender << " -> " << receiver 
+		<< " SenderFlag: " << match.sender_flag
+		<< " Type: " << packetTypeToString(match.type)
+		<< " TypeFlag: " << match.type_flag 
+		<< "----";
+	debugPrint (net_tid, "NETWORK", ss.str());
+	
+}
+
+string Network::packetTypeToString(PacketType type) 
+{
+	switch(type) {
+		case INVALID:
+			return "INVALID                     ";
+		case USER:
+			return "USER                        ";
+		case SHARED_MEM_REQ:
+			return "SHARED_MEM_REQ              ";
+		case SHARED_MEM_RESPONSE:
+			return "SHARED_MEM_RESPONSE			";
+		case SHARED_MEM_UPDATE_UNEXPECTED:
+			return "SHARED_MEM_UPDATE_UNEXPECTED";
+		case SHARED_MEM_ACK:
+			return "SHARED_MEM_ACK              ";
+		case SHARED_MEM_EVICT:
+			return "SHARED_MEM_EVICT            ";
+		case MCP_NETWORK_TYPE:
+			return "MCP_NETWORK_TYPE				";
+		default:
+			return "ERROR in PacketTypeToString";
+	}
+	return "ERROR in PacketTypeToString";
 }
 
 int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
@@ -231,239 +254,156 @@ NetPacket Network::netMCPRecv()
 bool Network::netQuery(NetMatch match)
 {
    NetQueueEntry entry;
-   bool found;
+   bool found = false;
    
-   found = false;
-   entry.time = _core->getProcTime();
-   
-   // HK
-   // Perform network entry tasks
-   netEntryTasks(); 
-   
-   if(match.sender_flag && match.type_flag)
+	entry.time = the_core->getProcTime();
+ 
+   int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
+
+   int sender_start = 0;
+   int sender_end = net_num_mod;
+
+   int type_start = 0;
+   int type_end = num_pac_type;
+
+   if(match.sender_flag)
    {
-      assert(0 <= match.sender && match.sender < net_num_mod);
-      assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-      if(!net_queue[match.sender][match.type].empty())
-      {
-         if(entry.time >= net_queue[match.sender][match.type].top().time)
-         {
-            found = true;
-            entry = net_queue[match.sender][match.type].top();
-         }
-      }
-   }
-   else if(match.sender_flag && (!match.type_flag))
-   {
-      int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-      for(int i = 0; i < num_pac_type; i++)
-      {
-	 assert(0 <= match.sender && match.sender < net_num_mod);
-         if(!net_queue[match.sender][i].empty())
-         {
-            if(entry.time >= net_queue[match.sender][i].top().time)
-            {
-               found = true;
-               entry = net_queue[match.sender][i].top();
-               break;
-            }
-         }
-      }
-   }
-   else if((!match.sender_flag) && match.type_flag)
-   {
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         if(!net_queue[i][match.type].empty())
-         {
-            if(entry.time >= net_queue[i][match.type].top().time)
-            {
-               found = true;
-               entry = net_queue[i][match.type].top();
-               break;
-            }
-         }
-      }
-   }
-   else
-   {
-      int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         for(int j = 0; j < num_pac_type; j++)
-         {
-            if(!net_queue[i][j].empty())
-            {
-               if(entry.time >= net_queue[i][j].top().time)
-               {
-                  found = true;
-                  entry = net_queue[i][j].top();
-                  break;
-               }
-            }
-         }
-      }
+       assert(0 <= match.sender && match.sender < net_num_mod);
+       sender_start = match.sender;
+       sender_end = sender_start + 1;
    }
 
-   if(found)
+   if(match.type_flag)
    {
-         return true;
+       assert(0 <= match.type && match.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+       type_start = match.type;
+       type_end = type_start + 1;
    }
-   else
-   {
-      return false;
-   }
-};
 
+   for(int i = sender_start; i < sender_end; i++)
+   {
+       for(int j = type_start; j < type_end; j++)
+       {
+			 //net_queue[i][j].lock();
+
+           if(!net_queue[i][j].empty() && entry.time >= net_queue[i][j].top().time)
+           {
+               found = true;
+               break;
+           }
+
+			 //net_queue[i][j].unlock();
+       }
+   }
+   
+   return found;
+}
 
 char* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size, UINT64 time)
 {
    char *buffer;
-   char *temp;
-   int running_length = 0;
-   unsigned int i;
 
    *buffer_size = sizeof(packet.type) + sizeof(packet.sender) +
                      sizeof(packet.receiver) + sizeof(packet.length) +
                      packet.length + sizeof(time);
+
    buffer = new char [*buffer_size];
-   temp = (char*) &(packet.type);
 
-   for(i = 0; i < sizeof(packet.type); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
-	
-   running_length += sizeof(packet.type);
-   temp = (char*) &(packet.sender);
+   char *dest = buffer;
 
-   for(i = 0; i < sizeof(packet.sender); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)&packet.type, sizeof(packet.type));
+   dest += sizeof(packet.type);
 
-   running_length += sizeof(packet.sender);
-   temp = (char*) &(packet.receiver);
+   memcpy(dest, (char*)&packet.sender, sizeof(packet.sender));
+   dest += sizeof(packet.sender);
 
-   for(i = 0; i < sizeof(packet.receiver); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)&packet.receiver, sizeof(packet.receiver));
+   dest += sizeof(packet.receiver);
 
-   running_length += sizeof(packet.receiver);
-   temp = (char*) &(packet.length);
+   memcpy(dest, (char*)&packet.length, sizeof(packet.length));
+   dest += sizeof(packet.length);
 
-   for(i = 0; i < sizeof(packet.length); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)packet.data, packet.length);
+   dest += packet.length;
 
-   running_length += sizeof(packet.length);
-   temp = packet.data;
-
-   for(i = 0; i < packet.length; i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
-
-   running_length += packet.length;
-   temp = (char*) &time;
-
-   for(i = 0; i < sizeof(time); i++)
-     {
-       assert(running_length+i < *buffer_size);
-       buffer[running_length + i] = temp[i];
-     }
+   memcpy(dest, (char*)&time, sizeof(time));
+   dest += sizeof(time);
 
    return buffer;
-};
+}
 
 
 void Network::netExPacket(char *buffer, NetPacket &packet, UINT64 &time)
 {
-   unsigned int i;
-   int running_length = 0;
-   char *ptr;
+   char *ptr = buffer;
 
-   // TODO: This is ugly. Clean it up.
+   memcpy((char *) &packet.type, ptr, sizeof(packet.type));
+   ptr += sizeof(packet.type);
 
-   ptr = (char*) &packet.type;
-   for(i = 0; i < sizeof(packet.type); i++)
-      ptr[i] = buffer[running_length + i];
+   memcpy((char *) &packet.sender, ptr, sizeof(packet.sender));
+   ptr += sizeof(packet.sender);
 
-   running_length += sizeof(packet.type);
-   ptr = (char*) &packet.sender;
+   memcpy((char *) &packet.receiver, ptr, sizeof(packet.receiver));
+   ptr += sizeof(packet.receiver);
 
-   for(i = 0; i < sizeof(packet.sender); i++)
-      ptr[i] = buffer[running_length + i];
-	
-   running_length += sizeof(packet.sender);
-   ptr = (char*) &packet.receiver;
+   memcpy((char *) &packet.length, ptr, sizeof(packet.length));
+   ptr += sizeof(packet.length);
 
-   for(i = 0; i < sizeof(packet.receiver); i++)
-      ptr[i] = buffer[running_length + i];
-
-   running_length += sizeof(packet.receiver);
-   ptr = (char*) &packet.length;
-
-   for(i = 0; i < sizeof(packet.length); i++)
-      ptr[i] = buffer[running_length + i];
-
-   running_length += sizeof(packet.length);
-   assert(running_length == sizeof(packet)-sizeof(packet.data));
    packet.data = new char[packet.length];
-   ptr = packet.data;
 
-   for(i = 0; i < packet.length; i++)
-      ptr[i] = buffer[running_length + i];
-	
-   running_length += packet.length;
-   ptr = (char *)&time;
+   memcpy((char *) packet.data, ptr, packet.length);
+   ptr += packet.length;
 
-   for(i = 0; i < sizeof(time); i++)
-      ptr[i] = buffer[running_length + i];
+   memcpy((char *) &time, ptr, sizeof(time));
+   ptr += sizeof(time);
 
    // HK
    // De-allocate dynamic memory
    delete [] buffer;
 }
 
-void Network::netEntryTasks()
+void Network::netPullFromTransport()
 {
-   // These are a set of tasks to be performed every time the network layer is
+	// HK
+	// FIXME
+	// The clock updation model for interrupts could be made smarter
+	
+   // These are a set of tasks to be performed every time the SMEM layer is
    // entered
    char *buffer;
    NetQueueEntry entry;
    int sender;
    PacketType type;
    
-   // Pull up packets waiting in the physical transport layer
-   while(transport->ptQuery())
-   {
-      buffer = transport->ptRecv();
+	// Pull up packets waiting in the physical transport layer
+   while(transport->ptQuery()) {
+		buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+
+		// TODO: Performance Consideration
+		// We need to lock only when 'entry.packet.type' is one of the following:
+		// 1) USER
+		// 2) SHARED_MEM_RESPONSE
+		// 3) MCP_NETWORK_TYPE
+      net_queue[entry.packet.sender][entry.packet.type].lock();
       net_queue[entry.packet.sender][entry.packet.type].push(entry);
+      net_queue[entry.packet.sender][entry.packet.type].unlock();
    }
-   
+
    do
    {
       sender = -1;
       type = INVALID;
-      entry.time = _core->getProcTime();
+      entry.time = 0;
+      // FIXME: entry.time = _core->getProcTime();
      
       for(int i = 0; i < net_num_mod; i++)
       {
          if(!net_queue[i][SHARED_MEM_REQ].empty())
          {
-            if(entry.time >= net_queue[i][SHARED_MEM_REQ].top().time)
+            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_REQ].top().time))
             {
               entry = net_queue[i][SHARED_MEM_REQ].top();
               sender = i;
@@ -472,11 +412,25 @@ void Network::netEntryTasks()
          }
       }
 
+		for(int i = 0; i < net_num_mod; i++)
+      {
+         if(!net_queue[i][SHARED_MEM_EVICT].empty())
+         {
+            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_EVICT].top().time))
+            {
+              entry = net_queue[i][SHARED_MEM_EVICT].top();
+              sender = i;
+              type = SHARED_MEM_EVICT;
+            }
+         }
+      }
+
+
       for(int i = 0; i < net_num_mod; i++)
       {
          if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
          {
-            if(entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time)
+            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time))
             {
                entry = net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top();
                sender = i;
@@ -484,36 +438,90 @@ void Network::netEntryTasks()
             }
          }
       }
-
-      if(type == SHARED_MEM_REQ)
+		
+      for(int i = 0; i < net_num_mod; i++)
       {
-	assert(0 <= sender && sender < net_num_mod);
-	assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-	net_queue[sender][type].pop();
-	// FIXME:
-	// processSharedMemReq will be a memeber function of the shared memory object
-	// This function invocation should be replaced by something along the lines of
-	// shared_mem_obj->processSharedMemReq(entry.packet)
-	processSharedMemReq(entry.packet);
+         if(!net_queue[i][SHARED_MEM_ACK].empty())
+         {
+            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_ACK].top().time))
+            {
+               entry = net_queue[i][SHARED_MEM_ACK].top();
+               sender = i;
+               type = SHARED_MEM_ACK;
+            }
+         }
       }
+
+	  	if(type == SHARED_MEM_REQ)
+      {
+			assert(0 <= sender && sender < net_num_mod);
+			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+         net_queue[sender][type].pop();
+         
+         the_core->getMemoryManager()->addMemRequest(entry.packet);
+			
+			if(the_core->getProcTime() < entry.time)
+			{
+				the_core->setProcTime(entry.time);
+			}
+      }
+		else if(type == SHARED_MEM_EVICT)
+		{
+			assert(0 <= sender && sender < net_num_mod);
+			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+         net_queue[sender][type].pop();
+         
+         the_core->getMemoryManager()->forwardWriteBackToDram(entry.packet);
+
+			if(the_core->getProcTime() < entry.time)
+			{
+				the_core->setProcTime(entry.time);
+			}
+		}
       else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
-	{
-	  assert(0 <= sender && sender < net_num_mod);
-	  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-	  net_queue[sender][type].pop();
-	  // FIXME:
-         // processUnexpectedSharedMemUpdate will be a memeber function of the shared memory object
-         // This function invocation should be replaced by something along the lines of
-         // shared_mem_obj->processUnexpectedSharedMemUpdate(entry.packet)
-         processUnexpectedSharedMemUpdate(entry.packet);
+      {
+		  assert(0 <= sender && sender < net_num_mod);
+		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+        net_queue[sender][type].pop();
+        
+		  the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
+		  
+		  if(the_core->getProcTime() < entry.time)
+		  {
+			  the_core->setProcTime(entry.time);
+		  }
+      }
+      else if(type == SHARED_MEM_ACK)
+      {
+		  assert(0 <= sender && sender < net_num_mod);
+		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
+        net_queue[sender][type].pop();
+        
+		  the_core->getMemoryManager()->processAck(entry.packet);
+		  
+		  if(the_core->getProcTime() < entry.time)
+		  {
+			  the_core->setProcTime(entry.time);
+		  }
       }
 
    } while(type != INVALID);
+	
+}
+
+void Network::waitForUserPacket()
+{
+
+}
+
+void Network::notifyWaitingUserThread()
+{
+
 }
 
 UINT64 Network::netProcCost(NetPacket packet)
 {
-      return 10;
+      return 0;
 };
 
 UINT64 Network::netLatency(NetPacket packet)
@@ -521,26 +529,4 @@ UINT64 Network::netLatency(NetPacket packet)
       return 30;
 };
 
-
-// FIXME:
-// Only here for debugging
-// To be removed as soon as Jim plugs his function in
-void Network::processSharedMemReq(NetPacket packet)
-{
-   // Do nothing
-   // Only for debugging
-   // Jim will provide the correct methods for this in the shared memory object
-}
-
-void Network::processUnexpectedSharedMemUpdate(NetPacket packet)
-{
-   // Do nothing
-   // Only for debugging
-   // Jim will provide the correct methods for this in the shared memory object
-}
-
-void Network::outputSummary(ostream &out)
-{
-
-}
 

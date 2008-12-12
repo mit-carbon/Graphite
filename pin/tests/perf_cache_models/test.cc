@@ -1,6 +1,8 @@
 /*
    Jonathan Eastep 10.17.07
    Quick and dirty tests for resizing sets
+	FIXME: these probably don't work anymore!
+	DEPRECATED
 */
 
 #include "pin.H"

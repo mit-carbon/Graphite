@@ -51,6 +51,7 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    {
       case SYS_open:
       {
+         // Filter on the input
          char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          if(!strcmp(path,"./common/tests/file_io/input"))
          {
@@ -61,23 +62,15 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       }
       case SYS_read:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x08 )
-         {
-            called_enter = true;
-            ret_val = marshallReadCall(ctx, syscall_standard);
-         }
+         called_enter = true;
+         ret_val = marshallReadCall(ctx, syscall_standard);
          break;
       }
 
       case SYS_write:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x08 )
-         {
-            called_enter = true;
-            ret_val = marshallWriteCall(ctx, syscall_standard);
-         }         
+         called_enter = true;
+         ret_val = marshallWriteCall(ctx, syscall_standard);
          break;
       }         
       case SYS_close:
@@ -145,7 +138,7 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    int flags = (int) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
    UInt32 len_fname = strlen(path) + 1;
 
-   cerr << "open(" << path << ")" << endl;
+   // cerr << "open(" << path << ")" << endl;
 
    send_buff << len_fname << make_pair(path, len_fname) << flags;
    the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());
@@ -191,9 +184,9 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    void *buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
    size_t count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
 
-   cerr << "read(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
+   // cerr << "read(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
       
-   send_buff << fd << count;
+   send_buff << fd << count << (int)buf;
    the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());   
    
    //cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
@@ -250,10 +243,15 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    void *buf = (void *) PIN_GetSyscallArgument(ctx, syscall_standard, 1);
    size_t count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
 
-   cerr << "write(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
-      
-   send_buff << fd << count << make_pair(buf, count);
-   the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());      
+   // cerr << "write(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
+   
+   // Previously we would pass the actual data, now we pass the
+   // address and the syscall server will pull the data from the
+   // shared memory. --cg3
+   //send_buff << fd << count << make_pair(buf, count);
+
+   send_buff << fd << count << (int)buf;
+   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;
    recv_pkt = the_network->netRecvFromMCP();
@@ -291,10 +289,10 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
    int fd = (int) PIN_GetSyscallArgument(ctx, syscall_standard, 0);      
 
-   cerr << "close(" << fd  << ")" << endl;
+   // cerr << "close(" << fd  << ")" << endl;
 
    send_buff << fd;
-   the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size());      
+   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;
    recv_pkt = the_network->netRecvFromMCP();
@@ -319,7 +317,7 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    send_buff << len_fname << make_pair(path, len_fname) << mode;
 
    // send the data
-   the_network->getTransport()->ptSendToMCP((UInt8 *) send_buff.getBuffer(), send_buff.size()); 
+   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size()); 
 
    // get a result
    NetPacket recv_pkt;

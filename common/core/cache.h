@@ -1,5 +1,7 @@
 // Jonathan Eastep (eastep@mit.edu) 
-// 04.07.08
+// 09.24.08
+// Modified cache sets to actually store the data. 
+//
 //
 // It's been significantly modified, but original code by Artur Klauser of
 // Intel and modified by Rodric Rabbah. My changes enable the cache to be 
@@ -16,9 +18,11 @@
 #define CACHE_H
 
 #include <iostream>
+#include <cassert>
 
 #include "pin.H"
 #include "utils.h"
+#include "cache_state.h"
 #include "random.h"
 
 #define k_KILO 1024
@@ -28,21 +32,47 @@
 // type of cache hit/miss counters
 typedef UINT64 CacheStats; 
 
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
+
+
+namespace CACHE_ALLOC
+{
+   typedef enum 
+   {
+      k_STORE_ALLOCATE,
+      k_STORE_NO_ALLOCATE
+   } StoreAllocation;
+};
 
 
 // Cache tag - self clearing on creation
-
+//TODO change the name of this:
+//it isn't a cachtag, its a CacheLineInfo
 class CacheTag
 {
    private:
       ADDRINT the_tag;
-
+      CacheState::cstate_t the_cstate;
+   
    public:
-      CacheTag(ADDRINT tag = ~0) { the_tag = tag; }
+      CacheTag(ADDRINT tag = ~0, CacheState::cstate_t cstate = CacheState::INVALID) : 
+         the_tag(tag), the_cstate(cstate) {}
 
-      bool operator==(const CacheTag &right) const { return the_tag == right.the_tag; }
+      bool operator==(const CacheTag& right) const 
+      { 
+			return (the_tag == right.the_tag);
+      }
 
+      bool isValid() const { return (the_tag != ((ADDRINT) ~0)); }
+
+		//BUG FIXME i think this needs to be left shifted if you actually want the address
       operator ADDRINT() const { return the_tag; }
+      
+		ADDRINT getTag() { return the_tag; }
+
+      CacheState::cstate_t getCState() { return the_cstate; }
+
+      void setCState(CacheState::cstate_t cstate) { the_cstate = cstate; }
 };
 
 
@@ -61,27 +91,30 @@ namespace CACHE_SET
       public:
          DirectMapped(UINT32 assoc = 1) 
          { 
-            ASSERTX(assoc == 1); 
+            assert(assoc == 1); 
             the_tag = CacheTag();
          }
 
-         VOID setAssociativity(UINT32 assoc) { ASSERTX(assoc == 1); }
+         //FIXME: this should be private. should only be used during instantiation
+         VOID setAssociativity(UINT32 assoc) { assert(assoc == 1); }
 
          UINT32 getAssociativity(UINT32 assoc) { return 1; }
 
-         UINT32 find(CacheTag tag) { return(the_tag == tag); }
+         UINT32 find(CacheTag& tag) { return(the_tag == tag); }
 
-         VOID replace(CacheTag tag) { the_tag = tag; }
+         VOID replace(CacheTag& tag) { the_tag = tag; }
 
-         VOID modifyAssociativity(UINT32 assoc) { ASSERTX(assoc == 1); }
+         VOID modifyAssociativity(UINT32 assoc) { assert(assoc == 1); }
 
-         VOID print() { cout << the_tag << endl; }
+         VOID print() { 
+				//cout << the_tag << endl; 
+			}
 
-         bool invalidateTag(CacheTag tag) 
+         bool invalidateTag(CacheTag& tag) 
          { 
-	    if ( tag == the_tag )
-	    {
-               the_tag = CacheTag(); 
+	    		if ( tag == the_tag )
+	    		{
+            	the_tag = CacheTag(); 
                return true;
             }
             return false;
@@ -90,147 +123,193 @@ namespace CACHE_SET
 
 
    // Cache set with round robin replacement
-   template <UINT32 k_MAX_ASSOCIATIVITY = 8>
+   
+	// Cache set with round robin replacement
+   template <UINT32 k_MAX_ASSOCIATIVITY = 8, 
+             UINT32 k_MAX_BLOCKSIZE = 128>
    class RoundRobin
    {
       private:
          CacheTag the_tags[k_MAX_ASSOCIATIVITY];
          UINT32 tags_last_index;
          UINT32 next_replace_index;
+         char the_blocks[k_MAX_ASSOCIATIVITY*k_MAX_BLOCKSIZE];
+         UINT32 blocksize;
 
       public:
 
-         RoundRobin(UINT32 assoc = k_MAX_ASSOCIATIVITY): 
-            tags_last_index(assoc - 1)
+         RoundRobin(UINT32 assoc = k_MAX_ASSOCIATIVITY, UINT32 blksize = k_MAX_BLOCKSIZE): 
+            tags_last_index(assoc - 1), blocksize(blksize)
          {
-            ASSERTX(assoc <= k_MAX_ASSOCIATIVITY);
-            next_replace_index = tags_last_index;
+            assert(assoc <= k_MAX_ASSOCIATIVITY);
+            assert(blocksize <= k_MAX_BLOCKSIZE);
+            assert(tags_last_index < k_MAX_ASSOCIATIVITY);
 
-	    assert(tags_last_index < k_MAX_ASSOCIATIVITY);
+				next_replace_index = tags_last_index;
+
             for (INT32 index = tags_last_index; index >= 0; index--)
             {
                the_tags[index] = CacheTag();
             }
+            memset(&the_blocks[0], 0x00, k_MAX_BLOCKSIZE * k_MAX_ASSOCIATIVITY);
          }
 
+         VOID setBlockSize(UINT32 blksize) { blocksize = blksize; }
+
+         UINT32 getBlockSize() { return blocksize; }
+
+         //FIXME: this should be private. should only be used during instantiation
          VOID setAssociativity(UINT32 assoc)
          {
-            ASSERTX(assoc <= k_MAX_ASSOCIATIVITY);
+				//FIXME: possible evictions when shrinking
+            assert(assoc <= k_MAX_ASSOCIATIVITY);
             tags_last_index = assoc - 1;
             next_replace_index = tags_last_index;
          }
 
          UINT32 getAssociativity() { return tags_last_index + 1; }
-    
-         UINT32 find(CacheTag tag)
-         {
-            bool result = true;
 
-	    assert(tags_last_index < k_MAX_ASSOCIATIVITY);
+
+         pair<bool, CacheTag*> find(CacheTag& tag, UINT32* set_index = NULL)
+         {
+				// useful for debuggin
+//				print();
+
+				assert(tags_last_index < k_MAX_ASSOCIATIVITY);
+
             for (INT32 index = tags_last_index; index >= 0; index--)
             {
-               // this is an ugly micro-optimization, but it does cause a
-               // tighter assembly loop for ARM that way ...
-               if(the_tags[index] == tag) goto end;
+               if(the_tags[index] == tag) 
+					{
+                  if ( set_index != NULL )
+							*set_index = index;
+                  return make_pair(true, &the_tags[index]);
+					}
             }
-            result = false;
-
-         end: 
-            return result;
-         }
-
-         bool invalidateTag(CacheTag tag) 
-         { 
-            bool result = true;
-
-            INT32 index;
-	    assert(tags_last_index < k_MAX_ASSOCIATIVITY);
-            for (index = tags_last_index; index >= 0; index--)
-            {
-               // this is an ugly micro-optimization, but it does cause a
-               // tighter assembly loop for ARM that way ...
-               if(the_tags[index] == tag) goto end;
-            }
-            result = false;
-
-         end: 
-            if ( result )
-	      {
-		assert(0 < index && (UINT32)index < k_MAX_ASSOCIATIVITY);
-		the_tags[index] = CacheTag();
-	      }
-
-            return result;
-         }
-
-         VOID replace(CacheTag tag)
+            return make_pair(false, (CacheTag*) NULL);
+			}
+      
+         void read_line(UINT32 index, UINT32 offset, char *out_buff, UINT32 bytes)
          {
-            // g++ -O3 too dumb to do CSE on following lines?!
-            const UINT32 index = next_replace_index;
+				assert( offset + bytes <= blocksize );
 
-	    assert(index < k_MAX_ASSOCIATIVITY);
+				if ( (out_buff != NULL) && (bytes != 0) )
+					memcpy(out_buff, &the_blocks[index * blocksize + offset], bytes);
+			}
+
+         void write_line(UINT32 index, UINT32 offset, char *buff, UINT32 bytes)
+         {
+//				cerr << "WriteLine " << endl;
+//				cerr << "Offset    : " << offset << endl;
+//				cerr << "bytes     : " << bytes << endl;
+//				cerr << "blocksize : " << blocksize << endl;
+				assert( offset + bytes <= blocksize );
+
+				if ( (buff != NULL) && (bytes != 0) )
+					memcpy(&the_blocks[index * blocksize + offset], buff, bytes);
+			}
+
+         bool invalidateTag(CacheTag& tag) 
+         { 
+				for (INT32 index = tags_last_index; index >= 0; index--)
+            {
+					assert(0 <= index && (UINT32)index < k_MAX_ASSOCIATIVITY);
+				  
+					if(the_tags[index] == tag)
+					{
+						the_tags[index] = CacheTag();
+                  return true;
+					}
+            }
+            return false;
+         }
+
+         VOID replace(CacheTag& tag, char* fill_buff, bool* eviction, CacheTag* evict_tag, char* evict_buff)
+         {
+            const UINT32 index = next_replace_index;
+            //cout << "*** replacing index " << index << " ***" << endl;
+
+            if ( the_tags[index].isValid() )
+				{
+					if ( eviction != NULL )
+						*eviction = true;
+					if ( evict_tag != NULL )
+						*evict_tag = the_tags[index];
+					if ( evict_buff != NULL )
+						memcpy(evict_buff, &the_blocks[index * blocksize], blocksize);
+            }
+            
+				assert(index < k_MAX_ASSOCIATIVITY);
             the_tags[index] = tag;
+
+            if ( fill_buff != NULL )
+				{
+					memcpy(&the_blocks[index * blocksize], fill_buff, blocksize);
+            }
+
             // condition typically faster than modulo
             next_replace_index = (index == 0 ? tags_last_index : index - 1);
          }
 
          VOID modifyAssociativity(UINT32 assoc)
          {
-            ASSERTX(assoc != 0 && assoc <= k_MAX_ASSOCIATIVITY);
+				//FIXME: potentially need to evict
+
+            assert(assoc != 0 && assoc <= k_MAX_ASSOCIATIVITY);
             UINT32 associativity = getAssociativity();
 
-            if ( assoc > associativity ) {
-            for (UINT32 i = tags_last_index + 1; i < assoc; i++)
-	    {
-               assert(i < k_MAX_ASSOCIATIVITY);
-               the_tags[i] = CacheTag();
-	    }
-            tags_last_index = assoc - 1;
-            next_replace_index = tags_last_index;
-         } 
-         else 
-         {
-            if ( assoc < associativity ) 
-	    {
-               // this is where evictions happen in the real world
-               for (UINT32 i = tags_last_index; i >= assoc; i--)
-	       {
+            if ( assoc > associativity ) 
+				{
+               for (UINT32 i = tags_last_index + 1; i < assoc; i++)
+					{
                   assert(i < k_MAX_ASSOCIATIVITY);
-                  the_tags[i] = CacheTag();
-	       }
-
+						the_tags[i] = CacheTag();
+					}
                tags_last_index = assoc - 1;
-               if ( next_replace_index > tags_last_index )
-	       {
-                  next_replace_index = tags_last_index;
-	       }
-            }
-         }      
-      }
+               next_replace_index = tags_last_index;
+            } 
+            else 
+            {
+               if ( assoc < associativity ) 
+					{
+						// FIXME: if cache model ever starts including data in addition to just tags
+                  // need to perform evictions here. Also if we have shared mem?
 
-      VOID print()
-      {
-         cout << tags_last_index + 1 << " " << next_replace_index << "     ";
-         for (UINT32 i = 0; i < getAssociativity(); i++)
-         {
-            cout << hex << the_tags[i] << " ";
+						assert( !g_knob_simarch_has_shared_mem );
+
+                  for (UINT32 i = tags_last_index; i >= assoc; i--)
+						{
+                     assert(i < k_MAX_ASSOCIATIVITY);
+							the_tags[i] = CacheTag();
+						}
+
+                  tags_last_index = assoc - 1;
+                  if ( next_replace_index > tags_last_index )
+						{
+                     next_replace_index = tags_last_index;
+						}
+               }
+            }      
          }
-         cout << endl;
-      }
+
+         VOID print()
+         {
+            /*
+				cout << "associativity = " << tags_last_index + 1 << "; next set to replace = " 
+                 << next_replace_index << "     tags = ";
+            for (UINT32 i = 0; i < getAssociativity(); i++)
+            {
+	       		cout << hex << the_tags[i] << " ";
+            }
+            cout << endl;
+				*/
+         }
 
    };
 
+
 }; 
 // end namespace CACHE_SET
-
-namespace CACHE_ALLOC
-{
-   typedef enum 
-   {
-      k_STORE_ALLOCATE,
-      k_STORE_NO_ALLOCATE
-   } StoreAllocation;
-};
 
 
 // Generic cache base class; no allocate specialization, no cache set specialization
@@ -254,11 +333,12 @@ class CacheBase
       } CacheType;
 
    protected:
+		//1 counter for hit==true, 1 counter for hit==false
       CacheStats access[k_ACCESS_TYPE_NUM][2];
 
    protected:
       // input params
-      const std::string name;
+      const string name;
       UINT32 cache_size;
       const UINT32 line_size;
       UINT32 associativity;
@@ -282,7 +362,7 @@ class CacheBase
 
    public:
       // constructors/destructors
-      CacheBase(std::string name, UINT32 size, UINT32 line_bytes, UINT32 assoc);    
+      CacheBase(string name, UINT32 size, UINT32 line_bytes, UINT32 assoc);    
 
       // accessors
       UINT32 getCacheSize() const { return cache_size; }
@@ -291,8 +371,14 @@ class CacheBase
       UINT32 getNumSets() const { return set_index_mask + 1; }
     
       // stats
-      CacheStats getHits(AccessType access_type) const { assert(access_type < k_ACCESS_TYPE_NUM); return access[access_type][true]; }
-      CacheStats getMisses(AccessType access_type) const { assert(access_type < k_ACCESS_TYPE_NUM); return access[access_type][false]; }
+      CacheStats getHits(AccessType access_type) const { 
+			assert(access_type < k_ACCESS_TYPE_NUM);
+			return access[access_type][true]; 
+		}
+      CacheStats getMisses(AccessType access_type) const { 
+			assert(access_type < k_ACCESS_TYPE_NUM);
+			return access[access_type][false]; 
+		}
       CacheStats getAccesses(AccessType access_type) const 
          { return getHits(access_type) + getMisses(access_type); }
       CacheStats getHits() const { return sumAccess(true); }
@@ -300,12 +386,18 @@ class CacheBase
       CacheStats getAccesses() const { return getHits() + getMisses(); }
 
       // utilities
-      VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index) const
+		ADDRINT tagToAddress(CacheTag& tag)
+		{
+			return tag.getTag() << line_shift;
+		}
+		
+		VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index) const
       {
-         tag = addr >> line_shift;
+	 		tag = CacheTag(addr >> line_shift);
          set_index = tag & set_index_mask;
       }
 
+      // FIXME: change the name?  (adddressToTag?)
       VOID splitAddress(const ADDRINT addr, CacheTag& tag, UINT32& set_index, 
                         UINT32& line_index) const
       {
@@ -339,7 +431,7 @@ class Cache : public CacheBase
       VOID resetCounters()
       {
          assert(getNumSets() <= k_MAX_SETS);
-         for(UINT32 i = 0; i < getNumSets(); i++) {
+			for(UINT32 i = 0; i < getNumSets(); i++) {
             accesses[i] = misses[i] = 0;
          }
       }
@@ -347,24 +439,24 @@ class Cache : public CacheBase
       UINT32 getSearchDepth() const { return max_search; }
       UINT32 getSetPtr(UINT32 set_index) 
       { 
-         ASSERTX( set_index < getNumSets() ); 
-         assert(getNumSets() <= k_MAX_SETS+1);
-         return set_ptrs[set_index];
+         assert( set_index < getNumSets() ); 
+         assert(getNumSets() <= k_MAX_SETS);
+			return set_ptrs[set_index];
       }
       void setSetPtr(UINT32 set_index, UINT32 value)
       {
-         ASSERTX( set_index < k_MAX_SETS );
-         ASSERTX( (value < getNumSets()) || (value == k_MAX_SETS) );
+         assert( set_index < k_MAX_SETS );
+         assert( (value < getNumSets()) || (value == k_MAX_SETS) );
          set_ptrs[set_index] = value;
       }
 
       // constructors/destructors
-      Cache(std::string name, UINT32 size, UINT32 line_bytes, 
+      Cache(string name, UINT32 size, UINT32 line_bytes, 
             UINT32 assoc, UINT32 max_search_depth) : 
          CacheBase(name, size, line_bytes, assoc)
       {
-         ASSERTX(getNumSets() <= k_MAX_SETS);
-         ASSERTX(max_search_depth < k_MAX_SEARCH);
+         assert(getNumSets() <= k_MAX_SETS);
+         assert(max_search_depth < k_MAX_SEARCH);
 
          // caches are initialized during instrumentation, which is
          // single-threaded, so it is safe to use a static var to seed
@@ -378,6 +470,7 @@ class Cache : public CacheBase
          {
             total_accesses[i] = total_misses[i] = 0;               
             sets[i].setAssociativity(assoc);
+            sets[i].setBlockSize(line_bytes);
             set_ptrs[i] = k_MAX_SETS;
          }
          resetCounters();
@@ -422,9 +515,36 @@ class Cache : public CacheBase
          return sets[index].invalidateTag(tag);
       }
 
-      // Multi-line cache access from addr to addr+size-1
-      bool accessMultiLine(ADDRINT addr, UINT32 size, AccessType access_type)
+      // Single line cache access at addr 
+      pair<bool, CacheTag*> accessSingleLine(ADDRINT addr, AccessType access_type, 
+                                             bool* fail_need_fill = NULL, char* fill_buff = NULL,
+                                             char* buff = NULL, UINT32 bytes = 0, 
+                                             bool* eviction = NULL, ADDRINT* evict_addr = NULL, char* evict_buff = NULL)
       {
+
+	 /*
+            Usage:
+               fail_need_fill gets set by this function. indicates whether or not a fill buff is required.
+               If you get one, retry specifying a valid fill_buff containing the line from DRAM. 
+               For read accesses, bytes and buff are for retrieving data from a cacheline. 
+               The var called bytes specifies how many bytes to copy into buff.
+               Writes work similarly, but bytes specifies how many bytes to write into the cacheline. 
+               The var called eviction indicates whether or not an eviction occured. 
+               The vars called evict_addr and evict_buff contain the evict address and the cacheline
+	 */ 
+
+         // set these to correspond with each other
+         assert( (buff == NULL) == (bytes == 0) );
+ 
+         // these should be opposite. they signify whether or not to service a fill
+         assert( (fail_need_fill == NULL) || ((fail_need_fill == NULL) != (fill_buff == NULL)) );
+
+         // You might have an eviction at any time. If you care about evictions, all three parameters should be non-NULL
+         assert( ((eviction == NULL) == (evict_addr == NULL)) && ((eviction == NULL) == (evict_buff == NULL)) );
+
+         UINT32 history[k_MAX_SEARCH];
+ /*
+=======
          const ADDRINT high_addr = addr + size;
          bool all_hit = true;
 
@@ -460,7 +580,6 @@ class Cache : public CacheBase
              if ( (! local_hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
                                    (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
              {
-                UINT32 r_num = rand.next(depth);
                 UINT32 which = history[r_num];
                 assert(which < k_MAX_SETS);
                 sets[which].replace(tag);
@@ -484,6 +603,107 @@ class Cache : public CacheBase
       {
          UINT32 history[k_MAX_SEARCH];
 
+*/
+         CacheTag tag;
+         UINT32 set_index;
+
+         splitAddress(addr, tag, set_index);
+
+         UINT32 index = set_index;
+         UINT32 next_index = index;
+         UINT32 depth = 0;
+         bool hit; 
+
+         pair<bool, CacheTag*> res;
+         CacheTag *tagptr = (CacheTag*) NULL;
+         UINT32 line_index = -1;
+
+         do 
+         {
+	    		index = next_index;
+            history[depth] = index;
+            SET_t &set = sets[index];
+            //set.print();
+            res = set.find(tag, &line_index);
+            hit = res.first;
+            next_index = set_ptrs[index];
+         } while( !hit && ((++depth) < max_search ) && (index < k_MAX_SETS));
+
+
+         if ( fail_need_fill != NULL )
+	 		{
+	    		if ( (fill_buff == NULL) && !hit )
+	    		{
+	       		*fail_need_fill = true;
+
+          		if ( eviction != NULL )
+						*eviction = false;
+
+          		return make_pair(false, (CacheTag*) NULL);
+	    		} 
+		 		else 
+		 		{
+	       		*fail_need_fill = false;
+	    		}
+			}
+
+         if ( hit )
+			{
+				tagptr = res.second;
+
+            if ( access_type == k_ACCESS_TYPE_LOAD )
+					sets[index].read_line(line_index, addr & (line_size - 1), buff, bytes);
+            else {
+//					cerr << "ADDR: " << hex << addr << endl;
+//					cerr << "ln_sz: " << dec << line_size << endl;
+//					cerr << "Hit -> strt write_line: offset= " << dec << (addr & (line_size -1)) << " bytes= " << bytes << endl;
+					sets[index].write_line(line_index, addr & (line_size - 1), buff, bytes);
+//					cerr << "Hit -> end  write_line" << endl;
+				}
+
+         }
+
+         // on miss, loads always allocate, stores optionally
+         if ( (! hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
+                          (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
+         {
+            UINT32 r_num = rand.next(depth);
+            UINT32 which = history[r_num];
+				//evict_tag is set by replace, need to translate tag to address
+				CacheTag evict_tag;
+            sets[which].replace(tag, fill_buff, eviction, &evict_tag, evict_buff);
+            if(evict_addr != NULL)
+					*evict_addr = tagToAddress(evict_tag);
+				tagptr = sets[which].find(tag, &line_index).second;
+
+            if ( depth > 1 ) {
+               // cout << "which = " << dec << which << endl;
+				}
+
+            if ( access_type == k_ACCESS_TYPE_LOAD )
+					sets[which].read_line(line_index, addr & (line_size - 1), buff, bytes);
+            else {
+//					cerr << "!Hit -> strt write_line: offset= " << (addr & (line_size -1)) << " bytes= " << bytes << endl;
+					sets[which].write_line(line_index, addr & (line_size - 1), buff, bytes);
+//					cerr << "!Hit -> end  write_line" << endl;
+				}
+
+         }
+         else 
+			{
+				if ( eviction != NULL )
+					*eviction = false;
+			}
+
+         access[access_type][hit]++;
+
+         return make_pair(hit, tagptr);
+      }
+
+
+      // Single line cache access at addr 
+      pair<bool, CacheTag*> accessSingleLinePeek(ADDRINT addr)
+      {
          CacheTag tag;
          UINT32 set_index;
 
@@ -493,33 +713,24 @@ class Cache : public CacheBase
          UINT32 depth = 0;
          bool hit; 
 
+         pair<bool, CacheTag*> res;
+         CacheTag *tagptr = (CacheTag*) NULL;
+
          do 
          {
-            //cout << "index = " << index << endl;
-            history[depth] = index;
             SET_t &set = sets[index];
             //set.print();
-            hit = set.find(tag);
+            res = set.find(tag);
+            hit = res.first;
             index = set_ptrs[index];
          } while( !hit && ((++depth) < max_search ) && (index < k_MAX_SETS));
 
-         // on miss, loads always allocate, stores optionally
-         if ( (! hit) && ((access_type == k_ACCESS_TYPE_LOAD) || 
-                          (k_STORE_ALLOCATION == CACHE_ALLOC::k_STORE_ALLOCATE)) )
-         {
-            UINT32 r_num = rand.next(depth);
-            UINT32 which = history[r_num];
-            assert(which < k_MAX_SETS);
-            sets[which].replace(tag);
-            if ( depth > 1 )
-               cout << "which = " << dec << which << endl;
-         }
-         
-         assert(access_type < k_ACCESS_TYPE_NUM);
-         access[access_type][hit]++;
+         if ( hit )
+	    		tagptr = res.second;
 
-         return hit;
+         return make_pair(hit, tagptr);
       }
+
 
 };
 

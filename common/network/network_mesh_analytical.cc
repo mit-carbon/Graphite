@@ -4,6 +4,7 @@
 
 using namespace std;
 
+//NetworkMeshAnalytical::NetworkMeshAnalytical(int tid, int num_threads, Core *core)
 NetworkMeshAnalytical::NetworkMeshAnalytical(Core *core, int num_threads)
     :
         Network(core, num_threads),
@@ -145,4 +146,5 @@ void NetworkMeshAnalytical::outputSummary(ostream &out)
    out << "    cycles spent latency: " << cycles_spent_latency << endl;
    out << "    cycles spent contention: " << cycles_spent_contention << endl;
 }
+
 

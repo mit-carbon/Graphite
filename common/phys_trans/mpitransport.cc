@@ -289,7 +289,11 @@ bool Transport::ptQuery()
    // flag == 0 indicates that no message is waiting
    return (flag != 0);
 }
-
+/* ==================================================
+ * Not beigng used any more; the MCP uses the network
+ * instead
+ * ================================================== 
+ *
 void Transport::ptSendToMCP(UInt8* buffer, UInt32 num_bytes)
 {
    // Arguments:
@@ -423,3 +427,5 @@ UInt8* Transport::ptMCPRecv(UInt32* num_bytes, bool count_in_network)
    return buffer;
    // NOTE: the caller should free the buffer when it's finished with it
 }
+
+============================================================================ */

@@ -17,7 +17,6 @@ void initMCP()
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-   // FIXME: for now, this is how we give the syscall server a place to run
    pthread_create(&mcp_thread, &attr, mcp_thread_func, (void *) 0);
 }
 
@@ -42,5 +41,6 @@ void quitMCP()
 {
    finishMCP();
    pthread_join(mcp_thread, NULL);
+   fprintf(stderr, "MCP Thread has joined...\n");
 }
 

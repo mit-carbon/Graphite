@@ -74,7 +74,7 @@ void SyscallServer::marshallOpenCall(int comm_id)
 
    */   
 
-   cerr << "Open syscall from: " << comm_id << endl;
+   // cerr << "Open syscall from: " << comm_id << endl;
 
    UInt32 len_fname;
    char *path = (char *) scratch;
@@ -123,19 +123,26 @@ void SyscallServer::marshallReadCall(int comm_id)
 
    */   
 
-   cerr << "Read syscall from: " << comm_id << endl;
+   // cerr << "Read syscall from: " << comm_id << endl;
 
    int fd;
    char *buf = (char *) scratch;
    size_t count;
+   char *dest;
 
-   recv_buff >> fd >> count;
+   //create a temporary int for storing the addr
+   int d2;
+   recv_buff >> fd >> count >> d2;
+   dest = (char *)d2;
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
    // Actually do the read call
    int bytes = read(fd, (void *) buf, count);  
+
+   // Copy the memory into shared mem
+   _network.getCore()->dcacheRunModel(Core::STORE, (ADDRINT)dest, buf, count);
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
@@ -174,7 +181,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
 
    */   
 
-   cerr << "Write syscall from: " << comm_id << endl;
+   // cerr << "Write syscall from: " << comm_id << endl;
 
    int fd;
    char *buf = (char *) scratch;
@@ -185,7 +192,16 @@ void SyscallServer::marshallWriteCall(int comm_id)
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
-   recv_buff >> make_pair(buf, count);
+   // Previously we would pass the actual data, now we pass the
+   // address and the syscall server will pull the data from the
+   // shared memory. --cg3
+   //recv_buff >> make_pair(buf, count);
+   char *src;
+   int src_b;
+   recv_buff >> src_b;
+   src = (char *)src_b;
+
+   _network.getCore()->dcacheRunModel(Core::LOAD, (ADDRINT)src, buf, count);
 
    // Actually do the write call
    int bytes = write(fd, (void *) buf, count);  
@@ -225,7 +241,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
 
    */   
 
-   cerr << "Close syscall from: " << comm_id << endl;
+   // cerr << "Close syscall from: " << comm_id << endl;
 
    int fd;
    recv_buff >> fd;
@@ -243,7 +259,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
 
 void SyscallServer::marshallAccessCall(int comm_id)
 {
-   cerr << "access syscall from: " << comm_id << endl;
+   // cerr << "access syscall from: " << comm_id << endl;
 
    UInt32 len_fname;
    char *path = (char *) scratch;

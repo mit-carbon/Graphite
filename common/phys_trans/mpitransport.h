@@ -58,12 +58,17 @@ class Transport {
       // Returns TRUE if there is a message waiting to be received.
       bool ptQuery();
 
-      // ***************************************************************//
+      /* ==================================================================
+       * The MCP does not use these routines anymore. It uses the netowrk
+       * instead
+       * ==================================================================
+       *
+      // *************************************************************** //
       // These routines are used to communicate with the central server
       // process (known as the "MCP").  There is exactly one server for
       // the entire simulation but the user shouldn't have to know
       // anything about where it is or how to get to it.
-      // ***************************************************************//
+      // *************************************************************** //
 
       // ptSendToMCP:
       //  buffer: (input) Pointer to buffer of data to send
@@ -76,7 +81,7 @@ class Transport {
       //   Note: Delete the buffer when you are done with it
       UInt8* ptRecvFromMCP(UInt32* num_bytes);
 
-      //***** The two below should only be called from the MCP *****//
+      // ***** The two below should only be called from the MCP ***** //
       // ptMCPSend:
       //  dest: (input) Comm_ID of the module you are sending to
       //  buffer: (input) Pointer to buffer of data to send
@@ -88,6 +93,8 @@ class Transport {
       //   Returns: A pointer to a buffer filled with the received data
       //   Note: Delete the buffer when you are done with it
       UInt8* ptMCPRecv(UInt32* num_bytes);
+
+      =================================================================== */
 
 };
 

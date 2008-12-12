@@ -79,7 +79,7 @@ void MCP::run()
 
 void MCP::finish()
 {
-   cerr << "Got finish request..." << endl;
+//   cerr << "Got finish request..." << endl;
    UnstructuredBuffer quit_buff;
    quit_buff.clear();
 
@@ -87,7 +87,7 @@ void MCP::finish()
    int commid = -1;
    quit_buff << msg_type << commid;   
 
-   cerr << "Sending message to MCP to quit..." << endl;
+//   cerr << "Sending message to MCP to quit..." << endl;
    _finished = true;
 
    _network.netSendToMCP(quit_buff.getBuffer(), quit_buff.size());

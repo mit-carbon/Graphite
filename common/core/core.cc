@@ -1,15 +1,17 @@
 #include "core.h"
-#include "chip.h"
+#include "debug.h"
 
 #include "network_mesh_analytical.h"
+#define CORE_DEBUG
 
 using namespace std;
 
-int Core::coreInit(Chip *chip, int tid, int num_mod)
+int Core::coreInit(int tid, int num_mod)
 {
-   the_chip = chip;
    core_tid = tid;
    core_num_mod = num_mod;
+
+   InitLock(&clock_lock);
 
    //Switch which line is commented to choose the different 
    //network models
@@ -19,23 +21,24 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
    switch(net_model)
    {
-       case NETWORK_BUS:
-           network = new Network(this, num_mod);
-           break;
-       case NETWORK_ANALYTICAL_MESH:
-           network = new NetworkMeshAnalytical(this, num_mod);
-           break;
-       case NUM_NETWORK_TYPES:
-       default:
-           cout << "ERROR: Unknown Network Model!";
-           break;
+      case NETWORK_BUS:
+      	network = new Network(this, num_mod);
+         break;
+      case NETWORK_ANALYTICAL_MESH:
+         network = new NetworkMeshAnalytical(this, num_mod);
+         break;
+      case NUM_NETWORK_TYPES:
+
+      default:
+      	debugPrintStart(tid, "CORE", "ERROR: Unknown Network Model!");
+         break;
    }
-  
+
 
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
-      cout << "Core[" << tid << "]: instantiated performance model" << endl;
+      debugPrintStart(core_tid, "Core", "instantiated performance model");
    } else 
    {
       perf_model = (PerfModel *) NULL;    
@@ -43,7 +46,7 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling ) 
    {
-      ocache = new OCache("organic cache", 
+		ocache = new OCache("organic cache", 
                           g_knob_cache_size.Value() * k_KILO,
                           g_knob_line_size.Value(),
                           g_knob_associativity.Value(),
@@ -58,16 +61,31 @@ int Core::coreInit(Chip *chip, int tid, int num_mod)
                           g_knob_icache_size.Value() * k_KILO,
                           g_knob_icache_associativity.Value(),
                           g_knob_icache_max_search_depth.Value());                        
+//                          g_knob_simarch_is_shared_mem.Value());                        
 
-//       cout << "Core[" << tid << "]: instantiated organic cache model" << endl;
-//       cout << ocache->statsLong() << endl;
-   } else 
+     	debugPrintStart(core_tid, "Core", "instantiated organic cache model");
+  
+	} else 
    {
       ocache = (OCache *) NULL;
    }   
 
+   if ( g_knob_simarch_has_shared_mem ) {
+     
+      assert( g_knob_enable_dcache_modeling ); 
+
+      debugPrintStart (core_tid, "CORE", "instantiated memory manager model");
+      memory_manager = new MemoryManager(this, ocache);
+
+   } else {
+
+      memory_manager = (MemoryManager *) NULL;
+      debugPrintStart (core_tid, "CORE", "No Memory Manager being used");
+   
+   }
 
    syscall_model = new SyscallMdl(network);
+//   InitLock(&dcache_lock);
    sync_client = new SyncClient(this);
 
    return 0;
@@ -107,23 +125,26 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    packet = network->netRecv(match);
 
-#ifdef DEBUG
-   cout << "Got packet: "
+#ifdef CORE_DEBUG
+   stringstream ss;
+	ss << "Got packet: "
 	<< "Send=" << packet.sender
 	<< ", Recv=" << packet.receiver
 	<< ", Type=" << packet.type
 	<< ", Len=" << packet.length << endl;
+	debugPrint (getRank(), "CORE", ss.str());
 #endif
 
    if((unsigned)size != packet.length){
-      cerr << "ERROR (comm_id: " << coreCommID() << "):" << endl
-           << "Received packet length (" << packet.length
-	   << ") is not as expected (" << size << ")" << endl;
+      stringstream ss;
+		ss << "ERROR (comm_id: " << coreCommID() << "):" << endl
+         << "Received packet length (" << packet.length
+	   	<< ") is not as expected (" << size << ")" << endl;
+		debugPrint (getRank(), "CORE", ss.str());
       exit(-1);
    }
 
-   for(int i = 0; i < size; i++)
-      buffer[i] = packet.data[i];
+   memcpy(buffer, packet.data, size);
 
    // De-allocate dynamic memory
    delete [] packet.data;
@@ -137,10 +158,10 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
      {
        //FIXME: This should be placed in perfmodel
        out << "  Total cycles: " << getProcTime() << endl;
-       cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
+       // cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
        perf_model->fini(code, v, out);
 
-       network->outputSummary(out);
+       // network->outputSummary(out);
      }
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )
@@ -153,19 +174,170 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
    delete network;
 }
 
-//FIXME: These should actually be accessed THROUGH the perfmodel
+
+// organic cache wrappers
+
+bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
+{ return ocache->runICacheLoadModel(i_addr, size).first; }
+
+/*
+ * dcacheRunModel (mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
+ *
+ * Arguments:
+ *   d_addr :: address of location we want to access (read or write)
+ *   shmem_req_t :: READ or WRITE
+ *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
+ *   data_size :: size of data we must read/write
+ *
+ * Return Value:
+ *   hit :: Say whether there has been at least one cache hit or not
+ */
+bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
+{
+	shmem_req_t shmem_operation;
+	
+	if (operation == LOAD)
+		shmem_operation = READ;
+	else {
+
+		shmem_operation = WRITE;
+	}
+
+	if (g_knob_simarch_has_shared_mem)  {
+#ifdef CORE_DEBUG
+		stringstream ss;
+		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - ADDR: " << hex << d_addr << ", data_size: " << dec << data_size << " , - START ";
+		debugPrint(core_tid, "CORE", ss.str());
+#endif
+
+		bool all_hits = true;
+
+		if (data_size <= 0) {
+			return (true);
+			// TODO: this is going to affect the statistics even though no shared_mem action is taking place
+		}
+
+		ADDRINT begin_addr = d_addr;
+		ADDRINT end_addr = d_addr + data_size;
+	  	ADDRINT begin_addr_aligned = begin_addr - (begin_addr % ocache->dCacheLineSize());
+		ADDRINT end_addr_aligned = end_addr - (end_addr % ocache->dCacheLineSize());
+		char *curr_data_buffer_head = data_buffer;
+
+		//TODO set the size parameter correctly, based on the size of the data buffer
+		//TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
+		for (ADDRINT curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += ocache->dCacheLineSize())
+		{
+			// Access the cache one line at a time
+			UINT32 curr_offset;
+			UINT32 curr_size;
+
+			// Determine the offset
+			// TODO fix curr_size calculations
+			// FIXME: Check if all this is correct
+			if (curr_addr_aligned == begin_addr_aligned) {
+				curr_offset = begin_addr % ocache->dCacheLineSize();
+			}
+			else {
+				curr_offset = 0;
+			}
+
+			// Determine the size
+			if (curr_addr_aligned == end_addr_aligned) {
+				curr_size = (end_addr % ocache->dCacheLineSize()) - (curr_offset);
+				if (curr_size == 0) {
+					continue;
+				}
+			}
+			else {
+				curr_size = ocache->dCacheLineSize() - (curr_offset);
+			}
+         
+#ifdef CORE_DEBUG
+			stringstream ss;
+			ss.str("");
+			ss << "[" << getRank() << "] start InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
+			debugPrint(getRank(), "CORE", ss.str());
+#endif
+
+			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
+				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
+				// If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
+				all_hits = false;
+			}
+			
+#ifdef CORE_DEBUG
+			ss.str("");
+			ss << "[" << getRank() << "] end  InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
+			debugPrint(getRank(), "CORE", ss.str());
+#endif
+
+			// Increment the buffer head
+			curr_data_buffer_head += curr_size;
+		}
+
+#ifdef CORE_DEBUG
+		ss.str("");
+		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - ADDR: " << hex << d_addr << ", data_size: " << dec << data_size << ", END!! " << endl;
+		debugPrint(core_tid, "CORE", ss.str());
+#endif
+		
+		return all_hits;		    
+   
+	} 
+	else 
+	{
+	   // run this if we aren't using shared_memory
+		// FIXME: I am not sure this is right
+		// What if the initial data for this address is in some other core's DRAM (which is on some other host machine)
+		if(operation == LOAD)
+			return ocache->runDCacheLoadModel(d_addr, data_size).first;
+		else
+			return ocache->runDCacheStoreModel(d_addr, data_size).first;
+   }
+}
+
+void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate, char *c_data)
+{
+	memory_manager->debugSetCacheState(address, cstate, c_data);
+}
+
+bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data)
+{
+	return memory_manager->debugAssertCacheState(address, expected_cstate, expected_data);
+}
+
+void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
+{
+	memory_manager->debugSetDramState(address, dstate, sharers_list, d_data);		   
+}
+
+bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
+{
+	return memory_manager->debugAssertDramState(address, dstate, sharers_list, d_data);
+}
+
 void Core::setProcTime(UInt64 time)
 {
-  perf_model->setCycleCount(time);
+	perf_model->setCycleCount(time);
 }
 
 void Core::updateProcTime(UInt64 time)
 {
-  perf_model->updateCycleCount(time);
+	lockClock();
+	perf_model->updateCycleCount(time);
+	unlockClock();
+}
+
+void Core::addProcTime(UInt64 cycles)
+{
+	lockClock();
+	perf_model->addToCycleCount(cycles);
+	unlockClock();
 }
 
 UInt64 Core::getProcTime()
 {
-  return perf_model->getCycleCount();
+  	debugPrint (getRank(), "CORE", "Before getCycleCount()");
+	return perf_model->getCycleCount();
 }
 

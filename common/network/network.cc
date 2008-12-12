@@ -278,6 +278,9 @@ NetPacket Network::netMCPRecv()
 
 bool Network::netQuery(NetMatch match)
 {
+   // FIXME: !!WARNING!! It appears that this function does not work.
+   assert(false);
+
    NetQueueEntry entry;
    bool found = false;
    
@@ -311,7 +314,7 @@ bool Network::netQuery(NetMatch match)
    {
        for(int j = type_start; j < type_end; j++)
        {
-			 //net_queue[i][j].lock();
+           net_queue[i][j].lock();
 
            if(!net_queue[i][j].empty() && entry.time >= net_queue[i][j].top().time)
            {
@@ -319,7 +322,7 @@ bool Network::netQuery(NetMatch match)
                break;
            }
 
-			 //net_queue[i][j].unlock();
+           net_queue[i][j].unlock();
        }
    }
    

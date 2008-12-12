@@ -5,6 +5,34 @@
 
 using namespace std;
 
+bool MemoryManagerNetworkCallback(void *obj, NetPacket packet)
+{
+   MemoryManager *mm = (MemoryManager*) obj;
+
+   switch (packet.type)
+      {
+      case SHARED_MEM_REQ:
+         mm->addMemRequest(packet);
+         return true;
+
+      case SHARED_MEM_EVICT:
+         mm->forwardWriteBackToDram(packet);
+         return true;
+
+      case SHARED_MEM_UPDATE_UNEXPECTED:
+         mm->processUnexpectedSharedMemUpdate(packet);
+         return true;
+
+      case SHARED_MEM_ACK:
+         mm->processAck(packet);
+         return true;
+
+      default:
+         // don't dequeue
+         return false;
+      };
+}
+
 MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 
    the_core = the_core_arg;
@@ -44,10 +72,21 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg) {
 	// Initializing request queue parameters
 	processing_request_flag = false;
 	incoming_requests_count = 0;
+
+    Network *net = the_core->getNetwork();
+    net->registerCallback(SHARED_MEM_REQ, MemoryManagerNetworkCallback, this);
+    net->registerCallback(SHARED_MEM_EVICT, MemoryManagerNetworkCallback, this);
+    net->registerCallback(SHARED_MEM_UPDATE_UNEXPECTED, MemoryManagerNetworkCallback, this);
+    net->registerCallback(SHARED_MEM_ACK, MemoryManagerNetworkCallback, this);
 }
 
 MemoryManager::~MemoryManager()
 {
+   Network *net = the_core->getNetwork();
+   net->unregisterCallback(SHARED_MEM_REQ);
+   net->unregisterCallback(SHARED_MEM_EVICT);
+   net->unregisterCallback(SHARED_MEM_UPDATE_UNEXPECTED);
+   net->unregisterCallback(SHARED_MEM_ACK);
 }
 
 

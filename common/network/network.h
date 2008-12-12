@@ -17,7 +17,6 @@ class Chip;
 #include "packet_type.h"
 #include "config.h"
 #include "transport.h"
-#include "memory_manager.h"
 
 extern Config* g_config;
 extern Chip* g_chip; //only here for global_lock debugging purposes
@@ -143,6 +142,13 @@ class Network{
    NetQueue **net_queue;
    Transport *transport;
 
+ public:
+   typedef bool (*NetworkCallback)(void *, NetPacket);
+ private:
+
+   NetworkCallback *callbacks;
+   void **callback_objs;
+
  protected:
    Core *the_core;
    int net_tid;
@@ -154,7 +160,7 @@ class Network{
  public:
 
    Network(Core* the_core_arg, int num_mods);
-   virtual ~Network(){};
+   virtual ~Network();
 	   
    //checkMessages is a hack to force core to check its messages cpc (can we use an interrupt to call it?
    //FIXME
@@ -187,6 +193,12 @@ class Network{
    }
 
    void netPullFromTransport();
+
+   void registerCallback(PacketType type, 
+                         NetworkCallback callback,
+                         void *obj);
+
+   void unregisterCallback(PacketType type);
 };
 
 #endif

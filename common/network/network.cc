@@ -26,12 +26,28 @@ Network::Network(Core *the_core_arg, int num_mod)
    {
       net_queue[i] = new NetQueue [num_pac_type];
    }
+
+   callbacks = new NetworkCallback [num_pac_type];
+   callback_objs = new void* [num_pac_type];
+}
+
+Network::~Network()
+{
+   delete [] callback_objs;
+   delete [] callbacks;
+
+   for (int i = 0; i < net_num_mod; i++)
+      {
+         delete [] net_queue[i];
+      }
+   delete [] net_queue;
+
+   delete transport;
 }
 
 void Network::netCheckMessages()
 {
-	//	netEntryTasks();
- 	cerr << "DONT CALL ME" << endl;
+   cerr << "DONT CALL ME" << endl;
 }
 
 int Network::netSend(NetPacket packet)
@@ -40,8 +56,6 @@ int Network::netSend(NetPacket packet)
    UInt32 buf_size;
    
    UINT64 time = the_core->getProcTime() + netLatency(packet) + netProcCost(packet);
-   // Perform SMEM entry tasks
-//   netEntryTasks(); obselete call
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
@@ -65,8 +79,6 @@ int Network::netSendMagic(NetPacket packet)
    UInt32 buf_size;
    
    UINT64 time = the_core->getProcTime();
-   // Perform network entry tasks
-//   netEntryTasks();
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
@@ -398,115 +410,61 @@ void Network::netPullFromTransport()
       type = INVALID;
       entry.time = 0;
       // FIXME: entry.time = _core->getProcTime();
-     
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_REQ].empty())
+
+      for (int i = 0; i < net_num_mod; i++)
          {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_REQ].top().time))
-            {
-              entry = net_queue[i][SHARED_MEM_REQ].top();
-              sender = i;
-              type = SHARED_MEM_REQ;
-            }
-         }
-      }
+            for (int t = 0; t < MAX_PACKET_TYPE; t++)
+               {
+                  if (callbacks[t] == NULL)
+                     continue;
 
-		for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_EVICT].empty())
+                  net_queue[i][t].lock();
+                  if(!net_queue[i][t].empty())
+                     {
+                        if((entry.time == 0) || (entry.time >= net_queue[i][t].top().time))
+                           {
+                              entry = net_queue[i][t].top();
+                              sender = i;
+                              type = (PacketType)t;
+                           }
+                     }
+                  net_queue[i][t].unlock();
+               }
+         }
+
+      if (callbacks[type] != NULL)
          {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_EVICT].top().time))
-            {
-              entry = net_queue[i][SHARED_MEM_EVICT].top();
-              sender = i;
-              type = SHARED_MEM_EVICT;
-            }
+            assert(0 <= sender && sender < net_num_mod);
+            assert(MIN_PACKET_TYPE <= type && type <= MAX_PACKET_TYPE);
+
+            the_core->lockClock();
+            if(the_core->getProcTime() < entry.time)
+               {
+                  the_core->setProcTime(entry.time);
+               }
+            the_core->unlockClock();
+
+            if (callbacks[type](callback_objs[type], entry.packet))
+               {
+                  net_queue[sender][type].lock();
+                  net_queue[sender][type].pop();
+                  net_queue[sender][type].unlock();
+               }
          }
-      }
-
-
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
-         {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time))
-            {
-               entry = net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top();
-               sender = i;
-               type = SHARED_MEM_UPDATE_UNEXPECTED;
-            }
-         }
-      }
-		
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_ACK].empty())
-         {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_ACK].top().time))
-            {
-               entry = net_queue[i][SHARED_MEM_ACK].top();
-               sender = i;
-               type = SHARED_MEM_ACK;
-            }
-         }
-      }
-
-	  	if(type == SHARED_MEM_REQ)
-      {
-			assert(0 <= sender && sender < net_num_mod);
-			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         net_queue[sender][type].pop();
-         
-         the_core->getMemoryManager()->addMemRequest(entry.packet);
-			
-			if(the_core->getProcTime() < entry.time)
-			{
-				the_core->setProcTime(entry.time);
-			}
-      }
-		else if(type == SHARED_MEM_EVICT)
-		{
-			assert(0 <= sender && sender < net_num_mod);
-			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         net_queue[sender][type].pop();
-         
-         the_core->getMemoryManager()->forwardWriteBackToDram(entry.packet);
-
-			if(the_core->getProcTime() < entry.time)
-			{
-				the_core->setProcTime(entry.time);
-			}
-		}
-      else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
-      {
-		  assert(0 <= sender && sender < net_num_mod);
-		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-        net_queue[sender][type].pop();
-        
-		  the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
-		  
-		  if(the_core->getProcTime() < entry.time)
-		  {
-			  the_core->setProcTime(entry.time);
-		  }
-      }
-      else if(type == SHARED_MEM_ACK)
-      {
-		  assert(0 <= sender && sender < net_num_mod);
-		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-        net_queue[sender][type].pop();
-        
-		  the_core->getMemoryManager()->processAck(entry.packet);
-		  
-		  if(the_core->getProcTime() < entry.time)
-		  {
-			  the_core->setProcTime(entry.time);
-		  }
-      }
 
    } while(type != INVALID);
 	
+}
+
+void Network::registerCallback(PacketType type, NetworkCallback callback, void *obj)
+{
+   callbacks[type] = callback;
+   callback_objs[type] = obj;
+}
+
+void Network::unregisterCallback(PacketType type)
+{
+   callbacks[type] = NULL;
 }
 
 void Network::waitForUserPacket()

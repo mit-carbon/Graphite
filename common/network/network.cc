@@ -198,27 +198,29 @@ void Network::printNetMatch(NetMatch match, int receiver) {
 
 string Network::packetTypeToString(PacketType type) 
 {
-	switch(type) {
-		case INVALID:
-			return "INVALID                     ";
-		case USER:
-			return "USER                        ";
-		case SHARED_MEM_REQ:
-			return "SHARED_MEM_REQ              ";
-		case SHARED_MEM_RESPONSE:
-			return "SHARED_MEM_RESPONSE			";
-		case SHARED_MEM_UPDATE_UNEXPECTED:
-			return "SHARED_MEM_UPDATE_UNEXPECTED";
-		case SHARED_MEM_ACK:
-			return "SHARED_MEM_ACK              ";
-		case SHARED_MEM_EVICT:
-			return "SHARED_MEM_EVICT            ";
-		case MCP_NETWORK_TYPE:
-			return "MCP_NETWORK_TYPE				";
-		default:
-			return "ERROR in PacketTypeToString";
-	}
-	return "ERROR in PacketTypeToString";
+  switch(type) {
+  case INVALID:
+    return "INVALID                     ";
+  case USER:
+    return "USER                        ";
+  case SHARED_MEM_REQ:
+    return "SHARED_MEM_REQ              ";
+  case SHARED_MEM_RESPONSE:
+    return "SHARED_MEM_RESPONSE	        ";
+  case SHARED_MEM_UPDATE_UNEXPECTED:
+    return "SHARED_MEM_UPDATE_UNEXPECTED";
+  case SHARED_MEM_ACK:
+    return "SHARED_MEM_ACK              ";
+  case SHARED_MEM_EVICT:
+    return "SHARED_MEM_EVICT            ";
+  case MCP_REQUEST_TYPE:
+    return "MCP_REQUEST_TYPE		";
+  case MCP_RESPONSE_TYPE:
+    return "MCP_RESPONSE_TYPE           ";
+  default:
+    return "ERROR in PacketTypeToString";
+  }
+  return "ERROR in PacketTypeToString";
 }
 
 int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
@@ -227,8 +229,7 @@ int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
    packet.sender = netCommID();
    packet.receiver = g_config->totalMods() - 1;
    packet.length = len;
-   packet.type = MCP_NETWORK_TYPE;
-
+   packet.type = MCP_REQUEST_TYPE;
 
    //FIXME: This is bad casting away constness
    packet.data = (char *)buf;
@@ -244,7 +245,7 @@ NetPacket Network::netRecvFromMCP()
    NetMatch match;
    match.sender = g_config->totalMods() - 1;
    match.sender_flag = true;
-   match.type = MCP_NETWORK_TYPE;
+   match.type = MCP_RESPONSE_TYPE;
    match.type_flag = true;
    return netRecv(match);
 }
@@ -255,7 +256,7 @@ int Network::netMCPSend(int commid, const char *buf, unsigned int len, bool is_m
    packet.sender = g_config->totalMods() - 1;
    packet.receiver = commid;
    packet.length = len;
-   packet.type = MCP_NETWORK_TYPE;
+   packet.type = MCP_RESPONSE_TYPE;
 
    //FIXME: This is bad casting away constness
    packet.data = (char *)buf;
@@ -269,7 +270,7 @@ NetPacket Network::netMCPRecv()
 {
    NetMatch match;
    match.sender_flag = false;
-   match.type = MCP_NETWORK_TYPE;
+   match.type = MCP_REQUEST_TYPE;
    match.type_flag = true;
    return netRecv(match);
 }

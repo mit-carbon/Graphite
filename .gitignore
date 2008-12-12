@@ -20,6 +20,14 @@ common/tests/barnes/BARNES
 common/tests/mutex/mutex_test
 common/tests/cond/cond_test
 common/tests/broadcast/broadcast_test
+common/tests/water-spatial/*.[ch]
+common/tests/water-nsquared/*.[ch]
+common/tests/volrend/*.[ch]
+common/tests/raytrace/*.[ch]
+common/tests/radiosity/*.[ch]
+common/tests/ocean_contig/*.[ch]
+common/tests/fmm/*.[ch]
+common/tests/barnes/*.[ch]
 
 # test output
 pin.log

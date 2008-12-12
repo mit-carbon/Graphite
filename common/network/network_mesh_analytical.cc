@@ -1,4 +1,5 @@
 #include "network_mesh_analytical.h"
+#include "network_mesh_analytical_params.h"
 #include "chip.h"
 #include <math.h>
 
@@ -61,14 +62,14 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     // TODO: Confirm model for latency computed based on actual number
     // of network hops.
 
-    const double Tw2 = 1;     // wire delay between adjacent nodes on mesh
-    const double s = 1;       // switch delay, relative to Tw2
-    const int n = 2;          // dimension of network
-    const double W2 = 32;     // channel width constraint (constraint
-      // is on bisection width, W2 * N held constant) (paper
-      // normalized to unit-width channels, W2 denormalizes)
-    const double p = 0.8;     // network utilization
-    
+    // Retrieve parameters
+    const NetworkMeshAnalyticalParameters *pParams = Config::getSingleton()->getAnalyticNetworkParms();
+    double Tw2 = pParams->Tw2;
+    double s = pParams->s;
+    int n = pParams->n;
+    double W2 = pParams->W2;
+    double p = pParams->p;
+
     // This lets us derive the latency, ignoring contention
 
     int N;                    // number of nodes in the network

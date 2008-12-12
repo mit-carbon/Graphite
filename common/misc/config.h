@@ -18,6 +18,7 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_process;
 
+struct NetworkMeshAnalyticalParameters;
 
 class Config {
  public:
@@ -38,6 +39,7 @@ class Config {
    
    UInt32  MCP_process;          // The process where the MCP lives
 
+   NetworkMeshAnalyticalParameters *analytic_network_parms;
  public:
    Config();
    ~Config();
@@ -73,7 +75,8 @@ class Config {
    const CoreList getModuleList(UInt32 proc_num)
       { assert(proc_num < num_process); return core_map[proc_num]; }
    
-
+   const NetworkMeshAnalyticalParameters *getAnalyticNetworkParms() const
+      { return analytic_network_parms; }
 };
 
 #endif

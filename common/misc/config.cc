@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "network_mesh_analytical_params.h"
+
 #define DEBUG
 
 using namespace std;
@@ -61,6 +63,14 @@ Config::Config()
       }
    }
 
+   // Create network parameters
+   analytic_network_parms = new NetworkMeshAnalyticalParameters();
+   analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
+   analytic_network_parms->s = 1; // single cycle switching time
+   analytic_network_parms->n = 2; // 2d mesh network
+   analytic_network_parms->W2 = 32; // arbitrary
+   analytic_network_parms->p = 0.8; // high utilization
+
 #ifdef DEBUG  
    for (i=0; i<num_process; i++) {   
       cout << "Process " << i << ": ";
@@ -74,6 +84,7 @@ Config::Config()
 Config::~Config()
 {
    // Clean up the dynamic memory we allocated
+   delete analytic_network_parms;
    delete [] num_modules;
    delete [] core_map;
 }

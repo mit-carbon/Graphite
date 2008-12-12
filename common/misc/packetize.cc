@@ -7,6 +7,7 @@ UnstructuredBuffer::UnstructuredBuffer()
 {
 }
 
+template bool UnstructuredBuffer::get(double& data);
 
 template<class T> void UnstructuredBuffer::put(T* data, int num)
 {

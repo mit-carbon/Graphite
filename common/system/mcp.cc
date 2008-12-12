@@ -7,7 +7,8 @@ MCP::MCP(Network & network)
       MCP_SERVER_MAX_BUFF(256*1024),
       scratch(new char[MCP_SERVER_MAX_BUFF]),
       syscall_server(_network, send_buff, recv_buff, MCP_SERVER_MAX_BUFF, scratch),
-      sync_server(_network, recv_buff)
+      sync_server(_network, recv_buff),
+      network_mesh_analytical_server(_network, recv_buff)
 {
 }
 
@@ -68,6 +69,9 @@ void MCP::run()
          break;
       case MCP_MESSAGE_BARRIER_WAIT:
          sync_server.barrierWait(comm_id);
+         break;
+      case MCP_MESSAGE_UTILIZATION_UPDATE:
+         network_mesh_analytical_server.update(comm_id);
          break;
       default:
          cerr << "Unhandled MCP message type: " << msg_type << " from: " << comm_id << endl;

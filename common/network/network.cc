@@ -227,7 +227,7 @@ int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
 {
    NetPacket packet;
    packet.sender = netCommID();
-   packet.receiver = g_config->totalMods() - 1;
+   packet.receiver = g_config->MCPCommID();
    packet.length = len;
    packet.type = MCP_REQUEST_TYPE;
 
@@ -243,7 +243,7 @@ int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
 NetPacket Network::netRecvFromMCP()
 {
    NetMatch match;
-   match.sender = g_config->totalMods() - 1;
+   match.sender = g_config->MCPCommID();
    match.sender_flag = true;
    match.type = MCP_RESPONSE_TYPE;
    match.type_flag = true;
@@ -253,7 +253,7 @@ NetPacket Network::netRecvFromMCP()
 int Network::netMCPSend(int commid, const char *buf, unsigned int len, bool is_magic)
 {
    NetPacket packet;
-   packet.sender = g_config->totalMods() - 1;
+   packet.sender = g_config->MCPCommID();
    packet.receiver = commid;
    packet.length = len;
    packet.type = MCP_RESPONSE_TYPE;

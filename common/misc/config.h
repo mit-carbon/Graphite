@@ -58,6 +58,7 @@ class Config {
 
    // Return the number of the process that should contain the MCP
    UInt32 MCPProcNum() { return MCP_process; }
+   UInt32 MCPCommID() { return totalMods() - 1; }
 
    // Return the number of modules (cores) in a given process
    UInt32 numMods()

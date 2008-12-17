@@ -38,11 +38,6 @@ DramDirectoryEntry* DramDirectory::getEntry(ADDRINT address)
 	// note: the directory is a map key'ed by cache line. so, first we need to determine the associated cache line
 	UINT32 data_line_index = (address / bytes_per_cache_line);
   
-#ifdef DRAM_DEBUG
-	debugPrintHex (dram_id, "DRAMDIR", "getEntry: address", address);
-	debugPrint (dram_id, "DRAMDIR", "getEntry: cachline_index", data_line_index);
-#endif
-  
 	assert( data_line_index >= 0);
 
 	DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
@@ -110,6 +105,13 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 	MemoryManager::extractAckPayloadBuffer(&wb_packet, &payload, data_buffer);
 
 	DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
+
+#ifdef DRAM_DEBUG
+	stringstream ss;
+	ss << "Got Eviction for Address: 0x" << hex << (UINT32) payload.ack_address << dec << ", Sharer = " << wb_packet.sender << ", numSharers = " << dir_entry->numSharers() << ", DState = " << DramDirectoryEntry::dStateToString(dir_entry->getDState());
+	debugPrint (dram_id, "DRAM_DIR", ss.str());
+#endif
+
 	dir_entry->removeSharer(wb_packet.sender);
 
 	// cerr << "DRAM Directory: Address = 0x" << hex << (UINT32) payload.ack_address << dec << ", Sharer = " << wb_packet.sender << ", numSharers = " << dir_entry->numSharers() << endl;
@@ -140,6 +142,14 @@ void DramDirectory::startSharedMemRequest(NetPacket& req_packet) {
 
 	DramRequest* dram_req = dram_request_list[address];
 
+#ifdef DRAM_DEBUG
+	stringstream ss;
+	string start_now = (dram_req == NULL) ? "YES" : "NO";
+	string request_type = (shmem_req_type == READ) ? "READ" : "WRITE";
+	ss << "Got Shared Memory Request for address: 0x" << hex << (UINT32) address << dec << ", Req_Type = " << request_type << ", Start Now - " << start_now;
+	debugPrint (dram_id, "DRAM_DIR", ss.str());
+#endif
+
 	if (dram_req == NULL) {
 
 		// No requests for this address exist currently
@@ -166,10 +176,17 @@ void DramDirectory::startSharedMemRequest(NetPacket& req_packet) {
 
 void DramDirectory::finishSharedMemRequest(ADDRINT address) 
 {
-  
 	// We need to process the next request on the queue here
 	DramRequest* dram_req = dram_request_list[address];
 	assert (dram_req != NULL);
+ 	
+#ifdef DRAM_DEBUG
+	stringstream ss;
+	string start_next = (dram_req->numWaitingRequests() == 0) ? "NO" : "YES";
+	ss << "Finished DRAM Request for address: 0x" << hex << (UINT32) address << dec << ", Start Next - " << start_next;
+	debugPrint (dram_id, "DRAM_DIR", ss.str());
+#endif
+
 	if (dram_req->numWaitingRequests() == 0) {
 		delete dram_req;
 		dram_request_list.erase(address);
@@ -207,9 +224,16 @@ void DramDirectory::processSharedMemRequest (UINT32 requestor, shmem_req_t shmem
 
 	// This function should not depend on the state of the DRAM directory
 	// The relevant arguments must be passed in from the calling function
-	 
+
 	DramDirectoryEntry* dram_dir_entry = getEntry(address);
 	DramDirectoryEntry::dstate_t curr_dstate = dram_dir_entry->getDState();
+
+#ifdef DRAM_DEBUG
+	stringstream ss;
+	string request_type = (shmem_req_type == READ) ? "READ" : "WRITE";
+	ss << "Start Processing DRAM request for address: 0x" << hex << (UINT32) address << dec << ", Req_Type = " << request_type << ", <- " << requestor << ", Current State = " << DramDirectoryEntry::dStateToString(curr_dstate);
+	debugPrint (dram_id, "DRAM_DIR", ss.str());
+#endif
 
 	switch (shmem_req_type) {
 	
@@ -423,6 +447,12 @@ void DramDirectory::processAck (NetPacket& ack_packet)
 	DramDirectoryEntry* dram_dir_entry = getEntry(address);
 
 	assert(dram_dir_entry != NULL);
+
+#ifdef DRAM_DEBUG
+	stringstream ss;
+	ss << "Got Ack <- " << ack_packet.sender << " for " << requestor << ", Address = 0x" << hex << (UINT32) address << dec << ", NumAcksToRecv = " << dram_req->getNumAcksToRecv();
+	debugPrint (dram_id, "DRAM_DIR", ss.str());
+#endif
 
 	char data_buffer[bytes_per_cache_line];
 	MemoryManager::AckPayload ack_payload;

@@ -55,12 +55,16 @@ int Network::netSend(NetPacket packet)
 	char *buffer;
    UInt32 buf_size;
    
+   the_core->lockClock();
    UINT64 time = the_core->getProcTime() + netLatency(packet) + netProcCost(packet);
+   the_core->unlockClock();
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
    
+   the_core->lockClock();
    the_core->setProcTime(the_core->getProcTime() + netProcCost(packet));
+   the_core->unlockClock();
 
    // FIXME?: Should we be returning buf_size instead?
    return packet.length;
@@ -78,7 +82,9 @@ int Network::netSendMagic(NetPacket packet)
    char *buffer;
    UInt32 buf_size;
    
+   the_core->lockClock();
    UINT64 time = the_core->getProcTime();
+   the_core->unlockClock();
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
@@ -268,7 +274,9 @@ bool Network::netQuery(NetMatch match)
    NetQueueEntry entry;
    bool found = false;
    
-	entry.time = the_core->getProcTime();
+   the_core->lockClock();
+   entry.time = the_core->getProcTime();
+   the_core->unlockClock();
  
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
 

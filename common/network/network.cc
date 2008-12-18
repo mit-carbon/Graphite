@@ -29,6 +29,8 @@ Network::Network(Core *the_core_arg, int num_mod)
 
    callbacks = new NetworkCallback [num_pac_type];
    callback_objs = new void* [num_pac_type];
+   assert(callbacks != NULL);
+   assert(callback_objs != NULL);
 }
 
 Network::~Network()
@@ -47,12 +49,12 @@ Network::~Network()
 
 void Network::netCheckMessages()
 {
-   cerr << "DONT CALL ME" << endl;
+   assert(false);
 }
 
 int Network::netSend(NetPacket packet)
 {
-	char *buffer;
+   char *buffer;
    UInt32 buf_size;
    
    the_core->lockClock();
@@ -401,6 +403,7 @@ void Network::netPullFromTransport()
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
 
       // asynchronous I/O support
+      assert((unsigned int)entry.packet.type <= MAX_PACKET_TYPE);
       NetworkCallback callback = callbacks[entry.packet.type];
 
       if (callback != NULL)
@@ -435,12 +438,14 @@ void Network::netPullFromTransport()
 
 void Network::registerCallback(PacketType type, NetworkCallback callback, void *obj)
 {
+   assert((unsigned int)type <= MAX_PACKET_TYPE);
    callbacks[type] = callback;
    callback_objs[type] = obj;
 }
 
 void Network::unregisterCallback(PacketType type)
 {
+   assert((unsigned int)type <= MAX_PACKET_TYPE);
    callbacks[type] = NULL;
 }
 

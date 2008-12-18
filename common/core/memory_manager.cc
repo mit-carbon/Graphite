@@ -8,6 +8,7 @@ using namespace std;
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
 {
    MemoryManager *mm = (MemoryManager*) obj;
+   assert(mm != NULL);
 
    switch (packet.type)
       {

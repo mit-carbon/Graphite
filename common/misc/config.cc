@@ -69,6 +69,7 @@ Config::Config()
    analytic_network_parms->s = 1; // single cycle switching time
    analytic_network_parms->n = 2; // 2-d mesh network
    analytic_network_parms->W = 32; // 32-bit wide channels
+   analytic_network_parms->update_interval = 100000;
 
 #ifdef DEBUG  
    for (i=0; i<num_process; i++) {   

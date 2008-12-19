@@ -33,7 +33,7 @@ class NetworkMeshAnalytical : public Network
     double global_utilization;
     UINT64 local_utilization_last_update;
     UINT64 local_utilization_flits_sent;
-    static const UINT64 UTILIZATION_UPDATE_INTERVAL = 100000;
+    UINT64 update_interval;
 };
 
 #endif

@@ -16,11 +16,14 @@ NetworkMeshAnalytical::NetworkMeshAnalytical(Core *core, int num_threads)
         cycles_spent_contention(0),
         global_utilization(0.0),
         local_utilization_last_update(0),
-        local_utilization_flits_sent(0)
+        local_utilization_flits_sent(0),
+        update_interval(0)
 {
    registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                     receiveMCPUpdate,
                     this);
+
+   update_interval = g_config->getAnalyticNetworkParms()->update_interval;
 }
 
 NetworkMeshAnalytical::~NetworkMeshAnalytical()
@@ -180,7 +183,7 @@ void NetworkMeshAnalytical::updateUtilization()
   UINT64 core_time = the_core->getProcTime();
   UINT64 elapsed_time = core_time - local_utilization_last_update;
 
-  if (elapsed_time < UTILIZATION_UPDATE_INTERVAL)
+  if (elapsed_time < update_interval)
     return;
 
   // FIXME: This assumes one cycle per flit, might not be accurate.

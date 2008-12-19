@@ -2,7 +2,13 @@
 #include "chip.h"
 #include "debug.h"
 
+#include "network.h"
+#include "ocache.h"
+#include "syscall_model.h"
+#include "sync_client.h"
 #include "network_mesh_analytical.h"
+#include "memory_manager.h"
+
 #define CORE_DEBUG
 
 using namespace std;
@@ -148,6 +154,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    memcpy(buffer, packet.data, size);
 
    // De-allocate dynamic memory
+	// Is this the best place to de-allocate packet.data ?? 
    delete [] packet.data;
 
    return 0;
@@ -197,10 +204,10 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 {
 	shmem_req_t shmem_operation;
 	
-	if (operation == LOAD)
+	if (operation == LOAD) {
 		shmem_operation = READ;
+	}
 	else {
-
 		shmem_operation = WRITE;
 	}
 
@@ -338,12 +345,6 @@ void Core::addProcTime(UInt64 cycles)
 
 UInt64 Core::getProcTime()
 {
-   // Since, technically this could be called from any thread
-   // we can't really just use the rank of this core, but 
-   // we can obtain a rank from the calling thread... --cg3
-   int rank;
-   chipRank(&rank);
-  	debugPrint (rank, "CORE", "Before getCycleCount()");
-	return perf_model->getCycleCount();
+   return perf_model->getCycleCount();
 }
 

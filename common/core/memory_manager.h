@@ -68,14 +68,8 @@ class MemoryManager
 	// do not exit MMU until no more incoming requests
    UINT64 volatile debug_counter; //a primitive clock for debugging
    // Why volatile ??
-	bool processing_request_flag;
-   int incoming_requests_count;
+	bool volatile pending_request;
 
-	//evictions from the cache are written into this buffer
-	char* eviction_buffer;
-	//dram must fill this buffer and give it to the cache
-	char* fill_buffer; 
-	
 	void debugPrintReqPayload(MemoryManager::RequestPayload payload);
  
  public:
@@ -153,6 +147,7 @@ class MemoryManager
 	void setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t new_cstate);
 	pair<bool, CacheTag*> getCacheLineInfo(ADDRINT address);
 	void accessCacheLineData(CacheBase::AccessType access_type, ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
+	void fillCacheLineData (ADDRINT ca_address, char* fill_buffer);
 	void invalidateCacheLine(ADDRINT address);
 	
 	static void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, UINT32 payload_size);
@@ -170,7 +165,7 @@ class MemoryManager
 	
 	//request from DRAM permission to use an address
 	//writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
-	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address, CacheState::cstate_t* new_cstate);
+	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address);
 
 	//network interrupt calls this.
 	//Any requests are serialized onto a stack,
@@ -186,6 +181,9 @@ class MemoryManager
 	void forwardWriteBackToDram(NetPacket wb_packet);
 	
 	void processAck(NetPacket update_packet);
+
+	// Processes Shared Memory Response
+	void processSharedMemResponse (NetPacket rep_packet);
 	/* ============================================== */
 
 	//debugging stuff

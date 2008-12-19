@@ -4,9 +4,10 @@ PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
+
 TESTS_DIR=./common/tests
 
-CORES=9
+CORES=16
 ..PHONY: cores
 PROCESS=mpirun
 ..PHONY: process
@@ -55,17 +56,15 @@ io_test: all
 ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
-#	$(PIN_RUN) -mdc -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
-#	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 #	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
-	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: all
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
-	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -msm -mpf -msys -n 8 -- $(TESTS_DIR)/cannon_msg/cannon -m 8 -s 8
 
 capi_worker: all
 	$(MAKE) -C $(TESTS_DIR)/capi_worker
@@ -79,6 +78,10 @@ shmem_test_new: all
 shmem_test_evic: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_evic 5 
+
+1djacobi_test: all
+	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
+	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64 
 
 jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi

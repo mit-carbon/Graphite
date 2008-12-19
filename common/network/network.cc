@@ -28,6 +28,10 @@ Network::Network(Core *the_core_arg, int num_mod)
    }
 
    callbacks = new NetworkCallback [num_pac_type];
+
+   for(i = 0; i < num_pac_type; i++)
+      callbacks[i] = NULL;
+
    callback_objs = new void* [num_pac_type];
    assert(callbacks != NULL);
    assert(callback_objs != NULL);

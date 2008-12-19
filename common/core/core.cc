@@ -12,7 +12,7 @@ int Core::coreInit(int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-   InitLock(&clock_lock);
+
 
    //Switch which line is commented to choose the different 
    //network models

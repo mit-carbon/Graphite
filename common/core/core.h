@@ -57,7 +57,6 @@ class Core
       SyscallMdl *syscall_model;
       SyncClient *sync_client;
 
-      PIN_LOCK clock_lock;
 
    public:
 
@@ -145,8 +144,8 @@ class Core
       // network accessor since network is private
       Network *getNetwork() { return network; }
 
-      void lockClock() { GetLock(&clock_lock, 1); }
-      void unlockClock() { ReleaseLock(&clock_lock); }
+      void lockClock() { perf_model->lockClock(); }
+      void unlockClock() { perf_model->unlockClock(); }
 };
 
 #endif

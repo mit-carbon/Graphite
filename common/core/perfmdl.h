@@ -170,17 +170,15 @@ class PerfModel {
       // set for debugging purposes
       string name;
 
+      // Lock for atomically updating the clock
+      PIN_LOCK m_clock_lock;
     
       // methods
- 
       UINT32 getInsMicroOpsCount(const INS& ins);
 
    public:
 
-      PerfModel(string n): 
-         microop_issue_count(0), cycle_count(0), 
-	 scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID), name(n)
-      { }
+      PerfModel(string n);
 
       void setCycleCount(UINT64 new_cycle_count) { cycle_count = new_cycle_count; }
       void updateCycleCount(UINT64 new_cycle_count) { cycle_count = max(cycle_count, new_cycle_count); }
@@ -188,6 +186,8 @@ class PerfModel {
       UINT64 getCycleCount() { return cycle_count; }
       UINT64 getMicroOpCount() { return microop_issue_count; }
 
+      void lockClock() { GetLock(&m_clock_lock, 1); }
+      void unlockClock() { ReleaseLock(&m_clock_lock); }
 
       // These functions are for logging modeling events for which the performance impact
       // may be lazily evaluated later when the performance model is next run. 

@@ -4,6 +4,7 @@ PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
+
 TESTS_DIR=./common/tests
 
 CORES=16
@@ -46,7 +47,7 @@ squeaky: clean
 
 simple_test: all
 	$(MAKE) -C $(TESTS_DIR)/simple
-	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/simple/simple_test
+	$(PIN_RUN) -mdc -mpf -msys -tc 2 -n 2 -- $(TESTS_DIR)/simple/simple_test
 
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io
@@ -60,6 +61,14 @@ matmult_test: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 #	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
+
+cannon_msg: all
+	$(MAKE) -C $(TESTS_DIR)/cannon_msg
+	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/cannon_msg/cannon -m 9 -s 9
+
+capi_worker: all
+	$(MAKE) -C $(TESTS_DIR)/capi_worker
+	$(PIN_RUN) -mdc -mpf -msys -n 8 -- $(TESTS_DIR)/capi_worker/capi_worker
 
 shmem_test_new: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
@@ -115,17 +124,6 @@ barnes_test: all
 	$(MAKE) -C $(TESTS_DIR)/barnes
 	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
 
-war:	kill
-
-kill:
-	@echo "Killing All Possible Processes"
-	killall -s 9 $(PROCESS)
-	killall -s 9 test_evic
-	killall -s 9 ping_pong
-	killall -s 9 jacobi
-	killall -s 9 test_new
-	killall -s 9 basic
-	killall -s 9 test
 
 radiosity_test: all
 	$(MAKE) -C $(TESTS_DIR)/radiosity
@@ -136,10 +134,12 @@ ocean_test: all
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/ocean_contig/OCEAN -p8
 
 raytrace_test: all
+	#FIXME has some build issues
 	$(MAKE) -C $(TESTS_DIR)/raytrace
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/raytrace/RAYTRACE -p8 $(TESTS_DIR)/raytrace/inputs/teapot.env
 
 volrend_test: all
+	#FIXME this one runs out of memory
 	$(MAKE) -C $(TESTS_DIR)/volrend
 	$(PIN_RUN) -mdc -mpf -msys -n 45 -- $(TESTS_DIR)/volrend/VOLREND 8 $(TESTS_DIR)/volrend/inputs/head-scaleddown2
 
@@ -157,3 +157,14 @@ love:
 out:
 	@echo "I think we should just be friends..."
 
+war:	kill
+
+kill:
+	@echo "Killing All Possible Processes"
+	killall -s 9 $(PROCESS)
+	killall -s 9 jacobi
+	killall -s 9 ping_pong
+	killall -s 9 test_new
+	killall -s 9 test_evic
+	killall -s 9 basic
+	killall -s 9 test

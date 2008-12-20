@@ -47,7 +47,7 @@ void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
    
   int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
-  _send_buff << msg_type << commid << *mux << _core->getProcTime();
+  _send_buff << msg_type << commid << *mux << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -62,7 +62,7 @@ void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
   assert( dummy == MUTEX_LOCK_RESPONSE );
 
   _recv_buff >> time;
-  _core->updateProcTime(time);
+  _core->getPerfModel()->updateCycleCount(time);
 }
 
 void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
@@ -73,7 +73,7 @@ void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
    
   int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
 
-  _send_buff << msg_type << commid << *mux << _core->getProcTime();
+  _send_buff << msg_type << commid << *mux << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -95,7 +95,7 @@ void SyncClient::condInit(int commid, carbon_cond_t *cond)
    
   int msg_type = MCP_MESSAGE_COND_INIT;
 
-  _send_buff << msg_type << commid << *cond << _core->getProcTime();
+  _send_buff << msg_type << commid << *cond << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -114,7 +114,7 @@ void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
    
   int msg_type = MCP_MESSAGE_COND_WAIT;
 
-  _send_buff << msg_type << commid << *cond << *mux << _core->getProcTime();
+  _send_buff << msg_type << commid << *cond << *mux << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -129,7 +129,7 @@ void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
 
   UInt64 time;
   _recv_buff >> time;
-  _core->updateProcTime(time);
+  _core->getPerfModel()->updateCycleCount(time);
 }
 
 void SyncClient::condSignal(int commid, carbon_cond_t *cond)
@@ -140,7 +140,7 @@ void SyncClient::condSignal(int commid, carbon_cond_t *cond)
    
   int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
-  _send_buff << msg_type << commid << *cond << _core->getProcTime();
+  _send_buff << msg_type << commid << *cond << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -163,7 +163,7 @@ void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
    
   int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
-  _send_buff << msg_type << commid << *cond << _core->getProcTime();
+  _send_buff << msg_type << commid << *cond << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -185,7 +185,7 @@ void SyncClient::barrierInit(int commid, carbon_barrier_t *barrier, UINT32 count
    
   int msg_type = MCP_MESSAGE_BARRIER_INIT;
 
-  _send_buff << msg_type << commid << count << _core->getProcTime();
+  _send_buff << msg_type << commid << count << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -204,7 +204,7 @@ void SyncClient::barrierWait(int commid, carbon_barrier_t *barrier)
    
   int msg_type = MCP_MESSAGE_BARRIER_WAIT;
 
-  _send_buff << msg_type << commid << *barrier << _core->getProcTime();
+  _send_buff << msg_type << commid << *barrier << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -219,6 +219,6 @@ void SyncClient::barrierWait(int commid, carbon_barrier_t *barrier)
 
   UInt64 time;
   _recv_buff >> time;
-  _core->updateProcTime(time);
+  _core->getPerfModel()->updateCycleCount(time);
 }
 

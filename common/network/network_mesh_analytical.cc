@@ -180,7 +180,7 @@ void NetworkMeshAnalytical::updateUtilization()
   // ** send updates
 
   // don't lock because this is all approximate anyway
-  UINT64 core_time = the_core->getProcTime();
+  UINT64 core_time = the_core->getPerfModel()->getCycleCount();
   UINT64 elapsed_time = core_time - local_utilization_last_update;
 
   if (elapsed_time < update_interval)

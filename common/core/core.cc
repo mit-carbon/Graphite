@@ -165,7 +165,7 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
    if ( g_knob_enable_performance_modeling )
      {
        //FIXME: This should be placed in perfmodel
-       out << "  Total cycles: " << getProcTime() << endl;
+       out << "  Total cycles: " << getPerfModel()->getCycleCount() << endl;
        // cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
        perf_model->fini(code, v, out);
 
@@ -322,29 +322,5 @@ void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstat
 bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
 	return memory_manager->debugAssertDramState(address, dstate, sharers_list, d_data);
-}
-
-void Core::setProcTime(UInt64 time)
-{
-	perf_model->setCycleCount(time);
-}
-
-void Core::updateProcTime(UInt64 time)
-{
-	lockClock();
-	perf_model->updateCycleCount(time);
-	unlockClock();
-}
-
-void Core::addProcTime(UInt64 cycles)
-{
-	lockClock();
-	perf_model->addToCycleCount(cycles);
-	unlockClock();
-}
-
-UInt64 Core::getProcTime()
-{
-   return perf_model->getCycleCount();
 }
 

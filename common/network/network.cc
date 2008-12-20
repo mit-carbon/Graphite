@@ -61,22 +61,19 @@ int Network::netSend(NetPacket packet)
    char *buffer;
    UInt32 buf_size;
    
-   the_core->lockClock();
-   UINT64 time = the_core->getProcTime() + netLatency(packet) + netProcCost(packet);
-   the_core->unlockClock();
+   UINT64 time = the_core->getPerfModel()->getCycleCount() + netLatency(packet) + netProcCost(packet);
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
-   
-   the_core->lockClock();
-   the_core->setProcTime(the_core->getProcTime() + netProcCost(packet));
-   the_core->unlockClock();
+
+   the_core->getPerfModel()->addToCycleCount(netProcCost(packet));
 
    // FIXME?: Should we be returning buf_size instead?
    return packet.length;
 }
 
-void Network::printNetPacket(NetPacket packet) {
+void Network::printNetPacket(NetPacket packet) 
+{
 	stringstream ss;
 	ss << endl;
 	ss << "printNetPacket: DON'T CALL ME" << endl;
@@ -88,9 +85,7 @@ int Network::netSendMagic(NetPacket packet)
    char *buffer;
    UInt32 buf_size;
    
-   the_core->lockClock();
-   UINT64 time = the_core->getProcTime();
-   the_core->unlockClock();
+   UINT64 time = the_core->getPerfModel()->getCycleCount();
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
@@ -167,18 +162,15 @@ NetPacket Network::netRecv(NetMatch match)
    assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
    assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
 
-   // FIXME: Will the reference stay the same (Note this is a priority queue)?? 
-	net_queue[entry.packet.sender][entry.packet.type].lock();
+   // FIXME: Will the reference stay the same (Note this is a priority queue)??
+   net_queue[entry.packet.sender][entry.packet.type].lock();
    net_queue[entry.packet.sender][entry.packet.type].pop();
    net_queue[entry.packet.sender][entry.packet.type].unlock();
 
    packet = entry.packet;
 
-   //Atomically update the time
-   the_core->lockClock();
-   if(the_core->getProcTime() < entry.time)
-      the_core->setProcTime(entry.time);
-   the_core->unlockClock();
+   //Atomically update the time is the packet time is newer
+   the_core->getPerfModel()->updateCycleCount(entry.time);
 
    return packet;
 }
@@ -280,9 +272,7 @@ bool Network::netQuery(NetMatch match)
    NetQueueEntry entry;
    bool found = false;
    
-   the_core->lockClock();
-   entry.time = the_core->getProcTime();
-   the_core->unlockClock();
+   entry.time = the_core->getPerfModel()->getCycleCount();
  
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
 
@@ -415,12 +405,7 @@ void Network::netPullFromTransport()
             assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
             assert(MIN_PACKET_TYPE <= entry.packet.type && entry.packet.type <= MAX_PACKET_TYPE);
 
-            the_core->lockClock();
-            if(the_core->getProcTime() < entry.time)
-               {
-                  the_core->setProcTime(entry.time);
-               }
-            the_core->unlockClock();
+            the_core->getPerfModel()->updateCycleCount(entry.time);
 
             callback(callback_objs[entry.packet.type], entry.packet);
          }

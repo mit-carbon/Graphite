@@ -75,7 +75,7 @@ void wait_some()
 void* test_wait_barrier(void *threadid)
 {
   // Declare local variables
-  int tid;
+  int tid, i;
   CAPI_return_t rtnVal;
 
   rtnVal = CAPI_Initialize((int)threadid);
@@ -108,9 +108,10 @@ void* test_wait_barrier(void *threadid)
      wait_some();
   }
 
-  fprintf(stderr, "UserWait(%d): Waiting for barrier.\n", (int)threadid);
-  barrierWait(&my_barrier);
-  fprintf(stderr, "UserWait(%d): barrier done.\n", (int)threadid);
+  for(i = 0; i < 50; i++)
+  {
+     barrierWait(&my_barrier);
+  }
 
   pthread_exit(NULL);
 }

@@ -24,6 +24,11 @@ clean:
 	$(MAKE) -C ping_pong clean
 	$(MAKE) -C pthreads_basic clean
 	$(MAKE) -C shared_mem_jacobi clean
+	$(MAKE) -C fmm clean
+	$(MAKE) -C barnes clean
+	$(MAKE) -C ocean_contig clean
+	$(MAKE) -C water-nsquared clean
+	$(MAKE) -C water-spatial clean
 	-rm -f *.o $(TOOLS) *.d *.rpo
 
 squeaky: clean

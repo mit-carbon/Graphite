@@ -66,7 +66,7 @@ matmult_test: all
 
 cannon_msg: all
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
-	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/cannon_msg/cannon -m 9 -s 9
+	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
 
 capi_worker: all
 	$(MAKE) -C $(TESTS_DIR)/capi_worker

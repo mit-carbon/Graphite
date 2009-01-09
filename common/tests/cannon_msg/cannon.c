@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "user_api.h"
+#include <stdarg.h>
+#include <assert.h>
 
 //#define DEBUG 1
 #define SEQUENTIAL 1

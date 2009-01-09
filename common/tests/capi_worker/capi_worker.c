@@ -5,6 +5,7 @@
  *                          12/12/2008                  *
  *******************************************************/
 
+#include <assert.h>
 #include <pthread.h>
 #include <math.h>
 #include <stdlib.h>

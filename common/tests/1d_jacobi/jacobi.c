@@ -1,15 +1,14 @@
-#include <iostream>
-#include <cstdlib>
+#include <stdio.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
 #include "capi.h"
 #include "user_api.h"
 
 
 #define DEBUG 1
-
-using namespace std;
 
 typedef int Int32;
 typedef unsigned int UInt32;
@@ -31,20 +30,20 @@ pthread_mutex_t print_lock;
 void* threadMain (void*);
 void printArray (Int32);
 
-void wait_some()
+int wait_some()
 {
    Int32 j = 0;
    for (UInt32 i = 0; i < 20000; i++)
    {
       j += i;
-      asm volatile("nop");
    }
+   return j;
 }
 
 int main (int argc, char *argv[]) {
 
 	if (argc != 3) {
-		cerr << "[Usage]: ./jacobi <Number of Cores> <Size of Array>\n";
+		fprintf(stderr, "[Usage]: ./jacobi <Number of Cores> <Size of Array>\n");
 		exit(-1);
 	}
 
@@ -56,8 +55,8 @@ int main (int argc, char *argv[]) {
 	g_old_array = (Int32 *) malloc ((g_size+2) * sizeof(Int32));
 	g_new_array = (Int32 *) malloc ((g_size+2) * sizeof(Int32));
 
-	cerr << "g_old_array = 0x" << hex << (UInt32) g_old_array << endl;
-	cerr << "g_new_array = 0x" << hex << (UInt32) g_new_array << dec << endl;
+	fprintf(stderr, "g_old_array = 0x%x\n", (UInt32) g_old_array);
+	fprintf(stderr, "g_new_array = 0x%x\n", (UInt32) g_new_array);
 
 	for (Int32 i = 0; i < g_size+2; i++) {
 		g_old_array[i] = 0;
@@ -76,14 +75,14 @@ int main (int argc, char *argv[]) {
 
 #ifdef DEBUG
 	pthread_mutex_lock (&print_lock);
-	cerr << "Creating Threads\n";
+	fprintf(stderr, "Creating Threads\n");
 	pthread_mutex_unlock (&print_lock);
 #endif
 
 	for (Int32 i = 0; i < g_num_cores; i++) {
 #ifdef DEBUG
 		pthread_mutex_lock (&print_lock);
-		cerr << "Creating Thread: " << i << endl;
+		fprintf(stderr, "Creating Thread: %d\n", i);
 		pthread_mutex_unlock (&print_lock);
 #endif
 		pthread_create (&threads[i], &attr, threadMain, (void*) i);
@@ -107,7 +106,7 @@ void* threadMain (void *threadid) {
 	if (tid == 0) {
 #ifdef DEBUG
 		pthread_mutex_lock (&print_lock);
-		cerr << "Starting threadMain - Thread 0\n";
+		fprintf(stderr, "Starting threadMain - Thread 0\n");
 		printArray (-1);
 		pthread_mutex_unlock (&print_lock);
 #endif
@@ -124,7 +123,7 @@ void* threadMain (void *threadid) {
 
 #ifdef DEBUG
 	pthread_mutex_lock (&print_lock);
-	cerr << "Thread [" << tid << "]: Waiting for barrier\n";
+	fprintf(stderr, "Thread [ %d ]: Waiting for barrier\n", tid);
 	pthread_mutex_unlock (&print_lock);
 #endif
 
@@ -132,7 +131,7 @@ void* threadMain (void *threadid) {
 
 #ifdef DEBUG
 	pthread_mutex_lock (&print_lock);
-	cerr << "Thread [" << tid << "]: Finished barrier\n";
+	fprintf(stderr, "Thread [ %d ]: Finished barrier\n", tid);
 	pthread_mutex_unlock (&print_lock);
 #endif
 
@@ -141,8 +140,8 @@ void* threadMain (void *threadid) {
 
 #ifdef DEBUG
 	pthread_mutex_lock (&print_lock);
-	cerr << "Thread [" << tid << "]: Start Index = " << start_index << endl;
-	cerr << "Thread [" << tid << "]: End Index = " << end_index << endl;
+	fprintf(stderr, "Thread [ %d ]: Start Index = %d\n", tid, start_index);
+	fprintf(stderr, "Thread [ %d ]: End Index = %d\n", tid,  end_index);
 	pthread_mutex_unlock (&print_lock);
 #endif
 
@@ -175,10 +174,10 @@ void* threadMain (void *threadid) {
 
 void printArray(Int32 iter) {
 
-	cerr << "Contents of Array after iteration: " << iter << endl;
+	fprintf(stderr, "Contents of Array after iteration: %d\n", iter);
 	for (Int32 i = 0; i < g_size+2; i++) {
-		cerr << g_old_array[i] << ", ";
+		fprintf(stderr, "%d, ", g_old_array[i]);
 	}
-	cerr << endl << endl;
+	fprintf(stderr, "\n\n");
 
 }

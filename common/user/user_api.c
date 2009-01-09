@@ -75,7 +75,7 @@ void sharedMemQuit()
     fprintf(stderr, "Got to the dummy shared memory quit func.\n");
 }
 
-void* shmem_thread_func(void *)
+void* shmem_thread_func(void *p)
 {
     fprintf(stderr, "Got to the dummy shared memory thread func.\n");
     return NULL;

@@ -2,7 +2,7 @@
  * This is a test that will test condition variables*
  ****************************************************/
 
-#include <iostream>
+#include <stdio.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -11,8 +11,7 @@
 #include "capi.h"
 #include "mcp_api.h"
 #include "sync_api.h"
-
-using namespace std;
+#include <stdio.h>
 
 carbon_mutex_t my_mux;
 carbon_cond_t my_cond;
@@ -23,21 +22,21 @@ carbon_cond_t my_cond;
 
 // Functions executed by threads
 void* test_wait_cond(void * threadid);
-void* test_signal_cond(void * threadid);
+void* test_broadcast_cond(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
    initMCP();
 
    // Read in the command line arguments
-   const unsigned int numThreads = 2;
+   const unsigned int numThreads = 5;
 
    // Declare threads and related variables
    pthread_t threads[numThreads];
    pthread_attr_t attr;
 	
 #ifdef DEBUG
-   cout << "This is the function main()" << endl;
+   printf("This is the function main()\n");
 #endif
 
    // Initialize threads and related variables
@@ -45,39 +44,30 @@ int main(int argc, char* argv[]){ // main begins
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
 #ifdef DEBUG
-   cout << "Spawning threads" << endl;
+   printf("Spawning threads\n");
 #endif
 
-   pthread_create(&threads[0], &attr, test_wait_cond, (void *) 0);
-   pthread_create(&threads[1], &attr, test_signal_cond, (void *) 1);
+   for (unsigned int i = 0; i < numThreads - 1; i++)
+     pthread_create(&threads[i], &attr, test_wait_cond, (void *) i);
+   pthread_create(&threads[numThreads-1], &attr, test_broadcast_cond, (void *) NULL);
 
    // Wait for all threads to complete
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   cout << "quitting syscall server!" << endl;
+   printf("quitting syscall server!\n");
    quitMCP();
 
 #ifdef DEBUG
-   cout << "This is the function main ending" << endl;
+   printf("This is the function main ending\n");
 #endif
    pthread_exit(NULL);
 
 } // main ends
 
-void wait_some()
+void* test_broadcast_cond(void *threadid)
 {
-   int j = 0;
-   for(unsigned int i = 0; i < 200000; i++)
-   {
-      j += i;
-      asm volatile("nop");
-   }
-}
-
-void* test_signal_cond(void *threadid)
-{
-   usleep(500000);
+  sleep(3);
   // Declare local variables
   int tid;
   CAPI_return_t rtnVal;
@@ -87,17 +77,14 @@ void* test_signal_cond(void *threadid)
   // Initialize local variables
   CAPI_rank(&tid);
 
-  // Make sure that the signal comes after the wait
-  wait_some();
-
   // Thread starts here
-  cerr << "UserSignal: Cond Signaling." << endl;
-  condSignal(&my_cond);
-  cerr << "UserSignal: Cond Signaled." << endl;
+  fprintf(stderr, "UserBroadcast: Cond broadcasting.\n");
+  condBroadcast(&my_cond);
+  fprintf(stderr, "UserBroadcast: Cond broadcasted.\n");
   mutexLock(&my_mux);
-  cerr << "UserSignal: Mutex locked after signal." << endl;
+  fprintf(stderr, "UserBroadcast: Mutex locked after broadcast.\n");
   mutexUnlock(&my_mux);
-  cerr << "UserSignal: Signal thread done." << endl;
+  fprintf(stderr, "UserBroadcast: Broadcast thread done.\n");
 
   pthread_exit(NULL);
 }
@@ -116,19 +103,24 @@ void* test_wait_cond(void *threadid)
   // Thread starts here
 
   // FIXME: This should be in the main thread or something.
-  cerr << "UserWait: Initting mutex." << endl;
-  mutexInit(&my_mux);
-  cerr << "UserWait: Initting cond." << endl;
-  condInit(&my_cond);
+  if ((int)threadid == 0)
+    {
+      fprintf(stderr, "UserWait: Initting mutex.\n");
+      mutexInit(&my_mux);
+      fprintf(stderr, "UserWait: Initting cond.\n");
+      condInit(&my_cond);
+    }
 
-  cerr << "UserWait: Locking mux." << endl;
+  sleep(1);
+
+  fprintf(stderr, "UserWait: Locking mux.\n");
   mutexLock(&my_mux);
-  cerr << "UserWait: Cond wait." << endl;
+  fprintf(stderr, "UserWait: Cond wait.\n");
   condWait(&my_cond, &my_mux);
-  cerr << "UserWait: Cond done." << endl;
+  fprintf(stderr, "UserWait: Cond done.\n");
 
   mutexUnlock(&my_mux);
-  cerr << "UserWait: test_wait_cond mutex unlock done." << endl;
+  fprintf(stderr, "UserWait: test_wait_cond mutex unlock done.\n");
 
   pthread_exit(NULL);
 }

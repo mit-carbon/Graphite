@@ -1,7 +1,7 @@
 include ../makefile.gnu.config
 
 #all: pthreadsmatmult pingpong basic shared_mem_tests
-all: pingpong basic shared_mem_tests
+all: pingpong 
 
 shared_mem_tests:
 	$(MAKE) -C shared_mem_test
@@ -22,6 +22,7 @@ clean:
 	#$(MAKE) -C pthreads_matmult clean
 	$(MAKE) -C shared_mem_test clean
 	$(MAKE) -C ping_pong clean
+	$(MAKE) -C capi_worker clean
 	$(MAKE) -C pthreads_basic clean
 	$(MAKE) -C shared_mem_jacobi clean
 	$(MAKE) -C fmm clean

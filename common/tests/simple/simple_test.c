@@ -2,15 +2,13 @@
  * This is a test that will test mutexes            *
  ****************************************************/
 
-#include <iostream>
+#include <stdio.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include "user_api.h"
-
-using namespace std;
 
 // Functions executed by threads
 void* thread_func(void * threadid);
@@ -46,7 +44,7 @@ int main(int argc, char* argv[]){ // main begins
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   cout << "UserApplication: About to call carbon finish!" << endl;
+   printf("UserApplication: About to call carbon finish!\n");
    carbonFinish();
 
    pthread_exit(NULL);
@@ -66,7 +64,7 @@ void* thread_func(void *threadid)
   CAPI_rank(&tid);
 
   // Thread starts here
-  cerr << "UserThread: CAPI Rank: " << tid << endl;
+  printf("UserThread: CAPI Rank: %d\n", tid);
 
   pthread_exit(NULL);
 }

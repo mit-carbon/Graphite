@@ -23,13 +23,14 @@ void initMCP()
 void* mcp_thread_func(void *dummy)
 {
    fprintf(stderr, "Made it to the dummy mcp_thread_func() function.\n");
-   assert(false);
+//   assert(false);
+   return NULL;
 }
 
 void runMCP()
 {
    fprintf(stderr, "Made it to the dummy runMCP() function.\n");
-   assert(false);
+//   assert(false);
 }
 
 void finishMCP()

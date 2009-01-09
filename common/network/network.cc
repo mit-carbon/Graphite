@@ -394,7 +394,7 @@ void Network::netPullFromTransport()
    NetQueueEntry entry;
    
 	// Pull up packets waiting in the physical transport layer
-   while(transport->ptQuery()) {
+   do {
       buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
@@ -427,6 +427,7 @@ void Network::netPullFromTransport()
             net_queue[entry.packet.sender][entry.packet.type].unlock();
          }
    }
+   while(transport->ptQuery());
 }
 
 void Network::registerCallback(PacketType type, NetworkCallback callback, void *obj)

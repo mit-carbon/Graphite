@@ -472,21 +472,34 @@ void* MCPThreadFunc(void *dummy)
 }
 
 // Shared Memory Functions
-static bool shared_memory_continue = true;
 void SimSharedMemQuit()
 {
-    shared_memory_continue = false;
+   NetPacket pkt;
+   pkt.type = SHARED_MEM_TERMINATE_THREADS;
+   pkt.length = 0;
+   pkt.data = 0;
+
+   g_MCP->broadcastPacket(pkt);
+}
+
+void SharedMemTerminateFunc(void *vp, NetPacket pkt)
+{
+   bool *pcont = (bool*) vp;
+   *pcont = false;
 }
 
 void* SimSharedMemThreadFunc(void *)
 {
     int core_id = g_chip->registerSharedMemThread();
     Network *net = g_chip->core[core_id].getNetwork();
+    bool cont = true;
 
-    while(shared_memory_continue)
-    {
-        net->netPullFromTransport();
-    }
+    net->registerCallback(SHARED_MEM_TERMINATE_THREADS,
+                          SharedMemTerminateFunc,
+                          &cont);
+
+    while(cont)
+       net->netPullFromTransport();
 
     return 0;
 }

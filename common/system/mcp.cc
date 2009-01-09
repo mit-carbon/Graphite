@@ -99,4 +99,23 @@ void MCP::finish()
    cerr << "End of MCP::finish();" << endl;
 }
 
+void MCP::broadcastPacket(NetPacket pkt)
+{
+   pkt.sender = g_config->MCPCommID();
 
+   // FIXME: Is totalMods() always the right range for commids?
+   for (UINT32 commid = 0; commid < g_config->totalMods(); commid++)
+      {
+         pkt.receiver = commid;
+         _network.netSendMagic(pkt);
+      }
+}
+
+void MCP::forwardPacket(NetPacket pkt)
+{
+   pkt.sender = g_config->MCPCommID();
+
+   assert(pkt.receiver != -1);
+   
+   _network.netSendMagic(pkt);
+}

@@ -48,7 +48,10 @@ class MCP
       bool finished() { return _finished; };
       MCP(Network & network);
       ~MCP();
-      
+
+      // These functions expose the MCP network for system use
+      void broadcastPacket(NetPacket);
+      void forwardPacket(NetPacket);
 };
 
 #endif

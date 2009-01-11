@@ -5,7 +5,7 @@ OPT=-O2
 CFLAGS=-c -I../network -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = utils.cc config.cc bit_vector.cc packetize.cc basic_hash.cc lockfree_hash.cc
+SOURCES = utils.cc config.cc bit_vector.cc packetize.cc basic_hash.cc lockfree_hash.cc debug.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 all: $(OBJECTS)

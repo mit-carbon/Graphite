@@ -1,197 +1,140 @@
-// Harshad Kasture
-//
-
 #ifndef NETWORK_H
 #define NETWORK_H
 
-
-#include <iostream>
-#include <sched.h>
-#include <unistd.h>
-#include <queue>
-#include <string>
-#include <sstream>
-
-// JME: not entirely sure why this is needed...
-class Chip;
 #include "packet_type.h"
-#include "config.h"
-#include "transport.h"
 
-extern Config* g_config;
-extern Chip* g_chip; //only here for global_lock debugging purposes
+class Core;
+class Transport;
+class NetQueue;
 
-// Define data types
+// -- Network Packets -- //
 
-// network packet
 class NetPacket
 {
  public:
    PacketType type;
-   int sender;
-   int receiver;
-   unsigned int length;
-   char *data;
+   Int32 sender;
+   Int32 receiver;
+   UInt32 length;
+   void *data;
 
- NetPacket() : type(INVALID), sender(-1), receiver(-1), length(0), data(NULL) {}
+   NetPacket()
+      : type(INVALID)
+      , sender(-1)
+      , receiver(-1),
+      , length(0),
+      , data(0)
+      {}
 };
 
+// -- Network Matches -- //
 
-// network query struct
 class NetMatch
 {
  public:
    int sender;
-   bool sender_flag; //if wildcard or not (should you look at sender or not)
+   bool sender_flag;
    PacketType type;
    bool type_flag;
 
- NetMatch() : sender(-1), sender_flag(false), type(INVALID), type_flag(false) {}
+   NetMatch()
+      : sender(-1)
+      , sender_flag(false)
+      , type(INVALID)
+      , type_flag(false)
+      {}
 };
 
-class Core;
+// -- Network Models -- //
 
-class Network{
+// To implement a new network model, you must implement this routing
+// object. To route, take a packet and compute the next hop(s) and the
+// time stamp for when that packet will be forwarded.  
+//   This lets one implement "magic" networks, analytical models,
+// realistic hop-by-hop modeling, as well as broadcast models, such as
+// a bus or ATAC.  Each static network has its own model object. This
+// lets the user network be modeled accurately, while the MCP is a
+// stupid magic network.
+//   A packet will be dropped if no hops are filled in the nextHops
+// vector.
+class NetworkModel
+{
+public:
+   NetworkModel(Network*);
+   virtual ~NetworkModel();
 
- private:
-
-   //TODO here to try and sort out hangs/crashes when instrumenting 
-   //all of shared_memory.  gdb was showing a grasph in stl_push_back,
-   //allocate_new.
-		
-   typedef struct NetQueueEntry{
-      NetPacket packet;
-      UINT64 time;
-   } NetQueueEntry;
-		
-   class earlier{
-   public:
-      bool operator() (const NetQueueEntry& first, \
-                       const NetQueueEntry& second) const
-      {
-         return first.time <= second.time;
-      }
+   struct Hop
+   {
+      Int32 dest;
+      UInt64 time;
    };
 
-   class NetQueue {
-   private:
-      priority_queue <NetQueueEntry, vector<NetQueueEntry>, earlier> queue;
-      PIN_LOCK _lock;
-				
-   public:
+   virtual void routePacket(const NetPacket &pkt,
+                            vector<Hop> nextHops) = 0;
 
-				
-      NetQueue ()
-         {
-            InitLock ( &_lock );
-         }
-			
-      bool empty ()
-      {
-         return queue.empty ();
-      }
+   virtual void outputSummary(ostream &out) = 0;
 
-      void pop () 
-      { 
-         queue.pop (); 
-      }
-				
-      void push ( const NetQueueEntry& entry ) 
-      { 
-         queue.push ( entry ); 
-      }
-				
-      const NetQueueEntry& top () const 
-      { 
-         return queue.top ();
-      }
+protected:
+   Network *_network;
 
-      size_t size() const
-      {
-         return queue.size ();
-      }
+};
 
-      void lock ()
-      {
-         GetLock ( &_lock, 1 );
-      }
+// -- Network -- //
 
-      INT32 unlock ()
-      {
-         return ReleaseLock ( &_lock );
-      }
-   };
-
-   char* netCreateBuf(NetPacket packet, UInt32* buf_size, UINT64 time);
-   void netExPacket(char* buffer, NetPacket &packet, UINT64 &time);
-
-   void waitForUserPacket();
-   void notifyWaitingUserThread();
-
-   //FIXME:
-   //This is only here till Jim plugs in his functions, for debugging
-   //purposes. To be deleted after that
-   void processUnexpectedSharedMemUpdate(NetPacket packet);
-   NetQueue **net_queue;
-   Transport *transport;
-
- public:
-   typedef void (*NetworkCallback)(void *, NetPacket);
- private:
-
-   NetworkCallback *callbacks;
-   void **callback_objs;
-
- protected:
-   Core *the_core;
-   int net_tid;
-   int net_num_mod;   // Total number of cores in the simulation
-
-   virtual UINT64 netProcCost(NetPacket packet);
-   virtual UINT64 netLatency(NetPacket packet);
-
+// This is the managing class that interacts with the physical
+// transport layer to forward packets from source to destination.
+   
+class Network
+{
  public:
 
-   Network(Core* the_core_arg, int num_mods);
-   virtual ~Network();
-	   
-   //checkMessages is a hack to force core to check its messages cpc (can we use an interrupt to call it?
-   //FIXME
-   //TODO make these debug prints  a class with its own method? cpc 
-   void printNetPacket(NetPacket packet);  
-   void printNetMatch(NetMatch match, int receiver);  
-   string packetTypeToString(PacketType type);  
-      
-      
-   int netCommID() { return transport->ptCommID(); }
-   void netCheckMessages();
-   bool netQuery(NetMatch match);
+   // -- Ctor, housekeeping, etc. -- //
 
-   virtual int netSendToMCP(const char *buf, unsigned int len, bool is_magic = false);
-   virtual NetPacket netRecvFromMCP();
+   Network(Core *core);
+   ~Network();
 
-   virtual int netMCPSend(int commid, const char *buf, unsigned int len, bool is_magic = false);
-   virtual NetPacket netMCPRecv();
-		
-   virtual int netSend(NetPacket packet);
-   virtual NetPacket netRecv(NetMatch match);
+   Transport *getTransport() const { return _transport; }
+   Core *getCore() const { return _core; }
 
-   int netSendMagic(NetPacket packet);
-   NetPacket netRecvMagic(NetMatch match);
+   typedef void (*NetworkCallback)(void*, NetPacket);
 
-   Transport *getTransport() { return transport; }
-
-   virtual void outputSummary(ostream &out) {
-      cerr << "Screw you I'm just the Super Class." << endl;
-   }
-
-   void netPullFromTransport();
-
-   void registerCallback(PacketType type, 
+   void registerCallback(PacketType type,
                          NetworkCallback callback,
                          void *obj);
 
    void unregisterCallback(PacketType type);
+
+   void outputSummary(ostream &out) const;
+
+   void netPullFromTransport();
+
+   // -- Main interface -- //
+
+   Int32 netSend(NetPacket packet);
+   NetPacket netRecv(NetMatch match);
+
+   // -- Wrappers -- //
+
+   Int32 netSend(Int32 dest, PacketType type, const void *buf, UInt32 len);
+   NetPacket netRecvFrom(Int32 src);
+   NetPacket netRecvType(PacketType type);
+
+private:
+   NetworkModel * _models[NUM_STATIC_NETWORKS];
+
+   NetworkCallback *_callbacks;
+   void **_callbackObjs;
+
+   Core *_core;
+   Transport *_transport;
+   
+   Int32 _tid;
+   Int32 _numMod;
+
+   NetQueue **_netQueue;
+
+   void* netCreateBuf(NetPacket packet, UInt32* buf_size, UInt64 time);
+   void netExPacket(void* buffer, NetPacket &packet, UInt64 &time);
 };
 
-#endif
+#endif // NETWORK_H

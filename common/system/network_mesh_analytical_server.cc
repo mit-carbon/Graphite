@@ -55,5 +55,5 @@ void NetworkMeshAnalyticalServer::update(comm_id_t commid)
   response.type = MCP_UTILIZATION_UPDATE_TYPE;
   response.data = (char *) &global_utilization;
 
-  _network.netSendMagic(response);
+  _network.netSend(response);
 }

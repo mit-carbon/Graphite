@@ -76,9 +76,6 @@ class Core
       
       int coreInit(int tid, int num_mod);
 
-      // Return the communication endpoint ID for this core
-      int coreCommID();
-
       int coreSendW(int sender, int receiver, char *buffer, int size);
 
       int coreRecvW(int sender, int receiver, char *buffer, int size);

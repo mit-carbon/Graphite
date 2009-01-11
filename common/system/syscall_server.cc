@@ -97,7 +97,7 @@ void SyscallServer::marshallOpenCall(int comm_id)
 
    send_buff << ret;
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());
 
    if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
       delete[] path;
@@ -146,7 +146,7 @@ void SyscallServer::marshallReadCall(int comm_id)
    if ( bytes != -1 )
      send_buff << make_pair(buf, bytes);
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
@@ -199,7 +199,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
    
    send_buff << bytes;
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
@@ -237,7 +237,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
    //cerr << "status: " << status << endl;
    
    send_buff << status;
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
 
 }
 
@@ -266,7 +266,7 @@ void SyscallServer::marshallAccessCall(int comm_id)
 
    send_buff << ret;
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());
 
    if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
       delete[] path;

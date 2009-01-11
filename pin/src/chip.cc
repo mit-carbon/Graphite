@@ -99,7 +99,7 @@ CAPI_return_t commRank(int *commid)
    // FIXME: The network nodes should be moved up from within a core to
    //  directly within a chip.  When this happens, this will have to change.
    
-   *commid = (my_tid < 0) ? -1 : g_chip->core[my_tid].coreCommID();
+   *commid = (my_tid < 0) ? -1 : g_chip->core[my_tid].getNetwork()->getTransport()->ptCommID();
 
    return 0;
 }
@@ -161,7 +161,9 @@ CAPI_return_t chipFinish(int my_rank)
 //	g_chip->core_map.erase(e);
 
 	while(!finished) {
-		g_chip->core[my_rank].getNetwork()->netCheckMessages();
+           // FIXME: This is apparently never reached!?
+           // netCheckMessages was implemented as assert(false)
+           //		g_chip->core[my_rank].getNetwork()->netCheckMessages();
 		
 		bool cores_still_working = false;
 		for(int i=0; i < g_chip->getNumModules(); i++) {

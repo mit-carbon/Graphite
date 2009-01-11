@@ -109,7 +109,7 @@ void Config::loadFromCmdLine()
 
 void Config::getNetworkModels(UInt32 *models) const
 {
-   models[STATIC_NETWORK_USER]   = NETWORK_ANALYTICAL_MESH;
-   models[STATIC_NETWORK_MEMORY] = NETWORK_ANALYTICAL_MESH;
+   models[STATIC_NETWORK_USER]   = NETWORK_MAGIC;
+   models[STATIC_NETWORK_MEMORY] = NETWORK_MAGIC;
    models[STATIC_NETWORK_SYSTEM] = NETWORK_MAGIC;
 }

@@ -19,21 +19,7 @@ int Core::coreInit(int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-   switch(g_config->getNetworkType())
-   {
-      case NETWORK_BUS:
-      	network = new Network(this, num_mod);
-         break;
-      case NETWORK_ANALYTICAL_MESH:
-         network = new NetworkMeshAnalytical(this, num_mod);
-         break;
-      case NUM_NETWORK_TYPES:
-
-      default:
-      	debugPrintStart(tid, "CORE", "ERROR: Unknown Network Model!");
-         break;
-   }
-
+   network = new Network(this);
 
    if ( g_knob_enable_performance_modeling ) 
    {
@@ -91,8 +77,6 @@ int Core::coreInit(int tid, int num_mod)
    return 0;
 }
 
-int Core::coreCommID() { return network->netCommID(); }
-
 int Core::coreSendW(int sender, int receiver, char *buffer, int size)
 {
    // Create a net packet
@@ -137,7 +121,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    if((unsigned)size != packet.length){
       stringstream ss;
-		ss << "ERROR (comm_id: " << coreCommID() << "):" << endl
+      ss << "ERROR (comm_id: " << network->getTransport()->ptCommID() << "):" << endl
          << "Received packet length (" << packet.length
 	   	<< ") is not as expected (" << size << ")" << endl;
 		debugPrint (getRank(), "CORE", ss.str());
@@ -147,8 +131,8 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    memcpy(buffer, packet.data, size);
 
    // De-allocate dynamic memory
-	// Is this the best place to de-allocate packet.data ?? 
-   delete [] packet.data;
+   // Is this the best place to de-allocate packet.data ?? 
+   delete [] (UInt8*)packet.data;
 
    return 0;
 }

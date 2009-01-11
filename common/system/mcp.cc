@@ -26,7 +26,7 @@ void MCP::run()
 
    NetPacket recv_pkt;
 
-   recv_pkt = _network.netMCPRecv(); 
+   recv_pkt = _network.netRecvType(MCP_REQUEST_TYPE); 
 
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   
@@ -92,7 +92,7 @@ void MCP::finish()
 //   cerr << "Sending message to MCP to quit..." << endl;
    _finished = true;
 
-   _network.netSendToMCP(quit_buff.getBuffer(), quit_buff.size(), true);
+   _network.netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, quit_buff.getBuffer(), quit_buff.size());
 
    cerr << "End of MCP::finish();" << endl;
 }
@@ -105,7 +105,7 @@ void MCP::broadcastPacket(NetPacket pkt)
    for (UINT32 commid = 0; commid < g_config->totalMods(); commid++)
       {
          pkt.receiver = commid;
-         _network.netSendMagic(pkt);
+         _network.netSend(pkt);
       }
 }
 
@@ -115,5 +115,5 @@ void MCP::forwardPacket(NetPacket pkt)
 
    assert(pkt.receiver != -1);
    
-   _network.netSendMagic(pkt);
+   _network.netSend(pkt);
 }

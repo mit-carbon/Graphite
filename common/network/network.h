@@ -1,7 +1,11 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+#include <iostream>
+#include <vector>
 #include "packet_type.h"
+#include "fixed_types.h"
+#include "lock.h"
 
 // TODO: Do we need to support multicast to some (but not all)
 // destinations?
@@ -9,6 +13,7 @@
 class Core;
 class Transport;
 class NetQueue;
+class Network;
 
 // -- Network Packets -- //
 
@@ -16,18 +21,18 @@ class NetPacket
 {
  public:
    PacketType type;
-   Int32 sender;
-   Int32 receiver;
+   SInt32 sender;
+   SInt32 receiver;
    UInt32 length;
    void *data;
 
-   static const Int32 BROADCAST = 0xDEADBABE;
+   static const SInt32 BROADCAST = 0xDEADBABE;
 
    NetPacket()
       : type(INVALID)
       , sender(-1)
-      , receiver(-1),
-      , length(0),
+      , receiver(-1)
+      , length(0)
       , data(0)
       {}
 };
@@ -70,14 +75,16 @@ public:
 
    struct Hop
    {
-      Int32 dest;
+      SInt32 dest;
       UInt64 time;
    };
 
    virtual void routePacket(const NetPacket &pkt,
-                            vector<Hop> &nextHops) = 0;
+                            std::vector<Hop> &nextHops) = 0;
 
-   virtual void outputSummary(ostream &out) = 0;
+   virtual void outputSummary(std::ostream &out) = 0;
+
+   static NetworkModel *createModel(Network *network, UInt32 type);
 
 protected:
    Network *_network;
@@ -109,20 +116,20 @@ class Network
 
    void unregisterCallback(PacketType type);
 
-   void outputSummary(ostream &out) const;
+   void outputSummary(std::ostream &out) const;
 
    void netPullFromTransport();
 
    // -- Main interface -- //
 
-   Int32 netSend(NetPacket packet);
+   SInt32 netSend(NetPacket packet);
    NetPacket netRecv(NetMatch match);
 
    // -- Wrappers -- //
 
-   Int32 netSend(Int32 dest, PacketType type, const void *buf, UInt32 len);
-   Int32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-   NetPacket netRecvFrom(Int32 src);
+   SInt32 netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len);
+   SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
+   NetPacket netRecvFrom(SInt32 src);
    NetPacket netRecvType(PacketType type);
 
 private:
@@ -134,10 +141,11 @@ private:
    Core *_core;
    Transport *_transport;
    
-   Int32 _tid;
-   Int32 _numMod;
+   SInt32 _tid;
+   SInt32 _numMod;
 
    NetQueue **_netQueue;
+   Lock *_netQueueLock;
 
    void* netCreateBuf(NetPacket packet, UInt32* buf_size, UInt64 time);
    void netExPacket(void* buffer, NetPacket &packet, UInt64 &time);

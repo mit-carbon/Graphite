@@ -18,7 +18,7 @@ SyncClient::~SyncClient()
 {
 }
 
-void SyncClient::mutexInit(int commid, carbon_mutex_t *mux)
+void SyncClient::mutexInit(carbon_mutex_t *mux)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -26,7 +26,7 @@ void SyncClient::mutexInit(int commid, carbon_mutex_t *mux)
    
   int msg_type = MCP_MESSAGE_MUTEX_INIT;
 
-  _send_buff << msg_type << commid;
+  _send_buff << msg_type;
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -39,7 +39,7 @@ void SyncClient::mutexInit(int commid, carbon_mutex_t *mux)
   //  _recv_buff >> *mux;
 }
 
-void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
+void SyncClient::mutexLock(carbon_mutex_t *mux)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -47,7 +47,7 @@ void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
    
   int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
-  _send_buff << msg_type << commid << *mux << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << *mux << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -65,7 +65,7 @@ void SyncClient::mutexLock(int commid, carbon_mutex_t *mux)
   _core->getPerfModel()->updateCycleCount(time);
 }
 
-void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
+void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -73,7 +73,7 @@ void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
    
   int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
 
-  _send_buff << msg_type << commid << *mux << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << *mux << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -87,7 +87,7 @@ void SyncClient::mutexUnlock(int commid, carbon_mutex_t *mux)
   assert( dummy == MUTEX_UNLOCK_RESPONSE );
 }
 
-void SyncClient::condInit(int commid, carbon_cond_t *cond)
+void SyncClient::condInit(carbon_cond_t *cond)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -95,7 +95,7 @@ void SyncClient::condInit(int commid, carbon_cond_t *cond)
    
   int msg_type = MCP_MESSAGE_COND_INIT;
 
-  _send_buff << msg_type << commid << *cond << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << *cond << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -106,7 +106,7 @@ void SyncClient::condInit(int commid, carbon_cond_t *cond)
   *cond = *((carbon_cond_t*)recv_pkt.data);
 }
 
-void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
+void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -114,7 +114,7 @@ void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
    
   int msg_type = MCP_MESSAGE_COND_WAIT;
 
-  _send_buff << msg_type << commid << *cond << *mux << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << *cond << *mux << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -132,7 +132,7 @@ void SyncClient::condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux)
   _core->getPerfModel()->updateCycleCount(time);
 }
 
-void SyncClient::condSignal(int commid, carbon_cond_t *cond)
+void SyncClient::condSignal(carbon_cond_t *cond)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -140,7 +140,7 @@ void SyncClient::condSignal(int commid, carbon_cond_t *cond)
    
   int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
-  _send_buff << msg_type << commid << *cond << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << *cond << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -155,7 +155,7 @@ void SyncClient::condSignal(int commid, carbon_cond_t *cond)
 
 }
 
-void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
+void SyncClient::condBroadcast(carbon_cond_t *cond)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -163,7 +163,7 @@ void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
    
   int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
-  _send_buff << msg_type << commid << *cond << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << *cond << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -177,7 +177,7 @@ void SyncClient::condBroadcast(int commid, carbon_cond_t *cond)
   assert( dummy == COND_BROADCAST_RESPONSE );
 }
 
-void SyncClient::barrierInit(int commid, carbon_barrier_t *barrier, UINT32 count)
+void SyncClient::barrierInit(carbon_barrier_t *barrier, UINT32 count)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -185,7 +185,7 @@ void SyncClient::barrierInit(int commid, carbon_barrier_t *barrier, UINT32 count
    
   int msg_type = MCP_MESSAGE_BARRIER_INIT;
 
-  _send_buff << msg_type << commid << count << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << count << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 
@@ -196,7 +196,7 @@ void SyncClient::barrierInit(int commid, carbon_barrier_t *barrier, UINT32 count
   *barrier = *((carbon_barrier_t*)recv_pkt.data);
 }
 
-void SyncClient::barrierWait(int commid, carbon_barrier_t *barrier)
+void SyncClient::barrierWait(carbon_barrier_t *barrier)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -204,7 +204,7 @@ void SyncClient::barrierWait(int commid, carbon_barrier_t *barrier)
    
   int msg_type = MCP_MESSAGE_BARRIER_WAIT;
 
-  _send_buff << msg_type << commid << *barrier << _core->getPerfModel()->getCycleCount();
+  _send_buff << msg_type << *barrier << _core->getPerfModel()->getCycleCount();
 
   _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
 

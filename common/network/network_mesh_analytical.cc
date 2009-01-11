@@ -162,7 +162,6 @@ void NetworkMeshAnalytical::outputSummary(ostream &out)
 struct UtilizationMessage
 {
   int msg;
-  int comm_id;
   double ut;
 };
 
@@ -195,8 +194,6 @@ void NetworkMeshAnalytical::updateUtilization()
   // build packet
   UtilizationMessage m;
   m.msg = MCP_MESSAGE_UTILIZATION_UPDATE;
-  m.comm_id = netCommID();
-  assert(0 <= m.comm_id && (unsigned int)m.comm_id < g_config->numMods());
   m.ut = local_utilization;
 
   NetPacket update;

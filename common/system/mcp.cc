@@ -31,50 +31,49 @@ void MCP::run()
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   
    int msg_type;
-   int comm_id;
 
-   recv_buff >> msg_type >> comm_id;
+   recv_buff >> msg_type;
 
    switch(msg_type)
    {
       case MCP_MESSAGE_SYS_CALL:
-         syscall_server.handleSyscall(comm_id);
+         syscall_server.handleSyscall(recv_pkt.sender);
          break;
       case MCP_MESSAGE_QUIT:
          cerr << "Got the quit message... done waiting for MCP messages..." << endl;
          break;
       case MCP_MESSAGE_MUTEX_INIT:
-         sync_server.mutexInit(comm_id); 
+         sync_server.mutexInit(recv_pkt.sender); 
         break;
       case MCP_MESSAGE_MUTEX_LOCK:
-         sync_server.mutexLock(comm_id);
+         sync_server.mutexLock(recv_pkt.sender);
          break;
       case MCP_MESSAGE_MUTEX_UNLOCK:
-         sync_server.mutexUnlock(comm_id);
+         sync_server.mutexUnlock(recv_pkt.sender);
          break;
       case MCP_MESSAGE_COND_INIT:
-         sync_server.condInit(comm_id);
+         sync_server.condInit(recv_pkt.sender);
          break;
       case MCP_MESSAGE_COND_WAIT:
-         sync_server.condWait(comm_id);
+         sync_server.condWait(recv_pkt.sender);
          break;
       case MCP_MESSAGE_COND_SIGNAL:
-         sync_server.condSignal(comm_id);
+         sync_server.condSignal(recv_pkt.sender);
          break;
       case MCP_MESSAGE_COND_BROADCAST:
-         sync_server.condBroadcast(comm_id);
+         sync_server.condBroadcast(recv_pkt.sender);
          break;
       case MCP_MESSAGE_BARRIER_INIT:
-         sync_server.barrierInit(comm_id);
+         sync_server.barrierInit(recv_pkt.sender);
          break;
       case MCP_MESSAGE_BARRIER_WAIT:
-         sync_server.barrierWait(comm_id);
+         sync_server.barrierWait(recv_pkt.sender);
          break;
       case MCP_MESSAGE_UTILIZATION_UPDATE:
-         network_mesh_analytical_server.update(comm_id);
+         network_mesh_analytical_server.update(recv_pkt.sender);
          break;
       default:
-         cerr << "Unhandled MCP message type: " << msg_type << " from: " << comm_id << endl;
+         cerr << "Unhandled MCP message type: " << msg_type << " from: " << recv_pkt.sender << endl;
          assert(false);
    }
 
@@ -88,8 +87,7 @@ void MCP::finish()
    quit_buff.clear();
 
    int msg_type = MCP_MESSAGE_QUIT;
-   int commid = -1;
-   quit_buff << msg_type << commid;   
+   quit_buff << msg_type;
 
 //   cerr << "Sending message to MCP to quit..." << endl;
    _finished = true;

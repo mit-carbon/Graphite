@@ -332,12 +332,8 @@ void SimMutexInit(carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->mutexInit(commid, mux);
+     g_chip->core[rank].getSyncClient()->mutexInit(mux);
 }
 
 void SimMutexLock(carbon_mutex_t *mux)
@@ -345,12 +341,8 @@ void SimMutexLock(carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->mutexLock(commid, mux);
+     g_chip->core[rank].getSyncClient()->mutexLock(mux);
 }
 
 void SimMutexUnlock(carbon_mutex_t *mux)
@@ -358,12 +350,8 @@ void SimMutexUnlock(carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->mutexUnlock(commid, mux);
+      g_chip->core[rank].getSyncClient()->mutexUnlock(mux);
 }
 
 void SimCondInit(carbon_cond_t *cond)
@@ -371,12 +359,8 @@ void SimCondInit(carbon_cond_t *cond)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condInit(commid, cond);
+      g_chip->core[rank].getSyncClient()->condInit(cond);
 }
 
 void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
@@ -384,12 +368,8 @@ void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condWait(commid, cond, mux);
+      g_chip->core[rank].getSyncClient()->condWait(cond, mux);
 }
 
 void SimCondSignal(carbon_cond_t *cond)
@@ -397,12 +377,8 @@ void SimCondSignal(carbon_cond_t *cond)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condSignal(commid, cond);
+      g_chip->core[rank].getSyncClient()->condSignal(cond);
 }
 
 void SimCondBroadcast(carbon_cond_t *cond)
@@ -410,12 +386,8 @@ void SimCondBroadcast(carbon_cond_t *cond)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condBroadcast(commid, cond);
+      g_chip->core[rank].getSyncClient()->condBroadcast(cond);
 }
 
 void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
@@ -423,12 +395,8 @@ void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->barrierInit(commid, barrier, count);
+      g_chip->core[rank].getSyncClient()->barrierInit(barrier, count);
 }
 
 void SimBarrierWait(carbon_barrier_t *barrier)
@@ -436,12 +404,8 @@ void SimBarrierWait(carbon_barrier_t *barrier)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->barrierWait(commid, barrier);
+      g_chip->core[rank].getSyncClient()->barrierWait(barrier);
 }
 
 // MCP wrappers

@@ -70,8 +70,8 @@ class NetMatch
 class NetworkModel
 {
 public:
-   NetworkModel(Network*);
-   virtual ~NetworkModel();
+   NetworkModel(Network *network) : _network(network) { }
+   virtual ~NetworkModel() { }
 
    struct Hop
    {
@@ -129,6 +129,7 @@ class Network
 
    SInt32 netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len);
    SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
+   NetPacket netRecv(SInt32 src, PacketType type);
    NetPacket netRecvFrom(SInt32 src);
    NetPacket netRecvType(PacketType type);
 

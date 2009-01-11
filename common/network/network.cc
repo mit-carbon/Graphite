@@ -284,6 +284,16 @@ SInt32 Network::netBroadcast(PacketType type, const void *buf, UInt32 len)
    return netSend(NetPacket::BROADCAST, type, buf, len);
 }
 
+NetPacket Network::netRecv(SInt32 src, PacketType type)
+{
+   NetMatch match;
+   match.sender_flag = true;
+   match.sender = src;
+   match.type_flag = true;
+   match.type = type;
+   return netRecv(match);
+}
+
 NetPacket Network::netRecvFrom(SInt32 src)
 {
    NetMatch match;

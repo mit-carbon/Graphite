@@ -11,7 +11,7 @@ CFLAGS+=-c -I../../common/user -I../../common/system -I../../common/core -I../..
 LDFLAGS= -pthread
 
 TOOL_ROOTS = ../bin/pin_sim
-SOURCES = chip.cc pin_sim.cc
+SOURCES = chip.cc pin_sim.cc pin_lock.cc
 SRCOBJS = ../../common/user/*.o ../../common/core/*.o ../../common/network/*.o ../../common/phys_trans/*.o ../../common/misc/*.o ../../common/system/*.o
 OBJECTS = $(SOURCES:%.cc=%.o)
 

@@ -135,6 +135,11 @@ Int32 netSend(Int32 dest, PacketType type, const void *buf, UInt32 len)
 {
 }
 
+Int32 Network::netBroadcast(PacketType type, const void *buf, UInt32 len)
+{
+   return netSend(NetPacket::BROADCAST, type, buf, len);
+}
+
 NetPacket netRecvFrom(Int32 src)
 {
 }

@@ -3,6 +3,9 @@
 
 #include "packet_type.h"
 
+// TODO: Do we need to support multicast to some (but not all)
+// destinations?
+
 class Core;
 class Transport;
 class NetQueue;
@@ -17,6 +20,8 @@ class NetPacket
    Int32 receiver;
    UInt32 length;
    void *data;
+
+   static const Int32 BROADCAST = 0xDEADBABE;
 
    NetPacket()
       : type(INVALID)
@@ -70,7 +75,7 @@ public:
    };
 
    virtual void routePacket(const NetPacket &pkt,
-                            vector<Hop> nextHops) = 0;
+                            vector<Hop> &nextHops) = 0;
 
    virtual void outputSummary(ostream &out) = 0;
 
@@ -116,6 +121,7 @@ class Network
    // -- Wrappers -- //
 
    Int32 netSend(Int32 dest, PacketType type, const void *buf, UInt32 len);
+   Int32 netBroadcast(PacketType type, const void *buf, UInt32 len);
    NetPacket netRecvFrom(Int32 src);
    NetPacket netRecvType(PacketType type);
 

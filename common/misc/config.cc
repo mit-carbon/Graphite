@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include "network_mesh_analytical_params.h"
+#include "network_types.h"
 
 #define DEBUG
 
@@ -64,6 +65,7 @@ Config::Config()
    }
 
    // Create network parameters
+   network_type = NETWORK_ANALYTICAL_MESH;
    analytic_network_parms = new NetworkMeshAnalyticalParameters();
    analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
    analytic_network_parms->s = 1; // single cycle switching time

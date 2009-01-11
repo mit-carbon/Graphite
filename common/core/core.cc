@@ -7,6 +7,7 @@
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "network_mesh_analytical.h"
+#include "network_types.h"
 #include "memory_manager.h"
 
 #define CORE_DEBUG
@@ -18,15 +19,7 @@ int Core::coreInit(int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-
-
-   //Switch which line is commented to choose the different 
-   //network models
-   //FIXME: Make this runtime configurable
-   //NetworkModel net_model = NETWORK_BUS;
-   NetworkModel net_model = NETWORK_ANALYTICAL_MESH;
-
-   switch(net_model)
+   switch(g_config->getNetworkType())
    {
       case NETWORK_BUS:
       	network = new Network(this, num_mod);

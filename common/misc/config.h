@@ -40,6 +40,8 @@ class Config {
    UInt32  MCP_process;          // The process where the MCP lives
 
    NetworkMeshAnalyticalParameters *analytic_network_parms;
+   UInt32 network_type;
+   
  public:
    Config();
    ~Config();
@@ -78,6 +80,9 @@ class Config {
    
    const NetworkMeshAnalyticalParameters *getAnalyticNetworkParms() const
       { return analytic_network_parms; }
+
+   UInt32 getNetworkType() const
+      { return network_type; }
 };
 
 #endif

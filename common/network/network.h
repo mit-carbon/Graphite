@@ -23,13 +23,6 @@ extern Chip* g_chip; //only here for global_lock debugging purposes
 
 // Define data types
 
-enum NetworkModel
-   {
-      NETWORK_BUS,
-      NETWORK_ANALYTICAL_MESH,
-      NUM_NETWORK_TYPES
-   };
-
 // network packet
 class NetPacket
 {

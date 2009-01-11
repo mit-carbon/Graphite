@@ -5,7 +5,7 @@ class Lock
 {
  public:
 
-   virtual ~Lock();
+   virtual ~Lock() { }
 
    virtual void acquire() = 0;
    virtual void release() = 0;

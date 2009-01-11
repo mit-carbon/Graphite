@@ -89,7 +89,7 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
 
     N = g_chip->getNumModules();
     k = pow(N, 1./n);                  // pg 5
-    kd = (k-1.)/2.;                    // pg 5 (note this will be
+    kd = k/2.;                         // pg 5 (note this will be
       // different for different network configurations...say,
       // bidirectional networks)
     time_per_hop = s + pow(k, n/2.-1.);  // pg 6

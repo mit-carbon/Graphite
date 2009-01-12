@@ -123,25 +123,7 @@ void Network::netPullFromTransport()
       // was this packet sent to us, or should it just be forwarded?
       if (entry.packet.receiver != _transport->ptCommID())
          {
-            NetworkModel *model = _models[g_type_to_static_network_map[entry.packet.type]];
-
-            vector<NetworkModel::Hop> hopVec;
-            model->routePacket(entry.packet, hopVec);
-
-            void *forwardBuffer;
-            UInt32 forwardBufferSize;
-            forwardBuffer = netCreateBuf(entry.packet, &forwardBufferSize, 0xBEEFCAFE);
-
-            UInt64 *timeStamp = (UInt64*)forwardBuffer;
-            assert(*timeStamp == 0xBEEFCAFE);
-
-            for (UInt32 i = 0; i < hopVec.size(); i++)
-               {
-                  *timeStamp = hopVec[i].time;
-                  _transport->ptSend(hopVec[i].dest, (char*)forwardBuffer, forwardBufferSize);
-               }
-
-            delete [] (UInt8*)forwardBuffer;
+            forwardPacket(entry.packet);
 
             // if this isn't a broadcast message, then we shouldn't process it further
             if (entry.packet.receiver != NetPacket::BROADCAST)
@@ -173,6 +155,31 @@ void Network::netPullFromTransport()
    while(_transport->ptQuery());
 }
 
+// -- forwardPacket -- //
+
+void Network::forwardPacket(const NetPacket &packet)
+{
+   NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
+
+   vector<NetworkModel::Hop> hopVec;
+   model->routePacket(packet, hopVec);
+
+   void *forwardBuffer;
+   UInt32 forwardBufferSize;
+   forwardBuffer = netCreateBuf(packet, &forwardBufferSize, 0xBEEFCAFE);
+
+   UInt64 *timeStamp = (UInt64*)forwardBuffer;
+   assert(*timeStamp == 0xBEEFCAFE);
+
+   for (UInt32 i = 0; i < hopVec.size(); i++)
+      {
+         *timeStamp = hopVec[i].time;
+         _transport->ptSend(hopVec[i].dest, (char*)forwardBuffer, forwardBufferSize);
+      }
+
+   delete [] (UInt8*)forwardBuffer;
+}
+
 // -- netSend -- //
 
 SInt32 Network::netSend(NetPacket packet)
@@ -181,6 +188,7 @@ SInt32 Network::netSend(NetPacket packet)
    UInt32 bufSize;
 
    assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
+   assert(packet.sender == _transport->ptCommID());
 
    NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
 
@@ -257,6 +265,7 @@ NetPacket Network::netRecv(NetMatch match)
 
    assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
    assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
+   assert(entry.packet.receiver == _transport->ptCommID());
 
    _netQueue[entry.packet.sender][entry.packet.type].pop();
    _netQueueLock->release();
@@ -316,7 +325,7 @@ NetPacket Network::netRecvType(PacketType type)
 
 // -- Internal functions -- //
 
-void* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size, UInt64 time)
+void* Network::netCreateBuf(const NetPacket &packet, UInt32* buffer_size, UInt64 time)
 {
    Byte *buffer;
 

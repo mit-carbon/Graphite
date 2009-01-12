@@ -148,8 +148,10 @@ private:
    NetQueue **_netQueue;
    Lock *_netQueueLock;
 
-   void* netCreateBuf(NetPacket packet, UInt32* buf_size, UInt64 time);
+   void* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);
    void netExPacket(void* buffer, NetPacket &packet, UInt64 &time);
+
+   void forwardPacket(const NetPacket &packet);
 };
 
 #endif // NETWORK_H

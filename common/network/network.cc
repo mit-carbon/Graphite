@@ -107,13 +107,15 @@ void Network::outputSummary(std::ostream &out) const
 
 void Network::netPullFromTransport()
 {
-   void *buffer;
    NetQueueEntry entry;
    
    // Pull up packets waiting in the physical transport layer
    do {
-      buffer = _transport->ptRecv();
-      Network::netExPacket(buffer, entry.packet, entry.time);
+      {
+         void *buffer;
+         buffer = _transport->ptRecv();
+         netExPacket(buffer, entry.packet, entry.time);
+      }
 
       assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
       assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
@@ -316,33 +318,33 @@ NetPacket Network::netRecvType(PacketType type)
 
 void* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size, UInt64 time)
 {
-   UInt8 *buffer;
+   Byte *buffer;
 
    *buffer_size = sizeof(packet.type) + sizeof(packet.sender) +
                      sizeof(packet.receiver) + sizeof(packet.length) +
                      packet.length + sizeof(time);
 
-   buffer = new UInt8 [*buffer_size];
+   buffer = new Byte [*buffer_size];
 
-   UInt8 *dest = buffer;
+   Byte *dest = buffer;
 
    // Time MUST be first based on usage in netSend
-   memcpy(dest, (UInt8*)&time, sizeof(time));
+   memcpy(dest, (Byte*)&time, sizeof(time));
    dest += sizeof(time);
 
-   memcpy(dest, (UInt8*)&packet.type, sizeof(packet.type));
+   memcpy(dest, (Byte*)&packet.type, sizeof(packet.type));
    dest += sizeof(packet.type);
 
-   memcpy(dest, (UInt8*)&packet.sender, sizeof(packet.sender));
+   memcpy(dest, (Byte*)&packet.sender, sizeof(packet.sender));
    dest += sizeof(packet.sender);
 
-   memcpy(dest, (UInt8*)&packet.receiver, sizeof(packet.receiver));
+   memcpy(dest, (Byte*)&packet.receiver, sizeof(packet.receiver));
    dest += sizeof(packet.receiver);
 
-   memcpy(dest, (UInt8*)&packet.length, sizeof(packet.length));
+   memcpy(dest, (Byte*)&packet.length, sizeof(packet.length));
    dest += sizeof(packet.length);
 
-   memcpy(dest, (UInt8*)packet.data, packet.length);
+   memcpy(dest, (Byte*)packet.data, packet.length);
    dest += packet.length;
 
    return (void*)buffer;
@@ -350,27 +352,27 @@ void* Network::netCreateBuf(NetPacket packet, UInt32* buffer_size, UInt64 time)
 
 void Network::netExPacket(void* buffer, NetPacket &packet, UInt64 &time)
 {
-   UInt8 *ptr = (UInt8*)buffer;
+   Byte *ptr = (Byte*)buffer;
 
-   memcpy((UInt8 *) &time, ptr, sizeof(time));
+   memcpy((Byte *) &time, ptr, sizeof(time));
    ptr += sizeof(time);
 
-   memcpy((UInt8 *) &packet.type, ptr, sizeof(packet.type));
+   memcpy((Byte *) &packet.type, ptr, sizeof(packet.type));
    ptr += sizeof(packet.type);
 
-   memcpy((UInt8 *) &packet.sender, ptr, sizeof(packet.sender));
+   memcpy((Byte *) &packet.sender, ptr, sizeof(packet.sender));
    ptr += sizeof(packet.sender);
 
-   memcpy((UInt8 *) &packet.receiver, ptr, sizeof(packet.receiver));
+   memcpy((Byte *) &packet.receiver, ptr, sizeof(packet.receiver));
    ptr += sizeof(packet.receiver);
 
-   memcpy((UInt8 *) &packet.length, ptr, sizeof(packet.length));
+   memcpy((Byte *) &packet.length, ptr, sizeof(packet.length));
    ptr += sizeof(packet.length);
 
-   packet.data = new UInt8[packet.length];
+   packet.data = new Byte[packet.length];
 
-   memcpy((UInt8 *) packet.data, ptr, packet.length);
+   memcpy((Byte *) packet.data, ptr, packet.length);
    ptr += packet.length;
 
-   delete [] ptr;
+   delete [] (Byte*)buffer;
 }

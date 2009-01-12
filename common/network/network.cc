@@ -252,7 +252,7 @@ NetPacket Network::netRecv(NetMatch match)
                            if ((entry.time == 0) || (entry.time > _netQueue[i][j].top().time))
                               {
                                  entry = _netQueue[i][j].top();
-                                 break;
+                                 goto PacketFound;
                               }
                         }
                   }
@@ -263,6 +263,7 @@ NetPacket Network::netRecv(NetMatch match)
          // TODO: Go to sleep until a packet arrives
       }
 
+ PacketFound:
    assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
    assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
    assert(entry.packet.receiver == _transport->ptCommID());

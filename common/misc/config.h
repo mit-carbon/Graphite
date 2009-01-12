@@ -84,4 +84,6 @@ class Config {
    void getNetworkModels(UInt32 *) const;
 };
 
+extern Config *g_config;
+
 #endif

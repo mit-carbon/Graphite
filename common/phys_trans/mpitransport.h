@@ -13,8 +13,6 @@
 #include "config.h"
 #include "fixed_types.h"
 
-extern Config* g_config;
-
 class Transport {
    private:
       SInt32 pt_tid;

@@ -59,9 +59,13 @@ SInt32 Transport::ptInit(SInt32 tid, SInt32 num_mod)
 
 SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
 {
+   // memory will be deleted by network, so we must copy it
+   Byte *bufcopy = new Byte[size];
+   memcpy(bufcopy, buffer, size);
+
    assert(0 <= receiver && receiver < pt_num_mod);
    GetLock(&(pt_queue[receiver].pt_q_lock), 1);
-   pt_queue[receiver].pt_queue.push(buffer);
+   pt_queue[receiver].pt_queue.push(bufcopy);
    ReleaseLock(&(pt_queue[receiver].pt_q_lock));
 
    GetLock(&(pt_futx[receiver].futx_lock), 1);

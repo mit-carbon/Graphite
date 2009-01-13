@@ -150,6 +150,7 @@ void Network::netPullFromTransport()
             _netQueueLock->acquire();
             _netQueue[entry.packet.sender][entry.packet.type].push(entry);
             _netQueueLock->release();
+            _netQueueCond.broadcast();
          }
    }
    while(_transport->ptQuery());
@@ -260,7 +261,7 @@ NetPacket Network::netRecv(NetMatch match)
 
          // No match found
          _netQueueLock->release();
-         // TODO: Go to sleep until a packet arrives
+         _netQueueCond.wait();
       }
 
  PacketFound:

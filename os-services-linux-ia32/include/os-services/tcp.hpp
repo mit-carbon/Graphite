@@ -17,7 +17,6 @@ class /*<INTERFACE>*/ ITCP
 {
 public:
     static ITCP *GetSingleton();    ///< @return The singleton object.
-    virtual ~ITCP() {}
 
     /*!
      * This must be called at least once, before using any other TCP service.
@@ -31,6 +30,7 @@ public:
      * This should be called after the client has completed all TCP services.
      */
     virtual void Cleanup() = 0;
+    virtual ~ITCP() {};
 };
 
 

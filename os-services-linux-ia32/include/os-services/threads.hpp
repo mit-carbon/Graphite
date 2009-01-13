@@ -18,7 +18,6 @@ namespace OS_SERVICES {
 class /*<INTERFACE>*/ ITHREADS
 {
 public:
-    virtual ~ITHREADS() {}
     static ITHREADS *GetSingleton();    ///< @return The singleton object.
 
     /*!
@@ -48,6 +47,7 @@ public:
      * method also marks the ITHREAD object as "not active".
      */
     virtual void Exit() = 0;
+    virtual ~ITHREADS() {};
 };
 
 
@@ -89,7 +89,6 @@ public:
 class /*<INTERFACE>*/ ITHREAD_RUNNER
 {
 public:
-    virtual ~ITHREAD_RUNNER() {}
     /*!
      * The new thread starts running at this method.  The thread may terminate either
      * by returning from this method or by calling me->Exit().
@@ -97,6 +96,7 @@ public:
      *  @param[in] me   An object representing this running thread.
      */
     virtual void RunThread(ITHREAD *me) = 0;
+    virtual ~ITHREAD_RUNNER() {}
 };
 
 } // namespace

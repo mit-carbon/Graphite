@@ -16,7 +16,6 @@ namespace OS_SERVICES {
 class /*<INTERFACE>*/ IPROCESSES
 {
 public:
-    virtual ~IPROCESSES() {}
     static IPROCESSES *GetSingleton();  ///< @return The singleton object.
 
     /*!
@@ -24,6 +23,7 @@ public:
      *           of argv[0] passed to main().
      */
     virtual std::string GetName() = 0;
+    virtual ~IPROCESSES() {}
 };
 
 } // namespace

@@ -192,21 +192,26 @@ void SyscallServer::marshallWriteCall(int comm_id)
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
-   // Previously we would pass the actual data, now we pass the
-   // address and the syscall server will pull the data from the
-   // shared memory. --cg3
-   //recv_buff >> make_pair(buf, count);
-   char *src;
-   int src_b;
-   recv_buff >> src_b;
-   src = (char *)src_b;
+   // If we aren't using shared memory, then the data for the
+   // write call must be passed in the message
+   if(g_knob_simarch_has_shared_mem)
+   {
+       char *src;
+       int src_b;
+       recv_buff >> src_b;
+       src = (char *)src_b;
 
-   _network.getCore()->dcacheRunModel(Core::LOAD, (ADDRINT)src, buf, count);
+       _network.getCore()->dcacheRunModel(Core::LOAD, (ADDRINT)src, buf, count);
+   }
+   else
+   {
+       recv_buff >> make_pair(buf, count);
+   }
 
    // Actually do the write call
    int bytes = write(fd, (void *) buf, count);  
-   if ( bytes != -1 )
-      cerr << "wrote: " << buf << endl;
+//   if ( bytes != -1 )
+//      cerr << "wrote: " << buf << endl;
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;

@@ -245,12 +245,14 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
 
    // cerr << "write(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
    
-   // Previously we would pass the actual data, now we pass the
-   // address and the syscall server will pull the data from the
-   // shared memory. --cg3
-   //send_buff << fd << count << make_pair(buf, count);
+   // If we are simulating shared memory, then we simply put
+   // the address in the message. Otherwise, we need to put
+   // the data in the message as well.
+   if(g_knob_simarch_has_shared_mem)
+       send_buff << fd << count << (int)buf;
+   else
+       send_buff << fd << count << make_pair(buf, count);
 
-   send_buff << fd << count << (int)buf;
    the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;

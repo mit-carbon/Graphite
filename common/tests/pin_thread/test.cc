@@ -10,5 +10,4 @@ int main(int argc, char **argv)
 {
     int i = open("./input", O_RDONLY);
     cout << "fid: " << i << endl;
-
 }

@@ -12,8 +12,8 @@ void SIMcarbonStartShthreads()
 {
    cerr << "Starting the threads." << endl;
    OS_SERVICES::ITHREAD *my_thread_p;
-   TestThread my_thread_runner = TestThread();
-   my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, &my_thread_runner);
+   TestThread *my_thread_runner = new TestThread();
+   my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, my_thread_runner);
    assert(my_thread_p);
     //cerr << "my_thread_p: " << hex << my_thread_p << endl;
    //cerr << "is thread active?: " << my_thread_p->IsActive() << endl;;

@@ -104,8 +104,6 @@ int main(int argc, char* argv[]){ // main begins
 	}
 	// Declare threads and related variables
 	
-	initMCP();
-
 	// Spawn off the shared memory threads
 	sharedMemThreadsInit();
 

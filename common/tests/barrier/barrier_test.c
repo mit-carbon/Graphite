@@ -62,7 +62,7 @@ int main(int argc, char* argv[]){ // main begins
 int wait_some()
 {
    int j = 0;
-   for(unsigned int i = 0; i < 200000; i++)
+   for(unsigned int i = 0; i < 20000; i++)
    {
       j += i;
    }
@@ -95,18 +95,18 @@ void* test_wait_barrier(void *threadid)
     }
   else
     {
-      sleep(1);
+      sleep(10);
     }
 
 
-  if(tid == 1)
-  {
-     fprintf(stderr, "UserWait: THREAD (%d).\n", tid);
-     wait_some();
-  }
-
   for(i = 0; i < 50; i++)
   {
+     if(tid == 1)
+     {
+        fprintf(stderr, "UserWait: THREAD (%d).\n", i);
+        wait_some();
+     }
+
      barrierWait(&my_barrier);
   }
 

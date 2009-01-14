@@ -4,7 +4,6 @@
 #include <math.h>
 #include <sstream>
 #include "capi.h"
-#include "mcp_api.h"
 #include "user_api.h"
 #include "cache_state.h"
 #include "dram_directory_entry.h"
@@ -104,9 +103,6 @@ int main(int argc, char* argv[]){ // main begins
 	}
 	// Declare threads and related variables
 	
-	// Spawn off the shared memory threads
-	sharedMemThreadsInit();
-
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
@@ -156,11 +152,6 @@ int main(int argc, char* argv[]){ // main begins
 	cerr << "End of execution" << endl << endl;
 #endif
 	
-	// Join the shared memory threads
-	sharedMemThreadsFinish();
-
-	quitMCP();
-        
    return 0;
 } // main ends
 

@@ -8,7 +8,7 @@ CFLAGS=-c -I../core -I../phys_trans -I../misc -fomit-frame-pointer -Wall -Werror
 LDFLAGS=
 
 C_SOURCES = capi.c
-CPP_SOURCES = mcp_api.cc sync_api.cc user_api.cc
+CPP_SOURCES = sync_api.cc user_api.cc
 OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o)
 
 all: $(OBJECTS)

@@ -17,8 +17,6 @@ void* thread_func(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
-   carbonInit();
-
    // Read in the command line arguments
    const unsigned int numThreads = 1;
 
@@ -46,11 +44,7 @@ int main(int argc, char* argv[]){ // main begins
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   cout << "UserApplication: About to call carbon finish!" << endl;
-   carbonFinish();
-
    pthread_exit(NULL);
-
 } // main ends
 
 

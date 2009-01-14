@@ -18,17 +18,17 @@ class SyncClient
   SyncClient(Core*);
   ~SyncClient();
 
-  void mutexInit(int commid, carbon_mutex_t *mux);
-  void mutexLock(int commid, carbon_mutex_t *mux);
-  void mutexUnlock(int commid, carbon_mutex_t *mux);
+  void mutexInit(carbon_mutex_t *mux);
+  void mutexLock(carbon_mutex_t *mux);
+  void mutexUnlock(carbon_mutex_t *mux);
 
-  void condInit(int commid, carbon_cond_t *cond);
-  void condWait(int commid, carbon_cond_t *cond, carbon_mutex_t *mux);
-  void condSignal(int commid, carbon_cond_t *cond);
-  void condBroadcast(int commid, carbon_cond_t *cond);
+  void condInit(carbon_cond_t *cond);
+  void condWait(carbon_cond_t *cond, carbon_mutex_t *mux);
+  void condSignal(carbon_cond_t *cond);
+  void condBroadcast(carbon_cond_t *cond);
 
-  void barrierInit(int commid, carbon_barrier_t *barrier, UInt32 count);
-  void barrierWait(int commid, carbon_barrier_t *barrier);
+  void barrierInit(carbon_barrier_t *barrier, UInt32 count);
+  void barrierWait(carbon_barrier_t *barrier);
 
   /* Unique return codes for each function call
      - Note: It is NOT a mistake that 

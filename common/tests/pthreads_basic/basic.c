@@ -1,11 +1,9 @@
-#include <iostream>
-#include <pthread.h>
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "capi.h"
 #include "user_api.h"
-#include <sstream>
-
-using namespace std;
 
 pthread_mutex_t write_lock;
 
@@ -33,16 +31,16 @@ int main(int argc, char* argv[]){ // main begins
 
    // Read in the command line arguments
 	if(argc != 3) {
-		cout << "invalid command line options. the correct format is:" << endl;
-		cout << "basic -n num_of_threads" << endl;
+		printf("invalid command line options. the correct format is:\n");
+		printf("basic -n num_of_threads\n");
 		exit(EXIT_FAILURE);
 	}
 	else if((strcmp(argv[1], "-n\0") == 0)){
 		coreCount = atoi(argv[2]);
 	}
 	else {
-		cout << "invalid command line options. the correct format is:" << endl;
-		cout << "basic -n num_of_threads" << endl;
+		printf("invalid command line options. the correct format is:\n");
+		printf("basic -n num_of_threads\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -53,8 +51,8 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_t attr;
 	
 #ifdef DEBUG
-	cout << "This is the function main()" << endl;
-	cout << "Initializing thread structures" << endl << endl;
+	printf("This is the function main()\n");
+	printf("Initializing thread structures\n");
 	pthread_mutex_init(&lock, NULL);
 #endif
 	
@@ -65,14 +63,14 @@ int main(int argc, char* argv[]){ // main begins
 		pthread_create(&threads[i], &attr, thread_main, (void *) i);    
 	}
 
-	cerr << "finished starting threads" << endl;
+	printf("finished starting threads\n");
 
    for(unsigned int i=0; i < coreCount; i++) {
 		pthread_join(threads[i], NULL);         
 	}
 	
 #ifdef DEBUG
-	cout << "End of execution" << endl << endl;
+	printf("End of execution\n");
 #endif
 
 	carbonFinish();

@@ -1,6 +1,14 @@
 #include "perfmdl.h"
 #include <cassert>
 
+PerfModel::PerfModel(string n)
+   : microop_issue_count(0), 
+   cycle_count(0), 
+   scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID), 
+   name(n)
+{
+   InitLock(&m_clock_lock);
+}
 
 UINT32 PerfModel::getInsMicroOpsCount(const INS& ins)
 {
@@ -95,7 +103,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrv
       interval_cycle_count += interval_stats->getICacheLoadAccessMissStatus(i) ? 10 : 0;
    }
 
-   cycle_count += interval_cycle_count;
+   addToCycleCount(interval_cycle_count);
 
    if ( firstCallInIntrvl )
       microop_issue_count += interval_stats->microops_count;
@@ -142,7 +150,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
    }
 
    // stall for latest load dependency if needed
-   cycle_count = max;
+   updateCycleCount(max);
 }
 
 
@@ -166,3 +174,15 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 }
 
 
+void PerfModel::updateCycleCount(UINT64 new_cycle_count)
+{
+   GetLock(&m_clock_lock, 1);
+   cycle_count = max(cycle_count, new_cycle_count);
+   ReleaseLock(&m_clock_lock);
+}
+void PerfModel::addToCycleCount(UINT64 cycles)
+{
+   GetLock(&m_clock_lock, 1);
+   cycle_count += cycles; 
+   ReleaseLock(&m_clock_lock);
+}

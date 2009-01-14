@@ -19,13 +19,21 @@ class NetworkMeshAnalytical : public Network
     virtual UINT64 netLatency(NetPacket packet);
 
  private:
-    //For statistical purposes
+    void updateUtilization();
+    static void receiveMCPUpdate(void *, NetPacket);
+
+    // For statistical purposes
     unsigned int bytes_sent;
     unsigned int bytes_recv;
 
     UINT64 cycles_spent_proc;
     UINT64 cycles_spent_latency;
     UINT64 cycles_spent_contention;
+
+    double global_utilization;
+    UINT64 local_utilization_last_update;
+    UINT64 local_utilization_flits_sent;
+    UINT64 update_interval;
 };
 
 #endif

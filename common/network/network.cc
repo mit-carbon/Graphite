@@ -26,33 +26,54 @@ Network::Network(Core *the_core_arg, int num_mod)
    {
       net_queue[i] = new NetQueue [num_pac_type];
    }
+
+   callbacks = new NetworkCallback [num_pac_type];
+
+   for(i = 0; i < num_pac_type; i++)
+      callbacks[i] = NULL;
+
+   callback_objs = new void* [num_pac_type];
+   assert(callbacks != NULL);
+   assert(callback_objs != NULL);
+}
+
+Network::~Network()
+{
+   delete [] callback_objs;
+   delete [] callbacks;
+
+   for (int i = 0; i < net_num_mod; i++)
+      {
+         delete [] net_queue[i];
+      }
+   delete [] net_queue;
+
+   delete transport;
 }
 
 void Network::netCheckMessages()
 {
-	//	netEntryTasks();
- 	cerr << "DONT CALL ME" << endl;
+   assert(false);
 }
 
 int Network::netSend(NetPacket packet)
 {
-	char *buffer;
+   char *buffer;
    UInt32 buf_size;
    
-   UINT64 time = the_core->getProcTime() + netLatency(packet) + netProcCost(packet);
-   // Perform SMEM entry tasks
-//   netEntryTasks(); obselete call
+   UINT64 time = the_core->getPerfModel()->getCycleCount() + netLatency(packet) + netProcCost(packet);
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
-   
-   the_core->setProcTime(the_core->getProcTime() + netProcCost(packet));
+
+   the_core->getPerfModel()->addToCycleCount(netProcCost(packet));
 
    // FIXME?: Should we be returning buf_size instead?
    return packet.length;
 }
 
-void Network::printNetPacket(NetPacket packet) {
+void Network::printNetPacket(NetPacket packet) 
+{
 	stringstream ss;
 	ss << endl;
 	ss << "printNetPacket: DON'T CALL ME" << endl;
@@ -64,9 +85,7 @@ int Network::netSendMagic(NetPacket packet)
    char *buffer;
    UInt32 buf_size;
    
-   UINT64 time = the_core->getProcTime();
-   // Perform network entry tasks
-//   netEntryTasks();
+   UINT64 time = the_core->getPerfModel()->getCycleCount();
 
    buffer = netCreateBuf(packet, &buf_size, time);
    transport->ptSend(packet.receiver, buffer, buf_size);
@@ -143,18 +162,15 @@ NetPacket Network::netRecv(NetMatch match)
    assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
    assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
 
-   // FIXME: Will the reference stay the same (Note this is a priority queue)?? 
-	net_queue[entry.packet.sender][entry.packet.type].lock();
+   // FIXME: Will the reference stay the same (Note this is a priority queue)??
+   net_queue[entry.packet.sender][entry.packet.type].lock();
    net_queue[entry.packet.sender][entry.packet.type].pop();
    net_queue[entry.packet.sender][entry.packet.type].unlock();
 
    packet = entry.packet;
 
-   //Atomically update the time
-   the_core->lockClock();
-   if(the_core->getProcTime() < entry.time)
-      the_core->setProcTime(entry.time);
-   the_core->unlockClock();
+   //Atomically update the time is the packet time is newer
+   the_core->getPerfModel()->updateCycleCount(entry.time);
 
    return packet;
 }
@@ -174,37 +190,38 @@ void Network::printNetMatch(NetMatch match, int receiver) {
 
 string Network::packetTypeToString(PacketType type) 
 {
-	switch(type) {
-		case INVALID:
-			return "INVALID                     ";
-		case USER:
-			return "USER                        ";
-		case SHARED_MEM_REQ:
-			return "SHARED_MEM_REQ              ";
-		case SHARED_MEM_RESPONSE:
-			return "SHARED_MEM_RESPONSE			";
-		case SHARED_MEM_UPDATE_UNEXPECTED:
-			return "SHARED_MEM_UPDATE_UNEXPECTED";
-		case SHARED_MEM_ACK:
-			return "SHARED_MEM_ACK              ";
-		case SHARED_MEM_EVICT:
-			return "SHARED_MEM_EVICT            ";
-		case MCP_NETWORK_TYPE:
-			return "MCP_NETWORK_TYPE				";
-		default:
-			return "ERROR in PacketTypeToString";
-	}
-	return "ERROR in PacketTypeToString";
+  switch(type) {
+  case INVALID:
+    return "INVALID                     ";
+  case USER:
+    return "USER                        ";
+  case SHARED_MEM_REQ:
+    return "SHARED_MEM_REQ              ";
+  case SHARED_MEM_RESPONSE:
+    return "SHARED_MEM_RESPONSE	        ";
+  case SHARED_MEM_UPDATE_UNEXPECTED:
+    return "SHARED_MEM_UPDATE_UNEXPECTED";
+  case SHARED_MEM_ACK:
+    return "SHARED_MEM_ACK              ";
+  case SHARED_MEM_EVICT:
+    return "SHARED_MEM_EVICT            ";
+  case MCP_REQUEST_TYPE:
+    return "MCP_REQUEST_TYPE		";
+  case MCP_RESPONSE_TYPE:
+    return "MCP_RESPONSE_TYPE           ";
+  default:
+    return "ERROR in PacketTypeToString";
+  }
+  return "ERROR in PacketTypeToString";
 }
 
 int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
 {
    NetPacket packet;
    packet.sender = netCommID();
-   packet.receiver = g_config->totalMods() - 1;
+   packet.receiver = g_config->MCPCommID();
    packet.length = len;
-   packet.type = MCP_NETWORK_TYPE;
-
+   packet.type = MCP_REQUEST_TYPE;
 
    //FIXME: This is bad casting away constness
    packet.data = (char *)buf;
@@ -218,9 +235,9 @@ int Network::netSendToMCP(const char *buf, unsigned int len, bool is_magic)
 NetPacket Network::netRecvFromMCP()
 {
    NetMatch match;
-   match.sender = g_config->totalMods() - 1;
+   match.sender = g_config->MCPCommID();
    match.sender_flag = true;
-   match.type = MCP_NETWORK_TYPE;
+   match.type = MCP_RESPONSE_TYPE;
    match.type_flag = true;
    return netRecv(match);
 }
@@ -228,10 +245,10 @@ NetPacket Network::netRecvFromMCP()
 int Network::netMCPSend(int commid, const char *buf, unsigned int len, bool is_magic)
 {
    NetPacket packet;
-   packet.sender = g_config->totalMods() - 1;
+   packet.sender = g_config->MCPCommID();
    packet.receiver = commid;
    packet.length = len;
-   packet.type = MCP_NETWORK_TYPE;
+   packet.type = MCP_RESPONSE_TYPE;
 
    //FIXME: This is bad casting away constness
    packet.data = (char *)buf;
@@ -245,7 +262,7 @@ NetPacket Network::netMCPRecv()
 {
    NetMatch match;
    match.sender_flag = false;
-   match.type = MCP_NETWORK_TYPE;
+   match.type = MCP_REQUEST_TYPE;
    match.type_flag = true;
    return netRecv(match);
 }
@@ -253,10 +270,13 @@ NetPacket Network::netMCPRecv()
 
 bool Network::netQuery(NetMatch match)
 {
+   // FIXME: !!WARNING!! It appears that this function does not work.
+   assert(false);
+
    NetQueueEntry entry;
    bool found = false;
    
-	entry.time = the_core->getProcTime();
+   entry.time = the_core->getPerfModel()->getCycleCount();
  
    int num_pac_type = MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1;
 
@@ -284,7 +304,7 @@ bool Network::netQuery(NetMatch match)
    {
        for(int j = type_start; j < type_end; j++)
        {
-			 //net_queue[i][j].lock();
+           net_queue[i][j].lock();
 
            if(!net_queue[i][j].empty() && entry.time >= net_queue[i][j].top().time)
            {
@@ -292,7 +312,7 @@ bool Network::netQuery(NetMatch match)
                break;
            }
 
-			 //net_queue[i][j].unlock();
+           net_queue[i][j].unlock();
        }
    }
    
@@ -372,141 +392,55 @@ void Network::netPullFromTransport()
    // entered
    char *buffer;
    NetQueueEntry entry;
-   int sender;
-   PacketType type;
    
 	// Pull up packets waiting in the physical transport layer
-   while(transport->ptQuery()) {
-		buffer = transport->ptRecv();
+   do {
+      buffer = transport->ptRecv();
       Network::netExPacket(buffer, entry.packet, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
       assert(0 <= entry.packet.type && entry.packet.type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
 
-		// TODO: Performance Consideration
-		// We need to lock only when 'entry.packet.type' is one of the following:
-		// 1) USER
-		// 2) SHARED_MEM_RESPONSE
-		// 3) MCP_NETWORK_TYPE
-      net_queue[entry.packet.sender][entry.packet.type].lock();
-      net_queue[entry.packet.sender][entry.packet.type].push(entry);
-      net_queue[entry.packet.sender][entry.packet.type].unlock();
+      // asynchronous I/O support
+      assert((unsigned int)entry.packet.type <= MAX_PACKET_TYPE);
+      NetworkCallback callback = callbacks[entry.packet.type];
+
+      if (callback != NULL)
+         {
+            assert(0 <= entry.packet.sender && entry.packet.sender < net_num_mod);
+            assert(MIN_PACKET_TYPE <= entry.packet.type && entry.packet.type <= MAX_PACKET_TYPE);
+
+            the_core->getPerfModel()->updateCycleCount(entry.time);
+
+            callback(callback_objs[entry.packet.type], entry.packet);
+         }
+
+      // synchronous I/O support
+      else
+         {
+            // TODO: Performance Consideration
+            // We need to lock only when 'entry.packet.type' is one of the following:
+            // 1) USER
+            // 2) SHARED_MEM_RESPONSE
+            // 3) MCP_NETWORK_TYPE
+            net_queue[entry.packet.sender][entry.packet.type].lock();
+            net_queue[entry.packet.sender][entry.packet.type].push(entry);
+            net_queue[entry.packet.sender][entry.packet.type].unlock();
+         }
    }
+   while(transport->ptQuery());
+}
 
-   do
-   {
-      sender = -1;
-      type = INVALID;
-      entry.time = 0;
-      // FIXME: entry.time = _core->getProcTime();
-     
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_REQ].empty())
-         {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_REQ].top().time))
-            {
-              entry = net_queue[i][SHARED_MEM_REQ].top();
-              sender = i;
-              type = SHARED_MEM_REQ;
-            }
-         }
-      }
+void Network::registerCallback(PacketType type, NetworkCallback callback, void *obj)
+{
+   assert((unsigned int)type <= MAX_PACKET_TYPE);
+   callbacks[type] = callback;
+   callback_objs[type] = obj;
+}
 
-		for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_EVICT].empty())
-         {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_EVICT].top().time))
-            {
-              entry = net_queue[i][SHARED_MEM_EVICT].top();
-              sender = i;
-              type = SHARED_MEM_EVICT;
-            }
-         }
-      }
-
-
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].empty())
-         {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top().time))
-            {
-               entry = net_queue[i][SHARED_MEM_UPDATE_UNEXPECTED].top();
-               sender = i;
-               type = SHARED_MEM_UPDATE_UNEXPECTED;
-            }
-         }
-      }
-		
-      for(int i = 0; i < net_num_mod; i++)
-      {
-         if(!net_queue[i][SHARED_MEM_ACK].empty())
-         {
-            if((entry.time == 0) || (entry.time >= net_queue[i][SHARED_MEM_ACK].top().time))
-            {
-               entry = net_queue[i][SHARED_MEM_ACK].top();
-               sender = i;
-               type = SHARED_MEM_ACK;
-            }
-         }
-      }
-
-	  	if(type == SHARED_MEM_REQ)
-      {
-			assert(0 <= sender && sender < net_num_mod);
-			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         net_queue[sender][type].pop();
-         
-         the_core->getMemoryManager()->addMemRequest(entry.packet);
-			
-			if(the_core->getProcTime() < entry.time)
-			{
-				the_core->setProcTime(entry.time);
-			}
-      }
-		else if(type == SHARED_MEM_EVICT)
-		{
-			assert(0 <= sender && sender < net_num_mod);
-			assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-         net_queue[sender][type].pop();
-         
-         the_core->getMemoryManager()->forwardWriteBackToDram(entry.packet);
-
-			if(the_core->getProcTime() < entry.time)
-			{
-				the_core->setProcTime(entry.time);
-			}
-		}
-      else if(type == SHARED_MEM_UPDATE_UNEXPECTED)
-      {
-		  assert(0 <= sender && sender < net_num_mod);
-		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-        net_queue[sender][type].pop();
-        
-		  the_core->getMemoryManager()->processUnexpectedSharedMemUpdate(entry.packet);
-		  
-		  if(the_core->getProcTime() < entry.time)
-		  {
-			  the_core->setProcTime(entry.time);
-		  }
-      }
-      else if(type == SHARED_MEM_ACK)
-      {
-		  assert(0 <= sender && sender < net_num_mod);
-		  assert(0 <= type && type < MAX_PACKET_TYPE - MIN_PACKET_TYPE + 1);
-        net_queue[sender][type].pop();
-        
-		  the_core->getMemoryManager()->processAck(entry.packet);
-		  
-		  if(the_core->getProcTime() < entry.time)
-		  {
-			  the_core->setProcTime(entry.time);
-		  }
-      }
-
-   } while(type != INVALID);
-	
+void Network::unregisterCallback(PacketType type)
+{
+   assert((unsigned int)type <= MAX_PACKET_TYPE);
+   callbacks[type] = NULL;
 }
 
 void Network::waitForUserPacket()

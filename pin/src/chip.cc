@@ -7,6 +7,8 @@
 #include "net_thread_runner.h"
 
 
+#include "sync_client.h"
+
 // definitions
 using namespace std;
 
@@ -341,12 +343,8 @@ void SimMutexInit(carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->mutexInit(commid, mux);
+     g_chip->core[rank].getSyncClient()->mutexInit(mux);
 }
 
 void SimMutexLock(carbon_mutex_t *mux)
@@ -354,12 +352,8 @@ void SimMutexLock(carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->mutexLock(commid, mux);
+     g_chip->core[rank].getSyncClient()->mutexLock(mux);
 }
 
 void SimMutexUnlock(carbon_mutex_t *mux)
@@ -367,12 +361,8 @@ void SimMutexUnlock(carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->mutexUnlock(commid, mux);
+      g_chip->core[rank].getSyncClient()->mutexUnlock(mux);
 }
 
 void SimCondInit(carbon_cond_t *cond)
@@ -380,12 +370,8 @@ void SimCondInit(carbon_cond_t *cond)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condInit(commid, cond);
+      g_chip->core[rank].getSyncClient()->condInit(cond);
 }
 
 void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
@@ -393,12 +379,8 @@ void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condWait(commid, cond, mux);
+      g_chip->core[rank].getSyncClient()->condWait(cond, mux);
 }
 
 void SimCondSignal(carbon_cond_t *cond)
@@ -406,12 +388,8 @@ void SimCondSignal(carbon_cond_t *cond)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condSignal(commid, cond);
+      g_chip->core[rank].getSyncClient()->condSignal(cond);
 }
 
 void SimCondBroadcast(carbon_cond_t *cond)
@@ -419,12 +397,8 @@ void SimCondBroadcast(carbon_cond_t *cond)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->condBroadcast(commid, cond);
+      g_chip->core[rank].getSyncClient()->condBroadcast(cond);
 }
 
 void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
@@ -432,12 +406,8 @@ void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->barrierInit(commid, barrier, count);
+      g_chip->core[rank].getSyncClient()->barrierInit(barrier, count);
 }
 
 void SimBarrierWait(carbon_barrier_t *barrier)
@@ -445,12 +415,8 @@ void SimBarrierWait(carbon_barrier_t *barrier)
    int rank;
    chipRank(&rank);
 
-   int commid;  
-   commRank(&commid);
-   assert( commid >= 0 );
-
    if(rank >= 0)
-     g_chip->core[rank].getSyncClient()->barrierWait(commid, barrier);
+      g_chip->core[rank].getSyncClient()->barrierWait(barrier);
 }
 
 // MCP wrappers
@@ -463,7 +429,34 @@ void MCPFinish()
 // Shared Memory Functions
 void SimSharedMemQuit()
 {
-   NetThreadRunner::StopNetThreads();
+   NetPacket pkt;
+   pkt.type = SHARED_MEM_TERMINATE_THREADS;
+   pkt.length = 0;
+   pkt.data = 0;
+
+   g_MCP->broadcastPacket(pkt);
+}
+
+void SharedMemTerminateFunc(void *vp, NetPacket pkt)
+{
+   bool *pcont = (bool*) vp;
+   *pcont = false;
+}
+
+void* SimSharedMemThreadFunc(void *)
+{
+    int core_id = g_chip->registerSharedMemThread();
+    Network *net = g_chip->core[core_id].getNetwork();
+    bool cont = true;
+
+    net->registerCallback(SHARED_MEM_TERMINATE_THREADS,
+                          SharedMemTerminateFunc,
+                          &cont);
+
+    while(cont)
+       net->netPullFromTransport();
+
+    return 0;
 }
 
 // Helper Functions
@@ -826,6 +819,8 @@ CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 	cerr << "Aliasing address 0x" << hex << address << "  ==>  0x"  << hex << g_chip->aliasMap[address] << endl;  
 	return 0;
 }
+
+extern KNOB<UINT32> g_knob_ahl_param;
 
 ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
 

@@ -94,15 +94,13 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UINT32* line_size)
 bool DramDirectoryEntry::addSharer(UINT32 sharer_rank)
 {
 	// TODO: Clean this up at the end !!
-	// assert (! sharers->at(sharer_rank));
+	assert (! sharers->at(sharer_rank));
 	if (number_of_sharers == MAX_SHARERS) {
 		return (true);
 	}
 	
-	if (! sharers->at(sharer_rank)) {
-		sharers->set(sharer_rank);
-		number_of_sharers++;
-	}
+	sharers->set(sharer_rank);
+	number_of_sharers++;
 	return (false);
 }
 

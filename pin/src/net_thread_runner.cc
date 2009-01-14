@@ -2,7 +2,9 @@
 #include "net_thread_runner.h"
 #include "chip.h"
 
-bool NetThreadRunner::net_threads_continue = true;
+// This is the function defined in chip.cc
+// that represents the shared mem thread function
+extern void* SimSharedMemThreadFunc(void *);
 
 NetThreadRunner::NetThreadRunner()
 {
@@ -10,6 +12,7 @@ NetThreadRunner::NetThreadRunner()
 
 void NetThreadRunner::RunThread(OS_SERVICES::ITHREAD *me)
 {
+    SimSharedMemThreadFunc();
     int core_id = g_chip->registerSharedMemThread();
     Network *net = g_chip->getCore(core_id)->getNetwork();
 
@@ -17,10 +20,5 @@ void NetThreadRunner::RunThread(OS_SERVICES::ITHREAD *me)
     {
         net->netPullFromTransport();
     }
-}
-
-void NetThreadRunner::StopNetThreads()
-{
-   net_threads_continue = false;
 }
 

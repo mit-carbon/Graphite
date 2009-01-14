@@ -18,6 +18,7 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_process;
 
+struct NetworkMeshAnalyticalParameters;
 
 class Config {
  public:
@@ -38,6 +39,9 @@ class Config {
    
    UInt32  MCP_process;          // The process where the MCP lives
 
+   NetworkMeshAnalyticalParameters *analytic_network_parms;
+   UInt32 network_type;
+   
  public:
    Config();
    ~Config();
@@ -56,6 +60,7 @@ class Config {
 
    // Return the number of the process that should contain the MCP
    UInt32 MCPProcNum() { return MCP_process; }
+   UInt32 MCPCommID() { return totalMods() - 1; }
 
    // Return the number of modules (cores) in a given process
    UInt32 numMods()
@@ -73,7 +78,11 @@ class Config {
    const CoreList getModuleList(UInt32 proc_num)
       { assert(proc_num < num_process); return core_map[proc_num]; }
    
+   const NetworkMeshAnalyticalParameters *getAnalyticNetworkParms() const
+      { return analytic_network_parms; }
 
+   UInt32 getNetworkType() const
+      { return network_type; }
 };
 
 #endif

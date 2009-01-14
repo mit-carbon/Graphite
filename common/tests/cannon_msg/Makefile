@@ -1,9 +1,9 @@
-TARGET=cond_test
+TARGET=cannon
 
-C_SOURCES = cond_test.c
+C_SOURCES = cannon.c
 CPP_SOURCES = 
 OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
 
 include ../Makefile.common
-TARGET=cond_test
+TARGET=cannon
 

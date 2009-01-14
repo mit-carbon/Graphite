@@ -2,16 +2,13 @@
  * This is a test that will test barriers           *
  ****************************************************/
 
-#include <iostream>
-#include <pthread.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include "user_api.h"
-#include <stdio.h>
-
-using namespace std;
 
 carbon_barrier_t my_barrier;
 
@@ -32,9 +29,9 @@ int main(int argc, char* argv[]){ // main begins
    // Declare threads and related variables
    pthread_t threads[numThreads];
    pthread_attr_t attr;
-	
+
 #ifdef DEBUG
-   cout << "This is the function main()" << endl;
+   printf("This is the function main()\n");
 #endif
 
    // Initialize threads and related variables
@@ -42,7 +39,7 @@ int main(int argc, char* argv[]){ // main begins
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
 #ifdef DEBUG
-   cout << "Spawning threads" << endl;
+   printf("Spawning threads\n");
 #endif
 
    for (unsigned int i = 0; i < numThreads; i++)
@@ -52,30 +49,30 @@ int main(int argc, char* argv[]){ // main begins
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   cout << "Quitting syscall server!" << endl;
+   printf("Quitting syscall server!\n");
    carbonFinish();
 
 #ifdef DEBUG
-   cout << "This is the function main ending" << endl;
+   printf("This is the function main ending\n");
 #endif
    pthread_exit(NULL);
 
 } // main ends
 
-void wait_some()
+int wait_some()
 {
    int j = 0;
    for(unsigned int i = 0; i < 200000; i++)
    {
       j += i;
-      asm volatile("nop");
    }
+   return j;
 }
 
 void* test_wait_barrier(void *threadid)
 {
   // Declare local variables
-  int tid;
+  int tid, i;
   CAPI_return_t rtnVal;
 
   rtnVal = CAPI_Initialize((int)threadid);
@@ -108,9 +105,10 @@ void* test_wait_barrier(void *threadid)
      wait_some();
   }
 
-  fprintf(stderr, "UserWait(%d): Waiting for barrier.\n", (int)threadid);
-  barrierWait(&my_barrier);
-  fprintf(stderr, "UserWait(%d): barrier done.\n", (int)threadid);
+  for(i = 0; i < 50; i++)
+  {
+     barrierWait(&my_barrier);
+  }
 
   pthread_exit(NULL);
 }

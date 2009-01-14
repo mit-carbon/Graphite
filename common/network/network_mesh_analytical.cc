@@ -1,4 +1,6 @@
 #include "network_mesh_analytical.h"
+#include "network_mesh_analytical_params.h"
+#include "message_types.h"
 #include "chip.h"
 #include <math.h>
 
@@ -11,23 +13,34 @@ NetworkMeshAnalytical::NetworkMeshAnalytical(Core *core, int num_threads)
         bytes_sent(0),
         cycles_spent_proc(0),
         cycles_spent_latency(0),
-        cycles_spent_contention(0)
+        cycles_spent_contention(0),
+        global_utilization(0.0),
+        local_utilization_last_update(0),
+        local_utilization_flits_sent(0),
+        update_interval(0)
 {
+   registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
+                    receiveMCPUpdate,
+                    this);
+
+   update_interval = g_config->getAnalyticNetworkParms()->update_interval;
 }
 
 NetworkMeshAnalytical::~NetworkMeshAnalytical()
 {
+   unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
 }
-
 
 int NetworkMeshAnalytical::netSend(NetPacket packet)
 {
     bytes_sent += packet.length;
+    updateUtilization();
     return Network::netSend(packet);
 }
 
 NetPacket NetworkMeshAnalytical::netRecv(NetMatch match)
 {
+    updateUtilization();
     return Network::netRecv(match);
 }
 
@@ -50,45 +63,38 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     // We combine the contention model (eq. 12) with the model for
     // limited bisection width (sec. 4.2).
 
-    // TODO: Evaluate if bisection constraint is really the behavior
-    // we want in general. (It changes the channel width from the
-    // initial parameters and is only useful in comparing different
-    // dimensions of networks with similar parameters.)
-
     // TODO: Fix (if necessary) distance calculation for uneven
     // topologies, i.e. 8-node 2d mesh or 10-node 3d mesh.
 
     // TODO: Confirm model for latency computed based on actual number
     // of network hops.
 
-    const double Tw2 = 1;     // wire delay between adjacent nodes on mesh
-    const double s = 1;       // switch delay, relative to Tw2
-    const int n = 2;          // dimension of network
-    const double W2 = 32;     // channel width constraint (constraint
-      // is on bisection width, W2 * N held constant) (paper
-      // normalized to unit-width channels, W2 denormalizes)
-    const double p = 0.8;     // network utilization
-    
+    // Retrieve parameters
+    const NetworkMeshAnalyticalParameters *pParams = g_config->getAnalyticNetworkParms();
+    double Tw2 = pParams->Tw2;
+    double s = pParams->s;
+    int n = pParams->n;
+    double W = pParams->W;
+    double p = global_utilization;
+
     // This lets us derive the latency, ignoring contention
 
     int N;                    // number of nodes in the network
     double k;                 // length of mesh in one dimension
     double kd;                // number of hops per dimension
     double time_per_hop;      // time spent in one hop through the network
-    double W;                 // channel width
     double B;                 // number of flits for packet
     double hops_in_network;   // number of nodes visited
     double Tb;                // latency, without contention
 
     N = g_chip->getNumModules();
     k = pow(N, 1./n);                  // pg 5
-    kd = (k-1.)/2.;                    // pg 5 (note this will be
+    kd = k/2.;                         // pg 5 (note this will be
       // different for different network configurations...say,
       // bidirectional networks)
     time_per_hop = s + pow(k, n/2.-1.);  // pg 6
-    W = W2 * k / 2.;                   // pg 16 (bisection constraint)
     B = ceil(packet.length * 8. / W);
-
+    
     // Compute the number of hops based on src, dest
     // Based on this eqn:
     // node number = x1 + x2 k + x3 k^2 + ... + xn k^(n-1)
@@ -135,6 +141,12 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     UINT64 Tci = (UINT64)(ceil(Tc));
     cycles_spent_latency += Tci;
     cycles_spent_contention += (UINT64)(Tc - Tb);
+
+    // ** update utilization counter **
+    // we must account for the usage throughout the mesh
+    // which means that we must include the # of hops
+    local_utilization_flits_sent += (UINT64)(B * hops_in_network);
+
     return Tci;
 }
 
@@ -147,4 +159,59 @@ void NetworkMeshAnalytical::outputSummary(ostream &out)
    out << "    cycles spent contention: " << cycles_spent_contention << endl;
 }
 
+struct UtilizationMessage
+{
+  int msg;
+  double ut;
+};
 
+// we send and receive updates asynchronously for performance and
+// because the MCP is unable to reply to itself.
+
+void NetworkMeshAnalytical::updateUtilization()
+{
+  // make sure the system is properly initialized
+  int rank;
+  chipRank(&rank);
+  if (rank < 0)
+    return;
+
+  // ** send updates
+
+  // don't lock because this is all approximate anyway
+  UINT64 core_time = the_core->getPerfModel()->getCycleCount();
+  UINT64 elapsed_time = core_time - local_utilization_last_update;
+
+  if (elapsed_time < update_interval)
+    return;
+
+  // FIXME: This assumes one cycle per flit, might not be accurate.
+  double local_utilization = ((double)local_utilization_flits_sent) / ((double)elapsed_time);
+
+  local_utilization_last_update = core_time;
+  local_utilization_flits_sent = 0;
+
+  // build packet
+  UtilizationMessage m;
+  m.msg = MCP_MESSAGE_UTILIZATION_UPDATE;
+  m.ut = local_utilization;
+
+  NetPacket update;
+  update.sender = netCommID();
+  update.receiver = g_config->MCPCommID();
+  update.length = sizeof(m);
+  update.type = MCP_REQUEST_TYPE;
+  update.data = (char*) &m;
+
+  netSendMagic(update);
+}
+
+void NetworkMeshAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
+{
+   NetworkMeshAnalytical *net = (NetworkMeshAnalytical*) obj;
+
+   assert(response.length == sizeof(double));
+   //   assert(0 <= net->global_utilization || net->global_utilization <= 1);
+
+   net->global_utilization = *((double*)response.data);
+}

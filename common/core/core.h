@@ -12,17 +12,17 @@
 class Network;
 class MemoryManager;
 class SyscallMdl;
+class SyncClient;
+class OCache;
+class PerfModel;
+class Network;
 
-#include "memory_manager.h"
 #include "pin.H"
 #include "config.h"
-#include "network.h"
-#include "perfmdl.h"
-#include "ocache.h"
+
 #include "cache_state.h"
 #include "dram_directory_entry.h"
-#include "syscall_model.h"
-#include "sync_client.h"
+#include "perfmdl.h"
 
 // externally defined vars
 
@@ -57,7 +57,6 @@ class Core
       SyscallMdl *syscall_model;
       SyncClient *sync_client;
 
-      PIN_LOCK clock_lock;
 
    public:
 
@@ -135,18 +134,9 @@ class Core
          { perf_model->logBranchPrediction(stats, correct); }
 	
 
-      // add proc time management to core
-      //FIXME: These should actually be accessed THROUGH the perfmodel
-      void setProcTime(UInt64 time);
-      void updateProcTime(UInt64 time); // only if newer
-      void addProcTime(UInt64 cycles); // time += cycles
-      UInt64 getProcTime();
-
       // network accessor since network is private
       Network *getNetwork() { return network; }
-
-      void lockClock() { GetLock(&clock_lock, 1); }
-      void unlockClock() { ReleaseLock(&clock_lock); }
+      PerfModel *getPerfModel() { return perf_model; }
 };
 
 #endif

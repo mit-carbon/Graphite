@@ -4,16 +4,13 @@
  *
  ****************************************************/
 
-#include <iostream>
+#include <stdio.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include "user_api.h"
-
-using namespace std;
-
 
 #ifdef DEBUG
    pthread_mutex_t lock;
@@ -34,7 +31,7 @@ int main(int argc, char* argv[]){ // main begins
    pthread_attr_t attr;
 	
 #ifdef DEBUG
-   cout << "This is the function main()" << endl;
+   printf("This is the function main()"\n);;
 #endif
 
    // Initialize threads and related variables
@@ -42,7 +39,7 @@ int main(int argc, char* argv[]){ // main begins
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
 #ifdef DEBUG
-   cout << "Spawning threads" << endl;
+   printf("Spawning threads"\n);;
 #endif
 
    for(unsigned int i = 0; i < numThreads; i++) 
@@ -52,11 +49,11 @@ int main(int argc, char* argv[]){ // main begins
    for(unsigned int i = 0; i < numThreads; i++) 
       pthread_join(threads[i], NULL);
 
-   cout << "quitting syscall server!" << endl;
+   printf("quitting syscall server!\n");;
    carbonFinish();
 
 #ifdef DEBUG
-   cout << "This is the function main ending" << endl;
+   printf("This is the function main ending\n");;
 #endif
    pthread_exit(NULL);
 

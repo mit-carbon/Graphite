@@ -1,9 +1,10 @@
 #include "debug.h"
-#include "chip.h"
 #include <assert.h>
 #include <fstream>
 #include <sstream>
 using namespace std;
+
+INT32 chipRank(INT32 *);
 
 //turn this flag off to prevent creating and writing log files
 #define WRITE_FLAG

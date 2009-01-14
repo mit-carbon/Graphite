@@ -25,6 +25,26 @@ common/tests/pthreads_basic/basic
 common/tests/shared_mem_test/test_evic
 common/tests/shared_mem_test/test_new
 common/tests/simple/simple_test
+common/tests/cannon_msg/cannon
+common/tests/capi_worker/capi_worker
+
+# benchmark generated files
+common/tests/barnes/*.[ch]
+common/tests/barnes/BARNES
+common/tests/fmm/*.[ch]
+common/tests/fmm/FMM
+common/tests/ocean_contig/*.[ch]
+common/tests/ocean_contig/OCEAN
+common/tests/radiosity/*.[ch]
+common/tests/radiosity/RADIOSITY
+common/tests/volrend/*.[ch]
+common/tests/volrend/VOLREND
+common/tests/water-nsquared/*.[ch]
+common/tests/water-nsquared/WATER-NSQUARED
+common/tests/water-spatial/*.[ch]
+common/tests/water-spatial/WATER-SPATIAL
+
+
 
 #benchmark generated source files
 common/tests/water-spatial/*.[ch]

@@ -1,12 +1,10 @@
 
-#include <iostream>
+#include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
 #include "user_api.h"
 //#include "mcp_api.h"
-
-using namespace std;
 
 pthread_mutex_t write_lock;
 
@@ -21,7 +19,6 @@ void* ping(void *threadid);
 void* pong(void *threadid);
 
 int main(int argc, char* argv[]){ // main begins
-
    carbonInit();
 
 	// Declare threads and related variables
@@ -29,12 +26,12 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_t attr;
 	
 #ifdef DEBUG
-	cerr << "This is the function main()" << endl;
+	fprintf(stderr, "This is the function main()\n");
 #endif
 	// Initialize global variables
 
 #ifdef DEBUG
-	cerr << "Initializing thread structures" << endl << endl;
+	fprintf(stderr, "Initializing thread structures\n\n");
 	pthread_mutex_init(&lock, NULL);
 #endif
 
@@ -43,13 +40,13 @@ int main(int argc, char* argv[]){ // main begins
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	pthread_mutex_init(&write_lock, NULL);
 #ifdef DEBUG
-	cerr << "Spawning threads" << endl << endl;
+	fprintf(stderr, "Spawning threads\n\n");
 #endif
    
 	
 #ifdef DEBUG	
 	pthread_mutex_lock(&lock);
-	cerr << "Creating Thread#0." << endl << endl;
+	fprintf(stderr, "Creating Thread#0.\n\n");
    pthread_mutex_unlock(&lock);
 #endif
 	
@@ -57,7 +54,7 @@ int main(int argc, char* argv[]){ // main begins
 
 #ifdef DEBUG
 	pthread_mutex_lock(&lock);
-	cerr << "Creating Thread#1." << endl << endl;
+	fprintf(stderr, "Creating Thread#1.\n\n");
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -65,7 +62,7 @@ int main(int argc, char* argv[]){ // main begins
 
 #ifdef DEBUG 
 	pthread_mutex_lock(&lock);
-	cerr << "Starter thread is waiting for the other threads to join." << endl << endl;
+	fprintf(stderr, "Starter thread is waiting for the other threads to join.\n\n");
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -73,7 +70,7 @@ int main(int argc, char* argv[]){ // main begins
    pthread_join(threads[0], NULL);         
    pthread_join(threads[1], NULL);
 	
-	cerr << "Finished running PingPong!." << endl << endl;
+	fprintf(stderr, "Finished running PingPong!.\n\n");
 
    carbonFinish();
    return 0;
@@ -95,7 +92,7 @@ void* ping(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "executing ping function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl;
+   fprintf(stderr, "executing ping function with <tid,!tid>= <%d,%d>\n", tid, !tid);
    pthread_mutex_unlock(&lock);
 #endif
  
@@ -103,7 +100,7 @@ void* ping(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "ping sent to pong" << endl;
+   fprintf(stderr, "ping sent to pong\n");
    pthread_mutex_unlock(&lock);
 #endif
    
@@ -112,7 +109,7 @@ void* ping(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "ping received from pong" << endl;
+   fprintf(stderr, "ping received from pong\n");
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -137,7 +134,7 @@ void* pong(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "executing pong function with <tid,!tid>= <" << tid << "," << !tid << ">" << endl;
+   fprintf(stderr, "executing pong function with <tid,!tid>= <%d,%d>\n", tid, !tid);
    pthread_mutex_unlock(&lock);
 #endif
  
@@ -146,7 +143,7 @@ void* pong(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "pong sent to ping" << endl << endl;
+   fprintf(stderr, "pong sent to ping\n\n");
    pthread_mutex_unlock(&lock);
 #endif
 
@@ -156,7 +153,7 @@ void* pong(void *threadid)
 
 #ifdef DEBUG  
    pthread_mutex_lock(&lock);
-   cerr << "pong received from ping" << endl << endl;
+   fprintf(stderr, "pong received from ping\n\n");
    pthread_mutex_unlock(&lock);
 #endif
 

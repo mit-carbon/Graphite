@@ -7,6 +7,7 @@
 #include "syscall_server.h"
 #include "sync_server.h"
 #include "fixed_types.h"
+#include "network_mesh_analytical_server.h"
 #include <iostream>
 
 /*
@@ -39,6 +40,7 @@ class MCP
 
       SyscallServer syscall_server;
       SyncServer sync_server;
+      NetworkMeshAnalyticalServer network_mesh_analytical_server;
 
    public:
       void run();
@@ -46,7 +48,10 @@ class MCP
       bool finished() { return _finished; };
       MCP(Network & network);
       ~MCP();
-      
+
+      // These functions expose the MCP network for system use
+      void broadcastPacket(NetPacket);
+      void forwardPacket(NetPacket);
 };
 
 #endif

@@ -10,11 +10,8 @@ void carbonFinish();
 void sharedMemThreadsInit();
 void sharedMemThreadsFinish();
 
-extern "C" 
-{
-    int getCoreCount();
-    void sharedMemQuit();
-    void* shmem_thread_func(void *);
-}
+int getCoreCount();
+void sharedMemQuit();
+void* shmem_thread_func(void *);
 
 #endif

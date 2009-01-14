@@ -2,7 +2,14 @@
 #include "chip.h"
 #include "debug.h"
 
+#include "network.h"
+#include "ocache.h"
+#include "syscall_model.h"
+#include "sync_client.h"
 #include "network_mesh_analytical.h"
+#include "network_types.h"
+#include "memory_manager.h"
+
 #define CORE_DEBUG
 
 using namespace std;
@@ -12,15 +19,7 @@ int Core::coreInit(int tid, int num_mod)
    core_tid = tid;
    core_num_mod = num_mod;
 
-   InitLock(&clock_lock);
-
-   //Switch which line is commented to choose the different 
-   //network models
-   //FIXME: Make this runtime configurable
-   //NetworkModel net_model = NETWORK_BUS;
-   NetworkModel net_model = NETWORK_ANALYTICAL_MESH;
-
-   switch(net_model)
+   switch(g_config->getNetworkType())
    {
       case NETWORK_BUS:
       	network = new Network(this, num_mod);
@@ -148,6 +147,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    memcpy(buffer, packet.data, size);
 
    // De-allocate dynamic memory
+	// Is this the best place to de-allocate packet.data ?? 
    delete [] packet.data;
 
    return 0;
@@ -158,7 +158,7 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
    if ( g_knob_enable_performance_modeling )
      {
        //FIXME: This should be placed in perfmodel
-       out << "  Total cycles: " << getProcTime() << endl;
+       out << "  Total cycles: " << getPerfModel()->getCycleCount() << endl;
        // cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
        perf_model->fini(code, v, out);
 
@@ -197,10 +197,10 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 {
 	shmem_req_t shmem_operation;
 	
-	if (operation == LOAD)
+	if (operation == LOAD) {
 		shmem_operation = READ;
+	}
 	else {
-
 		shmem_operation = WRITE;
 	}
 
@@ -315,35 +315,5 @@ void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstat
 bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
 {
 	return memory_manager->debugAssertDramState(address, dstate, sharers_list, d_data);
-}
-
-void Core::setProcTime(UInt64 time)
-{
-	perf_model->setCycleCount(time);
-}
-
-void Core::updateProcTime(UInt64 time)
-{
-	lockClock();
-	perf_model->updateCycleCount(time);
-	unlockClock();
-}
-
-void Core::addProcTime(UInt64 cycles)
-{
-	lockClock();
-	perf_model->addToCycleCount(cycles);
-	unlockClock();
-}
-
-UInt64 Core::getProcTime()
-{
-   // Since, technically this could be called from any thread
-   // we can't really just use the rank of this core, but 
-   // we can obtain a rank from the calling thread... --cg3
-   int rank;
-   chipRank(&rank);
-  	debugPrint (rank, "CORE", "Before getCycleCount()");
-	return perf_model->getCycleCount();
 }
 

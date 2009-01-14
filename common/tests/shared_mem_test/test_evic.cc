@@ -103,6 +103,8 @@ int main(int argc, char* argv[]){ // main begins
 	}
 	// Declare threads and related variables
 	
+	carbonInit();
+
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
@@ -152,6 +154,8 @@ int main(int argc, char* argv[]){ // main begins
 	cerr << "End of execution" << endl << endl;
 #endif
 	
+	// Join the shared memory threads
+  	carbonFinish();      
    return 0;
 } // main ends
 

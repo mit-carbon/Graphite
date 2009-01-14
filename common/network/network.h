@@ -180,6 +180,7 @@ class Network{
    NetPacket netRecvMagic(NetMatch match);
 
    Transport *getTransport() { return transport; }
+   Core *getCore() { return the_core; }
 
    virtual void outputSummary(ostream &out) {
       cerr << "Screw you I'm just the Super Class." << endl;
@@ -192,6 +193,7 @@ class Network{
                          void *obj);
 
    void unregisterCallback(PacketType type);
+
 };
 
 #endif

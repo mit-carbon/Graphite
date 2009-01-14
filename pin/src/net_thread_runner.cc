@@ -12,13 +12,6 @@ NetThreadRunner::NetThreadRunner()
 
 void NetThreadRunner::RunThread(OS_SERVICES::ITHREAD *me)
 {
-    SimSharedMemThreadFunc();
-    int core_id = g_chip->registerSharedMemThread();
-    Network *net = g_chip->getCore(core_id)->getNetwork();
-
-    while(net_threads_continue)
-    {
-        net->netPullFromTransport();
-    }
+    SimSharedMemThreadFunc(NULL);
 }
 

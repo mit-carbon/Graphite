@@ -17,6 +17,7 @@
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_process;
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
 
 struct NetworkMeshAnalyticalParameters;
 
@@ -83,6 +84,9 @@ class Config {
 
    UInt32 getNetworkType() const
       { return network_type; }
+
+   bool SimulatingSharedMemory() const
+      { return g_knob_simarch_has_shared_mem; }
 };
 
 #endif

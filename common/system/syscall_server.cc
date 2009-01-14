@@ -3,7 +3,8 @@
 #include <fcntl.h>
 #include "syscall_server.h"
 #include "sys/syscall.h"
-
+#include "core.h"
+#include "config.h"
 
 using namespace std;
 

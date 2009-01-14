@@ -446,7 +446,7 @@ void SharedMemTerminateFunc(void *vp, NetPacket pkt)
 void* SimSharedMemThreadFunc(void *)
 {
     int core_id = g_chip->registerSharedMemThread();
-    Network *net = g_chip->core[core_id].getNetwork();
+    Network *net = g_chip->getCore(core_id)->getNetwork();
     bool cont = true;
 
     net->registerCallback(SHARED_MEM_TERMINATE_THREADS,

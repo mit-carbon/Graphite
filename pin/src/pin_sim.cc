@@ -32,6 +32,8 @@
 #include "perfmdl.h"
 #include "knobs.h"
 #include "mcp.h"
+#include "mcp_runner.h"
+#include "net_thread_runner.h"
 // FIXME: Hack: Please remove me later
 #include "debug.h"
 
@@ -633,7 +635,30 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 }
 
+// This function will create a separate context for the MCP to run (i.e. it spawns the MCP)
+MCPRunner* StartMCPThread()
+{
+   MCPRunner *runner = new MCPRunner(g_MCP);
+   OS_SERVICES::ITHREAD *my_thread_p;
+   my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, runner);
+   assert(my_thread_p);
+   return runner;
+}
 
+// This function spawns all of the shared memory threads.
+NetThreadRunner *StartSharedMemThreads()
+{
+   unsigned int num_shared_mem_threads = g_chip->getNumModules();
+   NetThreadRunner * runners = new NetThreadRunner[num_shared_mem_threads];
+   for(unsigned int i = 0; i < num_shared_mem_threads; i++)
+   {
+      OS_SERVICES::ITHREAD *my_thread_p;
+      my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, &runners[i]);
+      assert(my_thread_p);
+   }
+
+   return runners;
+}
 /* ===================================================================== */
 
 bool replaceUserAPIFunction(RTN& rtn, string& name)
@@ -657,11 +682,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if(name == "CAPI_Print"){
       msg_ptr = AFUNPTR(chipPrint);
    }
-	
-   else if(name == "mcp_thread_func")
-   {
-      msg_ptr = AFUNPTR(MCPThreadFunc);
-   }
    else if(name == "CAPI_rank")
    {
       msg_ptr = AFUNPTR(commRank);
@@ -677,22 +697,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if(name == "getCoreCount")
    {
       msg_ptr = AFUNPTR(SimGetCoreCount);
-   }
-   else if(name == "sharedMemQuit")
-   {
-      msg_ptr = AFUNPTR(SimSharedMemQuit);
-   }
-   else if(name == "shmem_thread_func")
-   {
-      msg_ptr = AFUNPTR(SimSharedMemThreadFunc);
-   }
-   else if(name == "mcp_thread_func")
-   {
-      msg_ptr = AFUNPTR(MCPThreadFunc);
-   }
-   else if(name == "finishMCP")
-   {
-      msg_ptr = AFUNPTR(MCPFinish);
    }
    else if(name == "mutexInit")
    {
@@ -744,8 +748,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    if ( msg_ptr == AFUNPTR(commRank) 
         || (msg_ptr == AFUNPTR(chipInitFreeRank)) 
-        || (msg_ptr == AFUNPTR(MCPThreadFunc)) 
-        || (msg_ptr == AFUNPTR(SimSharedMemThreadFunc)) 
         || (msg_ptr == AFUNPTR(SimMutexInit)) 
         || (msg_ptr == AFUNPTR(SimMutexLock)) 
         || (msg_ptr == AFUNPTR(SimMutexUnlock)) 
@@ -788,9 +790,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto); 
       return true;
    }
-   else if ( msg_ptr == AFUNPTR(MCPFinish)        || 
-            (msg_ptr == AFUNPTR(SimGetCoreCount)) || 
-            (msg_ptr == AFUNPTR(SimSharedMemQuit)) )
+   else if (msg_ptr == AFUNPTR(SimGetCoreCount))
    {
       proto = PROTO_Allocate(PIN_PARG(void),
                              CALLINGSTD_DEFAULT,
@@ -980,7 +980,7 @@ VOID init_globals()
    // Only create an MCP on the correct process.
    if (g_config->myProcNum() == g_config->MCPProcNum()) {
       cout << "Creating new MCP object in process " << g_config->myProcNum()
-	   << endl;
+          << endl;
       g_MCP = new MCP(*(g_chip->getCore(num_cores-1)->getNetwork()));
    }
 }
@@ -1003,15 +1003,24 @@ int main(int argc, char *argv[])
       return usage();
 
    init_globals();
-    
+   
+
+   //FIXME: the following runners need to be dealocated in the fini
+   //function, not below...
+   MCPRunner * mcp_runner = StartMCPThread();
+   NetThreadRunner * net_thread_runners = StartSharedMemThreads();
+
    RTN_AddInstrumentFunction(routine, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);
 
    PIN_AddFiniFunction(fini, 0);
- 
+
    // Never returns
    PIN_StartProgram();
+
+   delete mcp_runner;
+   delete [] net_thread_runners;
     
    return 0;
 }

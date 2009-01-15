@@ -17,6 +17,7 @@
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UINT32> g_knob_num_process;
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
 
 struct NetworkMeshAnalyticalParameters;
 
@@ -82,6 +83,9 @@ class Config {
 
    // Fills in an array with the models for each static network
    void getNetworkModels(UInt32 *) const;
+
+   bool SimulatingSharedMemory() const
+      { return g_knob_simarch_has_shared_mem; }
 };
 
 extern Config *g_config;

@@ -16,7 +16,7 @@
 #include "cache_state.h"
 #include "address_home_lookup.h"
 #include "perfmdl.h"
-#include "lockfree_hash.h"
+#include "locked_hash.h"
 #include "syscall_model.h"
 #include "mcp.h"
 #include "debug.h"
@@ -37,6 +37,7 @@ extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
 // FIXME: if possible, these shouldn't be globals. Pin callbacks may need them to be. 
 
+THREADID chipThreadId();
 CAPI_return_t chipInit(int rank);
 CAPI_return_t chipInitFreeRank(int *rank);
 
@@ -116,17 +117,8 @@ void SimCondBroadcast(carbon_cond_t *cond);
 void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count);
 void SimBarrierWait(carbon_barrier_t *barrier);
 
-// MCP server wrappers
-void MCPRun();
-void MCPFinish();
-void *MCPThreadFunc(void *dummy);
-
-// Shared Memory Functions
-void SimSharedMemQuit();
-void* SimSharedMemThreadFunc(void *dummy);
-
-
 // Helper functions
+void SimSharedMemQuit();
 int SimGetCoreCount();
 
 // chip class
@@ -195,9 +187,6 @@ class Chip
 		friend CAPI_return_t chipAlias(ADDRINT address0, addr_t addType, UINT32 num);
 		friend bool isAliasEnabled(void);
 
-      // Shared Memory Thread Func
-      friend void* SimSharedMemThreadFunc(void *);
-
    private:
 
       int num_modules;
@@ -207,11 +196,11 @@ class Chip
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
-      LockFreeHash core_map;
+      LockedHash core_map;
 
       // Mapping for the shared memory threads
       THREADID *core_to_shmem_tid_map;
-      LockFreeHash shmem_tid_to_core_map;
+      LockedHash shmem_tid_to_core_map;
 
       int prev_rank;
       

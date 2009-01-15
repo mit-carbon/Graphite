@@ -3,7 +3,8 @@
 #include <fcntl.h>
 #include "syscall_server.h"
 #include "sys/syscall.h"
-
+#include "core.h"
+#include "config.h"
 
 using namespace std;
 
@@ -128,14 +129,21 @@ void SyscallServer::marshallReadCall(int comm_id)
    int fd;
    char *buf = (char *) scratch;
    size_t count;
+   char *dest;
 
-   recv_buff >> fd >> count;
+   //create a temporary int for storing the addr
+   int d2;
+   recv_buff >> fd >> count >> d2;
+   dest = (char *)d2;
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
    // Actually do the read call
    int bytes = read(fd, (void *) buf, count);  
+
+   // Copy the memory into shared mem
+   _network.getCore()->dcacheRunModel(Core::STORE, (ADDRINT)dest, buf, count);
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
@@ -185,12 +193,26 @@ void SyscallServer::marshallWriteCall(int comm_id)
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
-   recv_buff >> make_pair(buf, count);
+   // If we aren't using shared memory, then the data for the
+   // write call must be passed in the message
+   if(g_knob_simarch_has_shared_mem)
+   {
+       char *src;
+       int src_b;
+       recv_buff >> src_b;
+       src = (char *)src_b;
+
+       _network.getCore()->dcacheRunModel(Core::LOAD, (ADDRINT)src, buf, count);
+   }
+   else
+   {
+       recv_buff >> make_pair(buf, count);
+   }
 
    // Actually do the write call
    int bytes = write(fd, (void *) buf, count);  
-   if ( bytes != -1 )
-      cerr << "wrote: " << buf << endl;
+//   if ( bytes != -1 )
+//      cerr << "wrote: " << buf << endl;
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;

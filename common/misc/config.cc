@@ -120,3 +120,8 @@ void Config::getNetworkModels(UInt32 *models) const
    models[STATIC_NETWORK_MEMORY] = NETWORK_MAGIC;
    models[STATIC_NETWORK_SYSTEM] = NETWORK_MAGIC;
 }
+
+Boolean Config::doesSimArchHaveSharedMem() const
+{
+   return (Boolean)g_knob_simarch_has_shared_mem;
+}

@@ -11,19 +11,14 @@
 #include <list>
 #include <iostream>
 #include <cassert>
-#include "pin.H"
 #include "fixed_types.h"
-
-extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_num_process;
 
 struct NetworkMeshAnalyticalParameters;
 
 class Config {
  public:
-   typedef list<UInt32> CoreList;
-   typedef list<UInt32>::const_iterator CLCI;
+   typedef std::list<UInt32> CoreList;
+   typedef std::list<UInt32>::const_iterator CLCI;
  private:
    UInt32  num_process;          // Total number of processes (incl myself)
    UInt32* num_modules;          // Number of cores each process
@@ -82,6 +77,8 @@ class Config {
 
    // Fills in an array with the models for each static network
    void getNetworkModels(UInt32 *) const;
+
+   Boolean doesSimArchHaveSharedMem() const;
 };
 
 extern Config *g_config;

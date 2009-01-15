@@ -2,7 +2,6 @@
 #define ADDRESSHOMELOOKUP_H_
 
 #include "assert.h"
-#include "pin.H"
 #include "debug.h"
 #include <iostream> 
 #include <sstream> 
@@ -25,9 +24,6 @@ using namespace std;
  *
  * Maybe allow the ability to have public and private memory space?
  */
-
-//bytes per cache_line
-extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
 
 class AddressHomeLookup {
 	public:

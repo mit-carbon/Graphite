@@ -20,10 +20,10 @@
 #include <iostream>
 #include <cassert>
 
-#include "pin.H"
 #include "utils.h"
 #include "cache_state.h"
 #include "random.h"
+#include "config.h"
 
 #define k_KILO 1024
 #define k_MEGA (k_KILO*k_KILO)
@@ -31,9 +31,6 @@
 
 // type of cache hit/miss counters
 typedef UInt64 CacheStats; 
-
-extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
-
 
 namespace CACHE_ALLOC
 {
@@ -275,7 +272,7 @@ namespace CACHE_SET
 						// FIXME: if cache model ever starts including data in addition to just tags
                   // need to perform evictions here. Also if we have shared mem?
 
-						assert( !g_knob_simarch_has_shared_mem );
+                                           assert( !g_config->doesSimArchHaveSharedMem() );
 
                   for (UInt32 i = tags_last_index; i >= assoc; i--)
 						{

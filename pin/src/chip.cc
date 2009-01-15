@@ -191,7 +191,7 @@ CAPI_return_t chipPrint(string s)
 
 // performance model wrappers
 
-VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
 { 
    //int rank; 
    //chipRank(&rank);
@@ -199,7 +199,7 @@ VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCal
    g_chip->core[rank].perfModelRun(interval_stats, firstCallInIntrvl); 
 }
 
-VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
                   REG *reads, UINT32 num_reads, bool firstCallInIntrvl)
 { 
    //int rank;
@@ -208,7 +208,7 @@ VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats,
    g_chip->core[rank].perfModelRun(interval_stats, reads, num_reads, firstCallInIntrvl); 
 }
 
-VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes, bool firstCallInIntrvl)
 { 
    //int rank;
@@ -235,7 +235,7 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    return array; 
 }
 
-VOID perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit)
+void perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit)
 { 
    //int rank;
    //chipRank(&rank);
@@ -243,7 +243,7 @@ VOID perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool h
    g_chip->core[rank].perfModelLogICacheLoadAccess(stats, hit); 
 }
      
-VOID perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit)
+void perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit)
 { 
     //int rank;
     //chipRank(&rank);
@@ -251,7 +251,7 @@ VOID perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool 
    g_chip->core[rank].perfModelLogDCacheStoreAccess(stats, hit); 
 }
 
-VOID perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct)
+void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct)
 { 
    //int rank;
    //chipRank(&rank);
@@ -262,7 +262,7 @@ VOID perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool c
 
 // organic cache model wrappers
 
-bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
+bool icacheRunLoadModel(IntPtr i_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
@@ -270,7 +270,7 @@ bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
    return g_chip->core[rank].icacheRunLoadModel(i_addr, size); 
 }
 
-bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
+bool dcacheRunModel(CacheBase::AccessType access_type, IntPtr d_addr, char* data_buffer, UINT32 data_size)
 {
    int rank;
    chipRank(&rank);
@@ -284,7 +284,7 @@ bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* dat
 }
 
 /*
-bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
+bool dcacheRunLoadModel(IntPtr d_addr, UINT32 size)
 { 
    //int rank;
    //chipRank(&rank);
@@ -295,7 +295,7 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 	return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, size); 
 }
 
-bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size)
+bool dcacheRunStoreModel(int rank, IntPtr d_addr, UINT32 size)
 { 
    //int rank;
    //chipRank(&rank);
@@ -418,6 +418,7 @@ void MCPFinish()
 }
 
 
+extern LEVEL_BASE::KNOB<UInt32> g_knob_num_cores;
 void* MCPThreadFunc(void *dummy)
 {
   	// Declare local variables
@@ -511,7 +512,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid
 	cerr << "Finished Chip Constructor." << endl;
 }
 
-VOID Chip::fini(int code, VOID *v)
+void Chip::fini(int code, void *v)
 {
    ofstream out( g_knob_output_file.Value().c_str() );
 
@@ -568,13 +569,13 @@ int Chip::registerSharedMemThread()
    return -1;
 }
 
-void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector, 
+void Chip::debugSetInitialMemConditions (vector<IntPtr>& address_vector, 
 		  											  vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
 													  vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
 		  											  vector<char*>& d_data_vector, 
 													  vector<char*>& c_data_vector)
 {
-	vector<ADDRINT> temp_address_vector = address_vector;
+	vector<IntPtr> temp_address_vector = address_vector;
 
 	assert (d_data_vector.size() == c_data_vector.size());
 	assert (d_data_vector.size() == dram_vector.size());
@@ -583,7 +584,7 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 	while (!dram_vector.empty())
 	{  //TODO does this assume 1:1 core/dram allocation?
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 
 		INT32 curr_dram_id = dram_vector.back().first;
@@ -604,7 +605,7 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 	while(!cache_vector.empty()) 
 	{
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 		
 		vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector = cache_vector.back();
@@ -625,7 +626,7 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 
 }
 
-bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector, 
+bool Chip::debugAssertMemConditions (vector<IntPtr>& address_vector, 
 		  										 vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
 												 vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
 		  										 vector<char*>& d_data_vector, 
@@ -633,7 +634,7 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 												 string test_code, string error_string)
 {
 	bool all_asserts_passed = true;
-	vector<ADDRINT> temp_address_vector = address_vector;
+	vector<IntPtr> temp_address_vector = address_vector;
 
 	assert (d_data_vector.size() == c_data_vector.size());
 	assert (d_data_vector.size() == dram_vector.size());
@@ -642,7 +643,7 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 	while (!dram_vector.empty())
 	{  //TODO does this assume 1:1 core/dram allocation?
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 
 		INT32 curr_dram_id = dram_vector.back().first;
@@ -664,7 +665,7 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 	while(!cache_vector.empty()) 
 	{
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 		
 		vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector = cache_vector.back();
@@ -693,9 +694,9 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 }
 
 /*user program calls get routed through this */
-CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
+CAPI_return_t chipDebugSetMemState(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
 {
-	vector<ADDRINT> address_vector;
+	vector<IntPtr> address_vector;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
 	vector< vector <UINT32> > sharers_list_vector;
 	vector< vector < pair<INT32, CacheState::cstate_t> > > cache_vector;
@@ -729,9 +730,9 @@ CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, 
 	return 0;
 }
 
-CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
+CAPI_return_t chipDebugAssertMemState(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
 {
-	vector<ADDRINT> address_vector;
+	vector<IntPtr> address_vector;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
 	vector< vector <UINT32> > sharers_list_vector;
 	vector< vector < pair<INT32, CacheState::cstate_t> > > cache_vector;
@@ -794,7 +795,7 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 
 
 // FIXME: Stupid Hack for debugging purpose 
-CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
+CAPI_return_t chipAlias (IntPtr address, addr_t addrType, UINT32 num)
 {
 	// It is better to create an alias map here. An assciative array
 	assert (g_chip->num_modules == 3);
@@ -834,14 +835,14 @@ CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 
 extern KNOB<UINT32> g_knob_ahl_param;
 
-ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
+IntPtr createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
 
 	/*
 	 * ADDRESS breaks down as follows
 	 * ****************************************
 	 * Assume logCacheBlockSize = 5
 	 * Assume logBlockSize = 10
-	 * Assume sizeof(ADDRINT) = 32
+	 * Assume sizeof(IntPtr) = 32
 	 * ****************************************
 	 *  31             11 |    10    | 9               5 | 4                0 |
 	 * |                  |          |                   |                    | 

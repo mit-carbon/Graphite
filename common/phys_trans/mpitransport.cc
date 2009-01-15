@@ -1,5 +1,8 @@
 #include "mpitransport.h"
 
+#include <iostream>
+using namespace std;
+
 //#define PT_DEBUG 1
 
 // Initialize class static variables (these are useless but required by C++)
@@ -127,7 +130,7 @@ void Transport::ptInitQueue(SInt32 num_mod)
 
    // Create the receive buffer
    num_cores = displs[num_procs-1] + thread_counts[num_procs-1];
-   ASSERTX(num_cores == g_config->totalMods());
+   assert(num_cores == g_config->totalMods());
 #ifdef PT_DEBUG
    cout << "Total number of cores: " << num_cores << endl;
 #endif

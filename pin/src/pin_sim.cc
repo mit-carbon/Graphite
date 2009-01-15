@@ -47,7 +47,7 @@ PIN_LOCK print_lock;
 //TODO only here for debugging ins in runModel
 
 struct InsInfo {
-	ADDRINT ip_address;
+	IntPtr ip_address;
 	OPCODE opcode;
 	bool is_sys_call;
 	bool is_sys_enter;
@@ -77,8 +77,8 @@ INT32 usage()
 /* ===================================================================== */
 
 
-VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_ld_size,
-               	ADDRINT dcache_st_addr, UINT32 dcache_st_size,
+void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_size,
+               	IntPtr dcache_st_addr, UINT32 dcache_st_size,
                	PerfModelIntervalStat* *stats,
                	REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes, 
                	bool do_network_modeling, bool do_icache_modeling, 
@@ -86,7 +86,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
                	bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling, 
 //               bool check_scoreboard)
                	bool check_scoreboard,
-						VOID* ins_info_array)
+						void* ins_info_array)
 {
    //cerr << "parent = " << stats->parent_routine << endl;
  
@@ -302,8 +302,8 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
         } 
         else 
         {
-           assert(dcache_ld_addr == (ADDRINT) NULL);
-           assert(dcache_ld_addr2 == (ADDRINT) NULL);
+           assert(dcache_ld_addr == (IntPtr) NULL);
+           assert(dcache_ld_addr2 == (IntPtr) NULL);
            assert(dcache_ld_size == 0);
         }
 
@@ -363,7 +363,7 @@ VOID runModels (ADDRINT dcache_ld_addr, ADDRINT dcache_ld_addr2, UINT32 dcache_l
         } 
         else 
         {
-           assert(dcache_st_addr == (ADDRINT) NULL);
+           assert(dcache_st_addr == (IntPtr) NULL);
            assert(dcache_st_size == 0);
         }
 
@@ -518,36 +518,36 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
       if(is_dual_read)
          IARGLIST_AddArguments(args, IARG_MEMORYREAD2_EA, IARG_END);
       else
-         IARGLIST_AddArguments(args, IARG_ADDRINT, (ADDRINT) NULL, IARG_END);
+         IARGLIST_AddArguments(args, IARG_ADDRINT, (IntPtr) NULL, IARG_END);
 
       IARGLIST_AddArguments(args, IARG_MEMORYREAD_SIZE, IARG_END);
    }
    else
    {
-      IARGLIST_AddArguments(args, IARG_ADDRINT, (ADDRINT) NULL, IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0, IARG_END);
+      IARGLIST_AddArguments(args, IARG_ADDRINT, (IntPtr) NULL, IARG_ADDRINT, (IntPtr) NULL, IARG_UINT32, 0, IARG_END);
    }
 
    // Do this after those first three
    if(do_dcache_write_modeling)
       IARGLIST_AddArguments(args,IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
    else
-      IARGLIST_AddArguments(args,IARG_ADDRINT, (ADDRINT) NULL, IARG_UINT32, 0, IARG_END);
+      IARGLIST_AddArguments(args,IARG_ADDRINT, (IntPtr) NULL, IARG_UINT32, 0, IARG_END);
 
    // Now pass on our values for the appropriate models
    IARGLIST_AddArguments(args, 
          // perf modeling
-         IARG_PTR, (VOID *) stats,
-         IARG_PTR, (VOID *) reads, IARG_UINT32, num_reads, 
-         IARG_PTR, (VOID *) writes, IARG_UINT32, num_writes, 
+         IARG_PTR, (void *) stats,
+         IARG_PTR, (void *) reads, IARG_UINT32, num_reads, 
+         IARG_PTR, (void *) writes, IARG_UINT32, num_writes, 
          // model-enable flags
          IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling, 
          IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
          IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling, 
          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard, 
-			IARG_PTR, (VOID *) ins_info_array,
+			IARG_PTR, (void *) ins_info_array,
          IARG_END); 
 
-//   IARGLIST_AddArguments(args, IARG_PTR, (VOID *) ins_info);
+//   IARGLIST_AddArguments(args, IARG_PTR, (void *) ins_info);
 	
 	INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END); 
    IARGLIST_Free(args);
@@ -858,7 +858,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    return false;
 }
 
-VOID routine(RTN rtn, VOID *v)
+void routine(RTN rtn, void *v)
 {
 
    string rtn_name = RTN_Name(rtn);
@@ -940,7 +940,7 @@ VOID routine(RTN rtn, VOID *v)
 
 /* ===================================================================== */
 
-VOID fini(int code, VOID * v)
+void fini(int code, void * v)
 {
    Transport::ptFinish();
    g_chip->fini(code, v);
@@ -948,7 +948,7 @@ VOID fini(int code, VOID * v)
 
 /* ===================================================================== */
 
-VOID init_globals()
+void init_globals()
 {
   
    if( g_knob_simarch_has_shared_mem ) {

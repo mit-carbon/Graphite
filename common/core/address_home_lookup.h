@@ -31,14 +31,14 @@ extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
 
 class AddressHomeLookup {
 	public:
-		AddressHomeLookup (UINT32 num_nodes, UINT32 log_block_size, INT32 ahl_id);
+		AddressHomeLookup (UInt32 num_nodes, UInt32 log_block_size, SInt32 ahl_id);
 		~AddressHomeLookup(void);
-		UINT32 find_home_for_addr(ADDRINT address) const;
+		UInt32 find_home_for_addr(IntPtr address) const;
 
 	private:
-		UINT32 num_nodes;
-		INT32 ahl_id;
-		UINT32 log_block_size;
+		UInt32 num_nodes;
+		SInt32 ahl_id;
+		UInt32 log_block_size;
 };
 
 

@@ -44,14 +44,14 @@ NetPacket NetworkMeshAnalytical::netRecv(NetMatch match)
     return Network::netRecv(match);
 }
 
-UINT64 NetworkMeshAnalytical::netProcCost(NetPacket packet)
+UInt64 NetworkMeshAnalytical::netProcCost(NetPacket packet)
 {
-    UINT64 cost = 10;
+    UInt64 cost = 10;
     cycles_spent_proc += cost;
     return cost;
 }
 
-UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
+UInt64 NetworkMeshAnalytical::netLatency(NetPacket packet)
 {
     // We model a unidirectional network with end-around connections
     // using the network model in "Limits on Interconnect Performance"
@@ -138,14 +138,14 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
 
     // Computation finished...
 
-    UINT64 Tci = (UINT64)(ceil(Tc));
+    UInt64 Tci = (UInt64)(ceil(Tc));
     cycles_spent_latency += Tci;
-    cycles_spent_contention += (UINT64)(Tc - Tb);
+    cycles_spent_contention += (UInt64)(Tc - Tb);
 
     // ** update utilization counter **
     // we must account for the usage throughout the mesh
     // which means that we must include the # of hops
-    local_utilization_flits_sent += (UINT64)(B * hops_in_network);
+    local_utilization_flits_sent += (UInt64)(B * hops_in_network);
 
     return Tci;
 }
@@ -179,8 +179,8 @@ void NetworkMeshAnalytical::updateUtilization()
   // ** send updates
 
   // don't lock because this is all approximate anyway
-  UINT64 core_time = the_core->getPerfModel()->getCycleCount();
-  UINT64 elapsed_time = core_time - local_utilization_last_update;
+  UInt64 core_time = the_core->getPerfModel()->getCycleCount();
+  UInt64 elapsed_time = core_time - local_utilization_last_update;
 
   if (elapsed_time < update_interval)
     return;

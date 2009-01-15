@@ -1,6 +1,6 @@
 #include "address_home_lookup.h"
 
-AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 log_block_size_arg, INT32 ahl_id_arg) {
+AddressHomeLookup::AddressHomeLookup (UInt32 num_nodes_arg, UInt32 log_block_size_arg, SInt32 ahl_id_arg) {
 
 	// Each Block Address is as follows:
 	// /////////////////////////////////////////////////////////// //
@@ -13,9 +13,9 @@ AddressHomeLookup::AddressHomeLookup (UINT32 num_nodes_arg, UINT32 log_block_siz
 
 }
 
-UINT32 AddressHomeLookup::find_home_for_addr(ADDRINT address) const {
+UInt32 AddressHomeLookup::find_home_for_addr(IntPtr address) const {
 
-	UINT32 node = (address >> log_block_size) % num_nodes;
+	UInt32 node = (address >> log_block_size) % num_nodes;
 	assert (0 <= node && node < num_nodes);
 	return (node);
 

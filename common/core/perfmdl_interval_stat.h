@@ -1,5 +1,6 @@
+#include <cassert>
 
-#define k_PERFMDL_CYCLE_INVALID  (~ ((UINT64) 0) )
+#define k_PERFMDL_CYCLE_INVALID  (~ ((UInt64) 0) )
 #define k_PERFMDL_INT_STATE_SIZE 5
 
 class PerfModelIntervalStat {
@@ -15,30 +16,30 @@ class PerfModelIntervalStat {
       bool icache_load_miss_history[k_PERFMDL_INT_STATE_SIZE];
       bool dcache_load_miss_history[k_PERFMDL_INT_STATE_SIZE];
       bool dcache_store_miss_history[k_PERFMDL_INT_STATE_SIZE];
-      UINT32 icache_load_miss_history_index;
-      UINT32 dcache_load_miss_history_index;
-      UINT32 dcache_store_miss_history_index;
+      UInt32 icache_load_miss_history_index;
+      UInt32 dcache_load_miss_history_index;
+      UInt32 dcache_store_miss_history_index;
 
    public:
       // holds instruction addresses and sizes 
-      vector< pair<ADDRINT, UINT32> > inst_trace;
+      std::vector< std::pair<IntPtr, UInt32> > inst_trace;
 
 
 
       // set when instrumenting the code to add calls to analysis
-      UINT32 microops_count;
-      UINT32 cycles_subtotal;
+      UInt32 microops_count;
+      UInt32 cycles_subtotal;
 
       // set true if interval had branch mispredict   
       bool branch_mispredict;
 
       // set for use in debugging
-      string parent_routine;
+      std::string parent_routine;
 
 
       // methods
-      PerfModelIntervalStat(const string& parent, const vector< pair<ADDRINT, UINT32> >& trace, 
-                            UINT32 uops, UINT32 cyc_subtotal): 
+      PerfModelIntervalStat(const std::string& parent, const std::vector< std::pair<IntPtr, UInt32> >& trace, 
+                            UInt32 uops, UInt32 cyc_subtotal): 
          icache_load_miss_history_index(0), dcache_load_miss_history_index(0), dcache_store_miss_history_index(0),
          inst_trace(trace), 
          microops_count(uops), cycles_subtotal(cyc_subtotal), 
@@ -46,60 +47,60 @@ class PerfModelIntervalStat {
       {
       }
 
-      VOID logICacheLoadAccess(bool hit)
+      void logICacheLoadAccess(bool hit)
       {
-         ASSERTX( icache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         assert( icache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
          icache_load_miss_history[icache_load_miss_history_index++] = !hit;
       }      
 
-      UINT32 getICacheLoadAccessCount()
+      UInt32 getICacheLoadAccessCount()
       {  return icache_load_miss_history_index; }
 
-      bool getICacheLoadAccessMissStatus(UINT32 which)
+      bool getICacheLoadAccessMissStatus(UInt32 which)
       {
-         ASSERTX( which < k_PERFMDL_INT_STATE_SIZE );
+         assert( which < k_PERFMDL_INT_STATE_SIZE );
          return icache_load_miss_history[which];
       }
 
 
-      VOID logDCacheLoadAccess(bool hit)
+      void logDCacheLoadAccess(bool hit)
       {
-         ASSERTX( dcache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         assert( dcache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
          dcache_load_miss_history[dcache_load_miss_history_index++] = !hit;
       }
 
-      UINT32 getDCacheLoadAccessCount()
+      UInt32 getDCacheLoadAccessCount()
       {  return dcache_load_miss_history_index; }
 
-      bool getDCacheLoadAccessMissStatus(UINT32 which)
+      bool getDCacheLoadAccessMissStatus(UInt32 which)
       {
-         ASSERTX( which < k_PERFMDL_INT_STATE_SIZE );
+         assert( which < k_PERFMDL_INT_STATE_SIZE );
          return dcache_load_miss_history[which]; 
       }
 
 
-      VOID logDCacheStoreAccess(bool hit)
+      void logDCacheStoreAccess(bool hit)
       {
-         ASSERTX( dcache_store_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         assert( dcache_store_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
          dcache_store_miss_history[dcache_store_miss_history_index++] = !hit;
       }
 
-      UINT32 getDCacheStoreAccessCount()
+      UInt32 getDCacheStoreAccessCount()
       {  return dcache_store_miss_history_index; }
 
-      bool getDCacheStoreAccessMissStatus(UINT32 which)
+      bool getDCacheStoreAccessMissStatus(UInt32 which)
       {
-         ASSERTX( which < k_PERFMDL_INT_STATE_SIZE );
+         assert( which < k_PERFMDL_INT_STATE_SIZE );
          return dcache_store_miss_history[which]; 
       }
 
 
-      VOID logBranchPrediction(bool correct)
+      void logBranchPrediction(bool correct)
       {
          branch_mispredict = !correct; 
       }
 
-      VOID reset()
+      void reset()
       {
          // resets everything but inst_trace, parent, 
          // microops_count and cyc_subtotal
@@ -116,5 +117,3 @@ class PerfModelIntervalStat {
          branch_mispredict = false; 
       }
 };
-
-

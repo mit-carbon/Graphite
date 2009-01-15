@@ -3,25 +3,12 @@
 
 
 #include "debug.h"
-#include "pin.H"
 #include "dram_directory_entry.h"
 #include "network.h"
 #include "memory_manager.h"
 #include <map>
 #include <queue>
 
-//TODO i don't think this is used
-extern LEVEL_BASE::KNOB<UINT32> g_knob_dram_access_cost;
-
-//LIMITED_DIRECTORY Flag
-//Dir(i)NB ; i = number of pointers
-//if MAX_SHARERS >= total number of cores, then the directory
-//collaspes into the full-mapped case.
-//TODO use a knob to set this instead
-//(-dms) : directory_max_sharers
-//TODO provide easy mechanism to initiate a broadcast invalidation
-//	static const UINT32 MAX_SHARERS = 2;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_dir_max_sharers;
 enum shmem_req_t;
 
 
@@ -29,13 +16,13 @@ class SingleDramRequest {
 
 	public:
 
-		ADDRINT address;
+		IntPtr address;
 		shmem_req_t shmem_req_type;
-		UINT32 requestor;
+		UInt32 requestor;
 
 		SingleDramRequest() : address(0), shmem_req_type(READ), requestor(0) {}
 
-		SingleDramRequest(ADDRINT address, shmem_req_t shmem_req_type, UINT32 requestor) {
+		SingleDramRequest(IntPtr address, shmem_req_t shmem_req_type, UInt32 requestor) {
 			this->address = address;
 			this->shmem_req_type = shmem_req_type;
 			this->requestor = requestor;
@@ -48,7 +35,7 @@ class DramRequest {
 
 		SingleDramRequest single_dram_req;	
 		DramDirectoryEntry::dstate_t old_dstate;
-		UINT32 num_acks_to_recv;
+		UInt32 num_acks_to_recv;
 
 		std::queue<SingleDramRequest> waiting_requests;
 
@@ -57,7 +44,7 @@ class DramRequest {
 		void setRequestAttributes(
 				  							SingleDramRequest& single_dram_req, 
 											DramDirectoryEntry::dstate_t old_dstate,
-											UINT32 num_acks_to_recv
+											UInt32 num_acks_to_recv
 										 )
 		{
 			this->single_dram_req.address = single_dram_req.address;
@@ -75,7 +62,7 @@ class DramRequest {
 			return (single_dram_req.shmem_req_type);
 		}
 
-		UINT32 getRequestor () {
+		UInt32 getRequestor () {
 			return (single_dram_req.requestor);
 		}
 		
@@ -83,7 +70,7 @@ class DramRequest {
 			return (old_dstate);
 		}
 		
-		UINT32 getNumAcksToRecv () {
+		UInt32 getNumAcksToRecv () {
 			return (num_acks_to_recv);
 		}
 
@@ -94,7 +81,7 @@ class DramRequest {
 			return (single_dram_req);
 		}
 
-		INT32 numWaitingRequests() {
+		SInt32 numWaitingRequests() {
 			return (waiting_requests.size());
 		}
 
@@ -113,18 +100,18 @@ class DramDirectory
  private:
    //assumption: each dram_directory is tied to a given network (node), and is addressed at dram_id
 	Network* the_network;
-	UINT32 num_lines;
+	UInt32 num_lines;
    unsigned int bytes_per_cache_line;
-   UINT32 number_of_cores;
+   UInt32 number_of_cores;
    //key dram entries on cache_line (assumes cache_line is 1:1 to dram memory lines)
-   std::map<UINT32, DramDirectoryEntry*> dram_directory_entries;
-   UINT32 dram_id;
+   std::map<UInt32, DramDirectoryEntry*> dram_directory_entries;
+   UInt32 dram_id;
 
 	//state for re-entering the Directory
-	std::map<ADDRINT, DramRequest*> dram_request_list;
+	std::map<IntPtr, DramRequest*> dram_request_list;
 
 	/* Added by George */
-   UINT64 dramAccessCost;
+   UInt64 dramAccessCost;
    
 	//TODO debugAssertValidStates();
 	//scan the directory occasionally for invalid state configurations.
@@ -132,50 +119,50 @@ class DramDirectory
 
 public:
 	//is this a needed function?
-	DramDirectoryEntry* getEntry(ADDRINT address);
+	DramDirectoryEntry* getEntry(IntPtr address);
 
-   DramDirectory(UINT32 num_lines, UINT32 bytes_per_cache_line, UINT32 dram_id_arg, UINT32 num_of_cores, Network* network_arg);
+   DramDirectory(UInt32 num_lines, UInt32 bytes_per_cache_line, UInt32 dram_id_arg, UInt32 num_of_cores, Network* network_arg);
    virtual ~DramDirectory();
    
    /***************************************/
 	
 	//receive and process request for memory_block
 	void startSharedMemRequest(NetPacket& req_packet);
-	void finishSharedMemRequest(ADDRINT address);
-	void startNextSharedMemRequest(ADDRINT address);
+	void finishSharedMemRequest(IntPtr address);
+	void startNextSharedMemRequest(IntPtr address);
 
-	void processSharedMemRequest (UINT32 requestor, shmem_req_t shmem_req_type, ADDRINT address);
+	void processSharedMemRequest (UInt32 requestor, shmem_req_t shmem_req_type, IntPtr address);
 	
 	void processAck(NetPacket& ack_packet);
 	
 	void startDemoteOwner(DramDirectoryEntry* dram_dir_entry, CacheState::cstate_t new_cstate);
 	void startInvalidateAllSharers(DramDirectoryEntry* dram_dir_entry);
-	void startInvalidateSingleSharer(DramDirectoryEntry* dram_dir_entry, UINT32 sharer_id);
+	void startInvalidateSingleSharer(DramDirectoryEntry* dram_dir_entry, UInt32 sharer_id);
 	
-	void processDemoteOwnerAck(UINT32 sender, DramDirectoryEntry* dram_dir_entry, void* /*MemoryManager::AckPayload&*/ ack_payload_v, char *data_buffer, DramDirectoryEntry::dstate_t new_dstate);
+	void processDemoteOwnerAck(UInt32 sender, DramDirectoryEntry* dram_dir_entry, void* /*MemoryManager::AckPayload&*/ ack_payload_v, char *data_buffer, DramDirectoryEntry::dstate_t new_dstate);
 	
-	void processInvalidateSharerAck(UINT32 sender, DramDirectoryEntry* dram_dir_entry, void* /*MemoryManager::AckPayload&*/ ack_payload_v, char *data_buffer);
+	void processInvalidateSharerAck(UInt32 sender, DramDirectoryEntry* dram_dir_entry, void* /*MemoryManager::AckPayload&*/ ack_payload_v, char *data_buffer);
 	
 	//make many of these private functions
-	void copyDataToDram(ADDRINT address, char* data_buffer);
+	void copyDataToDram(IntPtr address, char* data_buffer);
 	//sending another memory line to another core. rename.
-	void sendDataLine(DramDirectoryEntry* dram_dir_entry, UINT32 requestor, CacheState::cstate_t new_cstate);
+	void sendDataLine(DramDirectoryEntry* dram_dir_entry, UInt32 requestor, CacheState::cstate_t new_cstate);
 	
 	void processWriteBack(NetPacket& req_packet);
 	
-   void setNumberOfLines(UINT32 number_of_lines) { num_lines = number_of_lines; }
+   void setNumberOfLines(UInt32 number_of_lines) { num_lines = number_of_lines; }
 
 	void runDramAccessModel();
-	UINT64 getDramAccessCost();
+	UInt64 getDramAccessCost();
 	
 	/***************************************/
 	
-	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
-	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
+	void debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
+	bool debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
 
    /***************************************/
 
-	void setDramMemoryLine(ADDRINT addr, char* data_buffer, UINT32 data_size);
+	void setDramMemoryLine(IntPtr addr, char* data_buffer, UInt32 data_size);
 	
 	//for debug purposes
    void print();

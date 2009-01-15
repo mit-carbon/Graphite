@@ -43,9 +43,9 @@ enum shmem_req_t {
 #include "network.h"
 
 extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_ahl_param;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_dram_access_cost;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
 
 class MemoryManager
 {
@@ -66,7 +66,7 @@ class MemoryManager
 	//This is here to serialize the requests
 	// do not process a new request until finished with current request
 	// do not exit MMU until no more incoming requests
-   UINT64 volatile debug_counter; //a primitive clock for debugging
+   UInt64 volatile debug_counter; //a primitive clock for debugging
    // Why volatile ??
 	bool volatile pending_request;
 
@@ -91,8 +91,8 @@ class MemoryManager
 	 */
 	struct RequestPayload {
 		shmem_req_t request_type;
-		ADDRINT request_address;
-		UINT32 request_num_bytes; 
+		IntPtr request_address;
+		UInt32 request_num_bytes; 
 
 		RequestPayload()
 			: request_type(READ), 
@@ -103,8 +103,8 @@ class MemoryManager
 
 	struct UpdatePayload {
 		CacheState::cstate_t update_new_cstate;
-		ADDRINT update_address;
-		UINT32 data_size; //in bytes
+		IntPtr update_address;
+		UInt32 data_size; //in bytes
 		// bool is_writeback; //is this payload serving as a writeback message to dram?
 		
 		UpdatePayload()
@@ -117,8 +117,8 @@ class MemoryManager
 
 	struct AckPayload {
 		CacheState::cstate_t ack_new_cstate;
-		ADDRINT ack_address;
-		UINT32 data_size; //this is used to tell us how much data to extract 
+		IntPtr ack_address;
+		UInt32 data_size; //this is used to tell us how much data to extract 
 		bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
 		// BOOL is_eviction; // need to know if "is_writeback" is true, if also is an eviction 
 		//if sent a downgrade message (E->S), but cache
@@ -144,28 +144,28 @@ class MemoryManager
 	/* ============================================== */
 	
 	//cache interfacing functions.
-	void setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t new_cstate);
-	pair<bool, CacheTag*> getCacheLineInfo(ADDRINT address);
-	void accessCacheLineData(CacheBase::AccessType access_type, ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size);
-	void fillCacheLineData (ADDRINT ca_address, char* fill_buffer);
-	void invalidateCacheLine(ADDRINT address);
+	void setCacheLineInfo(IntPtr ca_address, CacheState::cstate_t new_cstate);
+	pair<bool, CacheTag*> getCacheLineInfo(IntPtr address);
+	void accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, char* data_buffer, UInt32 data_size);
+	void fillCacheLineData (IntPtr ca_address, char* fill_buffer);
+	void invalidateCacheLine(IntPtr address);
 	
-	static void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, UINT32 payload_size);
-	static void createAckPayloadBuffer (AckPayload* send_payload, char *data_buffer, char *payload_buffer, UINT32 payload_size);
+	static void createUpdatePayloadBuffer (UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, UInt32 payload_size);
+	static void createAckPayloadBuffer (AckPayload* send_payload, char *data_buffer, char *payload_buffer, UInt32 payload_size);
 	static void extractUpdatePayloadBuffer (NetPacket* packet, UpdatePayload* payload, char* data_buffer);
 	static void extractAckPayloadBuffer (NetPacket* packet, AckPayload* payload, char* data_buffer);
 
-	static NetPacket makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank );
+	static NetPacket makePacket(PacketType packet_type, char* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank );
 	static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 	
 	/* ============================================== */
 	
 	//core traps all memory accesses here.
-	bool initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size);
+	bool initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, char* data_buffer, UInt32 buffer_size);
 	
 	//request from DRAM permission to use an address
 	//writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
-	void requestPermission(shmem_req_t shmem_req_type, ADDRINT address);
+	void requestPermission(shmem_req_t shmem_req_type, IntPtr address);
 
 	//network interrupt calls this.
 	//Any requests are serialized onto a stack,
@@ -188,10 +188,10 @@ class MemoryManager
 
 	//debugging stuff
 	static string sMemReqTypeToString(shmem_req_t type);
-	void debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
-	bool debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data);
-	void debugSetCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data);
-	bool debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data);
+	void debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
+	bool debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
+	void debugSetCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data);
+	bool debugAssertCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data);
 
 	
 };

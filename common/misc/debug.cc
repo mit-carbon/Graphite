@@ -4,16 +4,16 @@
 #include <sstream>
 using namespace std;
 
-INT32 chipRank(INT32 *);
+SInt32 chipRank(SInt32 *);
 
 //turn this flag off to prevent creating and writing log files
 #define WRITE_FLAG
 ofstream* outfiles;
-UINT32 core_count;
-UINT32 pin_thread_count;
+UInt32 core_count;
+UInt32 pin_thread_count;
 
 //open debug logs
-VOID debugInit (UINT32 core_count_arg) {
+void debugInit (UInt32 core_count_arg) {
 	//FIXME will this work when we go across clusters?
 #ifdef WRITE_FLAG
 	core_count = core_count_arg;
@@ -35,7 +35,7 @@ VOID debugInit (UINT32 core_count_arg) {
 }
 
 //close debug logs
-VOID debugFinish () {
+void debugFinish () {
 #ifdef WRITE_FLAG
 	for(unsigned int i = 0; i < 2 * core_count; i++) {
 		outfiles[i].close();
@@ -43,21 +43,21 @@ VOID debugFinish () {
 #endif
 }
 
-VOID debugPrintStart (INT32 id, string class_name, string output_string) {
+void debugPrintStart (SInt32 id, string class_name, string output_string) {
 
 #ifdef WRITE_FLAG
-	assert (id < (INT32) core_count);
+	assert (id < (SInt32) core_count);
 
 	outfiles[id] << " [" << id << "] - " << class_name << " - : " << output_string << endl;
 #endif
 }
 
-VOID debugPrint(INT32 id, string class_name, string output_string) 
+void debugPrint(SInt32 id, string class_name, string output_string) 
 {
 #ifdef WRITE_FLAG
 	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << endl;
 	//TODO handle "-1" ids or other ids that may want to write
-	assert( id < (INT32) core_count );
+	assert( id < (SInt32) core_count );
 
 	int rank;
 	int fileId;
@@ -78,11 +78,11 @@ VOID debugPrint(INT32 id, string class_name, string output_string)
 }
 
 // frankly, just use stringstream instead of the functions below
-VOID debugPrint(INT32 id, string class_name, string output_string, int value) 
+void debugPrint(SInt32 id, string class_name, string output_string, int value) 
 {
 #ifdef WRITE_FLAG
 	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
-	assert( id < (INT32) core_count );
+	assert( id < (SInt32) core_count );
 
 	int rank;
 	int fileId;
@@ -104,11 +104,11 @@ VOID debugPrint(INT32 id, string class_name, string output_string, int value)
 #endif
 }
 
-VOID debugPrintFloat(INT32 id, string class_name, string output_string, float value) 
+void debugPrintFloat(SInt32 id, string class_name, string output_string, float value) 
 {
 #ifdef WRITE_FLAG
 	// cerr << "   [" << id << "]  - " << class_name << " - : " << output_string << " = " << value << endl;
-	assert( id < (INT32) core_count );
+	assert( id < (SInt32) core_count );
 
 	int rank;
 	int fileId;
@@ -130,10 +130,10 @@ VOID debugPrintFloat(INT32 id, string class_name, string output_string, float va
 #endif
 }
 
-VOID debugPrintHex(INT32 id, string class_name, string output_string, int value) 
+void debugPrintHex(SInt32 id, string class_name, string output_string, int value) 
 {
 #ifdef WRITE_FLAG
-	assert( id < (INT32) core_count );
+	assert( id < (SInt32) core_count );
 
 	int rank;
 	int fileId;
@@ -155,10 +155,10 @@ VOID debugPrintHex(INT32 id, string class_name, string output_string, int value)
 #endif
 }
 
-VOID debugPrintString(INT32 id, string class_name, string output_string, string value) 
+void debugPrintString(SInt32 id, string class_name, string output_string, string value) 
 {
 #ifdef WRITE_FLAG
-	assert( id < (INT32) core_count );
+	assert( id < (SInt32) core_count );
 
 	int rank;
 	int fileId;

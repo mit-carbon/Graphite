@@ -7,7 +7,7 @@ bool called_open = false;
 
 using namespace std;
 
-void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
+void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
    int syscall_number = PIN_GetSyscallNumber(ctxt, std);
 
@@ -41,7 +41,7 @@ void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOI
    }
 }
 
-void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
+void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
    if(called_open)
    {

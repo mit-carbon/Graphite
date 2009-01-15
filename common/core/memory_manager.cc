@@ -94,7 +94,7 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 }
 
-void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT address, UINT32 size_bytes)
+void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, IntPtr address, UInt32 size_bytes)
 {
 	//TODO BUG this code doesn't work b/c it gets deallocated before the network copies it
 	debugPrint(-1,"MMU",  "Starting adding Request Payload;"); 
@@ -107,7 +107,7 @@ void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, ADDRINT ad
 	debugPrint(-1,"MMU",  "Finished adding Request Payload;"); 
 }
 
-void addAckPayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_cstate)
+void addAckPayload(NetPacket* packet, IntPtr address, CacheState::cstate_t new_cstate)
 {
 	MemoryManager::AckPayload payload;
 	payload.ack_new_cstate = new_cstate;
@@ -116,7 +116,7 @@ void addAckPayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_
 	packet->data = (char *)(&payload);
 }
 
-void addUpdatePayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t new_cstate)
+void addUpdatePayload(NetPacket* packet, IntPtr address, CacheState::cstate_t new_cstate)
 {
 	MemoryManager::UpdatePayload payload;
 	payload.update_new_cstate = new_cstate;
@@ -125,7 +125,7 @@ void addUpdatePayload(NetPacket* packet, ADDRINT address, CacheState::cstate_t n
 	packet->data = (char *)(&payload);
 }
 
-NetPacket MemoryManager::makePacket(PacketType packet_type, char* payload_buffer, UINT32 payload_size, int sender_rank, int receiver_rank )
+NetPacket MemoryManager::makePacket(PacketType packet_type, char* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank )
 {
 	NetPacket packet;
 	packet.type = packet_type;
@@ -169,7 +169,7 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 	return ret;
 }
 
-void MemoryManager::setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t new_cstate)
+void MemoryManager::setCacheLineInfo(IntPtr ca_address, CacheState::cstate_t new_cstate)
 {
 	pair<bool, CacheTag*> results = ocache->runDCachePeekModel(ca_address);
 	assert( results.first ); //it should already be in the cache for us to change it!
@@ -179,20 +179,20 @@ void MemoryManager::setCacheLineInfo(ADDRINT ca_address, CacheState::cstate_t ne
 
 }
 
-pair<bool, CacheTag*> MemoryManager::getCacheLineInfo(ADDRINT address)
+pair<bool, CacheTag*> MemoryManager::getCacheLineInfo(IntPtr address)
 {
 	return ocache->runDCachePeekModel(address);
 }
 
 //copy data at cache to data_buffer
-void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRINT ca_address, UINT32 offset, char* data_buffer, UINT32 data_size)
+void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, char* data_buffer, UInt32 data_size)
 {
 	bool fail_need_fill = false;
   	bool eviction = false;
-   ADDRINT evict_addr;
+   IntPtr evict_addr;
    char evict_buff[ocache->dCacheLineSize()];
 
-   ADDRINT data_addr = ca_address + offset;
+   IntPtr data_addr = ca_address + offset;
    pair<bool, CacheTag*> result;
 
 	// FIXME: Hack
@@ -206,24 +206,24 @@ void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, ADDRI
 
 //	if (access_type == CacheBase::k_ACCESS_TYPE_STORE) {
 //		cerr << "accessCacheLineData: data_buffer: 0x";
-//		for (UINT32 i = 0; i < data_size; i++)
-//			cerr << hex << (UINT32) data_buffer[i];
+//		for (UInt32 i = 0; i < data_size; i++)
+//			cerr << hex << (UInt32) data_buffer[i];
 //		cerr << dec << endl;
 
 //		cerr << "accessCacheLineData: fill_buffer: 0x";
-//		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
-//			cerr << hex << (UINT32) fill_buffer[i];
+//		for (UInt32 i = 0; i < ocache->dCacheLineSize(); i++)
+//			cerr << hex << (UInt32) fill_buffer[i];
 //		cerr << dec << endl;
 //	}
 }
 
-void MemoryManager::fillCacheLineData(ADDRINT ca_address, char* fill_buffer)
+void MemoryManager::fillCacheLineData(IntPtr ca_address, char* fill_buffer)
 {
 	char data_buffer[ocache->dCacheLineSize()];
 	bool fail_need_fill;
 
 	bool eviction;
-	ADDRINT evict_addr;
+	IntPtr evict_addr;
 	char evict_buff[ocache->dCacheLineSize()];
 
 	pair<bool, CacheTag*> result;
@@ -252,12 +252,12 @@ void MemoryManager::fillCacheLineData(ADDRINT ca_address, char* fill_buffer)
 			// of a cache line. This is because we need to write back the cache block only when
 			// it was DIRTY. The 'accessSingleLine()' interface should tell us whether the 
 			// cache block was dirty or clean
-			UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(evict_addr);
+			UInt32 home_node_rank = addr_home_lookup->find_home_for_addr(evict_addr);
 			AckPayload payload;
 			payload.ack_address = evict_addr;
 			payload.is_writeback = true;
 			payload.data_size = ocache->dCacheLineSize();
-			UINT32 payload_size = sizeof(payload) + ocache->dCacheLineSize();
+			UInt32 payload_size = sizeof(payload) + ocache->dCacheLineSize();
 			char payload_buffer[payload_size];
 
 			createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
@@ -275,7 +275,7 @@ void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 	dram_dir->processWriteBack(wb_packet);
 }
 
-void MemoryManager::invalidateCacheLine(ADDRINT address)
+void MemoryManager::invalidateCacheLine(IntPtr address)
 {
 	bool hit = ocache->invalidateLine(address);
 	assert( hit );
@@ -285,11 +285,11 @@ void MemoryManager::invalidateCacheLine(ADDRINT address)
 //send request to DRAM Directory to request a given address, for a certain operation
 //does NOT touch the cache, but instead writes the data to the global "fill_buffer"
 //sets what the new_cstate should be set to on the receiving end
-void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_address)
+void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_address)
 {
-	UINT32 home_node_rank = addr_home_lookup->find_home_for_addr(ca_address);
+	UInt32 home_node_rank = addr_home_lookup->find_home_for_addr(ca_address);
 
-	assert(home_node_rank >= 0 && home_node_rank < (UINT32)(the_core->getNumCores()));
+	assert(home_node_rank >= 0 && home_node_rank < (UInt32)(the_core->getNumCores()));
 	
 	/* ==================================================== */
 	/* =========== Send Request & Recv Update ============= */
@@ -315,7 +315,7 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, ADDRINT ca_add
 //addr_offset provides the offset that points to the requested address
 //TODO this will not work correctly for multi-line requests!
 //TODO what is "return bool" used for?  cache hits? or immediately permissable?
-bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, ADDRINT ca_address, UINT32 addr_offset, char* data_buffer, UINT32 buffer_size)
+bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, char* data_buffer, UInt32 buffer_size)
 {
 #ifdef MMU_DEBUG	
    stringstream ss;
@@ -391,7 +391,7 @@ void MemoryManager::processSharedMemResponse(NetPacket rep_packet) {
 	
 	extractUpdatePayloadBuffer(&rep_packet, &rep_payload, fill_buffer);
 
-	ADDRINT address = rep_payload.update_address;
+	IntPtr address = rep_payload.update_address;
 	CacheState::cstate_t new_cstate = rep_payload.update_new_cstate;
 
 	GetLock(&mmu_lock, 1);
@@ -445,11 +445,11 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 
   	// extract relevant values from incoming request packet
    CacheState::cstate_t new_cstate = update_payload.update_new_cstate;
-   ADDRINT address = update_payload.update_address;
+   IntPtr address = update_payload.update_address;
   
 #ifdef MMU_DEBUG
   	stringstream ss;
-	ss << "Processing Unexpected: address: 0x" << hex << (UINT32) address << dec << ", new CState: " << CacheState::cStateToString(new_cstate);
+	ss << "Processing Unexpected: address: 0x" << hex << (UInt32) address << dec << ", new CState: " << CacheState::cStateToString(new_cstate);
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
@@ -466,10 +466,10 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    AckPayload payload;
    payload.ack_new_cstate = new_cstate; //verify you set it to the correct cstate
 	payload.ack_address = address; //only sent for debugging purposes
-	UINT32 line_size = ocache->dCacheLineSize();
+	UInt32 line_size = ocache->dCacheLineSize();
    char writeback_data[line_size]; 
 	
-	UINT32 payload_size = 0;
+	UInt32 payload_size = 0;
 	char payload_buffer[sizeof(payload) + line_size];
 
 	assert ( (new_cstate == CacheState::INVALID)  ||  (new_cstate == CacheState::SHARED) );
@@ -542,18 +542,18 @@ string MemoryManager::sMemReqTypeToString(shmem_req_t type)
 	return "ERROR SMEMREQTYPE";
 }
 
-void MemoryManager::debugSetDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
+void MemoryManager::debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data)
 {
    // Assume d_data is a pointer to the entire memory block
 	dram_dir->debugSetDramState(addr, dstate, sharers_list, d_data);	
 }
 
-bool MemoryManager::debugAssertDramState(ADDRINT addr, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
+bool MemoryManager::debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data)
 {
 	return dram_dir->debugAssertDramState(addr, dstate, sharers_list, d_data);	
 }
 
-void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate, char *c_data) {
+void MemoryManager::debugSetCacheState(IntPtr address, CacheState::cstate_t cstate, char *c_data) {
 	
 	//using Load Model, so that way we garuntee the tag isn't null
 	// Assume that address is always cache aligned
@@ -568,7 +568,7 @@ void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cst
 	bool fail_need_fill;
 	// char buff[ocache->dCacheLineSize()];
 	bool eviction;
-	ADDRINT evict_addr;
+	IntPtr evict_addr;
 	char evict_buff[ocache->dCacheLineSize()];
 
 	switch(cstate) {
@@ -619,7 +619,7 @@ void MemoryManager::debugSetCacheState(ADDRINT address, CacheState::cstate_t cst
 	}
 }
 
-bool MemoryManager::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data) {
+bool MemoryManager::debugAssertCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data) {
 
 	//	pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address, 1);
 	// pair<bool,CacheTag*> cache_result = ocache->runDCachePeekModel(address);
@@ -652,13 +652,13 @@ bool MemoryManager::debugAssertCacheState(ADDRINT address, CacheState::cstate_t 
 		// assert (is_assert_true == true);
 		
 		cerr << "Actual Data: 0x";
-		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
-			cerr << hex << (UINT32) actual_data[i];
+		for (UInt32 i = 0; i < ocache->dCacheLineSize(); i++)
+			cerr << hex << (UInt32) actual_data[i];
 		cerr << endl;
 		
 		cerr << "Expected Data: 0x";
-		for (UINT32 i = 0; i < ocache->dCacheLineSize(); i++)
-			cerr << hex << (UINT32) expected_data[i];
+		for (UInt32 i = 0; i < ocache->dCacheLineSize(); i++)
+			cerr << hex << (UInt32) expected_data[i];
 		cerr << endl;
 
 	} else {
@@ -680,7 +680,7 @@ bool MemoryManager::debugAssertCacheState(ADDRINT address, CacheState::cstate_t 
 	
 }
 
-void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)
+void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char* data_buffer, char* payload_buffer, UInt32 payload_size)
 {
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );
@@ -704,7 +704,7 @@ void MemoryManager::createUpdatePayloadBuffer (UpdatePayload* send_payload, char
 	
 }
 
-void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data_buffer, char* payload_buffer, UINT32 payload_size)
+void MemoryManager::createAckPayloadBuffer (AckPayload* send_payload, char* data_buffer, char* payload_buffer, UInt32 payload_size)
 {
 	// Create a new buffer of size : sizeof(send_payload) + cache_line_size
 	assert( payload_buffer != NULL );

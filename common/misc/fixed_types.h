@@ -16,4 +16,6 @@ typedef int8_t  SInt8;
 typedef UInt8 Byte;
 typedef UInt8 Boolean;
 
+typedef uintptr_t IntPtr;
+
 #endif 

@@ -53,7 +53,7 @@ enum memory_access_t {
 };
 
 typedef struct {
-	ADDRINT address;
+	IntPtr address;
 	UINT32 dram_addr_home_id;
 	DramDirectoryEntry::dstate_t dstate;
 	CacheState::cstate_t cstate0;
@@ -74,8 +74,8 @@ MemoryState data[2][2][NUM_MEMORY_ACCESS_TYPES];
  * to core#0, and the last 26 correspond to core#1
  */ 
 // Responsible for addresses
-ADDRINT dram0_address[2];
-ADDRINT dram1_address[2];
+IntPtr dram0_address[2];
+IntPtr dram1_address[2];
 
 char* dramBlock00;
 char* dramBlock01;
@@ -204,13 +204,13 @@ void BARRIER_DUAL_CORE(int tid)
 
 }
 
-void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
+void SET_INITIAL_MEM_CONDITIONS(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
 {
 
 	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, d_data, c_data);
 }     
 
-bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string error_code)
+bool ASSERT_MEMORY_STATE(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string error_code)
 {
 	if(CAPI_debugAssertMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, d_data, c_data, "Special Test Cases", error_code) == 1)
 	{
@@ -221,17 +221,17 @@ bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirect
 }
 
 /*
-ADDRINT getAddressOnCore (UINT32 coreId, UINT32 *global_array_ptr) {
+IntPtr getAddressOnCore (UINT32 coreId, UINT32 *global_array_ptr) {
 
 	// This is a big big hack
 	// Uses 'logDRAMContiguousBlockSize'
 	// Lets assume that the address is always cache block aligned for now
-	ADDRINT start_addr = (ADDRINT) global_array_ptr;
+	IntPtr start_addr = (IntPtr) global_array_ptr;
 	cerr << "test.cc :: start_addr = 0x" << hex << start_addr << endl;
 	cerr << "Wanted Address = 0x" << hex << (coreId << logDRAMContiguousBlockSize) << endl;
 	// assert (start_addr < (coreId << logDRAMContiguousBlockSize));
 	if (start_addr < (coreId << logDRAMContiguousBlockSize))
-		return ( (ADDRINT) ((coreId << logDRAMContiguousBlockSize) - start_addr) );
+		return ( (IntPtr) ((coreId << logDRAMContiguousBlockSize) - start_addr) );
 	else
 		 return (0);
 }
@@ -259,10 +259,10 @@ void initialize_test_parameters()
 	
 	// CAPI_getAddress(coreId) : will get an address homed at core with ID 'coreId'
 	
-	dram0_address[0] = (ADDRINT) &global_array_ptr[0];
-	dram0_address[1] = (ADDRINT) &global_array_ptr[1];
-	dram1_address[0] = (ADDRINT) &global_array_ptr[2];
-	dram1_address[1] = (ADDRINT) &global_array_ptr[3];
+	dram0_address[0] = (IntPtr) &global_array_ptr[0];
+	dram0_address[1] = (IntPtr) &global_array_ptr[1];
+	dram1_address[0] = (IntPtr) &global_array_ptr[2];
+	dram1_address[1] = (IntPtr) &global_array_ptr[3];
 
 	// dram0_address is aliased to an address homed on core '0'
 	// dram1_address is aliased to an address homed on core '1'

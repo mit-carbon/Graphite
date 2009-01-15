@@ -6,9 +6,9 @@ struct NetworkMeshAnalyticalParameters
 {
   double Tw2;         // wire delay between adjacent nodes on mesh
   double s;           // switch delay, relative to Tw2
-  int n;              // dimension of network
+  SInt32 n;              // dimension of network
   double W;           // channel width
-  UINT64 update_interval; // interval in cycles between utilization updates
+  UInt64 update_interval; // interval in cycles between utilization updates
 };
 
 #endif // NETWORK_MESH_ANALYTICAL_PARAMS_H

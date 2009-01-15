@@ -177,7 +177,7 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
   assert( dummy == COND_BROADCAST_RESPONSE );
 }
 
-void SyncClient::barrierInit(carbon_barrier_t *barrier, UINT32 count)
+void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 

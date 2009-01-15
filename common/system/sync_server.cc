@@ -59,7 +59,7 @@ SimCond::~SimCond()
 }
 
 
-comm_id_t SimCond::wait(comm_id_t commid, UINT64 time, StableIterator<SimMutex> & simMux)
+comm_id_t SimCond::wait(comm_id_t commid, UInt64 time, StableIterator<SimMutex> & simMux)
 {
 
   // First check to see if we have gotten any signals later in 'virtual time'
@@ -80,7 +80,7 @@ comm_id_t SimCond::wait(comm_id_t commid, UINT64 time, StableIterator<SimMutex> 
   return simMux->unlock(commid);
 }
 
-comm_id_t SimCond::signal(comm_id_t commid, UINT64 time)
+comm_id_t SimCond::signal(comm_id_t commid, UInt64 time)
 {
   // If no threads are waiting, store this cond incase a new
   // thread arrives with an earlier time
@@ -117,7 +117,7 @@ comm_id_t SimCond::signal(comm_id_t commid, UINT64 time)
 }
 
 //FIXME: cond broadcast does not properly handle out of order signals
-void SimCond::broadcast(comm_id_t commid, UINT64 time, WakeupList &woken_list)
+void SimCond::broadcast(comm_id_t commid, UInt64 time, WakeupList &woken_list)
 {
   while(!_waiting.empty())
   {
@@ -130,7 +130,7 @@ void SimCond::broadcast(comm_id_t commid, UINT64 time, WakeupList &woken_list)
 }
 
 // -- SimBarrier -- //
-SimBarrier::SimBarrier(UINT32 count) 
+SimBarrier::SimBarrier(UInt32 count) 
    : _count(count)
    , _max_time(0)
 {

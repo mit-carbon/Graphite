@@ -3,9 +3,9 @@
 #include "cache_state.h"
 //these two are for unit testing shared memory from user program (setMemState and assertMemState) provides hooks into the chip
 
-CAPI_return_t CAPI_debugSetMemState( ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1 , vector<UINT32> sharers_list, char *d_data, char *c_data);
+CAPI_return_t CAPI_debugSetMemState( IntPtr address, SInt32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1 , vector<UInt32> sharers_list, char *d_data, char *c_data);
 
-CAPI_return_t CAPI_debugAssertMemState( ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_string);
+CAPI_return_t CAPI_debugAssertMemState( IntPtr address, SInt32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UInt32> sharers_list, char *d_data, char *c_data, string test_code, string error_string);
 
 //FIXME this is a temp hack function
 CAPI_return_t CAPI_Finish(int my_rank);
@@ -17,5 +17,5 @@ CAPI_return_t CAPI_Print(string s);
 
 
 // FIXME: A hack
-CAPI_return_t CAPI_alias(ADDRINT address, addr_t addrType, UINT32 num);
+CAPI_return_t CAPI_alias(IntPtr address, addr_t addrType, UInt32 num);
 

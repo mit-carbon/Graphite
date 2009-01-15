@@ -1,5 +1,8 @@
 #include "mcp.h"
 
+#include <iostream>
+using namespace std;
+
 MCP::MCP(Network & network)
    :
       _finished(false),
@@ -102,7 +105,7 @@ void MCP::broadcastPacket(NetPacket pkt)
    pkt.sender = g_config->MCPCommID();
 
    // FIXME: Is totalMods() always the right range for commids?
-   for (UINT32 commid = 0; commid < g_config->totalMods(); commid++)
+   for (UInt32 commid = 0; commid < g_config->totalMods(); commid++)
       {
          pkt.receiver = commid;
          _network.netSend(pkt);

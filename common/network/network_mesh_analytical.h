@@ -15,8 +15,8 @@ class NetworkMeshAnalytical : public Network
     virtual void outputSummary(ostream &out);
 
  protected:
-    virtual UINT64 netProcCost(NetPacket packet);
-    virtual UINT64 netLatency(NetPacket packet);
+    virtual UInt64 netProcCost(NetPacket packet);
+    virtual UInt64 netLatency(NetPacket packet);
 
  private:
     void updateUtilization();
@@ -26,14 +26,14 @@ class NetworkMeshAnalytical : public Network
     unsigned int bytes_sent;
     unsigned int bytes_recv;
 
-    UINT64 cycles_spent_proc;
-    UINT64 cycles_spent_latency;
-    UINT64 cycles_spent_contention;
+    UInt64 cycles_spent_proc;
+    UInt64 cycles_spent_latency;
+    UInt64 cycles_spent_contention;
 
     double global_utilization;
-    UINT64 local_utilization_last_update;
-    UINT64 local_utilization_flits_sent;
-    UINT64 update_interval;
+    UInt64 local_utilization_last_update;
+    UInt64 local_utilization_flits_sent;
+    UInt64 update_interval;
 };
 
 #endif

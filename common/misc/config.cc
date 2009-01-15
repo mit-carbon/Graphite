@@ -6,6 +6,13 @@
 
 #define DEBUG
 
+#include "pin.H"
+
+extern LEVEL_BASE::KNOB<UInt32> g_knob_num_cores;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
+
 using namespace std;
 
 Config::Config()

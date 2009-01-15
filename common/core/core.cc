@@ -10,6 +10,27 @@
 #include "network_types.h"
 #include "memory_manager.h"
 
+// externally defined vars
+
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
+
+extern LEVEL_BASE::KNOB<UInt32> g_knob_cache_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_associativity;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_mutation_interval;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_hit;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_miss;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_associativity;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_max_search_depth;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_hit;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_miss;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_associativity;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth; 
+
 #define CORE_DEBUG
 
 using namespace std;
@@ -137,7 +158,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    return 0;
 }
 
-VOID Core::fini(int code, VOID *v, ofstream& out)
+void Core::fini(int code, void *v, ofstream& out)
 {
    if ( g_knob_enable_performance_modeling )
      {
@@ -162,11 +183,11 @@ VOID Core::fini(int code, VOID *v, ofstream& out)
 
 // organic cache wrappers
 
-bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
+bool Core::icacheRunLoadModel(IntPtr i_addr, UInt32 size)
 { return ocache->runICacheLoadModel(i_addr, size).first; }
 
 /*
- * dcacheRunModel (mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
+ * dcacheRunModel (mem_operation_t operation, IntPtr d_addr, char* data_buffer, UInt32 data_size)
  *
  * Arguments:
  *   d_addr :: address of location we want to access (read or write)
@@ -177,7 +198,7 @@ bool Core::icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
  * Return Value:
  *   hit :: Say whether there has been at least one cache hit or not
  */
-bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
+bool Core::dcacheRunModel(mem_operation_t operation, IntPtr d_addr, char* data_buffer, UInt32 data_size)
 {
 	shmem_req_t shmem_operation;
 	
@@ -202,19 +223,19 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
 			// TODO: this is going to affect the statistics even though no shared_mem action is taking place
 		}
 
-		ADDRINT begin_addr = d_addr;
-		ADDRINT end_addr = d_addr + data_size;
-	  	ADDRINT begin_addr_aligned = begin_addr - (begin_addr % ocache->dCacheLineSize());
-		ADDRINT end_addr_aligned = end_addr - (end_addr % ocache->dCacheLineSize());
+		IntPtr begin_addr = d_addr;
+		IntPtr end_addr = d_addr + data_size;
+	  	IntPtr begin_addr_aligned = begin_addr - (begin_addr % ocache->dCacheLineSize());
+		IntPtr end_addr_aligned = end_addr - (end_addr % ocache->dCacheLineSize());
 		char *curr_data_buffer_head = data_buffer;
 
 		//TODO set the size parameter correctly, based on the size of the data buffer
 		//TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
-		for (ADDRINT curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += ocache->dCacheLineSize())
+		for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += ocache->dCacheLineSize())
 		{
 			// Access the cache one line at a time
-			UINT32 curr_offset;
-			UINT32 curr_size;
+			UInt32 curr_offset;
+			UInt32 curr_size;
 
 			// Determine the offset
 			// TODO fix curr_size calculations
@@ -281,22 +302,22 @@ bool Core::dcacheRunModel(mem_operation_t operation, ADDRINT d_addr, char* data_
    }
 }
 
-void Core::debugSetCacheState(ADDRINT address, CacheState::cstate_t cstate, char *c_data)
+void Core::debugSetCacheState(IntPtr address, CacheState::cstate_t cstate, char *c_data)
 {
 	memory_manager->debugSetCacheState(address, cstate, c_data);
 }
 
-bool Core::debugAssertCacheState(ADDRINT address, CacheState::cstate_t expected_cstate, char *expected_data)
+bool Core::debugAssertCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data)
 {
 	return memory_manager->debugAssertCacheState(address, expected_cstate, expected_data);
 }
 
-void Core::debugSetDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
+void Core::debugSetDramState(IntPtr address, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data)
 {
 	memory_manager->debugSetDramState(address, dstate, sharers_list, d_data);		   
 }
 
-bool Core::debugAssertDramState(ADDRINT address, DramDirectoryEntry::dstate_t dstate, vector<UINT32> sharers_list, char *d_data)
+bool Core::debugAssertDramState(IntPtr address, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data)
 {
 	return memory_manager->debugAssertDramState(address, dstate, sharers_list, d_data);
 }

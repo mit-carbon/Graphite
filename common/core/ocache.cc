@@ -1,6 +1,35 @@
 #include "ocache.h"
 #include "cache.h"
 
+#include "pin.H"
+
+/* ===================================================================== */
+/* Externally defined variables */
+/* ===================================================================== */
+
+extern LEVEL_BASE::KNOB<bool> g_knob_icache_ignore_size;
+extern LEVEL_BASE::KNOB<bool> g_knob_dcache_ignore_size;
+extern LEVEL_BASE::KNOB<bool> g_knob_dcache_track_loads;
+extern LEVEL_BASE::KNOB<bool> g_knob_dcache_track_stores;
+extern LEVEL_BASE::KNOB<bool> g_knob_icache_track_insts;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
+
+extern LEVEL_BASE::KNOB<UInt32> g_knob_cache_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_associativity;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_mutation_interval;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_hit;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_miss;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_associativity;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_max_search_depth;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_hit;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_miss;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_associativity;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth; 
+
 /* =================================================== */
 /* OCache method definitions */
 /* =================================================== */
@@ -8,7 +37,7 @@
 
 // cache evolution related
 
-VOID OCache::evolveNaive()
+void OCache::evolveNaive()
 {
    // gives more associativity (and thus cachesize) to the cache with more misses
    if ( dcache_misses > (icache_misses * 1) )
@@ -38,7 +67,7 @@ VOID OCache::evolveNaive()
    }
 }
 
-VOID OCache::evolveDataIntensive()
+void OCache::evolveDataIntensive()
 {
    //shrink icache so long as shrinking saves more dcache misses than icache misses it adds
    if ( (last_dcache_misses == 0 && last_icache_misses == 0) )
@@ -65,7 +94,7 @@ VOID OCache::evolveDataIntensive()
    last_icache_misses = icache_misses;
 }  
 
-VOID OCache::mutationRuntime()
+void OCache::mutationRuntime()
 {
    //if ( mutation_interval && ((icache_accesses + dcacheAccesses) >= mutation_interval) )
    //cout << dec << icache_misses << " " << dcache_misses << " " << endl;
@@ -95,7 +124,7 @@ VOID OCache::mutationRuntime()
 // cache access related
 
 
-pair<bool, CacheTag*> OCache::dCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
+pair<bool, CacheTag*> OCache::dCacheLoadSingle(IntPtr addr, UInt32 inst_id)
 {
    // @todo we may access several cache lines for 
    // first level D-cache
@@ -117,7 +146,7 @@ pair<bool, CacheTag*> OCache::dCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
    return res;
 }
 
-pair<bool, CacheTag*> OCache::dCacheLoadSingleFast(ADDRINT addr)
+pair<bool, CacheTag*> OCache::dCacheLoadSingleFast(IntPtr addr)
 {
    pair<bool, CacheTag*> res = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
    const bool dl1_hit = res.first;
@@ -135,13 +164,13 @@ pair<bool, CacheTag*> OCache::dCacheLoadSingleFast(ADDRINT addr)
    return res;
 }
 
-pair<bool, CacheTag*> OCache::dCacheLoadMultiFast(ADDRINT addr, UINT32 size)
+pair<bool, CacheTag*> OCache::dCacheLoadMultiFast(IntPtr addr, UInt32 size)
 {
    //NOTE: only returns pointer to cachetag of first line spanned
    bool hit = true;
    CacheTag* tag = NULL;
 
-   for(ADDRINT a = addr; a < addr + size; a += line_size)
+   for(IntPtr a = addr; a < addr + size; a += line_size)
    {
       pair<bool, CacheTag*> res = dCacheLoadSingleFast(a);
       if (hit && !res.first)
@@ -153,7 +182,7 @@ pair<bool, CacheTag*> OCache::dCacheLoadMultiFast(ADDRINT addr, UINT32 size)
    return make_pair(hit, tag);
 }
 
-pair<bool, CacheTag*> OCache::dCacheStoreSingle(ADDRINT addr, UINT32 inst_id)
+pair<bool, CacheTag*> OCache::dCacheStoreSingle(IntPtr addr, UInt32 inst_id)
 {
    // @todo we may access several cache lines for 
    // first level D-cache; we only model stores to dcache
@@ -175,7 +204,7 @@ pair<bool, CacheTag*> OCache::dCacheStoreSingle(ADDRINT addr, UINT32 inst_id)
    return res;
 }
 
-pair<bool, CacheTag*> OCache::dCacheStoreSingleFast(ADDRINT addr)
+pair<bool, CacheTag*> OCache::dCacheStoreSingleFast(IntPtr addr)
 {
    // we only model stores for dcache
    pair<bool, CacheTag*> res = dl1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_STORE);
@@ -194,13 +223,13 @@ pair<bool, CacheTag*> OCache::dCacheStoreSingleFast(ADDRINT addr)
    return res;
 }
 
-pair<bool, CacheTag*> OCache::dCacheStoreMultiFast(ADDRINT addr, UINT32 size)
+pair<bool, CacheTag*> OCache::dCacheStoreMultiFast(IntPtr addr, UInt32 size)
 {
    //NOTE: only returns pointer to cachetag of first line spanned
    bool hit = true;
    CacheTag *tag = NULL;
 
-   for(ADDRINT a = addr; a < addr + size; a += line_size)
+   for(IntPtr a = addr; a < addr + size; a += line_size)
    {
       pair<bool, CacheTag*> res = dCacheStoreSingleFast(a);
       if (hit && !res.first)
@@ -213,7 +242,7 @@ pair<bool, CacheTag*> OCache::dCacheStoreMultiFast(ADDRINT addr, UINT32 size)
 }
 
 
-pair<bool, CacheTag*> OCache::iCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
+pair<bool, CacheTag*> OCache::iCacheLoadSingle(IntPtr addr, UInt32 inst_id)
 {
    // @todo we may access several cache lines for 
    // first level I-cache
@@ -235,7 +264,7 @@ pair<bool, CacheTag*> OCache::iCacheLoadSingle(ADDRINT addr, UINT32 inst_id)
    return res;
 }
 
-pair<bool, CacheTag*> OCache::iCacheLoadSingleFast(ADDRINT addr)
+pair<bool, CacheTag*> OCache::iCacheLoadSingleFast(IntPtr addr)
 {
    pair<bool, CacheTag*> res = il1->accessSingleLine(addr, CacheBase::k_ACCESS_TYPE_LOAD);
    const bool il1_hit = res.first;    
@@ -253,13 +282,13 @@ pair<bool, CacheTag*> OCache::iCacheLoadSingleFast(ADDRINT addr)
    return res;
 }
 
-pair<bool, CacheTag*> OCache::iCacheLoadMultiFast(ADDRINT addr, UINT32 size)
+pair<bool, CacheTag*> OCache::iCacheLoadMultiFast(IntPtr addr, UInt32 size)
 {
    //NOTE: only returns pointer to cachetag of first line spanned
    bool hit = true;
    CacheTag *tag = NULL;
 
-   for(ADDRINT a = addr; a < addr + size; a += line_size)
+   for(IntPtr a = addr; a < addr + size; a += line_size)
    {
       pair<bool, CacheTag*> res = iCacheLoadSingleFast(a);
       if (hit && !res.first)
@@ -272,10 +301,10 @@ pair<bool, CacheTag*> OCache::iCacheLoadMultiFast(ADDRINT addr, UINT32 size)
 }
 
 
-pair<bool, CacheTag*> OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runICacheLoadModel(IntPtr i_addr, UInt32 size)
 {
-   UINT32 a1 = (UINT32) i_addr;
-   UINT32 a2 = ((UINT32) i_addr) + size - 1;
+   UInt32 a1 = (UInt32) i_addr;
+   UInt32 a2 = ((UInt32) i_addr) + size - 1;
 
    if ( (a1/line_size) == (a2/line_size) )
       return iCacheLoadSingleFast(i_addr);
@@ -283,10 +312,10 @@ pair<bool, CacheTag*> OCache::runICacheLoadModel(ADDRINT i_addr, UINT32 size)
       return iCacheLoadMultiFast(i_addr, size);
 }
 
-pair<bool, CacheTag*> OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runDCacheLoadModel(IntPtr d_addr, UInt32 size)
 {
-   UINT32 a1 = (UINT32) d_addr;
-   UINT32 a2 = ((UINT32) d_addr) + size - 1;
+   UInt32 a1 = (UInt32) d_addr;
+   UInt32 a2 = ((UInt32) d_addr) + size - 1;
 
    if ( (a1/line_size) == (a2/line_size) )
       return dCacheLoadSingleFast(d_addr);
@@ -294,10 +323,10 @@ pair<bool, CacheTag*> OCache::runDCacheLoadModel(ADDRINT d_addr, UINT32 size)
       return dCacheLoadMultiFast(d_addr, size);
 }
 
-pair<bool, CacheTag*> OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
+pair<bool, CacheTag*> OCache::runDCacheStoreModel(IntPtr d_addr, UInt32 size)
 {
-   UINT32 a1 = (UINT32) d_addr;
-   UINT32 a2 = ((UINT32) d_addr) + size - 1;
+   UInt32 a1 = (UInt32) d_addr;
+   UInt32 a2 = ((UInt32) d_addr) + size - 1;
 
    if ( (a1/line_size) == (a2/line_size) )
       return dCacheStoreSingleFast(d_addr);     
@@ -305,12 +334,12 @@ pair<bool, CacheTag*> OCache::runDCacheStoreModel(ADDRINT d_addr, UINT32 size)
       return dCacheStoreMultiFast(d_addr, size);
 }
 
-pair<bool, CacheTag*> OCache::runICachePeekModel(ADDRINT i_addr)
+pair<bool, CacheTag*> OCache::runICachePeekModel(IntPtr i_addr)
 {
    return il1->accessSingleLinePeek(i_addr);
 }
 
-pair<bool, CacheTag*> OCache::runDCachePeekModel(ADDRINT d_addr)
+pair<bool, CacheTag*> OCache::runDCachePeekModel(IntPtr d_addr)
 {
    return dl1->accessSingleLinePeek(d_addr);     
 }
@@ -318,11 +347,11 @@ pair<bool, CacheTag*> OCache::runDCachePeekModel(ADDRINT d_addr)
 
 // constructor
 
-OCache::OCache(std::string name, UINT32 size, UINT32 line_bytes, UINT32 assoc, UINT32 mutate_interval,
-               UINT32 dcache_threshold_hit_value, UINT32 dcache_threshold_miss_value, UINT32 dcache_size, 
-               UINT32 dcache_associativity, UINT32 dcache_max_search_depth, UINT32 icache_threshold_hit_value, 
-               UINT32 icache_threshold_miss_value, UINT32 icache_size, UINT32 icache_associativity, 
-               UINT32 icache_max_search_depth): 
+OCache::OCache(std::string name, UInt32 size, UInt32 line_bytes, UInt32 assoc, UInt32 mutate_interval,
+               UInt32 dcache_threshold_hit_value, UInt32 dcache_threshold_miss_value, UInt32 dcache_size, 
+               UInt32 dcache_associativity, UInt32 dcache_max_search_depth, UInt32 icache_threshold_hit_value, 
+               UInt32 icache_threshold_miss_value, UInt32 icache_size, UInt32 icache_associativity, 
+               UInt32 icache_max_search_depth): 
    dl1(new RRSACache(name + "_dl1", dcache_size, line_bytes, dcache_associativity, dcache_max_search_depth)),
    il1(new RRSACache(name + "_il1", icache_size, line_bytes, icache_associativity, icache_max_search_depth)),
    cache_size(size), line_size(line_bytes), associativity(assoc), 
@@ -399,7 +428,7 @@ string OCache::statsLong()
    return out.str();
 } 
 
-void OCache::fini(int code, VOID *v, ofstream& out)
+void OCache::fini(int code, void *v, ofstream& out)
 {
 
    // print D-cache profile

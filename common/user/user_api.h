@@ -2,7 +2,6 @@
 #define USER_API_H
 
 #include "capi.h"
-#include "mcp_api.h"
 #include "sync_api.h"
 
 void carbonInit();

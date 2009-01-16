@@ -1,0 +1,8 @@
+#!/bin/tcsh
+#make clean
+#make
+#echo running
+
+# /afs/csail.mit.edu/u/c/cg3/src/pinthread_test/gruenwald/pin-2.5-22117-gcc.4.0.0-ia32_intel64-linux/pin -mt -t ./tool.so -- ./test
+/afs/csail.mit.edu/group/carbon/tools/pin/current/pin -mt -t ./pin_sim.so -- ./test
+

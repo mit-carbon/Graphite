@@ -9,7 +9,6 @@ LDFLAGS=
 SOURCES = syscall_server.cc mcp.cc sync_client.cc sync_server.cc network_mesh_analytical_server.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-
 all: $(OBJECTS)
 
 ## build rules

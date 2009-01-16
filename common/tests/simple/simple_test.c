@@ -15,8 +15,6 @@ void* thread_func(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
-   carbonInit();
-
    // Read in the command line arguments
    const unsigned int numThreads = 1;
 
@@ -48,7 +46,6 @@ int main(int argc, char* argv[]){ // main begins
    carbonFinish();
 
    pthread_exit(NULL);
-
 } // main ends
 
 

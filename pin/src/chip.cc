@@ -1,15 +1,28 @@
 #include "chip.h"
 #include <sched.h>
+#include <linux/unistd.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#include "net_thread_runner.h"
+
 
 #include "sync_client.h"
 
 // definitions
 using namespace std;
 
+
+THREADID chipThreadId()
+{
+   return  syscall( __NR_gettid );
+}
+
 //TODO: c++-ize this, please oh please!
 CAPI_return_t chipInit(int rank)
 {
-   THREADID pin_tid = PIN_ThreadId();
+   THREADID pin_tid = chipThreadId();
+
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
@@ -35,7 +48,7 @@ CAPI_return_t chipInit(int rank)
 CAPI_return_t chipInitFreeRank(int *rank)
 {
    
-	THREADID pin_tid = PIN_ThreadId();
+	THREADID pin_tid = chipThreadId();
 
    GetLock (&g_chip->maps_lock, 1);
 
@@ -80,10 +93,9 @@ CAPI_return_t chipInitFreeRank(int *rank)
 
 CAPI_return_t chipRank(int *rank)
 {
-   THREADID pin_tid = PIN_ThreadId();
+   THREADID pin_tid = chipThreadId();
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
-
    *rank = (e.first == false) ? -1 : e.second;
 
    bool rank_ok = (*rank < g_chip->getNumModules());
@@ -314,6 +326,15 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    int rank;
    chipRank(&rank);
 
+   UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
+
+   if(syscall_number == SYS_exit_group)
+   {
+       SimSharedMemQuit();
+       g_MCP->finish();
+       return;
+   }
+
    if(rank >= 0)
       g_chip->core[rank].getSyscallMdl()->runEnter(ctx, syscall_standard);
 }
@@ -417,27 +438,6 @@ void MCPFinish()
    g_MCP->finish();
 }
 
-
-extern LEVEL_BASE::KNOB<UInt32> g_knob_num_cores;
-void* MCPThreadFunc(void *dummy)
-{
-  	// Declare local variables
-  	CAPI_return_t rtnVal;
-
-   //FIXME: this should probably be total cores, but that was returning
-   //zero when I tried it. --cg3
-   rtnVal = chipInit(g_knob_num_cores);
-
-   while( !g_MCP->finished() )
-   {
-      g_MCP->run();
-      //usleep(1);
-   }   
-	debugPrint (g_knob_num_cores /* rank */, "CHIP", "MCPThreadFunc - end!");
-   return NULL;
-
-}
-
 // Shared Memory Functions
 void SimSharedMemQuit()
 {
@@ -458,7 +458,7 @@ void SharedMemTerminateFunc(void *vp, NetPacket pkt)
 void* SimSharedMemThreadFunc(void *)
 {
     int core_id = g_chip->registerSharedMemThread();
-    Network *net = g_chip->core[core_id].getNetwork();
+    Network *net = g_chip->getCore(core_id)->getNetwork();
     bool cont = true;
 
     net->registerCallback(SHARED_MEM_TERMINATE_THREADS,
@@ -470,7 +470,6 @@ void* SimSharedMemThreadFunc(void *)
 
     return 0;
 }
-
 
 // Helper Functions
 int SimGetCoreCount()
@@ -532,7 +531,7 @@ void Chip::fini(int code, void *v)
 int Chip::registerSharedMemThread()
 {
 	// FIXME: I need to lock because there is a race condition
-	THREADID pin_tid = PIN_ThreadId();
+	THREADID pin_tid = chipThreadId();
 
    GetLock (&maps_lock, 1);
    pair<bool, UINT64> e = g_chip->shmem_tid_to_core_map.find(pin_tid);

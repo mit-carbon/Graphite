@@ -945,6 +945,8 @@ void fini(int code, void * v)
    SimSharedMemQuit();
    g_MCP->finish();
 
+   usleep(100);
+
    Transport::ptFinish();
    g_chip->fini(code, v);
 }

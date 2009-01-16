@@ -85,17 +85,10 @@ void MCP::run()
 
 void MCP::finish()
 {
-//   cerr << "Got finish request..." << endl;
-   UnstructuredBuffer quit_buff;
-   quit_buff.clear();
-
-   int msg_type = MCP_MESSAGE_QUIT;
-   quit_buff << msg_type;
-
-//   cerr << "Sending message to MCP to quit..." << endl;
    _finished = true;
 
-   _network.netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, quit_buff.getBuffer(), quit_buff.size());
+   int msg_type = MCP_MESSAGE_QUIT;
+   _network.netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, &msg_type, sizeof(msg_type));
 
    cerr << "End of MCP::finish();" << endl;
 }

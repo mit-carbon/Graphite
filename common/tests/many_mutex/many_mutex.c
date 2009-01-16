@@ -11,7 +11,9 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "user_api.h"
+
+#include "capi.h"
+#include "sync.h"
 
 carbon_mutex_t my_mux1;
 carbon_mutex_t my_mux2;
@@ -25,8 +27,6 @@ carbon_mutex_t my_mux3;
 void* test_many_mutex(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
-
-   carbonInit();
 
    // Read in the command line arguments
    const unsigned int numThreads = 5;
@@ -55,7 +55,6 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    printf("Quitting syscall server!\n");
-   carbonFinish();
 
 #ifdef DEBUG
    printf("This is the function main ending\n");

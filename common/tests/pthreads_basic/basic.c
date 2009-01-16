@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "capi.h"
-#include "user_api.h"
+
 
 pthread_mutex_t write_lock;
 
@@ -44,7 +44,6 @@ int main(int argc, char* argv[]){ // main begins
 		exit(EXIT_FAILURE);
 	}
 
-	carbonInit();
 
 	// declare threads and related variables
 	pthread_t threads[coreCount];
@@ -73,8 +72,6 @@ int main(int argc, char* argv[]){ // main begins
 	printf("End of execution\n");
 #endif
 
-	carbonFinish();
-        
    return 0;
 } // main ends
 

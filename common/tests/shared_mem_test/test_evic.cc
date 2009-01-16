@@ -4,7 +4,7 @@
 #include <math.h>
 #include <sstream>
 #include "capi.h"
-#include "user_api.h"
+
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "core.h"
@@ -103,8 +103,6 @@ int main(int argc, char* argv[]){ // main begins
 	}
 	// Declare threads and related variables
 	
-	carbonInit();
-
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
@@ -155,7 +153,6 @@ int main(int argc, char* argv[]){ // main begins
 #endif
 	
 	// Join the shared memory threads
-  	carbonFinish();      
    return 0;
 } // main ends
 

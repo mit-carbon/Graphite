@@ -9,7 +9,7 @@ CXXFLAGS = -I../../user -I../../phys_trans -I../../network -I../../misc -I../../
 LDFLAGS = 
 ifeq (${FORCE32},1)
   CXXFLAGS += -m32
-  LDFLAGS += -m32 -m elf_i386
+  LDFLAGS += -m32 # -m elf_i386
 else
   CXXFLAGS += 
   LDFLAGS += 
@@ -17,7 +17,7 @@ endif
 
 CFLAGS = $(CXXFLAGS) -std=c99
 
-CARBON_SOURCES = ../../user/user_api.cc ../../user/sync_api.cc
+CARBON_SOURCES = ../../user/sync_api.c
 CARBON_C_SOURCES = ../../user/capi.c
 CARBON_OBJECTS = $(CARBON_SOURCES:%.cc=%.o) $(CARBON_C_SOURCES:%.c=%.o) 
 

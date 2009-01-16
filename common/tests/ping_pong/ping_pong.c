@@ -3,8 +3,6 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include "capi.h"
-#include "user_api.h"
-//#include "mcp_api.h"
 
 pthread_mutex_t write_lock;
 
@@ -19,7 +17,6 @@ void* ping(void *threadid);
 void* pong(void *threadid);
 
 int main(int argc, char* argv[]){ // main begins
-   carbonInit();
 
 	// Declare threads and related variables
 	pthread_t threads[2];
@@ -72,7 +69,6 @@ int main(int argc, char* argv[]){ // main begins
 	
 	fprintf(stderr, "Finished running PingPong!.\n\n");
 
-   carbonFinish();
    return 0;
 
 } // main ends

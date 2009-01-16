@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "user_api.h"
+
+#include "capi.h"
+#include "fixed_types.h"
 
 #define SIZE 8
 
@@ -25,7 +27,6 @@ int main(int argc, char* argv[]){ // main begins
    for(unsigned int i = 0; i < SIZE; i++)
       m[i] = (float)i;
 
-   carbonInit();
    CAPI_Initialize((unsigned int)numThreads);
 
    threads = (pthread_t*)malloc(numThreads*sizeof(pthread_t));
@@ -39,7 +40,7 @@ int main(int argc, char* argv[]){ // main begins
 
       printf("Spawning worker thread: %d\n", i);
       pthread_create(&threads[i], &attr, worker, (void *) i);
-      bool started;
+      Boolean started;
       CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&started, sizeof(started));
 
       CAPI_message_send_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&c, sizeof(c));
@@ -51,7 +52,6 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    free(threads);
-   carbonFinish();
    pthread_exit(NULL);
    printf("Done\n");
 } // main ends
@@ -59,7 +59,7 @@ int main(int argc, char* argv[]){ // main begins
 void* worker(void *threadid){
    int c;
    float m[SIZE];
-   bool started = true;
+   Boolean started = 1;
 
    CAPI_Initialize((unsigned int)threadid);
 

@@ -694,10 +694,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(chipRecvW);
    }
-   else if(name == "getCoreCount")
-   {
-      msg_ptr = AFUNPTR(SimGetCoreCount);
-   }
    else if(name == "mutexInit")
    {
         msg_ptr = AFUNPTR(SimMutexInit);
@@ -790,18 +786,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto); 
       return true;
    }
-   else if (msg_ptr == AFUNPTR(SimGetCoreCount))
-   {
-      proto = PROTO_Allocate(PIN_PARG(void),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG_END() );   
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_END);  
-      //RTN_Close(rtn);
-      PROTO_Free(proto);
-      return true;
-   } 
    else if ( (msg_ptr == AFUNPTR(SimCondWait)) )
    {
       proto = PROTO_Allocate(PIN_PARG(void),

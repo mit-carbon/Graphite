@@ -4,7 +4,7 @@
 #include <math.h>
 #include <sstream>
 #include "capi.h"
-#include "user_api.h"
+
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "core.h"
@@ -110,8 +110,6 @@ int main(int argc, char* argv[]) { // main begins
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
 
-	carbonInit();
-
 	logCacheBlockSize = atoi(argv[1]);
 	cacheBlockSize = 1 << logCacheBlockSize;
 	
@@ -155,8 +153,6 @@ int main(int argc, char* argv[]) { // main begins
    pthread_join(threads[0], NULL);         
 	pthread_join(threads[1], NULL);
 
-
-   carbonFinish();
 
 #ifdef DEBUG
 	cerr << "End of execution" << endl << endl;

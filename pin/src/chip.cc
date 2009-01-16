@@ -455,12 +455,6 @@ void* SimSharedMemThreadFunc(void *)
     return 0;
 }
 
-// Helper Functions
-int SimGetCoreCount()
-{
-    return g_chip->getNumModules();
-}
-
 // Chip class method definitions
 
 Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid_to_core_map(3*num_mods), prev_rank(0) 

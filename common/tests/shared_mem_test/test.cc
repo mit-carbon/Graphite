@@ -5,7 +5,7 @@
 #include <sstream>
 #include "capi.h"
 #include "mcp_api.h"
-#include "user_api.h"
+
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "core.h"

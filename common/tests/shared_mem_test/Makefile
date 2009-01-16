@@ -5,8 +5,8 @@ FORCE32 ?= 1
 
 # CC = /usr/bin/g++
 CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
-TEST_NEW_SOURCES = ../../user/capi.cc ../../user/user_api.cc test_new.cc 
-TEST_EVIC_SOURCES = ../../user/capi.cc ../../user/user_api.cc test_evic.cc
+TEST_NEW_SOURCES = ../../user/capi.c test_new.cc 
+TEST_EVIC_SOURCES = ../../user/capi.c test_evic.cc
 TEST_NEW_OBJECTS = $(TEST_NEW_SOURCES:%.cc=%.o)
 TEST_EVIC_OBJECTS = $(TEST_EVIC_SOURCES:%.cc=%.o)
 

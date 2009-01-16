@@ -88,6 +88,9 @@ public:
    static NetworkModel *createModel(Network *network, UInt32 type);
 
 protected:
+   Network *getNetwork() { return _network; }
+
+private:
    Network *_network;
 
 };

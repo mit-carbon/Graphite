@@ -16,7 +16,7 @@ class NetworkModelMagic : public NetworkModel
    {
       Hop h;
       h.dest = pkt.receiver;
-      h.time = _network->getCore()->getPerfModel()->getCycleCount();
+      h.time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
       nextHops.push_back(h);
 
       _bytesSent += pkt.length;

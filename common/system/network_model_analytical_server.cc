@@ -1,11 +1,11 @@
-#include "network_mesh_analytical_server.h"
+#include "network_model_analytical_server.h"
 
 #include "transport.h"
 #include "network.h"
 #include "packetize.h"
 #include "config.h"
 
-NetworkMeshAnalyticalServer::NetworkMeshAnalyticalServer(Network &network,
+NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
                                                          UnstructuredBuffer &recv_buffer)
   : _network(network),
     _recv_buffer(recv_buffer)
@@ -18,10 +18,10 @@ NetworkMeshAnalyticalServer::NetworkMeshAnalyticalServer(Network &network,
     }
 }
 
-NetworkMeshAnalyticalServer::~NetworkMeshAnalyticalServer()
+NetworkModelAnalyticalServer::~NetworkModelAnalyticalServer()
 { }
 
-void NetworkMeshAnalyticalServer::update(comm_id_t commid)
+void NetworkModelAnalyticalServer::update(comm_id_t commid)
 {
   // extract update
   double ut;

@@ -13,7 +13,7 @@
 #include <cassert>
 #include "fixed_types.h"
 
-struct NetworkMeshAnalyticalParameters;
+struct NetworkModelAnalyticalParameters;
 
 class Config {
  public:
@@ -34,7 +34,7 @@ class Config {
    
    UInt32  MCP_process;          // The process where the MCP lives
 
-   NetworkMeshAnalyticalParameters *analytic_network_parms;
+   NetworkModelAnalyticalParameters *analytic_network_parms;
    
  public:
    Config();
@@ -72,7 +72,7 @@ class Config {
    const CoreList getModuleList(UInt32 proc_num)
       { assert(proc_num < num_process); return core_map[proc_num]; }
    
-   const NetworkMeshAnalyticalParameters *getAnalyticNetworkParms() const
+   const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
       { return analytic_network_parms; }
 
    // Fills in an array with the models for each static network

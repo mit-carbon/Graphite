@@ -7,7 +7,7 @@
 #include "syscall_server.h"
 #include "sync_server.h"
 #include "fixed_types.h"
-#include "network_mesh_analytical_server.h"
+#include "network_model_analytical_server.h"
 #include <iostream>
 
 /*
@@ -40,7 +40,7 @@ class MCP
 
       SyscallServer syscall_server;
       SyncServer sync_server;
-      NetworkMeshAnalyticalServer network_mesh_analytical_server;
+      NetworkModelAnalyticalServer network_model_analytical_server;
 
    public:
       void run();

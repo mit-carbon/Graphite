@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "network_mesh_analytical_params.h"
+#include "network_model_analytical_params.h"
 #include "network_types.h"
 #include "packet_type.h"
 
@@ -73,12 +73,13 @@ Config::Config()
    }
 
    // Create network parameters
-   analytic_network_parms = new NetworkMeshAnalyticalParameters();
+   analytic_network_parms = new NetworkModelAnalyticalParameters();
    analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
    analytic_network_parms->s = 1; // single cycle switching time
-   analytic_network_parms->n = 2; // 2-d mesh network
+   analytic_network_parms->n = 1; // 2-d mesh network
    analytic_network_parms->W = 32; // 32-bit wide channels
    analytic_network_parms->update_interval = 100000;
+   analytic_network_parms->proc_cost = 100;
 
 #ifdef DEBUG  
    for (i=0; i<num_process; i++) {   
@@ -116,8 +117,8 @@ void Config::loadFromCmdLine()
 
 void Config::getNetworkModels(UInt32 *models) const
 {
-   models[STATIC_NETWORK_USER]   = NETWORK_MAGIC;
-   models[STATIC_NETWORK_MEMORY] = NETWORK_MAGIC;
+   models[STATIC_NETWORK_USER]   = NETWORK_ANALYTICAL_MESH;
+   models[STATIC_NETWORK_MEMORY] = NETWORK_ANALYTICAL_MESH;
    models[STATIC_NETWORK_SYSTEM] = NETWORK_MAGIC;
 }
 

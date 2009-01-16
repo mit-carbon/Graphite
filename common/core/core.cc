@@ -6,7 +6,6 @@
 #include "ocache.h"
 #include "syscall_model.h"
 #include "sync_client.h"
-#include "network_mesh_analytical.h"
 #include "network_types.h"
 #include "memory_manager.h"
 

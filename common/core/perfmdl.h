@@ -23,6 +23,7 @@
 #include "fixed_types.h"
 #include "pin.H"
 #include "perfmdl_interval_stat.h"
+#include "lock.h"
 
 /* ===================================================================== */
 /* Performance Modeler Classes */
@@ -49,7 +50,7 @@ class PerfModel {
       string name;
 
       // Lock for atomically updating the clock
-      PIN_LOCK m_clock_lock;
+      Lock *m_clock_lock;
     
       // methods
       UInt32 getInsMicroOpsCount(const INS& ins);
@@ -57,6 +58,7 @@ class PerfModel {
    public:
 
       PerfModel(string n);
+      ~PerfModel();
 
       // The following two methods atomically update the cycle count
       void updateCycleCount(UInt64 new_cycle_count);

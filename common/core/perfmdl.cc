@@ -16,7 +16,12 @@ PerfModel::PerfModel(string n)
    scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID), 
    name(n)
 {
-   InitLock(&m_clock_lock);
+   m_clock_lock = Lock::create();
+}
+
+PerfModel::~PerfModel()
+{
+   delete m_clock_lock;
 }
 
 UInt32 PerfModel::getInsMicroOpsCount(const INS& ins)
@@ -185,13 +190,13 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 
 void PerfModel::updateCycleCount(UInt64 new_cycle_count)
 {
-   GetLock(&m_clock_lock, 1);
+   m_clock_lock->acquire();
    cycle_count = max(cycle_count, new_cycle_count);
-   ReleaseLock(&m_clock_lock);
+   m_clock_lock->release();
 }
 void PerfModel::addToCycleCount(UInt64 cycles)
 {
-   GetLock(&m_clock_lock, 1);
+   m_clock_lock->acquire();
    cycle_count += cycles; 
-   ReleaseLock(&m_clock_lock);
+   m_clock_lock->release();
 }

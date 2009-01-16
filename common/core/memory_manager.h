@@ -41,6 +41,7 @@ enum shmem_req_t {
 #include "dram_directory.h"
 #include "dram_directory_entry.h"
 #include "network.h"
+#include "lock.h"
 
 extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
@@ -55,7 +56,7 @@ class MemoryManager
 	struct AckPayload;
 	struct UpdatePayload;
 	
-	PIN_LOCK mmu_lock;
+        Lock *mmu_lock;
  
   private:
 	Core *the_core;

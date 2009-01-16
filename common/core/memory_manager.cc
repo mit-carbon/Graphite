@@ -42,8 +42,8 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg)
 {
    the_core = the_core_arg;
    ocache = ocache_arg;
-	
-   InitLock(&mmu_lock);
+
+   mmu_lock = Lock::create();
 	
    //FIXME; need to add infrastructure for specifying core architecture details (e.g. DRAM size)
    // this also assumes 1 dram per core
@@ -337,7 +337,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
 			continue;
 		}
 
-		GetLock (&mmu_lock, 1);
+                mmu_lock->acquire();
 
 		pair<bool, CacheTag*> cache_model_results;  
 		//first-> is the line available in the cache? (Native cache hit)
@@ -359,7 +359,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
 			debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
-			ReleaseLock(&mmu_lock);
+                        mmu_lock->release();
 		
 			return (true);
 		}
@@ -368,7 +368,7 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
 			pending_request = true;
 
 			//release lock: we must now assume we do not have cache line (ie, invalid)
-			ReleaseLock(&mmu_lock);
+                        mmu_lock->release();
 		
 			//requested dram data is written to the fill_buffer
 			requestPermission(shmem_req_type, ca_address);
@@ -394,13 +394,13 @@ void MemoryManager::processSharedMemResponse(NetPacket rep_packet) {
 	IntPtr address = rep_payload.update_address;
 	CacheState::cstate_t new_cstate = rep_payload.update_new_cstate;
 
-	GetLock(&mmu_lock, 1);
-	
+        mmu_lock->acquire();
+
 	fillCacheLineData(address, fill_buffer);
 	setCacheLineInfo(address, new_cstate);                                        
 	pending_request = false;
 	
-	ReleaseLock(&mmu_lock);
+        mmu_lock->release();
 
 #ifdef MMU_DEBUG	
 	stringstream ss;
@@ -453,7 +453,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 	debugPrint(the_core->getRank(), "MMU", ss.str());
 #endif
 
-	GetLock(&mmu_lock, 1);
+        mmu_lock->acquire();
 	pair<bool, CacheTag*> cache_model_results = ocache->runDCachePeekModel(address);
    // if it is null, it means the address has been invalidated
    CacheState::cstate_t current_cstate = ( cache_model_results.second != NULL ) ?
@@ -519,7 +519,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 	}
 
 	//TODO we can move this earlier for performance
-	ReleaseLock(&mmu_lock);
+        mmu_lock->release();
 
    NetPacket packet = makePacket( SHARED_MEM_ACK, payload_buffer, payload_size, the_core->getRank(), update_packet.sender );
    

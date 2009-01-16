@@ -6,7 +6,7 @@
 #include <iostream>
 #include <assert.h>
 #include "fixed_types.h"
-#include "pin.H"
+#include "lock.h"
 
 class LockedHash 
 {
@@ -15,7 +15,7 @@ class LockedHash
 
       UInt64 _size;
       Bucket *_bins;
-      PIN_LOCK *_locks;
+      Lock **_locks;
    public:
       LockedHash(UInt64 size);
       ~LockedHash();

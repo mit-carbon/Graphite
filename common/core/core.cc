@@ -12,9 +12,9 @@
 
 // externally defined vars
 
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
+extern LEVEL_BASE::KNOB<Boolean> g_knob_enable_performance_modeling;
+extern LEVEL_BASE::KNOB<Boolean> g_knob_enable_dcache_modeling;
+extern LEVEL_BASE::KNOB<Boolean> g_knob_enable_icache_modeling;
 
 extern LEVEL_BASE::KNOB<UInt32> g_knob_cache_size;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
@@ -30,6 +30,7 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_miss;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_size;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_associativity;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth; 
+
 
 #define CORE_DEBUG
 
@@ -68,7 +69,6 @@ int Core::coreInit(int tid, int num_mod)
                           g_knob_icache_size.Value() * k_KILO,
                           g_knob_icache_associativity.Value(),
                           g_knob_icache_max_search_depth.Value());                        
-//                          g_knob_simarch_is_shared_mem.Value());                        
 
      	debugPrintStart(core_tid, "Core", "instantiated organic cache model");
   
@@ -77,7 +77,7 @@ int Core::coreInit(int tid, int num_mod)
       ocache = (OCache *) NULL;
    }   
 
-   if ( g_knob_simarch_has_shared_mem ) {
+   if ( g_config->isSimulatingSharedMemory() ) {
      
       assert( g_knob_enable_dcache_modeling ); 
 
@@ -209,7 +209,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, IntPtr d_addr, char* data_b
 		shmem_operation = WRITE;
 	}
 
-	if (g_knob_simarch_has_shared_mem)  {
+	if (g_config->isSimulatingSharedMemory()) {
 #ifdef CORE_DEBUG
 		stringstream ss;
 		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - ADDR: " << hex << d_addr << ", data_size: " << dec << data_size << " , - START ";

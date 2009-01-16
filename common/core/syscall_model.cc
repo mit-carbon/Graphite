@@ -244,7 +244,7 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    // If we are simulating shared memory, then we simply put
    // the address in the message. Otherwise, we need to put
    // the data in the message as well.
-   if(g_config->doesSimArchHaveSharedMem())
+   if(g_config->isSimulatingSharedMemory())
        send_buff << fd << count << (int)buf;
    else
        send_buff << fd << count << make_pair(buf, count);

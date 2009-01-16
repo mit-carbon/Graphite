@@ -3,6 +3,12 @@
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
+
+extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
+
 using namespace std;
 
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet)

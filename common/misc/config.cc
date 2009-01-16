@@ -11,7 +11,7 @@
 extern LEVEL_BASE::KNOB<UInt32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
-extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
+extern LEVEL_BASE::KNOB<Boolean> g_knob_simarch_has_shared_mem;
 
 using namespace std;
 
@@ -121,7 +121,7 @@ void Config::getNetworkModels(UInt32 *models) const
    models[STATIC_NETWORK_SYSTEM] = NETWORK_MAGIC;
 }
 
-Boolean Config::doesSimArchHaveSharedMem() const
+Boolean Config::isSimulatingSharedMemory() const
 {
    return (Boolean)g_knob_simarch_has_shared_mem;
 }

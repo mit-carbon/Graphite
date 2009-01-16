@@ -195,7 +195,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
 
    // If we aren't using shared memory, then the data for the
    // write call must be passed in the message
-   if(g_config->doesSimArchHaveSharedMem())
+   if(g_config->isSimulatingSharedMemory())
    {
        char *src;
        int src_b;

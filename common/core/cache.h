@@ -272,7 +272,7 @@ namespace CACHE_SET
 						// FIXME: if cache model ever starts including data in addition to just tags
                   // need to perform evictions here. Also if we have shared mem?
 
-                                           assert( !g_config->doesSimArchHaveSharedMem() );
+                                           assert( !g_config->isSimulatingSharedMemory() );
 
                   for (UInt32 i = tags_last_index; i >= assoc; i--)
 						{

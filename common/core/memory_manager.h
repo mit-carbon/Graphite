@@ -43,11 +43,6 @@ enum shmem_req_t {
 #include "network.h"
 #include "lock.h"
 
-extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
-
 class MemoryManager
 {
   public: 

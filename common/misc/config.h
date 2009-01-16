@@ -78,7 +78,9 @@ class Config {
    // Fills in an array with the models for each static network
    void getNetworkModels(UInt32 *) const;
 
-   Boolean doesSimArchHaveSharedMem() const;
+   // Knobs
+   Boolean isSimulatingSharedMemory() const;
+   Boolean isPerfModeling() const;   
 };
 
 extern Config *g_config;

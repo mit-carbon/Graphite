@@ -157,16 +157,13 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    return 0;
 }
 
-void Core::fini(int code, void *v, ofstream& out)
+void Core::fini(int code, void *v, ostream& out)
 {
    if ( g_knob_enable_performance_modeling )
      {
-       //FIXME: This should be placed in perfmodel
-       out << "  Total cycles: " << getPerfModel()->getCycleCount() << endl;
-       // cout << "  Total cycles: " << getProcTime() << endl; // copy to stdout (stupid)
-       perf_model->fini(code, v, out);
-
-       // network->outputSummary(out);
+        out << "General:\n";
+        perf_model->fini(code, v, out);
+        network->outputSummary(out);
      }
 
    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )

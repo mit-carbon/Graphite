@@ -200,3 +200,8 @@ void PerfModel::addToCycleCount(UInt64 cycles)
    cycle_count += cycles; 
    m_clock_lock->release();
 }
+
+void PerfModel::fini(int code, void *v, ostream& out)
+{
+   out << "  Total cycles: " << getCycleCount() << endl;
+}

@@ -115,10 +115,7 @@ class PerfModel {
 
 
       // this method is called at the end of simulation
-      //FIXME: implement this function
-      void fini(int code, void *v, ofstream& out)
-      { }
-
+      void fini(int code, void *v, ostream& out);
 };
 
 

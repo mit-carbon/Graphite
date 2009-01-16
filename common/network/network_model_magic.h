@@ -24,7 +24,7 @@ class NetworkModelMagic : public NetworkModel
 
    void outputSummary(std::ostream &out)
    {
-      out << "MAGIC NETWORK: " << _bytesSent << " bytes sent.\n";
+      out << "    bytes sent: " << _bytesSent << endl;
    }
 };
 

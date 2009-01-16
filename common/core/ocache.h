@@ -162,7 +162,7 @@ class OCache
 		/****************************************/
 
       // This function is called at the end of simulation
-      void fini(int code, void *v, ofstream& out);
+      void fini(int code, void *v, ostream& out);
 
 };
 
@@ -178,7 +178,7 @@ bool runDCacheLoadModel(IntPtr d_addr, UInt32 size);
 bool runDCacheStoreModel(IntPtr d_addr, UInt32 size);
 
 void oCacheModelInit();
-void oCacheModelFini(int code, void *v, ofstream& out);
+void oCacheModelFini(int code, void *v, ostream& out);
 
  
 #endif

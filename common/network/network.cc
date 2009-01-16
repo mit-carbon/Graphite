@@ -96,7 +96,12 @@ void Network::unregisterCallback(PacketType type)
 
 void Network::outputSummary(std::ostream &out) const
 {
-   out << "TODO: Implement network summary.\n";
+   out << "Network summary:\n";
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      out << "  Network model " << i << ":\n";
+      _models[i]->outputSummary(out);
+   }
 }
 
 // -- netPullFromTransport -- //

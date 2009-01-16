@@ -66,7 +66,7 @@ class Core
 		SyscallMdl *getSyscallMdl() { return syscall_model; }
       SyncClient *getSyncClient() { return sync_client; }
       
-      void fini(int code, void *v, ofstream& out);
+      void fini(int code, void *v, ostream& out);
 	
       // organic cache wrappers
 	

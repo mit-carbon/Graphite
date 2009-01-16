@@ -399,37 +399,41 @@ string OCache::statsLong()
    ostringstream out;
    out << dec
        << name << ":" << endl
-       << " cacheSize            = " << cache_size << endl
-       << " associativity        = " << associativity << endl
-       << " lineSize             = " << line_size << endl
-       << " mutationInterval     = " << mutation_interval << endl 
-       << " totalResizeEvictions = " << total_resize_evictions << endl 
-       << endl
+       << "  cacheSize            = " << cache_size << endl
+       << "  associativity        = " << associativity << endl
+       << "  lineSize             = " << line_size << endl
+       << "  mutationInterval     = " << mutation_interval << endl 
+       << "  totalResizeEvictions = " << total_resize_evictions << endl 
+//       << endl
        << "  dcache:" << endl
-       << "   cacheSize     = " << dl1->getCacheSize() << endl
-       << "   associativity = " << dl1->getNumWays() << endl
-       << "   searchDepth   = " << dl1->getSearchDepth() << endl
-       << "   lineSize      = " << dl1->getLineSize() << endl
-       << "   dcacheTotalMisses      = " << dcache_total_misses << endl
-       << "   dcacheIntervalMisses   = " << dcache_misses << endl
-       << "   dcacheTotalAccesses    = " << dcache_total_accesses << endl
-       << "   dcacheIntervalAccesses = " << dcacheAccesses << endl
-       << endl
+       << "    cacheSize     = " << dl1->getCacheSize() << endl
+       << "    associativity = " << dl1->getNumWays() << endl
+       << "    searchDepth   = " << dl1->getSearchDepth() << endl
+       << "    lineSize      = " << dl1->getLineSize() << endl
+       << "    dcacheTotalMisses      = " << dcache_total_misses << endl
+       << "    dcacheIntervalMisses   = " << dcache_misses << endl
+       << "    dcacheTotalAccesses    = " << dcache_total_accesses << endl
+       << "    dcacheIntervalAccesses = " << dcacheAccesses << endl
+//       << endl
        << "  icache:" << endl
-       << "   cacheSize     = " << il1->getCacheSize() << endl
-       << "   associativity = " << il1->getNumWays() << endl
-       << "   searchDepth   = " << il1->getSearchDepth() << endl
-       << "   lineSize      = " << il1->getLineSize() << endl
-       << "   icacheTotalMisses      = " << icache_total_misses << endl
-       << "   icacheIntervalMisses   = " << icache_misses << endl
-       << "   icacheTotalAccesses    = " << icache_total_accesses << endl
-       << "   icacheIntervalAccesses = " << icache_accesses << endl;
+       << "    cacheSize     = " << il1->getCacheSize() << endl
+       << "    associativity = " << il1->getNumWays() << endl
+       << "    searchDepth   = " << il1->getSearchDepth() << endl
+       << "    lineSize      = " << il1->getLineSize() << endl
+       << "    icacheTotalMisses      = " << icache_total_misses << endl
+       << "    icacheIntervalMisses   = " << icache_misses << endl
+       << "    icacheTotalAccesses    = " << icache_total_accesses << endl
+       << "    icacheIntervalAccesses = " << icache_accesses << endl;
 
    return out.str();
 } 
 
-void OCache::fini(int code, void *v, ofstream& out)
+void OCache::fini(int code, void *v, ostream& out)
 {
+   // this output is ugly as fuck so I'm just going to use the
+   // statsLong from above
+   out << statsLong();
+   return;
 
    // print D-cache profile
    // @todo what does this print

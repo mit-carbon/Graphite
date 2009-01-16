@@ -45,7 +45,7 @@ squeaky: clean
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
 
-regress_quick: simple_test io_test ping_pong_test capi_worker mutex_test barrier_test
+regress_quick: simple_test io_test ping_pong_test mutex_test barrier_test
 
 simple_test: all
 	$(MAKE) -C $(TESTS_DIR)/simple

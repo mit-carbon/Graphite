@@ -942,6 +942,9 @@ void routine(RTN rtn, void *v)
 
 void fini(int code, void * v)
 {
+   SimSharedMemQuit();
+   g_MCP->finish();
+
    Transport::ptFinish();
    g_chip->fini(code, v);
 }

@@ -326,15 +326,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    int rank;
    chipRank(&rank);
 
-   UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctx, syscall_standard);
-
-   if(syscall_number == SYS_exit_group)
-   {
-       SimSharedMemQuit();
-       g_MCP->finish();
-       return;
-   }
-
    if(rank >= 0)
       g_chip->core[rank].getSyscallMdl()->runEnter(ctx, syscall_standard);
 }
@@ -429,13 +420,6 @@ void SimBarrierWait(carbon_barrier_t *barrier)
 
    if(rank >= 0)
       g_chip->core[rank].getSyncClient()->barrierWait(barrier);
-}
-
-// MCP wrappers
-void MCPFinish()
-{
-   assert(g_MCP != NULL);
-   g_MCP->finish();
 }
 
 // Shared Memory Functions

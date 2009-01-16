@@ -219,55 +219,137 @@ SInt32 Network::netSend(NetPacket packet)
 
 // -- netRecv -- //
 
-NetPacket Network::netRecv(NetMatch match)
+NetPacket Network::netRecv(const NetMatch &match)
 {
    NetQueueEntry entry;
-   
-   SInt32 senderStart = 0;
-   SInt32 senderEnd = _numMod;
 
-   SInt32 typeStart = 0;
-   SInt32 typeEnd = NUM_PACKET_TYPES;
-
-   if (match.sender_flag)
-      {
-         assert(0 <= match.sender && match.sender < _numMod);
-         senderStart = match.sender;
-         senderEnd = senderStart + 1;
-      }
-
-   if (match.type_flag)
-      {
-         assert(0 <= match.type && match.type < NUM_PACKET_TYPES);
-         typeStart = match.type;
-         typeEnd = typeStart + 1;
-      }
-
-   while (true)
+   // anything goes...
+   if (match.senders.empty() && match.types.empty())
+   {
+      while (true)
       {
          entry.time = 0;
 
          _netQueueLock->acquire();
 
-         for (SInt32 i = senderStart; i < senderEnd; i++)
+         for (SInt32 i = 0; i < _numMod; i++)
+         {
+            for (UInt32 j = 0; j < NUM_PACKET_TYPES; j++)
             {
-               for (SInt32 j = typeStart; j < typeEnd; j++)
+               if (!(_netQueue[i][j].empty()))
+               {
+                  if ((entry.time == 0) || (entry.time > _netQueue[i][j].top().time))
                   {
-                     if (!(_netQueue[i][j].empty()))
-                        {
-                           if ((entry.time == 0) || (entry.time > _netQueue[i][j].top().time))
-                              {
-                                 entry = _netQueue[i][j].top();
-                                 goto PacketFound;
-                              }
-                        }
+                     entry = _netQueue[i][j].top();
+                     goto PacketFound;
                   }
+               }
             }
+         }
 
          // No match found
          _netQueueLock->release();
          _netQueueCond.wait();
       }
+   }
+
+   // look for any sender, multiple packet types
+   else if (match.senders.empty())
+   {
+      while (true)
+      {
+         entry.time = 0;
+
+         _netQueueLock->acquire();
+
+         for (SInt32 i = 0; i < _numMod; i++)
+         {
+            for (UInt32 j = 0; j < match.types.size(); j++)
+            {
+               PacketType type = match.types[j];
+
+               if (!(_netQueue[i][type].empty()))
+               {
+                  if ((entry.time == 0) || (entry.time > _netQueue[i][type].top().time))
+                  {
+                     entry = _netQueue[i][type].top();
+                     goto PacketFound;
+                  }
+               }
+            }
+         }
+
+         // No match found
+         _netQueueLock->release();
+         _netQueueCond.wait();
+      }
+   }
+
+   // look for any packet type from several senders
+   else if (match.types.empty())
+   {
+      while (true)
+      {
+         entry.time = 0;
+
+         _netQueueLock->acquire();
+
+         for (UInt32 i = 0; i < match.senders.size(); i++)
+         {
+            SInt32 sender = match.senders[i];
+
+            for (SInt32 j = 0; j < NUM_PACKET_TYPES; j++)
+            {
+               if (!(_netQueue[sender][j].empty()))
+               {
+                  if ((entry.time == 0) || (entry.time > _netQueue[sender][j].top().time))
+                  {
+                     entry = _netQueue[sender][j].top();
+                     goto PacketFound;
+                  }
+               }
+            }
+         }
+
+         // No match found
+         _netQueueLock->release();
+         _netQueueCond.wait();
+      }
+   }
+
+   // look for several senders with several packet types
+   else
+   {
+      while (true)
+      {
+         entry.time = 0;
+
+         _netQueueLock->acquire();
+
+         for (UInt32 i = 0; i < match.senders.size(); i++)
+         {
+            SInt32 sender = match.senders[i];
+
+            for (UInt32 j = 0; j < match.types.size(); j++)
+            {
+               PacketType type = match.types[j];
+
+               if (!(_netQueue[sender][type].empty()))
+               {
+                  if ((entry.time == 0) || (entry.time > _netQueue[sender][type].top().time))
+                  {
+                     entry = _netQueue[sender][type].top();
+                     goto PacketFound;
+                  }
+               }
+            }
+         }
+
+         // No match found
+         _netQueueLock->release();
+         _netQueueCond.wait();
+      }
+   }
 
  PacketFound:
    assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
@@ -305,28 +387,22 @@ SInt32 Network::netBroadcast(PacketType type, const void *buf, UInt32 len)
 NetPacket Network::netRecv(SInt32 src, PacketType type)
 {
    NetMatch match;
-   match.sender_flag = true;
-   match.sender = src;
-   match.type_flag = true;
-   match.type = type;
+   match.senders.push_back(src);
+   match.types.push_back(type);
    return netRecv(match);
 }
 
 NetPacket Network::netRecvFrom(SInt32 src)
 {
    NetMatch match;
-   match.sender_flag = true;
-   match.sender = src;
-   match.type_flag = false;
+   match.senders.push_back(src);
    return netRecv(match);
 }
 
 NetPacket Network::netRecvType(PacketType type)
 {
    NetMatch match;
-   match.sender_flag = false;
-   match.type_flag = true;
-   match.type = type;
+   match.types.push_back(type);
    return netRecv(match);
 }
 

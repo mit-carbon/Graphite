@@ -28,6 +28,9 @@ void MCP::run()
 
    NetPacket recv_pkt;
 
+   NetMatch match;
+   match.types.push_back(MCP_REQUEST_TYPE);
+   match.types.push_back(MCP_SYSTEM_TYPE);
    recv_pkt = _network.netRecvType(MCP_REQUEST_TYPE); 
 
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);

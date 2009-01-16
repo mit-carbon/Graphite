@@ -43,17 +43,8 @@ class NetPacket
 class NetMatch
 {
  public:
-   int sender;
-   bool sender_flag;
-   PacketType type;
-   bool type_flag;
-
-   NetMatch()
-      : sender(-1)
-      , sender_flag(false)
-      , type(INVALID)
-      , type_flag(false)
-      {}
+   std::vector<SInt32> senders;
+   std::vector<PacketType> types;
 };
 
 // -- Network Models -- //
@@ -127,7 +118,7 @@ class Network
    // -- Main interface -- //
 
    SInt32 netSend(NetPacket packet);
-   NetPacket netRecv(NetMatch match);
+   NetPacket netRecv(const NetMatch &match);
 
    // -- Wrappers -- //
 

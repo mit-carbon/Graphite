@@ -122,10 +122,8 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    NetPacket packet;
    NetMatch match;
 
-   match.sender = sender;
-   match.sender_flag = true;
-   match.type = USER;
-   match.type_flag = true;
+   match.senders.push_back(sender);
+   match.types.push_back(USER);
 
    packet = network->netRecv(match);
 

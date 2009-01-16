@@ -147,10 +147,8 @@ NetPacket MemoryManager::makePacket(PacketType packet_type, char* payload_buffer
 NetMatch MemoryManager::makeNetMatch(PacketType packet_type, int sender_rank)
 {
 	   NetMatch net_match;
-	   net_match.sender = sender_rank;
-	   net_match.sender_flag = true;
-	   net_match.type = packet_type;
-	   net_match.type_flag = true;
+	   net_match.senders.push_back(sender_rank);
+	   net_match.types.push_back(packet_type);
 
 		return net_match;
 }

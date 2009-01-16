@@ -31,7 +31,7 @@ typedef enum {
 class MCP
 {
    private:
-      bool _finished;
+      Boolean _finished;
       Network & _network;
       UnstructuredBuffer send_buff;
       UnstructuredBuffer recv_buff;
@@ -45,7 +45,7 @@ class MCP
    public:
       void run();
       void finish();
-      bool finished() { return _finished; };
+      Boolean finished() { return _finished; };
       MCP(Network & network);
       ~MCP();
 

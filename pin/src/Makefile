@@ -16,7 +16,7 @@ LDFLAGS+= -los-services -L ../../os-services-linux-ia32
 # LDFLAGS+= -los-services -L ../../os-services-linux-intel64
 
 TOOL_ROOTS = ../bin/pin_sim
-SOURCES = chip.cc pin_sim.cc mcp_runner.cc net_thread_runner.cc pin_lock.cc
+SOURCES = chip.cc pin_sim.cc mcp_runner.cc net_thread_runner.cc pin_lock.cc shared_mem.cc
 SRCOBJS = ../../common/user/*.o ../../common/core/*.o ../../common/network/*.o ../../common/phys_trans/*.o ../../common/misc/*.o ../../common/system/*.o
 OBJECTS = $(SOURCES:%.cc=%.o)
 

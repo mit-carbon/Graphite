@@ -1,5 +1,6 @@
 #include "mcp.h"
 
+#include <sched.h>
 #include <iostream>
 using namespace std;
 
@@ -22,8 +23,6 @@ MCP::~MCP()
 
 void MCP::run()
 {
-//   cerr << "Waiting for MCP request..." << endl;
-
    send_buff.clear();
    recv_buff.clear();
 
@@ -43,7 +42,8 @@ void MCP::run()
          syscall_server.handleSyscall(recv_pkt.sender);
          break;
       case MCP_MESSAGE_QUIT:
-         cerr << "Got the quit message... done waiting for MCP messages..." << endl;
+         _finished = true;
+         cerr << "MCP::run : Quit message received.\n";
          break;
       case MCP_MESSAGE_MUTEX_INIT:
          sync_server.mutexInit(recv_pkt.sender); 
@@ -79,18 +79,21 @@ void MCP::run()
          cerr << "Unhandled MCP message type: " << msg_type << " from: " << recv_pkt.sender << endl;
          assert(false);
    }
-
-//   cerr << "Finished MCP request" << endl;
 }
 
 void MCP::finish()
 {
-   _finished = true;
-
    int msg_type = MCP_MESSAGE_QUIT;
    _network.netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, &msg_type, sizeof(msg_type));
 
-   cerr << "End of MCP::finish();" << endl;
+   cerr << "MCP::finish : Send MCP quit message\n";
+
+   while (!finished())
+   {
+      sched_yield();
+   }
+
+   cerr << "MCP::finish : End" << endl;
 }
 
 void MCP::broadcastPacket(NetPacket pkt)

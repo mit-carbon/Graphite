@@ -36,6 +36,7 @@
 #include "net_thread_runner.h"
 // FIXME: Hack: Please remove me later
 #include "debug.h"
+#include "shared_mem.h"
 
 // #define INSTRUMENT_ALLOWED_FUNCTIONS
 
@@ -645,20 +646,6 @@ MCPRunner* StartMCPThread()
    return runner;
 }
 
-// This function spawns all of the shared memory threads.
-NetThreadRunner *StartSharedMemThreads()
-{
-   unsigned int num_shared_mem_threads = g_chip->getNumModules();
-   NetThreadRunner * runners = new NetThreadRunner[num_shared_mem_threads];
-   for(unsigned int i = 0; i < num_shared_mem_threads; i++)
-   {
-      OS_SERVICES::ITHREAD *my_thread_p;
-      my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, &runners[i]);
-      assert(my_thread_p);
-   }
-
-   return runners;
-}
 /* ===================================================================== */
 
 bool replaceUserAPIFunction(RTN& rtn, string& name)
@@ -926,10 +913,8 @@ void routine(RTN rtn, void *v)
 
 void fini(int code, void * v)
 {
-   SimSharedMemQuit();
    g_MCP->finish();
-
-   usleep(100);
+   SimSharedMemQuit();
 
    Transport::ptFinish();
    g_chip->fini(code, v);
@@ -997,7 +982,7 @@ int main(int argc, char *argv[])
    //FIXME: the following runners need to be dealocated in the fini
    //function, not below...
    MCPRunner * mcp_runner = StartMCPThread();
-   NetThreadRunner * net_thread_runners = StartSharedMemThreads();
+   NetThreadRunner * net_thread_runners = SimSharedMemStartThreads();
 
    RTN_AddInstrumentFunction(routine, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);

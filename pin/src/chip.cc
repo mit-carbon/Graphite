@@ -1,13 +1,12 @@
-#include "chip.h"
 #include <sched.h>
 #include <linux/unistd.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include "net_thread_runner.h"
 
-
+#include "chip.h"
 #include "sync_client.h"
+#include "shared_mem.h"
 
 // definitions
 using namespace std;
@@ -422,40 +421,7 @@ void SimBarrierWait(carbon_barrier_t *barrier)
       g_chip->core[rank].getSyncClient()->barrierWait(barrier);
 }
 
-// Shared Memory Functions
-void SimSharedMemQuit()
-{
-   NetPacket pkt;
-   pkt.type = SHARED_MEM_TERMINATE_THREADS;
-   pkt.length = 0;
-   pkt.data = 0;
-
-   g_MCP->broadcastPacket(pkt);
-}
-
-void SharedMemTerminateFunc(void *vp, NetPacket pkt)
-{
-   bool *pcont = (bool*) vp;
-   *pcont = false;
-}
-
-void* SimSharedMemThreadFunc(void *)
-{
-    int core_id = g_chip->registerSharedMemThread();
-    Network *net = g_chip->getCore(core_id)->getNetwork();
-    bool cont = true;
-
-    net->registerCallback(SHARED_MEM_TERMINATE_THREADS,
-                          SharedMemTerminateFunc,
-                          &cont);
-
-    while(cont)
-       net->netPullFromTransport();
-
-    return 0;
-}
-
-// Chip class method definitions
+// == Chip class =============================== //
 
 Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid_to_core_map(3*num_mods), prev_rank(0) 
 //Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0)

@@ -46,9 +46,9 @@ squeaky: clean
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
 
-regress_quick: simple_test io_test ping_pong_test mutex_test barrier_test
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test
 
-regress: regress_quick clean_benchmarks build_benchmarks
+regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
 
 clean_benchmarks:
 	make $@ -C $(TESTS_DIR)
@@ -100,7 +100,7 @@ shmem_test_evic: all
 
 1djacobi_test_quick: all
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -n 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 16
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
 
 jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi

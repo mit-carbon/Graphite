@@ -1,5 +1,5 @@
 #include "dram_directory.h"
-#define DRAM_DEBUG
+//#define DRAM_DEBUG
 
 #include "pin.H"
 

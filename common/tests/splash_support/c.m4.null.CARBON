@@ -149,6 +149,8 @@ define(MAIN_ENV,`
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sync_api.h>
+#include <capi.h>
 #define MAX_THREADS 32
 pthread_t PThreadTable[MAX_THREADS];
 ')
@@ -159,6 +161,8 @@ define(EXTERN_ENV, `
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sync_api.h>
+#include <capi.h>
 extern pthread_t PThreadTable[];
 ')
 

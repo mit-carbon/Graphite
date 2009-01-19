@@ -47,6 +47,14 @@ squeaky: clean
 
 regress_quick: simple_test io_test ping_pong_test mutex_test barrier_test
 
+regress: regress_quick clean_benchmarks build_benchmarks
+
+clean_benchmarks:
+	make $@ -C $(TESTS_DIR)
+
+build_benchmarks:
+	make $@ -C $(TESTS_DIR)
+
 simple_test: all
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -tc 2 -n 2 -- $(TESTS_DIR)/simple/simple_test

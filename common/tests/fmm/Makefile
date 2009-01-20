@@ -10,16 +10,6 @@ TARGET = FMM
 
 CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
 
-# Just build c++ for now
-CC=$(CXX)
-#ifeq (${FORCE32},1)
-#  CFLAGS = -I../../user -I../../phys_trans -c -g -Wall -m32
-#  LDFLAGS = -m32 -m elf_i386
-##else
-#  CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
-#  LDFLAGS = 
-#endif
-
 defs.c: defs.h
 box.c: box.h
 construct_grid.c: construct_grid.h

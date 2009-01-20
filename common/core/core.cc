@@ -31,7 +31,7 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_associativity;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth; 
 
 
-#define CORE_DEBUG
+//#define CORE_DEBUG
 
 using namespace std;
 

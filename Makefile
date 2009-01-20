@@ -4,6 +4,7 @@ PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
+PIN_RUN_DIST=mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 TESTS_DIR=./common/tests
 
@@ -45,11 +46,23 @@ squeaky: clean
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
 
-regress_quick: simple_test io_test ping_pong_test mutex_test barrier_test
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test
+
+regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
+
+clean_benchmarks:
+	make $@ -C $(TESTS_DIR)
+
+build_benchmarks:
+	make $@ -C $(TESTS_DIR)
 
 simple_test: all
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -tc 2 -n 2 -- $(TESTS_DIR)/simple/simple_test
+
+simple_test_dist: all
+	$(MAKE) -C $(TESTS_DIR)/simple
+	$(PIN_RUN_DIST) -mdc -mpf -msys -np 2 -tc 2 -n 1 -- $(TESTS_DIR)/simple/simple_test
 
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io
@@ -84,6 +97,10 @@ shmem_test_evic: all
 1djacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
 	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64 
+
+1djacobi_test_quick: all
+	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
 
 jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi

@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "capi.h"
-
+#include "sync_api.h"
 
 
 #define DEBUG 1

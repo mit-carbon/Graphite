@@ -1,5 +1,5 @@
 #include "memory_manager.h"
-#define MMU_DEBUG
+//#define MMU_DEBUG
 //#define MMU_CACHEHIT_DEBUG
 //#define ADDR_HOME_LOOKUP_DEBUG
 
@@ -563,10 +563,8 @@ void MemoryManager::debugSetCacheState(IntPtr address, CacheState::cstate_t csta
 	// Assume that address is always cache aligned
 	pair<bool, CacheTag*> cache_result;
 
-#ifdef MMU_DEBUG
 	pair<bool, CacheTag*> cache_model_results;
 	CacheState::cstate_t current_cstate;
-#endif
 
 
 	bool fail_need_fill;

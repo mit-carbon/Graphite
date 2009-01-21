@@ -4,6 +4,7 @@ PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
 PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
+PIN_RUN_DIST=mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 TESTS_DIR=./common/tests
 
@@ -50,6 +51,10 @@ regress_quick: simple_test io_test ping_pong_test capi_worker mutex_test barrier
 simple_test: all
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -tc 2 -n 2 -- $(TESTS_DIR)/simple/simple_test
+
+simple_test_dist: all
+	$(MAKE) -C $(TESTS_DIR)/simple
+	$(PIN_RUN_DIST) -mdc -mpf -msys -np 2 -tc 2 -n 1 -- $(TESTS_DIR)/simple/simple_test
 
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io

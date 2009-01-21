@@ -25,7 +25,7 @@ Config::Config()
    }
    my_proc_num = 0;
    // Default location for MCP is process 0
-   MCP_process = 0;
+   MCP_process = num_process - 1;
 
    if (g_knob_total_cores == 0) {
       // Backwards compatibility mode (in case the user does not specify

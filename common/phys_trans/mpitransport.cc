@@ -1,6 +1,6 @@
 #include "mpitransport.h"
 
-//#define PT_DEBUG 1
+#define PT_DEBUG 1
 
 // Initialize class static variables (these are useless but required by C++)
 int Transport::pt_num_mod = 0;
@@ -40,17 +40,7 @@ void Transport::ptInitQueue(int num_mod)
    pt_num_mod = num_mod;
   
    //***** Initialize MPI *****//
-   // NOTE: MPI barfs if I call MPI_Init_thread with MPI_THREAD_MULTIPLE
-   //  in a non-threaded process.  I think this is a bug but I'll work
-   //  around it for now.
-   int required, provided;
-   if (g_config->numMods() > 1) {
-      required = MPI_THREAD_MULTIPLE;
-   } else {
-      required = MPI_THREAD_SINGLE;
-   }
-   MPI_Init_thread(NULL, NULL, required, &provided);
-   assert(provided >= required);
+   MPI_Init(NULL, NULL);
 
    //***** Fill in g_config with values that we are responsible for *****//
    g_config->setProcNum(ptProcessNum());
@@ -116,6 +106,9 @@ void Transport::ptInitQueue(int num_mod)
 #endif
    thread_counts = new int[num_procs];
    MPI_Allgather(&num_mod, 1, MPI_INT, thread_counts, 1, MPI_INT, MPI_COMM_WORLD);
+
+   // One more for the MCP
+   thread_counts[num_procs - 1] += 1;
   
    // Create array of indexes that will be used to place values received
    //  from each process in the appropriate place in the receive buffer.
@@ -190,9 +183,11 @@ int Transport::ptInit(int tid, int num_mod)
    } else {
       // All other cases are currently unsupported
       cerr << "ERROR: Multiple processes each with multiple threads is not "
-	   << "currently supported!" << endl;
-      MPI_Abort(MPI_COMM_WORLD, -1);
-      exit(-1);
+          << "currently supported!" << endl;
+      cerr << "ERROR: Falling back on tid's which only works on single machine!" << endl;
+      comm_id = tid;
+//      MPI_Abort(MPI_COMM_WORLD, -1);
+//      exit(-1);
    }
 
    return 0;
@@ -223,7 +218,8 @@ int Transport::ptSend(int receiver, char *buffer, int size)
 #ifdef PT_DEBUG
    cout << "PT sending msg ==> tid:" << pt_tid
 	<< ", comm_id:" << comm_id << ", recv:" << receiver
-	<< ", size:" << size << " ...";
+	<< ", size:" << size << " ... ";
+   cout << "Dest rank: " << dest_ranks[receiver] << endl;
 #endif
    MPI_Send(buffer, size, MPI_BYTE, dest_ranks[receiver], receiver,
 	    MPI_COMM_WORLD);

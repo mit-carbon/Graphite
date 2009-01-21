@@ -972,8 +972,11 @@ VOID init_globals()
    //g_config->loadFromFile(FIXME);
 
    // NOTE: transport and queues must be inited before the chip
-   Transport::ptInitQueue(num_cores);
+   // I think this one wants a per-process core count it adds one
+   // on it's own for the mcp
+   Transport::ptInitQueue(g_knob_num_cores);
 
+   // I think this one probably wants a total core count
    g_chip = new Chip(num_cores);
 
    // Note the MCP has a dependency on the transport layer and the chip.

@@ -6,6 +6,12 @@
 #include "mcp.h"
 #include "chip.h"
 
+// FIXME: Right now the termination code using shared globals only
+// works within a single process. For distribution this will not
+// work. Fortunately, it *SHOULD* be possible to remove
+// synchronization, as the race condition with MCP termination is
+// already handled in MCP::finish().
+
 UInt32 g_shared_mem_active_threads;
 Lock* g_shared_mem_threads_lock;
 

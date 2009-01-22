@@ -362,12 +362,12 @@ void SyncServer::barrierWait(comm_id_t commid)
 
   SimBarrier *psimbarrier = &_barriers[barrier];
 
-  SimCond::WakeupList woken_list;
+  SimBarrier::WakeupList woken_list;
   psimbarrier->wait(commid, time, woken_list);
 
   UInt64 max_time = psimbarrier->getMaxTime();
 
-  for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
+  for(SimBarrier::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {
       assert(*it != INVALID_COMMID);
       Reply r;

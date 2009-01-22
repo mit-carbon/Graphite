@@ -68,7 +68,7 @@ void debugPrint(SInt32 id, string class_name, string output_string)
 		fileId = id + core_count;
 	}
 	else {
-		assert (rank == id);
+//		assert (rank == id);
 		fileId = id;
 	}
 	

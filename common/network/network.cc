@@ -44,8 +44,6 @@ Network::Network(Core *core)
    for (SInt32 i = 0; i < _numMod; i++)
       _netQueue[i] = new NetQueue [NUM_PACKET_TYPES];
    
-   _netQueueLock = Lock::create();
-
    _callbacks = new NetworkCallback [NUM_PACKET_TYPES];
    _callbackObjs = new void* [NUM_PACKET_TYPES];
    for (SInt32 i = 0; i < NUM_PACKET_TYPES; i++)
@@ -67,8 +65,6 @@ Network::~Network()
 
    delete [] _callbackObjs;
    delete [] _callbacks;
-
-   delete _netQueueLock;
 
    for (SInt32 i = 0; i < _numMod; i++)
       delete [] _netQueue[i];
@@ -152,9 +148,9 @@ void Network::netPullFromTransport()
       // synchronous I/O support
       else
          {
-            _netQueueLock->acquire();
+            _netQueueCond.acquire();
             _netQueue[entry.packet.sender][entry.packet.type].push(entry);
-            _netQueueLock->release();
+            _netQueueCond.release();
             _netQueueCond.broadcast();
          }
    }
@@ -162,6 +158,8 @@ void Network::netPullFromTransport()
 }
 
 // -- forwardPacket -- //
+
+// FIXME: Can forwardPacket be subsumed by netSend?
 
 void Network::forwardPacket(const NetPacket &packet)
 {
@@ -222,15 +220,19 @@ SInt32 Network::netSend(NetPacket packet)
 NetPacket Network::netRecv(const NetMatch &match)
 {
    NetQueueEntry entry;
+   Boolean loop;
+
+   loop = true;
+   entry.time = (UInt64)-1;
+
+   _netQueueCond.acquire();
 
    // anything goes...
    if (match.senders.empty() && match.types.empty())
    {
-      while (true)
+      while (loop)
       {
          entry.time = 0;
-
-         _netQueueLock->acquire();
 
          for (SInt32 i = 0; i < _numMod; i++)
          {
@@ -238,29 +240,29 @@ NetPacket Network::netRecv(const NetMatch &match)
             {
                if (!(_netQueue[i][j].empty()))
                {
+                  loop = false;
                   if ((entry.time == 0) || (entry.time > _netQueue[i][j].top().time))
                   {
                      entry = _netQueue[i][j].top();
-                     goto PacketFound;
                   }
                }
             }
          }
 
          // No match found
-         _netQueueLock->release();
-         _netQueueCond.wait();
+         if (loop)
+         {
+            _netQueueCond.wait();
+         }
       }
    }
 
    // look for any sender, multiple packet types
    else if (match.senders.empty())
    {
-      while (true)
+      while (loop)
       {
          entry.time = 0;
-
-         _netQueueLock->acquire();
 
          for (SInt32 i = 0; i < _numMod; i++)
          {
@@ -270,29 +272,29 @@ NetPacket Network::netRecv(const NetMatch &match)
 
                if (!(_netQueue[i][type].empty()))
                {
+                  loop = false;
                   if ((entry.time == 0) || (entry.time > _netQueue[i][type].top().time))
                   {
                      entry = _netQueue[i][type].top();
-                     goto PacketFound;
                   }
                }
             }
          }
 
          // No match found
-         _netQueueLock->release();
-         _netQueueCond.wait();
+         if (loop)
+         {
+            _netQueueCond.wait();
+         }
       }
    }
 
    // look for any packet type from several senders
    else if (match.types.empty())
    {
-      while (true)
+      while (loop)
       {
          entry.time = 0;
-
-         _netQueueLock->acquire();
 
          for (UInt32 i = 0; i < match.senders.size(); i++)
          {
@@ -302,29 +304,29 @@ NetPacket Network::netRecv(const NetMatch &match)
             {
                if (!(_netQueue[sender][j].empty()))
                {
+                  loop = false;
                   if ((entry.time == 0) || (entry.time > _netQueue[sender][j].top().time))
                   {
                      entry = _netQueue[sender][j].top();
-                     goto PacketFound;
                   }
                }
             }
          }
 
          // No match found
-         _netQueueLock->release();
-         _netQueueCond.wait();
+         if (loop)
+         {
+            _netQueueCond.wait();
+         }
       }
    }
 
    // look for several senders with several packet types
    else
    {
-      while (true)
+      while (loop)
       {
          entry.time = 0;
-
-         _netQueueLock->acquire();
 
          for (UInt32 i = 0; i < match.senders.size(); i++)
          {
@@ -336,28 +338,30 @@ NetPacket Network::netRecv(const NetMatch &match)
 
                if (!(_netQueue[sender][type].empty()))
                {
+                  loop = false;
                   if ((entry.time == 0) || (entry.time > _netQueue[sender][type].top().time))
                   {
                      entry = _netQueue[sender][type].top();
-                     goto PacketFound;
                   }
                }
             }
          }
 
          // No match found
-         _netQueueLock->release();
-         _netQueueCond.wait();
+         if (loop)
+         {
+            _netQueueCond.wait();
+         }
       }
    }
 
- PacketFound:
+   assert(loop == false && entry.time != (UInt64)-1);
    assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
    assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
    assert(entry.packet.receiver == _transport->ptCommID());
 
    _netQueue[entry.packet.sender][entry.packet.type].pop();
-   _netQueueLock->release();
+   _netQueueCond.release();
 
    // Atomically update the time is the packet time is newer
    _core->getPerfModel()->updateCycleCount(entry.time);

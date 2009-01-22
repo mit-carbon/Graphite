@@ -5,7 +5,6 @@
 #include <vector>
 #include "packet_type.h"
 #include "fixed_types.h"
-#include "lock.h"
 #include "cond.h"
 
 // TODO: Do we need to support multicast to some (but not all)
@@ -141,7 +140,6 @@ private:
    SInt32 _numMod;
 
    NetQueue **_netQueue;
-   Lock *_netQueueLock;
    ConditionVariable _netQueueCond;
 
    void* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);

@@ -1,3 +1,4 @@
+#include "lock.h"
 #include "cond.h"
 
 #include <unistd.h>
@@ -17,22 +18,26 @@ ConditionVariable::~ConditionVariable()
    delete _lock;
 }
 
-void ConditionVariable::wait() 
+void ConditionVariable::acquire()
 {
    _lock->acquire();
-   {
-      _numWaiting ++;
-      _futx = 0;
-   }
+}
+
+void ConditionVariable::release()
+{
    _lock->release();
-      
+}
+
+void ConditionVariable::wait() 
+{
+   _numWaiting ++;
+   _futx = 0;
+   _lock->release();
+
    syscall (SYS_futex, (void*) &_futx, FUTEX_WAIT, 0, NULL, NULL, 0);
 
    _lock->acquire();
-   {
-      _numWaiting --;
-   }
-   _lock->release();
+   _numWaiting --;
 }
 
 void ConditionVariable::signal() 

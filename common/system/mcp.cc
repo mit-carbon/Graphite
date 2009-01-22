@@ -45,8 +45,8 @@ void MCP::run()
          syscall_server.handleSyscall(recv_pkt.sender);
          break;
       case MCP_MESSAGE_QUIT:
-         _finished = true;
          cerr << "MCP::run : Quit message received.\n";
+         _finished = true;
          break;
       case MCP_MESSAGE_MUTEX_INIT:
          sync_server.mutexInit(recv_pkt.sender); 
@@ -86,10 +86,10 @@ void MCP::run()
 
 void MCP::finish()
 {
+   cerr << "MCP::finish : Send MCP quit message\n";
+
    int msg_type = MCP_MESSAGE_QUIT;
    _network.netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, &msg_type, sizeof(msg_type));
-
-   cerr << "MCP::finish : Send MCP quit message\n";
 
    while (!finished())
    {

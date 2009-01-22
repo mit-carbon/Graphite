@@ -94,7 +94,7 @@ void* test_wait_barrier(void *threadid)
     }
   else
     {
-      sleep(10);
+      sleep(5);
     }
 
 

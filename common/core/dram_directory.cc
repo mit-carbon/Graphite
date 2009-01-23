@@ -1,7 +1,10 @@
 #include "dram_directory.h"
-//#define DRAM_DEBUG
 
 #include "pin.H"
+
+#include "log.h"
+#define LOG_DEFAULT_RANK   dram_id
+#define LOG_DEFAULT_MODULE DRAMDIR
 
 //TODO i don't think this is used
 extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
@@ -30,8 +33,8 @@ DramDirectory::DramDirectory(UInt32 num_lines_arg, UInt32 bytes_per_cache_line_a
 
 /*
 #ifdef DRAM_DEBUG
-   debugPrintStart (dram_id, "DRAMDIR", "Init Dram with num_lines", num_lines);
-   debugPrintStart (dram_id, "DRAMDIR", "bytes_per_cache_linew", bytes_per_cache_line);
+   LOG_PRINT("Init Dram with num_lines", num_lines);
+   LOG_PRINT("bytes_per_cache_linew", bytes_per_cache_line);
 #endif
  */
    assert( num_lines >= 0 );
@@ -88,8 +91,8 @@ UInt64 DramDirectory::getDramAccessCost() {
 // and when we push around data, this function will deal with this
 bool issueDramRequest(IntPtr d_addr, shmem_req_t mem_req_type)
 {
-  debugPrint(-1, "DRAM", "TODO: implement me: dram_directory.cc issueDramRequest");
-  return true;
+   LOG_PRINT_EXPLICIT(0, DRAMDIR, "TODO: implement me: dram_directory.cc issueDramRequest");
+   return true;
 }
 
 void DramDirectory::copyDataToDram(IntPtr address, char* data_buffer) 
@@ -121,11 +124,7 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 
 	DramDirectoryEntry* dir_entry = getEntry(payload.ack_address);
 
-#ifdef DRAM_DEBUG
-	stringstream ss;
-	ss << "Got Eviction for Address: 0x" << hex << (UInt32) payload.ack_address << dec << ", Sharer = " << wb_packet.sender << ", numSharers = " << dir_entry->numSharers() << ", DState = " << DramDirectoryEntry::dStateToString(dir_entry->getDState());
-	debugPrint (dram_id, "DRAM_DIR", ss.str());
-#endif
+	LOG_PRINT("Got eviction for address: %x, sharer = %i, numSharers = %i, DState = %s", (UInt32)payload.ack_address, wb_packet.sender, dir_entry->numSharers(), DramDirectoryEntry::dStateToString(dir_entry->getDState()).c_str());
 
 	dir_entry->removeSharer(wb_packet.sender);
 
@@ -157,13 +156,7 @@ void DramDirectory::startSharedMemRequest(NetPacket& req_packet) {
 
 	DramRequest* dram_req = dram_request_list[address];
 
-#ifdef DRAM_DEBUG
-	stringstream ss;
-	string start_now = (dram_req == NULL) ? "YES" : "NO";
-	string request_type = (shmem_req_type == READ) ? "READ" : "WRITE";
-	ss << "Got Shared Memory Request for address: 0x" << hex << (UInt32) address << dec << ", Req_Type = " << request_type << ", Start Now - " << start_now;
-	debugPrint (dram_id, "DRAM_DIR", ss.str());
-#endif
+        LOG_PRINT("Got shared memory request for address: %x, req_type = %s, start now - %u", address, shmem_req_type == READ ? "read" : "write", dram_req == NULL);
 
 	if (dram_req == NULL) {
 
@@ -195,12 +188,7 @@ void DramDirectory::finishSharedMemRequest(IntPtr address)
 	DramRequest* dram_req = dram_request_list[address];
 	assert (dram_req != NULL);
  	
-#ifdef DRAM_DEBUG
-	stringstream ss;
-	string start_next = (dram_req->numWaitingRequests() == 0) ? "NO" : "YES";
-	ss << "Finished DRAM Request for address: 0x" << hex << (UInt32) address << dec << ", Start Next - " << start_next;
-	debugPrint (dram_id, "DRAM_DIR", ss.str());
-#endif
+	LOG_PRINT("Finished DRAM request for address: %x, start next %i", address, dram_req->numWaitingRequests() == 0);
 
 	if (dram_req->numWaitingRequests() == 0) {
 		delete dram_req;
@@ -243,12 +231,7 @@ void DramDirectory::processSharedMemRequest (UInt32 requestor, shmem_req_t shmem
 	DramDirectoryEntry* dram_dir_entry = getEntry(address);
 	DramDirectoryEntry::dstate_t curr_dstate = dram_dir_entry->getDState();
 
-#ifdef DRAM_DEBUG
-	stringstream ss;
-	string request_type = (shmem_req_type == READ) ? "READ" : "WRITE";
-	ss << "Start Processing DRAM request for address: 0x" << hex << (UInt32) address << dec << ", Req_Type = " << request_type << ", <- " << requestor << ", Current State = " << DramDirectoryEntry::dStateToString(curr_dstate);
-	debugPrint (dram_id, "DRAM_DIR", ss.str());
-#endif
+	LOG_PRINT("Start processing DRAM request for address: %x, req_type = %s, <- %u, current state = %s", (UInt32) address, (shmem_req_type == READ) ? "read" : "write", requestor, DramDirectoryEntry::dStateToString(curr_dstate).c_str());
 
 	switch (shmem_req_type) {
 	
@@ -313,8 +296,10 @@ void DramDirectory::processSharedMemRequest (UInt32 requestor, shmem_req_t shmem
 		break;
       
 		default:
-			throw("unsupported memory transaction type.");
-		break;
+                   LOG_PRINT("unsupported memory transaction type.");
+                   assert(false);
+                   exit(-1);
+                   break;
    }
   
 }
@@ -463,11 +448,7 @@ void DramDirectory::processAck (NetPacket& ack_packet)
 
 	assert(dram_dir_entry != NULL);
 
-#ifdef DRAM_DEBUG
-	stringstream ss;
-	ss << "Got Ack <- " << ack_packet.sender << " for " << requestor << ", Address = 0x" << hex << (UInt32) address << dec << ", NumAcksToRecv = " << dram_req->getNumAcksToRecv();
-	debugPrint (dram_id, "DRAM_DIR", ss.str());
-#endif
+	LOG_PRINT("Got ack <- %i for %i, address = %x, numAcksToRecv %i", ack_packet.sender, requestor, (UInt32) address, dram_req->getNumAcksToRecv());
 
 	char data_buffer[bytes_per_cache_line];
 	MemoryManager::AckPayload ack_payload;
@@ -521,7 +502,7 @@ void DramDirectory::processAck (NetPacket& ack_packet)
 
 		default:
 
-			debugPrint (dram_id, "DRAM_DIR", "Invalid Shared Memory Request Type");
+			LOG_PRINT("Invalid Shared Memory Request Type");
 			assert(false);
 
 		break;

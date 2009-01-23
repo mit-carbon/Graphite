@@ -1,6 +1,5 @@
 #include "core.h"
 #include "chip.h"
-#include "debug.h"
 
 #include "network.h"
 #include "ocache.h"
@@ -8,6 +7,10 @@
 #include "sync_client.h"
 #include "network_types.h"
 #include "memory_manager.h"
+
+#include "log.h"
+#define LOG_DEFAULT_RANK   core_tid
+#define LOG_DEFAULT_MODULE CORE
 
 // externally defined vars
 
@@ -31,8 +34,6 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_associativity;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth; 
 
 
-//#define CORE_DEBUG
-
 using namespace std;
 
 int Core::coreInit(int tid, int num_mod)
@@ -45,7 +46,7 @@ int Core::coreInit(int tid, int num_mod)
    if ( g_knob_enable_performance_modeling ) 
    {
       perf_model = new PerfModel("performance modeler");
-      debugPrintStart(core_tid, "Core", "instantiated performance model");
+      LOG_PRINT("Instantiated performance model.");
    } else 
    {
       perf_model = (PerfModel *) NULL;    
@@ -69,7 +70,7 @@ int Core::coreInit(int tid, int num_mod)
                           g_knob_icache_associativity.Value(),
                           g_knob_icache_max_search_depth.Value());                        
 
-     	debugPrintStart(core_tid, "Core", "instantiated organic cache model");
+     	LOG_PRINT("instantiated organic cache model");
   
 	} else 
    {
@@ -80,13 +81,13 @@ int Core::coreInit(int tid, int num_mod)
      
       assert( g_knob_enable_dcache_modeling ); 
 
-      debugPrintStart (core_tid, "CORE", "instantiated memory manager model");
+      LOG_PRINT("instantiated memory manager model");
       memory_manager = new MemoryManager(this, ocache);
 
    } else {
 
       memory_manager = (MemoryManager *) NULL;
-      debugPrintStart (core_tid, "CORE", "No Memory Manager being used");
+      LOG_PRINT("No Memory Manager being used");
    
    }
 
@@ -130,15 +131,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    packet = network->netRecv(match);
 
-#ifdef CORE_DEBUG
-   stringstream ss;
-	ss << "Got packet: "
-	<< "Send=" << packet.sender
-	<< ", Recv=" << packet.receiver
-	<< ", Type=" << packet.type
-	<< ", Len=" << packet.length << endl;
-	debugPrint (getRank(), "CORE", ss.str());
-#endif
+   LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
 
    assert((unsigned)size == packet.length);
 
@@ -200,11 +193,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, IntPtr d_addr, char* data_b
 	}
 
 	if (g_config->isSimulatingSharedMemory()) {
-#ifdef CORE_DEBUG
-		stringstream ss;
-		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - ADDR: " << hex << d_addr << ", data_size: " << dec << data_size << " , - START ";
-		debugPrint(core_tid, "CORE", ss.str());
-#endif
+                LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==LOAD) ? " READ " : " WRITE "), d_addr, data_size);
 
 		bool all_hits = true;
 
@@ -248,12 +237,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, IntPtr d_addr, char* data_b
 				curr_size = ocache->dCacheLineSize() - (curr_offset);
 			}
          
-#ifdef CORE_DEBUG
-			stringstream ss;
-			ss.str("");
-			ss << "[" << getRank() << "] start InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
-			debugPrint(getRank(), "CORE", ss.str());
-#endif
+                        LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
 
 			if (!memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
 				// If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
@@ -261,21 +245,13 @@ bool Core::dcacheRunModel(mem_operation_t operation, IntPtr d_addr, char* data_b
 				all_hits = false;
 			}
 			
-#ifdef CORE_DEBUG
-			ss.str("");
-			ss << "[" << getRank() << "] end  InitiateSharedMemReq: ADDR: " << hex << curr_addr_aligned << ", offset: " << dec << curr_offset << ", curr_size: " << dec << curr_size;
-			debugPrint(getRank(), "CORE", ss.str());
-#endif
+                        LOG_PRINT("End InitiateSharedMemReq: ADDR: %u, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
 
 			// Increment the buffer head
 			curr_data_buffer_head += curr_size;
 		}
 
-#ifdef CORE_DEBUG
-		ss.str("");
-		ss << ((operation==LOAD) ? " READ " : " WRITE ") << " - ADDR: " << hex << d_addr << ", data_size: " << dec << data_size << ", END!! " << endl;
-		debugPrint(core_tid, "CORE", ss.str());
-#endif
+                LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==LOAD) ? " READ " : " WRITE "), d_addr, data_size);
 		
 		return all_hits;		    
    

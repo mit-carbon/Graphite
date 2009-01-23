@@ -2,7 +2,6 @@
 #define DRAM_DIRECTORY_H
 
 
-#include "debug.h"
 #include "dram_directory_entry.h"
 #include "network.h"
 #include "memory_manager.h"

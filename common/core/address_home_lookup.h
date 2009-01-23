@@ -2,11 +2,11 @@
 #define ADDRESSHOMELOOKUP_H_
 
 #include "assert.h"
-#include "debug.h"
 #include <iostream> 
 #include <sstream> 
 #include <vector> 
 #include <math.h>
+#include "fixed_types.h"
 
 using namespace std;
 

@@ -129,5 +129,10 @@ Boolean Config::isSimulatingSharedMemory() const
 
 void Config::getDisabledLogModules(set<string> &mods) const
 {
-   // none...
+//   mods.insert("NETWORK");
+//   mods.insert("CORE");
+//   mods.insert("DRAMDIR");
+//   mods.insert("MMU");
+//   mods.insert("CHIP");
+//   mods.insert("PINSIM");
 }

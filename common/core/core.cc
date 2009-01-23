@@ -141,8 +141,8 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
       stringstream ss;
       ss << "ERROR (comm_id: " << network->getTransport()->ptCommID() << "):" << endl
          << "Received packet length (" << packet.length
-	   	<< ") is not as expected (" << size << ")" << endl;
-		debugPrint (getRank(), "CORE", ss.str());
+         << ") is not as expected (" << size << ")" << endl;
+      debugPrint (getRank(), "CORE", ss.str());
       exit(-1);
    }
 
@@ -150,7 +150,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    // De-allocate dynamic memory
    // Is this the best place to de-allocate packet.data ?? 
-   delete [] (UInt8*)packet.data;
+   delete [] (Byte*)packet.data;
 
    return 0;
 }

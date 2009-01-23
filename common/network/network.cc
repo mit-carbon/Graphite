@@ -143,6 +143,8 @@ void Network::netPullFromTransport()
             _core->getPerfModel()->updateCycleCount(entry.time);
 
             callback(_callbackObjs[entry.packet.type], entry.packet);
+
+            delete [] (Byte*)entry.packet.data;
          }
 
       // synchronous I/O support

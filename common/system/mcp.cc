@@ -82,6 +82,8 @@ void MCP::run()
          cerr << "Unhandled MCP message type: " << msg_type << " from: " << recv_pkt.sender << endl;
          assert(false);
    }
+
+   delete [] (Byte*)recv_pkt.data;
 }
 
 void MCP::finish()

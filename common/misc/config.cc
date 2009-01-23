@@ -126,3 +126,8 @@ Boolean Config::isSimulatingSharedMemory() const
 {
    return (Boolean)g_knob_simarch_has_shared_mem;
 }
+
+void Config::getDisabledLogModules(set<string> &mods) const
+{
+   // none...
+}

@@ -9,6 +9,8 @@
 #define CONFIG_H
 
 #include <list>
+#include <set>
+#include <string>
 #include <iostream>
 #include <cassert>
 #include "fixed_types.h"
@@ -81,6 +83,9 @@ class Config {
    // Knobs
    Boolean isSimulatingSharedMemory() const;
    Boolean isPerfModeling() const;   
+
+   // Logging
+   void getDisabledLogModules(std::set<std::string> &mods) const;
 };
 
 extern Config *g_config;

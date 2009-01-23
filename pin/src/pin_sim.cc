@@ -37,6 +37,7 @@
 // FIXME: Hack: Please remove me later
 #include "debug.h"
 #include "shared_mem.h"
+#include "log.h"
 
 // #define INSTRUMENT_ALLOWED_FUNCTIONS
 
@@ -45,6 +46,7 @@
 Chip *g_chip = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
+Log *g_log = NULL;
 PIN_LOCK print_lock;
 
 //TODO only here for debugging ins in runModel
@@ -924,7 +926,6 @@ void fini(int code, void * v)
 
 void init_globals()
 {
-  
    if( g_knob_simarch_has_shared_mem ) {
 
       if( !g_knob_enable_dcache_modeling ) {
@@ -947,6 +948,9 @@ void init_globals()
 
    // NOTE: transport and queues must be inited before the chip
    Transport::ptInitQueue(num_cores);
+
+   // Must be initialized after config and before chip
+   g_log = new Log(num_cores);
 
    g_chip = new Chip(num_cores);
 

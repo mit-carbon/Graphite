@@ -204,7 +204,7 @@ void NetworkModelAnalytical::updateUtilization()
   update.sender = getNetwork()->getTransport()->ptCommID();
   update.receiver = g_config->MCPCommID();
   update.length = sizeof(m);
-  update.type = MCP_REQUEST_TYPE;
+  update.type = MCP_SYSTEM_TYPE;
   update.data = &m;
 
   getNetwork()->netSend(update);

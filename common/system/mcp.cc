@@ -31,7 +31,7 @@ void MCP::run()
    NetMatch match;
    match.types.push_back(MCP_REQUEST_TYPE);
    match.types.push_back(MCP_SYSTEM_TYPE);
-   recv_pkt = _network.netRecvType(MCP_REQUEST_TYPE); 
+   recv_pkt = _network.netRecv(match);
 
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   
@@ -91,7 +91,7 @@ void MCP::finish()
    cerr << "MCP::finish : Send MCP quit message\n";
 
    int msg_type = MCP_MESSAGE_QUIT;
-   _network.netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, &msg_type, sizeof(msg_type));
+   _network.netSend(g_config->MCPCommID(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
 
    while (!finished())
    {

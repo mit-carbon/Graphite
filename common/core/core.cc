@@ -112,9 +112,12 @@ int Core::coreSendW(int sender, int receiver, char *buffer, int size)
    for(int i = 0; i < size; i++)
       packet.data[i] = buffer[i];
    */
-   
-   network->netSend(packet);
-   return 0;
+
+   SInt32 sent = network->netSend(packet);
+
+   assert(sent == size);
+
+   return sent == size ? 0 : -1;
 }
 
 int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
@@ -137,14 +140,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 	debugPrint (getRank(), "CORE", ss.str());
 #endif
 
-   if((unsigned)size != packet.length){
-      stringstream ss;
-      ss << "ERROR (comm_id: " << network->getTransport()->ptCommID() << "):" << endl
-         << "Received packet length (" << packet.length
-         << ") is not as expected (" << size << ")" << endl;
-      debugPrint (getRank(), "CORE", ss.str());
-      exit(-1);
-   }
+   assert((unsigned)size == packet.length);
 
    memcpy(buffer, packet.data, size);
 
@@ -152,7 +148,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    // Is this the best place to de-allocate packet.data ?? 
    delete [] (Byte*)packet.data;
 
-   return 0;
+   return (unsigned)size == packet.length ? 0 : -1;
 }
 
 void Core::fini(int code, void *v, ostream& out)

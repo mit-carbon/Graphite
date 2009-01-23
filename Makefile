@@ -8,7 +8,7 @@ PIN_RUN_DIST=mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)
 
 TESTS_DIR=./common/tests
 
-CORES=16
+CORES=4
 ..PHONY: cores
 PROCESS=mpirun
 ..PHONY: process
@@ -46,7 +46,7 @@ squeaky: clean
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
 
@@ -72,7 +72,7 @@ ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
-matmult_test: all
+cannon: all
 	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
 #	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
 	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)

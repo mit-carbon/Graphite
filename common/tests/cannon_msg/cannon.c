@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <stdarg.h>
 #include <assert.h>
@@ -19,7 +20,7 @@
 #include "capi.h"
 
 //#define DEBUG 1
-#define SEQUENTIAL 1
+//#define SEQUENTIAL 1
 
 #ifdef DEBUG
 pthread_mutex_t lock;

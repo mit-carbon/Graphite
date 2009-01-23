@@ -21,7 +21,7 @@ public:
    bool operator() (const NetQueueEntry& first,
                     const NetQueueEntry& second) const
    {
-      return first.time <= second.time;
+      return first.time > second.time;
    }
 };
 

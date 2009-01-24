@@ -245,7 +245,7 @@ bool Core::dcacheRunModel(mem_operation_t operation, IntPtr d_addr, char* data_b
 				all_hits = false;
 			}
 			
-                        LOG_PRINT("End InitiateSharedMemReq: ADDR: %u, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
+                        LOG_PRINT("End InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
 
 			// Increment the buffer head
 			curr_data_buffer_head += curr_size;

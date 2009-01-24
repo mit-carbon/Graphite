@@ -125,6 +125,8 @@ void Log::log(UInt32 rank, const char *module, const char *format, ...)
 
    fprintf(_files[fileRank], "\n");
 
+   fflush(_files[fileRank]);
+
    _locks[fileRank]->release();
 }
 

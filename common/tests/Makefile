@@ -1,5 +1,4 @@
 
-#all: pthreadsmatmult pingpong basic shared_mem_tests
 all: pingpong 
 
 include ../makefile.gnu.config
@@ -9,9 +8,6 @@ shared_mem_tests:
 basic:
 	$(MAKE) -C pthreads_basic
 
-pthreadsmatmult:
-	$(MAKE) -C pthreads_matmult
-
 pingpong:
 	$(MAKE) -C ping_pong
 
@@ -19,7 +15,6 @@ jacobi:
 	$(MAKE) -C shared_mem_jacobi
 
 clean:
-	#$(MAKE) -C pthreads_matmult clean
 	$(MAKE) -C shared_mem_test clean
 	$(MAKE) -C ping_pong clean
 	$(MAKE) -C capi_worker clean
@@ -46,7 +41,3 @@ build_benchmarks:
 	$(MAKE) -C volrend
 	$(MAKE) -C water-nsquared
 	$(MAKE) -C water-spatial
-
-squeaky: clean
-	$(MAKE) -C pthreads_matmult squeaky
-	-rm -f *~

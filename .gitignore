@@ -12,7 +12,7 @@ common/phys_trans/transport.*
 *.swp
 
 # test executables
-common/tests/pthreads_matmult/cannon
+common/tests/cannon/cannon
 common/tests/file_io/file_io
 common/tests/ping_pong/ping_pong
 common/tests/signals/signals

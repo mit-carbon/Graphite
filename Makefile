@@ -73,9 +73,9 @@ ping_pong_test: all
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 cannon: all
-	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
-#	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
-	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
+	$(MAKE) -C $(TESTS_DIR)/cannon
+#	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: all
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
@@ -184,8 +184,8 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
-	killall -s 9 jacobi
 	killall -s 9 ping_pong
+	killall -s 9 jacobi
 	killall -s 9 test_new
 	killall -s 9 test_evic
 	killall -s 9 basic

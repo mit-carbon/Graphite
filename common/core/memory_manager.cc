@@ -98,14 +98,14 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, IntPtr address, UInt32 size_bytes)
 {
 	//TODO BUG this code doesn't work b/c it gets deallocated before the network copies it
-   LOG_PRINT_EXPLICIT(0, MMU, "Starting adding Request Payload;"); 
+   LOG_PRINT_EXPLICIT(-1, MMU, "Starting adding Request Payload;"); 
 	MemoryManager::RequestPayload payload;
 	payload.request_type = shmem_req_type;
 	payload.request_address = address;  
 	payload.request_num_bytes = size_bytes;
 
 	packet->data = (char *)(&payload);
-	LOG_PRINT_EXPLICIT(0, MMU, "Finished adding Request Payload;"); 
+	LOG_PRINT_EXPLICIT(-1, MMU, "Finished adding Request Payload;"); 
 }
 
 void addAckPayload(NetPacket* packet, IntPtr address, CacheState::cstate_t new_cstate)
@@ -160,7 +160,7 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
 			ret = cache_state.writable();
 			break;
 		default:
-                   LOG_PRINT_EXPLICIT(0, MMU, "ERROR in Actionreadily permissiable");
+                   LOG_PRINT_EXPLICIT(-1, MMU, "ERROR in Actionreadily permissiable");
                         assert(false);
                         exit(-1);
 	      break;

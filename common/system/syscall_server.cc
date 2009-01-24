@@ -6,6 +6,10 @@
 #include "core.h"
 #include "config.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()
+#define LOG_DEFAULT_MODULE SYSCALL
+
 using namespace std;
 
 SyscallServer::SyscallServer(Network & network, 
@@ -50,7 +54,8 @@ void SyscallServer::handleSyscall(int comm_id)
          break;
       default:
       {
-         cerr << "Unhandled syscall number: " << (int)syscall_number << " from: " << comm_id << endl;
+         LOG_NOTIFY_ERROR();
+         LOG_PRINT("Unhandled syscall number: %i from %i", (int)syscall_number, comm_id);
       }
    }
 }

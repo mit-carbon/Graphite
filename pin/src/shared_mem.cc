@@ -6,6 +6,10 @@
 #include "mcp.h"
 #include "chip.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK   -1
+#define LOG_DEFAULT_MODULE SHAREDMEM
+
 // FIXME: Right now the termination code using shared globals only
 // works within a single process. For distribution this will not
 // work. Fortunately, it *SHOULD* be possible to remove
@@ -41,14 +45,14 @@ void SimSharedMemQuit()
 
    g_MCP->broadcastPacket(pkt);
 
-   fprintf(stderr, "SimSharedMemQuit : Send quit message.\n");
+   LOG_PRINT("SimSharedMemQuit : Send quit message.");
 
    // Only quit when all threads have terminated. Lock shouldn't be
    // necessary here.
    while (g_shared_mem_active_threads > 0)
       sched_yield();
 
-   fprintf(stderr, "SimSharedMemQuit : All shared mem threads have terminated.\n");
+   LOG_PRINT("SimSharedMemQuit : All shared mem threads have terminated.");
 
    delete g_shared_mem_threads_lock;
 }

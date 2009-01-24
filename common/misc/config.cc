@@ -4,6 +4,12 @@
 #include "network_types.h"
 #include "packet_type.h"
 
+#include <sstream>
+#include "log.h"
+#define LOG_DEFAULT_RANK   -1
+#define LOG_DEFAULT_MODULE CONFIG
+extern Log *g_log;
+
 #define DEBUG
 
 #include "pin.H"
@@ -23,10 +29,11 @@ Config::Config()
    // a file or the command line.
 
    if (g_knob_num_process == 0) {
-      cerr << "\nWARNING: Using compatibility mode for number of processes!\n"
-	   << "  Assuming number of processes = 1.\n"
-	   << "  Please use the -np command-line argument in the future.\n"
-	   << endl;
+      // We can't use the log in Config's constructor because it
+      // hasn't been created yet...
+      fprintf(stderr, "WARNING: Using compatibility mode for number of processes!\n\
+  Assuming number of processes = 1.\n\
+  Please use the -np command-line argument in the future.\n");
       num_process = 1;
    } else {      
       num_process = g_knob_num_process;
@@ -38,10 +45,9 @@ Config::Config()
    if (g_knob_total_cores == 0) {
       // Backwards compatibility mode (in case the user does not specify
       // the -tc command line argument)
-      cerr << "\nWARNING: Using compatibility mode for total number of cores!\n"
-	   << "  Assuming all cores are in one process.\n"
-	   << "  Please use the -tc command-line argument in the future.\n"
-	   << endl;
+      fprintf(stderr, "WARNING: Using compatibility mode for total number of cores!\n\
+  Assuming all cores are in one process.\n\
+  Please use the -tc command-line argument in the future.\n");
       total_cores = g_knob_num_cores;
    } else {
       total_cores = g_knob_total_cores;
@@ -53,6 +59,10 @@ Config::Config()
 
    //Add one to account for the MCP
    total_cores += 1;
+
+   // FIXME: This is a bit of a hack to put this here, but we need it
+   // for logging in the rest of Config's constructor.
+   g_log = new Log(total_cores);
 
    num_modules = new UInt32[num_process];
    // FIXME: This assumes that every process has the same number of modules.
@@ -82,12 +92,14 @@ Config::Config()
    analytic_network_parms->proc_cost = 100;
 
 #ifdef DEBUG  
+   stringstream ss;
    for (i=0; i<num_process; i++) {   
-      cout << "Process " << i << ": ";
+      ss << "Process " << i << ": ";
       for (CLCI m = core_map[i].begin(); m != core_map[i].end(); m++)
-	 		cout << "[" << *m << "]";
-      cout << endl;
+         ss << "[" << *m << "]";
+      ss << endl;
    }
+   LOG_PRINT(ss.str().c_str());
 #endif
 }
 
@@ -135,4 +147,7 @@ void Config::getDisabledLogModules(set<string> &mods) const
 //   mods.insert("MMU");
 //   mods.insert("CHIP");
 //   mods.insert("PINSIM");
+//   mods.insert("SHAREDMEM");
+//   mods.insert("CONFIG");
+//   mods.insert("SYSCALL");
 }

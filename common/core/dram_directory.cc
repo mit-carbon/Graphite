@@ -91,7 +91,7 @@ UInt64 DramDirectory::getDramAccessCost() {
 // and when we push around data, this function will deal with this
 bool issueDramRequest(IntPtr d_addr, shmem_req_t mem_req_type)
 {
-   LOG_PRINT_EXPLICIT(0, DRAMDIR, "TODO: implement me: dram_directory.cc issueDramRequest");
+   LOG_PRINT_EXPLICIT(-1, DRAMDIR, "TODO: implement me: dram_directory.cc issueDramRequest");
    return true;
 }
 

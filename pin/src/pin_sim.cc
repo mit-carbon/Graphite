@@ -937,16 +937,12 @@ void init_globals()
    // NOTE: transport and queues must be inited before the chip
    Transport::ptInitQueue(num_cores);
 
-   // Must be initialized after config and before chip
-   g_log = new Log(num_cores);
-
    g_chip = new Chip(num_cores);
 
    // Note the MCP has a dependency on the transport layer and the chip.
    // Only create an MCP on the correct process.
    if (g_config->myProcNum() == g_config->MCPProcNum()) {
-      cout << "Creating new MCP object in process " << g_config->myProcNum()
-          << endl;
+      LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->myProcNum());
       g_MCP = new MCP(*(g_chip->getCore(num_cores-1)->getNetwork()));
    }
 }

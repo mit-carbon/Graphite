@@ -27,6 +27,9 @@ Log::Log(UInt32 coreCount)
       assert(_files[i] != NULL);
    }
 
+   _system = fopen("output_files/system", "w");
+   assert(_system);
+
    g_config->getDisabledLogModules(_disabledModules);
 
    assert(_singleton == NULL);
@@ -37,7 +40,9 @@ Log::~Log()
 {
    _singleton = NULL;
 
-   for (UInt32 i = 0; i < _coreCount; i++)
+   fclose(_system);
+
+   for (UInt32 i = 0; i < 2 * _coreCount; i++)
    {
       fclose(_files[i]);
    }
@@ -74,7 +79,6 @@ void Log::log(UInt32 rank, const char *module, const char *format, ...)
 #ifdef DISABLE_LOGGING
    return;
 #endif
-   assert(rank < _coreCount);
 
    UInt32 fileRank = rank;
 
@@ -98,12 +102,37 @@ void Log::log(UInt32 rank, const char *module, const char *format, ...)
    if (!isEnabled(module))
       return;
 
-   fprintf(_files[fileRank], "%llu [%u] [%s] ", getTimestamp(), rank, module);
+   FILE * f;
+   if (fileRank < _coreCount)
+      f = _files[fileRank];
+   else
+      f = _system;
+   
+   fprintf(f, "%llu [%i] [%s] ", getTimestamp(), (rank > _coreCount ? -1 : (SInt32)rank), module);
    
    va_list args;
    va_start(args, format);
-   vfprintf(_files[fileRank], format, args);
+   vfprintf(f, format, args);
    va_end(args);
 
-   fprintf(_files[fileRank], "\n");
+   fprintf(f, "\n");
 }
+
+void Log::notifyWarning()
+{
+   if (_state == None)
+   {
+      fprintf(stderr, "LOG : Check logs -- there is a warning!\n");
+      _state = Warning;
+   }
+}
+
+void Log::notifyError()
+{
+   if (_state == None || _state == Warning)
+   {
+      fprintf(stderr, "LOG : Check logs -- there is an ERROR!\n");
+      _state = Error;
+   }
+}
+

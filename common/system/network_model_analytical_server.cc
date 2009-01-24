@@ -5,6 +5,10 @@
 #include "packetize.h"
 #include "config.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()
+#define LOG_DEFAULT_MODULE NETWORK
+
 NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
                                                          UnstructuredBuffer &recv_buffer)
   : _network(network),
@@ -43,7 +47,8 @@ void NetworkModelAnalyticalServer::update(comm_id_t commid)
   //  assert(0 <= global_utilization && global_utilization <= 1);
   if (global_utilization > 1)
      {
-        fprintf(stderr, "WARNING: Network utilization exceeds 1; %f\n", global_utilization);
+        LOG_NOTIFY_WARNING();
+        LOG_PRINT("WARNING: Network utilization exceeds 1; %f", global_utilization);
         global_utilization = 0.99;
      }
 

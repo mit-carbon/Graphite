@@ -8,6 +8,10 @@
 #include "sync_client.h"
 #include "shared_mem.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK -1
+#define LOG_DEFAULT_MODULE CHIP
+
 // definitions
 using namespace std;
 
@@ -386,7 +390,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid
 		finished_cores[i] = false;
 	}
 
-	cerr << "Finished Chip Constructor." << endl;
+	LOG_PRINT("Finished Chip Constructor.");
 }
 
 void Chip::fini(int code, void *v)
@@ -395,10 +399,8 @@ void Chip::fini(int code, void *v)
 
    for(int i = 0; i < num_modules; i++)
    {
-      cout << "*** Core[" << i << "] summary ***" << endl;
       out << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
-      cout << endl;
       out << endl;
    }
 

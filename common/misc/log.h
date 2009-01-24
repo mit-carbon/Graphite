@@ -6,6 +6,8 @@
 #include <string>
 #include "fixed_types.h"
 
+class Lock;
+
 class Log
 {
 public:
@@ -31,8 +33,10 @@ private:
    };
    ErrorState _state;
 
+   
    FILE ** _files;
-   FILE * _system;
+   Lock ** _locks;
+
    UInt32 _coreCount;
    std::set<std::string> _disabledModules;
 

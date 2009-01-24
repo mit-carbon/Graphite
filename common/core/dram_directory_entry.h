@@ -8,7 +8,6 @@
 
 #include "assert.h"
 #include "bit_vector.h"
-#include "debug.h"
 
 using namespace std;
 

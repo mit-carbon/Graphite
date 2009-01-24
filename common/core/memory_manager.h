@@ -8,7 +8,6 @@
 #include <math.h>
 
 #include "assert.h"
-#include "debug.h"
 #include "packet_type.h"
 #include "core.h"
 #include "ocache.h"

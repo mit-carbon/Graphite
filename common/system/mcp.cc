@@ -1,5 +1,9 @@
 #include "mcp.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()
+#define LOG_DEFAULT_MODULE MCP
+
 #include <sched.h>
 #include <iostream>
 using namespace std;
@@ -45,7 +49,7 @@ void MCP::run()
          syscall_server.handleSyscall(recv_pkt.sender);
          break;
       case MCP_MESSAGE_QUIT:
-         cerr << "MCP::run : Quit message received.\n";
+         LOG_PRINT("Quit message received.");
          _finished = true;
          break;
       case MCP_MESSAGE_MUTEX_INIT:
@@ -79,7 +83,8 @@ void MCP::run()
          network_model_analytical_server.update(recv_pkt.sender);
          break;
       default:
-         cerr << "Unhandled MCP message type: " << msg_type << " from: " << recv_pkt.sender << endl;
+         LOG_NOTIFY_ERROR();
+         LOG_PRINT("Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
          assert(false);
    }
 
@@ -88,7 +93,7 @@ void MCP::run()
 
 void MCP::finish()
 {
-   cerr << "MCP::finish : Send MCP quit message\n";
+   LOG_PRINT("Send MCP quit message");
 
    int msg_type = MCP_MESSAGE_QUIT;
    _network.netSend(g_config->MCPCommID(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
@@ -98,7 +103,7 @@ void MCP::finish()
       sched_yield();
    }
 
-   cerr << "MCP::finish : End" << endl;
+   LOG_PRINT("End");
 }
 
 void MCP::broadcastPacket(NetPacket pkt)

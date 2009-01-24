@@ -1,8 +1,7 @@
 #include "memory_manager.h"
-#define MMU_DEBUG
-//#define MMU_CACHEHIT_DEBUG
-//#define ADDR_HOME_LOOKUP_DEBUG
-
+#include "log.h"
+#define LOG_DEFAULT_RANK   (the_core->getRank())
+#define LOG_DEFAULT_MODULE MMU
 
 extern LEVEL_BASE::KNOB<BOOL> g_knob_simarch_has_shared_mem;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
@@ -65,9 +64,7 @@ MemoryManager::MemoryManager(Core *the_core_arg, OCache *ocache_arg)
 
    //TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
    addr_home_lookup = new AddressHomeLookup(the_core->getNumCores(), g_knob_ahl_param.Value(), the_core->getRank());
-#ifdef ADDR_HOME_LOOKUP_DEBUG
-   cerr << "Creating New Addr Home Lookup Structure: " << the_core->getNumCores() << ", " << g_knob_ahl_param.Value() << ", " << the_core->getRank() << "\n";
-#endif
+   LOG_PRINT("Creating New Addr Home Lookup Structure: %i, %i, %i", the_core->getNumCores(), g_knob_ahl_param.Value(), the_core->getRank());
 
    Network *net = the_core->getNetwork();
    net->registerCallback(SHARED_MEM_REQ, MemoryManagerNetworkCallback, this);
@@ -90,23 +87,20 @@ MemoryManager::~MemoryManager()
 
 void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 {
-   stringstream ss;
-   ss << " RequestPayload - RequestType(" << sMemReqTypeToString(payload.request_type)
-      << ") ADDR( " << hex << payload.request_address << ")"; 
-   debugPrint(the_core->getRank(), "MMU", ss.str());
+   LOG_PRINT("RequestPayload - RequestType (%s) ADDR (%x)", sMemReqTypeToString(payload.request_type).c_str(), payload.request_address);
 }
 
 void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, IntPtr address, UInt32 size_bytes)
 {
    //TODO BUG this code doesn't work b/c it gets deallocated before the network copies it
-   debugPrint(-1,"MMU",  "Starting adding Request Payload;"); 
+   LOG_PRINT_EXPLICIT(-1, MMU, "Starting adding Request Payload;"); 
    MemoryManager::RequestPayload payload;
    payload.request_type = shmem_req_type;
    payload.request_address = address;  
    payload.request_num_bytes = size_bytes;
 
    packet->data = (char *)(&payload);
-   debugPrint(-1,"MMU",  "Finished adding Request Payload;"); 
+   LOG_PRINT_EXPLICIT(-1, MMU, "Finished adding Request Payload;"); 
 }
 
 void addAckPayload(NetPacket* packet, IntPtr address, CacheState::cstate_t new_cstate)
@@ -161,8 +155,10 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
          ret = cache_state.writable();
          break;
       default:
-         debugPrint(-1,"MMU",  "ERROR in Actionreadily permissiable");
-         throw("action_readily_permissable: unsupported memory transaction type.");
+         LOG_NOTIFY_ERROR ();
+         LOG_PRINT_EXPLICIT(-1, MMU, "ERROR in Actionreadily permissiable");
+         assert(false);
+         exit(-1);
          break;
    }
 
@@ -271,7 +267,7 @@ void MemoryManager::fillCacheLineData(IntPtr ca_address, char* fill_buffer)
 
 void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 {
-// debugPrint(the_core->getRank(), "MMU", "Forwarding WriteBack to DRAM");
+// LOG_PRINT("Forwarding WriteBack to DRAM");
    dram_dir->processWriteBack(wb_packet);
 }
 
@@ -317,18 +313,13 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_addr
 //TODO what is "return bool" used for?  cache hits? or immediately permissable?
 bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, char* data_buffer, UInt32 buffer_size)
 {
-#ifdef MMU_DEBUG  
-   stringstream ss;
-   ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - start : REQUESTING ADDR: " << hex << ca_address;
-   debugPrint(the_core->getRank(), "MMU", ss.str());
-#endif
-   
    assert(buffer_size > 0);
    
    CacheBase::AccessType access_type = (shmem_req_type == READ) 
                                           ? CacheBase::k_ACCESS_TYPE_LOAD 
                                           : CacheBase::k_ACCESS_TYPE_STORE;
-
+   LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? " READ " : " WRITE "), ca_address);
+   
    mmu_cond.acquire();
 
    while(1) 
@@ -349,10 +340,8 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
          assert( native_cache_hit == true );
       
          accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size); 
-#ifdef MMU_DEBUG  
-         ss << ((shmem_req_type==READ) ? " READ " : " WRITE " ) << " - FINISHED(cache_hit) : REQUESTING ADDR: " << hex << ca_address;
-         debugPrint(the_core->getRank(), "MMU", ss.str());
-#endif
+         
+         LOG_PRINT ("%s - FINISHED(cache_hit) : REQUESTING ADDR: 0x%x", (shmem_req_type==READ) ? " READ " : " WRITE ",ca_address);
 
          mmu_cond.release();
       
@@ -394,12 +383,7 @@ void MemoryManager::processSharedMemResponse(NetPacket rep_packet) {
    mmu_cond.release();
    mmu_cond.signal();
 
-#ifdef MMU_DEBUG  
-   stringstream ss;
-   ss << "FINISHED(cache_miss) : REQUESTING ADDR: 0x" << hex << address << dec;
-   debugPrint(the_core->getRank(), "MMU", ss.str());
-#endif
-   
+   LOG_PRINT("FINISHED(cache_miss) : REQUESTING ADDR: %x", address);
 }
 
 //only the first request called drops into the while loop
@@ -439,11 +423,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    CacheState::cstate_t new_cstate = update_payload.update_new_cstate;
    IntPtr address = update_payload.update_address;
   
-#ifdef MMU_DEBUG
-   stringstream ss;
-   ss << "Processing Unexpected: address: 0x" << hex << (UInt32) address << dec << ", new CState: " << CacheState::cStateToString(new_cstate);
-   debugPrint(the_core->getRank(), "MMU", ss.str());
-#endif
+   LOG_PRINT("Processing Unexpected: address: %x, new CState: %s", address, CacheState::cStateToString(new_cstate).c_str());
 
    mmu_cond.acquire();
 
@@ -507,7 +487,9 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
          break;
       
       default:
-         debugPrint(the_core->getRank(), "MMU", "ERROR in MMU switch statement.");
+         LOG_NOTIFY_ERROR();
+         LOG_PRINT("ERROR in MMU switch statement.");
+         assert(false);
          break;
    }
 
@@ -518,10 +500,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    
    (the_core->getNetwork())->netSend(packet);
   
-#ifdef MMU_DEBUG  
-   debugPrint(the_core->getRank(), "MMU", "end of processUnexpectedSharedMemUpdate");
-#endif   
-
+   LOG_PRINT("end of processUnexpectedSharedMemUpdate");
 }
 
 string MemoryManager::sMemReqTypeToString(shmem_req_t type)

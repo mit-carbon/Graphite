@@ -8,6 +8,10 @@
 #include "sync_client.h"
 #include "shared_mem.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK -1
+#define LOG_DEFAULT_MODULE CHIP
+
 // definitions
 using namespace std;
 
@@ -135,70 +139,6 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
    */ 
    return g_chip->core[rank].coreRecvW(sender, receiver, buffer, size);
 }
- //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
- //FIXME BUG doesn't correctly finish b/c we have a new process (sys server?), AND we can't erase guys from core_map -CPC
-CAPI_return_t chipFinish(int my_rank)
-{
-	GetLock(&print_lock, 1);
-	cerr << "[" << my_rank << "] FINISHED\n";
-	debugPrint (my_rank, "CHIP", "HACK---- please remove chipHackFinish...... ");
-	debugPrint (my_rank, "CHIP", "FINISHED");
-
-	assert( my_rank < g_chip->getNumModules() );
-	/* Added by George */
-	// cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
-//	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
-
-	//check in to chip, tell them we're finished
-	g_chip->finished_cores[my_rank] = true;
-	bool volatile finished = false;
-	
-	
-//	cerr << "FinshedCores look like this: " << endl;
-//	for(int i=0; i < g_chip->getNumModules(); i++) {
-//		cerr << "  finished_cores[" << i << "] : " << (g_chip->finished_cores[i] ? "TRUE":"FALSE") << endl;
-//	}
-	
-
-	ReleaseLock(&print_lock);
-
-	//IMPORTANT: clear my id from the core_map so we are not instrumented anymore
-	//if we forget this we deadline while servicing the exit before pthread_join
-//   THREADID pin_tid = PIN_ThreadId();
-//	map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
-//   int rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
-//	pair<bool, UINT64> e  = g_chip->core_map.find(pin_tid);
-//   assert( e.first == true );
-//	g_chip->core_map.erase(e);
-
-	while(!finished) {
-           // FIXME: This is apparently never reached!?
-           // netCheckMessages was implemented as assert(false)
-           //		g_chip->core[my_rank].getNetwork()->netCheckMessages();
-		
-		bool cores_still_working = false;
-		for(int i=0; i < g_chip->getNumModules(); i++) {
-			if(!g_chip->finished_cores[i])
-				cores_still_working = true;
-		}
-
-		if(!cores_still_working)
-			finished = true;
-	}
-	GetLock(&print_lock,1);
-	cerr << " [" << my_rank << "] ENDING PROGRAM...." << endl;
-	ReleaseLock(&print_lock);
-   return 0;
-}
-
-
-CAPI_return_t chipPrint(string s) 
-{
-	cerr << s;
-	return 0;
-}
-
-
 
 // performance model wrappers
 
@@ -426,8 +366,6 @@ void SimBarrierWait(carbon_barrier_t *barrier)
 Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid_to_core_map(3*num_mods), prev_rank(0) 
 //Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0)
 {
-   debugInit(num_mods);
-
 	InitLock (&maps_lock);
 	
    tid_map = new THREADID [num_mods];
@@ -452,7 +390,7 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid
 		finished_cores[i] = false;
 	}
 
-	cerr << "Finished Chip Constructor." << endl;
+	LOG_PRINT("Finished Chip Constructor.");
 }
 
 void Chip::fini(int code, void *v)
@@ -461,14 +399,11 @@ void Chip::fini(int code, void *v)
 
    for(int i = 0; i < num_modules; i++)
    {
-      cout << "*** Core[" << i << "] summary ***" << endl;
       out << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
-      cout << endl;
       out << endl;
    }
 
-	debugFinish(); //close debug logs
    out.close();
 }
 

@@ -35,8 +35,10 @@
 #include "mcp_runner.h"
 #include "net_thread_runner.h"
 // FIXME: Hack: Please remove me later
-#include "debug.h"
 #include "shared_mem.h"
+#include "log.h"
+#define LOG_DEFAULT_RANK    rank
+#define LOG_DEFAULT_MODULE  PINSIM
 
 // #define INSTRUMENT_ALLOWED_FUNCTIONS
 
@@ -45,7 +47,7 @@
 Chip *g_chip = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
-PIN_LOCK print_lock;
+Log *g_log = NULL;
 
 //TODO only here for debugging ins in runModel
 
@@ -185,7 +187,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
 		// InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
 		// stringstream ss;
 		// ss << "OPCODE$ = " << LEVEL_CORE::OPCODE_StringShort(ins_info->opcode) << " (" << ins_info->opcode << ") ";
-		// debugPrint (rank, "PINSIM", ss.str());
+		// LOG_PRINT(ss.str());
 		
         // cerr << " ----------------------------------" << endl;
         // cerr << "  [" << rank << "] executing runModels " << endl;
@@ -256,15 +258,11 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                  assert (dcache_ld_size == sizeof(UINT32));
                  char data_ld_buffer[dcache_ld_size];
 
-                 stringstream ss;
-                 ss << "Doing read modelling for address: 0x" << hex << dcache_ld_addr;
-                 debugPrint (rank, "PINSIM", ss.str());
-                 ss.str("");
+                 LOG_PRINT("Doing read modelling for address: %x", dcache_ld_addr);
 
                  dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 
-                 ss << "Contents of data_ld_buffer: 0x" << hex << (UINT32) data_ld_buffer[0] << (UINT32) data_ld_buffer[1] << (UINT32) data_ld_buffer[2] << (UINT32) data_ld_buffer[3] << dec;
-                 debugPrint (rank, "PINSIM", ss.str());
+                 LOG_PRINT("Contents of data_ld_buffer: %x %x %x %x", (UINT32) data_ld_buffer[0], (UINT32) data_ld_buffer[1], (UINT32) data_ld_buffer[2], (UINT32) data_ld_buffer[3]);
 
                  assert (is_dual_read == false);
               }
@@ -332,13 +330,9 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
 				
                  memset (data_st_buffer, 'z', sizeof(UINT32));
 
-                 stringstream ss;
-                 ss << "Doing write modelling for address: 0x" << hex << dcache_st_addr << dec;
-                 debugPrint (rank, "PINSIM", ss.str());
+                 LOG_PRINT("Doing write modelling for address: %x", dcache_st_addr);
 				
-                 ss.str("");
-                 ss << "Contents of data_st_buffer: 0x" << hex << (UINT32) data_st_buffer[0] << (UINT32) data_st_buffer[1] << (UINT32) data_st_buffer[2] << (UINT32) data_st_buffer[3] << dec;
-                 debugPrint (rank, "PINSIM", ss.str());
+                 LOG_PRINT("Contents of data_st_buffer: %x %x %x %x", (UINT32) data_st_buffer[0], (UINT32) data_st_buffer[1], (UINT32) data_st_buffer[2], (UINT32) data_st_buffer[3]);
 
                  dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
 
@@ -663,12 +657,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(chipInitFreeRank);
    }
-   else if(name == "CAPI_Finish"){
-      msg_ptr = AFUNPTR(chipFinish);
-   }
-   else if(name == "CAPI_Print"){
-      msg_ptr = AFUNPTR(chipPrint);
-   }
    else if(name == "CAPI_rank")
    {
       msg_ptr = AFUNPTR(commRank);
@@ -805,7 +793,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    } 
-   else if ( (msg_ptr == AFUNPTR(chipInit)) || (msg_ptr == AFUNPTR(chipFinish)) )
+   else if ( (msg_ptr == AFUNPTR(chipInit)) )
    {
       proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
                              CALLINGSTD_DEFAULT,
@@ -820,7 +808,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
-	else if ( (msg_ptr == AFUNPTR(chipDebugSetMemState)) || (msg_ptr == AFUNPTR(chipDebugAssertMemState)) || (msg_ptr == AFUNPTR(chipPrint)) 
+	else if ( (msg_ptr == AFUNPTR(chipDebugSetMemState)) || (msg_ptr == AFUNPTR(chipDebugAssertMemState))
 			    || (msg_ptr == AFUNPTR(chipAlias)) )
 	{
 		RTN_Replace (rtn, msg_ptr);
@@ -918,13 +906,14 @@ void fini(int code, void * v)
 
    Transport::ptFinish();
    g_chip->fini(code, v);
+
+   delete g_log;
 }
 
 /* ===================================================================== */
 
 void init_globals()
 {
-  
    if( g_knob_simarch_has_shared_mem ) {
 
       if( !g_knob_enable_dcache_modeling ) {
@@ -953,8 +942,7 @@ void init_globals()
    // Note the MCP has a dependency on the transport layer and the chip.
    // Only create an MCP on the correct process.
    if (g_config->myProcNum() == g_config->MCPProcNum()) {
-      cout << "Creating new MCP object in process " << g_config->myProcNum()
-          << endl;
+      LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->myProcNum());
       g_MCP = new MCP(*(g_chip->getCore(num_cores-1)->getNetwork()));
    }
 }

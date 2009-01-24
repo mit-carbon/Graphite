@@ -5,6 +5,10 @@
 
 #include "network.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK   (_transport->ptCommID())
+#define LOG_DEFAULT_MODULE NETWORK
+
 // -- NetQueue -- //
 //
 // A priority queue for network packets.
@@ -54,6 +58,8 @@ Network::Network(Core *core)
 
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
       _models[i] = NetworkModel::createModel(this, modelTypes[i]);
+
+   LOG_PRINT("Initialized.");
 }
 
 // -- Dtor -- //
@@ -71,6 +77,8 @@ Network::~Network()
    delete [] _netQueue;
 
    delete _transport;
+
+   LOG_PRINT("Destroyed.");
 }
 
 // -- callbacks -- //
@@ -118,6 +126,8 @@ void Network::netPullFromTransport()
          netExPacket(buffer, entry.packet, entry.time);
       }
 
+      LOG_PRINT("Pull packet - type %i, from %i, time %llu", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
+
       assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
       assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
 
@@ -137,6 +147,7 @@ void Network::netPullFromTransport()
 
       if (callback != NULL)
          {
+            LOG_PRINT("Callback.");
             assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
             assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
 
@@ -150,6 +161,7 @@ void Network::netPullFromTransport()
       // synchronous I/O support
       else
          {
+            LOG_PRINT("Net queue.");
             _netQueueCond.acquire();
             _netQueue[entry.packet.sender][entry.packet.type].push(entry);
             _netQueueCond.release();
@@ -208,11 +220,14 @@ SInt32 Network::netSend(NetPacket packet)
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
       {
+         LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
          *timeStamp = hopVec[i].time;
          _transport->ptSend(hopVec[i].dest, (char*)buffer, bufSize);
       }
 
    delete [] (UInt8*)buffer;
+
+   LOG_PRINT("Sent packet");
 
    return packet.length;
 }
@@ -221,6 +236,8 @@ SInt32 Network::netSend(NetPacket packet)
 
 NetPacket Network::netRecv(const NetMatch &match)
 {
+   LOG_PRINT("Entering netRecv.");
+
    NetQueueEntry entry;
    Boolean loop;
 
@@ -367,6 +384,8 @@ NetPacket Network::netRecv(const NetMatch &match)
 
    // Atomically update the time is the packet time is newer
    _core->getPerfModel()->updateCycleCount(entry.time);
+
+   LOG_PRINT("Exiting netRecv : type %i, from %i", (SInt32)entry.packet.type, entry.packet.sender);
 
    return entry.packet;
 }

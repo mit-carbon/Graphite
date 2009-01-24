@@ -395,16 +395,22 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid
 
 void Chip::fini(int code, void *v)
 {
+   LOG_PRINT("Starting Chip::fini");
+
    ofstream out( g_knob_output_file.Value().c_str() );
 
    for(int i = 0; i < num_modules; i++)
    {
+      LOG_PRINT("Output summary core %i", i);
+
       out << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
       out << endl;
    }
 
    out.close();
+
+   LOG_PRINT("Finish chip::fini");
 }
 
 int Chip::registerSharedMemThread()

@@ -14,18 +14,11 @@
 #include "ocache.h"
 #include "address_home_lookup.h"
 #include "cache_state.h"
+#include "cond.h"
 
 // some forward declarations for cross includes
 class Core;
-class DramDirectory; //i hate compiling c++ code
-
-/*
-// TODO: this is a hack that is due to the fact that network.h 
-// is already included by the time this is handled, so NetPacket is 
-// never getting defined. Fine some more elegant way to solve this.
-typedef struct NetPacket NetPacket;
-typedef struct NetMatch NetMatch;
-*/
+class DramDirectory; 
 
 class NetPacket;
 class NetMatch;
@@ -41,7 +34,6 @@ enum shmem_req_t {
 #include "dram_directory.h"
 #include "dram_directory_entry.h"
 #include "network.h"
-#include "lock.h"
 
 class MemoryManager
 {
@@ -51,20 +43,13 @@ class MemoryManager
 	struct AckPayload;
 	struct UpdatePayload;
 	
-        Lock *mmu_lock;
+   ConditionVariable mmu_cond;
  
   private:
 	Core *the_core;
    OCache *ocache;
    DramDirectory *dram_dir;
    AddressHomeLookup *addr_home_lookup;
-
-	//This is here to serialize the requests
-	// do not process a new request until finished with current request
-	// do not exit MMU until no more incoming requests
-   UInt64 volatile debug_counter; //a primitive clock for debugging
-   // Why volatile ??
-	bool volatile pending_request;
 
 	void debugPrintReqPayload(MemoryManager::RequestPayload payload);
  

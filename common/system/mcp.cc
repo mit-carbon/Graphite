@@ -43,6 +43,8 @@ void MCP::run()
 
    recv_buff >> msg_type;
 
+   LOG_PRINT("MCP message type : %i", (SInt32)msg_type);
+
    switch(msg_type)
    {
       case MCP_MESSAGE_SYS_CALL:

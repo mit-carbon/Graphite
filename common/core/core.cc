@@ -124,12 +124,8 @@ int Core::coreSendW(int sender, int receiver, char *buffer, int size)
 int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 {
    NetPacket packet;
-   NetMatch match;
 
-   match.senders.push_back(sender);
-   match.types.push_back(USER);
-
-   packet = network->netRecv(match);
+   packet = network->netRecv(sender, USER);
 
    LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
 

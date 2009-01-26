@@ -59,7 +59,7 @@ Network::Network(Core *core)
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
       _models[i] = NetworkModel::createModel(this, modelTypes[i]);
 
-   LOG_PRINT("Initialized %x.", _transport);
+   LOG_PRINT("Initialized.");
 }
 
 // -- Dtor -- //
@@ -75,9 +75,8 @@ Network::~Network()
    for (SInt32 i = 0; i < _numMod; i++)
       delete [] _netQueue[i];
    delete [] _netQueue;
-   
-   // FIXME: We *SHOULD* be deleting the transport, but for some
-   // reason this causes the simulator to bork itself!?
+
+   delete _transport;
 
    LOG_PRINT("Destroyed.");
 }

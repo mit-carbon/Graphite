@@ -1,5 +1,3 @@
-#include <queue>
-
 #include "transport.h"
 #include "core.h"
 
@@ -8,30 +6,6 @@
 #include "log.h"
 #define LOG_DEFAULT_RANK   (_transport->ptCommID())
 #define LOG_DEFAULT_MODULE NETWORK
-
-// -- NetQueue -- //
-//
-// A priority queue for network packets.
-
-struct NetQueueEntry
-{
-   NetPacket packet;
-   UInt64 time;
-};
-                
-class Earlier
-{
-public:
-   bool operator() (const NetQueueEntry& first,
-                    const NetQueueEntry& second) const
-   {
-      return first.time > second.time;
-   }
-};
-
-class NetQueue : public priority_queue <NetQueueEntry, vector<NetQueueEntry>, Earlier>
-{
-};
 
 // -- Ctor -- //
 
@@ -44,10 +18,6 @@ Network::Network(Core *core)
    _transport = new Transport();
    _transport->ptInit(_core->getId(), _numMod);
 
-   _netQueue = new NetQueue* [_numMod];
-   for (SInt32 i = 0; i < _numMod; i++)
-      _netQueue[i] = new NetQueue [NUM_PACKET_TYPES];
-   
    _callbacks = new NetworkCallback [NUM_PACKET_TYPES];
    _callbackObjs = new void* [NUM_PACKET_TYPES];
    for (SInt32 i = 0; i < NUM_PACKET_TYPES; i++)
@@ -71,10 +41,6 @@ Network::~Network()
 
    delete [] _callbackObjs;
    delete [] _callbacks;
-
-   for (SInt32 i = 0; i < _numMod; i++)
-      delete [] _netQueue[i];
-   delete [] _netQueue;
 
    delete _transport;
 
@@ -116,8 +82,6 @@ void Network::outputSummary(std::ostream &out) const
 
 void Network::netPullFromTransport()
 {
-   bool packetsEnqueued = false;
-
    do
    {
       NetQueueEntry entry;
@@ -162,16 +126,14 @@ void Network::netPullFromTransport()
          {
             LOG_PRINT("Enqueuing packet : type %i, from %i, time %llu.", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
             _netQueueCond.acquire();
-            _netQueue[entry.packet.sender][entry.packet.type].push(entry);
+            _netQueue.push_back(entry);
+            LOG_ASSERT_WARNING(_netQueue.size() < 500,
+                               "WARNING: Net queue size is %u", _netQueue.size());
             _netQueueCond.release();
-            packetsEnqueued = true;
+            _netQueueCond.broadcast();
          }
    }
    while (_transport->ptQuery());
-
-   // wake up waiting threads
-   if (packetsEnqueued)
-      _netQueueCond.broadcast();
 }
 
 // -- forwardPacket -- //
@@ -237,155 +199,157 @@ SInt32 Network::netSend(NetPacket packet)
 
 // -- netRecv -- //
 
+// Stupid helper class to eliminate special cases for empty
+// sender/type vectors in a NetMatch
+class NetRecvIterator
+{
+public:
+   NetRecvIterator(UInt32 i)
+      : _mode(INT)
+      , _max(i)
+      , _i(0)
+   {
+   }
+   NetRecvIterator(const std::vector<SInt32> &v)
+      : _mode(SENDER_VECTOR)
+      , _senders(&v)
+      , _i(0)
+   {
+   }
+   NetRecvIterator(const std::vector<PacketType> &v)
+      : _mode(TYPE_VECTOR)
+      , _types(&v)
+      , _i(0)
+   {
+   }
+
+   inline UInt32 get()
+   {
+      switch (_mode)
+      {
+      case INT:
+         return _i;
+      case SENDER_VECTOR:
+         return (UInt32)_senders->at(_i);
+      case TYPE_VECTOR:
+         return (UInt32)_types->at(_i);
+      default:
+         assert(false);
+         return (UInt32)-1;
+      };
+   }
+
+   inline Boolean done()
+   {
+      switch (_mode)
+      {
+      case INT:
+         return _i >= _max;
+      case SENDER_VECTOR:
+         return _i >= _senders->size();
+      case TYPE_VECTOR:
+         return _i >= _types->size();
+      default:
+         assert(false);
+         return true;
+      };
+   }
+
+   inline void next()
+   {
+      ++_i;
+   }
+
+   inline void reset()
+   {
+      _i = 0;
+   }
+
+private:
+   enum
+   {
+      INT, SENDER_VECTOR, TYPE_VECTOR
+   } _mode;
+
+   union
+   {
+      UInt32 _max;
+      const std::vector<SInt32> *_senders;
+      const std::vector<PacketType> *_types;
+   };
+
+   UInt32 _i;
+};
+
 NetPacket Network::netRecv(const NetMatch &match)
 {
    LOG_PRINT("Entering netRecv.");
 
-   NetQueueEntry entry;
-   Boolean loop;
+   // Track via iterator to minimize copying
+   NetQueue::iterator entryItr;
+   Boolean found;
 
-   loop = true;
-   entry.time = (UInt64)-1;
+   found = false;
+
+   NetRecvIterator sender = match.senders.empty() 
+      ? NetRecvIterator(_numMod) 
+      : NetRecvIterator(match.senders);
+
+   NetRecvIterator type = match.types.empty()
+      ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
+      : NetRecvIterator(match.types);
 
    _netQueueCond.acquire();
 
-   // anything goes...
-   if (match.senders.empty() && match.types.empty())
+   while (!found)
    {
-      while (loop)
-      {
-         entry.time = 0;
+      entryItr = _netQueue.end();
 
-         for (SInt32 i = 0; i < _numMod; i++)
+      // check every entry in the queue
+      for (NetQueue::iterator i = _netQueue.begin();
+           i != _netQueue.end();
+           i++)
+      {
+         // only find packets that match
+         for (sender.reset(); !sender.done(); sender.next())
          {
-            for (UInt32 j = 0; j < NUM_PACKET_TYPES; j++)
+            if (i->packet.sender != (SInt32)sender.get())
+               continue;
+
+            for (type.reset(); !type.done(); type.next())
             {
-               if (!(_netQueue[i][j].empty()))
+               if (i->packet.type != (PacketType)type.get())
+                  continue;
+
+               found = true;
+
+               // find the earliest packet
+               if (entryItr == _netQueue.end() ||
+                   entryItr->time > i->time)
                {
-                  loop = false;
-                  if ((entry.time == 0) || (entry.time > _netQueue[i][j].top().time))
-                  {
-                     entry = _netQueue[i][j].top();
-                  }
+                  entryItr = i;
                }
             }
          }
-
-         // No match found
-         if (loop)
-         {
-            _netQueueCond.wait();
-         }
       }
-   }
 
-   // look for any sender, multiple packet types
-   else if (match.senders.empty())
-   {
-      while (loop)
+      // go to sleep until a packet arrives if none have been found
+      if (!found)
       {
-         entry.time = 0;
-
-         for (SInt32 i = 0; i < _numMod; i++)
-         {
-            for (UInt32 j = 0; j < match.types.size(); j++)
-            {
-               PacketType type = match.types[j];
-
-               if (!(_netQueue[i][type].empty()))
-               {
-                  loop = false;
-                  if ((entry.time == 0) || (entry.time > _netQueue[i][type].top().time))
-                  {
-                     entry = _netQueue[i][type].top();
-                  }
-               }
-            }
-         }
-
-         // No match found
-         if (loop)
-         {
-            _netQueueCond.wait();
-         }
+         _netQueueCond.wait();
       }
    }
 
-   // look for any packet type from several senders
-   else if (match.types.empty())
-   {
-      while (loop)
-      {
-         entry.time = 0;
+   assert(found == true && entryItr != _netQueue.end());
+   assert(0 <= entryItr->packet.sender && entryItr->packet.sender < _numMod);
+   assert(0 <= entryItr->packet.type && entryItr->packet.type < NUM_PACKET_TYPES);
+   assert(entryItr->packet.receiver == _transport->ptCommID());
 
-         for (UInt32 i = 0; i < match.senders.size(); i++)
-         {
-            SInt32 sender = match.senders[i];
-
-            for (SInt32 j = 0; j < NUM_PACKET_TYPES; j++)
-            {
-               if (!(_netQueue[sender][j].empty()))
-               {
-                  loop = false;
-                  if ((entry.time == 0) || (entry.time > _netQueue[sender][j].top().time))
-                  {
-                     entry = _netQueue[sender][j].top();
-                  }
-               }
-            }
-         }
-
-         // No match found
-         if (loop)
-         {
-            _netQueueCond.wait();
-         }
-      }
-   }
-
-   // look for several senders with several packet types
-   else
-   {
-      while (loop)
-      {
-         entry.time = 0;
-
-         for (UInt32 i = 0; i < match.senders.size(); i++)
-         {
-            SInt32 sender = match.senders[i];
-
-            for (UInt32 j = 0; j < match.types.size(); j++)
-            {
-               PacketType type = match.types[j];
-
-               if (!(_netQueue[sender][type].empty()))
-               {
-                  loop = false;
-                  if ((entry.time == 0) || (entry.time > _netQueue[sender][type].top().time))
-                  {
-                     entry = _netQueue[sender][type].top();
-                  }
-               }
-            }
-         }
-
-         // No match found
-         if (loop)
-         {
-            _netQueueCond.wait();
-         }
-      }
-   }
-
-   assert(loop == false && entry.time != (UInt64)-1);
-   assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
-   assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
-   assert(entry.packet.receiver == _transport->ptCommID());
-
-   _netQueue[entry.packet.sender][entry.packet.type].pop();
+   // Copy result
+   NetQueueEntry entry = *entryItr;
+   _netQueue.erase(entryItr);
    _netQueueCond.release();
 
-   // Atomically update the time is the packet time is newer
    _core->getPerfModel()->updateCycleCount(entry.time);
 
    LOG_PRINT("Exiting netRecv : type %i, from %i", (SInt32)entry.packet.type, entry.packet.sender);

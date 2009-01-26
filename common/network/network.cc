@@ -117,18 +117,18 @@ void Network::outputSummary(std::ostream &out) const
 
 void Network::netPullFromTransport()
 {
-   NetQueueEntry entry;
-   
-   // Pull up packets waiting in the physical transport layer
-   do {
+   bool packetsEnqueued = false;
+
+   do
+   {
+      NetQueueEntry entry;
       {
          void *buffer;
          buffer = _transport->ptRecv();
          netExPacket(buffer, entry.packet, entry.time);
       }
-
-      LOG_PRINT("Pull packet - type %i, from %i, time %llu", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
-
+      
+      LOG_PRINT("Pull packet : type %i, from %i, time %llu", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
       assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
 
@@ -143,12 +143,11 @@ void Network::netPullFromTransport()
          }
 
       // asynchronous I/O support
-      assert((UInt32)entry.packet.type < NUM_PACKET_TYPES);
       NetworkCallback callback = _callbacks[entry.packet.type];
 
       if (callback != NULL)
          {
-            LOG_PRINT("Callback.");
+            LOG_PRINT("Executing callback on packet : type %i, from %i, time %llu.", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
             assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
             assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
 
@@ -162,14 +161,18 @@ void Network::netPullFromTransport()
       // synchronous I/O support
       else
          {
-            LOG_PRINT("Net queue.");
+            LOG_PRINT("Enqueuing packet : type %i, from %i, time %llu.", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
             _netQueueCond.acquire();
             _netQueue[entry.packet.sender][entry.packet.type].push(entry);
             _netQueueCond.release();
-            _netQueueCond.broadcast();
+            packetsEnqueued = true;
          }
    }
-   while(_transport->ptQuery());
+   while (_transport->ptQuery());
+
+   // wake up waiting threads
+   if (packetsEnqueued)
+      _netQueueCond.broadcast();
 }
 
 // -- forwardPacket -- //

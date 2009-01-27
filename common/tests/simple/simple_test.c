@@ -8,14 +8,14 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include "user_api.h"
+
+#include "capi.h"
+
 
 // Functions executed by threads
 void* thread_func(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
-
-   carbonInit();
 
    // Read in the command line arguments
    const unsigned int numThreads = 1;
@@ -45,10 +45,8 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    printf("UserApplication: About to call carbon finish!\n");
-   carbonFinish();
 
    pthread_exit(NULL);
-
 } // main ends
 
 

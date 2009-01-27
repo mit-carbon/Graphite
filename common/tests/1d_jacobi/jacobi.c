@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "capi.h"
-#include "user_api.h"
+#include "sync_api.h"
 
 
 #define DEBUG 1
@@ -46,8 +46,6 @@ int main (int argc, char *argv[]) {
 		fprintf(stderr, "[Usage]: ./jacobi <Number of Cores> <Size of Array>\n");
 		exit(-1);
 	}
-
-	carbonInit();
 
 	g_num_cores = atoi(argv[1]);
 	g_size = atoi (argv[2]);
@@ -91,8 +89,6 @@ int main (int argc, char *argv[]) {
 	for (Int32 i = 0; i < g_num_cores; i++) {
 		pthread_join (threads[i], NULL);
 	}
-
-	carbonFinish();
 
 	return (0);
 }

@@ -7,7 +7,7 @@
 #define BIT_VECTOR_H
 
 
-#include "pin.H"
+#include "fixed_types.h"
 #include <assert.h>
 #include <vector>
 
@@ -16,10 +16,10 @@
 
 class BitVector {
    private:
-      UINT32 size;
-      const UINT32 VECTOR_SIZE;
-      vector<UINT64> words;
-      INT32 last_pos; //used in find function, for iterating through the set bits
+      UInt32 size;
+      const UInt32 VECTOR_SIZE;
+      std::vector<UInt64> words;
+      SInt32 last_pos; //used in find function, for iterating through the set bits
 							  //marks the position of the last set bit found.
 							  //value of -1 means no last_pos bit 
 
@@ -29,8 +29,8 @@ class BitVector {
       void debug();
       #endif
 
-//      BitVector(UINT32 bits): size(bits), VECTOR_SIZE((bits+64-1)>>6), words(VECTOR_SIZE) { }
-		BitVector(UINT32 bits): size(bits), VECTOR_SIZE((bits+64-1)>>6), words( (bits + 64 - 1) >> 6 ), last_pos(-1) {} 
+//      BitVector(UInt32 bits): size(bits), VECTOR_SIZE((bits+64-1)>>6), words(VECTOR_SIZE) { }
+		BitVector(UInt32 bits): size(bits), VECTOR_SIZE((bits+64-1)>>6), words( (bits + 64 - 1) >> 6 ), last_pos(-1) {} 
 
 		//starting from position 'last_pos', find the next "1" bit. 
 		//private variable 'last_pos' remembers the last position found,
@@ -38,23 +38,23 @@ class BitVector {
 		//through the entire BitVector
 		//returns -1 if no bits set (after last_pos)
 		
-		INT32 find();
+		SInt32 find();
 	
 		bool resetFind();
       
 		//given an 8bit word, test to see if 'bit' is set
 		//this is a helper function to the "find" function
-		bool bTestBit(UINT8 word, UINT32 bit);
+		bool bTestBit(UInt8 word, UInt32 bit);
 
-		UINT32 getSize() { return size; }
+		UInt32 getSize() { return size; }
 
       void reset();
 
-      bool at(UINT32 bit);
+      bool at(UInt32 bit);
 
-      void set(UINT32 bit);
+      void set(UInt32 bit);
 
-      void clear(UINT32 bit);
+      void clear(UInt32 bit);
 
       void set(const BitVector& vec2);
 

@@ -1,5 +1,10 @@
 #include "dram_directory_entry.h"
 
+#include "pin.H"
+
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
+
 DramDirectoryEntry::DramDirectoryEntry(): 
 																 dstate(UNCACHED), 
 																 exclusive_sharer_rank(0), 
@@ -14,7 +19,7 @@ DramDirectoryEntry::DramDirectoryEntry():
   	stat_avg_sharers = 0; 
 }                                                                          
 
-DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_cores): 
+DramDirectoryEntry::DramDirectoryEntry(UInt32 cache_line_addr, UInt32 number_of_cores): 
 																 dstate(UNCACHED),
 																 exclusive_sharer_rank(0),
 																 number_of_sharers(0),
@@ -34,7 +39,7 @@ DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_
   	stat_avg_sharers = 0; 
 }                                                                         
 
-DramDirectoryEntry::DramDirectoryEntry(UINT32 cache_line_addr, UINT32 number_of_cores, char* data_buffer): 
+DramDirectoryEntry::DramDirectoryEntry(UInt32 cache_line_addr, UInt32 number_of_cores, char* data_buffer): 
 																	dstate(UNCACHED),
 																	exclusive_sharer_rank(0),
 																	number_of_sharers(0),
@@ -73,7 +78,7 @@ void DramDirectoryEntry::fillDramDataLine(char* input_buffer)
 
 }
 
-void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UINT32* line_size)
+void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UInt32* line_size)
 {
 	assert( fill_buffer != NULL );
 	assert( memory_line != NULL );
@@ -91,7 +96,7 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UINT32* line_size)
  * 			  	sharer list. No side effects in this case)
  * 	'false': If there was no eviction (In this case, it adds the sharer to the sharer list)
  */
-bool DramDirectoryEntry::addSharer(UINT32 sharer_rank)
+bool DramDirectoryEntry::addSharer(UInt32 sharer_rank)
 {
 	// TODO: Clean this up at the end !!
 	assert (! sharers->at(sharer_rank));
@@ -104,14 +109,14 @@ bool DramDirectoryEntry::addSharer(UINT32 sharer_rank)
 	return (false);
 }
 
-UINT32 DramDirectoryEntry::getEvictionId() 
+UInt32 DramDirectoryEntry::getEvictionId() 
 {
-	vector<UINT32> sharers_list = getSharersList();
+	vector<UInt32> sharers_list = getSharersList();
 	assert(sharers_list.size() > 0);
 	return sharers_list[0];
 }
 
-void DramDirectoryEntry::removeSharer(UINT32 sharer_rank)
+void DramDirectoryEntry::removeSharer(UInt32 sharer_rank)
 {
 	assert (sharers->at(sharer_rank));
 	assert( number_of_sharers > 0 );
@@ -119,7 +124,7 @@ void DramDirectoryEntry::removeSharer(UINT32 sharer_rank)
 	number_of_sharers--;
 }
 
-void DramDirectoryEntry::addExclusiveSharer(UINT32 sharer_rank)
+void DramDirectoryEntry::addExclusiveSharer(UInt32 sharer_rank)
 {
 	sharers->reset();
 	sharers->set(sharer_rank);
@@ -152,7 +157,7 @@ int DramDirectoryEntry::numSharers()
   return number_of_sharers;
 }
 
-UINT32 DramDirectoryEntry::getExclusiveSharerRank()
+UInt32 DramDirectoryEntry::getExclusiveSharerRank()
 {
 	//FIXME is there a more efficient way of deducing exclusive sharer?
 	//can i independently track exclusive rank and not slow everything else down?
@@ -163,9 +168,9 @@ UINT32 DramDirectoryEntry::getExclusiveSharerRank()
   return exclusive_sharer_rank;
 }
 
-vector<UINT32> DramDirectoryEntry::getSharersList() 
+vector<UInt32> DramDirectoryEntry::getSharersList() 
 {
-	vector<UINT32> sharers_list(number_of_sharers);
+	vector<UInt32> sharers_list(number_of_sharers);
 
 	sharers->resetFind();
 

@@ -3,6 +3,7 @@
 
 enum NetworkType
    {
+      NETWORK_MAGIC,
       NETWORK_BUS,
       NETWORK_ANALYTICAL_MESH,
       NUM_NETWORK_TYPES

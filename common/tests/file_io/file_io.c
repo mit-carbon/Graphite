@@ -10,7 +10,9 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include "user_api.h"
+
+#include "capi.h"
+#include <stdio.h>
 
 #ifdef DEBUG
    pthread_mutex_t lock;
@@ -21,8 +23,6 @@ void* read_and_write(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
 
-   carbonInit();
-	
    // Read in the command line arguments
    const unsigned int numThreads = 2;
 
@@ -50,7 +50,6 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    printf("quitting syscall server!\n");;
-   carbonFinish();
 
 #ifdef DEBUG
    printf("This is the function main ending\n");;

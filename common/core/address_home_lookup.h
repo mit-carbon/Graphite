@@ -2,12 +2,11 @@
 #define ADDRESSHOMELOOKUP_H_
 
 #include "assert.h"
-#include "pin.H"
-#include "debug.h"
 #include <iostream> 
 #include <sstream> 
 #include <vector> 
 #include <math.h>
+#include "fixed_types.h"
 
 using namespace std;
 
@@ -26,19 +25,16 @@ using namespace std;
  * Maybe allow the ability to have public and private memory space?
  */
 
-//bytes per cache_line
-extern LEVEL_BASE::KNOB<UINT32> g_knob_line_size;
-
 class AddressHomeLookup {
 	public:
-		AddressHomeLookup (UINT32 num_nodes, UINT32 log_block_size, INT32 ahl_id);
+		AddressHomeLookup (UInt32 num_nodes, UInt32 log_block_size, SInt32 ahl_id);
 		~AddressHomeLookup(void);
-		UINT32 find_home_for_addr(ADDRINT address) const;
+		UInt32 find_home_for_addr(IntPtr address) const;
 
 	private:
-		UINT32 num_nodes;
-		INT32 ahl_id;
-		UINT32 log_block_size;
+		UInt32 num_nodes;
+		SInt32 ahl_id;
+		UInt32 log_block_size;
 };
 
 

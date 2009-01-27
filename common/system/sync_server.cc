@@ -59,7 +59,7 @@ SimCond::~SimCond()
 }
 
 
-comm_id_t SimCond::wait(comm_id_t commid, UINT64 time, StableIterator<SimMutex> & simMux)
+comm_id_t SimCond::wait(comm_id_t commid, UInt64 time, StableIterator<SimMutex> & simMux)
 {
 
   // First check to see if we have gotten any signals later in 'virtual time'
@@ -80,7 +80,7 @@ comm_id_t SimCond::wait(comm_id_t commid, UINT64 time, StableIterator<SimMutex> 
   return simMux->unlock(commid);
 }
 
-comm_id_t SimCond::signal(comm_id_t commid, UINT64 time)
+comm_id_t SimCond::signal(comm_id_t commid, UInt64 time)
 {
   // If no threads are waiting, store this cond incase a new
   // thread arrives with an earlier time
@@ -117,7 +117,7 @@ comm_id_t SimCond::signal(comm_id_t commid, UINT64 time)
 }
 
 //FIXME: cond broadcast does not properly handle out of order signals
-void SimCond::broadcast(comm_id_t commid, UINT64 time, WakeupList &woken_list)
+void SimCond::broadcast(comm_id_t commid, UInt64 time, WakeupList &woken_list)
 {
   while(!_waiting.empty())
   {
@@ -130,7 +130,7 @@ void SimCond::broadcast(comm_id_t commid, UINT64 time, WakeupList &woken_list)
 }
 
 // -- SimBarrier -- //
-SimBarrier::SimBarrier(UINT32 count) 
+SimBarrier::SimBarrier(UInt32 count) 
    : _count(count)
    , _max_time(0)
 {
@@ -175,7 +175,7 @@ void SyncServer::mutexInit(comm_id_t commid)
   _mutexes.push_back(SimMutex());
   UInt32 mux = (UInt32)_mutexes.size()-1;
 
-  _network.netMCPSend(commid, (char*)&mux, sizeof(mux));
+  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&mux, sizeof(mux));
 }
 
 void SyncServer::mutexLock(comm_id_t commid)
@@ -196,7 +196,7 @@ void SyncServer::mutexLock(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netMCPSend(commid, (char*)&r, sizeof(r));
+      _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
     }
   else
     {
@@ -224,7 +224,7 @@ void SyncServer::mutexUnlock(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netMCPSend(new_owner, (char*)&r, sizeof(r));
+      _network.netSend(new_owner, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
     }
   else
     {
@@ -232,7 +232,7 @@ void SyncServer::mutexUnlock(comm_id_t commid)
     }
 
   UInt32 dummy=SyncClient::MUTEX_UNLOCK_RESPONSE;
-  _network.netMCPSend(commid, (char*)&dummy, sizeof(dummy));
+  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
 // -- Condition Variable Stuffs -- //
@@ -241,7 +241,7 @@ void SyncServer::condInit(comm_id_t commid)
   _conds.push_back(SimCond());
   UInt32 cond = (UInt32)_conds.size()-1;
 
-  _network.netMCPSend(commid, (char*)&cond, sizeof(cond));
+  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&cond, sizeof(cond));
 }
 
 void SyncServer::condWait(comm_id_t commid)
@@ -269,7 +269,7 @@ void SyncServer::condWait(comm_id_t commid)
 
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netMCPSend(new_mutex_owner, (char*)&r, sizeof(r));
+      _network.netSend(new_mutex_owner, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
 }
 
@@ -295,7 +295,7 @@ void SyncServer::condSignal(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netMCPSend(woken, (char*)&r, sizeof(r));
+      _network.netSend(woken, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
   else
   {
@@ -304,7 +304,7 @@ void SyncServer::condSignal(comm_id_t commid)
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_SIGNAL_RESPONSE;
-  _network.netMCPSend(commid, (char*)&dummy, sizeof(dummy));
+  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
 void SyncServer::condBroadcast(comm_id_t commid)
@@ -331,12 +331,12 @@ void SyncServer::condBroadcast(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netMCPSend(*it, (char*)&r, sizeof(r));
+      _network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_BROADCAST_RESPONSE;
-  _network.netMCPSend(commid, (char*)&dummy, sizeof(dummy));
+  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
 void SyncServer::barrierInit(comm_id_t commid)
@@ -347,7 +347,7 @@ void SyncServer::barrierInit(comm_id_t commid)
   _barriers.push_back(SimBarrier(count));
   UInt32 barrier = (UInt32)_barriers.size()-1;
 
-  _network.netMCPSend(commid, (char*)&barrier, sizeof(barrier));
+  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
 }
 
 void SyncServer::barrierWait(comm_id_t commid)
@@ -362,18 +362,18 @@ void SyncServer::barrierWait(comm_id_t commid)
 
   SimBarrier *psimbarrier = &_barriers[barrier];
 
-  SimCond::WakeupList woken_list;
+  SimBarrier::WakeupList woken_list;
   psimbarrier->wait(commid, time, woken_list);
 
   UInt64 max_time = psimbarrier->getMaxTime();
 
-  for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
+  for(SimBarrier::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {
       assert(*it != INVALID_COMMID);
       Reply r;
       r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
       r.time = max_time;
-      _network.netMCPSend(*it, (char*)&r, sizeof(r));
+      _network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
 }
 

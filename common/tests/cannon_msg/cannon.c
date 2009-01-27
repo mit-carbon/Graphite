@@ -12,12 +12,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "user_api.h"
+#include <stdbool.h>
+
 #include <stdarg.h>
 #include <assert.h>
 
+#include "capi.h"
+
 //#define DEBUG 1
-#define SEQUENTIAL 1
+//#define SEQUENTIAL 1
 
 #ifdef DEBUG
 pthread_mutex_t lock;
@@ -50,8 +53,6 @@ void debug_printf(const char * fmt, ...)
 int main(int argc, char* argv[]){ // main begins
    float **a, **b, **c;
 
-   carbonInit();
-	
 	unsigned int matSize;
 	pthread_t* threads;
 	pthread_attr_t attr;
@@ -241,8 +242,6 @@ int main(int argc, char* argv[]){ // main begins
    // Debug
    //printf("Number of sends = %ld\n", numSendCalls);
    //printf("Number of receives = %ld\n", numReceiveCalls);
-
-   carbonFinish();
 
    pthread_exit(NULL);
 } // main ends

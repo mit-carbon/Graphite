@@ -1,5 +1,13 @@
 #include "mcp.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()
+#define LOG_DEFAULT_MODULE MCP
+
+#include <sched.h>
+#include <iostream>
+using namespace std;
+
 MCP::MCP(Network & network)
    :
       _finished(false),
@@ -8,7 +16,7 @@ MCP::MCP(Network & network)
       scratch(new char[MCP_SERVER_MAX_BUFF]),
       syscall_server(_network, send_buff, recv_buff, MCP_SERVER_MAX_BUFF, scratch),
       sync_server(_network, recv_buff),
-      network_mesh_analytical_server(_network, recv_buff)
+      network_model_analytical_server(_network, recv_buff)
 {
 }
 
@@ -19,14 +27,15 @@ MCP::~MCP()
 
 void MCP::run()
 {
-//   cerr << "Waiting for MCP request..." << endl;
-
    send_buff.clear();
    recv_buff.clear();
 
    NetPacket recv_pkt;
 
-   recv_pkt = _network.netMCPRecv(); 
+   NetMatch match;
+   match.types.push_back(MCP_REQUEST_TYPE);
+   match.types.push_back(MCP_SYSTEM_TYPE);
+   recv_pkt = _network.netRecv(match);
 
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   
@@ -40,7 +49,8 @@ void MCP::run()
          syscall_server.handleSyscall(recv_pkt.sender);
          break;
       case MCP_MESSAGE_QUIT:
-         cerr << "Got the quit message... done waiting for MCP messages..." << endl;
+         LOG_PRINT("Quit message received.");
+         _finished = true;
          break;
       case MCP_MESSAGE_MUTEX_INIT:
          sync_server.mutexInit(recv_pkt.sender); 
@@ -70,31 +80,30 @@ void MCP::run()
          sync_server.barrierWait(recv_pkt.sender);
          break;
       case MCP_MESSAGE_UTILIZATION_UPDATE:
-         network_mesh_analytical_server.update(recv_pkt.sender);
+         network_model_analytical_server.update(recv_pkt.sender);
          break;
       default:
-         cerr << "Unhandled MCP message type: " << msg_type << " from: " << recv_pkt.sender << endl;
+         LOG_NOTIFY_ERROR();
+         LOG_PRINT("Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
          assert(false);
    }
 
-//   cerr << "Finished MCP request" << endl;
+   delete [] (Byte*)recv_pkt.data;
 }
 
 void MCP::finish()
 {
-//   cerr << "Got finish request..." << endl;
-   UnstructuredBuffer quit_buff;
-   quit_buff.clear();
+   LOG_PRINT("Send MCP quit message");
 
    int msg_type = MCP_MESSAGE_QUIT;
-   quit_buff << msg_type;
+   _network.netSend(g_config->MCPCommID(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
 
-//   cerr << "Sending message to MCP to quit..." << endl;
-   _finished = true;
+   while (!finished())
+   {
+      sched_yield();
+   }
 
-   _network.netSendToMCP(quit_buff.getBuffer(), quit_buff.size(), true);
-
-   cerr << "End of MCP::finish();" << endl;
+   LOG_PRINT("End");
 }
 
 void MCP::broadcastPacket(NetPacket pkt)
@@ -102,10 +111,10 @@ void MCP::broadcastPacket(NetPacket pkt)
    pkt.sender = g_config->MCPCommID();
 
    // FIXME: Is totalMods() always the right range for commids?
-   for (UINT32 commid = 0; commid < g_config->totalMods(); commid++)
+   for (UInt32 commid = 0; commid < g_config->totalMods(); commid++)
       {
          pkt.receiver = commid;
-         _network.netSendMagic(pkt);
+         _network.netSend(pkt);
       }
 }
 
@@ -115,5 +124,5 @@ void MCP::forwardPacket(NetPacket pkt)
 
    assert(pkt.receiver != -1);
    
-   _network.netSendMagic(pkt);
+   _network.netSend(pkt);
 }

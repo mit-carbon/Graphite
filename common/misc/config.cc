@@ -1,9 +1,23 @@
 #include "config.h"
 
-#include "network_mesh_analytical_params.h"
+#include "network_model_analytical_params.h"
 #include "network_types.h"
+#include "packet_type.h"
+
+#include <sstream>
+#include "log.h"
+#define LOG_DEFAULT_RANK   -1
+#define LOG_DEFAULT_MODULE CONFIG
+extern Log *g_log;
 
 #define DEBUG
+
+#include "pin.H"
+
+extern LEVEL_BASE::KNOB<UInt32> g_knob_num_cores;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
+extern LEVEL_BASE::KNOB<Boolean> g_knob_simarch_has_shared_mem;
 
 using namespace std;
 
@@ -15,10 +29,11 @@ Config::Config()
    // a file or the command line.
 
    if (g_knob_num_process == 0) {
-      cerr << "\nWARNING: Using compatibility mode for number of processes!\n"
-	   << "  Assuming number of processes = 1.\n"
-	   << "  Please use the -np command-line argument in the future.\n"
-	   << endl;
+      // We can't use the log in Config's constructor because it
+      // hasn't been created yet...
+      fprintf(stderr, "WARNING: Using compatibility mode for number of processes!\n\
+  Assuming number of processes = 1.\n\
+  Please use the -np command-line argument in the future.\n");
       num_process = 1;
    } else {      
       num_process = g_knob_num_process;
@@ -30,10 +45,9 @@ Config::Config()
    if (g_knob_total_cores == 0) {
       // Backwards compatibility mode (in case the user does not specify
       // the -tc command line argument)
-      cerr << "\nWARNING: Using compatibility mode for total number of cores!\n"
-	   << "  Assuming all cores are in one process.\n"
-	   << "  Please use the -tc command-line argument in the future.\n"
-	   << endl;
+      fprintf(stderr, "WARNING: Using compatibility mode for total number of cores!\n\
+  Assuming all cores are in one process.\n\
+  Please use the -tc command-line argument in the future.\n");
       total_cores = g_knob_num_cores;
    } else {
       total_cores = g_knob_total_cores;
@@ -45,6 +59,10 @@ Config::Config()
 
    //Add one to account for the MCP
    total_cores += 1;
+
+   // FIXME: This is a bit of a hack to put this here, but we need it
+   // for logging in the rest of Config's constructor.
+   g_log = new Log(total_cores);
 
    num_modules = new UInt32[num_process];
    // FIXME: This assumes that every process has the same number of modules.
@@ -65,21 +83,23 @@ Config::Config()
    }
 
    // Create network parameters
-   network_type = NETWORK_ANALYTICAL_MESH;
-   analytic_network_parms = new NetworkMeshAnalyticalParameters();
+   analytic_network_parms = new NetworkModelAnalyticalParameters();
    analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
    analytic_network_parms->s = 1; // single cycle switching time
-   analytic_network_parms->n = 2; // 2-d mesh network
+   analytic_network_parms->n = 1; // 2-d mesh network
    analytic_network_parms->W = 32; // 32-bit wide channels
    analytic_network_parms->update_interval = 100000;
+   analytic_network_parms->proc_cost = 100;
 
 #ifdef DEBUG  
+   stringstream ss;
    for (i=0; i<num_process; i++) {   
-      cout << "Process " << i << ": ";
+      ss << "Process " << i << ": ";
       for (CLCI m = core_map[i].begin(); m != core_map[i].end(); m++)
-	 		cout << "[" << *m << "]";
-      cout << endl;
+         ss << "[" << *m << "]";
+      ss << endl;
    }
+   LOG_PRINT(ss.str().c_str());
 #endif
 }
 
@@ -105,4 +125,29 @@ void Config::loadFromFile(char* filename)
 void Config::loadFromCmdLine()
 {
    return;
+}
+
+void Config::getNetworkModels(UInt32 *models) const
+{
+   models[STATIC_NETWORK_USER]   = NETWORK_ANALYTICAL_MESH;
+   models[STATIC_NETWORK_MEMORY] = NETWORK_ANALYTICAL_MESH;
+   models[STATIC_NETWORK_SYSTEM] = NETWORK_MAGIC;
+}
+
+Boolean Config::isSimulatingSharedMemory() const
+{
+   return (Boolean)g_knob_simarch_has_shared_mem;
+}
+
+void Config::getDisabledLogModules(set<string> &mods) const
+{
+//   mods.insert("NETWORK");
+//   mods.insert("CORE");
+//   mods.insert("DRAMDIR");
+//   mods.insert("MMU");
+//   mods.insert("CHIP");
+//   mods.insert("PINSIM");
+//   mods.insert("SHAREDMEM");
+//   mods.insert("CONFIG");
+//   mods.insert("SYSCALL");
 }

@@ -1,0 +1,188 @@
+\documentclass[10pt,twocolumn]{article}
+\title{Distribution of Unmodified Binaries}
+\author{Nathan Beckmann}
+
+\usepackage{verbatim}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  We'd like to be able to distribute unmodified application binaries
+  across multiple processes. This is complicated by constraining the
+  main thread to a single process, and being able to spawn threads in
+  other processes from this ``main process''.
+\end{abstract}
+
+\section{Goals}
+\label{sec:goals}
+
+Currently, we are distributing binaries by changing the user
+application to be MPI-aware. The application is modified to spawn the
+correct threads for its process ID and only do ``main stuff'' in
+process zero. What we would like to be able to do is:
+\begin{verbatim}
+$ mpirun -np X <pin on binary>
+\end{verbatim}
+And have things ``just work''.
+
+This is complicated because, without modifications, the application
+will just run \texttt{X} copies of itself in parallel. We need to
+somehow let one process run the main thread, and have the others go
+into ``stand-by'', waiting for thread spawn requests.
+
+\section{Approach}
+\label{sec:approach}
+
+We use PIN's mechanisms for replacing and calling application
+functions to achieve our goals.
+
+\subsection{Thread creation}
+\label{sec:thread-creation}
+
+\subsubsection{Main process}
+\label{sec:main-process}
+
+In the main process, we replace all \texttt{pthread} thread-related
+calls with simulator functions. In effect, we need to re-implement a
+subset of \texttt{pthread}s to interact with threads distributed
+across the processes.
+
+We replace \texttt{pthread\_create} with a function that stripes the
+threads across the processes. When a thread is to be created remotely,
+it sends a message to that process with the parameters passed to
+\texttt{pthread\_create} (function address and argument), and that
+process spawns the thread. (See next section.) When the thread should
+live locally, then we use \texttt{PIN\_CallApplicationFunction} to let
+the \texttt{pthread\_create} call fall through.
+
+\subsubsection{Other processes}
+\label{sec:other-processes}
+
+In the remaining processes, we \texttt{RTN\_Replace} the
+\texttt{main()} function of the application with a simulator
+function. This function simply blocks waiting for thread creation
+requests from the main process. When a request comes, then it extracts
+the parameters to \texttt{pthread\_create} that are in the message and
+uses \texttt{PIN\_CallApplicationFunction} to invoke
+\texttt{pthread\_create}, just as described above.
+
+\subsection{Thread joining}
+\label{sec:joining}
+
+We also must re-implement \texttt{pthread\_join} so that it works
+appropriately with remote threads. In particular, the value of
+\texttt{pthread\_create} must change to some custom identifier (the
+\texttt{commID} of the new thread?).
+
+Then, the MCP must keep a table of thread states for remote
+threads. In order for this table to be properly updated, when a thread
+is created, we must send the MCP a message when the thread exits. This
+can be done with \texttt{PIN\_AddThreadFini}, which must be called when
+the thread is created.
+
+\subsection{Alternatives}
+\label{sec:alternatives}
+
+It might be simpler to remove the main process as a special case ---
+that is, don't have any spawned threads live in the main process. This
+would make this process extremely light-weight, and its only job would
+be to house the MCP and deal with the remote threads. Or, a hybrid
+approach is to give the main process its own thread that waits for
+thread spawning requests. This hybrid is what is described in the next
+section.
+
+\section{Implementation}
+\label{sec:implementation}
+
+\subsection{Pseudocode}
+\label{sec:pseudocode}
+
+This section describes the important events that take place in the
+system and the actions that are done in response.
+
+\subsubsection{Application start-up (in pin tool):}
+\begin{enumerate}
+\item Get MPI ID.
+\item Replace \texttt{main} with \texttt{SimMain}.
+\item Replace \texttt{pthread\_create} with \texttt{SimThreadCreate}.
+\item Replace \texttt{pthread\_join} with \texttt{SimThreadJoin}.
+\item Do normal instrumentation.
+\item Start application.
+\end{enumerate}
+
+\subsubsection{\texttt{SimMain}:}
+\begin{enumerate}
+\item Spawn a PIN thread with \texttt{SimThreadSpawnLoop}.
+\item If we are process zero, call \texttt{main} via
+  \texttt{PIN\_CallApplicationFunction}.
+\end{enumerate}
+
+\subsubsection{\texttt{SimThreadCreate}:}
+\begin{enumerate}
+\item Compute which process the thread should live on, based on which
+  process currently has the least active threads. (Use MCP internal
+  thread state table.)
+\item Send a message to the process's thread spawner with the function
+  address and data parameter.
+\item Update MCP internal state to make thread ``active''.
+\item Return identifier for thread (its \texttt{commID}).
+\end{enumerate}
+
+\subsubsection{\texttt{SimThreadJoin}:}
+\begin{enumerate}
+\item Query MCP state for requested thread.
+\item \label{check} If ``inactive'', return.
+\item If ``active'', wait on condition variable until thread state is
+  updated.
+\item Go to step \ref{check}.
+\end{enumerate}
+
+\subsubsection{\texttt{SimThreadSpawnLoop}:}
+\begin{enumerate}
+\item Initialize phys trans.
+\item \label{wait} Wait for thread creation message.
+\item Using \texttt{PIN\_CallApplicationFunction}, call
+  \texttt{pthread\_create} with the parameters.
+\item Call \texttt{PIN\_AddThreadFini} to add
+  \texttt{SimThreadExitCallback} with the new thread's ID. (What is
+  the exact mechanism for doing this? Does the value that
+  \texttt{pthread\_create} returns work?)
+\item Go to step \ref{wait}.
+\end{enumerate}
+
+\subsubsection{\texttt{SimThreadExitCallback}:}
+\begin{enumerate}
+\item Send message to MCP with our thread ID notifying it that we have
+  exited.
+\end{enumerate}
+
+\subsubsection{MCP receives thread exit message:}
+\begin{enumerate}
+\item Update internal thread state for the thread as ``inactive''.
+\item Signal main thread that state has been updated.
+\end{enumerate}
+
+\subsection{Comments}
+\label{sec:comments}
+
+\begin{itemize}
+\item The physical transport layer might need to be modified so that
+  it is standalone and can be used by the ``other processes'' without
+  a core, network, etc..
+\item \texttt{main()} running on ``other processes'' needs an MPI ID,
+  but there is no core associated with them. They are kind of like
+  ``mini-MCPs'', and so a resurrection of the special MPI physical
+  transport code might be in order.
+\item We assume that a function address that is valid in one process
+  will be valid in another. Virtual memory should make this so. But if
+  we run into problems, then we will have to build a map from function
+  names to function addresses and pass the function name from one
+  process to another. Because we are abstracting the shared memory,
+  the data parameter should remain valid.
+\item Based on this pseudocode, the MCP state table must contain:
+  thread ID, process, state.
+\end{itemize}
+
+\end{document}

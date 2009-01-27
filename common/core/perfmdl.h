@@ -20,16 +20,10 @@
 #include <utility>
 #include <iostream>
 
+#include "fixed_types.h"
 #include "pin.H"
-
 #include "perfmdl_interval_stat.h"
-
-/* ===================================================================== */
-/* External References */
-/* ===================================================================== */
-
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
-
+#include "lock.h"
 
 /* ===================================================================== */
 /* Performance Modeler Classes */
@@ -44,56 +38,57 @@ class PerfModel {
 
    private:
       // does not include stalls
-      UINT64 microop_issue_count;
+      UInt64 microop_issue_count;
 
       // this is the local clock for the core
-      UINT64 cycle_count;    
+      UInt64 cycle_count;    
 
       // this is used for finding dependencies on loaded data
-      vector<UINT64> scoreboard;
+      vector<UInt64> scoreboard;
 
       // set for debugging purposes
       string name;
 
       // Lock for atomically updating the clock
-      PIN_LOCK m_clock_lock;
+      Lock *m_clock_lock;
     
       // methods
-      UINT32 getInsMicroOpsCount(const INS& ins);
+      UInt32 getInsMicroOpsCount(const INS& ins);
 
    public:
 
       PerfModel(string n);
+      ~PerfModel();
 
       // The following two methods atomically update the cycle count
-      void updateCycleCount(UINT64 new_cycle_count);
-      void addToCycleCount(UINT64 cycles);
+      void updateCycleCount(UInt64 new_cycle_count);
+      void addToCycleCount(UInt64 cycles);
 
-      UINT64 getCycleCount() { return cycle_count; }
-      UINT64 getMicroOpCount() { return microop_issue_count; }
+      UInt64 getCycleCount() { return cycle_count; }
+      UInt64 getMicroOpCount() { return microop_issue_count; }
 
 
       // These functions are for logging modeling events for which the performance impact
       // may be lazily evaluated later when the performance model is next run. 
 
-      VOID logICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+      void logICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
       { 
 	 // stats->icache_load_miss_history.push_back( !hit ); 
 	 stats->logICacheLoadAccess(hit);
       }
      
-      VOID logDCacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
+      void logDCacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
       {
 	 stats->logDCacheLoadAccess(hit);
       }
 
-      VOID logDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
+      void logDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
       { 
 	 // stats->dcache_store_miss_history.push_back( !hit ); 
 	 stats->logDCacheStoreAccess(hit);
       }
 
-      VOID logBranchPrediction(PerfModelIntervalStat *stats, bool correct)
+      void logBranchPrediction(PerfModelIntervalStat *stats, bool correct)
       {  // stats->branch_mispredict = !correct; 
 	 stats->logBranchPrediction(correct);
       }
@@ -109,21 +104,18 @@ class PerfModel {
       // instructions.
 
       // the vanilla run method.
-      VOID run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
+      void run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
 
       // run method which accounts for load data dependency stalls
-      VOID run(PerfModelIntervalStat *interval_stats, REG *reads, UINT32 num_reads, bool firstCallInIntrvl);
+      void run(PerfModelIntervalStat *interval_stats, REG *reads, UInt32 num_reads, bool firstCallInIntrvl);
 
       // run method which registers destination registers in the scoreboard
-      VOID run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-               REG *writes, UINT32 num_writes, bool firstCallInIntrvl);
+      void run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+               REG *writes, UInt32 num_writes, bool firstCallInIntrvl);
 
 
       // this method is called at the end of simulation
-      //FIXME: implement this function
-      VOID fini(int code, VOID *v, ofstream& out)
-      { }
-
+      void fini(int code, void *v, ostream& out);
 };
 
 

@@ -39,15 +39,15 @@ class SimCond
   class CondWaiter
   {
     public:
-      CondWaiter(comm_id_t comm_id, StableIterator<SimMutex> mutex, UINT64 time)
+      CondWaiter(comm_id_t comm_id, StableIterator<SimMutex> mutex, UInt64 time)
           : _comm_id(comm_id), _mutex(mutex), _arrival_time(time) {}
       comm_id_t _comm_id;
       StableIterator<SimMutex> _mutex;
-      UINT64 _arrival_time;
+      UInt64 _arrival_time;
   };
 
   typedef std::vector< CondWaiter > ThreadQueue;
-  typedef std::vector< UINT64 > SignalQueue;
+  typedef std::vector< UInt64 > SignalQueue;
 
   ThreadQueue _waiting;
   SignalQueue _signals;
@@ -59,9 +59,9 @@ class SimCond
   ~SimCond();
 
   // returns the thread that gets woken up when the mux is unlocked
-  comm_id_t wait(comm_id_t commid, UINT64 time, StableIterator<SimMutex> & it);
-  comm_id_t signal(comm_id_t commid, UINT64 time);
-  void broadcast(comm_id_t commid, UINT64 time, WakeupList &woken);
+  comm_id_t wait(comm_id_t commid, UInt64 time, StableIterator<SimMutex> & it);
+  comm_id_t signal(comm_id_t commid, UInt64 time);
+  void broadcast(comm_id_t commid, UInt64 time, WakeupList &woken);
 };
 
 class SimBarrier
@@ -69,13 +69,13 @@ class SimBarrier
   typedef std::vector< comm_id_t > ThreadQueue;
 
   ThreadQueue _waiting;
-  UINT32 _count;
-  UINT64 _max_time;
+  UInt32 _count;
+  UInt64 _max_time;
 
  public:
   typedef std::vector<comm_id_t> WakeupList;
 
-  SimBarrier(UINT32 count);
+  SimBarrier(UInt32 count);
   ~SimBarrier();
 
   // returns a list of threads to wake up if all have reached barrier

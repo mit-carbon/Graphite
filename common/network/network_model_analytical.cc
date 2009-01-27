@@ -1,57 +1,62 @@
-#include "network_mesh_analytical.h"
-#include "network_mesh_analytical_params.h"
-#include "message_types.h"
-#include "chip.h"
 #include <math.h>
+
+#include "network_model_analytical.h"
+#include "network_model_analytical_params.h"
+#include "message_types.h"
+#include "config.h"
+#include "core.h"
+#include "perfmdl.h"
+#include "transport.h"
 
 using namespace std;
 
-//NetworkMeshAnalytical::NetworkMeshAnalytical(int tid, int num_threads, Core *core)
-NetworkMeshAnalytical::NetworkMeshAnalytical(Core *core, int num_threads)
-    :
-        Network(core, num_threads),
-        bytes_sent(0),
-        cycles_spent_proc(0),
-        cycles_spent_latency(0),
-        cycles_spent_contention(0),
-        global_utilization(0.0),
-        local_utilization_last_update(0),
-        local_utilization_flits_sent(0),
-        update_interval(0)
+NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
+   : NetworkModel(net)
+   , _bytesSent(0)
+   , _cyclesProc(0)
+   , _cyclesLatency(0)
+   , _cyclesContention(0)
+   , _globalUtilization(0)
+   , _localUtilizationLastUpdate(0)
+   , _localUtilizationFlitsSent(0)
+   , _updateInterval(0)
 {
-   registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
-                    receiveMCPUpdate,
-                    this);
+   getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
+      receiveMCPUpdate,
+      this);
 
-   update_interval = g_config->getAnalyticNetworkParms()->update_interval;
+   _updateInterval = g_config->getAnalyticNetworkParms()->update_interval;
+   _procCost = g_config->getAnalyticNetworkParms()->proc_cost;
 }
 
-NetworkMeshAnalytical::~NetworkMeshAnalytical()
+NetworkModelAnalytical::~NetworkModelAnalytical()
 {
-   unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
+   getNetwork()->unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
 }
 
-int NetworkMeshAnalytical::netSend(NetPacket packet)
+void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
+                                         std::vector<Hop> &nextHops)
 {
-    bytes_sent += packet.length;
-    updateUtilization();
-    return Network::netSend(packet);
+   // basic magic network routing, with two additions
+   // (1) compute latency of packet
+   // (2) update utilization
+
+   PerfModel *perf = getNetwork()->getCore()->getPerfModel();
+
+   Hop h;
+   h.dest = pkt.receiver;
+   h.time = perf->getCycleCount() + computeLatency(pkt);
+   nextHops.push_back(h);
+
+   perf->addToCycleCount(_procCost);
+   _cyclesProc += _procCost;
+
+   updateUtilization();
+
+   _bytesSent += pkt.length;
 }
 
-NetPacket NetworkMeshAnalytical::netRecv(NetMatch match)
-{
-    updateUtilization();
-    return Network::netRecv(match);
-}
-
-UINT64 NetworkMeshAnalytical::netProcCost(NetPacket packet)
-{
-    UINT64 cost = 10;
-    cycles_spent_proc += cost;
-    return cost;
-}
-
-UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
+UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
 {
     // We model a unidirectional network with end-around connections
     // using the network model in "Limits on Interconnect Performance"
@@ -70,12 +75,12 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     // of network hops.
 
     // Retrieve parameters
-    const NetworkMeshAnalyticalParameters *pParams = g_config->getAnalyticNetworkParms();
+    const NetworkModelAnalyticalParameters *pParams = g_config->getAnalyticNetworkParms();
     double Tw2 = pParams->Tw2;
     double s = pParams->s;
     int n = pParams->n;
     double W = pParams->W;
-    double p = global_utilization;
+    double p = _globalUtilization;
 
     // This lets us derive the latency, ignoring contention
 
@@ -87,7 +92,7 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
     double hops_in_network;   // number of nodes visited
     double Tb;                // latency, without contention
 
-    N = g_chip->getNumModules();
+    N = g_config->totalMods();
     k = pow(N, 1./n);                  // pg 5
     kd = k/2.;                         // pg 5 (note this will be
       // different for different network configurations...say,
@@ -138,25 +143,24 @@ UINT64 NetworkMeshAnalytical::netLatency(NetPacket packet)
 
     // Computation finished...
 
-    UINT64 Tci = (UINT64)(ceil(Tc));
-    cycles_spent_latency += Tci;
-    cycles_spent_contention += (UINT64)(Tc - Tb);
+    UInt64 Tci = (UInt64)(ceil(Tc));
+    _cyclesLatency += Tci;
+    _cyclesContention += (UInt64)(Tc - Tb);
 
     // ** update utilization counter **
     // we must account for the usage throughout the mesh
     // which means that we must include the # of hops
-    local_utilization_flits_sent += (UINT64)(B * hops_in_network);
+    _localUtilizationFlitsSent += (UInt64)(B * hops_in_network);
 
     return Tci;
 }
 
-void NetworkMeshAnalytical::outputSummary(ostream &out)
+void NetworkModelAnalytical::outputSummary(ostream &out)
 {
-   out << "  Network summary:" << endl;
-   out << "    bytes sent: " << bytes_sent << endl;
-   out << "    cycles spent proc: " << cycles_spent_proc << endl;
-   out << "    cycles spent latency: " << cycles_spent_latency << endl;
-   out << "    cycles spent contention: " << cycles_spent_contention << endl;
+   out << "    bytes sent: " << _bytesSent << endl;
+   out << "    cycles spent proc: " << _cyclesProc << endl;
+   out << "    cycles spent latency: " << _cyclesLatency << endl;
+   out << "    cycles spent contention: " << _cyclesContention << endl;
 }
 
 struct UtilizationMessage
@@ -168,28 +172,28 @@ struct UtilizationMessage
 // we send and receive updates asynchronously for performance and
 // because the MCP is unable to reply to itself.
 
-void NetworkMeshAnalytical::updateUtilization()
+void NetworkModelAnalytical::updateUtilization()
 {
-  // make sure the system is properly initialized
-  int rank;
-  chipRank(&rank);
-  if (rank < 0)
-    return;
+  // // make sure the system is properly initialized
+  // int rank;
+  // chipRank(&rank);
+  // if (rank < 0)
+  //   return;
 
   // ** send updates
 
   // don't lock because this is all approximate anyway
-  UINT64 core_time = the_core->getPerfModel()->getCycleCount();
-  UINT64 elapsed_time = core_time - local_utilization_last_update;
+  UInt64 core_time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
+  UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
 
-  if (elapsed_time < update_interval)
+  if (elapsed_time < _updateInterval)
     return;
 
   // FIXME: This assumes one cycle per flit, might not be accurate.
-  double local_utilization = ((double)local_utilization_flits_sent) / ((double)elapsed_time);
+  double local_utilization = ((double)_localUtilizationFlitsSent) / ((double)elapsed_time);
 
-  local_utilization_last_update = core_time;
-  local_utilization_flits_sent = 0;
+  _localUtilizationLastUpdate = core_time;
+  _localUtilizationFlitsSent = 0;
 
   // build packet
   UtilizationMessage m;
@@ -197,21 +201,21 @@ void NetworkMeshAnalytical::updateUtilization()
   m.ut = local_utilization;
 
   NetPacket update;
-  update.sender = netCommID();
+  update.sender = getNetwork()->getTransport()->ptCommID();
   update.receiver = g_config->MCPCommID();
   update.length = sizeof(m);
-  update.type = MCP_REQUEST_TYPE;
-  update.data = (char*) &m;
+  update.type = MCP_SYSTEM_TYPE;
+  update.data = &m;
 
-  netSendMagic(update);
+  getNetwork()->netSend(update);
 }
 
-void NetworkMeshAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
+void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
 {
-   NetworkMeshAnalytical *net = (NetworkMeshAnalytical*) obj;
+   NetworkModelAnalytical *model = (NetworkModelAnalytical*) obj;
 
    assert(response.length == sizeof(double));
    //   assert(0 <= net->global_utilization || net->global_utilization <= 1);
 
-   net->global_utilization = *((double*)response.data);
+   model->_globalUtilization = *((double*)response.data);
 }

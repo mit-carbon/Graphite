@@ -9,7 +9,7 @@
 class Random
 {
  public:
-  typedef UINT32 value_t;
+  typedef UInt32 value_t;
 
  private:
   value_t _seed;

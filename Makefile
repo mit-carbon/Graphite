@@ -2,13 +2,13 @@ include common/makefile.gnu.config
 
 PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
 PIN_TOOL=pin/bin/pin_sim
-#PIN_RUN=mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
-PIN_RUN=mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
-PIN_RUN_DIST=mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
+#PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
+PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
+PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 TESTS_DIR=./common/tests
 
-CORES=16
+CORES=4
 ..PHONY: cores
 PROCESS=mpirun
 ..PHONY: process
@@ -46,7 +46,15 @@ squeaky: clean
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
 
-regress_quick: simple_test io_test ping_pong_test capi_worker mutex_test barrier_test
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon
+
+regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
+
+clean_benchmarks:
+	make $@ -C $(TESTS_DIR)
+
+build_benchmarks:
+	make $@ -C $(TESTS_DIR)
 
 simple_test: all
 	$(MAKE) -C $(TESTS_DIR)/simple
@@ -64,10 +72,10 @@ ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
-matmult_test: all
-	$(MAKE) -C $(TESTS_DIR)/pthreads_matmult
-#	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
-	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/pthreads_matmult/cannon -m $(CORES) -s $(CORES)
+cannon: all
+	$(MAKE) -C $(TESTS_DIR)/cannon
+#	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: all
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
@@ -89,6 +97,10 @@ shmem_test_evic: all
 1djacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
 	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64 
+
+1djacobi_test_quick: all
+	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
 
 jacobi_test: all
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
@@ -158,6 +170,9 @@ waters_test: all
 	$(MAKE) -C $(TESTS_DIR)/water-spatial
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/water-spatial/WATER-SPATIAL < $(TESTS_DIR)/water-spatial/input
 
+check_ld_path:
+	@echo $(LD_LIBRARY_PATH)
+
 love:
 	@echo "not war!"
 
@@ -169,8 +184,8 @@ war:	kill
 kill:
 	@echo "Killing All Possible Processes"
 	killall -s 9 $(PROCESS)
-	killall -s 9 jacobi
 	killall -s 9 ping_pong
+	killall -s 9 jacobi
 	killall -s 9 test_new
 	killall -s 9 test_evic
 	killall -s 9 basic

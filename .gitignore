@@ -12,7 +12,7 @@ common/phys_trans/transport.*
 *.swp
 
 # test executables
-common/tests/pthreads_matmult/cannon
+common/tests/cannon/cannon
 common/tests/file_io/file_io
 common/tests/ping_pong/ping_pong
 common/tests/signals/signals
@@ -44,6 +44,26 @@ common/tests/water-nsquared/WATER-NSQUARED
 common/tests/water-spatial/*.[ch]
 common/tests/water-spatial/WATER-SPATIAL
 
+
+
+#benchmark generated source files
+common/tests/water-spatial/*.[ch]
+common/tests/water-spatial/WATER-SPATIAL
+common/tests/water-nsquared/*.[ch]
+common/tests/water-nsquared/WATER-NSQUARED
+common/tests/volrend/*.[ch]
+common/tests/volrend/VOLREND
+common/tests/raytrace/*.[ch]
+common/tests/radiosity/*.[ch]
+common/tests/radiosity/glibdumb/glib.a
+common/tests/radiosity/glibps/glibps.a
+common/tests/radiosity/RADIOSITY
+common/tests/ocean_contig/*.[ch]
+common/tests/fmm/*.[ch]
+common/tests/fmm/FMM
+common/tests/barnes/*.[ch]
+common/tests/ocean_contig/*.[ch]
+common/tests/ocean_contig/OCEAN
 
 
 # test output

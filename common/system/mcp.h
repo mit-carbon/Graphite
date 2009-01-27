@@ -7,7 +7,7 @@
 #include "syscall_server.h"
 #include "sync_server.h"
 #include "fixed_types.h"
-#include "network_mesh_analytical_server.h"
+#include "network_model_analytical_server.h"
 #include <iostream>
 
 /*
@@ -31,7 +31,7 @@ typedef enum {
 class MCP
 {
    private:
-      bool _finished;
+      Boolean _finished;
       Network & _network;
       UnstructuredBuffer send_buff;
       UnstructuredBuffer recv_buff;
@@ -40,12 +40,12 @@ class MCP
 
       SyscallServer syscall_server;
       SyncServer sync_server;
-      NetworkMeshAnalyticalServer network_mesh_analytical_server;
+      NetworkModelAnalyticalServer network_model_analytical_server;
 
    public:
       void run();
       void finish();
-      bool finished() { return _finished; };
+      Boolean finished() { return _finished; };
       MCP(Network & network);
       ~MCP();
 

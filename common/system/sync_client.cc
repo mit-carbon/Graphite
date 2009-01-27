@@ -28,15 +28,15 @@ void SyncClient::mutexInit(carbon_mutex_t *mux)
 
   _send_buff << msg_type;
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(carbon_mutex_t) );
 
   *mux = *((carbon_mutex_t*)recv_pkt.data);
-  //  _recv_buff << make_pair(res_buff, length);
-  //  _recv_buff >> *mux;
+
+  delete [] (Byte*) recv_pkt.data;
 }
 
 void SyncClient::mutexLock(carbon_mutex_t *mux)
@@ -49,10 +49,10 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
   _send_buff << msg_type << *mux << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64) );
 
   unsigned int dummy;
@@ -63,6 +63,8 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
   _recv_buff >> time;
   _core->getPerfModel()->updateCycleCount(time);
+
+  delete [] (Byte*) recv_pkt.data;
 }
 
 void SyncClient::mutexUnlock(carbon_mutex_t *mux)
@@ -75,16 +77,18 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 
   _send_buff << msg_type << *mux << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(unsigned int) );
 
   unsigned int dummy;
   _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == MUTEX_UNLOCK_RESPONSE );
+
+  delete [] (Byte*) recv_pkt.data;
 }
 
 void SyncClient::condInit(carbon_cond_t *cond)
@@ -97,13 +101,15 @@ void SyncClient::condInit(carbon_cond_t *cond)
 
   _send_buff << msg_type << *cond << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(carbon_cond_t) );
 
   *cond = *((carbon_cond_t*)recv_pkt.data);
+
+  delete [] (Byte*) recv_pkt.data;
 }
 
 void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
@@ -116,10 +122,10 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
   _send_buff << msg_type << *cond << *mux << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64) );
 
   unsigned int dummy;
@@ -130,6 +136,8 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
   UInt64 time;
   _recv_buff >> time;
   _core->getPerfModel()->updateCycleCount(time);
+
+  delete [] (Byte*) recv_pkt.data;
 }
 
 void SyncClient::condSignal(carbon_cond_t *cond)
@@ -142,10 +150,10 @@ void SyncClient::condSignal(carbon_cond_t *cond)
 
   _send_buff << msg_type << *cond << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(unsigned int) );
 
   unsigned int dummy;
@@ -153,6 +161,7 @@ void SyncClient::condSignal(carbon_cond_t *cond)
   _recv_buff >> dummy;
   assert( dummy == COND_SIGNAL_RESPONSE );
 
+  delete [] (Byte*) recv_pkt.data;
 }
 
 void SyncClient::condBroadcast(carbon_cond_t *cond)
@@ -165,19 +174,21 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
 
   _send_buff << msg_type << *cond << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(unsigned int) );
 
   unsigned int dummy;
   _recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
   _recv_buff >> dummy;
   assert( dummy == COND_BROADCAST_RESPONSE );
+
+  delete [] (Byte*) recv_pkt.data;
 }
 
-void SyncClient::barrierInit(carbon_barrier_t *barrier, UINT32 count)
+void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 {
   // Reset the buffers for the new transmission
   _recv_buff.clear(); 
@@ -187,13 +198,15 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UINT32 count)
 
   _send_buff << msg_type << count << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(carbon_barrier_t) );
 
   *barrier = *((carbon_barrier_t*)recv_pkt.data);
+
+  delete [] (Byte*) recv_pkt.data;
 }
 
 void SyncClient::barrierWait(carbon_barrier_t *barrier)
@@ -206,10 +219,10 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
 
   _send_buff << msg_type << *barrier << _core->getPerfModel()->getCycleCount();
 
-  _network->netSendToMCP(_send_buff.getBuffer(), _send_buff.size());
+  _network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, _send_buff.getBuffer(), _send_buff.size());
 
   NetPacket recv_pkt;
-  recv_pkt = _network->netRecvFromMCP();
+  recv_pkt = _network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
   assert( recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64) );
 
   unsigned int dummy;
@@ -220,5 +233,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
   UInt64 time;
   _recv_buff >> time;
   _core->getPerfModel()->updateCycleCount(time);
+
+  delete [] (Byte*) recv_pkt.data;
 }
 

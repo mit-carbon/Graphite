@@ -9,21 +9,18 @@
 #define CONFIG_H
 
 #include <list>
+#include <set>
+#include <string>
 #include <iostream>
 #include <cassert>
-#include "pin.H"
 #include "fixed_types.h"
 
-extern LEVEL_BASE::KNOB<UINT32> g_knob_num_cores;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_total_cores;
-extern LEVEL_BASE::KNOB<UINT32> g_knob_num_process;
-
-struct NetworkMeshAnalyticalParameters;
+struct NetworkModelAnalyticalParameters;
 
 class Config {
  public:
-   typedef list<UInt32> CoreList;
-   typedef list<UInt32>::const_iterator CLCI;
+   typedef std::list<UInt32> CoreList;
+   typedef std::list<UInt32>::const_iterator CLCI;
  private:
    UInt32  num_process;          // Total number of processes (incl myself)
    UInt32* num_modules;          // Number of cores each process
@@ -39,8 +36,7 @@ class Config {
    
    UInt32  MCP_process;          // The process where the MCP lives
 
-   NetworkMeshAnalyticalParameters *analytic_network_parms;
-   UInt32 network_type;
+   NetworkModelAnalyticalParameters *analytic_network_parms;
    
  public:
    Config();
@@ -78,11 +74,20 @@ class Config {
    const CoreList getModuleList(UInt32 proc_num)
       { assert(proc_num < num_process); return core_map[proc_num]; }
    
-   const NetworkMeshAnalyticalParameters *getAnalyticNetworkParms() const
+   const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
       { return analytic_network_parms; }
 
-   UInt32 getNetworkType() const
-      { return network_type; }
+   // Fills in an array with the models for each static network
+   void getNetworkModels(UInt32 *) const;
+
+   // Knobs
+   Boolean isSimulatingSharedMemory() const;
+   Boolean isPerfModeling() const;   
+
+   // Logging
+   void getDisabledLogModules(std::set<std::string> &mods) const;
 };
+
+extern Config *g_config;
 
 #endif

@@ -46,6 +46,7 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    {
       case SYS_open:
       {
+         // Filter on the input
          char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
          if(!strcmp(path,"./common/tests/file_io/input"))
          {
@@ -56,23 +57,15 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       }
       case SYS_read:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x08 )
-         {
-            called_enter = true;
-            ret_val = marshallReadCall(ctx, syscall_standard);
-         }
+         called_enter = true;
+         ret_val = marshallReadCall(ctx, syscall_standard);
          break;
       }
 
       case SYS_write:
       {
-         int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-         if ( fd == 0x08 )
-         {
-            called_enter = true;
-            ret_val = marshallWriteCall(ctx, syscall_standard);
-         }         
+         called_enter = true;
+         ret_val = marshallWriteCall(ctx, syscall_standard);
          break;
       }         
       case SYS_close:
@@ -100,7 +93,7 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       case -1:
          break;
       default:
-         //         cerr << "SysCall: " << (int)syscall_number << endl;
+//            cerr << "SysCall: " << (int)syscall_number << endl;
          break;
    }
 
@@ -143,15 +136,18 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    // cerr << "open(" << path << ")" << endl;
 
    send_buff << len_fname << make_pair(path, len_fname) << flags;
-   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());
+   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecvFromMCP();
+   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
    assert( recv_pkt.length == sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int status;
    recv_buff >> status;
+
+   delete [] (Byte*)recv_pkt.data;
+
    return status;
 }
 
@@ -188,13 +184,14 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
 
    // cerr << "read(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
       
-   send_buff << fd << count;
-   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());   
+//if shared mem, provide the buf to read into
+   send_buff << fd << count << (int)buf;
+   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());   
    
    //cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecvFromMCP();
+   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
 
    assert( recv_pkt.length >= sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -211,6 +208,8 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
       assert( recv_buff.size() == 0 );
    }
    //cerr << "Exiting syscall model marshall read" << endl;
+
+   delete [] (Byte*)recv_pkt.data;
 
    return bytes;
 }
@@ -246,17 +245,26 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    size_t count = (size_t) PIN_GetSyscallArgument(ctx, syscall_standard, 2);
 
    // cerr << "write(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
-      
-   send_buff << fd << count << make_pair(buf, count);
-   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());      
+   
+   // If we are simulating shared memory, then we simply put
+   // the address in the message. Otherwise, we need to put
+   // the data in the message as well.
+   if(g_config->isSimulatingSharedMemory())
+       send_buff << fd << count << (int)buf;
+   else
+       send_buff << fd << count << make_pair(buf, count);
+
+   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecvFromMCP();
+   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
    assert( recv_pkt.length == sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int status;
    recv_buff >> status;
+
+   delete [] (Byte*) recv_pkt.data;
 
    return status;
 }
@@ -289,15 +297,17 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    // cerr << "close(" << fd  << ")" << endl;
 
    send_buff << fd;
-   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size());      
+   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecvFromMCP();
+   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
    assert( recv_pkt.length == sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int status;
    recv_buff >> status;
+
+   delete [] (Byte*) recv_pkt.data;
 
    return status;
 }
@@ -314,11 +324,11 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    send_buff << len_fname << make_pair(path, len_fname) << mode;
 
    // send the data
-   the_network->netSendToMCP(send_buff.getBuffer(), send_buff.size()); 
+   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size()); 
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecvFromMCP();
+   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -326,6 +336,8 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    // return the result
    int result;
    recv_buff >> result;
+
+   delete [] (Byte*) recv_pkt.data;
 
    return result;
 }

@@ -27,7 +27,7 @@
 
 #include <stdio.h> 
 #include "capi.h"
-#include "user_api.h"
+
 #include "fixed_types.h"
 
 #include <pthread.h> //not sure this is needed
@@ -356,8 +356,6 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	carbonInit();
-
 	// Declare threads and related variables
 	pthread_t threads[coreCount];
 	pthread_attr_t attr;
@@ -372,8 +370,6 @@ int main(int argc, char* argv[]) {
    for(unsigned int i=0; i < coreCount; i++) {
 		pthread_join(threads[i], NULL);         
 	}
-
-	carbonFinish();
 
    return 0;
 

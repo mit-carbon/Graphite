@@ -7,7 +7,7 @@
 
 void BitVector::reset()
 {
-   for( UINT32 i = 0; i < VECTOR_SIZE; i++)
+   for( UInt32 i = 0; i < VECTOR_SIZE; i++)
       words[i] = 0;
 
 	last_pos = -1;
@@ -35,7 +35,7 @@ bool BitVector::resetFind()
  * (b/c if you find no more set bits last_pos is set to -1)
  */
 
-INT32 BitVector::find()
+SInt32 BitVector::find()
 {
 	
 	int windex = (last_pos == -1) ? 0 : last_pos >> 6; //divide by 64
@@ -45,25 +45,25 @@ INT32 BitVector::find()
 	//return when we find a set bit (whose pos is > last_pos)
 	while(windex < word_count) {
                  
-		UINT64 word64 = words[windex];
+		UInt64 word64 = words[windex];
 		
 		if(word64 != 0) {
 			
-			UINT32 words32[2];
+			UInt32 words32[2];
 			words32[1] = ( word64 >> 32 ) ; 
 			words32[0] = word64 & 0xFFFFFFFF;
 			
 			for(int i = 0; i < 2; i++) {
 				if(words32[i] != 0) {
 				
-					UINT16 words16[2]; 
+					UInt16 words16[2]; 
 					words16[1] = ( words32[i] >> 16 );
 					words16[0] = words32[i] & 0xFFFF;
 
 					for(int j = 0; j < 2; j++) {
 						if(words16[j] != 0) {
 					      
-                     UINT8 words8[2];
+                     UInt8 words8[2];
 							words8[1] = ( words16[j] >> 8 );
 							words8[0] = words16[j] & 0xFF;
 					
@@ -97,46 +97,46 @@ INT32 BitVector::find()
 
 //helper function to "find", accepts a byte
 //and a bit location and returns true if bit is set
-bool BitVector::bTestBit(UINT8 byte_word, UINT32 bit) 
+bool BitVector::bTestBit(UInt8 byte_word, UInt32 bit) 
 {
 	assert ( bit < 8 );
 	
-//	UINT8 shift = bit & 0xF; i don't think this is necessary b/c of assert
-	UINT8 one = 1;
-	UINT8 mask = one << bit;
+//	UInt8 shift = bit & 0xF; i don't think this is necessary b/c of assert
+	UInt8 one = 1;
+	UInt8 mask = one << bit;
 	return (byte_word & mask) ? true : false;
 }
 
-bool BitVector::at(UINT32 bit) 
+bool BitVector::at(UInt32 bit) 
 {
    assert( bit < size);
 
-   UINT32 index = bit >> 6;
-   UINT64 shift = bit & 63;
-   UINT64 one   = 1;
-   UINT64 mask  = one << shift;
+   UInt32 index = bit >> 6;
+   UInt64 shift = bit & 63;
+   UInt64 one   = 1;
+   UInt64 mask  = one << shift;
    return (words[index] & mask) ? true : false;
 }
 
-void BitVector::set(UINT32 bit)
+void BitVector::set(UInt32 bit)
 {
    assert( bit < size );
 
-   UINT32 index  = bit >> 6;
-   UINT64 shift  = bit & 63;
-   UINT64 one    = 1;
-   UINT64 mask   = one << shift;     
+   UInt32 index  = bit >> 6;
+   UInt64 shift  = bit & 63;
+   UInt64 one    = 1;
+   UInt64 mask   = one << shift;     
    words[index] |= mask;
 }
 
-void BitVector::clear(UINT32 bit)
+void BitVector::clear(UInt32 bit)
 {
    assert( bit < size );
 
-   UINT32 index  = bit >> 6;
-   UINT64 shift  = bit & 63;
-   UINT64 one    = 1;
-   UINT64 mask   = ~(one << shift);     
+   UInt32 index  = bit >> 6;
+   UInt64 shift  = bit & 63;
+   UInt64 one    = 1;
+   UInt64 mask   = ~(one << shift);     
    words[index] &= mask;
 }
 
@@ -144,7 +144,7 @@ void BitVector::set(const BitVector& vec2)
 {
    assert( size == vec2.size );
 
-   for (UINT32 i = 0; i < VECTOR_SIZE; i++)
+   for (UInt32 i = 0; i < VECTOR_SIZE; i++)
       words[i] |= vec2.words[i];
 }
 
@@ -152,7 +152,7 @@ void BitVector::clear(const BitVector& vec2)
 {
    assert( size == vec2.size );
 
-   for (UINT32 i = 0; i < VECTOR_SIZE; i++)
+   for (UInt32 i = 0; i < VECTOR_SIZE; i++)
       words[i] &= ~vec2.words[i];
 }
 
@@ -160,7 +160,7 @@ bool BitVector::test(const BitVector& vec2)
 {
    assert( vec2.size == size );
 
-   for (UINT32 i = 0; i < VECTOR_SIZE; i++) {
+   for (UInt32 i = 0; i < VECTOR_SIZE; i++) {
       if ( vec2.words[i] & words[i] )
          return true;
    }

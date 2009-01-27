@@ -1,5 +1,5 @@
-#ifndef NETWORK_MESH_ANALYTICAL_SERVER_H
-#define NETWORK_MESH_ANALYTICAL_SERVER_H
+#ifndef NETWORK_MODEL_ANALYTICAL_SERVER_H
+#define NETWORK_MODEL_ANALYTICAL_SERVER_H
 
 #include <vector>
 
@@ -8,7 +8,7 @@ class UnstructuredBuffer;
 
 typedef int comm_id_t;
 
-class NetworkMeshAnalyticalServer
+class NetworkModelAnalyticalServer
 {
  private:
   std::vector<double> _local_utilizations;
@@ -17,8 +17,8 @@ class NetworkMeshAnalyticalServer
   UnstructuredBuffer & _recv_buffer;
 
  public:
-  NetworkMeshAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
-  ~NetworkMeshAnalyticalServer();
+  NetworkModelAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
+  ~NetworkModelAnalyticalServer();
 
   void update(comm_id_t);
 };

@@ -5,7 +5,7 @@
 /* Utility function definitions */
 /* ================================================================ */
 
-string myDecStr(UINT64 v, UINT32 w)
+string myDecStr(UInt64 v, UInt32 w)
 {
     ostringstream o;
     o.width(w);
@@ -15,13 +15,13 @@ string myDecStr(UINT64 v, UINT32 w)
 }
 
 
-bool isPower2(UINT32 n)
+bool isPower2(UInt32 n)
 { return ((n & (n - 1)) == 0); }
 
 
-INT32 floorLog2(UINT32 n)
+SInt32 floorLog2(UInt32 n)
 {
-   INT32 p = 0;
+   SInt32 p = 0;
 
    if (n == 0) return -1;
 
@@ -35,6 +35,6 @@ INT32 floorLog2(UINT32 n)
 }
 
 
-INT32 ceilLog2(UINT32 n)
+SInt32 ceilLog2(UInt32 n)
 { return floorLog2(n - 1) + 1; }
 

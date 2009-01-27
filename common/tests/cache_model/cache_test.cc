@@ -19,7 +19,7 @@ typedef Cache<CACHE_SET::RoundRobin<16, 128>, 1024, 64, CACHE_ALLOC::k_STORE_ALL
 int main(int argc, char* argv[])
 {
    // get valid aligned memory address to point to
-   ADDRINT dummy = (ADDRINT) malloc((DC_SIZE + DC_BLOCKSIZE) * 2);
+   IntPtr dummy = (IntPtr) malloc((DC_SIZE + DC_BLOCKSIZE) * 2);
    dummy = (dummy / DC_BLOCKSIZE) * DC_BLOCKSIZE + DC_BLOCKSIZE;
 
    RRSACache* dc = new RRSACache("dl1", DC_SIZE, DC_BLOCKSIZE, DC_ASSOC, 1);
@@ -30,10 +30,10 @@ int main(int argc, char* argv[])
    char buff[DC_BLOCKSIZE];
 
    bool eviction;
-   ADDRINT evict_addr;
+   IntPtr evict_addr;
    char evict_buff[DC_BLOCKSIZE];
 
-   ADDRINT addr;
+   IntPtr addr;
    CacheBase::AccessType access_type;
 
    char scratch[DC_BLOCKSIZE];

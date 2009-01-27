@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include "user_api.h"
+
+#include "capi.h"
+#include "sync_api.h"
 
 carbon_barrier_t my_barrier;
 
@@ -20,8 +22,6 @@ carbon_barrier_t my_barrier;
 void* test_wait_barrier(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
-
-   carbonInit();
 
    // Read in the command line arguments
    const unsigned int numThreads = 5;
@@ -50,7 +50,6 @@ int main(int argc, char* argv[]){ // main begins
       pthread_join(threads[i], NULL);
 
    printf("Quitting syscall server!\n");
-   carbonFinish();
 
 #ifdef DEBUG
    printf("This is the function main ending\n");
@@ -62,7 +61,7 @@ int main(int argc, char* argv[]){ // main begins
 int wait_some()
 {
    int j = 0;
-   for(unsigned int i = 0; i < 200000; i++)
+   for(unsigned int i = 0; i < 20000; i++)
    {
       j += i;
    }
@@ -95,18 +94,18 @@ void* test_wait_barrier(void *threadid)
     }
   else
     {
-      sleep(1);
+      sleep(5);
     }
 
 
-  if(tid == 1)
-  {
-     fprintf(stderr, "UserWait: THREAD (%d).\n", tid);
-     wait_some();
-  }
-
   for(i = 0; i < 50; i++)
   {
+     if(tid == 1)
+     {
+        fprintf(stderr, "UserWait: THREAD (%d).\n", i);
+        wait_some();
+     }
+
      barrierWait(&my_barrier);
   }
 

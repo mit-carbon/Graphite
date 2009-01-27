@@ -9,21 +9,18 @@
 #include <iostream>
 #include <errno.h>
 #include <assert.h>
-#include "pin.H"
 #include "mpi.h"
 #include "config.h"
-
-extern Config* g_config;
+#include "fixed_types.h"
 
 class Transport {
    private:
-      int    pt_tid;
-      int    comm_id;
-      bool   i_am_the_MCP;     // True if this node belongs to the MCP
-      static int MCP_rank;     // MPI rank of the process containing the MCP
+      SInt32 pt_tid;
+      SInt32 comm_id;
+      static SInt32 MCP_rank;     // MPI rank of the process containing the MCP
       static UInt32 MCP_tag;   // The tag to use when sending to the MCP
-      static int pt_num_mod;
-      static int* dest_ranks;  // Map from comm_id to MPI rank
+      static SInt32 pt_num_mod;
+      static SInt32* dest_ranks;  // Map from comm_id to MPI rank
 
       //***** Private helper functions *****//
 
@@ -34,10 +31,10 @@ class Transport {
    public:	
 
       // This routine should be called once within in each process.
-      static void ptInitQueue(int num_mod);
+      static void ptInitQueue(SInt32 num_mod);
 
       // This routine should be called once within each thread.
-      int ptInit(int tid, int num_mod);
+      SInt32 ptInit(SInt32 tid, SInt32 num_mod);
 
       // The MCP should use this initialization routine instead of ptInit
       void ptInitMCP();
@@ -46,56 +43,17 @@ class Transport {
       static void ptFinish() { MPI_Finalize(); }
 
       // Return the communications ID for this node
-      int ptCommID() { return comm_id; }
+      SInt32 ptCommID() { return comm_id; }
 
       // Send a message to another core.  This call returns immediately.
-      int ptSend(int receiver, char *buffer, int length);
+      SInt32 ptSend(SInt32 receiver, void *buffer, SInt32 length);
 
       // Receive the next incoming message from any sender.  This call is
       //  blocking and will not return until a message has been received.
-      char* ptRecv();
+      void* ptRecv();
 
       // Returns TRUE if there is a message waiting to be received.
-      bool ptQuery();
-
-      /* ==================================================================
-       * The MCP does not use these routines anymore. It uses the netowrk
-       * instead
-       * ==================================================================
-       *
-      // *************************************************************** //
-      // These routines are used to communicate with the central server
-      // process (known as the "MCP").  There is exactly one server for
-      // the entire simulation but the user shouldn't have to know
-      // anything about where it is or how to get to it.
-      // *************************************************************** //
-
-      // ptSendToMCP:
-      //  buffer: (input) Pointer to buffer of data to send
-      //  num_bytes: (input) Number of bytes to send from the buffer
-      void  ptSendToMCP(UInt8* buffer, UInt32 num_bytes);
-
-      // ptRecvFromMCP:
-      //   num_bytes: (output) Number of bytes received
-      //   Returns: A pointer to a buffer filled with the received data
-      //   Note: Delete the buffer when you are done with it
-      UInt8* ptRecvFromMCP(UInt32* num_bytes);
-
-      // ***** The two below should only be called from the MCP ***** //
-      // ptMCPSend:
-      //  dest: (input) Comm_ID of the module you are sending to
-      //  buffer: (input) Pointer to buffer of data to send
-      //  num_bytes: (input) Number of bytes to send from the buffer
-      void  ptMCPSend(UInt32 dest, UInt8* buffer, UInt32 num_bytes);
-
-      // ptMCPRecv:
-      //   num_bytes: (output) Number of bytes received
-      //   Returns: A pointer to a buffer filled with the received data
-      //   Note: Delete the buffer when you are done with it
-      UInt8* ptMCPRecv(UInt32* num_bytes);
-
-      =================================================================== */
-
+      Boolean ptQuery();
 };
 
 #endif

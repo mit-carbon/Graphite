@@ -16,10 +16,9 @@
 #include "cache_state.h"
 #include "address_home_lookup.h"
 #include "perfmdl.h"
-#include "lockfree_hash.h"
+#include "locked_hash.h"
 #include "syscall_model.h"
 #include "mcp.h"
-#include "debug.h"
 
 // external variables
 
@@ -37,6 +36,7 @@ extern LEVEL_BASE::KNOB<string> g_knob_output_file;
 
 // FIXME: if possible, these shouldn't be globals. Pin callbacks may need them to be. 
 
+THREADID chipThreadId();
 CAPI_return_t chipInit(int rank);
 CAPI_return_t chipInitFreeRank(int *rank);
 
@@ -55,26 +55,26 @@ CAPI_return_t chipFinish(int my_rank);
 //deal with locks in cout
 CAPI_return_t chipPrint(string s);
 
-CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data);
+CAPI_return_t chipDebugSetMemState(IntPtr address, SInt32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UInt32> sharers_list, char *d_data, char *c_data);
 
-CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code);
+CAPI_return_t chipDebugAssertMemState(IntPtr address, SInt32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UInt32> sharers_list, char *d_data, char *c_data, string test_code, string error_code);
 
 
-CAPI_return_t chipSetDramBoundaries(vector< pair<ADDRINT, ADDRINT> > addr_boundaries);
+CAPI_return_t chipSetDramBoundaries(vector< pair<IntPtr, IntPtr> > addr_boundaries);
 
 // Stupid Hack
-CAPI_return_t chipAlias (ADDRINT address0, addr_t addrType, UINT32 num);
-ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2);
-UINT32 log(UINT32);
+CAPI_return_t chipAlias (IntPtr address0, addr_t addrType, UInt32 num);
+IntPtr createAddress (UInt32 num, UInt32 coreId, bool pack1, bool pack2);
+UInt32 log(UInt32);
 // performance model wrappers
 
 void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
 
 void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
-                  REG *reads, UINT32 num_reads, bool firstCallInIntrvl);
+                  REG *reads, UInt32 num_reads, bool firstCallInIntrvl);
 
 void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-                  REG *writes, UINT32 num_writes, bool firstCallInIntrvl);
+                  REG *writes, UInt32 num_writes, bool firstCallInIntrvl);
 
 PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                  const INS& start_ins, const INS& end_ins);
@@ -88,13 +88,13 @@ void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool c
 
 // organic cache model wrappers
 
-bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
+bool icacheRunLoadModel(IntPtr i_addr, UInt32 size);
 
-bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 size);
+bool dcacheRunModel(CacheBase::AccessType access_type, IntPtr d_addr, char* data_buffer, UInt32 size);
 //TODO removed these because it's unneccsary
 //shared memory doesn't care, but for legacy sake, i'm leaving them here for now
-//bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-//bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+//bool dcacheRunLoadModel(IntPtr d_addr, UInt32 size);
+//bool dcacheRunStoreModel(IntPtr d_addr, UInt32 size);
 
 // syscall model wrappers
 
@@ -113,20 +113,11 @@ void SimCondWait(carbon_cond_t *cond, carbon_mutex_t *mux);
 void SimCondSignal(carbon_cond_t *cond);
 void SimCondBroadcast(carbon_cond_t *cond);
 
-void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count);
+void SimBarrierInit(carbon_barrier_t *barrier, UInt32 count);
 void SimBarrierWait(carbon_barrier_t *barrier);
 
-// MCP server wrappers
-void MCPRun();
-void MCPFinish();
-void *MCPThreadFunc(void *dummy);
-
-// Shared Memory Functions
-void SimSharedMemQuit();
-void* SimSharedMemThreadFunc(void *dummy);
-
-
 // Helper functions
+void SimSharedMemQuit();
 int SimGetCoreCount();
 
 // chip class
@@ -157,9 +148,9 @@ class Chip
  
       friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
       friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
-                               REG *reads, UINT32 num_reads, bool firstCallInIntrvl);
+                               REG *reads, UInt32 num_reads, bool firstCallInIntrvl);
       friend void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-                               REG *writes, UINT32 num_writes, bool firstCallInIntrvl);
+                               REG *writes, UInt32 num_writes, bool firstCallInIntrvl);
       friend PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine, 
                                                               const INS& start_ins, 
                                                               const INS& end_ins);
@@ -181,22 +172,19 @@ class Chip
       friend void SimCondSignal(carbon_cond_t *cond);
       friend void SimCondBroadcast(carbon_cond_t *cond);
 
-      friend void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count);
+      friend void SimBarrierInit(carbon_barrier_t *barrier, UInt32 count);
       friend void SimBarrierWait(carbon_barrier_t *barrier);
       
       // organic cache modeling wrappers
-      friend bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size);
-      friend bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size);
+      friend bool icacheRunLoadModel(IntPtr i_addr, UInt32 size);
+      friend bool dcacheRunModel(CacheBase::AccessType access_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 		//TODO deprecate these two bottom functions
-      // friend bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size);
-      // friend bool dcacheRunStoreModel(ADDRINT d_addr, UINT32 size);
+      // friend bool dcacheRunLoadModel(IntPtr d_addr, UInt32 size);
+      // friend bool dcacheRunStoreModel(IntPtr d_addr, UInt32 size);
 
 		// FIXME: A hack for DEBUG purposes
-		friend CAPI_return_t chipAlias(ADDRINT address0, addr_t addType, UINT32 num);
+		friend CAPI_return_t chipAlias(IntPtr address0, addr_t addType, UInt32 num);
 		friend bool isAliasEnabled(void);
-
-      // Shared Memory Thread Func
-      friend void* SimSharedMemThreadFunc(void *);
 
    private:
 
@@ -207,11 +195,11 @@ class Chip
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)
       THREADID *tid_map;
-      LockFreeHash core_map;
+      LockedHash core_map;
 
       // Mapping for the shared memory threads
       THREADID *core_to_shmem_tid_map;
-      LockFreeHash shmem_tid_to_core_map;
+      LockedHash shmem_tid_to_core_map;
 
       int prev_rank;
       
@@ -223,7 +211,7 @@ class Chip
 
 		// FIXME: This is strictly a hack for testing data storage
 		bool aliasEnable;
-		std::map<ADDRINT,ADDRINT> aliasMap;
+		std::map<IntPtr,IntPtr> aliasMap;
 		//////////////////////////////////////////////////////////
 
       Chip(int num_mods);
@@ -238,14 +226,14 @@ class Chip
 		//an address to set the conditions for
 		//a dram vector, with a pair for the id's of the dram directories to set, and the value to set it to
 		//a cache vector, with a pair for the id's of the caches to set, and the value to set it to
-		void debugSetInitialMemConditions (vector<ADDRINT>& address_vector, 
-		  											  vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
-													  vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
+		void debugSetInitialMemConditions (vector<IntPtr>& address_vector, 
+		  											  vector< pair<SInt32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UInt32> >& sharers_list_vector, 
+													  vector< vector< pair<SInt32, CacheState::cstate_t> > >& cache_vector, 
 		  											  vector<char*>& d_data_vector, 
 													  vector<char*>& c_data_vector);
-		bool debugAssertMemConditions (vector<ADDRINT>& address_vector, 
-		  										 vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
-												 vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
+		bool debugAssertMemConditions (vector<IntPtr>& address_vector, 
+		  										 vector< pair<SInt32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UInt32> >& sharers_list_vector, 
+												 vector< vector< pair<SInt32, CacheState::cstate_t> > >& cache_vector, 
 		  										 vector<char*>& d_data_vector, 
 												 vector<char*>& c_data_vector,
 												 string test_code, string error_string);

@@ -15,8 +15,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "user_api.h"
 
+#include "capi.h"
 
 //#define DEBUG 1
 
@@ -41,7 +41,6 @@ void* cannon(void * threadid);
 int main(int argc, char* argv[]){ // main begins
 	
 	// Read in the command line arguments
-   carbonInit();
 	
 	unsigned int matSize, numThreads;
 	pthread_t* threads;
@@ -161,8 +160,6 @@ int main(int argc, char* argv[]){ // main begins
 	// Debug
 	printf("Number of sends = %ld\n", numSendCalls);
 	printf("Number of receives = %ld\n", numReceiveCalls);
-
-   carbonFinish();
 
 	pthread_exit(NULL);
 } // main ends

@@ -3,7 +3,12 @@
 #include <fcntl.h>
 #include "syscall_server.h"
 #include "sys/syscall.h"
+#include "core.h"
+#include "config.h"
 
+#include "log.h"
+#define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()
+#define LOG_DEFAULT_MODULE SYSCALL
 
 using namespace std;
 
@@ -49,7 +54,8 @@ void SyscallServer::handleSyscall(int comm_id)
          break;
       default:
       {
-         cerr << "Unhandled syscall number: " << (int)syscall_number << " from: " << comm_id << endl;
+         LOG_NOTIFY_ERROR();
+         LOG_PRINT("Unhandled syscall number: %i from %i", (int)syscall_number, comm_id);
       }
    }
 }
@@ -97,7 +103,7 @@ void SyscallServer::marshallOpenCall(int comm_id)
 
    send_buff << ret;
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());
 
    if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
       delete[] path;
@@ -128,14 +134,21 @@ void SyscallServer::marshallReadCall(int comm_id)
    int fd;
    char *buf = (char *) scratch;
    size_t count;
+   char *dest;
 
-   recv_buff >> fd >> count;
+   //create a temporary int for storing the addr
+   int d2;
+   recv_buff >> fd >> count >> d2;
+   dest = (char *)d2;
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
    // Actually do the read call
    int bytes = read(fd, (void *) buf, count);  
+
+   // Copy the memory into shared mem
+   _network.getCore()->dcacheRunModel(Core::STORE, (ADDRINT)dest, buf, count);
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
@@ -146,7 +159,7 @@ void SyscallServer::marshallReadCall(int comm_id)
    if ( bytes != -1 )
      send_buff << make_pair(buf, bytes);
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
@@ -185,12 +198,26 @@ void SyscallServer::marshallWriteCall(int comm_id)
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
-   recv_buff >> make_pair(buf, count);
+   // If we aren't using shared memory, then the data for the
+   // write call must be passed in the message
+   if(g_config->isSimulatingSharedMemory())
+   {
+       char *src;
+       int src_b;
+       recv_buff >> src_b;
+       src = (char *)src_b;
+
+       _network.getCore()->dcacheRunModel(Core::LOAD, (ADDRINT)src, buf, count);
+   }
+   else
+   {
+       recv_buff >> make_pair(buf, count);
+   }
 
    // Actually do the write call
    int bytes = write(fd, (void *) buf, count);  
-   if ( bytes != -1 )
-      cerr << "wrote: " << buf << endl;
+//   if ( bytes != -1 )
+//      cerr << "wrote: " << buf << endl;
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
@@ -199,7 +226,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
    
    send_buff << bytes;
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
 
    if ( count > SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
@@ -237,7 +264,7 @@ void SyscallServer::marshallCloseCall(int comm_id)
    //cerr << "status: " << status << endl;
    
    send_buff << status;
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());   
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
 
 }
 
@@ -266,7 +293,7 @@ void SyscallServer::marshallAccessCall(int comm_id)
 
    send_buff << ret;
 
-   _network.netMCPSend(comm_id, send_buff.getBuffer(), send_buff.size());
+   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());
 
    if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
       delete[] path;

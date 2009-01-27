@@ -1,11 +1,15 @@
-#include "network_mesh_analytical_server.h"
+#include "network_model_analytical_server.h"
 
 #include "transport.h"
 #include "network.h"
 #include "packetize.h"
 #include "config.h"
 
-NetworkMeshAnalyticalServer::NetworkMeshAnalyticalServer(Network &network,
+#include "log.h"
+#define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()
+#define LOG_DEFAULT_MODULE NETWORK
+
+NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
                                                          UnstructuredBuffer &recv_buffer)
   : _network(network),
     _recv_buffer(recv_buffer)
@@ -18,10 +22,10 @@ NetworkMeshAnalyticalServer::NetworkMeshAnalyticalServer(Network &network,
     }
 }
 
-NetworkMeshAnalyticalServer::~NetworkMeshAnalyticalServer()
+NetworkModelAnalyticalServer::~NetworkModelAnalyticalServer()
 { }
 
-void NetworkMeshAnalyticalServer::update(comm_id_t commid)
+void NetworkModelAnalyticalServer::update(comm_id_t commid)
 {
   // extract update
   double ut;
@@ -43,7 +47,8 @@ void NetworkMeshAnalyticalServer::update(comm_id_t commid)
   //  assert(0 <= global_utilization && global_utilization <= 1);
   if (global_utilization > 1)
      {
-        fprintf(stderr, "WARNING: Network utilization exceeds 1; %f\n", global_utilization);
+        LOG_NOTIFY_WARNING();
+        LOG_PRINT("WARNING: Network utilization exceeds 1; %f", global_utilization);
         global_utilization = 0.99;
      }
 
@@ -55,5 +60,5 @@ void NetworkMeshAnalyticalServer::update(comm_id_t commid)
   response.type = MCP_UTILIZATION_UPDATE_TYPE;
   response.data = (char *) &global_utilization;
 
-  _network.netSendMagic(response);
+  _network.netSend(response);
 }

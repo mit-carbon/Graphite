@@ -1,15 +1,31 @@
-#include "chip.h"
 #include <sched.h>
+#include <linux/unistd.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
+#include "chip.h"
 #include "sync_client.h"
+#include "shared_mem.h"
+
+#include "log.h"
+#define LOG_DEFAULT_RANK -1
+#define LOG_DEFAULT_MODULE CHIP
 
 // definitions
 using namespace std;
 
+
+THREADID chipThreadId()
+{
+   return  syscall( __NR_gettid );
+}
+
 //TODO: c++-ize this, please oh please!
 CAPI_return_t chipInit(int rank)
 {
-   THREADID pin_tid = PIN_ThreadId();
+   THREADID pin_tid = chipThreadId();
+
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
 
@@ -35,7 +51,7 @@ CAPI_return_t chipInit(int rank)
 CAPI_return_t chipInitFreeRank(int *rank)
 {
    
-	THREADID pin_tid = PIN_ThreadId();
+	THREADID pin_tid = chipThreadId();
 
    GetLock (&g_chip->maps_lock, 1);
 
@@ -80,10 +96,9 @@ CAPI_return_t chipInitFreeRank(int *rank)
 
 CAPI_return_t chipRank(int *rank)
 {
-   THREADID pin_tid = PIN_ThreadId();
+   THREADID pin_tid = chipThreadId();
 
    pair<bool, UINT64> e = g_chip->core_map.find(pin_tid);
-
    *rank = (e.first == false) ? -1 : e.second;
 
    bool rank_ok = (*rank < g_chip->getNumModules());
@@ -99,7 +114,7 @@ CAPI_return_t commRank(int *commid)
    // FIXME: The network nodes should be moved up from within a core to
    //  directly within a chip.  When this happens, this will have to change.
    
-   *commid = (my_tid < 0) ? -1 : g_chip->core[my_tid].coreCommID();
+   *commid = (my_tid < 0) ? -1 : g_chip->core[my_tid].getNetwork()->getTransport()->ptCommID();
 
    return 0;
 }
@@ -124,72 +139,10 @@ CAPI_return_t chipRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
    */ 
    return g_chip->core[rank].coreRecvW(sender, receiver, buffer, size);
 }
- //FIXME hack, keep calling Network::netEntryTasks until all cores have finished running. Can we use an interupt instead? Also, I'm too lazy to figure out my_rank, so I'm just passing it in for now. cpc
- //FIXME BUG doesn't correctly finish b/c we have a new process (sys server?), AND we can't erase guys from core_map -CPC
-CAPI_return_t chipFinish(int my_rank)
-{
-	GetLock(&print_lock, 1);
-	cerr << "[" << my_rank << "] FINISHED\n";
-	debugPrint (my_rank, "CHIP", "HACK---- please remove chipHackFinish...... ");
-	debugPrint (my_rank, "CHIP", "FINISHED");
-
-	assert( my_rank < g_chip->getNumModules() );
-	/* Added by George */
-	// cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager()->getDramDirectory())->getDramAccessCost() << endl;
-//	cerr << "Total DRAM access cost = " << ((g_chip->core[my_rank]).getMemoryManager())->getDramAccessCost() << endl;
-
-	//check in to chip, tell them we're finished
-	g_chip->finished_cores[my_rank] = true;
-	bool volatile finished = false;
-	
-	
-//	cerr << "FinshedCores look like this: " << endl;
-//	for(int i=0; i < g_chip->getNumModules(); i++) {
-//		cerr << "  finished_cores[" << i << "] : " << (g_chip->finished_cores[i] ? "TRUE":"FALSE") << endl;
-//	}
-	
-
-	ReleaseLock(&print_lock);
-
-	//IMPORTANT: clear my id from the core_map so we are not instrumented anymore
-	//if we forget this we deadline while servicing the exit before pthread_join
-//   THREADID pin_tid = PIN_ThreadId();
-//	map<THREADID, int>::iterator e = g_chip->core_map.find(pin_tid);
-//   int rank = ( e == g_chip->core_map.end() ) ? -1 : e->second;
-//	pair<bool, UINT64> e  = g_chip->core_map.find(pin_tid);
-//   assert( e.first == true );
-//	g_chip->core_map.erase(e);
-
-	while(!finished) {
-		g_chip->core[my_rank].getNetwork()->netCheckMessages();
-		
-		bool cores_still_working = false;
-		for(int i=0; i < g_chip->getNumModules(); i++) {
-			if(!g_chip->finished_cores[i])
-				cores_still_working = true;
-		}
-
-		if(!cores_still_working)
-			finished = true;
-	}
-	GetLock(&print_lock,1);
-	cerr << " [" << my_rank << "] ENDING PROGRAM...." << endl;
-	ReleaseLock(&print_lock);
-   return 0;
-}
-
-
-CAPI_return_t chipPrint(string s) 
-{
-	cerr << s;
-	return 0;
-}
-
-
 
 // performance model wrappers
 
-VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
 { 
    //int rank; 
    //chipRank(&rank);
@@ -197,7 +150,7 @@ VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool firstCal
    g_chip->core[rank].perfModelRun(interval_stats, firstCallInIntrvl); 
 }
 
-VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, 
                   REG *reads, UINT32 num_reads, bool firstCallInIntrvl)
 { 
    //int rank;
@@ -206,7 +159,7 @@ VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats,
    g_chip->core[rank].perfModelRun(interval_stats, reads, num_reads, firstCallInIntrvl); 
 }
 
-VOID perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+void perfModelRun(int rank, PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
                   REG *writes, UINT32 num_writes, bool firstCallInIntrvl)
 { 
    //int rank;
@@ -233,7 +186,7 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    return array; 
 }
 
-VOID perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit)
+void perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool hit)
 { 
    //int rank;
    //chipRank(&rank);
@@ -241,7 +194,7 @@ VOID perfModelLogICacheLoadAccess(int rank, PerfModelIntervalStat *stats, bool h
    g_chip->core[rank].perfModelLogICacheLoadAccess(stats, hit); 
 }
      
-VOID perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit)
+void perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool hit)
 { 
     //int rank;
     //chipRank(&rank);
@@ -249,7 +202,7 @@ VOID perfModelLogDCacheStoreAccess(int rank, PerfModelIntervalStat *stats, bool 
    g_chip->core[rank].perfModelLogDCacheStoreAccess(stats, hit); 
 }
 
-VOID perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct)
+void perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool correct)
 { 
    //int rank;
    //chipRank(&rank);
@@ -260,7 +213,7 @@ VOID perfModelLogBranchPrediction(int rank, PerfModelIntervalStat *stats, bool c
 
 // organic cache model wrappers
 
-bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
+bool icacheRunLoadModel(IntPtr i_addr, UINT32 size)
 { 
    int rank;
    chipRank(&rank);
@@ -268,7 +221,7 @@ bool icacheRunLoadModel(ADDRINT i_addr, UINT32 size)
    return g_chip->core[rank].icacheRunLoadModel(i_addr, size); 
 }
 
-bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* data_buffer, UINT32 data_size)
+bool dcacheRunModel(CacheBase::AccessType access_type, IntPtr d_addr, char* data_buffer, UINT32 data_size)
 {
    int rank;
    chipRank(&rank);
@@ -282,7 +235,7 @@ bool dcacheRunModel(CacheBase::AccessType access_type, ADDRINT d_addr, char* dat
 }
 
 /*
-bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
+bool dcacheRunLoadModel(IntPtr d_addr, UINT32 size)
 { 
    //int rank;
    //chipRank(&rank);
@@ -293,7 +246,7 @@ bool dcacheRunLoadModel(ADDRINT d_addr, UINT32 size)
 	return g_chip->core[rank].dcacheRunModel(Core::LOAD, d_addr, data_buffer, size); 
 }
 
-bool dcacheRunStoreModel(int rank, ADDRINT d_addr, UINT32 size)
+bool dcacheRunStoreModel(int rank, IntPtr d_addr, UINT32 size)
 { 
    //int rank;
    //chipRank(&rank);
@@ -408,80 +361,11 @@ void SimBarrierWait(carbon_barrier_t *barrier)
       g_chip->core[rank].getSyncClient()->barrierWait(barrier);
 }
 
-// MCP wrappers
-void MCPFinish()
-{
-   assert(g_MCP != NULL);
-   g_MCP->finish();
-}
-
-
-void* MCPThreadFunc(void *dummy)
-{
-  	// Declare local variables
-  	CAPI_return_t rtnVal;
-
-   //FIXME: this should probably be total cores, but that was returning
-   //zero when I tried it. --cg3
-   rtnVal = chipInit(g_knob_num_cores);
-
-   while( !g_MCP->finished() )
-   {
-      g_MCP->run();
-      //usleep(1);
-   }   
-	debugPrint (g_knob_num_cores /* rank */, "CHIP", "MCPThreadFunc - end!");
-   return NULL;
-
-}
-
-// Shared Memory Functions
-void SimSharedMemQuit()
-{
-   NetPacket pkt;
-   pkt.type = SHARED_MEM_TERMINATE_THREADS;
-   pkt.length = 0;
-   pkt.data = 0;
-
-   g_MCP->broadcastPacket(pkt);
-}
-
-void SharedMemTerminateFunc(void *vp, NetPacket pkt)
-{
-   bool *pcont = (bool*) vp;
-   *pcont = false;
-}
-
-void* SimSharedMemThreadFunc(void *)
-{
-    int core_id = g_chip->registerSharedMemThread();
-    Network *net = g_chip->core[core_id].getNetwork();
-    bool cont = true;
-
-    net->registerCallback(SHARED_MEM_TERMINATE_THREADS,
-                          SharedMemTerminateFunc,
-                          &cont);
-
-    while(cont)
-       net->netPullFromTransport();
-
-    return 0;
-}
-
-
-// Helper Functions
-int SimGetCoreCount()
-{
-    return g_chip->getNumModules();
-}
-
-// Chip class method definitions
+// == Chip class =============================== //
 
 Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid_to_core_map(3*num_mods), prev_rank(0) 
 //Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), prev_rank(0)
 {
-   debugInit(num_mods);
-
 	InitLock (&maps_lock);
 	
    tid_map = new THREADID [num_mods];
@@ -506,30 +390,33 @@ Chip::Chip(int num_mods): num_modules(num_mods), core_map(3*num_mods), shmem_tid
 		finished_cores[i] = false;
 	}
 
-	cerr << "Finished Chip Constructor." << endl;
+	LOG_PRINT("Finished Chip Constructor.");
 }
 
-VOID Chip::fini(int code, VOID *v)
+void Chip::fini(int code, void *v)
 {
+   LOG_PRINT("Starting Chip::fini");
+
    ofstream out( g_knob_output_file.Value().c_str() );
 
    for(int i = 0; i < num_modules; i++)
    {
-      cout << "*** Core[" << i << "] summary ***" << endl;
+      LOG_PRINT("Output summary core %i", i);
+
       out << "*** Core[" << i << "] summary ***" << endl;
       core[i].fini(code, v, out); 
-      cout << endl;
       out << endl;
    }
 
-	debugFinish(); //close debug logs
    out.close();
+
+   LOG_PRINT("Finish chip::fini");
 }
 
 int Chip::registerSharedMemThread()
 {
 	// FIXME: I need to lock because there is a race condition
-	THREADID pin_tid = PIN_ThreadId();
+	THREADID pin_tid = chipThreadId();
 
    GetLock (&maps_lock, 1);
    pair<bool, UINT64> e = g_chip->shmem_tid_to_core_map.find(pin_tid);
@@ -566,13 +453,13 @@ int Chip::registerSharedMemThread()
    return -1;
 }
 
-void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector, 
+void Chip::debugSetInitialMemConditions (vector<IntPtr>& address_vector, 
 		  											  vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
 													  vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
 		  											  vector<char*>& d_data_vector, 
 													  vector<char*>& c_data_vector)
 {
-	vector<ADDRINT> temp_address_vector = address_vector;
+	vector<IntPtr> temp_address_vector = address_vector;
 
 	assert (d_data_vector.size() == c_data_vector.size());
 	assert (d_data_vector.size() == dram_vector.size());
@@ -581,7 +468,7 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 	while (!dram_vector.empty())
 	{  //TODO does this assume 1:1 core/dram allocation?
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 
 		INT32 curr_dram_id = dram_vector.back().first;
@@ -602,7 +489,7 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 	while(!cache_vector.empty()) 
 	{
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 		
 		vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector = cache_vector.back();
@@ -623,7 +510,7 @@ void Chip::debugSetInitialMemConditions (vector<ADDRINT>& address_vector,
 
 }
 
-bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector, 
+bool Chip::debugAssertMemConditions (vector<IntPtr>& address_vector, 
 		  										 vector< pair<INT32, DramDirectoryEntry::dstate_t> >& dram_vector, vector<vector<UINT32> >& sharers_list_vector, 
 												 vector< vector< pair<INT32, CacheState::cstate_t> > >& cache_vector, 
 		  										 vector<char*>& d_data_vector, 
@@ -631,7 +518,7 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 												 string test_code, string error_string)
 {
 	bool all_asserts_passed = true;
-	vector<ADDRINT> temp_address_vector = address_vector;
+	vector<IntPtr> temp_address_vector = address_vector;
 
 	assert (d_data_vector.size() == c_data_vector.size());
 	assert (d_data_vector.size() == dram_vector.size());
@@ -640,7 +527,7 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 	while (!dram_vector.empty())
 	{  //TODO does this assume 1:1 core/dram allocation?
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 
 		INT32 curr_dram_id = dram_vector.back().first;
@@ -662,7 +549,7 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 	while(!cache_vector.empty()) 
 	{
 
-		ADDRINT curr_address = address_vector.back();
+		IntPtr curr_address = address_vector.back();
 		address_vector.pop_back();
 		
 		vector< pair<INT32, CacheState::cstate_t> > curr_cache_vector = cache_vector.back();
@@ -691,9 +578,9 @@ bool Chip::debugAssertMemConditions (vector<ADDRINT>& address_vector,
 }
 
 /*user program calls get routed through this */
-CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
+CAPI_return_t chipDebugSetMemState(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data)
 {
-	vector<ADDRINT> address_vector;
+	vector<IntPtr> address_vector;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
 	vector< vector <UINT32> > sharers_list_vector;
 	vector< vector < pair<INT32, CacheState::cstate_t> > > cache_vector;
@@ -727,9 +614,9 @@ CAPI_return_t chipDebugSetMemState(ADDRINT address, INT32 dram_address_home_id, 
 	return 0;
 }
 
-CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
+CAPI_return_t chipDebugAssertMemState(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
 {
-	vector<ADDRINT> address_vector;
+	vector<IntPtr> address_vector;
 	vector< pair<INT32, DramDirectoryEntry::dstate_t> > dram_vector;
 	vector< vector <UINT32> > sharers_list_vector;
 	vector< vector < pair<INT32, CacheState::cstate_t> > > cache_vector;
@@ -792,7 +679,7 @@ CAPI_return_t chipDebugAssertMemState(ADDRINT address, INT32 dram_address_home_i
 
 
 // FIXME: Stupid Hack for debugging purpose 
-CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
+CAPI_return_t chipAlias (IntPtr address, addr_t addrType, UINT32 num)
 {
 	// It is better to create an alias map here. An assciative array
 	assert (g_chip->num_modules == 3);
@@ -832,14 +719,14 @@ CAPI_return_t chipAlias (ADDRINT address, addr_t addrType, UINT32 num)
 
 extern KNOB<UINT32> g_knob_ahl_param;
 
-ADDRINT createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
+IntPtr createAddress (UINT32 num, UINT32 coreId, bool pack1, bool pack2) {
 
 	/*
 	 * ADDRESS breaks down as follows
 	 * ****************************************
 	 * Assume logCacheBlockSize = 5
 	 * Assume logBlockSize = 10
-	 * Assume sizeof(ADDRINT) = 32
+	 * Assume sizeof(IntPtr) = 32
 	 * ****************************************
 	 *  31             11 |    10    | 9               5 | 4                0 |
 	 * |                  |          |                   |                    | 

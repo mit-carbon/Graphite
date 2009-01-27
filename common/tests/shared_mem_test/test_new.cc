@@ -4,7 +4,7 @@
 #include <math.h>
 #include <sstream>
 #include "capi.h"
-#include "user_api.h"
+
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "core.h"
@@ -44,7 +44,7 @@ enum operation_t {
 };
 
 struct addrVectStruct {
-	ADDRINT addr;
+	IntPtr addr;
 	int dram_home_id;
 };
 
@@ -87,7 +87,7 @@ vector<UINT32> fini_mem_state_id; //allow the "fini state arrays to point to the
 
 //dynamically set these values to point
 //to valid addresses on dram0, dram1 sections
-ADDRINT dram0_address, dram1_address;
+IntPtr dram0_address, dram1_address;
 
 //vector<stringstream> error_str_vector;
 
@@ -109,8 +109,6 @@ int main(int argc, char* argv[]) { // main begins
 	
 	// 2 important Simulator variables are initialized here
 	UINT32 logCacheBlockSize;
-
-	carbonInit();
 
 	logCacheBlockSize = atoi(argv[1]);
 	cacheBlockSize = 1 << logCacheBlockSize;
@@ -155,8 +153,6 @@ int main(int argc, char* argv[]) { // main begins
    pthread_join(threads[0], NULL);         
 	pthread_join(threads[1], NULL);
 
-
-   carbonFinish();
 
 #ifdef DEBUG
 	cerr << "End of execution" << endl << endl;
@@ -205,7 +201,7 @@ void BARRIER_DUAL_CORE(int tid)
 	}
 }
 
-void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code)
+void SET_INITIAL_MEM_CONDITIONS(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code)
 {
 	cerr << endl << endl;
    cerr << "   *****************************************************************************************************************" << endl;
@@ -216,7 +212,7 @@ void SET_INITIAL_MEM_CONDITIONS(ADDRINT address, INT32 dram_address_home_id, Dra
 	CAPI_debugSetMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, d_data, c_data);
 }     
 
-bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
+bool ASSERT_MEMORY_STATE(IntPtr address, INT32 dram_address_home_id, DramDirectoryEntry::dstate_t dstate, CacheState::cstate_t cstate0, CacheState::cstate_t cstate1, vector<UINT32> sharers_list, char *d_data, char *c_data, string test_code, string error_code)
 {
 	if(CAPI_debugAssertMemState(address, dram_address_home_id, dstate, cstate0, cstate1, sharers_list, d_data, c_data, test_code, error_code) == 1)
 	{
@@ -227,17 +223,17 @@ bool ASSERT_MEMORY_STATE(ADDRINT address, INT32 dram_address_home_id, DramDirect
 }
 
 /*
-ADDRINT getAddressOnCore (UINT32 coreId, UINT32 *global_array_ptr) {
+IntPtr getAddressOnCore (UINT32 coreId, UINT32 *global_array_ptr) {
 
 	// This is a big big hack
 	// Uses 'logDRAMContiguousBlockSize'
 	// Lets assume that the address is always cache block aligned for now
-	ADDRINT start_addr = (ADDRINT) global_array_ptr;
+	IntPtr start_addr = (IntPtr) global_array_ptr;
 	cerr << "test.cc :: start_addr = 0x" << hex << start_addr << endl;
 	cerr << "Wanted Address = 0x" << hex << (coreId << logDRAMContiguousBlockSize) << endl;
 	// assert (start_addr < (coreId << logDRAMContiguousBlockSize));
 	if (start_addr < (coreId << logDRAMContiguousBlockSize))
-		return ( (ADDRINT) ((coreId << logDRAMContiguousBlockSize) - start_addr) );
+		return ( (IntPtr) ((coreId << logDRAMContiguousBlockSize) - start_addr) );
 	else
 		 return (0);
 }
@@ -265,8 +261,8 @@ void initialize_test_parameters()
 	
 	// CAPI_getAddress(coreId) : will get an address homed at core with ID 'coreId'
 	// Responsible for addresses
-	ADDRINT dram0_address = (ADDRINT) &global_array_ptr[0];
-	ADDRINT dram1_address = (ADDRINT) &global_array_ptr[1];
+	IntPtr dram0_address = (IntPtr) &global_array_ptr[0];
+	IntPtr dram1_address = (IntPtr) &global_array_ptr[1];
 
 	// dram0_address is aliased to an address homed on core '0'
 	// dram1_address is aliased to an address homed on core '1'
@@ -1230,7 +1226,7 @@ void awesome_test_suite_msi(int tid)
 	char *fini_cache_block;
 
 	int state_index = 0;
-	ADDRINT address;
+	IntPtr address;
 
 	vector<UINT32> init_sharers_list;
 	vector<UINT32> fini_sharers_list;

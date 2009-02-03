@@ -965,12 +965,13 @@ int main(int argc, char *argv[])
       return usage();
 
    init_globals();
-   
 
    //FIXME: the following runners need to be dealocated in the fini
    //function, not below...
    MCPRunner * mcp_runner = StartMCPThread();
    NetThreadRunner * net_thread_runners = SimSharedMemStartThreads();
+
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
 
    RTN_AddInstrumentFunction(routine, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
@@ -979,6 +980,8 @@ int main(int argc, char *argv[])
    PIN_AddFiniFunction(fini, 0);
 
    // Never returns
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "Running program...");
+
    PIN_StartProgram();
 
    delete mcp_runner;

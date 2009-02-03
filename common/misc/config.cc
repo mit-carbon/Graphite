@@ -141,6 +141,7 @@ Boolean Config::isSimulatingSharedMemory() const
 
 void Config::getDisabledLogModules(set<string> &mods) const
 {
+//   mods.insert("TRANSPORT");
 //   mods.insert("NETWORK");
 //   mods.insert("CORE");
 //   mods.insert("DRAMDIR");

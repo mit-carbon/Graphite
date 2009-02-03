@@ -1,4 +1,10 @@
 #include "mpitransport.h"
+#include "lock.h"
+#include "log.h"
+
+#define LOG_DEFAULT_RANK comm_id
+#define LOG_DEFAULT_MODULE TRANSPORT
+
 
 #include <iostream>
 using namespace std;
@@ -14,8 +20,15 @@ SInt32* Transport::dest_ranks = NULL;
 UInt32 Transport::MCP_tag = 32767;
 SInt32 Transport::MCP_rank = 0;
 
+Lock* Transport::pt_lock;
+#define PT_LOCK()                                                       \
+   assert(Transport::pt_lock);                                          \
+   ScopedLock __scopedLock(*Transport::pt_lock);                        \
+
 UInt32 Transport::ptProcessNum()
 {
+   PT_LOCK();
+
    // MPI already takes care of assigning a number to each process so just
    //  return the MPI rank.
    SInt32 MPI_rank;
@@ -25,8 +38,8 @@ UInt32 Transport::ptProcessNum()
    //  before ptInitQueue.
    MPI_Initialized(&mpi_initialized);
    assert(mpi_initialized == true);
-
    MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
+
    return (UInt32)MPI_rank;
 }
 
@@ -39,6 +52,9 @@ void Transport::ptInitQueue(SInt32 num_mod)
    SInt32 temp;
    SInt32* thread_counts, *displs, *rbuf;
   
+   // initialize global phys trans lock
+   pt_lock = Lock::create();
+   
    // num_mod is the number of threads in this process
    pt_num_mod = num_mod;
   
@@ -159,7 +175,7 @@ void Transport::ptInitQueue(SInt32 num_mod)
 #ifdef PT_DEBUG
    cout << endl;
 #endif
-   
+
    delete [] rbuf;
    delete [] displs;
    delete [] thread_counts;
@@ -189,17 +205,15 @@ SInt32 Transport::ptInit(SInt32 tid, SInt32 num_mod)
       // If the number of processes is equal to the number of modules, we
       //  have one module per process.  Therefore, we can just use the
       //  process's MPI rank as the comm_id.
+      PT_LOCK();
       MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
       comm_id = MPI_rank;  // Convert from int to whatever comm_id is
 
    } else {
-      // All other cases are currently unsupported
-      cerr << "ERROR: Multiple processes each with multiple threads is not "
-          << "currently supported!" << endl;
-      cerr << "ERROR: Falling back on tid's which only works on single machine!" << endl;
+      LOG_NOTIFY_WARNING();
+      LOG_PRINT("WARNING: Multiple processes each with multiple threads is not fully supported!\
+ Falling back on tid's which only works on single machine!");
       comm_id = tid;
-//      MPI_Abort(MPI_COMM_WORLD, -1);
-//      exit(-1);
    }
 
    return 0;
@@ -218,8 +232,10 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
 	<< ", size:" << size << " ... ";
    cout << "Dest rank: " << dest_ranks[receiver] << endl;
 #endif
+   PT_LOCK();
    MPI_Send(buffer, size, MPI_BYTE, dest_ranks[receiver], receiver,
-	    MPI_COMM_WORLD);
+            MPI_COMM_WORLD);
+
 #ifdef PT_DEBUG
    cout << "done." << endl;
 #endif
@@ -231,6 +247,7 @@ void* Transport::ptRecv()
 {
    MPI_Status status;
    SInt32 pkt_size, source;
+   SInt32 flag;
    Byte* buffer;
 
 #ifdef PT_DEBUG
@@ -239,8 +256,21 @@ void* Transport::ptRecv()
 #endif
 
    // Probe for a message from any source but with our ID tag.
-   // Use a blocking probe so that we wait until a message arrives.
-   MPI_Probe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &status);
+   while (true)
+   {
+      pt_lock->acquire();
+
+      // this is essentially ptQuery without the locks
+      MPI_Iprobe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &flag, &status);
+
+      // if a message is ready, leave the loop _without_ releasing the lock
+      if (flag != 0)
+         break;
+
+      // otherwise, release and yield
+      pt_lock->release();
+      sched_yield();
+   }
  
    // Now we know that there is a message ready, check status to see how
    //  big it is and who the source is.
@@ -253,19 +283,21 @@ void* Transport::ptRecv()
 
 #ifdef PT_DEBUG
    cout << "PT found msg ==> tid:" << pt_tid
-	<< ", comm_id:" << comm_id << ", source rank:" << source
-	<< ", size:" << pkt_size << " ...";
+        << ", comm_id:" << comm_id << ", source rank:" << source
+        << ", size:" << pkt_size << " ...";
 #endif
 
    // We need to make sure the source here is the same as the one returned
    //  by the call to Probe above.  Otherwise, we might get a message from
    //  a different sender that could have a different size.
    MPI_Recv(buffer, pkt_size, MPI_BYTE, source, comm_id, MPI_COMM_WORLD,
-	    &status);
+            &status);
    
 #ifdef PT_DEBUG
    cout << "received." << endl;
 #endif
+
+   pt_lock->release();
 
    return buffer;
    // NOTE: the caller should free the buffer when it's finished with it
@@ -275,6 +307,7 @@ Boolean Transport::ptQuery()
 {
    SInt32 flag;
    MPI_Status status;
+   PT_LOCK();
 
    // Probe for a message from any source but with our ID tag
    MPI_Iprobe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &flag, &status);

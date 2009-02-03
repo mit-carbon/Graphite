@@ -13,6 +13,8 @@
 #include "config.h"
 #include "fixed_types.h"
 
+class Lock;
+
 class Transport {
    private:
       SInt32 pt_tid;
@@ -27,6 +29,8 @@ class Transport {
       // Return the process number for this process.  Process numbers are
       //  integers between 0 and (g_config->numProcs() - 1), inclusive.
       static UInt32 ptProcessNum();
+
+      static Lock *pt_lock;
 
    public:	
 

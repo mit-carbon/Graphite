@@ -136,10 +136,10 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    // cerr << "open(" << path << ")" << endl;
 
    send_buff << len_fname << make_pair(path, len_fname) << flags;
-   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());
+   the_network->netSend(g_config->MCPCoreNum(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
+   recv_pkt = the_network->netRecv(g_config->MCPCoreNum(), MCP_RESPONSE_TYPE);
    assert( recv_pkt.length == sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -186,12 +186,12 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
       
 //if shared mem, provide the buf to read into
    send_buff << fd << count << (int)buf;
-   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());   
+   the_network->netSend(g_config->MCPCoreNum(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());   
    
    //cerr << "sent to mcp " << send_buff.size() << " bytes" << endl;
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
+   recv_pkt = the_network->netRecv(g_config->MCPCoreNum(), MCP_RESPONSE_TYPE);
 
    assert( recv_pkt.length >= sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -254,10 +254,10 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    else
        send_buff << fd << count << make_pair(buf, count);
 
-   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());      
+   the_network->netSend(g_config->MCPCoreNum(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
+   recv_pkt = the_network->netRecv(g_config->MCPCoreNum(), MCP_RESPONSE_TYPE);
    assert( recv_pkt.length == sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -297,10 +297,10 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    // cerr << "close(" << fd  << ")" << endl;
 
    send_buff << fd;
-   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());      
+   the_network->netSend(g_config->MCPCoreNum(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size());      
 
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
+   recv_pkt = the_network->netRecv(g_config->MCPCoreNum(), MCP_RESPONSE_TYPE);
    assert( recv_pkt.length == sizeof(int) );
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -324,11 +324,11 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    send_buff << len_fname << make_pair(path, len_fname) << mode;
 
    // send the data
-   the_network->netSend(g_config->MCPCommID(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size()); 
+   the_network->netSend(g_config->MCPCoreNum(), MCP_REQUEST_TYPE, send_buff.getBuffer(), send_buff.size()); 
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = the_network->netRecv(g_config->MCPCommID(), MCP_RESPONSE_TYPE);
+   recv_pkt = the_network->netRecv(g_config->MCPCoreNum(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);

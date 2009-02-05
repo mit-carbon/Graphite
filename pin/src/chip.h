@@ -187,9 +187,6 @@ class Chip
 		friend bool isAliasEnabled(void);
 
    private:
-
-      int num_modules;
-
 		PIN_LOCK maps_lock;
 
       // tid_map takes core # to pin thread id
@@ -205,8 +202,6 @@ class Chip
       
       Core *core;
 
-	 	bool* finished_cores;
-
    public:
 
 		// FIXME: This is strictly a hack for testing data storage
@@ -214,9 +209,8 @@ class Chip
 		std::map<IntPtr,IntPtr> aliasMap;
 		//////////////////////////////////////////////////////////
 
-      Chip(int num_mods);
+      Chip();
 
-      int getNumModules() { return num_modules; }
       Core *getCore(unsigned int id) { return &(core[id]); }
       void fini(int code, void *v);
 

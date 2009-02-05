@@ -62,7 +62,7 @@ simple_test: all
 
 simple_test_dist: all
 	$(MAKE) -C $(TESTS_DIR)/simple
-	$(PIN_RUN_DIST) -mdc -mpf -msys -np 2 -tc 2 -n 1 -- $(TESTS_DIR)/simple/simple_test
+	$(PIN_RUN_DIST) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple/simple_test
 
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io

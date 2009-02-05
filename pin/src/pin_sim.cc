@@ -203,7 +203,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
    	if (skip_modeling)
      		return;
 
-   	assert ( rank >= 0 && rank < g_chip->getNumModules() );
+   	assert ( (UInt32)rank < g_config->numLocalCores() );
    	assert ( !do_network_modeling );
    	assert ( !do_bpred_modeling );
 
@@ -926,27 +926,23 @@ void init_globals()
          exit(-1); 
       }
    }
-   
-   //FIXME
-	// Make Sure that this is right !!
-   unsigned int num_cores = g_knob_num_cores + 1;
- 
+
    g_config = new Config;
    //g_config->loadFromFile(FIXME);
 
    // NOTE: transport and queues must be inited before the chip
    // I think this one wants a per-process core count it adds one
    // on it's own for the mcp
-   Transport::ptInitQueue(g_knob_num_cores);
+   Transport::ptGlobalInit();
 
    // I think this one probably wants a total core count
-   g_chip = new Chip(num_cores);
+   g_chip = new Chip();
 
    // Note the MCP has a dependency on the transport layer and the chip.
    // Only create an MCP on the correct process.
-   if (g_config->myProcNum() == g_config->MCPProcNum()) {
+   if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum())) {
       LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->myProcNum());
-      g_MCP = new MCP(*(g_chip->getCore(num_cores-1)->getNetwork()));
+      g_MCP = new MCP(*(g_chip->getCore(g_config->numLocalCores()-1)->getNetwork()));
    }
 }
 

@@ -8,8 +8,6 @@
 
 KNOB<string> g_knob_output_file(KNOB_MODE_WRITEONCE, "pintool",
    "o", "sim.out", "specify ocache file name");
-KNOB<UInt32> g_knob_num_cores(KNOB_MODE_WRITEONCE, "pintool", 
-   "n", "0", "Specifies the number of cores in this process");
 KNOB<UInt32> g_knob_total_cores(KNOB_MODE_WRITEONCE, "pintool", 
    "tc", "0", "Specifies the total number of cores in all processes");
 KNOB<UInt32> g_knob_num_process(KNOB_MODE_WRITEONCE, "pintool", 

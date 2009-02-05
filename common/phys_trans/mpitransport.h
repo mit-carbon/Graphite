@@ -19,10 +19,6 @@ class Transport {
    private:
       SInt32 pt_tid;
       SInt32 comm_id;
-      static SInt32 MCP_rank;     // MPI rank of the process containing the MCP
-      static UInt32 MCP_tag;   // The tag to use when sending to the MCP
-      static SInt32 pt_num_mod;
-      static SInt32* dest_ranks;  // Map from comm_id to MPI rank
 
       //***** Private helper functions *****//
 
@@ -32,10 +28,9 @@ class Transport {
 
       static Lock *pt_lock;
 
-   public:	
-
+   public:
       // This routine should be called once within in each process.
-      static void ptInitQueue(SInt32 num_mod);
+      static void ptGlobalInit();
 
       // This routine should be called once within each thread.
       SInt32 ptInit(SInt32 tid, SInt32 num_mod);

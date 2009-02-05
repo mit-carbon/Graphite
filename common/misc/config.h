@@ -8,7 +8,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <list>
+#include <vector>
 #include <set>
 #include <string>
 #include <iostream>
@@ -19,11 +19,13 @@ struct NetworkModelAnalyticalParameters;
 
 class Config {
  public:
-   typedef std::list<UInt32> CoreList;
-   typedef std::list<UInt32>::const_iterator CLCI;
+   typedef std::vector<UInt32> CoreToProcMap;
+   typedef std::vector<UInt32> CoreList;
+   typedef std::vector<UInt32>::const_iterator CLCI;
  private:
+   void GenerateCoreMap();
+
    UInt32  num_process;          // Total number of processes (incl myself)
-   UInt32* num_modules;          // Number of cores each process
    UInt32  total_cores;          // Total number of cores in all processes
 
    UInt32  my_proc_num;          // Process number for this process
@@ -32,8 +34,9 @@ class Config {
    // It is an array of size num_process where each element is a list of
    // core numbers.  Each list specifies which cores are in the corresponding
    // process.
-   CoreList* core_map;
-   
+   CoreToProcMap core_to_proc_map;
+   CoreList* proc_to_core_list_map;
+
    UInt32  MCP_process;          // The process where the MCP lives
 
    NetworkModelAnalyticalParameters *analytic_network_parms;
@@ -55,25 +58,26 @@ class Config {
    void setProcNum(UInt32 in_my_proc_num) { my_proc_num = in_my_proc_num; }
 
    // Return the number of the process that should contain the MCP
-   UInt32 MCPProcNum() { return MCP_process; }
-   UInt32 MCPCommID() { return totalMods() - 1; }
+   //UInt32 MCPProcNum() { return MCP_process; }
+   UInt32 MCPCoreNum() { return totalCores() - 1; }
 
    // Return the number of modules (cores) in a given process
-   UInt32 numMods()
-      { assert(my_proc_num < num_process); return num_modules[my_proc_num]; }
-   UInt32 numMods(UInt32 proc_num)
-      { assert(proc_num < num_process); return num_modules[proc_num]; }
+   UInt32 numCoresInProcess(UInt32 proc_num)
+      { assert(proc_num < num_process); return proc_to_core_list_map[proc_num].size(); }
+
+   UInt32 numLocalCores() { return numCoresInProcess(myProcNum()); }
 
    // Return the total number of modules in all processes
-   UInt32 totalMods() { return total_cores; }
+   UInt32 totalCores() { return total_cores; }
 
    // Return an array of core numbers for a given process
    //  The returned array will have numMods(proc_num) elements
-   const CoreList getModuleList()
-      { assert(my_proc_num < num_process); return core_map[my_proc_num]; }
-   const CoreList getModuleList(UInt32 proc_num)
-      { assert(proc_num < num_process); return core_map[proc_num]; }
-   
+   const CoreList getCoreListForProcess(UInt32 proc_num)
+      { assert(proc_num < num_process); return proc_to_core_list_map[proc_num]; }
+
+   UInt32 procNumForCore(UInt32 core)
+      { assert(core < total_cores); return core_to_proc_map[core]; }
+
    const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
       { return analytic_network_parms; }
 

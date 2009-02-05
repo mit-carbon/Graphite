@@ -14,7 +14,7 @@ NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
   : _network(network),
     _recv_buffer(recv_buffer)
 { 
-  int num_cores = g_config->numMods();
+  int num_cores = g_config->totalCores();
   _local_utilizations.resize(num_cores);
   for (int i = 0; i < num_cores; i++)
     {
@@ -32,7 +32,7 @@ void NetworkModelAnalyticalServer::update(comm_id_t commid)
   assert(
          _recv_buffer.get(ut)
          );
-  assert(0 <= commid && (unsigned int)commid < g_config->numMods());
+  assert(0 <= commid && (unsigned int)commid < g_config->totalCores());
   //  assert(0 <= ut && ut <= 1);
 
   _local_utilizations[commid] = ut;
@@ -54,7 +54,7 @@ void NetworkModelAnalyticalServer::update(comm_id_t commid)
 
   // send response
   NetPacket response;
-  response.sender = g_config->MCPCommID();
+  response.sender = g_config->MCPCoreNum();
   response.receiver = commid;
   response.length = sizeof(global_utilization);
   response.type = MCP_UTILIZATION_UPDATE_TYPE;

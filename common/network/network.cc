@@ -38,7 +38,7 @@ class NetQueue : public priority_queue <NetQueueEntry, vector<NetQueueEntry>, Ea
 Network::Network(Core *core)
    : _core(core)
 {
-   _numMod = g_config->totalMods();
+   _numMod = g_config->totalCores();
    _tid = _core->getRank();
 
    _transport = new Transport();

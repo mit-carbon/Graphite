@@ -96,7 +96,7 @@ void MCP::finish()
    LOG_PRINT("Send MCP quit message");
 
    int msg_type = MCP_MESSAGE_QUIT;
-   _network.netSend(g_config->MCPCommID(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
+   _network.netSend(g_config->MCPCoreNum(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
 
    while (!finished())
    {
@@ -108,10 +108,10 @@ void MCP::finish()
 
 void MCP::broadcastPacket(NetPacket pkt)
 {
-   pkt.sender = g_config->MCPCommID();
+   pkt.sender = g_config->MCPCoreNum();
 
-   // FIXME: Is totalMods() always the right range for commids?
-   for (UInt32 commid = 0; commid < g_config->totalMods(); commid++)
+   // FIXME: Is totalCores() always the right range for commids?
+   for (UInt32 commid = 0; commid < g_config->totalCores(); commid++)
       {
          pkt.receiver = commid;
          _network.netSend(pkt);
@@ -120,7 +120,7 @@ void MCP::broadcastPacket(NetPacket pkt)
 
 void MCP::forwardPacket(NetPacket pkt)
 {
-   pkt.sender = g_config->MCPCommID();
+   pkt.sender = g_config->MCPCoreNum();
 
    assert(pkt.receiver != -1);
    

@@ -14,7 +14,6 @@ extern Log *g_log;
 
 #include "pin.H"
 
-extern LEVEL_BASE::KNOB<UInt32> g_knob_num_cores;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
 extern LEVEL_BASE::KNOB<Boolean> g_knob_simarch_has_shared_mem;
@@ -22,65 +21,21 @@ extern LEVEL_BASE::KNOB<Boolean> g_knob_simarch_has_shared_mem;
 using namespace std;
 
 Config::Config()
+   : num_process(g_knob_num_process),
+   total_cores(g_knob_total_cores)
 {
-   UInt32 i, j;
+   assert(num_process > 0);
+   assert(total_cores > 0);
 
-   // FIXME: These are temporary defaults.  Eventually, we'll load these from
-   // a file or the command line.
-
-   if (g_knob_num_process == 0) {
-      // We can't use the log in Config's constructor because it
-      // hasn't been created yet...
-      fprintf(stderr, "WARNING: Using compatibility mode for number of processes!\n\
-  Assuming number of processes = 1.\n\
-  Please use the -np command-line argument in the future.\n");
-      num_process = 1;
-   } else {      
-      num_process = g_knob_num_process;
-   }
-   my_proc_num = 0;
-   // Default location for MCP is process 0
-   MCP_process = num_process - 1;
-
-   if (g_knob_total_cores == 0) {
-      // Backwards compatibility mode (in case the user does not specify
-      // the -tc command line argument)
-      fprintf(stderr, "WARNING: Using compatibility mode for total number of cores!\n\
-  Assuming all cores are in one process.\n\
-  Please use the -tc command-line argument in the future.\n");
-      total_cores = g_knob_num_cores;
-   } else {
-      total_cores = g_knob_total_cores;
-   }
-
-   // Sanity check on number of process and cores.  FIXME: For now, assume
-   //  all processes have the same number of cores.
-   assert((num_process*g_knob_num_cores) == total_cores);
-
-   //Add one to account for the MCP
+   // Add one for the MCP
    total_cores += 1;
 
    // FIXME: This is a bit of a hack to put this here, but we need it
    // for logging in the rest of Config's constructor.
    g_log = new Log(total_cores);
 
-   num_modules = new UInt32[num_process];
-   // FIXME: This assumes that every process has the same number of modules.
-   //  Each entry should be filled in with a different value.
-   for (i=0; i<num_process; i++) { num_modules[i] = total_cores; }  
-  
-   // Create an empty list for each process
-   core_map = new CoreList[num_process];
+   GenerateCoreMap();
 
-   // FIXME: This code is temporary and is only here until we have a final
-   //  mechanism for reading the list of cores in each process.
-   // Since we only have one process, fill in its list with all the core #'s
-   UInt32 k = 0;
-   for (i=0; i<num_process; i++) {
-      for (j=0; j<num_modules[i]; j++) {
-	 		core_map[i].push_back(k++);
-      }
-   }
 
    // Create network parameters
    analytic_network_parms = new NetworkModelAnalyticalParameters();
@@ -91,24 +46,43 @@ Config::Config()
    analytic_network_parms->update_interval = 100000;
    analytic_network_parms->proc_cost = 100;
 
-#ifdef DEBUG  
-   stringstream ss;
-   for (i=0; i<num_process; i++) {   
-      ss << "Process " << i << ": ";
-      for (CLCI m = core_map[i].begin(); m != core_map[i].end(); m++)
-         ss << "[" << *m << "]";
-      ss << endl;
-   }
-   LOG_PRINT(ss.str().c_str());
-#endif
 }
 
 Config::~Config()
 {
    // Clean up the dynamic memory we allocated
    delete analytic_network_parms;
-   delete [] num_modules;
-   delete [] core_map;
+   delete [] proc_to_core_list_map;
+}
+
+void Config::GenerateCoreMap()
+{
+   proc_to_core_list_map = new CoreList[num_process];
+   core_to_proc_map.resize(total_cores);
+
+   // Stripe the cores across the processes
+   UInt32 current_proc = 0;
+   for (UInt32 i=0; i < total_cores - 1; i++)
+   {
+      core_to_proc_map[i] = current_proc;
+      proc_to_core_list_map[current_proc].push_back(i);
+      current_proc++;
+      current_proc %= num_process;
+   }
+
+   // Add one for the MCP
+   proc_to_core_list_map[0].push_back(total_cores - 1);
+   core_to_proc_map[total_cores - 1] = 0;
+
+   // Log the map we just created
+   fprintf(stderr, "Num Process: %d\n", num_process);
+   for (UInt32 i=0; i<num_process; i++) {   
+      stringstream ss;
+      ss << "Process " << i << ": (" << proc_to_core_list_map[i].size() << ") ";
+      for (CLCI m = proc_to_core_list_map[i].begin(); m != proc_to_core_list_map[i].end(); m++)
+         ss << "[" << *m << "]";
+      LOG_PRINT(ss.str().c_str());
+   }
 }
 
 // Parse XML config file and use it to fill in config state.  Only modifies

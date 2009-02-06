@@ -1,5 +1,4 @@
 #include "core.h"
-#include "chip.h"
 
 #include "network.h"
 #include "ocache.h"

@@ -77,57 +77,56 @@ UInt64 Log::getTimestamp()
 }
 
 // FIXME: See note below.
-class Chip;
-extern Chip* g_chip;
-SInt32 chipRank(SInt32 *);
+#include "core_manager.h"
 
-void Log::log(UInt32 rank, const char *module, const char *format, ...)
+void Log::log(UInt32 core_id, const char *module, const char *format, ...)
 {
 #ifdef DISABLE_LOGGING
    return;
 #endif
 
-   UInt32 fileRank;
-   if (rank == (UInt32)-1)
-      fileRank = 2 * _coreCount;
+   UInt32 fileID;
+
+   if (core_id == (UInt32)-1)
+      fileID = 2 * _coreCount;
    else
    {
-      // FIXME: This is an ugly hack. Net/shared mem threads do not have
-      // a rank, so we can use chipRank to discover which thread we are
-      // on.
+      // FIXME: This is an ugly hack. Net/shared mem threads do not
+      // have a core_id, so we can use the core ID to discover which
+      // thread we are on.
 
-      if (g_chip == NULL) 
+      if (g_core_manager == NULL) 
       {         
-         fileRank = rank + _coreCount;
+         fileID = core_id + _coreCount;
       }
       else
       {
-         SInt32 myChipRank;
-         chipRank(&myChipRank);
-         if (myChipRank == -1)
-            fileRank = rank + _coreCount;
+         SInt32 myCoreID;
+         myCoreID = g_core_manager->getCurrentCoreID();
+         if (myCoreID == -1)
+            fileID = core_id + _coreCount;
          else
-            fileRank = rank;
+            fileID = core_id;
       }
    }
    
    if (!isEnabled(module))
       return;
 
-   _locks[fileRank]->acquire();
+   _locks[fileID]->acquire();
 
-   fprintf(_files[fileRank], "%llu [%i] [%s] ", getTimestamp(), (rank > _coreCount ? -1 : (SInt32)rank), module);
+   fprintf(_files[fileID], "%llu [%i] [%s] ", getTimestamp(), (core_id > _coreCount ? -1 : (SInt32)core_id), module);
    
    va_list args;
    va_start(args, format);
-   vfprintf(_files[fileRank], format, args);
+   vfprintf(_files[fileID], format, args);
    va_end(args);
 
-   fprintf(_files[fileRank], "\n");
+   fprintf(_files[fileID], "\n");
 
-   fflush(_files[fileRank]);
+   fflush(_files[fileID]);
 
-   _locks[fileRank]->release();
+   _locks[fileID]->release();
 }
 
 void Log::notifyWarning()

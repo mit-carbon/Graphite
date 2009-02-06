@@ -4,7 +4,8 @@
 #include "lock.h"
 #include "net_thread_runner.h"
 #include "mcp.h"
-#include "chip.h"
+#include "core_manager.h"
+#include "core.h"
 
 #include "log.h"
 #define LOG_DEFAULT_RANK   -1
@@ -20,7 +21,6 @@ UInt32 g_shared_mem_active_threads;
 Lock* g_shared_mem_threads_lock;
 
 extern MCP *g_MCP;
-extern Chip *g_chip;
 
 NetThreadRunner *SimSharedMemStartThreads()
 {
@@ -68,28 +68,28 @@ void SimSharedMemTerminateFunc(void *vp, NetPacket pkt)
 
 void* SimSharedMemThreadFunc(void *)
 {
-    int core_id = g_chip->registerSharedMemThread();
-    Network *net = g_chip->getCoreFromID(core_id)->getNetwork();
-    bool cont = true;
+   int core_id = g_core_manager->registerSharedMemThread();
+   Network *net = g_core_manager->getCoreFromID(core_id)->getNetwork();
+   bool cont = true;
 
-    // Bookkeeping for SimSharedMemQuit
-    g_shared_mem_threads_lock->acquire();
-    ++g_shared_mem_active_threads;
-    g_shared_mem_threads_lock->release();
+   // Bookkeeping for SimSharedMemQuit
+   g_shared_mem_threads_lock->acquire();
+   ++g_shared_mem_active_threads;
+   g_shared_mem_threads_lock->release();
 
-    // Turn off cont when we receive a quit message
-    net->registerCallback(SHARED_MEM_TERMINATE_THREADS,
-                          SimSharedMemTerminateFunc,
-                          &cont);
+   // Turn off cont when we receive a quit message
+   net->registerCallback(SHARED_MEM_TERMINATE_THREADS,
+                         SimSharedMemTerminateFunc,
+                         &cont);
 
-    // Actual work gets done here
-    while(cont)
-       net->netPullFromTransport();
+   // Actual work gets done here
+   while(cont)
+      net->netPullFromTransport();
 
-    // Bookkeeping for SimSharedMemQuit
-    g_shared_mem_threads_lock->acquire();
-    --g_shared_mem_active_threads;
-    g_shared_mem_threads_lock->release();
+   // Bookkeeping for SimSharedMemQuit
+   g_shared_mem_threads_lock->acquire();
+   --g_shared_mem_active_threads;
+   g_shared_mem_threads_lock->release();
 
-    return 0;
+   return 0;
 }

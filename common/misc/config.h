@@ -90,6 +90,7 @@ class Config {
 
    // Logging
    void getDisabledLogModules(std::set<std::string> &mods) const;
+   const char* getOutputFileName() const;
 };
 
 extern Config *g_config;

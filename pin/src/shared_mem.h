@@ -7,9 +7,6 @@
 class Lock;
 class NetThreadRunner;
 
-extern UInt32 g_shared_mem_active_threads;
-extern Lock* g_shared_mem_threads_lock;
-
 NetThreadRunner *SimSharedMemStartThreads();
 void SimSharedMemQuit();
 void SimSharedMemTerminateFunc(void *vp, NetPacket pkt);

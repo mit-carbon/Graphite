@@ -70,6 +70,7 @@ private:
 #define LOG_NOTIFY_ERROR()                      \
    {                                            \
       Log::getSingleton()->notifyError();       \
+      abort();                                  \
    }                                            \
 
 #endif // LOG_H

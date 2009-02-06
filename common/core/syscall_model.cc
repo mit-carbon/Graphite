@@ -1,6 +1,5 @@
 #include "syscall_model.h"
 #include "sys/syscall.h"
-#include "chip.h"
 #include "transport.h"
 
 

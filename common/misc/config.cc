@@ -17,6 +17,7 @@ extern Log *g_log;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
 extern LEVEL_BASE::KNOB<Boolean> g_knob_simarch_has_shared_mem;
+extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
 
 using namespace std;
 
@@ -120,9 +121,14 @@ void Config::getDisabledLogModules(set<string> &mods) const
 //   mods.insert("CORE");
 //   mods.insert("DRAMDIR");
 //   mods.insert("MMU");
-//   mods.insert("CHIP");
+//   mods.insert("CORE_MANAGER");
 //   mods.insert("PINSIM");
 //   mods.insert("SHAREDMEM");
 //   mods.insert("CONFIG");
 //   mods.insert("SYSCALL");
+}
+
+const char *Config::getOutputFileName() const
+{
+   return g_knob_output_file.Value().c_str();
 }

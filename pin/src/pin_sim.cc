@@ -24,7 +24,7 @@
 #include "utils.h"
 #include "bit_vector.h"
 #include "config.h"
-#include "chip.h"
+#include "core_manager.h"
 #include "cache.h"
 #include "ocache.h"
 #include "perfmdl.h"
@@ -35,6 +35,9 @@
 // FIXME: Hack: Please remove me later
 #include "shared_mem.h"
 #include "log.h"
+#include "dram_directory_entry.h"
+#include "core.h"
+#include "syscall_model.h"
 
 #include "user_space_wrappers.h"
 #include "shmem_debug_helper.h"
@@ -42,7 +45,7 @@
 #define LOG_DEFAULT_RANK    rank
 #define LOG_DEFAULT_MODULE  PINSIM
 
-Chip *g_chip = NULL;
+CoreManager *g_core_manager = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
 Log *g_log = NULL;
@@ -92,11 +95,11 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
         bool check_scoreboard,
         void* ins_info_array)
 {
-    int rank = g_chip->getCurrentCoreID();
+    int rank = g_core_manager->getCurrentCoreID();
 
     if(rank > -1)
     {
-        Core *current_core = g_chip->getCoreFromID(rank);
+        Core *current_core = g_core_manager->getCoreFromID(rank);
         // InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
         // stringstream ss;
         // ss << "OPCODE$ = " << LEVEL_CORE::OPCODE_StringShort(ins_info->opcode) << " (" << ins_info->opcode << ") ";
@@ -257,7 +260,7 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
     PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->numLocalCores()];
 
     for (UInt32 i = 0; i < g_config->numLocalCores(); i++)
-        array[i] = g_chip->getCoreFromID(0)->perfModelAnalyzeInterval(parent_routine, start_ins, end_ins);
+        array[i] = g_core_manager->getCoreFromID(0)->perfModelAnalyzeInterval(parent_routine, start_ins, end_ins);
 
     return array; 
 }
@@ -750,18 +753,18 @@ void routine(RTN rtn, void *v)
 // syscall model wrappers
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-    int rank = g_chip->getCurrentCoreID();
+    int rank = g_core_manager->getCurrentCoreID();
 
     if(rank >= 0)
-        g_chip->getCoreFromID(rank)->getSyscallMdl()->runEnter(ctx, syscall_standard);
+        g_core_manager->getCoreFromID(rank)->getSyscallMdl()->runEnter(ctx, syscall_standard);
 }
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-    int rank = g_chip->getCurrentCoreID();
+    int rank = g_core_manager->getCurrentCoreID();
 
     if(rank >= 0)
-        g_chip->getCoreFromID(rank)->getSyscallMdl()->runExit(ctx, syscall_standard);
+        g_core_manager->getCoreFromID(rank)->getSyscallMdl()->runExit(ctx, syscall_standard);
 }
 
 /* ===================================================================== */
@@ -773,7 +776,9 @@ void fini(int code, void * v)
     SimSharedMemQuit();
 
     Transport::ptFinish();
-    g_chip->fini(code, v);
+    g_core_manager->fini(code, v);
+
+    delete g_core_manager;
 
     delete g_log;
 }
@@ -798,7 +803,7 @@ void init_globals()
     g_config = new Config;
     //g_config->loadFromFile(FIXME);
 
-    // NOTE: transport and queues must be inited before the chip
+    // NOTE: transport and queues must be inited before the core_manager
     // I think this one wants a per-process core count it adds one
     // on it's own for the mcp
     Transport::ptGlobalInit();
@@ -806,13 +811,13 @@ void init_globals()
     g_shmem_debug_helper = new ShmemDebugHelper();
 
     // I think this one probably wants a total core count
-    g_chip = new Chip();
+    g_core_manager = new CoreManager();
 
-    // Note the MCP has a dependency on the transport layer and the chip.
+    // Note the MCP has a dependency on the transport layer and the core_manager.
     // Only create an MCP on the correct process.
     if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum())) {
         LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->myProcNum());
-        Core * mcp_core = g_chip->getCoreFromID(g_config->totalCores()-1);
+        Core * mcp_core = g_core_manager->getCoreFromID(g_config->totalCores()-1);
         if(!mcp_core)
             LOG_PRINT_EXPLICIT(-1, PINSIM, "Could not find the MCP's core!", g_config->myProcNum());
         Network & mcp_network = *(mcp_core->getNetwork());

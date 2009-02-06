@@ -62,7 +62,7 @@ simple_test: all
 
 simple_test_dist: all
 	$(MAKE) -C $(TESTS_DIR)/simple
-	$(PIN_RUN_DIST) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple/simple_test
+	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple/simple_test 1
 
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io

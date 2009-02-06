@@ -148,7 +148,7 @@ void SyscallServer::marshallReadCall(int comm_id)
    int bytes = read(fd, (void *) buf, count);  
 
    // Copy the memory into shared mem
-   _network.getCore()->dcacheRunModel(Core::STORE, (ADDRINT)dest, buf, count);
+   _network.getCore()->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, (ADDRINT)dest, buf, count);
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
@@ -207,7 +207,7 @@ void SyscallServer::marshallWriteCall(int comm_id)
        recv_buff >> src_b;
        src = (char *)src_b;
 
-       _network.getCore()->dcacheRunModel(Core::LOAD, (ADDRINT)src, buf, count);
+       _network.getCore()->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, (ADDRINT)src, buf, count);
    }
    else
    {

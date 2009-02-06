@@ -19,12 +19,15 @@
 UInt32 g_shared_mem_active_threads;
 Lock* g_shared_mem_threads_lock;
 
+extern MCP *g_MCP;
+extern Chip *g_chip;
+
 NetThreadRunner *SimSharedMemStartThreads()
 {
    g_shared_mem_threads_lock = Lock::create();
    g_shared_mem_active_threads = 0;
 
-   unsigned int num_shared_mem_threads = g_chip->getNumModules();
+   unsigned int num_shared_mem_threads = g_config->numLocalCores();
    NetThreadRunner * runners = new NetThreadRunner[num_shared_mem_threads];
    for(unsigned int i = 0; i < num_shared_mem_threads; i++)
    {
@@ -66,7 +69,7 @@ void SimSharedMemTerminateFunc(void *vp, NetPacket pkt)
 void* SimSharedMemThreadFunc(void *)
 {
     int core_id = g_chip->registerSharedMemThread();
-    Network *net = g_chip->getCore(core_id)->getNetwork();
+    Network *net = g_chip->getCoreFromID(core_id)->getNetwork();
     bool cont = true;
 
     // Bookkeeping for SimSharedMemQuit

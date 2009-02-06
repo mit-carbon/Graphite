@@ -32,6 +32,7 @@ void SyscallMdl::runExit(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
 void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
+    fprintf(stderr, "Syscall...\n");
    // Reset the buffers for the new transmission
    recv_buff.clear(); 
    send_buff.clear(); 
@@ -64,6 +65,7 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
       case SYS_write:
       {
+         fprintf(stderr, "Calling write call\n");
          called_enter = true;
          ret_val = marshallWriteCall(ctx, syscall_standard);
          break;

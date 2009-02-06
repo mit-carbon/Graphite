@@ -20,6 +20,7 @@ class Network;
 #include "fixed_types.h"
 #include "config.h"
 
+#include "cache.h"
 #include "cache_state.h"
 #include "dram_directory_entry.h"
 #include "perfmdl.h"
@@ -38,41 +39,25 @@ class Core
 
 
    public:
-
-      enum mem_operation_t 
-      {
-         LOAD,
-         STORE
-      };
-
-      int getRank() 
-         { return core_tid; }
+      int getRank()     { return core_tid; }
       int getId() const { return core_tid; }
+      int getNumCores() { return core_num_mod; }
+      MemoryManager* getMemoryManager(void) { return memory_manager; }
+      SyscallMdl *getSyscallMdl() { return syscall_model; }
+      SyncClient *getSyncClient() { return sync_client; }
 
-      int getNumCores()
-         { return core_num_mod; }
-
-      
       int coreInit(int tid, int num_mod);
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
-
       int coreRecvW(int sender, int receiver, char *buffer, int size);
 
-      MemoryManager* getMemoryManager(void)
-         { return memory_manager; }
-      
-      //performance model wrappers
-		SyscallMdl *getSyscallMdl() { return syscall_model; }
-      SyncClient *getSyncClient() { return sync_client; }
-      
+
+
       void fini(int code, void *v, ostream& out);
-	
+
       // organic cache wrappers
-	
       bool icacheRunLoadModel(IntPtr i_addr, UInt32 size);
-	
-      bool dcacheRunModel(mem_operation_t operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
+      bool dcacheRunModel(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
       // FIXME: Debug Functions. Debug hook to smash cache state
       void debugSetCacheState(IntPtr addr, CacheState::cstate_t cstate, char *c_data);
@@ -81,7 +66,7 @@ class Core
 
       void debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
       bool debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
-	
+
       //performance model wrappers
 
       void perfModelRun(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)

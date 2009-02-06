@@ -819,7 +819,10 @@ void init_globals()
         LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->myProcNum());
         Core * mcp_core = g_core_manager->getCoreFromID(g_config->totalCores()-1);
         if(!mcp_core)
-            LOG_PRINT_EXPLICIT(-1, PINSIM, "Could not find the MCP's core!", g_config->myProcNum());
+        {
+           LOG_PRINT_EXPLICIT(-1, PINSIM, "Could not find the MCP's core!");
+           LOG_NOTIFY_ERROR();
+        }
         Network & mcp_network = *(mcp_core->getNetwork());
         g_MCP = new MCP(mcp_network);
     }

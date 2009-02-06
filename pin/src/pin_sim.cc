@@ -773,11 +773,19 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
 void fini(int code, void * v)
 {
-   if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
-      g_MCP->finish();
-   SimSharedMemQuit();
+   // Make sure all other processes are finished before we start tearing down stuffs
+   Transport::ptBarrier();
 
+   if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
+   {
+       fprintf(stderr, "MyProcNum: %d mcp_core: %d mcp_proc: %d\n", g_config->myProcNum(), g_config->MCPCoreNum(), g_config->procNumForCore(g_config->MCPCoreNum()));
+       fprintf(stderr, "MyCoreNum: %d\n", g_core_manager->getCurrentCoreID());
+       g_MCP->finish();
+   }
+
+   SimSharedMemQuit();
    Transport::ptFinish();
+
    g_core_manager->fini(code, v);
 
    delete g_mcp_runner;
@@ -820,7 +828,8 @@ void init_globals()
 
     // Note the MCP has a dependency on the transport layer and the core_manager.
     // Only create an MCP on the correct process.
-    if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum())) {
+    if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
+    {
         LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->myProcNum());
         Core * mcp_core = g_core_manager->getCoreFromID(g_config->totalCores()-1);
         if(!mcp_core)
@@ -855,13 +864,13 @@ int main(int argc, char *argv[])
    if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
       g_mcp_runner = StartMCPThread();
 
-   // g_net_thread_runners = SimSharedMemStartThreads();
+   g_net_thread_runners = SimSharedMemStartThreads();
 
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
 
-   RTN_AddInstrumentFunction(routine, 0);
-   PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-   PIN_AddSyscallExitFunction(SyscallExit, 0);
+   //RTN_AddInstrumentFunction(routine, 0);
+   //PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+   //PIN_AddSyscallExitFunction(SyscallExit, 0);
 
    PIN_AddFiniFunction(fini, 0);
 

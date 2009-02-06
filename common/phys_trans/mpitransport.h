@@ -45,6 +45,9 @@ class Transport {
       // This routine should be called once when everything is done
       static void ptFinish() { MPI_Finalize(); }
 
+      // This routine should be called once when everything is done
+      static void ptBarrier() { MPI_Barrier(MPI_COMM_WORLD); }
+
       // Return the communications ID for this node
       SInt32 ptCommID() { return comm_id; }
 

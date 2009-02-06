@@ -105,7 +105,6 @@ class Network
  public:
 
    // -- Ctor, housekeeping, etc. -- //
-
    Network(Core *core);
    ~Network();
 

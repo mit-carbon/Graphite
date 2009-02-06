@@ -38,7 +38,7 @@ void MCP::run()
    recv_pkt = _network.netRecv(match);
 
    recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
-  
+
    int msg_type;
 
    recv_buff >> msg_type;

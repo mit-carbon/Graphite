@@ -37,7 +37,6 @@ Config::Config()
 
    GenerateCoreMap();
 
-
    // Create network parameters
    analytic_network_parms = new NetworkModelAnalyticalParameters();
    analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh

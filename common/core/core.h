@@ -40,7 +40,6 @@ class Core
 
    public:
       int getRank()     { return core_tid; }
-      int getId() const { return core_tid; }
       int getNumCores() { return core_num_mod; }
       MemoryManager* getMemoryManager(void) { return memory_manager; }
       SyscallMdl *getSyscallMdl() { return syscall_model; }

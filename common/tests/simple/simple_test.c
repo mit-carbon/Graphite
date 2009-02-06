@@ -11,11 +11,13 @@
 
 #include "capi.h"
 
-
 // Functions executed by threads
 void* thread_func(void * threadid);
 
 int main(int argc, char* argv[]){ // main begins
+
+    fprintf(stderr, "Yeah Main\n");
+    return 0;
 
     int proc = atoi(argv[1]);
     fprintf(stderr, "Process: %d\n", proc);
@@ -26,7 +28,7 @@ int main(int argc, char* argv[]){ // main begins
    // Declare threads and related variables
 //   pthread_t threads[numThreads];
 //   pthread_attr_t attr;
-	
+
    // Initialize threads and related variables
 //   pthread_attr_init(&attr);
 //   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);

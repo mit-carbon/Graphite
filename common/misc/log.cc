@@ -27,7 +27,18 @@ Log::Log(UInt32 coreCount)
       _files[i] = fopen(filename, "w");
       assert(_files[i] != NULL);
    }
-   _files[_coreCount * 2] = fopen("output_files/system", "w");
+
+   // FIXME: This is a huge hack.  We want to open different system
+   // files for each process, but MPI is not initialized at this
+   // point, so we can't get our process number. Instead, we keep
+   // trying to open a system file until we succeed.
+   _files[_coreCount * 2] = NULL;
+   for (int systemFileNum = 0; _files[_coreCount * 2] == NULL; ++systemFileNum)
+   {
+     char system_file_name[256];
+     sprintf(system_file_name, "output_files/system-%i", systemFileNum);
+     _files[_coreCount * 2] = fopen("output_files/system", "w");
+   }
    assert(_files[_coreCount * 2]);
 
    _locks = new Lock* [2 * _coreCount + 1];

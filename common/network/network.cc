@@ -16,7 +16,7 @@ Network::Network(Core *core)
    _tid = _core->getRank();
 
    _transport = new Transport();
-   _transport->ptInit(_core->getId(), _numMod);
+   _transport->ptInit(_core->getRank(), _numMod);
 
    _callbacks = new NetworkCallback [NUM_PACKET_TYPES];
    _callbackObjs = new void* [NUM_PACKET_TYPES];

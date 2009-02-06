@@ -24,12 +24,15 @@ extern MCP *g_MCP;
 
 NetThreadRunner *SimSharedMemStartThreads()
 {
-   LOG_PRINT("Starting threads.");
 
    g_shared_mem_threads_lock = Lock::create();
    g_shared_mem_active_threads = 0;
 
    unsigned int num_shared_mem_threads = g_config->numLocalCores();
+
+   //LOG_PRINT("Starting %d threads on proc: %d\n.", num_shared_mem_threads, g_config->myProcNum());
+   fprintf(stderr, "Starting %d threads on proc: %d\n.", num_shared_mem_threads, g_config->myProcNum());
+
    NetThreadRunner * runners = new NetThreadRunner[num_shared_mem_threads];
    for(unsigned int i = 0; i < num_shared_mem_threads; i++)
    {

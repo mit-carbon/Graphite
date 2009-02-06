@@ -36,7 +36,7 @@ CoreManager::CoreManager()
    {
       tid_map[i] = UINT_MAX;
       core_to_shmem_tid_map[i] = UINT_MAX;
-      m_cores[i].coreInit(i, g_config->numLocalCores());
+      m_cores[i].coreInit(g_config->getCoreListForProcess(g_config->myProcNum())[i], g_config->numLocalCores());
    }
 
    LOG_PRINT("Finished CoreManager Constructor.");

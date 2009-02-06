@@ -48,6 +48,8 @@
 CoreManager *g_core_manager = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
+MCPRunner * g_mcp_runner = NULL;
+NetThreadRunner * g_net_thread_runners = NULL;
 Log *g_log = NULL;
 ShmemDebugHelper *g_shmem_debug_helper = NULL;
 
@@ -771,16 +773,19 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
 void fini(int code, void * v)
 {
-    if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
-        g_MCP->finish();
-    SimSharedMemQuit();
+   if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
+      g_MCP->finish();
+   SimSharedMemQuit();
 
-    Transport::ptFinish();
-    g_core_manager->fini(code, v);
+   Transport::ptFinish();
+   g_core_manager->fini(code, v);
 
-    delete g_core_manager;
+   delete g_mcp_runner;
+   delete [] g_net_thread_runners;
 
-    delete g_log;
+   delete g_core_manager;
+
+   delete g_log;
 }
 
 /* ===================================================================== */
@@ -840,36 +845,31 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
 
 int main(int argc, char *argv[])
 {
-    PIN_InitSymbols();
+   PIN_InitSymbols();
 
-    if( PIN_Init(argc,argv) )
-        return usage();
+   if( PIN_Init(argc,argv) )
+      return usage();
 
-    init_globals();
+   init_globals();
 
+   if (g_config->myProcNum() != g_config->procNumForCore(g_config->MCPCoreNum()))
+      g_mcp_runner = StartMCPThread();
 
-    //FIXME: the following runners need to be dealocated in the fini
-    //function, not below...
-    MCPRunner * mcp_runner = NULL;
-    if (g_config->myProcNum() != g_config->procNumForCore(g_config->MCPCoreNum()))
-        mcp_runner = StartMCPThread();
+   g_net_thread_runners = SimSharedMemStartThreads();
 
-    NetThreadRunner * net_thread_runners = SimSharedMemStartThreads();
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
 
-    RTN_AddInstrumentFunction(routine, 0);
-    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-    PIN_AddSyscallExitFunction(SyscallExit, 0);
+   RTN_AddInstrumentFunction(routine, 0);
+   PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+   PIN_AddSyscallExitFunction(SyscallExit, 0);
 
-    PIN_AddFiniFunction(fini, 0);
+   PIN_AddFiniFunction(fini, 0);
 
-    fprintf(stderr, "Starting the user program!\n");
+   // Never returns
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "Running program...");
 
-    // Never returns
-    PIN_StartProgram();
+   PIN_StartProgram();
 
-    delete mcp_runner;
-    delete [] net_thread_runners;
-
-    return 0;
+   return 0;
 }
 

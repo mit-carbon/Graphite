@@ -48,6 +48,19 @@ private:
 #undef LOG_DEFAULT_RANK
 #undef LOG_DEFAULT_MODULE
 
+#ifdef NDEBUG
+
+// see assert.h
+
+#define LOG_PRINT_EXPLICIT(rank, module, ...)  ((void)(0))
+#define LOG_PRINT(...) ((void)(0))
+#define LOG_NOTIFY_WARNING() ((void)(0))
+#define LOG_NOTIFY_ERROR() ((void)(0))
+#define LOG_ASSERT_WARNING(...) ((void)(0))
+#define LOG_ASSERT_ERROR(...) ((void)(0))
+
+#else
+
 #define LOG_PRINT_EXPLICIT(rank, module, ...)                           \
    {                                                                    \
       if (Log::getSingleton()->isEnabled(#module))                      \
@@ -72,5 +85,25 @@ private:
       Log::getSingleton()->notifyError();       \
       abort();                                  \
    }                                            \
+
+#define LOG_ASSERT_WARNING(expr, ...)                   \
+   {                                                    \
+      if (!(expr))                                      \
+      {                                                 \
+         LOG_NOTIFY_WARNING();                          \
+         LOG_PRINT(__VA_ARGS__);                        \
+      }                                                 \
+   }                                                    \
+
+#define LOG_ASSERT_ERROR(expr, ...)                     \
+   {                                                    \
+      if (!(expr))                                      \
+      {                                                 \
+         LOG_NOTIFY_ERROR();                            \
+         LOG_PRINT(__VA_ARGS__);                        \
+      }                                                 \
+   }                                                    \
+
+#endif // NDEBUG
 
 #endif // LOG_H

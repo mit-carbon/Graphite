@@ -122,25 +122,21 @@ int Core::coreSendW(int sender, int receiver, char *buffer, int size)
 
 int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 {
-    NetPacket packet;
-    NetMatch match;
+   NetPacket packet;
 
-    match.senders.push_back(sender);
-    match.types.push_back(USER);
+   packet = network->netRecv(sender, USER);
 
-    packet = network->netRecv(match);
+   LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
 
-    LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
+   assert((unsigned)size == packet.length);
 
-    assert((unsigned)size == packet.length);
+   memcpy(buffer, packet.data, size);
 
-    memcpy(buffer, packet.data, size);
+   // De-allocate dynamic memory
+   // Is this the best place to de-allocate packet.data ?? 
+   delete [] (Byte*)packet.data;
 
-    // De-allocate dynamic memory
-    // Is this the best place to de-allocate packet.data ?? 
-    delete [] (Byte*)packet.data;
-
-    return (unsigned)size == packet.length ? 0 : -1;
+   return (unsigned)size == packet.length ? 0 : -1;
 }
 
 void Core::fini(int code, void *v, ostream& out)

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <list>
 #include "packet_type.h"
 #include "fixed_types.h"
 #include "cond.h"
@@ -12,7 +13,6 @@
 
 class Core;
 class Transport;
-class NetQueue;
 class Network;
 
 // -- Network Packets -- //
@@ -36,6 +36,16 @@ class NetPacket
       , data(0)
       {}
 };
+
+// -- Net Queue -- //
+
+struct NetQueueEntry
+{
+   UInt64 time;
+   NetPacket packet;
+};
+
+typedef std::list<NetQueueEntry> NetQueue;
 
 // -- Network Matches -- //
 
@@ -139,7 +149,7 @@ private:
    SInt32 _tid;
    SInt32 _numMod;
 
-   NetQueue **_netQueue;
+   NetQueue _netQueue;
    ConditionVariable _netQueueCond;
 
    void* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);

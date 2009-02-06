@@ -22,6 +22,8 @@ CoreManager::CoreManager()
    shmem_tid_to_core_index_map(3*g_config->numLocalCores()),
    prev_rank(0) 
 {
+   LOG_PRINT("Starting CoreManager Constructor.");
+
    maps_lock = Lock::create();
 
    tid_map = new UInt32 [g_config->numLocalCores()];

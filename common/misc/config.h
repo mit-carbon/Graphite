@@ -25,13 +25,13 @@ class Config {
  private:
    void GenerateCoreMap();
 
-   UInt32  num_process;          // Total number of processes (incl myself)
+   UInt32  num_processes;          // Total number of processes (incl myself)
    UInt32  total_cores;          // Total number of cores in all processes
 
    UInt32  my_proc_num;          // Process number for this process
 
    // This data structure keeps track of which cores are in each process.
-   // It is an array of size num_process where each element is a list of
+   // It is an array of size num_processes where each element is a list of
    // core numbers.  Each list specifies which cores are in the corresponding
    // process.
    CoreToProcMap core_to_proc_map;
@@ -49,8 +49,8 @@ class Config {
    void loadFromCmdLine();
 
    // Return the number of processes involved in this simulation
-   UInt32 numProcs() { return num_process; }
-   void setNumProcs(UInt32 in_num_process) { num_process = in_num_process; }
+   UInt32 numProcs() { return num_processes; }
+   void setNumProcs(UInt32 in_num_processes) { num_processes = in_num_processes; }
 
    // Retrieve and set the process number for this process (I'm expecting
    //  that the initialization routine of the Transport layer will set this)
@@ -63,7 +63,7 @@ class Config {
 
    // Return the number of modules (cores) in a given process
    UInt32 numCoresInProcess(UInt32 proc_num)
-      { assert(proc_num < num_process); return proc_to_core_list_map[proc_num].size(); }
+      { assert(proc_num < num_processes); return proc_to_core_list_map[proc_num].size(); }
 
    UInt32 numLocalCores() { return numCoresInProcess(myProcNum()); }
 
@@ -73,7 +73,7 @@ class Config {
    // Return an array of core numbers for a given process
    //  The returned array will have numMods(proc_num) elements
    const CoreList getCoreListForProcess(UInt32 proc_num)
-      { assert(proc_num < num_process); return proc_to_core_list_map[proc_num]; }
+      { assert(proc_num < num_processes); return proc_to_core_list_map[proc_num]; }
 
    UInt32 procNumForCore(UInt32 core)
       { assert(core < total_cores); return core_to_proc_map[core]; }

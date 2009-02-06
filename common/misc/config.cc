@@ -22,10 +22,10 @@ extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
 using namespace std;
 
 Config::Config()
-   : num_process(g_knob_num_process),
+   : num_processes(g_knob_num_process),
    total_cores(g_knob_total_cores)
 {
-   assert(num_process > 0);
+   assert(num_processes > 0);
    assert(total_cores > 0);
 
    // Add one for the MCP
@@ -58,7 +58,7 @@ Config::~Config()
 
 void Config::GenerateCoreMap()
 {
-   proc_to_core_list_map = new CoreList[num_process];
+   proc_to_core_list_map = new CoreList[num_processes];
    core_to_proc_map.resize(total_cores);
 
    // Stripe the cores across the processes
@@ -68,7 +68,7 @@ void Config::GenerateCoreMap()
       core_to_proc_map[i] = current_proc;
       proc_to_core_list_map[current_proc].push_back(i);
       current_proc++;
-      current_proc %= num_process;
+      current_proc %= num_processes;
    }
 
    // Add one for the MCP
@@ -76,8 +76,8 @@ void Config::GenerateCoreMap()
    core_to_proc_map[total_cores - 1] = 0;
 
    // Log the map we just created
-   fprintf(stderr, "Num Process: %d\n", num_process);
-   for (UInt32 i=0; i<num_process; i++) {   
+   LOG_PRINT("Process num: %d\n", num_processes);
+   for (UInt32 i=0; i<num_processes; i++) {   
       stringstream ss;
       ss << "Process " << i << ": (" << proc_to_core_list_map[i].size() << ") ";
       for (CLCI m = proc_to_core_list_map[i].begin(); m != proc_to_core_list_map[i].end(); m++)

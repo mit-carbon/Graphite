@@ -852,10 +852,10 @@ int main(int argc, char *argv[])
 
    init_globals();
 
-   if (g_config->myProcNum() != g_config->procNumForCore(g_config->MCPCoreNum()))
+   if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
       g_mcp_runner = StartMCPThread();
 
-   g_net_thread_runners = SimSharedMemStartThreads();
+   // g_net_thread_runners = SimSharedMemStartThreads();
 
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
 

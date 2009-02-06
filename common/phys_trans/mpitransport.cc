@@ -161,7 +161,7 @@ void* Transport::ptRecv()
    // Allocate a buffer for the incoming message
    buffer = new Byte[pkt_size];
 
-   LOG_PRINT("msg found -- tid: %i, comm_id: %i, size: %i, source: %i", pt_tid, comm_id, source, pkt_size);
+   LOG_PRINT("msg found -- tid: %i, comm_id: %i, size: %i, source: %i", pt_tid, comm_id, pkt_size, source);
 
    // We need to make sure the source here is the same as the one returned
    //  by the call to Probe above.  Otherwise, we might get a message from

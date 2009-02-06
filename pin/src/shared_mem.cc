@@ -24,6 +24,8 @@ extern MCP *g_MCP;
 
 NetThreadRunner *SimSharedMemStartThreads()
 {
+   LOG_PRINT("Starting threads.");
+
    g_shared_mem_threads_lock = Lock::create();
    g_shared_mem_active_threads = 0;
 
@@ -31,6 +33,8 @@ NetThreadRunner *SimSharedMemStartThreads()
    NetThreadRunner * runners = new NetThreadRunner[num_shared_mem_threads];
    for(unsigned int i = 0; i < num_shared_mem_threads; i++)
    {
+      LOG_PRINT("Starting thread %i", i);
+
       OS_SERVICES::ITHREAD *my_thread_p;
       my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, &runners[i]);
       assert(my_thread_p);

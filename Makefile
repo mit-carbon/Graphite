@@ -58,7 +58,7 @@ build_benchmarks:
 
 simple_test: all
 	$(MAKE) -C $(TESTS_DIR)/simple
-	$(PIN_RUN) -mdc -mpf -msys -tc 2 -n 2 -- $(TESTS_DIR)/simple/simple_test
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test
 
 simple_test_dist: all
 	$(MAKE) -C $(TESTS_DIR)/simple

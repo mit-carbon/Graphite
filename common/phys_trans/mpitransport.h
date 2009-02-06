@@ -13,6 +13,8 @@
 #include "config.h"
 #include "fixed_types.h"
 
+//#define PHYS_TRANS_USE_LOCKS
+
 class Lock;
 
 class Transport {
@@ -26,7 +28,9 @@ class Transport {
       //  integers between 0 and (g_config->numProcs() - 1), inclusive.
       static UInt32 ptProcessNum();
 
+#ifdef PHYS_TRANS_USE_LOCKS
       static Lock *pt_lock;
+#endif
 
    public:
       // This routine should be called once within in each process.

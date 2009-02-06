@@ -5,16 +5,17 @@
 #define LOG_DEFAULT_RANK comm_id
 #define LOG_DEFAULT_MODULE TRANSPORT
 
-
 #include <iostream>
 using namespace std;
 
-#define PT_DEBUG 1
-
+#ifdef PHYS_TRANS_USE_LOCKS
 Lock* Transport::pt_lock;
 #define PT_LOCK()                                                       \
    assert(Transport::pt_lock);                                          \
-   ScopedLock __scopedLock(*Transport::pt_lock);                        \
+   ScopedLock __scopedLock(*Transport::pt_lock);
+#else
+#define PT_LOCK() { }
+#endif
 
 UInt32 Transport::ptProcessNum()
 {
@@ -37,8 +38,10 @@ UInt32 Transport::ptProcessNum()
 // This routine should be executed once in each process
 void Transport::ptGlobalInit()
 {
+#ifdef PHYS_TRANS_USE_LOCKS
    // initialize global phys trans lock
    pt_lock = Lock::create();
+#endif
 
    //***** Initialize MPI *****//
    // NOTE: MPI barfs if I call MPI_Init_thread with MPI_THREAD_MULTIPLE
@@ -55,9 +58,8 @@ void Transport::ptGlobalInit()
 
    //***** Fill in g_config with values that we are responsible for *****//
    g_config->setProcNum(ptProcessNum());
-#ifdef PT_DEBUG
-   cout << "Process number set to " << g_config->myProcNum() << endl;
-#endif
+
+   LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Process number set to %i", g_config->myProcNum());
 }
 
 // This routine should be executed once in each thread
@@ -106,18 +108,13 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
    //
    UInt32 dest_proc = g_config->procNumForCore(receiver);
 
-#ifdef PT_DEBUG
-   cout << "PT sending msg ==> tid:" << pt_tid
-	<< ", comm_id:" << comm_id << ", recv:" << receiver
-	<< ", size:" << size << " ... ";
-   cout << "Destination process: " << dest_proc << endl;
-#endif
+   LOG_PRINT("sending msg -- tid: %i, comm id: %i, size: %i, dest: %i", pt_tid, comm_id, size, dest_proc);
+
    PT_LOCK();
    MPI_Send(buffer, size, MPI_BYTE, dest_proc, receiver, MPI_COMM_WORLD);
 
-#ifdef PT_DEBUG
-   cout << "done." << endl;
-#endif
+   LOG_PRINT("message sent");
+
    // FIXME: Why do we need to return the size?
    return size;
 }
@@ -126,17 +123,17 @@ void* Transport::ptRecv()
 {
    MPI_Status status;
    SInt32 pkt_size, source;
-   SInt32 flag;
    Byte* buffer;
 
-#ifdef PT_DEBUG
-   cout << "PT (tid:" << pt_tid << ",cid:" << comm_id
-	<< ") attempting receive..." << endl;
-#endif
+   LOG_PRINT("attempting receive -- tid: %i, comm_id: %i", pt_tid, comm_id);
 
    // Probe for a message from any source but with our ID tag.
+#ifdef PHYS_TRANS_USE_LOCKS
+   // When using phys_trans locks, we spin.
    while (true)
    {
+      SInt32 flag;
+
       pt_lock->acquire();
 
       // this is essentially ptQuery without the locks
@@ -150,6 +147,10 @@ void* Transport::ptRecv()
       pt_lock->release();
       sched_yield();
    }
+#else
+   // Otherwise, blocking MPI call.
+   MPI_Probe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &status);
+#endif
  
    // Now we know that there is a message ready, check status to see how
    //  big it is and who the source is.
@@ -160,11 +161,7 @@ void* Transport::ptRecv()
    // Allocate a buffer for the incoming message
    buffer = new Byte[pkt_size];
 
-#ifdef PT_DEBUG
-   cout << "PT found msg ==> tid:" << pt_tid
-        << ", comm_id:" << comm_id << ", source rank:" << source
-        << ", size:" << pkt_size << " ...";
-#endif
+   LOG_PRINT("msg found -- tid: %i, comm_id: %i, size: %i, source: %i", pt_tid, comm_id, source, pkt_size);
 
    // We need to make sure the source here is the same as the one returned
    //  by the call to Probe above.  Otherwise, we might get a message from
@@ -172,11 +169,11 @@ void* Transport::ptRecv()
    MPI_Recv(buffer, pkt_size, MPI_BYTE, source, comm_id, MPI_COMM_WORLD,
             &status);
    
-#ifdef PT_DEBUG
-   cout << "received." << endl;
-#endif
+   LOG_PRINT("msg received");
 
+#ifdef PHYS_TRANS_USE_LOCKS
    pt_lock->release();
+#endif
 
    return buffer;
    // NOTE: the caller should free the buffer when it's finished with it

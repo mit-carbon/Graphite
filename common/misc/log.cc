@@ -14,38 +14,42 @@ Log::Log(UInt32 coreCount)
    : _coreCount(coreCount)
 {
    char filename[256];
-   _files = new FILE* [2 * _coreCount + 1];
+
+   _coreFiles = new FILE* [2 * _coreCount];
    for (UInt32 i = 0; i < _coreCount; i++)
    {
       sprintf(filename, "output_files/app_%u", i);
-      _files[i] = fopen(filename, "w");
-      assert(_files[i] != NULL);
+      _coreFiles[i] = fopen(filename, "w");
+      assert(_coreFiles[i] != NULL);
    }
    for (UInt32 i = _coreCount; i < 2 * _coreCount; i++)
    {
       sprintf(filename, "output_files/sim_%u", i-_coreCount);
-      _files[i] = fopen(filename, "w");
-      assert(_files[i] != NULL);
+      _coreFiles[i] = fopen(filename, "w");
+      assert(_coreFiles[i] != NULL);
    }
 
-   // FIXME: This is a huge hack.  We want to open different system
-   // files for each process, but MPI is not initialized at this
-   // point, so we can't get our process number. Instead, we keep
-   // trying to open a system file until we succeed.
-   _files[_coreCount * 2] = NULL;
-   for (int systemFileNum = 0; _files[_coreCount * 2] == NULL; ++systemFileNum)
+   _coreLocks = new Lock* [2 * _coreCount];
+   for (UInt32 i = 0; i < 2 * _coreCount; i++)
    {
-     char system_file_name[256];
-     sprintf(system_file_name, "output_files/system-%i", systemFileNum);
-     _files[_coreCount * 2] = fopen("output_files/system", "w");
+      _coreLocks[i] = Lock::create();
    }
-   assert(_files[_coreCount * 2]);
 
-   _locks = new Lock* [2 * _coreCount + 1];
-   for (UInt32 i = 0; i < 2 * _coreCount + 1; i++)
+   assert(g_config->numProcs() != 0);
+
+   _systemFiles = new FILE* [g_config->numProcs()];
+   _systemLocks = new Lock* [g_config->numProcs()];
+   for (UInt32 i = 0; i < g_config->numProcs(); i++)
    {
-      _locks[i] = Lock::create();
+      sprintf(filename, "output_files/system_%u", i);
+      _systemFiles[i] = fopen(filename, "w");
+      assert(_systemFiles[i] != NULL);
+
+      _systemLocks[i] = Lock::create();
    }
+
+   _defaultFile = fopen("output_files/system-default","w");
+   _defaultLock = Lock::create();
 
    g_config->getDisabledLogModules(_disabledModules);
 
@@ -57,13 +61,26 @@ Log::~Log()
 {
    _singleton = NULL;
 
-   for (UInt32 i = 0; i < 2 * _coreCount + 1; i++)
+   for (UInt32 i = 0; i < 2 * _coreCount; i++)
    {
-      fclose(_files[i]);
-      delete _locks[i];
+      fclose(_coreFiles[i]);
+      delete _coreLocks[i];
    }
-   delete [] _files;
-   delete [] _locks;
+
+   delete [] _coreLocks;
+   delete [] _coreFiles;
+
+   for (UInt32 i = 0; i < g_config->numProcs(); i++)
+   {
+      fclose(_systemFiles[i]);
+      delete _systemLocks[i];
+   }
+
+   delete [] _systemFiles;
+   delete [] _systemLocks;
+
+   fclose(_defaultFile);
+   delete _defaultLock;
 }
 
 Log* Log::getSingleton()
@@ -90,21 +107,34 @@ UInt64 Log::getTimestamp()
 // FIXME: See note below.
 #include "core_manager.h"
 
-void Log::log(UInt32 core_id, const char *module, const char *format, ...)
+void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
 {
-#ifdef DISABLE_LOGGING
-   return;
-#endif
-
-   UInt32 fileID;
+   *file = NULL;
+   *lock = NULL;
 
    if (core_id == (UInt32)-1)
-      fileID = 2 * _coreCount;
+   {
+      // System file -- use process num if available
+      if (g_config->myProcNum() != (UInt32) -1)
+      {
+         assert(g_config->myProcNum() < g_config->numProcs());
+         *file = _systemFiles[g_config->myProcNum()];
+         *lock = _systemLocks[g_config->myProcNum()];
+      }
+      else
+      {
+         *file = _defaultFile;
+         *lock = _defaultLock;
+      }
+   }
    else
    {
+      // Core file
+
       // FIXME: This is an ugly hack. Net/shared mem threads do not
       // have a core_id, so we can use the core ID to discover which
       // thread we are on.
+      UInt32 fileID;
 
       if (g_core_manager == NULL) 
       {         
@@ -119,25 +149,45 @@ void Log::log(UInt32 core_id, const char *module, const char *format, ...)
          else
             fileID = core_id;
       }
+
+      *file = _coreFiles[fileID];
+      *lock = _coreLocks[fileID];
    }
+}
+
+void Log::log(UInt32 core_id, const char *module, const char *format, ...)
+{
+#ifdef DISABLE_LOGGING
+   return;
+#endif
    
    if (!isEnabled(module))
       return;
 
-   _locks[fileID]->acquire();
+   FILE *file;
+   Lock *lock;
 
-   fprintf(_files[fileID], "%llu [%i] [%s] ", getTimestamp(), (core_id > _coreCount ? -1 : (SInt32)core_id), module);
+   getFile(core_id, &file, &lock);
+
+   lock->acquire();
+
+   if (core_id < _coreCount)
+      fprintf(file, "%llu {%i}\t[%i]\t[%s] ", getTimestamp(), g_config->myProcNum(), core_id, module);
+   else if (g_config->myProcNum() != (UInt32)-1)
+      fprintf(file, "%llu {%i}\t[ ]\t[%s] ", getTimestamp(), g_config->myProcNum(), module);
+   else
+      fprintf(file, "%llu { }\t[ ]\t[%s] ", getTimestamp(), module);
    
    va_list args;
    va_start(args, format);
-   vfprintf(_files[fileID], format, args);
+   vfprintf(file, format, args);
    va_end(args);
 
-   fprintf(_files[fileID], "\n");
+   fprintf(file, "\n");
 
-   fflush(_files[fileID]);
+   fflush(file);
 
-   _locks[fileID]->release();
+   lock->release();
 }
 
 void Log::notifyWarning()

@@ -23,8 +23,11 @@ using namespace std;
 
 Config::Config()
    : num_processes(g_knob_num_process),
-   total_cores(g_knob_total_cores)
+     total_cores(g_knob_total_cores),
+     my_proc_num((UInt32)-1)
 {
+   g_config = this;
+
    assert(num_processes > 0);
    assert(total_cores > 0);
 

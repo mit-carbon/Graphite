@@ -25,6 +25,8 @@ public:
 private:
    UInt64 getTimestamp();
 
+   void getFile(UInt32 core_id, FILE ** f, Lock ** l);
+
    enum ErrorState
    {
       None,
@@ -33,9 +35,19 @@ private:
    };
    ErrorState _state;
 
-   
-   FILE ** _files;
-   Lock ** _locks;
+   // when core id is known
+   FILE** _coreFiles;
+   Lock** _coreLocks;
+
+   // when core is id unknown but process # is
+   FILE** _systemFiles;
+   Lock** _systemLocks;
+
+   // when both no. procs and core id are unknown
+   // there is the possibility of race conditions and stuff being
+   // overwritten between multiple processes for this file
+   FILE *_defaultFile;
+   Lock *_defaultLock;
 
    UInt32 _coreCount;
    std::set<std::string> _disabledModules;

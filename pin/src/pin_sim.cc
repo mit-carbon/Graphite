@@ -778,9 +778,7 @@ void fini(int code, void * v)
 
    if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
    {
-       fprintf(stderr, "MyProcNum: %d mcp_core: %d mcp_proc: %d\n", g_config->myProcNum(), g_config->MCPCoreNum(), g_config->procNumForCore(g_config->MCPCoreNum()));
-       fprintf(stderr, "MyCoreNum: %d\n", g_core_manager->getCurrentCoreID());
-       g_MCP->finish();
+      g_MCP->finish();
    }
 
    SimSharedMemQuit();

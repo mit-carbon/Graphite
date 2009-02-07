@@ -35,11 +35,11 @@ Log::Log(UInt32 coreCount)
       _coreLocks[i] = Lock::create();
    }
 
-   assert(g_config->numProcs() != 0);
+   assert(g_config->getProcessCount() != 0);
 
-   _systemFiles = new FILE* [g_config->numProcs()];
-   _systemLocks = new Lock* [g_config->numProcs()];
-   for (UInt32 i = 0; i < g_config->numProcs(); i++)
+   _systemFiles = new FILE* [g_config->getProcessCount()];
+   _systemLocks = new Lock* [g_config->getProcessCount()];
+   for (UInt32 i = 0; i < g_config->getProcessCount(); i++)
    {
       sprintf(filename, "output_files/system_%u", i);
       _systemFiles[i] = fopen(filename, "w");
@@ -70,7 +70,7 @@ Log::~Log()
    delete [] _coreLocks;
    delete [] _coreFiles;
 
-   for (UInt32 i = 0; i < g_config->numProcs(); i++)
+   for (UInt32 i = 0; i < g_config->getProcessCount(); i++)
    {
       fclose(_systemFiles[i]);
       delete _systemLocks[i];
@@ -115,11 +115,11 @@ void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
    if (core_id == (UInt32)-1)
    {
       // System file -- use process num if available
-      if (g_config->myProcNum() != (UInt32) -1)
+      if (g_config->getCurrentProcessNum() != (UInt32) -1)
       {
-         assert(g_config->myProcNum() < g_config->numProcs());
-         *file = _systemFiles[g_config->myProcNum()];
-         *lock = _systemLocks[g_config->myProcNum()];
+         assert(g_config->getCurrentProcessNum() < g_config->getProcessCount());
+         *file = _systemFiles[g_config->getCurrentProcessNum()];
+         *lock = _systemLocks[g_config->getCurrentProcessNum()];
       }
       else
       {
@@ -172,9 +172,9 @@ void Log::log(UInt32 core_id, const char *module, const char *format, ...)
    lock->acquire();
 
    if (core_id < _coreCount)
-      fprintf(file, "%llu {%i}\t[%i]\t[%s] ", getTimestamp(), g_config->myProcNum(), core_id, module);
-   else if (g_config->myProcNum() != (UInt32)-1)
-      fprintf(file, "%llu {%i}\t[ ]\t[%s] ", getTimestamp(), g_config->myProcNum(), module);
+      fprintf(file, "%llu {%i}\t[%i]\t[%s] ", getTimestamp(), g_config->getCurrentProcessNum(), core_id, module);
+   else if (g_config->getCurrentProcessNum() != (UInt32)-1)
+      fprintf(file, "%llu {%i}\t[ ]\t[%s] ", getTimestamp(), g_config->getCurrentProcessNum(), module);
    else
       fprintf(file, "%llu { }\t[ ]\t[%s] ", getTimestamp(), module);
    

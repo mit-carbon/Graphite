@@ -22,67 +22,68 @@ extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
 using namespace std;
 
 Config::Config()
-   : num_processes(g_knob_num_process),
-     total_cores(g_knob_total_cores),
-     my_proc_num((UInt32)-1)
+   : m_num_processes(g_knob_num_process),
+     m_total_cores(g_knob_total_cores),
+     m_current_process_num((UInt32)-1)
 {
    g_config = this;
 
-   assert(num_processes > 0);
-   assert(total_cores > 0);
+   assert(m_num_processes > 0);
+   assert(m_total_cores > 0);
 
    // Add one for the MCP
-   total_cores += 1;
+   m_total_cores += 1;
 
    // FIXME: This is a bit of a hack to put this here, but we need it
    // for logging in the rest of Config's constructor.
-   g_log = new Log(total_cores);
+   g_log = new Log(m_total_cores);
 
    GenerateCoreMap();
 
    // Create network parameters
-   analytic_network_parms = new NetworkModelAnalyticalParameters();
-   analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
-   analytic_network_parms->s = 1; // single cycle switching time
-   analytic_network_parms->n = 1; // 2-d mesh network
-   analytic_network_parms->W = 32; // 32-bit wide channels
-   analytic_network_parms->update_interval = 100000;
-   analytic_network_parms->proc_cost = 100;
+   m_analytic_network_parms = new NetworkModelAnalyticalParameters();
+   m_analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
+   m_analytic_network_parms->s = 1; // single cycle switching time
+   m_analytic_network_parms->n = 1; // 2-d mesh network
+   m_analytic_network_parms->W = 32; // 32-bit wide channels
+   m_analytic_network_parms->update_interval = 100000;
+   m_analytic_network_parms->proc_cost = 100;
 
 }
 
 Config::~Config()
 {
    // Clean up the dynamic memory we allocated
-   delete analytic_network_parms;
-   delete [] proc_to_core_list_map;
+   delete m_analytic_network_parms;
+   delete [] m_proc_to_core_list_map;
 }
 
 void Config::GenerateCoreMap()
 {
-   proc_to_core_list_map = new CoreList[num_processes];
-   core_to_proc_map.resize(total_cores);
+   m_proc_to_core_list_map = new CoreList[m_num_processes];
+   m_core_to_proc_map.resize(m_total_cores);
 
    // Stripe the cores across the processes
    UInt32 current_proc = 0;
-   for (UInt32 i=0; i < total_cores - 1; i++)
+   for (UInt32 i=0; i < m_total_cores - 1; i++)
    {
-      core_to_proc_map[i] = current_proc;
-      proc_to_core_list_map[current_proc].push_back(i);
+      m_core_to_proc_map[i] = current_proc;
+      m_proc_to_core_list_map[current_proc].push_back(i);
       current_proc++;
-      current_proc %= num_processes;
+      current_proc %= m_num_processes;
    }
 
    // Add one for the MCP
-   proc_to_core_list_map[0].push_back(total_cores - 1);
-   core_to_proc_map[total_cores - 1] = 0;
+   m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
+   m_core_to_proc_map[m_total_cores - 1] = 0;
 
    // Log the map we just created
-   LOG_PRINT("Process num: %d\n", num_processes);
-   for (UInt32 i=0; i<num_processes; i++) {   
+   LOG_PRINT("Process num: %d\n", m_num_processes);
+   for (UInt32 i=0; i < m_num_processes; i++)
+   {
       stringstream ss;
-      ss << "Process " << i << ": (" << proc_to_core_list_map[i].size() << ") ";
-      for (CLCI m = proc_to_core_list_map[i].begin(); m != proc_to_core_list_map[i].end(); m++)
+      ss << "Process " << i << ": (" << m_proc_to_core_list_map[i].size() << ") ";
+      for (CLCI m = m_proc_to_core_list_map[i].begin(); m != m_proc_to_core_list_map[i].end(); m++)
          ss << "[" << *m << "]";
       LOG_PRINT(ss.str().c_str());
    }

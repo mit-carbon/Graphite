@@ -12,7 +12,7 @@
 Network::Network(Core *core)
    : _core(core)
 {
-   _numMod = g_config->totalCores();
+   _numMod = g_config->getTotalCores();
    _tid = _core->getRank();
 
    _transport = new Transport();

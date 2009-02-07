@@ -7,7 +7,7 @@
 #include "config.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK g_config->MCPCoreNum()
+#define LOG_DEFAULT_RANK g_config->getMCPCoreNum()
 #define LOG_DEFAULT_MODULE MCP
 
 MCPRunner::MCPRunner(MCP *mcp)
@@ -20,8 +20,8 @@ void MCPRunner::RunThread(OS_SERVICES::ITHREAD *me)
     //FIXME: this should probably be total cores, but that was returning
     //zero when I tried it. --cg3
     int tid =  syscall( __NR_gettid );
-    LOG_PRINT("Initializing the MCP (%i) with id: %i", (int)tid, g_config->totalCores()-1);
-    g_core_manager->initializeThread(g_config->totalCores()-1);
+    LOG_PRINT("Initializing the MCP (%i) with id: %i", (int)tid, g_config->getTotalCores()-1);
+    g_core_manager->initializeThread(g_config->getTotalCores()-1);
 
     while( !m_mcp->finished() )
     {

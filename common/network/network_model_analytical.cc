@@ -92,7 +92,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
     double hops_in_network;   // number of nodes visited
     double Tb;                // latency, without contention
 
-    N = g_config->totalCores();
+    N = g_config->getTotalCores();
     k = pow(N, 1./n);                  // pg 5
     kd = k/2.;                         // pg 5 (note this will be
       // different for different network configurations...say,
@@ -202,7 +202,7 @@ void NetworkModelAnalytical::updateUtilization()
 
   NetPacket update;
   update.sender = getNetwork()->getTransport()->ptCommID();
-  update.receiver = g_config->MCPCoreNum();
+  update.receiver = g_config->getMCPCoreNum();
   update.length = sizeof(m);
   update.type = MCP_SYSTEM_TYPE;
   update.data = &m;

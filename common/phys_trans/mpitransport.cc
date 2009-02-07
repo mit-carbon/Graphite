@@ -48,7 +48,7 @@ void Transport::ptGlobalInit()
    //  in a non-threaded process.  I think this is a bug but I'll work
    //  around it for now.
    SInt32 required, provided;
-   if (g_config->numProcs() > 1) {
+   if (g_config->getProcessCount() > 1) {
       required = MPI_THREAD_MULTIPLE;
    } else {
       required = MPI_THREAD_SINGLE;
@@ -57,9 +57,9 @@ void Transport::ptGlobalInit()
    assert(provided >= required);
 
    //***** Fill in g_config with values that we are responsible for *****//
-   g_config->setProcNum(ptProcessNum());
+   g_config->setProcessCount(ptProcessNum());
 
-   LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Process number set to %i", g_config->myProcNum());
+   LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Process number set to %i", g_config->getCurrentProcessNum());
 }
 
 // This routine should be executed once in each thread
@@ -77,11 +77,11 @@ SInt32 Transport::ptInit(SInt32 tid, SInt32 num_mod)
    //  we will either pick an ID from the list of IDs for this process,
    //  or our ID will be assigned by someone else and passed into this
    //  method.
-   if (g_config->numProcs() == 1) {
+   if (g_config->getProcessCount() == 1) {
       // If we only have one process, we can make comm_id equal to tid
       comm_id = tid;
 
-   } else if (g_config->numProcs() == g_config->totalCores()) {
+   } else if (g_config->getProcessCount() == g_config->getTotalCores()) {
       // If the number of processes is equal to the number of modules, we
       //  have one module per process.  Therefore, we can just use the
       //  process's MPI rank as the comm_id.
@@ -106,7 +106,7 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
    //  - We use the receiver ID as the tag so that messages can be
    //    demultiplexed automatically by MPI in the receiving process.
    //
-   UInt32 dest_proc = g_config->procNumForCore(receiver);
+   UInt32 dest_proc = g_config->getProcessNumForCore(receiver);
 
    LOG_PRINT("sending msg -- tid: %i, comm id: %i, size: %i, dest: %i", pt_tid, comm_id, size, dest_proc);
 

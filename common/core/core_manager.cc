@@ -16,27 +16,27 @@ using namespace std;
 
 CoreManager::CoreManager()
    :
-   tid_to_core_map(3*g_config->numLocalCores()),
-   tid_to_core_index_map(3*g_config->numLocalCores()),
-   shmem_tid_to_core_map(3*g_config->numLocalCores()),
-   shmem_tid_to_core_index_map(3*g_config->numLocalCores()),
+   tid_to_core_map(3*g_config->getNumLocalCores()),
+   tid_to_core_index_map(3*g_config->getNumLocalCores()),
+   shmem_tid_to_core_map(3*g_config->getNumLocalCores()),
+   shmem_tid_to_core_index_map(3*g_config->getNumLocalCores()),
    prev_rank(0) 
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
    maps_lock = Lock::create();
 
-   tid_map = new UInt32 [g_config->numLocalCores()];
-   core_to_shmem_tid_map = new UInt32 [g_config->numLocalCores()];
+   tid_map = new UInt32 [g_config->getNumLocalCores()];
+   core_to_shmem_tid_map = new UInt32 [g_config->getNumLocalCores()];
 
-   m_cores = new Core[g_config->numLocalCores()];
+   m_cores = new Core[g_config->getNumLocalCores()];
 
    // Need to subtract 1 for the MCP
-   for(UInt32 i = 0; i < g_config->numLocalCores(); i++) 
+   for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++) 
    {
       tid_map[i] = UINT_MAX;
       core_to_shmem_tid_map[i] = UINT_MAX;
-      m_cores[i].coreInit(g_config->getCoreListForProcess(g_config->myProcNum())[i], g_config->numLocalCores());
+      m_cores[i].coreInit(g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i], g_config->getNumLocalCores());
    }
 
    LOG_PRINT("Finished CoreManager Constructor.");
@@ -84,7 +84,7 @@ void CoreManager::initializeThreadFree(int *rank)
    if ( e.first == false ) {
       // Don't allow free initializion of the MCP which claimes the
       // highest core.
-      for(unsigned int i = 0; i < g_config->numLocalCores() - 1; i++)
+      for(unsigned int i = 0; i < g_config->getNumLocalCores() - 1; i++)
       {
          if (tid_map[i] == UINT_MAX)
          {
@@ -114,7 +114,7 @@ UInt32 CoreManager::getCurrentCoreID()
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
    id = (e.first == false) ? -1 : e.second;
 
-   ASSERT(!e.first || id < g_config->totalCores(), "Illegal rank value returned by getCurrentCoreID!\n");
+   ASSERT(!e.first || id < g_config->getTotalCores(), "Illegal rank value returned by getCurrentCoreID!\n");
 
    return id;
 }
@@ -127,7 +127,7 @@ Core *CoreManager::getCurrentCore()
    pair<bool, UINT64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : &m_cores[e.second];
 
-   ASSERT(!e.first || e.second < g_config->totalCores(), "Illegal rank value returned by getCurrentCore!\n");
+   ASSERT(!e.first || e.second < g_config->getTotalCores(), "Illegal rank value returned by getCurrentCore!\n");
    return core;
 }
 
@@ -136,7 +136,7 @@ Core *CoreManager::getCoreFromID(unsigned int id)
    Core *core = NULL;
    // Look up the index from the core list
    // FIXME: make this more cached
-   const Config::CoreList & cores (g_config->getCoreListForProcess(g_config->myProcNum()));
+   const Config::CoreList & cores (g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
    UInt32 idx = 0;
    for(Config::CLCI i = cores.begin(); i != cores.end(); i++)
    {
@@ -149,7 +149,7 @@ Core *CoreManager::getCoreFromID(unsigned int id)
       idx++;
    }
 
-   ASSERT(!core || idx < g_config->numLocalCores(), "Illegal index in getCoreFromID!\n");
+   ASSERT(!core || idx < g_config->getNumLocalCores(), "Illegal index in getCoreFromID!\n");
 
    return core;
 }
@@ -160,7 +160,7 @@ void CoreManager::fini(int code, void *v)
 
    ofstream out( g_config->getOutputFileName() );
 
-   for(UInt32 i = 0; i < g_config->numLocalCores(); i++)
+   for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
    {
       LOG_PRINT("Output summary core %i", i);
 
@@ -187,7 +187,7 @@ int CoreManager::registerSharedMemThread()
 
       // Search for an unused core to map this shmem thread to
       // one less to account for the MCP
-      for(UInt32 i = 0; i < g_config->numLocalCores(); i++)
+      for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
       {
          // Unused slots are set to UINT_MAX
          // FIXME: Use a different constant than UINT_MAX
@@ -196,7 +196,11 @@ int CoreManager::registerSharedMemThread()
             core_to_shmem_tid_map[i] = tid;    
             shmem_tid_to_core_map.insert( tid, i );
             maps_lock->release();
-            return g_config->getCoreListForProcess(g_config->myProcNum())[i];
+            return g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
+         }
+         else
+         {
+             fprintf(stderr, "core_to_shmem_tid_map[%d] = %d\n", i, core_to_shmem_tid_map[i]);
          }
       }
 

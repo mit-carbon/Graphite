@@ -121,7 +121,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
         if (skip_modeling)
             return;
 
-        assert ( (UInt32)rank < g_config->numLocalCores() );
+        assert ( (UInt32)rank < g_config->getNumLocalCores() );
         assert ( !do_network_modeling );
         assert ( !do_bpred_modeling );
 
@@ -256,12 +256,12 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
 {
     // using zero is a dirty hack 
     // assumes its safe to use core zero to generate perfmodels for all cores
-    assert(g_config->numLocalCores() > 0);
+    assert(g_config->getNumLocalCores() > 0);
 
     //FIXME: These stats should be deleted at the end of execution
-    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->numLocalCores()];
+    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
 
-    for (UInt32 i = 0; i < g_config->numLocalCores(); i++)
+    for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
         array[i] = g_core_manager->getCoreFromID(0)->perfModelAnalyzeInterval(parent_routine, start_ins, end_ins);
 
     return array; 
@@ -776,7 +776,7 @@ void fini(int code, void * v)
    // Make sure all other processes are finished before we start tearing down stuffs
    Transport::ptBarrier();
 
-   if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
+   if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
    {
       g_MCP->finish();
    }
@@ -826,10 +826,10 @@ void init_globals()
 
     // Note the MCP has a dependency on the transport layer and the core_manager.
     // Only create an MCP on the correct process.
-    if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
+    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
     {
-        LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->myProcNum());
-        Core * mcp_core = g_core_manager->getCoreFromID(g_config->totalCores()-1);
+        LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->getCurrentProcessNum());
+        Core * mcp_core = g_core_manager->getCoreFromID(g_config->getTotalCores()-1);
         if(!mcp_core)
         {
            LOG_PRINT_EXPLICIT(-1, PINSIM, "Could not find the MCP's core!");
@@ -859,7 +859,7 @@ int main(int argc, char *argv[])
 
    init_globals();
 
-   if (g_config->myProcNum() == g_config->procNumForCore(g_config->MCPCoreNum()))
+   if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_mcp_runner = StartMCPThread();
 
    g_net_thread_runners = SimSharedMemStartThreads();

@@ -105,7 +105,7 @@ void MCP::finish()
       sched_yield();
    }
 
-   LOG_PRINT("End");
+   LOG_PRINT("MCP Finished.");
 }
 
 void MCP::broadcastPacket(NetPacket pkt)

@@ -84,6 +84,8 @@ void Network::netPullFromTransport()
 {
    do
    {
+      LOG_PRINT("Entering netPullFromTransport");
+
       NetQueueEntry entry;
       {
          void *buffer;

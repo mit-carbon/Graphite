@@ -22,11 +22,13 @@ OBJECTS = $(SOURCES:%.cc=%.o)
 
 TOOLS = $(TOOL_ROOTS:%=%$(PINTOOL_SUFFIX))
 
-all: commonsubsystem tools
+all: bindir commonsubsystem tools
 tools: $(TOOLS) $(SOURCES)
 
 
 ## build rules
+bindir:
+	-mkdir -f ../bin
 
 %.o : %.cc
 	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<

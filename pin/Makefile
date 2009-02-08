@@ -7,7 +7,7 @@ all:
 
 clean:
 	$(MAKE) -C src clean
-	-rm -rf bin
+	-rm -rf bin/*
 	-rm -f *.o *.d *.rpo
 
 squeaky: clean

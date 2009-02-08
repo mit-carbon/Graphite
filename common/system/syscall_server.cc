@@ -53,10 +53,7 @@ void SyscallServer::handleSyscall(int comm_id)
          marshallAccessCall(comm_id);
          break;
       default:
-      {
-         LOG_NOTIFY_ERROR();
-         LOG_PRINT("Unhandled syscall number: %i from %i", (int)syscall_number, comm_id);
-      }
+         LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, comm_id);
    }
 }
 

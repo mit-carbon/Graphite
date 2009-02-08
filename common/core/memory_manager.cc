@@ -155,10 +155,8 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
          ret = cache_state.writable();
          break;
       default:
+         LOG_PRINT_EXPLICIT(-1, MMU, "*ERROR* in Actionreadily permissiable");
          LOG_NOTIFY_ERROR ();
-         LOG_PRINT_EXPLICIT(-1, MMU, "ERROR in Actionreadily permissiable");
-         assert(false);
-         exit(-1);
          break;
    }
 
@@ -487,9 +485,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
          break;
       
       default:
-         LOG_NOTIFY_ERROR();
-         LOG_PRINT("ERROR in MMU switch statement.");
-         assert(false);
+         LOG_ASSERT_ERROR(false, "*ERROR* in MMU switch statement.");
          break;
    }
 

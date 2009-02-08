@@ -85,9 +85,7 @@ void MCP::run()
          network_model_analytical_server.update(recv_pkt.sender);
          break;
       default:
-         LOG_NOTIFY_ERROR();
-         LOG_PRINT("Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
-         assert(false);
+         LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
    }
 
    delete [] (Byte*)recv_pkt.data;

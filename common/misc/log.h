@@ -102,8 +102,8 @@ private:
    {                                                    \
       if (!(expr))                                      \
       {                                                 \
-         LOG_NOTIFY_WARNING();                          \
          LOG_PRINT(__VA_ARGS__);                        \
+         LOG_NOTIFY_WARNING();                          \
       }                                                 \
    }                                                    \
 
@@ -111,8 +111,8 @@ private:
    {                                                    \
       if (!(expr))                                      \
       {                                                 \
-         LOG_NOTIFY_ERROR();                            \
          LOG_PRINT(__VA_ARGS__);                        \
+         LOG_NOTIFY_ERROR();                            \
       }                                                 \
    }                                                    \
 

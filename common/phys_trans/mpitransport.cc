@@ -57,7 +57,7 @@ void Transport::ptGlobalInit()
    assert(provided >= required);
 
    //***** Fill in g_config with values that we are responsible for *****//
-   g_config->setProcessCount(ptProcessNum());
+   g_config->setProcessNum(ptProcessNum());
 
    LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Process number set to %i", g_config->getCurrentProcessNum());
 }

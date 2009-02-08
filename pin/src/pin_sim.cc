@@ -776,12 +776,17 @@ void fini(int code, void * v)
    // Make sure all other processes are finished before we start tearing down stuffs
    Transport::ptBarrier();
 
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "fini start");
+
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
    {
       g_MCP->finish();
    }
 
+   Transport::ptBarrier();
+
    SimSharedMemQuit();
+
    Transport::ptFinish();
 
    g_core_manager->fini(code, v);
@@ -792,6 +797,8 @@ void fini(int code, void * v)
    delete g_core_manager;
 
    delete g_log;
+
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "fini end");
 }
 
 /* ===================================================================== */

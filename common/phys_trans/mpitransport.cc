@@ -151,6 +151,8 @@ void* Transport::ptRecv()
    // Otherwise, blocking MPI call.
    MPI_Probe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &status);
 #endif
+
+   LOG_PRINT("after probe");
  
    // Now we know that there is a message ready, check status to see how
    //  big it is and who the source is.

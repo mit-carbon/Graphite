@@ -200,7 +200,7 @@ int CoreManager::registerSharedMemThread()
          }
          else
          {
-             fprintf(stderr, "core_to_shmem_tid_map[%d] = %d\n", i, core_to_shmem_tid_map[i]);
+            LOG_PRINT("core_to_shmem_tid_map[%d] = %d\n", i, core_to_shmem_tid_map[i]);
          }
       }
 

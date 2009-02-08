@@ -859,6 +859,7 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
 
 int main(int argc, char *argv[])
 {
+   // Global initialization
    PIN_InitSymbols();
 
    if( PIN_Init(argc,argv) )
@@ -866,22 +867,27 @@ int main(int argc, char *argv[])
 
    init_globals();
 
+   // Start up helper threads
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_mcp_runner = StartMCPThread();
 
    g_net_thread_runners = SimSharedMemStartThreads();
 
+   // Instrumentation
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
-
    //RTN_AddInstrumentFunction(routine, 0);
    //PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    //PIN_AddSyscallExitFunction(SyscallExit, 0);
-
    PIN_AddFiniFunction(fini, 0);
+
+   // Just in case ... might not be strictly necessary
+   Transport::ptBarrier();
+
+   while(true)
+      ;
 
    // Never returns
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Running program...");
-
    PIN_StartProgram();
 
    return 0;

@@ -1,6 +1,6 @@
 include common/makefile.gnu.config
 
-PIN_BIN=/afs/csail.mit.edu/group/carbon/tools/pin/current/pin
+PIN_BIN=$(PIN_HOME)/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
 PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 

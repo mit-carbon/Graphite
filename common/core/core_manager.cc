@@ -198,13 +198,13 @@ int CoreManager::registerSharedMemThread()
             maps_lock->release();
             return g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
          }
-         else
-         {
-            LOG_PRINT("core_to_shmem_tid_map[%d] = %d\n", i, core_to_shmem_tid_map[i]);
-         }
       }
 
-      LOG_PRINT("*WARNING* registerSharedMemThread - No free cores");
+      LOG_PRINT("*WARNING* registerSharedMemThread - No free cores for thread: %d", tid);
+      LOG_PRINT("*WARNING* registerSharedMemThread - Map (total: %d):", g_config->getNumLocalCores());
+      for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+          LOG_PRINT("core_to_shmem_tid_map[%d] = %d\n", i, core_to_shmem_tid_map[i]);
+
       LOG_NOTIFY_WARNING();
    }
    else

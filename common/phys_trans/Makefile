@@ -17,15 +17,6 @@ OBJECTS = $(SOURCES:%.cc=%.o)
 
 all: $(OBJECTS)
 
-use-mpi:
-	ln -f -s mpitransport.h transport.h
-	ln -f -s mpitransport.cc transport.cc
-
-use-sm:
-	ln -f -s smtransport.h transport.h
-	ln -f -s smtransport.cc transport.cc
-
-
 ## build rules
 
 %.o : %.cc

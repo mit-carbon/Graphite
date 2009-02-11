@@ -18,14 +18,6 @@ all:
 	$(MAKE) -C pin
 	$(MAKE) -C qemu
 
-use-mpi:
-	$(MAKE) use-mpi -C common/phys_trans
-	$(MAKE) clean -C common/phys_trans
-
-use-sm:
-	$(MAKE) use-sm -C common/phys_trans
-	$(MAKE) clean -C common/phys_trans
-
 pinbin:
 	$(MAKE) -C common
 	$(MAKE) -C pin

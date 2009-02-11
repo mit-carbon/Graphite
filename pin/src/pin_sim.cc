@@ -791,7 +791,9 @@ void fini(int code, void * v)
 
    g_core_manager->fini(code, v);
 
-   delete g_mcp_runner;
+   if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
+      delete g_mcp_runner;
+
    delete [] g_net_thread_runners;
 
    delete g_core_manager;

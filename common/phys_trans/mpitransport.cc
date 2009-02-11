@@ -28,6 +28,14 @@ void Transport::ptFinish()
 
 void Transport::ptBarrier()
 {
+   // FIXME: This is potentially dangerous, but I don't see a way
+   // around it using MPI_Barrier. If other threads are waiting on
+   // this process (say, for shared memory response) in order to reach
+   // this barrier, we will deadlock.
+   //   Correct implementation should probably manually implement a
+   // barrier via broadcast messages and counters.
+   //   - NZB
+   PT_LOCK();
    LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Entering barrier");
 
    int err_code;

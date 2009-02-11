@@ -9,11 +9,9 @@
 #include <iostream>
 #include <errno.h>
 #include <assert.h>
-#include "mpi.h"
-#include "config.h"
 #include "fixed_types.h"
 
-//#define PHYS_TRANS_USE_LOCKS
+#define PHYS_TRANS_USE_LOCKS
 
 class Lock;
 
@@ -39,14 +37,11 @@ class Transport {
       // This routine should be called once within each thread.
       SInt32 ptInit(SInt32 tid, SInt32 num_mod);
 
-      // The MCP should use this initialization routine instead of ptInit
-      void ptInitMCP();
+      // This routine should be called once when everything is done
+      static void ptFinish();
 
       // This routine should be called once when everything is done
-      static void ptFinish() { MPI_Finalize(); }
-
-      // This routine should be called once when everything is done
-      static void ptBarrier() { MPI_Barrier(MPI_COMM_WORLD); }
+      static void ptBarrier();
 
       // Return the communications ID for this node
       SInt32 ptCommID() { return comm_id; }

@@ -1,7 +1,7 @@
 #include "syscall_model.h"
 #include "sys/syscall.h"
 #include "transport.h"
-
+#include "config.h"
 
 SyscallMdl::SyscallMdl(Network *net)
   : called_enter(false), 

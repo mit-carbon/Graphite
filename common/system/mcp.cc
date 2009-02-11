@@ -1,4 +1,5 @@
 #include "mcp.h"
+#include "config.h"
 
 #include "log.h"
 #define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()

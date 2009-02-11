@@ -1,6 +1,8 @@
 #include "mpitransport.h"
 #include "lock.h"
 #include "log.h"
+#include "mpi.h"
+#include "config.h"
 
 #define LOG_DEFAULT_RANK comm_id
 #define LOG_DEFAULT_MODULE TRANSPORT
@@ -17,6 +19,24 @@ Lock* Transport::pt_lock;
 #define PT_LOCK() { }
 #endif
 
+void Transport::ptFinish()
+{
+   int err_code;
+   err_code = MPI_Finalize();
+   LOG_ASSERT_ERROR_EXPLICIT(err_code == MPI_SUCCESS, -1, TRANSPORT, "ptFinish : MPI_Finalize fail.");
+}
+
+void Transport::ptBarrier()
+{
+   LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Entering barrier");
+
+   int err_code;
+   err_code = MPI_Barrier(MPI_COMM_WORLD);
+   LOG_ASSERT_ERROR_EXPLICIT(err_code == MPI_SUCCESS, -1, TRANSPORT, "ptBarrier : MPI_Barrier fail.");
+
+   LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Exiting barrier");
+}
+
 UInt32 Transport::ptProcessNum()
 {
    PT_LOCK();
@@ -25,12 +45,16 @@ UInt32 Transport::ptProcessNum()
    //  return the MPI rank.
    SInt32 MPI_rank;
    SInt32 mpi_initialized;
+   int err_code;
 
    // MPI is initialized by ptInitQueue.  This routine cannot be called
    //  before ptInitQueue.
-   MPI_Initialized(&mpi_initialized);
+   err_code = MPI_Initialized(&mpi_initialized);
+   LOG_ASSERT_ERROR_EXPLICIT(err_code == MPI_SUCCESS, -1, TRANSPORT, "ptProcessNum : MPI_Initialized fail.");
    assert(mpi_initialized == true);
-   MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
+
+   err_code = MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
+   LOG_ASSERT_ERROR_EXPLICIT(err_code == MPI_SUCCESS, -1, TRANSPORT, "ptProcessNum : MPI_Comm_rank fail.");
 
    return (UInt32)MPI_rank;
 }
@@ -38,6 +62,8 @@ UInt32 Transport::ptProcessNum()
 // This routine should be executed once in each process
 void Transport::ptGlobalInit()
 {
+   int err_code;
+
 #ifdef PHYS_TRANS_USE_LOCKS
    // initialize global phys trans lock
    pt_lock = Lock::create();
@@ -53,7 +79,9 @@ void Transport::ptGlobalInit()
    } else {
       required = MPI_THREAD_SINGLE;
    }
-   MPI_Init_thread(NULL, NULL, required, &provided);
+   err_code = MPI_Init_thread(NULL, NULL, required, &provided);
+   LOG_ASSERT_ERROR_EXPLICIT(err_code == MPI_SUCCESS, -1, TRANSPORT, "ptRecv : MPI_Get_count fail.");
+   
    assert(provided >= required);
 
    //***** Fill in g_config with values that we are responsible for *****//
@@ -86,12 +114,14 @@ SInt32 Transport::ptInit(SInt32 tid, SInt32 num_mod)
       //  have one module per process.  Therefore, we can just use the
       //  process's MPI rank as the comm_id.
       PT_LOCK();
-      MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
+
+      int err_code = MPI_Comm_rank(MPI_COMM_WORLD, &MPI_rank);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptInit : MPI_Comm_rank fail.");
+
       comm_id = MPI_rank;  // Convert from int to whatever comm_id is
 
    } else {
-      LOG_NOTIFY_WARNING();
-      LOG_PRINT("WARNING: Multiple processes each with multiple threads is not fully supported!\
+      LOG_ASSERT_WARNING(false, "WARNING: Multiple processes each with multiple threads is not fully supported!\
  Falling back on tid's which only works on single machine!");
       comm_id = tid;
    }
@@ -101,6 +131,8 @@ SInt32 Transport::ptInit(SInt32 tid, SInt32 num_mod)
 
 SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
 {
+   int err_code;
+
    // Notes:
    //  - The data is sent using MPI_BYTE so that MPI won't do any conversions.
    //  - We use the receiver ID as the tag so that messages can be
@@ -111,7 +143,8 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
    LOG_PRINT("sending msg -- tid: %i, comm id: %i, size: %i, dest: %i", pt_tid, comm_id, size, dest_proc);
 
    PT_LOCK();
-   MPI_Send(buffer, size, MPI_BYTE, dest_proc, receiver, MPI_COMM_WORLD);
+   err_code = MPI_Send(buffer, size, MPI_BYTE, dest_proc, receiver, MPI_COMM_WORLD);
+   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptSend : MPI_Send fail.");
 
    LOG_PRINT("message sent");
 
@@ -124,6 +157,7 @@ void* Transport::ptRecv()
    MPI_Status status;
    SInt32 pkt_size, source;
    Byte* buffer;
+   int err_code;
 
    LOG_PRINT("attempting receive -- tid: %i, comm_id: %i", pt_tid, comm_id);
 
@@ -137,7 +171,8 @@ void* Transport::ptRecv()
       pt_lock->acquire();
 
       // this is essentially ptQuery without the locks
-      MPI_Iprobe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &flag, &status);
+      err_code = MPI_Iprobe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &flag, &status);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptRecv : MPI_Iprobe fail.");
 
       // if a message is ready, leave the loop _without_ releasing the lock
       if (flag != 0)
@@ -149,14 +184,14 @@ void* Transport::ptRecv()
    }
 #else
    // Otherwise, blocking MPI call.
-   MPI_Probe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &status);
+   err_code = MPI_Probe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &status);
+   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptRecv : MPI_Probe fail.");
 #endif
 
-   LOG_PRINT("after probe");
- 
    // Now we know that there is a message ready, check status to see how
    //  big it is and who the source is.
-   MPI_Get_count(&status, MPI_BYTE, &pkt_size);
+   err_code = MPI_Get_count(&status, MPI_BYTE, &pkt_size);
+   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptRecv : MPI_Get_count fail.");
    assert(status.MPI_SOURCE != MPI_UNDEFINED);
    source = status.MPI_SOURCE;
    
@@ -168,8 +203,9 @@ void* Transport::ptRecv()
    // We need to make sure the source here is the same as the one returned
    //  by the call to Probe above.  Otherwise, we might get a message from
    //  a different sender that could have a different size.
-   MPI_Recv(buffer, pkt_size, MPI_BYTE, source, comm_id, MPI_COMM_WORLD,
+   err_code = MPI_Recv(buffer, pkt_size, MPI_BYTE, source, comm_id, MPI_COMM_WORLD,
             &status);
+   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptRecv : MPI_Recv fail.");
    
    LOG_PRINT("msg received");
 
@@ -185,10 +221,12 @@ Boolean Transport::ptQuery()
 {
    SInt32 flag;
    MPI_Status status;
+   int err_code;
    PT_LOCK();
 
    // Probe for a message from any source but with our ID tag
-   MPI_Iprobe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &flag, &status);
+   err_code = MPI_Iprobe(MPI_ANY_SOURCE, comm_id, MPI_COMM_WORLD, &flag, &status);
+   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptQuery : MPI_Iprobe fail.");
 
    // flag == 0 indicates that no message is waiting
    return (flag != 0);

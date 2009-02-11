@@ -70,6 +70,8 @@ private:
 #define LOG_NOTIFY_ERROR() ((void)(0))
 #define LOG_ASSERT_WARNING(...) ((void)(0))
 #define LOG_ASSERT_ERROR(...) ((void)(0))
+#define LOG_ASSERT_WARNING_EXPLICIT(...) ((void)(0))
+#define LOG_ASSERT_ERROR_EXPLICIT(...) ((void)(0))
 
 #else
 
@@ -115,6 +117,24 @@ private:
          LOG_NOTIFY_ERROR();                            \
       }                                                 \
    }                                                    \
+
+#define LOG_ASSERT_WARNING_EXPLICIT(expr, rank, module, ...)    \
+   {                                                            \
+      if (!(expr))                                              \
+      {                                                         \
+         LOG_PRINT_EXPLICIT(rank, module, __VA_ARGS__);         \
+         LOG_NOTIFY_WARNING();                                  \
+      }                                                         \
+   }                                                            \
+
+#define LOG_ASSERT_ERROR_EXPLICIT(expr, rank, module, ...)      \
+   {                                                            \
+      if (!(expr))                                              \
+      {                                                         \
+         LOG_PRINT_EXPLICIT(rank, module, __VA_ARGS__);         \
+         LOG_NOTIFY_ERROR();                                    \
+      }                                                         \
+   }                                                            \
 
 #endif // NDEBUG
 

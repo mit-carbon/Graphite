@@ -1,8 +1,8 @@
 include ../../makefile.gnu.config
 FORCE32 ?= 1
 
-CC = /afs/csail/group/carbon/tools/openmpi/bin/mpicc
-CXX = /afs/csail/group/carbon/tools/openmpi/bin/mpicxx
+CC = $(MPI_DIR)/bin/mpicc
+CXX = $(MPI_DIR)/bin/mpicxx
 
 CXXFLAGS = -I../../user -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
 

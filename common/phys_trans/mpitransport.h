@@ -11,7 +11,7 @@
 #include <assert.h>
 #include "fixed_types.h"
 
-#define PHYS_TRANS_USE_LOCKS
+//#define PHYS_TRANS_USE_LOCKS
 
 class Lock;
 

@@ -21,9 +21,13 @@ Lock* Transport::pt_lock;
 
 void Transport::ptFinish()
 {
+   LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Entering finish");
+
    int err_code;
    err_code = MPI_Finalize();
    LOG_ASSERT_ERROR_EXPLICIT(err_code == MPI_SUCCESS, -1, TRANSPORT, "ptFinish : MPI_Finalize fail.");
+
+   LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Exiting finish");
 }
 
 void Transport::ptBarrier()

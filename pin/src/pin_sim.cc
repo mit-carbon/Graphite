@@ -32,8 +32,7 @@
 #include "mcp.h"
 #include "mcp_runner.h"
 #include "net_thread_runner.h"
-// FIXME: Hack: Please remove me later
-#include "shared_mem.h"
+#include "sim_thread.h"
 #include "log.h"
 #include "dram_directory_entry.h"
 #include "core.h"
@@ -779,13 +778,9 @@ void fini(int code, void * v)
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini start");
 
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
-   {
       g_MCP->finish();
-   }
-
-   Transport::ptBarrier();
-
-   SimSharedMemQuit();
+   
+   SimThreadQuit();
 
    Transport::ptFinish();
 
@@ -873,7 +868,7 @@ int main(int argc, char *argv[])
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_mcp_runner = StartMCPThread();
 
-   g_net_thread_runners = SimSharedMemStartThreads();
+   g_net_thread_runners = SimThreadStart();
 
    // Instrumentation
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");

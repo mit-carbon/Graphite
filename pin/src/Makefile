@@ -9,7 +9,7 @@ CFLAGS+=-c -I../../common/user -I../../common/system -I../../common/core -I../..
 LDFLAGS= -pthread
 
 CFLAGS+=-I../../os-services-linux-ia32/include
-LDFLAGS+= -los-services -L ../../os-services-linux-ia32 -L/afs/csail/group/carbon/tools/mpich2-1.0.8/install/lib
+LDFLAGS+= -los-services -L ../../os-services-linux-ia32
 
 # Uncomment the below for the 64bit version of os services
 # CFLAGS+=-I../../os-services-linux-intel64/include

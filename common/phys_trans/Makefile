@@ -8,7 +8,7 @@ PT_VERSION ?= sm
 DBG=-g
 OPT=-O2
 #CFLAGS=-c -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
-CFLAGS=-c -I/afs/csail/group/carbon/tools/mpich2-1.0.8/install/include -I../core -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CFLAGS=-c -I../core -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
 SOURCES = transport.cc

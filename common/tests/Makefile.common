@@ -6,9 +6,6 @@ CXX = $(MPI_DIR)/bin/mpicxx
 
 CXXFLAGS = -I../../user -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
 
-# we need to provide the path for the mpich library since we are using mpicc/mpicxx to build
-# the apps.
-LDFLAGS = -L/afs/csail/group/carbon/tools/mpich2-1.0.8/install/lib
 ifeq (${FORCE32},1)
   CXXFLAGS += -m32
   LDFLAGS += -m32 # -m elf_i386

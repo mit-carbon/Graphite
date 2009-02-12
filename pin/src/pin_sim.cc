@@ -885,9 +885,6 @@ int main(int argc, char *argv[])
    // Just in case ... might not be strictly necessary
    Transport::ptBarrier();
 
-   while(true)
-      ;
-
    // Never returns
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Running program...");
    PIN_StartProgram();

@@ -793,9 +793,9 @@ void fini(int code, void * v)
 
    delete g_core_manager;
 
-   delete g_log;
-
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini end");
+
+   delete g_log;
 }
 
 /* ===================================================================== */

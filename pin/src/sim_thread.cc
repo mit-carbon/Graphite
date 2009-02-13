@@ -13,20 +13,20 @@
 
 extern MCP *g_MCP;
 
-UInt32 g_sim_thread_active_threads;
-Lock* g_sim_thread_threads_lock;
+UInt32 g_sim_num_active_threads;
+Lock* g_sim_threads_lock;
 
 NetThreadRunner *SimThreadStart()
 {
-   g_sim_thread_threads_lock = Lock::create();
-   g_sim_thread_active_threads = 0;
+   g_sim_threads_lock = Lock::create();
+   g_sim_num_active_threads = 0;
 
-   unsigned int num_sim_thread_threads = g_config->getNumLocalCores();
+   unsigned int num_sim_threads = g_config->getNumLocalCores();
 
-   LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_thread_threads, g_config->getCurrentProcessNum());
+   LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_threads, g_config->getCurrentProcessNum());
 
-   NetThreadRunner * runners = new NetThreadRunner[num_sim_thread_threads];
-   for(unsigned int i = 0; i < num_sim_thread_threads; i++)
+   NetThreadRunner * runners = new NetThreadRunner[num_sim_threads];
+   for(unsigned int i = 0; i < num_sim_threads; i++)
    {
       LOG_PRINT("Starting thread %i", i);
 
@@ -34,6 +34,11 @@ NetThreadRunner *SimThreadStart()
       my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, &runners[i]);
       assert(my_thread_p);
    }
+
+   while (g_sim_num_active_threads < num_sim_threads)
+      sched_yield();
+
+   LOG_PRINT("Threads started.");
 
    return runners;
 }
@@ -56,7 +61,7 @@ void SimThreadQuit()
 
    // Only quit when all threads have terminated. Lock shouldn't be
    // necessary here.
-   while (g_sim_thread_active_threads > 0)
+   while (g_sim_num_active_threads > 0)
       sched_yield();
 
    Transport::ptBarrier();
@@ -77,9 +82,9 @@ void* SimThreadFunc(void *)
    bool cont = true;
 
    // Bookkeeping for SimThreadQuit
-   g_sim_thread_threads_lock->acquire();
-   ++g_sim_thread_active_threads;
-   g_sim_thread_threads_lock->release();
+   g_sim_threads_lock->acquire();
+   ++g_sim_num_active_threads;
+   g_sim_threads_lock->release();
 
 
    // Turn off cont when we receive a quit message
@@ -92,9 +97,9 @@ void* SimThreadFunc(void *)
       net->netPullFromTransport();
 
    // Bookkeeping for SimThreadQuit
-   g_sim_thread_threads_lock->acquire();
-   --g_sim_thread_active_threads;
-   g_sim_thread_threads_lock->release();
+   g_sim_threads_lock->acquire();
+   --g_sim_num_active_threads;
+   g_sim_threads_lock->release();
 
    LOG_PRINT("Sim thread %i exiting", core_id);
 

@@ -174,12 +174,6 @@ struct UtilizationMessage
 
 void NetworkModelAnalytical::updateUtilization()
 {
-  // // make sure the system is properly initialized
-  // int rank;
-  // chipRank(&rank);
-  // if (rank < 0)
-  //   return;
-
   // ** send updates
 
   // don't lock because this is all approximate anyway

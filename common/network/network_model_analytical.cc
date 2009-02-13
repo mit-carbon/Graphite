@@ -201,7 +201,7 @@ void NetworkModelAnalytical::updateUtilization()
   m.ut = local_utilization;
 
   NetPacket update;
-  update.sender = getNetwork()->getTransport()->ptCommID();
+  update.sender = getNetwork()->getCore()->getId();
   update.receiver = g_config->getMCPCoreNum();
   update.length = sizeof(m);
   update.type = MCP_SYSTEM_TYPE;

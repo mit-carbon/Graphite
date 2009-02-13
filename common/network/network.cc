@@ -4,7 +4,7 @@
 #include "network.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK   (_transport->ptCommID())
+#define LOG_DEFAULT_RANK   (_core->getId())
 #define LOG_DEFAULT_MODULE NETWORK
 
 // -- Ctor -- //
@@ -13,10 +13,9 @@ Network::Network(Core *core)
    : _core(core)
 {
    _numMod = g_config->getTotalCores();
-   _tid = _core->getRank();
+   _tid = _core->getId();
 
-   _transport = new Transport();
-   _transport->ptInit(_core->getRank(), _numMod);
+   _transport = new Transport(_core->getId());
 
    _callbacks = new NetworkCallback [NUM_PACKET_TYPES];
    _callbackObjs = new void* [NUM_PACKET_TYPES];
@@ -92,13 +91,13 @@ void Network::netPullFromTransport()
          buffer = _transport->ptRecv();
          netExPacket(buffer, entry.packet, entry.time);
       }
-      
+
       LOG_PRINT("Pull packet : type %i, from %i, time %llu", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
       assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
       assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
 
       // was this packet sent to us, or should it just be forwarded?
-      if (entry.packet.receiver != _transport->ptCommID())
+      if (entry.packet.receiver != _core->getId())
          {
             forwardPacket(entry.packet);
 
@@ -173,7 +172,7 @@ SInt32 Network::netSend(NetPacket packet)
    UInt32 bufSize;
 
    assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
-   assert(packet.sender == _transport->ptCommID());
+   assert(packet.sender == _core->getId());
 
    NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
 
@@ -345,7 +344,7 @@ NetPacket Network::netRecv(const NetMatch &match)
    assert(found == true && entryItr != _netQueue.end());
    assert(0 <= entryItr->packet.sender && entryItr->packet.sender < _numMod);
    assert(0 <= entryItr->packet.type && entryItr->packet.type < NUM_PACKET_TYPES);
-   assert(entryItr->packet.receiver == _transport->ptCommID());
+   assert(entryItr->packet.receiver == _core->getId());
 
    // Copy result
    NetQueueEntry entry = *entryItr;
@@ -364,7 +363,7 @@ NetPacket Network::netRecv(const NetMatch &match)
 SInt32 Network::netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len)
 {
    NetPacket packet;
-   packet.sender = _transport->ptCommID();
+   packet.sender = _core->getId();
    packet.receiver = dest;
    packet.length = len;
    packet.type = type;

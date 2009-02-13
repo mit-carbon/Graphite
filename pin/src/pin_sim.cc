@@ -148,7 +148,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                         stats[rank]->inst_trace[i].second);
                 if ( do_perf_modeling ) 
                 {
-                    current_core->perfModelLogICacheLoadAccess(stats[rank], i_hit);
+                    current_core->getPerfModel()->logICacheLoadAccess(stats[rank], i_hit);
                 }
             }
         }
@@ -160,7 +160,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
         {
             // it's not possible to delay the evaluation of the performance impact for these. 
             // get the cycle counter up to date then account for dependency stalls
-            current_core->perfModelRun(stats[rank], reads, num_reads, firstCallInIntvl); 
+            current_core->getPerfModel()->run(stats[rank], reads, num_reads, firstCallInIntvl); 
             firstCallInIntvl = false;
         }
 
@@ -181,7 +181,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                 // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
 
                 if ( do_perf_modeling ) {
-                    current_core->perfModelRun(stats[rank], d_hit, writes, num_writes, firstCallInIntvl);
+                    current_core->getPerfModel()->run(stats[rank], d_hit, writes, num_writes, firstCallInIntvl);
                     firstCallInIntvl = false;
                 }
 
@@ -192,7 +192,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                     bool d_hit2 = current_core->dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
                     // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
                     if ( do_perf_modeling ) {
-                        current_core->perfModelRun(stats[rank], d_hit2, writes, num_writes, firstCallInIntvl);
+                        current_core->getPerfModel()->run(stats[rank], d_hit2, writes, num_writes, firstCallInIntvl);
                         firstCallInIntvl = false;
                     }
                 }
@@ -225,7 +225,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                 bool d_hit = current_core->dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
                 if ( do_perf_modeling )
                 { 
-                    current_core->perfModelLogDCacheStoreAccess(stats[rank], d_hit); 
+                    current_core->getPerfModel()->logDCacheStoreAccess(stats[rank], d_hit); 
                 }
                 //cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
             }
@@ -239,7 +239,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
         // this should probably go last
         if ( do_perf_modeling )
         {
-            current_core->perfModelRun(stats[rank], firstCallInIntvl);
+            current_core->getPerfModel()->run(stats[rank], firstCallInIntvl);
             firstCallInIntvl = false;
         }
 
@@ -261,7 +261,7 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
     PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
 
     for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
-        array[i] = g_core_manager->getCoreFromID(0)->perfModelAnalyzeInterval(parent_routine, start_ins, end_ins);
+        array[i] = g_core_manager->getCoreFromID(0)->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
 
     return array; 
 }

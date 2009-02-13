@@ -4,9 +4,10 @@
 #include "network.h"
 #include "packetize.h"
 #include "config.h"
+#include "core.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK _network.getTransport()->ptCommID()
+#define LOG_DEFAULT_RANK _network.getCore()->getId()
 #define LOG_DEFAULT_MODULE NETWORK
 
 NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,

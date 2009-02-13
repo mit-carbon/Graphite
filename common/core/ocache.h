@@ -144,22 +144,22 @@ class OCache
       pair<bool, CacheTag*> runICachePeekModel(IntPtr i_addr);
       pair<bool, CacheTag*> runDCachePeekModel(IntPtr d_addr);    
 
-		/********** CELIO WAS HERE **************/
+      /********** CELIO WAS HERE **************/
       pair<bool, CacheTag*> accessSingleLine(IntPtr addr, CacheBase::AccessType access_type, 
                                              bool* fail_need_fill = NULL, char* fill_buff = NULL,
                                              char* buff = NULL, UInt32 bytes = 0, 
                                              bool* eviction = NULL, IntPtr* evict_addr = NULL, char* evict_buff = NULL)
-		{
-			//TODO !!!! I don't have direct access to dl1 from the memoryManager, and until i have better stubs to talk to the dl1,
-			//I'm just gonna pass accessSingleLine calls straight through.
-			return dl1->accessSingleLine(addr, access_type, fail_need_fill, fill_buff, buff, bytes, eviction, evict_addr, evict_buff);
-		}
+      {
+         //TODO !!!! I don't have direct access to dl1 from the memoryManager, and until i have better stubs to talk to the dl1,
+         //I'm just gonna pass accessSingleLine calls straight through.
+         return dl1->accessSingleLine(addr, access_type, fail_need_fill, fill_buff, buff, bytes, eviction, evict_addr, evict_buff);
+      }
 
-		bool invalidateLine(IntPtr addr)
-		{
-			return dl1->invalidateLine(addr);
-		}
-		/****************************************/
+      bool invalidateLine(IntPtr addr)
+      {
+         return dl1->invalidateLine(addr);
+      }
+      /****************************************/
 
       // This function is called at the end of simulation
       void fini(int code, void *v, ostream& out);

@@ -92,7 +92,7 @@ void OCache::evolveDataIntensive()
 
    last_dcache_misses = dcache_misses;
    last_icache_misses = icache_misses;
-}  
+}
 
 void OCache::mutationRuntime()
 {
@@ -122,8 +122,6 @@ void OCache::mutationRuntime()
 
 
 // cache access related
-
-
 pair<bool, CacheTag*> OCache::dCacheLoadSingle(IntPtr addr, UInt32 inst_id)
 {
    // @todo we may access several cache lines for 
@@ -140,7 +138,7 @@ pair<bool, CacheTag*> OCache::dCacheLoadSingle(IntPtr addr, UInt32 inst_id)
    {
       dcache_misses++; 
       dcache_total_misses++;
-   }      
+   }
    mutationRuntime();
 
    return res;
@@ -158,7 +156,7 @@ pair<bool, CacheTag*> OCache::dCacheLoadSingleFast(IntPtr addr)
    {
       dcache_misses++; 
       dcache_total_misses++;
-   }      
+   }
    mutationRuntime();
 
    return res;
@@ -174,9 +172,9 @@ pair<bool, CacheTag*> OCache::dCacheLoadMultiFast(IntPtr addr, UInt32 size)
    {
       pair<bool, CacheTag*> res = dCacheLoadSingleFast(a);
       if (hit && !res.first)
-	 		hit = false;
+         hit = false;
       if (a == addr)
-	 		tag = res.second;
+         tag = res.second;
    }
 
    return make_pair(hit, tag);
@@ -198,7 +196,7 @@ pair<bool, CacheTag*> OCache::dCacheStoreSingle(IntPtr addr, UInt32 inst_id)
    {
       dcache_misses++; 
       dcache_total_misses++;
-   }      
+   }
    mutationRuntime();
 
    return res;

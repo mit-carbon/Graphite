@@ -104,14 +104,14 @@ namespace CACHE_SET
          void modifyAssociativity(UInt32 assoc) { assert(assoc == 1); }
 
          void print() { 
-				//cout << the_tag << endl; 
-			}
+            //cout << the_tag << endl; 
+         }
 
          bool invalidateTag(CacheTag& tag) 
          { 
-	    		if ( tag == the_tag )
-	    		{
-            	the_tag = CacheTag(); 
+            if ( tag == the_tag )
+            {
+               the_tag = CacheTag(); 
                return true;
             }
             return false;
@@ -120,8 +120,6 @@ namespace CACHE_SET
 
 
    // Cache set with round robin replacement
-   
-	// Cache set with round robin replacement
    template <UInt32 k_MAX_ASSOCIATIVITY = 8, 
              UInt32 k_MAX_BLOCKSIZE = 128>
    class RoundRobin
@@ -142,7 +140,7 @@ namespace CACHE_SET
             assert(blocksize <= k_MAX_BLOCKSIZE);
             assert(tags_last_index < k_MAX_ASSOCIATIVITY);
 
-				next_replace_index = tags_last_index;
+            next_replace_index = tags_last_index;
 
             for (SInt32 index = tags_last_index; index >= 0; index--)
             {
@@ -158,7 +156,7 @@ namespace CACHE_SET
          //FIXME: this should be private. should only be used during instantiation
          void setAssociativity(UInt32 assoc)
          {
-				//FIXME: possible evictions when shrinking
+            //FIXME: possible evictions when shrinking
             assert(assoc <= k_MAX_ASSOCIATIVITY);
             tags_last_index = assoc - 1;
             next_replace_index = tags_last_index;
@@ -169,19 +167,19 @@ namespace CACHE_SET
 
          pair<bool, CacheTag*> find(CacheTag& tag, UInt32* set_index = NULL)
          {
-				// useful for debuggin
-//				print();
+            // useful for debugging
+            //print();
 
-				assert(tags_last_index < k_MAX_ASSOCIATIVITY);
+            assert(tags_last_index < k_MAX_ASSOCIATIVITY);
 
             for (SInt32 index = tags_last_index; index >= 0; index--)
             {
                if(the_tags[index] == tag) 
-					{
+               {
                   if ( set_index != NULL )
-							*set_index = index;
+                     *set_index = index;
                   return make_pair(true, &the_tags[index]);
-					}
+               }
             }
             return make_pair(false, (CacheTag*) NULL);
 			}
@@ -330,7 +328,7 @@ class CacheBase
       } CacheType;
 
    protected:
-		//1 counter for hit==true, 1 counter for hit==false
+      //1 counter for hit==true, 1 counter for hit==false
       CacheStats access[k_ACCESS_TYPE_NUM][2];
 
    protected:
@@ -369,28 +367,28 @@ class CacheBase
     
       // stats
       CacheStats getHits(AccessType access_type) const { 
-			assert(access_type < k_ACCESS_TYPE_NUM);
-			return access[access_type][true]; 
-		}
+         assert(access_type < k_ACCESS_TYPE_NUM);
+         return access[access_type][true]; 
+      }
       CacheStats getMisses(AccessType access_type) const { 
-			assert(access_type < k_ACCESS_TYPE_NUM);
-			return access[access_type][false]; 
-		}
+         assert(access_type < k_ACCESS_TYPE_NUM);
+         return access[access_type][false]; 
+      }
       CacheStats getAccesses(AccessType access_type) const 
-         { return getHits(access_type) + getMisses(access_type); }
+      { return getHits(access_type) + getMisses(access_type); }
       CacheStats getHits() const { return sumAccess(true); }
       CacheStats getMisses() const { return sumAccess(false); }
       CacheStats getAccesses() const { return getHits() + getMisses(); }
 
       // utilities
-		IntPtr tagToAddress(CacheTag& tag)
-		{
-			return tag.getTag() << line_shift;
-		}
-		
-		void splitAddress(const IntPtr addr, CacheTag& tag, UInt32& set_index) const
+      IntPtr tagToAddress(CacheTag& tag)
       {
-	 		tag = CacheTag(addr >> line_shift);
+         return tag.getTag() << line_shift;
+      }
+
+      void splitAddress(const IntPtr addr, CacheTag& tag, UInt32& set_index) const
+      {
+         tag = CacheTag(addr >> line_shift);
          set_index = tag & set_index_mask;
       }
 
@@ -423,12 +421,12 @@ class Cache : public CacheBase
       UInt32 set_ptrs[k_MAX_SETS+1];
       UInt32 max_search;
       Random rand;
-      
+
    public:
       void resetCounters()
       {
          assert(getNumSets() <= k_MAX_SETS);
-			for(UInt32 i = 0; i < getNumSets(); i++) {
+         for(UInt32 i = 0; i < getNumSets(); i++) {
             accesses[i] = misses[i] = 0;
          }
       }
@@ -438,7 +436,7 @@ class Cache : public CacheBase
       { 
          assert( set_index < getNumSets() ); 
          assert(getNumSets() <= k_MAX_SETS);
-			return set_ptrs[set_index];
+         return set_ptrs[set_index];
       }
       void setSetPtr(UInt32 set_index, UInt32 value)
       {
@@ -465,7 +463,7 @@ class Cache : public CacheBase
 
          for (UInt32 i = 0; i < getNumSets(); i++)
          {
-            total_accesses[i] = total_misses[i] = 0;               
+            total_accesses[i] = total_misses[i] = 0;
             sets[i].setAssociativity(assoc);
             sets[i].setBlockSize(line_bytes);
             set_ptrs[i] = k_MAX_SETS;
@@ -482,8 +480,8 @@ class Cache : public CacheBase
          //    _newNumSets = getNumSets();
          //    _newLineSize = line_size;
          //    _newLineShift = line_shift;
-         //    _newSetIndexMask = set_index_mask;        
-   
+         //    _newSetIndexMask = set_index_mask;
+
          assert(getNumSets() <= k_MAX_SETS);
          cache_size = getNumSets() * assoc * line_size;
          associativity = assoc;

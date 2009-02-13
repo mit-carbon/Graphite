@@ -53,7 +53,7 @@ OCache::OCache(std::string name)
 
    ASSERTX( (m_cache_size & 1) == 0 );
    ASSERTX( (m_associativity & 1) == 0 );
-   ASSERTX( (g_knob_dcache_size.Value() + g_knob_icache_size.Value()) == m_cache_size );
+   ASSERTX( ((g_knob_dcache_size.Value() * k_KILO) + (g_knob_icache_size.Value() * k_KILO)) == m_cache_size );
    ASSERTX( (g_knob_dcache_associativity.Value() + g_knob_icache_associativity.Value()) == m_associativity );
 
    resetIntervalCounters();

@@ -52,42 +52,40 @@ CoreManager::~CoreManager()
    delete m_maps_lock;
 }
 
-void CoreManager::initializeThread(UInt32 rank)
+void CoreManager::initializeThread(UInt32 core_id)
 {
    UInt32 tid = getCurrentTID();
 
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
 
-   //FIXME: Check to see if two cores try to grab the same rank
+   //FIXME: Check to see if two threads try to grab the same core_id
    const Config::CoreList & cores (g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
    UInt32 idx = 0;
    Config::CLCI i;
    for(i = cores.begin(); i != cores.end(); i++)
    {
-      if(*i == rank)
-      {
+      if(*i == core_id)
          break;
-      }
-
       idx++;
    }
 
    if(i != cores.end())
       LOG_PRINT("Tried to claim a core not assigned to this process.");
 
-   if ( e.first == false ) {
+   if ( e.first == false )
+   {
       LOG_ASSERT_ERROR(idx < g_config->getNumLocalCores(), "Invalid tid_map index in initializeThread!\n");
       tid_map[idx] = tid;
-      tid_to_core_map.insert( tid, rank );
+      tid_to_core_map.insert( tid, core_id);
    }
    else
    {
-      LOG_PRINT("initializeThread : Error initializing core twice: %d", rank);
+      LOG_PRINT("initializeThread : Error initializing core twice: %d", core_id);
    }
 
 }
 
-void CoreManager::initializeThreadFree(int *rank)
+void CoreManager::initializeThreadFree(int *core_id)
 {
    UInt32 tid = getCurrentTID();
 
@@ -95,7 +93,7 @@ void CoreManager::initializeThreadFree(int *rank)
 
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
 
-   //FIXME: Check to see if two cores try to grab the same rank
+   //FIXME: Check to see if two threads try to grab the same core_id
 
    if ( e.first == false ) {
       // Don't allow free initializion of the MCP which claimes the
@@ -106,7 +104,7 @@ void CoreManager::initializeThreadFree(int *rank)
          {
             tid_map[i] = tid;    
             tid_to_core_map.insert( tid, i );
-            *rank = i;
+            *core_id = i;
 
             m_maps_lock->release();
          }
@@ -129,7 +127,7 @@ UInt32 CoreManager::getCurrentCoreID()
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
    id = (e.first == false) ? -1 : e.second;
 
-   ASSERT(!e.first || id < g_config->getTotalCores(), "Illegal rank value returned by getCurrentCoreID!\n");
+   ASSERT(!e.first || id < g_config->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
 
    return id;
 }
@@ -142,7 +140,7 @@ Core *CoreManager::getCurrentCore()
    pair<bool, UINT64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : m_cores[e.second];
 
-   LOG_ASSERT_ERROR(!e.first || e.second < g_config->getTotalCores(), "Illegal rank value returned by getCurrentCore!\n");
+   LOG_ASSERT_ERROR(!e.first || e.second < g_config->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
    return core;
 }
 

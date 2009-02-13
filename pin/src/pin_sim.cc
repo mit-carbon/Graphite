@@ -41,7 +41,7 @@
 #include "user_space_wrappers.h"
 #include "shmem_debug_helper.h"
 
-#define LOG_DEFAULT_RANK    rank
+#define LOG_DEFAULT_RANK    core_id
 #define LOG_DEFAULT_MODULE  PINSIM
 
 CoreManager *g_core_manager = NULL;
@@ -96,31 +96,29 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
         bool check_scoreboard,
         void* ins_info_array)
 {
-    int rank = g_core_manager->getCurrentCoreID();
+    int core_id = g_core_manager->getCurrentCoreID();
 
-    if(rank > -1)
+    if(core_id > -1)
     {
-        Core *current_core = g_core_manager->getCoreFromID(rank);
-        // InsInfo* ins_info = ((InsInfo**) ins_info_array)[rank];
+        Core *current_core = g_core_manager->getCoreFromID(core_id);
+
+        // InsInfo* ins_info = ((InsInfo**) ins_info_array)[core_id];
         // stringstream ss;
         // ss << "OPCODE$ = " << LEVEL_CORE::OPCODE_StringShort(ins_info->opcode) << " (" << ins_info->opcode << ") ";
         // LOG_PRINT(ss.str());
-
-        // cerr << " ----------------------------------" << endl;
-        // cerr << "  [" << rank << "] executing runModels " << endl;
 
         // This must be consistent with the behavior of
         // insertInstructionModelingCall.
 
         // Trying to prevent using NULL stats. This happens when
         // instrumenting portions of the main thread.
-        bool skip_modeling = (rank < 0) ||
+        bool skip_modeling = (core_id < 0) ||
             ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
         if (skip_modeling)
             return;
 
-        assert ( (UInt32)rank < g_config->getNumLocalCores() );
+        assert ( (UInt32)core_id < g_config->getNumLocalCores() );
         assert ( !do_network_modeling );
         assert ( !do_bpred_modeling );
 
@@ -141,14 +139,14 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
 
         if ( do_icache_modeling )
         {
-            for (UINT32 i = 0; i < (stats[rank]->inst_trace.size()); i++)
+            for (UINT32 i = 0; i < (stats[core_id]->inst_trace.size()); i++)
             {
                 // first = PC, second = size
-                bool i_hit = current_core->icacheRunLoadModel(stats[rank]->inst_trace[i].first,
-                        stats[rank]->inst_trace[i].second);
+                bool i_hit = current_core->icacheRunLoadModel(stats[core_id]->inst_trace[i].first,
+                        stats[core_id]->inst_trace[i].second);
                 if ( do_perf_modeling ) 
                 {
-                    current_core->getPerfModel()->logICacheLoadAccess(stats[rank], i_hit);
+                    current_core->getPerfModel()->logICacheLoadAccess(stats[core_id], i_hit);
                 }
             }
         }
@@ -160,7 +158,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
         {
             // it's not possible to delay the evaluation of the performance impact for these. 
             // get the cycle counter up to date then account for dependency stalls
-            current_core->getPerfModel()->run(stats[rank], reads, num_reads, firstCallInIntvl); 
+            current_core->getPerfModel()->run(stats[core_id], reads, num_reads, firstCallInIntvl); 
             firstCallInIntvl = false;
         }
 
@@ -181,7 +179,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                 // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
 
                 if ( do_perf_modeling ) {
-                    current_core->getPerfModel()->run(stats[rank], d_hit, writes, num_writes, firstCallInIntvl);
+                    current_core->getPerfModel()->run(stats[core_id], d_hit, writes, num_writes, firstCallInIntvl);
                     firstCallInIntvl = false;
                 }
 
@@ -192,12 +190,12 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                     bool d_hit2 = current_core->dcacheRunModel (CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
                     // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
                     if ( do_perf_modeling ) {
-                        current_core->getPerfModel()->run(stats[rank], d_hit2, writes, num_writes, firstCallInIntvl);
+                        current_core->getPerfModel()->run(stats[core_id], d_hit2, writes, num_writes, firstCallInIntvl);
                         firstCallInIntvl = false;
                     }
                 }
 
-                // cerr << "[" << rank << "] dCache READ Modeling: Over " << endl;
+                // cerr << "[" << core_id << "] dCache READ Modeling: Over " << endl;
             }
 
         } 
@@ -225,9 +223,9 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
                 bool d_hit = current_core->dcacheRunModel (CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
                 if ( do_perf_modeling )
                 { 
-                    current_core->getPerfModel()->logDCacheStoreAccess(stats[rank], d_hit); 
+                    current_core->getPerfModel()->logDCacheStoreAccess(stats[core_id], d_hit); 
                 }
-                //cerr << "[" << rank << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
+                //cerr << "[" << core_id << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
             }
         } 
         else 
@@ -239,7 +237,7 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
         // this should probably go last
         if ( do_perf_modeling )
         {
-            current_core->getPerfModel()->run(stats[rank], firstCallInIntvl);
+            current_core->getPerfModel()->run(stats[core_id], firstCallInIntvl);
             firstCallInIntvl = false;
         }
     }
@@ -750,18 +748,18 @@ void routine(RTN rtn, void *v)
 // syscall model wrappers
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-    int rank = g_core_manager->getCurrentCoreID();
+    int core_id = g_core_manager->getCurrentCoreID();
 
-    if(rank >= 0)
-        g_core_manager->getCoreFromID(rank)->getSyscallMdl()->runEnter(ctx, syscall_standard);
+    if(core_id >= 0)
+        g_core_manager->getCoreFromID(core_id)->getSyscallMdl()->runEnter(ctx, syscall_standard);
 }
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-    int rank = g_core_manager->getCurrentCoreID();
+    int core_id = g_core_manager->getCurrentCoreID();
 
-    if(rank >= 0)
-        g_core_manager->getCoreFromID(rank)->getSyscallMdl()->runExit(ctx, syscall_standard);
+    if(core_id >= 0)
+        g_core_manager->getCoreFromID(core_id)->getSyscallMdl()->runExit(ctx, syscall_standard);
 }
 
 /* ===================================================================== */

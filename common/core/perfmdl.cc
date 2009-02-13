@@ -7,7 +7,7 @@
 extern Config *g_config;
 
 PerfModel::PerfModel(string name)
-   :
+      :
       m_microop_issue_count(0),
       m_cycle_count(0),
       m_scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID),
@@ -48,8 +48,8 @@ UInt32 PerfModel::getInsMicroOpsCount(const INS& ins)
 }
 
 
-PerfModelIntervalStat* PerfModel::analyzeInterval(const string& parent_routine, 
-                                                  const INS& start_ins, const INS& end_ins)
+PerfModelIntervalStat* PerfModel::analyzeInterval(const string& parent_routine,
+      const INS& start_ins, const INS& end_ins)
 {
    vector< pair<IntPtr, UInt32> > inst_trace;
    UInt32 microop_count = 0;
@@ -59,55 +59,55 @@ PerfModelIntervalStat* PerfModel::analyzeInterval(const string& parent_routine,
    // fixme: for now we approximate with approx # x86 microops;
    // need to account for pipeline depth / instruction latencies
 
-   for(INS ins = start_ins; ins!=end_ins; ins = INS_Next(ins))
+   for (INS ins = start_ins; ins!=end_ins; ins = INS_Next(ins))
    {
       // debug info
-      // cout << hex << "0x" << INS_Address(BBL_InsTail(bbl)) << dec << ": " 
+      // cout << hex << "0x" << INS_Address(BBL_InsTail(bbl)) << dec << ": "
       //      << INS_Mnemonic(BBL_InsTail(bbl)) << endl;
 
-      inst_trace.push_back( pair<IntPtr, UInt32>(INS_Address(ins), INS_Size(ins)) );
+      inst_trace.push_back(pair<IntPtr, UInt32>(INS_Address(ins), INS_Size(ins)));
       UInt32 micro_ops = getInsMicroOpsCount(ins);
-      microop_count += micro_ops;                
+      microop_count += micro_ops;
       // FIXME
       cycles_subtotal += micro_ops;
    }
 
    // allocate struct for instructs in the basic block to write stats into.
    // NOTE: if a basic block gets split, this data may become redundant
-   PerfModelIntervalStat *stats = new PerfModelIntervalStat(parent_routine, 
-                                                            inst_trace,
-                                                            microop_count, 
-                                                            cycles_subtotal);
+   PerfModelIntervalStat *stats = new PerfModelIntervalStat(parent_routine,
+         inst_trace,
+         microop_count,
+         cycles_subtotal);
    return stats;
 }
 
 
 void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
 {
-   // NOTE: must function such that it can be called more than once per 
+   // NOTE: must function such that it can be called more than once per
    // interval and still work
- 
+
    UInt32 interval_cycle_count = 0;
 
-   if ( firstCallInIntrvl )
+   if (firstCallInIntrvl)
       interval_cycle_count += interval_stats->cycles_subtotal;
 
    interval_cycle_count += (interval_stats->branch_mispredict ? 10 : 0);
 
-   // Note: dcache load miss penalty is already 
+   // Note: dcache load miss penalty is already
    // accounted for by dependency stalling
 
-   // Note: perfect dcache store queue assumed. 
+   // Note: perfect dcache store queue assumed.
    // store miss penalty assumed to be zero.
 
    // icache miss penalty
-   //for (list<bool>::iterator it = interval_stats->icache_load_miss_history.begin(); 
+   //for (list<bool>::iterator it = interval_stats->icache_load_miss_history.begin();
    //     it != interval_stats->icache_load_miss_history.end();
    //     it++)
-   //{ 
-   //   // FIXME: this is not a constant. at minimum it should be a 
+   //{
+   //   // FIXME: this is not a constant. at minimum it should be a
    //   // constant exposed to outside world
-   //   interval_cycle_count += ((*it) ? 10 : 0); 
+   //   interval_cycle_count += ((*it) ? 10 : 0);
    // }
    for (UInt32 i = 0; i < interval_stats->getICacheLoadAccessCount(); i++)
    {
@@ -116,7 +116,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrv
 
    addToCycleCount(interval_cycle_count);
 
-   if ( firstCallInIntrvl )
+   if (firstCallInIntrvl)
       m_microop_issue_count += interval_stats->microops_count;
 
    // clear out values in case Run gets called again this interval
@@ -127,7 +127,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrv
 
 
 // run method which accounts for load data dependency stalls
-void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads, 
+void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
                     UInt32 numReads, bool firstCallInIntrvl)
 {
 
@@ -136,27 +136,30 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
    UInt64 max = m_cycle_count;
    REG max_reg = LEVEL_BASE::REG_LAST;
 
-   for ( UInt32 i = 0; i < numReads; i++ )
+   for (UInt32 i = 0; i < numReads; i++)
    {
       REG r = reads[i];
       assert((UInt32)r < m_scoreboard.size());
       UInt64 cycle = m_scoreboard[r];
 
-      if ( cycle != k_PERFMDL_CYCLE_INVALID ) {
-         if ( cycle > max ) {
+      if (cycle != k_PERFMDL_CYCLE_INVALID)
+      {
+         if (cycle > max)
+         {
             max = cycle;
             max_reg = r;
          }
 
          // first use encountered so release scoreboard slot
          m_scoreboard[r] = k_PERFMDL_CYCLE_INVALID;
-         //cout << "removed " << REG_StringShort(r) << " from scoreboard: " 
+         //cout << "removed " << REG_StringShort(r) << " from scoreboard: "
          //     << cycle << endl;
       }
-   } 
-  
-   if ( max != m_cycle_count ) {
-      // cout << "stalled from " << m_cycle_count << " to " << max << " on " 
+   }
+
+   if (max != m_cycle_count)
+   {
+      // cout << "stalled from " << m_cycle_count << " to " << max << " on "
       //     << REG_StringShort(max_reg) << endl;
    }
 
@@ -165,7 +168,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
 }
 
 
-void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes, 
+void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes,
                     UInt32 numWrites, bool firstCallInIntrvl)
 {
    run(interval_stats, firstCallInIntrvl);
@@ -173,12 +176,14 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
    //interval_stats->dcache_load_miss_history.push_back( !dcache_load_hit );
    interval_stats->logDCacheLoadAccess(dcache_load_hit);
 
-   if ( g_config->getEnablePerformanceModeling() && !dcache_load_hit ) {
-      for (UInt32 i = 0; i < numWrites; i++) {
+   if (g_config->getEnablePerformanceModeling() && !dcache_load_hit)
+   {
+      for (UInt32 i = 0; i < numWrites; i++)
+      {
          REG w = writes[i];
          assert((UInt32)w < m_scoreboard.size());
          m_scoreboard[w] = m_cycle_count + 100;  //FIXME: make this parameterizable
-         // cout << "added " << REG_StringShort(w) << " to scoreboard: " 
+         // cout << "added " << REG_StringShort(w) << " to scoreboard: "
          //     << m_cycle_count << " + 100 = " << m_scoreboard[w] << endl;
       }
    }
@@ -194,7 +199,7 @@ void PerfModel::updateCycleCount(UInt64 new_cycle_count)
 void PerfModel::addToCycleCount(UInt64 cycles)
 {
    m_clock_lock->acquire();
-   m_cycle_count += cycles; 
+   m_cycle_count += cycles;
    m_clock_lock->release();
 }
 

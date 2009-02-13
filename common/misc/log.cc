@@ -11,7 +11,7 @@ using namespace std;
 Log *Log::_singleton;
 
 Log::Log(UInt32 coreCount)
-   : _coreCount(coreCount)
+      : _coreCount(coreCount)
 {
    char filename[256];
 
@@ -136,8 +136,8 @@ void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
       // thread we are on.
       UInt32 fileID;
 
-      if (g_core_manager == NULL) 
-      {         
+      if (g_core_manager == NULL)
+      {
          fileID = core_id + _coreCount;
       }
       else
@@ -160,7 +160,7 @@ void Log::log(UInt32 core_id, const char *module, const char *format, ...)
 #ifdef DISABLE_LOGGING
    return;
 #endif
-   
+
    if (!isEnabled(module))
       return;
 
@@ -177,7 +177,7 @@ void Log::log(UInt32 core_id, const char *module, const char *format, ...)
       fprintf(file, "%llu {%i}\t[ ]\t[%s] ", getTimestamp(), g_config->getCurrentProcessNum(), module);
    else
       fprintf(file, "%llu { }\t[ ]\t[%s] ", getTimestamp(), module);
-   
+
    va_list args;
    va_start(args, format);
    vfprintf(file, format, args);

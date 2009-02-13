@@ -22,7 +22,7 @@ void Transport::ptInitQueue(SInt32 num_mod)
 
    s_pt_num_mod = (UInt32)num_mod;
 
-   for(i = 0; i < num_mod; i++)
+   for (i = 0; i < num_mod; i++)
    {
       InitLock(&(pt_queue[i].pt_q_lock));
       pt_futx[i].futx = 1;
@@ -43,7 +43,7 @@ void Transport::ptInitQueue(SInt32 num_mod)
    mcp_futx[mcp_idx].futx = 1;
    InitLock(&(mcp_futx[mcp_idx].futx_lock));
     */
-   
+
 }
 
 SInt32 Transport::ptInit(SInt32 tid, SInt32 num_mod)
@@ -69,7 +69,8 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
 
    GetLock(&(pt_futx[receiver].futx_lock), 1);
 
-   if(pt_futx[receiver].futx == 0){
+   if (pt_futx[receiver].futx == 0)
+   {
       pt_futx[receiver].futx = 1;
 
       // FIXME: Make a macro for this
@@ -81,31 +82,31 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
 }
 
 void* Transport::ptRecv()
-{ 
+{
    void *ptr;
    assert(0 <= pt_tid && pt_tid < pt_num_mod);
 
-   while(1)
+   while (1)
    {
       GetLock(&(pt_futx[pt_tid].futx_lock), 1);
 
-      if(pt_queue[pt_tid].pt_queue.empty())
+      if (pt_queue[pt_tid].pt_queue.empty())
          pt_futx[pt_tid].futx = 0;
 
       ReleaseLock(&(pt_futx[pt_tid].futx_lock));
 
       syscall(SYS_futex, (void*)&(pt_futx[pt_tid].futx), FUTEX_WAIT, 0, NULL, NULL, 1);
-      if(!pt_queue[pt_tid].pt_queue.empty())
+      if (!pt_queue[pt_tid].pt_queue.empty())
          break;
-    }
-                                                           
+   }
+
    GetLock(&(pt_queue[pt_tid].pt_q_lock), 1);
 
    ptr = pt_queue[pt_tid].pt_queue.front();
    pt_queue[pt_tid].pt_queue.pop();
-   ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));                               
+   ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));
 
-    return ptr;
+   return ptr;
 }
 
 Boolean Transport::ptQuery()

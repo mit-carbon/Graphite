@@ -3,31 +3,31 @@
 
 class Lock
 {
- public:
+   public:
 
-   virtual ~Lock() { }
+      virtual ~Lock() { }
 
-   virtual void acquire() = 0;
-   virtual void release() = 0;
+      virtual void acquire() = 0;
+      virtual void release() = 0;
 
-   static Lock* create();
+      static Lock* create();
 };
 
 class ScopedLock
 {
-   Lock &_lock;
+      Lock &_lock;
 
-public:
-   ScopedLock(Lock &lock)
-      : _lock(lock)
-   {
-      _lock.acquire();
-   }
+   public:
+      ScopedLock(Lock &lock)
+            : _lock(lock)
+      {
+         _lock.acquire();
+      }
 
-   ~ScopedLock()
-   {
-      _lock.release();
-   }
+      ~ScopedLock()
+      {
+         _lock.release();
+      }
 };
 
 #endif // LOCK_H

@@ -27,9 +27,9 @@ void SimBarrierWait(carbon_barrier_t *barrier);
 void SimSharedMemQuit();
 int SimGetCoreCount();
 
-CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
-        char *buffer, int size);
-CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
-        char *buffer, int size);
+CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
+                       char *buffer, int size);
+CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
+                       char *buffer, int size);
 
 #endif

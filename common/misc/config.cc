@@ -25,9 +25,9 @@ extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
 using namespace std;
 
 Config::Config()
-   : m_num_processes(g_knob_num_process),
-     m_total_cores(g_knob_total_cores),
-     m_current_process_num((UInt32)-1)
+      : m_num_processes(g_knob_num_process),
+      m_total_cores(g_knob_total_cores),
+      m_current_process_num((UInt32)-1)
 {
    g_config = this;
 

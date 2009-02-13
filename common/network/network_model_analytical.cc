@@ -11,19 +11,19 @@
 using namespace std;
 
 NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
-   : NetworkModel(net)
-   , _bytesSent(0)
-   , _cyclesProc(0)
-   , _cyclesLatency(0)
-   , _cyclesContention(0)
-   , _globalUtilization(0)
-   , _localUtilizationLastUpdate(0)
-   , _localUtilizationFlitsSent(0)
-   , _updateInterval(0)
+      : NetworkModel(net)
+      , _bytesSent(0)
+      , _cyclesProc(0)
+      , _cyclesLatency(0)
+      , _cyclesContention(0)
+      , _globalUtilization(0)
+      , _localUtilizationLastUpdate(0)
+      , _localUtilizationFlitsSent(0)
+      , _updateInterval(0)
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
-      receiveMCPUpdate,
-      this);
+                                  receiveMCPUpdate,
+                                  this);
 
    _updateInterval = g_config->getAnalyticNetworkParms()->update_interval;
    _procCost = g_config->getAnalyticNetworkParms()->proc_cost;
@@ -35,7 +35,7 @@ NetworkModelAnalytical::~NetworkModelAnalytical()
 }
 
 void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
-                                         std::vector<Hop> &nextHops)
+      std::vector<Hop> &nextHops)
 {
    // basic magic network routing, with two additions
    // (1) compute latency of packet
@@ -58,101 +58,101 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
 
 UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
 {
-    // We model a unidirectional network with end-around connections
-    // using the network model in "Limits on Interconnect Performance"
-    // (by Anant). Currently, this ignores communication locality and
-    // sets static values for all parameters. We also assume uniform
-    // packet distribution, so we do not take the packet destination
-    // into account.
-    // 
-    // We combine the contention model (eq. 12) with the model for
-    // limited bisection width (sec. 4.2).
+   // We model a unidirectional network with end-around connections
+   // using the network model in "Limits on Interconnect Performance"
+   // (by Anant). Currently, this ignores communication locality and
+   // sets static values for all parameters. We also assume uniform
+   // packet distribution, so we do not take the packet destination
+   // into account.
+   //
+   // We combine the contention model (eq. 12) with the model for
+   // limited bisection width (sec. 4.2).
 
-    // TODO: Fix (if necessary) distance calculation for uneven
-    // topologies, i.e. 8-node 2d mesh or 10-node 3d mesh.
+   // TODO: Fix (if necessary) distance calculation for uneven
+   // topologies, i.e. 8-node 2d mesh or 10-node 3d mesh.
 
-    // TODO: Confirm model for latency computed based on actual number
-    // of network hops.
+   // TODO: Confirm model for latency computed based on actual number
+   // of network hops.
 
-    // Retrieve parameters
-    const NetworkModelAnalyticalParameters *pParams = g_config->getAnalyticNetworkParms();
-    double Tw2 = pParams->Tw2;
-    double s = pParams->s;
-    int n = pParams->n;
-    double W = pParams->W;
-    double p = _globalUtilization;
+   // Retrieve parameters
+   const NetworkModelAnalyticalParameters *pParams = g_config->getAnalyticNetworkParms();
+   double Tw2 = pParams->Tw2;
+   double s = pParams->s;
+   int n = pParams->n;
+   double W = pParams->W;
+   double p = _globalUtilization;
 
-    // This lets us derive the latency, ignoring contention
+   // This lets us derive the latency, ignoring contention
 
-    int N;                    // number of nodes in the network
-    double k;                 // length of mesh in one dimension
-    double kd;                // number of hops per dimension
-    double time_per_hop;      // time spent in one hop through the network
-    double B;                 // number of flits for packet
-    double hops_in_network;   // number of nodes visited
-    double Tb;                // latency, without contention
+   int N;                    // number of nodes in the network
+   double k;                 // length of mesh in one dimension
+   double kd;                // number of hops per dimension
+   double time_per_hop;      // time spent in one hop through the network
+   double B;                 // number of flits for packet
+   double hops_in_network;   // number of nodes visited
+   double Tb;                // latency, without contention
 
-    N = g_config->getTotalCores();
-    k = pow(N, 1./n);                  // pg 5
-    kd = k/2.;                         // pg 5 (note this will be
-      // different for different network configurations...say,
-      // bidirectional networks)
-    time_per_hop = s + pow(k, n/2.-1.);  // pg 6
-    B = ceil(packet.length * 8. / W);
-    
-    // Compute the number of hops based on src, dest
-    // Based on this eqn:
-    // node number = x1 + x2 k + x3 k^2 + ... + xn k^(n-1)
-    int network_distance = 0;
-    int src = packet.sender;
-    int dest = packet.receiver;
-    int ki = (int)k;
-    for (int i = 0; i < n; i++)
-      {
-        div_t q1, q2;
-        q1 = div(src, ki);
-        q2 = div(dest, ki);
-        // This models a unidirectional network distance
-        // Should use abs() for bidirectional.
-        if (q1.rem > q2.rem)
-          network_distance += ki - (q1.rem - q2.rem);
-        else
-          network_distance += q2.rem - q1.rem;
-        src = q1.quot;
-        dest = q2.quot;
-      }
-    hops_in_network = network_distance + B; // B flits must be sent
-      // (with wormhole routing, this adds B hops)
-    
-    Tb = Tw2 * time_per_hop * hops_in_network; // pg 5
+   N = g_config->getTotalCores();
+   k = pow(N, 1./n);                  // pg 5
+   kd = k/2.;                         // pg 5 (note this will be
+   // different for different network configurations...say,
+   // bidirectional networks)
+   time_per_hop = s + pow(k, n/2.-1.);  // pg 6
+   B = ceil(packet.length * 8. / W);
 
-    // Now to model contention... (sec 3.2)
-    double w;                 // delay due to contention
+   // Compute the number of hops based on src, dest
+   // Based on this eqn:
+   // node number = x1 + x2 k + x3 k^2 + ... + xn k^(n-1)
+   int network_distance = 0;
+   int src = packet.sender;
+   int dest = packet.receiver;
+   int ki = (int)k;
+   for (int i = 0; i < n; i++)
+   {
+      div_t q1, q2;
+      q1 = div(src, ki);
+      q2 = div(dest, ki);
+      // This models a unidirectional network distance
+      // Should use abs() for bidirectional.
+      if (q1.rem > q2.rem)
+         network_distance += ki - (q1.rem - q2.rem);
+      else
+         network_distance += q2.rem - q1.rem;
+      src = q1.quot;
+      dest = q2.quot;
+   }
+   hops_in_network = network_distance + B; // B flits must be sent
+   // (with wormhole routing, this adds B hops)
 
-    w  = p * B / (1. - p);
-    w *= (kd-1.)/(kd*kd);
-    w *= 1.+1./((double)n);
+   Tb = Tw2 * time_per_hop * hops_in_network; // pg 5
 
-    if (w < 0) w = 0; // correct negative contention values for small
-                      // networks
+   // Now to model contention... (sec 3.2)
+   double w;                 // delay due to contention
 
-    double hops_with_contention;
-    double Tc;                // latency, with contention
-    hops_with_contention = network_distance * (1. + w) + B;
-    Tc = Tw2 * time_per_hop * hops_with_contention;
+   w  = p * B / (1. - p);
+   w *= (kd-1.)/(kd*kd);
+   w *= 1.+1./((double)n);
 
-    // Computation finished...
+   if (w < 0) w = 0; // correct negative contention values for small
+   // networks
 
-    UInt64 Tci = (UInt64)(ceil(Tc));
-    _cyclesLatency += Tci;
-    _cyclesContention += (UInt64)(Tc - Tb);
+   double hops_with_contention;
+   double Tc;                // latency, with contention
+   hops_with_contention = network_distance * (1. + w) + B;
+   Tc = Tw2 * time_per_hop * hops_with_contention;
 
-    // ** update utilization counter **
-    // we must account for the usage throughout the mesh
-    // which means that we must include the # of hops
-    _localUtilizationFlitsSent += (UInt64)(B * hops_in_network);
+   // Computation finished...
 
-    return Tci;
+   UInt64 Tci = (UInt64)(ceil(Tc));
+   _cyclesLatency += Tci;
+   _cyclesContention += (UInt64)(Tc - Tb);
+
+   // ** update utilization counter **
+   // we must account for the usage throughout the mesh
+   // which means that we must include the # of hops
+   _localUtilizationFlitsSent += (UInt64)(B * hops_in_network);
+
+   return Tci;
 }
 
 void NetworkModelAnalytical::outputSummary(ostream &out)
@@ -165,8 +165,8 @@ void NetworkModelAnalytical::outputSummary(ostream &out)
 
 struct UtilizationMessage
 {
-  int msg;
-  double ut;
+   int msg;
+   double ut;
 };
 
 // we send and receive updates asynchronously for performance and
@@ -174,34 +174,34 @@ struct UtilizationMessage
 
 void NetworkModelAnalytical::updateUtilization()
 {
-  // ** send updates
+   // ** send updates
 
-  // don't lock because this is all approximate anyway
-  UInt64 core_time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
-  UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
+   // don't lock because this is all approximate anyway
+   UInt64 core_time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
+   UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
 
-  if (elapsed_time < _updateInterval)
-    return;
+   if (elapsed_time < _updateInterval)
+      return;
 
-  // FIXME: This assumes one cycle per flit, might not be accurate.
-  double local_utilization = ((double)_localUtilizationFlitsSent) / ((double)elapsed_time);
+   // FIXME: This assumes one cycle per flit, might not be accurate.
+   double local_utilization = ((double)_localUtilizationFlitsSent) / ((double)elapsed_time);
 
-  _localUtilizationLastUpdate = core_time;
-  _localUtilizationFlitsSent = 0;
+   _localUtilizationLastUpdate = core_time;
+   _localUtilizationFlitsSent = 0;
 
-  // build packet
-  UtilizationMessage m;
-  m.msg = MCP_MESSAGE_UTILIZATION_UPDATE;
-  m.ut = local_utilization;
+   // build packet
+   UtilizationMessage m;
+   m.msg = MCP_MESSAGE_UTILIZATION_UPDATE;
+   m.ut = local_utilization;
 
-  NetPacket update;
-  update.sender = getNetwork()->getCore()->getId();
-  update.receiver = g_config->getMCPCoreNum();
-  update.length = sizeof(m);
-  update.type = MCP_SYSTEM_TYPE;
-  update.data = &m;
+   NetPacket update;
+   update.sender = getNetwork()->getCore()->getId();
+   update.receiver = g_config->getMCPCoreNum();
+   update.length = sizeof(m);
+   update.type = MCP_SYSTEM_TYPE;
+   update.data = &m;
 
-  getNetwork()->netSend(update);
+   getNetwork()->netSend(update);
 }
 
 void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)

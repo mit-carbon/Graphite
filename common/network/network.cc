@@ -10,7 +10,7 @@
 // -- Ctor -- //
 
 Network::Network(Core *core)
-   : _core(core)
+      : _core(core)
 {
    _numMod = g_config->getTotalCores();
    _tid = _core->getId();
@@ -98,41 +98,41 @@ void Network::netPullFromTransport()
 
       // was this packet sent to us, or should it just be forwarded?
       if (entry.packet.receiver != _core->getId())
-         {
-            forwardPacket(entry.packet);
+      {
+         forwardPacket(entry.packet);
 
-            // if this isn't a broadcast message, then we shouldn't process it further
-            if (entry.packet.receiver != NetPacket::BROADCAST)
-               continue;
-         }
+         // if this isn't a broadcast message, then we shouldn't process it further
+         if (entry.packet.receiver != NetPacket::BROADCAST)
+            continue;
+      }
 
       // asynchronous I/O support
       NetworkCallback callback = _callbacks[entry.packet.type];
 
       if (callback != NULL)
-         {
-            LOG_PRINT("Executing callback on packet : type %i, from %i, time %llu.", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
-            assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
-            assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
+      {
+         LOG_PRINT("Executing callback on packet : type %i, from %i, time %llu.", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
+         assert(0 <= entry.packet.sender && entry.packet.sender < _numMod);
+         assert(0 <= entry.packet.type && entry.packet.type < NUM_PACKET_TYPES);
 
-            _core->getPerfModel()->updateCycleCount(entry.time);
+         _core->getPerfModel()->updateCycleCount(entry.time);
 
-            callback(_callbackObjs[entry.packet.type], entry.packet);
+         callback(_callbackObjs[entry.packet.type], entry.packet);
 
-            delete [] (Byte*)entry.packet.data;
-         }
+         delete [](Byte*)entry.packet.data;
+      }
 
       // synchronous I/O support
       else
-         {
-            LOG_PRINT("Enqueuing packet : type %i, from %i, time %llu.", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
-            _netQueueCond.acquire();
-            _netQueue.push_back(entry);
-            LOG_ASSERT_WARNING(_netQueue.size() < 500,
-                               "WARNING: Net queue size is %u", _netQueue.size());
-            _netQueueCond.release();
-            _netQueueCond.broadcast();
-         }
+      {
+         LOG_PRINT("Enqueuing packet : type %i, from %i, time %llu.", (SInt32)entry.packet.type, entry.packet.sender, entry.time);
+         _netQueueCond.acquire();
+         _netQueue.push_back(entry);
+         LOG_ASSERT_WARNING(_netQueue.size() < 500,
+                            "WARNING: Net queue size is %u", _netQueue.size());
+         _netQueueCond.release();
+         _netQueueCond.broadcast();
+      }
    }
    while (_transport->ptQuery());
 }
@@ -156,12 +156,12 @@ void Network::forwardPacket(const NetPacket &packet)
    assert(*timeStamp == 0xBEEFCAFE);
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
-      {
-         *timeStamp = hopVec[i].time;
-         _transport->ptSend(hopVec[i].dest, (char*)forwardBuffer, forwardBufferSize);
-      }
+   {
+      *timeStamp = hopVec[i].time;
+      _transport->ptSend(hopVec[i].dest, (char*)forwardBuffer, forwardBufferSize);
+   }
 
-   delete [] (UInt8*)forwardBuffer;
+   delete [](UInt8*)forwardBuffer;
 }
 
 // -- netSend -- //
@@ -185,13 +185,13 @@ SInt32 Network::netSend(NetPacket packet)
    assert(*timeStamp == 0xBEEFCAFE);
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
-      {
-         LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
-         *timeStamp = hopVec[i].time;
-         _transport->ptSend(hopVec[i].dest, (char*)buffer, bufSize);
-      }
+   {
+      LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
+      *timeStamp = hopVec[i].time;
+      _transport->ptSend(hopVec[i].dest, (char*)buffer, bufSize);
+   }
 
-   delete [] (UInt8*)buffer;
+   delete [](UInt8*)buffer;
 
    LOG_PRINT("Sent packet");
 
@@ -204,82 +204,82 @@ SInt32 Network::netSend(NetPacket packet)
 // sender/type vectors in a NetMatch
 class NetRecvIterator
 {
-public:
-   NetRecvIterator(UInt32 i)
-      : _mode(INT)
-      , _max(i)
-      , _i(0)
-   {
-   }
-   NetRecvIterator(const std::vector<SInt32> &v)
-      : _mode(SENDER_VECTOR)
-      , _senders(&v)
-      , _i(0)
-   {
-   }
-   NetRecvIterator(const std::vector<PacketType> &v)
-      : _mode(TYPE_VECTOR)
-      , _types(&v)
-      , _i(0)
-   {
-   }
-
-   inline UInt32 get()
-   {
-      switch (_mode)
+   public:
+      NetRecvIterator(UInt32 i)
+            : _mode(INT)
+            , _max(i)
+            , _i(0)
       {
-      case INT:
-         return _i;
-      case SENDER_VECTOR:
-         return (UInt32)_senders->at(_i);
-      case TYPE_VECTOR:
-         return (UInt32)_types->at(_i);
-      default:
-         assert(false);
-         return (UInt32)-1;
-      };
-   }
-
-   inline Boolean done()
-   {
-      switch (_mode)
+      }
+      NetRecvIterator(const std::vector<SInt32> &v)
+            : _mode(SENDER_VECTOR)
+            , _senders(&v)
+            , _i(0)
       {
-      case INT:
-         return _i >= _max;
-      case SENDER_VECTOR:
-         return _i >= _senders->size();
-      case TYPE_VECTOR:
-         return _i >= _types->size();
-      default:
-         assert(false);
-         return true;
+      }
+      NetRecvIterator(const std::vector<PacketType> &v)
+            : _mode(TYPE_VECTOR)
+            , _types(&v)
+            , _i(0)
+      {
+      }
+
+      inline UInt32 get()
+      {
+         switch (_mode)
+         {
+         case INT:
+            return _i;
+         case SENDER_VECTOR:
+            return (UInt32)_senders->at(_i);
+         case TYPE_VECTOR:
+            return (UInt32)_types->at(_i);
+         default:
+            assert(false);
+            return (UInt32)-1;
+         };
+      }
+
+      inline Boolean done()
+      {
+         switch (_mode)
+         {
+         case INT:
+            return _i >= _max;
+         case SENDER_VECTOR:
+            return _i >= _senders->size();
+         case TYPE_VECTOR:
+            return _i >= _types->size();
+         default:
+            assert(false);
+            return true;
+         };
+      }
+
+      inline void next()
+      {
+         ++_i;
+      }
+
+      inline void reset()
+      {
+         _i = 0;
+      }
+
+   private:
+      enum
+      {
+         INT, SENDER_VECTOR, TYPE_VECTOR
+      } _mode;
+
+      union
+      {
+         UInt32 _max;
+         const std::vector<SInt32> *_senders;
+         const std::vector<PacketType> *_types;
       };
-   }
 
-   inline void next()
-   {
-      ++_i;
-   }
-
-   inline void reset()
-   {
-      _i = 0;
-   }
-
-private:
-   enum
-   {
-      INT, SENDER_VECTOR, TYPE_VECTOR
-   } _mode;
-
-   union
-   {
-      UInt32 _max;
-      const std::vector<SInt32> *_senders;
-      const std::vector<PacketType> *_types;
-   };
-
-   UInt32 _i;
+      UInt32 _i;
 };
 
 NetPacket Network::netRecv(const NetMatch &match)
@@ -292,13 +292,13 @@ NetPacket Network::netRecv(const NetMatch &match)
 
    found = false;
 
-   NetRecvIterator sender = match.senders.empty() 
-      ? NetRecvIterator(_numMod) 
-      : NetRecvIterator(match.senders);
+   NetRecvIterator sender = match.senders.empty()
+                            ? NetRecvIterator(_numMod)
+                            : NetRecvIterator(match.senders);
 
    NetRecvIterator type = match.types.empty()
-      ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
-      : NetRecvIterator(match.types);
+                          ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
+                          : NetRecvIterator(match.types);
 
    _netQueueCond.acquire();
 
@@ -308,8 +308,8 @@ NetPacket Network::netRecv(const NetMatch &match)
 
       // check every entry in the queue
       for (NetQueue::iterator i = _netQueue.begin();
-           i != _netQueue.end();
-           i++)
+            i != _netQueue.end();
+            i++)
       {
          // only find packets that match
          for (sender.reset(); !sender.done(); sender.next())
@@ -326,7 +326,7 @@ NetPacket Network::netRecv(const NetMatch &match)
 
                // find the earliest packet
                if (entryItr == _netQueue.end() ||
-                   entryItr->time > i->time)
+                     entryItr->time > i->time)
                {
                   entryItr = i;
                }
@@ -406,8 +406,8 @@ void* Network::netCreateBuf(const NetPacket &packet, UInt32* buffer_size, UInt64
    Byte *buffer;
 
    *buffer_size = sizeof(packet.type) + sizeof(packet.sender) +
-                     sizeof(packet.receiver) + sizeof(packet.length) +
-                     packet.length + sizeof(time);
+                  sizeof(packet.receiver) + sizeof(packet.length) +
+                  packet.length + sizeof(time);
 
    buffer = new Byte [*buffer_size];
 
@@ -459,5 +459,5 @@ void Network::netExPacket(void* buffer, NetPacket &packet, UInt64 &time)
    memcpy((Byte *) packet.data, ptr, packet.length);
    ptr += packet.length;
 
-   delete [] (Byte*)buffer;
+   delete [](Byte*)buffer;
 }

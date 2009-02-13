@@ -10,17 +10,17 @@ typedef int comm_id_t;
 
 class NetworkModelAnalyticalServer
 {
- private:
-  std::vector<double> _local_utilizations;
+   private:
+      std::vector<double> _local_utilizations;
 
-  Network & _network;
-  UnstructuredBuffer & _recv_buffer;
+      Network & _network;
+      UnstructuredBuffer & _recv_buffer;
 
- public:
-  NetworkModelAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
-  ~NetworkModelAnalyticalServer();
+   public:
+      NetworkModelAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
+      ~NetworkModelAnalyticalServer();
 
-  void update(comm_id_t);
+      void update(comm_id_t);
 };
 
 #endif

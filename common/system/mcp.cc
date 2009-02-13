@@ -11,7 +11,7 @@
 using namespace std;
 
 MCP::MCP(Network & network)
-   :
+      :
       m_finished(false),
       m_network(network),
       m_MCP_SERVER_MAX_BUFF(256*1024),
@@ -47,50 +47,50 @@ void MCP::run()
 
    LOG_PRINT("MCP message type : %i", (SInt32)msg_type);
 
-   switch(msg_type)
+   switch (msg_type)
    {
-      case MCP_MESSAGE_SYS_CALL:
-         m_syscall_server.handleSyscall(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_QUIT:
-         LOG_PRINT("Quit message received.");
-         m_finished = true;
-         break;
-      case MCP_MESSAGE_MUTEX_INIT:
-         m_sync_server.mutexInit(recv_pkt.sender); 
-        break;
-      case MCP_MESSAGE_MUTEX_LOCK:
-         m_sync_server.mutexLock(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_MUTEX_UNLOCK:
-         m_sync_server.mutexUnlock(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_COND_INIT:
-         m_sync_server.condInit(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_COND_WAIT:
-         m_sync_server.condWait(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_COND_SIGNAL:
-         m_sync_server.condSignal(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_COND_BROADCAST:
-         m_sync_server.condBroadcast(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_BARRIER_INIT:
-         m_sync_server.barrierInit(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_BARRIER_WAIT:
-         m_sync_server.barrierWait(recv_pkt.sender);
-         break;
-      case MCP_MESSAGE_UTILIZATION_UPDATE:
-         m_network_model_analytical_server.update(recv_pkt.sender);
-         break;
-      default:
-         LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
+   case MCP_MESSAGE_SYS_CALL:
+      m_syscall_server.handleSyscall(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_QUIT:
+      LOG_PRINT("Quit message received.");
+      m_finished = true;
+      break;
+   case MCP_MESSAGE_MUTEX_INIT:
+      m_sync_server.mutexInit(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_MUTEX_LOCK:
+      m_sync_server.mutexLock(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_MUTEX_UNLOCK:
+      m_sync_server.mutexUnlock(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_COND_INIT:
+      m_sync_server.condInit(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_COND_WAIT:
+      m_sync_server.condWait(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_COND_SIGNAL:
+      m_sync_server.condSignal(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_COND_BROADCAST:
+      m_sync_server.condBroadcast(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_BARRIER_INIT:
+      m_sync_server.barrierInit(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_BARRIER_WAIT:
+      m_sync_server.barrierWait(recv_pkt.sender);
+      break;
+   case MCP_MESSAGE_UTILIZATION_UPDATE:
+      m_network_model_analytical_server.update(recv_pkt.sender);
+      break;
+   default:
+      LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
    }
 
-   delete [] (Byte*)recv_pkt.data;
+   delete [](Byte*)recv_pkt.data;
 }
 
 void MCP::finish()
@@ -114,10 +114,10 @@ void MCP::broadcastPacket(NetPacket pkt)
 
    // FIXME: Is getTotalCores() always the right range for commids?
    for (UInt32 commid = 0; commid < g_config->getTotalCores(); commid++)
-      {
-         pkt.receiver = commid;
-         m_network.netSend(pkt);
-      }
+   {
+      pkt.receiver = commid;
+      m_network.netSend(pkt);
+   }
 }
 
 void MCP::forwardPacket(NetPacket pkt)
@@ -125,6 +125,6 @@ void MCP::forwardPacket(NetPacket pkt)
    pkt.sender = g_config->getMCPCoreNum();
 
    assert(pkt.receiver != -1);
-   
+
    m_network.netSend(pkt);
 }

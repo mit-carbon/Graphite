@@ -8,30 +8,30 @@
 
 class Random
 {
- public:
-  typedef UInt32 value_t;
+   public:
+      typedef UInt32 value_t;
 
- private:
-  value_t _seed;
+   private:
+      value_t _seed;
 
- public:
-  Random() : _seed(0) { }
-  ~Random() { }
+   public:
+      Random() : _seed(0) { }
+      ~Random() { }
 
-  inline void seed(value_t s) 
-  { 
-    _seed = s; 
-  }
-  
-  inline value_t next(value_t limit = 32768)
-  { 
-    // see rand(3) man page
-    const value_t FACTOR = 1103515245;
-    const value_t ADDEND = 12345;
-    
-    _seed = _seed * FACTOR + ADDEND;
-    return (_seed/65536) % limit;
-  }
+      inline void seed(value_t s)
+      {
+         _seed = s;
+      }
+
+      inline value_t next(value_t limit = 32768)
+      {
+         // see rand(3) man page
+         const value_t FACTOR = 1103515245;
+         const value_t ADDEND = 12345;
+
+         _seed = _seed * FACTOR + ADDEND;
+         return (_seed/65536) % limit;
+      }
 };
 
 #endif // __RANDOM_H__

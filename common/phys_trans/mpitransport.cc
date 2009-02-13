@@ -65,14 +65,17 @@ void Transport::ptGlobalInit()
    //  in a non-threaded process.  I think this is a bug but I'll work
    //  around it for now.
    SInt32 required, provided;
-   if (g_config->getProcessCount() > 1) {
+   if (g_config->getProcessCount() > 1)
+   {
       required = MPI_THREAD_MULTIPLE;
-   } else {
+   }
+   else
+   {
       required = MPI_THREAD_SINGLE;
    }
    err_code = MPI_Init_thread(NULL, NULL, required, &provided);
    LOG_ASSERT_ERROR_EXPLICIT(err_code == MPI_SUCCESS, -1, TRANSPORT, "ptRecv : MPI_Get_count fail.");
-   
+
    assert(provided >= required);
 
    //***** Fill in g_config with values that we are responsible for *****//
@@ -86,7 +89,7 @@ void Transport::ptGlobalInit()
 
 // This routine should be executed once in each thread
 Transport::Transport(SInt32 core_id)
- : m_core_id(core_id)
+      : m_core_id(core_id)
 {
 }
 
@@ -155,7 +158,7 @@ void* Transport::ptRecv()
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptRecv : MPI_Get_count fail.");
    assert(status.MPI_SOURCE != MPI_UNDEFINED);
    source = status.MPI_SOURCE;
-   
+
    // Allocate a buffer for the incoming message
    buffer = new Byte[pkt_size];
 
@@ -165,9 +168,9 @@ void* Transport::ptRecv()
    //  by the call to Probe above.  Otherwise, we might get a message from
    //  a different sender that could have a different size.
    err_code = MPI_Recv(buffer, pkt_size, MPI_BYTE, source, m_core_id, MPI_COMM_WORLD,
-            &status);
+                       &status);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptRecv : MPI_Recv fail.");
-   
+
    LOG_PRINT("msg received");
 
 #ifdef PHYS_TRANS_USE_LOCKS

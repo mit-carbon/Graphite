@@ -19,7 +19,7 @@ Core::Core(SInt32 id)
 
    m_network = new Network(this);
 
-   if ( g_config->getEnablePerformanceModeling() ) 
+   if (g_config->getEnablePerformanceModeling())
    {
       m_perf_model = new PerfModel("performance modeler");
       LOG_PRINT("Instantiated performance model.");
@@ -29,7 +29,7 @@ Core::Core(SInt32 id)
       m_perf_model = (PerfModel *) NULL;
    }
 
-   if ( g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling() )
+   if (g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling())
    {
       m_ocache = new OCache("organic cache");
       LOG_PRINT("instantiated organic cache model");
@@ -39,12 +39,13 @@ Core::Core(SInt32 id)
       m_ocache = (OCache *) NULL;
    }
 
-   if ( g_config->isSimulatingSharedMemory() ) {
-      assert( g_config->getEnableDCacheModeling() );
+   if (g_config->isSimulatingSharedMemory())
+   {
+      assert(g_config->getEnableDCacheModeling());
 
       LOG_PRINT("instantiated memory manager model");
       m_memory_manager = new MemoryManager(this, m_ocache);
-   } 
+   }
    else
    {
       m_memory_manager = (MemoryManager *) NULL;
@@ -66,19 +67,19 @@ Core::~Core()
 
 int Core::coreSendW(int sender, int receiver, char *buffer, int size)
 {
-    // Create a net packet
-    NetPacket packet;
-    packet.sender= sender;
-    packet.receiver= receiver;
-    packet.type = USER;
-    packet.length = size;
-    packet.data = buffer;
+   // Create a net packet
+   NetPacket packet;
+   packet.sender= sender;
+   packet.receiver= receiver;
+   packet.type = USER;
+   packet.length = size;
+   packet.data = buffer;
 
-    SInt32 sent = m_network->netSend(packet);
+   SInt32 sent = m_network->netSend(packet);
 
-    assert(sent == size);
+   assert(sent == size);
 
-    return sent == size ? 0 : -1;
+   return sent == size ? 0 : -1;
 }
 
 int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
@@ -94,8 +95,8 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    memcpy(buffer, packet.data, size);
 
    // De-allocate dynamic memory
-   // Is this the best place to de-allocate packet.data ?? 
-   delete [] (Byte*)packet.data;
+   // Is this the best place to de-allocate packet.data ??
+   delete [](Byte*)packet.data;
 
    return (unsigned)size == packet.length ? 0 : -1;
 }
@@ -120,87 +121,97 @@ bool Core::icacheRunLoadModel(IntPtr i_addr, UInt32 size)
  */
 bool Core::dcacheRunModel(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size)
 {
-    shmem_req_t shmem_operation;
+   shmem_req_t shmem_operation;
 
-    if (operation == CacheBase::k_ACCESS_TYPE_LOAD) {
-        shmem_operation = READ;
-    }
-    else {
-        shmem_operation = WRITE;
-    }
+   if (operation == CacheBase::k_ACCESS_TYPE_LOAD)
+   {
+      shmem_operation = READ;
+   }
+   else
+   {
+      shmem_operation = WRITE;
+   }
 
-    if (g_config->isSimulatingSharedMemory()) {
-        LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
+   if (g_config->isSimulatingSharedMemory())
+   {
+      LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
 
-        bool all_hits = true;
+      bool all_hits = true;
 
-        if (data_size <= 0) {
-            return (true);
-            // TODO: this is going to affect the statistics even though no shared_mem action is taking place
-        }
+      if (data_size <= 0)
+      {
+         return (true);
+         // TODO: this is going to affect the statistics even though no shared_mem action is taking place
+      }
 
-        IntPtr begin_addr = d_addr;
-        IntPtr end_addr = d_addr + data_size;
-        IntPtr begin_addr_aligned = begin_addr - (begin_addr % m_ocache->dCacheLineSize());
-        IntPtr end_addr_aligned = end_addr - (end_addr % m_ocache->dCacheLineSize());
-        char *curr_data_buffer_head = data_buffer;
+      IntPtr begin_addr = d_addr;
+      IntPtr end_addr = d_addr + data_size;
+      IntPtr begin_addr_aligned = begin_addr - (begin_addr % m_ocache->dCacheLineSize());
+      IntPtr end_addr_aligned = end_addr - (end_addr % m_ocache->dCacheLineSize());
+      char *curr_data_buffer_head = data_buffer;
 
-        //TODO set the size parameter correctly, based on the size of the data buffer
-        //TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
-        for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += m_ocache->dCacheLineSize())
-        {
-            // Access the cache one line at a time
-            UInt32 curr_offset;
-            UInt32 curr_size;
+      //TODO set the size parameter correctly, based on the size of the data buffer
+      //TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
+      for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += m_ocache->dCacheLineSize())
+      {
+         // Access the cache one line at a time
+         UInt32 curr_offset;
+         UInt32 curr_size;
 
-            // Determine the offset
-            // TODO fix curr_size calculations
-            // FIXME: Check if all this is correct
-            if (curr_addr_aligned == begin_addr_aligned) {
-                curr_offset = begin_addr % m_ocache->dCacheLineSize();
+         // Determine the offset
+         // TODO fix curr_size calculations
+         // FIXME: Check if all this is correct
+         if (curr_addr_aligned == begin_addr_aligned)
+         {
+            curr_offset = begin_addr % m_ocache->dCacheLineSize();
+         }
+         else
+         {
+            curr_offset = 0;
+         }
+
+         // Determine the size
+         if (curr_addr_aligned == end_addr_aligned)
+         {
+            curr_size = (end_addr % m_ocache->dCacheLineSize()) - (curr_offset);
+            if (curr_size == 0)
+            {
+               continue;
             }
-            else {
-                curr_offset = 0;
-            }
+         }
+         else
+         {
+            curr_size = m_ocache->dCacheLineSize() - (curr_offset);
+         }
 
-            // Determine the size
-            if (curr_addr_aligned == end_addr_aligned) {
-                curr_size = (end_addr % m_ocache->dCacheLineSize()) - (curr_offset);
-                if (curr_size == 0) {
-                    continue;
-                }
-            }
-            else {
-                curr_size = m_ocache->dCacheLineSize() - (curr_offset);
-            }
+         LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
 
-            LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
+         if (!m_memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size))
+         {
+            // If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
+            // If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
+            all_hits = false;
+         }
 
-            if (!m_memory_manager->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size)) {
-                // If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
-                // If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
-                all_hits = false;
-            }
+         LOG_PRINT("End InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
 
-            LOG_PRINT("End InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
+         // Increment the buffer head
+         curr_data_buffer_head += curr_size;
+      }
 
-            // Increment the buffer head
-            curr_data_buffer_head += curr_size;
-        }
+      LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
 
-        LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
+      return all_hits;
 
-        return all_hits;		    
-
-    } 
-    else 
-    {
-        // run this if we aren't using shared_memory
-        // FIXME: I am not sure this is right
-        // What if the initial data for this address is in some other core's DRAM (which is on some other host machine)
-        if(operation == CacheBase::k_ACCESS_TYPE_LOAD)
-            return m_ocache->runDCacheLoadModel(d_addr, data_size).first;
-        else
-            return m_ocache->runDCacheStoreModel(d_addr, data_size).first;
-    }
+   }
+   else
+   {
+      // run this if we aren't using shared_memory
+      // FIXME: I am not sure this is right
+      // What if the initial data for this address is in some other core's DRAM (which is on some other host machine)
+      if (operation == CacheBase::k_ACCESS_TYPE_LOAD)
+         return m_ocache->runDCacheLoadModel(d_addr, data_size).first;
+      else
+         return m_ocache->runDCacheStoreModel(d_addr, data_size).first;
+   }
 }

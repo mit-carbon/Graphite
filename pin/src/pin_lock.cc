@@ -4,15 +4,15 @@
 
 class PinLock : public Lock
 {
-public:
-   PinLock();
-   ~PinLock();
+   public:
+      PinLock();
+      ~PinLock();
 
-   void acquire();
-   void release();
+      void acquire();
+      void release();
 
-private:
-   PIN_LOCK _lock;
+   private:
+      PIN_LOCK _lock;
 };
 
 // -- create -- //

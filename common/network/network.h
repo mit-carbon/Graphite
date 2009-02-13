@@ -19,21 +19,21 @@ class Network;
 
 class NetPacket
 {
- public:
-   PacketType type;
-   SInt32 sender;
-   SInt32 receiver;
-   UInt32 length;
-   void *data;
+   public:
+      PacketType type;
+      SInt32 sender;
+      SInt32 receiver;
+      UInt32 length;
+      void *data;
 
-   static const SInt32 BROADCAST = 0xDEADBABE;
+      static const SInt32 BROADCAST = 0xDEADBABE;
 
-   NetPacket()
-      : type(INVALID)
-      , sender(-1)
-      , receiver(-1)
-      , length(0)
-      , data(0)
+      NetPacket()
+            : type(INVALID)
+            , sender(-1)
+            , receiver(-1)
+            , length(0)
+            , data(0)
       {}
 };
 
@@ -51,16 +51,16 @@ typedef std::list<NetQueueEntry> NetQueue;
 
 class NetMatch
 {
- public:
-   std::vector<SInt32> senders;
-   std::vector<PacketType> types;
+   public:
+      std::vector<SInt32> senders;
+      std::vector<PacketType> types;
 };
 
 // -- Network Models -- //
 
 // To implement a new network model, you must implement this routing
 // object. To route, take a packet and compute the next hop(s) and the
-// time stamp for when that packet will be forwarded.  
+// time stamp for when that packet will be forwarded.
 //   This lets one implement "magic" networks, analytical models,
 // realistic hop-by-hop modeling, as well as broadcast models, such as
 // a bus or ATAC.  Each static network has its own model object. This
@@ -70,28 +70,28 @@ class NetMatch
 // vector.
 class NetworkModel
 {
-public:
-   NetworkModel(Network *network) : _network(network) { }
-   virtual ~NetworkModel() { }
+   public:
+      NetworkModel(Network *network) : _network(network) { }
+      virtual ~NetworkModel() { }
 
-   struct Hop
-   {
-      SInt32 dest;
-      UInt64 time;
-   };
+      struct Hop
+      {
+         SInt32 dest;
+         UInt64 time;
+      };
 
-   virtual void routePacket(const NetPacket &pkt,
-                            std::vector<Hop> &nextHops) = 0;
+      virtual void routePacket(const NetPacket &pkt,
+                               std::vector<Hop> &nextHops) = 0;
 
-   virtual void outputSummary(std::ostream &out) = 0;
+      virtual void outputSummary(std::ostream &out) = 0;
 
-   static NetworkModel *createModel(Network *network, UInt32 type);
+      static NetworkModel *createModel(Network *network, UInt32 type);
 
-protected:
-   Network *getNetwork() { return _network; }
+   protected:
+      Network *getNetwork() { return _network; }
 
-private:
-   Network *_network;
+   private:
+      Network *_network;
 
 };
 
@@ -99,62 +99,62 @@ private:
 
 // This is the managing class that interacts with the physical
 // transport layer to forward packets from source to destination.
-   
+
 class Network
 {
- public:
+   public:
 
-   // -- Ctor, housekeeping, etc. -- //
-   Network(Core *core);
-   ~Network();
+      // -- Ctor, housekeeping, etc. -- //
+      Network(Core *core);
+      ~Network();
 
-   Transport *getTransport() const { return _transport; }
-   Core *getCore() const { return _core; }
+      Transport *getTransport() const { return _transport; }
+      Core *getCore() const { return _core; }
 
-   typedef void (*NetworkCallback)(void*, NetPacket);
+      typedef void (*NetworkCallback)(void*, NetPacket);
 
-   void registerCallback(PacketType type,
-                         NetworkCallback callback,
-                         void *obj);
+      void registerCallback(PacketType type,
+                            NetworkCallback callback,
+                            void *obj);
 
-   void unregisterCallback(PacketType type);
+      void unregisterCallback(PacketType type);
 
-   void outputSummary(std::ostream &out) const;
+      void outputSummary(std::ostream &out) const;
 
-   void netPullFromTransport();
+      void netPullFromTransport();
 
-   // -- Main interface -- //
+      // -- Main interface -- //
 
-   SInt32 netSend(NetPacket packet);
-   NetPacket netRecv(const NetMatch &match);
+      SInt32 netSend(NetPacket packet);
+      NetPacket netRecv(const NetMatch &match);
 
-   // -- Wrappers -- //
+      // -- Wrappers -- //
 
-   SInt32 netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len);
-   SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-   NetPacket netRecv(SInt32 src, PacketType type);
-   NetPacket netRecvFrom(SInt32 src);
-   NetPacket netRecvType(PacketType type);
+      SInt32 netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len);
+      SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
+      NetPacket netRecv(SInt32 src, PacketType type);
+      NetPacket netRecvFrom(SInt32 src);
+      NetPacket netRecvType(PacketType type);
 
-private:
-   NetworkModel * _models[NUM_STATIC_NETWORKS];
+   private:
+      NetworkModel * _models[NUM_STATIC_NETWORKS];
 
-   NetworkCallback *_callbacks;
-   void **_callbackObjs;
+      NetworkCallback *_callbacks;
+      void **_callbackObjs;
 
-   Core *_core;
-   Transport *_transport;
-   
-   SInt32 _tid;
-   SInt32 _numMod;
+      Core *_core;
+      Transport *_transport;
 
-   NetQueue _netQueue;
-   ConditionVariable _netQueueCond;
+      SInt32 _tid;
+      SInt32 _numMod;
 
-   void* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);
-   void netExPacket(void* buffer, NetPacket &packet, UInt64 &time);
+      NetQueue _netQueue;
+      ConditionVariable _netQueueCond;
 
-   void forwardPacket(const NetPacket &packet);
+      void* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);
+      void netExPacket(void* buffer, NetPacket &packet, UInt64 &time);
+
+      void forwardPacket(const NetPacket &packet);
 };
 
 #endif // NETWORK_H

@@ -9,8 +9,8 @@
 
 //#define DEBUG_BASIC_HASH
 
- 
-class BasicHash 
+
+class BasicHash
 {
    protected:
       typedef std::map<UInt64, UInt64> Bucket;
@@ -21,7 +21,7 @@ class BasicHash
       BasicHash(UInt64 size);
       ~BasicHash();
 
-      std::pair<bool, UInt64> find(UInt64 key); 
+      std::pair<bool, UInt64> find(UInt64 key);
       bool insert(UInt64 key, UInt64 value);
 
 };

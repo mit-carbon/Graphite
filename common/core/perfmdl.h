@@ -1,16 +1,16 @@
-// Jonathan Eastep (eastep@mit.edu) 
+// Jonathan Eastep (eastep@mit.edu)
 // 04.07.08
 //
-// This file contains classes and structs for modeling performance in the 
+// This file contains classes and structs for modeling performance in the
 // simulator. It collects stats from the various other models that are
-// running (e.g. the cache model) and loosely models microarchitectural 
-// execution to keep a clock updated. To minimize overhead in Pin, as few 
-// as possible additional instructions are instrumented exclusively for 
+// running (e.g. the cache model) and loosely models microarchitectural
+// execution to keep a clock updated. To minimize overhead in Pin, as few
+// as possible additional instructions are instrumented exclusively for
 // performance modeling; instead, performance modeling tries to piggy-back
 // on the instrumentation the other models required. Because models don't
 // end up instrumenting every instruction, the performance model uses
-// time warp and batches up as much of the modeling it needs to do as 
-// possible. 
+// time warp and batches up as much of the modeling it needs to do as
+// possible.
 
 
 #ifndef PERFMDL_H
@@ -32,7 +32,8 @@
 
 // JME. FIXME. many of these members should be private.
 
-class PerfModel {
+class PerfModel
+{
 
 
    public:
@@ -49,11 +50,11 @@ class PerfModel {
 
 
       // These functions are for logging modeling events for which the performance impact
-      // may be lazily evaluated later when the performance model is next run. 
+      // may be lazily evaluated later when the performance model is next run.
 
       void logICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-      { 
-         // stats->icache_load_miss_history.push_back( !hit ); 
+      {
+         // stats->icache_load_miss_history.push_back( !hit );
          stats->logICacheLoadAccess(hit);
       }
 
@@ -63,24 +64,24 @@ class PerfModel {
       }
 
       void logDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-      { 
-         // stats->dcache_store_miss_history.push_back( !hit ); 
+      {
+         // stats->dcache_store_miss_history.push_back( !hit );
          stats->logDCacheStoreAccess(hit);
       }
 
       void logBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-      {  // stats->branch_mispredict = !correct; 
+      {  // stats->branch_mispredict = !correct;
          stats->logBranchPrediction(correct);
       }
 
 
       // Called at first encounter of an interval. Fills out stats for the interval
 
-      PerfModelIntervalStat* analyzeInterval(const string& parent_routine, 
+      PerfModelIntervalStat* analyzeInterval(const string& parent_routine,
                                              const INS& start_ins, const INS& end_ins);
 
 
-      // Pin inserts a call to one of the following functions when instrumenting 
+      // Pin inserts a call to one of the following functions when instrumenting
       // instructions.
 
       // the vanilla run method.
@@ -90,7 +91,7 @@ class PerfModel {
       void run(PerfModelIntervalStat *interval_stats, REG *reads, UInt32 num_reads, bool firstCallInIntrvl);
 
       // run method which registers destination registers in the scoreboard
-      void run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
+      void run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
                REG *writes, UInt32 num_writes, bool firstCallInIntrvl);
 
 

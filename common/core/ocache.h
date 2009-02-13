@@ -1,14 +1,14 @@
-// Jonathan Eastep (eastep@mit.edu) 
+// Jonathan Eastep (eastep@mit.edu)
 // 04.09.08
 //
 // This file implements a dynamically adaptive cache. The Organic Cache
 // (OCache) consists of an instruction L1 and data L1 which share a pool
 // of cache banks. Each bank implements a "way" in terms of associativity,
-// so there are n ways split arbitrarily between the icache and dcache. 
+// so there are n ways split arbitrarily between the icache and dcache.
 // Note: the number of physical sets in the OCache is fixed, so it adjusts
-// simultaneously the cache sizes when it reapportions the banks. 
+// simultaneously the cache sizes when it reapportions the banks.
 // The OCache monitors cache access statistics to automatically manage
-// bank reapportioning. 
+// bank reapportioning.
 
 
 #ifndef OCACHE_H
@@ -47,9 +47,9 @@ class OCache
       OCache(std::string name);
       /*
       , UInt32 size, UInt32 line_bytes, UInt32 assoc, UInt32 mutate_interval,
-             UInt32 dcache_threshold_hit_value, UInt32 dcache_threshold_miss_value, UInt32 dcache_size, 
-             UInt32 dcache_associativity, UInt32 dcache_max_search_depth, UInt32 icache_threshold_hit_value, 
-             UInt32 icache_threshold_miss_value, UInt32 icache_size, UInt32 icache_associativity, 
+             UInt32 dcache_threshold_hit_value, UInt32 dcache_threshold_miss_value, UInt32 dcache_size,
+             UInt32 dcache_associativity, UInt32 dcache_max_search_depth, UInt32 icache_threshold_hit_value,
+             UInt32 icache_threshold_miss_value, UInt32 icache_size, UInt32 icache_associativity,
              UInt32 icache_max_search_depth);
              */
 
@@ -60,7 +60,7 @@ class OCache
       UInt32 dCacheAssociativity() { return m_dl1->getNumWays(); }
       UInt32 dCacheGetSetPtr(UInt32 set_index) { return m_dl1->getSetPtr(set_index); }
       void   dCacheSetSetPtr(UInt32 set_index, UInt32 value) { m_dl1->setSetPtr(set_index, value); }
-      string dCacheStatsLong(string prefix, CacheBase::CacheType type) 
+      string dCacheStatsLong(string prefix, CacheBase::CacheType type)
       { return m_dl1->statsLong(prefix,type); }
 
       // These are just wrappers around the Cache class equivalents for the OCache icache field
@@ -69,10 +69,10 @@ class OCache
       UInt32 iCacheLineSize() { return m_il1->getLineSize(); }
       UInt32 iCacheAssociativity() { return m_il1->getNumWays(); }
       UInt32 iCacheGetSetPtr(UInt32 set_index) { return m_il1->getSetPtr(set_index); }
-      void   iCacheSetSetPtr(UInt32 set_index, UInt32 value) { m_il1->setSetPtr(set_index, value); } 
+      void   iCacheSetSetPtr(UInt32 set_index, UInt32 value) { m_il1->setSetPtr(set_index, value); }
       string iCacheStatsLong(string prefix, CacheBase::CacheType type) { return m_il1->statsLong(prefix,type); }
 
-      string statsLong();  
+      string statsLong();
 
 
       // These functions provide the public interface to accessing the caches
@@ -81,12 +81,12 @@ class OCache
       pair<bool, CacheTag*> runDCacheStoreModel(IntPtr d_addr, UInt32 size);
       // These are side-effect free (don't update stats, don't cause eviction, etc.)
       pair<bool, CacheTag*> runICachePeekModel(IntPtr i_addr);
-      pair<bool, CacheTag*> runDCachePeekModel(IntPtr d_addr);    
+      pair<bool, CacheTag*> runDCachePeekModel(IntPtr d_addr);
 
       /********** CELIO WAS HERE **************/
-      pair<bool, CacheTag*> accessSingleLine(IntPtr addr, CacheBase::AccessType access_type, 
+      pair<bool, CacheTag*> accessSingleLine(IntPtr addr, CacheBase::AccessType access_type,
                                              bool* fail_need_fill = NULL, char* fill_buff = NULL,
-                                             char* buff = NULL, UInt32 bytes = 0, 
+                                             char* buff = NULL, UInt32 bytes = 0,
                                              bool* eviction = NULL, IntPtr* evict_addr = NULL, char* evict_buff = NULL)
       {
          //TODO !!!! I don't have direct access to m_dl1 from the memoryManager, and until i have better stubs to talk to the m_dl1,
@@ -180,5 +180,5 @@ bool runDCacheStoreModel(IntPtr d_addr, UInt32 size);
 void oCacheModelInit();
 void oCacheModelFini(int code, void *v, ostream& out);
 
- 
+
 #endif

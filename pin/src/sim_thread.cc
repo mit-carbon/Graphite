@@ -26,7 +26,7 @@ SimThreadRunner *SimThreadStart()
    LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_thread_threads, g_config->getCurrentProcessNum());
 
    SimThreadRunner * runners = new SimThreadRunner[num_sim_thread_threads];
-   for(unsigned int i = 0; i < num_sim_thread_threads; i++)
+   for (unsigned int i = 0; i < num_sim_thread_threads; i++)
    {
       LOG_PRINT("Starting thread %i", i);
 
@@ -88,7 +88,7 @@ void* SimThreadFunc(void *)
                          &cont);
 
    // Actual work gets done here
-   while(cont)
+   while (cont)
       net->netPullFromTransport();
 
    // Bookkeeping for SimThreadQuit

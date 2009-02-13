@@ -10,7 +10,7 @@
 
 //#define DEBUG_LOCKFREE_HASH
 
- 
+
 class LockFreeHash : private BasicHash
 {
    private:
@@ -20,7 +20,7 @@ class LockFreeHash : private BasicHash
       LockFreeHash(UInt64 size);
       ~LockFreeHash();
 
-      std::pair<bool, UInt64> find(UInt64 key); 
+      std::pair<bool, UInt64> find(UInt64 key);
       bool insert(UInt64 key, UInt64 value);
 };
 

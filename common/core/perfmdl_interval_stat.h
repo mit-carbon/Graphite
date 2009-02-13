@@ -3,7 +3,8 @@
 #define k_PERFMDL_CYCLE_INVALID  (~ ((UInt64) 0) )
 #define k_PERFMDL_INT_STATE_SIZE 5
 
-class PerfModelIntervalStat {
+class PerfModelIntervalStat
+{
    private:
 
       // keeps track of miss status for icache and dcache loads and stores
@@ -21,7 +22,7 @@ class PerfModelIntervalStat {
       UInt32 dcache_store_miss_history_index;
 
    public:
-      // holds instruction addresses and sizes 
+      // holds instruction addresses and sizes
       std::vector< std::pair<IntPtr, UInt32> > inst_trace;
 
 
@@ -30,7 +31,7 @@ class PerfModelIntervalStat {
       UInt32 microops_count;
       UInt32 cycles_subtotal;
 
-      // set true if interval had branch mispredict   
+      // set true if interval had branch mispredict
       bool branch_mispredict;
 
       // set for use in debugging
@@ -38,34 +39,34 @@ class PerfModelIntervalStat {
 
 
       // methods
-      PerfModelIntervalStat(const std::string& parent, const std::vector< std::pair<IntPtr, UInt32> >& trace, 
-                            UInt32 uops, UInt32 cyc_subtotal): 
-         icache_load_miss_history_index(0), dcache_load_miss_history_index(0), dcache_store_miss_history_index(0),
-         inst_trace(trace), 
-         microops_count(uops), cycles_subtotal(cyc_subtotal), 
-         branch_mispredict(false), parent_routine(parent)
+      PerfModelIntervalStat(const std::string& parent, const std::vector< std::pair<IntPtr, UInt32> >& trace,
+                            UInt32 uops, UInt32 cyc_subtotal):
+            icache_load_miss_history_index(0), dcache_load_miss_history_index(0), dcache_store_miss_history_index(0),
+            inst_trace(trace),
+            microops_count(uops), cycles_subtotal(cyc_subtotal),
+            branch_mispredict(false), parent_routine(parent)
       {
       }
 
       void logICacheLoadAccess(bool hit)
       {
-         assert( icache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         assert(icache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE);
          icache_load_miss_history[icache_load_miss_history_index++] = !hit;
-      }      
+      }
 
       UInt32 getICacheLoadAccessCount()
       {  return icache_load_miss_history_index; }
 
       bool getICacheLoadAccessMissStatus(UInt32 which)
       {
-         assert( which < k_PERFMDL_INT_STATE_SIZE );
+         assert(which < k_PERFMDL_INT_STATE_SIZE);
          return icache_load_miss_history[which];
       }
 
 
       void logDCacheLoadAccess(bool hit)
       {
-         assert( dcache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         assert(dcache_load_miss_history_index < k_PERFMDL_INT_STATE_SIZE);
          dcache_load_miss_history[dcache_load_miss_history_index++] = !hit;
       }
 
@@ -74,14 +75,14 @@ class PerfModelIntervalStat {
 
       bool getDCacheLoadAccessMissStatus(UInt32 which)
       {
-         assert( which < k_PERFMDL_INT_STATE_SIZE );
-         return dcache_load_miss_history[which]; 
+         assert(which < k_PERFMDL_INT_STATE_SIZE);
+         return dcache_load_miss_history[which];
       }
 
 
       void logDCacheStoreAccess(bool hit)
       {
-         assert( dcache_store_miss_history_index < k_PERFMDL_INT_STATE_SIZE );
+         assert(dcache_store_miss_history_index < k_PERFMDL_INT_STATE_SIZE);
          dcache_store_miss_history[dcache_store_miss_history_index++] = !hit;
       }
 
@@ -90,19 +91,19 @@ class PerfModelIntervalStat {
 
       bool getDCacheStoreAccessMissStatus(UInt32 which)
       {
-         assert( which < k_PERFMDL_INT_STATE_SIZE );
-         return dcache_store_miss_history[which]; 
+         assert(which < k_PERFMDL_INT_STATE_SIZE);
+         return dcache_store_miss_history[which];
       }
 
 
       void logBranchPrediction(bool correct)
       {
-         branch_mispredict = !correct; 
+         branch_mispredict = !correct;
       }
 
       void reset()
       {
-         // resets everything but inst_trace, parent, 
+         // resets everything but inst_trace, parent,
          // microops_count and cyc_subtotal
          // (all the dynamic stuff)
 
@@ -114,6 +115,6 @@ class PerfModelIntervalStat {
          dcache_load_miss_history_index = 0;
          dcache_store_miss_history_index = 0;
 
-         branch_mispredict = false; 
+         branch_mispredict = false;
       }
 };

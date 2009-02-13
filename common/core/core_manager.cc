@@ -17,11 +17,11 @@
 using namespace std;
 
 CoreManager::CoreManager()
-   :
-   tid_to_core_map(3*g_config->getNumLocalCores()),
-   tid_to_core_index_map(3*g_config->getNumLocalCores()),
-   simthread_tid_to_core_map(3*g_config->getNumLocalCores()),
-   simthread_tid_to_core_index_map(3*g_config->getNumLocalCores())
+      :
+      tid_to_core_map(3*g_config->getNumLocalCores()),
+      tid_to_core_index_map(3*g_config->getNumLocalCores()),
+      simthread_tid_to_core_map(3*g_config->getNumLocalCores()),
+      simthread_tid_to_core_index_map(3*g_config->getNumLocalCores())
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
@@ -31,7 +31,7 @@ CoreManager::CoreManager()
    core_to_simthread_tid_map = new UInt32 [g_config->getNumLocalCores()];
 
    // Need to subtract 1 for the MCP
-   for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++) 
+   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
    {
       tid_map[i] = UINT_MAX;
       core_to_simthread_tid_map[i] = UINT_MAX;
@@ -43,8 +43,8 @@ CoreManager::CoreManager()
 
 CoreManager::~CoreManager()
 {
-   for(std::vector<Core *>::iterator i = m_cores.begin(); i != m_cores.end(); i++)
-       delete *i;
+   for (std::vector<Core *>::iterator i = m_cores.begin(); i != m_cores.end(); i++)
+      delete *i;
 
    delete [] core_to_simthread_tid_map;
    delete [] tid_map;
@@ -59,25 +59,25 @@ void CoreManager::initializeThread(UInt32 core_id)
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
 
    //FIXME: Check to see if two threads try to grab the same core_id
-   const Config::CoreList & cores (g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
+   const Config::CoreList & cores(g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
    UInt32 idx = 0;
    Config::CLCI i;
-   for(i = cores.begin(); i != cores.end(); i++)
+   for (i = cores.begin(); i != cores.end(); i++)
    {
-      if(*i == core_id)
+      if (*i == core_id)
          break;
       idx++;
    }
 
-   if(i == cores.end())
+   if (i == cores.end())
       LOG_PRINT("Tried to claim a core not assigned to this process.");
 
 
-   if ( e.first == false )
+   if (e.first == false)
    {
       LOG_ASSERT_ERROR(idx < g_config->getNumLocalCores(), "Invalid tid_map index in initializeThread!\n");
       tid_map[idx] = tid;
-      tid_to_core_map.insert( tid, core_id);
+      tid_to_core_map.insert(tid, core_id);
    }
    else
    {
@@ -96,15 +96,16 @@ void CoreManager::initializeThreadFree(int *core_id)
 
    //FIXME: Check to see if two threads try to grab the same core_id
 
-   if ( e.first == false ) {
+   if (e.first == false)
+   {
       // Don't allow free initializion of the MCP which claimes the
       // highest core.
-      for(unsigned int i = 0; i < g_config->getNumLocalCores() - 1; i++)
+      for (unsigned int i = 0; i < g_config->getNumLocalCores() - 1; i++)
       {
          if (tid_map[i] == UINT_MAX)
          {
-            tid_map[i] = tid;    
-            tid_to_core_map.insert( tid, i );
+            tid_map[i] = tid;
+            tid_to_core_map.insert(tid, i);
             *core_id = i;
 
             m_maps_lock->release();
@@ -150,11 +151,11 @@ Core *CoreManager::getCoreFromID(unsigned int id)
    Core *core = NULL;
    // Look up the index from the core list
    // FIXME: make this more cached
-   const Config::CoreList & cores (g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
+   const Config::CoreList & cores(g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
    UInt32 idx = 0;
-   for(Config::CLCI i = cores.begin(); i != cores.end(); i++)
+   for (Config::CLCI i = cores.begin(); i != cores.end(); i++)
    {
-      if(*i == id)
+      if (*i == id)
       {
          core = m_cores[idx];
          break;
@@ -172,20 +173,20 @@ void CoreManager::outputSummary()
 {
    LOG_PRINT("Starting CoreManager::fini");
 
-   ofstream out( g_config->getOutputFileName() );
+   ofstream out(g_config->getOutputFileName());
 
-   for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
    {
       LOG_PRINT("Output summary core %i", i);
 
       out << "*** Core[" << i << "] summary ***" << endl;
-      if ( g_config->getEnablePerformanceModeling() )
+      if (g_config->getEnablePerformanceModeling())
       {
          m_cores[i]->getPerfModel()->outputSummary(out);
          m_cores[i]->getNetwork()->outputSummary(out);
       }
 
-      if ( g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling() )
+      if (g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling())
          m_cores[i]->getOCache()->outputSummary(out);
 
       delete m_cores[i];
@@ -207,24 +208,24 @@ int CoreManager::registerSharedMemThread()
    pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
 
    // If this thread isn't registered
-   if ( e.first == false ) 
+   if (e.first == false)
    {
       // Search for an unused core to map this simthread thread to
       // one less to account for the MCP
-      for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+      for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
       {
          // Unused slots are set to UINT_MAX
          // FIXME: Use a different constant than UINT_MAX
-         if(core_to_simthread_tid_map[i] == UINT_MAX)
+         if (core_to_simthread_tid_map[i] == UINT_MAX)
          {
             core_to_simthread_tid_map[i] = tid;
-            simthread_tid_to_core_map.insert( tid, i );
+            simthread_tid_to_core_map.insert(tid, i);
             return g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
          }
       }
 
       LOG_PRINT("*ERROR* registerSharedMemThread - No free cores for thread: %d", tid);
-      for(UInt32 j = 0; j < g_config->getNumLocalCores(); j++)
+      for (UInt32 j = 0; j < g_config->getNumLocalCores(); j++)
          LOG_PRINT("core_to_simthread_tid_map[%d] = %d\n", j, core_to_simthread_tid_map[j]);
 
       LOG_NOTIFY_ERROR();
@@ -242,6 +243,6 @@ int CoreManager::registerSharedMemThread()
 
 UInt32 CoreManager::getCurrentTID()
 {
-   return  syscall( __NR_gettid );
+   return  syscall(__NR_gettid);
 }
 

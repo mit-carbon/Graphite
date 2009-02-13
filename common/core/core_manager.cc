@@ -20,21 +20,21 @@ CoreManager::CoreManager()
    :
    tid_to_core_map(3*g_config->getNumLocalCores()),
    tid_to_core_index_map(3*g_config->getNumLocalCores()),
-   shmem_tid_to_core_map(3*g_config->getNumLocalCores()),
-   shmem_tid_to_core_index_map(3*g_config->getNumLocalCores())
+   simthread_tid_to_core_map(3*g_config->getNumLocalCores()),
+   simthread_tid_to_core_index_map(3*g_config->getNumLocalCores())
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
    m_maps_lock = Lock::create();
 
    tid_map = new UInt32 [g_config->getNumLocalCores()];
-   core_to_shmem_tid_map = new UInt32 [g_config->getNumLocalCores()];
+   core_to_simthread_tid_map = new UInt32 [g_config->getNumLocalCores()];
 
    // Need to subtract 1 for the MCP
    for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++) 
    {
       tid_map[i] = UINT_MAX;
-      core_to_shmem_tid_map[i] = UINT_MAX;
+      core_to_simthread_tid_map[i] = UINT_MAX;
       m_cores.push_back(new Core(g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i]));
    }
 
@@ -46,7 +46,7 @@ CoreManager::~CoreManager()
    for(std::vector<Core *>::iterator i = m_cores.begin(); i != m_cores.end(); i++)
        delete *i;
 
-   delete [] core_to_shmem_tid_map;
+   delete [] core_to_simthread_tid_map;
    delete [] tid_map;
 
    delete m_maps_lock;
@@ -69,8 +69,9 @@ void CoreManager::initializeThread(UInt32 core_id)
       idx++;
    }
 
-   if(i != cores.end())
+   if(i == cores.end())
       LOG_PRINT("Tried to claim a core not assigned to this process.");
+
 
    if ( e.first == false )
    {
@@ -203,28 +204,28 @@ int CoreManager::registerSharedMemThread()
    UInt32 tid = getCurrentTID();
 
    ScopedLock sl(*m_maps_lock);
-   pair<bool, UINT64> e = shmem_tid_to_core_map.find(tid);
+   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
 
    // If this thread isn't registered
    if ( e.first == false ) 
    {
-      // Search for an unused core to map this shmem thread to
+      // Search for an unused core to map this simthread thread to
       // one less to account for the MCP
       for(UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
       {
          // Unused slots are set to UINT_MAX
          // FIXME: Use a different constant than UINT_MAX
-         if(core_to_shmem_tid_map[i] == UINT_MAX)
+         if(core_to_simthread_tid_map[i] == UINT_MAX)
          {
-            core_to_shmem_tid_map[i] = tid;
-            shmem_tid_to_core_map.insert( tid, i );
+            core_to_simthread_tid_map[i] = tid;
+            simthread_tid_to_core_map.insert( tid, i );
             return g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
          }
       }
 
       LOG_PRINT("*ERROR* registerSharedMemThread - No free cores for thread: %d", tid);
       for(UInt32 j = 0; j < g_config->getNumLocalCores(); j++)
-         LOG_PRINT("core_to_shmem_tid_map[%d] = %d\n", j, core_to_shmem_tid_map[j]);
+         LOG_PRINT("core_to_simthread_tid_map[%d] = %d\n", j, core_to_simthread_tid_map[j]);
 
       LOG_NOTIFY_ERROR();
    }
@@ -233,7 +234,7 @@ int CoreManager::registerSharedMemThread()
       LOG_PRINT("*WARNING* registerSharedMemThread - Initialized thread twice");
       LOG_NOTIFY_WARNING();
       // FIXME: I think this is OK
-      return shmem_tid_to_core_map.find(tid).second;
+      return simthread_tid_to_core_map.find(tid).second;
    }
 
    return -1;

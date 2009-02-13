@@ -40,10 +40,10 @@ class CoreManager
         LockedHash tid_to_core_map;
         LockedHash tid_to_core_index_map;
 
-        // Mapping for the shared memory threads
-        UInt32 *core_to_shmem_tid_map;
-        LockedHash shmem_tid_to_core_map;
-        LockedHash shmem_tid_to_core_index_map;
+        // Mapping for the simulation threads
+        UInt32 *core_to_simthread_tid_map;
+        LockedHash simthread_tid_to_core_map;
+        LockedHash simthread_tid_to_core_index_map;
 
         std::vector<Core*> m_cores;
 };

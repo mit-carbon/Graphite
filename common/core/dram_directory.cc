@@ -25,7 +25,7 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
 
 DramDirectory::DramDirectory(UInt32 num_lines_arg, UInt32 bytes_per_cache_line_arg, UInt32 dram_id_arg, UInt32 num_of_cores_arg, Network* network_arg)
 {
-	the_network = network_arg;
+	m_network = network_arg;
 	num_lines = num_lines_arg;
 	number_of_cores = num_of_cores_arg;
 	dram_id = dram_id_arg;
@@ -361,7 +361,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UInt32 requ
 	// This is the response to a shared memory request
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_RESPONSE, payload_buffer, payload_size, dram_id, requestor );
 	
-	the_network->netSend(packet);
+	m_network->netSend(packet);
 
 }
 
@@ -385,7 +385,7 @@ void DramDirectory::startDemoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 	upd_payload.data_size = 0;
 	NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), dram_id, owner);
 
-	the_network->netSend(packet);
+	m_network->netSend(packet);
 }
 
 
@@ -422,7 +422,7 @@ void DramDirectory::startInvalidateSingleSharer (DramDirectoryEntry* dram_dir_en
 	payload.data_size = 0;
 
 	NetPacket packet = MemoryManager::makePacket( SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, sharer_id);
-	the_network->netSend(packet);
+	m_network->netSend(packet);
 }
 
 

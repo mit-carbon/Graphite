@@ -48,28 +48,28 @@ namespace CACHE_ALLOC
 class CacheTag
 {
    private:
-      IntPtr the_tag;
-      CacheState::cstate_t the_cstate;
+      IntPtr m_tag;
+      CacheState::cstate_t m_cstate;
    
    public:
       CacheTag(IntPtr tag = ~0, CacheState::cstate_t cstate = CacheState::INVALID) : 
-         the_tag(tag), the_cstate(cstate) {}
+         m_tag(tag), m_cstate(cstate) {}
 
       bool operator==(const CacheTag& right) const 
       { 
-			return (the_tag == right.the_tag);
+			return (m_tag == right.m_tag);
       }
 
-      bool isValid() const { return (the_tag != ((IntPtr) ~0)); }
+      bool isValid() const { return (m_tag != ((IntPtr) ~0)); }
 
 		//BUG FIXME i think this needs to be left shifted if you actually want the address
-      operator IntPtr() const { return the_tag; }
+      operator IntPtr() const { return m_tag; }
       
-		IntPtr getTag() { return the_tag; }
+		IntPtr getTag() { return m_tag; }
 
-      CacheState::cstate_t getCState() { return the_cstate; }
+      CacheState::cstate_t getCState() { return m_cstate; }
 
-      void setCState(CacheState::cstate_t cstate) { the_cstate = cstate; }
+      void setCState(CacheState::cstate_t cstate) { m_cstate = cstate; }
 };
 
 
@@ -83,13 +83,13 @@ namespace CACHE_SET
    class DirectMapped
    {
       private:
-         CacheTag the_tag;
+         CacheTag m_tag;
 
       public:
          DirectMapped(UInt32 assoc = 1) 
          { 
             assert(assoc == 1); 
-            the_tag = CacheTag();
+            m_tag = CacheTag();
          }
 
          //FIXME: this should be private. should only be used during instantiation
@@ -97,21 +97,21 @@ namespace CACHE_SET
 
          UInt32 getAssociativity(UInt32 assoc) { return 1; }
 
-         UInt32 find(CacheTag& tag) { return(the_tag == tag); }
+         UInt32 find(CacheTag& tag) { return(m_tag == tag); }
 
-         void replace(CacheTag& tag) { the_tag = tag; }
+         void replace(CacheTag& tag) { m_tag = tag; }
 
          void modifyAssociativity(UInt32 assoc) { assert(assoc == 1); }
 
          void print() { 
-            //cout << the_tag << endl; 
+            //cout << m_tag << endl; 
          }
 
          bool invalidateTag(CacheTag& tag) 
          { 
-            if ( tag == the_tag )
+            if ( tag == m_tag )
             {
-               the_tag = CacheTag(); 
+               m_tag = CacheTag(); 
                return true;
             }
             return false;
@@ -125,10 +125,10 @@ namespace CACHE_SET
    class RoundRobin
    {
       private:
-         CacheTag the_tags[k_MAX_ASSOCIATIVITY];
+         CacheTag m_tags[k_MAX_ASSOCIATIVITY];
          UInt32 tags_last_index;
          UInt32 next_replace_index;
-         char the_blocks[k_MAX_ASSOCIATIVITY*k_MAX_BLOCKSIZE];
+         char m_blocks[k_MAX_ASSOCIATIVITY*k_MAX_BLOCKSIZE];
          UInt32 blocksize;
 
       public:
@@ -144,9 +144,9 @@ namespace CACHE_SET
 
             for (SInt32 index = tags_last_index; index >= 0; index--)
             {
-               the_tags[index] = CacheTag();
+               m_tags[index] = CacheTag();
             }
-            memset(&the_blocks[0], 0x00, k_MAX_BLOCKSIZE * k_MAX_ASSOCIATIVITY);
+            memset(&m_blocks[0], 0x00, k_MAX_BLOCKSIZE * k_MAX_ASSOCIATIVITY);
          }
 
          void setBlockSize(UInt32 blksize) { blocksize = blksize; }
@@ -174,11 +174,11 @@ namespace CACHE_SET
 
             for (SInt32 index = tags_last_index; index >= 0; index--)
             {
-               if(the_tags[index] == tag) 
+               if(m_tags[index] == tag) 
                {
                   if ( set_index != NULL )
                      *set_index = index;
-                  return make_pair(true, &the_tags[index]);
+                  return make_pair(true, &m_tags[index]);
                }
             }
             return make_pair(false, (CacheTag*) NULL);
@@ -189,7 +189,7 @@ namespace CACHE_SET
 				assert( offset + bytes <= blocksize );
 
 				if ( (out_buff != NULL) && (bytes != 0) )
-					memcpy(out_buff, &the_blocks[index * blocksize + offset], bytes);
+					memcpy(out_buff, &m_blocks[index * blocksize + offset], bytes);
 			}
 
          void write_line(UInt32 index, UInt32 offset, char *buff, UInt32 bytes)
@@ -201,7 +201,7 @@ namespace CACHE_SET
 				assert( offset + bytes <= blocksize );
 
 				if ( (buff != NULL) && (bytes != 0) )
-					memcpy(&the_blocks[index * blocksize + offset], buff, bytes);
+					memcpy(&m_blocks[index * blocksize + offset], buff, bytes);
 			}
 
          bool invalidateTag(CacheTag& tag) 
@@ -210,9 +210,9 @@ namespace CACHE_SET
             {
 					assert(0 <= index && (UInt32)index < k_MAX_ASSOCIATIVITY);
 				  
-					if(the_tags[index] == tag)
+					if(m_tags[index] == tag)
 					{
-						the_tags[index] = CacheTag();
+						m_tags[index] = CacheTag();
                   return true;
 					}
             }
@@ -224,22 +224,22 @@ namespace CACHE_SET
             const UInt32 index = next_replace_index;
             //cout << "*** replacing index " << index << " ***" << endl;
 
-            if ( the_tags[index].isValid() )
+            if ( m_tags[index].isValid() )
 				{
 					if ( eviction != NULL )
 						*eviction = true;
 					if ( evict_tag != NULL )
-						*evict_tag = the_tags[index];
+						*evict_tag = m_tags[index];
 					if ( evict_buff != NULL )
-						memcpy(evict_buff, &the_blocks[index * blocksize], blocksize);
+						memcpy(evict_buff, &m_blocks[index * blocksize], blocksize);
             }
             
 				assert(index < k_MAX_ASSOCIATIVITY);
-            the_tags[index] = tag;
+            m_tags[index] = tag;
 
             if ( fill_buff != NULL )
 				{
-					memcpy(&the_blocks[index * blocksize], fill_buff, blocksize);
+					memcpy(&m_blocks[index * blocksize], fill_buff, blocksize);
             }
 
             // condition typically faster than modulo
@@ -258,7 +258,7 @@ namespace CACHE_SET
                for (UInt32 i = tags_last_index + 1; i < assoc; i++)
 					{
                   assert(i < k_MAX_ASSOCIATIVITY);
-						the_tags[i] = CacheTag();
+						m_tags[i] = CacheTag();
 					}
                tags_last_index = assoc - 1;
                next_replace_index = tags_last_index;
@@ -275,7 +275,7 @@ namespace CACHE_SET
                   for (UInt32 i = tags_last_index; i >= assoc; i--)
 						{
                      assert(i < k_MAX_ASSOCIATIVITY);
-							the_tags[i] = CacheTag();
+							m_tags[i] = CacheTag();
 						}
 
                   tags_last_index = assoc - 1;
@@ -294,7 +294,7 @@ namespace CACHE_SET
                  << next_replace_index << "     tags = ";
             for (UInt32 i = 0; i < getAssociativity(); i++)
             {
-	       		cout << hex << the_tags[i] << " ";
+	       		cout << hex << m_tags[i] << " ";
             }
             cout << endl;
 				*/

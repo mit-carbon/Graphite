@@ -116,7 +116,7 @@ public:
       {}
    };
 
-   MemoryManager(Core *the_core_arg, OCache *ocache_arg);
+   MemoryManager(Core *core, OCache *ocache);
    virtual ~MemoryManager();
 
    DramDirectory* getDramDirectory() { return m_dram_dir;}

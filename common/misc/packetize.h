@@ -17,7 +17,7 @@
 class UnstructuredBuffer {
 
    private:
-      std::string the_chars;
+      std::string m_chars;
       
    public:
 

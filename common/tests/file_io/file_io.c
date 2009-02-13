@@ -81,9 +81,9 @@ void* read_and_write(void *threadid)
       printf("User %d: File Descriptor: 0x%x\n", tid, (unsigned int)fid);
 
       // Read the FID
-      char the_data[1024] = {'\0'};
-      int status = read(fid, (void *) the_data, 1024);
-      printf("User %d: Read from fid %d returned %d and %s\n", tid, fid, status, the_data);
+      char m_data[1024] = {'\0'};
+      int status = read(fid, (void *) m_data, 1024);
+      printf("User %d: Read from fid %d returned %d and %s\n", tid, fid, status, m_data);
 
       // Close the FID
       status = close(fid);
@@ -94,8 +94,8 @@ void* read_and_write(void *threadid)
       printf("User %d: File Descriptor: 0x%x\n", tid, (unsigned int)fid);
 
       // Write the FID
-      char the_write_data[12] = "hello world";
-      status = write(fid, (void *) the_write_data, 11); 
+      char m_write_data[12] = "hello world";
+      status = write(fid, (void *) m_write_data, 11); 
       printf("User %d: Write from fid %d returned %d\n", tid, fid, status);
 
       // Close the FID

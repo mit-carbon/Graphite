@@ -98,7 +98,7 @@ class DramDirectory
 {
  private:
    //assumption: each dram_directory is tied to a given network (node), and is addressed at dram_id
-	Network* the_network;
+	Network* m_network;
 	UInt32 num_lines;
    unsigned int bytes_per_cache_line;
    UInt32 number_of_cores;

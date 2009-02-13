@@ -9,38 +9,7 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
 
 using namespace std;
 
-void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
-{
-   MemoryManager *mm = (MemoryManager*) obj;
-   assert(mm != NULL);
-
-   switch (packet.type)
-      {
-      case SHARED_MEM_REQ:
-         mm->addMemRequest(packet);
-         return;
-
-      case SHARED_MEM_EVICT:
-         mm->forwardWriteBackToDram(packet);
-         return;
-
-      case SHARED_MEM_UPDATE_UNEXPECTED:
-         mm->processUnexpectedSharedMemUpdate(packet);
-         return;
-
-      case SHARED_MEM_ACK:
-         mm->processAck(packet);
-         return;
-
-      case SHARED_MEM_RESPONSE:
-         mm->processSharedMemResponse(packet);
-         return;
-
-      default:
-         // whoops
-         assert(false);
-      };
-}
+void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
 MemoryManager::MemoryManager(Core *core, OCache *ocache) 
 {
@@ -81,6 +50,39 @@ MemoryManager::~MemoryManager()
    net->unregisterCallback(SHARED_MEM_EVICT);
    net->unregisterCallback(SHARED_MEM_UPDATE_UNEXPECTED);
    net->unregisterCallback(SHARED_MEM_ACK);
+}
+
+void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
+{
+   MemoryManager *mm = (MemoryManager*) obj;
+   assert(mm != NULL);
+
+   switch (packet.type)
+      {
+      case SHARED_MEM_REQ:
+         mm->addMemRequest(packet);
+         return;
+
+      case SHARED_MEM_EVICT:
+         mm->forwardWriteBackToDram(packet);
+         return;
+
+      case SHARED_MEM_UPDATE_UNEXPECTED:
+         mm->processUnexpectedSharedMemUpdate(packet);
+         return;
+
+      case SHARED_MEM_ACK:
+         mm->processAck(packet);
+         return;
+
+      case SHARED_MEM_RESPONSE:
+         mm->processSharedMemResponse(packet);
+         return;
+
+      default:
+         // whoops
+         assert(false);
+      };
 }
 
 

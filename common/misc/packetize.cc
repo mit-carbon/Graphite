@@ -12,17 +12,17 @@ template bool UnstructuredBuffer::get(double& data);
 template<class T> void UnstructuredBuffer::put(T* data, int num)
 {
    assert( num >= 0 );
-   the_chars.append((char *) data, num * sizeof(T));
+   m_chars.append((char *) data, num * sizeof(T));
 }
 
 template<class T> bool UnstructuredBuffer::get(T* data, int num)
 {
    assert( num >= 0 );
-   if ( the_chars.size() < (num * sizeof(T)) )
+   if ( m_chars.size() < (num * sizeof(T)) )
       return false;
 
-   the_chars.copy((char *) data, num * sizeof(T));
-   the_chars.erase(0, num * sizeof(T));
+   m_chars.copy((char *) data, num * sizeof(T));
+   m_chars.erase(0, num * sizeof(T));
 
    return true;
 }
@@ -40,17 +40,17 @@ template<class T> bool UnstructuredBuffer::get(T& data)
 
 const char* UnstructuredBuffer::getBuffer()
 {
-   return the_chars.data();
+   return m_chars.data();
 }
 
 void UnstructuredBuffer::clear()
 {
-   the_chars.erase();
+   m_chars.erase();
 }
 
 int UnstructuredBuffer::size()
 {
-   return the_chars.size();
+   return m_chars.size();
 }
 
 

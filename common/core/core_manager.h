@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <vector>
 
 #include "locked_hash.h"
 
@@ -16,7 +17,7 @@ class CoreManager
         CoreManager();
         ~CoreManager();
 
-        void initializeThread(int rank);
+        void initializeThread(UInt32 rank);
         void initializeThreadFree(int *rank);
         int registerSharedMemThread();
 
@@ -29,7 +30,9 @@ class CoreManager
         void fini(int code, void *v);
 
     private:
-        Lock *maps_lock;
+        UInt32 getCurrentTID();
+
+        Lock *m_maps_lock;
 
         // tid_map takes core # to pin thread id
         // core_map takes pin thread id to core # (it's the reverse map)
@@ -42,11 +45,7 @@ class CoreManager
         LockedHash shmem_tid_to_core_map;
         LockedHash shmem_tid_to_core_index_map;
 
-        int prev_rank;
-
-        Core *m_cores;
-
-        UInt32 getCurrentTID();
+        std::vector<Core*> m_cores;
 };
 
 extern CoreManager *g_core_manager;

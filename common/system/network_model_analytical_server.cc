@@ -26,17 +26,17 @@ NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
 NetworkModelAnalyticalServer::~NetworkModelAnalyticalServer()
 { }
 
-void NetworkModelAnalyticalServer::update(comm_id_t commid)
+void NetworkModelAnalyticalServer::update(core_id_t core_id)
 {
    // extract update
    double ut;
    assert(
       _recv_buffer.get(ut)
    );
-   assert(0 <= commid && (unsigned int)commid < g_config->getTotalCores());
+   assert(0 <= core_id && (unsigned int)core_id < g_config->getTotalCores());
    //  assert(0 <= ut && ut <= 1);
 
-   _local_utilizations[commid] = ut;
+   _local_utilizations[core_id] = ut;
 
    // compute global utilization
    double global_utilization = 0.0;
@@ -56,7 +56,7 @@ void NetworkModelAnalyticalServer::update(comm_id_t commid)
    // send response
    NetPacket response;
    response.sender = g_config->getMCPCoreNum();
-   response.receiver = commid;
+   response.receiver = core_id;
    response.length = sizeof(global_utilization);
    response.type = MCP_UTILIZATION_UPDATE_TYPE;
    response.data = (char *) &global_utilization;

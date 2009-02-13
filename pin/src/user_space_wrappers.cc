@@ -3,9 +3,9 @@
 #include "sync_client.h"
 #include "core_manager.h"
 
-CAPI_return_t SimGetCoreID(int *commid)
+CAPI_return_t SimGetCoreID(int *core_id)
 {
-   *commid = g_core_manager->getCurrentCoreID();
+   *core_id = g_core_manager->getCurrentCoreID();
    return 0;
 }
 

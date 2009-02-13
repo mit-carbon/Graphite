@@ -112,10 +112,9 @@ void MCP::broadcastPacket(NetPacket pkt)
 {
    pkt.sender = g_config->getMCPCoreNum();
 
-   // FIXME: Is getTotalCores() always the right range for commids?
-   for (UInt32 commid = 0; commid < g_config->getTotalCores(); commid++)
+   for (UInt32 core_id = 0; core_id < g_config->getTotalCores(); core_id++)
    {
-      pkt.receiver = commid;
+      pkt.receiver = core_id;
       m_network.netSend(pkt);
    }
 }

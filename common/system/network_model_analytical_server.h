@@ -2,11 +2,12 @@
 #define NETWORK_MODEL_ANALYTICAL_SERVER_H
 
 #include <vector>
+#include "fixed_types.h"
 
 class Network;
 class UnstructuredBuffer;
 
-typedef int comm_id_t;
+typedef UInt32 core_id_t;
 
 class NetworkModelAnalyticalServer
 {
@@ -20,7 +21,7 @@ class NetworkModelAnalyticalServer
       NetworkModelAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
       ~NetworkModelAnalyticalServer();
 
-      void update(comm_id_t);
+      void update(core_id_t);
 };
 
 #endif

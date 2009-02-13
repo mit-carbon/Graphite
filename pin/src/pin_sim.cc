@@ -789,7 +789,8 @@ void fini(int code, void * v)
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini start");
 
    // Make sure all other processes are finished before we start tearing down stuffs
-   Transport::ptBarrier();
+   if(g_config->getProcessCount())
+      Transport::ptBarrier();
 
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_MCP->finish();

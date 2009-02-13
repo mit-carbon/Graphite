@@ -6,12 +6,12 @@
 
 extern Config *g_config;
 
-PerfModel::PerfModel(string n)
+PerfModel::PerfModel(string name)
    :
-      microop_issue_count(0),
-      cycle_count(0),
-      scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID),
-      name(n)
+      m_microop_issue_count(0),
+      m_cycle_count(0),
+      m_scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID),
+      m_name(name)
 {
    m_clock_lock = Lock::create();
 }
@@ -117,7 +117,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrv
    addToCycleCount(interval_cycle_count);
 
    if ( firstCallInIntrvl )
-      microop_issue_count += interval_stats->microops_count;
+      m_microop_issue_count += interval_stats->microops_count;
 
    // clear out values in case Run gets called again this interval
    interval_stats->reset();
@@ -133,14 +133,14 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
 
    run(interval_stats, firstCallInIntrvl);
 
-   UInt64 max = cycle_count;
+   UInt64 max = m_cycle_count;
    REG max_reg = LEVEL_BASE::REG_LAST;
 
    for ( UInt32 i = 0; i < numReads; i++ )
    {
       REG r = reads[i];
-      assert((UInt32)r < scoreboard.size());
-      UInt64 cycle = scoreboard[r];
+      assert((UInt32)r < m_scoreboard.size());
+      UInt64 cycle = m_scoreboard[r];
 
       if ( cycle != k_PERFMDL_CYCLE_INVALID ) {
          if ( cycle > max ) {
@@ -149,14 +149,14 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
          }
 
          // first use encountered so release scoreboard slot
-         scoreboard[r] = k_PERFMDL_CYCLE_INVALID;
+         m_scoreboard[r] = k_PERFMDL_CYCLE_INVALID;
          //cout << "removed " << REG_StringShort(r) << " from scoreboard: " 
          //     << cycle << endl;
       }
    } 
   
-   if ( max != cycle_count ) {
-      // cout << "stalled from " << cycle_count << " to " << max << " on " 
+   if ( max != m_cycle_count ) {
+      // cout << "stalled from " << m_cycle_count << " to " << max << " on " 
       //     << REG_StringShort(max_reg) << endl;
    }
 
@@ -176,10 +176,10 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
    if ( g_config->getEnablePerformanceModeling() && !dcache_load_hit ) {
       for (UInt32 i = 0; i < numWrites; i++) {
          REG w = writes[i];
-         assert((UInt32)w < scoreboard.size());
-         scoreboard[w] = cycle_count + 100;  //FIXME: make this parameterizable
+         assert((UInt32)w < m_scoreboard.size());
+         m_scoreboard[w] = m_cycle_count + 100;  //FIXME: make this parameterizable
          // cout << "added " << REG_StringShort(w) << " to scoreboard: " 
-         //     << cycle_count << " + 100 = " << scoreboard[w] << endl;
+         //     << m_cycle_count << " + 100 = " << m_scoreboard[w] << endl;
       }
    }
 }
@@ -188,13 +188,13 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 void PerfModel::updateCycleCount(UInt64 new_cycle_count)
 {
    m_clock_lock->acquire();
-   cycle_count = max(cycle_count, new_cycle_count);
+   m_cycle_count = max(m_cycle_count, new_cycle_count);
    m_clock_lock->release();
 }
 void PerfModel::addToCycleCount(UInt64 cycles)
 {
    m_clock_lock->acquire();
-   cycle_count += cycles; 
+   m_cycle_count += cycles; 
    m_clock_lock->release();
 }
 

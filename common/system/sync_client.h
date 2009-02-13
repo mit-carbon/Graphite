@@ -9,12 +9,7 @@ class Network;
 
 class SyncClient
 {
-  Core *_core;
-  Network *_network;
-  UnstructuredBuffer _send_buff, _recv_buff;
-
  public:
-
   SyncClient(Core*);
   ~SyncClient();
 
@@ -39,12 +34,18 @@ class SyncClient
        woken by the mutexUnlock() of the thread that holds the lock.
 
   */
+
   static const unsigned int MUTEX_LOCK_RESPONSE   = 0xDEADBEEF;
   static const unsigned int MUTEX_UNLOCK_RESPONSE = 0xBABECAFE;
   static const unsigned int COND_WAIT_RESPONSE    = MUTEX_LOCK_RESPONSE;
   static const unsigned int COND_SIGNAL_RESPONSE  = 0xBEEFCAFE;
   static const unsigned int COND_BROADCAST_RESPONSE = 0xDEADCAFE;
   static const unsigned int BARRIER_WAIT_RESPONSE  = 0xCACACAFE;
+
+ private:
+  Core *m_core;
+  Network *m_network;
+  UnstructuredBuffer m_send_buff, m_recv_buff;
 
 };
 

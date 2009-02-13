@@ -7,7 +7,7 @@
 #include "config.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK _network.getCore()->getId()
+#define LOG_DEFAULT_RANK m_network.getCore()->getId()
 #define LOG_DEFAULT_MODULE SYSCALL
 
 using namespace std;
@@ -17,11 +17,11 @@ SyscallServer::SyscallServer(Network & network,
       const UInt32 SERVER_MAX_BUFF,
       char *scratch_)
 : 
-   _network(network),
-   send_buff(send_buff_),
-   recv_buff(recv_buff_),
-   SYSCALL_SERVER_MAX_BUFF(SERVER_MAX_BUFF),
-   scratch(scratch_)
+   m_network(network),
+   m_send_buff(send_buff_),
+   m_recv_buff(recv_buff_),
+   m_SYSCALL_SERVER_MAX_BUFF(SERVER_MAX_BUFF),
+   m_scratch(scratch_)
 {
 }
 
@@ -30,34 +30,34 @@ SyscallServer::~SyscallServer()
 }
 
 
-void SyscallServer::handleSyscall(int comm_id)
+void SyscallServer::handleSyscall(UInt32 core_id)
 {
    UInt8 syscall_number;
-   recv_buff >> syscall_number;   
+   m_recv_buff >> syscall_number;
 
    switch(syscall_number)
    {
       case SYS_open:
-         marshallOpenCall(comm_id);
+         marshallOpenCall(core_id);
          break;
       case SYS_read:
-         marshallReadCall(comm_id);
+         marshallReadCall(core_id);
          break;
       case SYS_write:
-         marshallWriteCall(comm_id);
+         marshallWriteCall(core_id);
          break;
       case SYS_close:
-         marshallCloseCall(comm_id);
+         marshallCloseCall(core_id);
          break;
       case SYS_access:
-         marshallAccessCall(comm_id);
+         marshallAccessCall(core_id);
          break;
       default:
-         LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, comm_id);
+         LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
    }
 }
 
-void SyscallServer::marshallOpenCall(int comm_id)
+void SyscallServer::marshallOpenCall(UInt32 core_id)
 {
 
    /*
@@ -77,18 +77,18 @@ void SyscallServer::marshallOpenCall(int comm_id)
 
    */   
 
-   // cerr << "Open syscall from: " << comm_id << endl;
+   // cerr << "Open syscall from: " << core_id << endl;
 
    UInt32 len_fname;
-   char *path = (char *) scratch;
+   char *path = (char *) m_scratch;
    int flags;      
 
-   recv_buff >> len_fname;
+   m_recv_buff >> len_fname;
 
-   if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
+   if ( len_fname > m_SYSCALL_SERVER_MAX_BUFF )
       path = new char[len_fname];
 
-   recv_buff >> make_pair(path, len_fname) >> flags;
+   m_recv_buff >> make_pair(path, len_fname) >> flags;
 
    // Actually do the open call
    int ret = open(path, flags);
@@ -98,15 +98,15 @@ void SyscallServer::marshallOpenCall(int comm_id)
    //cerr << "flags: " << flags << endl;
    //cerr << "ret: " << ret << endl;
 
-   send_buff << ret;
+   m_send_buff << ret;
 
-   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
-   if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
+   if ( len_fname > m_SYSCALL_SERVER_MAX_BUFF )
       delete[] path;
 }
 
-void SyscallServer::marshallReadCall(int comm_id)
+void SyscallServer::marshallReadCall(UInt32 core_id)
 {
 
    /*
@@ -126,45 +126,45 @@ void SyscallServer::marshallReadCall(int comm_id)
 
    */   
 
-   // cerr << "Read syscall from: " << comm_id << endl;
+   // cerr << "Read syscall from: " << core_id << endl;
 
    int fd;
-   char *buf = (char *) scratch;
+   char *buf = (char *) m_scratch;
    size_t count;
    char *dest;
 
    //create a temporary int for storing the addr
    int d2;
-   recv_buff >> fd >> count >> d2;
+   m_recv_buff >> fd >> count >> d2;
    dest = (char *)d2;
 
-   if ( count > SYSCALL_SERVER_MAX_BUFF )
+   if ( count > m_SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
    // Actually do the read call
    int bytes = read(fd, (void *) buf, count);  
 
    // Copy the memory into shared mem
-   _network.getCore()->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, (ADDRINT)dest, buf, count);
+   m_network.getCore()->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, (ADDRINT)dest, buf, count);
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
    //cerr << "count: " << count << endl;
    //cerr << "bytes: " << bytes << endl;
    
-   send_buff << bytes;
+   m_send_buff << bytes;
    if ( bytes != -1 )
-     send_buff << make_pair(buf, bytes);
+     m_send_buff << make_pair(buf, bytes);
 
-   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());   
 
-   if ( count > SYSCALL_SERVER_MAX_BUFF )
+   if ( count > m_SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
 
 }
 
 
-void SyscallServer::marshallWriteCall(int comm_id)
+void SyscallServer::marshallWriteCall(UInt32 core_id)
 {
 
    /*
@@ -184,15 +184,15 @@ void SyscallServer::marshallWriteCall(int comm_id)
 
    */   
 
-   // cerr << "Write syscall from: " << comm_id << endl;
+   // cerr << "Write syscall from: " << core_id << endl;
 
    int fd;
-   char *buf = (char *) scratch;
+   char *buf = (char *) m_scratch;
    size_t count;
 
-   recv_buff >> fd >> count;
+   m_recv_buff >> fd >> count;
    
-   if ( count > SYSCALL_SERVER_MAX_BUFF )
+   if ( count > m_SYSCALL_SERVER_MAX_BUFF )
       buf = new char[count];
 
    // If we aren't using shared memory, then the data for the
@@ -201,14 +201,14 @@ void SyscallServer::marshallWriteCall(int comm_id)
    {
        char *src;
        int src_b;
-       recv_buff >> src_b;
+       m_recv_buff >> src_b;
        src = (char *)src_b;
 
-       _network.getCore()->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, (ADDRINT)src, buf, count);
+       m_network.getCore()->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, (ADDRINT)src, buf, count);
    }
    else
    {
-       recv_buff >> make_pair(buf, count);
+       m_recv_buff >> make_pair(buf, count);
    }
 
    // Actually do the write call
@@ -221,17 +221,17 @@ void SyscallServer::marshallWriteCall(int comm_id)
    //cerr << "count: " << count << endl;
    //cerr << "bytes: " << bytes << endl;
    
-   send_buff << bytes;
+   m_send_buff << bytes;
 
-   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());   
 
-   if ( count > SYSCALL_SERVER_MAX_BUFF )
+   if ( count > m_SYSCALL_SERVER_MAX_BUFF )
       delete[] buf;
 
 }
 
 
-void SyscallServer::marshallCloseCall(int comm_id)
+void SyscallServer::marshallCloseCall(UInt32 core_id)
 {
 
    /*
@@ -249,10 +249,10 @@ void SyscallServer::marshallCloseCall(int comm_id)
 
    */   
 
-   // cerr << "Close syscall from: " << comm_id << endl;
+   // cerr << "Close syscall from: " << core_id << endl;
 
    int fd;
-   recv_buff >> fd;
+   m_recv_buff >> fd;
    
    // Actually do the close call
    int status = close(fd);  
@@ -260,25 +260,25 @@ void SyscallServer::marshallCloseCall(int comm_id)
    //cerr << "fd: " << fd << endl;
    //cerr << "status: " << status << endl;
    
-   send_buff << status;
-   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());   
+   m_send_buff << status;
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());   
 
 }
 
-void SyscallServer::marshallAccessCall(int comm_id)
+void SyscallServer::marshallAccessCall(UInt32 core_id)
 {
-   // cerr << "access syscall from: " << comm_id << endl;
+   // cerr << "access syscall from: " << core_id << endl;
 
    UInt32 len_fname;
-   char *path = (char *) scratch;
+   char *path = (char *) m_scratch;
    int mode;      
 
-   recv_buff >> len_fname;
+   m_recv_buff >> len_fname;
 
-   if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
+   if ( len_fname > m_SYSCALL_SERVER_MAX_BUFF )
       path = new char[len_fname];
 
-   recv_buff >> make_pair(path, len_fname) >> mode;
+   m_recv_buff >> make_pair(path, len_fname) >> mode;
 
    // Actually do the open call
    int ret = access(path, mode);
@@ -288,10 +288,10 @@ void SyscallServer::marshallAccessCall(int comm_id)
    //cerr << "mode: " << mode << endl;
    //cerr << "ret: " << ret << endl;
 
-   send_buff << ret;
+   m_send_buff << ret;
 
-   _network.netSend(comm_id, MCP_RESPONSE_TYPE, send_buff.getBuffer(), send_buff.size());
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
-   if ( len_fname > SYSCALL_SERVER_MAX_BUFF )
+   if ( len_fname > m_SYSCALL_SERVER_MAX_BUFF )
       delete[] path;
 }

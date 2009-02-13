@@ -3,7 +3,7 @@
 
 using namespace std;
 
-static const comm_id_t INVALID_COMMID = -1;
+static const core_id_t INVALID_CORE_ID = -1;
 
 struct Reply
 {
@@ -14,189 +14,189 @@ struct Reply
 // -- SimMutex -- //
 
 SimMutex::SimMutex()
-  : _owner(NO_OWNER)
+  : m_owner(NO_OWNER)
 { }
 
 SimMutex::~SimMutex()
 {
-  assert(_waiting.empty());
+  assert(m_waiting.empty());
 }
 
-bool SimMutex::lock(comm_id_t commid)
+bool SimMutex::lock(core_id_t core_id)
 {
-  if (_owner == NO_OWNER)
+  if (m_owner == NO_OWNER)
     {
-      _owner = commid;
+      m_owner = core_id;
       return true;
     }
   else
     {
-      _waiting.push(commid);
+      m_waiting.push(core_id);
       return false;
     }
 }
 
-comm_id_t SimMutex::unlock(comm_id_t commid)
+core_id_t SimMutex::unlock(core_id_t core_id)
 {
-  assert(_owner == commid);
-  if(_waiting.empty())
+  assert(m_owner == core_id);
+  if(m_waiting.empty())
   {
-      _owner = NO_OWNER;
+      m_owner = NO_OWNER;
   }
   else 
   {
-      _owner =  _waiting.front();
-      _waiting.pop();
+      m_owner =  m_waiting.front();
+      m_waiting.pop();
   }
-  return _owner;
+  return m_owner;
 }
 
 // -- SimCond -- //
 SimCond::SimCond() {}
 SimCond::~SimCond() 
 {
-  assert(_waiting.empty());
+  assert(m_waiting.empty());
 }
 
 
-comm_id_t SimCond::wait(comm_id_t commid, UInt64 time, StableIterator<SimMutex> & simMux)
+core_id_t SimCond::wait(core_id_t core_id, UInt64 time, StableIterator<SimMutex> & simMux)
 {
 
   // First check to see if we have gotten any signals later in 'virtual time'
-  for(SignalQueue::iterator i = _signals.begin(); i != _signals.end(); i++)
+  for(SignalQueue::iterator i = m_signals.begin(); i != m_signals.end(); i++)
   {
       if((*i) > time)
       {
           //Remove the pending signal
-          _signals.erase(i,i+1);
+          m_signals.erase(i,i+1);
 
           //Let the manager know to wake up this thread
-          return commid;
+          return core_id;
       }
   }
 
   // If we don't have any later signals, then put this request in the queue
-  _waiting.push_back(CondWaiter(commid, simMux, time));
-  return simMux->unlock(commid);
+  m_waiting.push_back(CondWaiter(core_id, simMux, time));
+  return simMux->unlock(core_id);
 }
 
-comm_id_t SimCond::signal(comm_id_t commid, UInt64 time)
+core_id_t SimCond::signal(core_id_t core_id, UInt64 time)
 {
   // If no threads are waiting, store this cond incase a new
   // thread arrives with an earlier time
-  if(_waiting.empty())
+  if(m_waiting.empty())
   {
-    _signals.push_back(time);
-    return INVALID_COMMID;
+    m_signals.push_back(time);
+    return INVALID_CORE_ID;
   }
 
   // If there is a list of threads waiting, wake up one of them
   // if it has a time later than this signal
-  for(ThreadQueue::iterator i = _waiting.begin(); i != _waiting.end(); i++)
+  for(ThreadQueue::iterator i = m_waiting.begin(); i != m_waiting.end(); i++)
   {
       //FIXME: This should be uncommented once the proper timings are working
-      //cerr << "comparing signal time: " << (int)time << " with: " << (*i)._arrival_time << endl;
-      if(time > (*i)._arrival_time)
+      //cerr << "comparing signal time: " << (int)time << " with: " << (*i).m_arrival_time << endl;
+      if(time > (*i).m_arrival_time)
       {
           CondWaiter woken = (*i);
-          _waiting.erase(i);
+          m_waiting.erase(i);
 
-          if(woken._mutex->lock(woken._comm_id))
-              return woken._comm_id;
+          if(woken.m_mutex->lock(woken.m_comm_id))
+              return woken.m_comm_id;
           else
-              return INVALID_COMMID;
+              return INVALID_CORE_ID;
       }
   }
 
   // If none of the waiting threads have a later time, then save this
   // signal for later usage (incase a thread arrives at later physical
   // time but earlier virtual time).
-  _signals.push_back(time);
-  return INVALID_COMMID;
+  m_signals.push_back(time);
+  return INVALID_CORE_ID;
 
 }
 
 //FIXME: cond broadcast does not properly handle out of order signals
-void SimCond::broadcast(comm_id_t commid, UInt64 time, WakeupList &woken_list)
+void SimCond::broadcast(core_id_t core_id, UInt64 time, WakeupList &woken_list)
 {
-  while(!_waiting.empty())
+  while(!m_waiting.empty())
   {
-      CondWaiter woken = *(_waiting.begin());
-      _waiting.erase(_waiting.begin(), _waiting.begin()+1);
+      CondWaiter woken = *(m_waiting.begin());
+      m_waiting.erase(m_waiting.begin(), m_waiting.begin()+1);
 
-      if(woken._mutex->lock(woken._comm_id))
-          woken_list.push_back(woken._comm_id);
+      if(woken.m_mutex->lock(woken.m_comm_id))
+          woken_list.push_back(woken.m_comm_id);
   }
 }
 
 // -- SimBarrier -- //
 SimBarrier::SimBarrier(UInt32 count) 
-   : _count(count)
-   , _max_time(0)
+   : m_count(count)
+   , m_max_time(0)
 {
 }
 
 SimBarrier::~SimBarrier() 
 {
-  assert(_waiting.empty());
+  assert(m_waiting.empty());
 }
 
-void SimBarrier::wait(comm_id_t commid, UInt64 time, WakeupList &woken_list)
+void SimBarrier::wait(core_id_t core_id, UInt64 time, WakeupList &woken_list)
 {
-  _waiting.push_back(commid);
+  m_waiting.push_back(core_id);
 
-  assert(_waiting.size() <= _count);
+  assert(m_waiting.size() <= m_count);
 
-  if(_waiting.size() == 1)
-     _max_time = time;
-  else if(time > _max_time)
-     _max_time = time;
+  if(m_waiting.size() == 1)
+     m_max_time = time;
+  else if(time > m_max_time)
+     m_max_time = time;
 
   // All threads have reached the barrier
-  if(_waiting.size() == _count)
+  if(m_waiting.size() == m_count)
   {
-      woken_list = _waiting;
-      _waiting.clear();
+      woken_list = m_waiting;
+      m_waiting.clear();
   }
 }
 
 // -- SyncServer -- //
 
 SyncServer::SyncServer(Network &network, UnstructuredBuffer &recv_buffer)
-  : _network(network),
-    _recv_buffer(recv_buffer)
+  : m_network(network),
+    m_recv_buffer(recv_buffer)
 { }
 
 SyncServer::~SyncServer()
 { }
 
-void SyncServer::mutexInit(comm_id_t commid)
+void SyncServer::mutexInit(core_id_t core_id)
 {
-  _mutexes.push_back(SimMutex());
-  UInt32 mux = (UInt32)_mutexes.size()-1;
+  m_mutexes.push_back(SimMutex());
+  UInt32 mux = (UInt32)m_mutexes.size()-1;
 
-  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&mux, sizeof(mux));
+  m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&mux, sizeof(mux));
 }
 
-void SyncServer::mutexLock(comm_id_t commid)
+void SyncServer::mutexLock(core_id_t core_id)
 {
   carbon_mutex_t mux;
-  _recv_buffer >> mux;
+  m_recv_buffer >> mux;
 
   UInt64 time;
-  _recv_buffer >> time;
+  m_recv_buffer >> time;
 
-  assert((size_t)mux < _mutexes.size());
+  assert((size_t)mux < m_mutexes.size());
 
-  SimMutex *psimmux = &_mutexes[mux];
+  SimMutex *psimmux = &m_mutexes[mux];
 
-  if (psimmux->lock(commid))
+  if (psimmux->lock(core_id))
     {
       // notify the owner
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
     }
   else
     {
@@ -204,19 +204,19 @@ void SyncServer::mutexLock(comm_id_t commid)
     }
 }
 
-void SyncServer::mutexUnlock(comm_id_t commid)
+void SyncServer::mutexUnlock(core_id_t core_id)
 {
   carbon_mutex_t mux;
-  _recv_buffer >> mux;
+  m_recv_buffer >> mux;
 
   UInt64 time;
-  _recv_buffer >> time;
+  m_recv_buffer >> time;
 
-  assert((size_t)mux < _mutexes.size());
+  assert((size_t)mux < m_mutexes.size());
 
-  SimMutex *psimmux = &_mutexes[mux];
+  SimMutex *psimmux = &m_mutexes[mux];
 
-  comm_id_t new_owner = psimmux->unlock(commid);
+  core_id_t new_owner = psimmux->unlock(core_id);
 
   if (new_owner != SimMutex::NO_OWNER)
     {
@@ -224,7 +224,7 @@ void SyncServer::mutexUnlock(comm_id_t commid)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netSend(new_owner, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend(new_owner, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
     }
   else
     {
@@ -232,35 +232,35 @@ void SyncServer::mutexUnlock(comm_id_t commid)
     }
 
   UInt32 dummy=SyncClient::MUTEX_UNLOCK_RESPONSE;
-  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+  m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
 // -- Condition Variable Stuffs -- //
-void SyncServer::condInit(comm_id_t commid)
+void SyncServer::condInit(core_id_t core_id)
 {
-  _conds.push_back(SimCond());
-  UInt32 cond = (UInt32)_conds.size()-1;
+  m_conds.push_back(SimCond());
+  UInt32 cond = (UInt32)m_conds.size()-1;
 
-  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&cond, sizeof(cond));
+  m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&cond, sizeof(cond));
 }
 
-void SyncServer::condWait(comm_id_t commid)
+void SyncServer::condWait(core_id_t core_id)
 {
   carbon_cond_t cond;
   carbon_mutex_t mux;
-  _recv_buffer >> cond;
-  _recv_buffer >> mux; 
+  m_recv_buffer >> cond;
+  m_recv_buffer >> mux; 
 
   UInt64 time;
-  _recv_buffer >> time;
+  m_recv_buffer >> time;
 
-  assert((size_t)mux < _mutexes.size());
-  assert((size_t)cond < _conds.size());
+  assert((size_t)mux < m_mutexes.size());
+  assert((size_t)cond < m_conds.size());
 
-  SimCond *psimcond = &_conds[cond];
+  SimCond *psimcond = &m_conds[cond];
 
-  StableIterator<SimMutex> it(_mutexes, mux);
-  comm_id_t new_mutex_owner = psimcond->wait(commid, time, it);
+  StableIterator<SimMutex> it(m_mutexes, mux);
+  core_id_t new_mutex_owner = psimcond->wait(core_id, time, it);
 
   if (new_mutex_owner != SimMutex::NO_OWNER)
   {
@@ -269,33 +269,33 @@ void SyncServer::condWait(comm_id_t commid)
 
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netSend(new_mutex_owner, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend(new_mutex_owner, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
 }
 
 
-void SyncServer::condSignal(comm_id_t commid)
+void SyncServer::condSignal(core_id_t core_id)
 {
   carbon_cond_t cond;
-  _recv_buffer >> cond;
+  m_recv_buffer >> cond;
   
   UInt64 time;
-  _recv_buffer >> time;
+  m_recv_buffer >> time;
 
-  assert((size_t)cond < _conds.size());
+  assert((size_t)cond < m_conds.size());
 
-  SimCond *psimcond = &_conds[cond];
+  SimCond *psimcond = &m_conds[cond];
 
-  comm_id_t woken = psimcond->signal(commid, time);
+  core_id_t woken = psimcond->signal(core_id, time);
 
-  if (woken != INVALID_COMMID)
+  if (woken != INVALID_CORE_ID)
   {
       // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netSend(woken, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend(woken, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
   else
   {
@@ -304,76 +304,76 @@ void SyncServer::condSignal(comm_id_t commid)
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_SIGNAL_RESPONSE;
-  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+  m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
-void SyncServer::condBroadcast(comm_id_t commid)
+void SyncServer::condBroadcast(core_id_t core_id)
 {
   carbon_cond_t cond;
-  _recv_buffer >> cond;
+  m_recv_buffer >> cond;
 
   UInt64 time;
-  _recv_buffer >> time;
+  m_recv_buffer >> time;
 
-  assert((size_t)cond < _conds.size());
+  assert((size_t)cond < m_conds.size());
 
-  SimCond *psimcond = &_conds[cond];
+  SimCond *psimcond = &m_conds[cond];
 
   SimCond::WakeupList woken_list;
-  psimcond->broadcast(commid, time, woken_list);
+  psimcond->broadcast(core_id, time, woken_list);
 
   for(SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {
-      assert(*it != INVALID_COMMID);
+      assert(*it != INVALID_CORE_ID);
 
       // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      _network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
 
   // Alert the signaler
   UInt32 dummy=SyncClient::COND_BROADCAST_RESPONSE;
-  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+  m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
-void SyncServer::barrierInit(comm_id_t commid)
+void SyncServer::barrierInit(core_id_t core_id)
 {
   UInt32 count;
-  _recv_buffer >> count;
+  m_recv_buffer >> count;
 
-  _barriers.push_back(SimBarrier(count));
-  UInt32 barrier = (UInt32)_barriers.size()-1;
+  m_barriers.push_back(SimBarrier(count));
+  UInt32 barrier = (UInt32)m_barriers.size()-1;
 
-  _network.netSend(commid, MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
+  m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
 }
 
-void SyncServer::barrierWait(comm_id_t commid)
+void SyncServer::barrierWait(core_id_t core_id)
 {
   carbon_barrier_t barrier;
-  _recv_buffer >> barrier;
+  m_recv_buffer >> barrier;
 
   UInt64 time;
-  _recv_buffer >> time;
+  m_recv_buffer >> time;
 
-  assert((size_t)barrier < _barriers.size());
+  assert((size_t)barrier < m_barriers.size());
 
-  SimBarrier *psimbarrier = &_barriers[barrier];
+  SimBarrier *psimbarrier = &m_barriers[barrier];
 
   SimBarrier::WakeupList woken_list;
-  psimbarrier->wait(commid, time, woken_list);
+  psimbarrier->wait(core_id, time, woken_list);
 
   UInt64 max_time = psimbarrier->getMaxTime();
 
   for(SimBarrier::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
   {
-      assert(*it != INVALID_COMMID);
+      assert(*it != INVALID_CORE_ID);
       Reply r;
       r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
       r.time = max_time;
-      _network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
   }
 }
 

@@ -19,14 +19,6 @@
 #include "network.h"
 
 class SyscallServer {
-   //Note: These structures are shared with the MCP
-   private:
-      Network & _network;
-      UnstructuredBuffer & send_buff;
-      UnstructuredBuffer & recv_buff;
-      const UInt32 SYSCALL_SERVER_MAX_BUFF;
-      char * const scratch;
-
    public:
       SyscallServer(Network &network, 
             UnstructuredBuffer &send_buff_, UnstructuredBuffer &recv_buff_,
@@ -35,14 +27,23 @@ class SyscallServer {
 
       ~SyscallServer();
 
-      void handleSyscall(int comm_id);
+      void handleSyscall(UInt32 core_id);
 
    private:
-      void marshallOpenCall(int comm_id);
-      void marshallReadCall(int comm_id);
-      void marshallWriteCall(int comm_id);
-      void marshallCloseCall(int comm_id);
-      void marshallAccessCall(int comm_id);
+      void marshallOpenCall(UInt32 core_id);
+      void marshallReadCall(UInt32 core_id);
+      void marshallWriteCall(UInt32 core_id);
+      void marshallCloseCall(UInt32 core_id);
+      void marshallAccessCall(UInt32 core_id);
+
+   //Note: These structures are shared with the MCP
+   private:
+      Network & m_network;
+      UnstructuredBuffer & m_send_buff;
+      UnstructuredBuffer & m_recv_buff;
+      const UInt32 m_SYSCALL_SERVER_MAX_BUFF;
+      char * const m_scratch;
+
 };
 
 

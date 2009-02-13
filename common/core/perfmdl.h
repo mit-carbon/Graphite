@@ -34,24 +34,6 @@
 
 class PerfModel {
 
-   private:
-      // does not include stalls
-      UInt64 microop_issue_count;
-
-      // this is the local clock for the core
-      UInt64 cycle_count;
-
-      // this is used for finding dependencies on loaded data
-      vector<UInt64> scoreboard;
-
-      // set for debugging purposes
-      string name;
-
-      // Lock for atomically updating the clock
-      Lock *m_clock_lock;
-
-      // methods
-      UInt32 getInsMicroOpsCount(const INS& ins);
 
    public:
 
@@ -62,8 +44,8 @@ class PerfModel {
       void updateCycleCount(UInt64 new_cycle_count);
       void addToCycleCount(UInt64 cycles);
 
-      UInt64 getCycleCount() { return cycle_count; }
-      UInt64 getMicroOpCount() { return microop_issue_count; }
+      UInt64 getCycleCount() { return m_cycle_count; }
+      UInt64 getMicroOpCount() { return m_microop_issue_count; }
 
 
       // These functions are for logging modeling events for which the performance impact
@@ -114,6 +96,25 @@ class PerfModel {
 
       // this method is called at the end of simulation
       void outputSummary(ostream& out);
+
+   private:
+      // does not include stalls
+      UInt64 m_microop_issue_count;
+
+      // this is the local clock for the core
+      UInt64 m_cycle_count;
+
+      // this is used for finding dependencies on loaded data
+      vector<UInt64> m_scoreboard;
+
+      // set for debugging purposes
+      string m_name;
+
+      // Lock for atomically updating the clock
+      Lock *m_clock_lock;
+
+      // methods
+      UInt32 getInsMicroOpsCount(const INS& ins);
 };
 
 

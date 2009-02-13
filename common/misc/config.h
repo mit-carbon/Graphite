@@ -81,12 +81,16 @@ class Config {
    const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
       { return m_analytic_network_parms; }
 
+
+
    // Fills in an array with the models for each static network
    void getNetworkModels(UInt32 *) const;
 
    // Knobs
-   Boolean isSimulatingSharedMemory() const;
-   Boolean isPerfModeling() const;
+   bool isSimulatingSharedMemory() const;
+   bool getEnablePerformanceModeling() const;
+   bool getEnableDCacheModeling() const;
+   bool getEnableICacheModeling() const;
 
    // Logging
    void getDisabledLogModules(std::set<std::string> &mods) const;

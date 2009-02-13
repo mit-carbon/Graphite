@@ -16,8 +16,11 @@ extern Log *g_log;
 
 extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
-extern LEVEL_BASE::KNOB<Boolean> g_knob_simarch_has_shared_mem;
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
 extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
 
 using namespace std;
 
@@ -112,9 +115,24 @@ void Config::getNetworkModels(UInt32 *models) const
    models[STATIC_NETWORK_SYSTEM] = NETWORK_MAGIC;
 }
 
-Boolean Config::isSimulatingSharedMemory() const
+bool Config::isSimulatingSharedMemory() const
 {
-   return (Boolean)g_knob_simarch_has_shared_mem;
+   return (bool)g_knob_simarch_has_shared_mem;
+}
+
+bool Config::getEnablePerformanceModeling() const
+{
+   return (bool)g_knob_enable_performance_modeling;
+}
+
+bool Config::getEnableDCacheModeling() const
+{
+   return (bool)g_knob_enable_dcache_modeling;
+}
+
+bool Config::getEnableICacheModeling() const
+{
+   return (bool)g_knob_enable_icache_modeling;
 }
 
 void Config::getDisabledLogModules(set<string> &mods) const

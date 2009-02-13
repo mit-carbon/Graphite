@@ -2,7 +2,7 @@
 
 #include "sim_thread.h"
 #include "lock.h"
-#include "net_thread_runner.h"
+#include "sim_thread_runner.h"
 #include "mcp.h"
 #include "core_manager.h"
 #include "core.h"
@@ -16,7 +16,7 @@ extern MCP *g_MCP;
 UInt32 g_sim_thread_active_threads;
 Lock* g_sim_thread_threads_lock;
 
-NetThreadRunner *SimThreadStart()
+SimThreadRunner *SimThreadStart()
 {
    g_sim_thread_threads_lock = Lock::create();
    g_sim_thread_active_threads = 0;
@@ -25,7 +25,7 @@ NetThreadRunner *SimThreadStart()
 
    LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_thread_threads, g_config->getCurrentProcessNum());
 
-   NetThreadRunner * runners = new NetThreadRunner[num_sim_thread_threads];
+   SimThreadRunner * runners = new SimThreadRunner[num_sim_thread_threads];
    for(unsigned int i = 0; i < num_sim_thread_threads; i++)
    {
       LOG_PRINT("Starting thread %i", i);

@@ -5,9 +5,9 @@
 #include "network.h"
 
 class Lock;
-class NetThreadRunner;
+class SimThreadRunner;
 
-NetThreadRunner *SimThreadStart();
+SimThreadRunner *SimThreadStart();
 void SimThreadQuit();
 void SimThreadTerminateFunc(void *vp, NetPacket pkt);
 void* SimThreadFunc(void *);

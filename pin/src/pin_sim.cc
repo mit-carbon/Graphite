@@ -31,7 +31,7 @@
 #include "knobs.h"
 #include "mcp.h"
 #include "mcp_runner.h"
-#include "net_thread_runner.h"
+#include "sim_thread_runner.h"
 #include "sim_thread.h"
 #include "log.h"
 #include "dram_directory_entry.h"
@@ -48,7 +48,7 @@ CoreManager *g_core_manager = NULL;
 Config *g_config = NULL;
 MCP *g_MCP = NULL;
 MCPRunner * g_mcp_runner = NULL;
-NetThreadRunner * g_net_thread_runners = NULL;
+SimThreadRunner * g_sim_thread_runners = NULL;
 Log *g_log = NULL;
 ShmemDebugHelper *g_shmem_debug_helper = NULL;
 
@@ -766,10 +766,10 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
 void fini(int code, void * v)
 {
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "fini start");
+
    // Make sure all other processes are finished before we start tearing down stuffs
    Transport::ptBarrier();
-
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "fini start");
 
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_MCP->finish();
@@ -783,7 +783,7 @@ void fini(int code, void * v)
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       delete g_mcp_runner;
 
-   delete [] g_net_thread_runners;
+   delete [] g_sim_thread_runners;
 
    delete g_core_manager;
 
@@ -862,7 +862,7 @@ int main(int argc, char *argv[])
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_mcp_runner = StartMCPThread();
 
-   g_net_thread_runners = SimThreadStart();
+   g_sim_thread_runners = SimThreadStart();
 
    // Instrumentation
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");

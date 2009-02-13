@@ -11,28 +11,6 @@
 #define LOG_DEFAULT_RANK   m_core_id
 #define LOG_DEFAULT_MODULE CORE
 
-// externally defined vars
-
-extern LEVEL_BASE::KNOB<Boolean> g_knob_enable_performance_modeling;
-extern LEVEL_BASE::KNOB<Boolean> g_knob_enable_dcache_modeling;
-extern LEVEL_BASE::KNOB<Boolean> g_knob_enable_icache_modeling;
-
-extern LEVEL_BASE::KNOB<UInt32> g_knob_cache_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_associativity;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_mutation_interval;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_hit;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_miss;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_associativity;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_max_search_depth;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_hit;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_miss;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_associativity;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth; 
-
-
 using namespace std;
 
 Core::Core(SInt32 id)
@@ -41,7 +19,7 @@ Core::Core(SInt32 id)
 
    m_network = new Network(this);
 
-   if ( g_knob_enable_performance_modeling ) 
+   if ( g_config->getEnablePerformanceModeling() ) 
    {
       m_perf_model = new PerfModel("performance modeler");
       LOG_PRINT("Instantiated performance model.");
@@ -51,24 +29,9 @@ Core::Core(SInt32 id)
       m_perf_model = (PerfModel *) NULL;
    }
 
-   if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )
+   if ( g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling() )
    {
-      m_ocache = new OCache("organic cache",
-                            g_knob_cache_size.Value() * k_KILO,
-                            g_knob_line_size.Value(),
-                            g_knob_associativity.Value(),
-                            g_knob_mutation_interval.Value(),
-                            g_knob_dcache_threshold_hit.Value(),
-                            g_knob_dcache_threshold_miss.Value(),
-                            g_knob_dcache_size.Value() * k_KILO,
-                            g_knob_dcache_associativity.Value(),
-                            g_knob_dcache_max_search_depth.Value(),
-                            g_knob_icache_threshold_hit.Value(),
-                            g_knob_icache_threshold_miss.Value(),
-                            g_knob_icache_size.Value() * k_KILO,
-                            g_knob_icache_associativity.Value(),
-                            g_knob_icache_max_search_depth.Value());
-
+      m_ocache = new OCache("organic cache");
       LOG_PRINT("instantiated organic cache model");
    }
    else
@@ -77,7 +40,7 @@ Core::Core(SInt32 id)
    }
 
    if ( g_config->isSimulatingSharedMemory() ) {
-      assert( g_knob_enable_dcache_modeling );
+      assert( g_config->getEnableDCacheModeling() );
 
       LOG_PRINT("instantiated memory manager model");
       m_memory_manager = new MemoryManager(this, m_ocache);
@@ -90,6 +53,15 @@ Core::Core(SInt32 id)
 
    m_syscall_model = new SyscallMdl(m_network);
    m_sync_client = new SyncClient(this);
+}
+
+Core::~Core()
+{
+   delete m_sync_client;
+   delete m_syscall_model;
+   delete m_ocache;
+   delete m_perf_model;
+   delete m_network;
 }
 
 int Core::coreSendW(int sender, int receiver, char *buffer, int size)
@@ -126,25 +98,6 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
    delete [] (Byte*)packet.data;
 
    return (unsigned)size == packet.length ? 0 : -1;
-}
-
-void Core::fini(int code, void *v, ostream& out)
-{
-    if ( g_knob_enable_performance_modeling )
-    {
-        out << "General:\n";
-        m_perf_model->fini(code, v, out);
-        m_network->outputSummary(out);
-    }
-
-    if ( g_knob_enable_dcache_modeling || g_knob_enable_icache_modeling )
-        m_ocache->fini(code,v,out);
-
-    delete m_sync_client;
-    delete m_syscall_model;
-    delete m_ocache;
-    delete m_perf_model;
-    delete m_network;
 }
 
 

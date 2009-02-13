@@ -242,10 +242,6 @@ void runModels (IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_
             current_core->getPerfModel()->run(stats[rank], firstCallInIntvl);
             firstCallInIntvl = false;
         }
-
-        // cerr << "  [" << rank << "] finished runModels " << endl;
-        // cerr << " ----------------------------------" << endl;
-
     }
 
 } //end of runModels
@@ -779,12 +775,12 @@ void fini(int code, void * v)
 
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_MCP->finish();
-   
+
    SimThreadQuit();
 
    Transport::ptFinish();
 
-   g_core_manager->fini(code, v);
+   g_core_manager->outputSummary();
 
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       delete g_mcp_runner;

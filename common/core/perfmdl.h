@@ -32,8 +32,6 @@
 
 // JME. FIXME. many of these members should be private.
 
-
-
 class PerfModel {
 
    private:
@@ -41,7 +39,7 @@ class PerfModel {
       UInt64 microop_issue_count;
 
       // this is the local clock for the core
-      UInt64 cycle_count;    
+      UInt64 cycle_count;
 
       // this is used for finding dependencies on loaded data
       vector<UInt64> scoreboard;
@@ -51,7 +49,7 @@ class PerfModel {
 
       // Lock for atomically updating the clock
       Lock *m_clock_lock;
-    
+
       // methods
       UInt32 getInsMicroOpsCount(const INS& ins);
 
@@ -73,24 +71,24 @@ class PerfModel {
 
       void logICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
       { 
-	 // stats->icache_load_miss_history.push_back( !hit ); 
-	 stats->logICacheLoadAccess(hit);
+         // stats->icache_load_miss_history.push_back( !hit ); 
+         stats->logICacheLoadAccess(hit);
       }
-     
+
       void logDCacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
       {
-	 stats->logDCacheLoadAccess(hit);
+         stats->logDCacheLoadAccess(hit);
       }
 
       void logDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
       { 
-	 // stats->dcache_store_miss_history.push_back( !hit ); 
-	 stats->logDCacheStoreAccess(hit);
+         // stats->dcache_store_miss_history.push_back( !hit ); 
+         stats->logDCacheStoreAccess(hit);
       }
 
       void logBranchPrediction(PerfModelIntervalStat *stats, bool correct)
       {  // stats->branch_mispredict = !correct; 
-	 stats->logBranchPrediction(correct);
+         stats->logBranchPrediction(correct);
       }
 
 
@@ -99,7 +97,7 @@ class PerfModel {
       PerfModelIntervalStat* analyzeInterval(const string& parent_routine, 
                                              const INS& start_ins, const INS& end_ins);
 
-   
+
       // Pin inserts a call to one of the following functions when instrumenting 
       // instructions.
 
@@ -115,7 +113,7 @@ class PerfModel {
 
 
       // this method is called at the end of simulation
-      void fini(int code, void *v, ostream& out);
+      void outputSummary(ostream& out);
 };
 
 

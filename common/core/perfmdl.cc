@@ -1,20 +1,17 @@
 #include "perfmdl.h"
+#include "config.h"
 #include <cassert>
 
 #include "pin.H"
 
-/* ===================================================================== */
-/* External References */
-/* ===================================================================== */
-
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
-
+extern Config *g_config;
 
 PerfModel::PerfModel(string n)
-   : microop_issue_count(0), 
-   cycle_count(0), 
-   scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID), 
-   name(n)
+   :
+      microop_issue_count(0),
+      cycle_count(0),
+      scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID),
+      name(n)
 {
    m_clock_lock = Lock::create();
 }
@@ -33,7 +30,7 @@ UInt32 PerfModel::getInsMicroOpsCount(const INS& ins)
    bool does_read2 = INS_HasMemoryRead2(ins);
    bool does_write = INS_IsMemoryWrite(ins);
 
-   UInt32 count = 0;         
+   UInt32 count = 0;
 
    // potentially load first operand from mem
    count += does_read ? 1 : 0;
@@ -176,10 +173,10 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
    //interval_stats->dcache_load_miss_history.push_back( !dcache_load_hit );
    interval_stats->logDCacheLoadAccess(dcache_load_hit);
 
-   if ( g_knob_enable_performance_modeling && !dcache_load_hit ) {
+   if ( g_config->getEnablePerformanceModeling() && !dcache_load_hit ) {
       for (UInt32 i = 0; i < numWrites; i++) {
          REG w = writes[i];
-	 assert((UInt32)w < scoreboard.size());
+         assert((UInt32)w < scoreboard.size());
          scoreboard[w] = cycle_count + 100;  //FIXME: make this parameterizable
          // cout << "added " << REG_StringShort(w) << " to scoreboard: " 
          //     << cycle_count << " + 100 = " << scoreboard[w] << endl;
@@ -201,7 +198,7 @@ void PerfModel::addToCycleCount(UInt64 cycles)
    m_clock_lock->release();
 }
 
-void PerfModel::fini(int code, void *v, ostream& out)
+void PerfModel::outputSummary(ostream& out)
 {
    out << "  Total cycles: " << getCycleCount() << endl;
 }

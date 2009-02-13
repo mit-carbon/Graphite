@@ -27,7 +27,7 @@ class CoreManager
         Core *getCurrentCore();
         Core *getCoreFromID(unsigned int id);
 
-        void fini(int code, void *v);
+        void outputSummary();
 
     private:
         UInt32 getCurrentTID();

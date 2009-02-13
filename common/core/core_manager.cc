@@ -6,6 +6,8 @@
 
 #include "core_manager.h"
 #include "core.h"
+#include "network.h"
+#include "ocache.h"
 #include "config.h"
 
 #include "log.h"
@@ -167,7 +169,7 @@ Core *CoreManager::getCoreFromID(unsigned int id)
    return core;
 }
 
-void CoreManager::fini(int code, void *v)
+void CoreManager::outputSummary()
 {
    LOG_PRINT("Starting CoreManager::fini");
 
@@ -178,7 +180,18 @@ void CoreManager::fini(int code, void *v)
       LOG_PRINT("Output summary core %i", i);
 
       out << "*** Core[" << i << "] summary ***" << endl;
-      m_cores[i]->fini(code, v, out); 
+      if ( g_config->getEnablePerformanceModeling() )
+      {
+         m_cores[i]->getPerfModel()->outputSummary(out);
+         m_cores[i]->getNetwork()->outputSummary(out);
+      }
+
+      if ( g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling() )
+         m_cores[i]->getOCache()->outputSummary(out);
+
+      delete m_cores[i];
+      m_cores[i] = NULL;
+
       out << endl;
    }
 

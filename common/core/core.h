@@ -30,11 +30,10 @@ class Core
    public:
 
       Core(SInt32 id);
+      ~Core();
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
       int coreRecvW(int sender, int receiver, char *buffer, int size);
-
-      void fini(int code, void *v, ostream& out);
 
       // organic cache wrappers
       bool icacheRunLoadModel(IntPtr i_addr, UInt32 size);
@@ -47,6 +46,7 @@ class Core
       MemoryManager *getMemoryManager() { return m_memory_manager; }
       SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       SyncClient *getSyncClient() { return m_sync_client; }
+      OCache *getOCache() { return m_ocache; }
 
    private:
       SInt32 m_core_id;

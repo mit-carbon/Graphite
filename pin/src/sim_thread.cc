@@ -72,7 +72,7 @@ void SimThreadTerminateFunc(void *vp, NetPacket pkt)
 
 void* SimThreadFunc(void *)
 {
-   int core_id = g_core_manager->registerSharedMemThread();
+   int core_id = g_core_manager->registerSimMemThread();
    Network *net = g_core_manager->getCoreFromID(core_id)->getNetwork();
    bool cont = true;
 

@@ -104,7 +104,7 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
    //
    UInt32 dest_proc = g_config->getProcessNumForCore(receiver);
 
-   LOG_PRINT("sending msg -- comm id: %i, size: %i, dest: %i", m_core_id, size, dest_proc);
+   LOG_PRINT("sending msg -- from comm id: %i, size: %i, dest recvr: %d dest proc: %i", m_core_id, size, receiver, dest_proc);
 
    PT_LOCK();
    err_code = MPI_Send(buffer, size, MPI_BYTE, dest_proc, receiver, MPI_COMM_WORLD);
@@ -195,3 +195,4 @@ Boolean Transport::ptQuery()
    // flag == 0 indicates that no message is waiting
    return (flag != 0);
 }
+

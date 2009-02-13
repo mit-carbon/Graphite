@@ -200,7 +200,7 @@ void CoreManager::outputSummary()
    LOG_PRINT("Finish core_manager::fini");
 }
 
-int CoreManager::registerSharedMemThread()
+int CoreManager::registerSimMemThread()
 {
    UInt32 tid = getCurrentTID();
 
@@ -224,7 +224,7 @@ int CoreManager::registerSharedMemThread()
          }
       }
 
-      LOG_PRINT("*ERROR* registerSharedMemThread - No free cores for thread: %d", tid);
+      LOG_PRINT("*ERROR* registerSimMemThread - No free cores for thread: %d", tid);
       for (UInt32 j = 0; j < g_config->getNumLocalCores(); j++)
          LOG_PRINT("core_to_simthread_tid_map[%d] = %d\n", j, core_to_simthread_tid_map[j]);
 
@@ -232,7 +232,7 @@ int CoreManager::registerSharedMemThread()
    }
    else
    {
-      LOG_PRINT("*WARNING* registerSharedMemThread - Initialized thread twice");
+      LOG_PRINT("*WARNING* registerSimMemThread - Initialized thread twice");
       LOG_NOTIFY_WARNING();
       // FIXME: I think this is OK
       return simthread_tid_to_core_map.find(tid).second;

@@ -8,7 +8,7 @@
 #include "fixed_types.h"
 #include "lock.h"
 
-class LockedHash 
+class LockedHash
 {
    protected:
       typedef std::map<UInt64, UInt64> Bucket;
@@ -20,7 +20,7 @@ class LockedHash
       LockedHash(UInt64 size);
       ~LockedHash();
 
-      std::pair<bool, UInt64> find(UInt64 key); 
+      std::pair<bool, UInt64> find(UInt64 key);
       bool insert(UInt64 key, UInt64 value);
 };
 

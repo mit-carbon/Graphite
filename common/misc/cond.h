@@ -9,22 +9,22 @@ class Lock;
 
 class ConditionVariable
 {
-public:
-   ConditionVariable();
-   ~ConditionVariable();
+   public:
+      ConditionVariable();
+      ~ConditionVariable();
 
-   void acquire();
-   void release();
+      void acquire();
+      void release();
 
-   // must acquire lock before entering wait. will own lock upon exit.
-   void wait();
-   void signal();
-   void broadcast();
-   
-private:
-   int _numWaiting;
-   int _futx;
-   Lock *_lock;
+      // must acquire lock before entering wait. will own lock upon exit.
+      void wait();
+      void signal();
+      void broadcast();
+
+   private:
+      int _numWaiting;
+      int _futx;
+      Lock *_lock;
 
 };
 

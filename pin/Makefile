@@ -1,8 +1,10 @@
 include ../common/makefile.gnu.config
 include ../common/makefile.debug
 
-all:
-	-mkdir -f bin
+bin:
+	mkdir bin
+
+all: bin
 	$(MAKE) -C src
 
 clean:

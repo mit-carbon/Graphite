@@ -5,11 +5,11 @@ using namespace std;
 
 void TestThread::RunThread(OS_SERVICES::ITHREAD *me)
 {
-    int i = 5;
-    while(i--)
-    {
-        cout << "TestThread::RunThread" << endl;
-        sleep(1);
-    }
+   int i = 5;
+   while (i--)
+   {
+      cout << "TestThread::RunThread" << endl;
+      sleep(1);
+   }
 }
 

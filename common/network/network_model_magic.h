@@ -6,26 +6,26 @@
 
 class NetworkModelMagic : public NetworkModel
 {
-   UInt64 _bytesSent;
- public:
-   NetworkModelMagic(Network *net) : NetworkModel(net), _bytesSent(0) { }
-   ~NetworkModelMagic() { }
+      UInt64 _bytesSent;
+   public:
+      NetworkModelMagic(Network *net) : NetworkModel(net), _bytesSent(0) { }
+      ~NetworkModelMagic() { }
 
-   void routePacket(const NetPacket &pkt,
-                    std::vector<Hop> &nextHops)
-   {
-      Hop h;
-      h.dest = pkt.receiver;
-      h.time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
-      nextHops.push_back(h);
+      void routePacket(const NetPacket &pkt,
+                       std::vector<Hop> &nextHops)
+      {
+         Hop h;
+         h.dest = pkt.receiver;
+         h.time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
+         nextHops.push_back(h);
 
-      _bytesSent += pkt.length;
-   }
+         _bytesSent += pkt.length;
+      }
 
-   void outputSummary(std::ostream &out)
-   {
-      out << "    bytes sent: " << _bytesSent << endl;
-   }
+      void outputSummary(std::ostream &out)
+      {
+         out << "    bytes sent: " << _bytesSent << endl;
+      }
 };
 
 #endif

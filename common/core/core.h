@@ -27,76 +27,35 @@ class Network;
 
 class Core
 {
-   private:
-      int core_tid;
-      int core_num_mod;
-      MemoryManager *memory_manager;
-      Network *network;
-      PerfModel *perf_model;
-      OCache *ocache;
-      SyscallMdl *syscall_model;
-      SyncClient *sync_client;
-
-
    public:
-      int getRank()     { return core_tid; }
-      int getNumCores() { return core_num_mod; }
-      MemoryManager* getMemoryManager(void) { return memory_manager; }
-      SyscallMdl *getSyscallMdl() { return syscall_model; }
-      SyncClient *getSyncClient() { return sync_client; }
 
-      int coreInit(int tid, int num_mod);
+      Core(SInt32 id);
+      ~Core();
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
       int coreRecvW(int sender, int receiver, char *buffer, int size);
-
-
-
-      void fini(int code, void *v, ostream& out);
 
       // organic cache wrappers
       bool icacheRunLoadModel(IntPtr i_addr, UInt32 size);
       bool dcacheRunModel(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
-      // FIXME: Debug Functions. Debug hook to smash cache state
-      void debugSetCacheState(IntPtr addr, CacheState::cstate_t cstate, char *c_data);
-      //return true if assertion is true  (that's a good thing)
-      bool debugAssertCacheState(IntPtr addr, CacheState::cstate_t cstate, char *c_data);
-
-      void debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
-      bool debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
-
-      //performance model wrappers
-
-      void perfModelRun(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
-         { perf_model->run(interval_stats, firstCallInIntrvl); }
-
-      void perfModelRun(PerfModelIntervalStat *interval_stats, REG *reads, 
-                        UInt32 num_reads, bool firstCallInIntrvl)
-         { perf_model->run(interval_stats, reads, num_reads, firstCallInIntrvl); }
-
-      void perfModelRun(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, 
-                        REG *writes, UInt32 num_writes, bool firstCallInIntrvl)
-         { perf_model->run(interval_stats, dcache_load_hit, writes, num_writes, firstCallInIntrvl); }
-
-      PerfModelIntervalStat* perfModelAnalyzeInterval(const string& parent_routine,
-                                                      const INS& start_ins,
-                                                      const INS& end_ins)
-         { return perf_model->analyzeInterval(parent_routine, start_ins, end_ins); }
-
-      void perfModelLogICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-         { perf_model->logICacheLoadAccess(stats, hit); }
-
-      void perfModelLogDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-         { perf_model->logDCacheStoreAccess(stats, hit); }
-
-      void perfModelLogBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-         { perf_model->logBranchPrediction(stats, correct); }
-	
-
       // network accessor since network is private
-      Network *getNetwork() { return network; }
-      PerfModel *getPerfModel() { return perf_model; }
+      int getId() { return m_core_id; }
+      Network *getNetwork() { return m_network; }
+      PerfModel *getPerfModel() { return m_perf_model; }
+      MemoryManager *getMemoryManager() { return m_memory_manager; }
+      SyscallMdl *getSyscallMdl() { return m_syscall_model; }
+      SyncClient *getSyncClient() { return m_sync_client; }
+      OCache *getOCache() { return m_ocache; }
+
+   private:
+      SInt32 m_core_id;
+      MemoryManager *m_memory_manager;
+      Network *m_network;
+      PerfModel *m_perf_model;
+      OCache *m_ocache;
+      SyscallMdl *m_syscall_model;
+      SyncClient *m_sync_client;
 };
 
 #endif

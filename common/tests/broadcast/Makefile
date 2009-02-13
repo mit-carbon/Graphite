@@ -1,4 +1,4 @@
-TARGET=broadcast_test
+BUILD_TARGET=broadcast_test
 
 C_SOURCES = broadcast_test.c
 CPP_SOURCES = 

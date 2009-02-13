@@ -2,7 +2,7 @@
 
 #include "sim_thread.h"
 #include "lock.h"
-#include "net_thread_runner.h"
+#include "sim_thread_runner.h"
 #include "mcp.h"
 #include "core_manager.h"
 #include "core.h"
@@ -16,7 +16,7 @@ extern MCP *g_MCP;
 UInt32 g_sim_num_active_threads;
 Lock* g_sim_threads_lock;
 
-NetThreadRunner *SimThreadStart()
+SimThreadRunner *SimThreadStart()
 {
    g_sim_threads_lock = Lock::create();
    g_sim_num_active_threads = 0;
@@ -25,8 +25,8 @@ NetThreadRunner *SimThreadStart()
 
    LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_threads, g_config->getCurrentProcessNum());
 
-   NetThreadRunner * runners = new NetThreadRunner[num_sim_threads];
-   for(unsigned int i = 0; i < num_sim_threads; i++)
+   SimThreadRunner * runners = new SimThreadRunner[num_sim_threads];
+   for (unsigned int i = 0; i < num_sim_threads; i++)
    {
       LOG_PRINT("Starting thread %i", i);
 
@@ -77,7 +77,7 @@ void SimThreadTerminateFunc(void *vp, NetPacket pkt)
 
 void* SimThreadFunc(void *)
 {
-   int core_id = g_core_manager->registerSharedMemThread();
+   int core_id = g_core_manager->registerSimMemThread();
    Network *net = g_core_manager->getCoreFromID(core_id)->getNetwork();
    bool cont = true;
 
@@ -93,7 +93,7 @@ void* SimThreadFunc(void *)
                          &cont);
 
    // Actual work gets done here
-   while(cont)
+   while (cont)
       net->netPullFromTransport();
 
    // Bookkeeping for SimThreadQuit

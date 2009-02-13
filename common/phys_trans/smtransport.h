@@ -16,7 +16,8 @@
 #include "config.h"
 #include "fixed_types.h"
 
-class Transport{
+class Transport
+{
    private:
       SInt32 pt_tid;
       SInt32 pt_num_mod;
@@ -25,7 +26,7 @@ class Transport{
       typedef struct PTQueue
       {
          queue <char*, deque<void*> > pt_queue;
-			PIN_LOCK pt_q_lock;
+         PIN_LOCK pt_q_lock;
       } PTQueue;
 
       static PTQueue *pt_queue;
@@ -33,15 +34,15 @@ class Transport{
       typedef struct Futex
       {
          SInt32 futx;
-			PIN_LOCK futx_lock;
+         PIN_LOCK futx_lock;
       } Futex;
 
       static Futex *pt_futx;
 
       //***** Miscellaneous *****//
       static UInt32 s_pt_num_mod; // used for bounds checking only
-	
-   public:	
+
+   public:
       SInt32 ptInit(SInt32 tid, SInt32 num_mod);
 
       // This does nothing but is needed so the interface matches the
@@ -50,7 +51,7 @@ class Transport{
 
       // CommID and ThreadID are the same in this version of the PT layer
       SInt32 ptCommID() { return pt_tid; }
-		
+
 
       SInt32 ptSend(SInt32 receiver, void *buffer, SInt32 length);
       void* ptRecv();

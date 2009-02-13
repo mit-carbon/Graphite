@@ -3,22 +3,11 @@ include ../makefile.debug
 
 DBG=-g
 OPT=-O2
-CFLAGS+=-c -I../../pin/src -I../user -I../system -I../core -I../phys_trans -I../misc -I../ -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CXXFLAGS+=-c -I../../pin/src -I../user -I../system -I../core -I../phys_trans -I../misc -I../ -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
 SOURCES = network.cc network_model.cc network_model_analytical.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
+include ../makefile.common
 
-all: $(OBJECTS)
-
-
-## build rules
-
-%.o : %.cc
-	$(CXX) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
-
-clean:
-	-rm -f *.o *.d *.rpo
-squeaky: clean
-	-rm -f *~

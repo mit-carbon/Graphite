@@ -2,9 +2,9 @@
 #define ADDRESSHOMELOOKUP_H_
 
 #include "assert.h"
-#include <iostream> 
-#include <sstream> 
-#include <vector> 
+#include <iostream>
+#include <sstream>
+#include <vector>
 #include <math.h>
 #include "fixed_types.h"
 
@@ -19,22 +19,23 @@ using namespace std;
  * Now possible to setAddrBoundaries, either through constructor
  * or during runtime!
  *
- * each core has an AHL, but they must keep their data consistent 
+ * each core has an AHL, but they must keep their data consistent
  * regarding boundaries!
  *
  * Maybe allow the ability to have public and private memory space?
  */
 
-class AddressHomeLookup {
-	public:
-		AddressHomeLookup (UInt32 num_nodes, UInt32 log_block_size, SInt32 ahl_id);
-		~AddressHomeLookup(void);
-		UInt32 find_home_for_addr(IntPtr address) const;
+class AddressHomeLookup
+{
+   public:
+      AddressHomeLookup(UInt32 num_nodes, UInt32 log_block_size, SInt32 ahl_id);
+      ~AddressHomeLookup(void);
+      UInt32 find_home_for_addr(IntPtr address) const;
 
-	private:
-		UInt32 num_nodes;
-		SInt32 ahl_id;
-		UInt32 log_block_size;
+   private:
+      UInt32 num_nodes;
+      SInt32 ahl_id;
+      UInt32 log_block_size;
 };
 
 

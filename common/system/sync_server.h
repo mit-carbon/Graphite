@@ -11,111 +11,115 @@
 #include "stable_iterator.h"
 
 // FIXME: we need to put this somewhere that makes sense
-typedef int comm_id_t;
+typedef UInt32 core_id_t;
 
 class SimMutex
 {
-  typedef std::queue<comm_id_t> ThreadQueue;
+   public:
+      static const UInt32 NO_OWNER = UINT_MAX;
 
-  ThreadQueue _waiting;
-  comm_id_t _owner;
+      SimMutex();
+      ~SimMutex();
 
- public:
-  static const int NO_OWNER = -1;
+      // returns true if this thread now owns the lock
+      bool lock(core_id_t core_id);
 
-  SimMutex();
-  ~SimMutex();
+      // returns the next owner of the lock so that it can be signaled by
+      // the server
+      core_id_t unlock(core_id_t core_id);
 
-  // returns true if this thread now owns the lock
-  bool lock(comm_id_t commid);
+   private:
+      typedef std::queue<core_id_t> ThreadQueue;
 
-  // returns the next owner of the lock so that it can be signaled by
-  // the server
-  comm_id_t unlock(comm_id_t commid);
+      ThreadQueue m_waiting;
+      core_id_t m_owner;
 };
 
 class SimCond
 {
-  class CondWaiter
-  {
-    public:
-      CondWaiter(comm_id_t comm_id, StableIterator<SimMutex> mutex, UInt64 time)
-          : _comm_id(comm_id), _mutex(mutex), _arrival_time(time) {}
-      comm_id_t _comm_id;
-      StableIterator<SimMutex> _mutex;
-      UInt64 _arrival_time;
-  };
 
-  typedef std::vector< CondWaiter > ThreadQueue;
-  typedef std::vector< UInt64 > SignalQueue;
+   public:
+      typedef std::vector<core_id_t> WakeupList;
 
-  ThreadQueue _waiting;
-  SignalQueue _signals;
+      SimCond();
+      ~SimCond();
 
- public:
-  typedef std::vector<comm_id_t> WakeupList;
+      // returns the thread that gets woken up when the mux is unlocked
+      core_id_t wait(core_id_t core_id, UInt64 time, StableIterator<SimMutex> & it);
+      core_id_t signal(core_id_t core_id, UInt64 time);
+      void broadcast(core_id_t core_id, UInt64 time, WakeupList &woken);
 
-  SimCond();
-  ~SimCond();
+   private:
+      class CondWaiter
+      {
+         public:
+            CondWaiter(core_id_t comm_id, StableIterator<SimMutex> mutex, UInt64 time)
+                  : m_comm_id(comm_id), m_mutex(mutex), m_arrival_time(time) {}
+            core_id_t m_comm_id;
+            StableIterator<SimMutex> m_mutex;
+            UInt64 m_arrival_time;
+      };
 
-  // returns the thread that gets woken up when the mux is unlocked
-  comm_id_t wait(comm_id_t commid, UInt64 time, StableIterator<SimMutex> & it);
-  comm_id_t signal(comm_id_t commid, UInt64 time);
-  void broadcast(comm_id_t commid, UInt64 time, WakeupList &woken);
+      typedef std::vector< CondWaiter > ThreadQueue;
+      typedef std::vector< UInt64 > SignalQueue;
+
+      ThreadQueue m_waiting;
+      SignalQueue m_signals;
 };
 
 class SimBarrier
 {
-  typedef std::vector< comm_id_t > ThreadQueue;
+   public:
+      typedef std::vector<core_id_t> WakeupList;
 
-  ThreadQueue _waiting;
-  UInt32 _count;
-  UInt64 _max_time;
+      SimBarrier(UInt32 count);
+      ~SimBarrier();
 
- public:
-  typedef std::vector<comm_id_t> WakeupList;
+      // returns a list of threads to wake up if all have reached barrier
+      void wait(core_id_t core_id, UInt64 time, WakeupList &woken);
+      UInt64 getMaxTime() { return m_max_time; }
 
-  SimBarrier(UInt32 count);
-  ~SimBarrier();
+   private:
+      typedef std::vector< core_id_t > ThreadQueue;
+      ThreadQueue m_waiting;
 
-  // returns a list of threads to wake up if all have reached barrier
-  void wait(comm_id_t commid, UInt64 time, WakeupList &woken);
-  UInt64 getMaxTime() { return _max_time; }
-
+      UInt32 m_count;
+      UInt64 m_max_time;
 };
 
 class SyncServer
 {
-  typedef std::vector<SimMutex> MutexVector;
-  typedef std::vector<SimCond> CondVector;
-  typedef std::vector<SimBarrier> BarrierVector;
+      typedef std::vector<SimMutex> MutexVector;
+      typedef std::vector<SimCond> CondVector;
+      typedef std::vector<SimBarrier> BarrierVector;
 
-  MutexVector _mutexes;
-  CondVector _conds;
-  BarrierVector _barriers;
+      MutexVector m_mutexes;
+      CondVector m_conds;
+      BarrierVector m_barriers;
 
-  // FIXME: This should be better organized -- too much redundant crap
- private:
-  Network & _network;
-  UnstructuredBuffer &_recv_buffer;
+      // FIXME: This should be better organized -- too much redundant crap
 
- public:
-  SyncServer(Network &network, UnstructuredBuffer &recv_buffer);
-  ~SyncServer();
+   public:
+      SyncServer(Network &network, UnstructuredBuffer &recv_buffer);
+      ~SyncServer();
 
-  // Remaining parameters to these functions are stored
-  // in the recv buffer and get unpacked
-  void mutexInit(comm_id_t);
-  void mutexLock(comm_id_t);
-  void mutexUnlock(comm_id_t);
+      // Remaining parameters to these functions are stored
+      // in the recv buffer and get unpacked
+      void mutexInit(core_id_t);
+      void mutexLock(core_id_t);
+      void mutexUnlock(core_id_t);
 
-  void condInit(comm_id_t);
-  void condWait(comm_id_t);
-  void condSignal(comm_id_t);
-  void condBroadcast(comm_id_t);
+      void condInit(core_id_t);
+      void condWait(core_id_t);
+      void condSignal(core_id_t);
+      void condBroadcast(core_id_t);
 
-  void barrierInit(comm_id_t);
-  void barrierWait(comm_id_t);
+      void barrierInit(core_id_t);
+      void barrierWait(core_id_t);
+
+   private:
+      Network & m_network;
+      UnstructuredBuffer &m_recv_buffer;
 };
 
 #endif // SYNC_SERVER_H

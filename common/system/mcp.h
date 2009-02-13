@@ -30,28 +30,30 @@ typedef enum {
 
 class MCP
 {
-   private:
-      Boolean _finished;
-      Network & _network;
-      UnstructuredBuffer send_buff;
-      UnstructuredBuffer recv_buff;
-      const UInt32 MCP_SERVER_MAX_BUFF;
-      char *scratch;
-
-      SyscallServer syscall_server;
-      SyncServer sync_server;
-      NetworkModelAnalyticalServer network_model_analytical_server;
-
    public:
-      void run();
-      void finish();
-      Boolean finished() { return _finished; };
       MCP(Network & network);
       ~MCP();
+
+      void run();
+      void finish();
+      Boolean finished() { return m_finished; };
 
       // These functions expose the MCP network for system use
       void broadcastPacket(NetPacket);
       void forwardPacket(NetPacket);
+
+   private:
+      Boolean m_finished;
+      Network & m_network;
+      UnstructuredBuffer m_send_buff;
+      UnstructuredBuffer m_recv_buff;
+      const UInt32 m_MCP_SERVER_MAX_BUFF;
+      char *m_scratch;
+
+      SyscallServer m_syscall_server;
+      SyncServer m_sync_server;
+      NetworkModelAnalyticalServer m_network_model_analytical_server;
+
 };
 
 #endif

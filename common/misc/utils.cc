@@ -7,11 +7,11 @@
 
 string myDecStr(UInt64 v, UInt32 w)
 {
-    ostringstream o;
-    o.width(w);
-    o << v;
-    string str(o.str());
-    return str;
+   ostringstream o;
+   o.width(w);
+   o << v;
+   string str(o.str());
+   return str;
 }
 
 

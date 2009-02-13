@@ -2,7 +2,8 @@
 #define __MESSAGE_TYPES_H__
 
 // Different types of messages that get passed to the MCP
-typedef enum {
+typedef enum
+{
    MCP_MESSAGE_SYS_CALL,
    MCP_MESSAGE_QUIT,
    MCP_MESSAGE_MUTEX_INIT,

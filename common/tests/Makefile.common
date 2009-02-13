@@ -1,3 +1,6 @@
+
+all: $(BUILD_TARGET)
+
 include ../../makefile.gnu.config
 FORCE32 ?= 1
 
@@ -21,22 +24,17 @@ CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
 
 ## Build rules
 
-all: $(TARGET)
-
 %.o : %.c
 	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
 %.o : %.cc
 	$(CXX) $(CXXFLAGS) $(PIN_CXXFLAGS) -o $@ $<
 
-$(TARGET): $(OBJECTS) $(CARBON_OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(CARBON_OBJECTS)
+$(BUILD_TARGET): $(OBJECTS) $(CARBON_OBJECTS)
+	$(CC) -pthread $(LDFLAGS) -o $@ $^
 
 ## Cleaning
 
 clean:
 	-rm -f *.o $(TARGET) sim.out
-
-squeaky: clean
-	-rm -f *~
 

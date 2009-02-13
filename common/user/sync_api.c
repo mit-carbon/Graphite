@@ -58,15 +58,15 @@ void barrierWait(carbon_barrier_t *barrier)
 
 bool isMutexValid(carbon_mutex_t *mux)
 {
-    return(!(*mux == -1));
+   return(!(*mux == -1));
 }
 
 bool isCondValid(carbon_cond_t *cond)
 {
-    return(!(*cond == -1));
+   return(!(*cond == -1));
 }
 
 bool isBarrierValid(carbon_barrier_t *barrier)
 {
-    return(!(*barrier == -1));
+   return(!(*barrier == -1));
 }

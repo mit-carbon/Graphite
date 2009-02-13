@@ -2,25 +2,25 @@
 #define NETWORK_MODEL_ANALYTICAL_SERVER_H
 
 #include <vector>
+#include "fixed_types.h"
 
 class Network;
 class UnstructuredBuffer;
 
-typedef int comm_id_t;
+typedef UInt32 core_id_t;
 
 class NetworkModelAnalyticalServer
 {
- private:
-  std::vector<double> _local_utilizations;
+   public:
+      NetworkModelAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
+      ~NetworkModelAnalyticalServer();
 
-  Network & _network;
-  UnstructuredBuffer & _recv_buffer;
+      void update(core_id_t);
 
- public:
-  NetworkModelAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
-  ~NetworkModelAnalyticalServer();
+   private:
+      std::vector<double> _local_utilizations;
 
-  void update(comm_id_t);
+      Network & _network;
+      UnstructuredBuffer & _recv_buffer;
 };
-
 #endif

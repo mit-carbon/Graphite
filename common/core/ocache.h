@@ -1,14 +1,14 @@
-// Jonathan Eastep (eastep@mit.edu) 
+// Jonathan Eastep (eastep@mit.edu)
 // 04.09.08
 //
 // This file implements a dynamically adaptive cache. The Organic Cache
 // (OCache) consists of an instruction L1 and data L1 which share a pool
 // of cache banks. Each bank implements a "way" in terms of associativity,
-// so there are n ways split arbitrarily between the icache and dcache. 
+// so there are n ways split arbitrarily between the icache and dcache.
 // Note: the number of physical sets in the OCache is fixed, so it adjusts
-// simultaneously the cache sizes when it reapportions the banks. 
+// simultaneously the cache sizes when it reapportions the banks.
 // The OCache monitors cache access statistics to automatically manage
-// bank reapportioning. 
+// bank reapportioning.
 
 
 #ifndef OCACHE_H
@@ -32,11 +32,8 @@
 
 class OCache
 {
-   private:
-      typedef Cache<CACHE_SET::RoundRobin<16, 128>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> 
-              RRSACache;
-
    public:
+      // typedefs
       typedef enum
       {
          k_COUNTER_MISS = 0,
@@ -46,43 +43,100 @@ class OCache
 
       typedef  COUNTER_ARRAY<UInt64, k_COUNTER_NUM> CounterArray;
 
-      // holds the counters with misses and hits
-      // conceptually this is an array indexed by instruction address
-      COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> dcache_profile;
-      COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> icache_profile;
+      // Constructor
+      OCache(std::string name);
+      /*
+      , UInt32 size, UInt32 line_bytes, UInt32 assoc, UInt32 mutate_interval,
+             UInt32 dcache_threshold_hit_value, UInt32 dcache_threshold_miss_value, UInt32 dcache_size,
+             UInt32 dcache_associativity, UInt32 dcache_max_search_depth, UInt32 icache_threshold_hit_value,
+             UInt32 icache_threshold_miss_value, UInt32 icache_size, UInt32 icache_associativity,
+             UInt32 icache_max_search_depth);
+             */
+
+      // These are just wrappers around the Cache class equivalents for the OCache dcache field
+      bool dCacheInvalidateLine(IntPtr d_addr) { return m_dl1->invalidateLine(d_addr); }
+      UInt32 dCacheSize() { return m_dl1->getCacheSize(); }
+      UInt32 dCacheLineSize() { return m_dl1->getLineSize(); }
+      UInt32 dCacheAssociativity() { return m_dl1->getNumWays(); }
+      UInt32 dCacheGetSetPtr(UInt32 set_index) { return m_dl1->getSetPtr(set_index); }
+      void   dCacheSetSetPtr(UInt32 set_index, UInt32 value) { m_dl1->setSetPtr(set_index, value); }
+      string dCacheStatsLong(string prefix, CacheBase::CacheType type)
+      { return m_dl1->statsLong(prefix,type); }
+
+      // These are just wrappers around the Cache class equivalents for the OCache icache field
+      bool iCacheInvalidateLine(IntPtr i_addr) { return m_il1->invalidateLine(i_addr); }
+      UInt32 iCacheSize() { return m_il1->getCacheSize(); }
+      UInt32 iCacheLineSize() { return m_il1->getLineSize(); }
+      UInt32 iCacheAssociativity() { return m_il1->getNumWays(); }
+      UInt32 iCacheGetSetPtr(UInt32 set_index) { return m_il1->getSetPtr(set_index); }
+      void   iCacheSetSetPtr(UInt32 set_index, UInt32 value) { m_il1->setSetPtr(set_index, value); }
+      string iCacheStatsLong(string prefix, CacheBase::CacheType type) { return m_il1->statsLong(prefix,type); }
+
+      string statsLong();
+
+
+      // These functions provide the public interface to accessing the caches
+      pair<bool, CacheTag*> runICacheLoadModel(IntPtr i_addr, UInt32 size);
+      pair<bool, CacheTag*> runDCacheLoadModel(IntPtr d_addr, UInt32 size);
+      pair<bool, CacheTag*> runDCacheStoreModel(IntPtr d_addr, UInt32 size);
+      // These are side-effect free (don't update stats, don't cause eviction, etc.)
+      pair<bool, CacheTag*> runICachePeekModel(IntPtr i_addr);
+      pair<bool, CacheTag*> runDCachePeekModel(IntPtr d_addr);
+
+      /********** CELIO WAS HERE **************/
+      pair<bool, CacheTag*> accessSingleLine(IntPtr addr, CacheBase::AccessType access_type,
+                                             bool* fail_need_fill = NULL, char* fill_buff = NULL,
+                                             char* buff = NULL, UInt32 bytes = 0,
+                                             bool* eviction = NULL, IntPtr* evict_addr = NULL, char* evict_buff = NULL)
+      {
+         //TODO !!!! I don't have direct access to m_dl1 from the memoryManager, and until i have better stubs to talk to the m_dl1,
+         //I'm just gonna pass accessSingleLine calls straight through.
+         return m_dl1->accessSingleLine(addr, access_type, fail_need_fill, fill_buff, buff, bytes, eviction, evict_addr, evict_buff);
+      }
+
+      bool invalidateLine(IntPtr addr)
+      {
+         return m_dl1->invalidateLine(addr);
+      }
+      /****************************************/
+
+      // This function is called at the end of simulation
+      void outputSummary(ostream& out);
 
    private:
-      RRSACache    *dl1;
-      RRSACache    *il1;
+      typedef Cache<CACHE_SET::RoundRobin<16, 128>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> RRSACache;
 
-      UInt32      cache_size;
-      UInt32      line_size;
-      UInt32      associativity;
-   
-      UInt32      mutation_interval;
-      UInt64      dcache_total_accesses;
-      UInt32      dcacheAccesses;
-      UInt64      dcache_total_misses;
-      UInt32      dcache_misses;
-      UInt64      icache_total_accesses;
-      UInt32      icache_accesses;
-      UInt64      icache_total_misses;
-      UInt32      icache_misses;
-      UInt64      total_resize_evictions;
+      RRSACache   *m_dl1;
+      RRSACache   *m_il1;
 
-      UInt32      last_dcache_misses;
-      UInt32      last_icache_misses;
+      UInt32      m_cache_size;
+      UInt32      m_line_size;
+      UInt32      m_associativity;
 
-      string      name;
+      UInt32      m_mutation_interval;
+      UInt64      m_dcache_total_accesses;
+      UInt32      m_dcacheAccesses;
+      UInt64      m_dcache_total_misses;
+      UInt32      m_dcache_misses;
+      UInt64      m_icache_total_accesses;
+      UInt32      m_icache_accesses;
+      UInt64      m_icache_total_misses;
+      UInt32      m_icache_misses;
+      UInt64      m_total_resize_evictions;
+
+      UInt32      m_last_dcache_misses;
+      UInt32      m_last_icache_misses;
+
+      string      m_name;
 
    private:
 
       void resetIntervalCounters()
       {
-         dcache_misses = 0;
-         dcacheAccesses = 0;
-         icache_misses = 0;
-         icache_accesses = 0;
+         m_dcache_misses = 0;
+         m_dcacheAccesses = 0;
+         m_icache_misses = 0;
+         m_icache_accesses = 0;
       }
 
       // These functions define the concurrent evolution heuristic of the dcache and icache
@@ -106,64 +160,10 @@ class OCache
       pair<bool, CacheTag*> iCacheLoadSingleFast(IntPtr addr);
       pair<bool, CacheTag*> iCacheLoadMultiFast(IntPtr addr, UInt32 size);
 
-   public:
-
-      // These are just wrappers around the Cache class equivalents for the OCache dcache field
-      bool dCacheInvalidateLine(IntPtr d_addr) { return dl1->invalidateLine(d_addr); }
-      UInt32 dCacheSize() { return dl1->getCacheSize(); }
-      UInt32 dCacheLineSize() { return dl1->getLineSize(); }
-      UInt32 dCacheAssociativity() { return dl1->getNumWays(); }
-      UInt32 dCacheGetSetPtr(UInt32 set_index) { return dl1->getSetPtr(set_index); }
-      void   dCacheSetSetPtr(UInt32 set_index, UInt32 value) { dl1->setSetPtr(set_index, value); }
-      string dCacheStatsLong(string prefix, CacheBase::CacheType type) 
-      { return dl1->statsLong(prefix,type); }
-
-      // These are just wrappers around the Cache class equivalents for the OCache icache field
-      bool iCacheInvalidateLine(IntPtr i_addr) { return il1->invalidateLine(i_addr); }
-      UInt32 iCacheSize() { return il1->getCacheSize(); }
-      UInt32 iCacheLineSize() { return il1->getLineSize(); }
-      UInt32 iCacheAssociativity() { return il1->getNumWays(); }
-      UInt32 iCacheGetSetPtr(UInt32 set_index) { return il1->getSetPtr(set_index); }
-      void   iCacheSetSetPtr(UInt32 set_index, UInt32 value) { il1->setSetPtr(set_index, value); } 
-      string iCacheStatsLong(string prefix, CacheBase::CacheType type) { return il1->statsLong(prefix,type); }
-
-      string statsLong();  
-
-      // Constructor
-      OCache(std::string name, UInt32 size, UInt32 line_bytes, UInt32 assoc, UInt32 mutate_interval,
-             UInt32 dcache_threshold_hit_value, UInt32 dcache_threshold_miss_value, UInt32 dcache_size, 
-             UInt32 dcache_associativity, UInt32 dcache_max_search_depth, UInt32 icache_threshold_hit_value, 
-             UInt32 icache_threshold_miss_value, UInt32 icache_size, UInt32 icache_associativity, 
-             UInt32 icache_max_search_depth);
-
-      // These functions provide the public interface to accessing the caches
-      pair<bool, CacheTag*> runICacheLoadModel(IntPtr i_addr, UInt32 size);
-      pair<bool, CacheTag*> runDCacheLoadModel(IntPtr d_addr, UInt32 size);
-      pair<bool, CacheTag*> runDCacheStoreModel(IntPtr d_addr, UInt32 size);
-      // These are side-effect free (don't update stats, don't cause eviction, etc.)
-      pair<bool, CacheTag*> runICachePeekModel(IntPtr i_addr);
-      pair<bool, CacheTag*> runDCachePeekModel(IntPtr d_addr);    
-
-		/********** CELIO WAS HERE **************/
-      pair<bool, CacheTag*> accessSingleLine(IntPtr addr, CacheBase::AccessType access_type, 
-                                             bool* fail_need_fill = NULL, char* fill_buff = NULL,
-                                             char* buff = NULL, UInt32 bytes = 0, 
-                                             bool* eviction = NULL, IntPtr* evict_addr = NULL, char* evict_buff = NULL)
-		{
-			//TODO !!!! I don't have direct access to dl1 from the memoryManager, and until i have better stubs to talk to the dl1,
-			//I'm just gonna pass accessSingleLine calls straight through.
-			return dl1->accessSingleLine(addr, access_type, fail_need_fill, fill_buff, buff, bytes, eviction, evict_addr, evict_buff);
-		}
-
-		bool invalidateLine(IntPtr addr)
-		{
-			return dl1->invalidateLine(addr);
-		}
-		/****************************************/
-
-      // This function is called at the end of simulation
-      void fini(int code, void *v, ostream& out);
-
+      // holds the counters with misses and hits
+      // conceptually this is an array indexed by instruction address
+      COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> dcache_profile;
+      COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> icache_profile;
 };
 
 
@@ -180,5 +180,5 @@ bool runDCacheStoreModel(IntPtr d_addr, UInt32 size);
 void oCacheModelInit();
 void oCacheModelFini(int code, void *v, ostream& out);
 
- 
+
 #endif

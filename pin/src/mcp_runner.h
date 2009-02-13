@@ -5,8 +5,8 @@
 class MCPRunner : public OS_SERVICES::ITHREAD_RUNNER
 {
    public:
-       MCPRunner(MCP *mcp);
-       virtual void RunThread(OS_SERVICES::ITHREAD *me);
+      MCPRunner(MCP *mcp);
+      virtual void RunThread(OS_SERVICES::ITHREAD *me);
    private:
-       MCP *m_mcp;
+      MCP *m_mcp;
 };

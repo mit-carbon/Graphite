@@ -1,0 +1,25 @@
+
+
+# build rules
+%.d: %.cc
+	$(CXX) -MM -MG $(CXXFLAGS) $(PIN_CXXFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
+
+%.d: %.c
+	$(CC) -MM -MG $(CFLAGS) $(PIN_CFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
+
+ifneq ($(MAKECMDGOALS),clean)
+include $(OBJECTS:%.o=%.d)
+endif
+
+%.o : %.cc
+	$(CXX) $(CXXFLAGS) $(PIN_CXXFLAGS) -o $@ $<
+
+%.o : %.c
+	$(CC) $(CFLAGS) $(PIN_CFLAGS) -c -o $@ $<
+
+# targets
+all: $(OBJECTS)
+
+clean:
+	-rm -f *.o *.d *.rpo
+

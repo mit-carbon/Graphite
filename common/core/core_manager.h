@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <vector>
 
 #include "locked_hash.h"
 
@@ -12,41 +13,39 @@ class Lock;
 
 class CoreManager
 {
-    public:
-        CoreManager();
-        ~CoreManager();
+   public:
+      CoreManager();
+      ~CoreManager();
 
-        void initializeThread(int rank);
-        void initializeThreadFree(int *rank);
-        int registerSharedMemThread();
+      void initializeThread(UInt32 core_id);
+      void initializeThreadFree(int *core_id);
+      int registerSimMemThread();
 
-        // The following function returns the global ID of the currently running thread
-        UInt32 getCurrentCoreID();
+      // The following function returns the global ID of the currently running thread
+      UInt32 getCurrentCoreID();
 
-        Core *getCurrentCore();
-        Core *getCoreFromID(unsigned int id);
+      Core *getCurrentCore();
+      Core *getCoreFromID(unsigned int id);
 
-        void fini(int code, void *v);
+      void outputSummary();
 
-    private:
-        Lock *maps_lock;
+   private:
+      UInt32 getCurrentTID();
 
-        // tid_map takes core # to pin thread id
-        // core_map takes pin thread id to core # (it's the reverse map)
-        UInt32 *tid_map;
-        LockedHash tid_to_core_map;
-        LockedHash tid_to_core_index_map;
+      Lock *m_maps_lock;
 
-        // Mapping for the shared memory threads
-        UInt32 *core_to_shmem_tid_map;
-        LockedHash shmem_tid_to_core_map;
-        LockedHash shmem_tid_to_core_index_map;
+      // tid_map takes core # to pin thread id
+      // core_map takes pin thread id to core # (it's the reverse map)
+      UInt32 *tid_map;
+      LockedHash tid_to_core_map;
+      LockedHash tid_to_core_index_map;
 
-        int prev_rank;
+      // Mapping for the simulation threads
+      UInt32 *core_to_simthread_tid_map;
+      LockedHash simthread_tid_to_core_map;
+      LockedHash simthread_tid_to_core_index_map;
 
-        Core *m_cores;
-
-        UInt32 getCurrentTID();
+      std::vector<Core*> m_cores;
 };
 
 extern CoreManager *g_core_manager;

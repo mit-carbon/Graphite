@@ -14,11 +14,12 @@
 #include "fixed_types.h"
 
 
-class UnstructuredBuffer {
+class UnstructuredBuffer
+{
 
    private:
-      std::string the_chars;
-      
+      std::string m_chars;
+
    public:
 
       UnstructuredBuffer();
@@ -51,8 +52,8 @@ class UnstructuredBuffer {
       UnstructuredBuffer& operator>>(UInt32& data);
       UnstructuredBuffer& operator>>(SInt32& data);
       UnstructuredBuffer& operator>>(UInt8&  data);
-      UnstructuredBuffer& operator>>(SInt8&  data);      
-      
+      UnstructuredBuffer& operator>>(SInt8&  data);
+
       // put buffer
       UnstructuredBuffer& operator<<(std::pair<void*, int> buffer);
 

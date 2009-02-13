@@ -14,13 +14,14 @@
 // Functions executed by threads
 void* thread_func(void * threadid);
 
-int main(int argc, char* argv[]){ // main begins
+int main(int argc, char* argv[])  // main begins
+{
 
-    fprintf(stderr, "Yeah Main\n");
-    return 0;
+   fprintf(stderr, "Yeah Main\n");
+   return 0;
 
-    int proc = atoi(argv[1]);
-    fprintf(stderr, "Process: %d\n", proc);
+   int proc = atoi(argv[1]);
+   fprintf(stderr, "Process: %d\n", proc);
 
    // Read in the command line arguments
    const unsigned int numThreads = 1;
@@ -34,7 +35,7 @@ int main(int argc, char* argv[]){ // main begins
 //   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
    // Initialize the main thread as a core
-   if(proc == 0)
+   if (proc == 0)
    {
       fprintf(stderr, "Calling capi initialize!\n");
       int tid;
@@ -49,11 +50,11 @@ int main(int argc, char* argv[]){ // main begins
       fprintf(stderr, "Calling thread_func(1)!\n");
       thread_func(1);
       /*
-      for(unsigned int i = 0; i < numThreads; i++) 
+      for(unsigned int i = 0; i < numThreads; i++)
          pthread_create(&threads[i], &attr, thread_func, (void *) (i + 1));
 
       // Wait for all threads to complete
-      for(unsigned int i = 0; i < numThreads; i++) 
+      for(unsigned int i = 0; i < numThreads; i++)
          pthread_join(threads[i], NULL);
          */
    }
@@ -66,17 +67,17 @@ int main(int argc, char* argv[]){ // main begins
 
 void* thread_func(void *threadid)
 {
-  // Declare local variables
-  int tid;
-  CAPI_return_t rtnVal;
+   // Declare local variables
+   int tid;
+   CAPI_return_t rtnVal;
 
-  rtnVal = CAPI_Initialize((int)threadid);
+   rtnVal = CAPI_Initialize((int)threadid);
 
-  // Initialize local variables
-  CAPI_rank(&tid);
+   // Initialize local variables
+   CAPI_rank(&tid);
 
-  // Thread starts here
-  printf("UserThread: CAPI Rank: %d\n", tid);
+   // Thread starts here
+   printf("UserThread: CAPI Rank: %d\n", tid);
 
 //  pthread_exit(NULL);
 }

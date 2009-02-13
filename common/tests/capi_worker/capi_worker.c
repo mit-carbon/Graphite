@@ -18,13 +18,14 @@ void* worker(void * threadid);
 
 unsigned int numThreads = 2;
 
-int main(int argc, char* argv[]){ // main begins
+int main(int argc, char* argv[])  // main begins
+{
    pthread_t* threads;
    pthread_attr_t attr;
    float m[SIZE];
    int c = 3;
 
-   for(unsigned int i = 0; i < SIZE; i++)
+   for (unsigned int i = 0; i < SIZE; i++)
       m[i] = (float)i;
 
    CAPI_Initialize((unsigned int)numThreads);
@@ -35,7 +36,8 @@ int main(int argc, char* argv[]){ // main begins
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-   for(unsigned int i = 0; i < numThreads; i++) {
+   for (unsigned int i = 0; i < numThreads; i++)
+   {
       int tid = i;
 
       printf("Spawning worker thread: %d\n", i);
@@ -48,7 +50,7 @@ int main(int argc, char* argv[]){ // main begins
    }
 
    printf("Done... joining.\n");
-   for(unsigned int i = 0; i < numThreads; i++) 
+   for (unsigned int i = 0; i < numThreads; i++)
       pthread_join(threads[i], NULL);
 
    free(threads);
@@ -56,7 +58,8 @@ int main(int argc, char* argv[]){ // main begins
    printf("Done\n");
 } // main ends
 
-void* worker(void *threadid){
+void* worker(void *threadid)
+{
    int c;
    float m[SIZE];
    Boolean started = 1;

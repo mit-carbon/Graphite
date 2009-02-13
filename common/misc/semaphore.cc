@@ -5,10 +5,10 @@
 #include <linux/futex.h>
 #include <limits.h>
 
-Semaphore::Semaphore(int count) 
-   : _count(count)
-   , _numWaiting(0)
-   , _futx(0)
+Semaphore::Semaphore(int count)
+      : _count(count)
+      , _numWaiting(0)
+      , _futx(0)
 {
    _lock = Lock::create();
 }
@@ -18,52 +18,52 @@ Semaphore::~Semaphore()
    delete _lock;
 }
 
-void Semaphore::wait() 
+void Semaphore::wait()
 {
    _lock->acquire();
 
-   while (_count <= 0) 
-      {
-         _numWaiting ++;
-         _futx = 0;
+   while (_count <= 0)
+   {
+      _numWaiting ++;
+      _futx = 0;
 
-         _lock->release();
-      
-         syscall (SYS_futex, (void*) &_futx, FUTEX_WAIT, 0, NULL, NULL, 0);
+      _lock->release();
 
-         _lock->acquire();
+      syscall(SYS_futex, (void*) &_futx, FUTEX_WAIT, 0, NULL, NULL, 0);
 
-         _numWaiting --;
-      }
+      _lock->acquire();
+
+      _numWaiting --;
+   }
 
    _count --;
    _lock->release();
 }
 
-void Semaphore::signal() 
+void Semaphore::signal()
 {
    _lock->acquire();
 
    _count ++;
-   if (_numWaiting > 0) 
-      {
-         _futx = 1;
-         syscall (SYS_futex, (void*) &_futx, FUTEX_WAKE, 1, NULL, NULL, 0);
-      }
+   if (_numWaiting > 0)
+   {
+      _futx = 1;
+      syscall(SYS_futex, (void*) &_futx, FUTEX_WAKE, 1, NULL, NULL, 0);
+   }
 
    _lock->release();
 }
 
-void Semaphore::broadcast() 
+void Semaphore::broadcast()
 {
    _lock->acquire();
 
    _count ++;
-   if (_numWaiting > 0) 
-      {
-         _futx = 1;
-         syscall (SYS_futex, (void*) &_futx, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
-      }
+   if (_numWaiting > 0)
+   {
+      _futx = 1;
+      syscall(SYS_futex, (void*) &_futx, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
+   }
 
    _lock->release();
 }

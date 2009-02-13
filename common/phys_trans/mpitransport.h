@@ -15,36 +15,20 @@
 
 class Lock;
 
-class Transport {
-   private:
-      SInt32 pt_tid;
-      SInt32 comm_id;
-
-      //***** Private helper functions *****//
-
-      // Return the process number for this process.  Process numbers are
-      //  integers between 0 and (g_config->numProcs() - 1), inclusive.
-      static UInt32 ptProcessNum();
-
-#ifdef PHYS_TRANS_USE_LOCKS
-      static Lock *pt_lock;
-#endif
-
+class Transport
+{
    public:
       // This routine should be called once within in each process.
       static void ptGlobalInit();
 
       // This routine should be called once within each thread.
-      SInt32 ptInit(SInt32 tid, SInt32 num_mod);
+      Transport(SInt32 core_id);
 
       // This routine should be called once when everything is done
       static void ptFinish();
 
       // This routine should be called once when everything is done
       static void ptBarrier();
-
-      // Return the communications ID for this node
-      SInt32 ptCommID() { return comm_id; }
 
       // Send a message to another core.  This call returns immediately.
       SInt32 ptSend(SInt32 receiver, void *buffer, SInt32 length);
@@ -55,6 +39,13 @@ class Transport {
 
       // Returns TRUE if there is a message waiting to be received.
       Boolean ptQuery();
+
+   private:
+      const SInt32 m_core_id;
+
+#ifdef PHYS_TRANS_USE_LOCKS
+      static Lock *pt_lock;
+#endif
 };
 
 #endif

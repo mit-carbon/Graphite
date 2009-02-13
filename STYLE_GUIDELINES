@@ -72,10 +72,9 @@ fields
       explicit.
    1. names are all lower case, words are separated by underscore
        (i.e., "lowercase_underscore")
-   2. if the variable is only one word, but must be capitalized
-      (e.g., because it is an acronym) a "the_" may be prepended.
+   2. a  "m_" must be prepended.
 
-        example:   UInt32 the_EPC;
+        example:   UInt32 m_EPC;
 
    3. all fields should be PRIVATE
    4. if a class contains a field of type MyClass, if there is only

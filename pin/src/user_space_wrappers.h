@@ -5,7 +5,7 @@
 #include "capi.h"
 #include "sync_api.h"
 
-CAPI_return_t SimGetCoreID(int *commid);
+CAPI_return_t SimGetCoreID(int *core_id);
 
 void SimInitializeThread();
 void SimInitializeThreadFreeRank();
@@ -27,9 +27,9 @@ void SimBarrierWait(carbon_barrier_t *barrier);
 void SimSharedMemQuit();
 int SimGetCoreCount();
 
-CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
-        char *buffer, int size);
-CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver, 
-        char *buffer, int size);
+CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
+                       char *buffer, int size);
+CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
+                       char *buffer, int size);
 
 #endif

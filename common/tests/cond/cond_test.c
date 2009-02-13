@@ -16,14 +16,15 @@ carbon_mutex_t my_mux;
 carbon_cond_t my_cond;
 
 #ifdef DEBUG
-   pthread_mutex_t lock;
+pthread_mutex_t lock;
 #endif
 
 // Functions executed by threads
 void* test_wait_cond(void * threadid);
 void* test_signal_cond(void * threadid);
 
-int main(int argc, char* argv[]){ // main begins
+int main(int argc, char* argv[])  // main begins
+{
 
    initMCP();
 
@@ -33,7 +34,7 @@ int main(int argc, char* argv[]){ // main begins
    // Declare threads and related variables
    pthread_t threads[numThreads];
    pthread_attr_t attr;
-	
+
 #ifdef DEBUG
    printf("This is the function main()\n");
 #endif
@@ -50,7 +51,7 @@ int main(int argc, char* argv[]){ // main begins
    pthread_create(&threads[1], &attr, test_signal_cond, (void *) 1);
 
    // Wait for all threads to complete
-   for(unsigned int i = 0; i < numThreads; i++) 
+   for (unsigned int i = 0; i < numThreads; i++)
       pthread_join(threads[i], NULL);
 
    printf("quitting syscall server!\n");
@@ -66,7 +67,7 @@ int main(int argc, char* argv[]){ // main begins
 int wait_some()
 {
    int j = 0;
-   for(unsigned int i = 0; i < 200000; i++)
+   for (unsigned int i = 0; i < 200000; i++)
    {
       j += i;
    }
@@ -76,58 +77,58 @@ int wait_some()
 void* test_signal_cond(void *threadid)
 {
    usleep(500000);
-  // Declare local variables
-  int tid;
-  CAPI_return_t rtnVal;
+   // Declare local variables
+   int tid;
+   CAPI_return_t rtnVal;
 
-  rtnVal = CAPI_Initialize((int)threadid);
+   rtnVal = CAPI_Initialize((int)threadid);
 
-  // Initialize local variables
-  CAPI_rank(&tid);
+   // Initialize local variables
+   CAPI_rank(&tid);
 
-  // Make sure that the signal comes after the wait
-  wait_some();
+   // Make sure that the signal comes after the wait
+   wait_some();
 
-  // Thread starts here
-  fprintf(stderr, "UserSignal: Cond Signaling.");
-  condSignal(&my_cond);
-  fprintf(stderr, "UserSignal: Cond Signaled.");
-  mutexLock(&my_mux);
-  fprintf(stderr, "UserSignal: Mutex locked after signal.");
-  mutexUnlock(&my_mux);
-  fprintf(stderr, "UserSignal: Signal thread done.");
+   // Thread starts here
+   fprintf(stderr, "UserSignal: Cond Signaling.");
+   condSignal(&my_cond);
+   fprintf(stderr, "UserSignal: Cond Signaled.");
+   mutexLock(&my_mux);
+   fprintf(stderr, "UserSignal: Mutex locked after signal.");
+   mutexUnlock(&my_mux);
+   fprintf(stderr, "UserSignal: Signal thread done.");
 
-  pthread_exit(NULL);
+   pthread_exit(NULL);
 }
 
 void* test_wait_cond(void *threadid)
 {
-  // Declare local variables
-  int tid;
-  CAPI_return_t rtnVal;
+   // Declare local variables
+   int tid;
+   CAPI_return_t rtnVal;
 
-  rtnVal = CAPI_Initialize((int)threadid);
+   rtnVal = CAPI_Initialize((int)threadid);
 
-  // Initialize local variables
-  CAPI_rank(&tid);
+   // Initialize local variables
+   CAPI_rank(&tid);
 
-  // Thread starts here
+   // Thread starts here
 
-  // FIXME: This should be in the main thread or something.
-  fprintf(stderr, "UserWait: Initting mutex.");
-  mutexInit(&my_mux);
-  fprintf(stderr, "UserWait: Initting cond.");
-  condInit(&my_cond);
+   // FIXME: This should be in the main thread or something.
+   fprintf(stderr, "UserWait: Initting mutex.");
+   mutexInit(&my_mux);
+   fprintf(stderr, "UserWait: Initting cond.");
+   condInit(&my_cond);
 
-  fprintf(stderr, "UserWait: Locking mux.");
-  mutexLock(&my_mux);
-  fprintf(stderr, "UserWait: Cond wait.");
-  condWait(&my_cond, &my_mux);
-  fprintf(stderr, "UserWait: Cond done.");
+   fprintf(stderr, "UserWait: Locking mux.");
+   mutexLock(&my_mux);
+   fprintf(stderr, "UserWait: Cond wait.");
+   condWait(&my_cond, &my_mux);
+   fprintf(stderr, "UserWait: Cond done.");
 
-  mutexUnlock(&my_mux);
-  fprintf(stderr, "UserWait: test_wait_cond mutex unlock done.");
+   mutexUnlock(&my_mux);
+   fprintf(stderr, "UserWait: test_wait_cond mutex unlock done.");
 
-  pthread_exit(NULL);
+   pthread_exit(NULL);
 }
 

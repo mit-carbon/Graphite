@@ -32,12 +32,13 @@ void Transport::ptFinish()
 
 void Transport::ptBarrier()
 {
-   // FIXME: This is potentially dangerous, but I don't see a way
-   // around it using MPI_Barrier. If other threads are waiting on
+   // FIXME: Locking here is potentially dangerous, but I don't see a
+   // way around it using MPI_Barrier. If other threads are waiting on
    // this process (say, for shared memory response) in order to reach
    // this barrier, we will deadlock.
    //   Correct implementation should probably manually implement a
    // barrier via broadcast messages and counters.
+   //   Not a concern if PT locks are disabled.
    //   - NZB
    PT_LOCK();
    LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Entering barrier");
@@ -104,7 +105,7 @@ SInt32 Transport::ptSend(SInt32 dest_id, void *buffer, SInt32 size)
    //
    UInt32 dest_proc = g_config->getProcessNumForCore(dest_id);
 
-   LOG_PRINT("sending msg -- from core_id: %i, size: %i, dest core_id: %d, dest proc: %i", m_core_id, size, dest_id, dest_proc);
+   LOG_PRINT("sending msg -- from core_id: %i, size: %i, dest_id: %d, dest_proc: %i", m_core_id, size, dest_id, dest_proc);
 
    PT_LOCK();
    err_code = MPI_Send(buffer, size, MPI_BYTE, dest_proc, dest_id, MPI_COMM_WORLD);

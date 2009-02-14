@@ -1,6 +1,9 @@
+#ifndef MCP_RUNNER_H
+#define MCP_RUNNER_H
 
 #include "os-services.hpp"
-#include "mcp.h"
+
+class MCP;
 
 class MCPRunner : public OS_SERVICES::ITHREAD_RUNNER
 {
@@ -10,3 +13,7 @@ class MCPRunner : public OS_SERVICES::ITHREAD_RUNNER
    private:
       MCP *m_mcp;
 };
+
+MCPRunner * StartMCPThread();
+
+#endif // MCP_RUNNER_H

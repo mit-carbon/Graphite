@@ -5,10 +5,22 @@
 #include "mcp_runner.h"
 #include "core_manager.h"
 #include "config.h"
+#include "mcp.h"
 
 #include "log.h"
 #define LOG_DEFAULT_RANK g_config->getMCPCoreNum()
 #define LOG_DEFAULT_MODULE MCP
+
+extern MCP *g_MCP;
+
+MCPRunner* StartMCPThread()
+{
+   MCPRunner *runner = new MCPRunner(g_MCP);
+   OS_SERVICES::ITHREAD *my_thread_p;
+   my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, runner);
+   assert(my_thread_p);
+   return runner;
+}
 
 MCPRunner::MCPRunner(MCP *mcp)
       : m_mcp(mcp)

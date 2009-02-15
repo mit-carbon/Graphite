@@ -7,6 +7,12 @@
 #define LOG_DEFAULT_RANK   (_core->getId())
 #define LOG_DEFAULT_MODULE NETWORK
 
+// FIXME: Rework netCreateBuf and netExPacket. We don't need to
+// duplicate the sender/receiver info the packet. This should be known
+// by the transport layer and given to us. We also should be more
+// intelligent about the time stamps, right now the method is very
+// ugly.
+
 // -- Ctor -- //
 
 Network::Network(Core *core)

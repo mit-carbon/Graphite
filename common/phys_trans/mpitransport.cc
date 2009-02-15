@@ -32,12 +32,13 @@ void Transport::ptFinish()
 
 void Transport::ptBarrier()
 {
-   // FIXME: This is potentially dangerous, but I don't see a way
-   // around it using MPI_Barrier. If other threads are waiting on
+   // FIXME: Locking here is potentially dangerous, but I don't see a
+   // way around it using MPI_Barrier. If other threads are waiting on
    // this process (say, for shared memory response) in order to reach
    // this barrier, we will deadlock.
    //   Correct implementation should probably manually implement a
    // barrier via broadcast messages and counters.
+   //   Not a concern if PT locks are disabled.
    //   - NZB
    PT_LOCK();
    LOG_PRINT_EXPLICIT(-1, TRANSPORT, "Entering barrier");
@@ -93,7 +94,7 @@ Transport::Transport(SInt32 core_id)
 {
 }
 
-SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
+SInt32 Transport::ptSend(SInt32 dest_id, void *buffer, SInt32 size)
 {
    int err_code;
 
@@ -102,12 +103,12 @@ SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
    //  - We use the receiver ID as the tag so that messages can be
    //    demultiplexed automatically by MPI in the receiving process.
    //
-   UInt32 dest_proc = g_config->getProcessNumForCore(receiver);
+   UInt32 dest_proc = g_config->getProcessNumForCore(dest_id);
 
-   LOG_PRINT("sending msg -- from comm id: %i, size: %i, dest recvr: %d dest proc: %i", m_core_id, size, receiver, dest_proc);
+   LOG_PRINT("sending msg -- from core_id: %i, size: %i, dest_id: %d, dest_proc: %i", m_core_id, size, dest_id, dest_proc);
 
    PT_LOCK();
-   err_code = MPI_Send(buffer, size, MPI_BYTE, dest_proc, receiver, MPI_COMM_WORLD);
+   err_code = MPI_Send(buffer, size, MPI_BYTE, dest_proc, dest_id, MPI_COMM_WORLD);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "ptSend : MPI_Send fail.");
 
    LOG_PRINT("message sent");
@@ -123,7 +124,7 @@ void* Transport::ptRecv()
    Byte* buffer;
    int err_code;
 
-   LOG_PRINT("attempting receive -- m_core_id: %i", m_core_id);
+   LOG_PRINT("attempting receive -- core_id: %i", m_core_id);
 
    // Probe for a message from any source but with our ID tag.
 #ifdef PHYS_TRANS_USE_LOCKS
@@ -162,7 +163,7 @@ void* Transport::ptRecv()
    // Allocate a buffer for the incoming message
    buffer = new Byte[pkt_size];
 
-   LOG_PRINT("msg found -- m_core_id: %i, size: %i, source: %i", m_core_id, pkt_size, source);
+   LOG_PRINT("msg found -- core_id: %i, size: %i, source: %i", m_core_id, pkt_size, source);
 
    // We need to make sure the source here is the same as the one returned
    //  by the call to Probe above.  Otherwise, we might get a message from

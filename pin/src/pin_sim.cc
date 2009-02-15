@@ -516,16 +516,6 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 }
 
-// This function will create a separate context for the MCP to run (i.e. it spawns the MCP)
-MCPRunner* StartMCPThread()
-{
-   MCPRunner *runner = new MCPRunner(g_MCP);
-   OS_SERVICES::ITHREAD *my_thread_p;
-   my_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, runner);
-   assert(my_thread_p);
-   return runner;
-}
-
 /* ===================================================================== */
 
 bool replaceUserAPIFunction(RTN& rtn, string& name)

@@ -9,14 +9,14 @@ CAPI_return_t SimGetCoreID(int *core_id)
    return 0;
 }
 
-void SimInitializeThread()
+void SimInitializeThread(int core_id)
 {
-
+   g_core_manager->initializeThread(core_id);
 }
 
-void SimInitializeThreadFreeRank()
+void SimInitializeThreadFreeRank(int *core_id)
 {
-
+   g_core_manager->initializeThreadFree(core_id);
 }
 
 void SimMutexInit(carbon_mutex_t *mux)

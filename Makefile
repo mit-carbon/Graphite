@@ -53,8 +53,8 @@ simple_test: all
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0
 
 simple_test_dist: all
-	$(MAKE) -C $(TESTS_DIR)/simple
-	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple/simple_test 1
+	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
+	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 1
 
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io
@@ -62,7 +62,7 @@ io_test: all
 
 ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 cannon: all
 	$(MAKE) -C $(TESTS_DIR)/cannon
@@ -71,7 +71,7 @@ cannon: all
 
 cannon_msg: all
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
-	$(PIN_RUN) -mdc -mpf -msys -n $(CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/cannon_msg/cannon -m 4 -s 4
 
 capi_worker: all
 	$(MAKE) -C $(TESTS_DIR)/capi_worker

@@ -6,9 +6,8 @@
 #include "sync_api.h"
 
 CAPI_return_t SimGetCoreID(int *core_id);
-
-void SimInitializeThread();
-void SimInitializeThreadFreeRank();
+void SimInitializeThread(int core_id);
+void SimInitializeThreadFreeRank(int *core_id);
 
 // sync wrappers
 void SimMutexInit(carbon_mutex_t *mux);

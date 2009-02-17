@@ -43,7 +43,6 @@ class CoreManager
       // Mapping for the simulation threads
       UInt32 *core_to_simthread_tid_map;
       LockedHash simthread_tid_to_core_map;
-      LockedHash simthread_tid_to_core_index_map;
 
       std::vector<Core*> m_cores;
 };

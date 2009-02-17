@@ -31,7 +31,6 @@ void SyscallMdl::runExit(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
 void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   fprintf(stderr, "Syscall...\n");
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -46,13 +45,8 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    {
    case SYS_open:
    {
-      // Filter on the input
-      char *path = (char *)PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-      if (!strcmp(path,"./common/tests/file_io/input"))
-      {
-         m_called_enter = true;
-         m_ret_val = marshallOpenCall(ctx, syscall_standard);
-      }
+      m_called_enter = true;
+      m_ret_val = marshallOpenCall(ctx, syscall_standard);
       break;
    }
    case SYS_read:
@@ -64,19 +58,14 @@ void SyscallMdl::runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
    case SYS_write:
    {
-      fprintf(stderr, "Calling write call\n");
       m_called_enter = true;
       m_ret_val = marshallWriteCall(ctx, syscall_standard);
       break;
    }
    case SYS_close:
    {
-      int fd = PIN_GetSyscallArgument(ctx, syscall_standard, 0);
-      if (fd == 0x08)
-      {
-         m_called_enter = true;
-         m_ret_val = marshallCloseCall(ctx, syscall_standard);
-      }
+      m_called_enter = true;
+      m_ret_val = marshallCloseCall(ctx, syscall_standard);
       break;
    }
    case SYS_access:

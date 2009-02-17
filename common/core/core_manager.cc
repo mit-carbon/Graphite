@@ -20,8 +20,7 @@ CoreManager::CoreManager()
       :
       tid_to_core_map(3*g_config->getNumLocalCores()),
       tid_to_core_index_map(3*g_config->getNumLocalCores()),
-      simthread_tid_to_core_map(3*g_config->getNumLocalCores()),
-      simthread_tid_to_core_index_map(3*g_config->getNumLocalCores())
+      simthread_tid_to_core_map(3*g_config->getNumLocalCores())
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
@@ -72,12 +71,12 @@ void CoreManager::initializeThread(UInt32 core_id)
    if (i == cores.end())
       LOG_PRINT("Tried to claim a core not assigned to this process.");
 
-
    if (e.first == false)
    {
       LOG_ASSERT_ERROR(idx < g_config->getNumLocalCores(), "Invalid tid_map index in initializeThread!\n");
       tid_map[idx] = tid;
       tid_to_core_map.insert(tid, core_id);
+      tid_to_core_index_map.insert(tid, idx);
    }
    else
    {

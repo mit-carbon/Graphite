@@ -704,6 +704,11 @@ void routine(RTN rtn, void *v)
    string rtn_name = RTN_Name(rtn);
    bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
 
+   //FIXME: for now we are just routine replacing
+   //in order to get access to the MPI calls
+   //but none of the other perfomance modeling calls are allowed
+   return;
+
    if (!did_func_replace)
    {
       RTN_Open(rtn);
@@ -879,9 +884,9 @@ int main(int argc, char *argv[])
 
    // Instrumentation
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
-   //RTN_AddInstrumentFunction(routine, 0);
-   //PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-   //PIN_AddSyscallExitFunction(SyscallExit, 0);
+   RTN_AddInstrumentFunction(routine, 0);
+   PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+   PIN_AddSyscallExitFunction(SyscallExit, 0);
    PIN_AddFiniFunction(fini, 0);
 
    // Just in case ... might not be strictly necessary

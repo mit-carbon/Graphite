@@ -58,8 +58,7 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    UInt32 tid = getCurrentTID();
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
 
-
-   LOG_ASSERT_ERROR(e.first, "initializeCommId: Called without binding thread to a core.");
+   LOG_ASSERT_ERROR(e.first, "*ERROR* initializeCommId: Called without binding thread to a core.");
    UInt32 core_id = e.second;
 
    UnstructuredBuffer send_buff;
@@ -72,56 +71,45 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    // Broadcast this update to other cores
    getCoreFromID(core_id)->getNetwork()->netSend((SInt32)g_config->getMCPCoreNum(), MCP_SYSTEM_TYPE,
          (const void *)send_buff.getBuffer(), (UInt32)send_buff.size());
-
 }
 
 void CoreManager::initializeThread()
 {
    ScopedLock scoped_maps_lock(*m_maps_lock);
    UInt32 tid = getCurrentTID();
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
-   if (e.first == false)
+   LOG_ASSERT_ERROR(e.first == false, "*ERROR* Thread: %d already mapped to core: %d", tid, e.second);
+
+   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
    {
-      // Don't allow free initializion of the MCP which claimes the
-      // highest core.
-      for (unsigned int i = 0; i < g_config->getNumLocalCores(); i++)
+      if (tid_map[i] == UINT_MAX)
       {
-         if (tid_map[i] == UINT_MAX)
-         {
-            UInt32 core_id = g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
-            tid_map[i] = tid;
-            tid_to_core_index_map.insert(tid, i);
-            tid_to_core_map.insert(tid, core_id);
-            LOG_PRINT("%d mapped to: %d core_id: %d", i, tid_map[i], core_id);
-            return;
-         }
-         else
-         {
-            LOG_PRINT("%d/%d already mapped to: %d", i, g_config->getNumLocalCores(), tid_map[i]);
-         }
+         UInt32 core_id = g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
+         tid_map[i] = tid;
+         tid_to_core_index_map.insert(tid, i);
+         tid_to_core_map.insert(tid, core_id);
+         LOG_PRINT("%d mapped to: %d core_id: %d", i, tid_map[i], core_id);
+         return;
+      }
+      else
+      {
+         // LOG_PRINT("%d/%d already mapped to: %d", i, g_config->getNumLocalCores(), tid_map[i]);
       }
    }
-   else
-   {
-      LOG_PRINT("*WARNING* Thread: %d already mapped to core: %d", tid, e.second);
-      return;
-   }
 
-   LOG_PRINT("*WARNING* initializeThread - No free cores out of %d total.", g_config->getNumLocalCores());
-   LOG_NOTIFY_WARNING();
+   LOG_PRINT("*ERROR* initializeThread - No free cores out of %d total.", g_config->getNumLocalCores());
+   LOG_NOTIFY_ERROR();
 }
 
 void CoreManager::initializeThread(UInt32 core_id)
 {
    ScopedLock scoped_maps_lock(*m_maps_lock);
    UInt32 tid = getCurrentTID();
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
-   LOG_ASSERT_ERROR(e.first == false, "Tried to initialize the MCP twice.");
+   LOG_ASSERT_ERROR(e.first == false, "Tried to initialize core %d twice.", core_id);
 
-   // Don't allow free initializion of the MCP which claimes the
-   // highest core.
    for (unsigned int i = 0; i < g_config->getNumLocalCores(); i++)
    {
       UInt32 local_core_id = g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
@@ -137,14 +125,14 @@ void CoreManager::initializeThread(UInt32 core_id)
          }
          else
          {
-            LOG_PRINT("Initialize thread with core provided... %d/%d already mapped to: %d", i, g_config->getNumLocalCores(), tid_map[i]);
+            LOG_PRINT("*ERROR* initializeThread -- %d/%d already mapped to thread %d", i, g_config->getNumLocalCores(), tid_map[i]);
+            LOG_NOTIFY_ERROR();
          }
       }
    }
 
-   LOG_PRINT("*WARNING* initializeThread - No free cores out of %d total.", g_config->getNumLocalCores());
-   LOG_NOTIFY_WARNING();
-
+   LOG_PRINT("*ERROR* initializeThread - Requested core %d does not live on process %d.", core_id, g_config->getCurrentProcessNum());
+   LOG_NOTIFY_ERROR();
 }
 
 UInt32 CoreManager::getCurrentCoreID()
@@ -172,7 +160,7 @@ Core *CoreManager::getCurrentCore()
    return core;
 }
 
-Core *CoreManager::getCoreFromID(unsigned int id)
+Core *CoreManager::getCoreFromID(UInt32 id)
 {
    Core *core = NULL;
    // Look up the index from the core list
@@ -193,6 +181,13 @@ Core *CoreManager::getCoreFromID(unsigned int id)
    LOG_ASSERT_ERROR(!core || idx < g_config->getNumLocalCores(), "Illegal index in getCoreFromID!\n");
 
    return core;
+}
+
+Core *CoreManager::getCoreFromIndex(UInt32 index)
+{
+   LOG_ASSERT_ERROR(index < g_config->getNumLocalCores(), "getCoreFromIndex -- invalid index %d", index);
+
+   return m_cores[index];
 }
 
 void CoreManager::outputSummary()

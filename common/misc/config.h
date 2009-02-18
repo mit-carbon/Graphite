@@ -63,9 +63,6 @@ class Config
       UInt32 getCurrentProcessNum() { return m_current_process_num; }
       void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
-      // Return the number of the process that should contain the MCP
-      //UInt32 MCPProcNum() { return MCP_process; }
-      //UInt32 getMCPCoreNum() { return getCoreFromCommId(getTotalCores() -1); }
       UInt32 getMCPCoreNum() { return getTotalCores() -1; }
 
       // Return the number of modules (cores) in a given process

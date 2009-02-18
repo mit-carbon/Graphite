@@ -91,13 +91,8 @@ CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 {
    Core *core = g_core_manager->getCurrentCore();
 
-
-   LOG_PRINT_EXPLICIT(core->getId(), USER_SPACE_WRAPPERS, "Looking up ids...");
-
    UInt32 sending_core = g_config->getCoreFromCommId(sender);
    UInt32 receiving_core = g_config->getCoreFromCommId(receiver);
-
-   LOG_PRINT_EXPLICIT(core->getId(), USER_SPACE_WRAPPERS, "Looked up ids...");
 
    return core ? core->coreRecvW(sending_core, receiving_core, buffer, size) : -1;
 }

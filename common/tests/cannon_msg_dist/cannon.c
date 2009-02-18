@@ -143,7 +143,7 @@ int main(int argc, char* argv[])  // main begins
    if(proc == 0)
    {
        CAPI_return_t rtnVal;
-       carbonInitializeThread();
+       CarbonInitializeThread();
        rtnVal = CAPI_Initialize((unsigned int)numThreads);
 
        fprintf(stderr, "Proc: %d spawning thread: %d\n", proc, numThreads);
@@ -355,7 +355,7 @@ void* cannon(void *threadid)
 #endif
 
 
-   carbonInitializeThread();
+   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
    //CAPI_rank(&tid);
    tid = (unsigned int)threadid;

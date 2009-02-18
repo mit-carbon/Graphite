@@ -26,7 +26,8 @@ class CoreManager
       UInt32 getCurrentCoreID();
 
       Core *getCurrentCore();
-      Core *getCoreFromID(unsigned int id);
+      Core *getCoreFromID(UInt32 id);
+      Core *getCoreFromIndex(UInt32 index);
 
       void outputSummary();
 

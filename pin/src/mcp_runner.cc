@@ -33,8 +33,8 @@ void MCPRunner::RunThread(OS_SERVICES::ITHREAD *me)
    //zero when I tried it. --cg3
    int tid =  syscall(__NR_gettid);
    LOG_PRINT("Initializing the MCP (%i) with id: %i", (int)tid, g_config->getTotalCores()-1);
-   g_core_manager->initializeThread(g_config->getTotalCores()-1);
-   g_core_manager->initializeCommId(g_config->getTotalCores()-1);
+   g_core_manager->initializeThread(g_config->getMCPCoreNum());
+   g_core_manager->initializeCommId(g_config->getMCPCoreNum());
 
    while (!m_mcp->finished())
    {

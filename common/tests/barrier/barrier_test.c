@@ -75,7 +75,7 @@ void* test_wait_barrier(void *threadid)
    int tid, i;
    CAPI_return_t rtnVal;
 
-   carbonInitializeThread();
+   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((int)threadid);
 
    // Initialize local variables

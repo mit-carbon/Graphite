@@ -87,7 +87,6 @@ void MCP::run()
       m_network_model_analytical_server.update(recv_pkt.sender);
       break;
    case MCP_MESSAGE_BROADCAST_COMM_MAP_UPDATE:
-      LOG_PRINT("CoreMap: MCP Got the broadcast comm map update call.");
       recv_pkt.type = SIM_THREAD_UPDATE_COMM_MAP;
       broadcastPacketToProcesses(recv_pkt);
       break;
@@ -134,7 +133,6 @@ void MCP::broadcastPacketToProcesses(NetPacket pkt)
 
       LOG_PRINT("CoreMap: Sending process broadcast to core: %d", pkt.receiver); 
 
-
       m_network.netSend(pkt);
 
       // Wait for a response
@@ -142,7 +140,7 @@ void MCP::broadcastPacketToProcesses(NetPacket pkt)
       NetMatch match;
       match.types.push_back(MCP_RESPONSE_TYPE);
       recv_pkt = m_network.netRecv(match);
-      delete [](Byte*)recv_pkt.data;
+      delete [] (Byte*)recv_pkt.data;
    }
 }
 

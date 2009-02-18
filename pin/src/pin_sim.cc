@@ -61,11 +61,9 @@ INT32 usage()
    return -1;
 }
 
-/* ===================================================================== */
-/* For instrumentation / modeling */
-/* ===================================================================== */
 
 
+// For instrumentation / modeling
 void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_size,
                IntPtr dcache_st_addr, UINT32 dcache_st_size,
                PerfModelIntervalStat* *stats,
@@ -76,151 +74,144 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                //               bool check_scoreboard)
                bool check_scoreboard)
 {
-   int core_id = g_core_manager->getCurrentCoreID();
+   Core *core = g_core_manager->getCurrentCore();
+   UInt32 core_id = g_core_manager->getCurrentCoreID();
+   UInt32 core_index;
 
-   if (core_id > -1)
+   if (!core)
+      return;
+
+   // Look up core index
+   for (core_index = 0; core_index < g_config->getNumLocalCores(); core_index++)
    {
+      if (g_core_manager->getCoreFromIndex(core_index) == core)
+         break;
+   }
 
+   LOG_ASSERT_ERROR(core_index < g_config->getNumLocalCores(),
+                    "*ERROR* No core index found for current core?! %p", core);
 
-      Core *current_core = g_core_manager->getCoreFromID(core_id);
+   // This must be consistent with the behavior of
+   // insertInstructionModelingCall.
 
+   // Trying to prevent using NULL stats. This happens when
+   // instrumenting portions of the main thread.
+   bool skip_modeling = ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
-      // FIXME: this should be cached
-      UInt32 core_index = 0;
-      const Config::CoreList current_proc_cores (g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
-      for(Config::CLCI i = current_proc_cores.begin(); i != current_proc_cores.end(); i++)
+   if (skip_modeling)
+      return;
+
+   assert(!do_network_modeling);
+   assert(!do_bpred_modeling);
+
+   // flag passed to perfModelRun to prevent it from double-counting things on successive
+   // calls to perfModelRun
+   bool firstCallInIntvl = true;
+
+   if (do_icache_modeling)
+   {
+      for (UINT32 i = 0; i < (stats[core_id]->inst_trace.size()); i++)
       {
-         if(*i == (UInt32)core_id)
-            break;
-         core_index++;
-      }
-
-      // make sure we found something
-      assert(core_index < current_proc_cores.size());
-
-
-      // This must be consistent with the behavior of
-      // insertInstructionModelingCall.
-
-      // Trying to prevent using NULL stats. This happens when
-      // instrumenting portions of the main thread.
-      bool skip_modeling = ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
-
-      if (skip_modeling)
-         return;
-
-      assert(!do_network_modeling);
-      assert(!do_bpred_modeling);
-
-      // flag passed to perfModelRun to prevent it from double-counting things on successive
-      // calls to perfModelRun
-      bool firstCallInIntvl = true;
-
-      if (do_icache_modeling)
-      {
-         for (UINT32 i = 0; i < (stats[core_id]->inst_trace.size()); i++)
+         // first = PC, second = size
+         bool i_hit = core->icacheRunLoadModel(stats[core_index]->inst_trace[i].first,
+                                                       stats[core_id]->inst_trace[i].second);
+         if (do_perf_modeling)
          {
-            // first = PC, second = size
-            bool i_hit = current_core->icacheRunLoadModel(stats[core_index]->inst_trace[i].first,
-                  stats[core_id]->inst_trace[i].second);
-            if (do_perf_modeling)
-            {
-               stats[core_index]->logICacheLoadAccess(i_hit);
-            }
+            stats[core_index]->logICacheLoadAccess(i_hit);
          }
       }
+   }
 
-      // this check must go before everything but the icache check
-      assert(!check_scoreboard || do_perf_modeling);
+   // this check must go before everything but the icache check
+   assert(!check_scoreboard || do_perf_modeling);
 
-      if (check_scoreboard)
+   if (check_scoreboard)
+   {
+      // it's not possible to delay the evaluation of the performance impact for these.
+      // get the cycle counter up to date then account for dependency stalls
+      core->getPerfModel()->run(stats[core_index], reads, num_reads, firstCallInIntvl);
+      firstCallInIntvl = false;
+   }
+
+
+   if (do_dcache_read_modeling)
+   {
+      if (g_shmem_debug_helper->aliasEnabled())
       {
-         // it's not possible to delay the evaluation of the performance impact for these.
-         // get the cycle counter up to date then account for dependency stalls
-         current_core->getPerfModel()->run(stats[core_index], reads, num_reads, firstCallInIntvl);
-         firstCallInIntvl = false;
+         //FIXME
+         g_shmem_debug_helper->aliasReadModeling();
       }
-
-
-      if (do_dcache_read_modeling)
+      else
       {
-         if (g_shmem_debug_helper->aliasEnabled())
-         {
-            //FIXME
-            g_shmem_debug_helper->aliasReadModeling();
-         }
-         else
-         {
-            // FIXME: This should actually be a UINT32 which tells how many read misses occured
+         // FIXME: This should actually be a UINT32 which tells how many read misses occured
 
-            char data_ld_buffer[dcache_ld_size];
+         char data_ld_buffer[dcache_ld_size];
+         //TODO HARSHAD sharedmemory will fill ld_buffer
+         bool d_hit = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+         // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+
+         if (do_perf_modeling)
+         {
+            core->getPerfModel()->run(stats[core_index], d_hit, writes, num_writes, firstCallInIntvl);
+            firstCallInIntvl = false;
+         }
+
+         if (is_dual_read)
+         {
+            char data_ld_buffer_2[dcache_ld_size];
             //TODO HARSHAD sharedmemory will fill ld_buffer
-            bool d_hit = current_core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
-            // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
-
+            bool d_hit2 = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+            // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
             if (do_perf_modeling)
             {
-               current_core->getPerfModel()->run(stats[core_index], d_hit, writes, num_writes, firstCallInIntvl);
+               core->getPerfModel()->run(stats[core_index], d_hit2, writes, num_writes, firstCallInIntvl);
                firstCallInIntvl = false;
             }
-
-            if (is_dual_read)
-            {
-               char data_ld_buffer_2[dcache_ld_size];
-               //TODO HARSHAD sharedmemory will fill ld_buffer
-               bool d_hit2 = current_core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
-               // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
-               if (do_perf_modeling)
-               {
-                  current_core->getPerfModel()->run(stats[core_index], d_hit2, writes, num_writes, firstCallInIntvl);
-                  firstCallInIntvl = false;
-               }
-            }
-
-            // cerr << "[" << core_id << "] dCache READ Modeling: Over " << endl;
          }
+
+         // cerr << "[" << core_id << "] dCache READ Modeling: Over " << endl;
+      }
+
+   }
+   else
+   {
+      assert(dcache_ld_addr == (IntPtr) NULL);
+      assert(dcache_ld_addr2 == (IntPtr) NULL);
+      assert(dcache_ld_size == 0);
+   }
+   if (do_dcache_write_modeling)
+   {
+      if (g_shmem_debug_helper->aliasEnabled())
+      {
+         g_shmem_debug_helper->aliasWriteModeling();
 
       }
       else
       {
-         assert(dcache_ld_addr == (IntPtr) NULL);
-         assert(dcache_ld_addr2 == (IntPtr) NULL);
-         assert(dcache_ld_size == 0);
-      }
-      if (do_dcache_write_modeling)
-      {
-         if (g_shmem_debug_helper->aliasEnabled())
+         // FIXME: This should actually be a UINT32 which tells how many write misses occurred
+         char data_st_buffer[dcache_ld_size];
+
+         //TODO Harshad: st buffer needs to be written
+         //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
+         bool d_hit = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+         if (do_perf_modeling)
          {
-            g_shmem_debug_helper->aliasWriteModeling();
-
+            stats[core_index]->logDCacheStoreAccess(d_hit);
          }
-         else
-         {
-            // FIXME: This should actually be a UINT32 which tells how many write misses occurred
-            char data_st_buffer[dcache_ld_size];
+         //cerr << "[" << core_id << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
+      }
+   }
+   else
+   {
+      assert(dcache_st_addr == (IntPtr) NULL);
+      assert(dcache_st_size == 0);
+   }
 
-            //TODO Harshad: st buffer needs to be written
-            //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
-            bool d_hit = current_core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
-            if (do_perf_modeling)
-            {
-               stats[core_index]->logDCacheStoreAccess(d_hit);
-            }
-            //cerr << "[" << core_id << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
-         }
-      }
-      else
-      {
-         assert(dcache_st_addr == (IntPtr) NULL);
-         assert(dcache_st_size == 0);
-      }
-
-      // this should probably go last
-      if (do_perf_modeling)
-      {
-         current_core->getPerfModel()->run(stats[core_index], firstCallInIntvl);
-         firstCallInIntvl = false;
-      }
+   // this should probably go last
+   if (do_perf_modeling)
+   {
+      core->getPerfModel()->run(stats[core_index], firstCallInIntvl);
+      firstCallInIntvl = false;
    }
 } //end of runModels
 
@@ -236,8 +227,8 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
 
    for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
-   {
-      Core *core = g_core_manager->getCoreFromID(g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i]);
+   {        
+      Core *core = g_core_manager->getCoreFromIndex(i);
       array[i] = core->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
    }
 
@@ -249,8 +240,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head,
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
-
-
    // added constraint that perf model must be on
    bool check_scoreboard         = g_knob_enable_performance_modeling &&
                                    g_knob_enable_dcache_modeling &&
@@ -279,7 +268,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                     do_dcache_write_modeling || do_icache_modeling ||
                                     do_bpred_modeling || is_bbl_ins_tail || check_scoreboard);
 
-
    // Exit early if we aren't modeling anything
    if (!do_network_modeling && !do_icache_modeling && !do_dcache_read_modeling  &&
          !do_dcache_write_modeling && !do_bpred_modeling && !do_perf_modeling)
@@ -300,8 +288,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    stats = (do_perf_modeling || do_icache_modeling || check_scoreboard) ?
            perfModelAnalyzeInterval(rtn_name, start_ins, end_ins) :
            NULL;
-
-
 
    // Build a list of read registers if relevant
    UINT32 num_reads = 0;
@@ -463,16 +449,13 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
 }
 
-/* ===================================================================== */
-
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
 
    AFUNPTR msg_ptr = NULL;
    PROTO proto = NULL;
 
-   //FIXME added by cpc as a hack to get around calling Network for finished cores
-   if (name == "carbonInitializeThread")
+   if (name == "CarbonInitializeThread")
    {
       msg_ptr = AFUNPTR(SimInitializeThread);
    }
@@ -718,21 +701,19 @@ void routine(RTN rtn, void *v)
 // syscall model wrappers
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   int core_id = g_core_manager->getCurrentCoreID();
+   Core *core = g_core_manager->getCurrentCore();
 
-   if (core_id >= 0)
-      g_core_manager->getCoreFromID(core_id)->getSyscallMdl()->runEnter(ctx, syscall_standard);
+   if (core)
+      core->getSyscallMdl()->runEnter(ctx, syscall_standard);
 }
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   int core_id = g_core_manager->getCurrentCoreID();
+   Core *core = g_core_manager->getCurrentCore();
 
-   if (core_id >= 0)
-      g_core_manager->getCoreFromID(core_id)->getSyscallMdl()->runExit(ctx, syscall_standard);
+   if (core)
+      core->getSyscallMdl()->runExit(ctx, syscall_standard);
 }
-
-/* ===================================================================== */
 
 void fini(int code, void * v)
 {
@@ -762,8 +743,6 @@ void fini(int code, void * v)
 
    delete g_log;
 }
-
-/* ===================================================================== */
 
 void init_globals()
 {
@@ -800,7 +779,7 @@ void init_globals()
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
    {
       LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->getCurrentProcessNum());
-      Core * mcp_core = g_core_manager->getCoreFromID(g_config->getTotalCores()-1);
+      Core * mcp_core = g_core_manager->getCoreFromID(g_config->getMCPCoreNum());
       if (!mcp_core)
       {
          LOG_PRINT_EXPLICIT(-1, PINSIM, "Could not find the MCP's core!");
@@ -823,6 +802,8 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
 
 void AppStart(void *v)
 {
+   // FIXME: This function is never called. Use ThreadStart?
+   assert(false);
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Application Start.");
 }
 

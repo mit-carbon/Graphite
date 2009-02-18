@@ -192,7 +192,7 @@ void* cannon(void *threadid)
    printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
-   carbonInitializeThread();
+   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
 
    // Initialize local variables

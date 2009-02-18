@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #include <string>
 #include <iostream>
 #include <cassert>
@@ -23,6 +24,8 @@ class Config
       typedef std::vector<UInt32> CoreToProcMap;
       typedef std::vector<UInt32> CoreList;
       typedef std::vector<UInt32>::const_iterator CLCI;
+      typedef std::map<UInt32,UInt32> CommToCoreMap;
+
    private:
       void GenerateCoreMap();
 
@@ -37,6 +40,8 @@ class Config
       // process.
       CoreToProcMap m_core_to_proc_map;
       CoreList* m_proc_to_core_list_map;
+
+      CommToCoreMap m_comm_to_core_map;
 
       UInt32  m_mcp_process;          // The process where the MCP lives
 
@@ -60,7 +65,8 @@ class Config
 
       // Return the number of the process that should contain the MCP
       //UInt32 MCPProcNum() { return MCP_process; }
-      UInt32 getMCPCoreNum() { return getTotalCores() - 1; }
+      //UInt32 getMCPCoreNum() { return getCoreFromCommId(getTotalCores() -1); }
+      UInt32 getMCPCoreNum() { return getTotalCores() -1; }
 
       // Return the number of modules (cores) in a given process
       UInt32 getNumCoresInProcess(UInt32 proc_num)
@@ -73,7 +79,7 @@ class Config
 
       // Return an array of core numbers for a given process
       //  The returned array will have numMods(proc_num) elements
-      const CoreList getCoreListForProcess(UInt32 proc_num)
+      const CoreList & getCoreListForProcess(UInt32 proc_num)
       { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num]; }
 
       UInt32 getProcessNumForCore(UInt32 core)
@@ -82,7 +88,9 @@ class Config
       const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
       { return m_analytic_network_parms; }
 
-
+      // For mapping between user-land communication id's to actual core id's
+      void updateCommToCoreMap(UInt32 comm_id, UInt32 core_id);
+      UInt32 getCoreFromCommId(UInt32 comm_id); 
 
       // Fills in an array with the models for each static network
       void getNetworkModels(UInt32 *) const;

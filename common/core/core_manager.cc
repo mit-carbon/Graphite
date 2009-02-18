@@ -9,6 +9,8 @@
 #include "network.h"
 #include "ocache.h"
 #include "config.h"
+#include "packetize.h"
+#include "message_types.h"
 
 #include "log.h"
 #define LOG_DEFAULT_RANK -1
@@ -51,73 +53,98 @@ CoreManager::~CoreManager()
    delete m_maps_lock;
 }
 
-void CoreManager::initializeThread(UInt32 core_id)
+void CoreManager::initializeCommId(UInt32 comm_id)
 {
    UInt32 tid = getCurrentTID();
-
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
 
-   //FIXME: Check to see if two threads try to grab the same core_id
-   const Config::CoreList & cores(g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
-   UInt32 idx = 0;
-   Config::CLCI i;
-   for (i = cores.begin(); i != cores.end(); i++)
-   {
-      if (*i == core_id)
-         break;
-      idx++;
-   }
 
-   if (i == cores.end())
-      LOG_PRINT("Tried to claim a core not assigned to this process.");
+   LOG_ASSERT_ERROR(e.first, "initializeCommId: Called without binding thread to a core.");
+   UInt32 core_id = e.second;
 
-   if (e.first == false)
-   {
-      LOG_ASSERT_ERROR(idx < g_config->getNumLocalCores(), "Invalid tid_map index in initializeThread!\n");
-      tid_map[idx] = tid;
-      tid_to_core_map.insert(tid, core_id);
-      tid_to_core_index_map.insert(tid, idx);
-   }
-   else
-   {
-      LOG_PRINT("initializeThread : Error initializing core twice: %d", core_id);
-   }
+   UnstructuredBuffer send_buff;
+   send_buff << MCP_MESSAGE_BROADCAST_COMM_MAP_UPDATE;
+   send_buff << comm_id;
+   send_buff << core_id;
+
+   LOG_PRINT("CoreMap: CoreManager Initializing comm_id: %d to core_id: %d", comm_id, core_id);
+
+   // Broadcast this update to other cores
+   getCoreFromID(core_id)->getNetwork()->netSend((SInt32)g_config->getMCPCoreNum(), MCP_SYSTEM_TYPE,
+         (const void *)send_buff.getBuffer(), (UInt32)send_buff.size());
 
 }
 
-void CoreManager::initializeThreadFree(int *core_id)
+void CoreManager::initializeThread()
 {
+   ScopedLock scoped_maps_lock(*m_maps_lock);
    UInt32 tid = getCurrentTID();
-
-   m_maps_lock->acquire();
-
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
-
-   //FIXME: Check to see if two threads try to grab the same core_id
 
    if (e.first == false)
    {
       // Don't allow free initializion of the MCP which claimes the
       // highest core.
-      for (unsigned int i = 0; i < g_config->getNumLocalCores() - 1; i++)
+      for (unsigned int i = 0; i < g_config->getNumLocalCores(); i++)
+      {
+         if (tid_map[i] == UINT_MAX)
+         {
+            UInt32 core_id = g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
+            tid_map[i] = tid;
+            tid_to_core_index_map.insert(tid, i);
+            tid_to_core_map.insert(tid, core_id);
+            LOG_PRINT("%d mapped to: %d core_id: %d", i, tid_map[i], core_id);
+            return;
+         }
+         else
+         {
+            LOG_PRINT("%d/%d already mapped to: %d", i, g_config->getNumLocalCores(), tid_map[i]);
+         }
+      }
+   }
+   else
+   {
+      LOG_PRINT("*WARNING* Thread: %d already mapped to core: %d", tid, e.second);
+      return;
+   }
+
+   LOG_PRINT("*WARNING* initializeThread - No free cores out of %d total.", g_config->getNumLocalCores());
+   LOG_NOTIFY_WARNING();
+}
+
+void CoreManager::initializeThread(UInt32 core_id)
+{
+   ScopedLock scoped_maps_lock(*m_maps_lock);
+   UInt32 tid = getCurrentTID();
+   pair<bool, UINT64> e = tid_to_core_map.find(tid);
+
+   LOG_ASSERT_ERROR(e.first == false, "Tried to initialize the MCP twice.");
+
+   // Don't allow free initializion of the MCP which claimes the
+   // highest core.
+   for (unsigned int i = 0; i < g_config->getNumLocalCores(); i++)
+   {
+      UInt32 local_core_id = g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
+      if(local_core_id == core_id)
       {
          if (tid_map[i] == UINT_MAX)
          {
             tid_map[i] = tid;
-            tid_to_core_map.insert(tid, i);
-            *core_id = i;
-
-            m_maps_lock->release();
+            tid_to_core_index_map.insert(tid, i);
+            tid_to_core_map.insert(tid, core_id);
+            LOG_PRINT("%d mapped to: %d core_id: %d", i, tid_map[i], core_id);
+            return;
+         }
+         else
+         {
+            LOG_PRINT("Initialize thread with core provided... %d/%d already mapped to: %d", i, g_config->getNumLocalCores(), tid_map[i]);
          }
       }
-      LOG_PRINT("*WARNING* initializeThreadFree - No free cores");
-      LOG_NOTIFY_WARNING();
-   }
-   else
-   {
    }
 
-   m_maps_lock->release();
+   LOG_PRINT("*WARNING* initializeThread - No free cores out of %d total.", g_config->getNumLocalCores());
+   LOG_NOTIFY_WARNING();
+
 }
 
 UInt32 CoreManager::getCurrentCoreID()

@@ -153,3 +153,31 @@ const char *Config::getOutputFileName() const
 {
    return g_knob_output_file.Value().c_str();
 }
+
+void Config::updateCommToCoreMap(UInt32 comm_id, UInt32 core_id)
+{
+   m_comm_to_core_map[comm_id] = core_id;
+   for(CommToCoreMap::iterator iter = m_comm_to_core_map.begin(); 
+         iter != m_comm_to_core_map.end(); iter++)
+   {
+      LOG_PRINT("CoreMap: %d is now mapped to: %d",  iter->first, iter->second);
+   }
+}
+
+UInt32 Config::getCoreFromCommId(UInt32 comm_id)
+{
+   CommToCoreMap::iterator it = m_comm_to_core_map.find(comm_id);
+   if(it == m_comm_to_core_map.end())
+   {
+      for(CommToCoreMap::iterator iter = m_comm_to_core_map.begin(); 
+            iter != m_comm_to_core_map.end(); iter++)
+      {
+         LOG_PRINT("CoreMap: %d mapped to: %d",  iter->first, iter->second);
+      }
+   }
+
+   LOG_ASSERT_ERROR(it != m_comm_to_core_map.end(), "Lookup on comm_id: %d not found.", comm_id);
+   return it->second;
+}
+
+

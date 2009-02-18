@@ -66,6 +66,7 @@ void* test_mutex(void *threadid)
    int tid;
    CAPI_return_t rtnVal;
 
+   carbonInitializeThread();
    rtnVal = CAPI_Initialize((int)threadid);
 
    // Initialize local variables

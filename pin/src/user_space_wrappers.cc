@@ -2,6 +2,7 @@
 #include "core.h"
 #include "sync_client.h"
 #include "core_manager.h"
+#include "log.h"
 
 CAPI_return_t SimGetCoreID(int *core_id)
 {
@@ -9,14 +10,14 @@ CAPI_return_t SimGetCoreID(int *core_id)
    return 0;
 }
 
-void SimInitializeThread(int core_id)
+void SimInitializeThread()
 {
-   g_core_manager->initializeThread(core_id);
+   g_core_manager->initializeThread();
 }
 
-void SimInitializeThreadFreeRank(int *core_id)
+void SimInitializeCommId(int comm_id)
 {
-   g_core_manager->initializeThreadFree(core_id);
+   g_core_manager->initializeCommId(comm_id);
 }
 
 void SimMutexInit(carbon_mutex_t *mux)
@@ -78,13 +79,26 @@ CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                        char *buffer, int size)
 {
    Core *core = g_core_manager->getCurrentCore();
-   return core ? core->coreSendW(sender, receiver, buffer, size) : -1;
+
+   UInt32 sending_core = g_config->getCoreFromCommId(sender);
+   UInt32 receiving_core = g_config->getCoreFromCommId(receiver);
+
+   return core ? core->coreSendW(sending_core, receiving_core, buffer, size) : -1;
 }
 
 CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                        char *buffer, int size)
 {
    Core *core = g_core_manager->getCurrentCore();
-   return core ? core->coreRecvW(sender, receiver, buffer, size) : -1;
+
+
+   LOG_PRINT_EXPLICIT(core->getId(), USER_SPACE_WRAPPERS, "Looking up ids...");
+
+   UInt32 sending_core = g_config->getCoreFromCommId(sender);
+   UInt32 receiving_core = g_config->getCoreFromCommId(receiver);
+
+   LOG_PRINT_EXPLICIT(core->getId(), USER_SPACE_WRAPPERS, "Looked up ids...");
+
+   return core ? core->coreRecvW(sending_core, receiving_core, buffer, size) : -1;
 }
 

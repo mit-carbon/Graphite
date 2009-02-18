@@ -17,8 +17,9 @@ class CoreManager
       CoreManager();
       ~CoreManager();
 
+      void initializeCommId(UInt32 comm_id);
+      void initializeThread();
       void initializeThread(UInt32 core_id);
-      void initializeThreadFree(int *core_id);
       int registerSimMemThread();
 
       // The following function returns the global ID of the currently running thread

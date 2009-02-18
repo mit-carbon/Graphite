@@ -32,7 +32,7 @@ void* thread_func(void *threadid)
    int tid = (int)threadid;
    CAPI_return_t rtnVal;
 
-   carbonInitializeThread();
+   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((int)threadid);
 
    sleep(1);

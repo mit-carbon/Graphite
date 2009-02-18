@@ -77,7 +77,7 @@ int main(int argc, char* argv[])  // main begins
 
 void* ping(void *threadid)
 {
-   carbonInitializeThread();
+   CarbonInitializeThread();
    int tid = (int)threadid;
    CAPI_Initialize((int)threadid);
 
@@ -118,7 +118,7 @@ void* ping(void *threadid)
 
 void* pong(void *threadid)
 {
-   carbonInitializeThread();
+   CarbonInitializeThread();
    int tid = (int)threadid;
    CAPI_Initialize((int)threadid);
 

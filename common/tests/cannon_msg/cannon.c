@@ -135,7 +135,7 @@ int main(int argc, char* argv[])  // main begins
    blockSize = matSize / sqrtNumProcs;
 
    CAPI_return_t rtnVal;
-   carbonInitializeThread();
+   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)numThreads);
 
 
@@ -316,7 +316,7 @@ void* cannon(void *threadid)
    printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
-   carbonInitializeThread();
+   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
    tid = threadid;
    //CAPI_rank(&tid);

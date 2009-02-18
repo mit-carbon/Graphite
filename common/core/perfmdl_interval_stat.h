@@ -25,8 +25,6 @@ class PerfModelIntervalStat
       // holds instruction addresses and sizes
       std::vector< std::pair<IntPtr, UInt32> > inst_trace;
 
-
-
       // set when instrumenting the code to add calls to analysis
       UInt32 microops_count;
       UInt32 cycles_subtotal;
@@ -36,7 +34,6 @@ class PerfModelIntervalStat
 
       // set for use in debugging
       std::string parent_routine;
-
 
       // methods
       PerfModelIntervalStat(const std::string& parent, const std::vector< std::pair<IntPtr, UInt32> >& trace,

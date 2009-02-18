@@ -113,8 +113,8 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
       for (UINT32 i = 0; i < (stats[core_id]->inst_trace.size()); i++)
       {
          // first = PC, second = size
-         bool i_hit = core->icacheRunLoadModel(stats[core_index]->inst_trace[i].first,
-                                                       stats[core_id]->inst_trace[i].second);
+         bool i_hit = core->getOCache()->runICacheLoadModel(stats[core_index]->inst_trace[i].first,
+                                                       stats[core_id]->inst_trace[i].second).first;
          if (do_perf_modeling)
          {
             stats[core_index]->logICacheLoadAccess(i_hit);
@@ -147,7 +147,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
          char data_ld_buffer[dcache_ld_size];
          //TODO HARSHAD sharedmemory will fill ld_buffer
-         bool d_hit = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+         bool d_hit = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
          // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
 
          if (do_perf_modeling)
@@ -160,7 +160,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
          {
             char data_ld_buffer_2[dcache_ld_size];
             //TODO HARSHAD sharedmemory will fill ld_buffer
-            bool d_hit2 = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+            bool d_hit2 = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
             // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
             if (do_perf_modeling)
             {
@@ -193,7 +193,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
          //TODO Harshad: st buffer needs to be written
          //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
-         bool d_hit = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+         bool d_hit = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
          if (do_perf_modeling)
          {
             stats[core_index]->logDCacheStoreAccess(d_hit);
@@ -227,7 +227,7 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
 
    for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
-   {        
+   {
       Core *core = g_core_manager->getCoreFromIndex(i);
       array[i] = core->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
    }

@@ -121,10 +121,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrv
 
    // clear out values in case Run gets called again this interval
    interval_stats->reset();
-
-   //cout << "made it here" << endl;
 }
-
 
 // run method which accounts for load data dependency stalls
 void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
@@ -166,7 +163,6 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
    // stall for latest load dependency if needed
    updateCycleCount(max);
 }
-
 
 void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes,
                     UInt32 numWrites, bool firstCallInIntrvl)

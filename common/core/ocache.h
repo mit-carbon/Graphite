@@ -21,14 +21,9 @@
 #include "cache.h"
 #include "pin.H"
 #include "pin_profile.H"
+#include "memory_manager.h"
 
-/* ===================================================================== */
-/* Organic Cache Class */
-/* ===================================================================== */
-
-
-
-// organic cache
+class Core;
 
 class OCache
 {
@@ -44,14 +39,7 @@ class OCache
       typedef  COUNTER_ARRAY<UInt64, k_COUNTER_NUM> CounterArray;
 
       // Constructor
-      OCache(std::string name);
-      /*
-      , UInt32 size, UInt32 line_bytes, UInt32 assoc, UInt32 mutate_interval,
-             UInt32 dcache_threshold_hit_value, UInt32 dcache_threshold_miss_value, UInt32 dcache_size,
-             UInt32 dcache_associativity, UInt32 dcache_max_search_depth, UInt32 icache_threshold_hit_value,
-             UInt32 icache_threshold_miss_value, UInt32 icache_size, UInt32 icache_associativity,
-             UInt32 icache_max_search_depth);
-             */
+      OCache(std::string name, Core *core);
 
       // These are just wrappers around the Cache class equivalents for the OCache dcache field
       bool dCacheInvalidateLine(IntPtr d_addr) { return m_dl1->invalidateLine(d_addr); }
@@ -74,6 +62,7 @@ class OCache
 
       string statsLong();
 
+      bool runDCacheModel(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
       // These functions provide the public interface to accessing the caches
       pair<bool, CacheTag*> runICacheLoadModel(IntPtr i_addr, UInt32 size);
@@ -128,6 +117,7 @@ class OCache
       UInt32      m_last_icache_misses;
 
       string      m_name;
+      Core *      m_core;
 
    private:
 
@@ -165,20 +155,5 @@ class OCache
       COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> dcache_profile;
       COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> icache_profile;
 };
-
-
-
-/* ===================================================================== */
-/* Global interface and wrappers: definitions */
-/* ===================================================================== */
-
-
-bool runICacheLoadModel(IntPtr i_addr, UInt32 size);
-bool runDCacheLoadModel(IntPtr d_addr, UInt32 size);
-bool runDCacheStoreModel(IntPtr d_addr, UInt32 size);
-
-void oCacheModelInit();
-void oCacheModelFini(int code, void *v, ostream& out);
-
 
 #endif

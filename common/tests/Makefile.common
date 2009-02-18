@@ -9,6 +9,8 @@ CXX = $(MPI_DIR)/bin/mpicxx
 
 CXXFLAGS = -I../../user -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
 
+LDFLAGS += -lm
+
 ifeq (${FORCE32},1)
   CXXFLAGS += -m32
   LDFLAGS += -m32 # -m elf_i386

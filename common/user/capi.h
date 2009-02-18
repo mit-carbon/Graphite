@@ -31,8 +31,10 @@ extern "C"
 {
 #endif
 
+   //FIXME: put me some place better
+   void carbonInitializeThread();
+
    CAPI_return_t CAPI_Initialize(int rank);
-   CAPI_return_t CAPI_Initialize_FreeRank(int *rank);
 
    CAPI_return_t CAPI_rank(int *rank);
 

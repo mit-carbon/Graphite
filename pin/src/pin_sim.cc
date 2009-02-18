@@ -19,6 +19,7 @@
 #include <iostream>
 #include <assert.h>
 #include <set>
+#include <sys/syscall.h>
 
 #include "pin.H"
 #include "utils.h"
@@ -271,6 +272,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    bool is_bbl_ins_tail, bool is_potential_load_use)
 {
 
+
    // added constraint that perf model must be on
    bool check_scoreboard         = g_knob_enable_performance_modeling &&
                                    g_knob_enable_dcache_modeling &&
@@ -315,10 +317,12 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 
    PerfModelIntervalStat* *stats;
    INS end_ins = INS_Next(ins);
+
    // stats also needs to get allocated if icache modeling is turned on
    stats = (do_perf_modeling || do_icache_modeling || check_scoreboard) ?
            perfModelAnalyzeInterval(rtn_name, start_ins, end_ins) :
            NULL;
+
 
 
    // Build a list of read registers if relevant
@@ -493,13 +497,13 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    PROTO proto = NULL;
 
    //FIXME added by cpc as a hack to get around calling Network for finished cores
-   if (name == "CAPI_Initialize")
+   if (name == "carbonInitializeThread")
    {
       msg_ptr = AFUNPTR(SimInitializeThread);
    }
-   else if (name == "CAPI_Initialize_FreeRank")
+   else if (name == "CAPI_Initialize")
    {
-      msg_ptr = AFUNPTR(SimInitializeThreadFreeRank);
+      msg_ptr = AFUNPTR(SimInitializeCommId);
    }
    else if (name == "CAPI_rank")
    {
@@ -566,7 +570,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 #endif
 
    if (msg_ptr == AFUNPTR(SimGetCoreID)
-         || (msg_ptr == AFUNPTR(SimInitializeThreadFreeRank))
          || (msg_ptr == AFUNPTR(SimMutexInit))
          || (msg_ptr == AFUNPTR(SimMutexLock))
          || (msg_ptr == AFUNPTR(SimMutexUnlock))
@@ -641,12 +644,26 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
-   else if ((msg_ptr == AFUNPTR(SimInitializeThread)))
+   else if ((msg_ptr == AFUNPTR(SimInitializeCommId)))
    {
       proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
                              CALLINGSTD_DEFAULT,
                              name.c_str(),
                              PIN_PARG(int),
+                             PIN_PARG_END());
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if ((msg_ptr == AFUNPTR(SimInitializeThread)))
+   {
+      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
                              PIN_PARG_END());
       RTN_ReplaceSignature(rtn, msg_ptr,
                            IARG_PROTOTYPE, proto,
@@ -829,6 +846,21 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
    syscallExitRunModel(ctxt, std);
 }
 
+void AppStart(void *v)
+{
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "Application Start.");
+}
+
+void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
+{
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "Thread Start: %d", syscall(__NR_gettid));
+}
+
+void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
+{
+   LOG_PRINT_EXPLICIT(-1, PINSIM, "Thread Fini: %d", syscall(__NR_gettid));
+}
+
 int main(int argc, char *argv[])
 {
    // Global initialization
@@ -851,6 +883,10 @@ int main(int argc, char *argv[])
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);
    PIN_AddFiniFunction(fini, 0);
+
+   PIN_AddApplicationStartFunction(AppStart, 0);
+   PIN_AddThreadStartFunction(ThreadStart, 0);
+   PIN_AddThreadFiniFunction(ThreadFini, 0);
 
    // Just in case ... might not be strictly necessary
    Transport::ptBarrier();

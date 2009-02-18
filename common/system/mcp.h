@@ -40,6 +40,7 @@ class MCP
 
       // These functions expose the MCP network for system use
       void broadcastPacket(NetPacket);
+      void broadcastPacketToProcesses(NetPacket);
       void forwardPacket(NetPacket);
 
    private:

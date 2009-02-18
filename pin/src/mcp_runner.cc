@@ -34,6 +34,7 @@ void MCPRunner::RunThread(OS_SERVICES::ITHREAD *me)
    int tid =  syscall(__NR_gettid);
    LOG_PRINT("Initializing the MCP (%i) with id: %i", (int)tid, g_config->getTotalCores()-1);
    g_core_manager->initializeThread(g_config->getTotalCores()-1);
+   g_core_manager->initializeCommId(g_config->getTotalCores()-1);
 
    while (!m_mcp->finished())
    {

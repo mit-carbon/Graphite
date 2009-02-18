@@ -86,6 +86,11 @@ void MCP::run()
    case MCP_MESSAGE_UTILIZATION_UPDATE:
       m_network_model_analytical_server.update(recv_pkt.sender);
       break;
+   case MCP_MESSAGE_BROADCAST_COMM_MAP_UPDATE:
+      LOG_PRINT("CoreMap: MCP Got the broadcast comm map update call.");
+      recv_pkt.type = SIM_THREAD_UPDATE_COMM_MAP;
+      broadcastPacketToProcesses(recv_pkt);
+      break;
    default:
       LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
    }
@@ -118,6 +123,29 @@ void MCP::broadcastPacket(NetPacket pkt)
       m_network.netSend(pkt);
    }
 }
+
+void MCP::broadcastPacketToProcesses(NetPacket pkt)
+{
+   pkt.sender = g_config->getMCPCoreNum();
+
+   for (UInt32 proc_id = 0; proc_id < g_config->getProcessCount(); proc_id++)
+   {
+      pkt.receiver = g_config->getCoreListForProcess(proc_id)[0];
+
+      LOG_PRINT("CoreMap: Sending process broadcast to core: %d", pkt.receiver); 
+
+
+      m_network.netSend(pkt);
+
+      // Wait for a response
+      NetPacket recv_pkt;
+      NetMatch match;
+      match.types.push_back(MCP_RESPONSE_TYPE);
+      recv_pkt = m_network.netRecv(match);
+      delete [](Byte*)recv_pkt.data;
+   }
+}
+
 
 void MCP::forwardPacket(NetPacket pkt)
 {

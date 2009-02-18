@@ -75,6 +75,25 @@ void SimThreadTerminateFunc(void *vp, NetPacket pkt)
    *pcont = false;
 }
 
+void SimThreadUpdateCommMap(void *vp, NetPacket pkt)
+{
+   LOG_PRINT("CoreMap: SimThread got the UpdateCommMap message.");
+   Network *net = (Network *)vp;
+   UInt32 message_type;
+   UInt32 core_id;
+   UInt32 comm_id;
+   UnstructuredBuffer recv_buff;
+   
+   recv_buff << make_pair(pkt.data, pkt.length);
+   recv_buff >> message_type;
+   recv_buff >> comm_id;
+   recv_buff >> core_id;
+
+   g_config->updateCommToCoreMap(comm_id, core_id);
+   bool dummy = true;
+   net->netSend(pkt.sender, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+}
+
 void* SimThreadFunc(void *)
 {
    int core_id = g_core_manager->registerSimMemThread();
@@ -92,6 +111,11 @@ void* SimThreadFunc(void *)
                          SimThreadTerminateFunc,
                          &cont);
 
+   net->registerCallback(SIM_THREAD_UPDATE_COMM_MAP,
+                         SimThreadUpdateCommMap,
+                         net);
+
+
    // Actual work gets done here
    while (cont)
       net->netPullFromTransport();
@@ -105,3 +129,4 @@ void* SimThreadFunc(void *)
 
    return 0;
 }
+

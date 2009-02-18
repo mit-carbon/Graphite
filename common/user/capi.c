@@ -11,12 +11,6 @@ CAPI_return_t CAPI_Initialize(int rank)
    return 0;
 }
 
-CAPI_return_t CAPI_Initialize_FreeRank(int *rank)
-{
-   *rank = 0;
-   return 0;
-}
-
 CAPI_return_t CAPI_rank(int *rank)
 {
    *rank = 0;
@@ -45,3 +39,6 @@ CAPI_return_t CAPI_Finish(int my_rank)
    return 0;
 }
 
+void carbonInitializeThread()
+{
+}

@@ -49,32 +49,6 @@ class PerfModel
       UInt64 getMicroOpCount() { return m_microop_issue_count; }
 
 
-      // These functions are for logging modeling events for which the performance impact
-      // may be lazily evaluated later when the performance model is next run.
-
-      void logICacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-      {
-         // stats->icache_load_miss_history.push_back( !hit );
-         stats->logICacheLoadAccess(hit);
-      }
-
-      void logDCacheLoadAccess(PerfModelIntervalStat *stats, bool hit)
-      {
-         stats->logDCacheLoadAccess(hit);
-      }
-
-      void logDCacheStoreAccess(PerfModelIntervalStat *stats, bool hit)
-      {
-         // stats->dcache_store_miss_history.push_back( !hit );
-         stats->logDCacheStoreAccess(hit);
-      }
-
-      void logBranchPrediction(PerfModelIntervalStat *stats, bool correct)
-      {  // stats->branch_mispredict = !correct;
-         stats->logBranchPrediction(correct);
-      }
-
-
       // Called at first encounter of an interval. Fills out stats for the interval
 
       PerfModelIntervalStat* analyzeInterval(const string& parent_routine,

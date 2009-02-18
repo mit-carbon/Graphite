@@ -125,7 +125,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
       // Trying to prevent using NULL stats. This happens when
       // instrumenting portions of the main thread.
-      bool skip_modeling = (((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
+      bool skip_modeling = ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
       if (skip_modeling)
          return;
@@ -146,7 +146,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                   stats[core_id]->inst_trace[i].second);
             if (do_perf_modeling)
             {
-               current_core->getPerfModel()->logICacheLoadAccess(stats[core_index], i_hit);
+               stats[core_index]->logICacheLoadAccess(i_hit);
             }
          }
       }
@@ -225,7 +225,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
             bool d_hit = current_core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
             if (do_perf_modeling)
             {
-               current_core->getPerfModel()->logDCacheStoreAccess(stats[core_index], d_hit);
+               stats[core_index]->logDCacheStoreAccess(d_hit);
             }
             //cerr << "[" << core_id << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
          }
@@ -242,28 +242,27 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
          current_core->getPerfModel()->run(stats[core_index], firstCallInIntvl);
          firstCallInIntvl = false;
       }
-
-   } //end of runModels
-
-   PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
-         const INS& start_ins, const INS& end_ins)
-   {
-      // using zero is a dirty hack
-      // assumes its safe to use core zero to generate perfmodels for all cores
-      assert(g_config->getNumLocalCores() > 0);
-
-
-      //FIXME: These stats should be deleted at the end of execution
-      PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
-
-      for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
-      {
-         Core *core = g_core_manager->getCoreFromID(g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i]);
-         array[i] = core->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
-      }
-
-      return array;
    }
+} //end of runModels
+
+PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
+      const INS& start_ins, const INS& end_ins)
+{
+   // using zero is a dirty hack
+   // assumes its safe to use core zero to generate perfmodels for all cores
+   assert(g_config->getNumLocalCores() > 0);
+
+
+   //FIXME: These stats should be deleted at the end of execution
+   PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
+
+   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   {
+      Core *core = g_core_manager->getCoreFromID(g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i]);
+      array[i] = core->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
+   }
+
+   return array;
 }
 
 

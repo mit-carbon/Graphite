@@ -53,27 +53,6 @@ SimThreadRunner * g_sim_thread_runners = NULL;
 Log *g_log = NULL;
 ShmemDebugHelper *g_shmem_debug_helper = NULL;
 
-//TODO only here for debugging ins in runModel
-
-struct InsInfo
-{
-   IntPtr ip_address;
-   OPCODE opcode;
-   bool is_sys_call;
-   bool is_sys_enter;
-   SYSCALL_STANDARD sys_call_std;
-
-   bool next_is_valid;
-   OPCODE next_opcode;
-   bool next_is_sys_call;
-   bool next_is_sys_enter;
-   SYSCALL_STANDARD next_sys_call_std;
-};
-
-//FIXME
-//PIN_LOCK g_lock1;
-//PIN_LOCK g_lock2;
-
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -95,8 +74,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                bool do_dcache_read_modeling, bool is_dual_read,
                bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling,
                //               bool check_scoreboard)
-               bool check_scoreboard,
-               void* ins_info_array)
+               bool check_scoreboard)
 {
    int core_id = g_core_manager->getCurrentCoreID();
 
@@ -339,8 +317,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    }
 
 
-   InsInfo** ins_info_array = NULL;
-
    // Build a list of write registers if relevant
    UINT32 num_writes = 0;
    REG *writes = NULL;
@@ -392,7 +368,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                          IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
                          IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling,
                          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard,
-                         IARG_PTR, (void *) ins_info_array,
                          IARG_END);
 
    //   IARGLIST_AddArguments(args, IARG_PTR, (void *) ins_info);

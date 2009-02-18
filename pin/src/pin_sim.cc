@@ -101,25 +101,35 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
    if (core_id > -1)
    {
+
+
       Core *current_core = g_core_manager->getCoreFromID(core_id);
 
-      // InsInfo* ins_info = ((InsInfo**) ins_info_array)[core_id];
-      // stringstream ss;
-      // ss << "OPCODE$ = " << LEVEL_CORE::OPCODE_StringShort(ins_info->opcode) << " (" << ins_info->opcode << ") ";
-      // LOG_PRINT(ss.str());
+
+      // FIXME: this should be cached
+      UInt32 core_index = 0;
+      const Config::CoreList current_proc_cores (g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
+      for(Config::CLCI i = current_proc_cores.begin(); i != current_proc_cores.end(); i++)
+      {
+         if(*i == (UInt32)core_id)
+            break;
+         core_index++;
+      }
+
+      // make sure we found something
+      assert(core_index < current_proc_cores.size());
+
 
       // This must be consistent with the behavior of
       // insertInstructionModelingCall.
 
       // Trying to prevent using NULL stats. This happens when
       // instrumenting portions of the main thread.
-      bool skip_modeling = (core_id < 0) ||
-                           ((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
+      bool skip_modeling = (((check_scoreboard || do_perf_modeling || do_icache_modeling) && stats == NULL);
 
       if (skip_modeling)
          return;
 
-      assert((UInt32)core_id < g_config->getNumLocalCores());
       assert(!do_network_modeling);
       assert(!do_bpred_modeling);
 
@@ -127,27 +137,16 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
       // calls to perfModelRun
       bool firstCallInIntvl = true;
 
-
-      // JME: think this was an error; want some other model on if icache modeling is on
-      //   assert( !(!do_icache_modeling && (do_network_modeling ||
-      //                                  do_dcache_read_modeling || do_dcache_write_modeling ||
-      //                                  do_bpred_modeling || do_perf_modeling)) );
-
-      // no longer needed since we guarantee icache model will run at basic block boundary
-      // assert( !do_icache_modeling || (do_network_modeling ||
-      //                                do_dcache_read_modeling || do_dcache_write_modeling ||
-      //                                do_bpred_modeling || do_perf_modeling) );
-
       if (do_icache_modeling)
       {
          for (UINT32 i = 0; i < (stats[core_id]->inst_trace.size()); i++)
          {
             // first = PC, second = size
-            bool i_hit = current_core->icacheRunLoadModel(stats[core_id]->inst_trace[i].first,
-                         stats[core_id]->inst_trace[i].second);
+            bool i_hit = current_core->icacheRunLoadModel(stats[core_index]->inst_trace[i].first,
+                  stats[core_id]->inst_trace[i].second);
             if (do_perf_modeling)
             {
-               current_core->getPerfModel()->logICacheLoadAccess(stats[core_id], i_hit);
+               current_core->getPerfModel()->logICacheLoadAccess(stats[core_index], i_hit);
             }
          }
       }
@@ -159,9 +158,10 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
       {
          // it's not possible to delay the evaluation of the performance impact for these.
          // get the cycle counter up to date then account for dependency stalls
-         current_core->getPerfModel()->run(stats[core_id], reads, num_reads, firstCallInIntvl);
+         current_core->getPerfModel()->run(stats[core_index], reads, num_reads, firstCallInIntvl);
          firstCallInIntvl = false;
       }
+
 
       if (do_dcache_read_modeling)
       {
@@ -181,7 +181,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
             if (do_perf_modeling)
             {
-               current_core->getPerfModel()->run(stats[core_id], d_hit, writes, num_writes, firstCallInIntvl);
+               current_core->getPerfModel()->run(stats[core_index], d_hit, writes, num_writes, firstCallInIntvl);
                firstCallInIntvl = false;
             }
 
@@ -193,7 +193,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
                if (do_perf_modeling)
                {
-                  current_core->getPerfModel()->run(stats[core_id], d_hit2, writes, num_writes, firstCallInIntvl);
+                  current_core->getPerfModel()->run(stats[core_index], d_hit2, writes, num_writes, firstCallInIntvl);
                   firstCallInIntvl = false;
                }
             }
@@ -208,7 +208,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
          assert(dcache_ld_addr2 == (IntPtr) NULL);
          assert(dcache_ld_size == 0);
       }
-
       if (do_dcache_write_modeling)
       {
          if (g_shmem_debug_helper->aliasEnabled())
@@ -226,7 +225,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
             bool d_hit = current_core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
             if (do_perf_modeling)
             {
-               current_core->getPerfModel()->logDCacheStoreAccess(stats[core_id], d_hit);
+               current_core->getPerfModel()->logDCacheStoreAccess(stats[core_index], d_hit);
             }
             //cerr << "[" << core_id << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
          }
@@ -240,27 +239,31 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
       // this should probably go last
       if (do_perf_modeling)
       {
-         current_core->getPerfModel()->run(stats[core_id], firstCallInIntvl);
+         current_core->getPerfModel()->run(stats[core_index], firstCallInIntvl);
          firstCallInIntvl = false;
       }
+
+   } //end of runModels
+
+   PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
+         const INS& start_ins, const INS& end_ins)
+   {
+      // using zero is a dirty hack
+      // assumes its safe to use core zero to generate perfmodels for all cores
+      assert(g_config->getNumLocalCores() > 0);
+
+
+      //FIXME: These stats should be deleted at the end of execution
+      PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
+
+      for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+      {
+         Core *core = g_core_manager->getCoreFromID(g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i]);
+         array[i] = core->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
+      }
+
+      return array;
    }
-
-} //end of runModels
-
-PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
-      const INS& start_ins, const INS& end_ins)
-{
-   // using zero is a dirty hack
-   // assumes its safe to use core zero to generate perfmodels for all cores
-   assert(g_config->getNumLocalCores() > 0);
-
-   //FIXME: These stats should be deleted at the end of execution
-   PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
-
-   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
-      array[i] = g_core_manager->getCoreFromID(0)->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
-
-   return array;
 }
 
 
@@ -332,42 +335,8 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
       }
    }
 
+
    InsInfo** ins_info_array = NULL;
-#ifdef PRINOUT_FLAGS
-   /**** TAKE OUT LATER TODO *****/
-   //only for debugging instruction in runModels
-   //at run time
-   //provide each core it's own copy of the ins_info
-   ins_info_array = (InsInfo**) malloc(sizeof(InsInfo*));
-   assert(ins_info_array != NULL);
-   int NUMBER_OF_CORES = 2;
-
-   for (int i=0; i < NUMBER_OF_CORES; i++)
-   {
-      ins_info_array[i] = (InsInfo*) malloc(sizeof(InsInfo));
-      InsInfo* ins_info = ins_info_array[i];
-
-      ins_info->ip_address = INS_Address(ins);
-      ins_info->opcode = INS_Opcode(ins);
-      ins_info->is_sys_call = INS_IsSyscall(ins);
-      ins_info->is_sys_enter = INS_IsSysenter(ins);
-      ins_info->sys_call_std = INS_SyscallStd(ins);
-
-      INS next_ins = INS_Next(ins);
-      if (!INS_Valid(next_ins))
-      {
-         ins_info->next_is_valid = false;
-      }
-      else
-      {
-         ins_info->next_is_valid = true;
-         ins_info->next_opcode = INS_Opcode(next_ins);
-         ins_info->next_is_sys_call = INS_IsSyscall(next_ins);
-         ins_info->next_is_sys_enter = INS_IsSysenter(next_ins);
-         ins_info->next_sys_call_std = INS_SyscallStd(next_ins);
-      }
-   }
-#endif
 
    // Build a list of write registers if relevant
    UINT32 num_writes = 0;
@@ -703,11 +672,6 @@ void routine(RTN rtn, void *v)
 {
    string rtn_name = RTN_Name(rtn);
    bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
-
-   //FIXME: for now we are just routine replacing
-   //in order to get access to the MPI calls
-   //but none of the other perfomance modeling calls are allowed
-   return;
 
    if (!did_func_replace)
    {

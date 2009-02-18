@@ -18,11 +18,11 @@ class Lock;
 class Transport
 {
    public:
-      // This routine should be called once within in each process.
-      static void ptGlobalInit();
-
       // This routine should be called once within each thread.
       Transport(SInt32 core_id);
+
+      // This routine should be called once within in each process.
+      static void ptGlobalInit();
 
       // This routine should be called once when everything is done
       static void ptFinish();

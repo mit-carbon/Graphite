@@ -65,8 +65,9 @@ common/tests/ocean_contig/OCEAN
 
 # test output
 pin.log
+pintool.log
 sim.out
 output_files
 
 # misc
-pin/bin/
+pin/bin

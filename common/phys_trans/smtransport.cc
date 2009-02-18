@@ -1,25 +1,28 @@
-#include "smtransport.h"
 #include <cassert>
+#include "smtransport.h"
+#include "log.h"
 
+#define LOG_DEFAULT_RANK pt_tid
+#define LOG_DEFAULT_MODULE SMTRANSPORT
 
 Transport::PTQueue* Transport::pt_queue = NULL;
 Transport::Futex* Transport::pt_futx = NULL;
 
-void Transport::ptInitQueue(SInt32 num_mod)
+void Transport::ptGlobalInit()
 {
-   SInt32 i;
-   assert(num_mod > 0);
-   pt_queue = new PTQueue[num_mod];
-   pt_futx = new Futex[num_mod];
+   g_config->setProcessNum(0);
+   LOG_PRINT_EXPLICIT(-1, SMTRANSPORT, "SM Transport::ptGlobalInit");
 
-   for (i = 0; i < num_mod; i++)
+   pt_queue = new PTQueue[g_config->getTotalCores()];
+   pt_futx = new Futex[g_config->getTotalCores()];
+
+   for (UInt32 i = 0; i < g_config->getTotalCores(); i++)
    {
       InitLock(&(pt_queue[i].pt_q_lock));
       pt_futx[i].futx = 1;
       InitLock(&(pt_futx[i].futx_lock));
 
    }
-
 }
 
 Transport::Transport(SInt32 tid)

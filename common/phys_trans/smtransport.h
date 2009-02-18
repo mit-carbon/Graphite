@@ -1,8 +1,8 @@
 // Harshad Kasture
 //
 
-#ifndef TRANSPORT_H
-#define TRANSPORT_H
+#ifndef SMTRANSPORT_H
+#define SMTRANSPORT_H
 
 #include <iostream>
 #include <sched.h>
@@ -31,13 +31,10 @@ class Transport
       //FIXME: this should become a phtread barrier
       static void ptBarrier() {}
 
+
       SInt32 ptSend(SInt32 receiver, void *buffer, SInt32 length);
-
       void* ptRecv();
-
       Boolean ptQuery();
-
-      static void ptInitQueue(SInt32 num_mod);
 
    private:
       SInt32 pt_tid;

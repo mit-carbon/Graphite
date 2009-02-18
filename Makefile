@@ -62,7 +62,7 @@ cannon_msg_dist: all
 
 io_test: all
 	$(MAKE) -C $(TESTS_DIR)/file_io
-	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/file_io/file_io
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/file_io/file_io
 
 ping_pong_test: all
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
@@ -71,7 +71,7 @@ ping_pong_test: all
 cannon: all
 	$(MAKE) -C $(TESTS_DIR)/cannon
 #	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
-	$(PIN_RUN) -mdc -msm -mpf -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -msm -mpf -msys -np 1 -tc $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: all
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
@@ -104,7 +104,7 @@ jacobi_test: all
 
 mutex_test: all
 	$(MAKE) -C $(TESTS_DIR)/mutex
-	$(PIN_RUN) -mdc -mpf -msys -n 1 -- $(TESTS_DIR)/mutex/mutex_test
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/mutex/mutex_test
 
 cond_test: all
 	$(MAKE) -C $(TESTS_DIR)/cond
@@ -116,7 +116,7 @@ broadcast_test: all
 
 barrier_test: all
 	$(MAKE) -C $(TESTS_DIR)/barrier
-	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barrier/barrier_test
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/barrier/barrier_test
 
 
 fmm_test: all

@@ -135,7 +135,9 @@ int main(int argc, char* argv[])  // main begins
    blockSize = matSize / sqrtNumProcs;
 
    CAPI_return_t rtnVal;
+   carbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)numThreads);
+
 
 #ifdef DEBUG
    printf("Initializing thread structures\n");
@@ -164,6 +166,7 @@ int main(int argc, char* argv[])  // main begins
 #endif
       }
    }
+   sleep(2);
 
    for (unsigned int i = 0; i < numThreads; i++)
    {
@@ -313,8 +316,11 @@ void* cannon(void *threadid)
    printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
+   carbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
-   CAPI_rank(&tid);
+   tid = threadid;
+   //CAPI_rank(&tid);
+   sleep(2);
 
    bool started = true;
    CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&started, sizeof(started));

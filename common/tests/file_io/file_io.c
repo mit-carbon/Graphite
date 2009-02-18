@@ -67,6 +67,7 @@ void* read_and_write(void *threadid)
    CAPI_return_t rtnVal;
    char file_name[256];
 
+   carbonInitializeThread();
    rtnVal = CAPI_Initialize((int)threadid);
 
    // Initialize local variables

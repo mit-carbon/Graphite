@@ -192,11 +192,13 @@ void* cannon(void *threadid)
    printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
+   carbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
 
    // Initialize local variables
 
    CAPI_rank(&tid);
+   tid = threadid;
 
    // Convert 1-D rank to 2-D rank
    i = tid / sqrtNumProcs;

@@ -71,7 +71,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                bool do_network_modeling, bool do_icache_modeling,
                bool do_dcache_read_modeling, bool is_dual_read,
                bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling,
-               //               bool check_scoreboard)
                bool check_scoreboard)
 {
    Core *core = g_core_manager->getCurrentCore();
@@ -148,7 +147,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
          char data_ld_buffer[dcache_ld_size];
          //TODO HARSHAD sharedmemory will fill ld_buffer
          bool d_hit = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
-         // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
 
          if (do_perf_modeling)
          {
@@ -168,10 +166,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                firstCallInIntvl = false;
             }
          }
-
-         // cerr << "[" << core_id << "] dCache READ Modeling: Over " << endl;
       }
-
    }
    else
    {
@@ -198,7 +193,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
          {
             stats[core_index]->logDCacheStoreAccess(d_hit);
          }
-         //cerr << "[" << core_id << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
       }
    }
    else
@@ -356,8 +350,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard,
                          IARG_END);
 
-   //   IARGLIST_AddArguments(args, IARG_PTR, (void *) ins_info);
-
    INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END);
    IARGLIST_Free(args);
 
@@ -381,7 +373,6 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
       for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
       {
-
          // remove from list of outstanding regs if is a use
          for (UINT32 i = 0; i < INS_MaxNumRRegs(ins); i++)
          {
@@ -396,18 +387,15 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
          if (!INS_IsMemoryRead(ins))
          {
-
             // remove from list of outstanding regs if is overwrite
             for (UINT32 i = 0; i < INS_MaxNumWRegs(ins); i++)
             {
                REG r = INS_RegW(ins, i);
                bbl_dest_regs.clear(r);
             }
-
          }
          else
          {
-
             // add to list if writing some function of memory read; remove other writes
             // FIXME: not all r will be dependent on memory; need to remove those
             for (UINT32 i = 0; i < INS_MaxNumWRegs(ins); i++)
@@ -415,11 +403,8 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
                REG r = INS_RegW(ins, i);
                bbl_dest_regs.set(r);
             }
-
          }
-
       }
-
       dest_regs.set(bbl_dest_regs);
    }
 
@@ -437,15 +422,6 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
          }
       }
    }
-
-#if 0
-   cerr << "Routine " << RTN_Name(rtn) << endl;
-   cerr << "  instrumented " << ins_uses.size() << " of " << rtn_ins_count << endl;
-   for (set<INS>::iterator it = ins_uses.begin(); it != ins_uses.end(); it++)
-   {
-      cerr << "  " << INS_Disassemble(*it) << endl;
-   }
-#endif
 
 }
 
@@ -511,21 +487,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(SimBarrierWait);
    }
-   //FIXME
-#if 0
-   else if (name == "CAPI_debugSetMemState")
-   {
-      msg_ptr = AFUNPTR(chipDebugSetMemState);
-   }
-   else if (name == "CAPI_debugAssertMemState")
-   {
-      msg_ptr = AFUNPTR(chipDebugAssertMemState);
-   }
-   else if (name == "CAPI_alias")
-   {
-      msg_ptr = AFUNPTR(chipAlias);
-   }
-#endif
 
    if (msg_ptr == AFUNPTR(SimGetCoreID)
          || (msg_ptr == AFUNPTR(SimMutexInit))
@@ -631,14 +592,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
-   //FIXME
-#if 0
-   else if ((msg_ptr == AFUNPTR(chipDebugSetMemState)) || (msg_ptr == AFUNPTR(chipDebugAssertMemState))
-            || (msg_ptr == AFUNPTR(chipAlias)))
-   {
-      RTN_Replace(rtn, msg_ptr);
-   }
-#endif
+
+   // If the function didn't replace a routine...
    return false;
 }
 
@@ -736,7 +691,6 @@ void fini(int code, void * v)
       delete g_mcp_runner;
 
    delete [] g_sim_thread_runners;
-
    delete g_core_manager;
 
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini end");

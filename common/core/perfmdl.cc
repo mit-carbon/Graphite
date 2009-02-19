@@ -21,24 +21,16 @@ PerfModel::~PerfModel()
    delete m_clock_lock;
 }
 
-
-void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
+void PerfModel::runComputationModel(PerfModelIntervalStat *interval_stats)
 {
-   // NOTE: must function such that it can be called more than once per
-   // interval and still work
+   addToCycleCount(interval_stats->cycles_subtotal);
+   m_microop_issue_count += interval_stats->microops_count;
+}
 
+void PerfModel::runICacheModel(PerfModelIntervalStat *interval_stats)
+{
    UInt32 interval_cycle_count = 0;
-
-   if (firstCallInIntrvl)
-      interval_cycle_count += interval_stats->cycles_subtotal;
-
    interval_cycle_count += (interval_stats->branch_mispredict ? 10 : 0);
-
-   // Note: dcache load miss penalty is already
-   // accounted for by dependency stalling
-
-   // Note: perfect dcache store queue assumed.
-   // store miss penalty assumed to be zero.
 
    // icache miss penalty
    for (UInt32 i = 0; i < interval_stats->getICacheLoadAccessCount(); i++)
@@ -47,21 +39,13 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrv
    }
 
    addToCycleCount(interval_cycle_count);
-
-   if (firstCallInIntrvl)
-      m_microop_issue_count += interval_stats->microops_count;
-
-   // clear out values in case Run gets called again this interval
    interval_stats->reset();
 }
 
 // run method which accounts for load data dependency stalls
-void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
-                    UInt32 numReads, bool firstCallInIntrvl)
+void PerfModel::runDCacheWriteModel(PerfModelIntervalStat *interval_stats, REG *reads, UInt32 numReads)
 {
-
-   run(interval_stats, firstCallInIntrvl);
-
+   interval_stats->reset();
    UInt64 max = m_cycle_count;
    REG max_reg = LEVEL_BASE::REG_LAST;
 
@@ -95,11 +79,9 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
    updateCycleCount(max);
 }
 
-void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes,
-                    UInt32 numWrites, bool firstCallInIntrvl)
+void PerfModel::runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes, UInt32 numWrites)
 {
-   run(interval_stats, firstCallInIntrvl);
-
+   interval_stats->reset();
    interval_stats->logDCacheLoadAccess(dcache_load_hit);
 
    if (g_config->getEnablePerformanceModeling() && !dcache_load_hit)

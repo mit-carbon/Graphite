@@ -13,14 +13,10 @@ KNOB<UInt32> g_knob_total_cores(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<UInt32> g_knob_num_process(KNOB_MODE_WRITEONCE, "pintool",
                                 "np", "0", "Specifies the total number of processes in the simulation");
 
-KNOB<BOOL>   g_knob_enable_network_modeling(KNOB_MODE_WRITEONCE, "pintool",
-      "mnt", "0", "turn on modeling for the on-chip network(s)");
 KNOB<BOOL>   g_knob_enable_dcache_modeling(KNOB_MODE_WRITEONCE, "pintool",
       "mdc", "0", "turn on modeling for the data cache");
 KNOB<BOOL>   g_knob_enable_icache_modeling(KNOB_MODE_WRITEONCE, "pintool",
       "mic", "0", "turn on modeling for the instruction cache");
-KNOB<BOOL>   g_knob_enable_bpred_modeling(KNOB_MODE_WRITEONCE, "pintool",
-      "mbp", "0", "turn on modeling for the branch predictor");
 KNOB<BOOL>   g_knob_enable_performance_modeling(KNOB_MODE_WRITEONCE, "pintool",
       "mpf", "0", "turns on performance modeler");
 

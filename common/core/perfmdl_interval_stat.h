@@ -9,10 +9,6 @@ class PerfModelIntervalStat
 
       // keeps track of miss status for icache and dcache loads and stores
       // set true for miss
-      // too expensive in terms of memory footprint
-      // list<bool> icache_load_miss_history;
-      // list<bool> dcache_load_miss_history;
-      // list<bool> dcache_store_miss_history;
 
       bool icache_load_miss_history[k_PERFMDL_INT_STATE_SIZE];
       bool dcache_load_miss_history[k_PERFMDL_INT_STATE_SIZE];
@@ -92,7 +88,6 @@ class PerfModelIntervalStat
          return dcache_store_miss_history[which];
       }
 
-
       void logBranchPrediction(bool correct)
       {
          branch_mispredict = !correct;
@@ -104,14 +99,11 @@ class PerfModelIntervalStat
          // microops_count and cyc_subtotal
          // (all the dynamic stuff)
 
-         // changed because lists were too memory intensive
-         // dcache_load_miss_history.resize(0);
-         // dcache_store_miss_history.resize(0);
-         // icache_load_miss_history.resize(0);
          icache_load_miss_history_index = 0;
          dcache_load_miss_history_index = 0;
          dcache_store_miss_history_index = 0;
 
          branch_mispredict = false;
       }
+
 };

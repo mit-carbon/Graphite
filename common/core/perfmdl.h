@@ -50,14 +50,15 @@ class PerfModel
       // instructions.
 
       // the vanilla run method.
-      void run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl);
+      void runComputationModel(PerfModelIntervalStat *interval_stats);
+      void runICacheModel(PerfModelIntervalStat *interval_stats);
 
       // run method which accounts for load data dependency stalls
-      void run(PerfModelIntervalStat *interval_stats, REG *reads, UInt32 num_reads, bool firstCallInIntrvl);
+      void runDCacheWriteModel(PerfModelIntervalStat *interval_stats, REG *reads, UInt32 num_reads);
 
       // run method which registers destination registers in the scoreboard
-      void run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
-               REG *writes, UInt32 num_writes, bool firstCallInIntrvl);
+      void runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
+               REG *writes, UInt32 num_writes);
 
 
       // this method is called at the end of simulation

@@ -34,8 +34,6 @@
 
 class PerfModel
 {
-
-
    public:
 
       PerfModel(string n);
@@ -47,13 +45,6 @@ class PerfModel
 
       UInt64 getCycleCount() { return m_cycle_count; }
       UInt64 getMicroOpCount() { return m_microop_issue_count; }
-
-
-      // Called at first encounter of an interval. Fills out stats for the interval
-
-      PerfModelIntervalStat* analyzeInterval(const string& parent_routine,
-                                             const INS& start_ins, const INS& end_ins);
-
 
       // Pin inserts a call to one of the following functions when instrumenting
       // instructions.

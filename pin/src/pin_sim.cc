@@ -54,27 +54,6 @@ SimThreadRunner * g_sim_thread_runners = NULL;
 Log *g_log = NULL;
 ShmemDebugHelper *g_shmem_debug_helper = NULL;
 
-//TODO only here for debugging ins in runModel
-
-struct InsInfo
-{
-   IntPtr ip_address;
-   OPCODE opcode;
-   bool is_sys_call;
-   bool is_sys_enter;
-   SYSCALL_STANDARD sys_call_std;
-
-   bool next_is_valid;
-   OPCODE next_opcode;
-   bool next_is_sys_call;
-   bool next_is_sys_enter;
-   SYSCALL_STANDARD next_sys_call_std;
-};
-
-//FIXME
-//PIN_LOCK g_lock1;
-//PIN_LOCK g_lock2;
-
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -83,21 +62,74 @@ INT32 usage()
    return -1;
 }
 
-/* ===================================================================== */
-/* For instrumentation / modeling */
-/* ===================================================================== */
+UInt32 getInsMicroOpsCount(const INS& ins)
+{
+   // FIXME: assumes that stack is not supported by special hardware; load and
+   // store microops are assumed to be required.
+
+   bool does_read  = INS_IsMemoryRead(ins);
+   bool does_read2 = INS_HasMemoryRead2(ins);
+   bool does_write = INS_IsMemoryWrite(ins);
+
+   UInt32 count = 0;
+
+   // potentially load first operand from mem
+   count += does_read ? 1 : 0;
+
+   // potentially load second operand from mem
+   count += does_read2 ? 1 : 0;
+
+   // perform the op on the operands
+   count += 1;
+
+   // potentially store the result to mem
+   count += does_write ? 1 : 0;
+
+   return count;
+}
 
 
+PerfModelIntervalStat* analyzeInterval(const string& parent_routine,
+      const INS& start_ins, const INS& end_ins)
+{
+   vector< pair<IntPtr, UInt32> > inst_trace;
+   UInt32 microop_count = 0;
+   UInt32 cycles_subtotal = 0;
+
+   // do some analysis to get the number of cycles (before mem, branch stalls)
+   // fixme: for now we approximate with approx # x86 microops;
+   // need to account for pipeline depth / instruction latencies
+
+   for (INS ins = start_ins; ins!=end_ins; ins = INS_Next(ins))
+   {
+      // debug info
+      // cout << hex << "0x" << INS_Address(BBL_InsTail(bbl)) << dec << ": "
+      //      << INS_Mnemonic(BBL_InsTail(bbl)) << endl;
+
+      inst_trace.push_back(pair<IntPtr, UInt32>(INS_Address(ins), INS_Size(ins)));
+      UInt32 micro_ops = getInsMicroOpsCount(ins);
+      microop_count += micro_ops;
+      // FIXME
+      cycles_subtotal += micro_ops;
+   }
+
+   // allocate struct for instructs in the basic block to write stats into.
+   // NOTE: if a basic block gets split, this data may become redundant
+   PerfModelIntervalStat *stats = new PerfModelIntervalStat(parent_routine,
+         inst_trace,
+         microop_count,
+         cycles_subtotal);
+   return stats;
+}
+
+
+// For instrumentation / modeling
 void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_size,
                IntPtr dcache_st_addr, UINT32 dcache_st_size,
                PerfModelIntervalStat* *stats,
                REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes,
-               bool do_network_modeling, bool do_icache_modeling,
-               bool do_dcache_read_modeling, bool is_dual_read,
-               bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling,
-               //               bool check_scoreboard)
-               bool check_scoreboard,
-               void* ins_info_array)
+               bool do_icache_modeling, bool do_dcache_read_modeling, bool is_dual_read,
+               bool do_dcache_write_modeling, bool do_perf_modeling, bool check_scoreboard)
 {
    Core *core = g_core_manager->getCurrentCore();
    UInt32 core_id = g_core_manager->getCurrentCoreID();
@@ -126,9 +158,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
    if (skip_modeling)
       return;
 
-   assert(!do_network_modeling);
-   assert(!do_bpred_modeling);
-
    // flag passed to perfModelRun to prevent it from double-counting things on successive
    // calls to perfModelRun
    bool firstCallInIntvl = true;
@@ -138,8 +167,8 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
       for (UINT32 i = 0; i < (stats[core_id]->inst_trace.size()); i++)
       {
          // first = PC, second = size
-         bool i_hit = core->icacheRunLoadModel(stats[core_index]->inst_trace[i].first,
-                                                       stats[core_id]->inst_trace[i].second);
+         bool i_hit = core->getOCache()->runICacheLoadModel(stats[core_index]->inst_trace[i].first,
+                                                       stats[core_id]->inst_trace[i].second).first;
          if (do_perf_modeling)
          {
             stats[core_index]->logICacheLoadAccess(i_hit);
@@ -158,7 +187,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
       firstCallInIntvl = false;
    }
 
-
    if (do_dcache_read_modeling)
    {
       if (g_shmem_debug_helper->aliasEnabled())
@@ -172,8 +200,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
          char data_ld_buffer[dcache_ld_size];
          //TODO HARSHAD sharedmemory will fill ld_buffer
-         bool d_hit = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
-         // bool d_hit = dcacheRunLoadModel(dcache_ld_addr, dcache_ld_size);
+         bool d_hit = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 
          if (do_perf_modeling)
          {
@@ -185,7 +212,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
          {
             char data_ld_buffer_2[dcache_ld_size];
             //TODO HARSHAD sharedmemory will fill ld_buffer
-            bool d_hit2 = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+            bool d_hit2 = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
             // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
             if (do_perf_modeling)
             {
@@ -193,10 +220,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                firstCallInIntvl = false;
             }
          }
-
-         // cerr << "[" << core_id << "] dCache READ Modeling: Over " << endl;
       }
-
    }
    else
    {
@@ -218,12 +242,11 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
          //TODO Harshad: st buffer needs to be written
          //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
-         bool d_hit = core->dcacheRunModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+         bool d_hit = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
          if (do_perf_modeling)
          {
             stats[core_index]->logDCacheStoreAccess(d_hit);
          }
-         //cerr << "[" << core_id << "] dCache WRITE Modeling: RELEASED LOCKS " << endl;
       }
    }
    else
@@ -247,15 +270,11 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    // assumes its safe to use core zero to generate perfmodels for all cores
    assert(g_config->getNumLocalCores() > 0);
 
-
    //FIXME: These stats should be deleted at the end of execution
    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
 
    for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
-   {        
-      Core *core = g_core_manager->getCoreFromIndex(i);
-      array[i] = core->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
-   }
+      array[i] = analyzeInterval(parent_routine, start_ins, end_ins);
 
    return array;
 }
@@ -272,36 +291,29 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    is_potential_load_use;
 
    //FIXME: check for API routine
-   bool do_network_modeling      = g_knob_enable_network_modeling && is_rtn_ins_head;
    bool do_dcache_read_modeling  = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads &&
                                    INS_IsMemoryRead(ins);
    bool do_dcache_write_modeling = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores &&
                                    INS_IsMemoryWrite(ins);
-   bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
 
    //TODO: if we run on multiple machines we need shared memory
    //TODO: if we run on multiple machines we need syscall_modeling
 
    // If we are doing any other type of modeling then we need to do icache modeling
    bool do_icache_modeling       = g_knob_enable_icache_modeling &&
-                                   (do_network_modeling || do_dcache_read_modeling ||
-                                    do_dcache_write_modeling || do_bpred_modeling || is_bbl_ins_tail ||
-                                    check_scoreboard);
+                                   (do_dcache_read_modeling || do_dcache_write_modeling || 
+                                    is_bbl_ins_tail || check_scoreboard);
 
    bool do_perf_modeling         = g_knob_enable_performance_modeling &&
-                                   (do_network_modeling || do_dcache_read_modeling ||
-                                    do_dcache_write_modeling || do_icache_modeling ||
-                                    do_bpred_modeling || is_bbl_ins_tail || check_scoreboard);
+                                   (do_dcache_read_modeling || do_dcache_write_modeling || 
+                                    do_icache_modeling || is_bbl_ins_tail || check_scoreboard);
 
    // Exit early if we aren't modeling anything
-   if (!do_network_modeling && !do_icache_modeling && !do_dcache_read_modeling  &&
-         !do_dcache_write_modeling && !do_bpred_modeling && !do_perf_modeling)
+   if (!do_icache_modeling && !do_dcache_read_modeling  &&
+         !do_dcache_write_modeling && !do_perf_modeling)
    {
       return false;
    }
-
-   assert(!do_network_modeling);
-   assert(!do_bpred_modeling);
 
    //this flag may or may not get used
    bool is_dual_read = INS_HasMemoryRead2(ins);
@@ -327,7 +339,6 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
       }
    }
 
-   InsInfo** ins_info_array = NULL;
 
    // Build a list of write registers if relevant
    UINT32 num_writes = 0;
@@ -376,14 +387,11 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                          IARG_PTR, (void *) reads, IARG_UINT32, num_reads,
                          IARG_PTR, (void *) writes, IARG_UINT32, num_writes,
                          // model-enable flags
-                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling,
+                         IARG_BOOL, do_icache_modeling,
                          IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling,
+                         IARG_BOOL, do_dcache_write_modeling,
                          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard,
-                         IARG_PTR, (void *) ins_info_array,
                          IARG_END);
-
-   //   IARGLIST_AddArguments(args, IARG_PTR, (void *) ins_info);
 
    INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR) runModels, IARG_IARGLIST, args, IARG_END);
    IARGLIST_Free(args);
@@ -408,7 +416,6 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
       for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
       {
-
          // remove from list of outstanding regs if is a use
          for (UINT32 i = 0; i < INS_MaxNumRRegs(ins); i++)
          {
@@ -423,18 +430,15 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
 
          if (!INS_IsMemoryRead(ins))
          {
-
             // remove from list of outstanding regs if is overwrite
             for (UINT32 i = 0; i < INS_MaxNumWRegs(ins); i++)
             {
                REG r = INS_RegW(ins, i);
                bbl_dest_regs.clear(r);
             }
-
          }
          else
          {
-
             // add to list if writing some function of memory read; remove other writes
             // FIXME: not all r will be dependent on memory; need to remove those
             for (UINT32 i = 0; i < INS_MaxNumWRegs(ins); i++)
@@ -442,11 +446,8 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
                REG r = INS_RegW(ins, i);
                bbl_dest_regs.set(r);
             }
-
          }
-
       }
-
       dest_regs.set(bbl_dest_regs);
    }
 
@@ -465,18 +466,7 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
       }
    }
 
-#if 0
-   cerr << "Routine " << RTN_Name(rtn) << endl;
-   cerr << "  instrumented " << ins_uses.size() << " of " << rtn_ins_count << endl;
-   for (set<INS>::iterator it = ins_uses.begin(); it != ins_uses.end(); it++)
-   {
-      cerr << "  " << INS_Disassemble(*it) << endl;
-   }
-#endif
-
 }
-
-/* ===================================================================== */
 
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
@@ -540,21 +530,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(SimBarrierWait);
    }
-   //FIXME
-#if 0
-   else if (name == "CAPI_debugSetMemState")
-   {
-      msg_ptr = AFUNPTR(chipDebugSetMemState);
-   }
-   else if (name == "CAPI_debugAssertMemState")
-   {
-      msg_ptr = AFUNPTR(chipDebugAssertMemState);
-   }
-   else if (name == "CAPI_alias")
-   {
-      msg_ptr = AFUNPTR(chipAlias);
-   }
-#endif
 
    if (msg_ptr == AFUNPTR(SimGetCoreID)
          || (msg_ptr == AFUNPTR(SimMutexInit))
@@ -660,14 +635,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
-   //FIXME
-#if 0
-   else if ((msg_ptr == AFUNPTR(chipDebugSetMemState)) || (msg_ptr == AFUNPTR(chipDebugAssertMemState))
-            || (msg_ptr == AFUNPTR(chipAlias)))
-   {
-      RTN_Replace(rtn, msg_ptr);
-   }
-#endif
+
+   // If the function didn't replace a routine...
    return false;
 }
 
@@ -744,8 +713,6 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       core->getSyscallMdl()->runExit(ctx, syscall_standard);
 }
 
-/* ===================================================================== */
-
 void fini(int code, void * v)
 {
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini start");
@@ -767,15 +734,12 @@ void fini(int code, void * v)
       delete g_mcp_runner;
 
    delete [] g_sim_thread_runners;
-
    delete g_core_manager;
 
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini end");
 
    delete g_log;
 }
-
-/* ===================================================================== */
 
 void init_globals()
 {

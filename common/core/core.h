@@ -28,16 +28,11 @@ class Network;
 class Core
 {
    public:
-
       Core(SInt32 id);
       ~Core();
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
       int coreRecvW(int sender, int receiver, char *buffer, int size);
-
-      // organic cache wrappers
-      bool icacheRunLoadModel(IntPtr i_addr, UInt32 size);
-      bool dcacheRunModel(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
       // network accessor since network is private
       int getId() { return m_core_id; }

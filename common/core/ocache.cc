@@ -1,7 +1,12 @@
 #include "ocache.h"
 #include "cache.h"
+#include "memory_manager.h"
+#include "core.h"
 
 #include "pin.H"
+#include "log.h"
+#define LOG_DEFAULT_RANK   -1
+#define LOG_DEFAULT_MODULE CACHE
 
 /* ===================================================================== */
 /* Externally defined variables */
@@ -32,7 +37,7 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth;
 /* OCache method definitions */
 /* =================================================== */
 
-OCache::OCache(std::string name)
+OCache::OCache(std::string name, Core *core)
       :
       m_dl1(new RRSACache(name + "_dl1", g_knob_dcache_size.Value() * k_KILO, g_knob_line_size.Value(), g_knob_dcache_associativity.Value(), g_knob_dcache_max_search_depth.Value())),
       m_il1(new RRSACache(name + "_il1", g_knob_icache_size.Value() * k_KILO, g_knob_line_size.Value(), g_knob_icache_associativity.Value(), g_knob_icache_max_search_depth.Value())),
@@ -43,7 +48,7 @@ OCache::OCache(std::string name)
       m_dcache_total_accesses(0), m_dcache_total_misses(0),
       m_icache_total_accesses(0), m_icache_total_misses(0),
       m_total_resize_evictions(0),
-      m_last_dcache_misses(0), m_last_icache_misses(0), m_name(name)
+      m_last_dcache_misses(0), m_last_icache_misses(0), m_name(name), m_core(core)
 {
 
    // limitations due to RRSACache typedef RoundRobin set template parameters
@@ -481,5 +486,114 @@ void OCache::outputSummary(ostream& out)
       out << icache_profile.StringLong();
    }
 
+}
+
+/*
+ * dcacheRunModel (mem_operation_t operation, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+ *
+ * Arguments:
+ *   d_addr :: address of location we want to access (read or write)
+ *   shmem_req_t :: READ or WRITE
+ *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
+ *   data_size :: size of data we must read/write
+ *
+ * Return Value:
+ *   hit :: Say whether there has been at least one cache hit or not
+ */
+bool OCache::runDCacheModel(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+{
+   shmem_req_t shmem_operation;
+
+   if (operation == CacheBase::k_ACCESS_TYPE_LOAD)
+   {
+      shmem_operation = READ;
+   }
+   else
+   {
+      shmem_operation = WRITE;
+   }
+
+   if (g_config->isSimulatingSharedMemory())
+   {
+      LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
+
+      bool all_hits = true;
+
+      if (data_size <= 0)
+      {
+         return (true);
+         // TODO: this is going to affect the statistics even though no shared_mem action is taking place
+      }
+
+      IntPtr begin_addr = d_addr;
+      IntPtr end_addr = d_addr + data_size;
+      IntPtr begin_addr_aligned = begin_addr - (begin_addr % dCacheLineSize());
+      IntPtr end_addr_aligned = end_addr - (end_addr % dCacheLineSize());
+      char *curr_data_buffer_head = data_buffer;
+
+      //TODO set the size parameter correctly, based on the size of the data buffer
+      //TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
+      for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned /* Note <= */; curr_addr_aligned += dCacheLineSize())
+      {
+         // Access the cache one line at a time
+         UInt32 curr_offset;
+         UInt32 curr_size;
+
+         // Determine the offset
+         // TODO fix curr_size calculations
+         // FIXME: Check if all this is correct
+         if (curr_addr_aligned == begin_addr_aligned)
+         {
+            curr_offset = begin_addr % dCacheLineSize();
+         }
+         else
+         {
+            curr_offset = 0;
+         }
+
+         // Determine the size
+         if (curr_addr_aligned == end_addr_aligned)
+         {
+            curr_size = (end_addr % dCacheLineSize()) - (curr_offset);
+            if (curr_size == 0)
+            {
+               continue;
+            }
+         }
+         else
+         {
+            curr_size = dCacheLineSize() - (curr_offset);
+         }
+
+         LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
+
+         if (!m_core->getMemoryManager()->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size))
+         {
+            // If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
+            // If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
+            all_hits = false;
+         }
+
+         LOG_PRINT("End InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
+
+         // Increment the buffer head
+         curr_data_buffer_head += curr_size;
+      }
+
+      LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
+
+      return all_hits;
+
+   }
+   else
+   {
+      // run this if we aren't using shared_memory
+      // FIXME: I am not sure this is right
+      // What if the initial data for this address is in some other core's DRAM (which is on some other host machine)
+      if (operation == CacheBase::k_ACCESS_TYPE_LOAD)
+         return runDCacheLoadModel(d_addr, data_size).first;
+      else
+         return runDCacheStoreModel(d_addr, data_size).first;
+   }
 }
 

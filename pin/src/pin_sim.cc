@@ -1,5 +1,5 @@
-// Charles Gruenwald, Nathan Beckmann, Harshad Kasture, Jonathan Eastep, 
-// George Kurian, Jason Miller, Chris Celio, David Wentzlaff, James Psota
+// Jonathan Eastep, Harshad Kasture, Jason Miller, Chris Celio, Charles Gruenwald,
+// Nathan Beckmann, David Wentzlaff, James Psota
 // 10.12.08
 //
 // Carbon Computer Simulator
@@ -40,8 +40,8 @@
 #include "syscall_model.h"
 #include "run_models.h"
 #include "analysis.h"
+#include "routine_replace.h"
 
-#include "user_space_wrappers.h"
 #include "shmem_debug_helper.h"
 
 #define LOG_DEFAULT_RANK    core_id
@@ -65,232 +65,14 @@ INT32 usage()
 }
 
 
-bool replaceUserAPIFunction(RTN& rtn, string& name)
-{
 
-   AFUNPTR msg_ptr = NULL;
-   PROTO proto = NULL;
-
-   if (name == "CarbonInitializeThread")
-   {
-      msg_ptr = AFUNPTR(SimInitializeThread);
-   }
-   else if (name == "CAPI_Initialize")
-   {
-      msg_ptr = AFUNPTR(SimInitializeCommId);
-   }
-   else if (name == "CAPI_rank")
-   {
-      msg_ptr = AFUNPTR(SimGetCoreID);
-   }
-   else if (name == "CAPI_message_send_w")
-   {
-      msg_ptr = AFUNPTR(SimSendW);
-   }
-   else if (name == "CAPI_message_receive_w")
-   {
-      msg_ptr = AFUNPTR(SimRecvW);
-   }
-   else if (name == "mutexInit")
-   {
-      msg_ptr = AFUNPTR(SimMutexInit);
-   }
-   else if (name == "mutexLock")
-   {
-      msg_ptr = AFUNPTR(SimMutexLock);
-   }
-   else if (name == "mutexUnlock")
-   {
-      msg_ptr = AFUNPTR(SimMutexUnlock);
-   }
-   else if (name == "condInit")
-   {
-      msg_ptr = AFUNPTR(SimCondInit);
-   }
-   else if (name == "condWait")
-   {
-      msg_ptr = AFUNPTR(SimCondWait);
-   }
-   else if (name == "condSignal")
-   {
-      msg_ptr = AFUNPTR(SimCondSignal);
-   }
-   else if (name == "condBroadcast")
-   {
-      msg_ptr = AFUNPTR(SimCondBroadcast);
-   }
-   else if (name == "barrierInit")
-   {
-      msg_ptr = AFUNPTR(SimBarrierInit);
-   }
-   else if (name == "barrierWait")
-   {
-      msg_ptr = AFUNPTR(SimBarrierWait);
-   }
-
-   if (msg_ptr == AFUNPTR(SimGetCoreID)
-         || (msg_ptr == AFUNPTR(SimMutexInit))
-         || (msg_ptr == AFUNPTR(SimMutexLock))
-         || (msg_ptr == AFUNPTR(SimMutexUnlock))
-         || (msg_ptr == AFUNPTR(SimCondInit))
-         || (msg_ptr == AFUNPTR(SimCondSignal))
-         || (msg_ptr == AFUNPTR(SimCondBroadcast))
-         || (msg_ptr == AFUNPTR(SimBarrierWait))
-      )
-   {
-      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG(int*),
-                             PIN_PARG_END());
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_PROTOTYPE, proto,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                           IARG_END);
-      //RTN_Close(rtn);
-      PROTO_Free(proto);
-      return true;
-   }
-   else if ((msg_ptr == AFUNPTR(SimSendW)) || (msg_ptr == AFUNPTR(SimRecvW)))
-   {
-      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG(CAPI_endpoint_t),
-                             PIN_PARG(CAPI_endpoint_t),
-                             PIN_PARG(char*),
-                             PIN_PARG(int),
-                             PIN_PARG_END());
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
-                           IARG_END);
-      //RTN_Close(rtn);
-      PROTO_Free(proto);
-      return true;
-   }
-   else if ((msg_ptr == AFUNPTR(SimCondWait)))
-   {
-      proto = PROTO_Allocate(PIN_PARG(void),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG(int*),
-                             PIN_PARG(int*),
-                             PIN_PARG_END());
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                           IARG_END);
-      //RTN_Close(rtn);
-      PROTO_Free(proto);
-      return true;
-   }
-   else if ((msg_ptr == AFUNPTR(SimBarrierInit)))
-   {
-      proto = PROTO_Allocate(PIN_PARG(void),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG(int*),
-                             PIN_PARG(int),
-                             PIN_PARG_END());
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                           IARG_END);
-      //RTN_Close(rtn);
-      PROTO_Free(proto);
-      return true;
-   }
-   else if ((msg_ptr == AFUNPTR(SimInitializeCommId)))
-   {
-      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG(int),
-                             PIN_PARG_END());
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_PROTOTYPE, proto,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                           IARG_END);
-      //RTN_Close(rtn);
-      PROTO_Free(proto);
-      return true;
-   }
-   else if ((msg_ptr == AFUNPTR(SimInitializeThread)))
-   {
-      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG_END());
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_PROTOTYPE, proto,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                           IARG_END);
-      //RTN_Close(rtn);
-      PROTO_Free(proto);
-      return true;
-   }
-
-   // If the function didn't replace a routine...
-   return false;
-}
-
-void routine(RTN rtn, void *v)
+void routineCallback(RTN rtn, void *v)
 {
    string rtn_name = RTN_Name(rtn);
    bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
 
    if (!did_func_replace)
-   {
-      RTN_Open(rtn);
-      INS rtn_head = RTN_InsHead(rtn);
-      bool is_rtn_ins_head = true;
-      set<INS> ins_uses;
-
-      if (g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads)
-      {
-         getPotentialLoadFirstUses(rtn, ins_uses);
-      }
-
-      // Add instrumentation to each basic block for modeling
-      for (BBL bbl = RTN_BblHead(rtn); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-      {
-         UINT32 inst_offset = 0;
-         UINT32 last_offset = BBL_NumIns(bbl);
-
-         INS start_ins = BBL_InsHead(bbl);
-         INS ins;
-
-         for (ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
-         {
-            INS next = INS_Next(ins);
-            assert(!INS_Valid(next) || (INS_Address(next) > INS_Address(ins)));
-            assert(!is_rtn_ins_head || (ins==rtn_head));
-
-            set<INS>::iterator it = ins_uses.find(ins);
-            bool is_potential_load_use = (it != ins_uses.end());
-            if (is_potential_load_use)
-            {
-               ins_uses.erase(it);
-            }
-
-            bool instrumented =
-               insertInstructionModelingCall(rtn_name, start_ins, ins, is_rtn_ins_head, (inst_offset == 0),
-                                             !INS_Valid(next), is_potential_load_use);
-            if (instrumented)
-            {
-               start_ins = INS_Next(ins);
-            }
-            ++inst_offset;
-            is_rtn_ins_head = false;
-         }
-         assert(inst_offset == last_offset);
-      }
-
-      RTN_Close(rtn);
-   }
+      replaceInstruction(rtn, rtn_name);
 }
 
 // syscall model wrappers
@@ -427,7 +209,7 @@ int main(int argc, char *argv[])
 
    // Instrumentation
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
-   RTN_AddInstrumentFunction(routine, 0);
+   RTN_AddInstrumentFunction(routineCallback, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);
    PIN_AddFiniFunction(fini, 0);

@@ -8,7 +8,6 @@ extern LEVEL_BASE::KNOB<bool> g_knob_dcache_ignore_loads;
 extern LEVEL_BASE::KNOB<bool> g_knob_dcache_ignore_stores;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
 
-
 UInt32 getInsMicroOpsCount(const INS& ins)
 {
    // FIXME: assumes that stack is not supported by special hardware; load and
@@ -34,7 +33,6 @@ UInt32 getInsMicroOpsCount(const INS& ins)
 
    return count;
 }
-
 
 PerfModelIntervalStat* analyzeInterval(const string& parent_routine,
       const INS& start_ins, const INS& end_ins)
@@ -276,3 +274,54 @@ void getPotentialLoadFirstUses(const RTN& rtn, set<INS>& ins_uses)
    }
 
 }
+
+void replaceInstruction(RTN rtn, string rtn_name)
+{
+    RTN_Open(rtn);
+    INS rtn_head = RTN_InsHead(rtn);
+    bool is_rtn_ins_head = true;
+    set<INS> ins_uses;
+
+    if (g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads)
+    {
+        getPotentialLoadFirstUses(rtn, ins_uses);
+    }
+
+    // Add instrumentation to each basic block for modeling
+    for (BBL bbl = RTN_BblHead(rtn); BBL_Valid(bbl); bbl = BBL_Next(bbl))
+    {
+        UINT32 inst_offset = 0;
+        UINT32 last_offset = BBL_NumIns(bbl);
+
+        INS start_ins = BBL_InsHead(bbl);
+        INS ins;
+
+        for (ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
+        {
+            INS next = INS_Next(ins);
+            assert(!INS_Valid(next) || (INS_Address(next) > INS_Address(ins)));
+            assert(!is_rtn_ins_head || (ins==rtn_head));
+
+            set<INS>::iterator it = ins_uses.find(ins);
+            bool is_potential_load_use = (it != ins_uses.end());
+            if (is_potential_load_use)
+            {
+                ins_uses.erase(it);
+            }
+
+            bool instrumented =
+                insertInstructionModelingCall(rtn_name, start_ins, ins, is_rtn_ins_head, (inst_offset == 0),
+                        !INS_Valid(next), is_potential_load_use);
+            if (instrumented)
+            {
+                start_ins = INS_Next(ins);
+            }
+            ++inst_offset;
+            is_rtn_ins_head = false;
+        }
+        assert(inst_offset == last_offset);
+    }
+
+    RTN_Close(rtn);
+}
+

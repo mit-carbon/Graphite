@@ -18,4 +18,5 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    const INS& ins, bool is_rtn_ins_head, bool is_bbl_ins_head,
                                    bool is_bbl_ins_tail, bool is_potential_load_use);
 
+void replaceInstruction(RTN rtn, string rtn_name);
 #endif

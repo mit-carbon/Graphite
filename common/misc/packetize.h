@@ -23,7 +23,7 @@ class UnstructuredBuffer
    public:
 
       UnstructuredBuffer();
-      const char* getBuffer();
+      const void* getBuffer();
       void clear();
       int size();
 
@@ -55,10 +55,10 @@ class UnstructuredBuffer
       UnstructuredBuffer& operator>>(SInt8&  data);
 
       // put buffer
-      UnstructuredBuffer& operator<<(std::pair<void*, int> buffer);
+      UnstructuredBuffer& operator<<(std::pair<const void*, int> buffer);
 
       // get buffer
-      UnstructuredBuffer& operator>>(std::pair<void*, int> buffer);
+      UnstructuredBuffer& operator>>(std::pair<const void*, int> buffer);
 
 };
 

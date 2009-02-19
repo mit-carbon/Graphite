@@ -80,6 +80,8 @@ CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 {
    Core *core = g_core_manager->getCurrentCore();
 
+   LOG_PRINT_EXPLICIT(-1, USERSPACEWRAPPERS, "SimSendW - sender: %d, recv: %d", sender, receiver);
+
    UInt32 sending_core = g_config->getCoreFromCommId(sender);
    UInt32 receiving_core = g_config->getCoreFromCommId(receiver);
 
@@ -90,6 +92,8 @@ CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                        char *buffer, int size)
 {
    Core *core = g_core_manager->getCurrentCore();
+
+   LOG_PRINT_EXPLICIT(-1, USERSPACEWRAPPERS, "SimRecvW - sender: %d, recv: %d", sender, receiver);
 
    UInt32 sending_core = g_config->getCoreFromCommId(sender);
    UInt32 receiving_core = g_config->getCoreFromCommId(receiver);

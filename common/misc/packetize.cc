@@ -38,7 +38,7 @@ template<class T> bool UnstructuredBuffer::get(T& data)
 }
 
 
-const char* UnstructuredBuffer::getBuffer()
+const void* UnstructuredBuffer::getBuffer()
 {
    return m_chars.data();
 }
@@ -129,9 +129,9 @@ UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt8&  data)
 
 // put buffer
 
-UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<void*, int> buffer)
+UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<const void*, int> buffer)
 {
-   void *buff = buffer.first;
+   const void *buff = buffer.first;
    int size = buffer.second;
 
    assert(size >= 0);
@@ -143,9 +143,9 @@ UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<void*, int> buffer)
 
 // get buffer
 
-UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<void*, int> buffer)
+UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<const void*, int> buffer)
 {
-   void *buff = buffer.first;
+   const void *buff = buffer.first;
    int size = buffer.second;
    //cerr << buff << " " << size << endl;
 

@@ -10,7 +10,7 @@ OPT=-O2
 CXXFLAGS=-c -I../core -I../misc -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 LDFLAGS=
 
-SOURCES = transport.cc
+SOURCES = transport.cc mpitransport.cc smtransport.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
 include ../makefile.common

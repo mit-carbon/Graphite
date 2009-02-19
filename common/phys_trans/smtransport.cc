@@ -1,89 +1,152 @@
-#include <cassert>
 #include "smtransport.h"
+#include "config.h"
 #include "log.h"
 
-#define LOG_DEFAULT_RANK pt_tid
+#define LOG_DEFAULT_RANK   -1
 #define LOG_DEFAULT_MODULE SMTRANSPORT
 
-Transport::PTQueue* Transport::pt_queue = NULL;
-Transport::Futex* Transport::pt_futx = NULL;
+// -- SmTransport -- //
 
-void Transport::ptGlobalInit()
+SmTransport::SmTransport()
 {
+   LOG_ASSERT_ERROR(g_config->getProcessCount() == 1, "*ERROR* Can only use SmTransport with a single process.");
+
    g_config->setProcessNum(0);
-   LOG_PRINT_EXPLICIT(-1, SMTRANSPORT, "SM Transport::ptGlobalInit");
 
-   pt_queue = new PTQueue[g_config->getTotalCores()];
-   pt_futx = new Futex[g_config->getTotalCores()];
+   m_global_node = new SmNode(-1, this);
+   m_core_nodes = new SmNode* [ g_config->getNumLocalCores() ];
+   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+      m_core_nodes[i] = NULL;
+}
 
-   for (UInt32 i = 0; i < g_config->getTotalCores(); i++)
+SmTransport::~SmTransport()
+{
+   // The networks actually delete the Transport::Nodes, so we
+   // shouldn't do it ourselves.
+   // for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   //    delete m_core_nodes[i];
+
+   delete [] m_core_nodes;
+   delete m_global_node;
+}
+
+Transport::Node* SmTransport::createNode(SInt32 core_id)
+{
+   LOG_ASSERT_ERROR((UInt32)core_id < g_config->getNumLocalCores(),
+                    "*ERROR* Request index out of range: %d", core_id);
+   LOG_ASSERT_ERROR(m_core_nodes[core_id] == NULL,
+                    "*ERROR* Transport already allocated for id: %d.", core_id);
+
+   m_core_nodes[core_id] = new SmNode(core_id, this);
+
+   LOG_PRINT("Created node: %p on id: %d", m_core_nodes[core_id], core_id);
+
+   return m_core_nodes[core_id];
+}
+
+void SmTransport::barrier()
+{
+   // We assume a single process, so this is a NOOP
+}
+
+Transport::Node* SmTransport::getGlobalNode()
+{
+   return m_global_node;
+}
+
+SmTransport::SmNode* SmTransport::getNodeFromId(SInt32 core_id)
+{
+   LOG_ASSERT_ERROR((UInt32)core_id < g_config->getNumLocalCores(),
+                    "*ERROR* Core id out of range: %d", core_id);
+   return m_core_nodes[core_id];
+}
+
+void SmTransport::clearNodeForId(SInt32 core_id)
+{
+   // This is called upon deletion of the node, so we should simply
+   // not keep around a dead pointer. Also enables future support for
+   // dynamic threads.
+   if ((UInt32)core_id < g_config->getNumLocalCores())
+      m_core_nodes[core_id] = NULL;
+}
+
+// -- SmTransportNode -- //
+
+#undef LOG_DEFAULT_RANK
+#define LOG_DEFAULT_RANK getCoreId()
+
+SmTransport::SmNode::SmNode(SInt32 core_id, SmTransport *smt)
+   : Node(core_id)
+   , m_smt(smt)
+{
+}
+
+SmTransport::SmNode::~SmNode()
+{
+   LOG_ASSERT_WARNING(m_queue.empty(), "*WARNING* Unread messages in queue for core: %d", getCoreId());
+   m_smt->clearNodeForId(getCoreId());
+}
+
+void SmTransport::SmNode::globalSend(SInt32 dest_proc, Byte *buffer, UInt32 length)
+{
+   LOG_ASSERT_ERROR(dest_proc == 0, "*ERROR* Destination other than zero: %d", dest_proc);
+   send((SmNode*)m_smt->getGlobalNode(), buffer, length);
+}
+
+void SmTransport::SmNode::send(SInt32 dest_id, Byte* buffer, UInt32 length)
+{
+   SmNode *dest_node = m_smt->getNodeFromId(dest_id);
+   LOG_ASSERT_ERROR(dest_node != NULL, "*ERROR* Attempt to send to non-existent node: %d", dest_id);
+   send(dest_node, buffer, length);
+}
+
+void SmTransport::SmNode::send(SmNode *dest_node, Byte *buffer, UInt32 length)
+{
+   Byte *data = new Byte[length];
+   memcpy(data, buffer, length);
+
+   LOG_PRINT("sending msg -- size: %i, data: %p, dest: %p", length, data, dest_node);
+
+   dest_node->m_cond.acquire();
+   dest_node->m_queue.push(data);
+   dest_node->m_cond.release();
+   dest_node->m_cond.broadcast();
+
+   LOG_PRINT("msg sent");
+}
+
+Byte* SmTransport::SmNode::recv()
+{
+   LOG_PRINT("attempting recv -- this: %p", this);
+
+   m_cond.acquire();
+
+   while (true)
    {
-      InitLock(&(pt_queue[i].pt_q_lock));
-      pt_futx[i].futx = 1;
-      InitLock(&(pt_futx[i].futx_lock));
+      if (!m_queue.empty())
+      {
+         Byte *data = m_queue.front();
+         m_queue.pop();
+         m_cond.release();
 
+         LOG_PRINT("msg recv'd -- data: %p, this: %p", data, this);
+
+         return data;
+      }
+      else
+      {
+         m_cond.wait();
+      }
    }
 }
 
-Transport::Transport(SInt32 tid)
+bool SmTransport::SmNode::query()
 {
-   pt_tid = tid;
-   InitLock(&(pt_futx[tid].futx_lock));
-}
+   bool result = false;
 
-SInt32 Transport::ptSend(SInt32 receiver, void *buffer, SInt32 size)
-{
-   // memory will be deleted by network, so we must copy it
-   Byte *bufcopy = new Byte[size];
-   memcpy(bufcopy, buffer, size);
+   m_cond.acquire();
+   result = !m_queue.empty();
+   m_cond.release();
 
-   GetLock(&(pt_queue[receiver].pt_q_lock), 1);
-   pt_queue[receiver].pt_queue.push(bufcopy);
-   ReleaseLock(&(pt_queue[receiver].pt_q_lock));
-
-   GetLock(&(pt_futx[receiver].futx_lock), 1);
-
-   if (pt_futx[receiver].futx == 0)
-   {
-      pt_futx[receiver].futx = 1;
-
-      // FIXME: Make a macro for this
-      syscall(SYS_futex, (void*)&(pt_futx[receiver].futx), FUTEX_WAKE, 1, NULL, NULL, 1);
-   }
-
-   ReleaseLock(&(pt_futx[receiver].futx_lock));
-   return size;
-}
-
-void* Transport::ptRecv()
-{
-   void *ptr;
-
-   while (1)
-   {
-      GetLock(&(pt_futx[pt_tid].futx_lock), 1);
-
-      if (pt_queue[pt_tid].pt_queue.empty())
-         pt_futx[pt_tid].futx = 0;
-
-      ReleaseLock(&(pt_futx[pt_tid].futx_lock));
-
-      syscall(SYS_futex, (void*)&(pt_futx[pt_tid].futx), FUTEX_WAIT, 0, NULL, NULL, 1);
-      if (!pt_queue[pt_tid].pt_queue.empty())
-         break;
-   }
-
-   GetLock(&(pt_queue[pt_tid].pt_q_lock), 1);
-
-   ptr = pt_queue[pt_tid].pt_queue.front();
-   pt_queue[pt_tid].pt_queue.pop();
-   ReleaseLock(&(pt_queue[pt_tid].pt_q_lock));
-
-   return ptr;
-}
-
-Boolean Transport::ptQuery()
-{
-   //original code
-   return !(pt_queue[pt_tid].pt_queue.empty());
+   return result;
 }

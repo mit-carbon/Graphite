@@ -49,6 +49,7 @@
 
 CoreManager *g_core_manager = NULL;
 Config *g_config = NULL;
+Transport *g_transport = NULL;
 MCP *g_MCP = NULL;
 MCPRunner * g_mcp_runner = NULL;
 SimThreadRunner * g_sim_thread_runners = NULL;
@@ -315,14 +316,12 @@ void fini(int code, void * v)
 
    // Make sure all other processes are finished before we start tearing down stuffs
    if(g_config->getProcessCount() > 1)
-      Transport::ptBarrier();
+      Transport::getSingleton()->barrier();
 
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
       g_MCP->finish();
 
    SimThreadQuit();
-
-   Transport::ptFinish();
 
    g_core_manager->outputSummary();
 
@@ -332,9 +331,12 @@ void fini(int code, void * v)
    delete [] g_sim_thread_runners;
    delete g_core_manager;
 
+   delete g_transport;
+
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini end");
 
    delete g_log;
+   delete g_config;
 }
 
 void init_globals()
@@ -357,10 +359,7 @@ void init_globals()
    g_config = new Config;
    //g_config->loadFromFile(FIXME);
 
-   // NOTE: transport and queues must be inited before the core_manager
-   // I think this one wants a per-process core count it adds one
-   // on it's own for the mcp
-   Transport::ptGlobalInit();
+   g_transport = Transport::create();
 
    g_shmem_debug_helper = new ShmemDebugHelper();
 
@@ -438,7 +437,7 @@ int main(int argc, char *argv[])
    PIN_AddThreadFiniFunction(ThreadFini, 0);
 
    // Just in case ... might not be strictly necessary
-   Transport::ptBarrier();
+   Transport::getSingleton()->barrier();
 
    // Never returns
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Running program...");

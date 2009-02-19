@@ -64,7 +64,7 @@ void SimThreadQuit()
    while (g_sim_num_active_threads > 0)
       sched_yield();
 
-   Transport::ptBarrier();
+   Transport::getSingleton()->barrier();
 
    LOG_PRINT("Done in SimThreadQuit.");
 }

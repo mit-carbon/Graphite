@@ -38,7 +38,10 @@ squeaky: clean
 	$(MAKE) -C qemu squeaky
 	-rm -f *~
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon
+empty_logs :
+	rm output_files/* ; true
+
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
 
@@ -48,121 +51,121 @@ clean_benchmarks:
 build_benchmarks:
 	make $@ -C $(TESTS_DIR)
 
-simple_test: all
+simple_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0
 
-simple_test_dist: all
+simple_test_dist: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
 	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 1
 
-cannon_msg_dist: all
+cannon_msg_dist: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg_dist
 	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4 1
 
-io_test: all
+io_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/file_io
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/file_io/file_io
 
-ping_pong_test: all
+ping_pong_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
 	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 2 -- $(TESTS_DIR)/ping_pong/ping_pong
 
-cannon: all
+cannon: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon
 #	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 	$(PIN_RUN) -mdc -msm -mpf -msys -np 1 -tc $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
-cannon_msg: all
+cannon_msg: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/cannon_msg/cannon -m 4 -s 4
 
-capi_worker: all
+capi_worker: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/capi_worker
 	$(PIN_RUN) -mdc -mpf -msys -n 8 -- $(TESTS_DIR)/capi_worker/capi_worker
 
-shmem_test_new: all
+shmem_test_new: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 #	$(PIN_RUN) -mdc -msm -n 2 -- $(TESTS_DIR)/shared_mem_test/test
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_new 5 
 
-shmem_test_evic: all
+shmem_test_evic: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_evic 5 
 
-1djacobi_test: all
+1djacobi_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
 	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64 
 
-1djacobi_test_quick: all
+1djacobi_test_quick: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
 	$(PIN_RUN) -mdc -msm -msys -mpf -n 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
 
-jacobi_test: all
+jacobi_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
 	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -dms 1000 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n $(CORES)
 
-mutex_test: all
+mutex_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/mutex
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/mutex/mutex_test
 
-cond_test: all
+cond_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cond
 	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/cond/cond_test
 
-broadcast_test: all
+broadcast_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/broadcast
 	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/broadcast/broadcast_test
 
-barrier_test: all
+barrier_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/barrier
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/barrier/barrier_test
 
 
-fmm_test: all
+fmm_test: all empty_logs
 	# note, the 5th line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/fmm
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
-basic_test: all
+basic_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
 	$(PIN_RUN) -mpf -mdc -msm -msys -n $(CORES) -dms 4 -- $(TESTS_DIR)/pthreads_basic/basic -n $(CORES)
 
-cache_test: all
+cache_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cache_model
 	$(PIN_RUN) -mdc -mpf -n 2 -- $(TESTS_DIR)/cache_model/cache_test
 
 # below here is the splash benchmarks
 
-barnes_test: all
+barnes_test: all empty_logs
 	# note, the last line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/barnes
 	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
 
 
-radiosity_test: all
+radiosity_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/radiosity
 	$(PIN_RUN) -mdc -mpf -msys -n 10 -- $(TESTS_DIR)/radiosity/RADIOSITY -p 8 -batch -room
 
-ocean_test: all
+ocean_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/ocean_contig
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/ocean_contig/OCEAN -p8
 
-raytrace_test: all
+raytrace_test: all empty_logs
 	#FIXME has some build issues
 	$(MAKE) -C $(TESTS_DIR)/raytrace
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/raytrace/RAYTRACE -p8 $(TESTS_DIR)/raytrace/inputs/teapot.env
 
-volrend_test: all
+volrend_test: all empty_logs
 	#FIXME this one runs out of memory
 	$(MAKE) -C $(TESTS_DIR)/volrend
 	$(PIN_RUN) -mdc -mpf -msys -n 45 -- $(TESTS_DIR)/volrend/VOLREND 8 $(TESTS_DIR)/volrend/inputs/head-scaleddown2
 
-watern_test: all
+watern_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/water-nsquared
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/water-nsquared/WATER-NSQUARED < $(TESTS_DIR)/water-nsquared/input
 
-waters_test: all
+waters_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/water-spatial
 	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/water-spatial/WATER-SPATIAL < $(TESTS_DIR)/water-spatial/input
 

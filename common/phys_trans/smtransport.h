@@ -1,63 +1,47 @@
-// Harshad Kasture
-//
-
 #ifndef SMTRANSPORT_H
 #define SMTRANSPORT_H
 
-#include <iostream>
-#include <sched.h>
-#include <syscall.h>
-#include <linux/futex.h>
-#include <linux/kernel.h>
-#include <unistd.h>
-#include <errno.h>
 #include <queue>
-#include "pin.H"
-#include "config.h"
-#include "fixed_types.h"
 
-class Transport
+#include "transport.h"
+#include "cond.h"
+
+class SmTransport : public Transport
 {
+public:
+   SmTransport();
+   ~SmTransport();
+
+   class SmNode : public Node
+   {
    public:
-      Transport(SInt32 core_id);
+      SmNode(SInt32 core_id, SmTransport *smt);
+      ~SmNode();
 
-      // This routine should be called once within in each process.
-      static void ptGlobalInit();
-
-      // This does nothing but is needed so the interface matches the
-      //  other versions of the PT layer
-      static void ptFinish() {}
-
-      //FIXME: this should become a phtread barrier
-      static void ptBarrier() {}
-
-
-      SInt32 ptSend(SInt32 receiver, void *buffer, SInt32 length);
-      void* ptRecv();
-      Boolean ptQuery();
+      void globalSend(SInt32, Byte*, UInt32);
+      void send(SInt32, Byte*, UInt32);
+      Byte* recv();
+      bool query();
 
    private:
-      SInt32 pt_tid;
+      void send(SmNode *dest, Byte *buffer, UInt32 length);
 
-      //***** Data structures for normal communication *****//
-      typedef struct PTQueue
-      {
-         queue <char*, deque<void*> > pt_queue;
-         PIN_LOCK pt_q_lock;
-      } PTQueue;
+      std::queue<Byte*> m_queue;
+      ConditionVariable m_cond;
+      SmTransport *m_smt;
+   };
 
-      static PTQueue *pt_queue;
+   Node* createNode(SInt32 core_id);
 
-      typedef struct Futex
-      {
-         SInt32 futx;
-         PIN_LOCK futx_lock;
-      } Futex;
+   void barrier();
+   Node* getGlobalNode();
 
-      static Futex *pt_futx;
+private:
+   Node *m_global_node;
+   SmNode **m_core_nodes;
 
+   SmNode *getNodeFromId(SInt32 core_id);
+   void clearNodeForId(SInt32 core_id);
 };
 
 #endif
-
-

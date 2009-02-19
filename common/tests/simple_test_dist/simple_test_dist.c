@@ -35,7 +35,7 @@ void* thread_func(void *threadid)
    CarbonInitializeThread();
    rtnVal = CAPI_Initialize((int)threadid);
 
-   sleep(1);
+   sleep(10);
 
    // Initialize local variables
 //   CAPI_rank(&tid);

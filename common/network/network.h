@@ -108,7 +108,6 @@ class Network
       Network(Core *core);
       ~Network();
 
-      Transport *getTransport() const { return _transport; }
       Core *getCore() const { return _core; }
 
       typedef void (*NetworkCallback)(void*, NetPacket);

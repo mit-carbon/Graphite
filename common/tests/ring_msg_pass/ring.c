@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 
    CarbonInitializeThread();
    CAPI_Initialize(rank);
-   sleep(3);
+   sleep(5);
 
    // Calculate the rank of the next process in the ring.  Use the
    //  modulus operator so that the last process "wraps around" to

@@ -41,7 +41,7 @@ squeaky: clean
 empty_logs :
 	rm output_files/* ; true
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
 
@@ -61,11 +61,11 @@ simple_test_dist: all empty_logs
 
 cannon_msg_dist: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg_dist
-	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4 1
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4
 
 ring_msg_pass: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/ring_msg_pass
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/ring_msg_pass/ring -m 2
+	$(MPI_DIR)/bin/mpirun -np 3 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 3 -tc 3 -- $(TESTS_DIR)/ring_msg_pass/ring -m 3
 
 io_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/file_io

@@ -87,8 +87,7 @@ void join_worker_threads(int proc)
 
 int main(int argc, char* argv[])  // main begins
 {
-
-   int proc = atoi(argv[5]);
+   int proc = CarbonGetCurrentProcessId();
    fprintf(stderr, "Process: %d\n", proc);
 
    float **a, **b, **c;
@@ -101,7 +100,7 @@ int main(int argc, char* argv[])  // main begins
 #endif
 
    // Read in the command line arguments
-   if (argc != 6)
+   if (argc != 5)
    {
       printf("Invalid command line options. The correct format is:\n");
       printf("cannon -m num_of_threads -s size_of_square_matrix\n");

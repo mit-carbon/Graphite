@@ -28,7 +28,7 @@ Transport* Transport::create()
    assert(m_singleton == NULL);
    
    if (g_config->getProcessCount() == 1)
-      m_singleton = NULL; //new SmTransport();
+      m_singleton = new SmTransport();
 
    else if (g_config->getProcessCount() > 1)
       m_singleton = new MpiTransport();

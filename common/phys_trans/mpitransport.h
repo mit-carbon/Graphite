@@ -30,7 +30,7 @@ public:
    Node* getGlobalNode();
 
 private:
-   MpiNode *m_global_node; // used for top level send/recv
+   MpiNode *m_global_node;
 
    static const int PROC_COMM_TAG=65536;
 };

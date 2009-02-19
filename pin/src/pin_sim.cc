@@ -726,8 +726,6 @@ void fini(int code, void * v)
 
    SimThreadQuit();
 
-   delete g_transport;
-
    g_core_manager->outputSummary();
 
    if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
@@ -736,9 +734,12 @@ void fini(int code, void * v)
    delete [] g_sim_thread_runners;
    delete g_core_manager;
 
+   delete g_transport;
+
    LOG_PRINT_EXPLICIT(-1, PINSIM, "fini end");
 
    delete g_log;
+   delete g_config;
 }
 
 void init_globals()

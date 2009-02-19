@@ -17,6 +17,8 @@ extern "C"
 
    //FIXME: put me some place better
    void CarbonInitializeThread();
+   int CarbonGetProcessCount();
+   int CarbonGetCurrentProcessId();
 
    CAPI_return_t CAPI_Initialize(int rank);
 

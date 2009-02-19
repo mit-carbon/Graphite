@@ -3,13 +3,20 @@
 
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
-
    AFUNPTR msg_ptr = NULL;
    PROTO proto = NULL;
 
    if (name == "CarbonInitializeThread")
    {
       msg_ptr = AFUNPTR(SimInitializeThread);
+   }
+   else if (name == "CarbonGetProcessCount")
+   {
+      msg_ptr = AFUNPTR(SimGetProcessCount);
+   }
+   else if (name == "CarbonGetCurrentProcessId")
+   {
+      msg_ptr = AFUNPTR(SimGetProcessId);
    }
    else if (name == "CAPI_Initialize")
    {
@@ -162,7 +169,19 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
                              PIN_PARG_END());
       RTN_ReplaceSignature(rtn, msg_ptr,
                            IARG_PROTOTYPE, proto,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);
+      //RTN_Close(rtn);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if ((msg_ptr == AFUNPTR(SimGetProcessId)) || (msg_ptr == AFUNPTR(SimGetProcessCount)))
+   {
+      proto = PROTO_Allocate(PIN_PARG(int),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG_END());
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
                            IARG_END);
       //RTN_Close(rtn);
       PROTO_Free(proto);

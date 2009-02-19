@@ -8,6 +8,8 @@
 CAPI_return_t SimGetCoreID(int *core_id);
 void SimInitializeThread();
 void SimInitializeCommId(int comm_id);
+int SimGetProcessId();
+int SimGetProcessCount();
 
 // sync wrappers
 void SimMutexInit(carbon_mutex_t *mux);

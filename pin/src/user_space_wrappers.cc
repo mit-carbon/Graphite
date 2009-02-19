@@ -15,6 +15,16 @@ void SimInitializeThread()
    g_core_manager->initializeThread();
 }
 
+int SimGetProcessCount()
+{
+    return g_config->getProcessCount();
+}
+
+int SimGetProcessId()
+{
+    return g_config->getCurrentProcessNum();
+}
+
 void SimInitializeCommId(int comm_id)
 {
    g_core_manager->initializeCommId(comm_id);

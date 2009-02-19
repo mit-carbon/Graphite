@@ -57,11 +57,15 @@ simple_test: all empty_logs
 
 simple_test_dist: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
-	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 1
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 0
 
 cannon_msg_dist: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg_dist
 	$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4 0 : -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4 1
+
+simple_msg_pass: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/simple_msg_pass
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_msg_pass/ring -m 2
 
 io_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/file_io

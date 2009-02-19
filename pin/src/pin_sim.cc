@@ -214,9 +214,9 @@ int main(int argc, char *argv[])
    PIN_AddSyscallExitFunction(SyscallExit, 0);
    PIN_AddFiniFunction(fini, 0);
 
-   PIN_AddApplicationStartFunction(AppStart, 0);
    PIN_AddThreadStartFunction(ThreadStart, 0);
    PIN_AddThreadFiniFunction(ThreadFini, 0);
+   PIN_AddApplicationStartFunction(AppStart, 0);
 
    // Just in case ... might not be strictly necessary
    Transport::getSingleton()->barrier();

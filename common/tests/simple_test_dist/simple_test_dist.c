@@ -16,7 +16,8 @@ void* thread_func(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-   int proc = atoi(argv[1]);
+   int proc = CarbonGetCurrentProcessId();
+//   int proc = atoi(argv[1]);
    fprintf(stderr, "Process: %d\n", proc);
 
 

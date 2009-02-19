@@ -43,5 +43,19 @@ CAPI_return_t CAPI_Finish(int my_rank)
 void CarbonInitializeThread()
 {
    assert(false);
+}
+
+int CarbonGetProcessCount()
+{
+   assert(false);
    return 0;
 }
+
+int CarbonGetCurrentProcessId()
+{
+   assert(false);
+   return 0;
+}
+
+
+

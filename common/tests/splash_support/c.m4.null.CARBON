@@ -167,17 +167,11 @@ extern pthread_t PThreadTable[];
 ')
 
 define(THREAD_INIT, `{
-  int tid;
-  CAPI_return_t rtnVal;
-  rtnVal = CAPI_Initialize($1);
-  CAPI_rank(&tid);
+  CarbonInitializeThread();
   }')
 
 define(THREAD_INIT_FREE, `{
-  int tid;
-  CAPI_return_t rtnVal;
-  rtnVal = CAPI_Initialize_FreeRank(&tid);
-  CAPI_rank(&tid);
+  CarbonInitializeThread();
   }')
 
 define(G_MALLOC, `valloc($1);')

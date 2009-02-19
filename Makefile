@@ -91,19 +91,19 @@ capi_worker: all empty_logs
 shmem_test_new: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
 #	$(PIN_RUN) -mdc -msm -n 2 -- $(TESTS_DIR)/shared_mem_test/test
-	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_new 5 
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_new 5
 
 shmem_test_evic: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
-	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_evic 5 
+	$(PIN_RUN) -mdc -msm -msys -mpf -n 2 -- $(TESTS_DIR)/shared_mem_test/test_evic 5
 
 1djacobi_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64 
+	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64
 
 1djacobi_test_quick: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -n 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
+	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
 
 jacobi_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
@@ -126,10 +126,6 @@ barrier_test: all empty_logs
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/barrier/barrier_test
 
 
-fmm_test: all empty_logs
-	# note, the 5th line in the input file must match the number of procs passed to pin
-	$(MAKE) -C $(TESTS_DIR)/fmm
-	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
 basic_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/pthreads_basic
@@ -140,38 +136,42 @@ cache_test: all empty_logs
 	$(PIN_RUN) -mdc -mpf -n 2 -- $(TESTS_DIR)/cache_model/cache_test
 
 # below here is the splash benchmarks
+fmm_test: all empty_logs
+	# note, the 5th line in the input file must match the number of procs passed to pin
+	$(MAKE) -C $(TESTS_DIR)/fmm
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 10 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
 barnes_test: all empty_logs
 	# note, the last line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/barnes
-	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
 
 
 radiosity_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/radiosity
-	$(PIN_RUN) -mdc -mpf -msys -n 10 -- $(TESTS_DIR)/radiosity/RADIOSITY -p 8 -batch -room
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 10 -- $(TESTS_DIR)/radiosity/RADIOSITY -p 8 -batch -room
 
 ocean_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/ocean_contig
-	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/ocean_contig/OCEAN -p8
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/ocean_contig/OCEAN -p8
 
 raytrace_test: all empty_logs
 	#FIXME has some build issues
 	$(MAKE) -C $(TESTS_DIR)/raytrace
-	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/raytrace/RAYTRACE -p8 $(TESTS_DIR)/raytrace/inputs/teapot.env
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/raytrace/RAYTRACE -p8 $(TESTS_DIR)/raytrace/inputs/teapot.env
 
 volrend_test: all empty_logs
 	#FIXME this one runs out of memory
 	$(MAKE) -C $(TESTS_DIR)/volrend
-	$(PIN_RUN) -mdc -mpf -msys -n 45 -- $(TESTS_DIR)/volrend/VOLREND 8 $(TESTS_DIR)/volrend/inputs/head-scaleddown2
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 45 -- $(TESTS_DIR)/volrend/VOLREND 8 $(TESTS_DIR)/volrend/inputs/head-scaleddown2
 
 watern_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/water-nsquared
-	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/water-nsquared/WATER-NSQUARED < $(TESTS_DIR)/water-nsquared/input
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/water-nsquared/WATER-NSQUARED < $(TESTS_DIR)/water-nsquared/input
 
 waters_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/water-spatial
-	$(PIN_RUN) -mdc -mpf -msys -n 9 -- $(TESTS_DIR)/water-spatial/WATER-SPATIAL < $(TESTS_DIR)/water-spatial/input
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/water-spatial/WATER-SPATIAL < $(TESTS_DIR)/water-spatial/input
 
 check_ld_path:
 	@echo $(LD_LIBRARY_PATH)

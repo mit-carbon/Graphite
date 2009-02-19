@@ -216,9 +216,6 @@ void CoreManager::outputSummary()
       if (g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling())
          m_cores[i]->getOCache()->outputSummary(out);
 
-      delete m_cores[i];
-      m_cores[i] = NULL;
-
       out << endl;
    }
 

@@ -21,66 +21,6 @@ PerfModel::~PerfModel()
    delete m_clock_lock;
 }
 
-UInt32 PerfModel::getInsMicroOpsCount(const INS& ins)
-{
-   // FIXME: assumes that stack is not supported by special hardware; load and
-   // store microops are assumed to be required.
-
-   bool does_read  = INS_IsMemoryRead(ins);
-   bool does_read2 = INS_HasMemoryRead2(ins);
-   bool does_write = INS_IsMemoryWrite(ins);
-
-   UInt32 count = 0;
-
-   // potentially load first operand from mem
-   count += does_read ? 1 : 0;
-
-   // potentially load second operand from mem
-   count += does_read2 ? 1 : 0;
-
-   // perform the op on the operands
-   count += 1;
-
-   // potentially store the result to mem
-   count += does_write ? 1 : 0;
-
-   return count;
-}
-
-
-PerfModelIntervalStat* PerfModel::analyzeInterval(const string& parent_routine,
-      const INS& start_ins, const INS& end_ins)
-{
-   vector< pair<IntPtr, UInt32> > inst_trace;
-   UInt32 microop_count = 0;
-   UInt32 cycles_subtotal = 0;
-
-   // do some analysis to get the number of cycles (before mem, branch stalls)
-   // fixme: for now we approximate with approx # x86 microops;
-   // need to account for pipeline depth / instruction latencies
-
-   for (INS ins = start_ins; ins!=end_ins; ins = INS_Next(ins))
-   {
-      // debug info
-      // cout << hex << "0x" << INS_Address(BBL_InsTail(bbl)) << dec << ": "
-      //      << INS_Mnemonic(BBL_InsTail(bbl)) << endl;
-
-      inst_trace.push_back(pair<IntPtr, UInt32>(INS_Address(ins), INS_Size(ins)));
-      UInt32 micro_ops = getInsMicroOpsCount(ins);
-      microop_count += micro_ops;
-      // FIXME
-      cycles_subtotal += micro_ops;
-   }
-
-   // allocate struct for instructs in the basic block to write stats into.
-   // NOTE: if a basic block gets split, this data may become redundant
-   PerfModelIntervalStat *stats = new PerfModelIntervalStat(parent_routine,
-         inst_trace,
-         microop_count,
-         cycles_subtotal);
-   return stats;
-}
-
 
 void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrvl)
 {
@@ -101,14 +41,6 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool firstCallInIntrv
    // store miss penalty assumed to be zero.
 
    // icache miss penalty
-   //for (list<bool>::iterator it = interval_stats->icache_load_miss_history.begin();
-   //     it != interval_stats->icache_load_miss_history.end();
-   //     it++)
-   //{
-   //   // FIXME: this is not a constant. at minimum it should be a
-   //   // constant exposed to outside world
-   //   interval_cycle_count += ((*it) ? 10 : 0);
-   // }
    for (UInt32 i = 0; i < interval_stats->getICacheLoadAccessCount(); i++)
    {
       interval_cycle_count += interval_stats->getICacheLoadAccessMissStatus(i) ? 10 : 0;
@@ -149,8 +81,7 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, REG *reads,
 
          // first use encountered so release scoreboard slot
          m_scoreboard[r] = k_PERFMDL_CYCLE_INVALID;
-         //cout << "removed " << REG_StringShort(r) << " from scoreboard: "
-         //     << cycle << endl;
+         // removed REG_StringShort(r)from scoreboard.
       }
    }
 
@@ -169,7 +100,6 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
 {
    run(interval_stats, firstCallInIntrvl);
 
-   //interval_stats->dcache_load_miss_history.push_back( !dcache_load_hit );
    interval_stats->logDCacheLoadAccess(dcache_load_hit);
 
    if (g_config->getEnablePerformanceModeling() && !dcache_load_hit)
@@ -179,8 +109,6 @@ void PerfModel::run(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
          REG w = writes[i];
          assert((UInt32)w < m_scoreboard.size());
          m_scoreboard[w] = m_cycle_count + 100;  //FIXME: make this parameterizable
-         // cout << "added " << REG_StringShort(w) << " to scoreboard: "
-         //     << m_cycle_count << " + 100 = " << m_scoreboard[w] << endl;
       }
    }
 }

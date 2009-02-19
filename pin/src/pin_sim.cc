@@ -61,6 +61,65 @@ INT32 usage()
    return -1;
 }
 
+UInt32 getInsMicroOpsCount(const INS& ins)
+{
+   // FIXME: assumes that stack is not supported by special hardware; load and
+   // store microops are assumed to be required.
+
+   bool does_read  = INS_IsMemoryRead(ins);
+   bool does_read2 = INS_HasMemoryRead2(ins);
+   bool does_write = INS_IsMemoryWrite(ins);
+
+   UInt32 count = 0;
+
+   // potentially load first operand from mem
+   count += does_read ? 1 : 0;
+
+   // potentially load second operand from mem
+   count += does_read2 ? 1 : 0;
+
+   // perform the op on the operands
+   count += 1;
+
+   // potentially store the result to mem
+   count += does_write ? 1 : 0;
+
+   return count;
+}
+
+
+PerfModelIntervalStat* analyzeInterval(const string& parent_routine,
+      const INS& start_ins, const INS& end_ins)
+{
+   vector< pair<IntPtr, UInt32> > inst_trace;
+   UInt32 microop_count = 0;
+   UInt32 cycles_subtotal = 0;
+
+   // do some analysis to get the number of cycles (before mem, branch stalls)
+   // fixme: for now we approximate with approx # x86 microops;
+   // need to account for pipeline depth / instruction latencies
+
+   for (INS ins = start_ins; ins!=end_ins; ins = INS_Next(ins))
+   {
+      // debug info
+      // cout << hex << "0x" << INS_Address(BBL_InsTail(bbl)) << dec << ": "
+      //      << INS_Mnemonic(BBL_InsTail(bbl)) << endl;
+
+      inst_trace.push_back(pair<IntPtr, UInt32>(INS_Address(ins), INS_Size(ins)));
+      UInt32 micro_ops = getInsMicroOpsCount(ins);
+      microop_count += micro_ops;
+      // FIXME
+      cycles_subtotal += micro_ops;
+   }
+
+   // allocate struct for instructs in the basic block to write stats into.
+   // NOTE: if a basic block gets split, this data may become redundant
+   PerfModelIntervalStat *stats = new PerfModelIntervalStat(parent_routine,
+         inst_trace,
+         microop_count,
+         cycles_subtotal);
+   return stats;
+}
 
 
 // For instrumentation / modeling
@@ -68,10 +127,8 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                IntPtr dcache_st_addr, UINT32 dcache_st_size,
                PerfModelIntervalStat* *stats,
                REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes,
-               bool do_network_modeling, bool do_icache_modeling,
-               bool do_dcache_read_modeling, bool is_dual_read,
-               bool do_dcache_write_modeling, bool do_bpred_modeling, bool do_perf_modeling,
-               bool check_scoreboard)
+               bool do_icache_modeling, bool do_dcache_read_modeling, bool is_dual_read,
+               bool do_dcache_write_modeling, bool do_perf_modeling, bool check_scoreboard)
 {
    Core *core = g_core_manager->getCurrentCore();
    UInt32 core_id = g_core_manager->getCurrentCoreID();
@@ -99,9 +156,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
    if (skip_modeling)
       return;
-
-   assert(!do_network_modeling);
-   assert(!do_bpred_modeling);
 
    // flag passed to perfModelRun to prevent it from double-counting things on successive
    // calls to perfModelRun
@@ -131,7 +185,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
       core->getPerfModel()->run(stats[core_index], reads, num_reads, firstCallInIntvl);
       firstCallInIntvl = false;
    }
-
 
    if (do_dcache_read_modeling)
    {
@@ -216,15 +269,11 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
    // assumes its safe to use core zero to generate perfmodels for all cores
    assert(g_config->getNumLocalCores() > 0);
 
-
    //FIXME: These stats should be deleted at the end of execution
    PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
 
    for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
-   {
-      Core *core = g_core_manager->getCoreFromIndex(i);
-      array[i] = core->getPerfModel()->analyzeInterval(parent_routine, start_ins, end_ins);
-   }
+      array[i] = analyzeInterval(parent_routine, start_ins, end_ins);
 
    return array;
 }
@@ -241,36 +290,29 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                                    is_potential_load_use;
 
    //FIXME: check for API routine
-   bool do_network_modeling      = g_knob_enable_network_modeling && is_rtn_ins_head;
    bool do_dcache_read_modeling  = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads &&
                                    INS_IsMemoryRead(ins);
    bool do_dcache_write_modeling = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores &&
                                    INS_IsMemoryWrite(ins);
-   bool do_bpred_modeling        = g_knob_enable_bpred_modeling && INS_IsBranchOrCall(ins);
 
    //TODO: if we run on multiple machines we need shared memory
    //TODO: if we run on multiple machines we need syscall_modeling
 
    // If we are doing any other type of modeling then we need to do icache modeling
    bool do_icache_modeling       = g_knob_enable_icache_modeling &&
-                                   (do_network_modeling || do_dcache_read_modeling ||
-                                    do_dcache_write_modeling || do_bpred_modeling || is_bbl_ins_tail ||
-                                    check_scoreboard);
+                                   (do_dcache_read_modeling || do_dcache_write_modeling || 
+                                    is_bbl_ins_tail || check_scoreboard);
 
    bool do_perf_modeling         = g_knob_enable_performance_modeling &&
-                                   (do_network_modeling || do_dcache_read_modeling ||
-                                    do_dcache_write_modeling || do_icache_modeling ||
-                                    do_bpred_modeling || is_bbl_ins_tail || check_scoreboard);
+                                   (do_dcache_read_modeling || do_dcache_write_modeling || 
+                                    do_icache_modeling || is_bbl_ins_tail || check_scoreboard);
 
    // Exit early if we aren't modeling anything
-   if (!do_network_modeling && !do_icache_modeling && !do_dcache_read_modeling  &&
-         !do_dcache_write_modeling && !do_bpred_modeling && !do_perf_modeling)
+   if (!do_icache_modeling && !do_dcache_read_modeling  &&
+         !do_dcache_write_modeling && !do_perf_modeling)
    {
       return false;
    }
-
-   assert(!do_network_modeling);
-   assert(!do_bpred_modeling);
 
    //this flag may or may not get used
    bool is_dual_read = INS_HasMemoryRead2(ins);
@@ -344,9 +386,9 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
                          IARG_PTR, (void *) reads, IARG_UINT32, num_reads,
                          IARG_PTR, (void *) writes, IARG_UINT32, num_writes,
                          // model-enable flags
-                         IARG_BOOL, do_network_modeling, IARG_BOOL, do_icache_modeling,
+                         IARG_BOOL, do_icache_modeling,
                          IARG_BOOL, do_dcache_read_modeling, IARG_BOOL, is_dual_read,
-                         IARG_BOOL, do_dcache_write_modeling, IARG_BOOL, do_bpred_modeling,
+                         IARG_BOOL, do_dcache_write_modeling,
                          IARG_BOOL, do_perf_modeling, IARG_BOOL, check_scoreboard,
                          IARG_END);
 

@@ -1,6 +1,6 @@
 BUILD_TARGET=ring
 
-C_SOURCES = ring.c
+C_SOURCES = ring_c.c
 CPP_SOURCES = 
 OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
 

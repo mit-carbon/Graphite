@@ -1,53 +1,38 @@
-// Jason Miller
-//
-// Version of the physical transport layer that uses MPI to communicate
-// between cores.
+#ifndef MPITRANSPORT_H
+#define MPITRANSPORT_H
 
-#ifndef TRANSPORT_H
-#define TRANSPORT_H
+#include "transport.h"
 
-#include <iostream>
-#include <errno.h>
-#include <assert.h>
-#include "fixed_types.h"
-
-//#define PHYS_TRANS_USE_LOCKS
-
-class Lock;
-
-class Transport
+class MpiTransport : public Transport
 {
+public:
+   MpiTransport();
+   ~MpiTransport();
+
+   class MpiNode : public Node
+   {
    public:
-      // This routine should be called once within each thread.
-      Transport(SInt32 core_id);
+      MpiNode(SInt32 core_id);
+      ~MpiNode();
 
-      // This routine should be called once within in each process.
-      static void ptGlobalInit();
-
-      // This routine should be called once when everything is done
-      static void ptFinish();
-
-      // This routine should be called once when everything is done
-      static void ptBarrier();
-
-      // Send a message to another core.  This call returns immediately.
-      SInt32 ptSend(SInt32 receiver, void *buffer, SInt32 length);
-
-      // Receive the next incoming message from any sender.  This call is
-      //  blocking and will not return until a message has been received.
-      void* ptRecv();
-
-      // Returns TRUE if there is a message waiting to be received.
-      Boolean ptQuery();
+      void globalSend(SInt32, Byte*, UInt32);
+      void send(SInt32, Byte*, UInt32);
+      Byte* recv();
+      bool query();
 
    private:
-      const SInt32 m_core_id;
+      void send(SInt32 dest_proc, UInt32 tag, Byte *buffer, UInt32 length);
+   };
 
-#ifdef PHYS_TRANS_USE_LOCKS
-      static Lock *pt_lock;
-#endif
+   Node* createNode(SInt32 core_id);
+
+   void barrier();
+   Node* getGlobalNode();
+
+private:
+   MpiNode *m_global_node; // used for top level send/recv
+
+   static const int PROC_COMM_TAG=65536;
 };
 
-#endif
-
-
+#endif 

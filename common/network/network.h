@@ -7,12 +7,12 @@
 #include "packet_type.h"
 #include "fixed_types.h"
 #include "cond.h"
+#include "transport.h"
 
 // TODO: Do we need to support multicast to some (but not all)
 // destinations?
 
 class Core;
-class Transport;
 class Network;
 
 // -- Network Packets -- //
@@ -24,7 +24,7 @@ class NetPacket
       SInt32 sender;
       SInt32 receiver;
       UInt32 length;
-      void *data;
+      const void *data;
 
       static const SInt32 BROADCAST = 0xDEADBABE;
 
@@ -143,7 +143,7 @@ class Network
       void **_callbackObjs;
 
       Core *_core;
-      Transport *_transport;
+      Transport::Node *_transport;
 
       SInt32 _tid;
       SInt32 _numMod;
@@ -151,8 +151,8 @@ class Network
       NetQueue _netQueue;
       ConditionVariable _netQueueCond;
 
-      void* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);
-      void netExPacket(void* buffer, NetPacket &packet, UInt64 &time);
+      Byte* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);
+      void netExPacket(Byte* buffer, NetPacket &packet, UInt64 &time);
 
       void forwardPacket(const NetPacket &packet);
 };

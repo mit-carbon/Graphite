@@ -21,7 +21,7 @@ Network::Network(Core *core)
    _numMod = g_config->getTotalCores();
    _tid = _core->getId();
 
-   _transport = new Transport(_core->getId());
+   _transport = Transport::getSingleton()->createNode(_core->getId());
 
    _callbacks = new NetworkCallback [NUM_PACKET_TYPES];
    _callbackObjs = new void* [NUM_PACKET_TYPES];
@@ -93,8 +93,8 @@ void Network::netPullFromTransport()
 
       NetQueueEntry entry;
       {
-         void *buffer;
-         buffer = _transport->ptRecv();
+         Byte *buffer;
+         buffer = _transport->recv();
          netExPacket(buffer, entry.packet, entry.time);
       }
 
@@ -125,7 +125,7 @@ void Network::netPullFromTransport()
 
          callback(_callbackObjs[entry.packet.type], entry.packet);
 
-         delete [](Byte*)entry.packet.data;
+         delete [] (Byte*)entry.packet.data;
       }
 
       // synchronous I/O support
@@ -140,7 +140,7 @@ void Network::netPullFromTransport()
          _netQueueCond.broadcast();
       }
    }
-   while (_transport->ptQuery());
+   while (_transport->query());
 }
 
 // -- forwardPacket -- //
@@ -154,7 +154,7 @@ void Network::forwardPacket(const NetPacket &packet)
    vector<NetworkModel::Hop> hopVec;
    model->routePacket(packet, hopVec);
 
-   void *forwardBuffer;
+   Byte *forwardBuffer;
    UInt32 forwardBufferSize;
    forwardBuffer = netCreateBuf(packet, &forwardBufferSize, 0xBEEFCAFE);
 
@@ -164,17 +164,17 @@ void Network::forwardPacket(const NetPacket &packet)
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
       *timeStamp = hopVec[i].time;
-      _transport->ptSend(hopVec[i].dest, (char*)forwardBuffer, forwardBufferSize);
+      _transport->send(hopVec[i].dest, forwardBuffer, forwardBufferSize);
    }
 
-   delete [](UInt8*)forwardBuffer;
+   delete [] forwardBuffer;
 }
 
 // -- netSend -- //
 
 SInt32 Network::netSend(NetPacket packet)
 {
-   void *buffer;
+   Byte *buffer;
    UInt32 bufSize;
 
    assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
@@ -194,10 +194,10 @@ SInt32 Network::netSend(NetPacket packet)
    {
       LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
       *timeStamp = hopVec[i].time;
-      _transport->ptSend(hopVec[i].dest, (char*)buffer, bufSize);
+      _transport->send(hopVec[i].dest, buffer, bufSize);
    }
 
-   delete [](UInt8*)buffer;
+   delete [] buffer;
 
    LOG_PRINT("Sent packet");
 
@@ -373,7 +373,7 @@ SInt32 Network::netSend(SInt32 dest, PacketType type, const void *buf, UInt32 le
    packet.receiver = dest;
    packet.length = len;
    packet.type = type;
-   packet.data = (void*)buf;
+   packet.data = buf;
 
    return netSend(packet);
 }
@@ -407,7 +407,7 @@ NetPacket Network::netRecvType(PacketType type)
 
 // -- Internal functions -- //
 
-void* Network::netCreateBuf(const NetPacket &packet, UInt32* buffer_size, UInt64 time)
+Byte* Network::netCreateBuf(const NetPacket &packet, UInt32* buffer_size, UInt64 time)
 {
    Byte *buffer;
 
@@ -438,12 +438,12 @@ void* Network::netCreateBuf(const NetPacket &packet, UInt32* buffer_size, UInt64
    memcpy(dest, (Byte*)packet.data, packet.length);
    dest += packet.length;
 
-   return (void*)buffer;
+   return buffer;
 }
 
-void Network::netExPacket(void* buffer, NetPacket &packet, UInt64 &time)
+void Network::netExPacket(Byte* ptr, NetPacket &packet, UInt64 &time)
 {
-   Byte *ptr = (Byte*)buffer;
+   Byte *ptr_orig = ptr;
 
    memcpy((Byte *) &time, ptr, sizeof(time));
    ptr += sizeof(time);
@@ -465,5 +465,5 @@ void Network::netExPacket(void* buffer, NetPacket &packet, UInt64 &time)
    memcpy((Byte *) packet.data, ptr, packet.length);
    ptr += packet.length;
 
-   delete [](Byte*)buffer;
+   delete [] ptr_orig;
 }

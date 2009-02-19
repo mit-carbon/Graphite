@@ -1,8 +1,34 @@
-// Harshad Kasture
-//
-
 #ifndef SMTRANSPORT_H
 #define SMTRANSPORT_H
+
+#include "transport.h"
+
+class SmTransport : public Transport
+{
+public:
+   SmTransport();
+   ~SmTransport();
+
+   class Node : public Transport::Node
+   {
+   public:
+      Node(SInt32 core_id);
+      ~Node();
+
+      void send(SInt32, void*, UInt32);
+      Byte* recv();
+      bool query();
+   };
+
+   Node* createNode(SInt32 core_id);
+
+   void barrier();
+   Node* getGlobalNode();
+};
+
+#endif
+
+#if 0
 
 #include <iostream>
 #include <sched.h>

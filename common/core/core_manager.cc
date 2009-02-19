@@ -71,6 +71,12 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    // Broadcast this update to other cores
    getCoreFromID(core_id)->getNetwork()->netSend((SInt32)g_config->getMCPCoreNum(), MCP_SYSTEM_TYPE,
          (const void *)send_buff.getBuffer(), (UInt32)send_buff.size());
+
+   // This should be used once miniMCPs are implemented.
+   // Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+   // globalNode->send(g_config->getMcpCoreId(),
+   //                  send_buff.getBuffer(),
+   //                  send_buff.size());
 }
 
 void CoreManager::initializeThread()

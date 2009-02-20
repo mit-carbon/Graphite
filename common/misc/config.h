@@ -20,89 +20,91 @@ struct NetworkModelAnalyticalParameters;
 
 class Config
 {
-   public:
-      typedef std::vector<UInt32> CoreToProcMap;
-      typedef std::vector<UInt32> CoreList;
-      typedef std::vector<UInt32>::const_iterator CLCI;
-      typedef std::map<UInt32,UInt32> CommToCoreMap;
+public:
+   typedef std::vector<UInt32> CoreToProcMap;
+   typedef std::vector<UInt32> CoreList;
+   typedef std::vector<UInt32>::const_iterator CLCI;
+   typedef std::map<UInt32,UInt32> CommToCoreMap;
 
-   private:
-      void GenerateCoreMap();
+   Config();
+   ~Config();
 
-      UInt32  m_num_processes;          // Total number of processes (incl myself)
-      UInt32  m_total_cores;          // Total number of cores in all processes
+   void loadFromFile(char* filename);
+   void loadFromCmdLine();
 
-      UInt32  m_current_process_num;          // Process number for this process
+   // Return the number of processes involved in this simulation
+   UInt32 getProcessCount() { return m_num_processes; }
+   void setProcessCount(UInt32 in_num_processes) { m_num_processes = in_num_processes; }
 
-      // This data structure keeps track of which cores are in each process.
-      // It is an array of size num_processes where each element is a list of
-      // core numbers.  Each list specifies which cores are in the corresponding
-      // process.
-      CoreToProcMap m_core_to_proc_map;
-      CoreList* m_proc_to_core_list_map;
+   // Retrieve and set the process number for this process (I'm expecting
+   //  that the initialization routine of the Transport layer will set this)
+   UInt32 getCurrentProcessNum() { return m_current_process_num; }
+   void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
-      CommToCoreMap m_comm_to_core_map;
+   UInt32 getMCPCoreNum() { return getTotalCores() -1; }
 
-      UInt32  m_mcp_process;          // The process where the MCP lives
+   // Return the number of modules (cores) in a given process
+   UInt32 getNumCoresInProcess(UInt32 proc_num)
+   { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }
 
-      NetworkModelAnalyticalParameters *m_analytic_network_parms;
+   UInt32 getNumLocalCores() { return getNumCoresInProcess(getCurrentProcessNum()); }
 
-   public:
-      Config();
-      ~Config();
+   // Return the total number of modules in all processes
+   UInt32 getTotalCores() { return m_total_cores; }
 
-      void loadFromFile(char* filename);
-      void loadFromCmdLine();
+   // Return an array of core numbers for a given process
+   //  The returned array will have numMods(proc_num) elements
+   const CoreList & getCoreListForProcess(UInt32 proc_num)
+   { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num]; }
 
-      // Return the number of processes involved in this simulation
-      UInt32 getProcessCount() { return m_num_processes; }
-      void setProcessCount(UInt32 in_num_processes) { m_num_processes = in_num_processes; }
+   UInt32 getProcessNumForCore(UInt32 core)
+   { assert(core < m_total_cores); return m_core_to_proc_map[core]; }
 
-      // Retrieve and set the process number for this process (I'm expecting
-      //  that the initialization routine of the Transport layer will set this)
-      UInt32 getCurrentProcessNum() { return m_current_process_num; }
-      void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
+   const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
+   { return m_analytic_network_parms; }
 
-      UInt32 getMCPCoreNum() { return getTotalCores() -1; }
+   // For mapping between user-land communication id's to actual core id's
+   void updateCommToCoreMap(UInt32 comm_id, UInt32 core_id);
+   UInt32 getCoreFromCommId(UInt32 comm_id); 
 
-      // Return the number of modules (cores) in a given process
-      UInt32 getNumCoresInProcess(UInt32 proc_num)
-      { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }
+   // Fills in an array with the models for each static network
+   void getNetworkModels(UInt32 *) const;
 
-      UInt32 getNumLocalCores() { return getNumCoresInProcess(getCurrentProcessNum()); }
+   // Knobs
+   bool isSimulatingSharedMemory() const;
+   bool getEnablePerformanceModeling() const;
+   bool getEnableDCacheModeling() const;
+   bool getEnableICacheModeling() const;
 
-      // Return the total number of modules in all processes
-      UInt32 getTotalCores() { return m_total_cores; }
+   // Logging
+   void getDisabledLogModules(std::set<std::string> &mods) const;
+   const char* getOutputFileName() const;
+   void logCoreMap();
 
-      // Return an array of core numbers for a given process
-      //  The returned array will have numMods(proc_num) elements
-      const CoreList & getCoreListForProcess(UInt32 proc_num)
-      { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num]; }
+   static Config *getSingleton();
 
-      UInt32 getProcessNumForCore(UInt32 core)
-      { assert(core < m_total_cores); return m_core_to_proc_map[core]; }
+private:
+   void GenerateCoreMap();
 
-      const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
-      { return m_analytic_network_parms; }
+   UInt32  m_num_processes;          // Total number of processes (incl myself)
+   UInt32  m_total_cores;          // Total number of cores in all processes
 
-      // For mapping between user-land communication id's to actual core id's
-      void updateCommToCoreMap(UInt32 comm_id, UInt32 core_id);
-      UInt32 getCoreFromCommId(UInt32 comm_id); 
+   UInt32  m_current_process_num;          // Process number for this process
 
-      // Fills in an array with the models for each static network
-      void getNetworkModels(UInt32 *) const;
+   // This data structure keeps track of which cores are in each process.
+   // It is an array of size num_processes where each element is a list of
+   // core numbers.  Each list specifies which cores are in the corresponding
+   // process.
+   CoreToProcMap m_core_to_proc_map;
+   CoreList* m_proc_to_core_list_map;
 
-      // Knobs
-      bool isSimulatingSharedMemory() const;
-      bool getEnablePerformanceModeling() const;
-      bool getEnableDCacheModeling() const;
-      bool getEnableICacheModeling() const;
+   CommToCoreMap m_comm_to_core_map;
 
-      // Logging
-      void getDisabledLogModules(std::set<std::string> &mods) const;
-      const char* getOutputFileName() const;
+   UInt32  m_mcp_process;          // The process where the MCP lives
+
+   NetworkModelAnalyticalParameters *m_analytic_network_parms;
+
+   static Config *m_singleton;
 };
-
-extern Config *g_config;
 
 #endif

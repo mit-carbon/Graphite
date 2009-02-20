@@ -24,10 +24,19 @@ extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
 
 using namespace std;
 
+static Config *Config::m_singleton;
+
+Config *Config::getSingleton()
+{
+   assert(m_singleton != NULL);
+   return m_singleton;
+}
+
 Config::Config()
       : m_num_processes(g_knob_num_process),
-      m_total_cores(g_knob_total_cores),
-      m_current_process_num((UInt32)-1)
+        m_total_cores(g_knob_total_cores),
+        m_current_process_num((UInt32)-1),
+        m_singleton(this)
 {
    g_config = this;
 
@@ -79,7 +88,10 @@ void Config::GenerateCoreMap()
    // Add one for the MCP
    m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
    m_core_to_proc_map[m_total_cores - 1] = 0;
+}
 
+void Config::logCoreMap()
+{
    // Log the map we just created
    LOG_PRINT("Process num: %d\n", m_num_processes);
    for (UInt32 i=0; i < m_num_processes; i++)
@@ -179,5 +191,3 @@ UInt32 Config::getCoreFromCommId(UInt32 comm_id)
    LOG_ASSERT_ERROR(it != m_comm_to_core_map.end(), "*ERROR* Lookup on comm_id: %d not found.", comm_id);
    return it->second;
 }
-
-

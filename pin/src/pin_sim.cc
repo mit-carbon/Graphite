@@ -42,20 +42,11 @@
 #include "run_models.h"
 #include "analysis.h"
 #include "routine_replace.h"
-
+#include "thread.h"
 #include "shmem_debug_helper.h"
 
 #define LOG_DEFAULT_RANK    core_id
 #define LOG_DEFAULT_MODULE  PINSIM
-
-CoreManager *g_core_manager = NULL;
-Config *g_config = NULL;
-Transport *g_transport = NULL;
-MCP *g_MCP = NULL;
-MCPRunner * g_mcp_runner = NULL;
-SimThreadRunner * g_sim_thread_runners = NULL;
-Log *g_log = NULL;
-ShmemDebugHelper *g_shmem_debug_helper = NULL;
 
 INT32 usage()
 {
@@ -91,64 +82,6 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       core->getSyscallMdl()->runExit(ctx, syscall_standard);
 }
 
-void fini(int code, void * v)
-{
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "fini start");
-
-   // Make sure all other processes are finished before we start tearing down stuffs
-   if(g_config->getProcessCount() > 1)
-      Transport::getSingleton()->barrier();
-
-   if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
-      g_MCP->finish();
-
-   SimThreadQuit();
-
-   g_core_manager->outputSummary();
-
-   if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
-      delete g_mcp_runner;
-
-   delete [] g_sim_thread_runners;
-   delete g_core_manager;
-
-   delete g_transport;
-
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "fini end");
-
-   delete g_log;
-   delete g_config;
-}
-
-void init_globals()
-{
-   LOG_ASSERT_ERROR_EXPLICIT(!g_knob_simarch_has_shared_mem || g_knob_enable_dcache_modeling, -1, PINSIM,
-                             "*ERROR* Must set dcache modeling on (-mdc) to use shared memory model.");
-
-   g_config = new Config;
-
-   g_transport = Transport::create();
-
-   g_shmem_debug_helper = new ShmemDebugHelper();
-
-   g_core_manager = new CoreManager();
-
-   // Note the MCP has a dependency on the transport layer and the core_manager.
-   // Only create an MCP on the correct process.
-   if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
-   {
-      LOG_PRINT_EXPLICIT(-1, PINSIM, "Creating new MCP object in process %i", g_config->getCurrentProcessNum());
-      Core * mcp_core = g_core_manager->getCoreFromID(g_config->getMCPCoreNum());
-      if (!mcp_core)
-      {
-         LOG_PRINT_EXPLICIT(-1, PINSIM, "Could not find the MCP's core!");
-         LOG_NOTIFY_ERROR();
-      }
-      Network & mcp_network = *(mcp_core->getNetwork());
-      g_MCP = new MCP(mcp_network);
-   }
-}
-
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
    syscallEnterRunModel(ctxt, std);
@@ -164,6 +97,11 @@ void AppStart(void *v)
    // FIXME: This function is never called. Use ThreadStart?
    assert(false);
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Application Start.");
+}
+
+void ApplicationExit(int code, void * v)
+{
+   Simulator::release();
 }
 
 void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
@@ -184,24 +122,18 @@ int main(int argc, char *argv[])
    if (PIN_Init(argc,argv))
       return usage();
 
-   init_globals();
-
-   // Start up helper threads
-   if (g_config->getCurrentProcessNum() == g_config->getProcessNumForCore(g_config->getMCPCoreNum()))
-      g_mcp_runner = StartMCPThread();
-
-   g_sim_thread_runners = SimThreadStart();
+   Simulator::allocate();
 
    // Instrumentation
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);
-   PIN_AddFiniFunction(fini, 0);
 
    PIN_AddThreadStartFunction(ThreadStart, 0);
    PIN_AddThreadFiniFunction(ThreadFini, 0);
    PIN_AddApplicationStartFunction(AppStart, 0);
+   PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Just in case ... might not be strictly necessary
    Transport::getSingleton()->barrier();
@@ -213,3 +145,25 @@ int main(int argc, char *argv[])
    return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// FIXME: get rid of this shit
+ShmemDebugHelper *g_shmem_debug_helper = NULL;

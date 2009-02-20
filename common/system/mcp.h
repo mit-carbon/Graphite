@@ -28,13 +28,14 @@ typedef enum {
 } MessageTypes;
 */
 
-class MCP
+class MCP : public Runnable
 {
    public:
       MCP(Network & network);
       ~MCP();
 
       void run();
+      void processPacket();
       void finish();
       Boolean finished() { return m_finished; };
 

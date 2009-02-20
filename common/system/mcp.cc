@@ -27,7 +27,7 @@ MCP::~MCP()
    delete[] m_scratch;
 }
 
-void MCP::run()
+void MCP::processPacket()
 {
    m_send_buff.clear();
    m_recv_buff.clear();
@@ -152,4 +152,17 @@ void MCP::forwardPacket(NetPacket pkt)
    assert(pkt.receiver != -1);
 
    m_network.netSend(pkt);
+}
+
+void MCP::run()
+{
+   int tid =  syscall(__NR_gettid);
+   LOG_PRINT("Initializing the MCP (%i) with id: %i", (int)tid, g_config->getTotalCores()-1);
+   g_core_manager->initializeThread(g_config->getMCPCoreNum());
+   g_core_manager->initializeCommId(g_config->getMCPCoreNum());
+
+   while (!finished())
+   {
+      processPacket();
+   }
 }

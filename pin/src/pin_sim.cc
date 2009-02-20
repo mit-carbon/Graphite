@@ -21,6 +21,7 @@
 #include <set>
 #include <sys/syscall.h>
 
+// FIXME: This list could probably be trimmed down a lot.
 #include "pin.H"
 #include "utils.h"
 #include "bit_vector.h"
@@ -63,8 +64,6 @@ INT32 usage()
 
    return -1;
 }
-
-
 
 void routineCallback(RTN rtn, void *v)
 {
@@ -123,29 +122,15 @@ void fini(int code, void * v)
 
 void init_globals()
 {
-   if (g_knob_simarch_has_shared_mem)
-   {
-
-      if (!g_knob_enable_dcache_modeling)
-      {
-
-         cerr << endl << "**********************************************************************" << endl;
-         cerr << endl << "  User must set dcache modeling on (-mdc) to use shared memory model. " << endl;
-         cerr << endl << "**********************************************************************" << endl;
-
-         cerr << endl << "Exiting Program...." << endl;
-         exit(-1);
-      }
-   }
+   LOG_ASSERT_ERROR_EXPLICIT(!g_knob_simarch_has_shared_mem || g_knob_enable_dcache_modeling, -1, PINSIM,
+                             "*ERROR* Must set dcache modeling on (-mdc) to use shared memory model.");
 
    g_config = new Config;
-   //g_config->loadFromFile(FIXME);
 
    g_transport = Transport::create();
 
    g_shmem_debug_helper = new ShmemDebugHelper();
 
-   // I think this one probably wants a total core count
    g_core_manager = new CoreManager();
 
    // Note the MCP has a dependency on the transport layer and the core_manager.

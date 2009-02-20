@@ -17,10 +17,7 @@ void* thread_func(void * threadid);
 int main(int argc, char* argv[])  // main begins
 {
    int proc = CarbonGetCurrentProcessId();
-//   int proc = atoi(argv[1]);
    fprintf(stderr, "Process: %d\n", proc);
-
-
    thread_func(!proc);
 } // main ends
 
@@ -37,9 +34,6 @@ void* thread_func(void *threadid)
    rtnVal = CAPI_Initialize((int)threadid);
 
    sleep(10);
-
-   // Initialize local variables
-//   CAPI_rank(&tid);
 
    printf("UserThread(%d): Sending...\n", tid);
    CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &junk, sizeof(int));

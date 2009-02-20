@@ -85,14 +85,7 @@ void CoreManager::initializeThread()
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
-   if(e.first == true)
-   {
-      LOG_PRINT("*ERROR* Thread: %d already mapped to core: %d", tid, e.second);
-      return;
-   }
-
-
-   LOG_ASSERT_ERROR(e.first == false, "*ERROR* Thread: %d already mapped to core: %d", tid, e.second);
+   LOG_ASSERT_WARNING(e.first == false, "*WARNING* Thread: %d already mapped to core: %d", tid, e.second);
 
    for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
    {

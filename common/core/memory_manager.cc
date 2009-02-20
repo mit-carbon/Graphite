@@ -22,17 +22,17 @@ MemoryManager::MemoryManager(Core *core, OCache *ocache)
    // assume 4GB / dCacheLineSize  bytes/line
    int total_num_dram_lines = (int)(pow(2,32) / m_ocache->dCacheLineSize());
 
-   int dram_lines_per_core = total_num_dram_lines / g_config->getTotalCores();
-   // assert( (dram_lines_per_core * g_config->getTotalCores()) == total_num_dram_lines );
+   int dram_lines_per_core = total_num_dram_lines / Config::getSingleton()->getTotalCores();
+   // assert( (dram_lines_per_core * Config::getSingleton()->getTotalCores()) == total_num_dram_lines );
 
    assert(m_ocache != NULL);
 
    //TODO can probably delete "dram_lines_per_core" b/c it not necessary.
-   m_dram_dir = new DramDirectory(dram_lines_per_core, m_ocache->dCacheLineSize(), m_core->getId(), g_config->getTotalCores(), m_core->getNetwork());
+   m_dram_dir = new DramDirectory(dram_lines_per_core, m_ocache->dCacheLineSize(), m_core->getId(), Config::getSingleton()->getTotalCores(), m_core->getNetwork());
 
    //TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
-   m_addr_home_lookup = new AddressHomeLookup(g_config->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
-   LOG_PRINT("Creating New Addr Home Lookup Structure: %i, %i, %i", g_config->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
+   m_addr_home_lookup = new AddressHomeLookup(Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
+   LOG_PRINT("Creating New Addr Home Lookup Structure: %i, %i, %i", Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
 
    Network *net = m_core->getNetwork();
    net->registerCallback(SHARED_MEM_REQ, MemoryManagerNetworkCallback, this);
@@ -273,7 +273,7 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_addr
 {
    UInt32 home_node_rank = m_addr_home_lookup->find_home_for_addr(ca_address);
 
-   assert(home_node_rank >= 0 && home_node_rank < (UInt32)(g_config->getTotalCores()));
+   assert(home_node_rank >= 0 && home_node_rank < (UInt32)(Config::getSingleton()->getTotalCores()));
 
    /* ==================================================== */
    /* =========== Send Request & Recv Update ============= */

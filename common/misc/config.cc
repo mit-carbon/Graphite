@@ -24,7 +24,7 @@ extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
 
 using namespace std;
 
-static Config *Config::m_singleton;
+Config *Config::m_singleton;
 
 Config *Config::getSingleton()
 {
@@ -35,20 +35,15 @@ Config *Config::getSingleton()
 Config::Config()
       : m_num_processes(g_knob_num_process),
         m_total_cores(g_knob_total_cores),
-        m_current_process_num((UInt32)-1),
-        m_singleton(this)
+        m_current_process_num((UInt32)-1)
 {
-   g_config = this;
+   m_singleton = this;
 
    assert(m_num_processes > 0);
    assert(m_total_cores > 0);
 
    // Add one for the MCP
    m_total_cores += 1;
-
-   // FIXME: This is a bit of a hack to put this here, but we need it
-   // for logging in the rest of Config's constructor.
-   g_log = new Log(m_total_cores);
 
    GenerateCoreMap();
 

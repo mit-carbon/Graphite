@@ -1,7 +1,6 @@
 #include "analysis.h"
 #include "config.h"
 
-extern Config *g_config;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
 extern LEVEL_BASE::KNOB<bool> g_knob_dcache_ignore_loads;
@@ -74,12 +73,12 @@ PerfModelIntervalStat** perfModelAnalyzeInterval(const string& parent_routine,
 {
    // using zero is a dirty hack
    // assumes its safe to use core zero to generate perfmodels for all cores
-   assert(g_config->getNumLocalCores() > 0);
+   assert(Config::getSingleton()->getNumLocalCores() > 0);
 
    //FIXME: These stats should be deleted at the end of execution
-   PerfModelIntervalStat* *array = new PerfModelIntervalStat*[g_config->getNumLocalCores()];
+   PerfModelIntervalStat* *array = new PerfModelIntervalStat*[Config::getSingleton()->getNumLocalCores()];
 
-   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
       array[i] = analyzeInterval(parent_routine, start_ins, end_ins);
 
    return array;

@@ -21,29 +21,18 @@
 #include <set>
 #include <sys/syscall.h>
 
-// FIXME: This list could probably be trimmed down a lot.
 #include "pin.H"
-#include "utils.h"
-#include "bit_vector.h"
-#include "config.h"
-#include "core_manager.h"
-#include "cache.h"
-#include "ocache.h"
-#include "perfmdl.h"
 #include "knobs.h"
-#include "mcp.h"
-#include "mcp_runner.h"
-#include "sim_thread_runner.h"
-#include "sim_thread.h"
 #include "log.h"
-#include "dram_directory_entry.h"
-#include "core.h"
-#include "syscall_model.h"
 #include "run_models.h"
 #include "analysis.h"
 #include "routine_replace.h"
-#include "thread.h"
-#include "shmem_debug_helper.h"
+
+// FIXME: This list could probably be trimmed down a lot.
+#include "simulator.h"
+#include "core_manager.h"
+#include "core.h"
+#include "syscall_model.h"
 
 #define LOG_DEFAULT_RANK    core_id
 #define LOG_DEFAULT_MODULE  PINSIM
@@ -68,7 +57,7 @@ void routineCallback(RTN rtn, void *v)
 // syscall model wrappers
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   Core *core = g_core_manager->getCurrentCore();
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
 
    if (core)
       core->getSyscallMdl()->runEnter(ctx, syscall_standard);
@@ -76,7 +65,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   Core *core = g_core_manager->getCurrentCore();
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
 
    if (core)
       core->getSyscallMdl()->runExit(ctx, syscall_standard);
@@ -123,6 +112,7 @@ int main(int argc, char *argv[])
       return usage();
 
    Simulator::allocate();
+   Sim()->start();
 
    // Instrumentation
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
@@ -144,26 +134,3 @@ int main(int argc, char *argv[])
 
    return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// FIXME: get rid of this shit
-ShmemDebugHelper *g_shmem_debug_helper = NULL;

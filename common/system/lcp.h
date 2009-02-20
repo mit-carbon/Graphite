@@ -1,6 +1,9 @@
 #ifndef LCP_H
 #define LCP_H
 
+#include "thread.h"
+#include "network.h"
+
 class LCP : public Runnable
 {
 public:

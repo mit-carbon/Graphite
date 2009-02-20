@@ -1,6 +1,9 @@
 #ifndef KNOBS_H
 #define KNOBS_H
 
+#include "fixed_types.h"
+#include <string>
+using std::string;
 
 /* ===================================================================== */
 /* General Simulator Knobs */

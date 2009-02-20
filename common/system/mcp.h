@@ -8,25 +8,7 @@
 #include "sync_server.h"
 #include "fixed_types.h"
 #include "network_model_analytical_server.h"
-#include <iostream>
-
-/*
-// Different types of messages that get passed to the MCP
-typedef enum {
-   MCP_MESSAGE_SYS_CALL,
-   MCP_MESSAGE_QUIT,
-   MCP_MESSAGE_MUTEX_INIT,
-   MCP_MESSAGE_MUTEX_LOCK,
-   MCP_MESSAGE_MUTEX_UNLOCK,
-   MCP_MESSAGE_COND_INIT,
-   MCP_MESSAGE_COND_WAIT,
-   MCP_MESSAGE_COND_SIGNAL,
-   MCP_MESSAGE_COND_BROADCAST,
-   MCP_MESSAGE_BARRIER_INIT,
-   MCP_MESSAGE_BARRIER_WAIT,
-
-} MessageTypes;
-*/
+#include "thread.h"
 
 class MCP : public Runnable
 {

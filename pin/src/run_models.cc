@@ -5,6 +5,7 @@
 #include "core_manager.h"
 #include "log.h"
 #include "shmem_debug_helper.h"
+#include "simulator.h"
 #define LOG_DEFAULT_RANK    core_id
 #define LOG_DEFAULT_MODULE  PINSIM
 
@@ -28,21 +29,21 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                bool do_icache_modeling, bool do_dcache_read_modeling, bool is_dual_read,
                bool do_dcache_write_modeling, bool do_perf_modeling, bool check_scoreboard)
 {
-   Core *core = g_core_manager->getCurrentCore();
-   UInt32 core_id = g_core_manager->getCurrentCoreID();
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   UInt32 core_id = Sim()->getCoreManager()->getCurrentCoreID();
    UInt32 core_index;
 
    if (!core)
       return;
 
    // Look up core index
-   for (core_index = 0; core_index < g_config->getNumLocalCores(); core_index++)
+   for (core_index = 0; core_index < Config::getSingleton()->getNumLocalCores(); core_index++)
    {
-      if (g_core_manager->getCoreFromIndex(core_index) == core)
+      if (Sim()->getCoreManager()->getCoreFromIndex(core_index) == core)
          break;
    }
 
-   LOG_ASSERT_ERROR(core_index < g_config->getNumLocalCores(),
+   LOG_ASSERT_ERROR(core_index < Config::getSingleton()->getNumLocalCores(),
                     "*ERROR* No core index found for current core?! %p", core);
 
    PerfModelIntervalStat *interval_stats = stats[core_index];

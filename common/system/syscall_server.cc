@@ -198,7 +198,7 @@ void SyscallServer::marshallWriteCall(UInt32 core_id)
 
    // If we aren't using shared memory, then the data for the
    // write call must be passed in the message
-   if (g_config->isSimulatingSharedMemory())
+   if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       char *src;
       int src_b;

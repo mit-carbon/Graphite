@@ -13,34 +13,33 @@
 using namespace std;
 
 Core::Core(SInt32 id)
+   : m_core_id(id)
 {
-   m_core_id = id;
+   LOG_PRINT_EXPLICIT(-1, CORE, "Core ctor for: %d", id);
 
    m_network = new Network(this);
 
-   if (g_config->getEnablePerformanceModeling())
+   if (Config::getSingleton()->getEnablePerformanceModeling())
    {
       m_perf_model = new PerfModel("performance modeler");
-      LOG_PRINT("Instantiated performance model.");
    }
    else
    {
       m_perf_model = (PerfModel *) NULL;
    }
 
-   if (g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling())
+   if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
    {
       m_ocache = new OCache("organic cache", this);
-      LOG_PRINT("instantiated organic cache model");
    }
    else
    {
       m_ocache = (OCache *) NULL;
    }
 
-   if (g_config->isSimulatingSharedMemory())
+   if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      assert(g_config->getEnableDCacheModeling());
+      assert(Config::getSingleton()->getEnableDCacheModeling());
 
       LOG_PRINT("instantiated memory manager model");
       m_memory_manager = new MemoryManager(this, m_ocache);
@@ -50,8 +49,6 @@ Core::Core(SInt32 id)
       m_memory_manager = (MemoryManager *) NULL;
       LOG_PRINT("No Memory Manager being used");
    }
-
-
 
    m_syscall_model = new SyscallMdl(m_network);
    m_sync_client = new SyncClient(this);

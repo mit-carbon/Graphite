@@ -49,6 +49,4 @@ class CoreManager
       std::vector<Core*> m_cores;
 };
 
-extern CoreManager *g_core_manager;
-
 #endif

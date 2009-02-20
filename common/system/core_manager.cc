@@ -20,23 +20,27 @@ using namespace std;
 
 CoreManager::CoreManager()
       :
-      tid_to_core_map(3*g_config->getNumLocalCores()),
-      tid_to_core_index_map(3*g_config->getNumLocalCores()),
-      simthread_tid_to_core_map(3*g_config->getNumLocalCores())
+      tid_to_core_map(3*Config::getSingleton()->getNumLocalCores()),
+      tid_to_core_index_map(3*Config::getSingleton()->getNumLocalCores()),
+      simthread_tid_to_core_map(3*Config::getSingleton()->getNumLocalCores())
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
    m_maps_lock = Lock::create();
 
-   tid_map = new UInt32 [g_config->getNumLocalCores()];
-   core_to_simthread_tid_map = new UInt32 [g_config->getNumLocalCores()];
+   UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
 
-   // Need to subtract 1 for the MCP
-   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   tid_map = new UInt32 [num_local_cores];
+   core_to_simthread_tid_map = new UInt32 [num_local_cores];
+
+   UInt32 proc_id = Config::getSingleton()->getCurrentProcessNum();
+   const Config::CoreList &local_cores = Config::getSingleton()->getCoreListForProcess(proc_id);
+
+   for (UInt32 i = 0; i < num_local_cores; i++)
    {
       tid_map[i] = UINT_MAX;
       core_to_simthread_tid_map[i] = UINT_MAX;
-      m_cores.push_back(new Core(g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i]));
+      m_cores.push_back(new Core(local_cores[i]));
    }
 
    LOG_PRINT("Finished CoreManager Constructor.");
@@ -69,29 +73,31 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    LOG_PRINT("CoreMap: CoreManager Initializing comm_id: %d to core_id: %d", comm_id, core_id);
 
    // Broadcast this update to other cores
-   getCoreFromID(core_id)->getNetwork()->netSend((SInt32)g_config->getMCPCoreNum(), MCP_SYSTEM_TYPE,
-         (const void *)send_buff.getBuffer(), (UInt32)send_buff.size());
+   Network *net = getCoreFromID(core_id)->getNetwork();
+   SInt32 sender = (SInt32)Config::getSingleton()->getMCPCoreNum();
+   net->netSend(sender, MCP_SYSTEM_TYPE, send_buff.getBuffer(), send_buff.size());
 
    // This should be used once miniMCPs are implemented.
    // Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   // globalNode->send(g_config->getMcpCoreId(),
+   // globalNode->send(Config::getSingleton()->getMcpCoreId(),
    //                  send_buff.getBuffer(),
    //                  send_buff.size());
 }
 
 void CoreManager::initializeThread()
 {
+   LOG_PRINT("before loop");
    ScopedLock scoped_maps_lock(*m_maps_lock);
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
    LOG_ASSERT_WARNING(e.first == false, "*WARNING* Thread: %d already mapped to core: %d", tid, e.second);
 
-   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
       if (tid_map[i] == UINT_MAX)
       {
-         UInt32 core_id = g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
+         UInt32 core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
          tid_map[i] = tid;
          tid_to_core_index_map.insert(tid, i);
          tid_to_core_map.insert(tid, core_id);
@@ -100,11 +106,11 @@ void CoreManager::initializeThread()
       }
       else
       {
-         // LOG_PRINT("%d/%d already mapped to: %d", i, g_config->getNumLocalCores(), tid_map[i]);
+         // LOG_PRINT("%d/%d already mapped to: %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
       }
    }
 
-   LOG_PRINT("*ERROR* initializeThread - No free cores out of %d total.", g_config->getNumLocalCores());
+   LOG_PRINT("*ERROR* initializeThread - No free cores out of %d total.", Config::getSingleton()->getNumLocalCores());
    LOG_NOTIFY_ERROR();
 }
 
@@ -116,9 +122,9 @@ void CoreManager::initializeThread(UInt32 core_id)
 
    LOG_ASSERT_ERROR(e.first == false, "Tried to initialize core %d twice.", core_id);
 
-   for (unsigned int i = 0; i < g_config->getNumLocalCores(); i++)
+   for (unsigned int i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
-      UInt32 local_core_id = g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
+      UInt32 local_core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
       if(local_core_id == core_id)
       {
          if (tid_map[i] == UINT_MAX)
@@ -131,13 +137,13 @@ void CoreManager::initializeThread(UInt32 core_id)
          }
          else
          {
-            LOG_PRINT("*ERROR* initializeThread -- %d/%d already mapped to thread %d", i, g_config->getNumLocalCores(), tid_map[i]);
+            LOG_PRINT("*ERROR* initializeThread -- %d/%d already mapped to thread %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
             LOG_NOTIFY_ERROR();
          }
       }
    }
 
-   LOG_PRINT("*ERROR* initializeThread - Requested core %d does not live on process %d.", core_id, g_config->getCurrentProcessNum());
+   LOG_PRINT("*ERROR* initializeThread - Requested core %d does not live on process %d.", core_id, Config::getSingleton()->getCurrentProcessNum());
    LOG_NOTIFY_ERROR();
 }
 
@@ -149,7 +155,7 @@ UInt32 CoreManager::getCurrentCoreID()
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
    id = (e.first == false) ? -1 : e.second;
 
-   ASSERT(!e.first || id < g_config->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
 
    return id;
 }
@@ -162,7 +168,7 @@ Core *CoreManager::getCurrentCore()
    pair<bool, UINT64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : m_cores[e.second];
 
-   LOG_ASSERT_ERROR(!e.first || e.second < g_config->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
+   LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
    return core;
 }
 
@@ -171,7 +177,7 @@ Core *CoreManager::getCoreFromID(UInt32 id)
    Core *core = NULL;
    // Look up the index from the core list
    // FIXME: make this more cached
-   const Config::CoreList & cores(g_config->getCoreListForProcess(g_config->getCurrentProcessNum()));
+   const Config::CoreList & cores(Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum()));
    UInt32 idx = 0;
    for (Config::CLCI i = cores.begin(); i != cores.end(); i++)
    {
@@ -184,44 +190,42 @@ Core *CoreManager::getCoreFromID(UInt32 id)
       idx++;
    }
 
-   LOG_ASSERT_ERROR(!core || idx < g_config->getNumLocalCores(), "Illegal index in getCoreFromID!\n");
+   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getCoreFromID!\n");
 
    return core;
 }
 
 Core *CoreManager::getCoreFromIndex(UInt32 index)
 {
-   LOG_ASSERT_ERROR(index < g_config->getNumLocalCores(), "getCoreFromIndex -- invalid index %d", index);
+   LOG_ASSERT_ERROR(index < Config::getSingleton()->getNumLocalCores(), "getCoreFromIndex -- invalid index %d", index);
 
    return m_cores[index];
 }
 
 void CoreManager::outputSummary()
 {
-   LOG_PRINT("Starting CoreManager::fini");
+   LOG_PRINT("Starting CoreManager::outputSummary");
 
-   ofstream out(g_config->getOutputFileName());
+   ofstream out(Config::getSingleton()->getOutputFileName());
 
-   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
       LOG_PRINT("Output summary core %i", i);
 
       out << "*** Core[" << i << "] summary ***" << endl;
-      if (g_config->getEnablePerformanceModeling())
+      if (Config::getSingleton()->getEnablePerformanceModeling())
       {
          m_cores[i]->getPerfModel()->outputSummary(out);
          m_cores[i]->getNetwork()->outputSummary(out);
       }
 
-      if (g_config->getEnableDCacheModeling() || g_config->getEnableICacheModeling())
+      if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
          m_cores[i]->getOCache()->outputSummary(out);
 
       out << endl;
    }
 
    out.close();
-
-   LOG_PRINT("Finish core_manager::fini");
 }
 
 int CoreManager::registerSimMemThread()
@@ -236,7 +240,7 @@ int CoreManager::registerSimMemThread()
    {
       // Search for an unused core to map this simthread thread to
       // one less to account for the MCP
-      for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+      for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
       {
          // Unused slots are set to UINT_MAX
          // FIXME: Use a different constant than UINT_MAX
@@ -244,12 +248,12 @@ int CoreManager::registerSimMemThread()
          {
             core_to_simthread_tid_map[i] = tid;
             simthread_tid_to_core_map.insert(tid, i);
-            return g_config->getCoreListForProcess(g_config->getCurrentProcessNum())[i];
+            return Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
          }
       }
 
       LOG_PRINT("*ERROR* registerSimMemThread - No free cores for thread: %d", tid);
-      for (UInt32 j = 0; j < g_config->getNumLocalCores(); j++)
+      for (UInt32 j = 0; j < Config::getSingleton()->getNumLocalCores(); j++)
          LOG_PRINT("core_to_simthread_tid_map[%d] = %d\n", j, core_to_simthread_tid_map[j]);
 
       LOG_NOTIFY_ERROR();

@@ -1,6 +1,10 @@
 #include "sim_thread_manager.h"
 
+#include "lock.h"
 #include "log.h"
+#include "config.h"
+#include "simulator.h"
+#include "mcp.h"
 
 #define LOG_DEFAULT_RANK -1
 #define LOG_DEFAULT_MODULE SIM_THREAD_MANAGER
@@ -13,22 +17,23 @@ SimThreadManager::SimThreadManager()
 
 SimThreadManager::~SimThreadManager()
 {
-   assert(m_active_threads == 0);
+   LOG_ASSERT_WARNING(m_active_threads == 0,
+                      "*WARNING* Threads still active when SimThreadManager exits.");
    delete m_active_threads_lock;
 }
 
 void SimThreadManager::spawnSimThreads()
 {
-   UInt32 num_sim_threads = g_config->getNumLocalCores();
+   UInt32 num_sim_threads = Config::getSingleton()->getNumLocalCores();
 
-   LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_threads, g_config->getCurrentProcessNum());
+   LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_threads, Config::getSingleton()->getCurrentProcessNum());
 
    m_sim_threads = new SimThread [num_sim_threads];
 
    for (UInt32 i = 0; i < num_sim_threads; i++)
    {
       LOG_PRINT("Starting thread %i", i);
-      m_sim_threads[i]->spawn();
+      m_sim_threads[i].spawn();
    }
 
    while (m_active_threads < num_sim_threads)
@@ -42,9 +47,9 @@ void SimThreadManager::quitSimThreads()
    // FIXME: This should use the LCP to communicate to all the local
    // cores so that each process handles termination itself.
 
-   if (Sim()->getConfig()->getCurrentProcessNum() 
+   if (Config::getSingleton()->getCurrentProcessNum() 
        == 
-       Sim()->getConfig()->getProcessNumForCore(Sim()->getConfig()->getMCPCoreNum()))
+       Config::getSingleton()->getProcessNumForCore(Config::getSingleton()->getMCPCoreNum()))
    {
       NetPacket pkt;
       pkt.type = SIM_THREAD_TERMINATE_THREADS;
@@ -66,14 +71,14 @@ void SimThreadManager::quitSimThreads()
 
 void SimThreadManager::simThreadStartCallback()
 {
-   g_sim_threads_lock->acquire();
-   ++g_sim_num_active_threads;
-   g_sim_threads_lock->release();
+   m_active_threads_lock->acquire();
+   ++m_active_threads;
+   m_active_threads_lock->release();
 }
 
 void SimThreadManager::simThreadExitCallback()
 {
-   g_sim_threads_lock->acquire();
-   --g_sim_num_active_threads;
-   g_sim_threads_lock->release();
+   m_active_threads_lock->acquire();
+   --m_active_threads;
+   m_active_threads_lock->release();
 }

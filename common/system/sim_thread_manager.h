@@ -18,8 +18,8 @@ public:
 private:
    SimThread *m_sim_threads;
 
-   UInt32 m_active_threads;
    Lock *m_active_threads_lock;
+   UInt32 m_active_threads;
 };
 
 #endif // SIM_THREAD_MANAGER

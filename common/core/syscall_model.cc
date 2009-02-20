@@ -126,10 +126,10 @@ int SyscallMdl::marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
    // cerr << "open(" << path << ")" << endl;
 
    m_send_buff << len_fname << make_pair(path, len_fname) << flags;
-   m_network->netSend(g_config->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(g_config->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -176,12 +176,12 @@ int SyscallMdl::marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard
 
 //if shared mem, provide the buf to read into
    m_send_buff << fd << count << (int)buf;
-   m_network->netSend(g_config->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    //cerr << "sent to mcp " << m_send_buff.size() << " bytes" << endl;
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(g_config->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
    assert(recv_pkt.length >= sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -239,15 +239,15 @@ int SyscallMdl::marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    // If we are simulating shared memory, then we simply put
    // the address in the message. Otherwise, we need to put
    // the data in the message as well.
-   if (g_config->isSimulatingSharedMemory())
+   if (Config::getSingleton()->isSimulatingSharedMemory())
       m_send_buff << fd << count << (int)buf;
    else
       m_send_buff << fd << count << make_pair(buf, count);
 
-   m_network->netSend(g_config->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(g_config->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -287,10 +287,10 @@ int SyscallMdl::marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standar
    // cerr << "close(" << fd  << ")" << endl;
 
    m_send_buff << fd;
-   m_network->netSend(g_config->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(g_config->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -314,11 +314,11 @@ int SyscallMdl::marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standa
    m_send_buff << len_fname << make_pair(path, len_fname) << mode;
 
    // send the data
-   m_network->netSend(g_config->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(g_config->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);

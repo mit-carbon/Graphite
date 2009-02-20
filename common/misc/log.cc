@@ -35,11 +35,11 @@ Log::Log(UInt32 coreCount)
       _coreLocks[i] = Lock::create();
    }
 
-   assert(g_config->getProcessCount() != 0);
+   assert(Config::getSingleton()->getProcessCount() != 0);
 
-   _systemFiles = new FILE* [g_config->getProcessCount()];
-   _systemLocks = new Lock* [g_config->getProcessCount()];
-   for (UInt32 i = 0; i < g_config->getProcessCount(); i++)
+   _systemFiles = new FILE* [Config::getSingleton()->getProcessCount()];
+   _systemLocks = new Lock* [Config::getSingleton()->getProcessCount()];
+   for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
    {
       sprintf(filename, "output_files/system_%u", i);
       _systemFiles[i] = fopen(filename, "w");
@@ -51,7 +51,7 @@ Log::Log(UInt32 coreCount)
    _defaultFile = fopen("output_files/system-default","w");
    _defaultLock = Lock::create();
 
-   g_config->getDisabledLogModules(_disabledModules);
+   Config::getSingleton()->getDisabledLogModules(_disabledModules);
 
    assert(_singleton == NULL);
    _singleton = this;
@@ -70,7 +70,7 @@ Log::~Log()
    delete [] _coreLocks;
    delete [] _coreFiles;
 
-   for (UInt32 i = 0; i < g_config->getProcessCount(); i++)
+   for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
    {
       fclose(_systemFiles[i]);
       delete _systemLocks[i];
@@ -105,7 +105,7 @@ UInt64 Log::getTimestamp()
 }
 
 // FIXME: See note below.
-#include "core_manager.h"
+#include "simulator.h"
 
 void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
 {
@@ -115,11 +115,11 @@ void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
    if (core_id == (UInt32)-1)
    {
       // System file -- use process num if available
-      if (g_config->getCurrentProcessNum() != (UInt32) -1)
+      if (Config::getSingleton()->getCurrentProcessNum() != (UInt32) -1)
       {
-         assert(g_config->getCurrentProcessNum() < g_config->getProcessCount());
-         *file = _systemFiles[g_config->getCurrentProcessNum()];
-         *lock = _systemLocks[g_config->getCurrentProcessNum()];
+         assert(Config::getSingleton()->getCurrentProcessNum() < Config::getSingleton()->getProcessCount());
+         *file = _systemFiles[Config::getSingleton()->getCurrentProcessNum()];
+         *lock = _systemLocks[Config::getSingleton()->getCurrentProcessNum()];
       }
       else
       {
@@ -136,14 +136,14 @@ void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
       // thread we are on.
       UInt32 fileID;
 
-      if (g_core_manager == NULL)
+      if (Sim() == NULL || Sim()->getCoreManager() == NULL)
       {
          fileID = core_id + _coreCount;
       }
       else
       {
          SInt32 myCoreID;
-         myCoreID = g_core_manager->getCurrentCoreID();
+         myCoreID = Sim()->getCoreManager()->getCurrentCoreID();
          if (myCoreID == -1)
             fileID = core_id + _coreCount;
          else
@@ -155,7 +155,7 @@ void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
    }
 }
 
-void Log::log(UInt32 core_id, const char *module, const char *format, ...)
+void Log::log(UInt32 core_id, const char* source_file, SInt32 source_line, const char *module, const char *format, ...)
 {
 #ifdef DISABLE_LOGGING
    return;
@@ -172,9 +172,9 @@ void Log::log(UInt32 core_id, const char *module, const char *format, ...)
    lock->acquire();
 
    if (core_id < _coreCount)
-      fprintf(file, "%llu {%i}\t[%i]\t[%s] ", getTimestamp(), g_config->getCurrentProcessNum(), core_id, module);
-   else if (g_config->getCurrentProcessNum() != (UInt32)-1)
-      fprintf(file, "%llu {%i}\t[ ]\t[%s] ", getTimestamp(), g_config->getCurrentProcessNum(), module);
+      fprintf(file, "%llu {%i}\t[%i]\t[%s] ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module);
+   else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1)
+      fprintf(file, "%llu {%i}\t[ ]\t[%s] ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module);
    else
       fprintf(file, "%llu { }\t[ ]\t[%s] ", getTimestamp(), module);
 
@@ -182,6 +182,8 @@ void Log::log(UInt32 core_id, const char *module, const char *format, ...)
    va_start(args, format);
    vfprintf(file, format, args);
    va_end(args);
+
+//   fprintf(file, " -- %s:%d", source_file, source_line);
 
    fprintf(file, "\n");
 

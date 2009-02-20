@@ -1,3 +1,6 @@
+// FIXME: get rid of this shit
+class ShmemDebugHelper;
+ShmemDebugHelper *g_shmem_debug_helper = NULL;
 
 void ShmemDebugHelper::AliasedReadModeling()
 {

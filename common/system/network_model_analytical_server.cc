@@ -15,7 +15,7 @@ NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
       : _network(network),
       _recv_buffer(recv_buffer)
 {
-   int num_cores = g_config->getTotalCores();
+   int num_cores = Config::getSingleton()->getTotalCores();
    _local_utilizations.resize(num_cores);
    for (int i = 0; i < num_cores; i++)
    {
@@ -33,7 +33,7 @@ void NetworkModelAnalyticalServer::update(core_id_t core_id)
    assert(
       _recv_buffer.get(ut)
    );
-   assert(0 <= core_id && (unsigned int)core_id < g_config->getTotalCores());
+   assert(0 <= core_id && (unsigned int)core_id < Config::getSingleton()->getTotalCores());
    //  assert(0 <= ut && ut <= 1);
 
    _local_utilizations[core_id] = ut;
@@ -55,7 +55,7 @@ void NetworkModelAnalyticalServer::update(core_id_t core_id)
 
    // send response
    NetPacket response;
-   response.sender = g_config->getMCPCoreNum();
+   response.sender = Config::getSingleton()->getMCPCoreNum();
    response.receiver = core_id;
    response.length = sizeof(global_utilization);
    response.type = MCP_UTILIZATION_UPDATE_TYPE;

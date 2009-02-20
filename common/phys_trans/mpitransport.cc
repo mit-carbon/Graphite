@@ -22,13 +22,13 @@ MpiTransport::MpiTransport()
    err_code = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Comm_rank fail.");
 
-   g_config->setProcessNum(rank);
-   LOG_PRINT("Process number set to %i", g_config->getCurrentProcessNum());
+   Config::getSingleton()->setProcessNum(rank);
+   LOG_PRINT("Process number set to %i", Config::getSingleton()->getCurrentProcessNum());
 
    SInt32 num_procs;
    err_code = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Comm_size fail.");
-   LOG_ASSERT_ERROR(num_procs == (SInt32)g_config->getProcessCount(), "Config no. processes doesn't match MPI no. processes.");
+   LOG_ASSERT_ERROR(num_procs == (SInt32)Config::getSingleton()->getProcessCount(), "Config no. processes doesn't match MPI no. processes.");
 
    m_global_node = new MpiNode(PROC_COMM_TAG);
 }
@@ -86,7 +86,7 @@ void MpiTransport::MpiNode::globalSend(SInt32 dest_proc, Byte *buffer, UInt32 le
 
 void MpiTransport::MpiNode::send(SInt32 dest_core, Byte *buffer, UInt32 length)
 {
-   int dest_proc = g_config->getProcessNumForCore(dest_core);
+   int dest_proc = Config::getSingleton()->getProcessNumForCore(dest_core);
    send(dest_proc, dest_core, buffer, length);
 }
 

@@ -16,7 +16,7 @@ class Log
 
       static Log *getSingleton();
 
-      void log(UInt32 rank, const char* module, const char* format, ...);
+      void log(UInt32 rank, const char *source_file, SInt32 source_line, const char* module, const char* format, ...);
       void notifyWarning();
       void notifyError();
 
@@ -79,7 +79,7 @@ class Log
    {                                                                    \
       if (Log::getSingleton()->isEnabled(#module))                      \
       {                                                                 \
-         Log::getSingleton()->log(rank, #module, __VA_ARGS__);          \
+         Log::getSingleton()->log(rank, __FILE__, __LINE__, #module, __VA_ARGS__); \
       }                                                                 \
    }                                                                    \
  

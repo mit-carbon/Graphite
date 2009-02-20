@@ -9,13 +9,13 @@
 
 SmTransport::SmTransport()
 {
-   LOG_ASSERT_ERROR(g_config->getProcessCount() == 1, "*ERROR* Can only use SmTransport with a single process.");
+   LOG_ASSERT_ERROR(Config::getSingleton()->getProcessCount() == 1, "*ERROR* Can only use SmTransport with a single process.");
 
-   g_config->setProcessNum(0);
+   Config::getSingleton()->setProcessNum(0);
 
    m_global_node = new SmNode(-1, this);
-   m_core_nodes = new SmNode* [ g_config->getNumLocalCores() ];
-   for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   m_core_nodes = new SmNode* [ Config::getSingleton()->getNumLocalCores() ];
+   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
       m_core_nodes[i] = NULL;
 }
 
@@ -23,7 +23,7 @@ SmTransport::~SmTransport()
 {
    // The networks actually delete the Transport::Nodes, so we
    // shouldn't do it ourselves.
-   // for (UInt32 i = 0; i < g_config->getNumLocalCores(); i++)
+   // for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    //    delete m_core_nodes[i];
 
    delete [] m_core_nodes;
@@ -32,7 +32,7 @@ SmTransport::~SmTransport()
 
 Transport::Node* SmTransport::createNode(SInt32 core_id)
 {
-   LOG_ASSERT_ERROR((UInt32)core_id < g_config->getNumLocalCores(),
+   LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
                     "*ERROR* Request index out of range: %d", core_id);
    LOG_ASSERT_ERROR(m_core_nodes[core_id] == NULL,
                     "*ERROR* Transport already allocated for id: %d.", core_id);
@@ -56,7 +56,7 @@ Transport::Node* SmTransport::getGlobalNode()
 
 SmTransport::SmNode* SmTransport::getNodeFromId(SInt32 core_id)
 {
-   LOG_ASSERT_ERROR((UInt32)core_id < g_config->getNumLocalCores(),
+   LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
                     "*ERROR* Core id out of range: %d", core_id);
    return m_core_nodes[core_id];
 }
@@ -66,7 +66,7 @@ void SmTransport::clearNodeForId(SInt32 core_id)
    // This is called upon deletion of the node, so we should simply
    // not keep around a dead pointer. Also enables future support for
    // dynamic threads.
-   if ((UInt32)core_id < g_config->getNumLocalCores())
+   if ((UInt32)core_id < Config::getSingleton()->getNumLocalCores())
       m_core_nodes[core_id] = NULL;
 }
 

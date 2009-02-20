@@ -1,7 +1,10 @@
 #include "sim_thread.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK -1
+#include "simulator.h"
+#include "core.h"
+
+#define LOG_DEFAULT_RANK core_id
 #define LOG_DEFAULT_MODULE SIM_THREAD
 
 SimThread::SimThread()
@@ -17,6 +20,8 @@ SimThread::~SimThread()
 void SimThread::run()
 {
    int core_id = Sim()->getCoreManager()->registerSimMemThread();
+   LOG_PRINT("Sim thread starting...");
+
    Network *net = Sim()->getCoreManager()->getCoreFromID(core_id)->getNetwork();
    bool cont = true;
 
@@ -33,12 +38,13 @@ void SimThread::run()
 
    Sim()->getSimThreadManager()->simThreadExitCallback();
 
-   LOG_PRINT("Sim thread %i exiting", core_id);
+   LOG_PRINT("Sim thread exiting");
 }
 
 void SimThread::spawn()
 {
    m_thread = Thread::create(this);
+   m_thread->run();
 }
 
 void SimThread::terminateFunc(void *vp, NetPacket pkt)

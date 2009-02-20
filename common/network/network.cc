@@ -18,7 +18,7 @@
 Network::Network(Core *core)
       : _core(core)
 {
-   _numMod = g_config->getTotalCores();
+   _numMod = Config::getSingleton()->getTotalCores();
    _tid = _core->getId();
 
    _transport = Transport::getSingleton()->createNode(_core->getId());
@@ -29,7 +29,7 @@ Network::Network(Core *core)
       _callbacks[i] = NULL;
 
    UInt32 modelTypes[NUM_STATIC_NETWORKS];
-   g_config->getNetworkModels(modelTypes);
+   Config::getSingleton()->getNetworkModels(modelTypes);
 
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
       _models[i] = NetworkModel::createModel(this, modelTypes[i]);

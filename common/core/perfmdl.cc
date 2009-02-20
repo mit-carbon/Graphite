@@ -4,8 +4,6 @@
 
 #include "pin.H"
 
-extern Config *g_config;
-
 PerfModel::PerfModel(string name)
       :
       m_microop_issue_count(0),
@@ -84,7 +82,7 @@ void PerfModel::runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool d
    interval_stats->reset();
    interval_stats->logDCacheLoadAccess(dcache_load_hit);
 
-   if (g_config->getEnablePerformanceModeling() && !dcache_load_hit)
+   if (Config::getSingleton()->getEnablePerformanceModeling() && !dcache_load_hit)
    {
       for (UInt32 i = 0; i < numWrites; i++)
       {

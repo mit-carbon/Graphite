@@ -513,7 +513,7 @@ bool OCache::runDCacheModel(CacheBase::AccessType operation, IntPtr d_addr, char
       shmem_operation = WRITE;
    }
 
-   if (g_config->isSimulatingSharedMemory())
+   if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
 

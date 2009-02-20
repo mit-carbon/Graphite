@@ -25,8 +25,8 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
                                   receiveMCPUpdate,
                                   this);
 
-   _updateInterval = g_config->getAnalyticNetworkParms()->update_interval;
-   _procCost = g_config->getAnalyticNetworkParms()->proc_cost;
+   _updateInterval = Config::getSingleton()->getAnalyticNetworkParms()->update_interval;
+   _procCost = Config::getSingleton()->getAnalyticNetworkParms()->proc_cost;
 }
 
 NetworkModelAnalytical::~NetworkModelAnalytical()
@@ -75,7 +75,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // of network hops.
 
    // Retrieve parameters
-   const NetworkModelAnalyticalParameters *pParams = g_config->getAnalyticNetworkParms();
+   const NetworkModelAnalyticalParameters *pParams = Config::getSingleton()->getAnalyticNetworkParms();
    double Tw2 = pParams->Tw2;
    double s = pParams->s;
    int n = pParams->n;
@@ -92,7 +92,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    double hops_in_network;   // number of nodes visited
    double Tb;                // latency, without contention
 
-   N = g_config->getTotalCores();
+   N = Config::getSingleton()->getTotalCores();
    k = pow(N, 1./n);                  // pg 5
    kd = k/2.;                         // pg 5 (note this will be
    // different for different network configurations...say,
@@ -196,7 +196,7 @@ void NetworkModelAnalytical::updateUtilization()
 
    NetPacket update;
    update.sender = getNetwork()->getCore()->getId();
-   update.receiver = g_config->getMCPCoreNum();
+   update.receiver = Config::getSingleton()->getMCPCoreNum();
    update.length = sizeof(m);
    update.type = MCP_SYSTEM_TYPE;
    update.data = &m;

@@ -3,6 +3,7 @@
 #include "lcp.h"
 #include "mcp.h"
 #include "core.h"
+
 #define LOG_DEFAULT_RANK -1
 #define LOG_DEFAULT_MODULE SIMULATOR
 
@@ -37,14 +38,10 @@ void Simulator::start()
 {
    LOG_PRINT("In Simulator ctor.");
 
-   m_transport = Transport::create();
-
-   m_core_manager = new CoreManager();
-
    m_config.logCoreMap();
 
-   LOG_ASSERT_ERROR_EXPLICIT(!m_config.isSimulatingSharedMemory() || m_config.getEnableDCacheModeling(), -1, PINSIM,
-                             "*ERROR* Must set dcache modeling on (-mdc) to use shared memory model.");
+   m_transport = Transport::create();
+   m_core_manager = new CoreManager();
 
    startMCP();
 
@@ -64,6 +61,10 @@ Simulator::~Simulator()
    endMCP();
 
    m_sim_thread_manager.quitSimThreads();
+
+   m_transport->barrier();
+
+   m_lcp->finish();
 
    m_core_manager->outputSummary();
 
@@ -98,6 +99,4 @@ void Simulator::endMCP()
 {
    if (m_config.getCurrentProcessNum() == m_config.getProcessNumForCore(m_config.getMCPCoreNum()))
       m_mcp->finish();
-
-   m_transport->barrier();
 }

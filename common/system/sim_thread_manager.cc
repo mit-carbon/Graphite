@@ -44,21 +44,21 @@ void SimThreadManager::spawnSimThreads()
 
 void SimThreadManager::quitSimThreads()
 {
-   // FIXME: This should use the LCP to communicate to all the local
-   // cores so that each process handles termination itself.
+   LOG_PRINT("Sending quit messages.");
 
-   if (Config::getSingleton()->getCurrentProcessNum() 
-       == 
-       Config::getSingleton()->getProcessNumForCore(Config::getSingleton()->getMCPCoreNum()))
+   Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
+   UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
+
+   // This is something of a hard-wired emulation of Network::netSend
+   // ... not the greatest thing to do, but whatever.
+   NetPacket pkt(0, SIM_THREAD_TERMINATE_THREADS, 0, 0, 0, NULL);
+   const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
+
+   for (UInt32 i = 0; i < num_local_cores; i++)
    {
-      NetPacket pkt;
-      pkt.type = SIM_THREAD_TERMINATE_THREADS;
-      pkt.length = 0;
-      pkt.data = 0;
-
-      LOG_PRINT("Sending quit messages.");
-
-      Sim()->getMCP()->broadcastPacket(pkt);
+      SInt32 core_id = core_list[i];
+      pkt.receiver = core_id;
+      global_node->send(core_id, &pkt, pkt.bufferSize());
    }
 
    LOG_PRINT("Waiting for local sim threads to exit.");
@@ -67,6 +67,8 @@ void SimThreadManager::quitSimThreads()
       sched_yield();
 
    Transport::getSingleton()->barrier();
+
+   LOG_PRINT("All threads have exited.");
 }
 
 void SimThreadManager::simThreadStartCallback()

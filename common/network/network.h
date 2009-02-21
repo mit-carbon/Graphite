@@ -19,33 +19,27 @@ class Network;
 
 class NetPacket
 {
-   public:
-      PacketType type;
-      SInt32 sender;
-      SInt32 receiver;
-      UInt32 length;
-      const void *data;
-
-      static const SInt32 BROADCAST = 0xDEADBABE;
-
-      NetPacket()
-            : type(INVALID)
-            , sender(-1)
-            , receiver(-1)
-            , length(0)
-            , data(0)
-      {}
-};
-
-// -- Net Queue -- //
-
-struct NetQueueEntry
-{
+public:
    UInt64 time;
-   NetPacket packet;
+   PacketType type;
+   SInt32 sender;
+   SInt32 receiver;
+   UInt32 length;
+   const void *data; // *MUST* be last entry of the class
+
+   NetPacket();
+   explicit NetPacket(Byte*);
+   NetPacket(UInt64 time, PacketType type, SInt32 sender, 
+             SInt32 receiver, UInt32 length, const void *data);
+
+   UInt32 bufferSize() const;
+   Byte *makeBuffer() const;
+   
+   static const SInt32 BROADCAST = 0xDEADBABE;
+   static const UInt32 BASE_SIZE = sizeof(const void*) + sizeof(PacketType) + 3 * sizeof(UInt32) + sizeof(UInt64);
 };
 
-typedef std::list<NetQueueEntry> NetQueue;
+typedef std::list<NetPacket> NetQueue;
 
 // -- Network Matches -- //
 
@@ -149,9 +143,6 @@ class Network
 
       NetQueue _netQueue;
       ConditionVariable _netQueueCond;
-
-      Byte* netCreateBuf(const NetPacket& packet, UInt32* buf_size, UInt64 time);
-      void netExPacket(Byte* buffer, NetPacket &packet, UInt64 &time);
 
       void forwardPacket(const NetPacket &packet);
 };

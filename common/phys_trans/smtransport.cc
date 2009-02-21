@@ -87,20 +87,20 @@ SmTransport::SmNode::~SmNode()
    m_smt->clearNodeForId(getCoreId());
 }
 
-void SmTransport::SmNode::globalSend(SInt32 dest_proc, Byte *buffer, UInt32 length)
+void SmTransport::SmNode::globalSend(SInt32 dest_proc, const void *buffer, UInt32 length)
 {
    LOG_ASSERT_ERROR(dest_proc == 0, "*ERROR* Destination other than zero: %d", dest_proc);
    send((SmNode*)m_smt->getGlobalNode(), buffer, length);
 }
 
-void SmTransport::SmNode::send(SInt32 dest_id, Byte* buffer, UInt32 length)
+void SmTransport::SmNode::send(SInt32 dest_id, const void* buffer, UInt32 length)
 {
    SmNode *dest_node = m_smt->getNodeFromId(dest_id);
    LOG_ASSERT_ERROR(dest_node != NULL, "*ERROR* Attempt to send to non-existent node: %d", dest_id);
    send(dest_node, buffer, length);
 }
 
-void SmTransport::SmNode::send(SmNode *dest_node, Byte *buffer, UInt32 length)
+void SmTransport::SmNode::send(SmNode *dest_node, const void *buffer, UInt32 length)
 {
    Byte *data = new Byte[length];
    memcpy(data, buffer, length);
@@ -111,8 +111,6 @@ void SmTransport::SmNode::send(SmNode *dest_node, Byte *buffer, UInt32 length)
    dest_node->m_queue.push(data);
    dest_node->m_cond.release();
    dest_node->m_cond.broadcast();
-
-   LOG_PRINT("msg sent");
 }
 
 Byte* SmTransport::SmNode::recv()

@@ -79,23 +79,24 @@ MpiTransport::MpiNode::~MpiNode()
 {
 }
 
-void MpiTransport::MpiNode::globalSend(SInt32 dest_proc, Byte *buffer, UInt32 length)
+void MpiTransport::MpiNode::globalSend(SInt32 dest_proc, const void *buffer, UInt32 length)
 {
+   LOG_PRINT("In globalSend");
    send(dest_proc, PROC_COMM_TAG, buffer, length);
 }
 
-void MpiTransport::MpiNode::send(SInt32 dest_core, Byte *buffer, UInt32 length)
+void MpiTransport::MpiNode::send(SInt32 dest_core, const void *buffer, UInt32 length)
 {
    int dest_proc = Config::getSingleton()->getProcessNumForCore(dest_core);
    send(dest_proc, dest_core, buffer, length);
 }
 
-void MpiTransport::MpiNode::send(SInt32 dest_proc, UInt32 tag, Byte *buffer, UInt32 length)
+void MpiTransport::MpiNode::send(SInt32 dest_proc, UInt32 tag, const void *buffer, UInt32 length)
 {
    LOG_PRINT("sending msg -- size: %i, tag: %d, dest_proc: %i", length, tag, dest_proc);
 
    SInt32 err_code;
-   err_code = MPI_Send(buffer, length, MPI_BYTE, dest_proc, tag, MPI_COMM_WORLD);
+   err_code = MPI_Send((void*)buffer, length, MPI_BYTE, dest_proc, tag, MPI_COMM_WORLD);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Send fail.");
 }
 

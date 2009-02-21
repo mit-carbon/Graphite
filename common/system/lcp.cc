@@ -1,12 +1,18 @@
 #include "lcp.h"
 #include "simulator.h"
 #include "core.h"
+#include "message_types.h"
 
 #include "log.h"
 #define LOG_DEFAULT_RANK -1
 #define LOG_DEFAULT_MODULE LCP
 
+// -- general LCP functionality
+
 LCP::LCP()
+   : m_proc_num(Config::getSingleton()->getCurrentProcessNum())
+   , m_transport(Transport::getSingleton()->getGlobalNode())
+   , m_finished(false)
 {
 }
 
@@ -16,32 +22,71 @@ LCP::~LCP()
 
 void LCP::run()
 {
-   LOG_PRINT("In LCP");
+   LOG_PRINT("LCP started.");
 
-   Network *net = Sim()->getCoreManager()->getCoreFromIndex(0)->getNetwork();
-
-   net->registerCallback(SIM_THREAD_UPDATE_COMM_MAP,
-                         updateCommMap,
-                         net);
+   while (!m_finished)
+   {
+      processPacket();
+   }
 }
+
+void LCP::processPacket()
+{
+   Byte *pkt = m_transport->recv();
+
+   SInt32 *msg_type = (SInt32*)pkt;
+
+   LOG_PRINT("Received message type: %d", *msg_type);
+
+   switch (*msg_type)
+   {
+   case LCP_MESSAGE_QUIT:
+      LOG_PRINT("Received quit message.");
+      m_finished = true;
+      break;
+
+   case LCP_MESSAGE_COMMID_UPDATE:
+      updateCommId(pkt + sizeof(SInt32));
+      break;
+
+   default:
+      LOG_ASSERT_ERROR(false, "Unexpected message type.");
+      break;
+   }
+
+   delete [] pkt;
+}
+
+void LCP::finish()
+{
+   LOG_PRINT("Send LCP quit message");
+
+   SInt32 msg_type = LCP_MESSAGE_QUIT;
+
+   m_transport->globalSend(m_proc_num,
+                           &msg_type,
+                           sizeof(msg_type));
+
+   while (!m_finished)
+      sched_yield();
+
+   LOG_PRINT("LCP finished.");
+}
+
+// -- functions for specific tasks
 
 struct CommMapUpdate
 {
-   UInt32 message_type;
-   SInt32 core_id;
    SInt32 comm_id;
+   SInt32 core_id;
 };
 
-void LCP::updateCommMap(void *vp, NetPacket pkt)
+void LCP::updateCommId(void *vp)
 {
-   LOG_PRINT("CoreMap: SimThread got the UpdateCommMap message.");
-   Network *net = (Network *)vp;
-   CommMapUpdate *update;
+   CommMapUpdate *update = (CommMapUpdate*)vp;
 
-   LOG_ASSERT_ERROR(pkt.length == sizeof(*update), "*ERROR* Packet length wrong. Expected: %d, Got: %d", sizeof(*update), pkt.length);
-   update = (CommMapUpdate*)pkt.data;
-
+   LOG_PRINT("Initializing comm_id: %d to core_id: %d", update->comm_id, update->core_id);
    Config::getSingleton()->updateCommToCoreMap(update->comm_id, update->core_id);
-   bool dummy = true;
-   net->netSend(pkt.sender, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+
+   // FIXME: Do we need to send an ACK?
 }

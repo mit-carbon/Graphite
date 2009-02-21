@@ -66,22 +66,23 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    UInt32 core_id = e.second;
 
    UnstructuredBuffer send_buff;
-   send_buff << MCP_MESSAGE_BROADCAST_COMM_MAP_UPDATE;
-   send_buff << comm_id;
-   send_buff << core_id;
+   send_buff << (SInt32)LCP_MESSAGE_COMMID_UPDATE << comm_id << core_id;
 
-   LOG_PRINT("CoreMap: CoreManager Initializing comm_id: %d to core_id: %d", comm_id, core_id);
+   LOG_PRINT("Initializing comm_id: %d to core_id: %d", comm_id, core_id);
 
-   // Broadcast this update to other cores
-   Network *net = getCoreFromID(core_id)->getNetwork();
-   SInt32 sender = (SInt32)Config::getSingleton()->getMCPCoreNum();
-   net->netSend(sender, MCP_SYSTEM_TYPE, send_buff.getBuffer(), send_buff.size());
+   // Broadcast this update to other processes
+   Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
+   UInt32 num_procs = Config::getSingleton()->getProcessCount();
 
-   // This should be used once miniMCPs are implemented.
-   // Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   // globalNode->send(Config::getSingleton()->getMcpCoreId(),
-   //                  send_buff.getBuffer(),
-   //                  send_buff.size());
+   LOG_PRINT("asdf %p", global_node);
+
+   for (UInt32 i = 0; i < num_procs; i++)
+   {
+      LOG_PRINT("wert %d", i);
+      global_node->globalSend(i,
+                              send_buff.getBuffer(),
+                              send_buff.size());
+   }
 }
 
 void CoreManager::initializeThread()
@@ -101,7 +102,7 @@ void CoreManager::initializeThread()
          tid_map[i] = tid;
          tid_to_core_index_map.insert(tid, i);
          tid_to_core_map.insert(tid, core_id);
-         LOG_PRINT("%d mapped to: %d core_id: %d", i, tid_map[i], core_id);
+         LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid_map[i], core_id);
          return;
       }
       else

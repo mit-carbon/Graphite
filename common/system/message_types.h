@@ -4,8 +4,8 @@
 // Different types of messages that get passed to the MCP
 typedef enum
 {
-   MCP_MESSAGE_SYS_CALL,
    MCP_MESSAGE_QUIT,
+   MCP_MESSAGE_SYS_CALL,
    MCP_MESSAGE_MUTEX_INIT,
    MCP_MESSAGE_MUTEX_LOCK,
    MCP_MESSAGE_MUTEX_UNLOCK,
@@ -16,8 +16,14 @@ typedef enum
    MCP_MESSAGE_BARRIER_INIT,
    MCP_MESSAGE_BARRIER_WAIT,
    MCP_MESSAGE_UTILIZATION_UPDATE,
-   MCP_MESSAGE_BROADCAST_COMM_MAP_UPDATE
-} MessageTypes;
+} MCPMessageTypes;
+
+typedef enum
+{
+   LCP_MESSAGE_QUIT,
+   LCP_MESSAGE_COMMID_UPDATE,
+   LCP_MESSAGE_THREAD_SPAWN_REQUEST,
+} LCPMessageTypes;
 
 #endif
 

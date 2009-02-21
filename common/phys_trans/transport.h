@@ -15,8 +15,8 @@ public:
    public:
       virtual ~Node() { }
 
-      virtual void globalSend(SInt32 dest_proc, Byte *buffer, UInt32 length) = 0;
-      virtual void send(SInt32 dest, Byte *buffer, UInt32 length) = 0;
+      virtual void globalSend(SInt32 dest_proc, const void *buffer, UInt32 length) = 0;
+      virtual void send(SInt32 dest, const void *buffer, UInt32 length) = 0;
       virtual Byte* recv() = 0;
       virtual bool query() = 0;
 

@@ -18,13 +18,13 @@ public:
       SmNode(SInt32 core_id, SmTransport *smt);
       ~SmNode();
 
-      void globalSend(SInt32, Byte*, UInt32);
-      void send(SInt32, Byte*, UInt32);
+      void globalSend(SInt32, const void*, UInt32);
+      void send(SInt32, const void*, UInt32);
       Byte* recv();
       bool query();
 
    private:
-      void send(SmNode *dest, Byte *buffer, UInt32 length);
+      void send(SmNode *dest, const void *buffer, UInt32 length);
 
       std::queue<Byte*> m_queue;
       ConditionVariable m_cond;

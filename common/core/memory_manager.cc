@@ -13,6 +13,9 @@ void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
 MemoryManager::MemoryManager(Core *core, OCache *ocache)
 {
+   LOG_ASSERT_ERROR_EXPLICIT(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(),
+                             -1, PINSIM, "*ERROR* Must set dcache modeling on (-mdc) to use shared memory model.");
+
    m_core = core;
    m_ocache = ocache;
 

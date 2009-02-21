@@ -88,10 +88,6 @@ void MCP::processPacket()
    case MCP_MESSAGE_UTILIZATION_UPDATE:
       m_network_model_analytical_server.update(recv_pkt.sender);
       break;
-   case MCP_MESSAGE_BROADCAST_COMM_MAP_UPDATE:
-      recv_pkt.type = SIM_THREAD_UPDATE_COMM_MAP;
-      broadcastPacketToProcesses(recv_pkt);
-      break;
    default:
       LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
    }
@@ -103,7 +99,7 @@ void MCP::finish()
 {
    LOG_PRINT("Send MCP quit message");
 
-   int msg_type = MCP_MESSAGE_QUIT;
+   SInt32 msg_type = MCP_MESSAGE_QUIT;
    m_network.netSend(Config::getSingleton()->getMCPCoreNum(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
 
    while (!finished())
@@ -114,56 +110,12 @@ void MCP::finish()
    LOG_PRINT("MCP Finished.");
 }
 
-void MCP::broadcastPacket(NetPacket pkt)
-{
-   pkt.sender = Config::getSingleton()->getMCPCoreNum();
-
-   for (UInt32 core_id = 0; core_id < Config::getSingleton()->getTotalCores(); core_id++)
-   {
-      pkt.receiver = core_id;
-      m_network.netSend(pkt);
-   }
-}
-
-void MCP::broadcastPacketToProcesses(NetPacket pkt)
-{
-   pkt.sender = Config::getSingleton()->getMCPCoreNum();
-
-   for (UInt32 proc_id = 0; proc_id < Config::getSingleton()->getProcessCount(); proc_id++)
-   {
-      pkt.receiver = Config::getSingleton()->getCoreListForProcess(proc_id)[0];
-
-      LOG_PRINT("CoreMap: Sending process broadcast to core: %d", pkt.receiver); 
-
-      m_network.netSend(pkt);
-
-      // Wait for a response
-      NetPacket recv_pkt;
-      NetMatch match;
-      match.types.push_back(MCP_RESPONSE_TYPE);
-      recv_pkt = m_network.netRecv(match);
-      delete [] (Byte*)recv_pkt.data;
-   }
-}
-
-
-void MCP::forwardPacket(NetPacket pkt)
-{
-   pkt.sender = Config::getSingleton()->getMCPCoreNum();
-
-   assert(pkt.receiver != -1);
-
-   m_network.netSend(pkt);
-}
-
 void MCP::run()
 {
    int tid =  syscall(__NR_gettid);
-   LOG_PRINT("Initializing the MCP (%i) with id: %i", (int)tid, Config::getSingleton()->getTotalCores()-1);
+   LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPCoreNum());
 
    int mcp_core_num = Config::getSingleton()->getMCPCoreNum();
-   LOG_PRINT("%p", Sim());
-   LOG_PRINT("%p", Sim()->getCoreManager());
    Sim()->getCoreManager()->initializeThread(mcp_core_num);
    Sim()->getCoreManager()->initializeCommId(mcp_core_num);
 

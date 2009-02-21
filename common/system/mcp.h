@@ -21,11 +21,6 @@ class MCP : public Runnable
       void finish();
       Boolean finished() { return m_finished; };
 
-      // These functions expose the MCP network for system use
-      void broadcastPacket(NetPacket);
-      void broadcastPacketToProcesses(NetPacket);
-      void forwardPacket(NetPacket);
-
    private:
       Boolean m_finished;
       Network & m_network;

@@ -55,6 +55,10 @@ simple_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0
 
+dynamic_threads: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/dynamic_threads
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/dynamic_threads/dynamic_threads
+
 simple_test_dist: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
 	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 0

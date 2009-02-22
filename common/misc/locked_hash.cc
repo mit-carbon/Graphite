@@ -40,6 +40,20 @@ pair<bool, UInt64> LockedHash::find(UInt64 key)
    return res;
 }
 
+void LockedHash::remove(UInt64 key)
+{
+   UInt64 index = key % _size;
+   _locks[index]->acquire();
+
+   map<UInt64,UInt64>::iterator iter = _bins[index].find(key);
+   if (iter != _bins[index].end())
+   {
+       _bins[index].erase(iter);
+   }
+
+   _locks[index]->release();
+}
+
 bool LockedHash::insert(UInt64 key, UInt64 value)
 {
    UInt64 index = key % _size;

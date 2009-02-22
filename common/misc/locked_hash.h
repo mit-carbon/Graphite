@@ -22,6 +22,7 @@ class LockedHash
 
       std::pair<bool, UInt64> find(UInt64 key);
       bool insert(UInt64 key, UInt64 value);
+      void remove(UInt64 key);
 };
 
 #endif

@@ -41,7 +41,7 @@ squeaky: clean
 empty_logs :
 	rm output_files/* ; true
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
 

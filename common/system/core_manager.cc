@@ -148,6 +148,39 @@ void CoreManager::initializeThread(UInt32 core_id)
    LOG_NOTIFY_ERROR();
 }
 
+void CoreManager::terminateThread()
+{
+   ScopedLock scoped_maps_lock(*m_maps_lock);
+   UInt32 tid = getCurrentTID();
+   LOG_PRINT("CoreManager::terminating thread: %d", tid);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
+
+   LOG_ASSERT_WARNING(e.first == true, "*WARNING* Thread: %d not initialized while terminating.", e.second);
+
+   // If it's not in the tid_to_core_map, well then we don't need to remove it
+   if(e.first == false)
+       return;
+
+   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
+   {
+      if (tid_map[i] == tid)
+      {
+         tid_map[i] = UINT_MAX;
+         tid_to_core_index_map.remove(tid);
+         tid_to_core_map.remove(tid);
+         LOG_PRINT("Terminate thread : removed %d", e.second);
+         return;
+      }
+      else
+      {
+         // LOG_PRINT("%d/%d already mapped to: %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
+      }
+   }
+
+   LOG_PRINT("*ERROR* terminateThread - Thread tid: %d not found in list.", e.second);
+   LOG_NOTIFY_ERROR();
+}
+
 UInt32 CoreManager::getCurrentCoreID()
 {
    UInt32 id;

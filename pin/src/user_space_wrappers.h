@@ -7,6 +7,7 @@
 
 CAPI_return_t SimGetCoreID(int *core_id);
 void SimInitializeThread();
+void SimTerminateThread();
 void SimInitializeCommId(int comm_id);
 int SimGetProcessId();
 int SimGetProcessCount();

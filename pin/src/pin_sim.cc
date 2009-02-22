@@ -33,6 +33,7 @@
 #include "core_manager.h"
 #include "core.h"
 #include "syscall_model.h"
+#include "user_space_wrappers.h"
 
 #define LOG_DEFAULT_RANK    core_id
 #define LOG_DEFAULT_MODULE  PINSIM
@@ -101,6 +102,7 @@ void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
 void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
 {
    LOG_PRINT_EXPLICIT(-1, PINSIM, "Thread Fini: %d", syscall(__NR_gettid));
+   SimTerminateThread();
 }
 
 int main(int argc, char *argv[])

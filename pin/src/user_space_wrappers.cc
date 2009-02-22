@@ -16,6 +16,11 @@ void SimInitializeThread()
    Sim()->getCoreManager()->initializeThread();
 }
 
+void SimTerminateThread()
+{
+   Sim()->getCoreManager()->terminateThread();
+}
+
 int SimGetProcessCount()
 {
     return Config::getSingleton()->getProcessCount();

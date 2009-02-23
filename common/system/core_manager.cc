@@ -74,11 +74,8 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
    UInt32 num_procs = Config::getSingleton()->getProcessCount();
 
-   LOG_PRINT("asdf %p", global_node);
-
    for (UInt32 i = 0; i < num_procs; i++)
    {
-      LOG_PRINT("wert %d", i);
       global_node->globalSend(i,
                               send_buff.getBuffer(),
                               send_buff.size());

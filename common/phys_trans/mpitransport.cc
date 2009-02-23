@@ -30,7 +30,7 @@ MpiTransport::MpiTransport()
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Comm_size fail.");
    LOG_ASSERT_ERROR(num_procs == (SInt32)Config::getSingleton()->getProcessCount(), "Config no. processes doesn't match MPI no. processes.");
 
-   m_global_node = createNode(PROC_COMM_TAG);
+   m_global_node = createNode(-1);
 }
 
 MpiTransport::~MpiTransport()
@@ -110,7 +110,9 @@ Byte* MpiTransport::MpiNode::recv()
 
    LOG_PRINT("attempting receive -- tag: %i", getCoreId());
 
-   err_code = MPI_Probe(MPI_ANY_SOURCE, getCoreId(), MPI_COMM_WORLD, &status);
+   SInt32 tag = getCoreId() == -1 ? PROC_COMM_TAG : getCoreId();
+
+   err_code = MPI_Probe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Probe fail.");
 
    err_code = MPI_Get_count(&status, MPI_BYTE, &pkt_size);
@@ -118,12 +120,12 @@ Byte* MpiTransport::MpiNode::recv()
    LOG_ASSERT_ERROR(status.MPI_SOURCE != MPI_UNDEFINED, "Message has undefined status?!");
    source = status.MPI_SOURCE;
 
-   LOG_PRINT("msg found -- size: %i, tag: %i, source: %i", pkt_size, getCoreId(), source);
+   LOG_PRINT("msg found -- size: %i, tag: %i, source: %i", pkt_size, tag, source);
 
    // Allocate a buffer for the incoming message
    buffer = new Byte[pkt_size];
 
-   err_code = MPI_Recv(buffer, pkt_size, MPI_BYTE, source, getCoreId(), MPI_COMM_WORLD, &status);
+   err_code = MPI_Recv(buffer, pkt_size, MPI_BYTE, source, tag, MPI_COMM_WORLD, &status);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Recv fail.");
 
    LOG_PRINT("msg recv'd");
@@ -138,8 +140,10 @@ bool MpiTransport::MpiNode::query()
    MPI_Status status;
    int err_code;
 
+   SInt32 tag = getCoreId() == -1 ? PROC_COMM_TAG : getCoreId();
+
    // Probe for a message from any source but with our ID tag
-   err_code = MPI_Iprobe(MPI_ANY_SOURCE, getCoreId(), MPI_COMM_WORLD, &flag, &status);
+   err_code = MPI_Iprobe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &flag, &status);
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Iprobe fail.");
 
    // flag == 0 indicates that no message is waiting

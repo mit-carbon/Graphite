@@ -1,3 +1,0 @@
-This directory is for the Physical Transport layer.  Hopefully
-these are the only files that we'll need to modify to port the
-simulator to a new system for communicating data between cores.

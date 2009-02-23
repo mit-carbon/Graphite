@@ -4,7 +4,7 @@ include ../../common/makefile.debug
 DBG=-g
 OPT=-O2
 
-CXXFLAGS+=-c -I../../common/user -I../../common/system -I../../common/core -I../../common/network -I../../common/phys_trans -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CXXFLAGS+=-c -I../../common/user -I../../common/system -I../../common/core -I../../common/network -I../../common/transport -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 
 LDFLAGS= -pthread
 
@@ -17,7 +17,7 @@ LDFLAGS+= -los-services -L ../../os-services-linux-ia32
 
 TOOL_ROOTS = ../bin/pin_sim
 SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc pin_lock.cc user_space_wrappers.cc pin_thread.cc
-SRCOBJS = ../../common/user/*.o ../../common/core/*.o ../../common/network/*.o ../../common/phys_trans/*.o ../../common/misc/*.o ../../common/system/*.o
+SRCOBJS = ../../common/user/*.o ../../common/core/*.o ../../common/network/*.o ../../common/transport/*.o ../../common/misc/*.o ../../common/system/*.o
 OBJECTS = $(SOURCES:%.cc=%.o) $(SRCOBJS)
 
 ## build rules

@@ -7,7 +7,7 @@ include ../splash_support/Makefile.config
 include ../../makefile.gnu.config
 TARGET = BARNES
 
-CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
+CFLAGS = -I../../user -I../../transport -c -g -Wall
 
 stdinc.h: code.h defs.h util.h vectmath.h load.h code_io.h grav.h getparam.h stdinc.H 
 code.o: code.C stdinc.h

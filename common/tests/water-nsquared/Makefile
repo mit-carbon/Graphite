@@ -7,7 +7,7 @@ include ../splash_support/Makefile.config
 include ../../makefile.gnu.config
 TARGET = OCEAN
 
-CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
+CFLAGS = -I../../user -I../../transport -c -g -Wall
 TARGET = WATER-NSQUARED
 
 bndry.o: bndry.C split.h mdvar.h parameters.h mddata.h global.h

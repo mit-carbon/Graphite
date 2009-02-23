@@ -17,6 +17,8 @@
 #include <stdarg.h>
 #include <assert.h>
 
+#include <unistd.h>
+
 #include "capi.h"
 
 //#define DEBUG 1
@@ -172,7 +174,7 @@ int main(int argc, char* argv[])  // main begins
    }
 
    spawn_worker_threads(matSize, proc);
-   sleep(2);
+   sleep(10);
 
    if(proc == 0)
    {
@@ -358,7 +360,7 @@ void* cannon(void *threadid)
    rtnVal = CAPI_Initialize((unsigned int)threadid);
    //CAPI_rank(&tid);
    tid = (unsigned int)threadid;
-   sleep(2);
+   sleep(10);
 
    bool started = true;
    CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&started, sizeof(started));

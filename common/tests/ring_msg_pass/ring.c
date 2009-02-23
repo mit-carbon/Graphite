@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include "capi.h"
 
 #define NUM_LOOPS      30
@@ -37,7 +38,7 @@ int main(int argc, char *argv[])
 
    CarbonInitializeThread();
    CAPI_Initialize(rank);
-   sleep(5);
+   sleep(10);
 
    // Calculate the rank of the next process in the ring.  Use the
    //  modulus operator so that the last process "wraps around" to

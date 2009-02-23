@@ -8,7 +8,7 @@ include ../splash_support/Makefile.config
 include ../../makefile.gnu.config
 TARGET = FMM
 
-CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
+CFLAGS = -I../../user -I../../transport -c -g -Wall
 
 defs.c: defs.h
 box.c: box.h

@@ -7,7 +7,7 @@ FORCE32 ?= 1
 CC = $(MPI_DIR)/bin/mpicc
 CXX = $(MPI_DIR)/bin/mpicxx
 
-CXXFLAGS = -I../../user -I../../phys_trans -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
+CXXFLAGS = -I../../user -I../../transport -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
 
 LDFLAGS += -lm
 

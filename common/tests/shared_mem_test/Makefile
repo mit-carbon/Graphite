@@ -11,10 +11,10 @@ TEST_NEW_OBJECTS = $(TEST_NEW_SOURCES:%.cc=%.o)
 TEST_EVIC_OBJECTS = $(TEST_EVIC_SOURCES:%.cc=%.o)
 
 ifeq (${FORCE32},1)
-	CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall -m32
+	CFLAGS += -I../../transport -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall -m32
 	LDFLAGS = -m32 -m elf_i386
 else
-	CFLAGS += -I../../phys_trans -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
+	CFLAGS += -I../../transport -I../../network -I../../system -I../../misc -I../../../pin/src -I../../core -I../../user -c -g -Wall
 	LDFLAGS =
 endif
 

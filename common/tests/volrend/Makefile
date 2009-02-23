@@ -6,7 +6,7 @@ include ../splash_support/Makefile.config
 include ../../makefile.gnu.config
 TARGET = VOLREND
 
-CFLAGS := -I../../user -I../../phys_trans -c -g -Wall
+CFLAGS := -I../../user -I../../transport -c -g -Wall
 
 CFLAGS := $(CFLAGS) -I./libtiff
 LDFLAGS := -L./libtiff $(LDFLAGS) -ltiff

@@ -11,7 +11,7 @@ include ../../makefile.gnu.config
 TARGET = RADIOSITY
 
 CFLAGS := $(CFLAGS) -I./glibdumb -I./glibps
-CFLAGS := $(CFLAGS) -I../../user -I../../phys_trans -c -g -Wall
+CFLAGS := $(CFLAGS) -I../../user -I../../transport -c -g -Wall
 
 #CCOPTS = -I -float -I/usr/include $(CFLAGS)
 #LDFLAGS = -lm -lpthread

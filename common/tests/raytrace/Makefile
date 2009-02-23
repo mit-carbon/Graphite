@@ -9,7 +9,7 @@ include ../splash_support/Makefile.config
 include ../../makefile.gnu.config
 TARGET = RAYTRACE
 
-CFLAGS = -I../../user -I../../phys_trans -c -g -Wall
+CFLAGS = -I../../user -I../../transport -c -g -Wall
 
 bbox.c: bbox.C rt.h
 cr.c:	cr.C rt.h

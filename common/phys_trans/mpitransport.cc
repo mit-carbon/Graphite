@@ -30,6 +30,9 @@ MpiTransport::MpiTransport()
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Comm_size fail.");
    LOG_ASSERT_ERROR(num_procs == (SInt32)Config::getSingleton()->getProcessCount(), "Config no. processes doesn't match MPI no. processes.");
 
+   // FIXME: Although it might seem better to just use PROC_COMM_ID
+   // here, doing so fails mysteriously. Using -1 (as in SmTransport)
+   // seems to work.
    m_global_node = createNode(-1);
 }
 

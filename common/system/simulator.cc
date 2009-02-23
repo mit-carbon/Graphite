@@ -82,9 +82,11 @@ void Simulator::startMCP()
 {
    if (m_config.getCurrentProcessNum() != m_config.getProcessNumForCore(Config::getSingleton()->getMCPCoreNum()))
       return;
-      
+
    LOG_PRINT("Creating new MCP object in process %i", m_config.getCurrentProcessNum());
 
+   // FIXME: Can't the MCP look up its network itself in the
+   // constructor?
    Core * mcp_core = m_core_manager->getCoreFromID(m_config.getMCPCoreNum());
    LOG_ASSERT_ERROR(mcp_core, "Could not find the MCP's core!");
 

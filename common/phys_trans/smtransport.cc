@@ -64,8 +64,7 @@ SmTransport::SmNode* SmTransport::getNodeFromId(SInt32 core_id)
 void SmTransport::clearNodeForId(SInt32 core_id)
 {
    // This is called upon deletion of the node, so we should simply
-   // not keep around a dead pointer. Also enables future support for
-   // dynamic threads.
+   // not keep around a dead pointer.
    if ((UInt32)core_id < Config::getSingleton()->getNumLocalCores())
       m_core_nodes[core_id] = NULL;
 }

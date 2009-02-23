@@ -30,7 +30,7 @@ MpiTransport::MpiTransport()
    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Comm_size fail.");
    LOG_ASSERT_ERROR(num_procs == (SInt32)Config::getSingleton()->getProcessCount(), "Config no. processes doesn't match MPI no. processes.");
 
-   m_global_node = new MpiNode(PROC_COMM_TAG);
+   m_global_node = createNode(PROC_COMM_TAG);
 }
 
 MpiTransport::~MpiTransport()
@@ -87,6 +87,7 @@ void MpiTransport::MpiNode::globalSend(SInt32 dest_proc, const void *buffer, UIn
 
 void MpiTransport::MpiNode::send(SInt32 dest_core, const void *buffer, UInt32 length)
 {
+   LOG_PRINT("In send");
    int dest_proc = Config::getSingleton()->getProcessNumForCore(dest_core);
    send(dest_proc, dest_core, buffer, length);
 }

@@ -30,9 +30,9 @@ public:
    Node* getGlobalNode();
 
 private:
-   MpiNode *m_global_node;
+   Node *m_global_node;
 
-   static const int PROC_COMM_TAG=65536;
+   static const SInt32 PROC_COMM_TAG=32767;
 };
 
 #endif 

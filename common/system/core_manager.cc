@@ -87,7 +87,6 @@ void CoreManager::initializeCommId(UInt32 comm_id)
 
 void CoreManager::initializeThread()
 {
-   LOG_PRINT("before loop");
    ScopedLock scoped_maps_lock(*m_maps_lock);
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
@@ -133,7 +132,7 @@ void CoreManager::initializeThread(UInt32 core_id)
             tid_map[i] = tid;
             tid_to_core_index_map.insert(tid, i);
             tid_to_core_map.insert(tid, core_id);
-            LOG_PRINT("%d mapped to: %d core_id: %d", i, tid_map[i], core_id);
+            LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid_map[i], core_id);
             return;
          }
          else

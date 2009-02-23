@@ -76,7 +76,7 @@ cannon_msg_dist: all empty_logs
 
 ring_msg_pass: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/ring_msg_pass
-	$(MPI_DIR)/bin/mpirun -np 3 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 3 -tc 3 -- $(TESTS_DIR)/ring_msg_pass/ring -m 3
+	$(MPI_DIR)/bin/mpirun -np $(CORES) $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np $(CORES) -tc $(CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
 
 io_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/file_io

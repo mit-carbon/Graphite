@@ -42,31 +42,36 @@ int wait_some()
 
 int main(int argc, char *argv[])
 {
-
-   if (argc != 3)
-   {
-      fprintf(stderr, "[Usage]: ./jacobi <Number of Cores> <Size of Array>\n");
+   if (argc != 3) {
+      fprintf(stderr, "[Usage]: ./jacobi <Number_of_Cores> <Size_Multiplier>\n");
+                fprintf(stderr, "Size_of_Array = Number_of_Cores * Size_Multiplier\n"); 
       exit(-1);
    }
 
    g_num_cores = atoi(argv[1]);
-   g_size = atoi(argv[2]);
+   int size_multiplier = atoi (argv[2]);
+   if (size_multiplier < 1) {
+      fprintf(stderr, "Size_Multiplier should be >= 1\n");
+      fprintf(stderr, "Note: Size_of_Array = Number_of_Cores * Size_Multiplier\n");
+      exit(-1);
+   }
+   
+   g_size = g_num_cores * size_multiplier;
+
+   fprintf (stderr, "Number of Cores = %d\n", g_num_cores);
+   fprintf (stderr, "Size of the array = %d\n", g_size);
 
    g_old_array = (Int32 *) malloc((g_size+2) * sizeof(Int32));
    g_new_array = (Int32 *) malloc((g_size+2) * sizeof(Int32));
 
-   fprintf(stderr, "g_old_array = 0x%x\n", (UInt32) g_old_array);
-   fprintf(stderr, "g_new_array = 0x%x\n", (UInt32) g_new_array);
-
-   for (Int32 i = 0; i < g_size+2; i++)
-   {
+   for (Int32 i = 0; i < g_size+2; i++) {
       g_old_array[i] = 0;
       g_new_array[i] = 0;
    }
    g_old_array[0] = 32768;
    g_new_array[0] = 32768;
-
-   pthread_mutex_init(&print_lock, NULL);
+   
+   pthread_mutex_init (&print_lock, NULL);
 
    pthread_t threads[g_num_cores];
    pthread_attr_t attr;
@@ -161,7 +166,6 @@ void* threadMain(void *threadid)
 
       if (tid == 0)
       {
-
          Int32* temp;
          SWAP(g_old_array, g_new_array, temp);
 

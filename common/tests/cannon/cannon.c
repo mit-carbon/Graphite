@@ -78,7 +78,7 @@ int main(int argc, char* argv[])  // main begins
    }
 
 #ifdef DEBUG
-   printf("Number of threads: %d     Matrix size: %d\n", numThreads, matSize);
+   printf("Number of threads: %d Matrix size: %d\n", numThreads, matSize);
 #endif
 
    // Declare threads and related variables
@@ -189,7 +189,7 @@ void* cannon(void *threadid)
    CAPI_return_t rtnVal;
 
 #ifdef DEBUG
-   printf("Starting thread %d\n", (unsigned int)threadid);
+   printf("Starting thread %d\n", (int)threadid);
 #endif
 
    CarbonInitializeThread();

@@ -26,7 +26,7 @@ typedef SInt32 DType;
 typedef float DType;
 #endif
 
-#define NUM_ITERS 500
+#define NUM_ITERS 50
 #define SWAP(a,b,t)  (((t) = (a)), ((a) = (b)), ((b) = (t)))
 
 // Global Variables
@@ -225,11 +225,11 @@ void printArray(SInt32 iter)
 #ifdef USE_INT
       fprintf(stderr, "%d, ", g_old_array[i]);
 #else
-      fprintf(stderr, "{ %f, ", g_old_array[i]);
+      fprintf(stderr, "%f, ", g_old_array[i]);
       UInt32 float_rep = *((UInt32*) &g_old_array[i]);
-      fprintf(stderr, "0x%x } , ", float_rep);
+      // fprintf(stderr, "0x%x } , ", float_rep);
       // float_rep = float_rep & 0x7fc00000;
-      if ( (float_rep & 0x7fc00000) == 0x7fc00000) {
+      if ( (float_rep & 0x7f800000) == 0x7f800000) {
          fprintf(stderr, "\n\nEncountered a NaN : 0x%x !!!\n\n", float_rep);
          assert (false);
          exit(-1);

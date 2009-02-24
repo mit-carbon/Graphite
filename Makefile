@@ -49,9 +49,9 @@ stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit
 
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon 1djacobi_test_quick simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads
 
-regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
+regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test 
 
 clean_benchmarks:
 	make $@ -C $(TESTS_DIR)
@@ -114,7 +114,7 @@ shmem_test_evic: all empty_logs
 
 1djacobi_test_quick: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
+	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 16
 
 jacobi_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi

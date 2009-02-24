@@ -111,7 +111,7 @@ class DramDirectory
       //assumption: each dram_directory is tied to a given network (node), and is addressed at dram_id
       Network* m_network;
       UInt32 num_lines;
-      unsigned int bytes_per_cache_line;
+      UInt32 bytes_per_cache_line;
       UInt32 number_of_cores;
       //key dram entries on cache_line (assumes cache_line is 1:1 to dram memory lines)
       std::map<UInt32, DramDirectoryEntry*> dram_directory_entries;

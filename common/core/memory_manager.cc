@@ -34,7 +34,7 @@ MemoryManager::MemoryManager(Core *core, OCache *ocache)
    m_dram_dir = new DramDirectory(dram_lines_per_core, m_ocache->dCacheLineSize(), m_core->getId(), Config::getSingleton()->getTotalCores(), m_core->getNetwork());
 
    //TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
-   m_addr_home_lookup = new AddressHomeLookup(Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
+   m_addr_home_lookup = new AddressHomeLookup(Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId(), m_ocache->dCacheLineSize());
    LOG_PRINT("Creating New Addr Home Lookup Structure: %i, %i, %i", Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
 
    Network *net = m_core->getNetwork();

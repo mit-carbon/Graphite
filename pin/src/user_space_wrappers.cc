@@ -4,21 +4,15 @@
 #include "core_manager.h"
 #include "log.h"
 #include "simulator.h"
+#include "thread_manager.h"
+
+#define LOG_DEFAULT_RANK -1
+#define LOG_DEFAULT_MODULE USERSPACEWRAPPERS
 
 CAPI_return_t SimGetCoreID(int *core_id)
 {
    *core_id = Sim()->getCoreManager()->getCurrentCoreID();
    return 0;
-}
-
-void SimInitializeThread()
-{
-   Sim()->getCoreManager()->initializeThread();
-}
-
-void SimTerminateThread()
-{
-   Sim()->getCoreManager()->terminateThread();
 }
 
 int SimGetProcessCount()
@@ -34,6 +28,32 @@ int SimGetProcessId()
 void SimInitializeCommId(int comm_id)
 {
    Sim()->getCoreManager()->initializeCommId(comm_id);
+}
+
+int SimSpawnThread(void (*func)(void*), void *arg)
+{
+   return Sim()->getThreadManager()->spawnThread(func, arg);
+}
+
+void SimJoinThread(int tid)
+{
+   Sim()->getThreadManager()->joinThread(tid);
+}
+
+int SimPthreadCreate(pthread_t *tid, int *attr, void (*func)(void*), void *arg)
+{
+   LOG_ASSERT_WARNING(attr == NULL, "*WARNING* Attributes ignored in pthread_create.");
+   LOG_ASSERT_ERROR(tid != NULL, "*ERROR* Null pointer passed to pthread_create.");
+
+   *tid = SimSpawnThread(func, arg);
+   return *tid >= 0 ? 0 : 1;
+}
+
+int SimPthreadJoin(pthread_t tid, void **pparg)
+{
+   LOG_ASSERT_WARNING(pparg == NULL, "*WARNING* Did not expect pparg non-NULL. It is ignored.");
+   SimJoinThread(tid);
+   return 0;
 }
 
 void SimMutexInit(carbon_mutex_t *mux)
@@ -116,4 +136,3 @@ CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 
    return core ? core->coreRecvW(sending_core, receiving_core, buffer, size) : -1;
 }
-

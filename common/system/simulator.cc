@@ -3,6 +3,8 @@
 #include "lcp.h"
 #include "mcp.h"
 #include "core.h"
+#include "core_manager.h"
+#include "thread_manager.h"
 
 #define LOG_DEFAULT_RANK -1
 #define LOG_DEFAULT_MODULE SIMULATOR
@@ -31,6 +33,8 @@ Simulator::Simulator()
    , m_log(m_config.getTotalCores())
    , m_transport(NULL)
    , m_core_manager(NULL)
+   , m_thread_manager(NULL)
+   , m_finished(false)
 {
 }
 
@@ -42,6 +46,7 @@ void Simulator::start()
 
    m_transport = Transport::create();
    m_core_manager = new CoreManager();
+   m_thread_manager = new ThreadManager(m_core_manager);
 
    startMCP();
 
@@ -56,7 +61,7 @@ Simulator::~Simulator()
 {
    LOG_PRINT("Simulator dtor starting...");
 
-   m_transport->barrier();
+   broadcastFinish();
 
    endMCP();
 
@@ -72,10 +77,53 @@ Simulator::~Simulator()
    delete m_mcp_thread;
    delete m_lcp;
    delete m_mcp;
-   delete m_transport;
+   delete m_thread_manager;
    delete m_core_manager;
+   delete m_transport;
 
    LOG_PRINT("Simulator dtor finished.");
+}
+
+void Simulator::broadcastFinish()
+{
+   if (Config::getSingleton()->getCurrentProcessNum() != 0)
+      return;
+
+   m_num_procs_finished = 1;
+
+   // let the rest of the simulator know its time to exit
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+
+   SInt32 msg = LCP_MESSAGE_SIMULATOR_FINISHED;
+   for (UInt32 i = 1; i < Config::getSingleton()->getProcessCount(); i++)
+   {
+      globalNode->globalSend(i, &msg, sizeof(msg));
+   }
+
+   while (m_num_procs_finished < Config::getSingleton()->getProcessCount())
+   {
+      sched_yield();
+   }
+}
+
+void Simulator::handleFinish()
+{
+   LOG_ASSERT_ERROR(Config::getSingleton()->getCurrentProcessNum() != 0,
+                    "LCP_MESSAGE_SIMULATOR_FINISHED received on master process.");
+
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+   SInt32 msg = LCP_MESSAGE_SIMULATOR_FINISHED_ACK;
+   globalNode->globalSend(0, &msg, sizeof(msg));
+
+   m_finished = true;
+}
+
+void Simulator::deallocateProcess()
+{
+   LOG_ASSERT_ERROR(Config::getSingleton()->getCurrentProcessNum() == 0,
+                    "LCP_MESSAGE_SIMULATOR_FINISHED_ACK received on slave process.");
+
+   ++m_num_procs_finished;
 }
 
 void Simulator::startMCP()
@@ -101,4 +149,9 @@ void Simulator::endMCP()
 {
    if (m_config.getCurrentProcessNum() == m_config.getProcessNumForCore(m_config.getMCPCoreNum()))
       m_mcp->finish();
+}
+
+bool Simulator::finished()
+{
+   return m_finished;
 }

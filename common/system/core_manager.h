@@ -17,9 +17,9 @@ class CoreManager
       CoreManager();
       ~CoreManager();
 
-      void initializeCommId(UInt32 comm_id);
+      void initializeCommId(SInt32 comm_id);
       void initializeThread();
-      void initializeThread(UInt32 core_id);
+      void initializeThread(SInt32 core_id);
       void terminateThread();
       int registerSimMemThread();
 

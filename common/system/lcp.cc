@@ -2,6 +2,7 @@
 #include "simulator.h"
 #include "core.h"
 #include "message_types.h"
+#include "thread_manager.h"
 
 #include "log.h"
 #define LOG_DEFAULT_RANK -1
@@ -38,6 +39,8 @@ void LCP::processPacket()
 
    LOG_PRINT("Received message type: %d", *msg_type);
 
+   Byte *data = pkt + sizeof(SInt32);
+
    switch (*msg_type)
    {
    case LCP_MESSAGE_QUIT:
@@ -46,7 +49,31 @@ void LCP::processPacket()
       break;
 
    case LCP_MESSAGE_COMMID_UPDATE:
-      updateCommId(pkt + sizeof(SInt32));
+      updateCommId(data);
+      break;
+
+   case LCP_MESSAGE_SIMULATOR_FINISHED:
+      Sim()->handleFinish();
+      break;
+
+   case LCP_MESSAGE_SIMULATOR_FINISHED_ACK:
+      Sim()->deallocateProcess();
+      break;
+
+   case LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:
+      Sim()->getThreadManager()->masterSpawnThread((ThreadManager::ThreadSpawnRequest*)pkt);
+      break;
+
+   case LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_MASTER:
+      Sim()->getThreadManager()->slaveSpawnThread((ThreadManager::ThreadSpawnRequest*)pkt);
+      break;
+
+   case LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE:
+      Sim()->getThreadManager()->masterSpawnThreadReply((ThreadManager::ThreadSpawnRequest*)pkt);
+      break;
+
+   case LCP_MESSAGE_THREAD_EXIT:
+      Sim()->getThreadManager()->masterOnThreadExit(*((SInt32*)data), *((UInt64*)data+4));
       break;
 
    default:

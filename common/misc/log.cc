@@ -4,6 +4,10 @@
 #include <stdarg.h>
 #include "lock.h"
 
+// FIXME: See note below.
+#include "simulator.h"
+#include "core_manager.h"
+
 //#define DISABLE_LOGGING
 
 using namespace std;
@@ -103,9 +107,6 @@ UInt64 Log::getTimestamp()
    gettimeofday(&t, NULL);
    return (((UInt64)t.tv_sec) * 1000000 + t.tv_usec);
 }
-
-// FIXME: See note below.
-#include "simulator.h"
 
 void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
 {

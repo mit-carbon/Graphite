@@ -57,7 +57,7 @@ CoreManager::~CoreManager()
    delete m_maps_lock;
 }
 
-void CoreManager::initializeCommId(UInt32 comm_id)
+void CoreManager::initializeCommId(SInt32 comm_id)
 {
    UInt32 tid = getCurrentTID();
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
@@ -111,7 +111,7 @@ void CoreManager::initializeThread()
    LOG_NOTIFY_ERROR();
 }
 
-void CoreManager::initializeThread(UInt32 core_id)
+void CoreManager::initializeThread(SInt32 core_id)
 {
    ScopedLock scoped_maps_lock(*m_maps_lock);
    UInt32 tid = getCurrentTID();
@@ -121,7 +121,7 @@ void CoreManager::initializeThread(UInt32 core_id)
 
    for (unsigned int i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
-      UInt32 local_core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+      SInt32 local_core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
       if(local_core_id == core_id)
       {
          if (tid_map[i] == UINT_MAX)

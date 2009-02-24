@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <set>
 #include <sys/syscall.h>
+#include <unistd.h>
 
 #include "pin.H"
 #include "knobs.h"
@@ -34,8 +35,9 @@
 #include "core.h"
 #include "syscall_model.h"
 #include "user_space_wrappers.h"
+#include "thread_manager.h"
 
-#define LOG_DEFAULT_RANK    core_id
+#define LOG_DEFAULT_RANK    -1
 #define LOG_DEFAULT_MODULE  PINSIM
 
 INT32 usage()
@@ -82,27 +84,56 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
    syscallExitRunModel(ctxt, std);
 }
 
-void AppStart(void *v)
+void ApplicationStart()
 {
-   // FIXME: This function is never called. Use ThreadStart?
-   assert(false);
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Application Start.");
 }
 
-void ApplicationExit(int code, void * v)
+void ApplicationExit(int, void*)
 {
+   LOG_PRINT("Application exit.");
    Simulator::release();
 }
 
 void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
 {
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Thread Start: %d", syscall(__NR_gettid));
+   LOG_PRINT("Thread Start: %d", syscall(__NR_gettid));
 }
 
 void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
 {
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Thread Fini: %d", syscall(__NR_gettid));
-   SimTerminateThread();
+   LOG_PRINT("Thread Fini: %d", syscall(__NR_gettid));
+}
+
+int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
+{
+   ApplicationStart();
+
+   if (Config::getSingleton()->getCurrentProcessNum() == 0)
+   {
+      LOG_PRINT("Calling main()...");
+
+      Sim()->getCoreManager()->initializeThread(0);
+
+      // call main()
+      int res;
+      PIN_CallApplicationFunction(ctx,
+                                  PIN_ThreadId(),
+                                  CALLINGSTD_DEFAULT,
+                                  fp_main,
+                                  PIN_PARG(int), &res,
+                                  PIN_PARG(int), argc,
+                                  PIN_PARG(char**), argv,
+                                  PIN_PARG_END());
+   }
+   else
+   {
+      LOG_PRINT("Waiting for main process to finish...");
+      while (!Sim()->finished())
+         usleep(100);
+      LOG_PRINT("Finished!");
+   }
+
+   return 0;
 }
 
 int main(int argc, char *argv[])
@@ -117,21 +148,20 @@ int main(int argc, char *argv[])
    Sim()->start();
 
    // Instrumentation
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
+   LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);
 
    PIN_AddThreadStartFunction(ThreadStart, 0);
    PIN_AddThreadFiniFunction(ThreadFini, 0);
-   PIN_AddApplicationStartFunction(AppStart, 0);
    PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Just in case ... might not be strictly necessary
    Transport::getSingleton()->barrier();
 
    // Never returns
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Running program...");
+   LOG_PRINT("Running program...");
    PIN_StartProgram();
 
    return 0;

@@ -16,7 +16,8 @@ extern "C"
 #endif
 
    //FIXME: put me some place better
-   void CarbonInitializeThread();
+   int CarbonSpawnThread(void (*func)(void*), void *arg);
+   void CarbonJoinThread(int tid);
    int CarbonGetProcessCount();
    int CarbonGetCurrentProcessId();
 

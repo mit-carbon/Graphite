@@ -1,10 +1,11 @@
+#include <syscall.h>
+
 #include "mcp.h"
 #include "config.h"
-
+#include "core_manager.h"
 #include "log.h"
 #include "core.h"
 #include "simulator.h"
-#include <syscall.h>
 #define LOG_DEFAULT_RANK m_network.getCore()->getId()
 #define LOG_DEFAULT_MODULE MCP
 

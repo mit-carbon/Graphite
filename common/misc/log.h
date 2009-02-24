@@ -97,7 +97,7 @@ class Log
 #define LOG_NOTIFY_ERROR()                      \
    {                                            \
       Log::getSingleton()->notifyError();       \
-      abort();                                  \
+      assert(false);                            \
    }                                            \
  
 #define LOG_ASSERT_WARNING(expr, ...)                   \

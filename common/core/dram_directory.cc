@@ -132,8 +132,6 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 
    dir_entry->removeSharer(wb_packet.sender);
 
-   // cerr << "DRAM Directory: Address = 0x" << hex << (UInt32) payload.ack_address << dec << ", Sharer = " << wb_packet.sender << ", numSharers = " << dir_entry->numSharers() << endl;
-
    if (dir_entry->numSharers() == 0)
    {
       dir_entry->setDState(DramDirectoryEntry::UNCACHED);
@@ -613,7 +611,7 @@ void DramDirectory::processInvalidateSharerAck(
 
 void DramDirectory::print()
 {
-   cerr << endl << endl << " <<<<<<<<<<<<<<< PRINTING DRAMDIRECTORY INFO [" << dram_id << "] >>>>>>>>>>>>>>>>> " << endl << endl;
+   cerr << endl << endl << "  PRINTING DRAMDIRECTORY INFO [" << dram_id << "]  " << endl << endl;
    std::map<UInt32, DramDirectoryEntry*>::iterator iter = dram_directory_entries.begin();
    while (iter != dram_directory_entries.end())
    {
@@ -631,7 +629,7 @@ void DramDirectory::print()
       cerr << "} "<< endl;
       iter++;
    }
-   cerr << endl << " <<<<<<<<<<<<<<<<<<<<< ----------------- >>>>>>>>>>>>>>>>>>>>>>>>> " << endl << endl;
+   cerr << endl << " -----------------  " << endl << endl;
 }
 
 void DramDirectory::debugSetDramState(IntPtr address, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data)

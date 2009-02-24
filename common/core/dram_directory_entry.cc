@@ -86,7 +86,6 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UInt32* line_size)
    *line_size = memory_line_size;
 
    memcpy(fill_buffer, memory_line, memory_line_size);
-
 }
 
 /*
@@ -98,7 +97,6 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UInt32* line_size)
  */
 bool DramDirectoryEntry::addSharer(UInt32 sharer_rank)
 {
-   // TODO: Clean this up at the end !!
    assert(! sharers->at(sharer_rank));
    if (number_of_sharers == MAX_SHARERS)
    {
@@ -142,11 +140,9 @@ void DramDirectoryEntry::setDState(dstate_t new_dstate)
 {
    assert((int)(new_dstate) >= 0 && (int)(new_dstate) < NUM_DSTATE_STATES);
 
-
    if ((new_dstate == UNCACHED) && (number_of_sharers != 0))
    {
-      cerr << "UH OH!  Settingi to UNCached.... number_of_sharers == " << number_of_sharers << endl;
-      dirDebugPrint();
+      assert(false);
    }
    assert((new_dstate == UNCACHED) ? (number_of_sharers == 0) : true);
 

@@ -38,18 +38,19 @@ enum shmem_req_t
 class MemoryManager
 {
    public:
-      //i hate forward declarations
       struct RequestPayload;
       struct AckPayload;
       struct UpdatePayload;
 
-      ConditionVariable m_mmu_cond;
 
    private:
       Core *m_core;
       OCache *m_ocache;
       DramDirectory *m_dram_dir;
       AddressHomeLookup *m_addr_home_lookup;
+
+      ConditionVariable m_mmu_cond;
+      volatile bool m_received_reply; 
 
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
@@ -89,13 +90,11 @@ class MemoryManager
          CacheState::cstate_t update_new_cstate;
          IntPtr update_address;
          UInt32 data_size; //in bytes
-         // bool is_writeback; //is this payload serving as a writeback message to dram?
 
          UpdatePayload()
                : update_new_cstate(CacheState::INVALID),
                update_address(0),
                data_size(0)
-               // is_writeback(false)
          {}
       };
 
@@ -105,7 +104,6 @@ class MemoryManager
          IntPtr ack_address;
          UInt32 data_size; //this is used to tell us how much data to extract
          bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
-         // BOOL is_eviction; // need to know if "is_writeback" is true, if also is an eviction
          //if sent a downgrade message (E->S), but cache
          //no longer has the line, send a bit to tell dram directory
          //to remove it from the sharers' list
@@ -116,7 +114,6 @@ class MemoryManager
                ack_address(0),
                data_size(0),
                is_writeback(false),
-               // is_eviction(false),
                remove_from_sharers(false)
          {}
       };
@@ -137,6 +134,7 @@ class MemoryManager
       static void createAckPayloadBuffer(AckPayload* send_payload, char *data_buffer, char *payload_buffer, UInt32 payload_size);
       static void extractUpdatePayloadBuffer(NetPacket* packet, UpdatePayload* payload, char* data_buffer);
       static void extractAckPayloadBuffer(NetPacket* packet, AckPayload* payload, char* data_buffer);
+      static void extractRequestPayloadBuffer(NetPacket* packet, RequestPayload* payload);
 
       static NetPacket makePacket(PacketType packet_type, char* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank);
       static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
@@ -166,12 +164,16 @@ class MemoryManager
       // Processes Shared Memory Response
       void processSharedMemResponse(NetPacket rep_packet);
 
+      // Process Initial Shared Memory Request
+      void processSharedMemInitialReq (NetPacket rep_packet);
+      
       //debugging stuff
       static string sMemReqTypeToString(shmem_req_t type);
       void debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
       bool debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
       void debugSetCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data);
       bool debugAssertCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data);
+   
 };
 
 #endif

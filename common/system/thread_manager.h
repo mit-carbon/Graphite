@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "fixed_types.h"
-#include "cond.h"
+#include "message_types.h"
 
 class CoreManager;
 
@@ -19,10 +19,16 @@ public:
    void joinThread(SInt32 core_id);
 
 private:
-   // events
-   void onThreadStart(SInt32 core_id);
-   void onThreadExit();
+   struct ThreadJoinRequest
+   {
+       SInt32 msg_type;
+       SInt32 sender;
+       SInt32 core_id;
 
+       ThreadJoinRequest()
+           : msg_type(LCP_MESSAGE_THREAD_JOIN_REQUEST)
+       {}
+   };
 
    struct ThreadSpawnRequest
    {
@@ -33,6 +39,10 @@ private:
       SInt32 core_id;
    };
 
+   // events
+   void onThreadStart(SInt32 core_id);
+   void onThreadExit();
+
    friend class LCP;
    void masterSpawnThread(ThreadSpawnRequest*);
    void slaveSpawnThread(ThreadSpawnRequest*);
@@ -41,7 +51,7 @@ private:
 
    void masterOnThreadExit(SInt32 core_id, UInt64 time);
 
-   void masterJoinThread(SInt32 core_id, SInt32 caller);
+   void masterJoinThread(ThreadJoinRequest *req);
 
    struct ThreadState
    {

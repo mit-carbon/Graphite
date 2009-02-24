@@ -178,10 +178,45 @@ void ThreadManager::spawnedThreadFunc(void *vpreq)
 
 void ThreadManager::joinThread(SInt32 core_id)
 {
-   // send a message to master process, wait for reply
+   // Obtain the object that allows us to communicate to other processes
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+
+   // create a condition variable to wait for the reply
+   ThreadJoinRequest msg;
+   msg.core_id = core_id;
+   msg.sender = m_core_manager->getCurrentCoreID();
+
+   // Send the message to the master process
+   globalNode->globalSend(0, &msg, sizeof(msg));
+
+   // Wait for reply
+   Core *core = m_core_manager->getCurrentCore();
+   NetPacket pkt = core->getNetwork()->netRecvType(LCP_JOIN_THREAD_REPLY);
 }
 
-void ThreadManager::masterJoinThread(SInt32 core_id, SInt32 caller)
+void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
 {
-   // FIXME: Unimplemented
+   LOG_PRINT("masterJoinThread called.");
+   //FIXME: fill in the proper time
+   UInt64 time = 0;
+
+   // Core not running, so the thread must have joined
+   if(m_thread_state[req->core_id].running == false)
+   {
+      LOG_PRINT("Not running, sending reply.");
+      // If the core is not in use, send the message right away
+      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+      NetPacket pkt(0 /*time*/, LCP_JOIN_THREAD_REPLY,
+            0 /*sender*/, req->sender, sizeof(time), &time);
+      Byte *buffer = pkt.makeBuffer();
+      globalNode->send(req->sender, buffer, pkt.bufferSize());
+      delete [] buffer;
+   }
+   else
+   {
+      LOG_PRINT("Running, so making a waiter.");
+      //Core is still running, therefore make this thread a waiter
+      m_thread_state[req->core_id].waiter = req->sender;
+   }
 }
+

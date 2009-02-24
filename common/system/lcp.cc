@@ -76,8 +76,12 @@ void LCP::processPacket()
       Sim()->getThreadManager()->masterOnThreadExit(*((SInt32*)data), *((UInt64*)data+4));
       break;
 
+   case LCP_MESSAGE_THREAD_JOIN_REQUEST:
+      Sim()->getThreadManager()->masterJoinThread((ThreadManager::ThreadJoinRequest*)pkt);
+      break;
+
    default:
-      LOG_ASSERT_ERROR(false, "Unexpected message type.");
+      LOG_ASSERT_ERROR(false, "Unexpected message type: %d.", *msg_type);
       break;
    }
 

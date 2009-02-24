@@ -746,9 +746,9 @@ void MemoryManager::extractAckPayloadBuffer(NetPacket* packet, AckPayload* paylo
 {
    memcpy((void*) payload, (void*)(packet->data), sizeof(*payload));
 
-   assert(payload->data_size <= g_knob_line_size);
+   assert( (payload->data_size == g_knob_line_size) || (payload->data_size == 0) );
 
-   if (payload->data_size > 0)
+   if (payload->data_size == g_knob_line_size)
       memcpy((void*) data_buffer, (void*)(((char*) packet->data) + sizeof(*payload)), payload->data_size);
 }
 

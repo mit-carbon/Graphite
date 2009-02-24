@@ -93,8 +93,8 @@ class MemoryManager
 
          UpdatePayload()
                : update_new_cstate(CacheState::INVALID),
-               update_address(0),
-               data_size(0)
+                 update_address(0),
+                 data_size(0)
          {}
       };
 
@@ -107,7 +107,7 @@ class MemoryManager
          //if sent a downgrade message (E->S), but cache
          //no longer has the line, send a bit to tell dram directory
          //to remove it from the sharers' list
-         BOOL remove_from_sharers; //DEPRECATED
+         BOOL remove_from_sharers; 
 
          AckPayload()
                : ack_new_cstate(CacheState::INVALID),

@@ -123,6 +123,11 @@ void DramDirectoryEntry::removeSharer(UInt32 sharer_rank)
    number_of_sharers--;
 }
 
+bool DramDirectoryEntry::hasSharer(UInt32 sharer_rank)
+{
+   return(sharers->at(sharer_rank));
+}   
+
 void DramDirectoryEntry::addExclusiveSharer(UInt32 sharer_rank)
 {
    sharers->reset();
@@ -150,7 +155,7 @@ void DramDirectoryEntry::setDState(dstate_t new_dstate)
 }
 
 /* Return the number of cores currently sharing this entry */
-int DramDirectoryEntry::numSharers()
+SInt32 DramDirectoryEntry::numSharers()
 {
    return number_of_sharers;
 }
@@ -172,32 +177,17 @@ vector<UInt32> DramDirectoryEntry::getSharersList()
 
    sharers->resetFind();
 
-   int new_sharer = -1;
+   SInt32 new_sharer = -1;
 
-   int i = 0;
+   SInt32 i = 0;
    while ((new_sharer = sharers->find()) != -1)
    {
       sharers_list[i] = new_sharer;
-      ++i;
+      i++;
+      assert (i <= (SInt32) number_of_sharers);
    }
 
    return sharers_list;
-}
-
-void DramDirectoryEntry::dirDebugPrint()
-{
-   cerr << " -== DramDirectoryEntry ==-" << endl;
-   cerr << "     Addr= " << hex << memory_line_address << dec;
-   cerr << "     state= " << dStateToString(dstate);
-   cerr << "; sharers = { ";
-   for (unsigned int i=0; i < sharers->getSize(); i++)
-   {
-      if (sharers->at(i))
-      {
-         cerr << i << ", ";
-      }
-   }
-   cerr << "}" << endl << endl;
 }
 
 string DramDirectoryEntry::dStateToString(dstate_t dstate)

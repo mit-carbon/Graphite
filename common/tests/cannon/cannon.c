@@ -22,6 +22,7 @@
 // #define USE_INT 1
 // #define USE_FLOAT_INTERNAL_REPRESENTATION 1
 //#define MATRIX_DEBUG 1
+#define ADDRESS_DEBUG 1
 
 typedef int SInt32;
 typedef unsigned int UInt32;
@@ -33,9 +34,9 @@ typedef float DType;
 #endif
 
 // Declare global variables
-volatile DType * volatile * volatile a;
-volatile DType * volatile * volatile b;
-volatile DType * volatile * volatile c;
+DType **a;
+DType **b;
+DType **c;
 int blockSize, sqrtNumProcs;
 pthread_mutex_t write_lock;
 
@@ -45,6 +46,12 @@ pthread_mutex_t lock;
 
 #ifdef MATRIX_DEBUG
 pthread_mutex_t lock;
+#else 
+
+#ifdef ADDRESS_DEBUG
+pthread_mutex_t lock;
+#endif
+
 #endif
 
 #endif
@@ -158,6 +165,11 @@ int main(int argc, char* argv[])  // main begins
 #ifdef MATRIX_DEBUG
    printf("Initializing thread structures\n");
    pthread_mutex_init(&lock, NULL);
+#else
+#ifdef ADDRESS_DEBUG
+   printf("Initializing thread structures\n");
+   pthread_mutex_init(&lock, NULL);
+#endif
 #endif
 #endif
 
@@ -282,6 +294,26 @@ void* cannon(void *threadid)
       cBlock[x] = (DType*)malloc(blockSize*sizeof(DType));
       for (int y = 0; y < blockSize; y++) cBlock[x][y] = 0;
    }
+
+
+#ifdef ADDRESS_DEBUG
+   if (tid == 0)
+   {
+      for (SInt32 x = 0; x < blockSize; x++)
+      {
+         for (SInt32 y = 0; y < blockSize; y++)
+         {
+            pthread_mutex_lock(&lock);
+            fprintf (stderr, "c[%d][%d] = %p\n", x, y, &c[x][y]);
+            pthread_mutex_unlock(&lock);
+         }
+      }
+   }
+   else
+   {
+      sleep(10);
+   }
+#endif
 
    for (int iter = 0; iter < sqrtNumProcs; iter++) // for loop begins
    {

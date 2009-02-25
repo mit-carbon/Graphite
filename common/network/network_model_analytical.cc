@@ -7,6 +7,7 @@
 #include "core.h"
 #include "perfmdl.h"
 #include "transport.h"
+#include "lock.h"
 
 using namespace std;
 
@@ -20,6 +21,7 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
       , _localUtilizationLastUpdate(0)
       , _localUtilizationFlitsSent(0)
       , _updateInterval(0)
+      , _lock(Lock::create())
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,
@@ -32,6 +34,8 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
 NetworkModelAnalytical::~NetworkModelAnalytical()
 {
    getNetwork()->unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
+
+   delete _lock;
 }
 
 void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
@@ -142,6 +146,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    Tc = Tw2 * time_per_hop * hops_with_contention;
 
    // Computation finished...
+   _lock->acquire();
 
    UInt64 Tci = (UInt64)(ceil(Tc));
    _cyclesLatency += Tci;
@@ -151,6 +156,8 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // we must account for the usage throughout the mesh
    // which means that we must include the # of hops
    _localUtilizationFlitsSent += (UInt64)(B * hops_in_network);
+
+   _lock->release();
 
    return Tci;
 }
@@ -183,6 +190,8 @@ void NetworkModelAnalytical::updateUtilization()
    if (elapsed_time < _updateInterval)
       return;
 
+   _lock->acquire();
+
    // FIXME: This assumes one cycle per flit, might not be accurate.
    double local_utilization = ((double)_localUtilizationFlitsSent) / ((double)elapsed_time);
 
@@ -202,6 +211,8 @@ void NetworkModelAnalytical::updateUtilization()
    update.data = &m;
 
    getNetwork()->netSend(update);
+
+   _lock->release();
 }
 
 void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
@@ -211,5 +222,7 @@ void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
    assert(response.length == sizeof(double));
    //   assert(0 <= net->global_utilization || net->global_utilization <= 1);
 
+   model->_lock->acquire();
    model->_globalUtilization = *((double*)response.data);
+   model->_lock->release();
 }

@@ -3,6 +3,8 @@
 
 #include "network.h"
 
+class Lock;
+
 class NetworkModelAnalytical : public NetworkModel
 {
    public:
@@ -31,6 +33,8 @@ class NetworkModelAnalytical : public NetworkModel
       UInt64 _localUtilizationLastUpdate;
       UInt64 _localUtilizationFlitsSent;
       UInt64 _updateInterval;
+
+      Lock *_lock;
 };
 
 #endif // NETWORK_MODEL_ANALYTICAL_H

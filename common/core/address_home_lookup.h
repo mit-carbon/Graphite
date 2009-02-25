@@ -28,14 +28,15 @@ using namespace std;
 class AddressHomeLookup
 {
    public:
-      AddressHomeLookup(UInt32 num_nodes, UInt32 log_block_size, SInt32 ahl_id);
-      ~AddressHomeLookup(void);
+      AddressHomeLookup(UInt32 num_nodes, UInt32 log_block_size, SInt32 ahl_id, UInt32 line_size);
+      ~AddressHomeLookup();
       UInt32 find_home_for_addr(IntPtr address) const;
 
    private:
       UInt32 num_nodes;
       SInt32 ahl_id;
       UInt32 log_block_size;
+      UInt32 line_size;
 };
 
 

@@ -9,6 +9,8 @@
 #include "transport.h"
 #include "lock.h"
 
+#define IS_NAN(x) (!((x < 0.0) || (x >= 0.0)))
+
 using namespace std;
 
 NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
@@ -85,6 +87,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    int n = pParams->n;
    double W = pParams->W;
    double p = _globalUtilization;
+   assert(!IS_NAN(_globalUtilization));
 
    // This lets us derive the latency, ignoring contention
 
@@ -172,8 +175,14 @@ void NetworkModelAnalytical::outputSummary(ostream &out)
 
 struct UtilizationMessage
 {
-   int msg;
    double ut;
+   NetworkModelAnalytical *model;
+};
+
+struct UtilizationMCPMessage
+{
+   int msg_type;
+   UtilizationMessage msg;
 };
 
 // we send and receive updates asynchronously for performance and
@@ -199,9 +208,10 @@ void NetworkModelAnalytical::updateUtilization()
    _localUtilizationFlitsSent = 0;
 
    // build packet
-   UtilizationMessage m;
-   m.msg = MCP_MESSAGE_UTILIZATION_UPDATE;
-   m.ut = local_utilization;
+   UtilizationMCPMessage m;
+   m.msg_type = MCP_MESSAGE_UTILIZATION_UPDATE;
+   m.msg.ut = local_utilization;
+   m.msg.model = this;
 
    NetPacket update;
    update.sender = getNetwork()->getCore()->getId();
@@ -217,12 +227,12 @@ void NetworkModelAnalytical::updateUtilization()
 
 void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
 {
-   NetworkModelAnalytical *model = (NetworkModelAnalytical*) obj;
+   assert(response.length == sizeof(UtilizationMessage));
 
-   assert(response.length == sizeof(double));
-   //   assert(0 <= net->global_utilization || net->global_utilization <= 1);
+   UtilizationMessage *pr = (UtilizationMessage*) response.data;
 
-   model->_lock->acquire();
-   model->_globalUtilization = *((double*)response.data);
-   model->_lock->release();
+   pr->model->_lock->acquire();
+   pr->model->_globalUtilization = pr->ut;
+   assert(!IS_NAN(pr->model->_globalUtilization));
+   pr->model->_lock->release();
 }

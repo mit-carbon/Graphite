@@ -61,17 +61,7 @@ void ThreadManager::masterOnThreadExit(SInt32 core_id, UInt64 time)
    assert(m_thread_state[core_id].running);
    m_thread_state[core_id].running = false;
 
-   if (m_thread_state[core_id].waiter != -1)
-   {
-      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-      NetPacket pkt(0 /*time*/, LCP_JOIN_THREAD_REPLY,
-                    0 /*sender*/, m_thread_state[core_id].waiter, sizeof(time), &time);
-      Byte *buffer = pkt.makeBuffer();
-      globalNode->send(m_thread_state[core_id].waiter, buffer, pkt.bufferSize());
-      delete [] buffer;
-
-      m_thread_state[core_id].waiter = -1;
-   }
+   wakeUpWaiter(core_id);
 }
 
 /*
@@ -198,25 +188,30 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
 {
    LOG_PRINT("masterJoinThread called.");
    //FIXME: fill in the proper time
-   UInt64 time = 0;
+
+   LOG_ASSERT_ERROR(m_thread_state[req->core_id].waiter == -1,
+                    "*ERROR* Multiple threads joining on thread: %d", req->core_id);
+   m_thread_state[req->core_id].waiter = req->sender;
 
    // Core not running, so the thread must have joined
    if(m_thread_state[req->core_id].running == false)
    {
       LOG_PRINT("Not running, sending reply.");
-      // If the core is not in use, send the message right away
-      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-      NetPacket pkt(0 /*time*/, LCP_JOIN_THREAD_REPLY,
-            0 /*sender*/, req->sender, sizeof(time), &time);
-      Byte *buffer = pkt.makeBuffer();
-      globalNode->send(req->sender, buffer, pkt.bufferSize());
-      delete [] buffer;
-   }
-   else
-   {
-      LOG_PRINT("Running, so making a waiter.");
-      //Core is still running, therefore make this thread a waiter
-      m_thread_state[req->core_id].waiter = req->sender;
+      wakeUpWaiter(req->core_id);
    }
 }
 
+void ThreadManager::wakeUpWaiter(SInt32 core_id)
+{
+   if (m_thread_state[core_id].waiter != -1)
+   {
+      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+      NetPacket pkt(0 /*time*/, LCP_JOIN_THREAD_REPLY,
+                    0 /*sender*/, m_thread_state[core_id].waiter, 0, NULL);
+      Byte *buffer = pkt.makeBuffer();
+      globalNode->send(m_thread_state[core_id].waiter, buffer, pkt.bufferSize());
+      delete [] buffer;
+
+      m_thread_state[core_id].waiter = -1;
+   }
+}

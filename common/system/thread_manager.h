@@ -52,6 +52,7 @@ private:
    void masterOnThreadExit(SInt32 core_id, UInt64 time);
 
    void masterJoinThread(ThreadJoinRequest *req);
+   void wakeUpWaiter(SInt32 core_id);
 
    struct ThreadState
    {

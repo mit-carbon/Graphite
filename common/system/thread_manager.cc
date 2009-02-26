@@ -132,10 +132,6 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
 
    Thread *t = Thread::create(spawnedThreadFunc, req_cpy);
    t->run();
-
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
-   globalNode->globalSend(0, req, sizeof(*req));
 }
 
 void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
@@ -158,6 +154,10 @@ void ThreadManager::spawnedThreadFunc(void *vpreq)
    LOG_PRINT("spawnedThreadFunc with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
 
    Sim()->getThreadManager()->onThreadStart(req->core_id);
+
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
+   globalNode->globalSend(0, req, sizeof(*req));
 
    req->func(req->arg);
 

@@ -1,6 +1,9 @@
 #include "routine_replace.h"
 #include "user_space_wrappers.h"
+#include "simulator.h"
+#include "thread_manager.h"
 #include "log.h"
+#include "thread_support.h"
 
 extern int SimMain(CONTEXT*, AFUNPTR, int, char**);
 
@@ -13,6 +16,19 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    if (name == "main")
    {
       msg_ptr = AFUNPTR(SimMain);
+   }
+
+   else if (name == "CarbonGetThreadToSpawn")
+   {
+      msg_ptr = AFUNPTR(SimGetThreadToSpawn);
+   }
+   else if (name == "CarbonThreadStart")
+   {
+      msg_ptr = AFUNPTR(SimThreadStart);
+   }
+   else if (name == "CarbonThreadExit")
+   {
+      msg_ptr = AFUNPTR(SimThreadExit);
    }
 
    // Carbon API
@@ -88,7 +104,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       msg_ptr = AFUNPTR(SimBarrierWait);
    }
-   
+
    // pthread wrappers
    else if (name == "pthread_create")
    {
@@ -118,7 +134,51 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
-   if (msg_ptr == AFUNPTR(SimGetCoreID)
+   else if (msg_ptr == AFUNPTR(SimGetThreadToSpawn))
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int*),
+                             PIN_PARG(int*),
+                             PIN_PARG(int*),
+                             PIN_PARG_END());
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+                           IARG_END);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if (msg_ptr == AFUNPTR(SimThreadStart))
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(int),
+                             PIN_PARG_END());
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_END);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if (msg_ptr == AFUNPTR(SimThreadExit))
+   {
+      proto = PROTO_Allocate(PIN_PARG(void),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG_END());
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_END);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if (msg_ptr == AFUNPTR(SimGetCoreID)
          || (msg_ptr == AFUNPTR(SimMutexInit))
          || (msg_ptr == AFUNPTR(SimMutexLock))
          || (msg_ptr == AFUNPTR(SimMutexUnlock))
@@ -191,7 +251,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    }
    else if ((msg_ptr == AFUNPTR(SimInitializeCommId)))
    {
-      proto = PROTO_Allocate(PIN_PARG(CAPI_return_t),
+      proto = PROTO_Allocate(PIN_PARG(void),
                              CALLINGSTD_DEFAULT,
                              name.c_str(),
                              PIN_PARG(int),

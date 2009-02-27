@@ -1,3 +1,4 @@
+#include <sys/syscall.h>
 #include "thread_manager.h"
 #include "core_manager.h"
 #include "config.h"
@@ -12,11 +13,14 @@
 #define LOG_DEFAULT_MODULE THREAD_MANAGER
 
 ThreadManager::ThreadManager(CoreManager *core_manager)
-   : m_core_manager(core_manager)
+   : m_thread_spawn_sem(0)
+   , m_core_manager(core_manager)
 {
    Config *config = Config::getSingleton();
 
    m_master = config->getCurrentProcessNum() == 0;
+
+   m_thread_spawn_lock = Lock::create();
 
    if (m_master)
    {
@@ -83,7 +87,7 @@ void ThreadManager::masterOnThreadExit(SInt32 core_id, UInt64 time)
   4. The master thread manager replies to the requestor with the id of the dest core.
 */
 
-SInt32 ThreadManager::spawnThread(void (*func)(void*), void *arg)
+SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
 {
    LOG_PRINT("spawnThread with func: %p and arg: %p", func, arg);
 
@@ -138,10 +142,10 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
    LOG_PRINT("slaveSpawnThread with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
    // step 3
 
-   ThreadSpawnRequest *req_cpy = new ThreadSpawnRequest(*req);
-
-   Thread *t = Thread::create(spawnedThreadFunc, req_cpy);
-   t->run();
+   m_thread_spawn_lock->acquire();
+   m_thread_spawn_list.push(*req);
+   m_thread_spawn_lock->release();
+   m_thread_spawn_sem.signal();
 
    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
    req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
@@ -160,20 +164,6 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
    Byte *buffer = pkt.makeBuffer();
    globalNode->send(req->requester, buffer, pkt.bufferSize());
    delete [] buffer;
-}
-
-void ThreadManager::spawnedThreadFunc(void *vpreq)
-{
-   ThreadSpawnRequest *req = (ThreadSpawnRequest*) vpreq;
-   LOG_PRINT("spawnedThreadFunc with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
-
-   Sim()->getThreadManager()->onThreadStart(req->core_id);
-
-   req->func(req->arg);
-
-   Sim()->getThreadManager()->onThreadExit();
-
-   delete req;
 }
 
 void ThreadManager::joinThread(SInt32 core_id)
@@ -220,3 +210,15 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
    }
 }
 
+void ThreadManager::getThreadToSpawn(thread_func_t *func, void **arg, SInt32 *core_id)
+{
+   m_thread_spawn_sem.wait();
+   m_thread_spawn_lock->acquire();
+   ThreadSpawnRequest spawn_request = m_thread_spawn_list.front();
+   m_thread_spawn_list.pop();
+   m_thread_spawn_lock->release();
+
+   *func = spawn_request.func;
+   *arg = spawn_request.arg;
+   *core_id = spawn_request.core_id;
+}

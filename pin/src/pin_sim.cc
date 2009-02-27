@@ -104,9 +104,32 @@ void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
    LOG_PRINT("Thread Fini: %d", syscall(__NR_gettid));
 }
 
+void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
+{
+   // Get the function for the thread spawner
+   PIN_LockClient();
+   AFUNPTR thread_spawner;
+   IMG img = IMG_FindByAddress((ADDRINT)fp_main);
+   RTN rtn = RTN_FindByName(img, "CarbonSpawnThreadSpawner");
+   thread_spawner = RTN_Funptr(rtn);
+   PIN_UnlockClient();
+
+   // Get the address of the thread spawner
+   int res;
+   PIN_CallApplicationFunction(ctx,
+         PIN_ThreadId(),
+         CALLINGSTD_DEFAULT,
+         thread_spawner,
+         PIN_PARG(int), &res,
+         PIN_PARG_END());
+
+}
+
 int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
 {
    ApplicationStart();
+
+   SimSpawnThreadSpawner(ctx, fp_main);
 
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {

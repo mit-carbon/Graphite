@@ -5,6 +5,7 @@
 #include "log.h"
 #include "simulator.h"
 #include "thread_manager.h"
+#include "thread_support.h"
 
 #define LOG_DEFAULT_RANK -1
 #define LOG_DEFAULT_MODULE USERSPACEWRAPPERS
@@ -30,7 +31,7 @@ void SimInitializeCommId(int comm_id)
    Sim()->getCoreManager()->initializeCommId(comm_id);
 }
 
-int SimSpawnThread(void (*func)(void*), void *arg)
+int SimSpawnThread(thread_func_t func, void *arg)
 {
    return Sim()->getThreadManager()->spawnThread(func, arg);
 }
@@ -40,7 +41,7 @@ void SimJoinThread(int tid)
    Sim()->getThreadManager()->joinThread(tid);
 }
 
-int SimPthreadCreate(pthread_t *tid, int *attr, void (*func)(void*), void *arg)
+int SimPthreadCreate(pthread_t *tid, int *attr, thread_func_t func, void *arg)
 {
    LOG_ASSERT_WARNING(attr == NULL, "*WARNING* Attributes ignored in pthread_create.");
    LOG_ASSERT_ERROR(tid != NULL, "*ERROR* Null pointer passed to pthread_create.");
@@ -110,6 +111,20 @@ void SimBarrierWait(carbon_barrier_t *barrier)
    if (core) core->getSyncClient()->barrierWait(barrier);
 }
 
+void SimThreadStart(int core_id)
+{
+   Sim()->getThreadManager()->onThreadStart(core_id);
+}
+
+void SimThreadExit()
+{
+   Sim()->getThreadManager()->onThreadExit();
+}
+
+void SimGetThreadToSpawn(thread_func_t *func, void **arg, SInt32 *core_id)
+{
+   Sim()->getThreadManager()->getThreadToSpawn(func, arg, core_id);
+}
 
 CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                        char *buffer, int size)

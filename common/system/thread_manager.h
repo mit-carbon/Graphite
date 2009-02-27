@@ -15,7 +15,7 @@ public:
    ~ThreadManager();
 
    // services
-   SInt32 spawnThread(void (*func)(void*), void *arg);
+   SInt32 spawnThread(void* (*func)(void*), void *arg);
    void joinThread(SInt32 core_id);
 
 private:
@@ -24,23 +24,19 @@ private:
        SInt32 msg_type;
        SInt32 sender;
        SInt32 core_id;
-
-       ThreadJoinRequest()
-           : msg_type(LCP_MESSAGE_THREAD_JOIN_REQUEST)
-       {}
    };
 
    struct ThreadSpawnRequest
    {
       SInt32 msg_type;
-      void (*func)(void*);
+      void* (*func)(void*);
       void *arg;
       SInt32 requester;
       SInt32 core_id;
    };
 
    // events
-   void onThreadStart(SInt32 core_id);
+   void onThreadStart(ThreadSpawnRequest *req);
    void onThreadExit();
 
    friend class LCP;

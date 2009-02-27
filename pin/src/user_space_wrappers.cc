@@ -30,7 +30,7 @@ void SimInitializeCommId(int comm_id)
    Sim()->getCoreManager()->initializeCommId(comm_id);
 }
 
-int SimSpawnThread(void (*func)(void*), void *arg)
+int SimSpawnThread(void* (*func)(void*), void *arg)
 {
    return Sim()->getThreadManager()->spawnThread(func, arg);
 }
@@ -40,7 +40,7 @@ void SimJoinThread(int tid)
    Sim()->getThreadManager()->joinThread(tid);
 }
 
-int SimPthreadCreate(pthread_t *tid, int *attr, void (*func)(void*), void *arg)
+int SimPthreadCreate(pthread_t *tid, int *attr, void* (*func)(void*), void *arg)
 {
    LOG_ASSERT_WARNING(attr == NULL, "*WARNING* Attributes ignored in pthread_create.");
    LOG_ASSERT_ERROR(tid != NULL, "*ERROR* Null pointer passed to pthread_create.");

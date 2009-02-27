@@ -12,10 +12,10 @@ void SimInitializeCommId(int comm_id);
 int SimGetProcessId();
 int SimGetProcessCount();
 
-int SimSpawnThread(void (*func)(void*), void *arg);
+int SimSpawnThread(void* (*func)(void*), void *arg);
 void SimJoinThread(int tid);
 
-int SimPthreadCreate(pthread_t *tid, int *attr, void (*func)(void*), void *arg);
+int SimPthreadCreate(pthread_t *tid, int *attr, void* (*func)(void*), void *arg);
 int SimPthreadJoin(pthread_t tid, void **pparg);
 
 void SimMutexInit(carbon_mutex_t *mux);

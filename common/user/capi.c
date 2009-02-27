@@ -40,7 +40,7 @@ CAPI_return_t CAPI_Finish(int my_rank)
    return 0;
 }
 
-int CarbonSpawnThread(void (*func)(void*), void *arg)
+int CarbonSpawnThread(void* (*func)(void*), void *arg)
 {
    assert(false);
 }

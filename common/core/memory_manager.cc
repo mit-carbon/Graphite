@@ -34,7 +34,7 @@ MemoryManager::MemoryManager(Core *core, OCache *ocache)
    m_dram_dir = new DramDirectory(dram_lines_per_core, m_ocache->dCacheLineSize(), m_core->getId(), Config::getSingleton()->getTotalCores(), m_core->getNetwork());
 
    //TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
-   m_addr_home_lookup = new AddressHomeLookup(Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
+   m_addr_home_lookup = new AddressHomeLookup(Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId(), m_ocache->dCacheLineSize());
    LOG_PRINT("Creating New Addr Home Lookup Structure: %i, %i, %i", Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
 
    Network *net = m_core->getNetwork();
@@ -43,6 +43,7 @@ MemoryManager::MemoryManager(Core *core, OCache *ocache)
    net->registerCallback(SHARED_MEM_UPDATE_UNEXPECTED, MemoryManagerNetworkCallback, this);
    net->registerCallback(SHARED_MEM_ACK, MemoryManagerNetworkCallback, this);
    net->registerCallback(SHARED_MEM_RESPONSE, MemoryManagerNetworkCallback, this);
+   net->registerCallback(SHARED_MEM_INIT_REQ, MemoryManagerNetworkCallback, this);
 
 }
 
@@ -53,6 +54,8 @@ MemoryManager::~MemoryManager()
    net->unregisterCallback(SHARED_MEM_EVICT);
    net->unregisterCallback(SHARED_MEM_UPDATE_UNEXPECTED);
    net->unregisterCallback(SHARED_MEM_ACK);
+   net->unregisterCallback(SHARED_MEM_RESPONSE);
+   net->unregisterCallback(SHARED_MEM_INIT_REQ);
 }
 
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
@@ -80,6 +83,10 @@ void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
 
    case SHARED_MEM_RESPONSE:
       mm->processSharedMemResponse(packet);
+      return;
+
+   case SHARED_MEM_INIT_REQ:
+      mm->processSharedMemInitialReq(packet);
       return;
 
    default:
@@ -274,10 +281,6 @@ void MemoryManager::invalidateCacheLine(IntPtr address)
 //sets what the new_cstate should be set to on the receiving end
 void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_address)
 {
-   UInt32 home_node_rank = m_addr_home_lookup->find_home_for_addr(ca_address);
-
-   assert(home_node_rank >= 0 && home_node_rank < (UInt32)(Config::getSingleton()->getTotalCores()));
-
    /* ==================================================== */
    /* =========== Send Request & Recv Update ============= */
    /* ==================================================== */
@@ -291,7 +294,7 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_addr
 
    // send message here to home directory node to request data
    //packet.type, sender, receiver, packet.length
-   NetPacket packet = makePacket(SHARED_MEM_REQ, (char *)(&payload), sizeof(RequestPayload), m_core->getId(), home_node_rank);
+   NetPacket packet = makePacket(SHARED_MEM_INIT_REQ, (char *)(&payload), sizeof(RequestPayload), m_core->getId(), m_core->getId());
    (m_core->getNetwork())->netSend(packet);
 
 }
@@ -342,9 +345,15 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
       {
          // request permission from the directory to access data in the correct state
          requestPermission(shmem_req_type, ca_address);
+         m_received_reply = false;
 
          // Wait till the cache miss has been processed by the network thread
-         m_mmu_cond.wait();
+         while (! m_received_reply) 
+         {
+            LOG_PRINT ("Entering Wait on Condition Variable: ADDR: 0x%x", ca_address);
+            m_mmu_cond.wait();
+            LOG_PRINT ("Finished Wait on Condition Variable: ADDR: 0x%x", ca_address);
+         }
       }
 
    }
@@ -354,9 +363,34 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
 
 }
 
-void MemoryManager::processSharedMemResponse(NetPacket rep_packet)
+void MemoryManager::processSharedMemInitialReq(NetPacket req_packet) 
 {
+   assert (req_packet.type == SHARED_MEM_INIT_REQ);
+  
+   RequestPayload req_payload;
+   extractRequestPayloadBuffer (&req_packet, &req_payload);
 
+   IntPtr address = req_payload.request_address;
+   
+   LOG_PRINT ("Got Initial Request for ADDR 0x%x", address);
+   
+   UInt32 home_node_rank = m_addr_home_lookup->find_home_for_addr(address);
+
+   assert(home_node_rank >= 0 && home_node_rank < (UInt32)(Config::getSingleton()->getTotalCores()));
+
+   /* ==================================================== */
+   /* =========== Send Request & Recv Update ============= */
+   /* ==================================================== */
+   
+   // send message here to home directory node to request data
+   //packet.type, sender, receiver, packet.length
+   NetPacket packet = makePacket(SHARED_MEM_REQ, (char *)(&req_payload), sizeof(RequestPayload), m_core->getId(), home_node_rank); 
+   (m_core->getNetwork())->netSend(packet);
+
+}
+
+void MemoryManager::processSharedMemResponse(NetPacket rep_packet) 
+{
    assert(rep_packet.type == SHARED_MEM_RESPONSE);
 
    UpdatePayload rep_payload;
@@ -371,11 +405,12 @@ void MemoryManager::processSharedMemResponse(NetPacket rep_packet)
 
    fillCacheLineData(address, fill_buffer);
    setCacheLineInfo(address, new_cstate);
+   m_received_reply = true;
 
    m_mmu_cond.release();
-   m_mmu_cond.signal();
+   m_mmu_cond.broadcast();
 
-   LOG_PRINT("FINISHED(cache_miss) : REQUESTING ADDR: %x", address);
+   LOG_PRINT("FINISHED(cache_miss) : REQUESTING ADDR: 0x%x", address);
 }
 
 //only the first request called drops into the while loop
@@ -711,10 +746,16 @@ void MemoryManager::extractAckPayloadBuffer(NetPacket* packet, AckPayload* paylo
 {
    memcpy((void*) payload, (void*)(packet->data), sizeof(*payload));
 
-   assert(payload->data_size <= g_knob_line_size);
+   assert( (payload->data_size == g_knob_line_size) || (payload->data_size == 0) );
 
-   if (payload->data_size > 0)
+   if (payload->data_size == g_knob_line_size)
       memcpy((void*) data_buffer, (void*)(((char*) packet->data) + sizeof(*payload)), payload->data_size);
+}
+
+void MemoryManager::extractRequestPayloadBuffer (NetPacket* packet, RequestPayload* payload)
+{
+   assert (packet->length == sizeof(*payload));
+   memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
 }
 
 

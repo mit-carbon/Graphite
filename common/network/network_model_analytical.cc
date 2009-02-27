@@ -7,6 +7,9 @@
 #include "core.h"
 #include "perfmdl.h"
 #include "transport.h"
+#include "lock.h"
+
+#define IS_NAN(x) (!((x < 0.0) || (x >= 0.0)))
 
 using namespace std;
 
@@ -20,6 +23,7 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
       , _localUtilizationLastUpdate(0)
       , _localUtilizationFlitsSent(0)
       , _updateInterval(0)
+      , _lock(Lock::create())
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,
@@ -32,6 +36,8 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
 NetworkModelAnalytical::~NetworkModelAnalytical()
 {
    getNetwork()->unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
+
+   delete _lock;
 }
 
 void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
@@ -81,6 +87,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    int n = pParams->n;
    double W = pParams->W;
    double p = _globalUtilization;
+   assert(!IS_NAN(_globalUtilization));
 
    // This lets us derive the latency, ignoring contention
 
@@ -142,6 +149,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    Tc = Tw2 * time_per_hop * hops_with_contention;
 
    // Computation finished...
+   _lock->acquire();
 
    UInt64 Tci = (UInt64)(ceil(Tc));
    _cyclesLatency += Tci;
@@ -151,6 +159,8 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // we must account for the usage throughout the mesh
    // which means that we must include the # of hops
    _localUtilizationFlitsSent += (UInt64)(B * hops_in_network);
+
+   _lock->release();
 
    return Tci;
 }
@@ -165,8 +175,14 @@ void NetworkModelAnalytical::outputSummary(ostream &out)
 
 struct UtilizationMessage
 {
-   int msg;
    double ut;
+   NetworkModelAnalytical *model;
+};
+
+struct UtilizationMCPMessage
+{
+   int msg_type;
+   UtilizationMessage msg;
 };
 
 // we send and receive updates asynchronously for performance and
@@ -183,6 +199,8 @@ void NetworkModelAnalytical::updateUtilization()
    if (elapsed_time < _updateInterval)
       return;
 
+   _lock->acquire();
+
    // FIXME: This assumes one cycle per flit, might not be accurate.
    double local_utilization = ((double)_localUtilizationFlitsSent) / ((double)elapsed_time);
 
@@ -190,9 +208,10 @@ void NetworkModelAnalytical::updateUtilization()
    _localUtilizationFlitsSent = 0;
 
    // build packet
-   UtilizationMessage m;
-   m.msg = MCP_MESSAGE_UTILIZATION_UPDATE;
-   m.ut = local_utilization;
+   UtilizationMCPMessage m;
+   m.msg_type = MCP_MESSAGE_UTILIZATION_UPDATE;
+   m.msg.ut = local_utilization;
+   m.msg.model = this;
 
    NetPacket update;
    update.sender = getNetwork()->getCore()->getId();
@@ -202,14 +221,18 @@ void NetworkModelAnalytical::updateUtilization()
    update.data = &m;
 
    getNetwork()->netSend(update);
+
+   _lock->release();
 }
 
 void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
 {
-   NetworkModelAnalytical *model = (NetworkModelAnalytical*) obj;
+   assert(response.length == sizeof(UtilizationMessage));
 
-   assert(response.length == sizeof(double));
-   //   assert(0 <= net->global_utilization || net->global_utilization <= 1);
+   UtilizationMessage *pr = (UtilizationMessage*) response.data;
 
-   model->_globalUtilization = *((double*)response.data);
+   pr->model->_lock->acquire();
+   pr->model->_globalUtilization = pr->ut;
+   assert(!IS_NAN(pr->model->_globalUtilization));
+   pr->model->_lock->release();
 }

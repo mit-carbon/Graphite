@@ -26,17 +26,23 @@ NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
 NetworkModelAnalyticalServer::~NetworkModelAnalyticalServer()
 { }
 
+struct UtilizationMessage
+{
+   double ut;
+   void *vpmodel;
+};
+
 void NetworkModelAnalyticalServer::update(core_id_t core_id)
 {
    // extract update
-   double ut;
-   assert(
-      _recv_buffer.get(ut)
-   );
+   assert(_recv_buffer.size() == sizeof(UtilizationMessage));
    assert(0 <= core_id && (unsigned int)core_id < Config::getSingleton()->getTotalCores());
-   //  assert(0 <= ut && ut <= 1);
 
-   _local_utilizations[core_id] = ut;
+   UtilizationMessage *msg;
+   msg = (UtilizationMessage*)_recv_buffer.getBuffer();
+   assert(msg->vpmodel != NULL);
+
+   _local_utilizations[core_id] = msg->ut;
 
    // compute global utilization
    double global_utilization = 0.0;
@@ -48,18 +54,20 @@ void NetworkModelAnalyticalServer::update(core_id_t core_id)
    //  assert(0 <= global_utilization && global_utilization <= 1);
    if (global_utilization > 1)
    {
-      LOG_NOTIFY_WARNING();
       LOG_PRINT("WARNING: Network utilization exceeds 1; %f", global_utilization);
+      LOG_NOTIFY_WARNING();
       global_utilization = 0.99;
    }
+
+   UtilizationMessage response_msg = { global_utilization, msg->vpmodel };
 
    // send response
    NetPacket response;
    response.sender = Config::getSingleton()->getMCPCoreNum();
    response.receiver = core_id;
-   response.length = sizeof(global_utilization);
+   response.length = sizeof(response_msg);
    response.type = MCP_UTILIZATION_UPDATE_TYPE;
-   response.data = (char *) &global_utilization;
+   response.data = &response_msg;
 
    _network.netSend(response);
 }

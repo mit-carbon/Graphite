@@ -3,13 +3,14 @@
 
 #include "config.h"
 #include "log.h"
-#include "sim_thread_manager.h"
 
 class MCP;
 class LCP;
 class Transport;
 class CoreManager;
+class Thread;
 class ThreadManager;
+class SimThreadManager;
 
 class Simulator
 {
@@ -26,7 +27,7 @@ public:
    MCP *getMCP() { return m_mcp; }
    LCP *getLCP() { return m_lcp; }
    CoreManager *getCoreManager() { return m_core_manager; }
-   SimThreadManager *getSimThreadManager() { return &m_sim_thread_manager; }
+   SimThreadManager *getSimThreadManager() { return m_sim_thread_manager; }
    ThreadManager *getThreadManager() { return m_thread_manager; }
    Config *getConfig() { return &m_config; }
 
@@ -49,13 +50,12 @@ private:
    LCP *m_lcp;
    Thread *m_lcp_thread;
 
-   SimThreadManager m_sim_thread_manager;
-
    Config m_config;
    Log m_log;
    Transport *m_transport;
    CoreManager *m_core_manager;
    ThreadManager *m_thread_manager;
+   SimThreadManager *m_sim_thread_manager;
 
    static Simulator *m_singleton;
 

@@ -7,6 +7,7 @@
 #include "network.h"
 #include "message_types.h"
 #include "core.h"
+#include "thread.h"
 
 #define LOG_DEFAULT_RANK -1
 #define LOG_DEFAULT_MODULE THREAD_MANAGER

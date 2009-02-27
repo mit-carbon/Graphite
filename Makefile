@@ -48,7 +48,7 @@ stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit
 
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
 
@@ -61,6 +61,10 @@ build_benchmarks:
 simple_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0
+
+spawn_join: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/$@
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 3 -- $(TESTS_DIR)/$@/$@
 
 dynamic_threads: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/dynamic_threads

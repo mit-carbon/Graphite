@@ -14,63 +14,31 @@
 #include "capi.h"
 #include <stdio.h>
 
-#ifdef DEBUG
-pthread_mutex_t lock;
-#endif
-
-// Functions executed by threads
 void* read_and_write(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-
-   // Read in the command line arguments
    const unsigned int numThreads = 2;
 
-   // Declare threads and related variables
-   pthread_t threads[numThreads];
+   int threads[numThreads];
    pthread_attr_t attr;
 
-#ifdef DEBUG
-   printf("This is the function main()"\n);;
-#endif
-
-   // Initialize threads and related variables
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-#ifdef DEBUG
-   printf("Spawning threads"\n);;
-#endif
+   for (unsigned int i = 0; i < numThreads; i++)
+      threads[i] = CarbonSpawnThread(read_and_write, (void*)i);
 
    for (unsigned int i = 0; i < numThreads; i++)
-      pthread_create(&threads[i], &attr, read_and_write, (void *) i);
-
-   // Wait for all threads to complete
-   for (unsigned int i = 0; i < numThreads; i++)
-      pthread_join(threads[i], NULL);
+      CarbonJoinThread(threads[i]);
 
    printf("quitting syscall server!\n");;
-
-#ifdef DEBUG
-   printf("This is the function main ending\n");;
-#endif
-   pthread_exit(NULL);
-
-} // main ends
-
+}
 
 void* read_and_write(void *threadid)
 {
-   // Declare local variables
    int tid;
    CAPI_return_t rtnVal;
    char file_name[256];
 
-   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((int)threadid);
-
-   // Initialize local variables
    CAPI_rank(&tid);
 
    sprintf(file_name, "./common/tests/file_io/input%d", tid);

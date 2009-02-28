@@ -18,8 +18,6 @@ int main(int argc, char* argv[])  // main begins
 {
    fprintf(stderr, "Yeah Main\n");
 
-    CarbonInitializeThread();
-
     unsigned int i = 1000;
     unsigned int j;
     while(--i)

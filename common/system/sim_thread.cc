@@ -3,6 +3,7 @@
 #include "log.h"
 #include "simulator.h"
 #include "core.h"
+#include "sim_thread_manager.h"
 
 #define LOG_DEFAULT_RANK core_id
 #define LOG_DEFAULT_MODULE SIM_THREAD

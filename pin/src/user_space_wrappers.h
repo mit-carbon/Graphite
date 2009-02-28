@@ -31,9 +31,9 @@ void SimCondBroadcast(carbon_cond_t *cond);
 void SimBarrierInit(carbon_barrier_t *barrier, UInt32 count);
 void SimBarrierWait(carbon_barrier_t *barrier);
 
-void SimThreadStart(int core_id);
+void SimThreadStart(ThreadSpawnRequest *req);
 void SimThreadExit();
-void SimGetThreadToSpawn(thread_func_t *func, void **arg, SInt32 *core_id);
+void SimGetThreadToSpawn(ThreadSpawnRequest **req);
 
 CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
                        char *buffer, int size);

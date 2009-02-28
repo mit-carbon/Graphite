@@ -10,12 +10,12 @@ extern "C"
 #endif
 
 // Support functions provided by the simulator
-void CarbonGetThreadToSpawn(thread_func_t *func, void **p, int *core_id)
+void CarbonGetThreadToSpawn(ThreadSpawnRequest **req)
 {
    assert(false);
 }
 
-void CarbonThreadStart(int core_id)
+void CarbonThreadStart(ThreadSpawnRequest *req)
 {
    assert(false);
 }
@@ -27,13 +27,14 @@ void CarbonThreadExit()
 
 void *CarbonSpawnManagedThread(void *p)
 {
-   carbon_thread_info_t *thread_info = (carbon_thread_info_t *)p;
+   ThreadSpawnRequest *thread_info = (ThreadSpawnRequest *)p;
 
-   CarbonThreadStart(thread_info->core_id);
+   CarbonThreadStart(thread_info);
 
    thread_info->func(thread_info->arg);
 
    CarbonThreadExit();
+   return NULL;
 }
 
 
@@ -42,29 +43,26 @@ void *CarbonThreadSpawner(void *p)
 {
    while(1)
    {
-      thread_func_t func;
-      void *arg;
-      int core_id;
+      ThreadSpawnRequest *req;
 
       // Wait for a spawn
-      CarbonGetThreadToSpawn(&func, &arg, &core_id);
+      CarbonGetThreadToSpawn(&req);
 
-      if(func)
+      if(req->func)
       {
          pthread_t thread;
          pthread_attr_t attr;
          pthread_attr_init(&attr);
          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-         carbon_thread_info_t thread_info = { func, p, core_id };
-
-         pthread_create(&thread, &attr, CarbonSpawnManagedThread, &thread_info);
+         pthread_create(&thread, &attr, CarbonSpawnManagedThread, req);
       }
       else
       {
          break;
       }
    }
+   return NULL;
 }
 
 // This function spawns the thread spawner
@@ -75,6 +73,7 @@ int CarbonSpawnThreadSpawner()
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
    pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
+   return 0;
 }
 
 #ifdef __cplusplus

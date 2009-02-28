@@ -5,6 +5,7 @@
 #include "core.h"
 #include "core_manager.h"
 #include "thread_manager.h"
+#include "sim_thread_manager.h"
 
 #define LOG_DEFAULT_RANK -1
 #define LOG_DEFAULT_MODULE SIMULATOR
@@ -29,11 +30,16 @@ Simulator* Simulator::getSingleton()
 }
 
 Simulator::Simulator()
-   : m_config()
+   : m_mcp(NULL)
+   , m_mcp_thread(NULL)
+   , m_lcp(NULL)
+   , m_lcp_thread(NULL)
+   , m_config()
    , m_log(m_config.getTotalCores())
    , m_transport(NULL)
    , m_core_manager(NULL)
    , m_thread_manager(NULL)
+   , m_sim_thread_manager(NULL)
    , m_finished(false)
 {
 }
@@ -47,10 +53,11 @@ void Simulator::start()
    m_transport = Transport::create();
    m_core_manager = new CoreManager();
    m_thread_manager = new ThreadManager(m_core_manager);
+   m_sim_thread_manager = new SimThreadManager();
 
    startMCP();
 
-   m_sim_thread_manager.spawnSimThreads();
+   m_sim_thread_manager->spawnSimThreads();
 
    m_lcp = new LCP();
    m_lcp_thread = Thread::create(m_lcp);
@@ -65,7 +72,7 @@ Simulator::~Simulator()
 
    endMCP();
 
-   m_sim_thread_manager.quitSimThreads();
+   m_sim_thread_manager->quitSimThreads();
 
    m_transport->barrier();
 
@@ -77,6 +84,7 @@ Simulator::~Simulator()
    delete m_mcp_thread;
    delete m_lcp;
    delete m_mcp;
+   delete m_sim_thread_manager;
    delete m_thread_manager;
    delete m_core_manager;
    delete m_transport;

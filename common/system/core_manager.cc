@@ -88,7 +88,7 @@ void CoreManager::initializeThread()
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
-   LOG_ASSERT_WARNING(e.first == false, "*WARNING* Thread: %d already mapped to core: %d", tid, e.second);
+   LOG_ASSERT_WARNING(e.first == false, "*WARNING* Thread: %d already mapped to core: %lld", tid, e.second);
 
    for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
@@ -151,7 +151,7 @@ void CoreManager::terminateThread()
    LOG_PRINT("CoreManager::terminating thread: %d", tid);
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
-   LOG_ASSERT_WARNING(e.first == true, "*WARNING* Thread: %d not initialized while terminating.", e.second);
+   LOG_ASSERT_WARNING(e.first == true, "*WARNING* Thread: %lld not initialized while terminating.", e.second);
 
    // If it's not in the tid_to_core_map, well then we don't need to remove it
    if(e.first == false)
@@ -164,7 +164,7 @@ void CoreManager::terminateThread()
          tid_map[i] = UINT_MAX;
          tid_to_core_index_map.remove(tid);
          tid_to_core_map.remove(tid);
-         LOG_PRINT("Terminate thread : removed %d", e.second);
+         LOG_PRINT("Terminate thread : removed %lld", e.second);
          return;
       }
       else
@@ -173,7 +173,7 @@ void CoreManager::terminateThread()
       }
    }
 
-   LOG_PRINT("*ERROR* terminateThread - Thread tid: %d not found in list.", e.second);
+   LOG_PRINT("*ERROR* terminateThread - Thread tid: %lld not found in list.", e.second);
    LOG_NOTIFY_ERROR();
 }
 

@@ -6,15 +6,27 @@
 #ifndef THREAD_SUPPORT_H
 #define THREAD_SUPPORT_H
 
+#include "fixed_types.h"
+
 void CarbonSpawnWorkerThreads();
 
 typedef void *(*thread_func_t)(void *);
+
+typedef struct
+{
+    SInt32 msg_type;
+    thread_func_t func;
+    void *arg;
+    SInt32 requester;
+    SInt32 core_id;
+} ThreadSpawnRequest;
+
 typedef struct 
 {
-   thread_func_t func;
-   void *arg;
-   int core_id;
-} carbon_thread_info_t;
+    SInt32 msg_type;
+    SInt32 sender;
+    SInt32 core_id;
+} ThreadJoinRequest;
 
 #endif
 

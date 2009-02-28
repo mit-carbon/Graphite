@@ -23,32 +23,13 @@ public:
    SInt32 spawnThread(thread_func_t func, void *arg);
    void joinThread(SInt32 core_id);
 
-   void getThreadToSpawn(thread_func_t *func, void **arg, int *core_id);
+   void getThreadToSpawn(ThreadSpawnRequest **req);
 
    // events
-   void onThreadStart(SInt32 core_id);
+   void onThreadStart(ThreadSpawnRequest *req);
    void onThreadExit();
 
 private:
-   struct ThreadJoinRequest
-   {
-       SInt32 msg_type;
-       SInt32 sender;
-       SInt32 core_id;
-
-       ThreadJoinRequest()
-           : msg_type(LCP_MESSAGE_THREAD_JOIN_REQUEST)
-       {}
-   };
-
-   struct ThreadSpawnRequest
-   {
-      SInt32 msg_type;
-      thread_func_t func;
-      void *arg;
-      SInt32 requester;
-      SInt32 core_id;
-   };
 
    friend class LCP;
    void masterSpawnThread(ThreadSpawnRequest*);
@@ -58,6 +39,7 @@ private:
    void masterOnThreadExit(SInt32 core_id, UInt64 time);
 
    void masterJoinThread(ThreadJoinRequest *req);
+   void wakeUpWaiter(SInt32 core_id);
 
    struct ThreadState
    {
@@ -72,7 +54,7 @@ private:
 
    bool m_master;
    std::vector<ThreadState> m_thread_state;
-   std::queue<ThreadSpawnRequest> m_thread_spawn_list;
+   std::queue<ThreadSpawnRequest*> m_thread_spawn_list;
    Semaphore m_thread_spawn_sem;
    Lock *m_thread_spawn_lock;
 

@@ -111,9 +111,9 @@ void SimBarrierWait(carbon_barrier_t *barrier)
    if (core) core->getSyncClient()->barrierWait(barrier);
 }
 
-void SimThreadStart(int core_id)
+void SimThreadStart(ThreadSpawnRequest *req)
 {
-   Sim()->getThreadManager()->onThreadStart(core_id);
+   Sim()->getThreadManager()->onThreadStart(req);
 }
 
 void SimThreadExit()
@@ -121,9 +121,9 @@ void SimThreadExit()
    Sim()->getThreadManager()->onThreadExit();
 }
 
-void SimGetThreadToSpawn(thread_func_t *func, void **arg, SInt32 *core_id)
+void SimGetThreadToSpawn(ThreadSpawnRequest **req)
 {
-   Sim()->getThreadManager()->getThreadToSpawn(func, arg, core_id);
+   Sim()->getThreadManager()->getThreadToSpawn(req);
 }
 
 CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,

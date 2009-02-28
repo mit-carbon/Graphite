@@ -61,15 +61,15 @@ void LCP::processPacket()
       break;
 
    case LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:
-      Sim()->getThreadManager()->masterSpawnThread((ThreadManager::ThreadSpawnRequest*)pkt);
+      Sim()->getThreadManager()->masterSpawnThread((ThreadSpawnRequest*)pkt);
       break;
 
    case LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_MASTER:
-      Sim()->getThreadManager()->slaveSpawnThread((ThreadManager::ThreadSpawnRequest*)pkt);
+      Sim()->getThreadManager()->slaveSpawnThread((ThreadSpawnRequest*)pkt);
       break;
 
    case LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE:
-      Sim()->getThreadManager()->masterSpawnThreadReply((ThreadManager::ThreadSpawnRequest*)pkt);
+      Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)pkt);
       break;
 
    case LCP_MESSAGE_THREAD_EXIT:
@@ -77,7 +77,7 @@ void LCP::processPacket()
       break;
 
    case LCP_MESSAGE_THREAD_JOIN_REQUEST:
-      Sim()->getThreadManager()->masterJoinThread((ThreadManager::ThreadJoinRequest*)pkt);
+      Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)pkt);
       break;
 
    default:

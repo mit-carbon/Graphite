@@ -94,15 +94,15 @@ void ApplicationExit(int, void*)
    Simulator::release();
 }
 
-void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
-{
-   LOG_PRINT("Thread Start: %d", syscall(__NR_gettid));
-}
+// void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
+// {
+//    LOG_PRINT("Thread Start: %d", syscall(__NR_gettid));
+// }
 
-void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
-{
-   LOG_PRINT("Thread Fini: %d", syscall(__NR_gettid));
-}
+// void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
+// {
+//    LOG_PRINT("Thread Fini: %d", syscall(__NR_gettid));
+// }
 
 void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
 {
@@ -156,6 +156,9 @@ int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
       LOG_PRINT("Finished!");
    }
 
+   ApplicationExit(0, NULL);
+
+   exit(0);
    return 0;
 }
 
@@ -176,9 +179,9 @@ int main(int argc, char *argv[])
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);
 
-   PIN_AddThreadStartFunction(ThreadStart, 0);
-   PIN_AddThreadFiniFunction(ThreadFini, 0);
-   PIN_AddFiniFunction(ApplicationExit, 0);
+//   PIN_AddThreadStartFunction(ThreadStart, 0);
+//   PIN_AddThreadFiniFunction(ThreadFini, 0);
+//   PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Just in case ... might not be strictly necessary
    Transport::getSingleton()->barrier();

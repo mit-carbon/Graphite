@@ -164,7 +164,7 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
 
    NetPacket pkt(0 /*time*/, LCP_SPAWN_THREAD_REPLY_FROM_MASTER_TYPE, 
-                 0 /*sender*/, req->requester, sizeof(SInt32), &req->core_id);
+                 0 /*sender*/, req->requester, sizeof(req->core_id), &req->core_id);
    Byte *buffer = pkt.makeBuffer();
    globalNode->send(req->requester, buffer, pkt.bufferSize());
    delete [] buffer;

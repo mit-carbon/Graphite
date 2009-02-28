@@ -421,6 +421,7 @@ UInt32 NetPacket::bufferSize() const
 Byte* NetPacket::makeBuffer() const
 {
    UInt32 size = bufferSize();
+   assert(size == sizeof(NetPacket) - sizeof(const void*) + length);
 
    Byte *buffer = new Byte[size];
 

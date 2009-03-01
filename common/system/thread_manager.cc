@@ -81,9 +81,10 @@ void ThreadManager::masterOnThreadExit(SInt32 core_id, UInt64 time)
 
   1. A message is sent from requestor to the master thread manager.
   2. The master thread manager finds the destination core and sends a message to its host process.
-  3. The host process spawns the new thread.
-  4. The spawned thread initializes and then sends an ACK to the master thread manager.
-  5. The master thread manager replies to the requestor with the id of the dest core.
+  3. The host process spawns the new thread by adding the information to a list and posting a sempaphore.
+  4. The thread is spawned by the thread spawner coming from the application.
+  5. The spawned thread initializes and then sends an ACK to the master thread manager.
+  6. The master thread manager replies to the requestor with the id of the dest core.
 */
 
 SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
@@ -132,14 +133,31 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
 
    req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_MASTER;
 
-   globalNode->globalSend(dest_proc, req, sizeof(*req));
+   if(dest_proc != (SInt32)Config::getSingleton()->getCurrentProcessNum())
+   {
+      LOG_PRINT("Sending thread spawn request to proc: %d", dest_proc);
+      globalNode->globalSend(dest_proc, req, sizeof(*req));
+      LOG_PRINT("Sent thread spawn request to proc: %d", dest_proc);
+   }
+   else //if it's local then just add it to the local list
+   {
+      ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
+      *req_cpy = *req;
+
+      m_thread_spawn_lock->acquire();
+      m_thread_spawn_list.push(req_cpy);
+      m_thread_spawn_lock->release();
+      m_thread_spawn_sem.signal();
+   }
+
    m_thread_state[req->core_id].running = true;
+   LOG_PRINT("Finished with masterSpawnThread call");
 }
 
 void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
 {
    // step 3
-   LOG_PRINT("(3) slaveSpawnThread with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
+   LOG_PRINT("(3) slaveSpawnThread with req: { fun: %p, arg: %p, req: %d, core: %d }", req->func, req->arg, req->requester, req->core_id);
 
    // This is deleted after the thread has been spawned
    // and we have sent the acknowledgement back to the requester
@@ -152,10 +170,28 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
    m_thread_spawn_sem.signal();
 }
 
+void ThreadManager::getThreadToSpawn(ThreadSpawnRequest **req)
+{
+   // step 4
+   LOG_PRINT("(4a) getThreadToSpawn called by user.");
+
+   // Wait for a request to arrive
+   m_thread_spawn_sem.wait();
+
+   // Grab the request and set the argument
+   m_thread_spawn_lock->acquire();
+   *req = m_thread_spawn_list.front();
+   m_thread_spawn_list.pop();
+   m_thread_spawn_lock->release();
+
+   LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", (*req)->func, (*req)->arg);
+}
+
+
 void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
 {
-   // step 5
-   LOG_PRINT("(5) masterSpawnThreadReply with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
+   // step 6
+   LOG_PRINT("(6) masterSpawnThreadReply with req: { fun: %p, arg: %p, req: %d, core: %d }", req->func, req->arg, req->requester, req->core_id);
 
    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
 
@@ -220,15 +256,5 @@ void ThreadManager::wakeUpWaiter(SInt32 core_id)
       m_thread_state[core_id].waiter = -1;
    }
    LOG_PRINT("Exiting wakeUpWaiter");
-}
-
-void ThreadManager::getThreadToSpawn(ThreadSpawnRequest **req)
-{
-   m_thread_spawn_sem.wait();
-   m_thread_spawn_lock->acquire();
-   *req = m_thread_spawn_list.front();
-   m_thread_spawn_list.pop();
-   m_thread_spawn_lock->release();
-
 }
 

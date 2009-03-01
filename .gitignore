@@ -24,6 +24,7 @@ common/tests/shared_mem_test/test_new
 common/tests/simple/simple_test
 common/tests/cannon_msg/cannon
 common/tests/capi_worker/capi_worker
+common/tests/1d_jacobi/jacobi
 
 # benchmark generated files
 common/tests/barnes/*.[ch]

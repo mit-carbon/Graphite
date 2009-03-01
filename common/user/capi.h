@@ -10,6 +10,8 @@ typedef int CAPI_return_t;
 
 typedef int CAPI_endpoint_t;
 
+typedef int carbon_thread_t;
+
 #ifdef __cplusplus
 extern "C"
 {

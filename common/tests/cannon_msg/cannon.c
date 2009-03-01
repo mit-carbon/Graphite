@@ -26,7 +26,9 @@
 pthread_mutex_t lock;
 #endif
 
-unsigned int numThreads;
+#define NUM_THREADS 4
+
+unsigned int num_threads;
 
 // Function executed by each thread
 void spawner_wait_ack(int id);
@@ -46,21 +48,13 @@ void debug_printf(const char * fmt, ...)
    fprintf(stderr, fmt, ap);
    pthread_mutex_unlock(&lock);
 #endif
-
 }
-
 
 int main(int argc, char* argv[])  // main begins
 {
    float **a, **b, **c;
 
    unsigned int matSize;
-   pthread_t* threads;
-   pthread_attr_t attr;
-
-#ifdef DEBUG
-   printf("This is the function main()\n");
-#endif
 
    // Read in the command line arguments
    if (argc != 5)
@@ -73,12 +67,12 @@ int main(int argc, char* argv[])  // main begins
    {
       if ((strcmp(argv[1], "-m\0") == 0) && (strcmp(argv[3], "-s\0") == 0))
       {
-         numThreads = atoi(argv[2]);
+         num_threads = atoi(argv[2]);
          matSize = atoi(argv[4]);
       }
       else if ((strcmp(argv[1], "-s\0") == 0) && (strcmp(argv[3], "-m\0") == 0))
       {
-         numThreads = atoi(argv[4]);
+         num_threads = atoi(argv[4]);
          matSize = atoi(argv[2]);
       }
       else
@@ -89,16 +83,9 @@ int main(int argc, char* argv[])  // main begins
       }
    }
 
-#ifdef DEBUG
-   printf("Number of threads: %d     Matrix size: %d\n", numThreads, matSize);
-#endif
-
    // Declare threads and related variables
-   threads = (pthread_t*)malloc(numThreads*sizeof(pthread_t));
+   carbon_thread_t threads[num_threads];
 
-#ifdef DEBUG
-   printf("Initializing global variables\n");
-#endif
    // Initialize global variables
 
    // Initialize a
@@ -127,59 +114,39 @@ int main(int argc, char* argv[])  // main begins
 
    // FIXME: we get a compiler warning here because the output of
    // sqrt is being converted to an int.  We really should be doing
-   // some sanity checking of numThreads and matSize to be sure
+   // some sanity checking of num_threads and matSize to be sure
    // these calculations go alright.
    int blockSize, sqrtNumProcs;
-   double tmp = numThreads;
+   double tmp = num_threads;
    sqrtNumProcs = (float) sqrt(tmp);
    blockSize = matSize / sqrtNumProcs;
 
    CAPI_return_t rtnVal;
-   CarbonInitializeThread();
-   rtnVal = CAPI_Initialize((unsigned int)numThreads);
-
+   rtnVal = CAPI_Initialize((unsigned int)num_threads);
 
 #ifdef DEBUG
    printf("Initializing thread structures\n");
    pthread_mutex_init(&lock, NULL);
 #endif
 
-   // Initialize threads and related variables
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-   //pthread_mutex_init(&write_lock, NULL);
-#ifdef DEBUG
-   printf("Spawning threads\n");
-#endif
-   for (unsigned int i = 0; i < numThreads; i++)
-   {
-      int err = pthread_create(&threads[i], &attr, cannon, (void *) i);
-      if (err != 0)
-      {
-         printf("  ERROR spawning thread %d!  Error code: %s\n",
-                i, strerror(err));
-      }
-      else
-      {
-#ifdef DEBUG
-         printf("  Spawned thread %d\n", i);
-#endif
-      }
-   }
-   sleep(2);
+   // Spawn the worker threads
+   for (unsigned int i = 0; i < num_threads; i++)
+       threads[i] = CarbonSpawnThread(cannon, (void *) i);
 
-   for (unsigned int i = 0; i < numThreads; i++)
+   sleep(5);
+
+   for (unsigned int i = 0; i < num_threads; i++)
    {
       int tid = i;
 
       bool started;
-      CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&started, sizeof(started));
+      CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started));
       assert(started == 1);
 
-      CAPI_message_send_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize));
+      CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize));
       spawner_wait_ack(tid);
 
-      CAPI_message_send_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs));
+      CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs));
       spawner_wait_ack(tid);
 
       // Convert 1-D rank to 2-D rank
@@ -196,21 +163,21 @@ int main(int argc, char* argv[])  // main begins
       by = y * blockSize;
       for (int row = 0; row < blockSize; row++)
       {
-         CAPI_message_send_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&(a[ax + row][ay]), blockSize * sizeof(float));
+         CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&(a[ax + row][ay]), blockSize * sizeof(float));
          spawner_wait_ack(tid);
       }
 
       for (int row = 0; row < blockSize; row++)
       {
-         CAPI_message_send_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&(b[bx + row][by]), blockSize * sizeof(float));
+         CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&(b[bx + row][by]), blockSize * sizeof(float));
          spawner_wait_ack(tid);
       }
    }
 
-   fprintf(stderr, "  Done sending... exiting.\n");
+   printf("  Done sending... exiting.\n");
 
    // Wait for all threads to complete
-   for (unsigned int i = 0; i < numThreads; i++)
+   for (unsigned int i = 0; i < num_threads; i++)
    {
       int tid = i;
       int ax, ay, bx, by;
@@ -229,23 +196,23 @@ int main(int argc, char* argv[])  // main begins
       float *cRow = (float*)malloc(blockSize*sizeof(float));
       for (int row = 0; row < blockSize; row++)
       {
-         CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)cRow, blockSize * sizeof(float));
+         CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)cRow, blockSize * sizeof(float));
          spawner_send_go(tid);
 
          for (int y = 0; y < blockSize; y++) c[ax + row][by + y] = cRow[y];
       }
       free(cRow);
-      pthread_join(threads[i], NULL);
+
+      CarbonJoinThread(threads[i]);
    }
+
 
    // Print out the result matrix
    printf("c = \n");
    for (unsigned int i = 0; i < matSize; i++)
    {
       for (unsigned int j = 0; j < matSize; j++)
-      {
          printf("%f ", c[i][j]);
-      }
       printf("\n");
    }
 
@@ -260,18 +227,13 @@ int main(int argc, char* argv[])  // main begins
    free(b);
    free(c);
 
-   // Debug
-   //printf("Number of sends = %ld\n", numSendCalls);
-   //printf("Number of receives = %ld\n", numReceiveCalls);
-
-   pthread_exit(NULL);
 } // main ends
 
 void spawner_send_go(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack = 1;
-   CAPI_message_send_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack));
+   CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack));
 #endif
 }
 
@@ -279,7 +241,7 @@ void worker_wait_go(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack;
-   CAPI_message_receive_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack));
+   CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack));
    assert(ack == true);
 #endif
 }
@@ -288,7 +250,7 @@ void spawner_wait_ack(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack;
-   CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&ack, sizeof(ack));
+   CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&ack, sizeof(ack));
    assert(ack == true);
 #endif
 }
@@ -297,12 +259,13 @@ void worker_send_ack(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack = 1;
-   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&ack, sizeof(ack));
+   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&ack, sizeof(ack));
 #endif
 }
 
 void* cannon(void *threadid)
 {
+   num_threads = NUM_THREADS;
 
    // Declare local variables
    int tid;
@@ -316,23 +279,23 @@ void* cannon(void *threadid)
    printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
-   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
    tid = threadid;
    //CAPI_rank(&tid);
+
    sleep(2);
 
    bool started = true;
-   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&started, sizeof(started));
+   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started));
 
    fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
 
    // Initialize local variables
    int blockSize, sqrtNumProcs;
-   CAPI_message_receive_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize));
+   CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize));
    worker_send_ack(tid);
 
-   CAPI_message_receive_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs));
+   CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs));
    worker_send_ack(tid);
 
    // Convert 1-D rank to 2-D rank
@@ -364,7 +327,7 @@ void* cannon(void *threadid)
    for (int x = 0; x < blockSize; x++)
    {
       aBlock[x] = (float*)malloc(blockSize*sizeof(float));
-      CAPI_message_receive_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)aBlock[x], blockSize * sizeof(float));
+      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)aBlock[x], blockSize * sizeof(float));
       worker_send_ack(tid);
    }
 
@@ -375,7 +338,7 @@ void* cannon(void *threadid)
    for (int x = 0; x < blockSize; x++)
    {
       bBlock[x] = (float*)malloc(blockSize*sizeof(float));
-      CAPI_message_receive_w((CAPI_endpoint_t)numThreads, (CAPI_endpoint_t)tid, (char *)bBlock[x], blockSize * sizeof(float));
+      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)bBlock[x], blockSize * sizeof(float));
       worker_send_ack(tid);
    }
 
@@ -448,7 +411,7 @@ void* cannon(void *threadid)
    worker_wait_go(tid);
    for (int x = 0; x < blockSize; x++)
    {
-      CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)numThreads, (char *)&(cBlock[0][0]), blockSize * sizeof(float));
+      CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&(cBlock[0][0]), blockSize * sizeof(float));
       worker_wait_go(tid);
    }
 
@@ -467,6 +430,6 @@ void* cannon(void *threadid)
 
    debug_printf("tid # %d done!\n", tid);
 
-   pthread_exit(NULL);
+   return NULL;
 }
 

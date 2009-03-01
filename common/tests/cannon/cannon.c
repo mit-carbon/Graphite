@@ -40,16 +40,7 @@ void* cannon(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-
-   // Read in the command line arguments
-
-   unsigned int matSize, numThreads;
-   pthread_t* threads;
-   pthread_attr_t attr;
-
-#ifdef DEBUG
-   printf("This is the function main()\n");
-#endif
+   unsigned int matSize, num_threads;
 
    if (argc != 5)
    {
@@ -61,12 +52,12 @@ int main(int argc, char* argv[])  // main begins
    {
       if ((strcmp(argv[1], "-m\0") == 0) && (strcmp(argv[3], "-s\0") == 0))
       {
-         numThreads = atoi(argv[2]);
+         num_threads = atoi(argv[2]);
          matSize = atoi(argv[4]);
       }
       else if ((strcmp(argv[1], "-s\0") == 0) && (strcmp(argv[3], "-m\0") == 0))
       {
-         numThreads = atoi(argv[4]);
+         num_threads = atoi(argv[4]);
          matSize = atoi(argv[2]);
       }
       else
@@ -77,12 +68,9 @@ int main(int argc, char* argv[])  // main begins
       }
    }
 
-#ifdef DEBUG
-   printf("Number of threads: %d     Matrix size: %d\n", numThreads, matSize);
-#endif
 
    // Declare threads and related variables
-   threads = (pthread_t*)malloc(numThreads*sizeof(pthread_t));
+   carbon_thread_t threads[num_threads];
 
 #ifdef DEBUG
    printf("Initializing global variables\n");
@@ -91,13 +79,13 @@ int main(int argc, char* argv[])  // main begins
 
    // Debug
    numSendCalls = 0;
-   numThreadSends = (long*)malloc(numThreads*sizeof(long));
-   for (unsigned int i = 0; i < numThreads; i++) numThreadSends[i] = 0;
+   numThreadSends = (long*)malloc(num_threads*sizeof(long));
+   for (unsigned int i = 0; i < num_threads; i++) numThreadSends[i] = 0;
 
    // Debug
    numReceiveCalls = 0;
-   numThreadReceives = (long*)malloc(numThreads*sizeof(long));
-   for (unsigned int i = 0; i < numThreads; i++) numThreadReceives[i] = 0;
+   numThreadReceives = (long*)malloc(num_threads*sizeof(long));
+   for (unsigned int i = 0; i < num_threads; i++) numThreadReceives[i] = 0;
 
    // Initialize a
    a = (float**)malloc(matSize*sizeof(float*));
@@ -125,9 +113,9 @@ int main(int argc, char* argv[])  // main begins
 
    // FIXME: we get a compiler warning here because the output of
    // sqrt is being converted to an int.  We really should be doing
-   // some sanity checking of numThreads and matSize to be sure
+   // some sanity checking of num_threads and matSize to be sure
    // these calculations go alright.
-   double tmp = numThreads;
+   double tmp = num_threads;
    sqrtNumProcs = (float) sqrt(tmp);
    blockSize = matSize / sqrtNumProcs;
 
@@ -137,27 +125,14 @@ int main(int argc, char* argv[])  // main begins
 #endif
 
    // Initialize threads and related variables
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
    pthread_mutex_init(&write_lock, NULL);
-#ifdef DEBUG
-   printf("Spawning threads\n");
-#endif
-   for (unsigned int i = 0; i < numThreads; i++)
-   {
-      int err = pthread_create(&threads[i], &attr, cannon, (void *) i);
-      if (err != 0)
-      {
-         printf("  ERROR spawning thread %d!  Error code: %s\n",
-                i, strerror(err));
-      }
-#ifdef DEBUG
-      else { printf("  Spawned thread %d\n", i); }
-#endif
-   }
+
+   for (unsigned int i = 0; i < num_threads; i++)
+       threads[i] = CarbonSpawnThread(cannon, (void *) i);
 
    // Wait for all threads to complete
-   for (unsigned int i = 0; i < numThreads; i++) pthread_join(threads[i], NULL);
+   for (unsigned int i = 0; i < num_threads; i++)
+       CarbonJoinThread(threads[i]);
 
    // Print out the result matrix
    printf("c = \n");
@@ -174,7 +149,6 @@ int main(int argc, char* argv[])  // main begins
    printf("Number of sends = %ld\n", numSendCalls);
    printf("Number of receives = %ld\n", numReceiveCalls);
 
-   pthread_exit(NULL);
 } // main ends
 
 void* cannon(void *threadid)
@@ -192,13 +166,12 @@ void* cannon(void *threadid)
    printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
-   CarbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
 
    // Initialize local variables
 
    CAPI_rank(&tid);
-   tid = threadid;
+   tid = (int)threadid;
 
    // Convert 1-D rank to 2-D rank
    i = tid / sqrtNumProcs;
@@ -335,6 +308,6 @@ void* cannon(void *threadid)
    for (int x = 0; x < blockSize; x++)
       for (int y = 0; y < blockSize; y++) c[ai + x][bj + y] = cBlock[x][y];
 
-   pthread_exit(NULL);
+   return NULL;
 }
 

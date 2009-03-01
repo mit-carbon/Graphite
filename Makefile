@@ -1,5 +1,7 @@
 include common/makefile.gnu.config
 
+SIM_ROOT=$(PWD)
+
 PIN_BIN=$(PIN_HOME)/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
@@ -9,6 +11,8 @@ PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)
 TESTS_DIR=./common/tests
 
 CORES=4
+TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
+
 ..PHONY: cores
 PROCESS=mpirun
 ..PHONY: process
@@ -48,6 +52,9 @@ stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit
 
 
+show_root:
+	@echo $(PWD)
+
 regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
@@ -60,7 +67,7 @@ build_benchmarks:
 
 simple_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test
 
 spawn_join: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/$@
@@ -72,28 +79,31 @@ dynamic_threads: all empty_logs
 
 simple_test_dist: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist 0
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 3 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist
 
 cannon_msg_dist: all empty_logs
-	$(MAKE) -C $(TESTS_DIR)/cannon_msg_dist
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 5 -- $(TESTS_DIR)/cannon_msg_dist/cannon_msg_dist -m 4 -s 4
+	$(MAKE) -C $(TESTS_DIR)/cannon_msg
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
 
 ring_msg_pass: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/ring_msg_pass
-	$(MPI_DIR)/bin/mpirun -np $(CORES) $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np $(CORES) -tc $(CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
+	$(MPI_DIR)/bin/mpirun -np $(TOTAL_CORES) $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np $(TOTAL_CORES) -tc $(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
 
 io_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/file_io
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/file_io/file_io
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 3 -- $(TESTS_DIR)/file_io/file_io
 
 ping_pong_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 2 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 3 -- $(TESTS_DIR)/ping_pong/ping_pong
+
+ping_pong_dist: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/ping_pong
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 3 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 cannon: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon
-#	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
-	$(PIN_RUN) -mdc -msm -mpf -msys -np 1 -tc $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -msm -mpf -msys -np 1 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
@@ -126,7 +136,7 @@ jacobi_test: all empty_logs
 
 mutex_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/mutex
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/mutex/mutex_test
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/mutex/mutex_test
 
 cond_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cond
@@ -138,7 +148,7 @@ broadcast_test: all empty_logs
 
 barrier_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/barrier
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/barrier/barrier_test
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 6 -- $(TESTS_DIR)/barrier/barrier_test
 
 
 
@@ -154,7 +164,7 @@ cache_test: all empty_logs
 fmm_test: all empty_logs
 	# note, the 5th line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/fmm
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 10 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 11 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
 barnes_test: all empty_logs
 	# note, the last line in the input file must match the number of procs passed to pin

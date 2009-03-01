@@ -68,6 +68,9 @@ void *CarbonThreadSpawner(void *p)
 // This function spawns the thread spawner
 int CarbonSpawnThreadSpawner()
 {
+   //FIXME: a hack to get the output working properly
+   setvbuf( stdout, NULL, _IONBF, 0 );
+
    pthread_t thread;
    pthread_attr_t attr;
    pthread_attr_init(&attr);

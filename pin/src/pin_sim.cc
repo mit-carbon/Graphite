@@ -133,9 +133,6 @@ int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
       LOG_PRINT("Finished!");
    }
 
-   ApplicationExit(0, NULL);
-
-   exit(0);
    return 0;
 }
 
@@ -158,7 +155,7 @@ int main(int argc, char *argv[])
 
 //   PIN_AddThreadStartFunction(ThreadStart, 0);
 //   PIN_AddThreadFiniFunction(ThreadFini, 0);
-//   PIN_AddFiniFunction(ApplicationExit, 0);
+   PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Just in case ... might not be strictly necessary
    Transport::getSingleton()->barrier();

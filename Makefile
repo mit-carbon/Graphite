@@ -3,6 +3,7 @@ include common/makefile.gnu.config
 PIN_BIN=$(PIN_HOME)/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
+#PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -slow_asserts -separate_memory -mt -t $(PIN_TOOL) 
 PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
@@ -48,9 +49,9 @@ stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit
 
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon 1djacobi_test_quick simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
 
-regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
+regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test 
 
 clean_benchmarks:
 	make $@ -C $(TESTS_DIR)
@@ -58,9 +59,17 @@ clean_benchmarks:
 build_benchmarks:
 	make $@ -C $(TESTS_DIR)
 
+hello_world: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/hello_world
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/hello_world/hello_world
+
 simple_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0
+
+spawn_join: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/$@
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 3 -- $(TESTS_DIR)/$@/$@
 
 dynamic_threads: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/dynamic_threads
@@ -88,7 +97,6 @@ ping_pong_test: all empty_logs
 
 cannon: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon
-#	$(PIN_RUN) -mdc -msm -msys -n $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 	$(PIN_RUN) -mdc -msm -mpf -msys -np 1 -tc $(CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: all empty_logs
@@ -110,11 +118,11 @@ shmem_test_evic: all empty_logs
 
 1djacobi_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64
+	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 16
 
 1djacobi_test_quick: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
+	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 16
 
 jacobi_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
@@ -193,14 +201,3 @@ love:
 out:
 	@echo "I think we should just be friends..."
 
-war:	kill
-
-kill:
-	@echo "Killing All Possible Processes"
-	killall -s 9 $(PROCESS)
-	killall -s 9 ping_pong
-	killall -s 9 jacobi
-	killall -s 9 test_new
-	killall -s 9 test_evic
-	killall -s 9 basic
-	killall -s 9 test

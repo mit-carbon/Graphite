@@ -24,6 +24,8 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
       m_thread_state[0].running = true;
       m_thread_state[config->getMCPCoreNum()].running = true;
       LOG_PRINT("%d", config->getMCPCoreNum());
+      LOG_ASSERT_ERROR(config->getMCPCoreNum() < m_thread_state.size(),
+                       "*ERROR* MCP core num out of range (!?)");
    }
 }
 
@@ -33,6 +35,8 @@ ThreadManager::~ThreadManager()
    {
       m_thread_state[0].running = false;
       m_thread_state[Config::getSingleton()->getMCPCoreNum()].running = false;
+      LOG_ASSERT_ERROR(Config::getSingleton()->getMCPCoreNum() < m_thread_state.size(),
+                       "*ERROR* MCP core num out of range (!?)");
 
       for (UInt32 i = 0; i < m_thread_state.size(); i++)
          LOG_ASSERT_WARNING(!m_thread_state[i].running, "*WARNING* Thread %d still active when ThreadManager destructs!", i);
@@ -58,6 +62,7 @@ void ThreadManager::onThreadExit()
 void ThreadManager::masterOnThreadExit(SInt32 core_id, UInt64 time)
 {
    LOG_PRINT("masterOnThreadExit : %d %llu", core_id, time);
+   LOG_ASSERT_ERROR((UInt32)core_id < m_thread_state.size(), "*ERROR* Core id out of range: %d", core_id);
    assert(m_thread_state[core_id].running);
    m_thread_state[core_id].running = false;
 
@@ -130,6 +135,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_MASTER;
 
    globalNode->globalSend(dest_proc, req, sizeof(*req));
+   LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "*ERROR* Core id out of range: %d", req->core_id);
    m_thread_state[req->core_id].running = true;
 }
 
@@ -201,6 +207,7 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
    UInt64 time = 0;
 
    // Core not running, so the thread must have joined
+   LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "*ERROR* Core id out of range: %d", req->core_id);
    if(m_thread_state[req->core_id].running == false)
    {
       LOG_PRINT("Not running, sending reply.");

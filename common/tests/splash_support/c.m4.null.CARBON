@@ -115,11 +115,7 @@ define(MONINIT, `{;}')
 define(WAIT_FOR_END, `{
 	unsigned long	i, Error;
 	for (i = 0; i < ($1) - 1; i++) {
-		Error = pthread_join(PThreadTable[i], NULL);
-		if (Error != 0) {
-			printf("Error in pthread_join().\n");
-			exit(-1);
-		}
+		CarbonJoinThread(PThreadTable[i]);
 	}
 }')
 
@@ -127,11 +123,7 @@ define(CREATE, `{
 	long	i, Error;
 
 	for (i = 0; i < ($2) - 1; i++) {
-		Error = pthread_create(&PThreadTable[i], NULL, (void * (*)(void *))($1), NULL);
-		if (Error != 0) {
-			printf("Error in pthread_create().\n");
-			exit(-1);
-		}
+		PThreadTable[i] = CarbonSpawnThread((void * (*)(void *))($1), NULL);
 	}
 
 	$1();
@@ -167,11 +159,9 @@ extern pthread_t PThreadTable[];
 ')
 
 define(THREAD_INIT, `{
-  CarbonInitializeThread();
   }')
 
 define(THREAD_INIT_FREE, `{
-  CarbonInitializeThread();
   }')
 
 define(G_MALLOC, `valloc($1);')

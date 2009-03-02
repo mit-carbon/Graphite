@@ -88,7 +88,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
 
-   assert((unsigned)size == packet.length);
+   LOG_ASSERT_ERROR((unsigned)size == packet.length, "*ERROR* Core: User thread requested packet of size: %d, got a packet from %d of size: %d", size, sender, packet.length);
 
    memcpy(buffer, packet.data, size);
 

@@ -2,9 +2,14 @@
 #define THREAD_MANAGER_H
 
 #include <vector>
+#include <queue>
+#include "semaphore.h"
 
 #include "fixed_types.h"
 #include "message_types.h"
+#include "lock.h"
+
+#include "thread_support.h"
 
 class CoreManager;
 
@@ -15,35 +20,21 @@ public:
    ~ThreadManager();
 
    // services
-   SInt32 spawnThread(void* (*func)(void*), void *arg);
+   SInt32 spawnThread(thread_func_t func, void *arg);
    void joinThread(SInt32 core_id);
 
-private:
-   struct ThreadJoinRequest
-   {
-       SInt32 msg_type;
-       SInt32 sender;
-       SInt32 core_id;
-   };
-
-   struct ThreadSpawnRequest
-   {
-      SInt32 msg_type;
-      void* (*func)(void*);
-      void *arg;
-      SInt32 requester;
-      SInt32 core_id;
-   };
+   void getThreadToSpawn(ThreadSpawnRequest **req);
 
    // events
    void onThreadStart(ThreadSpawnRequest *req);
    void onThreadExit();
 
+private:
+
    friend class LCP;
    void masterSpawnThread(ThreadSpawnRequest*);
    void slaveSpawnThread(ThreadSpawnRequest*);
    void masterSpawnThreadReply(ThreadSpawnRequest*);
-   static void spawnedThreadFunc(void *vpreq);
 
    void masterOnThreadExit(SInt32 core_id, UInt64 time);
 
@@ -63,6 +54,9 @@ private:
 
    bool m_master;
    std::vector<ThreadState> m_thread_state;
+   std::queue<ThreadSpawnRequest*> m_thread_spawn_list;
+   Semaphore m_thread_spawn_sem;
+   Lock *m_thread_spawn_lock;
 
    CoreManager *m_core_manager;
 };

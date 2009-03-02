@@ -21,7 +21,7 @@ endif
 
 CFLAGS = $(CXXFLAGS) -std=c99
 
-CARBON_SOURCES = ../../user/sync_api.c ../../user/capi.c
+CARBON_SOURCES = ../../user/sync_api.c ../../user/capi.c ../../user/thread_support.c
 CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
 
 ## Build rules

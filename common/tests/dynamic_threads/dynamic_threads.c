@@ -29,18 +29,20 @@ int main(int argc, char* argv[])  // main begins
       fprintf(stdout, "Spawning thread %d\n", i);
 
       for(unsigned int j = 0; j < numThreads; j++)
-         threads[j] = CarbonSpawnThread(thread_func, NULL);
+          threads[j] = CarbonSpawnThread(thread_func, (void *) (j + 1));
 
       for(unsigned int j = 0; j < numThreads; j++)
-         CarbonJoinThread(threads[j]);
+          CarbonJoinThread(threads[j]);
    }
 
    fprintf(stdout, "UserApplication: About to call carbon finish!\n");
+
+   return 0;
 }
 
 void* thread_func(void *threadid)
 {
-//   CAPI_return_t rtnVal = CAPI_Initialize((int)threadid);
+   fprintf(stderr, "Spawned this thread\n");
    return NULL;
 }
 

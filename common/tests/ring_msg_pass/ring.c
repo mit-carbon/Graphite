@@ -1,5 +1,6 @@
 /* Simple message-passing test program for kLab simulator adapted from
- * OpenMPI sample program ring_c.c by Jason Miller.
+ * OpenMPI sample program ring_c.c by Jason Miller. 
+ * Later modified to be a thread based version by Charles Gruenwald.
  */
 
 /*
@@ -21,7 +22,52 @@
 #define NUM_LOOPS      30
 #define MSG_SIZE       10      // number of integers in each message
 
+// only proc0 really sets this value
+// therefore only assume main has access
+// to it.
+int g_num_threads;
+
+void *ring(void *p);
+
 int main(int argc, char *argv[])
+{
+   if (argc != 3 || strcmp(argv[1], "-m") != 0)
+   {
+      printf("Invalid command line options. The correct format is:\n");
+      printf("%s -m num_of_threads\n", argv[0]);
+      exit(EXIT_FAILURE);
+   }
+
+   const unsigned int num_threads = atoi(argv[2]);
+   g_num_threads = num_threads;
+   if(num_threads < 2)
+   {
+      printf("Error: need at least 2 threads to perform ring test.");
+   }
+
+   carbon_thread_t threads[num_threads];
+
+   CAPI_Initialize(0);
+
+   printf("Spawning worker threads.\n");
+   for(unsigned int i = 1; i < num_threads; i++)
+       threads[i] = CarbonSpawnThread(ring, (void *) i);
+
+   sleep(3);
+
+   printf("Spawning master thread.\n");
+   // Run the master thread.
+   ring((void *)0);
+
+   for(unsigned int i = 1; i < num_threads; i++)
+       CarbonJoinThread(threads[i]);
+
+   printf("Finished running ring test!.\n");
+
+   return 0;
+}
+
+void *ring(void *p)
 {
    int next, prev;
    int i;
@@ -31,14 +77,28 @@ int main(int argc, char *argv[])
    CAPI_return_t rtnVal;
    int* foo;
 
-   int ring_size = CarbonGetProcessCount();
-   int rank = CarbonGetCurrentProcessId();
+   int ring_size = g_num_threads;
+   int rank = (int)p;
 
-   fprintf(stderr, "Process: %d/%d started.\n", rank, ring_size);
-
-   CarbonInitializeThread();
    CAPI_Initialize(rank);
-   sleep(10);
+
+   sleep(5);
+
+   if(rank == 0)
+   {
+       // Inform the workers of the ring size
+       for(unsigned int i = 0; i < g_num_threads; i++)
+           CAPI_message_send_w((CAPI_endpoint_t)0, (CAPI_endpoint_t)i,
+                   (char*)&g_num_threads, sizeof(g_num_threads));
+   }
+   else
+   {
+       CAPI_message_receive_w((CAPI_endpoint_t)0, (CAPI_endpoint_t)i,
+               (char*)&g_num_threads, sizeof(g_num_threads));
+   }
+
+   ring_size = g_num_threads;
+   fprintf(stderr, "Thread: %d/%d started.\n", rank, ring_size);
 
    // Calculate the rank of the next process in the ring.  Use the
    //  modulus operator so that the last process "wraps around" to

@@ -1,6 +1,9 @@
 #include "routine_replace.h"
 #include "user_space_wrappers.h"
+#include "simulator.h"
+#include "thread_manager.h"
 #include "log.h"
+#include "thread_support.h"
 
 extern int SimMain(CONTEXT*, AFUNPTR, int, char**);
 
@@ -11,6 +14,11 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    // main
    if (name == "main") msg_ptr = AFUNPTR(SimMain);
+
+   // thread management
+   else if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(SimGetThreadToSpawn);
+   else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR(SimThreadStart);
+   else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR(SimThreadExit);
 
    // Carbon API
    else if (name == "CarbonGetProcessCount") msg_ptr = AFUNPTR(SimGetProcessCount);
@@ -34,7 +42,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "condBroadcast") msg_ptr = AFUNPTR(SimCondBroadcast);
    else if (name == "barrierInit") msg_ptr = AFUNPTR(SimBarrierInit);
    else if (name == "barrierWait") msg_ptr = AFUNPTR(SimBarrierWait);
-   
+
    // pthread wrappers
    else if (name == "pthread_create") msg_ptr = AFUNPTR(SimPthreadCreate);
    else if (name == "pthread_join") msg_ptr = AFUNPTR(SimPthreadJoin);

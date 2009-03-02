@@ -2,6 +2,7 @@
 all: 
 
 include ../makefile.gnu.config
+
 shared_mem_tests:
 	$(MAKE) -C shared_mem_test
 

@@ -22,6 +22,15 @@ void Simulator::release()
 {
    delete m_singleton;
    m_singleton = NULL;
+
+   //FIXME FIXME FIXME
+   //For some reason there is an issue with
+   //a global destructor, so once the simulator
+   //has been released, we use this internal _exit
+   //to avoid that destructor until the bug is
+   //fixed.
+   //FIXME FIXME FIXME
+   _exit(0);
 }
 
 Simulator* Simulator::getSingleton()

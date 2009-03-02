@@ -59,6 +59,10 @@ clean_benchmarks:
 build_benchmarks:
 	make $@ -C $(TESTS_DIR)
 
+hello_world: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/hello_world
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/hello_world/hello_world
+
 simple_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test 0

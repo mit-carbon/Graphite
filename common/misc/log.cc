@@ -16,6 +16,7 @@ Log *Log::_singleton;
 
 Log::Log(UInt32 coreCount)
       : _coreCount(coreCount)
+      , _startTime(0)
 {
    char filename[256];
 
@@ -100,11 +101,11 @@ Boolean Log::isEnabled(const char* module)
 
 UInt64 Log::getTimestamp()
 {
-   UInt64 hi, lo;
-   __asm__ __volatile__ ("rdtsc\n"
-                         "movl %%edx,%0\n"
-                         "movl %%eax,%1" : "=r"(hi), "=r"(lo) : : "edx", "eax");
-   return ((UInt64) hi << 32ULL) + (UInt64) lo;
+   timeval t;
+   gettimeofday(&t, NULL);
+   UInt64 time = (((UInt64)t.tv_sec) * 1000000 + t.tv_usec);
+   if (_startTime == 0) _startTime = time;
+   return time - _startTime;
 }
 
 void Log::discoverCore(UInt32 *core_id, bool *sim_thread)
@@ -212,11 +213,11 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
 
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
    if (core_id != (UInt32)-1) // valid core id
-      fprintf(file, "%llu {%2i}  [%2i]  [%s:%4d]%s", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
+      fprintf(file, "%-20llu {%2i}  [%2i]  [%s:%4d]%s", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
-      fprintf(file, "%llu {%2i}  [  ]  [%s:%4d]  ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+      fprintf(file, "%-20llu {%2i}  [  ]  [%s:%4d]  ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
    else // who knows
-      fprintf(file, "%llu {  }  [  ]  [%s:%4d]  ", getTimestamp(), module.c_str(), source_line);
+      fprintf(file, "%-20llu {  }  [  ]  [%s:%4d]  ", getTimestamp(), module.c_str(), source_line);
 
    switch (err)
    {

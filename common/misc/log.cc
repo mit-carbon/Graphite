@@ -1,6 +1,7 @@
 #include "log.h"
 #include "config.h"
 #include <sys/time.h>
+#include <sys/syscall.h>
 #include <stdarg.h>
 #include "lock.h"
 
@@ -58,6 +59,10 @@ Log::Log(UInt32 coreCount)
 
    Config::getSingleton()->getDisabledLogModules(_disabledModules);
 
+#ifdef LOCK_LOGS
+   _modules_lock = Lock::create();
+#endif
+
    assert(_singleton == NULL);
    _singleton = this;
 }
@@ -65,6 +70,10 @@ Log::Log(UInt32 coreCount)
 Log::~Log()
 {
    _singleton = NULL;
+
+#ifdef LOCK_LOGS
+   delete _modules_lock;
+#endif
 
    for (UInt32 i = 0; i < 2 * _coreCount; i++)
    {
@@ -164,7 +173,13 @@ void Log::getFile(UInt32 core_id, bool sim_thread, FILE **file, Lock **lock)
 
 std::string Log::getModule(const char *filename)
 {
+#ifdef LOCK_LOGS
+   _modules_lock->acquire();
+#endif
    std::map<const char*, std::string>::const_iterator it = _modules.find(filename);
+#ifdef LOCK_LOGS
+   _modules_lock->release();
+#endif
 
    if (it != _modules.end())
    {
@@ -182,12 +197,17 @@ std::string Log::getModule(const char *filename)
          mod.push_back(' ');
 
       pair<const char*, std::string> p(filename, mod);
+#ifdef LOCK_LOGS
+      _modules_lock->acquire();
+#endif
       _modules.insert(p);
+#ifdef LOCK_LOGS
+      _modules_lock->release();
+#endif
 
       return mod;
    }
 }
-
 void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
 #ifdef DISABLE_LOGGING
@@ -206,6 +226,7 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    Lock *lock;
 
    getFile(core_id, sim_thread, &file, &lock);
+   int tid = syscall(__NR_gettid);
 
    lock->acquire();
 
@@ -213,11 +234,11 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
 
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
    if (core_id != (UInt32)-1) // valid core id
-      fprintf(file, "%-20llu {%2i}  [%2i]  [%s:%4d]%s", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
+      fprintf(file, "%-10llu [%5d]  [%2i] [%2i]  [%s:%4d]%s", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
-      fprintf(file, "%-20llu {%2i}  [  ]  [%s:%4d]  ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+      fprintf(file, "%-10llu [%5d]  [%2i] [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
    else // who knows
-      fprintf(file, "%-20llu {  }  [  ]  [%s:%4d]  ", getTimestamp(), module.c_str(), source_line);
+      fprintf(file, "%-10llu [%5d]  [  ] [  ]  [%s:%4d]  ", getTimestamp(), tid, module.c_str(), source_line);
 
    switch (err)
    {

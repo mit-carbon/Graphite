@@ -4,9 +4,6 @@
 #include "mcp.h"
 #include "core.h"
 
-#define LOG_DEFAULT_RANK -1
-#define LOG_DEFAULT_MODULE SIMULATOR
-
 Simulator *Simulator::m_singleton;
 
 void Simulator::allocate()

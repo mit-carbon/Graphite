@@ -7,8 +7,6 @@
 #include "core.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK _network.getCore()->getId()
-#define LOG_DEFAULT_MODULE NETWORK
 
 NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
       UnstructuredBuffer &recv_buffer)
@@ -48,8 +46,7 @@ void NetworkModelAnalyticalServer::update(core_id_t core_id)
    //  assert(0 <= global_utilization && global_utilization <= 1);
    if (global_utilization > 1)
    {
-      LOG_NOTIFY_WARNING();
-      LOG_PRINT("WARNING: Network utilization exceeds 1; %f", global_utilization);
+      LOG_PRINT_WARNING("Network utilization exceeds 1; %f", global_utilization);
       global_utilization = 0.99;
    }
 

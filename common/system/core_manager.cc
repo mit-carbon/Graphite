@@ -13,8 +13,6 @@
 #include "message_types.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK -1
-#define LOG_DEFAULT_MODULE CORE_MANAGER
 
 using namespace std;
 
@@ -62,7 +60,7 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    UInt32 tid = getCurrentTID();
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
 
-   LOG_ASSERT_ERROR(e.first, "*ERROR* initializeCommId: Called without binding thread to a core.");
+   LOG_ASSERT_ERROR(e.first, "initializeCommId: Called without binding thread to a core.");
    UInt32 core_id = e.second;
 
    UnstructuredBuffer send_buff;
@@ -88,7 +86,7 @@ void CoreManager::initializeThread()
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
-   LOG_ASSERT_WARNING(e.first == false, "*WARNING* Thread: %d already mapped to core: %d", tid, e.second);
+   LOG_ASSERT_WARNING(e.first == false, "Thread: %d already mapped to core: %lld", tid, e.second);
 
    for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
@@ -107,8 +105,7 @@ void CoreManager::initializeThread()
       }
    }
 
-   LOG_PRINT("*ERROR* initializeThread - No free cores out of %d total.", Config::getSingleton()->getNumLocalCores());
-   LOG_NOTIFY_ERROR();
+   LOG_PRINT_ERROR("initializeThread - No free cores out of %d total.", Config::getSingleton()->getNumLocalCores());
 }
 
 void CoreManager::initializeThread(UInt32 core_id)
@@ -134,14 +131,12 @@ void CoreManager::initializeThread(UInt32 core_id)
          }
          else
          {
-            LOG_PRINT("*ERROR* initializeThread -- %d/%d already mapped to thread %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
-            LOG_NOTIFY_ERROR();
+            LOG_PRINT_ERROR("initializeThread -- %d/%d already mapped to thread %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
          }
       }
    }
 
-   LOG_PRINT("*ERROR* initializeThread - Requested core %d does not live on process %d.", core_id, Config::getSingleton()->getCurrentProcessNum());
-   LOG_NOTIFY_ERROR();
+   LOG_PRINT_ERROR("initializeThread - Requested core %d does not live on process %d.", core_id, Config::getSingleton()->getCurrentProcessNum());
 }
 
 void CoreManager::terminateThread()
@@ -151,7 +146,7 @@ void CoreManager::terminateThread()
    LOG_PRINT("CoreManager::terminating thread: %d", tid);
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
-   LOG_ASSERT_WARNING(e.first == true, "*WARNING* Thread: %d not initialized while terminating.", e.second);
+   LOG_ASSERT_WARNING(e.first == true, "Thread: %lld not initialized while terminating.", e.second);
 
    // If it's not in the tid_to_core_map, well then we don't need to remove it
    if(e.first == false)
@@ -173,8 +168,7 @@ void CoreManager::terminateThread()
       }
    }
 
-   LOG_PRINT("*ERROR* terminateThread - Thread tid: %d not found in list.", e.second);
-   LOG_NOTIFY_ERROR();
+   LOG_PRINT_ERROR("terminateThread - Thread tid: %lld not found in list.", e.second);
 }
 
 UInt32 CoreManager::getCurrentCoreID()
@@ -183,6 +177,19 @@ UInt32 CoreManager::getCurrentCoreID()
    UInt32 tid = getCurrentTID();
 
    pair<bool, UINT64> e = tid_to_core_map.find(tid);
+   id = (e.first == false) ? -1 : e.second;
+
+   LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+
+   return id;
+}
+
+UInt32 CoreManager::getCurrentSimThreadCoreID()
+{
+   UInt32 id;
+   UInt32 tid = getCurrentTID();
+
+   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
    id = (e.first == false) ? -1 : e.second;
 
    LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
@@ -282,16 +289,14 @@ int CoreManager::registerSimMemThread()
          }
       }
 
-      LOG_PRINT("*ERROR* registerSimMemThread - No free cores for thread: %d", tid);
+      LOG_PRINT("registerSimMemThread - No free cores for thread: %d", tid);
       for (UInt32 j = 0; j < Config::getSingleton()->getNumLocalCores(); j++)
          LOG_PRINT("core_to_simthread_tid_map[%d] = %d\n", j, core_to_simthread_tid_map[j]);
-
-      LOG_NOTIFY_ERROR();
+      LOG_PRINT_ERROR("");
    }
    else
    {
-      LOG_PRINT("*WARNING* registerSimMemThread - Initialized thread twice");
-      LOG_NOTIFY_WARNING();
+      LOG_PRINT_WARNING("registerSimMemThread - Initialized thread twice");
       // FIXME: I think this is OK
       return simthread_tid_to_core_map.find(tid).second;
    }

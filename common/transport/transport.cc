@@ -9,8 +9,6 @@
 
 #include "config.h"
 #include "log.h"
-#define LOG_DEFAULT_RANK -1
-#define LOG_DEFAULT_MODULE TRANSPORT
 
 // -- Transport -- //
 
@@ -34,7 +32,7 @@ Transport* Transport::create()
       m_singleton = new MpiTransport();
    
    else
-      LOG_ASSERT_ERROR(false, "*ERROR* Negative no. processes ?!");
+      LOG_ASSERT_ERROR(false, "Negative no. processes ?!");
 
    return m_singleton;
 }

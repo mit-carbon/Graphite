@@ -35,9 +35,6 @@
 #include "syscall_model.h"
 #include "user_space_wrappers.h"
 
-#define LOG_DEFAULT_RANK    core_id
-#define LOG_DEFAULT_MODULE  PINSIM
-
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -101,8 +98,38 @@ void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
 
 void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
 {
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Thread Fini: %d", syscall(__NR_gettid));
-   SimTerminateThread();
+   ApplicationStart();
+
+   SimSpawnThreadSpawner(ctx, fp_main);
+
+   if (Config::getSingleton()->getCurrentProcessNum() == 0)
+   {
+      LOG_PRINT("Calling main()...");
+
+      Sim()->getCoreManager()->initializeThread(0);
+
+      // call main()
+      int res;
+      PIN_CallApplicationFunction(ctx,
+                                  PIN_ThreadId(),
+                                  CALLINGSTD_DEFAULT,
+                                  fp_main,
+                                  PIN_PARG(int), &res,
+                                  PIN_PARG(int), argc,
+                                  PIN_PARG(char**), argv,
+                                  PIN_PARG_END());
+   }
+   else
+   {
+      LOG_PRINT("Waiting for main process to finish...");
+      while (!Sim()->finished())
+         usleep(100);
+      LOG_PRINT("Finished!");
+   }
+
+   LOG_PRINT("Leaving SimMain...");
+
+   return 0;
 }
 
 int main(int argc, char *argv[])

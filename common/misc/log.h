@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <set>
 #include <string>
+#include <map>
 #include "fixed_types.h"
 
 class Lock;
@@ -16,23 +17,26 @@ class Log
 
       static Log *getSingleton();
 
-      void log(UInt32 rank, const char *source_file, SInt32 source_line, const char* module, const char* format, ...);
-      void notifyWarning();
-      void notifyError();
-
-      Boolean isEnabled(const char* module);
-
-   private:
-      UInt64 getTimestamp();
-
-      void getFile(UInt32 core_id, FILE ** f, Lock ** l);
-
       enum ErrorState
       {
          None,
          Warning,
          Error,
       };
+
+      void log(ErrorState err, const char *source_file, SInt32 source_line, const char* format, ...);
+
+      Boolean isEnabled(const char* module);
+
+   private:
+      UInt64 getTimestamp();
+
+      void notifyWarning();
+      void notifyError();
+      void discoverCore(UInt32 *core_id, bool *sim_thread);
+      void getFile(UInt32 core_id, bool sim_thread, FILE ** f, Lock ** l);
+      std::string getModule(const char *filename);
+
       ErrorState _state;
 
       // when core id is known
@@ -51,61 +55,48 @@ class Log
 
       UInt32 _coreCount;
       std::set<std::string> _disabledModules;
+      std::map<const char*, std::string> _modules;
+      static const UInt32 MODULE_LENGTH = 10;
 
       static Log *_singleton;
 };
 
 // Macros
 
-#undef LOG_DEFAULT_RANK
-#undef LOG_DEFAULT_MODULE
-
 #ifdef NDEBUG
 
 // see assert.h
 
-#define LOG_PRINT_EXPLICIT(rank, module, ...)  ((void)(0))
 #define LOG_PRINT(...) ((void)(0))
-#define LOG_NOTIFY_WARNING() ((void)(0))
-#define LOG_NOTIFY_ERROR() ((void)(0))
+#define LOG_PRINT_WARNING(...) ((void)(0))
+#define LOG_PRINT_ERROR(...) ((void)(0))
 #define LOG_ASSERT_WARNING(...) ((void)(0))
 #define LOG_ASSERT_ERROR(...) ((void)(0))
-#define LOG_ASSERT_WARNING_EXPLICIT(...) ((void)(0))
-#define LOG_ASSERT_ERROR_EXPLICIT(...) ((void)(0))
 
 #else
 
-#define LOG_PRINT_EXPLICIT(rank, module, ...)                           \
+#define _LOG_PRINT(err, ...)                                            \
    {                                                                    \
-      if (Log::getSingleton()->isEnabled(#module))                      \
+      if (Log::getSingleton()->isEnabled(__FILE__))                     \
       {                                                                 \
-         Log::getSingleton()->log(rank, __FILE__, __LINE__, #module, __VA_ARGS__); \
+         Log::getSingleton()->log(err, __FILE__, __LINE__, __VA_ARGS__); \
       }                                                                 \
    }                                                                    \
  
-#define LOG_PRINT_EXPLICIT2(rank, module, ...)          \
-   LOG_PRINT_EXPLICIT(rank, module, __VA_ARGS__)        \
- 
 #define LOG_PRINT(...)                                                  \
-   LOG_PRINT_EXPLICIT2(LOG_DEFAULT_RANK, LOG_DEFAULT_MODULE, __VA_ARGS__) \
+   _LOG_PRINT(Log::None, __VA_ARGS__);                                   \
  
-#define LOG_NOTIFY_WARNING()                    \
-   {                                            \
-      Log::getSingleton()->notifyWarning();     \
-   }                                            \
+#define LOG_PRINT_WARNING(...)                  \
+   _LOG_PRINT(Log::Warning, __VA_ARGS__);
  
-#define LOG_NOTIFY_ERROR()                      \
-   {                                            \
-      Log::getSingleton()->notifyError();       \
-      abort();                                  \
-   }                                            \
- 
+#define LOG_PRINT_ERROR(...)                    \
+   _LOG_PRINT(Log::Error, __VA_ARGS__);
+
 #define LOG_ASSERT_WARNING(expr, ...)                   \
    {                                                    \
       if (!(expr))                                      \
       {                                                 \
-         LOG_PRINT(__VA_ARGS__);                        \
-         LOG_NOTIFY_WARNING();                          \
+         LOG_PRINT_WARNING(__VA_ARGS__);                \
       }                                                 \
    }                                                    \
  
@@ -113,28 +104,9 @@ class Log
    {                                                    \
       if (!(expr))                                      \
       {                                                 \
-         LOG_PRINT(__VA_ARGS__);                        \
-         LOG_NOTIFY_ERROR();                            \
+         LOG_PRINT_ERROR(__VA_ARGS__);                  \
       }                                                 \
    }                                                    \
- 
-#define LOG_ASSERT_WARNING_EXPLICIT(expr, rank, module, ...)    \
-   {                                                            \
-      if (!(expr))                                              \
-      {                                                         \
-         LOG_PRINT_EXPLICIT(rank, module, __VA_ARGS__);         \
-         LOG_NOTIFY_WARNING();                                  \
-      }                                                         \
-   }                                                            \
- 
-#define LOG_ASSERT_ERROR_EXPLICIT(expr, rank, module, ...)      \
-   {                                                            \
-      if (!(expr))                                              \
-      {                                                         \
-         LOG_PRINT_EXPLICIT(rank, module, __VA_ARGS__);         \
-         LOG_NOTIFY_ERROR();                                    \
-      }                                                         \
-   }                                                            \
  
 #endif // NDEBUG
 

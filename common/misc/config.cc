@@ -6,9 +6,6 @@
 
 #include <sstream>
 #include "log.h"
-#define LOG_DEFAULT_RANK   -1
-#define LOG_DEFAULT_MODULE CONFIG
-extern Log *g_log;
 
 #define DEBUG
 
@@ -164,25 +161,11 @@ const char *Config::getOutputFileName() const
 void Config::updateCommToCoreMap(UInt32 comm_id, UInt32 core_id)
 {
    m_comm_to_core_map[comm_id] = core_id;
-   // for(CommToCoreMap::iterator iter = m_comm_to_core_map.begin(); 
-   //       iter != m_comm_to_core_map.end(); iter++)
-   // {
-   //    LOG_PRINT("CoreMap: %d is now mapped to: %d",  iter->first, iter->second);
-   // }
 }
 
 UInt32 Config::getCoreFromCommId(UInt32 comm_id)
 {
    CommToCoreMap::iterator it = m_comm_to_core_map.find(comm_id);
-   // if(it == m_comm_to_core_map.end())
-   // {
-   //    for(CommToCoreMap::iterator iter = m_comm_to_core_map.begin(); 
-   //          iter != m_comm_to_core_map.end(); iter++)
-   //    {
-   //       LOG_PRINT("CoreMap: %d mapped to: %d",  iter->first, iter->second);
-   //    }
-   // }
-
-   LOG_ASSERT_ERROR(it != m_comm_to_core_map.end(), "*ERROR* Lookup on comm_id: %d not found.", comm_id);
+   LOG_ASSERT_ERROR(it != m_comm_to_core_map.end(), "Lookup on comm_id: %d not found.", comm_id);
    return it->second;
 }

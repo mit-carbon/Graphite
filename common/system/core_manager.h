@@ -23,8 +23,8 @@ class CoreManager
       void terminateThread();
       int registerSimMemThread();
 
-      // The following function returns the global ID of the currently running thread
-      UInt32 getCurrentCoreID();
+      UInt32 getCurrentCoreID(); // id of currently active core (or -1)
+      UInt32 getCurrentSimThreadCoreID(); // id of core associated with this sim thread (or -1)
 
       Core *getCurrentCore();
       Core *getCoreFromID(UInt32 id);

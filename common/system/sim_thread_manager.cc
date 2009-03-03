@@ -6,9 +6,6 @@
 #include "simulator.h"
 #include "mcp.h"
 
-#define LOG_DEFAULT_RANK -1
-#define LOG_DEFAULT_MODULE SIM_THREAD_MANAGER
-
 SimThreadManager::SimThreadManager()
    : m_active_threads_lock(Lock::create())
    , m_active_threads(0)
@@ -18,7 +15,7 @@ SimThreadManager::SimThreadManager()
 SimThreadManager::~SimThreadManager()
 {
    LOG_ASSERT_WARNING(m_active_threads == 0,
-                      "*WARNING* Threads still active when SimThreadManager exits.");
+                      "Threads still active when SimThreadManager exits.");
    delete m_active_threads_lock;
 }
 

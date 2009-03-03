@@ -4,8 +4,6 @@
 #include "config.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK   -1
-#define LOG_DEFAULT_MODULE MPITRANSPORT
 
 // -- MpiTransport -- //
 
@@ -69,9 +67,6 @@ Transport::Node* MpiTransport::createNode(SInt32 core_id)
 }
 
 // -- MpiNode -- //
-
-#undef  LOG_DEFAULT_RANK
-#define LOG_DEFAULT_RANK  getCoreId()
 
 MpiTransport::MpiNode::MpiNode(SInt32 core_id)
    : Node(core_id)

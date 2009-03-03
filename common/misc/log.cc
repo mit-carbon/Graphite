@@ -99,15 +99,39 @@ Boolean Log::isEnabled(const char* module)
 
 UInt64 Log::getTimestamp()
 {
-   timeval t;
-   gettimeofday(&t, NULL);
-   return (((UInt64)t.tv_sec) * 1000000 + t.tv_usec);
+   UInt64 hi, lo;
+   __asm__ __volatile__ ("rdtsc\n"
+                         "movl %%edx,%0\n"
+                         "movl %%eax,%1" : "=r"(hi), "=r"(lo) : : "edx", "eax");
+   return ((UInt64) hi << 32ULL) + (UInt64) lo;
 }
 
-// FIXME: See note below.
-#include "simulator.h"
+void Log::discoverCore(UInt32 *core_id, bool *sim_thread)
+{
+   CoreManager *core_manager;
 
-void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
+   if (!Sim() || !(core_manager = Sim()->getCoreManager()))
+   {
+      *core_id = -1;
+      *sim_thread = false;
+      return;
+   }
+
+   *core_id = core_manager->getCurrentCoreID();
+   if (*core_id != (UInt32)-1)
+   {
+      *sim_thread = false;
+      return;
+   }
+   else
+   {
+      *core_id = core_manager->getCurrentSimThreadCoreID();
+      *sim_thread = true;
+      return;
+   }
+}
+
+void Log::getFile(UInt32 core_id, bool sim_thread, FILE **file, Lock **lock)
 {
    *file = NULL;
    *lock = NULL;
@@ -130,66 +154,96 @@ void Log::getFile(UInt32 core_id, FILE **file, Lock **lock)
    else
    {
       // Core file
-
-      // FIXME: This is an ugly hack. Net/shared mem threads do not
-      // have a core_id, so we can use the core ID to discover which
-      // thread we are on.
-      UInt32 fileID;
-
-      if (Sim() == NULL || Sim()->getCoreManager() == NULL)
-      {
-         fileID = core_id + _coreCount;
-      }
-      else
-      {
-         SInt32 myCoreID;
-         myCoreID = Sim()->getCoreManager()->getCurrentCoreID();
-         if (myCoreID == -1)
-            fileID = core_id + _coreCount;
-         else
-            fileID = core_id;
-      }
-
+      UInt32 fileID = core_id + (sim_thread ? _coreCount : 0);
       *file = _coreFiles[fileID];
       *lock = _coreLocks[fileID];
    }
 }
 
-void Log::log(UInt32 core_id, const char* source_file, SInt32 source_line, const char *module, const char *format, ...)
+std::string Log::getModule(const char *filename)
+{
+   std::map<const char*, std::string>::const_iterator it = _modules.find(filename);
+
+   if (it != _modules.end())
+   {
+      return it->second;
+   }
+   else
+   {
+      // build module string
+      string mod;
+
+      for (UInt32 i = 0; i < MODULE_LENGTH && filename[i] != '\0'; i++)
+         mod.push_back(filename[i]);
+
+      while (mod.length() < MODULE_LENGTH)
+         mod.push_back(' ');
+
+      pair<const char*, std::string> p(filename, mod);
+      _modules.insert(p);
+
+      return mod;
+   }
+}
+
+void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
 #ifdef DISABLE_LOGGING
    return;
 #endif
 
-   if (!isEnabled(module))
+   UInt32 core_id;
+   bool sim_thread;
+   discoverCore(&core_id, &sim_thread);
+   
+   if (!isEnabled(source_file))
       return;
 
    FILE *file;
    Lock *lock;
 
-   getFile(core_id, &file, &lock);
+   getFile(core_id, sim_thread, &file, &lock);
 
    lock->acquire();
 
-   if (core_id < _coreCount)
-      fprintf(file, "%llu {%i}\t[%i]\t[%s] ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module);
-   else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1)
-      fprintf(file, "%llu {%i}\t[ ]\t[%s] ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module);
-   else
-      fprintf(file, "%llu { }\t[ ]\t[%s] ", getTimestamp(), module);
+   std::string module = getModule(source_file);
+
+   // This is ugly, but it just prints the time stamp, process number, core number, source file/line
+   if (core_id != (UInt32)-1) // valid core id
+      fprintf(file, "%llu {%2i}  [%2i]  [%s:%4d]%s", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
+   else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
+      fprintf(file, "%llu {%2i}  [  ]  [%s:%4d]  ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+   else // who knows
+      fprintf(file, "%llu {  }  [  ]  [%s:%4d]  ", getTimestamp(), module.c_str(), source_line);
+
+   switch (err)
+   {
+   case None:
+   default:
+      break;
+
+   case Warning:
+      fprintf(file, "*WARNING* ");
+      break;
+
+   case Error:
+      fprintf(file, "*ERROR* ");
+      break;
+   };
 
    va_list args;
    va_start(args, format);
    vfprintf(file, format, args);
    va_end(args);
 
-//   fprintf(file, " -- %s:%d", source_file, source_line);
-
    fprintf(file, "\n");
 
    fflush(file);
 
    lock->release();
+
+   if (err == Error)
+      abort();
 }
 
 void Log::notifyWarning()
@@ -208,5 +262,5 @@ void Log::notifyError()
       fprintf(stderr, "LOG : Check logs -- there is an ERROR!\n");
       _state = Error;
    }
+   abort();
 }
-

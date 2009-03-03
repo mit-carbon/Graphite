@@ -4,9 +4,6 @@
 #include "simulator.h"
 #include "core.h"
 
-#define LOG_DEFAULT_RANK core_id
-#define LOG_DEFAULT_MODULE SIM_THREAD
-
 SimThread::SimThread()
    : m_thread(NULL)
 {

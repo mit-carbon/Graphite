@@ -7,15 +7,13 @@
 #include "network_types.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK   m_core_id
-#define LOG_DEFAULT_MODULE CORE
 
 using namespace std;
 
 Core::Core(SInt32 id)
    : m_core_id(id)
 {
-   LOG_PRINT_EXPLICIT(-1, CORE, "Core ctor for: %d", id);
+   LOG_PRINT("Core ctor for: %d", id);
 
    m_network = new Network(this);
 
@@ -88,7 +86,7 @@ int Core::coreRecvW(int sender, int receiver, char *buffer, int size)
 
    LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
 
-   assert((unsigned)size == packet.length);
+   LOG_ASSERT_ERROR((unsigned)size == packet.length, "Core: User thread requested packet of size: %d, got a packet from %d of size: %d", size, sender, packet.length);
 
    memcpy(buffer, packet.data, size);
 

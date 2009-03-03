@@ -5,8 +5,6 @@
 #include "core_manager.h"
 #include "log.h"
 #include "simulator.h"
-#define LOG_DEFAULT_RANK    core_id
-#define LOG_DEFAULT_MODULE  PINSIM
 
 static void runICacheModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling);
 static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling,
@@ -27,7 +25,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                bool do_dcache_write_modeling, bool do_perf_modeling, bool check_scoreboard)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   UInt32 core_id = Sim()->getCoreManager()->getCurrentCoreID();
    UInt32 core_index;
 
    if (!core)
@@ -41,7 +38,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
    }
 
    LOG_ASSERT_ERROR(core_index < Config::getSingleton()->getNumLocalCores(),
-                    "*ERROR* No core index found for current core?! %p", core);
+                    "No core index found for current core?! %p", core);
 
    PerfModelIntervalStat *interval_stats = stats[core_index];
    // This must be consistent with the behavior of

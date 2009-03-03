@@ -26,7 +26,7 @@ PinThread::~PinThread()
 
 void PinThread::run()
 {
-   m_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(4096, m_thread_runner);
+   m_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(STACK_SIZE, m_thread_runner);
    assert(m_thread_p);
 }
 

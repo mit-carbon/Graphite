@@ -23,6 +23,8 @@ public:
    void run();
 
 private:
+   static const int STACK_SIZE=65536;
+
    PinThreadRunner *m_thread_runner;
    OS_SERVICES::ITHREAD *m_thread_p;
 };

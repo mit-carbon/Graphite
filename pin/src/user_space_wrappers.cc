@@ -7,9 +7,6 @@
 #include "thread_manager.h"
 #include "thread_support.h"
 
-#define LOG_DEFAULT_RANK -1
-#define LOG_DEFAULT_MODULE USERSPACEWRAPPERS
-
 CAPI_return_t SimGetCoreID(int *core_id)
 {
    *core_id = Sim()->getCoreManager()->getCurrentCoreID();
@@ -43,8 +40,8 @@ void SimJoinThread(int tid)
 
 int SimPthreadCreate(pthread_t *tid, int *attr, thread_func_t func, void *arg)
 {
-   LOG_ASSERT_WARNING(attr == NULL, "*WARNING* Attributes ignored in pthread_create.");
-   LOG_ASSERT_ERROR(tid != NULL, "*ERROR* Null pointer passed to pthread_create.");
+   LOG_ASSERT_WARNING(attr == NULL, "Attributes ignored in pthread_create.");
+   LOG_ASSERT_ERROR(tid != NULL, "Null pointer passed to pthread_create.");
 
    *tid = SimSpawnThread(func, arg);
    return *tid >= 0 ? 0 : 1;
@@ -52,7 +49,7 @@ int SimPthreadCreate(pthread_t *tid, int *attr, thread_func_t func, void *arg)
 
 int SimPthreadJoin(pthread_t tid, void **pparg)
 {
-   LOG_ASSERT_WARNING(pparg == NULL, "*WARNING* Did not expect pparg non-NULL. It is ignored.");
+   LOG_ASSERT_WARNING(pparg == NULL, "Did not expect pparg non-NULL. It is ignored.");
    SimJoinThread(tid);
    return 0;
 }
@@ -131,7 +128,7 @@ CAPI_return_t SimSendW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
 
-   LOG_PRINT_EXPLICIT(-1, USERSPACEWRAPPERS, "SimSendW - sender: %d, recv: %d", sender, receiver);
+   LOG_PRINT("SimSendW - sender: %d, recv: %d", sender, receiver);
 
    UInt32 sending_core = Config::getSingleton()->getCoreFromCommId(sender);
    UInt32 receiving_core = Config::getSingleton()->getCoreFromCommId(receiver);
@@ -144,7 +141,7 @@ CAPI_return_t SimRecvW(CAPI_endpoint_t sender, CAPI_endpoint_t receiver,
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
 
-   LOG_PRINT_EXPLICIT(-1, USERSPACEWRAPPERS, "SimRecvW - sender: %d, recv: %d", sender, receiver);
+   LOG_PRINT("SimRecvW - sender: %d, recv: %d", sender, receiver);
 
    UInt32 sending_core = Config::getSingleton()->getCoreFromCommId(sender);
    UInt32 receiving_core = Config::getSingleton()->getCoreFromCommId(receiver);

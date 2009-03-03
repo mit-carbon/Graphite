@@ -37,9 +37,6 @@
 #include "user_space_wrappers.h"
 #include "thread_manager.h"
 
-#define LOG_DEFAULT_RANK    -1
-#define LOG_DEFAULT_MODULE  PINSIM
-
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -155,6 +152,8 @@ int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
          usleep(100);
       LOG_PRINT("Finished!");
    }
+
+   LOG_PRINT("Leaving SimMain...");
 
    return 0;
 }

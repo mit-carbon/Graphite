@@ -8,8 +8,6 @@
 #include "ocache.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK m_network.getCore()->getId()
-#define LOG_DEFAULT_MODULE SYSCALL
 
 using namespace std;
 

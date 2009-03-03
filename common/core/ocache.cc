@@ -5,8 +5,6 @@
 
 #include "pin.H"
 #include "log.h"
-#define LOG_DEFAULT_RANK   -1
-#define LOG_DEFAULT_MODULE CACHE
 
 /* ===================================================================== */
 /* Externally defined variables */

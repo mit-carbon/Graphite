@@ -3,8 +3,6 @@
 #include "pin.H"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK   dram_id
-#define LOG_DEFAULT_MODULE DRAMDIR
 
 //TODO i don't think this is used
 extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;

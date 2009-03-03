@@ -6,8 +6,6 @@
 #include "log.h"
 #include "core.h"
 #include "simulator.h"
-#define LOG_DEFAULT_RANK m_network.getCore()->getId()
-#define LOG_DEFAULT_MODULE MCP
 
 #include <sched.h>
 #include <iostream>

@@ -1,7 +1,5 @@
 #include "memory_manager.h"
 #include "log.h"
-#define LOG_DEFAULT_RANK   (m_core->getId())
-#define LOG_DEFAULT_MODULE MMU
 
 extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
 extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
@@ -13,8 +11,8 @@ void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
 MemoryManager::MemoryManager(Core *core, OCache *ocache)
 {
-   LOG_ASSERT_ERROR_EXPLICIT(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(),
-                             -1, PINSIM, "*ERROR* Must set dcache modeling on (-mdc) to use shared memory model.");
+   LOG_ASSERT_ERROR(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(),
+                    "Must set dcache modeling on (-mdc) to use shared memory model.");
 
    m_core = core;
    m_ocache = ocache;
@@ -104,14 +102,14 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 void addRequestPayload(NetPacket* packet, shmem_req_t shmem_req_type, IntPtr address, UInt32 size_bytes)
 {
    //TODO BUG this code doesn't work b/c it gets deallocated before the network copies it
-   LOG_PRINT_EXPLICIT(-1, MMU, "Starting adding Request Payload;");
+   LOG_PRINT("Starting adding Request Payload;");
    MemoryManager::RequestPayload payload;
    payload.request_type = shmem_req_type;
    payload.request_address = address;
    payload.request_num_bytes = size_bytes;
 
    packet->data = (char *)(&payload);
-   LOG_PRINT_EXPLICIT(-1, MMU, "Finished adding Request Payload;");
+   LOG_PRINT("Finished adding Request Payload;");
 }
 
 void addAckPayload(NetPacket* packet, IntPtr address, CacheState::cstate_t new_cstate)
@@ -167,9 +165,8 @@ bool action_readily_permissable(CacheState cache_state, shmem_req_t shmem_req_ty
       ret = cache_state.writable();
       break;
    default:
-      LOG_PRINT_EXPLICIT(-1, MMU, "*ERROR* in Actionreadily permissiable");
-      LOG_NOTIFY_ERROR();
-      break;
+      LOG_PRINT_ERROR("in Actionreadily permissiable");
+      return false;
    }
 
    return ret;
@@ -515,7 +512,7 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
       break;
 
    default:
-      LOG_ASSERT_ERROR(false, "*ERROR* in MMU switch statement.");
+      LOG_PRINT_ERROR("in MMU switch statement.");
       break;
    }
 

@@ -1,37 +1,21 @@
 #include "dram_directory_entry.h"
 
-#include "pin.H"
+UInt32 DramDirectoryEntry::cache_line_size;
+UInt32 DramDirectoryEntry::max_sharers;
+UInt32 DramDirectoryEntry::total_cores;
 
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
-
-DramDirectoryEntry::DramDirectoryEntry():
+DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address):
       dstate(UNCACHED),
       exclusive_sharer_rank(0),
-      number_of_sharers(0),
-      MAX_SHARERS(g_knob_dir_max_sharers),
-      memory_line_size(g_knob_line_size),
-      memory_line_address(0)
+      number_of_sharers(0)
 {
-   stat_min_sharers = 0;
-   stat_max_sharers = 0;
-   stat_access_count = 0;
-   stat_avg_sharers = 0;
-}
+   this->cache_line_address = cache_line_address;
 
-DramDirectoryEntry::DramDirectoryEntry(UInt32 cache_line_addr, UInt32 number_of_cores):
-      dstate(UNCACHED),
-      exclusive_sharer_rank(0),
-      number_of_sharers(0),
-      MAX_SHARERS(g_knob_dir_max_sharers),
-      memory_line_size(g_knob_line_size),
-      memory_line_address(cache_line_addr)
-{
-   sharers = new BitVector(number_of_cores);
-   memory_line = new char[memory_line_size];
+   this->sharers = new BitVector(DramDirectoryEntry::total_cores);
+   this->cache_line = new Byte[DramDirectoryEntry::cache_line_size];
 
    //clear memory_line
-   memset(memory_line, '\0', memory_line_size);
+   memset(this->cache_line, '\0', DramDirectoryEntry::cache_line_size);
 
    stat_min_sharers = 0;
    stat_max_sharers = 0;
@@ -39,19 +23,18 @@ DramDirectoryEntry::DramDirectoryEntry(UInt32 cache_line_addr, UInt32 number_of_
    stat_avg_sharers = 0;
 }
 
-DramDirectoryEntry::DramDirectoryEntry(UInt32 cache_line_addr, UInt32 number_of_cores, char* data_buffer):
+DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address, Byte* data_buffer):
       dstate(UNCACHED),
       exclusive_sharer_rank(0),
-      number_of_sharers(0),
-      MAX_SHARERS(g_knob_dir_max_sharers),
-      memory_line_size(g_knob_line_size),
-      memory_line_address(cache_line_addr)
+      number_of_sharers(0)
 {
-   sharers = new BitVector(number_of_cores);
-   memory_line = new char[memory_line_size];
+   this->cache_line_address = cache_line_address;
 
-   //copy memory_line
-   memcpy(memory_line, data_buffer, memory_line_size);
+   this->sharers = new BitVector(DramDirectoryEntry::total_cores);
+   this->cache_line = new Byte[DramDirectoryEntry::cache_line_size];
+
+   //copy cache_line
+   memcpy(this->cache_line, data_buffer, DramDirectoryEntry::cache_line_size);
 
    stat_min_sharers = 0;
    stat_max_sharers = 0;
@@ -64,28 +47,40 @@ DramDirectoryEntry::~DramDirectoryEntry()
 {
    if (sharers != NULL)
       delete sharers;
-   delete [] memory_line;
+   delete [] cache_line;
+}
+
+// Static Functions - To set static variables
+void DramDirectoryEntry::setCacheLineSize(UInt32 cache_line_size_arg)
+{
+   cache_line_size = cache_line_size_arg;
+}
+
+void DramDirectoryEntry::setMaxSharers(UInt32 max_sharers_arg)
+{
+   max_sharers = max_sharers_arg;
+}
+
+void DramDirectoryEntry::setTotalCores(UInt32 total_cores_arg)
+{
+   total_cores = total_cores_arg;
+}
+
+void DramDirectoryEntry::fillDramDataLine(Byte* data_buffer)
+{
+   assert(data_buffer != NULL);
+   assert(cache_line != NULL);
+
+   memcpy(cache_line, data_buffer, DramDirectoryEntry::cache_line_size);
 
 }
 
-
-void DramDirectoryEntry::fillDramDataLine(char* input_buffer)
+void DramDirectoryEntry::getDramDataLine(Byte* data_buffer)
 {
-   assert(input_buffer != NULL);
-   assert(memory_line != NULL);
+   assert(data_buffer != NULL);
+   assert(cache_line != NULL);
 
-   memcpy(memory_line, input_buffer, memory_line_size);
-
-}
-
-void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UInt32* line_size)
-{
-   assert(fill_buffer != NULL);
-   assert(memory_line != NULL);
-
-   *line_size = memory_line_size;
-
-   memcpy(fill_buffer, memory_line, memory_line_size);
+   memcpy(data_buffer, cache_line, DramDirectoryEntry::cache_line_size);
 }
 
 /*
@@ -98,7 +93,7 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UInt32* line_size)
 bool DramDirectoryEntry::addSharer(UInt32 sharer_rank)
 {
    assert(! sharers->at(sharer_rank));
-   if (number_of_sharers == MAX_SHARERS)
+   if (number_of_sharers == DramDirectoryEntry::max_sharers)
    {
       return (true);
    }
@@ -143,13 +138,12 @@ DramDirectoryEntry::dstate_t DramDirectoryEntry::getDState()
 
 void DramDirectoryEntry::setDState(dstate_t new_dstate)
 {
-   assert((int)(new_dstate) >= 0 && (int)(new_dstate) < NUM_DSTATE_STATES);
+   assert((SInt32)(new_dstate) >= 0 && (SInt32)(new_dstate) < NUM_DSTATE_STATES);
 
    if ((new_dstate == UNCACHED) && (number_of_sharers != 0))
    {
       assert(false);
    }
-   assert((new_dstate == UNCACHED) ? (number_of_sharers == 0) : true);
 
    dstate = new_dstate;
 }
@@ -162,12 +156,9 @@ SInt32 DramDirectoryEntry::numSharers()
 
 UInt32 DramDirectoryEntry::getExclusiveSharerRank()
 {
-   //FIXME is there a more efficient way of deducing exclusive sharer?
-   //can i independently track exclusive rank and not slow everything else down?
-   assert(numSharers() == 1);
+   assert(number_of_sharers == 1);
    assert(dstate = EXCLUSIVE);
-   //exclusive_sharer_rank is only valid if state is actually exclusive!
-   //no garantee on value if not exclusive
+
    return exclusive_sharer_rank;
 }
 

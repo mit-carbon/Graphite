@@ -62,8 +62,6 @@ class OCache
 
       string statsLong();
 
-      bool runDCacheModel(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
-
       // These functions provide the public interface to accessing the caches
       pair<bool, CacheTag*> runICacheLoadModel(IntPtr i_addr, UInt32 size);
       pair<bool, CacheTag*> runDCacheLoadModel(IntPtr d_addr, UInt32 size);
@@ -74,13 +72,13 @@ class OCache
 
       /********** CELIO WAS HERE **************/
       pair<bool, CacheTag*> accessSingleLine(IntPtr addr, CacheBase::AccessType access_type,
-                                             bool* fail_need_fill = NULL, char* fill_buff = NULL,
-                                             char* buff = NULL, UInt32 bytes = 0,
-                                             bool* eviction = NULL, IntPtr* evict_addr = NULL, char* evict_buff = NULL)
+                                             bool* fail_need_fill = NULL, Byte* fill_buff = NULL,
+                                             Byte* buff = NULL, UInt32 bytes = 0,
+                                             bool* eviction = NULL, IntPtr* evict_addr = NULL, Byte* evict_buff = NULL)
       {
          //TODO !!!! I don't have direct access to m_dl1 from the memoryManager, and until i have better stubs to talk to the m_dl1,
          //I'm just gonna pass accessSingleLine calls straight through.
-         return m_dl1->accessSingleLine(addr, access_type, fail_need_fill, fill_buff, buff, bytes, eviction, evict_addr, evict_buff);
+         return m_dl1->accessSingleLine(addr, access_type, fail_need_fill, (char*) fill_buff, (char*) buff, bytes, eviction, evict_addr, (char*) evict_buff);
       }
 
       bool invalidateLine(IntPtr addr)

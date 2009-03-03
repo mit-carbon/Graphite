@@ -1,12 +1,13 @@
 #ifndef DRAM_DIRECTORY_H
 #define DRAM_DIRECTORY_H
 
-
-#include "dram_directory_entry.h"
-#include "network.h"
 #include "memory_manager.h"
+#include "network.h"
+#include "dram_directory_entry.h"
+#include "fixed_types.h"
 #include <map>
 #include <queue>
+#include <cassert>
 
 enum shmem_req_t;
 
@@ -111,27 +112,24 @@ class DramRequestsForSingleAddress
 class DramDirectory
 {
    private:
-      //assumption: each dram_directory is tied to a given network (node), and is addressed at dram_id
       Network* m_network;
-      UInt32 num_lines;
-      UInt32 bytes_per_cache_line;
-      UInt32 number_of_cores;
-      //key dram entries on cache_line (assumes cache_line is 1:1 to dram memory lines)
+      
+      SInt32 m_core_id;
+      UInt32 m_total_cores;
+      UInt32 m_cache_line_size;
+      
       std::map<IntPtr, DramDirectoryEntry*> dram_directory_entries;
-      UInt32 dram_id;
-
       //state for re-entering the Directory
       std::map<IntPtr, DramRequestsForSingleAddress*> dram_request_list;
 
    public:
-      //is this a needed function?
-      DramDirectoryEntry* getEntry(IntPtr address);
 
-      DramDirectory(UInt32 num_lines, UInt32 bytes_per_cache_line, UInt32 dram_id_arg, UInt32 num_of_cores, Network* network_arg);
+      DramDirectory(SInt32 core_id, Network* network);
       virtual ~DramDirectory();
 
-      /***************************************/
-
+      //is this a needed function?
+      DramDirectoryEntry* getEntry(IntPtr address);
+      
       //receive and process request for memory_block
       void startSharedMemRequest(NetPacket& req_packet);
       void finishSharedMemRequest(IntPtr address);
@@ -141,32 +139,21 @@ class DramDirectory
 
       void processAck(NetPacket& ack_packet);
 
+      void processWriteBack(NetPacket& req_packet);
+
       void startDemoteOwner(DramDirectoryEntry* dram_dir_entry, CacheState::cstate_t new_cstate);
       void startInvalidateAllSharers(DramDirectoryEntry* dram_dir_entry);
       void startInvalidateSingleSharer(DramDirectoryEntry* dram_dir_entry, UInt32 sharer_id);
 
-      void processDemoteOwnerAck(UInt32 sender, DramDirectoryEntry* dram_dir_entry, void* /*MemoryManager::AckPayload&*/ ack_payload_v, char *data_buffer, CacheState::cstate_t new_cstate);
+      void processDemoteOwnerAck(UInt32 sender, DramDirectoryEntry* dram_dir_entry, MemoryManager::AckPayload* ack_payload_v, Byte *data_buffer, CacheState::cstate_t new_cstate);
 
-      void processInvalidateSharerAck(UInt32 sender, DramDirectoryEntry* dram_dir_entry, void* /*MemoryManager::AckPayload&*/ ack_payload_v);
+      void processInvalidateSharerAck(UInt32 sender, DramDirectoryEntry* dram_dir_entry, MemoryManager::AckPayload* ack_payload_v);
 
       //make many of these private functions
-      void copyDataToDram(IntPtr address, char* data_buffer);
+      void copyDataToDram(IntPtr address, Byte* data_buffer);
       //sending another memory line to another core. rename.
       void sendDataLine(DramDirectoryEntry* dram_dir_entry, UInt32 requestor, CacheState::cstate_t new_cstate);
 
-      void processWriteBack(NetPacket& req_packet);
-
-      void setNumberOfLines(UInt32 number_of_lines) { num_lines = number_of_lines; }
-
-      /***************************************/
-
-      void debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
-      bool debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
-
-      /***************************************/
-
-      //for debug purposes
-      void print();
 };
 
 

@@ -241,6 +241,7 @@ void* cannon(void *threadid)
 
    CarbonInitializeThread();
    rtnVal = CAPI_Initialize((unsigned int)threadid);
+   sleep(5);
 
    // Initialize local variables
 
@@ -311,7 +312,7 @@ void* cannon(void *threadid)
    }
    else
    {
-      sleep(10);
+      sleep(20);
    }
 #endif
 

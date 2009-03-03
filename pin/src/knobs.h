@@ -65,7 +65,7 @@ KNOB<BOOL>   g_knob_icache_ignore_size(KNOB_MODE_WRITEONCE, "pintool",
 
 KNOB<UInt32> g_knob_cache_size(KNOB_MODE_WRITEONCE, "pintool",
                                "c","64", "cache size in kilobytes");
-KNOB<UInt32> g_knob_line_size(KNOB_MODE_WRITEONCE, "pintool",
+KNOB<UInt32> g_knob_cache_line_size(KNOB_MODE_WRITEONCE, "pintool",
                               "b","32", "cache block size in bytes");
 KNOB<UInt32> g_knob_associativity(KNOB_MODE_WRITEONCE, "pintool",
    "a","8", "cache associativity (1 for direct mapped)");
@@ -91,11 +91,5 @@ KNOB<UInt32> g_knob_icache_max_search_depth(KNOB_MODE_WRITEONCE, "pintool",
 /* =================================================================== */
 KNOB<UInt32> g_knob_ahl_param(KNOB_MODE_WRITEONCE, "pintool",
 	"ahl","8", "AHL parameter (See File addr_home_lookup.cc)");
-
-/* =================================================================== */
-/* DRAM cost parameter */
-/* =================================================================== */
-KNOB<UInt32> g_knob_dram_access_cost(KNOB_MODE_WRITEONCE, "pintool",
-                                     "dac","100", "The default cost is totally arbitrary");
 
 #endif

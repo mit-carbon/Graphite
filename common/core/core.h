@@ -4,9 +4,7 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include <iostream>
-#include <fstream>
-#include <string.h>
+#include <cstring>
 
 // some forward declarations for cross includes
 class Network;
@@ -33,6 +31,7 @@ class Core
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
       int coreRecvW(int sender, int receiver, char *buffer, int size);
+      bool accessMemory(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
       // network accessor since network is private
       int getId() { return m_core_id; }
@@ -51,6 +50,8 @@ class Core
       OCache *m_ocache;
       SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
+
+      UInt32 m_cache_line_size;
 };
 
 #endif

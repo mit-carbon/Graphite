@@ -75,6 +75,9 @@ public:
    bool getEnablePerformanceModeling() const;
    bool getEnableDCacheModeling() const;
    bool getEnableICacheModeling() const;
+   UInt32 getDirMaxSharers() const;
+   UInt32 getCacheLineSize() const;
+   UInt32 getAHLParam() const;
 
    // Logging
    void getDisabledLogModules(std::set<std::string> &mods) const;

@@ -83,7 +83,7 @@ void AppStart(void *v)
 {
    // FIXME: This function is never called. Use ThreadStart?
    assert(false);
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Application Start.");
+   LOG_PRINT("Application Start.");
 }
 
 void ApplicationExit(int code, void * v)
@@ -93,43 +93,11 @@ void ApplicationExit(int code, void * v)
 
 void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
 {
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Thread Start: %d", syscall(__NR_gettid));
+   LOG_PRINT("Thread Start: %d", syscall(__NR_gettid));
 }
 
 void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
 {
-   ApplicationStart();
-
-   SimSpawnThreadSpawner(ctx, fp_main);
-
-   if (Config::getSingleton()->getCurrentProcessNum() == 0)
-   {
-      LOG_PRINT("Calling main()...");
-
-      Sim()->getCoreManager()->initializeThread(0);
-
-      // call main()
-      int res;
-      PIN_CallApplicationFunction(ctx,
-                                  PIN_ThreadId(),
-                                  CALLINGSTD_DEFAULT,
-                                  fp_main,
-                                  PIN_PARG(int), &res,
-                                  PIN_PARG(int), argc,
-                                  PIN_PARG(char**), argv,
-                                  PIN_PARG_END());
-   }
-   else
-   {
-      LOG_PRINT("Waiting for main process to finish...");
-      while (!Sim()->finished())
-         usleep(100);
-      LOG_PRINT("Finished!");
-   }
-
-   LOG_PRINT("Leaving SimMain...");
-
-   return 0;
 }
 
 int main(int argc, char *argv[])
@@ -144,7 +112,7 @@ int main(int argc, char *argv[])
    Sim()->start();
 
    // Instrumentation
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Start of instrumentation.");
+   LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
    PIN_AddSyscallEntryFunction(SyscallEntry, 0);
    PIN_AddSyscallExitFunction(SyscallExit, 0);
@@ -158,7 +126,7 @@ int main(int argc, char *argv[])
    Transport::getSingleton()->barrier();
 
    // Never returns
-   LOG_PRINT_EXPLICIT(-1, PINSIM, "Running program...");
+   LOG_PRINT("Running program...");
    PIN_StartProgram();
 
    return 0;

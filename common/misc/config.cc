@@ -18,6 +18,9 @@ extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_cache_line_size;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
 
 using namespace std;
 
@@ -137,6 +140,21 @@ bool Config::getEnableDCacheModeling() const
 bool Config::getEnableICacheModeling() const
 {
    return (bool)g_knob_enable_icache_modeling;
+}
+
+UInt32 Config::getDirMaxSharers() const
+{
+   return (UInt32) g_knob_dir_max_sharers;
+}
+
+UInt32 Config::getCacheLineSize() const
+{
+   return (UInt32) g_knob_cache_line_size;
+}
+
+UInt32 Config::getAHLParam() const
+{
+   return (UInt32) g_knob_ahl_param;
 }
 
 void Config::getDisabledLogModules(set<string> &mods) const

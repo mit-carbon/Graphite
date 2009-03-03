@@ -4,6 +4,7 @@
 #include "log.h"
 #include "core.h"
 #include "simulator.h"
+#include "syscall.h"
 
 #include <sched.h>
 #include <iostream>

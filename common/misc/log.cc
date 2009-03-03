@@ -3,8 +3,9 @@
 #include <sys/time.h>
 #include <stdarg.h>
 #include "lock.h"
+#include "simulator.h"
 
-//#define DISABLE_LOGGING
+#define DISABLE_LOGGING
 
 using namespace std;
 

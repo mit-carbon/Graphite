@@ -4,8 +4,6 @@
 #include "core_manager.h"
 #include "log.h"
 #include "simulator.h"
-#include "thread_manager.h"
-#include "thread_support.h"
 
 CAPI_return_t SimGetCoreID(int *core_id)
 {
@@ -30,18 +28,12 @@ int SimGetProcessCount()
 
 int SimGetProcessId()
 {
-   LOG_ASSERT_WARNING(attr == NULL, "Attributes ignored in pthread_create.");
-   LOG_ASSERT_ERROR(tid != NULL, "Null pointer passed to pthread_create.");
-
-   *tid = SimSpawnThread(func, arg);
-   return *tid >= 0 ? 0 : 1;
+    return Config::getSingleton()->getCurrentProcessNum();
 }
 
 void SimInitializeCommId(int comm_id)
 {
-   LOG_ASSERT_WARNING(pparg == NULL, "Did not expect pparg non-NULL. It is ignored.");
-   SimJoinThread(tid);
-   return 0;
+   Sim()->getCoreManager()->initializeCommId(comm_id);
 }
 
 void SimMutexInit(carbon_mutex_t *mux)

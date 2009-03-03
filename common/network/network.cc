@@ -411,15 +411,20 @@ NetPacket::NetPacket(Byte *buffer)
    delete [] buffer;
 }
 
+// This implementation is slightly wasteful because there is no need
+// to copy the const void* value in the NetPacket when length == 0,
+// but I don't see this as a major issue.
 UInt32 NetPacket::bufferSize() const
 {
-   return BASE_SIZE + length;
+   return (length < sizeof(const void*)) 
+      ? sizeof(NetPacket) 
+      : (sizeof(NetPacket) - sizeof(const void*) + length);
 }
 
 Byte* NetPacket::makeBuffer() const
 {
    UInt32 size = bufferSize();
-   assert(size == sizeof(NetPacket) - sizeof(const void*) + length);
+   assert(size >= sizeof(NetPacket));
 
    Byte *buffer = new Byte[size];
 

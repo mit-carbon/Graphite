@@ -23,7 +23,7 @@ public:
      *           of argv[0] passed to main().
      */
     virtual std::string GetName() = 0;
-    virtual ~IPROCESSES() {}
+    virtual ~IPROCESSES();
 };
 
 } // namespace

@@ -35,7 +35,7 @@ class CoreManager
    private:
       UInt32 getCurrentTID();
 
-      Lock *m_maps_lock;
+      Lock m_maps_lock;
 
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)

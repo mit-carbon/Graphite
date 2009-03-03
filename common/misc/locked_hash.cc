@@ -6,17 +6,13 @@ LockedHash::LockedHash(UInt64 size)
       :
       _size(size),
       _bins(new Bucket[size]),
-      _locks(new Lock*[size])
+      _locks(new Lock[size])
 {
-   for (UInt32 i = 0; i < size; i++)
-      _locks[i] = Lock::create();
 }
 
 LockedHash::~LockedHash()
 {
    delete [] _bins;
-   for (UInt32 i = 0; i < _size; i++)
-      delete _locks[i];
    delete [] _locks;
 }
 
@@ -27,7 +23,7 @@ pair<bool, UInt64> LockedHash::find(UInt64 key)
 
    res.first = false;
 
-   _locks[index]->acquire();
+   _locks[index].acquire();
 
    map<UInt64,UInt64>::iterator iter = _bins[index].find(key);
    if (iter != _bins[index].end())
@@ -36,14 +32,14 @@ pair<bool, UInt64> LockedHash::find(UInt64 key)
       res.second = iter->second;
    }
 
-   _locks[index]->release();
+   _locks[index].release();
    return res;
 }
 
 void LockedHash::remove(UInt64 key)
 {
    UInt64 index = key % _size;
-   _locks[index]->acquire();
+   _locks[index].acquire();
 
    map<UInt64,UInt64>::iterator iter = _bins[index].find(key);
    if (iter != _bins[index].end())
@@ -51,15 +47,15 @@ void LockedHash::remove(UInt64 key)
        _bins[index].erase(iter);
    }
 
-   _locks[index]->release();
+   _locks[index].release();
 }
 
 bool LockedHash::insert(UInt64 key, UInt64 value)
 {
    UInt64 index = key % _size;
-   _locks[index]->acquire();
+   _locks[index].acquire();
    _bins[index].insert(make_pair(key, value));
-   _locks[index]->release();
+   _locks[index].release();
 
    return true;
 }

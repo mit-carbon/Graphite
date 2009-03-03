@@ -1,33 +1,36 @@
 #ifndef LOCK_H
 #define LOCK_H
 
+#include <pthread.h>
+
 class Lock
 {
-   public:
+public:
+   Lock();
+   ~Lock();
 
-      virtual ~Lock() { }
+   void acquire();
+   void release();
 
-      virtual void acquire() = 0;
-      virtual void release() = 0;
-
-      static Lock* create();
+private:
+   pthread_mutex_t _mutx;
 };
 
 class ScopedLock
 {
-      Lock &_lock;
+   Lock &_lock;
 
-   public:
-      ScopedLock(Lock &lock)
-            : _lock(lock)
-      {
-         _lock.acquire();
-      }
+public:
+   ScopedLock(Lock &lock)
+      : _lock(lock)
+   {
+      _lock.acquire();
+   }
 
-      ~ScopedLock()
-      {
-         _lock.release();
-      }
+   ~ScopedLock()
+   {
+      _lock.release();
+   }
 };
 
 #endif // LOCK_H

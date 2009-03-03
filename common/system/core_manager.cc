@@ -24,8 +24,6 @@ CoreManager::CoreManager()
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
-   m_maps_lock = Lock::create();
-
    UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
 
    tid_map = new UInt32 [num_local_cores];
@@ -51,8 +49,6 @@ CoreManager::~CoreManager()
 
    delete [] core_to_simthread_tid_map;
    delete [] tid_map;
-
-   delete m_maps_lock;
 }
 
 void CoreManager::initializeCommId(SInt32 comm_id)
@@ -82,7 +78,7 @@ void CoreManager::initializeCommId(SInt32 comm_id)
 
 void CoreManager::initializeThread()
 {
-   ScopedLock scoped_maps_lock(*m_maps_lock);
+   ScopedLock scoped_maps_lock(m_maps_lock);
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
@@ -110,7 +106,7 @@ void CoreManager::initializeThread()
 
 void CoreManager::initializeThread(SInt32 core_id)
 {
-   ScopedLock scoped_maps_lock(*m_maps_lock);
+   ScopedLock scoped_maps_lock(m_maps_lock);
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
@@ -141,7 +137,7 @@ void CoreManager::initializeThread(SInt32 core_id)
 
 void CoreManager::terminateThread()
 {
-   ScopedLock scoped_maps_lock(*m_maps_lock);
+   ScopedLock scoped_maps_lock(m_maps_lock);
    UInt32 tid = getCurrentTID();
    LOG_PRINT("CoreManager::terminating thread: %d", tid);
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
@@ -269,7 +265,7 @@ int CoreManager::registerSimMemThread()
 {
    UInt32 tid = getCurrentTID();
 
-   ScopedLock sl(*m_maps_lock);
+   ScopedLock sl(m_maps_lock);
    pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
 
    // If this thread isn't registered

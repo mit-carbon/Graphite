@@ -11,12 +11,10 @@ PerfModel::PerfModel(string name)
       m_scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID),
       m_name(name)
 {
-   m_clock_lock = Lock::create();
 }
 
 PerfModel::~PerfModel()
 {
-   delete m_clock_lock;
 }
 
 void PerfModel::runComputationModel(PerfModelIntervalStat *interval_stats)
@@ -96,15 +94,15 @@ void PerfModel::runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool d
 
 void PerfModel::updateCycleCount(UInt64 new_cycle_count)
 {
-   m_clock_lock->acquire();
+   m_clock_lock.acquire();
    m_cycle_count = max(m_cycle_count, new_cycle_count);
-   m_clock_lock->release();
+   m_clock_lock.release();
 }
 void PerfModel::addToCycleCount(UInt64 cycles)
 {
-   m_clock_lock->acquire();
+   m_clock_lock.acquire();
    m_cycle_count += cycles;
-   m_clock_lock->release();
+   m_clock_lock.release();
 }
 
 void PerfModel::outputSummary(ostream& out)

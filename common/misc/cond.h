@@ -1,7 +1,7 @@
 #ifndef COND_H
 #define COND_H
 
-class Lock;
+#include "lock.h"
 
 // Our condition variable interface is slightly different from
 // pthreads in that the mutex associated with the condition variable
@@ -24,8 +24,7 @@ class ConditionVariable
    private:
       int _numWaiting;
       int _futx;
-      Lock *_lock;
-
+      Lock _lock;
 };
 
 #endif // COND_H

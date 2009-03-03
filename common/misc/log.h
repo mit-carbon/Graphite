@@ -6,8 +6,7 @@
 #include <string>
 #include <map>
 #include "fixed_types.h"
-
-class Lock;
+#include "lock.h"
 
 class Log
 {
@@ -41,17 +40,17 @@ class Log
 
       // when core id is known
       FILE** _coreFiles;
-      Lock** _coreLocks;
+      Lock* _coreLocks;
 
       // when core is id unknown but process # is
       FILE** _systemFiles;
-      Lock** _systemLocks;
+      Lock* _systemLocks;
 
       // when both no. procs and core id are unknown
       // there is the possibility of race conditions and stuff being
       // overwritten between multiple processes for this file
       FILE *_defaultFile;
-      Lock *_defaultLock;
+      Lock _defaultLock;
 
       UInt32 _coreCount;
       UInt64 _startTime;
@@ -63,7 +62,7 @@ class Log
 // modules map is written once for each file and then only read. The
 // performance hit isn't worth it.
 #ifdef LOCK_LOGS
-      Lock *_modules_lock;
+      Lock _modules_lock;
 #endif
       static const UInt32 MODULE_LENGTH = 10;
 

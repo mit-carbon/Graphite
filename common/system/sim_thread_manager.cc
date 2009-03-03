@@ -7,8 +7,7 @@
 #include "mcp.h"
 
 SimThreadManager::SimThreadManager()
-   : m_active_threads_lock(Lock::create())
-   , m_active_threads(0)
+   : m_active_threads(0)
 {
 }
 
@@ -16,7 +15,6 @@ SimThreadManager::~SimThreadManager()
 {
    LOG_ASSERT_WARNING(m_active_threads == 0,
                       "Threads still active when SimThreadManager exits.");
-   delete m_active_threads_lock;
 }
 
 void SimThreadManager::spawnSimThreads()
@@ -70,14 +68,14 @@ void SimThreadManager::quitSimThreads()
 
 void SimThreadManager::simThreadStartCallback()
 {
-   m_active_threads_lock->acquire();
+   m_active_threads_lock.acquire();
    ++m_active_threads;
-   m_active_threads_lock->release();
+   m_active_threads_lock.release();
 }
 
 void SimThreadManager::simThreadExitCallback()
 {
-   m_active_threads_lock->acquire();
+   m_active_threads_lock.acquire();
    --m_active_threads;
-   m_active_threads_lock->release();
+   m_active_threads_lock.release();
 }

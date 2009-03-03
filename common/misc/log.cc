@@ -3,7 +3,6 @@
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <stdarg.h>
-#include "lock.h"
 
 // FIXME: See note below.
 #include "simulator.h"
@@ -35,33 +34,22 @@ Log::Log(UInt32 coreCount)
       assert(_coreFiles[i] != NULL);
    }
 
-   _coreLocks = new Lock* [2 * _coreCount];
-   for (UInt32 i = 0; i < 2 * _coreCount; i++)
-   {
-      _coreLocks[i] = Lock::create();
-   }
+   _coreLocks = new Lock [2 * _coreCount];
 
    assert(Config::getSingleton()->getProcessCount() != 0);
 
    _systemFiles = new FILE* [Config::getSingleton()->getProcessCount()];
-   _systemLocks = new Lock* [Config::getSingleton()->getProcessCount()];
+   _systemLocks = new Lock [Config::getSingleton()->getProcessCount()];
    for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
    {
       sprintf(filename, "output_files/system_%u", i);
       _systemFiles[i] = fopen(filename, "w");
       assert(_systemFiles[i] != NULL);
-
-      _systemLocks[i] = Lock::create();
    }
 
    _defaultFile = fopen("output_files/system-default","w");
-   _defaultLock = Lock::create();
 
    Config::getSingleton()->getDisabledLogModules(_disabledModules);
-
-#ifdef LOCK_LOGS
-   _modules_lock = Lock::create();
-#endif
 
    assert(_singleton == NULL);
    _singleton = this;
@@ -71,14 +59,9 @@ Log::~Log()
 {
    _singleton = NULL;
 
-#ifdef LOCK_LOGS
-   delete _modules_lock;
-#endif
-
    for (UInt32 i = 0; i < 2 * _coreCount; i++)
    {
       fclose(_coreFiles[i]);
-      delete _coreLocks[i];
    }
 
    delete [] _coreLocks;
@@ -87,14 +70,11 @@ Log::~Log()
    for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
    {
       fclose(_systemFiles[i]);
-      delete _systemLocks[i];
    }
 
    delete [] _systemFiles;
-   delete [] _systemLocks;
 
    fclose(_defaultFile);
-   delete _defaultLock;
 }
 
 Log* Log::getSingleton()
@@ -154,12 +134,12 @@ void Log::getFile(UInt32 core_id, bool sim_thread, FILE **file, Lock **lock)
       {
          assert(Config::getSingleton()->getCurrentProcessNum() < Config::getSingleton()->getProcessCount());
          *file = _systemFiles[Config::getSingleton()->getCurrentProcessNum()];
-         *lock = _systemLocks[Config::getSingleton()->getCurrentProcessNum()];
+         *lock = &_systemLocks[Config::getSingleton()->getCurrentProcessNum()];
       }
       else
       {
          *file = _defaultFile;
-         *lock = _defaultLock;
+         *lock = &_defaultLock;
       }
    }
    else
@@ -167,18 +147,18 @@ void Log::getFile(UInt32 core_id, bool sim_thread, FILE **file, Lock **lock)
       // Core file
       UInt32 fileID = core_id + (sim_thread ? _coreCount : 0);
       *file = _coreFiles[fileID];
-      *lock = _coreLocks[fileID];
+      *lock = &_coreLocks[fileID];
    }
 }
 
 std::string Log::getModule(const char *filename)
 {
 #ifdef LOCK_LOGS
-   _modules_lock->acquire();
+   _modules_lock.acquire();
 #endif
    std::map<const char*, std::string>::const_iterator it = _modules.find(filename);
 #ifdef LOCK_LOGS
-   _modules_lock->release();
+   _modules_lock.release();
 #endif
 
    if (it != _modules.end())
@@ -198,11 +178,11 @@ std::string Log::getModule(const char *filename)
 
       pair<const char*, std::string> p(filename, mod);
 #ifdef LOCK_LOGS
-      _modules_lock->acquire();
+      _modules_lock.acquire();
 #endif
       _modules.insert(p);
 #ifdef LOCK_LOGS
-      _modules_lock->release();
+      _modules_lock.release();
 #endif
 
       return mod;

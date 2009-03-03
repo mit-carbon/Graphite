@@ -23,7 +23,6 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
       , _localUtilizationLastUpdate(0)
       , _localUtilizationFlitsSent(0)
       , _updateInterval(0)
-      , _lock(Lock::create())
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,
@@ -36,8 +35,6 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
 NetworkModelAnalytical::~NetworkModelAnalytical()
 {
    getNetwork()->unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
-
-   delete _lock;
 }
 
 void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
@@ -149,7 +146,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    Tc = Tw2 * time_per_hop * hops_with_contention;
 
    // Computation finished...
-   _lock->acquire();
+   _lock.acquire();
 
    UInt64 Tci = (UInt64)(ceil(Tc));
    _cyclesLatency += Tci;
@@ -160,7 +157,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // which means that we must include the # of hops
    _localUtilizationFlitsSent += (UInt64)(B * hops_in_network);
 
-   _lock->release();
+   _lock.release();
 
    return Tci;
 }
@@ -199,7 +196,7 @@ void NetworkModelAnalytical::updateUtilization()
    if (elapsed_time < _updateInterval)
       return;
 
-   _lock->acquire();
+   _lock.acquire();
 
    // FIXME: This assumes one cycle per flit, might not be accurate.
    double local_utilization = ((double)_localUtilizationFlitsSent) / ((double)elapsed_time);
@@ -222,7 +219,7 @@ void NetworkModelAnalytical::updateUtilization()
 
    getNetwork()->netSend(update);
 
-   _lock->release();
+   _lock.release();
 }
 
 void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
@@ -231,8 +228,8 @@ void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
 
    UtilizationMessage *pr = (UtilizationMessage*) response.data;
 
-   pr->model->_lock->acquire();
+   pr->model->_lock.acquire();
    pr->model->_globalUtilization = pr->ut;
    assert(!IS_NAN(pr->model->_globalUtilization));
-   pr->model->_lock->release();
+   pr->model->_lock.release();
 }

@@ -12,8 +12,11 @@ LockedHash::LockedHash(UInt64 size)
 
 LockedHash::~LockedHash()
 {
-   delete [] _bins;
-   delete [] _locks;
+   // FIXME: For some reason, this seg faults. Only deleted during
+   // shutdown, so maybe this OK? But still a huge hack.
+
+   // delete [] _bins;
+   // delete [] _locks;
 }
 
 pair<bool, UInt64> LockedHash::find(UInt64 key)

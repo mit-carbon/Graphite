@@ -54,6 +54,7 @@ class Log
       Lock *_defaultLock;
 
       UInt32 _coreCount;
+      UInt64 _startTime;
       std::set<std::string> _disabledModules;
       std::map<const char*, std::string> _modules;
       static const UInt32 MODULE_LENGTH = 10;

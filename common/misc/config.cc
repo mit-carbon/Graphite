@@ -141,16 +141,8 @@ bool Config::getEnableICacheModeling() const
 
 void Config::getDisabledLogModules(set<string> &mods) const
 {
-//   mods.insert("TRANSPORT");
-//   mods.insert("NETWORK");
-//   mods.insert("CORE");
-//   mods.insert("DRAMDIR");
-//   mods.insert("MMU");
-//   mods.insert("CORE_MANAGER");
-//   mods.insert("PINSIM");
-//   mods.insert("SHAREDMEM");
-//   mods.insert("CONFIG");
-//   mods.insert("SYSCALL");
+//   mods.insert("smtransport.cc");
+//   mods.insert("network.cc");
 }
 
 const char *Config::getOutputFileName() const

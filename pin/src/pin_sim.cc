@@ -58,30 +58,21 @@ void routineCallback(RTN rtn, void *v)
 }
 
 // syscall model wrappers
-void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
-{
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-
-   if (core)
-      core->getSyscallMdl()->runEnter(ctx, syscall_standard);
-}
-
-void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
-{
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-
-   if (core)
-      core->getSyscallMdl()->runExit(ctx, syscall_standard);
-}
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   syscallEnterRunModel(ctxt, std);
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+
+   if (core)
+      core->getSyscallMdl()->runEnter(ctxt, std);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   syscallExitRunModel(ctxt, std);
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+
+   if (core)
+      core->getSyscallMdl()->runExit(ctxt, std);
 }
 
 void ApplicationStart()

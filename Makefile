@@ -49,7 +49,7 @@ stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit
 
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon 1djacobi_test_quick 
+regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon 1djacobi_test_quick cannon_msg_dist 
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test 
 

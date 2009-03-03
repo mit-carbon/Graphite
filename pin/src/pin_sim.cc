@@ -98,6 +98,7 @@ void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
 
 void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
 {
+   SimTerminateThread();
 }
 
 int main(int argc, char *argv[])

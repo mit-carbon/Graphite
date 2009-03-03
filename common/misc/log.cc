@@ -91,9 +91,6 @@ Log* Log::getSingleton()
 
 Boolean Log::isEnabled(const char* module)
 {
-#ifdef DISABLE_LOGGING
-   return false;
-#endif
    return _disabledModules.find(module) == _disabledModules.end();
 }
 
@@ -189,7 +186,8 @@ std::string Log::getModule(const char *filename)
 void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
 #ifdef DISABLE_LOGGING
-   return;
+   if (err != Error)
+      return;
 #endif
 
    UInt32 core_id;

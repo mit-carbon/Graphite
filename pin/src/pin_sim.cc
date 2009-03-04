@@ -64,7 +64,18 @@ void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, voi
    Core *core = Sim()->getCoreManager()->getCurrentCore();
 
    if (core)
-      core->getSyscallMdl()->runEnter(ctxt, std);
+   {
+      UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctxt, std);
+      SyscallMdl::syscall_args_t args;
+      args.arg0 = PIN_GetSyscallArgument(ctxt, std, 0);
+      args.arg1 = PIN_GetSyscallArgument(ctxt, std, 1);
+      args.arg2 = PIN_GetSyscallArgument(ctxt, std, 2);
+      args.arg3 = PIN_GetSyscallArgument(ctxt, std, 3);
+      args.arg4 = PIN_GetSyscallArgument(ctxt, std, 4);
+      args.arg5 = PIN_GetSyscallArgument(ctxt, std, 5);
+      UInt8 new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
+      PIN_SetSyscallNumber(ctxt, std, new_syscall);
+   }
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
@@ -72,7 +83,22 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
    Core *core = Sim()->getCoreManager()->getCurrentCore();
 
    if (core)
-      core->getSyscallMdl()->runExit(ctxt, std);
+   {
+      carbon_reg_t old_return = 
+#ifdef TARGET_IA32E
+      PIN_GetContextReg(ctxt, REG_RAX);
+#else
+      PIN_GetContextReg(ctxt, REG_EAX);
+#endif
+
+      carbon_reg_t syscall_return = core->getSyscallMdl()->runExit(old_return);
+
+#ifdef TARGET_IA32E
+      PIN_SetContextReg(ctxt, REG_RAX, syscall_return);
+#else
+      PIN_SetContextReg(ctxt, REG_EAX, syscall_return);
+#endif
+   }
 }
 
 void ApplicationStart()

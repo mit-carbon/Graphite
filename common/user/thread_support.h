@@ -8,8 +8,6 @@
 
 #include "fixed_types.h"
 
-void CarbonSpawnWorkerThreads();
-
 typedef void *(*thread_func_t)(void *);
 
 typedef struct

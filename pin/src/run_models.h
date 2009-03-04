@@ -15,7 +15,7 @@
 void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_size,
                IntPtr dcache_st_addr, UINT32 dcache_st_size,
                PerfModelIntervalStat* *stats,
-               REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes,
+               carbon_reg_t *reads, UINT32 num_reads, carbon_reg_t *writes, UINT32 num_writes,
                bool do_icache_modeling, bool do_dcache_read_modeling, bool is_dual_read,
                bool do_dcache_write_modeling, bool do_perf_modeling, bool check_scoreboard);
 

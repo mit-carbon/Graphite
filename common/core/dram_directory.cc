@@ -1,7 +1,5 @@
 #include "dram_directory.h"
 
-#include "pin.H"
-
 #include "log.h"
 #include "simulator.h"
 

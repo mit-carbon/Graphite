@@ -25,8 +25,6 @@
 #include "perfmdl_interval_stat.h"
 #include "lock.h"
 
-//#define SIM_STANDALONE
-
 #if defined(SIM_STANDALONE)
 #include "pin_types.h"
 #define REG_LAST 4096

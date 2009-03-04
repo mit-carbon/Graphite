@@ -49,7 +49,7 @@ else
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
 endif
 
-# Use the pin flasgs for building
+# Use the pin flags for building
 include ../../common/makefile.gnu.config
 CXXFLAGS+=$(PIN_CXXFLAGS)
 CFLAGS=$(CXXFLAGS)

@@ -185,7 +185,7 @@ UInt32 CoreManager::getCurrentSimThreadCoreID()
    UInt32 id;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
    id = (e.first == false) ? -1 : e.second;
 
    LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");

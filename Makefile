@@ -27,8 +27,9 @@ all:
 simlib:
 	$(MAKE) -C lib
 
-spawn_unit_test:
+spawn_unit_test: simlib
 	$(MAKE) -C tests/unit/spawn
+	./tests/unit/spawn/spawn
 
 clean:
 	$(MAKE) -C pin clean

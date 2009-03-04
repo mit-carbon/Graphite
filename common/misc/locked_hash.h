@@ -15,7 +15,7 @@ class LockedHash
 
       UInt64 _size;
       Bucket *_bins;
-      Lock **_locks;
+      Lock *_locks;
    public:
       LockedHash(UInt64 size);
       ~LockedHash();

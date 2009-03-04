@@ -71,7 +71,7 @@ ping_pong_dist: all empty_logs
 
 cannon: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon
-	$(PIN_RUN) -mdc -msm -mpf -msys -np 1 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg

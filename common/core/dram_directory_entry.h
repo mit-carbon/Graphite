@@ -26,7 +26,8 @@ class DramDirectoryEntry
       DramDirectoryEntry();
       DramDirectoryEntry(UInt32 mem_line_addr, UInt32 number_of_cores);
       DramDirectoryEntry(UInt32 mem_line_addr, UInt32 number_of_cores, char* data_buffer);
-      virtual ~DramDirectoryEntry();
+      
+      ~DramDirectoryEntry();
 
       dstate_t getDState();
       void setDState(dstate_t new_dstate);
@@ -35,9 +36,8 @@ class DramDirectoryEntry
       UInt32 getEvictionId();
       void addExclusiveSharer(UInt32 sharer_rank);
 
-      //the directory may remove someone if they've invalidated it from their cache
       void removeSharer(UInt32 sharer_rank);
-      void debugClearSharersList();
+      bool hasSharer(UInt32 sharer_rank);
 
       int numSharers();
       UInt32 getExclusiveSharerRank();
@@ -49,13 +49,12 @@ class DramDirectoryEntry
       //function fills the buffer and line_size values
       void getDramDataLine(char* fill_buffer, UInt32* line_size);
 
-
-
-      void dirDebugPrint();
       static string dStateToString(dstate_t dstate);
       UInt32 getMemLineAddress() { return memory_line_address; }
       UInt32 getMemLineSize() {return memory_line_size; }
 
+      // For Unit testing purposes
+      void debugClearSharersList();
 
    private:
       dstate_t dstate;

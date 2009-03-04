@@ -63,7 +63,8 @@ LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX)
 LD_LIBS += -pthread
 
 TOOL_ROOTS = ../bin/pin_sim
-SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc pin_lock.cc \
+
+SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc  \
           user_space_wrappers.cc pin_thread.cc
 
 OBJECTS = $(SOURCES:%.cc=%.o) $(SIM_OBJECTS)

@@ -4,12 +4,7 @@
 #include "ocache.h"
 #include "core_manager.h"
 #include "log.h"
-#include "shmem_debug_helper.h"
 #include "simulator.h"
-#define LOG_DEFAULT_RANK    core_id
-#define LOG_DEFAULT_MODULE  PINSIM
-
-extern ShmemDebugHelper *g_shmem_debug_helper;
 
 static void runICacheModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling);
 static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling,
@@ -30,7 +25,6 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
                bool do_dcache_write_modeling, bool do_perf_modeling, bool check_scoreboard)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   UInt32 core_id = Sim()->getCoreManager()->getCurrentCoreID();
    UInt32 core_index;
 
    if (!core)
@@ -44,7 +38,7 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
    }
 
    LOG_ASSERT_ERROR(core_index < Config::getSingleton()->getNumLocalCores(),
-                    "*ERROR* No core index found for current core?! %p", core);
+                    "No core index found for current core?! %p", core);
 
    PerfModelIntervalStat *interval_stats = stats[core_index];
    // This must be consistent with the behavior of
@@ -109,13 +103,6 @@ static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool d
                                 UINT32 dcache_ld_size,
                                 REG *reads, UINT32 num_reads)
 {
-    if (g_shmem_debug_helper->aliasEnabled())
-    {
-        //FIXME
-        g_shmem_debug_helper->aliasReadModeling();
-        return;
-    }
-
     // FIXME: This should actually be a UINT32 which tells how many read misses occured
     char data_ld_buffer[dcache_ld_size];
     //TODO HARSHAD sharedmemory will fill ld_buffer
@@ -139,24 +126,17 @@ static void runDCacheWriteModels(PerfModelIntervalStat *stats, Core *core, bool 
                                  IntPtr dcache_st_addr, UINT32 dcache_st_size,
                                  REG *writes, UINT32 num_writes)
 {
-    if (g_shmem_debug_helper->aliasEnabled())
-    {
-        g_shmem_debug_helper->aliasWriteModeling();
-    }
-    else
-    {
+   // FIXME: This should actually be a UINT32 which tells how many write misses occurred
+   char data_st_buffer[dcache_st_size];
 
-        //FIXME: the resets are broken
-        return;
+   //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
+   core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
 
-        // FIXME: This should actually be a UINT32 which tells how many write misses occurred
-        char data_st_buffer[dcache_st_size];
-
-        //TODO Harshad: st buffer needs to be written
-        //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
-        bool d_hit = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
-        if (do_perf_modeling)
-            stats->logDCacheStoreAccess(d_hit);
-    }
+   // This breaks the code
+   /*
+   bool d_hit = core->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+   
+   if (do_perf_modeling)
+      stats->logDCacheStoreAccess(d_hit);
+    */
 }
-

@@ -6,8 +6,6 @@
 #include "simulator.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK   -1
-#define LOG_DEFAULT_MODULE CACHE
 
 /* ===================================================================== */
 /* Externally defined variables */
@@ -513,7 +511,7 @@ bool OCache::runDCacheModel(CacheBase::AccessType operation, IntPtr d_addr, char
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
+      LOG_PRINT("%s - ADDR: 0x%x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
 
       bool all_hits = true;
 

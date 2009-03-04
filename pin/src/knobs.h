@@ -33,7 +33,7 @@ KNOB<UInt32>   g_knob_dir_max_sharers(KNOB_MODE_WRITEONCE, "pintool",
 /* ===================================================================== */
 
 KNOB<BOOL>   g_knob_enable_syscall_modeling(KNOB_MODE_WRITEONCE, "pintool",
-      "msys", "0", "turns on syscall modeler");
+      "msys", "1", "turns on syscall modeler");
 
 /* ===================================================================== */
 /* Organic Cache Knobs */

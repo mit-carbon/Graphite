@@ -10,18 +10,14 @@
 #include "core.h"
 #include "thread.h"
 
-#define LOG_DEFAULT_RANK -1
-#define LOG_DEFAULT_MODULE THREAD_MANAGER
-
 ThreadManager::ThreadManager(CoreManager *core_manager)
    : m_thread_spawn_sem(0)
+   , m_thread_spawn_lock()
    , m_core_manager(core_manager)
 {
    Config *config = Config::getSingleton();
 
    m_master = config->getCurrentProcessNum() == 0;
-
-   m_thread_spawn_lock = Lock::create();
 
    if (m_master)
    {
@@ -29,6 +25,8 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
       m_thread_state[0].running = true;
       m_thread_state[config->getMCPCoreNum()].running = true;
       LOG_PRINT("%d", config->getMCPCoreNum());
+      LOG_ASSERT_ERROR(config->getMCPCoreNum() < m_thread_state.size(),
+                       "MCP core num out of range (!?)");
    }
 }
 
@@ -38,9 +36,10 @@ ThreadManager::~ThreadManager()
    {
       m_thread_state[0].running = false;
       m_thread_state[Config::getSingleton()->getMCPCoreNum()].running = false;
+      LOG_ASSERT_ERROR(Config::getSingleton()->getMCPCoreNum() < m_thread_state.size(), "MCP core num out of range (!?)");
 
       for (UInt32 i = 0; i < m_thread_state.size(); i++)
-         LOG_ASSERT_WARNING(!m_thread_state[i].running, "*WARNING* Thread %d still active when ThreadManager destructs!", i);
+         LOG_ASSERT_WARNING(!m_thread_state[i].running, "Thread %d still active when ThreadManager destructs!", i);
    }
 }
 
@@ -69,7 +68,9 @@ void ThreadManager::onThreadExit()
 
 void ThreadManager::masterOnThreadExit(SInt32 core_id, UInt64 time)
 {
+   LOG_ASSERT_ERROR(m_master, "masterOnThreadExit should only be called on master.");
    LOG_PRINT("masterOnThreadExit : %d %llu", core_id, time);
+   LOG_ASSERT_ERROR((UInt32)core_id < m_thread_state.size(), "Core id out of range: %d", core_id);
    assert(m_thread_state[core_id].running);
    m_thread_state[core_id].running = false;
 
@@ -101,7 +102,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    globalNode->globalSend(0, &req, sizeof(req));
 
    NetPacket pkt = core->getNetwork()->netRecvType(LCP_SPAWN_THREAD_REPLY_FROM_MASTER_TYPE);
-   LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "*ERROR* Unexpected reply size.");
+   LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
 
    SInt32 core_id = *((SInt32*)pkt.data);
    LOG_PRINT("Thread spawned on core: %d", core_id);
@@ -112,6 +113,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
 void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
 {
    // step 2
+   LOG_ASSERT_ERROR(m_master, "masterSpawnThread should only be called on master.");
    LOG_PRINT("(2) masterSpawnThread with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
  
    // find core to use
@@ -125,7 +127,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       }
    }
 
-   LOG_ASSERT_ERROR(req->core_id != -1, "*ERROR* No cores available for spawnThread request.");
+   LOG_ASSERT_ERROR(req->core_id != -1, "No cores available for spawnThread request.");
 
    // spawn process on child
    SInt32 dest_proc = Config::getSingleton()->getProcessNumForCore(req->core_id);
@@ -144,14 +146,15 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
       *req_cpy = *req;
 
-      m_thread_spawn_lock->acquire();
+      m_thread_spawn_lock.acquire();
       m_thread_spawn_list.push(req_cpy);
-      m_thread_spawn_lock->release();
+      m_thread_spawn_lock.release();
       m_thread_spawn_sem.signal();
    }
 
+   LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Core id out of range: %d", req->core_id);
    m_thread_state[req->core_id].running = true;
-   LOG_PRINT("Finished with masterSpawnThread call");
+   LOG_PRINT("Done with (2)");
 }
 
 void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
@@ -164,9 +167,9 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
    ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
    *req_cpy = *req;
 
-   m_thread_spawn_lock->acquire();
+   m_thread_spawn_lock.acquire();
    m_thread_spawn_list.push(req_cpy);
-   m_thread_spawn_lock->release();
+   m_thread_spawn_lock.release();
    m_thread_spawn_sem.signal();
 }
 
@@ -179,10 +182,10 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest **req)
    m_thread_spawn_sem.wait();
 
    // Grab the request and set the argument
-   m_thread_spawn_lock->acquire();
+   m_thread_spawn_lock.acquire();
    *req = m_thread_spawn_list.front();
    m_thread_spawn_list.pop();
-   m_thread_spawn_lock->release();
+   m_thread_spawn_lock.release();
 
    LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", (*req)->func, (*req)->arg);
 }
@@ -191,12 +194,13 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest **req)
 void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
 {
    // step 6
+   LOG_ASSERT_ERROR(m_master, "masterSpawnThreadReply should only be called on master.");
    LOG_PRINT("(6) masterSpawnThreadReply with req: { fun: %p, arg: %p, req: %d, core: %d }", req->func, req->arg, req->requester, req->core_id);
 
    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
 
    NetPacket pkt(0 /*time*/, LCP_SPAWN_THREAD_REPLY_FROM_MASTER_TYPE, 
-                 0 /*sender*/, req->requester, sizeof(SInt32), &req->core_id);
+                 0 /*sender*/, req->requester, sizeof(req->core_id), &req->core_id);
    Byte *buffer = pkt.makeBuffer();
    globalNode->send(req->requester, buffer, pkt.bufferSize());
    delete [] buffer;
@@ -225,14 +229,16 @@ void ThreadManager::joinThread(SInt32 core_id)
 
 void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
 {
+   LOG_ASSERT_ERROR(m_master, "masterJoinThread should only be called on master.");
    LOG_PRINT("masterJoinThread called on core: %d", req->core_id);
    //FIXME: fill in the proper time
 
    LOG_ASSERT_ERROR(m_thread_state[req->core_id].waiter == -1,
-                    "*ERROR* Multiple threads joining on thread: %d", req->core_id);
+                    "Multiple threads joining on thread: %d", req->core_id);
    m_thread_state[req->core_id].waiter = req->sender;
 
    // Core not running, so the thread must have joined
+   LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Core id out of range: %d", req->core_id);
    if(m_thread_state[req->core_id].running == false)
    {
       LOG_PRINT("Not running, sending reply.");

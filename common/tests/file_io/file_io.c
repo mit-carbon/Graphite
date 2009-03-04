@@ -14,11 +14,6 @@
 #include "capi.h"
 #include <stdio.h>
 
-#ifdef DEBUG
-pthread_mutex_t lock;
-#endif
-
-// Functions executed by threads
 void* read_and_write(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
@@ -32,7 +27,6 @@ int main(int argc, char* argv[])  // main begins
    for (unsigned int i = 0; i < numThreads; i++)
        threads[i] = CarbonSpawnThread(read_and_write, (void *)i);
 
-   // Wait for all threads to complete
    for (unsigned int i = 0; i < numThreads; i++)
        CarbonJoinThread(threads[i]);
 
@@ -78,6 +72,4 @@ void* read_and_write(void *threadid)
    }
 
    fprintf(stderr, "Thread: %d Done.\n", tid);
-
 }
-

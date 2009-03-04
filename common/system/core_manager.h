@@ -23,8 +23,8 @@ class CoreManager
       void terminateThread();
       int registerSimMemThread();
 
-      // The following function returns the global ID of the currently running thread
-      UInt32 getCurrentCoreID();
+      UInt32 getCurrentCoreID(); // id of currently active core (or -1)
+      UInt32 getCurrentSimThreadCoreID(); // id of core associated with this sim thread (or -1)
 
       Core *getCurrentCore();
       Core *getCoreFromID(UInt32 id);
@@ -35,7 +35,7 @@ class CoreManager
    private:
       UInt32 getCurrentTID();
 
-      Lock *m_maps_lock;
+      Lock m_maps_lock;
 
       // tid_map takes core # to pin thread id
       // core_map takes pin thread id to core # (it's the reverse map)

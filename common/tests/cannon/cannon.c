@@ -19,14 +19,41 @@
 #include "capi.h"
 
 //#define DEBUG 1
+// #define USE_INT 1
+// #define USE_FLOAT_INTERNAL_REPRESENTATION 1
+//#define MATRIX_DEBUG 1
+//#define ADDRESS_DEBUG 1
+
+typedef int SInt32;
+typedef unsigned int UInt32;
+
+#ifdef USE_INT
+typedef SInt32 DType;
+#else
+typedef float DType;
+#endif
 
 // Declare global variables
-float **a, **b, **c;
+DType **a;
+DType **b;
+DType **c;
 int blockSize, sqrtNumProcs;
 pthread_mutex_t write_lock;
 
 #ifdef DEBUG
 pthread_mutex_t lock;
+#else
+
+#ifdef MATRIX_DEBUG
+pthread_mutex_t lock;
+#else 
+
+#ifdef ADDRESS_DEBUG
+pthread_mutex_t lock;
+#endif
+
+#endif
+
 #endif
 
 // Debug
@@ -40,6 +67,7 @@ void* cannon(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+    fprintf(stderr, "Start of main...\n");
    unsigned int matSize, num_threads;
 
    if (argc != 5)
@@ -68,7 +96,6 @@ int main(int argc, char* argv[])  // main begins
       }
    }
 
-
    // Declare threads and related variables
    carbon_thread_t threads[num_threads];
 
@@ -88,26 +115,26 @@ int main(int argc, char* argv[])  // main begins
    for (unsigned int i = 0; i < num_threads; i++) numThreadReceives[i] = 0;
 
    // Initialize a
-   a = (float**)malloc(matSize*sizeof(float*));
+   a = (DType**)malloc(matSize*sizeof(DType*));
    for (unsigned int i = 0; i < matSize; i++)
    {
-      a[i] = (float*)malloc(matSize*sizeof(float));
+      a[i] = (DType*)malloc(matSize*sizeof(DType));
       for (unsigned int j = 0; j < matSize; j++) a[i][j] = 2;
    }
 
    // Initialize b
-   b = (float**)malloc(matSize*sizeof(float*));
+   b = (DType**)malloc(matSize*sizeof(DType*));
    for (unsigned int i = 0; i < matSize; i++)
    {
-      b[i] = (float*)malloc(matSize*sizeof(float));
+      b[i] = (DType*)malloc(matSize*sizeof(DType));
       for (unsigned int j = 0; j < matSize; j++) b[i][j] = 3;
    }
 
    // Initialize c
-   c = (float**)malloc(matSize*sizeof(float*));
+   c = (DType**)malloc(matSize*sizeof(DType*));
    for (unsigned int i = 0; i < matSize; i++)
    {
-      c[i] = (float*)malloc(matSize*sizeof(float));
+      c[i] = (DType*)malloc(matSize*sizeof(DType));
       for (unsigned int j = 0; j < matSize; j++) c[i][j] = 0;
    }
 
@@ -122,6 +149,16 @@ int main(int argc, char* argv[])  // main begins
 #ifdef DEBUG
    printf("Initializing thread structures\n");
    pthread_mutex_init(&lock, NULL);
+#else
+#ifdef MATRIX_DEBUG
+   printf("Initializing thread structures\n");
+   pthread_mutex_init(&lock, NULL);
+#else
+#ifdef ADDRESS_DEBUG
+   printf("Initializing thread structures\n");
+   pthread_mutex_init(&lock, NULL);
+#endif
+#endif
 #endif
 
    // Initialize threads and related variables
@@ -135,12 +172,22 @@ int main(int argc, char* argv[])  // main begins
        CarbonJoinThread(threads[i]);
 
    // Print out the result matrix
+   printf("\n\n\n");
+   printf("-----------------\n");
    printf("c = \n");
    for (unsigned int i = 0; i < matSize; i++)
    {
       for (unsigned int j = 0; j < matSize; j++)
       {
+#ifdef USE_INT
+         printf("%d ", c[i][j]);
+#else
+#ifdef USE_FLOAT_INTERNAL_REPRESENTATION
+         printf("0x%x ", *((UInt32*) &c[i][j]));
+#else
          printf("%f ", c[i][j]);
+#endif
+#endif
       }
       printf("\n");
    }
@@ -157,13 +204,13 @@ void* cannon(void *threadid)
    // Declare local variables
    int tid;
    int upProc, downProc, rightProc, leftProc;
-   float **aBlock, **bBlock, **cBlock;
+   DType **aBlock, **bBlock, **cBlock;
    int i, j;
    int ai, aj, bi, bj;
    CAPI_return_t rtnVal;
 
 #ifdef DEBUG
-   printf("Starting thread %d\n", (unsigned int)threadid);
+   printf("Starting thread %d\n", (int)threadid);
 #endif
 
    rtnVal = CAPI_Initialize((unsigned int)threadid);
@@ -198,34 +245,93 @@ void* cannon(void *threadid)
    bj = j * blockSize;
 
    // populate aBlock
-   aBlock = (float**)malloc(blockSize*sizeof(float*));
+   aBlock = (DType**)malloc(blockSize*sizeof(DType*));
    for (int x = 0; x < blockSize; x++)
    {
-      aBlock[x] = (float*)malloc(blockSize*sizeof(float));
+      aBlock[x] = (DType*)malloc(blockSize*sizeof(DType));
       for (int y = 0; y < blockSize; y++) aBlock[x][y] = a[ai + x][aj + y];
    }
 
    // populate bBlock
-   bBlock = (float**)malloc(blockSize*sizeof(float*));
+   bBlock = (DType**)malloc(blockSize*sizeof(DType*));
    for (int x = 0; x < blockSize; x++)
    {
-      bBlock[x] = (float*)malloc(blockSize*sizeof(float));
+      bBlock[x] = (DType*)malloc(blockSize*sizeof(DType));
       for (int y = 0; y < blockSize; y++) bBlock[x][y] = b[bi + x][bj + y];
    }
 
    // Initialize cBlock
-   cBlock = (float**)malloc(blockSize*sizeof(float*));
+   cBlock = (DType**)malloc(blockSize*sizeof(DType*));
    for (int x = 0; x < blockSize; x++)
    {
-      cBlock[x] = (float*)malloc(blockSize*sizeof(float));
+      cBlock[x] = (DType*)malloc(blockSize*sizeof(DType));
       for (int y = 0; y < blockSize; y++) cBlock[x][y] = 0;
    }
 
+
+#ifdef ADDRESS_DEBUG
+   if (tid == 0)
+   {
+      for (SInt32 x = 0; x < blockSize; x++)
+      {
+         for (SInt32 y = 0; y < blockSize; y++)
+         {
+            pthread_mutex_lock(&lock);
+            fprintf (stderr, "c[%d][%d] = %p\n", x, y, &c[x][y]);
+            pthread_mutex_unlock(&lock);
+         }
+      }
+   }
+   else
+   {
+      sleep(10);
+   }
+#endif
+
    for (int iter = 0; iter < sqrtNumProcs; iter++) // for loop begins
    {
-      for (int x = 0; x < blockSize; x++)
-         for (int y = 0; y < blockSize; y++)
-            for (int z = 0; z < blockSize; z++) cBlock[x][y] += aBlock[x][z] * bBlock[z][y];
+      for (int x = 0; x < blockSize; x++) {
+         for (int y = 0; y < blockSize; y++) {
+            for (int z = 0; z < blockSize; z++) {
+
+#ifdef MATRIX_DEBUG
+               pthread_mutex_lock(&lock);
+               fprintf (stderr, "Before MULT operation: ");
+#ifdef USE_INT
+               fprintf (stderr, "tid #%d: iter #%d: aBlock[%d][%d] = %d, bBlock[%d][%d] = %d, cBlock[%d][%d] = %d\n", tid, iter, x, z, aBlock[x][z], z, y, bBlock[z][y], x, y, cBlock[x][y]);
+#else
+
+#ifdef USE_FLOAT_INTERNAL_REPRESENTATION
+               fprintf (stderr, "tid #%d: iter #%d: aBlock[%d][%d] = %u, bBlock[%d][%d] = %u, cBlock[%d][%d] = %u\n", tid, iter, x, z, *((UInt32*) &aBlock[x][z]), z, y, *((UInt32*) &bBlock[z][y]), x, y, *((UInt32*) &cBlock[x][y]) );
+#else
+               fprintf (stderr, "tid #%d: iter #%d: aBlock[%d][%d] = %f, bBlock[%d][%d] = %f, cBlock[%d][%d] = %f\n", tid, iter, x, z, aBlock[x][z], z, y, bBlock[z][y], x, y, cBlock[x][y]);
+#endif
+
+#endif
+               pthread_mutex_unlock(&lock);
+#endif
+
+               cBlock[x][y] += aBlock[x][z] * bBlock[z][y];
+
+#ifdef MATRIX_DEBUG
+               pthread_mutex_lock(&lock);
+               fprintf (stderr, "After MULT operation: ");
+#ifdef USE_INT
+               fprintf (stderr, "tid #%d: iter #%d: aBlock[%d][%d] = %d, bBlock[%d][%d] = %d, cBlock[%d][%d] = %d\n", tid, iter, x, z, aBlock[x][z], z, y, bBlock[z][y], x, y, cBlock[x][y]);
+#else
+
+#ifdef USE_FLOAT_INTERNAL_REPRESENTATION
+               fprintf (stderr, "tid #%d: iter #%d: aBlock[%d][%d] = %u, bBlock[%d][%d] = %u, cBlock[%d][%d] = %u\n", tid, iter, x, z, *((UInt32*) &aBlock[x][z]), z, y, *((UInt32*) &bBlock[z][y]), x, y, *((UInt32*) &cBlock[x][y]) );
+#else
+               fprintf (stderr, "tid #%d: iter #%d: aBlock[%d][%d] = %f, bBlock[%d][%d] = %f, cBlock[%d][%d] = %f\n", tid, iter, x, z, aBlock[x][z], z, y, bBlock[z][y], x, y, cBlock[x][y]);
+#endif
+
+#endif
+               pthread_mutex_unlock(&lock);
+#endif
+            }
+         }
+      }
 
       if (iter < sqrtNumProcs - 1) // if block begins
       {
@@ -239,7 +345,7 @@ void* cannon(void *threadid)
                printf("tid # %d sending to tid # %d\n", tid, leftProc);
                pthread_mutex_unlock(&lock);
 #endif
-               CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)leftProc, (char*)&aBlock[x][y], sizeof(float));
+               CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)leftProc, (char*)&aBlock[x][y], sizeof(DType));
                // Debug
                pthread_mutex_lock(&write_lock);
                numSendCalls++;
@@ -256,7 +362,7 @@ void* cannon(void *threadid)
                printf("tid # %d sending to tid # %d\n", tid, upProc);
                pthread_mutex_unlock(&lock);
 #endif
-               CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)upProc, (char*)&bBlock[x][y], sizeof(float));
+               CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)upProc, (char*)&bBlock[x][y], sizeof(DType));
                // Debug
                pthread_mutex_lock(&write_lock);
                numSendCalls++;
@@ -274,7 +380,7 @@ void* cannon(void *threadid)
                printf("tid # %d receiving from tid # %d\n", tid, rightProc);
                pthread_mutex_unlock(&lock);
 #endif
-               CAPI_message_receive_w((CAPI_endpoint_t)rightProc, (CAPI_endpoint_t)tid, (char*)&aBlock[x][y], sizeof(float));
+               CAPI_message_receive_w((CAPI_endpoint_t)rightProc, (CAPI_endpoint_t)tid, (char*)&aBlock[x][y], sizeof(DType));
                // Debug
                pthread_mutex_lock(&write_lock);
                numReceiveCalls++;
@@ -291,7 +397,7 @@ void* cannon(void *threadid)
                printf("tid # %d receiving from tid # %d\n", tid, downProc);
                pthread_mutex_unlock(&lock);
 #endif
-               CAPI_message_receive_w((CAPI_endpoint_t)downProc, (CAPI_endpoint_t)tid, (char*)&bBlock[x][y], sizeof(float));
+               CAPI_message_receive_w((CAPI_endpoint_t)downProc, (CAPI_endpoint_t)tid, (char*)&bBlock[x][y], sizeof(DType));
                // Debug
                pthread_mutex_lock(&write_lock);
                numReceiveCalls++;

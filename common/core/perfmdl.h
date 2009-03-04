@@ -86,7 +86,7 @@ class PerfModel
       std::string m_name;
 
       // Lock for atomically updating the clock
-      Lock *m_clock_lock;
+      Lock m_clock_lock;
 
       // methods
       UInt32 getInsMicroOpsCount(const INS& ins);

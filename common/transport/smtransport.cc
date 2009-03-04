@@ -2,14 +2,11 @@
 #include "config.h"
 #include "log.h"
 
-#define LOG_DEFAULT_RANK   -1
-#define LOG_DEFAULT_MODULE SMTRANSPORT
-
 // -- SmTransport -- //
 
 SmTransport::SmTransport()
 {
-   LOG_ASSERT_ERROR(Config::getSingleton()->getProcessCount() == 1, "*ERROR* Can only use SmTransport with a single process.");
+   LOG_ASSERT_ERROR(Config::getSingleton()->getProcessCount() == 1, "Can only use SmTransport with a single process.");
 
    Config::getSingleton()->setProcessNum(0);
 
@@ -33,9 +30,9 @@ SmTransport::~SmTransport()
 Transport::Node* SmTransport::createNode(SInt32 core_id)
 {
    LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
-                    "*ERROR* Request index out of range: %d", core_id);
+                    "Request index out of range: %d", core_id);
    LOG_ASSERT_ERROR(m_core_nodes[core_id] == NULL,
-                    "*ERROR* Transport already allocated for id: %d.", core_id);
+                    "Transport already allocated for id: %d.", core_id);
 
    m_core_nodes[core_id] = new SmNode(core_id, this);
 
@@ -57,7 +54,7 @@ Transport::Node* SmTransport::getGlobalNode()
 SmTransport::SmNode* SmTransport::getNodeFromId(SInt32 core_id)
 {
    LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
-                    "*ERROR* Core id out of range: %d", core_id);
+                    "Core id out of range: %d", core_id);
    return m_core_nodes[core_id];
 }
 
@@ -71,9 +68,6 @@ void SmTransport::clearNodeForId(SInt32 core_id)
 
 // -- SmTransportNode -- //
 
-#undef LOG_DEFAULT_RANK
-#define LOG_DEFAULT_RANK getCoreId()
-
 SmTransport::SmNode::SmNode(SInt32 core_id, SmTransport *smt)
    : Node(core_id)
    , m_smt(smt)
@@ -82,20 +76,20 @@ SmTransport::SmNode::SmNode(SInt32 core_id, SmTransport *smt)
 
 SmTransport::SmNode::~SmNode()
 {
-   LOG_ASSERT_WARNING(m_queue.empty(), "*WARNING* Unread messages in queue for core: %d", getCoreId());
+   LOG_ASSERT_WARNING(m_queue.empty(), "Unread messages in queue for core: %d", getCoreId());
    m_smt->clearNodeForId(getCoreId());
 }
 
 void SmTransport::SmNode::globalSend(SInt32 dest_proc, const void *buffer, UInt32 length)
 {
-   LOG_ASSERT_ERROR(dest_proc == 0, "*ERROR* Destination other than zero: %d", dest_proc);
+   LOG_ASSERT_ERROR(dest_proc == 0, "Destination other than zero: %d", dest_proc);
    send((SmNode*)m_smt->getGlobalNode(), buffer, length);
 }
 
 void SmTransport::SmNode::send(SInt32 dest_id, const void* buffer, UInt32 length)
 {
    SmNode *dest_node = m_smt->getNodeFromId(dest_id);
-   LOG_ASSERT_ERROR(dest_node != NULL, "*ERROR* Attempt to send to non-existent node: %d", dest_id);
+   LOG_ASSERT_ERROR(dest_node != NULL, "Attempt to send to non-existent node: %d", dest_id);
    send(dest_node, buffer, length);
 }
 

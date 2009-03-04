@@ -4,8 +4,6 @@
 #include "network.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK   (_core->getId())
-#define LOG_DEFAULT_MODULE NETWORK
 
 // FIXME: Rework netCreateBuf and netExPacket. We don't need to
 // duplicate the sender/receiver info the packet. This should be known
@@ -121,7 +119,7 @@ void Network::netPullFromTransport()
          _netQueueCond.acquire();
          _netQueue.push_back(packet);
          LOG_ASSERT_WARNING(_netQueue.size() < 500,
-                            "WARNING: Net queue size is %u", _netQueue.size());
+                            "Net queue size is %u", _netQueue.size());
          _netQueueCond.release();
          _netQueueCond.broadcast();
       }
@@ -413,14 +411,20 @@ NetPacket::NetPacket(Byte *buffer)
    delete [] buffer;
 }
 
+// This implementation is slightly wasteful because there is no need
+// to copy the const void* value in the NetPacket when length == 0,
+// but I don't see this as a major issue.
 UInt32 NetPacket::bufferSize() const
 {
-   return BASE_SIZE + length;
+   return (length < sizeof(const void*)) 
+      ? sizeof(NetPacket) 
+      : (sizeof(NetPacket) - sizeof(const void*) + length);
 }
 
 Byte* NetPacket::makeBuffer() const
 {
    UInt32 size = bufferSize();
+   assert(size >= sizeof(NetPacket));
 
    Byte *buffer = new Byte[size];
 

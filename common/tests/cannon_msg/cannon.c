@@ -280,7 +280,7 @@ void* cannon(void *threadid)
 #endif
 
    rtnVal = CAPI_Initialize((unsigned int)threadid);
-   tid = threadid;
+   tid = (int) threadid;
    //CAPI_rank(&tid);
 
    sleep(2);
@@ -358,7 +358,7 @@ void* cannon(void *threadid)
       for (int y = 0; y < blockSize; y++) cBlock[x][y] = 0;
    }
 
-   fprintf(stderr, "Thread %d processing...\n", tid, sqrtNumProcs, blockSize);
+   fprintf(stderr, "Thread %d processing...\n", tid);
 
    for (int iter = 0; iter < sqrtNumProcs; iter++) // for loop begins
    {

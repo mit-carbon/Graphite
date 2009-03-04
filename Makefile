@@ -7,6 +7,7 @@ include common/tests/Makefile
 PIN_BIN=$(PIN_HOME)/pin
 PIN_TOOL=pin/bin/pin_sim
 #PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
+#PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -slow_asserts -separate_memory -mt -t $(PIN_TOOL) 
 PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 

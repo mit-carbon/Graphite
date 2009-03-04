@@ -18,7 +18,7 @@ public:
 private:
    SimThread *m_sim_threads;
 
-   Lock *m_active_threads_lock;
+   Lock m_active_threads_lock;
    UInt32 m_active_threads;
 };
 

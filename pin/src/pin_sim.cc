@@ -38,9 +38,6 @@
 #include "thread_manager.h"
 #include "config_file.hpp"
 
-#define LOG_DEFAULT_RANK    -1
-#define LOG_DEFAULT_MODULE  PINSIM
-
 config::ConfigFile *cfg;
 
 INT32 usage()
@@ -106,6 +103,27 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
 
 void ApplicationStart()
 {
+}
+
+extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
+extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_syscall_modeling;
+
+void HandleArgs()
+{
+    cfg->Set("general/total_cores", (int)g_knob_total_cores.Value());
+    cfg->Set("general/num_processes", (int)g_knob_num_process);
+    cfg->Set("general/enable_shared_mem", g_knob_simarch_has_shared_mem);
+    cfg->Set("general/enable_syscall_modeling", g_knob_simarch_has_shared_mem);
+    cfg->Set("general/enable_performance_modeling", g_knob_enable_performance_modeling);
+    cfg->Set("general/enable_dcache_modeling", g_knob_enable_dcache_modeling);
+    cfg->Set("general/enable_icache_modeling", g_knob_enable_icache_modeling);
+    cfg->Set("general/enable_syscall_modeling", g_knob_enable_syscall_modeling);
 }
 
 void ApplicationExit(int, void*)
@@ -177,9 +195,8 @@ int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
       LOG_PRINT("Finished!");
    }
 
-   ApplicationExit(0, NULL);
+   LOG_PRINT("Leaving SimMain...");
 
-   exit(0);
    return 0;
 }
 
@@ -191,8 +208,13 @@ int main(int argc, char *argv[])
    if (PIN_Init(argc,argv))
       return usage();
 
+
    cfg = new config::ConfigFile();
    cfg->Load("./carbon_sim.cfg");
+
+   // This sets items in the config accoring to
+   // the general pin knobs
+   HandleArgs();
 
    Simulator::setConfig(cfg);
 
@@ -202,12 +224,16 @@ int main(int argc, char *argv[])
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
-   PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-   PIN_AddSyscallExitFunction(SyscallExit, 0);
+
+   if(cfg->GetBool("general/enable_syscall_modeling"))
+   {
+       PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+       PIN_AddSyscallExitFunction(SyscallExit, 0);
+   }
 
 //   PIN_AddThreadStartFunction(ThreadStart, 0);
 //   PIN_AddThreadFiniFunction(ThreadFini, 0);
-//   PIN_AddFiniFunction(ApplicationExit, 0);
+   PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Just in case ... might not be strictly necessary
    Transport::getSingleton()->barrier();

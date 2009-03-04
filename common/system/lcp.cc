@@ -5,8 +5,6 @@
 #include "thread_manager.h"
 
 #include "log.h"
-#define LOG_DEFAULT_RANK -1
-#define LOG_DEFAULT_MODULE LCP
 
 // -- general LCP functionality
 

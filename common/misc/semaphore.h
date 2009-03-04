@@ -9,7 +9,7 @@ class Semaphore
       int _count;
       int _numWaiting;
       int _futx;
-      Lock *_lock;
+      Lock _lock;
 
    public:
       Semaphore(int count);

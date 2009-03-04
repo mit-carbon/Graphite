@@ -82,7 +82,6 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UInt32* line_size)
    *line_size = memory_line_size;
 
    memcpy(fill_buffer, memory_line, memory_line_size);
-
 }
 
 /*
@@ -94,7 +93,6 @@ void DramDirectoryEntry::getDramDataLine(char* fill_buffer, UInt32* line_size)
  */
 bool DramDirectoryEntry::addSharer(UInt32 sharer_rank)
 {
-   // TODO: Clean this up at the end !!
    assert(! sharers->at(sharer_rank));
    if (number_of_sharers == MAX_SHARERS)
    {
@@ -121,6 +119,11 @@ void DramDirectoryEntry::removeSharer(UInt32 sharer_rank)
    number_of_sharers--;
 }
 
+bool DramDirectoryEntry::hasSharer(UInt32 sharer_rank)
+{
+   return(sharers->at(sharer_rank));
+}   
+
 void DramDirectoryEntry::addExclusiveSharer(UInt32 sharer_rank)
 {
    sharers->reset();
@@ -138,11 +141,9 @@ void DramDirectoryEntry::setDState(dstate_t new_dstate)
 {
    assert((int)(new_dstate) >= 0 && (int)(new_dstate) < NUM_DSTATE_STATES);
 
-
    if ((new_dstate == UNCACHED) && (number_of_sharers != 0))
    {
-      cerr << "UH OH!  Settingi to UNCached.... number_of_sharers == " << number_of_sharers << endl;
-      dirDebugPrint();
+      assert(false);
    }
    assert((new_dstate == UNCACHED) ? (number_of_sharers == 0) : true);
 
@@ -150,7 +151,7 @@ void DramDirectoryEntry::setDState(dstate_t new_dstate)
 }
 
 /* Return the number of cores currently sharing this entry */
-int DramDirectoryEntry::numSharers()
+SInt32 DramDirectoryEntry::numSharers()
 {
    return number_of_sharers;
 }
@@ -172,32 +173,17 @@ vector<UInt32> DramDirectoryEntry::getSharersList()
 
    sharers->resetFind();
 
-   int new_sharer = -1;
+   SInt32 new_sharer = -1;
 
-   int i = 0;
+   SInt32 i = 0;
    while ((new_sharer = sharers->find()) != -1)
    {
       sharers_list[i] = new_sharer;
-      ++i;
+      i++;
+      assert (i <= (SInt32) number_of_sharers);
    }
 
    return sharers_list;
-}
-
-void DramDirectoryEntry::dirDebugPrint()
-{
-   cerr << " -== DramDirectoryEntry ==-" << endl;
-   cerr << "     Addr= " << hex << memory_line_address << dec;
-   cerr << "     state= " << dStateToString(dstate);
-   cerr << "; sharers = { ";
-   for (unsigned int i=0; i < sharers->getSize(); i++)
-   {
-      if (sharers->at(i))
-      {
-         cerr << i << ", ";
-      }
-   }
-   cerr << "}" << endl << endl;
 }
 
 string DramDirectoryEntry::dStateToString(dstate_t dstate)

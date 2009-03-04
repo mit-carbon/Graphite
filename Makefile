@@ -54,14 +54,6 @@ stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit
 
 
-show_root:
-	@echo $(SIM_ROOT)
-
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
-
-regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
-
-
 love:
 	@echo "not war!"
 

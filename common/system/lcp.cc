@@ -107,7 +107,7 @@ void LCP::finish()
 struct CommMapUpdate
 {
    SInt32 comm_id;
-   SInt32 core_id;
+   core_id_t core_id;
 };
 
 void LCP::updateCommId(void *vp)

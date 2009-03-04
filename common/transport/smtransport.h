@@ -15,11 +15,11 @@ public:
    class SmNode : public Node
    {
    public:
-      SmNode(SInt32 core_id, SmTransport *smt);
+      SmNode(core_id_t core_id, SmTransport *smt);
       ~SmNode();
 
       void globalSend(SInt32, const void*, UInt32);
-      void send(SInt32, const void*, UInt32);
+      void send(core_id_t, const void*, UInt32);
       Byte* recv();
       bool query();
 
@@ -31,7 +31,7 @@ public:
       SmTransport *m_smt;
    };
 
-   Node* createNode(SInt32 core_id);
+   Node* createNode(core_id_t core_id);
 
    void barrier();
    Node* getGlobalNode();
@@ -40,8 +40,8 @@ private:
    Node *m_global_node;
    SmNode **m_core_nodes;
 
-   SmNode *getNodeFromId(SInt32 core_id);
-   void clearNodeForId(SInt32 core_id);
+   SmNode *getNodeFromId(core_id_t core_id);
+   void clearNodeForId(core_id_t core_id);
 };
 
 #endif

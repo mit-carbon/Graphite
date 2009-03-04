@@ -44,7 +44,7 @@ class Core
       OCache *getOCache() { return m_ocache; }
 
    private:
-      SInt32 m_core_id;
+      core_id_t m_core_id;
       MemoryManager *m_memory_manager;
       Network *m_network;
       PerfModel *m_perf_model;

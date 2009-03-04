@@ -28,14 +28,14 @@ class SyscallServer
 
       ~SyscallServer();
 
-      void handleSyscall(UInt32 core_id);
+      void handleSyscall(core_id_t core_id);
 
    private:
-      void marshallOpenCall(UInt32 core_id);
-      void marshallReadCall(UInt32 core_id);
-      void marshallWriteCall(UInt32 core_id);
-      void marshallCloseCall(UInt32 core_id);
-      void marshallAccessCall(UInt32 core_id);
+      void marshallOpenCall(core_id_t core_id);
+      void marshallReadCall(core_id_t core_id);
+      void marshallWriteCall(core_id_t core_id);
+      void marshallCloseCall(core_id_t core_id);
+      void marshallAccessCall(core_id_t core_id);
 
       //Note: These structures are shared with the MCP
    private:

@@ -44,12 +44,12 @@ Transport* Transport::getSingleton()
 
 // -- Node -- //
 
-Transport::Node::Node(SInt32 core_id)
+Transport::Node::Node(core_id_t core_id)
    : m_core_id(core_id)
 {
 }
 
-SInt32 Transport::Node::getCoreId()
+core_id_t Transport::Node::getCoreId()
 {
    return m_core_id;
 }

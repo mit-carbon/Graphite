@@ -159,7 +159,7 @@ const char *Config::getOutputFileName() const
    return m_knob_output_file.c_str();
 }
 
-void Config::updateCommToCoreMap(UInt32 comm_id, UInt32 core_id)
+void Config::updateCommToCoreMap(UInt32 comm_id, core_id_t core_id)
 {
    m_comm_to_core_map[comm_id] = core_id;
 }

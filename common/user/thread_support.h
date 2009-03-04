@@ -16,14 +16,14 @@ typedef struct
     thread_func_t func;
     void *arg;
     SInt32 requester;
-    SInt32 core_id;
+    core_id_t core_id;
 } ThreadSpawnRequest;
 
 typedef struct 
 {
     SInt32 msg_type;
     SInt32 sender;
-    SInt32 core_id;
+    core_id_t core_id;
 } ThreadJoinRequest;
 
 #endif

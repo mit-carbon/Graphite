@@ -51,7 +51,7 @@ void SimThreadManager::quitSimThreads()
 
    for (UInt32 i = 0; i < num_local_cores; i++)
    {
-      SInt32 core_id = core_list[i];
+      core_id_t core_id = core_list[i];
       pkt.receiver = core_id;
       global_node->send(core_id, &pkt, pkt.bufferSize());
    }

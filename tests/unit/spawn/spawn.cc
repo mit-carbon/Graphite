@@ -30,7 +30,7 @@ void do_a_sim()
 
    // Now bind to a core 
    fprintf(stderr, "Initializing thread.\n");
-   Sim()->getCoreManager()->initializeThread();
+   Sim()->getCoreManager()->initializeThread(0);
 
    // Grab a comm id
    fprintf(stderr, "Initializing comm id.\n");

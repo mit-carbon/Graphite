@@ -52,7 +52,7 @@ LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pt
 
 MPI_DIR = /afs/csail/group/carbon/tools/mpich2-1.0.8/install
 #export LD_LIBRARY_PATH := $(MPI_DIR)/lib  ####:$(LD_LIBRARY_PATH)
-#CC = $(MPI_DIR)/bin/mpicc
+CC = $(MPI_DIR)/bin/mpicc
 CXX = $(MPI_DIR)/bin/mpicxx
 
 spawn: $(OBJECTS) $(SUPPORT_OBJECTS)

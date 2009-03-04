@@ -18,8 +18,6 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
 
    m_master = config->getCurrentProcessNum() == 0;
 
-   m_thread_spawn_lock = Lock::create();
-
    if (m_master)
    {
       m_thread_state.resize(config->getTotalCores());
@@ -147,9 +145,9 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
       *req_cpy = *req;
 
-      m_thread_spawn_lock->acquire();
+      m_thread_spawn_lock.acquire();
       m_thread_spawn_list.push(req_cpy);
-      m_thread_spawn_lock->release();
+      m_thread_spawn_lock.release();
       m_thread_spawn_sem.signal();
    }
 
@@ -168,9 +166,9 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
    ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
    *req_cpy = *req;
 
-   m_thread_spawn_lock->acquire();
+   m_thread_spawn_lock.acquire();
    m_thread_spawn_list.push(req_cpy);
-   m_thread_spawn_lock->release();
+   m_thread_spawn_lock.release();
    m_thread_spawn_sem.signal();
 }
 
@@ -183,10 +181,10 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest **req)
    m_thread_spawn_sem.wait();
 
    // Grab the request and set the argument
-   m_thread_spawn_lock->acquire();
+   m_thread_spawn_lock.acquire();
    *req = m_thread_spawn_list.front();
    m_thread_spawn_list.pop();
-   m_thread_spawn_lock->release();
+   m_thread_spawn_lock.release();
 
    LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", (*req)->func, (*req)->arg);
 }

@@ -56,7 +56,7 @@ private:
    std::vector<ThreadState> m_thread_state;
    std::queue<ThreadSpawnRequest*> m_thread_spawn_list;
    Semaphore m_thread_spawn_sem;
-   Lock *m_thread_spawn_lock;
+   Lock m_thread_spawn_lock;
 
    CoreManager *m_core_manager;
 };

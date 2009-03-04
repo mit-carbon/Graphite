@@ -53,6 +53,11 @@ class MemoryManager
 
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
+      // knobs
+      static UInt32 m_knob_ahl_param;
+      static UInt32 m_knob_dram_access_cost;
+      static UInt32 m_knob_line_size;
+
    public:
 
       /*
@@ -109,7 +114,7 @@ class MemoryManager
          //if sent a downgrade message (E->S), but cache
          //no longer has the line, send a bit to tell dram directory
          //to remove it from the sharers' list
-         BOOL remove_from_sharers; //DEPRECATED
+         bool remove_from_sharers; //DEPRECATED
 
          AckPayload()
                : ack_new_cstate(CacheState::INVALID),

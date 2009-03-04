@@ -105,6 +105,14 @@ private:
    NetworkModelAnalyticalParameters *m_analytic_network_parms;
 
    static Config *m_singleton;
+
+   static UInt32 m_knob_total_cores;
+   static UInt32 m_knob_num_process;
+   static bool m_knob_simarch_has_shared_mem;
+   static std::string m_knob_output_file;
+   static bool m_knob_enable_performance_modeling;
+   static bool m_knob_enable_dcache_modeling;
+   static bool m_knob_enable_icache_modeling;
 };
 
 #endif

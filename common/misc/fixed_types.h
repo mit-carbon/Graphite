@@ -18,4 +18,6 @@ typedef UInt8 Boolean;
 
 typedef uintptr_t IntPtr;
 
+typedef int carbon_reg_t;
+
 #endif

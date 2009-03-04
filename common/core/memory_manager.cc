@@ -1,18 +1,24 @@
 #include "memory_manager.h"
+#include "simulator.h"
 #include "log.h"
 #define LOG_DEFAULT_RANK   (m_core->getId())
 #define LOG_DEFAULT_MODULE MMU
 
-extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
 
 using namespace std;
+
+UInt32 MemoryManager::m_knob_ahl_param;
+UInt32 MemoryManager::m_knob_dram_access_cost;
+UInt32 MemoryManager::m_knob_line_size;
 
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
 MemoryManager::MemoryManager(Core *core, OCache *ocache)
 {
+   m_knob_ahl_param = Sim()->getCfg()->GetInt("dram/ahl_param");
+   m_knob_dram_access_cost = Sim()->getCfg()->GetInt("dram/dram_access_cost");
+   m_knob_line_size = Sim()->getCfg()->GetInt("dram/line_size");
+
    LOG_ASSERT_ERROR_EXPLICIT(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(),
                              -1, PINSIM, "*ERROR* Must set dcache modeling on (-mdc) to use shared memory model.");
 
@@ -34,8 +40,8 @@ MemoryManager::MemoryManager(Core *core, OCache *ocache)
    m_dram_dir = new DramDirectory(dram_lines_per_core, m_ocache->dCacheLineSize(), m_core->getId(), Config::getSingleton()->getTotalCores(), m_core->getNetwork());
 
    //TODO bug: this may not gracefully handle cache lines that spill over from one core's dram to another
-   m_addr_home_lookup = new AddressHomeLookup(Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
-   LOG_PRINT("Creating New Addr Home Lookup Structure: %i, %i, %i", Config::getSingleton()->getTotalCores(), g_knob_ahl_param.Value(), m_core->getId());
+   m_addr_home_lookup = new AddressHomeLookup(Config::getSingleton()->getTotalCores(), m_knob_ahl_param, m_core->getId());
+   LOG_PRINT("Creating New Addr Home Lookup Structure: %i, %i, %i", Config::getSingleton()->getTotalCores(), m_knob_ahl_param, m_core->getId());
 
    Network *net = m_core->getNetwork();
    net->registerCallback(SHARED_MEM_REQ, MemoryManagerNetworkCallback, this);
@@ -663,12 +669,12 @@ void MemoryManager::createUpdatePayloadBuffer(UpdatePayload* send_payload, char*
    assert(send_payload->data_size == (payload_size - sizeof(*send_payload)));
 
    //copy data_buffer over
-   if (send_payload->data_size > g_knob_line_size)
+   if (send_payload->data_size > m_knob_line_size)
    {
       cerr << "CreateUpdatePayloadBuffer: Error\n";
    }
 
-   assert(send_payload->data_size <= g_knob_line_size);
+   assert(send_payload->data_size <= m_knob_line_size);
 
    //copy data_buffer
    if (data_buffer != NULL)
@@ -699,7 +705,7 @@ void MemoryManager::extractUpdatePayloadBuffer(NetPacket* packet, UpdatePayload*
    memcpy((void*) payload, (void*)(packet->data), sizeof(*payload));
 
    //copy data_buffer over
-   assert(payload->data_size <= g_knob_line_size);
+   assert(payload->data_size <= m_knob_line_size);
 
    assert((payload->data_size == 0) == (data_buffer == NULL));
    if (payload->data_size > 0)
@@ -711,7 +717,7 @@ void MemoryManager::extractAckPayloadBuffer(NetPacket* packet, AckPayload* paylo
 {
    memcpy((void*) payload, (void*)(packet->data), sizeof(*payload));
 
-   assert(payload->data_size <= g_knob_line_size);
+   assert(payload->data_size <= m_knob_line_size);
 
    if (payload->data_size > 0)
       memcpy((void*) data_buffer, (void*)(((char*) packet->data) + sizeof(*payload)), payload->data_size);

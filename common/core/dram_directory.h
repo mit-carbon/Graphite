@@ -123,6 +123,9 @@ class DramDirectory
       /* Added by George */
       UInt64 dramAccessCost;
 
+      UInt32 m_dram_access_cost;
+      UInt32 m_dir_max_sharers;
+
       //TODO debugAssertValidStates();
       //scan the directory occasionally for invalid state configurations.
       //can that be done here? or only in the MMU since we may need cache access.

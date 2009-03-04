@@ -60,7 +60,7 @@ CoreManager::~CoreManager()
 void CoreManager::initializeCommId(SInt32 comm_id)
 {
    UInt32 tid = getCurrentTID();
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
    LOG_ASSERT_ERROR(e.first, "*ERROR* initializeCommId: Called without binding thread to a core.");
    UInt32 core_id = e.second;
@@ -182,7 +182,7 @@ UInt32 CoreManager::getCurrentCoreID()
    UInt32 id;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
    id = (e.first == false) ? -1 : e.second;
 
    LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
@@ -195,7 +195,7 @@ Core *CoreManager::getCurrentCore()
    Core *core;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = tid_to_core_index_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : m_cores[e.second];
 
    LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
@@ -263,7 +263,7 @@ int CoreManager::registerSimMemThread()
    UInt32 tid = getCurrentTID();
 
    ScopedLock sl(*m_maps_lock);
-   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
 
    // If this thread isn't registered
    if (e.first == false)

@@ -2,13 +2,14 @@
 #include "config.h"
 #include <cassert>
 
-#include "pin.H"
+using namespace std;
+
 
 PerfModel::PerfModel(string name)
       :
       m_microop_issue_count(0),
       m_cycle_count(0),
-      m_scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID),
+      m_scoreboard(REG_LAST, k_PERFMDL_CYCLE_INVALID),
       m_name(name)
 {
    m_clock_lock = Lock::create();
@@ -45,7 +46,7 @@ void PerfModel::runDCacheWriteModel(PerfModelIntervalStat *interval_stats, REG *
 {
    interval_stats->reset();
    UInt64 max = m_cycle_count;
-   REG max_reg = LEVEL_BASE::REG_LAST;
+   REG max_reg = REG_LAST;
 
    for (UInt32 i = 0; i < numReads; i++)
    {

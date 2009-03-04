@@ -20,29 +20,20 @@ PROCESS=mpirun
 ..PHONY: process
 
 all:
-	$(MAKE) -C common 
-	$(MAKE) -C pin
-	$(MAKE) -C qemu
+	$(MAKE) -C common/user
+	$(MAKE) -C pin/src
 
-pinbin:
-	$(MAKE) -C common
-	$(MAKE) -C pin
+simlib:
+	$(MAKE) -C lib
 
-qemubin:
-	$(MAKE) -C common
-	$(MAKE) -C qemu
+spawn_unit_test:
+	$(MAKE) -C tests/unit/spawn
 
 clean:
-	$(MAKE) -C common clean
 	$(MAKE) -C pin clean
-	$(MAKE) -C qemu clean
+	$(MAKE) -C lib clean
+	$(MAKE) -C common clean
 	-rm -f *.o *.d *.rpo output_files/*
-
-squeaky: clean
-	$(MAKE) -C common squeaky
-	$(MAKE) -C pin squeaky
-	$(MAKE) -C qemu squeaky
-	-rm -f *~
 
 empty_logs :
 	rm output_files/* ; true

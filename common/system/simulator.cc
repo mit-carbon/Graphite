@@ -11,11 +11,17 @@
 #define LOG_DEFAULT_MODULE SIMULATOR
 
 Simulator *Simulator::m_singleton;
+config::Config *Simulator::m_config_file;
 
 void Simulator::allocate()
 {
    assert(m_singleton == NULL);
    m_singleton = new Simulator();
+}
+
+void Simulator::setConfig(config::Config *cfg)
+{
+   m_config_file = cfg;
 }
 
 void Simulator::release()

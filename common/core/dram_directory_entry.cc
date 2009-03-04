@@ -1,16 +1,12 @@
 #include "dram_directory_entry.h"
-
-#include "pin.H"
-
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
+#include "simulator.h"
 
 DramDirectoryEntry::DramDirectoryEntry():
       dstate(UNCACHED),
       exclusive_sharer_rank(0),
       number_of_sharers(0),
-      MAX_SHARERS(g_knob_dir_max_sharers),
-      memory_line_size(g_knob_line_size),
+      MAX_SHARERS(Sim()->getCfg()->GetInt("dram/max_sharers")),
+      memory_line_size(Sim()->getCfg()->GetInt("dram/line_size")),
       memory_line_address(0)
 {
    stat_min_sharers = 0;
@@ -23,8 +19,8 @@ DramDirectoryEntry::DramDirectoryEntry(UInt32 cache_line_addr, UInt32 number_of_
       dstate(UNCACHED),
       exclusive_sharer_rank(0),
       number_of_sharers(0),
-      MAX_SHARERS(g_knob_dir_max_sharers),
-      memory_line_size(g_knob_line_size),
+      MAX_SHARERS(Sim()->getCfg()->GetInt("dram/max_sharers")),
+      memory_line_size(Sim()->getCfg()->GetInt("dram/line_size")),
       memory_line_address(cache_line_addr)
 {
    sharers = new BitVector(number_of_cores);
@@ -43,8 +39,8 @@ DramDirectoryEntry::DramDirectoryEntry(UInt32 cache_line_addr, UInt32 number_of_
       dstate(UNCACHED),
       exclusive_sharer_rank(0),
       number_of_sharers(0),
-      MAX_SHARERS(g_knob_dir_max_sharers),
-      memory_line_size(g_knob_line_size),
+      MAX_SHARERS(Sim()->getCfg()->GetInt("dram/max_sharers")),
+      memory_line_size(Sim()->getCfg()->GetInt("dram/line_size")),
       memory_line_address(cache_line_addr)
 {
    sharers = new BitVector(number_of_cores);

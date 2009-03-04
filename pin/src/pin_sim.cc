@@ -36,9 +36,12 @@
 #include "syscall_model.h"
 #include "user_space_wrappers.h"
 #include "thread_manager.h"
+#include "config_file.hpp"
 
 #define LOG_DEFAULT_RANK    -1
 #define LOG_DEFAULT_MODULE  PINSIM
+
+config::ConfigFile *cfg;
 
 INT32 usage()
 {
@@ -109,6 +112,7 @@ void ApplicationExit(int, void*)
 {
    LOG_PRINT("Application exit.");
    Simulator::release();
+   delete cfg;
 }
 
 // void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
@@ -186,6 +190,11 @@ int main(int argc, char *argv[])
 
    if (PIN_Init(argc,argv))
       return usage();
+
+   cfg = new config::ConfigFile();
+   cfg->Load("./carbon_sim.cfg");
+
+   Simulator::setConfig(cfg);
 
    Simulator::allocate();
    Sim()->start();

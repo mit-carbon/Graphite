@@ -1,13 +1,10 @@
 #include "dram_directory.h"
-
-#include "pin.H"
+#include "simulator.h"
 
 #include "log.h"
 #define LOG_DEFAULT_RANK   dram_id
 #define LOG_DEFAULT_MODULE DRAMDIR
 
-//TODO i don't think this is used
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
 
 //LIMITED_DIRECTORY Flag
 //Dir(i)NB ; i = number of pointers
@@ -15,15 +12,15 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
 //collaspes into the full-mapped case.
 //TODO use a knob to set this instead
 //(-dms) : directory_max_sharers
-//TODO provide easy mechanism to initiate a broadcast invalidation
-// static const UInt32 MAX_SHARERS = 2;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
 
 //TODO LIST (ccelio)
 //add support for limited directory scheme.
 //supply MAX_SHARERS, evict one (LRU? Random?) to add new sharers.
 
 DramDirectory::DramDirectory(UInt32 num_lines_arg, UInt32 bytes_per_cache_line_arg, UInt32 dram_id_arg, UInt32 num_of_cores_arg, Network* network_arg)
+    : 
+        m_dram_access_cost(Sim()->getCfg()->GetInt("dram/dram_access_cost")),
+        m_dir_max_sharers(Sim()->getCfg()->GetInt("dram/max_sharers"))
 {
    m_network = network_arg;
    num_lines = num_lines_arg;
@@ -81,7 +78,7 @@ void DramDirectory::setDramMemoryLine(IntPtr addr, char* data_buffer, UInt32 dat
 //TODO can I actually have all dram requests go through the directory?
 void DramDirectory::runDramAccessModel()
 {
-   dramAccessCost += g_knob_dram_access_cost.Value();
+   dramAccessCost += m_dram_access_cost;
 }
 
 UInt64 DramDirectory::getDramAccessCost()
@@ -707,7 +704,7 @@ bool DramDirectory::debugAssertDramState(IntPtr address, DramDirectoryEntry::dst
 
    assert(memory_line_size == bytes_per_cache_line);
 
-   cerr << "Expected Data ptr = 0x" << hex << (UInt32) expected_data << endl;
+   cerr << "Expected Data ptr = 0x" << hex << (void *) expected_data << endl;
    cerr << "Actual Data: 0x";
    for (UInt32 i = 0; i < memory_line_size; i++)
    {

@@ -1,9 +1,0 @@
-# this file should contain DEBUG flags
-#CFLAGS += -DAHL_DEBUG  #address_home_lookup
-#CFLAGS += -DCDIR_DEBUG #cache_directory
-#CFLAGS += -DDRAM_DEBUG #Dram_directory
-#CFLAGS += -DNETWORK_DEBUG #network.cc
-#core debug, cache hit/miss, message sent
-#CFLAGS += -DCORE_DEBUG #core.cc, gives address trace of stores, loads
-#CFLAGS += -DMMU_DEBUG #memory_manager.cc                                                  
-#CFLAGS += -DMMU_CACHEHIT_DEBUG #memory_manager.cc, cache hits

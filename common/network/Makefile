@@ -1,5 +1,4 @@
 include ../makefile.gnu.config
-include ../makefile.debug
 
 DBG=-g
 OPT=-O2

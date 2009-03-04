@@ -1,5 +1,4 @@
 include ../common/makefile.gnu.config
-include ../common/makefile.debug
 
 bin:
 	mkdir bin

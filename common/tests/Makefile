@@ -1,4 +1,16 @@
 
+show_pwd:
+	@echo $(PWD)
+
+SIM_ROOT=$(PWD)
+
+include $(SIM_ROOT)/common/makefile.common
+include $(SIM_ROOT)/common/makefile.gnu.config
+
+PIN_BIN=$(PIN_HOME)/pin
+PIN_TOOL=pin/bin/pin_sim
+PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
+PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
 
@@ -10,7 +22,7 @@ clean:
 	$(MAKE) -C capi_worker clean
 	$(MAKE) -C pthreads_basic clean
 	$(MAKE) -C shared_mem_jacobi clean
-	rm -f *.o $(TOOLS) *.d *.rpo
+	rm -f *.o *.d *.rpo
 
 clean_benchmarks:
 	$(MAKE) -C fmm clean

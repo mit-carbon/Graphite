@@ -1,9 +1,6 @@
 
 all: $(BUILD_TARGET)
 
-include ../../makefile.gnu.config
-FORCE32 ?= 1
-
 CC = $(MPI_DIR)/bin/mpicc
 CXX = $(MPI_DIR)/bin/mpicxx
 
@@ -11,31 +8,16 @@ CXXFLAGS = -I../../user -I../../transport -I../../network -I../../misc -I../../c
 
 LDFLAGS += -lm
 
-ifeq (${FORCE32},1)
-  CXXFLAGS += -m32
-  LDFLAGS += -m32 # -m elf_i386
-else
-  CXXFLAGS += 
-  LDFLAGS += 
-endif
-
 CFLAGS = $(CXXFLAGS) -std=c99
 
 CARBON_SOURCES = ../../user/sync_api.c ../../user/capi.c ../../user/thread_support.c
 CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
 
-## Build rules
+include ../../makefile.common
 
-%.o : %.c
-	$(CC) $(CFLAGS) $(PIN_CXXFLAGS) -o $@ $<
-
-%.o : %.cc
-	$(CXX) $(CXXFLAGS) $(PIN_CXXFLAGS) -o $@ $<
-
+# Build rules
 $(BUILD_TARGET): $(OBJECTS) $(CARBON_OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $^
-
-## Cleaning
 
 clean:
 	-rm -f *.o $(TARGET) sim.out

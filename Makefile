@@ -1,15 +1,9 @@
-include common/makefile.gnu.config
 
 SIM_ROOT=$(PWD)
 
+include common/makefile.common
 include common/tests/Makefile
 
-PIN_BIN=$(PIN_HOME)/pin
-PIN_TOOL=pin/bin/pin_sim
-#PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -pause_tool 20 -mt -t $(PIN_TOOL) 
-#PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -slow_asserts -separate_memory -mt -t $(PIN_TOOL) 
-PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
-PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 TESTS_DIR=./common/tests
 
@@ -22,6 +16,7 @@ PROCESS=mpirun
 
 all:
 	$(MAKE) -C common/user
+	$(MAKE) -C lib
 	$(MAKE) -C pin/src
 
 simlib:
@@ -35,7 +30,7 @@ clean:
 	$(MAKE) -C pin clean
 	$(MAKE) -C lib clean
 	$(MAKE) -C common clean
-	-rm -f *.o *.d *.rpo output_files/*
+	-rm -f output_files/*
 
 empty_logs :
 	rm output_files/* ; true

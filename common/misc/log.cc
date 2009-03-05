@@ -97,19 +97,19 @@ UInt64 Log::getTimestamp()
    return time - _startTime;
 }
 
-void Log::discoverCore(UInt32 *core_id, bool *sim_thread)
+void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 {
    CoreManager *core_manager;
 
    if (!Sim() || !(core_manager = Sim()->getCoreManager()))
    {
-      *core_id = -1;
+      *core_id = INVALID_CORE_ID;
       *sim_thread = false;
       return;
    }
 
    *core_id = core_manager->getCurrentCoreID();
-   if (*core_id != (UInt32)-1)
+   if (*core_id != INVALID_CORE_ID)
    {
       *sim_thread = false;
       return;
@@ -122,12 +122,12 @@ void Log::discoverCore(UInt32 *core_id, bool *sim_thread)
    }
 }
 
-void Log::getFile(UInt32 core_id, bool sim_thread, FILE **file, Lock **lock)
+void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
 {
    *file = NULL;
    *lock = NULL;
 
-   if (core_id == (UInt32)-1)
+   if (core_id == INVALID_CORE_ID)
    {
       // System file -- use process num if available
       if (Config::getSingleton()->getCurrentProcessNum() != (UInt32) -1)
@@ -195,7 +195,7 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
       return;
 #endif
 
-   UInt32 core_id;
+   core_id_t core_id;
    bool sim_thread;
    discoverCore(&core_id, &sim_thread);
    
@@ -213,7 +213,7 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    std::string module = getModule(source_file);
 
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
-   if (core_id != (UInt32)-1) // valid core id
+   if (core_id != INVALID_CORE_ID) // valid core id
       fprintf(file, "%-10llu [%5d]  [%2i] [%2i]  [%s:%4d]%s", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
       fprintf(file, "%-10llu [%5d]  [%2i] [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);

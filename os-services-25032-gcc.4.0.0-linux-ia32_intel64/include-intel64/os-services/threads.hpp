@@ -47,7 +47,6 @@ public:
      * method also marks the ITHREAD object as "not active".
      */
     virtual void Exit() = 0;
-    virtual ~ITHREADS() {};
 };
 
 
@@ -96,7 +95,6 @@ public:
      *  @param[in] me   An object representing this running thread.
      */
     virtual void RunThread(ITHREAD *me) = 0;
-    virtual ~ITHREAD_RUNNER() {}
 };
 
 } // namespace

@@ -2,34 +2,15 @@
 #include "cache.h"
 #include "memory_manager.h"
 #include "core.h"
+#include "assert.h"
+#include "simulator.h"
 
-#include "pin.H"
 #include "log.h"
 
 /* ===================================================================== */
 /* Externally defined variables */
 /* ===================================================================== */
 
-extern LEVEL_BASE::KNOB<bool> g_knob_icache_ignore_size;
-extern LEVEL_BASE::KNOB<bool> g_knob_dcache_ignore_size;
-extern LEVEL_BASE::KNOB<bool> g_knob_dcache_track_loads;
-extern LEVEL_BASE::KNOB<bool> g_knob_dcache_track_stores;
-extern LEVEL_BASE::KNOB<bool> g_knob_icache_track_insts;
-
-extern LEVEL_BASE::KNOB<UInt32> g_knob_cache_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_line_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_associativity;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_mutation_interval;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_hit;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_threshold_miss;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_associativity;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dcache_max_search_depth;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_hit;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_threshold_miss;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_associativity;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth;
 
 /* =================================================== */
 /* OCache method definitions */
@@ -37,12 +18,29 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_icache_max_search_depth;
 
 OCache::OCache(std::string name, Core *core)
       :
-      m_dl1(new RRSACache(name + "_dl1", g_knob_dcache_size.Value() * k_KILO, g_knob_line_size.Value(), g_knob_dcache_associativity.Value(), g_knob_dcache_max_search_depth.Value())),
-      m_il1(new RRSACache(name + "_il1", g_knob_icache_size.Value() * k_KILO, g_knob_line_size.Value(), g_knob_icache_associativity.Value(), g_knob_icache_max_search_depth.Value())),
-      m_cache_size(g_knob_cache_size.Value() * k_KILO),
-      m_line_size(g_knob_line_size.Value()),
-      m_associativity(g_knob_associativity.Value()),
-      m_mutation_interval(g_knob_mutation_interval.Value()),
+      m_knob_dcache_track_loads(Sim()->getCfg()->GetBool("ocache/track_dcache_loads")),
+      m_knob_dcache_track_stores(Sim()->getCfg()->GetBool("ocache/track_dcache_stores")),
+      m_knob_icache_track_insts(Sim()->getCfg()->GetBool("ocache/icache_tracK_insts")),
+      m_knob_cache_size(Sim()->getCfg()->GetInt("ocache/cache_size")),
+      m_knob_line_size(Sim()->getCfg()->GetInt("ocache/line_size")),
+      m_knob_associativity(Sim()->getCfg()->GetInt("ocache/associativity")),
+      m_knob_mutation_interval(Sim()->getCfg()->GetInt("ocache/mutation_interval")),
+      m_knob_dcache_threshold_hit(Sim()->getCfg()->GetInt("ocache/dcache_threshold_hit")),
+      m_knob_dcache_threshold_miss(Sim()->getCfg()->GetInt("ocache/dcache_threshold_miss")),
+      m_knob_dcache_size(Sim()->getCfg()->GetInt("ocache/dcache_size")),
+      m_knob_dcache_associativity(Sim()->getCfg()->GetInt("ocache/dcache_associativity")),
+      m_knob_dcache_max_search_depth(Sim()->getCfg()->GetInt("ocache/dcache_max_search_depth")),
+      m_knob_icache_threshold_hit(Sim()->getCfg()->GetInt("ocache/icache_threshold_hit")),
+      m_knob_icache_threshold_miss(Sim()->getCfg()->GetInt("ocache/icache_threshold_miss")),
+      m_knob_icache_size(Sim()->getCfg()->GetInt("ocache/icache_size")),
+      m_knob_icache_associativity(Sim()->getCfg()->GetInt("ocache/icache_associativity")),
+      m_knob_icache_max_search_depth(Sim()->getCfg()->GetInt("ocache/icache_max_search_depth")),
+      m_dl1(new RRSACache(name + "_dl1", m_knob_dcache_size * k_KILO, m_knob_line_size, m_knob_dcache_associativity, m_knob_dcache_max_search_depth)),
+      m_il1(new RRSACache(name + "_il1", m_knob_icache_size * k_KILO, m_knob_line_size, m_knob_icache_associativity, m_knob_icache_max_search_depth)),
+      m_cache_size(m_knob_cache_size * k_KILO),
+      m_line_size(m_knob_line_size),
+      m_associativity(m_knob_associativity),
+      m_mutation_interval(m_knob_mutation_interval),
       m_dcache_total_accesses(0), m_dcache_total_misses(0),
       m_icache_total_accesses(0), m_icache_total_misses(0),
       m_total_resize_evictions(0),
@@ -50,14 +48,14 @@ OCache::OCache(std::string name, Core *core)
 {
 
    // limitations due to RRSACache typedef RoundRobin set template parameters
-   ASSERTX(m_associativity <= 16);
-   ASSERTX(m_line_size <= 128);
-   ASSERTX(m_dl1->getNumSets() <= 1024 && m_il1->getNumSets() <= 1024);
+   assert(m_associativity <= 16);
+   assert(m_line_size <= 128);
+   assert(m_dl1->getNumSets() <= 1024 && m_il1->getNumSets() <= 1024);
 
-   ASSERTX((m_cache_size & 1) == 0);
-   ASSERTX((m_associativity & 1) == 0);
-   ASSERTX(((g_knob_dcache_size.Value() * k_KILO) + (g_knob_icache_size.Value() * k_KILO)) == m_cache_size);
-   ASSERTX((g_knob_dcache_associativity.Value() + g_knob_icache_associativity.Value()) == m_associativity);
+   assert((m_cache_size & 1) == 0);
+   assert((m_associativity & 1) == 0);
+   assert(((m_knob_dcache_size * k_KILO) + (m_knob_icache_size * k_KILO)) == m_cache_size);
+   assert((m_knob_dcache_associativity + m_knob_icache_associativity) == m_associativity);
 
    resetIntervalCounters();
 
@@ -68,13 +66,13 @@ OCache::OCache(std::string name, Core *core)
    icache_profile.SetCounterName("icache:miss        icache:hit");
 
    CounterArray dcache_threshold;
-   dcache_threshold[k_COUNTER_HIT] = g_knob_dcache_threshold_hit.Value();
-   dcache_threshold[k_COUNTER_MISS] = g_knob_dcache_threshold_miss.Value();
+   dcache_threshold[k_COUNTER_HIT] = m_knob_dcache_threshold_hit;
+   dcache_threshold[k_COUNTER_MISS] = m_knob_dcache_threshold_miss;
    dcache_profile.SetThreshold(dcache_threshold);
 
    CounterArray icache_threshold;
-   icache_threshold[k_COUNTER_HIT] = g_knob_icache_threshold_hit.Value();
-   icache_threshold[k_COUNTER_MISS] = g_knob_icache_threshold_hit.Value();
+   icache_threshold[k_COUNTER_HIT] = m_knob_icache_threshold_hit;
+   icache_threshold[k_COUNTER_MISS] = m_knob_icache_threshold_hit;
    icache_profile.SetThreshold(icache_threshold);
 }
 
@@ -449,7 +447,7 @@ void OCache::outputSummary(ostream& out)
 
    out << dCacheStatsLong("# ", CacheBase::k_CACHE_TYPE_DCACHE);
 
-   if (g_knob_dcache_track_loads || g_knob_dcache_track_stores)
+   if (m_knob_dcache_track_loads || m_knob_dcache_track_stores)
    {
       out << "#" << endl
       << "# LOAD stats" << endl
@@ -475,7 +473,7 @@ void OCache::outputSummary(ostream& out)
 
    out << iCacheStatsLong("# ", CacheBase::k_CACHE_TYPE_ICACHE);
 
-   if (g_knob_icache_track_insts)
+   if (m_knob_icache_track_insts)
    {
       out << "#" << endl
       << "# INST stats" << endl

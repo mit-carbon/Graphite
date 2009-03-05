@@ -29,7 +29,7 @@ SyscallServer::~SyscallServer()
 }
 
 
-void SyscallServer::handleSyscall(UInt32 core_id)
+void SyscallServer::handleSyscall(core_id_t core_id)
 {
    UInt8 syscall_number;
    m_recv_buff >> syscall_number;
@@ -56,7 +56,7 @@ void SyscallServer::handleSyscall(UInt32 core_id)
    }
 }
 
-void SyscallServer::marshallOpenCall(UInt32 core_id)
+void SyscallServer::marshallOpenCall(core_id_t core_id)
 {
 
    /*
@@ -105,7 +105,7 @@ void SyscallServer::marshallOpenCall(UInt32 core_id)
       delete[] path;
 }
 
-void SyscallServer::marshallReadCall(UInt32 core_id)
+void SyscallServer::marshallReadCall(core_id_t core_id)
 {
 
    /*
@@ -144,7 +144,7 @@ void SyscallServer::marshallReadCall(UInt32 core_id)
    int bytes = read(fd, (void *) buf, count);
 
    // Copy the memory into shared mem
-   m_network.getCore()->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, (ADDRINT)dest, buf, count);
+   m_network.getCore()->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, (IntPtr)dest, buf, count);
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
@@ -163,7 +163,7 @@ void SyscallServer::marshallReadCall(UInt32 core_id)
 }
 
 
-void SyscallServer::marshallWriteCall(UInt32 core_id)
+void SyscallServer::marshallWriteCall(core_id_t core_id)
 {
 
    /*
@@ -203,7 +203,7 @@ void SyscallServer::marshallWriteCall(UInt32 core_id)
       m_recv_buff >> src_b;
       src = (char *)src_b;
 
-      m_network.getCore()->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, (ADDRINT)src, buf, count);
+      m_network.getCore()->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, (IntPtr)src, buf, count);
    }
    else
    {
@@ -230,7 +230,7 @@ void SyscallServer::marshallWriteCall(UInt32 core_id)
 }
 
 
-void SyscallServer::marshallCloseCall(UInt32 core_id)
+void SyscallServer::marshallCloseCall(core_id_t core_id)
 {
 
    /*
@@ -264,7 +264,7 @@ void SyscallServer::marshallCloseCall(UInt32 core_id)
 
 }
 
-void SyscallServer::marshallAccessCall(UInt32 core_id)
+void SyscallServer::marshallAccessCall(core_id_t core_id)
 {
    // cerr << "access syscall from: " << core_id << endl;
 

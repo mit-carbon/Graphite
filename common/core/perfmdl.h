@@ -19,16 +19,16 @@
 #include <vector>
 #include <utility>
 #include <iostream>
+#include <string>
 
 #include "fixed_types.h"
-#include "pin.H"
 #include "perfmdl_interval_stat.h"
 #include "lock.h"
+
 
 /* ===================================================================== */
 /* Performance Modeler Classes */
 /* ===================================================================== */
-
 
 // JME. FIXME. many of these members should be private.
 
@@ -36,7 +36,7 @@ class PerfModel
 {
    public:
 
-      PerfModel(string n);
+      PerfModel(std::string n);
       ~PerfModel();
 
       // The following two methods atomically update the cycle count
@@ -54,15 +54,15 @@ class PerfModel
       void runICacheModel(PerfModelIntervalStat *interval_stats);
 
       // run method which accounts for load data dependency stalls
-      void runDCacheWriteModel(PerfModelIntervalStat *interval_stats, REG *reads, UInt32 num_reads);
+      void runDCacheWriteModel(PerfModelIntervalStat *interval_stats, carbon_reg_t *reads, UInt32 num_reads);
 
       // run method which registers destination registers in the scoreboard
       void runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool dcache_load_hit,
-               REG *writes, UInt32 num_writes);
+               carbon_reg_t *writes, UInt32 num_writes);
 
 
       // this method is called at the end of simulation
-      void outputSummary(ostream& out);
+      void outputSummary(std::ostream& out);
 
    private:
       // does not include stalls
@@ -72,17 +72,16 @@ class PerfModel
       UInt64 m_cycle_count;
 
       // this is used for finding dependencies on loaded data
-      vector<UInt64> m_scoreboard;
+      std::vector<UInt64> m_scoreboard;
 
       // set for debugging purposes
-      string m_name;
+      std::string m_name;
 
       // Lock for atomically updating the clock
       Lock m_clock_lock;
 
-      // methods
-      UInt32 getInsMicroOpsCount(const INS& ins);
-};
+      static const int REG_LAST = 4096;
 
+};
 
 #endif

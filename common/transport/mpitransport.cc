@@ -61,14 +61,14 @@ Transport::Node* MpiTransport::getGlobalNode()
    return m_global_node;
 }
 
-Transport::Node* MpiTransport::createNode(SInt32 core_id)
+Transport::Node* MpiTransport::createNode(core_id_t core_id)
 {
    return new MpiNode(core_id);
 }
 
 // -- MpiNode -- //
 
-MpiTransport::MpiNode::MpiNode(SInt32 core_id)
+MpiTransport::MpiNode::MpiNode(core_id_t core_id)
    : Node(core_id)
 {
 }

@@ -19,15 +19,15 @@ class CoreManager
 
       void initializeCommId(SInt32 comm_id);
       void initializeThread();
-      void initializeThread(SInt32 core_id);
+      void initializeThread(core_id_t core_id);
       void terminateThread();
-      int registerSimMemThread();
+      core_id_t registerSimMemThread();
 
-      UInt32 getCurrentCoreID(); // id of currently active core (or -1)
-      UInt32 getCurrentSimThreadCoreID(); // id of core associated with this sim thread (or -1)
+      core_id_t getCurrentCoreID(); // id of currently active core (or INVALID_CORE_ID)
+      core_id_t getCurrentSimThreadCoreID(); // id of core associated with this sim thread (or INVALID_CORE_ID)
 
       Core *getCurrentCore();
-      Core *getCoreFromID(UInt32 id);
+      Core *getCoreFromID(core_id_t id);
       Core *getCoreFromIndex(UInt32 index);
 
       void outputSummary();

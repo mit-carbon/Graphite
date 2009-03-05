@@ -36,6 +36,9 @@
 #include "syscall_model.h"
 #include "user_space_wrappers.h"
 #include "thread_manager.h"
+#include "config_file.hpp"
+
+config::ConfigFile *cfg;
 
 INT32 usage()
 {
@@ -55,40 +58,79 @@ void routineCallback(RTN rtn, void *v)
 }
 
 // syscall model wrappers
-void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
-{
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-
-   if (core)
-      core->getSyscallMdl()->runEnter(ctx, syscall_standard);
-}
-
-void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
-{
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-
-   if (core)
-      core->getSyscallMdl()->runExit(ctx, syscall_standard);
-}
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   syscallEnterRunModel(ctxt, std);
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+
+   if (core)
+   {
+      UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctxt, std);
+      SyscallMdl::syscall_args_t args;
+      args.arg0 = PIN_GetSyscallArgument(ctxt, std, 0);
+      args.arg1 = PIN_GetSyscallArgument(ctxt, std, 1);
+      args.arg2 = PIN_GetSyscallArgument(ctxt, std, 2);
+      args.arg3 = PIN_GetSyscallArgument(ctxt, std, 3);
+      args.arg4 = PIN_GetSyscallArgument(ctxt, std, 4);
+      args.arg5 = PIN_GetSyscallArgument(ctxt, std, 5);
+      UInt8 new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
+      PIN_SetSyscallNumber(ctxt, std, new_syscall);
+   }
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   syscallExitRunModel(ctxt, std);
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+
+   if (core)
+   {
+      carbon_reg_t old_return = 
+#ifdef TARGET_IA32E
+      PIN_GetContextReg(ctxt, REG_RAX);
+#else
+      PIN_GetContextReg(ctxt, REG_EAX);
+#endif
+
+      carbon_reg_t syscall_return = core->getSyscallMdl()->runExit(old_return);
+
+#ifdef TARGET_IA32E
+      PIN_SetContextReg(ctxt, REG_RAX, syscall_return);
+#else
+      PIN_SetContextReg(ctxt, REG_EAX, syscall_return);
+#endif
+   }
 }
 
 void ApplicationStart()
 {
 }
 
+extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
+extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
+extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
+extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
+extern LEVEL_BASE::KNOB<bool> g_knob_enable_syscall_modeling;
+
+void HandleArgs()
+{
+    cfg->Set("general/total_cores", (int)g_knob_total_cores.Value());
+    cfg->Set("general/num_processes", (int)g_knob_num_process);
+    cfg->Set("general/enable_shared_mem", g_knob_simarch_has_shared_mem);
+    cfg->Set("general/enable_syscall_modeling", g_knob_simarch_has_shared_mem);
+    cfg->Set("general/enable_performance_modeling", g_knob_enable_performance_modeling);
+    cfg->Set("general/enable_dcache_modeling", g_knob_enable_dcache_modeling);
+    cfg->Set("general/enable_icache_modeling", g_knob_enable_icache_modeling);
+    cfg->Set("general/enable_syscall_modeling", g_knob_enable_syscall_modeling);
+}
+
 void ApplicationExit(int, void*)
 {
    LOG_PRINT("Application exit.");
    Simulator::release();
+   delete cfg;
 }
 
 // void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
@@ -166,14 +208,28 @@ int main(int argc, char *argv[])
    if (PIN_Init(argc,argv))
       return usage();
 
+
+   cfg = new config::ConfigFile();
+   cfg->Load("./carbon_sim.cfg");
+
+   // This sets items in the config accoring to
+   // the general pin knobs
+   HandleArgs();
+
+   Simulator::setConfig(cfg);
+
    Simulator::allocate();
    Sim()->start();
 
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
-   PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-   PIN_AddSyscallExitFunction(SyscallExit, 0);
+
+   if(cfg->GetBool("general/enable_syscall_modeling"))
+   {
+       PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+       PIN_AddSyscallExitFunction(SyscallExit, 0);
+   }
 
 //   PIN_AddThreadStartFunction(ThreadStart, 0);
 //   PIN_AddThreadFiniFunction(ThreadFini, 0);

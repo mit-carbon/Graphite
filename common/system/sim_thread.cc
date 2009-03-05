@@ -17,7 +17,7 @@ SimThread::~SimThread()
 
 void SimThread::run()
 {
-   int core_id = Sim()->getCoreManager()->registerSimMemThread();
+   core_id_t core_id = Sim()->getCoreManager()->registerSimMemThread();
    LOG_PRINT("Sim thread starting...");
 
    Network *net = Sim()->getCoreManager()->getCoreFromID(core_id)->getNetwork();

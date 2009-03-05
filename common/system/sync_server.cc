@@ -3,8 +3,6 @@
 
 using namespace std;
 
-static const core_id_t INVALID_CORE_ID = -1;
-
 struct Reply
 {
    UInt32 dummy;

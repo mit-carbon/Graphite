@@ -96,7 +96,7 @@ void SimCondBroadcast(carbon_cond_t *cond)
    if (core) core->getSyncClient()->condBroadcast(cond);
 }
 
-void SimBarrierInit(carbon_barrier_t *barrier, UINT32 count)
+void SimBarrierInit(carbon_barrier_t *barrier, UInt32 count)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    if (core) core->getSyncClient()->barrierInit(barrier, count);

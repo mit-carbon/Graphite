@@ -30,7 +30,6 @@ public:
      * This should be called after the client has completed all TCP services.
      */
     virtual void Cleanup() = 0;
-    virtual ~ITCP() {};
 };
 
 

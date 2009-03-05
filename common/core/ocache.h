@@ -19,11 +19,16 @@
 #include <sstream>
 
 #include "cache.h"
-#include "pin.H"
-#include "pin_profile.H"
 #include "memory_manager.h"
 
+#if 0
+#include "pin_types.h"
+#endif
+
+#include "pin_profile.H"
+
 class Core;
+
 
 class OCache
 {
@@ -95,6 +100,27 @@ class OCache
    private:
       typedef Cache<CACHE_SET::RoundRobin<16, 128>, 1024, 64, CACHE_ALLOC::k_STORE_ALLOCATE> RRSACache;
 
+      // knobs
+      bool m_knob_dcache_track_loads;
+      bool m_knob_dcache_track_stores;
+      bool m_knob_icache_track_insts;
+
+      UInt32 m_knob_cache_size;
+      UInt32 m_knob_line_size;
+      UInt32 m_knob_associativity;
+      UInt32 m_knob_mutation_interval;
+      UInt32 m_knob_dcache_threshold_hit;
+      UInt32 m_knob_dcache_threshold_miss;
+      UInt32 m_knob_dcache_size;
+      UInt32 m_knob_dcache_associativity;
+      UInt32 m_knob_dcache_max_search_depth;
+      UInt32 m_knob_icache_threshold_hit;
+      UInt32 m_knob_icache_threshold_miss;
+      UInt32 m_knob_icache_size;
+      UInt32 m_knob_icache_associativity;
+      UInt32 m_knob_icache_max_search_depth;
+
+
       RRSACache   *m_dl1;
       RRSACache   *m_il1;
 
@@ -154,6 +180,7 @@ class OCache
       // conceptually this is an array indexed by instruction address
       COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> dcache_profile;
       COMPRESSOR_COUNTER<IntPtr, UInt32, CounterArray> icache_profile;
+
 };
 
 #endif

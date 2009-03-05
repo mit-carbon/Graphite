@@ -123,6 +123,9 @@ class DramDirectory
       //state for re-entering the Directory
       std::map<IntPtr, DramRequestsForSingleAddress*> dram_request_list;
 
+      UInt32 m_knob_dram_access_cost;
+      UInt32 m_knob_dir_max_sharers;
+
    public:
       //is this a needed function?
       DramDirectoryEntry* getEntry(IntPtr address);

@@ -54,10 +54,10 @@ CoreManager::~CoreManager()
 void CoreManager::initializeCommId(SInt32 comm_id)
 {
    UInt32 tid = getCurrentTID();
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
    LOG_ASSERT_ERROR(e.first, "initializeCommId: Called without binding thread to a core.");
-   UInt32 core_id = e.second;
+   core_id_t core_id = e.second;
 
    UnstructuredBuffer send_buff;
    send_buff << (SInt32)LCP_MESSAGE_COMMID_UPDATE << comm_id << core_id;
@@ -88,7 +88,7 @@ void CoreManager::initializeThread()
    {
       if (tid_map[i] == UINT_MAX)
       {
-         UInt32 core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+         core_id_t core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
          tid_map[i] = tid;
          tid_to_core_index_map.insert(tid, i);
          tid_to_core_map.insert(tid, core_id);
@@ -104,7 +104,7 @@ void CoreManager::initializeThread()
    LOG_PRINT_ERROR("initializeThread - No free cores out of %d total.", Config::getSingleton()->getNumLocalCores());
 }
 
-void CoreManager::initializeThread(SInt32 core_id)
+void CoreManager::initializeThread(core_id_t core_id)
 {
    ScopedLock scoped_maps_lock(m_maps_lock);
    UInt32 tid = getCurrentTID();
@@ -114,7 +114,7 @@ void CoreManager::initializeThread(SInt32 core_id)
 
    for (unsigned int i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
-      SInt32 local_core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+      core_id_t local_core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
       if(local_core_id == core_id)
       {
          if (tid_map[i] == UINT_MAX)
@@ -167,30 +167,30 @@ void CoreManager::terminateThread()
    LOG_PRINT_ERROR("terminateThread - Thread tid: %lld not found in list.", e.second);
 }
 
-UInt32 CoreManager::getCurrentCoreID()
+core_id_t CoreManager::getCurrentCoreID()
 {
-   UInt32 id;
+   core_id_t core_id;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
-   id = (e.first == false) ? -1 : e.second;
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
+   core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
 
-   return id;
+   return core_id;
 }
 
-UInt32 CoreManager::getCurrentSimThreadCoreID()
+core_id_t CoreManager::getCurrentSimThreadCoreID()
 {
-   UInt32 id;
+   core_id_t core_id;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
-   id = (e.first == false) ? -1 : e.second;
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
+   core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
 
-   return id;
+   return core_id;
 }
 
 Core *CoreManager::getCurrentCore()
@@ -198,14 +198,14 @@ Core *CoreManager::getCurrentCore()
    Core *core;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = tid_to_core_index_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : m_cores[e.second];
 
    LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
    return core;
 }
 
-Core *CoreManager::getCoreFromID(UInt32 id)
+Core *CoreManager::getCoreFromID(core_id_t id)
 {
    Core *core = NULL;
    // Look up the index from the core list
@@ -261,12 +261,12 @@ void CoreManager::outputSummary()
    out.close();
 }
 
-int CoreManager::registerSimMemThread()
+core_id_t CoreManager::registerSimMemThread()
 {
    UInt32 tid = getCurrentTID();
 
    ScopedLock sl(m_maps_lock);
-   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
 
    // If this thread isn't registered
    if (e.first == false)
@@ -297,7 +297,7 @@ int CoreManager::registerSimMemThread()
       return simthread_tid_to_core_map.find(tid).second;
    }
 
-   return -1;
+   return INVALID_CORE_ID;
 }
 
 UInt32 CoreManager::getCurrentTID()

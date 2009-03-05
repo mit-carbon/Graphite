@@ -12,7 +12,7 @@ public:
    class MpiNode : public Node
    {
    public:
-      MpiNode(SInt32 core_id);
+      MpiNode(core_id_t core_id);
       ~MpiNode();
 
       void globalSend(SInt32, const void*, UInt32);
@@ -24,7 +24,7 @@ public:
       void send(SInt32 dest_proc, UInt32 tag, const void *buffer, UInt32 length);
    };
 
-   Node* createNode(SInt32 core_id);
+   Node* createNode(core_id_t core_id);
 
    void barrier();
    Node* getGlobalNode();

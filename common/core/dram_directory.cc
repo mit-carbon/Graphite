@@ -1,11 +1,9 @@
 #include "dram_directory.h"
 
-#include "pin.H"
-
 #include "log.h"
+#include "simulator.h"
 
 //TODO i don't think this is used
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
 
 //LIMITED_DIRECTORY Flag
 //Dir(i)NB ; i = number of pointers
@@ -15,13 +13,14 @@ extern LEVEL_BASE::KNOB<UInt32> g_knob_dram_access_cost;
 //(-dms) : directory_max_sharers
 //TODO provide easy mechanism to initiate a broadcast invalidation
 // static const UInt32 MAX_SHARERS = 2;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
 
 //TODO LIST (ccelio)
 //add support for limited directory scheme.
 //supply MAX_SHARERS, evict one (LRU? Random?) to add new sharers.
 
 DramDirectory::DramDirectory(UInt32 num_lines_arg, UInt32 bytes_per_cache_line_arg, UInt32 dram_id_arg, UInt32 num_of_cores_arg, Network* network_arg)
+    : m_knob_dram_access_cost(Sim()->getCfg()->GetInt("dram/dram_access_cost"))
+    , m_knob_dir_max_sharers(Sim()->getCfg()->GetInt("dram/max_sharers"))
 {
    m_network = network_arg;
    num_lines = num_lines_arg;

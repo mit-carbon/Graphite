@@ -21,7 +21,7 @@ public:
 
    // services
    SInt32 spawnThread(thread_func_t func, void *arg);
-   void joinThread(SInt32 core_id);
+   void joinThread(core_id_t core_id);
 
    void getThreadToSpawn(ThreadSpawnRequest **req);
 
@@ -36,10 +36,10 @@ private:
    void slaveSpawnThread(ThreadSpawnRequest*);
    void masterSpawnThreadReply(ThreadSpawnRequest*);
 
-   void masterOnThreadExit(SInt32 core_id, UInt64 time);
+   void masterOnThreadExit(core_id_t core_id, UInt64 time);
 
    void masterJoinThread(ThreadJoinRequest *req);
-   void wakeUpWaiter(SInt32 core_id);
+   void wakeUpWaiter(core_id_t core_id);
 
    struct ThreadState
    {

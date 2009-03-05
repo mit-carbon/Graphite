@@ -1,5 +1,4 @@
 include ../../makefile.gnu.config
-include ../../makefile.debug
 
 FORCE32 ?= 1
 

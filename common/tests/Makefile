@@ -44,6 +44,9 @@ build_benchmarks:
 	$(MAKE) -C water-nsquared
 	$(MAKE) -C water-spatial
 
+hello_world: all empty_logs
+	$(MAKE) -C $(TESTS_DIR)/hello_world
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/hello_world/hello_world
 
 simple_test: all empty_logs
 	$(MAKE) -C $(TESTS_DIR)/simple

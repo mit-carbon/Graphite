@@ -8,6 +8,8 @@
 #include "fixed_types.h"
 #include "lock.h"
 
+#define LOCK_LOGS
+
 class Log
 {
    public:

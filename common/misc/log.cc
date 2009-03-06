@@ -154,12 +154,9 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
 std::string Log::getModule(const char *filename)
 {
 #ifdef LOCK_LOGS
-   _modules_lock.acquire();
+   ScopedLock sl(_modules_lock);
 #endif
    std::map<const char*, std::string>::const_iterator it = _modules.find(filename);
-#ifdef LOCK_LOGS
-   _modules_lock.release();
-#endif
 
    if (it != _modules.end())
    {
@@ -182,13 +179,7 @@ std::string Log::getModule(const char *filename)
          mod.push_back(' ');
 
       pair<const char*, std::string> p(filename, mod);
-#ifdef LOCK_LOGS
-      _modules_lock.acquire();
-#endif
       _modules.insert(p);
-#ifdef LOCK_LOGS
-      _modules_lock.release();
-#endif
 
       return mod;
    }

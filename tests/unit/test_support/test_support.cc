@@ -29,6 +29,7 @@ int CarbonStartSim()
    // Now bind to a core 
    Sim()->getCoreManager()->initializeThread(0);
 
+   return 0;
 }
 
 void CarbonStopSim()

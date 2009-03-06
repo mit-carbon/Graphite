@@ -60,8 +60,11 @@ int main(int argc, char* argv[])  // main begins
 {
    CarbonStartSim();
 
-   while(1)
+   for (int i = 0; ; i++)
+   {
+       fprintf(stderr, " >>>> ITERATION %d <<<<<< \n", i);
        do_cannon(argc, argv);
+   }
 
    CarbonStopSim();
    fprintf(stderr, "done.\n");
@@ -164,10 +167,14 @@ int do_cannon(int argc, char* argv[])
 
       assert(started == 1);
 
-      CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize));
+      assert(
+         CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize))
+         == 0);
       spawner_wait_ack(tid);
 
-      CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs));
+      assert(
+         CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs))
+         == 0);
       spawner_wait_ack(tid);
 
       // Convert 1-D rank to 2-D rank
@@ -184,13 +191,17 @@ int do_cannon(int argc, char* argv[])
       by = y * blockSize;
       for (int row = 0; row < blockSize; row++)
       {
-         CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&(a[ax + row][ay]), blockSize * sizeof(float));
+         assert(
+            CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&(a[ax + row][ay]), blockSize * sizeof(float))
+            == 0);
          spawner_wait_ack(tid);
       }
 
       for (int row = 0; row < blockSize; row++)
       {
-         CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&(b[bx + row][by]), blockSize * sizeof(float));
+         assert(
+            CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&(b[bx + row][by]), blockSize * sizeof(float))
+            == 0);
          spawner_wait_ack(tid);
       }
    }
@@ -217,7 +228,9 @@ int do_cannon(int argc, char* argv[])
       float *cRow = (float*)malloc(blockSize*sizeof(float));
       for (unsigned int row = 0; row < blockSize; row++)
       {
-         CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)cRow, blockSize * sizeof(float));
+         assert(
+            CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)cRow, blockSize * sizeof(float))
+            == 0);
          spawner_send_go(tid);
 
          for (unsigned int y = 0; y < blockSize; y++) c[ax + row][by + y] = cRow[y];
@@ -255,7 +268,9 @@ void spawner_send_go(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack = 1;
-   CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack));
+   assert(
+      CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack))
+      == 0);
 #endif
 }
 
@@ -263,7 +278,9 @@ void worker_wait_go(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack;
-   CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack));
+   assert(
+      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&ack, sizeof(ack))
+      == 0);
    assert(ack == true);
 #endif
 }
@@ -272,7 +289,9 @@ void spawner_wait_ack(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack;
-   CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&ack, sizeof(ack));
+   assert(
+      CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&ack, sizeof(ack))
+      == 0);
    assert(ack == true);
 #endif
 }
@@ -281,7 +300,9 @@ void worker_send_ack(int tid)
 {
 #ifdef SEQUENTIAL
    bool ack = 1;
-   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&ack, sizeof(ack));
+   assert(
+      CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&ack, sizeof(ack))
+      == 0);
 #endif
 }
 
@@ -306,16 +327,22 @@ void* cannon(void *threadid)
    //CAPI_rank(&tid);
 
    bool started = true;
-   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started));
+   assert(
+      CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
+      == 0);
 
    fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
 
    // Initialize local variables
    unsigned int blockSize, sqrtNumProcs;
-   CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize));
+   assert(
+      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize))
+      == 0);
    worker_send_ack(tid);
 
-   CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs));
+   assert(
+      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs))
+      == 0);    
    worker_send_ack(tid);
 
    // Convert 1-D rank to 2-D rank
@@ -347,7 +374,9 @@ void* cannon(void *threadid)
    for (int x = 0; x < blockSize; x++)
    {
       aBlock[x] = (float*)malloc(blockSize*sizeof(float));
-      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)aBlock[x], blockSize * sizeof(float));
+      assert(
+         CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)aBlock[x], blockSize * sizeof(float))
+         == 0);
       worker_send_ack(tid);
    }
 
@@ -358,7 +387,9 @@ void* cannon(void *threadid)
    for (unsigned int x = 0; x < blockSize; x++)
    {
       bBlock[x] = (float*)malloc(blockSize*sizeof(float));
-      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)bBlock[x], blockSize * sizeof(float));
+      assert(
+         CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)bBlock[x], blockSize * sizeof(float))
+         == 0);
       worker_send_ack(tid);
    }
 
@@ -394,7 +425,9 @@ void* cannon(void *threadid)
             for (unsigned int y = 0; y < blockSize; y++)
             {
                debug_printf("tid # %d sending to tid # %d\n", tid, leftProc);
-               CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)leftProc, (char*)&aBlock[x][y], sizeof(float));
+               assert(
+                  CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)leftProc, (char*)&aBlock[x][y], sizeof(float))
+                  == 0);
             }
 
          // Send bBlock up
@@ -402,7 +435,9 @@ void* cannon(void *threadid)
             for (unsigned int y = 0; y < blockSize; y++)
             {
                debug_printf("tid # %d sending to tid # %d\n", tid, upProc);
-               CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)upProc, (char*)&bBlock[x][y], sizeof(float));
+               assert(
+                  CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)upProc, (char*)&bBlock[x][y], sizeof(float))
+                  == 0);
             }
 
 
@@ -411,7 +446,9 @@ void* cannon(void *threadid)
             for (unsigned int y = 0; y < blockSize; y++)
             {
                debug_printf("tid # %d receiving from tid # %d\n", tid, rightProc);
-               CAPI_message_receive_w((CAPI_endpoint_t)rightProc, (CAPI_endpoint_t)tid, (char*)&aBlock[x][y], sizeof(float));
+               assert(
+                  CAPI_message_receive_w((CAPI_endpoint_t)rightProc, (CAPI_endpoint_t)tid, (char*)&aBlock[x][y], sizeof(float))
+                  == 0);
             }
 
          // Receive bBlock from below
@@ -419,7 +456,9 @@ void* cannon(void *threadid)
             for (unsigned int y = 0; y < blockSize; y++)
             {
                debug_printf("tid # %d receiving from tid # %d\n", tid, downProc);
-               CAPI_message_receive_w((CAPI_endpoint_t)downProc, (CAPI_endpoint_t)tid, (char*)&bBlock[x][y], sizeof(float));
+               assert(
+                  CAPI_message_receive_w((CAPI_endpoint_t)downProc, (CAPI_endpoint_t)tid, (char*)&bBlock[x][y], sizeof(float))
+                  == 0);
             }
 
       } // if block ends
@@ -431,7 +470,9 @@ void* cannon(void *threadid)
    worker_wait_go(tid);
    for (unsigned int x = 0; x < blockSize; x++)
    {
-      CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&(cBlock[0][0]), blockSize * sizeof(float));
+      assert(
+         CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&(cBlock[0][0]), blockSize * sizeof(float))
+         == 0);
       worker_wait_go(tid);
    }
 

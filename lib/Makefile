@@ -30,7 +30,7 @@ CXXFLAGS+=-c -I$(SIM_ROOT)/common/user      \
           -I$(SIM_ROOT)/common/misc         \
           -I$(SIM_ROOT)/common/config       \
           -I /afs/csail/group/carbon/tools/mpich2-1.0.8/install/include/ \
-          -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD -m32 -ggdb
+          -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD -m32 -ggdb3
 
 # targets
 all: libcarbon_sim.a

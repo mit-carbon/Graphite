@@ -1,13 +1,13 @@
-#include "log.h"
-#include "config.h"
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <stdarg.h>
-#include "lock.h"
+
+#include "log.h"
+#include "config.h"
 #include "simulator.h"
 #include "core_manager.h"
 
-#define DISABLE_LOGGING
+//#define DISABLE_LOGGING
 
 using namespace std;
 
@@ -102,7 +102,7 @@ void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 
    if (!Sim() || !(core_manager = Sim()->getCoreManager()))
    {
-      *core_id = -1;
+      *core_id = INVALID_CORE_ID;
       *sim_thread = false;
       return;
    }
@@ -152,6 +152,9 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
 
 std::string Log::getModule(const char *filename)
 {
+#ifdef LOCK_LOGS
+   ScopedLock sl(_modules_lock);
+#endif
    std::map<const char*, std::string>::const_iterator it = _modules.find(filename);
 
    if (it != _modules.end())
@@ -199,6 +202,7 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    Lock *lock;
 
    getFile(core_id, sim_thread, &file, &lock);
+   int tid = syscall(__NR_gettid);
 
    lock->acquire();
 
@@ -206,11 +210,11 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
 
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
    if (core_id != INVALID_CORE_ID) // valid core id
-      fprintf(file, "%-20llu {%2i}  [%2i]  [%s:%4d]%s", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
+      fprintf(file, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), module.c_str(), source_line);
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
-      fprintf(file, "%-20llu {%2i}  [  ]  [%s:%4d]  ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+      fprintf(file, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
    else // who knows
-      fprintf(file, "%-20llu {  }  [  ]  [%s:%4d]  ", getTimestamp(), module.c_str(), source_line);
+      fprintf(file, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, module.c_str(), source_line);
 
    switch (err)
    {
@@ -260,4 +264,3 @@ void Log::notifyError()
    }
    abort();
 }
-

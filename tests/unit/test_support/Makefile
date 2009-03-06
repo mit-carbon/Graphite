@@ -1,17 +1,18 @@
 
 BUILD_32 = 1
 
-SIM_ROOT ?= $(CURDIR)/../../../
+SIM_ROOT ?= $(CURDIR)/../../..
+TEST_SUPPORT_DIR = $(SIM_ROOT)/tests/unit/test_support
 
 LD_FLAGS += -L$(SIM_ROOT)/lib 
 LD_LIBS += -pthread -lcarbon_sim
 
-SUPPORT_SOURCES = $(SIM_ROOT)/pin/src/pin_thread.cc $(SIM_ROOT)/tests/unit/test_support/test_support.cc
+SUPPORT_SOURCES = $(TEST_SUPPORT_DIR)/pthread_thread.cc $(TEST_SUPPORT_DIR)/test_support.cc
 
 SUPPORT_OBJECTS = $(SUPPORT_SOURCES:%.cc=%.o)
 
-CXXFLAGS = -I$(SIM_ROOT)/common -I$(SIM_ROOT)/pin/src -I$(SIM_ROOT)/tests/unit/test_support \
-           -c -ggdb -Wall -m32
+CXXFLAGS = -I$(SIM_ROOT)/common -I$(SIM_ROOT)/tests/unit/test_support \
+           -c -ggdb3 -Wall -m32
 
 CFLAGS = $(CXXFLAGS)
 
@@ -24,7 +25,7 @@ endif
 
 .SUFFIXES:  .o .c .h .cc
 
-$(TARGET): $(OBJECTS) $(SUPPORT_OBJECTS)
+$(TARGET): $(OBJECTS) $(SUPPORT_OBJECTS) $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS) 
 
 show_pinflags:

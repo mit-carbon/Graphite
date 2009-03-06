@@ -8,6 +8,8 @@
 #include "fixed_types.h"
 #include "lock.h"
 
+#define LOCK_LOGS
+
 class Log
 {
    public:
@@ -56,6 +58,14 @@ class Log
       UInt64 _startTime;
       std::set<std::string> _disabledModules;
       std::map<const char*, std::string> _modules;
+
+// By defining LOCK_LOGS we ensure no race conditions on the modules
+// map above, but in practice this isn't very important because the
+// modules map is written once for each file and then only read. The
+// performance hit isn't worth it.
+#ifdef LOCK_LOGS
+      Lock _modules_lock;
+#endif
       static const UInt32 MODULE_LENGTH = 10;
 
       static Log *_singleton;

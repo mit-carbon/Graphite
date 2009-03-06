@@ -7,8 +7,8 @@ using namespace config;
 int main(int argc, char **argv)
 {
     ConfigFile cfg;
-    cfg.Load("test.cfg");
+    cfg.load("test.cfg");
 
-    cout << cfg.ShowFullTree() << endl;
+    cout << cfg.showFullTree() << endl;
 }
 

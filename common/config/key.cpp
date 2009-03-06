@@ -90,7 +90,7 @@ namespace config
         return valid;
     }
 
-    bool Key::GetBool() const
+    bool Key::getBool() const
     {
         if(m_type & TYPE_BOOL_VALID)
             return m_value_b;
@@ -98,7 +98,7 @@ namespace config
             throw std::bad_cast();
     }
 
-    int Key::GetInt() const
+    int Key::getInt() const
     {
         if(m_type & TYPE_INT_VALID)
             return m_value_i;
@@ -106,12 +106,12 @@ namespace config
             throw std::bad_cast();
     }
 
-    const std::string Key::GetString() const
+    const std::string Key::getString() const
     {
         return m_value;
     }
 
-    double Key::GetFloat() const
+    double Key::getFloat() const
     {
         if(m_type & TYPE_FLOAT_VALID)
             return m_value_f;
@@ -119,24 +119,24 @@ namespace config
             throw std::bad_cast();
     }
 
-    void Key::GetValue(bool &bool_val) const
+    void Key::getValue(bool &bool_val) const
     {
-        bool_val = GetBool();
+        bool_val = getBool();
     }
 
-    void Key::GetValue(int &int_val) const
+    void Key::getValue(int &int_val) const
     {
-        int_val = GetInt();
+        int_val = getInt();
     }
 
-    void Key::GetValue(std::string &string_val) const
+    void Key::getValue(std::string &string_val) const
     {
-        string_val = GetString();
+        string_val = getString();
     }
 
-    void Key::GetValue(double &double_val) const
+    void Key::getValue(double &double_val) const
     {
-        double_val = GetFloat();
+        double_val = getFloat();
     }
 
 }//end of namespace config

@@ -12,16 +12,16 @@ namespace config
 {
 
 //This error gets thrown then the parse is unsuccessful
-class ParserError: public exception
+class parserError: public exception
 {
     public:
-    ParserError(const std::string & leftover)
+    parserError(const std::string & leftover)
         :
-            m_leftover("Parser Error: " + leftover)
+            m_leftover("parser Error: " + leftover)
     {
     }
 
-    virtual ~ParserError() throw() {}
+    virtual ~parserError() throw() {}
 
     virtual const char* what() const throw()
     {

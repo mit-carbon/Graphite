@@ -35,23 +35,23 @@ namespace config
             Key(const std::string & parentPath, const std::string & name, double value);
             //! \brief Contructor used when the copy constructor is needed
 
-            const std::string GetString() const;
+            const std::string getString() const;
             //Note: The following may throw boost::bad_lexial_cast
-            bool GetBool() const;
-            int GetInt() const;
-            double GetFloat() const;
+            bool getBool() const;
+            int getInt() const;
+            double getFloat() const;
 
-            void GetValue(bool &bool_val) const;
-            void GetValue(int &int_val) const;
-            void GetValue(std::string &string_val) const;
-            void GetValue(double &double_val) const;
+            void getValue(bool &bool_val) const;
+            void getValue(int &int_val) const;
+            void getValue(std::string &string_val) const;
+            void getValue(double &double_val) const;
 
-            bool GetFloatValid(){ return (bool)(m_type & TYPE_FLOAT_VALID); }
-            bool GetIntValid(){ return (bool)(m_type & TYPE_INT_VALID); }
-            bool GetBoolValid(){ return (bool)(m_type & TYPE_BOOL_VALID); }
-            bool GetStringValid(){ return true; }
+            bool getFloatValid(){ return (bool)(m_type & TYPE_FLOAT_VALID); }
+            bool getIntValid(){ return (bool)(m_type & TYPE_INT_VALID); }
+            bool getBoolValid(){ return (bool)(m_type & TYPE_BOOL_VALID); }
+            bool getStringValid(){ return true; }
 
-            const std::string GetName() const { return m_name; }
+            const std::string getName() const { return m_name; }
 
         private:
             const unsigned short DetermineType(std::string);

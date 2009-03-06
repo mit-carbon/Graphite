@@ -39,23 +39,24 @@ Config::Config()
 
    try
    {
-   m_knob_total_cores = Sim()->getCfg()->GetInt("general/total_cores");
-   m_knob_num_process = Sim()->getCfg()->GetInt("general/num_processes");
-   m_knob_simarch_has_shared_mem = Sim()->getCfg()->GetBool("general/enable_shared_mem");
-   m_knob_output_file = Sim()->getCfg()->GetString("general/output_file");
-   m_knob_enable_performance_modeling = Sim()->getCfg()->GetBool("general/enable_performance_modeling");
-   m_knob_enable_dcache_modeling = Sim()->getCfg()->GetBool("general/enable_dcache_modeling");
-   m_knob_enable_icache_modeling = Sim()->getCfg()->GetBool("general/enable_icache_modeling");
+   m_knob_total_cores = Sim()->getCfg()->getInt("general/total_cores");
+   m_knob_num_process = Sim()->getCfg()->getInt("general/num_processes");
+   m_knob_simarch_has_shared_mem = Sim()->getCfg()->getBool("general/enable_shared_mem");
+   m_knob_output_file = Sim()->getCfg()->getString("general/output_file");
+   m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
+   m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
+   m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
 
-   m_knob_dir_max_sharers = Sim()->getCfg()->GetInt("dram/max_sharers");
-   m_knob_cache_line_size = Sim()->getCfg()->GetInt("ocache/line_size");
-   m_knob_ahl_param = Sim()->getCfg()->GetInt("dram/ahl_param");
+   m_knob_dir_max_sharers = Sim()->getCfg()->getInt("dram/max_sharers");
+   m_knob_cache_line_size = Sim()->getCfg()->getInt("ocache/line_size");
+   m_knob_ahl_param = Sim()->getCfg()->getInt("dram/ahl_param");
    }
    catch(...)
    {
-      fprintf(stderr, "Config Error!!!\n");
       LOG_ASSERT_ERROR(false, "Config obtained a bad value from config.");
    }
+
+   fprintf(stderr, "Output File: %s\n", m_knob_output_file.c_str());
 
    m_num_processes = m_knob_num_process;
    m_total_cores = m_knob_total_cores;

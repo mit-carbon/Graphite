@@ -14,9 +14,9 @@ MemoryManager::MemoryManager(SInt32 core_id, Network *network, OCache *ocache)
 {
    try
    {
-   m_knob_ahl_param = Sim()->getCfg()->GetInt("dram/ahl_param");
-   m_knob_dram_access_cost = Sim()->getCfg()->GetInt("dram/dram_access_cost");
-   m_knob_line_size = Sim()->getCfg()->GetInt("ocache/line_size");
+   m_knob_ahl_param = Sim()->getCfg()->getInt("dram/ahl_param");
+   m_knob_dram_access_cost = Sim()->getCfg()->getInt("dram/dram_access_cost");
+   m_knob_line_size = Sim()->getCfg()->getInt("ocache/line_size");
    }
    catch(...)
    {

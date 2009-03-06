@@ -116,14 +116,14 @@ extern LEVEL_BASE::KNOB<bool> g_knob_enable_syscall_modeling;
 
 void HandleArgs()
 {
-    cfg->Set("general/total_cores", (int)g_knob_total_cores.Value());
-    cfg->Set("general/num_processes", (int)g_knob_num_process);
-    cfg->Set("general/enable_shared_mem", g_knob_simarch_has_shared_mem);
-    cfg->Set("general/enable_syscall_modeling", g_knob_simarch_has_shared_mem);
-    cfg->Set("general/enable_performance_modeling", g_knob_enable_performance_modeling);
-    cfg->Set("general/enable_dcache_modeling", g_knob_enable_dcache_modeling);
-    cfg->Set("general/enable_icache_modeling", g_knob_enable_icache_modeling);
-    cfg->Set("general/enable_syscall_modeling", g_knob_enable_syscall_modeling);
+    cfg->set("general/total_cores", (int)g_knob_total_cores.Value());
+    cfg->set("general/num_processes", (int)g_knob_num_process);
+    cfg->set("general/enable_shared_mem", g_knob_simarch_has_shared_mem);
+    cfg->set("general/enable_syscall_modeling", g_knob_simarch_has_shared_mem);
+    cfg->set("general/enable_performance_modeling", g_knob_enable_performance_modeling);
+    cfg->set("general/enable_dcache_modeling", g_knob_enable_dcache_modeling);
+    cfg->set("general/enable_icache_modeling", g_knob_enable_icache_modeling);
+    cfg->set("general/enable_syscall_modeling", g_knob_enable_syscall_modeling);
 }
 
 void ApplicationExit(int, void*)
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 
 
    cfg = new config::ConfigFile();
-   cfg->Load("./carbon_sim.cfg");
+   cfg->load("./carbon_sim.cfg");
 
    // This sets items in the config accoring to
    // the general pin knobs
@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
 
-   if(cfg->GetBool("general/enable_syscall_modeling"))
+   if(cfg->getBool("general/enable_syscall_modeling"))
    {
        PIN_AddSyscallEntryFunction(SyscallEntry, 0);
        PIN_AddSyscallExitFunction(SyscallExit, 0);

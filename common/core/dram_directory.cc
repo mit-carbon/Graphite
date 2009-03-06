@@ -23,8 +23,8 @@ DramDirectory::DramDirectory(SInt32 core_id, Network* network)
 {
    try
    {
-      m_knob_dram_access_cost = Sim()->getCfg()->GetInt("dram/dram_access_cost");
-      m_knob_dir_max_sharers = Sim()->getCfg()->GetInt("dram/max_sharers");
+      m_knob_dram_access_cost = Sim()->getCfg()->getInt("dram/dram_access_cost");
+      m_knob_dir_max_sharers = Sim()->getCfg()->getInt("dram/max_sharers");
    }
    catch(...)
    {

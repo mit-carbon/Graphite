@@ -1,8 +1,5 @@
 
-ifeq ($(SIM_ROOT),)
-SIM_ROOT = $(CURDIR)/../../../
-endif
-
+SIM_ROOT ?= $(CURDIR)/../../../
 
 SOURCES = spawn.cc
 OBJECTS = $(SOURCES:%.cc=%.o)

@@ -1,10 +1,10 @@
 
-ifeq ($(SIM_ROOT),)
-   # SIM_ROOT=$(PWD)/../
-   SIM_ROOT=$(PWD)/
-endif
+SIM_ROOT ?= $(PWD)/
 
+CLEAN=$(findstring clean,$(MAKECMDGOALS))
+ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/makefile.common
+endif
 
 # Grab all c/c++ files from subdirs
 C_SOURCES = 
@@ -38,6 +38,9 @@ all: libcarbon_sim.a
 libcarbon_sim.a: $(OBJECTS)
 	ar rcs $@ $^
 
+ifneq ($(CLEAN),)
 clean:
-	-rm libcarbon_sim.a
+	-rm -f libcarbon_sim.a $(OBJECTS)
+endif
+
 

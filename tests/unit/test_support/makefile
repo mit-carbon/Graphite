@@ -1,9 +1,7 @@
 
 BUILD_32 = 1
 
-ifeq ($(SIM_ROOT),)
-SIM_ROOT = $(CURDIR)/../../../
-endif
+SIM_ROOT ?= $(CURDIR)/../../../
 
 LD_FLAGS += -L$(SIM_ROOT)/lib 
 LD_LIBS += -pthread -lcarbon_sim

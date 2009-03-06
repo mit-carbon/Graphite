@@ -1,10 +1,12 @@
 
+SIM_ROOT ?= $(CURDIR)/../../
+
 all: $(BUILD_TARGET)
 
 CC = $(MPI_DIR)/bin/mpicc
 CXX = $(MPI_DIR)/bin/mpicxx
 
-CXXFLAGS = -I../../user -I../../transport -I../../network -I../../misc -I../../core -I../../../pin/src -c -g -Wall 
+CXXFLAGS = -I$(SIM_ROOT)/common -c -g -Wall 
 
 LDFLAGS += -lm
 
@@ -13,12 +15,17 @@ CFLAGS = $(CXXFLAGS) -std=c99
 CARBON_SOURCES = ../../user/sync_api.c ../../user/capi.c ../../user/thread_support.c
 CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
 
+CLEAN=$(findstring clean,$(MAKECMDGOALS))
+ifeq ($(CLEAN),)
 include ../../makefile.common
+endif
 
 # Build rules
 $(BUILD_TARGET): $(OBJECTS) $(CARBON_OBJECTS)
 	$(CC) -pthread $(LDFLAGS) -o $@ $^
 
+ifneq ($(CLEAN),)
 clean:
 	-rm -f *.o $(TARGET) sim.out
+endif
 

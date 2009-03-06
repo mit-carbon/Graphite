@@ -65,7 +65,7 @@ public:
 
    // For mapping between user-land communication id's to actual core id's
    void updateCommToCoreMap(UInt32 comm_id, core_id_t core_id);
-   UInt32 getCoreFromCommId(UInt32 comm_id); 
+   UInt32 getCoreFromCommId(UInt32 comm_id);
 
    // Fills in an array with the models for each static network
    void getNetworkModels(UInt32 *) const;

@@ -1,9 +1,14 @@
 
-SIM_ROOT=$(PWD)
+SIM_ROOT ?= $(CURDIR)
 
+# if we are running the 'clean' target
+# then don't include other files (which define clean)
+# we simply use or own clean defined below
+CLEAN=$(findstring clean,$(MAKECMDGOALS))
+ifeq ($(CLEAN),)
 include common/makefile.common
 include common/tests/Makefile
-
+endif
 
 TESTS_DIR=./common/tests
 
@@ -22,15 +27,21 @@ all:
 simlib:
 	$(MAKE) -C lib
 
+cannon_unit_test: simlib
+	$(MAKE) -C tests/unit/cannon
+	./tests/unit/cannon/cannon -m 4 -s 4
+
 spawn_unit_test: simlib
 	$(MAKE) -C tests/unit/spawn
 	./tests/unit/spawn/spawn
 
+ifneq ($(CLEAN),)
 clean:
 	$(MAKE) -C pin clean
 	$(MAKE) -C lib clean
 	$(MAKE) -C common clean
 	-rm -f output_files/*
+endif
 
 empty_logs :
 	rm output_files/* ; true

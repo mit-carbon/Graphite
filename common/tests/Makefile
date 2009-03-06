@@ -1,12 +1,13 @@
 
-show_pwd:
-	@echo $(PWD)
 
-SIM_ROOT=$(PWD)
+SIM_ROOT ?= $(CURDIR)/../../
 
-include $(SIM_ROOT)/common/makefile.common
-include $(SIM_ROOT)/common/makefile.gnu.config
-
+TMP=$(shell uname -m)
+ifeq (${TMP},x86_64)
+  PIN_HOME ?= /afs/csail/group/carbon/tools/pin/pin-2.5-24110-gcc.4.0.0-ia32_intel64-linux
+else
+  PIN_HOME ?= /afs/csail/group/carbon/tools/pin/pin-2.5-24110-gcc.4.0.0-ia32_intel64-linux
+endif
 PIN_BIN=$(PIN_HOME)/pin
 PIN_TOOL=pin/bin/pin_sim
 PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 

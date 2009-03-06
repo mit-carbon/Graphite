@@ -8,5 +8,5 @@ LDFLAGS=
 SOURCES = syscall_server.cc mcp.cc sync_client.cc sync_server.cc network_model_analytical_server.cc lcp.cc simulator.cc sim_thread.cc core_manager.cc sim_thread_manager.cc thread_manager.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-include ../makefile.common
+include ../Makefile.common
 

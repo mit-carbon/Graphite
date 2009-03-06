@@ -33,6 +33,12 @@ extern "C"
    CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t send_endpoint, CAPI_endpoint_t receive_endpoint,
                                         char * buffer, int size);
 
+enum {
+    CAPI_StatusOk,
+    CAPI_SenderNotInitialized,
+    CAPI_ReceiverNotInitialized
+};
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,8 +1,9 @@
 
 SIM_ROOT ?= $(CURDIR)/../../../
 
-SOURCES = spawn.cc
+SOURCES = cannon.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
-TARGET = spawn
+TARGET = cannon
 
 include $(CURDIR)/../test_support/makefile
+

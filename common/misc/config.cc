@@ -167,6 +167,6 @@ void Config::updateCommToCoreMap(UInt32 comm_id, core_id_t core_id)
 UInt32 Config::getCoreFromCommId(UInt32 comm_id)
 {
    CommToCoreMap::iterator it = m_comm_to_core_map.find(comm_id);
-   LOG_ASSERT_ERROR(it != m_comm_to_core_map.end(), "Lookup on comm_id: %d not found.", comm_id);
-   return it->second;
+   return it == m_comm_to_core_map.end() ? INVALID_CORE_ID : it->second;
 }
+

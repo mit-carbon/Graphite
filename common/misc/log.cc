@@ -163,6 +163,11 @@ std::string Log::getModule(const char *filename)
       // build module string
       string mod;
 
+      // find actual file name ...
+      const char *ptr = strrchr(filename, '/');
+      if (ptr != NULL)
+         filename = ptr + 1;
+
       for (UInt32 i = 0; i < MODULE_LENGTH && filename[i] != '\0'; i++)
          mod.push_back(filename[i]);
 

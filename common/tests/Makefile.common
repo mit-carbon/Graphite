@@ -17,7 +17,7 @@ CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
-include ../../makefile.common
+include ../../Makefile.common
 endif
 
 # Build rules

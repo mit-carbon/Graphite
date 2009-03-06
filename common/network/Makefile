@@ -8,5 +8,5 @@ LDFLAGS=
 SOURCES = network.cc network_model.cc network_model_analytical.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-include ../makefile.common
+include ../Makefile.common
 

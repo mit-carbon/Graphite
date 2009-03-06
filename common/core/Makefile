@@ -7,5 +7,5 @@ LDFLAGS=
 SOURCES = cache.cc ocache.cc perfmdl.cc core.cc memory_manager.cc address_home_lookup.cc dram_directory.cc dram_directory_entry.cc syscall_model.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-include ../makefile.common
+include ../Makefile.common
 

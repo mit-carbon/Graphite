@@ -13,5 +13,5 @@ CPP_SOURCES =
 
 OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o)
 
-include ../makefile.common
+include ../Makefile.common
 

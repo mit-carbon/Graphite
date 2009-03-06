@@ -8,5 +8,5 @@ LDFLAGS=
 SOURCES = utils.cc config.cc bit_vector.cc packetize.cc basic_hash.cc lockfree_hash.cc locked_hash.cc semaphore.cc cond.cc log.cc lock.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-include ../makefile.common
+include ../Makefile.common
 

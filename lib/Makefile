@@ -3,7 +3,7 @@ SIM_ROOT ?= $(PWD)/
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
-include $(SIM_ROOT)/common/makefile.common
+include $(SIM_ROOT)/common/Makefile.common
 endif
 
 # Grab all c/c++ files from subdirs

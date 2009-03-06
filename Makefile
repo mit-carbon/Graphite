@@ -6,7 +6,7 @@ SIM_ROOT ?= $(CURDIR)
 # we simply use or own clean defined below
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
-include common/makefile.common
+include common/Makefile.common
 include common/tests/Makefile
 endif
 

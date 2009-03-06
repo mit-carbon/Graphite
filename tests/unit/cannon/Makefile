@@ -4,8 +4,9 @@ SIM_ROOT = $(CURDIR)/../../../
 endif
 
 
-SOURCES = spawn.cc
+SOURCES = cannon.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
-TARGET = spawn
+TARGET = cannon
 
 include $(CURDIR)/../test_support/makefile
+

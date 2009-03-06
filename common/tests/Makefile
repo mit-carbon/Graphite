@@ -1,6 +1,6 @@
 
 SIM_ROOT ?= $(CURDIR)/../../
-TESTS_DIR = $(CURDIR)
+TESTS_DIR = $(SIM_ROOT)/common/tests/
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 TMP=$(shell uname -m)
@@ -19,7 +19,10 @@ PIN_TOOL=$(SIM_ROOT)/pin/bin/pin_sim
 PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
-regress_quick: clean simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
+regress_quick: clean_sim simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
+
+clean_sim:
+	$(MAKE) -C $(SIM_ROOT) clean
 
 regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick 
 
@@ -29,7 +32,10 @@ clean:
 	$(MAKE) -C ping_pong clean
 	$(MAKE) -C capi_worker clean
 	$(MAKE) -C pthreads_basic clean
-	$(MAKE) -C shared_mem_jacobi clean
+	$(MAKE) -C ping_pong clean
+	$(MAKE) -C hello_world clean
+	$(MAKE) -C mutex clean
+	$(MAKE) -C barrier clean
 	rm -f *.o *.d *.rpo
 endif
 
@@ -84,7 +90,7 @@ cannon_msg_dist: sim
 
 ring_msg_pass: sim 
 	$(MAKE) -C $(TESTS_DIR)/ring_msg_pass
-	$(MPI_DIR)/bin/mpirun -np $(TOTAL_CORES) $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np $(TOTAL_CORES) -tc $(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
 
 io_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/file_io

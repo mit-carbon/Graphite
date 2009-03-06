@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=spawn_join
 
 C_SOURCES = spawn_join.c

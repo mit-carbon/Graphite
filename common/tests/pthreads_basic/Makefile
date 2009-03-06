@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=basic
 
 C_SOURCES = 

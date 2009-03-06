@@ -17,6 +17,9 @@ config::ConfigFile cfg;
 int CarbonStartSim()
 {
    cfg.Load("carbon_sim.cfg");
+
+   cfg.Set("general/enable_shared_mem", true);
+
    Simulator::setConfig(&cfg);
 
    Simulator::allocate();

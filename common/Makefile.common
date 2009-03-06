@@ -1,5 +1,6 @@
 
 SIM_ROOT ?= $(CURDIR)/../
+CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0
@@ -61,6 +62,8 @@ endif
 # targets
 all: $(OBJECTS)
 
+ifneq ($(CLEAN),)
 clean:
 	-rm -f *.o *.d
+endif
 

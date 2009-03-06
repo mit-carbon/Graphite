@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=barrier_test
 
 C_SOURCES = barrier_test.c

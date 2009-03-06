@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=jacobi
 
 C_SOURCES = jacobi.c

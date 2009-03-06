@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=hello_world
 
 C_SOURCES = hello_world.c

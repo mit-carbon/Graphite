@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=dynamic_threads
 
 C_SOURCES = dynamic_threads.c

@@ -50,7 +50,6 @@ run_mpd:
 stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit
 
-
 love:
 	@echo "not war!"
 

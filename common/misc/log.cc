@@ -3,12 +3,11 @@
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <stdarg.h>
-
-// FIXME: See note below.
+#include "lock.h"
 #include "simulator.h"
 #include "core_manager.h"
 
-//#define DISABLE_LOGGING
+#define DISABLE_LOGGING
 
 using namespace std;
 
@@ -103,7 +102,7 @@ void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 
    if (!Sim() || !(core_manager = Sim()->getCoreManager()))
    {
-      *core_id = INVALID_CORE_ID;
+      *core_id = -1;
       *sim_thread = false;
       return;
    }
@@ -203,7 +202,6 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    Lock *lock;
 
    getFile(core_id, sim_thread, &file, &lock);
-   int tid = syscall(__NR_gettid);
 
    lock->acquire();
 
@@ -265,3 +263,4 @@ void Log::notifyError()
    }
    abort();
 }
+

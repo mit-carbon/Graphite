@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=ring
 C_SOURCES = ring.c
 CPP_SOURCES = 

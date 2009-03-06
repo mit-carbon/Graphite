@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=ping_pong
 
 C_SOURCES = 

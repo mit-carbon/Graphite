@@ -144,7 +144,7 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
    int bytes = read(fd, (void *) buf, count);
 
    // Copy the memory into shared mem
-   m_network.getCore()->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_STORE, (IntPtr)dest, buf, count);
+   m_network.getCore()->accessMemory(CacheBase::k_ACCESS_TYPE_STORE, (IntPtr)dest, buf, count);
 
    //cerr << "fd: " << fd << endl;
    //cerr << "buf: " << buf << endl;
@@ -203,7 +203,7 @@ void SyscallServer::marshallWriteCall(core_id_t core_id)
       m_recv_buff >> src_b;
       src = (char *)src_b;
 
-      m_network.getCore()->getOCache()->runDCacheModel(CacheBase::k_ACCESS_TYPE_LOAD, (IntPtr)src, buf, count);
+      m_network.getCore()->accessMemory(CacheBase::k_ACCESS_TYPE_LOAD, (IntPtr)src, buf, count);
    }
    else
    {

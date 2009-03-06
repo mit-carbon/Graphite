@@ -23,25 +23,10 @@ class CacheState
       {
          return (cstate == EXCLUSIVE) || (cstate == SHARED);
       }
+      
       bool writable()
       {
          return (cstate == EXCLUSIVE);
-      }
-
-      string toString()
-      {
-         switch (cstate)
-         {
-         case INVALID:
-            return   "INVALID  ";
-         case EXCLUSIVE:
-            return "EXCLUSIVE";
-         case SHARED:
-            return    "SHARED   ";
-         default:
-            return "ERROR: BAD CACHE STATE";
-         }
-         return "ERROR: BAD CACHE STATE out of default";
       }
 
       static string cStateToString(cstate_t state)
@@ -49,11 +34,11 @@ class CacheState
          switch (state)
          {
          case INVALID:
-            return   "INVALID  ";
+            return "INVALID  ";
          case EXCLUSIVE:
             return "EXCLUSIVE";
          case SHARED:
-            return    "SHARED   ";
+            return "SHARED   ";
          default:
             return "ERROR: BAD CACHE STATE";
          }

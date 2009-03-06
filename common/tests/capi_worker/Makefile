@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=capi_worker
 
 C_SOURCES = capi_worker.c

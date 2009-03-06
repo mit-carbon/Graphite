@@ -2,25 +2,15 @@
 #define MEMORY_MANAGER_H
 
 #include <string>
-#include <sstream>
-#include <iostream>
-#include <queue>
-#include <math.h>
+#include <cassert>
 
-#include "assert.h"
+#include "network.h"
 #include "packet_type.h"
 #include "core.h"
 #include "ocache.h"
 #include "address_home_lookup.h"
 #include "cache_state.h"
 #include "cond.h"
-
-// some forward declarations for cross includes
-class Core;
-class DramDirectory;
-
-class NetPacket;
-class NetMatch;
 
 // TODO: move this into MemoryManager class?
 enum shmem_req_t
@@ -31,36 +21,11 @@ enum shmem_req_t
    NUM_STATES
 };
 
-#include "dram_directory.h"
-#include "dram_directory_entry.h"
-#include "network.h"
+class DramDirectory;
 
 class MemoryManager
 {
    public:
-      struct RequestPayload;
-      struct AckPayload;
-      struct UpdatePayload;
-
-
-   private:
-      Core *m_core;
-      OCache *m_ocache;
-      DramDirectory *m_dram_dir;
-      AddressHomeLookup *m_addr_home_lookup;
-
-      ConditionVariable m_mmu_cond;
-      volatile bool m_received_reply; 
-
-      void debugPrintReqPayload(MemoryManager::RequestPayload payload);
-
-      // knobs
-      static UInt32 m_knob_ahl_param;
-      static UInt32 m_knob_dram_access_cost;
-      static UInt32 m_knob_line_size;
-
-   public:
-
       /*
        * memory coherency message payloads can vary depending
        * on the type of message that needs to be seen
@@ -109,6 +74,7 @@ class MemoryManager
          IntPtr ack_address;
          UInt32 data_size; //this is used to tell us how much data to extract
          bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
+
          //if sent a downgrade message (E->S), but cache
          //no longer has the line, send a bit to tell dram directory
          //to remove it from the sharers' list
@@ -123,29 +89,53 @@ class MemoryManager
          {}
       };
 
-      MemoryManager(Core *core, OCache *ocache);
+   private:
+      SInt32 m_core_id;
+
+      Network *m_network;
+      OCache *m_ocache;
+      DramDirectory *m_dram_dir;
+      AddressHomeLookup *m_addr_home_lookup;
+
+      ConditionVariable m_mmu_cond;
+      volatile bool m_received_reply;
+
+      UInt32 m_cache_line_size;
+
+      bool actionPermissable(CacheState cache_state, shmem_req_t shmem_req_t);
+
+      void debugPrintReqPayload(MemoryManager::RequestPayload payload);
+
+      // knobs
+      static UInt32 m_knob_ahl_param;
+      static UInt32 m_knob_dram_access_cost;
+      static UInt32 m_knob_line_size;
+
+   public:
+
+      MemoryManager(SInt32 core_id, Network *network, OCache *ocache);
       virtual ~MemoryManager();
 
-      DramDirectory* getDramDirectory() { return m_dram_dir;}
+      DramDirectory* getDramDirectory() { return m_dram_dir; }
 
       //cache interfacing functions.
       void setCacheLineInfo(IntPtr ca_address, CacheState::cstate_t new_cstate);
       pair<bool, CacheTag*> getCacheLineInfo(IntPtr address);
-      void accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, char* data_buffer, UInt32 data_size);
-      void fillCacheLineData(IntPtr ca_address, char* fill_buffer);
+      void accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, Byte* data_buffer, UInt32 data_size);
+      void fillCacheLineData(IntPtr ca_address, Byte* fill_buffer);
       void invalidateCacheLine(IntPtr address);
 
-      static void createUpdatePayloadBuffer(UpdatePayload* send_payload, char *data_buffer, char *payload_buffer, UInt32 payload_size);
-      static void createAckPayloadBuffer(AckPayload* send_payload, char *data_buffer, char *payload_buffer, UInt32 payload_size);
-      static void extractUpdatePayloadBuffer(NetPacket* packet, UpdatePayload* payload, char* data_buffer);
-      static void extractAckPayloadBuffer(NetPacket* packet, AckPayload* payload, char* data_buffer);
+      static void createUpdatePayloadBuffer(UpdatePayload* send_payload, Byte *data_buffer, Byte *payload_buffer, UInt32 payload_size);
+      static void createAckPayloadBuffer(AckPayload* send_payload, Byte *data_buffer, Byte *payload_buffer, UInt32 payload_size);
+      static void extractUpdatePayloadBuffer(NetPacket* packet, UpdatePayload* payload, Byte* data_buffer);
+      static void extractAckPayloadBuffer(NetPacket* packet, AckPayload* payload, Byte* data_buffer);
       static void extractRequestPayloadBuffer(NetPacket* packet, RequestPayload* payload);
 
-      static NetPacket makePacket(PacketType packet_type, char* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank);
+      static NetPacket makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank);
       static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 
       //core traps all memory accesses here.
-      bool initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, char* data_buffer, UInt32 buffer_size);
+      bool initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size);
 
       //request from DRAM permission to use an address
       //writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end
@@ -171,14 +161,12 @@ class MemoryManager
 
       // Process Initial Shared Memory Request
       void processSharedMemInitialReq (NetPacket rep_packet);
-      
+
       //debugging stuff
       static string sMemReqTypeToString(shmem_req_t type);
-      void debugSetDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
-      bool debugAssertDramState(IntPtr addr, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data);
-      void debugSetCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data);
-      bool debugAssertCacheState(IntPtr address, CacheState::cstate_t expected_cstate, char *expected_data);
-   
+
 };
+
+#include "dram_directory.h"
 
 #endif

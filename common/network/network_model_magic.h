@@ -6,7 +6,9 @@
 
 class NetworkModelMagic : public NetworkModel
 {
+   private:
       UInt64 _bytesSent;
+
    public:
       NetworkModelMagic(Network *net) : NetworkModel(net), _bytesSent(0) { }
       ~NetworkModelMagic() { }

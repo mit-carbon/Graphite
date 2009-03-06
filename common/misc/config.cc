@@ -18,6 +18,10 @@ bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_dcache_modeling;
 bool Config::m_knob_enable_icache_modeling;
 
+UInt32 Config::m_knob_dir_max_sharers;
+UInt32 Config::m_knob_cache_line_size;
+UInt32 Config::m_knob_ahl_param;
+
 using namespace std;
 
 Config *Config::m_singleton;
@@ -33,6 +37,8 @@ Config::Config()
         m_current_process_num((UInt32)-1)
 {
 
+   try
+   {
    m_knob_total_cores = Sim()->getCfg()->GetInt("general/total_cores");
    m_knob_num_process = Sim()->getCfg()->GetInt("general/num_processes");
    m_knob_simarch_has_shared_mem = Sim()->getCfg()->GetBool("general/enable_shared_mem");
@@ -40,6 +46,17 @@ Config::Config()
    m_knob_enable_performance_modeling = Sim()->getCfg()->GetBool("general/enable_performance_modeling");
    m_knob_enable_dcache_modeling = Sim()->getCfg()->GetBool("general/enable_dcache_modeling");
    m_knob_enable_icache_modeling = Sim()->getCfg()->GetBool("general/enable_icache_modeling");
+
+   m_knob_dir_max_sharers = Sim()->getCfg()->GetInt("dram/max_sharers");
+   m_knob_cache_line_size = Sim()->getCfg()->GetInt("ocache/line_size");
+   m_knob_ahl_param = Sim()->getCfg()->GetInt("dram/ahl_param");
+   }
+   catch(...)
+   {
+      fprintf(stderr, "Config Error!!!\n");
+      LOG_ASSERT_ERROR(false, "Config obtained a bad value from config.");
+   }
+
    m_num_processes = m_knob_num_process;
    m_total_cores = m_knob_total_cores;
 
@@ -146,6 +163,21 @@ bool Config::getEnableDCacheModeling() const
 bool Config::getEnableICacheModeling() const
 {
    return (bool)m_knob_enable_icache_modeling;
+}
+
+UInt32 Config::getDirMaxSharers() const
+{
+   return (UInt32) m_knob_dir_max_sharers;
+}
+
+UInt32 Config::getCacheLineSize() const
+{
+   return (UInt32) m_knob_cache_line_size;
+}
+
+UInt32 Config::getAHLParam() const
+{
+   return (UInt32) m_knob_ahl_param;
 }
 
 void Config::getDisabledLogModules(set<string> &mods) const

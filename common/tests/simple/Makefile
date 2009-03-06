@@ -1,7 +1,4 @@
-ifeq ($(SIM_ROOT),)
-SIM_ROOT=$(CURDIR)/../../../
-endif
-
+SIM_ROOT ?= $(CURDIR)/../../../
 BUILD_TARGET=simple_test
 
 C_SOURCES = simple_test.c

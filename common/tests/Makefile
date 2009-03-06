@@ -58,6 +58,10 @@ sim:
 	$(MAKE) -C $(SIM_ROOT)/pin/src
 	$(MAKE) -C $(SIM_ROOT) 
 
+hello_world: sim
+	$(MAKE) -C $(TESTS_DIR)/hello_world
+	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/hello_world/hello_world
+
 simple_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/simple
 	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test

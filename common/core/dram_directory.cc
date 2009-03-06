@@ -7,8 +7,9 @@
 
 //LIMITED_DIRECTORY Flag
 //Dir(i)NB ; i = number of pointers
-//if MAX_SHARERS >= total number of cores, then the directory
+//if max_sharers >= total number of cores, then the directory
 //collaspes into the full-mapped case.
+
 //TODO use a knob to set this instead
 //(-dms) : directory_max_sharers
 //TODO provide easy mechanism to initiate a broadcast invalidation
@@ -18,17 +19,30 @@
 //add support for limited directory scheme.
 //supply MAX_SHARERS, evict one (LRU? Random?) to add new sharers.
 
-DramDirectory::DramDirectory(UInt32 num_lines_arg, UInt32 bytes_per_cache_line_arg, UInt32 dram_id_arg, UInt32 num_of_cores_arg, Network* network_arg)
-    : m_knob_dram_access_cost(Sim()->getCfg()->GetInt("dram/dram_access_cost"))
-    , m_knob_dir_max_sharers(Sim()->getCfg()->GetInt("dram/max_sharers"))
+DramDirectory::DramDirectory(SInt32 core_id, Network* network)
 {
-   m_network = network_arg;
-   num_lines = num_lines_arg;
-   number_of_cores = num_of_cores_arg;
-   dram_id = dram_id_arg;
-   bytes_per_cache_line = bytes_per_cache_line_arg;
+   try
+   {
+      m_knob_dram_access_cost = Sim()->getCfg()->GetInt("dram/dram_access_cost");
+      m_knob_dir_max_sharers = Sim()->getCfg()->GetInt("dram/max_sharers");
+   }
+   catch(...)
+   {
+      LOG_ASSERT_ERROR(false, "DramDirectory obtained a bad value from config.");
+   }
 
-   assert(num_lines >= 0);
+   m_core_id = core_id;
+   m_network = network;
+   
+   m_total_cores = Config::getSingleton()->getTotalCores();
+   m_cache_line_size = Config::getSingleton()->getCacheLineSize();
+
+   // Initialize the static variables in DramDirectoryEntry
+   // This will be done as many times as the number of cores but since 
+   // this is all done by a single thread, there is no race condition
+   DramDirectoryEntry::setCacheLineSize(m_cache_line_size);
+   DramDirectoryEntry::setMaxSharers(Config::getSingleton()->getDirMaxSharers());
+   DramDirectoryEntry::setTotalCores(Config::getSingleton()->getTotalCores());
 }
 
 DramDirectory::~DramDirectory()
@@ -48,28 +62,21 @@ DramDirectory::~DramDirectory()
  */
 DramDirectoryEntry* DramDirectory::getEntry(IntPtr address)
 {
-   // note: the directory is a map key'ed by cache line. so, first we need to determine the associated cache line
-   IntPtr data_line_index = (address / bytes_per_cache_line);
+   // Note: The directory is a map key'ed by addresss.
+   DramDirectoryEntry* entry_ptr = dram_directory_entries[address];
 
-   assert(data_line_index >= 0);
-
-   DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
-
-   // TODO FIXME we need to handle the data_buffer correctly! what do we fill it with?!
-   // I guess this is the place we need to call the code for transferring data from the host machine to the simulated machine
+   // FIXME: I guess this is the place we need to call the code for transferring data from the host machine to the simulated machine
    if (entry_ptr == NULL)
    {
-      IntPtr memory_line_address = (address / bytes_per_cache_line) * bytes_per_cache_line;
-      dram_directory_entries[data_line_index] =  new DramDirectoryEntry(memory_line_address, number_of_cores);
+      dram_directory_entries[address] =  new DramDirectoryEntry(address);
    }
 
-   return dram_directory_entries[data_line_index];
+   return dram_directory_entries[address];
 }
 
-void DramDirectory::copyDataToDram(IntPtr address, char* data_buffer)
+void DramDirectory::copyDataToDram(IntPtr address, Byte* data_buffer)
 {
-   IntPtr data_line_index = (address / bytes_per_cache_line);
-   DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
+   DramDirectoryEntry* entry_ptr = dram_directory_entries[address];
 
    assert(entry_ptr != NULL);
 
@@ -82,7 +89,7 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 {
    // Only evictions come here from now on
    MemoryManager::AckPayload payload;
-   char data_buffer[bytes_per_cache_line];
+   Byte data_buffer[m_cache_line_size];
 
    MemoryManager::extractAckPayloadBuffer(&wb_packet, &payload, data_buffer);
 
@@ -102,7 +109,7 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 
    if (payload.is_writeback)
    {
-      assert(payload.data_size == bytes_per_cache_line);
+      assert(payload.data_size == m_cache_line_size);
       copyDataToDram(payload.ack_address, data_buffer); //TODO verify that all wb_packets would give us the entire cache_line
    }
 }
@@ -114,7 +121,6 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 
 void DramDirectory::startSharedMemRequest(NetPacket& req_packet)
 {
-
    // This function adds the shared memory request on the queue and starts processing it if possible
    IntPtr address = ((MemoryManager::RequestPayload*)(req_packet.data))->request_address;
    shmem_req_t shmem_req_type = ((MemoryManager::RequestPayload*)(req_packet.data))->request_type;
@@ -126,7 +132,6 @@ void DramDirectory::startSharedMemRequest(NetPacket& req_packet)
 
    if (dram_reqs == NULL)
    {
-
       // No requests for this address exist currently
       dram_request_list[address] = new DramRequestsForSingleAddress;
 
@@ -142,7 +147,6 @@ void DramDirectory::startSharedMemRequest(NetPacket& req_packet)
 
    else
    {
-
       // There exists some requests for this address already
       SingleDramRequest* single_dram_req = new SingleDramRequest(address, shmem_req_type, requestor);
       dram_reqs->addRequestToQueue(single_dram_req);
@@ -168,8 +172,6 @@ void DramDirectory::finishSharedMemRequest(IntPtr address)
       dram_reqs->deleteCurrRequest();
       startNextSharedMemRequest(address);
    }
-
-
 }
 
 void DramDirectory::startNextSharedMemRequest(IntPtr address)
@@ -319,20 +321,18 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UInt32 requ
    MemoryManager::UpdatePayload payload;
 
    payload.update_new_cstate = new_cstate;
-   payload.update_address = dram_dir_entry->getMemLineAddress();
+   payload.update_address = dram_dir_entry->getCacheLineAddress();
+   payload.data_size = m_cache_line_size;
 
-   char data_buffer[bytes_per_cache_line];
-   UInt32 data_size;
-   dram_dir_entry->getDramDataLine(data_buffer, &data_size);
+   Byte data_buffer[m_cache_line_size];
+   dram_dir_entry->getDramDataLine(data_buffer);
 
-   assert(data_size == bytes_per_cache_line);
-   UInt32 payload_size = sizeof(payload) + data_size;
-   char payload_buffer[payload_size];
-   payload.data_size = data_size;
+   UInt32 payload_size = sizeof(payload) + m_cache_line_size;
+   Byte payload_buffer[payload_size];
 
    MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
    // This is the response to a shared memory request
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_RESPONSE, payload_buffer, payload_size, dram_id, requestor);
+   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_RESPONSE, payload_buffer, payload_size, m_core_id, requestor);
 
    m_network->netSend(packet);
 
@@ -347,14 +347,14 @@ void DramDirectory::startDemoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
 
    UInt32 owner = dram_dir_entry->getExclusiveSharerRank();
 
-   IntPtr address = dram_dir_entry->getMemLineAddress();
+   IntPtr address = dram_dir_entry->getCacheLineAddress();
 
    // reqeust a write back data payload and downgrade to new_dstate
    MemoryManager::UpdatePayload upd_payload;
    upd_payload.update_new_cstate = new_cstate;
    upd_payload.update_address = address;
    upd_payload.data_size = 0;
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), dram_id, owner);
+   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), m_core_id, owner);
 
    m_network->netSend(packet);
 }
@@ -385,14 +385,14 @@ void DramDirectory::startInvalidateSingleSharer(DramDirectoryEntry* dram_dir_ent
    assert(dram_dir_entry->numSharers() >= 1);
    assert(dram_dir_entry->getDState() == DramDirectoryEntry::SHARED);
 
-   IntPtr address = dram_dir_entry->getMemLineAddress();
+   IntPtr address = dram_dir_entry->getCacheLineAddress();
 
    MemoryManager::UpdatePayload payload;
    payload.update_new_cstate = CacheState::INVALID;
    payload.update_address = address;
    payload.data_size = 0;
 
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (char *)(&payload), sizeof(MemoryManager::UpdatePayload), dram_id, sharer_id);
+   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&payload), sizeof(MemoryManager::UpdatePayload), m_core_id, sharer_id);
    m_network->netSend(packet);
 }
 
@@ -418,7 +418,7 @@ void DramDirectory::processAck(NetPacket& ack_packet)
 
    LOG_PRINT("Got ack <- %i for %i, address = 0x%x, numAcksToRecv %i", ack_packet.sender, requestor, (UInt32) address, dram_reqs->getNumAcksToRecv());
 
-   char data_buffer[bytes_per_cache_line];
+   Byte data_buffer[m_cache_line_size];
    MemoryManager::AckPayload ack_payload;
    MemoryManager::extractAckPayloadBuffer(&ack_packet, &ack_payload, data_buffer);
 
@@ -429,12 +429,12 @@ void DramDirectory::processAck(NetPacket& ack_packet)
 
       if (old_dstate == DramDirectoryEntry::EXCLUSIVE)
       {
-         processDemoteOwnerAck(ack_packet.sender, dram_dir_entry, (void*) &ack_payload, data_buffer, CacheState::INVALID);
+         processDemoteOwnerAck(ack_packet.sender, dram_dir_entry, &ack_payload, data_buffer, CacheState::INVALID);
          processSharedMemRequest(requestor, WRITE, address);
       }
       else if (old_dstate == DramDirectoryEntry::SHARED)
       {
-         processInvalidateSharerAck(ack_packet.sender, dram_dir_entry, (void*) &ack_payload);
+         processInvalidateSharerAck(ack_packet.sender, dram_dir_entry, &ack_payload);
          dram_reqs->decNumAcksToRecv();
          if (dram_reqs->getNumAcksToRecv() == 0)
          {
@@ -453,13 +453,13 @@ void DramDirectory::processAck(NetPacket& ack_packet)
 
       if (old_dstate == DramDirectoryEntry::EXCLUSIVE)
       {
-         processDemoteOwnerAck(ack_packet.sender, dram_dir_entry, (void*) &ack_payload, data_buffer, CacheState::SHARED);
+         processDemoteOwnerAck(ack_packet.sender, dram_dir_entry, &ack_payload, data_buffer, CacheState::SHARED);
          processSharedMemRequest(requestor, READ, address);
       }
       else if (old_dstate == DramDirectoryEntry::SHARED)
       {
          // We only need to evict the cache line from 1 sharer
-         processInvalidateSharerAck(ack_packet.sender, dram_dir_entry, (void*) &ack_payload);
+         processInvalidateSharerAck(ack_packet.sender, dram_dir_entry, &ack_payload);
          processSharedMemRequest(requestor, READ, address);
       }
       else
@@ -483,15 +483,13 @@ void DramDirectory::processAck(NetPacket& ack_packet)
 void DramDirectory::processDemoteOwnerAck(
    UInt32 sender,
    DramDirectoryEntry* dram_dir_entry,
-   void* /*MemoryManager::AckPayload&*/ ack_payload_v,
-   char *data_buffer,
+   MemoryManager::AckPayload* ack_payload,
+   Byte *data_buffer,
    CacheState::cstate_t new_cstate
 )
 {
    // wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
    // The 'dram_dir_entry' was in the exclusive state before
-
-   MemoryManager::AckPayload* ack_payload = (MemoryManager::AckPayload*) ack_payload_v;
 
    if (ack_payload->remove_from_sharers)
    {
@@ -509,7 +507,7 @@ void DramDirectory::processDemoteOwnerAck(
    {
 
       // There has been no eviction
-      assert(ack_payload->data_size == bytes_per_cache_line);
+      assert(ack_payload->data_size == m_cache_line_size);
       assert (ack_payload->ack_new_cstate == new_cstate);
       assert(ack_payload->is_writeback == true);
       assert(dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE);
@@ -518,7 +516,7 @@ void DramDirectory::processDemoteOwnerAck(
 
       // Write Back the cache line
       // Change the interface for better efficiency
-      copyDataToDram(dram_dir_entry->getMemLineAddress(), data_buffer);
+      copyDataToDram(dram_dir_entry->getCacheLineAddress(), data_buffer);
       if (new_cstate == CacheState::INVALID)
       {
          // It was a write request
@@ -540,11 +538,9 @@ void DramDirectory::processDemoteOwnerAck(
 void DramDirectory::processInvalidateSharerAck(
    UInt32 sender,
    DramDirectoryEntry* dram_dir_entry,
-   void *  /*MemoryManager::AckPayload&*/ ack_payload_v
+   MemoryManager::AckPayload* ack_payload
 )
 {
-   MemoryManager::AckPayload* ack_payload = (MemoryManager::AckPayload*) ack_payload_v;
-
    assert(ack_payload->ack_new_cstate == CacheState::INVALID);
    assert(ack_payload->data_size == 0);
    assert(ack_payload->is_writeback == false);
@@ -567,205 +563,4 @@ void DramDirectory::processInvalidateSharerAck(
       }
    }
 
-}
-
-void DramDirectory::print()
-{
-   cerr << endl << endl << "  PRINTING DRAMDIRECTORY INFO [" << dram_id << "]  " << endl << endl;
-   std::map<UInt32, DramDirectoryEntry*>::iterator iter = dram_directory_entries.begin();
-   while (iter != dram_directory_entries.end())
-   {
-      cerr << "   ADDR (aligned): 0x" << hex << iter->second->getMemLineAddress()
-           << "  DState: " << DramDirectoryEntry::dStateToString(iter->second->getDState());
-
-      vector<UInt32> sharers = iter->second->getSharersList();
-      cerr << "  SharerList <size= " << sharers.size() << " > = { ";
-
-      for (unsigned int i = 0; i < sharers.size(); i++)
-      {
-         cerr << sharers[i] << " ";
-      }
-
-      cerr << "} "<< endl;
-      iter++;
-   }
-   cerr << endl << " -----------------  " << endl << endl;
-}
-
-void DramDirectory::debugSetDramState(IntPtr address, DramDirectoryEntry::dstate_t dstate, vector<UInt32> sharers_list, char *d_data)
-{
-   UInt32 data_line_index = (address / bytes_per_cache_line);
-   assert(data_line_index >= 0);
-
-   DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
-
-   if (entry_ptr == NULL)
-   {
-      UInt32 memory_line_address = (address / bytes_per_cache_line) * bytes_per_cache_line;
-      dram_directory_entries[data_line_index] =  new DramDirectoryEntry(memory_line_address
-            , number_of_cores
-            , d_data);
-      entry_ptr = dram_directory_entries[data_line_index];
-   }
-
-   assert(entry_ptr != NULL);
-
-   //set sharer's list
-   entry_ptr->debugClearSharersList();
-   entry_ptr->setDState(dstate);
-   entry_ptr->fillDramDataLine(d_data);
-
-   if (dstate == DramDirectoryEntry::EXCLUSIVE)
-   {
-      assert(sharers_list.size() == 1);
-      entry_ptr->addExclusiveSharer(sharers_list.back());
-      print();
-      return;
-   }
-
-   while (!sharers_list.empty())
-   {
-      assert(dstate != DramDirectoryEntry::UNCACHED);
-      UInt32 new_sharer = sharers_list.back();
-      sharers_list.pop_back();
-      entry_ptr->addSharer(new_sharer);
-   }
-
-   print();
-}
-
-bool DramDirectory::debugAssertDramState(IntPtr address, DramDirectoryEntry::dstate_t expected_dstate, vector<UInt32> expected_sharers_vector, char *expected_data)
-{
-
-   UInt32 data_line_index = (address / bytes_per_cache_line);
-
-   assert(data_line_index >= 0);
-
-   UInt32 memory_line_size;
-   DramDirectoryEntry::dstate_t actual_dstate;
-   char actual_data[bytes_per_cache_line];
-
-   DramDirectoryEntry* entry_ptr = dram_directory_entries[data_line_index];
-
-   assert(entry_ptr != NULL);
-   // It cant be NULL
-   /*
-   if( entry_ptr == NULL ) {
-    UInt32 memory_line_address = ( address / bytes_per_cache_line ) * bytes_per_cache_line;
-    dram_directory_entries[data_line_index] =  new DramDirectoryEntry( memory_line_address
-                          , number_of_cores);
-   }
-   */
-
-// entry_ptr->dirDebugPrint();
-// DramDirectoryEntry::dstate_t actual_dstate = dram_directory_entries[cache_line_index]->getDState();
-
-   actual_dstate = entry_ptr->getDState();
-   entry_ptr->getDramDataLine(actual_data, &memory_line_size);
-
-   assert(memory_line_size == bytes_per_cache_line);
-
-   cerr << "Expected Data ptr = 0x" << hex << (UInt32) expected_data << endl;
-   cerr << "Actual Data: 0x";
-   for (UInt32 i = 0; i < memory_line_size; i++)
-   {
-      cerr << hex << (UInt32) actual_data[i];
-   }
-   cerr << endl;
-
-   cerr << "Expected Data: 0x";
-   for (UInt32 i = 0; i < memory_line_size; i++)
-   {
-      cerr << hex << (UInt32) expected_data[i];
-   }
-   cerr << dec << endl;
-
-   cerr << "Actual State: " << DramDirectoryEntry::dStateToString(actual_dstate) << endl;
-   cerr << "Expected State: " << DramDirectoryEntry::dStateToString(expected_dstate) << endl;
-
-   bool is_assert_true = ((actual_dstate == expected_dstate) &&
-                          (memcmp(actual_data, expected_data, bytes_per_cache_line) == 0));
-
-
-   //copy STL vectors (which are just glorified stacks) and put data into array (for easier comparsion)
-   bool* actual_sharers_array = new bool[number_of_cores];
-   bool* expected_sharers_array = new bool[number_of_cores];
-
-   for (int i = 0; i < (int) number_of_cores; i++)
-   {
-      actual_sharers_array[i] = false;
-      expected_sharers_array[i] = false;
-   }
-
-   vector<UInt32> actual_sharers_vector = entry_ptr->getSharersList();
-
-   while (!actual_sharers_vector.empty())
-   {
-      UInt32 sharer = actual_sharers_vector.back();
-      actual_sharers_vector.pop_back();
-      assert(sharer >= 0);
-      assert(sharer < number_of_cores);
-      actual_sharers_array[sharer] = true;
-//    cerr << "Actual Sharers Vector Sharer-> Core# " << sharer << endl;
-   }
-
-   while (!expected_sharers_vector.empty())
-   {
-      UInt32 sharer = expected_sharers_vector.back();
-      expected_sharers_vector.pop_back();
-      assert(sharer >= 0);
-      assert(sharer < number_of_cores);
-      expected_sharers_array[sharer] = true;
-//  cerr << "Expected Sharers Vector Sharer-> Core# " << sharer << endl;
-   }
-
-   //do actual comparision of both arrays
-   for (int i=0; i < (int) number_of_cores; i++)
-   {
-      if (actual_sharers_array[i] != expected_sharers_array[i])
-      {
-         is_assert_true = false;
-      }
-   }
-
-   cerr << "   Asserting Dram     : Expected: " << DramDirectoryEntry::dStateToString(expected_dstate);
-   cerr << ",  Actual: " <<  DramDirectoryEntry::dStateToString(actual_dstate);
-
-   cerr << ", E {";
-
-   for (int i=0; i < (int) number_of_cores; i++)
-   {
-      if (expected_sharers_array[i])
-      {
-         cerr << " " << i << " ";
-      }
-   }
-
-   cerr << "}, A {";
-
-   for (int i=0; i < (int) number_of_cores; i++)
-   {
-      if (actual_sharers_array[i])
-      {
-         cerr << " " << i << " ";
-      }
-   }
-   cerr << "}";
-
-   //check sharers list
-   //1. check that for every sharer expected, that he is set.
-   //2. verify that no extra sharers are set.
-   if (is_assert_true)
-   {
-      cerr << " TEST PASSED " << endl;
-   }
-   else
-   {
-      cerr << " TEST FAILED ****** " << endl;
-//  print();
-   }
-
-   // assert (is_assert_true == true);
-
-   return is_assert_true;
 }

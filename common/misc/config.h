@@ -75,6 +75,9 @@ public:
    bool getEnablePerformanceModeling() const;
    bool getEnableDCacheModeling() const;
    bool getEnableICacheModeling() const;
+   UInt32 getDirMaxSharers() const;
+   UInt32 getCacheLineSize() const;
+   UInt32 getAHLParam() const;
 
    // Logging
    void getDisabledLogModules(std::set<std::string> &mods) const;
@@ -113,6 +116,10 @@ private:
    static bool m_knob_enable_performance_modeling;
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
+
+   static UInt32 m_knob_dir_max_sharers;
+   static UInt32 m_knob_cache_line_size;
+   static UInt32 m_knob_ahl_param;
 };
 
 #endif

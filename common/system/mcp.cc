@@ -1,4 +1,6 @@
 #include <syscall.h>
+#include <sched.h>
+#include <iostream>
 
 #include "mcp.h"
 #include "config.h"
@@ -6,9 +8,8 @@
 #include "log.h"
 #include "core.h"
 #include "simulator.h"
+#include "syscall.h"
 
-#include <sched.h>
-#include <iostream>
 using namespace std;
 
 MCP::MCP(Network & network)
@@ -123,3 +124,4 @@ void MCP::run()
       processPacket();
    }
 }
+

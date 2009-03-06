@@ -8,7 +8,7 @@ BUILD_32 = 1
 
 # MPI Support
 MPI_DIR = /afs/csail/group/carbon/tools/mpich2-1.0.8/install
-export LD_LIBRARY_PATH := $(BOOST_ROOT)/install/lib:$(MPI_DIR)/lib:$(LD_LIBRARY_PATH)
+export LD_LIBRARY_PATH := $(BOOST_ROOT)/stage/lib:$(MPI_DIR)/lib:$(LD_LIBRARY_PATH)
 CC = $(MPI_DIR)/bin/mpicc
 CXX = $(MPI_DIR)/bin/mpicxx
 

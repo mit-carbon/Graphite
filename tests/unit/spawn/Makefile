@@ -5,4 +5,4 @@ SOURCES = spawn.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 TARGET = spawn
 
-include $(CURDIR)/../test_support/makefile
+include $(CURDIR)/../test_support/Makefile

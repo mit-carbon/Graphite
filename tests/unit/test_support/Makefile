@@ -19,7 +19,7 @@ all: $(TARGET)
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
-include $(SIM_ROOT)/common/makefile.common
+include $(SIM_ROOT)/common/Makefile.common
 endif
 
 .SUFFIXES:  .o .c .h .cc

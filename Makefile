@@ -10,8 +10,6 @@ include common/Makefile.common
 include common/tests/Makefile
 endif
 
-TESTS_DIR=./common/tests
-
 CORES=4
 TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
 

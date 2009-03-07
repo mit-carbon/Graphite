@@ -19,7 +19,7 @@ PIN_TOOL=$(SIM_ROOT)/pin/bin/pin_sim
 PIN_RUN=$(MPI_DIR)/bin/mpirun -np 1 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) 
 
-regress_quick: clean_sim simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
+regress_quick: clean_sim hello_world simple_test io_test ping_pong_test mutex_test barrier_test cannon_msg cannon simple_test_dist cannon_msg_dist ring_msg_pass dynamic_threads spawn_join
 
 clean_sim:
 	$(MAKE) -C $(SIM_ROOT) clean

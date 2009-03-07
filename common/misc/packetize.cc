@@ -147,7 +147,6 @@ UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<const void*, int> buffer
 {
    const void *buff = buffer.first;
    int size = buffer.second;
-   //cerr << buff << " " << size << endl;
 
    assert(size >= 0);
    bool res = get<UInt8>((UInt8*) buff, size);

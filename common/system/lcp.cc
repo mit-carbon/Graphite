@@ -117,5 +117,13 @@ void LCP::updateCommId(void *vp)
    LOG_PRINT("Initializing comm_id: %d to core_id: %d", update->comm_id, update->core_id);
    Config::getSingleton()->updateCommToCoreMap(update->comm_id, update->core_id);
 
-   // FIXME: Do we need to send an ACK?
+   NetPacket ack(/*time*/ 0,
+                 /*type*/ LCP_COMM_ID_UPDATE_REPLY,
+                 /*sender*/ 0, // doesn't matter ; see core_manager.cc
+                 /*receiver*/ update->core_id,
+                 /*length*/ 0,
+                 /*data*/ NULL);
+   Byte *buffer = ack.makeBuffer();
+   m_transport->send(update->core_id, buffer, ack.bufferSize());
+   delete [] buffer;
 }

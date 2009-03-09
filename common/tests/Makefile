@@ -82,15 +82,15 @@ dynamic_threads: sim
 
 simple_test_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=3 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=2 --general/total_cores=3 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist
 
 cannon_msg_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=2 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
 
 ring_msg_pass: sim 
 	$(MAKE) -C $(TESTS_DIR)/ring_msg_pass
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=2 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
 
 io_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/file_io
@@ -102,7 +102,7 @@ ping_pong_test: sim
 
 ping_pong_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=2 --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 cannon: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon

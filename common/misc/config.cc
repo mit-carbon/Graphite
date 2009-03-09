@@ -56,8 +56,6 @@ Config::Config()
       LOG_ASSERT_ERROR(false, "Config obtained a bad value from config.");
    }
 
-   fprintf(stderr, "Output File: %s\n", m_knob_output_file.c_str());
-
    m_num_processes = m_knob_num_process;
    m_total_cores = m_knob_total_cores;
 

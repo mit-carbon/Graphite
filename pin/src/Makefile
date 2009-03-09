@@ -37,11 +37,14 @@ BUILD_TARGET = ../bin/pin_sim.so
 ../bin:
 	-mkdir ../bin
 
+$(SIM_ROOT)/lib/libcarbon_sim.a:
+	$(MAKE) simlib -C $(SIM_ROOT)
+
 all: $(BUILD_TARGET) ../bin
 
-$(BUILD_TARGET): $(PIN_LIBNAMES)
+$(BUILD_TARGET): $(PIN_LIBNAMES) $(SIM_ROOT)/lib/libcarbon_sim.a
 $(BUILD_TARGET): $(OBJECTS)
-	$(CXX) $(PIN_LDFLAGS) $(LD_FLAGS) -o $@ $^ $(PIN_LIBS) $(LD_LIBS) $(DBG)
+	$(CXX) $(PIN_LDFLAGS) $(LD_FLAGS) -o $@ $(OBJECTS) $(PIN_LIBS) $(LD_LIBS) $(DBG)
 
 ifneq ($(CLEAN),)
 clean:

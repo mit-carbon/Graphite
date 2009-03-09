@@ -98,11 +98,11 @@ io_test: sim
 
 ping_pong_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(PIN_RUN) -mdc -msm -msys -mpf  --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(PIN_RUN) -c $(SIM_ROOT)/carbon_sim.cfg --general/enable_shared_memory=true --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 ping_pong_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=2 --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=2 --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 cannon: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon

@@ -82,7 +82,7 @@ dynamic_threads: sim
 
 simple_test_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 3 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 2 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist
 
 cannon_msg_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg

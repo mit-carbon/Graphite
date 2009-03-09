@@ -22,9 +22,6 @@ int main(int argc, char* argv[])  // main begins
    for(unsigned int i = 0; i < num_threads; i++)
    {
        threads[i] = CarbonSpawnThread(thread_func, (void *) i);
-
-       //FIXME: why is this stupid thing needed?
-       sleep(1);
    }
 
    for(unsigned int i = 0; i < num_threads; i++)

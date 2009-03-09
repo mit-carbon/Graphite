@@ -69,6 +69,10 @@ void CoreManager::initializeCommId(SInt32 comm_id)
    e = tid_to_core_index_map.find(tid);
    LOG_ASSERT_ERROR(e.first, "initializeCommId: tid mapped to core, but not to an index?");
    UInt32 idx = (UInt32) e.second;
+
+   LOG_ASSERT_ERROR(idx < Config::getSingleton()->getNumLocalCores(), "CoreManager got and index [%d] out of range (0-%d).", 
+         idx, Config::getSingleton()->getNumLocalCores());
+
    Network *network = m_cores[idx]->getNetwork();
    Transport::Node *transport = Transport::getSingleton()->getGlobalNode();
    UInt32 num_procs = Config::getSingleton()->getProcessCount();

@@ -1,12 +1,6 @@
 #include "analysis.h"
 #include "config.h"
 
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_dcache_ignore_loads;
-extern LEVEL_BASE::KNOB<bool> g_knob_dcache_ignore_stores;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
-
 UInt32 getInsMicroOpsCount(const INS& ins)
 {
    // FIXME: assumes that stack is not supported by special hardware; load and
@@ -91,26 +85,23 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
 {
 
    // added constraint that perf model must be on
-   bool check_scoreboard         = g_knob_enable_performance_modeling &&
-                                   g_knob_enable_dcache_modeling &&
-                                   !g_knob_dcache_ignore_loads &&
+   bool check_scoreboard         = Config::getSingleton()->getEnablePerformanceModeling() &&
+                                   Config::getSingleton()->getEnableDCacheModeling() &&
                                    is_potential_load_use;
 
    //FIXME: check for API routine
-   bool do_dcache_read_modeling  = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads &&
-                                   INS_IsMemoryRead(ins);
-   bool do_dcache_write_modeling = g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_stores &&
-                                   INS_IsMemoryWrite(ins);
+   bool do_dcache_read_modeling  = Config::getSingleton()->getEnableDCacheModeling() && INS_IsMemoryRead(ins);
+   bool do_dcache_write_modeling = Config::getSingleton()->getEnableDCacheModeling() && INS_IsMemoryWrite(ins);
 
    //TODO: if we run on multiple machines we need shared memory
    //TODO: if we run on multiple machines we need syscall_modeling
 
    // If we are doing any other type of modeling then we need to do icache modeling
-   bool do_icache_modeling       = g_knob_enable_icache_modeling &&
+   bool do_icache_modeling       = Config::getSingleton()->getEnableICacheModeling() &&
                                    (do_dcache_read_modeling || do_dcache_write_modeling || 
                                     is_bbl_ins_tail || check_scoreboard);
 
-   bool do_perf_modeling         = g_knob_enable_performance_modeling &&
+   bool do_perf_modeling         = Config::getSingleton()->getEnablePerformanceModeling() &&
                                    (do_dcache_read_modeling || do_dcache_write_modeling || 
                                     do_icache_modeling || is_bbl_ins_tail || check_scoreboard);
 
@@ -135,7 +126,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    // Build a list of read registers if relevant
    UINT32 num_reads = 0;
    REG *reads = NULL;
-   if (g_knob_enable_performance_modeling)
+   if (Config::getSingleton()->getEnablePerformanceModeling())
    {
       num_reads = INS_MaxNumRRegs(ins);
       reads = new REG[num_reads];
@@ -149,7 +140,7 @@ bool insertInstructionModelingCall(const string& rtn_name, const INS& start_ins,
    // Build a list of write registers if relevant
    UINT32 num_writes = 0;
    REG *writes = NULL;
-   if (g_knob_enable_performance_modeling)
+   if (Config::getSingleton()->getEnablePerformanceModeling())
    {
       num_writes = INS_MaxNumWRegs(ins);
       writes = new REG[num_writes];
@@ -281,7 +272,7 @@ void replaceInstruction(RTN rtn, string rtn_name)
     bool is_rtn_ins_head = true;
     set<INS> ins_uses;
 
-    if (g_knob_enable_performance_modeling && g_knob_enable_dcache_modeling && !g_knob_dcache_ignore_loads)
+    if (Config::getSingleton()->getEnablePerformanceModeling() && Config::getSingleton()->getEnableDCacheModeling())
     {
         getPotentialLoadFirstUses(rtn, ins_uses);
     }

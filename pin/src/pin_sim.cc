@@ -23,7 +23,6 @@
 #include <unistd.h>
 
 #include "pin.H"
-#include "knobs.h"
 #include "log.h"
 #include "run_models.h"
 #include "analysis.h"
@@ -105,15 +104,6 @@ void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void
 void ApplicationStart()
 {
 }
-
-extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
-extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
-extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_syscall_modeling;
 
 void ApplicationExit(int, void*)
 {

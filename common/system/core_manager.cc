@@ -66,7 +66,7 @@ void CoreManager::initializeCommId(SInt32 comm_id)
 
    // Broadcast this update to other processes
 
-   e = tid_to_core_map.find(tid);
+   e = tid_to_core_index_map.find(tid);
    LOG_ASSERT_ERROR(e.first, "initializeCommId: tid mapped to core, but not to an index?");
    UInt32 idx = (UInt32) e.second;
    Network *network = m_cores[idx]->getNetwork();

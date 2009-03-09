@@ -72,13 +72,8 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
       //m_called_enter = true;
       break;
 
-      // case SYS_exit:
-      //    cerr << "exit()" << endl;
-      //    break;
    case -1:
-      break;
    default:
-//            cerr << "SysCall: " << (int)syscall_number << endl;
       break;
    }
 
@@ -109,13 +104,9 @@ carbon_reg_t SyscallMdl::marshallOpenCall(syscall_args_t &args)
 
    */
 
-   //cerr << "Entering SyscallMdl::marshallOpen()" << endl;
-
    char *path = (char *)args.arg0;
    int flags = (int)args.arg1;
    UInt32 len_fname = strlen(path) + 1;
-
-   // cerr << "open(" << path << ")" << endl;
 
    m_send_buff << len_fname << make_pair(path, len_fname) << flags;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -158,19 +149,14 @@ carbon_reg_t SyscallMdl::marshallReadCall(syscall_args_t &args)
 
    */
 
-   //cerr << "Entering syscall model marshall read" << endl;
-
    int fd = (int)args.arg0;
    void *buf = (void *)args.arg1;
    size_t count = (size_t)args.arg2;
 
-   // cerr << "read(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
 
-//if shared mem, provide the buf to read into
+   // if shared mem, provide the buf to read into
    m_send_buff << fd << count << (int)buf;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
-
-   //cerr << "sent to mcp " << m_send_buff.size() << " bytes" << endl;
 
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
@@ -189,7 +175,6 @@ carbon_reg_t SyscallMdl::marshallReadCall(syscall_args_t &args)
    {
       assert(m_recv_buff.size() == 0);
    }
-   //cerr << "Exiting syscall model marshall read" << endl;
 
    delete [](Byte*)recv_pkt.data;
 
@@ -219,18 +204,18 @@ carbon_reg_t SyscallMdl::marshallWriteCall(syscall_args_t &args)
 
    */
 
-   //cerr << "Entering syscall model marshall write" << endl;
-
    int fd = (int)args.arg0;
    void *buf = (void *)args.arg1;
    size_t count = (size_t)args.arg2;
 
-   // cerr << "write(" << fd << hex << ", " << buf << dec << ", " << count << ")" << endl;
-
    // If we are simulating shared memory, then we simply put
    // the address in the message. Otherwise, we need to put
    // the data in the message as well.
-   if (Config::getSingleton()->isSimulatingSharedMemory())
+
+   // FIXME: This is disabled until memory redirection is
+   // functional. We should also ask ourselves if this is the behavior
+   // we want (message passing vs shared memory).
+   if (false && Config::getSingleton()->isSimulatingSharedMemory())
       m_send_buff << fd << count << (int)buf;
    else
       m_send_buff << fd << count << make_pair(buf, count);
@@ -271,11 +256,7 @@ carbon_reg_t SyscallMdl::marshallCloseCall(syscall_args_t &args)
 
    */
 
-   //cerr << "Entering syscall model marshall close" << endl;
-
    int fd = (int)args.arg0;
-
-   // cerr << "close(" << fd  << ")" << endl;
 
    m_send_buff << fd;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -295,8 +276,6 @@ carbon_reg_t SyscallMdl::marshallCloseCall(syscall_args_t &args)
 
 carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
 {
-   //cerr << "Entering SyscallMdl::marshallAccessCall()" << endl;
-
    char *path = (char *)args.arg0;
    int mode = (int)args.arg1;
    UInt32 len_fname = strlen(path) + 1;

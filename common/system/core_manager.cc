@@ -65,15 +65,30 @@ void CoreManager::initializeCommId(SInt32 comm_id)
    LOG_PRINT("Initializing comm_id: %d to core_id: %d", comm_id, core_id);
 
    // Broadcast this update to other processes
-   Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
+
+   e = tid_to_core_map.find(tid);
+   LOG_ASSERT_ERROR(e.first, "initializeCommId: tid mapped to core, but not to an index?");
+   UInt32 idx = (UInt32) e.second;
+   Network *network = m_cores[idx]->getNetwork();
+   Transport::Node *transport = Transport::getSingleton()->getGlobalNode();
    UInt32 num_procs = Config::getSingleton()->getProcessCount();
 
    for (UInt32 i = 0; i < num_procs; i++)
    {
-      global_node->globalSend(i,
-                              send_buff.getBuffer(),
-                              send_buff.size());
+      transport->globalSend(i,
+                            send_buff.getBuffer(),
+                            send_buff.size());
    }
+
+   LOG_PRINT("Waiting for replies from LCPs.");
+
+   for (UInt32 i = 0; i < num_procs; i++)
+   {
+      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY);
+      LOG_PRINT("Received reply from proc: %d", i);
+   }
+
+   LOG_PRINT("Finished.");
 }
 
 void CoreManager::initializeThread()
@@ -84,15 +99,17 @@ void CoreManager::initializeThread()
 
    LOG_ASSERT_WARNING(e.first == false, "Thread: %d already mapped to core: %lld", tid, e.second);
 
+   const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
+
    for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
       if (tid_map[i] == UINT_MAX)
       {
-         core_id_t core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+         core_id_t core_id = core_list[i];
          tid_map[i] = tid;
          tid_to_core_index_map.insert(tid, i);
          tid_to_core_map.insert(tid, core_id);
-         LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid_map[i], core_id);
+         LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid, core_id);
          return;
       }
       else
@@ -112,9 +129,11 @@ void CoreManager::initializeThread(core_id_t core_id)
 
    LOG_ASSERT_ERROR(e.first == false, "Tried to initialize core %d twice.", core_id);
 
+   const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
+
    for (unsigned int i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
-      core_id_t local_core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+      core_id_t local_core_id = core_list[i];
       if(local_core_id == core_id)
       {
          if (tid_map[i] == UINT_MAX)

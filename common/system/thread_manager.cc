@@ -24,7 +24,6 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
       m_thread_state.resize(config->getTotalCores());
       m_thread_state[0].running = true;
       m_thread_state[config->getMCPCoreNum()].running = true;
-      LOG_PRINT("%d", config->getMCPCoreNum());
       LOG_ASSERT_ERROR(config->getMCPCoreNum() < (SInt32)m_thread_state.size(),
                        "MCP core num out of range (!?)");
    }

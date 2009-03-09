@@ -66,55 +66,55 @@ sim:
 
 hello_world: sim
 	$(MAKE) -C $(TESTS_DIR)/hello_world
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 1 -- $(TESTS_DIR)/hello_world/hello_world
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=1 -- $(TESTS_DIR)/hello_world/hello_world
 
 simple_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/simple
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/simple/simple_test
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=2 -- $(TESTS_DIR)/simple/simple_test
 
 spawn_join: sim 
 	$(MAKE) -C $(TESTS_DIR)/$@
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 3 -- $(TESTS_DIR)/$@/$@
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=3 -- $(TESTS_DIR)/$@/$@
 
 dynamic_threads: sim 
 	$(MAKE) -C $(TESTS_DIR)/dynamic_threads
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/dynamic_threads/dynamic_threads
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=2 -- $(TESTS_DIR)/dynamic_threads/dynamic_threads
 
 simple_test_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/simple_test_dist
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 3 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=3 -- $(TESTS_DIR)/simple_test_dist/simple_test_dist
 
 cannon_msg_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/cannon_msg/cannon -m $(CORES) -s $(CORES)
 
 ring_msg_pass: sim 
 	$(MAKE) -C $(TESTS_DIR)/ring_msg_pass
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
 
 io_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/file_io
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 3 -- $(TESTS_DIR)/file_io/file_io
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=3 -- $(TESTS_DIR)/file_io/file_io
 
 ping_pong_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 3 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(PIN_RUN) -mdc -msm -msys -mpf  --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 ping_pong_dist: sim 
 	$(MAKE) -C $(TESTS_DIR)/ping_pong
-	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL) -mdc -mpf -msys -np 2 -tc 3 -- $(TESTS_DIR)/ping_pong/ping_pong
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg -np 2 --general/total_cores=3 -- $(TESTS_DIR)/ping_pong/ping_pong
 
 cannon: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc $(TOTAL_CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/cannon_msg/cannon -m 4 -s 4
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=5 -- $(TESTS_DIR)/cannon_msg/cannon -m 4 -s 4
 
 capi_worker: sim 
 	$(MAKE) -C $(TESTS_DIR)/capi_worker
-	$(PIN_RUN) -mdc -mpf -msys -n 8 -- $(TESTS_DIR)/capi_worker/capi_worker
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg -n 8 -- $(TESTS_DIR)/capi_worker/capi_worker
 
 shmem_test_new: sim 
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
@@ -127,11 +127,11 @@ shmem_test_evic: sim
 
 1djacobi_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc $(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64
+	$(PIN_RUN) -mdc -msm -msys -mpf  --general/total_cores=$(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64
 
 1djacobi_test_quick: sim 
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -np 1 -tc 4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
+	$(PIN_RUN) -mdc -msm -msys -mpf  --general/total_cores=4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
 
 jacobi_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
@@ -139,19 +139,19 @@ jacobi_test: sim
 
 mutex_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/mutex
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 2 -- $(TESTS_DIR)/mutex/mutex_test
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=2 -- $(TESTS_DIR)/mutex/mutex_test
 
 cond_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/cond
-	$(PIN_RUN) -mdc -mpf -msys -n 2 -- $(TESTS_DIR)/cond/cond_test
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg -n 2 -- $(TESTS_DIR)/cond/cond_test
 
 broadcast_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/broadcast
-	$(PIN_RUN) -mdc -mpf -msys -n 5 -- $(TESTS_DIR)/broadcast/broadcast_test
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg -n 5 -- $(TESTS_DIR)/broadcast/broadcast_test
 
 barrier_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/barrier
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 6 -- $(TESTS_DIR)/barrier/barrier_test
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=6 -- $(TESTS_DIR)/barrier/barrier_test
 
 
 
@@ -167,36 +167,37 @@ cache_test: sim
 fmm_test: sim 
 	# note, the 5th line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/fmm
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 11 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=11 -- $(TESTS_DIR)/fmm/FMM < $(TESTS_DIR)/fmm/inputs/input.256
 
 barnes_test: sim 
 	# note, the last line in the input file must match the number of procs passed to pin
 	$(MAKE) -C $(TESTS_DIR)/barnes
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 5 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=5 -- $(TESTS_DIR)/barnes/BARNES < $(TESTS_DIR)/barnes/input
 
 
 radiosity_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/radiosity
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 10 -- $(TESTS_DIR)/radiosity/RADIOSITY -p 8 -batch -room
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=10 -- $(TESTS_DIR)/radiosity/RADIOSITY -p 8 -batch -room
 
 ocean_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/ocean_contig
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/ocean_contig/OCEAN -p8
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=9 -- $(TESTS_DIR)/ocean_contig/OCEAN -p8
 
 raytrace_test: sim 
 	#FIXME has some build issues
 	$(MAKE) -C $(TESTS_DIR)/raytrace
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/raytrace/RAYTRACE -p8 $(TESTS_DIR)/raytrace/inputs/teapot.env
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=9 -- $(TESTS_DIR)/raytrace/RAYTRACE -p8 $(TESTS_DIR)/raytrace/inputs/teapot.env
 
 volrend_test: sim 
 	#FIXME this one runs out of memory
 	$(MAKE) -C $(TESTS_DIR)/volrend
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 45 -- $(TESTS_DIR)/volrend/VOLREND 8 $(TESTS_DIR)/volrend/inputs/head-scaleddown2
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=45 -- $(TESTS_DIR)/volrend/VOLREND 8 $(TESTS_DIR)/volrend/inputs/head-scaleddown2
 
 watern_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/water-nsquared
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/water-nsquared/WATER-NSQUARED < $(TESTS_DIR)/water-nsquared/input
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=9 -- $(TESTS_DIR)/water-nsquared/WATER-NSQUARED < $(TESTS_DIR)/water-nsquared/input
 
 waters_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/water-spatial
-	$(PIN_RUN) -mdc -mpf -msys -np 1 -tc 9 -- $(TESTS_DIR)/water-spatial/WATER-SPATIAL < $(TESTS_DIR)/water-spatial/input
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=9 -- $(TESTS_DIR)/water-spatial/WATER-SPATIAL < $(TESTS_DIR)/water-spatial/input
+

@@ -27,7 +27,7 @@ CFLAGS += $(CXXFLAGS)
 
 
 SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc  \
-          user_space_wrappers.cc pin_thread.cc
+          user_space_wrappers.cc pin_thread.cc handle_args.o
 
 OBJECTS = $(SOURCES:%.cc=%.o)
 

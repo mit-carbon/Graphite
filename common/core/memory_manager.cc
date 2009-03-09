@@ -513,16 +513,6 @@ void MemoryManager::createUpdatePayloadBuffer(UpdatePayload* send_payload, Byte*
    //this is very important on the recieving end, so the extractor knows how big data_size is
    assert(send_payload->data_size == (payload_size - sizeof(*send_payload)));
 
-   //copy data_buffer over
-   /*
-   if (send_payload->data_size > g_knob_line_size)
-   {
-      cerr << "CreateUpdatePayloadBuffer: Error\n";
-   }
-
-   assert(send_payload->data_size <= g_knob_line_size);
-   */
-
    //copy data_buffer
    if (data_buffer != NULL)
       memcpy((void*)(payload_buffer + sizeof(*send_payload)), (void*) data_buffer, payload_size - sizeof(*send_payload));
@@ -551,9 +541,6 @@ void MemoryManager::extractUpdatePayloadBuffer(NetPacket* packet, UpdatePayload*
    //copy packet->data to payload (extract payload)
    memcpy((void*) payload, (void*)(packet->data), sizeof(*payload));
 
-   //copy data_buffer over
-   // assert(payload->data_size <= g_knob_line_size);
-
    assert((payload->data_size == 0) == (data_buffer == NULL));
    if (payload->data_size > 0)
       memcpy((void*) data_buffer, (void*)(((Byte*) packet->data) + sizeof(*payload)), payload->data_size);
@@ -564,9 +551,6 @@ void MemoryManager::extractAckPayloadBuffer(NetPacket* packet, AckPayload* paylo
 {
    memcpy((void*) payload, (void*)(packet->data), sizeof(*payload));
 
-   // assert( (payload->data_size == g_knob_line_size) || (payload->data_size == 0) );
-
-   // if (payload->data_size == g_knob_line_size)
    if (payload->data_size > 0)
       memcpy((void*) data_buffer, (void*)(((Byte*) packet->data) + sizeof(*payload)), payload->data_size);
 }

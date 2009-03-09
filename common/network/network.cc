@@ -80,10 +80,10 @@ void Network::netPullFromTransport()
       LOG_PRINT("Entering netPullFromTransport");
 
       NetPacket packet(_transport->recv());
-
+ 
       LOG_PRINT("Pull packet : type %i, from %i, time %llu", (SInt32)packet.type, packet.sender, packet.time);
       assert(0 <= packet.sender && packet.sender < _numMod);
-      assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
+      LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES, "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
 
       // was this packet sent to us, or should it just be forwarded?
       if (packet.receiver != _core->getId())

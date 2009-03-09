@@ -181,6 +181,7 @@ int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+
    // Global initialization
    PIN_InitSymbols();
    PIN_Init(argc,argv);
@@ -190,7 +191,7 @@ int main(int argc, char *argv[])
    parse_args(args, config_path, argc, argv);
 
    cfg = new config::ConfigFile();
-   cfg->load("./carbon_sim.cfg");
+   cfg->load(config_path);
 
    handle_args(args, *cfg);
 

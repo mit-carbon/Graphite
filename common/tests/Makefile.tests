@@ -1,5 +1,7 @@
+# This makefile is included by all the tests to contain
+# default rules.
 
-SIM_ROOT ?= $(CURDIR)/../../
+SIM_ROOT ?= $(CURDIR)/../../../
 
 all: $(BUILD_TARGET)
 
@@ -14,6 +16,9 @@ CFLAGS = $(CXXFLAGS) -std=c99
 
 CARBON_SOURCES = ../../user/sync_api.c ../../user/capi.c ../../user/thread_support.c
 CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
+
+# These are the objects required by each test
+OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)

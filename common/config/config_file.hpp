@@ -68,38 +68,38 @@ namespace config
             ConfigFile(const Section & root, bool case_sensitive = false);
             ~ConfigFile(){}
 
-            void SaveAs(const std::string &path);
+            void saveAs(const std::string &path);
 
-            void LoadConfigFromString(const std::string & cfg);
+            void loadConfigFromString(const std::string & cfg);
         private:
             void SaveTreeAs(std::ofstream &out, const Section &current);
 
-            /*! LoadConfig() Function which loads the Config tree with the entries extracted from the
+            /*! loadConfig() Function which loads the Config tree with the entries extracted from the
              * file located at the m_path member variable.
              */
-            void LoadConfig();
+            void loadConfig();
 
-            //! LoadFileToString() Function that reads a given filename into a std::string
-            void LoadFileToString(std::string &s, const std::string &filename);
+            //! loadFileToString() Function that reads a given filename into a std::string
+            void loadFileToString(std::string &s, const std::string &filename);
 
-            //! Parse() The function that is responsible for recursively building the tree
-            void Parse(const std::string &source, Section & current);
-            void EvalTree(Section & current, tree_iter_t const& node, int depth = 0);
+            //! parse() The function that is responsible for recursively building the tree
+            void parse(const std::string &source, Section & current);
+            void evalTree(Section & current, tree_iter_t const& node, int depth = 0);
 
-            void ShowParseTree(tree_iter_t const& node, int depth = 0);
+            void showParseTree(tree_iter_t const& node, int depth = 0);
 
             // This function is used to turn \" into " and \\ into \  and the like
-            void UnEscapeText(const std::string & source, std::string & dest);
-            void EscapeText(const std::string & source, std::string & dest);
+            void unEscapeText(const std::string & source, std::string & dest);
+            void escapeText(const std::string & source, std::string & dest);
 
-            std::string GetNodeValue(tree_iter_t const& node);
-            RuleID GetNodeID(tree_iter_t const& node);
+            std::string getNodeValue(tree_iter_t const& node);
+            RuleID getNodeID(tree_iter_t const& node);
 
 
             //Hooks for creating appropriate objects when they are parse
-            void CreateStringKey(Section & current, const std::string key_name, const std::string & value);
-            void CreateIntKey(Section & current, const std::string key_name, int value);
-            void CreateFloatKey(Section & current, const std::string key_name, double value);
+            void createStringKey(Section & current, const std::string key_name, const std::string & value);
+            void createIntKey(Section & current, const std::string key_name, int value);
+            void createFloatKey(Section & current, const std::string key_name, double value);
 
             //The following code is commented out until full thread protection is provided
             //in the get/set functions as well as block writing, preferably through a shared

@@ -41,8 +41,8 @@ namespace config
         m_keys.clear();
     }
 
-    //Create a new section and add it to the subsection map
-    Section & Section::AddSubsection(const std::string & name_)
+    //create a new section and add it to the subsection map
+    Section & Section::addSubsection(const std::string & name_)
     {
         std::string iname(name_);
         if(!m_case_sensitive)
@@ -52,8 +52,8 @@ namespace config
         return *(m_subSections[iname].get());
     }
 
-    //Add a new key/value pair to this section
-    const Key & Section::AddKey(const std::string & name_, const std::string & value)
+    //add a new key/value pair to this section
+    const Key & Section::addKey(const std::string & name_, const std::string & value)
     {
         //Make the key all lower-case if not case sensitive
         std::string iname(name_);
@@ -65,11 +65,11 @@ namespace config
         if(found != m_keys.end())
             m_keys.erase(iname);
 
-        m_keys.insert(std::make_pair(iname, new Key(this->GetFullPath(),name_,value)));
+        m_keys.insert(std::make_pair(iname, new Key(this->getFullPath(),name_,value)));
         return *(m_keys[iname].get());
     }
 
-    const Key & Section::AddKey(const std::string & name_, const int value)
+    const Key & Section::addKey(const std::string & name_, const int value)
     {
         //Make the key all lower-case if not case sensitive
         std::string iname(name_);
@@ -81,11 +81,11 @@ namespace config
         if(found != m_keys.end())
             m_keys.erase(iname);
 
-        m_keys.insert(std::make_pair(iname, new Key(this->GetFullPath(),name_,value)));
+        m_keys.insert(std::make_pair(iname, new Key(this->getFullPath(),name_,value)));
         return *(m_keys[iname].get());
     }
 
-    const Key & Section::AddKey(const std::string & name_, const double value)
+    const Key & Section::addKey(const std::string & name_, const double value)
     {
         //Make the key all lower-case if not case sensitive
         std::string iname(name_);
@@ -97,12 +97,12 @@ namespace config
         if(found != m_keys.end())
             m_keys.erase(iname);
 
-        m_keys.insert(std::make_pair(iname, new Key(this->GetFullPath(),name_,value)));
+        m_keys.insert(std::make_pair(iname, new Key(this->getFullPath(),name_,value)));
         return *(m_keys[iname].get());
     }
 
-    //Get a subkey of the given name
-    const Key & Section::GetKey(const std::string & name_)
+    //get a subkey of the given name
+    const Key & Section::getKey(const std::string & name_)
     {
         std::string iname(name_);
         if(!m_case_sensitive)
@@ -110,14 +110,14 @@ namespace config
         return *(m_keys[iname].get());
     }
 
-    //Get a subsection of the given name
-    const Section & Section::GetSection(const std::string & name)
+    //get a subsection of the given name
+    const Section & Section::getSection(const std::string & name)
     {
-        return GetSection_unsafe(name);
+        return getSection_unsafe(name);
     }
 
-    //Unsafe version of the GetSection function, this should only be used internally
-    Section & Section::GetSection_unsafe(const std::string & name)
+    //Unsafe version of the getSection function, this should only be used internally
+    Section & Section::getSection_unsafe(const std::string & name)
     {
         std::string iname(name);
         if(!m_case_sensitive)
@@ -125,7 +125,7 @@ namespace config
         return *(m_subSections[iname].get());
     }
 
-    bool Section::HasSection(const std::string & name) const
+    bool Section::hasSection(const std::string & name) const
     {
         std::string iname(name);
         if(!m_case_sensitive)
@@ -134,7 +134,7 @@ namespace config
         return (found != m_subSections.end());
     }
 
-    bool Section::HasKey(const std::string & name) const
+    bool Section::hasKey(const std::string & name) const
     {
         std::string iname(name);
         if(!m_case_sensitive)
@@ -143,17 +143,17 @@ namespace config
         return (found != m_keys.end());
     }
 
-    const std::string Section::GetFullPath() const
+    const std::string Section::getFullPath() const
     {
         std::string path = "";
-        if(IsRoot())
+        if(isRoot())
             return path;
 
-        if(GetParent().IsRoot())
-            return GetName();
+        if(getParent().isRoot())
+            return getName();
 
-        //Create the path from the parent section and this section's name
-        path = std::string(GetParent().GetFullPath()) + "/" + GetName();
+        //create the path from the parent section and this section's name
+        path = std::string(getParent().getFullPath()) + "/" + getName();
         return path;
     }
 

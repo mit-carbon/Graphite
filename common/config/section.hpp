@@ -37,67 +37,67 @@ namespace config
             ~Section();
 
             //! Determine if this section is the root of the given configuration tree
-            bool IsRoot() const { return m_isroot; }
+            bool isRoot() const { return m_isroot; }
 
             /*! \brief returns true if the given name is a key within this section
              * \param name The name of the key
              * \param case_sensitive Whether or not the lookup should care about case
              * \return True if name is a key within this section
              */
-            bool HasKey(const std::string &name) const;
+            bool hasKey(const std::string &name) const;
 
             /*! \brief returns true if the given name is a subsection within this section
              * \param name The name of the subsection
              * \param case_sensitive Whether or not the lookup should care about case
              * \return True if name is a subsection within this section
              */
-            bool HasSection(const std::string &name) const;
+            bool hasSection(const std::string &name) const;
 
             //! SectionList() returns the list of subsections
-            const SectionList & GetSubsections() const { return m_subSections; }
+            const SectionList & getSubsections() const { return m_subSections; }
 
             //! Returns the list of keys
-            const KeyList & GetKeys() const { return m_keys; }
+            const KeyList & getKeys() const { return m_keys; }
 
             //! Returns the name of this section
-            std::string GetName() const { return m_name; }
+            std::string getName() const { return m_name; }
 
-            //! GetKey() returns a key with the given name
-            const Key & GetKey(const std::string & name);
+            //! getKey() returns a key with the given name
+            const Key & getKey(const std::string & name);
 
-            /*! AddSubSection() Add a subsection with the given name
+            /*! addSubSection() Add a subsection with the given name
              * \param name The name of the new subsection
              * \return A reference to the newly created subsection
              */
-            Section & AddSubsection(const std::string & name);
+            Section & addSubsection(const std::string & name);
 
-            /*! AddKey() Add a key with the given name
+            /*! addKey() Add a key with the given name
              * \param name The name of the new key
              * \param value The value of the new key (as a string)
              * \return A reference to the newly created key
              */
-            const Key & AddKey(const std::string & name, const std::string & value);
-            const Key & AddKey(const std::string & name, const int value);
-            const Key & AddKey(const std::string & name, const double value);
+            const Key & addKey(const std::string & name, const std::string & value);
+            const Key & addKey(const std::string & name, const int value);
+            const Key & addKey(const std::string & name, const double value);
 
-            /*! GetSection() Returns a reference to the section with the given name
+            /*! getSection() Returns a reference to the section with the given name
              * \param name The name of the section we are trying to obtain
              * \return A reference to the named section, creating it if it doesn't exist
              */
-            const Section & GetSection(const std::string & name);
+            const Section & getSection(const std::string & name);
 
-            //! GetFullPath() Returns the path from the root to this section
-            const std::string GetFullPath() const;
+            //! getFullPath() Returns the path from the root to this section
+            const std::string getFullPath() const;
 
-            /*! GetParent() Returns a reference to the parent section.
-             * Note: The IsRoot() method can be used to determine if a section is the root of the tree
+            /*! getParent() Returns a reference to the parent section.
+             * Note: The isRoot() method can be used to determine if a section is the root of the tree
              */
-            const Section & GetParent() const { return m_parent; }
+            const Section & getParent() const { return m_parent; }
 
         private:
-            /*! Clear() Clears out any sub-sections, used during a (re)load */
-            void Clear() { m_subSections.clear(); }
-            Section & GetSection_unsafe(const std::string & name);
+            /*! clear() Clears out any sub-sections, used during a (re)load */
+            void clear() { m_subSections.clear(); }
+            Section & getSection_unsafe(const std::string & name);
 
             std::string m_name;
 

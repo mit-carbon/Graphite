@@ -12,172 +12,172 @@
 namespace config
 {
 
-    bool Config::IsLeaf(const std::string & path)
+    bool Config::isLeaf(const std::string & path)
     {
         return !boost::find_first(path, "/");
     }
 
     //Configuration Management
-    const Section & Config::GetSection(const std::string & path)
+    const Section & Config::getSection(const std::string & path)
     {
-        return GetSection_unsafe(path);
+        return getSection_unsafe(path);
     }
 
-    Section & Config::GetSection_unsafe(const std::string & path)
+    Section & Config::getSection_unsafe(const std::string & path)
     {
         //Handle the base case
-        if(IsLeaf(path))
+        if(isLeaf(path))
         {
-            if(!m_root.HasSection(path))
-                m_root.AddSubsection(path);
-            return m_root.GetSection_unsafe(path);
+            if(!m_root.hasSection(path))
+                m_root.addSubsection(path);
+            return m_root.getSection_unsafe(path);
         }
 
-        //Split up the path on "/", and loop through each entry of this 
+        //split up the path on "/", and loop through each entry of this 
         //split to obtain the actual section
         PathElementList path_elements;
-        Config::SplitPathElements(path, path_elements);
+        Config::splitPathElements(path, path_elements);
 
         Section * current = &m_root;
         for(PathElementList::iterator path_element = path_elements.begin(); 
                 path_element != path_elements.end(); path_element++)
         {
-            //Add the section if it doesn't already exist
-            if(!current->HasSection(*path_element))
+            //add the section if it doesn't already exist
+            if(!current->hasSection(*path_element))
             {
-                current->AddSubsection(*path_element);
+                current->addSubsection(*path_element);
             }
 
             //Find the current element name as a sub section of the current section
-            current = &(current->GetSection_unsafe(*path_element));
+            current = &(current->getSection_unsafe(*path_element));
         }
         return *current;
     }
 
-    //Small wrapper which sets the m_path variable appropriatly and calls the virtual LoadConfig()
-    void Config::Load(const std::string & path)
+    //Small wrapper which sets the m_path variable appropriatly and calls the virtual loadConfig()
+    void Config::load(const std::string & path)
     {
         m_path = path;
-        LoadConfig();
+        loadConfig();
     }
 
-    void Config::Clear()
+    void Config::clear()
     {
-        m_root.Clear();
+        m_root.clear();
     }
 
-    const Key & Config::GetKey(const std::string & path)
+    const Key & Config::getKey(const std::string & path)
     {
         //Handle the base case
-        if(IsLeaf(path))
+        if(isLeaf(path))
         {
-            if(!m_root.HasKey(path))
+            if(!m_root.hasKey(path))
                 throw KeyNotFound();
             else
-                return m_root.GetKey(path);
+                return m_root.getKey(path);
         }
 
         //Disect the path
-        PathPair path_pair = Config::SplitPath(path);
-        Section & section = GetSection_unsafe(path_pair.first);
+        PathPair path_pair = Config::splitPath(path);
+        Section & section = getSection_unsafe(path_pair.first);
 
-        //Add the key if it doesn't already exist
-        if(!section.HasKey(path_pair.second))
+        //add the key if it doesn't already exist
+        if(!section.hasKey(path_pair.second))
         {
-            section.AddKey(path_pair.second, "");
+            section.addKey(path_pair.second, "");
         }
 
-        return section.GetKey(path_pair.second);
+        return section.getKey(path_pair.second);
     }
 
 
-    const Key & Config::GetKey(const std::string & path, int default_val)
+    const Key & Config::getKey(const std::string & path, int default_val)
     {
         //Handle the base case
-        if(IsLeaf(path))
+        if(isLeaf(path))
         {
-            if(!m_root.HasKey(path))
-                m_root.AddKey(path, default_val);
-            return m_root.GetKey(path);
+            if(!m_root.hasKey(path))
+                m_root.addKey(path, default_val);
+            return m_root.getKey(path);
         }
 
         //Disect the path
-        PathPair path_pair = Config::SplitPath(path);
-        Section & section = GetSection_unsafe(path_pair.first);
+        PathPair path_pair = Config::splitPath(path);
+        Section & section = getSection_unsafe(path_pair.first);
 
-        //Add the key if it doesn't already exist
-        if(!section.HasKey(path_pair.second))
+        //add the key if it doesn't already exist
+        if(!section.hasKey(path_pair.second))
         {
-            section.AddKey(path_pair.second, default_val);
+            section.addKey(path_pair.second, default_val);
         }
 
-        return section.GetKey(path_pair.second);
+        return section.getKey(path_pair.second);
     }
 
-    const Key & Config::GetKey(const std::string & path, double default_val)
+    const Key & Config::getKey(const std::string & path, double default_val)
     {
         //Handle the base case
-        if(IsLeaf(path))
+        if(isLeaf(path))
         {
-            if(!m_root.HasKey(path))
-                m_root.AddKey(path, default_val);
-            return m_root.GetKey(path);
+            if(!m_root.hasKey(path))
+                m_root.addKey(path, default_val);
+            return m_root.getKey(path);
         }
 
         //Disect the path
-        PathPair path_pair = Config::SplitPath(path);
-        Section & section = GetSection_unsafe(path_pair.first);
+        PathPair path_pair = Config::splitPath(path);
+        Section & section = getSection_unsafe(path_pair.first);
 
-        //Add the key if it doesn't already exist
-        if(!section.HasKey(path_pair.second))
+        //add the key if it doesn't already exist
+        if(!section.hasKey(path_pair.second))
         {
-            section.AddKey(path_pair.second, default_val);
+            section.addKey(path_pair.second, default_val);
         }
 
-        return section.GetKey(path_pair.second);
+        return section.getKey(path_pair.second);
     }
 
-    const Key & Config::GetKey(const std::string & path, const std::string &default_val)
+    const Key & Config::getKey(const std::string & path, const std::string &default_val)
     {
         //Handle the base case
-        if(IsLeaf(path))
+        if(isLeaf(path))
         {
-            if(!m_root.HasKey(path))
-                m_root.AddKey(path, default_val);
-            return m_root.GetKey(path);
+            if(!m_root.hasKey(path))
+                m_root.addKey(path, default_val);
+            return m_root.getKey(path);
         }
 
         //Disect the path
-        PathPair path_pair = Config::SplitPath(path);
-        Section & section = GetSection_unsafe(path_pair.first);
+        PathPair path_pair = Config::splitPath(path);
+        Section & section = getSection_unsafe(path_pair.first);
 
-        //Add the key if it doesn't already exist
-        if(!section.HasKey(path_pair.second))
+        //add the key if it doesn't already exist
+        if(!section.hasKey(path_pair.second))
         {
-            section.AddKey(path_pair.second, default_val);
+            section.addKey(path_pair.second, default_val);
         }
 
-        return section.GetKey(path_pair.second);
+        return section.getKey(path_pair.second);
     }
 
-    const Section & Config::AddSection(const std::string & path)
+    const Section & Config::addSection(const std::string & path)
     {
         //Disect the path
-        PathPair path_pair = Config::SplitPath(path);
-        Section &parent = GetSection_unsafe(path_pair.first);
-        return parent.AddSubsection(path_pair.second);
+        PathPair path_pair = Config::splitPath(path);
+        Section &parent = getSection_unsafe(path_pair.first);
+        return parent.addSubsection(path_pair.second);
     }
 
-    std::pair<std::string,std::string> Config::SplitPath(const std::string & path)
+    std::pair<std::string,std::string> Config::splitPath(const std::string & path)
     {
         //Throw away path_elements, just return base and key/section
         std::vector<std::string> path_elements;
-        return Config::SplitPathElements(path, path_elements);
+        return Config::splitPathElements(path, path_elements);
     }
 
-    std::pair<std::string,std::string> Config::SplitPathElements(const std::string & path, PathElementList & path_elements)
+    std::pair<std::string,std::string> Config::splitPathElements(const std::string & path, PathElementList & path_elements)
     {
-        //Split up the path on "/", the last entry is the name of the key
+        //split up the path on "/", the last entry is the name of the key
         //Everything up to the last "/" is the 'base_path' (which will specify a section)
 
         boost::split(path_elements, path, boost::is_any_of("/"));
@@ -191,41 +191,41 @@ namespace config
         return PathPair(base_path,key_name);
     }
 
-    const Key & Config::AddKey(const std::string & path, const std::string & value)
+    const Key & Config::addKey(const std::string & path, const std::string & value)
     {
         //Handle the base case
-        if(IsLeaf(path))
-            return m_root.AddKey(path, value);
+        if(isLeaf(path))
+            return m_root.addKey(path, value);
 
-        PathPair path_pair = Config::SplitPath(path);
-        Section &parent = GetSection_unsafe(path_pair.first);
-        return parent.AddKey(path_pair.second, value);
+        PathPair path_pair = Config::splitPath(path);
+        Section &parent = getSection_unsafe(path_pair.first);
+        return parent.addKey(path_pair.second, value);
     }
 
-    const Key & Config::AddKey(const std::string & path, int value)
+    const Key & Config::addKey(const std::string & path, int value)
     {
         //Handle the base case
-        if(IsLeaf(path))
-            return m_root.AddKey(path, value);
+        if(isLeaf(path))
+            return m_root.addKey(path, value);
 
-        PathPair path_pair = Config::SplitPath(path);
-        Section &parent = GetSection_unsafe(path_pair.first);
-        return parent.AddKey(path_pair.second, value);
+        PathPair path_pair = Config::splitPath(path);
+        Section &parent = getSection_unsafe(path_pair.first);
+        return parent.addKey(path_pair.second, value);
     }
 
-    const Key & Config::AddKey(const std::string & path, double value)
+    const Key & Config::addKey(const std::string & path, double value)
     {
         //Handle the base case
-        if(IsLeaf(path))
-            return m_root.AddKey(path, value);
+        if(isLeaf(path))
+            return m_root.addKey(path, value);
 
-        PathPair path_pair = Config::SplitPath(path);
-        Section &parent = GetSection_unsafe(path_pair.first);
-        return parent.AddKey(path_pair.second, value);
+        PathPair path_pair = Config::splitPath(path);
+        Section &parent = getSection_unsafe(path_pair.first);
+        return parent.addKey(path_pair.second, value);
     }
 
     //Convert the in-memory representation into a string
-    std::string Config::ShowTree(const Section & current, int depth)
+    std::string Config::showTree(const Section & current, int depth)
     {
         std::string result = "";
 
@@ -235,75 +235,75 @@ namespace config
             tabs = tabs.append("    ");
 
         //First loop through all the subsections
-        SectionList const & subsections = current.GetSubsections();
+        SectionList const & subsections = current.getSubsections();
         for(SectionList::const_iterator i = subsections.begin(); i != subsections.end(); i++)
         {
             Section const & subsection = *(i->second.get());
-            result += tabs + "Section: " + i->second->GetName() + "\n";
+            result += tabs + "Section: " + i->second->getName() + "\n";
             //recurse
-            result += ShowTree(subsection, depth+1);
+            result += showTree(subsection, depth+1);
         }
 
         //Now add all the keys of this section
-        KeyList const & keys = current.GetKeys();
+        KeyList const & keys = current.getKeys();
         for(KeyList::const_iterator i = keys.begin(); i != keys.end();i++)
         {
-            result += tabs + "Key: " + i->second->GetName() + " - " + i->second->GetString() + "\n";
+            result += tabs + "Key: " + i->second->getName() + " - " + i->second->getString() + "\n";
         }
         return result;
     }
 
-    void Config::Set(const std::string & path, const std::string & new_value)
+    void Config::set(const std::string & path, const std::string & new_value)
     {
-        AddKey(path, new_value);
+        addKey(path, new_value);
     }
 
-    void Config::Set(const std::string & path, int new_value)
+    void Config::set(const std::string & path, int new_value)
     {
-        AddKey(path, new_value);
+        addKey(path, new_value);
     }
 
-    void Config::Set(const std::string & path, double new_value)
+    void Config::set(const std::string & path, double new_value)
     {
-        AddKey(path, new_value);
+        addKey(path, new_value);
     }
 
     //Below are the getters which also handle default values
-    bool Config::GetBool(const std::string & path)
+    bool Config::getBool(const std::string & path)
     {
-        return GetKey(path).GetBool();
+        return getKey(path).getBool();
     }
 
-    bool Config::GetBool(const std::string & path, bool default_val)
+    bool Config::getBool(const std::string & path, bool default_val)
     {
-        return GetKey(path,default_val).GetBool();
+        return getKey(path,default_val).getBool();
     }
 
-    int Config::GetInt(const std::string & path)
+    int Config::getInt(const std::string & path)
     {
-        return GetKey(path).GetInt();
+        return getKey(path).getInt();
     }
-    int Config::GetInt(const std::string & path, int default_val)
+    int Config::getInt(const std::string & path, int default_val)
     {
-        return GetKey(path,default_val).GetInt();
-    }
-
-    const std::string Config::GetString(const std::string & path)
-    {
-        return GetKey(path).GetString();
-    }
-    const std::string Config::GetString(const std::string & path, const std::string & default_val)
-    {
-        return GetKey(path,default_val).GetString();
+        return getKey(path,default_val).getInt();
     }
 
-    double Config::GetFloat(const std::string & path)
+    const std::string Config::getString(const std::string & path)
     {
-        return GetKey(path).GetFloat();
+        return getKey(path).getString();
     }
-    double Config::GetFloat(const std::string & path, double default_val)
+    const std::string Config::getString(const std::string & path, const std::string & default_val)
     {
-        return GetKey(path,default_val).GetFloat();
+        return getKey(path,default_val).getString();
+    }
+
+    double Config::getFloat(const std::string & path)
+    {
+        return getKey(path).getFloat();
+    }
+    double Config::getFloat(const std::string & path, double default_val)
+    {
+        return getKey(path,default_val).getFloat();
     }
 
 }//end of namespace config

@@ -32,8 +32,8 @@ namespace config
     {
     }
 
-    //Load a given filename into a string, taken from boost regexp replace example
-    void ConfigFile::LoadFileToString(std::string& s, const std::string& filename)
+    //load a given filename into a string, taken from boost regexp replace example
+    void ConfigFile::loadFileToString(std::string& s, const std::string& filename)
     {
         std::ifstream file_in(filename.c_str());
 
@@ -49,7 +49,7 @@ namespace config
         file_in.close();
     }
 
-    void ConfigFile::LoadConfig()
+    void ConfigFile::loadConfig()
     {
         std::string filename = m_path;
 
@@ -59,19 +59,19 @@ namespace config
 
         //Read the data in from the file
         std::string data;
-        LoadFileToString(data, filename);
-        LoadConfigFromString(data);
+        loadFileToString(data, filename);
+        loadConfigFromString(data);
 
     }
 
-    void ConfigFile::LoadConfigFromString(const std::string & cfg)
+    void ConfigFile::loadConfigFromString(const std::string & cfg)
     {
-        Parse(cfg, m_root);
+        parse(cfg, m_root);
     }
 
 
     //Build the in-memory representation by line-by-line matching boost::regex expressions
-    void ConfigFile::Parse(const std::string &source, Section & current)
+    void ConfigFile::parse(const std::string &source, Section & current)
     {
         //rules
         config_parser parser;
@@ -80,17 +80,17 @@ namespace config
         if(info.full)
         {
             // Uncomment the following lines for more verbose output
-            // ShowParseTree(info.trees.begin());
-            EvalTree(m_root, info.trees.begin());
+//            showParseTree(info.trees.begin());
+            evalTree(m_root, info.trees.begin());
         }
         else
         {
             std::string error_str(info.stop);
-            throw ParserError(error_str);
+            throw parserError(error_str);
         }
     }
 
-    void ConfigFile::ShowParseTree(tree_iter_t const& node, int depth)
+    void ConfigFile::showParseTree(tree_iter_t const& node, int depth)
     {
         std::string tabs = "";
         for(int i=0;i<depth;i++)
@@ -98,7 +98,7 @@ namespace config
 
         RuleID rule = node->value.value().e;
 
-        // Get the string value from the iter
+        // get the string value from the iter
         std::string value(node->value.begin(), node->value.end() - node->value.begin());
         if(rule == sectionID)
             value = "s: ";
@@ -124,14 +124,24 @@ namespace config
 
         for(tree_iter_t chi = node->children.begin(); chi != node->children.end(); chi++)
         {
-            ShowParseTree(chi, depth + 1);
+            showParseTree(chi, depth + 1);
         }
     }
 
-    void ConfigFile::UnEscapeText(const std::string & source, std::string & dest)
+    void ConfigFile::unEscapeText(const std::string & source, std::string & dest)
     {
         bool backslash = false;
-        for (unsigned int i = 0; i < source.size(); i++) {
+        unsigned int start = 0;
+        unsigned int end = source.size();
+
+        //remove surrounding parens if necessary
+        if(source.size() >= 2 && source.c_str()[0] == '"' && source.c_str()[source.size() - 1] == '"')
+        {
+            ++start;
+            --end;
+        }
+
+        for (unsigned int i = start; i < end; i++) {
             char c = source.c_str()[i];
             if (backslash)
             {
@@ -159,20 +169,20 @@ namespace config
         }
     }
 
-    std::string ConfigFile::GetNodeValue(tree_iter_t const& node)
+    std::string ConfigFile::getNodeValue(tree_iter_t const& node)
     {
         if(node->value.begin() == node->value.end())
             return "";
         return std::string(node->value.begin(), node->value.end());
     }
 
-    RuleID ConfigFile::GetNodeID(tree_iter_t const& node)
+    RuleID ConfigFile::getNodeID(tree_iter_t const& node)
     {
         return node->value.value().e;
     }
 
 
-    void ConfigFile::EscapeText(const std::string & source, std::string & dest)
+    void ConfigFile::escapeText(const std::string & source, std::string & dest)
     {
         for (unsigned int i = 0; i < source.size(); i++) {
             char c = source.c_str()[i];
@@ -187,20 +197,20 @@ namespace config
 
     // This function recursively decends the tree built by the parser and populates the config
     // file with the appropriate entries
-    void ConfigFile::EvalTree(Section & current, tree_iter_t const& node, int depth)
+    void ConfigFile::evalTree(Section & current, tree_iter_t const& node, int depth)
     {
         std::string tabs = "";
         for(int i=0;i<depth;i++)
             tabs = tabs.append("    ");
 
-        const RuleID rule (GetNodeID(node));
-        const std::string value(GetNodeValue(node));
+        const RuleID rule (getNodeID(node));
+        const std::string value(getNodeValue(node));
 
         if(rule == sectionNameID)
         {
             // Since this is a  flat file representation, whenever we get a section we only add it 
             // to the root node, thus we break out if we are currently nested.
-            if(!current.IsRoot())
+            if(!current.isRoot())
                 return;
 
             //HACK: Strip off the '[' and ']', guaranteed to be matched. 
@@ -211,13 +221,13 @@ namespace config
 
             // std::cout << "Found section: [" << section_name << "]" << std::endl;
 
-            // Create the section
-            Section &child = Config::GetSection_unsafe(section_name);
+            // create the section
+            Section &child = Config::getSection_unsafe(section_name);
 
-            // Add each of the children nodes to this section
+            // add each of the children nodes to this section
             for(tree_iter_t chi_node = node->children.begin(); chi_node != node->children.end(); chi_node++)
             {
-                EvalTree(child, chi_node, depth + 1);
+                evalTree(child, chi_node, depth + 1);
             }
         }
         else if(rule == keyID)
@@ -230,46 +240,46 @@ namespace config
             // Nameless node
             if(node->children.size() >= 2)
             {
-                UnEscapeText(GetNodeValue(node->children.begin()), key_name);
-                UnEscapeText(GetNodeValue(node->children.begin() + 1), key_value);
+                unEscapeText(getNodeValue(node->children.begin()), key_name);
+                unEscapeText(getNodeValue(node->children.begin() + 1), key_value);
             }
             else
             {
                 if(node->children.size() == 0)
                 {
                     std::ostringstream str;
-                    str << "Internal parser error in section '" << current.GetName() << "': "
+                    str << "Internal parser error in section '" << current.getName() << "': "
                         << "the node's children is empty.";
-                    throw ParserError(str.str());
+                    throw parserError(str.str());
                 }
 
-                switch(GetNodeID(node->children.begin()))
+                switch(getNodeID(node->children.begin()))
                 {
                     case keyNameID:
-                        UnEscapeText(GetNodeValue(node->children.begin()), key_name);
+                        unEscapeText(getNodeValue(node->children.begin()), key_name);
                         break;
                     case keyValueID:
-                        UnEscapeText(GetNodeValue(node->children.begin()), key_value);
+                        unEscapeText(getNodeValue(node->children.begin()), key_value);
                         break;
                     default:
-                        throw ParserError("Internal parser error while walking parse tree and encountring key entry.");
+                        throw parserError("Internal parser error while walking parse tree and encountring key entry.");
                 }
             }
 
-            // Add the node to the tree
-            current.AddKey(key_name, key_value);
+            // add the node to the tree
+            current.addKey(key_name, key_value);
         }
         else
         {
             for(tree_iter_t chi = node->children.begin(); chi != node->children.end(); chi++)
             {
-                EvalTree(current, chi, depth + 1);
+                evalTree(current, chi, depth + 1);
             }
         }
 
     }
 
-    void ConfigFile::SaveAs(const std::string &path)
+    void ConfigFile::saveAs(const std::string &path)
     {
         const std::string tmp_path(path + ".tmp");
 
@@ -305,40 +315,40 @@ namespace config
     void ConfigFile::SaveTreeAs(std::ofstream &out, const Section &current)
     {
 
-        if(!current.IsRoot())
+        if(!current.isRoot())
         {
-            out << "[" << current.GetFullPath() << "]" << std::endl;
+            out << "[" << current.getFullPath() << "]" << std::endl;
         }
 
-        KeyList const & keys = current.GetKeys();
+        KeyList const & keys = current.getKeys();
         for(KeyList::const_iterator i = keys.begin(); i != keys.end();i++)
         {
 
-            const std::string & name = i->second->GetName();
+            const std::string & name = i->second->getName();
             //Quote the name if it has spaces in it
             if(boost::find_first(name, " ") || boost::find_first(name, "\""))
             {
                 std::string escaped_name;
-                EscapeText(name, escaped_name);
+                escapeText(name, escaped_name);
                 out << "\"" << escaped_name << "\"";
             }
             else
                 out << name;
 
             //Quote the value if it is a string
-            if(i->second->GetFloatValid() || i->second->GetIntValid())
-                out << " = " << i->second->GetString() << std::endl;
+            if(i->second->getFloatValid() || i->second->getIntValid())
+                out << " = " << i->second->getString() << std::endl;
             else
             {
                 std::string escaped_value;
-                EscapeText(i->second->GetString(), escaped_value);
+                escapeText(i->second->getString(), escaped_value);
                 out << " = \"" << escaped_value << "\"" << std::endl;
             }
         }
 
         out << std::endl;
 
-        SectionList const & subsections = current.GetSubsections();
+        SectionList const & subsections = current.getSubsections();
         for(SectionList::const_iterator i = subsections.begin(); i != subsections.end(); i++)
         {
             Section const & subsection = *(i->second.get());

@@ -16,7 +16,7 @@ config::ConfigFile cfg;
 
 int CarbonStartSim()
 {
-   cfg.Load("carbon_sim.cfg");
+   cfg.load("carbon_sim.cfg");
 
    Simulator::setConfig(&cfg);
 

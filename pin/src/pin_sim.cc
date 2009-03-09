@@ -37,6 +37,7 @@
 #include "user_space_wrappers.h"
 #include "thread_manager.h"
 #include "config_file.hpp"
+#include "handle_args.h"
 
 config::ConfigFile *cfg;
 
@@ -114,34 +115,12 @@ extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
 extern LEVEL_BASE::KNOB<bool> g_knob_enable_syscall_modeling;
 
-void HandleArgs()
-{
-    cfg->Set("general/total_cores", (int)g_knob_total_cores.Value());
-    cfg->Set("general/num_processes", (int)g_knob_num_process);
-    cfg->Set("general/enable_shared_mem", g_knob_simarch_has_shared_mem);
-    cfg->Set("general/enable_syscall_modeling", g_knob_simarch_has_shared_mem);
-    cfg->Set("general/enable_performance_modeling", g_knob_enable_performance_modeling);
-    cfg->Set("general/enable_dcache_modeling", g_knob_enable_dcache_modeling);
-    cfg->Set("general/enable_icache_modeling", g_knob_enable_icache_modeling);
-    cfg->Set("general/enable_syscall_modeling", g_knob_enable_syscall_modeling);
-}
-
 void ApplicationExit(int, void*)
 {
    LOG_PRINT("Application exit.");
    Simulator::release();
    delete cfg;
 }
-
-// void ThreadStart(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, void *v)
-// {
-//    LOG_PRINT("Thread Start: %d", syscall(__NR_gettid));
-// }
-
-// void ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, void *v)
-// {
-//    LOG_PRINT("Thread Fini: %d", syscall(__NR_gettid));
-// }
 
 void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
 {
@@ -204,17 +183,16 @@ int main(int argc, char *argv[])
 {
    // Global initialization
    PIN_InitSymbols();
+   PIN_Init(argc,argv);
 
-   if (PIN_Init(argc,argv))
-      return usage();
-
+   string_vec args;
+   std::string config_path = "";
+   parse_args(args, config_path, argc, argv);
 
    cfg = new config::ConfigFile();
-   cfg->Load("./carbon_sim.cfg");
+   cfg->load("./carbon_sim.cfg");
 
-   // This sets items in the config accoring to
-   // the general pin knobs
-   HandleArgs();
+   handle_args(args, *cfg);
 
    Simulator::setConfig(cfg);
 
@@ -225,14 +203,12 @@ int main(int argc, char *argv[])
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
 
-   if(cfg->GetBool("general/enable_syscall_modeling"))
+   if(cfg->getBool("general/enable_syscall_modeling"))
    {
        PIN_AddSyscallEntryFunction(SyscallEntry, 0);
        PIN_AddSyscallExitFunction(SyscallExit, 0);
    }
 
-//   PIN_AddThreadStartFunction(ThreadStart, 0);
-//   PIN_AddThreadFiniFunction(ThreadFini, 0);
    PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Just in case ... might not be strictly necessary

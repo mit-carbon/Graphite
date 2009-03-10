@@ -26,10 +26,24 @@ int CarbonStartSim()
    // First start the thread spawner
    CarbonSpawnThreadSpawner();
 
-   // Now bind to a core 
-   Sim()->getCoreManager()->initializeThread(0);
+   if (Config::getSingleton()->getCurrentProcessNum() == 0)
+   {
+      // Main process
+      Sim()->getCoreManager()->initializeThread(0);
 
-   return 0;
+      return 0;
+   }
+   else
+   {
+      // Not main process
+      while (!Sim()->finished())
+         usleep(100);
+
+      CarbonStopSim();
+
+      // Otherwise we will run main ...
+      exit(0);
+   }
 }
 
 void CarbonStopSim()

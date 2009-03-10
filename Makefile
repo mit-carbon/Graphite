@@ -8,6 +8,7 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
 include common/Makefile.common
 include common/tests/Makefile
+include tests/unit/Makefile
 endif
 
 CORES=4
@@ -24,14 +25,6 @@ all:
 
 simlib:
 	$(MAKE) -C lib
-
-cannon_unit_test: simlib
-	$(MAKE) -C tests/unit/cannon
-	./tests/unit/cannon/cannon -m 4 -s 4
-
-spawn_unit_test: simlib
-	$(MAKE) -C tests/unit/spawn
-	./tests/unit/spawn/spawn
 
 ifneq ($(CLEAN),)
 clean:

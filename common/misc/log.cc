@@ -7,7 +7,7 @@
 #include "simulator.h"
 #include "core_manager.h"
 
-//#define DISABLE_LOGGING
+#define DISABLE_LOGGING
 
 using namespace std;
 
@@ -95,7 +95,6 @@ UInt64 Log::getTimestamp()
    if (_startTime == 0) _startTime = time;
    return time - _startTime;
 }
-
 void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 {
    CoreManager *core_manager;

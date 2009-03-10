@@ -164,7 +164,6 @@ class MemoryManager
 
       //debugging stuff
       static string sMemReqTypeToString(shmem_req_t type);
-
 };
 
 #include "dram_directory.h"

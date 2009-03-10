@@ -3,23 +3,7 @@
 #include "log.h"
 #include "simulator.h"
 
-//TODO i don't think this is used
-
-//LIMITED_DIRECTORY Flag
-//Dir(i)NB ; i = number of pointers
-//if max_sharers >= total number of cores, then the directory
-//collaspes into the full-mapped case.
-
-//TODO use a knob to set this instead
-//(-dms) : directory_max_sharers
-//TODO provide easy mechanism to initiate a broadcast invalidation
-// static const UInt32 MAX_SHARERS = 2;
-
-//TODO LIST (ccelio)
-//add support for limited directory scheme.
-//supply MAX_SHARERS, evict one (LRU? Random?) to add new sharers.
-
-DramDirectory::DramDirectory(SInt32 core_id, Network* network)
+DramDirectory::DramDirectory(core_id_t core_id, Network* network)
 {
    try
    {

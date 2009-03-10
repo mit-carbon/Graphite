@@ -35,7 +35,6 @@ MemoryManager::MemoryManager(SInt32 core_id, Network *network, OCache *ocache)
    m_cache_line_size = Config::getSingleton()->getCacheLineSize();
 
    m_dram_dir = new DramDirectory(m_core_id, m_network);
-
    m_addr_home_lookup = new AddressHomeLookup(m_core_id);
 
    m_network->registerCallback(SHARED_MEM_REQ, MemoryManagerNetworkCallback, this);

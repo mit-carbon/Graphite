@@ -102,7 +102,6 @@ void CoreManager::initializeThread()
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
    LOG_ASSERT_WARNING(e.first == false, "Thread: %d already mapped to core: %lld", tid, e.second);
-
    const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
 
    LOG_ASSERT_ERROR(core_list.size() == Config::getSingleton()->getNumLocalCores(),

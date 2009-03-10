@@ -105,7 +105,10 @@ void CoreManager::initializeThread()
 
    const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
 
-   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
+   LOG_ASSERT_ERROR(core_list.size() == Config::getSingleton()->getNumLocalCores(),
+                    "Core list size different from num local cores? %d != %d", core_list.size(), Config::getSingleton()->getNumLocalCores());
+
+   for (UInt32 i = 0; i < core_list.size(); i++)
    {
       if (tid_map[i] == UINT_MAX)
       {
@@ -115,10 +118,6 @@ void CoreManager::initializeThread()
          tid_to_core_map.insert(tid, core_id);
          LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid, core_id);
          return;
-      }
-      else
-      {
-         // LOG_PRINT("%d/%d already mapped to: %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
       }
    }
 
@@ -135,7 +134,10 @@ void CoreManager::initializeThread(core_id_t core_id)
 
    const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
 
-   for (unsigned int i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
+   LOG_ASSERT_ERROR(core_list.size() == Config::getSingleton()->getNumLocalCores(),
+                    "Core list size different from num local cores? %d != %d", core_list.size(), Config::getSingleton()->getNumLocalCores());
+
+   for (UInt32 i = 0; i < core_list.size(); i++)
    {
       core_id_t local_core_id = core_list[i];
       if(local_core_id == core_id)
@@ -180,10 +182,6 @@ void CoreManager::terminateThread()
          tid_to_core_map.remove(tid);
          LOG_PRINT("Terminate thread : removed %lld", e.second);
          return;
-      }
-      else
-      {
-         // LOG_PRINT("%d/%d already mapped to: %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
       }
    }
 

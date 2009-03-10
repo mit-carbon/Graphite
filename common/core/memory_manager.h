@@ -26,7 +26,6 @@ class DramDirectory;
 class MemoryManager
 {
    public:
-     
       /*
        * memory coherency message payloads can vary depending
        * on the type of message that needs to be seen
@@ -75,7 +74,11 @@ class MemoryManager
          IntPtr ack_address;
          UInt32 data_size; //this is used to tell us how much data to extract
          bool is_writeback; //when we invalidate/demote owners, we may need to do a writeback
-         bool remove_from_sharers; 
+
+         //if sent a downgrade message (E->S), but cache
+         //no longer has the line, send a bit to tell dram directory
+         //to remove it from the sharers' list
+         bool remove_from_sharers;
 
          AckPayload()
                : ack_new_cstate(CacheState::INVALID),
@@ -102,6 +105,11 @@ class MemoryManager
       bool actionPermissable(CacheState cache_state, shmem_req_t shmem_req_t);
 
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
+
+      // knobs
+      static UInt32 m_knob_ahl_param;
+      static UInt32 m_knob_dram_access_cost;
+      static UInt32 m_knob_line_size;
 
    public:
 
@@ -153,10 +161,9 @@ class MemoryManager
 
       // Process Initial Shared Memory Request
       void processSharedMemInitialReq (NetPacket rep_packet);
-      
+
       //debugging stuff
       static string sMemReqTypeToString(shmem_req_t type);
-         
 };
 
 #include "dram_directory.h"

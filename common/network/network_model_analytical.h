@@ -2,6 +2,7 @@
 #define NETWORK_MODEL_ANALYTICAL_H
 
 #include "network.h"
+#include "lock.h"
 
 class Lock;
 
@@ -34,7 +35,7 @@ class NetworkModelAnalytical : public NetworkModel
       UInt64 _localUtilizationFlitsSent;
       UInt64 _updateInterval;
 
-      Lock *_lock;
+      Lock _lock;
 };
 
 #endif // NETWORK_MODEL_ANALYTICAL_H

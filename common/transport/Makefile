@@ -13,5 +13,5 @@ LDFLAGS=
 SOURCES = transport.cc mpitransport.cc smtransport.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-include ../makefile.common
+include ../Makefile.common
 

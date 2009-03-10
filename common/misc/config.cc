@@ -3,24 +3,24 @@
 #include "network_model_analytical_params.h"
 #include "network_types.h"
 #include "packet_type.h"
+#include "simulator.h"
 
 #include <sstream>
 #include "log.h"
 
 #define DEBUG
 
-#include "pin.H"
+UInt32 Config::m_knob_total_cores;
+UInt32 Config::m_knob_num_process;
+bool Config::m_knob_simarch_has_shared_mem;
+std::string Config::m_knob_output_file;
+bool Config::m_knob_enable_performance_modeling;
+bool Config::m_knob_enable_dcache_modeling;
+bool Config::m_knob_enable_icache_modeling;
 
-extern LEVEL_BASE::KNOB<UInt32> g_knob_total_cores;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_num_process;
-extern LEVEL_BASE::KNOB<bool> g_knob_simarch_has_shared_mem;
-extern LEVEL_BASE::KNOB<std::string> g_knob_output_file;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_performance_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_dcache_modeling;
-extern LEVEL_BASE::KNOB<bool> g_knob_enable_icache_modeling;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_dir_max_sharers;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_cache_line_size;
-extern LEVEL_BASE::KNOB<UInt32> g_knob_ahl_param;
+UInt32 Config::m_knob_dir_max_sharers;
+UInt32 Config::m_knob_cache_line_size;
+UInt32 Config::m_knob_ahl_param;
 
 using namespace std;
 
@@ -33,10 +33,32 @@ Config *Config::getSingleton()
 }
 
 Config::Config()
-      : m_num_processes(g_knob_num_process),
-        m_total_cores(g_knob_total_cores),
+      :
         m_current_process_num((UInt32)-1)
 {
+
+   try
+   {
+   m_knob_total_cores = Sim()->getCfg()->getInt("general/total_cores");
+   m_knob_num_process = Sim()->getCfg()->getInt("general/num_processes");
+   m_knob_simarch_has_shared_mem = Sim()->getCfg()->getBool("general/enable_shared_mem");
+   m_knob_output_file = Sim()->getCfg()->getString("general/output_file");
+   m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
+   m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
+   m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
+
+   m_knob_dir_max_sharers = Sim()->getCfg()->getInt("dram/max_sharers");
+   m_knob_cache_line_size = Sim()->getCfg()->getInt("ocache/line_size");
+   m_knob_ahl_param = Sim()->getCfg()->getInt("dram/ahl_param");
+   }
+   catch(...)
+   {
+      LOG_ASSERT_ERROR(false, "Config obtained a bad value from config.");
+   }
+
+   m_num_processes = m_knob_num_process;
+   m_total_cores = m_knob_total_cores;
+
    m_singleton = this;
 
    assert(m_num_processes > 0);
@@ -124,37 +146,37 @@ void Config::getNetworkModels(UInt32 *models) const
 
 bool Config::isSimulatingSharedMemory() const
 {
-   return (bool)g_knob_simarch_has_shared_mem;
+   return (bool)m_knob_simarch_has_shared_mem;
 }
 
 bool Config::getEnablePerformanceModeling() const
 {
-   return (bool)g_knob_enable_performance_modeling;
+   return (bool)m_knob_enable_performance_modeling;
 }
 
 bool Config::getEnableDCacheModeling() const
 {
-   return (bool)g_knob_enable_dcache_modeling;
+   return (bool)m_knob_enable_dcache_modeling;
 }
 
 bool Config::getEnableICacheModeling() const
 {
-   return (bool)g_knob_enable_icache_modeling;
+   return (bool)m_knob_enable_icache_modeling;
 }
 
 UInt32 Config::getDirMaxSharers() const
 {
-   return (UInt32) g_knob_dir_max_sharers;
+   return (UInt32) m_knob_dir_max_sharers;
 }
 
 UInt32 Config::getCacheLineSize() const
 {
-   return (UInt32) g_knob_cache_line_size;
+   return (UInt32) m_knob_cache_line_size;
 }
 
 UInt32 Config::getAHLParam() const
 {
-   return (UInt32) g_knob_ahl_param;
+   return (UInt32) m_knob_ahl_param;
 }
 
 void Config::getDisabledLogModules(set<string> &mods) const
@@ -165,10 +187,10 @@ void Config::getDisabledLogModules(set<string> &mods) const
 
 const char *Config::getOutputFileName() const
 {
-   return g_knob_output_file.Value().c_str();
+   return m_knob_output_file.c_str();
 }
 
-void Config::updateCommToCoreMap(UInt32 comm_id, UInt32 core_id)
+void Config::updateCommToCoreMap(UInt32 comm_id, core_id_t core_id)
 {
    m_comm_to_core_map[comm_id] = core_id;
 }
@@ -176,6 +198,6 @@ void Config::updateCommToCoreMap(UInt32 comm_id, UInt32 core_id)
 UInt32 Config::getCoreFromCommId(UInt32 comm_id)
 {
    CommToCoreMap::iterator it = m_comm_to_core_map.find(comm_id);
-   LOG_ASSERT_ERROR(it != m_comm_to_core_map.end(), "Lookup on comm_id: %d not found.", comm_id);
-   return it->second;
+   return it == m_comm_to_core_map.end() ? INVALID_CORE_ID : it->second;
 }
+

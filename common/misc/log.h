@@ -6,8 +6,9 @@
 #include <string>
 #include <map>
 #include "fixed_types.h"
+#include "lock.h"
 
-class Lock;
+#define LOCK_LOGS
 
 class Log
 {
@@ -33,30 +34,38 @@ class Log
 
       void notifyWarning();
       void notifyError();
-      void discoverCore(UInt32 *core_id, bool *sim_thread);
-      void getFile(UInt32 core_id, bool sim_thread, FILE ** f, Lock ** l);
+      void discoverCore(core_id_t *core_id, bool *sim_thread);
+      void getFile(core_id_t core_id, bool sim_thread, FILE ** f, Lock ** l);
       std::string getModule(const char *filename);
 
       ErrorState _state;
 
       // when core id is known
       FILE** _coreFiles;
-      Lock** _coreLocks;
+      Lock* _coreLocks;
 
       // when core is id unknown but process # is
       FILE** _systemFiles;
-      Lock** _systemLocks;
+      Lock* _systemLocks;
 
       // when both no. procs and core id are unknown
       // there is the possibility of race conditions and stuff being
       // overwritten between multiple processes for this file
       FILE *_defaultFile;
-      Lock *_defaultLock;
+      Lock _defaultLock;
 
       UInt32 _coreCount;
       UInt64 _startTime;
       std::set<std::string> _disabledModules;
       std::map<const char*, std::string> _modules;
+
+// By defining LOCK_LOGS we ensure no race conditions on the modules
+// map above, but in practice this isn't very important because the
+// modules map is written once for each file and then only read. The
+// performance hit isn't worth it.
+#ifdef LOCK_LOGS
+      Lock _modules_lock;
+#endif
       static const UInt32 MODULE_LENGTH = 10;
 
       static Log *_singleton;

@@ -3,13 +3,22 @@
 #include "lcp.h"
 #include "mcp.h"
 #include "core.h"
+#include "core_manager.h"
+#include "thread_manager.h"
+#include "sim_thread_manager.h"
 
 Simulator *Simulator::m_singleton;
+config::Config *Simulator::m_config_file;
 
 void Simulator::allocate()
 {
    assert(m_singleton == NULL);
    m_singleton = new Simulator();
+}
+
+void Simulator::setConfig(config::Config *cfg)
+{
+   m_config_file = cfg;
 }
 
 void Simulator::release()
@@ -24,10 +33,17 @@ Simulator* Simulator::getSingleton()
 }
 
 Simulator::Simulator()
-   : m_config()
+   : m_mcp(NULL)
+   , m_mcp_thread(NULL)
+   , m_lcp(NULL)
+   , m_lcp_thread(NULL)
+   , m_config()
    , m_log(m_config.getTotalCores())
    , m_transport(NULL)
    , m_core_manager(NULL)
+   , m_thread_manager(NULL)
+   , m_sim_thread_manager(NULL)
+   , m_finished(false)
 {
 }
 
@@ -39,10 +55,12 @@ void Simulator::start()
 
    m_transport = Transport::create();
    m_core_manager = new CoreManager();
+   m_thread_manager = new ThreadManager(m_core_manager);
+   m_sim_thread_manager = new SimThreadManager();
 
    startMCP();
 
-   m_sim_thread_manager.spawnSimThreads();
+   m_sim_thread_manager->spawnSimThreads();
 
    m_lcp = new LCP();
    m_lcp_thread = Thread::create(m_lcp);
@@ -53,11 +71,11 @@ Simulator::~Simulator()
 {
    LOG_PRINT("Simulator dtor starting...");
 
-   m_transport->barrier();
+   broadcastFinish();
 
    endMCP();
 
-   m_sim_thread_manager.quitSimThreads();
+   m_sim_thread_manager->quitSimThreads();
 
    m_transport->barrier();
 
@@ -69,10 +87,54 @@ Simulator::~Simulator()
    delete m_mcp_thread;
    delete m_lcp;
    delete m_mcp;
-   delete m_transport;
+   delete m_sim_thread_manager;
+   delete m_thread_manager;
    delete m_core_manager;
+   delete m_transport;
 
    LOG_PRINT("Simulator dtor finished.");
+}
+
+void Simulator::broadcastFinish()
+{
+   if (Config::getSingleton()->getCurrentProcessNum() != 0)
+      return;
+
+   m_num_procs_finished = 1;
+
+   // let the rest of the simulator know its time to exit
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+
+   SInt32 msg = LCP_MESSAGE_SIMULATOR_FINISHED;
+   for (UInt32 i = 1; i < Config::getSingleton()->getProcessCount(); i++)
+   {
+      globalNode->globalSend(i, &msg, sizeof(msg));
+   }
+
+   while (m_num_procs_finished < Config::getSingleton()->getProcessCount())
+   {
+      sched_yield();
+   }
+}
+
+void Simulator::handleFinish()
+{
+   LOG_ASSERT_ERROR(Config::getSingleton()->getCurrentProcessNum() != 0,
+                    "LCP_MESSAGE_SIMULATOR_FINISHED received on master process.");
+
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+   SInt32 msg = LCP_MESSAGE_SIMULATOR_FINISHED_ACK;
+   globalNode->globalSend(0, &msg, sizeof(msg));
+
+   m_finished = true;
+}
+
+void Simulator::deallocateProcess()
+{
+   LOG_ASSERT_ERROR(Config::getSingleton()->getCurrentProcessNum() == 0,
+                    "LCP_MESSAGE_SIMULATOR_FINISHED_ACK received on slave process.");
+
+   ++m_num_procs_finished;
 }
 
 void Simulator::startMCP()
@@ -98,4 +160,9 @@ void Simulator::endMCP()
 {
    if (m_config.getCurrentProcessNum() == m_config.getProcessNumForCore(m_config.getMCPCoreNum()))
       m_mcp->finish();
+}
+
+bool Simulator::finished()
+{
+   return m_finished;
 }

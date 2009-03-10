@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include "capi.h"
 
@@ -17,38 +18,31 @@ void* thread_func(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-    CarbonInitializeThread();
-
    // Read in the command line arguments
    const unsigned int numThreads = 1;
 
    // Declare threads and related variables
-   pthread_t threads[numThreads];
-   pthread_attr_t attr;
+   int threads[numThreads];
 
-   // Initialize threads and related variables
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-   unsigned int i;
    for(unsigned int i = 0; i < 50; i++)
    {
-      for(unsigned int j = 0; j < numThreads; j++)
-         pthread_create(&threads[j], &attr, thread_func, (void *) (j + 1));
+      fprintf(stdout, "Spawning thread %d\n", i);
 
-      // Wait for all threads to complete
       for(unsigned int j = 0; j < numThreads; j++)
-         pthread_join(threads[j], NULL);
+          threads[j] = CarbonSpawnThread(thread_func, (void *) (j + 1));
+
+      for(unsigned int j = 0; j < numThreads; j++)
+          CarbonJoinThread(threads[j]);
    }
 
-   printf("UserApplication: About to call carbon finish!\n");
+   fprintf(stdout, "UserApplication: About to call carbon finish!\n");
 
-} // main ends
+   return 0;
+}
 
 void* thread_func(void *threadid)
 {
-   CarbonInitializeThread();
-   CAPI_return_t rtnVal = CAPI_Initialize((int)threadid);
+   fprintf(stderr, "Spawned this thread\n");
    return NULL;
 }
 

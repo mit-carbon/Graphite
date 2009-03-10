@@ -22,9 +22,9 @@ class Config
 {
 public:
    typedef std::vector<UInt32> CoreToProcMap;
-   typedef std::vector<UInt32> CoreList;
-   typedef std::vector<UInt32>::const_iterator CLCI;
-   typedef std::map<UInt32,UInt32> CommToCoreMap;
+   typedef std::vector<core_id_t> CoreList;
+   typedef std::vector<core_id_t>::const_iterator CLCI;
+   typedef std::map<UInt32,core_id_t> CommToCoreMap;
 
    Config();
    ~Config();
@@ -41,7 +41,7 @@ public:
    UInt32 getCurrentProcessNum() { return m_current_process_num; }
    void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
-   UInt32 getMCPCoreNum() { return getTotalCores() -1; }
+   core_id_t getMCPCoreNum() { return getTotalCores() -1; }
 
    // Return the number of modules (cores) in a given process
    UInt32 getNumCoresInProcess(UInt32 proc_num)
@@ -64,8 +64,8 @@ public:
    { return m_analytic_network_parms; }
 
    // For mapping between user-land communication id's to actual core id's
-   void updateCommToCoreMap(UInt32 comm_id, UInt32 core_id);
-   UInt32 getCoreFromCommId(UInt32 comm_id); 
+   void updateCommToCoreMap(UInt32 comm_id, core_id_t core_id);
+   UInt32 getCoreFromCommId(UInt32 comm_id);
 
    // Fills in an array with the models for each static network
    void getNetworkModels(UInt32 *) const;
@@ -108,6 +108,18 @@ private:
    NetworkModelAnalyticalParameters *m_analytic_network_parms;
 
    static Config *m_singleton;
+
+   static UInt32 m_knob_total_cores;
+   static UInt32 m_knob_num_process;
+   static bool m_knob_simarch_has_shared_mem;
+   static std::string m_knob_output_file;
+   static bool m_knob_enable_performance_modeling;
+   static bool m_knob_enable_dcache_modeling;
+   static bool m_knob_enable_icache_modeling;
+
+   static UInt32 m_knob_dir_max_sharers;
+   static UInt32 m_knob_cache_line_size;
+   static UInt32 m_knob_ahl_param;
 };
 
 #endif

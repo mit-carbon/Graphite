@@ -1,13 +1,20 @@
 #include "dram_directory.h"
+
 #include "log.h"
+#include "simulator.h"
 
-//LIMITED_DIRECTORY Flag
-//Dir(i)NB ; i = number of pointers
-//if max_sharers >= total number of cores, then the directory
-//collaspes into the full-mapped case.
-
-DramDirectory::DramDirectory(SInt32 core_id, Network* network)
+DramDirectory::DramDirectory(core_id_t core_id, Network* network)
 {
+   try
+   {
+      m_knob_dram_access_cost = Sim()->getCfg()->getInt("dram/dram_access_cost");
+      m_knob_dir_max_sharers = Sim()->getCfg()->getInt("dram/max_sharers");
+   }
+   catch(...)
+   {
+      LOG_ASSERT_ERROR(false, "DramDirectory obtained a bad value from config.");
+   }
+
    m_core_id = core_id;
    m_network = network;
    

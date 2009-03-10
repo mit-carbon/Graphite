@@ -18,4 +18,10 @@ typedef UInt8 Boolean;
 
 typedef uintptr_t IntPtr;
 
+// Carbon core types
+typedef int carbon_reg_t;
+typedef SInt32 core_id_t;
+
+#define INVALID_CORE_ID -1
+
 #endif

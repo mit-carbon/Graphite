@@ -1,10 +1,12 @@
 #include "dram_directory_entry.h"
+#include "simulator.h"
 
 UInt32 DramDirectoryEntry::cache_line_size;
 UInt32 DramDirectoryEntry::max_sharers;
 UInt32 DramDirectoryEntry::total_cores;
 
-DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address):
+DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address)
+   :
       dstate(UNCACHED),
       exclusive_sharer_rank(0),
       number_of_sharers(0)
@@ -23,7 +25,8 @@ DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address):
    stat_avg_sharers = 0;
 }
 
-DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address, Byte* data_buffer):
+DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address, Byte* data_buffer)
+   :
       dstate(UNCACHED),
       exclusive_sharer_rank(0),
       number_of_sharers(0)

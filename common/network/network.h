@@ -20,7 +20,7 @@ class Network;
 class NetPacket
 {
 public:
-   UInt64 time;
+   UInt64 time; // *MUST* be first entry of the class
    PacketType type;
    SInt32 sender;
    SInt32 receiver;
@@ -36,7 +36,6 @@ public:
    Byte *makeBuffer() const;
    
    static const SInt32 BROADCAST = 0xDEADBABE;
-   static const UInt32 BASE_SIZE = sizeof(const void*) + sizeof(PacketType) + 3 * sizeof(UInt32) + sizeof(UInt64);
 };
 
 typedef std::list<NetPacket> NetQueue;

@@ -80,10 +80,10 @@ void Network::netPullFromTransport()
       LOG_PRINT("Entering netPullFromTransport");
 
       NetPacket packet(_transport->recv());
-
+ 
       LOG_PRINT("Pull packet : type %i, from %i, time %llu", (SInt32)packet.type, packet.sender, packet.time);
       assert(0 <= packet.sender && packet.sender < _numMod);
-      assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
+      LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES, "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
 
       // was this packet sent to us, or should it just be forwarded?
       if (packet.receiver != _core->getId())
@@ -379,8 +379,8 @@ NetPacket Network::netRecvType(PacketType type)
 NetPacket::NetPacket()
    : time(0)
    , type(INVALID)
-   , sender(-1)
-   , receiver(-1)
+   , sender(INVALID_CORE_ID)
+   , receiver(INVALID_CORE_ID)
    , length(0)
    , data(0)
 {
@@ -411,14 +411,20 @@ NetPacket::NetPacket(Byte *buffer)
    delete [] buffer;
 }
 
+// This implementation is slightly wasteful because there is no need
+// to copy the const void* value in the NetPacket when length == 0,
+// but I don't see this as a major issue.
 UInt32 NetPacket::bufferSize() const
 {
-   return BASE_SIZE + length;
+   return (length < sizeof(const void*)) 
+      ? sizeof(NetPacket) 
+      : (sizeof(NetPacket) - sizeof(const void*) + length);
 }
 
 Byte* NetPacket::makeBuffer() const
 {
    UInt32 size = bufferSize();
+   assert(size >= sizeof(NetPacket));
 
    Byte *buffer = new Byte[size];
 

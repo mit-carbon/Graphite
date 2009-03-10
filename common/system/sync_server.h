@@ -10,13 +10,10 @@
 #include "packetize.h"
 #include "stable_iterator.h"
 
-// FIXME: we need to put this somewhere that makes sense
-typedef UInt32 core_id_t;
-
 class SimMutex
 {
    public:
-      static const UInt32 NO_OWNER = UINT_MAX;
+      static const core_id_t NO_OWNER = UINT_MAX;
 
       SimMutex();
       ~SimMutex();

@@ -10,17 +10,17 @@ static void runICacheModels(PerfModelIntervalStat *stats, Core *core, bool do_pe
 static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling,
                                 bool is_dual_read, IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, 
                                 UINT32 dcache_ld_size,
-                                REG *reads, UINT32 num_reads);
+                                carbon_reg_t *reads, UINT32 num_reads);
 
 static void runDCacheWriteModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling,
                                  IntPtr dcache_st_addr, UINT32 dcache_st_size,
-                                 REG *writes, UINT32 num_writes);
+                                 carbon_reg_t *writes, UINT32 num_writes);
 
 // For instrumentation / modeling
 void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_size,
                IntPtr dcache_st_addr, UINT32 dcache_st_size,
                PerfModelIntervalStat* *stats,
-               REG *reads, UINT32 num_reads, REG *writes, UINT32 num_writes,
+               carbon_reg_t *reads, UINT32 num_reads, carbon_reg_t *writes, UInt32 num_writes,
                bool do_icache_modeling, bool do_dcache_read_modeling, bool is_dual_read,
                bool do_dcache_write_modeling, bool do_perf_modeling, bool check_scoreboard)
 {
@@ -101,7 +101,7 @@ static void runICacheModels(PerfModelIntervalStat *stats, Core *core, bool do_pe
 static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling,
                                 bool is_dual_read, IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, 
                                 UINT32 dcache_ld_size,
-                                REG *reads, UINT32 num_reads)
+                                carbon_reg_t *reads, UINT32 num_reads)
 {
     // FIXME: This should actually be a UINT32 which tells how many read misses occured
     char data_ld_buffer[dcache_ld_size];
@@ -124,7 +124,7 @@ static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool d
 
 static void runDCacheWriteModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling,
                                  IntPtr dcache_st_addr, UINT32 dcache_st_size,
-                                 REG *writes, UINT32 num_writes)
+                                 carbon_reg_t *writes, UINT32 num_writes)
 {
    // FIXME: This should actually be a UINT32 which tells how many write misses occurred
    char data_st_buffer[dcache_st_size];

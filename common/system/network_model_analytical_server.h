@@ -7,8 +7,6 @@
 class Network;
 class UnstructuredBuffer;
 
-typedef UInt32 core_id_t;
-
 class NetworkModelAnalyticalServer
 {
    public:

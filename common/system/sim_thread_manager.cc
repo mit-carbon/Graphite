@@ -7,8 +7,7 @@
 #include "mcp.h"
 
 SimThreadManager::SimThreadManager()
-   : m_active_threads_lock(Lock::create())
-   , m_active_threads(0)
+   : m_active_threads(0)
 {
 }
 
@@ -16,7 +15,6 @@ SimThreadManager::~SimThreadManager()
 {
    LOG_ASSERT_WARNING(m_active_threads == 0,
                       "Threads still active when SimThreadManager exits.");
-   delete m_active_threads_lock;
 }
 
 void SimThreadManager::spawnSimThreads()
@@ -53,7 +51,7 @@ void SimThreadManager::quitSimThreads()
 
    for (UInt32 i = 0; i < num_local_cores; i++)
    {
-      SInt32 core_id = core_list[i];
+      core_id_t core_id = core_list[i];
       pkt.receiver = core_id;
       global_node->send(core_id, &pkt, pkt.bufferSize());
    }
@@ -70,14 +68,14 @@ void SimThreadManager::quitSimThreads()
 
 void SimThreadManager::simThreadStartCallback()
 {
-   m_active_threads_lock->acquire();
+   m_active_threads_lock.acquire();
    ++m_active_threads;
-   m_active_threads_lock->release();
+   m_active_threads_lock.release();
 }
 
 void SimThreadManager::simThreadExitCallback()
 {
-   m_active_threads_lock->acquire();
+   m_active_threads_lock.acquire();
    --m_active_threads;
-   m_active_threads_lock->release();
+   m_active_threads_lock.release();
 }

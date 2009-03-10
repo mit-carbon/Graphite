@@ -7,17 +7,27 @@
 #include "packetize.h"
 #include "transport.h"
 #include "network.h"
-#include "pin.H"
 
 class SyscallMdl
 {
    public:
+      struct syscall_args_t
+      {
+          int arg0;
+          int arg1;
+          int arg2;
+          int arg3;
+          int arg4;
+          int arg5;
+      };
+
       SyscallMdl(Network *net);
 
-      void runEnter(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      void runExit(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      carbon_reg_t runExit(int old_return);
+      UInt8 runEnter(UInt8 syscall_number, syscall_args_t &args);
 
    private:
+
       bool m_called_enter;
       int m_ret_val;
 
@@ -25,11 +35,12 @@ class SyscallMdl
       UnstructuredBuffer m_recv_buff;
       Network *m_network;
 
-      int marshallOpenCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      int marshallReadCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      int marshallWriteCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      int marshallCloseCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-      int marshallAccessCall(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+      carbon_reg_t marshallOpenCall(syscall_args_t &args);
+      carbon_reg_t marshallReadCall(syscall_args_t &args);
+      carbon_reg_t marshallWriteCall(syscall_args_t &args);
+      carbon_reg_t marshallCloseCall(syscall_args_t &args);
+      carbon_reg_t marshallAccessCall(syscall_args_t &args);
+
 };
 
 #endif

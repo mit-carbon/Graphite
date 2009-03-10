@@ -1,38 +1,52 @@
-include ../../common/makefile.gnu.config
-include ../../common/makefile.debug
+
+# this gives us default build rules and dependency handling
+SIM_ROOT ?= $(CURDIR)/../../
+
+LD_LIBS += -pthread -lcarbon_sim
+
+CLEAN=$(findstring clean,$(MAKECMDGOALS))
+ifeq ($(CLEAN),)
+include $(SIM_ROOT)/common/Makefile.common
+endif
 
 DBG=-g
 OPT=-O2
+BUILD_32 = 1
 
-CXXFLAGS+=-c -I../../common/user -I../../common/system -I../../common/core -I../../common/network -I../../common/transport -I../../common/misc -I./ -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+# Use these files for auto targets
+.SUFFIXES:  .o .c .h .cc
 
-LDFLAGS= -pthread
+# Add other CXX Flags
+CXXFLAGS += -c -fomit-frame-pointer  \
+            -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
 
-CXXFLAGS+=-I../../os-services-linux-ia32/include
-LDFLAGS+= -los-services -L ../../os-services-linux-ia32
+# Use the pin flags for building
+include ../../common/makefile.gnu.config
+CXXFLAGS += $(PIN_CXXFLAGS)
+CFLAGS += $(CXXFLAGS)
 
-# Uncomment the below for the 64bit version of os services
-# CXXFLAGS+=-I../../os-services-linux-intel64/include
-# LDFLAGS+= -los-services -L ../../os-services-linux-intel64
 
-TOOL_ROOTS = ../bin/pin_sim
-SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc pin_lock.cc user_space_wrappers.cc pin_thread.cc
-SRCOBJS = ../../common/user/*.o ../../common/core/*.o ../../common/network/*.o ../../common/transport/*.o ../../common/misc/*.o ../../common/system/*.o
-OBJECTS = $(SOURCES:%.cc=%.o) $(SRCOBJS)
+SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc  \
+          user_space_wrappers.cc pin_thread.cc handle_args.o
+
+OBJECTS = $(SOURCES:%.cc=%.o)
 
 ## build rules
-TOOLS = $(TOOL_ROOTS:%=%$(PINTOOL_SUFFIX))
-
-# all is defined in the common makefile
-all: ../bin $(TOOLS)
-
-# this gives us default build rules and dependency handling
-include ../../common/makefile.common
+BUILD_TARGET = ../bin/pin_sim.so
 
 ../bin:
 	-mkdir ../bin
 
-$(TOOLS): $(PIN_LIBNAMES)
-$(TOOLS): $(OBJECTS)
-	$(CXX) $(PIN_LDFLAGS) $(LDFLAGS) -o $@ $^  $(PIN_LIBS) -los-services $(DBG)
+$(SIM_ROOT)/lib/libcarbon_sim.a:
+	$(MAKE) simlib -C $(SIM_ROOT)
 
+all: $(BUILD_TARGET) ../bin
+
+$(BUILD_TARGET): $(PIN_LIBNAMES) $(SIM_ROOT)/lib/libcarbon_sim.a
+$(BUILD_TARGET): $(OBJECTS)
+	$(CXX) $(PIN_LDFLAGS) $(LD_FLAGS) -o $@ $(OBJECTS) $(PIN_LIBS) $(LD_LIBS) $(DBG)
+
+ifneq ($(CLEAN),)
+clean:
+	-rm -f $(BUILD_TARGET) $(OBJECTS)
+endif

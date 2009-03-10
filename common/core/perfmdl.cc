@@ -2,21 +2,20 @@
 #include "config.h"
 #include <cassert>
 
-#include "pin.H"
+using namespace std;
+
 
 PerfModel::PerfModel(string name)
       :
       m_microop_issue_count(0),
       m_cycle_count(0),
-      m_scoreboard(LEVEL_BASE::REG_LAST, k_PERFMDL_CYCLE_INVALID),
+      m_scoreboard(REG_LAST, k_PERFMDL_CYCLE_INVALID),
       m_name(name)
 {
-   m_clock_lock = Lock::create();
 }
 
 PerfModel::~PerfModel()
 {
-   delete m_clock_lock;
 }
 
 void PerfModel::runComputationModel(PerfModelIntervalStat *interval_stats)
@@ -41,15 +40,15 @@ void PerfModel::runICacheModel(PerfModelIntervalStat *interval_stats)
 }
 
 // run method which accounts for load data dependency stalls
-void PerfModel::runDCacheWriteModel(PerfModelIntervalStat *interval_stats, REG *reads, UInt32 numReads)
+void PerfModel::runDCacheWriteModel(PerfModelIntervalStat *interval_stats, carbon_reg_t *reads, UInt32 numReads)
 {
    interval_stats->reset();
    UInt64 max = m_cycle_count;
-   REG max_reg = LEVEL_BASE::REG_LAST;
+   carbon_reg_t max_reg = REG_LAST;
 
    for (UInt32 i = 0; i < numReads; i++)
    {
-      REG r = reads[i];
+      carbon_reg_t r = reads[i];
       assert((UInt32)r < m_scoreboard.size());
       UInt64 cycle = m_scoreboard[r];
 
@@ -77,7 +76,7 @@ void PerfModel::runDCacheWriteModel(PerfModelIntervalStat *interval_stats, REG *
    updateCycleCount(max);
 }
 
-void PerfModel::runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, REG *writes, UInt32 numWrites)
+void PerfModel::runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool dcache_load_hit, carbon_reg_t *writes, UInt32 numWrites)
 {
    interval_stats->reset();
    interval_stats->logDCacheLoadAccess(dcache_load_hit);
@@ -86,7 +85,7 @@ void PerfModel::runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool d
    {
       for (UInt32 i = 0; i < numWrites; i++)
       {
-         REG w = writes[i];
+         carbon_reg_t w = writes[i];
          assert((UInt32)w < m_scoreboard.size());
          m_scoreboard[w] = m_cycle_count + 100;  //FIXME: make this parameterizable
       }
@@ -96,15 +95,15 @@ void PerfModel::runDCacheReadModel(PerfModelIntervalStat *interval_stats, bool d
 
 void PerfModel::updateCycleCount(UInt64 new_cycle_count)
 {
-   m_clock_lock->acquire();
+   m_clock_lock.acquire();
    m_cycle_count = max(m_cycle_count, new_cycle_count);
-   m_clock_lock->release();
+   m_clock_lock.release();
 }
 void PerfModel::addToCycleCount(UInt64 cycles)
 {
-   m_clock_lock->acquire();
+   m_clock_lock.acquire();
    m_cycle_count += cycles;
-   m_clock_lock->release();
+   m_clock_lock.release();
 }
 
 void PerfModel::outputSummary(ostream& out)

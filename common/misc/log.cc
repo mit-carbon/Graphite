@@ -1,9 +1,11 @@
+#include <sys/time.h>
+#include <sys/syscall.h>
+#include <stdarg.h>
+
 #include "log.h"
 #include "config.h"
-#include <sys/time.h>
-#include <stdarg.h>
-#include "lock.h"
 #include "simulator.h"
+#include "core_manager.h"
 
 #define DISABLE_LOGGING
 
@@ -31,27 +33,20 @@ Log::Log(UInt32 coreCount)
       assert(_coreFiles[i] != NULL);
    }
 
-   _coreLocks = new Lock* [2 * _coreCount];
-   for (UInt32 i = 0; i < 2 * _coreCount; i++)
-   {
-      _coreLocks[i] = Lock::create();
-   }
+   _coreLocks = new Lock [2 * _coreCount];
 
    assert(Config::getSingleton()->getProcessCount() != 0);
 
    _systemFiles = new FILE* [Config::getSingleton()->getProcessCount()];
-   _systemLocks = new Lock* [Config::getSingleton()->getProcessCount()];
+   _systemLocks = new Lock [Config::getSingleton()->getProcessCount()];
    for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
    {
       sprintf(filename, "output_files/system_%u", i);
       _systemFiles[i] = fopen(filename, "w");
       assert(_systemFiles[i] != NULL);
-
-      _systemLocks[i] = Lock::create();
    }
 
    _defaultFile = fopen("output_files/system-default","w");
-   _defaultLock = Lock::create();
 
    Config::getSingleton()->getDisabledLogModules(_disabledModules);
 
@@ -66,7 +61,6 @@ Log::~Log()
    for (UInt32 i = 0; i < 2 * _coreCount; i++)
    {
       fclose(_coreFiles[i]);
-      delete _coreLocks[i];
    }
 
    delete [] _coreLocks;
@@ -75,14 +69,11 @@ Log::~Log()
    for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
    {
       fclose(_systemFiles[i]);
-      delete _systemLocks[i];
    }
 
    delete [] _systemFiles;
-   delete [] _systemLocks;
 
    fclose(_defaultFile);
-   delete _defaultLock;
 }
 
 Log* Log::getSingleton()
@@ -104,20 +95,19 @@ UInt64 Log::getTimestamp()
    if (_startTime == 0) _startTime = time;
    return time - _startTime;
 }
-
-void Log::discoverCore(UInt32 *core_id, bool *sim_thread)
+void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 {
    CoreManager *core_manager;
 
    if (!Sim() || !(core_manager = Sim()->getCoreManager()))
    {
-      *core_id = -1;
+      *core_id = INVALID_CORE_ID;
       *sim_thread = false;
       return;
    }
 
    *core_id = core_manager->getCurrentCoreID();
-   if (*core_id != (UInt32)-1)
+   if (*core_id != INVALID_CORE_ID)
    {
       *sim_thread = false;
       return;
@@ -130,24 +120,24 @@ void Log::discoverCore(UInt32 *core_id, bool *sim_thread)
    }
 }
 
-void Log::getFile(UInt32 core_id, bool sim_thread, FILE **file, Lock **lock)
+void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
 {
    *file = NULL;
    *lock = NULL;
 
-   if (core_id == (UInt32)-1)
+   if (core_id == INVALID_CORE_ID)
    {
       // System file -- use process num if available
       if (Config::getSingleton()->getCurrentProcessNum() != (UInt32) -1)
       {
          assert(Config::getSingleton()->getCurrentProcessNum() < Config::getSingleton()->getProcessCount());
          *file = _systemFiles[Config::getSingleton()->getCurrentProcessNum()];
-         *lock = _systemLocks[Config::getSingleton()->getCurrentProcessNum()];
+         *lock = &_systemLocks[Config::getSingleton()->getCurrentProcessNum()];
       }
       else
       {
          *file = _defaultFile;
-         *lock = _defaultLock;
+         *lock = &_defaultLock;
       }
    }
    else
@@ -155,12 +145,15 @@ void Log::getFile(UInt32 core_id, bool sim_thread, FILE **file, Lock **lock)
       // Core file
       UInt32 fileID = core_id + (sim_thread ? _coreCount : 0);
       *file = _coreFiles[fileID];
-      *lock = _coreLocks[fileID];
+      *lock = &_coreLocks[fileID];
    }
 }
 
 std::string Log::getModule(const char *filename)
 {
+#ifdef LOCK_LOGS
+   ScopedLock sl(_modules_lock);
+#endif
    std::map<const char*, std::string>::const_iterator it = _modules.find(filename);
 
    if (it != _modules.end())
@@ -171,6 +164,11 @@ std::string Log::getModule(const char *filename)
    {
       // build module string
       string mod;
+
+      // find actual file name ...
+      const char *ptr = strrchr(filename, '/');
+      if (ptr != NULL)
+         filename = ptr + 1;
 
       for (UInt32 i = 0; i < MODULE_LENGTH && filename[i] != '\0'; i++)
          mod.push_back(filename[i]);
@@ -192,7 +190,7 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
       return;
 #endif
 
-   UInt32 core_id;
+   core_id_t core_id;
    bool sim_thread;
    discoverCore(&core_id, &sim_thread);
    
@@ -203,18 +201,19 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    Lock *lock;
 
    getFile(core_id, sim_thread, &file, &lock);
+   int tid = syscall(__NR_gettid);
 
    lock->acquire();
 
    std::string module = getModule(source_file);
 
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
-   if (core_id != (UInt32)-1) // valid core id
-      fprintf(file, "%-20llu {%2i}  [%2i]  [%s:%4d]%s", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), core_id, module.c_str(), source_line, (sim_thread ? "* " : "  "));
+   if (core_id != INVALID_CORE_ID) // valid core id
+      fprintf(file, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), module.c_str(), source_line);
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
-      fprintf(file, "%-20llu {%2i}  [  ]  [%s:%4d]  ", getTimestamp(), Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+      fprintf(file, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
    else // who knows
-      fprintf(file, "%-20llu {  }  [  ]  [%s:%4d]  ", getTimestamp(), module.c_str(), source_line);
+      fprintf(file, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, module.c_str(), source_line);
 
    switch (err)
    {

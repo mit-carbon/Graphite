@@ -40,7 +40,12 @@ CAPI_return_t CAPI_Finish(int my_rank)
    return 0;
 }
 
-void CarbonInitializeThread()
+int CarbonSpawnThread(void* (*func)(void*), void *arg)
+{
+   assert(false);
+}
+
+void CarbonJoinThread(int tid)
 {
    assert(false);
 }
@@ -56,6 +61,3 @@ int CarbonGetCurrentProcessId()
    assert(false);
    return 0;
 }
-
-
-

@@ -1,8 +1,9 @@
 #include "sim_thread.h"
-
+#include "core_manager.h"
 #include "log.h"
 #include "simulator.h"
 #include "core.h"
+#include "sim_thread_manager.h"
 
 SimThread::SimThread()
    : m_thread(NULL)
@@ -16,7 +17,7 @@ SimThread::~SimThread()
 
 void SimThread::run()
 {
-   int core_id = Sim()->getCoreManager()->registerSimMemThread();
+   core_id_t core_id = Sim()->getCoreManager()->registerSimMemThread();
    LOG_PRINT("Sim thread starting...");
 
    Network *net = Sim()->getCoreManager()->getCoreFromID(core_id)->getNetwork();

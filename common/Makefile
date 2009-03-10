@@ -1,4 +1,6 @@
-include ./makefile.gnu.config
+
+
+include $(CURDIR)/makefile.gnu.config
 
 sim: userobjs coreobjs networkobjs transportobjs miscobjs  sysobjs
 tests: testobjs

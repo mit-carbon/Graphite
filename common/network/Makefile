@@ -1,5 +1,4 @@
 include ../makefile.gnu.config
-include ../makefile.debug
 
 DBG=-g
 OPT=-O2
@@ -9,5 +8,5 @@ LDFLAGS=
 SOURCES = network.cc network_model.cc network_model_analytical.cc
 OBJECTS = $(SOURCES:%.cc=%.o)
 
-include ../makefile.common
+include ../Makefile.common
 

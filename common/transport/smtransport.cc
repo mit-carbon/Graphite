@@ -27,7 +27,7 @@ SmTransport::~SmTransport()
    delete m_global_node;
 }
 
-Transport::Node* SmTransport::createNode(SInt32 core_id)
+Transport::Node* SmTransport::createNode(core_id_t core_id)
 {
    LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
                     "Request index out of range: %d", core_id);
@@ -51,14 +51,14 @@ Transport::Node* SmTransport::getGlobalNode()
    return m_global_node;
 }
 
-SmTransport::SmNode* SmTransport::getNodeFromId(SInt32 core_id)
+SmTransport::SmNode* SmTransport::getNodeFromId(core_id_t core_id)
 {
    LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
                     "Core id out of range: %d", core_id);
    return m_core_nodes[core_id];
 }
 
-void SmTransport::clearNodeForId(SInt32 core_id)
+void SmTransport::clearNodeForId(core_id_t core_id)
 {
    // This is called upon deletion of the node, so we should simply
    // not keep around a dead pointer.
@@ -68,7 +68,7 @@ void SmTransport::clearNodeForId(SInt32 core_id)
 
 // -- SmTransportNode -- //
 
-SmTransport::SmNode::SmNode(SInt32 core_id, SmTransport *smt)
+SmTransport::SmNode::SmNode(core_id_t core_id, SmTransport *smt)
    : Node(core_id)
    , m_smt(smt)
 {

@@ -29,10 +29,12 @@ SyscallServer::~SyscallServer()
 }
 
 
-void SyscallServer::handleSyscall(UInt32 core_id)
+void SyscallServer::handleSyscall(core_id_t core_id)
 {
    UInt8 syscall_number;
    m_recv_buff >> syscall_number;
+
+   LOG_PRINT("Syscall: %d", syscall_number);
 
    switch (syscall_number)
    {
@@ -56,7 +58,7 @@ void SyscallServer::handleSyscall(UInt32 core_id)
    }
 }
 
-void SyscallServer::marshallOpenCall(UInt32 core_id)
+void SyscallServer::marshallOpenCall(core_id_t core_id)
 {
 
    /*
@@ -76,8 +78,6 @@ void SyscallServer::marshallOpenCall(UInt32 core_id)
 
    */
 
-   // cerr << "Open syscall from: " << core_id << endl;
-
    UInt32 len_fname;
    char *path = (char *) m_scratch;
    int flags;
@@ -92,11 +92,6 @@ void SyscallServer::marshallOpenCall(UInt32 core_id)
    // Actually do the open call
    int ret = open(path, flags);
 
-   //cerr << "len: " << len_fname << endl;
-   //cerr << "path: " << path << endl;
-   //cerr << "flags: " << flags << endl;
-   //cerr << "ret: " << ret << endl;
-
    m_send_buff << ret;
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -105,7 +100,7 @@ void SyscallServer::marshallOpenCall(UInt32 core_id)
       delete[] path;
 }
 
-void SyscallServer::marshallReadCall(UInt32 core_id)
+void SyscallServer::marshallReadCall(core_id_t core_id)
 {
 
    /*
@@ -125,8 +120,6 @@ void SyscallServer::marshallReadCall(UInt32 core_id)
 
    */
 
-   // cerr << "Read syscall from: " << core_id << endl;
-
    int fd;
    char *buf = (char *) m_scratch;
    size_t count;
@@ -144,12 +137,7 @@ void SyscallServer::marshallReadCall(UInt32 core_id)
    int bytes = read(fd, (void *) buf, count);
 
    // Copy the memory into shared mem
-   m_network.getCore()->accessMemory(CacheBase::k_ACCESS_TYPE_STORE, (ADDRINT)dest, buf, count);
-
-   //cerr << "fd: " << fd << endl;
-   //cerr << "buf: " << buf << endl;
-   //cerr << "count: " << count << endl;
-   //cerr << "bytes: " << bytes << endl;
+   m_network.getCore()->accessMemory(CacheBase::k_ACCESS_TYPE_STORE, (IntPtr)dest, buf, count);
 
    m_send_buff << bytes;
    if (bytes != -1)
@@ -163,7 +151,7 @@ void SyscallServer::marshallReadCall(UInt32 core_id)
 }
 
 
-void SyscallServer::marshallWriteCall(UInt32 core_id)
+void SyscallServer::marshallWriteCall(core_id_t core_id)
 {
 
    /*
@@ -183,8 +171,6 @@ void SyscallServer::marshallWriteCall(UInt32 core_id)
 
    */
 
-   // cerr << "Write syscall from: " << core_id << endl;
-
    int fd;
    char *buf = (char *) m_scratch;
    size_t count;
@@ -196,14 +182,18 @@ void SyscallServer::marshallWriteCall(UInt32 core_id)
 
    // If we aren't using shared memory, then the data for the
    // write call must be passed in the message
-   if (Config::getSingleton()->isSimulatingSharedMemory())
+
+   // FIXME: This is disabled until memory redirection is
+   // functional. We should also ask ourselves if this is the behavior
+   // we want (message passing vs shared memory).
+   if (false && Config::getSingleton()->isSimulatingSharedMemory())
    {
       char *src;
       int src_b;
       m_recv_buff >> src_b;
       src = (char *)src_b;
 
-      m_network.getCore()->accessMemory(CacheBase::k_ACCESS_TYPE_LOAD, (ADDRINT)src, buf, count);
+      m_network.getCore()->accessMemory(CacheBase::k_ACCESS_TYPE_LOAD, (IntPtr)src, buf, count);
    }
    else
    {
@@ -212,13 +202,6 @@ void SyscallServer::marshallWriteCall(UInt32 core_id)
 
    // Actually do the write call
    int bytes = write(fd, (void *) buf, count);
-//   if ( bytes != -1 )
-//      cerr << "wrote: " << buf << endl;
-
-   //cerr << "fd: " << fd << endl;
-   //cerr << "buf: " << buf << endl;
-   //cerr << "count: " << count << endl;
-   //cerr << "bytes: " << bytes << endl;
 
    m_send_buff << bytes;
 
@@ -230,7 +213,7 @@ void SyscallServer::marshallWriteCall(UInt32 core_id)
 }
 
 
-void SyscallServer::marshallCloseCall(UInt32 core_id)
+void SyscallServer::marshallCloseCall(core_id_t core_id)
 {
 
    /*
@@ -248,26 +231,19 @@ void SyscallServer::marshallCloseCall(UInt32 core_id)
 
    */
 
-   // cerr << "Close syscall from: " << core_id << endl;
-
    int fd;
    m_recv_buff >> fd;
 
    // Actually do the close call
    int status = close(fd);
 
-   //cerr << "fd: " << fd << endl;
-   //cerr << "status: " << status << endl;
-
    m_send_buff << status;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
 }
 
-void SyscallServer::marshallAccessCall(UInt32 core_id)
+void SyscallServer::marshallAccessCall(core_id_t core_id)
 {
-   // cerr << "access syscall from: " << core_id << endl;
-
    UInt32 len_fname;
    char *path = (char *) m_scratch;
    int mode;
@@ -281,11 +257,6 @@ void SyscallServer::marshallAccessCall(UInt32 core_id)
 
    // Actually do the open call
    int ret = access(path, mode);
-
-   //cerr << "len: " << len_fname << endl;
-   //cerr << "path: " << path << endl;
-   //cerr << "mode: " << mode << endl;
-   //cerr << "ret: " << ret << endl;
 
    m_send_buff << ret;
 

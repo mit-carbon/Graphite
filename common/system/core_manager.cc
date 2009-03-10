@@ -24,8 +24,6 @@ CoreManager::CoreManager()
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
-   m_maps_lock = Lock::create();
-
    UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
 
    tid_map = new UInt32 [num_local_cores];
@@ -51,17 +49,15 @@ CoreManager::~CoreManager()
 
    delete [] core_to_simthread_tid_map;
    delete [] tid_map;
-
-   delete m_maps_lock;
 }
 
-void CoreManager::initializeCommId(UInt32 comm_id)
+void CoreManager::initializeCommId(SInt32 comm_id)
 {
    UInt32 tid = getCurrentTID();
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
    LOG_ASSERT_ERROR(e.first, "initializeCommId: Called without binding thread to a core.");
-   UInt32 core_id = e.second;
+   core_id_t core_id = e.second;
 
    UnstructuredBuffer send_buff;
    send_buff << (SInt32)LCP_MESSAGE_COMMID_UPDATE << comm_id << core_id;
@@ -69,34 +65,55 @@ void CoreManager::initializeCommId(UInt32 comm_id)
    LOG_PRINT("Initializing comm_id: %d to core_id: %d", comm_id, core_id);
 
    // Broadcast this update to other processes
-   Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
+
+   e = tid_to_core_index_map.find(tid);
+   LOG_ASSERT_ERROR(e.first, "initializeCommId: tid mapped to core, but not to an index?");
+   UInt32 idx = (UInt32) e.second;
+
+   LOG_ASSERT_ERROR(idx < Config::getSingleton()->getNumLocalCores(), "CoreManager got and index [%d] out of range (0-%d).", 
+         idx, Config::getSingleton()->getNumLocalCores());
+
+   Network *network = m_cores[idx]->getNetwork();
+   Transport::Node *transport = Transport::getSingleton()->getGlobalNode();
    UInt32 num_procs = Config::getSingleton()->getProcessCount();
 
    for (UInt32 i = 0; i < num_procs; i++)
    {
-      global_node->globalSend(i,
-                              send_buff.getBuffer(),
-                              send_buff.size());
+      transport->globalSend(i,
+                            send_buff.getBuffer(),
+                            send_buff.size());
    }
+
+   LOG_PRINT("Waiting for replies from LCPs.");
+
+   for (UInt32 i = 0; i < num_procs; i++)
+   {
+      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY);
+      LOG_PRINT("Received reply from proc: %d", i);
+   }
+
+   LOG_PRINT("Finished.");
 }
 
 void CoreManager::initializeThread()
 {
-   ScopedLock scoped_maps_lock(*m_maps_lock);
+   ScopedLock scoped_maps_lock(m_maps_lock);
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
    LOG_ASSERT_WARNING(e.first == false, "Thread: %d already mapped to core: %lld", tid, e.second);
+   const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
+
 
    for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
       if (tid_map[i] == UINT_MAX)
       {
-         UInt32 core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+         core_id_t core_id = core_list[i];
          tid_map[i] = tid;
          tid_to_core_index_map.insert(tid, i);
          tid_to_core_map.insert(tid, core_id);
-         LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid_map[i], core_id);
+         LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid, core_id);
          return;
       }
       else
@@ -108,17 +125,19 @@ void CoreManager::initializeThread()
    LOG_PRINT_ERROR("initializeThread - No free cores out of %d total.", Config::getSingleton()->getNumLocalCores());
 }
 
-void CoreManager::initializeThread(UInt32 core_id)
+void CoreManager::initializeThread(core_id_t core_id)
 {
-   ScopedLock scoped_maps_lock(*m_maps_lock);
+   ScopedLock scoped_maps_lock(m_maps_lock);
    UInt32 tid = getCurrentTID();
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
 
    LOG_ASSERT_ERROR(e.first == false, "Tried to initialize core %d twice.", core_id);
 
+   const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
+
    for (unsigned int i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
-      UInt32 local_core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+      core_id_t local_core_id = core_list[i];
       if(local_core_id == core_id)
       {
          if (tid_map[i] == UINT_MAX)
@@ -141,7 +160,7 @@ void CoreManager::initializeThread(UInt32 core_id)
 
 void CoreManager::terminateThread()
 {
-   ScopedLock scoped_maps_lock(*m_maps_lock);
+   ScopedLock scoped_maps_lock(m_maps_lock);
    UInt32 tid = getCurrentTID();
    LOG_PRINT("CoreManager::terminating thread: %d", tid);
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
@@ -159,7 +178,7 @@ void CoreManager::terminateThread()
          tid_map[i] = UINT_MAX;
          tid_to_core_index_map.remove(tid);
          tid_to_core_map.remove(tid);
-         LOG_PRINT("Terminate thread : removed %d", e.second);
+         LOG_PRINT("Terminate thread : removed %lld", e.second);
          return;
       }
       else
@@ -171,30 +190,30 @@ void CoreManager::terminateThread()
    LOG_PRINT_ERROR("terminateThread - Thread tid: %lld not found in list.", e.second);
 }
 
-UInt32 CoreManager::getCurrentCoreID()
+core_id_t CoreManager::getCurrentCoreID()
 {
-   UInt32 id;
+   core_id_t core_id;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = tid_to_core_map.find(tid);
-   id = (e.first == false) ? -1 : e.second;
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
+   core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
 
-   return id;
+   return core_id;
 }
 
-UInt32 CoreManager::getCurrentSimThreadCoreID()
+core_id_t CoreManager::getCurrentSimThreadCoreID()
 {
-   UInt32 id;
+   core_id_t core_id;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
-   id = (e.first == false) ? -1 : e.second;
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
+   core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || id < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
 
-   return id;
+   return core_id;
 }
 
 Core *CoreManager::getCurrentCore()
@@ -202,14 +221,14 @@ Core *CoreManager::getCurrentCore()
    Core *core;
    UInt32 tid = getCurrentTID();
 
-   pair<bool, UINT64> e = tid_to_core_index_map.find(tid);
+   pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : m_cores[e.second];
 
    LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
    return core;
 }
 
-Core *CoreManager::getCoreFromID(UInt32 id)
+Core *CoreManager::getCoreFromID(core_id_t id)
 {
    Core *core = NULL;
    // Look up the index from the core list
@@ -265,12 +284,12 @@ void CoreManager::outputSummary()
    out.close();
 }
 
-int CoreManager::registerSimMemThread()
+core_id_t CoreManager::registerSimMemThread()
 {
    UInt32 tid = getCurrentTID();
 
-   ScopedLock sl(*m_maps_lock);
-   pair<bool, UINT64> e = simthread_tid_to_core_map.find(tid);
+   ScopedLock sl(m_maps_lock);
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
 
    // If this thread isn't registered
    if (e.first == false)
@@ -301,7 +320,7 @@ int CoreManager::registerSimMemThread()
       return simthread_tid_to_core_map.find(tid).second;
    }
 
-   return -1;
+   return INVALID_CORE_ID;
 }
 
 UInt32 CoreManager::getCurrentTID()

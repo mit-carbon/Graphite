@@ -115,7 +115,7 @@ define(MONINIT, `{;}')
 define(WAIT_FOR_END, `{
 	unsigned long	i, Error;
 	for (i = 0; i < ($1) - 1; i++) {
-		CarbonJoinThread(PThreadTable[i]);
+		CarbonJoinThread(ThreadTable[i]);
 	}
 }')
 
@@ -123,7 +123,7 @@ define(CREATE, `{
 	long	i, Error;
 
 	for (i = 0; i < ($2) - 1; i++) {
-		PThreadTable[i] = CarbonSpawnThread((void * (*)(void *))($1), NULL);
+		ThreadTable[i] = CarbonSpawnThread((void * (*)(void *))($1), NULL);
 	}
 
 	$1();
@@ -136,26 +136,23 @@ define(MAIN_END, `{
       }')
 
 define(MAIN_ENV,`
-#include <pthread.h>
-#include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sync_api.h>
 #include <capi.h>
 #define MAX_THREADS 32
-pthread_t PThreadTable[MAX_THREADS];
+carbon_thread_t ThreadTable[MAX_THREADS];
 ')
 
 define(ENV, ` ')
 define(EXTERN_ENV, `
-#include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sync_api.h>
 #include <capi.h>
-extern pthread_t PThreadTable[];
+extern carbon_thread_t ThreadTable[];
 ')
 
 define(THREAD_INIT, `{

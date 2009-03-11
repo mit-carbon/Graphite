@@ -39,7 +39,7 @@ void* read_and_write(void *threadid)
 {
    int tid = (int)threadid;
    char file_name[256];
-   sprintf(file_name, "./common/tests/file_io/input%d", tid);
+   sprintf(file_name, "./tests/apps/file_io/input%d", tid);
 
    for (int i = 0; i < 100; i++)
    {

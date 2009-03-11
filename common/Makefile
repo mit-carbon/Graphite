@@ -1,10 +1,7 @@
-
-
 include $(CURDIR)/makefile.gnu.config
 
 sim: userobjs coreobjs networkobjs transportobjs miscobjs  sysobjs
-tests: testobjs
-all: sim tests
+all: sim
 
 userobjs:
 	$(MAKE) -C user
@@ -24,9 +21,6 @@ sysobjs:
 miscobjs:
 	$(MAKE) -C misc
 
-testobjs:
-	$(MAKE) -C tests
-
 clean:
 	$(MAKE) -C user clean
 	$(MAKE) -C core clean
@@ -34,7 +28,6 @@ clean:
 	$(MAKE) -C transport clean
 	$(MAKE) -C misc clean
 	$(MAKE) -C system clean
-	$(MAKE) -C tests clean
 	-rm -f *.o *.d *.rpo
 
 squeaky: clean
@@ -44,6 +37,5 @@ squeaky: clean
 	$(MAKE) -C transport squeaky
 	$(MAKE) -C misc squeaky
 	$(MAKE) -C system squeaky
-	$(MAKE) -C tests squeaky
 	-rm -f *~
 

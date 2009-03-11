@@ -8,62 +8,6 @@
 # vi temp files
 *.swp
 
-# test executables
-common/tests/cannon/cannon
-common/tests/file_io/file_io
-common/tests/ping_pong/ping_pong
-common/tests/signals/signals
-common/tests/barnes/BARNES
-common/tests/mutex/mutex_test
-common/tests/cond/cond_test
-common/tests/broadcast/broadcast_test
-common/tests/barrier/barrier_test
-common/tests/pthreads_basic/basic
-common/tests/shared_mem_test/test_evic
-common/tests/shared_mem_test/test_new
-common/tests/simple/simple_test
-common/tests/cannon_msg/cannon
-common/tests/capi_worker/capi_worker
-common/tests/1d_jacobi/jacobi
-
-# benchmark generated files
-common/tests/barnes/*.[ch]
-common/tests/barnes/BARNES
-common/tests/fmm/*.[ch]
-common/tests/fmm/FMM
-common/tests/ocean_contig/*.[ch]
-common/tests/ocean_contig/OCEAN
-common/tests/radiosity/*.[ch]
-common/tests/radiosity/RADIOSITY
-common/tests/volrend/*.[ch]
-common/tests/volrend/VOLREND
-common/tests/water-nsquared/*.[ch]
-common/tests/water-nsquared/WATER-NSQUARED
-common/tests/water-spatial/*.[ch]
-common/tests/water-spatial/WATER-SPATIAL
-
-
-
-#benchmark generated source files
-common/tests/water-spatial/*.[ch]
-common/tests/water-spatial/WATER-SPATIAL
-common/tests/water-nsquared/*.[ch]
-common/tests/water-nsquared/WATER-NSQUARED
-common/tests/volrend/*.[ch]
-common/tests/volrend/VOLREND
-common/tests/raytrace/*.[ch]
-common/tests/radiosity/*.[ch]
-common/tests/radiosity/glibdumb/glib.a
-common/tests/radiosity/glibps/glibps.a
-common/tests/radiosity/RADIOSITY
-common/tests/ocean_contig/*.[ch]
-common/tests/fmm/*.[ch]
-common/tests/fmm/FMM
-common/tests/barnes/*.[ch]
-common/tests/ocean_contig/*.[ch]
-common/tests/ocean_contig/OCEAN
-
-
 # test output
 pin.log
 pintool.log

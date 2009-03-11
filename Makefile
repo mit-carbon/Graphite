@@ -1,22 +1,22 @@
 
 SIM_ROOT ?= $(CURDIR)
 
+PROCS=1
+CORES=4
+..PHONY: CORES
+..PHONY: PROCS
+
 # if we are running the 'clean' target
 # then don't include other files (which define clean)
 # we simply use or own clean defined below
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
 include common/Makefile.common
-include common/tests/Makefile
-include tests/unit/Makefile
+include tests/apps/Makefile.apps
+include tests/unit/Makefile.unit
 endif
 
-CORES=4
 TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
-
-..PHONY: cores
-PROCESS=mpirun
-..PHONY: process
 
 all:
 	$(MAKE) -C common/user
@@ -38,7 +38,7 @@ empty_logs :
 	rm output_files/* ; true
 
 run_mpd:
-	$(MPI_DIR)/bin/mpd
+	$(MPI_DIR)/bin/mpdboot -n $(PROCS)
 
 stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit

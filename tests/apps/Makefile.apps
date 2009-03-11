@@ -1,6 +1,6 @@
 
 SIM_ROOT ?= $(CURDIR)/../../
-TESTS_DIR = $(SIM_ROOT)/common/tests/
+TESTS_DIR = $(SIM_ROOT)/tests/apps/
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 TMP=$(shell uname -m)

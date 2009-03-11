@@ -3,27 +3,24 @@
 
 SIM_ROOT ?= $(CURDIR)/../../../
 
+include $(SIM_ROOT)/common/Makefile.common
+
 all: $(BUILD_TARGET)
 
-CC = $(MPI_DIR)/bin/mpicc
-CXX = $(MPI_DIR)/bin/mpicxx
+CC = mpicc
+CXX = mpicxx
 
-CXXFLAGS = -I$(SIM_ROOT)/common -c -g -Wall 
+CXXFLAGS = -I$(SIM_ROOT)/common -I$(SIM_ROOT)/common/user -c -g -Wall 
 
 LDFLAGS += -lm
 
 CFLAGS = $(CXXFLAGS) -std=c99
 
-CARBON_SOURCES = ../../user/sync_api.c ../../user/capi.c ../../user/thread_support.c
+CARBON_SOURCES = $(SIM_ROOT)/common/user/sync_api.c $(SIM_ROOT)/common/user/capi.c $(SIM_ROOT)/common/user/thread_support.c
 CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
 
 # These are the objects required by each test
 OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
-
-CLEAN=$(findstring clean,$(MAKECMDGOALS))
-ifeq ($(CLEAN),)
-include ../../Makefile.common
-endif
 
 # Build rules
 $(BUILD_TARGET): $(OBJECTS) $(CARBON_OBJECTS)

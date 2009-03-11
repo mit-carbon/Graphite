@@ -10,45 +10,26 @@ void* thread_func_simple(void *threadid);
 
 void do_a_sim()
 {
+   const unsigned int numThreads = 5;
+   int threads[numThreads];
 
-   // Grab a comm id
-   CAPI_Initialize(3);
+   for(unsigned int j = 0; j < numThreads; j++)
+       threads[j] = CarbonSpawnThread(thread_func, (void *) (j + 1));
 
-   for(unsigned int i = 0; i < 500; i++)
-   {
-      int tid0 = CarbonSpawnThread(thread_func_simple, (void*)0);
-      CarbonJoinThread(tid0);
-   }
+   for(unsigned int j = 0; j < numThreads; j++)
+       CarbonJoinThread(threads[j]);
 
-   // Spawn some threads
-   fprintf(stderr, "Spawning child thread 0.\n");
-   int tid1 = CarbonSpawnThread(thread_func, (void*)0);
-
-   fprintf(stderr, "Spawning child thread 1.\n");
-   int tid2 = CarbonSpawnThread(thread_func, (void*)1);
-
-   // Give them a chance to start up
-   usleep(500);
-
-   unsigned int junk;
-   fprintf(stderr,"Waiting for msg from 0\n");
-   CAPI_message_receive_w(0, 3, (char *)&junk, sizeof(junk));
-   assert(junk == 0xDEADBEEF);
-   fprintf(stderr,"Waiting for msg from 1\n");
-   CAPI_message_receive_w(1, 3, (char *)&junk, sizeof(junk));
-   assert(junk == 0xDEADBEEF);
-
-   fprintf(stderr,"joining 0\n");
-   CarbonJoinThread(tid1);
-
-   fprintf(stderr,"joining 1\n");
-   CarbonJoinThread(tid2);
 }
 
 int main(int argc, char **argv)
 {
+   int i = 0;
    CarbonStartSim();
-   do_a_sim();
+
+   for(i = 0; i < 120; i++)
+   {
+       do_a_sim();
+   }
    CarbonStopSim();
 
    fprintf(stderr, "done.\n");
@@ -57,21 +38,13 @@ int main(int argc, char **argv)
 
 void* thread_func(void *threadid)
 {
-   fprintf(stderr, "Spawned  a thread func.\n");
-
-   CAPI_Initialize((int)threadid);
-
-   usleep(500);
-
-   fprintf(stderr, "Sending...\n");
-   int junk = 0xDEADBEEF;
-   CAPI_message_send_w((int)threadid, 3, (char *)&junk, sizeof(junk));
-
-   fprintf(stderr, "Yeah thread\n");
+//   int tid = CarbonSpawnThread(thread_func_simple, (void*)1);
+//   CarbonJoinThread(tid);
    return 0;
 }
 
 void* thread_func_simple(void *threadid)
 {
+//   usleep(250);
    return 0;
 }

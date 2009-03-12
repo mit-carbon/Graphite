@@ -7,19 +7,21 @@ include $(SIM_ROOT)/common/Makefile.common
 
 all: $(BUILD_TARGET)
 
-CXXFLAGS = -I$(SIM_ROOT)/common -I$(SIM_ROOT)/common/user -c -g -Wall 
+CXXFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall 
 
 LDFLAGS += -lm
 
 CFLAGS = $(CXXFLAGS) -std=c99
 
-CARBON_SOURCES = $(SIM_ROOT)/common/user/sync_api.c $(SIM_ROOT)/common/user/capi.c $(SIM_ROOT)/common/user/thread_support.c
+CARBON_SOURCES = $(SIM_ROOT)/tests/user/sync_api.c $(SIM_ROOT)/tests/user/capi.c $(SIM_ROOT)/tests/user/thread_support.c
 CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
 
 # These are the objects required by each test
 OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
 
 # Build rules
+$(C_SOURCES): $(CARBON_SOURCES)
+
 $(BUILD_TARGET): $(OBJECTS) $(CARBON_OBJECTS)
 	$(CXX) -pthread $(LDFLAGS) -o $@ $^
 

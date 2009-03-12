@@ -11,7 +11,12 @@
 #include "carbon_user.h"
 #include "thread_support_private.h"
 
-config::ConfigFile cfg;
+static config::ConfigFile cfg;
+
+core_id_t CarbonGetCoreId()
+{
+   return Sim()->getCoreManager()->getCurrentCoreID();
+}
 
 int CarbonStartSim()
 {

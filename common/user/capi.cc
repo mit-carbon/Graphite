@@ -6,13 +6,10 @@
 #include "thread_manager.h"
 #include "core_manager.h"
 #include "core.h"
-#include "capi.h"
 #include "config_file.hpp"
 
-core_id_t CarbonGetCoreId()
-{
-   return Sim()->getCoreManager()->getCurrentCoreID();
-}
+#include "carbon_user.h"
+#include "thread_support_private.h"
 
 CAPI_return_t CAPI_rank(int *core_id)
 {

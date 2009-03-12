@@ -2,6 +2,10 @@
 #define SYNC_API_H
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "fixed_types.h"
 
 typedef SInt32 carbon_mutex_t;
@@ -28,5 +32,9 @@ bool CarbonIsCondValid(carbon_cond_t *cond);
 void CarbonBarrierInit(carbon_barrier_t *barrier, unsigned int count);
 void CarbonBarrierWait(carbon_barrier_t *barrier);
 bool CarbonIsBarrierValid(carbon_barrier_t *barrier);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

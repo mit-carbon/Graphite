@@ -6,10 +6,10 @@
 #include "thread_manager.h"
 #include "core_manager.h"
 #include "core.h"
-#include "capi.h"
-#include "sync_api.h"
 #include "sync_client.h"
 #include "config_file.hpp"
+#include "carbon_user.h"
+#include "thread_support_private.h"
 
 void CarbonMutexInit(carbon_mutex_t *mux)
 {

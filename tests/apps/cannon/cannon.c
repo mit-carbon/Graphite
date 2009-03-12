@@ -16,16 +16,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "capi.h"
+#include "carbon_user.h"
 
 //#define DEBUG 1
 // #define USE_INT 1
 // #define USE_FLOAT_INTERNAL_REPRESENTATION 1
 //#define MATRIX_DEBUG 1
 //#define ADDRESS_DEBUG 1
-
-typedef int SInt32;
-typedef unsigned int UInt32;
 
 #ifdef USE_INT
 typedef SInt32 DType;

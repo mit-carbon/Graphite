@@ -115,7 +115,7 @@ cannon_msg: sim
 
 capi_worker: sim 
 	$(MAKE) -C $(TESTS_DIR)/capi_worker
-	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg -n 8 -- $(TESTS_DIR)/capi_worker/capi_worker
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg -- $(TESTS_DIR)/capi_worker/capi_worker
 
 shmem_test_new: sim 
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_test
@@ -128,15 +128,15 @@ shmem_test_evic: sim
 
 1djacobi_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf  --general/total_cores=$(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64
+	$(PIN_RUN) -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(CORES) -- $(TESTS_DIR)/1d_jacobi/jacobi $(CORES) 64
 
 1djacobi_test_quick: sim 
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf  --general/total_cores=4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
+	$(PIN_RUN) -c $(SIM_ROOT)/carbon_sim.cfg --general/enable_shared_memory=true --general/total_cores=4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
 
 jacobi_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf -n $(CORES) -dms 1000 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n $(CORES)
+	$(PIN_RUN) -c $(SIM_ROOT)/carbon_sim.cfg --general/enable_shared_memory=true -msm -msys -mpf -n $(CORES) -dms 1000 -- $(TESTS_DIR)/shared_mem_jacobi/jacobi -n $(CORES)
 
 mutex_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/mutex

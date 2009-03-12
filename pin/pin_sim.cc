@@ -164,7 +164,7 @@ int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
       LOG_PRINT("Finished!");
    }
 
-   LOG_PRINT("Leaving SimMain...");
+   LOG_PRINT("Leaving CarbonMain...");
 
    return 0;
 }

@@ -90,7 +90,7 @@ cannon_msg_dist: sim
 
 ring_msg_pass: sim 
 	$(MAKE) -C $(TESTS_DIR)/ring_msg_pass
-	$(MPI_DIR)/bin/mpirun -np 4 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=4 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
+	$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)  -c $(SIM_ROOT)/carbon_sim.cfg --general/num_processes=2 --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/ring_msg_pass/ring -m $(CORES)
 
 io_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/file_io

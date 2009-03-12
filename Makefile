@@ -20,9 +20,12 @@ all:
 	$(MAKE) -C common
 	$(MAKE) -C pin
 
+tests_to_clean =  hello_world simple file_io ping_pong mutex barrier cannon_msg cannon simple_test_dist cannon_msg ring_msg_pass dynamic_threads spawn_join
+
 clean: empty_logs
 	$(MAKE) -C pin clean
 	$(MAKE) -C common clean
+	for t in $(tests_to_clean) ; do make -C tests/apps/$$t clean ; done
 
 empty_logs :
 	rm output_files/* ; true

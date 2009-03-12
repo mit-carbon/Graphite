@@ -1,12 +1,12 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 TARGET = WATER-SPATIAL
 OBJS = bndry.o cnstnt.o cshift.o initia.o interf.o intraf.o kineti.o mdmain.o poteng.o predcor.o syscons.o water.o
 
 MACROS := ../splash_support/c.m4.null.CARBON
 include ../splash_support/Makefile.config
-include ../../makefile.gnu.config
 TARGET = OCEAN
 
-CFLAGS = -I../../user -I../../transport -c -g -Wall
+CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall
 TARGET = WATER-SPATIAL
 
 bndry.o: bndry.C split.h mdvar.h parameters.h mddata.h global.h

@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 TARGET = RADIOSITY
 
 OBJS = display.o elemman.o modelman.o patchman.o rad_main.o rad_tools.o room_model.o smallobj.o taskman.o visible.o
@@ -7,7 +8,6 @@ HS = model.h parallel.h patch.h radiosity.h task.h
 # MACROS := ../splash_support/c.m4.null.CARBON
 MACROS := ../splash_support/c.m4.null.POSIX
 include ../splash_support/Makefile.config
-include ../../makefile.gnu.config
 TARGET = RADIOSITY
 
 CFLAGS := $(CFLAGS) -I./glibdumb -I./glibps

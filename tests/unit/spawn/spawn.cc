@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
-#include "test_support.h"
+#include "carbon_user.h"
 
 void* thread_func(void *threadid);
 void* thread_func_simple(void *threadid);

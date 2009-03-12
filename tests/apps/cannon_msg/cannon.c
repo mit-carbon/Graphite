@@ -17,7 +17,7 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "capi.h"
+#include "carbon_user.h"
 
 //#define DEBUG 1
 //#define SEQUENTIAL 1

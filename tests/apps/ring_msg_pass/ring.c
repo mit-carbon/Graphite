@@ -17,6 +17,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "carbon_user.h"
 #include "capi.h"
 
 #define NUM_LOOPS      30

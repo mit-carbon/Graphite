@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 TARGET = FMM
 OBJS = box.o construct_grid.o cost_zones.o defs.o fmm.o interactions.o memory.o particle.o partition_grid.o
 
@@ -5,10 +6,9 @@ OBJS = box.o construct_grid.o cost_zones.o defs.o fmm.o interactions.o memory.o 
 MACROS := ../splash_support/c.m4.null.CARBON
 #MACROS := ../splash_support/c.m4.null.POSIX
 include ../splash_support/Makefile.config
-include ../../makefile.gnu.config
 TARGET = FMM
 
-CFLAGS = -I../../user -I../../transport -c -g -Wall
+CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall -m32
 
 defs.c: defs.h
 box.c: box.h

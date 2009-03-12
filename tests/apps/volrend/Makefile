@@ -1,12 +1,12 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 TARGET = VOLREND
 OBJS = adaptive.o file.o main.o map.o normal.o octree.o opacity.o option.o raytrace.o render.o view.o
 
 MACROS := ../splash_support/c.m4.null.CARBON
 include ../splash_support/Makefile.config
-include ../../makefile.gnu.config
 TARGET = VOLREND
 
-CFLAGS := -I../../user -I../../transport -c -g -Wall
+CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall
 
 CFLAGS := $(CFLAGS) -I./libtiff
 LDFLAGS := -L./libtiff $(LDFLAGS) -ltiff

@@ -140,7 +140,7 @@ define(MAIN_ENV,`
 #include <unistd.h>
 #include <stdlib.h>
 #include <sync_api.h>
-#include <capi.h>
+#include "carbon_user.h"
 #define MAX_THREADS 32
 carbon_thread_t ThreadTable[MAX_THREADS];
 ')
@@ -150,8 +150,8 @@ define(EXTERN_ENV, `
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <sync_api.h>
-#include <capi.h>
+#include "sync_api.h"
+#include "carbon_user.h"
 extern carbon_thread_t ThreadTable[];
 ')
 

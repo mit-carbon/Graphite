@@ -1,3 +1,4 @@
+SIM_ROOT ?= $(CURDIR)/../../../
 TARGET = RAYTRACE
 
 OBJS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
@@ -6,10 +7,9 @@ OBJS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
 
 MACROS := ../splash_support/c.m4.null.CARBON
 include ../splash_support/Makefile.config
-include ../../makefile.gnu.config
 TARGET = RAYTRACE
 
-CFLAGS = -I../../user -I../../transport -c -g -Wall
+CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall
 
 bbox.c: bbox.C rt.h
 cr.c:	cr.C rt.h

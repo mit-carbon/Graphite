@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "carbon_user.h"
 #include "capi.h"
 
 void* ping_pong(void *threadid);
@@ -11,7 +12,7 @@ int main(int argc, char* argv[])  // main begins
 
    for(unsigned int i = 0; i < num_threads; i++)
    {
-       printf("Spawning thread: %d", i);
+       printf("Spawning thread: %d\n", i);
        threads[i] = CarbonSpawnThread(ping_pong, (void *) i);
    }
 

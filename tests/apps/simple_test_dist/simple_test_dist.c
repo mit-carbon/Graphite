@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
+#include "carbon_user.h"
 #include "capi.h"
 
 // Functions executed by threads

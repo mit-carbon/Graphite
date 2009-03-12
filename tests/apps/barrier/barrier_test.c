@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
+#include "carbon_user.h"
 #include "capi.h"
 #include "sync_api.h"
 

@@ -133,7 +133,7 @@ void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
 
 }
 
-int SimMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
+int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
 {
    ApplicationStart();
 

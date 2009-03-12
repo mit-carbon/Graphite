@@ -18,10 +18,7 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "user/capi.h"
-
-//sim support
-#include "test_support.h"
+#include "carbon_user.h"
 
 //#define DEBUG 1
 //#define SEQUENTIAL 1

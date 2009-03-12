@@ -1,14 +1,12 @@
-
 SIM_ROOT ?= $(CURDIR)
 
-PROCS=1
+MPDS=1
+PROCS=2
 CORES=4
-..PHONY: CORES
+..PHONY: MPDS
 ..PHONY: PROCS
+..PHONY: CORES
 
-# if we are running the 'clean' target
-# then don't include other files (which define clean)
-# we simply use or own clean defined below
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
 include common/Makefile.common
@@ -19,26 +17,18 @@ endif
 TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
 
 all:
-	$(MAKE) -C common/user
-	$(MAKE) -C lib
-	$(MAKE) -C pin/src
+	$(MAKE) -C common
+	$(MAKE) -C pin
 
-simlib:
-	$(MAKE) -C lib
-
-ifneq ($(CLEAN),)
-clean:
+clean: empty_logs
 	$(MAKE) -C pin clean
-	$(MAKE) -C lib clean
 	$(MAKE) -C common clean
-	-rm -f output_files/*
-endif
 
 empty_logs :
 	rm output_files/* ; true
 
 run_mpd:
-	$(MPI_DIR)/bin/mpdboot -n $(PROCS)
+	$(MPI_DIR)/bin/mpdboot -n $(MPDS)
 
 stop_mpd:
 	$(MPI_DIR)/bin/mpdallexit

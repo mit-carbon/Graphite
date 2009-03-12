@@ -1,41 +1,36 @@
-include $(CURDIR)/makefile.gnu.config
+SIM_ROOT ?= $(CURDIR)/../
 
-sim: userobjs coreobjs networkobjs transportobjs miscobjs  sysobjs
-all: sim
+CLEAN=$(findstring clean,$(MAKECMDGOALS))
+ifeq ($(CLEAN),)
+include $(SIM_ROOT)/common/Makefile.common
+endif
 
-userobjs:
-	$(MAKE) -C user
+# Grab all c/c++ files from subdirs
+C_SOURCES = 
+CPP_SOURCES =        		              \
+          $(SIM_ROOT)/common/core/*.cc        \
+          $(SIM_ROOT)/common/network/*.cc     \
+          $(SIM_ROOT)/common/transport/*.cc   \
+          $(SIM_ROOT)/common/misc/*.cc        \
+          $(SIM_ROOT)/common/config/*.cpp     \
+          $(SIM_ROOT)/common/system/*.cc      \
+          $(SIM_ROOT)/common/user/*.cc
 
-coreobjs:
-	$(MAKE) -C core
+# Grab the actual filenames and convert them into .o files for dependencies
+SOURCES = $(shell ls $(CPP_SOURCES) $(C_SOURCES))
 
-networkobjs:
-	$(MAKE) -C network
+# Convert the .c and .cc's in to .o's
+OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 
-transportobjs:
-	$(MAKE) -C transport
+TARGET=$(SIM_ROOT)/lib/libcarbon_sim.a
 
-sysobjs:
-	$(MAKE) -C system
+# targets
+all: $(TARGET)
 
-miscobjs:
-	$(MAKE) -C misc
+$(TARGET): $(OBJECTS)
+	ar rcs $@ $^
 
+ifneq ($(CLEAN),)
 clean:
-	$(MAKE) -C user clean
-	$(MAKE) -C core clean
-	$(MAKE) -C network clean
-	$(MAKE) -C transport clean
-	$(MAKE) -C misc clean
-	$(MAKE) -C system clean
-	-rm -f *.o *.d *.rpo
-
-squeaky: clean
-	$(MAKE) -C user squeaky
-	$(MAKE) -C core squeaky
-	$(MAKE) -C network squeaky
-	$(MAKE) -C transport squeaky
-	$(MAKE) -C misc squeaky
-	$(MAKE) -C system squeaky
-	-rm -f *~
-
+	-rm -f $(TARGET) $(OBJECTS)
+endif

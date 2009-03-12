@@ -7,9 +7,6 @@ include $(SIM_ROOT)/common/Makefile.common
 
 all: $(BUILD_TARGET)
 
-CC = mpicc
-CXX = mpicxx
-
 CXXFLAGS = -I$(SIM_ROOT)/common -I$(SIM_ROOT)/common/user -c -g -Wall 
 
 LDFLAGS += -lm
@@ -24,10 +21,9 @@ OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o)
 
 # Build rules
 $(BUILD_TARGET): $(OBJECTS) $(CARBON_OBJECTS)
-	$(CC) -pthread $(LDFLAGS) -o $@ $^
+	$(CXX) -pthread $(LDFLAGS) -o $@ $^
 
 ifneq ($(CLEAN),)
 clean:
 	-rm -f *.o $(TARGET) sim.out
 endif
-

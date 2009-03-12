@@ -9,7 +9,6 @@ BUILD_32 = 1
 # MPI Support
 MPI_DIR = /afs/csail/group/carbon/tools/mpich2-1.0.8/install
 export LD_LIBRARY_PATH := $(BOOST_ROOT)/stage/lib:$(MPI_DIR)/lib:$(LD_LIBRARY_PATH)
-export PATH := $(MPI_DIR)/bin/:$(PATH)
 CC = $(MPI_DIR)/bin/mpicc
 CXX = $(MPI_DIR)/bin/mpicxx
 
@@ -26,14 +25,20 @@ endif
 # Boost Support
 CXXFLAGS += -I$(BOOST_ROOT)
 BOOST_SUFFIX = gcc41-mt-1_38
-LD_FLAGS += -L$(BOOST_ROOT)/stage/lib -L../../lib
-#LD_FLAGS += -L$(BOOST_ROOT)/stage_static -L$(SIM_ROOT)/lib
+LD_FLAGS += -L$(BOOST_ROOT)/stage/lib -L$(SIM_ROOT)/lib
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)
 
-CXXFLAGS += -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/core -I$(SIM_ROOT)/common/system \
-				-I$(SIM_ROOT)/common/network -I$(SIM_ROOT)/common/transport -I$(SIM_ROOT)/common/misc \
-				-I$(SIM_ROOT)/common/config
+# Include paths
+CXXFLAGS+=-c -I$(SIM_ROOT)/common/user      \
+          -I$(SIM_ROOT)/common/system       \
+          -I$(SIM_ROOT)/common/core         \
+          -I$(SIM_ROOT)/common/network      \
+          -I$(SIM_ROOT)/common/transport    \
+          -I$(SIM_ROOT)/common/misc         \
+          -I$(SIM_ROOT)/common/config       \
+          -I /afs/csail/group/carbon/tools/mpich2-1.0.8/install/include/ \
+          -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas -O2 -MMD -m32 -ggdb3
 
 # Build rules for dependency generation
 %.d: %.cpp
@@ -66,4 +71,3 @@ ifneq ($(CLEAN),)
 clean:
 	-rm -f *.o *.d
 endif
-

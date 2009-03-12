@@ -1,5 +1,0 @@
-This files contains notes for potential optimizations of the Pin-based 
-simulator implementation
-
-1. remove mapping function locking? distributed version instead of shared 
-   mem? (these are the maps from code id to pin tid and vice versa)

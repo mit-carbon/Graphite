@@ -29,7 +29,7 @@ void PthreadThread::run()
    pthread_create(&m_thread, &attr, spawnedThreadFunc, &m_data);
 }
 
-Thread* Thread::create(ThreadFunc func, void *param)
+__attribute__((weak)) Thread* Thread::create(ThreadFunc func, void *param)
 {
    return new PthreadThread(func, param);
 }

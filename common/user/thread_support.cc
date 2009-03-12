@@ -1,28 +1,56 @@
-#include "stdbool.h"
-#include "stdio.h"
-#include "pthread.h"
-#include "thread_support.h"
-#include "assert.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <pthread.h>
+#include "simulator.h"
+#include "thread_manager.h"
+#include "core_manager.h"
+#include "core.h"
+#include "config_file.hpp"
+#include "carbon_user.h"
+#include "thread_support_private.h"
 
-#ifdef __cplusplus
-extern "C" 
+// FIXME: Pthread wrappers are untested.
+int CarbonPthreadCreate(pthread_t *tid, int *attr, thread_func_t func, void *arg)
 {
-#endif
+   LOG_ASSERT_WARNING(attr == NULL, "Attributes ignored in pthread_create.");
+   LOG_ASSERT_ERROR(tid != NULL, "Null pointer passed to pthread_create.");
+
+   *tid = CarbonSpawnThread(func, arg);
+   return *tid >= 0 ? 0 : 1;
+}
+
+int CarbonPthreadJoin(pthread_t tid, void **pparg)
+{
+   LOG_ASSERT_WARNING(pparg == NULL, "Did not expect pparg non-NULL. It is ignored.");
+   CarbonJoinThread(tid);
+   return 0;
+}
+
+int CarbonSpawnThread(thread_func_t func, void *arg)
+{
+   return Sim()->getThreadManager()->spawnThread(func, arg);
+}
+
+void CarbonJoinThread(int tid)
+{
+   Sim()->getThreadManager()->joinThread(tid);
+}
 
 // Support functions provided by the simulator
 void CarbonGetThreadToSpawn(ThreadSpawnRequest **req)
 {
-   assert(false);
+   Sim()->getThreadManager()->getThreadToSpawn(req);
 }
 
 void CarbonThreadStart(ThreadSpawnRequest *req)
 {
-   assert(false);
+   Sim()->getThreadManager()->onThreadStart(req);
 }
 
 void CarbonThreadExit()
 {
-   assert(false);
+   Sim()->getThreadManager()->onThreadExit();
 }
 
 void *CarbonSpawnManagedThread(void *p)
@@ -76,8 +104,3 @@ int CarbonSpawnThreadSpawner()
    pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
    return 0;
 }
-
-#ifdef __cplusplus
-}
-#endif
-

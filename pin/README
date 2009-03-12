@@ -1,1 +1,6 @@
-This is the Pin-based implementation of the Carbon simulator
+This is the top-level for Pin-specific simulator code. The files in this
+folder declare and define the Pin instrumenation callbacks. 
+
+Style note: 
+Any code that necessarily depends on Pin should live in this 
+folder. Avoid dependencies on Pin when possible

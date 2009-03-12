@@ -15,4 +15,5 @@ sim.out
 output_files
 
 # misc
-pin/bin
+lib/libcarbon_sim.a
+lib/pin_sim.so

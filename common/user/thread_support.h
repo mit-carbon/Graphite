@@ -1,12 +1,7 @@
-// THREAD_SUPPORT
-//
-// This file provides structures needed for the simulator
-// to pass thread creation functionality on to the user
-// land application.
 #ifndef THREAD_SUPPORT_H
 #define THREAD_SUPPORT_H
 
-#include "fixed_types.h"
+typedef int carbon_thread_t;
 
 typedef void *(*thread_func_t)(void *);
 
@@ -26,5 +21,7 @@ typedef struct
     core_id_t core_id;
 } ThreadJoinRequest;
 
-#endif
+SInt32 CarbonSpawnThread(thread_func_t func, void *arg);
+void CarbonJoinThread(SInt32 tid);
 
+#endif

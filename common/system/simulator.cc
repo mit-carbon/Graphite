@@ -91,8 +91,6 @@ Simulator::~Simulator()
    delete m_thread_manager;
    delete m_core_manager;
    delete m_transport;
-
-   LOG_PRINT("Simulator dtor finished.");
 }
 
 void Simulator::broadcastFinish()

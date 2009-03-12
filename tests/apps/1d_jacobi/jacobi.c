@@ -18,9 +18,6 @@
 #define DEBUG 1
 #endif
 
-typedef int SInt32;
-typedef unsigned int UInt32;
-
 #ifdef USE_INT
 typedef SInt32 DType;
 #else
@@ -135,7 +132,6 @@ void* threadMain(void *threadid)
 {
    SInt32 tid = (SInt32) threadid;
 
-   CarbonInitializeThread();
    CAPI_Initialize(tid);
 
    if (tid == 0)

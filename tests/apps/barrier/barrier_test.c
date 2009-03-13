@@ -22,7 +22,7 @@ int main(int argc, char* argv[])  // main begins
    const unsigned int num_threads = 5;
    carbon_thread_t threads[num_threads];
 
-   barrierInit(&my_barrier, num_threads);
+   CarbonBarrierInit(&my_barrier, num_threads);
 
    for(unsigned int i = 0; i < num_threads; i++)
        threads[i] = CarbonSpawnThread(test_wait_barrier, (void *) i);
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])  // main begins
 void* test_wait_barrier(void *threadid)
 {
    for (unsigned int i = 0; i < 50; i++)
-      barrierWait(&my_barrier);
+      CarbonBarrierWait(&my_barrier);
 
    return NULL;
 }

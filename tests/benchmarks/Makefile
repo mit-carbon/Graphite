@@ -21,7 +21,7 @@ regress: regress_quick clean_benchmarks build_benchmarks 1djacobi_test_quick
 clean:
 	for t in $(TEST_BENCH_DIRS) ; do make -C $(TEST_BENCH_DIR)/$$t clean ; done
 
-build_benchmarks:
+build_benchmarks: sim
 	for t in $(TEST_BENCH_DIRS) ; do make -C $(TEST_BENCH_DIR)/$$t ; done
 
 sim:

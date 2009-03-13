@@ -19,6 +19,8 @@ void* read_and_write(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
+
    // Read in the command line arguments
    const unsigned int numThreads = 2;
 
@@ -33,6 +35,7 @@ int main(int argc, char* argv[])  // main begins
 
    printf("file i/o test finished.\n");
 
+   CarbonStopSim();
 } // main ends
 
 

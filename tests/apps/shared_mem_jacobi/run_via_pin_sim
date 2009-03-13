@@ -1,9 +1,0 @@
-#!/usr/bin/tcsh
-make clean
-make
-#/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -mpf -- ./jacobi
-
-/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -mdc -msm -- ./jacobi
-#/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 1 -mdc -msm -- ./jacobi
-
-#/afs/csail.mit.edu/group/carbon/tools/pin/current/ia32/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 16  -- ./jacobi

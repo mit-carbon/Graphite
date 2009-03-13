@@ -1,4 +1,4 @@
-BUILD_TARGET=simple_test
-C_SOURCES = simple_test.c
-include ../Makefile.tests
+TARGET=simple_test
+SOURCES = simple_test.c
+include ../../Makefile.tests
 

@@ -17,6 +17,8 @@ void* thread_func(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
+
    const unsigned int num_threads = 2;
    carbon_thread_t threads[num_threads];
 
@@ -32,7 +34,7 @@ int main(int argc, char* argv[])  // main begins
        CarbonJoinThread(threads[i]);
 
    printf("Finished running simple test (dist)!.\n");
-
+   CarbonStopSim();
    return 0;
 } // main ends
 

@@ -26,8 +26,7 @@ void* test_broadcast_cond(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-
-   initMCP();
+   CarbonStartSim();
 
    // Read in the command line arguments
    const unsigned int numThreads = 5;
@@ -64,6 +63,8 @@ int main(int argc, char* argv[])  // main begins
 #endif
    pthread_exit(NULL);
 
+   CarbonStopSim();
+
 } // main ends
 
 void* test_broadcast_cond(void *threadid)
@@ -80,11 +81,11 @@ void* test_broadcast_cond(void *threadid)
 
    // Thread starts here
    fprintf(stderr, "UserBroadcast: Cond broadcasting.\n");
-   condBroadcast(&my_cond);
+   CarbonCondBroadcast(&my_cond);
    fprintf(stderr, "UserBroadcast: Cond broadcasted.\n");
-   mutexLock(&my_mux);
+   CarbonMutexLock(&my_mux);
    fprintf(stderr, "UserBroadcast: Mutex locked after broadcast.\n");
-   mutexUnlock(&my_mux);
+   CarbonMutexUnlock(&my_mux);
    fprintf(stderr, "UserBroadcast: Broadcast thread done.\n");
 
    pthread_exit(NULL);
@@ -107,20 +108,20 @@ void* test_wait_cond(void *threadid)
    if ((int)threadid == 0)
    {
       fprintf(stderr, "UserWait: Initting mutex.\n");
-      mutexInit(&my_mux);
+      CarbonMutexInit(&my_mux);
       fprintf(stderr, "UserWait: Initting cond.\n");
-      condInit(&my_cond);
+      CarbonCondInit(&my_cond);
    }
 
    sleep(1);
 
    fprintf(stderr, "UserWait: Locking mux.\n");
-   mutexLock(&my_mux);
+   CarbonMutexLock(&my_mux);
    fprintf(stderr, "UserWait: Cond wait.\n");
-   condWait(&my_cond, &my_mux);
+   CarbonCondWait(&my_cond, &my_mux);
    fprintf(stderr, "UserWait: Cond done.\n");
 
-   mutexUnlock(&my_mux);
+   CarbonMutexUnlock(&my_mux);
    fprintf(stderr, "UserWait: test_wait_cond mutex unlock done.\n");
 
    pthread_exit(NULL);

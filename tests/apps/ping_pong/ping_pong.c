@@ -7,6 +7,8 @@ void* ping_pong(void *threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
+
    int num_threads = 2;
    carbon_thread_t threads[num_threads];
 
@@ -21,6 +23,7 @@ int main(int argc, char* argv[])  // main begins
 
    printf("Finished running PingPong!.\n");
 
+   CarbonStopSim();
    return 0;
 } // main ends
 

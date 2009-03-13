@@ -2,7 +2,7 @@ divert(-1)
 define(NEWPROC,) dnl
 
 define(BARRIER, `{
-	barrierWait(&($1));
+	CarbonBarrierWait(&($1));
 }')
 
 define(BARDEC, `
@@ -10,7 +10,7 @@ carbon_barrier_t ($1);
 ')
 
 define(BARINIT, `{
-	barrierInit(&($1), $2);
+	CarbonBarrierInit(&($1), $2);
 }')
 
 define(BAREXCLUDE, `{;}')
@@ -37,9 +37,9 @@ define(AINIT, `{;}')
 define(PROBEND, `{;}')
 
 define(LOCKDEC, `carbon_mutex_t ($1);')
-define(LOCKINIT, `{mutexInit(&($1));}')
-define(LOCK, `{mutexLock(&($1));}')
-define(UNLOCK, `{mutexUnlock(&($1));}')
+define(LOCKINIT, `{CarbonMutexInit(&($1));}')
+define(LOCK, `{CarbonMutexLock(&($1));}')
+define(UNLOCK, `{CarbonMutexUnlock(&($1));}')
 
 define(NLOCKDEC, `long ($1);')
 define(NLOCKINIT, `{;}')
@@ -51,11 +51,11 @@ define(ALOCKINIT, `{
 	unsigned long	i, Error;
 
 	for (i = 0; i < $2; i++) {
-		mutexInit(&$1[i]);
+		CarbonMutexInit(&$1[i]);
 	}
 }')
-define(ALOCK, `{mutexLock(&$1[$2]);}')
-define(AULOCK, `{mutexUnlock(&$1[$2]);}')
+define(ALOCK, `{CarbonMutexLock(&$1[$2]);}')
+define(AULOCK, `{CarbonMutexUnlock(&$1[$2]);}')
 
 define(PAUSEDEC, `
 struct {
@@ -65,26 +65,26 @@ struct {
 } $1;
 ')
 define(PAUSEINIT, `{
-	mutexInit(&$1.Mutex, NULL);
-	condInit(&$1.CondVar, NULL);
+	CarbonMutexInit(&$1.Mutex, NULL);
+	CarbonCondInit(&$1.CondVar, NULL);
 	$1.Flag = 0;
 }
 ')
 define(CLEARPAUSE, `{
 	$1.Flag = 0;
-   mutexUnlock(&$1.Mutex);}
+   CarbonMutexUnlock(&$1.Mutex);}
 ')
 define(SETPAUSE, `{
-	mutexLock(&$1.Mutex);
+	CarbonMutexLock(&$1.Mutex);
 	$1.Flag = 1;
-	condBroadcast(&$1.CondVar);
-	mutexUnlock(&$1.Mutex);}
+	CarbonCondBroadcast(&$1.CondVar);
+	CarbonMutexUnlock(&$1.Mutex);}
 ')
 define(EVENT, `{;}')
 define(WAITPAUSE, `{
-	mutexLock(&$1.Mutex);
+	CarbonMutexLock(&$1.Mutex);
 	if ($1.Flag == 0) {
-		condWait(&$1.CondVar, &$1.Mutex);
+		CarbonCondWait(&$1.CondVar, &$1.Mutex);
 	}
 }')
 define(PAUSE, `{;}')

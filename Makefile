@@ -8,9 +8,12 @@ CORES=4
 ..PHONY: CORES
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
+ifeq ($(CLEAN),)
 include common/Makefile
 include tests/apps/Makefile
 include tests/unit/Makefile
+include tests/benchmarks/Makefile
+endif
 
 TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
 
@@ -23,6 +26,7 @@ clean: empty_logs
 	$(MAKE) -C common clean
 	$(MAKE) -C tests/unit clean
 	$(MAKE) -C tests/apps clean
+	$(MAKE) -C tests/benchmarks clean
 
 regress_quick: clean $(TEST_APP_LIST) $(TEST_UNIT_LIST)
 

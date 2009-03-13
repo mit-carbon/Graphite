@@ -1,4 +1,4 @@
-BUILD_TARGET=dynamic_threads
-C_SOURCES = dynamic_threads.c
-include ../Makefile.tests
+TARGET=dynamic_threads
+SOURCES = dynamic_threads.c
+include ../../Makefile.tests
 

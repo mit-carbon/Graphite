@@ -1,3 +1,3 @@
 TARGET=cannon
 SOURCES = cannon.c
-include ../Makefile.tests
+include ../../Makefile.tests

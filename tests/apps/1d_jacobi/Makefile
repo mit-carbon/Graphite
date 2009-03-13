@@ -1,3 +1,3 @@
 TARGET=jacobi
 SOURCES = jacobi.c
-include ../Makefile.tests
+include ../../Makefile.tests

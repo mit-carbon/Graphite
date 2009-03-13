@@ -1,4 +1,0 @@
-#!/bin/tcsh
-make clean
-make
-/afs/csail.mit.edu/group/carbon/tools/pin/test/intel64/bin/pinbin -mt -t ../../../pin/bin/pin_sim -n 2 -- ./signals

@@ -32,6 +32,8 @@ void *ring(void *p);
 
 int main(int argc, char *argv[])
 {
+   CarbonStartSim();
+
    if (argc != 3 || strcmp(argv[1], "-m") != 0)
    {
       printf("Invalid command line options. The correct format is:\n");
@@ -64,6 +66,8 @@ int main(int argc, char *argv[])
        CarbonJoinThread(threads[i]);
 
    printf("Finished running ring test!.\n");
+
+   CarbonStopSim();
 
    return 0;
 }

@@ -1,4 +1,3 @@
-BUILD_TARGET=basic
-CPP_SOURCES = basic.cc 
-include ../Makefile.tests
-
+TARGET=basic
+SOURCES = basic.cc 
+include ../../Makefile.tests

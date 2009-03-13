@@ -16,6 +16,7 @@
 
 #include <stdarg.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include "carbon_user.h"
 
@@ -52,6 +53,8 @@ void debug_printf(const char * fmt, ...)
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
+
    float **a, **b, **c;
 
    unsigned int matSize;
@@ -227,6 +230,7 @@ int main(int argc, char* argv[])  // main begins
    free(b);
    free(c);
 
+   CarbonStopSim();
 } // main ends
 
 void spawner_send_go(int tid)

@@ -33,7 +33,6 @@
 #include "core_manager.h"
 #include "core.h"
 #include "syscall_model.h"
-#include "user_space_wrappers.h"
 #include "thread_manager.h"
 #include "config_file.hpp"
 #include "handle_args.h"

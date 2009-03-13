@@ -1,5 +1,4 @@
 #include "routine_replace.h"
-#include "user_space_wrappers.h"
 #include "simulator.h"
 #include "thread_manager.h"
 #include "log.h"
@@ -7,6 +6,15 @@
 #include "thread_support_private.h"
 
 extern int CarbonMain(CONTEXT*, AFUNPTR, int, char**);
+
+int CarbonStartSimNull()
+{
+   return 0;
+}
+
+void CarbonStopSimNull()
+{
+}
 
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
@@ -23,6 +31,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonGetCoreId") msg_ptr = AFUNPTR(CarbonGetCoreId);
 
    // Carbon API
+   else if (name == "CarbonStartSim") msg_ptr = AFUNPTR(CarbonStartSimNull);
+   else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(CarbonStopSimNull);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(CarbonSpawnThread);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(CarbonJoinThread);
 

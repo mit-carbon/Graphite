@@ -64,6 +64,8 @@ void* cannon(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
+
     fprintf(stderr, "Start of main...\n");
    unsigned int matSize, num_threads;
 
@@ -193,6 +195,7 @@ int main(int argc, char* argv[])  // main begins
    printf("Number of sends = %ld\n", numSendCalls);
    printf("Number of receives = %ld\n", numReceiveCalls);
 
+   CarbonStopSim();
 } // main ends
 
 void* cannon(void *threadid)

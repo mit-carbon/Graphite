@@ -55,6 +55,7 @@ SInt32 wait_some()
 
 SInt32 main(SInt32 argc, char *argv[])
 {
+   CarbonStartSim();
    if (argc != 3) {
       fprintf(stderr, "[Usage]: ./jacobi <Number_of_Cores> <Size_Multiplier>\n");
                 fprintf(stderr, "Size_of_Array = Number_of_Cores * Size_Multiplier\n"); 
@@ -125,6 +126,7 @@ SInt32 main(SInt32 argc, char *argv[])
 
    printArray(NUM_ITERS);
 
+   CarbonStopSim();
    return (0);
 }
 

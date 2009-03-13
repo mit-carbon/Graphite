@@ -18,6 +18,7 @@ void* test_wait_barrier(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
    const unsigned int num_threads = 5;
    carbon_thread_t threads[num_threads];
 
@@ -31,6 +32,7 @@ int main(int argc, char* argv[])  // main begins
 
    printf("Finished running barrier test!.\n");
 
+   CarbonStopSim();
    return 0;
 } // main ends
 

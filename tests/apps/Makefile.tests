@@ -1,39 +1,29 @@
-# This makefile is included by all the tests to contain
-# default rules.
+BUILD_32 = 1
 
-SIM_ROOT ?= $(CURDIR)/../../../
+OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
+
+SIM_ROOT ?= $(CURDIR)/../../..
+
+LD_FLAGS = -L$(SIM_ROOT)/lib 
+LD_LIBS = -pthread -lcarbon_sim
+
+CFLAGS = $(CXXFLAGS) -std=c99
+
+all: $(TARGET)
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
 endif
 
-all: $(BUILD_TARGET)
+CXXFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32
 
-CXXFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall 
+.SUFFIXES:  .o .c .h .cc
 
-LDFLAGS += -lm
-
-CFLAGS = $(CXXFLAGS) -std=c99
-
-CARBON_SOURCES = $(SIM_ROOT)/tests/user/sync_api.c $(SIM_ROOT)/tests/user/capi.c $(SIM_ROOT)/tests/user/thread_support.c
-CARBON_OBJECTS = $(CARBON_SOURCES:%.c=%.o)
-
-# include the dependencies for the objects
-ifneq ($(MAKECMDGOALS),clean)
-include $(CARBON_OBJECTS:%.o=%.d)
-endif
-
-# These are the objects required by each test
-OBJECTS = $(CPP_SOURCES:%.cc=%.o) $(C_SOURCES:%.c=%.o) 
-
-# Build rules
-$(C_SOURCES): $(CARBON_SOURCES)
-
-$(BUILD_TARGET): $(OBJECTS) $(CARBON_OBJECTS)
-	$(CXX) -pthread $(LDFLAGS) -o $@ $^
+$(TARGET): $(OBJECTS) $(SIM_ROOT)/lib/libcarbon_sim.a
+	$(CC) $^ -o $@ $(LD_FLAGS) $(LD_LIBS) 
 
 ifneq ($(CLEAN),)
 clean:
-	-rm -f *.d *.o $(TARGET) sim.out
+	-rm -f *.o *.d $(TARGET)
 endif

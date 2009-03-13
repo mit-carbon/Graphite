@@ -1,3 +1,3 @@
-BUILD_TARGET=hello_world
-C_SOURCES = hello_world.c
+TARGET = hello_world
+SOURCES = hello_world.c
 include ../Makefile.tests

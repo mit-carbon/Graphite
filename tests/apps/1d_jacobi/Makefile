@@ -1,4 +1,3 @@
-BUILD_TARGET=jacobi
-C_SOURCES = jacobi.c
+TARGET=jacobi
+SOURCES = jacobi.c
 include ../Makefile.tests
-

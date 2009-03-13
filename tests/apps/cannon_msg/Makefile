@@ -1,4 +1,3 @@
-BUILD_TARGET=cannon
-C_SOURCES = cannon.c
+TARGET=cannon
+SOURCES = cannon.c
 include ../Makefile.tests
-

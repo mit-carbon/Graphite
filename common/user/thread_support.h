@@ -23,7 +23,15 @@ typedef struct
     core_id_t core_id;
 } ThreadJoinRequest;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 SInt32 CarbonSpawnThread(thread_func_t func, void *arg);
 void CarbonJoinThread(SInt32 tid);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

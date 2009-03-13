@@ -8,11 +8,9 @@ CORES=4
 ..PHONY: CORES
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
-ifeq ($(CLEAN),)
-include common/Makefile.common
-include tests/apps/Makefile.apps
-include tests/unit/Makefile.unit
-endif
+include common/Makefile
+include tests/apps/Makefile
+include tests/unit/Makefile
 
 TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
 
@@ -20,14 +18,13 @@ all:
 	$(MAKE) -C common
 	$(MAKE) -C pin
 
-tests_to_clean =  hello_world simple file_io ping_pong mutex barrier cannon_msg \
-                  cannon simple_test_dist cannon_msg ring_msg_pass dynamic_threads \
-                  spawn_join
-
 clean: empty_logs
 	$(MAKE) -C pin clean
 	$(MAKE) -C common clean
-	for t in $(tests_to_clean) ; do make -C tests/apps/$$t clean ; done
+	$(MAKE) -C tests/unit clean
+	$(MAKE) -C tests/apps clean
+
+regress_quick: clean $(TEST_APP_LIST) $(TEST_UNIT_LIST)
 
 empty_logs :
 	rm output_files/* ; true

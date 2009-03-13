@@ -9,8 +9,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
-#include "capi.h"
-#include "test_support.h"
+#include "carbon_user.h"
 
 void* thread_func(void * threadid);
 

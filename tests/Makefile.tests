@@ -1,15 +1,51 @@
-BUILD_32 = 1
-
-OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
+# README: Variables that you might care about. Most of these can be
+# overridden, which eliminates the variables they are derived from as
+# being important. Unfortunately, I don't know how to break make
+# functions across multiple lines, so run_fn is completely illegible.
+#
+# SOURCES - source files to build
+# TARGET - name of executable
+# RUN - command to run after building; derived from BUILD_MODE, MODE, EXEC, PROCS, and SIM_FLAGS
+#
+# MODE - set to 'pin' to use pin (only used by 
+# EXEC - command to run; derived from TARGET and APP_FLAGS
+# SIM_FLAGS - config flags passed to the simulator. Derived from CORES, PROCS. See sim_flags_fn.
+# PROCS - number of processes
+# CORES - number of cores
+# APP_FLAGS - flags to pass to the application
+# BUILD_MODE - set nonempty to not run anything
 
 SIM_ROOT ?= $(CURDIR)/../../..
 
+OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
+
+# Run options
+PIN_HOME = /afs/csail/group/carbon/tools/pin/current
+
+PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin
+PIN_TOOL=$(SIM_ROOT)/lib/pin_sim
+PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
+
+# Use: $(call sim_flags_fn, $(CORES), $(PROCS))
+sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --general/num_processes=$(2)
+SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS))
+
+BUILD_MODE ?= # Set to nonempty to not run anything
+MODE ?= # Set to 'pin' to use pin
+EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
+mpi_fn = $(MPI_DIR)/bin/mpiexec -np $(1) # 1 - PROCS
+
+# Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call mpi_fn,$(3)) $(PIN_RUN) $(2) -- $(4),$(call mpi_fn,$(3)) $(2) $(4)))
+RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(PROCS),$(SIM_FLAGS))
+
+# Build targets
+all: $(TARGET)
+	$(RUN)
+
+# Compiler flags
 LD_FLAGS = -L$(SIM_ROOT)/lib 
 LD_LIBS = -pthread -lcarbon_sim
-
-CFLAGS = $(CXXFLAGS) -std=c99
-
-all: $(TARGET)
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
@@ -17,6 +53,7 @@ include $(SIM_ROOT)/common/Makefile.common
 endif
 
 CXXFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32
+CFLAGS = $(CXXFLAGS) -std=c99
 
 .SUFFIXES:  .o .c .h .cc
 

@@ -2,8 +2,6 @@ SIM_ROOT ?= $(CURDIR)/../../
 TEST_APPS_DIR = $(SIM_ROOT)/tests/apps/
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
-include $(SIM_ROOT)/tests/Makefile.pin
-
 ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
 endif

@@ -1,11 +1,6 @@
 SIM_ROOT ?= $(CURDIR)
 
-MPDS=1
-PROCS=2
-CORES=4
-..PHONY: MPDS
-..PHONY: PROCS
-..PHONY: CORES
+MPDS ?= 1
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)

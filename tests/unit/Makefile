@@ -9,7 +9,6 @@ clean:
 
 cannon_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(MAKE) -C tests/unit/cannon
-	./tests/unit/cannon/cannon -m 4 -s 4
 
 spawn_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(MAKE) -C tests/unit/spawn

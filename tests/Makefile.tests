@@ -1,3 +1,5 @@
+# This makefile is included by individual tests.
+#
 # README: Variables that you might care about. Most of these can be
 # overridden, which eliminates the variables they are derived from as
 # being important. Unfortunately, I don't know how to break make
@@ -7,7 +9,7 @@
 # TARGET - name of executable
 # RUN - command to run after building; derived from BUILD_MODE, MODE, EXEC, PROCS, and SIM_FLAGS
 #
-# MODE - set to 'pin' to use pin (only used by 
+# MODE - set to 'pin' to use pin.
 # EXEC - command to run; derived from TARGET and APP_FLAGS
 # SIM_FLAGS - config flags passed to the simulator. Derived from CORES, PROCS. See sim_flags_fn.
 # PROCS - number of processes
@@ -36,7 +38,7 @@ EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
 mpi_fn = $(MPI_DIR)/bin/mpiexec -np $(1) # 1 - PROCS
 
 # Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
-run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call mpi_fn,$(3)) $(PIN_RUN) $(2) -- $(4),$(call mpi_fn,$(3)) $(2) $(4)))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call mpi_fn,$(3)) $(PIN_RUN) $(4) -- $(2),$(call mpi_fn,$(3)) $(2) $(4)))
 RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(PROCS),$(SIM_FLAGS))
 
 # Build targets

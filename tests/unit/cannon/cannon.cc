@@ -29,7 +29,7 @@ pthread_mutex_t lock;
 
 #define NUM_THREADS 4
 
-#define ITERATIONS 100
+#define ITERATIONS 10
 
 unsigned int num_threads;
 
@@ -61,12 +61,10 @@ int main(int argc, char* argv[])  // main begins
 
    for (int i = 0; i < ITERATIONS; i++)
    {
-       fprintf(stderr, " >>>> ITERATION %d <<<<<< \n", i);
        do_cannon(argc, argv);
    }
 
    CarbonStopSim();
-   fprintf(stderr, "done.\n");
 }
 
 int do_cannon(int argc, char* argv[])

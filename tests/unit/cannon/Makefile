@@ -1,9 +1,10 @@
 SOURCES = cannon.cc
 TARGET = cannon
 
-CORES = 5
-PROCS = 1
-APP_FLAGS = -m 4 -s 4
-MODE = unit
+SIZE ?= 4
+PROCS ?= 1
+APP_FLAGS = -m $(SIZE) -s $(SIZE)
+CORES = $(shell echo $$(( $(SIZE) + 1 )))
+MODE ?= unit
 
 include ../../Makefile.tests

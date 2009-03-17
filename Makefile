@@ -3,6 +3,9 @@ SIM_ROOT ?= $(CURDIR)
 MPDS ?= 1
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
+
+all: $(SIM_ROOT)/lib/libcarbon_sim.a $(SIM_ROOT)/pin/../lib/pin_sim.so
+
 ifeq ($(CLEAN),)
 include common/Makefile
 include tests/apps/Makefile
@@ -10,11 +13,8 @@ include tests/unit/Makefile
 include tests/benchmarks/Makefile
 endif
 
-TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
-
-all:
-	$(MAKE) -C common
-	$(MAKE) -C pin
+$(SIM_ROOT)/pin/../lib/pin_sim.so:
+	$(MAKE) -C $(SIM_ROOT)/pin $@
 
 clean: empty_logs
 	$(MAKE) -C pin clean

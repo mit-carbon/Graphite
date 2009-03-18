@@ -43,5 +43,5 @@ $(TARGET): $(OBJECTS)
 
 ifneq ($(CLEAN),)
 clean:
-	-rm -f $(BUILD_TARGET) $(OBJECTS)
+	-rm -f $(TARGET) $(OBJECTS)
 endif

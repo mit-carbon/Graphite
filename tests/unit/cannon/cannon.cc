@@ -61,8 +61,11 @@ int main(int argc, char* argv[])  // main begins
 
    for (int i = 0; i < ITERATIONS; i++)
    {
+      fprintf(stderr, "Starting iteration %d...\n", i);
        do_cannon(argc, argv);
    }
+
+   fprintf(stderr, "Exiting...\n");
 
    CarbonStopSim();
 }
@@ -203,7 +206,7 @@ int do_cannon(int argc, char* argv[])
       }
    }
 
-   printf("  Done sending... exiting.\n");
+//   printf("  Done sending... exiting.\n");
 
    // Wait for all threads to complete
    for (unsigned int i = 0; i < num_threads; i++)
@@ -328,7 +331,7 @@ void* cannon(void *threadid)
       CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
       == 0);
 
-   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
+//   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
 
    // Initialize local variables
    unsigned int blockSize, sqrtNumProcs;
@@ -406,7 +409,7 @@ void* cannon(void *threadid)
       for (unsigned int y = 0; y < blockSize; y++) cBlock[x][y] = 0;
    }
 
-   fprintf(stderr, "Thread %d processing...\n", tid);
+//   fprintf(stderr, "Thread %d processing...\n", tid);
 
    for (unsigned int iter = 0; iter < sqrtNumProcs; iter++) // for loop begins
    {

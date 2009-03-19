@@ -12,16 +12,12 @@ cannon_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 
 spawn_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(MAKE) -C tests/unit/spawn
-	./tests/unit/spawn/spawn
 
 simple_dist_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(MAKE) -C tests/unit/simple_dist
-	mpirun -np 2 ./tests/unit/simple_dist/simple_dist
 
 barrier_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(MAKE) -C tests/unit/barrier
-	mpirun -np 1 ./tests/unit/barrier/barrier
 
 mutex_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(MAKE) -C tests/unit/mutex
-	mpirun -np 1 ./tests/unit/mutex/mutex

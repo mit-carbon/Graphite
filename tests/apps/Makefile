@@ -23,61 +23,56 @@ regress: regress_quick 1djacobi_test_quick
 clean:
 	for t in $(TEST_APP_DIRS) ; do make -C $(TEST_APPS_DIR)/$$t clean ; done
 
-sim:
-	$(MAKE) -C $(SIM_ROOT)/common
-	$(MAKE) -C $(SIM_ROOT)/pin
-	$(MAKE) -C $(SIM_ROOT) 
-
-hello_world_test: sim
+hello_world_test:
 	$(MAKE) -C $(TEST_APPS_DIR)/hello_world
 
-simple_test: sim 
+simple_test:
 	$(MAKE) -C $(TEST_APPS_DIR)/simple
 
-spawn_join_test: sim 
+spawn_join_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/spawn_join
 
-dynamic_threads_test: sim 
+dynamic_threads_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/dynamic_threads
 
-simple_dist_test: sim 
+simple_dist_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/simple_dist
 
-cannon_msg_dist_test: sim 
+cannon_msg_dist_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/cannon_msg
 
-ring_msg_pass_test: sim 
+ring_msg_pass_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/ring_msg_pass
 
-file_io_test: sim 
+file_io_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/file_io
 
-ping_pong_test: sim 
+ping_pong_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/ping_pong
 
-ping_pong_dist_test: sim 
+ping_pong_dist_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/ping_pong
 
-cannon_test: sim 
+cannon_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/cannon
 
-cannon_msg_test: sim 
+cannon_msg_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/cannon_msg
 
-capi_worker_test: sim 
+capi_worker_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/capi_worker
 
-1djacobi_test: sim 
+1djacobi_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/1d_jacobi
 
-1djacobi_test_quick: sim 
+1djacobi_test_quick: 
 	$(MAKE) -C $(TEST_APPS_DIR)/1d_jacobi
 
-jacobi_test: sim 
+jacobi_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/shared_mem_jacobi
 
-basic_test: sim 
+basic_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/pthreads_basic
 
-cache_test: sim 
+cache_test: 
 	$(MAKE) -C $(TEST_APPS_DIR)/cache_model

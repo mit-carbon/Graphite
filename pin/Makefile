@@ -4,6 +4,7 @@ SIM_ROOT ?= $(CURDIR)/..
 LD_LIBS += -pthread -lcarbon_sim
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
+
 ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
 endif

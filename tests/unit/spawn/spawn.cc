@@ -26,8 +26,9 @@ int main(int argc, char **argv)
    int i = 0;
    CarbonStartSim(argc, argv);
 
-   for(i = 0; i < 120; i++)
+   for(i = 0; i < 20; i++)
    {
+       fprintf(stderr, "%d...", i);
        do_a_sim();
    }
    CarbonStopSim();

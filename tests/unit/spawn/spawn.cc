@@ -24,7 +24,7 @@ void do_a_sim()
 int main(int argc, char **argv)
 {
    int i = 0;
-   CarbonStartSim();
+   CarbonStartSim(argc, argv);
 
    for(i = 0; i < 120; i++)
    {

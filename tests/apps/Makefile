@@ -22,12 +22,12 @@ PIN_RUN_DIST=$(MPI_DIR)/bin/mpirun -np 2 $(PIN_BIN) -mt -t $(PIN_TOOL)
 
 TEST_APP_LIST = hello_world_test simple_test file_io_test ping_pong_test mutex_test barrier_test cannon_msg_test \
                 cannon_test simple_dist_test cannon_msg_dist_test ring_msg_pass_test dynamic_threads_test \
-		spawn_join_test
+                spawn_join_test
 
 #TEST_APP_DIRS = $(patsubst %_test,%,$(TEST_UNIT_LIST))
 TEST_APP_DIRS = hello_world simple file_io ping_pong mutex barrier cannon_msg \
                 cannon simple_dist ring_msg_pass dynamic_threads \
-		spawn_join
+                spawn_join
 
 clean_sim:
 	$(MAKE) -C $(SIM_ROOT) clean

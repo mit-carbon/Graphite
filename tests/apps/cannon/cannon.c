@@ -64,7 +64,7 @@ void* cannon(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-   CarbonStartSim();
+   CarbonStartSim(argc,argv);
 
     fprintf(stderr, "Start of main...\n");
    unsigned int matSize, num_threads;

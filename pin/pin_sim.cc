@@ -176,7 +176,11 @@ int main(int argc, char *argv[])
    PIN_Init(argc,argv);
 
    string_vec args;
-   std::string config_path = "";
+
+   // Set the default config path if it isn't 
+   // overwritten on the command line.
+   std::string config_path = "carbon_sim.cfg";
+
    parse_args(args, config_path, argc, argv);
 
    cfg = new config::ConfigFile();

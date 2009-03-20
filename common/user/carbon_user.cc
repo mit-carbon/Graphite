@@ -7,6 +7,7 @@
 #include "core_manager.h"
 #include "core.h"
 #include "config_file.hpp"
+#include "handle_args.h"
 
 #include "carbon_user.h"
 #include "thread_support_private.h"
@@ -18,9 +19,21 @@ core_id_t CarbonGetCoreId()
    return Sim()->getCoreManager()->getCurrentCoreID();
 }
 
-int CarbonStartSim()
+int CarbonStartSim(int argc, char **argv)
 {
-   cfg.load("carbon_sim.cfg");
+   string_vec args;
+
+   // Set the default config path if it isn't 
+   // overwritten on the command line.
+   std::string config_path = "carbon_sim.cfg";
+
+   // Parse the arguments that are relative
+   // to the config file changes as well
+   // as extracting the config_path
+   parse_args(args, config_path, argc, argv);
+
+   cfg.load(config_path);
+   handle_args(args, cfg);
 
    Simulator::setConfig(&cfg);
 

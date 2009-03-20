@@ -18,7 +18,7 @@ void* test_wait_barrier(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-   CarbonStartSim();
+   CarbonStartSim(argc, argv);
    const unsigned int num_threads = 5;
    carbon_thread_t threads[num_threads];
 

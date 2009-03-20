@@ -57,7 +57,7 @@ int do_cannon(int argc, char* argv[]);
 
 int main(int argc, char* argv[])  // main begins
 {
-   CarbonStartSim();
+   CarbonStartSim(argc, argv);
 
    for (int i = 0; i < ITERATIONS; i++)
    {

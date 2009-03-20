@@ -17,4 +17,4 @@ spawn_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 
 simple_dist_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
 	$(MAKE) -C tests/unit/simple_dist
-	mpirun -np 2 ./tests/unit/simple_dist/simple_dist
+	./tests/unit/simple_dist/simple_dist

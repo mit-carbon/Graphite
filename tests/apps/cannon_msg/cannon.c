@@ -53,7 +53,7 @@ void debug_printf(const char * fmt, ...)
 
 int main(int argc, char* argv[])  // main begins
 {
-   CarbonStartSim();
+   CarbonStartSim(argc, argv);
 
    float **a, **b, **c;
 

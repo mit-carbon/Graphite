@@ -2,9 +2,9 @@
 
 #include "carbon_user.h"
 
-int main()
+int main(int argc, char **argv)
 {
-   CarbonStartSim();
+   CarbonStartSim(argc, argv);
    printf("Hello, world!\n");
    CarbonStopSim();
    return 0;

@@ -6,12 +6,13 @@ extern "C"
 {
 #endif
 
+#include <pthread.h>
 #include "fixed_types.h"
 #include "capi.h"
 #include "sync_api.h"
 #include "thread_support.h"
 
-SInt32 CarbonStartSim();
+SInt32 CarbonStartSim(int argc, char **argv);
 void CarbonStopSim();
 core_id_t CarbonGetCoreId();
 

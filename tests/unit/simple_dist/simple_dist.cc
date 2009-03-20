@@ -36,7 +36,7 @@ void* thread_func(void *threadid)
 
 int main(int argc, char* argv[])
 {
-   CarbonStartSim();
+   CarbonStartSim(argc, argv);
 
    for (int i = 0; i < 100; i++)
    {

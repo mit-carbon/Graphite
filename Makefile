@@ -9,12 +9,10 @@ LIB_PIN_SIM=$(SIM_ROOT)/pin/../lib/pin_sim.so
 
 all: $(LIB_CARBON) $(LIB_PIN_SIM)
 
-ifeq ($(CLEAN),)
 include common/Makefile
 include tests/apps/Makefile
 include tests/unit/Makefile
 include tests/benchmarks/Makefile
-endif
 
 $(LIB_PIN_SIM):
 	$(MAKE) -C $(SIM_ROOT)/pin $@

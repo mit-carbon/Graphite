@@ -122,4 +122,26 @@ class Log
  
 #endif // NDEBUG
 
+// Helpers
+
+class FunctionTracer
+{
+public:
+   FunctionTracer(const char *fn)
+      : m_fn(fn)
+   {
+      LOG_PRINT("Entering: %s", m_fn);
+   }
+
+   ~FunctionTracer()
+   {
+      LOG_PRINT("Exiting:  %s", m_fn);
+   }
+
+private:
+   const char *m_fn;
+};
+
+#define LOG_FUNC_TRACE()   FunctionTracer func_tracer(__PRETTY_FUNCTION__);
+
 #endif // LOG_H

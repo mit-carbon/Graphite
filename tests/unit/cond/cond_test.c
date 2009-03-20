@@ -25,8 +25,7 @@ void* test_signal_cond(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-
-   initMCP();
+   CarbonStartSim();
 
    // Read in the command line arguments
    const unsigned int numThreads = 2;
@@ -62,6 +61,7 @@ int main(int argc, char* argv[])  // main begins
 #endif
    pthread_exit(NULL);
 
+   CarbonStopSim();
 } // main ends
 
 int wait_some()
@@ -91,11 +91,11 @@ void* test_signal_cond(void *threadid)
 
    // Thread starts here
    fprintf(stderr, "UserSignal: Cond Signaling.");
-   condSignal(&my_cond);
+   CarbonCondSignal(&my_cond);
    fprintf(stderr, "UserSignal: Cond Signaled.");
-   mutexLock(&my_mux);
+   CarbonMutexLock(&my_mux);
    fprintf(stderr, "UserSignal: Mutex locked after signal.");
-   mutexUnlock(&my_mux);
+   CarbonMutexUnlock(&my_mux);
    fprintf(stderr, "UserSignal: Signal thread done.");
 
    pthread_exit(NULL);
@@ -116,17 +116,17 @@ void* test_wait_cond(void *threadid)
 
    // FIXME: This should be in the main thread or something.
    fprintf(stderr, "UserWait: Initting mutex.");
-   mutexInit(&my_mux);
+   CarbonMutexInit(&my_mux);
    fprintf(stderr, "UserWait: Initting cond.");
-   condInit(&my_cond);
+   CarbonCondInit(&my_cond);
 
    fprintf(stderr, "UserWait: Locking mux.");
-   mutexLock(&my_mux);
+   CarbonMutexLock(&my_mux);
    fprintf(stderr, "UserWait: Cond wait.");
-   condWait(&my_cond, &my_mux);
+   CarbonCondWait(&my_cond, &my_mux);
    fprintf(stderr, "UserWait: Cond done.");
 
-   mutexUnlock(&my_mux);
+   CarbonMutexUnlock(&my_mux);
    fprintf(stderr, "UserWait: test_wait_cond mutex unlock done.");
 
    pthread_exit(NULL);

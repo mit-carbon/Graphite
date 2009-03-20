@@ -1,20 +1,13 @@
 SIM_ROOT ?= $(CURDIR)/../../
 TEST_UNIT_DIR = $(SIM_ROOT)/tests/unit/
 
-TEST_UNIT_LIST = cannon_unit_test spawn_unit_test simple_dist_unit_test
-TEST_UNIT_DIRS = $(patsubst %_unit_test,%,$(TEST_UNIT_LIST))
+TEST_UNIT_LIST = cannon_unit_test spawn_unit_test simple_dist_unit_test barrier_unit_test mutex_unit_test
+
+regress_unit: $(TEST_UNIT_LIST)
 
 clean:
-	for t in $(TEST_UNIT_DIRS) ; do make -C $(TEST_UNIT_DIR)/$$t clean ; done
+	for t in $(patsubst %_unit_test,%,$(TEST_UNIT_LIST)) ; do make -C $(TEST_UNIT_DIR)/$$t clean ; done
 
-cannon_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
-	$(MAKE) -C tests/unit/cannon
-	./tests/unit/cannon/cannon -m 4 -s 4
+%_unit_test:
+	$(MAKE) -C $(TEST_UNIT_DIR)/$(patsubst %_unit_test,%,$@)
 
-spawn_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
-	$(MAKE) -C tests/unit/spawn
-	./tests/unit/spawn/spawn
-
-simple_dist_unit_test: $(SIM_ROOT)/lib/libcarbon_sim.a
-	$(MAKE) -C tests/unit/simple_dist
-	./tests/unit/simple_dist/simple_dist

@@ -16,6 +16,8 @@ void* thread_func(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim(argc, argv);
+
    fprintf(stderr, "Yeah Main\n");
 
    // Read in the command line arguments
@@ -35,7 +37,7 @@ int main(int argc, char* argv[])  // main begins
       CarbonJoinThread(threads[i]);
 
    printf("UserApplication: About to call carbon finish!\n");
-
+   CarbonStopSim();
 } // main ends
 
 void* thread_func(void *threadid)

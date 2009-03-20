@@ -8,8 +8,6 @@
 #include <fcntl.h>
 
 #include "carbon_user.h"
-#include "sync_api.h"
-#include "capi.h"
 
 carbon_mutex_t my_mux;
 
@@ -18,6 +16,8 @@ void* test_mutex(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim(argc, argv);
+
    const unsigned int num_threads = 1;
    carbon_thread_t threads[num_threads];
 
@@ -29,15 +29,17 @@ int main(int argc, char* argv[])  // main begins
 
    printf("Finished running mutex test!.\n");
 
+   CarbonStopSim();
+
    return 0;
 } // main ends
 
 
 void* test_mutex(void *threadid)
 {
-   mutexInit(&my_mux);
-   mutexLock(&my_mux);
-   mutexUnlock(&my_mux);
+   CarbonMutexInit(&my_mux);
+   CarbonMutexLock(&my_mux);
+   CarbonMutexUnlock(&my_mux);
 
    return NULL;
 }

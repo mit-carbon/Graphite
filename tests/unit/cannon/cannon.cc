@@ -29,7 +29,7 @@ pthread_mutex_t lock;
 
 #define NUM_THREADS 4
 
-#define ITERATIONS 100
+#define ITERATIONS 10
 
 unsigned int num_threads;
 
@@ -61,12 +61,13 @@ int main(int argc, char* argv[])  // main begins
 
    for (int i = 0; i < ITERATIONS; i++)
    {
-       fprintf(stderr, " >>>> ITERATION %d <<<<<< \n", i);
+      fprintf(stderr, "Starting iteration %d...\n", i);
        do_cannon(argc, argv);
    }
 
+   fprintf(stderr, "Exiting...\n");
+
    CarbonStopSim();
-   fprintf(stderr, "done.\n");
 }
 
 int do_cannon(int argc, char* argv[])
@@ -75,31 +76,31 @@ int do_cannon(int argc, char* argv[])
 
    unsigned int matSize;
 
-   // Read in the command line arguments
-   if (argc != 5)
+   bool found_num_threads = false;
+   bool found_mat_size = false;
+
+   for(unsigned int i = 0; i < argc; i++)
    {
-      printf("Invalid command line options. The correct format is:\n");
-      printf("cannon -m num_of_threads -s size_of_square_matrix\n");
-      exit(EXIT_FAILURE);
+       if(strcmp(argv[i],"-m") == 0 && i + 1 < argc)
+       {
+           matSize = atoi(argv[i+1]);
+           found_mat_size = true;
+           i += 1;
+       }
+       else if(strcmp(argv[i],"-s") == 0 && i + 1 < argc)
+       {
+           num_threads = atoi(argv[i+1]);
+           found_num_threads = true;
+           i += 1;
+       }
    }
-   else
+
+   // Read in the command line arguments
+   if(!found_num_threads || !found_mat_size)
    {
-      if ((strcmp(argv[1], "-m\0") == 0) && (strcmp(argv[3], "-s\0") == 0))
-      {
-         num_threads = atoi(argv[2]);
-         matSize = atoi(argv[4]);
-      }
-      else if ((strcmp(argv[1], "-s\0") == 0) && (strcmp(argv[3], "-m\0") == 0))
-      {
-         num_threads = atoi(argv[4]);
-         matSize = atoi(argv[2]);
-      }
-      else
-      {
-         printf("Invalid command line options. The correct format is:\n");
-         printf("cannon -m num_of_threads -s size_of_square_matrix\n");
-         exit(EXIT_FAILURE);
-      }
+       printf("Invalid command line options. The correct format is:\n");
+       printf("cannon -m num_of_threads -s size_of_square_matrix\n");
+       exit(EXIT_FAILURE);
    }
 
    // Declare threads and related variables
@@ -205,7 +206,7 @@ int do_cannon(int argc, char* argv[])
       }
    }
 
-   printf("  Done sending... exiting.\n");
+//   printf("  Done sending... exiting.\n");
 
    // Wait for all threads to complete
    for (unsigned int i = 0; i < num_threads; i++)
@@ -330,7 +331,7 @@ void* cannon(void *threadid)
       CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
       == 0);
 
-   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
+//   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
 
    // Initialize local variables
    unsigned int blockSize, sqrtNumProcs;
@@ -408,7 +409,7 @@ void* cannon(void *threadid)
       for (unsigned int y = 0; y < blockSize; y++) cBlock[x][y] = 0;
    }
 
-   fprintf(stderr, "Thread %d processing...\n", tid);
+//   fprintf(stderr, "Thread %d processing...\n", tid);
 
    for (unsigned int iter = 0; iter < sqrtNumProcs; iter++) // for loop begins
    {

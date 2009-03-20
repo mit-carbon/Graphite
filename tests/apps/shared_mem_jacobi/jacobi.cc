@@ -362,6 +362,7 @@ void* thread_main(void *threadid)
 //create the threads, have them run thread_main
 int main(int argc, char* argv[])
 {
+   CarbonStartSim();
 
    // Read in the command line arguments
 
@@ -399,6 +400,7 @@ int main(int argc, char* argv[])
       pthread_join(threads[i], NULL);
    }
 
+   CarbonStopSim();
    return 0;
 
 }

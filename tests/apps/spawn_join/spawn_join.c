@@ -13,6 +13,8 @@ void* thread_func(void * threadid);
 
 int main(int argc, char* argv[])
 {
+   CarbonStartSim(argc, argv);
+
    fprintf(stderr, "Yeah main\n");
 
    int tid1 = CarbonSpawnThread(thread_func, (void*)5);
@@ -24,7 +26,7 @@ int main(int argc, char* argv[])
    CarbonJoinThread(tid2);
 
    fprintf(stderr, "After joining...\n");
-
+   CarbonStopSim();
    return 0;
 }
 

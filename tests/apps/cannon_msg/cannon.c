@@ -59,31 +59,31 @@ int main(int argc, char* argv[])  // main begins
 
    unsigned int matSize;
 
-   // Read in the command line arguments
-   if (argc != 5)
+   bool found_num_threads = false;
+   bool found_mat_size = false;
+
+   for(unsigned int i = 0; i < argc; i++)
    {
-      printf("Invalid command line options. The correct format is:\n");
-      printf("cannon -m num_of_threads -s size_of_square_matrix\n");
-      exit(EXIT_FAILURE);
+       if(strcmp(argv[i],"-m") == 0 && i + 1 < argc)
+       {
+           matSize = atoi(argv[i+1]);
+           found_mat_size = true;
+           i += 1;
+       }
+       else if(strcmp(argv[i],"-s") == 0 && i + 1 < argc)
+       {
+           num_threads = atoi(argv[i+1]);
+           found_num_threads = true;
+           i += 1;
+       }
    }
-   else
+
+   // Read in the command line arguments
+   if(!found_num_threads || !found_mat_size)
    {
-      if ((strcmp(argv[1], "-m\0") == 0) && (strcmp(argv[3], "-s\0") == 0))
-      {
-         num_threads = atoi(argv[2]);
-         matSize = atoi(argv[4]);
-      }
-      else if ((strcmp(argv[1], "-s\0") == 0) && (strcmp(argv[3], "-m\0") == 0))
-      {
-         num_threads = atoi(argv[4]);
-         matSize = atoi(argv[2]);
-      }
-      else
-      {
-         printf("Invalid command line options. The correct format is:\n");
-         printf("cannon -m num_of_threads -s size_of_square_matrix\n");
-         exit(EXIT_FAILURE);
-      }
+       printf("Invalid command line options. The correct format is:\n");
+       printf("cannon -m num_of_threads -s size_of_square_matrix\n");
+       exit(EXIT_FAILURE);
    }
 
    // Declare threads and related variables

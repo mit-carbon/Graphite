@@ -32,14 +32,27 @@ void *ring(void *p);
 
 int main(int argc, char *argv[])
 {
-   if (argc != 3 || strcmp(argv[1], "-m") != 0)
+   CarbonStartSim(argc, argv);
+
+   unsigned int num_threads;
+   bool found_num_threads = false;
+   for(unsigned int i = 0; i < argc; i++)
    {
-      printf("Invalid command line options. The correct format is:\n");
-      printf("%s -m num_of_threads\n", argv[0]);
-      exit(EXIT_FAILURE);
+       if(strcmp(argv[i],"-m") == 0 && i + 1 < argc)
+       {
+           num_threads = atoi(argv[i+1]);
+           found_num_threads = true;
+           i += 1;
+       }
    }
 
-   const unsigned int num_threads = atoi(argv[2]);
+   if(!found_num_threads)
+   {
+       printf("Invalid command line options. The correct format is:\n");
+       printf("ring_msg_pass -m num_of_threads\n");
+       exit(EXIT_FAILURE);
+   }
+
    g_num_threads = num_threads;
    if(num_threads < 2)
    {
@@ -64,6 +77,8 @@ int main(int argc, char *argv[])
        CarbonJoinThread(threads[i]);
 
    printf("Finished running ring test!.\n");
+
+   CarbonStopSim();
 
    return 0;
 }

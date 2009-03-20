@@ -30,9 +30,11 @@ void *start(void *v)
 
 int main(int argc, char* argv[])
 {
+   CarbonStartSim();
   pthread_t thrd1, thrd2;
   pthread_create(&thrd1, NULL, start, NULL);
   pthread_create(&thrd2, NULL, start, (void *)1);
   pthread_join(thrd1, NULL);
   pthread_join(thrd2, NULL);
+  CarbonStopSim();
 }

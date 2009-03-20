@@ -28,6 +28,7 @@ void* test_many_mutex(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
 
    // Read in the command line arguments
    const unsigned int numThreads = 5;
@@ -95,9 +96,9 @@ void* test_many_mutex(void *threadid)
    {
       fprintf(stderr, "TestManyMutex(%d): Initting barrier.\n", (int)threadid);
       // FIXME: shouldn't be hardcoding the barrier count here
-      mutexInit(&my_mux1);
-      mutexInit(&my_mux2);
-      mutexInit(&my_mux3);
+      CarbonMutexInit(&my_mux1);
+      CarbonMutexInit(&my_mux2);
+      CarbonMutexInit(&my_mux3);
       fprintf(stderr, "TestManyMutex(%d): Barrier Initialized.\n", (int)threadid);
    }
    else
@@ -107,16 +108,16 @@ void* test_many_mutex(void *threadid)
 
    for (i = 0; i < 1000; i++)
    {
-      mutexLock(&my_mux1);
-      mutexLock(&my_mux2);
-      mutexLock(&my_mux3);
+      CarbonMutexLock(&my_mux1);
+      CarbonMutexLock(&my_mux2);
+      CarbonMutexLock(&my_mux3);
       if (i % 100 == 0)
          fprintf(stderr, "Thread %d got %dth lock...\n", tid, i);
-      mutexUnlock(&my_mux3);
-      mutexUnlock(&my_mux2);
-      mutexUnlock(&my_mux1);
+      CarbonMutexUnlock(&my_mux3);
+      CarbonMutexUnlock(&my_mux2);
+      CarbonMutexUnlock(&my_mux1);
    }
 
-   pthread_exit(NULL);
+   CarbonStopSim();
 }
 

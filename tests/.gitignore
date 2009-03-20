@@ -1,0 +1,40 @@
+# unit tests
+unit/cannon/cannon
+unit/spawn/spawn
+unit/simple_dist/simple_dist
+unit/mutex/mutex
+unit/cond/cond_test
+unit/broadcast/broadcast_test
+unit/barrier/barrier
+unit/shared_mem/test_evic
+unit/shared_mem/test_new
+
+# apps
+apps/cannon/cannon
+apps/file_io/file_io
+apps/ping_pong/ping_pong
+apps/signals/signals
+apps/pthreads_basic/basic
+apps/simple/simple_test
+apps/cannon_msg/cannon
+apps/capi_worker/capi_worker
+apps/1d_jacobi/jacobi
+
+# benchmarks
+benchmarks/barnes/*.[ch]
+benchmarks/barnes/BARNES
+benchmarks/fmm/*.[ch]
+benchmarks/fmm/FMM
+benchmarks/ocean_contig/*.[ch]
+benchmarks/ocean_contig/OCEAN
+benchmarks/radiosity/*.[ch]
+benchmarks/radiosity/RADIOSITY
+benchmarks/volrend/*.[ch]
+benchmarks/volrend/VOLREND
+benchmarks/water-nsquared/*.[ch]
+benchmarks/water-nsquared/WATER-NSQUARED
+benchmarks/water-spatial/*.[ch]
+benchmarks/water-spatial/WATER-SPATIAL
+benchmarks/raytrace/*.[ch]
+benchmarks/radiosity/glibdumb/glib.a
+benchmarks/radiosity/glibps/glibps.a

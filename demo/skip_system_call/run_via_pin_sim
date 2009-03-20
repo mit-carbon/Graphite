@@ -1,5 +1,0 @@
-#!/bin/tcsh
-make clean
-make
-echo running
-/afs/csail.mit.edu/group/carbon/tools/pin/current/pin -mt -t ./pin_sim -- ./test

@@ -20,6 +20,8 @@ unsigned int numThreads = 2;
 
 int main(int argc, char* argv[])  // main begins
 {
+   CarbonStartSim();
+
    pthread_t* threads;
    pthread_attr_t attr;
    float m[SIZE];
@@ -56,6 +58,8 @@ int main(int argc, char* argv[])  // main begins
    free(threads);
    pthread_exit(NULL);
    printf("Done\n");
+
+   CarbonStopSim();
 } // main ends
 
 void* worker(void *threadid)

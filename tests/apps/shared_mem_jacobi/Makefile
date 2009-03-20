@@ -1,4 +1,8 @@
-BUILD_TARGET=jacobi
-CPP_SOURCES = jacobi.cc
-include ../Makefile.tests
+TARGET=jacobi
+SOURCES = jacobi.cc
 
+SIZE ?= 4
+APP_FLAGS = -m $(SIZE)
+CORES = $(shell echo $$(( $(SIZE) + 1 )))
+
+include ../../Makefile.tests

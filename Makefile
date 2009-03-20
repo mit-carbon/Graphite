@@ -1,30 +1,30 @@
 SIM_ROOT ?= $(CURDIR)
 
-MPDS=1
-PROCS=2
-CORES=4
-..PHONY: MPDS
-..PHONY: PROCS
-..PHONY: CORES
+MPDS ?= 1
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
+
+LIB_CARBON=$(SIM_ROOT)/lib/libcarbon_sim.a
+LIB_PIN_SIM=$(SIM_ROOT)/pin/../lib/pin_sim.so
+
+all: $(LIB_CARBON) $(LIB_PIN_SIM)
+
 include common/Makefile
 include tests/apps/Makefile
 include tests/unit/Makefile
+include tests/benchmarks/Makefile
 
-TOTAL_CORES := $(shell echo $$(( $(CORES) + 1 )))
-
-all:
-	$(MAKE) -C common
-	$(MAKE) -C pin
+$(LIB_PIN_SIM):
+	$(MAKE) -C $(SIM_ROOT)/pin $@
 
 clean: empty_logs
 	$(MAKE) -C pin clean
 	$(MAKE) -C common clean
 	$(MAKE) -C tests/unit clean
 	$(MAKE) -C tests/apps clean
+	$(MAKE) -C tests/benchmarks clean
 
-regress_quick: clean $(TEST_APP_LIST) $(TEST_UNIT_LIST)
+regress_quick: regress_unit regress_apps
 
 empty_logs :
 	rm output_files/* ; true

@@ -16,6 +16,34 @@ void CarbonStopSimNull()
 {
 }
 
+int CarbonCreatePthread(CONTEXT *ctx, AFUNPTR orig_fp, void *pthread_t_p, void *pthread_attr_t_p, void *routine_p, void* arg_p)
+{
+   fprintf(stderr, "Create pthread called from pin.\n");
+   // Get the function for the thread spawner
+   PIN_LockClient();
+   AFUNPTR pthread_create_function;
+   IMG img = IMG_FindByAddress((ADDRINT)orig_fp);
+   RTN rtn = RTN_FindByName(img, "pthread_create");
+   pthread_create_function = RTN_Funptr(rtn);
+   PIN_UnlockClient();
+
+   fprintf(stderr, "pthread_create_function: %x\n", (int)pthread_create_function);
+
+   int res;
+   PIN_CallApplicationFunction(ctx,
+         PIN_ThreadId(),
+         CALLINGSTD_DEFAULT,
+         pthread_create_function,
+         PIN_PARG(int), &res,
+         PIN_PARG(void*), pthread_t_p,
+         PIN_PARG(void*), pthread_attr_t_p,
+         PIN_PARG(void*), routine_p,
+         PIN_PARG(void*), arg_p,
+         PIN_PARG_END());
+
+   return res;
+}
+
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
    AFUNPTR msg_ptr = NULL;
@@ -54,8 +82,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "barrierWait") msg_ptr = AFUNPTR(CarbonBarrierWait);
 
    // pthread wrappers
-   else if (name == "pthread_create") msg_ptr = AFUNPTR(CarbonPthreadCreate);
-   else if (name == "pthread_join") msg_ptr = AFUNPTR(CarbonPthreadJoin);
+//   else if (name == "create_pthread") msg_ptr = AFUNPTR(CarbonCreatePthread);
+//   else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(CarbonPthreadCreate);
+//   else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(CarbonPthreadJoin);
 
    // actual replacement
    if (msg_ptr == AFUNPTR(CarbonMain))
@@ -72,6 +101,28 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
                            IARG_ORIG_FUNCPTR,
                            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_END);
+      PROTO_Free(proto);
+      return true;
+   }
+   else if(msg_ptr == AFUNPTR(CarbonCreatePthread))
+   {
+      proto = PROTO_Allocate(PIN_PARG(int),
+                             CALLINGSTD_DEFAULT,
+                             name.c_str(),
+                             PIN_PARG(void*),
+                             PIN_PARG(void*),
+                             PIN_PARG(void*),
+                             PIN_PARG(void*),
+                             PIN_PARG_END());
+      RTN_ReplaceSignature(rtn, msg_ptr,
+                           IARG_PROTOTYPE, proto,
+                           IARG_CONTEXT,
+                           IARG_ORIG_FUNCPTR,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+                           IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
                            IARG_END);
       PROTO_Free(proto);
       return true;

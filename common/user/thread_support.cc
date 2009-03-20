@@ -82,7 +82,12 @@ void *CarbonThreadSpawner(void *p)
          pthread_attr_init(&attr);
          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-         pthread_create(&thread, &attr, CarbonSpawnManagedThread, req);
+         // when using pin, create_pthread will not get intercepted but
+         // will actually spawn a thread within the current process. 
+         // Likewise, when NOT using pin create_pthread = pthread_create
+         // The simple wrapper just lets us use the same naming convention
+         // within the user app.
+         create_pthread(&thread, &attr, CarbonSpawnManagedThread, req);
       }
       else
       {
@@ -101,6 +106,7 @@ int CarbonSpawnThreadSpawner()
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-   pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
+   create_pthread(&thread, &attr, CarbonThreadSpawner, NULL);
    return 0;
 }
+

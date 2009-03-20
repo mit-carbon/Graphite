@@ -67,3 +67,13 @@ void CarbonStopSim()
 {
    Simulator::release();
 }
+
+// This is the simple wrapper function that gets called if we don't replace the
+// create_pthread call. This is simply used to identify the cases where we actually
+// want to use the pthread library (within the simulator) versus when we want to
+// user our thread spawning mechanism (within the application).
+int create_pthread(pthread_t * thread, pthread_attr_t * attr, void * (*start_routine)(void *), void * arg)
+{
+   return pthread_create(thread,attr,start_routine,arg);
+}
+

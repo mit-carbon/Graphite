@@ -82,12 +82,12 @@ void *CarbonThreadSpawner(void *p)
          pthread_attr_init(&attr);
          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-         // when using pin, create_pthread will not get intercepted but
-         // will actually spawn a thread within the current process. 
-         // Likewise, when NOT using pin create_pthread = pthread_create
-         // The simple wrapper just lets us use the same naming convention
-         // within the user app.
-         create_pthread(&thread, &attr, CarbonSpawnManagedThread, req);
+         // when using pin, this will not get intercepted but will
+         // actually spawn a thread within the current process.
+         // Likewise, when NOT using pin CarbonPthreadCreateWrapper ==
+         // pthread_create The simple wrapper just lets us use the
+         // same naming convention within the user app.
+         CarbonPthreadCreateWrapper(&thread, &attr, CarbonSpawnManagedThread, req);
       }
       else
       {
@@ -106,7 +106,16 @@ int CarbonSpawnThreadSpawner()
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-   create_pthread(&thread, &attr, CarbonThreadSpawner, NULL);
+   CarbonPthreadCreateWrapper(&thread, &attr, CarbonThreadSpawner, NULL);
    return 0;
 }
 
+// This is the simple wrapper function that gets called if we don't
+// replace the call. This is simply used to identify the cases where
+// we actually want to use the pthread library (within the simulator)
+// versus when we want to user our thread spawning mechanism (within
+// the application).
+int CarbonPthreadCreateWrapper(pthread_t * thread, pthread_attr_t * attr, void * (*start_routine)(void *), void * arg)
+{
+   return pthread_create(thread,attr,start_routine,arg);
+}

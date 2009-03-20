@@ -16,7 +16,7 @@ void CarbonStopSimNull()
 {
 }
 
-int CarbonCreatePthread(CONTEXT *ctx, AFUNPTR orig_fp, void *pthread_t_p, void *pthread_attr_t_p, void *routine_p, void* arg_p)
+int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *pthread_t_p, void *pthread_attr_t_p, void *routine_p, void* arg_p)
 {
    fprintf(stderr, "Create pthread called from pin.\n");
    // Get the function for the thread spawner
@@ -82,7 +82,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "barrierWait") msg_ptr = AFUNPTR(CarbonBarrierWait);
 
    // pthread wrappers
-//   else if (name == "create_pthread") msg_ptr = AFUNPTR(CarbonCreatePthread);
+//   else if (name == "CarbonPthreadCreateWrapper") msg_ptr = AFUNPTR(CarbonPthreadCreateWrapperReplacement);
 //   else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(CarbonPthreadCreate);
 //   else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(CarbonPthreadJoin);
 
@@ -105,7 +105,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       PROTO_Free(proto);
       return true;
    }
-   else if(msg_ptr == AFUNPTR(CarbonCreatePthread))
+   else if(msg_ptr == AFUNPTR(CarbonPthreadCreateWrapperReplacement))
    {
       proto = PROTO_Allocate(PIN_PARG(int),
                              CALLINGSTD_DEFAULT,

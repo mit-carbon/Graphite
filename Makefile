@@ -26,7 +26,7 @@ clean: empty_logs
 	$(MAKE) -C tests/apps clean
 	$(MAKE) -C tests/benchmarks clean
 
-regress_quick: clean $(TEST_APP_LIST) $(TEST_UNIT_LIST)
+regress_quick: regress_unit regress_apps
 
 empty_logs :
 	rm output_files/* ; true

@@ -2,22 +2,11 @@ SIM_ROOT ?= $(CURDIR)/../../
 TEST_UNIT_DIR = $(SIM_ROOT)/tests/unit/
 
 TEST_UNIT_LIST = cannon_unit_test spawn_unit_test simple_dist_unit_test barrier_unit_test mutex_unit_test
-TEST_UNIT_DIRS = $(patsubst %_unit_test,%,$(TEST_UNIT_LIST))
+
+regress_unit: $(TEST_UNIT_LIST)
 
 clean:
-	for t in $(TEST_UNIT_DIRS) ; do make -C $(TEST_UNIT_DIR)/$$t clean ; done
+	for t in $(patsubst %_unit_test,%,$(TEST_UNIT_LIST)) ; do make -C $(TEST_UNIT_DIR)/$$t clean ; done
 
-cannon_unit_test:
-	$(MAKE) -C tests/unit/cannon
-
-spawn_unit_test:
-	$(MAKE) -C tests/unit/spawn
-
-simple_dist_unit_test:
-	$(MAKE) -C tests/unit/simple_dist
-
-barrier_unit_test:
-	$(MAKE) -C tests/unit/barrier
-
-mutex_unit_test:
-	$(MAKE) -C tests/unit/mutex
+%_unit_test:
+	$(MAKE) -C $(TEST_UNIT_DIR)/$(patsubst %_unit_test,%,$@)

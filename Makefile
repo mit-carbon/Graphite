@@ -7,7 +7,7 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 LIB_CARBON=$(SIM_ROOT)/lib/libcarbon_sim.a
 LIB_PIN_SIM=$(SIM_ROOT)/pin/../lib/pin_sim.so
 
-all: $(LIB_CARBON) $(LIB_PIN_SIM)
+all: output_files $(LIB_CARBON) $(LIB_PIN_SIM)
 
 include common/Makefile
 include tests/apps/Makefile
@@ -24,7 +24,10 @@ clean: empty_logs
 	$(MAKE) -C tests/apps clean
 	$(MAKE) -C tests/benchmarks clean
 
-regress_quick: regress_unit regress_apps
+regress_quick: output_files regress_unit regress_apps
+
+output_files:
+	mkdir output_files
 
 empty_logs :
 	rm output_files/* ; true

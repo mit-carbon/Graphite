@@ -57,6 +57,7 @@ class Log
       UInt32 _coreCount;
       UInt64 _startTime;
       std::set<std::string> _disabledModules;
+      bool _loggingEnabled;
       std::map<const char*, std::string> _modules;
 
 // By defining LOCK_LOGS we ensure no race conditions on the modules
@@ -86,7 +87,8 @@ class Log
 
 #define _LOG_PRINT(err, ...)                                            \
    {                                                                    \
-      if (Log::getSingleton()->isEnabled(__FILE__))                     \
+      if (err == Log::Error ||                                          \
+          Log::getSingleton()->isEnabled(__FILE__))                     \
       {                                                                 \
          Log::getSingleton()->log(err, __FILE__, __LINE__, __VA_ARGS__); \
       }                                                                 \

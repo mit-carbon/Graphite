@@ -81,6 +81,7 @@ public:
 
    // Logging
    void getDisabledLogModules(std::set<std::string> &mods) const;
+   bool getLoggingEnabled() const;
    const char* getOutputFileName() const;
    void logCoreMap();
 

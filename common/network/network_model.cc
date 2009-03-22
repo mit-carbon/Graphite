@@ -21,3 +21,13 @@ NetworkModel *NetworkModel::createModel(Network *net, UInt32 type)
       return NULL;
    }
 }
+
+UInt32 NetworkModel::parseNetworkType(std::string str)
+{
+   if (str == "magic")
+      return NETWORK_MAGIC;
+   else if (str == "analytical")
+      return NETWORK_ANALYTICAL_MESH;
+   else
+      return (UInt32)-1;
+}

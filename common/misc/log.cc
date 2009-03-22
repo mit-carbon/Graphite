@@ -7,8 +7,6 @@
 #include "simulator.h"
 #include "core_manager.h"
 
-#define DISABLE_LOGGING
-
 using namespace std;
 
 Log *Log::_singleton;
@@ -49,6 +47,7 @@ Log::Log(UInt32 coreCount)
    _defaultFile = fopen("output_files/system-default","w");
 
    Config::getSingleton()->getDisabledLogModules(_disabledModules);
+   _loggingEnabled = Config::getSingleton()->getLoggingEnabled();
 
    assert(_singleton == NULL);
    _singleton = this;
@@ -185,18 +184,17 @@ std::string Log::getModule(const char *filename)
 
 void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
-#ifdef DISABLE_LOGGING
-   if (err != Error)
+   if (!_loggingEnabled && err != Error)
       return;
-#endif
+
+   // Called in LOG_PRINT macro (see log.h)
+//   if (!isEnabled(source_file))
+//      return;
 
    core_id_t core_id;
    bool sim_thread;
    discoverCore(&core_id, &sim_thread);
    
-   if (!isEnabled(source_file))
-      return;
-
    FILE *file;
    Lock *lock;
 

@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include "network_model.h"
 #include "network_model_analytical_params.h"
 #include "network_types.h"
 #include "packet_type.h"
@@ -53,7 +54,7 @@ Config::Config()
    }
    catch(...)
    {
-      LOG_ASSERT_ERROR(false, "Config obtained a bad value from config.");
+      LOG_PRINT_ERROR("Config obtained a bad value from config.");
    }
 
    m_num_processes = m_knob_num_process;
@@ -137,13 +138,6 @@ void Config::loadFromCmdLine()
    return;
 }
 
-void Config::getNetworkModels(UInt32 *models) const
-{
-   models[STATIC_NETWORK_USER]   = NETWORK_ANALYTICAL_MESH;
-   models[STATIC_NETWORK_MEMORY] = NETWORK_ANALYTICAL_MESH;
-   models[STATIC_NETWORK_SYSTEM] = NETWORK_MAGIC;
-}
-
 bool Config::isSimulatingSharedMemory() const
 {
    return (bool)m_knob_simarch_has_shared_mem;
@@ -179,12 +173,6 @@ UInt32 Config::getAHLParam() const
    return (UInt32) m_knob_ahl_param;
 }
 
-void Config::getDisabledLogModules(set<string> &mods) const
-{
-//   mods.insert("smtransport.cc");
-//   mods.insert("network.cc");
-}
-
 const char *Config::getOutputFileName() const
 {
    return m_knob_output_file.c_str();
@@ -201,3 +189,53 @@ UInt32 Config::getCoreFromCommId(UInt32 comm_id)
    return it == m_comm_to_core_map.end() ? INVALID_CORE_ID : it->second;
 }
 
+void Config::getDisabledLogModules(set<string> &mods) const
+{
+   try 
+   {
+      string disabledModules = Sim()->getCfg()->getString("general/log_disabled_modules", "");
+      string delimiters = " ";
+
+      string::size_type lastPos = disabledModules.find_first_not_of(delimiters, 0);
+      string::size_type pos     = disabledModules.find_first_of(delimiters, lastPos);
+
+      while (string::npos != pos || string::npos != lastPos)
+      {
+         mods.insert(disabledModules.substr(lastPos, pos - lastPos));
+         lastPos = disabledModules.find_first_not_of(delimiters, pos);
+         pos = disabledModules.find_first_of(delimiters, lastPos);
+      }
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Exception while reading disabled modules.");
+   }
+}
+
+bool Config::getLoggingEnabled() const
+{
+   try
+   {
+      return Sim()->getCfg()->getBool("general/enable_logging", true);
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Exception while reading logging enable bit.");
+      return false;
+   }
+}
+
+void Config::getNetworkModels(UInt32 *models) const
+{
+   try
+   {
+      config::Config *cfg = Sim()->getCfg();
+      models[STATIC_NETWORK_USER]   = NetworkModel::parseNetworkType(cfg->getString("network/user_model"));
+      models[STATIC_NETWORK_MEMORY] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model"));
+      models[STATIC_NETWORK_SYSTEM] = NetworkModel::parseNetworkType(cfg->getString("network/system_model"));
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Exception while reading network model types.");
+   }
+}

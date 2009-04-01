@@ -1,4 +1,6 @@
 #include "pthread_thread.h"
+#include "carbon_user.h"
+#include "thread_support_private.h"
 #include "log.h"
 
 PthreadThread::PthreadThread(ThreadFunc func, void *arg)
@@ -8,9 +10,9 @@ PthreadThread::PthreadThread(ThreadFunc func, void *arg)
 
 PthreadThread::~PthreadThread()
 {
-   LOG_PRINT("Joining on thread: %d", m_thread);
-   pthread_join(m_thread, NULL);
-   LOG_PRINT("Joined.");
+   // LOG_PRINT("Joining on thread: %d", m_thread);
+   // pthread_join(m_thread, NULL);
+   // LOG_PRINT("Joined.");
 }
 
 void *PthreadThread::spawnedThreadFunc(void *vp)

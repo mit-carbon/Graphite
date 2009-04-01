@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <sched.h>
 #include <pthread.h>
 #include "simulator.h"
 #include "thread_manager.h"

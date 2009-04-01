@@ -48,10 +48,13 @@ int CarbonStartSim(int argc, char **argv)
       // Main process
       Sim()->getCoreManager()->initializeThread(0);
 
+      LOG_PRINT("Returning to main()...");
       return 0;
    }
    else
    {
+      LOG_PRINT("Replacing main()...");
+
       // Not main process
       while (!Sim()->finished())
          usleep(100);

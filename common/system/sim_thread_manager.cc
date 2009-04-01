@@ -34,7 +34,7 @@ void SimThreadManager::spawnSimThreads()
    while (m_active_threads < num_sim_threads)
       sched_yield();
 
-   LOG_PRINT("Threads started.");
+   LOG_PRINT("Threads started: %d.", m_active_threads);
 }
 
 void SimThreadManager::quitSimThreads()

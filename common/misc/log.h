@@ -10,10 +10,12 @@
 
 #define LOCK_LOGS
 
+class Config;
+
 class Log
 {
    public:
-      Log(UInt32 coreCount);
+      Log(Config &config);
       ~Log();
 
       static Log *getSingleton();
@@ -42,11 +44,13 @@ class Log
 
       // when core id is known
       FILE** _coreFiles;
+      FILE** _simFiles;
       Lock* _coreLocks;
+      Lock *_simLocks;
 
       // when core is id unknown but process # is
-      FILE** _systemFiles;
-      Lock* _systemLocks;
+      FILE* _systemFile;
+      Lock _systemLock;
 
       // when both no. procs and core id are unknown
       // there is the possibility of race conditions and stuff being
@@ -54,7 +58,7 @@ class Log
       FILE *_defaultFile;
       Lock _defaultLock;
 
-      UInt32 _coreCount;
+      core_id_t _coreCount;
       UInt64 _startTime;
       std::set<std::string> _disabledModules;
       bool _loggingEnabled;

@@ -28,7 +28,7 @@ void PthreadThread::run()
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-   pthread_create(&m_thread, &attr, spawnedThreadFunc, &m_data);
+   CarbonPthreadCreateWrapper(&m_thread, &attr, spawnedThreadFunc, &m_data);
 }
 
 __attribute__((weak)) Thread* Thread::create(ThreadFunc func, void *param)

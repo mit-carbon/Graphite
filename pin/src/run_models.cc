@@ -1,5 +1,6 @@
 #include "run_models.h"
 
+#include "shmem_req_types.h"
 #include "core.h"
 #include "ocache.h"
 #include "core_manager.h"
@@ -106,7 +107,7 @@ static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool d
     // FIXME: This should actually be a UINT32 which tells how many read misses occured
     char data_ld_buffer[dcache_ld_size];
     //TODO HARSHAD sharedmemory will fill ld_buffer
-    bool d_hit = core->accessMemory(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
+    bool d_hit = ! core->accessMemory(Core::NONE, READ, dcache_ld_addr, data_ld_buffer, dcache_ld_size);
 
     if (do_perf_modeling)
         core->getPerfModel()->runDCacheReadModel(stats, d_hit, reads, num_reads);
@@ -115,7 +116,7 @@ static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool d
     {
         char data_ld_buffer_2[dcache_ld_size];
         //TODO HARSHAD sharedmemory will fill ld_buffer
-        bool d_hit2 = core->accessMemory(CacheBase::k_ACCESS_TYPE_LOAD, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
+        bool d_hit2 = ! core->accessMemory(Core::NONE, READ, dcache_ld_addr2, data_ld_buffer_2, dcache_ld_size);
         // bool d_hit2 = dcacheRunLoadModel(dcache_ld_addr2, dcache_ld_size);
         if (do_perf_modeling)
             core->getPerfModel()->runDCacheReadModel(stats, d_hit2, reads, num_reads);
@@ -130,7 +131,7 @@ static void runDCacheWriteModels(PerfModelIntervalStat *stats, Core *core, bool 
    char data_st_buffer[dcache_st_size];
 
    //TODO Harshad: shared memory expects all data_buffers to be pre-allocated
-   core->accessMemory(CacheBase::k_ACCESS_TYPE_STORE, dcache_st_addr, data_st_buffer, dcache_st_size);
+   core->accessMemory(Core::NONE, WRITE, dcache_st_addr, data_st_buffer, dcache_st_size);
 
    // This breaks the code
    /*

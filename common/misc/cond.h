@@ -1,6 +1,7 @@
 #ifndef COND_H
 #define COND_H
 
+#include <pthread.h>
 #include "lock.h"
 
 // Our condition variable interface is slightly different from
@@ -13,18 +14,13 @@ class ConditionVariable
       ConditionVariable();
       ~ConditionVariable();
 
-      void acquire();
-      void release();
-
       // must acquire lock before entering wait. will own lock upon exit.
-      void wait();
+      void wait(Lock& _lock);
       void signal();
       void broadcast();
 
    private:
-      int _numWaiting;
-      int _futx;
-      Lock _lock;
+      pthread_cond_t _cond;
 };
 
 #endif // COND_H

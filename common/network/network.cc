@@ -5,6 +5,8 @@
 
 #include "log.h"
 
+using namespace std;
+
 // FIXME: Rework netCreateBuf and netExPacket. We don't need to
 // duplicate the sender/receiver info the packet. This should be known
 // by the transport layer and given to us. We also should be more
@@ -116,11 +118,11 @@ void Network::netPullFromTransport()
       else
       {
          LOG_PRINT("Enqueuing packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
-         _netQueueCond.acquire();
+         _netQueueLock.acquire();
          _netQueue.push_back(packet);
          LOG_ASSERT_WARNING(_netQueue.size() < 500,
                             "Net queue size is %u", _netQueue.size());
-         _netQueueCond.release();
+         _netQueueLock.release();
          _netQueueCond.broadcast();
       }
    }
@@ -275,7 +277,7 @@ NetPacket Network::netRecv(const NetMatch &match)
                           ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
                           : NetRecvIterator(match.types);
 
-   _netQueueCond.acquire();
+   _netQueueLock.acquire();
 
    while (!found)
    {
@@ -312,7 +314,7 @@ NetPacket Network::netRecv(const NetMatch &match)
       // go to sleep until a packet arrives if none have been found
       if (!found)
       {
-         _netQueueCond.wait();
+         _netQueueCond.wait(_netQueueLock);
       }
    }
 
@@ -324,7 +326,7 @@ NetPacket Network::netRecv(const NetMatch &match)
    // Copy result
    NetPacket packet = *itr;
    _netQueue.erase(itr);
-   _netQueueCond.release();
+   _netQueueLock.release();
 
    _core->getPerfModel()->updateCycleCount(packet.time);
 

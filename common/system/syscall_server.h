@@ -13,6 +13,8 @@
 #define SYSCALL_SERVER_H
 
 #include <iostream>
+
+#include "shmem_req_types.h"
 #include "packetize.h"
 #include "transport.h"
 #include "fixed_types.h"

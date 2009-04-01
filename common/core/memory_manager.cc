@@ -129,6 +129,9 @@ bool MemoryManager::actionPermissable(CacheState cache_state, shmem_req_t shmem_
    case READ:
       ret = cache_state.readable();
       break;
+   case READ_EX:
+      ret = cache_state.writable();
+      break;
    case WRITE:
       ret = cache_state.writable();
       break;
@@ -229,7 +232,7 @@ void MemoryManager::fillCacheLineData(IntPtr ca_address, Byte* fill_buffer)
 
 void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 {
-   // LOG_PRINT("Forwarding WriteBack to DRAM");
+   LOG_PRINT("Forwarding WriteBack to DRAM");
    m_dram_dir->processWriteBack(wb_packet);
 }
 
@@ -244,14 +247,23 @@ void MemoryManager::invalidateCacheLine(IntPtr address)
 //sets what the new_cstate should be set to on the receiving end
 void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_address)
 {
-   /* ==================================================== */
-   /* =========== Send Request & Recv Update ============= */
-   /* ==================================================== */
-
    // initialize packet payload
    //Request the entire cache-line
+ 
    RequestPayload payload;
-   payload.request_type = shmem_req_type;
+ 
+   if (shmem_req_type == READ_EX)
+   {
+      // I want to get the block in exclusive state
+      // FIXME: Clean up the terminology later
+      // It should be GetEX and GetSH
+      payload.request_type = WRITE;
+   }
+   else // (shmem_req_type == READ) || (shmem_req_type == WRITE)
+   {
+      payload.request_type = shmem_req_type;
+   }
+
    payload.request_address = ca_address;
    payload.request_num_bytes = m_cache_line_size;
 
@@ -264,20 +276,38 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_addr
 
 // ca_address is "cache-aligned" address
 // addr_offset provides the offset that points to the requested address
-bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size)
+// Returns 'true' if there was a cache hit and 'false' otherwise
+bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size)
 {
+   bool cache_hit = true;
+
    assert(buffer_size > 0);
 
-   CacheBase::AccessType access_type = (shmem_req_type == READ)
-                                       ? CacheBase::k_ACCESS_TYPE_LOAD
-                                       : CacheBase::k_ACCESS_TYPE_STORE;
+   CacheBase::AccessType access_type;
+   
+   if (shmem_req_type == READ)
+   {
+      access_type = CacheBase::k_ACCESS_TYPE_LOAD;
+   }
+   else if (shmem_req_type == READ_EX)
+   {
+      access_type = CacheBase::k_ACCESS_TYPE_LOAD;
+   }
+   else if (shmem_req_type == WRITE)
+   {
+      access_type = CacheBase::k_ACCESS_TYPE_STORE;
+   }
+   else
+   {
+      LOG_ASSERT_ERROR(false, "Got an INVALID shared memory request type: %u", shmem_req_type);
+   }
+      
    LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? " READ " : " WRITE "), ca_address);
 
-   m_mmu_cond.acquire();
+   m_mmu_lock.acquire();
 
    while (1)
    {
-
       pair<bool, CacheTag*> cache_model_results;
       //first-> is the line available in the cache? (Native cache hit)
       //second-> pointer to cache tag to update cache state
@@ -296,21 +326,41 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
 
          LOG_PRINT("%s - FINISHED(cache_hit) : REQUESTING ADDR: 0x%x", (shmem_req_type==READ) ? " READ " : " WRITE ", ca_address);
 
-         m_mmu_cond.release();
+         // Lock or Unlock the cache
+         if (lock_signal == Core::LOCK)
+         {
+            assert(shmem_req_type == READ_EX);
+            lockCache();
+         }
+         else if (lock_signal == Core::UNLOCK)
+         {
+            assert(shmem_req_type == WRITE);
+            unlockCache();
 
-         return (true);
+            m_mmu_cond.broadcast();
+         }
+
+         m_mmu_lock.release();
+
+         return (cache_hit);
       }
       else
       {
+         // I should not make a shared memory request when the cache is locked
+         // because the network thread may be waiting on the condition variable
+         assert (!isCacheLocked());
+
+         cache_hit = false;
+
          // request permission from the directory to access data in the correct state
          requestPermission(shmem_req_type, ca_address);
          m_received_reply = false;
 
          // Wait till the cache miss has been processed by the network thread
-         while (! m_received_reply) 
+         while (! m_received_reply)
          {
             LOG_PRINT ("Entering Wait on Condition Variable: ADDR: 0x%x", ca_address);
-            m_mmu_cond.wait();
+            m_mmu_cond.wait(m_mmu_lock);
             LOG_PRINT ("Finished Wait on Condition Variable: ADDR: 0x%x", ca_address);
          }
       }
@@ -320,6 +370,44 @@ bool MemoryManager::initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_a
    assert(false);    // Should not reach here !!
    return (false);
 
+}
+
+/*
+ * lockCache():
+ *    This is the function used to LOCK the cache.
+ *    Once the cache is locked, all unexpected updates are delayed till the cache is unlocked again
+ *
+ * Arguments: None
+ * Returns: void
+ */
+void MemoryManager::lockCache()
+{
+   cache_locked = true;
+}
+
+/*
+ * unlockCache():
+ *    This is the function used to UNLOCK the cache.
+ *
+ * Arguments: None
+ * Returns: void
+ */
+void MemoryManager::unlockCache()
+{
+   cache_locked = false;
+}
+
+/*
+ * isCacheLocked():
+ *    Queries if the cache is locked.
+ *
+ * Arguments: None
+ * Returns: bool
+ */
+
+bool MemoryManager::isCacheLocked()
+{
+   return (cache_locked);
 }
 
 void MemoryManager::processSharedMemInitialReq(NetPacket req_packet)
@@ -337,12 +425,9 @@ void MemoryManager::processSharedMemInitialReq(NetPacket req_packet)
 
    assert(home_node_rank >= 0 && home_node_rank < (UInt32)(Config::getSingleton()->getTotalCores()));
 
-   /* ==================================================== */
-   /* =========== Send Request & Recv Update ============= */
-   /* ==================================================== */
-   
+   // Send Shared Memory Request & Recv Update
    // send message here to home directory node to request data
-   //packet.type, sender, receiver, packet.length
+   // packet.type, sender, receiver, packet.length
    NetPacket packet = makePacket(SHARED_MEM_REQ, (Byte *)(&req_payload), sizeof(RequestPayload), m_core_id, home_node_rank); 
    m_network->netSend(packet);
 
@@ -360,13 +445,15 @@ void MemoryManager::processSharedMemResponse(NetPacket rep_packet)
    IntPtr address = rep_payload.update_address;
    CacheState::cstate_t new_cstate = rep_payload.update_new_cstate;
 
-   m_mmu_cond.acquire();
+   m_mmu_lock.acquire();
+
+   assert(!isCacheLocked());
 
    fillCacheLineData(address, fill_buffer);
    setCacheLineInfo(address, new_cstate);
    m_received_reply = true;
 
-   m_mmu_cond.release();
+   m_mmu_lock.release();
    m_mmu_cond.broadcast();
 
    LOG_PRINT("FINISHED(cache_miss) : REQUESTING ADDR: 0x%x", address);
@@ -392,8 +479,6 @@ void MemoryManager::processAck(NetPacket req_packet)
  * Essentially, the Core is being told by someone else to set their cache_tag for a given address to something new.
  * However, that part is only done if the address is still in the cache.  But an ACK is sent either way.
  */
-//TODO this such that is describes that it affects the CACHE state, and is not an update to the directory?
-//ie, write_backs need to go elsewhere!
 void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 {
    // TODO: This kind of argument passing is bad for performance. Try to pass by reference or pass pointers
@@ -411,7 +496,13 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
 
    LOG_PRINT("Processing Unexpected: address: %x, new CState: %s", address, CacheState::cStateToString(new_cstate).c_str());
 
-   m_mmu_cond.acquire();
+   m_mmu_lock.acquire();
+
+   while (isCacheLocked())
+   {
+      // Wait here till the user thread signals the condition variable
+      m_mmu_cond.wait(m_mmu_lock);
+   }
 
    pair<bool, CacheTag*> cache_model_results = m_ocache->runDCachePeekModel(address);
    // if it is null, it means the address has been invalidated
@@ -444,7 +535,9 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
       createAckPayloadBuffer(&payload, writeback_data, payload_buffer, payload_size);
 
       if (new_cstate == CacheState::INVALID)
+      {
          invalidateCacheLine(address);
+      }
 
       break;
 
@@ -476,10 +569,9 @@ void MemoryManager::processUnexpectedSharedMemUpdate(NetPacket update_packet)
    }
 
    //TODO we can move this earlier for performance
-   m_mmu_cond.release();
+   m_mmu_lock.release();
 
    NetPacket packet = makePacket(SHARED_MEM_ACK, payload_buffer, payload_size, m_core_id, update_packet.sender);
-
    m_network->netSend(packet);
 
    LOG_PRINT("end of processUnexpectedSharedMemUpdate");

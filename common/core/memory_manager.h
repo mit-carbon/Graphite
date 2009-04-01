@@ -4,6 +4,7 @@
 #include <string>
 #include <cassert>
 
+#include "shmem_req_types.h"
 #include "network.h"
 #include "packet_type.h"
 #include "core.h"
@@ -11,26 +12,14 @@
 #include "address_home_lookup.h"
 #include "cache_state.h"
 #include "cond.h"
-
-// TODO: move this into MemoryManager class?
-enum shmem_req_t
-{
-   READ,
-   WRITE,
-   INVALIDATE,
-   NUM_STATES
-};
+#include "lock.h"
 
 class DramDirectory;
 
 class MemoryManager
 {
    public:
-      /*
-       * memory coherency message payloads can vary depending
-       * on the type of message that needs to be seen
-       */
-
+      
       enum sm_payload_t
       {
          REQUEST,
@@ -97,12 +86,19 @@ class MemoryManager
       DramDirectory *m_dram_dir;
       AddressHomeLookup *m_addr_home_lookup;
 
+      Lock m_mmu_lock;
       ConditionVariable m_mmu_cond;
       volatile bool m_received_reply;
+      volatile bool cache_locked;
 
       UInt32 m_cache_line_size;
 
       bool actionPermissable(CacheState cache_state, shmem_req_t shmem_req_t);
+
+      // Locking and Unlocking Cache
+      void lockCache();
+      void unlockCache();
+      bool isCacheLocked();
 
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
@@ -135,7 +131,7 @@ class MemoryManager
       static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 
       //core traps all memory accesses here.
-      bool initiateSharedMemReq(shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size);
+      bool initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size);
 
       //request from DRAM permission to use an address
       //writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end

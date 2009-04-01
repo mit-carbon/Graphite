@@ -99,10 +99,7 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 }
 
 
-/* ======================================================== *
- * The Dram Directory serializes requests with the same address.
- * ======================================================== */
-
+// The Dram Directory serializes requests with the same address.
 void DramDirectory::startSharedMemRequest(NetPacket& req_packet)
 {
    // This function adds the shared memory request on the queue and starts processing it if possible

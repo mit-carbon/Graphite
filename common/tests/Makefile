@@ -106,7 +106,7 @@ ping_pong_dist: sim
 
 cannon: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon
-	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
+	$(PIN_RUN)  -c $(SIM_ROOT)/carbon_sim.cfg  --general/enable_shared_memory=true --general/total_cores=$(TOTAL_CORES) -- $(TESTS_DIR)/cannon/cannon -m $(CORES) -s $(CORES)
 
 cannon_msg: sim 
 	$(MAKE) -C $(TESTS_DIR)/cannon_msg
@@ -131,7 +131,7 @@ shmem_test_evic: sim
 
 1djacobi_test_quick: sim 
 	$(MAKE) -C $(TESTS_DIR)/1d_jacobi
-	$(PIN_RUN) -mdc -msm -msys -mpf  --general/total_cores=4 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 64
+	$(PIN_RUN) -mdc -msm -msys -mpf  --general/enable_shared_memory=true --general/total_cores=5 -- $(TESTS_DIR)/1d_jacobi/jacobi 4 16
 
 jacobi_test: sim 
 	$(MAKE) -C $(TESTS_DIR)/shared_mem_jacobi

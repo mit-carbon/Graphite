@@ -1,5 +1,4 @@
 #include "core.h"
-
 #include "network.h"
 #include "ocache.h"
 #include "syscall_model.h"
@@ -100,41 +99,30 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
 }
 
 /*
- * accessMemory (mem_operation_t operation, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+ * accessMemory (lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
  *
  * Arguments:
+ *   lock_signal_t :: NONE, LOCK, or UNLOCK
+ *   shmem_req_type :: READ, READ_EX, or WRITE
  *   d_addr :: address of location we want to access (read or write)
- *   shmem_req_t :: READ or WRITE
  *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
  *   data_size :: size of data we must read/write
  *
  * Return Value:
- *   hit :: Say whether there has been at least one cache hit or not
+ *   number of misses :: State the number of cache misses
  */
-bool Core::accessMemory(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
 {
-   shmem_req_t shmem_operation;
-
-   if (operation == CacheBase::k_ACCESS_TYPE_LOAD)
-   {
-      shmem_operation = READ;
-   }
-   else
-   {
-      shmem_operation = WRITE;
-   }
+   UInt32 num_misses = 0;
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      LOG_PRINT("%s - ADDR: 0x%x, data_size: %u, END!!", 
-               ((shmem_operation == READ) ? " READ " : " WRITE "), d_addr, data_size);
-
-      bool all_hits = true;
+      LOG_PRINT("%s - ADDR: 0x%x, data_size: %u, START!!", 
+               ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);
 
       if (data_size <= 0)
       {
-         return (true);
-         // TODO: this is going to affect the statistics even though no shared_mem action is taking place
+         return (num_misses);
       }
 
       IntPtr begin_addr = d_addr;
@@ -143,8 +131,6 @@ bool Core::accessMemory(CacheBase::AccessType operation, IntPtr d_addr, char* da
       IntPtr end_addr_aligned = end_addr - (end_addr % m_ocache->dCacheLineSize());
       Byte *curr_data_buffer_head = (Byte*) data_buffer;
 
-      //TODO set the size parameter correctly, based on the size of the data buffer
-      //TODO does this spill over to another line? should shared_mem test look at other DRAM entries?
       for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned; curr_addr_aligned += m_ocache->dCacheLineSize())
       {
          // Access the cache one line at a time
@@ -152,8 +138,6 @@ bool Core::accessMemory(CacheBase::AccessType operation, IntPtr d_addr, char* da
          UInt32 curr_size;
 
          // Determine the offset
-         // TODO fix curr_size calculations
-         // FIXME: Check if all this is correct
          if (curr_addr_aligned == begin_addr_aligned)
          {
             curr_offset = begin_addr % m_ocache->dCacheLineSize();
@@ -179,11 +163,11 @@ bool Core::accessMemory(CacheBase::AccessType operation, IntPtr d_addr, char* da
 
          LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
 
-         if (!getMemoryManager()->initiateSharedMemReq(shmem_operation, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size))
+         if (!getMemoryManager()->initiateSharedMemReq(lock_signal, shmem_req_type, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size))
          {
-            // If it is a LOAD operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
-            // If it is a STORE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
-            all_hits = false;
+            // If it is a READ or READ_EX operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
+            // If it is a WRITE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head
+            num_misses ++;
          }
 
          LOG_PRINT("End InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
@@ -192,20 +176,14 @@ bool Core::accessMemory(CacheBase::AccessType operation, IntPtr d_addr, char* da
          curr_data_buffer_head += curr_size;
       }
 
-      LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", ((operation==CacheBase::k_ACCESS_TYPE_LOAD) ? " READ " : " WRITE "), d_addr, data_size);
+      LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", 
+               ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);
 
-      return all_hits;
+      return (num_misses);
+   }
 
-   }
-   else
-   {
-      // run this if we aren't using shared_memory
-      // FIXME: I am not sure this is right
-      // What if the initial data for this address is in some other core's DRAM (which is on some other host machine)
-      if (operation == CacheBase::k_ACCESS_TYPE_LOAD)
-         return m_ocache->runDCacheLoadModel(d_addr, data_size).first;
-      else
-         return m_ocache->runDCacheStoreModel(d_addr, data_size).first;
-   }
+   // FIXME: Do something when I dont enable shared memory (-msm)
+   return (0);
+
 }
 

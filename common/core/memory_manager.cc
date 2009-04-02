@@ -321,7 +321,6 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
       if (actionPermissable(curr_cstate, shmem_req_type))
       {
          assert(native_cache_hit == true);
-
          accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size);
 
          LOG_PRINT("%s - FINISHED(cache_hit) : REQUESTING ADDR: 0x%x", (shmem_req_type==READ) ? " READ " : " WRITE ", ca_address);
@@ -329,12 +328,12 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
          // Lock or Unlock the cache
          if (lock_signal == Core::LOCK)
          {
-            assert(shmem_req_type == READ_EX);
+            LOG_ASSERT_ERROR(shmem_req_type == READ_EX, "Shared Memory Request is not READ_EX");
             lockCache();
          }
          else if (lock_signal == Core::UNLOCK)
          {
-            assert(shmem_req_type == WRITE);
+            LOG_ASSERT_ERROR(shmem_req_type == WRITE, "Shared Memory Request is not WRITE");
             unlockCache();
 
             m_mmu_cond.broadcast();
@@ -348,7 +347,7 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
       {
          // I should not make a shared memory request when the cache is locked
          // because the network thread may be waiting on the condition variable
-         assert (!isCacheLocked());
+         LOG_ASSERT_ERROR (!isCacheLocked(), "Cache Miss when cache is locked not supported");
 
          cache_hit = false;
 
@@ -447,7 +446,7 @@ void MemoryManager::processSharedMemResponse(NetPacket rep_packet)
 
    m_mmu_lock.acquire();
 
-   assert(!isCacheLocked());
+   LOG_ASSERT_ERROR(!isCacheLocked(), "Cache Miss when Cache is Locked is not supported");
 
    fillCacheLineData(address, fill_buffer);
    setCacheLineInfo(address, new_cstate);

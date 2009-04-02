@@ -44,6 +44,10 @@ int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *p
    return res;
 }
 
+void CarbonPthreadExitExceptNot(void *)
+{
+}
+
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
    AFUNPTR msg_ptr = NULL;
@@ -85,6 +89,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 //   else if (name == "CarbonPthreadCreateWrapper") msg_ptr = AFUNPTR(CarbonPthreadCreateWrapperReplacement);
 //   else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(CarbonPthreadCreate);
 //   else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(CarbonPthreadJoin);
+   else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(CarbonPthreadExitExceptNot);
 
    // actual replacement
    if (msg_ptr == AFUNPTR(CarbonMain))

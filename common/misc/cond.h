@@ -20,7 +20,8 @@ class ConditionVariable
       void broadcast();
 
    private:
-      pthread_cond_t _cond;
+      int m_futx;
+      Lock m_lock;
 };
 
 #endif // COND_H

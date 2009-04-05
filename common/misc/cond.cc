@@ -1,28 +1,53 @@
 #include "cond.h"
 
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <linux/futex.h>
+#include <limits.h>
+
 ConditionVariable::ConditionVariable()
+   : m_futx(0)
 {
-   pthread_cond_init(&_cond, NULL);
 }
 
 ConditionVariable::~ConditionVariable()
 {
-   pthread_cond_destroy(&_cond);
 }
 
-void ConditionVariable::wait(Lock& _lock)
+void ConditionVariable::wait(Lock& lock)
 {
-   // FIXME: We can only use pthread locks here
-   // _lock should be of type 'pthread_mutex_t'
-   pthread_cond_wait(&_cond, &_lock.getMutx());
+   m_lock.acquire();
+
+   // Wait
+   m_futx = 0;
+
+   m_lock.release();
+
+   lock.release();
+
+   syscall(SYS_futex, (void*) &m_futx, FUTEX_WAIT, 0, NULL, NULL, 0);
+
+   lock.acquire();
 }
 
 void ConditionVariable::signal()
 {
-   pthread_cond_signal(&_cond);
+   m_lock.acquire();
+
+   m_futx = 1;
+
+   syscall(SYS_futex, (void*) &m_futx, FUTEX_WAKE, 1, NULL, NULL, 0);
+
+   m_lock.release();
 }
 
 void ConditionVariable::broadcast()
 {
-   pthread_cond_broadcast(&_cond); 
+   m_lock.acquire();
+
+   m_futx = 1;
+
+   syscall(SYS_futex, (void*) &m_futx, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
+
+   m_lock.release();
 }

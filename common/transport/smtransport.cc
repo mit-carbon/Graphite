@@ -100,9 +100,9 @@ void SmTransport::SmNode::send(SmNode *dest_node, const void *buffer, UInt32 len
 
    LOG_PRINT("sending msg -- size: %i, data: %p, dest: %p", length, data, dest_node);
 
-   dest_node->m_cond.acquire();
+   dest_node->m_lock.acquire();
    dest_node->m_queue.push(data);
-   dest_node->m_cond.release();
+   dest_node->m_lock.release();
    dest_node->m_cond.broadcast();
 }
 
@@ -110,7 +110,7 @@ Byte* SmTransport::SmNode::recv()
 {
    LOG_PRINT("attempting recv -- this: %p", this);
 
-   m_cond.acquire();
+   m_lock.acquire();
 
    while (true)
    {
@@ -118,7 +118,7 @@ Byte* SmTransport::SmNode::recv()
       {
          Byte *data = m_queue.front();
          m_queue.pop();
-         m_cond.release();
+         m_lock.release();
 
          LOG_PRINT("msg recv'd -- data: %p, this: %p", data, this);
 
@@ -126,7 +126,7 @@ Byte* SmTransport::SmNode::recv()
       }
       else
       {
-         m_cond.wait();
+         m_cond.wait(m_lock);
       }
    }
 }
@@ -135,9 +135,9 @@ bool SmTransport::SmNode::query()
 {
    bool result = false;
 
-   m_cond.acquire();
+   m_lock.acquire();
    result = !m_queue.empty();
-   m_cond.release();
+   m_lock.release();
 
    return result;
 }

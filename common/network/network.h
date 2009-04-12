@@ -103,6 +103,7 @@ class Network
       SInt32 _numMod;
 
       NetQueue _netQueue;
+      Lock _netQueueLock;
       ConditionVariable _netQueueCond;
 
       void forwardPacket(const NetPacket &packet);

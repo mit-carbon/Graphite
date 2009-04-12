@@ -1,14 +1,12 @@
-#include "lock.h"
 #include "cond.h"
 
 #include <unistd.h>
-#include <syscall.h>
+#include <sys/syscall.h>
 #include <linux/futex.h>
 #include <limits.h>
 
 ConditionVariable::ConditionVariable()
-      : _numWaiting(0)
-      , _futx(0)
+   : m_futx(0)
 {
 }
 
@@ -16,50 +14,40 @@ ConditionVariable::~ConditionVariable()
 {
 }
 
-void ConditionVariable::acquire()
+void ConditionVariable::wait(Lock& lock)
 {
-   _lock.acquire();
-}
+   m_lock.acquire();
 
-void ConditionVariable::release()
-{
-   _lock.release();
-}
+   // Wait
+   m_futx = 0;
 
-void ConditionVariable::wait()
-{
-   _numWaiting ++;
-   _futx = 0;
-   _lock.release();
+   m_lock.release();
 
-   syscall(SYS_futex, (void*) &_futx, FUTEX_WAIT, 0, NULL, NULL, 0);
+   lock.release();
 
-   _lock.acquire();
-   _numWaiting --;
+   syscall(SYS_futex, (void*) &m_futx, FUTEX_WAIT, 0, NULL, NULL, 0);
+
+   lock.acquire();
 }
 
 void ConditionVariable::signal()
 {
-   _lock.acquire();
+   m_lock.acquire();
 
-   if (_numWaiting > 0)
-   {
-      _futx = 1;
-      syscall(SYS_futex, (void*) &_futx, FUTEX_WAKE, 1, NULL, NULL, 0);
-   }
+   m_futx = 1;
 
-   _lock.release();
+   syscall(SYS_futex, (void*) &m_futx, FUTEX_WAKE, 1, NULL, NULL, 0);
+
+   m_lock.release();
 }
 
 void ConditionVariable::broadcast()
 {
-   _lock.acquire();
+   m_lock.acquire();
 
-   if (_numWaiting > 0)
-   {
-      _futx = 1;
-      syscall(SYS_futex, (void*) &_futx, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
-   }
+   m_futx = 1;
 
-   _lock.release();
+   syscall(SYS_futex, (void*) &m_futx, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
+
+   m_lock.release();
 }

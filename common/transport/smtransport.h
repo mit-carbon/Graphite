@@ -27,6 +27,7 @@ public:
       void send(SmNode *dest, const void *buffer, UInt32 length);
 
       std::queue<Byte*> m_queue;
+      Lock m_lock;
       ConditionVariable m_cond;
       SmTransport *m_smt;
    };

@@ -8,30 +8,35 @@
 
 // some forward declarations for cross includes
 class Network;
+class PerfModel;
 class MemoryManager;
 class SyscallMdl;
 class SyncClient;
 class OCache;
-class PerfModel;
-class Network;
 
+#include "shmem_req_types.h"
 #include "fixed_types.h"
 #include "config.h"
-
-#include "cache.h"
-#include "cache_state.h"
-#include "dram_directory_entry.h"
 #include "perfmdl.h"
 
 class Core
 {
    public:
+     
+      enum lock_signal_t
+      {
+         NONE = 0,
+         LOCK,
+         UNLOCK,
+         NUM_LOCK_SIGNALS
+      };
+
       Core(SInt32 id);
       ~Core();
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
       int coreRecvW(int sender, int receiver, char *buffer, int size);
-      bool accessMemory(CacheBase::AccessType operation, IntPtr d_addr, char* data_buffer, UInt32 data_size);
+      UInt32 accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
       // network accessor since network is private
       int getId() { return m_core_id; }

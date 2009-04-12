@@ -1,6 +1,7 @@
 #ifndef DRAM_DIRECTORY_H
 #define DRAM_DIRECTORY_H
 
+#include "shmem_req_types.h"
 #include "memory_manager.h"
 #include "network.h"
 #include "dram_directory_entry.h"

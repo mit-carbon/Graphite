@@ -52,7 +52,7 @@ DramDirectoryEntry* DramDirectory::getEntry(IntPtr address)
    // FIXME: I guess this is the place we need to call the code for transferring data from the host machine to the simulated machine
    if (entry_ptr == NULL)
    {
-      dram_directory_entries[address] =  new DramDirectoryEntry(address);
+      dram_directory_entries[address] =  new DramDirectoryEntry(address, (Byte*) address);
    }
 
    return dram_directory_entries[address];
@@ -99,10 +99,7 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
 }
 
 
-/* ======================================================== *
- * The Dram Directory serializes requests with the same address.
- * ======================================================== */
-
+// The Dram Directory serializes requests with the same address.
 void DramDirectory::startSharedMemRequest(NetPacket& req_packet)
 {
    // This function adds the shared memory request on the queue and starts processing it if possible

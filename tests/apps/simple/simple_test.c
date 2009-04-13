@@ -36,7 +36,7 @@ int main(int argc, char* argv[])  // main begins
    for(unsigned int i = 0; i < numThreads; i++)
       CarbonJoinThread(threads[i]);
 
-   printf("UserApplication: About to call carbon finish!\n");
+   fprintf(stderr, "UserApplication: About to call carbon finish!\n");
    CarbonStopSim();
 } // main ends
 

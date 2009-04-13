@@ -49,13 +49,12 @@ INT32 usage()
 
 void printRtnName(ADDRINT rtn_address)
 {
-   // printf ("RTN: Name = %s, Address = 0x%x\n", RTN_FindNameByAddress(rtn_address).c_str(), rtn_address);
+   fprintf (stderr, "RTN: Name = %s, Address = 0x%x\n", RTN_FindNameByAddress(rtn_address).c_str(), rtn_address);
 }
 
 void routineCallback(RTN rtn, void *v)
 {
-   RTN_Open(rtn);
-
+   RTN_Open (rtn);
    string rtn_name = RTN_Name(rtn);
    ADDRINT rtn_address = RTN_Address(rtn);
 
@@ -64,10 +63,11 @@ void routineCallback(RTN rtn, void *v)
          IARG_ADDRINT, rtn_address,
          IARG_END);
 
+   RTN_Close (rtn);
+
 
    replaceUserAPIFunction(rtn, rtn_name);
    
-   RTN_Close(rtn);
    // bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
 
    // We dont need this for now

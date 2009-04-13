@@ -47,32 +47,14 @@ INT32 usage()
    return -1;
 }
 
-void printRtnName(ADDRINT rtn_address)
-{
-   fprintf (stderr, "RTN: Name = %s, Address = 0x%x\n", RTN_FindNameByAddress(rtn_address).c_str(), rtn_address);
-}
-
 void routineCallback(RTN rtn, void *v)
 {
-   RTN_Open (rtn);
    string rtn_name = RTN_Name(rtn);
-   ADDRINT rtn_address = RTN_Address(rtn);
 
-   RTN_InsertCall(rtn, IPOINT_BEFORE, 
-         AFUNPTR(printRtnName), 
-         IARG_ADDRINT, rtn_address,
-         IARG_END);
+   bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
 
-   RTN_Close (rtn);
-
-
-   replaceUserAPIFunction(rtn, rtn_name);
-   
-   // bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
-
-   // We dont need this for now
-   // if (!did_func_replace)
-   //   replaceInstruction(rtn, rtn_name);
+   if (!did_func_replace)
+      replaceInstruction(rtn, rtn_name);
 }
 
 // syscall model wrappers

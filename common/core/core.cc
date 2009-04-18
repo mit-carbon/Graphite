@@ -9,6 +9,10 @@
 
 using namespace std;
 
+#ifndef REDIRECT_MEMORY
+Lock Core::m_global_core_lock;
+#endif
+
 Core::Core(SInt32 id)
    : m_core_id(id)
 {
@@ -39,7 +43,7 @@ Core::Core(SInt32 id)
       assert(Config::getSingleton()->getEnableDCacheModeling());
 
       LOG_PRINT("instantiated memory manager model");
-      m_memory_manager = new MemoryManager(m_core_id, m_network, m_ocache);
+      m_memory_manager = new MemoryManager(m_core_id, this, m_network, m_ocache);
    }
    else
    {
@@ -113,6 +117,38 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
  */
 UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
 {
+#ifndef REDIRECT_MEMORY
+
+   if (data_size <= 0)
+   {
+      return 0;
+   }
+
+   if (lock_signal == Core::LOCK)
+   {
+      assert(shmem_req_type == READ_EX);
+      m_global_core_lock.acquire();
+   }
+   
+   if ( (shmem_req_type == READ) || (shmem_req_type == READ_EX) )
+   {
+      memcpy ((void*) data_buffer, (void*) d_addr, (size_t) data_size);
+   }
+   else if (shmem_req_type == WRITE)
+   {
+      memcpy ((void*) d_addr, (void*) data_buffer, (size_t) data_size);
+   }
+
+   if (lock_signal == Core::UNLOCK)
+   {
+      assert(shmem_req_type == WRITE);
+      m_global_core_lock.release();
+   }
+
+   return 0;
+
+#else
+
    UInt32 num_misses = 0;
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
@@ -185,5 +221,6 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
    // FIXME: Do something when I dont enable shared memory (-msm)
    return (0);
 
+#endif
 }
 

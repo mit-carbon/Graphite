@@ -19,6 +19,8 @@ class OCache;
 #include "config.h"
 #include "perfmdl.h"
 
+// #define REDIRECT_MEMORY 1
+
 class Core
 {
    public:
@@ -57,6 +59,10 @@ class Core
       SyncClient *m_sync_client;
 
       UInt32 m_cache_line_size;
+
+#ifndef REDIRECT_MEMORY
+      static Lock m_global_core_lock;
+#endif
 };
 
 #endif

@@ -26,6 +26,7 @@ PIN_HOME = /afs/csail/group/carbon/tools/pin/current
 
 PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin
 PIN_TOOL=$(SIM_ROOT)/lib/pin_sim
+# PIN_RUN=$(PIN_BIN) -pause_tool 10 -mt -t $(PIN_TOOL) 
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 PROCS ?= 1

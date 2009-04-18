@@ -37,6 +37,9 @@
 #include "config_file.hpp"
 #include "handle_args.h"
 
+#include "redirect_memory.h"
+#include <typeinfo>
+
 config::ConfigFile *cfg;
 
 INT32 usage()
@@ -50,10 +53,29 @@ INT32 usage()
 void routineCallback(RTN rtn, void *v)
 {
    string rtn_name = RTN_Name(rtn);
-   bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
+   replaceUserAPIFunction(rtn, rtn_name);
+   
+   // TODO:
+   // Commenting out performance modeling code since it causes multiple accesses to memory
+   // when we are simulating shared memory. Fix perf model code to not cause any memory accesses
+   //  
+   // bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
+   // if (!did_func_replace)
+   //    replaceInstruction(rtn, rtn_name);
+}
 
-   if (!did_func_replace)
-      replaceInstruction(rtn, rtn_name);
+void instructionCallback (INS ins, void *v)
+{
+   // Emulate stack operations
+   bool stack_op = rewriteStackOp (ins);
+   
+   // Else, redirect memory to the simulated memory system
+   if (!stack_op)
+   {
+      rewriteMemOp (ins);
+   }
+
+   return;
 }
 
 // syscall model wrappers
@@ -199,8 +221,13 @@ int main(int argc, char *argv[])
 
    if(cfg->getBool("general/enable_syscall_modeling"))
    {
-       PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-       PIN_AddSyscallExitFunction(SyscallExit, 0);
+      PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+      PIN_AddSyscallExitFunction(SyscallExit, 0);
+   }
+
+   if (cfg->getBool("general/enable_shared_mem"))
+   {
+      INS_AddInstrumentFunction (instructionCallback, 0);
    }
 
    PIN_AddFiniFunction(ApplicationExit, 0);

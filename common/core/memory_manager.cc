@@ -10,7 +10,7 @@ UInt32 MemoryManager::m_knob_line_size;
 
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
-MemoryManager::MemoryManager(SInt32 core_id, Network *network, OCache *ocache)
+MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, OCache *ocache)
 {
    try
    {
@@ -27,6 +27,7 @@ MemoryManager::MemoryManager(SInt32 core_id, Network *network, OCache *ocache)
                     "Must set dcache modeling on (-mdc) to use shared memory model.");
 
    m_core_id = core_id;
+   m_core = core;
    m_network = network;
    m_ocache = ocache;
 
@@ -649,5 +650,68 @@ void MemoryManager::extractRequestPayloadBuffer (NetPacket* packet, RequestPaylo
 {
    assert (packet->length == sizeof(*payload));
    memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
+}
+
+carbon_reg_t MemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, AccessType access_type)
+{
+   assert (access_type < NUM_ACCESS_TYPES);
+   char *scratchpad = m_scratchpad [access_type];
+   
+   if ((access_type == ACCESS_TYPE_READ) || (access_type == ACCESS_TYPE_READ2))
+   {
+      shmem_req_t shmem_req_type;
+      Core::lock_signal_t lock_signal;
+
+      if (has_lock_prefix)
+      {
+         // FIXME: Now, when we have a LOCK prefix, we do an exclusive READ
+         shmem_req_type = READ_EX;
+         lock_signal = Core::LOCK;
+      }
+      else
+      {
+         shmem_req_type = READ;
+         lock_signal = Core::NONE;
+      }
+       
+      m_core->accessMemory (lock_signal, shmem_req_type, tgt_ea, scratchpad, size);
+
+   }
+   return (carbon_reg_t) scratchpad;
+}
+
+void MemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, AccessType access_type)
+{
+   char *scratchpad = m_scratchpad [access_type];
+
+   Core::lock_signal_t lock_signal = (has_lock_prefix) ? Core::UNLOCK : Core::NONE;
+      
+   m_core->accessMemory (lock_signal, WRITE, tgt_ea, scratchpad, size);
+   
+   return;
+}
+
+carbon_reg_t MemoryManager::redirectPushf ( IntPtr tgt_esp, IntPtr size )
+{
+   m_saved_esp = tgt_esp;
+   return ((carbon_reg_t) m_scratchpad [ACCESS_TYPE_WRITE]) + size;
+}
+
+carbon_reg_t MemoryManager::completePushf ( IntPtr esp, IntPtr size )
+{
+   m_saved_esp -= size;
+   completeMemWrite (false, (IntPtr) m_saved_esp, size, ACCESS_TYPE_WRITE);
+   return m_saved_esp;
+}
+
+carbon_reg_t MemoryManager::redirectPopf (IntPtr tgt_esp, IntPtr size)
+{
+   m_saved_esp = tgt_esp;
+   return redirectMemOp (false, tgt_esp, size, MemoryManager::ACCESS_TYPE_READ);
+}
+
+carbon_reg_t MemoryManager::completePopf (IntPtr esp, IntPtr size)
+{
+   return (m_saved_esp + size);
 }
 

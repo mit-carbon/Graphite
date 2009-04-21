@@ -1,5 +1,5 @@
-#ifndef PIN_THREAD_H
-#define PIN_THREAD_H
+#ifndef PTHREAD_THREAD_H
+#define PTHREAD_THREAD_H
 
 #include "thread.h"
 #include <pthread.h>

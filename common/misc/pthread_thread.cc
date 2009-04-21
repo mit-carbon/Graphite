@@ -28,9 +28,11 @@ void PthreadThread::run()
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-   CarbonPthreadCreateWrapper(&m_thread, &attr, spawnedThreadFunc, &m_data);
+   pthread_create(&m_thread, &attr, spawnedThreadFunc, &m_data);
 }
 
+// Check if pin_thread.cc is included in the build and has
+// Thread::Create defined. If so, PthreadThread is not used.
 __attribute__((weak)) Thread* Thread::create(ThreadFunc func, void *param)
 {
    return new PthreadThread(func, param);

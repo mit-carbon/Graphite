@@ -24,8 +24,7 @@ include $(PIN_HOME)/source/tools/makefile.gnu.config
 CXXFLAGS += $(PIN_CXXFLAGS)
 CFLAGS += $(CXXFLAGS)
 
-SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc  \
-          pin_thread.cc
+SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc)
 
 OBJECTS = $(SOURCES:%.cc=%.o)
 

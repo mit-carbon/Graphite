@@ -169,6 +169,84 @@ int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
    return 0;
 }
 
+// TODO: Split this into multiple files at the end
+VOID ThreadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
+{
+   // First check if I am the main thread
+   ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   if (reg_eip == start_address_app)
+   {
+      //
+      // APPLICATION START
+      //
+
+      // This function is used to allocate stack space on a per process basis
+      allocateStackSpace();
+   
+      // Copy over the command line arguments
+      // I should do this only if I am process '0'
+      UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
+      
+      // TODO: Fill in something else other than '0'
+      m_core_manager->initializeThread(0);
+      
+      if (curr_process_num == 0)
+      {
+         // TODO: Register my core
+         // TODO: Verify that we dont need to register if we are not process '0'
+         // I think we must according to what we discussed
+         copyInitialStackData(ctxt);
+      
+         PIN_CallApplicationFunction(CarbonSpawnThreadSpawner);
+      }
+      else
+      {
+         PIN_CallApplicationFunction(CarbonThreadSpawner);
+      }
+   }
+   else
+   {
+      // TODO: Harshad: Figure out a way to get my core Id
+      m_core_manager->initializeThread(); 
+   }
+}
+
+VOID ImageCallback(IMG img, VOID* v)
+{
+   for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
+   {
+      ADDRINT sec_address;
+      SEC_TYPE sec_type = SEC_Type(sec);
+
+      if (sec_type == SEC_TYPE_EXEC)
+      {
+         start_address_app = SEC_Address(sec);
+         // fprintf (stderr, "Start Address of Application = 0x%x\n", (UInt32) start_address_app);
+      }
+
+      // I am not sure whether we want ot copy over all the sections or just the
+      // sections which are relevant like the sections below: DATA, BSS, GOT
+      
+      // Copy over all the sections now !
+      // if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
+      //     (sec_type == SEC_TYPE_GOT)
+      //   )
+      {
+         if (SEC_Mapped(sec))
+         {
+            sec_address = SEC_Address(sec);
+         }
+         else
+         {
+            sec_address = (ADDRINT) SEC_Data(sec);
+         }
+
+         fprintf (stderr, "Copying Section: %s at Address: 0x%x of Size: %u to Simulated Memory\n", SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
+         core->accessMemory(Core::NONE, WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
+      }
+   }
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -194,6 +272,9 @@ int main(int argc, char *argv[])
    Simulator::allocate();
    Sim()->start();
 
+   // Copying over the static data now
+   IMG_AddInstrumentationFunction(ImageCallback, 0);
+
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
@@ -203,6 +284,14 @@ int main(int argc, char *argv[])
        PIN_AddSyscallEntryFunction(SyscallEntry, 0);
        PIN_AddSyscallExitFunction(SyscallExit, 0);
    }
+
+   // Registering a callback at thread startup for many purposes
+   // 1) For the main thread
+   //    a) Copy over command line arguments
+   //    b) sbrk(NumThreads * stack_size_per_thread)
+   //    c) Set new ESP
+   //
+   PIN_AddThreadStartFunction(ThreadStartCallback, 0);
 
    PIN_AddFiniFunction(ApplicationExit, 0);
 

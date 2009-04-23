@@ -42,7 +42,7 @@ public:
    void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
    core_id_t getMCPCoreNum() { return getTotalCores() -1; }
-
+   
    // Return the number of modules (cores) in a given process
    UInt32 getNumCoresInProcess(UInt32 proc_num)
    { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }

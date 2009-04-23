@@ -54,8 +54,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    // thread management
    else if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(CarbonGetThreadToSpawn);
-   else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR(CarbonThreadStart);
-   else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR(CarbonThreadExit);
+   else if (name == "CarbonGetThreadSpawnReq") msg_ptr = AFUNPTR (CarbonGetThreadSpawnReq);
+   // else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR(CarbonThreadStart);
+   // else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR(CarbonThreadExit);
    else if (name == "CarbonGetCoreId") msg_ptr = AFUNPTR(CarbonGetCoreId);
 
    // Carbon API

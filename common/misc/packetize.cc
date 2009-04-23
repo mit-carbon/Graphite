@@ -2,41 +2,9 @@
 
 using namespace std;
 
-
 UnstructuredBuffer::UnstructuredBuffer()
 {
 }
-
-template bool UnstructuredBuffer::get(double& data);
-
-template<class T> void UnstructuredBuffer::put(T* data, int num)
-{
-   assert(num >= 0);
-   m_chars.append((char *) data, num * sizeof(T));
-}
-
-template<class T> bool UnstructuredBuffer::get(T* data, int num)
-{
-   assert(num >= 0);
-   if (m_chars.size() < (num * sizeof(T)))
-      return false;
-
-   m_chars.copy((char *) data, num * sizeof(T));
-   m_chars.erase(0, num * sizeof(T));
-
-   return true;
-}
-
-template<class T> void UnstructuredBuffer::put(T& data)
-{
-   put<T>(&data, 1);
-}
-
-template<class T> bool UnstructuredBuffer::get(T& data)
-{
-   return get<T>(&data, 1);
-}
-
 
 const void* UnstructuredBuffer::getBuffer()
 {
@@ -107,12 +75,14 @@ UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt32& data)
    assert(res = true);
    return *this;
 }
+
 UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt32& data)
 {
    bool res = get<SInt32>(data);
    assert(res == true);
    return *this;
 }
+
 UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt8&  data)
 {
    bool res = get<UInt8>(data);
@@ -126,7 +96,6 @@ UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt8&  data)
    return *this;
 }
 
-
 // put buffer
 
 UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<const void*, int> buffer)
@@ -138,8 +107,6 @@ UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<const void*, int> buffer
    put<UInt8>((UInt8*) buff, size);
    return *this;
 }
-
-
 
 // get buffer
 
@@ -153,8 +120,6 @@ UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<const void*, int> buffer
    assert(res == true);
    return *this;
 }
-
-
 
 #ifdef DEBUG_UNSTRUCTURED_BUFFER
 

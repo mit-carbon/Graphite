@@ -95,7 +95,7 @@ void Config::GenerateCoreMap()
 
    // Stripe the cores across the processes
    UInt32 current_proc = 0;
-   for (UInt32 i=0; i < m_total_cores - 1; i++)
+   for (UInt32 i=0; i < m_knob_total_cores; i++)
    {
       m_core_to_proc_map[i] = current_proc;
       m_proc_to_core_list_map[current_proc].push_back(i);
@@ -104,8 +104,8 @@ void Config::GenerateCoreMap()
    }
 
    // Add one for the MCP
-   m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
-   m_core_to_proc_map[m_total_cores - 1] = 0;
+   m_proc_to_core_list_map[0].push_back(m_knob_total_cores);
+   m_core_to_proc_map[m_knob_total_cores] = 0;
 }
 
 void Config::logCoreMap()

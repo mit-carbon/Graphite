@@ -4,6 +4,45 @@
 #include "core.h"
 #include "memory_manager.h"
 
+// FIXME
+// Only need this function because some memory accesses are made before cores have
+// been initialized. Should not evnentually need this
+
+UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
+{
+   assert (lock_signal == Core::NONE);
+
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      return core->accessMemory (lock_signal, shmem_req_type, d_addr, data_buffer, data_size);
+   }
+   // Native mem op
+   else
+   {
+      if (shmem_req_type == READ)
+      {
+         if (PIN_SafeCopy ((void*) data_buffer, (void*) d_addr, (size_t) data_size) == data_size)
+         {
+            return 0;
+         }
+      }
+      else if (shmem_req_type == WRITE)
+      {
+         if (PIN_SafeCopy ((void*) d_addr, (void*) data_buffer, (size_t) data_size) == data_size)
+         {
+            return 0;
+         }
+      }
+      else
+      {
+         assert (false);
+      }
+
+      return 0;
+   }
+}
+
 bool rewriteStackOp (INS ins)
 {
    if (INS_Opcode (ins) == XED_ICLASS_PUSH)
@@ -172,7 +211,6 @@ bool rewriteStackOp (INS ins)
             IARG_RETURN_REGS, REG_STACK_PTR,
             IARG_END);
 
-      INS_Delete (ins);
       return true;
    }
 
@@ -192,7 +230,6 @@ bool rewriteStackOp (INS ins)
             IARG_RETURN_REGS, REG_STACK_PTR,
             IARG_END);
 
-      INS_Delete (ins);
       return true;
    }
 
@@ -324,12 +361,9 @@ ADDRINT emuPushValue (ADDRINT tgt_esp, ADDRINT value, ADDRINT write_size)
    assert (write_size != 0);
    assert ( write_size == sizeof ( ADDRINT ) );
 
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-
    tgt_esp -= write_size;
 
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
+   memOp (Core::NONE, WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
    
    return tgt_esp;
 }
@@ -339,15 +373,12 @@ ADDRINT emuPushMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
    assert (size != 0);
    assert ( size == sizeof ( ADDRINT ) );
 
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
    tgt_esp -= sizeof(ADDRINT);
 
    ADDRINT buf;
 
-   core->accessMemory (Core::NONE, READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
 
    return tgt_esp;
 }
@@ -357,10 +388,7 @@ ADDRINT emuPopReg(ADDRINT tgt_esp, ADDRINT *reg, ADDRINT read_size)
    assert (read_size != 0);
    assert ( read_size == sizeof ( ADDRINT ) );
 
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
-   core->accessMemory (Core::NONE, READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
+   memOp (Core::NONE, READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
    
    return tgt_esp + read_size;
 }
@@ -370,13 +398,10 @@ ADDRINT emuPopMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
    assert (size != 0); 
    assert ( size == sizeof ( ADDRINT ) );
    
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
    ADDRINT buf;
 
-   core->accessMemory (Core::NONE, READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
 
    return tgt_esp + size;
 }
@@ -386,14 +411,11 @@ ADDRINT emuCallMem(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT 
    assert (read_size == sizeof(ADDRINT));
    assert (write_size == sizeof(ADDRINT));
    
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
    ADDRINT called_ip;
-   core->accessMemory (Core::NONE, READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
+   memOp (Core::NONE, READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
 
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (Core::NONE, WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return called_ip;
 }
@@ -403,12 +425,9 @@ ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADD
    assert ( write_size == sizeof ( ADDRINT ) );
    assert (write_size == sizeof(ADDRINT));
    
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
 
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (Core::NONE, WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return br_tgt_ip;
 }
@@ -418,12 +437,9 @@ ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size)
    assert (read_size != 0);
    assert ( read_size == sizeof ( ADDRINT ) );
 
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
    ADDRINT next_ip;
 
-   core->accessMemory (Core::NONE, READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size);
+   memOp (Core::NONE, READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size);
 
    *tgt_esp = *tgt_esp + read_size;
    *tgt_esp = *tgt_esp + imm;
@@ -435,12 +451,9 @@ ADDRINT emuLeave(ADDRINT tgt_esp, ADDRINT *tgt_ebp, ADDRINT read_size)
 {
    assert ( read_size == sizeof ( ADDRINT ) );
 
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
    tgt_esp = *tgt_ebp;
 
-   core->accessMemory (Core::NONE, READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
+   memOp (Core::NONE, READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
    
    tgt_esp += read_size;
    
@@ -452,9 +465,15 @@ ADDRINT redirectPushf ( ADDRINT tgt_esp, ADDRINT size )
    assert (size == sizeof (ADDRINT));
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-
-   return core->getMemoryManager()->redirectPushf (tgt_esp, size);
+   
+   if (core)
+   {
+      return core->getMemoryManager()->redirectPushf (tgt_esp, size);
+   }
+   else
+   {
+      return tgt_esp;
+   }
 }
 
 ADDRINT completePushf ( ADDRINT esp, ADDRINT size )
@@ -462,9 +481,15 @@ ADDRINT completePushf ( ADDRINT esp, ADDRINT size )
    assert (size == sizeof(ADDRINT));
    
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
 
-   return core->getMemoryManager()->completePushf (esp, size);
+   if (core)
+   {
+      return core->getMemoryManager()->completePushf (esp, size);
+   }
+   else
+   {
+      return esp;
+   }
 }
 
 ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size)
@@ -472,35 +497,75 @@ ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size)
    assert (size == sizeof (ADDRINT));
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
-   return core->getMemoryManager()->redirectPopf (tgt_esp, size);
+  
+   if (core)
+   {
+      return core->getMemoryManager()->redirectPopf (tgt_esp, size);
+   }
+   else
+   {
+      return tgt_esp;
+   }
 }
 
 ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 {
+   assert (size == sizeof (ADDRINT));
+   
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
 
-   return core->getMemoryManager()->completePopf (esp, size);
+   if (core)
+   {
+      return core->getMemoryManager()->completePopf (esp, size);
+   }
+   else
+   {
+      return esp;
+   }
 }
+
+// FIXME: 
+// Memory accesses with a LOCK prefix made by cores are not handled correctly at the moment
+// Once the memory accesses go through the coherent shared memory system, all LOCK'ed
+// memory accesses from the cores would be handled correctly. 
 
 ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, MemoryManager::AccessType access_type)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-   
-   MemoryManager *mem_manager = core->getMemoryManager ();
-   assert (mem_manager != NULL);
-   return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+  
+   if (core)
+   {
+      MemoryManager *mem_manager = core->getMemoryManager ();
+      assert (mem_manager != NULL);
+      
+      return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+   }
+   else
+   {
+      // Make sure that no instructions with the 
+      // LOCK prefix execute in a non-core
+      // assert (!has_lock_prefix);
+      // cerr << "ins with LOCK prefix in a non-core" << endl;
+
+      return tgt_ea;
+   }
 }
 
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, MemoryManager::AccessType access_type)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
 
-   core->getMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+   if (core)
+   {
+      core->getMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+   }
+   else
+   {
+      // Make sure that no instructions with the 
+      // LOCK prefix execute in a non-core
+      // assert (!has_lock_prefix);
+      // cerr << "ins with LOCK prefix in a non-core" << endl;
+   }
 
    return;
 }

@@ -38,6 +38,7 @@
 #include "handle_args.h"
 
 #include "redirect_memory.h"
+#include "handle_syscalls.h"
 #include <typeinfo>
 
 config::ConfigFile *cfg;
@@ -68,7 +69,7 @@ void instructionCallback (INS ins, void *v)
 {
    // Emulate stack operations
    bool stack_op = rewriteStackOp (ins);
-   
+
    // Else, redirect memory to the simulated memory system
    if (!stack_op)
    {
@@ -82,44 +83,22 @@ void instructionCallback (INS ins, void *v)
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-
-   if (core)
-   {
-      UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctxt, std);
-      SyscallMdl::syscall_args_t args;
-      args.arg0 = PIN_GetSyscallArgument(ctxt, std, 0);
-      args.arg1 = PIN_GetSyscallArgument(ctxt, std, 1);
-      args.arg2 = PIN_GetSyscallArgument(ctxt, std, 2);
-      args.arg3 = PIN_GetSyscallArgument(ctxt, std, 3);
-      args.arg4 = PIN_GetSyscallArgument(ctxt, std, 4);
-      args.arg5 = PIN_GetSyscallArgument(ctxt, std, 5);
-      UInt8 new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
-      PIN_SetSyscallNumber(ctxt, std, new_syscall);
-   }
+   syscallEnterRunModel (ctxt, std);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   syscallExitRunModel (ctxt, std);
+}
 
-   if (core)
-   {
-      carbon_reg_t old_return = 
-#ifdef TARGET_IA32E
-      PIN_GetContextReg(ctxt, REG_RAX);
-#else
-      PIN_GetContextReg(ctxt, REG_EAX);
-#endif
+VOID threadStart (THREADID tid, CONTEXT *ctxt, INT32 flags, VOID *v)
+{
+   Sim()->getThreadManager()->threadStart ();
+}
 
-      carbon_reg_t syscall_return = core->getSyscallMdl()->runExit(old_return);
-
-#ifdef TARGET_IA32E
-      PIN_SetContextReg(ctxt, REG_RAX, syscall_return);
-#else
-      PIN_SetContextReg(ctxt, REG_EAX, syscall_return);
-#endif
-   }
+VOID threadFini (THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID *v)
+{
+   Sim()->getThreadManager()->threadFini ();
 }
 
 void ApplicationStart()
@@ -157,7 +136,7 @@ void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
 int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
 {
    ApplicationStart();
-
+   
    SimSpawnThreadSpawner(ctx, fp_main);
 
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
@@ -219,10 +198,14 @@ int main(int argc, char *argv[])
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
 
+   PIN_AddThreadStartFunction (threadStart, 0);
+   PIN_AddThreadFiniFunction (threadFini, 0);
+   
    if(cfg->getBool("general/enable_syscall_modeling"))
    {
       PIN_AddSyscallEntryFunction(SyscallEntry, 0);
       PIN_AddSyscallExitFunction(SyscallExit, 0);
+      PIN_AddContextChangeFunction (contextChange, NULL);
    }
 
    if (cfg->getBool("general/enable_shared_mem"))

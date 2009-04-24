@@ -38,30 +38,42 @@ void CarbonJoinThread(int tid)
 }
 
 // Support functions provided by the simulator
-void CarbonGetThreadToSpawn(ThreadSpawnRequest **req)
+void CarbonGetThreadToSpawn(ThreadSpawnRequest *req)
 {
    Sim()->getThreadManager()->getThreadToSpawn(req);
 }
 
-void CarbonThreadStart(ThreadSpawnRequest *req)
+void CarbonGetThreadSpawnReq (ThreadSpawnRequest *req)
 {
-   Sim()->getThreadManager()->onThreadStart(req);
+   Sim()->getThreadManager()->getThreadSpawnReq (req);
 }
 
-void CarbonThreadExit()
-{
-   Sim()->getThreadManager()->onThreadExit();
-}
+// ---------------------------------------------
+// Won't need these two funcs in the new scheme
+// ---------------------------------------------
+
+// void CarbonThreadStart(ThreadSpawnRequest *req)
+// {
+//    Sim()->getThreadManager()->onThreadStart(req);
+// }
+// 
+// void CarbonThreadExit()
+// {
+//    Sim()->getThreadManager()->onThreadExit();
+// }
 
 void *CarbonSpawnManagedThread(void *p)
 {
-   ThreadSpawnRequest *thread_info = (ThreadSpawnRequest *)p;
+   ThreadSpawnRequest thread_info;
 
-   CarbonThreadStart(thread_info);
+   CarbonGetThreadSpawnReq (&thread_info);
 
-   thread_info->func(thread_info->arg);
+   // CarbonThreadStart(thread_info);
 
-   CarbonThreadExit();
+   thread_info.func(thread_info.arg);
+
+   // CarbonThreadExit();
+   
    return NULL;
 }
 
@@ -70,16 +82,21 @@ void *CarbonThreadSpawner(void *p)
 {
    while(1)
    {
-      ThreadSpawnRequest *req;
+      ThreadSpawnRequest req;
+      StackAttributes stack_attr;
+      
+      // Wait for a spawn request
+      CarbonGetThreadToSpawn(&req, &stack_attr);
 
-      // Wait for a spawn
-      CarbonGetThreadToSpawn(&req);
-
-      if(req->func)
+      if(req.func)
       {
          pthread_t thread;
          pthread_attr_t attr;
          pthread_attr_init(&attr);
+
+         // Set the Stack right
+         pthread_attr_setstack(&attr, stack_attr.base, stack_attr.size);
+
          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
          // when using pin, create_pthread will not get intercepted but
@@ -87,7 +104,7 @@ void *CarbonThreadSpawner(void *p)
          // Likewise, when NOT using pin create_pthread = pthread_create
          // The simple wrapper just lets us use the same naming convention
          // within the user app.
-         create_pthread(&thread, &attr, CarbonSpawnManagedThread, req);
+         create_pthread(&thread, &attr, CarbonSpawnManagedThread, NULL);
       }
       else
       {

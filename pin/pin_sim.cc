@@ -37,6 +37,11 @@
 #include "config_file.hpp"
 #include "handle_args.h"
 
+#include "redirect_memory.h"
+#include "handle_syscalls.h"
+#include <typeinfo>
+
+bool done_copying_static_data = false;
 config::ConfigFile *cfg;
 
 INT32 usage()
@@ -50,55 +55,56 @@ INT32 usage()
 void routineCallback(RTN rtn, void *v)
 {
    string rtn_name = RTN_Name(rtn);
+<<<<<<< HEAD:pin/pin_sim.cc
 
    bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
+=======
+   replaceUserAPIFunction(rtn, rtn_name);
+   
+   // TODO:
+   // Commenting out performance modeling code since it causes multiple accesses to memory
+   // when we are simulating shared memory. Fix perf model code to not cause any memory accesses
+   //  
+   // bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
+   // if (!did_func_replace)
+   //    replaceInstruction(rtn, rtn_name);
+}
 
-   if (!did_func_replace)
-      replaceInstruction(rtn, rtn_name);
+void instructionCallback (INS ins, void *v)
+{
+   // Emulate stack operations
+   bool stack_op = rewriteStackOp (ins);
+>>>>>>> origin/memory_redirect:pin/pin_sim.cc
+
+   // Else, redirect memory to the simulated memory system
+   if (!stack_op)
+   {
+      rewriteMemOp (ins);
+   }
+
+   return;
 }
 
 // syscall model wrappers
 
 void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-
-   if (core)
-   {
-      UInt8 syscall_number = (UInt8) PIN_GetSyscallNumber(ctxt, std);
-      SyscallMdl::syscall_args_t args;
-      args.arg0 = PIN_GetSyscallArgument(ctxt, std, 0);
-      args.arg1 = PIN_GetSyscallArgument(ctxt, std, 1);
-      args.arg2 = PIN_GetSyscallArgument(ctxt, std, 2);
-      args.arg3 = PIN_GetSyscallArgument(ctxt, std, 3);
-      args.arg4 = PIN_GetSyscallArgument(ctxt, std, 4);
-      args.arg5 = PIN_GetSyscallArgument(ctxt, std, 5);
-      UInt8 new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
-      PIN_SetSyscallNumber(ctxt, std, new_syscall);
-   }
+   syscallEnterRunModel (ctxt, std);
 }
 
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   syscallExitRunModel (ctxt, std);
+}
 
-   if (core)
-   {
-      carbon_reg_t old_return = 
-#ifdef TARGET_IA32E
-      PIN_GetContextReg(ctxt, REG_RAX);
-#else
-      PIN_GetContextReg(ctxt, REG_EAX);
-#endif
+VOID threadStart (THREADID tid, CONTEXT *ctxt, INT32 flags, VOID *v)
+{
+   Sim()->getThreadManager()->threadStart ();
+}
 
-      carbon_reg_t syscall_return = core->getSyscallMdl()->runExit(old_return);
-
-#ifdef TARGET_IA32E
-      PIN_SetContextReg(ctxt, REG_RAX, syscall_return);
-#else
-      PIN_SetContextReg(ctxt, REG_EAX, syscall_return);
-#endif
-   }
+VOID threadFini (THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID *v)
+{
+   Sim()->getThreadManager()->threadFini ();
 }
 
 void ApplicationStart()
@@ -136,7 +142,7 @@ void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
 int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
 {
    ApplicationStart();
-
+   
    SimSpawnThreadSpawner(ctx, fp_main);
 
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
@@ -169,81 +175,66 @@ int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
    return 0;
 }
 
-// TODO: Split this into multiple files at the end
-VOID ThreadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
+VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-   // First check if I am the main thread
-   ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   if (reg_eip == start_address_app)
-   {
-      //
-      // APPLICATION START
-      //
+   UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
 
-      // This function is used to allocate stack space on a per process basis
+   ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+
+   // Conditions under which we must initialize a core
+   // 1) (!done_app_initialization) && (curr_process_num == 0)
+   // 2) (done_app_initialization) && (!thread_spawner)
+
+   if (! done_app_initialization)
+   {
+      // This is the main thread
+      int res;
+      PIN_CallApplicationFunction(ctxt,
+            PIN_ThreadId(),
+            CALLINGSTD_DEFAULT,
+            AFUNPTR(CarbonSpawnThreadSpawner),
+            PIN_PARG(int), &res,
+            PIN_PARG_END());
+      
+      assert(res == 0);
+
       allocateStackSpace();
-   
-      // Copy over the command line arguments
-      // I should do this only if I am process '0'
-      UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
-      
-      // TODO: Fill in something else other than '0'
-      m_core_manager->initializeThread(0);
-      
+
       if (curr_process_num == 0)
       {
-         // TODO: Register my core
-         // TODO: Verify that we dont need to register if we are not process '0'
-         // I think we must according to what we discussed
-         copyInitialStackData(ctxt);
-      
-         PIN_CallApplicationFunction(CarbonSpawnThreadSpawner);
+         Sim()->getCoreManager()->initializeThread(0);
+         // 1) Copying over Static Data
+         // Get the image first
+         IMG img = IMG_FindByAddress(reg_eip);
+         copyStaticData(img);
+
+         // 2) Copying over initial stack data
+         copyInitialStackData(reg_esp);
+      }
+
+      done_app_initialization = true;
+
+      if (curr_process_num == 0)
+      {
+         // Call '_start'
+         return;
       }
       else
       {
-         PIN_CallApplicationFunction(CarbonThreadSpawner);
+         LOG_PRINT("Waiting for main process to finish...");
+         while (!Sim()->finished())
+            usleep(100);
+         LOG_PRINT("Finished!");
+         exit(0);
       }
+ 
    }
    else
    {
-      // TODO: Harshad: Figure out a way to get my core Id
-      m_core_manager->initializeThread(); 
-   }
-}
-
-VOID ImageCallback(IMG img, VOID* v)
-{
-   for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
-   {
-      ADDRINT sec_address;
-      SEC_TYPE sec_type = SEC_Type(sec);
-
-      if (sec_type == SEC_TYPE_EXEC)
-      {
-         start_address_app = SEC_Address(sec);
-         // fprintf (stderr, "Start Address of Application = 0x%x\n", (UInt32) start_address_app);
-      }
-
-      // I am not sure whether we want ot copy over all the sections or just the
-      // sections which are relevant like the sections below: DATA, BSS, GOT
-      
-      // Copy over all the sections now !
-      // if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
-      //     (sec_type == SEC_TYPE_GOT)
-      //   )
-      {
-         if (SEC_Mapped(sec))
-         {
-            sec_address = SEC_Address(sec);
-         }
-         else
-         {
-            sec_address = (ADDRINT) SEC_Data(sec);
-         }
-
-         fprintf (stderr, "Copying Section: %s at Address: 0x%x of Size: %u to Simulated Memory\n", SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
-         core->accessMemory(Core::NONE, WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
-      }
+      // This is NOT the main thread
+      // Maybe 'application' thread or 'thread spawner'
+      Sim()->getThreadManager()->threadStart();
    }
 }
 
@@ -273,25 +264,26 @@ int main(int argc, char *argv[])
    Sim()->start();
 
    // Copying over the static data now
-   IMG_AddInstrumentationFunction(ImageCallback, 0);
+   IMG_AddInstrumentationFunction(imageCallback, 0);
 
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);
 
+   PIN_AddThreadStartFunction (threadStartCallback, 0);
+   PIN_AddThreadFiniFunction (threadFiniCallback, 0);
+   
    if(cfg->getBool("general/enable_syscall_modeling"))
    {
-       PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-       PIN_AddSyscallExitFunction(SyscallExit, 0);
+      PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+      PIN_AddSyscallExitFunction(SyscallExit, 0);
+      PIN_AddContextChangeFunction (contextChange, NULL);
    }
 
-   // Registering a callback at thread startup for many purposes
-   // 1) For the main thread
-   //    a) Copy over command line arguments
-   //    b) sbrk(NumThreads * stack_size_per_thread)
-   //    c) Set new ESP
-   //
-   PIN_AddThreadStartFunction(ThreadStartCallback, 0);
+   if (cfg->getBool("general/enable_shared_mem"))
+   {
+      INS_AddInstrumentFunction (instructionCallback, 0);
+   }
 
    PIN_AddFiniFunction(ApplicationExit, 0);
 

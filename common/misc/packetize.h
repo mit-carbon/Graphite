@@ -62,4 +62,32 @@ class UnstructuredBuffer
 
 };
 
+template<class T> void UnstructuredBuffer::put(T* data, int num)
+{
+   assert(num >= 0);
+   m_chars.append((char *) data, num * sizeof(T));
+}
+
+template<class T> bool UnstructuredBuffer::get(T* data, int num)
+{
+   assert(num >= 0);
+   if (m_chars.size() < (num * sizeof(T)))
+      return false;
+
+   m_chars.copy((char *) data, num * sizeof(T));
+   m_chars.erase(0, num * sizeof(T));
+
+   return true;
+}
+
+template<class T> void UnstructuredBuffer::put(T& data)
+{
+   put<T>(&data, 1);
+}
+
+template<class T> bool UnstructuredBuffer::get(T& data)
+{
+   return get<T>(&data, 1);
+}
+
 #endif

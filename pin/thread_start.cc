@@ -1,16 +1,47 @@
 #include <elf.h>
 
-VOID copyInitialStackData(CONTEXT *ctxt)
+VOID copyStaticData(IMG& img)
 {
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Core ID");
+
+   for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
+   {
+      ADDRINT sec_address;
+      SEC_TYPE sec_type = SEC_Type(sec);
+
+      // I am not sure whether we want ot copy over all the sections or just the
+      // sections which are relevant like the sections below: DATA, BSS, GOT
+      
+      // Copy over all the sections now !
+      // if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
+      //     (sec_type == SEC_TYPE_GOT)
+      //   )
+      {
+         if (SEC_Mapped(sec))
+         {
+            sec_address = SEC_Address(sec);
+         }
+         else
+         {
+            sec_address = (ADDRINT) SEC_Data(sec);
+         }
+
+         LOG_PRINT ("Copying Section: %s at Address: 0x%x of Size: %u to Simulated Memory", 
+               SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
+         core->accessMemory(Core::NONE, WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
+      }
+   }
+}
+
+VOID copyInitialStackData(ADDRINT reg_esp)
+{
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Core ID");
+
    // 1) Command Line Arguments
    // 2) Environment Variables
    // 3) Auxiliary Vector Entries
-
-   // We should also check if we have the main() thread before doing this
-   ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
-   // fprintf (stderr, "Reg_EIP = 0x%x\n", (UInt32) reg_eip);
-   // fprintf (stderr, "Reg_ESP = 0x%x\n", (UInt32) reg_esp);
 
    ADDRINT params = reg_esp;
    int argc = * ((int *) params);
@@ -59,7 +90,6 @@ VOID copyInitialStackData(CONTEXT *ctxt)
    {
       // We should have a per auxiliary vector entry based handling
       // Right now, just copy stuff over
-      // TODO: Try this out in the test repository first
       assert (sizeof(Elf32_auxv_t) == sizeof(auxiliary_vector[i]));
 
       core->accessMemory(Core::NONE, WRITE, (ADDRINT) &auxiliary_vector[i], (char*) &auxiliary_vector[i], sizeof(auxiliary_vector[i]));
@@ -69,7 +99,6 @@ VOID copyInitialStackData(CONTEXT *ctxt)
       }
    }
 
-
 }
 
 VOID allocateStackSpace()
@@ -77,24 +106,15 @@ VOID allocateStackSpace()
    // Note that 1 core = 1 thread currently
    // We should probably get the amount of stack space per thread from a configuration parameter
    // Each process allocates whatever it is responsible for !!
-   // TODO: Fill this in later
-   UInt32 stack_size_per_core;
+   UInt32 stack_size_per_core = Sim()->getConfig()->getStackSizePerCore();
+   UInt32 num_cores = Sim()->getConfig()->getNumLocalCores();
+   UInt32 stack_base = Sim()->getConfig()->getStackBase();
 
    // TODO: Make sure that this is a multiple of the page size 
    
-   // TODO: Fill this in later
-   UInt32 total_cores;
-   // TODO: We might want to make this configurable per process later. Or we can just start multiple processes in a 16-processor machine
-   UInt32 num_cores_per_process;
-
-   // mmap() the total amount of memory at a fixed address - say 0x90000000
-   // TODO: Fill this in
-   UInt32 global_stack_base = 0x90000000;
-   // TODO: Fill this in
-   UInt32 curr_process_num = (UInt32) Config::getSingleton()->getCurrentProcessNum();
-   
-   UInt32 curr_stack_base = global_stack_base + (curr_process_num * num_cores_per_process * stack_size_per_core); 
-
-   assert(mmap((void*) curr_stack_base, stack_size_per_core * num_cores_per_process,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) == 0);
-   
+   // mmap() the total amount of memory needed for the stacks
+   assert(mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) == 0);
+  
+   // TODO: From our memory manager, mark this space as taken
 }
+

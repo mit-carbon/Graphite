@@ -25,7 +25,7 @@ CXXFLAGS += $(PIN_CXXFLAGS)
 CFLAGS += $(CXXFLAGS)
 
 SOURCES = pin_sim.cc analysis.cc routine_replace.cc run_models.cc  \
-          pin_thread.cc
+          pin_thread.cc redirect_memory.cc handle_syscalls.cc
 
 OBJECTS = $(SOURCES:%.cc=%.o)
 

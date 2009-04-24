@@ -13,6 +13,7 @@
 ThreadManager::ThreadManager(CoreManager *core_manager)
    : m_thread_spawn_sem(0)
    , m_thread_spawn_lock()
+   , m_thread_req_map_lock()
    , m_core_manager(core_manager)
 {
    Config *config = Config::getSingleton();
@@ -24,6 +25,7 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
       m_thread_state.resize(config->getTotalCores());
       m_thread_state[0].running = true;
       m_thread_state[config->getMCPCoreNum()].running = true;
+      
       LOG_ASSERT_ERROR(config->getMCPCoreNum() < (SInt32)m_thread_state.size(),
                        "MCP core num out of range (!?)");
    }
@@ -42,27 +44,104 @@ ThreadManager::~ThreadManager()
    }
 }
 
-void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
+// void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
+// {
+//    m_core_manager->initializeThread(req->core_id);
+// 
+//    // send ack to master
+//    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+//    req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
+//    globalNode->globalSend(0, req, sizeof(*req));
+// 
+//    free(req);
+// }
+// 
+// void ThreadManager::onThreadExit()
+// {
+//    // send message to master process to update thread state
+//    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+//    SInt32 msg[4] = { LCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID(), 0, 0 };
+//    LOG_PRINT("onThreadExit msg: { %d, %d, %u, %u }", msg[0], msg[1], msg[2], msg[3]);
+//    globalNode->globalSend(0, msg, sizeof(msg));
+// 
+//    m_core_manager->terminateThread();
+// }
+
+
+void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req)
 {
-   m_core_manager->initializeThread(req->core_id);
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert (core != NULL);
 
-   // send ack to master
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
-   globalNode->globalSend(0, req, sizeof(*req));
+   core_id_t core_id = core->getId();
+   assert (core_id != INVALID_CORE_ID);
 
-   free(req);
+   m_thread_req_map_lock.acquire();
+   
+   map <core_id_t, ThreadSpawnRequest*>::iterator it;
+   it = m_thread_req_map. find (core_id);
+   assert (it != m_thread_req_map.end());
+   ThreadSpawnRequest *thread_req = it->second;
+
+   // req lives in user-space while thread_req is in 
+   // pin-space. The data should therefore be copied over
+   // using accessMemory
+   core->accessMemory (Core::NONE, WRITE, (IntPtr) req, (char*) thread_req, sizeof (*thread_req));
+
+   free (thread_req);
+
+   m_thread_req_map_lock.release();
 }
 
-void ThreadManager::onThreadExit()
+void ThreadManager::getStackAttributesForCore (StackAttributes *stack_attr, core_id_t core_id)
 {
-   // send message to master process to update thread state
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   SInt32 msg[4] = { LCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID(), 0, 0 };
-   LOG_PRINT("onThreadExit msg: { %d, %d, %u, %u }", msg[0], msg[1], msg[2], msg[3]);
-   globalNode->globalSend(0, msg, sizeof(msg));
+   SInt32 core_index = Config::getSingleton()->getCoreIndexInProcess(core_id);
+   LOG_ASSERT_ERROR (core_index != -1, "Core %i does not belong to Process %i", 
+         core_id, Config::getSingleton()->getCurrentProcessNum());
 
-   m_core_manager->terminateThread();
+   IntPtr curr_stack_base = Config::getSingleton()->getStackBase();
+   UInt32 stack_size_per_core = Config::getSingleton()->getStackSizePerCore();
+
+   stack_attr->base = curr_stack_base + (core_index * stack_size_per_core);
+   stack_attr->size = stack_size_per_core;
+}
+
+void ThreadManager::threadStart()
+{
+   ThreadSpawnRequest *req;
+   m_thread_spawn_lock.acquire();
+   
+   // This is the thread spawner getting spawned
+   if (m_thread_spawn_list.empty())
+   {
+      m_thread_spawn_lock.release();
+      return;
+   }
+   
+   req = m_thread_spawn_list.front();
+   m_thread_spawn_list.pop();
+   m_thread_spawn_lock.release();
+
+   m_core_manager->initializeThread (req->core_id);
+
+   // Send ack to master
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
+   globalNode->globalSend (0, req, sizeof (*req));
+   LOG_PRINT ("core id %d assigned to thread", req->core_id);
+}
+
+void ThreadManager::threadFini()
+{
+   if (m_core_manager->getCurrentCoreID() != -1)
+   {
+      // send message to master process to update thread state
+      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+      SInt32 msg[4] = {LCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID(), 0, 0};
+      LOG_PRINT ("threadFini msg: { %d, %d, %u, %u }", msg[0], msg[1], msg[2], msg[3]);
+      globalNode->globalSend(0, msg, sizeof(msg));
+      m_core_manager->terminateThread();
+   }
 }
 
 void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
@@ -145,10 +224,11 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
       *req_cpy = *req;
 
-      m_thread_spawn_lock.acquire();
-      m_thread_spawn_list.push(req_cpy);
-      m_thread_spawn_lock.release();
+      // Insert the request in the thread request queue and
+      // the thread request map
+      insertThreadSpawnRequest (req_cpy);
       m_thread_spawn_sem.signal();
+
    }
 
    LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Core id out of range: %d", req->core_id);
@@ -166,27 +246,37 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
    ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
    *req_cpy = *req;
 
-   m_thread_spawn_lock.acquire();
-   m_thread_spawn_list.push(req_cpy);
-   m_thread_spawn_lock.release();
+   // Insert the request in the thread request queue and
+   // the thread request map
+   insertThreadSpawnRequest (req_cpy);
+   
    m_thread_spawn_sem.signal();
 }
 
-void ThreadManager::getThreadToSpawn(ThreadSpawnRequest **req)
+void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
 {
    // step 4
    LOG_PRINT("(4a) getThreadToSpawn called by user.");
-
+   
+   
    // Wait for a request to arrive
    m_thread_spawn_sem.wait();
-
+   
    // Grab the request and set the argument
    m_thread_spawn_lock.acquire();
-   *req = m_thread_spawn_list.front();
-   m_thread_spawn_list.pop();
+   req = m_thread_spawn_list.back();
+   
+   // Core *core = Sim()->getCoreManager()->getCurrentCore();
+   // assert (core != NULL);
+   // // The pointer req lives in userland and therefore
+   // // we should use accessMemory to copy data to userland
+   // // address space
+   // core->accessMemory (Core::NONE, WRITE, (IntPtr) req, (char*) thread_req, sizeof (*thread_req));
+ 
+   // The thread spawner executes in the host address-space in this scheme
    m_thread_spawn_lock.release();
 
-   LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", (*req)->func, (*req)->arg);
+   LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", req->func, req->arg);
 }
 
 
@@ -262,4 +352,18 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id)
    }
    LOG_PRINT("Exiting wakeUpWaiter");
 }
+
+void ThreadManager::insertThreadSpawnRequest (ThreadSpawnRequest *req)
+{
+   // Insert the request in the thread request queue
+   m_thread_spawn_lock.acquire();
+   m_thread_spawn_list.push(req);
+   m_thread_spawn_lock.release();
+   
+   // Insert the request in the thread request map
+   m_thread_req_map_lock.acquire();
+   m_thread_req_map.insert (make_pair(req->core_id, req));
+   m_thread_req_map_lock.release();
+}
+  
 

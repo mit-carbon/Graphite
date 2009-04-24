@@ -23,6 +23,9 @@ UInt32 Config::m_knob_dir_max_sharers;
 UInt32 Config::m_knob_cache_line_size;
 UInt32 Config::m_knob_ahl_param;
 
+UInt32 Config::m_stack_base;
+UInt32 Config::m_stack_size_per_core;
+
 using namespace std;
 
 Config *Config::m_singleton;
@@ -70,6 +73,8 @@ Config::Config()
 
    GenerateCoreMap();
 
+   getStackLimits();
+
    // Create network parameters
    m_analytic_network_parms = new NetworkModelAnalyticalParameters();
    m_analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
@@ -88,6 +93,26 @@ Config::~Config()
    delete [] m_proc_to_core_list_map;
 }
 
+void Config::getStackLimits()
+{
+   UInt32 global_stack_base = (UInt32) Sim()->getCfg()->getInt("stack/stack_base");
+   UInt32 global_stack_size = (UInt32) Sim()->getCfg->getInt("stack/stack_size");
+
+   // It might be easier to just pass in 'm_stack_size_per_core' rather than 'global_stack_size'
+   // We dont need a stack for the MCP
+   m_stack_size_per_core = global_stack_size / (m_total_cores - 1);
+   
+   // To calculate our stack base, we need to get the total number of cores
+   // allocated to processes that have ids' lower than me
+   UInt32 num_cores = 0;
+   for (SInt32 i = 0; i < m_current_process_num; i++)
+   {
+      num_cores += getNumCoresInProcess(i);
+   }
+   
+   m_stack_base = global_stack_base + num_cores * m_stack_size_per_core; 
+}
+
 void Config::GenerateCoreMap()
 {
    m_proc_to_core_list_map = new CoreList[m_num_processes];
@@ -95,7 +120,7 @@ void Config::GenerateCoreMap()
 
    // Stripe the cores across the processes
    UInt32 current_proc = 0;
-   for (UInt32 i=0; i < m_total_cores - 1; i++)
+   for (UInt32 i=0; i < m_knob_total_cores; i++)
    {
       m_core_to_proc_map[i] = current_proc;
       m_proc_to_core_list_map[current_proc].push_back(i);
@@ -104,8 +129,8 @@ void Config::GenerateCoreMap()
    }
 
    // Add one for the MCP
-   m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
-   m_core_to_proc_map[m_total_cores - 1] = 0;
+   m_proc_to_core_list_map[0].push_back(m_knob_total_cores);
+   m_core_to_proc_map[m_knob_total_cores] = 0;
 }
 
 void Config::logCoreMap()
@@ -121,6 +146,19 @@ void Config::logCoreMap()
       LOG_PRINT(ss.str().c_str());
    }
 }
+
+SInt32 getCoreIndexInProcess(core_id_t core_id)
+{ 
+   CoreList core_list = getCoreListForProcess(m_current_process_num);
+   for (SInt32 i = 0; i < core_list.size(); i++)
+   {
+      if (core_list[i] == core_id)
+         return i;
+   }
+   return -1;
+}
+
+
 
 // Parse XML config file and use it to fill in config state.  Only modifies
 // fields specified in the config file.  Therefore, this method can be used

@@ -42,11 +42,13 @@ public:
    void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
    core_id_t getMCPCoreNum() { return getTotalCores() -1; }
-
+   
    // Return the number of modules (cores) in a given process
    UInt32 getNumCoresInProcess(UInt32 proc_num)
    { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }
 
+   SInt32 getCoreIndexInProcess(core_id_t core_id);
+   
    UInt32 getNumLocalCores() { return getNumCoresInProcess(getCurrentProcessNum()); }
 
    // Return the total number of modules in all processes
@@ -85,10 +87,18 @@ public:
    const char* getOutputFileName() const;
    void logCoreMap();
 
+   // Since Pin messes with stack, we need to handle that separately
+   // TODO: Maybe move this into a Pin specific config class
+   UInt32 getStackBase() const
+   { return m_stack_base; }
+   UInt32 getStackSizePerCore() const
+   { return m_stack_size_per_core; }
+
    static Config *getSingleton();
 
 private:
    void GenerateCoreMap();
+   void getStackLimits();
 
    UInt32  m_num_processes;          // Total number of processes (incl myself)
    UInt32  m_total_cores;          // Total number of cores in all processes
@@ -121,6 +131,11 @@ private:
    static UInt32 m_knob_dir_max_sharers;
    static UInt32 m_knob_cache_line_size;
    static UInt32 m_knob_ahl_param;
+
+   // Pin specific variables
+   // TODO: Maybe move this into a Pin Specific config class
+   static UInt32 m_stack_base;
+   static UInt32 m_stack_size_per_core;
 };
 
 #endif

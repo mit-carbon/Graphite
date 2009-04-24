@@ -180,25 +180,10 @@ void SyscallServer::marshallWriteCall(core_id_t core_id)
    if (count > m_SYSCALL_SERVER_MAX_BUFF)
       buf = new char[count];
 
-   // If we aren't using shared memory, then the data for the
-   // write call must be passed in the message
-
-   // FIXME: This is disabled until memory redirection is
-   // functional. We should also ask ourselves if this is the behavior
-   // we want (message passing vs shared memory).
-   if (false && Config::getSingleton()->isSimulatingSharedMemory())
-   {
-      char *src;
-      int src_b;
-      m_recv_buff >> src_b;
-      src = (char *)src_b;
-
-      m_network.getCore()->accessMemory(Core::NONE, READ, (IntPtr)src, buf, count);
-   }
-   else
-   {
-      m_recv_buff >> make_pair(buf, count);
-   }
+   // All data is always passed in the message, even if shared memory is available
+   // I think this is a reasonable model and is definitely one less thing to keep
+   // track of when you switch between shared-memory/no shared-memory
+   m_recv_buff >> make_pair(buf, count);
 
    // Actually do the write call
    int bytes = write(fd, (void *) buf, count);

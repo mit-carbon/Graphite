@@ -111,7 +111,7 @@ void ApplicationExit(int, void*)
    delete cfg;
 }
 
-void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
+void SpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
 {
    // Get the function for the thread spawner
    PIN_LockClient();
@@ -136,7 +136,7 @@ int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
 {
    ApplicationStart();
 
-   SimSpawnThreadSpawner(ctx, fp_main);
+   SpawnThreadSpawner(ctx, fp_main);
 
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {

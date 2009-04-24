@@ -58,24 +58,8 @@ void LCP::processPacket()
       Sim()->deallocateProcess();
       break;
 
-   case LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:
-      Sim()->getThreadManager()->masterSpawnThread((ThreadSpawnRequest*)pkt);
-      break;
-
    case LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_MASTER:
       Sim()->getThreadManager()->slaveSpawnThread((ThreadSpawnRequest*)pkt);
-      break;
-
-   case LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE:
-      Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)pkt);
-      break;
-
-   case LCP_MESSAGE_THREAD_EXIT:
-      Sim()->getThreadManager()->masterOnThreadExit(*((SInt32*)data), *((UInt64*)data+4));
-      break;
-
-   case LCP_MESSAGE_THREAD_JOIN_REQUEST:
-      Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)pkt);
       break;
 
    default:

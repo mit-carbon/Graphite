@@ -9,6 +9,7 @@
 #include "core.h"
 #include "simulator.h"
 #include "syscall.h"
+#include "thread_manager.h"
 
 using namespace std;
 
@@ -58,6 +59,7 @@ void MCP::processPacket()
       LOG_PRINT("Quit message received.");
       m_finished = true;
       break;
+
    case MCP_MESSAGE_MUTEX_INIT:
       m_sync_server.mutexInit(recv_pkt.sender);
       break;
@@ -67,6 +69,7 @@ void MCP::processPacket()
    case MCP_MESSAGE_MUTEX_UNLOCK:
       m_sync_server.mutexUnlock(recv_pkt.sender);
       break;
+
    case MCP_MESSAGE_COND_INIT:
       m_sync_server.condInit(recv_pkt.sender);
       break;
@@ -79,15 +82,32 @@ void MCP::processPacket()
    case MCP_MESSAGE_COND_BROADCAST:
       m_sync_server.condBroadcast(recv_pkt.sender);
       break;
+
    case MCP_MESSAGE_BARRIER_INIT:
       m_sync_server.barrierInit(recv_pkt.sender);
       break;
    case MCP_MESSAGE_BARRIER_WAIT:
       m_sync_server.barrierWait(recv_pkt.sender);
       break;
+
    case MCP_MESSAGE_UTILIZATION_UPDATE:
       m_network_model_analytical_server.update(recv_pkt.sender);
       break;
+
+   case MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:
+      Sim()->getThreadManager()->masterSpawnThread((ThreadSpawnRequest*)recv_pkt.data);
+      break;
+   case MCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE:
+      Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)recv_pkt.data);
+      break;
+   case MCP_MESSAGE_THREAD_EXIT:
+      Sim()->getThreadManager()->masterOnThreadExit(*(core_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)));
+      break;
+
+   case MCP_MESSAGE_THREAD_JOIN_REQUEST:
+      Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data);
+      break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
    }

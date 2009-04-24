@@ -15,7 +15,6 @@ extern "C"
 SInt32 CarbonStartSim(int argc, char **argv);
 void CarbonStopSim();
 core_id_t CarbonGetCoreId();
-int create_pthread(pthread_t * thread, pthread_attr_t * attr, void * (*start_routine)(void *), void * arg);
 
 #ifdef __cplusplus
 }

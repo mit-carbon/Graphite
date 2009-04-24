@@ -300,8 +300,9 @@ core_id_t CoreManager::registerSimMemThread()
          if (core_to_simthread_tid_map[i] == UINT_MAX)
          {
             core_to_simthread_tid_map[i] = tid;
-            simthread_tid_to_core_map.insert(tid, i);
-            return Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+            core_id_t core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
+            simthread_tid_to_core_map.insert(tid, core_id);
+            return core_id;
          }
       }
 

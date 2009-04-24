@@ -38,7 +38,7 @@ Simulator::Simulator()
    , m_lcp(NULL)
    , m_lcp_thread(NULL)
    , m_config()
-   , m_log(m_config.getTotalCores())
+   , m_log(m_config)
    , m_transport(NULL)
    , m_core_manager(NULL)
    , m_thread_manager(NULL)
@@ -65,6 +65,8 @@ void Simulator::start()
    m_lcp = new LCP();
    m_lcp_thread = Thread::create(m_lcp);
    m_lcp_thread->run();
+
+   m_transport->barrier();
 }
 
 Simulator::~Simulator()

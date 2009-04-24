@@ -31,10 +31,14 @@ int main(int argc, char* argv[])  // main begins
       fprintf(stdout, "Spawning thread %d\n", i);
 
       for(unsigned int j = 0; j < numThreads; j++)
+      {
           threads[j] = CarbonSpawnThread(thread_func, (void *) (j + 1));
+      }
 
       for(unsigned int j = 0; j < numThreads; j++)
+      {
           CarbonJoinThread(threads[j]);
+      }
    }
 
    fprintf(stdout, "UserApplication: About to call carbon finish!\n");
@@ -45,7 +49,7 @@ int main(int argc, char* argv[])  // main begins
 
 void* thread_func(void *threadid)
 {
-   fprintf(stderr, "Spawned this thread\n");
+   fprintf(stdout, "Spawned this thread\n");
    return NULL;
 }
 

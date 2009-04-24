@@ -16,6 +16,8 @@ void CarbonGetThreadSpawnReq (ThreadSpawnRequest *req);
 int CarbonPthreadCreate(pthread_t *tid, int *attr, thread_func_t func, void *arg);
 int CarbonPthreadJoin(pthread_t tid, void **pparg);
 
+void CarbonThreadSpawnerSpawnThread(ThreadSpawnRequest *req);
+
 #ifdef __cplusplus
 }
 #endif

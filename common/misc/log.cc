@@ -11,38 +11,25 @@ using namespace std;
 
 Log *Log::_singleton;
 
-Log::Log(UInt32 coreCount)
-      : _coreCount(coreCount)
-      , _startTime(0)
+Log::Log(Config &config)
+   : _coreCount(config.getTotalCores())
+   , _startTime(0)
 {
-   char filename[256];
-
-   _coreFiles = new FILE* [2 * _coreCount];
-   for (UInt32 i = 0; i < _coreCount; i++)
-   {
-      sprintf(filename, "output_files/app_%u", i);
-      _coreFiles[i] = fopen(filename, "w");
-      assert(_coreFiles[i] != NULL);
-   }
-   for (UInt32 i = _coreCount; i < 2 * _coreCount; i++)
-   {
-      sprintf(filename, "output_files/sim_%u", i-_coreCount);
-      _coreFiles[i] = fopen(filename, "w");
-      assert(_coreFiles[i] != NULL);
-   }
-
-   _coreLocks = new Lock [2 * _coreCount];
-
    assert(Config::getSingleton()->getProcessCount() != 0);
 
-   _systemFiles = new FILE* [Config::getSingleton()->getProcessCount()];
-   _systemLocks = new Lock [Config::getSingleton()->getProcessCount()];
-   for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
+   _coreFiles = new FILE* [_coreCount];
+   _simFiles = new FILE* [_coreCount];
+
+   for (core_id_t i = 0; i < _coreCount; i++)
    {
-      sprintf(filename, "output_files/system_%u", i);
-      _systemFiles[i] = fopen(filename, "w");
-      assert(_systemFiles[i] != NULL);
+      _coreFiles[i] = NULL;
+      _simFiles[i] = NULL;
    }
+
+   _coreLocks = new Lock [_coreCount];
+   _simLocks = new Lock [_coreCount];
+
+   _systemFile = NULL;
 
    _defaultFile = fopen("output_files/system-default","w");
 
@@ -57,21 +44,21 @@ Log::~Log()
 {
    _singleton = NULL;
 
-   for (UInt32 i = 0; i < 2 * _coreCount; i++)
+   for (core_id_t i = 0; i < _coreCount; i++)
    {
-      fclose(_coreFiles[i]);
+      if (_coreFiles[i])
+         fclose(_coreFiles[i]);
+      if (_simFiles[i])
+         fclose(_simFiles[i]);
    }
 
    delete [] _coreLocks;
+   delete [] _simLocks;
    delete [] _coreFiles;
+   delete [] _simFiles;
 
-   for (UInt32 i = 0; i < Config::getSingleton()->getProcessCount(); i++)
-   {
-      fclose(_systemFiles[i]);
-   }
-
-   delete [] _systemFiles;
-
+   if (_systemFile)
+      fclose(_systemFile);
    fclose(_defaultFile);
 }
 
@@ -94,6 +81,7 @@ UInt64 Log::getTimestamp()
    if (_startTime == 0) _startTime = time;
    return time - _startTime;
 }
+
 void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 {
    CoreManager *core_manager;
@@ -121,17 +109,30 @@ void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 
 void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
 {
+   // we use on-demand file allocation to prevent contention between
+   // processes for files
+
    *file = NULL;
    *lock = NULL;
 
    if (core_id == INVALID_CORE_ID)
    {
       // System file -- use process num if available
-      if (Config::getSingleton()->getCurrentProcessNum() != (UInt32) -1)
+      UInt32 procNum = Config::getSingleton()->getCurrentProcessNum();
+      
+      if (procNum != (UInt32)-1)
       {
-         assert(Config::getSingleton()->getCurrentProcessNum() < Config::getSingleton()->getProcessCount());
-         *file = _systemFiles[Config::getSingleton()->getCurrentProcessNum()];
-         *lock = &_systemLocks[Config::getSingleton()->getCurrentProcessNum()];
+         if (_systemFile == NULL)
+         {
+            assert(procNum < Config::getSingleton()->getProcessCount());
+            char filename[256];
+            sprintf(filename, "output_files/system_%u", procNum);
+            _systemFile = fopen(filename, "w");
+            assert(_systemFile != NULL);
+         }
+
+         *file = _systemFile;
+         *lock = &_systemLock;
       }
       else
       {
@@ -139,12 +140,36 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
          *lock = &_defaultLock;
       }
    }
+   else if (sim_thread)
+   {
+      // sim thread file
+      if (_simFiles[core_id] == NULL)
+      {
+         assert(core_id < _coreCount);
+         char filename[256];
+         sprintf(filename, "output_files/sim_%u", core_id);
+         _simFiles[core_id] = fopen(filename, "w");
+         assert(_simFiles[core_id] != NULL);
+      }
+
+      *file = _simFiles[core_id];
+      *lock = &_simLocks[core_id];
+   }
    else
    {
+      // core file
+      if (_coreFiles[core_id] == NULL)
+      {
+         assert(core_id < _coreCount);
+         char filename[256];
+         sprintf(filename, "output_files/app_%u", core_id);
+         _coreFiles[core_id] = fopen(filename, "w");
+         assert(_coreFiles[core_id] != NULL);
+      }
+
       // Core file
-      UInt32 fileID = core_id + (sim_thread ? _coreCount : 0);
-      *file = _coreFiles[fileID];
-      *lock = &_coreLocks[fileID];
+      *file = _coreFiles[core_id];
+      *lock = &_coreLocks[core_id];
    }
 }
 

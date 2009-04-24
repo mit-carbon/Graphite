@@ -64,9 +64,9 @@ CFLAGS = $(CXXFLAGS) -std=c99
 
 # Build pin_sim.so as necessary
 LIB_CARBON=$(SIM_ROOT)/lib/libcarbon_sim.a
-LIB_PIN_SIM=$(SIM_ROOT)/pin/../lib/pin_sim.so
-LIB_DEPENDENCIES = $(LIB_CARBON)
-# LIB_DEPENDENCIES = $(LIB_CARBON) $(if $(findstring pin,$(MODE)),$(LIB_PIN_SIM))
+LIB_PIN_SIM=$(SIM_ROOT)/lib/pin_sim.so
+LIB_DEPENDENCIES = $(LIB_CARBON) $(if $(findstring pin,$(MODE)),$(LIB_PIN_SIM))
+.PHONY: $(LIB_CARBON) $(LIB_PIN_SIM)
 
 .SUFFIXES:  .o .c .h .cc
 

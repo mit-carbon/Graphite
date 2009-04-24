@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <sched.h>
 #include <pthread.h>
 #include "simulator.h"
 #include "thread_manager.h"
@@ -90,21 +91,7 @@ void *CarbonThreadSpawner(void *p)
 
       if(req.func)
       {
-         pthread_t thread;
-         pthread_attr_t attr;
-         pthread_attr_init(&attr);
-
-         // Set the Stack right
-         pthread_attr_setstack(&attr, stack_attr.base, stack_attr.size);
-
-         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-         // when using pin, create_pthread will not get intercepted but
-         // will actually spawn a thread within the current process. 
-         // Likewise, when NOT using pin create_pthread = pthread_create
-         // The simple wrapper just lets us use the same naming convention
-         // within the user app.
-         create_pthread(&thread, &attr, CarbonSpawnManagedThread, NULL);
+         CarbonThreadSpawnerSpawnThread(req);
       }
       else
       {
@@ -112,6 +99,15 @@ void *CarbonThreadSpawner(void *p)
       }
    }
    return NULL;
+}
+
+void CarbonThreadSpawnerSpawnThread(ThreadSpawnRequest *req)
+{
+   pthread_t thread;
+   pthread_attr_t attr;
+   pthread_attr_init(&attr);
+   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+   pthread_create(&thread, &attr, CarbonSpawnManagedThread, req);
 }
 
 // This function spawns the thread spawner
@@ -123,7 +119,6 @@ int CarbonSpawnThreadSpawner()
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-   create_pthread(&thread, &attr, CarbonThreadSpawner, NULL);
+   pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
    return 0;
 }
-

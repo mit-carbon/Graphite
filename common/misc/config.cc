@@ -147,9 +147,9 @@ void Config::logCoreMap()
    }
 }
 
-SInt32 getCoreIndexInProcess(core_id_t core_id)
+SInt32 getIndexFromCoreId(UInt32 proc_num, core_id_t core_id)
 { 
-   CoreList core_list = getCoreListForProcess(m_current_process_num);
+   CoreList core_list = getCoreListForProcess(proc_num);
    for (SInt32 i = 0; i < core_list.size(); i++)
    {
       if (core_list[i] == core_id)
@@ -158,7 +158,18 @@ SInt32 getCoreIndexInProcess(core_id_t core_id)
    return -1;
 }
 
-
+core_id_t getCoreIdFromIndex(UInt32 proc_num, SInt32 index)
+{
+   CoreList core_list = getCoreListForProcess(proc_num);
+   if (index < core_list.size())
+   {
+      return core_list[index];
+   }
+   else
+   {
+      return -1;
+   }
+}
 
 // Parse XML config file and use it to fill in config state.  Only modifies
 // fields specified in the config file.  Therefore, this method can be used

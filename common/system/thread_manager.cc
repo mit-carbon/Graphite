@@ -68,7 +68,7 @@ ThreadManager::~ThreadManager()
 // }
 
 
-void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req)
+void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req, StackAttributes *stack_attr)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core != NULL);
@@ -91,38 +91,37 @@ void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req)
    free (thread_req);
 
    m_thread_req_map_lock.release();
-}
 
-void ThreadManager::getStackAttributesForCore (StackAttributes *stack_attr, core_id_t core_id)
-{
+   // Get the stack attributes
    SInt32 core_index = Config::getSingleton()->getCoreIndexInProcess(core_id);
    LOG_ASSERT_ERROR (core_index != -1, "Core %i does not belong to Process %i", 
          core_id, Config::getSingleton()->getCurrentProcessNum());
 
-   IntPtr curr_stack_base = Config::getSingleton()->getStackBase();
+   IntPtr stack_base = Config::getSingleton()->getStackBase();
    UInt32 stack_size_per_core = Config::getSingleton()->getStackSizePerCore();
 
-   stack_attr->base = curr_stack_base + (core_index * stack_size_per_core);
+   StackAttributes loc_stack_attr;
+   stack_attr->base = stack_base + (core_index * stack_size_per_core);
    stack_attr->size = stack_size_per_core;
+
+   core->accessMemory (Core::NONE, WRITE, (IntPtr) stack_attr, (char*) &loc_stack_attr, sizeof(loc_stack_attr));
 }
 
-void ThreadManager::threadStart()
+void ThreadManager::threadStart(IntPtr reg_esp)
 {
-   ThreadSpawnRequest *req;
-   m_thread_spawn_lock.acquire();
-   
-   // This is the thread spawner getting spawned
-   if (m_thread_spawn_list.empty())
+   SInt32 core_index = getCoreIndexFromStackPtr(reg_esp);
+
+   if (core_index == -1)
    {
-      m_thread_spawn_lock.release();
+      // This is not an application thread
+      // Must be the 'Thread Spawner'
       return;
    }
-   
-   req = m_thread_spawn_list.front();
-   m_thread_spawn_list.pop();
-   m_thread_spawn_lock.release();
 
-   m_core_manager->initializeThread (req->core_id);
+   core_id_t core_id = Config::getSingleton()->getCoreIdFromIndex(Config::getSingleton()->getCurrentProcessNum(), core_index);
+   LOG_ASSERT_ERROR(core_id != -1, "Found no core with index %i in process %u", core_index, Config::getSingleton()->getCurrentProcessNum());
+
+   m_core_manager->initializeThread (core_id);
 
    // Send ack to master
    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();

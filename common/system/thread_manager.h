@@ -28,7 +28,20 @@ public:
    void getThreadSpawnReq (ThreadSpawnRequest *req);
 
    // TODO: Move this to somewhere better
-   void getStackAttributesForCore(StackAttributes* stack_attr, core_id_t core_id);
+   SInt32 getCoreIndexFromStackPtr(IntPtr stack_ptr)
+   {
+      IntPtr stack_base = Config::getSingleton()->getStackBase();
+      UInt32 stack_size_per_core = Config::getSingleton()->getStackSizePerCore();
+      UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
+      IntPtr stack_limit = stack_base + stack_size_per_core * num_local_cores;
+
+      if ( (stack_ptr < stack_base) || (stack_ptr > stack_limit) )
+      {
+         return -1;
+      }     
+      
+      return (SInt32) ((stack_ptr - stack_base) / stack_size_per_core);
+   }
 
    // // events
    // void onThreadStart(ThreadSpawnRequest *req);

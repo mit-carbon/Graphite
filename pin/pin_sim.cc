@@ -55,10 +55,7 @@ INT32 usage()
 void routineCallback(RTN rtn, void *v)
 {
    string rtn_name = RTN_Name(rtn);
-<<<<<<< HEAD:pin/pin_sim.cc
-
-   bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
-=======
+   
    replaceUserAPIFunction(rtn, rtn_name);
    
    // TODO:
@@ -74,7 +71,6 @@ void instructionCallback (INS ins, void *v)
 {
    // Emulate stack operations
    bool stack_op = rewriteStackOp (ins);
->>>>>>> origin/memory_redirect:pin/pin_sim.cc
 
    // Else, redirect memory to the simulated memory system
    if (!stack_op)
@@ -139,42 +135,6 @@ void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
 
 }
 
-int CarbonMain(CONTEXT *ctx, AFUNPTR fp_main, int argc, char *argv[])
-{
-   ApplicationStart();
-   
-   SimSpawnThreadSpawner(ctx, fp_main);
-
-   if (Config::getSingleton()->getCurrentProcessNum() == 0)
-   {
-      LOG_PRINT("Calling main()...");
-
-      Sim()->getCoreManager()->initializeThread(0);
-
-      // call main()
-      int res;
-      PIN_CallApplicationFunction(ctx,
-                                  PIN_ThreadId(),
-                                  CALLINGSTD_DEFAULT,
-                                  fp_main,
-                                  PIN_PARG(int), &res,
-                                  PIN_PARG(int), argc,
-                                  PIN_PARG(char**), argv,
-                                  PIN_PARG_END());
-   }
-   else
-   {
-      LOG_PRINT("Waiting for main process to finish...");
-      while (!Sim()->finished())
-         usleep(100);
-      LOG_PRINT("Finished!");
-   }
-
-   LOG_PRINT("Leaving CarbonMain...");
-
-   return 0;
-}
-
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
    UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
@@ -197,7 +157,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             PIN_PARG(int), &res,
             PIN_PARG_END());
       
-      assert(res == 0);
+      LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
 
       allocateStackSpace();
 

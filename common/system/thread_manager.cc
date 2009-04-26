@@ -68,7 +68,7 @@ ThreadManager::~ThreadManager()
 // }
 
 
-void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req, StackAttributes *stack_attr)
+void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core != NULL);
@@ -91,20 +91,6 @@ void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req, StackAttributes 
    free (thread_req);
 
    m_thread_req_map_lock.release();
-
-   // Get the stack attributes
-   SInt32 core_index = Config::getSingleton()->getCoreIndexInProcess(core_id);
-   LOG_ASSERT_ERROR (core_index != -1, "Core %i does not belong to Process %i", 
-         core_id, Config::getSingleton()->getCurrentProcessNum());
-
-   IntPtr stack_base = Config::getSingleton()->getStackBase();
-   UInt32 stack_size_per_core = Config::getSingleton()->getStackSizePerCore();
-
-   StackAttributes loc_stack_attr;
-   stack_attr->base = stack_base + (core_index * stack_size_per_core);
-   stack_attr->size = stack_size_per_core;
-
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) stack_attr, (char*) &loc_stack_attr, sizeof(loc_stack_attr));
 }
 
 void ThreadManager::threadStart(IntPtr reg_esp)
@@ -263,19 +249,17 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
    
    // Grab the request and set the argument
    m_thread_spawn_lock.acquire();
-   req = m_thread_spawn_list.back();
+   req = m_thread_spawn_list.front();
    
-   // Core *core = Sim()->getCoreManager()->getCurrentCore();
-   // assert (core != NULL);
-   // // The pointer req lives in userland and therefore
-   // // we should use accessMemory to copy data to userland
-   // // address space
-   // core->accessMemory (Core::NONE, WRITE, (IntPtr) req, (char*) thread_req, sizeof (*thread_req));
- 
    // The thread spawner executes in the host address-space in this scheme
    m_thread_spawn_lock.release();
 
    LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", req->func, req->arg);
+}
+
+ThreadSpawnRequest* ThreadManager::getThreadSpawnRequest()
+{
+   return (m_thread_spawn_list.front());
 }
 
 

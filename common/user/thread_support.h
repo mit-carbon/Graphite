@@ -23,12 +23,6 @@ typedef struct
    core_id_t core_id;
 } ThreadJoinRequest;
 
-typedef struct
-{
-   IntPtr base;
-   UInt32 size;
-} StackAttributes;
-
 #ifdef __cplusplus
 extern "C" {
 #endif

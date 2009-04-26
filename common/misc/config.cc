@@ -93,25 +93,6 @@ Config::~Config()
    delete [] m_proc_to_core_list_map;
 }
 
-void Config::getStackLimits()
-{
-   UInt32 global_stack_base = (UInt32) Sim()->getCfg()->getInt("stack/stack_base");
-   UInt32 global_stack_size = (UInt32) Sim()->getCfg->getInt("stack/stack_size");
-
-   // It might be easier to just pass in 'm_stack_size_per_core' rather than 'global_stack_size'
-   // We dont need a stack for the MCP
-   m_stack_size_per_core = global_stack_size / (m_total_cores - 1);
-   
-   // To calculate our stack base, we need to get the total number of cores
-   // allocated to processes that have ids' lower than me
-   UInt32 num_cores = 0;
-   for (SInt32 i = 0; i < m_current_process_num; i++)
-   {
-      num_cores += getNumCoresInProcess(i);
-   }
-   
-   m_stack_base = global_stack_base + num_cores * m_stack_size_per_core; 
-}
 
 void Config::GenerateCoreMap()
 {
@@ -147,7 +128,7 @@ void Config::logCoreMap()
    }
 }
 
-SInt32 getIndexFromCoreId(UInt32 proc_num, core_id_t core_id)
+SInt32 Config::getIndexFromCoreID(UInt32 proc_num, core_id_t core_id)
 { 
    CoreList core_list = getCoreListForProcess(proc_num);
    for (SInt32 i = 0; i < core_list.size(); i++)
@@ -158,7 +139,7 @@ SInt32 getIndexFromCoreId(UInt32 proc_num, core_id_t core_id)
    return -1;
 }
 
-core_id_t getCoreIdFromIndex(UInt32 proc_num, SInt32 index)
+core_id_t Config::getCoreIDFromIndex(UInt32 proc_num, SInt32 index)
 {
    CoreList core_list = getCoreListForProcess(proc_num);
    if (index < core_list.size())

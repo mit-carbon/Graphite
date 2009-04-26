@@ -81,17 +81,21 @@ void *CarbonSpawnManagedThread(void *p)
 // This function will spawn threads provided by the sim
 void *CarbonThreadSpawner(void *p)
 {
+   // NOTE: Since this thread is not assigned a core ID, all access to memory
+   // go to host memory
    while(1)
    {
       ThreadSpawnRequest req;
-      StackAttributes stack_attr;
       
       // Wait for a spawn request
-      CarbonGetThreadToSpawn(&req, &stack_attr);
+      CarbonGetThreadToSpawn(&req);
 
       if(req.func)
       {
-         CarbonThreadSpawnerSpawnThread(req);
+         pthread_t thread;
+         pthread_attr_t attr;
+         CarbonPthreadAttrInit(&attr);
+         pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
       }
       else
       {
@@ -110,15 +114,10 @@ void CarbonThreadSpawnerSpawnThread(ThreadSpawnRequest *req)
    pthread_create(&thread, &attr, CarbonSpawnManagedThread, req);
 }
 
-// This function spawns the thread spawner
-int CarbonSpawnThreadSpawner()
+// This function initialized the pthread attributes
+// Gets replaced while running with Pin
+void CarbonPthreadAttrInit(pthread_attr_t *attr)
 {
-   setvbuf( stdout, NULL, _IONBF, 0 );
-
-   pthread_t thread;
-   pthread_attr_t attr;
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-   pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
-   return 0;
+   pthread_attr_init(attr);
+   pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
 }

@@ -53,15 +53,20 @@ void CarbonGetThreadSpawnReq (ThreadSpawnRequest *req)
 // Won't need these two funcs in the new scheme
 // ---------------------------------------------
 
-// void CarbonThreadStart(ThreadSpawnRequest *req)
-// {
-//    Sim()->getThreadManager()->onThreadStart(req);
-// }
-// 
-// void CarbonThreadExit()
-// {
-//    Sim()->getThreadManager()->onThreadExit();
-// }
+void CarbonThreadStart(ThreadSpawnRequest *req)
+{
+   // Remember to fix thread start
+   assert (false);
+   Sim()->getThreadManager()->onThreadStart(req);
+}
+
+void CarbonThreadExit()
+{
+   // TODO:
+   // Remember to fix thread exit
+   assert (false);
+   Sim()->getThreadManager()->onThreadExit();
+}
 
 void *CarbonSpawnManagedThread(void *p)
 {
@@ -69,11 +74,11 @@ void *CarbonSpawnManagedThread(void *p)
 
    CarbonGetThreadSpawnReq (&thread_info);
 
-   // CarbonThreadStart(thread_info);
+   CarbonThreadStart(thread_info);
 
    thread_info.func(thread_info.arg);
 
-   // CarbonThreadExit();
+   CarbonThreadExit();
    
    return NULL;
 }

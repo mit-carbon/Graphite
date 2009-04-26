@@ -136,15 +136,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          LOG_PRINT ("Unhandled syscall %d", syscall_number);
       }
    }
-   else
-   {
-      if (syscall_number == SYS_clone)
-      {
-         // TODO:
-         // Thread stack copying stuff
-         assert (false);
-      }
-   }
 }
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
@@ -201,15 +192,6 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       {
          // TODO:
          // More memory manager magic
-         assert (false);
-      }
-   }
-   else
-   {
-      if (syscall_number == SYS_clone)
-      {
-         // TODO:
-         // Thread stack copying stuff
          assert (false);
       }
    }

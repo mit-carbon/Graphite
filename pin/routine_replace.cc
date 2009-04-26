@@ -70,18 +70,12 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    AFUNPTR msg_ptr = NULL;
    PROTO proto = NULL;
 
-   // TODO:
-   //
-   // ---------------------------------------------------------------
-   // Need to do something about PIN_CallApplicationFunction
-   // ---------------------------------------------------------------
-   assert (false);
-
    // thread management
    if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(replacementGetThreadToSpawn);
-   else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR (replacementThreadStart);
-   else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR (replacementThreadExit);
+   else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR (replacementThreadStartNull);
+   else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR (replacementThreadExitNull);
    else if (name == "CarbonGetCoreId") msg_ptr = AFUNPTR(replacementGetCoreId);
+   else if (name = "CarbonDequeueThreadSpawnReq") msg_ptr = AFUNPTR (replacementDequeueThreadSpawnRequest);
 
    // Carbon API
 
@@ -203,30 +197,15 @@ void replacementGetThreadToSpawn (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementThreadStart (CONTEXT *ctxt)
+void replacementThreadStartNull (CONTEXT *ctxt)
 {
-   // CarbonThreadStart is only called by cores
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core);
-
-   ThreadSpawnRequest *req;
-   ThreadSpawnRequest req_buf;
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &req,
-         IARG_END);
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   CarbonThreadStart (&req_buf);
-
-   core-accessMemory (CORE:NONE, WRITE, (IntPtr) req, (char*) &req_buf, sizeof (ThreadSpawnRequest));
-
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementThreadExit (CONTEXT *ctxt)
+void replacementThreadExitNull (CONTEXT *ctxt)
 {
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   CarbonThreadExit ();
-
    retFromReplacedRtn (ctxt, ret_val);
 }
 
@@ -237,6 +216,31 @@ void replacementGetCoreId (CONTEXT *ctxt)
 
    retFromReplacedRtn (ctxt, ret_val);
 }
+
+
+void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert (core);
+
+   ThreadSpawnRequest *thread_req;
+   ThreadSpawnRequest thread_req_buf;
+   
+   initialize_replacement_args (ctxt,
+         IARG_PTR, &thread_req,
+         IARG_END);
+   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
+   
+   CarbonDequeueThreadSpawnReq (&thread_req_buf);
+
+   core->accessMemory (CORE::NONE, WRITE, (IntPtr) thread_req, (char*) &thread_req_buf, sizeof (ThreadSpawnRequest));
+
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+
+   
+
 
 void replacementStartSimNull (CONTEXT *ctxt)
 {

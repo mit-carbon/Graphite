@@ -34,24 +34,26 @@ void PinConfig::setStackBoundaries()
 // Get Core ID from stack pointer
 core_id_t PinConfig::getCoreIDFromStackPtr(IntPtr stack_ptr)
 {
-   if ( (stack_ptr < m_stack_base) || (stack_ptr > m_stack_limit) )
+   if ( (stack_ptr < m_stack_lower_limit) || (stack_ptr > m_stack_upper_limit) )
    {
       return -1;
    }     
   
-   SInt32 core_index = (SInt32) ((stack_ptr - m_stack_base) / m_stack_size_per_core);
+   SInt32 core_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / m_stack_size_per_core);
 
-   return (getCoreIdFromIndex(m_current_process_num, core_index));
+   return (Config::getSingleton()->getCoreIDFromIndex(m_current_process_num, core_index));
 }
 
 SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr)
 {
    // Get the stack attributes
-   SInt32 core_index = Config::getSingleton()->getCoreIdFromIndex(m_current_process_num, core_id);
+   SInt32 core_index = Config::getSingleton()->getIndexFromCoreID(m_current_process_num, core_id);
    LOG_ASSERT_ERROR (core_index != -1, "Core %i does not belong to Process %i", 
          core_id, Config::getSingleton()->getCurrentProcessNum());
 
    stack_attr.base = m_stack_base + (core_index * m_stack_size_per_core);
    stack_attr.size = m_stack_size_per_core;
+
+   return 0;
 }
 

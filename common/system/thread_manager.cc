@@ -44,17 +44,17 @@ ThreadManager::~ThreadManager()
    }
 }
 
-// void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
-// {
-//    m_core_manager->initializeThread(req->core_id);
-// 
-//    // send ack to master
-//    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-//    req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
-//    globalNode->globalSend(0, req, sizeof(*req));
-// 
-//    free(req);
-// }
+void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
+{
+   m_core_manager->initializeThread(req->core_id);
+ 
+   // send ack to master
+   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
+   globalNode->globalSend(0, req, sizeof(*req));
+ 
+   LOG_PRINT ("core id %d assigned to thread", req->core_id);
+}
 // 
 // void ThreadManager::onThreadExit()
 // {
@@ -68,52 +68,19 @@ ThreadManager::~ThreadManager()
 // }
 
 
-void ThreadManager::getThreadSpawnReq (ThreadSpawnRequest *req)
+void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core != NULL);
 
-   core_id_t core_id = core->getId();
-   assert (core_id != INVALID_CORE_ID);
+   ThreadSpawnRequest *thread_req = m_thread_spawn_list.front();
 
-   m_thread_req_map_lock.acquire();
-   
-   map <core_id_t, ThreadSpawnRequest*>::iterator it;
-   it = m_thread_req_map. find (core_id);
-   assert (it != m_thread_req_map.end());
-   ThreadSpawnRequest *thread_req = it->second;
+   *req = *thread_req;
 
-   // req lives in user-space while thread_req is in 
-   // pin-space. The data should therefore be copied over
-   // using accessMemory
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) req, (char*) thread_req, sizeof (*thread_req));
+   m_thread_spawn_list.pop();
+   m_thread_spawn_lock.release();
 
    free (thread_req);
-
-   m_thread_req_map_lock.release();
-}
-
-void ThreadManager::threadStart(IntPtr reg_esp)
-{
-   SInt32 core_index = getCoreIndexFromStackPtr(reg_esp);
-
-   if (core_index == -1)
-   {
-      // This is not an application thread
-      // Must be the 'Thread Spawner'
-      return;
-   }
-
-   core_id_t core_id = Config::getSingleton()->getCoreIdFromIndex(Config::getSingleton()->getCurrentProcessNum(), core_index);
-   LOG_ASSERT_ERROR(core_id != -1, "Found no core with index %i in process %u", core_index, Config::getSingleton()->getCurrentProcessNum());
-
-   m_core_manager->initializeThread (core_id);
-
-   // Send ack to master
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
-   globalNode->globalSend (0, req, sizeof (*req));
-   LOG_PRINT ("core id %d assigned to thread", req->core_id);
 }
 
 void ThreadManager::threadFini()
@@ -248,12 +215,10 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
    m_thread_spawn_sem.wait();
    
    // Grab the request and set the argument
+   // The lock is released by the spawned thread
    m_thread_spawn_lock.acquire();
    req = m_thread_spawn_list.front();
    
-   // The thread spawner executes in the host address-space in this scheme
-   m_thread_spawn_lock.release();
-
    LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", req->func, req->arg);
 }
 

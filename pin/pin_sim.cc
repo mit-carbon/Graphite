@@ -114,6 +114,7 @@ void ApplicationExit(int, void*)
    delete cfg;
 }
 
+
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
    UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
@@ -128,15 +129,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
    if (! done_app_initialization)
    {
       // This is the main thread
-      int res;
-      PIN_CallApplicationFunction(ctxt,
-            PIN_ThreadId(),
-            CALLINGSTD_DEFAULT,
-            AFUNPTR(CarbonSpawnThreadSpawner),
-            PIN_PARG(int), &res,
-            PIN_PARG_END());
-      
-      LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
+      spawnThreadSpawner(ctxt);
 
       allocateStackSpace();
 
@@ -172,8 +165,23 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
    else
    {
       // This is NOT the main thread
-      // Maybe 'application' thread or 'thread spawner'
-      Sim()->getThreadManager()->threadStart();
+      // 'application' thread or 'thread spawner'
+
+      core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
+      if (core_id != -1)
+      {
+         // 'Application' thread
+         ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnRequest();
+         
+         LOG_ASSERT_ERROR(core_id != req->core_id, "Got 2 different core_ids': 
+         req->core_id = %i, core_id = %i", req->core_id, core_id);
+
+         Sim()->getThreadManager()->onThreadStart(req);
+
+         // Copy stuff that 'thread spawner' put on the stack from host address space
+         // to simulated address space
+         copySpawnedThreadStackData();
+      }
    }
 }
 

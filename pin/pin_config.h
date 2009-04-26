@@ -7,13 +7,15 @@ public:
    class StackAttributes
    {
    public:
-      IntPtr base;
+      IntPtr lower_limit;
       UInt32 size;
    };
 
    // Since Pin messes with stack, we need to handle that separately
-   UInt32 getStackBase() const
-   { return m_stack_base; }
+   UInt32 getStackLowerLimit() const
+   { return m_stack_lower_limit; }
+   UInt32 getStackUpperLimit() const
+   { return m_stack_upper_limit; }
    UInt32 getStackSizePerCore() const
    { return m_stack_size_per_core; }
 
@@ -23,9 +25,9 @@ private:
    static UInt32 m_total_cores;
    static UInt32 m_num_local_cores;
    
-   static IntPtr m_stack_base;
+   static IntPtr m_stack_lower_limit;
    static UInt32 m_stack_size_per_core;
-   static IntPtr m_stack_limit;
+   static IntPtr m_stack_upper_limit;
 
    void setStackBoundaries();
 };

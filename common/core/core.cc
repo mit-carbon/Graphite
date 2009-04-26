@@ -217,9 +217,37 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
       return (num_misses);
    }
+   
+   else
+   {   
+      if (data_size <= 0)
+      {
+         return 0;
+      }
 
-   // FIXME: Do something when I dont enable shared memory (-msm)
-   return (0);
+      if (lock_signal == Core::LOCK)
+      {
+         assert(shmem_req_type == READ_EX);
+         m_global_core_lock.acquire();
+      }
+      
+      if ( (shmem_req_type == READ) || (shmem_req_type == READ_EX) )
+      {
+         memcpy ((void*) data_buffer, (void*) d_addr, (size_t) data_size);
+      }
+      else if (shmem_req_type == WRITE)
+      {
+         memcpy ((void*) d_addr, (void*) data_buffer, (size_t) data_size);
+      }
+
+      if (lock_signal == Core::UNLOCK)
+      {
+         assert(shmem_req_type == WRITE);
+         m_global_core_lock.release();
+      }
+
+      return 0;
+   }
 
 #endif
 }

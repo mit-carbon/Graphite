@@ -25,7 +25,7 @@ public:
    void joinThread(core_id_t core_id);
 
    void getThreadToSpawn(ThreadSpawnRequest *req);
-   void getThreadSpawnReq (ThreadSpawnRequest *req);
+   void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
    // // events
    // void onThreadStart(ThreadSpawnRequest *req);
@@ -65,9 +65,6 @@ private:
    std::queue<ThreadSpawnRequest*> m_thread_spawn_list;
    Semaphore m_thread_spawn_sem;
    Lock m_thread_spawn_lock;
-
-   std::map<core_id_t, ThreadSpawnRequest*> m_thread_req_map;
-   Lock m_thread_req_map_lock;
 
    CoreManager *m_core_manager;
 };

@@ -1,5 +1,32 @@
 #include <elf.h>
 
+int spawnThreadSpawner(CONTEXT *ctxt)
+{
+   int res;
+
+   ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+
+   PIN_LockClient();
+   
+   AFUNPTR thread_spawner;
+   IMG img = IMG_FindByAddress(reg_eip);
+   RTN rtn = RTN_FindByName(img, "CarbonSpawnThreadSpawner");
+   thread_spawner = RTN_Funptr(rtn);
+
+   PIN_UnlockClient();
+   
+   PIN_CallApplicationFunction(ctxt,
+            PIN_ThreadId(),
+            CALLINGSTD_DEFAULT,
+            thread_spawner,
+            PIN_PARG(int), &res,
+            PIN_PARG_END());
+      
+   LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
+
+   return res;
+}
+
 VOID copyStaticData(IMG& img)
 {
    Core* core = Sim()->getCoreManager()->getCurrentCore();
@@ -101,6 +128,23 @@ VOID copyInitialStackData(ADDRINT reg_esp)
 
 }
 
+VOID copySpawnedThreadStackData(ADDRINT reg_esp)
+{
+   core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
+
+   StackAttributes stack_attr;
+   PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
+
+   ADDRINT stack_upper_limit = stack_attr.lower_limit + stack_attr.size;
+   
+   UInt32 num_bytes_to_copy = (UInt32) (stack_upper_limit - reg_esp);
+
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+
+   core->accessMemory(Core::NONE, WRITE, reg_esp, (char*) reg_esp, num_bytes_to_copy);
+
+}
+
 VOID allocateStackSpace()
 {
    // Note that 1 core = 1 thread currently
@@ -115,6 +159,6 @@ VOID allocateStackSpace()
    // mmap() the total amount of memory needed for the stacks
    assert(mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) == 0);
   
-   // TODO: From our memory manager, mark this space as taken
+   // TODO: From our memory manager, mark this space as taken - Implement mmap() and brk()
 }
 

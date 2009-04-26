@@ -46,8 +46,6 @@ void CarbonGetThreadToSpawn(ThreadSpawnRequest *req)
 
 void CarbonThreadStart(ThreadSpawnRequest *req)
 {
-   // Remember to fix thread start
-   assert (false);
    Sim()->getThreadManager()->onThreadStart(req);
 }
 
@@ -71,7 +69,7 @@ void *CarbonSpawnManagedThread(void *p)
 
    CarbonDequeueThreadSpawnReq (&thread_req);
 
-   CarbonThreadStart(thread_req);
+   CarbonThreadStart(&thread_req);
 
    thread_req.func(thread_req.arg);
 
@@ -97,8 +95,13 @@ void *CarbonThreadSpawner(void *p)
          pthread_t thread;
          pthread_attr_t attr;
          pthread_attr_init(&attr);
-         pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
-         CarbonPthreadAttrInitOtherAttr(&attr);
+         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        
+         // TODO:
+         // HARSHAD:
+         // Jorge, Clean up your shit here...
+         //CarbonPthreadAttrInitOtherAttr(&attr);
+         assert (false);
          pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
       }
       else

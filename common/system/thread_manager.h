@@ -25,15 +25,16 @@ public:
    void joinThread(core_id_t core_id);
 
    void getThreadToSpawn(ThreadSpawnRequest *req);
+   ThreadSpawnRequest* getThreadSpawnReq();
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
    // // events
-   // void onThreadStart(ThreadSpawnRequest *req);
-   // void onThreadExit();
+   void onThreadStart(ThreadSpawnRequest *req);
+   void onThreadExit();
 
    // events
-   void threadStart ();
-   void threadFini ();
+   // void threadStart ();
+   // void threadFini ();
 
 private:
 

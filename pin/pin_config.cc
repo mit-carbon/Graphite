@@ -1,4 +1,24 @@
 #include "pin_config.h"
+#include "simulator.h"
+
+PinConfig *PinConfig::m_singleton = NULL;
+
+void PinConfig::allocate()
+{
+   assert (m_singleton == NULL);
+   m_singleton = new PinConfig();
+}
+
+void PinConfig::release()
+{
+   delete m_singleton;
+   m_singleton = NULL;
+}
+
+PinConfig *PinConfig::getSingleton()
+{
+   return m_singleton;
+}
 
 PinConfig::PinConfig()
 {
@@ -9,11 +29,15 @@ PinConfig::PinConfig()
    setStackBoundaries();
 }
 
+PinConfig::~PinConfig()
+{
+}
+
 // INIT function to set the stack limits
 void PinConfig::setStackBoundaries()
 {
-   UInt32 global_stack_base = (UInt32) Sim()->getCfg()->getInt("stack/stack_base");
-   UInt32 global_stack_size = (UInt32) Sim()->getCfg->getInt("stack/stack_size");
+   UInt32 global_stack_base = (UInt32) (Sim()->getCfg()->getInt("stack/stack_base"));
+   UInt32 global_stack_size = (UInt32) (Sim()->getCfg()->getInt("stack/stack_size"));
 
    // It might be easier to just pass in 'm_stack_size_per_core' rather than 'global_stack_size'
    // We dont need a stack for the MCP
@@ -22,13 +46,13 @@ void PinConfig::setStackBoundaries()
    // To calculate our stack base, we need to get the total number of cores
    // allocated to processes that have ids' lower than me
    UInt32 num_cores = 0;
-   for (SInt32 i = 0; i < m_current_process_num; i++)
+   for (SInt32 i = 0; i < (SInt32) m_current_process_num; i++)
    {
-      num_cores += getNumCoresInProcess(i);
+      num_cores += Sim()->getConfig()->getNumCoresInProcess(i);
    }
    
-   m_stack_base = global_stack_base + num_cores * m_stack_size_per_core;
-   m_stack_limit = m_stack_base + m_num_local_cores * m_stack_size_per_core;
+   m_stack_lower_limit = global_stack_base + num_cores * m_stack_size_per_core;
+   m_stack_upper_limit = m_stack_lower_limit + m_num_local_cores * m_stack_size_per_core;
 }
 
 // Get Core ID from stack pointer
@@ -51,7 +75,7 @@ SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttribut
    LOG_ASSERT_ERROR (core_index != -1, "Core %i does not belong to Process %i", 
          core_id, Config::getSingleton()->getCurrentProcessNum());
 
-   stack_attr.base = m_stack_base + (core_index * m_stack_size_per_core);
+   stack_attr.lower_limit = m_stack_lower_limit + (core_index * m_stack_size_per_core);
    stack_attr.size = m_stack_size_per_core;
 
    return 0;

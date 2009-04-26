@@ -12,6 +12,7 @@
 #include "core.h"
 #include "core_manager.h"
 #include "redirect_memory.h"
+#include "thread_spawn.h"
 // End Memory redirection stuff
 // --------------------------------------
 
@@ -94,10 +95,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CAPI_message_send_w") msg_ptr = AFUNPTR(replacement_CAPI_message_send_w);
    else if (name == "CAPI_message_receive_w") msg_ptr = AFUNPTR(replacement_CAPI_message_receive_w);
 
-   // TODO:
-   // Check the names of the replaced function
-   assert (false);
-
    // synchronization
    else if (name == "CarbonMutexInit") msg_ptr = AFUNPTR(replacementMutexInit);
    else if (name == "CarbonMutexLock") msg_ptr = AFUNPTR(replacementMutexLock);
@@ -113,7 +110,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 //   else if (name == "CarbonPthreadCreateWrapper") msg_ptr = AFUNPTR(replacementPthreadCreateWrapperReplacement);
 //   else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
 //   else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
-   else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitExceptNot);
+   else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
    // do replacement
    if (msg_ptr == AFUNPTR(CarbonPthreadCreateWrapperReplacement))
@@ -148,6 +145,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
             IARG_END);
 
       RTN_Close (rtn);
+
+      return true;
    }
    else
    {
@@ -237,7 +236,7 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
    
    CarbonDequeueThreadSpawnReq (&thread_req_buf);
 
-   core->accessMemory (CORE::NONE, WRITE, (IntPtr) thread_req, (char*) &thread_req_buf, sizeof (ThreadSpawnRequest));
+   core->accessMemory (Core::NONE, WRITE, (IntPtr) thread_req, (char*) &thread_req_buf, sizeof (ThreadSpawnRequest));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -537,7 +536,7 @@ void replacementCondSignal (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replaceCondBroadcast (CONTEXT *ctxt)
+void replacementCondBroadcast (CONTEXT *ctxt)
 {
    carbon_cond_t *cond;
    initialize_replacement_args (ctxt,
@@ -550,13 +549,13 @@ void replaceCondBroadcast (CONTEXT *ctxt)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
    core->accessMemory (Core::NONE, READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
-   SimCondBroadcast (&cond_buf);
+   CarbonCondBroadcast (&cond_buf);
    core->accessMemory (Core::NONE, WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replaceBarrierInit (CONTEXT *ctxt)
+void replacementBarrierInit (CONTEXT *ctxt)
 {
    carbon_barrier_t *barrier;
    UINT32 count;
@@ -571,13 +570,13 @@ void replaceBarrierInit (CONTEXT *ctxt)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
    core->accessMemory (Core::NONE, READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
-   SimBarrierInit (&barrier_buf, count);
+   CarbonBarrierInit (&barrier_buf, count);
    core->accessMemory (Core::NONE, WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replaceBarrierWait (CONTEXT *ctxt)
+void replacementBarrierWait (CONTEXT *ctxt)
 {
    carbon_barrier_t *barrier;
    initialize_replacement_args (ctxt,
@@ -590,9 +589,15 @@ void replaceBarrierWait (CONTEXT *ctxt)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
    core->accessMemory (Core::NONE, READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
-   SimBarrierWait (&barrier_buf);
+   CarbonBarrierWait (&barrier_buf);
    core->accessMemory (Core::NONE, WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
 
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementPthreadExitNull (CONTEXT *ctxt)
+{
+   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }
 

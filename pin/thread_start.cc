@@ -1,4 +1,12 @@
-#include <elf.h>
+#include "thread_start.h"
+#include "log.h"
+#include "core.h"
+#include "simulator.h"
+#include "fixed_types.h"
+#include "pin_config.h"
+#include "core_manager.h"
+
+#include <sys/mman.h>
 
 int spawnThreadSpawner(CONTEXT *ctxt)
 {
@@ -35,12 +43,12 @@ VOID copyStaticData(IMG& img)
    for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
    {
       ADDRINT sec_address;
-      SEC_TYPE sec_type = SEC_Type(sec);
 
       // I am not sure whether we want ot copy over all the sections or just the
       // sections which are relevant like the sections below: DATA, BSS, GOT
       
       // Copy over all the sections now !
+      // SEC_TYPE sec_type = SEC_Type(sec);
       // if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
       //     (sec_type == SEC_TYPE_GOT)
       //   )
@@ -132,7 +140,7 @@ VOID copySpawnedThreadStackData(ADDRINT reg_esp)
 {
    core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
 
-   StackAttributes stack_attr;
+   PinConfig::StackAttributes stack_attr;
    PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
    ADDRINT stack_upper_limit = stack_attr.lower_limit + stack_attr.size;
@@ -150,9 +158,9 @@ VOID allocateStackSpace()
    // Note that 1 core = 1 thread currently
    // We should probably get the amount of stack space per thread from a configuration parameter
    // Each process allocates whatever it is responsible for !!
-   UInt32 stack_size_per_core = Sim()->getConfig()->getStackSizePerCore();
+   UInt32 stack_size_per_core = PinConfig::getSingleton()->getStackSizePerCore();
    UInt32 num_cores = Sim()->getConfig()->getNumLocalCores();
-   UInt32 stack_base = Sim()->getConfig()->getStackBase();
+   UInt32 stack_base = PinConfig::getSingleton()->getStackLowerLimit();
 
    // TODO: Make sure that this is a multiple of the page size 
    

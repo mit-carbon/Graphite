@@ -28,6 +28,7 @@ extern "C" {
 #endif
 
 SInt32 CarbonSpawnThread(thread_func_t func, void *arg);
+void CarbonDequeueThreadSpawnReq (ThreadSpawnRequest *req);
 void CarbonJoinThread(SInt32 tid);
 
 #ifdef __cplusplus

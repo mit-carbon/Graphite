@@ -48,7 +48,7 @@ public:
    { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }
 
    SInt32 getIndexFromCoreID(UInt32 proc_num, core_id_t core_id);
-   core_id_t getCoreIDFromIndex(UInt32 proc_num, SInt32, index);
+   core_id_t getCoreIDFromIndex(UInt32 proc_num, SInt32 index);
    
    UInt32 getNumLocalCores() { return getNumCoresInProcess(getCurrentProcessNum()); }
 

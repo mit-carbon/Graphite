@@ -13,7 +13,6 @@
 ThreadManager::ThreadManager(CoreManager *core_manager)
    : m_thread_spawn_sem(0)
    , m_thread_spawn_lock()
-   , m_thread_req_map_lock()
    , m_core_manager(core_manager)
 {
    Config *config = Config::getSingleton();
@@ -55,18 +54,20 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
  
    LOG_PRINT ("core id %d assigned to thread", req->core_id);
 }
-// 
-// void ThreadManager::onThreadExit()
-// {
-//    // send message to master process to update thread state
-//    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-//    SInt32 msg[4] = { LCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID(), 0, 0 };
-//    LOG_PRINT("onThreadExit msg: { %d, %d, %u, %u }", msg[0], msg[1], msg[2], msg[3]);
-//    globalNode->globalSend(0, msg, sizeof(msg));
-// 
-//    m_core_manager->terminateThread();
-// }
 
+void ThreadManager::onThreadExit()
+{
+   if (m_core_manager->getCurrentCoreID() != -1)
+   {
+      // send message to master process to update thread state
+      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+      SInt32 msg[4] = { LCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID(), 0, 0 };
+      LOG_PRINT("onThreadExit msg: { %d, %d, %u, %u }", msg[0], msg[1], msg[2], msg[3]);
+      globalNode->globalSend(0, msg, sizeof(msg));
+
+      m_core_manager->terminateThread();
+   }
+}
 
 void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
 {
@@ -81,19 +82,6 @@ void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
    m_thread_spawn_lock.release();
 
    free (thread_req);
-}
-
-void ThreadManager::threadFini()
-{
-   if (m_core_manager->getCurrentCoreID() != -1)
-   {
-      // send message to master process to update thread state
-      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-      SInt32 msg[4] = {LCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID(), 0, 0};
-      LOG_PRINT ("threadFini msg: { %d, %d, %u, %u }", msg[0], msg[1], msg[2], msg[3]);
-      globalNode->globalSend(0, msg, sizeof(msg));
-      m_core_manager->terminateThread();
-   }
 }
 
 void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
@@ -222,9 +210,13 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
    LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", req->func, req->arg);
 }
 
-ThreadSpawnRequest* ThreadManager::getThreadSpawnRequest()
+ThreadSpawnRequest* ThreadManager::getThreadSpawnReq()
 {
-   return (m_thread_spawn_list.front());
+   ThreadSpawnRequest *req;
+   m_thread_spawn_lock.acquire();
+   req = m_thread_spawn_list.front();
+   m_thread_spawn_lock.release();
+   return req;
 }
 
 
@@ -307,11 +299,6 @@ void ThreadManager::insertThreadSpawnRequest (ThreadSpawnRequest *req)
    m_thread_spawn_lock.acquire();
    m_thread_spawn_list.push(req);
    m_thread_spawn_lock.release();
-   
-   // Insert the request in the thread request map
-   m_thread_req_map_lock.acquire();
-   m_thread_req_map.insert (make_pair(req->core_id, req));
-   m_thread_req_map_lock.release();
 }
   
 

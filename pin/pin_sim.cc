@@ -36,11 +36,18 @@
 #include "thread_manager.h"
 #include "config_file.hpp"
 #include "handle_args.h"
+#include "thread_start.h"
+#include "pin_config.h"
+#include "log.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
 #include <typeinfo>
 
+// FIXME: 
+// There should be a better place to keep these globals
+// -- a PinSimulator class or smthg
+bool done_app_initialization = false;
 bool done_copying_static_data = false;
 config::ConfigFile *cfg;
 
@@ -91,16 +98,6 @@ void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, voi
 void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
 {
    syscallExitRunModel (ctxt, std);
-}
-
-VOID threadStart (THREADID tid, CONTEXT *ctxt, INT32 flags, VOID *v)
-{
-   Sim()->getThreadManager()->threadStart ();
-}
-
-VOID threadFini (THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID *v)
-{
-   Sim()->getThreadManager()->threadFini ();
 }
 
 void ApplicationStart()
@@ -171,19 +168,24 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       if (core_id != -1)
       {
          // 'Application' thread
-         ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnRequest();
+         ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
          
-         LOG_ASSERT_ERROR(core_id != req->core_id, "Got 2 different core_ids': 
-         req->core_id = %i, core_id = %i", req->core_id, core_id);
+         LOG_ASSERT_ERROR(core_id != req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
 
          Sim()->getThreadManager()->onThreadStart(req);
 
          // Copy stuff that 'thread spawner' put on the stack from host address space
          // to simulated address space
-         copySpawnedThreadStackData();
+         copySpawnedThreadStackData(reg_esp);
       }
    }
 }
+
+VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, VOID *v)
+{
+   Sim()->getThreadManager()->onThreadExit();
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -210,8 +212,7 @@ int main(int argc, char *argv[])
    Simulator::allocate();
    Sim()->start();
 
-   // Copying over the static data now
-   IMG_AddInstrumentationFunction(imageCallback, 0);
+   PinConfig::allocate();
 
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");

@@ -23,9 +23,6 @@ UInt32 Config::m_knob_dir_max_sharers;
 UInt32 Config::m_knob_cache_line_size;
 UInt32 Config::m_knob_ahl_param;
 
-UInt32 Config::m_stack_base;
-UInt32 Config::m_stack_size_per_core;
-
 using namespace std;
 
 Config *Config::m_singleton;
@@ -72,8 +69,6 @@ Config::Config()
    m_total_cores += 1;
 
    GenerateCoreMap();
-
-   getStackLimits();
 
    // Create network parameters
    m_analytic_network_parms = new NetworkModelAnalyticalParameters();
@@ -131,10 +126,10 @@ void Config::logCoreMap()
 SInt32 Config::getIndexFromCoreID(UInt32 proc_num, core_id_t core_id)
 { 
    CoreList core_list = getCoreListForProcess(proc_num);
-   for (SInt32 i = 0; i < core_list.size(); i++)
+   for (UInt32 i = 0; i < core_list.size(); i++)
    {
       if (core_list[i] == core_id)
-         return i;
+         return (SInt32) i;
    }
    return -1;
 }
@@ -142,7 +137,7 @@ SInt32 Config::getIndexFromCoreID(UInt32 proc_num, core_id_t core_id)
 core_id_t Config::getCoreIDFromIndex(UInt32 proc_num, SInt32 index)
 {
    CoreList core_list = getCoreListForProcess(proc_num);
-   if (index < core_list.size())
+   if (index < ((SInt32) core_list.size()))
    {
       return core_list[index];
    }

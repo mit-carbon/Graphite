@@ -96,7 +96,9 @@ void *CarbonThreadSpawner(void *p)
       {
          pthread_t thread;
          pthread_attr_t attr;
-         CarbonPthreadAttrInit(&attr);
+         pthread_attr_init(&attr);
+         pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
+         CarbonPthreadAttrInitOtherAttr(&attr);
          pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
       }
       else
@@ -120,6 +122,4 @@ void CarbonThreadSpawnerSpawnThread(ThreadSpawnRequest *req)
 // Gets replaced while running with Pin
 void CarbonPthreadAttrInit(pthread_attr_t *attr)
 {
-   pthread_attr_init(attr);
-   pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
 }

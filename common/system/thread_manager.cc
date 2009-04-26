@@ -217,7 +217,7 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
    // Grab the request and set the argument
    // The lock is released by the spawned thread
    m_thread_spawn_lock.acquire();
-   req = m_thread_spawn_list.front();
+   *req = *((ThreadSpawnRequest*) m_thread_spawn_list.front());
    
    LOG_PRINT("(4b) getThreadToSpawn giving thread %p arg: %p to user.", req->func, req->arg);
 }

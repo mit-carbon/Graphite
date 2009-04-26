@@ -70,12 +70,16 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    AFUNPTR msg_ptr = NULL;
    PROTO proto = NULL;
 
+   // TODO: Check that the starting stack is located below the text segment
    // thread management
    if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(replacementGetThreadToSpawn);
    else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR (replacementThreadStartNull);
    else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR (replacementThreadExitNull);
    else if (name == "CarbonGetCoreId") msg_ptr = AFUNPTR(replacementGetCoreId);
-   else if (name = "CarbonDequeueThreadSpawnReq") msg_ptr = AFUNPTR (replacementDequeueThreadSpawnRequest);
+   else if (name == "CarbonDequeueThreadSpawnReq") msg_ptr = AFUNPTR (replacementDequeueThreadSpawnRequest);
+
+   // PIN specific stack management
+   else if (name == "CarbonPthreadAttrInitOtherAttr") msg_ptr = AFUNPTR(replacementPthreadAttrInitOtherAttr);
 
    // Carbon API
 
@@ -238,8 +242,24 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
+// PIN specific stack management
+void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert(core == NULL);
 
-   
+   pthread_attr_t *attr;
+
+   initialize_replacement_args(ctxt,
+         IARG_PTR, &attr,
+         IARG_END);
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+
+   SimPthreadAttrInitOtherAttr(attr);
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
 
 
 void replacementStartSimNull (CONTEXT *ctxt)

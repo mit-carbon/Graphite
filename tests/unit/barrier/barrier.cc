@@ -22,15 +22,21 @@ int main(int argc, char* argv[])  // main begins
    const unsigned int num_threads = 5;
    carbon_thread_t threads[num_threads];
 
+   fprintf(stderr, "Initializing barrier\n");
+
    CarbonBarrierInit(&my_barrier, num_threads);
+
+   fprintf(stderr, "Spawning threads\n");
 
    for(unsigned int i = 0; i < num_threads; i++)
        threads[i] = CarbonSpawnThread(test_wait_barrier, (void *) i);
 
+   fprintf(stderr, "Joining threads\n");
+
    for(unsigned int i = 0; i < num_threads; i++)
        CarbonJoinThread(threads[i]);
 
-   printf("Finished running barrier test!.\n");
+   fprintf(stderr, "Finished running barrier test!.\n");
 
    CarbonStopSim();
    return 0;
@@ -38,6 +44,8 @@ int main(int argc, char* argv[])  // main begins
 
 void* test_wait_barrier(void *threadid)
 {
+   fprintf(stderr, "Spawned thread %i\n", (int)threadid);
+
    for (unsigned int i = 0; i < 50; i++)
       CarbonBarrierWait(&my_barrier);
 

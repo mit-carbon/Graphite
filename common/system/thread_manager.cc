@@ -47,6 +47,9 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    m_core_manager->initializeThread(req->core_id);
 
    // send ack to master
+   LOG_PRINT("(5) onThreadStart -- send ack to master; req : { %p, %p, %i, %i }",
+             req->func, req->arg, req->requester, req->core_id);
+
    req->msg_type = MCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
    Network *net = m_core_manager->getCurrentCore()->getNetwork();
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
@@ -61,6 +64,8 @@ void ThreadManager::onThreadExit()
 {
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID() };
+
+   LOG_PRINT("onThreadExit -- send message to master ThreadManager");
    
    Network *net = m_core_manager->getCurrentCore()->getNetwork();
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
@@ -112,10 +117,10 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
    LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
 
-   core_id_t core_id = *((SInt32*)pkt.data);
+   core_id_t core_id = *((core_id_t*)pkt.data);
    LOG_PRINT("Thread spawned on core: %d", core_id);
 
-   return *((SInt32*)pkt.data);
+   return core_id;
 }
 
 void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)

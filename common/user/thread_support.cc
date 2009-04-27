@@ -56,11 +56,14 @@ void CarbonThreadExit()
 
 void *CarbonSpawnManagedThread(void *p)
 {
-   ThreadSpawnRequest *thread_info = (ThreadSpawnRequest *)p;
+   ThreadSpawnRequest *req = (ThreadSpawnRequest *)p;
 
-   CarbonThreadStart(thread_info);
+   void* (*func)(void*) = req->func;
+   void* arg = req->arg;
 
-   thread_info->func(thread_info->arg);
+   CarbonThreadStart(req);
+
+   func(arg);
 
    CarbonThreadExit();
    return NULL;

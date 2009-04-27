@@ -75,15 +75,15 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CAPI_message_receive_w") msg_ptr = AFUNPTR(CAPI_message_receive_w);
 
    // synchronization
-   else if (name == "mutexInit") msg_ptr = AFUNPTR(CarbonMutexInit);
-   else if (name == "mutexLock") msg_ptr = AFUNPTR(CarbonMutexLock);
-   else if (name == "mutexUnlock") msg_ptr = AFUNPTR(CarbonMutexUnlock);
-   else if (name == "condInit") msg_ptr = AFUNPTR(CarbonCondInit);
-   else if (name == "condWait") msg_ptr = AFUNPTR(CarbonCondWait);
-   else if (name == "condSignal") msg_ptr = AFUNPTR(CarbonCondSignal);
-   else if (name == "condBroadcast") msg_ptr = AFUNPTR(CarbonCondBroadcast);
-   else if (name == "barrierInit") msg_ptr = AFUNPTR(CarbonBarrierInit);
-   else if (name == "barrierWait") msg_ptr = AFUNPTR(CarbonBarrierWait);
+   else if (name == "CarbonMutexInit") msg_ptr = AFUNPTR(CarbonMutexInit);
+   else if (name == "CarbonMutexLock") msg_ptr = AFUNPTR(CarbonMutexLock);
+   else if (name == "CarbonMutexUnlock") msg_ptr = AFUNPTR(CarbonMutexUnlock);
+   else if (name == "CarbonCondInit") msg_ptr = AFUNPTR(CarbonCondInit);
+   else if (name == "CarbonCondWait") msg_ptr = AFUNPTR(CarbonCondWait);
+   else if (name == "CarbonCondSignal") msg_ptr = AFUNPTR(CarbonCondSignal);
+   else if (name == "CarbonCondBroadcast") msg_ptr = AFUNPTR(CarbonCondBroadcast);
+   else if (name == "CarbonBarrierInit") msg_ptr = AFUNPTR(CarbonBarrierInit);
+   else if (name == "CarbonBarrierWait") msg_ptr = AFUNPTR(CarbonBarrierWait);
 
    // pthread wrappers
 //   else if (name == "CarbonPthreadCreateWrapper") msg_ptr = AFUNPTR(CarbonPthreadCreateWrapperReplacement);

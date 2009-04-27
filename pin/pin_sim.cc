@@ -48,7 +48,6 @@
 // There should be a better place to keep these globals
 // -- a PinSimulator class or smthg
 bool done_app_initialization = false;
-bool done_copying_static_data = false;
 config::ConfigFile *cfg;
 
 INT32 usage()
@@ -114,7 +113,7 @@ void ApplicationExit(int, void*)
 
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-   UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
+   UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
 
    ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
    ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);

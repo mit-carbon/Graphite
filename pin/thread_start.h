@@ -1,5 +1,5 @@
-#ifndef THREAD_START_H
-#define THREAD_START_H
+#ifndef __THREAD_START_H__
+#define __THREAD_START_H__
 
 #include <elf.h>
 #include "pin.H"
@@ -10,4 +10,7 @@ VOID copyInitialStackData(ADDRINT reg_esp);
 VOID copySpawnedThreadStackData(ADDRINT reg_esp);
 VOID allocateStackSpace();
 
-#endif
+// Initialize stack attributes
+VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr);
+
+#endif /* __THREAD_START_H__ */

@@ -20,9 +20,9 @@ public:
    static void release();
 
    // Since Pin messes with stack, we need to handle that separately
-   UInt32 getStackLowerLimit() const
+   IntPtr getStackLowerLimit() const
    { return m_stack_lower_limit; }
-   UInt32 getStackUpperLimit() const
+   IntPtr getStackUpperLimit() const
    { return m_stack_upper_limit; }
    UInt32 getStackSizePerCore() const
    { return m_stack_size_per_core; }
@@ -38,13 +38,13 @@ private:
    ~PinConfig();
 
    // Pin specific variables
-   static UInt32 m_current_process_num;
-   static UInt32 m_total_cores;
-   static UInt32 m_num_local_cores;
+   UInt32 m_current_process_num;
+   UInt32 m_total_cores;
+   UInt32 m_num_local_cores;
    
-   static IntPtr m_stack_lower_limit;
-   static UInt32 m_stack_size_per_core;
-   static IntPtr m_stack_upper_limit;
+   IntPtr m_stack_lower_limit;
+   UInt32 m_stack_size_per_core;
+   IntPtr m_stack_upper_limit;
 
    static PinConfig *m_singleton;
 

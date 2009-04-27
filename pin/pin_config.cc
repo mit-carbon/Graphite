@@ -36,8 +36,8 @@ PinConfig::~PinConfig()
 // INIT function to set the stack limits
 void PinConfig::setStackBoundaries()
 {
-   UInt32 global_stack_base = (UInt32) (Sim()->getCfg()->getInt("stack/stack_base"));
-   UInt32 global_stack_size = (UInt32) (Sim()->getCfg()->getInt("stack/stack_size"));
+   IntPtr global_stack_base = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_base"));
+   IntPtr global_stack_size = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_size"));
 
    // It might be easier to just pass in 'm_stack_size_per_core' rather than 'global_stack_size'
    // We dont need a stack for the MCP

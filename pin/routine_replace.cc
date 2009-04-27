@@ -12,7 +12,7 @@
 #include "core.h"
 #include "core_manager.h"
 #include "redirect_memory.h"
-#include "thread_spawn.h"
+#include "thread_start.h"
 // End Memory redirection stuff
 // --------------------------------------
 

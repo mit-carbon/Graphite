@@ -97,11 +97,8 @@ void *CarbonThreadSpawner(void *p)
          pthread_attr_init(&attr);
          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
         
-         // TODO:
-         // HARSHAD:
-         // Jorge, Clean up your shit here...
-         //CarbonPthreadAttrInitOtherAttr(&attr);
-         assert (false);
+         CarbonPthreadAttrInitOtherAttr(&attr);
+        
          pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
       }
       else
@@ -123,6 +120,6 @@ void CarbonThreadSpawnerSpawnThread(ThreadSpawnRequest *req)
 
 // This function initialized the pthread attributes
 // Gets replaced while running with Pin
-void CarbonPthreadAttrInit(pthread_attr_t *attr)
+void CarbonPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
 }

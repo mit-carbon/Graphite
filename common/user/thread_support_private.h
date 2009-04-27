@@ -11,11 +11,12 @@ void CarbonGetThreadToSpawn(ThreadSpawnRequest *req);
 void *CarbonSpawnManagedThread(void *p);
 void *CarbonThreadSpawner(void *p);
 int CarbonSpawnThreadSpawner();
-void CarbonGetThreadSpawnReq (ThreadSpawnRequest *req);
+void CarbonDequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
 int CarbonPthreadCreate(pthread_t *tid, int *attr, thread_func_t func, void *arg);
 int CarbonPthreadJoin(pthread_t tid, void **pparg);
 
+void CarbonPthreadAttrInitOtherAttr(pthread_attr_t *attr);
 void CarbonThreadSpawnerSpawnThread(ThreadSpawnRequest *req);
 
 #ifdef __cplusplus

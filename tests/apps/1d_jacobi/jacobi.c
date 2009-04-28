@@ -56,7 +56,7 @@ SInt32 wait_some()
 int main(int argc, char *argv[])
 {
    CarbonStartSim(argc, argv);
-   if (argc != 3) {
+   if (argc < 3) {
       fprintf(stderr, "[Usage]: ./jacobi <Number_of_Cores> <Size_Multiplier>\n");
                 fprintf(stderr, "Size_of_Array = Number_of_Cores * Size_Multiplier\n"); 
       exit(-1);
@@ -90,11 +90,7 @@ int main(int argc, char *argv[])
    pthread_mutex_init(&print_lock, NULL);
 #endif
 
-   pthread_t threads[g_num_cores];
-   pthread_attr_t attr;
-
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+   carbon_thread_t threads[g_num_cores];
 
 #ifdef DEBUG
    pthread_mutex_lock(&print_lock);
@@ -110,8 +106,8 @@ int main(int argc, char *argv[])
       pthread_mutex_unlock(&print_lock);
 #endif
 
-      SInt32 ret = pthread_create(&threads[i], &attr, threadMain, (void*) i);
-      if (ret != 0) {
+      threads[i] = CarbonSpawnThread(threadMain, (void*) i);
+      if (threads[i] < 0) {
          // fprintf(stderr, "ERROR spawning thread %d! Error code: %s\n",
          //       i, strerror(ret));         
          fprintf(stderr, "ERROR spawning thread %d!\n", i);         
@@ -119,9 +115,9 @@ int main(int argc, char *argv[])
       }
    }
 
-   for (SInt32 i = 0; i < g_num_cores; i++)
+   for (int i = 0; i < g_num_cores; i++)
    {
-      pthread_join(threads[i], NULL);
+      CarbonJoinThread(threads[i]);
    }
 
    printArray(NUM_ITERS);
@@ -150,7 +146,7 @@ void* threadMain(void *threadid)
       pthread_mutex_unlock(&print_lock);
 #endif
 
-      barrierInit(&jacobi_barrier, g_num_cores);
+      CarbonBarrierInit(&jacobi_barrier, g_num_cores);
    }
    else
    {
@@ -168,7 +164,7 @@ void* threadMain(void *threadid)
    pthread_mutex_unlock(&print_lock);
 #endif
 
-   barrierWait(&jacobi_barrier);
+   CarbonBarrierWait(&jacobi_barrier);
 
 #ifdef DEBUG
    pthread_mutex_lock(&print_lock);
@@ -193,7 +189,7 @@ void* threadMain(void *threadid)
          g_new_array[i] = (g_old_array[i-1] + g_old_array[i+1]) / 2;
       }
 
-      barrierWait(&jacobi_barrier);
+      CarbonBarrierWait(&jacobi_barrier);
 
       if (tid == 0)
       {
@@ -207,7 +203,7 @@ void* threadMain(void *threadid)
 #endif
       }
 
-      barrierWait(&jacobi_barrier);
+      CarbonBarrierWait(&jacobi_barrier);
 
    }
 

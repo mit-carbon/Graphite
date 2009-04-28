@@ -39,6 +39,7 @@
 #include "thread_start.h"
 #include "pin_config.h"
 #include "log.h"
+#include "vm_manager.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -212,6 +213,8 @@ int main(int argc, char *argv[])
    Sim()->start();
 
    PinConfig::allocate();
+
+   VMManager::allocate();
 
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");

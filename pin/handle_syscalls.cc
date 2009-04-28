@@ -6,6 +6,7 @@
 #include "core_manager.h"
 #include <syscall.h>
 #include "redirect_memory.h"
+#include "vm_manager.h"
 
 // ----------------------------
 // Here to handle rt_sigaction syscall
@@ -52,36 +53,28 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       if ((syscall_number == SYS_write) ||
             (syscall_number == SYS_ioctl) ||
             (syscall_number == SYS_fstat) ||
-            (syscall_number == SYS_mprotect))
+            (syscall_number == SYS_mprotect) ||
+            (syscall_number == SYS_munmap) ||
+            (syscall_number == SYS_brk))
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
          UInt8 new_syscall = core->getSyscallMdl ()->runEnter (syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
-
-      else if (syscall_number == SYS_mmap)
+      
+      else if ((syscall_number == SYS_mmap) ||
+         (syscall_number == SYS_mmap2))
       {
-         struct mmap_arg_struct
-         {
-            unsigned long addr;
-            unsigned long len;
-            unsigned long prot;
-            unsigned long flags;
-            unsigned long fd;
-            unsigned long offset;
-         } mmap_args;
-
+         struct mmap_arg_struct mmap_arg_buf;
          struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) PIN_GetContextReg (ctx, REG_GBX);
-         memOp (Core::NONE, READ, (IntPtr) mmap_args_ptr, (char*) &mmap_args, sizeof (struct mmap_arg_struct));
+         core->accessMemory (Core::NONE, READ, (IntPtr) mmap_args_ptr, (char*) &mmap_arg_buf, sizeof (struct mmap_arg_struct));
 
          SyscallMdl::syscall_args_t args;
-         args.arg0 = (int) &mmap_args;
+         args.arg0 = (int) &mmap_arg_buf;
          UInt8 new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
-      
-      // FIXME
-      // Examining clone system call
+
       else if (syscall_number == SYS_clone)
       {
          // Should never see clone system call execute in a core since 
@@ -110,10 +103,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          modifyNanosleepContext (ctx, syscall_standard);
       }
 
-      // FIXME
-      // Letting mmap2 and munmap fall through would work in a single machine case
-      // In a multi-machine case, might need to forward the syscalls to the
-      // MCP in addition to making them locally
       else if ((syscall_number == SYS_exit) ||
             (syscall_number == SYS_kill) ||
             (syscall_number == SYS_sigreturn) ||
@@ -122,18 +111,11 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          // Let the syscall fall through
       }
       
-      else if ((syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap) ||
-            (syscall_number == SYS_brk))
-      {
-         // TODO:
-         // Work memory manager magic
-         assert (false);
-      }
-      
+     
       else
       {
          LOG_PRINT ("Unhandled syscall %d", syscall_number);
+         assert (false);
       }
    }
 }

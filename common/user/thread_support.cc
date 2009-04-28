@@ -78,6 +78,19 @@ void *CarbonSpawnManagedThread(void *p)
    return NULL;
 }
 
+// This function spawns the thread spawner
+int CarbonSpawnThreadSpawner()
+{
+   setvbuf( stdout, NULL, _IONBF, 0 );
+
+   pthread_t thread;
+   pthread_attr_t attr;
+   pthread_attr_init(&attr);
+   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+   pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
+   return 0;
+}
+
 // This function will spawn threads provided by the sim
 void *CarbonThreadSpawner(void *p)
 {

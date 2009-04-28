@@ -38,6 +38,10 @@ class SyscallServer
       void marshallWriteCall(core_id_t core_id);
       void marshallCloseCall(core_id_t core_id);
       void marshallAccessCall(core_id_t core_id);
+      void marshallMmapCall(core_id_t core_id);
+      void marshallMmap2Call(core_id_t core_id);
+      void marshallMunmapCall(core_id_t core_id);
+      void marshallBrkCall(core_id_t core_id);
 
       //Note: These structures are shared with the MCP
    private:

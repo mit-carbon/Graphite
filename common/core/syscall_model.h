@@ -69,6 +69,9 @@ class SyscallMdl
       carbon_reg_t marshallIoctlCall(syscall_args_t &args);
       carbon_reg_t marshallMprotectCall(syscall_args_t &args);
       carbon_reg_t marshallMmapCall(syscall_args_t &args);
+      carbon_reg_t marshallMmap2Call(syscall_args_t &args);
+      carbon_reg_t marshallMunmapCall(syscall_args_t &args);
+      carbon_reg_t marshallBrkCall(syscall_args_t &args);
 
 };
 

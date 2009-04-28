@@ -144,12 +144,30 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
             break;
          }
       case SYS_access:
+         {
+            m_called_enter = true;
+            m_ret_val = marshallAccessCall(args);
+            break;
+         }
+
+      case SYS_mmap:
          m_called_enter = true;
-         m_ret_val = marshallAccessCall(args);
+         m_ret_val = marshallMmapCall (args);
          break;
+
+      case SYS_mmap2:
+         m_called_enter = true;
+         m_ret_val = marshallMmap2Call (args);
+         break;
+      
+      case SYS_munmap:
+         m_called_enter = true;
+         m_ret_val = marshallMunmapCall (args);
+         break;
+
       case SYS_brk:
-         //uncomment the following when our shared-mem handles mallocs properly
-         //m_called_enter = true;
+         m_called_enter = true;
+         m_ret_val = marshallBrkCall (args);
          break;
 
       case -1:
@@ -510,13 +528,241 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
    //
    // struct mmap_arg_struct *args 
    //
-   // Make the system call locally for now
-   // In multi-machine simulations, we should be making the system call on the MCP
-   // as well as making it locally, I think (the case where the MAP_ANONYMOUS / MAP_ANON
-   // flag is set, which is the only case we intend to support as of now, is identical
-   // to a brk)
+   //  TRANSMIT
    //
+   //  Field           Type
+   //  --------------|------
+   //  mmap_args_buf    mmap_arg_struct
+   //
+   //
+   //  RECEIVE
+   //
+   //  Field           Type
+   //  --------------|------
+   //  start           void*
+   // 
    // --------------------------------------------
 
-   return (carbon_reg_t) syscall (SYS_mmap, args.arg0); 
+
+   struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) args.arg0;
+
+#ifdef REDIRECT_MEMORY
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+      m_send_buf.put (*mmap_args_ptr);
+      
+      // send the data
+      m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
+
+      // get a result
+      NetPacket recv_pkt;
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+
+      // Create a buffer out of the result
+      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+
+      // Return the result
+      void *start;
+      m_recv_buff.get(start);
+      return (carbon_reg_t) start;
+   }
+   else
+   {
+#endif
+      int msg_type;
+      UInt8 syscall_number;
+      m_send_buff >> msg_type >> syscall_number;
+      if (syscall_number == SYS_mmap)
+      {
+         return (carbon_reg_t) syscall (SYS_mmap, mmap_args_ptr);
+      }
+      else if (syscall_number == SYS_mmap2)
+      {
+         return (carbon_reg_t) syscall (SYS_mmap2, mmap_args_ptr);
+      }
+      else
+      {
+         assert (false);
+      }
+#ifdef REDIRECT_MEMORY
+   }
+#endif
+}
+
+carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
+{
+   // --------------------------------------------
+   // Syscall arguments:
+   //
+   // struct mmap_arg_struct *args 
+   //
+   //  TRANSMIT
+   //
+   //  Field           Type
+   //  --------------|------
+   //  mmap_args_buf    mmap_arg_struct
+   //
+   //
+   //  RECEIVE
+   //
+   //  Field           Type
+   //  --------------|------
+   //  start           void*
+   // 
+   // --------------------------------------------
+
+
+   struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) args.arg0;
+
+#ifdef REDIRECT_MEMORY
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+      m_send_buf.put (*mmap_args_ptr);
+      
+      // send the data
+      m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
+
+      // get a result
+      NetPacket recv_pkt;
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+
+      // Create a buffer out of the result
+      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+
+      // Return the result
+      void *start;
+      m_recv_buff.get(start);
+      return (carbon_reg_t) start;
+   }
+   else
+   {
+#endif
+      int msg_type;
+      UInt8 syscall_number;
+      m_send_buff >> msg_type >> syscall_number;
+      if (syscall_number == SYS_mmap)
+      {
+         return (carbon_reg_t) syscall (SYS_mmap, mmap_args_ptr);
+      }
+      else if (syscall_number == SYS_mmap2)
+      {
+         return (carbon_reg_t) syscall (SYS_mmap2, mmap_args_ptr);
+      }
+      else
+      {
+         assert (false);
+      }
+#ifdef REDIRECT_MEMORY
+   }
+#endif
+}
+
+carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
+{
+   // --------------------------------------------
+   // Syscall arguments:
+   //
+   // struct mmap_arg_struct *args 
+   //
+   //  TRANSMIT
+   //
+   //  Field           Type
+   //  --------------|------
+   //  start           void*
+   //  length          size_t
+   //
+   //
+   //  RECEIVE
+   //
+   //  Field           Type
+   //  --------------|------
+   //  ret_val         int 
+   // 
+   // --------------------------------------------
+
+
+   void *start = (void*) args.arg0;
+   size_t length = (size_t) args.arg1;
+
+#ifdef REDIRECT_MEMORY
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+      m_send_buf.put (start);
+      m_send_buf.put (length);
+
+      // send the data
+      m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
+
+      // get a result
+      NetPacket recv_pkt;
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+
+      // Create a buffer out of the result
+      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+
+      // Return the result
+      int ret_val;
+      m_recv_buff.get(ret_val);
+      return (carbon_reg_t) ret_val;
+   }
+   else
+   {
+#endif
+      return (carbon_reg_t) syscall (SYS_munmap, start, length);
+#ifdef REDIRECT_MEMORY
+   }
+#endif
+}
+
+carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
+{
+   // --------------------------------------------
+   // Syscall arguments:
+   //
+   // struct mmap_arg_struct *args 
+   //
+   //  TRANSMIT
+   //
+   //  Field               Type
+   //  ------------------|------
+   //  end_data_segment    void*
+   //
+   //
+   //  RECEIVE
+   //
+   //  Field                        Type
+   //  ---------------------------|------
+   //  new_end_data_segment         void* 
+   // 
+   // --------------------------------------------
+
+   void *end_data_segment = (void*) args.arg0;
+
+#ifdef REDIRECT_MEMORY
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+      m_send_buf.put (end_data_segment);
+
+      // send the data
+      m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+      // get a result
+      NetPacket recv_pkt;
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+      // Create a buffer out of the result
+      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+
+      // Return the result
+      void *new_end_data_segment;
+      m_recv_buff.get (new_end_data_segment);
+      return (carbon_reg_t) new_end_data_segment;
+   }
+   else
+   {
+#endif
+      return (carbon_reg_t) syscall (SYS_brk, end_data_segment);
+#ifdef REDIRECT_MEMORY
+   }
+#endif
 }

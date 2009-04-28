@@ -6,6 +6,7 @@
 #include "core.h"
 #include "config.h"
 #include "ocache.h"
+#include "vm_manager.h"
 
 #include "log.h"
 
@@ -52,6 +53,18 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       break;
    case SYS_access:
       marshallAccessCall(core_id);
+      break;
+   case SYS_mmap:
+      marshallMmapCall(core_id);
+      break;
+   case SYS_mmap2:
+      marshallMmap2Call(core_id);
+      break;
+   case SYS_munmap:
+      marshallMunmapCall (core_id);
+      break;
+   case SYS_brk:
+      marshallBrkCall (core_id);
       break;
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
@@ -249,4 +262,72 @@ void SyscallServer::marshallAccessCall(core_id_t core_id)
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] path;
+}
+
+void SyscallServer::marshallMmapCall (core_id_t core_id)
+{
+   struct mmap_arg_struct mmap_args_buf;
+
+   m_recv_buff.get(mmap_args_buf);
+
+   void *start;
+   start = VMManager::getSingleton()->mmap ( (void*) mmap_args_buf.addr,
+         (size_t) mmap_args_buf.len,
+         (int) mmap_args_buf.prot,
+         (int) mmap_args_buf.flags,
+         (int) mmap_args_buf.fd,
+         (off_t) mmap_args_buf.offset);
+
+   m_send_buff.put (start);
+
+   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+
+void SyscallServer::marshallMmap2Call (core_id_t core_id)
+{
+   struct mmap_arg_struct mmap_args_buf;
+
+   m_recv_buff.get(mmap_args_buf);
+
+   void *start;
+   start = VMManager::getSingleton()->mmap2 ( (void*) mmap_args_buf.addr,
+         (size_t) mmap_args_buf.len,
+         (int) mmap_args_buf.prot,
+         (int) mmap_args_buf.flags,
+         (int) mmap_args_buf.fd,
+         (off_t) mmap_args_buf.offset);
+   
+   m_send_buff.put (start);
+
+   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+
+void SyscallServer::marshallMunmapCall (core_id_t core_id)
+{
+   void *start;
+   size_t length;
+
+   m_recv_buff.get(start);
+   m_recv_buff.get(length);
+
+   int ret_val;
+   ret_val = VMManager::getSingleton()->munmap (start, length);
+
+   m_send_buff.put (ret_val);
+
+   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+
+void SyscallServer::marshallBrkCall (core_id_t core_id)
+{
+   void *end_data_segment;
+
+   m_recv_buff.get(end_data_segment);
+
+   void *new_end_data_segment;
+   new_end_data_segment = VMManager::getSingleton()->brk(end_data_segment);
+
+   m_send_buff.put (new_end_data_segment);
+
+   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }

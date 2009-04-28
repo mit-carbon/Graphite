@@ -162,7 +162,7 @@ void *ring(void *p)
       if (0 == rank)
       {
          --message[0];
-         printf("Process 0 decremented value: %d\n", message[0]);
+         // printf("Process 0 decremented value: %d\n", message[0]);
       }
 
       CAPI_message_send_w((CAPI_endpoint_t)rank, (CAPI_endpoint_t)next,

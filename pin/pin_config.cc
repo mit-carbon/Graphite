@@ -37,12 +37,9 @@ PinConfig::~PinConfig()
 void PinConfig::setStackBoundaries()
 {
    IntPtr global_stack_base = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_base"));
-   IntPtr global_stack_size = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_size"));
-
-   // It might be easier to just pass in 'm_stack_size_per_core' rather than 'global_stack_size'
-   // We dont need a stack for the MCP
-   m_stack_size_per_core = global_stack_size / (m_total_cores - 1);
    
+   m_stack_size_per_core = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_size_per_core"));
+
    // To calculate our stack base, we need to get the total number of cores
    // allocated to processes that have ids' lower than me
    UInt32 num_cores = 0;

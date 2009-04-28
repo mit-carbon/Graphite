@@ -28,7 +28,12 @@ VMManager::VMManager()
    m_end_data_segment = m_start_data_segment;
 
    m_start_stack_segment = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_base"));
-   m_end_stack_segment = m_start_stack_segment + (IntPtr) (Sim()->getCfg()->getInt("stack/stack_size"));
+
+   UInt32 total_cores = Sim()->getConfig()->getTotalCores();
+   UInt32 stack_size_per_core = (UInt32) (Sim()->getCfg()->getInt("stack/stack_size_per_core"));
+
+   // FIXME: MCP does not have a stack. Do something about this
+   m_end_stack_segment = m_start_stack_segment + total_cores * stack_size_per_core; 
 
    assert(m_start_stack_segment > m_start_data_segment);
 
@@ -36,6 +41,7 @@ VMManager::VMManager()
    m_end_dynamic_segment = m_start_dynamic_segment;
 
    assert(m_start_dynamic_segment > m_start_stack_segment);
+   assert(m_start_dynamic_segment > m_end_stack_segment);
 }
 
 VMManager::~VMManager()

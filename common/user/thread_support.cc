@@ -28,12 +28,12 @@ int CarbonPthreadJoin(pthread_t tid, void **pparg)
    return 0;
 }
 
-int CarbonSpawnThread(thread_func_t func, void *arg)
+carbon_thread_t CarbonSpawnThread(thread_func_t func, void *arg)
 {
    return Sim()->getThreadManager()->spawnThread(func, arg);
 }
 
-void CarbonJoinThread(int tid)
+void CarbonJoinThread(carbon_thread_t tid)
 {
    Sim()->getThreadManager()->joinThread(tid);
 }

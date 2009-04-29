@@ -34,8 +34,6 @@ class Log
    private:
       UInt64 getTimestamp();
 
-      void notifyWarning();
-      void notifyError();
       void discoverCore(core_id_t *core_id, bool *sim_thread);
       void getFile(core_id_t core_id, bool sim_thread, FILE ** f, Lock ** l);
       std::string getModule(const char *filename);

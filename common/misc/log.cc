@@ -230,13 +230,16 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
 
    std::string module = getModule(source_file);
 
+   char message[512];
+   char *p = message;
+
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
    if (core_id != INVALID_CORE_ID) // valid core id
-      fprintf(file, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), module.c_str(), source_line);
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
-      fprintf(file, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
    else // who knows
-      fprintf(file, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, module.c_str(), source_line);
 
    switch (err)
    {
@@ -245,44 +248,39 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
       break;
 
    case Warning:
-      fprintf(file, "*WARNING* ");
+      p += sprintf(p, "*WARNING* ");
       break;
 
    case Error:
-      fprintf(file, "*ERROR* ");
+      p += sprintf(p, "*ERROR* ");
       break;
    };
 
    va_list args;
    va_start(args, format);
-   vfprintf(file, format, args);
+   p += vsprintf(p, format, args);
    va_end(args);
 
-   fprintf(file, "\n");
+   p += sprintf(p, "\n");
 
+   fprintf(file, "%s", message);
    fflush(file);
 
    lock->release();
 
-   if (err == Error)
+   switch (err)
+   {
+   case Error:
+      fprintf(stderr, "%s", message);
       abort();
-}
+      break;
 
-void Log::notifyWarning()
-{
-   if (_state == None)
-   {
-      fprintf(stderr, "LOG : Check logs -- there is a warning!\n");
-      _state = Warning;
-   }
-}
+   case Warning:
+      fprintf(stderr, "%s", message);
+      break;
 
-void Log::notifyError()
-{
-   if (_state == None || _state == Warning)
-   {
-      fprintf(stderr, "LOG : Check logs -- there is an ERROR!\n");
-      _state = Error;
+   case None:
+   default:
+      break;
    }
-   abort();
 }

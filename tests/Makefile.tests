@@ -12,8 +12,9 @@
 # MODE - set to 'pin' to use pin.
 # EXEC - command to run; derived from TARGET and APP_FLAGS
 # SIM_FLAGS - config flags passed to the simulator. Derived from CORES, PROCS. See sim_flags_fn.
-# PROCS - number of processes
-# CORES - number of cores
+# PROCS - number of processes (1)
+# CORES - number of cores (16)
+# ENABLE_SM - enable shared memory (false)
 # APP_FLAGS - flags to pass to the application
 # BUILD_MODE - set nonempty to not run anything
 
@@ -30,13 +31,14 @@ PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL)
 
 PROCS ?= 1
 CORES ?= 16
+ENABLE_SM ?= false
 APP_FLAGS ?=
 BUILD_MODE ?= # Set to nonempty to not run anything
 MODE ?= # Set to 'pin' to use pin
 
 # Use: $(call sim_flags_fn, $(1-CORES), $(2-PROCS))
-sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --general/num_processes=$(2)
-SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS))
+sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --general/num_processes=$(2) --general/enable_shared_mem=$(3)
+SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
 mpi_fn = $(MPI_DIR)/bin/mpiexec -np $(1) # 1 - PROCS

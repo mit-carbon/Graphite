@@ -114,6 +114,9 @@ void Config::logCoreMap()
    LOG_PRINT("Process num: %d\n", m_num_processes);
    for (UInt32 i=0; i < m_num_processes; i++)
    {
+      LOG_ASSERT_ERROR(!m_proc_to_core_list_map[i].empty(),
+                       "Process %u assigned zero cores.", i);
+
       stringstream ss;
       ss << "Process " << i << ": (" << m_proc_to_core_list_map[i].size() << ") ";
       for (CLCI m = m_proc_to_core_list_map[i].begin(); m != m_proc_to_core_list_map[i].end(); m++)

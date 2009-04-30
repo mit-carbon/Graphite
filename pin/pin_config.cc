@@ -1,5 +1,6 @@
 #include "pin_config.h"
 #include "simulator.h"
+#include <boost/lexical_cast.hpp>
 
 PinConfig *PinConfig::m_singleton = NULL;
 
@@ -36,9 +37,18 @@ PinConfig::~PinConfig()
 // INIT function to set the stack limits
 void PinConfig::setStackBoundaries()
 {
-   IntPtr global_stack_base = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_base"));
-   
-   m_stack_size_per_core = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_size_per_core"));
+   IntPtr global_stack_base;
+
+   try
+   {
+      global_stack_base = (IntPtr) boost::lexical_cast <unsigned long int> (Sim()->getCfg()->get("stack/stack_base"));
+      m_stack_size_per_core = (IntPtr) boost::lexical_cast <unsigned long int> (Sim()->getCfg()->get("stack/stack_size_per_core"));
+   }
+   catch (const boost::bad_lexical_cast&)
+   {
+      cerr << "Error parsing stack parameters from the config file" << endl;
+      exit (-1);
+   }
 
    // To calculate our stack base, we need to get the total number of cores
    // allocated to processes that have ids' lower than me

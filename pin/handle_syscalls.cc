@@ -204,6 +204,7 @@ void contextChange (THREADID threadIndex, CONTEXT_CHANGE_REASON context_change_r
 
    else if (context_change_reason == CONTEXT_CHANGE_REASON_FATALSIGNAL)
    {
+      cerr << "Application received fatal signal " << info << " at eip " << (void*) PIN_GetContextReg (from, REG_INST_PTR) << endl;
       assert (false);
    }
 

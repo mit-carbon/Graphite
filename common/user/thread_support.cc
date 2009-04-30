@@ -65,11 +65,17 @@ void CarbonDequeueThreadSpawnReq (ThreadSpawnRequest *req)
 
 void *CarbonSpawnManagedThread(void *p)
 {
+   cerr  << "In CarbonSpawnManagedThread" << endl;
+
    ThreadSpawnRequest thread_req;
 
    CarbonDequeueThreadSpawnReq (&thread_req);
 
+   cerr << "Got thread spawn req from the simulator: func = " << (void*) thread_req.func << endl;
+
    CarbonThreadStart(&thread_req);
+
+   cerr << "Done calling CarbonThreadStart" << endl;
 
    thread_req.func(thread_req.arg);
 
@@ -88,6 +94,7 @@ int CarbonSpawnThreadSpawner()
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
    pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
+
    return 0;
 }
 
@@ -111,8 +118,9 @@ void *CarbonThreadSpawner(void *p)
          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
         
          CarbonPthreadAttrInitOtherAttr(&attr);
-        
-         pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
+       
+         cerr << "Done initing other pthread attr" << endl;
+         pthread_create(&thread, &attr, CarbonSpawnManagedThread, NULL);
       }
       else
       {

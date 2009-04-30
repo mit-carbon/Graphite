@@ -1,6 +1,7 @@
 #include "assert.h"
 #include "vm_manager.h"
 #include "simulator.h"
+#include <boost/lexical_cast.hpp>
 
 VMManager *VMManager::m_singleton = NULL;
 
@@ -27,10 +28,19 @@ VMManager::VMManager()
    m_start_data_segment = (IntPtr) sbrk(0);
    m_end_data_segment = m_start_data_segment;
 
-   m_start_stack_segment = (IntPtr) (Sim()->getCfg()->getInt("stack/stack_base"));
-
    UInt32 total_cores = Sim()->getConfig()->getTotalCores();
-   UInt32 stack_size_per_core = (UInt32) (Sim()->getCfg()->getInt("stack/stack_size_per_core"));
+  
+   UInt32 stack_size_per_core;
+   try
+   {
+      m_start_stack_segment = (IntPtr) boost::lexical_cast <unsigned long int> (Sim()->getCfg()->get("stack/stack_base"));
+      stack_size_per_core = (UInt32) boost::lexical_cast <unsigned long int> (Sim()->getCfg()->get("stack/stack_size_per_core"));
+   }
+   catch (boost::bad_lexical_cast &)
+   {
+      cerr << "Error reading stack parameters from the config file" << endl;
+      exit (-1);
+   }
 
    // FIXME: MCP does not have a stack. Do something about this
    m_end_stack_segment = m_start_stack_segment + total_cores * stack_size_per_core; 

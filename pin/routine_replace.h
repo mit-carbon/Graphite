@@ -9,6 +9,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name);
 void setupCarbonSpawnThreadSpawnerStack (CONTEXT *ctx);
 
 // Thread spawning and management
+void replacementMain (CONTEXT *ctxt);
 void replacementGetThreadToSpawn (CONTEXT *ctxt);
 void replacementThreadStartNull (CONTEXT *ctxt);
 void replacementThreadExitNull (CONTEXT *ctxt);

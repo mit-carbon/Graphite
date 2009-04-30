@@ -82,6 +82,8 @@ void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
    m_thread_spawn_lock.release();
 
    free (thread_req);
+
+   LOG_PRINT("Dequeued req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
 }
 
 void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
@@ -213,9 +215,9 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
 ThreadSpawnRequest* ThreadManager::getThreadSpawnReq()
 {
    ThreadSpawnRequest *req;
-   m_thread_spawn_lock.acquire();
+   // m_thread_spawn_lock.acquire();
    req = m_thread_spawn_list.front();
-   m_thread_spawn_lock.release();
+   // m_thread_spawn_lock.release();
    return req;
 }
 

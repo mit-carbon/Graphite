@@ -73,7 +73,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    // TODO: Check that the starting stack is located below the text segment
    // thread management
-   if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(replacementGetThreadToSpawn);
+   if (name == "main") msg_ptr = AFUNPTR (replacementMain);
+   else if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(replacementGetThreadToSpawn);
    else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR (replacementThreadStartNull);
    else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR (replacementThreadExitNull);
    else if (name == "CarbonGetCoreId") msg_ptr = AFUNPTR(replacementGetCoreId);
@@ -175,6 +176,43 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 // 
 // }
 
+void replacementMain (CONTEXT *ctxt)
+{
+   spawnThreadSpawner(ctxt);
+
+   allocateStackSpace();
+
+   UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
+   
+   if (curr_process_num == 0)
+   {
+      Sim()->getCoreManager()->initializeThread(0);
+
+#ifdef REDIRECT_MEMORY
+      ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+      ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+      // 1) Copying over Static Data
+      // Get the image first
+      IMG img = IMG_FindByAddress(reg_eip);
+      copyStaticData(img);
+
+      // 2) Copying over initial stack data
+      copyInitialStackData(reg_esp);
+#endif
+
+      // Execute _start
+      return;
+   }
+   else
+   {
+      LOG_PRINT("Waiting for main process to finish...");
+      while (!Sim()->finished())
+         usleep(100);
+      LOG_PRINT("Finished!");
+      exit(0);
+   }
+}
+
 void replacementGetThreadToSpawn (CONTEXT *ctxt)
 {
    // CarbonGetThreadToSpawn is only called by the thread spawner threads
@@ -244,6 +282,7 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
 // PIN specific stack management
 void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
 {
+   cerr << "Entering replacementPthreadAttrInitOtherAttr" << endl;
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert(core == NULL);
 
@@ -256,6 +295,8 @@ void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
 
    SimPthreadAttrInitOtherAttr(attr);
+
+   cerr << "Returning from replacementPthreadAttrInitOtherAttr" << endl;
 
    retFromReplacedRtn(ctxt, ret_val);
 }

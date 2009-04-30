@@ -114,9 +114,6 @@ void ApplicationExit(int, void*)
 
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-   UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
-
-   ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
    ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    // Conditions under which we must initialize a core
@@ -125,39 +122,9 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
    if (! done_app_initialization)
    {
-      // This is the main thread
-      spawnThreadSpawner(ctxt);
-
-      allocateStackSpace();
-
-      if (curr_process_num == 0)
-      {
-         Sim()->getCoreManager()->initializeThread(0);
-         // 1) Copying over Static Data
-         // Get the image first
-         IMG img = IMG_FindByAddress(reg_eip);
-         copyStaticData(img);
-
-         // 2) Copying over initial stack data
-         copyInitialStackData(reg_esp);
-      }
-
+      // All the real initialization is done in 
+      // replacement_start at the moment
       done_app_initialization = true;
-
-      if (curr_process_num == 0)
-      {
-         // Call '_start'
-         return;
-      }
-      else
-      {
-         LOG_PRINT("Waiting for main process to finish...");
-         while (!Sim()->finished())
-            usleep(100);
-         LOG_PRINT("Finished!");
-         exit(0);
-      }
- 
    }
    else
    {
@@ -169,8 +136,8 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       {
          // 'Application' thread
          ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
-         
-         LOG_ASSERT_ERROR(core_id != req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
+
+         LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
 
          Sim()->getThreadManager()->onThreadStart(req);
 
@@ -232,7 +199,7 @@ int main(int argc, char *argv[])
 
    if (cfg->getBool("general/enable_shared_mem"))
    {
-      INS_AddInstrumentFunction (instructionCallback, 0);
+      // INS_AddInstrumentFunction (instructionCallback, 0);
    }
 
    PIN_AddFiniFunction(ApplicationExit, 0);

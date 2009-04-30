@@ -32,6 +32,7 @@ int spawnThreadSpawner(CONTEXT *ctxt)
             PIN_PARG(int), &res,
             PIN_PARG_END());
       
+   LOG_PRINT ("Thread spawner spawned");
    LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
 
    return res;
@@ -167,20 +168,23 @@ VOID allocateStackSpace()
    // TODO: Make sure that this is a multiple of the page size 
    
    // mmap() the total amount of memory needed for the stacks
-   assert(mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) == 0);
+   assert(mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) == (void*) stack_base);
   
    // TODO: From our memory manager, mark this space as taken - Implement mmap() and brk()
 }
 
 VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
+   cerr << "Entering SimPthreadAttrInitOtherAttr" << endl;
    core_id_t core_id;
    
    ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
+   cerr << "Got thread spawn request" << endl;
    core_id = req->core_id;
 
    PinConfig::StackAttributes stack_attr;
    PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
    pthread_attr_setstack(attr, (void*) stack_attr.lower_limit, stack_attr.size);
+   cerr << "Returning from SimPthreadAttrInitOtherAttr" << endl;
 }

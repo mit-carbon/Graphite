@@ -18,7 +18,7 @@ int main(int argc, char* argv[])  // main begins
 {
    CarbonStartSim(argc, argv);
 
-   fprintf(stderr, "Yeah Main\n");
+   fprintf(stderr, "In main()\n");
 
    // Read in the command line arguments
    const unsigned int numThreads = 1;
@@ -29,19 +29,23 @@ int main(int argc, char* argv[])  // main begins
    CAPI_return_t rtnVal;
    rtnVal = CAPI_Initialize(0);
 
-   for(unsigned int i = 0; i < numThreads; i++)
-      threads[i] = CarbonSpawnThread(thread_func, (void *) (i + 1));
+   fprintf(stderr, "Spawning...\n");
 
-      // Wait for all threads to complete
+   for(unsigned int i = 0; i < numThreads; i++)
+       threads[i] = CarbonSpawnThread(thread_func, (void *) (i + 1));
+
+   fprintf(stderr, "Spawned, now joining ...\n");
+
+   // Wait for all threads to complete
    for(unsigned int i = 0; i < numThreads; i++)
       CarbonJoinThread(threads[i]);
 
-   fprintf(stderr, "UserApplication: About to call carbon finish!\n");
+   fprintf(stderr, "Joined, exiting ...\n");
    CarbonStopSim();
 } // main ends
 
 void* thread_func(void *threadid)
 {
-   CAPI_return_t rtnVal = CAPI_Initialize((int)threadid);
+//   CAPI_return_t rtnVal = CAPI_Initialize((int)threadid);
 }
 

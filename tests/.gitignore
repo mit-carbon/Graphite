@@ -11,12 +11,8 @@ unit/shared_mem/test_new
 
 # apps
 apps/cannon/cannon
-apps/file_io/file_io
 apps/ping_pong/ping_pong
-apps/signals/signals
-apps/pthreads_basic/basic
 apps/simple/simple_test
-apps/cannon_msg/cannon
 apps/capi_worker/capi_worker
 apps/1d_jacobi/jacobi
 

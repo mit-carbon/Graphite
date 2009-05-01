@@ -3,7 +3,7 @@
 
 #include "fixed_types.h"
 
-typedef int carbon_thread_t;
+typedef SInt32 carbon_thread_t;
 
 typedef void *(*thread_func_t)(void *);
 
@@ -27,8 +27,8 @@ typedef struct
 extern "C" {
 #endif
 
-SInt32 CarbonSpawnThread(thread_func_t func, void *arg);
-void CarbonJoinThread(SInt32 tid);
+carbon_thread_t CarbonSpawnThread(thread_func_t func, void *arg);
+void CarbonJoinThread(carbon_thread_t tid);
 
 #ifdef __cplusplus
 }

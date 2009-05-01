@@ -252,9 +252,7 @@ void DramDirectory::processSharedMemRequest(UInt32 requestor, shmem_req_t shmem_
       break;
 
    default:
-      LOG_PRINT("unsupported memory transaction type.");
-      assert(false);
-      exit(-1);
+      LOG_PRINT_ERROR("unsupported memory transaction type.");
       break;
    }
 

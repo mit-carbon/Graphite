@@ -48,32 +48,41 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    m_core_manager->initializeThread(req->core_id);
  
    // send ack to master
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
-   globalNode->globalSend(0, req, sizeof(*req));
- 
-   LOG_PRINT ("core id %d assigned to thread", req->core_id);
+   LOG_PRINT("(5) onThreadStart -- send ack to master; req : { %p, %p, %i, %i }",
+             req->func, req->arg, req->requester, req->core_id);
+
+   req->msg_type = MCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
+   Network *net = m_core_manager->getCurrentCore()->getNetwork();
+   net->netSend(Config::getSingleton()->getMCPCoreNum(),
+                MCP_REQUEST_TYPE,
+                req,
+                sizeof(*req));
 }
 
 void ThreadManager::onThreadExit()
 {
-   if (m_core_manager->getCurrentCoreID() != -1)
-   {
-      // send message to master process to update thread state
-      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-      SInt32 msg[4] = { LCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID(), 0, 0 };
-      LOG_PRINT("onThreadExit msg: { %d, %d, %u, %u }", msg[0], msg[1], msg[2], msg[3]);
-      globalNode->globalSend(0, msg, sizeof(msg));
+   if (m_core_manager->getCurrentCoreID() == -1)
+      return;
+   
+   // send message to master process to update thread state
+   SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID() };
 
-      m_core_manager->terminateThread();
-   }
+   LOG_PRINT("onThreadExit -- send message to master ThreadManager");
+   
+   Network *net = m_core_manager->getCurrentCore()->getNetwork();
+   net->netSend(Config::getSingleton()->getMCPCoreNum(),
+                MCP_REQUEST_TYPE,
+                msg,
+                sizeof(SInt32)*2);
+
+   m_core_manager->terminateThread();
 }
 
 void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core != NULL);
-
+   LOG_ASSERT_ERROR(core, "Core was null.");
+   
    ThreadSpawnRequest *thread_req = m_thread_spawn_list.front();
 
    *req = *thread_req;
@@ -81,15 +90,15 @@ void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
    m_thread_spawn_list.pop();
    m_thread_spawn_lock.release();
 
-   free (thread_req);
+   delete thread_req;
 
    LOG_PRINT("Dequeued req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
 }
 
-void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
+void ThreadManager::masterOnThreadExit(core_id_t core_id)
 {
    LOG_ASSERT_ERROR(m_master, "masterOnThreadExit should only be called on master.");
-   LOG_PRINT("masterOnThreadExit : %d %llu", core_id, time);
+   LOG_PRINT("masterOnThreadExit : %d", core_id);
    LOG_ASSERT_ERROR((UInt32)core_id < m_thread_state.size(), "Core id out of range: %d", core_id);
    assert(m_thread_state[core_id].running);
    m_thread_state[core_id].running = false;
@@ -113,21 +122,24 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    // step 1
    LOG_PRINT("(1) spawnThread with func: %p and arg: %p", func, arg);
 
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
    Core *core = m_core_manager->getCurrentCore();
+   Network *net = core->getNetwork();
 
-   ThreadSpawnRequest req = { LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER, 
+   ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER, 
                               func, arg, core->getId(), INVALID_CORE_ID };
 
-   globalNode->globalSend(0, &req, sizeof(req));
+   net->netSend(Config::getSingleton()->getMCPCoreNum(),
+                MCP_REQUEST_TYPE,
+                &req,
+                sizeof(req));
 
-   NetPacket pkt = core->getNetwork()->netRecvType(LCP_SPAWN_THREAD_REPLY_FROM_MASTER_TYPE);
+   NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
    LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
 
-   core_id_t core_id = *((SInt32*)pkt.data);
+   core_id_t core_id = *((core_id_t*)pkt.data);
    LOG_PRINT("Thread spawned on core: %d", core_id);
 
-   return *((SInt32*)pkt.data);
+   return core_id;
 }
 
 void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
@@ -161,9 +173,12 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       globalNode->globalSend(dest_proc, req, sizeof(*req));
       LOG_PRINT("Sent thread spawn request to proc: %d", dest_proc);
    }
-   else //if it's local then just add it to the local list
+   else 
    {
-      ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
+      // if it's local then just add it to the local list.
+      // this is a short-circuit hack to fix the normal mechanism not
+      // working on the same process.
+      ThreadSpawnRequest *req_cpy = new ThreadSpawnRequest;
       *req_cpy = *req;
 
       // Insert the request in the thread request queue and
@@ -185,7 +200,7 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
 
    // This is deleted after the thread has been spawned
    // and we have sent the acknowledgement back to the requester
-   ThreadSpawnRequest *req_cpy = (ThreadSpawnRequest *)malloc(sizeof(ThreadSpawnRequest));
+   ThreadSpawnRequest *req_cpy = new ThreadSpawnRequest;
    *req_cpy = *req;
 
    // Insert the request in the thread request queue and
@@ -197,7 +212,7 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
 
 void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
 {
-   // step 4
+   // step 4 - this is called from the thread spawner
    LOG_PRINT("(4a) getThreadToSpawn called by user.");
    
    
@@ -228,13 +243,11 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
    LOG_ASSERT_ERROR(m_master, "masterSpawnThreadReply should only be called on master.");
    LOG_PRINT("(6) masterSpawnThreadReply with req: { fun: %p, arg: %p, req: %d, core: %d }", req->func, req->arg, req->requester, req->core_id);
 
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-
-   NetPacket pkt(0 /*time*/, LCP_SPAWN_THREAD_REPLY_FROM_MASTER_TYPE, 
-                 0 /*sender*/, req->requester, sizeof(req->core_id), &req->core_id);
-   Byte *buffer = pkt.makeBuffer();
-   globalNode->send(req->requester, buffer, pkt.bufferSize());
-   delete [] buffer;
+   Core *core = m_core_manager->getCurrentCore();
+   core->getNetwork()->netSend(req->requester, 
+                               MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
+                               &req->core_id,
+                               sizeof(req->core_id));
 }
 
 void ThreadManager::joinThread(core_id_t core_id)
@@ -243,16 +256,18 @@ void ThreadManager::joinThread(core_id_t core_id)
 
    // Send the message to the master process; will get reply when thread is finished
    ThreadJoinRequest msg;
-   msg.msg_type = LCP_MESSAGE_THREAD_JOIN_REQUEST;
+   msg.msg_type = MCP_MESSAGE_THREAD_JOIN_REQUEST;
    msg.core_id = core_id;
    msg.sender = m_core_manager->getCurrentCoreID();
 
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-   globalNode->globalSend(0, &msg, sizeof(msg));
+   Network *net = m_core_manager->getCurrentCore()->getNetwork();
+   net->netSend(Config::getSingleton()->getMCPCoreNum(),
+                MCP_REQUEST_TYPE,
+                &msg,
+                sizeof(msg));
 
    // Wait for reply
-   Core *core = m_core_manager->getCurrentCore();
-   NetPacket pkt = core->getNetwork()->netRecvType(LCP_JOIN_THREAD_REPLY);
+   NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY);
    // delete [] (Byte*)pkt.data;   *don't* delete the data since this packet has none
 
    LOG_PRINT("Exiting join thread.");
@@ -279,18 +294,17 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
 
 void ThreadManager::wakeUpWaiter(core_id_t core_id)
 {
-   if (m_thread_state[core_id].waiter != -1)
+   if (m_thread_state[core_id].waiter != INVALID_CORE_ID)
    {
       LOG_PRINT("Waking up core: %d", m_thread_state[core_id].waiter);
 
-      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
-      NetPacket pkt(0 /*time*/, LCP_JOIN_THREAD_REPLY,
-                    0 /*sender*/, m_thread_state[core_id].waiter, 0, NULL);
-      Byte *buffer = pkt.makeBuffer();
-      globalNode->send(m_thread_state[core_id].waiter, buffer, pkt.bufferSize());
-      delete [] buffer;
+      Network *net = m_core_manager->getCurrentCore()->getNetwork();
+      net->netSend(m_thread_state[core_id].waiter,
+                   MCP_THREAD_JOIN_REPLY,
+                   NULL,
+                   0);
 
-      m_thread_state[core_id].waiter = -1;
+      m_thread_state[core_id].waiter = INVALID_CORE_ID;
    }
    LOG_PRINT("Exiting wakeUpWaiter");
 }

@@ -20,7 +20,7 @@
 #include "carbon_user.h"
 #include "capi.h"
 
-#define NUM_LOOPS      30
+#define NUM_LOOPS      300
 #define MSG_SIZE       10      // number of integers in each message
 
 // only proc0 really sets this value
@@ -67,8 +67,6 @@ int main(int argc, char *argv[])
    for(unsigned int i = 1; i < num_threads; i++)
        threads[i] = CarbonSpawnThread(ring, (void *) i);
 
-   sleep(3);
-
    printf("Spawning master thread.\n");
    // Run the master thread.
    ring((void *)0);
@@ -98,19 +96,25 @@ void *ring(void *p)
 
    CAPI_Initialize(rank);
 
-   sleep(5);
-
    if(rank == 0)
    {
        // Inform the workers of the ring size
-       for(unsigned int i = 0; i < g_num_threads; i++)
-           CAPI_message_send_w((CAPI_endpoint_t)0, (CAPI_endpoint_t)i,
-                   (char*)&g_num_threads, sizeof(g_num_threads));
+       for(unsigned int i = 1; i < g_num_threads; i++)
+       {
+          while(
+             CAPI_message_send_w((CAPI_endpoint_t)0, (CAPI_endpoint_t)i,
+                                 (char*)&g_num_threads, sizeof(g_num_threads))
+             != CAPI_StatusOk
+             );
+       }
    }
    else
    {
-       CAPI_message_receive_w((CAPI_endpoint_t)0, (CAPI_endpoint_t)i,
-               (char*)&g_num_threads, sizeof(g_num_threads));
+      while(
+         CAPI_message_receive_w((CAPI_endpoint_t)0, (CAPI_endpoint_t)rank,
+                                (char*)&g_num_threads, sizeof(g_num_threads))
+         != CAPI_StatusOk
+         );
    }
 
    ring_size = g_num_threads;
@@ -158,7 +162,7 @@ void *ring(void *p)
       if (0 == rank)
       {
          --message[0];
-         printf("Process 0 decremented value: %d\n", message[0]);
+         // printf("Process 0 decremented value: %d\n", message[0]);
       }
 
       CAPI_message_send_w((CAPI_endpoint_t)rank, (CAPI_endpoint_t)next,

@@ -226,8 +226,6 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    getFile(core_id, sim_thread, &file, &lock);
    int tid = syscall(__NR_gettid);
 
-   lock->acquire();
-
    std::string module = getModule(source_file);
 
    char message[512];
@@ -262,6 +260,8 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    va_end(args);
 
    p += sprintf(p, "\n");
+
+   lock->acquire();
 
    fprintf(file, "%s", message);
    fflush(file);

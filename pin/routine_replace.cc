@@ -45,10 +45,6 @@ int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *p
    return res;
 }
 
-void CarbonPthreadExitExceptNot(void *)
-{
-}
-
 // ---------------------------------------------------------
 // Memory Redirection
 //
@@ -282,7 +278,6 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
 // PIN specific stack management
 void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
 {
-   cerr << "Entering replacementPthreadAttrInitOtherAttr" << endl;
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert(core == NULL);
 
@@ -295,8 +290,6 @@ void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
 
    SimPthreadAttrInitOtherAttr(attr);
-
-   cerr << "Returning from replacementPthreadAttrInitOtherAttr" << endl;
 
    retFromReplacedRtn(ctxt, ret_val);
 }

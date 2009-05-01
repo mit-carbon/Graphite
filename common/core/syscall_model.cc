@@ -569,21 +569,7 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
    else
    {
 #endif
-      int msg_type;
-      UInt8 syscall_number;
-      m_send_buff >> msg_type >> syscall_number;
-      if (syscall_number == SYS_mmap)
-      {
-         return (carbon_reg_t) syscall (SYS_mmap, mmap_args_ptr);
-      }
-      else if (syscall_number == SYS_mmap2)
-      {
-         return (carbon_reg_t) syscall (SYS_mmap2, mmap_args_ptr);
-      }
-      else
-      {
-         assert (false);
-      }
+      return (carbon_reg_t) syscall (SYS_mmap, mmap_args_ptr);
 #ifdef REDIRECT_MEMORY
    }
 #endif
@@ -637,21 +623,7 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
    else
    {
 #endif
-      int msg_type;
-      UInt8 syscall_number;
-      m_send_buff >> msg_type >> syscall_number;
-      if (syscall_number == SYS_mmap)
-      {
-         return (carbon_reg_t) syscall (SYS_mmap, mmap_args_ptr);
-      }
-      else if (syscall_number == SYS_mmap2)
-      {
-         return (carbon_reg_t) syscall (SYS_mmap2, mmap_args_ptr);
-      }
-      else
-      {
-         assert (false);
-      }
+      return (carbon_reg_t) syscall (SYS_mmap2, mmap_args_ptr);
 #ifdef REDIRECT_MEMORY
    }
 #endif

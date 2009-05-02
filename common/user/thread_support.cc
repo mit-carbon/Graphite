@@ -51,9 +51,6 @@ void CarbonThreadStart(ThreadSpawnRequest *req)
 
 void CarbonThreadExit()
 {
-   // TODO:
-   // Remember to fix thread exit
-   assert (false);
    Sim()->getThreadManager()->onThreadExit();
 }
 
@@ -65,17 +62,11 @@ void CarbonDequeueThreadSpawnReq (ThreadSpawnRequest *req)
 
 void *CarbonSpawnManagedThread(void *)
 {
-   cerr  << "In CarbonSpawnManagedThread" << endl;
-
    ThreadSpawnRequest thread_req;
 
    CarbonDequeueThreadSpawnReq (&thread_req);
 
-   cerr << "Got thread spawn req from the simulator: func = " << (void*) thread_req.func << endl;
-
    CarbonThreadStart(&thread_req);
-
-   cerr << "Done calling CarbonThreadStart" << endl;
 
    thread_req.func(thread_req.arg);
 
@@ -119,7 +110,6 @@ void *CarbonThreadSpawner(void *p)
         
          CarbonPthreadAttrInitOtherAttr(&attr);
        
-         cerr << "Done initing other pthread attr" << endl;
          pthread_create(&thread, &attr, CarbonSpawnManagedThread, NULL);
       }
       else

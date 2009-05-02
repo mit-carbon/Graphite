@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 void CarbonGetThreadToSpawn(ThreadSpawnRequest *req);
-// void CarbonThreadStart(ThreadSpawnRequest *req);
-// void CarbonThreadExit();
+void CarbonThreadStart(ThreadSpawnRequest *req);
+void CarbonThreadExit();
 void *CarbonSpawnManagedThread(void *p);
 void *CarbonThreadSpawner(void *p);
 int CarbonSpawnThreadSpawner();

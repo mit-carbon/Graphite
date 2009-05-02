@@ -115,7 +115,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else
       {
          LOG_PRINT ("Unhandled syscall %d", syscall_number);
-         assert (false);
+         // assert (false);
       }
    }
 }
@@ -172,9 +172,9 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_munmap) ||
             (syscall_number == SYS_brk))
       {
-         // TODO:
-         // More memory manager magic
-         assert (false);
+         UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
+         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
+         PIN_SetContextReg (ctx, REG_GAX, syscall_return);
       }
    }
 }

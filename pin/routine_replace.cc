@@ -45,10 +45,6 @@ int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *p
    return res;
 }
 
-void CarbonPthreadExitExceptNot(void *)
-{
-}
-
 // ---------------------------------------------------------
 // Memory Redirection
 //
@@ -178,22 +174,27 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
 void replacementMain (CONTEXT *ctxt)
 {
+   cerr << "replacementMain" << endl;
+
    spawnThreadSpawner(ctxt);
 
+#ifdef REDIRECT_MEMORY
    allocateStackSpace();
+#endif
 
    UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
    
    if (curr_process_num == 0)
    {
-      Sim()->getCoreManager()->initializeThread(0);
 
 #ifdef REDIRECT_MEMORY
       ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
       ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
       // 1) Copying over Static Data
       // Get the image first
+      PIN_LockClient();
       IMG img = IMG_FindByAddress(reg_eip);
+      PIN_UnlockClient();
       copyStaticData(img);
 
       // 2) Copying over initial stack data
@@ -282,7 +283,6 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
 // PIN specific stack management
 void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
 {
-   cerr << "Entering replacementPthreadAttrInitOtherAttr" << endl;
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert(core == NULL);
 
@@ -295,8 +295,6 @@ void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
 
    SimPthreadAttrInitOtherAttr(attr);
-
-   cerr << "Returning from replacementPthreadAttrInitOtherAttr" << endl;
 
    retFromReplacedRtn(ctxt, ret_val);
 }

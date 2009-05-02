@@ -28,19 +28,19 @@ SockTransport::SockTransport()
 
 void SockTransport::getProcInfo()
 {
-   SInt32 err;
+   m_num_procs = (SInt32)Config::getSingleton()->getProcessCount();
 
-   LOG_PRINT("getProcInfo()");
+   const char *proc_index_str = getenv("CARBON_PROCESS_INDEX");
+   LOG_ASSERT_ERROR(proc_index_str != NULL || m_num_procs == 1,
+                    "Process index undefined with multiple processes.");
 
-   err = MPI_Init(NULL, NULL);
-   LOG_ASSERT_ERROR(err == MPI_SUCCESS, "MPI_Init_thread fail.");
+   if (proc_index_str)
+      m_proc_index = atoi(proc_index_str);
+   else
+      m_proc_index = 0;
 
-   err = MPI_Comm_size(MPI_COMM_WORLD, &m_num_procs);
-   LOG_ASSERT_ERROR(err == MPI_SUCCESS, "MPI_Comm_size fail.");
-   LOG_ASSERT_ERROR(m_num_procs == (SInt32)Config::getSingleton()->getProcessCount(), "Config no. processes doesn't match MPI no. processes.");
-
-   err = MPI_Comm_rank(MPI_COMM_WORLD, &m_proc_index);
-   LOG_ASSERT_ERROR(err == MPI_SUCCESS, "MPI_Comm_rank fail.");
+   LOG_ASSERT_ERROR(0 <= m_proc_index && m_proc_index < m_num_procs,
+                    "Invalid process index: %d with num_procs: %d", m_proc_index, m_num_procs);
 
    Config::getSingleton()->setProcessNum(m_proc_index);
    LOG_PRINT("Process number set to %i", Config::getSingleton()->getCurrentProcessNum());

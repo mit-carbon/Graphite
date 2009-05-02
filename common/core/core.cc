@@ -9,9 +9,7 @@
 
 using namespace std;
 
-#ifndef REDIRECT_MEMORY
 Lock Core::m_global_core_lock;
-#endif
 
 Core::Core(SInt32 id)
    : m_core_id(id)
@@ -117,42 +115,22 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
  */
 UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
 {
-#ifndef REDIRECT_MEMORY
-
-   if (data_size <= 0)
-   {
-      return 0;
-   }
-
-   if (lock_signal == Core::LOCK)
-   {
-      assert(shmem_req_type == READ_EX);
-      m_global_core_lock.acquire();
-   }
-   
-   if ( (shmem_req_type == READ) || (shmem_req_type == READ_EX) )
-   {
-      memcpy ((void*) data_buffer, (void*) d_addr, (size_t) data_size);
-   }
-   else if (shmem_req_type == WRITE)
-   {
-      memcpy ((void*) d_addr, (void*) data_buffer, (size_t) data_size);
-   }
-
-   if (lock_signal == Core::UNLOCK)
-   {
-      assert(shmem_req_type == WRITE);
-      m_global_core_lock.release();
-   }
-
-   return 0;
-
-#else
-
-   UInt32 num_misses = 0;
-
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
+#ifdef REDIRECT_MEMORY
+      UInt32 num_misses = 0;
+      string lock_value;
+      if (lock_signal == NONE)
+      {
+         lock_value = "LOCK";
+      }
+      else
+      {
+         lock_value = "NO_LOCK";
+      }
+
+      cerr << "accessMemory: " << lock_value << endl;
+      
       LOG_PRINT("%s - ADDR: 0x%x, data_size: %u, START!!", 
                ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);
 
@@ -216,39 +194,45 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
                ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);
 
       return (num_misses);
+#else
+      return nativeMemOp (lock_signal, shmem_req_type, d_addr, data_buffer, data_size);
+#endif
    }
    
    else
    {   
-      if (data_size <= 0)
-      {
-         return 0;
-      }
+      return nativeMemOp (lock_signal, shmem_req_type, d_addr, data_buffer, data_size);
+   }
+}
 
-      if (lock_signal == Core::LOCK)
-      {
-         assert(shmem_req_type == READ_EX);
-         m_global_core_lock.acquire();
-      }
-      
-      if ( (shmem_req_type == READ) || (shmem_req_type == READ_EX) )
-      {
-         memcpy ((void*) data_buffer, (void*) d_addr, (size_t) data_size);
-      }
-      else if (shmem_req_type == WRITE)
-      {
-         memcpy ((void*) d_addr, (void*) data_buffer, (size_t) data_size);
-      }
 
-      if (lock_signal == Core::UNLOCK)
-      {
-         assert(shmem_req_type == WRITE);
-         m_global_core_lock.release();
-      }
-
+UInt32 Core::nativeMemOp(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+{
+   if (data_size <= 0)
+   {
       return 0;
    }
 
-#endif
-}
+   if (lock_signal == Core::LOCK)
+   {
+      assert(shmem_req_type == READ_EX);
+      m_global_core_lock.acquire();
+   }
 
+   if ( (shmem_req_type == READ) || (shmem_req_type == READ_EX) )
+   {
+      memcpy ((void*) data_buffer, (void*) d_addr, (size_t) data_size);
+   }
+   else if (shmem_req_type == WRITE)
+   {
+      memcpy ((void*) d_addr, (void*) data_buffer, (size_t) data_size);
+   }
+
+   if (lock_signal == Core::UNLOCK)
+   {
+      assert(shmem_req_type == WRITE);
+      m_global_core_lock.release();
+   }
+
+   return 0;
+}

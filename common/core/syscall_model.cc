@@ -9,6 +9,7 @@
 #include "simulator.h"
 #include "core.h"
 #include "core_manager.h"
+#include "vm_manager.h"
 
 #include <errno.h>
 #include <string>
@@ -549,7 +550,7 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
 #ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_send_buf.put (*mmap_args_ptr);
+      m_send_buff.put (*mmap_args_ptr);
       
       // send the data
       m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
@@ -603,7 +604,7 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
 #ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_send_buf.put (*mmap_args_ptr);
+      m_send_buff.put (*mmap_args_ptr);
       
       // send the data
       m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
@@ -659,8 +660,8 @@ carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
 #ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_send_buf.put (start);
-      m_send_buf.put (length);
+      m_send_buff.put (start);
+      m_send_buff.put (length);
 
       // send the data
       m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
@@ -691,8 +692,6 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
    // --------------------------------------------
    // Syscall arguments:
    //
-   // struct mmap_arg_struct *args 
-   //
    //  TRANSMIT
    //
    //  Field               Type
@@ -713,7 +712,7 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
 #ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_send_buf.put (end_data_segment);
+      m_send_buff.put (end_data_segment);
 
       // send the data
       m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());

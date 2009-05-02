@@ -12,6 +12,9 @@
 
 int spawnThreadSpawner(CONTEXT *ctxt)
 {
+
+   cerr << "In spawnThreadSpawner" << endl;
+
    int res;
 
    ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
@@ -24,14 +27,16 @@ int spawnThreadSpawner(CONTEXT *ctxt)
    thread_spawner = RTN_Funptr(rtn);
 
    PIN_UnlockClient();
-   
+
+   cerr << "About to call PIN_CallApplicationFunction" << endl;
+  
    PIN_CallApplicationFunction(ctxt,
             PIN_ThreadId(),
             CALLINGSTD_DEFAULT,
             thread_spawner,
             PIN_PARG(int), &res,
             PIN_PARG_END());
-      
+
    LOG_PRINT ("Thread spawner spawned");
    LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
 

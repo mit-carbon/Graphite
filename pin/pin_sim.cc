@@ -114,6 +114,8 @@ void ApplicationExit(int, void*)
 
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
+   cerr << "threadStartCallback" << endl;
+
    ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    // Conditions under which we must initialize a core
@@ -122,9 +124,16 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
    if (! done_app_initialization)
    {
+
+      cerr << "Main thread..." << endl;
+
+      Sim()->getCoreManager()->initializeThread(0);
+
       // All the real initialization is done in 
       // replacement_start at the moment
       done_app_initialization = true;
+
+      cerr << "Done initializing app" << endl;
    }
    else
    {
@@ -132,6 +141,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       // 'application' thread or 'thread spawner'
 
       core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
+
       if (core_id != -1)
       {
          // 'Application' thread
@@ -192,14 +202,14 @@ int main(int argc, char *argv[])
    
    if(cfg->getBool("general/enable_syscall_modeling"))
    {
-      PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-      PIN_AddSyscallExitFunction(SyscallExit, 0);
-      PIN_AddContextChangeFunction (contextChange, NULL);
+      // PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+      // PIN_AddSyscallExitFunction(SyscallExit, 0);
+      // PIN_AddContextChangeFunction (contextChange, NULL);
    }
 
    if (cfg->getBool("general/enable_shared_mem"))
    {
-      // INS_AddInstrumentFunction (instructionCallback, 0);
+      INS_AddInstrumentFunction (instructionCallback, 0);
    }
 
    PIN_AddFiniFunction(ApplicationExit, 0);

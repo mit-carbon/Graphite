@@ -56,10 +56,10 @@ VOID copyStaticData(IMG& img)
       // sections which are relevant like the sections below: DATA, BSS, GOT
       
       // Copy over all the sections now !
-      // SEC_TYPE sec_type = SEC_Type(sec);
-      // if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
-      //     (sec_type == SEC_TYPE_GOT)
-      //   )
+      SEC_TYPE sec_type = SEC_Type(sec);
+      if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
+           (sec_type == SEC_TYPE_GOT)
+         )
       {
          if (SEC_Mapped(sec))
          {

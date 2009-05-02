@@ -19,7 +19,7 @@ class OCache;
 #include "config.h"
 #include "perfmdl.h"
 
-#define REDIRECT_MEMORY 1
+// #define REDIRECT_MEMORY 1
 
 class Core
 {

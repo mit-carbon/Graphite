@@ -134,6 +134,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
       if (curr_process_num == 0)
       {
+         cerr << "Initializing the main thread CoreID\n";
          Sim()->getCoreManager()->initializeThread(0);
 
 #ifdef REDIRECT_MEMORY
@@ -144,10 +145,15 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          PIN_LockClient();
          IMG img = IMG_FindByAddress(reg_eip);
          PIN_UnlockClient();
+
+         cerr << "Start Copying Static Data\n";
          copyStaticData(img);
+         cerr << "Finished Copying Static Data\n";
 
          // 2) Copying over initial stack data
+         cerr << "Start Copying Initial Stack Data\n";
          copyInitialStackData(reg_esp);
+         cerr << "Finished Copying Initial Stack Data\n";
 #endif
       }
       

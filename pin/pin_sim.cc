@@ -224,9 +224,9 @@ int main(int argc, char *argv[])
    
    if(cfg->getBool("general/enable_syscall_modeling"))
    {
-      // PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-      // PIN_AddSyscallExitFunction(SyscallExit, 0);
-      // PIN_AddContextChangeFunction (contextChange, NULL);
+      PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+      PIN_AddSyscallExitFunction(SyscallExit, 0);
+      PIN_AddContextChangeFunction (contextChange, NULL);
    }
 
    if (cfg->getBool("general/enable_shared_mem"))

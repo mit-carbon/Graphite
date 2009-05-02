@@ -52,7 +52,7 @@ DramDirectoryEntry* DramDirectory::getEntry(IntPtr address)
    // FIXME: I guess this is the place we need to call the code for transferring data from the host machine to the simulated machine
    if (entry_ptr == NULL)
    {
-      dram_directory_entries[address] =  new DramDirectoryEntry(address, (Byte*) address);
+      dram_directory_entries[address] =  new DramDirectoryEntry(address);
    }
 
    return dram_directory_entries[address];

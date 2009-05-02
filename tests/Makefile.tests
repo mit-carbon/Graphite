@@ -53,7 +53,7 @@ all: $(TARGET)
 	$(RUN)
 
 # Compiler flags
-LD_FLAGS = -L$(SIM_ROOT)/lib -static
+LD_FLAGS = -static -L$(SIM_ROOT)/lib
 LD_LIBS = -pthread -lcarbon_sim
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
@@ -73,7 +73,7 @@ LIB_DEPENDENCIES = $(LIB_CARBON)
 .SUFFIXES:  .o .c .h .cc
 
 $(TARGET): $(OBJECTS) $(LIB_DEPENDENCIES)
-	$(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS) 
+	$(CXX) $(LD_FLAGS) $^ -o $@ $(LD_LIBS) 
 
 $(LIB_CARBON):
 	make -C $(SIM_ROOT)/common

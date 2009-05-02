@@ -285,20 +285,24 @@ void SyscallServer::marshallMmapCall (core_id_t core_id)
 
 void SyscallServer::marshallMmap2Call (core_id_t core_id)
 {
-   struct mmap_arg_struct mmap_args_buf;
-
-   m_recv_buff.get(mmap_args_buf);
-
    void *start;
-   start = VMManager::getSingleton()->mmap2 ( (void*) mmap_args_buf.addr,
-         (size_t) mmap_args_buf.len,
-         (int) mmap_args_buf.prot,
-         (int) mmap_args_buf.flags,
-         (int) mmap_args_buf.fd,
-         (off_t) mmap_args_buf.offset);
-   
-   m_send_buff.put (start);
+   size_t length;
+   int prot;
+   int flags;
+   int fd;
+   off_t pgoffset;
 
+   m_recv_buff.get (start);
+   m_recv_buff.get (length);
+   m_recv_buff.get (prot);
+   m_recv_buff.get (flags);
+   m_recv_buff.get (fd);
+   m_recv_buff.get (pgoffset);
+
+   void *addr;
+   addr = VMManager::getSingleton()->mmap2 (start, length, prot, flags, fd, pgoffset);
+
+   m_send_buff.put (addr);
    m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 

@@ -29,13 +29,15 @@ int spawnThreadSpawner(CONTEXT *ctxt)
    PIN_UnlockClient();
 
    cerr << "About to call PIN_CallApplicationFunction" << endl;
-  
+
    PIN_CallApplicationFunction(ctxt,
             PIN_ThreadId(),
             CALLINGSTD_DEFAULT,
             thread_spawner,
             PIN_PARG(int), &res,
             PIN_PARG_END());
+
+   cerr << "Thread spawner spawned" << endl;
 
    LOG_PRINT ("Thread spawner spawned");
    LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
@@ -56,10 +58,9 @@ VOID copyStaticData(IMG& img)
       // sections which are relevant like the sections below: DATA, BSS, GOT
       
       // Copy over all the sections now !
-      // SEC_TYPE sec_type = SEC_Type(sec);
-      // if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
-      //     (sec_type == SEC_TYPE_GOT)
-      //   )
+      SEC_TYPE sec_type = SEC_Type(sec);
+      if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
+          (sec_type == SEC_TYPE_GOT))
       {
          if (SEC_Mapped(sec))
          {

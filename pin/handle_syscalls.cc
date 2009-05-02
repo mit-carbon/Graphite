@@ -47,6 +47,8 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    
    if (core)
    {
+      cerr << "syscall_number = " << syscall_number << endl;
+
       // Save the syscall number
       core->getSyscallMdl()->saveSyscallNumber (syscall_number);
       
@@ -54,24 +56,27 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_ioctl) ||
             (syscall_number == SYS_fstat) ||
             (syscall_number == SYS_mprotect) ||
-            (syscall_number == SYS_munmap) ||
-            (syscall_number == SYS_brk))
+            (syscall_number == SYS_brk) ||
+            (syscall_number == SYS_mmap2) ||
+            (syscall_number == SYS_munmap))
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
          UInt8 new_syscall = core->getSyscallMdl ()->runEnter (syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
       
-      else if ((syscall_number == SYS_mmap) ||
-         (syscall_number == SYS_mmap2))
+      else if (syscall_number == SYS_mmap)
       {
          struct mmap_arg_struct mmap_arg_buf;
          struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) PIN_GetContextReg (ctx, REG_GBX);
+
          core->accessMemory (Core::NONE, READ, (IntPtr) mmap_args_ptr, (char*) &mmap_arg_buf, sizeof (struct mmap_arg_struct));
 
          SyscallMdl::syscall_args_t args;
          args.arg0 = (int) &mmap_arg_buf;
+
          UInt8 new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
+
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
 
@@ -111,7 +116,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          // Let the syscall fall through
       }
       
-     
       else
       {
          LOG_PRINT ("Unhandled syscall %d", syscall_number);
@@ -128,8 +132,24 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    if (core)
    {
       ADDRINT syscall_number = core->getSyscallMdl()->retrieveSyscallNumber ();
+      cerr << "Syscall Exit: syscall_number " << syscall_number << endl;
       
-      if (syscall_number == SYS_rt_sigprocmask)
+      if ((syscall_number == SYS_fstat) ||
+            (syscall_number == SYS_ioctl) ||
+            (syscall_number == SYS_write) ||
+            (syscall_number == SYS_mprotect) ||
+            (syscall_number == SYS_brk) ||
+            (syscall_number == SYS_mmap) ||
+            (syscall_number == SYS_mmap2) ||
+            (syscall_number == SYS_munmap))
+
+      {
+         UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
+         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
+         PIN_SetContextReg (ctx, REG_GAX, syscall_return);
+      }
+      
+      else if (syscall_number == SYS_rt_sigprocmask)
       {
          restoreRtsigprocmaskContext (ctx, syscall_standard);
       }
@@ -149,32 +169,11 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          restoreNanosleepContext (ctx, syscall_standard);
       }
       
-      // FIXME
-      // Examining clone system call
       else if (syscall_number == SYS_clone)
       {
          // Should never have a core execute a clone system call
          // in the current scheme
-         assert (false);
-      }
-      
-      else if ((syscall_number == SYS_fstat) ||
-            (syscall_number == SYS_ioctl) ||
-            (syscall_number == SYS_write) ||
-            (syscall_number == SYS_mprotect))
-      {
-         UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
-         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
-         PIN_SetContextReg (ctx, REG_GAX, syscall_return);
-      }
-
-      else if ((syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap) ||
-            (syscall_number == SYS_brk))
-      {
-         UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
-         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
-         PIN_SetContextReg (ctx, REG_GAX, syscall_return);
+         // assert (false);
       }
    }
 }

@@ -120,17 +120,15 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 #ifdef REDIRECT_MEMORY
       UInt32 num_misses = 0;
       string lock_value;
-      if (lock_signal == NONE)
+      if (lock_signal == LOCK)
       {
-         lock_value = "LOCK";
+         cerr << "accessMemory: LOCK";
       }
-      else
+      else if (lock_signal == UNLOCK)
       {
-         lock_value = "NO_LOCK";
+         cerr << "accessMemory: UNLOCK";
       }
 
-      cerr << "accessMemory: " << lock_value << endl;
-      
       LOG_PRINT("%s - ADDR: 0x%x, data_size: %u, START!!", 
                ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);
 

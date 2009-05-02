@@ -32,7 +32,7 @@ PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL)
 
 PROCS ?= 1
 CORES ?= 16
-ENABLE_SM ?= false
+ENABLE_SM ?= true
 APP_FLAGS ?=
 BUILD_MODE ?= # Set to nonempty to not run anything
 MODE ?= # Set to 'pin' to use pin

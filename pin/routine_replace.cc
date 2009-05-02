@@ -201,7 +201,7 @@ void replacementMain (CONTEXT *ctxt)
       copyInitialStackData(reg_esp);
 #endif
 
-      // Execute _start
+      // Execute main 
       return;
    }
    else

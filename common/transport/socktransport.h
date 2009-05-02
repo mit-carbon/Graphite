@@ -75,6 +75,10 @@ private:
    SInt32 m_num_procs;
    SInt32 m_proc_index;
 
+   Lock m_barrier_lock;
+   SInt32 m_barrier_count;
+   SInt32 m_recvd_barrier_count;
+
    Socket m_server_socket;
    Lock *m_recv_locks;
    Socket *m_recv_sockets;
@@ -83,6 +87,7 @@ private:
    static const int BASE_PORT = 2000;
    static const int BUFFER_SIZE = 0x10000;
    static const int GLOBAL_TAG = -1;
+   static const int BARRIER_TAG = -2;
 
    typedef std::list<Byte*> buffer_list;
    SInt32 m_num_lists;

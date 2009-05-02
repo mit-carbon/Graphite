@@ -16,6 +16,8 @@
 #include "socktransport.h"
 
 SockTransport::SockTransport()
+   : m_barrier_count(0)
+   , m_recvd_barrier_count(0)
 {
    getProcInfo();
    initSockets();
@@ -119,12 +121,31 @@ void SockTransport::updateBufferLists()
 
          m_recv_locks[i].release();
 
-         if (tag == GLOBAL_TAG)
-            tag = m_num_lists - 1;
+         switch (tag)
+         {
+         case BARRIER_TAG:
+            m_barrier_lock.acquire();
+            m_recvd_barrier_count = *((SInt32*)buffer);
+            LOG_PRINT("barrier recv %d", m_recvd_barrier_count);
+            LOG_ASSERT_ERROR(m_recvd_barrier_count > m_barrier_count,
+                             "Unexpected barrier counter value: %d <= %d", m_recvd_barrier_count, m_barrier_count);
+            LOG_ASSERT_ERROR(i == (m_proc_index + m_num_procs - 1) % m_num_procs,
+                             "Barrier update from unexpected process: %d", i);
+            m_barrier_lock.release();
+            delete [] buffer;
+            break;
 
-         m_buffer_locks[tag].acquire();
-         m_buffer_lists[tag].push_back(buffer);
-         m_buffer_locks[tag].release();
+         case GLOBAL_TAG:
+            tag = m_num_lists - 1;
+            // fall through intentionally
+
+         default:
+            LOG_ASSERT_ERROR(tag >= 0, "Unexpected tag value: %d", tag);
+            m_buffer_locks[tag].acquire();
+            m_buffer_lists[tag].push_back(buffer);
+            m_buffer_locks[tag].release();
+            break;
+         };
       }
    }
 }
@@ -157,7 +178,61 @@ Transport::Node* SockTransport::createNode(core_id_t core_id)
 
 void SockTransport::barrier()
 {
-   // FIXME: implement
+   // We implement a barrier using a ring of messages. We are using a
+   // single socket for the entire process, however, and it is
+   // multiplexed between many cores. So updates occur asynchronously
+   // and possibly in other threads. That's what the counter business
+   // is meant to take care of.
+   //   There are two trips around the ring. The first trip blocks the
+   // processes until everyone arrives. The second wakes them. This is
+   // a low-performance implementation, but given how barriers are
+   // used in the simulator, it should be OK.
+
+   m_barrier_lock.acquire();
+   LOG_PRINT("Entering barrier: %d %d", m_barrier_count, m_recvd_barrier_count);
+
+   // receive ping from prev
+   if (m_proc_index != 0)
+   {
+      while (m_barrier_count >= m_recvd_barrier_count)
+      {
+         m_barrier_lock.release();
+         updateBufferLists();
+         sched_yield();
+         m_barrier_lock.acquire();
+      }
+   }
+
+   ++m_barrier_count;
+
+   // forward ping
+   SInt32 message[] = { sizeof(SInt32), BARRIER_TAG, m_barrier_count };
+   if (m_proc_index == m_num_procs - 1)
+      ++message[2];
+   m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
+   LOG_PRINT("barrier send %d", message[2]);
+
+   // receive confirmation that all processes reached barrier from prev
+   while (m_barrier_count >= m_recvd_barrier_count)
+   {
+      m_barrier_lock.release();
+      updateBufferLists();
+      sched_yield();
+      m_barrier_lock.acquire();
+   }
+
+   ++m_barrier_count;
+
+   // forward confirmation
+   if (m_proc_index != m_num_procs - 1)
+   {
+      message[2] = m_barrier_count;
+      m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
+      LOG_PRINT("barrier send %d", message[2]);
+   }
+
+   LOG_PRINT("Exiting barrier: %d %d", m_barrier_count, m_recvd_barrier_count);
+   m_barrier_lock.release();
 }
 
 Transport::Node* SockTransport::getGlobalNode()

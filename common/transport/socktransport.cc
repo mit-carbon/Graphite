@@ -138,13 +138,12 @@ SockTransport::~SockTransport()
    delete [] m_buffer_locks;
    delete [] m_buffer_lists;
 
-   m_server_socket.close();
-
    for (SInt32 i = 0; i < m_num_procs; i++)
    {
       m_recv_sockets[i].close();
       m_send_sockets[i].close();
    }
+   m_server_socket.close();
    
    delete [] m_recv_locks;
    delete [] m_recv_sockets;
@@ -351,8 +350,17 @@ void SockTransport::Socket::connect(const char* addr, SInt32 port)
    saddr.sin_addr.s_addr = inet_addr(addr);
    saddr.sin_port = htons(port);
 
-   err = ::connect(m_socket, (struct sockaddr *)&saddr, sizeof(saddr));
-   LOG_ASSERT_ERROR(err >= 0, "Failed to connect -- addr: %s, port: %d", addr, port);
+   while (true)
+   {
+      err = ::connect(m_socket, (struct sockaddr *)&saddr, sizeof(saddr));
+
+      //LOG_ASSERT_ERROR(err >= 0, "Failed to connect -- addr: %s, port: %d", addr, port);
+
+      if (err >= 0)
+         break;
+      else
+         sched_yield();
+   }
 
    LOG_PRINT("Connected on socket %d to %s:%d", m_socket, addr, port);
 }

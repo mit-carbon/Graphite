@@ -731,7 +731,7 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
       m_send_buff.put (end_data_segment);
 
       // send the data
-      m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
       // get a result
       NetPacket recv_pkt;

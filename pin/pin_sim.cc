@@ -147,9 +147,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          IMG img = IMG_FindByAddress(reg_eip);
          PIN_UnlockClient();
 
+         LOG_PRINT("Start Copying Static Data\n")
          copyStaticData(img);
+         LOG_PRINT("Finished Copying Static Data\n")
 
          // 2) Copying over initial stack data
+         LOG_PRINT("Start Copying Initial Stack Data\n");
          copyInitialStackData(reg_esp);
          LOG_PRINT("Finished Copying Initial Stack Data\n");
 #endif

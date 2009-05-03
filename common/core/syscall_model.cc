@@ -88,7 +88,7 @@ void SyscallMdl::copyArgFromBuffer (unsigned int arg_num, IntPtr arg_addr, unsig
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad [arg_num];
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, READ, arg_addr, scratchpad, size);
+   core->accessMemory (Core::NONE, WRITE, arg_addr, scratchpad, size);
 }
 
 // --------------------------------------------
@@ -583,13 +583,17 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
    // --------------------------------------------
    // Syscall arguments:
    //
-   // struct mmap_arg_struct *args 
-   //
+   //  void *start, size_t length, int prot, int flags, int fd, off_t pgoffset
    //  TRANSMIT
    //
    //  Field           Type
    //  --------------|------
-   //  mmap_args_buf    mmap_arg_struct
+   //  start           void*
+   //  length          size_t
+   //  prot            int
+   //  flags           int
+   //  fd              int
+   //  pgoffset        off_t
    //
    //
    //  RECEIVE
@@ -601,13 +605,23 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
    // --------------------------------------------
 
 
-   struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) args.arg0;
+   void *start = (void*) args.arg0;
+   size_t length = (size_t) args.arg1;
+   int prot = (int) args.arg2;
+   int flags = (int) args.arg3;
+   int fd = (int) args.arg4;
+   off_t pgoffset = (off_t) args.arg5;
 
-#ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_send_buff.put (*mmap_args_ptr);
-      
+#ifdef REDIRECT_MEMORY
+      m_send_buff.put (start);
+      m_send_buff.put (length);
+      m_send_buff.put (prot);
+      m_send_buff.put (flags);
+      m_send_buff.put (fd);
+      m_send_buff.put (pgoffset);
+
       // send the data
       m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
 
@@ -619,17 +633,17 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
 
       // Return the result
-      void *start;
-      m_recv_buff.get(start);
-      return (carbon_reg_t) start;
+      void *addr;
+      m_recv_buff.get(addr);
+      return (carbon_reg_t) addr;
+#else
+      return (carbon_reg_t) syscall (SYS_mmap2, start, length, prot, flags, fd, pgoffset);
+#endif
    }
    else
    {
-#endif
-      return (carbon_reg_t) syscall (SYS_mmap2, mmap_args_ptr);
-#ifdef REDIRECT_MEMORY
+      return (carbon_reg_t) syscall (SYS_mmap2, start, length, prot, flags, fd, pgoffset);
    }
-#endif
 }
 
 carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)

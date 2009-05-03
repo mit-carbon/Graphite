@@ -45,7 +45,7 @@ class SyscallMdl
       // ------------------------------------------------------
       // New stuff added with Memory redirection
       
-      static const unsigned int m_scratchpad_size = 256;
+      static const unsigned int m_scratchpad_size = 512;
       static const unsigned int m_num_syscall_args = 6;
      
       carbon_reg_t m_syscall_number;

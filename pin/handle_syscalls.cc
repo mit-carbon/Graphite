@@ -28,6 +28,15 @@
 // Here to check up on the mmap syscall
 #include <sys/mman.h>
 
+// ---------------------------------------------------------------
+// Here for the uname syscall
+#include <sys/utsname.h>
+
+// ---------------------------------------------------------------
+// Here for the ugetrlimit system call
+#include <sys/time.h>
+#include <sys/resource.h>
+
 // FIXME
 // -----------------------------------
 // Clone stuff
@@ -53,25 +62,29 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       if ((syscall_number == SYS_write) ||
             (syscall_number == SYS_ioctl) ||
             (syscall_number == SYS_fstat) ||
+            (syscall_number == SYS_open) ||
             (syscall_number == SYS_mprotect) ||
-            (syscall_number == SYS_munmap) ||
-            (syscall_number == SYS_brk))
+            (syscall_number == SYS_brk) ||
+            (syscall_number == SYS_mmap2) ||
+            (syscall_number == SYS_munmap))
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
          UInt8 new_syscall = core->getSyscallMdl ()->runEnter (syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
       
-      else if ((syscall_number == SYS_mmap) ||
-         (syscall_number == SYS_mmap2))
+      else if (syscall_number == SYS_mmap)
       {
          struct mmap_arg_struct mmap_arg_buf;
          struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) PIN_GetContextReg (ctx, REG_GBX);
+
          core->accessMemory (Core::NONE, READ, (IntPtr) mmap_args_ptr, (char*) &mmap_arg_buf, sizeof (struct mmap_arg_struct));
 
          SyscallMdl::syscall_args_t args;
          args.arg0 = (int) &mmap_arg_buf;
+
          UInt8 new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
+
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
 
@@ -80,7 +93,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          // Should never see clone system call execute in a core since 
          // the thread spawner is not a core, and the main thread spawns
          // the thread spawner before it becomes a core
-         assert (false);
+         // assert (false);
       }
 
       else if (syscall_number == SYS_rt_sigprocmask)
@@ -103,6 +116,16 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          modifyNanosleepContext (ctx, syscall_standard);
       }
 
+      else if (syscall_number == SYS_uname)
+      {
+         modifyUnameContext (ctx, syscall_standard);
+      }
+
+      else if (syscall_number == SYS_ugetrlimit)
+      {
+         modifyUgetrlimitContext (ctx, syscall_standard);
+      }
+
       else if ((syscall_number == SYS_exit) ||
             (syscall_number == SYS_kill) ||
             (syscall_number == SYS_sigreturn) ||
@@ -111,7 +134,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          // Let the syscall fall through
       }
       
-     
       else
       {
          LOG_ASSERT_ERROR (false, "Unhandled syscall %d", syscall_number);
@@ -128,7 +150,23 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    {
       ADDRINT syscall_number = core->getSyscallMdl()->retrieveSyscallNumber ();
       
-      if (syscall_number == SYS_rt_sigprocmask)
+      if ((syscall_number == SYS_fstat) ||
+            (syscall_number == SYS_ioctl) ||
+            (syscall_number == SYS_write) ||
+            (syscall_number == SYS_open) ||
+            (syscall_number == SYS_mprotect) ||
+            (syscall_number == SYS_brk) ||
+            (syscall_number == SYS_mmap) ||
+            (syscall_number == SYS_mmap2) ||
+            (syscall_number == SYS_munmap))
+
+      {
+         UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
+         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
+         PIN_SetContextReg (ctx, REG_GAX, syscall_return);
+      }
+      
+      else if (syscall_number == SYS_rt_sigprocmask)
       {
          restoreRtsigprocmaskContext (ctx, syscall_standard);
       }
@@ -147,33 +185,22 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       {
          restoreNanosleepContext (ctx, syscall_standard);
       }
+
+      else if (syscall_number == SYS_uname)
+      {
+         restoreUnameContext (ctx, syscall_standard);
+      }
       
-      // FIXME
-      // Examining clone system call
+      else if (syscall_number == SYS_ugetrlimit)
+      {
+         restoreUgetrlimitContext (ctx, syscall_standard);
+      }
+      
       else if (syscall_number == SYS_clone)
       {
          // Should never have a core execute a clone system call
          // in the current scheme
-         assert (false);
-      }
-      
-      else if ((syscall_number == SYS_fstat) ||
-            (syscall_number == SYS_ioctl) ||
-            (syscall_number == SYS_write) ||
-            (syscall_number == SYS_mprotect))
-      {
-         UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
-         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
-         PIN_SetContextReg (ctx, REG_GAX, syscall_return);
-      }
-
-      else if ((syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap) ||
-            (syscall_number == SYS_brk))
-      {
-         UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
-         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
-         PIN_SetContextReg (ctx, REG_GAX, syscall_return);
+         // assert (false);
       }
    }
 }
@@ -373,6 +400,79 @@ void restoreNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
       PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) req);
       PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) rem);
+   }
+}
+
+void modifyUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
+      core->getSyscallMdl()->saveSyscallArgs (args);
+
+      struct utsname *buf = (struct utsname*) args.arg0;
+
+      if (buf)
+      {
+         struct utsname *buf_arg = (struct utsname*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) buf, sizeof (struct utsname));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) buf_arg);
+      }
+   }
+}
+
+void restoreUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args;
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
+
+      struct utsname *buf = (struct utsname*) args.arg0;
+
+      if (buf)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer(0, (IntPtr) buf, sizeof (struct utsname));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) buf);
+      }
+   }
+}
+
+
+void modifyUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
+      core->getSyscallMdl()->saveSyscallArgs (args);
+
+      struct rlimit *rlim = (struct rlimit*) args.arg1;
+
+      if (rlim)
+      {
+         struct rlimit *rlim_arg = (struct rlimit*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) rlim, sizeof (struct rlimit));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) rlim_arg);
+      }
+   }
+}
+
+void restoreUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args;
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
+
+      struct rlimit *rlim = (struct rlimit*) args.arg1;
+
+      if (rlim)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) rlim, sizeof(struct rlimit));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) rlim);
+      }
    }
 }
 

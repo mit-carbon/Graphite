@@ -22,4 +22,9 @@ void restoreRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard
 void modifyNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 
+void modifyUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void restoreUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void modifyUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void restoreUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+
 #endif /* __HANDLE_SYSCALLS_H__ */

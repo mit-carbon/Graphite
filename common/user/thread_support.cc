@@ -84,6 +84,7 @@ int CarbonSpawnThreadSpawner()
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
    pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
 
    return 0;

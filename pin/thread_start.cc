@@ -12,7 +12,6 @@
 
 int spawnThreadSpawner(CONTEXT *ctxt)
 {
-
    cerr << "In spawnThreadSpawner" << endl;
 
    int res;

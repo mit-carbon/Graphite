@@ -37,6 +37,11 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+// ---------------------------------------------------------------
+// Here for the set_thread_area system call
+#include <linux/unistd.h>
+#include <asm/ldt.h>
+
 // FIXME
 // -----------------------------------
 // Clone stuff
@@ -66,7 +71,8 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_mprotect) ||
             (syscall_number == SYS_brk) ||
             (syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap))
+            (syscall_number == SYS_munmap) ||
+            (syscall_number == SYS_set_tid_address))
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
          UInt8 new_syscall = core->getSyscallMdl ()->runEnter (syscall_number, args);
@@ -126,6 +132,11 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          modifyUgetrlimitContext (ctx, syscall_standard);
       }
 
+      else if (syscall_number == SYS_set_thread_area)
+      {
+         modifySet_thread_areaContext (ctx, syscall_standard);
+      }
+
       else if ((syscall_number == SYS_exit) ||
             (syscall_number == SYS_kill) ||
             (syscall_number == SYS_sigreturn) ||
@@ -158,7 +169,8 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_brk) ||
             (syscall_number == SYS_mmap) ||
             (syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap))
+            (syscall_number == SYS_munmap) ||
+            (syscall_number == SYS_set_tid_address))
 
       {
          UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
@@ -194,6 +206,11 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if (syscall_number == SYS_ugetrlimit)
       {
          restoreUgetrlimitContext (ctx, syscall_standard);
+      }
+      
+      else if (syscall_number == SYS_set_thread_area)
+      {
+         restoreSet_thread_areaContext (ctx, syscall_standard);
       }
       
       else if (syscall_number == SYS_clone)
@@ -472,6 +489,42 @@ void restoreUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
       {
          core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) rlim, sizeof(struct rlimit));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) rlim);
+      }
+   }
+}
+
+void modifySet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
+      core->getSyscallMdl()->saveSyscallArgs (args);
+
+      struct user_desc *uinfo = (struct user_desc*) args.arg0;
+
+      if (uinfo)
+      {
+         struct user_desc *uinfo_arg = (struct user_desc*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) uinfo, sizeof (struct user_desc));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) uinfo_arg);
+      }
+   }
+}
+
+void restoreSet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args;
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
+
+      struct user_desc *uinfo = (struct user_desc*) args.arg0;
+
+      if (uinfo)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) uinfo, sizeof (struct user_desc));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) uinfo);
       }
    }
 }

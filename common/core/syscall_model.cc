@@ -28,6 +28,11 @@
 // ------ Included for rt_sigaction, rt_sigprocmask, rt_sigsuspend, sigreturn, kill
 #include <signal.h>
 
+// ---------------------------------------------------------------
+// Included for getpid() which we need to handle set_tid_address
+#include <sys/types.h>
+#include <unistd.h>
+
 // ----------------------------------------------
 
 using namespace std;
@@ -171,6 +176,11 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
       case SYS_brk:
          m_called_enter = true;
          m_ret_val = marshallBrkCall (args);
+         break;
+
+      case SYS_set_tid_address:
+         m_called_enter = true;
+         m_ret_val = (carbon_reg_t) getpid (); // Don't let this system call fall through, just return as if it was a success
          break;
 
       case -1:

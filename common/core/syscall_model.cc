@@ -88,7 +88,7 @@ void SyscallMdl::copyArgFromBuffer (unsigned int arg_num, IntPtr arg_addr, unsig
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad [arg_num];
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, READ, arg_addr, scratchpad, size);
+   core->accessMemory (Core::NONE, WRITE, arg_addr, scratchpad, size);
 }
 
 // --------------------------------------------

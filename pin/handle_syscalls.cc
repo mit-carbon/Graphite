@@ -71,12 +71,16 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_mprotect) ||
             (syscall_number == SYS_brk) ||
             (syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap) ||
-            (syscall_number == SYS_set_tid_address))
+            (syscall_number == SYS_munmap))
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
          UInt8 new_syscall = core->getSyscallMdl ()->runEnter (syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
+      }
+
+      else if (syscall_number == SYS_set_tid_address)
+      {
+         PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
       }
       
       else if (syscall_number == SYS_mmap)
@@ -169,13 +173,16 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_brk) ||
             (syscall_number == SYS_mmap) ||
             (syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap) ||
-            (syscall_number == SYS_set_tid_address))
-
+            (syscall_number == SYS_munmap))
       {
          UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
          ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
          PIN_SetContextReg (ctx, REG_GAX, syscall_return);
+      }
+
+      else if (syscall_number == SYS_set_tid_address)
+      {
+         // Do nothing
       }
       
       else if (syscall_number == SYS_rt_sigprocmask)

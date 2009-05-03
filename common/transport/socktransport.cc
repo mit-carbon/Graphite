@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <sys/socket.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
@@ -418,11 +419,20 @@ void SockTransport::Socket::connect(const char* addr, SInt32 port)
    m_socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
    LOG_ASSERT_ERROR(m_socket >= 0, "Failed to create socket -- addr: %s, port: %d.", addr, port);
 
+   // lookup the hostname
+   struct hostent *host;
+   struct in_addr h_addr;
+   if ((host = gethostbyname(addr)) == NULL)
+   {
+      LOG_ASSERT_ERROR("Lookup on host: %s failed!", addr);
+   }
+   h_addr.s_addr = *((unsigned long *) host->h_addr_list[0]);
+
    // connect
    struct sockaddr_in saddr;
    memset(&saddr, 0, sizeof(saddr));
    saddr.sin_family = AF_INET;
-   saddr.sin_addr.s_addr = inet_addr(addr);
+   saddr.sin_addr.s_addr = h_addr.s_addr;
    saddr.sin_port = htons(port);
 
    while (true)

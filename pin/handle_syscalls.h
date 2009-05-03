@@ -1,3 +1,6 @@
+#ifndef __HANDLE_SYSCALLS_H__
+#define __HANDLE_SYSCALLS_H__
+
 #include "pin.H"
 #include "syscall_model.h"
 
@@ -18,3 +21,5 @@ void modifyRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 void restoreRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifyNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+
+#endif /* __HANDLE_SYSCALLS_H__ */

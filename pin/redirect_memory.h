@@ -1,7 +1,12 @@
+#ifndef __REDIRECT_MEMORY_H__
+#define __REDIRECT_MEMORY_H__
+
 #include "pin.H"
 #include "core.h"
 #include "cache.h"
 #include "memory_manager.h"
+
+VOID printInsInfo(CONTEXT *ctxt);
 
 bool rewriteStackOp (INS ins);
 void rewriteMemOp (INS ins);
@@ -23,3 +28,5 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, Memor
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, MemoryManager::AccessType access_type);
 
 UInt32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char *data_buffer, UInt32 data_size);
+
+#endif /* __REDIRECT_MEMORY_H__ */

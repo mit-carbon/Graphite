@@ -114,8 +114,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
      
       else
       {
-         LOG_PRINT ("Unhandled syscall %d", syscall_number);
-         // assert (false);
+         LOG_ASSERT_ERROR (false, "Unhandled syscall %d", syscall_number);
       }
    }
 }

@@ -8,6 +8,14 @@
 // Only need this function because some memory accesses are made before cores have
 // been initialized. Should not evnentually need this
 
+VOID printInsInfo(CONTEXT* ctxt)
+{
+   ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+
+   LOG_PRINT("eip = 0x%x, esp = 0x%x\n", reg_inst_ptr, reg_stack_ptr);
+}
+
 UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
 {
    assert (lock_signal == Core::NONE);
@@ -395,7 +403,6 @@ ADDRINT emuPopReg(ADDRINT tgt_esp, ADDRINT *reg, ADDRINT read_size)
 
 ADDRINT emuPopMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
 {
-   assert (size != 0); 
    assert ( size == sizeof ( ADDRINT ) );
    
    ADDRINT buf;
@@ -422,7 +429,6 @@ ADDRINT emuCallMem(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT 
 
 ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT br_tgt_ip, ADDRINT write_size)
 {
-   assert ( write_size == sizeof ( ADDRINT ) );
    assert (write_size == sizeof(ADDRINT));
    
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
@@ -434,7 +440,6 @@ ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADD
 
 ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size)
 {
-   assert (read_size != 0);
    assert ( read_size == sizeof ( ADDRINT ) );
 
    ADDRINT next_ip;

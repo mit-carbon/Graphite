@@ -76,6 +76,12 @@ void routineCallback(RTN rtn, void *v)
 
 void instructionCallback (INS ins, void *v)
 {
+   INS_InsertCall(ins, IPOINT_BEFORE,
+         AFUNPTR(printInsInfo),
+         IARG_CALL_ORDER, CALL_ORDER_FIRST,
+         IARG_CONTEXT,
+         IARG_END);
+
    // Emulate stack operations
    bool stack_op = rewriteStackOp (ins);
 
@@ -154,6 +160,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          cerr << "Start Copying Initial Stack Data\n";
          copyInitialStackData(reg_esp);
          cerr << "Finished Copying Initial Stack Data\n";
+         LOG_PRINT("Finished Copying Initial Stack Data\n");
 #endif
       }
       
@@ -230,9 +237,9 @@ int main(int argc, char *argv[])
    
    if(cfg->getBool("general/enable_syscall_modeling"))
    {
-      // PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-      // PIN_AddSyscallExitFunction(SyscallExit, 0);
-      // PIN_AddContextChangeFunction (contextChange, NULL);
+      PIN_AddSyscallEntryFunction(SyscallEntry, 0);
+      PIN_AddSyscallExitFunction(SyscallExit, 0);
+      PIN_AddContextChangeFunction (contextChange, NULL);
    }
 
    if (cfg->getBool("general/enable_shared_mem"))

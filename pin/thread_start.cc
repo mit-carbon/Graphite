@@ -55,24 +55,17 @@ VOID copyStaticData(IMG& img)
       // I am not sure whether we want ot copy over all the sections or just the
       // sections which are relevant like the sections below: DATA, BSS, GOT
       
-      // Copy over all the sections now !
+      // Copy all the mapped sections except the executable section now
       SEC_TYPE sec_type = SEC_Type(sec);
-      if ( (sec_type == SEC_TYPE_DATA) || (sec_type == SEC_TYPE_BSS) ||
-           (sec_type == SEC_TYPE_GOT)
-         )
+      if (sec_type != SEC_TYPE_EXEC)
       {
          if (SEC_Mapped(sec))
          {
             sec_address = SEC_Address(sec);
-         }
-         else
-         {
-            sec_address = (ADDRINT) SEC_Data(sec);
-         }
 
-         LOG_PRINT ("Copying Section: %s at Address: 0x%x of Size: %u to Simulated Memory", 
-               SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
-         core->accessMemory(Core::NONE, WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
+            LOG_PRINT ("\nCopying Section: %s at Address: 0x%x of Size: %u to Simulated Memory\n", SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
+            core->accessMemory(Core::NONE, WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
+         }
       }
    }
 }

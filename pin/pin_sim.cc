@@ -175,13 +175,24 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          // 'Application' thread
          ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
 
-         LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
+         if (req == NULL)
+         {
+            // This is the thread spawner
+            Sim()->getCoreManager()->initializeThread(core_id);
+         }
 
-         Sim()->getThreadManager()->onThreadStart(req);
+         else
+         {
+            // This is an application thread
+            LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
 
-         // Copy stuff that 'thread spawner' put on the stack from host address space
-         // to simulated address space
-         copySpawnedThreadStackData(reg_esp);
+            Sim()->getThreadManager()->onThreadStart(req);
+
+            // FIXME: Do not copy over stack data for now since thread spawner is a core
+            // Copy stuff that 'thread spawner' put on the stack from host address space
+            // to simulated address space
+            // copySpawnedThreadStackData(reg_esp);
+         }
       }
       else
       {

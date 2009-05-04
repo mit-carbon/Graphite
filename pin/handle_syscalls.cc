@@ -114,7 +114,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          // Should never see clone system call execute in a core since 
          // the thread spawner is not a core, and the main thread spawns
          // the thread spawner before it becomes a core
-         // assert (false);
+         assert (false);
       }
 
       else if (syscall_number == SYS_rt_sigprocmask)
@@ -240,7 +240,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       {
          // Should never have a core execute a clone system call
          // in the current scheme
-         // assert (false);
+         assert (false);
       }
    }
 }

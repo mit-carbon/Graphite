@@ -197,13 +197,11 @@ void replacementMain (CONTEXT *ctxt)
 
 void replacementGetThreadToSpawn (CONTEXT *ctxt)
 {
-   // CarbonGetThreadToSpawn is only called by the thread spawner threads
-   // in user-space, which are not assigned core id's. Hence, core should 
-   // be NULL
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert (core == NULL);
+   assert (core != NULL);
    
    ThreadSpawnRequest *req;
+   ThreadSpawnRequest req_buf;
    initialize_replacement_args (ctxt,
          IARG_PTR, &req,
          IARG_END);
@@ -212,10 +210,9 @@ void replacementGetThreadToSpawn (CONTEXT *ctxt)
    // void return type
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
 
-   CarbonGetThreadToSpawn (req);
+   CarbonGetThreadToSpawn (&req_buf);
 
-   // No copying over of memory should be necessary since
-   // non-cores access the same address space as pin-land
+   core->accessMemory(Core::NONE, WRITE, (IntPtr) req, (char*) &req_buf, sizeof (ThreadSpawnRequest));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -265,17 +262,22 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
 void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   assert(core == NULL);
+   assert(core != NULL);
 
    pthread_attr_t *attr;
+   pthread_attr_t attr_buf;
 
    initialize_replacement_args(ctxt,
          IARG_PTR, &attr,
          IARG_END);
 
+   core->accessMemory (Core::NONE, READ, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
+
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
 
-   SimPthreadAttrInitOtherAttr(attr);
+   SimPthreadAttrInitOtherAttr(&attr_buf);
+
+   core->accessMemory (Core::NONE, WRITE, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
 
    retFromReplacedRtn(ctxt, ret_val);
 }

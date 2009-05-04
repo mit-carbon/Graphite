@@ -16,12 +16,6 @@
 // Here to handle nanosleep syscall
 #include <time.h>
 
-// ----------------------------
-// FIXME
-// Here to examine clone syscall
-#include <sched.h>
-#include <asm/ldt.h>
-
 // FIXME
 // Here to check up on the poll syscall
 #include <poll.h>
@@ -50,8 +44,13 @@
 // FIXME
 // -----------------------------------
 // Clone stuff
+#include <sched.h>
 
-extern PIN_LOCK clone_lock;
+// FIXME: 
+// These really should be in a class instead of being globals like this
+int *parent_tidptr;
+struct user_desc *newtls;
+int *child_tidptr;
 
 // End Clone stuff
 // -----------------------------------
@@ -90,6 +89,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
       else if (syscall_number == SYS_futex)
       {
+         cerr << "SYS_futex: core_id = " << core->getId() << ", ip = " << (void*) PIN_GetContextReg (ctx, REG_INST_PTR) << endl;
          int op = (int) PIN_GetSyscallArgument (ctx, syscall_standard, 1);
          assert (op == FUTEX_WAKE);
       }
@@ -111,10 +111,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
       else if (syscall_number == SYS_clone)
       {
-         // Should never see clone system call execute in a core since 
-         // the thread spawner is not a core, and the main thread spawns
-         // the thread spawner before it becomes a core
-         assert (false);
+         modifyCloneContext (ctx, syscall_standard);
       }
 
       else if (syscall_number == SYS_rt_sigprocmask)
@@ -238,9 +235,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       
       else if (syscall_number == SYS_clone)
       {
-         // Should never have a core execute a clone system call
-         // in the current scheme
-         assert (false);
+         restoreCloneContext (ctx, syscall_standard);
       }
    }
 }
@@ -551,6 +546,67 @@ void restoreSet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_stan
       }
    }
 }
+
+void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
+      core->getSyscallMdl()->saveSyscallArgs (args);
+
+      parent_tidptr = (int*) args.arg2;
+      newtls = (struct user_desc*) args.arg3;
+      child_tidptr = (int*) args.arg4;
+
+      if (parent_tidptr)
+      {
+         int *parent_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) parent_tidptr, sizeof (int));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr_arg);
+      }
+
+      if (newtls)
+      {
+         struct user_desc *newtls_arg = (struct user_desc*) core->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) newtls, sizeof (struct user_desc));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls_arg);
+      }
+
+      if (child_tidptr)
+      {
+         int *child_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (4, (IntPtr) child_tidptr, sizeof (int));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr_arg);
+      }
+   }
+}
+
+void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args;
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
+
+      if (parent_tidptr)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (2, (IntPtr) parent_tidptr, sizeof (int));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr);
+      }
+
+      if (newtls)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (3, (IntPtr) newtls, sizeof (struct user_desc));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls);
+      }
+
+      if (child_tidptr)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (4, (IntPtr) child_tidptr, sizeof (int));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr);
+      }
+   }
+}
+
 
 SyscallMdl::syscall_args_t syscallArgs (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {

@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <errno.h>
-#include <mpi.h>
 #include <fcntl.h>
 #include <sched.h>
 

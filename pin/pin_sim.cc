@@ -183,6 +183,10 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          // to simulated address space
          copySpawnedThreadStackData(reg_esp);
       }
+      else
+      {
+         LOG_ASSERT_ERROR(false, "All application threads and thread spawner are cores now");
+      }
    }
 }
 

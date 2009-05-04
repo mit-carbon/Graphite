@@ -239,10 +239,14 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
 ThreadSpawnRequest* ThreadManager::getThreadSpawnReq()
 {
    ThreadSpawnRequest *req;
-   // m_thread_spawn_lock.acquire();
-   req = m_thread_spawn_list.front();
-   // m_thread_spawn_lock.release();
-   return req;
+   if (m_thread_spawn_list.empty())
+   {
+      return (ThreadSpawnRequest*) NULL;
+   }
+   else
+   {
+      return m_thread_spawn_list.front();
+   }
 }
 
 

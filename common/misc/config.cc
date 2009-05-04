@@ -110,7 +110,7 @@ void Config::GenerateCoreMap()
    // Assign the thread-spawners to cores
    // Thread-spawners occupy core-id's (m_total_cores - m_num_processes - 1) to (m_total_cores - 2)
    current_proc = 0;
-   for (UInt32 i = (m_total_cores - m_num_processes - 1); i <= (m_total_cores - 2); i++)
+   for (UInt32 i = (m_total_cores - m_num_processes - 1); i < (m_total_cores - 1); i++)
    {
       m_core_to_proc_map[i] = current_proc;
       m_proc_to_core_list_map[current_proc].push_back(i);

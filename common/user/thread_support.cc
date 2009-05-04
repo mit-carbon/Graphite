@@ -85,6 +85,8 @@ int CarbonSpawnThreadSpawner()
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
+   CarbonPthreadAttrInitOtherAttr(&attr);
+       
    pthread_create(&thread, &attr, CarbonThreadSpawner, NULL);
 
    return 0;
@@ -119,18 +121,6 @@ void *CarbonThreadSpawner(void *p)
       }
    }
    return NULL;
-}
-
-void CarbonThreadSpawnerSpawnThread(ThreadSpawnRequest *req)
-{
-   pthread_t thread;
-   pthread_attr_t attr;
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-        
-   CarbonPthreadAttrInitOtherAttr(&attr);
-       
-   pthread_create(&thread, &attr, CarbonSpawnManagedThread, req);
 }
 
 // This function initialized the pthread attributes

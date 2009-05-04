@@ -68,6 +68,9 @@ Config::Config()
    // Add one for the MCP
    m_total_cores += 1;
 
+   // Add the thread-spawners (one for each process)
+   m_total_cores += m_num_processes;
+
    GenerateCoreMap();
 
    // Create network parameters
@@ -96,17 +99,28 @@ void Config::GenerateCoreMap()
 
    // Stripe the cores across the processes
    UInt32 current_proc = 0;
-   for (UInt32 i=0; i < m_knob_total_cores; i++)
+   for (UInt32 i = 0; i < (m_total_cores - m_num_processes - 1) ; i++)
+   {
+      m_core_to_proc_map [i] = current_proc;
+      m_proc_to_core_list_map[current_proc].push_back(i);
+      current_proc++;
+      current_proc %= m_num_processes;
+   }
+
+   // Assign the thread-spawners to cores
+   // Thread-spawners occupy core-id's (m_total_cores - m_num_processes - 1) to (m_total_cores - 2)
+   current_proc = 0;
+   for (UInt32 i = (m_total_cores - m_num_processes - 1); i <= (m_total_cores - 2); i++)
    {
       m_core_to_proc_map[i] = current_proc;
       m_proc_to_core_list_map[current_proc].push_back(i);
       current_proc++;
       current_proc %= m_num_processes;
    }
-
+   
    // Add one for the MCP
-   m_proc_to_core_list_map[0].push_back(m_knob_total_cores);
-   m_core_to_proc_map[m_knob_total_cores] = 0;
+   m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
+   m_core_to_proc_map[m_total_cores - 1] = 0;
 }
 
 void Config::logCoreMap()

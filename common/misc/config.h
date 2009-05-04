@@ -42,6 +42,8 @@ public:
    void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
    core_id_t getMCPCoreNum() { return getTotalCores() -1; }
+
+   core_id_t getThreadSpawnerCoreNum () { return (getTotalCores() - (1 + getProcessCount() - getCurrentProcessNum())); }
    
    // Return the number of modules (cores) in a given process
    UInt32 getNumCoresInProcess(UInt32 proc_num)

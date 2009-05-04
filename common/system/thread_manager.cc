@@ -23,6 +23,15 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
    {
       m_thread_state.resize(config->getTotalCores());
       m_thread_state[0].running = true;
+
+      // Reserve core-id's 1 to (num_processes) for thread-spawners
+      UInt32 first_thread_spawner_id = Sim()->getConfig()->getTotalCores() - Sim()->getConfig()->getProcessCount() - 1;
+      UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
+      for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
+      {
+         m_thread_state[i].running = true;
+      }
+
       m_thread_state[config->getMCPCoreNum()].running = true;
       
       LOG_ASSERT_ERROR(config->getMCPCoreNum() < (SInt32)m_thread_state.size(),

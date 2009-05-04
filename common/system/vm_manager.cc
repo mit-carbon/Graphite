@@ -90,9 +90,9 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
 void *VMManager::mmap2(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
    assert(fd == -1);
-   assert(flags & MAP_ANONYMOUS == MAP_ANONYMOUS);
-   assert(flags & MAP_FIXED == 0);
-   assert(flags & MAP_PRIVATE == MAP_PRIVATE);
+   assert((flags & MAP_ANONYMOUS) == MAP_ANONYMOUS);
+   assert((flags & MAP_FIXED) == 0);
+   assert((flags & MAP_PRIVATE) == MAP_PRIVATE);
    
    assert((m_start_dynamic_segment - length) > m_end_stack_segment);
 

@@ -68,6 +68,18 @@ void routineCallback(RTN rtn, void *v)
    string rtn_name = RTN_Name(rtn);
    
    replaceUserAPIFunction(rtn, rtn_name);
+
+   if (rtn_name == "CarbonSpawnThreadSpawner")
+   {
+      RTN_Open (rtn);
+
+      RTN_InsertCall (rtn, IPOINT_BEFORE,
+            AFUNPTR (setupCarbonSpawnThreadSpawnerStack),
+            IARG_CONTEXT,
+            IARG_END);
+
+      RTN_Close (rtn);
+   }
    
    // TODO:
    // Commenting out performance modeling code since it causes multiple accesses to memory

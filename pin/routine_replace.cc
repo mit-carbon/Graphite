@@ -681,4 +681,19 @@ void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val)
    PIN_ExecuteAt (ctxt);
 }
 
+void setupCarbonSpawnThreadSpawnerStack (CONTEXT *ctx)
+{
+   // FIXME: 
+   // This will clearly need to change somewhat in the multi-process case
+   // We can go back to our original scheme of having the "main" thread 
+   // on processes other than 0 execute the thread spawner, in which case
+   // this will probably just work as is
 
+   ADDRINT esp = PIN_GetContextReg (ctx, REG_STACK_PTR);
+   ADDRINT ret_ip = * (ADDRINT*) esp;
+
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert (core);
+
+   core->accessMemory(Core::NONE, WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
+}

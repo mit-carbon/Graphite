@@ -45,11 +45,15 @@
 #include "handle_syscalls.h"
 #include <typeinfo>
 
+
 // FIXME: 
 // There should be a better place to keep these globals
 // -- a PinSimulator class or smthg
 bool done_app_initialization = false;
 config::ConfigFile *cfg;
+extern int *parent_tidptr;
+extern struct user_desc *newtls;
+extern int *child_tidptr;
 
 INT32 usage()
 {
@@ -64,6 +68,18 @@ void routineCallback(RTN rtn, void *v)
    string rtn_name = RTN_Name(rtn);
    
    replaceUserAPIFunction(rtn, rtn_name);
+
+   if (rtn_name == "CarbonSpawnThreadSpawner")
+   {
+      RTN_Open (rtn);
+
+      RTN_InsertCall (rtn, IPOINT_BEFORE,
+            AFUNPTR (setupCarbonSpawnThreadSpawnerStack),
+            IARG_CONTEXT,
+            IARG_END);
+
+      RTN_Close (rtn);
+   }
    
    // TODO:
    // Commenting out performance modeling code since it causes multiple accesses to memory
@@ -167,6 +183,11 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
    {
       // This is NOT the main thread
       // 'application' thread or 'thread spawner'
+
+      // Restore the clone syscall arguments
+      PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
+      PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
+      PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
 
       core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
 

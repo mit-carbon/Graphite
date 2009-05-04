@@ -160,20 +160,25 @@ void SockTransport::updateBufferLists()
             break;
 
          case GLOBAL_TAG:
-            tag = m_num_lists - 1;
-            // fall through intentionally
-
          default:
-            LOG_ASSERT_ERROR(tag >= 0, "Unexpected tag value: %d", tag);
-            m_buffer_list_locks[tag].acquire();
-            m_buffer_lists[tag].push_back(buffer);
-            m_buffer_list_locks[tag].release();
-            m_buffer_list_sems[tag].signal();
+            insertInBufferList(tag, buffer);
             // do NOT delete buffer
             break;
          };
       }
    }
+}
+
+void SockTransport::insertInBufferList(SInt32 tag, Byte *buffer)
+{
+   if (tag == GLOBAL_TAG)
+      tag = m_num_lists - 1;
+
+   LOG_ASSERT_ERROR(0 <= tag && tag < m_num_lists, "Unexpected tag value: %d", tag);
+   m_buffer_list_locks[tag].acquire();
+   m_buffer_lists[tag].push_back(buffer);
+   m_buffer_list_locks[tag].release();
+   m_buffer_list_sems[tag].signal();
 }
 
 void SockTransport::terminateUpdateThread()
@@ -329,20 +334,33 @@ void SockTransport::SockNode::send(SInt32 dest_proc,
                                    const void *buffer, 
                                    UInt32 length)
 {
-   SInt32 pkt_len = length + sizeof(tag) + sizeof(length);
+   // two cases:
+   // (1) remote process, use sockets
+   // (2) single process, put directly in buffer list
 
-   Byte *pkt_buff = new Byte[pkt_len];
+   if (dest_proc == m_transport->m_proc_index)
+   {
+      Byte *buff_cpy = new Byte[length];
+      memcpy(buff_cpy, buffer, length);
+      m_transport->insertInBufferList(tag, buff_cpy);
+   }
+   else
+   {
+      SInt32 pkt_len = length + sizeof(tag) + sizeof(length);
 
-   Packet *p = (Packet*)pkt_buff;
-   p->length = length;
-   p->tag = tag;
-   memcpy(&p->data, buffer, length);
+      Byte *pkt_buff = new Byte[pkt_len];
 
-   m_transport->m_send_sockets[dest_proc].send(pkt_buff, pkt_len);
+      Packet *p = (Packet*)pkt_buff;
+      p->length = length;
+      p->tag = tag;
+      memcpy(&p->data, buffer, length);
+
+      m_transport->m_send_sockets[dest_proc].send(pkt_buff, pkt_len);
+
+      delete [] pkt_buff;
+   }
 
    LOG_PRINT("Message sent.");
-
-   delete [] pkt_buff;
 }
 
 // -- Socket

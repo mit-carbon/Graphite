@@ -39,6 +39,7 @@ private:
    void getProcInfo();
    void initSockets();
    void initBufferLists();
+   void insertInBufferList(SInt32 tag, Byte *buffer);
 
    static void updateThreadFunc(void *vp);
    void updateBufferLists();

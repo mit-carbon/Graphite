@@ -170,33 +170,29 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
       core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
 
-      if (core_id != -1)
+      LOG_ASSERT_ERROR(core_id != -1, "All application threads and thread spawner are cores now");
+
+      if (core_id == Sim()->getConfig()->getCurrentThreadSpawnerCoreNum())
+      {
+         // 'Thread Spawner' thread
+         Sim()->getCoreManager()->initializeThread(core_id);
+      }
+      else
       {
          // 'Application' thread
          ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
 
-         if (req == NULL)
-         {
-            // This is the thread spawner
-            Sim()->getCoreManager()->initializeThread(core_id);
-         }
+         LOG_ASSERT_ERROR (req != NULL, "ThreadSpawnRequest is NULL !!")
 
-         else
-         {
-            // This is an application thread
-            LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
+         // This is an application thread
+         LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
 
-            Sim()->getThreadManager()->onThreadStart(req);
+         Sim()->getThreadManager()->onThreadStart(req);
 
-            // FIXME: Do not copy over stack data for now since thread spawner is a core
-            // Copy stuff that 'thread spawner' put on the stack from host address space
-            // to simulated address space
-            // copySpawnedThreadStackData(reg_esp);
-         }
-      }
-      else
-      {
-         LOG_ASSERT_ERROR(false, "All application threads and thread spawner are cores now");
+         // FIXME: Do not copy over stack data for now since thread spawner is a core
+         // Copy stuff that 'thread spawner' put on the stack from host address space
+         // to simulated address space
+         // copySpawnedThreadStackData(reg_esp);
       }
    }
 }

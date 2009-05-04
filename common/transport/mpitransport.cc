@@ -47,11 +47,87 @@ MpiTransport::~MpiTransport()
 
 void MpiTransport::barrier()
 {
-   LOG_PRINT("Entering barrier");
+//    int err_code;
+//    err_code = MPI_Barrier(MPI_COMM_WORLD);
+//    LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Barrier fail.");
 
+   MPI_Status status;
+   SInt32 pkt_size;
    int err_code;
-   err_code = MPI_Barrier(MPI_COMM_WORLD);
-   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Barrier fail.");
+   SInt32 rank;
+   SInt32 num_procs;
+
+   err_code = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Comm_rank fail.");
+
+   err_code = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+   LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Comm_size fail.");
+
+   LOG_PRINT("Entering barrier: %d %d", rank, num_procs);
+
+//   usleep(500);
+
+   if (rank != 0)
+   {
+      err_code = MPI_Probe(rank - 1, BARR_COMM_TAG, MPI_COMM_WORLD, &status);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Probe fail.");
+
+      err_code = MPI_Get_count(&status, MPI_BYTE, &pkt_size);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Get_count fail.");
+      LOG_ASSERT_ERROR(status.MPI_SOURCE != MPI_UNDEFINED, "Message has undefined status?!");
+      LOG_ASSERT_ERROR(pkt_size == 1, "Unexpected packet size");
+
+      Byte data;
+
+      err_code = MPI_Recv(&data, 1, MPI_BYTE, rank-1, BARR_COMM_TAG, MPI_COMM_WORLD, &status);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Recv fail.");
+      LOG_ASSERT_ERROR(data == 0, "data != 0");
+
+      LOG_PRINT("barrier: %d recv 0", rank);
+   }
+
+//   usleep(500);
+
+   {
+      Byte data = (rank == num_procs - 1);
+      LOG_PRINT("barrier: %d send %d", rank, (int)data);
+
+      err_code = MPI_Send((void*) &data, 1, MPI_BYTE, (rank + 1) % num_procs, BARR_COMM_TAG, MPI_COMM_WORLD);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Send fail.");
+   }
+
+//   usleep(500);
+
+   {
+      err_code = MPI_Probe((rank + num_procs - 1) % num_procs, BARR_COMM_TAG, MPI_COMM_WORLD, &status);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Probe fail.");
+
+      err_code = MPI_Get_count(&status, MPI_BYTE, &pkt_size);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Get_count fail.");
+      LOG_ASSERT_ERROR(status.MPI_SOURCE != MPI_UNDEFINED, "Message has undefined status?!");
+      LOG_ASSERT_ERROR(pkt_size == 1, "Unexpected packet size");
+
+      Byte data;
+
+      err_code = MPI_Recv(&data, 1, MPI_BYTE, (rank + num_procs - 1) % num_procs, BARR_COMM_TAG, MPI_COMM_WORLD, &status);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Recv fail.");
+      LOG_ASSERT_ERROR(data == 1, "data != 1");
+
+      LOG_PRINT("barrier: %d recv 1", rank);
+   }
+
+//   usleep(500);
+
+   if (rank != num_procs - 1)
+   {
+      Byte data = 1;
+      LOG_PRINT("barrier: %d send 1", rank);
+
+      err_code = MPI_Send((void*) &data, 1, MPI_BYTE, (rank + 1) % num_procs, BARR_COMM_TAG, MPI_COMM_WORLD);
+      LOG_ASSERT_ERROR(err_code == MPI_SUCCESS, "MPI_Send fail.");
+   }
+
+//   usleep(500);
 
    LOG_PRINT("Exiting barrier");
 }

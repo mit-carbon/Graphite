@@ -33,6 +33,7 @@ private:
    Node *m_global_node;
 
    static const SInt32 PROC_COMM_TAG=32767;
+   static const SInt32 BARR_COMM_TAG=32766;
 };
 
 #endif 

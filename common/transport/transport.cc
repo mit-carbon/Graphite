@@ -6,6 +6,7 @@
 #include "transport.h"
 #include "smtransport.h"
 #include "mpitransport.h"
+#include "socktransport.h"
 
 #include "config.h"
 #include "log.h"
@@ -24,15 +25,18 @@ Transport* Transport::create()
    // this is required since MPICH seems to break in single-process mode
 
    assert(m_singleton == NULL);
+
+   if (true)
+      m_singleton = new SockTransport();
    
-   if (Config::getSingleton()->getProcessCount() == 1)
+   else if (Config::getSingleton()->getProcessCount() == 1)
       m_singleton = new SmTransport();
 
    else if (Config::getSingleton()->getProcessCount() > 1)
       m_singleton = new MpiTransport();
    
    else
-      LOG_ASSERT_ERROR(false, "Negative no. processes ?!");
+      LOG_PRINT_ERROR("Negative no. processes ?!");
 
    return m_singleton;
 }

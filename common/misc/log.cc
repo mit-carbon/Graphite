@@ -263,7 +263,7 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
 
    lock->acquire();
 
-   fprintf(file, "%s", message);
+   fputs(message, file);
    fflush(file);
 
    lock->release();
@@ -271,12 +271,12 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    switch (err)
    {
    case Error:
-      fprintf(stderr, "%s", message);
+      fputs(message, stderr);
       abort();
       break;
 
    case Warning:
-      fprintf(stderr, "%s", message);
+      fputs(message, stderr);
       break;
 
    case None:

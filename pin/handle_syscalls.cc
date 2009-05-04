@@ -42,6 +42,11 @@
 #include <linux/unistd.h>
 #include <asm/ldt.h>
 
+// ---------------------------------------------------------------
+// Here for the futext system call
+#include <linux/futex.h>
+#include <sys/time.h>
+
 // FIXME
 // -----------------------------------
 // Clone stuff
@@ -81,6 +86,12 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if (syscall_number == SYS_set_tid_address)
       {
          PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
+      }
+
+      else if (syscall_number == SYS_futex)
+      {
+         int op = (int) PIN_GetSyscallArgument (ctx, syscall_standard, 1);
+         assert (op == FUTEX_WAKE);
       }
       
       else if (syscall_number == SYS_mmap)
@@ -181,6 +192,11 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       }
 
       else if (syscall_number == SYS_set_tid_address)
+      {
+         // Do nothing
+      }
+      
+      else if (syscall_number == SYS_futex)
       {
          // Do nothing
       }

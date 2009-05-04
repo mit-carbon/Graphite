@@ -307,10 +307,16 @@ carbon_reg_t SyscallMdl::marshallWriteCall(syscall_args_t &args)
    void *buf = (void *)args.arg1;
    size_t count = (size_t)args.arg2;
 
+   char *write_buf = new char [count];
    // Always pass all the data in the message, even if shared memory is available
    // I think this is a reasonable model and is definitely one less thing to keep
    // track of when you switch between shared-memory/no shared-memory
-   m_send_buff << fd << count << make_pair(buf, count);
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, READ, (IntPtr) buf, (char*) write_buf, count);
+
+   m_send_buff << fd << count << make_pair(write_buf, count);
+
+   delete [] write_buf;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 

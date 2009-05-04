@@ -17,9 +17,7 @@
 #include "socktransport.h"
 
 SockTransport::SockTransport()
-   : m_barrier_count(0)
-   , m_recvd_barrier_count(0)
-   , m_update_thread_state(RUNNING)
+   : m_update_thread_state(RUNNING)
 {
    getProcInfo();
    initSockets();
@@ -151,17 +149,14 @@ void SockTransport::updateBufferLists()
             LOG_ASSERT_ERROR(m_update_thread_state == RUNNING, "Terminate received in unexpected state: %d", m_update_thread_state);
             LOG_ASSERT_ERROR(i == m_proc_index, "Terminate received from unexpected process: %d != %d", i, m_proc_index);
             m_update_thread_state = EXITING;
+
+            delete [] buffer;
             return;
 
          case BARRIER_TAG:
-            m_barrier_lock.acquire();
-            m_recvd_barrier_count = *((SInt32*)buffer);
-            LOG_PRINT("barrier recv %d", m_recvd_barrier_count);
-            LOG_ASSERT_ERROR(m_recvd_barrier_count > m_barrier_count,
-                             "Unexpected barrier counter value: %d <= %d", m_recvd_barrier_count, m_barrier_count);
+            m_barrier_sem.signal();
             LOG_ASSERT_ERROR(i == (m_proc_index + m_num_procs - 1) % m_num_procs,
                              "Barrier update from unexpected process: %d", i);
-            m_barrier_lock.release();
             delete [] buffer;
             break;
 
@@ -175,6 +170,7 @@ void SockTransport::updateBufferLists()
             m_buffer_lists[tag].push_back(buffer);
             m_buffer_list_locks[tag].release();
             m_buffer_list_sems[tag].signal();
+            // do NOT delete buffer
             break;
          };
       }
@@ -231,54 +227,31 @@ void SockTransport::barrier()
    // We implement a barrier using a ring of messages. We are using a
    // single socket for the entire process, however, and it is
    // multiplexed between many cores. So updates occur asynchronously
-   // and possibly in other threads. That's what the counter business
-   // is meant to take care of.
+   // and possibly in other threads. That's what the semaphore takes
+   // care of.
+
    //   There are two trips around the ring. The first trip blocks the
    // processes until everyone arrives. The second wakes them. This is
    // a low-performance implementation, but given how barriers are
-   // used in the simulator, it should be OK.
+   // used in the simulator, it should be OK. (Bear in mind this is
+   // the Transport::barrier, NOT the CarbonBarrier implementation.)
 
-   m_barrier_lock.acquire();
-   LOG_PRINT("Entering barrier: %d %d", m_barrier_count, m_recvd_barrier_count);
+   LOG_PRINT("Entering barrier");
 
-   // receive ping from prev
+   Socket &sock = m_send_sockets[(m_proc_index+1) % m_num_procs];
+   SInt32 message[] = { sizeof(SInt32), BARRIER_TAG, 0 };
+
    if (m_proc_index != 0)
-   {
-      while (m_barrier_count >= m_recvd_barrier_count)
-      {
-         m_barrier_lock.release();
-         sched_yield();
-         m_barrier_lock.acquire();
-      }
-   }
+      m_barrier_sem.wait();
 
-   ++m_barrier_count;
+   sock.send(message, sizeof(message));
 
-   // forward ping
-   SInt32 message[] = { sizeof(SInt32), BARRIER_TAG, m_barrier_count };
-   if (m_proc_index == m_num_procs - 1)
-      ++message[2];
-   m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
+   m_barrier_sem.wait();
 
-   // receive confirmation that all processes reached barrier from prev
-   while (m_barrier_count >= m_recvd_barrier_count)
-   {
-      m_barrier_lock.release();
-      sched_yield();
-      m_barrier_lock.acquire();
-   }
-
-   ++m_barrier_count;
-
-   // forward confirmation
    if (m_proc_index != m_num_procs - 1)
-   {
-      message[2] = m_barrier_count;
-      m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
-   }
+      sock.send(message, sizeof(message));
 
-   LOG_PRINT("Exiting barrier: %d %d", m_barrier_count, m_recvd_barrier_count);
-   m_barrier_lock.release();
+   LOG_PRINT("Exiting barrier");
 }
 
 Transport::Node* SockTransport::getGlobalNode()

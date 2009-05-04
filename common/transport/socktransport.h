@@ -93,9 +93,7 @@ private:
    SInt32 m_num_procs;
    SInt32 m_proc_index;
 
-   Lock m_barrier_lock;
-   SInt32 m_barrier_count;
-   SInt32 m_recvd_barrier_count;
+   Semaphore m_barrier_sem;
 
    Socket m_server_socket;
    Lock *m_recv_locks;

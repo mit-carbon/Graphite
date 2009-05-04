@@ -47,6 +47,14 @@ ThreadManager::~ThreadManager()
       m_thread_state[Config::getSingleton()->getMCPCoreNum()].running = false;
       LOG_ASSERT_ERROR(Config::getSingleton()->getMCPCoreNum() < (SInt32)m_thread_state.size(), "MCP core num out of range (!?)");
 
+      // Reserve core-id's 1 to (num_processes) for thread-spawners
+      UInt32 first_thread_spawner_id = Sim()->getConfig()->getTotalCores() - Sim()->getConfig()->getProcessCount() - 1;
+      UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
+      for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
+      {
+         m_thread_state[i].running = false;
+      }
+
       for (UInt32 i = 0; i < m_thread_state.size(); i++)
          LOG_ASSERT_WARNING(!m_thread_state[i].running, "Thread %d still active when ThreadManager destructs!", i);
    }

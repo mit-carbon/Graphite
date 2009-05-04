@@ -19,10 +19,14 @@
 SockTransport::SockTransport()
    : m_barrier_count(0)
    , m_recvd_barrier_count(0)
+   , m_update_thread_state(RUNNING)
 {
    getProcInfo();
    initSockets();
    initBufferLists();
+
+   m_update_thread = Thread::create(updateThreadFunc, this);
+   m_update_thread->run();
 
    m_global_node = new SockNode(GLOBAL_TAG, this);
 }
@@ -93,7 +97,25 @@ void SockTransport::initBufferLists()
       + 1; // for global node
 
    m_buffer_lists = new buffer_list[m_num_lists];
-   m_buffer_locks = new Lock[m_num_lists];
+   m_buffer_list_locks = new Lock[m_num_lists];
+   m_buffer_list_sems = new Semaphore[m_num_lists];
+}
+
+void SockTransport::updateThreadFunc(void *vp)
+{
+   LOG_PRINT("Starting updateThreadFunc");
+
+   SockTransport *st = (SockTransport*)vp;
+
+   while (st->m_update_thread_state == RUNNING)
+   {
+      st->updateBufferLists();
+      sched_yield();
+   }
+
+   st->m_update_thread_state = EXITED;
+
+   LOG_PRINT("Leaving updateThreadFunc");
 }
 
 void SockTransport::updateBufferLists()
@@ -124,6 +146,13 @@ void SockTransport::updateBufferLists()
 
          switch (tag)
          {
+         case TERMINATE_TAG:
+            LOG_PRINT("Quit message received.");
+            LOG_ASSERT_ERROR(m_update_thread_state == RUNNING, "Terminate received in unexpected state: %d", m_update_thread_state);
+            LOG_ASSERT_ERROR(i == m_proc_index, "Terminate received from unexpected process: %d != %d", i, m_proc_index);
+            m_update_thread_state = EXITING;
+            return;
+
          case BARRIER_TAG:
             m_barrier_lock.acquire();
             m_recvd_barrier_count = *((SInt32*)buffer);
@@ -142,13 +171,29 @@ void SockTransport::updateBufferLists()
 
          default:
             LOG_ASSERT_ERROR(tag >= 0, "Unexpected tag value: %d", tag);
-            m_buffer_locks[tag].acquire();
+            m_buffer_list_locks[tag].acquire();
             m_buffer_lists[tag].push_back(buffer);
-            m_buffer_locks[tag].release();
+            m_buffer_list_locks[tag].release();
+            m_buffer_list_sems[tag].signal();
             break;
          };
       }
    }
+}
+
+void SockTransport::terminateUpdateThread()
+{
+   LOG_PRINT("Sending quit message.");
+
+   // include m_proc_index as a dummy message body just to avoid extra
+   // code paths in updateBufferLists
+   SInt32 quit_message[] = { sizeof(m_proc_index), TERMINATE_TAG, m_proc_index };
+   m_send_sockets[m_proc_index].send(quit_message, sizeof(quit_message));
+
+   while (m_update_thread_state != EXITED)
+      sched_yield();
+
+   LOG_PRINT("Quit.");
 }
 
 SockTransport::~SockTransport()
@@ -157,7 +202,11 @@ SockTransport::~SockTransport()
 
    delete m_global_node;
 
-   delete [] m_buffer_locks;
+   terminateUpdateThread();
+   delete m_update_thread;
+
+   delete [] m_buffer_list_sems;
+   delete [] m_buffer_list_locks;
    delete [] m_buffer_lists;
 
    for (SInt32 i = 0; i < m_num_procs; i++)
@@ -198,7 +247,6 @@ void SockTransport::barrier()
       while (m_barrier_count >= m_recvd_barrier_count)
       {
          m_barrier_lock.release();
-         updateBufferLists();
          sched_yield();
          m_barrier_lock.acquire();
       }
@@ -211,13 +259,11 @@ void SockTransport::barrier()
    if (m_proc_index == m_num_procs - 1)
       ++message[2];
    m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
-   LOG_PRINT("barrier send %d", message[2]);
 
    // receive confirmation that all processes reached barrier from prev
    while (m_barrier_count >= m_recvd_barrier_count)
    {
       m_barrier_lock.release();
-      updateBufferLists();
       sched_yield();
       m_barrier_lock.acquire();
    }
@@ -229,7 +275,6 @@ void SockTransport::barrier()
    {
       message[2] = m_barrier_count;
       m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
-      LOG_PRINT("barrier send %d", message[2]);
    }
 
    LOG_PRINT("Exiting barrier: %d %d", m_barrier_count, m_recvd_barrier_count);
@@ -275,42 +320,31 @@ Byte* SockTransport::SockNode::recv()
    core_id_t tag = getCoreId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
 
+   Byte *buffer;
+
    buffer_list &list = m_transport->m_buffer_lists[tag];
-   Lock &lock = m_transport->m_buffer_locks[tag];
+   Lock &lock = m_transport->m_buffer_list_locks[tag];
 
-   while (true)
-   {
-      m_transport->updateBufferLists();
+   m_transport->m_buffer_list_sems[tag].wait();
 
-      lock.acquire();
+   lock.acquire();
+   LOG_ASSERT_ERROR(!list.empty(), "Buffer list empty after waiting on semaphore.");
+   buffer = list.front();
+   list.pop_front();
+   lock.release();
 
-      if (!list.empty())
-      {
-         Byte *buffer = list.front();
-         list.pop_front();
-         lock.release();
-         
-         LOG_PRINT("Message recv'd");
+   LOG_PRINT("Message recv'd");
 
-         return buffer;
-      }
-      else
-      {
-         lock.release();
-         sched_yield();
-      }
-   }
+   return buffer;
 }
 
 bool SockTransport::SockNode::query()
 {
-   m_transport->updateBufferLists();
-
    core_id_t tag = getCoreId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
 
    buffer_list &list = m_transport->m_buffer_lists[tag];
-   Lock &lock = m_transport->m_buffer_locks[tag];
+   Lock &lock = m_transport->m_buffer_list_locks[tag];
 
    lock.acquire();
    bool result = !list.empty();

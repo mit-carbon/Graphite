@@ -238,7 +238,6 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
 
 ThreadSpawnRequest* ThreadManager::getThreadSpawnReq()
 {
-   ThreadSpawnRequest *req;
    if (m_thread_spawn_list.empty())
    {
       return (ThreadSpawnRequest*) NULL;

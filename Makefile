@@ -14,6 +14,7 @@ include tests/apps/Makefile
 include tests/unit/Makefile
 include tests/benchmarks/Makefile
 
+.PHONY: $(LIB_PIN_SIM)
 $(LIB_PIN_SIM):
 	$(MAKE) -C $(SIM_ROOT)/pin $@
 

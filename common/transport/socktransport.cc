@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <errno.h>
-#include <mpi.h>
 #include <fcntl.h>
 #include <sched.h>
 
@@ -17,12 +16,14 @@
 #include "socktransport.h"
 
 SockTransport::SockTransport()
-   : m_barrier_count(0)
-   , m_recvd_barrier_count(0)
+   : m_update_thread_state(RUNNING)
 {
    getProcInfo();
    initSockets();
    initBufferLists();
+
+   m_update_thread = Thread::create(updateThreadFunc, this);
+   m_update_thread->run();
 
    m_global_node = new SockNode(GLOBAL_TAG, this);
 }
@@ -93,7 +94,25 @@ void SockTransport::initBufferLists()
       + 1; // for global node
 
    m_buffer_lists = new buffer_list[m_num_lists];
-   m_buffer_locks = new Lock[m_num_lists];
+   m_buffer_list_locks = new Lock[m_num_lists];
+   m_buffer_list_sems = new Semaphore[m_num_lists];
+}
+
+void SockTransport::updateThreadFunc(void *vp)
+{
+   LOG_PRINT("Starting updateThreadFunc");
+
+   SockTransport *st = (SockTransport*)vp;
+
+   while (st->m_update_thread_state == RUNNING)
+   {
+      st->updateBufferLists();
+      sched_yield();
+   }
+
+   st->m_update_thread_state = EXITED;
+
+   LOG_PRINT("Leaving updateThreadFunc");
 }
 
 void SockTransport::updateBufferLists()
@@ -124,31 +143,57 @@ void SockTransport::updateBufferLists()
 
          switch (tag)
          {
+         case TERMINATE_TAG:
+            LOG_PRINT("Quit message received.");
+            LOG_ASSERT_ERROR(m_update_thread_state == RUNNING, "Terminate received in unexpected state: %d", m_update_thread_state);
+            LOG_ASSERT_ERROR(i == m_proc_index, "Terminate received from unexpected process: %d != %d", i, m_proc_index);
+            m_update_thread_state = EXITING;
+
+            delete [] buffer;
+            return;
+
          case BARRIER_TAG:
-            m_barrier_lock.acquire();
-            m_recvd_barrier_count = *((SInt32*)buffer);
-            LOG_PRINT("barrier recv %d", m_recvd_barrier_count);
-            LOG_ASSERT_ERROR(m_recvd_barrier_count > m_barrier_count,
-                             "Unexpected barrier counter value: %d <= %d", m_recvd_barrier_count, m_barrier_count);
+            m_barrier_sem.signal();
             LOG_ASSERT_ERROR(i == (m_proc_index + m_num_procs - 1) % m_num_procs,
                              "Barrier update from unexpected process: %d", i);
-            m_barrier_lock.release();
             delete [] buffer;
             break;
 
          case GLOBAL_TAG:
-            tag = m_num_lists - 1;
-            // fall through intentionally
-
          default:
-            LOG_ASSERT_ERROR(tag >= 0, "Unexpected tag value: %d", tag);
-            m_buffer_locks[tag].acquire();
-            m_buffer_lists[tag].push_back(buffer);
-            m_buffer_locks[tag].release();
+            insertInBufferList(tag, buffer);
+            // do NOT delete buffer
             break;
          };
       }
    }
+}
+
+void SockTransport::insertInBufferList(SInt32 tag, Byte *buffer)
+{
+   if (tag == GLOBAL_TAG)
+      tag = m_num_lists - 1;
+
+   LOG_ASSERT_ERROR(0 <= tag && tag < m_num_lists, "Unexpected tag value: %d", tag);
+   m_buffer_list_locks[tag].acquire();
+   m_buffer_lists[tag].push_back(buffer);
+   m_buffer_list_locks[tag].release();
+   m_buffer_list_sems[tag].signal();
+}
+
+void SockTransport::terminateUpdateThread()
+{
+   LOG_PRINT("Sending quit message.");
+
+   // include m_proc_index as a dummy message body just to avoid extra
+   // code paths in updateBufferLists
+   SInt32 quit_message[] = { sizeof(m_proc_index), TERMINATE_TAG, m_proc_index };
+   m_send_sockets[m_proc_index].send(quit_message, sizeof(quit_message));
+
+   while (m_update_thread_state != EXITED)
+      sched_yield();
+
+   LOG_PRINT("Quit.");
 }
 
 SockTransport::~SockTransport()
@@ -157,7 +202,11 @@ SockTransport::~SockTransport()
 
    delete m_global_node;
 
-   delete [] m_buffer_locks;
+   terminateUpdateThread();
+   delete m_update_thread;
+
+   delete [] m_buffer_list_sems;
+   delete [] m_buffer_list_locks;
    delete [] m_buffer_lists;
 
    for (SInt32 i = 0; i < m_num_procs; i++)
@@ -182,58 +231,31 @@ void SockTransport::barrier()
    // We implement a barrier using a ring of messages. We are using a
    // single socket for the entire process, however, and it is
    // multiplexed between many cores. So updates occur asynchronously
-   // and possibly in other threads. That's what the counter business
-   // is meant to take care of.
+   // and possibly in other threads. That's what the semaphore takes
+   // care of.
+
    //   There are two trips around the ring. The first trip blocks the
    // processes until everyone arrives. The second wakes them. This is
    // a low-performance implementation, but given how barriers are
-   // used in the simulator, it should be OK.
+   // used in the simulator, it should be OK. (Bear in mind this is
+   // the Transport::barrier, NOT the CarbonBarrier implementation.)
 
-   m_barrier_lock.acquire();
-   LOG_PRINT("Entering barrier: %d %d", m_barrier_count, m_recvd_barrier_count);
+   LOG_PRINT("Entering barrier");
 
-   // receive ping from prev
+   Socket &sock = m_send_sockets[(m_proc_index+1) % m_num_procs];
+   SInt32 message[] = { sizeof(SInt32), BARRIER_TAG, 0 };
+
    if (m_proc_index != 0)
-   {
-      while (m_barrier_count >= m_recvd_barrier_count)
-      {
-         m_barrier_lock.release();
-         updateBufferLists();
-         sched_yield();
-         m_barrier_lock.acquire();
-      }
-   }
+      m_barrier_sem.wait();
 
-   ++m_barrier_count;
+   sock.send(message, sizeof(message));
 
-   // forward ping
-   SInt32 message[] = { sizeof(SInt32), BARRIER_TAG, m_barrier_count };
-   if (m_proc_index == m_num_procs - 1)
-      ++message[2];
-   m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
-   LOG_PRINT("barrier send %d", message[2]);
+   m_barrier_sem.wait();
 
-   // receive confirmation that all processes reached barrier from prev
-   while (m_barrier_count >= m_recvd_barrier_count)
-   {
-      m_barrier_lock.release();
-      updateBufferLists();
-      sched_yield();
-      m_barrier_lock.acquire();
-   }
-
-   ++m_barrier_count;
-
-   // forward confirmation
    if (m_proc_index != m_num_procs - 1)
-   {
-      message[2] = m_barrier_count;
-      m_send_sockets[(m_proc_index+1) % m_num_procs].send(message, sizeof(message));
-      LOG_PRINT("barrier send %d", message[2]);
-   }
+      sock.send(message, sizeof(message));
 
-   LOG_PRINT("Exiting barrier: %d %d", m_barrier_count, m_recvd_barrier_count);
-   m_barrier_lock.release();
+   LOG_PRINT("Exiting barrier");
 }
 
 Transport::Node* SockTransport::getGlobalNode()
@@ -275,42 +297,31 @@ Byte* SockTransport::SockNode::recv()
    core_id_t tag = getCoreId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
 
+   Byte *buffer;
+
    buffer_list &list = m_transport->m_buffer_lists[tag];
-   Lock &lock = m_transport->m_buffer_locks[tag];
+   Lock &lock = m_transport->m_buffer_list_locks[tag];
 
-   while (true)
-   {
-      m_transport->updateBufferLists();
+   m_transport->m_buffer_list_sems[tag].wait();
 
-      lock.acquire();
+   lock.acquire();
+   LOG_ASSERT_ERROR(!list.empty(), "Buffer list empty after waiting on semaphore.");
+   buffer = list.front();
+   list.pop_front();
+   lock.release();
 
-      if (!list.empty())
-      {
-         Byte *buffer = list.front();
-         list.pop_front();
-         lock.release();
-         
-         LOG_PRINT("Message recv'd");
+   LOG_PRINT("Message recv'd");
 
-         return buffer;
-      }
-      else
-      {
-         lock.release();
-         sched_yield();
-      }
-   }
+   return buffer;
 }
 
 bool SockTransport::SockNode::query()
 {
-   m_transport->updateBufferLists();
-
    core_id_t tag = getCoreId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
 
    buffer_list &list = m_transport->m_buffer_lists[tag];
-   Lock &lock = m_transport->m_buffer_locks[tag];
+   Lock &lock = m_transport->m_buffer_list_locks[tag];
 
    lock.acquire();
    bool result = !list.empty();
@@ -323,20 +334,33 @@ void SockTransport::SockNode::send(SInt32 dest_proc,
                                    const void *buffer, 
                                    UInt32 length)
 {
-   SInt32 pkt_len = length + sizeof(tag) + sizeof(length);
+   // two cases:
+   // (1) remote process, use sockets
+   // (2) single process, put directly in buffer list
 
-   Byte *pkt_buff = new Byte[pkt_len];
+   if (dest_proc == m_transport->m_proc_index)
+   {
+      Byte *buff_cpy = new Byte[length];
+      memcpy(buff_cpy, buffer, length);
+      m_transport->insertInBufferList(tag, buff_cpy);
+   }
+   else
+   {
+      SInt32 pkt_len = length + sizeof(tag) + sizeof(length);
 
-   Packet *p = (Packet*)pkt_buff;
-   p->length = length;
-   p->tag = tag;
-   memcpy(&p->data, buffer, length);
+      Byte *pkt_buff = new Byte[pkt_len];
 
-   m_transport->m_send_sockets[dest_proc].send(pkt_buff, pkt_len);
+      Packet *p = (Packet*)pkt_buff;
+      p->length = length;
+      p->tag = tag;
+      memcpy(&p->data, buffer, length);
+
+      m_transport->m_send_sockets[dest_proc].send(pkt_buff, pkt_len);
+
+      delete [] pkt_buff;
+   }
 
    LOG_PRINT("Message sent.");
-
-   delete [] pkt_buff;
 }
 
 // -- Socket

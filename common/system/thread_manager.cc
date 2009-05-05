@@ -79,12 +79,16 @@ void ThreadManager::onThreadExit()
    LOG_PRINT("onThreadExit -- send message to master ThreadManager");
    
    Network *net = m_core_manager->getCurrentCore()->getNetwork();
+
+   // terminate thread locally so we are ready for new thread requests
+   // on that core
+   m_core_manager->terminateThread();
+
+   // update global thread state
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
                 MCP_REQUEST_TYPE,
                 msg,
                 sizeof(SInt32)*2);
-
-   m_core_manager->terminateThread();
 }
 
 void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)

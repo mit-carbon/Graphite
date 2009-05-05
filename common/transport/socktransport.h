@@ -2,6 +2,8 @@
 #define SOCK_TRANSPORT_H
 
 #include "transport.h"
+#include "thread.h"
+#include "semaphore.h"
 
 #include <list>
 
@@ -37,7 +39,11 @@ private:
    void getProcInfo();
    void initSockets();
    void initBufferLists();
+   void insertInBufferList(SInt32 tag, Byte *buffer);
+
+   static void updateThreadFunc(void *vp);
    void updateBufferLists();
+   void terminateUpdateThread();
 
    struct Packet
    {
@@ -70,29 +76,39 @@ private:
       SInt32 m_socket;
    };
 
+   enum UpdateThreadState
+   {
+      RUNNING,
+      EXITING,
+      EXITED
+   };
+
+   static const SInt32 BASE_PORT = 2000;
+   static const SInt32 BUFFER_SIZE = 0x10000;
+   static const SInt32 GLOBAL_TAG = -1;
+   static const SInt32 BARRIER_TAG = -2;
+   static const SInt32 TERMINATE_TAG = -3;
+
    Node *m_global_node;
 
    SInt32 m_num_procs;
    SInt32 m_proc_index;
 
-   Lock m_barrier_lock;
-   SInt32 m_barrier_count;
-   SInt32 m_recvd_barrier_count;
+   Semaphore m_barrier_sem;
 
    Socket m_server_socket;
    Lock *m_recv_locks;
    Socket *m_recv_sockets;
    Socket *m_send_sockets;
 
-   static const int BASE_PORT = 2000;
-   static const int BUFFER_SIZE = 0x10000;
-   static const int GLOBAL_TAG = -1;
-   static const int BARRIER_TAG = -2;
+   Thread *m_update_thread;
+   UpdateThreadState m_update_thread_state;
 
    typedef std::list<Byte*> buffer_list;
    SInt32 m_num_lists;
    buffer_list *m_buffer_lists;
-   Lock *m_buffer_locks;
+   Lock *m_buffer_list_locks;
+   Semaphore *m_buffer_list_sems;
 };
 
 #endif // SOCK_TRANSPORT_H

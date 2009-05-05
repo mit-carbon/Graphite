@@ -72,6 +72,7 @@ class SyscallMdl
       carbon_reg_t marshallMmap2Call(syscall_args_t &args);
       carbon_reg_t marshallMunmapCall(syscall_args_t &args);
       carbon_reg_t marshallBrkCall(syscall_args_t &args);
+      carbon_reg_t marshallFutexCall(syscall_args_t &args);
 
 };
 

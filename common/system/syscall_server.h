@@ -13,12 +13,33 @@
 #define SYSCALL_SERVER_H
 
 #include <iostream>
+#include <map>
+#include <queue>
+
+// -- For futexes --
+#include <linux/futex.h>
+#include <sys/time.h>
+#include <errno.h>
 
 #include "shmem_req_types.h"
 #include "packetize.h"
 #include "transport.h"
 #include "fixed_types.h"
 #include "network.h"
+
+// -- Special Class to Handle Futexes
+class SimFutex
+{
+   private:
+      typedef std::queue<core_id_t> ThreadQueue;
+      ThreadQueue m_waiting;
+
+   public:
+      SimFutex();
+      ~SimFutex();
+      void enqueueWaiter(core_id_t core_id);
+      core_id_t dequeueWaiter();
+};
 
 class SyscallServer
 {
@@ -42,6 +63,11 @@ class SyscallServer
       void marshallMmap2Call(core_id_t core_id);
       void marshallMunmapCall(core_id_t core_id);
       void marshallBrkCall(core_id_t core_id);
+      void marshallFutexCall(core_id_t core_id);
+
+      // Handling Futexes 
+      void futexWait(core_id_t core_id, int *uaddr, int val, int act_val);
+      void futexWake(core_id_t core_id, int *uaddr, int val);
 
       //Note: These structures are shared with the MCP
    private:
@@ -50,6 +76,11 @@ class SyscallServer
       UnstructuredBuffer & m_recv_buff;
       const UInt32 m_SYSCALL_SERVER_MAX_BUFF;
       char * const m_scratch;
+
+      // Handling Futexes
+      typedef std::map<IntPtr, SimFutex> FutexMap;
+      FutexMap m_futexes;
+
 
 };
 

@@ -90,13 +90,21 @@ void routineCallback(RTN rtn, void *v)
    //    replaceInstruction(rtn, rtn_name);
 }
 
-void instructionCallback (INS ins, void *v)
+VOID instructionCallback (INS ins, void *v)
 {
    INS_InsertCall(ins, IPOINT_BEFORE,
          AFUNPTR(printInsInfo),
          IARG_CALL_ORDER, CALL_ORDER_FIRST,
          IARG_CONTEXT,
          IARG_END);
+
+   if (INS_IsSyscall(ins))
+   {
+      INS_InsertCall(ins, IPOINT_BEFORE,
+            AFUNPTR(handleFutexSyscall),
+            IARG_CONTEXT,
+            IARG_END);
+   }
 
    // Emulate stack operations
    bool stack_op = rewriteStackOp (ins);

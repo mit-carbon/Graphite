@@ -55,6 +55,39 @@ int *child_tidptr;
 // End Clone stuff
 // -----------------------------------
 
+VOID handleFutexSyscall (CONTEXT *ctx)
+{
+   ADDRINT syscall_number = PIN_GetContextReg (ctx, REG_GAX);
+   if (syscall_number != SYS_futex)
+      return;
+
+   SyscallMdl::syscall_args_t args;
+   args.arg0 = PIN_GetContextReg (ctx, REG_GBX);
+   args.arg1 = PIN_GetContextReg (ctx, REG_GCX);
+   args.arg2 = PIN_GetContextReg (ctx, REG_GDX);
+   args.arg3 = PIN_GetContextReg (ctx, REG_GSI);
+   args.arg4 = PIN_GetContextReg (ctx, REG_GDI);
+   args.arg5 = PIN_GetContextReg (ctx, REG_GBP);
+
+   LOG_PRINT("syscall_number = %u", syscall_number);
+   LOG_PRINT("syscall_arg0 = 0x%x", args.arg0);
+   LOG_PRINT("syscall_arg1 = 0x%x", args.arg1);
+   LOG_PRINT("syscall_arg2 = 0x%x", args.arg2);
+   LOG_PRINT("syscall_arg3 = 0x%x", args.arg3);
+   LOG_PRINT("syscall_arg4 = 0x%x", args.arg4);
+   LOG_PRINT("syscall_arg5 = 0x%x", args.arg5);
+
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   
+   string core_null = core ? "CORE != NULL" : "CORE == NULL";
+   LOG_PRINT ("syscall_number %d, %s", syscall_number, core_null.c_str());
+   
+   assert(core != NULL);
+
+   core->getSyscallMdl ()->runEnter (syscall_number, args);
+}
+
+
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
@@ -68,11 +101,10 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       // Save the syscall number
       core->getSyscallMdl()->saveSyscallNumber (syscall_number);
       
-      if ((syscall_number == SYS_write) ||
-            (syscall_number == SYS_ioctl) ||
-            (syscall_number == SYS_fstat) ||
-            (syscall_number == SYS_open) ||
-            (syscall_number == SYS_mprotect) ||
+      if (  (syscall_number == SYS_open) ||
+            (syscall_number == SYS_read) ||
+            (syscall_number == SYS_write) ||
+            (syscall_number == SYS_close) ||
             (syscall_number == SYS_brk) ||
             (syscall_number == SYS_mmap2) ||
             (syscall_number == SYS_munmap))
@@ -82,18 +114,21 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
 
+      else if (syscall_number == SYS_futex)
+      {
+         PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
+      }
+
+      else if (syscall_number == SYS_mprotect)
+      {
+         PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
+      }
+
       else if (syscall_number == SYS_set_tid_address)
       {
          PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
       }
 
-      else if (syscall_number == SYS_futex)
-      {
-         cerr << "SYS_futex: core_id = " << core->getId() << ", ip = " << (void*) PIN_GetContextReg (ctx, REG_INST_PTR) << endl;
-         int op = (int) PIN_GetSyscallArgument (ctx, syscall_standard, 1);
-         assert (op == FUTEX_WAKE);
-      }
-      
       else if (syscall_number == SYS_mmap)
       {
          struct mmap_arg_struct mmap_arg_buf;
@@ -173,27 +208,27 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    {
       ADDRINT syscall_number = core->getSyscallMdl()->retrieveSyscallNumber ();
       
-      if ((syscall_number == SYS_fstat) ||
-            (syscall_number == SYS_ioctl) ||
+      if (  (syscall_number == SYS_open) ||
+            (syscall_number == SYS_read) ||
             (syscall_number == SYS_write) ||
-            (syscall_number == SYS_open) ||
-            (syscall_number == SYS_mprotect) ||
+            (syscall_number == SYS_close) ||
             (syscall_number == SYS_brk) ||
             (syscall_number == SYS_mmap) ||
             (syscall_number == SYS_mmap2) ||
-            (syscall_number == SYS_munmap))
+            (syscall_number == SYS_munmap) ||
+            (syscall_number == SYS_futex))
       {
          UInt8 old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
          ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
          PIN_SetContextReg (ctx, REG_GAX, syscall_return);
       }
 
-      else if (syscall_number == SYS_set_tid_address)
+      else if (syscall_number == SYS_mprotect)
       {
          // Do nothing
       }
-      
-      else if (syscall_number == SYS_futex)
+
+      else if (syscall_number == SYS_set_tid_address)
       {
          // Do nothing
       }

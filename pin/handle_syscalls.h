@@ -4,6 +4,7 @@
 #include "pin.H"
 #include "syscall_model.h"
 
+void handleFutexSyscall(CONTEXT *ctx);
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
 void contextChange (THREADID threadIndex, CONTEXT_CHANGE_REASON context_change_reason, const CONTEXT *from, CONTEXT *to, INT32 info, VOID *v);

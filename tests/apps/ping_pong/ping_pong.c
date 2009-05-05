@@ -37,11 +37,13 @@ void* ping_pong(void *threadid)
    CAPI_Initialize((int)threadid);
 
    //FIXME: there is a race condition on claiming a comm id...
+   
    sleep(5);
 
    printf("sending.\n");
    CAPI_message_send_w((CAPI_endpoint_t) tid, !tid, (char*) &junk, sizeof(int));
    CAPI_message_receive_w((CAPI_endpoint_t) !tid, tid, (char*) &junk, sizeof(int));
+   
 
    return NULL;
 }

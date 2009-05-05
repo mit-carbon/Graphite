@@ -171,6 +171,11 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
          m_ret_val = marshallBrkCall (args);
          break;
 
+      case SYS_futex:
+         m_called_enter = true;
+         m_ret_val = marshallFutexCall (args);
+         break;
+
       case -1:
       default:
          break;
@@ -445,9 +450,8 @@ carbon_reg_t SyscallMdl::marshallFstatCall (syscall_args_t &args)
    m_recv_buff.get<struct stat> (buffer);
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   // FIXME
-   // Have to do this because of the weird difference in the size of struct stat between newlib and glibc
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) buf, (char*) &buffer, 64);
+   // FIXME: Check that this is correct
+   core->accessMemory (Core::NONE, WRITE, (IntPtr) buf, (char*) &buffer, sizeof(buffer));
    
    return result;
 }
@@ -677,9 +681,9 @@ carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
    void *start = (void*) args.arg0;
    size_t length = (size_t) args.arg1;
 
-#ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
+#ifdef REDIRECT_MEMORY
       m_send_buff.put (start);
       m_send_buff.put (length);
 
@@ -697,14 +701,14 @@ carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
       int ret_val;
       m_recv_buff.get(ret_val);
       return (carbon_reg_t) ret_val;
+#else
+      return (carbon_reg_t) syscall (SYS_munmap, start, length);
+#endif
    }
    else
    {
-#endif
       return (carbon_reg_t) syscall (SYS_munmap, start, length);
-#ifdef REDIRECT_MEMORY
    }
-#endif
 }
 
 carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
@@ -729,9 +733,9 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
 
    void *end_data_segment = (void*) args.arg0;
 
-#ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
+#ifdef REDIRECT_MEMORY
       m_send_buff.put (end_data_segment);
 
       // send the data
@@ -748,12 +752,82 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
       void *new_end_data_segment;
       m_recv_buff.get (new_end_data_segment);
       return (carbon_reg_t) new_end_data_segment;
+#else
+      return (carbon_reg_t) syscall (SYS_brk, end_data_segment);
+#endif
    }
    else
    {
-#endif
       return (carbon_reg_t) syscall (SYS_brk, end_data_segment);
-#ifdef REDIRECT_MEMORY
    }
+}
+
+carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
+{
+   int *uaddr = (int*) args.arg0;
+   int op = (int) args.arg1;
+   int val = (int) args.arg2;
+   const struct timespec *timeout = (const struct timespec*) args.arg3;
+   int *uaddr2 = (int*) args.arg4;
+   int val3 = (int) args.arg5;
+
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+#ifdef REDIRECT_MEMORY
+      struct timespec timeout_buf;
+      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
+
+      if (timeout != NULL)
+      {
+         core->accessMemory(Core::NONE, READ, (IntPtr) timeout, (char*) &timeout_buf, sizeof(timeout_buf));
+      }
+      
+      m_send_buff.put(uaddr);
+      m_send_buff.put(op);
+      m_send_buff.put(val);
+
+      int timeout_prefix;
+      if (timeout == NULL)
+      {  
+         timeout_prefix = 0;
+         m_send_buff.put(timeout_prefix);
+      }
+      else
+      {
+         timeout_prefix = 1;
+         m_send_buff.put(timeout_prefix);
+         m_send_buff << make_pair((const void*) &timeout_buf, sizeof(timeout_buf));
+      }
+
+      LOG_PRINT("timeout_prefix = %i", timeout_prefix);
+
+      m_send_buff.put(uaddr2);
+      m_send_buff.put(val3);
+
+      // send the data
+      m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+      // get a result
+      NetPacket recv_pkt;
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+      // Create a buffer out of the result
+      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+
+      // Return the result
+      int ret_val;
+      m_recv_buff.get(ret_val);
+      return (carbon_reg_t) ret_val;
+#else
+      return (carbon_reg_t) syscall (SYS_futex, uaddr, op, val, timeout, uaddr2, val3);
 #endif
+   }
+   else
+   {
+      return (carbon_reg_t) syscall (SYS_futex, uaddr, op, val, timeout, uaddr2, val3);
+   }
+
+
+
 }

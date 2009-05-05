@@ -66,6 +66,9 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_brk:
       marshallBrkCall (core_id);
       break;
+   case SYS_futex:
+      marshallFutexCall (core_id);
+      break;
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
    }
@@ -335,3 +338,137 @@ void SyscallServer::marshallBrkCall (core_id_t core_id)
 
    m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
+
+void SyscallServer::marshallFutexCall (core_id_t core_id)
+{
+   int *uaddr;
+   int op;
+   int val;
+   struct timespec *timeout;
+   int *uaddr2;
+   int val3;
+
+   int timeout_prefix;
+
+   m_recv_buff.get(uaddr);
+   m_recv_buff.get(op);
+   m_recv_buff.get(val);
+
+   m_recv_buff.get(timeout_prefix);
+
+   LOG_PRINT("timeout_prefix = %i", timeout_prefix);
+   if (timeout_prefix == 0)
+   {
+      timeout = (struct timespec*) NULL;
+   }
+   else
+   {
+      assert(timeout_prefix == 1);
+      timeout = (struct timespec*) malloc(sizeof(struct timespec));
+      m_recv_buff >> make_pair((void*) timeout, sizeof(*timeout));
+   }
+
+   m_recv_buff.get(uaddr2);
+   m_recv_buff.get(val3);
+
+   // Right now, we handle only a subset of the functionality
+   // assert the subset
+
+   LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == FUTEX_WAKE), "op = %u", op);
+   if (op == FUTEX_WAIT)
+   {
+      LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
+   }
+   // assert(uaddr2 == NULL);
+   // assert(val3 == 0);
+
+   if (timeout != NULL)
+   {
+      free (timeout);
+   }
+
+   Core* core = m_network.getCore();
+   LOG_ASSERT_ERROR (core != NULL, "Core should not be NULL");
+   int act_val;
+
+   core->accessMemory(Core::NONE, READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
+
+   if (op == FUTEX_WAIT)
+   {
+      futexWait(core_id, uaddr, val, act_val);    
+   }
+   else if (op == FUTEX_WAKE)
+   {
+      futexWake(core_id, uaddr, val);
+   }
+
+}
+
+// -- Futex related functions --
+void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_val)
+{
+   SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
+  
+   if (val != act_val)
+   {
+      m_send_buff.clear();
+      m_send_buff << (int) EWOULDBLOCK;
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+   else
+   {
+      sim_futex->enqueueWaiter(core_id);
+   }
+}
+
+void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val)
+{
+   SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
+   int num_procs_woken_up = 0;
+
+   for (int i = 0; i < val; i++)
+   {
+      core_id_t waiter = sim_futex->dequeueWaiter();
+      if (waiter == INVALID_CORE_ID)
+         break;
+
+      num_procs_woken_up ++;
+
+      m_send_buff.clear();
+      m_send_buff << (int) 0;
+      m_network.netSend(waiter, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+
+   m_send_buff.clear();
+   m_send_buff << num_procs_woken_up;
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+}
+
+// -- SimFutex -- //
+SimFutex::SimFutex()
+{}
+
+SimFutex::~SimFutex()
+{
+   assert(m_waiting.empty());
+}
+
+void SimFutex::enqueueWaiter(core_id_t core_id)
+{
+   m_waiting.push(core_id);
+}
+
+core_id_t SimFutex::dequeueWaiter()
+{
+   if (m_waiting.empty())
+      return INVALID_CORE_ID;
+   else
+   {
+      core_id_t core_id = m_waiting.front();
+      m_waiting.pop();
+      return core_id;
+   }
+}
+
+

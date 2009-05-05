@@ -48,6 +48,9 @@ static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
    STATIC_NETWORK_USER,   // MCP_RESP
    STATIC_NETWORK_SYSTEM, // MCP_UTIL
    STATIC_NETWORK_SYSTEM, // MCP_SYSTEM
+   STATIC_NETWORK_SYSTEM, // MCP_THREAD_SPAWN
+   STATIC_NETWORK_SYSTEM, // MCP_THREAD_JOIN
+   STATIC_NETWORK_SYSTEM, // LCP_COMM_ID
 };
 
 #endif

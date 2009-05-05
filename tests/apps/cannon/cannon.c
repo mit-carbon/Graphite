@@ -20,7 +20,7 @@
 
 #include "carbon_user.h"
 
-//#define DEBUG 1
+#define DEBUG 1
 //#define SEQUENTIAL 1
 
 #ifdef DEBUG

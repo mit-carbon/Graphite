@@ -598,7 +598,6 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
       // Get the lock so that the parent can update simulated memory
       // with values returned by the clone syscall before the child 
       // uses them
-      cerr << "Spawner: Got the clone lock" << endl;
       GetLock (&clone_memory_update_lock, 1);
 
       if (parent_tidptr)
@@ -648,7 +647,6 @@ void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
       }
 
       // Release the lock now that we have copied all results to simulated memory
-      cerr << "Spawner: Released the clone lock" << endl;
       ReleaseLock (&clone_memory_update_lock);
    }
 }

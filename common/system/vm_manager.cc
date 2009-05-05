@@ -47,7 +47,7 @@ VMManager::VMManager()
 
    assert(m_start_stack_segment > m_start_data_segment);
 
-   m_start_dynamic_segment = 0xc0000000;
+   m_start_dynamic_segment = 0xb0000000;
    m_end_dynamic_segment = m_start_dynamic_segment;
 
    assert(m_start_dynamic_segment > m_start_stack_segment);

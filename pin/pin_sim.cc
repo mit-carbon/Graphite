@@ -241,11 +241,8 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       assert (core);
 
       // Wait to make sure that the spawner has written stuff back to memory
-      cerr << "Spawnee: Waiting for clone lock" << endl;
       GetLock (&clone_memory_update_lock, 2);
-      cerr << "Spawnee: Got the clone lock" << endl;
       ReleaseLock (&clone_memory_update_lock);
-      cerr << "Spawnee: Released the clone lock" << endl;
    }
 }
 

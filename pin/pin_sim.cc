@@ -45,15 +45,19 @@
 #include "handle_syscalls.h"
 #include <typeinfo>
 
-
+// ---------------------------------------------------------------
 // FIXME: 
 // There should be a better place to keep these globals
 // -- a PinSimulator class or smthg
 bool done_app_initialization = false;
 config::ConfigFile *cfg;
+
+// clone stuff
 extern int *parent_tidptr;
 extern struct user_desc *newtls;
 extern int *child_tidptr;
+extern PIN_LOCK clone_memory_update_lock;
+// ---------------------------------------------------------------
 
 INT32 usage()
 {
@@ -61,6 +65,15 @@ INT32 usage()
    cerr << KNOB_BASE::StringKnobSummary() << endl;
 
    return -1;
+}
+
+void initializeSyscallModeling ()
+{
+   // Initialize clone stuff
+   parent_tidptr = NULL;
+   newtls = NULL;
+   child_tidptr = NULL;
+   InitLock (&clone_memory_update_lock);
 }
 
 void routineCallback(RTN rtn, void *v)
@@ -184,11 +197,6 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       // This is NOT the main thread
       // 'application' thread or 'thread spawner'
 
-      // Restore the clone syscall arguments
-      PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
-      PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
-      PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
-
       core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
 
       LOG_ASSERT_ERROR(core_id != -1, "All application threads and thread spawner are cores now");
@@ -215,6 +223,21 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          // to simulated address space
          // copySpawnedThreadStackData(reg_esp);
       }
+     
+      // Restore the clone syscall arguments
+      PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
+      PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
+      PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
+
+      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      assert (core);
+
+      // Wait to make sure that the spawner has written stuff back to memory
+      cerr << "Spawnee: Waiting for clone lock" << endl;
+      GetLock (&clone_memory_update_lock, 2);
+      cerr << "Spawnee: Got the clone lock" << endl;
+      ReleaseLock (&clone_memory_update_lock);
+      cerr << "Spawnee: Released the clone lock" << endl;
    }
 }
 
@@ -262,6 +285,8 @@ int main(int argc, char *argv[])
    
    if(cfg->getBool("general/enable_syscall_modeling"))
    {
+      initializeSyscallModeling();
+
       PIN_AddSyscallEntryFunction(SyscallEntry, 0);
       PIN_AddSyscallExitFunction(SyscallExit, 0);
       PIN_AddContextChangeFunction (contextChange, NULL);

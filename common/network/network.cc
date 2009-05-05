@@ -14,6 +14,9 @@
 Network::Network(Core *core)
       : _core(core)
 {
+   LOG_ASSERT_ERROR(sizeof(g_type_to_static_network_map) / sizeof(EStaticNetwork) == NUM_PACKET_TYPES,
+                    "Static network type map has incorrect number of entries.");
+
    _numMod = Config::getSingleton()->getTotalCores();
    _tid = _core->getId();
 

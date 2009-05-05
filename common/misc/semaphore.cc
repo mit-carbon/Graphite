@@ -12,6 +12,13 @@ Semaphore::Semaphore(int count)
 {
 }
 
+Semaphore::Semaphore()
+   : _count(0)
+   , _numWaiting(0)
+   , _futx(0)
+{
+}
+
 Semaphore::~Semaphore()
 {
 }

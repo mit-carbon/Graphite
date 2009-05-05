@@ -52,6 +52,8 @@ int *parent_tidptr;
 struct user_desc *newtls;
 int *child_tidptr;
 
+PIN_LOCK clone_memory_update_lock;
+
 // End Clone stuff
 // -----------------------------------
 
@@ -213,7 +215,6 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_write) ||
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_brk) ||
-            (syscall_number == SYS_mmap) ||
             (syscall_number == SYS_mmap2) ||
             (syscall_number == SYS_munmap) ||
             (syscall_number == SYS_futex))
@@ -594,6 +595,12 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
       newtls = (struct user_desc*) args.arg3;
       child_tidptr = (int*) args.arg4;
 
+      // Get the lock so that the parent can update simulated memory
+      // with values returned by the clone syscall before the child 
+      // uses them
+      cerr << "Spawner: Got the clone lock" << endl;
+      GetLock (&clone_memory_update_lock, 1);
+
       if (parent_tidptr)
       {
          int *parent_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) parent_tidptr, sizeof (int));
@@ -639,6 +646,10 @@ void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
          core->getSyscallMdl()->copyArgFromBuffer (4, (IntPtr) child_tidptr, sizeof (int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr);
       }
+
+      // Release the lock now that we have copied all results to simulated memory
+      cerr << "Spawner: Released the clone lock" << endl;
+      ReleaseLock (&clone_memory_update_lock);
    }
 }
 
@@ -656,77 +667,3 @@ SyscallMdl::syscall_args_t syscallArgs (CONTEXT *ctxt, SYSCALL_STANDARD syscall_
    return args;
 }
 
-// ---------------------------------------------------------------
-// Clone stuff
-// ---------------------------------------------------------------
-
-// void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
-// {
-//    Core *core = Sim()->getCoreManager()->getCurrentCore();
-//    if (core)
-//    {
-//       // GetLock (&clone_lock, 1);
-//       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-//       core->getSyscallMdl()->saveSyscallArgs (args);
-// 
-//       int *parent_tidptr = (int*) PIN_GetSyscallArgument (ctxt, syscall_standard, 2);
-//       struct user_desc *newtls = (struct user_desc*) PIN_GetSyscallArgument (ctxt, syscall_standard, 3);
-//       int *child_tidptr = (int*) PIN_GetSyscallArgument (ctxt, syscall_standard, 4);
-// 
-//       if (parent_tidptr)
-//       {
-//          // FIXME
-//          // The behavior of copyArgToBuffer will have to change for multi-machine simulations
-//          // We can't just copy contents of the memory location pointed to by the argument by default
-//          // since the memory may not be valid on this machine
-//          int *parent_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) parent_tidptr, sizeof (int));
-//          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr_arg);
-//       }
-// 
-//       if (newtls)
-//       {
-//          struct user_desc *newtls_arg = (struct user_desc*) core->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) newtls, sizeof (struct user_desc));
-//          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls_arg);
-//       }
-// 
-//       if (child_tidptr)
-//       {
-//          int *child_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (4, (IntPtr) child_tidptr, sizeof (int));
-//          PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr_arg);
-//       }
-//    }
-// }
-// 
-// void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
-// {
-//    Core *core = Sim()->getCoreManager()->getCurrentCore();
-//    if (core)
-//    {
-//       SyscallMdl::syscall_args_t args;
-//       core->getSyscallMdl()->retrieveSyscallArgs(args);
-//       int *parent_tidptr = (int*) args.arg2;
-//       struct user_desc *newtls = (struct user_desc*) args.arg3;
-//       int *child_tidptr = (int*) args.arg4;
-// 
-//       if (parent_tidptr)
-//       {
-//          core->getSyscallMdl()->copyArgFromBuffer(2, (IntPtr) parent_tidptr, sizeof (int));
-//          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr);
-//       }
-// 
-//       if (newtls)
-//       {
-//          core->getSyscallMdl()->copyArgFromBuffer(3, (IntPtr) newtls, sizeof (struct user_desc));
-//          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls);
-//       }
-// 
-//       if (child_tidptr)
-//       {
-//          core->getSyscallMdl()->copyArgFromBuffer (4, (IntPtr) child_tidptr, sizeof (int));
-//          PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr);
-//       }
-// 
-//       // ReleaseLock (&clone_lock);
-//    }
-// }
-// 

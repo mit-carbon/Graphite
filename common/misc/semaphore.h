@@ -13,6 +13,7 @@ class Semaphore
 
    public:
       Semaphore(int count);
+      Semaphore();
       ~Semaphore();
 
       void wait();

@@ -123,7 +123,9 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
       else if (syscall_number == SYS_mprotect)
       {
+#ifdef REDIRECT_MEMORY
          PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
+#endif
       }
 
       else if (syscall_number == SYS_set_tid_address)
@@ -226,7 +228,9 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
       else if (syscall_number == SYS_mprotect)
       {
-         // Do nothing
+#ifdef REDIRECT_MEMORY
+         PIN_SetContextReg (ctx, REG_GAX, 0);
+#endif
       }
 
       else if (syscall_number == SYS_set_tid_address)

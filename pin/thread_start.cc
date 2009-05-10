@@ -12,8 +12,6 @@
 
 int spawnThreadSpawner(CONTEXT *ctxt)
 {
-   cerr << "In spawnThreadSpawner" << endl;
-
    int res;
 
    ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
@@ -27,16 +25,12 @@ int spawnThreadSpawner(CONTEXT *ctxt)
 
    PIN_UnlockClient();
 
-   cerr << "About to call PIN_CallApplicationFunction" << endl;
-
    PIN_CallApplicationFunction(ctxt,
             PIN_ThreadId(),
             CALLINGSTD_DEFAULT,
             thread_spawner,
             PIN_PARG(int), &res,
             PIN_PARG_END());
-
-   cerr << "Thread spawner spawned" << endl;
 
    LOG_PRINT ("Thread spawner spawned");
    LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
@@ -172,6 +166,8 @@ VOID allocateStackSpace()
 
 VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
+   cerr << "In SimPthreadAttrInitOtherAttr" << endl;
+
    core_id_t core_id;
    
    ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
@@ -191,4 +187,6 @@ VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
    PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
    pthread_attr_setstack(attr, (void*) stack_attr.lower_limit, stack_attr.size);
+
+   cerr << "Done with SimPthreadAttrInitOtherAttr" << endl;
 }

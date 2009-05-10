@@ -43,6 +43,7 @@ public:
 
    core_id_t getMCPCoreNum() { return getTotalCores() -1; }
 
+   core_id_t getThreadSpawnerCoreNum (UInt32 proc_num) { return (getTotalCores() - (1 + getProcessCount() - proc_num)); }
    core_id_t getCurrentThreadSpawnerCoreNum () { return (getTotalCores() - (1 + getProcessCount() - getCurrentProcessNum())); }
    
    // Return the number of modules (cores) in a given process

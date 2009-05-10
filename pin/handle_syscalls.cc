@@ -95,9 +95,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    ADDRINT syscall_number = PIN_GetSyscallNumber (ctx, syscall_standard);
 
-   string core_null = core ? "CORE != NULL" : "CORE == NULL";
-   LOG_PRINT ("syscall_number %d, %s", syscall_number, core_null.c_str());
-   
    if (core)
    {
       // Save the syscall number
@@ -206,7 +203,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   string core_null = core ? "CORE != NULL" : "CORE == NULL";
    
    if (core)
    {

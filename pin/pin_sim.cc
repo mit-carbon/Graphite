@@ -93,6 +93,18 @@ void routineCallback(RTN rtn, void *v)
 
       RTN_Close (rtn);
    }
+
+   else if (rtn_name == "CarbonThreadSpawner")
+   {
+      RTN_Open (rtn);
+
+      RTN_InsertCall (rtn, IPOINT_BEFORE,
+            AFUNPTR (setupCarbonThreadSpawnerStack),
+            IARG_CONTEXT,
+            IARG_END);
+
+      RTN_Close(rtn);
+   }
    
    // TODO:
    // Commenting out performance modeling code since it causes multiple accesses to memory
@@ -193,6 +205,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          copyInitialStackData(reg_esp);
          LOG_PRINT("Finished Copying Initial Stack Data\n");
 #endif
+      }
+
+      else
+      {
+         core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
+         Sim()->getCoreManager()->initializeThread(core_id);
       }
       
       // All the real initialization is done in 

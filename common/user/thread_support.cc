@@ -112,7 +112,7 @@ void *CarbonThreadSpawner(void *p)
          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
         
          CarbonPthreadAttrInitOtherAttr(&attr);
-       
+
          pthread_create(&thread, &attr, CarbonSpawnManagedThread, NULL);
       }
       else

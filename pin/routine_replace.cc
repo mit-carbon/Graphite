@@ -69,7 +69,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    // TODO: Check that the starting stack is located below the text segment
    // thread management
-   if (name == "main") msg_ptr = AFUNPTR (replacementMain);
+   if (name == "_start") msg_ptr = AFUNPTR (replacement_start);
+   else if (name == "main") msg_ptr = AFUNPTR (replacementMain);
    else if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(replacementGetThreadToSpawn);
    else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR (replacementThreadStartNull);
    else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR (replacementThreadExitNull);
@@ -172,6 +173,43 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 // 
 // }
 
+void replacement_start (CONTEXT *ctxt)
+{
+   if (Sim()->getConfig()->getCurrentProcessNum() == 0)
+      return;
+
+   else
+   {
+      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
+      
+      int res;
+      ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
+
+      PIN_LockClient();
+
+      AFUNPTR thread_spawner;
+      IMG img = IMG_FindByAddress(reg_eip);
+      RTN rtn = RTN_FindByName(img, "CarbonThreadSpawner");
+      thread_spawner = RTN_Funptr(rtn);
+
+      PIN_UnlockClient();
+      
+      PIN_CallApplicationFunction (ctxt,
+            PIN_ThreadId(),
+            CALLINGSTD_DEFAULT,
+            thread_spawner,
+            PIN_PARG(int), &res,
+            PIN_PARG(void*), NULL,
+            PIN_PARG_END());
+
+      // Should have some ack for the core_manager and thread_manager here
+      // to notify them that the core is finished and is exiting
+      exit (0);
+   }
+}
+
+
 void replacementMain (CONTEXT *ctxt)
 {
    cerr << "replacementMain" << endl;
@@ -179,20 +217,16 @@ void replacementMain (CONTEXT *ctxt)
    spawnThreadSpawner(ctxt);
 
    UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
-   
-   if (curr_process_num == 0)
+   assert (curr_process_num == 0);
+
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   UInt32 num_processes = Sim()->getConfig()->getProcessCount();
+   for (UInt32 i = 1; i < num_processes; i++)
    {
-      // Execute main 
-      return;
+      core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
    }
-   else
-   {
-      LOG_PRINT("Waiting for main process to finish...");
-      while (!Sim()->finished())
-         usleep(100);
-      LOG_PRINT("Finished!");
-      exit(0);
-   }
+  
+   return;
 }
 
 void replacementGetThreadToSpawn (CONTEXT *ctxt)
@@ -697,3 +731,21 @@ void setupCarbonSpawnThreadSpawnerStack (CONTEXT *ctx)
 
    core->accessMemory(Core::NONE, WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
 }
+
+void setupCarbonThreadSpawnerStack (CONTEXT *ctx)
+{
+   if (Sim()->getConfig()->getCurrentProcessNum() == 0)
+      return;
+
+   ADDRINT esp = PIN_GetContextReg (ctx, REG_STACK_PTR);
+   ADDRINT ret_ip = * (ADDRINT*) esp;
+   ADDRINT p = * (ADDRINT*) (esp + sizeof (ADDRINT));
+
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert (core);
+
+   core->accessMemory (Core::NONE, WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
+   core->accessMemory (Core::NONE, WRITE, (IntPtr) (esp + sizeof (ADDRINT)), (char*) &p, sizeof (ADDRINT));
+}
+
+

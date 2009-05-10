@@ -3,6 +3,8 @@
 #include "simulator.h"
 #include <boost/lexical_cast.hpp>
 
+#include "log.h"
+
 VMManager *VMManager::m_singleton = NULL;
 
 void VMManager::allocate()
@@ -38,20 +40,29 @@ VMManager::VMManager()
    }
    catch (boost::bad_lexical_cast &)
    {
-      cerr << "Error reading stack parameters from the config file" << endl;
-      exit (-1);
+      LOG_PRINT_ERROR("Error reading stack parameters from the config file");
    }
 
    // FIXME: MCP does not have a stack. Do something about this
    m_end_stack_segment = m_start_stack_segment + total_cores * stack_size_per_core; 
 
-   assert(m_start_stack_segment > m_start_data_segment);
+   LOG_ASSERT_ERROR(m_start_stack_segment > m_start_data_segment,
+       "m_start_stack_segment = 0x%x, m_start_data_segment = 0x%x",
+       m_start_stack_segment,
+       m_start_data_segment);
 
    m_start_dynamic_segment = 0xb0000000;
    m_end_dynamic_segment = m_start_dynamic_segment;
 
-   assert(m_start_dynamic_segment > m_start_stack_segment);
-   assert(m_start_dynamic_segment > m_end_stack_segment);
+   LOG_ASSERT_ERROR(m_start_dynamic_segment > m_start_stack_segment,
+       "m_start_dynamic_segment = 0x%x, m_start_stack_segment = 0x%x",
+       m_start_dynamic_segment,
+       m_start_stack_segment);
+
+   LOG_ASSERT_ERROR(m_start_dynamic_segment > m_end_stack_segment,
+       "m_start_dynamic_segment = 0x%x, m_end_stack_segment = 0x%x",
+       m_start_dynamic_segment,
+       m_end_stack_segment);
 }
 
 VMManager::~VMManager()
@@ -60,21 +71,35 @@ VMManager::~VMManager()
 
 void *VMManager::brk(void *end_data_segment)
 {
+   LOG_PRINT ("VMManager: brk(%p)", end_data_segment);
+
    if (end_data_segment == (void*) 0)
    {
+      LOG_PRINT ("VMManager: brk(%p) returned %p", end_data_segment, m_end_data_segment);
       return (void*) m_end_data_segment;
    }
 
-   assert((IntPtr) end_data_segment > m_start_data_segment);
-   assert((IntPtr) end_data_segment < m_start_stack_segment);
+   LOG_ASSERT_ERROR((IntPtr) end_data_segment > m_start_data_segment,
+       "end_data_segment = 0x%x, m_start_data_segment = 0x%x",
+       (IntPtr) end_data_segment,
+       m_start_data_segment);
+
+   LOG_ASSERT_ERROR((IntPtr) end_data_segment < m_start_stack_segment,
+       "end_data_segment = 0x%x, m_start_stack_segment = 0x%x",
+       (IntPtr) end_data_segment,
+       m_start_stack_segment);
 
    m_end_data_segment = (IntPtr) end_data_segment;
 
+   LOG_PRINT ("VMManager: brk(%p) returned %p", end_data_segment, m_end_data_segment);
    return ((void*) m_end_data_segment);
 }
 
 void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
+   LOG_PRINT("VMManager: mmap(start = %p, length = 0x%x, flags = 0x%x)",
+         start, length, (unsigned) flags);
+
    assert(fd == -1);
    assert((flags & MAP_ANONYMOUS) == MAP_ANONYMOUS);
    assert((flags & MAP_FIXED) == 0);
@@ -84,26 +109,36 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
 
    m_start_dynamic_segment -= length;
 
+   LOG_PRINT("VMManager: mmap() returned 0x%x", m_start_dynamic_segment);
    return ((void*) m_start_dynamic_segment);
 }
 
 void *VMManager::mmap2(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
+   LOG_PRINT("VMManager: mmap2(start = %p, length = 0x%x, flags = 0x%x)",
+         start, length, (unsigned) flags);
+
    assert(fd == -1);
    assert((flags & MAP_ANONYMOUS) == MAP_ANONYMOUS);
    assert((flags & MAP_FIXED) == 0);
    assert((flags & MAP_PRIVATE) == MAP_PRIVATE);
    
-   assert((m_start_dynamic_segment - (length * getpagesize())) > m_end_stack_segment);
+   assert((m_start_dynamic_segment - length) > m_end_stack_segment);
 
-   m_start_dynamic_segment -= (length * getpagesize());
+   m_start_dynamic_segment -= length;
 
+   LOG_PRINT("VMManager: mmap2() returned 0x%x", m_start_dynamic_segment);
    return ((void*) m_start_dynamic_segment);
 }
 
 int VMManager::munmap(void *start, size_t length)
 {
+   LOG_PRINT("VMManager: munmap(start = %p, length = 0x%x",
+         start, length);
+
    // Ignore for now
    assert((IntPtr) start >= m_start_dynamic_segment);
+
+   LOG_PRINT("VMManager: munmap() returned 0");
    return 0;
 }

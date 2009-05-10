@@ -1,7 +1,6 @@
 #ifndef COND_H
 #define COND_H
 
-#include <pthread.h>
 #include "lock.h"
 
 // Our condition variable interface is slightly different from

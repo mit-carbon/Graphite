@@ -21,7 +21,7 @@
 #include "carbon_user.h"
 
 #define DEBUG 1
-//#define SEQUENTIAL 1
+// #define SEQUENTIAL 1
 
 #ifdef DEBUG
 pthread_mutex_t lock;
@@ -326,15 +326,20 @@ void* cannon(void *threadid)
    tid = (unsigned int) threadid;
    //CAPI_rank(&tid);
 
+   // FIXME: Isnt there a race in 'CAPI_Initialize'
+   sleep(10);
+
    bool started = true;
    assert(
       CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
       == 0);
 
-//   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
+   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
 
    // Initialize local variables
-   unsigned int blockSize, sqrtNumProcs;
+   unsigned int blockSize;
+   unsigned int sqrtNumProcs;
+
    assert(
       CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize))
       == 0);
@@ -409,7 +414,7 @@ void* cannon(void *threadid)
       for (unsigned int y = 0; y < blockSize; y++) cBlock[x][y] = 0;
    }
 
-//   fprintf(stderr, "Thread %d processing...\n", tid);
+   fprintf(stderr, "Thread %d processing...\n", tid);
 
    for (unsigned int iter = 0; iter < sqrtNumProcs; iter++) // for loop begins
    {
@@ -424,7 +429,7 @@ void* cannon(void *threadid)
          for (unsigned int x = 0; x < blockSize; x++)
             for (unsigned int y = 0; y < blockSize; y++)
             {
-               debug_printf("tid # %d sending to tid # %d\n", tid, leftProc);
+               fprintf(stderr, "tid # %d sending to tid # %d\n", tid, leftProc);
                assert(
                   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)leftProc, (char*)&aBlock[x][y], sizeof(float))
                   == 0);
@@ -434,7 +439,7 @@ void* cannon(void *threadid)
          for (unsigned int x= 0; x < blockSize; x++)
             for (unsigned int y = 0; y < blockSize; y++)
             {
-               debug_printf("tid # %d sending to tid # %d\n", tid, upProc);
+               fprintf(stderr, "tid # %d sending to tid # %d\n", tid, upProc);
                assert(
                   CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)upProc, (char*)&bBlock[x][y], sizeof(float))
                   == 0);
@@ -445,7 +450,7 @@ void* cannon(void *threadid)
          for (unsigned int x = 0; x < blockSize; x++)
             for (unsigned int y = 0; y < blockSize; y++)
             {
-               debug_printf("tid # %d receiving from tid # %d\n", tid, rightProc);
+               fprintf(stderr, "tid # %d receiving from tid # %d\n", tid, rightProc);
                assert(
                   CAPI_message_receive_w((CAPI_endpoint_t)rightProc, (CAPI_endpoint_t)tid, (char*)&aBlock[x][y], sizeof(float))
                   == 0);
@@ -455,7 +460,7 @@ void* cannon(void *threadid)
          for (unsigned int x = 0; x < blockSize; x++)
             for (unsigned int y = 0; y < blockSize; y++)
             {
-               debug_printf("tid # %d receiving from tid # %d\n", tid, downProc);
+               fprintf(stderr, "tid # %d receiving from tid # %d\n", tid, downProc);
                assert(
                   CAPI_message_receive_w((CAPI_endpoint_t)downProc, (CAPI_endpoint_t)tid, (char*)&bBlock[x][y], sizeof(float))
                   == 0);
@@ -464,20 +469,21 @@ void* cannon(void *threadid)
       } // if block ends
    } // for loop ends
 
-   debug_printf("tid # %d waiting to send...\n", tid);
+   fprintf(stderr, "tid # %d waiting to send...\n", tid);
 
    // Update c
    worker_wait_go(tid);
    for (unsigned int x = 0; x < blockSize; x++)
    {
       assert(
-         CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&(cBlock[0][0]), blockSize * sizeof(float))
+         CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)(cBlock[x]), blockSize * sizeof(float))
          == 0);
       worker_wait_go(tid);
    }
 
-   //Free Scratch Memory
+   // Free Scratch Memory
 
+   
    for (unsigned int i = 0; i < blockSize; i++)
    {
       free(aBlock[i]);
@@ -488,8 +494,8 @@ void* cannon(void *threadid)
    free(aBlock);
    free(bBlock);
    free(cBlock);
-
-   debug_printf("tid # %d done!\n", tid);
+   
+   fprintf(stderr, "tid # %d done!\n", tid);
 
    return NULL;
 }

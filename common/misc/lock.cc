@@ -1,10 +1,5 @@
 #include "lock.h"
 
-#include <unistd.h>
-#include <syscall.h>
-#include <linux/futex.h>
-#include <limits.h>
-
 #include "log.h"
 
 Lock::Lock()

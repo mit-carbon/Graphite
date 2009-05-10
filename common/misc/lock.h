@@ -12,11 +12,6 @@ public:
    void acquire();
    void release();
 
-   pthread_mutex_t& getMutx()
-   {
-      return _mutx;
-   }
-
 private:
    pthread_mutex_t _mutx;
 };

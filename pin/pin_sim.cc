@@ -59,6 +59,31 @@ extern int *child_tidptr;
 extern PIN_LOCK clone_memory_update_lock;
 // ---------------------------------------------------------------
 
+// ---------------------------------------------------------------
+// FIXME: 
+map <ADDRINT, string> rtn_map;
+PIN_LOCK rtn_map_lock;
+
+void printRtn (ADDRINT rtn_addr, bool enter)
+{
+   GetLock (&rtn_map_lock, 1);
+   map<ADDRINT, string>::iterator it = rtn_map.find (rtn_addr);
+
+   string point = enter ? "Enter" : "Exit";
+   if (it != rtn_map.end())
+   {
+      LOG_PRINT ("Routine %s %s", (it->second).c_str(), point.c_str());
+   }
+   else
+   {
+      LOG_PRINT ("Routine UNKNOWN %s", point.c_str());
+   }
+      
+   ReleaseLock (&rtn_map_lock);
+}
+// ---------------------------------------------------------------
+
+
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -81,6 +106,34 @@ void routineCallback(RTN rtn, void *v)
    string rtn_name = RTN_Name(rtn);
    
    replaceUserAPIFunction(rtn, rtn_name);
+
+   // ---------------------------------------------------------------
+   // FIXME: 
+   RTN_Open (rtn);
+   
+   ADDRINT rtn_addr = RTN_Address (rtn);
+   
+   GetLock (&rtn_map_lock, 1);
+   
+   rtn_map.insert (make_pair (rtn_addr, rtn_name));
+
+   ReleaseLock (&rtn_map_lock);
+   
+   RTN_InsertCall (rtn, IPOINT_BEFORE,
+         AFUNPTR (printRtn),
+         IARG_ADDRINT, rtn_addr,
+         IARG_BOOL, true,
+         IARG_END);
+
+   RTN_InsertCall (rtn, IPOINT_AFTER,
+         AFUNPTR (printRtn),
+         IARG_ADDRINT, rtn_addr,
+         IARG_BOOL, false,
+         IARG_END);
+
+   RTN_Close (rtn);
+
+   // ---------------------------------------------------------------
 
    if (rtn_name == "CarbonSpawnThreadSpawner")
    {
@@ -211,6 +264,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       {
          core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
          Sim()->getCoreManager()->initializeThread(core_id);
+         
+         // FIXME: 
+         // Even if this works, it's a hack.We will need this to be a 'ring' where
+         // all processes initialize one after the other
+         Core *core = Sim()->getCoreManager()->getCurrentCore();
+         core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
       }
       
       // All the real initialization is done in 
@@ -272,6 +331,10 @@ VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, 
 
 int main(int argc, char *argv[])
 {
+   // ---------------------------------------------------------------
+   // FIXME: 
+   InitLock (&rtn_map_lock);
+   // ---------------------------------------------------------------
 
    // Global initialization
    PIN_InitSymbols();

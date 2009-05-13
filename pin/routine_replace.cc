@@ -175,6 +175,10 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
 void replacement_start (CONTEXT *ctxt)
 {
+   // FIXME: 
+   return;
+
+
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
       return;
 
@@ -214,19 +218,45 @@ void replacementMain (CONTEXT *ctxt)
 {
    cerr << "replacementMain" << endl;
 
-   spawnThreadSpawner(ctxt);
-
-   UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
-   assert (curr_process_num == 0);
-
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   UInt32 num_processes = Sim()->getConfig()->getProcessCount();
-   for (UInt32 i = 1; i < num_processes; i++)
+   if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
-      core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+      spawnThreadSpawner(ctxt);
+
+      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      UInt32 num_processes = Sim()->getConfig()->getProcessCount();
+      for (UInt32 i = 1; i < num_processes; i++)
+      {
+         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+      }
+
+      return;
    }
-  
-   return;
+   else
+   {
+      int res;
+      ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
+
+      PIN_LockClient();
+
+      AFUNPTR thread_spawner;
+      IMG img = IMG_FindByAddress(reg_eip);
+      RTN rtn = RTN_FindByName(img, "CarbonThreadSpawner");
+      thread_spawner = RTN_Funptr(rtn);
+
+      PIN_UnlockClient();
+      
+      PIN_CallApplicationFunction (ctxt,
+            PIN_ThreadId(),
+            CALLINGSTD_DEFAULT,
+            thread_spawner,
+            PIN_PARG(int), &res,
+            PIN_PARG(void*), NULL,
+            PIN_PARG_END());
+
+      // Should have some ack for the core_manager and thread_manager here
+      // to notify them that the core is finished and is exiting
+      exit (0);
+   }
 }
 
 void replacementGetThreadToSpawn (CONTEXT *ctxt)

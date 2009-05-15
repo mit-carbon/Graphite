@@ -30,7 +30,7 @@ PIN_TOOL=$(SIM_ROOT)/lib/pin_sim
 # PIN_RUN=$(PIN_BIN) -pause_tool 10 -mt -t $(PIN_TOOL) 
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
 
-PROCS ?= 2
+PROCS ?= 1
 CORES ?= 3
 ENABLE_SM ?= true 
 APP_FLAGS ?=

@@ -191,7 +191,11 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if ((syscall_number == SYS_exit) ||
             (syscall_number == SYS_kill) ||
             (syscall_number == SYS_sigreturn) ||
-            (syscall_number == SYS_exit_group))
+            (syscall_number == SYS_exit_group) ||
+            (syscall_number == SYS_geteuid32) ||
+            (syscall_number == SYS_getuid32) ||
+            (syscall_number == SYS_getegid32) ||
+            (syscall_number == SYS_getgid32) )
       {
          // Let the syscall fall through
       }
@@ -275,6 +279,13 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if (syscall_number == SYS_clone)
       {
          restoreCloneContext (ctx, syscall_standard);
+      }
+      else if ( (syscall_number == SYS_geteuid32) ||
+            (syscall_number == SYS_getuid32) ||
+            (syscall_number == SYS_getegid32) ||
+            (syscall_number == SYS_getgid32) )
+      {
+         // Let the syscall fall through
       }
    }
 }

@@ -117,11 +117,13 @@ VOID copyInitialStackData(ADDRINT reg_esp)
       }
    }
 
+   /*
    for (SInt32 i = 0; ; i++)
    {
       // We should have a per auxiliary vector entry based handling
       // Right now, just copy stuff over
       assert (sizeof(Elf32_auxv_t) == sizeof(auxiliary_vector[i]));
+      fprintf(stderr, "auxiliary_vector[%i].a_type = %u\n", i, auxiliary_vector[i].a_type);
 
       core->accessMemory(Core::NONE, WRITE, (ADDRINT) &auxiliary_vector[i], (char*) &auxiliary_vector[i], sizeof(auxiliary_vector[i]));
       if (auxiliary_vector[i].a_type == AT_NULL)
@@ -129,6 +131,12 @@ VOID copyInitialStackData(ADDRINT reg_esp)
          break;
       }
    }
+    */
+
+   Elf32_auxv_t auxiliary_vector_entry_null;
+   auxiliary_vector_entry_null.a_type = AT_NULL;
+   auxiliary_vector_entry_null.a_un.a_val = 0;
+   core->accessMemory(Core::NONE, WRITE, (ADDRINT) auxiliary_vector, (char*) &auxiliary_vector_entry_null, sizeof(auxiliary_vector_entry_null));
 
 }
 

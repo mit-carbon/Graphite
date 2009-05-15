@@ -31,7 +31,7 @@ PIN_TOOL=$(SIM_ROOT)/lib/pin_sim
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 PROCS ?= 2
-CORES ?= 3
+CORES ?= 5
 ENABLE_SM ?= true 
 APP_FLAGS ?=
 BUILD_MODE ?= # Set to nonempty to not run anything

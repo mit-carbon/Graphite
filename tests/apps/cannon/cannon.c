@@ -162,8 +162,11 @@ int do_cannon(int argc, char* argv[])
       bool started;
 
       //Wait for receiver to start up
-      while(CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
-              == CAPI_ReceiverNotInitialized);
+      CAPI_return_t ret;
+      do
+      {
+         ret = CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started));
+      } while ((ret == CAPI_ReceiverNotInitialized) || (ret == CAPI_SenderNotInitialized));
 
       assert(started == 1);
 

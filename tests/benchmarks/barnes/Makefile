@@ -7,7 +7,7 @@ MACROS := ../splash_support/c.m4.null.CARBON
 include ../splash_support/Makefile.config
 TARGET = BARNES
 
-CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall
+CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall -m32
 
 stdinc.h: code.h defs.h util.h vectmath.h load.h code_io.h grav.h getparam.h stdinc.H 
 code.o: code.C stdinc.h

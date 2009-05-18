@@ -47,7 +47,7 @@ EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
 launch_fn = $(SIM_ROOT)/tools/launch.py $(1) $(2) # 1 - START_PROC, 2 - NUM_PROCS
 
 # Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-START_PROC),$(4-PROCS), $(5-FLAGS))
-run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(4)) $(2) $(5)))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(4)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(4)) $(2) $(5)))
 RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(START_PROC),$(PROCS_PER_MACHINE),$(SIM_FLAGS))
 
 # Build targets

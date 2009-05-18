@@ -13,6 +13,7 @@
 # EXEC - command to run; derived from TARGET and APP_FLAGS
 # SIM_FLAGS - config flags passed to the simulator. Derived from CORES, PROCS. See sim_flags_fn.
 # PROCS - number of processes (1)
+# START_PROC - the index of the lowest proc starting on this machine (0)
 # CORES - number of cores (16)
 # ENABLE_SM - enable shared memory (false)
 # APP_FLAGS - flags to pass to the application
@@ -30,6 +31,7 @@ PIN_TOOL=$(SIM_ROOT)/lib/pin_sim
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL)
 
 PROCS ?= 1
+START_PROC ?= 0
 CORES ?= 16
 ENABLE_SM ?= false
 APP_FLAGS ?=
@@ -41,11 +43,11 @@ sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --genera
 SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
-launch_fn = $(SIM_ROOT)/tools/launch.py $(1) # 1 - PROCS
+launch_fn = $(SIM_ROOT)/tools/launch.py $(1) $(2) # 1 - START_PROC, 2 - NUM_PROCS
 
-# Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
-run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3)) $(2) $(4)))
-RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(PROCS),$(SIM_FLAGS))
+# Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-START_PROC),$(4-PROCS), $(5-FLAGS))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(4)) $(2) $(5)))
+RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(START_PROC),$(PROCS),$(SIM_FLAGS))
 
 # Build targets
 all: $(TARGET)

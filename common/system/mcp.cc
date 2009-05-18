@@ -108,6 +108,10 @@ void MCP::processPacket()
       Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data);
       break;
 
+   case MCP_MESSAGE_QUIT_THREAD_SPAWNER:
+      Sim()->getThreadManager()->masterTerminateThreadSpawner (* (UInt32*)(((Byte*) recv_pkt.data + sizeof (msg_type))));
+      break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
    }

@@ -83,7 +83,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // Carbon API
 
    else if (name == "CarbonStartSim") msg_ptr = AFUNPTR(replacementStartSimNull); 
-   else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSimNull);
+   else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
 
@@ -216,8 +216,6 @@ void replacement_start (CONTEXT *ctxt)
 
 void replacementMain (CONTEXT *ctxt)
 {
-   cerr << "replacementMain" << endl;
-
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
       spawnThreadSpawner(ctxt);
@@ -253,8 +251,13 @@ void replacementMain (CONTEXT *ctxt)
             PIN_PARG(void*), NULL,
             PIN_PARG_END());
 
-      // Should have some ack for the core_manager and thread_manager here
-      // to notify them that the core is finished and is exiting
+      Sim()->getThreadManager()->onThreadExit();
+
+      while (!Sim()->finished())
+         sched_yield();
+
+      Simulator::release();
+
       exit (0);
    }
 }
@@ -353,8 +356,10 @@ void replacementStartSimNull (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementStopSimNull (CONTEXT *ctxt)
+void replacementStopSim (CONTEXT *ctxt)
 {
+   terminateThreadSpawner ();
+
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }

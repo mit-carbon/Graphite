@@ -28,6 +28,8 @@ public:
    ThreadSpawnRequest* getThreadSpawnReq();
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
+   void terminateThreadSpawner ();
+
    // // events
    void onThreadStart(ThreadSpawnRequest *req);
    void onThreadExit();
@@ -46,6 +48,9 @@ private:
    void masterSpawnThreadReply(ThreadSpawnRequest*);
 
    void masterOnThreadExit(core_id_t core_id);
+
+   void masterTerminateThreadSpawner (UInt32 proc);
+   void slaveTerminateThreadSpawner ();
 
    void masterJoinThread(ThreadJoinRequest *req);
    void wakeUpWaiter(core_id_t core_id);

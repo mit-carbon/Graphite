@@ -38,6 +38,11 @@ int spawnThreadSpawner(CONTEXT *ctxt)
    return res;
 }
 
+void terminateThreadSpawner ()
+{
+   Sim()->getThreadManager()->terminateThreadSpawner();
+}
+
 VOID copyStaticData(IMG& img)
 {
    Core* core = Sim()->getCoreManager()->getCurrentCore();
@@ -166,8 +171,6 @@ VOID allocateStackSpace()
 
 VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
-   cerr << "In SimPthreadAttrInitOtherAttr" << endl;
-
    core_id_t core_id;
    
    ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
@@ -187,6 +190,4 @@ VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
    PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
    pthread_attr_setstack(attr, (void*) stack_attr.lower_limit, stack_attr.size);
-
-   cerr << "Done with SimPthreadAttrInitOtherAttr" << endl;
 }

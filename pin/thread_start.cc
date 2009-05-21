@@ -38,11 +38,6 @@ int spawnThreadSpawner(CONTEXT *ctxt)
    return res;
 }
 
-void terminateThreadSpawner ()
-{
-   Sim()->getThreadManager()->terminateThreadSpawner();
-}
-
 VOID copyStaticData(IMG& img)
 {
    Core* core = Sim()->getCoreManager()->getCurrentCore();

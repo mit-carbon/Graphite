@@ -40,13 +40,12 @@ int CarbonStartSim(int argc, char **argv)
    Simulator::allocate();
    Sim()->start();
 
-   // First start the thread spawner
-   CarbonSpawnThreadSpawner();
-
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {
       // Main process
       Sim()->getCoreManager()->initializeThread(0);
+   
+      CarbonSpawnThreadSpawner();
 
       LOG_PRINT("Returning to main()...");
       return 0;
@@ -54,6 +53,8 @@ int CarbonStartSim(int argc, char **argv)
    else
    {
       LOG_PRINT("Replacing main()...");
+
+      CarbonThreadSpawner (NULL);
 
       // Not main process
       while (!Sim()->finished())
@@ -68,5 +69,8 @@ int CarbonStartSim(int argc, char **argv)
 
 void CarbonStopSim()
 {
+   if (Sim()->getConfig()->getCurrentProcessNum() == 0)
+      Sim()->getThreadManager()->terminateThreadSpawner ();
+   
    Simulator::release();
 }

@@ -64,6 +64,9 @@ ThreadManager::~ThreadManager()
 void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 {
    m_core_manager->initializeThread(req->core_id);
+
+   if (req->core_id == Sim()->getConfig()->getCurrentThreadSpawnerCoreNum())
+      return;
  
    // send ack to master
    LOG_PRINT("(5) onThreadStart -- send ack to master; req : { %p, %p, %i, %i }",
@@ -102,9 +105,6 @@ void ThreadManager::onThreadExit()
 
 void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   LOG_ASSERT_ERROR(core, "Core was null.");
-   
    ThreadSpawnRequest *thread_req = m_thread_spawn_list.front();
 
    *req = *thread_req;

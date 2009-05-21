@@ -5,7 +5,6 @@
 #include "pin.H"
 
 int spawnThreadSpawner(CONTEXT *ctxt);
-void terminateThreadSpawner();
 VOID copyStaticData(IMG& img);
 VOID copyInitialStackData(ADDRINT reg_esp);
 VOID copySpawnedThreadStackData(ADDRINT reg_esp);

@@ -148,11 +148,6 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
 
-      else if (syscall_number == SYS_clone)
-      {
-         modifyCloneContext (ctx, syscall_standard);
-      }
-
       else if (syscall_number == SYS_rt_sigprocmask)
       {
          modifyRtsigprocmaskContext (ctx, syscall_standard);
@@ -186,6 +181,16 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if (syscall_number == SYS_set_thread_area)
       {
          modifySet_thread_areaContext (ctx, syscall_standard);
+      }
+      
+      else if (syscall_number == SYS_clone)
+      {
+         modifyCloneContext (ctx, syscall_standard);
+      }
+
+      else if (syscall_number == SYS_time)
+      {
+         modifyTimeContext (ctx, syscall_standard);
       }
 
       else if ((syscall_number == SYS_exit) ||
@@ -271,10 +276,15 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       {
          restoreSet_thread_areaContext (ctx, syscall_standard);
       }
-      
+
       else if (syscall_number == SYS_clone)
       {
          restoreCloneContext (ctx, syscall_standard);
+      }
+      
+      else if (syscall_number == SYS_time)
+      {
+         restoreTimeContext (ctx, syscall_standard);
       }
    }
 }
@@ -654,6 +664,41 @@ void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
    }
 }
 
+void modifyTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
+      core->getSyscallMdl()->saveSyscallArgs (args);
+
+      time_t *t = (time_t*) args.arg0;
+
+      if (t)
+      {
+         time_t *t_arg = (time_t*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) t, sizeof (time_t));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) t_arg);
+      }
+   }
+}
+
+void restoreTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args;
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
+
+      time_t *t = (time_t*) args.arg0;
+
+      if (t)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) t, sizeof (time_t));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) t);
+      }
+   }
+}
 
 SyscallMdl::syscall_args_t syscallArgs (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {

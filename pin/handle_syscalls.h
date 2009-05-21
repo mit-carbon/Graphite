@@ -29,6 +29,8 @@ void modifyUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifySet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreSet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void modifyTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void restoreTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 

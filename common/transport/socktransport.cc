@@ -12,8 +12,10 @@
 
 #include "log.h"
 #include "config.h"
-
+#include "simulator.h" //interface to config file singleton
 #include "socktransport.h"
+
+using std::string;
 
 SockTransport::SockTransport()
    : m_update_thread_state(RUNNING)
@@ -62,8 +64,22 @@ void SockTransport::initSockets()
    m_send_sockets = new Socket[m_num_procs];
    for (SInt32 proc = 0; proc < m_num_procs; proc++)
    {
-      m_send_sockets[proc].connect("127.0.0.1", // FIXME: assume single machine
-                                   BASE_PORT + proc);
+      // Look up the mapping in the config file to find the address for this
+      // particular process.
+      char proc_str[8];
+      snprintf(proc_str, 8, "%d", proc);
+      string server_string = "process_map/process";
+      server_string += proc_str;
+      string server_addr = "";
+      try
+      {
+          server_addr = Sim()->getCfg()->getString(server_string, "127.0.0.1");
+      } catch (...)
+      {
+          LOG_ASSERT_ERROR(false, "Key: %s not found in config!", server_string.c_str());
+      }
+
+      m_send_sockets[proc].connect(server_addr.c_str(), BASE_PORT + proc);
 
       m_send_sockets[proc].send(&m_proc_index, sizeof(m_proc_index));
    }

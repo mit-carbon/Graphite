@@ -216,9 +216,9 @@ VOID allocateStackSpace()
    UInt32 num_cores = Sim()->getConfig()->getNumLocalCores();
    IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
 
-   LOG_PRINT(stderr, "allocateStackSpace: stack_size_per_core = 0x%x\n", stack_size_per_core);
-   LOG_PRINT(stderr, "allocateStackSpace: num_local_cores = %i\n", num_cores);
-   LOG_PRINT(stderr, "allocateStackSpace: stack_base = 0x%x\n", stack_base);
+   LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x\n", stack_size_per_core);
+   LOG_PRINT("allocateStackSpace: num_local_cores = %i\n", num_cores);
+   LOG_PRINT("allocateStackSpace: stack_base = 0x%x\n", stack_base);
 
    // TODO: Make sure that this is a multiple of the page size 
    

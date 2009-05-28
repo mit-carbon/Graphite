@@ -37,7 +37,6 @@ DramDirectory::~DramDirectory()
       delete dram_entry_it->second;
    }
    dram_directory_entries.clear();
-
    assert (dram_request_list.empty());
 }
 

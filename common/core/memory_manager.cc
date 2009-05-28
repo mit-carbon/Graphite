@@ -707,7 +707,7 @@ carbon_reg_t MemoryManager::completePushf ( IntPtr esp, IntPtr size )
 carbon_reg_t MemoryManager::redirectPopf (IntPtr tgt_esp, IntPtr size)
 {
    m_saved_esp = tgt_esp;
-   return redirectMemOp (false, tgt_esp, size, MemoryManager::ACCESS_TYPE_READ);
+   return redirectMemOp (false, m_saved_esp, size, ACCESS_TYPE_READ);
 }
 
 carbon_reg_t MemoryManager::completePopf (IntPtr esp, IntPtr size)

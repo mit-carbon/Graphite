@@ -38,7 +38,7 @@ CORES ?= 16
 ENABLE_SM ?= true 
 APP_FLAGS ?=
 BUILD_MODE ?= # Set to nonempty to not run anything
-MODE ?= pin# Set to 'pin' to use pin
+MODE ?= pin # Set to 'pin' to use pin
 
 # Use: $(call sim_flags_fn, $(1-CORES), $(2-PROCS))
 sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --general/num_processes=$(2) --general/enable_shared_mem=$(3)

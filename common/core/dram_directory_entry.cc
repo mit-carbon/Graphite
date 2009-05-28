@@ -48,8 +48,8 @@ DramDirectoryEntry::DramDirectoryEntry(IntPtr cache_line_address, Byte* data_buf
 
 DramDirectoryEntry::~DramDirectoryEntry()
 {
-   if (sharers != NULL)
-      delete sharers;
+   assert (sharers != NULL);
+   delete sharers;
    delete [] cache_line;
 }
 

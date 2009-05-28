@@ -59,10 +59,16 @@ int main(int argc, char* argv[])  // main begins
 {
    CarbonStartSim(argc, argv);
 
+   printf("argc = %i\n", argc);
+   for (int i = 0; i < argc; i++)
+   {
+      printf("argv[%i] = %s\n", i, argv[i]);
+   }
+
    for (int i = 0; i < ITERATIONS; i++)
    {
       fprintf(stderr, "Starting iteration %d...\n", i);
-       do_cannon(argc, argv);
+      do_cannon(argc, argv);
    }
 
    fprintf(stderr, "Exiting...\n");
@@ -145,7 +151,7 @@ int do_cannon(int argc, char* argv[])
    rtnVal = CAPI_Initialize((unsigned int)num_threads);
 
 #ifdef DEBUG
-   printf("Initializing thread structures\n");
+   fprintf(stderr, "Initializing thread structures\n");
    pthread_mutex_init(&lock, NULL);
 #endif
 
@@ -153,7 +159,9 @@ int do_cannon(int argc, char* argv[])
    for (unsigned int i = 0; i < num_threads; i++)
        threads[i] = CarbonSpawnThread(cannon, (void *) i);
 
+   fprintf(stderr, "Main Thread starting usleep()\n");
    usleep(500);
+   fprintf(stderr, "Main Thread ending usleep()\n");
 
    for (unsigned int i = 0; i < num_threads; i++)
    {
@@ -329,9 +337,6 @@ void* cannon(void *threadid)
    tid = (unsigned int) threadid;
    //CAPI_rank(&tid);
 
-   // FIXME: Isnt there a race in 'CAPI_Initialize'
-   sleep(10);
-
    bool started = true;
    assert(
       CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
@@ -377,11 +382,15 @@ void* cannon(void *threadid)
    bi = bi * blockSize;
    bj = j * blockSize;
 
+   fprintf(stderr, "Thread %i starting to malloc()\n", tid);
    // populate aBlock
    aBlock = (float**)malloc(blockSize*sizeof(float*));
+   fprintf(stderr, "Thread %i ended malloc()\n", tid);
    for (int x = 0; x < blockSize; x++)
    {
+      fprintf(stderr, "Thread %i starting to malloc()\n", tid);
       aBlock[x] = (float*)malloc(blockSize*sizeof(float));
+      fprintf(stderr, "Thread %i ended malloc()\n", tid);
       assert(
          CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)aBlock[x], blockSize * sizeof(float))
          == 0);
@@ -391,10 +400,14 @@ void* cannon(void *threadid)
    assert(aBlock[0][0] == 2.0);
 
    // populate bBlock
+   fprintf(stderr, "Thread %i starting to malloc()\n", tid);
    bBlock = (float**)malloc(blockSize*sizeof(float*));
+   fprintf(stderr, "Thread %i ended malloc()\n", tid);
    for (unsigned int x = 0; x < blockSize; x++)
    {
+      fprintf(stderr, "Thread %i starting to malloc()\n", tid);
       bBlock[x] = (float*)malloc(blockSize*sizeof(float));
+      fprintf(stderr, "Thread %i ended malloc()\n", tid);
       assert(
          CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)bBlock[x], blockSize * sizeof(float))
          == 0);
@@ -404,18 +417,16 @@ void* cannon(void *threadid)
    assert(bBlock[0][0] == 3.0);
 
    // Allocate cBlock
+   fprintf(stderr, "Thread %i starting to malloc()\n", tid);
    cBlock = (float**)malloc(blockSize*sizeof(float*));
-   for (int x = 0; x < blockSize; x++)
-      cBlock[x] = (float*)malloc(blockSize*sizeof(float));
-
-
-   // Initialize cBlock
-   cBlock = (float**)malloc(blockSize*sizeof(float*));
-   for (unsigned int x = 0; x < blockSize; x++)
-   {
+   fprintf(stderr, "Thread %i ended malloc()\n", tid);
+   for (int x = 0; x < blockSize; x++) {
+      fprintf(stderr, "Thread %i starting to malloc()\n", tid);
       cBlock[x] = (float*)malloc(blockSize*sizeof(float));
       for (unsigned int y = 0; y < blockSize; y++) cBlock[x][y] = 0;
+      fprintf(stderr, "Thread %i ended malloc()\n", tid);
    }
+
 
    fprintf(stderr, "Thread %d processing...\n", tid);
 

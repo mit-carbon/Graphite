@@ -4,9 +4,11 @@
 #include <elf.h>
 #include "pin.H"
 
+#include "fixed_types.h"
+
 int spawnThreadSpawner(CONTEXT *ctxt);
 VOID copyStaticData(IMG& img);
-VOID copyInitialStackData(ADDRINT reg_esp);
+VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id);
 VOID copySpawnedThreadStackData(ADDRINT reg_esp);
 VOID allocateStackSpace();
 

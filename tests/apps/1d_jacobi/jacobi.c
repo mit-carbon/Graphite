@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
    CarbonStartSim(argc, argv);
    if (argc < 3) {
       fprintf(stderr, "[Usage]: ./jacobi <Number_of_Cores> <Size_Multiplier>\n");
-                fprintf(stderr, "Size_of_Array = Number_of_Cores * Size_Multiplier\n"); 
+      fprintf(stderr, "Size_of_Array = Number_of_Cores * Size_Multiplier\n"); 
       exit(-1);
    }
 
@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
 
    printArray(NUM_ITERS);
 
+   fprintf(stderr, "Done. Exiting...\n");
    CarbonStopSim();
    return (0);
 }

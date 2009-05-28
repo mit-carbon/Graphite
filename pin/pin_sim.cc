@@ -52,6 +52,8 @@
 bool done_app_initialization = false;
 config::ConfigFile *cfg;
 
+ADDRINT initial_reg_esp;
+
 // clone stuff
 extern int *parent_tidptr;
 extern struct user_desc *newtls;
@@ -184,16 +186,20 @@ VOID instructionCallback (INS ins, void *v)
             IARG_END);
    }
 
-   // Emulate stack operations
-   bool stack_op = rewriteStackOp (ins);
+   // Emulate Stack Operations
+   bool string_op = rewriteStringOp (ins);
 
-   // Else, redirect memory to the simulated memory system
-   if (!stack_op)
+   if (!string_op)
    {
-      rewriteMemOp (ins);
-   }
+      // Emulate stack operations
+      bool stack_op = rewriteStackOp (ins);
 
-   return;
+      // Else, redirect memory to the simulated memory system
+      if (!stack_op)
+      {
+         rewriteMemOp (ins);
+      }
+   }
 }
 
 // syscall model wrappers
@@ -235,6 +241,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 #endif
 
       UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
+      ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
       if (curr_process_num == 0)
       {
@@ -242,21 +249,20 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
 #ifdef REDIRECT_MEMORY
          ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-         ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
          // 1) Copying over Static Data
          // Get the image first
          PIN_LockClient();
          IMG img = IMG_FindByAddress(reg_eip);
          PIN_UnlockClient();
 
-         LOG_PRINT("Start Copying Static Data\n")
+         LOG_PRINT("Process: 0, Start Copying Static Data\n");
          copyStaticData(img);
-         LOG_PRINT("Finished Copying Static Data\n")
+         LOG_PRINT("Process: 0, Finished Copying Static Data\n");
 
          // 2) Copying over initial stack data
-         LOG_PRINT("Start Copying Initial Stack Data\n");
-         copyInitialStackData(reg_esp);
-         LOG_PRINT("Finished Copying Initial Stack Data\n");
+         LOG_PRINT("Process: 0, Start Copying Initial Stack Data\n");
+         copyInitialStackData(reg_esp, 0);
+         LOG_PRINT("Process: 0, Finished Copying Initial Stack Data\n");
 #endif
       }
 
@@ -266,16 +272,22 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          Sim()->getCoreManager()->initializeThread(core_id);
          
          // FIXME: 
-         // Even if this works, it's a hack.We will need this to be a 'ring' where
+         // Even if this works, it's a hack. We will need this to be a 'ring' where
          // all processes initialize one after the other
          Core *core = Sim()->getCoreManager()->getCurrentCore();
          core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
+
+         LOG_PRINT("Process: %i, Start Copying Initial Stack Data\n");
+         copyInitialStackData(reg_esp, core_id);
+         LOG_PRINT("Process: %i, Finished Copying Initial Stack Data\n");
       }
       
       // All the real initialization is done in 
       // replacement_start at the moment
       done_app_initialization = true;
 
+      // Set the current ESP accordingly
+      PIN_SetContextReg(ctxt, REG_STACK_PTR, reg_esp);
    }
    else
    {
@@ -302,11 +314,6 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
 
          Sim()->getThreadManager()->onThreadStart(req);
-
-         // FIXME: Do not copy over stack data for now since thread spawner is a core
-         // Copy stuff that 'thread spawner' put on the stack from host address space
-         // to simulated address space
-         // copySpawnedThreadStackData(reg_esp);
       }
      
       // Restore the clone syscall arguments
@@ -318,6 +325,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       assert (core);
 
       // Wait to make sure that the spawner has written stuff back to memory
+      // FIXME: What is this for(?) This seems arbitrary
       GetLock (&clone_memory_update_lock, 2);
       ReleaseLock (&clone_memory_update_lock);
    }

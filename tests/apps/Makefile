@@ -2,9 +2,11 @@ SIM_ROOT ?= $(CURDIR)/../../
 TEST_APPS_DIR = $(SIM_ROOT)/tests/apps/
 
 TEST_APP_LIST = empty_main_app_test hello_world_app_test simple_app_test ping_pong_app_test \
-	cannon_app_test 1d_jacobi_app_test ring_msg_pass_app_test
+	cannon_app_test 1d_jacobi_app_test ring_msg_pass_app_test \
+	2d_jacobi_shmem_app_test
 TEST_DIST_LIST = hello_world_app_test_dist simple_app_test_dist \
-	ping_pong_app_test_dist cannon_app_test_dist ring_msg_pass_app_test_dist
+	ping_pong_app_test_dist cannon_app_test_dist ring_msg_pass_app_test_dist \
+	2d_jacobi_shmem_app_test_dist
 
 regress_apps: $(TEST_APP_LIST) $(TEST_DIST_LIST)
 

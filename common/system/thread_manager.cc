@@ -9,6 +9,7 @@
 #include "message_types.h"
 #include "core.h"
 #include "thread.h"
+#include "packetize.h"
 
 ThreadManager::ThreadManager(CoreManager *core_manager)
    : m_thread_spawn_sem(0)
@@ -63,6 +64,9 @@ ThreadManager::~ThreadManager()
 void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 {
    m_core_manager->initializeThread(req->core_id);
+
+   if (req->core_id == Sim()->getConfig()->getCurrentThreadSpawnerCoreNum())
+      return;
  
    // send ack to master
    LOG_PRINT("(5) onThreadStart -- send ack to master; req : { %p, %p, %i, %i }",
@@ -101,9 +105,6 @@ void ThreadManager::onThreadExit()
 
 void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   LOG_ASSERT_ERROR(core, "Core was null.");
-   
    ThreadSpawnRequest *thread_req = m_thread_spawn_list.front();
 
    *req = *thread_req;
@@ -125,6 +126,25 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id)
    m_thread_state[core_id].running = false;
 
    wakeUpWaiter(core_id);
+
+   Config *config = Config::getSingleton();
+   for (UInt32 i = 0; i < config->getProcessCount(); i++)
+   {
+      if (core_id == config->getThreadSpawnerCoreNum (i))
+      {
+         Network *net = m_core_manager->getCurrentCore()->getNetwork();
+
+         UnstructuredBuffer buf;
+
+         int req_type = MCP_MESSAGE_QUIT_THREAD_SPAWNER_ACK;
+         buf << req_type << i;
+
+         net->netSend (config->getMainThreadCoreNum(),
+               MCP_RESPONSE_TYPE,
+               buf.getBuffer(),
+               buf.size());
+      }
+   }
 }
 
 /*
@@ -341,4 +361,81 @@ void ThreadManager::insertThreadSpawnRequest (ThreadSpawnRequest *req)
    m_thread_spawn_lock.release();
 }
   
+void ThreadManager::terminateThreadSpawner ()
+{
+   LOG_PRINT ("In terminateThreadSpawner");
 
+   Network *net = m_core_manager->getCurrentCore()->getNetwork();
+
+   for (UInt32 pid = 0; pid < Config::getSingleton()->getProcessCount(); pid++)
+   {
+      UnstructuredBuffer buf;
+      int send_pkt_type = MCP_MESSAGE_QUIT_THREAD_SPAWNER;
+      buf << send_pkt_type << pid;
+
+      net->netSend (Config::getSingleton()->getMCPCoreNum(),
+            MCP_REQUEST_TYPE,
+            buf.getBuffer(),
+            buf.size());
+
+      NetPacket pkt = net->netRecvType (MCP_RESPONSE_TYPE);
+      LOG_ASSERT_ERROR (pkt.length == (sizeof (int) + sizeof (UInt32)), "Unexpected reply size");
+
+      buf.clear();
+
+      buf << make_pair (pkt.data, pkt.length);
+
+      int recv_pkt_type;
+      UInt32 process_id;
+
+      buf >> recv_pkt_type >> process_id;
+
+      LOG_ASSERT_ERROR (recv_pkt_type == MCP_MESSAGE_QUIT_THREAD_SPAWNER_ACK, "Received unexpected packet from MCP while waiting for thread spawner quit ack");
+      LOG_ASSERT_ERROR (process_id == pid, "Thread spawner quit ack from unexpected source");
+
+      LOG_PRINT ("Thread spanwer for process %d terminated", pid);
+   }
+}
+
+void ThreadManager::masterTerminateThreadSpawner(UInt32 proc)
+{
+   LOG_ASSERT_ERROR (m_master, "masterTerminateThreadSpawner should only be called on master");
+   LOG_PRINT ("masterTerminateThreadSpawner with thread spawner quit req for proc %d", proc);
+
+   if (proc != Config::getSingleton()->getCurrentProcessNum())
+   {
+      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
+
+      int send_req = LCP_MESSAGE_QUIT_THREAD_SPAWNER;
+      
+      LOG_PRINT ("Sending thread spawner quit message to proc %d", proc);
+      globalNode->globalSend (proc, &send_req, sizeof (send_req));
+      LOG_PRINT ("Sent thread spawner quit message to proc %d", proc);
+   }
+   else
+   {
+      // FIXME: 
+      // Do we still need this hack?
+      
+      // This is a short circuit hack if the thread spawner quit request 
+      // is for the same process
+
+      slaveTerminateThreadSpawner();
+   }
+}
+
+void ThreadManager::slaveTerminateThreadSpawner ()
+{
+   LOG_PRINT ("slaveTerminateThreadSpawner on proc %d", Config::getSingleton()->getCurrentProcessNum());
+
+   ThreadSpawnRequest *req = new ThreadSpawnRequest;
+
+   req->msg_type = LCP_MESSAGE_QUIT_THREAD_SPAWNER;
+   req->func = NULL;
+   req->arg = NULL;
+   req->requester = INVALID_CORE_ID;
+   req->core_id = INVALID_CORE_ID;
+
+   insertThreadSpawnRequest (req);
+   m_thread_spawn_sem.signal();
+}

@@ -6,7 +6,7 @@ MACROS := ../splash_support/c.m4.null.CARBON
 include ../splash_support/Makefile.config
 TARGET = OCEAN
 
-CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall
+CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall -m32
 
 decs.h: decs.H
 jacobcalc.c: decs.h

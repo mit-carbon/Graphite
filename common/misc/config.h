@@ -43,6 +43,8 @@ public:
 
    core_id_t getMCPCoreNum() { return getTotalCores() -1; }
 
+   core_id_t getMainThreadCoreNum() { return 0;}
+
    core_id_t getThreadSpawnerCoreNum (UInt32 proc_num) { return (getTotalCores() - (1 + getProcessCount() - proc_num)); }
    core_id_t getCurrentThreadSpawnerCoreNum () { return (getTotalCores() - (1 + getProcessCount() - getCurrentProcessNum())); }
    

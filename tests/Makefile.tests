@@ -13,6 +13,7 @@
 # EXEC - command to run; derived from TARGET and APP_FLAGS
 # SIM_FLAGS - config flags passed to the simulator. Derived from CORES, PROCS. See sim_flags_fn.
 # PROCS - number of processes (1)
+# START_PROC - the index of the lowest proc starting on this machine (0)
 # CORES - number of cores (16)
 # ENABLE_SM - enable shared memory (false)
 # APP_FLAGS - flags to pass to the application
@@ -31,7 +32,9 @@ PIN_TOOL=$(SIM_ROOT)/lib/pin_sim
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 PROCS ?= 1
-CORES ?= 3
+PROCS_PER_MACHINE ?= $(PROCS)
+START_PROC ?= 0
+CORES ?= 16
 ENABLE_SM ?= true 
 APP_FLAGS ?=
 BUILD_MODE ?= # Set to nonempty to not run anything
@@ -42,11 +45,11 @@ sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --genera
 SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
-launch_fn = $(SIM_ROOT)/tools/launch.py $(1) # 1 - PROCS
+launch_fn = $(SIM_ROOT)/tools/launch.py $(1) $(2) # 1 - START_PROC, 2 - NUM_PROCS
 
-# Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
-run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3)) $(2) $(4)))
-RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(PROCS),$(SIM_FLAGS))
+# Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-START_PROC),$(4-PROCS), $(5-FLAGS))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(4)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(4)) $(2) $(5)))
+RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(START_PROC),$(PROCS_PER_MACHINE),$(SIM_FLAGS))
 
 # Build targets
 all: $(TARGET)
@@ -64,16 +67,26 @@ endif
 CXXFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32
 CFLAGS = $(CXXFLAGS) -std=c99
 
-# Build pin_sim.so as necessary
+# Rules
 LIB_CARBON=$(SIM_ROOT)/lib/libcarbon_sim.a
 LIB_PIN_SIM=$(SIM_ROOT)/lib/pin_sim.so
-LIB_DEPENDENCIES = $(LIB_CARBON) 
-.PHONY: $(LIB_CARBON) $(LIB_PIN_SIM)
+
+.PHONY: $(TARGET)
 
 .SUFFIXES:  .o .c .h .cc
 
-$(TARGET): $(OBJECTS) $(LIB_DEPENDENCIES)
-	$(CXX) $(LD_FLAGS) $^ -o $@ $(LD_LIBS) 
+# We basically want to try re-making libcarbon_sim.a and pin_sim.so
+# and then /if that produces a new library/ recompile the test. There
+# is probably some 'correct' way to do this in a makefile that doesn't
+# always rebuild the test, but I don't know what it is. (The problem
+# is we don't want to include all the dependencies for the libraries
+# in this makefile.)
+$(TARGET): $(OBJECTS) 
+	make -C $(SIM_ROOT)/common
+	$(if $(findstring pin,$(MODE)),make -C $(SIM_ROOT)/pin)
+	if [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
+	then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
+	fi
 
 $(LIB_CARBON):
 	make -C $(SIM_ROOT)/common

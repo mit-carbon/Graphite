@@ -170,26 +170,23 @@ int do_cannon(int argc, char* argv[])
       bool started;
 
       //Wait for receiver to start up
-      // fprintf(stderr, "Main Thread starting to receive 'started' from %i\n", tid); 
-      while(CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
-              == CAPI_ReceiverNotInitialized);
-      fprintf(stderr, "Main Thread received 'started' from %i\n", tid); 
+      CAPI_return_t ret;
+      do
+      {
+         ret = CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started));
+      } while ((ret == CAPI_ReceiverNotInitialized) || (ret == CAPI_SenderNotInitialized));
 
       assert(started == 1);
 
-      fprintf(stderr, "Main Thread starting to send 'blockSize'\n");
       assert(
          CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize))
          == 0);
       spawner_wait_ack(tid);
-      fprintf(stderr, "Main Thread sent 'blockSize'\n");
 
-      fprintf(stderr, "Main Thread starting to send 'sqrtNumProcs'\n");
       assert(
          CAPI_message_send_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs))
          == 0);
       spawner_wait_ack(tid);
-      fprintf(stderr, "Main Thread sent 'sqrtNumProcs'\n");
 
       // Convert 1-D rank to 2-D rank
       int ax, ay, bx, by;
@@ -351,19 +348,15 @@ void* cannon(void *threadid)
    unsigned int blockSize;
    unsigned int sqrtNumProcs;
 
-   fprintf(stderr, "Thread %d starting to receiving 'blockSize'...\n", tid);
    assert(
       CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&blockSize, sizeof(blockSize))
       == 0);
    worker_send_ack(tid);
-   fprintf(stderr, "Thread %d starting to received 'blockSize'...\n", tid);
 
-   fprintf(stderr, "Thread %d starting to starting to receive 'sqrtNumProcs'...\n", tid);
    assert(
       CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char *)&sqrtNumProcs, sizeof(sqrtNumProcs))
       == 0);    
    worker_send_ack(tid);
-   fprintf(stderr, "Thread %d starting to received 'sqrtNumProcs'...\n", tid);
 
    // Convert 1-D rank to 2-D rank
    i = tid / sqrtNumProcs;

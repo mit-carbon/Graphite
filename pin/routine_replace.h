@@ -23,7 +23,7 @@ void replacementPthreadAttrInitOtherAttr (CONTEXT *ctxt);
 
 // Carbon API
 void replacementStartSimNull (CONTEXT *ctxt);
-void replacementStopSimNull (CONTEXT *ctxt);
+void replacementStopSim (CONTEXT *ctxt);
 void replacementSpawnThread (CONTEXT *ctxt);
 void replacementJoinThread (CONTEXT *ctxt);
 

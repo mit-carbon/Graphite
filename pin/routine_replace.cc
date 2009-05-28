@@ -83,7 +83,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // Carbon API
 
    else if (name == "CarbonStartSim") msg_ptr = AFUNPTR(replacementStartSimNull); 
-   else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSimNull);
+   else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
 
@@ -217,7 +217,7 @@ void replacement_start (CONTEXT *ctxt)
 void replacementMain (CONTEXT *ctxt)
 {
    LOG_PRINT ("In replacementMain");
-
+   
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
       spawnThreadSpawner(ctxt);
@@ -226,7 +226,14 @@ void replacementMain (CONTEXT *ctxt)
       UInt32 num_processes = Sim()->getConfig()->getProcessCount();
       for (UInt32 i = 1; i < num_processes; i++)
       {
+         // FIXME: 
+         // This whole process should probably happen through the MCP
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
+      }
+      for (UInt32 i = 1; i < num_processes; i++)
+      {
+         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
       // FIXME:
@@ -240,6 +247,12 @@ void replacementMain (CONTEXT *ctxt)
    }
    else
    {
+      // FIXME: 
+      // This whole process should probably happen through the MCP
+      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
+      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
+
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
 
@@ -260,8 +273,13 @@ void replacementMain (CONTEXT *ctxt)
             PIN_PARG(void*), NULL,
             PIN_PARG_END());
 
-      // Should have some ack for the core_manager and thread_manager here
-      // to notify them that the core is finished and is exiting
+      Sim()->getThreadManager()->onThreadExit();
+
+      while (!Sim()->finished())
+         sched_yield();
+
+      Simulator::release();
+
       exit (0);
    }
 }
@@ -360,8 +378,13 @@ void replacementStartSimNull (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementStopSimNull (CONTEXT *ctxt)
+void replacementStopSim (CONTEXT *ctxt)
 {
+   UInt32 proc = Sim()->getConfig()->getCurrentProcessNum();
+   LOG_ASSERT_ERROR (proc == 0, "CarbonStopSim called on proc %d", proc);
+
+   Sim()->getThreadManager()->terminateThreadSpawner ();
+
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }

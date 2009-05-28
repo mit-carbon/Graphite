@@ -130,6 +130,8 @@ define(CREATE, `{
 }')
 
 define(MAIN_INITENV, `{
+	char *argv[] = {};
+	CarbonStartSim(0, argv);
       }')
 define(MAIN_END, `{
       exit(0);

@@ -173,14 +173,18 @@ void routineCallback(RTN rtn, void *v)
 
 void handleInstruction(Instruction *sim_instruction)
 {
-    Sim()->getPerformanceModeler()->handleInstruction(sim_instruction);
+    Sim()->getPerformanceModeler()->getPerformanceModel()->handleInstruction(sim_instruction);
 }
 
 VOID addInstructionModeling(INS ins)
 {
-//   fprintf(stderr, "Instruction: ");
-//   fprintf(stderr, "%d - %s\n", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
-
+/*
+   fprintf(stderr, "Instruction: ");
+   fprintf(stderr, "%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
+   fprintf(stderr, "%d - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
+   fprintf(stderr, " %s ", INS_Mnemonic(ins).c_str());
+   fprintf(stderr, "\n");
+*/
     Instruction *instruction = new Instruction(INST_GENERIC);
 
    if (INS_IsSyscall(ins))

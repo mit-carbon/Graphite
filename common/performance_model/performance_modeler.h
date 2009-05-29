@@ -4,13 +4,20 @@
 // front end. It uses a queue of instructions to do the performance
 // modeling.
 #include "instruction.h"
+#include "performance_model.h"
 
 class PerformanceModeler
 {
 public:
    PerformanceModeler();
    ~PerformanceModeler();
-   void handleInstruction(Instruction *instruction);
+
+   PerformanceModel* getPerformanceModel();
+   PerformanceModel* getPerformanceModelForCore(core_id_t core_id);
+
+private:
+   // The performance modeler has one model per core.
+   PerformanceModel *m_performance_models;
 };
 
 #endif

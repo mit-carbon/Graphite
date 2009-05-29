@@ -255,6 +255,31 @@ Core *CoreManager::getCoreFromIndex(UInt32 index)
    return m_cores[index];
 }
 
+UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
+{
+   // Look up the index from the core list
+   // FIXME: make this more cached
+   const Config::CoreList & cores(Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum()));
+   UInt32 idx = 0;
+   for (Config::CLCI i = cores.begin(); i != cores.end(); i++)
+   {
+      if (*i == core_id)
+         return idx;
+
+      idx++;
+   }
+
+   LOG_ASSERT_ERROR(false, "Core lookup failed for core id: %d!\n", core_id);
+   return INVALID_CORE_ID;
+}
+
+UInt32 CoreManager::getCoreIndexFromTID(UInt32 tid)
+{
+   pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
+   LOG_ASSERT_ERROR(e.first, "getCoreIndexFromTID: couldn't find core for tid: %d\n", tid);
+   return e.second;
+}
+
 void CoreManager::outputSummary()
 {
    LOG_PRINT("Starting CoreManager::outputSummary");

@@ -51,6 +51,232 @@ UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPt
    }
 }
 
+bool rewriteStringOp (INS ins)
+{
+   if (INS_Opcode(ins) == XED_ICLASS_SCASB)
+   {
+      LOG_PRINT("Instr: %s\n", (INS_Disassemble(ins)).c_str());
+      if (! (INS_RepPrefix(ins) || INS_RepnePrefix(ins)) )
+      {
+         return false;
+      }
+
+      INS_InsertCall(ins, IPOINT_BEFORE,
+            AFUNPTR (emuSCASBIns),
+            IARG_CONTEXT,
+            IARG_ADDRINT, INS_NextAddress(ins),
+            IARG_BOOL, INS_RepPrefix(ins),
+            IARG_END);
+
+      INS_Delete(ins);
+
+      return true;
+   }
+
+   else if (INS_Opcode(ins) == XED_ICLASS_CMPSB)
+   {
+      LOG_PRINT("Instr: %s\n", (INS_Disassemble(ins)).c_str());
+      if (! (INS_RepPrefix(ins) || INS_RepnePrefix(ins)) )
+      {
+         return false;
+      }
+
+      INS_InsertCall(ins, IPOINT_BEFORE,
+            AFUNPTR (emuCMPSBIns),
+            IARG_CONTEXT,
+            IARG_ADDRINT, INS_NextAddress(ins),
+            IARG_BOOL, INS_RepPrefix(ins),
+            IARG_END);
+
+      INS_Delete(ins);
+      
+      return true;
+   }
+
+   else
+   {
+      assert(INS_Opcode(ins) != XED_ICLASS_SCASW);
+      assert(INS_Opcode(ins) != XED_ICLASS_SCASD);
+      assert(INS_Opcode(ins) != XED_ICLASS_SCASQ);
+
+      assert(INS_Opcode(ins) != XED_ICLASS_CMPSW);
+      assert(INS_Opcode(ins) != XED_ICLASS_CMPSD);
+      assert(INS_Opcode(ins) != XED_ICLASS_CMPSQ);
+
+      return false;
+   }
+}
+
+
+void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
+{
+   ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   LOG_PRINT("Instr at EIP = 0x%x, CMPSB\n", reg_gip);
+
+   assert(has_rep_prefix == true);
+   
+   ADDRINT reg_gcx = PIN_GetContextReg(ctxt, REG_GCX);
+   ADDRINT reg_gsi = PIN_GetContextReg(ctxt, REG_GSI);
+   ADDRINT reg_gdi = PIN_GetContextReg(ctxt, REG_GDI);
+   ADDRINT reg_gflags = PIN_GetContextReg(ctxt, REG_GFLAGS);
+
+   bool direction_flag;
+
+   // Direction Flag
+   if( (reg_gflags & (1 << 10)) == 0 )
+   {
+      // Forward
+      direction_flag = false;
+   }
+   else
+   {
+      // Backward
+      direction_flag = true;
+   }
+
+   bool found = false;
+
+   while (reg_gcx > 0)
+   {
+      Byte byte_buf1;
+      Byte byte_buf2;
+
+      memOp (Core::NONE, READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
+      memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
+
+      // Decrement the counter
+      reg_gcx --;
+      // Increment/Decrement EDI to show that we are moving forward
+      if (!direction_flag) 
+      {
+         reg_gsi ++;
+         reg_gdi ++;
+      }
+      else
+      {
+         reg_gsi --;
+         reg_gdi --;
+      }
+
+      if (byte_buf1 != byte_buf2)
+      {
+         found = true;
+         break;
+      }
+   }
+
+   if (! found)
+   {
+      // Set the 'zero' flag
+      reg_gflags |= (1 << 6);
+      // reg_gflags |= "Whatever is Zero Flag";
+   }
+   else
+   {
+      // Clear the 'zero' flag
+      reg_gflags &= (~(1 << 6));
+   }
+
+   PIN_SetContextReg(ctxt, REG_INST_PTR, next_gip);
+   PIN_SetContextReg(ctxt, REG_GCX, reg_gcx);
+   PIN_SetContextReg(ctxt, REG_GSI, reg_gsi);
+   PIN_SetContextReg(ctxt, REG_GDI, reg_gdi);
+   PIN_SetContextReg(ctxt, REG_GFLAGS, reg_gflags);
+
+   PIN_ExecuteAt(ctxt);
+
+}
+
+void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
+{
+   ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   LOG_PRINT("Instr at EIP = 0x%x, SCASB\n", reg_gip);
+
+   assert(has_rep_prefix == false);
+   
+   ADDRINT reg_gcx = PIN_GetContextReg(ctxt, REG_GCX);
+   ADDRINT reg_gdi = PIN_GetContextReg(ctxt, REG_GDI);
+   ADDRINT reg_gax = PIN_GetContextReg(ctxt, REG_GAX);
+   ADDRINT reg_gflags = PIN_GetContextReg(ctxt, REG_GFLAGS);
+
+   LOG_PRINT("reg_gcx = 0x%x\n", reg_gcx);
+   LOG_PRINT("reg_gdi = 0x%x\n", reg_gdi);
+   LOG_PRINT("reg_gax = 0x%x\n", reg_gax);
+   LOG_PRINT("reg_gflags = 0x%x\n", reg_gflags);
+
+   Byte reg_al = (Byte) (reg_gax & 0xff);
+   LOG_PRINT("reg_al = 0x%x\n", reg_al);
+
+   bool direction_flag;
+
+   // Direction Flag
+   if( (reg_gflags & (1 << 10)) == 0 )
+   {
+      // Forward
+      direction_flag = false;
+   }
+   else
+   {
+      // Backward
+      direction_flag = true;
+   }
+
+   LOG_PRINT("Direction Flag = %i\n", (SInt32) direction_flag);
+
+   bool found = false;
+
+   while (reg_gcx > 0)
+   {
+      Byte byte_buf;
+      memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
+
+      LOG_PRINT("byte_buf = 0x%x\n", byte_buf);
+
+      // Decrement the counter
+      reg_gcx --;
+      // Increment/Decrement EDI to show that we are moving forward
+      if (!direction_flag)
+      {
+         reg_gdi ++;
+      }
+      else
+      {
+         reg_gdi --;
+      }
+
+      if (byte_buf == reg_al)
+      {
+         found = true;
+         break;
+      }
+   }
+
+   if (found)
+   {
+      // Set the 'zero' flag
+      reg_gflags |= (1 << 6);
+      // reg_gflags |= "Whatever is Zero Flag";
+   }
+   else
+   {
+      // Clear the 'zero' flag
+      reg_gflags &= (~(1 << 6));
+   }
+
+   LOG_PRINT("Final: next_gip = 0x%x\n", next_gip);
+   LOG_PRINT("Final: reg_gcx = 0x%x\n", reg_gcx);
+   LOG_PRINT("Final: reg_gdi = 0x%x\n", reg_gdi);
+   LOG_PRINT("Final: reg_gflags = 0x%x\n", reg_gflags);
+
+   PIN_SetContextReg(ctxt, REG_INST_PTR, next_gip);
+   PIN_SetContextReg(ctxt, REG_GCX, reg_gcx);
+   PIN_SetContextReg(ctxt, REG_GDI, reg_gdi);
+   PIN_SetContextReg(ctxt, REG_GFLAGS, reg_gflags);
+
+   PIN_ExecuteAt(ctxt);
+
+}
+
 bool rewriteStackOp (INS ins)
 {
    if (INS_Opcode (ins) == XED_ICLASS_PUSH)
@@ -261,8 +487,7 @@ void rewriteMemOp (INS ins)
       }
       else if (INS_IsMemoryRead (ins))
       {
-         cout << "Could not rewrite memory read at ip = 0x" << hex << INS_Address (ins) << dec << endl;
-         assert (false);
+         LOG_PRINT_ERROR ("Could not rewrite memory read at ip = 0x%x", INS_Address(ins));
       }
 
       if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_READ2, REG_INST_G1))
@@ -280,8 +505,7 @@ void rewriteMemOp (INS ins)
       }
       else if (INS_HasMemoryRead2 (ins))
       {
-         cout << "Could not rewrite memory read2 at ip = 0x" << hex << INS_Address (ins) << dec << endl;
-         assert (false);
+         LOG_PRINT_ERROR ("Could not rewrite memory read2 at ip = 0x%x", INS_Address(ins));
       }
 
       if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_WRITE, REG_INST_G2))
@@ -333,8 +557,7 @@ void rewriteMemOp (INS ins)
                   }
                   else
                   {
-                     cout << "Could not rewrite memory write at ip = 0x" << hex << INS_Address (ins) << dec << endl;
-                     assert (false);
+                     LOG_PRINT_ERROR ("Could not rewrite memory write at ip = 0x%x", INS_Address(ins));
                   }
                   num_mem_read_operands++;
                }
@@ -357,8 +580,7 @@ void rewriteMemOp (INS ins)
          }
          else
          {
-            cout << "Could not rewrite memory write at ip = 0x" << hex << INS_Address (ins) << dec << endl;
-            assert (false);
+            LOG_PRINT_ERROR ("Could not rewrite memory write at ip = 0x%x", INS_Address(ins));
          }
       }
    }

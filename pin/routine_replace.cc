@@ -216,6 +216,8 @@ void replacement_start (CONTEXT *ctxt)
 
 void replacementMain (CONTEXT *ctxt)
 {
+   LOG_PRINT ("In replacementMain");
+   
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
       spawnThreadSpawner(ctxt);
@@ -232,6 +234,13 @@ void replacementMain (CONTEXT *ctxt)
       for (UInt32 i = 1; i < num_processes; i++)
       {
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
+      }
+
+      // FIXME:
+      // We also want to wait for the acknowledgement here
+      for (UInt32 i = 1; i < num_processes; i++)
+      {
+         assert(false);
       }
 
       return;

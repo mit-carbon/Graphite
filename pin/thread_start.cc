@@ -65,8 +65,9 @@ VOID copyStaticData(IMG& img)
    }
 }
 
-VOID copyInitialStackData(ADDRINT reg_esp)
+VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
 {
+   // We should not get core_id for this stack_ptr
    Core* core = Sim()->getCoreManager()->getCurrentCore();
    LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Core ID");
 
@@ -74,61 +75,118 @@ VOID copyInitialStackData(ADDRINT reg_esp)
    // 2) Environment Variables
    // 3) Auxiliary Vector Entries
 
+   SInt32 initial_stack_size = 0;
+
+   ADDRINT stack_ptr_base;
+   ADDRINT stack_ptr_top;
+   
    ADDRINT params = reg_esp;
+
    int argc = * ((int *) params);
    char **argv = (char **) (params + sizeof(int));
    char **envir = argv+argc+1;
 
-   Elf32_auxv_t* auxiliary_vector;
+   //////////////////////////////////////////////////////////////////////
+   // Pass 1
+   // Determine the Initial Stack Size
+   // Variables: size_argv_ptrs, size_env_ptrs, size_information_block 
+   //////////////////////////////////////////////////////////////////////
 
-   // fprintf (stderr, "argc = %d\n", argc);
    // Write argc
-   core->accessMemory(Core::NONE, WRITE, params, (char*) &argc, sizeof(argc));
+   initial_stack_size += sizeof(argc);
 
-   fprintf (stderr, "Copying Command Line Arguments to Simulated Memory\n");
+   // Write argv
    for (SInt32 i = 0; i < argc; i++)
    {
       // Writing argv[i]
-      // fprintf (stderr, "argv[%d] = %s\n", i, argv[i]);
-      core->accessMemory(Core::NONE, WRITE, (ADDRINT) &argv[i], (char*) &argv[i], sizeof(argv[i]));
-      core->accessMemory(Core::NONE, WRITE, (ADDRINT) argv[i], (char*) argv[i], strlen(argv[i])+1);
+      initial_stack_size += sizeof(char*);
+      initial_stack_size += (strlen(argv[i]) + 1);
    }
 
-   // I dont know what this is but it might be worth copying it over
-   // I have found this to be '0' in most cases
-   core->accessMemory(Core::NONE, WRITE, (ADDRINT) &argv[argc], (char*) &argv[argc], sizeof(argv[argc]));
+   // A '0' at the end 
+   initial_stack_size += sizeof(char*);
 
-   fprintf (stderr, "Copying Environmental Variables to Simulated Memory\n");
    // We need to copy over the environmental parameters also
    for (SInt32 i = 0; ; i++)
    {
       // Writing environ[i]
-      // fprintf (stderr, "envir[%d] = %s\n", i, envir[i]);
+      initial_stack_size += sizeof(char*);
       if (envir[i] == 0)
       {
-         core->accessMemory(Core::NONE, WRITE, (ADDRINT) &envir[i], (char*) &envir[i], sizeof(envir[i]));
-         auxiliary_vector = (Elf32_auxv_t*) &envir[i+1]; 
          break;
       }
-      else
-      {
-         core->accessMemory(Core::NONE, WRITE, (ADDRINT) &envir[i], (char*) &envir[i], sizeof(envir[i]));
-         core->accessMemory(Core::NONE, WRITE, (ADDRINT) envir[i], (char*) envir[i], strlen(envir[i])+1);
-      }
+      initial_stack_size += (strlen(envir[i]) + 1);
    }
 
+   // Auxiliary Vector Entry
+   initial_stack_size += sizeof(Elf32_auxv_t);
+
+   //////////////////////////////////////////////////////////////////////
+   // Pass 2
+   // Copy over the actual data
+   // Variables: stack_ptr_base_sim
+   //////////////////////////////////////////////////////////////////////
+   
+
+   PinConfig::StackAttributes stack_attr;
+   PinConfig::getSingleton()->getStackAttributesFromCoreID (core_id, stack_attr);
+   stack_ptr_top = stack_attr.lower_limit + stack_attr.size;
+   stack_ptr_base = stack_ptr_top - initial_stack_size;
+   stack_ptr_base = (stack_ptr_base >> (sizeof(ADDRINT))) << (sizeof(ADDRINT));
+   
+   // Assign the new ESP
+   reg_esp = stack_ptr_base;
+
+   // fprintf (stderr, "argc = %d\n", argc);
+   // Write argc
+   core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &argc, sizeof(argc));
+   stack_ptr_base += sizeof(argc);
+
+   LOG_PRINT("Copying Command Line Arguments to Simulated Memory\n");
+   for (SInt32 i = 0; i < argc; i++)
+   {
+      // Writing argv[i]
+      stack_ptr_top -= (strlen(argv[i]) + 1);
+      core->accessMemory(Core::NONE, WRITE, stack_ptr_top, (char*) argv[i], strlen(argv[i])+1);
+
+      core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
+      stack_ptr_base += sizeof(stack_ptr_top);
+   }
+
+   // I have found this to be '0' in most cases
+   core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &argv[argc], sizeof(argv[argc]));
+   stack_ptr_base += sizeof(argv[argc]);
+
+   // We need to copy over the environmental parameters also
+   LOG_PRINT("Copying Environmental Variables to Simulated Memory\n");
    for (SInt32 i = 0; ; i++)
    {
-      // We should have a per auxiliary vector entry based handling
-      // Right now, just copy stuff over
-      assert (sizeof(Elf32_auxv_t) == sizeof(auxiliary_vector[i]));
-
-      core->accessMemory(Core::NONE, WRITE, (ADDRINT) &auxiliary_vector[i], (char*) &auxiliary_vector[i], sizeof(auxiliary_vector[i]));
-      if (auxiliary_vector[i].a_type == AT_NULL)
+      // Writing environ[i]
+      if (envir[i] == 0)
       {
+         core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &envir[i], sizeof(envir[i]));
+         stack_ptr_base += sizeof(envir[i]);
          break;
       }
+
+      stack_ptr_top -= (strlen(envir[i]) + 1);
+      core->accessMemory(Core::NONE, WRITE, stack_ptr_top, (char*) envir[i], strlen(envir[i])+1);
+
+      core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
+      stack_ptr_base += sizeof(stack_ptr_top);
    }
+   
+
+   LOG_PRINT("Copying Auxiliary Vector to Simulated Memory\n");
+   
+   Elf32_auxv_t auxiliary_vector_entry_null;
+   auxiliary_vector_entry_null.a_type = AT_NULL;
+   auxiliary_vector_entry_null.a_un.a_val = 0;
+
+   core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &auxiliary_vector_entry_null, sizeof(auxiliary_vector_entry_null));
+   stack_ptr_base += sizeof(auxiliary_vector_entry_null);
+
+   LOG_ASSERT_ERROR(stack_ptr_base <= stack_ptr_top, "stack_ptr_base = 0x%x, stack_ptr_top = 0x%x", stack_ptr_base, stack_ptr_top);
 
 }
 
@@ -156,16 +214,22 @@ VOID allocateStackSpace()
    // Each process allocates whatever it is responsible for !!
    UInt32 stack_size_per_core = PinConfig::getSingleton()->getStackSizePerCore();
    UInt32 num_cores = Sim()->getConfig()->getNumLocalCores();
-   UInt32 stack_base = PinConfig::getSingleton()->getStackLowerLimit();
+   IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
+
+   LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x\n", stack_size_per_core);
+   LOG_PRINT("allocateStackSpace: num_local_cores = %i\n", num_cores);
+   LOG_PRINT("allocateStackSpace: stack_base = 0x%x\n", stack_base);
 
    // TODO: Make sure that this is a multiple of the page size 
    
    // mmap() the total amount of memory needed for the stacks
-   assert(mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) == (void*) stack_base);
+   assert(mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base);
 }
 
 VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
+   LOG_PRINT ("In SimPthreadAttrInitOtherAttr");
+
    core_id_t core_id;
    
    ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
@@ -185,4 +249,6 @@ VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
    PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
    pthread_attr_setstack(attr, (void*) stack_attr.lower_limit, stack_attr.size);
+
+   LOG_PRINT ("Done with SimPthreadAttrInitOtherAttr");
 }

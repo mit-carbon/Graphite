@@ -8,8 +8,12 @@
 
 VOID printInsInfo(CONTEXT *ctxt);
 
+bool rewriteStringOp (INS ins);
 bool rewriteStackOp (INS ins);
 void rewriteMemOp (INS ins);
+
+VOID emuCMPSBIns (CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix); 
+VOID emuSCASBIns (CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix); 
 
 ADDRINT emuPushValue (ADDRINT tgt_esp, ADDRINT value, ADDRINT write_size);
 ADDRINT emuPushMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size);

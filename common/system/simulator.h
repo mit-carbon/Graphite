@@ -12,6 +12,7 @@ class CoreManager;
 class Thread;
 class ThreadManager;
 class SimThreadManager;
+class PerformanceModeler;
 
 class Simulator
 {
@@ -31,6 +32,7 @@ public:
    CoreManager *getCoreManager() { return m_core_manager; }
    SimThreadManager *getSimThreadManager() { return m_sim_thread_manager; }
    ThreadManager *getThreadManager() { return m_thread_manager; }
+   PerformanceModeler *getPerformanceModeler() { return m_performance_modeler; }
    Config *getConfig() { return &m_config; }
    config::Config *getCfg() { return m_config_file; }
 
@@ -59,6 +61,7 @@ private:
    CoreManager *m_core_manager;
    ThreadManager *m_thread_manager;
    SimThreadManager *m_sim_thread_manager;
+   PerformanceModeler *m_performance_modeler;
 
    static Simulator *m_singleton;
 

@@ -40,6 +40,7 @@
 #include "pin_config.h"
 #include "log.h"
 #include "vm_manager.h"
+#include "performance_modeler.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -170,6 +171,29 @@ void routineCallback(RTN rtn, void *v)
    //    replaceInstruction(rtn, rtn_name);
 }
 
+void handleInstruction(Instruction *sim_instruction)
+{
+    Sim()->getPerformanceModeler()->handleInstruction(sim_instruction);
+}
+
+VOID addInstructionModeling(INS ins)
+{
+//   fprintf(stderr, "Instruction: ");
+//   fprintf(stderr, "%d - %s\n", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
+
+    Instruction *instruction = new Instruction(INST_GENERIC);
+
+   if (INS_IsSyscall(ins))
+   {
+      INS_InsertCall(ins, IPOINT_BEFORE,
+            AFUNPTR(handleInstruction),
+            IARG_PTR, instruction,
+            IARG_END);
+   }
+
+}
+
+
 VOID instructionCallback (INS ins, void *v)
 {
    INS_InsertCall(ins, IPOINT_BEFORE,
@@ -177,6 +201,8 @@ VOID instructionCallback (INS ins, void *v)
          IARG_CALL_ORDER, CALL_ORDER_FIRST,
          IARG_CONTEXT,
          IARG_END);
+
+   addInstructionModeling(ins);
 
    if (INS_IsSyscall(ins))
    {

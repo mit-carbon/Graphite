@@ -231,18 +231,12 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
          core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
       }
+      
       for (UInt32 i = 1; i < num_processes; i++)
       {
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
-
-      // FIXME:
-      // We also want to wait for the acknowledgement here
-      for (UInt32 i = 1; i < num_processes; i++)
-      {
-         assert(false);
-      }
-
+      
       return;
    }
    else

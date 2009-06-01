@@ -91,7 +91,7 @@ class StoreInstruction : public Instruction
 class ArithInstruction : public Instruction
 {
     public:
-        ArithInstruction(InstructionType type, Operand src1, Operand src2, Operand dest)
+        ArithInstruction(InstructionType type, const Operand &src1, const Operand &src2, const Operand &dest)
         : Instruction(type), m_src1(src1), m_src2(src2), m_dest(dest)
         {}
         Operand m_src1;
@@ -102,7 +102,7 @@ class ArithInstruction : public Instruction
 class AddInstruction : public ArithInstruction
 {
     public:
-        AddInstruction(Operand src1, Operand src2, Operand dest)
+        AddInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_ADD, src1, src2, dest)
         {}
 };
@@ -110,7 +110,7 @@ class AddInstruction : public ArithInstruction
 class SubInstruction : public ArithInstruction
 {
     public:
-        SubInstruction(Operand src1, Operand src2, Operand dest)
+        SubInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_SUB, src1, src2, dest)
         {}
 };
@@ -118,7 +118,7 @@ class SubInstruction : public ArithInstruction
 class MulInstruction : public ArithInstruction
 {
     public:
-        MulInstruction(Operand src1, Operand src2, Operand dest)
+        MulInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_MUL, src1, src2, dest)
         {}
 };
@@ -126,7 +126,7 @@ class MulInstruction : public ArithInstruction
 class DivInstruction : public ArithInstruction
 {
     public:
-        DivInstruction(Operand src1, Operand src2, Operand dest)
+        DivInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_DIV, src1, src2, dest)
         {}
 };
@@ -134,7 +134,7 @@ class DivInstruction : public ArithInstruction
 class FAddInstruction : public ArithInstruction
 {
     public:
-        FAddInstruction(Operand src1, Operand src2, Operand dest)
+        FAddInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_FADD, src1, src2, dest)
         {}
 };
@@ -142,7 +142,7 @@ class FAddInstruction : public ArithInstruction
 class FSubInstruction : public ArithInstruction
 {
     public:
-        FSubInstruction(Operand src1, Operand src2, Operand dest)
+        FSubInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_FSUB, src1, src2, dest)
         {}
 };
@@ -150,7 +150,7 @@ class FSubInstruction : public ArithInstruction
 class FMulInstruction : public ArithInstruction
 {
     public:
-        FMulInstruction(Operand src1, Operand src2, Operand dest)
+        FMulInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_FMUL, src1, src2, dest)
         {}
 };
@@ -158,7 +158,7 @@ class FMulInstruction : public ArithInstruction
 class FDivInstruction : public ArithInstruction
 {
     public:
-        FDivInstruction(Operand src1, Operand src2, Operand dest)
+        FDivInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
         : ArithInstruction(INST_FDIV, src1, src2, dest)
         {}
 };
@@ -166,7 +166,7 @@ class FDivInstruction : public ArithInstruction
 class JmpInstruction : public Instruction
 {
     public:
-        JmpInstruction(Operand dest)
+        JmpInstruction(const Operand &dest)
         : Instruction(INST_JMP)
         {}
 };

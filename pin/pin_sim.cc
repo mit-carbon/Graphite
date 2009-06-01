@@ -44,6 +44,7 @@
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
+#include "opcodes.h"
 #include <typeinfo>
 
 // ---------------------------------------------------------------
@@ -178,14 +179,35 @@ void handleInstruction(Instruction *sim_instruction)
 
 VOID addInstructionModeling(INS ins)
 {
-/*
-   fprintf(stderr, "Instruction: ");
-   fprintf(stderr, "%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
-   fprintf(stderr, "%d - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
-   fprintf(stderr, " %s ", INS_Mnemonic(ins).c_str());
-   fprintf(stderr, "\n");
-*/
-    Instruction *instruction = new Instruction(INST_GENERIC);
+   fprintf(stdout, "Instruction: ");
+   fprintf(stdout, "%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
+   fprintf(stdout, "%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
+   fprintf(stdout, " %s ", INS_Mnemonic(ins).c_str());
+   fprintf(stdout, "\n");
+
+   Instruction *instruction;
+   switch(INS_Opcode(ins))
+   {
+       case OPCODE_DIV:
+       {
+           Operand src1(OPERAND_REG, 0);
+           Operand src2(OPERAND_REG, 0);
+           Operand dest(OPERAND_REG, 0);
+           instruction = new DivInstruction(src1, src2, dest);
+           break;
+       }
+       case OPCODE_MUL:
+       {
+           Operand src1(OPERAND_REG, 0);
+           Operand src2(OPERAND_REG, 0);
+           Operand dest(OPERAND_REG, 0);
+           instruction = new MulInstruction(src1, src2, dest);
+           break;
+       }
+       default:
+           instruction = new Instruction(INST_GENERIC);
+   }
+
     INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
 }
 

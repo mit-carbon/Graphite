@@ -8,7 +8,7 @@
 #include "capi.h"
 #include "sync_api.h"
 
-#define DEBUG 1
+// #define DEBUG 1
 #define NUM_ITERS 5
 #define SWAP(a,b,t)  (((t) = (a)), ((a) = (b)), ((b) = (t)))
 
@@ -54,6 +54,16 @@ int main (int argc, char* argv[])
       g_new_array[i] = (float*) malloc((_2d_array_size+2) * sizeof(float));
 
       for (SInt32 j = 0; j < _2d_array_size+2; j++)
+      {
+         g_old_array[i][j] = 0.0;
+         g_new_array[i][j] = 0.0;
+      }
+   }
+
+   // Initialize to the correct value
+   for (SInt32 i = 1; i < _2d_array_size+1; i++)
+   {
+      for (SInt32 j = 1; j < _2d_array_size+1; j++)
       {
          g_old_array[i][j] = i*j;
          g_new_array[i][j] = 0.0;
@@ -155,13 +165,13 @@ void* threadMain(void* threadid)
 
 void printElements(SInt32 iter)
 {
-   printf("2d array elements after iteration: %i\n", iter);
+   printf("\n2d array elements after iteration: %i\n", iter);
    printf("-------------------------------------\n");
-   for (SInt32 i = 0; i < _2d_array_size; i++)
+   for (SInt32 i = 0; i < _2d_array_size+2; i++)
    {
-      for (SInt32 j = 0; j < _2d_array_size; j++)
+      for (SInt32 j = 0; j < _2d_array_size+2; j++)
       {
-         printf("%5.2f  ", g_old_array[i][j]);
+         printf("%f\t", g_old_array[i][j]);
       }
       printf("\n");
    }

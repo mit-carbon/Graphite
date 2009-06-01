@@ -186,15 +186,7 @@ VOID addInstructionModeling(INS ins)
    fprintf(stderr, "\n");
 */
     Instruction *instruction = new Instruction(INST_GENERIC);
-
-   if (INS_IsSyscall(ins))
-   {
-      INS_InsertCall(ins, IPOINT_BEFORE,
-            AFUNPTR(handleInstruction),
-            IARG_PTR, instruction,
-            IARG_END);
-   }
-
+    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
 }
 
 

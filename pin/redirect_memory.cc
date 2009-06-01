@@ -766,9 +766,6 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, Memor
       MemoryManager *mem_manager = core->getMemoryManager ();
       assert (mem_manager != NULL);
 
-      Instruction instruction(INST_GENERIC);
-      Sim()->getPerformanceModeler()->getPerformanceModel()->handleInstruction(&instruction);
-
       return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
    }
    else

@@ -63,9 +63,8 @@ class Log
       std::map<const char*, std::string> _modules;
 
 // By defining LOCK_LOGS we ensure no race conditions on the modules
-// map above, but in practice this isn't very important because the
-// modules map is written once for each file and then only read. The
-// performance hit isn't worth it.
+// map above. In practice this isn't very likely and using locks
+// suffers a high performance hit.
 #ifdef LOCK_LOGS
       Lock _modules_lock;
 #endif

@@ -131,8 +131,6 @@ void* threadMain(void *threadid)
 {
    SInt32 tid = (SInt32) threadid;
 
-   CAPI_Initialize(tid);
-
    if (tid == 0)
    {
 #ifdef DEBUG

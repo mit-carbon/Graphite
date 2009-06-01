@@ -1,5 +1,6 @@
 TARGET=jacobi
 SOURCES = jacobi.c
+OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 
 SIZE ?= 4
 APP_FLAGS ?= $(SIZE) 64

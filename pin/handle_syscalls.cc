@@ -13,7 +13,7 @@
 #include <signal.h>
 
 // ----------------------------
-// Here to handle nanosleep syscall
+// Here to handle nanosleep, gettimeofday syscall
 #include <time.h>
 
 // FIXME
@@ -27,7 +27,7 @@
 #include <sys/utsname.h>
 
 // ---------------------------------------------------------------
-// Here for the ugetrlimit system call
+// Here for the ugetrlimit, futex, gettimeofday system call
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -40,6 +40,11 @@
 // Here for the futext system call
 #include <linux/futex.h>
 #include <sys/time.h>
+
+// ---------------------------------------------------------------
+// Here for the fstat64 system call
+#include <sys/stat.h>
+#include <sys/types.h>
 
 // FIXME
 // -----------------------------------
@@ -193,6 +198,16 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          modifyTimeContext (ctx, syscall_standard);
       }
 
+      else if (syscall_number == SYS_gettimeofday)
+      {
+         modifyGettimeofdayContext (ctx, syscall_standard);
+      }
+
+      else if (syscall_number == SYS_fstat64)
+      {
+         modifyFstat64Context (ctx, syscall_standard);
+      }
+
       else if ((syscall_number == SYS_exit) ||
             (syscall_number == SYS_kill) ||
             (syscall_number == SYS_sigreturn) ||
@@ -295,6 +310,16 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if (syscall_number == SYS_time)
       {
          restoreTimeContext (ctx, syscall_standard);
+      }
+      
+      else if (syscall_number == SYS_gettimeofday)
+      {
+         restoreGettimofdayContext (ctx, syscall_standard);
+      }
+      
+      else if (syscall_number == SYS_fstat64)
+      {
+         restoreFstat64Context (ctx, syscall_standard);
       }
    }
 }
@@ -706,6 +731,92 @@ void restoreTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
       {
          core->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) t, sizeof (time_t));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) t);
+      }
+   }
+}
+
+void modifyGettimeofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
+      core->getSyscallMdl()->saveSyscallArgs (args);
+
+      struct timeval *tv = (struct timeval*) args.arg0;
+      struct timezone *tz = (struct timezone*) args.arg1;
+
+      if (tv)
+      {
+         struct timeval *tv_arg = (struct timeval*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) tv, sizeof (struct timeval));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) tv_arg);
+      }
+
+      if (tz)
+      {
+         struct timezone *tz_arg = (struct timezone*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) tz, sizeof (struct timezone));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) tz_arg);
+      }
+   }
+}
+
+void restoreGettimofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args;
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
+
+      struct timeval *tv = (struct timeval*) args.arg0;
+      struct timezone *tz = (struct timezone*) args.arg1;
+
+      if (tv)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) tv, sizeof (struct timeval));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) tv);
+      }
+
+      if (tz)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) tz, sizeof (struct timezone));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) tz);
+      }
+   }
+}
+
+void modifyFstat64Context (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
+      core->getSyscallMdl()->saveSyscallArgs (args);
+
+      struct stat64 *buf = (struct stat64*) args.arg1;
+
+      if (buf)
+      {
+         struct stat64 *buf_arg = (struct stat64*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) buf, sizeof (struct stat64));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) buf_arg);
+      }
+   }
+}
+
+void restoreFstat64Context (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   if (core)
+   {
+      SyscallMdl::syscall_args_t args;
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
+
+      struct stat64 *buf = (struct stat64*) args.arg1;
+
+      if (buf)
+      {
+         core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) buf, sizeof (struct stat64));
+         PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) buf);
       }
    }
 }

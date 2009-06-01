@@ -33,5 +33,9 @@ void modifyTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void modifyGettimeofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void restoreGettimofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void modifyFstat64Context (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void restoreFstat64Context (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 
 #endif /* __HANDLE_SYSCALLS_H__ */

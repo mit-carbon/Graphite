@@ -14,7 +14,7 @@ PerformanceModeler::~PerformanceModeler()
    UInt32 proc_id = Config::getSingleton()->getCurrentProcessNum();
    const Config::CoreList &local_cores = Config::getSingleton()->getCoreListForProcess(proc_id);
 
-   fprintf(stderr, "Model Summary:\n", num_local_cores);
+   fprintf(stderr, "Model Summary:\n");
    for(unsigned int i = 0; i < num_local_cores; i++)
    {
        fprintf(stderr, "Core: %d\n", local_cores[i]);

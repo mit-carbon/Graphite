@@ -379,8 +379,6 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    {
       LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
    }
-   // assert(uaddr2 == NULL);
-   // assert(val3 == 0);
 
    if (timeout != NULL)
    {

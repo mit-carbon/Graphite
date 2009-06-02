@@ -1,6 +1,5 @@
 TARGET=mmultiply
 SOURCES = mmultiply.c
-OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 
 SIZE ?= 4
 APP_FLAGS ?= 4 4 $(SIZE) $(SIZE)

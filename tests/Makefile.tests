@@ -57,6 +57,8 @@ all: $(TARGET)
 LD_FLAGS = -static -L$(SIM_ROOT)/lib
 LD_LIBS = -pthread -lcarbon_sim
 
+OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
+
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common

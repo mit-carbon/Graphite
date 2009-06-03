@@ -177,40 +177,6 @@ void replacement_start (CONTEXT *ctxt)
 {
    // FIXME: 
    return;
-
-
-   if (Sim()->getConfig()->getCurrentProcessNum() == 0)
-      return;
-
-   else
-   {
-      Core *core = Sim()->getCoreManager()->getCurrentCore();
-      core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-      
-      int res;
-      ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
-
-      PIN_LockClient();
-
-      AFUNPTR thread_spawner;
-      IMG img = IMG_FindByAddress(reg_eip);
-      RTN rtn = RTN_FindByName(img, "CarbonThreadSpawner");
-      thread_spawner = RTN_Funptr(rtn);
-
-      PIN_UnlockClient();
-      
-      PIN_CallApplicationFunction (ctxt,
-            PIN_ThreadId(),
-            CALLINGSTD_DEFAULT,
-            thread_spawner,
-            PIN_PARG(int), &res,
-            PIN_PARG(void*), NULL,
-            PIN_PARG_END());
-
-      // Should have some ack for the core_manager and thread_manager here
-      // to notify them that the core is finished and is exiting
-      exit (0);
-   }
 }
 
 
@@ -231,18 +197,12 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
          core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
       }
+      
       for (UInt32 i = 1; i < num_processes; i++)
       {
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
-
-      // FIXME:
-      // We also want to wait for the acknowledgement here
-      for (UInt32 i = 1; i < num_processes; i++)
-      {
-         assert(false);
-      }
-
+      
       return;
    }
    else

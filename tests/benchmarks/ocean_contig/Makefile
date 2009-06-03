@@ -1,12 +1,13 @@
-SIM_ROOT ?= $(CURDIR)/../../../
-TARGET = OCEAN
-OBJS = jacobcalc.o jacobcalc2.o laplacalc.o linkup.o main.o multi.o slave1.o slave2.o subblock.o
+TARGET = ocean
+OBJECTS = jacobcalc.o jacobcalc2.o laplacalc.o linkup.o main.o multi.o slave1.o slave2.o subblock.o
+APP_FLAGS = -p8
 
 MACROS := ../splash_support/c.m4.null.CARBON
-include ../splash_support/Makefile.config
-TARGET = OCEAN
+#MACROS := ../splash_support/c.m4.null.POSIX
 
-CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall -m32
+include ../splash_support/Makefile.config
+
+include ../../Makefile.tests
 
 decs.h: decs.H
 jacobcalc.c: decs.h

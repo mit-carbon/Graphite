@@ -1,13 +1,13 @@
-SIM_ROOT ?= $(CURDIR)/../../../
-TARGET = BARNES
-OBJS = code.o code_io.o load.o grav.o getparam.o util.o
+TARGET = barnes
+OBJECTS = code.o code_io.o load.o grav.o getparam.o util.o
+APP_FLAGS = < $(CURDIR)/input
 
 MACROS := ../splash_support/c.m4.null.CARBON
 #MACROS := ../splash_support/c.m4.null.POSIX
-include ../splash_support/Makefile.config
-TARGET = BARNES
 
-CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall -m32
+include ../splash_support/Makefile.config
+
+include ../../Makefile.tests
 
 stdinc.h: code.h defs.h util.h vectmath.h load.h code_io.h grav.h getparam.h stdinc.H 
 code.o: code.C stdinc.h

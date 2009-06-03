@@ -51,7 +51,7 @@ void INITIA()
 #endif
 
     //random_numbers = fopen("random.in","r");
-    random_numbers = fopen("tests/apps/water-spatial/random.in","r");
+    random_numbers = fopen("tests/benchmarks/water-spatial/random.in","r");
     if (random_numbers == NULL) {
         fprintf(stderr,"Error in opening file random.in\n");
         fflush(stderr);

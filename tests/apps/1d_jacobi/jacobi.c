@@ -56,21 +56,15 @@ SInt32 wait_some()
 int main(int argc, char *argv[])
 {
    CarbonStartSim(argc, argv);
-   if (argc < 3) {
-      fprintf(stderr, "[Usage]: ./jacobi <Number_of_Cores> <Size_Multiplier>\n");
-      fprintf(stderr, "Size_of_Array = Number_of_Cores * Size_Multiplier\n"); 
+   if (argc != 3) {
+      fprintf(stderr, "[Usage]: ./jacobi <Number of Threads> <Number of Array Elements per Thread>\n");
       exit(-1);
    }
 
    g_num_cores = atoi(argv[1]);
-   int size_multiplier = atoi (argv[2]);
-   if (size_multiplier < 1) {
-      fprintf(stderr, "Size_Multiplier should be >= 1\n");
-      fprintf(stderr, "Note: Size_of_Array = Number_of_Cores * Size_Multiplier\n");
-      exit(-1);
-   }
+   int num_array_elements_per_core = atoi (argv[2]);
    
-   g_size = g_num_cores * size_multiplier;
+   g_size = g_num_cores * num_array_elements_per_core;
 
    fprintf (stderr, "Number of Cores = %d\n", g_num_cores);
    fprintf (stderr, "Size of the array = %d\n", g_size);
@@ -115,7 +109,7 @@ int main(int argc, char *argv[])
       }
    }
 
-   for (int i = 0; i < g_num_cores; i++)
+   for (SInt32 i = 0; i < g_num_cores; i++)
    {
       CarbonJoinThread(threads[i]);
    }

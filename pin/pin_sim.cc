@@ -40,9 +40,11 @@
 #include "pin_config.h"
 #include "log.h"
 #include "vm_manager.h"
+#include "performance_modeler.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
+#include "opcodes.h"
 #include <typeinfo>
 
 // ---------------------------------------------------------------
@@ -170,6 +172,46 @@ void routineCallback(RTN rtn, void *v)
    //    replaceInstruction(rtn, rtn_name);
 }
 
+void handleInstruction(Instruction *sim_instruction)
+{
+    Sim()->getPerformanceModeler()->getPerformanceModel()->handleInstruction(sim_instruction);
+}
+
+VOID addInstructionModeling(INS ins)
+{
+   fprintf(stdout, "Instruction: ");
+   fprintf(stdout, "%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
+   fprintf(stdout, "%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
+   fprintf(stdout, " %s ", INS_Mnemonic(ins).c_str());
+   fprintf(stdout, "\n");
+
+   Instruction *instruction;
+   switch(INS_Opcode(ins))
+   {
+       case OPCODE_DIV:
+       {
+           Operand src1(OPERAND_REG, 0);
+           Operand src2(OPERAND_REG, 0);
+           Operand dest(OPERAND_REG, 0);
+           instruction = new DivInstruction(src1, src2, dest);
+           break;
+       }
+       case OPCODE_MUL:
+       {
+           Operand src1(OPERAND_REG, 0);
+           Operand src2(OPERAND_REG, 0);
+           Operand dest(OPERAND_REG, 0);
+           instruction = new MulInstruction(src1, src2, dest);
+           break;
+       }
+       default:
+           instruction = new Instruction(INST_GENERIC);
+   }
+
+    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
+}
+
+
 VOID instructionCallback (INS ins, void *v)
 {
    INS_InsertCall(ins, IPOINT_BEFORE,
@@ -177,6 +219,8 @@ VOID instructionCallback (INS ins, void *v)
          IARG_CALL_ORDER, CALL_ORDER_FIRST,
          IARG_CONTEXT,
          IARG_END);
+
+   addInstructionModeling(ins);
 
    if (INS_IsSyscall(ins))
    {

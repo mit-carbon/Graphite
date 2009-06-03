@@ -14,6 +14,7 @@ CPP_SOURCES =        		              \
           $(SIM_ROOT)/common/misc/*.cc        \
           $(SIM_ROOT)/common/config/*.cpp     \
           $(SIM_ROOT)/common/system/*.cc      \
+          $(SIM_ROOT)/common/performance_model/*.cc      \
           $(SIM_ROOT)/common/user/*.cc
 
 # Grab the actual filenames and convert them into .o files for dependencies

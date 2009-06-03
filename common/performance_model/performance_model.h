@@ -4,12 +4,14 @@
 #include "instruction.h"
 #include "fixed_types.h"
 
+
 class PerformanceModel
 {
 public:
    PerformanceModel();
    ~PerformanceModel();
    void handleInstruction(Instruction *instruction);
+   void handleBasicBlock(BasicBlock *basic_block);
 
    UInt64 getInstructionCount() { return m_instruction_count; }
    UInt64 getCycleCount() { return m_cycle_count; }

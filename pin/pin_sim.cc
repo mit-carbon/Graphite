@@ -177,38 +177,65 @@ void handleInstruction(Instruction *sim_instruction)
     Sim()->getPerformanceModeler()->getPerformanceModel()->handleInstruction(sim_instruction);
 }
 
+void handleBasicBlock(BasicBlock *sim_basic_block)
+{
+    Sim()->getPerformanceModeler()->getPerformanceModel()->handleBasicBlock(sim_basic_block);
+}
+
+void showInstructionInfo(INS ins)
+{
+   printf("\t");
+//   printf("%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
+   printf("%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
+   printf(" %s ", INS_Disassemble(ins).c_str());
+   if(INS_IsMemoryWrite(ins))
+   printf("\n");
+}
+
 VOID addInstructionModeling(INS ins)
 {
-   fprintf(stdout, "Instruction: ");
-   fprintf(stdout, "%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
-   fprintf(stdout, "%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
-   fprintf(stdout, " %s ", INS_Mnemonic(ins).c_str());
-   fprintf(stdout, "\n");
+   // Add LOAD/STORE instructions for the instructions that
+   // access memory.
+   bool is_mem_read = INS_IsMemoryRead(ins);
+   bool is_mem_read2 = INS_HasMemoryRead2(ins);
+   bool is_mem_write = INS_IsMemoryWrite(ins);
 
-   Instruction *instruction;
+   BasicBlock *basic_block = new BasicBlock();
+
+   // Just use stubs for the operands for now
+   Operand a(OPERAND_REG, 0);
+   Operand b(OPERAND_REG, 0);
+   Operand c(OPERAND_REG, 0);
+
+   if(is_mem_read)
+       basic_block->push_back(new LoadInstruction(a, b));
+
+   if(is_mem_read2)
+       basic_block->push_back(new LoadInstruction(a, b));
+
+   if(is_mem_write)
+       basic_block->push_back(new StoreInstruction(a, b));
+
+   // Now handle instructions which have a static cost
    switch(INS_Opcode(ins))
    {
        case OPCODE_DIV:
-       {
-           Operand src1(OPERAND_REG, 0);
-           Operand src2(OPERAND_REG, 0);
-           Operand dest(OPERAND_REG, 0);
-           instruction = new DivInstruction(src1, src2, dest);
+           basic_block->push_back(new DivInstruction(a, b, c));
            break;
-       }
        case OPCODE_MUL:
-       {
-           Operand src1(OPERAND_REG, 0);
-           Operand src2(OPERAND_REG, 0);
-           Operand dest(OPERAND_REG, 0);
-           instruction = new MulInstruction(src1, src2, dest);
+           basic_block->push_back(new MulInstruction(a, b, c));
            break;
-       }
+       case OPCODE_FDIV:
+           basic_block->push_back(new FDivInstruction(a, b, c));
+           break;
+       case OPCODE_FMUL:
+           basic_block->push_back(new FMulInstruction(a, b, c));
+           break;
        default:
-           instruction = new Instruction(INST_GENERIC);
+           basic_block->push_back(new Instruction(INST_GENERIC));
    }
 
-    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
+    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
 }
 
 

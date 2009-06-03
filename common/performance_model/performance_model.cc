@@ -26,3 +26,9 @@ void PerformanceModel::handleInstruction(Instruction *instruction)
             break;
     }
 }
+
+void PerformanceModel::handleBasicBlock(BasicBlock *basic_block)
+{
+   for(BasicBlock::iterator i = basic_block->begin(); i != basic_block->end(); i++)
+       handleInstruction(*i);
+}

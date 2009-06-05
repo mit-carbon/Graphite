@@ -20,11 +20,11 @@ Core::Core(SInt32 id)
 
    if (Config::getSingleton()->getEnablePerformanceModeling())
    {
-      m_perf_model = new PerfModel("performance modeler");
+      m_performance_model = new SimplePerformanceModel();
    }
    else
    {
-      m_perf_model = (PerfModel *) NULL;
+      m_performance_model = NULL;
    }
 
    if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
@@ -60,8 +60,23 @@ Core::~Core()
    delete m_sync_client;
    delete m_syscall_model;
    delete m_ocache;
-   delete m_perf_model;
+   delete m_performance_model;
    delete m_network;
+}
+
+void Core::outputSummary(std::ostream &os)
+{
+   if (Config::getSingleton()->getEnablePerformanceModeling())
+   {
+      getPerformanceModel()->outputSummary(os);
+      getNetwork()->outputSummary(os);
+   }
+
+   if (Config::getSingleton()->getEnableDCacheModeling() ||
+       Config::getSingleton()->getEnableICacheModeling())
+   {
+      getOCache()->outputSummary(os);
+   }
 }
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size)

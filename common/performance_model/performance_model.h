@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "instruction.h"
+#include "basic_block.h"
 #include "fixed_types.h"
 #include "lock.h"
 
@@ -15,6 +16,7 @@ public:
    PerformanceModel();
    virtual ~PerformanceModel();
 
+   void queueInstruction(Instruction *i);
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 

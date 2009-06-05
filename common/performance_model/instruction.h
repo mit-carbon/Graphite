@@ -17,11 +17,12 @@ enum InstructionType
     INST_FMUL,
     INST_FDIV,
     INST_JMP,
+    INST_DYNAMIC,
     MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP"};
+{"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP","DYNAMIC"};
 
 
 enum OperandType
@@ -60,8 +61,11 @@ class Instruction
         Instruction(InstructionType type)
             : m_type(type) {}
 
+        virtual ~Instruction() { };
+
         InstructionType getInstructionType();
-        UInt64 getStaticCycleCount();
+
+        virtual UInt64 getCost();
 
         static void initializeStaticInstructionModel();
 
@@ -105,6 +109,21 @@ class JmpInstruction : public Instruction
         {}
 };
 
-typedef std::vector<Instruction *> BasicBlock;
+// for operations not associated with the binary -- such as processing
+// a packet
+class DynamicInstruction : public Instruction
+{
+public:
+   DynamicInstruction(UInt64 cost)
+      : Instruction(INST_DYNAMIC)
+      , m_cost(cost)
+      {
+      }
+
+   UInt64 getCost() { return m_cost; }
+  
+private:
+   UInt64 m_cost;
+};
 
 #endif

@@ -3,7 +3,6 @@
 #include "core_manager.h"
 #include "core.h"
 #include "memory_manager.h"
-#include "performance_modeler.h"
 
 // FIXME
 // Only need this function because some memory accesses are made before cores have

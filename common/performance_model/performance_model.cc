@@ -10,6 +10,14 @@ PerformanceModel::~PerformanceModel()
 }
 
 // Public Interface
+void PerformanceModel::queueInstruction(Instruction *i)
+{
+   ScopedLock sl(m_basic_block_queue_lock);
+   BasicBlock *bb = new BasicBlock(true);
+   bb->push_back(i);
+   m_basic_block_queue.push(bb);
+}
+
 void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
 {
    ScopedLock sl(m_basic_block_queue_lock);
@@ -26,7 +34,12 @@ void PerformanceModel::iterate()
       m_basic_block_queue.pop();
 
       for(BasicBlock::iterator i = current_bb->begin(); i != current_bb->end(); i++)
+      {
           handleInstruction(*i);
+      }
+
+      if (current_bb->isDynamic())
+         delete current_bb;
    }
 }
 

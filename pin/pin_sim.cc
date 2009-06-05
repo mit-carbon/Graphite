@@ -24,8 +24,6 @@
 
 #include "pin.H"
 #include "log.h"
-#include "run_models.h"
-#include "analysis.h"
 #include "routine_replace.h"
 
 // FIXME: This list could probably be trimmed down a lot.
@@ -40,7 +38,6 @@
 #include "pin_config.h"
 #include "log.h"
 #include "vm_manager.h"
-#include "performance_modeler.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -174,10 +171,12 @@ void routineCallback(RTN rtn, void *v)
 
 void handleBasicBlock(BasicBlock *sim_basic_block)
 {
-    Sim()->getPerformanceModeler()->getPerformanceModel()->queueBasicBlock(sim_basic_block);
+   PerformanceModel *prfmdl = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+
+   prfmdl->queueBasicBlock(sim_basic_block);
 
     //FIXME: put this in a thread
-    Sim()->getPerformanceModeler()->getPerformanceModel()->iterate();
+   prfmdl->iterate();
 }
 
 void showInstructionInfo(INS ins)

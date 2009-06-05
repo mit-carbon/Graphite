@@ -280,30 +280,19 @@ UInt32 CoreManager::getCoreIndexFromTID(UInt32 tid)
    return e.second;
 }
 
-void CoreManager::outputSummary()
+void CoreManager::outputSummary(std::ostream &os)
 {
    LOG_PRINT("Starting CoreManager::outputSummary");
-
-   ofstream out(Config::getSingleton()->getOutputFileName());
 
    for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
       LOG_PRINT("Output summary core %i", i);
 
-      out << "*** Core[" << i << "] summary ***" << endl;
-      if (Config::getSingleton()->getEnablePerformanceModeling())
-      {
-         m_cores[i]->getPerfModel()->outputSummary(out);
-         m_cores[i]->getNetwork()->outputSummary(out);
-      }
+      os << "*** Core[" << i << "] summary ***" << endl;
+      m_cores[i]->outputSummary(os);
 
-      if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
-         m_cores[i]->getOCache()->outputSummary(out);
-
-      out << endl;
+      os << endl;
    }
-
-   out.close();
 }
 
 core_id_t CoreManager::registerSimMemThread()

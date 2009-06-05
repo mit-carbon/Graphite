@@ -21,6 +21,6 @@ void SimplePerformanceModel::outputSummary(std::ostream &os)
 void SimplePerformanceModel::handleInstruction(Instruction *instruction)
 {
    m_instruction_count++;
-   m_cycle_count += instruction->getStaticCycleCount();
+   m_cycle_count += instruction->getCost();
 }
 

@@ -110,7 +110,8 @@ void Network::netPullFromTransport()
          assert(0 <= packet.sender && packet.sender < _numMod);
          assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
 
-         _core->getPerfModel()->updateCycleCount(packet.time);
+         DynamicInstructionInfo i = DynamicInstructionInfo::createSyncInfo(packet.time);
+         _core->getPerformanceModel()->PushDynamicInstructionInfo(i);
 
          callback(_callbackObjs[packet.type], packet);
 
@@ -331,7 +332,8 @@ NetPacket Network::netRecv(const NetMatch &match)
    _netQueue.erase(itr);
    _netQueueLock.release();
 
-   _core->getPerfModel()->updateCycleCount(packet.time);
+   DynamicInstructionInfo i = DynamicInstructionInfo::createSyncInfo(packet.time);
+   _core->getPerformanceModel()->PushDynamicInstructionInfo(i);
 
    LOG_PRINT("Exiting netRecv : type %i, from %i", (SInt32)packet.type, packet.sender);
 

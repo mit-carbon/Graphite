@@ -8,7 +8,7 @@ InstructionType Instruction::getInstructionType()
     return m_type;
 }
 
-UInt64 Instruction::getStaticCycleCount()
+UInt64 Instruction::getCost()
 {
     LOG_ASSERT_ERROR(m_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", m_type);
     return Instruction::m_instruction_costs[m_type];

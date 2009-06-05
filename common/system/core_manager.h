@@ -30,7 +30,7 @@ class CoreManager
       Core *getCoreFromID(core_id_t id);
       Core *getCoreFromIndex(UInt32 index);
 
-      void outputSummary();
+      void outputSummary(std::ostream &os);
 
       UInt32 getCurrentTID();
       UInt32 getCoreIndexFromID(core_id_t core_id);

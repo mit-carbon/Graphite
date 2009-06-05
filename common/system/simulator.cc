@@ -6,7 +6,6 @@
 #include "core_manager.h"
 #include "thread_manager.h"
 #include "sim_thread_manager.h"
-#include "performance_modeler.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -44,7 +43,6 @@ Simulator::Simulator()
    , m_core_manager(NULL)
    , m_thread_manager(NULL)
    , m_sim_thread_manager(NULL)
-   , m_performance_modeler(NULL)
    , m_finished(false)
 {
 }
@@ -68,7 +66,7 @@ void Simulator::start()
    m_lcp_thread = Thread::create(m_lcp);
    m_lcp_thread->run();
 
-   m_performance_modeler = new PerformanceModeler();
+   Instruction::initializeStaticInstructionModel();
 
    m_transport->barrier();
 }
@@ -87,11 +85,10 @@ Simulator::~Simulator()
 
    m_lcp->finish();
 
-   m_core_manager->outputSummary();
+   ofstream os(Config::getSingleton()->getOutputFileName());
+   m_core_manager->outputSummary(os);
+   os.close();
 
-   m_performance_modeler->outputSummary(cerr);
-
-   delete m_performance_modeler;
    delete m_lcp_thread;
    delete m_mcp_thread;
    delete m_lcp;

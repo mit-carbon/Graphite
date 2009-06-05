@@ -5,7 +5,7 @@
 #include "message_types.h"
 #include "config.h"
 #include "core.h"
-#include "perfmdl.h"
+#include "performance_model.h"
 #include "transport.h"
 #include "lock.h"
 
@@ -44,14 +44,14 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    // (1) compute latency of packet
    // (2) update utilization
 
-   PerfModel *perf = getNetwork()->getCore()->getPerfModel();
+   PerformanceModel *perf = getNetwork()->getCore()->getPerformanceModel();
 
    Hop h;
    h.dest = pkt.receiver;
    h.time = perf->getCycleCount() + computeLatency(pkt);
    nextHops.push_back(h);
 
-   perf->addToCycleCount(_procCost);
+   perf->queueInstruction(new DynamicInstruction(_procCost));
    _cyclesProc += _procCost;
 
    updateUtilization();
@@ -190,7 +190,7 @@ void NetworkModelAnalytical::updateUtilization()
    // ** send updates
 
    // don't lock because this is all approximate anyway
-   UInt64 core_time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
+   UInt64 core_time = getNetwork()->getCore()->getPerformanceModel()->getCycleCount();
    UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
 
    if (elapsed_time < _updateInterval)

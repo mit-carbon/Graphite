@@ -172,14 +172,12 @@ void routineCallback(RTN rtn, void *v)
    //    replaceInstruction(rtn, rtn_name);
 }
 
-void handleInstruction(Instruction *sim_instruction)
-{
-    Sim()->getPerformanceModeler()->getPerformanceModel()->handleInstruction(sim_instruction);
-}
-
 void handleBasicBlock(BasicBlock *sim_basic_block)
 {
-    Sim()->getPerformanceModeler()->getPerformanceModel()->handleBasicBlock(sim_basic_block);
+    Sim()->getPerformanceModeler()->getPerformanceModel()->queueBasicBlock(sim_basic_block);
+
+    //FIXME: put this in a thread
+    Sim()->getPerformanceModeler()->getPerformanceModel()->iterate();
 }
 
 void showInstructionInfo(INS ins)
@@ -196,9 +194,9 @@ VOID addInstructionModeling(INS ins)
 {
    // Add LOAD/STORE instructions for the instructions that
    // access memory.
-   bool is_mem_read = INS_IsMemoryRead(ins);
-   bool is_mem_read2 = INS_HasMemoryRead2(ins);
-   bool is_mem_write = INS_IsMemoryWrite(ins);
+   // bool is_mem_read = INS_IsMemoryRead(ins);
+   // bool is_mem_read2 = INS_HasMemoryRead2(ins);
+   // bool is_mem_write = INS_IsMemoryWrite(ins);
 
    BasicBlock *basic_block = new BasicBlock();
 
@@ -207,6 +205,14 @@ VOID addInstructionModeling(INS ins)
    Operand b(OPERAND_REG, 0);
    Operand c(OPERAND_REG, 0);
 
+   if(INS_OperandCount(ins) > 0)
+       a = INS_OperandIsMemory(ins, 0) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 0));
+   if(INS_OperandCount(ins) > 1)
+       b = INS_OperandIsMemory(ins, 1) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 1));
+   if(INS_OperandCount(ins) > 2)
+       c = INS_OperandIsMemory(ins, 2) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 2));
+
+   /*
    if(is_mem_read)
        basic_block->push_back(new LoadInstruction(a, b));
 
@@ -215,27 +221,28 @@ VOID addInstructionModeling(INS ins)
 
    if(is_mem_write)
        basic_block->push_back(new StoreInstruction(a, b));
+   */
 
    // Now handle instructions which have a static cost
    switch(INS_Opcode(ins))
    {
        case OPCODE_DIV:
-           basic_block->push_back(new DivInstruction(a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_DIV, a, b, c));
            break;
        case OPCODE_MUL:
-           basic_block->push_back(new MulInstruction(a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_MUL, a, b, c));
            break;
        case OPCODE_FDIV:
-           basic_block->push_back(new FDivInstruction(a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_FDIV, a, b, c));
            break;
        case OPCODE_FMUL:
-           basic_block->push_back(new FMulInstruction(a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_FMUL, a, b, c));
            break;
        default:
            basic_block->push_back(new Instruction(INST_GENERIC));
    }
 
-    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
+   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
 }
 
 

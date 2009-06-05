@@ -1,4 +1,5 @@
 #include "simulator.h"
+#include "log.h"
 #include "performance_modeler.h"
 #include "core_manager.h"
 
@@ -30,12 +31,14 @@ PerformanceModeler::~PerformanceModeler()
 
 PerformanceModel* PerformanceModeler::getPerformanceModel()
 {
+   LOG_ASSERT_ERROR(m_performance_models, "Performance model accessed after deletion.");
    UInt32 core_index = Sim()->getCoreManager()->getCoreIndexFromTID(Sim()->getCoreManager()->getCurrentTID());
    return &m_performance_models[core_index];
 }
 
 PerformanceModel* PerformanceModeler::getPerformanceModelForCore(core_id_t core_id)
 {
+   LOG_ASSERT_ERROR(m_performance_models, "Performance model accessed after deletion.");
    UInt32 core_index = Sim()->getCoreManager()->getCoreIndexFromID(core_id);
    return &m_performance_models[core_index];
 }

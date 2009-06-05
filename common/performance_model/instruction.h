@@ -59,9 +59,9 @@ class GenericInstruction : public Instruction
 {
     public:
         GenericInstruction()
-        : 
-            Instruction(INST_GENERIC)
+        : Instruction(INST_GENERIC)
         {}
+
 };
 
 class LoadInstruction : public Instruction
@@ -98,70 +98,6 @@ class ArithInstruction : public Instruction
         Operand m_src1;
         Operand m_src2;
         Operand m_dest;
-};
-
-class AddInstruction : public ArithInstruction
-{
-    public:
-        AddInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_ADD, src1, src2, dest)
-        {}
-};
-
-class SubInstruction : public ArithInstruction
-{
-    public:
-        SubInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_SUB, src1, src2, dest)
-        {}
-};
-
-class MulInstruction : public ArithInstruction
-{
-    public:
-        MulInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_MUL, src1, src2, dest)
-        {}
-};
-
-class DivInstruction : public ArithInstruction
-{
-    public:
-        DivInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_DIV, src1, src2, dest)
-        {}
-};
-
-class FAddInstruction : public ArithInstruction
-{
-    public:
-        FAddInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FADD, src1, src2, dest)
-        {}
-};
-
-class FSubInstruction : public ArithInstruction
-{
-    public:
-        FSubInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FSUB, src1, src2, dest)
-        {}
-};
-
-class FMulInstruction : public ArithInstruction
-{
-    public:
-        FMulInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FMUL, src1, src2, dest)
-        {}
-};
-
-class FDivInstruction : public ArithInstruction
-{
-    public:
-        FDivInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FDIV, src1, src2, dest)
-        {}
 };
 
 class JmpInstruction : public Instruction

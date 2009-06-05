@@ -10,25 +10,42 @@ PerformanceModel::~PerformanceModel()
 {
 }
 
-void PerformanceModel::handleInstruction(Instruction *instruction)
+// Public Interface
+void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
 {
-    m_instruction_count++;
-    switch(instruction->getInstructionType())
-    {
-        case INST_DIV:
-            m_cycle_count += 25;
-            break;
-        case INST_MUL:
-            m_cycle_count += 20;
-            break;
-        default:
-            m_cycle_count++;
-            break;
-    }
+   m_basic_block_queue.push(basic_block);
 }
 
-void PerformanceModel::handleBasicBlock(BasicBlock *basic_block)
+//FIXME: this will go in a thread
+void PerformanceModel::iterate()
 {
-   for(BasicBlock::iterator i = basic_block->begin(); i != basic_block->end(); i++)
-       handleInstruction(*i);
+   while(!m_basic_block_queue.empty())
+   {
+      BasicBlock *current_bb = m_basic_block_queue.front();
+      m_basic_block_queue.pop();
+
+      for(BasicBlock::iterator i = current_bb->begin(); i != current_bb->end(); i++)
+          handleInstruction(*i);
+   }
 }
+
+// Private Interface
+void PerformanceModel::handleInstruction(Instruction *instruction)
+{
+   //FIXME: Put the instruction costs in the config file
+   m_instruction_count++;
+   switch(instruction->getInstructionType())
+   {
+       case INST_DIV:
+           m_cycle_count += 25;
+           break;
+       case INST_MUL:
+           m_cycle_count += 20;
+           break;
+       default:
+           m_cycle_count++;
+           break;
+   }
+}
+
+

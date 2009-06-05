@@ -4,6 +4,7 @@
 // front end. It uses a queue of instructions to do the performance
 // modeling.
 #include <map>
+#include <iostream>
 #include "instruction.h"
 #include "performance_model.h"
 
@@ -16,10 +17,12 @@ public:
    PerformanceModel* getPerformanceModel();
    PerformanceModel* getPerformanceModelForCore(core_id_t core_id);
 
+   void outputSummary(std::ostream &os);
+
 private:
 
    // The performance modeler has one model per core.
-   PerformanceModel *m_performance_models;
+   PerformanceModel **m_performance_models;
 };
 
 #endif

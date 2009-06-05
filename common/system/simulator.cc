@@ -68,7 +68,6 @@ void Simulator::start()
    m_lcp_thread = Thread::create(m_lcp);
    m_lcp_thread->run();
 
-
    m_performance_modeler = new PerformanceModeler();
 
    m_transport->barrier();
@@ -89,6 +88,8 @@ Simulator::~Simulator()
    m_lcp->finish();
 
    m_core_manager->outputSummary();
+
+   m_performance_modeler->outputSummary(cerr);
 
    delete m_performance_modeler;
    delete m_lcp_thread;

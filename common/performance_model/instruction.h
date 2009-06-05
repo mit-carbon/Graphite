@@ -2,6 +2,7 @@
 #define INSTRUCTION_H
 
 #include "fixed_types.h"
+#include "dynamic_instruction_info.h"
 #include <vector>
 
 enum InstructionType
@@ -103,7 +104,6 @@ class JmpInstruction : public Instruction
         : Instruction(INST_JMP)
         {}
 };
-
 
 typedef std::vector<Instruction *> BasicBlock;
 

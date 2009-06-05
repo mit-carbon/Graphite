@@ -1,10 +1,7 @@
 #include "performance_model.h"
 #include "simulator.h"
 
-
 PerformanceModel::PerformanceModel()
-    : m_instruction_count(0)
-    , m_cycle_count(0)
 {
 }
 
@@ -15,12 +12,14 @@ PerformanceModel::~PerformanceModel()
 // Public Interface
 void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
 {
+   ScopedLock sl(m_basic_block_queue_lock);
    m_basic_block_queue.push(basic_block);
 }
 
 //FIXME: this will go in a thread
 void PerformanceModel::iterate()
 {
+   ScopedLock sl(m_basic_block_queue_lock);
    while(!m_basic_block_queue.empty())
    {
       BasicBlock *current_bb = m_basic_block_queue.front();
@@ -31,12 +30,20 @@ void PerformanceModel::iterate()
    }
 }
 
-// Private Interface
-void PerformanceModel::handleInstruction(Instruction *instruction)
+void PerformanceModel::PushDynamicInstructionInfo(DynamicInstructionInfo &i)
 {
-   //FIXME: Put the instruction costs in the config file
-   m_instruction_count++;
-   m_cycle_count += instruction->getStaticCycleCount();
+   ScopedLock sl(m_dynamic_info_queue_lock);
+   m_dynamic_info_queue.push(i);
 }
 
+void PerformanceModel::PopDynamicInstructionInfo()
+{
+   ScopedLock sl(m_dynamic_info_queue_lock);
+   m_dynamic_info_queue.pop();
+}
 
+DynamicInstructionInfo& PerformanceModel::getDynamicInstructionInfo()
+{
+   ScopedLock sl(m_dynamic_info_queue_lock);
+   return m_dynamic_info_queue.front();
+}

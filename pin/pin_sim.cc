@@ -172,43 +172,116 @@ void routineCallback(RTN rtn, void *v)
    //    replaceInstruction(rtn, rtn_name);
 }
 
-void handleInstruction(Instruction *sim_instruction)
+void handleBasicBlock(BasicBlock *sim_basic_block)
 {
-    Sim()->getPerformanceModeler()->getPerformanceModel()->handleInstruction(sim_instruction);
+    Sim()->getPerformanceModeler()->getPerformanceModel()->queueBasicBlock(sim_basic_block);
+
+    //FIXME: put this in a thread
+    Sim()->getPerformanceModeler()->getPerformanceModel()->iterate();
+}
+
+void showInstructionInfo(INS ins)
+{
+   printf("\t");
+//   printf("%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
+   printf("%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
+   printf(" %s ", INS_Disassemble(ins).c_str());
+   if(INS_IsMemoryWrite(ins))
+   printf("\n");
+}
+
+VOID fillOperandList(OperandList *list, INS ins)
+{
+   // for handling register operands
+   bool is_mem_read = INS_IsMemoryRead(ins);
+   bool is_mem_read2 = INS_HasMemoryRead2(ins);
+   unsigned int read_mem_count = 0;
+
+   // for handling memory operands
+   unsigned int reg_count = 0;
+   unsigned int read_reg_count = 0;
+   unsigned int write_reg_count = 0;
+   unsigned int max_read_regs = INS_MaxNumRRegs(ins);
+//   unsigned int max_write_regs = INS_MaxNumRRegs(ins);
+
+   for(unsigned int i = 0; i < INS_OperandCount(ins); i++)
+   {
+       if(INS_OperandIsMemory(ins, i))
+       {
+           OperandDirection dir;
+           if(is_mem_read && read_mem_count == 0)
+           {
+               dir = OPERAND_READ;
+               read_mem_count++;
+           }
+           else if(is_mem_read2 && read_mem_count == 1)
+           {
+               dir = OPERAND_READ;
+               read_mem_count++;
+           }
+           else
+           {
+               dir = OPERAND_WRITE;
+           }
+           list->push_back(Operand(OPERAND_MEMORY, 0, dir));
+       }
+       else
+       {
+           if(read_reg_count < max_read_regs)
+           {
+               list->push_back(Operand(OPERAND_REG, INS_RegR(ins, read_reg_count), OPERAND_READ));
+               read_reg_count++;
+           }
+           else
+           {
+               list->push_back(Operand(OPERAND_REG, INS_RegW(ins, write_reg_count), OPERAND_WRITE));
+               write_reg_count++;
+           }
+           reg_count++;
+       }
+   }
 }
 
 VOID addInstructionModeling(INS ins)
 {
-   fprintf(stdout, "Instruction: ");
-   fprintf(stdout, "%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
-   fprintf(stdout, "%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
-   fprintf(stdout, " %s ", INS_Mnemonic(ins).c_str());
-   fprintf(stdout, "\n");
+   BasicBlock *basic_block = new BasicBlock();
 
-   Instruction *instruction;
+   // Just use stubs for the operands for now
+   Operand a(OPERAND_REG, 0);
+   Operand b(OPERAND_REG, 0);
+   Operand c(OPERAND_REG, 0);
+
+   if(INS_OperandCount(ins) > 0)
+       a = INS_OperandIsMemory(ins, 0) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 0));
+   if(INS_OperandCount(ins) > 1)
+       b = INS_OperandIsMemory(ins, 1) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 1));
+   if(INS_OperandCount(ins) > 2)
+       c = INS_OperandIsMemory(ins, 2) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 2));
+
+   // Now handle instructions which have a static cost
    switch(INS_Opcode(ins))
    {
        case OPCODE_DIV:
-       {
-           Operand src1(OPERAND_REG, 0);
-           Operand src2(OPERAND_REG, 0);
-           Operand dest(OPERAND_REG, 0);
-           instruction = new DivInstruction(src1, src2, dest);
+           basic_block->push_back(new ArithInstruction(INST_DIV, a, b, c));
            break;
-       }
        case OPCODE_MUL:
-       {
-           Operand src1(OPERAND_REG, 0);
-           Operand src2(OPERAND_REG, 0);
-           Operand dest(OPERAND_REG, 0);
-           instruction = new MulInstruction(src1, src2, dest);
+           basic_block->push_back(new ArithInstruction(INST_MUL, a, b, c));
            break;
-       }
+       case OPCODE_FDIV:
+           basic_block->push_back(new ArithInstruction(INST_FDIV, a, b, c));
+           break;
+       case OPCODE_FMUL:
+           basic_block->push_back(new ArithInstruction(INST_FMUL, a, b, c));
+           break;
        default:
-           instruction = new Instruction(INST_GENERIC);
+       {
+           OperandList *list = new OperandList();
+           fillOperandList(list, ins);
+           basic_block->push_back(new GenericInstruction(list));
+       }
    }
 
-    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
+   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
 }
 
 
@@ -268,7 +341,6 @@ void ApplicationExit(int, void*)
    Simulator::release();
    delete cfg;
 }
-
 
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {

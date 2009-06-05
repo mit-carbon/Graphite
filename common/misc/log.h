@@ -30,13 +30,14 @@ class Log
       void log(ErrorState err, const char *source_file, SInt32 source_line, const char* format, ...);
 
       Boolean isEnabled(const char* module);
+      Boolean isLoggingEnabled();
+      std::string getModule(const char *filename);
 
    private:
       UInt64 getTimestamp();
 
       void discoverCore(core_id_t *core_id, bool *sim_thread);
       void getFile(core_id_t core_id, bool sim_thread, FILE ** f, Lock ** l);
-      std::string getModule(const char *filename);
 
       ErrorState _state;
 
@@ -89,15 +90,19 @@ class Log
 
 #define _LOG_PRINT(err, ...)                                            \
    {                                                                    \
-      if (err == Log::Error ||                                          \
-          Log::getSingleton()->isEnabled(__FILE__))                     \
+      if (Log::getSingleton()->isLoggingEnabled() || err == Log::Error) \
       {                                                                 \
-         Log::getSingleton()->log(err, __FILE__, __LINE__, __VA_ARGS__); \
+         std::string module = Log::getSingleton()->getModule(__FILE__); \
+         if (err == Log::Error ||                                       \
+             Log::getSingleton()->isEnabled(module.c_str()))            \
+         {                                                              \
+            Log::getSingleton()->log(err, module.c_str(), __LINE__, __VA_ARGS__); \
+         }                                                              \
       }                                                                 \
    }                                                                    \
  
 #define LOG_PRINT(...)                                                  \
-   _LOG_PRINT(Log::None, __VA_ARGS__);                                   \
+   _LOG_PRINT(Log::None, __VA_ARGS__);                                  \
  
 #define LOG_PRINT_WARNING(...)                  \
    _LOG_PRINT(Log::Warning, __VA_ARGS__);

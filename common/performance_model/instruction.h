@@ -2,12 +2,11 @@
 #define INSTRUCTION_H
 
 #include "fixed_types.h"
+#include <vector>
 
 enum InstructionType
 {
     INST_GENERIC,
-    INST_LOAD,
-    INST_STORE,
     INST_ADD,
     INST_SUB,
     INST_MUL,
@@ -17,26 +16,23 @@ enum InstructionType
     INST_FMUL,
     INST_FDIV,
     INST_JMP,
+    MAX_INSTRUCTION_COUNT
 };
 
-class Instruction
-{
-    public:
-        Instruction(InstructionType type)
-            : m_type(type) {}
-        InstructionType getInstructionType()
-        {
-            return m_type;
-        }
+__attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
+{"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP"};
 
-    private:
-        InstructionType m_type;
-};
 
 enum OperandType
 {
     OPERAND_REG,
     OPERAND_MEMORY
+};
+
+enum OperandDirection
+{
+    OPERAND_READ,
+    OPERAND_WRITE
 };
 
 typedef UInt64 OperandValue;
@@ -45,47 +41,48 @@ class Operand
 {
     public:
         Operand(const Operand &src)
-            : m_type(src.m_type), m_value(src.m_value) {}
+            : m_type(src.m_type), m_value(src.m_value), m_direction(src.m_direction) {}
 
-        Operand(OperandType type, OperandValue value)
-            : m_type(type), m_value(value) {}
+        Operand(OperandType type, OperandValue value = 0, OperandDirection direction = OPERAND_READ)
+            : m_type(type), m_value(value), m_direction(direction) {}
 
         OperandType m_type;
         OperandValue m_value;
+        OperandDirection m_direction;
+};
+
+typedef std::vector<Operand> OperandList;
+
+class Instruction
+{
+    public:
+        Instruction(InstructionType type)
+            : m_type(type) {}
+
+        InstructionType getInstructionType();
+        UInt64 getStaticCycleCount();
+
+        static void initializeStaticInstructionModel();
+
+    private:
+        typedef std::vector<unsigned int> StaticInstructionCosts;
+        static StaticInstructionCosts m_instruction_costs;
+        InstructionType m_type;
 };
 
 class GenericInstruction : public Instruction
 {
     public:
         GenericInstruction()
-        : 
-            Instruction(INST_GENERIC)
-        {}
-};
-
-class LoadInstruction : public Instruction
-{
-    public:
-        LoadInstruction(Operand src, Operand dest)
-        : 
-            Instruction(INST_LOAD),
-            m_src(src), m_dest(dest)
+        : Instruction(INST_GENERIC)
         {}
 
-        Operand m_src;
-        Operand m_dest;
-};
-
-class StoreInstruction : public Instruction
-{
-    public:
-        StoreInstruction(Operand src, Operand dest)
-        :
-            Instruction(INST_STORE),
-            m_src(src), m_dest(dest)
+        GenericInstruction(OperandList *operand_list)
+        : Instruction(INST_GENERIC), m_operand_list(operand_list)
         {}
-        Operand m_src;
-        Operand m_dest;
+
+
+        OperandList *m_operand_list;
 };
 
 class ArithInstruction : public Instruction
@@ -99,70 +96,6 @@ class ArithInstruction : public Instruction
         Operand m_dest;
 };
 
-class AddInstruction : public ArithInstruction
-{
-    public:
-        AddInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_ADD, src1, src2, dest)
-        {}
-};
-
-class SubInstruction : public ArithInstruction
-{
-    public:
-        SubInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_SUB, src1, src2, dest)
-        {}
-};
-
-class MulInstruction : public ArithInstruction
-{
-    public:
-        MulInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_MUL, src1, src2, dest)
-        {}
-};
-
-class DivInstruction : public ArithInstruction
-{
-    public:
-        DivInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_DIV, src1, src2, dest)
-        {}
-};
-
-class FAddInstruction : public ArithInstruction
-{
-    public:
-        FAddInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FADD, src1, src2, dest)
-        {}
-};
-
-class FSubInstruction : public ArithInstruction
-{
-    public:
-        FSubInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FSUB, src1, src2, dest)
-        {}
-};
-
-class FMulInstruction : public ArithInstruction
-{
-    public:
-        FMulInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FMUL, src1, src2, dest)
-        {}
-};
-
-class FDivInstruction : public ArithInstruction
-{
-    public:
-        FDivInstruction(const Operand &src1, const Operand &src2, const Operand &dest)
-        : ArithInstruction(INST_FDIV, src1, src2, dest)
-        {}
-};
-
 class JmpInstruction : public Instruction
 {
     public:
@@ -170,5 +103,8 @@ class JmpInstruction : public Instruction
         : Instruction(INST_JMP)
         {}
 };
+
+
+typedef std::vector<Instruction *> BasicBlock;
 
 #endif

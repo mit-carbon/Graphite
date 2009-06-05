@@ -73,6 +73,11 @@ Boolean Log::isEnabled(const char* module)
    return _disabledModules.find(module) == _disabledModules.end();
 }
 
+Boolean Log::isLoggingEnabled()
+{
+   return _loggingEnabled;
+}
+
 UInt64 Log::getTimestamp()
 {
    timeval t;
@@ -226,18 +231,17 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    getFile(core_id, sim_thread, &file, &lock);
    int tid = syscall(__NR_gettid);
 
-   std::string module = getModule(source_file);
 
    char message[512];
    char *p = message;
 
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
    if (core_id != INVALID_CORE_ID) // valid core id
-      p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), source_file, source_line);
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
-      p += sprintf(p, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), source_file, source_line);
    else // who knows
-      p += sprintf(p, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, source_file, source_line);
 
    switch (err)
    {

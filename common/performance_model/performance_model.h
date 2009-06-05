@@ -24,6 +24,7 @@ public:
 private:
    void handleInstruction(Instruction *instruction);
 
+
    BasicBlockQueue m_basic_block_queue;
 
 

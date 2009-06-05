@@ -3,6 +3,7 @@
 // This class provides the interface to performance modeling to the
 // front end. It uses a queue of instructions to do the performance
 // modeling.
+#include <map>
 #include "instruction.h"
 #include "performance_model.h"
 
@@ -16,6 +17,7 @@ public:
    PerformanceModel* getPerformanceModelForCore(core_id_t core_id);
 
 private:
+
    // The performance modeler has one model per core.
    PerformanceModel *m_performance_models;
 };

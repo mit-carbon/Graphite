@@ -7,8 +7,6 @@
 enum InstructionType
 {
     INST_GENERIC,
-    INST_LOAD,
-    INST_STORE,
     INST_ADD,
     INST_SUB,
     INST_MUL,
@@ -18,26 +16,23 @@ enum InstructionType
     INST_FMUL,
     INST_FDIV,
     INST_JMP,
+    MAX_INSTRUCTION_COUNT
 };
 
-class Instruction
-{
-    public:
-        Instruction(InstructionType type)
-            : m_type(type) {}
-        InstructionType getInstructionType()
-        {
-            return m_type;
-        }
+__attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
+{"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP"};
 
-    private:
-        InstructionType m_type;
-};
 
 enum OperandType
 {
     OPERAND_REG,
     OPERAND_MEMORY
+};
+
+enum OperandDirection
+{
+    OPERAND_READ,
+    OPERAND_WRITE
 };
 
 typedef UInt64 OperandValue;
@@ -46,13 +41,33 @@ class Operand
 {
     public:
         Operand(const Operand &src)
-            : m_type(src.m_type), m_value(src.m_value) {}
+            : m_type(src.m_type), m_value(src.m_value), m_direction(src.m_direction) {}
 
-        Operand(OperandType type, OperandValue value)
-            : m_type(type), m_value(value) {}
+        Operand(OperandType type, OperandValue value = 0, OperandDirection direction = OPERAND_READ)
+            : m_type(type), m_value(value), m_direction(direction) {}
 
         OperandType m_type;
         OperandValue m_value;
+        OperandDirection m_direction;
+};
+
+typedef std::vector<Operand> OperandList;
+
+class Instruction
+{
+    public:
+        Instruction(InstructionType type)
+            : m_type(type) {}
+
+        InstructionType getInstructionType();
+        UInt64 getStaticCycleCount();
+
+        static void initializeStaticInstructionModel();
+
+    private:
+        typedef std::vector<unsigned int> StaticInstructionCosts;
+        static StaticInstructionCosts m_instruction_costs;
+        InstructionType m_type;
 };
 
 class GenericInstruction : public Instruction
@@ -62,31 +77,12 @@ class GenericInstruction : public Instruction
         : Instruction(INST_GENERIC)
         {}
 
-};
-
-class LoadInstruction : public Instruction
-{
-    public:
-        LoadInstruction(Operand src, Operand dest)
-        : 
-            Instruction(INST_LOAD),
-            m_src(src), m_dest(dest)
+        GenericInstruction(OperandList *operand_list)
+        : Instruction(INST_GENERIC), m_operand_list(operand_list)
         {}
 
-        Operand m_src;
-        Operand m_dest;
-};
 
-class StoreInstruction : public Instruction
-{
-    public:
-        StoreInstruction(Operand src, Operand dest)
-        :
-            Instruction(INST_STORE),
-            m_src(src), m_dest(dest)
-        {}
-        Operand m_src;
-        Operand m_dest;
+        OperandList *m_operand_list;
 };
 
 class ArithInstruction : public Instruction

@@ -3,10 +3,12 @@
 #include "performance_modeler.h"
 #include "core_manager.h"
 
+
 PerformanceModeler::PerformanceModeler()
 {
    UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
    m_performance_models = new PerformanceModel[num_local_cores];
+   Instruction::initializeStaticInstructionModel();
 }
 
 PerformanceModeler::~PerformanceModeler()
@@ -22,11 +24,11 @@ PerformanceModeler::~PerformanceModeler()
        fprintf(stderr, "  Instructions: %lld\n", m_performance_models[i].getInstructionCount());
        fprintf(stderr, "  Cycles: %lld\n", m_performance_models[i].getCycleCount());
    }
-
-
-    delete [] m_performance_models;
-    m_performance_models = NULL;
+   
+   delete [] m_performance_models;
+   m_performance_models = NULL;
 }
+
 
 
 PerformanceModel* PerformanceModeler::getPerformanceModel()

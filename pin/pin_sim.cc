@@ -190,14 +190,60 @@ void showInstructionInfo(INS ins)
    printf("\n");
 }
 
+VOID fillOperandList(OperandList *list, INS ins)
+{
+   // for handling register operands
+   bool is_mem_read = INS_IsMemoryRead(ins);
+   bool is_mem_read2 = INS_HasMemoryRead2(ins);
+   unsigned int read_mem_count = 0;
+
+   // for handling memory operands
+   unsigned int reg_count = 0;
+   unsigned int read_reg_count = 0;
+   unsigned int write_reg_count = 0;
+   unsigned int max_read_regs = INS_MaxNumRRegs(ins);
+//   unsigned int max_write_regs = INS_MaxNumRRegs(ins);
+
+   for(unsigned int i = 0; i < INS_OperandCount(ins); i++)
+   {
+       if(INS_OperandIsMemory(ins, i))
+       {
+           OperandDirection dir;
+           if(is_mem_read && read_mem_count == 0)
+           {
+               dir = OPERAND_READ;
+               read_mem_count++;
+           }
+           else if(is_mem_read2 && read_mem_count == 1)
+           {
+               dir = OPERAND_READ;
+               read_mem_count++;
+           }
+           else
+           {
+               dir = OPERAND_WRITE;
+           }
+           list->push_back(Operand(OPERAND_MEMORY, 0, dir));
+       }
+       else
+       {
+           if(read_reg_count < max_read_regs)
+           {
+               list->push_back(Operand(OPERAND_REG, INS_RegR(ins, read_reg_count), OPERAND_READ));
+               read_reg_count++;
+           }
+           else
+           {
+               list->push_back(Operand(OPERAND_REG, INS_RegW(ins, write_reg_count), OPERAND_WRITE));
+               write_reg_count++;
+           }
+           reg_count++;
+       }
+   }
+}
+
 VOID addInstructionModeling(INS ins)
 {
-   // Add LOAD/STORE instructions for the instructions that
-   // access memory.
-   // bool is_mem_read = INS_IsMemoryRead(ins);
-   // bool is_mem_read2 = INS_HasMemoryRead2(ins);
-   // bool is_mem_write = INS_IsMemoryWrite(ins);
-
    BasicBlock *basic_block = new BasicBlock();
 
    // Just use stubs for the operands for now
@@ -211,17 +257,6 @@ VOID addInstructionModeling(INS ins)
        b = INS_OperandIsMemory(ins, 1) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 1));
    if(INS_OperandCount(ins) > 2)
        c = INS_OperandIsMemory(ins, 2) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 2));
-
-   /*
-   if(is_mem_read)
-       basic_block->push_back(new LoadInstruction(a, b));
-
-   if(is_mem_read2)
-       basic_block->push_back(new LoadInstruction(a, b));
-
-   if(is_mem_write)
-       basic_block->push_back(new StoreInstruction(a, b));
-   */
 
    // Now handle instructions which have a static cost
    switch(INS_Opcode(ins))
@@ -239,7 +274,11 @@ VOID addInstructionModeling(INS ins)
            basic_block->push_back(new ArithInstruction(INST_FMUL, a, b, c));
            break;
        default:
-           basic_block->push_back(new Instruction(INST_GENERIC));
+       {
+           OperandList *list = new OperandList();
+           fillOperandList(list, ins);
+           basic_block->push_back(new GenericInstruction(list));
+       }
    }
 
    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
@@ -302,7 +341,6 @@ void ApplicationExit(int, void*)
    Simulator::release();
    delete cfg;
 }
-
 
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {

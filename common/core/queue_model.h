@@ -4,27 +4,22 @@
 class QueueModel
 {
 public:
-   QueueModel(Core *core)
-      : m_core(core)
+   QueueModel()
+      : m_queue_time(0),
+   {}
+
+   UInt64 getQueueDelay(UInt64 pkt_time)
    {
+      return max(m_queue_time - pkt_time, 0);
    }
 
-   UInt64 getQueueDelay()
+   void updateQueue(UInt64 pkt_time, UInt64 processing_time)
    {
-      UInt64 core_time = Core->getCycleCount();
-      return max(m_queue_time - core_time, 0);
-   }
-
-   void updateQueue(UInt64 processing_time)
-   {
-      UInt64 core_time = Core->getCycleCount();
-      m_queue_time = max(m_queue_time + processing_time,
-                         core_time + processing_time);
+      m_queue_time = max(m_queue_time, pkt_time) + processing_time;
    }
 
 private:
-   Core *m_core;
    UInt64 m_queue_time;
 };
 
-#endif
+#endif /* QUEUE_MODEL_H */

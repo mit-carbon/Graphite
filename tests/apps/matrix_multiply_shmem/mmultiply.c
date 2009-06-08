@@ -5,7 +5,7 @@
 #include "carbon_user.h"
 #include "capi.h"
 
-// #define DEBUG 1
+#define DEBUG 1
 
 float **matA;
 float **matB;

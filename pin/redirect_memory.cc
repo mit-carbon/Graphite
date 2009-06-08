@@ -53,13 +53,15 @@ UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPt
 
 bool rewriteStringOp (INS ins)
 {
+   if (! (INS_RepPrefix(ins) || INS_RepnePrefix(ins)))
+   {
+      // No REP prefix
+      return false;
+   }
+
    if (INS_Opcode(ins) == XED_ICLASS_SCASB)
    {
       LOG_PRINT("Instr: %s\n", (INS_Disassemble(ins)).c_str());
-      if (! (INS_RepPrefix(ins) || INS_RepnePrefix(ins)) )
-      {
-         return false;
-      }
 
       INS_InsertCall(ins, IPOINT_BEFORE,
             AFUNPTR (emuSCASBIns),
@@ -76,10 +78,6 @@ bool rewriteStringOp (INS ins)
    else if (INS_Opcode(ins) == XED_ICLASS_CMPSB)
    {
       LOG_PRINT("Instr: %s\n", (INS_Disassemble(ins)).c_str());
-      if (! (INS_RepPrefix(ins) || INS_RepnePrefix(ins)) )
-      {
-         return false;
-      }
 
       INS_InsertCall(ins, IPOINT_BEFORE,
             AFUNPTR (emuCMPSBIns),
@@ -95,14 +93,20 @@ bool rewriteStringOp (INS ins)
 
    else
    {
-      assert(INS_Opcode(ins) != XED_ICLASS_SCASW);
-      assert(INS_Opcode(ins) != XED_ICLASS_SCASD);
-      assert(INS_Opcode(ins) != XED_ICLASS_SCASQ);
+      // Has a REP or REPNE prefix
+      if (  (INS_Opcode(ins) == XED_ICLASS_MOVSB) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVSW) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_STOSB) ||
+            (INS_Opcode(ins) == XED_ICLASS_STOSW) ||
+            (INS_Opcode(ins) == XED_ICLASS_STOSD)
+         )
+      {
+         return false;
+      }
 
-      assert(INS_Opcode(ins) != XED_ICLASS_CMPSW);
-      assert(INS_Opcode(ins) != XED_ICLASS_CMPSD);
-      assert(INS_Opcode(ins) != XED_ICLASS_CMPSQ);
-
+      LOG_ASSERT_ERROR(! (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)), "Ins: %s not currently supported", INS_Disassemble(ins).c_str());
+      
       return false;
    }
 }

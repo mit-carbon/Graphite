@@ -49,14 +49,14 @@ Config::Config()
    m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
 
    m_knob_dir_max_sharers = Sim()->getCfg()->getInt("dram/max_sharers");
-   m_knob_cache_line_size = Sim()->getCfg()->getInt("ocache/line_size");
+   m_knob_cache_line_size = Sim()->getCfg()->getInt("cache/dcache_line_size");
    m_knob_ahl_param = Sim()->getCfg()->getInt("dram/ahl_param");
    }
    catch(...)
    {
       LOG_PRINT_ERROR("Config obtained a bad value from config.");
    }
-
+   
    m_num_processes = m_knob_num_process;
    m_total_cores = m_knob_total_cores;
 

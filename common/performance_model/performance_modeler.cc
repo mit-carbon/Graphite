@@ -36,6 +36,7 @@ PerformanceModel* PerformanceModeler::getPerformanceModel()
 
 PerformanceModel* PerformanceModeler::getPerformanceModelForCore(core_id_t core_id)
 {
+   // FIXME: getCoreIndexFromID() is already defined in 'common/misc/config.{cc/h}' :- Use that
    UInt32 core_index = Sim()->getCoreManager()->getCoreIndexFromID(core_id);
    return &m_performance_models[core_index];
 }

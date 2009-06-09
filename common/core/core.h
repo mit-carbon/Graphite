@@ -1,10 +1,7 @@
-// Harshad Kasture
-//
-
 #ifndef CORE_H
 #define CORE_H
 
-#include <cstring>
+#include <string>
 
 // some forward declarations for cross includes
 class Network;
@@ -12,7 +9,7 @@ class PerfModel;
 class MemoryManager;
 class SyscallMdl;
 class SyncClient;
-class OCache;
+class Cache;
 
 #include "shmem_req_types.h"
 #include "fixed_types.h"
@@ -20,6 +17,8 @@ class OCache;
 #include "perfmdl.h"
 
 #define REDIRECT_MEMORY 1
+
+using namespace std;
 
 class Core
 {
@@ -48,14 +47,14 @@ class Core
       MemoryManager *getMemoryManager() { return m_memory_manager; }
       SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       SyncClient *getSyncClient() { return m_sync_client; }
-      OCache *getOCache() { return m_ocache; }
+      Cache *getOCache() { return m_ocache; }
 
    private:
       core_id_t m_core_id;
       MemoryManager *m_memory_manager;
       Network *m_network;
       PerfModel *m_perf_model;
-      OCache *m_ocache;
+      Cache *m_ocache;
       SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
 

@@ -2,7 +2,6 @@
 
 #include "shmem_req_types.h"
 #include "core.h"
-#include "ocache.h"
 #include "core_manager.h"
 #include "log.h"
 #include "simulator.h"
@@ -88,7 +87,8 @@ void runModels(IntPtr dcache_ld_addr, IntPtr dcache_ld_addr2, UINT32 dcache_ld_s
 
 static void runICacheModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling)
 {
-    for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
+   /* 
+   for (UINT32 i = 0; i < (stats->inst_trace.size()); i++)
     {
         // first = PC, second = size
         bool i_hit = core->getOCache()->runICacheLoadModel(stats->inst_trace[i].first,
@@ -97,6 +97,7 @@ static void runICacheModels(PerfModelIntervalStat *stats, Core *core, bool do_pe
             stats->logICacheLoadAccess(i_hit);
     }
     core->getPerfModel()->runICacheModel(stats);;
+     */
 }
 
 static void runDCacheReadModels(PerfModelIntervalStat *stats, Core *core, bool do_perf_modeling,

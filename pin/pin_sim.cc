@@ -179,12 +179,6 @@ void handleInstruction(Instruction *sim_instruction)
 
 VOID addInstructionModeling(INS ins)
 {
-   fprintf(stdout, "Instruction: ");
-   fprintf(stdout, "%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
-   fprintf(stdout, "%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
-   fprintf(stdout, " %s ", INS_Mnemonic(ins).c_str());
-   fprintf(stdout, "\n");
-
    Instruction *instruction;
    switch(INS_Opcode(ins))
    {

@@ -8,9 +8,9 @@
 #include "network.h"
 #include "packet_type.h"
 #include "core.h"
-#include "ocache.h"
 #include "address_home_lookup.h"
-#include "cache_state.h"
+#include "cache.h"
+#include "cache_line.h"
 #include "cond.h"
 #include "lock.h"
 
@@ -82,7 +82,7 @@ class MemoryManager
       SInt32 m_core_id;
 
       Network *m_network;
-      OCache *m_ocache;
+      Cache *m_ocache;
       DramDirectory *m_dram_dir;
       AddressHomeLookup *m_addr_home_lookup;
 
@@ -109,14 +109,14 @@ class MemoryManager
 
    public:
 
-      MemoryManager(SInt32 core_id, Core *core, Network *network, OCache *ocache);
+      MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache);
       virtual ~MemoryManager();
 
       DramDirectory* getDramDirectory() { return m_dram_dir; }
 
       //cache interfacing functions.
       void setCacheLineInfo(IntPtr ca_address, CacheState::cstate_t new_cstate);
-      pair<bool, CacheTag*> getCacheLineInfo(IntPtr address);
+      CacheBlockInfo* getCacheLineInfo(IntPtr address);
       void accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, Byte* data_buffer, UInt32 data_size);
       void fillCacheLineData(IntPtr ca_address, Byte* fill_buffer);
       void invalidateCacheLine(IntPtr address);

@@ -7,7 +7,7 @@
 #include "core_manager.h"
 #include "core.h"
 #include "network.h"
-#include "ocache.h"
+#include "cache.h"
 #include "config.h"
 #include "packetize.h"
 #include "message_types.h"

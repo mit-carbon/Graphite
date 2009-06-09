@@ -110,9 +110,6 @@ void Network::netPullFromTransport()
          assert(0 <= packet.sender && packet.sender < _numMod);
          assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
 
-         DynamicInstructionInfo i = DynamicInstructionInfo::createSyncInfo(packet.time);
-         _core->getPerformanceModel()->PushDynamicInstructionInfo(i);
-
          callback(_callbackObjs[packet.type], packet);
 
          delete [] (Byte*)packet.data;

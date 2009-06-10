@@ -60,12 +60,16 @@ void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 
 void PerformanceModel::popDynamicInstructionInfo()
 {
+   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
+                    "Expected some dynamic info to be available.");
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.pop();
 }
 
 DynamicInstructionInfo& PerformanceModel::getDynamicInstructionInfo()
 {
+   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
+                    "Expected some dynamic info to be available.");
    ScopedLock sl(m_dynamic_info_queue_lock);
    return m_dynamic_info_queue.front();
 }

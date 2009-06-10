@@ -1,4 +1,5 @@
 #include "performance_model.h"
+#include "log.h"
 
 using std::endl;
 

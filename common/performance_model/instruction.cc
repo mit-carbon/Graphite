@@ -3,7 +3,7 @@
 
 Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
 
-InstructionType Instruction::getInstructionType()
+InstructionType Instruction::getType()
 {
     return m_type;
 }

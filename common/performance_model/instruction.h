@@ -7,108 +7,111 @@
 
 enum InstructionType
 {
-    INST_GENERIC,
-    INST_ADD,
-    INST_SUB,
-    INST_MUL,
-    INST_DIV,
-    INST_FADD,
-    INST_FSUB,
-    INST_FMUL,
-    INST_FDIV,
-    INST_JMP,
-    INST_DYNAMIC_MISC,
-    INST_RECV,
-    INST_SYNC,
-    MAX_INSTRUCTION_COUNT
+   INST_GENERIC,
+   INST_ADD,
+   INST_SUB,
+   INST_MUL,
+   INST_DIV,
+   INST_FADD,
+   INST_FSUB,
+   INST_FMUL,
+   INST_FDIV,
+   INST_JMP,
+   INST_DYNAMIC_MISC,
+   INST_RECV,
+   INST_SYNC,
+   MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
 {"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP","DYNAMIC"};
 
-
-enum OperandType
-{
-    OPERAND_REG,
-    OPERAND_MEMORY
-};
-
-enum OperandDirection
-{
-    OPERAND_READ,
-    OPERAND_WRITE
-};
-
-typedef UInt64 OperandValue;
-
 class Operand
 {
-    public:
-        Operand(const Operand &src)
-            : m_type(src.m_type), m_value(src.m_value), m_direction(src.m_direction) {}
+public:
+   enum Type
+   {
+      REG,
+      MEMORY
+   };
 
-        Operand(OperandType type, OperandValue value = 0, OperandDirection direction = OPERAND_READ)
-            : m_type(type), m_value(value), m_direction(direction) {}
+   enum Direction
+   {
+      READ,
+      WRITE
+   };
 
-        OperandType m_type;
-        OperandValue m_value;
-        OperandDirection m_direction;
+   typedef UInt64 Value;
+
+   Operand(const Operand &src)
+      : m_type(src.m_type), m_value(src.m_value), m_direction(src.m_direction) {}
+
+   Operand(Type type, Value value = 0, Direction direction = READ)
+      : m_type(type), m_value(value), m_direction(direction) {}
+
+   Type m_type;
+   Value m_value;
+   Direction m_direction;
 };
 
 typedef std::vector<Operand> OperandList;
 
 class Instruction
 {
-    public:
-        Instruction(InstructionType type)
-            : m_type(type) {}
+public:
+   Instruction(InstructionType type,
+               OperandList &operands)
+      : m_type(type)
+      , m_operands(operands)
+   {}
 
-        virtual ~Instruction() { };
+   Instruction(InstructionType type)
+      : m_type(type)
+   {}
 
-        InstructionType getInstructionType();
+   virtual ~Instruction() { };
 
-        virtual UInt64 getCost();
+   InstructionType getType();
 
-        static void initializeStaticInstructionModel();
+   virtual UInt64 getCost();
 
-    private:
-        typedef std::vector<unsigned int> StaticInstructionCosts;
-        static StaticInstructionCosts m_instruction_costs;
-        InstructionType m_type;
+   static void initializeStaticInstructionModel();
+
+   const OperandList& getOperands()
+   { return m_operands; }
+
+private:
+   typedef std::vector<unsigned int> StaticInstructionCosts;
+   static StaticInstructionCosts m_instruction_costs;
+
+   InstructionType m_type;
+
+protected:
+   OperandList m_operands;
 };
 
 class GenericInstruction : public Instruction
 {
-    public:
-        GenericInstruction()
-        : Instruction(INST_GENERIC)
-        {}
-
-        GenericInstruction(OperandList *operand_list)
-        : Instruction(INST_GENERIC), m_operand_list(operand_list)
-        {}
-
-
-        OperandList *m_operand_list;
+public:
+   GenericInstruction(OperandList &operands)
+      : Instruction(INST_GENERIC, operands)
+   {}
 };
 
 class ArithInstruction : public Instruction
 {
-    public:
-        ArithInstruction(InstructionType type, const Operand &src1, const Operand &src2, const Operand &dest)
-        : Instruction(type), m_src1(src1), m_src2(src2), m_dest(dest)
-        {}
-        Operand m_src1;
-        Operand m_src2;
-        Operand m_dest;
+public:
+   ArithInstruction(InstructionType type, OperandList &operands)
+      : Instruction(type, operands)
+   {}
 };
 
 class JmpInstruction : public Instruction
 {
-    public:
-        JmpInstruction(const Operand &dest)
-        : Instruction(INST_JMP)
-        {}
+public:
+   JmpInstruction(OperandList &dest)
+      : Instruction(INST_JMP, dest)
+   {}
 };
 
 // for operations not associated with the binary -- such as processing
@@ -119,8 +122,8 @@ public:
    DynamicInstruction(UInt64 cost, InstructionType type = INST_DYNAMIC_MISC)
       : Instruction(type)
       , m_cost(cost)
-      {
-      }
+   {
+   }
 
    UInt64 getCost() { return m_cost; }
   

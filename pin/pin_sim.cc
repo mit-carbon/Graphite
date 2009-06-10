@@ -206,33 +206,33 @@ VOID fillOperandList(OperandList *list, INS ins)
    {
        if(INS_OperandIsMemory(ins, i))
        {
-           OperandDirection dir;
+           Operand::Direction dir;
            if(is_mem_read && read_mem_count == 0)
            {
-               dir = OPERAND_READ;
+               dir = Operand::READ;
                read_mem_count++;
            }
            else if(is_mem_read2 && read_mem_count == 1)
            {
-               dir = OPERAND_READ;
+               dir = Operand::READ;
                read_mem_count++;
            }
            else
            {
-               dir = OPERAND_WRITE;
+               dir = Operand::WRITE;
            }
-           list->push_back(Operand(OPERAND_MEMORY, 0, dir));
+           list->push_back(Operand(Operand::MEMORY, 0, dir));
        }
        else
        {
            if(read_reg_count < max_read_regs)
            {
-               list->push_back(Operand(OPERAND_REG, INS_RegR(ins, read_reg_count), OPERAND_READ));
+               list->push_back(Operand(Operand::REG, INS_RegR(ins, read_reg_count), Operand::READ));
                read_reg_count++;
            }
            else
            {
-               list->push_back(Operand(OPERAND_REG, INS_RegW(ins, write_reg_count), OPERAND_WRITE));
+               list->push_back(Operand(Operand::REG, INS_RegW(ins, write_reg_count), Operand::WRITE));
                write_reg_count++;
            }
            reg_count++;
@@ -244,37 +244,26 @@ VOID addInstructionModeling(INS ins)
 {
    BasicBlock *basic_block = new BasicBlock();
 
-   // Just use stubs for the operands for now
-   Operand a(OPERAND_REG, 0);
-   Operand b(OPERAND_REG, 0);
-   Operand c(OPERAND_REG, 0);
-
-   if(INS_OperandCount(ins) > 0)
-       a = INS_OperandIsMemory(ins, 0) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 0));
-   if(INS_OperandCount(ins) > 1)
-       b = INS_OperandIsMemory(ins, 1) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 1));
-   if(INS_OperandCount(ins) > 2)
-       c = INS_OperandIsMemory(ins, 2) ? Operand(OPERAND_MEMORY, 0) : Operand(OPERAND_REG, INS_OperandReg(ins, 2));
+   OperandList list;
+   fillOperandList(&list, ins);
 
    // Now handle instructions which have a static cost
    switch(INS_Opcode(ins))
    {
        case OPCODE_DIV:
-           basic_block->push_back(new ArithInstruction(INST_DIV, a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_DIV, list));
            break;
        case OPCODE_MUL:
-           basic_block->push_back(new ArithInstruction(INST_MUL, a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_MUL, list));
            break;
        case OPCODE_FDIV:
-           basic_block->push_back(new ArithInstruction(INST_FDIV, a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_FDIV, list));
            break;
        case OPCODE_FMUL:
-           basic_block->push_back(new ArithInstruction(INST_FMUL, a, b, c));
+           basic_block->push_back(new ArithInstruction(INST_FMUL, list));
            break;
        default:
        {
-           OperandList *list = new OperandList();
-           fillOperandList(list, ins);
            basic_block->push_back(new GenericInstruction(list));
        }
    }

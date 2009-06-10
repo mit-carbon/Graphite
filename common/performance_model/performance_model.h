@@ -16,7 +16,7 @@ public:
    PerformanceModel();
    virtual ~PerformanceModel();
 
-   void queueInstruction(Instruction *i);
+   void queueDynamicInstruction(Instruction *i);
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
@@ -24,8 +24,8 @@ public:
 
    virtual UInt64 getCycleCount() = 0;
 
-   void PushDynamicInstructionInfo(DynamicInstructionInfo &i);
-   void PopDynamicInstructionInfo();
+   void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
+   void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
 private:

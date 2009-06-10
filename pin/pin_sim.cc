@@ -84,7 +84,6 @@ void printRtn (ADDRINT rtn_addr, bool enter)
 }
 // ---------------------------------------------------------------
 
-
 INT32 usage()
 {
    cerr << "This tool implements a multicore simulator." << endl;
@@ -292,7 +291,8 @@ VOID instructionCallback (INS ins, void *v)
          IARG_CONTEXT,
          IARG_END);
 
-   addInstructionModeling(ins);
+   if (Config::getSingleton()->getEnablePerformanceModeling())
+      addInstructionModeling(ins);
 
    if (INS_IsSyscall(ins))
    {

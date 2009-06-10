@@ -47,7 +47,9 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
-   m_send_buff << msg_type << *mux << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << *mux << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -63,8 +65,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    m_recv_buff >> time;
 
-   DynamicInstructionInfo i = DynamicInstructionInfo::createSyncInfo(time);
-   m_core->getPerformanceModel()->PushDynamicInstructionInfo(i);
+   m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
 
    delete [](Byte*) recv_pkt.data;
 }
@@ -77,7 +78,9 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
 
-   m_send_buff << msg_type << *mux << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << *mux << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -101,7 +104,9 @@ void SyncClient::condInit(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_INIT;
 
-   m_send_buff << msg_type << *cond << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << *cond << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -122,7 +127,9 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_COND_WAIT;
 
-   m_send_buff << msg_type << *cond << *mux << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << *cond << *mux << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -137,8 +144,8 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
    UInt64 time;
    m_recv_buff >> time;
-   DynamicInstructionInfo i = DynamicInstructionInfo::createSyncInfo(time);
-   m_core->getPerformanceModel()->PushDynamicInstructionInfo(i);
+
+   m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
 
    delete [](Byte*) recv_pkt.data;
 }
@@ -151,7 +158,9 @@ void SyncClient::condSignal(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
-   m_send_buff << msg_type << *cond << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << *cond << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -175,7 +184,9 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
-   m_send_buff << msg_type << *cond << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << *cond << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -199,7 +210,9 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 
    int msg_type = MCP_MESSAGE_BARRIER_INIT;
 
-   m_send_buff << msg_type << count << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << count << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -220,7 +233,9 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
 
    int msg_type = MCP_MESSAGE_BARRIER_WAIT;
 
-   m_send_buff << msg_type << *barrier << m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+
+   m_send_buff << msg_type << *barrier << start_time;
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -236,8 +251,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    UInt64 time;
    m_recv_buff >> time;
 
-   DynamicInstructionInfo i = DynamicInstructionInfo::createSyncInfo(time);
-   m_core->getPerformanceModel()->PushDynamicInstructionInfo(i);
+   m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
 
    delete [](Byte*) recv_pkt.data;
 }

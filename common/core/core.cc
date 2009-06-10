@@ -18,14 +18,7 @@ Core::Core(SInt32 id)
 
    m_network = new Network(this);
 
-   if (Config::getSingleton()->getEnablePerformanceModeling())
-   {
-      m_performance_model = new SimplePerformanceModel();
-   }
-   else
-   {
-      m_performance_model = NULL;
-   }
+   m_performance_model = new SimplePerformanceModel();
 
    if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
    {

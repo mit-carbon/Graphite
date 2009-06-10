@@ -10,8 +10,14 @@ PerformanceModel::~PerformanceModel()
 }
 
 // Public Interface
-void PerformanceModel::queueInstruction(Instruction *i)
+void PerformanceModel::queueDynamicInstruction(Instruction *i)
 {
+   if (!Config::getSingleton()->getEnablePerformanceModeling())
+   {
+      delete i;
+      return;
+   }
+
    ScopedLock sl(m_basic_block_queue_lock);
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);
@@ -20,6 +26,9 @@ void PerformanceModel::queueInstruction(Instruction *i)
 
 void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
 {
+   if (!Config::getSingleton()->getEnablePerformanceModeling())
+      return;
+
    ScopedLock sl(m_basic_block_queue_lock);
    m_basic_block_queue.push(basic_block);
 }
@@ -43,13 +52,13 @@ void PerformanceModel::iterate()
    }
 }
 
-void PerformanceModel::PushDynamicInstructionInfo(DynamicInstructionInfo &i)
+void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 {
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
 }
 
-void PerformanceModel::PopDynamicInstructionInfo()
+void PerformanceModel::popDynamicInstructionInfo()
 {
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.pop();

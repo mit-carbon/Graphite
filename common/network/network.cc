@@ -278,6 +278,10 @@ NetPacket Network::netRecv(const NetMatch &match)
                           ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
                           : NetRecvIterator(match.types);
 
+   LOG_ASSERT_ERROR(_core && _core->getPerformanceModel(),
+                    "Core and/or performance model not initialized.");
+   UInt64 start_time = _core->getPerformanceModel()->getCycleCount();
+
    _netQueueLock.acquire();
 
    while (!found)
@@ -329,8 +333,8 @@ NetPacket Network::netRecv(const NetMatch &match)
    _netQueue.erase(itr);
    _netQueueLock.release();
 
-   DynamicInstructionInfo i = DynamicInstructionInfo::createSyncInfo(packet.time);
-   _core->getPerformanceModel()->PushDynamicInstructionInfo(i);
+   Instruction *i = new RecvInstruction(packet.time - start_time);
+   _core->getPerformanceModel()->queueDynamicInstruction(i);
 
    LOG_PRINT("Exiting netRecv : type %i, from %i", (SInt32)packet.type, packet.sender);
 

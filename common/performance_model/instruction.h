@@ -17,7 +17,9 @@ enum InstructionType
     INST_FMUL,
     INST_FDIV,
     INST_JMP,
-    INST_DYNAMIC,
+    INST_DYNAMIC_MISC,
+    INST_RECV,
+    INST_SYNC,
     MAX_INSTRUCTION_COUNT
 };
 
@@ -114,8 +116,8 @@ class JmpInstruction : public Instruction
 class DynamicInstruction : public Instruction
 {
 public:
-   DynamicInstruction(UInt64 cost)
-      : Instruction(INST_DYNAMIC)
+   DynamicInstruction(UInt64 cost, InstructionType type = INST_DYNAMIC_MISC)
+      : Instruction(type)
       , m_cost(cost)
       {
       }
@@ -124,6 +126,24 @@ public:
   
 private:
    UInt64 m_cost;
+};
+
+class RecvInstruction : public DynamicInstruction
+{
+public:
+   RecvInstruction(UInt64 cost)
+      : DynamicInstruction(cost, INST_RECV)
+   {
+   }
+};
+
+class SyncInstruction : public DynamicInstruction
+{
+public:
+   SyncInstruction(UInt64 cost)
+      : DynamicInstruction(cost, INST_SYNC)
+   {
+   }
 };
 
 #endif

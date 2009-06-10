@@ -6,7 +6,7 @@ struct DynamicInstructionInfo
    enum Type
    {
       INFO_MEMORY,
-      INFO_SYNC,
+      /* INFO_SYNC, */
    } type;
 
    union
@@ -17,10 +17,10 @@ struct DynamicInstructionInfo
          IntPtr addr;
       } memory_info;
 
-      struct
-      {
-         UInt64 time;
-      } sync_info;
+      /* struct */
+      /* { */
+      /*    UInt64 time; */
+      /* } sync_info; */
    };
 
    // ctors
@@ -44,13 +44,13 @@ struct DynamicInstructionInfo
       return i;
    }
 
-   static DynamicInstructionInfo createSyncInfo(UInt64 t)
-   {
-      DynamicInstructionInfo i;
-      i.type = INFO_SYNC;
-      i.sync_info.time = t;
-      return i;
-   }
+   /* static DynamicInstructionInfo createSyncInfo(UInt64 t) */
+   /* { */
+   /*    DynamicInstructionInfo i; */
+   /*    i.type = INFO_SYNC; */
+   /*    i.sync_info.time = t; */
+   /*    return i; */
+   /* } */
 };
 
 #endif

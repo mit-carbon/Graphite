@@ -30,15 +30,17 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    {
       const Operand &o = ops[i];
 
-      if (o.m_type == Operand::MEMORY &&
-          o.m_direction == Operand::READ)
+      if (o.m_type == Operand::MEMORY)
       {
-         DynamicInstructionInfo &i = getDynamicInstructionInfo();
-         LOG_ASSERT_ERROR(i.type == DynamicInstructionInfo::INFO_MEMORY,
-                          "Expected memory info.");
+         if (o.m_direction == Operand::READ)
+         {
+            DynamicInstructionInfo &i = getDynamicInstructionInfo();
+            LOG_ASSERT_ERROR(i.type == DynamicInstructionInfo::INFO_MEMORY,
+                             "Expected memory info.");
 
-         cost += i.memory_info.latency;
-         // ignore address
+            cost += i.memory_info.latency;
+            // ignore address
+         }
          
          popDynamicInstructionInfo();
       }

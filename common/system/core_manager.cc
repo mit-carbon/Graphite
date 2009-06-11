@@ -346,6 +346,27 @@ core_id_t CoreManager::registerSimMemThread()
    return INVALID_CORE_ID;
 }
 
+bool CoreManager::amiSimThread()
+{
+   UInt32 tid = getCurrentTID();
+
+   ScopedLock sl(m_maps_lock);
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
+
+   return e.first == true;
+}
+
+bool CoreManager::amiUserThread()
+{
+   UInt32 tid = getCurrentTID();
+
+   ScopedLock sl(m_maps_lock);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
+
+   return e.first == true;
+}
+
+
 UInt32 CoreManager::getCurrentTID()
 {
    return  syscall(__NR_gettid);

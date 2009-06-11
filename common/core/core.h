@@ -15,6 +15,7 @@ class Cache;
 #include "fixed_types.h"
 #include "config.h"
 #include "perfmdl.h"
+#include "shmem_perf_model.h"
 
 #define REDIRECT_MEMORY 1
 
@@ -48,6 +49,7 @@ class Core
       SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       SyncClient *getSyncClient() { return m_sync_client; }
       Cache *getOCache() { return m_ocache; }
+      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
    private:
       core_id_t m_core_id;
@@ -57,6 +59,7 @@ class Core
       Cache *m_ocache;
       SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
+      ShmemPerfModel* m_shmem_perf_model;
 
       UInt32 m_cache_line_size;
 

@@ -28,9 +28,12 @@ Core::Core(SInt32 id)
       m_perf_model = (PerfModel *) NULL;
    }
 
+   LOG_PRINT("instantiated shared memory performance model");
+   m_shmem_perf_model = new ShmemPerfModel();
+
    if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
    {
-      m_ocache = new Cache("organic cache");
+      m_ocache = new Cache("organic cache", m_shmem_perf_model);
    }
    else
    {
@@ -42,7 +45,7 @@ Core::Core(SInt32 id)
       assert(Config::getSingleton()->getEnableDCacheModeling());
 
       LOG_PRINT("instantiated memory manager model");
-      m_memory_manager = new MemoryManager(m_core_id, this, m_network, m_ocache);
+      m_memory_manager = new MemoryManager(m_core_id, this, m_network, m_ocache, m_shmem_perf_model);
    }
    else
    {
@@ -119,6 +122,10 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
 #ifdef REDIRECT_MEMORY
+
+      // Performance Model
+      getShmemPerfModel()->setCycleCount(0);
+
       UInt32 num_misses = 0;
       string lock_value;
       LOG_PRINT("%s - ADDR: 0x%x, data_size: %u, START!!", 
@@ -179,6 +186,11 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          // Increment the buffer head
          curr_data_buffer_head += curr_size;
       }
+
+      // Performance model
+      UInt64 shmem_time = getShmemPerfModel()->getCycleCount();
+
+      LOG_PRINT("Memory Latency = %llu", shmem_time);
 
       LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", 
                ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);

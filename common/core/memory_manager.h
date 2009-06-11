@@ -14,6 +14,9 @@
 #include "cond.h"
 #include "lock.h"
 
+#include "mmu_perf_model_base.h"
+#include "shmem_perf_model.h"
+
 class DramDirectory;
 
 class MemoryManager
@@ -100,6 +103,10 @@ class MemoryManager
       void unlockCache();
       bool isCacheLocked();
 
+      // Performance modelling
+      MMUPerfModelBase* m_mmu_perf_model;
+      ShmemPerfModel* m_shmem_perf_model;
+
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
       // knobs
@@ -109,8 +116,17 @@ class MemoryManager
 
    public:
 
-      MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache);
+      MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache, ShmemPerfModel* shmem_perf_model);
       virtual ~MemoryManager();
+
+      MMUPerfModelBase* getMMUPerfModel()
+      {
+         return m_mmu_perf_model;
+      }
+      ShmemPerfModel* getShmemPerfModel()
+      {
+         return m_shmem_perf_model;
+      }
 
       DramDirectory* getDramDirectory() { return m_dram_dir; }
 
@@ -127,8 +143,8 @@ class MemoryManager
       static void extractAckPayloadBuffer(NetPacket* packet, AckPayload* payload, Byte* data_buffer);
       static void extractRequestPayloadBuffer(NetPacket* packet, RequestPayload* payload);
 
-      static NetPacket makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank);
-      static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
+      NetPacket makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank);
+      NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 
       //core traps all memory accesses here.
       bool initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size);

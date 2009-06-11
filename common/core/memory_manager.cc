@@ -10,7 +10,7 @@ UInt32 MemoryManager::m_knob_line_size;
 
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
-MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache)
+MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache, ShmemPerfModel* shmem_perf_model)
 {
    try
    {
@@ -35,7 +35,7 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
 
    m_cache_line_size = Config::getSingleton()->getCacheLineSize();
 
-   m_dram_dir = new DramDirectory(m_core_id, m_network);
+   m_dram_dir = new DramDirectory(m_core_id, m_network, shmem_perf_model);
    m_addr_home_lookup = new AddressHomeLookup(m_core_id);
 
    m_network->registerCallback(SHARED_MEM_REQ, MemoryManagerNetworkCallback, this);
@@ -44,6 +44,10 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
    m_network->registerCallback(SHARED_MEM_ACK, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_RESPONSE, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_INIT_REQ, MemoryManagerNetworkCallback, this);
+
+   // Performance Models
+   m_mmu_perf_model = MMUPerfModelBase::createModel(MMUPerfModelBase::MMU_PERF_MODEL);
+   m_shmem_perf_model = shmem_perf_model;
 
 }
 
@@ -61,6 +65,8 @@ void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
 {
    MemoryManager *mm = (MemoryManager*) obj;
    assert(mm != NULL);
+
+   mm->getShmemPerfModel()->setCycleCount(packet.time);
 
    switch (packet.type)
    {
@@ -93,7 +99,6 @@ void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
    };
 }
 
-
 void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 {
    LOG_PRINT("RequestPayload - RequestType (%s) ADDR (%x)", sMemReqTypeToString(payload.request_type).c_str(), payload.request_address);
@@ -102,6 +107,7 @@ void MemoryManager::debugPrintReqPayload(RequestPayload payload)
 NetPacket MemoryManager::makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, SInt32 sender_rank, SInt32 receiver_rank)
 {
    NetPacket packet;
+   packet.time = getShmemPerfModel()->getCycleCount();
    packet.type = packet_type;
    packet.sender = sender_rank;
    packet.receiver = receiver_rank;
@@ -400,6 +406,9 @@ void MemoryManager::processSharedMemInitialReq(NetPacket req_packet)
 
 void MemoryManager::processSharedMemResponse(NetPacket rep_packet)
 {
+   // Update the 'user thread' performance model
+   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, rep_packet.time);
+
    assert(rep_packet.type == SHARED_MEM_RESPONSE);
 
    UpdatePayload rep_payload;

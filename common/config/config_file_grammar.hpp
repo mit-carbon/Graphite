@@ -3,12 +3,24 @@
 // #define BOOST_SPIRIT_RULE_SCANNERTYPE_LIMIT 2
 #include "config_file.hpp"
 // #define BOOST_SPIRIT_DEBUG        // define this for debug output
-#include <boost/spirit/include/classic_core.hpp>
-#include <boost/spirit/include/classic_parse_tree.hpp>
-#include <boost/spirit/include/classic_ast.hpp>
-#include <boost/spirit/include/classic_confix.hpp>
-#include <boost/spirit/include/classic_escape_char.hpp>
-#include <boost/spirit/include/classic_chset.hpp>
+
+#include <boost/version.hpp>
+#if (BOOST_VERSION==103500)
+# include <boost/spirit/core.hpp>
+# include <boost/spirit/tree/parse_tree.hpp>
+# include <boost/spirit/tree/ast.hpp>
+# include <boost/spirit/utility/confix.hpp>
+# include <boost/spirit/utility/escape_char.hpp>
+# include <boost/spirit/utility/chset.hpp>
+#else
+# include <boost/spirit/include/classic_core.hpp>
+# include <boost/spirit/include/classic_parse_tree.hpp>
+# include <boost/spirit/include/classic_ast.hpp>
+# include <boost/spirit/include/classic_confix.hpp>
+# include <boost/spirit/include/classic_escape_char.hpp>
+# include <boost/spirit/include/classic_chset.hpp>
+#endif
+
 #include <iostream>
 
 /*! \file config_file_grammar.hpp
@@ -19,7 +31,11 @@
 
 namespace config
 {
+#if (BOOST_VERSION==103500)
+    using namespace boost::spirit;
+#else
     using namespace boost::spirit::classic;
+#endif
 
     enum RuleID { defaultID, sectionID, keyNameID, keyValueID, keyID, sectionNameID, stringID, configID };
 
@@ -103,10 +119,12 @@ namespace config
 
                     // Strings and names may either be "quoted" or not.
                     r_string       = 
-                                   ( lexeme_d[ token_node_d[ inner_node_d[ confix_p('"', *lex_escape_ch_p, '"') ] ] ]
-                                   | lexeme_d[ token_node_d[ +(alnum_p) >> *(alnum_p | punct_p - ch_p('=') ) ] ] 
-                                   )
-                                   ;
+                       (
+                          ( lexeme_d[ token_node_d[ inner_node_d[ confix_p('"', *lex_escape_ch_p, '"') ] ] ] )
+                          |
+                          ( lexeme_d[ token_node_d[ +(alnum_p) >> *(alnum_p | (punct_p - ch_p('=')) ) ] ] )
+                          )
+                       ;
                 }
 
                 rule<ScannerT> r_file, r_config, r_config_node, r_section, r_key, r_key_name, r_value, r_key_node, r_section_node, r_section_name, r_section_name_node, r_section_name_node_node, r_string;

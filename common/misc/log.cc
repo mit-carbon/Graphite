@@ -1,6 +1,7 @@
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "log.h"
 #include "config.h"

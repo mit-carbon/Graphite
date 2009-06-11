@@ -5,12 +5,17 @@
 // Author: Charles Gruenwald III
 #include "key.hpp"
 
+#include <boost/version.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/spirit/include/classic_core.hpp>
 
-
+#if (BOOST_VERSION==103500)
+# include <boost/spirit/core.hpp>
+using namespace boost::spirit;
+#else
+# include <boost/spirit/include/classic_core.hpp>
 using namespace boost::spirit::classic;
+#endif
 
 namespace config
 {
@@ -49,7 +54,7 @@ namespace config
         unsigned short valid = TYPE_STRING_VALID;
 
         // Try for floats
-        if(boost::spirit::classic::parse(value.c_str(),real_p).full)
+        if(parse(value.c_str(),real_p).full)
         {
             try
             {
@@ -62,7 +67,7 @@ namespace config
         }
 
         // and ints
-        if(boost::spirit::classic::parse(value.c_str(),int_p).full)
+        if(parse(value.c_str(),int_p).full)
         {
             try
             {

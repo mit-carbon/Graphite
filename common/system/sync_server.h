@@ -3,6 +3,8 @@
 
 #include <queue>
 #include <vector>
+#include <limits.h>
+#include <string.h>
 
 #include "sync_api.h"
 #include "transport.h"

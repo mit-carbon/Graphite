@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "core_manager.h"
 #include "core.h"

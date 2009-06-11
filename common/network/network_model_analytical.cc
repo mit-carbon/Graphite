@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 
 #include "network_model_analytical.h"
 #include "network_model_analytical_params.h"

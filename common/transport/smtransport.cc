@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "smtransport.h"
 #include "config.h"
 #include "log.h"

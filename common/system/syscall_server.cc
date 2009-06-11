@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include "syscall_server.h"
 #include "sys/syscall.h"
 #include "core.h"

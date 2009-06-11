@@ -1,6 +1,8 @@
 #include "dram_directory_entry.h"
 #include "simulator.h"
 
+#include <string.h>
+
 UInt32 DramDirectoryEntry::cache_line_size;
 UInt32 DramDirectoryEntry::max_sharers;
 UInt32 DramDirectoryEntry::total_cores;

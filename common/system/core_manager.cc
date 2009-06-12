@@ -298,7 +298,7 @@ void CoreManager::outputSummary()
       }
 
       if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
-         m_cores[i]->getOCache()->outputSummary(out);
+         m_cores[i]->getDCache()->outputSummary(out);
 
       out << endl;
    }

@@ -31,13 +31,13 @@ Core::Core(SInt32 id)
    LOG_PRINT("instantiated shared memory performance model");
    m_shmem_perf_model = new ShmemPerfModel();
 
-   if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
+   if (Config::getSingleton()->getEnableDCacheModeling())
    {
-      m_ocache = new Cache("organic cache", m_shmem_perf_model);
+      m_dcache = new Cache("organic cache", m_shmem_perf_model);
    }
    else
    {
-      m_ocache = (Cache *) NULL;
+      m_dcache = (Cache *) NULL;
    }
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
@@ -45,7 +45,7 @@ Core::Core(SInt32 id)
       assert(Config::getSingleton()->getEnableDCacheModeling());
 
       LOG_PRINT("instantiated memory manager model");
-      m_memory_manager = new MemoryManager(m_core_id, this, m_network, m_ocache, m_shmem_perf_model);
+      m_memory_manager = new MemoryManager(m_core_id, this, m_network, m_dcache, m_shmem_perf_model);
    }
    else
    {
@@ -63,7 +63,7 @@ Core::~Core()
 {
    delete m_sync_client;
    delete m_syscall_model;
-   delete m_ocache;
+   delete m_dcache;
    delete m_perf_model;
    delete m_network;
 }
@@ -138,11 +138,11 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
       IntPtr begin_addr = d_addr;
       IntPtr end_addr = d_addr + data_size;
-      IntPtr begin_addr_aligned = begin_addr - (begin_addr % m_ocache->dCacheLineSize());
-      IntPtr end_addr_aligned = end_addr - (end_addr % m_ocache->dCacheLineSize());
+      IntPtr begin_addr_aligned = begin_addr - (begin_addr % m_dcache->dCacheLineSize());
+      IntPtr end_addr_aligned = end_addr - (end_addr % m_dcache->dCacheLineSize());
       Byte *curr_data_buffer_head = (Byte*) data_buffer;
 
-      for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned; curr_addr_aligned += m_ocache->dCacheLineSize())
+      for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned; curr_addr_aligned += m_dcache->dCacheLineSize())
       {
          // Access the cache one line at a time
          UInt32 curr_offset;
@@ -151,7 +151,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          // Determine the offset
          if (curr_addr_aligned == begin_addr_aligned)
          {
-            curr_offset = begin_addr % m_ocache->dCacheLineSize();
+            curr_offset = begin_addr % m_dcache->dCacheLineSize();
          }
          else
          {
@@ -161,7 +161,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          // Determine the size
          if (curr_addr_aligned == end_addr_aligned)
          {
-            curr_size = (end_addr % m_ocache->dCacheLineSize()) - (curr_offset);
+            curr_size = (end_addr % m_dcache->dCacheLineSize()) - (curr_offset);
             if (curr_size == 0)
             {
                continue;
@@ -169,7 +169,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          }
          else
          {
-            curr_size = m_ocache->dCacheLineSize() - (curr_offset);
+            curr_size = m_dcache->dCacheLineSize() - (curr_offset);
          }
 
          LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);

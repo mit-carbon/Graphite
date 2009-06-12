@@ -19,7 +19,7 @@ class CacheSetBase
          NUM_REPLACEMENT_POLICIES
       };
 
-      static CacheSetBase* createModel(ReplacementPolicy replacement_policy, UInt32 associativity, UInt32 blocksize);
+      static CacheSetBase* createCacheSet(ReplacementPolicy replacement_policy, UInt32 associativity, UInt32 blocksize);
 
       static ReplacementPolicy parsePolicyType(string policy);
 

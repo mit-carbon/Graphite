@@ -2,7 +2,7 @@
 #include "log.h"
 
 CacheSetBase* 
-CacheSetBase::createModel (ReplacementPolicy replacement_policy,
+CacheSetBase::createCacheSet (ReplacementPolicy replacement_policy,
       UInt32 associativity, UInt32 blocksize)
 {
    switch(replacement_policy)

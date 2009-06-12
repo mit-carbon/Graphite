@@ -27,8 +27,8 @@ class DramPerfModel
       {
          try
          {
-            m_dram_access_cost = Sim()->getCfg()->getInt("dram_perf_model/dram_access_cost");
-            m_dram_bandwidth = Sim()->getCfg()->getInt("dram_perf_model/dram_bandwidth_per_controller");
+            m_dram_access_cost = Sim()->getCfg()->getInt("perf_model/dram/access_cost");
+            m_dram_bandwidth = Sim()->getCfg()->getInt("perf_model/dram/bandwidth_per_controller");
          }
          catch(...)
          {

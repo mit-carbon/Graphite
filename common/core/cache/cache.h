@@ -152,6 +152,7 @@ class CacheBase
 class Cache : public CacheBase
 {
    private:
+
       CacheSetBase**  m_sets;
       CachePerfModelBase* m_cache_perf_model;
       ShmemPerfModel* m_shmem_perf_model;
@@ -175,11 +176,20 @@ class Cache : public CacheBase
          m_sets = new CacheSetBase*[m_num_sets];
          for (UInt32 i = 0; i < m_num_sets; i++)
          {
-            m_sets[i] = CacheSetBase::createModel(replacement_policy, m_associativity, m_blocksize);
+            m_sets[i] = CacheSetBase::createCacheSet(replacement_policy, m_associativity, m_blocksize);
          }
 
          // Performance Models
-         m_cache_perf_model = CachePerfModelBase::createModel(CachePerfModelBase::CACHE_MODEL_PARALLEL);
+         CachePerfModelBase::CacheModel_t model_type;
+         try
+         {
+            model_type = CachePerfModelBase::parseModelType(Sim()->getCfg()->getString("perf_model/cache/model_type"));
+         }
+         catch(...)
+         {
+            LOG_PRINT_ERROR("Error reading perf_model/cache/model_type from config file");
+         }
+         m_cache_perf_model = CachePerfModelBase::createModel(model_type);
          m_shmem_perf_model = shmem_perf_model;
       }
 
@@ -190,18 +200,11 @@ class Cache : public CacheBase
          delete [] m_sets;
       }
 
-      CachePerfModelBase* getCachePerfModel()
-      {
-         return m_cache_perf_model;
-      }
-      ShmemPerfModel* getShmemPerfModel()
-      {
-         return m_shmem_perf_model;
-      }
+      
 
       bool invalidateSingleLine(IntPtr addr)
       {
-         getShmemPerfModel()->updateCycleCount(getCachePerfModel()->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
+         m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
 
          IntPtr tag;
          UInt32 set_index;
@@ -215,7 +218,7 @@ class Cache : public CacheBase
       CacheBlockInfo* accessSingleLine(IntPtr addr, AccessType access_type, 
             Byte* buff = NULL, UInt32 bytes = 0)
       {
-         getShmemPerfModel()->updateCycleCount(getCachePerfModel()->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
+         m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
 
          assert((buff == NULL) == (bytes == 0));
  
@@ -244,7 +247,7 @@ class Cache : public CacheBase
             bool* eviction, IntPtr* evict_addr, 
             CacheBlockInfo* evict_block_info, Byte* evict_buff)
       {
-         getShmemPerfModel()->updateCycleCount(getCachePerfModel()->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
+         m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
 
          IntPtr tag;
          UInt32 set_index;
@@ -261,7 +264,7 @@ class Cache : public CacheBase
       // Single line cache access at addr
       CacheBlockInfo* peekSingleLine(IntPtr addr)
       {
-         getShmemPerfModel()->updateCycleCount(getCachePerfModel()->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
+         m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
 
          IntPtr tag;
          UInt32 set_index;

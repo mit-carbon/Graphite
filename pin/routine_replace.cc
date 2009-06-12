@@ -686,14 +686,15 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
    ADDRINT ptr;
    ADDRINT buffer;
    unsigned int count = 0;
-   // Core *core = Sim()->getCoreManager()->getCurrentCore();
-   // assert (core);
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert (core);
+
    do
    {
       type = va_arg (vl, int);
       addr = PIN_GetContextReg (ctxt, REG_STACK_PTR) + ((count + 1) * sizeof (ADDRINT));
      
-      memOp (Core::NONE, READ, addr, (char*) &buffer, sizeof (ADDRINT));
+      core->accessMemory (Core::NONE, READ, addr, (char*) &buffer, sizeof (ADDRINT));
       switch (type)
       {
          case IARG_ADDRINT:

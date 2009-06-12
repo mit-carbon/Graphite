@@ -3,7 +3,7 @@
 #include "log.h"
 #include "simulator.h"
 
-DramDirectory::DramDirectory(core_id_t core_id, Network* network)
+DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel* shmem_perf_model)
 {
    try
    {
@@ -27,6 +27,10 @@ DramDirectory::DramDirectory(core_id_t core_id, Network* network)
    DramDirectoryEntry::setCacheLineSize(m_cache_line_size);
    DramDirectoryEntry::setMaxSharers(Config::getSingleton()->getDirMaxSharers());
    DramDirectoryEntry::setTotalCores(Config::getSingleton()->getTotalCores());
+
+   m_dram_directory_perf_model = DramDirectoryPerfModelBase::createModel(DramDirectoryPerfModelBase::DRAM_DIRECTORY_PERF_MODEL);
+   m_shmem_perf_model = shmem_perf_model;
+
 }
 
 DramDirectory::~DramDirectory()
@@ -40,15 +44,14 @@ DramDirectory::~DramDirectory()
    assert (dram_request_list.empty());
 }
 
-/*
- * returns the associated DRAM directory entry given a memory address
- */
+// Returns the associated DRAM directory entry given a memory address
 DramDirectoryEntry* DramDirectory::getEntry(IntPtr address)
 {
+   getShmemPerfModel()->updateCycleCount(getDramDirectoryPerfModel()->getLatency(DramDirectoryPerfModelBase::ACCESS_DIR_CACHE));
+
    // Note: The directory is a map key'ed by addresss.
    DramDirectoryEntry* entry_ptr = dram_directory_entries[address];
 
-   // FIXME: I guess this is the place we need to call the code for transferring data from the host machine to the simulated machine
    if (entry_ptr == NULL)
    {
       dram_directory_entries[address] =  new DramDirectoryEntry(address);
@@ -257,6 +260,19 @@ void DramDirectory::processSharedMemRequest(UInt32 requestor, shmem_req_t shmem_
 
 }
 
+NetPacket DramDirectory::makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, SInt32 sender_rank, SInt32 receiver_rank)
+{
+   NetPacket packet;
+   packet.time = getShmemPerfModel()->getCycleCount();
+   packet.type = packet_type;
+   packet.sender = sender_rank;
+   packet.receiver = receiver_rank;
+   packet.data = payload_buffer;
+   packet.length = payload_size;
+
+   return packet;
+}
+
 
 /* ============================================================== */
 //
@@ -310,7 +326,7 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UInt32 requ
 
    MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
    // This is the response to a shared memory request
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_RESPONSE, payload_buffer, payload_size, m_core_id, requestor);
+   NetPacket packet = makePacket(SHARED_MEM_RESPONSE, payload_buffer, payload_size, m_core_id, requestor);
 
    m_network->netSend(packet);
 
@@ -332,7 +348,7 @@ void DramDirectory::startDemoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
    upd_payload.update_new_cstate = new_cstate;
    upd_payload.update_address = address;
    upd_payload.data_size = 0;
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), m_core_id, owner);
+   NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), m_core_id, owner);
 
    m_network->netSend(packet);
 }
@@ -370,7 +386,7 @@ void DramDirectory::startInvalidateSingleSharer(DramDirectoryEntry* dram_dir_ent
    payload.update_address = address;
    payload.data_size = 0;
 
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&payload), sizeof(MemoryManager::UpdatePayload), m_core_id, sharer_id);
+   NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&payload), sizeof(MemoryManager::UpdatePayload), m_core_id, sharer_id);
    m_network->netSend(packet);
 }
 

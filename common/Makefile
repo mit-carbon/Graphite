@@ -9,6 +9,7 @@ endif
 C_SOURCES = 
 CPP_SOURCES =        		              \
           $(SIM_ROOT)/common/core/*.cc        \
+          $(SIM_ROOT)/common/core/cache/*.cc  \
           $(SIM_ROOT)/common/network/*.cc     \
           $(SIM_ROOT)/common/transport/*.cc   \
           $(SIM_ROOT)/common/misc/*.cc        \

@@ -35,6 +35,9 @@ class CoreManager
       UInt32 getCurrentTID();
       UInt32 getCoreIndexFromID(core_id_t core_id);
       UInt32 getCoreIndexFromTID(UInt32 tid);
+
+      bool amiUserThread();
+      bool amiSimThread();
    private:
 
       Lock m_maps_lock;

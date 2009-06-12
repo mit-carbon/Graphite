@@ -46,6 +46,7 @@ export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)
 CXXFLAGS+=-c -I$(SIM_ROOT)/common/user      \
           -I$(SIM_ROOT)/common/system       \
           -I$(SIM_ROOT)/common/core         \
+          -I$(SIM_ROOT)/common/core/cache   \
           -I$(SIM_ROOT)/common/network      \
           -I$(SIM_ROOT)/common/transport    \
           -I$(SIM_ROOT)/common/misc         \

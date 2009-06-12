@@ -8,11 +8,14 @@
 #include "network.h"
 #include "packet_type.h"
 #include "core.h"
-#include "ocache.h"
 #include "address_home_lookup.h"
-#include "cache_state.h"
+#include "cache.h"
+#include "cache_line.h"
 #include "cond.h"
 #include "lock.h"
+
+#include "mmu_perf_model_base.h"
+#include "shmem_perf_model.h"
 
 class DramDirectory;
 
@@ -82,7 +85,7 @@ class MemoryManager
       SInt32 m_core_id;
 
       Network *m_network;
-      OCache *m_ocache;
+      Cache *m_ocache;
       DramDirectory *m_dram_dir;
       AddressHomeLookup *m_addr_home_lookup;
 
@@ -100,6 +103,10 @@ class MemoryManager
       void unlockCache();
       bool isCacheLocked();
 
+      // Performance modelling
+      MMUPerfModelBase* m_mmu_perf_model;
+      ShmemPerfModel* m_shmem_perf_model;
+
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
       // knobs
@@ -109,14 +116,23 @@ class MemoryManager
 
    public:
 
-      MemoryManager(SInt32 core_id, Core *core, Network *network, OCache *ocache);
+      MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache, ShmemPerfModel* shmem_perf_model);
       virtual ~MemoryManager();
+
+      MMUPerfModelBase* getMMUPerfModel()
+      {
+         return m_mmu_perf_model;
+      }
+      ShmemPerfModel* getShmemPerfModel()
+      {
+         return m_shmem_perf_model;
+      }
 
       DramDirectory* getDramDirectory() { return m_dram_dir; }
 
       //cache interfacing functions.
       void setCacheLineInfo(IntPtr ca_address, CacheState::cstate_t new_cstate);
-      pair<bool, CacheTag*> getCacheLineInfo(IntPtr address);
+      CacheBlockInfo* getCacheLineInfo(IntPtr address);
       void accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, Byte* data_buffer, UInt32 data_size);
       void fillCacheLineData(IntPtr ca_address, Byte* fill_buffer);
       void invalidateCacheLine(IntPtr address);
@@ -127,8 +143,8 @@ class MemoryManager
       static void extractAckPayloadBuffer(NetPacket* packet, AckPayload* payload, Byte* data_buffer);
       static void extractRequestPayloadBuffer(NetPacket* packet, RequestPayload* payload);
 
-      static NetPacket makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank);
-      static NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
+      NetPacket makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, int sender_rank, int receiver_rank);
+      NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 
       //core traps all memory accesses here.
       bool initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size);

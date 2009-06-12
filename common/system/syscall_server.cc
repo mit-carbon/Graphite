@@ -6,7 +6,6 @@
 #include "sys/syscall.h"
 #include "core.h"
 #include "config.h"
-#include "ocache.h"
 #include "vm_manager.h"
 
 #include "log.h"

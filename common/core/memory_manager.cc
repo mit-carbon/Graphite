@@ -4,27 +4,11 @@
 
 using namespace std;
 
-UInt32 MemoryManager::m_knob_ahl_param;
-UInt32 MemoryManager::m_knob_dram_access_cost;
-UInt32 MemoryManager::m_knob_line_size;
-
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
 MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache, ShmemPerfModel* shmem_perf_model)
 {
-   try
-   {
-   m_knob_ahl_param = Sim()->getCfg()->getInt("dram/ahl_param");
-   m_knob_dram_access_cost = Sim()->getCfg()->getInt("dram/dram_access_cost");
-   m_knob_line_size = Sim()->getCfg()->getInt("cache/dcache_line_size");
-   }
-   catch(...)
-   {
-      LOG_ASSERT_ERROR(false, "MemoryManager obtained a bad value from config.");
-   }
-
-   LOG_ASSERT_ERROR(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(),
-                    "Must set dcache modeling on (-mdc) to use shared memory model.");
+   LOG_ASSERT_ERROR(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(), "Must set dcache modeling on (-mdc) to use shared memory model.");
 
    m_core_id = core_id;
    m_core = core;

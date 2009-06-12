@@ -18,10 +18,7 @@ std::string Config::m_knob_output_file;
 bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_dcache_modeling;
 bool Config::m_knob_enable_icache_modeling;
-
-UInt32 Config::m_knob_dir_max_sharers;
 UInt32 Config::m_knob_cache_line_size;
-UInt32 Config::m_knob_ahl_param;
 
 using namespace std;
 
@@ -47,10 +44,7 @@ Config::Config()
    m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
    m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
    m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
-
-   m_knob_dir_max_sharers = Sim()->getCfg()->getInt("dram/max_sharers");
    m_knob_cache_line_size = Sim()->getCfg()->getInt("cache/dcache_line_size");
-   m_knob_ahl_param = Sim()->getCfg()->getInt("dram/ahl_param");
    }
    catch(...)
    {
@@ -200,19 +194,9 @@ bool Config::getEnableICacheModeling() const
    return (bool)m_knob_enable_icache_modeling;
 }
 
-UInt32 Config::getDirMaxSharers() const
-{
-   return (UInt32) m_knob_dir_max_sharers;
-}
-
 UInt32 Config::getCacheLineSize() const
 {
    return (UInt32) m_knob_cache_line_size;
-}
-
-UInt32 Config::getAHLParam() const
-{
-   return (UInt32) m_knob_ahl_param;
 }
 
 const char *Config::getOutputFileName() const

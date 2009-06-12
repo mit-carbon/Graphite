@@ -109,11 +109,6 @@ class MemoryManager
 
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
-      // knobs
-      static UInt32 m_knob_ahl_param;
-      static UInt32 m_knob_dram_access_cost;
-      static UInt32 m_knob_line_size;
-
    public:
 
       MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache, ShmemPerfModel* shmem_perf_model);

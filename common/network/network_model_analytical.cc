@@ -52,7 +52,8 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    h.time = perf->getCycleCount() + computeLatency(pkt);
    nextHops.push_back(h);
 
-   perf->queueDynamicInstruction(new DynamicInstruction(_procCost));
+   if (_procCost > 0)
+      perf->queueDynamicInstruction(new DynamicInstruction(_procCost));
    _cyclesProc += _procCost;
 
    updateUtilization();

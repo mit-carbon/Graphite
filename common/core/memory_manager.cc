@@ -648,7 +648,7 @@ carbon_reg_t MemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, 
          lock_signal = Core::NONE;
       }
        
-      m_core->accessMemory (lock_signal, shmem_req_type, tgt_ea, scratchpad, size);
+      m_core->accessMemory (lock_signal, shmem_req_type, tgt_ea, scratchpad, size, true);
 
    }
    return (carbon_reg_t) scratchpad;
@@ -660,7 +660,7 @@ void MemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPt
 
    Core::lock_signal_t lock_signal = (has_lock_prefix) ? Core::UNLOCK : Core::NONE;
       
-   m_core->accessMemory (lock_signal, WRITE, tgt_ea, scratchpad, size);
+   m_core->accessMemory (lock_signal, WRITE, tgt_ea, scratchpad, size, true);
    
    return;
 }

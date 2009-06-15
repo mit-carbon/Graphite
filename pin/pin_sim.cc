@@ -38,6 +38,7 @@
 #include "pin_config.h"
 #include "log.h"
 #include "vm_manager.h"
+#include "instruction_modeling.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -168,117 +169,33 @@ void routineCallback(RTN rtn, void *v)
    //    replaceInstruction(rtn, rtn_name);
 }
 
-void handleBasicBlock(BasicBlock *sim_basic_block)
-{
-   PerformanceModel *prfmdl = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
-
-   prfmdl->queueBasicBlock(sim_basic_block);
-
-    //FIXME: put this in a thread
-   prfmdl->iterate();
-}
-
 void showInstructionInfo(INS ins)
 {
+   if (Sim()->getCoreManager()->getCurrentCore()->getId() != 0)
+      return;
    printf("\t");
+   if(INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins))
+      printf("* ");
+   else
+      printf("  ");
 //   printf("%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
    printf("%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
    printf(" %s ", INS_Disassemble(ins).c_str());
-   if(INS_IsMemoryWrite(ins))
    printf("\n");
 }
 
-VOID fillOperandList(OperandList *list, INS ins)
-{
-   // for handling register operands
-   bool is_mem_read = INS_IsMemoryRead(ins);
-   bool is_mem_read2 = INS_HasMemoryRead2(ins);
-   unsigned int read_mem_count = 0;
-
-   // for handling memory operands
-   unsigned int reg_count = 0;
-   unsigned int read_reg_count = 0;
-   unsigned int write_reg_count = 0;
-   unsigned int max_read_regs = INS_MaxNumRRegs(ins);
-//   unsigned int max_write_regs = INS_MaxNumRRegs(ins);
-
-   for(unsigned int i = 0; i < INS_OperandCount(ins); i++)
-   {
-       if(INS_OperandIsMemory(ins, i))
-       {
-           Operand::Direction dir;
-           if(is_mem_read && read_mem_count == 0)
-           {
-               dir = Operand::READ;
-               read_mem_count++;
-           }
-           else if(is_mem_read2 && read_mem_count == 1)
-           {
-               dir = Operand::READ;
-               read_mem_count++;
-           }
-           else
-           {
-               dir = Operand::WRITE;
-           }
-           list->push_back(Operand(Operand::MEMORY, 0, dir));
-       }
-       else
-       {
-           if(read_reg_count < max_read_regs)
-           {
-               list->push_back(Operand(Operand::REG, INS_RegR(ins, read_reg_count), Operand::READ));
-               read_reg_count++;
-           }
-           else
-           {
-               list->push_back(Operand(Operand::REG, INS_RegW(ins, write_reg_count), Operand::WRITE));
-               write_reg_count++;
-           }
-           reg_count++;
-       }
-   }
-}
-
-VOID addInstructionModeling(INS ins)
-{
-   BasicBlock *basic_block = new BasicBlock();
-
-   OperandList list;
-   fillOperandList(&list, ins);
-
-   // Now handle instructions which have a static cost
-   switch(INS_Opcode(ins))
-   {
-       case OPCODE_DIV:
-           basic_block->push_back(new ArithInstruction(INST_DIV, list));
-           break;
-       case OPCODE_MUL:
-           basic_block->push_back(new ArithInstruction(INST_MUL, list));
-           break;
-       case OPCODE_FDIV:
-           basic_block->push_back(new ArithInstruction(INST_FDIV, list));
-           break;
-       case OPCODE_FMUL:
-           basic_block->push_back(new ArithInstruction(INST_FMUL, list));
-           break;
-       default:
-       {
-           basic_block->push_back(new GenericInstruction(list));
-       }
-   }
-
-   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
-}
-
-
 VOID instructionCallback (INS ins, void *v)
 {
-   INS_InsertCall(ins, IPOINT_BEFORE,
-         AFUNPTR(printInsInfo),
-         IARG_CALL_ORDER, CALL_ORDER_FIRST,
-         IARG_CONTEXT,
-         IARG_END);
+//   showInstructionInfo(ins);
+
+   if (Log::getSingleton()->isLoggingEnabled())
+   {
+      INS_InsertCall(ins, IPOINT_BEFORE,
+                     AFUNPTR(printInsInfo),
+                     IARG_CALL_ORDER, CALL_ORDER_FIRST,
+                     IARG_CONTEXT,
+                     IARG_END);
+   }
 
    if (Config::getSingleton()->getEnablePerformanceModeling())
       addInstructionModeling(ins);
@@ -292,19 +209,9 @@ VOID instructionCallback (INS ins, void *v)
    }
 
    // Emulate Stack Operations
-   bool string_op = rewriteStringOp (ins);
-
-   if (!string_op)
-   {
-      // Emulate stack operations
-      bool stack_op = rewriteStackOp (ins);
-
-      // Else, redirect memory to the simulated memory system
-      if (!stack_op)
-      {
-         rewriteMemOp (ins);
-      }
-   }
+   if (rewriteStringOp (ins));
+   else if (rewriteStackOp (ins));
+   else rewriteMemOp (ins);
 }
 
 // syscall model wrappers

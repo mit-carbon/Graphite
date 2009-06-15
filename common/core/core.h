@@ -39,7 +39,7 @@ class Core
 
       int coreSendW(int sender, int receiver, char *buffer, int size);
       int coreRecvW(int sender, int receiver, char *buffer, int size);
-      UInt32 accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);
+      UInt32 accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled=false);
       UInt32 nativeMemOp(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
       // network accessor since network is private

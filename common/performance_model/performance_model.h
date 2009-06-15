@@ -9,6 +9,7 @@
 #include "basic_block.h"
 #include "fixed_types.h"
 #include "lock.h"
+#include "dynamic_instruction_info.h"
 
 class PerformanceModel
 {

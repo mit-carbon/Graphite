@@ -32,16 +32,22 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
 
       if (o.m_type == Operand::MEMORY)
       {
+         DynamicInstructionInfo &info = getDynamicInstructionInfo();
+
          if (o.m_direction == Operand::READ)
          {
-            DynamicInstructionInfo &i = getDynamicInstructionInfo();
-            LOG_ASSERT_ERROR(i.type == DynamicInstructionInfo::INFO_MEMORY,
-                             "Expected memory info.");
+            LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_READ,
+                             "Expected memory read info, got: %d.", info.type);
 
-            cost += i.memory_info.latency;
+            cost += info.memory_info.latency;
             // ignore address
          }
-         
+         else
+         {
+            LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_WRITE,
+                             "Expected memory write info, got: %d.", info.type);
+         }
+
          popDynamicInstructionInfo();
       }
    }

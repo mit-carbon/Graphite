@@ -125,7 +125,7 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
  * Return Value:
  *   number of misses :: State the number of cache misses
  */
-UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -141,6 +141,11 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
       if (data_size <= 0)
       {
+         if (modeled)
+         {
+            DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ);
+            m_performance_model->pushDynamicInstructionInfo(info);
+         }
          return (num_misses);
       }
 
@@ -202,6 +207,12 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
       LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", 
                ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);
+
+      if (modeled)
+      {
+         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ);
+         m_performance_model->pushDynamicInstructionInfo(info);
+      }
 
       return (num_misses);
 #else

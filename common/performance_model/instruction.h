@@ -2,7 +2,6 @@
 #define INSTRUCTION_H
 
 #include "fixed_types.h"
-#include "dynamic_instruction_info.h"
 #include <vector>
 
 enum InstructionType
@@ -20,11 +19,12 @@ enum InstructionType
    INST_DYNAMIC_MISC,
    INST_RECV,
    INST_SYNC,
+   INST_STRING,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP","DYNAMIC"};
+{"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP","DYNAMIC_MISC","RECV","SYNC","STRING"};
 
 class Operand
 {
@@ -32,7 +32,8 @@ public:
    enum Type
    {
       REG,
-      MEMORY
+      MEMORY,
+      IMMEDIATE
    };
 
    enum Direction
@@ -60,20 +61,14 @@ class Instruction
 {
 public:
    Instruction(InstructionType type,
-               OperandList &operands)
-      : m_type(type)
-      , m_operands(operands)
-   {}
+               OperandList &operands);
 
-   Instruction(InstructionType type)
-      : m_type(type)
-   {}
+   Instruction(InstructionType type);
 
    virtual ~Instruction() { };
+   virtual UInt64 getCost();
 
    InstructionType getType();
-
-   virtual UInt64 getCost();
 
    static void initializeStaticInstructionModel();
 
@@ -86,8 +81,11 @@ private:
 
    InstructionType m_type;
 
+   void ctor();
+
 protected:
    OperandList m_operands;
+   UInt64 m_cost;
 };
 
 class GenericInstruction : public Instruction
@@ -114,21 +112,22 @@ public:
    {}
 };
 
+// CMPSB or SCASB instruction
+class StringInstruction : public Instruction
+{
+public:
+   StringInstruction(OperandList &ops);
+
+   UInt64 getCost();
+};
+
 // for operations not associated with the binary -- such as processing
 // a packet
 class DynamicInstruction : public Instruction
 {
 public:
-   DynamicInstruction(UInt64 cost, InstructionType type = INST_DYNAMIC_MISC)
-      : Instruction(type)
-      , m_cost(cost)
-   {
-   }
-
-   UInt64 getCost() { return m_cost; }
-  
-private:
-   UInt64 m_cost;
+   DynamicInstruction(UInt64 cost, InstructionType type = INST_DYNAMIC_MISC);
+   ~DynamicInstruction();
 };
 
 class RecvInstruction : public DynamicInstruction
@@ -136,8 +135,7 @@ class RecvInstruction : public DynamicInstruction
 public:
    RecvInstruction(UInt64 cost)
       : DynamicInstruction(cost, INST_RECV)
-   {
-   }
+   {}
 };
 
 class SyncInstruction : public DynamicInstruction
@@ -145,8 +143,7 @@ class SyncInstruction : public DynamicInstruction
 public:
    SyncInstruction(UInt64 cost)
       : DynamicInstruction(cost, INST_SYNC)
-   {
-   }
+   {}
 };
 
 #endif

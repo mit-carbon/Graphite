@@ -727,7 +727,7 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val)
 {
    ADDRINT esp = PIN_GetContextReg (ctxt, REG_STACK_PTR);
-   ADDRINT next_ip = emuRet (&esp, 0, sizeof (ADDRINT));
+   ADDRINT next_ip = emuRet (&esp, 0, sizeof (ADDRINT), false);
 
    PIN_SetContextReg (ctxt, REG_GAX, ret_val);
    PIN_SetContextReg (ctxt, REG_STACK_PTR, esp);

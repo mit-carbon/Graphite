@@ -3,6 +3,7 @@
 #include "core_manager.h"
 #include "core.h"
 #include "memory_manager.h"
+#include "performance_model.h"
 
 // FIXME
 // Only need this function because some memory accesses are made before cores have
@@ -17,17 +18,19 @@ VOID printInsInfo(CONTEXT* ctxt)
 }
 
 UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
-{
+{   
    assert (lock_signal == Core::NONE);
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    if (core)
    {
-      return core->accessMemory (lock_signal, shmem_req_type, d_addr, data_buffer, data_size);
+      return core->accessMemory (lock_signal, shmem_req_type, d_addr, data_buffer, data_size, true);
    }
    // Native mem op
    else
    {
+      // TODO: Remove this code.
+      assert(false);
       if (shmem_req_type == READ)
       {
          if (PIN_SafeCopy ((void*) data_buffer, (void*) d_addr, (size_t) data_size) == data_size)
@@ -139,6 +142,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
    }
 
    bool found = false;
+   UInt32 num_mem_ops = 0;
 
    while (reg_gcx > 0)
    {
@@ -147,6 +151,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 
       memOp (Core::NONE, READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
       memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
+      num_mem_ops += 2;
 
       // Decrement the counter
       reg_gcx --;
@@ -168,6 +173,10 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
          break;
       }
    }
+
+   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
+   perf->pushDynamicInstructionInfo(info);
 
    if (! found)
    {
@@ -228,10 +237,12 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
    LOG_PRINT("Direction Flag = %i\n", (SInt32) direction_flag);
 
    bool found = false;
+   UInt32 num_mem_ops = 0;
 
    while (reg_gcx > 0)
    {
       Byte byte_buf;
+      ++num_mem_ops;
       memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
 
       LOG_PRINT("byte_buf = 0x%x\n", byte_buf);
@@ -254,6 +265,10 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
          break;
       }
    }
+
+   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
+   perf->pushDynamicInstructionInfo(info);
 
    if (found)
    {
@@ -411,6 +426,7 @@ bool rewriteStackOp (INS ins)
             IARG_REG_REFERENCE, REG_STACK_PTR,
             IARG_UINT32, imm,
             IARG_MEMORYREAD_SIZE,
+            IARG_BOOL, (BOOL)true,
             IARG_RETURN_REGS, REG_INST_G1,
             IARG_END);
 
@@ -664,13 +680,13 @@ ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADD
    return br_tgt_ip;
 }
 
-ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size)
+ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL modeled)
 {
    assert ( read_size == sizeof ( ADDRINT ) );
 
    ADDRINT next_ip;
 
-   memOp (Core::NONE, READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size);
+   Sim()->getCoreManager()->getCurrentCore()->accessMemory(Core::NONE, READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
 
    *tgt_esp = *tgt_esp + read_size;
    *tgt_esp = *tgt_esp + imm;

@@ -1,7 +1,31 @@
 #include "instruction.h"
 #include "simulator.h"
+#include "core_manager.h"
+#include "core.h"
+#include "performance_model.h"
+
+// Instruction
 
 Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
+
+Instruction::Instruction(InstructionType type, OperandList &operands)
+   : m_type(type)
+   , m_operands(operands)
+{
+   ctor();
+}
+
+Instruction::Instruction(InstructionType type)
+   : m_type(type)
+{
+   ctor();
+}
+
+void Instruction::ctor()
+{
+   LOG_ASSERT_ERROR(m_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", m_type);
+   m_cost = Instruction::m_instruction_costs[m_type]; 
+}
 
 InstructionType Instruction::getType()
 {
@@ -10,8 +34,7 @@ InstructionType Instruction::getType()
 
 UInt64 Instruction::getCost()
 {
-    LOG_ASSERT_ERROR(m_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", m_type);
-    return Instruction::m_instruction_costs[m_type];
+   return m_cost;
 }
 
 void Instruction::initializeStaticInstructionModel()
@@ -26,3 +49,47 @@ void Instruction::initializeStaticInstructionModel()
    }
 }
 
+// DynamicInstruction
+
+DynamicInstruction::DynamicInstruction(UInt64 cost, InstructionType type)
+   : Instruction(type)
+{
+   m_cost = cost;
+}
+
+DynamicInstruction::~DynamicInstruction()
+{
+}
+
+// StringInstruction
+
+UInt64 StringInstruction::getCost()
+{
+   // dequeue mem ops until we hit the final marker, then check count
+   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   UInt32 count = 0;
+   UInt64 cost = 0;
+   DynamicInstructionInfo* i;
+
+   while (true)
+   {
+      i = &perf->getDynamicInstructionInfo();
+
+      if (i->type == DynamicInstructionInfo::STRING)
+         break;
+
+      LOG_ASSERT_ERROR(i->type == DynamicInstructionInfo::MEMORY_READ,
+                       "Expected memory read in string instruction (or STRING).");
+
+      cost += i->memory_info.latency;
+
+      ++count;
+      perf->popDynamicInstructionInfo();
+   }
+
+   LOG_ASSERT_ERROR(count == i->num_ops,
+                    "Number of mem ops in queue doesn't match number in string instruction.");
+   perf->popDynamicInstructionInfo();
+
+   return cost;
+}

@@ -18,9 +18,9 @@ void PerformanceModel::queueDynamicInstruction(Instruction *i)
       return;
    }
 
-   ScopedLock sl(m_basic_block_queue_lock);
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);
+   ScopedLock sl(m_basic_block_queue_lock);
    m_basic_block_queue.push(bb);
 }
 
@@ -29,15 +29,17 @@ void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
    if (!Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
-   ScopedLock sl(m_basic_block_queue_lock);
+//   ScopedLock sl(m_basic_block_queue_lock);
+   m_basic_block_queue_lock.acquire();
    m_basic_block_queue.push(basic_block);
 }
 
 //FIXME: this will go in a thread
 void PerformanceModel::iterate()
 {
-   ScopedLock sl(m_basic_block_queue_lock);
-   while(!m_basic_block_queue.empty())
+//   ScopedLock sl(m_basic_block_queue_lock);
+
+   while(m_basic_block_queue.size() > 1)
    {
       BasicBlock *current_bb = m_basic_block_queue.front();
       m_basic_block_queue.pop();
@@ -50,6 +52,7 @@ void PerformanceModel::iterate()
       if (current_bb->isDynamic())
          delete current_bb;
    }
+   m_basic_block_queue_lock.release();
 }
 
 void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
@@ -60,16 +63,20 @@ void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 
 void PerformanceModel::popDynamicInstructionInfo()
 {
+   ScopedLock sl(m_dynamic_info_queue_lock);
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
                     "Expected some dynamic info to be available.");
-   ScopedLock sl(m_dynamic_info_queue_lock);
+   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
+                    "Dynamic info queue is growing too big.");
    m_dynamic_info_queue.pop();
 }
 
 DynamicInstructionInfo& PerformanceModel::getDynamicInstructionInfo()
 {
+   ScopedLock sl(m_dynamic_info_queue_lock);
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
                     "Expected some dynamic info to be available.");
-   ScopedLock sl(m_dynamic_info_queue_lock);
+   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
+                    "Dynamic info queue is growing too big.");
    return m_dynamic_info_queue.front();
 }

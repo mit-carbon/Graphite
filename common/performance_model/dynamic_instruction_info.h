@@ -1,12 +1,15 @@
 #ifndef DYNAMIC_INSTRUCTION_INFO_H
 #define DYNAMIC_INSTRUCTION_INFO_H
 
+#include "instruction.h"
+
 struct DynamicInstructionInfo
 {
    enum Type
    {
-      INFO_MEMORY,
-      /* INFO_SYNC, */
+      MEMORY_READ,
+      MEMORY_WRITE,
+      STRING,
    } type;
 
    union
@@ -17,10 +20,7 @@ struct DynamicInstructionInfo
          IntPtr addr;
       } memory_info;
 
-      /* struct */
-      /* { */
-      /*    UInt64 time; */
-      /* } sync_info; */
+      UInt32 num_ops;
    };
 
    // ctors
@@ -35,22 +35,22 @@ struct DynamicInstructionInfo
       memory_info = rhs.memory_info; // "use bigger one"
    }
 
-   static DynamicInstructionInfo createMemoryInfo(UInt64 l, IntPtr a)
+   static DynamicInstructionInfo createMemoryInfo(UInt64 l, IntPtr a, Operand::Direction dir)
    {
       DynamicInstructionInfo i;
-      i.type = INFO_MEMORY;
+      i.type = (dir == Operand::READ) ? MEMORY_READ : MEMORY_WRITE;
       i.memory_info.latency = l;
       i.memory_info.addr = a;
       return i;
    }
 
-   /* static DynamicInstructionInfo createSyncInfo(UInt64 t) */
-   /* { */
-   /*    DynamicInstructionInfo i; */
-   /*    i.type = INFO_SYNC; */
-   /*    i.sync_info.time = t; */
-   /*    return i; */
-   /* } */
+   static DynamicInstructionInfo createStringInfo(UInt32 count)
+   {
+      DynamicInstructionInfo i;
+      i.type = STRING;
+      i.num_ops = count;
+      return i;
+   }
 };
 
 #endif

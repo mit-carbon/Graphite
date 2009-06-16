@@ -12,6 +12,8 @@ using namespace std;
 
 Log *Log::_singleton;
 
+const UInt32 Log::MODULE_LENGTH;
+
 Log::Log(Config &config)
    : _coreCount(config.getTotalCores())
    , _startTime(0)
@@ -34,7 +36,28 @@ Log::Log(Config &config)
 
    _defaultFile = fopen("output_files/system-default","w");
 
-   Config::getSingleton()->getDisabledLogModules(_disabledModules);
+   std::set<std::string> disabledModulesUnformatted;
+   Config::getSingleton()->getDisabledLogModules(disabledModulesUnformatted);
+   for (std::set<std::string>::iterator it = disabledModulesUnformatted.begin();
+        it != disabledModulesUnformatted.end();
+        it++)
+   {
+      string formatted;
+
+      for (unsigned int i = 0; i < min(MODULE_LENGTH, it->length()); i++)
+      {
+         formatted.push_back((*it)[i]);
+      }
+
+      for (unsigned int i = formatted.length(); i < MODULE_LENGTH; i++)
+      {
+         formatted.push_back(' ');
+      }
+
+      assert(formatted.length() == MODULE_LENGTH);
+      _disabledModules.insert(formatted);
+   }
+
    _loggingEnabled = Config::getSingleton()->getLoggingEnabled();
 
    assert(_singleton == NULL);

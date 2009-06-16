@@ -25,7 +25,6 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    UInt64 cost = 0;
 
    const OperandList &ops = instruction->getOperands();
-
    for (unsigned int i = 0; i < ops.size(); i++)
    {
       const Operand &o = ops[i];
@@ -53,6 +52,7 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    }
 
    cost += instruction->getCost();
+   LOG_ASSERT_WARNING(cost < 10000, "Cost is too big - cost:%llu, cycle_count: %llu, type: %d", cost, m_cycle_count, instruction->getType());
 
    // update counters
    m_instruction_count++;

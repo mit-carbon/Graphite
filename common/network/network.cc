@@ -333,8 +333,11 @@ NetPacket Network::netRecv(const NetMatch &match)
    _netQueue.erase(itr);
    _netQueueLock.release();
 
-   Instruction *i = new RecvInstruction(packet.time - start_time);
-   _core->getPerformanceModel()->queueDynamicInstruction(i);
+   if (packet.time > start_time)
+   {
+      Instruction *i = new RecvInstruction(packet.time - start_time);
+      _core->getPerformanceModel()->queueDynamicInstruction(i);
+   }
 
    LOG_PRINT("Exiting netRecv : type %i, from %i", (SInt32)packet.type, packet.sender);
 

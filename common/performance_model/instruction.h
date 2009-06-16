@@ -81,11 +81,8 @@ private:
 
    InstructionType m_type;
 
-   void ctor();
-
 protected:
    OperandList m_operands;
-   UInt64 m_cost;
 };
 
 class GenericInstruction : public Instruction
@@ -128,6 +125,11 @@ class DynamicInstruction : public Instruction
 public:
    DynamicInstruction(UInt64 cost, InstructionType type = INST_DYNAMIC_MISC);
    ~DynamicInstruction();
+
+   UInt64 getCost();
+
+private:
+   UInt64 m_cost;
 };
 
 class RecvInstruction : public DynamicInstruction

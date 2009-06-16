@@ -2,6 +2,7 @@
 #include "simulator.h"
 
 PerformanceModel::PerformanceModel()
+   : m_current_ins_index(0)
 {
 }
 
@@ -29,30 +30,41 @@ void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
    if (!Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
-//   ScopedLock sl(m_basic_block_queue_lock);
-   m_basic_block_queue_lock.acquire();
+   ScopedLock sl(m_basic_block_queue_lock);
    m_basic_block_queue.push(basic_block);
 }
 
 //FIXME: this will go in a thread
 void PerformanceModel::iterate()
 {
-//   ScopedLock sl(m_basic_block_queue_lock);
+   // Because we will sometimes not have info available (we will throw
+   // a DynamicInstructionInfoNotAvailable), we need to be able to
+   // continue from the middle of a basic block. m_current_ins_index
+   // tracks which instruction we are currently on within the basic
+   // block.
 
-   while(m_basic_block_queue.size() > 1)
+   ScopedLock sl(m_basic_block_queue_lock);
+
+   while (m_basic_block_queue.size() > 1)
    {
       BasicBlock *current_bb = m_basic_block_queue.front();
-      m_basic_block_queue.pop();
 
-      for(BasicBlock::iterator i = current_bb->begin(); i != current_bb->end(); i++)
+      try
       {
-          handleInstruction(*i);
-      }
+         for( ; m_current_ins_index < current_bb->size(); m_current_ins_index++)
+            handleInstruction(current_bb->at(m_current_ins_index));
 
-      if (current_bb->isDynamic())
-         delete current_bb;
+         if (current_bb->isDynamic())
+            delete current_bb;
+
+         m_basic_block_queue.pop();
+         m_current_ins_index = 0; // move to beginning of next bb
+      }
+      catch (DynamicInstructionInfoNotAvailable)
+      {
+         return;
+      }
    }
-   m_basic_block_queue_lock.release();
 }
 
 void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
@@ -74,9 +86,15 @@ void PerformanceModel::popDynamicInstructionInfo()
 DynamicInstructionInfo& PerformanceModel::getDynamicInstructionInfo()
 {
    ScopedLock sl(m_dynamic_info_queue_lock);
-   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
-                    "Expected some dynamic info to be available.");
+
+   // Information is needed to model the instruction, but isn't
+   // available. This is handled in iterate() by returning early and
+   // continuing from that instruction later.
+   if (m_dynamic_info_queue.empty())
+      throw DynamicInstructionInfoNotAvailable();
+
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
                     "Dynamic info queue is growing too big.");
+
    return m_dynamic_info_queue.front();
 }

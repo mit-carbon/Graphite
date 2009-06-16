@@ -65,7 +65,8 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    m_recv_buff >> time;
 
-   m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
+   if (time > start_time)
+      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
 
    delete [](Byte*) recv_pkt.data;
 }
@@ -145,7 +146,8 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    UInt64 time;
    m_recv_buff >> time;
 
-   m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
+   if (time > start_time)
+      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
 
    delete [](Byte*) recv_pkt.data;
 }
@@ -251,7 +253,8 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    UInt64 time;
    m_recv_buff >> time;
 
-   m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
+   if (time > start_time)
+      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
 
    delete [](Byte*) recv_pkt.data;
 }

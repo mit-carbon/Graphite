@@ -12,19 +12,11 @@ Instruction::Instruction(InstructionType type, OperandList &operands)
    : m_type(type)
    , m_operands(operands)
 {
-   ctor();
 }
 
 Instruction::Instruction(InstructionType type)
    : m_type(type)
 {
-   ctor();
-}
-
-void Instruction::ctor()
-{
-   LOG_ASSERT_ERROR(m_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", m_type);
-   m_cost = Instruction::m_instruction_costs[m_type]; 
 }
 
 InstructionType Instruction::getType()
@@ -34,7 +26,8 @@ InstructionType Instruction::getType()
 
 UInt64 Instruction::getCost()
 {
-   return m_cost;
+   LOG_ASSERT_ERROR(m_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", m_type);
+   return Instruction::m_instruction_costs[m_type]; 
 }
 
 void Instruction::initializeStaticInstructionModel()
@@ -53,15 +46,25 @@ void Instruction::initializeStaticInstructionModel()
 
 DynamicInstruction::DynamicInstruction(UInt64 cost, InstructionType type)
    : Instruction(type)
+   , m_cost(cost)
 {
-   m_cost = cost;
 }
 
 DynamicInstruction::~DynamicInstruction()
 {
 }
 
+UInt64 DynamicInstruction::getCost()
+{
+   return m_cost;
+}
+
 // StringInstruction
+
+StringInstruction::StringInstruction(OperandList &ops)
+   : Instruction(INST_STRING, ops)
+{
+}
 
 UInt64 StringInstruction::getCost()
 {

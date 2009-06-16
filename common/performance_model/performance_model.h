@@ -29,6 +29,8 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
+   class DynamicInstructionInfoNotAvailable { };
+
 private:
    virtual void handleInstruction(Instruction *instruction) = 0;
 
@@ -39,6 +41,8 @@ private:
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    DynamicInstructionInfoQueue m_dynamic_info_queue;
    Lock m_dynamic_info_queue_lock;
+
+   UInt32 m_current_ins_index;
 };
 
 class SimplePerformanceModel : public PerformanceModel

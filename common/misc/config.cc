@@ -1,7 +1,6 @@
 #include "config.h"
 
 #include "network_model.h"
-#include "network_model_analytical_params.h"
 #include "network_types.h"
 #include "packet_type.h"
 #include "simulator.h"
@@ -72,22 +71,11 @@ Config::Config()
    m_total_cores += m_num_processes;
 
    GenerateCoreMap();
-
-   // Create network parameters
-   m_analytic_network_parms = new NetworkModelAnalyticalParameters();
-   m_analytic_network_parms->Tw2 = 1; // single cycle between nodes in 2d mesh
-   m_analytic_network_parms->s = 1; // single cycle switching time
-   m_analytic_network_parms->n = 1; // 2-d mesh network
-   m_analytic_network_parms->W = 32; // 32-bit wide channels
-   m_analytic_network_parms->update_interval = 100000;
-   m_analytic_network_parms->proc_cost = 100;
-
 }
 
 Config::~Config()
 {
    // Clean up the dynamic memory we allocated
-   delete m_analytic_network_parms;
    delete [] m_proc_to_core_list_map;
 }
 

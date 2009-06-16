@@ -68,9 +68,6 @@ public:
    UInt32 getProcessNumForCore(UInt32 core)
    { assert(core < m_total_cores); return m_core_to_proc_map[core]; }
 
-   const NetworkModelAnalyticalParameters *getAnalyticNetworkParms() const
-   { return m_analytic_network_parms; }
-
    // For mapping between user-land communication id's to actual core id's
    void updateCommToCoreMap(UInt32 comm_id, core_id_t core_id);
    UInt32 getCoreFromCommId(UInt32 comm_id);
@@ -114,8 +111,6 @@ private:
 
    UInt32  m_mcp_process;          // The process where the MCP lives
 
-   NetworkModelAnalyticalParameters *m_analytic_network_parms;
-
    static Config *m_singleton;
 
    static UInt32 m_knob_total_cores;
@@ -129,7 +124,6 @@ private:
    static UInt32 m_knob_dir_max_sharers;
    static UInt32 m_knob_cache_line_size;
    static UInt32 m_knob_ahl_param;
-
 };
 
 #endif

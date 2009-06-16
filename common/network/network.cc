@@ -33,7 +33,7 @@ Network::Network(Core *core)
    Config::getSingleton()->getNetworkModels(modelTypes);
 
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
-      _models[i] = NetworkModel::createModel(this, modelTypes[i]);
+      _models[i] = NetworkModel::createModel(this, modelTypes[i], (EStaticNetwork)i);
 
    LOG_PRINT("Initialized.");
 }

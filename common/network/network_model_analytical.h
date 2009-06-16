@@ -3,13 +3,14 @@
 
 #include "network.h"
 #include "lock.h"
+#include "network_model_analytical_params.h"
 
 class Lock;
 
 class NetworkModelAnalytical : public NetworkModel
 {
    public:
-      NetworkModelAnalytical(Network *net);
+      NetworkModelAnalytical(Network *net, EStaticNetwork net_type);
       ~NetworkModelAnalytical();
 
       void routePacket(const NetPacket &pkt,
@@ -36,6 +37,8 @@ class NetworkModelAnalytical : public NetworkModel
       UInt64 _updateInterval;
 
       Lock _lock;
+
+      NetworkModelAnalyticalParameters m_params;
 };
 
 #endif // NETWORK_MODEL_ANALYTICAL_H

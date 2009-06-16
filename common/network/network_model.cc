@@ -6,15 +6,15 @@
 #include "network_model_magic.h"
 #include "network_model_analytical.h"
 
-NetworkModel *NetworkModel::createModel(Network *net, UInt32 type)
+NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_type)
 {
-   switch (type)
+   switch (model_type)
    {
    case NETWORK_MAGIC:
       return new NetworkModelMagic(net);
 
    case NETWORK_ANALYTICAL_MESH:
-      return new NetworkModelAnalytical(net);
+      return new NetworkModelAnalytical(net, net_type);
 
    default:
       assert(false);

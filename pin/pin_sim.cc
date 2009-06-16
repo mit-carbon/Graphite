@@ -266,14 +266,14 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          IMG img = IMG_FindByAddress(reg_eip);
          PIN_UnlockClient();
 
-         LOG_PRINT("Process: 0, Start Copying Static Data\n");
+         LOG_PRINT("Process: 0, Start Copying Static Data");
          copyStaticData(img);
-         LOG_PRINT("Process: 0, Finished Copying Static Data\n");
+         LOG_PRINT("Process: 0, Finished Copying Static Data");
 
          // 2) Copying over initial stack data
-         LOG_PRINT("Process: 0, Start Copying Initial Stack Data\n");
+         LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, 0);
-         LOG_PRINT("Process: 0, Finished Copying Initial Stack Data\n");
+         LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
 #endif
       }
 
@@ -288,9 +288,9 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          Core *core = Sim()->getCoreManager()->getCurrentCore();
          core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
 
-         LOG_PRINT("Process: %i, Start Copying Initial Stack Data\n");
+         LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, core_id);
-         LOG_PRINT("Process: %i, Finished Copying Initial Stack Data\n");
+         LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
       }
       
       // All the real initialization is done in 

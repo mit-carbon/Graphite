@@ -196,7 +196,7 @@ core_id_t CoreManager::getCurrentCoreID()
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
    core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!");
 
    return core_id;
 }
@@ -209,7 +209,7 @@ core_id_t CoreManager::getCurrentSimThreadCoreID()
    pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
    core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!");
 
    return core_id;
 }
@@ -222,7 +222,7 @@ Core *CoreManager::getCurrentCore()
    pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : m_cores[e.second];
 
-   LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
+   LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!");
    return core;
 }
 
@@ -244,7 +244,7 @@ Core *CoreManager::getCoreFromID(core_id_t id)
       idx++;
    }
 
-   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getCoreFromID!\n");
+   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getCoreFromID!");
 
    return core;
 }
@@ -270,14 +270,14 @@ UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
       idx++;
    }
 
-   LOG_ASSERT_ERROR(false, "Core lookup failed for core id: %d!\n", core_id);
+   LOG_ASSERT_ERROR(false, "Core lookup failed for core id: %d!", core_id);
    return INVALID_CORE_ID;
 }
 
 UInt32 CoreManager::getCoreIndexFromTID(UInt32 tid)
 {
    pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
-   LOG_ASSERT_ERROR(e.first, "getCoreIndexFromTID: couldn't find core for tid: %d\n", tid);
+   LOG_ASSERT_ERROR(e.first, "getCoreIndexFromTID: couldn't find core for tid: %d", tid);
    return e.second;
 }
 
@@ -323,7 +323,7 @@ core_id_t CoreManager::registerSimMemThread()
 
       LOG_PRINT("registerSimMemThread - No free cores for thread: %d", tid);
       for (UInt32 j = 0; j < Config::getSingleton()->getNumLocalCores(); j++)
-         LOG_PRINT("core_to_simthread_tid_map[%d] = %d\n", j, core_to_simthread_tid_map[j]);
+         LOG_PRINT("core_to_simthread_tid_map[%d] = %d", j, core_to_simthread_tid_map[j]);
       LOG_PRINT_ERROR("");
    }
    else

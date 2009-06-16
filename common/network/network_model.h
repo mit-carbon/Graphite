@@ -6,6 +6,8 @@ class Network;
 
 #include <string>
 
+#include "packet_type.h"
+
 // -- Network Models -- //
 
 // To implement a new network model, you must implement this routing

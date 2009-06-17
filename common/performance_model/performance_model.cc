@@ -1,5 +1,6 @@
 #include "performance_model.h"
 #include "simulator.h"
+#include "iocoom_performance_model.h"
 
 PerformanceModel::PerformanceModel()
    : m_current_ins_index(0)
@@ -8,6 +9,11 @@ PerformanceModel::PerformanceModel()
 
 PerformanceModel::~PerformanceModel()
 {
+}
+
+PerformanceModel* PerformanceModel::create()
+{
+   return new IOCOOMPerformanceModel();
 }
 
 // Public Interface

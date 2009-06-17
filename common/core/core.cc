@@ -19,7 +19,7 @@ Core::Core(SInt32 id)
 
    m_network = new Network(this);
 
-   m_performance_model = new SimplePerformanceModel();
+   m_performance_model = PerformanceModel::create();
 
    LOG_PRINT("instantiated shared memory performance model");
    m_shmem_perf_model = new ShmemPerfModel();

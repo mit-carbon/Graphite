@@ -112,12 +112,14 @@ VOID fillOperandList(OperandList *list, INS ins)
 
    for (unsigned int i = 0; i < max_read_regs; i++)
    {
-      list->push_back(Operand(Operand::REG, INS_RegR(ins, i), Operand::READ));
+      if (REG_valid(INS_RegR(ins, i)))
+         list->push_back(Operand(Operand::REG, INS_RegR(ins, i), Operand::READ));
    }
 
    for (unsigned int i = 0; i < max_write_regs; i++)
    {
-      list->push_back(Operand(Operand::REG, INS_RegW(ins, i), Operand::WRITE));
+      if (REG_valid(INS_RegW(ins, i)))
+         list->push_back(Operand(Operand::REG, INS_RegW(ins, i), Operand::WRITE));
    }
 
    // immediate

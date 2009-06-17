@@ -31,14 +31,19 @@ public:
 
    class DynamicInstructionInfoNotAvailable { };
 
+   static PerformanceModel *create();
+
+protected:
+   typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
+   typedef std::queue<BasicBlock *> BasicBlockQueue;
+
 private:
+
    virtual void handleInstruction(Instruction *instruction) = 0;
 
-   typedef std::queue<BasicBlock *> BasicBlockQueue;
    BasicBlockQueue m_basic_block_queue;
    Lock m_basic_block_queue_lock;
 
-   typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    DynamicInstructionInfoQueue m_dynamic_info_queue;
    Lock m_dynamic_info_queue_lock;
 

@@ -90,6 +90,13 @@ DynamicInstructionInfo& PerformanceModel::getDynamicInstructionInfo()
    // Information is needed to model the instruction, but isn't
    // available. This is handled in iterate() by returning early and
    // continuing from that instruction later.
+
+   // FIXME: Note this assumes that either none of the info for an
+   // instruction is available or all of it! This works for
+   // performance modeling in the same thread as functional modeling,
+   // but it WILL NOT work if performance modeling is moved to a
+   // separate thread!
+
    if (m_dynamic_info_queue.empty())
       throw DynamicInstructionInfoNotAvailable();
 

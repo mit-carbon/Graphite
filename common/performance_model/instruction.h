@@ -24,7 +24,7 @@ enum InstructionType
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"GENERIC","ADD","SUB","MUL","DIV","FADD","FSUB","FMUL","FDIV","JMP","DYNAMIC_MISC","RECV","SYNC","STRING"};
+{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","dynamic_misc","recv","sync","string"};
 
 class Operand
 {

@@ -36,7 +36,7 @@ void Instruction::initializeStaticInstructionModel()
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
    {
        char key_name [1024];
-       snprintf(key_name, 1024, "core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
+       snprintf(key_name, 1024, "perf_model/core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
        UInt32 instruction_cost = Sim()->getCfg()->getInt(key_name, 0);
        m_instruction_costs[i] = instruction_cost;
    }

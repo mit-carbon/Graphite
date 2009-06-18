@@ -8,11 +8,14 @@ environment variable set for that process number
 
 import socket
 import subprocess
+import sys
+import os
+import signal
 
 running_process_list = []
 listen_port = 1999
 
-allowed_hosts = ["127.0.0.1", "cagnode0", "cagnode1", "cagnode2",
+allowed_hosts = ["127.0.0.1", "cagnode1", "cagnode2",
         "cagnode3", "cagnode4", "cagnode5", "cagnode6", "cagnode7",
         "cagnode8", "cagnode9", "cagnode10", "cagnode11", "cagnode12",
         "cagnode13", "cagnode14", "cagnode15", "cagnode16", "cagnode17",
@@ -39,8 +42,12 @@ def spawn_process(number,command):
     pass
 
 def kill_all_processes():
+    global running_process_list
     for i in range(len(running_process_list)):
-        running_process_list[i].kill()
+        print "Killing process: %d" % running_process_list[i].pid
+        os.kill(running_process_list[i].pid, signal.SIGKILL)
+    running_process_list = []
+
 
 def handle_command(data, client):
     print "received data from client.", data
@@ -59,8 +66,12 @@ def handle_command(data, client):
         print "got unknown command."
         client.send("nack")
 
+try:
+    allowed_hosts = map(lambda x: socket.gethostbyname(x), allowed_hosts)
+except:
+    print "Unexpected error:", sys.exc_info()[0]
+    raise
 
-allowed_hosts = map(lambda x: socket.gethosbyname(x), allowed_hosts)
 server = start_server()
 
 while 1:

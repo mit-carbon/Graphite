@@ -12,6 +12,14 @@ import subprocess
 running_process_list = []
 listen_port = 1999
 
+allowed_hosts = ["127.0.0.1", "cagnode0", "cagnode1", "cagnode2",
+        "cagnode3", "cagnode4", "cagnode5", "cagnode6", "cagnode7",
+        "cagnode8", "cagnode9", "cagnode10", "cagnode11", "cagnode12",
+        "cagnode13", "cagnode14", "cagnode15", "cagnode16", "cagnode17",
+        "cagnode18"]
+
+resolved_allowed_hosts = []
+
 def start_server():
     host = ''
     backlog = 5
@@ -52,15 +60,12 @@ def handle_command(data, client):
         client.send("nack")
 
 
-def verify_client_allowed(client):
-    #FIXME!!
-    return True
-
+allowed_hosts = map(lambda x: socket.gethosbyname(x), allowed_hosts)
 server = start_server()
 
 while 1:
     client, address = server.accept()
-    if not verify_client_allowed(client):
+    if allowed_hosts.count(address) > 0:
         client.close()
         continue
 

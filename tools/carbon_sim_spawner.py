@@ -9,10 +9,10 @@ import sys
 import re
 
 def spawn_sim(host, id, path):
-    port = 1999
-    size = 1024
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host,port))
+port = 1999
+size = 1024
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((host,port))
     s.send('%s%s,%s' % ('s',id,path))
     data = s.recv(size)
     s.close()

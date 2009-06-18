@@ -85,7 +85,7 @@ class MemoryManager
       SInt32 m_core_id;
 
       Network *m_network;
-      Cache *m_ocache;
+      Cache *m_dcache;
       DramDirectory *m_dram_dir;
       AddressHomeLookup *m_addr_home_lookup;
 
@@ -109,14 +109,9 @@ class MemoryManager
 
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
-      // knobs
-      static UInt32 m_knob_ahl_param;
-      static UInt32 m_knob_dram_access_cost;
-      static UInt32 m_knob_line_size;
-
    public:
 
-      MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache, ShmemPerfModel* shmem_perf_model);
+      MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *dcache, ShmemPerfModel* shmem_perf_model);
       virtual ~MemoryManager();
 
       MMUPerfModelBase* getMMUPerfModel()

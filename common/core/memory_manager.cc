@@ -4,34 +4,18 @@
 
 using namespace std;
 
-UInt32 MemoryManager::m_knob_ahl_param;
-UInt32 MemoryManager::m_knob_dram_access_cost;
-UInt32 MemoryManager::m_knob_line_size;
-
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet);
 
-MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *ocache, ShmemPerfModel* shmem_perf_model)
+MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *dcache, ShmemPerfModel* shmem_perf_model)
 {
-   try
-   {
-   m_knob_ahl_param = Sim()->getCfg()->getInt("dram/ahl_param");
-   m_knob_dram_access_cost = Sim()->getCfg()->getInt("dram/dram_access_cost");
-   m_knob_line_size = Sim()->getCfg()->getInt("cache/dcache_line_size");
-   }
-   catch(...)
-   {
-      LOG_ASSERT_ERROR(false, "MemoryManager obtained a bad value from config.");
-   }
-
-   LOG_ASSERT_ERROR(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(),
-                    "Must set dcache modeling on (-mdc) to use shared memory model.");
+   LOG_ASSERT_ERROR(!Config::getSingleton()->isSimulatingSharedMemory() || Config::getSingleton()->getEnableDCacheModeling(), "Must set dcache modeling on (-mdc) to use shared memory model.");
 
    m_core_id = core_id;
    m_core = core;
    m_network = network;
-   m_ocache = ocache;
+   m_dcache = dcache;
 
-   assert(m_ocache != NULL);
+   assert(m_dcache != NULL);
 
    m_cache_line_size = Config::getSingleton()->getCacheLineSize();
 
@@ -152,7 +136,7 @@ bool MemoryManager::actionPermissable(CacheState cache_state, shmem_req_t shmem_
 
 void MemoryManager::setCacheLineInfo(IntPtr address, CacheState::cstate_t new_cstate)
 {
-   CacheBlockInfo* cache_block_info = m_ocache->peekSingleLine(address);
+   CacheBlockInfo* cache_block_info = m_dcache->peekSingleLine(address);
    assert(cache_block_info);   //it should already be in the cache for us to change it!
 
    cache_block_info->setCState(new_cstate);
@@ -160,14 +144,14 @@ void MemoryManager::setCacheLineInfo(IntPtr address, CacheState::cstate_t new_cs
 
 CacheBlockInfo* MemoryManager::getCacheLineInfo(IntPtr address)
 {
-   return m_ocache->peekSingleLine(address);
+   return m_dcache->peekSingleLine(address);
 }
 
 //copy data at cache to data_buffer
 void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, Byte* data_buffer, UInt32 data_size)
 {
    IntPtr address = ca_address + offset;
-   CacheBlockInfo* cache_block_info = m_ocache->accessSingleLine(address, access_type, data_buffer, data_size);
+   CacheBlockInfo* cache_block_info = m_dcache->accessSingleLine(address, access_type, data_buffer, data_size);
 
    assert(cache_block_info);
 }
@@ -179,7 +163,7 @@ void MemoryManager::fillCacheLineData(IntPtr ca_address, Byte* fill_buffer)
    CacheBlockInfo evict_block_info;
    Byte evict_buff[m_cache_line_size];
 
-   m_ocache->insertSingleLine(ca_address, fill_buffer,
+   m_dcache->insertSingleLine(ca_address, fill_buffer,
          &eviction, &evict_addr, &evict_block_info, evict_buff);
 
    if (eviction)
@@ -212,7 +196,7 @@ void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 
 void MemoryManager::invalidateCacheLine(IntPtr address)
 {
-   bool hit = m_ocache->invalidateSingleLine(address);
+   bool hit = m_dcache->invalidateSingleLine(address);
    assert(hit);
 }
 

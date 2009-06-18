@@ -49,7 +49,7 @@ class Core
       MemoryManager *getMemoryManager() { return m_memory_manager; }
       SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       SyncClient *getSyncClient() { return m_sync_client; }
-      Cache *getOCache() { return m_ocache; }
+      Cache *getDCache() { return m_dcache; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
    private:
@@ -57,7 +57,7 @@ class Core
       MemoryManager *m_memory_manager;
       Network *m_network;
       PerformanceModel *m_performance_model;
-      Cache *m_ocache;
+      Cache *m_dcache;
       SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
       ShmemPerfModel* m_shmem_perf_model;

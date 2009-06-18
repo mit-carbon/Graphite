@@ -32,13 +32,14 @@ class CachePerfModelBase
    public:
       CachePerfModelBase()
       {
-         cache_data_access_time = Sim()->getCfg()->getInt("shmem_perf_model/cache_data_access_time");
-         cache_tags_access_time = Sim()->getCfg()->getInt("shmem_perf_model/cache_tags_access_time");
+         cache_data_access_time = Sim()->getCfg()->getInt("perf_model/cache/data_access_time");
+         cache_tags_access_time = Sim()->getCfg()->getInt("perf_model/cache/tags_access_time");
       }
 
       virtual ~CachePerfModelBase() { }
 
       static CachePerfModelBase* createModel(CacheModel_t type);
+      static CacheModel_t parseModelType(string model_type);
 
       virtual UInt32 getLatency(CacheAccess_t access)
       {

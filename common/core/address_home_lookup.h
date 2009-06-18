@@ -24,7 +24,7 @@ using namespace std;
 class AddressHomeLookup
 {
    public:
-      AddressHomeLookup(SInt32 core_id);
+      AddressHomeLookup(core_id_t core_id);
       ~AddressHomeLookup();
       UInt32 find_home_for_addr(IntPtr address) const;
 

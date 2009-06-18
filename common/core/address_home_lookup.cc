@@ -1,6 +1,8 @@
 #include "address_home_lookup.h"
+#include "simulator.h"
+#include "log.h"
 
-AddressHomeLookup::AddressHomeLookup(SInt32 core_id)
+AddressHomeLookup::AddressHomeLookup(core_id_t core_id)
 {
 
    // Each Block Address is as follows:
@@ -11,8 +13,15 @@ AddressHomeLookup::AddressHomeLookup(SInt32 core_id)
    m_core_id = core_id;
 
    m_total_cores = Config::getSingleton()->getTotalCores();
-   m_ahl_param = Config::getSingleton()->getAHLParam();
    m_cache_line_size = Config::getSingleton()->getCacheLineSize();
+   try
+   {
+      m_ahl_param = Sim()->getCfg()->getInt("dram_dir/ahl_param");
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Error Reading ahl_param from the config file");
+   }
 
    assert ( (unsigned) (1 << m_ahl_param) >= m_cache_line_size);
 

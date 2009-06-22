@@ -11,6 +11,7 @@ import subprocess
 import sys
 import os
 import signal
+import threading
 
 running_process_list = []
 listen_port = 1999
@@ -22,6 +23,21 @@ allowed_hosts = ["127.0.0.1", "cagnode1", "cagnode2",
         "cagnode18"]
 
 resolved_allowed_hosts = []
+
+class SimWatcher( threading.Thread ):
+    def run( self ):
+        self.process.wait()
+        try:
+            self.socket.send("ack")
+            client.close()
+            print "terminating connection."
+        except:
+            print "unknown error sending ack / terminating connection."
+
+    def __init__ (self, process, socket):
+        self.process = process
+        self.socket = socket
+        threading.Thread.__init__(self)
 
 def start_server():
     host = ''
@@ -38,8 +54,9 @@ def spawn_process(number,command):
     env["CARBON_PROCESS_INDEX"] = str(number)
     env["LD_LIBRARY_PATH"] = "/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib"
 
-    running_process_list.append(subprocess.Popen(command, shell=True, env=env))
-    pass
+    subproc = subprocess.Popen(command, shell=True, env=env)
+    running_process_list.append(subproc)
+    return subproc
 
 def kill_all_processes():
     global running_process_list
@@ -50,21 +67,27 @@ def kill_all_processes():
 
 
 def handle_command(data, client):
-    print "received data from client.", data
     if data[0] == 's':
         print "got spawn command: ", data
         spawn_args = data[1:].split(",")
         process_number = int(spawn_args[0])
         process_command = spawn_args[1]
-        spawn_process(process_number, process_command)
-        client.send("ack")
+        process = spawn_process(process_number, process_command)
+
+        # Create a thread to watch the spawned process
+        SimWatcher(process, client).start()
+
     elif data[0] == 'c' and len(data) == 1:
         print "got close all command."
         kill_all_processes()
         client.send("ack")
+        client.close()
+        print "terminating connection"
     else:
         print "got unknown command."
         client.send("nack")
+        client.close()
+        print "terminating connection"
 
 try:
     allowed_hosts = map(lambda x: socket.gethostbyname(x), allowed_hosts)
@@ -85,5 +108,3 @@ while 1:
     print "client accepted connection."
     if data:
         handle_command(data, client)
-    client.close()
-    print "terminating connection"

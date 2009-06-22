@@ -15,9 +15,7 @@ def spawn_sim(host, id, path):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host,port))
     s.send('%s%s,%s' % ('s',id,path))
-    data = s.recv(size)
-    s.close()
-    print 'Received:', data
+    return s
 
 def load_process_list_from_file(filename):
     process_list = []
@@ -55,8 +53,17 @@ process_list = load_process_list_from_file(config_filename)
 
 # determine if we will spawn locally or if we will distribute
 if simulator_count > 1:
+    sim_list = []
+    # spawn the simulators
     for i in range(simulator_count):
-        spawn_sim(process_list[i],i,command)
+        sim_list.append(spawn_sim(process_list[i],i,command))
+
+    # wait for them to finish
+    for s in sim_list:
+        data = s.recv(65525)
+        s.close()
+        print 'Received:', data
+
 else:
     spawn_proc(command)
 

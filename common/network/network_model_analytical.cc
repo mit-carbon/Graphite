@@ -34,7 +34,7 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_
    m_params.n = 1; // 2-d mesh network
    m_params.W = 32; // 32-bit wide channels
    m_params.update_interval = 100000;
-   m_params.proc_cost = (net_type == STATIC_NETWORK_MEMORY) ? 100 : 0;
+   m_params.proc_cost = (net_type == STATIC_NETWORK_MEMORY) ? 0 : 100;
 }
 
 NetworkModelAnalytical::~NetworkModelAnalytical()

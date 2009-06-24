@@ -75,11 +75,18 @@ public:
    const OperandList& getOperands()
    { return m_operands; }
 
+   void setAddress(IntPtr addr)
+   { m_addr = addr; }
+   IntPtr getAddress()
+   { return m_addr; }
+
 private:
    typedef std::vector<unsigned int> StaticInstructionCosts;
    static StaticInstructionCosts m_instruction_costs;
 
    InstructionType m_type;
+
+   IntPtr m_addr;
 
 protected:
    OperandList m_operands;

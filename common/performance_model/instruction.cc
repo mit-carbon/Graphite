@@ -10,12 +10,14 @@ Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
 
 Instruction::Instruction(InstructionType type, OperandList &operands)
    : m_type(type)
+   , m_addr(0)
    , m_operands(operands)
 {
 }
 
 Instruction::Instruction(InstructionType type)
    : m_type(type)
+   , m_addr(0)
 {
 }
 

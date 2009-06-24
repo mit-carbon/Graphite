@@ -6,9 +6,13 @@
 #include "simulator.h"
 
 IOCOOMPerformanceModel::IOCOOMPerformanceModel()
-   : m_register_scoreboard(512)
-   , m_instruction_count(0)
+   : m_instruction_count(0)
    , m_cycle_count(0)
+   , m_register_scoreboard(512)
+   , m_store_buffer(0)
+   , m_load_unit(0)
+   , m_l1_icache(0)
+   , m_l1_dcache(0)
 {
    config::Config *cfg = Sim()->getCfg();
 
@@ -16,6 +20,26 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel()
    {
       m_store_buffer = new StoreBuffer(cfg->getInt("perf_model/core/num_store_buffer_entries",1));
       m_load_unit = new ExecutionUnit(cfg->getInt("perf_model/core/num_outstanding_loads",3));
+
+      if (cfg->getBool("perf_model/l1_icache/enable", false))
+      {
+         m_l1_icache = new ModeledCache(cfg->getInt("perf_model/l1_icache/line_size"),
+                                        cfg->getInt("perf_model/l1_icache/num_sets"),
+                                        cfg->getInt("perf_model/l1_icache/associativity"),
+                                        cfg->getInt("perf_model/l1_icache/victim_cache_size"),
+                                        cfg->getString("perf_model/l1_icache/replacement_policy") == "lru" ? ModeledCache::LRU : ModeledCache::RANDOM);
+         m_l1_icache_miss_penalty = cfg->getInt("perf_model/l1_icache/miss_penalty");
+      }
+
+      if (cfg->getBool("perf_model/l1_dcache/enable", false))
+      {
+         m_l1_dcache = new ModeledCache(cfg->getInt("perf_model/l1_dcache/line_size"),
+                                        cfg->getInt("perf_model/l1_dcache/num_sets"),
+                                        cfg->getInt("perf_model/l1_dcache/associativity"),
+                                        cfg->getInt("perf_model/l1_dcache/victim_cache_size"),
+                                        cfg->getString("perf_model/l1_dcache/replacement_policy") == "lru" ? ModeledCache::LRU : ModeledCache::RANDOM);
+         m_l1_dcache_access_time = cfg->getInt("perf_model/l1_dcache/access_time");
+      }
    }
    catch (...)
    {
@@ -30,6 +54,8 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel()
 
 IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
 {
+   delete m_l1_dcache;
+   delete m_l1_icache;
    delete m_load_unit;
    delete m_store_buffer;
 }
@@ -47,6 +73,15 @@ UInt64 IOCOOMPerformanceModel::getCycleCount()
 
 void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
 {
+   // icache modeling
+   modelIcache(instruction->getAddress());
+
+   /* 
+      model instruction in the following steps:
+      - find when read operations are available
+      - find latency of instruction
+      - update write operands
+   */
    const OperandList &ops = instruction->getOperands();
 
    // buffer write operands to be updated after instruction executes
@@ -69,7 +104,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
             LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_READ,
                              "Expected memory read info, got: %d.", info.type);
 
-            UInt64 load_ready = executeLoad(info.memory_info.latency, info.memory_info.addr) - m_cycle_count;
+            UInt64 load_ready = executeLoad(info) - m_cycle_count;
 
             if (load_ready > operands_ready)
                operands_ready = load_ready;
@@ -126,7 +161,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
          continue;
 
       const DynamicInstructionInfo &info = write_info.front();
-      UInt64 store_time = executeStore(info.memory_info.latency, info.memory_info.addr);
+      UInt64 store_time = executeStore(info);
       write_info.pop();
 
       if (store_time > m_cycle_count)
@@ -162,19 +197,36 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    LOG_ASSERT_ERROR(write_info.empty(), "Some write info left over?");
 }
 
-UInt64 IOCOOMPerformanceModel::executeLoad(UInt64 occupancy, IntPtr addr)
+UInt64 IOCOOMPerformanceModel::executeLoad(const DynamicInstructionInfo &info)
 {
-   // data is available if its in the buffer
-   if (m_store_buffer->isAddressAvailable(m_cycle_count, addr))
+   // a miss in the l2 forces a miss in the l1 and store buffer since
+   // we assume an inclusive l2 cache (a miss in the l2 generally
+   // means the block has been invalidated)
+   bool l2_hit = info.memory_info.num_misses == 0;
+
+   if (l2_hit && m_store_buffer->isAddressAvailable(m_cycle_count, info.memory_info.addr))
       return m_cycle_count;
 
-   else
-      return m_load_unit->execute(m_cycle_count, occupancy);
+   bool l1_hit = l2_hit && m_l1_dcache && m_l1_dcache->access(info.memory_info.addr);
+
+   UInt64 latency  = l1_hit ? m_l1_dcache_access_time : info.memory_info.latency;
+
+   return m_load_unit->execute(m_cycle_count, latency);
 }
 
-UInt64 IOCOOMPerformanceModel::executeStore(UInt64 occupancy, IntPtr addr)
+UInt64 IOCOOMPerformanceModel::executeStore(const DynamicInstructionInfo &info)
 {
-   return m_store_buffer->executeStore(m_cycle_count, occupancy, addr);
+   return m_store_buffer->executeStore(m_cycle_count, info.memory_info.latency, info.memory_info.addr);
+}
+
+void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
+{
+   if (m_l1_icache)
+   {
+      bool hit = m_l1_icache->access(addr);
+      if (!hit)
+         m_cycle_count += m_l1_icache_miss_penalty;
+   }
 }
 
 // Helper classes 
@@ -263,7 +315,9 @@ bool IOCOOMPerformanceModel::StoreBuffer::isAddressAvailable(UInt64 time, IntPtr
 {
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {
-      if (m_addresses[i] == addr && m_scoreboard[i] >= time)
+      // Note: we assume entries in the store buffer don't expire so
+      // we don't need to check the time
+      if (m_addresses[i] == addr) // && m_scoreboard[i] >= time)
       {
          return true;
       }

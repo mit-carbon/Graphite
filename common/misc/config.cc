@@ -30,24 +30,26 @@ Config *Config::getSingleton()
 }
 
 Config::Config()
-      :
-        m_current_process_num((UInt32)-1)
+      : m_current_process_num((UInt32)-1)
 {
-
+   // NOTE: We can NOT use logging in the config constructor! The log
+   // has not been instantiated at this point!
    try
    {
-   m_knob_total_cores = Sim()->getCfg()->getInt("general/total_cores");
-   m_knob_num_process = Sim()->getCfg()->getInt("general/num_processes");
-   m_knob_simarch_has_shared_mem = Sim()->getCfg()->getBool("general/enable_shared_mem");
-   m_knob_output_file = Sim()->getCfg()->getString("general/output_file");
-   m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
-   m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
-   m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
-   m_knob_cache_line_size = Sim()->getCfg()->getInt("cache/dcache_line_size");
+      m_knob_total_cores = Sim()->getCfg()->getInt("general/total_cores");
+      m_knob_num_process = Sim()->getCfg()->getInt("general/num_processes");
+      m_knob_simarch_has_shared_mem = Sim()->getCfg()->getBool("general/enable_shared_mem");
+      m_knob_output_file = Sim()->getCfg()->getString("general/output_file");
+      m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
+      // TODO: these should be removed and queried directly from the cache
+      m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
+      m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
+      m_knob_cache_line_size = Sim()->getCfg()->getInt("cache/line_size");
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Config obtained a bad value from config.");
+      fprintf(stderr, "Config obtained a bad value from config.\n");
+      assert(false);
    }
    
    m_num_processes = m_knob_num_process;

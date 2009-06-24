@@ -143,7 +143,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
       {
          if (modeled)
          {
-            DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ);
+            DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
             m_performance_model->pushDynamicInstructionInfo(info);
          }
          return (num_misses);
@@ -210,7 +210,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
       if (modeled)
       {
-         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ);
+         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
          m_performance_model->pushDynamicInstructionInfo(info);
       }
 

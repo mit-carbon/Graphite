@@ -78,9 +78,9 @@ class CacheBase
       {
          try
          {
-            m_cache_size = k_KILO * (Sim()->getCfg()->getInt("cache/dcache_size"));
-            m_blocksize = Sim()->getCfg()->getInt("cache/dcache_line_size");
-            m_associativity = Sim()->getCfg()->getInt("cache/dcache_associativity");
+            m_cache_size = k_KILO * (Sim()->getCfg()->getInt("cache/size"));
+            m_blocksize = Sim()->getCfg()->getInt("cache/line_size");
+            m_associativity = Sim()->getCfg()->getInt("cache/associativity");
          }
          catch(...)
          {
@@ -166,7 +166,7 @@ class Cache : public CacheBase
          CacheSetBase::ReplacementPolicy replacement_policy;
          try
          {
-            replacement_policy = CacheSetBase::parsePolicyType(Sim()->getCfg()->getString("cache/dcache_replacement_policy"));
+            replacement_policy = CacheSetBase::parsePolicyType(Sim()->getCfg()->getString("cache/replacement_policy"));
          }
          catch (...)
          {
@@ -183,11 +183,11 @@ class Cache : public CacheBase
          CachePerfModelBase::CacheModel_t model_type;
          try
          {
-            model_type = CachePerfModelBase::parseModelType(Sim()->getCfg()->getString("perf_model/cache/model_type"));
+            model_type = CachePerfModelBase::parseModelType(Sim()->getCfg()->getString("perf_model/l2_cache/model_type"));
          }
          catch(...)
          {
-            LOG_PRINT_ERROR("Error reading perf_model/cache/model_type from config file");
+            LOG_PRINT_ERROR("Error reading perf_model/l2_cache/model_type from config file");
          }
          m_cache_perf_model = CachePerfModelBase::createModel(model_type);
          m_shmem_perf_model = shmem_perf_model;

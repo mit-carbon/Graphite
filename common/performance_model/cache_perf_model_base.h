@@ -32,8 +32,8 @@ class CachePerfModelBase
    public:
       CachePerfModelBase()
       {
-         cache_data_access_time = Sim()->getCfg()->getInt("perf_model/cache/data_access_time");
-         cache_tags_access_time = Sim()->getCfg()->getInt("perf_model/cache/tags_access_time");
+         cache_data_access_time = Sim()->getCfg()->getInt("perf_model/l2_cache/data_access_time");
+         cache_tags_access_time = Sim()->getCfg()->getInt("perf_model/l2_cache/tags_access_time");
       }
 
       virtual ~CachePerfModelBase() { }

@@ -164,5 +164,7 @@ VOID addInstructionModeling(INS ins)
       basic_block->push_back(new GenericInstruction(list));
    }
 
+   basic_block->front()->setAddress(INS_Address(ins));
+
    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
 }

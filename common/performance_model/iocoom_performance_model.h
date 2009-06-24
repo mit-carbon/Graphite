@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "performance_model.h"
+#include "modeled_cache.h"
 
 /*
   In-order core, out-of-order memory performance model.
@@ -26,8 +27,9 @@ private:
 
    void handleInstruction(Instruction *instruction);
 
-   UInt64 executeLoad(UInt64 occupancy, IntPtr addr);
-   UInt64 executeStore(UInt64 occupancy, IntPtr addr);
+   void modelIcache(IntPtr addr);
+   UInt64 executeLoad(const DynamicInstructionInfo &);
+   UInt64 executeStore(const DynamicInstructionInfo &);
 
    typedef std::vector<UInt64> Scoreboard;
 
@@ -68,12 +70,17 @@ private:
       std::vector<IntPtr> m_addresses;
    };
 
-   Scoreboard m_register_scoreboard;
-   ExecutionUnit *m_load_unit;
-   StoreBuffer *m_store_buffer;
-
    UInt64 m_instruction_count;
    UInt64 m_cycle_count;
+
+   Scoreboard m_register_scoreboard;
+   StoreBuffer *m_store_buffer;
+   ExecutionUnit *m_load_unit;
+
+   ModeledCache *m_l1_icache;
+   ModeledCache *m_l1_dcache;
+   UInt64 m_l1_icache_miss_penalty;
+   UInt64 m_l1_dcache_access_time;
 };
 
 #endif // IOCOOM_PERFORMANCE_MODEL_H

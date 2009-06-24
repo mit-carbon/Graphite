@@ -2,6 +2,28 @@
 #include "simulator.h"
 #include "iocoom_performance_model.h"
 
+PerformanceModel* PerformanceModel::create()
+{
+   string type;
+
+   try {
+      type = Sim()->getCfg()->getString("perf_model/core/type");
+   } catch (...) {
+      LOG_PRINT_ERROR("No perf model type provided.");
+   }
+
+   if (type == "iocoom")
+      return new IOCOOMPerformanceModel();
+   else if (type == "simple")
+      return new SimplePerformanceModel();
+   else
+   {
+      LOG_PRINT_ERROR("Invalid perf model type: %s", type.c_str());
+      return NULL;
+   }
+}
+
+// Public Interface
 PerformanceModel::PerformanceModel()
    : m_current_ins_index(0)
 {
@@ -11,12 +33,6 @@ PerformanceModel::~PerformanceModel()
 {
 }
 
-PerformanceModel* PerformanceModel::create()
-{
-   return new IOCOOMPerformanceModel();
-}
-
-// Public Interface
 void PerformanceModel::queueDynamicInstruction(Instruction *i)
 {
    if (!Config::getSingleton()->getEnablePerformanceModeling())

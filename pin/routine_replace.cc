@@ -106,8 +106,10 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    // pthread wrappers
 //   else if (name == "CarbonPthreadCreateWrapper") msg_ptr = AFUNPTR(replacementPthreadCreateWrapperReplacement);
-//   else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
-//   else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
+   else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
+   else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
+   else if (name.find("pthread_barrier_init") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierInit);
+   else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
    // do replacement
@@ -671,12 +673,108 @@ void replacementBarrierWait (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
+//assumption: the pthread_create from the ThreadSpawner is the first pthread_create() we encounter, and we need to let it fall through
+bool pthread_create_first_time = true; 
+
+void replacementPthreadCreate (CONTEXT *ctxt)
+{
+   core_id_t current_core_id =  
+                        Sim()->getCoreManager()->getCurrentCoreID();
+   core_id_t current_thread_spawner_id =  
+                        Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
+   
+   if ( pthread_create_first_time || current_core_id == current_thread_spawner_id )
+   {
+      //let the pthread_create call fall through 
+      pthread_create_first_time = false;
+   }
+   else
+   {
+      pthread_t *thread_id;
+      pthread_attr_t *attributes;
+      thread_func_t func;
+      void *func_arg;
+
+      initialize_replacement_args (ctxt,
+            IARG_PTR, &thread_id,
+            IARG_PTR, &attributes,
+            IARG_PTR, &func,
+            IARG_PTR, &func_arg,
+            IARG_END);
+
+      //TODO: add support for different attributes and throw warnings for unsupported attrs
+      
+      carbon_thread_t new_thread_id = CarbonSpawnThread(func, func_arg);
+      
+      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      assert (core);
+      
+      core->accessMemory(Core::NONE, WRITE, (IntPtr) thread_id, (char*) &new_thread_id, sizeof (pthread_t));
+      
+      //pthread_create() expects a return value of 0 on success
+      ADDRINT ret_val = 0;
+      retFromReplacedRtn (ctxt, ret_val);
+   }
+}
+
+void replacementPthreadJoin (CONTEXT *ctxt)
+{
+   pthread_t thread_id;
+   void** return_value;
+
+   initialize_replacement_args (ctxt,
+         IARG_PTR, &thread_id,
+         IARG_PTR, &return_value,
+         IARG_END);
+
+   CarbonJoinThread ((carbon_thread_t) thread_id);
+
+   //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
+   
+   //pthread_join() expects a return value of 0 on success
+   ADDRINT ret_val = 0;
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
 void replacementPthreadExitNull (CONTEXT *ctxt)
 {
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }
 
+void replacementPthreadBarrierInit (CONTEXT *ctxt)
+{
+   pthread_barrier_t *barrier;
+   pthread_barrierattr_t *attributes;
+   UINT32 count;
+
+   initialize_replacement_args (ctxt,
+         IARG_PTR, &barrier,
+         IARG_PTR, &attributes,
+         IARG_PTR, &count,
+         IARG_END);
+
+   //TODO: add support for different attributes and throw warnings for unsupported attrs
+   CarbonBarrierInit((carbon_barrier_t*) barrier, count);
+   
+   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementPthreadBarrierWait (CONTEXT *ctxt)
+{
+   pthread_barrier_t *barrier;
+
+   initialize_replacement_args (ctxt,
+         IARG_PTR, &barrier,
+         IARG_END);
+
+   CarbonBarrierWait((carbon_barrier_t*) barrier);
+   
+   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
+   retFromReplacedRtn (ctxt, ret_val);
+}
+                            
 void initialize_replacement_args (CONTEXT *ctxt, ...)
 {
    va_list vl;

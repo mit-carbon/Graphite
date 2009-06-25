@@ -207,7 +207,8 @@ UInt64 IOCOOMPerformanceModel::executeLoad(const DynamicInstructionInfo &info)
    if (l2_hit && m_store_buffer->isAddressAvailable(m_cycle_count, info.memory_info.addr))
       return m_cycle_count;
 
-   bool l1_hit = l2_hit && m_l1_dcache && m_l1_dcache->access(info.memory_info.addr);
+   bool l1_hit = m_l1_dcache && m_l1_dcache->access(info.memory_info.addr);
+   l1_hit = l1_hit && l2_hit;
 
    UInt64 latency  = l1_hit ? m_l1_dcache_access_time : info.memory_info.latency;
 
@@ -216,17 +217,23 @@ UInt64 IOCOOMPerformanceModel::executeLoad(const DynamicInstructionInfo &info)
 
 UInt64 IOCOOMPerformanceModel::executeStore(const DynamicInstructionInfo &info)
 {
-   return m_store_buffer->executeStore(m_cycle_count, info.memory_info.latency, info.memory_info.addr);
+   bool l2_hit = info.memory_info.num_misses == 0;
+   bool l1_hit = m_l1_dcache && m_l1_dcache->access(info.memory_info.addr);
+   l1_hit = l1_hit && l2_hit;
+
+   UInt64 latency = l1_hit ? m_l1_dcache_access_time : info.memory_info.latency;
+
+   return m_store_buffer->executeStore(m_cycle_count, latency, info.memory_info.addr);
 }
 
 void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
 {
-   if (m_l1_icache)
-   {
-      bool hit = m_l1_icache->access(addr);
-      if (!hit)
-         m_cycle_count += m_l1_icache_miss_penalty;
-   }
+   if (!m_l1_icache)
+      return;
+
+   bool hit = m_l1_icache->access(addr);
+   if (!hit)
+      m_cycle_count += m_l1_icache_miss_penalty;
 }
 
 // Helper classes 
@@ -287,7 +294,19 @@ UInt64 IOCOOMPerformanceModel::StoreBuffer::executeStore(UInt64 time, UInt64 occ
 {
    // Note: basically identical to ExecutionUnit, except we need to
    // track addresses as well
-   UInt64 unit = 0;
+
+   // is address already in buffer?
+   for (unsigned int i = 0; i < m_scoreboard.size(); i++)
+   {
+      if (m_addresses[i] == addr)
+      {
+         m_scoreboard[i] = time + occupancy;
+         return time;
+      }
+   }
+
+   // if not, find earliest available entry
+   unsigned int unit = 0;
 
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {

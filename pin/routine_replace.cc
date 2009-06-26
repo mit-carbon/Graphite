@@ -188,6 +188,7 @@ void replacementMain (CONTEXT *ctxt)
    
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
+      LOG_PRINT("ReplaceMain start");
       spawnThreadSpawner(ctxt);
 
       Core *core = Sim()->getCoreManager()->getCurrentCore();
@@ -204,6 +205,7 @@ void replacementMain (CONTEXT *ctxt)
       {
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
+      LOG_PRINT("ReplaceMain end");
       
       return;
    }
@@ -704,6 +706,11 @@ void replacementPthreadCreate (CONTEXT *ctxt)
 
       //TODO: add support for different attributes and throw warnings for unsupported attrs
       
+      if (attributes != NULL)
+      {
+         fprintf(stdout, "Warning: pthread_create() is using unsupported attributes.\n");
+      }
+      
       carbon_thread_t new_thread_id = CarbonSpawnThread(func, func_arg);
       
       Core *core = Sim()->getCoreManager()->getCurrentCore();
@@ -727,10 +734,14 @@ void replacementPthreadJoin (CONTEXT *ctxt)
          IARG_PTR, &return_value,
          IARG_END);
 
+   //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
+   if (return_value != NULL)
+   {
+      fprintf(stdout, "Warning: pthread_join() is expecting a return value to be passed through value_ptr input, which is unsupported.\n");
+   }
+      
    CarbonJoinThread ((carbon_thread_t) thread_id);
 
-   //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
-   
    //pthread_join() expects a return value of 0 on success
    ADDRINT ret_val = 0;
    retFromReplacedRtn (ctxt, ret_val);
@@ -755,6 +766,11 @@ void replacementPthreadBarrierInit (CONTEXT *ctxt)
          IARG_END);
 
    //TODO: add support for different attributes and throw warnings for unsupported attrs
+   if (attributes != NULL)
+   {
+      fprintf(stdout, "Warning: pthread_barrier_init() is using unsupported attributes.\n");
+   }
+   
    CarbonBarrierInit((carbon_barrier_t*) barrier, count);
    
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);

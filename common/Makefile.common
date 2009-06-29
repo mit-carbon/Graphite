@@ -22,7 +22,8 @@ endif
 
 # Boost Support
 #   hack to find version -- this sucks
-ifeq ($(strip $(wildcard /usr/include/boost/version.hpp)),)
+#ifeq ($(strip $(wildcard /usr/include/boost/version.hpp)),)
+ifeq (1,1) # FIXME: Default to 1_38 since TiG installed the wrong versions
 	BOOST_VERSION = 1_38
 else
 	BOOST_VERSION = 1_35

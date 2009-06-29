@@ -48,6 +48,13 @@ private:
    class StoreBuffer
    {
    public:
+      enum Status
+      {
+         VALID,
+         COMPLETED,
+         NOT_FOUND
+      };
+
       StoreBuffer(unsigned int num_entries);
       ~StoreBuffer();
 
@@ -63,7 +70,7 @@ private:
         @param time Time to check for addr.
         @param addr Address to check.
       */
-      bool isAddressAvailable(UInt64 time, IntPtr addr);
+      Status isAddressAvailable(UInt64 time, IntPtr addr);
 
    private:
       Scoreboard m_scoreboard;

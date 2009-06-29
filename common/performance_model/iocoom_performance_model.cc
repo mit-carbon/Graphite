@@ -199,14 +199,18 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
 
 UInt64 IOCOOMPerformanceModel::executeLoad(const DynamicInstructionInfo &info)
 {
+   bool l2_hit = info.memory_info.num_misses == 0;
+
+   // similarly, a miss in the l2 with a completed entry in the store
+   // buffer is treated as an invalidation
+   StoreBuffer::Status status = m_store_buffer->isAddressAvailable(m_cycle_count, info.memory_info.addr);
+
+   if ((status == StoreBuffer::VALID) || (l2_hit && status == StoreBuffer::COMPLETED))
+      return m_cycle_count;
+
    // a miss in the l2 forces a miss in the l1 and store buffer since
    // we assume an inclusive l2 cache (a miss in the l2 generally
    // means the block has been invalidated)
-   bool l2_hit = info.memory_info.num_misses == 0;
-
-   if (l2_hit && m_store_buffer->isAddressAvailable(m_cycle_count, info.memory_info.addr))
-      return m_cycle_count;
-
    bool l1_hit = m_l1_dcache && m_l1_dcache->access(info.memory_info.addr);
    l1_hit = l1_hit && l2_hit;
 
@@ -330,17 +334,18 @@ UInt64 IOCOOMPerformanceModel::StoreBuffer::executeStore(UInt64 time, UInt64 occ
    return m_scoreboard[unit] - occupancy;
 }
 
-bool IOCOOMPerformanceModel::StoreBuffer::isAddressAvailable(UInt64 time, IntPtr addr)
+IOCOOMPerformanceModel::StoreBuffer::Status IOCOOMPerformanceModel::StoreBuffer::isAddressAvailable(UInt64 time, IntPtr addr)
 {
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {
-      // Note: we assume entries in the store buffer don't expire so
-      // we don't need to check the time
-      if (m_addresses[i] == addr) // && m_scoreboard[i] >= time)
+      if (m_addresses[i] == addr)
       {
-         return true;
+         if (m_scoreboard[i] >= time)
+            return VALID;
+         else
+            return COMPLETED;
       }
    }
    
-   return false;
+   return NOT_FOUND;
 }

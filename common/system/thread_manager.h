@@ -47,13 +47,13 @@ private:
    void slaveSpawnThread(ThreadSpawnRequest*);
    void masterSpawnThreadReply(ThreadSpawnRequest*);
 
-   void masterOnThreadExit(core_id_t core_id);
+   void masterOnThreadExit(core_id_t core_id, UInt64 time);
 
    void masterTerminateThreadSpawner (UInt32 proc);
    void slaveTerminateThreadSpawner ();
 
-   void masterJoinThread(ThreadJoinRequest *req);
-   void wakeUpWaiter(core_id_t core_id);
+   void masterJoinThread(ThreadJoinRequest *req, UInt64 time);
+   void wakeUpWaiter(core_id_t core_id, UInt64 time);
 
    void insertThreadSpawnRequest (ThreadSpawnRequest *req);
 

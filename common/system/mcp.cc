@@ -101,11 +101,11 @@ void MCP::processPacket()
       Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)recv_pkt.data);
       break;
    case MCP_MESSAGE_THREAD_EXIT:
-      Sim()->getThreadManager()->masterOnThreadExit(*(core_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)));
+      Sim()->getThreadManager()->masterOnThreadExit(*(core_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), recv_pkt.time);
       break;
 
    case MCP_MESSAGE_THREAD_JOIN_REQUEST:
-      Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data);
+      Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data, recv_pkt.time);
       break;
 
    case MCP_MESSAGE_QUIT_THREAD_SPAWNER:

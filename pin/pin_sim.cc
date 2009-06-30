@@ -24,8 +24,6 @@
 
 #include "pin.H"
 #include "log.h"
-#include "run_models.h"
-#include "analysis.h"
 #include "routine_replace.h"
 
 // FIXME: This list could probably be trimmed down a lot.
@@ -40,9 +38,11 @@
 #include "pin_config.h"
 #include "log.h"
 #include "vm_manager.h"
+#include "instruction_modeling.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
+#include "opcodes.h"
 #include <typeinfo>
 
 // ---------------------------------------------------------------
@@ -84,7 +84,6 @@ void printRtn (ADDRINT rtn_addr, bool enter)
    ReleaseLock (&rtn_map_lock);
 }
 // ---------------------------------------------------------------
-
 
 INT32 usage()
 {
@@ -170,13 +169,36 @@ void routineCallback(RTN rtn, void *v)
    //    replaceInstruction(rtn, rtn_name);
 }
 
+void showInstructionInfo(INS ins)
+{
+   if (Sim()->getCoreManager()->getCurrentCore()->getId() != 0)
+      return;
+   printf("\t");
+   if(INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins))
+      printf("* ");
+   else
+      printf("  ");
+//   printf("%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
+   printf("%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
+   printf(" %s ", INS_Disassemble(ins).c_str());
+   printf("\n");
+}
+
 VOID instructionCallback (INS ins, void *v)
 {
-   INS_InsertCall(ins, IPOINT_BEFORE,
-         AFUNPTR(printInsInfo),
-         IARG_CALL_ORDER, CALL_ORDER_FIRST,
-         IARG_CONTEXT,
-         IARG_END);
+//   showInstructionInfo(ins);
+
+   if (Log::getSingleton()->isLoggingEnabled())
+   {
+      INS_InsertCall(ins, IPOINT_BEFORE,
+                     AFUNPTR(printInsInfo),
+                     IARG_CALL_ORDER, CALL_ORDER_FIRST,
+                     IARG_CONTEXT,
+                     IARG_END);
+   }
+
+   if (Config::getSingleton()->getEnablePerformanceModeling())
+      addInstructionModeling(ins);
 
    if (INS_IsSyscall(ins))
    {
@@ -187,19 +209,9 @@ VOID instructionCallback (INS ins, void *v)
    }
 
    // Emulate Stack Operations
-   bool string_op = rewriteStringOp (ins);
-
-   if (!string_op)
-   {
-      // Emulate stack operations
-      bool stack_op = rewriteStackOp (ins);
-
-      // Else, redirect memory to the simulated memory system
-      if (!stack_op)
-      {
-         rewriteMemOp (ins);
-      }
-   }
+   if (rewriteStringOp (ins));
+   else if (rewriteStackOp (ins));
+   else rewriteMemOp (ins);
 }
 
 // syscall model wrappers
@@ -224,7 +236,6 @@ void ApplicationExit(int, void*)
    Simulator::release();
    delete cfg;
 }
-
 
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
@@ -255,14 +266,14 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          IMG img = IMG_FindByAddress(reg_eip);
          PIN_UnlockClient();
 
-         LOG_PRINT("Process: 0, Start Copying Static Data\n");
+         LOG_PRINT("Process: 0, Start Copying Static Data");
          copyStaticData(img);
-         LOG_PRINT("Process: 0, Finished Copying Static Data\n");
+         LOG_PRINT("Process: 0, Finished Copying Static Data");
 
          // 2) Copying over initial stack data
-         LOG_PRINT("Process: 0, Start Copying Initial Stack Data\n");
+         LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, 0);
-         LOG_PRINT("Process: 0, Finished Copying Initial Stack Data\n");
+         LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
 #endif
       }
 
@@ -277,9 +288,9 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          Core *core = Sim()->getCoreManager()->getCurrentCore();
          core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
 
-         LOG_PRINT("Process: %i, Start Copying Initial Stack Data\n");
+         LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, core_id);
-         LOG_PRINT("Process: %i, Finished Copying Initial Stack Data\n");
+         LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
       }
       
       // All the real initialization is done in 

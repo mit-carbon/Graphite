@@ -26,18 +26,16 @@
 #include "config_file_grammar.hpp"
 
 // #define BOOST_SPIRIT_DEBUG        // define this for debug output
-#include <boost/spirit/include/classic_core.hpp>
-#include <boost/spirit/include/classic_parse_tree.hpp>
-#include <boost/spirit/include/classic_ast.hpp>
-#include <boost/spirit/include/classic_confix.hpp>
-#include <boost/spirit/include/classic_escape_char.hpp>
-#include <boost/spirit/include/classic_chset.hpp>
 
 #include <boost/thread/mutex.hpp>
 
 namespace config
 {
+#if (BOOST_VERSION==103500)
+    using namespace boost::spirit;
+#else
     using namespace boost::spirit::classic;
+#endif
 
     /*! \brief ConfigFile: A flat-file interface for the Config Class.
      * This file contains the class that is used to interface a flat

@@ -3,18 +3,8 @@
 #include "log.h"
 #include "simulator.h"
 
-DramDirectory::DramDirectory(core_id_t core_id, Network* network)
+DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel* shmem_perf_model)
 {
-   try
-   {
-      m_knob_dram_access_cost = Sim()->getCfg()->getInt("dram/dram_access_cost");
-      m_knob_dir_max_sharers = Sim()->getCfg()->getInt("dram/max_sharers");
-   }
-   catch(...)
-   {
-      LOG_ASSERT_ERROR(false, "DramDirectory obtained a bad value from config.");
-   }
-
    m_core_id = core_id;
    m_network = network;
    
@@ -25,8 +15,20 @@ DramDirectory::DramDirectory(core_id_t core_id, Network* network)
    // This will be done as many times as the number of cores but since 
    // this is all done by a single thread, there is no race condition
    DramDirectoryEntry::setCacheLineSize(m_cache_line_size);
-   DramDirectoryEntry::setMaxSharers(Config::getSingleton()->getDirMaxSharers());
    DramDirectoryEntry::setTotalCores(Config::getSingleton()->getTotalCores());
+   try
+   {
+      DramDirectoryEntry::setMaxSharers(Sim()->getCfg()->getInt("dram_dir/max_sharers"));
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Error Reading max_sharers from config file");
+   }
+
+   m_dram_directory_perf_model = DramDirectoryPerfModelBase::createModel(DramDirectoryPerfModelBase::DRAM_DIRECTORY_PERF_MODEL);
+   m_dram_perf_model = new DramPerfModel();
+   m_shmem_perf_model = shmem_perf_model;
+
 }
 
 DramDirectory::~DramDirectory()
@@ -40,15 +42,14 @@ DramDirectory::~DramDirectory()
    assert (dram_request_list.empty());
 }
 
-/*
- * returns the associated DRAM directory entry given a memory address
- */
+// Returns the associated DRAM directory entry given a memory address
 DramDirectoryEntry* DramDirectory::getEntry(IntPtr address)
 {
+   m_shmem_perf_model->updateCycleCount(m_dram_directory_perf_model->getLatency(DramDirectoryPerfModelBase::ACCESS_DIR_CACHE));
+
    // Note: The directory is a map key'ed by addresss.
    DramDirectoryEntry* entry_ptr = dram_directory_entries[address];
 
-   // FIXME: I guess this is the place we need to call the code for transferring data from the host machine to the simulated machine
    if (entry_ptr == NULL)
    {
       dram_directory_entries[address] =  new DramDirectoryEntry(address);
@@ -57,14 +58,27 @@ DramDirectoryEntry* DramDirectory::getEntry(IntPtr address)
    return dram_directory_entries[address];
 }
 
-void DramDirectory::copyDataToDram(IntPtr address, Byte* data_buffer)
+void DramDirectory::runDramPerfModel()
 {
-   DramDirectoryEntry* entry_ptr = dram_directory_entries[address];
+   // Dram Performance Model
+   UInt64 pkt_time = m_shmem_perf_model->getCycleCount();
+   UInt64 pkt_size = m_cache_line_size;
+   UInt64 dram_access_latency = m_dram_perf_model->getAccessLatency(pkt_time, pkt_size);
+   m_shmem_perf_model->updateCycleCount(dram_access_latency);
+}
 
-   assert(entry_ptr != NULL);
+void DramDirectory::putDataToDram(DramDirectoryEntry* dram_dir_entry, Byte* data_buffer)
+{
+   dram_dir_entry->fillDramDataLine(data_buffer);
+   // Run the Performance Model
+   runDramPerfModel();
+}
 
-   entry_ptr->fillDramDataLine(data_buffer);
-
+void DramDirectory::getDataFromDram(DramDirectoryEntry* dram_dir_entry, Byte* data_buffer)
+{
+   dram_dir_entry->getDramDataLine(data_buffer);
+   // Run the Performance Model
+   runDramPerfModel();
 }
 
 // FIXME: In case this was a writeback, we need to set the state bits also properly in addition to the sharers list
@@ -93,7 +107,7 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
    if (payload.is_writeback)
    {
       assert(payload.data_size == m_cache_line_size);
-      copyDataToDram(payload.ack_address, data_buffer); //TODO verify that all wb_packets would give us the entire cache_line
+      putDataToDram(dir_entry, data_buffer); 
    }
 }
 
@@ -257,39 +271,19 @@ void DramDirectory::processSharedMemRequest(UInt32 requestor, shmem_req_t shmem_
 
 }
 
+NetPacket DramDirectory::makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, SInt32 sender_rank, SInt32 receiver_rank)
+{
+   NetPacket packet;
+   packet.time = m_shmem_perf_model->getCycleCount();
+   packet.type = packet_type;
+   packet.sender = sender_rank;
+   packet.receiver = receiver_rank;
+   packet.data = payload_buffer;
+   packet.length = payload_size;
 
-/* ============================================================== */
-//
-//
-/* ============================================================== */
-/* Added by George */
+   return packet;
+}
 
-// XXX: Here, I add the DRAM access cost
-// TODO: This is just a temporary hack. The actual DRAM access cost has to incorporated
-//       while adding data storage to all the coherence messages
-//
-// 1) READ request:
-//    a) Case (EXCLUSIVE):
-//       There is only 1 AckPayload message we need to look at
-//     i) AckPayload::remove_from_sharers = false
-//       * Do '2' runDramAccessModel()
-//     ii) AckPayload::remove_from_sharers = true
-//       * Do '1' runDramAccessModel()
-//  b) Case (SHARED or INVALID):
-//    * Do '1' runDramAccessModel()
-//
-// 2) WRITE request
-//    a) Case (EXCLUSIVE):
-//      There is only 1 AckPayload message we need to look at
-//       i) AckPayload::remove_from_sharers = false
-//         * Do '2' runDramAccessModel()
-//       ii) AckPayload::remove_from_sharers = true
-//         * Do '1' runDramAccessModel()
-//    b) Case (SHARED or INVALID):
-//      * Do '1' runDramAccessModel()
-//
-
-/* =============================================================== */
 
 //TODO go through this code again. i think a lot of it is unnecessary.
 //TODO rename this to something more descriptive about what it does (sending a memory line to another core)
@@ -303,14 +297,14 @@ void DramDirectory::sendDataLine(DramDirectoryEntry* dram_dir_entry, UInt32 requ
    payload.data_size = m_cache_line_size;
 
    Byte data_buffer[m_cache_line_size];
-   dram_dir_entry->getDramDataLine(data_buffer);
+   getDataFromDram(dram_dir_entry, data_buffer);
 
    UInt32 payload_size = sizeof(payload) + m_cache_line_size;
    Byte payload_buffer[payload_size];
 
    MemoryManager::createUpdatePayloadBuffer(&payload, data_buffer, payload_buffer, payload_size);
    // This is the response to a shared memory request
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_RESPONSE, payload_buffer, payload_size, m_core_id, requestor);
+   NetPacket packet = makePacket(SHARED_MEM_RESPONSE, payload_buffer, payload_size, m_core_id, requestor);
 
    m_network->netSend(packet);
 
@@ -332,7 +326,7 @@ void DramDirectory::startDemoteOwner(DramDirectoryEntry* dram_dir_entry, CacheSt
    upd_payload.update_new_cstate = new_cstate;
    upd_payload.update_address = address;
    upd_payload.data_size = 0;
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), m_core_id, owner);
+   NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&upd_payload), sizeof(MemoryManager::UpdatePayload), m_core_id, owner);
 
    m_network->netSend(packet);
 }
@@ -370,7 +364,7 @@ void DramDirectory::startInvalidateSingleSharer(DramDirectoryEntry* dram_dir_ent
    payload.update_address = address;
    payload.data_size = 0;
 
-   NetPacket packet = MemoryManager::makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&payload), sizeof(MemoryManager::UpdatePayload), m_core_id, sharer_id);
+   NetPacket packet = makePacket(SHARED_MEM_UPDATE_UNEXPECTED, (Byte *)(&payload), sizeof(MemoryManager::UpdatePayload), m_core_id, sharer_id);
    m_network->netSend(packet);
 }
 
@@ -466,12 +460,11 @@ void DramDirectory::processDemoteOwnerAck(
    CacheState::cstate_t new_cstate
 )
 {
-   // wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
+   // Wait for the acknowledgement from the original owner that it downgraded itself to SHARED (from EXCLUSIVE)
    // The 'dram_dir_entry' was in the exclusive state before
 
    if (ack_payload->remove_from_sharers)
    {
-
       assert(ack_payload->data_size == 0);
       assert(ack_payload->ack_new_cstate == CacheState::INVALID);
       assert(ack_payload->is_writeback == false);
@@ -483,10 +476,9 @@ void DramDirectory::processDemoteOwnerAck(
 
    else
    {
-
       // There has been no eviction
       assert(ack_payload->data_size == m_cache_line_size);
-      assert (ack_payload->ack_new_cstate == new_cstate);
+      assert(ack_payload->ack_new_cstate == new_cstate);
       assert(ack_payload->is_writeback == true);
       assert(dram_dir_entry->getDState() == DramDirectoryEntry::EXCLUSIVE);
       assert(dram_dir_entry->numSharers() == 1);
@@ -494,7 +486,7 @@ void DramDirectory::processDemoteOwnerAck(
 
       // Write Back the cache line
       // Change the interface for better efficiency
-      copyDataToDram(dram_dir_entry->getCacheLineAddress(), data_buffer);
+      putDataToDram(dram_dir_entry, data_buffer);
       if (new_cstate == CacheState::INVALID)
       {
          // It was a write request

@@ -3,11 +3,12 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "core_manager.h"
 #include "core.h"
 #include "network.h"
-#include "ocache.h"
+#include "cache.h"
 #include "config.h"
 #include "packetize.h"
 #include "message_types.h"
@@ -195,7 +196,7 @@ core_id_t CoreManager::getCurrentCoreID()
    pair<bool, UInt64> e = tid_to_core_map.find(tid);
    core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!");
 
    return core_id;
 }
@@ -208,7 +209,7 @@ core_id_t CoreManager::getCurrentSimThreadCoreID()
    pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
    core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
 
-   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!\n");
+   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!");
 
    return core_id;
 }
@@ -221,7 +222,7 @@ Core *CoreManager::getCurrentCore()
    pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
    core = (e.first == false) ? NULL : m_cores[e.second];
 
-   LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!\n");
+   LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!");
    return core;
 }
 
@@ -243,7 +244,7 @@ Core *CoreManager::getCoreFromID(core_id_t id)
       idx++;
    }
 
-   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getCoreFromID!\n");
+   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getCoreFromID!");
 
    return core;
 }
@@ -255,30 +256,44 @@ Core *CoreManager::getCoreFromIndex(UInt32 index)
    return m_cores[index];
 }
 
-void CoreManager::outputSummary()
+UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
+{
+   // Look up the index from the core list
+   // FIXME: make this more cached
+   const Config::CoreList & cores(Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum()));
+   UInt32 idx = 0;
+   for (Config::CLCI i = cores.begin(); i != cores.end(); i++)
+   {
+      if (*i == core_id)
+         return idx;
+
+      idx++;
+   }
+
+   LOG_ASSERT_ERROR(false, "Core lookup failed for core id: %d!", core_id);
+   return INVALID_CORE_ID;
+}
+
+UInt32 CoreManager::getCoreIndexFromTID(UInt32 tid)
+{
+   pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
+   LOG_ASSERT_ERROR(e.first, "getCoreIndexFromTID: couldn't find core for tid: %d", tid);
+   return e.second;
+}
+
+void CoreManager::outputSummary(std::ostream &os)
 {
    LOG_PRINT("Starting CoreManager::outputSummary");
-
-   ofstream out(Config::getSingleton()->getOutputFileName());
 
    for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
    {
       LOG_PRINT("Output summary core %i", i);
 
-      out << "*** Core[" << i << "] summary ***" << endl;
-      if (Config::getSingleton()->getEnablePerformanceModeling())
-      {
-         m_cores[i]->getPerfModel()->outputSummary(out);
-         m_cores[i]->getNetwork()->outputSummary(out);
-      }
+      os << "*** Core[" << i << "] summary ***" << endl;
+      m_cores[i]->outputSummary(os);
 
-      if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
-         m_cores[i]->getOCache()->outputSummary(out);
-
-      out << endl;
+      os << endl;
    }
-
-   out.close();
 }
 
 core_id_t CoreManager::registerSimMemThread()
@@ -308,7 +323,7 @@ core_id_t CoreManager::registerSimMemThread()
 
       LOG_PRINT("registerSimMemThread - No free cores for thread: %d", tid);
       for (UInt32 j = 0; j < Config::getSingleton()->getNumLocalCores(); j++)
-         LOG_PRINT("core_to_simthread_tid_map[%d] = %d\n", j, core_to_simthread_tid_map[j]);
+         LOG_PRINT("core_to_simthread_tid_map[%d] = %d", j, core_to_simthread_tid_map[j]);
       LOG_PRINT_ERROR("");
    }
    else
@@ -320,6 +335,27 @@ core_id_t CoreManager::registerSimMemThread()
 
    return INVALID_CORE_ID;
 }
+
+bool CoreManager::amiSimThread()
+{
+   UInt32 tid = getCurrentTID();
+
+   ScopedLock sl(m_maps_lock);
+   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
+
+   return e.first == true;
+}
+
+bool CoreManager::amiUserThread()
+{
+   UInt32 tid = getCurrentTID();
+
+   ScopedLock sl(m_maps_lock);
+   pair<bool, UInt64> e = tid_to_core_map.find(tid);
+
+   return e.first == true;
+}
+
 
 UInt32 CoreManager::getCurrentTID()
 {

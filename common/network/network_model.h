@@ -6,6 +6,8 @@ class Network;
 
 #include <string>
 
+#include "packet_type.h"
+
 // -- Network Models -- //
 
 // To implement a new network model, you must implement this routing
@@ -35,7 +37,7 @@ class NetworkModel
 
       virtual void outputSummary(std::ostream &out) = 0;
 
-      static NetworkModel *createModel(Network *network, UInt32 type);
+      static NetworkModel *createModel(Network *network, UInt32 model_type, EStaticNetwork net_type);
 
       static UInt32 parseNetworkType(std::string str);
 

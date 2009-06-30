@@ -2,13 +2,11 @@ SIM_ROOT ?= $(CURDIR)/../
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
-BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0
 
 BUILD_32 = 1
 
 # MPI Support
 MPI_DIR = /afs/csail/group/carbon/tools/mpich2-1.0.8/install
-export LD_LIBRARY_PATH := $(BOOST_ROOT)/stage/lib:$(MPI_DIR)/lib:$(LD_LIBRARY_PATH)
 CC = $(MPI_DIR)/bin/mpicc
 CXX = $(MPI_DIR)/bin/mpicxx
 
@@ -23,20 +21,38 @@ else
 endif
 
 # Boost Support
-CXXFLAGS += -I$(BOOST_ROOT)
-BOOST_SUFFIX = gcc41-mt-1_38
-LD_FLAGS += -L$(BOOST_ROOT)/stage/lib -L$(SIM_ROOT)/lib
+#   hack to find version -- this sucks
+#ifeq ($(strip $(wildcard /usr/include/boost/version.hpp)),)
+ifeq (1,1) # FIXME: Default to 1_38 since TiG installed the wrong versions
+	BOOST_VERSION = 1_38
+else
+	BOOST_VERSION = 1_35
+endif
+
+ifeq ($(BOOST_VERSION),1_38)
+	BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0
+	BOOST_SUFFIX = gcc41-mt-1_38
+	export LD_LIBRARY_PATH := $(BOOST_ROOT)/stage/lib:$(LD_LIBRARY_PATH)
+	CXXFLAGS += -I$(BOOST_ROOT)
+	LD_FLAGS += -L$(BOOST_ROOT)/stage/lib
+else
+	BOOST_SUFFIX = mt
+endif
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
+
+LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)
 
 # Include paths
 CXXFLAGS+=-c -I$(SIM_ROOT)/common/user      \
           -I$(SIM_ROOT)/common/system       \
           -I$(SIM_ROOT)/common/core         \
+          -I$(SIM_ROOT)/common/core/cache   \
           -I$(SIM_ROOT)/common/network      \
           -I$(SIM_ROOT)/common/transport    \
           -I$(SIM_ROOT)/common/misc         \
           -I$(SIM_ROOT)/common/config       \
+          -I$(SIM_ROOT)/common/performance_model      \
           -I /afs/csail/group/carbon/tools/mpich2-1.0.8/install/include/ \
           -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas -O0 -MMD -m32 -ggdb3
 

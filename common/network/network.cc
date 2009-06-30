@@ -33,7 +33,7 @@ Network::Network(Core *core)
    Config::getSingleton()->getNetworkModels(modelTypes);
 
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
-      _models[i] = NetworkModel::createModel(this, modelTypes[i]);
+      _models[i] = NetworkModel::createModel(this, modelTypes[i], (EStaticNetwork)i);
 
    LOG_PRINT("Initialized.");
 }
@@ -109,8 +109,6 @@ void Network::netPullFromTransport()
          LOG_PRINT("Executing callback on packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
          assert(0 <= packet.sender && packet.sender < _numMod);
          assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
-
-         _core->getPerfModel()->updateCycleCount(packet.time);
 
          callback(_callbackObjs[packet.type], packet);
 
@@ -280,6 +278,10 @@ NetPacket Network::netRecv(const NetMatch &match)
                           ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
                           : NetRecvIterator(match.types);
 
+   LOG_ASSERT_ERROR(_core && _core->getPerformanceModel(),
+                    "Core and/or performance model not initialized.");
+   UInt64 start_time = _core->getPerformanceModel()->getCycleCount();
+
    _netQueueLock.acquire();
 
    while (!found)
@@ -331,7 +333,11 @@ NetPacket Network::netRecv(const NetMatch &match)
    _netQueue.erase(itr);
    _netQueueLock.release();
 
-   _core->getPerfModel()->updateCycleCount(packet.time);
+   if (packet.time > start_time)
+   {
+      Instruction *i = new RecvInstruction(packet.time - start_time);
+      _core->getPerformanceModel()->queueDynamicInstruction(i);
+   }
 
    LOG_PRINT("Exiting netRecv : type %i, from %i", (SInt32)packet.type, packet.sender);
 

@@ -66,6 +66,8 @@ void Simulator::start()
    m_lcp_thread = Thread::create(m_lcp);
    m_lcp_thread->run();
 
+   Instruction::initializeStaticInstructionModel();
+
    m_transport->barrier();
 }
 
@@ -83,7 +85,9 @@ Simulator::~Simulator()
 
    m_lcp->finish();
 
-   m_core_manager->outputSummary();
+   ofstream os(Config::getSingleton()->getOutputFileName());
+   m_core_manager->outputSummary(os);
+   os.close();
 
    delete m_lcp_thread;
    delete m_mcp_thread;

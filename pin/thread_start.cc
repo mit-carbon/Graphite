@@ -59,7 +59,7 @@ VOID copyStaticData(IMG& img)
          {
             sec_address = SEC_Address(sec);
 
-            LOG_PRINT ("\nCopying Section: %s at Address: 0x%x of Size: %u to Simulated Memory\n", SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
+            LOG_PRINT ("Copying Section: %s at Address: 0x%x of Size: %u to Simulated Memory", SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
             core->accessMemory(Core::NONE, WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
          }
       }
@@ -143,7 +143,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &argc, sizeof(argc));
    stack_ptr_base += sizeof(argc);
 
-   LOG_PRINT("Copying Command Line Arguments to Simulated Memory\n");
+   LOG_PRINT("Copying Command Line Arguments to Simulated Memory");
    for (SInt32 i = 0; i < argc; i++)
    {
       // Writing argv[i]
@@ -159,7 +159,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    stack_ptr_base += sizeof(argv[argc]);
 
    // We need to copy over the environmental parameters also
-   LOG_PRINT("Copying Environmental Variables to Simulated Memory\n");
+   LOG_PRINT("Copying Environmental Variables to Simulated Memory");
    for (SInt32 i = 0; ; i++)
    {
       // Writing environ[i]
@@ -178,7 +178,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    }
    
 
-   LOG_PRINT("Copying Auxiliary Vector to Simulated Memory\n");
+   LOG_PRINT("Copying Auxiliary Vector to Simulated Memory");
    
    Elf32_auxv_t auxiliary_vector_entry_null;
    auxiliary_vector_entry_null.a_type = AT_NULL;
@@ -217,9 +217,9 @@ VOID allocateStackSpace()
    UInt32 num_cores = Sim()->getConfig()->getNumLocalCores();
    IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
 
-   LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x\n", stack_size_per_core);
-   LOG_PRINT("allocateStackSpace: num_local_cores = %i\n", num_cores);
-   LOG_PRINT("allocateStackSpace: stack_base = 0x%x\n", stack_base);
+   LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x", stack_size_per_core);
+   LOG_PRINT("allocateStackSpace: num_local_cores = %i", num_cores);
+   LOG_PRINT("allocateStackSpace: stack_base = 0x%x", stack_base);
 
    // TODO: Make sure that this is a multiple of the page size 
    

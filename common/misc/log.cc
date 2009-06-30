@@ -1,6 +1,7 @@
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "log.h"
 #include "config.h"
@@ -10,6 +11,8 @@
 using namespace std;
 
 Log *Log::_singleton;
+
+const UInt32 Log::MODULE_LENGTH;
 
 Log::Log(Config &config)
    : _coreCount(config.getTotalCores())
@@ -33,7 +36,28 @@ Log::Log(Config &config)
 
    _defaultFile = fopen("output_files/system-default","w");
 
-   Config::getSingleton()->getDisabledLogModules(_disabledModules);
+   std::set<std::string> disabledModulesUnformatted;
+   Config::getSingleton()->getDisabledLogModules(disabledModulesUnformatted);
+   for (std::set<std::string>::iterator it = disabledModulesUnformatted.begin();
+        it != disabledModulesUnformatted.end();
+        it++)
+   {
+      string formatted;
+
+      for (unsigned int i = 0; i < min(MODULE_LENGTH, it->length()); i++)
+      {
+         formatted.push_back((*it)[i]);
+      }
+
+      for (unsigned int i = formatted.length(); i < MODULE_LENGTH; i++)
+      {
+         formatted.push_back(' ');
+      }
+
+      assert(formatted.length() == MODULE_LENGTH);
+      _disabledModules.insert(formatted);
+   }
+
    _loggingEnabled = Config::getSingleton()->getLoggingEnabled();
 
    assert(_singleton == NULL);
@@ -71,6 +95,11 @@ Log* Log::getSingleton()
 Boolean Log::isEnabled(const char* module)
 {
    return _disabledModules.find(module) == _disabledModules.end();
+}
+
+Boolean Log::isLoggingEnabled()
+{
+   return _loggingEnabled;
 }
 
 UInt64 Log::getTimestamp()
@@ -226,18 +255,17 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    getFile(core_id, sim_thread, &file, &lock);
    int tid = syscall(__NR_gettid);
 
-   std::string module = getModule(source_file);
 
    char message[512];
    char *p = message;
 
    // This is ugly, but it just prints the time stamp, process number, core number, source file/line
    if (core_id != INVALID_CORE_ID) // valid core id
-      p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), source_file, source_line);
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
-      p += sprintf(p, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), source_file, source_line);
    else // who knows
-      p += sprintf(p, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, module.c_str(), source_line);
+      p += sprintf(p, "%-10llu [%5d]  (  ) [  ]  [%s:%4d]  ", getTimestamp(), tid, source_file, source_line);
 
    switch (err)
    {

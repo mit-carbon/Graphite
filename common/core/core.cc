@@ -1,9 +1,10 @@
 #include "core.h"
 #include "network.h"
-#include "ocache.h"
+#include "cache.h"
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "network_types.h"
+#include "memory_manager.h"
 
 #include "log.h"
 
@@ -18,22 +19,18 @@ Core::Core(SInt32 id)
 
    m_network = new Network(this);
 
-   if (Config::getSingleton()->getEnablePerformanceModeling())
-   {
-      m_perf_model = new PerfModel("performance modeler");
-   }
-   else
-   {
-      m_perf_model = (PerfModel *) NULL;
-   }
+   m_performance_model = PerformanceModel::create();
 
-   if (Config::getSingleton()->getEnableDCacheModeling() || Config::getSingleton()->getEnableICacheModeling())
+   LOG_PRINT("instantiated shared memory performance model");
+   m_shmem_perf_model = new ShmemPerfModel();
+
+   if (Config::getSingleton()->getEnableDCacheModeling())
    {
-      m_ocache = new OCache("organic cache", this);
+      m_dcache = new Cache("organic cache", m_shmem_perf_model);
    }
    else
    {
-      m_ocache = (OCache *) NULL;
+      m_dcache = (Cache *) NULL;
    }
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
@@ -41,7 +38,7 @@ Core::Core(SInt32 id)
       assert(Config::getSingleton()->getEnableDCacheModeling());
 
       LOG_PRINT("instantiated memory manager model");
-      m_memory_manager = new MemoryManager(m_core_id, this, m_network, m_ocache);
+      m_memory_manager = new MemoryManager(m_core_id, this, m_network, m_dcache, m_shmem_perf_model);
    }
    else
    {
@@ -59,9 +56,24 @@ Core::~Core()
 {
    delete m_sync_client;
    delete m_syscall_model;
-   delete m_ocache;
-   delete m_perf_model;
+   delete m_dcache;
+   delete m_performance_model;
    delete m_network;
+}
+
+void Core::outputSummary(std::ostream &os)
+{
+   if (Config::getSingleton()->getEnablePerformanceModeling())
+   {
+      getPerformanceModel()->outputSummary(os);
+      getNetwork()->outputSummary(os);
+   }
+
+   if (Config::getSingleton()->getEnableDCacheModeling() ||
+       Config::getSingleton()->getEnableICacheModeling())
+   {
+      getDCache()->outputSummary(os);
+   }
 }
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size)
@@ -113,11 +125,15 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
  * Return Value:
  *   number of misses :: State the number of cache misses
  */
-UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
 #ifdef REDIRECT_MEMORY
+
+      // Performance Model
+      getShmemPerfModel()->setCycleCount(0);
+
       UInt32 num_misses = 0;
       string lock_value;
       LOG_PRINT("%s - ADDR: 0x%x, data_size: %u, START!!", 
@@ -125,16 +141,21 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
       if (data_size <= 0)
       {
+         if (modeled)
+         {
+            DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
+            m_performance_model->pushDynamicInstructionInfo(info);
+         }
          return (num_misses);
       }
 
       IntPtr begin_addr = d_addr;
       IntPtr end_addr = d_addr + data_size;
-      IntPtr begin_addr_aligned = begin_addr - (begin_addr % m_ocache->dCacheLineSize());
-      IntPtr end_addr_aligned = end_addr - (end_addr % m_ocache->dCacheLineSize());
+      IntPtr begin_addr_aligned = begin_addr - (begin_addr % m_dcache->dCacheLineSize());
+      IntPtr end_addr_aligned = end_addr - (end_addr % m_dcache->dCacheLineSize());
       Byte *curr_data_buffer_head = (Byte*) data_buffer;
 
-      for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned; curr_addr_aligned += m_ocache->dCacheLineSize())
+      for (IntPtr curr_addr_aligned = begin_addr_aligned ; curr_addr_aligned <= end_addr_aligned; curr_addr_aligned += m_dcache->dCacheLineSize())
       {
          // Access the cache one line at a time
          UInt32 curr_offset;
@@ -143,7 +164,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          // Determine the offset
          if (curr_addr_aligned == begin_addr_aligned)
          {
-            curr_offset = begin_addr % m_ocache->dCacheLineSize();
+            curr_offset = begin_addr % m_dcache->dCacheLineSize();
          }
          else
          {
@@ -153,7 +174,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          // Determine the size
          if (curr_addr_aligned == end_addr_aligned)
          {
-            curr_size = (end_addr % m_ocache->dCacheLineSize()) - (curr_offset);
+            curr_size = (end_addr % m_dcache->dCacheLineSize()) - (curr_offset);
             if (curr_size == 0)
             {
                continue;
@@ -161,7 +182,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          }
          else
          {
-            curr_size = m_ocache->dCacheLineSize() - (curr_offset);
+            curr_size = m_dcache->dCacheLineSize() - (curr_offset);
          }
 
          LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
@@ -179,8 +200,19 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
          curr_data_buffer_head += curr_size;
       }
 
+      // Performance model
+      UInt64 shmem_time = getShmemPerfModel()->getCycleCount();
+
+      LOG_PRINT("Memory Latency = %llu", shmem_time);
+
       LOG_PRINT("%s - ADDR: %x, data_size: %u, END!!", 
                ((shmem_req_type == READ) ? " READ " : " WRITE "), d_addr, data_size);
+
+      if (modeled)
+      {
+         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+         m_performance_model->pushDynamicInstructionInfo(info);
+      }
 
       return (num_misses);
 #else

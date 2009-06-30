@@ -11,11 +11,16 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/version.hpp>
 
 #include "config_file.hpp"
 #include "config_exceptions.hpp"
 
+#if (BOOST_VERSION==103500)
+using namespace boost::spirit;
+#else
 using namespace boost::spirit::classic;
+#endif
 
 namespace config
 {

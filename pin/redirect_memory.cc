@@ -3,6 +3,7 @@
 #include "core_manager.h"
 #include "core.h"
 #include "memory_manager.h"
+#include "performance_model.h"
 
 // FIXME
 // Only need this function because some memory accesses are made before cores have
@@ -13,21 +14,23 @@ VOID printInsInfo(CONTEXT* ctxt)
    ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
    ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
-   LOG_PRINT("eip = 0x%x, esp = 0x%x\n", reg_inst_ptr, reg_stack_ptr);
+   LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
 }
 
 UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
-{
+{   
    assert (lock_signal == Core::NONE);
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    if (core)
    {
-      return core->accessMemory (lock_signal, shmem_req_type, d_addr, data_buffer, data_size);
+      return core->accessMemory (lock_signal, shmem_req_type, d_addr, data_buffer, data_size, true);
    }
    // Native mem op
    else
    {
+      // TODO: Remove this code.
+      assert(false);
       if (shmem_req_type == READ)
       {
          if (PIN_SafeCopy ((void*) data_buffer, (void*) d_addr, (size_t) data_size) == data_size)
@@ -61,7 +64,7 @@ bool rewriteStringOp (INS ins)
 
    if (INS_Opcode(ins) == XED_ICLASS_SCASB)
    {
-      LOG_PRINT("Instr: %s\n", (INS_Disassemble(ins)).c_str());
+      LOG_PRINT("Instr: %s", (INS_Disassemble(ins)).c_str());
 
       INS_InsertCall(ins, IPOINT_BEFORE,
             AFUNPTR (emuSCASBIns),
@@ -77,7 +80,7 @@ bool rewriteStringOp (INS ins)
 
    else if (INS_Opcode(ins) == XED_ICLASS_CMPSB)
    {
-      LOG_PRINT("Instr: %s\n", (INS_Disassemble(ins)).c_str());
+      LOG_PRINT("Instr: %s", (INS_Disassemble(ins)).c_str());
 
       INS_InsertCall(ins, IPOINT_BEFORE,
             AFUNPTR (emuCMPSBIns),
@@ -97,6 +100,7 @@ bool rewriteStringOp (INS ins)
       if (  (INS_Opcode(ins) == XED_ICLASS_MOVSB) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSW) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVSD_XMM) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSB) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSW) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSD)
@@ -115,7 +119,7 @@ bool rewriteStringOp (INS ins)
 void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 {
    ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   LOG_PRINT("Instr at EIP = 0x%x, CMPSB\n", reg_gip);
+   LOG_PRINT("Instr at EIP = 0x%x, CMPSB", reg_gip);
 
    assert(has_rep_prefix == true);
    
@@ -139,6 +143,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
    }
 
    bool found = false;
+   UInt32 num_mem_ops = 0;
 
    while (reg_gcx > 0)
    {
@@ -147,6 +152,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 
       memOp (Core::NONE, READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
       memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
+      num_mem_ops += 2;
 
       // Decrement the counter
       reg_gcx --;
@@ -168,6 +174,10 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
          break;
       }
    }
+
+   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
+   perf->pushDynamicInstructionInfo(info);
 
    if (! found)
    {
@@ -194,7 +204,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 {
    ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   LOG_PRINT("Instr at EIP = 0x%x, SCASB\n", reg_gip);
+   LOG_PRINT("Instr at EIP = 0x%x, SCASB", reg_gip);
 
    assert(has_rep_prefix == false);
    
@@ -203,13 +213,13 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
    ADDRINT reg_gax = PIN_GetContextReg(ctxt, REG_GAX);
    ADDRINT reg_gflags = PIN_GetContextReg(ctxt, REG_GFLAGS);
 
-   LOG_PRINT("reg_gcx = 0x%x\n", reg_gcx);
-   LOG_PRINT("reg_gdi = 0x%x\n", reg_gdi);
-   LOG_PRINT("reg_gax = 0x%x\n", reg_gax);
-   LOG_PRINT("reg_gflags = 0x%x\n", reg_gflags);
+   LOG_PRINT("reg_gcx = 0x%x", reg_gcx);
+   LOG_PRINT("reg_gdi = 0x%x", reg_gdi);
+   LOG_PRINT("reg_gax = 0x%x", reg_gax);
+   LOG_PRINT("reg_gflags = 0x%x", reg_gflags);
 
    Byte reg_al = (Byte) (reg_gax & 0xff);
-   LOG_PRINT("reg_al = 0x%x\n", reg_al);
+   LOG_PRINT("reg_al = 0x%x", reg_al);
 
    bool direction_flag;
 
@@ -225,16 +235,18 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       direction_flag = true;
    }
 
-   LOG_PRINT("Direction Flag = %i\n", (SInt32) direction_flag);
+   LOG_PRINT("Direction Flag = %i", (SInt32) direction_flag);
 
    bool found = false;
+   UInt32 num_mem_ops = 0;
 
    while (reg_gcx > 0)
    {
       Byte byte_buf;
+      ++num_mem_ops;
       memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
 
-      LOG_PRINT("byte_buf = 0x%x\n", byte_buf);
+      LOG_PRINT("byte_buf = 0x%x", byte_buf);
 
       // Decrement the counter
       reg_gcx --;
@@ -255,6 +267,10 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       }
    }
 
+   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
+   perf->pushDynamicInstructionInfo(info);
+
    if (found)
    {
       // Set the 'zero' flag
@@ -267,10 +283,10 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       reg_gflags &= (~(1 << 6));
    }
 
-   LOG_PRINT("Final: next_gip = 0x%x\n", next_gip);
-   LOG_PRINT("Final: reg_gcx = 0x%x\n", reg_gcx);
-   LOG_PRINT("Final: reg_gdi = 0x%x\n", reg_gdi);
-   LOG_PRINT("Final: reg_gflags = 0x%x\n", reg_gflags);
+   LOG_PRINT("Final: next_gip = 0x%x", next_gip);
+   LOG_PRINT("Final: reg_gcx = 0x%x", reg_gcx);
+   LOG_PRINT("Final: reg_gdi = 0x%x", reg_gdi);
+   LOG_PRINT("Final: reg_gflags = 0x%x", reg_gflags);
 
    PIN_SetContextReg(ctxt, REG_INST_PTR, next_gip);
    PIN_SetContextReg(ctxt, REG_GCX, reg_gcx);
@@ -411,6 +427,7 @@ bool rewriteStackOp (INS ins)
             IARG_REG_REFERENCE, REG_STACK_PTR,
             IARG_UINT32, imm,
             IARG_MEMORYREAD_SIZE,
+            IARG_BOOL, (BOOL)true,
             IARG_RETURN_REGS, REG_INST_G1,
             IARG_END);
 
@@ -664,13 +681,13 @@ ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADD
    return br_tgt_ip;
 }
 
-ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size)
+ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL modeled)
 {
    assert ( read_size == sizeof ( ADDRINT ) );
 
    ADDRINT next_ip;
 
-   memOp (Core::NONE, READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size);
+   Sim()->getCoreManager()->getCurrentCore()->accessMemory(Core::NONE, READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
 
    *tgt_esp = *tgt_esp + read_size;
    *tgt_esp = *tgt_esp + imm;
@@ -768,7 +785,7 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, Memor
    {
       MemoryManager *mem_manager = core->getMemoryManager ();
       assert (mem_manager != NULL);
-      
+
       return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
    }
    else

@@ -21,7 +21,7 @@ void SimThreadManager::spawnSimThreads()
 {
    UInt32 num_sim_threads = Config::getSingleton()->getNumLocalCores();
 
-   LOG_PRINT("Starting %d threads on proc: %d\n.", num_sim_threads, Config::getSingleton()->getCurrentProcessNum());
+   LOG_PRINT("Starting %d threads on proc: %d.", num_sim_threads, Config::getSingleton()->getCurrentProcessNum());
 
    m_sim_threads = new SimThread [num_sim_threads];
 

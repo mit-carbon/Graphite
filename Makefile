@@ -1,7 +1,5 @@
 SIM_ROOT ?= $(CURDIR)
 
-MPDS ?= 1
-
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 LIB_CARBON=$(SIM_ROOT)/lib/libcarbon_sim.a
@@ -32,12 +30,6 @@ output_files:
 
 empty_logs :
 	rm output_files/* ; true
-
-run_mpd:
-	$(MPI_DIR)/bin/mpdboot -n $(MPDS)
-
-stop_mpd:
-	$(MPI_DIR)/bin/mpdallexit
 
 love:
 	@echo "not war!"

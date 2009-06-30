@@ -107,7 +107,7 @@ carbon_reg_t SyscallMdl::runExit(int old_return)
 
 UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
 {
-   LOG_PRINT("\nGot Syscall: %i\n", syscall_number);
+   LOG_PRINT("Got Syscall: %i", syscall_number);
 
    // Reset the buffers for the new transmission
    m_recv_buff.clear();

@@ -1,11 +1,12 @@
 #include <math.h>
+#include <stdlib.h>
 
 #include "network_model_analytical.h"
 #include "network_model_analytical_params.h"
 #include "message_types.h"
 #include "config.h"
 #include "core.h"
-#include "perfmdl.h"
+#include "performance_model.h"
 #include "transport.h"
 #include "lock.h"
 
@@ -13,7 +14,7 @@
 
 using namespace std;
 
-NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
+NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_type)
       : NetworkModel(net)
       , _bytesSent(0)
       , _cyclesProc(0)
@@ -22,14 +23,18 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net)
       , _globalUtilization(0)
       , _localUtilizationLastUpdate(0)
       , _localUtilizationFlitsSent(0)
-      , _updateInterval(0)
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,
                                   this);
 
-   _updateInterval = Config::getSingleton()->getAnalyticNetworkParms()->update_interval;
-   _procCost = Config::getSingleton()->getAnalyticNetworkParms()->proc_cost;
+   // Create network parameters
+   m_params.Tw2 = 1; // single cycle between nodes in 2d mesh
+   m_params.s = 1; // single cycle switching time
+   m_params.n = 1; // 2-d mesh network
+   m_params.W = 32; // 32-bit wide channels
+   m_params.update_interval = 100000;
+   m_params.proc_cost = (net_type == STATIC_NETWORK_MEMORY) ? 0 : 100;
 }
 
 NetworkModelAnalytical::~NetworkModelAnalytical()
@@ -44,15 +49,16 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    // (1) compute latency of packet
    // (2) update utilization
 
-   PerfModel *perf = getNetwork()->getCore()->getPerfModel();
+   PerformanceModel *perf = getNetwork()->getCore()->getPerformanceModel();
 
    Hop h;
    h.dest = pkt.receiver;
    h.time = perf->getCycleCount() + computeLatency(pkt);
    nextHops.push_back(h);
 
-   perf->addToCycleCount(_procCost);
-   _cyclesProc += _procCost;
+   if (m_params.proc_cost > 0)
+      perf->queueDynamicInstruction(new DynamicInstruction(m_params.proc_cost));
+   _cyclesProc += m_params.proc_cost;
 
    updateUtilization();
 
@@ -78,11 +84,10 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // of network hops.
 
    // Retrieve parameters
-   const NetworkModelAnalyticalParameters *pParams = Config::getSingleton()->getAnalyticNetworkParms();
-   double Tw2 = pParams->Tw2;
-   double s = pParams->s;
-   int n = pParams->n;
-   double W = pParams->W;
+   double Tw2 = m_params.Tw2;
+   double s = m_params.s;
+   int n = m_params.n;
+   double W = m_params.W;
    double p = _globalUtilization;
    assert(!IS_NAN(_globalUtilization));
 
@@ -190,10 +195,10 @@ void NetworkModelAnalytical::updateUtilization()
    // ** send updates
 
    // don't lock because this is all approximate anyway
-   UInt64 core_time = getNetwork()->getCore()->getPerfModel()->getCycleCount();
+   UInt64 core_time = getNetwork()->getCore()->getPerformanceModel()->getCycleCount();
    UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
 
-   if (elapsed_time < _updateInterval)
+   if (elapsed_time < m_params.update_interval)
       return;
 
    _lock.acquire();

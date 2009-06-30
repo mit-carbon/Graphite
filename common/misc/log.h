@@ -30,13 +30,14 @@ class Log
       void log(ErrorState err, const char *source_file, SInt32 source_line, const char* format, ...);
 
       Boolean isEnabled(const char* module);
+      Boolean isLoggingEnabled();
+      std::string getModule(const char *filename);
 
    private:
       UInt64 getTimestamp();
 
       void discoverCore(core_id_t *core_id, bool *sim_thread);
       void getFile(core_id_t core_id, bool sim_thread, FILE ** f, Lock ** l);
-      std::string getModule(const char *filename);
 
       ErrorState _state;
 
@@ -63,9 +64,8 @@ class Log
       std::map<const char*, std::string> _modules;
 
 // By defining LOCK_LOGS we ensure no race conditions on the modules
-// map above, but in practice this isn't very important because the
-// modules map is written once for each file and then only read. The
-// performance hit isn't worth it.
+// map above. In practice this isn't very likely and using locks
+// suffers a high performance hit.
 #ifdef LOCK_LOGS
       Lock _modules_lock;
 #endif
@@ -88,17 +88,26 @@ class Log
 
 #else
 
+#define __LOG_PRINT(err, file, line, ...)                               \
+   {                                                                    \
+      if (Log::getSingleton()->isLoggingEnabled() || err == Log::Error) \
+      {                                                                 \
+         std::string module = Log::getSingleton()->getModule(file);     \
+         if (err == Log::Error ||                                       \
+             Log::getSingleton()->isEnabled(module.c_str()))            \
+         {                                                              \
+            Log::getSingleton()->log(err, module.c_str(), line, __VA_ARGS__); \
+         }                                                              \
+      }                                                                 \
+   }                                                                    \
+
 #define _LOG_PRINT(err, ...)                                            \
    {                                                                    \
-      if (err == Log::Error ||                                          \
-          Log::getSingleton()->isEnabled(__FILE__))                     \
-      {                                                                 \
-         Log::getSingleton()->log(err, __FILE__, __LINE__, __VA_ARGS__); \
-      }                                                                 \
+   __LOG_PRINT(err, __FILE__, __LINE__, __VA_ARGS__);                   \
    }                                                                    \
  
 #define LOG_PRINT(...)                                                  \
-   _LOG_PRINT(Log::None, __VA_ARGS__);                                   \
+   _LOG_PRINT(Log::None, __VA_ARGS__);                                  \
  
 #define LOG_PRINT_WARNING(...)                  \
    _LOG_PRINT(Log::Warning, __VA_ARGS__);
@@ -129,21 +138,25 @@ class Log
 class FunctionTracer
 {
 public:
-   FunctionTracer(const char *fn)
-      : m_fn(fn)
+   FunctionTracer(const char *file, int line, const char *fn)
+      : m_file(file)
+      , m_line(line)
+      , m_fn(fn)
    {
-      LOG_PRINT("Entering: %s", m_fn);
+      __LOG_PRINT(Log::None, m_file, m_line, "Entering: %s", m_fn);
    }
 
    ~FunctionTracer()
    {
-      LOG_PRINT("Exiting:  %s", m_fn);
+      __LOG_PRINT(Log::None, m_file, m_line, "Exiting: %s", m_fn);
    }
 
 private:
+   const char *m_file;
+   int m_line;
    const char *m_fn;
 };
 
-#define LOG_FUNC_TRACE()   FunctionTracer func_tracer(__PRETTY_FUNCTION__);
+#define LOG_FUNC_TRACE()   FunctionTracer func_tracer(__FILE__,__LINE__,__PRETTY_FUNCTION__);
 
 #endif // LOG_H

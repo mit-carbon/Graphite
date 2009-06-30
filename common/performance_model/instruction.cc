@@ -3,6 +3,7 @@
 #include "core_manager.h"
 #include "core.h"
 #include "performance_model.h"
+#include "branch_predictor.h"
 
 // Instruction
 
@@ -92,9 +93,40 @@ UInt64 StringInstruction::getCost()
       perf->popDynamicInstructionInfo();
    }
 
-   LOG_ASSERT_ERROR(count == i->num_ops,
+   LOG_ASSERT_ERROR(count == i->string_info.num_ops,
                     "Number of mem ops in queue doesn't match number in string instruction.");
    perf->popDynamicInstructionInfo();
 
+   return cost;
+}
+
+// BranchInstruction
+
+BranchInstruction::BranchInstruction(OperandList &l)
+   : Instruction(INST_BRANCH, l)
+{ }
+
+UInt64 BranchInstruction::getCost()
+{
+   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   BranchPredictor *bp = perf->getBranchPredictor();
+
+   DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();
+   assert(i.type == DynamicInstructionInfo::BRANCH);
+
+   // branch prediction not modeled
+   if (bp == NULL)
+   {
+      perf->popDynamicInstructionInfo();
+      return 1;
+   }
+
+   bool prediction = bp->predict(getAddress(), i.branch_info.target);
+   bool correct = (prediction == i.branch_info.taken);
+
+   bp->update(prediction, i.branch_info.taken, getAddress(), i.branch_info.target);
+   UInt64 cost = correct ? 1 : bp->getMispredictPenalty();
+      
+   perf->popDynamicInstructionInfo();
    return cost;
 }

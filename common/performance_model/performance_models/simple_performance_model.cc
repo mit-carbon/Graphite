@@ -1,5 +1,6 @@
-#include "performance_model.h"
 #include "log.h"
+#include "simple_performance_model.h"
+#include "branch_predictor.h"
 
 using std::endl;
 
@@ -17,6 +18,9 @@ void SimplePerformanceModel::outputSummary(std::ostream &os)
 {
    os << "  Instructions: " << getInstructionCount() << endl
       << "  Cycles: " << getCycleCount() << endl;
+
+   if (getBranchPredictor())
+      getBranchPredictor()->outputSummary(os);
 }
 
 void SimplePerformanceModel::handleInstruction(Instruction *instruction)
@@ -58,4 +62,3 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    m_instruction_count++;
    m_cycle_count += cost;
 }
-

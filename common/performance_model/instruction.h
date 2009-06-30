@@ -20,11 +20,12 @@ enum InstructionType
    INST_RECV,
    INST_SYNC,
    INST_STRING,
+   INST_BRANCH,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","dynamic_misc","recv","sync","string"};
+{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","dynamic_misc","recv","sync","string","branch"};
 
 class Operand
 {
@@ -153,6 +154,15 @@ public:
    SyncInstruction(UInt64 cost)
       : DynamicInstruction(cost, INST_SYNC)
    {}
+};
+
+// conditional branches
+class BranchInstruction : public Instruction
+{
+public:
+   BranchInstruction(OperandList &l);
+
+   UInt64 getCost();
 };
 
 #endif

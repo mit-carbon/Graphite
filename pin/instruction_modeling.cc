@@ -16,6 +16,15 @@ void handleBasicBlock(BasicBlock *sim_basic_block)
    prfmdl->iterate();
 }
 
+void handleBranch(BOOL taken, ADDRINT target)
+{
+   assert(Sim() && Sim()->getCoreManager() && Sim()->getCoreManager()->getCurrentCore());
+   PerformanceModel *prfmdl = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+
+   DynamicInstructionInfo info = DynamicInstructionInfo::createBranchInfo(taken, target);
+   prfmdl->pushDynamicInstructionInfo(info);
+}
+
 void fillOperandListMemOps(OperandList *list, INS ins)
 {
    // NOTE: This code is written to reflect rewriteStackOp and
@@ -139,29 +148,50 @@ VOID addInstructionModeling(INS ins)
    OperandList list;
    fillOperandList(&list, ins);
 
-   // Now handle instructions which have a static cost
-   switch(INS_Opcode(ins))
+   // branches
+   if (INS_IsBranch(ins) && INS_HasFallThrough(ins))
    {
-   case OPCODE_DIV:
-      basic_block->push_back(new ArithInstruction(INST_DIV, list));
-      break;
-   case OPCODE_MUL:
-      basic_block->push_back(new ArithInstruction(INST_MUL, list));
-      break;
-   case OPCODE_FDIV:
-      basic_block->push_back(new ArithInstruction(INST_FDIV, list));
-      break;
-   case OPCODE_FMUL:
-      basic_block->push_back(new ArithInstruction(INST_FMUL, list));
-      break;
+      basic_block->push_back(new BranchInstruction(list));
 
-   case OPCODE_SCASB:
-   case OPCODE_CMPSB:
-      basic_block->push_back(new StringInstruction(list));
-      break;
+      INS_InsertCall(
+         ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)handleBranch,
+         IARG_BOOL, TRUE,
+         IARG_BRANCH_TARGET_ADDR,
+         IARG_END);
+
+      INS_InsertCall(
+         ins, IPOINT_AFTER, (AFUNPTR)handleBranch,
+         IARG_BOOL, FALSE,
+         IARG_BRANCH_TARGET_ADDR,
+         IARG_END);
+   }
+
+   // Now handle instructions which have a static cost
+   else
+   {
+      switch(INS_Opcode(ins))
+      {
+      case OPCODE_DIV:
+         basic_block->push_back(new ArithInstruction(INST_DIV, list));
+         break;
+      case OPCODE_MUL:
+         basic_block->push_back(new ArithInstruction(INST_MUL, list));
+         break;
+      case OPCODE_FDIV:
+         basic_block->push_back(new ArithInstruction(INST_FDIV, list));
+         break;
+      case OPCODE_FMUL:
+         basic_block->push_back(new ArithInstruction(INST_FMUL, list));
+         break;
+
+      case OPCODE_SCASB:
+      case OPCODE_CMPSB:
+         basic_block->push_back(new StringInstruction(list));
+         break;
       
-   default:
-      basic_block->push_back(new GenericInstruction(list));
+      default:
+         basic_block->push_back(new GenericInstruction(list));
+      }
    }
 
    basic_block->front()->setAddress(INS_Address(ins));

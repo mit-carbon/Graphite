@@ -11,6 +11,8 @@
 #include "lock.h"
 #include "dynamic_instruction_info.h"
 
+class BranchPredictor;
+
 class PerformanceModel
 {
 public:
@@ -33,6 +35,8 @@ public:
 
    static PerformanceModel *create();
 
+   BranchPredictor *getBranchPredictor() { return m_bp; }
+
 protected:
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
@@ -48,24 +52,8 @@ private:
    Lock m_dynamic_info_queue_lock;
 
    UInt32 m_current_ins_index;
-};
 
-class SimplePerformanceModel : public PerformanceModel
-{
-public:
-   SimplePerformanceModel();
-   ~SimplePerformanceModel();
-
-   void outputSummary(std::ostream &os);
-
-   UInt64 getInstructionCount() { return m_instruction_count; }
-   UInt64 getCycleCount() { return m_cycle_count; }
-
-private:
-   void handleInstruction(Instruction *instruction);
-   
-   UInt64 m_instruction_count;
-   UInt64 m_cycle_count;
+   BranchPredictor *m_bp;
 };
 
 #endif

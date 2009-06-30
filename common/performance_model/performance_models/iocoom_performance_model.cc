@@ -4,6 +4,7 @@
 #include "dynamic_instruction_info.h"
 #include "config.hpp"
 #include "simulator.h"
+#include "branch_predictor.h"
 
 IOCOOMPerformanceModel::IOCOOMPerformanceModel()
    : m_instruction_count(0)
@@ -64,6 +65,9 @@ void IOCOOMPerformanceModel::outputSummary(std::ostream &os)
 {
    os << "  Instructions: " << m_instruction_count << std::endl
       << "  Cycles: " << m_cycle_count << std::endl;
+
+   if (getBranchPredictor())
+      getBranchPredictor()->outputSummary(os);
 }
 
 UInt64 IOCOOMPerformanceModel::getCycleCount()

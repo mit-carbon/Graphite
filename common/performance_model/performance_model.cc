@@ -1,5 +1,7 @@
 #include "performance_model.h"
+#include "branch_predictor.h"
 #include "simulator.h"
+#include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
 
 PerformanceModel* PerformanceModel::create()
@@ -26,11 +28,14 @@ PerformanceModel* PerformanceModel::create()
 // Public Interface
 PerformanceModel::PerformanceModel()
    : m_current_ins_index(0)
+   , m_bp(0)
 {
+   m_bp = BranchPredictor::create();
 }
 
 PerformanceModel::~PerformanceModel()
 {
+   delete m_bp; m_bp = 0;
 }
 
 void PerformanceModel::queueDynamicInstruction(Instruction *i)

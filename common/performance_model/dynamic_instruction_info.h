@@ -10,6 +10,7 @@ struct DynamicInstructionInfo
       MEMORY_READ,
       MEMORY_WRITE,
       STRING,
+      BRANCH,
    } type;
 
    union
@@ -23,7 +24,17 @@ struct DynamicInstructionInfo
       } memory_info;
 
       // STRING
-      UInt32 num_ops;
+      struct
+      {
+         UInt32 num_ops;
+      } string_info;
+
+      // BRANCH
+      struct
+      {
+         bool taken;
+         IntPtr target;
+      } branch_info;
    };
 
    // ctors
@@ -52,7 +63,16 @@ struct DynamicInstructionInfo
    {
       DynamicInstructionInfo i;
       i.type = STRING;
-      i.num_ops = count;
+      i.string_info.num_ops = count;
+      return i;
+   }
+
+   static DynamicInstructionInfo createBranchInfo(bool taken, IntPtr target)
+   {
+      DynamicInstructionInfo i;
+      i.type = BRANCH;
+      i.branch_info.taken = taken;
+      i.branch_info.target = target;
       return i;
    }
 };

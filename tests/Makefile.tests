@@ -54,7 +54,7 @@ all: $(TARGET)
 	$(RUN)
 
 # Compiler flags
-LD_FLAGS = -static -L$(SIM_ROOT)/lib
+LD_FLAGS = -static -u CarbonSpawnThreadSpawner -L$(SIM_ROOT)/lib
 LD_LIBS = -pthread -lcarbon_sim
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )

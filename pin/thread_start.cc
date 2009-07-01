@@ -24,7 +24,8 @@ int spawnThreadSpawner(CONTEXT *ctxt)
    thread_spawner = RTN_Funptr(rtn);
 
    PIN_UnlockClient();
-
+   LOG_ASSERT_ERROR( thread_spawner != NULL, "ThreadSpawner function is null. You may not have linked to the carbon APIs correctly.");
+   
    PIN_CallApplicationFunction(ctxt,
             PIN_ThreadId(),
             CALLINGSTD_DEFAULT,

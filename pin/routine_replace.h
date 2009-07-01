@@ -46,7 +46,11 @@ void replacement_CAPI_message_send_w (CONTEXT *ctxt);
 void replacement_CAPI_message_receive_w (CONTEXT *ctxt);
 
 // pthread
+void replacementPthreadCreate (CONTEXT *ctxt);
+void replacementPthreadJoin (CONTEXT *ctxt);
 void replacementPthreadExitNull (CONTEXT *ctxt);
+void replacementPthreadBarrierInit (CONTEXT *ctxt);
+void replacementPthreadBarrierWait (CONTEXT *ctxt);
 
 void initialize_replacement_args (CONTEXT *ctxt, ...);
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val);

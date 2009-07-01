@@ -81,10 +81,14 @@ LIB_PIN_SIM=$(SIM_ROOT)/lib/pin_sim.so
 # always rebuild the test, but I don't know what it is. (The problem
 # is we don't want to include all the dependencies for the libraries
 # in this makefile.)
+#
+# Also, we force recompilation if any of the test object files are
+# newer than the target. (Make does this as well but we override it
+#  with our if-statement.)
 $(TARGET): $(OBJECTS) 
 	make -C $(SIM_ROOT)/common
 	$(if $(findstring pin,$(MODE)),make -C $(SIM_ROOT)/pin)
-	if [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
+	if $(foreach source,$(OBJECTS),[ $(source) -nt $(TARGET) ] ||) [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
 	then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
 	fi
 

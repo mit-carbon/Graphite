@@ -18,11 +18,6 @@ OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
 BUILD_32 = 1
 
-# MPI Support
-MPI_DIR = /afs/csail/group/carbon/tools/mpich2-1.0.8/install
-CC = $(MPI_DIR)/bin/mpicc
-CXX = $(MPI_DIR)/bin/mpicxx
-
 # OS Services Support
 LD_LIBS += -los-services
 ifeq ($(BUILD_32),1)
@@ -58,7 +53,6 @@ export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)
 
 # Include paths
 CXXFLAGS+=-c $(foreach dir,$(DIRECTORIES),-I$(dir)) \
-          -I /afs/csail/group/carbon/tools/mpich2-1.0.8/install/include/ \
           -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas -O0 -MMD -m32 -ggdb3
 
 # Build rules for dependency generation

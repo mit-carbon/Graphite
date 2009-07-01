@@ -1,11 +1,10 @@
 #define TRANSPORT_CC
 
-#include <mpi.h>
 #include <assert.h>
 
 #include "transport.h"
 #include "smtransport.h"
-#include "mpitransport.h"
+//#include "mpitransport.h"
 #include "socktransport.h"
 
 #include "config.h"
@@ -29,11 +28,11 @@ Transport* Transport::create()
    if (true)
       m_singleton = new SockTransport();
    
-   else if (Config::getSingleton()->getProcessCount() == 1)
-      m_singleton = new SmTransport();
+   // else if (Config::getSingleton()->getProcessCount() == 1)
+   //    m_singleton = new SmTransport();
 
-   else if (Config::getSingleton()->getProcessCount() > 1)
-      m_singleton = new MpiTransport();
+   // else if (Config::getSingleton()->getProcessCount() > 1)
+   //    m_singleton = new MpiTransport();
    
    else
       LOG_PRINT_ERROR("Negative no. processes ?!");

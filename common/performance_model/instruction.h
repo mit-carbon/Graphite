@@ -19,13 +19,14 @@ enum InstructionType
    INST_DYNAMIC_MISC,
    INST_RECV,
    INST_SYNC,
+   INST_SPAWN,
    INST_STRING,
    INST_BRANCH,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","dynamic_misc","recv","sync","string","branch"};
+{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","dynamic_misc","recv","sync","spawn","string","branch"};
 
 class Operand
 {
@@ -153,6 +154,14 @@ class SyncInstruction : public DynamicInstruction
 public:
    SyncInstruction(UInt64 cost)
       : DynamicInstruction(cost, INST_SYNC)
+   {}
+};
+
+class SpawnInstruction : public DynamicInstruction
+{
+public:
+   SpawnInstruction(UInt64 cost)
+      : DynamicInstruction(cost, INST_SPAWN)
    {}
 };
 

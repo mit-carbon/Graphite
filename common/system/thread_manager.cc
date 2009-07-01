@@ -78,6 +78,9 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
                 MCP_REQUEST_TYPE,
                 req,
                 sizeof(*req));
+
+   PerformanceModel *pm = m_core_manager->getCurrentCore()->getPerformanceModel();
+   pm->queueDynamicInstruction(new SpawnInstruction(req->time));
 }
 
 void ThreadManager::onThreadExit()
@@ -117,7 +120,7 @@ void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
    LOG_PRINT("Dequeued req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
 }
 
-void ThreadManager::masterOnThreadExit(core_id_t core_id)
+void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
 {
    LOG_ASSERT_ERROR(m_master, "masterOnThreadExit should only be called on master.");
    LOG_PRINT("masterOnThreadExit : %d", core_id);
@@ -125,7 +128,7 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id)
    assert(m_thread_state[core_id].running);
    m_thread_state[core_id].running = false;
 
-   wakeUpWaiter(core_id);
+   wakeUpWaiter(core_id, time);
 
    Config *config = Config::getSingleton();
    for (UInt32 i = 0; i < config->getProcessCount(); i++)
@@ -167,7 +170,8 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    Network *net = core->getNetwork();
 
    ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER, 
-                              func, arg, core->getId(), INVALID_CORE_ID };
+                              func, arg, core->getId(), INVALID_CORE_ID,
+                              core->getPerformanceModel()->getCycleCount() };
 
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
                 MCP_REQUEST_TYPE,
@@ -256,7 +260,6 @@ void ThreadManager::getThreadToSpawn(ThreadSpawnRequest *req)
    // step 4 - this is called from the thread spawner
    LOG_PRINT("(4a) getThreadToSpawn called by user.");
    
-   
    // Wait for a request to arrive
    m_thread_spawn_sem.wait();
    
@@ -299,10 +302,9 @@ void ThreadManager::joinThread(core_id_t core_id)
    LOG_PRINT("Joining on core: %d", core_id);
 
    // Send the message to the master process; will get reply when thread is finished
-   ThreadJoinRequest msg;
-   msg.msg_type = MCP_MESSAGE_THREAD_JOIN_REQUEST;
-   msg.core_id = core_id;
-   msg.sender = m_core_manager->getCurrentCoreID();
+   ThreadJoinRequest msg = { MCP_MESSAGE_THREAD_JOIN_REQUEST,
+                             m_core_manager->getCurrentCoreID(),
+                             core_id };
 
    Network *net = m_core_manager->getCurrentCore()->getNetwork();
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
@@ -317,7 +319,7 @@ void ThreadManager::joinThread(core_id_t core_id)
    LOG_PRINT("Exiting join thread.");
 }
 
-void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
+void ThreadManager::masterJoinThread(ThreadJoinRequest *req, UInt64 time)
 {
    LOG_ASSERT_ERROR(m_master, "masterJoinThread should only be called on master.");
    LOG_PRINT("masterJoinThread called on core: %d", req->core_id);
@@ -332,21 +334,30 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req)
    if(m_thread_state[req->core_id].running == false)
    {
       LOG_PRINT("Not running, sending reply.");
-      wakeUpWaiter(req->core_id);
+      wakeUpWaiter(req->core_id, time);
    }
 }
 
-void ThreadManager::wakeUpWaiter(core_id_t core_id)
+void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
 {
    if (m_thread_state[core_id].waiter != INVALID_CORE_ID)
    {
       LOG_PRINT("Waking up core: %d", m_thread_state[core_id].waiter);
 
-      Network *net = m_core_manager->getCurrentCore()->getNetwork();
-      net->netSend(m_thread_state[core_id].waiter,
-                   MCP_THREAD_JOIN_REPLY,
-                   NULL,
-                   0);
+      Core *core = m_core_manager->getCurrentCore();
+      core_id_t dest = m_thread_state[core_id].waiter;
+
+      // we have to manually send a packet because we are
+      // manufacturing a time stamp
+      NetPacket pkt(time,
+                    MCP_THREAD_JOIN_REPLY,
+                    core->getId(),
+                    dest,
+                    0,
+                    NULL);
+      Byte *buff = pkt.makeBuffer();
+      core->getNetwork()->getTransport()->send(dest, buff, pkt.bufferSize());
+      delete [] buff;
 
       m_thread_state[core_id].waiter = INVALID_CORE_ID;
    }

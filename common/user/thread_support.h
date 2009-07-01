@@ -14,6 +14,7 @@ typedef struct
    void *arg;
    SInt32 requester;
    core_id_t core_id;
+   UInt64 time;
 } ThreadSpawnRequest;
 
 typedef struct 

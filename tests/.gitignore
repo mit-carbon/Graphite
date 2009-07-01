@@ -8,6 +8,7 @@ unit/broadcast/broadcast_test
 unit/barrier/barrier
 unit/shared_mem/test_evic
 unit/shared_mem/test_new
+unit/spawn_join_perf/main
 
 # apps
 apps/cannon/cannon

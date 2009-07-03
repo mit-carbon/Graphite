@@ -41,6 +41,7 @@ VMManager::VMManager()
    catch (boost::bad_lexical_cast &)
    {
       LOG_PRINT_ERROR("Error reading stack parameters from the config file");
+      return;
    }
 
    // FIXME: MCP does not have a stack. Do something about this

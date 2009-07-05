@@ -19,19 +19,19 @@ apps/1d_jacobi/jacobi
 
 # benchmarks
 benchmarks/barnes/*.[ch]
-benchmarks/barnes/BARNES
+benchmarks/barnes/barnes
 benchmarks/fmm/*.[ch]
-benchmarks/fmm/FMM
+benchmarks/fmm/fmm
 benchmarks/ocean_contig/*.[ch]
-benchmarks/ocean_contig/OCEAN
+benchmarks/ocean_contig/ocean
 benchmarks/radiosity/*.[ch]
-benchmarks/radiosity/RADIOSITY
+benchmarks/radiosity/radiosity
 benchmarks/volrend/*.[ch]
-benchmarks/volrend/VOLREND
+benchmarks/volrend/volrend
 benchmarks/water-nsquared/*.[ch]
-benchmarks/water-nsquared/WATER-NSQUARED
+benchmarks/water-nsquared/water-nsquared
 benchmarks/water-spatial/*.[ch]
-benchmarks/water-spatial/WATER-SPATIAL
+benchmarks/water-spatial/water-spatial
 benchmarks/raytrace/*.[ch]
 benchmarks/radiosity/glibdumb/glib.a
 benchmarks/radiosity/glibps/glibps.a

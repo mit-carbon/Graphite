@@ -53,7 +53,7 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
 
    Hop h;
    h.dest = pkt.receiver;
-   h.time = perf->getCycleCount() + computeLatency(pkt);
+   h.time = pkt.time + computeLatency(pkt);
    nextHops.push_back(h);
 
    if (m_params.proc_cost > 0)

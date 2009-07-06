@@ -271,7 +271,7 @@ def run_simulation(is_dryrun):
 
    pin_bin = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
    pin_tool = sim_root + "lib/pin_sim"
-   pin_run = pin_bin + " -mt -t " + pin_tool
+   pin_run = pin_bin + " -mt -t " + pin_tool + " -c carbon_sim.cfg "
 
    i = 0
    while i < len(sim_flags_list):
@@ -318,6 +318,13 @@ def remove_unwanted_symbols(in_string):
 
    return out_string
 
+def print_help_message():
+   print "[Usage]:"
+   print "\t./tools/run_tests.py [-dryrun] [-f tests_config_file]"
+   print "[Defaults]:"
+   print "\t tests_config_file -> tests.cfg"
+   print "\t dryrun -> OFF"
+   sys.exit(1)
 
 # Actual program starts here
 sim_root = "./"
@@ -334,6 +341,8 @@ for argument in sys.argv:
       is_dryrun = 1
    elif argument == '-f':
       expecting_file_name = 1
+   elif argument == '-h':
+      print_help_message()
 
 curr_num_procs = parse_config_file_params(tests_config_filename)
 generate_simulation_args(parse_fixed_param_list(), curr_num_procs)

@@ -47,7 +47,7 @@ public:
 
    core_id_t getThreadSpawnerCoreNum (UInt32 proc_num) { return (getTotalCores() - (1 + getProcessCount() - proc_num)); }
    core_id_t getCurrentThreadSpawnerCoreNum () { return (getTotalCores() - (1 + getProcessCount() - getCurrentProcessNum())); }
-   
+
    // Return the number of modules (cores) in a given process
    UInt32 getNumCoresInProcess(UInt32 proc_num)
    { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }
@@ -59,6 +59,7 @@ public:
 
    // Return the total number of modules in all processes
    UInt32 getTotalCores() { return m_total_cores; }
+   UInt32 getApplicationCores() { return getTotalCores() - (1 + getProcessCount()); }
 
    // Return an array of core numbers for a given process
    //  The returned array will have numMods(proc_num) elements

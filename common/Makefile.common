@@ -1,14 +1,22 @@
 SIM_ROOT ?= $(CURDIR)/../
+
+DIRECTORIES = $(SIM_ROOT)/common/core/        \
+          $(SIM_ROOT)/common/core/cache/      \
+          $(SIM_ROOT)/common/network/         \
+          $(SIM_ROOT)/common/transport/       \
+          $(SIM_ROOT)/common/misc/            \
+          $(SIM_ROOT)/common/config/	      \
+          $(SIM_ROOT)/common/system/          \
+          $(SIM_ROOT)/common/performance_model/      \
+          $(SIM_ROOT)/common/performance_model/branch_predictors/      \
+          $(SIM_ROOT)/common/performance_model/performance_models/     \
+          $(SIM_ROOT)/common/user/
+
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
 BUILD_32 = 1
-
-# MPI Support
-MPI_DIR = /afs/csail/group/carbon/tools/mpich2-1.0.8/install
-CC = $(MPI_DIR)/bin/mpicc
-CXX = $(MPI_DIR)/bin/mpicxx
 
 # OS Services Support
 LD_LIBS += -los-services
@@ -44,18 +52,7 @@ LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)
 
 # Include paths
-CXXFLAGS+=-c -I$(SIM_ROOT)/common/user      \
-          -I$(SIM_ROOT)/common/system       \
-          -I$(SIM_ROOT)/common/core         \
-          -I$(SIM_ROOT)/common/core/cache   \
-          -I$(SIM_ROOT)/common/network      \
-          -I$(SIM_ROOT)/common/transport    \
-          -I$(SIM_ROOT)/common/misc         \
-          -I$(SIM_ROOT)/common/config       \
-          -I$(SIM_ROOT)/common/performance_model      \
-          -I$(SIM_ROOT)/common/performance_model/branch_predictors      \
-          -I$(SIM_ROOT)/common/performance_model/performance_models      \
-          -I /afs/csail/group/carbon/tools/mpich2-1.0.8/install/include/ \
+CXXFLAGS+=-c $(foreach dir,$(DIRECTORIES),-I$(dir)) \
           -fomit-frame-pointer -Wall -Werror -Wno-unknown-pragmas -O0 -MMD -m32 -ggdb3
 
 # Build rules for dependency generation

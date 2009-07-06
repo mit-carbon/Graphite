@@ -28,6 +28,9 @@
 // ------ Included for rt_sigaction, rt_sigprocmask, rt_sigsuspend, sigreturn, kill
 #include <signal.h>
 
+// ------ Included for readahead
+#include <fcntl.h>
+
 using namespace std;
 
 SyscallMdl::SyscallMdl(Network *net)
@@ -144,12 +147,23 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
             m_ret_val = marshallCloseCall(args);
             break;
          }
+
       case SYS_access:
          {
             m_called_enter = true;
             m_ret_val = marshallAccessCall(args);
             break;
          }
+      
+      case SYS_getpid:
+         m_called_enter = true;
+         m_ret_val = marshallGetpidCall (args);
+         break;
+
+      case SYS_readahead:
+         m_called_enter = true;
+         m_ret_val = marshallReadaheadCall (args);
+         break;
 
       case SYS_mmap:
          m_called_enter = true;
@@ -399,6 +413,63 @@ carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
    // return the result
    int result;
    m_recv_buff >> result;
+
+   delete [](Byte*) recv_pkt.data;
+
+   return result;
+}
+
+carbon_reg_t SyscallMdl::marshallGetpidCall (syscall_args_t &args)
+{
+   // send the data
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   // get a result
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+   // Create a buffer out of the result
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   // return the result
+   int result;
+   m_recv_buff >> result;
+
+   delete [](Byte*) recv_pkt.data;
+
+   return result;
+}
+
+carbon_reg_t SyscallMdl::marshallReadaheadCall(syscall_args_t &args)
+{
+   int fd = (int) args.arg0;
+   UInt32 offset_msb = (UInt32) args.arg1;
+   UInt32 offset_lsb = (UInt32) args.arg2;
+   size_t count = (size_t) args.arg3;
+
+   off64_t offset = offset_msb;
+   offset = offset << 32;
+   offset += offset_lsb;
+   
+   // pack the data
+   m_send_buff << fd << offset << count;
+
+   // send the data
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   // get a result
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+   // Create a buffer out of the result
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   // return the result
+   int result;
+   m_recv_buff >> result;
+
+   // FIXME
+   cerr << "READAHEAD: result = " << result << endl;
 
    delete [](Byte*) recv_pkt.data;
 

@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "syscall_server.h"
 #include "sys/syscall.h"
 #include "core.h"
@@ -53,6 +54,12 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       break;
    case SYS_access:
       marshallAccessCall(core_id);
+      break;
+   case SYS_getpid:
+      marshallGetpidCall(core_id);
+      break;
+   case SYS_readahead:
+      marshallReadaheadCall(core_id);
       break;
    case SYS_mmap:
       marshallMmapCall(core_id);
@@ -265,6 +272,38 @@ void SyscallServer::marshallAccessCall(core_id_t core_id)
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] path;
+}
+
+void SyscallServer::marshallGetpidCall(core_id_t core_id)
+{
+   // Actually do the getpid call
+   int ret = getpid();
+
+   m_send_buff << ret;
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+
+void SyscallServer::marshallReadaheadCall(core_id_t core_id)
+{
+   int fd;
+   off64_t offset;
+   size_t count;
+
+   m_recv_buff >> fd >> offset >> count;
+
+   // Actually do the readahead call
+   int ret = readahead (fd, offset, count);
+
+   // FIXME
+   cerr << "READAHEAD: fd = " << fd << endl;
+   cerr << "READAHEAD: offset = " << offset << endl;
+   cerr << "READAHEAD: count = " << count << endl;
+   cerr << "READAHEAD: ret = " << ret << endl;
+
+   m_send_buff << ret;
+
+   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
 void SyscallServer::marshallMmapCall (core_id_t core_id)

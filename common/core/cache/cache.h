@@ -171,6 +171,7 @@ class Cache : public CacheBase
          catch (...)
          {
             LOG_PRINT_ERROR("Error reading cache replacement policy from the config file");
+            return;
          }
 
          m_sets = new CacheSetBase*[m_num_sets];
@@ -188,6 +189,7 @@ class Cache : public CacheBase
          catch(...)
          {
             LOG_PRINT_ERROR("Error reading perf_model/l2_cache/model_type from config file");
+            return;
          }
          m_cache_perf_model = CachePerfModelBase::createModel(model_type);
          m_shmem_perf_model = shmem_perf_model;
@@ -199,8 +201,6 @@ class Cache : public CacheBase
             delete m_sets[i];
          delete [] m_sets;
       }
-
-      
 
       bool invalidateSingleLine(IntPtr addr)
       {

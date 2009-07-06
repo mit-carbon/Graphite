@@ -167,6 +167,7 @@ SInt32 Network::netSend(NetPacket packet)
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
       LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
+      assert(hopVec[i].time >= packet.time);
       *timeStamp = hopVec[i].time;
       _transport->send(hopVec[i].dest, buffer, packet.bufferSize());
    }
@@ -349,6 +350,8 @@ NetPacket Network::netRecv(const NetMatch &match)
 SInt32 Network::netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len)
 {
    NetPacket packet;
+   assert(_core && _core->getPerformanceModel());
+   packet.time = _core->getPerformanceModel()->getCycleCount();
    packet.sender = _core->getId();
    packet.receiver = dest;
    packet.length = len;

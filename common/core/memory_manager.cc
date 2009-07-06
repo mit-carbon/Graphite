@@ -258,6 +258,7 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
    else
    {
       LOG_ASSERT_ERROR(false, "Got an INVALID shared memory request type: %u", shmem_req_type);
+      return false;
    }
       
    LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? " READ " : " WRITE "), ca_address);

@@ -321,10 +321,6 @@ def remove_unwanted_symbols(in_string):
 
 # Actual program starts here
 sim_root = "./"
-from time import strftime
-experiment_directory = sim_root + "results/" + strftime("%Y_%m_%d__%H_%M_%S") + "/"
-mkdir_experiment_dir_command = "mkdir " + experiment_directory
-os.system(mkdir_experiment_dir_command)
 
 tests_config_filename = "tests.cfg"
 is_dryrun = 0
@@ -342,8 +338,14 @@ for argument in sys.argv:
 curr_num_procs = parse_config_file_params(tests_config_filename)
 generate_simulation_args(parse_fixed_param_list(), curr_num_procs)
 
-# Move config file
-cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
-os.system(cp_config_file_command)
+if is_dryrun == 0:
+   from time import strftime
+   experiment_directory = sim_root + "results/" + strftime("%Y_%m_%d__%H_%M_%S") + "/"
+   mkdir_experiment_dir_command = "mkdir " + experiment_directory
+   os.system(mkdir_experiment_dir_command)
+
+   # Move config file
+   cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
+   os.system(cp_config_file_command)
 
 run_simulation(is_dryrun)

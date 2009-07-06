@@ -21,7 +21,7 @@ num_procs_list = []
 sim_core_index_list = []
 app_list = []
 test_args_list = []
-num_thread_index_list = []
+user_thread_index_list = []
 
 def parse_config_file_params(tests_config_filename):
    tests_config_app = []
@@ -83,7 +83,7 @@ def parse_app_list(tests_config_app):
 
 def parse_test_args(test_args):
    global test_args_list
-   global num_thread_index_list
+   global user_thread_index_list
 
    var_arg_list = re.findall(r'\[[^\]]+\]', test_args)
    
@@ -116,14 +116,18 @@ def parse_test_args(test_args):
       
    return
 
-def generate_test_args(fixed_test_arg_list, expanded_var_arg_list, num_threads_pos, curr_num_threads_index = 0, curr_test_arg_list = "", index = 0):
+def generate_test_args(fixed_test_arg_list, expanded_var_arg_list, num_threads_pos, curr_num_threads_index = -1, curr_test_arg_list = "", index = 0):
    global test_args_list
-   global num_thread_index_list
+   global user_thread_index_list
 
    if index == len(expanded_var_arg_list):
       test_args_list.append(curr_test_arg_list + fixed_test_arg_list[index])
-      num_thread_index_list.append(curr_num_threads_index)
+      user_thread_index_list.append(curr_num_threads_index)
       return
+
+   # Initialize curr_num_threads_index
+   if index == num_threads_pos:
+      curr_num_threads_index = 0
 
    for arg in expanded_var_arg_list[index]:
       generate_test_args(fixed_test_arg_list, expanded_var_arg_list, 
@@ -212,7 +216,7 @@ def parse_pintool_params(tests_config_pintool):
    
    return curr_num_procs
 
-def generate_simulation_args(arg_list, curr_num_procs, curr_core_index, variable_param_num = 0):
+def generate_simulation_args(arg_list, curr_num_procs, curr_core_index = -1, variable_param_num = 0):
    global pintool_variable_param_list
    global pintool_fixed_param_list
    global sim_flags_list
@@ -230,9 +234,15 @@ def generate_simulation_args(arg_list, curr_num_procs, curr_core_index, variable
    pintool_param = pintool_variable_param_list[variable_param_num]
    param_name = pintool_param[0]
    value_list = pintool_param[1]
+      
+   # Initialize 'curr_core_index'
+   if (param_name == 'general/total_cores'):
+      curr_core_index = 0
+
    for value in value_list:
       if (param_name == 'general/num_processes'):
          curr_num_procs = value
+
       new_arg_list = arg_list + "--" + param_name + "=" + value + " "
       
       generate_simulation_args(new_arg_list, curr_num_procs, curr_core_index, variable_param_num+1)
@@ -254,7 +264,7 @@ def run_simulation(is_dryrun):
    global num_procs_list
    global sim_core_index_list
    global app_list
-   global num_thread_index_list
+   global user_thread_index_list
 
    global sim_root
    global experiment_directory
@@ -267,7 +277,7 @@ def run_simulation(is_dryrun):
    while i < len(sim_flags_list):
       j = 0
       while j < len(app_list):
-         if sim_core_index_list[i] == num_thread_index_list[j]:
+         if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
             command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + app_list[j]
             print command
             if is_dryrun == 0:
@@ -330,7 +340,15 @@ for argument in sys.argv:
       expecting_file_name = 1
 
 curr_num_procs = parse_config_file_params(tests_config_filename)
-generate_simulation_args(parse_fixed_param_list(), curr_num_procs, 0)
+generate_simulation_args(parse_fixed_param_list(), curr_num_procs)
+
+print sim_flags_list
+print num_procs_list
+print sim_core_index_list
+
+print app_list
+print user_thread_index_list
+
 
 # Move config file
 cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory

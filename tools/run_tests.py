@@ -6,6 +6,7 @@
 # Import other configuration parameters from carbon_sim.cfg that you want
 # to change
 
+import os
 import re
 import sys
 import subprocess
@@ -29,7 +30,12 @@ def parse_config_file_params(tests_config_filename):
    parsing_app_list = 0
    parsing_pintool_params = 0
 
-   tests_config = open(tests_config_filename,"r").readlines()
+   try:
+      tests_config = open(tests_config_filename,"r").readlines()
+   except IOError:
+      print "Cannot Open File: %s" % tests_config_filename
+      sys.exit(-1)
+
    for line in tests_config:
       if re.search(r'^\[apps\]', line):
          parsing_app_list = 1
@@ -250,6 +256,9 @@ def run_simulation(is_dryrun):
    global app_list
    global num_thread_index_list
 
+   global sim_root
+   global experiment_directory
+
    pin_bin = '/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin'
    pin_tool = './lib/pin_sim'
    pin_run = pin_bin + " -mt -t " + pin_tool
@@ -264,13 +273,47 @@ def run_simulation(is_dryrun):
             if is_dryrun == 0:
                proc = subprocess.Popen(command, shell=True)
                proc.wait()
+               # Copy the results into a per-experiment per-run directory
+               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "/"
+            
+               mkdir_command = "mkdir " + run_directory
+               os.system(mkdir_command)
+            
+               mv_command = "mv " + sim_root + "sim.out " + run_directory;
+               os.system (mv_command)
          j = j+1
       i = i+1
 
    return
 
+def remove_unwanted_symbols(in_string):
+   
+   i = 0
+   out_string = ''
+   while i < len(in_string):
+      if in_string[i] == ' ':
+         out_string += '___'
+      elif in_string[i] == '-':
+         pass
+      elif in_string[i] == '/':
+         out_string += '__'
+      elif re.search(r'\w', in_string[i]):
+         out_string += in_string[i]
+      else:
+         out_string += '_'
+      i += 1
+
+   return out_string
+
 
 # Actual program starts here
+sim_root = "./"
+from time import strftime
+experiment_directory = sim_root + "results/" + strftime("%Y_%m_%d__%H_%M_%S") + "/"
+mkdir_experiment_dir_command = "mkdir " + experiment_directory
+os.system(mkdir_experiment_dir_command)
+
+tests_config_filename = "tests.cfg"
 is_dryrun = 0
 expecting_file_name = 0
 assert(len(sys.argv) <= 4)
@@ -285,4 +328,9 @@ for argument in sys.argv:
 
 curr_num_procs = parse_config_file_params(tests_config_filename)
 generate_simulation_args(parse_fixed_param_list(), curr_num_procs, 0)
+
+# Move config file
+mv_config_file_command = "mv " + sim_root + tests_config_filename + " " + experiment_directory
+os.system(mv_config_file_command)
+
 run_simulation(is_dryrun)

@@ -60,6 +60,6 @@ void BranchPredictor::updateCounters(bool predicted, bool actual)
 void BranchPredictor::outputSummary(std::ostream &os)
 {
    os << "  Branch predictor stats:" << endl
-      << "    num correct:   " << m_correct_predictions << endl
+      << "    num correct: " << m_correct_predictions << endl
       << "    num incorrect: " << m_incorrect_predictions << endl;
 }

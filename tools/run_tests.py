@@ -342,14 +342,6 @@ for argument in sys.argv:
 curr_num_procs = parse_config_file_params(tests_config_filename)
 generate_simulation_args(parse_fixed_param_list(), curr_num_procs)
 
-print sim_flags_list
-print num_procs_list
-print sim_core_index_list
-
-print app_list
-print user_thread_index_list
-
-
 # Move config file
 cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
 os.system(cp_config_file_command)

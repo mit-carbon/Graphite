@@ -281,6 +281,9 @@ def run_simulation(is_dryrun):
             
                mv_command = "mv " + sim_root + "sim.out " + run_directory;
                os.system (mv_command)
+
+               make_exec_file_command = "echo \"" + command + "\" > " + run_directory + "exec_command"
+               os.system (make_exec_file_command)
          j = j+1
       i = i+1
 

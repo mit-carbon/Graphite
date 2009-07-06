@@ -259,8 +259,8 @@ def run_simulation(is_dryrun):
    global sim_root
    global experiment_directory
 
-   pin_bin = '/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin'
-   pin_tool = './lib/pin_sim'
+   pin_bin = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
+   pin_tool = sim_root + "lib/pin_sim"
    pin_run = pin_bin + " -mt -t " + pin_tool
 
    i = 0
@@ -268,7 +268,7 @@ def run_simulation(is_dryrun):
       j = 0
       while j < len(app_list):
          if sim_core_index_list[i] == num_thread_index_list[j]:
-            command = "./tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + app_list[j]
+            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + app_list[j]
             print command
             if is_dryrun == 0:
                proc = subprocess.Popen(command, shell=True)

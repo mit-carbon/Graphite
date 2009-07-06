@@ -330,7 +330,7 @@ curr_num_procs = parse_config_file_params(tests_config_filename)
 generate_simulation_args(parse_fixed_param_list(), curr_num_procs, 0)
 
 # Move config file
-mv_config_file_command = "mv " + sim_root + tests_config_filename + " " + experiment_directory
-os.system(mv_config_file_command)
+cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
+os.system(cp_config_file_command)
 
 run_simulation(is_dryrun)

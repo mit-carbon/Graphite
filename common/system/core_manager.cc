@@ -365,12 +365,21 @@ static void gatherSummaries(std::vector<std::string> &summaries)
 
       const Config::CoreList &cl = cfg->getCoreListForProcess(p);
 
+      // signal process to send
+      if (p != 0)
+         global_node->globalSend(p, &p, sizeof(p));
+
+      // receive summary
       for (UInt32 c = 0; c < cl.size(); c++)
       {
-         Byte *buf = global_node->recv();
+         Byte *buf;
 
+         buf = global_node->recv();
+         assert(*((core_id_t*)buf) == cl[c]);
+         delete [] buf;
+
+         buf = global_node->recv();
          summaries[cl[c]] = std::string((char*)buf);
-
          delete [] buf;
       }
    }
@@ -538,14 +547,27 @@ void CoreManager::outputSummary(std::ostream &os)
    Config *cfg = Config::getSingleton();
    Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
 
-   for (UInt32 i = 0; i < cfg->getNumLocalCores(); i++)
+   // wait for my turn...
+   if (cfg->getCurrentProcessNum() != 0)
    {
-      LOG_PRINT("Output summary core %i", i);
+      Byte *buf = global_node->recv();
+      assert(*((UInt32*)buf) == cfg->getCurrentProcessNum());
+      delete [] buf;
+   }
+
+   // send each summary
+   const Config::CoreList &cl = cfg->getCoreListForProcess(cfg->getCurrentProcessNum());
+
+   for (UInt32 i = 0; i < cl.size(); i++)
+   {
+      LOG_PRINT("Output summary core %i", cl[i]);
       std::stringstream ss;
       m_cores[i]->outputSummary(ss);
+      global_node->globalSend(0, &cl[i], sizeof(cl[i]));
       global_node->globalSend(0, ss.str().c_str(), ss.str().length()+1);
    }
 
+   // format (only done on proc 0)
    if (cfg->getCurrentProcessNum() != 0)
       return;
 

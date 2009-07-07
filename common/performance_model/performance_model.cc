@@ -27,7 +27,8 @@ PerformanceModel* PerformanceModel::create()
 
 // Public Interface
 PerformanceModel::PerformanceModel()
-   : m_current_ins_index(0)
+   : m_enabled(true)
+   , m_current_ins_index(0)
    , m_bp(0)
 {
    m_bp = BranchPredictor::create();
@@ -38,9 +39,19 @@ PerformanceModel::~PerformanceModel()
    delete m_bp; m_bp = 0;
 }
 
+void PerformanceModel::enable()
+{
+   m_enabled = true;
+}
+
+void PerformanceModel::disable()
+{
+   m_enabled = false;
+}
+
 void PerformanceModel::queueDynamicInstruction(Instruction *i)
 {
-   if (!Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
    {
       delete i;
       return;
@@ -54,7 +65,7 @@ void PerformanceModel::queueDynamicInstruction(Instruction *i)
 
 void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
 {
-   if (!Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
    ScopedLock sl(m_basic_block_queue_lock);

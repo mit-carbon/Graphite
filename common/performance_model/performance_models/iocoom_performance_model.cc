@@ -240,7 +240,7 @@ UInt64 IOCOOMPerformanceModel::executeStore(const DynamicInstructionInfo &info)
 
 void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
 {
-   if (!m_l1_icache)
+   if (!m_l1_icache || addr == 0)
       return;
 
    bool hit = m_l1_icache->access(addr);

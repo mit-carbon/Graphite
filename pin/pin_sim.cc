@@ -62,7 +62,6 @@ extern PIN_LOCK clone_memory_update_lock;
 // ---------------------------------------------------------------
 
 // ---------------------------------------------------------------
-// FIXME: 
 map <ADDRINT, string> rtn_map;
 PIN_LOCK rtn_map_lock;
 
@@ -291,7 +290,11 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          // Even if this works, it's a hack. We will need this to be a 'ring' where
          // all processes initialize one after the other
          Core *core = Sim()->getCoreManager()->getCurrentCore();
+
+         // main thread clock is not affected by start-up time of other processes
+         core->getPerformanceModel()->disable();
          core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
+         core->getPerformanceModel()->enable();
 
          LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, core_id);

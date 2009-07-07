@@ -216,7 +216,7 @@ def parse_pintool_params(tests_config_pintool):
    
    return curr_num_procs
 
-def generate_simulation_args(arg_list, curr_num_procs, curr_core_index = -1, variable_param_num = 0):
+def generate_pintool_args(arg_list, curr_num_procs, curr_core_index = -1, variable_param_num = 0):
    global pintool_variable_param_list
    global pintool_fixed_param_list
    global sim_flags_list
@@ -245,7 +245,7 @@ def generate_simulation_args(arg_list, curr_num_procs, curr_core_index = -1, var
 
       new_arg_list = arg_list + "--" + param_name + "=" + value + " "
       
-      generate_simulation_args(new_arg_list, curr_num_procs, curr_core_index, variable_param_num+1)
+      generate_pintool_args(new_arg_list, curr_num_procs, curr_core_index, variable_param_num+1)
       
       if (param_name == 'general/total_cores'):
          curr_core_index = curr_core_index + 1
@@ -259,7 +259,7 @@ def parse_fixed_param_list():
       fixed_arg_list += "--" + pintool_param[0] + "=" + pintool_param[1] + " "
    return fixed_arg_list
 
-def run_simulation(is_dryrun):
+def run_simulation(is_dryrun, run_id):
    global sim_flags_list
    global num_procs_list
    global sim_core_index_list
@@ -284,7 +284,7 @@ def run_simulation(is_dryrun):
                proc = subprocess.Popen(command, shell=True)
                proc.wait()
                # Copy the results into a per-experiment per-run directory
-               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "/"
+               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
             
                mkdir_command = "mkdir " + run_directory
                os.system(mkdir_command)
@@ -320,9 +320,10 @@ def remove_unwanted_symbols(in_string):
 
 def print_help_message():
    print "[Usage]:"
-   print "\t./tools/run_tests.py [-dryrun] [-f tests_config_file]"
+   print "\t./tools/run_tests.py [-dryrun] [-f tests_config_file] [-n number_of_runs]"
    print "[Defaults]:"
    print "\t tests_config_file -> tests.cfg"
+   print "\t number_of_runs -> 1"
    print "\t dryrun -> OFF"
    sys.exit(1)
 
@@ -331,21 +332,26 @@ sim_root = "./"
 
 tests_config_filename = "tests.cfg"
 is_dryrun = 0
+num_runs = 1
 expecting_file_name = 0
+expecting_num_runs = 0
+
 assert(len(sys.argv) <= 4)
 for argument in sys.argv:
    if expecting_file_name == 1:
       tests_config_filename = argument
       expecting_file_name = 0
+   elif expecting_num_runs == 1:
+      num_runs = int(argument)
+      expecting_num_runs = 0
    elif argument == '-dryrun':
       is_dryrun = 1
    elif argument == '-f':
       expecting_file_name = 1
    elif argument == '-h':
       print_help_message()
-
-curr_num_procs = parse_config_file_params(tests_config_filename)
-generate_simulation_args(parse_fixed_param_list(), curr_num_procs)
+   elif argument == '-n':
+      expecting_num_runs = 1
 
 if is_dryrun == 0:
    from time import strftime
@@ -357,4 +363,8 @@ if is_dryrun == 0:
    cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
    os.system(cp_config_file_command)
 
-run_simulation(is_dryrun)
+curr_num_procs = parse_config_file_params(tests_config_filename)
+generate_pintool_args(parse_fixed_param_list(), curr_num_procs)
+
+for i in range(0, num_runs):
+   run_simulation(is_dryrun, i)

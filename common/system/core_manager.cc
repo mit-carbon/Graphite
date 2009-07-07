@@ -361,7 +361,7 @@ static void gatherSummaries(std::vector<std::string> &summaries)
 
    for (UInt32 p = 0; p < cfg->getProcessCount(); p++)
    {
-      LOG_PRINT("Collect from process %p", p);
+      LOG_PRINT("Collect from process %d", p);
 
       const Config::CoreList &cl = cfg->getCoreListForProcess(p);
 
@@ -372,6 +372,8 @@ static void gatherSummaries(std::vector<std::string> &summaries)
       // receive summary
       for (UInt32 c = 0; c < cl.size(); c++)
       {
+         LOG_PRINT("Collect from core %d", cl[c]);
+
          Byte *buf;
 
          buf = global_node->recv();
@@ -388,6 +390,8 @@ static void gatherSummaries(std::vector<std::string> &summaries)
    {
       LOG_ASSERT_ERROR(!summaries[i].empty(), "Summary %d is empty!", i);
    }
+
+   LOG_PRINT("Done collecting.");
 }
 
 class Table
@@ -544,6 +548,11 @@ void CoreManager::outputSummary(std::ostream &os)
 {
    LOG_PRINT("Starting CoreManager::outputSummary");
 
+   // Note: Using the global_node only works here because the lcp has
+   // finished and therefore is no longer waiting on a receive. This
+   // is not the most obvious thing, so maybe there should be a
+   // cleaner solution.
+
    Config *cfg = Config::getSingleton();
    Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
 
@@ -578,4 +587,6 @@ void CoreManager::outputSummary(std::ostream &os)
    formatted = formatSummaries(summaries);
 
    os << formatted;                   
+
+   LOG_PRINT("Finished outputSummary");
 }

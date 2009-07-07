@@ -74,15 +74,16 @@ void printRtn (ADDRINT rtn_addr, bool enter)
    string point = enter ? "Enter" : "Exit";
    if (it != rtn_map.end())
    {
-      LOG_PRINT ("Routine %s %s", (it->second).c_str(), point.c_str());
+      LOG_PRINT ("Stack trace : %s %s", point.c_str(), (it->second).c_str());
    }
    else
    {
-      LOG_PRINT ("Routine UNKNOWN %s", point.c_str());
+      LOG_PRINT ("Stack trace : %s UNKNOWN", point.c_str());
    }
       
    ReleaseLock (&rtn_map_lock);
 }
+
 // ---------------------------------------------------------------
 
 INT32 usage()
@@ -109,30 +110,34 @@ void routineCallback(RTN rtn, void *v)
    replaceUserAPIFunction(rtn, rtn_name);
 
    // ---------------------------------------------------------------
-   // FIXME: 
-   RTN_Open (rtn);
-   
-   ADDRINT rtn_addr = RTN_Address (rtn);
-   
-   GetLock (&rtn_map_lock, 1);
-   
-   rtn_map.insert (make_pair (rtn_addr, rtn_name));
 
-   ReleaseLock (&rtn_map_lock);
+   if (Config::getSingleton()->getLoggingEnabled() &&
+       Sim()->getCfg()->getBool("log/stack_trace",false))
+   {
+      RTN_Open (rtn);
    
-   RTN_InsertCall (rtn, IPOINT_BEFORE,
-         AFUNPTR (printRtn),
-         IARG_ADDRINT, rtn_addr,
-         IARG_BOOL, true,
-         IARG_END);
+      ADDRINT rtn_addr = RTN_Address (rtn);
+   
+      GetLock (&rtn_map_lock, 1);
+   
+      rtn_map.insert (make_pair (rtn_addr, rtn_name));
 
-   RTN_InsertCall (rtn, IPOINT_AFTER,
-         AFUNPTR (printRtn),
-         IARG_ADDRINT, rtn_addr,
-         IARG_BOOL, false,
-         IARG_END);
+      ReleaseLock (&rtn_map_lock);
+   
+      RTN_InsertCall (rtn, IPOINT_BEFORE,
+                      AFUNPTR (printRtn),
+                      IARG_ADDRINT, rtn_addr,
+                      IARG_BOOL, true,
+                      IARG_END);
 
-   RTN_Close (rtn);
+      RTN_InsertCall (rtn, IPOINT_AFTER,
+                      AFUNPTR (printRtn),
+                      IARG_ADDRINT, rtn_addr,
+                      IARG_BOOL, false,
+                      IARG_END);
+
+      RTN_Close (rtn);
+   }
 
    // ---------------------------------------------------------------
 

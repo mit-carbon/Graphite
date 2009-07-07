@@ -14,6 +14,9 @@ public:
    UInt64 getInstructionCount() { return m_instruction_count; }
    UInt64 getCycleCount() { return m_cycle_count; }
 
+protected:
+   void setCycleCount(UInt64 time) { m_cycle_count = time; }
+
 private:
    void handleInstruction(Instruction *instruction);
    

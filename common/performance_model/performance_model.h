@@ -38,6 +38,10 @@ public:
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
 protected:
+   friend class SpawnInstruction;
+
+   virtual void setCycleCount(UInt64 time) = 0;
+
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 

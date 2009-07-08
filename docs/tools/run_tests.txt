@@ -1,0 +1,43 @@
+This document explains how to use 'tools/run_tests.py' to automatically run tests and gather results
+
+Running the script
+------------------
+
+Command: 
+./tools/run_tests.py [-dryrun] [-f config_file] [-n num_runs]
+./tools/run_tests.py -h
+
+Remarks:
+config_file : Name of the configuration file used to run the tests (Defaults to 'tests.cfg')
+num_runs: Number of times the experiment is run using the same config file (Defaults to '1')
+-dryrun : Only prints out the commands that will be run for the given 'config_file' and does not actually run any of the commands. This can be used to check if the 'config_file' works as intended
+-h : Prints out a help message and exits
+
+Writing the Configuration File
+------------------------------
+
+Each 'config_file' has an 'apps' section and a 'pintool' section. The 'apps' section specifies the applications to be run. The 'pintool' section specifies the parameters to the pintool.
+
+Each parameter in the config_file can be varied in 3 ways
+1) [v_1, v_2, ..., v_n] :- This is a list whose values are separated by commas.
+2) [a : b : +c] :- This boils down to a list whose values are [a, a+c, a+2c, a+3c, ...]
+3) [a : b : *c] :- This boils down to a list whose values are [a, a*c, a*(c^2), a*(c^3), ...]
+Both 2) and 3) above include 'b' if possible
+For example, 
+[1:5:+2] -> [1,3,5]
+[3:100:*3] -> [3,9,27,81]
+
+Examples of configurations files are given in the directory 'docs/tools/example_test_config_files'. The commands that are executed when each configuration is used is also present in this directory. Please have a look at them before you run any tests. Also, keep in mind that the commands that are executed when a particular configuration file is used can be obtained using the '-dryrun' option.
+When a particular configuration file is used, commands that cover all permutations of the parameters that are varied are run. This is not desirable in one particular scenario, namely, when one of the application arguments corresponds to the number of threads used. Usually, it does not make sense to vary the number of threads in an application independent of the number of cores simulated (i.e, the parameter 'general/total_cores' in the 'pintool' section of the configuration file). In other words, the number of threads in an application is usually varied in accordance to the number of cores simulated. This can be accomplished using the '$' sign before the start of a parameter list in the 'apps' section. See the example configuration files for illustrations of how to use the '$' sign. Note that only one parameter in a particular line of the 'apps' section can be varied using the '$' sign. If multiple '$' signs are used in a particular line of the 'apps' section, only the last parameter that is varied using the '$' sign is varied in proportion to the number of cores. Also, the '$' sign cannot be used in the 'pintool' section of the configuration file. Note that the size of the parameter list having the '$' sign must be equal to the size of the parameter list corresponding to 'general/total_cores'.
+
+Viewing the Output
+------------------
+
+The outputs of each experiment are put in a sub-directory under the directory named 'results'. This subdirectory is named using the time at which the experiment was started. Inside each experiment subdirectory are present subdirectories corresponding to each run of the experiment. These subdirectories are named using the parameters used for the run as well as the run number. In these sub-directories are stored simulator outputs as well as standard outputs.
+
+Current Limitations
+-------------------
+
+1) Currently, 'comments' in the configuration file are not supported -  This feature is currently being added
+2) The example configuration files should not be used to run tests. They are just provided as examples to illustrate the features of the automatic test script
+3) 'run_tests.py' must always be run from the simulator root directory, i.e, as './tools/run_tests.py' - A workaround for this would be to use an environment variable like '$GRAPHITE_ROOT' to specify the simulator root directory and is currently being added

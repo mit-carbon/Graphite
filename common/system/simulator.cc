@@ -95,7 +95,7 @@ Simulator::~Simulator()
    delete m_mcp;
    delete m_sim_thread_manager;
    delete m_thread_manager;
-   delete m_core_manager; m_core_manager = NULL;
+   delete m_core_manager;
    delete m_transport;
 
    LOG_PRINT("End of simulator dtor...");

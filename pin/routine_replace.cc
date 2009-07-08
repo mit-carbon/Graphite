@@ -198,7 +198,11 @@ void replacementMain (CONTEXT *ctxt)
          // FIXME: 
          // This whole process should probably happen through the MCP
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+
+         // main thread clock is not affected by start-up time of other processes
+         core->getPerformanceModel()->disable();
          core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
+         core->getPerformanceModel()->enable();
       }
       
       for (UInt32 i = 1; i < num_processes; i++)

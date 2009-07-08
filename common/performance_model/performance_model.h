@@ -37,6 +37,9 @@ public:
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
+   void disable();
+   void enable();
+
 protected:
    friend class SpawnInstruction;
 
@@ -48,6 +51,8 @@ protected:
 private:
 
    virtual void handleInstruction(Instruction *instruction) = 0;
+
+   bool m_enabled;
 
    BasicBlockQueue m_basic_block_queue;
    Lock m_basic_block_queue_lock;

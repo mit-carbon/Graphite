@@ -113,7 +113,7 @@ void MCP::processPacket()
       break;
 
    default:
-      LOG_ASSERT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
+      LOG_PRINT_ERROR(false, "Unhandled MCP message type: %i from %i", msg_type, recv_pkt.sender);
    }
 
    delete [](Byte*)recv_pkt.data;

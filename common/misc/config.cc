@@ -209,7 +209,7 @@ void Config::getDisabledLogModules(set<string> &mods) const
 {
    try 
    {
-      string disabledModules = Sim()->getCfg()->getString("general/log_disabled_modules", "");
+      string disabledModules = Sim()->getCfg()->getString("log/disabled_modules", "");
       string delimiters = " ";
 
       string::size_type lastPos = disabledModules.find_first_not_of(delimiters, 0);
@@ -232,7 +232,7 @@ bool Config::getLoggingEnabled() const
 {
    try
    {
-      return Sim()->getCfg()->getBool("general/enable_logging", true);
+      return Sim()->getCfg()->getBool("log/enabled", true);
    }
    catch (...)
    {

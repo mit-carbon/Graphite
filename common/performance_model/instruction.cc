@@ -110,8 +110,8 @@ SpawnInstruction::SpawnInstruction(UInt64 time)
 UInt64 SpawnInstruction::getCost()
 {
    PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
-   perf->setCycleCount(m_time);
-   return 0;
+   perf->setCycleCount(0);
+   return m_time;
 }
 
 // BranchInstruction

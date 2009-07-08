@@ -59,26 +59,15 @@ def parse_app_list(tests_config_app):
    global app_list
    for line in tests_config_app:
       if (re.search(r'[^\s]', line)):
-         test_match = re.search(r'^\s*(\w+)(.*)', line)
+         test_match = re.search(r'^\s*([\w/]+)(.*)', line)
          assert test_match
          test_name = test_match.group(1)
          test_args = test_match.group(2)
 
          parse_test_args(test_args)
 
-         test_name_match = re.search(r'(.+)_([a-z]+)', test_name)
-         assert test_name_match
-         test_target_name = test_name_match.group(1)
-
-         if (test_name_match.group(2) == 'app'):
-            act_test_name = "./tests/apps/" + test_target_name + "/" + test_target_name
-         elif (test_name_match.group(2) == 'bench'):
-            act_test_name = "./tests/benchmarks/" + test_target_name + "/" + test_target_name
-         else:
-            assert false
-
          for test_instance in test_args_list:
-            app_list.append(act_test_name + test_instance)
+            app_list.append(test_name + test_instance)
    return
 
 def parse_test_args(test_args):
@@ -278,7 +267,7 @@ def run_simulation(is_dryrun, run_id):
       j = 0
       while j < len(app_list):
          if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
-            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + app_list[j]
+            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + sim_root + app_list[j]
             print command
             if is_dryrun == 0:
                proc = subprocess.Popen(command, shell=True)

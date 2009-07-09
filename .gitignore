@@ -19,4 +19,5 @@ lib/libcarbon_sim.a
 lib/pin_sim.so
 
 # result files
-results/200*
+results/
+!results/.DO_NOT_DELETE

@@ -82,6 +82,10 @@ void IOCOOMPerformanceModel::setCycleCount(UInt64 time)
 
 void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
 {
+   // Execute this first so that instructions have the opportunity to
+   // abort further processing (via AbortInstructionException)
+   UInt64 cost = instruction->getCost();
+
    // icache modeling
    modelIcache(instruction->getAddress());
 
@@ -151,8 +155,6 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    }
 
    // update cycle count with instruction cost
-   UInt64 cost = instruction->getCost();
-
    m_instruction_count++;
    m_cycle_count = operands_ready + cost;
 

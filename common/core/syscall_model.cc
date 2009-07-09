@@ -165,6 +165,11 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
          m_ret_val = marshallReadaheadCall (args);
          break;
 
+      case SYS_pipe:
+         m_called_enter = true;
+         m_ret_val = marshallPipeCall (args);
+         break;
+
       case SYS_mmap:
          m_called_enter = true;
          m_ret_val = marshallMmapCall (args);
@@ -468,9 +473,38 @@ carbon_reg_t SyscallMdl::marshallReadaheadCall(syscall_args_t &args)
    int result;
    m_recv_buff >> result;
 
-   // FIXME
-   cerr << "READAHEAD: result = " << result << endl;
+   delete [](Byte*) recv_pkt.data;
 
+   return result;
+}
+
+carbon_reg_t SyscallMdl::marshallPipeCall (syscall_args_t &args)
+{
+   int *fd = (int*) args.arg0;
+
+   // send the data
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   // get a result
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+   // Create a buffer out of the result
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   // return the result
+   int result;
+   int fd_buff[2];
+
+   m_recv_buff >> result;
+   if (result == 0)
+   {
+      m_recv_buff >> fd_buff[0] >> fd_buff[1];
+   }
+   
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, WRITE, (IntPtr) fd, (char*) fd_buff, 2 * sizeof(int));
+      
    delete [](Byte*) recv_pkt.data;
 
    return result;

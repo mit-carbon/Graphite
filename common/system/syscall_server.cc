@@ -61,6 +61,9 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_readahead:
       marshallReadaheadCall(core_id);
       break;
+   case SYS_pipe:
+      marshallPipeCall(core_id);
+      break;
    case SYS_mmap:
       marshallMmapCall(core_id);
       break;
@@ -295,13 +298,20 @@ void SyscallServer::marshallReadaheadCall(core_id_t core_id)
    // Actually do the readahead call
    int ret = readahead (fd, offset, count);
 
-   // FIXME
-   cerr << "READAHEAD: fd = " << fd << endl;
-   cerr << "READAHEAD: offset = " << offset << endl;
-   cerr << "READAHEAD: count = " << count << endl;
-   cerr << "READAHEAD: ret = " << ret << endl;
+   m_send_buff << ret;
+
+   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+
+void SyscallServer::marshallPipeCall(core_id_t core_id)
+{
+   int fds[2];
+
+   // Actually do the pipe call
+   int ret = pipe (fds);
 
    m_send_buff << ret;
+   m_send_buff << fds[0] << fds[1];
 
    m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }

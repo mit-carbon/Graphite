@@ -27,6 +27,11 @@ public:
       m_queue_time = max(m_queue_time, pkt_time) + processing_time;
    }
 
+   void resetModel()
+   {
+      m_queue_time = 0;
+   }
+
 private:
    UInt64 m_queue_time;
 };

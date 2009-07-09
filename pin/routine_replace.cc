@@ -210,6 +210,8 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
       LOG_PRINT("ReplaceMain end");
+
+      resetShmemPerfModelsForCurrentProcess();
       
       return;
    }
@@ -220,6 +222,8 @@ void replacementMain (CONTEXT *ctxt)
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
       core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
+
+      resetShmemPerfModelsForCurrentProcess();
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -249,6 +253,14 @@ void replacementMain (CONTEXT *ctxt)
       Simulator::release();
 
       exit (0);
+   }
+}
+
+void resetShmemPerfModelsForCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+   {
+      Sim()->getCoreManager()->getCoreFromIndex(i)->getMemoryManager()->resetShmemPerfModels();
    }
 }
 

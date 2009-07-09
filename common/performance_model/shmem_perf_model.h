@@ -68,6 +68,11 @@ class ShmemPerfModel
          m_cycle_count[getThreadNum()] += count;
       }
 
+      void resetModel()
+      {
+         // Empty for now
+      }
+
 };
 
 #endif /* __SHMEM_PERF_MODEL_H__ */

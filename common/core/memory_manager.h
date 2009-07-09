@@ -169,6 +169,8 @@ class MemoryManager
       // Process Initial Shared Memory Request
       void processSharedMemInitialReq (NetPacket rep_packet);
 
+      void resetShmemPerfModels();
+
       //debugging stuff
       static string sMemReqTypeToString(shmem_req_t type);
 

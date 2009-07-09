@@ -168,6 +168,8 @@ class DramDirectory
 
       void processAck(NetPacket& ack_packet);
       void processWriteBack(NetPacket& req_packet);
+
+      void resetShmemPerfModels();
 };
 
 

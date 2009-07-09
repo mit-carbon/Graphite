@@ -18,6 +18,9 @@ class NetworkModelAnalytical : public NetworkModel
 
       void outputSummary(std::ostream &out);
 
+      void enable();
+      void disable();
+
    private:
       UInt64 computeLatency(const NetPacket &);
       void updateUtilization();
@@ -39,6 +42,8 @@ class NetworkModelAnalytical : public NetworkModel
       Lock _lock;
 
       NetworkModelAnalyticalParameters m_params;
+
+      bool m_enabled;
 };
 
 #endif // NETWORK_MODEL_ANALYTICAL_H

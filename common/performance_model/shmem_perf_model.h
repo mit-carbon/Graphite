@@ -17,6 +17,7 @@ class ShmemPerfModel
 
    private:
       UInt64 m_cycle_count[NUM_CORE_THREADS];
+      bool m_enabled;
 
       UInt32 getThreadNum()
       {
@@ -40,6 +41,7 @@ class ShmemPerfModel
 
    public:
       ShmemPerfModel()
+         : m_enabled(true)
       {
          for (UInt32 i = 0; i < NUM_CORE_THREADS; i++)
             m_cycle_count[i] = 0;
@@ -68,11 +70,15 @@ class ShmemPerfModel
          m_cycle_count[getThreadNum()] += count;
       }
 
-      void resetModel()
+      void enable()
       {
-         // Empty for now
+         m_enabled = true;
       }
 
+      void disable()
+      {
+         m_enabled = false;
+      }
 };
 
 #endif /* __SHMEM_PERF_MODEL_H__ */

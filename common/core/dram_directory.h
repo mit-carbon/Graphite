@@ -169,7 +169,10 @@ class DramDirectory
       void processAck(NetPacket& ack_packet);
       void processWriteBack(NetPacket& req_packet);
 
-      void resetShmemPerfModels();
+      DramPerfModel* getDramPerformanceModel()
+      {
+         return m_dram_perf_model;
+      }
 };
 
 

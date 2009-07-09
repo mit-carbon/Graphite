@@ -255,6 +255,8 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       allocateStackSpace();
 #endif
 
+      disablePerformanceModelsInCurrentProcess();
+
       UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
       ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
@@ -354,7 +356,6 @@ VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, 
 {
    Sim()->getThreadManager()->onThreadExit();
 }
-
 
 int main(int argc, char *argv[])
 {

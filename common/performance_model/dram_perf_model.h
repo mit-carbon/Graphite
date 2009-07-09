@@ -21,9 +21,11 @@ class DramPerfModel
       QueueModel* m_queue_model;
       UInt32 m_dram_access_cost;
       UInt32 m_dram_bandwidth;
+      bool m_enabled;
 
    public:
       DramPerfModel()
+         : m_enabled(true)
       {
          try
          {
@@ -49,16 +51,29 @@ class DramPerfModel
          // m_dram_bandwidth is in 'Bytes per clock cycle'
          UInt64 processing_time = pkt_size/m_dram_bandwidth + 1;
 
-         UInt64 queue_delay = (UInt64) 0;
-         // UInt64 queue_delay = m_queue_model->getQueueDelay(pkt_time);
-         // m_queue_model->updateQueue(pkt_time, processing_time);
+         UInt64 queue_delay;
+
+         if (m_enabled)
+         {
+            queue_delay = m_queue_model->getQueueDelay(pkt_time);
+            m_queue_model->updateQueue(pkt_time, processing_time);
+         }
+         else
+         {
+            queue_delay = 0;
+         }
 
          return (queue_delay + processing_time + m_dram_access_cost);
       }
 
-      void resetModel()
+      void enable()
       {
-         m_queue_model->resetModel();
+         m_enabled = true;
+      }
+
+      void disable()
+      {
+         m_enabled = false;
       }
 };
 

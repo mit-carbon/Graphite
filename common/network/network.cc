@@ -390,6 +390,22 @@ NetPacket Network::netRecvType(PacketType type)
    return netRecv(match);
 }
 
+void Network::enableModels()
+{
+   for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      _models[i]->enable();
+   }
+}
+
+void Network::disableModels()
+{
+   for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      _models[i]->disable();
+   }
+}
+
 // -- NetPacket
 
 NetPacket::NetPacket()

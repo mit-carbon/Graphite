@@ -37,6 +37,9 @@ class NetworkModel
 
       virtual void outputSummary(std::ostream &out) = 0;
 
+      virtual void enable() = 0;
+      virtual void disable() = 0;
+
       static NetworkModel *createModel(Network *network, UInt32 model_type, EStaticNetwork net_type);
 
       static UInt32 parseNetworkType(std::string str);

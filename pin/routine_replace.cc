@@ -200,9 +200,7 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getPerformanceModel()->disable();
          core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
-         core->getPerformanceModel()->enable();
       }
       
       for (UInt32 i = 1; i < num_processes; i++)
@@ -211,7 +209,7 @@ void replacementMain (CONTEXT *ctxt)
       }
       LOG_PRINT("ReplaceMain end");
 
-      resetShmemPerfModelsForCurrentProcess();
+      enablePerformanceModelsInCurrentProcess();
       
       return;
    }
@@ -223,7 +221,7 @@ void replacementMain (CONTEXT *ctxt)
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
       core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
 
-      resetShmemPerfModelsForCurrentProcess();
+      enablePerformanceModelsInCurrentProcess();
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -256,12 +254,16 @@ void replacementMain (CONTEXT *ctxt)
    }
 }
 
-void resetShmemPerfModelsForCurrentProcess()
+void enablePerformanceModelsInCurrentProcess()
 {
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
-   {
-      Sim()->getCoreManager()->getCoreFromIndex(i)->getMemoryManager()->resetShmemPerfModels();
-   }
+      Sim()->getCoreManager()->getCoreFromIndex(i)->enablePerformanceModels();
+}
+
+void disablePerformanceModelsInCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
 }
 
 void replacementGetThreadToSpawn (CONTEXT *ctxt)

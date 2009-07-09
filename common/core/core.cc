@@ -112,6 +112,22 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
    return (unsigned)size == packet.length ? 0 : -1;
 }
 
+void Core::enablePerformanceModels()
+{
+   getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->enable();
+   getShmemPerfModel()->enable();
+   getNetwork()->enableModels();
+   getPerformanceModel()->enable();
+}
+
+void Core::disablePerformanceModels()
+{
+   getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->disable();
+   getShmemPerfModel()->disable();
+   getNetwork()->disableModels();
+   getPerformanceModel()->disable();
+}
+
 /*
  * accessMemory (lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
  *

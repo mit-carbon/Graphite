@@ -116,12 +116,18 @@ void PerformanceModel::iterate()
 
 void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 {
+   if (!m_enabled)
+      return;
+
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
 }
 
 void PerformanceModel::popDynamicInstructionInfo()
 {
+   if (!m_enabled)
+      return;
+
    ScopedLock sl(m_dynamic_info_queue_lock);
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
                     "Expected some dynamic info to be available.");

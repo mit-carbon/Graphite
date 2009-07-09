@@ -611,12 +611,6 @@ void MemoryManager::extractRequestPayloadBuffer (NetPacket* packet, RequestPaylo
    memcpy ((void*) payload, (void*) (packet->data), sizeof(*payload));
 }
 
-void MemoryManager::resetShmemPerfModels()
-{
-   m_dram_dir->resetShmemPerfModels();
-   m_shmem_perf_model->resetModel();   
-}
-
 carbon_reg_t MemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, AccessType access_type)
 {
    assert (access_type < NUM_ACCESS_TYPES);

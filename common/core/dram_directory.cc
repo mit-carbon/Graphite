@@ -534,8 +534,3 @@ void DramDirectory::processInvalidateSharerAck(
    }
 
 }
-
-void DramDirectory::resetShmemPerfModels()
-{
-   m_dram_perf_model->resetModel();
-}

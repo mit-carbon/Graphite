@@ -8,6 +8,26 @@ import socket
 import sys
 import re
 import subprocess
+import threading
+import time
+import select
+
+class SimInteractor( threading.Thread ):
+    def run( self ):
+        while True:
+            rd, wr, er =  select.select([sys.stdin],[],[],.25)
+            if len(rd):
+                data = sys.stdin.readline()
+                sim_list[0].send(data)
+            elif self.running == False:
+                return
+
+    def stop(self):
+        self.running = False
+
+    def __init__ (self):
+        self.running = True
+        threading.Thread.__init__(self)
 
 def spawn_sim(host, id, path):
     port = 1999
@@ -52,20 +72,57 @@ for i in range(2,len(sys.argv)):
 process_list = load_process_list_from_file(config_filename)
 
 # determine if we will spawn locally or if we will distribute
-if simulator_count > 1:
+if simulator_count == 1:
     sim_list = []
     # spawn the simulators
     for i in range(simulator_count):
         sim_list.append(spawn_sim(process_list[i],i,command))
 
+    sim_interactor = SimInteractor()
+    sim_interactor.start()
+
     # wait for them to finish
     for s in sim_list:
-        data = s.recv(65525)
-        s.close()
-        print 'Received:', data
+        try:
+            while True:
+                data = s.recv(1024)
+                if len(data) == 0:
+                    break
+                print data
+        except:
+            print "Exception occurred."
+            s.close()
 
+        #data = s.recv(3)
+        #print 'Received: ', data
+
+        ## now get the stdout/stderr
+        #data = s.recv(1024)
+
+        #split_data = data.split(",")
+        #sout_size = split_data[0]
+        #serr_size = split_data[1]
+
+        ## chop off args to construct lhs
+        #lhs = data[len(sout_size) + len(serr_size) + 2:]
+
+        ## read what we haven't already
+        #rhs = s.recv(int(sout_size) + int(serr_size) - len(lhs))
+
+        ## combine the two outputs
+        #stdout_and_stderr = "%s%s" % (lhs, rhs)
+
+        ## extract stdout and stderr
+        #stdout = stdout_and_stderr[0:int(sout_size)]
+        #stderr = stdout_and_stderr[int(sout_size):]
+
+        #print 'stdout: \n%s\n' % stdout
+        #print 'stderr: \n%s\n' % stderr
+
+        #s.close()
+
+
+    sim_interactor.stop()
 else:
     spawn_proc(command)
-
-
 

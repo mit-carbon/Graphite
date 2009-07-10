@@ -72,7 +72,7 @@ for i in range(2,len(sys.argv)):
 process_list = load_process_list_from_file(config_filename)
 
 # determine if we will spawn locally or if we will distribute
-if simulator_count == 1:
+if simulator_count > 1:
     sim_list = []
     # spawn the simulators
     for i in range(simulator_count):

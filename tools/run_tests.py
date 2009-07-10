@@ -21,7 +21,7 @@ num_procs_list = []
 sim_core_index_list = []
 app_list = []
 test_args_list = []
-num_thread_index_list = []
+user_thread_index_list = []
 
 def parse_config_file_params(tests_config_filename):
    tests_config_app = []
@@ -59,31 +59,20 @@ def parse_app_list(tests_config_app):
    global app_list
    for line in tests_config_app:
       if (re.search(r'[^\s]', line)):
-         test_match = re.search(r'^\s*(\w+)(.*)', line)
+         test_match = re.search(r'^\s*([\w/]+)(.*)', line)
          assert test_match
          test_name = test_match.group(1)
          test_args = test_match.group(2)
 
          parse_test_args(test_args)
 
-         test_name_match = re.search(r'(.+)_([a-z]+)', test_name)
-         assert test_name_match
-         test_target_name = test_name_match.group(1)
-
-         if (test_name_match.group(2) == 'app'):
-            act_test_name = "./tests/apps/" + test_target_name + "/" + test_target_name
-         elif (test_name_match.group(2) == 'bench'):
-            act_test_name = "./tests/benchmarks/" + test_target_name + "/" + test_target_name
-         else:
-            assert false
-
          for test_instance in test_args_list:
-            app_list.append(act_test_name + test_instance)
+            app_list.append(test_name + test_instance)
    return
 
 def parse_test_args(test_args):
    global test_args_list
-   global num_thread_index_list
+   global user_thread_index_list
 
    var_arg_list = re.findall(r'\[[^\]]+\]', test_args)
    
@@ -116,14 +105,18 @@ def parse_test_args(test_args):
       
    return
 
-def generate_test_args(fixed_test_arg_list, expanded_var_arg_list, num_threads_pos, curr_num_threads_index = 0, curr_test_arg_list = "", index = 0):
+def generate_test_args(fixed_test_arg_list, expanded_var_arg_list, num_threads_pos, curr_num_threads_index = -1, curr_test_arg_list = "", index = 0):
    global test_args_list
-   global num_thread_index_list
+   global user_thread_index_list
 
    if index == len(expanded_var_arg_list):
       test_args_list.append(curr_test_arg_list + fixed_test_arg_list[index])
-      num_thread_index_list.append(curr_num_threads_index)
+      user_thread_index_list.append(curr_num_threads_index)
       return
+
+   # Initialize curr_num_threads_index
+   if index == num_threads_pos:
+      curr_num_threads_index = 0
 
    for arg in expanded_var_arg_list[index]:
       generate_test_args(fixed_test_arg_list, expanded_var_arg_list, 
@@ -212,7 +205,7 @@ def parse_pintool_params(tests_config_pintool):
    
    return curr_num_procs
 
-def generate_simulation_args(arg_list, curr_num_procs, curr_core_index, variable_param_num = 0):
+def generate_pintool_args(arg_list, curr_num_procs, curr_core_index = -1, variable_param_num = 0):
    global pintool_variable_param_list
    global pintool_fixed_param_list
    global sim_flags_list
@@ -230,12 +223,18 @@ def generate_simulation_args(arg_list, curr_num_procs, curr_core_index, variable
    pintool_param = pintool_variable_param_list[variable_param_num]
    param_name = pintool_param[0]
    value_list = pintool_param[1]
+      
+   # Initialize 'curr_core_index'
+   if (param_name == 'general/total_cores'):
+      curr_core_index = 0
+
    for value in value_list:
       if (param_name == 'general/num_processes'):
          curr_num_procs = value
+
       new_arg_list = arg_list + "--" + param_name + "=" + value + " "
       
-      generate_simulation_args(new_arg_list, curr_num_procs, curr_core_index, variable_param_num+1)
+      generate_pintool_args(new_arg_list, curr_num_procs, curr_core_index, variable_param_num+1)
       
       if (param_name == 'general/total_cores'):
          curr_core_index = curr_core_index + 1
@@ -249,32 +248,32 @@ def parse_fixed_param_list():
       fixed_arg_list += "--" + pintool_param[0] + "=" + pintool_param[1] + " "
    return fixed_arg_list
 
-def run_simulation(is_dryrun):
+def run_simulation(is_dryrun, run_id):
    global sim_flags_list
    global num_procs_list
    global sim_core_index_list
    global app_list
-   global num_thread_index_list
+   global user_thread_index_list
 
    global sim_root
    global experiment_directory
 
    pin_bin = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
    pin_tool = sim_root + "lib/pin_sim"
-   pin_run = pin_bin + " -mt -t " + pin_tool
+   pin_run = pin_bin + " -mt -t " + pin_tool + " -c carbon_sim.cfg "
 
    i = 0
    while i < len(sim_flags_list):
       j = 0
       while j < len(app_list):
-         if sim_core_index_list[i] == num_thread_index_list[j]:
-            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + app_list[j]
+         if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
+            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + sim_root + app_list[j]
             print command
             if is_dryrun == 0:
                proc = subprocess.Popen(command, shell=True)
                proc.wait()
                # Copy the results into a per-experiment per-run directory
-               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "/"
+               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
             
                mkdir_command = "mkdir " + run_directory
                os.system(mkdir_command)
@@ -308,32 +307,53 @@ def remove_unwanted_symbols(in_string):
 
    return out_string
 
+def print_help_message():
+   print "[Usage]:"
+   print "\t./tools/run_tests.py [-dryrun] [-f tests_config_file] [-n number_of_runs]"
+   print "[Defaults]:"
+   print "\t tests_config_file -> tests.cfg"
+   print "\t number_of_runs -> 1"
+   print "\t dryrun -> OFF"
+   sys.exit(1)
 
 # Actual program starts here
 sim_root = "./"
-from time import strftime
-experiment_directory = sim_root + "results/" + strftime("%Y_%m_%d__%H_%M_%S") + "/"
-mkdir_experiment_dir_command = "mkdir " + experiment_directory
-os.system(mkdir_experiment_dir_command)
 
 tests_config_filename = "tests.cfg"
 is_dryrun = 0
+num_runs = 1
 expecting_file_name = 0
+expecting_num_runs = 0
+
 assert(len(sys.argv) <= 4)
 for argument in sys.argv:
    if expecting_file_name == 1:
       tests_config_filename = argument
       expecting_file_name = 0
+   elif expecting_num_runs == 1:
+      num_runs = int(argument)
+      expecting_num_runs = 0
    elif argument == '-dryrun':
       is_dryrun = 1
    elif argument == '-f':
       expecting_file_name = 1
+   elif argument == '-h':
+      print_help_message()
+   elif argument == '-n':
+      expecting_num_runs = 1
+
+if is_dryrun == 0:
+   from time import strftime
+   experiment_directory = sim_root + "results/" + strftime("%Y_%m_%d__%H_%M_%S") + "/"
+   mkdir_experiment_dir_command = "mkdir " + experiment_directory
+   os.system(mkdir_experiment_dir_command)
+
+   # Move config file
+   cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
+   os.system(cp_config_file_command)
 
 curr_num_procs = parse_config_file_params(tests_config_filename)
-generate_simulation_args(parse_fixed_param_list(), curr_num_procs, 0)
+generate_pintool_args(parse_fixed_param_list(), curr_num_procs)
 
-# Move config file
-cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
-os.system(cp_config_file_command)
-
-run_simulation(is_dryrun)
+for i in range(0, num_runs):
+   run_simulation(is_dryrun, i)

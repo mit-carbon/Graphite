@@ -75,8 +75,17 @@ UInt64 IOCOOMPerformanceModel::getCycleCount()
    return m_cycle_count;
 }
 
+void IOCOOMPerformanceModel::setCycleCount(UInt64 time)
+{
+   m_cycle_count = time;
+}
+
 void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
 {
+   // Execute this first so that instructions have the opportunity to
+   // abort further processing (via AbortInstructionException)
+   UInt64 cost = instruction->getCost();
+
    // icache modeling
    modelIcache(instruction->getAddress());
 
@@ -146,9 +155,6 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    }
 
    // update cycle count with instruction cost
-   UInt64 cost = instruction->getCost();
-   LOG_ASSERT_WARNING(cost < 10000, "Cost is too big - cost:%llu, cycle_count: %llu, type: %d", cost, m_cycle_count, instruction->getType());
-
    m_instruction_count++;
    m_cycle_count = operands_ready + cost;
 
@@ -236,7 +242,7 @@ UInt64 IOCOOMPerformanceModel::executeStore(const DynamicInstructionInfo &info)
 
 void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
 {
-   if (!m_l1_icache)
+   if (!m_l1_icache || addr == 0)
       return;
 
    bool hit = m_l1_icache->access(addr);

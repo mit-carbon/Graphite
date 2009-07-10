@@ -157,12 +157,15 @@ public:
    {}
 };
 
-class SpawnInstruction : public DynamicInstruction
+// set clock to particular time
+class SpawnInstruction : public Instruction
 {
 public:
-   SpawnInstruction(UInt64 cost)
-      : DynamicInstruction(cost, INST_SPAWN)
-   {}
+   SpawnInstruction(UInt64 time);
+   UInt64 getCost();
+
+private:
+   UInt64 m_time;
 };
 
 // conditional branches

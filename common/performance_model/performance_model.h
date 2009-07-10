@@ -31,19 +31,30 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   class DynamicInstructionInfoNotAvailable { };
-
    static PerformanceModel *create();
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
+   void disable();
+   void enable();
+
+   class AbortInstructionException { };
+
 protected:
+   friend class SpawnInstruction;
+
+   virtual void setCycleCount(UInt64 time) = 0;
+
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 
 private:
 
+   class DynamicInstructionInfoNotAvailableException { };
+
    virtual void handleInstruction(Instruction *instruction) = 0;
+
+   bool m_enabled;
 
    BasicBlockQueue m_basic_block_queue;
    Lock m_basic_block_queue_lock;

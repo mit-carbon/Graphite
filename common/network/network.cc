@@ -134,6 +134,8 @@ void Network::netPullFromTransport()
 
 void Network::forwardPacket(const NetPacket &packet)
 {
+   LOG_PRINT_ERROR("Forwarding of packets is currently disabled");
+
    NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
 
    vector<NetworkModel::Hop> hopVec;

@@ -61,6 +61,7 @@ class SyscallServer
       void marshallAccessCall(core_id_t core_id);
       void marshallGetpidCall(core_id_t core_id);
       void marshallReadaheadCall(core_id_t core_id);
+      void marshallPipeCall(core_id_t core_id);
       void marshallMmapCall(core_id_t core_id);
       void marshallMmap2Call(core_id_t core_id);
       void marshallMunmapCall(core_id_t core_id);

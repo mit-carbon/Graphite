@@ -23,6 +23,9 @@ public:
 
    UInt64 getCycleCount();
 
+protected:
+   void setCycleCount(UInt64);
+
 private:
 
    void handleInstruction(Instruction *instruction);

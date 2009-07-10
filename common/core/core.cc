@@ -210,7 +210,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
       if (modeled)
       {
-         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(shmem_time, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
          m_performance_model->pushDynamicInstructionInfo(info);
       }
 

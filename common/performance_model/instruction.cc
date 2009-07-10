@@ -100,6 +100,20 @@ UInt64 StringInstruction::getCost()
    return cost;
 }
 
+// SpawnInstruction
+
+SpawnInstruction::SpawnInstruction(UInt64 time)
+   : Instruction(INST_SPAWN)
+   , m_time(time)
+{ }
+
+UInt64 SpawnInstruction::getCost()
+{
+   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   perf->setCycleCount(m_time);
+   throw PerformanceModel::AbortInstructionException(); // exit out of handleInstruction
+}
+
 // BranchInstruction
 
 BranchInstruction::BranchInstruction(OperandList &l)

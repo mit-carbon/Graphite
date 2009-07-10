@@ -91,8 +91,9 @@ void ThreadManager::onThreadExit()
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID() };
 
-   LOG_PRINT("onThreadExit -- send message to master ThreadManager");
-   
+   LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread %d at time %llu",
+             m_core_manager->getCurrentCore()->getId(),
+             m_core_manager->getCurrentCore()->getPerformanceModel()->getCycleCount());
    Network *net = m_core_manager->getCurrentCore()->getNetwork();
 
    // terminate thread locally so we are ready for new thread requests
@@ -342,7 +343,7 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
 {
    if (m_thread_state[core_id].waiter != INVALID_CORE_ID)
    {
-      LOG_PRINT("Waking up core: %d", m_thread_state[core_id].waiter);
+      LOG_PRINT("Waking up core: %d at time: %llu", m_thread_state[core_id].waiter, time);
 
       Core *core = m_core_manager->getCurrentCore();
       core_id_t dest = m_thread_state[core_id].waiter;
@@ -355,9 +356,7 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
                     dest,
                     0,
                     NULL);
-      Byte *buff = pkt.makeBuffer();
-      core->getNetwork()->getTransport()->send(dest, buff, pkt.bufferSize());
-      delete [] buff;
+      core->getNetwork()->netSend(pkt);
 
       m_thread_state[core_id].waiter = INVALID_CORE_ID;
    }

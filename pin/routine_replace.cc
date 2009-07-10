@@ -198,7 +198,11 @@ void replacementMain (CONTEXT *ctxt)
          // FIXME: 
          // This whole process should probably happen through the MCP
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+
+         // main thread clock is not affected by start-up time of other processes
+         core->getPerformanceModel()->disable();
          core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
+         core->getPerformanceModel()->enable();
       }
       
       for (UInt32 i = 1; i < num_processes; i++)
@@ -206,6 +210,8 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
       LOG_PRINT("ReplaceMain end");
+
+      resetShmemPerfModelsForCurrentProcess();
       
       return;
    }
@@ -216,6 +222,8 @@ void replacementMain (CONTEXT *ctxt)
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
       core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
+
+      resetShmemPerfModelsForCurrentProcess();
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -245,6 +253,14 @@ void replacementMain (CONTEXT *ctxt)
       Simulator::release();
 
       exit (0);
+   }
+}
+
+void resetShmemPerfModelsForCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+   {
+      Sim()->getCoreManager()->getCoreFromIndex(i)->getMemoryManager()->resetShmemPerfModels();
    }
 }
 

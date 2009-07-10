@@ -67,6 +67,7 @@ class SyscallMdl
       carbon_reg_t marshallAccessCall(syscall_args_t &args);
       carbon_reg_t marshallGetpidCall(syscall_args_t &args);
       carbon_reg_t marshallReadaheadCall(syscall_args_t &args);
+      carbon_reg_t marshallPipeCall(syscall_args_t &args);
       carbon_reg_t marshallFstatCall(syscall_args_t &args);
       carbon_reg_t marshallIoctlCall(syscall_args_t &args);
       carbon_reg_t marshallMprotectCall(syscall_args_t &args);

@@ -27,7 +27,8 @@ PerformanceModel* PerformanceModel::create()
 
 // Public Interface
 PerformanceModel::PerformanceModel()
-   : m_current_ins_index(0)
+   : m_enabled(true)
+   , m_current_ins_index(0)
    , m_bp(0)
 {
    m_bp = BranchPredictor::create();
@@ -38,9 +39,19 @@ PerformanceModel::~PerformanceModel()
    delete m_bp; m_bp = 0;
 }
 
+void PerformanceModel::enable()
+{
+   m_enabled = true;
+}
+
+void PerformanceModel::disable()
+{
+   m_enabled = false;
+}
+
 void PerformanceModel::queueDynamicInstruction(Instruction *i)
 {
-   if (!Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
    {
       delete i;
       return;
@@ -54,7 +65,7 @@ void PerformanceModel::queueDynamicInstruction(Instruction *i)
 
 void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
 {
-   if (!Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
    ScopedLock sl(m_basic_block_queue_lock);
@@ -79,7 +90,16 @@ void PerformanceModel::iterate()
       try
       {
          for( ; m_current_ins_index < current_bb->size(); m_current_ins_index++)
-            handleInstruction(current_bb->at(m_current_ins_index));
+         {
+            try
+            {
+               handleInstruction(current_bb->at(m_current_ins_index));
+            }
+            catch (AbortInstructionException)
+            {
+               // move on to next ...
+            }
+         }
 
          if (current_bb->isDynamic())
             delete current_bb;
@@ -87,7 +107,7 @@ void PerformanceModel::iterate()
          m_basic_block_queue.pop();
          m_current_ins_index = 0; // move to beginning of next bb
       }
-      catch (DynamicInstructionInfoNotAvailable)
+      catch (DynamicInstructionInfoNotAvailableException)
       {
          return;
       }
@@ -125,7 +145,7 @@ DynamicInstructionInfo& PerformanceModel::getDynamicInstructionInfo()
    // separate thread!
 
    if (m_dynamic_info_queue.empty())
-      throw DynamicInstructionInfoNotAvailable();
+      throw DynamicInstructionInfoNotAvailableException();
 
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
                     "Dynamic info queue is growing too big.");

@@ -55,4 +55,5 @@ void replacementPthreadBarrierWait (CONTEXT *ctxt);
 void initialize_replacement_args (CONTEXT *ctxt, ...);
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val);
 
+void resetShmemPerfModelsForCurrentProcess();
 #endif

@@ -90,10 +90,10 @@ class Log
 
 #define __LOG_PRINT(err, file, line, ...)                               \
    {                                                                    \
-      if (Log::getSingleton()->isLoggingEnabled() || err == Log::Error) \
+      if (Log::getSingleton()->isLoggingEnabled() || err != Log::None)  \
       {                                                                 \
          std::string module = Log::getSingleton()->getModule(file);     \
-         if (err == Log::Error ||                                       \
+         if (err != Log::None ||                                        \
              Log::getSingleton()->isEnabled(module.c_str()))            \
          {                                                              \
             Log::getSingleton()->log(err, module.c_str(), line, __VA_ARGS__); \

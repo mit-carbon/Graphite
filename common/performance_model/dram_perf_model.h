@@ -49,10 +49,16 @@ class DramPerfModel
          // m_dram_bandwidth is in 'Bytes per clock cycle'
          UInt64 processing_time = pkt_size/m_dram_bandwidth + 1;
 
-         UInt64 queue_delay = m_queue_model->getQueueDelay(pkt_time);
-         m_queue_model->updateQueue(pkt_time, processing_time);
+         UInt64 queue_delay = (UInt64) 0;
+         // UInt64 queue_delay = m_queue_model->getQueueDelay(pkt_time);
+         // m_queue_model->updateQueue(pkt_time, processing_time);
 
          return (queue_delay + processing_time + m_dram_access_cost);
+      }
+
+      void resetModel()
+      {
+         m_queue_model->resetModel();
       }
 };
 

@@ -78,15 +78,7 @@ void Core::outputSummary(std::ostream &os)
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size)
 {
-   // Create a net packet
-   NetPacket packet;
-   packet.sender= sender;
-   packet.receiver= receiver;
-   packet.type = USER;
-   packet.length = size;
-   packet.data = buffer;
-
-   SInt32 sent = m_network->netSend(packet);
+   SInt32 sent = m_network->netSend(receiver, USER, buffer, size);
 
    assert(sent == size);
 

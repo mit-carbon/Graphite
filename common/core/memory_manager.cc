@@ -17,22 +17,25 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
 
    assert(m_dcache != NULL);
 
+   // Performance Models
+   m_mmu_perf_model = MMUPerfModelBase::createModel(MMUPerfModelBase::MMU_PERF_MODEL);
+   m_dram_perf_model = new DramPerfModel(m_core);
+   m_shmem_perf_model = shmem_perf_model;
+   
+   // FIXME: There should be a better way to represent this
+   // FIXME: Change this to dram_dir_block_size or something
    m_cache_line_size = Config::getSingleton()->getCacheLineSize();
 
-   m_dram_dir = new DramDirectory(m_core_id, m_network, shmem_perf_model);
+   m_dram_dir = new DramDirectory(m_core_id, m_network, m_shmem_perf_model, m_dram_perf_model);
    m_addr_home_lookup = new AddressHomeLookup(m_core_id);
 
+   // Register Callbacks when a packet arrives
    m_network->registerCallback(SHARED_MEM_REQ, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_EVICT, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_UPDATE_UNEXPECTED, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_ACK, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_RESPONSE, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_INIT_REQ, MemoryManagerNetworkCallback, this);
-
-   // Performance Models
-   m_mmu_perf_model = MMUPerfModelBase::createModel(MMUPerfModelBase::MMU_PERF_MODEL);
-   m_shmem_perf_model = shmem_perf_model;
-
 }
 
 MemoryManager::~MemoryManager()
@@ -43,6 +46,11 @@ MemoryManager::~MemoryManager()
    m_network->unregisterCallback(SHARED_MEM_ACK);
    m_network->unregisterCallback(SHARED_MEM_RESPONSE);
    m_network->unregisterCallback(SHARED_MEM_INIT_REQ);
+
+   delete m_dram_dir;
+   delete m_addr_home_lookup;
+
+   delete m_dram_perf_model;
 }
 
 void MemoryManagerNetworkCallback(void *obj, NetPacket packet)

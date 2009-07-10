@@ -16,6 +16,7 @@
 
 #include "mmu_perf_model_base.h"
 #include "shmem_perf_model.h"
+#include "dram_perf_model.h"
 
 class DramDirectory;
 
@@ -82,8 +83,9 @@ class MemoryManager
       };
 
    private:
-      SInt32 m_core_id;
+      core_id_t m_core_id;
 
+      Core *m_core;
       Network *m_network;
       Cache *m_dcache;
       DramDirectory *m_dram_dir;
@@ -106,24 +108,22 @@ class MemoryManager
       // Performance modelling
       MMUPerfModelBase* m_mmu_perf_model;
       ShmemPerfModel* m_shmem_perf_model;
+      DramPerfModel* m_dram_perf_model;
 
       void debugPrintReqPayload(MemoryManager::RequestPayload payload);
 
    public:
 
-      MemoryManager(SInt32 core_id, Core *core, Network *network, Cache *dcache, ShmemPerfModel* shmem_perf_model);
+      MemoryManager(core_id_t core_id, Core *core, Network *network, Cache *dcache, ShmemPerfModel* shmem_perf_model);
       virtual ~MemoryManager();
 
-      MMUPerfModelBase* getMMUPerfModel()
-      {
-         return m_mmu_perf_model;
-      }
-      ShmemPerfModel* getShmemPerfModel()
-      {
-         return m_shmem_perf_model;
-      }
-
+      Core* getCore() { return m_core; }
+      Network* getNetwork() { return m_network; }
       DramDirectory* getDramDirectory() { return m_dram_dir; }
+      
+      MMUPerfModelBase* getMMUPerfModel() { return m_mmu_perf_model; }
+      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+      DramPerfModel* getDramPerfModel() { return m_dram_perf_model; }
 
       //cache interfacing functions.
       void setCacheLineInfo(IntPtr ca_address, CacheState::cstate_t new_cstate);
@@ -172,8 +172,6 @@ class MemoryManager
       //debugging stuff
       static string sMemReqTypeToString(shmem_req_t type);
 
-   public:
-      
       typedef enum
       {
          ACCESS_TYPE_READ = 0,
@@ -184,8 +182,6 @@ class MemoryManager
 
    private:
       
-      Core *m_core;
-
       // scratchpads are used to implement memory redirection for
       // all memory accesses that do not involve the stack, plus
       // pushf and popf

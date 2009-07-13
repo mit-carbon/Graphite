@@ -46,10 +46,15 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    UInt64 processing_time = pkt_size/m_dram_bandwidth + 1;
 
    UInt64 core_time = getCore()->getPerformanceModel()->getCycleCount();
+
    UInt64 queue_delay = m_queue_model->getQueueDelay(core_time);
    m_queue_model->updateQueue(core_time, processing_time);
 
-   return (queue_delay + processing_time + m_dram_access_cost);
+   UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
+   
+   LOG_PRINT("Pkt Time = %llu, Core Time = %llu", pkt_time, core_time);
+   LOG_PRINT("Dram Queue Delay = %llu", queue_delay);
+   return access_latency;
 }
 
 void 

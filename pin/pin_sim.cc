@@ -251,12 +251,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
    if (! done_app_initialization)
    {
+      disablePerformanceModelsInCurrentProcess();
+
 #ifdef REDIRECT_MEMORY
       allocateStackSpace();
 #endif
-
-      disablePerformanceModelsInCurrentProcess();
-
+      
       UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
       ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 

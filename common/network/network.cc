@@ -169,7 +169,7 @@ SInt32 Network::netSend(NetPacket packet)
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
       LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
-      assert(hopVec[i].time >= packet.time);
+      LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
       *timeStamp = hopVec[i].time;
       _transport->send(hopVec[i].dest, buffer, packet.bufferSize());
    }

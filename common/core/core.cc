@@ -139,8 +139,10 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
    {
 #ifdef REDIRECT_MEMORY
 
+      UInt64 initial_core_time = getPerformanceModel()->getCycleCount();
+
       // Performance Model
-      getShmemPerfModel()->setCycleCount(0);
+      getShmemPerfModel()->setCycleCount(initial_core_time);
 
       UInt32 num_misses = 0;
       string lock_value;
@@ -209,7 +211,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
       }
 
       // Performance model
-      UInt64 shmem_time = getShmemPerfModel()->getCycleCount();
+      UInt64 shmem_time = getShmemPerfModel()->getCycleCount() - initial_core_time;
 
       LOG_PRINT("Memory Latency = %llu", shmem_time);
 

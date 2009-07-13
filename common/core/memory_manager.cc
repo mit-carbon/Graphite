@@ -36,6 +36,9 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
    m_network->registerCallback(SHARED_MEM_ACK, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_RESPONSE, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_INIT_REQ, MemoryManagerNetworkCallback, this);
+
+   // Some private variables
+   cache_locked = false;
 }
 
 MemoryManager::~MemoryManager()

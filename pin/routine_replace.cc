@@ -189,8 +189,7 @@ void replacementMain (CONTEXT *ctxt)
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
       LOG_PRINT("ReplaceMain start");
-      spawnThreadSpawner(ctxt);
-
+      
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       UInt32 num_processes = Sim()->getConfig()->getProcessCount();
       for (UInt32 i = 1; i < num_processes; i++)
@@ -207,10 +206,13 @@ void replacementMain (CONTEXT *ctxt)
       {
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
-      LOG_PRINT("ReplaceMain end");
 
       enablePerformanceModelsInCurrentProcess();
       
+      spawnThreadSpawner(ctxt);
+
+      LOG_PRINT("ReplaceMain end");
+
       return;
    }
    else

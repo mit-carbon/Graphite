@@ -270,7 +270,8 @@ int do_cannon(int argc, char* argv[])
    free(a);
    free(b);
    free(c);
-   
+  
+   return 0;
 
 } // main ends
 

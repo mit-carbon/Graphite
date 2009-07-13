@@ -26,13 +26,23 @@ resolved_allowed_hosts = []
 
 class SimWatcher( threading.Thread ):
     def run( self ):
+#        stdout = self.process.stdout.read()
+#        stderr = self.process.stderr.read()
         self.process.wait()
-        try:
-            self.socket.send("ack")
-            client.close()
-            print "terminating connection."
-        except:
-            print "unknown error sending ack / terminating connection."
+        #try:
+        #    print "process output len: %d\n" % len(stdout)
+        #    print "process output: %s\n" % stdout
+        #    print "process eutput: %s\n" % stderr
+        #    self.socket.send("ack")
+        #    self.socket.send("%s,%s," % (len(stdout), len(stderr)) )
+        #    self.socket.send(stdout)
+        #    self.socket.send(stderr)
+        #    client.close()
+        #    print "terminating connection."
+        #except:
+        #    print "unknown error sending ack / terminating connection."
+        self.socket.close()
+        print "process finished."
 
     def __init__ (self, process, socket):
         self.process = process
@@ -48,13 +58,14 @@ def start_server():
     s.listen(backlog)
     return s
 
-def spawn_process(number,command):
+def spawn_process(number,command,socket):
     print "Starting process: %d" % number
     env = {}
     env["CARBON_PROCESS_INDEX"] = str(number)
     env["LD_LIBRARY_PATH"] = "/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib"
 
-    subproc = subprocess.Popen(command, shell=True, env=env)
+    #subproc = subprocess.Popen(command, shell=True, env=env, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    subproc = subprocess.Popen(command, shell=True, env=env, stdout = socket, stderr = socket, stdin = socket)
     running_process_list.append(subproc)
     return subproc
 
@@ -72,7 +83,7 @@ def handle_command(data, client):
         spawn_args = data[1:].split(",")
         process_number = int(spawn_args[0])
         process_command = spawn_args[1]
-        process = spawn_process(process_number, process_command)
+        process = spawn_process(process_number, process_command, client)
 
         # Create a thread to watch the spawned process
         SimWatcher(process, client).start()

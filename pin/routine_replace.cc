@@ -16,35 +16,6 @@
 // End Memory redirection stuff
 // --------------------------------------
 
-
-int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *pthread_t_p, void *pthread_attr_t_p, void *routine_p, void* arg_p)
-{
-   fprintf(stderr, "Create pthread called from pin.\n");
-   // Get the function for the thread spawner
-   PIN_LockClient();
-   AFUNPTR pthread_create_function;
-   IMG img = IMG_FindByAddress((ADDRINT)orig_fp);
-   RTN rtn = RTN_FindByName(img, "pthread_create");
-   pthread_create_function = RTN_Funptr(rtn);
-   PIN_UnlockClient();
-
-   fprintf(stderr, "pthread_create_function: %x\n", (int)pthread_create_function);
-
-   int res;
-   PIN_CallApplicationFunction(ctx,
-         PIN_ThreadId(),
-         CALLINGSTD_DEFAULT,
-         pthread_create_function,
-         PIN_PARG(int), &res,
-         PIN_PARG(void*), pthread_t_p,
-         PIN_PARG(void*), pthread_attr_t_p,
-         PIN_PARG(void*), routine_p,
-         PIN_PARG(void*), arg_p,
-         PIN_PARG_END());
-
-   return res;
-}
-
 // ---------------------------------------------------------
 // Memory Redirection
 //
@@ -65,7 +36,6 @@ int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *p
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
    AFUNPTR msg_ptr = NULL;
-   PROTO proto = NULL;
 
    // TODO: Check that the starting stack is located below the text segment
    // thread management

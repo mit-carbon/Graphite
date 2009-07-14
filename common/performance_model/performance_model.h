@@ -38,6 +38,8 @@ public:
    void disable();
    void enable();
 
+   bool isEnabled() { return m_enabled; }
+
    class AbortInstructionException { };
 
 protected:

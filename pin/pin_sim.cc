@@ -39,6 +39,7 @@
 #include "log.h"
 #include "vm_manager.h"
 #include "instruction_modeling.h"
+#include "progress_trace.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -203,6 +204,8 @@ VOID instructionCallback (INS ins, void *v)
 
    if (Config::getSingleton()->getEnablePerformanceModeling())
       addInstructionModeling(ins);
+
+   addProgressTrace(ins);
 
    if (INS_IsSyscall(ins))
    {
@@ -405,6 +408,8 @@ int main(int argc, char *argv[])
    {
       INS_AddInstrumentFunction (instructionCallback, 0);
    }
+
+   initProgressTrace();
 
    PIN_AddFiniFunction(ApplicationExit, 0);
 

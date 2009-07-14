@@ -202,13 +202,16 @@ comments
       contains sections commented out using "/*" and "*/"
 
 formatting
-   1. indent using spaces instead of tabs.  different people may have
+   1. use Allman (aka ANSI) style for placement of braces and indentation
+    1a. opening braces for functions and statements on the next line, by
+        itself, indented to the same level as the function name or statement
+    1b. contents of block indented one level
+    1c. closing brace at same level as opening brace
+   2. indent using spaces instead of tabs.  different people may have
       their tab-stops set differently leading to messes when tabs and
       spaces are mixed.  configure your editor to insert multiple
       spaces instead of tabs when you hit the "tab" key.
-   2. use 3 spaces for each new level of indentation.
-   3. try to keep lines less than 80 characters
-    3b. no lines longer than 120 characters under any circumstances
+   3. use 3 spaces for each new level of indentation.
+   4. try to keep lines less than 80 characters
+    4b. no lines longer than 120 characters under any circumstances
         (shorten your names or break up your strings)
-
-THIS LINE IS A TEST, PLEASE IGNORE IT.

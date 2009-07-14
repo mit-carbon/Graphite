@@ -24,5 +24,4 @@ QueueModel::updateQueue(UInt64 ref_time, UInt64 processing_time)
 {
    LOG_PRINT("Queue Time = %llu, Ref Time = %llu", m_queue_time, ref_time);
    m_queue_time = max(m_queue_time, ref_time) + processing_time;
-   // m_queue_time = m_queue_time + processing_time;
 }

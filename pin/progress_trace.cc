@@ -8,7 +8,7 @@
 
 static UInt64 applicationStartTime;
 static TLS_KEY threadCounterKey;
-static int interval;
+static unsigned int interval;
 
 static bool enabled()
 {
@@ -26,18 +26,16 @@ static UInt64 getTime()
 
 static VOID traceProgress()
 {
-   int counter = (int)PIN_GetThreadData(threadCounterKey);
-
-   ++counter;
-   counter %= interval;
-
-   PIN_SetThreadData(threadCounterKey, (void*)counter);
+   unsigned int counter = (unsigned int)PIN_GetThreadData(threadCounterKey);
 
    PerformanceModel *pm = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
 
-   if (counter == 0 && pm->isEnabled())
+   UInt64 cycles = pm->getCycleCount();
+
+   if (cycles - counter > interval)
    {
-      LOG_PRINT("Progress Trace -- time: %llu, cycles: %llu", getTime(), pm->getCycleCount());
+      LOG_PRINT("Progress Trace -- time: %llu, cycles: %llu", getTime(), cycles);
+      PIN_SetThreadData(threadCounterKey, (void*)cycles);
    }
 }
 
@@ -48,7 +46,7 @@ VOID initProgressTrace()
 
    try
    {
-      interval = Sim()->getCfg()->getInt("log/trace_progress_interval");
+      interval = (unsigned int)Sim()->getCfg()->getInt("log/trace_progress_interval");
 
       if (interval == 0)
       {

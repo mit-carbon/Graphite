@@ -134,6 +134,8 @@ void Network::netPullFromTransport()
 
 void Network::forwardPacket(const NetPacket &packet)
 {
+   LOG_PRINT_ERROR("Forwarding of packets is currently disabled");
+
    NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
 
    vector<NetworkModel::Hop> hopVec;
@@ -167,7 +169,7 @@ SInt32 Network::netSend(NetPacket packet)
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
       LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
-      assert(hopVec[i].time >= packet.time);
+      LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
       *timeStamp = hopVec[i].time;
       _transport->send(hopVec[i].dest, buffer, packet.bufferSize());
    }
@@ -386,6 +388,22 @@ NetPacket Network::netRecvType(PacketType type)
    NetMatch match;
    match.types.push_back(type);
    return netRecv(match);
+}
+
+void Network::enableModels()
+{
+   for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      _models[i]->enable();
+   }
+}
+
+void Network::disableModels()
+{
+   for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      _models[i]->disable();
+   }
 }
 
 // -- NetPacket

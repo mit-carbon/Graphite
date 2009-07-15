@@ -91,6 +91,9 @@ class Network
       NetPacket netRecvFrom(SInt32 src);
       NetPacket netRecvType(PacketType type);
 
+      void enableModels();
+      void disableModels();
+
    private:
       NetworkModel * _models[NUM_STATIC_NETWORKS];
 

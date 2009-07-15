@@ -28,6 +28,14 @@ class NetworkModelMagic : public NetworkModel
       {
          out << "    bytes sent: " << _bytesSent << std::endl;
       }
+
+      void enable()
+      {
+      }
+
+      void disable()
+      {
+      }
 };
 
 #endif

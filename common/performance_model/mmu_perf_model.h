@@ -27,7 +27,6 @@ class MMUPerfModel : public MMUPerfModelBase
                return 0;
          }
       }
- 
 };
 
 #endif /* __MMU_PERF_MODEL_H__ */

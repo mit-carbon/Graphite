@@ -30,24 +30,23 @@ PIN_TOOL=$(SIM_ROOT)/lib/pin_sim
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
 
 PROCS ?= 1
-PROCS_PER_MACHINE ?= $(PROCS)
-START_PROC ?= 0
 CORES ?= 16
 ENABLE_SM ?= true 
 APP_FLAGS ?=
 BUILD_MODE ?= # Set to nonempty to not run anything
 MODE ?= pin # Set to 'pin' to use pin
+APP_SPECIFIC_CXX_FLAGS ?= 
 
-# Use: $(call sim_flags_fn, $(1-CORES), $(2-PROCS), $(3-ENABLE_SM))
+# Use: $(call sim_flags_fn, $(1-CORES), $(2-PROCS))
 sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --general/num_processes=$(2) --general/enable_shared_mem=$(3)
 SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
-launch_fn = $(SIM_ROOT)/tools/launch.py $(1) $(2) # 1 - START_PROC, 2 - NUM_PROCS
+launch_fn = $(SIM_ROOT)/tools/carbon_sim_spawner.py $(1) # 1 - NUM_PROCS
 
-# Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-START_PROC),$(4-PROCS), $(5-FLAGS))
-run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(4)) $(PIN_RUN) $(5) -- $(2),$(call launch_fn,$(3),$(4)) $(2) $(5)))
-RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(START_PROC),$(PROCS_PER_MACHINE),$(SIM_FLAGS))
+# Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3)) $(2) $(4)))
+RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(PROCS),$(SIM_FLAGS))
 
 # Build targets
 all: $(TARGET)
@@ -64,7 +63,7 @@ ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
 endif
 
-CXXFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32
+CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32
 CFLAGS = $(CXXFLAGS) -std=c99
 
 # Rules

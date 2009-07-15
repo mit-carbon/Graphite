@@ -78,15 +78,7 @@ void Core::outputSummary(std::ostream &os)
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size)
 {
-   // Create a net packet
-   NetPacket packet;
-   packet.sender= sender;
-   packet.receiver= receiver;
-   packet.type = USER;
-   packet.length = size;
-   packet.data = buffer;
-
-   SInt32 sent = m_network->netSend(packet);
+   SInt32 sent = m_network->netSend(receiver, USER, buffer, size);
 
    assert(sent == size);
 
@@ -112,6 +104,22 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
    return (unsigned)size == packet.length ? 0 : -1;
 }
 
+void Core::enablePerformanceModels()
+{
+   getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->enable();
+   getShmemPerfModel()->enable();
+   getNetwork()->enableModels();
+   getPerformanceModel()->enable();
+}
+
+void Core::disablePerformanceModels()
+{
+   getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->disable();
+   getShmemPerfModel()->disable();
+   getNetwork()->disableModels();
+   getPerformanceModel()->disable();
+}
+
 /*
  * accessMemory (lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
  *
@@ -131,8 +139,10 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
    {
 #ifdef REDIRECT_MEMORY
 
+      UInt64 initial_core_time = getPerformanceModel()->getCycleCount();
+
       // Performance Model
-      getShmemPerfModel()->setCycleCount(0);
+      getShmemPerfModel()->setCycleCount(initial_core_time);
 
       UInt32 num_misses = 0;
       string lock_value;
@@ -201,7 +211,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
       }
 
       // Performance model
-      UInt64 shmem_time = getShmemPerfModel()->getCycleCount();
+      UInt64 shmem_time = getShmemPerfModel()->getCycleCount() - initial_core_time;
 
       LOG_PRINT("Memory Latency = %llu", shmem_time);
 

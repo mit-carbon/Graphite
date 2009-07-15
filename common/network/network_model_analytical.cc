@@ -23,6 +23,7 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_
       , _globalUtilization(0)
       , _localUtilizationLastUpdate(0)
       , _localUtilizationFlitsSent(0)
+      , m_enabled(true)
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,
@@ -53,7 +54,11 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
 
    Hop h;
    h.dest = pkt.receiver;
-   h.time = pkt.time + computeLatency(pkt);
+
+   UInt64 network_latency = computeLatency(pkt);
+   LOG_PRINT ("Network Latency = %llu", network_latency);
+   h.time = pkt.time + network_latency;
+
    nextHops.push_back(h);
 
    if (m_params.proc_cost > 0)
@@ -67,6 +72,9 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
 
 UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
 {
+   if (!m_enabled)
+      return 0;
+
    // We model a unidirectional network with end-around connections
    // using the network model in "Limits on Interconnect Performance"
    // (by Anant). Currently, this ignores communication locality and
@@ -237,4 +245,14 @@ void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
    pr->model->_globalUtilization = pr->ut;
    assert(!IS_NAN(pr->model->_globalUtilization));
    pr->model->_lock.release();
+}
+
+void NetworkModelAnalytical::enable()
+{
+   m_enabled = true;
+}
+
+void NetworkModelAnalytical::disable()
+{
+   m_enabled = false;
 }

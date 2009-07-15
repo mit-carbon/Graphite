@@ -52,6 +52,9 @@ class Core
       Cache *getDCache() { return m_dcache; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
+      void disablePerformanceModels();
+      void enablePerformanceModels();
+
    private:
       core_id_t m_core_id;
       MemoryManager *m_memory_manager;

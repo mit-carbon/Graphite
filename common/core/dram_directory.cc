@@ -3,7 +3,7 @@
 #include "log.h"
 #include "simulator.h"
 
-DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel* shmem_perf_model)
+DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel* shmem_perf_model, DramPerfModel* dram_perf_model)
 {
    m_core_id = core_id;
    m_network = network;
@@ -26,9 +26,8 @@ DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel
    }
 
    m_dram_directory_perf_model = DramDirectoryPerfModelBase::createModel(DramDirectoryPerfModelBase::DRAM_DIRECTORY_PERF_MODEL);
-   m_dram_perf_model = new DramPerfModel();
+   m_dram_perf_model = dram_perf_model;
    m_shmem_perf_model = shmem_perf_model;
-
 }
 
 DramDirectory::~DramDirectory()

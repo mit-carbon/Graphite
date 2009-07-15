@@ -16,35 +16,6 @@
 // End Memory redirection stuff
 // --------------------------------------
 
-
-int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *pthread_t_p, void *pthread_attr_t_p, void *routine_p, void* arg_p)
-{
-   fprintf(stderr, "Create pthread called from pin.\n");
-   // Get the function for the thread spawner
-   PIN_LockClient();
-   AFUNPTR pthread_create_function;
-   IMG img = IMG_FindByAddress((ADDRINT)orig_fp);
-   RTN rtn = RTN_FindByName(img, "pthread_create");
-   pthread_create_function = RTN_Funptr(rtn);
-   PIN_UnlockClient();
-
-   fprintf(stderr, "pthread_create_function: %x\n", (int)pthread_create_function);
-
-   int res;
-   PIN_CallApplicationFunction(ctx,
-         PIN_ThreadId(),
-         CALLINGSTD_DEFAULT,
-         pthread_create_function,
-         PIN_PARG(int), &res,
-         PIN_PARG(void*), pthread_t_p,
-         PIN_PARG(void*), pthread_attr_t_p,
-         PIN_PARG(void*), routine_p,
-         PIN_PARG(void*), arg_p,
-         PIN_PARG_END());
-
-   return res;
-}
-
 // ---------------------------------------------------------
 // Memory Redirection
 //
@@ -65,7 +36,6 @@ int CarbonPthreadCreateWrapperReplacement(CONTEXT *ctx, AFUNPTR orig_fp, void *p
 bool replaceUserAPIFunction(RTN& rtn, string& name)
 {
    AFUNPTR msg_ptr = NULL;
-   PROTO proto = NULL;
 
    // TODO: Check that the starting stack is located below the text segment
    // thread management
@@ -105,37 +75,26 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonBarrierWait") msg_ptr = AFUNPTR(replacementBarrierWait);
 
    // pthread wrappers
-//   else if (name == "CarbonPthreadCreateWrapper") msg_ptr = AFUNPTR(replacementPthreadCreateWrapperReplacement);
    else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
    else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
    else if (name.find("pthread_barrier_init") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierInit);
    else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
-   // do replacement
-   if (msg_ptr == AFUNPTR(CarbonPthreadCreateWrapperReplacement))
+   // turn off performance modeling after main()
+   if (name == "main")
    {
-      proto = PROTO_Allocate(PIN_PARG(int),
-                             CALLINGSTD_DEFAULT,
-                             name.c_str(),
-                             PIN_PARG(void*),
-                             PIN_PARG(void*),
-                             PIN_PARG(void*),
-                             PIN_PARG(void*),
-                             PIN_PARG_END());
-      RTN_ReplaceSignature(rtn, msg_ptr,
-                           IARG_PROTOTYPE, proto,
-                           IARG_CONTEXT,
-                           IARG_ORIG_FUNCPTR,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
-                           IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
-                           IARG_END);
-      PROTO_Free(proto);
-      return true;
+      RTN_Open (rtn);
+
+      RTN_InsertCall (rtn, IPOINT_AFTER,
+                      disablePerformanceModelsInCurrentProcess,
+                      IARG_END);
+
+      RTN_Close (rtn);
    }
-   else if (msg_ptr != NULL)
+
+   // do replacement
+   if (msg_ptr != NULL)
    {
       RTN_Open (rtn);
 
@@ -189,8 +148,7 @@ void replacementMain (CONTEXT *ctxt)
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
       LOG_PRINT("ReplaceMain start");
-      spawnThreadSpawner(ctxt);
-
+      
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       UInt32 num_processes = Sim()->getConfig()->getProcessCount();
       for (UInt32 i = 1; i < num_processes; i++)
@@ -200,17 +158,20 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getPerformanceModel()->disable();
          core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
-         core->getPerformanceModel()->enable();
       }
       
       for (UInt32 i = 1; i < num_processes; i++)
       {
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
-      LOG_PRINT("ReplaceMain end");
+
+      enablePerformanceModelsInCurrentProcess();
       
+      spawnThreadSpawner(ctxt);
+
+      LOG_PRINT("ReplaceMain end");
+
       return;
    }
    else
@@ -220,6 +181,8 @@ void replacementMain (CONTEXT *ctxt)
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
       core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
+
+      enablePerformanceModelsInCurrentProcess();
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -250,6 +213,18 @@ void replacementMain (CONTEXT *ctxt)
 
       exit (0);
    }
+}
+
+void enablePerformanceModelsInCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->enablePerformanceModels();
+}
+
+void disablePerformanceModelsInCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
 }
 
 void replacementGetThreadToSpawn (CONTEXT *ctxt)

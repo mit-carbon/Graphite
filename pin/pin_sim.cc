@@ -39,6 +39,7 @@
 #include "log.h"
 #include "vm_manager.h"
 #include "instruction_modeling.h"
+#include "progress_trace.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -204,6 +205,8 @@ VOID instructionCallback (INS ins, void *v)
    if (Config::getSingleton()->getEnablePerformanceModeling())
       addInstructionModeling(ins);
 
+   addProgressTrace(ins);
+
    if (INS_IsSyscall(ins))
    {
       INS_InsertCall(ins, IPOINT_BEFORE,
@@ -251,10 +254,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
    if (! done_app_initialization)
    {
+      disablePerformanceModelsInCurrentProcess();
+
 #ifdef REDIRECT_MEMORY
       allocateStackSpace();
 #endif
-
+      
       UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
       ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
@@ -286,15 +291,10 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
          Sim()->getCoreManager()->initializeThread(core_id);
          
-         // FIXME: 
-         // Even if this works, it's a hack. We will need this to be a 'ring' where
-         // all processes initialize one after the other
          Core *core = Sim()->getCoreManager()->getCurrentCore();
 
          // main thread clock is not affected by start-up time of other processes
-         core->getPerformanceModel()->disable();
          core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-         core->getPerformanceModel()->enable();
 
          LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, core_id);
@@ -355,7 +355,6 @@ VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, 
    Sim()->getThreadManager()->onThreadExit();
 }
 
-
 int main(int argc, char *argv[])
 {
    // ---------------------------------------------------------------
@@ -409,6 +408,8 @@ int main(int argc, char *argv[])
    {
       INS_AddInstrumentFunction (instructionCallback, 0);
    }
+
+   initProgressTrace();
 
    PIN_AddFiniFunction(ApplicationExit, 0);
 

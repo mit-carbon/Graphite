@@ -20,7 +20,7 @@
 
 #include "carbon_user.h"
 
-#define DEBUG 1
+//#define DEBUG 1
 // #define SEQUENTIAL 1
 
 #ifdef DEBUG
@@ -29,7 +29,7 @@ pthread_mutex_t lock;
 
 #define NUM_THREADS 4
 
-#define ITERATIONS 10
+#define ITERATIONS 1
 
 unsigned int num_threads;
 
@@ -59,19 +59,19 @@ int main(int argc, char* argv[])  // main begins
 {
    CarbonStartSim(argc, argv);
 
-   printf("argc = %i\n", argc);
+//   printf("argc = %i\n", argc);
    for (int i = 0; i < argc; i++)
    {
-      printf("argv[%i] = %s\n", i, argv[i]);
+//      printf("argv[%i] = %s\n", i, argv[i]);
    }
 
    for (int i = 0; i < ITERATIONS; i++)
    {
-      fprintf(stderr, "Starting iteration %d...\n", i);
+//      fprintf(stderr, "Starting iteration %d...\n", i);
       do_cannon(argc, argv);
    }
 
-   fprintf(stderr, "Exiting...\n");
+//   fprintf(stderr, "Exiting...\n");
 
    CarbonStopSim();
 }
@@ -270,7 +270,8 @@ int do_cannon(int argc, char* argv[])
    free(a);
    free(b);
    free(c);
-   
+  
+   return 0;
 
 } // main ends
 
@@ -343,7 +344,7 @@ void* cannon(void *threadid)
       CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
       == 0);
 
-   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
+//   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
 
    // Initialize local variables
    unsigned int blockSize;

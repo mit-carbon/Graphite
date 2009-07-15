@@ -156,7 +156,7 @@ class DramDirectory
 
    public:
 
-      DramDirectory(SInt32 core_id, Network* network, ShmemPerfModel* shmem_perf_model);
+      DramDirectory(SInt32 core_id, Network* network, ShmemPerfModel* shmem_perf_model, DramPerfModel* dram_perf_model);
       virtual ~DramDirectory();
 
       //receive and process request for memory_block
@@ -168,6 +168,11 @@ class DramDirectory
 
       void processAck(NetPacket& ack_packet);
       void processWriteBack(NetPacket& req_packet);
+
+      DramPerfModel* getDramPerformanceModel()
+      {
+         return m_dram_perf_model;
+      }
 };
 
 

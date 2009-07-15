@@ -1,4 +1,8 @@
 #include <sys/time.h>
+#include <stdio.h>
+#include <vector>
+
+using std::vector;
 
 #include "pin.H"
 #include "simulator.h"
@@ -9,11 +13,12 @@
 static UInt64 applicationStartTime;
 static TLS_KEY threadCounterKey;
 static unsigned int interval;
+static vector<FILE*> files;
+static const char* BASE_OUTPUT_FILENAME = "progress_trace";
 
 static bool enabled()
 {
-   return Log::getSingleton()->isLoggingEnabled() &&
-      Sim()->getCfg()->getBool("log/trace_progress", false);
+   return Sim()->getCfg()->getBool("progress_trace/enabled", false);
 }
 
 static UInt64 getTime()
@@ -22,6 +27,27 @@ static UInt64 getTime()
    gettimeofday(&t, NULL);
    UInt64 time = (((UInt64)t.tv_sec) * 1000000 + t.tv_usec);
    return time - applicationStartTime;
+}
+
+static FILE* getFileDescriptor()
+{
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   core_id_t id = core->getId();
+
+   if (!core) return NULL;
+
+   FILE *f = files[id];
+
+   if (!f)
+   {
+      char filename[256];
+      sprintf(filename, "%s_%d", BASE_OUTPUT_FILENAME, id);
+      files[id] = fopen(filename,"w");
+      assert(files[id]);
+      f = files[id];
+   }
+
+   return f;
 }
 
 static VOID traceProgress()
@@ -34,7 +60,11 @@ static VOID traceProgress()
 
    if (cycles - counter > interval)
    {
-      LOG_PRINT("Progress Trace -- time: %llu, cycles: %llu", getTime(), cycles);
+      FILE *f = getFileDescriptor();
+
+      if (f)
+         fprintf(f, "time: %llu, cycles: %llu\n", getTime(), cycles);
+
       PIN_SetThreadData(threadCounterKey, (void*)cycles);
    }
 }
@@ -46,7 +76,7 @@ VOID initProgressTrace()
 
    try
    {
-      interval = (unsigned int)Sim()->getCfg()->getInt("log/trace_progress_interval");
+      interval = (unsigned int)Sim()->getCfg()->getInt("progress_trace/interval");
 
       if (interval == 0)
       {
@@ -67,6 +97,8 @@ VOID addProgressTrace(INS ins)
 {
    if (!enabled())
       return;
+
+   files.resize(Sim()->getConfig()->getTotalCores());
 
    getTime();
 

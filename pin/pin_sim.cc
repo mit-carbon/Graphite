@@ -297,9 +297,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          Core *core = Sim()->getCoreManager()->getCurrentCore();
 
          // main thread clock is not affected by start-up time of other processes
-         core->getPerformanceModel()->disable();
          core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-         core->getPerformanceModel()->enable();
 
          LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, core_id);

@@ -4,6 +4,7 @@
 #include "queue_model.h"
 #include "core.h"
 #include "fixed_types.h"
+#include "moving_average.h"
 
 // Note: Each Dram Controller owns a single DramModel object
 // Hence, m_dram_bandwidth is the bandwidth for a single DRAM controller
@@ -21,6 +22,7 @@ class DramPerfModel
    private:
       QueueModel* m_queue_model;
       Core* m_core;
+      MovingAverage<UInt64>* m_moving_average;
       UInt32 m_dram_access_cost;
       UInt32 m_dram_bandwidth;
       bool m_enabled;

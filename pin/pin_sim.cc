@@ -291,9 +291,6 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
          Sim()->getCoreManager()->initializeThread(core_id);
          
-         // FIXME: 
-         // Even if this works, it's a hack. We will need this to be a 'ring' where
-         // all processes initialize one after the other
          Core *core = Sim()->getCoreManager()->getCurrentCore();
 
          // main thread clock is not affected by start-up time of other processes

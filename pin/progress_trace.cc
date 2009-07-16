@@ -93,6 +93,23 @@ VOID initProgressTrace()
    threadCounterKey = PIN_CreateThreadDataKey(NULL);
 }
 
+VOID shutdownProgressTrace()
+{
+   if (!enabled())
+      return;
+
+   for (unsigned int i = 0; i < files.size(); i++)
+      fclose(files[i]);
+}
+
+VOID threadStartProgressTrace()
+{
+   if (!enabled())
+      return;
+
+   PIN_SetThreadData(threadCounterKey, 0);
+}
+
 VOID addProgressTrace(INS ins)
 {
    if (!enabled())

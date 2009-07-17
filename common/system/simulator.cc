@@ -85,7 +85,7 @@ Simulator::~Simulator()
 
    m_lcp->finish();
 
-   ofstream os(Config::getSingleton()->getOutputFileName());
+   ofstream os(Config::getSingleton()->getOutputFileName().c_str());
    m_core_manager->outputSummary(os);
    os.close();
 

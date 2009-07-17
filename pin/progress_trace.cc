@@ -42,7 +42,7 @@ static FILE* getFileDescriptor()
    {
       char filename[256];
       sprintf(filename, "%s_%d", BASE_OUTPUT_FILENAME, id);
-      files[id] = fopen(filename,"w");
+      files[id] = fopen(Config::getSingleton()->formatOutputFileName(filename).c_str(),"w");
       assert(files[id]);
       f = files[id];
    }

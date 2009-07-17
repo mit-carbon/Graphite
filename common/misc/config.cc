@@ -189,9 +189,14 @@ UInt32 Config::getCacheLineSize() const
    return (UInt32) m_knob_cache_line_size;
 }
 
-const char *Config::getOutputFileName() const
+std::string Config::getOutputFileName() const
 {
-   return m_knob_output_file.c_str();
+   return formatOutputFileName(m_knob_output_file);
+}
+
+std::string Config::formatOutputFileName(string filename) const
+{
+   return Sim()->getCfg()->getString("general/output_dir",".") + "/" + filename;
 }
 
 void Config::updateCommToCoreMap(UInt32 comm_id, core_id_t core_id)

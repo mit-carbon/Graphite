@@ -86,7 +86,8 @@ public:
    // Logging
    void getDisabledLogModules(std::set<std::string> &mods) const;
    bool getLoggingEnabled() const;
-   const char* getOutputFileName() const;
+   std::string getOutputFileName() const;
+   std::string formatOutputFileName(std::string filename) const;
    void logCoreMap();
 
    static Config *getSingleton();

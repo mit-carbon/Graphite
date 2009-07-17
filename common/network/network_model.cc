@@ -4,6 +4,7 @@
 #include "network_types.h"
 
 #include "network_model_magic.h"
+#include "network_model_hop_counter.h"
 #include "network_model_analytical.h"
 
 NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_type)
@@ -12,6 +13,9 @@ NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStatic
    {
    case NETWORK_MAGIC:
       return new NetworkModelMagic(net);
+
+   case NETWORK_HOP_COUNTER:
+      return new NetworkModelHopCounter(net);
 
    case NETWORK_ANALYTICAL_MESH:
       return new NetworkModelAnalytical(net, net_type);
@@ -26,6 +30,8 @@ UInt32 NetworkModel::parseNetworkType(std::string str)
 {
    if (str == "magic")
       return NETWORK_MAGIC;
+   else if (str == "hop_counter")
+      return NETWORK_HOP_COUNTER;
    else if (str == "analytical")
       return NETWORK_ANALYTICAL_MESH;
    else

@@ -267,21 +267,22 @@ def run_simulation(is_dryrun, run_id):
       j = 0
       while j < len(app_list):
          if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
+            # Copy the results into a per-experiment per-run directory
+            run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
+            
+            sim_flags_list[i] = sim_flags_list[i] + " --general/output_dir=\\\"" + run_directory + "\\\""
+            
             command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + sim_root + app_list[j]
             print command
+
             if is_dryrun == 0:
-               proc = subprocess.Popen(command, shell=True)
-               proc.wait()
-               # Copy the results into a per-experiment per-run directory
-               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
-            
                mkdir_command = "mkdir " + run_directory
                os.system(mkdir_command)
             
-               mv_command = "mv " + sim_root + "sim.out " + run_directory;
-               os.system (mv_command)
+               proc = subprocess.Popen(command, shell=True)
+               proc.wait()
 
-               make_exec_file_command = "echo \"" + command + "\" > " + run_directory + "exec_command"
+               make_exec_file_command = "echo \"" + command + "\" > " + run_directory + "exec_command.txt"
                os.system (make_exec_file_command)
          j = j+1
       i = i+1

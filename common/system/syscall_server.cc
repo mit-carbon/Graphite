@@ -399,6 +399,8 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    int timeout_prefix;
 
+   UInt64 curr_time;
+
    m_recv_buff.get(uaddr);
    m_recv_buff.get(op);
    m_recv_buff.get(val);
@@ -419,6 +421,8 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    m_recv_buff.get(uaddr2);
    m_recv_buff.get(val3);
+
+   m_recv_buff.get(curr_time);
 
    // Right now, we handle only a subset of the functionality
    // assert the subset
@@ -442,17 +446,17 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    if (op == FUTEX_WAIT)
    {
-      futexWait(core_id, uaddr, val, act_val);    
+      futexWait(core_id, uaddr, val, act_val, curr_time); 
    }
    else if (op == FUTEX_WAKE)
    {
-      futexWake(core_id, uaddr, val);
+      futexWake(core_id, uaddr, val, curr_time);
    }
 
 }
 
 // -- Futex related functions --
-void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_val)
+void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time)
 {
    SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
   
@@ -460,6 +464,7 @@ void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_va
    {
       m_send_buff.clear();
       m_send_buff << (int) EWOULDBLOCK;
+      m_send_buff << curr_time;
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
    else
@@ -468,7 +473,7 @@ void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_va
    }
 }
 
-void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val)
+void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time)
 {
    SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
    int num_procs_woken_up = 0;
@@ -483,11 +488,13 @@ void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val)
 
       m_send_buff.clear();
       m_send_buff << (int) 0;
+      m_send_buff << (UInt64) curr_time;
       m_network.netSend(waiter, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
 
    m_send_buff.clear();
    m_send_buff << num_procs_woken_up;
+   m_send_buff << (UInt64) curr_time;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
 }

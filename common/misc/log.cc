@@ -243,7 +243,7 @@ std::string Log::getModule(const char *filename)
 
 void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
-   if (!_loggingEnabled && err != Error)
+   if (!_loggingEnabled && err == None)
       return;
 
    // Called in LOG_PRINT macro (see log.h)

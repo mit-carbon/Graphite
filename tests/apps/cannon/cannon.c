@@ -20,18 +20,18 @@
 
 #include "carbon_user.h"
 
-//#define DEBUG 1
+// #define DEBUG 1
 // #define SEQUENTIAL 1
 
 #ifdef DEBUG
 pthread_mutex_t lock;
 #endif
 
-#define NUM_THREADS 4
-
 #define ITERATIONS 1
 
 unsigned int num_threads;
+
+carbon_barrier_t g_barrier;
 
 // Function executed by each thread
 void spawner_wait_ack(int id);
@@ -55,28 +55,32 @@ void debug_printf(const char * fmt, ...)
 
 int do_cannon(int argc, char* argv[]);
 
+void printErrorAndExit()
+{
+   fprintf(stderr, "\n[Usage]: cannon -m <num_of_threads> -s <square_matrix_size>\n");
+   fprintf(stderr, "<num_of_threads> must be a perfect square\n");
+   fprintf(stderr, "<square_matrix_size> should be a multiple of sqrt(<num_of_threads>)\n\n");
+   exit(EXIT_FAILURE);
+}
+
 int main(int argc, char* argv[])  // main begins
 {
    CarbonStartSim(argc, argv);
 
-//   printf("argc = %i\n", argc);
-   for (int i = 0; i < argc; i++)
-   {
-//      printf("argv[%i] = %s\n", i, argv[i]);
-   }
-
    for (int i = 0; i < ITERATIONS; i++)
    {
-//      fprintf(stderr, "Starting iteration %d...\n", i);
+#ifdef DEBUG
+      fprintf(stderr, "Starting iteration %d...\n", i);
+#endif
       do_cannon(argc, argv);
    }
 
-//   fprintf(stderr, "Exiting...\n");
+#ifdef DEBUG
+   fprintf(stderr, "Exiting...\n");
+#endif
 
    CarbonStopSim();
 }
-
-carbon_barrier_t g_barrier;
 
 int do_cannon(int argc, char* argv[])
 {
@@ -89,13 +93,13 @@ int do_cannon(int argc, char* argv[])
 
    for(unsigned int i = 0; i < argc; i++)
    {
-       if(strcmp(argv[i],"-m") == 0 && i + 1 < argc)
+       if(strcmp(argv[i],"-s") == 0 && i + 1 < argc)
        {
            matSize = atoi(argv[i+1]);
            found_mat_size = true;
            i += 1;
        }
-       else if(strcmp(argv[i],"-s") == 0 && i + 1 < argc)
+       else if(strcmp(argv[i],"-m") == 0 && i + 1 < argc)
        {
            num_threads = atoi(argv[i+1]);
            found_num_threads = true;
@@ -105,11 +109,7 @@ int do_cannon(int argc, char* argv[])
 
    // Read in the command line arguments
    if(!found_num_threads || !found_mat_size)
-   {
-       printf("Invalid command line options. The correct format is:\n");
-       printf("cannon -m num_of_threads -s size_of_square_matrix\n");
-       exit(EXIT_FAILURE);
-   }
+      printErrorAndExit();
 
    // Declare threads and related variables
    carbon_thread_t threads[num_threads];
@@ -145,8 +145,16 @@ int do_cannon(int argc, char* argv[])
    // some sanity checking of num_threads and matSize to be sure
    // these calculations go alright.
    unsigned int blockSize, sqrtNumProcs;
-   double tmp = num_threads;
-   sqrtNumProcs = (float) sqrt(tmp);
+   
+   float tmp = sqrt((float) num_threads);
+   if (tmp != (float) ((unsigned int) tmp))
+      printErrorAndExit();
+
+   sqrtNumProcs = (unsigned int) tmp;
+   
+   if (matSize % sqrtNumProcs != 0)
+      printErrorAndExit();
+   
    blockSize = matSize / sqrtNumProcs;
 
    CAPI_return_t rtnVal;
@@ -157,11 +165,14 @@ int do_cannon(int argc, char* argv[])
    pthread_mutex_init(&lock, NULL);
 #endif
 
-   CarbonBarrierInit(&g_barrier, num_threads);
+   CarbonBarrierInit(&g_barrier, num_threads + 1);
 
    // Spawn the worker threads
    for (unsigned int i = 0; i < num_threads; i++)
        threads[i] = CarbonSpawnThread(cannon, (void *) i);
+
+   // Wait here till all threads initialize their CommIDs'
+   CarbonBarrierWait(&g_barrier);
 
    for (unsigned int i = 0; i < num_threads; i++)
    {
@@ -170,11 +181,9 @@ int do_cannon(int argc, char* argv[])
       bool started;
 
       //Wait for receiver to start up
-      CAPI_return_t ret;
-      do
-      {
-         ret = CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started));
-      } while ((ret == CAPI_ReceiverNotInitialized) || (ret == CAPI_SenderNotInitialized));
+      assert(
+         CAPI_message_receive_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
+         == 0);
 
       assert(started == 1);
 
@@ -217,7 +226,9 @@ int do_cannon(int argc, char* argv[])
       }
    }
 
-//   printf("  Done sending... exiting.\n");
+#ifdef DEBUG
+   printf("  Done sending... exiting.\n");
+#endif
 
    // Wait for all threads to complete
    for (unsigned int i = 0; i < num_threads; i++)
@@ -319,8 +330,6 @@ void worker_send_ack(int tid)
 
 void* cannon(void *threadid)
 {
-   num_threads = NUM_THREADS;
-
    // Declare local variables
    unsigned int tid;
    unsigned int upProc, downProc, rightProc, leftProc;
@@ -333,18 +342,19 @@ void* cannon(void *threadid)
    printf("Starting thread %d\n", (unsigned int)threadid);
 #endif
 
-   rtnVal = CAPI_Initialize((unsigned int)threadid);
+   tid = (unsigned int) threadid;
+   rtnVal = CAPI_Initialize(tid);
 
    CarbonBarrierWait(&g_barrier);
-   tid = (unsigned int) threadid;
-   //CAPI_rank(&tid);
 
    bool started = true;
    assert(
       CAPI_message_send_w((CAPI_endpoint_t)tid, (CAPI_endpoint_t)num_threads, (char *)&started, sizeof(started))
       == 0);
 
-//   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
+#ifdef DEBUG
+   fprintf(stderr, "Thread %d retrieving initial data...\n", tid);
+#endif
 
    // Initialize local variables
    unsigned int blockSize;

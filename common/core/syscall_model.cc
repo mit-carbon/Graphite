@@ -883,6 +883,10 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
 
+      UInt64 start_time;
+      UInt64 end_time;
+      start_time = core->getPerformanceModel()->getCycleCount();
+
       if (timeout != NULL)
       {
          core->accessMemory(Core::NONE, READ, (IntPtr) timeout, (char*) &timeout_buf, sizeof(timeout_buf));
@@ -894,7 +898,7 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
       int timeout_prefix;
       if (timeout == NULL)
-      {  
+      { 
          timeout_prefix = 0;
          m_send_buff.put(timeout_prefix);
       }
@@ -910,6 +914,8 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
       m_send_buff.put(uaddr2);
       m_send_buff.put(val3);
 
+      m_send_buff.put(start_time);
+
       // send the data
       m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -923,6 +929,13 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
       // Return the result
       int ret_val;
       m_recv_buff.get(ret_val);
+      m_recv_buff.get(end_time);
+
+      // For FUTEX_WAKE, end_time = start_time
+      // Look at common/system/syscall_server.cc for this
+      if (end_time > start_time)
+         core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(end_time - start_time));
+
       return (carbon_reg_t) ret_val;
 #else
       return (carbon_reg_t) syscall (SYS_futex, uaddr, op, val, timeout, uaddr2, val3);

@@ -1,5 +1,8 @@
+#!/usr/bin/python
+
 import os
 import re
+import sys
 
 def print_data(data):
 
@@ -20,7 +23,7 @@ def print_data(data):
 
 def get_data(f):
 
-    pattern = re.compile(r"Progress Trace -- time: (\d+), cycles: (\d+)")
+    pattern = re.compile(r"time: (\d+), cycles: (\d+)")
 
     data = []
 
@@ -31,9 +34,10 @@ def get_data(f):
         if s == "":
             break
 
-        m = pattern.search(s)
+        m = pattern.match(s)
 
         if m == None:
+            print >> sys.stderr, "No match!", s
             continue
 
         data.append(m.group(1,2))
@@ -50,7 +54,7 @@ def main():
     while True:
 
         try:
-            f = open("output_files/app_%d" % i)
+            f = open("progress_trace_%d" % i)
 
             data.append(get_data(f))
 
@@ -70,4 +74,5 @@ def main():
 
         print ";"
 
-main()
+if __name__ == "__main__":
+    sys.exit(main())

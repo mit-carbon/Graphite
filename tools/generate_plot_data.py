@@ -10,7 +10,7 @@ import tests_infrastructure
 
 # Default values
 plot_config_file = 'tests.cfg'
-plot_data_directory = ''
+plot_data_directory = '/afs/csail.mit.edu/u/h/harshad/research/simulator/distrib/carbon_sim/results/2009_07_17__17_58_37/'
 runs = [0]
 
 # Read values from the command line
@@ -48,16 +48,16 @@ tests_infrastructure.aggregate_plot_data()
 
 # Print the data
 # Uncomment if needed
-for quantity in tests_infrastructure.getPlotQuantitiesList():
-   print quantity + ':' + '\n'
-   header = 'Directory' + '\t'
-   for core in tests_infrastructure.getPlotCoreListForQuantity(quantity):
-      header = header + core + '\t'
-   print header
-   for directory in tests_infrastructure.getPlotDirectoryList():
-      out = directory + '\t'
-      for core in tests_infrastructure.getPlotCoreListForQuantity(quantity):
-         out = out + str(tests_infrastructure.getPlotVal(quantity, directory, core)) + '\t'
-      print out
-   print '\n\n'
+# for quantity in tests_infrastructure.getPlotQuantitiesList():
+#    print quantity + ':' + '\n'
+#    header = 'Directory' + '\t'
+#    for core in tests_infrastructure.getPlotCoreListForQuantity(quantity):
+#       header = header + core + '\t'
+#    print header
+#    for directory in tests_infrastructure.getPlotDirectoryList():
+#       out = directory + '\t'
+#       for core in tests_infrastructure.getPlotCoreListForQuantity(quantity):
+#          out = out + str(tests_infrastructure.getPlotVal(quantity, directory, core)) + '\t'
+#       print out
+#    print '\n\n'
 

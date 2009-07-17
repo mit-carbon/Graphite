@@ -24,7 +24,7 @@ class DramPerfModel
       Core* m_core;
       MovingAverage<UInt64>* m_moving_average;
       UInt32 m_dram_access_cost;
-      UInt32 m_dram_bandwidth;
+      float m_dram_bandwidth;
       bool m_enabled;
 
    public:

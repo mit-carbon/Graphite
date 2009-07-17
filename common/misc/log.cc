@@ -14,6 +14,11 @@ Log *Log::_singleton;
 
 const UInt32 Log::MODULE_LENGTH;
 
+static string formatFileName(const char* s)
+{
+   return Sim()->getConfig()->formatOutputFileName(s);
+}
+
 Log::Log(Config &config)
    : _coreCount(config.getTotalCores())
    , _startTime(0)
@@ -34,7 +39,7 @@ Log::Log(Config &config)
 
    _systemFile = NULL;
 
-   _defaultFile = fopen("output_files/system-default","w");
+   _defaultFile = fopen(formatFileName("system-default.log").c_str(),"w");
 
    std::set<std::string> disabledModulesUnformatted;
    Config::getSingleton()->getDisabledLogModules(disabledModulesUnformatted);
@@ -155,8 +160,8 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
          {
             assert(procNum < Config::getSingleton()->getProcessCount());
             char filename[256];
-            sprintf(filename, "output_files/system_%u", procNum);
-            _systemFile = fopen(filename, "w");
+            sprintf(filename, "system_%u.log", procNum);
+            _systemFile = fopen(formatFileName(filename).c_str(), "w");
             assert(_systemFile != NULL);
          }
 
@@ -176,8 +181,8 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
       {
          assert(core_id < _coreCount);
          char filename[256];
-         sprintf(filename, "output_files/sim_%u", core_id);
-         _simFiles[core_id] = fopen(filename, "w");
+         sprintf(filename, "sim_%u.log", core_id);
+         _simFiles[core_id] = fopen(formatFileName(filename).c_str(), "w");
          assert(_simFiles[core_id] != NULL);
       }
 
@@ -191,8 +196,8 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
       {
          assert(core_id < _coreCount);
          char filename[256];
-         sprintf(filename, "output_files/app_%u", core_id);
-         _coreFiles[core_id] = fopen(filename, "w");
+         sprintf(filename, "app_%u.log", core_id);
+         _coreFiles[core_id] = fopen(formatFileName(filename).c_str(), "w");
          assert(_coreFiles[core_id] != NULL);
       }
 
@@ -238,7 +243,7 @@ std::string Log::getModule(const char *filename)
 
 void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
-   if (!_loggingEnabled && err != Error)
+   if (!_loggingEnabled && err == None)
       return;
 
    // Called in LOG_PRINT macro (see log.h)

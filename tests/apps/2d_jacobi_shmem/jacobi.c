@@ -33,11 +33,11 @@ int main (int argc, char* argv[])
 {
    CarbonStartSim(argc, argv);
 
-   if (argc != 3)
-   {
-      fprintf(stderr, "[Usage]: ./jacobi <Number of Threads> <2-d array size per Thread>\n");
-      exit(-1);
-   }
+/*    if (argc != 3) */
+/*    { */
+/*       fprintf(stderr, "[Usage]: ./jacobi <Number of Threads> <2-d array size per Thread>\n"); */
+/*       exit(-1); */
+/*    } */
 
    printf("Starting 2d-jacobi relaxation..\n");
 

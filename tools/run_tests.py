@@ -4,6 +4,7 @@ import sys
 import os
 sys.path.append(os.getcwd() + '/tools')
 import tests_infrastructure
+import subprocess
 
 # Actual program starts here
 sim_root = "./"

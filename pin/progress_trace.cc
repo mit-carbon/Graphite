@@ -42,7 +42,7 @@ static FILE* getFileDescriptor()
    {
       char filename[256];
       sprintf(filename, "%s_%d", BASE_OUTPUT_FILENAME, id);
-      files[id] = fopen(filename,"w");
+      files[id] = fopen(Config::getSingleton()->formatOutputFileName(filename).c_str(),"w");
       assert(files[id]);
       f = files[id];
    }
@@ -91,6 +91,23 @@ VOID initProgressTrace()
    applicationStartTime = getTime();
 
    threadCounterKey = PIN_CreateThreadDataKey(NULL);
+}
+
+VOID shutdownProgressTrace()
+{
+   if (!enabled())
+      return;
+
+   for (unsigned int i = 0; i < files.size(); i++)
+      fclose(files[i]);
+}
+
+VOID threadStartProgressTrace()
+{
+   if (!enabled())
+      return;
+
+   PIN_SetThreadData(threadCounterKey, 0);
 }
 
 VOID addProgressTrace(INS ins)

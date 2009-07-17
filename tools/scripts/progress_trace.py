@@ -36,7 +36,9 @@ def get_data(f):
 
         m = pattern.match(s)
 
-        assert(m != None)
+        if m == None:
+            print >> sys.stderr, "No match!", s
+            continue
 
         data.append(m.group(1,2))
 

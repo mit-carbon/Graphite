@@ -12,6 +12,8 @@
 
 #define IS_NAN(x) (!((x < 0.0) || (x >= 0.0)))
 
+#define GET_INT(s) ( Sim()->getCfg()->getInt("network/analytical/" s) )
+
 using namespace std;
 
 NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_type)
@@ -29,13 +31,20 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_
                                   receiveMCPUpdate,
                                   this);
 
-   // Create network parameters
-   m_params.Tw2 = 1; // single cycle between nodes in 2d mesh
-   m_params.s = 1; // single cycle switching time
-   m_params.n = 1; // 2-d mesh network
-   m_params.W = 32; // 32-bit wide channels
-   m_params.update_interval = 100000;
-   m_params.proc_cost = (net_type == STATIC_NETWORK_MEMORY) ? 0 : 100;
+   try
+     {
+       // Create network parameters
+       m_params.Tw2 = GET_INT("Tw2"); // single cycle between nodes in 2d mesh
+       m_params.s = GET_INT("s"); // single cycle switching time
+       m_params.n = GET_INT("n"); // 2-d mesh network
+       m_params.W = GET_INT("W"); // 32-bit wide channels
+       m_params.update_interval = GET_INT("update_interval");
+       m_params.proc_cost = (net_type == STATIC_NETWORK_MEMORY) ? 0 : GET_INT("processing_cost");
+     }
+   catch (...)
+     {
+       LOG_PRINT_ERROR("Some analytical network parameters not available.");
+     }
 }
 
 NetworkModelAnalytical::~NetworkModelAnalytical()
@@ -74,6 +83,10 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
 {
    if (!m_enabled)
       return 0;
+
+   // self-sends incur no cost
+   if (packet.sender == packet.receiver)
+     return 0;
 
    // We model a unidirectional network with end-around connections
    // using the network model in "Limits on Interconnect Performance"

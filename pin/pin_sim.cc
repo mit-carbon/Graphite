@@ -241,12 +241,15 @@ void ApplicationExit(int, void*)
 {
    LOG_PRINT("Application exit.");
    Simulator::release();
+   shutdownProgressTrace();
    delete cfg;
 }
 
 VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
    ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+
+   threadStartProgressTrace();
 
    // Conditions under which we must initialize a core
    // 1) (!done_app_initialization) && (curr_process_num == 0)

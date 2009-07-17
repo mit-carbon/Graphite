@@ -75,6 +75,10 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    if (!m_enabled)
       return 0;
 
+   // self-sends incur no cost
+   if (packet.sender == packet.receiver)
+     return 0;
+
    // We model a unidirectional network with end-around connections
    // using the network model in "Limits on Interconnect Performance"
    // (by Anant). Currently, this ignores communication locality and

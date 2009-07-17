@@ -218,7 +218,8 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_geteuid32) ||
             (syscall_number == SYS_getuid32) ||
             (syscall_number == SYS_getegid32) ||
-            (syscall_number == SYS_getgid32) )
+            (syscall_number == SYS_getgid32) ||
+            (syscall_number == SYS_gettid) )
       {
          // Let the syscall fall through
       }
@@ -309,7 +310,8 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if ( (syscall_number == SYS_geteuid32) ||
             (syscall_number == SYS_getuid32) ||
             (syscall_number == SYS_getegid32) ||
-            (syscall_number == SYS_getgid32) )
+            (syscall_number == SYS_getgid32) ||
+            (syscall_number == SYS_gettid) )
       {
          // Let the syscall fall through
       } 

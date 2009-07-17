@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 
+# Should always run this script from the carbon_sim top level directory
+
+# Import all the required packages
 import sys
 import os
 sys.path.append(os.getcwd() + '/tools')
 import tests_infrastructure
 
-plot_config_filename = "tests.cfg"
-plot_data_directory = "/afs/csail.mit.edu/u/h/harshad/research/simulator/distrib/carbon_sim/results/2009_07_15__01_28_50/"
+# Default values
+plot_config_file = 'tests.cfg'
+plot_data_directory = ''
 runs = [0]
+
+# Read values from the command line
 expecting_file_name = 0
 expecting_dir_name = 0
 assert(len(sys.argv) <= 4)
@@ -25,16 +31,33 @@ for argument in sys.argv:
    elif argument == '-h':
       tests_infrastructure.print_plot_help_message()
 
-curr_num_procs = tests_infrastructure.parse_config_file_params(plot_config_filename)
-tests_infrastructure.generate_pintool_args(tests_infrastructure.parse_fixed_param_list(), curr_num_procs)
+# Set plotting params
+tests_infrastructure.setPlotParams(plot_config_file, plot_data_directory, runs)
 
-tests_infrastructure.generate_plot_directory_list(plot_data_directory, runs)
-tests_infrastructure.generate_plots()
+# Alternatively, one may do the following:
+# 
+# plot_directories = [....]
+# plot_quantities = [...]
+# plot_cores = {'quantity1': [], ...}
+# tests_infrastructure.addPlotDirectories(plot_directories)
+# for quantity in plot_quantities:
+#  tests_infrastructure.addPlotQuantity(quantity, plot_cores[quantity])
 
-print tests_infrastructure.aggregate_stats
+# Aggregate plotting data
+tests_infrastructure.aggregate_plot_data()
 
-for quantity in tests_infrastructure.plot_quantities_list:
-   str = quantity + ' '
-   for directory in tests_infrastructure.plot_directory_list:
-      str = str + tests_infrastructure.aggregate_stats[quantity][directory] + ' '
-   print str
+# Print the data
+# Uncomment if needed
+for quantity in tests_infrastructure.getPlotQuantitiesList():
+   print quantity + ':' + '\n'
+   header = 'Directory' + '\t'
+   for core in tests_infrastructure.getPlotCoreListForQuantity(quantity):
+      header = header + core + '\t'
+   print header
+   for directory in tests_infrastructure.getPlotDirectoryList():
+      out = directory + '\t'
+      for core in tests_infrastructure.getPlotCoreListForQuantity(quantity):
+         out = out + str(tests_infrastructure.getPlotVal(quantity, directory, core)) + '\t'
+      print out
+   print '\n\n'
+

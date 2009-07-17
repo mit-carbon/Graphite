@@ -25,10 +25,67 @@ test_args_list = []
 user_thread_index_list = []
 
 plot_quantities_list = []
-plot_core_list = {}
+plot_core_dict = {}
 plot_directory_list = []
 aggregate_stats = {}
 
+def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
+   global sim_flags_list
+   global num_procs_list
+   global sim_core_index_list
+   global app_list
+   global user_thread_index_list
+
+   pin_bin = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
+   pin_tool = sim_root + "lib/pin_sim"
+   pin_run = pin_bin + " -mt -t " + pin_tool + " -c carbon_sim.cfg "
+
+   i = 0
+   while i < len(sim_flags_list):
+      j = 0
+      while j < len(app_list):
+         if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
+            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + sim_root + app_list[j]
+            print command
+            if is_dryrun == 0:
+               proc = subprocess.Popen(command, shell=True)
+               proc.wait()
+               # Copy the results into a per-experiment per-run directory
+               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
+            
+               mkdir_command = "mkdir " + run_directory
+               os.system(mkdir_command)
+            
+               mv_command = "mv " + sim_root + "sim.out " + run_directory;
+               os.system (mv_command)
+
+               make_exec_file_command = "echo \"" + command + "\" > " + run_directory + "exec_command"
+               os.system (make_exec_file_command)
+         j = j+1
+      i = i+1
+
+   return
+
+def remove_unwanted_symbols(in_string):
+   
+   i = 0
+   out_string = ''
+   while i < len(in_string):
+      if in_string[i] == ' ':
+         out_string += '___'
+      elif in_string[i] == '-':
+         pass
+      elif in_string[i] == '/':
+         out_string += '__'
+      elif re.search(r'\w', in_string[i]):
+         out_string += in_string[i]
+      else:
+         out_string += '_'
+      i += 1
+
+   return out_string
+
+# Parsing config files
 def parse_config_file_params(tests_config_filename):
    tests_config_app = []
    tests_config_pintool = []
@@ -263,65 +320,9 @@ def parse_fixed_param_list():
       fixed_arg_list += "--" + pintool_param[0] + "=" + pintool_param[1] + " "
    return fixed_arg_list
 
-def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
-   global sim_flags_list
-   global num_procs_list
-   global sim_core_index_list
-   global app_list
-   global user_thread_index_list
-
-   pin_bin = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
-   pin_tool = sim_root + "lib/pin_sim"
-   pin_run = pin_bin + " -mt -t " + pin_tool + " -c carbon_sim.cfg "
-
-   i = 0
-   while i < len(sim_flags_list):
-      j = 0
-      while j < len(app_list):
-         if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
-            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + sim_root + app_list[j]
-            print command
-            if is_dryrun == 0:
-               proc = subprocess.Popen(command, shell=True)
-               proc.wait()
-               # Copy the results into a per-experiment per-run directory
-               run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
-            
-               mkdir_command = "mkdir " + run_directory
-               os.system(mkdir_command)
-            
-               mv_command = "mv " + sim_root + "sim.out " + run_directory;
-               os.system (mv_command)
-
-               make_exec_file_command = "echo \"" + command + "\" > " + run_directory + "exec_command"
-               os.system (make_exec_file_command)
-         j = j+1
-      i = i+1
-
-   return
-
-def remove_unwanted_symbols(in_string):
-   
-   i = 0
-   out_string = ''
-   while i < len(in_string):
-      if in_string[i] == ' ':
-         out_string += '___'
-      elif in_string[i] == '-':
-         pass
-      elif in_string[i] == '/':
-         out_string += '__'
-      elif re.search(r'\w', in_string[i]):
-         out_string += in_string[i]
-      else:
-         out_string += '_'
-      i += 1
-
-   return out_string
-
 def parse_plot_list(plot_config):
    global plot_quantities_list
-   global plot_core_list
+   global plot_core_dict
 
    for line in plot_config:
       if (re.search(r'[^\s]', line)):
@@ -331,7 +332,7 @@ def parse_plot_list(plot_config):
          plot_cores = plot_match.group(2).strip()
 
          plot_quantities_list.append(plot_quantity)
-         plot_core_list[plot_quantity] = [str.strip() for str in plot_cores.split(",")]
+         plot_core_dict[plot_quantity] = [str.strip() for str in plot_cores.split(",")]
 
    return
 
@@ -350,15 +351,80 @@ def generate_plot_directory_list(experiment_directory, runs):
 
    return
 
-def generate_plots():
+def print_help_message():
+   print "[Usage]:"
+   print "\t./tools/run_tests.py [-dryrun] [-f tests_config_file] [-n number_of_runs]"
+   print "[Defaults]:"
+   print "\t tests_config_file -> tests.cfg"
+   print "\t number_of_runs -> 1"
+   print "\t dryrun -> OFF"
+   sys.exit(1)
+
+# Interface to access the plotting infrastructure
+
+# Set plot parameters from a config file
+def setPlotParams (plot_config_file, plot_data_directory, runs):
+   curr_num_procs = parse_config_file_params(plot_config_file)
+   generate_pintool_args(parse_fixed_param_list(), curr_num_procs)
+   generate_plot_directory_list(plot_data_directory, runs)
+
+# Plot directory list
+def getPlotDirectoryList():
+   """Return a copy of the plotting directory list"""
+   return plot_directory_list[:]
+
+def addPlotDirectories(directory_list):
+   for directory in directory_list:
+      if directory not in plot_directory_list:
+         plot_directory_list.append(directory)
+      else:
+         print "**WARNING** '" + directory + "' already in directory list"
+
+def clearPlotDirectoryList():
+   del plot_directory_list[:]
+
+# Plot quantities
+def getPlotQuantitiesList():
+   """Return a copy of the list of quantities to plot"""
+   return plot_quantities_list[:]
+
+def addPlotQuantity(quantity, core_list):
+   if quantity in plot_quantities_list:
+      print "**WARNING** Added quantity '" + quantity + "' already in plot list, updating corresponding core list"
+      for core in core_list:
+         if core not in plot_core_dict[quantity]:
+            plot_core_dict[quantity].append(core)
+      print "'" + quantity + "' data will now be collected for these cores:" + str(plot_core_dict[quantity])
+   else:
+      plot_quantities_list.append(quantity)
+      plot_core_dict[quantity] = core_list
+
+def getPlotCoreListForQuantity(quantity):
+   if quantity in plot_quantities_list:
+      return plot_core_dict[quantity][:]
+   else:
+      print "**WARNING** '" + quantity + "' not in plot quantities list"
+      return []
+
+def clearPlotQuantityList():
+   for quantity in plot_quantities_list:
+      del plot_core_dict[quantity]
+      plot_quantities_list.remove(quantity)
+
+# Getting results
+def getPlotVal(quantity, directory, core):
+   return aggregate_stats[quantity][directory][core]
+
+# Aggregating data
+def aggregate_plot_data():
    global aggregate_stats
-   entry_per_quantity = {}
-   for directory in plot_directory_list:
-      entry_per_quantity[directory] = "NA"
+   global plot_quantities_list
+   global plot_directory_list
+   global plot_core_dict
 
    aggregate_stats = {}
    for quantity in plot_quantities_list:
-      aggregate_stats[quantity] = entry_per_quantity
+      aggregate_stats[quantity] = {}
 
    for directory in plot_directory_list:
       stats_file = directory + "sim.out"
@@ -379,24 +445,24 @@ def generate_plots():
          stats = stats[:, 0:(stats.shape[1] - 1)]
 
       for quantity in plot_quantities_list:
-
          try:
             match = numpy.where (stats[:, 0] == quantity)
             i = match[0][0]
          except IndexError:
             print "Could not find quantity '" + quantity + "' in file " + stats_file
             sys.exit(-1)
-         
-         for core in plot_core_list[quantity]:
+        
+         aggregate_stats[quantity][directory] = {}
+         for core in plot_core_dict[quantity]:
             mean_quantity_match = re.search(r'([\w\s]*)\*', core)
             if mean_quantity_match:
                core_match = mean_quantity_match.group(1).strip()
                if core_match == '':
-                  val_list = numpy.array([int(stats[i][j]) for j in range(len(stats[0, :])) if re.search(r'[\w]+', stats[0][j])])
-                  aggregate_stats[quantity][directory] = val_list.mean()
+                  val_list = numpy.array([float(stats[i][j]) for j in range(len(stats[0, :])) if re.search(r'[\w]+', stats[0][j])])
+                  aggregate_stats[quantity][directory][core] = val_list
                else:
-                  val_list = numpy.array([int(stats[i][j]) for j in range(len(stats[0, :])) if re.search(core_match, stats[0][j])])
-                  aggregate_stats[quantity][directory] = val_list.mean() 
+                  val_list = numpy.array([float(stats[i][j]) for j in range(len(stats[0, :])) if re.search(core_match, stats[0][j])])
+                  aggregate_stats[quantity][directory][core] = val_list
             else:
                try:
                   match = numpy.where (stats[0, :] == core)
@@ -405,15 +471,6 @@ def generate_plots():
                   print "Could not find core '" + core + "' in file " + stats_file
                   sys.exit(-1)
           
-               aggregate_stats[quantity][directory] = stats [i][j]
+               aggregate_stats[quantity][directory][core] = float(stats [i][j])
 
-
-def print_help_message():
-   print "[Usage]:"
-   print "\t./tools/run_tests.py [-dryrun] [-f tests_config_file] [-n number_of_runs]"
-   print "[Defaults]:"
-   print "\t tests_config_file -> tests.cfg"
-   print "\t number_of_runs -> 1"
-   print "\t dryrun -> OFF"
-   sys.exit(1)
 

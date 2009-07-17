@@ -55,6 +55,8 @@ NetworkModelAnalytical::~NetworkModelAnalytical()
 void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
       std::vector<Hop> &nextHops)
 {
+   ScopedLock sl(_lock);
+
    // basic magic network routing, with two additions
    // (1) compute latency of packet
    // (2) update utilization
@@ -110,7 +112,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    int n = m_params.n;
    double W = m_params.W;
    double p = _globalUtilization;
-   assert(!IS_NAN(_globalUtilization));
+   LOG_ASSERT_ERROR(!IS_NAN(_globalUtilization) && 0 <= _globalUtilization && _globalUtilization < 1, "Recv'd invalid global utilization value: %f", _globalUtilization);
 
    // This lets us derive the latency, ignoring contention
 
@@ -172,8 +174,6 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    Tc = Tw2 * time_per_hop * hops_with_contention;
 
    // Computation finished...
-   _lock.acquire();
-
    UInt64 Tci = (UInt64)(ceil(Tc));
    _cyclesLatency += Tci;
    _cyclesContention += (UInt64)(Tc - Tb);
@@ -182,8 +182,6 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // we must account for the usage throughout the mesh
    // which means that we must include the # of hops
    _localUtilizationFlitsSent += (UInt64)(B * hops_in_network);
-
-   _lock.release();
 
    return Tci;
 }
@@ -222,10 +220,10 @@ void NetworkModelAnalytical::updateUtilization()
    if (elapsed_time < m_params.update_interval)
       return;
 
-   _lock.acquire();
-
    // FIXME: This assumes one cycle per flit, might not be accurate.
    double local_utilization = ((double)_localUtilizationFlitsSent) / ((double)elapsed_time);
+
+   LOG_ASSERT_WARNING(0 <= local_utilization && local_utilization < 1, "Unusual local utilization value: %f", local_utilization);
 
    _localUtilizationLastUpdate = core_time;
    _localUtilizationFlitsSent = 0;
@@ -243,9 +241,7 @@ void NetworkModelAnalytical::updateUtilization()
    update.type = MCP_SYSTEM_TYPE;
    update.data = &m;
 
-   getNetwork()->netSend(update);
-
-   _lock.release();
+//   getNetwork()->netSend(update);
 }
 
 void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
@@ -254,10 +250,12 @@ void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
 
    UtilizationMessage *pr = (UtilizationMessage*) response.data;
 
-   pr->model->_lock.acquire();
+   ScopedLock sl(pr->model->_lock);
+
+   LOG_ASSERT_ERROR(!IS_NAN(pr->ut) && 0 <= pr->ut && pr->ut < 1, "Recv'd invalid global utilization value: %f", pr->ut);
+//   fprintf(stderr, "Recv'd global utilization: %f\n", pr->ut);
+
    pr->model->_globalUtilization = pr->ut;
-   assert(!IS_NAN(pr->model->_globalUtilization));
-   pr->model->_lock.release();
 }
 
 void NetworkModelAnalytical::enable()

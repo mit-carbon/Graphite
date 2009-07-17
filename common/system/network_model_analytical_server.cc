@@ -50,9 +50,9 @@ void NetworkModelAnalyticalServer::update(core_id_t core_id)
    }
    global_utilization /= _local_utilizations.size();
    //  assert(0 <= global_utilization && global_utilization <= 1);
-   if (global_utilization > 1)
+   if (global_utilization < 0 || global_utilization > 1)
    {
-      LOG_PRINT_WARNING("Network utilization exceeds 1; %f", global_utilization);
+      LOG_PRINT_WARNING("Unusual network utilization value: %f", global_utilization);
       global_utilization = 0.99;
    }
 

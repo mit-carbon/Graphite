@@ -323,11 +323,6 @@ void replacementStartSimNull (CONTEXT *ctxt)
 
 void replacementStopSim (CONTEXT *ctxt)
 {
-   UInt32 proc = Sim()->getConfig()->getCurrentProcessNum();
-   LOG_ASSERT_ERROR (proc == 0, "CarbonStopSim called on proc %d", proc);
-
-   Sim()->getThreadManager()->terminateThreadSpawner ();
-
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }

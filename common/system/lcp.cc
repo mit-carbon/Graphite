@@ -66,6 +66,10 @@ void LCP::processPacket()
       Sim()->getThreadManager()->slaveTerminateThreadSpawner ();
       break;
 
+   case LCP_MESSAGE_QUIT_THREAD_SPAWNER_ACK:
+      Sim()->getThreadManager()->updateTerminateThreadSpawner ();
+      break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unexpected message type: %d.", *msg_type);
       break;

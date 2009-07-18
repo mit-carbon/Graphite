@@ -69,8 +69,5 @@ int CarbonStartSim(int argc, char **argv)
 
 void CarbonStopSim()
 {
-   if (Sim()->getConfig()->getCurrentProcessNum() == 0)
-      Sim()->getThreadManager()->terminateThreadSpawner ();
-   
    Simulator::release();
 }

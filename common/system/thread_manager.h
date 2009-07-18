@@ -28,15 +28,11 @@ public:
    ThreadSpawnRequest* getThreadSpawnReq();
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
-   void terminateThreadSpawner ();
+   void terminateThreadSpawners ();
 
    // // events
    void onThreadStart(ThreadSpawnRequest *req);
    void onThreadExit();
-
-   // events
-   // void threadStart ();
-   // void threadFini ();
 
 private:
 
@@ -49,8 +45,9 @@ private:
 
    void masterOnThreadExit(core_id_t core_id, UInt64 time);
 
-   void masterTerminateThreadSpawner (UInt32 proc);
+   void slaveTerminateThreadSpawnerAck (core_id_t);
    void slaveTerminateThreadSpawner ();
+   void updateTerminateThreadSpawner ();
 
    void masterJoinThread(ThreadJoinRequest *req, UInt64 time);
    void wakeUpWaiter(core_id_t core_id, UInt64 time);
@@ -75,6 +72,9 @@ private:
    Lock m_thread_spawn_lock;
 
    CoreManager *m_core_manager;
+
+   Lock m_thread_spawners_terminated_lock;
+   UInt32 m_thread_spawners_terminated;
 };
 
 #endif // THREAD_MANAGER_H

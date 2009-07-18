@@ -75,6 +75,9 @@ Simulator::~Simulator()
 {
    LOG_PRINT("Simulator dtor starting...");
 
+   if (m_config.getCurrentProcessNum() == 0)
+      m_thread_manager->terminateThreadSpawners();
+
    broadcastFinish();
 
    endMCP();

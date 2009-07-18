@@ -48,9 +48,9 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
             # Copy the results into a per-experiment per-run directory
             run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
             
-            sim_flags_list[i] = sim_flags_list[i] + " --general/output_dir=\\\"" + run_directory + "\\\""
+            curr_sim_flags = sim_flags_list[i] + " --general/output_dir=\\\"" + run_directory + "\\\""
             
-            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + sim_flags_list[i] + " -- " + sim_root + app_list[j]
+            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + curr_sim_flags + " -- " + sim_root + app_list[j]
             print command
 
             if is_dryrun == 0:

@@ -121,7 +121,7 @@ void Network::netPullFromTransport()
          LOG_PRINT("Enqueuing packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
          _netQueueLock.acquire();
          _netQueue.push_back(packet);
-         LOG_ASSERT_WARNING(_netQueue.size() < 500,
+         LOG_ASSERT_WARNING(_netQueue.size() < 5000,
                             "Net queue size is %u", _netQueue.size());
          _netQueueLock.release();
          _netQueueCond.broadcast();

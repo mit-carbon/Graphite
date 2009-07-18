@@ -88,7 +88,7 @@ if simulator_count > 1:
                 data = s.recv(1024)
                 if len(data) == 0:
                     break
-                print data
+                sys.stdout.write(data)
         except:
             print "Exception occurred."
             s.close()

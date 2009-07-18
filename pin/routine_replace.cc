@@ -113,33 +113,10 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    }
 }
 
-// void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
-// {
-//    // Get the function for the thread spawner
-//    PIN_LockClient();
-//    AFUNPTR thread_spawner;
-//    IMG img = IMG_FindByAddress((ADDRINT)fp_main);
-//    RTN rtn = RTN_FindByName(img, "CarbonSpawnThreadSpawner");
-//    thread_spawner = RTN_Funptr(rtn);
-//    PIN_UnlockClient();
-// 
-//    // Get the address of the thread spawner
-//    int res;
-//    PIN_CallApplicationFunction(ctx,
-//          PIN_ThreadId(),
-//          CALLINGSTD_DEFAULT,
-//          thread_spawner,
-//          PIN_PARG(int), &res,
-//          PIN_PARG_END());
-// 
-// }
-
 void replacement_start (CONTEXT *ctxt)
 {
-   // FIXME: 
    return;
 }
-
 
 void replacementMain (CONTEXT *ctxt)
 {
@@ -323,11 +300,6 @@ void replacementStartSimNull (CONTEXT *ctxt)
 
 void replacementStopSim (CONTEXT *ctxt)
 {
-   UInt32 proc = Sim()->getConfig()->getCurrentProcessNum();
-   LOG_ASSERT_ERROR (proc == 0, "CarbonStopSim called on proc %d", proc);
-
-   Sim()->getThreadManager()->terminateThreadSpawner ();
-
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }

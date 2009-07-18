@@ -20,7 +20,8 @@ pintool_variable_param_list = []
 sim_flags_list = []
 num_procs_list = []
 sim_core_index_list = []
-app_list = []
+app_name_list = []
+app_flags_list = []
 test_args_list = []
 user_thread_index_list = []
 
@@ -33,7 +34,8 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
    global sim_flags_list
    global num_procs_list
    global sim_core_index_list
-   global app_list
+   global app_name_list
+   global app_flags_list
    global user_thread_index_list
 
    pin_bin = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
@@ -43,14 +45,19 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
    i = 0
    while i < len(sim_flags_list):
       j = 0
-      while j < len(app_list):
+      while j < len(app_name_list):
          if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
             # Copy the results into a per-experiment per-run directory
-            run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run_id) + "/"
+            run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + app_name_list[j] + "_" + remove_unwanted_symbols(app_flags_list[j]) + "_" + str(run_id) + "/"
             
             curr_sim_flags = sim_flags_list[i] + " --general/output_dir=\\\"" + run_directory + "\\\""
             
-            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + curr_sim_flags + " -- " + sim_root + app_list[j] + " >& " + run_directory + "stdout.txt"
+            command = "make -C " + sim_root + \
+                  " " + app_name_list[j] + \
+                  " PROCS=" + num_procs_list[i] + \
+                  " SIM_FLAGS=\"" + curr_sim_flags + "\"" + \
+                  " APP_FLAGS=\"" + app_flags_list[j] + "\"" + \
+                  " >& " + run_directory + "stdout.txt"
             print command
 
             if is_dryrun == 0:
@@ -129,10 +136,12 @@ def parse_config_file_params(tests_config_filename):
    return curr_num_procs
 
 def parse_app_list(tests_config_app):
-   global app_list
+   global app_name_list
+   global app_flags_list
+
    for line in tests_config_app:
       if (re.search(r'[^\s]', line)):
-         test_match = re.search(r'^\s*([\w/]+)(.*)', line)
+         test_match = re.search(r'^\s*([\w]+)(.*)', line)
          assert test_match
          test_name = test_match.group(1)
          test_args = test_match.group(2)
@@ -140,7 +149,8 @@ def parse_app_list(tests_config_app):
          parse_test_args(test_args)
 
          for test_instance in test_args_list:
-            app_list.append(test_name + test_instance)
+            app_name_list.append(test_name)
+            app_flags_list.append(test_instance)
    return
 
 def parse_test_args(test_args):

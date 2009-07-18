@@ -113,33 +113,10 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    }
 }
 
-// void SimSpawnThreadSpawner(CONTEXT *ctx, AFUNPTR fp_main)
-// {
-//    // Get the function for the thread spawner
-//    PIN_LockClient();
-//    AFUNPTR thread_spawner;
-//    IMG img = IMG_FindByAddress((ADDRINT)fp_main);
-//    RTN rtn = RTN_FindByName(img, "CarbonSpawnThreadSpawner");
-//    thread_spawner = RTN_Funptr(rtn);
-//    PIN_UnlockClient();
-// 
-//    // Get the address of the thread spawner
-//    int res;
-//    PIN_CallApplicationFunction(ctx,
-//          PIN_ThreadId(),
-//          CALLINGSTD_DEFAULT,
-//          thread_spawner,
-//          PIN_PARG(int), &res,
-//          PIN_PARG_END());
-// 
-// }
-
 void replacement_start (CONTEXT *ctxt)
 {
-   // FIXME: 
    return;
 }
-
 
 void replacementMain (CONTEXT *ctxt)
 {

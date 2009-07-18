@@ -50,7 +50,7 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
             
             curr_sim_flags = sim_flags_list[i] + " --general/output_dir=\\\"" + run_directory + "\\\""
             
-            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + curr_sim_flags + " -- " + sim_root + app_list[j]
+            command = sim_root + "tools/carbon_sim_spawner.py " + num_procs_list[i] + " " + pin_run + " " + curr_sim_flags + " -- " + sim_root + app_list[j] + " >& " + run_directory + "stdout.txt"
             print command
 
             if is_dryrun == 0:

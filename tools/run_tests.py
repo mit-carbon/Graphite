@@ -15,7 +15,6 @@ num_runs = 1
 expecting_file_name = 0
 expecting_num_runs = 0
 
-assert(len(sys.argv) <= 4)
 for argument in sys.argv:
    if expecting_file_name == 1:
       tests_config_filename = argument
@@ -32,14 +31,17 @@ for argument in sys.argv:
    elif argument == '-n':
       expecting_num_runs = 1
 
+from time import strftime
+experiment_directory = sim_root + "results/" + strftime("%Y_%m_%d__%H_%M_%S") + "/"
+
 if is_dryrun == 0:
-   from time import strftime
-   experiment_directory = sim_root + "results/" + strftime("%Y_%m_%d__%H_%M_%S") + "/"
    mkdir_experiment_dir_command = "mkdir " + experiment_directory
    os.system(mkdir_experiment_dir_command)
 
-   # Move config file
+   # Move config files
    cp_config_file_command = "cp " + sim_root + tests_config_filename + " " + experiment_directory
+   os.system(cp_config_file_command)
+   cp_config_file_command = "cp " + sim_root + "carbon_sim.cfg" + " " + experiment_directory
    os.system(cp_config_file_command)
 
 curr_num_procs = tests_infrastructure.parse_config_file_params(tests_config_filename)

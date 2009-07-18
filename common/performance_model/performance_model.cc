@@ -3,6 +3,7 @@
 #include "simulator.h"
 #include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
+#include "core_manager.h"
 
 PerformanceModel* PerformanceModel::create()
 {
@@ -27,7 +28,7 @@ PerformanceModel* PerformanceModel::create()
 
 // Public Interface
 PerformanceModel::PerformanceModel()
-   : m_enabled(true)
+   : m_enabled(false)
    , m_current_ins_index(0)
    , m_bp(0)
 {
@@ -41,6 +42,10 @@ PerformanceModel::~PerformanceModel()
 
 void PerformanceModel::enable()
 {
+   // MCP perf model should never be enabled
+   if (Sim()->getCoreManager()->getCurrentCoreID() == Config::getSingleton()->getMCPCoreNum())
+      return;
+
    m_enabled = true;
 }
 

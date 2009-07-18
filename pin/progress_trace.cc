@@ -90,16 +90,20 @@ VOID initProgressTrace()
 
    applicationStartTime = getTime();
 
+   files.resize(Sim()->getConfig()->getTotalCores());
+   for (unsigned int i = 0; i < files.size(); i++)
+      files[i] = NULL;
+
    threadCounterKey = PIN_CreateThreadDataKey(NULL);
 }
 
 VOID shutdownProgressTrace()
 {
-   if (!enabled())
-      return;
-
    for (unsigned int i = 0; i < files.size(); i++)
-      fclose(files[i]);
+   {
+      if (files[i])
+         fclose(files[i]);
+   }
 }
 
 VOID threadStartProgressTrace()
@@ -114,10 +118,6 @@ VOID addProgressTrace(INS ins)
 {
    if (!enabled())
       return;
-
-   files.resize(Sim()->getConfig()->getTotalCores());
-
-   getTime();
 
    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(traceProgress), IARG_END);
 }

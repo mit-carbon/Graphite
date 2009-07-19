@@ -38,10 +38,6 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
    global app_flags_list
    global user_thread_index_list
 
-   pin_bin = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
-   pin_tool = sim_root + "lib/pin_sim"
-   pin_run = pin_bin + " -mt -t " + pin_tool + " -c carbon_sim.cfg "
-
    i = 0
    while i < len(sim_flags_list):
       j = 0
@@ -122,6 +118,8 @@ def parse_config_file_params(tests_config_filename):
          parsing_plot_params = 1
       elif re.search(r'^\[/plot\]', line):
          parsing_plot_params = 0
+      elif re.search(r'^\s*\#', line):
+         pass # Dont parse comments
       elif parsing_app_list == 1:
          tests_config_app.append(line)
       elif parsing_pintool_params == 1:

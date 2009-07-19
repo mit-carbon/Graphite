@@ -12,8 +12,8 @@ NetworkModelHopCounter::NetworkModelHopCounter(Network *net)
 {
    SInt32 total_cores = Config::getSingleton()->getTotalCores();
 
-   _meshWidth = (SInt32) sqrt(total_cores);
-   _meshHeight = (SInt32) (1.0 * total_cores / _meshWidth + 0.5);
+   _meshWidth = (SInt32) floor (sqrt(total_cores));
+   _meshHeight = (SInt32) ceil (1.0 * total_cores / _meshWidth);
 
    assert(total_cores <= _meshWidth * _meshHeight);
    assert(total_cores > (_meshWidth - 1) * _meshHeight);

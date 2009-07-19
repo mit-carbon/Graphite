@@ -349,13 +349,15 @@ def parse_plot_list(plot_config):
 
 def generate_plot_directory_list(experiment_directory, runs):
    global plot_directory_list
+   global app_name_list
+   global app_flags_list
    i = 0
    while i < len(sim_flags_list):
       j = 0
-      while j < len(app_list):
+      while j < len(app_name_list):
          if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
             for run in runs:
-               plot_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + remove_unwanted_symbols(app_list[j]) + "_" + str(run) + "/"
+               plot_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + app_name_list[j] + '_' + remove_unwanted_symbols(app_flags_list[j]) + "_" + str(run) + "/"
                plot_directory_list.append(plot_directory)
          j = j+1
       i = i+1

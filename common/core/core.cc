@@ -197,7 +197,7 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
 
          LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
 
-         if (!getMemoryManager()->initiateSharedMemReq(lock_signal, shmem_req_type, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size))
+         if (!getMemoryManager()->initiateSharedMemReq(lock_signal, shmem_req_type, curr_addr_aligned, curr_offset, curr_data_buffer_head, curr_size, modeled))
          {
             // If it is a READ or READ_EX operation, 'initiateSharedMemReq' causes curr_data_buffer_head to be automatically filled in
             // If it is a WRITE operation, 'initiateSharedMemReq' reads the data from curr_data_buffer_head

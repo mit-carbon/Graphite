@@ -122,27 +122,36 @@ NetMatch MemoryManager::makeNetMatch(PacketType packet_type, SInt32 sender_rank)
    return net_match;
 }
 
-bool MemoryManager::actionPermissable(CacheState cache_state, shmem_req_t shmem_req_type)
+bool MemoryManager::actionPermissable(IntPtr addr, CacheState cache_state, shmem_req_t shmem_req_type, bool modeled, SInt32 access_num)
 {
-   bool ret;
-
+   // TODO: This has to be kind of redesigned.
+   // This is not the best way of updating cache counters
+   // TODO:
+   // 1) Capture conflict misses
+   // 2) Capture true and false sharing misses
+   // 3) Try to distinguish between upgrade misses and sharing misses
    switch (shmem_req_type)
    {
    case READ:
-      ret = cache_state.readable();
-      break;
+      if (m_shmem_perf_model->isEnabled() && modeled && (access_num == 0))
+      {
+         m_dcache->updateCounters(addr, cache_state, CacheBase::ACCESS_TYPE_LOAD);
+      }
+      return cache_state.readable();
+   
    case READ_EX:
-      ret = cache_state.writable();
-      break;
    case WRITE:
-      ret = cache_state.writable();
-      break;
+      if (m_shmem_perf_model->isEnabled() && modeled && (access_num == 0))
+      {
+         m_dcache->updateCounters(addr, cache_state, CacheBase::ACCESS_TYPE_STORE);
+
+      }
+      return cache_state.writable();
+   
    default:
-      LOG_PRINT_ERROR("in Actionreadily permissiable");
+      LOG_PRINT_ERROR("In Actionreadily permissiable");
       return false;
    }
-
-   return ret;
 }
 
 void MemoryManager::setCacheLineInfo(IntPtr address, CacheState::cstate_t new_cstate)
@@ -246,7 +255,7 @@ void MemoryManager::requestPermission(shmem_req_t shmem_req_type, IntPtr ca_addr
 // ca_address is "cache-aligned" address
 // addr_offset provides the offset that points to the requested address
 // Returns 'true' if there was a cache hit and 'false' otherwise
-bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size)
+bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size, bool modeled)
 {
    bool cache_hit = true;
 
@@ -274,6 +283,8 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
       
    LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? " READ " : " WRITE "), ca_address);
 
+   SInt32 access_num = 0;
+
    m_mmu_lock.acquire();
 
    while (1)
@@ -287,7 +298,11 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
                                          ? cache_block_info->getCState()
                                          : CacheState::INVALID;
 
-      if (actionPermissable(curr_cstate, shmem_req_type))
+      // Since 'actionPermissable()' is called multiple times on a cache
+      // miss, we want it to update the cache counters only on the
+      // first access
+      bool permissible = actionPermissable(ca_address, curr_cstate, shmem_req_type, modeled, access_num);
+      if (permissible)
       {
          accessCacheLineData(access_type, ca_address, addr_offset, data_buffer, buffer_size);
 
@@ -331,6 +346,8 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
             LOG_PRINT ("Finished Wait on Condition Variable: ADDR: 0x%x", ca_address);
          }
       }
+      
+      access_num ++;
 
    }
 

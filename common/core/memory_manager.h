@@ -98,7 +98,9 @@ class MemoryManager
 
       UInt32 m_cache_line_size;
 
-      bool actionPermissable(CacheState cache_state, shmem_req_t shmem_req_t);
+      bool actionPermissable(IntPtr addr, CacheState cache_state, 
+            shmem_req_t shmem_req_type, bool modeled, 
+            SInt32 access_num);
 
       // Locking and Unlocking Cache
       void lockCache();
@@ -142,7 +144,11 @@ class MemoryManager
       NetMatch makeNetMatch(PacketType packet_type, int sender_rank);
 
       //core traps all memory accesses here.
-      bool initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr ca_address, UInt32 addr_offset, Byte* data_buffer, UInt32 buffer_size);
+      bool initiateSharedMemReq(Core::lock_signal_t lock_signal, 
+            shmem_req_t shmem_req_type, 
+            IntPtr ca_address, UInt32 addr_offset, 
+            Byte* data_buffer, UInt32 buffer_size, 
+            bool modeled);
 
       //request from DRAM permission to use an address
       //writes requested data into the "fill_buffer", and writes what the new_cstate should be on the receiving end

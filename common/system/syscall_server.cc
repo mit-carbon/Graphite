@@ -82,6 +82,8 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
    }
+
+   LOG_PRINT("Finished syscall: %d", syscall_number);
 }
 
 void SyscallServer::marshallOpenCall(core_id_t core_id)
@@ -166,14 +168,13 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
    m_network.getCore()->accessMemory(Core::NONE, WRITE, (IntPtr)dest, buf, count);
 
    m_send_buff << bytes;
-   if (bytes != -1)
+   if (bytes != -1 && !Config::getSingleton()->isSimulatingSharedMemory())
       m_send_buff << make_pair(buf, bytes);
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (count > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] buf;
-
 }
 
 

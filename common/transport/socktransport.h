@@ -83,7 +83,7 @@ private:
       EXITED
    };
 
-   static const SInt32 BASE_PORT = 2000;
+   static const SInt32 DEFAULT_BASE_PORT = 2000;
    static const SInt32 BUFFER_SIZE = 0x10000;
    static const SInt32 GLOBAL_TAG = -1;
    static const SInt32 BARRIER_TAG = -2;
@@ -91,6 +91,7 @@ private:
 
    Node *m_global_node;
 
+   SInt32 m_base_port;
    SInt32 m_num_procs;
    SInt32 m_proc_index;
 

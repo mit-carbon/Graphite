@@ -200,6 +200,8 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
          break;
    }
 
+   LOG_PRINT("Syscall finished");
+
    return m_called_enter ? SYS_getpid : syscall_number;
 
 }
@@ -290,7 +292,7 @@ carbon_reg_t SyscallMdl::marshallReadCall(syscall_args_t &args)
    int bytes;
    m_recv_buff >> bytes;
 
-   if (bytes != -1)
+   if (bytes != -1 && !Config::getSingleton()->isSimulatingSharedMemory())
    {
       m_recv_buff >> make_pair(buf, bytes);
    }

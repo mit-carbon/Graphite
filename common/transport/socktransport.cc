@@ -20,6 +20,8 @@ using std::string;
 SockTransport::SockTransport()
    : m_update_thread_state(RUNNING)
 {
+   m_base_port = Sim()->getCfg()->getInt("transport/base_port", DEFAULT_BASE_PORT);
+
    getProcInfo();
    initSockets();
    initBufferLists();
@@ -57,7 +59,7 @@ void SockTransport::initSockets()
    LOG_PRINT("initSockets()");
 
    // -- server side
-   my_port = BASE_PORT + m_proc_index;
+   my_port = m_base_port + m_proc_index;
    m_server_socket.listen(my_port, m_num_procs);
 
    // -- client side
@@ -79,7 +81,7 @@ void SockTransport::initSockets()
           LOG_ASSERT_ERROR(false, "Key: %s not found in config!", server_string.c_str());
       }
 
-      m_send_sockets[proc].connect(server_addr.c_str(), BASE_PORT + proc);
+      m_send_sockets[proc].connect(server_addr.c_str(), m_base_port + proc);
 
       m_send_sockets[proc].send(&m_proc_index, sizeof(m_proc_index));
    }

@@ -82,6 +82,8 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
    }
+
+   LOG_PRINT("Finished syscall: %d", syscall_number);
 }
 
 void SyscallServer::marshallOpenCall(core_id_t core_id)

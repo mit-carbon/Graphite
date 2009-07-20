@@ -200,6 +200,8 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
          break;
    }
 
+   LOG_PRINT("Syscall finished");
+
    return m_called_enter ? SYS_getpid : syscall_number;
 
 }

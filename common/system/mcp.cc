@@ -113,6 +113,8 @@ void MCP::processPacket()
    }
 
    delete [](Byte*)recv_pkt.data;
+
+   LOG_PRINT("Finished processing message -- type : %d", (int)msg_type);
 }
 
 void MCP::finish()

@@ -267,19 +267,20 @@ Cache::updateCounters(IntPtr addr, CacheState cache_state, AccessType access_typ
 void 
 Cache::outputSummary(ostream& out)
 {
-   out << "    num cache accesses: " << m_num_accesses;
+   out << "Cache summary: " << endl;
+   out << "    num cache accesses: " << m_num_accesses << endl;
    out << "    miss rate: " <<
-      ((float) (m_num_accesses - m_num_hits) / m_num_accesses) * 100;
+      ((float) (m_num_accesses - m_num_hits) / m_num_accesses) * 100 << endl;
    
    if (m_track_detailed_cache_counters)
    {
       out << "    cold miss rate: " <<
-         ((float) m_num_cold_misses / m_num_accesses) * 100;
+         ((float) m_num_cold_misses / m_num_accesses) * 100 << endl;
       out << "    capacity miss rate: " <<
-         ((float) m_num_capacity_misses / m_num_accesses) * 100;
+         ((float) m_num_capacity_misses / m_num_accesses) * 100 << endl;
       out << "    upgrade miss rate: " <<
-         ((float) m_num_upgrade_misses / m_num_accesses) * 100;
+         ((float) m_num_upgrade_misses / m_num_accesses) * 100 << endl;
       out << "    sharing miss rate: " <<
-         ((float) m_num_sharing_misses / m_num_accesses) * 100;
+         ((float) m_num_sharing_misses / m_num_accesses) * 100 << endl;
    }
 }

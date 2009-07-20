@@ -8,6 +8,10 @@ include ../splash_support/Makefile.config
 
 include ../../Makefile.tests
 
+all:
+	rm -f $(SIM_ROOT)/times
+	$(RUN)
+
 defs.c: defs.h
 box.c: box.h
 construct_grid.c: construct_grid.h

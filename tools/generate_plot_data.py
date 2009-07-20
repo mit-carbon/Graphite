@@ -10,7 +10,7 @@ import tests_infrastructure
 
 # Default values
 plot_config_file = 'tests.cfg'
-plot_data_directory = '/afs/csail.mit.edu/u/h/harshad/research/simulator/distrib/carbon_sim/results/2009_07_17__17_58_37/'
+plot_data_directory = ''
 runs = [0]
 
 # Read values from the command line

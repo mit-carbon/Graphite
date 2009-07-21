@@ -1,0 +1,35 @@
+GENERAL INFORMATION:
+
+The CHOLESKY program performs blocked Cholesky Factorization on a sparse 
+matrix.  The implementation contained in SPLASH-2 is described in:
+
+Rothberg, E.  Exploiting the Memory Hierarchy in Sequential and Parallel
+     Sparse Cholesky Factorization.  Ph.D. Thesis, Stanford University, 
+     November 1992.
+
+This program works under both the Unix FORK and SPROC models.
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top of the
+file solve.C, or run the application with the "-h" command line option.
+A set of input data files is included in the subdirectory "inputs."  The 
+size of the cache (in bytes) should be specified on the command line, as
+well as the number of processors being used.  The postpass partition size
+should be kept at the default value of 32.  If this parameter is changed,
+the value should be reported in any results that are presented.
+
+BASE PROBLEM SIZE:
+
+The base problem size for an upto-64 processor machine is the input file
+tk29.O.  The cache size (in bytes) should be specified on the command 
+line, as well as the number of processors being used.  The postpass 
+partition size should not be changed.  If it is, however, the new value 
+should be reported in any results that are presented.
+
+DATA DISTRIBUTION:
+
+Our "POSSIBLE ENHANCEMENT" comments in the source code tell where one
+might want to distribute data and how.  Data distribution has an impact
+on performance on the Stanford DASH multiprocessor.
+

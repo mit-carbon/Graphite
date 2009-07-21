@@ -1,0 +1,40 @@
+shmid 0x2f44 shmvaddr 0x500000
+
+Ocean simulation with W-cycle multigrid solver
+    Processors                         : 1
+    Grid size                          : 258 x 258
+    Grid resolution (meters)           : 20000.00
+    Time between relaxations (seconds) : 28800
+    Error tolerance                    : 1e-07
+
+                       MULTIGRID OUTPUTS
+iter 71, level 8, residual norm 8.00274594e-08, work =  33.875
+iter 31, level 8, residual norm 4.08062997e-08, work =  13.563
+iter 22, level 8, residual norm 5.94548243e-08, work =   9.438
+iter 12, level 8, residual norm 4.05573548e-08, work =   6.188
+iter 2, level 8, residual norm 8.20209761e-08, work =   2.000
+iter 5, level 8, residual norm 6.54258352e-08, work =   5.000
+iter 3, level 8, residual norm 7.23930444e-08, work =   3.000
+iter 12, level 8, residual norm 3.56346364e-08, work =   6.188
+iter 2, level 8, residual norm 5.93080936e-08, work =   2.000
+iter 4, level 8, residual norm 8.54596640e-08, work =   4.000
+iter 11, level 8, residual norm 3.70162668e-08, work =   6.125
+iter 13, level 8, residual norm 3.34750572e-08, work =   7.188
+iter 12, level 8, residual norm 2.45353138e-08, work =   6.188
+
+                       PROCESS STATISTICS
+                  Total          Multigrid         Multigrid
+ Proc             Time             Time            Fraction
+    0          79990673           21750269             0.272
+  Avg          79990673           21750269             0.272
+  Min          79990673           21750269             0.272
+  Max          79990673           21750269             0.272
+
+                       TIMING INFORMATION
+Start time                        :        972660212
+Initialization finish time        :       1017890583
+Overall finish time               :       1097881258
+Total time with initialization    :        125221046
+Total time without initialization :         79990675
+    (excludes first timestep)
+

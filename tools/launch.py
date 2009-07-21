@@ -19,7 +19,7 @@ procs = {}
 
 # start
 for i in range(start_proc, start_proc + num_procs):
-    print "Starting process: %d" % i
+    print "[launch.py] Starting process: %d" % i
     env = {}
     env["CARBON_PROCESS_INDEX"] = str(i)
     env["LD_LIBRARY_PATH"] = "/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib"
@@ -48,6 +48,6 @@ for i in range(start_proc, start_proc + num_procs):
 
 # exit
 if returnCode != None:
-    print >> sys.stderr, 'Exited with return code: %d' % returnCode
+    print '[launch.py] Exited with return code: %d' % returnCode
 
 sys.exit(returnCode)

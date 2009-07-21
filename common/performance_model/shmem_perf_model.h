@@ -79,6 +79,11 @@ class ShmemPerfModel
       {
          m_enabled = false;
       }
+
+      bool isEnabled()
+      {
+         return m_enabled;
+      }
 };
 
 #endif /* __SHMEM_PERF_MODEL_H__ */

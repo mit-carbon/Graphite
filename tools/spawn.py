@@ -56,7 +56,7 @@ for i in range(0,num_procs):
    if (process_list[i] != "localhost") and (process_list[i] != r'127.0.0.1'):
       exec_command = "ssh -x " + process_list[i] + " \"cd " + sim_root + "; " + exec_command + "\""
    
-   print "[carbon_sim_runner.py] Starting process: " + str(i) + " : " + exec_command
+   print "[spawn.py] Starting process: " + str(i) + " : " + exec_command
    procs[i] = subprocess.Popen(exec_command, shell=True)
 
 # Wait for all the spawned processes to exit
@@ -84,6 +84,6 @@ for i in range(0,num_procs):
 
 # exit
 if returnCode != None:
-    print "[carbon_sim_runner.py] Exited with return code: %d" % returnCode
+    print "[spawn.py] Exited with return code: %d" % returnCode
 
 sys.exit(returnCode)

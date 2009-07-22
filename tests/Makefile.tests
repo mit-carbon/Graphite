@@ -42,7 +42,7 @@ sim_flags_fn = -c $(SIM_ROOT)/carbon_sim.cfg --general/total_cores=$(1) --genera
 SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
-launch_fn = $(SIM_ROOT)/tools/carbon_sim_runner.py $(1) # 1 - NUM_PROCS
+launch_fn = $(SIM_ROOT)/tools/spawn.py $(1) # 1 - NUM_PROCS
 
 # Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
 run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3)) $(2) $(4)))

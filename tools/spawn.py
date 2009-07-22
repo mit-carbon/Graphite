@@ -52,11 +52,16 @@ for i in range(2,len(sys.argv)):
 process_list = load_process_list_from_file(config_filename)
 for i in range(0,num_procs):
   
-   exec_command = "./tools/launch.py " + str(i) + " 1 " + command
+   exec_command = "export CARBON_PROCESS_INDEX=" + str(i) + "; " + \
+         "export LD_LIBRARY_PATH=\"/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib\"; " + \
+         command
+
    if (process_list[i] != "localhost") and (process_list[i] != r'127.0.0.1'):
-      exec_command = "ssh -x " + process_list[i] + " \"cd " + sim_root + "; " + exec_command + "\""
+      exec_command = "ssh -x " + process_list[i] + \
+            " \"cd " + sim_root + "; " + \
+            exec_command + "\""
    
-   print "[carbon_sim_runner.py] Starting process: " + str(i) + " : " + exec_command
+   print "[spawn.py] Starting process: " + str(i) + " : " + exec_command
    procs[i] = subprocess.Popen(exec_command, shell=True)
 
 # Wait for all the spawned processes to exit
@@ -84,6 +89,6 @@ for i in range(0,num_procs):
 
 # exit
 if returnCode != None:
-    print "[carbon_sim_runner.py] Exited with return code: %d" % returnCode
+    print "[spawn.py] Exited with return code: %d" % returnCode
 
 sys.exit(returnCode)

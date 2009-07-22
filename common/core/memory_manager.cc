@@ -171,7 +171,7 @@ CacheBlockInfo* MemoryManager::getCacheLineInfo(IntPtr address)
 void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, Byte* data_buffer, UInt32 data_size)
 {
    IntPtr address = ca_address + offset;
-   CacheBlockInfo* cache_block_info = m_dcache->accessSingleLine(address, access_type, data_buffer, data_size);
+   __attribute(__unused__) CacheBlockInfo* cache_block_info = m_dcache->accessSingleLine(address, access_type, data_buffer, data_size);
 
    assert(cache_block_info);
 }
@@ -216,7 +216,7 @@ void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 
 void MemoryManager::invalidateCacheLine(IntPtr address)
 {
-   bool hit = m_dcache->invalidateSingleLine(address);
+   __attribute(__unused__) bool hit = m_dcache->invalidateSingleLine(address);
    assert(hit);
 }
 

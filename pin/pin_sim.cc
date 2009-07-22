@@ -111,7 +111,7 @@ void routineCallback(RTN rtn, void *v)
 
    // ---------------------------------------------------------------
 
-   if (Config::getSingleton()->getLoggingEnabled() &&
+   if (Log::getSingleton()->isEnabled(__FILE__) &&
        Sim()->getCfg()->getBool("log/stack_trace",false))
    {
       RTN_Open (rtn);
@@ -330,7 +330,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          // 'Application' thread
          ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
 
-         LOG_ASSERT_ERROR (req != NULL, "ThreadSpawnRequest is NULL !!")
+         LOG_ASSERT_ERROR (req != NULL, "ThreadSpawnRequest is NULL !!");
 
          // This is an application thread
          LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
@@ -343,7 +343,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
       PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
 
-      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      __attribute(__unused__) Core *core = Sim()->getCoreManager()->getCurrentCore();
       assert (core);
 
       // Wait to make sure that the spawner has written stuff back to memory

@@ -25,45 +25,11 @@ Log::Log(Config &config)
 {
    assert(Config::getSingleton()->getProcessCount() != 0);
 
-   _coreFiles = new FILE* [_coreCount];
-   _simFiles = new FILE* [_coreCount];
+   initFileDescriptors();
+   getEnabledModules();
+   getDisabledModules();
 
-   for (core_id_t i = 0; i < _coreCount; i++)
-   {
-      _coreFiles[i] = NULL;
-      _simFiles[i] = NULL;
-   }
-
-   _coreLocks = new Lock [_coreCount];
-   _simLocks = new Lock [_coreCount];
-
-   _systemFile = NULL;
-
-   _defaultFile = fopen(formatFileName("system-default.log").c_str(),"w");
-
-   std::set<std::string> disabledModulesUnformatted;
-   Config::getSingleton()->getDisabledLogModules(disabledModulesUnformatted);
-   for (std::set<std::string>::iterator it = disabledModulesUnformatted.begin();
-        it != disabledModulesUnformatted.end();
-        it++)
-   {
-      string formatted;
-
-      for (unsigned int i = 0; i < min(MODULE_LENGTH, it->length()); i++)
-      {
-         formatted.push_back((*it)[i]);
-      }
-
-      for (unsigned int i = formatted.length(); i < MODULE_LENGTH; i++)
-      {
-         formatted.push_back(' ');
-      }
-
-      assert(formatted.length() == MODULE_LENGTH);
-      _disabledModules.insert(formatted);
-   }
-
-   _loggingEnabled = Config::getSingleton()->getLoggingEnabled();
+   _loggingEnabled = initIsLoggingEnabled();
 
    assert(_singleton == NULL);
    _singleton = this;
@@ -97,14 +63,114 @@ Log* Log::getSingleton()
    return _singleton;
 }
 
-Boolean Log::isEnabled(const char* module)
+bool Log::isEnabled(const char* module)
 {
-   return _disabledModules.find(module) == _disabledModules.end();
+   // either the module is specifically enabled, or all logging is
+   // enabled and this one isn't disabled
+   return _enabledModules.find(module) != _enabledModules.end()
+      || (_loggingEnabled && _disabledModules.find(module) == _disabledModules.end());
 }
 
-Boolean Log::isLoggingEnabled()
+bool Log::isLoggingEnabled()
 {
-   return _loggingEnabled;
+   return !_enabledModules.empty() || _loggingEnabled;
+}
+
+void Log::initFileDescriptors()
+{
+   _coreFiles = new FILE* [_coreCount];
+   _simFiles = new FILE* [_coreCount];
+
+   for (core_id_t i = 0; i < _coreCount; i++)
+   {
+      _coreFiles[i] = NULL;
+      _simFiles[i] = NULL;
+   }
+
+   _coreLocks = new Lock [_coreCount];
+   _simLocks = new Lock [_coreCount];
+
+   _systemFile = NULL;
+
+   _defaultFile = fopen(formatFileName("system-default.log").c_str(),"w");
+}
+
+void Log::parseModules(set<string> &mods, string list)
+{
+   string delimiters = " ";
+
+   string::size_type lastPos = list.find_first_not_of(delimiters, 0);
+   string::size_type pos     = list.find_first_of(delimiters, lastPos);
+
+   set<string> unformatted;
+
+   while (string::npos != pos || string::npos != lastPos)
+   {
+      unformatted.insert(list.substr(lastPos, pos - lastPos));
+      lastPos = list.find_first_not_of(delimiters, pos);
+      pos = list.find_first_of(delimiters, lastPos);
+   }
+
+   for (set<string>::iterator it = unformatted.begin();
+        it != unformatted.end();
+        it++)
+   {
+      string formatted;
+
+      for (unsigned int i = 0; i < min(MODULE_LENGTH, it->length()); i++)
+      {
+         formatted.push_back((*it)[i]);
+      }
+
+      for (unsigned int i = formatted.length(); i < MODULE_LENGTH; i++)
+      {
+         formatted.push_back(' ');
+      }
+
+      assert(formatted.length() == MODULE_LENGTH);
+      mods.insert(formatted);
+   }
+}
+
+void Log::getDisabledModules()
+{
+   try 
+   {
+      string disabledModules = Sim()->getCfg()->getString("log/disabled_modules", "");
+      parseModules(_disabledModules, disabledModules);
+   }
+   catch (...)
+   {
+      // FIXME: is log initialized at this point?
+      LOG_PRINT_ERROR("Exception while reading disabled modules.");
+   }
+}
+
+void Log::getEnabledModules()
+{
+   try 
+   {
+      string enabledModules = Sim()->getCfg()->getString("log/enabled_modules", "");
+      parseModules(_enabledModules, enabledModules);
+   }
+   catch (...)
+   {
+      // FIXME: is log initialized at this point?
+      LOG_PRINT_ERROR("Exception while reading enabled modules.");
+   }
+}
+
+bool Log::initIsLoggingEnabled()
+{
+   try
+   {
+      return Sim()->getCfg()->getBool("log/enabled",false);
+   }
+   catch (...)
+   {
+      assert(false);
+      return false;
+   }
 }
 
 UInt64 Log::getTimestamp()
@@ -207,19 +273,19 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
    }
 }
 
-std::string Log::getModule(const char *filename)
+string Log::getModule(const char *filename)
 {
-#ifdef LOCK_LOGS
-   ScopedLock sl(_modules_lock);
-#endif
-   std::map<const char*, std::string>::const_iterator it = _modules.find(filename);
+   // TODO: Give each thread a _module map to cache entries. (Hash table?)
 
-   if (it != _modules.end())
-   {
-      return it->second;
-   }
-   else
-   {
+   // ScopedLock sl(_modules_lock);
+   // map<const char*, string>::const_iterator it = _modules.find(filename);
+
+   // if (it != _modules.end())
+   // {
+   //    return it->second;
+   // }
+   // else
+   // {
       // build module string
       string mod;
 
@@ -234,22 +300,15 @@ std::string Log::getModule(const char *filename)
       while (mod.length() < MODULE_LENGTH)
          mod.push_back(' ');
 
-      pair<const char*, std::string> p(filename, mod);
-      _modules.insert(p);
+   //   pair<const char*, string> p(filename, mod);
+   //   _modules.insert(p);
 
       return mod;
-   }
+   // }
 }
 
 void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
-   if (!_loggingEnabled && err == None)
-      return;
-
-   // Called in LOG_PRINT macro (see log.h)
-//   if (!isEnabled(source_file))
-//      return;
-
    core_id_t core_id;
    bool sim_thread;
    discoverCore(&core_id, &sim_thread);

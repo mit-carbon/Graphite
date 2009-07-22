@@ -210,42 +210,6 @@ UInt32 Config::getCoreFromCommId(UInt32 comm_id)
    return it == m_comm_to_core_map.end() ? INVALID_CORE_ID : it->second;
 }
 
-void Config::getDisabledLogModules(set<string> &mods) const
-{
-   try 
-   {
-      string disabledModules = Sim()->getCfg()->getString("log/disabled_modules", "");
-      string delimiters = " ";
-
-      string::size_type lastPos = disabledModules.find_first_not_of(delimiters, 0);
-      string::size_type pos     = disabledModules.find_first_of(delimiters, lastPos);
-
-      while (string::npos != pos || string::npos != lastPos)
-      {
-         mods.insert(disabledModules.substr(lastPos, pos - lastPos));
-         lastPos = disabledModules.find_first_not_of(delimiters, pos);
-         pos = disabledModules.find_first_of(delimiters, lastPos);
-      }
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Exception while reading disabled modules.");
-   }
-}
-
-bool Config::getLoggingEnabled() const
-{
-   try
-   {
-      return Sim()->getCfg()->getBool("log/enabled", true);
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Exception while reading logging enable bit.");
-      return false;
-   }
-}
-
 void Config::getNetworkModels(UInt32 *models) const
 {
    try

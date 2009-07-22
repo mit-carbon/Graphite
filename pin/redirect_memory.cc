@@ -11,8 +11,8 @@
 
 VOID printInsInfo(CONTEXT* ctxt)
 {
-   ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
 }
@@ -118,7 +118,7 @@ bool rewriteStringOp (INS ins)
 
 void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 {
-   ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   __attribute(__unused__) ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
    LOG_PRINT("Instr at EIP = 0x%x, CMPSB", reg_gip);
 
    assert(has_rep_prefix == true);
@@ -203,7 +203,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 
 void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 {
-   ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   __attribute(__unused__) ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
    LOG_PRINT("Instr at EIP = 0x%x, SCASB", reg_gip);
 
    assert(has_rep_prefix == false);

@@ -213,9 +213,9 @@ VOID allocateStackSpace()
    // Note that 1 core = 1 thread currently
    // We should probably get the amount of stack space per thread from a configuration parameter
    // Each process allocates whatever it is responsible for !!
-   UInt32 stack_size_per_core = PinConfig::getSingleton()->getStackSizePerCore();
-   UInt32 num_cores = Sim()->getConfig()->getNumLocalCores();
-   IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
+   __attribute(__unused__) UInt32 stack_size_per_core = PinConfig::getSingleton()->getStackSizePerCore();
+   __attribute(__unused__) UInt32 num_cores = Sim()->getConfig()->getNumLocalCores();
+   __attribute(__unused__) IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
 
    LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x", stack_size_per_core);
    LOG_PRINT("allocateStackSpace: num_local_cores = %i", num_cores);

@@ -1,15 +1,16 @@
-SIM_ROOT ?= $(CURDIR)/../../../
-TARGET = VOLREND
-OBJS = adaptive.o file.o main.o map.o normal.o octree.o opacity.o option.o raytrace.o render.o view.o
+TARGET = volrend
+OBJECTS = adaptive.o file.o main.o map.o normal.o octree.o opacity.o option.o raytrace.o render.o view.o
+APP_FLAGS = 8 $(CURDIR)/inputs/head-scaleddown2
+CORES = 45
 
 MACROS := ../splash_support/c.m4.null.CARBON
+
 include ../splash_support/Makefile.config
-TARGET = VOLREND
 
-CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall -m32
+include ../../Makefile.tests
 
-CFLAGS := $(CFLAGS) -I./libtiff
-LDFLAGS := -L./libtiff $(LDFLAGS) -ltiff
+CFLAGS += -I$(CURDIR)/libtiff
+LD_FLAGS += -L$(CURDIR)/libtiff -ltiff
 
 main.c:	main.C incl.h anl.h
 file.c:	file.C incl.h
@@ -24,3 +25,4 @@ adaptive.c: adaptive.C incl.h anl.h
 raytrace.c: raytrace.C incl.h address.h
 
 incl.h:	user_options.h const.h my_types.h global.h macros.h address.h
+tiffio.h:

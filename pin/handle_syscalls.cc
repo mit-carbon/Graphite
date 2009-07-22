@@ -112,6 +112,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_read) ||
             (syscall_number == SYS_write) ||
             (syscall_number == SYS_close) ||
+            (syscall_number == SYS_access) ||
             (syscall_number == SYS_getpid) ||
             (syscall_number == SYS_readahead) ||
             (syscall_number == SYS_pipe) ||
@@ -243,6 +244,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_read) ||
             (syscall_number == SYS_write) ||
             (syscall_number == SYS_close) ||
+            (syscall_number == SYS_access) ||
             (syscall_number == SYS_getpid) ||
             (syscall_number == SYS_readahead) ||
             (syscall_number == SYS_pipe) ||

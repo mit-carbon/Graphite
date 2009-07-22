@@ -65,8 +65,8 @@ struct {
 } $1;
 ')
 define(PAUSEINIT, `{
-	CarbonMutexInit(&$1.Mutex, NULL);
-	CarbonCondInit(&$1.CondVar, NULL);
+	CarbonMutexInit(&$1.Mutex);
+	CarbonCondInit(&$1.CondVar);
 	$1.Flag = 0;
 }
 ')

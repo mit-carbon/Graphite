@@ -90,23 +90,25 @@ void MovingAverage<T>::addToWindow(T next_num)
 template <class T>
 class MovingArithmeticMean : public MovingAverage<T>
 {
+   private:
+      T sum;
+
    public:
       MovingArithmeticMean(UInt32 max_window_size):
-         MovingAverage<T>(max_window_size)
+         MovingAverage<T>(max_window_size),
+         sum(0)
       { }
 
       T compute(T next_num)
       {
+         UInt32 curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue();
+         if (curr_window_size == this->m_max_window_size)
+            sum -= this->m_num_list[this->m_curr_window_front.getValue()];
+         sum += next_num;
+         
          addToWindow(next_num);
          
-         UInt32 curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue();
-         T arithmetic_mean = (T) 0;
-
-         ModuloNum curr_num(this->m_curr_window_front);
-         for ( ; curr_num != this->m_curr_window_back; curr_num = curr_num+1)
-            arithmetic_mean += this->m_num_list[curr_num.getValue()];
-
-         return arithmetic_mean / curr_window_size;
+         return sum / curr_window_size;
       }
 };
 

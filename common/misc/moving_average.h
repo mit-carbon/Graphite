@@ -105,9 +105,10 @@ class MovingArithmeticMean : public MovingAverage<T>
          if (curr_window_size == this->m_max_window_size)
             sum -= this->m_num_list[this->m_curr_window_front.getValue()];
          sum += next_num;
-         
+
          addToWindow(next_num);
-         
+
+         curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue(); // recompute
          return sum / curr_window_size;
       }
 };

@@ -55,13 +55,13 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    // Compute the moving average here
    UInt64 pkt_time_av = m_moving_average->compute(pkt_time);
 
-   UInt64 core_time = getCore()->getPerformanceModel()->getCycleCount();
-
    UInt64 queue_delay = m_queue_model->getQueueDelay(pkt_time_av);
    m_queue_model->updateQueue(pkt_time_av, processing_time);
 
    UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
    
+   __attribute(__unused__) UInt64 core_time = getCore()->getPerformanceModel()->getCycleCount();
+
    LOG_PRINT("Pkt Size = %llu, Dram Bandwidth = %f, Processing Time = %i", 
          pkt_size, m_dram_bandwidth, processing_time);
    LOG_PRINT("Av Pkt Time = %llu, Core Time = %llu", pkt_time_av, core_time);

@@ -84,8 +84,6 @@ public:
    UInt32 getCacheLineSize() const;
 
    // Logging
-   void getDisabledLogModules(std::set<std::string> &mods) const;
-   bool getLoggingEnabled() const;
    std::string getOutputFileName() const;
    std::string formatOutputFileName(std::string filename) const;
    void logCoreMap();

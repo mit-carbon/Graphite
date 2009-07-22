@@ -169,6 +169,7 @@ bool Log::initIsLoggingEnabled()
    catch (...)
    {
       assert(false);
+      return false;
    }
 }
 

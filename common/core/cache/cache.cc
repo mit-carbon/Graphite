@@ -116,6 +116,7 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
    catch(...)
    {
       LOG_PRINT_ERROR("Error reading perf_model/l2_cache/model_type from config file");
+      return;
    }
    m_cache_perf_model = CachePerfModelBase::createModel(model_type);
    m_shmem_perf_model = shmem_perf_model;
@@ -128,6 +129,7 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
    catch(...)
    {
       LOG_PRINT_ERROR("Error reading cache/track_detailed_cache_counters from the config file");
+      return;
    }
 }
 

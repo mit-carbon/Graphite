@@ -343,7 +343,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
       PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
 
-      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      __attribute(__unused__) Core *core = Sim()->getCoreManager()->getCurrentCore();
       assert (core);
 
       // Wait to make sure that the spawner has written stuff back to memory

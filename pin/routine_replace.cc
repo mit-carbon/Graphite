@@ -339,7 +339,7 @@ void replacement_CAPI_Initialize (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the CAPI communication API functions
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   __attribute(__unused__) Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
    
    int comm_id;

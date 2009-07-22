@@ -30,6 +30,7 @@ DramPerfModel::DramPerfModel(Core* core)
    catch(...)
    {
       LOG_PRINT_ERROR("Dram parameter obtained a bad value from config.");
+      return;
    }
 
    m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type, moving_avg_window_size);

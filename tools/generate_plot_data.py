@@ -7,6 +7,7 @@ import sys
 import os
 sys.path.append(os.getcwd() + '/tools')
 import tests_infrastructure
+import numpy
 
 # Default values
 plot_config_file = 'tests.cfg'
@@ -16,10 +17,10 @@ runs = [0]
 # Read values from the command line
 expecting_file_name = 0
 expecting_dir_name = 0
-assert(len(sys.argv) <= 4)
+
 for argument in sys.argv:
    if expecting_file_name == 1:
-      plot_config_filename = argument
+      plot_config_file = argument
       expecting_file_name = 0
    elif expecting_dir_name == 1:
       plot_data_directory = argument

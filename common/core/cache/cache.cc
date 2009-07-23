@@ -131,6 +131,13 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
       LOG_PRINT_ERROR("Error reading cache/track_detailed_cache_counters from the config file");
       return;
    }
+
+   // Cache Counters
+   if (m_track_detailed_cache_counters)
+   {
+      m_invalidated_set = new Set<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
+      m_evicted_set = new Set<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
+   }
 }
 
 Cache::~Cache()
@@ -208,13 +215,13 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
    *evict_addr = tagToAddress(evict_block_info->getTag());
   
    // Update sets for the purpose of maintaining cache counters
-   if (m_track_detailed_cache_counters && m_shmem_perf_model->isEnabled())
+   if (m_track_detailed_cache_counters && m_shmem_perf_model && m_shmem_perf_model->isEnabled())
    {
-      evicted_set.erase(addr);
-      invalidated_set.erase(addr);
+      m_evicted_set->erase(addr);
+      m_invalidated_set->erase(addr);
 
       if (*eviction)
-         evicted_set.insert(*evict_addr);
+         m_evicted_set->insert(*evict_addr);
    }
 }
 

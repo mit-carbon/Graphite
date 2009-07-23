@@ -77,6 +77,9 @@ class SyscallMdl
       carbon_reg_t marshallBrkCall(syscall_args_t &args);
       carbon_reg_t marshallFutexCall(syscall_args_t &args);
 
+      // Helper functions
+      UInt32 getStrLen (char *str);
+
 };
 
 #endif

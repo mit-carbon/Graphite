@@ -223,9 +223,9 @@ typedef	enum {
 #define	    EXTRASAMPLE_UNASSALPHA	2	/* !unassociated alpha data */
 #define	TIFFTAG_SAMPLEFORMAT		339	/* !data sample format */
 #define	    SAMPLEFORMAT_INT		1	/* !signed integer data */
-#define	    SAMPLEFORMAT_UInt		2	/* !unsigned integer data */
+#define	    SAMPLEFORMAT_UINT		2	/* !unsigned integer data */
 #define	    SAMPLEFORMAT_IEEEFP		3	/* !IEEE floating point data */
-#define	    SAMPLEFORMAT_void		4	/* !untyped data */
+#define	    SAMPLEFORMAT_VOID		4	/* !untyped data */
 #define	TIFFTAG_SMINSAMPLEVALUE		340	/* !variable MinSampleValue */
 #define	TIFFTAG_SMAXSAMPLEVALUE		341	/* !variable MaxSampleValue */
 #define	TIFFTAG_JPEGPROC		512	/* !JPEG processing algorithm */

@@ -22,9 +22,14 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
    m_dram_perf_model = new DramPerfModel(m_core);
    m_shmem_perf_model = shmem_perf_model;
    
-   // FIXME: There should be a better way to represent this
-   // FIXME: Change this to dram_dir_block_size or something
-   m_cache_line_size = Config::getSingleton()->getCacheLineSize();
+   try
+   {
+      m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Could not read l2_cache/line_size from config");
+   }
 
    m_dram_dir = new DramDirectory(m_core_id, m_network, m_shmem_perf_model, m_dram_perf_model);
    m_addr_home_lookup = new AddressHomeLookup(m_core_id);
@@ -171,7 +176,7 @@ CacheBlockInfo* MemoryManager::getCacheLineInfo(IntPtr address)
 void MemoryManager::accessCacheLineData(CacheBase::AccessType access_type, IntPtr ca_address, UInt32 offset, Byte* data_buffer, UInt32 data_size)
 {
    IntPtr address = ca_address + offset;
-   CacheBlockInfo* cache_block_info = m_dcache->accessSingleLine(address, access_type, data_buffer, data_size);
+   __attribute(__unused__) CacheBlockInfo* cache_block_info = m_dcache->accessSingleLine(address, access_type, data_buffer, data_size);
 
    assert(cache_block_info);
 }
@@ -188,17 +193,20 @@ void MemoryManager::fillCacheLineData(IntPtr ca_address, Byte* fill_buffer)
 
    if (eviction)
    {
-      //send write-back to dram
-      // TODO: We need a way to find differentiate between the CLEAN and the DIRTY states
-      // of a cache line. This is because we need to write back the cache block only when
-      // it was DIRTY. The 'accessSingleLine()' interface should tell us whether the
-      // cache block was dirty or clean
       UInt32 home_node_rank = m_addr_home_lookup->find_home_for_addr(evict_addr);
       AckPayload payload;
       payload.ack_address = evict_addr;
-      payload.is_writeback = true;
-      payload.data_size = m_cache_line_size;
-      UInt32 payload_size = sizeof(payload) + m_cache_line_size;
+      if (evict_block_info.isDirty())
+      {
+         payload.is_writeback = true;
+         payload.data_size = m_cache_line_size;
+      }
+      else
+      {
+         payload.is_writeback = false;
+         payload.data_size = 0;
+      }
+      UInt32 payload_size = sizeof(payload) + payload.data_size;
       Byte payload_buffer[payload_size];
 
       createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);
@@ -216,7 +224,7 @@ void MemoryManager::forwardWriteBackToDram(NetPacket wb_packet)
 
 void MemoryManager::invalidateCacheLine(IntPtr address)
 {
-   bool hit = m_dcache->invalidateSingleLine(address);
+   __attribute(__unused__) bool hit = m_dcache->invalidateSingleLine(address);
    assert(hit);
 }
 
@@ -281,7 +289,7 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
       return false;
    }
       
-   LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? " READ " : " WRITE "), ca_address);
+   LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? "READ" : "WRITE"), ca_address);
 
    SInt32 access_num = 0;
 

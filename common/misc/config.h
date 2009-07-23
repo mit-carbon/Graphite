@@ -81,11 +81,8 @@ public:
    bool getEnablePerformanceModeling() const;
    bool getEnableDCacheModeling() const;
    bool getEnableICacheModeling() const;
-   UInt32 getCacheLineSize() const;
 
    // Logging
-   void getDisabledLogModules(std::set<std::string> &mods) const;
-   bool getLoggingEnabled() const;
    std::string getOutputFileName() const;
    std::string formatOutputFileName(std::string filename) const;
    void logCoreMap();
@@ -120,8 +117,6 @@ private:
    static bool m_knob_enable_performance_modeling;
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
-
-   static UInt32 m_knob_cache_line_size;
 };
 
 #endif

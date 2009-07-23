@@ -59,39 +59,39 @@ UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt8 data)
 // get scalar
 UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt64& data)
 {
-   bool res = get<UInt64>(data);
+   __attribute(__unused__) bool res = get<UInt64>(data);
    assert(res == true);
    return *this;
 }
 UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt64& data)
 {
-   bool res = get<SInt64>(data);
+   __attribute(__unused__) bool res = get<SInt64>(data);
    assert(res == true);
    return *this;
 }
 UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt32& data)
 {
-   bool res = get<UInt32>(data);
+   __attribute(__unused__) bool res = get<UInt32>(data);
    assert(res = true);
    return *this;
 }
 
 UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt32& data)
 {
-   bool res = get<SInt32>(data);
+   __attribute(__unused__) bool res = get<SInt32>(data);
    assert(res == true);
    return *this;
 }
 
 UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt8&  data)
 {
-   bool res = get<UInt8>(data);
+   __attribute(__unused__) bool res = get<UInt8>(data);
    assert(res == true);
    return *this;
 }
 UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt8&  data)
 {
-   bool res = get<SInt8>(data);
+   __attribute(__unused__) bool res = get<SInt8>(data);
    assert(res == true);
    return *this;
 }
@@ -116,7 +116,7 @@ UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<const void*, int> buffer
    int size = buffer.second;
 
    assert(size >= 0);
-   bool res = get<UInt8>((UInt8*) buff, size);
+   __attribute(__unused__) bool res = get<UInt8>((UInt8*) buff, size);
    assert(res == true);
    return *this;
 }

@@ -26,7 +26,7 @@ Core::Core(SInt32 id)
 
    if (Config::getSingleton()->getEnableDCacheModeling())
    {
-      m_dcache = new Cache("organic cache", m_shmem_perf_model);
+      m_dcache = new Cache("L2 cache", m_shmem_perf_model);
    }
    else
    {
@@ -49,7 +49,14 @@ Core::Core(SInt32 id)
    m_syscall_model = new SyscallMdl(m_network);
    m_sync_client = new SyncClient(this);
 
-   m_cache_line_size = Config::getSingleton()->getCacheLineSize();
+   try
+   {
+      m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Cannot read 'l2_cache/line_size' from config");
+   }
 }
 
 Core::~Core()

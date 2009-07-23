@@ -9,21 +9,27 @@ DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel
    m_network = network;
    
    m_total_cores = Config::getSingleton()->getTotalCores();
-   m_cache_line_size = Config::getSingleton()->getCacheLineSize();
 
    // Initialize the static variables in DramDirectoryEntry
    // This will be done as many times as the number of cores but since 
    // this is all done by a single thread, there is no race condition
-   DramDirectoryEntry::setCacheLineSize(m_cache_line_size);
-   DramDirectoryEntry::setTotalCores(Config::getSingleton()->getTotalCores());
+  
+   UInt32 max_sharers = 0;
    try
    {
-      DramDirectoryEntry::setMaxSharers(Sim()->getCfg()->getInt("dram_dir/max_sharers"));
+      m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
+      max_sharers = Sim()->getCfg()->getInt("dram_dir/max_sharers");
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Error Reading max_sharers from config file");
+      LOG_PRINT_ERROR("Error Reading 'dram_dir/max_sharers' or 'l2_cache/line_size' from config file");
    }
+   LOG_ASSERT_ERROR(max_sharers != 0, "Max Sharers cannot be 0");
+
+   // Setting DramDirectoryEntry static variables
+   DramDirectoryEntry::setTotalCores(Config::getSingleton()->getTotalCores());
+   DramDirectoryEntry::setCacheLineSize(m_cache_line_size);
+   DramDirectoryEntry::setMaxSharers(max_sharers);
 
    m_dram_directory_perf_model = DramDirectoryPerfModelBase::createModel(DramDirectoryPerfModelBase::DRAM_DIRECTORY_PERF_MODEL);
    m_dram_perf_model = dram_perf_model;
@@ -99,9 +105,6 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
    {
       dir_entry->setDState(DramDirectoryEntry::UNCACHED);
    }
-
-   // FIXME: This will change when we allow evictions with clean status
-   LOG_ASSERT_ERROR(payload.is_writeback, "Change this when you implement eviction with clean/dirty status. Right now, only dirty is allowed");
 
    if (payload.is_writeback)
    {

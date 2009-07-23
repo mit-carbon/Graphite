@@ -1,15 +1,16 @@
-SIM_ROOT ?= $(CURDIR)/../../../
-TARGET = RAYTRACE
+TARGET = raytrace
 
-OBJS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
+OBJECTS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
 	main.o matrix.o memory.o poly.o raystack.o shade.o sph.o trace.o \
 	tri.o workpool.o globals.o
+APP_FLAGS = -p8 $(CURDIR)/inputs/teapot.env
 
 MACROS := ../splash_support/c.m4.null.CARBON
-include ../splash_support/Makefile.config
-TARGET = RAYTRACE
+# MACROS := ../splash_support/c.m4.null.POSIX
 
-CFLAGS = -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -g -Wall
+include ../splash_support/Makefile.config
+
+include ../../Makefile.tests
 
 bbox.c: bbox.C rt.h
 cr.c:	cr.C rt.h

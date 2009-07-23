@@ -1,0 +1,44 @@
+GENERAL INFORMATION:
+
+The RADIX program implements an integer radix sort based on the method 
+described in:
+
+Blelloch, G. E., et. al.  A Comparison of Sorting Algorithms for the 
+     Connection Machine CM-2.  In Symposium on Parallel Algorithms and 
+     Architectures, pp. 3-16, July 1991.
+
+A description of this implementation can be found in:
+
+Woo, S. C., Singh, J. P., and Hennessy, J. L.  The Performance Advantages
+     of Integrating Message Passing in Cache-Coherent Multiprocessors.
+     Technical Report CSL-TR-93-593, Stanford University, December 1993.
+
+This program works under both the Unix FORK and SPROC models.
+
+RUNNING THE PROGRAM:
+
+To see how to run the program, please see the comment at the top of the
+file radix.C, or run the application with the "-h" command line option.
+Four command line parameters can be specified, of which the ones which 
+would normally be changed are the number of keys to sort, the radix
+for sorting, and the number of processors.  The radix used for sorting 
+must be a power of 2.  Optional command line parameters allow timing 
+information to be printed out at the end of the program, testing to
+make sure all keys are sorted correctly, and keys to be printed out
+in sorted order.
+
+BASE PROBLEM SIZE:
+
+The base problem size for an upto-64 processor machine is 256k (262,144)
+keys to be sorted and a radix of 1024.  The default values should be 
+used for other parameters (except the number of processors, which can 
+be varied).  For larger problems, the number of keys can also be 
+increased by factors of 2.  Any changes to these parameters should be 
+reported when results are presented.
+
+DATA DISTRIBUTION:
+
+Our "POSSIBLE ENHANCEMENT" comments in the source code tell where one
+might want to distribute data and how.  Data distribution has an impact 
+on performance on the Stanford DASH multiprocessor.
+

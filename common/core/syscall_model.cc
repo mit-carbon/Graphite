@@ -231,9 +231,14 @@ carbon_reg_t SyscallMdl::marshallOpenCall(syscall_args_t &args)
 
    char *path = (char *)args.arg0;
    int flags = (int)args.arg1;
-   UInt32 len_fname = strlen(path) + 1;
 
-   m_send_buff << len_fname << make_pair(path, len_fname) << flags;
+   UInt32 len_fname = getStrLen (path) + 1;
+   
+   char *path_buf = new char [len_fname];
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, READ, (IntPtr) path, (char*) path_buf, len_fname);
+
+   m_send_buff << len_fname << make_pair(path_buf, len_fname) << flags;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
@@ -244,6 +249,7 @@ carbon_reg_t SyscallMdl::marshallOpenCall(syscall_args_t &args)
    int status;
    m_recv_buff >> status;
 
+   delete [] path_buf;
    delete [](Byte*)recv_pkt.data;
 
    return status;
@@ -363,7 +369,7 @@ carbon_reg_t SyscallMdl::marshallCloseCall(syscall_args_t &args)
 {
    /*
        Syscall Args
-       int fd, void *buf, size_t count
+       int fd
 
 
        Transmit
@@ -402,10 +408,15 @@ carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
 {
    char *path = (char *)args.arg0;
    int mode = (int)args.arg1;
-   UInt32 len_fname = strlen(path) + 1;
+
+   UInt32 len_fname = getStrLen(path) + 1;
+   char *path_buf = new char [len_fname];
+
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    // pack the data
-   m_send_buff << len_fname << make_pair(path, len_fname) << mode;
+   m_send_buff << len_fname << make_pair(path_buf, len_fname) << mode;
 
    // send the data
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -422,6 +433,7 @@ carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
    m_recv_buff >> result;
 
    delete [](Byte*) recv_pkt.data;
+   delete [] path_buf;
 
    return result;
 }
@@ -947,7 +959,26 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
    {
       return (carbon_reg_t) syscall (SYS_futex, uaddr, op, val, timeout, uaddr2, val3);
    }
-
-
-
 }
+
+// Helper functions
+UInt32 SyscallMdl::getStrLen (char *str)
+{
+   UInt32 len = 0;
+   char c;
+   char *ptr = str;
+   while (1)
+   {
+      Core *core = Sim()->getCoreManager()->getCurrentCore();
+      core->accessMemory (Core::NONE, READ, (IntPtr) ptr, &c, sizeof(char));
+      if (c != '\0')
+      {
+         len++;
+         ptr++;
+      }
+      else
+         break;
+   }
+   return len;
+}
+

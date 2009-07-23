@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
     WAIT_FOR_END(num_nodes-1);*/
   if (num_nodes > 1)
     WAIT_FOR_END(num_nodes);
+  
   MAIN_END;
 }
 

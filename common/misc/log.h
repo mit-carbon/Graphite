@@ -8,8 +8,6 @@
 #include "fixed_types.h"
 #include "lock.h"
 
-#define LOCK_LOGS
-
 class Config;
 
 class Log
@@ -29,12 +27,18 @@ class Log
 
       void log(ErrorState err, const char *source_file, SInt32 source_line, const char* format, ...);
 
-      Boolean isEnabled(const char* module);
-      Boolean isLoggingEnabled();
+      bool isEnabled(const char* module);
+      bool isLoggingEnabled();
       std::string getModule(const char *filename);
 
    private:
       UInt64 getTimestamp();
+
+      void initFileDescriptors();
+      static void parseModules(std::set<std::string> &mods, std::string list);
+      void getDisabledModules();
+      void getEnabledModules();
+      bool initIsLoggingEnabled();
 
       void discoverCore(core_id_t *core_id, bool *sim_thread);
       void getFile(core_id_t core_id, bool sim_thread, FILE ** f, Lock ** l);
@@ -60,15 +64,12 @@ class Log
       core_id_t _coreCount;
       UInt64 _startTime;
       std::set<std::string> _disabledModules;
+      std::set<std::string> _enabledModules;
       bool _loggingEnabled;
-      std::map<const char*, std::string> _modules;
 
-// By defining LOCK_LOGS we ensure no race conditions on the modules
-// map above. In practice this isn't very likely and using locks
-// suffers a high performance hit.
-#ifdef LOCK_LOGS
-      Lock _modules_lock;
-#endif
+      /* std::map<const char*, std::string> _modules; */
+      /* Lock _modules_lock; */
+
       static const UInt32 MODULE_LENGTH = 10;
 
       static Log *_singleton;
@@ -80,6 +81,8 @@ class Log
 
 // see assert.h
 
+#define __LOG_PRINT(...) ((void)(0))
+#define _LOG_PRINT(...) ((void)(0))
 #define LOG_PRINT(...) ((void)(0))
 #define LOG_PRINT_WARNING(...) ((void)(0))
 #define LOG_PRINT_ERROR(...) ((void)(0))

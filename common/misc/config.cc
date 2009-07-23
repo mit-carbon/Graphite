@@ -17,7 +17,6 @@ std::string Config::m_knob_output_file;
 bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_dcache_modeling;
 bool Config::m_knob_enable_icache_modeling;
-UInt32 Config::m_knob_cache_line_size;
 
 using namespace std;
 
@@ -44,7 +43,6 @@ Config::Config()
       // TODO: these should be removed and queried directly from the cache
       m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
       m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
-      m_knob_cache_line_size = Sim()->getCfg()->getInt("cache/line_size");
    }
    catch(...)
    {
@@ -184,11 +182,6 @@ bool Config::getEnableICacheModeling() const
    return (bool)m_knob_enable_icache_modeling;
 }
 
-UInt32 Config::getCacheLineSize() const
-{
-   return (UInt32) m_knob_cache_line_size;
-}
-
 std::string Config::getOutputFileName() const
 {
    return formatOutputFileName(m_knob_output_file);
@@ -208,42 +201,6 @@ UInt32 Config::getCoreFromCommId(UInt32 comm_id)
 {
    CommToCoreMap::iterator it = m_comm_to_core_map.find(comm_id);
    return it == m_comm_to_core_map.end() ? INVALID_CORE_ID : it->second;
-}
-
-void Config::getDisabledLogModules(set<string> &mods) const
-{
-   try 
-   {
-      string disabledModules = Sim()->getCfg()->getString("log/disabled_modules", "");
-      string delimiters = " ";
-
-      string::size_type lastPos = disabledModules.find_first_not_of(delimiters, 0);
-      string::size_type pos     = disabledModules.find_first_of(delimiters, lastPos);
-
-      while (string::npos != pos || string::npos != lastPos)
-      {
-         mods.insert(disabledModules.substr(lastPos, pos - lastPos));
-         lastPos = disabledModules.find_first_not_of(delimiters, pos);
-         pos = disabledModules.find_first_of(delimiters, lastPos);
-      }
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Exception while reading disabled modules.");
-   }
-}
-
-bool Config::getLoggingEnabled() const
-{
-   try
-   {
-      return Sim()->getCfg()->getBool("log/enabled", true);
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Exception while reading logging enable bit.");
-      return false;
-   }
 }
 
 void Config::getNetworkModels(UInt32 *models) const

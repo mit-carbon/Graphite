@@ -9,17 +9,17 @@
 using namespace std;
 
 // Everything related to cache sets
-class CacheSetBase
+class CacheSet
 {
    public:
       enum ReplacementPolicy
       {
          ROUND_ROBIN = 0,
-         LEAST_RECENTLY_USED,
+         LRU,
          NUM_REPLACEMENT_POLICIES
       };
 
-      static CacheSetBase* createCacheSet(ReplacementPolicy replacement_policy, UInt32 associativity, UInt32 blocksize);
+      static CacheSet* createCacheSet(ReplacementPolicy replacement_policy, UInt32 associativity, UInt32 blocksize);
       static ReplacementPolicy parsePolicyType(string policy);
 
    protected:
@@ -27,12 +27,11 @@ class CacheSetBase
       char* m_blocks;
       UInt32 m_associativity;
       UInt32 m_blocksize;
-      UInt32 m_next_replace_index;
 
    public:
 
-      CacheSetBase(UInt32 associativity, UInt32 blocksize);
-      virtual ~CacheSetBase();
+      CacheSet(UInt32 associativity, UInt32 blocksize);
+      virtual ~CacheSet();
 
       UInt32 getBlockSize() { return m_blocksize; }
       UInt32 getAssociativity() { return m_associativity; }
@@ -43,24 +42,37 @@ class CacheSetBase
       bool invalidate(IntPtr& tag);
       void insert(CacheBlockInfo* cache_block_info, Byte* fill_buff, bool* eviction, CacheBlockInfo* evict_block_info, Byte* evict_buff);
 
-      virtual UInt32 getNextReplaceIndex() { return 0; }
+      virtual UInt32 getReplacementIndex() { return 0; }
+      virtual void updateReplacementIndex(UInt32 accessed_index) { }
 
 };
 
 // Cache set with round robin replacement
-class RoundRobin : public CacheSetBase
+class CacheSetRoundRobin : public CacheSet
 {
-   public:
-      RoundRobin(UInt32 associativity, UInt32 blocksize) :
-         CacheSetBase(associativity, blocksize)
-      {}
-      ~RoundRobin()
-      {}
+   private:
+      UInt32 m_replacement_index;
 
-      UInt32 getNextReplaceIndex()
-      {
-         return ( (m_next_replace_index == 0) ? (m_associativity-1) : (m_next_replace_index-1) );
-      }
+   public:
+      CacheSetRoundRobin(UInt32 associativity, UInt32 blocksize);
+      ~CacheSetRoundRobin();
+
+      UInt32 getReplacementIndex();
+      void updateReplacementIndex(UInt32 accessed_index);
+};
+
+// Cache Set with LRU replacement
+class CacheSetLRU : public CacheSet
+{
+   private:
+      UInt8* m_lru_bits;
+
+   public:
+      CacheSetLRU(UInt32 associativity, UInt32 blocksize);
+      ~CacheSetLRU();
+
+      UInt32 getReplacementIndex();
+      void updateReplacementIndex(UInt32 accessed_index);
 };
 
 

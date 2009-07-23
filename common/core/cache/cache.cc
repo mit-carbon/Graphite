@@ -90,10 +90,10 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
       m_num_upgrade_misses(0),
       m_num_sharing_misses(0)
 {
-   CacheSetBase::ReplacementPolicy replacement_policy;
+   CacheSet::ReplacementPolicy replacement_policy;
    try
    {
-      replacement_policy = CacheSetBase::parsePolicyType(Sim()->getCfg()->getString("cache/replacement_policy"));
+      replacement_policy = CacheSet::parsePolicyType(Sim()->getCfg()->getString("cache/replacement_policy"));
    }
    catch (...)
    {
@@ -101,10 +101,10 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
       return;
    }
 
-   m_sets = new CacheSetBase*[m_num_sets];
+   m_sets = new CacheSet*[m_num_sets];
    for (UInt32 i = 0; i < m_num_sets; i++)
    {
-      m_sets[i] = CacheSetBase::createCacheSet(replacement_policy, m_associativity, m_blocksize);
+      m_sets[i] = CacheSet::createCacheSet(replacement_policy, m_associativity, m_blocksize);
    }
 
    // Performance Models
@@ -131,6 +131,13 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
       LOG_PRINT_ERROR("Error reading cache/track_detailed_cache_counters from the config file");
       return;
    }
+
+   // Cache Counters
+   if (m_track_detailed_cache_counters)
+   {
+      m_invalidated_set = new Set<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
+      m_evicted_set = new Set<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
+   }
 }
 
 Cache::~Cache()
@@ -143,7 +150,8 @@ Cache::~Cache()
 bool 
 Cache::invalidateSingleLine(IntPtr addr)
 {
-   m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
+   if (m_shmem_perf_model)
+      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
 
    IntPtr tag;
    UInt32 set_index;
@@ -152,8 +160,8 @@ Cache::invalidateSingleLine(IntPtr addr)
    assert(set_index < m_num_sets);
 
    // Update sets for maintaining cache counters
-   if (m_track_detailed_cache_counters && m_shmem_perf_model->isEnabled())
-      invalidated_set.insert(addr);
+   if (m_track_detailed_cache_counters && m_shmem_perf_model && m_shmem_perf_model->isEnabled())
+      m_invalidated_set->insert(addr);
 
    return m_sets[set_index]->invalidate(tag);
 }
@@ -162,7 +170,8 @@ CacheBlockInfo*
 Cache::accessSingleLine(IntPtr addr, AccessType access_type, 
       Byte* buff, UInt32 bytes)
 {
-   m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
+   if (m_shmem_perf_model)
+      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
 
    assert((buff == NULL) == (bytes == 0));
 
@@ -173,7 +182,7 @@ Cache::accessSingleLine(IntPtr addr, AccessType access_type,
 
    splitAddress(addr, tag, set_index, block_offset);
 
-   CacheSetBase* set = m_sets[set_index];
+   CacheSet* set = m_sets[set_index];
    CacheBlockInfo* cache_block_info = set->find(tag, &line_index);
 
    if (cache_block_info == NULL)
@@ -192,7 +201,8 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
       bool* eviction, IntPtr* evict_addr, 
       CacheBlockInfo* evict_block_info, Byte* evict_buff)
 {
-   m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
+   if (m_shmem_perf_model)
+      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
 
    IntPtr tag;
    UInt32 set_index;
@@ -205,13 +215,13 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
    *evict_addr = tagToAddress(evict_block_info->getTag());
   
    // Update sets for the purpose of maintaining cache counters
-   if (m_track_detailed_cache_counters && m_shmem_perf_model->isEnabled())
+   if (m_track_detailed_cache_counters && m_shmem_perf_model && m_shmem_perf_model->isEnabled())
    {
-      evicted_set.erase(addr);
-      invalidated_set.erase(addr);
+      m_evicted_set->erase(addr);
+      m_invalidated_set->erase(addr);
 
       if (*eviction)
-         evicted_set.insert(*evict_addr);
+         m_evicted_set->insert(*evict_addr);
    }
 }
 
@@ -220,7 +230,8 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
 CacheBlockInfo* 
 Cache::peekSingleLine(IntPtr addr)
 {
-   m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
+   if (m_shmem_perf_model)
+      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
 
    IntPtr tag;
    UInt32 set_index;

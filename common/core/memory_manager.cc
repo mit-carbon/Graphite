@@ -281,7 +281,7 @@ bool MemoryManager::initiateSharedMemReq(Core::lock_signal_t lock_signal, shmem_
       return false;
    }
       
-   LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? " READ " : " WRITE "), ca_address);
+   LOG_PRINT("%s - start : REQUESTING ADDR: %x", ((shmem_req_type==READ) ? "READ" : "WRITE"), ca_address);
 
    SInt32 access_num = 0;
 

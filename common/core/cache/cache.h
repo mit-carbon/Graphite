@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "utils.h"
+#include "set.h"
 #include "cache_set.h"
 #include "cache_line.h"
 #include "cache_perf_model_base.h"
@@ -102,17 +103,17 @@ class Cache : public CacheBase
       UInt64 m_num_upgrade_misses;
       UInt64 m_num_sharing_misses;
       bool m_track_detailed_cache_counters;
-      set<IntPtr> invalidated_set;
-      set<IntPtr> evicted_set;
+      Set<IntPtr>* m_invalidated_set;
+      Set<IntPtr>* m_evicted_set;
 
-      CacheSetBase**  m_sets;
+      CacheSet**  m_sets;
       CachePerfModelBase* m_cache_perf_model;
       ShmemPerfModel* m_shmem_perf_model;
 
    public:
 
       // constructors/destructors
-      Cache(string name, ShmemPerfModel* shmem_perf_model);
+      Cache(string name, ShmemPerfModel* shmem_perf_model = NULL);
       ~Cache();
 
       bool invalidateSingleLine(IntPtr addr);
@@ -134,14 +135,20 @@ class Cache : public CacheBase
       void incrNumSharingMisses() { m_num_sharing_misses++; }
       bool isInvalidated(IntPtr addr)
       {
-         return (bool) invalidated_set.count(addr);
+         return (bool) m_invalidated_set->count(addr);
       }
       bool isEvicted(IntPtr addr)
       {
-         return (bool) evicted_set.count(addr);
+         return (bool) m_evicted_set->count(addr);
       }
 
       virtual void outputSummary(ostream& out);
 };
+
+template <class T>
+UInt32 moduloHashFn(T key, UInt32 hash_fn_param, UInt32 num_buckets)
+{
+   return (key >> hash_fn_param) % num_buckets;
+}
 
 #endif /* CACHE_H */

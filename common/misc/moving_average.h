@@ -111,7 +111,8 @@ class MovingArithmeticMean : public MovingAverage<T>
          curr_window_size ++;
          
          addToWindow(next_num);
-         
+
+         curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue(); // recompute
          return sum / curr_window_size;
       }
 };

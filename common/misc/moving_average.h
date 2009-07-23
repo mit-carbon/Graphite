@@ -103,8 +103,12 @@ class MovingArithmeticMean : public MovingAverage<T>
       {
          UInt32 curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue();
          if (curr_window_size == this->m_max_window_size)
+         {
+            curr_window_size --;
             sum -= this->m_num_list[this->m_curr_window_front.getValue()];
+         }
          sum += next_num;
+         curr_window_size ++;
          
          addToWindow(next_num);
          

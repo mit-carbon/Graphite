@@ -104,9 +104,6 @@ void DramDirectory::processWriteBack(NetPacket& wb_packet)
       dir_entry->setDState(DramDirectoryEntry::UNCACHED);
    }
 
-   // FIXME: This will change when we allow evictions with clean status
-   LOG_ASSERT_ERROR(payload.is_writeback, "Change this when you implement eviction with clean/dirty status. Right now, only dirty is allowed");
-
    if (payload.is_writeback)
    {
       assert(payload.data_size == m_cache_line_size);

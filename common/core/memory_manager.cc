@@ -193,17 +193,20 @@ void MemoryManager::fillCacheLineData(IntPtr ca_address, Byte* fill_buffer)
 
    if (eviction)
    {
-      //send write-back to dram
-      // TODO: We need a way to find differentiate between the CLEAN and the DIRTY states
-      // of a cache line. This is because we need to write back the cache block only when
-      // it was DIRTY. The 'accessSingleLine()' interface should tell us whether the
-      // cache block was dirty or clean
       UInt32 home_node_rank = m_addr_home_lookup->find_home_for_addr(evict_addr);
       AckPayload payload;
       payload.ack_address = evict_addr;
-      payload.is_writeback = true;
-      payload.data_size = m_cache_line_size;
-      UInt32 payload_size = sizeof(payload) + m_cache_line_size;
+      if (evict_block_info.isDirty())
+      {
+         payload.is_writeback = true;
+         payload.data_size = m_cache_line_size;
+      }
+      else
+      {
+         payload.is_writeback = false;
+         payload.data_size = 0;
+      }
+      UInt32 payload_size = sizeof(payload) + payload.data_size;
       Byte payload_buffer[payload_size];
 
       createAckPayloadBuffer(&payload, evict_buff, payload_buffer, payload_size);

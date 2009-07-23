@@ -14,7 +14,7 @@ DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel
    // This will be done as many times as the number of cores but since 
    // this is all done by a single thread, there is no race condition
   
-   UInt32 max_sharers;
+   UInt32 max_sharers = 0;
    try
    {
       m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
@@ -24,6 +24,8 @@ DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel
    {
       LOG_PRINT_ERROR("Error Reading 'dram_dir/max_sharers' or 'l2_cache/line_size' from config file");
    }
+   LOG_ASSERT_ERROR(max_sharers != 0, "Max Sharers cannot be 0");
+
    // Setting DramDirectoryEntry static variables
    DramDirectoryEntry::setTotalCores(Config::getSingleton()->getTotalCores());
    DramDirectoryEntry::setCacheLineSize(m_cache_line_size);

@@ -13,14 +13,14 @@ AddressHomeLookup::AddressHomeLookup(core_id_t core_id)
    m_core_id = core_id;
 
    m_total_cores = Config::getSingleton()->getTotalCores();
-   m_cache_line_size = Config::getSingleton()->getCacheLineSize();
    try
    {
       m_ahl_param = Sim()->getCfg()->getInt("dram_dir/ahl_param");
+      m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Error Reading ahl_param from the config file");
+      LOG_PRINT_ERROR("Error Reading 'ahl_param' or 'l2_cache/line_size' from the config file");
    }
 
    assert ( (unsigned) (1 << m_ahl_param) >= m_cache_line_size);

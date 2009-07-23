@@ -9,9 +9,9 @@ CacheBase::CacheBase(string name)
 {
    try
    {
-      m_cache_size = k_KILO * (Sim()->getCfg()->getInt("cache/size"));
-      m_blocksize = Sim()->getCfg()->getInt("cache/line_size");
-      m_associativity = Sim()->getCfg()->getInt("cache/associativity");
+      m_cache_size = k_KILO * (Sim()->getCfg()->getInt("l2_cache/cache_size"));
+      m_blocksize = Sim()->getCfg()->getInt("l2_cache/line_size");
+      m_associativity = Sim()->getCfg()->getInt("l2_cache/associativity");
    }
    catch(...)
    {
@@ -93,7 +93,7 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
    CacheSet::ReplacementPolicy replacement_policy;
    try
    {
-      replacement_policy = CacheSet::parsePolicyType(Sim()->getCfg()->getString("cache/replacement_policy"));
+      replacement_policy = CacheSet::parsePolicyType(Sim()->getCfg()->getString("l2_cache/replacement_policy"));
    }
    catch (...)
    {
@@ -124,7 +124,7 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
    // Detailed Cache Counters
    try
    {
-      m_track_detailed_cache_counters = Sim()->getCfg()->getBool("cache/track_detailed_cache_counters");
+      m_track_detailed_cache_counters = Sim()->getCfg()->getBool("l2_cache/track_detailed_cache_counters");
    }
    catch(...)
    {

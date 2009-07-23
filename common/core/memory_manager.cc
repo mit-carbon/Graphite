@@ -22,9 +22,14 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
    m_dram_perf_model = new DramPerfModel(m_core);
    m_shmem_perf_model = shmem_perf_model;
    
-   // FIXME: There should be a better way to represent this
-   // FIXME: Change this to dram_dir_block_size or something
-   m_cache_line_size = Config::getSingleton()->getCacheLineSize();
+   try
+   {
+      m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Could not read l2_cache/line_size from config");
+   }
 
    m_dram_dir = new DramDirectory(m_core_id, m_network, m_shmem_perf_model, m_dram_perf_model);
    m_addr_home_lookup = new AddressHomeLookup(m_core_id);

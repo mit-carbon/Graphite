@@ -17,7 +17,6 @@ std::string Config::m_knob_output_file;
 bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_dcache_modeling;
 bool Config::m_knob_enable_icache_modeling;
-UInt32 Config::m_knob_cache_line_size;
 
 using namespace std;
 
@@ -44,7 +43,6 @@ Config::Config()
       // TODO: these should be removed and queried directly from the cache
       m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
       m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
-      m_knob_cache_line_size = Sim()->getCfg()->getInt("cache/line_size");
    }
    catch(...)
    {
@@ -182,11 +180,6 @@ bool Config::getEnableDCacheModeling() const
 bool Config::getEnableICacheModeling() const
 {
    return (bool)m_knob_enable_icache_modeling;
-}
-
-UInt32 Config::getCacheLineSize() const
-{
-   return (UInt32) m_knob_cache_line_size;
 }
 
 std::string Config::getOutputFileName() const

@@ -27,6 +27,7 @@ comments:
     no side comments
     do not use /* */ for multi-line comments
 formatting:
+    use Allman (aka ANSI) style for braces and indentation
     use 3 spaces for each indentation level (NO tabs)
     prefer lines < 80 characters, NO lines > 120 characters
 
@@ -181,7 +182,8 @@ comments
         <text>
         #endif  // BUF_CROSSBAR_H
       or
-        if (foo < bar) {
+        if (foo < bar)
+        {
            <very long block>
         } // if (foo < bar) 
    2. instead use block comments:

@@ -107,13 +107,15 @@ void ModeledCache::swap(Set &s, UInt32 victim_way, IntPtr tag)
    case RANDOM:
    {
       UInt32 way = (m_random_counter++) % s.size();
-      m_victims[victim_way] = s[way];
+      if (!m_victims.empty())
+         m_victims[victim_way] = s[way];
       s[way] = tag;
    } break;
 
    case LRU:
    {
-      m_victims[victim_way] = s[s.size()-1];
+      if (!m_victims.empty())
+         m_victims[victim_way] = s[s.size()-1];
       for (UInt32 i = s.size()-1; i > 0; i--)
       {
          s[i] = s[i-1];
@@ -134,13 +136,15 @@ void ModeledCache::insert(Set &s, IntPtr tag)
    case RANDOM:
    {
       UInt32 way = (m_random_counter++) % s.size();
-      m_victims[++m_next_victim_victim % m_victims.size()] = s[way];
+      if (!m_victims.empty())
+         m_victims[++m_next_victim_victim % m_victims.size()] = s[way];
       s[way] = tag;
    } break;
 
    case LRU:
    {
-      m_victims[++m_next_victim_victim % m_victims.size()] = s[s.size()-1];
+      if (!m_victims.empty())
+         m_victims[++m_next_victim_victim % m_victims.size()] = s[s.size()-1];
       for (UInt32 i = s.size()-1; i > 0; i--)
       {
          s[i] = s[i-1];

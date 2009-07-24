@@ -23,7 +23,7 @@ DramPerfModel::DramPerfModel(Core* core)
    try
    {
       m_dram_access_cost = Sim()->getCfg()->getInt("perf_model/dram/access_cost");
-      m_dram_bandwidth = (float) (Sim()->getCfg()->getInt("perf_model/dram/offchip_bandwidth")) / total_cores;
+      m_dram_bandwidth =  Sim()->getCfg()->getFloat("perf_model/dram/offchip_bandwidth") / total_cores;
       moving_avg_window_size = Sim()->getCfg()->getInt("perf_model/dram/moving_avg_window_size");
       moving_avg_type = MovingAverage<UInt64>::parseAvgType(Sim()->getCfg()->getString("perf_model/dram/moving_avg_type"));
    }

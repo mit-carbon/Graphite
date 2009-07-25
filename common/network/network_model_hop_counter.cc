@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <math.h>
 
 #include "network_model_hop_counter.h"

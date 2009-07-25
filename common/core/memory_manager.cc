@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "memory_manager.h"
 #include "simulator.h"
 #include "log.h"
@@ -149,7 +151,6 @@ bool MemoryManager::actionPermissable(IntPtr addr, CacheState cache_state, shmem
       if (m_shmem_perf_model->isEnabled() && modeled && (access_num == 0))
       {
          m_dcache->updateCounters(addr, cache_state, CacheBase::ACCESS_TYPE_STORE);
-
       }
       return cache_state.writable();
    

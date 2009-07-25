@@ -1,8 +1,8 @@
+#include <string.h>
+
 #include "transport.h"
 #include "core.h"
-
 #include "network.h"
-
 #include "log.h"
 
 using namespace std;

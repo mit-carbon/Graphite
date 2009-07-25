@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "cache_set.h"
 #include "log.h"
 

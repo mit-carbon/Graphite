@@ -1,3 +1,6 @@
+#include <string.h>
+#include <sys/mman.h>
+
 #include "thread_start.h"
 #include "log.h"
 #include "core.h"
@@ -7,8 +10,6 @@
 #include "core_manager.h"
 #include "thread_manager.h"
 #include "thread_support.h"
-
-#include <sys/mman.h>
 
 int spawnThreadSpawner(CONTEXT *ctxt)
 {

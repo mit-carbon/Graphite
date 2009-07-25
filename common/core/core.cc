@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "core.h"
 #include "network.h"
 #include "cache.h"
@@ -5,7 +7,6 @@
 #include "sync_client.h"
 #include "network_types.h"
 #include "memory_manager.h"
-
 #include "log.h"
 
 using namespace std;

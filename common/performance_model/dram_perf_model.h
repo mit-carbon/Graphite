@@ -25,6 +25,7 @@ class DramPerfModel
       MovingAverage<UInt64>* m_moving_average;
       UInt32 m_dram_access_cost;
       float m_dram_bandwidth;
+      bool m_queueing_model_enabled;
       bool m_enabled;
 
    public:

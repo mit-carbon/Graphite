@@ -38,77 +38,57 @@ class SingleDramRequest
 
 class DramRequestsForSingleAddress
 {
-
    private:
 
-      SingleDramRequest* single_dram_req;
-      DramDirectoryEntry::dstate_t old_dstate;
-      UInt32 num_acks_to_recv;
+      DramDirectoryEntry::dstate_t m_old_dstate;
+      UInt32 m_num_acks_to_recv;
 
-      std::queue<SingleDramRequest*> waiting_requests;
+      std::queue<SingleDramRequest*> m_requests;
 
    public:
 
       void setCurrRequestAttributes(
-         SingleDramRequest* single_dram_req,
          DramDirectoryEntry::dstate_t old_dstate,
          UInt32 num_acks_to_recv
       )
       {
-         this->single_dram_req = single_dram_req;
-         this->old_dstate = old_dstate;
-         this->num_acks_to_recv = num_acks_to_recv;
+         m_old_dstate = old_dstate;
+         m_num_acks_to_recv = num_acks_to_recv;
       }
 
-      void deleteCurrRequest()
-      {
-         delete this->single_dram_req;
-      }
+      void decNumAcksToRecv() { m_num_acks_to_recv --; }
 
-      void decNumAcksToRecv()
+      shmem_req_t getShmemReqType() 
       {
-         this->num_acks_to_recv --;
+         return (m_requests.front()->shmem_req_type);
       }
-
-      shmem_req_t getShmemReqType()
+      UInt32 getRequestor() 
       {
-         return (this->single_dram_req->shmem_req_type);
+         return (m_requests.front()->requestor); 
       }
+      DramDirectoryEntry::dstate_t getOldDState() { return (m_old_dstate); }
+      UInt32 getNumAcksToRecv()  { return (m_num_acks_to_recv); }
 
-      UInt32 getRequestor()
+      void enqueueRequest(SingleDramRequest* single_dram_req)
       {
-         return (this->single_dram_req->requestor);
+         m_requests.push(single_dram_req);
       }
-
-      DramDirectoryEntry::dstate_t getOldDState()
+      SingleDramRequest* dequeueRequest()
       {
-         return (this->old_dstate);
-      }
-
-      UInt32 getNumAcksToRecv()
-      {
-         return (this->num_acks_to_recv);
-      }
-
-      SingleDramRequest* getNextRequest()
-      {
-         assert(this->waiting_requests.size() != 0);
-         SingleDramRequest* single_dram_req = this->waiting_requests.front();
-         this->waiting_requests.pop();
+         assert(m_requests.size() > 0);
+         SingleDramRequest* single_dram_req = m_requests.front();
+         m_requests.pop();
          return (single_dram_req);
       }
-
-
-      SInt32 numWaitingRequests()
+      SingleDramRequest* getRequest()
       {
-         return (this->waiting_requests.size());
+         assert(m_requests.size() > 0);
+         return m_requests.front();
       }
-
-      void addRequestToQueue(SingleDramRequest* single_dram_req)
+      SInt32 numRequests()
       {
-         this->waiting_requests.push(single_dram_req);
+         return (m_requests.size());
       }
-
 
 };
 
@@ -151,6 +131,10 @@ class DramDirectory
       // Send Data to Requester
       void sendDataLine(DramDirectoryEntry* dram_dir_entry, UInt32 requestor, CacheState::cstate_t new_cstate);
 
+      // Processing Shared Memory Requests
+      void processSharedMemRequest(UInt32 requestor, shmem_req_t shmem_req_type, IntPtr address, DramRequestsForSingleAddress* dram_reqs);
+      void finishSharedMemRequest(DramRequestsForSingleAddress* dram_reqs);
+
       // Packet Constructor
       NetPacket makePacket(PacketType packet_type, Byte* payload_buffer, UInt32 payload_size, SInt32 sender_rank, SInt32 receiver_rank);
 
@@ -159,13 +143,8 @@ class DramDirectory
       DramDirectory(SInt32 core_id, Network* network, ShmemPerfModel* shmem_perf_model, DramPerfModel* dram_perf_model);
       virtual ~DramDirectory();
 
-      //receive and process request for memory_block
+      // Receive and process request for memory_block
       void startSharedMemRequest(NetPacket& req_packet);
-      void finishSharedMemRequest(IntPtr address);
-      void startNextSharedMemRequest(IntPtr address);
-
-      void processSharedMemRequest(UInt32 requestor, shmem_req_t shmem_req_type, IntPtr address);
-
       void processAck(NetPacket& ack_packet);
       void processWriteBack(NetPacket& req_packet);
 

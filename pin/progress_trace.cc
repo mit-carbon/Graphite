@@ -52,11 +52,14 @@ static FILE* getFileDescriptor()
 
 static VOID traceProgress()
 {
-   unsigned int counter = (unsigned int)PIN_GetThreadData(threadCounterKey);
+   UInt64* counter_ptr = (UInt64*) PIN_GetThreadData(threadCounterKey);
+   UInt64 counter = *counter_ptr;
 
    PerformanceModel *pm = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
 
    UInt64 cycles = pm->getCycleCount();
+
+   LOG_ASSERT_ERROR(counter <= cycles, "counter(%llu) > cycles(%llu)", counter, cycles);
 
    if (cycles - counter > interval)
    {
@@ -65,7 +68,7 @@ static VOID traceProgress()
       if (f)
          fprintf(f, "time: %llu, cycles: %llu\n", getTime(), cycles);
 
-      PIN_SetThreadData(threadCounterKey, (void*)cycles);
+      *counter_ptr = cycles;
    }
 }
 
@@ -111,7 +114,10 @@ VOID threadStartProgressTrace()
    if (!enabled())
       return;
 
-   PIN_SetThreadData(threadCounterKey, 0);
+   UInt64* counter_ptr = new UInt64(0);
+   LOG_ASSERT_ERROR(*counter_ptr == 0, "*counter_ptr = %llu", *counter_ptr);
+
+   PIN_SetThreadData(threadCounterKey, counter_ptr);
 }
 
 VOID addProgressTrace(INS ins)

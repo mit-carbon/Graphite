@@ -16,7 +16,7 @@ boost_path = "/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib"
 # spawn_job:
 #  start up a command across multiple machines
 #  returns an object that can be passed to poll_job()
-def spawn_job(machine_list, working_dir, command):
+def spawn_job(machine_list, command, working_dir = os.getcwd()):
 
     procs = {}
 
@@ -28,6 +28,7 @@ def spawn_job(machine_list, working_dir, command):
                        command
 
         if (machine_list[i] != "localhost") and (machine_list[i] != r'127.0.0.1'):
+            exec_command = exec_command.replace("\"","\\\"")
             exec_command = "ssh -x " + machine_list[i] + \
                            " \"cd " + working_dir + "; " + \
                            exec_command + "\""
@@ -45,7 +46,7 @@ def poll_job(procs):
     # check status
     returnCode = None
 
-    for i in range(0,num_procs):
+    for i in range(0,len(procs)):
         returnCode = procs[i].poll()
         if returnCode != None:
             break
@@ -55,7 +56,7 @@ def poll_job(procs):
         return None
 
     # process terminated, so wait or kill remaining
-    for i in range(0,num_procs):
+    for i in range(0,len(procs)):
         returnCode2 = procs[i].poll()
         if returnCode2 == None:
             if returnCode == 0:
@@ -119,7 +120,7 @@ if __name__=="__main__":
     process_list = load_process_list_from_file(config_filename)
 
     j = spawn_job(process_list[0:num_procs],
-                  get_sim_root(),
-                  command)
+                  command,
+                  get_sim_root())
 
     sys.exit(wait_job(j))

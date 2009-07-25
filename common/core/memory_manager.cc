@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "memory_manager.h"
 #include "simulator.h"
 #include "log.h"

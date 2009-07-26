@@ -53,9 +53,6 @@ class DramDirectoryEntry
       
       UInt32 getCacheLineAddress() { return cache_line_address; }
 
-      // For Unit testing purposes
-      void debugClearSharersList();
-
    private:
       
       static UInt32 cache_line_size;    // Assume to be the same size of the cache_line_size

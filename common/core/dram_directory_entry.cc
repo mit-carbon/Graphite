@@ -202,13 +202,3 @@ string DramDirectoryEntry::dStateToString(dstate_t dstate)
 
    return "ERROR: DSTATETOSTRING";
 }
-
-/* This function is used for unit testing dram,
- * in which we need to clear and set the sharers list
- */
-void DramDirectoryEntry::debugClearSharersList()
-{
-   sharers->reset();
-   number_of_sharers = 0;
-   exclusive_sharer_rank = 0;
-}

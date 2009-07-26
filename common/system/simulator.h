@@ -64,6 +64,8 @@ private:
 
    bool m_finished;
    UInt32 m_num_procs_finished;
+
+   UInt64 m_start_time;
    
    static config::Config *m_config_file;
 };

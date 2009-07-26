@@ -10,6 +10,14 @@
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
 
+static UInt64 getTime()
+{
+   timeval t;
+   gettimeofday(&t, NULL);
+   UInt64 time = (((UInt64)t.tv_sec) * 1000000 + t.tv_usec);
+   return time;
+}
+
 void Simulator::allocate()
 {
    assert(m_singleton == NULL);
@@ -44,6 +52,7 @@ Simulator::Simulator()
    , m_thread_manager(NULL)
    , m_sim_thread_manager(NULL)
    , m_finished(false)
+   , m_start_time(getTime())
 {
 }
 
@@ -89,6 +98,7 @@ Simulator::~Simulator()
    m_lcp->finish();
 
    ofstream os(Config::getSingleton()->getOutputFileName().c_str());
+   os << "Simulation time: " << getTime() - m_start_time << endl;
    m_core_manager->outputSummary(os);
    os.close();
 

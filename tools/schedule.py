@@ -95,7 +95,7 @@ class MakeJob(SpawnJob):
 
         cmdfile = open("%s/command" % self.sub_dir,'w')
         cmdfile.write(self.command)
-        cmffile.close()
+        cmdfile.close()
         
         SpawnJob.spawn(self)
 

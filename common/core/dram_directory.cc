@@ -126,7 +126,7 @@ void DramDirectory::startSharedMemRequest(NetPacket& req_packet)
 
    LOG_PRINT("Got shared memory request for address: 0x%x, req_type = %s, start now - %i", address, (shmem_req_type == READ) ? "READ" : "WRITE", dram_reqs == NULL);
 
-   SingleDramRequest* single_dram_req = new SingleDramRequest(address, shmem_req_type, requestor);
+   SingleDramRequest* single_dram_req = new SingleDramRequest(address, shmem_req_type, requestor, m_shmem_perf_model->getCycleCount());
 
    if (dram_reqs == NULL)
    {
@@ -149,7 +149,7 @@ void DramDirectory::finishSharedMemRequest(DramRequestsForSingleAddress* dram_re
 {
    // We need to process the next request on the queue here
    SingleDramRequest* completed_dram_req = dram_reqs->dequeueRequest();
-   IntPtr address = completed_dram_req->address;
+   IntPtr address = completed_dram_req->getAddress();
    LOG_PRINT("Finished DRAM request for address: 0x%x, start next %i", 
          address, dram_reqs->numRequests() > 1);
    delete completed_dram_req;
@@ -164,9 +164,16 @@ void DramDirectory::finishSharedMemRequest(DramRequestsForSingleAddress* dram_re
    else
    {
       SingleDramRequest* next_dram_req = dram_reqs->getRequest();
-      processSharedMemRequest(next_dram_req->requestor, 
-            next_dram_req->shmem_req_type, 
-            next_dram_req->address, 
+
+      // We need to synchronize the time of 'next_dram_req' here
+      if (next_dram_req->getTime() < m_shmem_perf_model->getCycleCount())
+         next_dram_req->setTime(m_shmem_perf_model->getCycleCount());
+      else
+         m_shmem_perf_model->setCycleCount(next_dram_req->getTime());
+
+      processSharedMemRequest(next_dram_req->getRequestor(),
+            next_dram_req->getShmemReqType(),
+            next_dram_req->getAddress(),
             dram_reqs);
    }
 }
@@ -358,8 +365,15 @@ void DramDirectory::processAck(NetPacket& ack_packet)
    DramRequestsForSingleAddress* dram_reqs = dram_request_list[address];
    assert(dram_reqs != NULL);   // A request must have already been created
 
-   shmem_req_t shmem_req_type = dram_reqs->getShmemReqType();
-   UInt32 requestor = dram_reqs->getRequestor();
+   // Synchronize the clocks here
+   SingleDramRequest* curr_dram_req = dram_reqs->getRequest();
+   if (curr_dram_req->getTime() < m_shmem_perf_model->getCycleCount())
+      curr_dram_req->setTime(m_shmem_perf_model->getCycleCount());
+   else
+      m_shmem_perf_model->setCycleCount(curr_dram_req->getTime());
+
+   shmem_req_t shmem_req_type = curr_dram_req->getShmemReqType();
+   UInt32 requestor = curr_dram_req->getRequestor();
    DramDirectoryEntry::dstate_t old_dstate = dram_reqs->getOldDState();
 
    DramDirectoryEntry* dram_dir_entry = getEntry(address);

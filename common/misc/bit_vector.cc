@@ -112,7 +112,6 @@ bool BitVector::bTestBit(UInt8 byte_word, UInt32 bit)
 {
    assert(bit < 8);
 
-// UInt8 shift = bit & 0xF; i don't think this is necessary b/c of assert
    UInt8 one = 1;
    UInt8 mask = one << bit;
    return (byte_word & mask) ? true : false;

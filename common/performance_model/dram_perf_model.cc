@@ -14,7 +14,10 @@
 // the arrival times of adjacent packets are spread over a large
 // simulated time period
 DramPerfModel::DramPerfModel(Core* core) 
-   : m_enabled(true)
+   : m_enabled(true),
+   m_num_accesses(0),
+   m_total_access_latency(0.0),
+   m_total_queueing_delay(0.0)
 {
    UInt32 moving_avg_window_size;
    MovingAverage<UInt64>::AvgType_t moving_avg_type;
@@ -70,6 +73,11 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    }
 
    UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
+
+   // Update Dram Counters
+   m_num_accesses ++;
+   m_total_access_latency += (double) access_latency;
+   m_total_queueing_delay += (double) queue_delay;
    
    __attribute(__unused__) UInt64 core_time = getCore()->getPerformanceModel()->getCycleCount();
 
@@ -90,4 +98,15 @@ void
 DramPerfModel::disable()
 {
    m_enabled = false;
+}
+
+void
+DramPerfModel::outputSummary(ostream& out)
+{
+   out << "Dram Perf Model summary: " << endl;
+   out << "    num dram accesses: " << m_num_accesses << endl;
+   out << "    average dram access latency: " << 
+      (float) (m_total_access_latency / m_num_accesses) << endl;
+   out << "    average dram queueing delay: " << 
+      (float) (m_total_queueing_delay / m_num_accesses) << endl;
 }

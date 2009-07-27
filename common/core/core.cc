@@ -75,6 +75,12 @@ void Core::outputSummary(std::ostream &os)
    {
       getPerformanceModel()->outputSummary(os);
       getNetwork()->outputSummary(os);
+   
+      if (Config::getSingleton()->isSimulatingSharedMemory())
+      {
+         getShmemPerfModel()->outputSummary(os);
+         getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->outputSummary(os);
+      }
    }
 
    if (Config::getSingleton()->getEnableDCacheModeling() ||
@@ -82,6 +88,7 @@ void Core::outputSummary(std::ostream &os)
    {
       getDCache()->outputSummary(os);
    }
+
 }
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size)
@@ -219,7 +226,13 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
       }
 
       // Performance model
-      UInt64 shmem_time = getShmemPerfModel()->getCycleCount() - initial_core_time;
+      UInt64 final_core_time = getShmemPerfModel()->getCycleCount();
+      
+      LOG_ASSERT_ERROR(final_core_time >= initial_core_time, 
+            "final_core_time(%llu) < initial_core_time(%llu)",
+            final_core_time, initial_core_time);
+
+      UInt64 shmem_time = final_core_time - initial_core_time;
 
       LOG_PRINT("Memory Latency = %llu", shmem_time);
 
@@ -230,6 +243,9 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, shmem_req_t shmem_req_type,
       {
          DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(shmem_time, d_addr, (shmem_req_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
          m_performance_model->pushDynamicInstructionInfo(info);
+
+         // Update total_memory_access_latency counter
+         m_shmem_perf_model->updateTotalMemoryAccessLatency(shmem_time);
       }
 
       return (num_misses);

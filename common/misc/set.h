@@ -32,7 +32,7 @@ class Set
          UInt32 bucket = m_hash_fn(elem, m_hash_fn_param, m_num_buckets);
          m_set_list[bucket]->insert(elem);
          LOG_ASSERT_WARNING(m_set_list[bucket]->size() <= 100,
-               "m_set_list[%u] : (%u > 100)", bucket, m_set_list[bucket]->size())
+               "m_set_list[%u] : (%u > 100)", bucket, m_set_list[bucket]->size());
       }
       UInt32 count(T elem)
       {

@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "simulator.h"
 #include "network_model_analytical.h"
 #include "network_model_analytical_params.h"
 #include "message_types.h"
@@ -9,6 +10,7 @@
 #include "performance_model.h"
 #include "transport.h"
 #include "lock.h"
+#include "log.h"
 
 #define IS_NAN(x) (!((x < 0.0) || (x >= 0.0)))
 

@@ -20,20 +20,36 @@ enum shmem_req_t;
 
 class SingleDramRequest
 {
+   private:
+
+      IntPtr m_address;
+      shmem_req_t m_shmem_req_type;
+      UInt32 m_requestor;
+      UInt64 m_time;
+
    public:
+      SingleDramRequest() : 
+         m_address(0), 
+         m_shmem_req_type(READ), 
+         m_requestor(0),
+         m_time(0)
+      {}
 
-      IntPtr address;
-      shmem_req_t shmem_req_type;
-      UInt32 requestor;
+      SingleDramRequest(IntPtr address, shmem_req_t shmem_req_type, UInt32 requestor, UInt64 time) :
+         m_address(address),
+         m_shmem_req_type(shmem_req_type),
+         m_requestor(requestor),
+         m_time(time)
+      {}
 
-      SingleDramRequest() : address(0), shmem_req_type(READ), requestor(0) {}
+      ~SingleDramRequest() {}
 
-      SingleDramRequest(IntPtr address, shmem_req_t shmem_req_type, UInt32 requestor)
-      {
-         this->address = address;
-         this->shmem_req_type = shmem_req_type;
-         this->requestor = requestor;
-      }
+      IntPtr getAddress() { return m_address; }
+      shmem_req_t getShmemReqType() { return m_shmem_req_type; }
+      UInt32 getRequestor() { return m_requestor; }
+      UInt64 getTime() { return m_time; }
+
+      void setTime(UInt64 time) { m_time = time; }
 };
 
 class DramRequestsForSingleAddress
@@ -58,14 +74,6 @@ class DramRequestsForSingleAddress
 
       void decNumAcksToRecv() { m_num_acks_to_recv --; }
 
-      shmem_req_t getShmemReqType() 
-      {
-         return (m_requests.front()->shmem_req_type);
-      }
-      UInt32 getRequestor() 
-      {
-         return (m_requests.front()->requestor); 
-      }
       DramDirectoryEntry::dstate_t getOldDState() { return (m_old_dstate); }
       UInt32 getNumAcksToRecv()  { return (m_num_acks_to_recv); }
 

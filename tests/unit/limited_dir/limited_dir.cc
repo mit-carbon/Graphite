@@ -10,7 +10,8 @@
 using namespace std;
 
 void* threadFunc(void* thread_num);
-void validateCacheCounters(void);
+void validateCacheModelCounters(void);
+void validateDramModelCounters(void);
 
 const SInt32 num_threads = 9;
 const SInt32 shared_var = num_threads;
@@ -37,7 +38,9 @@ int main(int argc, char *argv[])
       CarbonJoinThread(threads[j]);
 
    // Check for the correctness of evictions, misses etc
-   validateCacheCounters();
+   validateCacheModelCounters();
+   // Check for the correctness of dram accesses
+   validateDramModelCounters();
 
    CarbonStopSim();
    printf("Limited Directories test successful\n");
@@ -81,7 +84,7 @@ void* threadFunc(void* threadid_ptr)
    return NULL;
 }
 
-void validateCacheCounters()
+void validateCacheModelCounters()
 {
    // Get the max number of sharers
    SInt32 max_sharers;
@@ -119,5 +122,18 @@ void validateCacheCounters()
       {
          assert(is_miss == true);
       }
+   }
+}
+
+void validateDramModelCounters()
+{
+   UInt32 total_cores = Sim()->getConfig()->getTotalCores();
+
+   for (SInt32 i = 0; i < (SInt32) total_cores; i++)
+   {
+      Core* core = Sim()->getCoreManager()->getCoreFromID(i);
+      UInt64 total_dram_accesses = core->getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->getTotalAccesses();
+
+      printf("Core(%i), total_dram_accesses: %llu\n", i, total_dram_accesses);
    }
 }

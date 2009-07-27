@@ -25,8 +25,13 @@ class DramPerfModel
       MovingAverage<UInt64>* m_moving_average;
       UInt32 m_dram_access_cost;
       float m_dram_bandwidth;
+
       bool m_queueing_model_enabled;
       bool m_enabled;
+
+      UInt64 m_num_accesses;
+      double m_total_access_latency;
+      double m_total_queueing_delay;
 
    public:
       DramPerfModel(Core* core);
@@ -36,6 +41,9 @@ class DramPerfModel
       UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size);
       void enable();
       void disable();
+
+      UInt64 getTotalAccesses() { return m_num_accesses; }
+      void outputSummary(ostream& out);
 };
 
 #endif /* __DRAM_PERF_MODEL_H__ */

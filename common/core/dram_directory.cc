@@ -327,7 +327,6 @@ void DramDirectory::startInvalidateAllSharers(DramDirectoryEntry* dram_dir_entry
    {
       startInvalidateSingleSharer(dram_dir_entry, sharers_list[i]);
    }
-
 }
 
 // Invalidate Only a single sharer

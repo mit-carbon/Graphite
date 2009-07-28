@@ -13,6 +13,6 @@ SIZE ?= 64 # i.e., NUM_OPTIONS
 NUM_OPTIONS = $(SIZE)
 NUM_THREADS = 32
 APP_FLAGS = $(NUM_THREADS) $(NUM_OPTIONS)
-CORES = $(shell echo $$(( $(NUM_OPTIONS) + 1 )))
+CORES = $(shell echo $$(( $(NUM_THREADS) + 1 )))
 
 include ../../Makefile.tests

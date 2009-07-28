@@ -139,7 +139,7 @@ def parse_app_list(tests_config_app):
 
    for line in tests_config_app:
       if (re.search(r'[^\s]', line)):
-         test_match = re.search(r'^\s*([\w]+)(.*)', line)
+         test_match = re.search(r'^\s*([-\w]+)(.*)', line)
          assert test_match
          test_name = test_match.group(1)
          test_args = test_match.group(2)

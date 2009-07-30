@@ -136,8 +136,8 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
    // Cache Counters
    if (m_track_detailed_cache_counters)
    {
-      m_invalidated_set = new Set<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
-      m_evicted_set = new Set<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
+      m_invalidated_set = new HashMapSet<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
+      m_evicted_set = new HashMapSet<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
    }
 }
 

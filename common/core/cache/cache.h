@@ -5,7 +5,7 @@
 #include <cassert>
 
 #include "utils.h"
-#include "set.h"
+#include "hash_map_set.h"
 #include "cache_set.h"
 #include "cache_line.h"
 #include "cache_perf_model_base.h"
@@ -103,8 +103,9 @@ class Cache : public CacheBase
       UInt64 m_num_upgrade_misses;
       UInt64 m_num_sharing_misses;
       bool m_track_detailed_cache_counters;
-      Set<IntPtr>* m_invalidated_set;
-      Set<IntPtr>* m_evicted_set;
+      bool m_cache_counters_enabled;
+      HashMapSet<IntPtr>* m_invalidated_set;
+      HashMapSet<IntPtr>* m_evicted_set;
 
       CacheSet**  m_sets;
       CachePerfModelBase* m_cache_perf_model;

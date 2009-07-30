@@ -1,10 +1,12 @@
-#ifndef __SET_H__
-#define __SET_H__
+#ifndef __HASH_MAP_SET_H__
+#define __HASH_MAP_SET_H__
 
 #include <set>
 
+#include "fixed_types.h"
+
 template <class T>
-class Set
+class HashMapSet
 {
    private:
       std::set<T>** m_set_list;
@@ -13,7 +15,7 @@ class Set
       UInt32 m_hash_fn_param;
 
    public:
-      Set(UInt32 num_buckets, UInt32 (*hash_fn)(T, UInt32, UInt32), UInt32 hash_fn_param) :
+      HashMapSet(UInt32 num_buckets, UInt32 (*hash_fn)(T, UInt32, UInt32), UInt32 hash_fn_param) :
          m_num_buckets(num_buckets),
          m_hash_fn(hash_fn),
          m_hash_fn_param(hash_fn_param)
@@ -25,14 +27,14 @@ class Set
          }
       }
 
-      ~Set() {}
+      ~HashMapSet() {}
 
       void insert(T elem)
       {
          UInt32 bucket = m_hash_fn(elem, m_hash_fn_param, m_num_buckets);
          m_set_list[bucket]->insert(elem);
-         LOG_ASSERT_WARNING(m_set_list[bucket]->size() <= 100,
-               "m_set_list[%u] : (%u > 100)", bucket, m_set_list[bucket]->size());
+         // LOG_ASSERT_WARNING(m_set_list[bucket]->size() <= 100,
+         //      "m_set_list[%u] : (%u > 100)", bucket, m_set_list[bucket]->size());
       }
       UInt32 count(T elem)
       {
@@ -44,9 +46,12 @@ class Set
          UInt32 bucket = m_hash_fn(elem, m_hash_fn_param, m_num_buckets);
          m_set_list[bucket]->erase(elem);
       }
-
-      
+      void clear()
+      {
+         for (UInt32 i = 0; i < m_num_buckets; i++)
+            m_set_list[i]->clear();
+      }
 };
 
 
-#endif /* __SET_H__ */
+#endif /* __HASH_MAP_SET_H__ */

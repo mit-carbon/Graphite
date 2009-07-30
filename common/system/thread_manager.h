@@ -29,6 +29,7 @@ public:
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
    void terminateThreadSpawners ();
+   bool areAllCoresRunning();
 
    // // events
    void onThreadStart(ThreadSpawnRequest *req);

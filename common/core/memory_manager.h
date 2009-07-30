@@ -175,6 +175,10 @@ class MemoryManager
       // Process Initial Shared Memory Request
       void processSharedMemInitialReq (NetPacket rep_packet);
 
+      // Mangle Cache Counters
+      void resetCacheCounters(NetPacket pkt);
+      void disableCacheCounters(NetPacket pkt);
+
       //debugging stuff
       static string sMemReqTypeToString(shmem_req_t type);
 

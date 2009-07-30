@@ -52,6 +52,10 @@ void replacementPthreadExitNull (CONTEXT *ctxt);
 void replacementPthreadBarrierInit (CONTEXT *ctxt);
 void replacementPthreadBarrierWait (CONTEXT *ctxt);
 
+// Cache Counters
+void replacementResetCacheCounters(CONTEXT *ctxt);
+void replacementDisableCacheCounters(CONTEXT *ctxt);
+
 void initialize_replacement_args (CONTEXT *ctxt, ...);
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val);
 

@@ -11,6 +11,7 @@ extern "C"
 #include "capi.h"
 #include "sync_api.h"
 #include "thread_support.h"
+#include "perf_counter_support.h"
 
 SInt32 CarbonStartSim(int argc, char **argv);
 void CarbonStopSim();

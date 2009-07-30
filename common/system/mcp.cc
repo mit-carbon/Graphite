@@ -10,6 +10,7 @@
 #include "simulator.h"
 #include "syscall.h"
 #include "thread_manager.h"
+#include "perf_counter_manager.h"
 
 using namespace std;
 
@@ -106,6 +107,14 @@ void MCP::processPacket()
 
    case MCP_MESSAGE_THREAD_JOIN_REQUEST:
       Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data, recv_pkt.time);
+      break;
+
+   case MCP_MESSAGE_RESET_CACHE_COUNTERS:
+      Sim()->getPerfCounterManager()->resetCacheCounters(recv_pkt.sender);
+      break;
+
+   case MCP_MESSAGE_DISABLE_CACHE_COUNTERS:
+      Sim()->getPerfCounterManager()->disableCacheCounters(recv_pkt.sender);
       break;
 
    default:

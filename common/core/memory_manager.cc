@@ -43,6 +43,8 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
    m_network->registerCallback(SHARED_MEM_ACK, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_RESPONSE, MemoryManagerNetworkCallback, this);
    m_network->registerCallback(SHARED_MEM_INIT_REQ, MemoryManagerNetworkCallback, this);
+   m_network->registerCallback(RESET_CACHE_COUNTERS, MemoryManagerNetworkCallback, this);
+   m_network->registerCallback(DISABLE_CACHE_COUNTERS, MemoryManagerNetworkCallback, this);
 
    // Some private variables
    cache_locked = false;
@@ -56,6 +58,8 @@ MemoryManager::~MemoryManager()
    m_network->unregisterCallback(SHARED_MEM_ACK);
    m_network->unregisterCallback(SHARED_MEM_RESPONSE);
    m_network->unregisterCallback(SHARED_MEM_INIT_REQ);
+   m_network->unregisterCallback(RESET_CACHE_COUNTERS);
+   m_network->unregisterCallback(DISABLE_CACHE_COUNTERS);
 
    delete m_dram_dir;
    delete m_addr_home_lookup;
@@ -96,9 +100,31 @@ void MemoryManagerNetworkCallback(void *obj, NetPacket packet)
       mm->processSharedMemInitialReq(packet);
       return;
 
+   case RESET_CACHE_COUNTERS:
+      mm->resetCacheCounters(packet);
+      return;
+
+   case DISABLE_CACHE_COUNTERS:
+      mm->disableCacheCounters(packet);
+      break;
+
    default:
       assert(false);
    };
+}
+
+void MemoryManager::resetCacheCounters(NetPacket pkt)
+{
+   m_mmu_lock.acquire();
+   m_dcache->resetCounters();
+   m_mmu_lock.release();
+}
+
+void MemoryManager::disableCacheCounters(NetPacket pkt)
+{
+   m_mmu_lock.acquire();
+   m_dcache->disableCounters();
+   m_mmu_lock.release();
 }
 
 void MemoryManager::debugPrintReqPayload(RequestPayload payload)

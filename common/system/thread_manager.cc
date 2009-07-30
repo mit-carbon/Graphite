@@ -190,7 +190,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    }
 
    LOG_ASSERT_ERROR(req->core_id != INVALID_CORE_ID, "No cores available for spawnThread request.");
-
+   
    // spawn process on child
    SInt32 dest_proc = Config::getSingleton()->getProcessNumForCore(req->core_id);
    Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
@@ -280,6 +280,25 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
                                MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
                                &req->core_id,
                                sizeof(req->core_id));
+   
+   
+}
+
+bool ThreadManager::areAllCoresRunning()
+{
+   // Check if all the cores are running
+   // If they are, start the cache counters
+   bool is_all_running = true;
+   for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
+   {
+      if (!m_thread_state[i].running)
+      {
+         is_all_running = false;
+         break;
+      }
+   }
+
+   return is_all_running;
 }
 
 void ThreadManager::joinThread(core_id_t core_id)

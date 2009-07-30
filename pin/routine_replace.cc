@@ -74,6 +74,10 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonBarrierInit") msg_ptr = AFUNPTR(replacementBarrierInit);
    else if (name == "CarbonBarrierWait") msg_ptr = AFUNPTR(replacementBarrierWait);
 
+   // Resetting Cache Counters
+   else if (name == "CarbonResetCacheCounters") msg_ptr = AFUNPTR(replacementResetCacheCounters);
+   else if (name == "CarbonDisableCacheCounters") msg_ptr = AFUNPTR(replacementDisableCacheCounters);
+
    // pthread wrappers
    else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
    else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
@@ -741,7 +745,23 @@ void replacementPthreadBarrierWait (CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }
-                            
+  
+void replacementResetCacheCounters (CONTEXT *ctxt)
+{
+   CarbonResetCacheCounters();
+   
+   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementDisableCacheCounters (CONTEXT *ctxt)
+{
+   CarbonDisableCacheCounters();
+   
+   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
 void initialize_replacement_args (CONTEXT *ctxt, ...)
 {
    va_list vl;

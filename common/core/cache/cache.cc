@@ -88,7 +88,8 @@ Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
       m_num_cold_misses(0),
       m_num_capacity_misses(0),
       m_num_upgrade_misses(0),
-      m_num_sharing_misses(0)
+      m_num_sharing_misses(0),
+      m_cache_counters_enabled(true)
 {
    CacheSet::ReplacementPolicy replacement_policy;
    try
@@ -243,6 +244,9 @@ Cache::peekSingleLine(IntPtr addr)
 void
 Cache::updateCounters(IntPtr addr, CacheState cache_state, AccessType access_type)
 {
+   if (!m_cache_counters_enabled)
+      return;
+
    if (access_type == ACCESS_TYPE_LOAD)
    {
       incrNumAccesses();
@@ -277,6 +281,28 @@ Cache::updateCounters(IntPtr addr, CacheState cache_state, AccessType access_typ
    }
 }
 
+void
+Cache::resetCounters()
+{
+   m_num_accesses = 0;
+   m_num_hits = 0;
+   m_num_cold_misses = 0;
+   m_num_capacity_misses = 0;
+   m_num_upgrade_misses = 0;
+   m_num_sharing_misses = 0;
+   if (m_track_detailed_cache_counters)
+   {
+      // m_evicted_set->clear();
+      // m_invalidated_set->clear();
+   }
+}
+
+void
+Cache::disableCounters()
+{
+   m_cache_counters_enabled = false;
+}
+
 void 
 Cache::outputSummary(ostream& out)
 {
@@ -284,16 +310,24 @@ Cache::outputSummary(ostream& out)
    out << "    num cache accesses: " << m_num_accesses << endl;
    out << "    miss rate: " <<
       ((float) (m_num_accesses - m_num_hits) / m_num_accesses) * 100 << endl;
+   out << "    num cache misses: " << m_num_accesses - m_num_hits << endl;
    
    if (m_track_detailed_cache_counters)
    {
       out << "    cold miss rate: " <<
          ((float) m_num_cold_misses / m_num_accesses) * 100 << endl;
+      out << "    num cold misses: " << m_num_cold_misses << endl;
+
       out << "    capacity miss rate: " <<
          ((float) m_num_capacity_misses / m_num_accesses) * 100 << endl;
+      out << "    num capacity misses: " << m_num_capacity_misses << endl;
+
       out << "    upgrade miss rate: " <<
          ((float) m_num_upgrade_misses / m_num_accesses) * 100 << endl;
+      out << "    num upgrade misses: " << m_num_upgrade_misses << endl;
+
       out << "    sharing miss rate: " <<
          ((float) m_num_sharing_misses / m_num_accesses) * 100 << endl;
+      out << "    num sharing misses: " << m_num_sharing_misses << endl;
    }
 }

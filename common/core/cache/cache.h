@@ -126,6 +126,8 @@ class Cache : public CacheBase
       
       // Update Cache Counters
       void updateCounters(IntPtr addr, CacheState cache_state, AccessType access_type);
+      void resetCounters();
+      void disableCounters();
 
       UInt64 getNumAccesses() { return m_num_accesses; }
       UInt64 getNumHits() { return m_num_hits; }

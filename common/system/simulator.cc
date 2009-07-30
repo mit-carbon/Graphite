@@ -5,6 +5,7 @@
 #include "core.h"
 #include "core_manager.h"
 #include "thread_manager.h"
+#include "perf_counter_manager.h"
 #include "sim_thread_manager.h"
 
 Simulator *Simulator::m_singleton;
@@ -42,6 +43,7 @@ Simulator::Simulator()
    , m_transport(NULL)
    , m_core_manager(NULL)
    , m_thread_manager(NULL)
+   , m_perf_counter_manager(NULL)
    , m_sim_thread_manager(NULL)
    , m_finished(false)
 {
@@ -56,6 +58,7 @@ void Simulator::start()
    m_transport = Transport::create();
    m_core_manager = new CoreManager();
    m_thread_manager = new ThreadManager(m_core_manager);
+   m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
 
    startMCP();
@@ -97,6 +100,7 @@ Simulator::~Simulator()
    delete m_lcp;
    delete m_mcp;
    delete m_sim_thread_manager;
+   delete m_perf_counter_manager;
    delete m_thread_manager;
    delete m_core_manager;
    delete m_transport;

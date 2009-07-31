@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "simulator.h"
 #include "log.h"
 #include "lcp.h"
@@ -52,7 +54,10 @@ Simulator::Simulator()
    , m_thread_manager(NULL)
    , m_sim_thread_manager(NULL)
    , m_finished(false)
-   , m_start_time(getTime())
+   , m_boot_time(getTime())
+   , m_start_time(0)
+   , m_stop_time(0)
+   , m_shutdown_time(0)
 {
 }
 
@@ -82,6 +87,8 @@ void Simulator::start()
 
 Simulator::~Simulator()
 {
+   m_shutdown_time = getTime();
+
    LOG_PRINT("Simulator dtor starting...");
 
    if (m_config.getCurrentProcessNum() == 0)
@@ -97,10 +104,24 @@ Simulator::~Simulator()
 
    m_lcp->finish();
 
-   ofstream os(Config::getSingleton()->getOutputFileName().c_str());
-   os << "Simulation time: " << getTime() - m_start_time << endl;
-   m_core_manager->outputSummary(os);
-   os.close();
+   if (Config::getSingleton()->getCurrentProcessNum() == 0)
+   {
+      ofstream os(Config::getSingleton()->getOutputFileName().c_str());
+
+      os << "Simulation timers: " << endl
+         << "start time\t" << (m_start_time - m_boot_time) << endl
+         << "stop time\t" << (m_stop_time - m_boot_time) << endl
+         << "shutdown time\t" << (m_shutdown_time - m_boot_time) << endl;
+
+      m_core_manager->outputSummary(os);
+      os.close();
+   }
+   else
+   {
+      stringstream temp;
+      m_core_manager->outputSummary(temp);
+      assert(temp.str().length() == 0);
+   }
 
    delete m_lcp_thread;
    delete m_mcp_thread;
@@ -112,6 +133,16 @@ Simulator::~Simulator()
    delete m_transport;
 
    LOG_PRINT("End of simulator dtor...");
+}
+
+void Simulator::startTimer()
+{
+   m_start_time = getTime();
+}
+
+void Simulator::stopTimer()
+{
+   m_stop_time = getTime();
 }
 
 void Simulator::broadcastFinish()

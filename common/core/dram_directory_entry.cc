@@ -98,7 +98,7 @@ void DramDirectoryEntry::getDramDataLine(Byte* data_buffer)
 bool DramDirectoryEntry::addSharer(UInt32 sharer_rank)
 {
    assert(! sharers->at(sharer_rank));
-   if (number_of_sharers == DramDirectoryEntry::max_sharers)
+   if (number_of_sharers >= DramDirectoryEntry::max_sharers)
    {
       return (true);
    }

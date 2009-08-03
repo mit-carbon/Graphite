@@ -28,8 +28,6 @@ EXTERN_ENV
 #include "split.h"
 #include "global.h"
 
-#include "carbon_user.h"
-
 /************************************************************************/
 
 double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
@@ -82,10 +80,6 @@ double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
            cold-start effects.  Recommended to do this at the beginning of the
            second timestep; i.e. if (i == 2).
            */
-        if (i == 2) {
-           CarbonResetCacheCounters();
-        }
-
 
         /* initialize various shared sums */
         if (ProcID == 0) {

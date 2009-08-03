@@ -36,6 +36,8 @@ public:
    Config *getConfig() { return &m_config; }
    config::Config *getCfg() { return m_config_file; }
 
+   void startTimer();
+   void stopTimer();
    bool finished();
 
 private:
@@ -67,6 +69,11 @@ private:
 
    bool m_finished;
    UInt32 m_num_procs_finished;
+
+   UInt64 m_boot_time;
+   UInt64 m_start_time;
+   UInt64 m_stop_time;
+   UInt64 m_shutdown_time;
    
    static config::Config *m_config_file;
 };

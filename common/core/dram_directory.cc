@@ -19,6 +19,8 @@ DramDirectory::DramDirectory(core_id_t core_id, Network* network, ShmemPerfModel
    {
       m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
       max_sharers = Sim()->getCfg()->getInt("dram_dir/max_sharers");
+      m_limitless_hw_sharer_count = Sim()->getCfg()->getInt("dram_dir/limitless_hw_sharers");
+      m_limitless_software_trap_penalty = Sim()->getCfg()->getInt("dram_dir/limitless_software_trap_penalty");
    }
    catch(...)
    {
@@ -237,6 +239,15 @@ void DramDirectory::processSharedMemRequest(UInt32 requestor,
          // addSharer() return whether there is an eviction
          if (! dram_dir_entry->addSharer(requestor))
          {
+            if ( m_limitless_hw_sharer_count != 0 ) //using LimitLESS
+            {
+               //check to see if this initiates a software trap
+               if ( dram_dir_entry->numSharers() >= (SInt32) m_limitless_hw_sharer_count )
+               {
+                  m_shmem_perf_model->updateCycleCount(m_limitless_software_trap_penalty);
+               }
+            }
+            
             // Success, I can now just return the data to the requestor
             dram_dir_entry->setDState(DramDirectoryEntry::SHARED);
             sendDataLine(dram_dir_entry, requestor, CacheState::SHARED);

@@ -111,6 +111,8 @@ class DramDirectory
       SInt32 m_core_id;
       UInt32 m_total_cores;
       UInt32 m_cache_line_size;
+      UInt32 m_limitless_hw_sharer_count;
+      UInt32 m_limitless_software_trap_penalty;
       
       std::map<IntPtr, DramDirectoryEntry*> dram_directory_entries;
       //state for re-entering the Directory

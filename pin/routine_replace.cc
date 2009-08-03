@@ -194,12 +194,14 @@ void replacementMain (CONTEXT *ctxt)
 
 void enablePerformanceModelsInCurrentProcess()
 {
+   Sim()->startTimer();
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
       Sim()->getCoreManager()->getCoreFromIndex(i)->enablePerformanceModels();
 }
 
 void disablePerformanceModelsInCurrentProcess()
 {
+   Sim()->stopTimer();
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
       Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
 }

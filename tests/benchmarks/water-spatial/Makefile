@@ -1,6 +1,6 @@
 TARGET = water-spatial
 OBJECTS = bndry.o cnstnt.o cshift.o initia.o interf.o intraf.o kineti.o mdmain.o poteng.o predcor.o syscons.o water.o
-APP_FLAGS = < $(CURDIR)/input
+APP_FLAGS = \< $(CURDIR)/input
 MACROS := ../splash_support/c.m4.null.CARBON
 
 include ../splash_support/Makefile.config

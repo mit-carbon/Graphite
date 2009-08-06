@@ -25,9 +25,13 @@ DramPerfModel::DramPerfModel(Core* core)
    UInt32 total_cores = Sim()->getConfig()->getTotalCores();
    try
    {
+      float core_frequency = Sim()->getCfg()->getFloat("perf_model/core/frequency");
+      float dram_access_cost_in_nanoseconds = Sim()->getCfg()->getFloat("perf_model/dram/access_cost");
+      float offchip_bandwidth_in_GB_per_sec = Sim()->getCfg()->getFloat("perf_model/dram/offchip_bandwidth");
+      
       m_queueing_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queueing_model_enabled");
-      m_dram_access_cost = Sim()->getCfg()->getInt("perf_model/dram/access_cost");
-      m_dram_bandwidth =  Sim()->getCfg()->getFloat("perf_model/dram/offchip_bandwidth") / total_cores;
+      m_dram_access_cost = dram_access_cost_in_nanoseconds * core_frequency;
+      m_dram_bandwidth =  (offchip_bandwidth_in_GB_per_sec / core_frequency) / total_cores;
       moving_avg_window_size = Sim()->getCfg()->getInt("perf_model/dram/moving_avg_window_size");
       moving_avg_type = MovingAverage<UInt64>::parseAvgType(Sim()->getCfg()->getString("perf_model/dram/moving_avg_type"));
    }
@@ -72,7 +76,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
       queue_delay = 0;
    }
 
-   UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
+   UInt64 access_latency = queue_delay + processing_time + (UInt64) m_dram_access_cost;
 
    // Update Dram Counters
    m_num_accesses ++;

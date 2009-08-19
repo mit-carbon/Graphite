@@ -428,8 +428,9 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    // Right now, we handle only a subset of the functionality
    // assert the subset
 
-   LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == FUTEX_WAKE), "op = %u", op);
-   if (op == FUTEX_WAIT)
+   LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) \
+            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)), "op = %u", op);
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
       LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
    }
@@ -445,11 +446,11 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    core->accessMemory(Core::NONE, READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
 
-   if (op == FUTEX_WAIT)
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
       futexWait(core_id, uaddr, val, act_val, curr_time); 
    }
-   else if (op == FUTEX_WAKE)
+   else if ((op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)))
    {
       futexWake(core_id, uaddr, val, curr_time);
    }

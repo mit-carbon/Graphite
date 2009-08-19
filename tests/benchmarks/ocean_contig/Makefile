@@ -3,7 +3,7 @@ OBJECTS = jacobcalc.o jacobcalc2.o laplacalc.o linkup.o main.o multi.o slave1.o 
 APP_FLAGS = -p8
 
 MACROS := ../splash_support/c.m4.null.CARBON
-#MACROS := ../splash_support/c.m4.null.POSIX
+# MACROS := ../splash_support/c.m4.null.POSIX
 
 include ../splash_support/Makefile.config
 

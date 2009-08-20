@@ -19,26 +19,22 @@
 using namespace std;
 
 CoreManager::CoreManager()
-      :
-      tid_to_core_map(3*Config::getSingleton()->getNumLocalCores()),
-      tid_to_core_index_map(3*Config::getSingleton()->getNumLocalCores()),
-      simthread_tid_to_core_map(3*Config::getSingleton()->getNumLocalCores())
+      : m_core_tls(TLS::create())
+      , m_core_index_tls(TLS::create())
+      , m_thread_type_tls(TLS::create())
+      , m_num_registered_sim_threads(0)
 {
    LOG_PRINT("Starting CoreManager Constructor.");
 
    UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
-
-   tid_map = new UInt32 [num_local_cores];
-   core_to_simthread_tid_map = new UInt32 [num_local_cores];
 
    UInt32 proc_id = Config::getSingleton()->getCurrentProcessNum();
    const Config::CoreList &local_cores = Config::getSingleton()->getCoreListForProcess(proc_id);
 
    for (UInt32 i = 0; i < num_local_cores; i++)
    {
-      tid_map[i] = UINT_MAX;
-      core_to_simthread_tid_map[i] = UINT_MAX;
       m_cores.push_back(new Core(local_cores[i]));
+      m_initialized_cores.push_back(false);
    }
 
    LOG_PRINT("Finished CoreManager Constructor.");
@@ -49,17 +45,14 @@ CoreManager::~CoreManager()
    for (std::vector<Core *>::iterator i = m_cores.begin(); i != m_cores.end(); i++)
       delete *i;
 
-   delete [] core_to_simthread_tid_map;
-   delete [] tid_map;
+   delete m_core_tls;
+   delete m_core_index_tls;
+   delete m_thread_type_tls;
 }
 
 void CoreManager::initializeCommId(SInt32 comm_id)
 {
-   UInt32 tid = getCurrentTID();
-   pair<bool, UInt64> e = tid_to_core_map.find(tid);
-
-   LOG_ASSERT_ERROR(e.first, "initializeCommId: Called without binding thread to a core.");
-   core_id_t core_id = e.second;
+   core_id_t core_id = getCurrentCoreID();
 
    UnstructuredBuffer send_buff;
    send_buff << (SInt32)LCP_MESSAGE_COMMID_UPDATE << comm_id << core_id;
@@ -68,9 +61,7 @@ void CoreManager::initializeCommId(SInt32 comm_id)
 
    // Broadcast this update to other processes
 
-   e = tid_to_core_index_map.find(tid);
-   LOG_ASSERT_ERROR(e.first, "initializeCommId: tid mapped to core, but not to an index?");
-   UInt32 idx = (UInt32) e.second;
+   UInt32 idx = getCurrentCoreIndex();
 
    LOG_ASSERT_ERROR(idx < Config::getSingleton()->getNumLocalCores(), "CoreManager got and index [%d] out of range (0-%d).", 
          idx, Config::getSingleton()->getNumLocalCores());
@@ -99,27 +90,15 @@ void CoreManager::initializeCommId(SInt32 comm_id)
 
 void CoreManager::initializeThread()
 {
-   ScopedLock scoped_maps_lock(m_maps_lock);
-   UInt32 tid = getCurrentTID();
-   pair<bool, UInt64> e = tid_to_core_map.find(tid);
+   ScopedLock sl(m_initialized_cores_lock);
 
-   LOG_ASSERT_WARNING(e.first == false, "Thread: %d already mapped to core: %lld", tid, e.second);
-   const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
-
-   LOG_ASSERT_ERROR(core_list.size() == Config::getSingleton()->getNumLocalCores(),
-                    "Core list size different from num local cores? %d != %d", core_list.size(), Config::getSingleton()->getNumLocalCores());
-
-   for (UInt32 i = 0; i < core_list.size(); i++)
+   for (core_id_t i = 0; i < (core_id_t)m_initialized_cores.size(); i++)
    {
-      if (tid_map[i] == UINT_MAX)
-      {
-         core_id_t core_id = core_list[i];
-         tid_map[i] = tid;
-         tid_to_core_index_map.insert(tid, i);
-         tid_to_core_map.insert(tid, core_id);
-         LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid, core_id);
-         return;
-      }
+       if (!m_initialized_cores[i])
+       {
+           doInitializeThread(i);
+           return;
+       }
    }
 
    LOG_PRINT_ERROR("initializeThread - No free cores out of %d total.", Config::getSingleton()->getNumLocalCores());
@@ -127,104 +106,70 @@ void CoreManager::initializeThread()
 
 void CoreManager::initializeThread(core_id_t core_id)
 {
-   ScopedLock scoped_maps_lock(m_maps_lock);
-   UInt32 tid = getCurrentTID();
-   pair<bool, UInt64> e = tid_to_core_map.find(tid);
-
-   LOG_ASSERT_ERROR(e.first == false, "Tried to initialize core %d twice.", core_id);
+   ScopedLock sl(m_initialized_cores_lock);
 
    const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
-
    LOG_ASSERT_ERROR(core_list.size() == Config::getSingleton()->getNumLocalCores(),
                     "Core list size different from num local cores? %d != %d", core_list.size(), Config::getSingleton()->getNumLocalCores());
 
    for (UInt32 i = 0; i < core_list.size(); i++)
    {
       core_id_t local_core_id = core_list[i];
-      if(local_core_id == core_id)
+      if (local_core_id == core_id)
       {
-         if (tid_map[i] == UINT_MAX)
-         {
-            tid_map[i] = tid;
-            tid_to_core_index_map.insert(tid, i);
-            tid_to_core_map.insert(tid, core_id);
-            LOG_PRINT("Initialize thread : index %d mapped to: thread %d, core_id: %d", i, tid_map[i], core_id);
-            return;
-         }
-         else
-         {
-            LOG_PRINT_ERROR("initializeThread -- %d/%d already mapped to thread %d", i, Config::getSingleton()->getNumLocalCores(), tid_map[i]);
-         }
+          if (m_initialized_cores[i])
+              LOG_PRINT_ERROR("initializeThread -- %d/%d already mapped", i, Config::getSingleton()->getNumLocalCores());
+
+          doInitializeThread(i);
+          return;
       }
    }
 
    LOG_PRINT_ERROR("initializeThread - Requested core %d does not live on process %d.", core_id, Config::getSingleton()->getCurrentProcessNum());
 }
 
+void CoreManager::doInitializeThread(UInt32 core_index)
+{
+    m_core_tls->set(m_cores[core_index]);
+    m_core_index_tls->setInt(core_index);
+    m_thread_type_tls->setInt(APP_THREAD);
+    m_initialized_cores[core_index] = true;
+    LOG_PRINT("Initialize thread : index %d mapped to core: %p", core_index, m_cores[core_index]);
+    fprintf(stderr, "InitializeThread %d\n", core_index);
+}
+
 void CoreManager::terminateThread()
 {
-   ScopedLock scoped_maps_lock(m_maps_lock);
-   UInt32 tid = getCurrentTID();
-   LOG_PRINT("CoreManager::terminating thread: %d", tid);
-   pair<bool, UInt64> e = tid_to_core_map.find(tid);
+   LOG_ASSERT_WARNING(m_core_tls->get() != NULL, "Thread not initialized while terminating.");
 
-   LOG_ASSERT_WARNING(e.first == true, "Thread: %lld not initialized while terminating.", e.second);
-
-   // If it's not in the tid_to_core_map, well then we don't need to remove it
-   if(e.first == false)
-       return;
-
-   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
-   {
-      if (tid_map[i] == tid)
-      {
-         tid_map[i] = UINT_MAX;
-         tid_to_core_index_map.remove(tid);
-         tid_to_core_map.remove(tid);
-         LOG_PRINT("Terminate thread : removed %lld", e.second);
-         return;
-      }
-   }
-
-   LOG_PRINT_ERROR("terminateThread - Thread tid: %lld not found in list.", e.second);
+   m_core_tls->set(NULL);
+   m_core_index_tls->setInt(-1);
 }
 
 core_id_t CoreManager::getCurrentCoreID()
 {
-   core_id_t core_id;
-   UInt32 tid = getCurrentTID();
-
-   pair<bool, UInt64> e = tid_to_core_map.find(tid);
-   core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
-
-   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!");
-
-   return core_id;
+   Core *core = getCurrentCore();
+   if (!core)
+       return INVALID_CORE_ID;
+   else
+       return core->getId();
 }
 
 core_id_t CoreManager::getCurrentSimThreadCoreID()
 {
-   core_id_t core_id;
-   UInt32 tid = getCurrentTID();
-
-   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
-   core_id = (e.first == false) ? INVALID_CORE_ID : e.second;
-
-   LOG_ASSERT_ERROR(!e.first || core_id < (SInt32)Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCoreID!");
-
-   return core_id;
+    return getCurrentCoreID();
 }
 
 Core *CoreManager::getCurrentCore()
 {
-   Core *core;
-   UInt32 tid = getCurrentTID();
+    return m_core_tls->getPtr<Core>();
+}
 
-   pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
-   core = (e.first == false) ? NULL : m_cores[e.second];
-
-   LOG_ASSERT_ERROR(!e.first || e.second < Config::getSingleton()->getTotalCores(), "Illegal core_id value returned by getCurrentCore!");
-   return core;
+UInt32 CoreManager::getCurrentCoreIndex()
+{
+    UInt32 idx = m_core_index_tls->getInt();
+    LOG_ASSERT_ERROR(idx < m_cores.size(), "Invalid core index.");
+    return idx;
 }
 
 Core *CoreManager::getCoreFromID(core_id_t id)
@@ -275,77 +220,44 @@ UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
    return INVALID_CORE_ID;
 }
 
-UInt32 CoreManager::getCoreIndexFromTID(UInt32 tid)
-{
-   pair<bool, UInt64> e = tid_to_core_index_map.find(tid);
-   LOG_ASSERT_ERROR(e.first, "getCoreIndexFromTID: couldn't find core for tid: %d", tid);
-   return e.second;
-}
-
 core_id_t CoreManager::registerSimMemThread()
 {
-   UInt32 tid = getCurrentTID();
+    if (getCurrentCore() != NULL)
+    {
+        LOG_PRINT_ERROR("registerSimMemThread - Initialized thread twice");
+        return getCurrentCore()->getId();
+    }
 
-   ScopedLock sl(m_maps_lock);
-   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
+    ScopedLock sl(m_num_registered_sim_threads_lock);
 
-   // If this thread isn't registered
-   if (e.first == false)
-   {
-      // Search for an unused core to map this simthread thread to
-      // one less to account for the MCP
-      for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
-      {
-         // Unused slots are set to UINT_MAX
-         // FIXME: Use a different constant than UINT_MAX
-         if (core_to_simthread_tid_map[i] == UINT_MAX)
-         {
-            core_to_simthread_tid_map[i] = tid;
-            core_id_t core_id = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum())[i];
-            simthread_tid_to_core_map.insert(tid, core_id);
-            return core_id;
-         }
-      }
+    LOG_ASSERT_ERROR(m_num_registered_sim_threads < Config::getSingleton()->getNumLocalCores(),
+                     "All threads already registered. %d > %d",
+                     m_num_registered_sim_threads+1, Config::getSingleton()->getNumLocalCores());
 
-      LOG_PRINT("registerSimMemThread - No free cores for thread: %d", tid);
-      for (UInt32 j = 0; j < Config::getSingleton()->getNumLocalCores(); j++)
-         LOG_PRINT("core_to_simthread_tid_map[%d] = %d", j, core_to_simthread_tid_map[j]);
-      LOG_PRINT_ERROR("");
-   }
-   else
-   {
-      LOG_PRINT_WARNING("registerSimMemThread - Initialized thread twice");
-      // FIXME: I think this is OK
-      return simthread_tid_to_core_map.find(tid).second;
-   }
+    Core *core = m_cores.at(
+        Config::getSingleton()
+        ->getCoreListForProcess(
+            Config::getSingleton()->getCurrentProcessNum()
+            )
+        .at(m_num_registered_sim_threads));
 
-   return INVALID_CORE_ID;
+    m_core_tls->set(core);
+    m_core_index_tls->setInt(m_num_registered_sim_threads);
+    m_thread_type_tls->setInt(SIM_THREAD);
+
+    ++m_num_registered_sim_threads;
+
+    return core->getId();
 }
 
 bool CoreManager::amiSimThread()
 {
-   UInt32 tid = getCurrentTID();
-
-   ScopedLock sl(m_maps_lock);
-   pair<bool, UInt64> e = simthread_tid_to_core_map.find(tid);
-
-   return e.first == true;
+    return m_thread_type_tls->getInt() == SIM_THREAD;
 }
 
 bool CoreManager::amiUserThread()
 {
-   UInt32 tid = getCurrentTID();
-
-   ScopedLock sl(m_maps_lock);
-   pair<bool, UInt64> e = tid_to_core_map.find(tid);
-
-   return e.first == true;
-}
-
-
-UInt32 CoreManager::getCurrentTID()
-{
-   return  syscall(__NR_gettid);
+    return m_thread_type_tls->getInt() == APP_THREAD;
 }
 
 // -- outputSummary

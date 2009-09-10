@@ -11,9 +11,9 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "carbon_user.h"
-#include "capi.h"
 
 void* read_and_write(void * threadid);
 

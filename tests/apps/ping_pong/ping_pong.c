@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "carbon_user.h"
-#include "capi.h"
 
 void* ping_pong(void *threadid);
 

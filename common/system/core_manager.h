@@ -23,7 +23,7 @@ class CoreManager
       void initializeThread();
       void initializeThread(core_id_t core_id);
       void terminateThread();
-      core_id_t registerSimMemThread();
+      core_id_t registerSimThread();
 
       core_id_t getCurrentCoreID(); // id of currently active core (or INVALID_CORE_ID)
 

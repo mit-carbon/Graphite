@@ -224,7 +224,7 @@ UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
    return INVALID_CORE_ID;
 }
 
-core_id_t CoreManager::registerSimMemThread()
+core_id_t CoreManager::registerSimThread()
 {
     if (getCurrentCore() != NULL)
     {

@@ -53,7 +53,11 @@ CoreManager::~CoreManager()
 
 void CoreManager::initializeCommId(SInt32 comm_id)
 {
+   LOG_PRINT("initializeCommId - current core (id) = %p (%d)", getCurrentCore(), getCurrentCoreID());
+
    core_id_t core_id = getCurrentCoreID();
+
+   LOG_ASSERT_ERROR(core_id != INVALID_CORE_ID, "Unexpected invalid core id : %d", core_id);
 
    UnstructuredBuffer send_buff;
    send_buff << (SInt32)LCP_MESSAGE_COMMID_UPDATE << comm_id << core_id;

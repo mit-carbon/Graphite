@@ -38,9 +38,10 @@ private:
     TLS_KEY m_key;
 };
 
+#if 0
 // override PthreadTLS
-
 TLS* TLS::create()
 {
     return new PinTLS();
 }
+#endif

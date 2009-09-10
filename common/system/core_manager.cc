@@ -33,7 +33,8 @@ CoreManager::CoreManager()
 
    for (UInt32 i = 0; i < num_local_cores; i++)
    {
-      m_cores.push_back(new Core(local_cores[i]));
+       LOG_PRINT("Core[%u] == %d", i, local_cores.at(i));
+      m_cores.push_back(new Core(local_cores.at(i)));
       m_initialized_cores.push_back(false);
    }
 
@@ -66,7 +67,7 @@ void CoreManager::initializeCommId(SInt32 comm_id)
    LOG_ASSERT_ERROR(idx < Config::getSingleton()->getNumLocalCores(), "CoreManager got and index [%d] out of range (0-%d).", 
          idx, Config::getSingleton()->getNumLocalCores());
 
-   Network *network = m_cores[idx]->getNetwork();
+   Network *network = m_cores.at(idx)->getNetwork();
    Transport::Node *transport = Transport::getSingleton()->getGlobalNode();
    UInt32 num_procs = Config::getSingleton()->getProcessCount();
 
@@ -94,7 +95,7 @@ void CoreManager::initializeThread()
 
    for (core_id_t i = 0; i < (core_id_t)m_initialized_cores.size(); i++)
    {
-       if (!m_initialized_cores[i])
+       if (!m_initialized_cores.at(i))
        {
            doInitializeThread(i);
            return;
@@ -114,10 +115,10 @@ void CoreManager::initializeThread(core_id_t core_id)
 
    for (UInt32 i = 0; i < core_list.size(); i++)
    {
-      core_id_t local_core_id = core_list[i];
+      core_id_t local_core_id = core_list.at(i);
       if (local_core_id == core_id)
       {
-          if (m_initialized_cores[i])
+          if (m_initialized_cores.at(i))
               LOG_PRINT_ERROR("initializeThread -- %d/%d already mapped", i, Config::getSingleton()->getNumLocalCores());
 
           doInitializeThread(i);
@@ -130,17 +131,21 @@ void CoreManager::initializeThread(core_id_t core_id)
 
 void CoreManager::doInitializeThread(UInt32 core_index)
 {
-    m_core_tls->set(m_cores[core_index]);
+    m_core_tls->set(m_cores.at(core_index));
     m_core_index_tls->setInt(core_index);
     m_thread_type_tls->setInt(APP_THREAD);
-    m_initialized_cores[core_index] = true;
-    LOG_PRINT("Initialize thread : index %d mapped to core: %p", core_index, m_cores[core_index]);
-    fprintf(stderr, "InitializeThread %d\n", core_index);
+    m_initialized_cores.at(core_index) = true;
+    LOG_PRINT("Initialize thread : index %d mapped to core (id): %p (%d)", core_index, m_cores.at(core_index), m_cores.at(core_index)->getId());
+    LOG_ASSERT_ERROR(m_core_tls->get() == (void*)(m_cores.at(core_index)),
+                     "TLS appears to be broken. %p != %p", m_core_tls->get(), (void*)(m_cores.at(core_index)));
 }
 
 void CoreManager::terminateThread()
 {
    LOG_ASSERT_WARNING(m_core_tls->get() != NULL, "Thread not initialized while terminating.");
+
+   core_id_t core_index = m_core_index_tls->getInt();
+   m_initialized_cores.at(core_index) = false;
 
    m_core_tls->set(NULL);
    m_core_index_tls->setInt(-1);
@@ -183,7 +188,7 @@ Core *CoreManager::getCoreFromID(core_id_t id)
    {
       if (*i == id)
       {
-         core = m_cores[idx];
+         core = m_cores.at(idx);
          break;
       }
 
@@ -199,7 +204,7 @@ Core *CoreManager::getCoreFromIndex(UInt32 index)
 {
    LOG_ASSERT_ERROR(index < Config::getSingleton()->getNumLocalCores(), "getCoreFromIndex -- invalid index %d", index);
 
-   return m_cores[index];
+   return m_cores.at(index);
 }
 
 UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
@@ -231,15 +236,10 @@ core_id_t CoreManager::registerSimMemThread()
     ScopedLock sl(m_num_registered_sim_threads_lock);
 
     LOG_ASSERT_ERROR(m_num_registered_sim_threads < Config::getSingleton()->getNumLocalCores(),
-                     "All threads already registered. %d > %d",
+                     "All sim threads already registered. %d > %d",
                      m_num_registered_sim_threads+1, Config::getSingleton()->getNumLocalCores());
 
-    Core *core = m_cores.at(
-        Config::getSingleton()
-        ->getCoreListForProcess(
-            Config::getSingleton()->getCurrentProcessNum()
-            )
-        .at(m_num_registered_sim_threads));
+    Core *core = m_cores.at(m_num_registered_sim_threads);
 
     m_core_tls->set(core);
     m_core_index_tls->setInt(m_num_registered_sim_threads);

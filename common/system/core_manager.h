@@ -26,7 +26,6 @@ class CoreManager
       core_id_t registerSimMemThread();
 
       core_id_t getCurrentCoreID(); // id of currently active core (or INVALID_CORE_ID)
-      core_id_t getCurrentSimThreadCoreID(); // id of core associated with this sim thread (or INVALID_CORE_ID)
 
       Core *getCurrentCore();
       UInt32 getCurrentCoreIndex();

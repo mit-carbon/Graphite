@@ -164,11 +164,6 @@ core_id_t CoreManager::getCurrentCoreID()
        return core->getId();
 }
 
-core_id_t CoreManager::getCurrentSimThreadCoreID()
-{
-    return getCurrentCoreID();
-}
-
 Core *CoreManager::getCurrentCore()
 {
     return m_core_tls->getPtr<Core>();

@@ -1,4 +1,5 @@
 #include "tls.h"
+#include "log.h"
 #include <pin.H>
 
 class PinTLS : public TLS
@@ -26,7 +27,11 @@ public:
 
     void set(void *vp)
     {
-        PIN_SetThreadData(m_key, vp);
+        LOG_PRINT("%p->set(%p)", this, vp);
+        LOG_ASSERT_ERROR(
+            PIN_SetThreadData(m_key, vp),
+            "Error setting TLS -- pin tid = %d",
+            PIN_ThreadId());
     }
 
 private:

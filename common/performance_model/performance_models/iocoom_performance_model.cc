@@ -12,8 +12,6 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel()
    , m_register_scoreboard(512)
    , m_store_buffer(0)
    , m_load_unit(0)
-   , m_l1_icache(0)
-   , m_l1_dcache(0)
 {
    config::Config *cfg = Sim()->getCfg();
 
@@ -21,26 +19,6 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel()
    {
       m_store_buffer = new StoreBuffer(cfg->getInt("perf_model/core/num_store_buffer_entries",1));
       m_load_unit = new ExecutionUnit(cfg->getInt("perf_model/core/num_outstanding_loads",3));
-
-      if (cfg->getBool("perf_model/l1_icache/enable", false))
-      {
-         m_l1_icache = new ModeledCache(cfg->getInt("perf_model/l1_icache/line_size"),
-                                        cfg->getInt("perf_model/l1_icache/num_sets"),
-                                        cfg->getInt("perf_model/l1_icache/associativity"),
-                                        cfg->getInt("perf_model/l1_icache/victim_cache_size"),
-                                        cfg->getString("perf_model/l1_icache/replacement_policy") == "lru" ? ModeledCache::LRU : ModeledCache::RANDOM);
-         m_l1_icache_miss_penalty = cfg->getInt("perf_model/l1_icache/miss_penalty");
-      }
-
-      if (cfg->getBool("perf_model/l1_dcache/enable", false))
-      {
-         m_l1_dcache = new ModeledCache(cfg->getInt("perf_model/l1_dcache/line_size"),
-                                        cfg->getInt("perf_model/l1_dcache/num_sets"),
-                                        cfg->getInt("perf_model/l1_dcache/associativity"),
-                                        cfg->getInt("perf_model/l1_dcache/victim_cache_size"),
-                                        cfg->getString("perf_model/l1_dcache/replacement_policy") == "lru" ? ModeledCache::LRU : ModeledCache::RANDOM);
-         m_l1_dcache_access_time = cfg->getInt("perf_model/l1_dcache/access_time");
-      }
    }
    catch (...)
    {
@@ -55,8 +33,6 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel()
 
 IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
 {
-   delete m_l1_dcache;
-   delete m_l1_icache;
    delete m_load_unit;
    delete m_store_buffer;
 }
@@ -209,45 +185,32 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
 
 UInt64 IOCOOMPerformanceModel::executeLoad(const DynamicInstructionInfo &info)
 {
-   bool l2_hit = info.memory_info.num_misses == 0;
+   bool l1_hit = info.memory_info.num_misses == 0;
 
-   // similarly, a miss in the l2 with a completed entry in the store
+   // similarly, a miss in the l1 with a completed entry in the store
    // buffer is treated as an invalidation
    StoreBuffer::Status status = m_store_buffer->isAddressAvailable(m_cycle_count, info.memory_info.addr);
 
-   if ((status == StoreBuffer::VALID) || (l2_hit && status == StoreBuffer::COMPLETED))
+   if ((status == StoreBuffer::VALID) || (l1_hit && status == StoreBuffer::COMPLETED))
       return m_cycle_count;
 
-   // a miss in the l2 forces a miss in the l1 and store buffer since
-   // we assume an inclusive l2 cache (a miss in the l2 generally
-   // means the block has been invalidated)
-   bool l1_hit = m_l1_dcache && m_l1_dcache->access(info.memory_info.addr);
-   l1_hit = l1_hit && l2_hit;
-
-   UInt64 latency  = l1_hit ? m_l1_dcache_access_time : info.memory_info.latency;
+   // a miss in the l1 forces a miss in the store buffer
+   UInt64 latency  = info.memory_info.latency;
 
    return m_load_unit->execute(m_cycle_count, latency);
 }
 
 UInt64 IOCOOMPerformanceModel::executeStore(const DynamicInstructionInfo &info)
 {
-   bool l2_hit = info.memory_info.num_misses == 0;
-   bool l1_hit = m_l1_dcache && m_l1_dcache->access(info.memory_info.addr);
-   l1_hit = l1_hit && l2_hit;
-
-   UInt64 latency = l1_hit ? m_l1_dcache_access_time : info.memory_info.latency;
+   UInt64 latency = info.memory_info.latency;
 
    return m_store_buffer->executeStore(m_cycle_count, latency, info.memory_info.addr);
 }
 
 void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
 {
-   if (!m_l1_icache || addr == 0)
-      return;
-
-   bool hit = m_l1_icache->access(addr);
-   if (!hit)
-      m_cycle_count += m_l1_icache_miss_penalty;
+   // TODO: We need to rewrite this
+   return;
 }
 
 // Helper classes 

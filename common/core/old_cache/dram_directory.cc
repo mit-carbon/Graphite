@@ -205,7 +205,7 @@ void DramDirectory::processSharedMemRequest(UInt32 requestor,
       {
          startDemoteOwner(dram_dir_entry, CacheState::INVALID);
       }
-      else if (curr_dstate == DramDirectoryEntry::SHARED) // Number of sharers > 0
+      else if (curr_dstate == DramDirectoryEntry::SHARED)
       {
          startInvalidateAllSharers(dram_dir_entry);
       }
@@ -239,9 +239,9 @@ void DramDirectory::processSharedMemRequest(UInt32 requestor,
          // addSharer() return whether there is an eviction
          if (! dram_dir_entry->addSharer(requestor))
          {
-            if ( m_limitless_hw_sharer_count != 0 ) //using LimitLESS
+            if (m_limitless_hw_sharer_count != 0) //using LimitLESS
             {
-               //check to see if this initiates a software trap
+               // Check to see if this initiates a software trap
                if ( dram_dir_entry->numSharers() >= (SInt32) m_limitless_hw_sharer_count )
                {
                   m_shmem_perf_model->updateCycleCount(m_limitless_software_trap_penalty);

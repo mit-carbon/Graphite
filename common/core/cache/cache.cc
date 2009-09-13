@@ -4,136 +4,37 @@
 
 using namespace std;
 
-CacheBase::CacheBase(string name)
-   : m_name(name)
-{
-   try
-   {
-      m_cache_size = k_KILO * (Sim()->getCfg()->getInt("l2_cache/cache_size"));
-      m_blocksize = Sim()->getCfg()->getInt("l2_cache/line_size");
-      m_associativity = Sim()->getCfg()->getInt("l2_cache/associativity");
-   }
-   catch(...)
-   {
-      LOG_PRINT_ERROR("Error while reading cache parameters from the config file");
-   }
-   m_num_sets = m_cache_size / (m_associativity * m_blocksize);
-   m_log_blocksize = ceilLog2(m_blocksize);
-}
-
-CacheBase::~CacheBase() 
-{}
-
-CacheStats 
-CacheBase::sumAccess(bool hit) const
-{
-   CacheStats sum = 0;
-   for (UInt32 access_type = 0; access_type < NUM_ACCESS_TYPES; access_type++)
-   {
-      sum += m_access[access_type][hit];
-   }
-   return sum;
-}
-
-// stats
-CacheStats 
-CacheBase::getHits(AccessType access_type) const
-{
-   assert(access_type < NUM_ACCESS_TYPES);
-   return m_access[access_type][true];
-}
-
-CacheStats 
-CacheBase::getMisses(AccessType access_type) const
-{
-   assert(access_type < NUM_ACCESS_TYPES);
-   return m_access[access_type][false];
-}
-
-CacheStats 
-CacheBase::getAccesses(AccessType access_type) const
-{
-   return getHits(access_type) + getMisses(access_type); 
-}
-
-// utilities
-IntPtr 
-CacheBase::tagToAddress(IntPtr tag)
-{
-   return (tag << m_log_blocksize);
-}
-
-void 
-CacheBase::splitAddress(const IntPtr addr, IntPtr& tag, UInt32& set_index) const
-{
-   tag = addr >> m_log_blocksize;
-   set_index = tag & (m_num_sets-1);
-}
-
-void 
-CacheBase::splitAddress(const IntPtr addr, IntPtr& tag, UInt32& set_index,
-                  UInt32& block_offset) const
-{
-   block_offset = addr & (m_blocksize-1);
-   splitAddress(addr, tag, set_index);
-}
-
-
 // Cache class
 // constructors/destructors
-Cache::Cache(string name, ShmemPerfModel* shmem_perf_model) :
-      CacheBase(name),
+Cache::Cache(string name, 
+      UInt32 cache_size,
+      UInt32 associativity, UInt32 cache_block_size,
+      string replacement_policy,
+      cache_t cache_type,
+      UInt32 cache_access_time,
+      bool track_detailed_cache_counters,
+      ShmemPerfModel* shmem_perf_model) :
+
+      CacheBase(name, cache_size, associativity, cache_block_size),
       m_num_accesses(0),
       m_num_hits(0),
       m_num_cold_misses(0),
       m_num_capacity_misses(0),
       m_num_upgrade_misses(0),
       m_num_sharing_misses(0),
-      m_cache_counters_enabled(true)
+      m_track_detailed_cache_counters(track_detailed_cache_counters),
+      m_cache_counters_enabled(true),
+      m_cache_access_time(cache_access_time),
+      m_cache_type(cache_type),
+      m_shmem_perf_model(shmem_perf_model)
 {
-   CacheSet::ReplacementPolicy replacement_policy;
-   try
-   {
-      replacement_policy = CacheSet::parsePolicyType(Sim()->getCfg()->getString("l2_cache/replacement_policy"));
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Error reading cache replacement policy from the config file");
-      return;
-   }
-
    m_sets = new CacheSet*[m_num_sets];
    for (UInt32 i = 0; i < m_num_sets; i++)
    {
-      m_sets[i] = CacheSet::createCacheSet(replacement_policy, m_associativity, m_blocksize);
+      m_sets[i] = CacheSet::createCacheSet(replacement_policy, m_cache_type, m_associativity, m_blocksize);
    }
-
-   // Performance Models
-   CachePerfModelBase::CacheModel_t model_type;
-   try
-   {
-      model_type = CachePerfModelBase::parseModelType(Sim()->getCfg()->getString("perf_model/l2_cache/model_type"));
-   }
-   catch(...)
-   {
-      LOG_PRINT_ERROR("Error reading perf_model/l2_cache/model_type from config file");
-      return;
-   }
-   m_cache_perf_model = CachePerfModelBase::createModel(model_type);
-   m_shmem_perf_model = shmem_perf_model;
 
    // Detailed Cache Counters
-   try
-   {
-      m_track_detailed_cache_counters = Sim()->getCfg()->getBool("l2_cache/track_detailed_cache_counters");
-   }
-   catch(...)
-   {
-      LOG_PRINT_ERROR("Error reading cache/track_detailed_cache_counters from the config file");
-      return;
-   }
-
-   // Cache Counters
    if (m_track_detailed_cache_counters)
    {
       m_invalidated_set = new HashMapSet<IntPtr>(m_num_sets, &moduloHashFn<IntPtr>, m_log_blocksize);
@@ -146,14 +47,17 @@ Cache::~Cache()
    for (SInt32 i = 0; i < (SInt32) m_num_sets; i++)
       delete m_sets[i];
    delete [] m_sets;
+
+   if (m_track_detailed_cache_counters)
+   {
+      delete m_invalidated_set;
+      delete m_evicted_set;
+   }
 }
 
 bool 
 Cache::invalidateSingleLine(IntPtr addr)
 {
-   if (m_shmem_perf_model)
-      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
-
    IntPtr tag;
    UInt32 set_index;
 
@@ -168,11 +72,11 @@ Cache::invalidateSingleLine(IntPtr addr)
 }
 
 CacheBlockInfo* 
-Cache::accessSingleLine(IntPtr addr, AccessType access_type, 
+Cache::accessSingleLine(IntPtr addr, access_t access_type, 
       Byte* buff, UInt32 bytes)
 {
    if (m_shmem_perf_model)
-      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
+      m_shmem_perf_model->updateCycleCount(m_cache_access_time);
 
    assert((buff == NULL) == (bytes == 0));
 
@@ -189,7 +93,7 @@ Cache::accessSingleLine(IntPtr addr, AccessType access_type,
    if (cache_block_info == NULL)
       return NULL;
 
-   if (access_type == ACCESS_TYPE_LOAD)
+   if (access_type == LOAD)
       set->read_line(line_index, block_offset, buff, bytes);
    else
       set->write_line(line_index, block_offset, buff, bytes);
@@ -203,17 +107,20 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
       CacheBlockInfo* evict_block_info, Byte* evict_buff)
 {
    if (m_shmem_perf_model)
-      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_DATA_AND_TAGS));
+      m_shmem_perf_model->updateCycleCount(m_cache_access_time);
 
    IntPtr tag;
    UInt32 set_index;
    splitAddress(addr, tag, set_index);
 
-   CacheBlockInfo cache_block_info(tag);
+   CacheBlockInfo* cache_block_info = CacheBlockInfo::create(m_cache_type);
+   cache_block_info->setTag(tag);
 
-   m_sets[set_index]->insert(&cache_block_info, fill_buff, 
+   m_sets[set_index]->insert(cache_block_info, fill_buff, 
          eviction, evict_block_info, evict_buff);
    *evict_addr = tagToAddress(evict_block_info->getTag());
+
+   delete cache_block_info;
   
    // Update sets for the purpose of maintaining cache counters
    if (m_track_detailed_cache_counters && m_shmem_perf_model && m_shmem_perf_model->isEnabled())
@@ -232,7 +139,7 @@ CacheBlockInfo*
 Cache::peekSingleLine(IntPtr addr)
 {
    if (m_shmem_perf_model)
-      m_shmem_perf_model->updateCycleCount(m_cache_perf_model->getLatency(CachePerfModelBase::ACCESS_CACHE_TAGS));
+      m_shmem_perf_model->updateCycleCount(m_cache_access_time);
 
    IntPtr tag;
    UInt32 set_index;
@@ -242,12 +149,12 @@ Cache::peekSingleLine(IntPtr addr)
 }
 
 void
-Cache::updateCounters(IntPtr addr, CacheState cache_state, AccessType access_type)
+Cache::updateCounters(IntPtr addr, CacheState cache_state, access_t access_type)
 {
    if (!m_cache_counters_enabled)
       return;
 
-   if (access_type == ACCESS_TYPE_LOAD)
+   if (access_type == LOAD)
    {
       incrNumAccesses();
       if (cache_state.readable())

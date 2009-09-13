@@ -1,8 +1,13 @@
 #include "address_home_lookup.h"
-#include "simulator.h"
+#include "config.h"
 #include "log.h"
 
-AddressHomeLookup::AddressHomeLookup(core_id_t core_id)
+AddressHomeLookup::AddressHomeLookup(UInt32 ahl_param,
+      core_id_t core_id, 
+      UInt32 cache_block_size):
+   m_ahl_param(ahl_param),
+   m_core_id(core_id),
+   m_cache_block_size(cache_block_size)
 {
 
    // Each Block Address is as follows:
@@ -10,28 +15,11 @@ AddressHomeLookup::AddressHomeLookup(core_id_t core_id)
    //   block_num               |   block_offset                  //
    // /////////////////////////////////////////////////////////// //
 
-   m_core_id = core_id;
-
    m_total_cores = Config::getSingleton()->getTotalCores();
-   try
-   {
-      m_ahl_param = Sim()->getCfg()->getInt("dram_dir/ahl_param");
-      m_cache_line_size = Sim()->getCfg()->getInt("l2_cache/line_size");
-   }
-   catch(...)
-   {
-      LOG_PRINT_ERROR("Error Reading 'ahl_param' or 'l2_cache/line_size' from the config file");
-   }
 
-   assert ( (unsigned) (1 << m_ahl_param) >= m_cache_line_size);
-
-}
-
-UInt32 AddressHomeLookup::find_home_for_addr(IntPtr address) const
-{
-   UInt32 node = (address >> m_ahl_param) % m_total_cores;
-   assert(0 <= node && node < m_total_cores);
-   return (node);
+   LOG_ASSERT_ERROR((1 << m_ahl_param) >= (SInt32) m_cache_block_size,
+         "2^AHL param(%u) must be >= Cache Block Size(%u)",
+         m_ahl_param, m_cache_block_size);
 }
 
 AddressHomeLookup::~AddressHomeLookup()
@@ -39,19 +27,9 @@ AddressHomeLookup::~AddressHomeLookup()
    // There is no memory to deallocate, so destructor has no function
 }
 
-#if 0
-int main(int argc, char *argv[])
+UInt32 AddressHomeLookup::getHome(IntPtr address) const
 {
-
-   AddressHomeLookup addrLookupTable(13, 5, 0);
-
-   assert(addrLookupTable.find_home_for_addr((152 << 5) | 31) == 9);
-   assert(addrLookupTable.find_home_for_addr((0 << 5) | 0) == 0);
-   assert(addrLookupTable.find_home_for_addr((169 << 5) | 31) == 0);
-   assert(addrLookupTable.find_home_for_addr((168 << 5) | 31) == 12);
-   assert(addrLookupTable.find_home_for_addr(12345) == 8);
-
-   cout << "All Tests Passed\n";
+   core_id_t node = (address >> m_ahl_param) % m_total_cores;
+   assert(0 <= node && node < (core_id_t) m_total_cores);
+   return (node);
 }
-#endif
-

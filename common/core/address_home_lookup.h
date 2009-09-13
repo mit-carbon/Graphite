@@ -1,12 +1,7 @@
-#ifndef ADDRESSHOMELOOKUP_H_
-#define ADDRESSHOMELOOKUP_H_
+#ifndef __ADDRESS_HOME_LOOKUP_H__
+#define __ADDRESS_HOME_LOOKUP_H__
 
-#include <cassert>
-#include <iostream>
 #include "fixed_types.h"
-#include "config.h"
-
-using namespace std;
 
 /* 
  * TODO abstract MMU stuff to a configure file to allow
@@ -24,16 +19,17 @@ using namespace std;
 class AddressHomeLookup
 {
    public:
-      AddressHomeLookup(core_id_t core_id);
+      AddressHomeLookup(UInt32 ahl_param,
+            core_id_t core_id, 
+            UInt32 cache_block_size);
       ~AddressHomeLookup();
-      UInt32 find_home_for_addr(IntPtr address) const;
+      UInt32 getHome(IntPtr address) const;
 
    private:
       UInt32 m_total_cores;
       UInt32 m_ahl_param;
-      SInt32 m_core_id;
-      UInt32 m_cache_line_size;
+      core_id_t m_core_id;
+      UInt32 m_cache_block_size;
 };
 
-
-#endif /*ADDRESSHOMELOOKUP_H_*/
+#endif /* __HOME_LOOKUP_H__ */

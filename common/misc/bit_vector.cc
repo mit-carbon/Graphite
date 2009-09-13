@@ -8,9 +8,10 @@
 void BitVector::reset()
 {
    for (UInt32 i = 0; i < VECTOR_SIZE; i++)
-      words[i] = 0;
+      m_words[i] = 0;
 
-   last_pos = -1;
+   m_size = 0;
+   m_last_pos = -1;
 }
 
 /*
@@ -19,7 +20,7 @@ void BitVector::reset()
  */
 bool BitVector::resetFind()
 {
-   last_pos = -1;
+   m_last_pos = -1;
    return true; //maybe do something with this?
 }
 
@@ -38,15 +39,15 @@ bool BitVector::resetFind()
 SInt32 BitVector::find()
 {
 
-   int windex = (last_pos == -1) ? 0 : last_pos >> 6; //divide by 64
-   int word_count = (size + 64 -1)  >> 6;
+   int windex = (m_last_pos == -1) ? 0 : m_last_pos >> 6; //divide by 64
+   int word_count = (m_capacity + 64 -1)  >> 6;
 
    //walk through bitVector one word at a time
    //return when we find a set bit (whose pos is > last_pos)
    while (windex < word_count)
    {
 
-      UInt64 word64 = words[windex];
+      UInt64 word64 = m_words[windex];
 
       if (word64 != 0)
       {
@@ -84,9 +85,9 @@ SInt32 BitVector::find()
                               if (bTestBit(words8[k], l))
                               {
                                  int return_pos = 64*windex + 32*i + 16*j + 8*k + l;
-                                 if (return_pos > last_pos)
+                                 if (return_pos > m_last_pos)
                                  {
-                                    last_pos = return_pos;
+                                    m_last_pos = return_pos;
                                     return return_pos;
                                  }
                               }
@@ -102,7 +103,7 @@ SInt32 BitVector::find()
    }
 
    //if we get here, there is no set bit in bitVector (after the last_pos that is)
-   last_pos = -1;
+   m_last_pos = -1;
    return -1;
 }
 
@@ -112,6 +113,7 @@ bool BitVector::bTestBit(UInt8 byte_word, UInt32 bit)
 {
    assert(bit < 8);
 
+// UInt8 shift = bit & 0xF; i don't think this is necessary b/c of assert
    UInt8 one = 1;
    UInt8 mask = one << bit;
    return (byte_word & mask) ? true : false;
@@ -119,60 +121,70 @@ bool BitVector::bTestBit(UInt8 byte_word, UInt32 bit)
 
 bool BitVector::at(UInt32 bit)
 {
-   assert(bit < size);
+   assert(bit < m_capacity);
 
    UInt32 index = bit >> 6;
    UInt64 shift = bit & 63;
    UInt64 one   = 1;
    UInt64 mask  = one << shift;
-   return (words[index] & mask) ? true : false;
+   return (m_words[index] & mask) ? true : false;
 }
 
 void BitVector::set(UInt32 bit)
 {
-   assert(bit < size);
+   assert(bit < m_capacity);
 
    UInt32 index  = bit >> 6;
    UInt64 shift  = bit & 63;
    UInt64 one    = 1;
    UInt64 mask   = one << shift;
-   words[index] |= mask;
+   if (! at(bit))
+   {
+      m_words[index] |= mask;
+      m_size ++;
+   }
 }
 
 void BitVector::clear(UInt32 bit)
 {
-   assert(bit < size);
+   assert(bit < m_capacity);
 
    UInt32 index  = bit >> 6;
    UInt64 shift  = bit & 63;
    UInt64 one    = 1;
    UInt64 mask   = ~(one << shift);
-   words[index] &= mask;
+   if (at(bit))
+   {
+      m_words[index] &= mask;
+      m_size --;
+   }
 }
+
+#if BITVECT_DEBUG
 
 void BitVector::set(const BitVector& vec2)
 {
-   assert(size == vec2.size);
+   assert(m_capacity == vec2.m_capacity);
 
    for (UInt32 i = 0; i < VECTOR_SIZE; i++)
-      words[i] |= vec2.words[i];
+      words[i] |= vec2.m_words[i];
 }
 
 void BitVector::clear(const BitVector& vec2)
 {
-   assert(size == vec2.size);
+   assert(m_capacity == vec2.m_capacity);
 
    for (UInt32 i = 0; i < VECTOR_SIZE; i++)
-      words[i] &= ~vec2.words[i];
+      words[i] &= ~vec2.m_words[i];
 }
 
 bool BitVector::test(const BitVector& vec2)
 {
-   assert(vec2.size == size);
+   assert(vec2.m_capacity == m_capacity);
 
    for (UInt32 i = 0; i < VECTOR_SIZE; i++)
    {
-      if (vec2.words[i] & words[i])
+      if (vec2.m_words[i] & m_words[i])
          return true;
    }
 
@@ -180,11 +192,9 @@ bool BitVector::test(const BitVector& vec2)
 }
 
 
-#if BITVECT_DEBUG
-
 void BitVector::debug()
 {
-   assert(size > 68);
+   assert(m_capacity > 68);
 
    set(66);
    cout << "set(66) -> " << at(66) << endl;
@@ -195,7 +205,7 @@ void BitVector::debug()
    set(66);
    set(68);
 
-   BitVector vec2(size);
+   BitVector vec2(m_capacity);
    vec2.set(44);
 
    cout << "test( (1<<66 | 1<<68), (1<<44) ) -> " << test(vec2) << endl;

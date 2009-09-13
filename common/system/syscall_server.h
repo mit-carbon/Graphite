@@ -1,4 +1,3 @@
-// Jonathan Eastep, Charles Gruenwald, Jason Miller
 //
 // FIXME: this is a hack.
 //
@@ -21,7 +20,6 @@
 #include <sys/time.h>
 #include <errno.h>
 
-#include "shmem_req_types.h"
 #include "packetize.h"
 #include "transport.h"
 #include "fixed_types.h"

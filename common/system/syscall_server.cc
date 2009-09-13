@@ -165,7 +165,7 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
    int bytes = read(fd, (void *) buf, count);
 
    // Copy the memory into shared mem
-   m_network.getCore()->accessMemory(Core::NONE, WRITE, (IntPtr)dest, buf, count);
+   m_network.getCore()->accessMemory(Core::NONE, Core::WRITE, (IntPtr)dest, buf, count);
 
    m_send_buff << bytes;
    if (bytes != -1 && !Config::getSingleton()->isSimulatingSharedMemory())
@@ -443,7 +443,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    LOG_ASSERT_ERROR (core != NULL, "Core should not be NULL");
    int act_val;
 
-   core->accessMemory(Core::NONE, READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
 
    if (op == FUTEX_WAIT)
    {

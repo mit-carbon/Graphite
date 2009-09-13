@@ -79,7 +79,7 @@ void* SyscallMdl::copyArgToBuffer (unsigned int arg_num, IntPtr arg_addr, unsign
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad [arg_num];
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, READ, arg_addr, scratchpad, size);
+   core->accessMemory (Core::NONE, Core::READ, arg_addr, scratchpad, size);
    return (void*) scratchpad;
 }
    
@@ -89,7 +89,7 @@ void SyscallMdl::copyArgFromBuffer (unsigned int arg_num, IntPtr arg_addr, unsig
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad [arg_num];
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, WRITE, arg_addr, scratchpad, size);
+   core->accessMemory (Core::NONE, Core::WRITE, arg_addr, scratchpad, size);
 }
 
 // --------------------------------------------
@@ -236,7 +236,7 @@ carbon_reg_t SyscallMdl::marshallOpenCall(syscall_args_t &args)
    
    char *path_buf = new char [len_fname];
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, READ, (IntPtr) path, (char*) path_buf, len_fname);
+   core->accessMemory (Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    m_send_buff << len_fname << make_pair(path_buf, len_fname) << flags;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -344,7 +344,7 @@ carbon_reg_t SyscallMdl::marshallWriteCall(syscall_args_t &args)
    // I think this is a reasonable model and is definitely one less thing to keep
    // track of when you switch between shared-memory/no shared-memory
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, READ, (IntPtr) buf, (char*) write_buf, count);
+   core->accessMemory (Core::NONE, Core::READ, (IntPtr) buf, (char*) write_buf, count);
 
    m_send_buff << fd << count << make_pair(write_buf, count);
 
@@ -413,7 +413,7 @@ carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
    char *path_buf = new char [len_fname];
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, READ, (IntPtr) path, (char*) path_buf, len_fname);
+   core->accessMemory (Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    // pack the data
    m_send_buff << len_fname << make_pair(path_buf, len_fname) << mode;
@@ -517,7 +517,7 @@ carbon_reg_t SyscallMdl::marshallPipeCall (syscall_args_t &args)
    }
    
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) fd, (char*) fd_buff, 2 * sizeof(int));
+   core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) fd, (char*) fd_buff, 2 * sizeof(int));
       
    delete [](Byte*) recv_pkt.data;
 
@@ -570,7 +570,7 @@ carbon_reg_t SyscallMdl::marshallFstatCall (syscall_args_t &args)
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    // FIXME: Check that this is correct
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) buf, (char*) &buffer, sizeof(buffer));
+   core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) buf, (char*) &buffer, sizeof(buffer));
    
    return result;
 }
@@ -625,7 +625,7 @@ carbon_reg_t SyscallMdl::marshallIoctlCall (syscall_args_t &args)
    {
       m_recv_buff.get<struct termios> (argp_buf);
       Core *core = Sim()->getCoreManager()->getCurrentCore();
-      core->accessMemory (Core::NONE, WRITE, (IntPtr) argp, (char*) &argp_buf, sizeof (struct termios));
+      core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) argp, (char*) &argp_buf, sizeof (struct termios));
    }
    
    return ret;
@@ -903,7 +903,7 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
       if (timeout != NULL)
       {
-         core->accessMemory(Core::NONE, READ, (IntPtr) timeout, (char*) &timeout_buf, sizeof(timeout_buf));
+         core->accessMemory(Core::NONE, Core::READ, (IntPtr) timeout, (char*) &timeout_buf, sizeof(timeout_buf));
       }
       
       m_send_buff.put(uaddr);
@@ -970,7 +970,7 @@ UInt32 SyscallMdl::getStrLen (char *str)
    while (1)
    {
       Core *core = Sim()->getCoreManager()->getCurrentCore();
-      core->accessMemory (Core::NONE, READ, (IntPtr) ptr, &c, sizeof(char));
+      core->accessMemory (Core::NONE, Core::READ, (IntPtr) ptr, &c, sizeof(char));
       if (c != '\0')
       {
          len++;

@@ -13,9 +13,10 @@ class CacheState
    public:
       enum cstate_t
       {
-         INVALID,
-         EXCLUSIVE,
+         INVALID = 0,
          SHARED,
+         OWNED,
+         MODIFIED,
          NUM_CSTATE_STATES
       };
 
@@ -24,28 +25,12 @@ class CacheState
 
       bool readable()
       {
-         return (cstate == EXCLUSIVE) || (cstate == SHARED);
+         return (cstate == MODIFIED) || (cstate == SHARED);
       }
       
       bool writable()
       {
-         return (cstate == EXCLUSIVE);
-      }
-
-      static string cStateToString(cstate_t state)
-      {
-         switch (state)
-         {
-         case INVALID:
-            return "INVALID  ";
-         case EXCLUSIVE:
-            return "EXCLUSIVE";
-         case SHARED:
-            return "SHARED   ";
-         default:
-            return "ERROR: BAD CACHE STATE";
-         }
-         return "ERROR: SOMETHING BAD CACHE STATE";
+         return (cstate == MODIFIED);
       }
 
    private:

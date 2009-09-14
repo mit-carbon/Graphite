@@ -8,6 +8,7 @@ class Network;
 class MemoryManagerBase;
 class SyscallMdl;
 class SyncClient;
+class PerformanceModel;
 
 // FIXME: Move this out of here eventually
 class PinMemoryManager;
@@ -15,7 +16,7 @@ class PinMemoryManager;
 #include "mem_component.h"
 #include "fixed_types.h"
 #include "config.h"
-#include "perfmdl.h"
+#include "performance_model.h"
 #include "shmem_perf_model.h"
 
 #define REDIRECT_MEMORY 1
@@ -51,6 +52,8 @@ class Core
       Core(SInt32 id);
       ~Core();
 
+      void outputSummary(std::ostream &os);
+
       int coreSendW(int sender, int receiver, char *buffer, int size);
       int coreRecvW(int sender, int receiver, char *buffer, int size);
       
@@ -74,6 +77,9 @@ class Core
       SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       SyncClient *getSyncClient() { return m_sync_client; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
+      void enablePerformanceModels();
+      void disablePerformanceModels();
 
    private:
       core_id_t m_core_id;

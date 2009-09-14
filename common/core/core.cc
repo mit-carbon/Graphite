@@ -5,9 +5,8 @@
 #include "network_types.h"
 #include "memory_manager_base.h"
 #include "pin_memory_manager.h"
+#include "performance_model.h"
 #include "log.h"
-#include "profile.h"
-#include "profile_info.h"
 
 using namespace std;
 
@@ -20,27 +19,23 @@ Core::Core(SInt32 id)
 
    m_network = new Network(this);
 
-   if (Config::getSingleton()->getEnablePerformanceModeling())
-   {
-      m_perf_model = new PerfModel("performance modeler");
-   }
-   else
-   {
-      m_perf_model = (PerfModel *) NULL;
-   }
+   m_performance_model = PerformanceModel::create();
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_pin_memory_manager = new PinMemoryManager(this);
-      LOG_PRINT("instantiated shared memory performance model");
-      m_shmem_perf_model = new ShmemPerfModel();
       LOG_PRINT("instantiated memory manager model");
       m_memory_manager = MemoryManagerBase::createMMU(
             MemoryManagerBase::PR_L1_PR_L2_DRAM_DIR, this, m_network);
+      m_pin_memory_manager = new PinMemoryManager(this);
+      LOG_PRINT("instantiated shared memory performance model");
+      m_shmem_perf_model = new ShmemPerfModel();
    }
    else
    {
       m_memory_manager = (MemoryManagerBase *) NULL;
+      m_pin_memory_manager = (PinMemoryManager*) NULL;
+      m_shmem_perf_model = (ShmemPerfModel*) NULL;
+
       LOG_PRINT("No Memory Manager being used");
    }
 
@@ -54,9 +49,9 @@ Core::~Core()
    delete m_syscall_model;
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
+      delete m_shmem_perf_model;
       delete m_pin_memory_manager;
       delete m_memory_manager;
-      delete m_shmem_perf_model;
    }
    delete m_performance_model;
    delete m_network;

@@ -1,4 +1,5 @@
 #include "cache_set.h"
+#include "cache_base.h"
 #include "log.h"
 
 CacheSet::CacheSet(CacheBase::cache_t cache_type,
@@ -129,7 +130,7 @@ CacheSet::createCacheSet (std::string replacement_policy,
          break;
    }
 
-   return (CacheSetBase*) NULL;
+   return (CacheSet*) NULL;
 }
 
 CacheBase::ReplacementPolicy 

@@ -147,7 +147,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          struct mmap_arg_struct mmap_arg_buf;
          struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) PIN_GetContextReg (ctx, REG_GBX);
 
-         core->accessMemory (Core::NONE, READ, (IntPtr) mmap_args_ptr, (char*) &mmap_arg_buf, sizeof (struct mmap_arg_struct));
+         core->accessMemory (Core::NONE, Core::READ, (IntPtr) mmap_args_ptr, (char*) &mmap_arg_buf, sizeof (struct mmap_arg_struct));
 
          SyscallMdl::syscall_args_t args;
          args.arg0 = (int) &mmap_arg_buf;
@@ -348,7 +348,7 @@ void contextChange (THREADID threadIndex, CONTEXT_CHANGE_REASON context_change_r
          Core *core = Sim()->getCoreManager()->getCurrentCore();
          if (core)
          {
-            core->accessMemory (Core::NONE, WRITE, esp_to, (char*) esp_to, esp_from - esp_to + 1);
+            core->accessMemory (Core::NONE, Core::WRITE, esp_to, (char*) esp_to, esp_from - esp_to + 1);
          }
       }
    }

@@ -2,6 +2,8 @@ SIM_ROOT ?= $(CURDIR)/../
 
 DIRECTORIES = $(SIM_ROOT)/common/core/        \
           $(SIM_ROOT)/common/core/cache/      \
+			 $(SIM_ROOT)/common/core/directory_schemes	\
+			 $(SIM_ROOT)/common/core/pr_l1_pr_l2_dram_directory	\
           $(SIM_ROOT)/common/network/         \
           $(SIM_ROOT)/common/transport/       \
           $(SIM_ROOT)/common/misc/            \

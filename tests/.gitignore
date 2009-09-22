@@ -20,12 +20,12 @@ apps/1d_jacobi/jacobi
 # benchmarks
 benchmarks/barnes/*.[ch]
 benchmarks/barnes/barnes
+benchmarks/blackscholes/blackscholes
 benchmarks/fmm/*.[ch]
 benchmarks/fmm/fmm
 benchmarks/ocean_contig/*.[ch]
-benchmarks/ocean_contig/ocean
-benchmarks/radiosity/*.[ch]
-benchmarks/radiosity/radiosity
+benchmarks/ocean_contig/ocean_contig
+benchmarks/ocean_non_contiguous/ocean_non_contig
 benchmarks/volrend/*.[ch]
 benchmarks/volrend/volrend
 benchmarks/water-nsquared/*.[ch]
@@ -33,5 +33,19 @@ benchmarks/water-nsquared/water-nsquared
 benchmarks/water-spatial/*.[ch]
 benchmarks/water-spatial/water-spatial
 benchmarks/raytrace/*.[ch]
+benchmarks/raytrace/raytrace
+benchmarks/radiosity/*.[ch]
+benchmarks/radiosity/radiosity
 benchmarks/radiosity/glibdumb/glib.a
 benchmarks/radiosity/glibps/glibps.a
+benchmarks/fft/*[.ch]
+benchmarks/fft/fft
+benchmarks/radix/*.[ch]
+benchmarks/radix/radix
+benchmarks/lu_contiguous/*.[ch]
+benchmarks/lu_contiguous/lu_contig
+benchmarks/lu_non_contiguous/*.[ch]
+benchmarks/lu_non_contiguous/lu_noncontig
+benchmarks/cholesky/*.[ch]
+benchmarks/cholesky/cholesky
+

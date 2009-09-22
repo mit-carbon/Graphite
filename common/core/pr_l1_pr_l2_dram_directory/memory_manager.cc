@@ -14,44 +14,44 @@ MemoryManager::MemoryManager(Core* core,
    m_inter_dram_cntlr_distance(0)
 {
    // Read Parameters from the Config file
-   float core_frequency;
+   float core_frequency = 0.0;
 
-   UInt32 l1_icache_size;
-   UInt32 l1_icache_associativity;
+   UInt32 l1_icache_size = 0;
+   UInt32 l1_icache_associativity = 0;
    std::string l1_icache_replacement_policy;
-   UInt32 l1_icache_data_access_time;
-   UInt32 l1_icache_tags_access_time;
+   UInt32 l1_icache_data_access_time = 0;
+   UInt32 l1_icache_tags_access_time = 0;
    std::string l1_icache_perf_model_type;
 
-   UInt32 l1_dcache_size;
-   UInt32 l1_dcache_associativity;
+   UInt32 l1_dcache_size = 0;
+   UInt32 l1_dcache_associativity = 0;
    std::string l1_dcache_replacement_policy;
-   bool l1_dcache_track_detailed_counters;
-   UInt32 l1_dcache_data_access_time;
-   UInt32 l1_dcache_tags_access_time;
+   bool l1_dcache_track_detailed_counters = false;
+   UInt32 l1_dcache_data_access_time = 0;
+   UInt32 l1_dcache_tags_access_time = 0;
    std::string l1_dcache_perf_model_type;
 
-   UInt32 l2_cache_size;
-   UInt32 l2_cache_associativity;
+   UInt32 l2_cache_size = 0;
+   UInt32 l2_cache_associativity = 0;
    std::string l2_cache_replacement_policy;
-   bool l2_cache_track_detailed_counters;
-   UInt32 l2_cache_data_access_time;
-   UInt32 l2_cache_tags_access_time;
+   bool l2_cache_track_detailed_counters = false;
+   UInt32 l2_cache_data_access_time = 0;
+   UInt32 l2_cache_tags_access_time = 0;
    std::string l2_cache_perf_model_type;
 
-   UInt32 dram_directory_total_entries;
-   UInt32 dram_directory_associativity;
-   UInt32 dram_directory_max_num_sharers;
-   UInt32 dram_directory_max_hw_sharers;
-   string dram_directory_type_str;
-   UInt32 dram_directory_home_lookup_param;
-   UInt32 dram_directory_cache_access_time;
+   UInt32 dram_directory_total_entries = 0;
+   UInt32 dram_directory_associativity = 0;
+   UInt32 dram_directory_max_num_sharers = 0;
+   UInt32 dram_directory_max_hw_sharers = 0;
+   std::string dram_directory_type_str;
+   UInt32 dram_directory_home_lookup_param = 0;
+   UInt32 dram_directory_cache_access_time = 0;
 
-   float dram_access_cost;
-   float total_dram_bandwidth;
-   bool dram_controller_present_on_every_core;
-   bool dram_queue_model_enabled;
-   UInt32 dram_queue_model_moving_avg_window_size;
+   float dram_access_cost = 0.0;
+   float total_dram_bandwidth = 0.0;
+   bool dram_controller_present_on_every_core = false;
+   bool dram_queue_model_enabled = false;
+   UInt32 dram_queue_model_moving_avg_window_size = 0;
    std::string dram_queue_model_moving_avg_type;
 
    try

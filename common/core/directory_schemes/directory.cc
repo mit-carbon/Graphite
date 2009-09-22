@@ -66,16 +66,18 @@ Directory::createDirectoryEntry(DirectoryType directory_type)
          return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
 
       case LIMITLESS:
-         UInt32 software_trap_penalty;
-         try
          {
-            software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
+            UInt32 software_trap_penalty = 0;
+            try
+            {
+               software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
+            }
+            catch (...)
+            {
+               LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
+            }
+            return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, software_trap_penalty);
          }
-         catch (...)
-         {
-            LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
-         }
-         return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, software_trap_penalty);
 
       default:
          LOG_PRINT_ERROR("Unrecognized Directory Type: %u", directory_type);

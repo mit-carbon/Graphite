@@ -18,6 +18,7 @@ namespace PrL1PrL2DramDirectory
 #include "semaphore.h"
 #include "lock.h"
 #include "fixed_types.h"
+#include "shmem_perf_model.h"
 
 namespace PrL1PrL2DramDirectory
 {
@@ -36,36 +37,28 @@ namespace PrL1PrL2DramDirectory
 
          Lock m_l2_cache_lock;
          Semaphore* m_mmu_sem;
-         UInt32 m_locks_bitvec;
 
-         PrL2CacheBlockInfo** m_stashed_block_info_list;
-         IntPtr* m_stashed_address_list;
-         UInt32 m_stash_size;
+         ShmemPerfModel* m_shmem_perf_model;
 
          // L2 Cache meta-data operations
-         CacheState::cstate_t getCacheState(IntPtr address);
-         void setCacheState(IntPtr address, CacheState::cstate_t cstate);
-
-         // Whether it is present in the L1 cache
-         void setCachedLoc(IntPtr address, MemComponent::component_t mem_component);
-         void clearCachedLoc(IntPtr address, MemComponent::component_t mem_component);
-         MemComponent::component_t getCachedLoc(IntPtr address);
+         CacheState::cstate_t getCacheState(PrL2CacheBlockInfo* l2_cache_block_info);
+         void setCacheState(PrL2CacheBlockInfo* l2_cache_block_info, CacheState::cstate_t cstate);
 
          // L2 Cache data operations
          void invalidateCacheBlock(IntPtr address);
          void retrieveCacheBlock(IntPtr address, Byte* data_buf);
-         void insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte* data_buf);
+         PrL2CacheBlockInfo* insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte* data_buf);
 
          // L1 Cache data manipulations
          void setCacheStateInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::cstate_t cstate);
          void invalidateCacheBlockInL1(MemComponent::component_t mem_component, IntPtr address);
-         void insertCacheBlockInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::cstate_t cstate, Byte* data_buf);
+         void insertCacheBlockInL1(MemComponent::component_t mem_component, IntPtr address, PrL2CacheBlockInfo* l2_cache_block_info, CacheState::cstate_t cstate, Byte* data_buf);
 
          // Process Request from L1 Cache
          void processExReqFromL1Cache(ShmemMsg* shmem_msg);
          void processShReqFromL1Cache(ShmemMsg* shmem_msg);
          // Check if msg from L1 ends in the L2 cache
-         bool shmemReqEndsInL2Cache(ShmemMsg::msg_t msg_type, IntPtr address);
+         bool shmemReqEndsInL2Cache(ShmemMsg::msg_t msg_type, CacheState::cstate_t cstate);
 
          // Process Request from Dram Dir
          void processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
@@ -74,27 +67,12 @@ namespace PrL1PrL2DramDirectory
          void processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
          void processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
 
-         // Some L2 Cache Block Info is always stashed for future use
-         // This is done for making code cleaner as well as in
-         // performance modelling
          PrL2CacheBlockInfo* getCacheBlockInfo(IntPtr address);
-         SInt32 getStashIndex(IntPtr address);
-         SInt32 getFreeStashIndex(IntPtr address);
-         void dropStash(IntPtr address);
-         void invalidateStash(void);
-
-         // Acquiring and Releasing Locks
-         void acquireNeededLocks(ShmemMsg::msg_t msg_type, IntPtr address);
-         void releaseAllLocks(void);
-         void setLockAcquired(MemComponent::component_t mem_component);
-         void setLockReleased(MemComponent::component_t mem_component);
-         bool isLockAcquired(MemComponent::component_t mem_component);
-         bool areAllLocksReleased(void);
 
          // Cache Block Size
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
-
          MemoryManager* getMemoryManager() { return m_memory_manager; }
+         ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
          // Wake up User Thread
          void wakeUpUserThread(void);
@@ -102,18 +80,24 @@ namespace PrL1PrL2DramDirectory
          // Dram Directory Home Lookup
          core_id_t getHome(IntPtr address) { return m_dram_directory_home_lookup->getHome(address); }
 
+         MemComponent::component_t acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address);
+
       public:
 
          L2CacheCntlr(core_id_t core_id,
                MemoryManager* memory_manager,
                L1CacheCntlr* l1_cache_cntlr,
+               AddressHomeLookup* dram_directory_home_lookup,
                Semaphore* mmu_sem,
                UInt32 cache_block_size,
                UInt32 l2_cache_size, UInt32 l2_cache_associativity,
                std::string l2_cache_replacement_policy,
-               UInt32 l2_cache_access_time,
                bool l2_cache_track_detailed_counters,
-               AddressHomeLookup* dram_directory_home_lookup);
+               UInt32 l2_cache_data_access_time,
+               UInt32 l2_cache_tags_access_time,
+               std::string l2_cache_perf_model_type,
+               ShmemPerfModel* shmem_perf_model);
+         
          ~L2CacheCntlr();
 
          // Handle Request from L1 Cache - This is done for better simulator performance

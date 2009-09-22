@@ -9,95 +9,59 @@ namespace PrL1PrL2DramDirectory
 L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
       MemoryManager* memory_manager,
       L1CacheCntlr* l1_cache_cntlr,
+      AddressHomeLookup* dram_directory_home_lookup,
       Semaphore* mmu_sem,
       UInt32 cache_block_size,
       UInt32 l2_cache_size, UInt32 l2_cache_associativity,
       std::string l2_cache_replacement_policy,
-      UInt32 l2_cache_access_time,
       bool l2_cache_track_detailed_counters,
-      AddressHomeLookup* dram_directory_home_lookup):
+      UInt32 l2_cache_data_access_time,
+      UInt32 l2_cache_tags_access_time,
+      std::string l2_cache_perf_model_type,
+      ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_l1_cache_cntlr(l1_cache_cntlr),
    m_dram_directory_home_lookup(dram_directory_home_lookup),
    m_core_id(core_id),
    m_cache_block_size(cache_block_size),
    m_mmu_sem(mmu_sem),
-   m_locks_bitvec(0),
-   m_stash_size(2)
+   m_shmem_perf_model(shmem_perf_model)
 {
    m_l2_cache = new Cache("l2_cache",
          l2_cache_size, 
-         l2_cache_associativity, cache_block_size, 
+         l2_cache_associativity, 
+         m_cache_block_size, 
          l2_cache_replacement_policy, 
          CacheBase::PR_L2_CACHE,
-         l2_cache_access_time,
          l2_cache_track_detailed_counters,
-         NULL /* Change this later */); 
-
-   // Initialized the Stashed info
-   m_stashed_block_info_list = new PrL2CacheBlockInfo*[m_stash_size];
-   m_stashed_address_list = new IntPtr[m_stash_size];
-   for (SInt32 i = 0; i < (SInt32) m_stash_size; i++)
-   {
-      m_stashed_block_info_list[i] = (PrL2CacheBlockInfo*) NULL;
-      m_stashed_address_list[i] = INVALID_ADDRESS;
-   }
+         l2_cache_data_access_time,
+         l2_cache_tags_access_time,
+         l2_cache_perf_model_type,
+         m_shmem_perf_model); 
 }
 
 L2CacheCntlr::~L2CacheCntlr()
 {
    delete m_l2_cache;
+}
 
-   delete [] m_stashed_block_info_list;
-   delete [] m_stashed_address_list;
+PrL2CacheBlockInfo*
+L2CacheCntlr::getCacheBlockInfo(IntPtr address)
+{
+   return (PrL2CacheBlockInfo*) m_l2_cache->peekSingleLine(address);
 }
 
 CacheState::cstate_t
-L2CacheCntlr::getCacheState(IntPtr address)
+L2CacheCntlr::getCacheState(PrL2CacheBlockInfo* l2_cache_block_info)
 {
-   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
-   if (l2_cache_block_info == NULL)
-      return CacheState::INVALID;
-   else
-      return l2_cache_block_info->getCState();
+   return (l2_cache_block_info == NULL) ? CacheState::INVALID : l2_cache_block_info->getCState();
 }
 
 void
-L2CacheCntlr::setCacheState(IntPtr address, CacheState::cstate_t cstate)
+L2CacheCntlr::setCacheState(PrL2CacheBlockInfo* l2_cache_block_info, CacheState::cstate_t cstate)
 {
-   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
    assert(l2_cache_block_info);
    l2_cache_block_info->setCState(cstate);
-}
-
-void
-L2CacheCntlr::setCachedLoc(IntPtr address, MemComponent::component_t mem_component)
-{
-   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
-   assert(l2_cache_block_info);
-
-   LOG_ASSERT_ERROR(l2_cache_block_info->getCachedLoc() == MemComponent::INVALID_MEM_COMPONENT, "l2_cache_block_info->cached_loc(%u)", l2_cache_block_info->getCachedLoc());
-   
-   l2_cache_block_info->setCachedLoc(mem_component);
-}
-
-void
-L2CacheCntlr::clearCachedLoc(IntPtr address, MemComponent::component_t mem_component)
-{
-   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
-   assert(l2_cache_block_info);
-   assert(l2_cache_block_info->getCachedLoc() == mem_component);
-   l2_cache_block_info->setCachedLoc(MemComponent::INVALID_MEM_COMPONENT);
-}
-
-MemComponent::component_t
-L2CacheCntlr::getCachedLoc(IntPtr address)
-{
-   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
-   if (l2_cache_block_info == NULL)
-      return MemComponent::INVALID_MEM_COMPONENT;
-   else
-      return l2_cache_block_info->getCachedLoc();
 }
 
 void
@@ -120,7 +84,7 @@ L2CacheCntlr::writeCacheBlock(IntPtr address, UInt32 offset, Byte* data_buf, UIn
    assert(l2_cache_block_info);
 }
 
-void
+PrL2CacheBlockInfo*
 L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte* data_buf)
 {
    // TODO: Validate assumption that L1 caches are write-through
@@ -131,13 +95,13 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
 
    m_l2_cache->insertSingleLine(address, data_buf,
          &eviction, &evict_address, &evict_block_info, evict_buf);
-   setCacheState(address, cstate);
-
+   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
+   setCacheState(l2_cache_block_info, cstate);
 
    if (eviction)
    {
       LOG_PRINT("Eviction: addr(0x%x)", evict_address);
-      invalidateCacheBlockInL1(evict_block_info.getCachedLoc(), evict_address); 
+      invalidateCacheBlockInL1(evict_block_info.getCachedLoc(), evict_address);
 
       UInt32 home_node_id = getHome(evict_address);
       if (evict_block_info.isDirty())
@@ -152,6 +116,8 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
          getMemoryManager()->sendMsg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIR, home_node_id, evict_address);
       }
    }
+
+   return l2_cache_block_info;
 }
 
 void
@@ -170,7 +136,8 @@ L2CacheCntlr::invalidateCacheBlockInL1(MemComponent::component_t mem_component, 
 
 void
 L2CacheCntlr::insertCacheBlockInL1(MemComponent::component_t mem_component,
-      IntPtr address, CacheState::cstate_t cstate, Byte* data_buf)
+      IntPtr address, PrL2CacheBlockInfo* l2_cache_block_info,
+      CacheState::cstate_t cstate, Byte* data_buf)
 {
    bool eviction;
    IntPtr evict_address;
@@ -179,35 +146,31 @@ L2CacheCntlr::insertCacheBlockInL1(MemComponent::component_t mem_component,
    m_l1_cache_cntlr->insertCacheBlock(mem_component, address, cstate, data_buf, &eviction, &evict_address);
 
    // Set the Present bit in L2 Cache corresponding to the inserted block
-   LOG_PRINT("insertCacheBlockInL1(): Starting to set cached loc for new cache block");
-   setCachedLoc(address, mem_component);
-   LOG_PRINT("insertCacheBlockInL1(): Finished setting cached loc for new cache block");
+   l2_cache_block_info->setCachedLoc(mem_component);
 
    if (eviction)
    {
       // Clear the Present bit in L2 Cache corresponding to the evicted block
-      clearCachedLoc(evict_address, mem_component);
+      PrL2CacheBlockInfo* evict_block_info = getCacheBlockInfo(evict_address);
+      evict_block_info->clearCachedLoc(mem_component);
    }
 }
 
 bool
 L2CacheCntlr::processShmemReqFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type, IntPtr address)
 {
-   bool shmem_req_ends_in_l2_cache = shmemReqEndsInL2Cache(msg_type, address);
+   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
+   CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
+
+   bool shmem_req_ends_in_l2_cache = shmemReqEndsInL2Cache(msg_type, cstate);
    if (shmem_req_ends_in_l2_cache)
    {
-      CacheState::cstate_t cstate;
       Byte data_buf[getCacheBlockSize()];
-      
-      cstate = getCacheState(address);
       retrieveCacheBlock(address, data_buf);
 
-      insertCacheBlockInL1(req_mem_component, address, cstate, data_buf);
+      insertCacheBlockInL1(req_mem_component, address, l2_cache_block_info, cstate, data_buf);
    }
    
-   // Remove Stashed contents
-   invalidateStash();
-
    return shmem_req_ends_in_l2_cache;
 }
 
@@ -218,8 +181,8 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->m_msg_type;
    MemComponent::component_t sender_mem_component = shmem_msg->m_sender_mem_component;
 
-   acquireNeededLocks(shmem_msg_type, address);
-  
+   acquireLock();
+
    assert(shmem_msg->m_data_buf == NULL);
    assert(shmem_msg->m_data_length == 0);
 
@@ -239,7 +202,7 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
          break;
    }
 
-   releaseAllLocks();
+   releaseLock();
 }
 
 void
@@ -248,7 +211,9 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemMsg* shmem_msg)
    // We need to send a request to the Dram Directory Cache
    IntPtr address = shmem_msg->m_address;
 
-   CacheState::cstate_t cstate = getCacheState(address);
+   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
+   CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
+
    assert((cstate == CacheState::INVALID) || (cstate == CacheState::SHARED));
    if (cstate == CacheState::SHARED)
    {
@@ -273,9 +238,11 @@ L2CacheCntlr::handleMsgFromDramDirectory(
       core_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->m_msg_type;
+   IntPtr address = shmem_msg->m_address;
 
    // Acquire Locks
-   acquireNeededLocks(shmem_msg_type, shmem_msg->m_address);
+   MemComponent::component_t caching_mem_component = acquireL1CacheLock(shmem_msg_type, address);
+   acquireLock();
 
    switch (shmem_msg_type)
    {
@@ -298,13 +265,11 @@ L2CacheCntlr::handleMsgFromDramDirectory(
          LOG_PRINT_ERROR("Unrecognized msg type: %u", shmem_msg_type);
          break;
    }
-   // Invalidate the Stashed Meta-data pointers
-   LOG_PRINT("handleMsgFromDramDirectory: Starting to invalidate Stash");
-   invalidateStash();
-   LOG_PRINT("handleMsgFromDramDirectory: Finished invalidating Stash");
 
    // Release Locks
-   releaseAllLocks();
+   releaseLock();
+   if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
+      m_l1_cache_cntlr->releaseLock(caching_mem_component);
 }
 
 void
@@ -313,22 +278,18 @@ L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
    IntPtr address = shmem_msg->m_address;
    Byte* data_buf = shmem_msg->m_data_buf;
 
-   // Insert Cache Block in L2 Cache
-   LOG_PRINT("processExRep: starting to insert Cache Block in L2 Cache");
-   insertCacheBlock(address, CacheState::MODIFIED, data_buf);
-   LOG_PRINT("processExRep: finished inserting Cache Block in L2 Cache");
-
-   LOG_ASSERT_ERROR(getCachedLoc(address) == MemComponent::INVALID_MEM_COMPONENT,
-      "processExRep: getCachedLoc(0x%x) = %u", address, getCachedLoc(address));
+   PrL2CacheBlockInfo* l2_cache_block_info = insertCacheBlock(address, CacheState::MODIFIED, data_buf);
 
    // Insert Cache Block in L1 Cache
    // Support for non-blocking caches can be added in this way
    MemComponent::component_t mem_component = m_shmem_req_source_map[address];
    assert (mem_component == MemComponent::L1_DCACHE);
-   
-   LOG_PRINT("processExRep: starting to insert Cache Block in L1 Cache");
-   insertCacheBlockInL1(mem_component, address, CacheState::MODIFIED, data_buf);
-   LOG_PRINT("processExRep: finished inserting Cache Block in L1 Cache");
+   insertCacheBlockInL1(mem_component, address, l2_cache_block_info, CacheState::MODIFIED, data_buf);
+
+   // Set the Counters in the Shmem Perf model accordingly
+   // Set the counter value in the USER thread to that in the SIM thread
+   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, 
+         getShmemPerfModel()->getCycleCount());
 
    wakeUpUserThread();
 }
@@ -340,13 +301,18 @@ L2CacheCntlr::processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
    Byte* data_buf = shmem_msg->m_data_buf;
 
    // Insert Cache Block in L2 Cache
-   insertCacheBlock(address, CacheState::SHARED, data_buf);
+   PrL2CacheBlockInfo* l2_cache_block_info = insertCacheBlock(address, CacheState::SHARED, data_buf);
 
    // Insert Cache Block in L1 Cache
    // Support for non-blocking caches can be added in this way
    MemComponent::component_t mem_component = m_shmem_req_source_map[address];
-   insertCacheBlockInL1(mem_component, address, CacheState::SHARED, data_buf);
+   insertCacheBlockInL1(mem_component, address, l2_cache_block_info, CacheState::SHARED, data_buf);
    
+   // Set the Counters in the Shmem Perf model accordingly
+   // Set the counter value in the USER thread to that in the SIM thread
+   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, 
+         getShmemPerfModel()->getCycleCount());
+
    wakeUpUserThread();
 }
 
@@ -355,13 +321,14 @@ L2CacheCntlr::processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_m
 {
    IntPtr address = shmem_msg->m_address;
 
-   CacheState::cstate_t cstate = getCacheState(address);
+   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
+   CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
    if (cstate != CacheState::INVALID)
    {
       assert(cstate == CacheState::SHARED);
   
       // Invalidate the line in L1 Cache
-      invalidateCacheBlockInL1(getCachedLoc(address), address);
+      invalidateCacheBlockInL1(l2_cache_block_info->getCachedLoc(), address);
       // Invalidate the line in the L2 cache also
       invalidateCacheBlock(address);
 
@@ -374,13 +341,14 @@ L2CacheCntlr::processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem
 {
    IntPtr address = shmem_msg->m_address;
 
-   CacheState::cstate_t cstate = getCacheState(address);
+   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
+   CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
    if (cstate != CacheState::INVALID)
    {
       assert(cstate == CacheState::MODIFIED);
       
       // Invalidate the line in L1 Cache
-      invalidateCacheBlockInL1(getCachedLoc(address), address);
+      invalidateCacheBlockInL1(l2_cache_block_info->getCachedLoc(), address);
 
       // Flush the line
       Byte data_buf[getCacheBlockSize()];
@@ -396,27 +364,27 @@ L2CacheCntlr::processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 {
    IntPtr address = shmem_msg->m_address;
 
-   CacheState::cstate_t cstate = getCacheState(address);
+   PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
+   CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
    if (cstate != CacheState::INVALID)
    {
       assert(cstate == CacheState::MODIFIED);
  
       // Set the Appropriate Cache State in L1 also
-      setCacheStateInL1(getCachedLoc(address), address, CacheState::SHARED);
+      setCacheStateInL1(l2_cache_block_info->getCachedLoc(), address, CacheState::SHARED);
 
       // Write-Back the line
       Byte data_buf[getCacheBlockSize()];
       retrieveCacheBlock(address, data_buf);
-      setCacheState(address, CacheState::SHARED);
+      setCacheState(l2_cache_block_info, CacheState::SHARED);
 
       getMemoryManager()->sendMsg(ShmemMsg::WB_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIR, sender, address, data_buf, getCacheBlockSize());
    }
 }
 
 bool
-L2CacheCntlr::shmemReqEndsInL2Cache(ShmemMsg::msg_t shmem_msg_type, IntPtr address)
+L2CacheCntlr::shmemReqEndsInL2Cache(ShmemMsg::msg_t shmem_msg_type, CacheState::cstate_t cstate)
 {
-   CacheState::cstate_t cstate = getCacheState(address);
    switch (shmem_msg_type)
    {
       case ShmemMsg::EX_REQ:
@@ -431,188 +399,41 @@ L2CacheCntlr::shmemReqEndsInL2Cache(ShmemMsg::msg_t shmem_msg_type, IntPtr addre
    }
 }
 
-PrL2CacheBlockInfo* 
-L2CacheCntlr::getCacheBlockInfo(IntPtr address)
+MemComponent::component_t
+L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
 {
-   // Some addresses are always cached
-   SInt32 stash_index = getStashIndex(address);
-   if (stash_index != -1)
+   switch (msg_type)
    {
-      return m_stashed_block_info_list[stash_index];
-   }
-   else
-   {
-      SInt32 free_stash_index = getFreeStashIndex(address);
-      assert(free_stash_index != -1);
-      m_stashed_block_info_list[free_stash_index] = (PrL2CacheBlockInfo*) m_l2_cache->peekSingleLine(address);
-      return m_stashed_block_info_list[free_stash_index];
-   }
-}
-
-SInt32
-L2CacheCntlr::getStashIndex(IntPtr address)
-{
-   for (SInt32 i = 0; i < (SInt32) m_stash_size; i++)
-   {
-      if (m_stashed_address_list[i] == address)
-         return i;
-   }
-   return -1;
-}
-
-SInt32
-L2CacheCntlr::getFreeStashIndex(IntPtr address)
-{
-   for (SInt32 i = 0; i < (SInt32) m_stash_size; i++)
-   {
-      if (m_stashed_address_list[i] == INVALID_ADDRESS)
-         return i;
-   }
-   return -1;
-}
-
-void
-L2CacheCntlr::dropStash(IntPtr address)
-{
-   for (SInt32 i = 0; i < (SInt32) m_stash_size; i++)
-   {
-      if (m_stashed_address_list[i] == address)
-      {
-         m_stashed_address_list[i] = INVALID_ADDRESS;
-         return;
-      }
-   }
-   // Should not reach here
-   assert(false);
-}
-
-void
-L2CacheCntlr::invalidateStash()
-{
-   for (SInt32 i = 0; i < (SInt32) m_stash_size; i++)
-      m_stashed_address_list[i] = INVALID_ADDRESS;
-}
-
-void
-L2CacheCntlr::acquireNeededLocks(ShmemMsg::msg_t msg_type, IntPtr address)
-{
-   LOG_PRINT("Entering acquireNeededLocks()");
-
-   assert(areAllLocksReleased());
-
-   switch(msg_type)
-   {
-      case ShmemMsg::EX_REQ:
-         // From L1 Cache - We unnecessarily double the access latency here
-         acquireLock();
-         setLockAcquired(MemComponent::L2_CACHE);
-         break;
-
-      case ShmemMsg::SH_REQ:
-         // No locks needed
-         break;
-
       case ShmemMsg::EX_REP:
       case ShmemMsg::SH_REP:
-
-         {
-            MemComponent::component_t mem_component = m_shmem_req_source_map[address];
-
-            m_l1_cache_cntlr->acquireLock(mem_component);
-            setLockAcquired(mem_component);
-            
-            acquireLock();
-            setLockAcquired(MemComponent::L2_CACHE);
-         }
-         break;
+         
+         m_l1_cache_cntlr->acquireLock(m_shmem_req_source_map[address]);
+         return m_shmem_req_source_map[address];
 
       case ShmemMsg::INV_REQ:
       case ShmemMsg::FLUSH_REQ:
       case ShmemMsg::WB_REQ:
-
+      
          {
             acquireLock();
-            setLockAcquired(MemComponent::L2_CACHE);
+            
+            PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
+            MemComponent::component_t caching_mem_component = (l2_cache_block_info == NULL) ? MemComponent::INVALID_MEM_COMPONENT : l2_cache_block_info->getCachedLoc();
+            
+            releaseLock();
 
-            MemComponent::component_t mem_component = getCachedLoc(address);
-            if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+            if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
             {
-               releaseLock();
-               setLockReleased(MemComponent::L2_CACHE);
-
-               m_l1_cache_cntlr->acquireLock(mem_component);
-               setLockAcquired(mem_component);
-
-               acquireLock();
-               setLockAcquired(MemComponent::L2_CACHE);
-
-               /*
-               // Now, the L1 cache data may have been invalidated in the meantime
-               // So, re-check and release locks if need be 
-               MemComponent::component_t new_mem_component = getCachedLoc(address);
-               if (new_mem_component != mem_component)
-               {
-                  assert(new_mem_component == MemComponent::INVALID_MEM_COMPONENT);
-                  m_l1_cache_cntlr->releaseLock(mem_component);
-                  setLockReleased(mem_component);
-               }
-               */
+               m_l1_cache_cntlr->acquireLock(caching_mem_component);
             }
+            return caching_mem_component;
          }
-         
-         break;
 
       default:
-         LOG_PRINT_ERROR("Unrecognized shmem msg type (%u)", msg_type);
-         break;
+         LOG_PRINT_ERROR("Unrecognized Msg Type (%u)", msg_type);
+         return MemComponent::INVALID_MEM_COMPONENT;
    }
-   
-   LOG_PRINT("Leaving acquireNeededLocks()");
-}
 
-void
-L2CacheCntlr::releaseAllLocks()
-{
-   if (isLockAcquired(MemComponent::L2_CACHE))
-   {
-      releaseLock();
-      setLockReleased(MemComponent::L2_CACHE);
-   }
-   if (isLockAcquired(MemComponent::L1_DCACHE))
-   {
-      m_l1_cache_cntlr->releaseLock(MemComponent::L1_DCACHE);
-      setLockReleased(MemComponent::L1_DCACHE);
-   }
-   if (isLockAcquired(MemComponent::L1_ICACHE))
-   {
-      m_l1_cache_cntlr->releaseLock(MemComponent::L1_ICACHE);
-      setLockReleased(MemComponent::L1_ICACHE);
-   }
-   assert(areAllLocksReleased());
-}
-
-void
-L2CacheCntlr::setLockAcquired(MemComponent::component_t mem_component)
-{
-   m_locks_bitvec |= ((UInt32) mem_component);
-}
-
-void
-L2CacheCntlr::setLockReleased(MemComponent::component_t mem_component)
-{
-   m_locks_bitvec &= ~((UInt32) mem_component);
-}
-
-bool
-L2CacheCntlr::isLockAcquired(MemComponent::component_t mem_component)
-{
-   return (bool) (m_locks_bitvec & ((UInt32) mem_component));
-}
-
-bool
-L2CacheCntlr::areAllLocksReleased()
-{
-   return (m_locks_bitvec == 0);
 }
 
 void

@@ -11,35 +11,45 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
       UInt32 cache_block_size,
       UInt32 l1_icache_size, UInt32 l1_icache_associativity,
       std::string l1_icache_replacement_policy,
-      UInt32 l1_icache_access_time,
+      UInt32 l1_icache_data_access_time,
+      UInt32 l1_icache_tags_access_time,
+      std::string l1_icache_perf_model_type,
       UInt32 l1_dcache_size, UInt32 l1_dcache_associativity,
       std::string l1_dcache_replacement_policy,
-      UInt32 l1_dcache_access_time,
-      bool l1_dcache_track_detailed_cache_counters) :
+      bool l1_dcache_track_detailed_cache_counters,
+      UInt32 l1_dcache_data_access_time,
+      UInt32 l1_dcache_tags_access_time,
+      std::string l1_dcache_perf_model_type,
+      ShmemPerfModel* shmem_perf_model) :
    m_memory_manager(memory_manager),
    m_l2_cache_cntlr(NULL),
    m_core_id(core_id),
    m_cache_block_size(cache_block_size),
-   m_mmu_sem(mmu_sem)
+   m_mmu_sem(mmu_sem),
+   m_shmem_perf_model(shmem_perf_model)
 {
    m_l1_icache = new Cache("l1_icache",
          l1_icache_size,
          l1_icache_associativity, 
-         cache_block_size,
+         m_cache_block_size,
          l1_icache_replacement_policy,
          CacheBase::PR_L1_CACHE,
-         l1_icache_access_time,
          false,
-         NULL /* Change this later */);
+         l1_icache_data_access_time,
+         l1_icache_tags_access_time,
+         l1_icache_perf_model_type,
+         m_shmem_perf_model);
    m_l1_dcache = new Cache("l1_dcache",
          l1_dcache_size,
          l1_dcache_associativity, 
-         cache_block_size,
+         m_cache_block_size,
          l1_dcache_replacement_policy,
          CacheBase::PR_L1_CACHE,
-         l1_dcache_access_time,
          l1_dcache_track_detailed_cache_counters,
-         NULL /* Change this later */);
+         l1_dcache_data_access_time,
+         l1_dcache_tags_access_time,
+         l1_dcache_perf_model_type,
+         m_shmem_perf_model);
 }
 
 L1CacheCntlr::~L1CacheCntlr()
@@ -74,7 +84,7 @@ L1CacheCntlr::processMemOpFromCore(
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type))
       {
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
-        
+                 
          if (lock_signal != Core::LOCK)
             releaseLock(mem_component);
          return l1_cache_hit;
@@ -107,7 +117,8 @@ L1CacheCntlr::processMemOpFromCore(
       releaseLock(mem_component);
       
       // Send out a request to the network thread for the cache data
-      getMemoryManager()->sendMsg(shmem_msg_type, mem_component, MemComponent::L2_CACHE,
+      getMemoryManager()->sendMsg(shmem_msg_type, 
+            mem_component, MemComponent::L2_CACHE,
             m_core_id, ca_address);
  
       waitForNetworkThread();
@@ -276,6 +287,20 @@ L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
          LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
          break;
    }
+}
+
+void
+L1CacheCntlr::acquireAllLocks()
+{
+   m_l1_icache_lock.acquire();
+   m_l1_dcache_lock.acquire();
+}
+
+void
+L1CacheCntlr::releaseAllLocks()
+{
+   m_l1_icache_lock.release();
+   m_l1_dcache_lock.release();
 }
 
 void

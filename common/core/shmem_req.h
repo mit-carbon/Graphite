@@ -18,6 +18,13 @@ class ShmemReq
       ShmemMsg* getShmemMsg() { return m_shmem_msg; }
       core_id_t getSender() { return m_sender; }
       UInt64 getTime() { return m_time; }
+      
+      void setTime(UInt64 time) { m_time = time; }
+      void updateTime(UInt64 time) 
+      {
+         if (time > m_time)
+            m_time = time;
+      }
 };
 
 #endif /* __SHMEM_REQ_H__ */

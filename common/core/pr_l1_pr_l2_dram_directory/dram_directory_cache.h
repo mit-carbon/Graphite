@@ -4,6 +4,7 @@
 #include <string>
 
 #include "directory.h"
+#include "shmem_perf_model.h"
 
 namespace PrL1PrL2DramDirectory
 {
@@ -22,6 +23,11 @@ namespace PrL1PrL2DramDirectory
 
          IntPtr** m_sets;
 
+         UInt32 m_dram_directory_cache_access_time;
+         ShmemPerfModel* m_shmem_perf_model;
+
+         ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
          void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index); 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
          UInt32 getLogCacheBlockSize() { return m_log_cache_block_size; }
@@ -35,7 +41,9 @@ namespace PrL1PrL2DramDirectory
                UInt32 associativity,
                UInt32 cache_block_size,
                UInt32 max_hw_sharers,
-               UInt32 max_num_sharers);
+               UInt32 max_num_sharers,
+               UInt32 dram_directory_cache_access_time,
+               ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCache();
 
          DirectoryEntry* getDirectoryEntry(IntPtr address);

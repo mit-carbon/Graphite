@@ -12,6 +12,7 @@
 #include "mem_component.h"
 #include "semaphore.h"
 #include "fixed_types.h"
+#include "shmem_perf_model.h"
 
 namespace PrL1PrL2DramDirectory
 {
@@ -23,12 +24,18 @@ namespace PrL1PrL2DramDirectory
          DramDirectoryCntlr* m_dram_directory_cntlr;
          DramCntlr* m_dram_cntlr;
          AddressHomeLookup* m_dram_directory_home_lookup;
+         AddressHomeLookup* m_dram_home_lookup;
 
          Semaphore* m_mmu_sem;
          UInt32 m_cache_block_size;
 
+         UInt32 m_num_dram_cntlrs;
+         UInt32 m_inter_dram_cntlr_distance;
+
+         bool isDramCntlrPresent(void);
+
       public:
-         MemoryManager(Core* core, Network* network);
+         MemoryManager(Core* core, Network* network, ShmemPerfModel* shmem_perf_model);
          ~MemoryManager();
 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
@@ -45,6 +52,8 @@ namespace PrL1PrL2DramDirectory
          void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
 
          void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+         
+         core_id_t getCoreIdFromDramCntlrNum(SInt32 dram_cntlr_num);
 
    };
 }

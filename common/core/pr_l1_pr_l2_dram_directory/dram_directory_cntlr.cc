@@ -7,17 +7,24 @@ using namespace std;
 namespace PrL1PrL2DramDirectory
 {
 
-DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
+DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
+      MemoryManager* memory_manager,
+      DramCntlr* dram_cntlr,
+      AddressHomeLookup* dram_home_lookup,
       UInt32 dram_directory_total_entries,
       UInt32 dram_directory_associativity,
       UInt32 cache_block_size,
       UInt32 dram_directory_max_num_sharers,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
-      DramCntlr* dram_cntlr):
+      UInt32 dram_directory_cache_access_time,
+      ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_dram_cntlr(dram_cntlr),
-   m_cache_block_size(cache_block_size)
+   m_dram_home_lookup(dram_home_lookup),
+   m_core_id(core_id),
+   m_cache_block_size(cache_block_size),
+   m_shmem_perf_model(shmem_perf_model)
 {
    m_dram_directory_cache = new DramDirectoryCache(
          dram_directory_type_str,
@@ -25,7 +32,9 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
          dram_directory_associativity,
          cache_block_size,
          dram_directory_max_hw_sharers,
-         dram_directory_max_num_sharers);
+         dram_directory_max_num_sharers,
+         dram_directory_cache_access_time,
+         m_shmem_perf_model);
    m_dram_directory_req_queue_list = new ReqQueueList();
 }
 
@@ -93,6 +102,11 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    {
       LOG_PRINT("A new shmem req for address(0x%x) found", address);
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
+
+      // Update the Shared Mem Cycle Counts appropriately
+      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
+      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+
       if (shmem_req->getShmemMsg()->m_msg_type == ShmemMsg::EX_REQ)
          processExReqFromL2Cache(shmem_req);
       else
@@ -102,9 +116,12 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 }
 
 void
-DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req)
+DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf)
 {
    IntPtr address = shmem_req->getShmemMsg()->m_address;
+   if (m_dram_request_pending[address])
+      return;
+
    core_id_t sender = shmem_req->getSender();
    
    DirectoryEntry* directory_entry = m_dram_directory_cache->getDirectoryEntry(address);
@@ -115,12 +132,14 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req)
    switch (curr_dstate)
    {
       case DirectoryState::EXCLUSIVE:
+         assert(cached_data_buf == NULL);
          getMemoryManager()->sendMsg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, directory_entry->getOwner(), address);
          break;
    
       case DirectoryState::SHARED:
 
          {
+            assert(cached_data_buf == NULL);
             pair<bool, vector<SInt32> > sharers_list_pair = directory_entry->getSharersList();
             if (sharers_list_pair.first == true)
             {
@@ -148,18 +167,8 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req)
             directory_entry->setOwner(sender);
             directory_block_info->setDState(DirectoryState::EXCLUSIVE);
 
-            // Get the data from DRAM
-            // This could be directly forwarded to the cache or passed
-            // through the Dram Directory Controller
-            Byte data_buf[getCacheBlockSize()];
-            m_dram_cntlr->getDataFromDram(address, data_buf);
-
-            getMemoryManager()->sendMsg(ShmemMsg::EX_REP, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, sender, address, data_buf, getCacheBlockSize());
+            retrieveDataAndSendToL2Cache(ShmemMsg::EX_REP, sender, address, cached_data_buf);
          }
-
-         // Process the next request from another L2 Cache(??)
-         processNextReqFromL2Cache(address);
-
          break;
    
       default:
@@ -169,9 +178,12 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req)
 }
 
 void
-DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req)
+DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf)
 {
    IntPtr address = shmem_req->getShmemMsg()->m_address;
+   if (m_dram_request_pending[address])
+      return;
+
    core_id_t sender = shmem_req->getSender();
 
    DirectoryEntry* directory_entry = m_dram_directory_cache->getDirectoryEntry(address);
@@ -182,6 +194,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req)
    switch (curr_dstate)
    {
       case DirectoryState::EXCLUSIVE:
+         assert(cached_data_buf == NULL);
          getMemoryManager()->sendMsg(ShmemMsg::WB_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, directory_entry->getOwner(), address);
          break;
    
@@ -191,17 +204,13 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req)
             pair<bool, SInt32> add_result = directory_entry->addSharer(sender);
             if (add_result.first == false)
             {
+               assert(cached_data_buf == NULL);
                // Send a message to another sharer to invalidate that
                getMemoryManager()->sendMsg(ShmemMsg::INV_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, add_result.second, address);
             }
             else
             {
-               Byte data_buf[getCacheBlockSize()];
-               m_dram_cntlr->getDataFromDram(address, data_buf);      
-               getMemoryManager()->sendMsg(ShmemMsg::SH_REP, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, sender, address, data_buf, getCacheBlockSize());
-
-               // Process Next Request
-               processNextReqFromL2Cache(address);
+               retrieveDataAndSendToL2Cache(ShmemMsg::SH_REP, sender, address, cached_data_buf);
             }
          }
          break;
@@ -214,22 +223,49 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req)
             assert(add_result.first == true);
             directory_block_info->setDState(DirectoryState::SHARED);
 
-            // Get the data from DRAM
-            // This could be directly forwarded to the cache or passed
-            // through the Dram Directory Controller
-            Byte data_buf[getCacheBlockSize()];
-            m_dram_cntlr->getDataFromDram(address, data_buf);
-         
-            getMemoryManager()->sendMsg(ShmemMsg::SH_REP, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, sender, address, data_buf, getCacheBlockSize());
-
-            // Process Next Request
-            processNextReqFromL2Cache(address);
+            retrieveDataAndSendToL2Cache(ShmemMsg::SH_REP, sender, address, cached_data_buf);
          }
          break;
    
       default:
          LOG_PRINT_ERROR("Unsupported Directory State: %u", curr_dstate);
          break;
+   }
+}
+
+void
+DramDirectoryCntlr::retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type,
+      core_id_t receiver, IntPtr address, Byte* cached_data_buf)
+{
+   if (cached_data_buf != NULL)
+   {
+      // I already have the data I need cached
+      getMemoryManager()->sendMsg(reply_msg_type, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, receiver, address, cached_data_buf, getCacheBlockSize());
+      processNextReqFromL2Cache(address);
+   }
+   else
+   {
+      // Get the data from DRAM
+      // This could be directly forwarded to the cache or passed
+      // through the Dram Directory Controller
+
+      // I have to get the data from DRAM
+      core_id_t dram_cntlr_core_id = getMemoryManager()->getCoreIdFromDramCntlrNum(m_dram_home_lookup->getHome(address));
+      if (dram_cntlr_core_id == m_core_id)
+      {
+         Byte data_buf[getCacheBlockSize()];
+         // Dram Cntlr is attached to the same core
+         m_dram_cntlr->getDataFromDram(address, data_buf);
+         getMemoryManager()->sendMsg(reply_msg_type, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, receiver, address, data_buf, getCacheBlockSize());
+         // Process Next Request
+         processNextReqFromL2Cache(address);
+      }
+      else
+      {
+         // Dram Cntlr is on another core
+         getMemoryManager()->sendMsg(ShmemMsg::GET_DATA_REQ, MemComponent::DRAM_DIR, MemComponent::DRAM, dram_cntlr_core_id, address);
+         m_dram_request_pending[address] = true;
+      }
    }
 }
 
@@ -251,6 +287,11 @@ DramDirectoryCntlr::processInvRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_m
    if (m_dram_directory_req_queue_list->size(address) > 0)
    {
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
+
+      // Update Times in the Shmem Perf Model and the Shmem Req
+      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
+      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+
       if (shmem_req->getShmemMsg()->m_msg_type == ShmemMsg::EX_REQ)
       {
          // An ShmemMsg::EX_REQ caused the invalidation
@@ -280,19 +321,25 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem
    directory_entry->setOwner(INVALID_CORE_ID);
    directory_block_info->setDState(DirectoryState::UNCACHED);
 
-   m_dram_cntlr->putDataToDram(address, shmem_msg->m_data_buf);
+   // Write Data to Dram
+   sendDataToDram(address, shmem_msg->m_data_buf);
 
    if (m_dram_directory_req_queue_list->size(address) != 0)
    {
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
+
+      // Update times
+      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
+      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+
       // An involuntary/voluntary Flush
       if (shmem_req->getShmemMsg()->m_msg_type == ShmemMsg::EX_REQ)
       {
-         processExReqFromL2Cache(shmem_req);
+         processExReqFromL2Cache(shmem_req, shmem_msg->m_data_buf);
       }
       else // (shmem_req->getShmemMsg()->m_msg_type == ShmemMsg::SH_REQ)
       {
-         processShReqFromL2Cache(shmem_req);
+         processShReqFromL2Cache(shmem_req, shmem_msg->m_data_buf);
       }
    }
 }
@@ -305,25 +352,72 @@ DramDirectoryCntlr::processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_ms
    DirectoryEntry* directory_entry = m_dram_directory_cache->getDirectoryEntry(address);
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
 
-   LOG_PRINT("processWbRepFromL2Cache: Starting assertions");
    assert(directory_block_info->getDState() == DirectoryState::EXCLUSIVE);
-
    assert(directory_entry->hasSharer(sender));
-   LOG_PRINT("processWbRepFromL2Cache: Ending assertions");
-
-   LOG_PRINT("processWbRepFromL2Cache: Starting to set directory info");
+   
    directory_entry->setOwner(INVALID_CORE_ID);
    directory_block_info->setDState(DirectoryState::SHARED);
-   LOG_PRINT("processWbRepFromL2Cache: Finished setting directory info");
 
-   m_dram_cntlr->putDataToDram(address, shmem_msg->m_data_buf);
+   // Write Data to Dram
+   sendDataToDram(address, shmem_msg->m_data_buf);
 
    if (m_dram_directory_req_queue_list->size(address) != 0)
    {
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
+
+      // Update Time
+      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
+      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+
       assert(shmem_req->getShmemMsg()->m_msg_type == ShmemMsg::SH_REQ);
-      processShReqFromL2Cache(shmem_req);
+      processShReqFromL2Cache(shmem_req, shmem_msg->m_data_buf);
    }
+}
+
+void
+DramDirectoryCntlr::sendDataToDram(IntPtr address, Byte* data_buf)
+{
+   // Write data to Dram
+   SInt32 dram_cntlr_core_id = getMemoryManager()->getCoreIdFromDramCntlrNum(m_dram_home_lookup->getHome(address));
+   if (dram_cntlr_core_id == m_core_id)
+   {
+      // Dram Cntlr is attached to the same core
+      m_dram_cntlr->putDataToDram(address, data_buf);
+   }
+   else
+   {
+      // Dram Cntlr is attached to a different core
+      getMemoryManager()->sendMsg(ShmemMsg::PUT_DATA_REQ, MemComponent::DRAM_DIR, MemComponent::DRAM, dram_cntlr_core_id, address, data_buf, getCacheBlockSize());
+   }
+}
+
+void
+DramDirectoryCntlr::handleMsgFromDram(ShmemMsg* shmem_msg)
+{
+   assert(shmem_msg->m_msg_type == ShmemMsg::GET_DATA_REP);
+
+   processGetDataRepFromDram(shmem_msg);
+}
+
+void
+DramDirectoryCntlr::processGetDataRepFromDram(ShmemMsg* shmem_msg)
+{
+   IntPtr address = shmem_msg->m_address;
+   assert(m_dram_directory_req_queue_list->size(address) > 0);
+   assert(shmem_msg->m_data_buf != NULL);
+
+   ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
+
+   // Update Time
+   shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
+   getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+
+   m_dram_request_pending[address] = false;
+
+   if (shmem_req->getShmemMsg()->m_msg_type == ShmemMsg::EX_REQ)
+      retrieveDataAndSendToL2Cache(ShmemMsg::EX_REP, shmem_req->getSender(), address, shmem_msg->m_data_buf);
+   else // shmem_req->getShmemMsg()->m_msg_type == ShmemMsg::SH_REQ)
+      retrieveDataAndSendToL2Cache(ShmemMsg::SH_REP, shmem_req->getSender(), address, shmem_msg->m_data_buf);
 }
 
 }

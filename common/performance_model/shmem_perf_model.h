@@ -11,7 +11,7 @@ using namespace std;
 class ShmemPerfModel
 {
    public:
-      enum CoreThread_t
+      enum Thread_t
       {
          _USER_THREAD = 0,
          _SIM_THREAD,
@@ -26,22 +26,23 @@ class ShmemPerfModel
       UInt32 m_num_memory_accesses;
       double m_total_memory_access_latency;
 
-      CoreThread_t getThreadNum();
+      Thread_t getThreadNum();
 
    public:
       ShmemPerfModel();
       ~ShmemPerfModel();
 
-      void setCycleCount(CoreThread_t thread_num, UInt64 count);
+      void setCycleCount(Thread_t thread_num, UInt64 count);
 
       void setCycleCount(UInt64 count)
       {
          setCycleCount(getThreadNum(), count);
       }
       UInt64 getCycleCount();
+      void incrCycleCount(UInt64 count);
       void updateCycleCount(UInt64 count);
 
-      void updateTotalMemoryAccessLatency(UInt64 shmem_time);
+      void incrTotalMemoryAccessLatency(UInt64 shmem_time);
       
       void enable()
       {

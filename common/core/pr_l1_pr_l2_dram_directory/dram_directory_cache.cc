@@ -11,10 +11,14 @@ DramDirectoryCache::DramDirectoryCache(
       UInt32 associativity,
       UInt32 cache_block_size,
       UInt32 max_hw_sharers,
-      UInt32 max_num_sharers):
+      UInt32 max_num_sharers,
+      UInt32 dram_directory_cache_access_time,
+      ShmemPerfModel* shmem_perf_model):
    m_total_entries(total_entries),
    m_associativity(associativity),
-   m_cache_block_size(cache_block_size)
+   m_cache_block_size(cache_block_size),
+   m_dram_directory_cache_access_time(dram_directory_cache_access_time),
+   m_shmem_perf_model(shmem_perf_model)
 {
    m_num_sets = m_total_entries / m_associativity;
    m_sets = new IntPtr*[m_num_sets];
@@ -44,6 +48,9 @@ DramDirectoryCache::~DramDirectoryCache()
 DirectoryEntry*
 DramDirectoryCache::getDirectoryEntry(IntPtr address)
 {
+   if (m_shmem_perf_model)
+      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_time);
+
    IntPtr tag;
    UInt32 set_index;
    

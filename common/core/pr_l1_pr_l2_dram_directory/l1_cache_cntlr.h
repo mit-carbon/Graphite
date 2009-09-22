@@ -16,6 +16,7 @@ namespace PrL1PrL2DramDirectory
 #include "semaphore.h"
 #include "lock.h"
 #include "fixed_types.h"
+#include "shmem_perf_model.h"
 
 namespace PrL1PrL2DramDirectory
 {
@@ -34,6 +35,8 @@ namespace PrL1PrL2DramDirectory
          Lock m_l1_dcache_lock;
          Semaphore* m_mmu_sem;
 
+         ShmemPerfModel* m_shmem_perf_model;
+
          // Private Functions
          void accessCache(MemComponent::component_t mem_component,
                Core::mem_op_t mem_op_type, 
@@ -48,8 +51,8 @@ namespace PrL1PrL2DramDirectory
 
          // Get Cache Block Size
          UInt32 getCacheBlockSize(void) { return m_cache_block_size; }
-   
          MemoryManager* getMemoryManager() { return m_memory_manager; }
+         ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
          // Wait for Network Thread
          void waitForNetworkThread(void);
@@ -62,11 +65,16 @@ namespace PrL1PrL2DramDirectory
                UInt32 cache_block_size,
                UInt32 l1_icache_size, UInt32 l1_icache_associativity,
                std::string l1_icache_replacement_policy,
-               UInt32 l1_icache_access_time,
+               UInt32 l1_icache_data_access_time,
+               UInt32 l1_icache_tags_access_time,
+               std::string l1_icache_perf_model_type,
                UInt32 l1_dcache_size, UInt32 l1_dcache_associativity,
                std::string l1_dcache_replacement_policy,
-               UInt32 l1_dcache_access_time,
-               bool l1_dcache_track_detailed_cache_counters);
+               bool l1_dcache_track_detailed_cache_counters,
+               UInt32 l1_dcache_data_access_time,
+               UInt32 l1_dcache_tags_access_time,
+               std::string l1_dcache_perf_model_type,
+               ShmemPerfModel* shmem_perf_model);
          
          ~L1CacheCntlr();
 
@@ -90,6 +98,8 @@ namespace PrL1PrL2DramDirectory
          void invalidateCacheBlock(
                MemComponent::component_t mem_component, IntPtr address);
 
+         void acquireAllLocks(void);
+         void releaseAllLocks(void);
          void acquireLock(MemComponent::component_t mem_component);
          void releaseLock(MemComponent::component_t mem_component);
    };

@@ -4,12 +4,12 @@
 
 MemoryManagerBase* 
 MemoryManagerBase::createMMU(CachingProtocol_t caching_protocol,
-      Core* core, Network* network)
+      Core* core, Network* network, ShmemPerfModel* shmem_perf_model)
 {
    switch (caching_protocol)
    {
       case PR_L1_PR_L2_DRAM_DIR:
-         return new PrL1PrL2DramDirectory::MemoryManager(core, network);
+         return new PrL1PrL2DramDirectory::MemoryManager(core, network, shmem_perf_model);
 
       default:
          LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", caching_protocol);
@@ -34,4 +34,3 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet)
          break;
    }
 }
-

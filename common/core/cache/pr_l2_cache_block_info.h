@@ -19,21 +19,11 @@ class PrL2CacheBlockInfo : public CacheBlockInfo
 
       ~PrL2CacheBlockInfo() {}
 
-      MemComponent::component_t getCachedLoc() { return m_cached_loc; }
-      void setCachedLoc(MemComponent::component_t cached_loc) {
-         m_cached_loc = cached_loc;
-      }
+      MemComponent::component_t getCachedLoc();
+      void setCachedLoc(MemComponent::component_t cached_loc);
+      void clearCachedLoc(MemComponent::component_t cached_loc);
 
-      void invalidate()
-      {
-         m_cached_loc = MemComponent::INVALID_MEM_COMPONENT;
-         CacheBlockInfo::invalidate();
-      }
-
-      void clone(CacheBlockInfo* cache_block_info)
-      {
-         m_cached_loc = ((PrL2CacheBlockInfo*) cache_block_info)->getCachedLoc();
-         CacheBlockInfo::clone(cache_block_info);
-      }
+      void invalidate();
+      void clone(CacheBlockInfo* cache_block_info);
 };
 #endif /* __PR_L2_CACHE_BLOCK_INFO_H__ */

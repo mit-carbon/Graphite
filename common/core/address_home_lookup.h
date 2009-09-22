@@ -20,15 +20,14 @@ class AddressHomeLookup
 {
    public:
       AddressHomeLookup(UInt32 ahl_param,
-            core_id_t core_id, 
+            UInt32 total_modules,
             UInt32 cache_block_size);
       ~AddressHomeLookup();
-      UInt32 getHome(IntPtr address) const;
+      SInt32 getHome(IntPtr address) const;
 
    private:
-      UInt32 m_total_cores;
       UInt32 m_ahl_param;
-      core_id_t m_core_id;
+      UInt32 m_total_modules;
       UInt32 m_cache_block_size;
 };
 

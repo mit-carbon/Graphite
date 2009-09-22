@@ -4,6 +4,7 @@
 #include "core.h"
 #include "network.h"
 #include "mem_component.h"
+#include "shmem_perf_model.h"
 
 void MemoryManagerNetworkCallback(void* obj, NetPacket packet);
 
@@ -19,10 +20,13 @@ class MemoryManagerBase
    protected:
       Core* m_core;
       Network* m_network;
+      ShmemPerfModel* m_shmem_perf_model;
 
    public:
-      MemoryManagerBase(Core* core, Network* network):
-         m_core(core), m_network(network)
+      MemoryManagerBase(Core* core, Network* network, ShmemPerfModel* shmem_perf_model):
+         m_core(core), 
+         m_network(network), 
+         m_shmem_perf_model(shmem_perf_model)
       {}
       virtual ~MemoryManagerBase() {}
 
@@ -37,9 +41,16 @@ class MemoryManagerBase
 
       virtual UInt32 getCacheBlockSize() = 0;
 
+      Core* getCore() { return m_core; }
+      Network* getNetwork() { return m_network; }
+      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
+
       static MemoryManagerBase* createMMU(
             CachingProtocol_t caching_protocol,
-            Core* core, Network* network);
+            Core* core,
+            Network* network, 
+            ShmemPerfModel* shmem_perf_model);
 };
 
 #endif /* __MEMORY_MANAGER_BASE_H__ */

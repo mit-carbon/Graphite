@@ -356,4 +356,11 @@ MemoryManager::isDramCntlrPresent()
       return false;
 }
 
+void
+MemoryManager::outputSummary(std::ostream &os)
+{
+   if (m_dram_cntlr)
+      m_dram_cntlr->getDramPerfModel()->outputSummary(os);
+}
+
 }

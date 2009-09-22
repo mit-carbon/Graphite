@@ -17,14 +17,14 @@ VOID printInsInfo(CONTEXT* ctxt)
    LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
 }
 
-UINT32 memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
+void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
 {   
    assert (lock_signal == Core::NONE);
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    if (core)
    {
-      return core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
+      core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
    }
    // Native mem op
    else
@@ -35,14 +35,14 @@ UINT32 memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPt
       {
          if (PIN_SafeCopy ((void*) data_buffer, (void*) d_addr, (size_t) data_size) == data_size)
          {
-            return 0;
+            return;
          }
       }
       else if (mem_op_type == Core::WRITE)
       {
          if (PIN_SafeCopy ((void*) d_addr, (void*) data_buffer, (size_t) data_size) == data_size)
          {
-            return 0;
+            return;
          }
       }
       else
@@ -50,7 +50,7 @@ UINT32 memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPt
          assert (false);
       }
 
-      return 0;
+      return;
    }
 }
 

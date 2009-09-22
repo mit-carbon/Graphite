@@ -43,6 +43,8 @@ namespace PrL1PrL2DramDirectory
 
          ~DramCntlr();
 
+         DramPerfModel* getDramPerfModel() { return m_dram_perf_model; }
+
          void handleMsgFromDramDir(core_id_t sender, ShmemMsg* shmem_msg);
          void getDataFromDram(IntPtr address, Byte* data_buf);
          void putDataToDram(IntPtr address, Byte* data_buf);

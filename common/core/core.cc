@@ -19,7 +19,7 @@ Core::Core(SInt32 id)
 
    m_network = new Network(this);
 
-   m_performance_model = PerformanceModel::create();
+   m_performance_model = PerformanceModel::create(this);
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -70,6 +70,7 @@ void Core::outputSummary(std::ostream &os)
       if (Config::getSingleton()->isSimulatingSharedMemory())
       {
          getShmemPerfModel()->outputSummary(os);
+         getMemoryManager()->outputSummary(os);
       }
    }
 }
@@ -115,8 +116,19 @@ void Core::disablePerformanceModels()
    getPerformanceModel()->disable();
 }
 
-UInt32 Core::initiateMemoryAccess(
-      MemComponent::component_t mem_component, 
+UInt64
+Core::readInstructionMemory(IntPtr address, UInt32 instruction_size)
+{
+   LOG_PRINT("Instruction: Address(0x%x), Size(%u), Start READ", 
+            address, instruction_size);
+
+   Byte buf[instruction_size];
+   return (initiateMemoryAccess(MemComponent::L1_ICACHE,
+         Core::NONE, Core::READ, address, buf, instruction_size).second);
+}
+
+pair<UInt32, UInt64>
+Core::initiateMemoryAccess(MemComponent::component_t mem_component, 
       lock_signal_t lock_signal, 
       mem_op_t mem_op_type, 
       IntPtr address, 
@@ -134,16 +146,12 @@ UInt32 Core::initiateMemoryAccess(
          DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
          m_performance_model->pushDynamicInstructionInfo(info);
       }
-      return (0);
+      return make_pair<UInt32, UInt64>(0,0);
    }
 
-   UInt64 initial_time = 0;
-   if (m_shmem_perf_model)
-   {
-      // Setting the initial time
-      initial_time = getPerformanceModel()->getCycleCount();
-      getShmemPerfModel()->setCycleCount(initial_time);
-   }
+   // Setting the initial time
+   UInt64 initial_time = getPerformanceModel()->getCycleCount();
+   getShmemPerfModel()->setCycleCount(initial_time);
 
    UInt32 num_misses = 0;
    UInt32 cache_block_size = getMemoryManager()->getCacheBlockSize();
@@ -212,24 +220,24 @@ UInt32 Core::initiateMemoryAccess(
             ((mem_op_type == READ) ? "READ" : "WRITE"), 
             address, data_size);
 
-   UInt64 final_time = 0;
-   if (m_shmem_perf_model)
-   {
-      // Get the final cycle time
-      final_time = getShmemPerfModel()->getCycleCount();
-      LOG_ASSERT_ERROR(final_time >= initial_time,
-            "final_time(%llu) < initial_time(%llu)",
-            final_time, initial_time);
-   }
+   // Get the final cycle time
+   UInt64 final_time = getShmemPerfModel()->getCycleCount();
+   LOG_ASSERT_ERROR(final_time >= initial_time,
+         "final_time(%llu) < initial_time(%llu)",
+         final_time, initial_time);
+   
+   // Calculate the round-trip time
    UInt64 shmem_time = final_time - initial_time;
 
    if (modeled)
    {
       DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(shmem_time, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
       m_performance_model->pushDynamicInstructionInfo(info);
+
+      getShmemPerfModel()->incrTotalMemoryAccessLatency(shmem_time);
    }
 
-   return (num_misses);
+   return make_pair<UInt32, UInt64>(num_misses, shmem_time);
 }
 
 // FIXME: This should actually be 'accessDataMemory()'
@@ -246,7 +254,8 @@ UInt32 Core::initiateMemoryAccess(
  * Return Value:
  *   number of misses :: State the number of cache misses
  */
-UInt32 Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
+pair<UInt32, UInt64>
+Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -268,11 +277,12 @@ UInt32 Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPt
 }
 
 
-UInt32 Core::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+pair<UInt32, UInt64>
+Core::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
 {
    if (data_size <= 0)
    {
-      return 0;
+      return make_pair<UInt32, UInt64>(0,0);
    }
 
    if (lock_signal == LOCK)
@@ -296,5 +306,5 @@ UInt32 Core::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr
       m_global_core_lock.release();
    }
 
-   return 0;
+   return make_pair<UInt32, UInt64>(0,0);
 }

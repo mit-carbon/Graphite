@@ -41,6 +41,8 @@ class MemoryManagerBase
 
       virtual UInt32 getCacheBlockSize() = 0;
 
+      virtual void outputSummary(std::ostream& os) = 0;
+
       Core* getCore() { return m_core; }
       Network* getNetwork() { return m_network; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }

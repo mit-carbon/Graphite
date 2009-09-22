@@ -1,11 +1,13 @@
+#include "core.h"
 #include "log.h"
 #include "simple_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-SimplePerformanceModel::SimplePerformanceModel()
-    : m_instruction_count(0)
+SimplePerformanceModel::SimplePerformanceModel(Core *core)
+    : PerformanceModel(core)
+    , m_instruction_count(0)
     , m_cycle_count(0)
 {
 }

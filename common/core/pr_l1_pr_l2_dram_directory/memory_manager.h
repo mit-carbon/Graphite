@@ -55,6 +55,8 @@ namespace PrL1PrL2DramDirectory
          
          core_id_t getCoreIdFromDramCntlrNum(SInt32 dram_cntlr_num);
 
+         void outputSummary(std::ostream &os);
+
    };
 }
 

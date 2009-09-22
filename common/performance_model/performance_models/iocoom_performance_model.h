@@ -15,7 +15,7 @@
 class IOCOOMPerformanceModel : public PerformanceModel
 {
 public:
-   IOCOOMPerformanceModel();
+   IOCOOMPerformanceModel(Core* core);
    ~IOCOOMPerformanceModel();
 
    void outputSummary(std::ostream &os);
@@ -30,16 +30,16 @@ private:
    void handleInstruction(Instruction *instruction);
 
    void modelIcache(IntPtr address);
-   UInt64 executeLoad(const DynamicInstructionInfo &);
-   UInt64 executeStore(const DynamicInstructionInfo &);
+   std::pair<UInt64,UInt64> executeLoad(UInt64 time, const DynamicInstructionInfo &);
+   UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
 
    typedef std::vector<UInt64> Scoreboard;
 
-   class ExecutionUnit
+   class LoadUnit
    {
    public:
-      ExecutionUnit(unsigned int num_units);
-      ~ExecutionUnit();
+      LoadUnit(unsigned int num_units);
+      ~LoadUnit();
 
       UInt64 execute(UInt64 time, UInt64 occupancy);
 
@@ -84,7 +84,7 @@ private:
 
    Scoreboard m_register_scoreboard;
    StoreBuffer *m_store_buffer;
-   ExecutionUnit *m_load_unit;
+   LoadUnit *m_load_unit;
 };
 
 #endif // IOCOOM_PERFORMANCE_MODEL_H

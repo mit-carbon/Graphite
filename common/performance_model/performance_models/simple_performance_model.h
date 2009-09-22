@@ -6,7 +6,7 @@
 class SimplePerformanceModel : public PerformanceModel
 {
 public:
-   SimplePerformanceModel();
+   SimplePerformanceModel(Core *core);
    ~SimplePerformanceModel();
 
    void outputSummary(std::ostream &os);

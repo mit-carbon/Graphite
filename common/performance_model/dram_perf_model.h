@@ -2,7 +2,6 @@
 #define __DRAM_PERF_MODEL_H__
 
 #include "queue_model.h"
-#include "core.h"
 #include "fixed_types.h"
 #include "moving_average.h"
 
@@ -21,12 +20,11 @@ class DramPerfModel
 {
    private:
       QueueModel* m_queue_model;
-      Core* m_core;
       MovingAverage<UInt64>* m_moving_average;
       UInt32 m_dram_access_cost;
       float m_dram_bandwidth;
 
-      bool m_queueing_model_enabled;
+      bool m_queue_model_enabled;
       bool m_enabled;
 
       UInt64 m_num_accesses;
@@ -34,13 +32,18 @@ class DramPerfModel
       double m_total_queueing_delay;
 
    public:
-      DramPerfModel(Core* core);
+      DramPerfModel(float dram_access_cost, 
+            float dram_bandwidth,
+            float core_frequency, 
+            bool queue_model_enabled, 
+            UInt32 moving_avg_window_size, 
+            std::string moving_avg_type_str);
+
       ~DramPerfModel();
 
-      Core* getCore() { return m_core; }
       UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size);
-      void enable();
-      void disable();
+      void enable() { m_enabled = true; }
+      void disable() { m_enabled = false; }
 
       UInt64 getTotalAccesses() { return m_num_accesses; }
       void outputSummary(ostream& out);

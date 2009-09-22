@@ -1,30 +1,29 @@
 #ifndef __CACHE_PERF_MODEL_PARALLEL_H__ 
 #define __CACHE_PERF_MODEL_PARALLEL_H__
 
-#include "cache_perf_model_base.h"
-#include "log.h"
+#include "cache_perf_model.h"
 
-class CachePerfModelParallel : public CachePerfModelBase
+class CachePerfModelParallel : public CachePerfModel
 {
-   private:
-
    public:
-      CachePerfModelParallel () : CachePerfModelBase() { }
-      ~CachePerfModelParallel() { }
+      CachePerfModelParallel(UInt32 cache_data_access_time, 
+            UInt32 cache_tags_access_time) : 
+         CachePerfModel(cache_data_access_time, cache_tags_access_time) 
+      {}
+      ~CachePerfModelParallel() {}
 
       UInt32 getLatency(CacheAccess_t access)
       {
          switch(access)
          {
             case ACCESS_CACHE_TAGS:
-               return cache_tags_access_time;
+               return m_cache_tags_access_time;
 
             case ACCESS_CACHE_DATA:
             case ACCESS_CACHE_DATA_AND_TAGS:
-               return cache_data_access_time;
+               return m_cache_data_access_time;
 
             default:
-               LOG_ASSERT_ERROR(false, "Unsupported Cache Access Type: %u", access);
                return 0;
          }
       }

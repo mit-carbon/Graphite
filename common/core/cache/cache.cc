@@ -11,8 +11,10 @@ Cache::Cache(string name,
       UInt32 associativity, UInt32 cache_block_size,
       string replacement_policy,
       cache_t cache_type,
-      UInt32 cache_access_time,
       bool track_detailed_cache_counters,
+      UInt32 cache_data_access_time,
+      UInt32 cache_tags_access_time,
+      string cache_perf_model_type,
       ShmemPerfModel* shmem_perf_model) :
 
       CacheBase(name, cache_size, associativity, cache_block_size),
@@ -23,15 +25,22 @@ Cache::Cache(string name,
       m_num_upgrade_misses(0),
       m_num_sharing_misses(0),
       m_track_detailed_cache_counters(track_detailed_cache_counters),
-      m_cache_counters_enabled(true),
-      m_cache_access_time(cache_access_time),
+      m_cache_counters_enabled(false),
       m_cache_type(cache_type),
-      m_shmem_perf_model(shmem_perf_model)
+      m_shmem_perf_model(shmem_perf_model),
+      m_cache_perf_model(NULL)
 {
    m_sets = new CacheSet*[m_num_sets];
    for (UInt32 i = 0; i < m_num_sets; i++)
    {
       m_sets[i] = CacheSet::createCacheSet(replacement_policy, m_cache_type, m_associativity, m_blocksize);
+   }
+
+   // Cache Perf Model
+   if (Config::getSingleton()->getEnablePerformanceModeling())
+   {
+      m_cache_perf_model = CachePerfModel::create(cache_perf_model_type, 
+            cache_data_access_time, cache_tags_access_time);
    }
 
    // Detailed Cache Counters
@@ -47,6 +56,9 @@ Cache::~Cache()
    for (SInt32 i = 0; i < (SInt32) m_num_sets; i++)
       delete m_sets[i];
    delete [] m_sets;
+
+   if (m_cache_perf_model)
+      delete m_cache_perf_model;
 
    if (m_track_detailed_cache_counters)
    {
@@ -65,7 +77,9 @@ Cache::invalidateSingleLine(IntPtr addr)
    assert(set_index < m_num_sets);
 
    // Update sets for maintaining cache counters
-   if (m_track_detailed_cache_counters && m_shmem_perf_model && m_shmem_perf_model->isEnabled())
+   if (m_track_detailed_cache_counters 
+         && m_shmem_perf_model 
+         && m_shmem_perf_model->isEnabled())
       m_invalidated_set->insert(addr);
 
    return m_sets[set_index]->invalidate(tag);
@@ -75,8 +89,8 @@ CacheBlockInfo*
 Cache::accessSingleLine(IntPtr addr, access_t access_type, 
       Byte* buff, UInt32 bytes)
 {
-   if (m_shmem_perf_model)
-      m_shmem_perf_model->updateCycleCount(m_cache_access_time);
+   if (m_shmem_perf_model && m_cache_perf_model)
+      getShmemPerfModel()->incrCycleCount(getCachePerfModel()->getLatency(CachePerfModel::ACCESS_CACHE_DATA));
 
    assert((buff == NULL) == (bytes == 0));
 
@@ -106,8 +120,8 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
       bool* eviction, IntPtr* evict_addr, 
       CacheBlockInfo* evict_block_info, Byte* evict_buff)
 {
-   if (m_shmem_perf_model)
-      m_shmem_perf_model->updateCycleCount(m_cache_access_time);
+   if (m_shmem_perf_model && m_cache_perf_model)
+      getShmemPerfModel()->incrCycleCount(getCachePerfModel()->getLatency(CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS));
 
    IntPtr tag;
    UInt32 set_index;
@@ -123,7 +137,9 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
    delete cache_block_info;
   
    // Update sets for the purpose of maintaining cache counters
-   if (m_track_detailed_cache_counters && m_shmem_perf_model && m_shmem_perf_model->isEnabled())
+   if (m_track_detailed_cache_counters 
+         && m_shmem_perf_model 
+         && m_shmem_perf_model->isEnabled())
    {
       m_evicted_set->erase(addr);
       m_invalidated_set->erase(addr);
@@ -138,8 +154,8 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
 CacheBlockInfo* 
 Cache::peekSingleLine(IntPtr addr)
 {
-   if (m_shmem_perf_model)
-      m_shmem_perf_model->updateCycleCount(m_cache_access_time);
+   if (m_shmem_perf_model && m_cache_perf_model)
+      getShmemPerfModel()->incrCycleCount(getCachePerfModel()->getLatency(CachePerfModel::ACCESS_CACHE_TAGS));
 
    IntPtr tag;
    UInt32 set_index;
@@ -186,28 +202,6 @@ Cache::updateCounters(IntPtr addr, CacheState cache_state, access_t access_type)
             incrNumColdMisses();
       }
    }
-}
-
-void
-Cache::resetCounters()
-{
-   m_num_accesses = 0;
-   m_num_hits = 0;
-   m_num_cold_misses = 0;
-   m_num_capacity_misses = 0;
-   m_num_upgrade_misses = 0;
-   m_num_sharing_misses = 0;
-   if (m_track_detailed_cache_counters)
-   {
-      // m_evicted_set->clear();
-      // m_invalidated_set->clear();
-   }
-}
-
-void
-Cache::disableCounters()
-{
-   m_cache_counters_enabled = false;
 }
 
 void 

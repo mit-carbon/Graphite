@@ -9,7 +9,7 @@
 #include "cache_block_info.h"
 #include "utils.h"
 #include "hash_map_set.h"
-#include "cache_perf_model_base.h"
+#include "cache_perf_model.h"
 #include "shmem_perf_model.h"
 #include "log.h"
 
@@ -26,13 +26,19 @@ class Cache : public CacheBase
       UInt64 m_num_sharing_misses;
       bool m_track_detailed_cache_counters;
       bool m_cache_counters_enabled;
-      UInt32 m_cache_access_time;
       HashMapSet<IntPtr>* m_invalidated_set;
       HashMapSet<IntPtr>* m_evicted_set;
 
+      // Generic Cache Info
       cache_t m_cache_type;
       CacheSet** m_sets;
+      
+      // Perf Modelling
       ShmemPerfModel* m_shmem_perf_model;
+      CachePerfModel* m_cache_perf_model;
+
+      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+      CachePerfModel* getCachePerfModel() { return m_cache_perf_model; }
 
    public:
 
@@ -42,8 +48,10 @@ class Cache : public CacheBase
             UInt32 associativity, UInt32 cache_block_size,
             std::string replacement_policy,
             cache_t cache_type,
-            UInt32 cache_access_time,
             bool track_detailed_cache_counters,
+            UInt32 cache_data_access_time,
+            UInt32 cache_tags_access_time,
+            std::string cache_perf_model_type,
             ShmemPerfModel* shmem_perf_model);
       ~Cache();
 
@@ -57,8 +65,8 @@ class Cache : public CacheBase
       
       // Update Cache Counters
       void updateCounters(IntPtr addr, CacheState cache_state, access_t access_type);
-      void resetCounters();
-      void disableCounters();
+      void enableCounters() { m_cache_counters_enabled = true; }
+      void disableCounters() { m_cache_counters_enabled = false; }
 
       UInt64 getNumAccesses() { return m_num_accesses; }
       UInt64 getNumHits() { return m_num_hits; }
@@ -73,6 +81,7 @@ class Cache : public CacheBase
       void incrNumCapacityMisses() { m_num_capacity_misses++; }
       void incrNumUpgradeMisses() { m_num_upgrade_misses++; }
       void incrNumSharingMisses() { m_num_sharing_misses++; }
+
       bool isInvalidated(IntPtr addr)
       {
          return (bool) m_invalidated_set->count(addr);

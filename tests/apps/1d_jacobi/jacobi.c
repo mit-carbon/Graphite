@@ -56,10 +56,10 @@ SInt32 wait_some()
 int main(int argc, char *argv[])
 {
    CarbonStartSim(argc, argv);
-   if (argc != 3) {
-      fprintf(stderr, "[Usage]: ./jacobi <Number of Threads> <Number of Array Elements per Thread>\n");
-      exit(-1);
-   }
+/*    if (argc != 3) { */
+/*       fprintf(stderr, "[Usage]: ./jacobi <Number of Threads> <Number of Array Elements per Thread>\n"); */
+/*       exit(-1); */
+/*    } */
 
    g_num_cores = atoi(argv[1]);
    int num_array_elements_per_core = atoi (argv[2]);

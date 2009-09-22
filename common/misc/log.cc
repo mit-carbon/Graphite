@@ -188,22 +188,15 @@ void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 
    if (!Sim() || !(core_manager = Sim()->getCoreManager()))
    {
-      *core_id = INVALID_CORE_ID;
-      *sim_thread = false;
-      return;
-   }
 
-   *core_id = core_manager->getCurrentCoreID();
-   if (*core_id != INVALID_CORE_ID)
-   {
+      *core_id = INVALID_CORE_ID;
       *sim_thread = false;
       return;
    }
    else
    {
-      *core_id = core_manager->getCurrentSimThreadCoreID();
-      *sim_thread = true;
-      return;
+      *core_id = core_manager->getCurrentCoreID();
+      *sim_thread = core_manager->amiSimThread();
    }
 }
 

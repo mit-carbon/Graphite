@@ -65,7 +65,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
       queue_delay = 0;
    }
 
-   UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
+   UInt64 access_latency = queue_delay + processing_time + (UInt64) m_dram_access_cost;
 
    // Update Memory Counters
    m_num_accesses ++;

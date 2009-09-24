@@ -51,6 +51,9 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
          {
             LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_WRITE,
                              "Expected memory write info, got: %d.", info.type);
+
+            cost += info.memory_info.latency;
+            // ignore address
          }
 
          popDynamicInstructionInfo();

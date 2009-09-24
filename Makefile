@@ -30,10 +30,3 @@ output_files:
 
 empty_logs :
 	rm output_files/* ; true
-
-love:
-	@echo "not war!"
-
-out:
-	@echo "I think we should just be friends..."
-

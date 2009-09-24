@@ -11,7 +11,6 @@ class CacheBlockInfo
    // for different cache coherence protocols
    private:
       IntPtr m_tag;
-      bool m_dirty;
       CacheState::cstate_t m_cstate;
 
    public:
@@ -25,16 +24,12 @@ class CacheBlockInfo
       virtual void clone(CacheBlockInfo* cache_block_info);
 
       bool isValid() const { return (m_tag != ((IntPtr) ~0)); }
-      bool isDirty() const { return m_dirty; }
       
       IntPtr getTag() const { return m_tag; }
       CacheState::cstate_t getCState() const { return m_cstate; }
 
       void setTag(IntPtr tag) { m_tag = tag; }
       void setCState(CacheState::cstate_t cstate) { m_cstate = cstate; }
-      void setDirty() { m_dirty = true; }
-
-
 };
 
 #endif /* __CACHE_BLOCK_INFO_H__ */

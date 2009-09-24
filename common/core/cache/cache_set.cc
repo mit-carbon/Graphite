@@ -45,9 +45,6 @@ CacheSet::write_line(UInt32 line_index, UInt32 offset, Byte *in_buff, UInt32 byt
    if (in_buff != NULL)
       memcpy(&m_blocks[line_index * m_blocksize + offset], (void*) in_buff, bytes);
 
-   // Set the Dirty bit
-   m_cache_block_info_array[line_index]->setDirty();
-
    updateReplacementIndex(line_index);
 }
 

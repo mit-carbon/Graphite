@@ -104,15 +104,16 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
       invalidateCacheBlockInL1(evict_block_info.getCachedLoc(), evict_address);
 
       UInt32 home_node_id = getHome(evict_address);
-      if (evict_block_info.isDirty())
+      if (evict_block_info.getCState() == CacheState::MODIFIED)
       {
          // Send back the data also
-         assert(evict_block_info.getCState() == CacheState::MODIFIED);
          getMemoryManager()->sendMsg(ShmemMsg::FLUSH_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIR, home_node_id, evict_address, evict_buf, getCacheBlockSize());
       }
       else
       {
-         assert(evict_block_info.getCState() == CacheState::SHARED);
+         LOG_ASSERT_ERROR(evict_block_info.getCState() == CacheState::SHARED,
+               "evict_address(0x%x), evict_state(%u), cached_loc(%u)",
+               evict_address, evict_block_info.getCState(), evict_block_info.getCachedLoc());
          getMemoryManager()->sendMsg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIR, home_node_id, evict_address);
       }
    }
@@ -422,6 +423,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
             
             releaseLock();
 
+            assert(caching_mem_component != MemComponent::L1_ICACHE);
             if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
             {
                m_l1_cache_cntlr->acquireLock(caching_mem_component);

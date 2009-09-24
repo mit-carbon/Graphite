@@ -8,9 +8,9 @@ APP_FLAGS = -p8 $(CURDIR)/inputs/teapot.env
 MACROS := ../splash_support/c.m4.null.CARBON
 # MACROS := ../splash_support/c.m4.null.POSIX
 
-include ../splash_support/Makefile.config
-
 include ../../Makefile.tests
+
+include ../splash_support/Makefile.config
 
 bbox.c: bbox.C rt.h
 cr.c:	cr.C rt.h

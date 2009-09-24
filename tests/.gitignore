@@ -23,9 +23,10 @@ benchmarks/barnes/barnes
 benchmarks/blackscholes/blackscholes
 benchmarks/fmm/*.[ch]
 benchmarks/fmm/fmm
-benchmarks/ocean_contig/*.[ch]
-benchmarks/ocean_contig/ocean_contig
-benchmarks/ocean_non_contiguous/ocean_non_contig
+benchmarks/ocean_contiguous/*.[ch]
+benchmarks/ocean_contiguous/ocean_contiguous
+benchmarks/ocean_non_contiguous/*.[ch]
+benchmarks/ocean_non_contiguous/ocean_non_contiguous
 benchmarks/volrend/*.[ch]
 benchmarks/volrend/volrend
 benchmarks/water-nsquared/*.[ch]
@@ -43,9 +44,8 @@ benchmarks/fft/fft
 benchmarks/radix/*.[ch]
 benchmarks/radix/radix
 benchmarks/lu_contiguous/*.[ch]
-benchmarks/lu_contiguous/lu_contig
+benchmarks/lu_contiguous/lu_contiguous
 benchmarks/lu_non_contiguous/*.[ch]
-benchmarks/lu_non_contiguous/lu_noncontig
+benchmarks/lu_non_contiguous/lu_non_contiguous
 benchmarks/cholesky/*.[ch]
 benchmarks/cholesky/cholesky
-

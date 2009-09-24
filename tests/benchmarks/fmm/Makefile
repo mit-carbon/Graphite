@@ -4,9 +4,9 @@ APP_FLAGS = \< $(CURDIR)/inputs/input.256
 MACROS := ../splash_support/c.m4.null.CARBON
 #MACROS := ../splash_support/c.m4.null.POSIX
 
-include ../splash_support/Makefile.config
-
 include ../../Makefile.tests
+
+include ../splash_support/Makefile.config
 
 all:
 	rm -f $(SIM_ROOT)/times

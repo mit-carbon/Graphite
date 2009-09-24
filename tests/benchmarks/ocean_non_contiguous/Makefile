@@ -1,13 +1,13 @@
-TARGET = ocean_non_contig
+TARGET = ocean_non_contiguous
 OBJECTS = jacobcalc.o laplacalc.o main.o multi.o slave1.o slave2.o
 APP_FLAGS = -p8
 
 MACROS := ../splash_support/c.m4.null.CARBON
 # MACROS := ../splash_support/c.m4.null.POSIX
 
-include ../splash_support/Makefile.config
-
 include ../../Makefile.tests
+
+include ../splash_support/Makefile.config
 
 decs.h: decs.H
 jacobcalc.c: decs.h

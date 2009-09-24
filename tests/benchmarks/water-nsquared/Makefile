@@ -4,9 +4,9 @@ APP_FLAGS = < $(CURDIR)/input
 # MACROS := ../splash_support/c.m4.null.POSIX
 MACROS := ../splash_support/c.m4.null.CARBON
 
-include ../splash_support/Makefile.config
-
 include ../../Makefile.tests
+
+include ../splash_support/Makefile.config
 
 bndry.o: bndry.C split.h mdvar.h parameters.h mddata.h global.h
 cnstnt.o: cnstnt.C water.h wwpot.h cnst.h frcnst.h fileio.h parameters.h global.h

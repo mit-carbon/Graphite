@@ -5,9 +5,9 @@ CORES = 45
 
 MACROS := ../splash_support/c.m4.null.CARBON
 
-include ../splash_support/Makefile.config
-
 include ../../Makefile.tests
+
+include ../splash_support/Makefile.config
 
 CFLAGS += -I$(CURDIR)/libtiff
 LD_FLAGS += -L$(CURDIR)/libtiff -ltiff

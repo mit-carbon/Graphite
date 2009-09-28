@@ -72,8 +72,6 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    m_total_access_latency += (double) access_latency;
    m_total_queueing_delay += (double) queue_delay;
 
-   LOG_PRINT("getAccessLatency(): Queue Delay: %llu", queue_delay);
-   
    return access_latency;
 }
 

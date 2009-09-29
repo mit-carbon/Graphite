@@ -105,6 +105,7 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
 void Core::enablePerformanceModels()
 {
    getShmemPerfModel()->enable();
+   getMemoryManager()->enableModels();
    getNetwork()->enableModels();
    getPerformanceModel()->enable();
 }
@@ -112,6 +113,7 @@ void Core::enablePerformanceModels()
 void Core::disablePerformanceModels()
 {
    getShmemPerfModel()->disable();
+   getMemoryManager()->disableModels();
    getNetwork()->disableModels();
    getPerformanceModel()->disable();
 }
@@ -135,10 +137,6 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
       Byte* data_buf, UInt32 data_size,
       bool modeled)
 {
-   LOG_PRINT("%s - ADDR(0x%x), data_size(%u), START", 
-            ((mem_op_type == READ) ? "READ" : "WRITE"), 
-            address, data_size);
-
    if (data_size <= 0)
    {
       if (modeled)
@@ -152,6 +150,11 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
    // Setting the initial time
    UInt64 initial_time = getPerformanceModel()->getCycleCount();
    getShmemPerfModel()->setCycleCount(initial_time);
+
+   LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), START",
+         initial_time,
+         ((mem_op_type == READ) ? "READ" : "WRITE"), 
+         address, data_size);
 
    UInt32 num_misses = 0;
    UInt32 cache_block_size = getMemoryManager()->getCacheBlockSize();
@@ -192,7 +195,7 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
          curr_size = cache_block_size - (curr_offset);
       }
 
-      LOG_PRINT("Start InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
+      LOG_PRINT("Start InitiateSharedMemReq: ADDR(0x%x), offset(%u), curr_size(%u)", curr_addr_aligned, curr_offset, curr_size);
 
       if (!getMemoryManager()->coreInitiateMemoryAccess(
                mem_component,
@@ -210,15 +213,11 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
          num_misses ++;
       }
 
-      LOG_PRINT("End InitiateSharedMemReq: ADDR: %x, offset: %u, curr_size: %u", curr_addr_aligned, curr_offset, curr_size);
+      LOG_PRINT("End InitiateSharedMemReq: ADDR(0x%x), offset(%u), curr_size(%u)", curr_addr_aligned, curr_offset, curr_size);
 
       // Increment the buffer head
       curr_data_buffer_head += curr_size;
    }
-
-   LOG_PRINT("%s - ADDR(0x%x), data_size(%u), END\n", 
-            ((mem_op_type == READ) ? "READ" : "WRITE"), 
-            address, data_size);
 
    // Get the final cycle time
    UInt64 final_time = getShmemPerfModel()->getCycleCount();
@@ -226,6 +225,11 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
          "final_time(%llu) < initial_time(%llu)",
          final_time, initial_time);
    
+   LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), END\n", 
+         final_time,
+         ((mem_op_type == READ) ? "READ" : "WRITE"), 
+         address, data_size);
+
    // Calculate the round-trip time
    UInt64 shmem_time = final_time - initial_time;
 

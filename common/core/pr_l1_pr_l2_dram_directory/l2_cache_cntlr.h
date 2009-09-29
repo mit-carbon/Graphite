@@ -100,6 +100,8 @@ namespace PrL1PrL2DramDirectory
          
          ~L2CacheCntlr();
 
+         Cache* getL2Cache() { return m_l2_cache; }
+
          // Handle Request from L1 Cache - This is done for better simulator performance
          bool processShmemReqFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type, IntPtr address);
          // Write-through Cache. Hence needs to be written by user thread

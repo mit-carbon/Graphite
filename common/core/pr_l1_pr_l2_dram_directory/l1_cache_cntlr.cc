@@ -119,7 +119,8 @@ L1CacheCntlr::processMemOpFromCore(
       // Send out a request to the network thread for the cache data
       getMemoryManager()->sendMsg(shmem_msg_type, 
             mem_component, MemComponent::L2_CACHE,
-            m_core_id, ca_address);
+            m_core_id /* requester */,
+            m_core_id /* receiver */, ca_address);
  
       waitForNetworkThread();
    }
@@ -287,20 +288,6 @@ L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
          LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
          break;
    }
-}
-
-void
-L1CacheCntlr::acquireAllLocks()
-{
-   m_l1_icache_lock.acquire();
-   m_l1_dcache_lock.acquire();
-}
-
-void
-L1CacheCntlr::releaseAllLocks()
-{
-   m_l1_icache_lock.release();
-   m_l1_dcache_lock.release();
 }
 
 void

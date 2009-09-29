@@ -78,8 +78,8 @@ Cache::invalidateSingleLine(IntPtr addr)
 
    // Update sets for maintaining cache counters
    if (m_track_detailed_cache_counters 
-         && m_shmem_perf_model 
-         && m_shmem_perf_model->isEnabled())
+         && m_cache_perf_model 
+         && m_cache_perf_model->isEnabled())
       m_invalidated_set->insert(addr);
 
    return m_sets[set_index]->invalidate(tag);
@@ -89,7 +89,7 @@ CacheBlockInfo*
 Cache::accessSingleLine(IntPtr addr, access_t access_type, 
       Byte* buff, UInt32 bytes)
 {
-   if (m_shmem_perf_model && m_cache_perf_model)
+   if (m_cache_perf_model)
       getShmemPerfModel()->incrCycleCount(getCachePerfModel()->getLatency(CachePerfModel::ACCESS_CACHE_DATA));
 
    assert((buff == NULL) == (bytes == 0));
@@ -120,7 +120,7 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
       bool* eviction, IntPtr* evict_addr, 
       CacheBlockInfo* evict_block_info, Byte* evict_buff)
 {
-   if (m_shmem_perf_model && m_cache_perf_model)
+   if (m_cache_perf_model)
       getShmemPerfModel()->incrCycleCount(getCachePerfModel()->getLatency(CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS));
 
    IntPtr tag;
@@ -138,8 +138,8 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
   
    // Update sets for the purpose of maintaining cache counters
    if (m_track_detailed_cache_counters 
-         && m_shmem_perf_model 
-         && m_shmem_perf_model->isEnabled())
+         && m_cache_perf_model 
+         && m_cache_perf_model->isEnabled())
    {
       m_evicted_set->erase(addr);
       m_invalidated_set->erase(addr);
@@ -154,7 +154,7 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
 CacheBlockInfo* 
 Cache::peekSingleLine(IntPtr addr)
 {
-   if (m_shmem_perf_model && m_cache_perf_model)
+   if (m_cache_perf_model)
       getShmemPerfModel()->incrCycleCount(getCachePerfModel()->getLatency(CachePerfModel::ACCESS_CACHE_TAGS));
 
    IntPtr tag;

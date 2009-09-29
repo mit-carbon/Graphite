@@ -27,7 +27,7 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_
       , _globalUtilization(0)
       , _localUtilizationLastUpdate(0)
       , _localUtilizationFlitsSent(0)
-      , m_enabled(true)
+      , m_enabled(false)
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,

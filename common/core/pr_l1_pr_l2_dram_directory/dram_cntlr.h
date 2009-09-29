@@ -28,7 +28,7 @@ namespace PrL1PrL2DramDirectory
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
          MemoryManager* getMemoryManager() { return m_memory_manager; }
          ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
-         UInt64 runDramPerfModel(void);
+         UInt64 runDramPerfModel(core_id_t requester);
 
       public:
          DramCntlr(MemoryManager* memory_manager,
@@ -46,8 +46,8 @@ namespace PrL1PrL2DramDirectory
          DramPerfModel* getDramPerfModel() { return m_dram_perf_model; }
 
          void handleMsgFromDramDir(core_id_t sender, ShmemMsg* shmem_msg);
-         void getDataFromDram(IntPtr address, Byte* data_buf);
-         void putDataToDram(IntPtr address, Byte* data_buf);
+         void getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf);
+         void putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
    };
 }
 

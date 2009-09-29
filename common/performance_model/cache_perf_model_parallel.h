@@ -5,15 +5,26 @@
 
 class CachePerfModelParallel : public CachePerfModel
 {
+   private:
+      bool m_enabled;
+
    public:
       CachePerfModelParallel(UInt32 cache_data_access_time, 
             UInt32 cache_tags_access_time) : 
-         CachePerfModel(cache_data_access_time, cache_tags_access_time) 
+         CachePerfModel(cache_data_access_time, cache_tags_access_time),
+         m_enabled(false)
       {}
       ~CachePerfModelParallel() {}
 
+      void enable() { m_enabled = true; }
+      void disable() { m_enabled = false; }
+      bool isEnabled() { return m_enabled; }
+
       UInt32 getLatency(CacheAccess_t access)
       {
+         if (!m_enabled)
+            return 0;
+
          switch(access)
          {
             case ACCESS_CACHE_TAGS:

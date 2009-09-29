@@ -37,21 +37,27 @@ DramCntlr::~DramCntlr()
 void
 DramCntlr::handleMsgFromDramDir(core_id_t sender, ShmemMsg* shmem_msg)
 {
-   IntPtr address = shmem_msg->m_address;
-   ShmemMsg::msg_t msg_type = shmem_msg->m_msg_type;
+   IntPtr address = shmem_msg->getAddress();
+   ShmemMsg::msg_t msg_type = shmem_msg->getMsgType();
+   core_id_t requester = shmem_msg->getRequester();
 
    switch (msg_type)
    {
       case ShmemMsg::GET_DATA_REQ:
          {
             Byte data_buf[getCacheBlockSize()];
-            getDataFromDram(address, data_buf);
-            getMemoryManager()->sendMsg(ShmemMsg::GET_DATA_REP, MemComponent::DRAM, MemComponent::DRAM_DIR, sender, address, data_buf, getCacheBlockSize());
+            getDataFromDram(address, requester, data_buf);
+            getMemoryManager()->sendMsg(ShmemMsg::GET_DATA_REP, 
+                  MemComponent::DRAM, MemComponent::DRAM_DIR, 
+                  requester /* requester */, 
+                  sender /* receiver */, 
+                  address,
+                  data_buf, getCacheBlockSize());
          }
          break;
 
       case ShmemMsg::PUT_DATA_REQ:
-         putDataToDram(address, shmem_msg->m_data_buf);
+         putDataToDram(address, requester, shmem_msg->getDataBuf());
          break;
 
       default:
@@ -61,7 +67,7 @@ DramCntlr::handleMsgFromDramDir(core_id_t sender, ShmemMsg* shmem_msg)
 }
 
 void
-DramCntlr::getDataFromDram(IntPtr address, Byte* data_buf)
+DramCntlr::getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf)
 {
    if (m_data_map[address] == NULL)
    {
@@ -70,12 +76,12 @@ DramCntlr::getDataFromDram(IntPtr address, Byte* data_buf)
    }
    memcpy((void*) data_buf, (void*) m_data_map[address], getCacheBlockSize());
 
-   UInt64 dram_access_latency = runDramPerfModel();
+   UInt64 dram_access_latency = runDramPerfModel(requester);
    getShmemPerfModel()->incrCycleCount(dram_access_latency);
 }
 
 void
-DramCntlr::putDataToDram(IntPtr address, Byte* data_buf)
+DramCntlr::putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf)
 {
    if (m_data_map[address] == NULL)
    {
@@ -83,15 +89,15 @@ DramCntlr::putDataToDram(IntPtr address, Byte* data_buf)
    }
    memcpy((void*) m_data_map[address], (void*) data_buf, getCacheBlockSize());
 
-   runDramPerfModel();
+   runDramPerfModel(requester);
 }
 
 UInt64
-DramCntlr::runDramPerfModel()
+DramCntlr::runDramPerfModel(core_id_t requester)
 {
    UInt64 pkt_time = getShmemPerfModel()->getCycleCount();
    UInt64 pkt_size = (UInt64) getCacheBlockSize();
-   UInt64 dram_access_latency = m_dram_perf_model->getAccessLatency(pkt_time, pkt_size);
+   UInt64 dram_access_latency = m_dram_perf_model->getAccessLatency(pkt_time, pkt_size, requester);
    return dram_access_latency;
 }
 

@@ -4,7 +4,7 @@
 #include "core_manager.h"
 
 ShmemPerfModel::ShmemPerfModel():
-   m_enabled(true),
+   m_enabled(false),
    m_num_memory_accesses(0),
    m_total_memory_access_latency(0.0)
 {

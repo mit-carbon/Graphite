@@ -44,18 +44,9 @@ class ShmemPerfModel
 
       void incrTotalMemoryAccessLatency(UInt64 shmem_time);
       
-      void enable()
-      {
-         m_enabled = true;
-      }
-      void disable()
-      {
-         m_enabled = false;
-      }
-      bool isEnabled()
-      {
-         return m_enabled;
-      }
+      void enable() { m_enabled = true; }
+      void disable() { m_enabled = false; }
+      bool isEnabled() { return m_enabled; }
 
       void outputSummary(ostream& out);
 };

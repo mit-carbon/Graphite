@@ -1,6 +1,7 @@
 #include <iostream>
 using namespace std;
 
+#include "config.h"
 #include "dram_perf_model.h"
 
 // Note: Each Dram Controller owns a single DramModel object
@@ -21,7 +22,7 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
       UInt32 moving_avg_window_size, 
       std::string moving_avg_type_str):
    m_queue_model_enabled(queue_model_enabled),
-   m_enabled(true),
+   m_enabled(false),
    m_num_accesses(0),
    m_total_access_latency(0.0),
    m_total_queueing_delay(0.0)
@@ -41,11 +42,12 @@ DramPerfModel::~DramPerfModel()
 }
 
 UInt64 
-DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
+DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requester)
 {
    // pkt_size is in 'Bytes'
    // m_dram_bandwidth is in 'Bytes per clock cycle'
-   if (!m_enabled)
+   if ((!m_enabled) || 
+         (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return 0;
 
    UInt64 processing_time = (UInt64) ((float) pkt_size/m_dram_bandwidth) + 1;
@@ -57,7 +59,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    
    if (m_queue_model_enabled)
    {
-      queue_delay = m_queue_model->getQueueDelay(pkt_time_av);
+      queue_delay = m_queue_model->getQueueDelay(pkt_time_av, requester);
       m_queue_model->updateQueue(pkt_time_av, processing_time);
    }
    else

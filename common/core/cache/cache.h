@@ -37,9 +37,6 @@ class Cache : public CacheBase
       ShmemPerfModel* m_shmem_perf_model;
       CachePerfModel* m_cache_perf_model;
 
-      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
-      CachePerfModel* getCachePerfModel() { return m_cache_perf_model; }
-
    public:
 
       // constructors/destructors
@@ -62,6 +59,9 @@ class Cache : public CacheBase
             bool* eviction, IntPtr* evict_addr, 
             CacheBlockInfo* evict_block_info, Byte* evict_buff);
       CacheBlockInfo* peekSingleLine(IntPtr addr);
+
+      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+      CachePerfModel* getCachePerfModel() { return m_cache_perf_model; }
       
       // Update Cache Counters
       void updateCounters(IntPtr addr, CacheState cache_state, access_t access_type);

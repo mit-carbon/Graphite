@@ -227,10 +227,11 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    getShmemPerfModel()->setCycleCount(msg_time);
 
-   MemComponent::component_t receiver_mem_component = shmem_msg->m_receiver_mem_component;
-   MemComponent::component_t sender_mem_component = shmem_msg->m_sender_mem_component;
+   MemComponent::component_t receiver_mem_component = shmem_msg->getReceiverMemComponent();
+   MemComponent::component_t sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", shmem_msg->m_msg_type, shmem_msg->m_address, sender_mem_component, receiver_mem_component, sender, packet.receiver);    
+   LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", 
+         shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender, packet.receiver);    
 
    switch (receiver_mem_component)
    {
@@ -289,26 +290,25 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    // First delete 'data_buf' if it is present
    LOG_PRINT("Finished handling Shmem Msg");
 
-   if (shmem_msg->m_data_length > 0)
+   if (shmem_msg->getDataLength() > 0)
    {
-      assert(shmem_msg->m_data_buf);
-      delete [] shmem_msg->m_data_buf;
+      assert(shmem_msg->getDataBuf());
+      delete [] shmem_msg->getDataBuf();
    }
    delete shmem_msg;
 }
 
 void
-MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t receiver, IntPtr address, Byte* data_buf, UInt32 data_length)
+MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, core_id_t receiver, IntPtr address, Byte* data_buf, UInt32 data_length)
 {
    assert((data_buf == NULL) == (data_length == 0));
-   ShmemMsg shmem_msg(msg_type, sender_mem_component, receiver_mem_component, address, data_buf, data_length);
+   ShmemMsg shmem_msg(msg_type, sender_mem_component, receiver_mem_component, requester, address, data_buf, data_length);
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, m_core->getId(), receiver);
+   LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), receiver);
 
-   // TODO: Change the constructors of NetPacket
    NetPacket packet(msg_time, SHARED_MEM_NET1,
          m_core->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
@@ -319,17 +319,16 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
 }
 
 void
-MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, IntPtr address, Byte* data_buf, UInt32 data_length)
+MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, IntPtr address, Byte* data_buf, UInt32 data_length)
 {
    assert((data_buf == NULL) == (data_length == 0));
-   ShmemMsg shmem_msg(msg_type, sender_mem_component, receiver_mem_component, address, data_buf, data_length);
+   ShmemMsg shmem_msg(msg_type, sender_mem_component, receiver_mem_component, requester, address, data_buf, data_length);
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, m_core->getId(), NetPacket::BROADCAST);
+   LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), NetPacket::BROADCAST);
 
-   // TODO: Change the constructors of NetPacket
    NetPacket packet(msg_time, SHARED_MEM_NET1,
          m_core->getId(), NetPacket::BROADCAST,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
@@ -354,6 +353,28 @@ MemoryManager::isDramCntlrPresent()
       return true;
    else
       return false;
+}
+
+void
+MemoryManager::enableModels()
+{
+   m_l1_cache_cntlr->getL1ICache()->getCachePerfModel()->enable();
+   m_l1_cache_cntlr->getL1DCache()->getCachePerfModel()->enable();
+   m_l2_cache_cntlr->getL2Cache()->getCachePerfModel()->enable();
+
+   if (m_dram_cntlr)
+      m_dram_cntlr->getDramPerfModel()->enable();
+}
+
+void
+MemoryManager::disableModels()
+{
+   m_l1_cache_cntlr->getL1ICache()->getCachePerfModel()->disable();
+   m_l1_cache_cntlr->getL1DCache()->getCachePerfModel()->disable();
+   m_l2_cache_cntlr->getL2Cache()->getCachePerfModel()->disable();
+
+   if (m_dram_cntlr)
+      m_dram_cntlr->getDramPerfModel()->disable();
 }
 
 void

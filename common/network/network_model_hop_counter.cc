@@ -6,7 +6,7 @@
 
 NetworkModelHopCounter::NetworkModelHopCounter(Network *net)
    : NetworkModel(net)
-   , _enabled(true)
+   , _enabled(false)
    , _bytesSent(0)
    , _cyclesLatency(0)
    , _hopLatency(1)

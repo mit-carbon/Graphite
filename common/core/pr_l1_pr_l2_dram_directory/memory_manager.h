@@ -49,11 +49,14 @@ namespace PrL1PrL2DramDirectory
 
          void handleMsgFromNetwork(NetPacket& packet);
 
-         void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+         void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, core_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
 
-         void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+         void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
          
          core_id_t getCoreIdFromDramCntlrNum(SInt32 dram_cntlr_num);
+
+         void enableModels();
+         void disableModels();
 
          void outputSummary(std::ostream &os);
 

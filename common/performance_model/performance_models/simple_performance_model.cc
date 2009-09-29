@@ -61,9 +61,17 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    }
 
    cost += instruction->getCost();
-   LOG_ASSERT_WARNING(cost < 10000, "Cost is too big - cost:%llu, cycle_count: %llu, type: %d", cost, m_cycle_count, instruction->getType());
+   // LOG_ASSERT_WARNING(cost < 10000, "Cost is too big - cost:%llu, cycle_count: %llu, type: %d", cost, m_cycle_count, instruction->getType());
 
    // update counters
    m_instruction_count++;
    m_cycle_count += cost;
+}
+
+void SimplePerformanceModel::setCycleCount(UInt64 time)
+{
+   LOG_ASSERT_ERROR(time >= m_cycle_count,
+         "time(%llu) < m_cycle_count(%llu)",
+         time, m_cycle_count);
+   m_cycle_count = time;
 }

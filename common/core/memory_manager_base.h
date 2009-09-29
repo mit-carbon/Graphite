@@ -39,9 +39,13 @@ class MemoryManagerBase
 
       virtual void handleMsgFromNetwork(NetPacket& packet) = 0;
 
+      // FIXME: Take this out of here
       virtual UInt32 getCacheBlockSize() = 0;
 
       virtual void outputSummary(std::ostream& os) = 0;
+
+      virtual void enableModels() = 0;
+      virtual void disableModels() = 0;
 
       Core* getCore() { return m_core; }
       Network* getNetwork() { return m_network; }

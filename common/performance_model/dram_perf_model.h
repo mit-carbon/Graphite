@@ -41,7 +41,7 @@ class DramPerfModel
 
       ~DramPerfModel();
 
-      UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size);
+      UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requester);
       void enable() { m_enabled = true; }
       void disable() { m_enabled = false; }
 

@@ -78,6 +78,9 @@ namespace PrL1PrL2DramDirectory
          
          ~L1CacheCntlr();
 
+         Cache* getL1ICache() { return m_l1_icache; }
+         Cache* getL1DCache() { return m_l1_dcache; }
+
          void setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr);
 
          bool processMemOpFromCore(
@@ -98,8 +101,6 @@ namespace PrL1PrL2DramDirectory
          void invalidateCacheBlock(
                MemComponent::component_t mem_component, IntPtr address);
 
-         void acquireAllLocks(void);
-         void releaseAllLocks(void);
          void acquireLock(MemComponent::component_t mem_component);
          void releaseLock(MemComponent::component_t mem_component);
    };

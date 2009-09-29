@@ -34,6 +34,10 @@ class CachePerfModel
             UInt32 cache_tags_access_time);
       static PerfModel_t parseModelType(std::string model_type);
 
+      virtual void enable() = 0;
+      virtual void disable() = 0;
+      virtual bool isEnabled() = 0;
+
       virtual UInt32 getLatency(CacheAccess_t access) = 0;
 };
 

@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <algorithm>
 #include "log.h"
 #include "config.h"
 #include "transport.h"

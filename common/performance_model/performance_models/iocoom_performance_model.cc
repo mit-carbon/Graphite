@@ -146,6 +146,9 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    // leaving out the register and memory write
    UInt64 execute_unit_completion_time = read_operands_ready + max_load_latency + cost;
 
+   if (m_cycle_count < execute_unit_completion_time)
+      m_cycle_count = execute_unit_completion_time;
+
    // REG write operands
    // In this core model, we directly resolve WAR hazards since we wait
    // for all the read operands of an instruction to be available before

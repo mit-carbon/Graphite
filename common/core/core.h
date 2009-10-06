@@ -8,6 +8,7 @@ class Network;
 class MemoryManagerBase;
 class SyscallMdl;
 class SyncClient;
+class SimulationBarrierClient;
 class PerformanceModel;
 
 // FIXME: Move this out of here eventually
@@ -80,6 +81,7 @@ class Core
       PinMemoryManager *getPinMemoryManager() { return m_pin_memory_manager; }
       SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       SyncClient *getSyncClient() { return m_sync_client; }
+      SimulationBarrierClient *getSimulationBarrierClient() { return m_simulation_barrier_client; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
       void enablePerformanceModels();
@@ -93,6 +95,7 @@ class Core
       PerformanceModel *m_performance_model;
       SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
+      SimulationBarrierClient *m_simulation_barrier_client;
       ShmemPerfModel* m_shmem_perf_model;
 
       static Lock m_global_core_lock;

@@ -335,8 +335,11 @@ NetPacket Network::netRecv(const NetMatch &match)
    _netQueue.erase(itr);
    _netQueueLock.release();
 
+   LOG_PRINT("packet.time(%llu), start_time(%llu)", packet.time, start_time);
+
    if (packet.time > start_time)
    {
+      LOG_PRINT("Queueing RecvInstruction(%llu)", packet.time - start_time);
       Instruction *i = new RecvInstruction(packet.time - start_time);
       _core->getPerformanceModel()->queueDynamicInstruction(i);
    }

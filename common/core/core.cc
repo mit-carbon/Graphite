@@ -5,7 +5,9 @@
 #include "network_types.h"
 #include "memory_manager_base.h"
 #include "pin_memory_manager.h"
+#include "simulation_barrier_client.h"
 #include "performance_model.h"
+#include "simulator.h"
 #include "log.h"
 
 using namespace std;
@@ -44,10 +46,17 @@ Core::Core(SInt32 id)
 
    m_syscall_model = new SyscallMdl(m_network);
    m_sync_client = new SyncClient(this);
+
+   if (Sim()->getCfg()->getBool("simulation_barrier/enabled", false))
+      m_simulation_barrier_client = new SimulationBarrierClient(this);
+   else
+      m_simulation_barrier_client = NULL;
 }
 
 Core::~Core()
 {
+   if (m_simulation_barrier_client)
+      delete m_simulation_barrier_client;
    delete m_sync_client;
    delete m_syscall_model;
    if (Config::getSingleton()->isSimulatingSharedMemory())

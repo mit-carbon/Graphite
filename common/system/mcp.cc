@@ -11,6 +11,7 @@
 #include "syscall.h"
 #include "thread_manager.h"
 #include "perf_counter_manager.h"
+#include "simulation_barrier_server.h"
 
 using namespace std;
 
@@ -22,12 +23,17 @@ MCP::MCP(Network & network)
       m_scratch(new char[m_MCP_SERVER_MAX_BUFF]),
       m_syscall_server(m_network, m_send_buff, m_recv_buff, m_MCP_SERVER_MAX_BUFF, m_scratch),
       m_sync_server(m_network, m_recv_buff),
+      m_simulation_barrier_server(NULL),
       m_network_model_analytical_server(m_network, m_recv_buff)
 {
+   if (Sim()->getCfg()->getBool("simulation_barrier/enabled", false))
+      m_simulation_barrier_server = new SimulationBarrierServer(m_network, m_recv_buff);
 }
 
 MCP::~MCP()
 {
+   if (m_simulation_barrier_server)
+      delete m_simulation_barrier_server;
    delete[] m_scratch;
 }
 
@@ -107,6 +113,11 @@ void MCP::processPacket()
 
    case MCP_MESSAGE_THREAD_JOIN_REQUEST:
       Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data, recv_pkt.time);
+      break;
+
+   case MCP_MESSAGE_SIM_BARRIER_WAIT:
+      assert(m_simulation_barrier_server);
+      m_simulation_barrier_server->barrierWait(recv_pkt.sender);
       break;
 
    case MCP_MESSAGE_RESET_CACHE_COUNTERS:

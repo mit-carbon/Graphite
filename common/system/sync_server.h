@@ -52,18 +52,15 @@ class SimCond
       class CondWaiter
       {
          public:
-            CondWaiter(core_id_t comm_id, StableIterator<SimMutex> mutex, UInt64 time)
-                  : m_comm_id(comm_id), m_mutex(mutex), m_arrival_time(time) {}
-            core_id_t m_comm_id;
+            CondWaiter(core_id_t core_id, StableIterator<SimMutex> mutex, UInt64 time)
+                  : m_core_id(core_id), m_mutex(mutex), m_arrival_time(time) {}
+            core_id_t m_core_id;
             StableIterator<SimMutex> m_mutex;
             UInt64 m_arrival_time;
       };
 
       typedef std::vector< CondWaiter > ThreadQueue;
-      typedef std::vector< UInt64 > SignalQueue;
-
       ThreadQueue m_waiting;
-      SignalQueue m_signals;
 };
 
 class SimBarrier
@@ -117,7 +114,7 @@ class SyncServer
       void barrierWait(core_id_t);
 
    private:
-      Network & m_network;
+      Network &m_network;
       UnstructuredBuffer &m_recv_buffer;
 };
 

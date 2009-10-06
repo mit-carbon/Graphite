@@ -74,7 +74,7 @@ void Simulator::start()
    m_thread_manager = new ThreadManager(m_core_manager);
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
-
+ 
    startMCP();
 
    m_sim_thread_manager->spawnSimThreads();

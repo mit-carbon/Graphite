@@ -40,6 +40,7 @@
 #include "vm_manager.h"
 #include "instruction_modeling.h"
 #include "progress_trace.h"
+#include "simulation_barrier.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -164,14 +165,6 @@ void routineCallback(RTN rtn, void *v)
 
       RTN_Close(rtn);
    }
-   
-   // TODO:
-   // Commenting out performance modeling code since it causes multiple accesses to memory
-   // when we are simulating shared memory. Fix perf model code to not cause any memory accesses
-   //  
-   // bool did_func_replace = replaceUserAPIFunction(rtn, rtn_name);
-   // if (!did_func_replace)
-   //    replaceInstruction(rtn, rtn_name);
 }
 
 void showInstructionInfo(INS ins)
@@ -206,6 +199,7 @@ VOID instructionCallback (INS ins, void *v)
       addInstructionModeling(ins);
 
    addProgressTrace(ins);
+   addPeriodicSimulationBarrier(ins);
 
    if (INS_IsSyscall(ins))
    {

@@ -1,5 +1,7 @@
 #include "sync_server.h"
 #include "sync_client.h"
+#include "simulator.h"
+#include "thread_manager.h"
 
 using namespace std;
 
@@ -29,6 +31,7 @@ bool SimMutex::lock(core_id_t core_id)
    }
    else
    {
+      Sim()->getThreadManager()->stallThread(core_id);
       m_waiting.push(core_id);
       return false;
    }
@@ -45,33 +48,22 @@ core_id_t SimMutex::unlock(core_id_t core_id)
    {
       m_owner =  m_waiting.front();
       m_waiting.pop();
+      Sim()->getThreadManager()->resumeThread(m_owner);
    }
    return m_owner;
 }
 
 // -- SimCond -- //
+// FIXME: Currently, 'simulated times' are ignored in the synchronization constructs
 SimCond::SimCond() {}
 SimCond::~SimCond()
 {
    assert(m_waiting.empty());
 }
 
-
 core_id_t SimCond::wait(core_id_t core_id, UInt64 time, StableIterator<SimMutex> & simMux)
 {
-
-   // First check to see if we have gotten any signals later in 'virtual time'
-   for (SignalQueue::iterator i = m_signals.begin(); i != m_signals.end(); i++)
-   {
-      if ((*i) > time)
-      {
-         //Remove the pending signal
-         m_signals.erase(i,i+1);
-
-         //Let the manager know to wake up this thread
-         return core_id;
-      }
-   }
+   Sim()->getThreadManager()->stallThread(core_id);
 
    // If we don't have any later signals, then put this request in the queue
    m_waiting.push_back(CondWaiter(core_id, simMux, time));
@@ -80,51 +72,47 @@ core_id_t SimCond::wait(core_id_t core_id, UInt64 time, StableIterator<SimMutex>
 
 core_id_t SimCond::signal(core_id_t core_id, UInt64 time)
 {
-   // If no threads are waiting, store this cond incase a new
-   // thread arrives with an earlier time
-   if (m_waiting.empty())
-   {
-      m_signals.push_back(time);
-      return INVALID_CORE_ID;
-   }
-
    // If there is a list of threads waiting, wake up one of them
-   // if it has a time later than this signal
-   for (ThreadQueue::iterator i = m_waiting.begin(); i != m_waiting.end(); i++)
+   if (!m_waiting.empty())
    {
-      //FIXME: This should be uncommented once the proper timings are working
-      //cerr << "comparing signal time: " << (int)time << " with: " << (*i).m_arrival_time << endl;
-      if (time > (*i).m_arrival_time)
-      {
-         CondWaiter woken = (*i);
-         m_waiting.erase(i);
+      CondWaiter woken = *(m_waiting.begin());
+      m_waiting.erase(m_waiting.begin());
 
-         if (woken.m_mutex->lock(woken.m_comm_id))
-            return woken.m_comm_id;
-         else
-            return INVALID_CORE_ID;
+      Sim()->getThreadManager()->resumeThread(woken.m_core_id);
+
+      if (woken.m_mutex->lock(woken.m_core_id))
+      {
+         // Woken up thread is able to grab lock immediately
+         return woken.m_core_id;
+      }
+      else
+      {
+         // Woken up thread is *NOT* able to grab lock immediately
+         return INVALID_CORE_ID;
       }
    }
 
-   // If none of the waiting threads have a later time, then save this
-   // signal for later usage (incase a thread arrives at later physical
-   // time but earlier virtual time).
-   m_signals.push_back(time);
+   // There are *NO* threads waiting on the condition variable
    return INVALID_CORE_ID;
-
 }
 
-//FIXME: cond broadcast does not properly handle out of order signals
 void SimCond::broadcast(core_id_t core_id, UInt64 time, WakeupList &woken_list)
 {
-   while (!m_waiting.empty())
+   for (ThreadQueue::iterator i = m_waiting.begin(); i != m_waiting.end(); i++)
    {
-      CondWaiter woken = *(m_waiting.begin());
-      m_waiting.erase(m_waiting.begin(), m_waiting.begin()+1);
+      CondWaiter woken = *(i);
 
-      if (woken.m_mutex->lock(woken.m_comm_id))
-         woken_list.push_back(woken.m_comm_id);
+      Sim()->getThreadManager()->resumeThread(woken.m_core_id);
+
+      if (woken.m_mutex->lock(woken.m_core_id))
+      {
+         // Woken up thread is able to grab lock immediately
+         woken_list.push_back(woken.m_core_id);
+      }
    }
+
+   // All waiting threads have been woken up from the CondVar queue
+   m_waiting.clear();
 }
 
 // -- SimBarrier -- //
@@ -143,6 +131,8 @@ void SimBarrier::wait(core_id_t core_id, UInt64 time, WakeupList &woken_list)
 {
    m_waiting.push_back(core_id);
 
+   Sim()->getThreadManager()->stallThread(core_id);
+
    assert(m_waiting.size() <= m_count);
 
    if (m_waiting.size() == 1)
@@ -154,6 +144,12 @@ void SimBarrier::wait(core_id_t core_id, UInt64 time, WakeupList &woken_list)
    if (m_waiting.size() == m_count)
    {
       woken_list = m_waiting;
+
+      for (WakeupList::iterator i = woken_list.begin(); i != woken_list.end(); i++)
+      {
+         // Resuming all the threads stalled at the barrier
+         Sim()->getThreadManager()->resumeThread(*i);
+      }
       m_waiting.clear();
    }
 }
@@ -198,7 +194,7 @@ void SyncServer::mutexLock(core_id_t core_id)
    }
    else
    {
-      // nothing...owner goes to sleep
+      // nothing...thread goes to sleep
    }
 }
 
@@ -229,7 +225,7 @@ void SyncServer::mutexUnlock(core_id_t core_id)
       // nothing...
    }
 
-   UInt32 dummy=SyncClient::MUTEX_UNLOCK_RESPONSE;
+   UInt32 dummy = SyncClient::MUTEX_UNLOCK_RESPONSE;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
@@ -301,7 +297,7 @@ void SyncServer::condSignal(core_id_t core_id)
    }
 
    // Alert the signaler
-   UInt32 dummy=SyncClient::COND_SIGNAL_RESPONSE;
+   UInt32 dummy = SyncClient::COND_SIGNAL_RESPONSE;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
@@ -333,7 +329,7 @@ void SyncServer::condBroadcast(core_id_t core_id)
    }
 
    // Alert the signaler
-   UInt32 dummy=SyncClient::COND_BROADCAST_RESPONSE;
+   UInt32 dummy = SyncClient::COND_BROADCAST_RESPONSE;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 

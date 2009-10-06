@@ -6,9 +6,9 @@ APP_FLAGS = -p8 $(CURDIR)/inputs/tk29.O
 MACROS := ../splash_support/c.m4.null.CARBON
 # MACROS := ../splash_support/c.m4.null.POSIX
 
-include ../splash_support/Makefile.config
-
 include ../../Makefile.tests
+
+include ../splash_support/Makefile.config
 
 matrix.h: matrix.H
 amal.c: matrix.h

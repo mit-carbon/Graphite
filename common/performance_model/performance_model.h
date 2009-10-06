@@ -5,18 +5,20 @@
 #include <queue>
 #include <iostream>
 
+// Forward Decls
+class Core;
+class BranchPredictor;
+
 #include "instruction.h"
 #include "basic_block.h"
 #include "fixed_types.h"
 #include "lock.h"
 #include "dynamic_instruction_info.h"
 
-class BranchPredictor;
-
 class PerformanceModel
 {
 public:
-   PerformanceModel();
+   PerformanceModel(Core* core);
    virtual ~PerformanceModel();
 
    void queueDynamicInstruction(Instruction *i);
@@ -31,7 +33,7 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static PerformanceModel *create();
+   static PerformanceModel *create(Core* core);
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
@@ -50,11 +52,15 @@ protected:
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 
+   Core* getCore() { return m_core; }
+
 private:
 
    class DynamicInstructionInfoNotAvailableException { };
 
    virtual void handleInstruction(Instruction *instruction) = 0;
+
+   Core* m_core;
 
    bool m_enabled;
 

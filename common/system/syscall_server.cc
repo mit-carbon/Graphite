@@ -3,11 +3,14 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+
 #include "syscall_server.h"
 #include "sys/syscall.h"
 #include "core.h"
 #include "config.h"
 #include "vm_manager.h"
+#include "simulator.h"
+#include "thread_manager.h"
 
 #include "log.h"
 
@@ -165,7 +168,7 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
    int bytes = read(fd, (void *) buf, count);
 
    // Copy the memory into shared mem
-   m_network.getCore()->accessMemory(Core::NONE, WRITE, (IntPtr)dest, buf, count);
+   m_network.getCore()->accessMemory(Core::NONE, Core::WRITE, (IntPtr)dest, buf, count);
 
    m_send_buff << bytes;
    if (bytes != -1 && !Config::getSingleton()->isSimulatingSharedMemory())
@@ -408,7 +411,6 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    m_recv_buff.get(timeout_prefix);
 
-   LOG_PRINT("timeout_prefix = %i", timeout_prefix);
    if (timeout_prefix == 0)
    {
       timeout = (struct timespec*) NULL;
@@ -431,7 +433,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == FUTEX_WAKE), "op = %u", op);
    if (op == FUTEX_WAIT)
    {
-      LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
+      LOG_ASSERT_ERROR(timeout == NULL, "timeout(%p)", timeout);
    }
 
    if (timeout != NULL)
@@ -443,7 +445,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    LOG_ASSERT_ERROR (core != NULL, "Core should not be NULL");
    int act_val;
 
-   core->accessMemory(Core::NONE, READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
 
    if (op == FUTEX_WAIT)
    {
@@ -511,6 +513,7 @@ SimFutex::~SimFutex()
 
 void SimFutex::enqueueWaiter(core_id_t core_id)
 {
+   Sim()->getThreadManager()->stallThread(core_id);
    m_waiting.push(core_id);
 }
 
@@ -522,6 +525,8 @@ core_id_t SimFutex::dequeueWaiter()
    {
       core_id_t core_id = m_waiting.front();
       m_waiting.pop();
+
+      Sim()->getThreadManager()->resumeThread(core_id);
       return core_id;
    }
 }

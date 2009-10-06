@@ -30,7 +30,7 @@ plot_core_dict = {}
 plot_directory_list = []
 aggregate_stats = {}
 
-def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
+def run_simulation(is_dryrun, run_id, sim_root, experiment_directory, carbon_sim_config_filename):
    global sim_flags_list
    global num_procs_list
    global sim_core_index_list
@@ -46,11 +46,14 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory):
             # Copy the results into a per-experiment per-run directory
             run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + app_name_list[j] + "_" + remove_unwanted_symbols(app_flags_list[j]) + "_" + str(run_id) + "/"
             
-            curr_sim_flags = sim_flags_list[i] + " --general/output_dir=\\\"" + run_directory + "\\\""
+            carbon_sim_cfg = sim_root + "/" + carbon_sim_config_filename
+
+            curr_sim_flags = "-c " + carbon_sim_cfg + " " + sim_flags_list[i] + " --general/output_dir=\\\"" + run_directory + "\\\""
             
-            command = "make -C " + sim_root + \
+            command = "time make -C " + sim_root + \
                   " " + app_name_list[j] + \
                   " PROCS=" + num_procs_list[i] + \
+                  " CONFIG_FILE=" + carbon_sim_cfg + \
                   " SIM_FLAGS=\"" + curr_sim_flags + "\"" + \
                   " APP_FLAGS=\"" + app_flags_list[j] + "\"" + \
                   " >& " + run_directory + "stdout.txt"

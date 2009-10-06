@@ -4,92 +4,14 @@
 #include <string>
 #include <cassert>
 
+#include "cache_base.h"
+#include "cache_set.h"
+#include "cache_block_info.h"
 #include "utils.h"
 #include "hash_map_set.h"
-#include "cache_set.h"
-#include "cache_line.h"
-#include "cache_perf_model_base.h"
+#include "cache_perf_model.h"
 #include "shmem_perf_model.h"
-
-#define k_KILO 1024
-#define k_MEGA (k_KILO*k_KILO)
-#define k_GIGA (k_KILO*k_MEGA)
-
-using namespace std;
-
-// type of cache hit/miss counters
-typedef UInt64 CacheStats;
-
-typedef enum
-{
-   STORE_ALLOCATE,
-   STORE_NO_ALLOCATE
-} StoreAllocation;
-
-// Generic cache base class; no allocate specialization, no cache set specialization
-class CacheBase
-{
-   public:
-      // types, constants
-      typedef enum
-      {
-         ACCESS_TYPE_LOAD,
-         ACCESS_TYPE_STORE,
-         NUM_ACCESS_TYPES
-      } AccessType;
-
-      typedef enum
-      {
-         CACHE_TYPE_ICACHE,
-         CACHE_TYPE_DCACHE,
-         NUM_CACHE_TYPES
-      } CacheType;
-
-   protected:
-      //1 counter for hit==true, 1 counter for hit==false
-      CacheStats m_access[NUM_ACCESS_TYPES][2];
-
-      // input params
-      string m_name;
-      UInt32 m_cache_size;
-      UInt32 m_blocksize;
-      UInt32 m_associativity;
-      UInt32 m_num_sets;
-
-      // computed params
-      UInt32 m_log_blocksize;
-
-   private:
-      CacheStats sumAccess(bool hit) const;
-
-   public:
-      // constructors/destructors
-      CacheBase(string name);
-      virtual ~CacheBase();
-
-      // accessors
-      UInt32 getCacheSize() const { return m_cache_size; }
-      UInt32 getBlockSize() const { return m_blocksize; }
-      UInt32 dCacheLineSize() const { return m_blocksize; }
-      UInt32 getNumWays() const { return m_associativity; }
-      UInt32 getNumSets() const { return m_num_sets; }
-
-      // stats
-      CacheStats getHits(AccessType access_type) const;
-      CacheStats getMisses(AccessType access_type) const;
-      CacheStats getAccesses(AccessType access_type) const;
-      CacheStats getHits() const { return sumAccess(true); }
-      CacheStats getMisses() const { return sumAccess(false); }
-      CacheStats getAccesses() const { return getHits() + getMisses(); }
-
-      // utilities
-      IntPtr tagToAddress(IntPtr tag);
-      void splitAddress(const IntPtr addr, IntPtr& tag, UInt32& set_index) const;
-      void splitAddress(const IntPtr addr, IntPtr& tag, UInt32& set_index, UInt32& block_offset) const;
-      
-      // Output Summary
-      virtual void outputSummary(ostream& out) {}
-};
+#include "log.h"
 
 class Cache : public CacheBase
 {
@@ -107,28 +29,44 @@ class Cache : public CacheBase
       HashMapSet<IntPtr>* m_invalidated_set;
       HashMapSet<IntPtr>* m_evicted_set;
 
-      CacheSet**  m_sets;
-      CachePerfModelBase* m_cache_perf_model;
+      // Generic Cache Info
+      cache_t m_cache_type;
+      CacheSet** m_sets;
+      
+      // Perf Modelling
       ShmemPerfModel* m_shmem_perf_model;
+      CachePerfModel* m_cache_perf_model;
 
    public:
 
       // constructors/destructors
-      Cache(string name, ShmemPerfModel* shmem_perf_model = NULL);
+      Cache(string name, 
+            UInt32 cache_size, 
+            UInt32 associativity, UInt32 cache_block_size,
+            std::string replacement_policy,
+            cache_t cache_type,
+            bool track_detailed_cache_counters,
+            UInt32 cache_data_access_time,
+            UInt32 cache_tags_access_time,
+            std::string cache_perf_model_type,
+            ShmemPerfModel* shmem_perf_model);
       ~Cache();
 
       bool invalidateSingleLine(IntPtr addr);
       CacheBlockInfo* accessSingleLine(IntPtr addr, 
-            AccessType access_type, Byte* buff = NULL, UInt32 bytes = 0);
+            access_t access_type, Byte* buff = NULL, UInt32 bytes = 0);
       void insertSingleLine(IntPtr addr, Byte* fill_buff,
             bool* eviction, IntPtr* evict_addr, 
             CacheBlockInfo* evict_block_info, Byte* evict_buff);
       CacheBlockInfo* peekSingleLine(IntPtr addr);
+
+      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+      CachePerfModel* getCachePerfModel() { return m_cache_perf_model; }
       
       // Update Cache Counters
-      void updateCounters(IntPtr addr, CacheState cache_state, AccessType access_type);
-      void resetCounters();
-      void disableCounters();
+      void updateCounters(IntPtr addr, CacheState cache_state, access_t access_type);
+      void enableCounters() { m_cache_counters_enabled = true; }
+      void disableCounters() { m_cache_counters_enabled = false; }
 
       UInt64 getNumAccesses() { return m_num_accesses; }
       UInt64 getNumHits() { return m_num_hits; }
@@ -143,6 +81,7 @@ class Cache : public CacheBase
       void incrNumCapacityMisses() { m_num_capacity_misses++; }
       void incrNumUpgradeMisses() { m_num_upgrade_misses++; }
       void incrNumSharingMisses() { m_num_sharing_misses++; }
+
       bool isInvalidated(IntPtr addr)
       {
          return (bool) m_invalidated_set->count(addr);

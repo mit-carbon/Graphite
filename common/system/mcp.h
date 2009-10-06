@@ -6,6 +6,7 @@
 #include "network.h"
 #include "syscall_server.h"
 #include "sync_server.h"
+#include "simulation_barrier_server.h"
 #include "fixed_types.h"
 #include "network_model_analytical_server.h"
 #include "thread.h"
@@ -21,6 +22,8 @@ class MCP : public Runnable
       void finish();
       Boolean finished() { return m_finished; };
 
+      SimulationBarrierServer *getSimulationBarrierServer() { return m_simulation_barrier_server; }
+
    private:
       Boolean m_finished;
       Network & m_network;
@@ -31,6 +34,7 @@ class MCP : public Runnable
 
       SyscallServer m_syscall_server;
       SyncServer m_sync_server;
+      SimulationBarrierServer *m_simulation_barrier_server;
       NetworkModelAnalyticalServer m_network_model_analytical_server;
 
 };

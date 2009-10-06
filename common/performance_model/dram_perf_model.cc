@@ -1,6 +1,8 @@
+#include <iostream>
+using namespace std;
+
+#include "config.h"
 #include "dram_perf_model.h"
-#include "simulator.h"
-#include "log.h"
 
 // Note: Each Dram Controller owns a single DramModel object
 // Hence, m_dram_bandwidth is the bandwidth for a single DRAM controller
@@ -13,37 +15,33 @@
 // It sort of increases the queueing delay to a huge value if
 // the arrival times of adjacent packets are spread over a large
 // simulated time period
-DramPerfModel::DramPerfModel(Core* core) 
-   : m_enabled(true),
+DramPerfModel::DramPerfModel(float dram_access_cost, 
+      float dram_bandwidth,
+      float core_frequency, 
+      bool queue_model_enabled, 
+      bool moving_avg_enabled,
+      UInt32 moving_avg_window_size, 
+      std::string moving_avg_type_str):
+   m_queue_model(NULL),
+   m_moving_average(NULL),
+   m_enabled(false),
    m_num_accesses(0),
    m_total_access_latency(0.0),
    m_total_queueing_delay(0.0)
 {
-   UInt32 moving_avg_window_size;
-   MovingAverage<UInt64>::AvgType_t moving_avg_type;
+   // Convert everything to be in 'clock cycles' instead of 'seconds'
+   m_dram_access_cost = (UInt32) (dram_access_cost * core_frequency);
+   m_dram_bandwidth = dram_bandwidth / core_frequency;
 
-   UInt32 total_cores = Sim()->getConfig()->getTotalCores();
-   try
+   if (queue_model_enabled)
    {
-      float core_frequency = Sim()->getCfg()->getFloat("perf_model/core/frequency");
-      float dram_access_cost_in_nanoseconds = Sim()->getCfg()->getFloat("perf_model/dram/access_cost");
-      float offchip_bandwidth_in_GB_per_sec = Sim()->getCfg()->getFloat("perf_model/dram/offchip_bandwidth");
-      
-      m_queueing_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queueing_model_enabled");
-      m_dram_access_cost = dram_access_cost_in_nanoseconds * core_frequency;
-      m_dram_bandwidth =  (offchip_bandwidth_in_GB_per_sec / core_frequency) / total_cores;
-      moving_avg_window_size = Sim()->getCfg()->getInt("perf_model/dram/moving_avg_window_size");
-      moving_avg_type = MovingAverage<UInt64>::parseAvgType(Sim()->getCfg()->getString("perf_model/dram/moving_avg_type"));
+      m_queue_model = new QueueModel();
    }
-   catch(...)
+   if (moving_avg_enabled)
    {
-      LOG_PRINT_ERROR("Dram parameter obtained a bad value from config.");
-      return;
+      MovingAverage<UInt64>::AvgType_t moving_avg_type = MovingAverage<UInt64>::parseAvgType(moving_avg_type_str);
+      m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type, moving_avg_window_size);
    }
-
-   m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type, moving_avg_window_size);
-   m_queue_model = new QueueModel();
-   m_core = core;
 }
 
 DramPerfModel::~DramPerfModel()
@@ -52,23 +50,32 @@ DramPerfModel::~DramPerfModel()
 }
 
 UInt64 
-DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
+DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requester)
 {
    // pkt_size is in 'Bytes'
    // m_dram_bandwidth is in 'Bytes per clock cycle'
-   if (!m_enabled)
+   if ((!m_enabled) || 
+         (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return 0;
 
    UInt64 processing_time = (UInt64) ((float) pkt_size/m_dram_bandwidth) + 1;
 
    // Compute the moving average here
-   UInt64 pkt_time_av = m_moving_average->compute(pkt_time);
-
-   UInt64 queue_delay;
-   
-   if (m_queueing_model_enabled)
+   UInt64 pkt_time_av;
+   if (m_moving_average)
    {
-      queue_delay = m_queue_model->getQueueDelay(pkt_time_av);
+      pkt_time_av = m_moving_average->compute(pkt_time);
+   }
+   else
+   {
+      pkt_time_av = pkt_time;
+   }
+
+   // Compute Queue Delay
+   UInt64 queue_delay;
+   if (m_queue_model)
+   {
+      queue_delay = m_queue_model->getQueueDelay(pkt_time_av, requester);
       m_queue_model->updateQueue(pkt_time_av, processing_time);
    }
    else
@@ -78,30 +85,12 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
 
    UInt64 access_latency = queue_delay + processing_time + (UInt64) m_dram_access_cost;
 
-   // Update Dram Counters
+   // Update Memory Counters
    m_num_accesses ++;
    m_total_access_latency += (double) access_latency;
    m_total_queueing_delay += (double) queue_delay;
-   
-   __attribute(__unused__) UInt64 core_time = getCore()->getPerformanceModel()->getCycleCount();
 
-   LOG_PRINT("Pkt Size = %llu, Dram Bandwidth = %f, Processing Time = %i", 
-         pkt_size, m_dram_bandwidth, processing_time);
-   LOG_PRINT("Av Pkt Time = %llu, Core Time = %llu", pkt_time_av, core_time);
-   LOG_PRINT("Dram Queue Delay = %llu", queue_delay);
    return access_latency;
-}
-
-void 
-DramPerfModel::enable()
-{
-   m_enabled = true;
-}
-
-void 
-DramPerfModel::disable()
-{
-   m_enabled = false;
 }
 
 void

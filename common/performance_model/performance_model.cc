@@ -1,3 +1,4 @@
+#include "core.h"
 #include "performance_model.h"
 #include "branch_predictor.h"
 #include "simulator.h"
@@ -5,7 +6,7 @@
 #include "iocoom_performance_model.h"
 #include "core_manager.h"
 
-PerformanceModel* PerformanceModel::create()
+PerformanceModel* PerformanceModel::create(Core* core)
 {
    string type;
 
@@ -16,9 +17,9 @@ PerformanceModel* PerformanceModel::create()
    }
 
    if (type == "iocoom")
-      return new IOCOOMPerformanceModel();
+      return new IOCOOMPerformanceModel(core);
    else if (type == "simple")
-      return new SimplePerformanceModel();
+      return new SimplePerformanceModel(core);
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", type.c_str());
@@ -27,8 +28,9 @@ PerformanceModel* PerformanceModel::create()
 }
 
 // Public Interface
-PerformanceModel::PerformanceModel()
-   : m_enabled(false)
+PerformanceModel::PerformanceModel(Core *core)
+   : m_core(core)
+   , m_enabled(false)
    , m_current_ins_index(0)
    , m_bp(0)
 {

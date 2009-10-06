@@ -61,7 +61,7 @@ VOID copyStaticData(IMG& img)
             sec_address = SEC_Address(sec);
 
             LOG_PRINT ("Copying Section: %s at Address: 0x%x of Size: %u to Simulated Memory", SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
-            core->accessMemory(Core::NONE, WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
+            core->accessMemory(Core::NONE, Core::WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
          }
       }
    }
@@ -141,7 +141,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
 
    // fprintf (stderr, "argc = %d\n", argc);
    // Write argc
-   core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &argc, sizeof(argc));
+   core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &argc, sizeof(argc));
    stack_ptr_base += sizeof(argc);
 
    LOG_PRINT("Copying Command Line Arguments to Simulated Memory");
@@ -149,14 +149,14 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    {
       // Writing argv[i]
       stack_ptr_top -= (strlen(argv[i]) + 1);
-      core->accessMemory(Core::NONE, WRITE, stack_ptr_top, (char*) argv[i], strlen(argv[i])+1);
+      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_top, (char*) argv[i], strlen(argv[i])+1);
 
-      core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
+      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
       stack_ptr_base += sizeof(stack_ptr_top);
    }
 
    // I have found this to be '0' in most cases
-   core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &argv[argc], sizeof(argv[argc]));
+   core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &argv[argc], sizeof(argv[argc]));
    stack_ptr_base += sizeof(argv[argc]);
 
    // We need to copy over the environmental parameters also
@@ -166,15 +166,15 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
       // Writing environ[i]
       if (envir[i] == 0)
       {
-         core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &envir[i], sizeof(envir[i]));
+         core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &envir[i], sizeof(envir[i]));
          stack_ptr_base += sizeof(envir[i]);
          break;
       }
 
       stack_ptr_top -= (strlen(envir[i]) + 1);
-      core->accessMemory(Core::NONE, WRITE, stack_ptr_top, (char*) envir[i], strlen(envir[i])+1);
+      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_top, (char*) envir[i], strlen(envir[i])+1);
 
-      core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
+      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
       stack_ptr_base += sizeof(stack_ptr_top);
    }
    
@@ -185,7 +185,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    auxiliary_vector_entry_null.a_type = AT_NULL;
    auxiliary_vector_entry_null.a_un.a_val = 0;
 
-   core->accessMemory(Core::NONE, WRITE, stack_ptr_base, (char*) &auxiliary_vector_entry_null, sizeof(auxiliary_vector_entry_null));
+   core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &auxiliary_vector_entry_null, sizeof(auxiliary_vector_entry_null));
    stack_ptr_base += sizeof(auxiliary_vector_entry_null);
 
    LOG_ASSERT_ERROR(stack_ptr_base <= stack_ptr_top, "stack_ptr_base = 0x%x, stack_ptr_top = 0x%x", stack_ptr_base, stack_ptr_top);
@@ -205,7 +205,7 @@ VOID copySpawnedThreadStackData(ADDRINT reg_esp)
 
    Core* core = Sim()->getCoreManager()->getCurrentCore();
 
-   core->accessMemory(Core::NONE, WRITE, reg_esp, (char*) reg_esp, num_bytes_to_copy);
+   core->accessMemory(Core::NONE, Core::WRITE, reg_esp, (char*) reg_esp, num_bytes_to_copy);
 
 }
 

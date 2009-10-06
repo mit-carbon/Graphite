@@ -2,6 +2,8 @@ SIM_ROOT ?= $(CURDIR)/../
 
 DIRECTORIES = $(SIM_ROOT)/common/core/        \
           $(SIM_ROOT)/common/core/cache/      \
+			 $(SIM_ROOT)/common/core/directory_schemes	\
+			 $(SIM_ROOT)/common/core/pr_l1_pr_l2_dram_directory	\
           $(SIM_ROOT)/common/network/         \
           $(SIM_ROOT)/common/transport/       \
           $(SIM_ROOT)/common/misc/            \
@@ -17,10 +19,6 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
 BUILD_32 = 1
-
-# Compilers
-CC = g++
-CXX = g++
 
 # OS Services Support
 LD_LIBS += -los-services

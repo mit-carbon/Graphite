@@ -27,7 +27,7 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_
       , _globalUtilization(0)
       , _localUtilizationLastUpdate(0)
       , _localUtilizationFlitsSent(0)
-      , m_enabled(true)
+      , m_enabled(false)
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,
@@ -41,7 +41,7 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_
        m_params.n = GET_INT("n"); // 2-d mesh network
        m_params.W = GET_INT("W"); // 32-bit wide channels
        m_params.update_interval = GET_INT("update_interval");
-       m_params.proc_cost = (net_type == STATIC_NETWORK_MEMORY) ? 0 : GET_INT("processing_cost");
+       m_params.proc_cost = (net_type == STATIC_NETWORK_MEMORY_NET1) ? 0 : GET_INT("processing_cost");
      }
    catch (...)
      {

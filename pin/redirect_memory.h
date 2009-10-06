@@ -3,8 +3,7 @@
 
 #include "pin.H"
 #include "core.h"
-#include "cache.h"
-#include "memory_manager.h"
+#include "pin_memory_manager.h"
 
 VOID printInsInfo(CONTEXT *ctxt);
 
@@ -28,9 +27,9 @@ ADDRINT completePushf (ADDRINT esp, ADDRINT size);
 ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size);
 ADDRINT completePopf (ADDRINT esp, ADDRINT size);
 
-ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, MemoryManager::AccessType access_type);
-VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, MemoryManager::AccessType access_type);
+ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type);
+VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type);
 
-UInt32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char *data_buffer, UInt32 data_size);
+void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size);
 
 #endif /* __REDIRECT_MEMORY_H__ */

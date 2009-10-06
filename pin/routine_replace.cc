@@ -13,6 +13,8 @@
 #include "core_manager.h"
 #include "redirect_memory.h"
 #include "thread_start.h"
+#include "network.h"
+#include "packet_type.h"
 // End Memory redirection stuff
 // --------------------------------------
 
@@ -227,7 +229,7 @@ void replacementGetThreadToSpawn (CONTEXT *ctxt)
 
    CarbonGetThreadToSpawn (&req_buf);
 
-   core->accessMemory(Core::NONE, WRITE, (IntPtr) req, (char*) &req_buf, sizeof (ThreadSpawnRequest));
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) req, (char*) &req_buf, sizeof (ThreadSpawnRequest));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -268,7 +270,7 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
    
    CarbonDequeueThreadSpawnReq (&thread_req_buf);
 
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) thread_req, (char*) &thread_req_buf, sizeof (ThreadSpawnRequest));
+   core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) thread_req, (char*) &thread_req_buf, sizeof (ThreadSpawnRequest));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -286,13 +288,13 @@ void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
          IARG_PTR, &attr,
          IARG_END);
 
-   core->accessMemory (Core::NONE, READ, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
 
    SimPthreadAttrInitOtherAttr(&attr_buf);
 
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
 
    retFromReplacedRtn(ctxt, ret_val);
 }
@@ -377,7 +379,7 @@ void replacement_CAPI_rank (CONTEXT *ctxt)
 
    ret_val = CAPI_rank (&core_id_buf);
    
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) core_id, (char*) &core_id_buf, sizeof (int));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) core_id, (char*) &core_id_buf, sizeof (int));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -403,7 +405,7 @@ void replacement_CAPI_message_send_w (CONTEXT *ctxt)
          IARG_END);
 
    char *buf = new char [size];
-   core->accessMemory (Core::NONE, READ, (ADDRINT) buffer, buf, size);
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) buffer, buf, size);
    ret_val = CAPI_message_send_w (sender, receiver, buf, size);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -431,7 +433,7 @@ void replacement_CAPI_message_receive_w (CONTEXT *ctxt)
 
    char *buf = new char [size];
    ret_val = CAPI_message_receive_w (sender, receiver, buf, size);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) buffer, buf, size);
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) buffer, buf, size);
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -451,9 +453,9 @@ void replacementMutexInit (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Core::NONE, READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
    CarbonMutexInit (&mux_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -473,9 +475,9 @@ void replacementMutexLock (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Core::NONE, READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
    CarbonMutexLock (&mux_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -495,9 +497,9 @@ void replacementMutexUnlock (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Core::NONE, READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
    CarbonMutexUnlock (&mux_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -517,9 +519,9 @@ void replacementCondInit (CONTEXT *ctxt)
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Core::NONE, READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
    CarbonCondInit (&cond_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -542,11 +544,11 @@ void replacementCondWait (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Core::NONE, READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
-   core->accessMemory (Core::NONE, READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
    CarbonCondWait (&cond_buf, &mux_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -566,9 +568,9 @@ void replacementCondSignal (CONTEXT *ctxt)
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Core::NONE, READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
    CarbonCondSignal (&cond_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -585,9 +587,9 @@ void replacementCondBroadcast (CONTEXT *ctxt)
    
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
-   core->accessMemory (Core::NONE, READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
    CarbonCondBroadcast (&cond_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -606,9 +608,9 @@ void replacementBarrierInit (CONTEXT *ctxt)
    
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
-   core->accessMemory (Core::NONE, READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
    CarbonBarrierInit (&barrier_buf, count);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -625,9 +627,9 @@ void replacementBarrierWait (CONTEXT *ctxt)
    
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
-   core->accessMemory (Core::NONE, READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
    CarbonBarrierWait (&barrier_buf);
-   core->accessMemory (Core::NONE, WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -673,7 +675,7 @@ void replacementPthreadCreate (CONTEXT *ctxt)
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       assert (core);
       
-      core->accessMemory(Core::NONE, WRITE, (IntPtr) thread_id, (char*) &new_thread_id, sizeof (pthread_t));
+      core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) thread_id, (char*) &new_thread_id, sizeof (pthread_t));
       
       //pthread_create() expects a return value of 0 on success
       ADDRINT ret_val = 0;
@@ -781,7 +783,7 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
       type = va_arg (vl, int);
       addr = PIN_GetContextReg (ctxt, REG_STACK_PTR) + ((count + 1) * sizeof (ADDRINT));
      
-      core->accessMemory (Core::NONE, READ, addr, (char*) &buffer, sizeof (ADDRINT));
+      core->accessMemory (Core::NONE, Core::READ, addr, (char*) &buffer, sizeof (ADDRINT));
       switch (type)
       {
          case IARG_ADDRINT:
@@ -837,7 +839,7 @@ void setupCarbonSpawnThreadSpawnerStack (CONTEXT *ctx)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
 
-   core->accessMemory(Core::NONE, WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
 }
 
 void setupCarbonThreadSpawnerStack (CONTEXT *ctx)
@@ -852,8 +854,8 @@ void setupCarbonThreadSpawnerStack (CONTEXT *ctx)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    assert (core);
 
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
-   core->accessMemory (Core::NONE, WRITE, (IntPtr) (esp + sizeof (ADDRINT)), (char*) &p, sizeof (ADDRINT));
+   core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
+   core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) (esp + sizeof (ADDRINT)), (char*) &p, sizeof (ADDRINT));
 }
 
 

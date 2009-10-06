@@ -10,7 +10,7 @@ public:
    ~QueueModel();
 
    UInt64 max(UInt64 a1, UInt64 a2);
-   UInt64 getQueueDelay(UInt64 ref_time);
+   UInt64 getQueueDelay(UInt64 ref_time, core_id_t requester);
    void updateQueue(UInt64 ref_time, UInt64 processing_time);
 
 private:

@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "performance_model.h"
-#include "modeled_cache.h"
 
 /*
   In-order core, out-of-order memory performance model.
@@ -16,7 +15,7 @@
 class IOCOOMPerformanceModel : public PerformanceModel
 {
 public:
-   IOCOOMPerformanceModel();
+   IOCOOMPerformanceModel(Core* core);
    ~IOCOOMPerformanceModel();
 
    void outputSummary(std::ostream &os);
@@ -30,17 +29,17 @@ private:
 
    void handleInstruction(Instruction *instruction);
 
-   void modelIcache(IntPtr addr);
-   UInt64 executeLoad(const DynamicInstructionInfo &);
-   UInt64 executeStore(const DynamicInstructionInfo &);
+   void modelIcache(IntPtr address);
+   std::pair<UInt64,UInt64> executeLoad(UInt64 time, const DynamicInstructionInfo &);
+   UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
 
    typedef std::vector<UInt64> Scoreboard;
 
-   class ExecutionUnit
+   class LoadUnit
    {
    public:
-      ExecutionUnit(unsigned int num_units);
-      ~ExecutionUnit();
+      LoadUnit(unsigned int num_units);
+      ~LoadUnit();
 
       UInt64 execute(UInt64 time, UInt64 occupancy);
 
@@ -85,12 +84,7 @@ private:
 
    Scoreboard m_register_scoreboard;
    StoreBuffer *m_store_buffer;
-   ExecutionUnit *m_load_unit;
-
-   ModeledCache *m_l1_icache;
-   ModeledCache *m_l1_dcache;
-   UInt64 m_l1_icache_miss_penalty;
-   UInt64 m_l1_dcache_access_time;
+   LoadUnit *m_load_unit;
 };
 
 #endif // IOCOOM_PERFORMANCE_MODEL_H

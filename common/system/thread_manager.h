@@ -29,11 +29,19 @@ public:
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
    void terminateThreadSpawners ();
-   bool areAllCoresRunning();
 
-   // // events
+   // events
    void onThreadStart(ThreadSpawnRequest *req);
    void onThreadExit();
+
+   // misc
+   void stallThread(core_id_t core_id);
+   void resumeThread(core_id_t core_id);
+   bool isThreadRunning(core_id_t core_id);
+   bool isThreadInitializing(core_id_t core_id);
+   void signalSimulationBarrierServer(void);
+   
+   bool areAllCoresRunning();
 
 private:
 
@@ -57,11 +65,20 @@ private:
 
    struct ThreadState
    {
-      bool running;
+      typedef enum
+      {
+         RUNNING = 0,
+         INITIALIZING,
+         STALLED,
+         IDLE,
+         NUM_STATUS_TYPES
+      } Status;
+
+      Status status;
       SInt32 waiter;
 
       ThreadState()
-         : running(false)
+         : status(IDLE)
          , waiter(-1)
       {} 
    };

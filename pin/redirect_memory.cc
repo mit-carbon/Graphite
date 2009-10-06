@@ -2,7 +2,7 @@
 #include "simulator.h"
 #include "core_manager.h"
 #include "core.h"
-#include "memory_manager.h"
+#include "pin_memory_manager.h"
 #include "performance_model.h"
 
 // FIXME
@@ -17,32 +17,32 @@ VOID printInsInfo(CONTEXT* ctxt)
    LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
 }
 
-UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
+void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
 {   
    assert (lock_signal == Core::NONE);
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    if (core)
    {
-      return core->accessMemory (lock_signal, shmem_req_type, d_addr, data_buffer, data_size, true);
+      core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
    }
    // Native mem op
    else
    {
       // TODO: Remove this code.
       assert(false);
-      if (shmem_req_type == READ)
+      if (mem_op_type == Core::READ)
       {
          if (PIN_SafeCopy ((void*) data_buffer, (void*) d_addr, (size_t) data_size) == data_size)
          {
-            return 0;
+            return;
          }
       }
-      else if (shmem_req_type == WRITE)
+      else if (mem_op_type == Core::WRITE)
       {
          if (PIN_SafeCopy ((void*) d_addr, (void*) data_buffer, (size_t) data_size) == data_size)
          {
-            return 0;
+            return;
          }
       }
       else
@@ -50,7 +50,7 @@ UINT32 memOp (Core::lock_signal_t lock_signal, shmem_req_t shmem_req_type, IntPt
          assert (false);
       }
 
-      return 0;
+      return;
    }
 }
 
@@ -150,8 +150,8 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       Byte byte_buf1;
       Byte byte_buf2;
 
-      memOp (Core::NONE, READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
-      memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
+      memOp (Core::NONE, Core::READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
+      memOp (Core::NONE, Core::READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
       num_mem_ops += 2;
 
       // Decrement the counter
@@ -244,7 +244,7 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
    {
       Byte byte_buf;
       ++num_mem_ops;
-      memOp (Core::NONE, READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
+      memOp (Core::NONE, Core::READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
 
       LOG_PRINT("byte_buf = 0x%x", byte_buf);
 
@@ -502,7 +502,7 @@ void rewriteMemOp (INS ins)
                IARG_BOOL, INS_IsAtomicUpdate(ins),
                IARG_MEMORYREAD_EA,
                IARG_MEMORYREAD_SIZE,
-               IARG_UINT32, MemoryManager::ACCESS_TYPE_READ ,
+               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_READ ,
                IARG_RETURN_REGS, REG_INST_G0,
                IARG_END);
       }
@@ -520,7 +520,7 @@ void rewriteMemOp (INS ins)
                IARG_BOOL, false,
                IARG_MEMORYREAD2_EA,
                IARG_MEMORYREAD_SIZE,
-               IARG_UINT32, MemoryManager::ACCESS_TYPE_READ2,
+               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_READ2,
                IARG_RETURN_REGS, REG_INST_G1,
                IARG_END);
       }
@@ -538,7 +538,7 @@ void rewriteMemOp (INS ins)
                IARG_BOOL, false,
                IARG_MEMORYWRITE_EA,
                IARG_MEMORYWRITE_SIZE,
-               IARG_UINT32, MemoryManager::ACCESS_TYPE_WRITE,
+               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
                IARG_RETURN_REGS, REG_INST_G2,
                IARG_END);
 
@@ -550,14 +550,14 @@ void rewriteMemOp (INS ins)
                IARG_BOOL, false,
                IARG_MEMORYWRITE_EA,
                IARG_MEMORYWRITE_SIZE,
-               IARG_UINT32, MemoryManager::ACCESS_TYPE_WRITE,
+               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
                IARG_END);
       }
       else if (INS_IsMemoryWrite (ins))
       {
          if (INS_IsMemoryRead (ins))
          {
-            MemoryManager::AccessType access_type = MemoryManager::ACCESS_TYPE_WRITE;
+            PinMemoryManager::AccessType access_type = PinMemoryManager::ACCESS_TYPE_WRITE;
             IPOINT ipoint2 = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
             assert (ipoint2 == IPOINT_AFTER);
             
@@ -570,11 +570,11 @@ void rewriteMemOp (INS ins)
                {
                   if (num_mem_read_operands == 0)
                   {
-                     access_type = MemoryManager::ACCESS_TYPE_READ;
+                     access_type = PinMemoryManager::ACCESS_TYPE_READ;
                   }
                   else if (num_mem_read_operands == 1)
                   {
-                     access_type = MemoryManager::ACCESS_TYPE_READ2;
+                     access_type = PinMemoryManager::ACCESS_TYPE_READ2;
                   }
                   else
                   {
@@ -589,7 +589,7 @@ void rewriteMemOp (INS ins)
             }
 
             assert (num_mem_read_operands > 0);
-            assert (access_type != MemoryManager::ACCESS_TYPE_WRITE);
+            assert (access_type != PinMemoryManager::ACCESS_TYPE_WRITE);
 
             INS_InsertCall (ins, ipoint2,
                   AFUNPTR (completeMemWrite),
@@ -614,7 +614,7 @@ ADDRINT emuPushValue (ADDRINT tgt_esp, ADDRINT value, ADDRINT write_size)
 
    tgt_esp -= write_size;
 
-   memOp (Core::NONE, WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
    
    return tgt_esp;
 }
@@ -628,8 +628,8 @@ ADDRINT emuPushMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
 
    ADDRINT buf;
 
-   memOp (Core::NONE, READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
-   memOp (Core::NONE, WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
 
    return tgt_esp;
 }
@@ -639,7 +639,7 @@ ADDRINT emuPopReg(ADDRINT tgt_esp, ADDRINT *reg, ADDRINT read_size)
    assert (read_size != 0);
    assert ( read_size == sizeof ( ADDRINT ) );
 
-   memOp (Core::NONE, READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
+   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
    
    return tgt_esp + read_size;
 }
@@ -650,8 +650,8 @@ ADDRINT emuPopMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
    
    ADDRINT buf;
 
-   memOp (Core::NONE, READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
-   memOp (Core::NONE, WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
 
    return tgt_esp + size;
 }
@@ -662,10 +662,10 @@ ADDRINT emuCallMem(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT 
    assert (write_size == sizeof(ADDRINT));
    
    ADDRINT called_ip;
-   memOp (Core::NONE, READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
+   memOp (Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
 
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
-   memOp (Core::NONE, WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return called_ip;
 }
@@ -676,7 +676,7 @@ ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADD
    
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
 
-   memOp (Core::NONE, WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return br_tgt_ip;
 }
@@ -687,7 +687,7 @@ ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL modeled)
 
    ADDRINT next_ip;
 
-   Sim()->getCoreManager()->getCurrentCore()->accessMemory(Core::NONE, READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
+   Sim()->getCoreManager()->getCurrentCore()->accessMemory(Core::NONE, Core::READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
 
    *tgt_esp = *tgt_esp + read_size;
    *tgt_esp = *tgt_esp + imm;
@@ -701,7 +701,7 @@ ADDRINT emuLeave(ADDRINT tgt_esp, ADDRINT *tgt_ebp, ADDRINT read_size)
 
    tgt_esp = *tgt_ebp;
 
-   memOp (Core::NONE, READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
+   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
    
    tgt_esp += read_size;
    
@@ -716,7 +716,7 @@ ADDRINT redirectPushf ( ADDRINT tgt_esp, ADDRINT size )
    
    if (core)
    {
-      return core->getMemoryManager()->redirectPushf (tgt_esp, size);
+      return core->getPinMemoryManager()->redirectPushf (tgt_esp, size);
    }
    else
    {
@@ -732,7 +732,7 @@ ADDRINT completePushf ( ADDRINT esp, ADDRINT size )
 
    if (core)
    {
-      return core->getMemoryManager()->completePushf (esp, size);
+      return core->getPinMemoryManager()->completePushf (esp, size);
    }
    else
    {
@@ -748,7 +748,7 @@ ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size)
   
    if (core)
    {
-      return core->getMemoryManager()->redirectPopf (tgt_esp, size);
+      return core->getPinMemoryManager()->redirectPopf (tgt_esp, size);
    }
    else
    {
@@ -764,7 +764,7 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 
    if (core)
    {
-      return core->getMemoryManager()->completePopf (esp, size);
+      return core->getPinMemoryManager()->completePopf (esp, size);
    }
    else
    {
@@ -777,13 +777,13 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 // Once the memory accesses go through the coherent shared memory system, all LOCK'ed
 // memory accesses from the cores would be handled correctly. 
 
-ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, MemoryManager::AccessType access_type)
+ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
   
    if (core)
    {
-      MemoryManager *mem_manager = core->getMemoryManager ();
+      PinMemoryManager *mem_manager = core->getPinMemoryManager ();
       assert (mem_manager != NULL);
 
       return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
@@ -799,13 +799,13 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, Memor
    }
 }
 
-VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, MemoryManager::AccessType access_type)
+VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
 
    if (core)
    {
-      core->getMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
    }
    else
    {

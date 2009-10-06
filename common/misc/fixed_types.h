@@ -23,5 +23,6 @@ typedef int carbon_reg_t;
 typedef SInt32 core_id_t;
 
 #define INVALID_CORE_ID -1
+#define INVALID_ADDRESS  ((IntPtr) -1)
 
 #endif

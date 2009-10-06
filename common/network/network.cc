@@ -93,8 +93,9 @@ void Network::netPullFromTransport()
       // was this packet sent to us, or should it just be forwarded?
       if (packet.receiver != _core->getId())
       {
-         LOG_PRINT("Forwarding packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
-         forwardPacket(packet);
+         // Disable this feature now. None of the network models use it
+         // LOG_PRINT("Forwarding packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
+         // forwardPacket(packet);
 
          // if this isn't a broadcast message, then we shouldn't process it further
          if (packet.receiver != NetPacket::BROADCAST)
@@ -112,7 +113,7 @@ void Network::netPullFromTransport()
 
          callback(_callbackObjs[packet.type], packet);
 
-         delete [] (Byte*)packet.data;
+         delete [] (Byte*) packet.data;
       }
 
       // synchronous I/O support
@@ -166,7 +167,7 @@ SInt32 Network::netSend(NetPacket packet)
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32)packet.type, packet.receiver, hopVec[i].time);
+      LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32) packet.type, hopVec[i].dest, hopVec[i].time);
       LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
       *timeStamp = hopVec[i].time;
       _transport->send(hopVec[i].dest, buffer, packet.bufferSize());
@@ -334,8 +335,11 @@ NetPacket Network::netRecv(const NetMatch &match)
    _netQueue.erase(itr);
    _netQueueLock.release();
 
+   LOG_PRINT("packet.time(%llu), start_time(%llu)", packet.time, start_time);
+
    if (packet.time > start_time)
    {
+      LOG_PRINT("Queueing RecvInstruction(%llu)", packet.time - start_time);
       Instruction *i = new RecvInstruction(packet.time - start_time);
       _core->getPerformanceModel()->queueDynamicInstruction(i);
    }

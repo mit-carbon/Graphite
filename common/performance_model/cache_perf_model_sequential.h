@@ -1,37 +1,45 @@
 #ifndef __CACHE_PERF_MODEL_SEQUENTIAL_H__ 
 #define __CACHE_PERF_MODEL_SEQUENTIAL_H__
 
-#include "cache_perf_model_base.h"
-#include "log.h"
+#include "cache_perf_model.h"
 
-class CachePerfModelSequential : public CachePerfModelBase
+class CachePerfModelSequential : public CachePerfModel
 {
    private:
+      bool m_enabled;
 
    public:
-      CachePerfModelSequential() : CachePerfModelBase() { }
-      ~CachePerfModelSequential() { }
+      CachePerfModelSequential(UInt32 cache_data_access_time, 
+            UInt32 cache_tags_access_time) : 
+         CachePerfModel(cache_data_access_time, cache_tags_access_time),
+         m_enabled(false)
+      {}
+      ~CachePerfModelSequential() {}
+
+      void enable() { m_enabled = true; }
+      void disable() { m_enabled = false; }
+      bool isEnabled() { return m_enabled; }
 
       UInt32 getLatency(CacheAccess_t access)
       {
+         if (!m_enabled)
+            return 0;
+
          switch(access)
          {
             case ACCESS_CACHE_TAGS:
-               return cache_tags_access_time;
+               return m_cache_tags_access_time;
 
             case ACCESS_CACHE_DATA:
-               return cache_data_access_time;
+               return m_cache_data_access_time;
 
             case ACCESS_CACHE_DATA_AND_TAGS:
-               return cache_data_access_time + cache_tags_access_time;
+               return m_cache_data_access_time + m_cache_tags_access_time;
 
             default:
-               LOG_ASSERT_ERROR(false, "Unsupported Cache Access Type: %u", access);
                return 0;
          }
-
       }
- 
 };
 
 #endif /* __CACHE_PERF_MODEL_SEQUENTIAL_H__ */

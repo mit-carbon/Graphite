@@ -1,11 +1,13 @@
+#include "core.h"
 #include "log.h"
 #include "simple_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-SimplePerformanceModel::SimplePerformanceModel()
-    : m_instruction_count(0)
+SimplePerformanceModel::SimplePerformanceModel(Core *core)
+    : PerformanceModel(core)
+    , m_instruction_count(0)
     , m_cycle_count(0)
 {
 }
@@ -49,6 +51,9 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
          {
             LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_WRITE,
                              "Expected memory write info, got: %d.", info.type);
+
+            cost += info.memory_info.latency;
+            // ignore address
          }
 
          popDynamicInstructionInfo();
@@ -56,9 +61,17 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    }
 
    cost += instruction->getCost();
-   LOG_ASSERT_WARNING(cost < 10000, "Cost is too big - cost:%llu, cycle_count: %llu, type: %d", cost, m_cycle_count, instruction->getType());
+   // LOG_ASSERT_WARNING(cost < 10000, "Cost is too big - cost:%llu, cycle_count: %llu, type: %d", cost, m_cycle_count, instruction->getType());
 
    // update counters
    m_instruction_count++;
    m_cycle_count += cost;
+}
+
+void SimplePerformanceModel::setCycleCount(UInt64 time)
+{
+   LOG_ASSERT_ERROR(time >= m_cycle_count,
+         "time(%llu) < m_cycle_count(%llu)",
+         time, m_cycle_count);
+   m_cycle_count = time;
 }

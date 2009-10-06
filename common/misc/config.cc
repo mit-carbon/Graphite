@@ -209,7 +209,8 @@ void Config::getNetworkModels(UInt32 *models) const
    {
       config::Config *cfg = Sim()->getCfg();
       models[STATIC_NETWORK_USER]   = NetworkModel::parseNetworkType(cfg->getString("network/user_model"));
-      models[STATIC_NETWORK_MEMORY] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model"));
+      models[STATIC_NETWORK_MEMORY_NET1] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_1"));
+      models[STATIC_NETWORK_MEMORY_NET2] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_2"));
       models[STATIC_NETWORK_SYSTEM] = NetworkModel::parseNetworkType(cfg->getString("network/system_model"));
    }
    catch (...)

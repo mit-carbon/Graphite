@@ -188,8 +188,6 @@ double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
 
     } /* for i */
    
-    CarbonDisableCacheCounters();
-
     return(XTT);
 
 } /* mdmain.c */

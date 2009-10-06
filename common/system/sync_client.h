@@ -45,7 +45,8 @@ class SyncClient
    private:
       Core *m_core;
       Network *m_network;
-      UnstructuredBuffer m_send_buff, m_recv_buff;
+      UnstructuredBuffer m_send_buff;
+      UnstructuredBuffer m_recv_buff;
 
 };
 

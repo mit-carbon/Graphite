@@ -6,7 +6,7 @@
 class SimplePerformanceModel : public PerformanceModel
 {
 public:
-   SimplePerformanceModel();
+   SimplePerformanceModel(Core *core);
    ~SimplePerformanceModel();
 
    void outputSummary(std::ostream &os);
@@ -15,7 +15,7 @@ public:
    UInt64 getCycleCount() { return m_cycle_count; }
 
 protected:
-   void setCycleCount(UInt64 time) { m_cycle_count = time; }
+   void setCycleCount(UInt64 time);
 
 private:
    void handleInstruction(Instruction *instruction);

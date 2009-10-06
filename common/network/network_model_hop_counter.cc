@@ -6,7 +6,7 @@
 
 NetworkModelHopCounter::NetworkModelHopCounter(Network *net)
    : NetworkModel(net)
-   , _enabled(true)
+   , _enabled(false)
    , _bytesSent(0)
    , _cyclesLatency(0)
    , _hopLatency(1)
@@ -41,25 +41,55 @@ void NetworkModelHopCounter::routePacket(const NetPacket &pkt,
                                          std::vector<Hop> &nextHops)
 {
    SInt32 sx, sy, dx, dy;
-   
+
    computePosition(pkt.sender, sx, sy);
-   computePosition(pkt.receiver, dx, dy);
 
-   UInt64 latency = computeDistance(sx, sy, dx, dy) * _hopLatency;
+   if (pkt.receiver == NetPacket::BROADCAST)
+   {
+      UInt32 total_cores = Config::getSingleton()->getTotalCores();
+      UInt64 total_latency = 0;
+      for (SInt32 i = 0; i < (SInt32) total_cores; i++)
+      {
+         computePosition(i, dx, dy);
 
-   Hop h;
-   h.dest = pkt.receiver;
-   h.time = pkt.time + latency;
+         UInt64 latency = computeDistance(sx, sy, dx, dy) * _hopLatency;
+         total_latency += latency;
 
-   nextHops.push_back(h);
+         Hop h;
+         h.dest = i;
+         h.time = pkt.time + latency;
 
-   if (!_enabled)
-      return;
+         nextHops.push_back(h);
+      }
+      
+      if (!_enabled)
+         return;
 
-   _lock.acquire();
-   _bytesSent += pkt.length;
-   _cyclesLatency += latency;
-   _lock.release();
+      _lock.acquire();
+      _bytesSent += total_cores * pkt.length;
+      _cyclesLatency += total_latency;
+      _lock.release();
+   }  
+   else
+   {
+      computePosition(pkt.receiver, dx, dy);
+
+      UInt64 latency = computeDistance(sx, sy, dx, dy) * _hopLatency;
+
+      Hop h;
+      h.dest = pkt.receiver;
+      h.time = pkt.time + latency;
+
+      nextHops.push_back(h);
+
+      if (!_enabled)
+         return;
+
+      _lock.acquire();
+      _bytesSent += pkt.length;
+      _cyclesLatency += latency;
+      _lock.release();
+   }
 }
 
 void NetworkModelHopCounter::outputSummary(std::ostream &out)

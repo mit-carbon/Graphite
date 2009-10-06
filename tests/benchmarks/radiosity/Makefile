@@ -9,9 +9,9 @@ HS = model.h parallel.h patch.h radiosity.h task.h
 MACROS := ../splash_support/c.m4.null.CARBON
 #MACROS := ../splash_support/c.m4.null.POSIX
 
-include ../splash_support/Makefile.config
-
 include ../../Makefile.tests
+
+include ../splash_support/Makefile.config
 
 CFLAGS += -I./glibdumb -I./glibps
 CFLAGS += -I../../user -I../../transport -c -g -Wall

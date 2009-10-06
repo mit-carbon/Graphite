@@ -12,7 +12,7 @@ void handleBasicBlock(BasicBlock *sim_basic_block)
 
    prfmdl->queueBasicBlock(sim_basic_block);
 
-    //FIXME: put this in a thread
+   //FIXME: put this in a thread
    prfmdl->iterate();
 }
 

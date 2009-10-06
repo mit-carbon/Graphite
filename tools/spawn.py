@@ -114,8 +114,8 @@ def get_sim_root():
 # main -- if this is used as standalone script
 if __name__=="__main__":
     num_procs = int(sys.argv[1])
-    config_filename = "carbon_sim.cfg"
-    command = " ".join(sys.argv[2:])
+    config_filename = sys.argv[2]
+    command = " ".join(sys.argv[3:])
 
     process_list = load_process_list_from_file(config_filename)
 

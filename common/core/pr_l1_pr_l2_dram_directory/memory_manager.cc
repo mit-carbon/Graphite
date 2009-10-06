@@ -51,6 +51,7 @@ MemoryManager::MemoryManager(Core* core,
    float total_dram_bandwidth = 0.0;
    bool dram_controller_present_on_every_core = false;
    bool dram_queue_model_enabled = false;
+   bool dram_queue_model_moving_avg_enabled = false;
    UInt32 dram_queue_model_moving_avg_window_size = 0;
    std::string dram_queue_model_moving_avg_type;
 
@@ -98,9 +99,10 @@ MemoryManager::MemoryManager(Core* core,
       // Dram Cntlr
       dram_access_cost = Sim()->getCfg()->getFloat("perf_model/dram/access_cost");
       total_dram_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/total_bandwidth");
-      dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model_enabled");
-      dram_queue_model_moving_avg_window_size = Sim()->getCfg()->getInt("perf_model/dram/moving_avg_window_size");
-      dram_queue_model_moving_avg_type = Sim()->getCfg()->getString("perf_model/dram/moving_avg_type");
+      dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
+      dram_queue_model_moving_avg_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/moving_avg_enabled");
+      dram_queue_model_moving_avg_window_size = Sim()->getCfg()->getInt("perf_model/dram/queue_model/moving_avg_window_size");
+      dram_queue_model_moving_avg_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/moving_avg_type");
       
       dram_controller_present_on_every_core = Sim()->getCfg()->getBool("perf_model/dram/controller_present_on_every_core");
       if (dram_controller_present_on_every_core)
@@ -163,6 +165,7 @@ MemoryManager::MemoryManager(Core* core,
             single_dram_bandwidth,
             core_frequency,
             dram_queue_model_enabled,
+            dram_queue_model_moving_avg_enabled,
             dram_queue_model_moving_avg_window_size,
             dram_queue_model_moving_avg_type,
             getCacheBlockSize(),

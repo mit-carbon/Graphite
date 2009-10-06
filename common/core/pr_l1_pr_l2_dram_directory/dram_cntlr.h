@@ -36,6 +36,7 @@ namespace PrL1PrL2DramDirectory
                float dram_bandwidth,
                float core_frequency,
                bool dram_queue_model_enabled,
+               bool dram_queue_model_moving_avg_enabled,
                UInt32 dram_queue_model_moving_avg_window_size,
                string dram_queue_model_moving_avg_type, 
                UInt32 cache_block_size,

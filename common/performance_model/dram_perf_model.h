@@ -24,7 +24,6 @@ class DramPerfModel
       float m_dram_access_cost;
       float m_dram_bandwidth;
 
-      bool m_queue_model_enabled;
       bool m_enabled;
 
       UInt64 m_num_accesses;
@@ -36,6 +35,7 @@ class DramPerfModel
             float dram_bandwidth,
             float core_frequency, 
             bool queue_model_enabled, 
+            bool moving_avg_enabled,
             UInt32 moving_avg_window_size, 
             std::string moving_avg_type_str);
 

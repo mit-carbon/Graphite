@@ -27,14 +27,14 @@ int main(int argc, char *argv[])
 
    // m n p P
    // p % P == 0
-   if (argc != 5)
-   {
-      fprintf(stderr, "[Usage]: ./mmulitply m n p P\n");
-      fprintf(stderr, "m, n, p - Matrix Dimensions\n");
-      fprintf(stderr, "P - Number of Processors\n");
-      fprintf(stderr, "p should be a multiple of P == 0\n");
-      exit(-1);
-   }
+/*    if (argc != 5) */
+/*    { */
+/*       fprintf(stderr, "[Usage]: ./mmulitply m n p P\n"); */
+/*       fprintf(stderr, "m, n, p - Matrix Dimensions\n"); */
+/*       fprintf(stderr, "P - Number of Processors\n"); */
+/*       fprintf(stderr, "p should be a multiple of P == 0\n"); */
+/*       exit(-1); */
+/*    } */
 
    printf("Starting Matrix Multiply\n");
 

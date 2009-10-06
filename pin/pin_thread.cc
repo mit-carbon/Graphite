@@ -9,6 +9,7 @@ PinThreadRunner::PinThreadRunner(Thread::ThreadFunc func, void *param)
 
 void PinThreadRunner::RunThread(OS_SERVICES::ITHREAD *)
 {
+//   PIN_RegisterNewThread();
    m_func(m_param);
 }
 

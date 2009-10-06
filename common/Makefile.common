@@ -18,6 +18,10 @@ OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
 BUILD_32 = 1
 
+# Compilers
+CC = g++
+CXX = g++
+
 # OS Services Support
 LD_LIBS += -los-services
 ifeq ($(BUILD_32),1)

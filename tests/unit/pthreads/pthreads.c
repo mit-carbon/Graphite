@@ -7,8 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-//pthread_barrier_t barrier; //why does this not work?
-int barrier;
+pthread_barrier_t barrier;
 
 pthread_mutex_t mux1;
 pthread_mutex_t mux2;
@@ -29,6 +28,9 @@ int main(int argc, char* argv[])  // main begins
    pthread_t threads[numThreads];
 
    pthread_barrier_init(&barrier, NULL, numThreads);
+   pthread_mutex_init(&mux1, NULL);
+   pthread_mutex_init(&mux2, NULL);
+   pthread_mutex_init(&mux3, NULL);
 
    for(unsigned int i = 0; i < 2; i++)
    {
@@ -64,6 +66,10 @@ int main(int argc, char* argv[])  // main begins
    }
    
    pthread_barrier_destroy(&barrier);
+
+   pthread_mutex_destroy(&mux1);
+   pthread_mutex_destroy(&mux2);
+   pthread_mutex_destroy(&mux3);
 
    fprintf(stdout, "UserApplication: About to exit!\n");
 

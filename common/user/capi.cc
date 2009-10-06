@@ -46,7 +46,7 @@ CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t sender, CAPI_endpoint_t rec
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
 
-   LOG_PRINT("SimRecvW - sender: %d, recv: %d", sender, receiver);
+   LOG_PRINT("SimRecvW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
    core_id_t sending_core = Config::getSingleton()->getCoreFromCommId(sender);
    core_id_t receiving_core = Config::getSingleton()->getCoreFromCommId(receiver);

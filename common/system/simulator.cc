@@ -135,8 +135,6 @@ Simulator::~Simulator()
    delete m_thread_manager;
    delete m_core_manager;
    delete m_transport;
-
-   LOG_PRINT("End of simulator dtor...");
 }
 
 void Simulator::startTimer()

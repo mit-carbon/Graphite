@@ -1,7 +1,7 @@
 #ifndef CACHE_SET_H
 #define CACHE_SET_H
 
-#include <string>
+#include <string.h>
 
 #include "fixed_types.h"
 #include "cache_block_info.h"

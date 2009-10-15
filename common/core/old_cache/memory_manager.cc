@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 
 #include "memory_manager.h"
 #include "simulator.h"
@@ -48,6 +49,12 @@ MemoryManager::MemoryManager(SInt32 core_id, Core *core, Network *network, Cache
 
    // Some private variables
    cache_locked = false;
+
+   // Memory redirection: allocate scratchpads
+   for (unsigned int i = 0; i < NUM_ACCESS_TYPES; i++)
+   {
+      posix_memalign ((void**) &m_scratchpad[i], 4 * sizeof (void*), m_scratchpad_size); 
+   }
 }
 
 MemoryManager::~MemoryManager()

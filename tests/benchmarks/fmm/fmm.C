@@ -462,11 +462,11 @@ PrintTimes ()
    long P;
    long init_done;
 
-   if ((fp = fopen("times", "w")) == NULL) {
-      fprintf(stderr, "Error opening output file\n");
-      fflush(stderr);
-      exit(-1);
-   }
+    if ((fp = fopen("times", "w+")) == NULL) {
+       fprintf(stderr, "Error opening output file\n");
+       fflush(stderr);
+       exit(-1);
+    }
    fprintf(fp, "TIMING:\n");
    fprintf(fp, "%ld\t%ld\t%.2e\t%ld\n", Number_Of_Processors, Total_Particles, Precision, Time_Steps);
    for (i = 0; i < Time_Steps; i++) {

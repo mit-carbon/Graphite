@@ -430,11 +430,22 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    // Right now, we handle only a subset of the functionality
    // assert the subset
 
-   LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == FUTEX_WAKE), "op = %u", op);
+#ifdef KERNEL_LENNY
+   LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) \
+            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)), "op = %u", op);
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
+   {
+      LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
+   }
+#endif
+
+#ifdef KERNEL_ETCH
+   LOG_ASSERT_ERROR(((op == FUTEX_WAIT) || (op == FUTEX_WAKE)), "op = %u", op);
    if (op == FUTEX_WAIT)
    {
       LOG_ASSERT_ERROR(timeout == NULL, "timeout(%p)", timeout);
    }
+#endif
 
    if (timeout != NULL)
    {
@@ -447,6 +458,18 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
 
+#ifdef KERNEL_LENNY
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
+   {
+      futexWait(core_id, uaddr, val, act_val, curr_time); 
+   }
+   else if ((op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)))
+   {
+      futexWake(core_id, uaddr, val, curr_time);
+   }
+#endif
+
+#ifdef KERNEL_ETCH
    if (op == FUTEX_WAIT)
    {
       futexWait(core_id, uaddr, val, act_val, curr_time); 
@@ -455,6 +478,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    {
       futexWake(core_id, uaddr, val, curr_time);
    }
+#endif
 
 }
 

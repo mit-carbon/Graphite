@@ -212,6 +212,12 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          modifyFstat64Context (ctx, syscall_standard);
       }
 
+      // Syscalls entered on lenny systems
+      else if (syscall_number == SYS_set_robust_list)
+      {
+         PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
+      }
+
       else if ((syscall_number == SYS_exit) ||
             (syscall_number == SYS_kill) ||
             (syscall_number == SYS_sigreturn) ||
@@ -330,6 +336,12 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else if (syscall_number == SYS_fstat64)
       {
          restoreFstat64Context (ctx, syscall_standard);
+      }
+
+      // Syscalls entered on lenny systems
+      else if (syscall_number == SYS_set_robust_list)
+      {
+         PIN_SetContextReg (ctx, REG_GAX, 0);
       }
    }
 }

@@ -1,8 +1,17 @@
+#include <stdlib.h>
 #include "pin_memory_manager.h"
 
 PinMemoryManager::PinMemoryManager(Core* core):
    m_core(core)
-{}
+{
+   // Allocate scratchpads (aligned at 4 * sizeof (void*) to correctly handle
+   // memory access instructions that require addresses to be aligned such as
+   // MOVDQA
+   for (unsigned int i = 0; i < NUM_ACCESS_TYPES; i++)
+   {
+      posix_memalign ((void**) &m_scratchpad[i], 4 * sizeof (void*), m_scratchpad_size);
+   }
+}
 
 PinMemoryManager::~PinMemoryManager()
 {}

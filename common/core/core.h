@@ -1,7 +1,7 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include <string>
+#include <string.h>
 
 // some forward declarations for cross includes
 class Network;

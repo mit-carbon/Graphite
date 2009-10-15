@@ -13,8 +13,8 @@ endif
 .SUFFIXES:  .o .c .h .cc
 
 # Add other CXX Flags
-CXXFLAGS += -c -fomit-frame-pointer  \
-            -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) -MMD
+CXXFLAGS += -c \
+            -Wall -Werror -Wno-unknown-pragmas $(DBG) -O0 -MMD
 
 # Use the pin flags for building
 TARGET = ia32

@@ -356,9 +356,6 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem
    directory_entry->setOwner(INVALID_CORE_ID);
    directory_block_info->setDState(DirectoryState::UNCACHED);
 
-   // Write Data to Dram
-   sendDataToDram(address, shmem_msg->getRequester(), shmem_msg->getDataBuf());
-
    if (m_dram_directory_req_queue_list->size(address) != 0)
    {
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
@@ -374,8 +371,16 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem
       }
       else // (shmem_req->getShmemMsg()->getMsgType() == ShmemMsg::SH_REQ)
       {
+         // Write Data to Dram
+         sendDataToDram(address, shmem_msg->getRequester(), shmem_msg->getDataBuf());
          processShReqFromL2Cache(shmem_req, shmem_msg->getDataBuf());
       }
+   }
+   else
+   {
+      // This was just an eviction
+      // Write Data to Dram
+      sendDataToDram(address, shmem_msg->getRequester(), shmem_msg->getDataBuf());
    }
 }
 
@@ -393,9 +398,6 @@ DramDirectoryCntlr::processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_ms
    directory_entry->setOwner(INVALID_CORE_ID);
    directory_block_info->setDState(DirectoryState::SHARED);
 
-   // Write Data to Dram
-   sendDataToDram(address, shmem_msg->getRequester(), shmem_msg->getDataBuf());
-
    if (m_dram_directory_req_queue_list->size(address) != 0)
    {
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
@@ -404,8 +406,17 @@ DramDirectoryCntlr::processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_ms
       shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
       getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
 
-      assert(shmem_req->getShmemMsg()->getMsgType() == ShmemMsg::SH_REQ);
+      // Write Data to Dram
+      sendDataToDram(address, shmem_msg->getRequester(), shmem_msg->getDataBuf());
+
+      LOG_ASSERT_ERROR(shmem_req->getShmemMsg()->getMsgType() == ShmemMsg::SH_REQ,
+            "Address(0x%x), Req(%u)",
+            address, shmem_req->getShmemMsg()->getMsgType());
       processShReqFromL2Cache(shmem_req, shmem_msg->getDataBuf());
+   }
+   else
+   {
+      LOG_PRINT_ERROR("Should not reach here");
    }
 }
 

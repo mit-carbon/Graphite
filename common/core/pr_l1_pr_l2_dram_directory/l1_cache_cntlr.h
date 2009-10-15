@@ -33,7 +33,8 @@ namespace PrL1PrL2DramDirectory
 
          Lock m_l1_icache_lock;
          Lock m_l1_dcache_lock;
-         Semaphore* m_mmu_sem;
+         Semaphore* m_user_thread_sem;
+         Semaphore* m_network_thread_sem;
 
          ShmemPerfModel* m_shmem_perf_model;
 
@@ -56,12 +57,15 @@ namespace PrL1PrL2DramDirectory
 
          // Wait for Network Thread
          void waitForNetworkThread(void);
+         // Wake up Network Thread
+         void wakeUpNetworkThread(void);
          
       public:
          
          L1CacheCntlr(core_id_t core_id,
                MemoryManager* memory_manager,
-               Semaphore* mmu_sem,
+               Semaphore* user_thread_sem,
+               Semaphore* network_thread_sem,
                UInt32 cache_block_size,
                UInt32 l1_icache_size, UInt32 l1_icache_associativity,
                std::string l1_icache_replacement_policy,

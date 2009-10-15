@@ -14,7 +14,7 @@ VOID printInsInfo(CONTEXT* ctxt)
    __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
    __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
-   LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
+   // LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
 }
 
 void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
@@ -22,36 +22,8 @@ void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr 
    assert (lock_signal == Core::NONE);
 
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   if (core)
-   {
-      core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
-   }
-   // Native mem op
-   else
-   {
-      // TODO: Remove this code.
-      assert(false);
-      if (mem_op_type == Core::READ)
-      {
-         if (PIN_SafeCopy ((void*) data_buffer, (void*) d_addr, (size_t) data_size) == data_size)
-         {
-            return;
-         }
-      }
-      else if (mem_op_type == Core::WRITE)
-      {
-         if (PIN_SafeCopy ((void*) d_addr, (void*) data_buffer, (size_t) data_size) == data_size)
-         {
-            return;
-         }
-      }
-      else
-      {
-         assert (false);
-      }
-
-      return;
-   }
+   LOG_ASSERT_ERROR(core, "Could not find Core object for current thread");
+   core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
 }
 
 bool rewriteStringOp (INS ins)
@@ -64,8 +36,6 @@ bool rewriteStringOp (INS ins)
 
    if (INS_Opcode(ins) == XED_ICLASS_SCASB)
    {
-      LOG_PRINT("Instr: %s", (INS_Disassemble(ins)).c_str());
-
       INS_InsertCall(ins, IPOINT_BEFORE,
             AFUNPTR (emuSCASBIns),
             IARG_CONTEXT,
@@ -80,8 +50,6 @@ bool rewriteStringOp (INS ins)
 
    else if (INS_Opcode(ins) == XED_ICLASS_CMPSB)
    {
-      LOG_PRINT("Instr: %s", (INS_Disassemble(ins)).c_str());
-
       INS_InsertCall(ins, IPOINT_BEFORE,
             AFUNPTR (emuCMPSBIns),
             IARG_CONTEXT,
@@ -119,7 +87,7 @@ bool rewriteStringOp (INS ins)
 void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 {
    __attribute(__unused__) ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   LOG_PRINT("Instr at EIP = 0x%x, CMPSB", reg_gip);
+   LOG_PRINT("REP CMPSB Instruction: EIP(0x%x)", reg_gip);
 
    assert(has_rep_prefix == true);
    
@@ -204,7 +172,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
 {
    __attribute(__unused__) ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   LOG_PRINT("Instr at EIP = 0x%x, SCASB", reg_gip);
+   LOG_PRINT("REP SCASB Instruction: EIP(0x%x)", reg_gip);
 
    assert(has_rep_prefix == false);
    
@@ -213,13 +181,7 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
    ADDRINT reg_gax = PIN_GetContextReg(ctxt, REG_GAX);
    ADDRINT reg_gflags = PIN_GetContextReg(ctxt, REG_GFLAGS);
 
-   LOG_PRINT("reg_gcx = 0x%x", reg_gcx);
-   LOG_PRINT("reg_gdi = 0x%x", reg_gdi);
-   LOG_PRINT("reg_gax = 0x%x", reg_gax);
-   LOG_PRINT("reg_gflags = 0x%x", reg_gflags);
-
    Byte reg_al = (Byte) (reg_gax & 0xff);
-   LOG_PRINT("reg_al = 0x%x", reg_al);
 
    bool direction_flag;
 
@@ -235,8 +197,6 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       direction_flag = true;
    }
 
-   LOG_PRINT("Direction Flag = %i", (SInt32) direction_flag);
-
    bool found = false;
    UInt32 num_mem_ops = 0;
 
@@ -245,8 +205,6 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       Byte byte_buf;
       ++num_mem_ops;
       memOp (Core::NONE, Core::READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
-
-      LOG_PRINT("byte_buf = 0x%x", byte_buf);
 
       // Decrement the counter
       reg_gcx --;
@@ -283,18 +241,12 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       reg_gflags &= (~(1 << 6));
    }
 
-   LOG_PRINT("Final: next_gip = 0x%x", next_gip);
-   LOG_PRINT("Final: reg_gcx = 0x%x", reg_gcx);
-   LOG_PRINT("Final: reg_gdi = 0x%x", reg_gdi);
-   LOG_PRINT("Final: reg_gflags = 0x%x", reg_gflags);
-
    PIN_SetContextReg(ctxt, REG_INST_PTR, next_gip);
    PIN_SetContextReg(ctxt, REG_GCX, reg_gcx);
    PIN_SetContextReg(ctxt, REG_GDI, reg_gdi);
    PIN_SetContextReg(ctxt, REG_GFLAGS, reg_gflags);
 
    PIN_ExecuteAt(ctxt);
-
 }
 
 bool rewriteStackOp (INS ins)

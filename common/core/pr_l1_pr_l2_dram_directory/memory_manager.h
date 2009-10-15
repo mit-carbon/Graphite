@@ -26,7 +26,9 @@ namespace PrL1PrL2DramDirectory
          AddressHomeLookup* m_dram_directory_home_lookup;
          AddressHomeLookup* m_dram_home_lookup;
 
-         Semaphore* m_mmu_sem;
+         Semaphore* m_user_thread_sem;
+         Semaphore* m_network_thread_sem;
+
          UInt32 m_cache_block_size;
 
          UInt32 m_num_dram_cntlrs;

@@ -118,7 +118,8 @@ MemoryManager::MemoryManager(Core* core,
       LOG_PRINT_ERROR("Error reading memory system parameters from the config file");
    }
 
-   m_mmu_sem = new Semaphore(0);
+   m_user_thread_sem = new Semaphore(0);
+   m_network_thread_sem = new Semaphore(0);
 
    m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, Config::getSingleton()->getTotalCores(), getCacheBlockSize());
 
@@ -126,7 +127,8 @@ MemoryManager::MemoryManager(Core* core,
 
    m_l1_cache_cntlr = new L1CacheCntlr(m_core->getId(),
          this,
-         m_mmu_sem,
+         m_user_thread_sem,
+         m_network_thread_sem,
          getCacheBlockSize(),
          l1_icache_size, l1_icache_associativity,
          l1_icache_replacement_policy,
@@ -145,7 +147,8 @@ MemoryManager::MemoryManager(Core* core,
          this,
          m_l1_cache_cntlr,
          m_dram_directory_home_lookup,
-         m_mmu_sem,
+         m_user_thread_sem,
+         m_network_thread_sem,
          getCacheBlockSize(),
          l2_cache_size, l2_cache_associativity,
          l2_cache_replacement_policy,
@@ -195,7 +198,8 @@ MemoryManager::~MemoryManager()
    m_network->unregisterCallback(SHARED_MEM_NET1);
    m_network->unregisterCallback(SHARED_MEM_NET2);
 
-   delete m_mmu_sem;
+   delete m_user_thread_sem;
+   delete m_network_thread_sem;
    delete m_dram_directory_home_lookup;
    delete m_dram_home_lookup;
    delete m_l1_cache_cntlr;

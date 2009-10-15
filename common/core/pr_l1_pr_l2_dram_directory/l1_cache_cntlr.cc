@@ -7,7 +7,8 @@ namespace PrL1PrL2DramDirectory
 
 L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
       MemoryManager* memory_manager,
-      Semaphore* mmu_sem,
+      Semaphore* user_thread_sem,
+      Semaphore* network_thread_sem,
       UInt32 cache_block_size,
       UInt32 l1_icache_size, UInt32 l1_icache_associativity,
       std::string l1_icache_replacement_policy,
@@ -25,7 +26,8 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
    m_l2_cache_cntlr(NULL),
    m_core_id(core_id),
    m_cache_block_size(cache_block_size),
-   m_mmu_sem(mmu_sem),
+   m_user_thread_sem(user_thread_sem),
+   m_network_thread_sem(network_thread_sem),
    m_shmem_perf_model(shmem_perf_model)
 {
    m_l1_icache = new Cache("l1_icache",
@@ -76,10 +78,22 @@ L1CacheCntlr::processMemOpFromCore(
          lock_signal, mem_op_type, ca_address);
 
    bool l1_cache_hit = true;
+   UInt32 access_num = 0;
+
    while(1)
    {
+      access_num ++;
+      LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2),
+            "Error: access_num(%u)", access_num);
+
       if (lock_signal != Core::UNLOCK)
          acquireLock(mem_component);
+
+      // Wake up the network thread after acquiring the lock
+      if (access_num == 2)
+      {
+         wakeUpNetworkThread();
+      }
 
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type))
       {
@@ -121,7 +135,7 @@ L1CacheCntlr::processMemOpFromCore(
             mem_component, MemComponent::L2_CACHE,
             m_core_id /* requester */,
             m_core_id /* receiver */, ca_address);
- 
+
       waitForNetworkThread();
    }
 
@@ -293,7 +307,13 @@ L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
 void
 L1CacheCntlr::waitForNetworkThread()
 {
-   m_mmu_sem->wait();
+   m_user_thread_sem->wait();
+}
+
+void
+L1CacheCntlr::wakeUpNetworkThread()
+{
+   m_network_thread_sem->signal();
 }
 
 }

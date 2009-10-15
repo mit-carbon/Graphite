@@ -10,7 +10,8 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
       MemoryManager* memory_manager,
       L1CacheCntlr* l1_cache_cntlr,
       AddressHomeLookup* dram_directory_home_lookup,
-      Semaphore* mmu_sem,
+      Semaphore* user_thread_sem,
+      Semaphore* network_thread_sem,
       UInt32 cache_block_size,
       UInt32 l2_cache_size, UInt32 l2_cache_associativity,
       std::string l2_cache_replacement_policy,
@@ -24,7 +25,8 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
    m_dram_directory_home_lookup(dram_directory_home_lookup),
    m_core_id(core_id),
    m_cache_block_size(cache_block_size),
-   m_mmu_sem(mmu_sem),
+   m_user_thread_sem(user_thread_sem),
+   m_network_thread_sem(network_thread_sem),
    m_shmem_perf_model(shmem_perf_model)
 {
    m_l2_cache = new Cache("l2_cache",
@@ -291,6 +293,12 @@ L2CacheCntlr::handleMsgFromDramDirectory(
    releaseLock();
    if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
       m_l1_cache_cntlr->releaseLock(caching_mem_component);
+
+   if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP))
+   {
+      wakeUpUserThread();
+      waitForUserThread();
+   }
 }
 
 void
@@ -311,8 +319,6 @@ L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
    // Set the counter value in the USER thread to that in the SIM thread
    getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, 
          getShmemPerfModel()->getCycleCount());
-
-   wakeUpUserThread();
 }
 
 void
@@ -333,8 +339,6 @@ L2CacheCntlr::processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
    // Set the counter value in the USER thread to that in the SIM thread
    getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, 
          getShmemPerfModel()->getCycleCount());
-
-   wakeUpUserThread();
 }
 
 void
@@ -487,7 +491,13 @@ L2CacheCntlr::releaseLock()
 void
 L2CacheCntlr::wakeUpUserThread()
 {
-   m_mmu_sem->signal();
+   m_user_thread_sem->signal();
+}
+
+void
+L2CacheCntlr::waitForUserThread()
+{
+   m_network_thread_sem->wait();
 }
 
 }

@@ -3,6 +3,7 @@ using namespace std;
 
 #include "dram_cntlr.h"
 #include "memory_manager.h"
+#include "core.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectory

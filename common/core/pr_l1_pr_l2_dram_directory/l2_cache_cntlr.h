@@ -36,7 +36,8 @@ namespace PrL1PrL2DramDirectory
          UInt32 m_cache_block_size;
 
          Lock m_l2_cache_lock;
-         Semaphore* m_mmu_sem;
+         Semaphore* m_user_thread_sem;
+         Semaphore* m_network_thread_sem;
 
          ShmemPerfModel* m_shmem_perf_model;
 
@@ -76,6 +77,8 @@ namespace PrL1PrL2DramDirectory
 
          // Wake up User Thread
          void wakeUpUserThread(void);
+         // Wait for User Thread
+         void waitForUserThread(void);
 
          // Dram Directory Home Lookup
          core_id_t getHome(IntPtr address) { return m_dram_directory_home_lookup->getHome(address); }
@@ -88,7 +91,8 @@ namespace PrL1PrL2DramDirectory
                MemoryManager* memory_manager,
                L1CacheCntlr* l1_cache_cntlr,
                AddressHomeLookup* dram_directory_home_lookup,
-               Semaphore* mmu_sem,
+               Semaphore* user_thread_sem,
+               Semaphore* network_thread_sem,
                UInt32 cache_block_size,
                UInt32 l2_cache_size, UInt32 l2_cache_associativity,
                std::string l2_cache_replacement_policy,

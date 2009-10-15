@@ -131,7 +131,7 @@ UInt64
 Core::readInstructionMemory(IntPtr address, UInt32 instruction_size)
 {
    LOG_PRINT("Instruction: Address(0x%x), Size(%u), Start READ", 
-            address, instruction_size);
+           address, instruction_size);
 
    Byte buf[instruction_size];
    return (initiateMemoryAccess(MemComponent::L1_ICACHE,
@@ -160,10 +160,18 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
    UInt64 initial_time = getPerformanceModel()->getCycleCount();
    getShmemPerfModel()->setCycleCount(initial_time);
 
+   if (data_size > 100 && getPerformanceModel()->isEnabled())
+   {
+      LOG_PRINT("Time(%llu), %s - Address(0x%x), data_size(%u), Start",
+            initial_time,
+            ((mem_op_type == READ) ? "READ" : "WRITE"), 
+            address, data_size);
+   }
+
    LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), START",
-         initial_time,
-         ((mem_op_type == READ) ? "READ" : "WRITE"), 
-         address, data_size);
+        initial_time,
+        ((mem_op_type == READ) ? "READ" : "WRITE"), 
+        address, data_size);
 
    UInt32 num_misses = 0;
    UInt32 cache_block_size = getMemoryManager()->getCacheBlockSize();
@@ -234,10 +242,18 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
          "final_time(%llu) < initial_time(%llu)",
          final_time, initial_time);
    
+   if (data_size > 100 && getPerformanceModel()->isEnabled())
+   {
+      LOG_PRINT("Time(%llu), %s - Address(0x%x), data_size(%u), End",
+            final_time,
+            ((mem_op_type == READ) ? "READ" : "WRITE"), 
+            address, data_size);
+   }
+
    LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), END\n", 
-         final_time,
-         ((mem_op_type == READ) ? "READ" : "WRITE"), 
-         address, data_size);
+        final_time,
+        ((mem_op_type == READ) ? "READ" : "WRITE"), 
+        address, data_size);
 
    // Calculate the round-trip time
    UInt64 shmem_time = final_time - initial_time;

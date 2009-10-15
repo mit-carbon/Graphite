@@ -17,8 +17,16 @@ UInt64
 QueueModel::getQueueDelay(UInt64 ref_time, core_id_t requester)
 {
    UInt64 queue_delay = (m_queue_time > ref_time) ? (m_queue_time - ref_time) : 0;
-   LOG_PRINT("Queue Time = %llu, Ref Time = %llu, Queue Delay = %llu, Requester(%i)", 
+   if (queue_delay > 10000)
+   {
+      LOG_PRINT("Queue Time(%llu), Ref Time(%llu), Queue Delay(%llu), Requester(%i)", 
          m_queue_time, ref_time, queue_delay, requester);
+   }
+   else if ((queue_delay == 0) && ((ref_time - m_queue_time) > 10000))
+   {
+      LOG_PRINT("Queue Time(%llu), Ref Time(%llu), Difference(%llu), Requester(%i)",
+            m_queue_time, ref_time, ref_time - m_queue_time, requester);
+   }
    return queue_delay;
 }
 

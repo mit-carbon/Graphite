@@ -1,1 +1,1 @@
-cat output_files/sim_* output_files/app_* output_files/system* | sort -g > output_files/log_all
+cat $1/sim_* $1/app_* $1/system* | sort -g > $1/log_all

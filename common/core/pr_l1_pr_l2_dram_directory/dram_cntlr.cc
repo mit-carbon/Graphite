@@ -30,10 +30,15 @@ DramCntlr::DramCntlr(MemoryManager* memory_manager,
          dram_queue_model_moving_avg_enabled,
          dram_queue_model_moving_avg_window_size, 
          dram_queue_model_moving_avg_type);
+
+   m_dram_access_count = new AccessCountMap[NUM_ACCESS_TYPES];
 }
 
 DramCntlr::~DramCntlr()
 {
+   printDramAccessCount();
+   delete [] m_dram_access_count;
+
    delete m_dram_perf_model;
 }
 
@@ -81,6 +86,8 @@ DramCntlr::getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf)
 
    UInt64 dram_access_latency = runDramPerfModel(requester);
    getShmemPerfModel()->incrCycleCount(dram_access_latency);
+
+   addToDramAccessCount(address, READ);
 }
 
 void
@@ -93,6 +100,8 @@ DramCntlr::putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf)
    memcpy((void*) m_data_map[address], (void*) data_buf, getCacheBlockSize());
 
    runDramPerfModel(requester);
+   
+   addToDramAccessCount(address, WRITE);
 }
 
 UInt64
@@ -102,6 +111,29 @@ DramCntlr::runDramPerfModel(core_id_t requester)
    UInt64 pkt_size = (UInt64) getCacheBlockSize();
    UInt64 dram_access_latency = m_dram_perf_model->getAccessLatency(pkt_time, pkt_size, requester);
    return dram_access_latency;
+}
+
+void
+DramCntlr::addToDramAccessCount(IntPtr address, access_t access_type)
+{
+   m_dram_access_count[access_type][address] = m_dram_access_count[access_type][address] + 1;
+}
+
+void
+DramCntlr::printDramAccessCount()
+{
+   for (UInt32 k = 0; k < NUM_ACCESS_TYPES; k++)
+   {
+      for (AccessCountMap::iterator i = m_dram_access_count[k].begin(); i != m_dram_access_count[k].end(); i++)
+      {
+         if ((*i).second > 100)
+         {
+            LOG_PRINT("Dram Cntlr(%i), Address(0x%x), Access Count(%llu), Access Type(%s)", 
+                  m_memory_manager->getCore()->getId(), (*i).first, (*i).second,
+                  (k == READ)? "READ" : "WRITE");
+         }
+      }
+   }
 }
 
 }

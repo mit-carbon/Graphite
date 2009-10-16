@@ -20,6 +20,9 @@ NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStatic
    case NETWORK_ANALYTICAL_MESH:
       return new NetworkModelAnalytical(net, net_type);
 
+   case NETWORK_EMESH_HOP_BY_HOP:
+      return new NetworkModelEMeshHopByHop(net);
+
    default:
       assert(false);
       return NULL;
@@ -34,6 +37,8 @@ UInt32 NetworkModel::parseNetworkType(std::string str)
       return NETWORK_HOP_COUNTER;
    else if (str == "analytical")
       return NETWORK_ANALYTICAL_MESH;
+   else if (str = "emesh_hop_by_hop")
+      return NETWORK_EMESH_HOP_BY_HOP;
    else
       return (UInt32)-1;
 }

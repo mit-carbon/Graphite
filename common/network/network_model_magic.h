@@ -38,4 +38,4 @@ class NetworkModelMagic : public NetworkModel
       }
 };
 
-#endif
+#endif /* NETWORK_MODEL_MAGIC_H */

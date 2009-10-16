@@ -60,23 +60,11 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requ
 
    UInt64 processing_time = (UInt64) ((float) pkt_size/m_dram_bandwidth) + 1;
 
-   // Compute the moving average here
-   UInt64 pkt_time_av;
-   if (m_moving_average)
-   {
-      pkt_time_av = m_moving_average->compute(pkt_time);
-   }
-   else
-   {
-      pkt_time_av = pkt_time;
-   }
-
    // Compute Queue Delay
    UInt64 queue_delay;
    if (m_queue_model)
    {
-      queue_delay = m_queue_model->getQueueDelay(pkt_time_av, requester);
-      m_queue_model->updateQueue(pkt_time_av, processing_time);
+      queue_delay = m_queue_model->computeQueueDelay(pkt_time, processing_time, requester);
    }
    else
    {

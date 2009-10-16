@@ -20,8 +20,8 @@ class PinMemoryManager
       // scratchpads are used to implement memory redirection for
       // all memory accesses that do not involve the stack, plus
       // pushf and popf
-      static const unsigned int scratchpad_size = 4 * 1024;
-      char m_scratchpad [NUM_ACCESS_TYPES] [scratchpad_size];
+      static const unsigned int m_scratchpad_size = 4 * 1024;
+      char *m_scratchpad [NUM_ACCESS_TYPES];
       
       // Used to redirect pushf and popf
       carbon_reg_t m_saved_esp;

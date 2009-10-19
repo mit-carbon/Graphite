@@ -80,7 +80,7 @@ class Network
 
       // -- Main interface -- //
 
-      SInt32 netSend(NetPacket packet);
+      SInt32 netSend(const NetPacket& packet);
       NetPacket netRecv(const NetMatch &match);
 
       // -- Wrappers -- //

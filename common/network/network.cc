@@ -94,8 +94,9 @@ void Network::netPullFromTransport()
       if (packet.receiver != _core->getId())
       {
          // Disable this feature now. None of the network models use it
-         // LOG_PRINT("Forwarding packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
-         // forwardPacket(packet);
+         LOG_PRINT("Forwarding packet : type %i, from %i, to %i, core_id %i, time %llu.", 
+               (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
+         forwardPacket(packet);
 
          // if this isn't a broadcast message, then we shouldn't process it further
          if (packet.receiver != NetPacket::BROADCAST)
@@ -107,7 +108,8 @@ void Network::netPullFromTransport()
 
       if (callback != NULL)
       {
-         LOG_PRINT("Executing callback on packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
+         LOG_PRINT("Executing callback on packet : type %i, from %i, to %i, core_id %i, time %llu", 
+               (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
          assert(0 <= packet.sender && packet.sender < _numMod);
          assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
 
@@ -119,7 +121,8 @@ void Network::netPullFromTransport()
       // synchronous I/O support
       else
       {
-         LOG_PRINT("Enqueuing packet : type %i, from %i, time %llu.", (SInt32)packet.type, packet.sender, packet.time);
+         LOG_PRINT("Enqueuing packet : type %i, from %i, to %i, core_id %i, time %llu.", 
+               (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
          _netQueueLock.acquire();
          _netQueue.push_back(packet);
          _netQueueLock.release();
@@ -133,29 +136,13 @@ void Network::netPullFromTransport()
 
 void Network::forwardPacket(const NetPacket &packet)
 {
-   LOG_PRINT_ERROR("Forwarding of packets is currently disabled");
-
-   NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
-
-   vector<NetworkModel::Hop> hopVec;
-   model->routePacket(packet, hopVec);
-
-   Byte *buffer = packet.makeBuffer();
-   UInt64 *timeStamp = (UInt64*)buffer;
-
-   for (UInt32 i = 0; i < hopVec.size(); i++)
-   {
-      *timeStamp = hopVec[i].time;
-      _transport->send(hopVec[i].dest, buffer, packet.bufferSize());
-   }
-
-   delete [] buffer;
+   netSend(packet);
 }
 
-SInt32 Network::netSend(NetPacket packet)
+SInt32 Network::netSend(const NetPacket& packet)
 {
    assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
-   assert(packet.sender == _core->getId());
+   // assert(packet.sender == _core->getId());
 
    NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
 
@@ -167,10 +154,11 @@ SInt32 Network::netSend(NetPacket packet)
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      LOG_PRINT("Send packet : type %i, to %i, time %llu", (SInt32) packet.type, hopVec[i].dest, hopVec[i].time);
+      LOG_PRINT("Send packet : type %i, from %i, to %i, core_id %i, time %llu", 
+            (SInt32) packet.type, packet.sender, hopVec[i].next_dest, _core->getId(), hopVec[i].time);
       LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
       *timeStamp = hopVec[i].time;
-      _transport->send(hopVec[i].dest, buffer, packet.bufferSize());
+      _transport->send(hopVec[i].next_dest, buffer, packet.bufferSize());
    }
 
    delete [] buffer;

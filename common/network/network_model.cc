@@ -6,8 +6,10 @@
 #include "network_model_magic.h"
 #include "network_model_hop_counter.h"
 #include "network_model_analytical.h"
+#include "network_model_emesh_hop_by_hop.h"
 
-NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_type)
+NetworkModel*
+NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_type)
 {
    switch (model_type)
    {
@@ -29,7 +31,8 @@ NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStatic
    }
 }
 
-UInt32 NetworkModel::parseNetworkType(std::string str)
+UInt32 
+NetworkModel::parseNetworkType(std::string str)
 {
    if (str == "magic")
       return NETWORK_MAGIC;

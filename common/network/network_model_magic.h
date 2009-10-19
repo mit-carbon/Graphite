@@ -17,7 +17,8 @@ class NetworkModelMagic : public NetworkModel
                        std::vector<Hop> &nextHops)
       {
          Hop h;
-         h.dest = pkt.receiver;
+         h.final_dest = pkt.receiver;
+         h.next_dest = pkt.receiver;
          h.time = pkt.time + 1;
          nextHops.push_back(h);
 

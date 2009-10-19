@@ -48,6 +48,8 @@ void NetworkModelHopCounter::routePacket(const NetPacket &pkt,
    {
       UInt32 total_cores = Config::getSingleton()->getTotalCores();
       UInt64 total_latency = 0;
+      // There's no broadcast tree here, but I guess that won't be a
+      // bottleneck at all since there's no contention
       for (SInt32 i = 0; i < (SInt32) total_cores; i++)
       {
          computePosition(i, dx, dy);
@@ -56,7 +58,8 @@ void NetworkModelHopCounter::routePacket(const NetPacket &pkt,
          total_latency += latency;
 
          Hop h;
-         h.dest = i;
+         h.final_dest = i;
+         h.next_dest = i;
          h.time = pkt.time + latency;
 
          nextHops.push_back(h);
@@ -77,7 +80,8 @@ void NetworkModelHopCounter::routePacket(const NetPacket &pkt,
       UInt64 latency = computeDistance(sx, sy, dx, dy) * _hopLatency;
 
       Hop h;
-      h.dest = pkt.receiver;
+      h.final_dest = pkt.receiver;
+      h.next_dest = pkt.receiver;
       h.time = pkt.time + latency;
 
       nextHops.push_back(h);

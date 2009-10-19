@@ -23,7 +23,6 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
       UInt32 moving_avg_window_size, 
       std::string moving_avg_type_str):
    m_queue_model(NULL),
-   m_moving_average(NULL),
    m_enabled(false),
    m_num_accesses(0),
    m_total_access_latency(0.0),
@@ -35,12 +34,7 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
 
    if (queue_model_enabled)
    {
-      m_queue_model = new QueueModel();
-   }
-   if (moving_avg_enabled)
-   {
-      MovingAverage<UInt64>::AvgType_t moving_avg_type = MovingAverage<UInt64>::parseAvgType(moving_avg_type_str);
-      m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type, moving_avg_window_size);
+      m_queue_model = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type_str);
    }
 }
 

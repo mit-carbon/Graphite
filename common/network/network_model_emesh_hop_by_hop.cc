@@ -1,11 +1,18 @@
+#include <math.h>
+
 #include "network_model_emesh_hop_by_hop.h"
 #include "core.h"
+#include "simulator.h"
 #include "config.h"
+#include "utils.h"
 
 NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    NetworkModel(net),
    m_enabled(false),
-   m_bytes_sent(0)
+   m_bytes_sent(0),
+   m_total_packets_sent(0),
+   m_total_queueing_delay(0.0),
+   m_total_packet_latency(0.0)
 {
    SInt32 total_cores = Config::getSingleton()->getTotalCores();
    m_core_id = getNetwork()->getCore()->getId();
@@ -17,19 +24,33 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    assert(total_cores > (m_mesh_width - 1) * m_mesh_height);
    assert(total_cores > m_mesh_width * (m_mesh_height - 1));
 
+   float bisection_bandwidth = 0.0;
+   float core_frequency = 0.0;
+   float hop_time = 0.0;
+   
+   bool moving_avg_enabled = false;
+   UInt32 moving_avg_window_size = 0;
+   std::string moving_avg_type = "";
+
    // Get the Link Bandwidth, Hop Latency and if it has broadcast tree mechanism
    try
    {
       // Bisection Bandwidth is specified in GB/s
-      float bisection_bandwidth = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/bisection_bandwidth");
+      bisection_bandwidth = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/bisection_bandwidth");
       // Core Frequency is specified in GHz
-      float core_frequency = Sim()->getCfg()->getFloat("perf_model/core/frequency");
+      core_frequency = Sim()->getCfg()->getFloat("perf_model/core/frequency");
       // Hop Latency is specified in 'ns'
-      float hop_time = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/hop_latency");
+      hop_time = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/hop_latency");
+
       // Has broadcast tree?
       m_broadcast_tree_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/broadcast_tree_enabled");
+
       // Queue Model enabled? If no, this degrades into a hop counter model
-      m_queue_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model_enabled");
+      m_queue_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
+
+      moving_avg_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/moving_avg_enabled");
+      moving_avg_window_size = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/queue_model/moving_avg_window_size");
+      moving_avg_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/moving_avg_type");
    }
    catch(...)
    {
@@ -37,7 +58,7 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    }
 
    // Link Bandwidth in 'bytes/clock cycle'
-   m_link_bandwidth = (bisection_bandwidth / core_frequency) / min(m_mesh_width,m_mesh_height);
+   m_link_bandwidth = (bisection_bandwidth / core_frequency) / (2 * getMax<SInt32>(m_mesh_width,m_mesh_height));
    // Hop Latency in 'cycles'
    m_hop_latency = (UInt64) (hop_time * core_frequency);
 
@@ -48,13 +69,21 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    }
 
    if ((m_core_id / m_mesh_width) != 0)
-      m_queue_models[DOWN] = new QueueModel();
+   {
+      m_queue_models[DOWN] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+   }
    if ((m_core_id % m_mesh_width) != 0)
-      m_queue_models[LEFT] = new QueueModel();
-   if ((m_core_id + m_mesh_width) < total_cores)
-      m_queue_models[UP] = new QueueModel();
-   if ( ((m_core_id % m_mesh_width) != (m_mesh_width - 1)) && (m_core_id != (total_cores - 1)) )
-      m_queue_models[RIGHT] = new QueueModel();
+   {
+      m_queue_models[LEFT] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+   }
+   if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
+   {
+      m_queue_models[UP] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+   }
+   if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
+   {
+      m_queue_models[RIGHT] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+   }
 }
 
 NetworkModelEMeshHopByHop::~NetworkModelEMeshHopByHop()
@@ -108,14 +137,14 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, std::vector<Hop> &n
    {
       // A Unicast packet
       OutputDirection direction;
-      core_id_t next_dest = getNextDest(h.final_dest, direction);
+      core_id_t next_dest = getNextDest(pkt.receiver, direction);
 
       addHop(direction, pkt.receiver, next_dest, pkt.time, pkt.length, nextHops);
    }
 }
 
 void
-NetworkModelEMeshHopByHop::addHop(OutputDirection& direction, 
+NetworkModelEMeshHopByHop::addHop(OutputDirection direction, 
       core_id_t final_dest, core_id_t next_dest, 
       UInt64 pkt_time, UInt64 pkt_length, 
       std::vector<Hop>& nextHops)
@@ -130,12 +159,11 @@ NetworkModelEMeshHopByHop::addHop(OutputDirection& direction,
       h.next_dest = next_dest;
 
       if (direction == SELF)
-         h.time = pkt.time;
+         h.time = pkt_time;
       else      
          h.time = pkt_time + computeLatency(direction, pkt_time, pkt_length + sizeof(NetPacket));
 
-      nextHops.push(h);
-      m_bytes_sent += (pkt_length + sizeof(NetPacket));
+      nextHops.push_back(h);
    }
 }
 
@@ -172,8 +200,16 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, UInt64 pkt_
    {
       queue_delay = 0;
    }
+
+   UInt64 packet_latency = m_hop_latency + queue_delay + processing_time;
+
+   // Update Counters
+   m_bytes_sent += pkt_size;
+   m_total_packets_sent ++;
+   m_total_queueing_delay += (double) queue_delay;
+   m_total_packet_latency += (double) packet_latency;
    
-   return m_hop_latency + queue_delay + processing_time;
+   return packet_latency;
 }
 
 SInt32
@@ -220,6 +256,11 @@ void
 NetworkModelEMeshHopByHop::outputSummary(std::ostream &out)
 {
    out << "    bytes sent: " << m_bytes_sent << std::endl;
+   out << "    packets sent: " << m_total_packets_sent << std::endl;
+   out << "    average queueing delay: " << 
+      (float) (m_total_queueing_delay / m_total_packets_sent) << std::endl;
+   out << "    average packet latency: " <<
+      (float) (m_total_packet_latency / m_total_packets_sent) << std::endl;
 }
 
 void

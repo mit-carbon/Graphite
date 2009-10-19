@@ -2,6 +2,9 @@
 #define __NETWORK_MODEL_EMESH_HOP_BY_HOP_H__
 
 #include "network.h"
+#include "network_model.h"
+#include "fixed_types.h"
+#include "queue_model.h"
 
 class NetworkModelEMeshHopByHop : public NetworkModel
 {
@@ -18,30 +21,37 @@ class NetworkModelEMeshHopByHop : public NetworkModel
 
    private:
       // Fields
+      core_id_t m_core_id;
       SInt32 m_mesh_width;
       SInt32 m_mesh_height;
       float m_link_bandwidth;
       UInt64 m_hop_latency;
       bool m_broadcast_tree_enabled;
 
+      QueueModel* m_queue_models[NUM_OUTPUT_DIRECTIONS];
+
       bool m_queue_model_enabled;
       bool m_enabled;
 
       // Counters
       UInt64 m_bytes_sent;
+      UInt64 m_total_packets_sent;
+      double m_total_queueing_delay;
+      double m_total_packet_latency;
 
       // Functions
       void computePosition(core_id_t core, SInt32 &x, SInt32 &y);
       core_id_t computeCoreId(SInt32 x, SInt32 y);
-      void addHop(OutputDirection& direction, core_id_t final_dest, core_id_t next_dest, UInt64 pkt_time, UInt64 pkt_length, std::vector<Hop>& nextHops);
-      UInt64 computeLatency(Direction direction, UInt64 time, UInt64 pkt_size);
-      core_id_t getNextDest(core_id_t final_dest, Direction& direction);
+      void addHop(OutputDirection direction, core_id_t final_dest, core_id_t next_dest, UInt64 pkt_time, UInt64 pkt_length, std::vector<Hop>& nextHops);
+      UInt64 computeLatency(OutputDirection direction, UInt64 pkt_time, UInt64 pkt_size);
+      core_id_t getNextDest(core_id_t final_dest, OutputDirection& direction);
 
    public:
-      NetworkModelEMeshHopByHop(Network* net); : NetworkModel(net) { }
+      NetworkModelEMeshHopByHop(Network* net);
       ~NetworkModelEMeshHopByHop();
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
+      static std::pair<bool,SInt32> computeCoreCountConstraints(SInt32 core_count);
 
       void outputSummary(std::ostream &out);
       void enable();

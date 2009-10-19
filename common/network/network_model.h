@@ -28,7 +28,8 @@ class NetworkModel
 
       struct Hop
       {
-         SInt32 dest;
+         SInt32 final_dest;
+         SInt32 next_dest;
          UInt64 time;
       };
 

@@ -117,6 +117,8 @@ private:
    static bool m_knob_enable_performance_modeling;
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
+
+   static UInt32 getNearestAcceptableCoreCount(UInt32 core_count);
 };
 
 #endif

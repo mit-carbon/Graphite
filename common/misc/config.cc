@@ -64,6 +64,9 @@ Config::Config()
    // Add the thread-spawners (one for each process)
    m_total_cores += m_num_processes;
 
+   // Adjust the number of cores corresponding to the network model we use
+   m_total_cores = getNearestAcceptableCoreCount(m_total_cores);
+
    GenerateCoreMap();
 }
 
@@ -208,7 +211,7 @@ void Config::getNetworkModels(UInt32 *models) const
    try
    {
       config::Config *cfg = Sim()->getCfg();
-      models[STATIC_NETWORK_USER]   = NetworkModel::parseNetworkType(cfg->getString("network/user_model"));
+      models[STATIC_NETWORK_USER] = NetworkModel::parseNetworkType(cfg->getString("network/user_model"));
       models[STATIC_NETWORK_MEMORY_NET1] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_1"));
       models[STATIC_NETWORK_MEMORY_NET2] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_2"));
       models[STATIC_NETWORK_SYSTEM] = NetworkModel::parseNetworkType(cfg->getString("network/system_model"));
@@ -217,4 +220,46 @@ void Config::getNetworkModels(UInt32 *models) const
    {
       LOG_PRINT_ERROR("Exception while reading network model types.");
    }
+}
+
+UInt32 Config::getNearestAcceptableCoreCount(UInt32 core_count)
+{
+   UInt32 nearest_acceptable_core_count = 0;
+   
+   UInt32 l_models[NUM_STATIC_NETWORKS];
+   try
+   {
+      config::Config *cfg = Sim()->getCfg();
+      l_models[STATIC_NETWORK_USER] = NetworkModel::parseNetworkType(cfg->getString("network/user_model"));
+      l_models[STATIC_NETWORK_MEMORY_NET1] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_1"));
+      l_models[STATIC_NETWORK_MEMORY_NET2] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_2"));
+      l_models[STATIC_NETWORK_SYSTEM] = NetworkModel::parseNetworkType(cfg->getString("network/system_model"));
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Exception while reading network model types.");
+   }
+
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      pair<bool,SInt32> core_count_constraints = NetworkModel::computeCoreCountConstraints(l_models[i], (SInt32) core_count);
+      if (core_count_constraints.first)
+      {
+         // Network Model has core count constraints
+         if ((nearest_acceptable_core_count != 0) && 
+             (core_count_constraints.second != (SInt32) nearest_acceptable_core_count))
+         {
+            LOG_PRINT_ERROR("Problem using the network models specified in the configuration file.");
+         }
+         else
+         {
+            nearest_acceptable_core_count = core_count_constraints.second;
+         }
+      }
+   }
+
+   if (nearest_acceptable_core_count == 0)
+      nearest_acceptable_core_count = core_count;
+
+   return nearest_acceptable_core_count;
 }

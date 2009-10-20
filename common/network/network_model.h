@@ -42,8 +42,10 @@ class NetworkModel
       virtual void disable() = 0;
 
       static NetworkModel *createModel(Network *network, UInt32 model_type, EStaticNetwork net_type);
-
+      
       static UInt32 parseNetworkType(std::string str);
+
+      static std::pair<bool,SInt32> computeCoreCountConstraints(UInt32 network_type, SInt32 total_cores);
 
    protected:
       Network *getNetwork() { return _network; }

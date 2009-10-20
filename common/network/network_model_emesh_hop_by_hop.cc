@@ -280,3 +280,16 @@ NetworkModelEMeshHopByHop::isEnabled()
 {
    return m_enabled;
 }
+
+std::pair<bool,SInt32>
+NetworkModelEMeshHopByHop::computeCoreCountConstraints(SInt32 core_count)
+{
+   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
+   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+
+   assert(core_count <= mesh_width * mesh_height);
+   assert(core_count > (mesh_width - 1) * mesh_height);
+   assert(core_count > mesh_width * (mesh_height - 1));
+
+   return std::make_pair(true,mesh_height * mesh_width);
+}

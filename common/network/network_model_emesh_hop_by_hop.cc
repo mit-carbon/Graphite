@@ -58,7 +58,7 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    }
 
    // Link Bandwidth in 'bytes/clock cycle'
-   m_link_bandwidth = (bisection_bandwidth / core_frequency) / (2 * getMax<SInt32>(m_mesh_width,m_mesh_height));
+   m_link_bandwidth = (bisection_bandwidth / core_frequency) / getMax<SInt32>(m_mesh_width,m_mesh_height);
    // Hop Latency in 'cycles'
    m_hop_latency = (UInt64) (hop_time * core_frequency);
 

@@ -250,7 +250,7 @@ carbon_reg_t SyscallMdl::marshallOpenCall(syscall_args_t &args)
    m_recv_buff >> status;
 
    delete [] path_buf;
-   delete [](Byte*)recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
 
    return status;
 }
@@ -307,7 +307,7 @@ carbon_reg_t SyscallMdl::marshallReadCall(syscall_args_t &args)
       assert(m_recv_buff.size() == 0);
    }
 
-   delete [](Byte*)recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
 
    return bytes;
 }
@@ -360,7 +360,7 @@ carbon_reg_t SyscallMdl::marshallWriteCall(syscall_args_t &args)
    int status;
    m_recv_buff >> status;
 
-   delete [](Byte*) recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
 
    return status;
 }
@@ -399,7 +399,7 @@ carbon_reg_t SyscallMdl::marshallCloseCall(syscall_args_t &args)
    int status;
    m_recv_buff >> status;
 
-   delete [](Byte*) recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
 
    return status;
 }
@@ -432,7 +432,7 @@ carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
    int result;
    m_recv_buff >> result;
 
-   delete [](Byte*) recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
    delete [] path_buf;
 
    return result;
@@ -454,7 +454,7 @@ carbon_reg_t SyscallMdl::marshallGetpidCall (syscall_args_t &args)
    int result;
    m_recv_buff >> result;
 
-   delete [](Byte*) recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
 
    return result;
 }
@@ -487,7 +487,7 @@ carbon_reg_t SyscallMdl::marshallReadaheadCall(syscall_args_t &args)
    int result;
    m_recv_buff >> result;
 
-   delete [](Byte*) recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
 
    return result;
 }
@@ -519,7 +519,7 @@ carbon_reg_t SyscallMdl::marshallPipeCall (syscall_args_t &args)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) fd, (char*) fd_buff, 2 * sizeof(int));
       
-   delete [](Byte*) recv_pkt.data;
+   delete [] (Byte*) recv_pkt.data;
 
    return result;
 }
@@ -557,7 +557,7 @@ carbon_reg_t SyscallMdl::marshallFstatCall (syscall_args_t &args)
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -572,6 +572,8 @@ carbon_reg_t SyscallMdl::marshallFstatCall (syscall_args_t &args)
    // FIXME: Check that this is correct
    core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) buf, (char*) &buffer, sizeof(buffer));
    
+   delete [] (Byte*) recv_pkt.data;
+
    return result;
 }
 
@@ -602,17 +604,17 @@ carbon_reg_t SyscallMdl::marshallIoctlCall (syscall_args_t &args)
    int request = (int) args.arg1;
    struct termios *argp = (struct termios*) args.arg2; 
 
-   assert ( request == TCGETS );
+   assert(request == TCGETS);
    
    // pack the data
    m_send_buff << fd << request;
 
    // send the data
-   m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
+   m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -627,6 +629,8 @@ carbon_reg_t SyscallMdl::marshallIoctlCall (syscall_args_t &args)
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) argp, (char*) &argp_buf, sizeof (struct termios));
    }
+
+   delete [] (Byte*) recv_pkt.data;
    
    return ret;
 }
@@ -694,6 +698,8 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
       // Return the result
       void *start;
       m_recv_buff.get(start);
+
+      delete [] (Byte*) recv_pkt.data;
       return (carbon_reg_t) start;
    }
    else
@@ -762,6 +768,10 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
       // Return the result
       void *addr;
       m_recv_buff.get(addr);
+
+      // Delete the data buffer
+      delete [] (Byte*) recv_pkt.data;
+
       return (carbon_reg_t) addr;
 #else
       return (carbon_reg_t) syscall (SYS_mmap2, start, length, prot, flags, fd, pgoffset);
@@ -819,6 +829,10 @@ carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
       // Return the result
       int ret_val;
       m_recv_buff.get(ret_val);
+
+      // Delete the data buffer
+      delete [] (Byte*) recv_pkt.data;
+
       return (carbon_reg_t) ret_val;
 #else
       return (carbon_reg_t) syscall (SYS_munmap, start, length);
@@ -870,6 +884,10 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
       // Return the result
       void *new_end_data_segment;
       m_recv_buff.get (new_end_data_segment);
+
+      // Delete the data buffer
+      delete [] (Byte*) recv_pkt.data;
+
       return (carbon_reg_t) new_end_data_segment;
 #else
       return (carbon_reg_t) syscall (SYS_brk, end_data_segment);
@@ -923,8 +941,6 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
          m_send_buff << make_pair((const void*) &timeout_buf, sizeof(timeout_buf));
       }
 
-      LOG_PRINT("timeout_prefix = %i", timeout_prefix);
-
       m_send_buff.put(uaddr2);
       m_send_buff.put(val3);
 
@@ -949,6 +965,9 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
       // Look at common/system/syscall_server.cc for this
       if (end_time > start_time)
          core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(end_time - start_time));
+
+      // Delete the data buffer
+      delete [] (Byte*) recv_pkt.data;
 
       return (carbon_reg_t) ret_val;
 #else

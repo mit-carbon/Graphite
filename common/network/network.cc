@@ -115,7 +115,8 @@ void Network::netPullFromTransport()
 
          callback(_callbackObjs[packet.type], packet);
 
-         delete [] (Byte*) packet.data;
+         if (packet.length > 0)
+            delete [] (Byte*) packet.data;
       }
 
       // synchronous I/O support
@@ -142,7 +143,6 @@ void Network::forwardPacket(const NetPacket &packet)
 SInt32 Network::netSend(const NetPacket& packet)
 {
    assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
-   // assert(packet.sender == _core->getId());
 
    NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
 
@@ -150,20 +150,24 @@ SInt32 Network::netSend(const NetPacket& packet)
    model->routePacket(packet, hopVec);
 
    Byte *buffer = packet.makeBuffer();
-   UInt64 *timeStamp = (UInt64*)buffer;
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      LOG_PRINT("Send packet : type %i, from %i, to %i, core_id %i, time %llu", 
-            (SInt32) packet.type, packet.sender, hopVec[i].next_dest, _core->getId(), hopVec[i].time);
+      LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, core_id %i, time %llu", 
+            (SInt32) packet.type, packet.sender, hopVec[i].final_dest, hopVec[i].next_dest, _core->getId(), hopVec[i].time);
       LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
-      *timeStamp = hopVec[i].time;
+
+      NetPacket* buff_pkt = (NetPacket*) buffer;
+      buff_pkt->time = hopVec[i].time;
+      buff_pkt->receiver = hopVec[i].final_dest;
+
       _transport->send(hopVec[i].next_dest, buffer, packet.bufferSize());
+      
+      LOG_PRINT("Sent packet");
    }
 
    delete [] buffer;
 
-   LOG_PRINT("Sent packet");
 
    return packet.length;
 }
@@ -422,13 +426,15 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
 
 NetPacket::NetPacket(Byte *buffer)
 {
-   NetPacket *buff_pkt = (NetPacket*)buffer;
+   memcpy(this, buffer, sizeof(*this));
 
-   *this = *buff_pkt;
-
-   Byte *data_buffer = new Byte[length];
-   memcpy(data_buffer, &buff_pkt->data, length);
-   data = data_buffer;
+   // LOG_ASSERT_ERROR(length > 0, "type(%u), sender(%i), receiver(%i), length(%u)", type, sender, receiver, length);
+   if (length > 0)
+   {
+      Byte* data_buffer = new Byte[length];
+      memcpy(data_buffer, buffer + sizeof(*this), length);
+      data = data_buffer;
+   }
 
    delete [] buffer;
 }
@@ -438,9 +444,7 @@ NetPacket::NetPacket(Byte *buffer)
 // but I don't see this as a major issue.
 UInt32 NetPacket::bufferSize() const
 {
-   return (length < sizeof(const void*)) 
-      ? sizeof(NetPacket) 
-      : (sizeof(NetPacket) - sizeof(const void*) + length);
+   return (sizeof(*this) + length);
 }
 
 Byte* NetPacket::makeBuffer() const
@@ -450,11 +454,8 @@ Byte* NetPacket::makeBuffer() const
 
    Byte *buffer = new Byte[size];
 
-   NetPacket *buff_pkt = (NetPacket*)buffer;
-
-   *buff_pkt = *this;
-
-   memcpy(&buff_pkt->data, this->data, length);
+   memcpy(buffer, this, sizeof(*this));
+   memcpy(buffer + sizeof(*this), data, length);
 
    return buffer;
 }

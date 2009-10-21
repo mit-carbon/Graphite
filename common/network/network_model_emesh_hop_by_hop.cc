@@ -24,10 +24,6 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    assert(total_cores > (m_mesh_width - 1) * m_mesh_height);
    assert(total_cores > m_mesh_width * (m_mesh_height - 1));
 
-   float bisection_bandwidth = 0.0;
-   float core_frequency = 0.0;
-   float hop_time = 0.0;
-   
    bool moving_avg_enabled = false;
    UInt32 moving_avg_window_size = 0;
    std::string moving_avg_type = "";
@@ -35,12 +31,10 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    // Get the Link Bandwidth, Hop Latency and if it has broadcast tree mechanism
    try
    {
-      // Bisection Bandwidth is specified in GB/s
-      bisection_bandwidth = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/bisection_bandwidth");
-      // Core Frequency is specified in GHz
-      core_frequency = Sim()->getCfg()->getFloat("perf_model/core/frequency");
-      // Hop Latency is specified in 'ns'
-      hop_time = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/hop_latency");
+      // Link Bandwidth is specified in bytes/clock_cycle
+      m_link_bandwidth = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/link_bandwidth") / 8;
+      // Hop Latency is specified in cycles
+      m_hop_latency = (UInt64) Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/hop_latency");
 
       // Has broadcast tree?
       m_broadcast_tree_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/broadcast_tree_enabled");
@@ -56,11 +50,6 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    {
       LOG_PRINT_ERROR("Could not read parameters from the configuration file");
    }
-
-   // Link Bandwidth in 'bytes/clock cycle'
-   m_link_bandwidth = (bisection_bandwidth / core_frequency) / getMax<SInt32>(m_mesh_width,m_mesh_height);
-   // Hop Latency in 'cycles'
-   m_hop_latency = (UInt64) (hop_time * core_frequency);
 
    // Initialize the queue models for all the '4' output directions
    for (UInt32 direction = 0; direction < NUM_OUTPUT_DIRECTIONS; direction ++)

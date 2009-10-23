@@ -130,6 +130,7 @@ void *CarbonThreadSpawner(void *)
 
 // This function initialized the pthread attributes
 // Gets replaced while running with Pin
-void CarbonPthreadAttrInitOtherAttr(pthread_attr_t *attr)
+__attribute__((noinline)) void CarbonPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
+   asm ("");
 }

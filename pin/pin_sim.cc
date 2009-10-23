@@ -189,10 +189,10 @@ VOID instructionCallback (INS ins, void *v)
    if (Log::getSingleton()->isLoggingEnabled())
    {
       INS_InsertCall(ins, IPOINT_BEFORE,
-                     AFUNPTR(printInsInfo),
-                     IARG_CALL_ORDER, CALL_ORDER_FIRST,
-                     IARG_CONTEXT,
-                     IARG_END);
+            AFUNPTR(printInsInfo),
+            IARG_CALL_ORDER, CALL_ORDER_FIRST,
+            IARG_CONTEXT,
+            IARG_END);
    }
 
    if (Config::getSingleton()->getEnablePerformanceModeling())

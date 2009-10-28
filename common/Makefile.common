@@ -23,8 +23,8 @@ BUILD_32 = 1
 KERNEL = LENNY
 
 # Compilers
-CC = g++
-CXX = g++
+# CC = g++
+# CXX = g++
 
 # OS Services Support
 LD_LIBS += -los-services

@@ -6,8 +6,10 @@
 #include "network_model_magic.h"
 #include "network_model_hop_counter.h"
 #include "network_model_analytical.h"
+#include "network_model_emesh_hop_by_hop.h"
 
-NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_type)
+NetworkModel*
+NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_type)
 {
    switch (model_type)
    {
@@ -20,13 +22,17 @@ NetworkModel *NetworkModel::createModel(Network *net, UInt32 model_type, EStatic
    case NETWORK_ANALYTICAL_MESH:
       return new NetworkModelAnalytical(net, net_type);
 
+   case NETWORK_EMESH_HOP_BY_HOP:
+      return new NetworkModelEMeshHopByHop(net);
+
    default:
       assert(false);
       return NULL;
    }
 }
 
-UInt32 NetworkModel::parseNetworkType(std::string str)
+UInt32 
+NetworkModel::parseNetworkType(std::string str)
 {
    if (str == "magic")
       return NETWORK_MAGIC;
@@ -34,6 +40,27 @@ UInt32 NetworkModel::parseNetworkType(std::string str)
       return NETWORK_HOP_COUNTER;
    else if (str == "analytical")
       return NETWORK_ANALYTICAL_MESH;
+   else if (str == "emesh_hop_by_hop")
+      return NETWORK_EMESH_HOP_BY_HOP;
    else
       return (UInt32)-1;
+}
+
+std::pair<bool,SInt32> 
+NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count)
+{
+   switch (network_type)
+   {
+      case NETWORK_MAGIC:
+      case NETWORK_HOP_COUNTER:
+      case NETWORK_ANALYTICAL_MESH:
+         return std::make_pair(false,core_count);
+
+      case NETWORK_EMESH_HOP_BY_HOP:
+         return NetworkModelEMeshHopByHop::computeCoreCountConstraints(core_count);
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
+         return std::make_pair(false,-1);
+   }
 }

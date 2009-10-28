@@ -66,10 +66,10 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    PerformanceModel *perf = getNetwork()->getCore()->getPerformanceModel();
 
    Hop h;
-   h.dest = pkt.receiver;
+   h.final_dest = pkt.receiver;
+   h.next_dest = pkt.receiver;
 
    UInt64 network_latency = computeLatency(pkt);
-   LOG_PRINT ("Network Latency = %llu", network_latency);
    h.time = pkt.time + network_latency;
 
    nextHops.push_back(h);

@@ -172,6 +172,9 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    core_id_t core_id = *((core_id_t*)pkt.data);
    LOG_PRINT("Thread spawned on core: %d", core_id);
 
+   // Delete the data buffer
+   delete [] (Byte*) pkt.data;
+
    return core_id;
 }
 
@@ -315,7 +318,6 @@ void ThreadManager::joinThread(core_id_t core_id)
 
    // Wait for reply
    NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY);
-   // delete [] (Byte*)pkt.data;   *don't* delete the data since this packet has none
 
    LOG_PRINT("Exiting join thread.");
 }

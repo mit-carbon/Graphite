@@ -1,8 +1,3 @@
-// Jonathan Eastep (eastep@mit.edu)
-// 04.07.08
-// This file provides some useful bit-manipulating functions
-
-
 #ifndef UTILS_H
 #define UTILS_H
 
@@ -38,5 +33,18 @@ SInt32 floorLog2(UInt32 n);
 // returns -1 if n == 0.
 
 SInt32 ceilLog2(UInt32 n);
+
+// Max and Min functions
+template <class T>
+T getMin(T v1, T v2)
+{
+   return (v1 < v2) ? v1 : v2;
+}
+
+template <class T>
+T getMax(T v1, T v2)
+{
+   return (v1 > v2) ? v1 : v2;
+}
 
 #endif

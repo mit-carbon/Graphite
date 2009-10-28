@@ -59,5 +59,8 @@ SimulationBarrierClient::handlePeriodicBarrier()
 
       // Update 'm_next_sync_time'
       m_next_sync_time = ((curr_cycle_count / m_barrier_interval) * m_barrier_interval) + m_barrier_interval;
+
+      // Delete the data buffer
+      delete [] (Byte*) recv_pkt.data;
    }
 }

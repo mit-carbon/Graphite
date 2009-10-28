@@ -130,6 +130,10 @@ void *CarbonThreadSpawner(void *)
 
 // This function initialized the pthread attributes
 // Gets replaced while running with Pin
-void CarbonPthreadAttrInitOtherAttr(pthread_attr_t *attr)
+// attribute 'noinline' necessary to make the scheme work correctly with
+// optimizations enabled; asm ("") in the body prevents the function from being
+// optimized away
+__attribute__((noinline)) void CarbonPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
+   asm ("");
 }

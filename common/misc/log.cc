@@ -73,7 +73,7 @@ bool Log::isEnabled(const char* module)
 
 bool Log::isLoggingEnabled()
 {
-   return !_enabledModules.empty() || _loggingEnabled;
+   return (!_enabledModules.empty()) || _loggingEnabled;
 }
 
 void Log::initFileDescriptors()

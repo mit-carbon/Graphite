@@ -60,7 +60,6 @@ namespace PrL1PrL2DramDirectory
 
          DramPerfModel* getDramPerfModel() { return m_dram_perf_model; }
 
-         void handleMsgFromDramDir(core_id_t sender, ShmemMsg* shmem_msg);
          void getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf);
          void putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
    };

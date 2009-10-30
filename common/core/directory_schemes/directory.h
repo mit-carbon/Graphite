@@ -30,8 +30,10 @@ class Directory
       ~Directory();
 
       DirectoryEntry* getDirectoryEntry(UInt32 entry_num);
-      DirectoryType parseDirectoryType(std::string directory_type_str);
-      DirectoryEntry* createDirectoryEntry(DirectoryType directory_type);
+      void setDirectoryEntry(UInt32 entry_num, DirectoryEntry* directory_entry);
+      DirectoryEntry* createDirectoryEntry();
+      
+      static DirectoryType parseDirectoryType(std::string directory_type_str);
 };
 
 #endif /* __DIRECTORY_H__ */

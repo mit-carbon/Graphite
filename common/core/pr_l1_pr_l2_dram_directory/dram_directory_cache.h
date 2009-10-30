@@ -2,6 +2,7 @@
 #define __DRAM_DIRECTORY_CACHE_H__
 
 #include <string>
+#include <vector>
 
 #include "directory.h"
 #include "shmem_perf_model.h"
@@ -12,6 +13,7 @@ namespace PrL1PrL2DramDirectory
    {
       private:
          Directory* m_directory;
+         std::vector<DirectoryEntry*> m_replaced_directory_entry_list;
 
          UInt32 m_total_entries;
          UInt32 m_associativity;
@@ -20,8 +22,6 @@ namespace PrL1PrL2DramDirectory
          UInt32 m_cache_block_size;
          UInt32 m_log_num_sets;
          UInt32 m_log_cache_block_size;
-
-         IntPtr** m_sets;
 
          UInt32 m_dram_directory_cache_access_time;
          ShmemPerfModel* m_shmem_perf_model;
@@ -47,6 +47,9 @@ namespace PrL1PrL2DramDirectory
          ~DramDirectoryCache();
 
          DirectoryEntry* getDirectoryEntry(IntPtr address);
+         DirectoryEntry* replaceDirectoryEntry(IntPtr replaced_address, IntPtr address);
+         void invalidateDirectoryEntry(IntPtr address);
+         void getReplacementCandidates(IntPtr address, std::vector<DirectoryEntry*>& replacement_candidate_list); 
 
    };
 }

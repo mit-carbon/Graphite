@@ -24,17 +24,11 @@ namespace PrL1PrL2DramDirectory
          DramDirectoryCntlr* m_dram_directory_cntlr;
          DramCntlr* m_dram_cntlr;
          AddressHomeLookup* m_dram_directory_home_lookup;
-         AddressHomeLookup* m_dram_home_lookup;
 
          Semaphore* m_user_thread_sem;
          Semaphore* m_network_thread_sem;
 
          UInt32 m_cache_block_size;
-
-         UInt32 m_num_dram_cntlrs;
-         UInt32 m_inter_dram_cntlr_distance;
-
-         bool isDramCntlrPresent(void);
 
       public:
          MemoryManager(Core* core, Network* network, ShmemPerfModel* shmem_perf_model);
@@ -55,8 +49,6 @@ namespace PrL1PrL2DramDirectory
 
          void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
          
-         core_id_t getCoreIdFromDramCntlrNum(SInt32 dram_cntlr_num);
-
          void enableModels();
          void disableModels();
 

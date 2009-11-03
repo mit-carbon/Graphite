@@ -43,38 +43,6 @@ DramCntlr::~DramCntlr()
 }
 
 void
-DramCntlr::handleMsgFromDramDir(core_id_t sender, ShmemMsg* shmem_msg)
-{
-   IntPtr address = shmem_msg->getAddress();
-   ShmemMsg::msg_t msg_type = shmem_msg->getMsgType();
-   core_id_t requester = shmem_msg->getRequester();
-
-   switch (msg_type)
-   {
-      case ShmemMsg::GET_DATA_REQ:
-         {
-            Byte data_buf[getCacheBlockSize()];
-            getDataFromDram(address, requester, data_buf);
-            getMemoryManager()->sendMsg(ShmemMsg::GET_DATA_REP, 
-                  MemComponent::DRAM, MemComponent::DRAM_DIR, 
-                  requester /* requester */, 
-                  sender /* receiver */, 
-                  address,
-                  data_buf, getCacheBlockSize());
-         }
-         break;
-
-      case ShmemMsg::PUT_DATA_REQ:
-         putDataToDram(address, requester, shmem_msg->getDataBuf());
-         break;
-
-      default:
-         LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", msg_type);
-         break;
-   }
-}
-
-void
 DramCntlr::getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf)
 {
    if (m_data_map[address] == NULL)

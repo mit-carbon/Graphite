@@ -27,12 +27,9 @@ namespace PrL1PrL2DramDirectory
          DramDirectoryCache* m_dram_directory_cache;
          ReqQueueList* m_dram_directory_req_queue_list;
          DramCntlr* m_dram_cntlr;
-         AddressHomeLookup* m_dram_home_lookup;
 
          core_id_t m_core_id;
          UInt32 m_cache_block_size;
-
-         std::map<IntPtr, bool> m_dram_request_pending;
 
          ShmemPerfModel* m_shmem_perf_model;
 
@@ -41,6 +38,9 @@ namespace PrL1PrL2DramDirectory
          ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
          // Private Functions
+         DirectoryEntry* processDirectoryEntryAllocationReq(ShmemReq* shmem_req);
+         void processNullifyReq(ShmemReq* shmem_req);
+
          void processNextReqFromL2Cache(IntPtr address);
          void processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
          void processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
@@ -50,14 +50,11 @@ namespace PrL1PrL2DramDirectory
          void processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
          void processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
          void sendDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
-
-         void processGetDataRepFromDram(ShmemMsg* shmem_msg);
       
       public:
          DramDirectoryCntlr(core_id_t core_id,
                MemoryManager* memory_manager,
                DramCntlr* dram_cntlr,
-               AddressHomeLookup* dram_home_lookup,
                UInt32 dram_directory_total_entries,
                UInt32 dram_directory_associativity,
                UInt32 cache_block_size,
@@ -69,8 +66,6 @@ namespace PrL1PrL2DramDirectory
          ~DramDirectoryCntlr();
 
          void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg, UInt64 msg_time);
-         void handleMsgFromDram(ShmemMsg* shmem_msg);
-
    };
 
 }

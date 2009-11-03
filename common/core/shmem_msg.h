@@ -21,10 +21,8 @@ class ShmemMsg
          INV_REP,
          FLUSH_REP,
          WB_REP,
-         GET_DATA_REQ,
-         PUT_DATA_REQ,
-         GET_DATA_REP,
-         MAX_MSG_TYPE = GET_DATA_REP,
+         NULLIFY_REQ,
+         MAX_MSG_TYPE = NULLIFY_REQ,
          NUM_MSG_TYPES = MAX_MSG_TYPE - MIN_MSG_TYPE + 1
       };  
 

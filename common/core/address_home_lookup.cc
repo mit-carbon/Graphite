@@ -28,5 +28,7 @@ SInt32 AddressHomeLookup::getHome(IntPtr address) const
 {
    SInt32 module_num = (address >> m_ahl_param) % m_total_modules;
    LOG_ASSERT_ERROR(0 <= module_num && module_num < (SInt32) m_total_modules, "module_num(%i), total_modules(%u)", module_num, m_total_modules);
+   
+   LOG_PRINT("address(0x%x), module_num(%i)", address, module_num);
    return (module_num);
 }

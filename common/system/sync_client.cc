@@ -53,9 +53,15 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
+   // Set the CoreState to 'STALLED'
+   m_network->getCore()->setState(Core::STALLED);
+
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
+
+   // Set the CoreState to 'RUNNING'
+   m_network->getCore()->setState(Core::WAKING_UP_STAGE1);
 
    unsigned int dummy;
    UInt64 time;
@@ -134,9 +140,15 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
+   // Set the CoreState to 'STALLED'
+   m_network->getCore()->setState(Core::STALLED);
+
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
+
+   // Set the CoreState to 'RUNNING'
+   m_network->getCore()->setState(Core::WAKING_UP_STAGE1);
 
    unsigned int dummy;
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -241,9 +253,15 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
 
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
+   // Set the CoreState to 'STALLED'
+   m_network->getCore()->setState(Core::STALLED);
+
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
+
+   // Set the CoreState to 'RUNNING'
+   m_network->getCore()->setState(Core::WAKING_UP_STAGE1);
 
    unsigned int dummy;
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);

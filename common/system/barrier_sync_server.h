@@ -1,5 +1,5 @@
-#ifndef __SIMULATION_BARRIER_SERVER_H__
-#define __SIMULATION_BARRIER_SERVER_H__
+#ifndef __BARRIER_SYNC_SERVER_H__
+#define __BARRIER_SYNC_SERVER_H__
 
 #include <vector>
 
@@ -10,7 +10,7 @@
 class ThreadManager;
 class Network;
 
-class SimulationBarrierServer
+class BarrierSyncServer : public ClockSkewMinimizationServer
 {
    private:
       Network &m_network;
@@ -25,12 +25,15 @@ class SimulationBarrierServer
       UInt32 m_num_application_cores;
 
    public:
-      SimulationBarrierServer(Network &network, UnstructuredBuffer &recv_buff);
-      ~SimulationBarrierServer();
+      BarrierSyncServer(Network &network, UnstructuredBuffer &recv_buff);
+      ~BarrierSyncServer();
+
+      void processSyncMsg(core_id_t core_id);
+      void signal();
 
       void barrierWait(core_id_t core_id);
       bool isBarrierReached(void);
       void barrierRelease(void);
 };
 
-#endif /* __SIMULATION_BARRIER_SERVER_H__ */
+#endif /* __BARRIER_SYNC_SERVER_H__ */

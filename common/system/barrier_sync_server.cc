@@ -1,24 +1,25 @@
-#include "simulation_barrier_client.h"
-#include "simulation_barrier_server.h"
+#include "barrier_sync_client.h"
+#include "barrier_sync_server.h"
 #include "simulator.h"
 #include "thread_manager.h"
 #include "network.h"
 #include "config.h"
 #include "log.h"
 
-SimulationBarrierServer::SimulationBarrierServer(Network &network, UnstructuredBuffer &recv_buff):
+BarrierSyncServer::BarrierSyncServer(Network &network, UnstructuredBuffer &recv_buff):
    m_network(network),
    m_recv_buff(recv_buff)
 {
    m_thread_manager = Sim()->getThreadManager();
    try
    {
-      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("simulation_barrier/interval"); 
+      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/barrier/quantum"); 
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Error Reading 'simulation_barrier/interval' from the config file");
+      LOG_PRINT_ERROR("Error Reading 'clock_skew_minimization/barrier/quantum' from the config file");
    }
+
    m_next_barrier_time = m_barrier_interval;
    m_num_application_cores = Config::getSingleton()->getApplicationCores();
    m_local_clock_list.resize(m_num_application_cores);
@@ -30,11 +31,24 @@ SimulationBarrierServer::SimulationBarrierServer(Network &network, UnstructuredB
    }
 }
 
-SimulationBarrierServer::~SimulationBarrierServer()
+BarrierSyncServer::~BarrierSyncServer()
 {}
 
 void
-SimulationBarrierServer::barrierWait(core_id_t core_id)
+BarrierSyncServer::processSyncMsg(core_id_t core_id)
+{
+   barrierWait(core_id);
+}
+
+void
+BarrierSyncServer::signal()
+{
+   if (isBarrierReached())
+     barrierRelease(); 
+}
+
+void
+BarrierSyncServer::barrierWait(core_id_t core_id)
 {
    UInt64 time;
    m_recv_buff >> time;
@@ -46,20 +60,19 @@ SimulationBarrierServer::barrierWait(core_id_t core_id)
    if (time < m_next_barrier_time)
    {
       // LOG_PRINT_WARNING("core_id(%i), local_clock(%llu), m_next_barrier_time(%llu), m_barrier_interval(%llu)", core_id, time, m_next_barrier_time, m_barrier_interval);
-      unsigned int reply = SimulationBarrierClient::SIM_BARRIER_RELEASE;
+      unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
       m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
       return;
    }
 
    m_local_clock_list[core_id] = time;
    m_barrier_acquire_list[core_id] = true;
-  
-   if (isBarrierReached())
-      barrierRelease();
+ 
+   signal(); 
 }
 
 bool
-SimulationBarrierServer::isBarrierReached()
+BarrierSyncServer::isBarrierReached()
 {
    bool single_thread_barrier_reached = false;
 
@@ -89,9 +102,9 @@ SimulationBarrierServer::isBarrierReached()
 }
 
 void
-SimulationBarrierServer::barrierRelease()
+BarrierSyncServer::barrierRelease()
 {
-   LOG_PRINT("Sending 'SIM_BARRIER_RELEASE'");
+   LOG_PRINT("Sending 'BARRIER_RELEASE'");
 
    // All threads have reached the barrier
    // Advance m_next_barrier_time
@@ -116,7 +129,7 @@ SimulationBarrierServer::barrierRelease()
             {
                LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(core_id) || m_thread_manager->isThreadInitializing(core_id), "(%i) has acquired barrier, local_clock(%i), m_next_barrier_time(%llu), but not initializing or running", core_id, m_local_clock_list[core_id], m_next_barrier_time);
 
-               unsigned int reply = SimulationBarrierClient::SIM_BARRIER_RELEASE;
+               unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
                m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
 
                m_barrier_acquire_list[core_id] = false;

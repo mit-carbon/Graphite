@@ -5,7 +5,7 @@
 #include "network_types.h"
 #include "memory_manager_base.h"
 #include "pin_memory_manager.h"
-#include "simulation_barrier_client.h"
+#include "clock_skew_minimization_object.h"
 #include "performance_model.h"
 #include "simulator.h"
 #include "log.h"
@@ -47,16 +47,14 @@ Core::Core(SInt32 id)
    m_syscall_model = new SyscallMdl(m_network);
    m_sync_client = new SyncClient(this);
 
-   if (Sim()->getCfg()->getBool("simulation_barrier/enabled", false))
-      m_simulation_barrier_client = new SimulationBarrierClient(this);
-   else
-      m_simulation_barrier_client = NULL;
+   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
 Core::~Core()
 {
-   if (m_simulation_barrier_client)
-      delete m_simulation_barrier_client;
+   if (m_clock_skew_minimization_client)
+      delete m_clock_skew_minimization_client;
+
    delete m_sync_client;
    delete m_syscall_model;
    if (Config::getSingleton()->isSimulatingSharedMemory())
@@ -336,4 +334,20 @@ Core::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr
    }
 
    return make_pair<UInt32, UInt64>(0,0);
+}
+
+Core::State 
+Core::getState()
+{
+   ScopedLock scoped_lock(m_core_state_lock);
+   return m_core_state;
+}
+
+void
+Core::setState(State core_state)
+{
+   LOG_PRINT("Started Setting State to %u", core_state);
+   ScopedLock scoped_lock(m_core_state_lock);
+   m_core_state = core_state;
+   LOG_PRINT("Finished Setting State to %u", core_state);
 }

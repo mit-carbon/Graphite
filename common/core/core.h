@@ -8,7 +8,7 @@ class Network;
 class MemoryManagerBase;
 class SyscallMdl;
 class SyncClient;
-class SimulationBarrierClient;
+class ClockSkewMinimizationClient;
 class PerformanceModel;
 
 // FIXME: Move this out of here eventually
@@ -27,6 +27,17 @@ using namespace std;
 class Core
 {
    public:
+
+      enum State
+      {
+         RUNNING = 0,
+         INITIALIZING,
+         STALLED,
+         WAKING_UP_STAGE1,
+         WAKING_UP_STAGE2,
+         IDLE,
+         NUM_STATES
+      };
 
       enum lock_signal_t
       {
@@ -81,8 +92,11 @@ class Core
       PinMemoryManager *getPinMemoryManager() { return m_pin_memory_manager; }
       SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       SyncClient *getSyncClient() { return m_sync_client; }
-      SimulationBarrierClient *getSimulationBarrierClient() { return m_simulation_barrier_client; }
+      ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
+      State getState();
+      void setState(State core_state);
 
       void enablePerformanceModels();
       void disablePerformanceModels();
@@ -95,8 +109,11 @@ class Core
       PerformanceModel *m_performance_model;
       SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
-      SimulationBarrierClient *m_simulation_barrier_client;
+      ClockSkewMinimizationClient *m_clock_skew_minimization_client;
       ShmemPerfModel* m_shmem_perf_model;
+      
+      State m_core_state;
+      Lock m_core_state_lock;
 
       static Lock m_global_core_lock;
 };

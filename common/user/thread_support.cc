@@ -39,11 +39,6 @@ void CarbonJoinThread(carbon_thread_t tid)
 }
 
 // Support functions provided by the simulator
-void CarbonGetThreadToSpawn(ThreadSpawnRequest *req)
-{
-   Sim()->getThreadManager()->getThreadToSpawn(req);
-}
-
 void CarbonThreadStart(ThreadSpawnRequest *req)
 {
    Sim()->getThreadManager()->onThreadStart(req);
@@ -52,6 +47,11 @@ void CarbonThreadStart(ThreadSpawnRequest *req)
 void CarbonThreadExit()
 {
    Sim()->getThreadManager()->onThreadExit();
+}
+
+void CarbonGetThreadToSpawn(ThreadSpawnRequest *req)
+{
+   Sim()->getThreadManager()->getThreadToSpawn(req);
 }
 
 void CarbonDequeueThreadSpawnReq (ThreadSpawnRequest *req)

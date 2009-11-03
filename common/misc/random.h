@@ -15,7 +15,7 @@ class Random
       value_t _seed;
 
    public:
-      Random() : _seed(0) { }
+      Random() : _seed(1) { }
       ~Random() { }
 
       inline void seed(value_t s)

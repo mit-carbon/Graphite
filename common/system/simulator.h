@@ -13,6 +13,7 @@ class Thread;
 class ThreadManager;
 class PerfCounterManager;
 class SimThreadManager;
+class ClockSkewMinimizationManager;
 
 class Simulator
 {
@@ -33,6 +34,7 @@ public:
    SimThreadManager *getSimThreadManager() { return m_sim_thread_manager; }
    ThreadManager *getThreadManager() { return m_thread_manager; }
    PerfCounterManager *getPerfCounterManager() { return m_perf_counter_manager; }
+   ClockSkewMinimizationManager *getClockSkewMinimizationManager() { return m_clock_skew_minimization_manager; }
    Config *getConfig() { return &m_config; }
    config::Config *getCfg() { return m_config_file; }
 
@@ -64,6 +66,7 @@ private:
    ThreadManager *m_thread_manager;
    PerfCounterManager *m_perf_counter_manager;
    SimThreadManager *m_sim_thread_manager;
+   ClockSkewMinimizationManager *m_clock_skew_minimization_manager;
 
    static Simulator *m_singleton;
 

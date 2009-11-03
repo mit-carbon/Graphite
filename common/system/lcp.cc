@@ -3,6 +3,7 @@
 #include "core.h"
 #include "message_types.h"
 #include "thread_manager.h"
+#include "clock_skew_minimization_object.h"
 
 #include "log.h"
 
@@ -63,12 +64,16 @@ void LCP::processPacket()
       break;
       
    case LCP_MESSAGE_QUIT_THREAD_SPAWNER:
-      Sim()->getThreadManager()->slaveTerminateThreadSpawner ();
+      Sim()->getThreadManager()->slaveTerminateThreadSpawner();
       break;
 
    case LCP_MESSAGE_QUIT_THREAD_SPAWNER_ACK:
-      Sim()->getThreadManager()->updateTerminateThreadSpawner ();
+      Sim()->getThreadManager()->updateTerminateThreadSpawner();
       break;
+
+   case LCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
+      assert (Sim()->getClockSkewMinimizationManager());
+      Sim()->getClockSkewMinimizationManager()->processSyncMsg(data);
 
    default:
       LOG_ASSERT_ERROR(false, "Unexpected message type: %d.", *msg_type);

@@ -239,7 +239,7 @@ RandomPairsSyncClient::gotoSleep(UInt64 sleep_time)
 
       // elapsed_simulated_time, sleep_time - in cycles (of target architecture)
       // elapsed_wall_clock_time - in microseconds
-      // usleep(sleep_time * elapsed_wall_clock_time / elapsed_simulated_time);
+      usleep(sleep_time * elapsed_wall_clock_time / elapsed_simulated_time);
 
       // Set the CoreState to 'RUNNING'
       _core->setState(Core::RUNNING);

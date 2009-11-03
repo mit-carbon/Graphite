@@ -4,7 +4,7 @@ Running the script
 ------------------
 
 Command: 
-./tools/run_tests.py [-dryrun] [-f config_file] [-n num_runs]
+./tools/run_tests.py [--dry-run] [-f config_file] [-n num_runs]
 ./tools/run_tests.py -h
 
 Remarks:

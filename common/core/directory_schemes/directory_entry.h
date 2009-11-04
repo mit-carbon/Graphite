@@ -12,6 +12,7 @@ class DirectoryEntry
       UInt32 m_max_hw_sharers;
       UInt32 m_max_num_sharers;
       SInt32 m_owner_id;
+      IntPtr m_address;
       BitVector* m_sharers;
       DirectoryBlockInfo* m_directory_block_info;
 
@@ -28,6 +29,9 @@ class DirectoryEntry
 
       virtual SInt32 getOwner() = 0;
       virtual void setOwner(SInt32 owner_id) = 0;
+
+      IntPtr getAddress() { return m_address; }
+      void setAddress(IntPtr address) { m_address = address; }
 
       virtual std::pair<bool, std::vector<SInt32> > getSharersList() = 0;
 

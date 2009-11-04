@@ -21,13 +21,7 @@ DramDirectoryCache::DramDirectoryCache(
    m_shmem_perf_model(shmem_perf_model)
 {
    m_num_sets = m_total_entries / m_associativity;
-   m_sets = new IntPtr*[m_num_sets];
-   for (UInt32 i = 0; i < m_num_sets; i++)
-   {
-      m_sets[i] = new IntPtr[m_associativity];
-      for (UInt32 j = 0; j < m_associativity; j++)
-         m_sets[i][j] = INVALID_ADDRESS;
-   }
+   
    // Instantiate the directory
    m_directory = new Directory(directory_type_str, total_entries, max_hw_sharers, max_num_sharers);
 
@@ -38,10 +32,6 @@ DramDirectoryCache::DramDirectoryCache(
 
 DramDirectoryCache::~DramDirectoryCache()
 {
-   for (UInt32 i = 0; i < m_num_sets; i++)
-      delete [] m_sets[i];
-   delete [] m_sets;
-
    delete m_directory;
 }
 
@@ -60,26 +50,100 @@ DramDirectoryCache::getDirectoryEntry(IntPtr address)
    // Find the relevant directory entry
    for (UInt32 i = 0; i < m_associativity; i++)
    {
-      if (m_sets[set_index][i] == address)
+      DirectoryEntry* directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
+      if (m_shmem_perf_model)
+         getShmemPerfModel()->incrCycleCount(directory_entry->getLatency());
+
+      if (directory_entry->getAddress() == address)
       {
          // Simple check for now. Make sophisticated later
-         return m_directory->getDirectoryEntry(set_index * m_associativity + i);
+         return directory_entry;
       }
    }
 
    // Find a free directory entry if one does not currently exist
    for (UInt32 i = 0; i < m_associativity; i++)
    {
-      if (m_sets[set_index][i] == INVALID_ADDRESS)
+      DirectoryEntry* directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
+      if (directory_entry->getAddress() == INVALID_ADDRESS)
       {
-         m_sets[set_index][i] = address;
          // Simple check for now. Make sophisticated later
-         return m_directory->getDirectoryEntry(set_index * m_associativity + i);
+         directory_entry->setAddress(address);
+         return directory_entry;
       }
    }
 
-   LOG_PRINT_ERROR("Assume that dram_directory_cache always hits. Fix later");
+   // Check in the m_replaced_directory_entry_list
+   std::vector<DirectoryEntry*>::iterator it;
+   for (it = m_replaced_directory_entry_list.begin(); it != m_replaced_directory_entry_list.end(); it++)
+   {
+      if ((*it)->getAddress() == address)
+      {
+         return (*it);
+      } 
+   }
+
    return (DirectoryEntry*) NULL;
+}
+
+void
+DramDirectoryCache::getReplacementCandidates(IntPtr address, std::vector<DirectoryEntry*>& replacement_candidate_list)
+{
+   assert(getDirectoryEntry(address) == NULL);
+   
+   IntPtr tag;
+   UInt32 set_index;
+   splitAddress(address, tag, set_index);
+
+   for (UInt32 i = 0; i < m_associativity; i++)
+   {
+      replacement_candidate_list.push_back(m_directory->getDirectoryEntry(set_index * m_associativity + i));
+   }
+}
+
+DirectoryEntry*
+DramDirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
+{
+   IntPtr tag;
+   UInt32 set_index;
+   splitAddress(replaced_address, tag, set_index);
+
+   for (UInt32 i = 0; i < m_associativity; i++)
+   {
+      DirectoryEntry* replaced_directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
+      if (replaced_directory_entry->getAddress() == replaced_address)
+      {
+         m_replaced_directory_entry_list.push_back(replaced_directory_entry);
+
+         DirectoryEntry* directory_entry = m_directory->createDirectoryEntry();
+         directory_entry->setAddress(address);
+         m_directory->setDirectoryEntry(set_index * m_associativity + i, directory_entry);
+
+         return directory_entry;
+      }
+   }
+
+   // Should not reach here
+   assert(false);
+}
+
+void
+DramDirectoryCache::invalidateDirectoryEntry(IntPtr address)
+{
+   std::vector<DirectoryEntry*>::iterator it;
+   for (it = m_replaced_directory_entry_list.begin(); it != m_replaced_directory_entry_list.end(); it++)
+   {
+      if ((*it)->getAddress() == address)
+      {
+         delete (*it);
+         m_replaced_directory_entry_list.erase(it);
+
+         return;
+      } 
+   }
+
+   // Should not reach here
+   assert(false);
 }
 
 void

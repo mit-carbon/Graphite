@@ -271,8 +271,6 @@ void WorkStart() /* routine that each created process starts at;
     long ProcID;
     double LocalXTT;
 
-    printf("Initializing the worker thread\n");
-
     THREAD_INIT_FREE();
 
     LOCK(gl->IndexLock);

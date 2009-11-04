@@ -33,8 +33,8 @@ class Core
          RUNNING = 0,
          INITIALIZING,
          STALLED,
-         WAKING_UP_STAGE1,
-         WAKING_UP_STAGE2,
+         SLEEPING,
+         WAKING_UP,
          IDLE,
          NUM_STATES
       };

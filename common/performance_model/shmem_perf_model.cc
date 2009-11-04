@@ -83,6 +83,7 @@ ShmemPerfModel::incrTotalMemoryAccessLatency(UInt64 shmem_time)
 {
    if (isEnabled())
    {
+      ScopedLock sl(m_shmem_perf_model_lock);
       m_num_memory_accesses ++;
       m_total_memory_access_latency += (double) shmem_time;
    }

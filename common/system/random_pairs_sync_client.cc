@@ -9,7 +9,8 @@ RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
    _core(core),
    _last_sync_cycle_count(0),
    _quantum(0),
-   _slack(0)
+   _slack(0),
+   _sleep_fraction(0.0)
 {
    LOG_ASSERT_ERROR(Sim()->getConfig()->getApplicationCores() >= 3, 
          "Number of Cores must be >= 3 if 'random_pairs' scheme is used");
@@ -18,6 +19,7 @@ RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
    {
       _slack = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/random_pairs/slack");
       _quantum = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/random_pairs/quantum");
+      _sleep_fraction = Sim()->getCfg()->getFloat("clock_skew_minimization/random_pairs/sleep_fraction");
    }
    catch(...)
    {
@@ -60,26 +62,14 @@ RandomPairsSyncClient::netProcessSyncMsg(NetPacket& recv_pkt)
    //  - cycle_count
    // Called by the Network thread
    Core::State core_state = _core->getState();
-   if (core_state != Core::RUNNING)
-   {
-      // I dont want to synchronize against a non-running core
-      LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
-            "sync_msg.type(%u)", sync_msg.type);
-
-      LOG_PRINT("Core(%i) not RUNNING: Sending ACK", _core->getId());
-
-      UnstructuredBuffer send_buf;
-      send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
-      _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
-   }
-   else
+   if (core_state == Core::RUNNING)
    {
       // Thread is RUNNING on core
       // Network thread must process the random sync requests
       if (sync_msg.type == SyncMsg::REQ)
       {
          // This may generate some WAIT messages
-         processSyncReq(sync_msg);
+         processSyncReq(sync_msg, false);
       }
       else if (sync_msg.type == SyncMsg::ACK)
       {
@@ -92,12 +82,31 @@ RandomPairsSyncClient::netProcessSyncMsg(NetPacket& recv_pkt)
          LOG_PRINT_ERROR("Unrecognized Sync Msg, type(%u) from(%i)", sync_msg.type, sync_msg.sender);
       }
    }
+   else if (core_state == Core::SLEEPING)
+   {
+      LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
+            "sync_msg.type(%u)", sync_msg.type);
+      
+      processSyncReq(sync_msg, true);
+   }
+   else
+   {
+      // I dont want to synchronize against a non-running core
+      LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
+            "sync_msg.type(%u)", sync_msg.type);
+
+      LOG_PRINT("Core(%i) not RUNNING: Sending ACK", _core->getId());
+
+      UnstructuredBuffer send_buf;
+      send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
+      _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+   }
 
    _lock.release();
 }
 
 void
-RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg)
+RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg, bool sleeping)
 {
    assert(sync_msg.cycle_count >= _slack);
 
@@ -116,12 +125,15 @@ RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg)
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
       _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
 
-      // Goto sleep for a few microseconds
-      // Self generate a WAIT msg
-      LOG_PRINT("Core(%i): WAIT: Time(%llu)", _core->getId(), cycle_count - sync_msg.cycle_count);
+      if (!sleeping)
+      {
+         // Goto sleep for a few microseconds
+         // Self generate a WAIT msg
+         LOG_PRINT("Core(%i): WAIT: Time(%llu)", _core->getId(), cycle_count - sync_msg.cycle_count);
 
-      SyncMsg wait_msg(_core->getId(), SyncMsg::WAIT, cycle_count - sync_msg.cycle_count);
-      _msg_queue.push_back(wait_msg);
+         SyncMsg wait_msg(_core->getId(), SyncMsg::WAIT, cycle_count - sync_msg.cycle_count);
+         _msg_queue.push_back(wait_msg);
+      }
    }
    else if ((cycle_count <= (sync_msg.cycle_count + _slack)) && (cycle_count >= (sync_msg.cycle_count - _slack)))
    {
@@ -148,12 +160,7 @@ RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg)
 void
 RandomPairsSyncClient::synchronize()
 {
-   if (_core->getState() == Core::WAKING_UP_STAGE1)
-   {
-      _core->setState(Core::WAKING_UP_STAGE2);
-      return;
-   }
-   else if (_core->getState() == Core::WAKING_UP_STAGE2)
+   if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
    UInt64 cycle_count = _core->getPerformanceModel()->getCycleCount();
@@ -231,15 +238,15 @@ RandomPairsSyncClient::gotoSleep(UInt64 sleep_time)
    {
       LOG_PRINT("Core(%i) going to sleep", _core->getId());
 
-      // Set the CoreState to 'STALLED'
-      _core->setState(Core::STALLED);
+      // Set the CoreState to 'SLEEPING'
+      _core->setState(Core::SLEEPING);
 
       __attribute((__unused__)) UInt64 elapsed_simulated_time = _core->getPerformanceModel()->getCycleCount();
       __attribute((__unused__)) UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
 
       // elapsed_simulated_time, sleep_time - in cycles (of target architecture)
       // elapsed_wall_clock_time - in microseconds
-      usleep(sleep_time * elapsed_wall_clock_time / elapsed_simulated_time);
+      assert(usleep((useconds_t) (_sleep_fraction * sleep_time * elapsed_wall_clock_time / elapsed_simulated_time)) == 0);
 
       // Set the CoreState to 'RUNNING'
       _core->setState(Core::RUNNING);

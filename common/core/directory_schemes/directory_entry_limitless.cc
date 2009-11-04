@@ -17,7 +17,10 @@ DirectoryEntryLimitless::~DirectoryEntryLimitless()
 UInt32
 DirectoryEntryLimitless::getLatency()
 {
-   return m_software_trap_penalty;
+   if (m_software_trap_enabled)
+      return m_software_trap_penalty;
+   else
+      return 0;
 }
 
 bool

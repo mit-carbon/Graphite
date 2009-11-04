@@ -11,7 +11,8 @@ using namespace std;
 Directory::Directory(string directory_type_str, UInt32 num_entries, UInt32 max_hw_sharers, UInt32 max_num_sharers):
    m_num_entries(num_entries),
    m_max_hw_sharers(max_hw_sharers),
-   m_max_num_sharers(max_num_sharers)
+   m_max_num_sharers(max_num_sharers),
+   m_limitless_software_trap_penalty(0)
 {
    // Look at the type of directory and create 
    m_directory_entry_list = new DirectoryEntry*[m_num_entries];
@@ -73,16 +74,18 @@ Directory::createDirectoryEntry()
 
       case LIMITLESS:
          {
-            UInt32 software_trap_penalty = 0;
-            try
+            if (m_limitless_software_trap_penalty == 0)
             {
-               software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
+               try
+               {
+                  m_limitless_software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
+               }
+               catch (...)
+               {
+                  LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
+               }
             }
-            catch (...)
-            {
-               LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
-            }
-            return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, software_trap_penalty);
+            return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, m_limitless_software_trap_penalty);
          }
 
       default:

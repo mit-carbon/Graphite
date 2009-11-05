@@ -263,13 +263,21 @@ int do_cannon(int argc, char* argv[])
    }
 
    // Print out the result matrix
-   printf("c = \n");
-   for (unsigned int i = 0; i < matSize; i++)
-   {
-      for (unsigned int j = 0; j < matSize; j++)
-         printf("%f ", c[i][j]);
-      printf("\n");
-   }
+   /* printf("c = \n"); */
+   /* for (unsigned int i = 0; i < matSize; i++) */
+   /* { */
+   /*    for (unsigned int j = 0; j < matSize; j++) */
+   /*       printf("%f ", c[i][j]); */
+   /*    printf("\n"); */
+   /* } */
+
+   /* for (unsigned int i = 0; i < matSize; i++) */
+   /* { */
+   /*    for (unsigned int j = 0; j < matSize; j++) */
+   /*       assert(c[i][j] == c[0][0]); */
+   /* } */
+
+   printf("%f\n", c[0][0]);
 
    for (unsigned int i = 0; i < matSize; i++)
    {

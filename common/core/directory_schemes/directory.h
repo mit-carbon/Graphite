@@ -23,6 +23,9 @@ class Directory
       UInt32 m_max_hw_sharers;
       UInt32 m_max_num_sharers;
 
+      // FIXME: Hack: Get me out of here
+      UInt32 m_limitless_software_trap_penalty;
+
       DirectoryEntry** m_directory_entry_list;
 
    public:
@@ -30,8 +33,10 @@ class Directory
       ~Directory();
 
       DirectoryEntry* getDirectoryEntry(UInt32 entry_num);
-      DirectoryType parseDirectoryType(std::string directory_type_str);
-      DirectoryEntry* createDirectoryEntry(DirectoryType directory_type);
+      void setDirectoryEntry(UInt32 entry_num, DirectoryEntry* directory_entry);
+      DirectoryEntry* createDirectoryEntry();
+      
+      static DirectoryType parseDirectoryType(std::string directory_type_str);
 };
 
 #endif /* __DIRECTORY_H__ */

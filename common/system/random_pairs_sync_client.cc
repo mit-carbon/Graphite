@@ -251,7 +251,7 @@ RandomPairsSyncClient::gotoSleep(UInt64 sleep_time)
       useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * sleep_time * elapsed_wall_clock_time / elapsed_simulated_time);
       if (sleep_wall_clock_time > 1000000)
       {
-         LOG_PRINT_WARNING("Large Sleep Time: %llu microseconds", sleep_wall_clock_time);
+         LOG_PRINT_WARNING("Large Sleep Time: %llu microseconds, SimSleep Time(%llu), elapsed_wall_clock_time(%llu), elapsed_simulated_time(%llu)", sleep_wall_clock_time, sleep_time, elapsed_wall_clock_time, elapsed_simulated_time);
          sleep_wall_clock_time = 1000000;
       }
       

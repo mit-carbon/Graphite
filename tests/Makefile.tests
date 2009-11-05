@@ -64,7 +64,7 @@ ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
 endif
 
-CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32
+CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32 -O2
 CFLAGS = $(CXXFLAGS) -std=c99
 
 # Rules

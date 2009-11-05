@@ -59,6 +59,7 @@ BarrierSyncServer::barrierWait(core_id_t core_id)
 
    if (time < m_next_barrier_time)
    {
+      LOG_PRINT("Sent 'SIM_BARRIER_RELEASE' immediately time(%llu), m_next_barrier_time(%llu)", time, m_next_barrier_time);
       // LOG_PRINT_WARNING("core_id(%i), local_clock(%llu), m_next_barrier_time(%llu), m_barrier_interval(%llu)", core_id, time, m_next_barrier_time, m_barrier_interval);
       unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
       m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));

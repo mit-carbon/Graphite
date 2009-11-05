@@ -957,7 +957,7 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
       recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
       // Set the CoreState to 'RUNNING'
-      m_network->getCore()->setState(Core::WAKING_UP_STAGE1);
+      m_network->getCore()->setState(Core::WAKING_UP);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);

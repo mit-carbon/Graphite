@@ -337,8 +337,8 @@ void ThreadManager::joinThread(core_id_t core_id)
    // Wait for reply
    NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY);
 
-   // Set the CoreState to 'WAKING_UP_STAGE1'
-   m_core_manager->getCurrentCore()->setState(Core::WAKING_UP_STAGE1);
+   // Set the CoreState to 'WAKING_UP'
+   m_core_manager->getCurrentCore()->setState(Core::WAKING_UP);
 
    LOG_PRINT("Exiting join thread.");
 }
@@ -470,6 +470,7 @@ void ThreadManager::updateTerminateThreadSpawner()
 
 void ThreadManager::stallThread(core_id_t core_id)
 {
+   LOG_PRINT("Core(%i) -> STALLED", core_id);
    LOG_ASSERT_ERROR(m_master, "stallThread() must only be called on master");
    m_thread_state[core_id].status = Core::STALLED;
    
@@ -479,6 +480,7 @@ void ThreadManager::stallThread(core_id_t core_id)
 
 void ThreadManager::resumeThread(core_id_t core_id)
 {
+   LOG_PRINT("Core(%i) -> RUNNING", core_id);
    LOG_ASSERT_ERROR(m_master, "resumeThread() must only be called on master");
    m_thread_state[core_id].status = Core::RUNNING;
 }

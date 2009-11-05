@@ -61,7 +61,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
-   m_network->getCore()->setState(Core::WAKING_UP_STAGE1);
+   m_network->getCore()->setState(Core::WAKING_UP);
 
    unsigned int dummy;
    UInt64 time;
@@ -148,7 +148,7 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
-   m_network->getCore()->setState(Core::WAKING_UP_STAGE1);
+   m_network->getCore()->setState(Core::WAKING_UP);
 
    unsigned int dummy;
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -261,7 +261,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
-   m_network->getCore()->setState(Core::WAKING_UP_STAGE1);
+   m_network->getCore()->setState(Core::WAKING_UP);
 
    unsigned int dummy;
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);

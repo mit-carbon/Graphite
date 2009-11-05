@@ -182,11 +182,12 @@ RandomPairsSyncClient::synchronize()
 
       UInt64 wait_time = userProcessSyncMsgList();
 
-      _lock.release();
-
       LOG_PRINT("Wait Time (%llu)", wait_time);
 
       gotoSleep(wait_time);
+      
+      _lock.release();
+
    }
 }
 
@@ -246,7 +247,19 @@ RandomPairsSyncClient::gotoSleep(UInt64 sleep_time)
 
       // elapsed_simulated_time, sleep_time - in cycles (of target architecture)
       // elapsed_wall_clock_time - in microseconds
-      assert(usleep((useconds_t) (_sleep_fraction * sleep_time * elapsed_wall_clock_time / elapsed_simulated_time)) == 0);
+      assert(elapsed_simulated_time != 0);
+      useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * sleep_time * elapsed_wall_clock_time / elapsed_simulated_time);
+      if (sleep_wall_clock_time > 1000000)
+      {
+         LOG_PRINT_WARNING("Large Sleep Time: %llu microseconds", sleep_wall_clock_time);
+         sleep_wall_clock_time = 1000000;
+      }
+      
+      _lock.release();
+
+      assert(usleep(sleep_wall_clock_time) == 0);
+
+      _lock.acquire();
 
       // Set the CoreState to 'RUNNING'
       _core->setState(Core::RUNNING);
@@ -267,6 +280,6 @@ RandomPairsSyncClient::getElapsedWallClockTime()
       curr_wall_clock_time.tv_usec += 1000000;
       curr_wall_clock_time.tv_sec -= 1;
    }
-   return ((curr_wall_clock_time.tv_sec - _start_wall_clock_time.tv_sec) * 1000000 +
-      (curr_wall_clock_time.tv_usec - _start_wall_clock_time.tv_usec));
+   return ( ((UInt64) (curr_wall_clock_time.tv_sec - _start_wall_clock_time.tv_sec)) * 1000000 +
+      (UInt64) (curr_wall_clock_time.tv_usec - _start_wall_clock_time.tv_usec));
 }

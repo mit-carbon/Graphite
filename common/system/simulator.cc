@@ -9,6 +9,7 @@
 #include "thread_manager.h"
 #include "perf_counter_manager.h"
 #include "sim_thread_manager.h"
+#include "clock_skew_minimization_object.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -55,6 +56,7 @@ Simulator::Simulator()
    , m_thread_manager(NULL)
    , m_perf_counter_manager(NULL)
    , m_sim_thread_manager(NULL)
+   , m_clock_skew_minimization_manager(NULL)
    , m_finished(false)
    , m_boot_time(getTime())
    , m_start_time(0)
@@ -74,6 +76,7 @@ void Simulator::start()
    m_thread_manager = new ThreadManager(m_core_manager);
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
+   m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
  
    startMCP();
 
@@ -100,6 +103,9 @@ Simulator::~Simulator()
    broadcastFinish();
 
    endMCP();
+
+   if (m_clock_skew_minimization_manager)
+      delete m_clock_skew_minimization_manager;
 
    m_sim_thread_manager->quitSimThreads();
 

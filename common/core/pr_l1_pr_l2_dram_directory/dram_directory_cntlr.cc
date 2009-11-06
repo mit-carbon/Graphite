@@ -336,7 +336,6 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
             pair<bool, SInt32> add_result = directory_entry->addSharer(requester);
             if (add_result.first == false)
             {
-               assert(cached_data_buf == NULL);
                // Send a message to another sharer to invalidate that
                getMemoryManager()->sendMsg(ShmemMsg::INV_REQ, 
                      MemComponent::DRAM_DIR, MemComponent::L2_CACHE, 

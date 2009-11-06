@@ -225,7 +225,8 @@ VOID allocateStackSpace()
    // TODO: Make sure that this is a multiple of the page size 
    
    // mmap() the total amount of memory needed for the stacks
-   assert(mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base);
+   LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
+         "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_cores);
 }
 
 VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)

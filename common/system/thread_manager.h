@@ -4,8 +4,9 @@
 #include <vector>
 #include <queue>
 #include <map>
-#include "semaphore.h"
 
+#include "semaphore.h"
+#include "core.h"
 #include "fixed_types.h"
 #include "message_types.h"
 #include "lock.h"
@@ -39,7 +40,6 @@ public:
    void resumeThread(core_id_t core_id);
    bool isThreadRunning(core_id_t core_id);
    bool isThreadInitializing(core_id_t core_id);
-   void signalSimulationBarrierServer(void);
    
    bool areAllCoresRunning();
 
@@ -65,20 +65,11 @@ private:
 
    struct ThreadState
    {
-      typedef enum
-      {
-         RUNNING = 0,
-         INITIALIZING,
-         STALLED,
-         IDLE,
-         NUM_STATUS_TYPES
-      } Status;
-
-      Status status;
+      Core::State status;
       SInt32 waiter;
 
       ThreadState()
-         : status(IDLE)
+         : status(Core::IDLE)
          , waiter(-1)
       {} 
    };

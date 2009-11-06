@@ -51,6 +51,9 @@ DramDirectoryCache::getDirectoryEntry(IntPtr address)
    for (UInt32 i = 0; i < m_associativity; i++)
    {
       DirectoryEntry* directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
+      if (m_shmem_perf_model)
+         getShmemPerfModel()->incrCycleCount(directory_entry->getLatency());
+
       if (directory_entry->getAddress() == address)
       {
          // Simple check for now. Make sophisticated later

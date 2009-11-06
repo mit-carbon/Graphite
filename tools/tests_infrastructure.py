@@ -213,7 +213,7 @@ def generate_test_args(fixed_test_arg_list, expanded_var_arg_list, num_threads_p
    return
 
 def expand_to_list(var_arg):
-   value_list = re.findall(r'[+*\w]+', var_arg)
+   value_list = re.findall(r'[+*\.\w]+', var_arg)
 
    is_num_threads = 0
    if re.search(r'\$', var_arg):

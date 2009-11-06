@@ -21,12 +21,12 @@ class Network;
 class NetPacket
 {
 public:
-   UInt64 time; // *MUST* be first entry of the class
+   UInt64 time;
    PacketType type;
    SInt32 sender;
    SInt32 receiver;
    UInt32 length;
-   const void *data; // *MUST* be last entry of the class
+   const void *data;
 
    NetPacket();
    explicit NetPacket(Byte*);

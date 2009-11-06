@@ -1,4 +1,4 @@
-// Jonathan Eastep, Harshad Kasture, Jason Miller, Chris Celio, Charles Gruenwald,
+// Harshad Kasture, Jason Miller, Chris Celio, Charles Gruenwald,
 // Nathan Beckmann, David Wentzlaff, James Psota
 // 10.12.08
 //
@@ -40,7 +40,7 @@
 #include "vm_manager.h"
 #include "instruction_modeling.h"
 #include "progress_trace.h"
-#include "simulation_barrier.h"
+#include "clock_skew_minimization.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -199,7 +199,7 @@ VOID instructionCallback (INS ins, void *v)
       addInstructionModeling(ins);
 
    addProgressTrace(ins);
-   addPeriodicSimulationBarrier(ins);
+   addPeriodicSync(ins);
 
    if (INS_IsSyscall(ins))
    {

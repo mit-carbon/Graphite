@@ -23,6 +23,9 @@ class Directory
       UInt32 m_max_hw_sharers;
       UInt32 m_max_num_sharers;
 
+      // FIXME: Hack: Get me out of here
+      UInt32 m_limitless_software_trap_penalty;
+
       DirectoryEntry** m_directory_entry_list;
 
    public:

@@ -66,6 +66,9 @@ public:
    const CoreList & getCoreListForProcess(UInt32 proc_num)
    { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num]; }
 
+   const CoreList & getCoreListForCurrentProcess()
+   { return getCoreListForProcess(getCurrentProcessNum()); }
+
    UInt32 getProcessNumForCore(UInt32 core)
    { assert(core < m_total_cores); return m_core_to_proc_map[core]; }
 

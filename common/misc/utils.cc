@@ -37,4 +37,3 @@ SInt32 floorLog2(UInt32 n)
 
 SInt32 ceilLog2(UInt32 n)
 { return floorLog2(n - 1) + 1; }
-

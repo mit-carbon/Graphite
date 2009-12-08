@@ -2,6 +2,7 @@
 #include "shmem_perf_model.h"
 #include "simulator.h"
 #include "core_manager.h"
+#include "fxsupport.h"
 
 ShmemPerfModel::ShmemPerfModel():
    m_enabled(false),
@@ -86,8 +87,15 @@ ShmemPerfModel::incrTotalMemoryAccessLatency(UInt64 shmem_time)
    if (isEnabled())
    {
       ScopedLock sl(m_shmem_perf_model_lock);
+      
+      // Save floating point state
+      Fxsupport::getSingleton()->fxsave();
+     
       m_num_memory_accesses ++;
       m_total_memory_access_latency += (double) shmem_time;
+
+      // Restore floating point state
+      Fxsupport::getSingleton()->fxrstor();
    }
 }
       

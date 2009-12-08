@@ -11,7 +11,7 @@ MemoryManager::MemoryManager(Core* core,
    MemoryManagerBase(core, network, shmem_perf_model)
 {
    // Read Parameters from the Config file
-   float core_frequency = 0.0;
+   volatile float core_frequency = 0.0;
 
    UInt32 l1_icache_size = 0;
    UInt32 l1_icache_associativity = 0;
@@ -44,8 +44,8 @@ MemoryManager::MemoryManager(Core* core,
    UInt32 dram_directory_home_lookup_param = 0;
    UInt32 dram_directory_cache_access_time = 0;
 
-   float dram_access_cost = 0.0;
-   float total_dram_bandwidth = 0.0;
+   volatile float dram_access_cost = 0.0;
+   volatile float total_dram_bandwidth = 0.0;
    bool dram_queue_model_enabled = false;
    bool dram_queue_model_moving_avg_enabled = false;
    UInt32 dram_queue_model_moving_avg_window_size = 0;
@@ -146,7 +146,7 @@ MemoryManager::MemoryManager(Core* core,
 
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
-   float single_dram_bandwidth = total_dram_bandwidth / Config::getSingleton()->getTotalCores();
+   volatile float single_dram_bandwidth = total_dram_bandwidth / Config::getSingleton()->getTotalCores();
    m_dram_cntlr = new DramCntlr(this,
          dram_access_cost,
          single_dram_bandwidth,

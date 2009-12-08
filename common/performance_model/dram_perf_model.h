@@ -20,14 +20,14 @@ class DramPerfModel
 {
    private:
       QueueModel* m_queue_model;
-      float m_dram_access_cost;
-      float m_dram_bandwidth;
+      volatile float m_dram_access_cost;
+      volatile float m_dram_bandwidth;
 
       bool m_enabled;
 
       UInt64 m_num_accesses;
-      double m_total_access_latency;
-      double m_total_queueing_delay;
+      volatile double m_total_access_latency;
+      volatile double m_total_queueing_delay;
 
    public:
       DramPerfModel(float dram_access_cost, 

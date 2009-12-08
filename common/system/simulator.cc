@@ -10,6 +10,7 @@
 #include "perf_counter_manager.h"
 #include "sim_thread_manager.h"
 #include "clock_skew_minimization_object.h"
+#include "fxsupport.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -35,6 +36,7 @@ void Simulator::setConfig(config::Config *cfg)
 
 void Simulator::release()
 {
+   // Fxsupport::fini();
    delete m_singleton;
    m_singleton = NULL;
 }
@@ -77,6 +79,8 @@ void Simulator::start()
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
+
+   Fxsupport::init();
  
    startMCP();
 

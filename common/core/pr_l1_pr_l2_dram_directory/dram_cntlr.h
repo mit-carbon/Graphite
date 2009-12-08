@@ -46,9 +46,9 @@ namespace PrL1PrL2DramDirectory
 
       public:
          DramCntlr(MemoryManager* memory_manager,
-               float dram_access_cost,
-               float dram_bandwidth,
-               float core_frequency,
+               volatile float dram_access_cost,
+               volatile float dram_bandwidth,
+               volatile float core_frequency,
                bool dram_queue_model_enabled,
                bool dram_queue_model_moving_avg_enabled,
                UInt32 dram_queue_model_moving_avg_window_size,

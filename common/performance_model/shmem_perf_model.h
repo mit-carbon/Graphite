@@ -24,7 +24,7 @@ class ShmemPerfModel
       Lock m_shmem_perf_model_lock;
 
       UInt32 m_num_memory_accesses;
-      double m_total_memory_access_latency;
+      volatile double m_total_memory_access_latency;
 
       Thread_t getThreadNum();
 

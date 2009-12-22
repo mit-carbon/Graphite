@@ -13,6 +13,7 @@ public:
 
    UInt64 getInstructionCount() { return m_instruction_count; }
    UInt64 getCycleCount() { return m_cycle_count; }
+   void resetCycleCount() { m_cycle_count = (UInt64) 0; }
 
 protected:
    void setCycleCount(UInt64 time);

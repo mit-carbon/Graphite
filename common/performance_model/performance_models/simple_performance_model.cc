@@ -70,7 +70,7 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
 
 void SimplePerformanceModel::setCycleCount(UInt64 time)
 {
-   LOG_ASSERT_ERROR(time >= m_cycle_count,
+   LOG_ASSERT_ERROR((time >= m_cycle_count) || (m_cycle_count == 0),
          "time(%llu) < m_cycle_count(%llu)",
          time, m_cycle_count);
    m_cycle_count = time;

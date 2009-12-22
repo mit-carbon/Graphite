@@ -55,6 +55,11 @@ UInt64 IOCOOMPerformanceModel::getCycleCount()
    return m_cycle_count;
 }
 
+void IOCOOMPerformanceModel::resetCycleCount()
+{
+   m_cycle_count = (UInt64) 0;
+}
+
 void IOCOOMPerformanceModel::setCycleCount(UInt64 time)
 {
    m_cycle_count = time;

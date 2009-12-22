@@ -21,6 +21,7 @@ public:
    void outputSummary(std::ostream &os);
 
    UInt64 getCycleCount();
+   void resetCycleCount();
 
 protected:
    void setCycleCount(UInt64);

@@ -86,6 +86,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
                 sizeof(*req));
 
    PerformanceModel *pm = m_core_manager->getCurrentCore()->getPerformanceModel();
+   pm->resetCycleCount();
    pm->queueDynamicInstruction(new SpawnInstruction(req->time));
 }
 

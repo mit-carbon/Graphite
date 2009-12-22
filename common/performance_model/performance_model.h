@@ -28,6 +28,7 @@ public:
    virtual void outputSummary(std::ostream &os) = 0;
 
    virtual UInt64 getCycleCount() = 0;
+   virtual void resetCycleCount() = 0;
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
    void popDynamicInstructionInfo();

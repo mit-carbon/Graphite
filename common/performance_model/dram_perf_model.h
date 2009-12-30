@@ -36,7 +36,8 @@ class DramPerfModel
             bool queue_model_enabled, 
             bool moving_avg_enabled,
             UInt32 moving_avg_window_size, 
-            std::string moving_avg_type_str);
+            std::string moving_avg_type_str,
+            UInt32 cache_block_size);
 
       ~DramPerfModel();
 

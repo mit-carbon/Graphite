@@ -29,7 +29,8 @@ DramCntlr::DramCntlr(MemoryManager* memory_manager,
          dram_queue_model_enabled, 
          dram_queue_model_moving_avg_enabled,
          dram_queue_model_moving_avg_window_size, 
-         dram_queue_model_moving_avg_type);
+         dram_queue_model_moving_avg_type,
+         cache_block_size);
 
    m_dram_access_count = new AccessCountMap[NUM_ACCESS_TYPES];
 }

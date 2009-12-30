@@ -21,7 +21,8 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
       bool queue_model_enabled, 
       bool moving_avg_enabled,
       UInt32 moving_avg_window_size, 
-      std::string moving_avg_type_str):
+      std::string moving_avg_type_str,
+      UInt32 cache_block_size):
    m_queue_model(NULL),
    m_enabled(false),
    m_num_accesses(0),

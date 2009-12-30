@@ -320,7 +320,7 @@ NetPacket Network::netRecv(const NetMatch &match)
    assert(found == true && itr != _netQueue.end());
    assert(0 <= itr->sender && itr->sender < _numMod);
    assert(0 <= itr->type && itr->type < NUM_PACKET_TYPES);
-   assert(itr->receiver == _core->getId());
+   assert((itr->receiver == _core->getId()) || (itr->receiver == NetPacket::BROADCAST));
 
    // Copy result
    NetPacket packet = *itr;

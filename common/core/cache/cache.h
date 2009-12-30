@@ -16,18 +16,11 @@
 class Cache : public CacheBase
 {
    private:
+      bool m_enabled;
 
       // Cache counters
       UInt64 m_num_accesses;
       UInt64 m_num_hits;
-      UInt64 m_num_cold_misses;
-      UInt64 m_num_capacity_misses;
-      UInt64 m_num_upgrade_misses;
-      UInt64 m_num_sharing_misses;
-      bool m_track_detailed_cache_counters;
-      bool m_cache_counters_enabled;
-      HashMapSet<IntPtr>* m_invalidated_set;
-      HashMapSet<IntPtr>* m_evicted_set;
 
       // Generic Cache Info
       cache_t m_cache_type;
@@ -45,7 +38,6 @@ class Cache : public CacheBase
             UInt32 associativity, UInt32 cache_block_size,
             std::string replacement_policy,
             cache_t cache_type,
-            bool track_detailed_cache_counters,
             UInt32 cache_data_access_time,
             UInt32 cache_tags_access_time,
             std::string cache_perf_model_type,
@@ -64,32 +56,10 @@ class Cache : public CacheBase
       CachePerfModel* getCachePerfModel() { return m_cache_perf_model; }
       
       // Update Cache Counters
-      void updateCounters(IntPtr addr, CacheState cache_state, access_t access_type);
-      void enableCounters() { m_cache_counters_enabled = true; }
-      void disableCounters() { m_cache_counters_enabled = false; }
+      void updateCounters(bool cache_hit);
 
-      UInt64 getNumAccesses() { return m_num_accesses; }
-      UInt64 getNumHits() { return m_num_hits; }
-      UInt64 getNumColdMisses() { return m_num_cold_misses; }
-      UInt64 getNumCapacityMisses() { return m_num_capacity_misses; }
-      UInt64 getNumUpgradeMisses() { return m_num_upgrade_misses; }
-      UInt64 getNumSharingMisses() { return m_num_sharing_misses; }
-
-      void incrNumAccesses() { m_num_accesses++; }
-      void incrNumHits() { m_num_hits++; }
-      void incrNumColdMisses() { m_num_cold_misses++; }
-      void incrNumCapacityMisses() { m_num_capacity_misses++; }
-      void incrNumUpgradeMisses() { m_num_upgrade_misses++; }
-      void incrNumSharingMisses() { m_num_sharing_misses++; }
-
-      bool isInvalidated(IntPtr addr)
-      {
-         return (bool) m_invalidated_set->count(addr);
-      }
-      bool isEvicted(IntPtr addr)
-      {
-         return (bool) m_evicted_set->count(addr);
-      }
+      void enable() { m_enabled = true; getCachePerfModel()->enable(); }
+      void disable() { m_enabled = false; getCachePerfModel()->disable(); }
 
       virtual void outputSummary(ostream& out);
 };

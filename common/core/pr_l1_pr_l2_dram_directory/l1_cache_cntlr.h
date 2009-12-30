@@ -45,7 +45,8 @@ namespace PrL1PrL2DramDirectory
                Byte* data_buf, UInt32 data_length);
          bool operationPermissibleinL1Cache(
                MemComponent::component_t mem_component, 
-               IntPtr address, Core::mem_op_t mem_op_type);
+               IntPtr address, Core::mem_op_t mem_op_type,
+               UInt32 access_num, bool modeled);
 
          Cache* getL1Cache(MemComponent::component_t mem_component);
          ShmemMsg::msg_t getShmemMsgType(Core::mem_op_t mem_op_type);
@@ -74,7 +75,6 @@ namespace PrL1PrL2DramDirectory
                std::string l1_icache_perf_model_type,
                UInt32 l1_dcache_size, UInt32 l1_dcache_associativity,
                std::string l1_dcache_replacement_policy,
-               bool l1_dcache_track_detailed_cache_counters,
                UInt32 l1_dcache_data_access_time,
                UInt32 l1_dcache_tags_access_time,
                std::string l1_dcache_perf_model_type,
@@ -92,7 +92,8 @@ namespace PrL1PrL2DramDirectory
                Core::lock_signal_t lock_signal,
                Core::mem_op_t mem_op_type, 
                IntPtr ca_address, UInt32 offset,
-               Byte* data_buf, UInt32 data_length);
+               Byte* data_buf, UInt32 data_length,
+               bool modeled);
 
          void insertCacheBlock(MemComponent::component_t mem_component,
                IntPtr address, CacheState::cstate_t cstate, Byte* data_buf,

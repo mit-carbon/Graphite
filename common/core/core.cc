@@ -217,7 +217,8 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
                lock_signal, 
                mem_op_type, 
                curr_addr_aligned, curr_offset, 
-               curr_data_buffer_head, curr_size))
+               curr_data_buffer_head, curr_size,
+               modeled))
       {
          // If it is a READ or READ_EX operation, 
          // 'initiateSharedMemReq' causes curr_data_buffer_head 

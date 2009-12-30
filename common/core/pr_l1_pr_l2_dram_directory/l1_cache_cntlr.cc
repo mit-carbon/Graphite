@@ -17,7 +17,6 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
       std::string l1_icache_perf_model_type,
       UInt32 l1_dcache_size, UInt32 l1_dcache_associativity,
       std::string l1_dcache_replacement_policy,
-      bool l1_dcache_track_detailed_cache_counters,
       UInt32 l1_dcache_data_access_time,
       UInt32 l1_dcache_tags_access_time,
       std::string l1_dcache_perf_model_type,
@@ -30,24 +29,22 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
    m_network_thread_sem(network_thread_sem),
    m_shmem_perf_model(shmem_perf_model)
 {
-   m_l1_icache = new Cache("l1_icache",
+   m_l1_icache = new Cache("L1-I",
          l1_icache_size,
          l1_icache_associativity, 
          m_cache_block_size,
          l1_icache_replacement_policy,
          CacheBase::PR_L1_CACHE,
-         false,
          l1_icache_data_access_time,
          l1_icache_tags_access_time,
          l1_icache_perf_model_type,
          m_shmem_perf_model);
-   m_l1_dcache = new Cache("l1_dcache",
+   m_l1_dcache = new Cache("L1-D",
          l1_dcache_size,
          l1_dcache_associativity, 
          m_cache_block_size,
          l1_dcache_replacement_policy,
          CacheBase::PR_L1_CACHE,
-         l1_dcache_track_detailed_cache_counters,
          l1_dcache_data_access_time,
          l1_dcache_tags_access_time,
          l1_dcache_perf_model_type,
@@ -72,7 +69,8 @@ L1CacheCntlr::processMemOpFromCore(
       Core::lock_signal_t lock_signal,
       Core::mem_op_t mem_op_type, 
       IntPtr ca_address, UInt32 offset,
-      Byte* data_buf, UInt32 data_length)
+      Byte* data_buf, UInt32 data_length,
+      bool modeled)
 {
    LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
          lock_signal, mem_op_type, ca_address);
@@ -95,7 +93,7 @@ L1CacheCntlr::processMemOpFromCore(
          wakeUpNetworkThread();
       }
 
-      if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type))
+      if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num, modeled))
       {
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
@@ -114,7 +112,7 @@ L1CacheCntlr::processMemOpFromCore(
  
       ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
 
-      if (m_l2_cache_cntlr->processShmemReqFromL1Cache(mem_component, shmem_msg_type, ca_address))
+      if (m_l2_cache_cntlr->processShmemReqFromL1Cache(mem_component, shmem_msg_type, ca_address, modeled))
       {
          m_l2_cache_cntlr->releaseLock();
          
@@ -173,23 +171,36 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
 bool
 L1CacheCntlr::operationPermissibleinL1Cache(
       MemComponent::component_t mem_component, 
-      IntPtr address, Core::mem_op_t mem_op_type)
+      IntPtr address, Core::mem_op_t mem_op_type,
+      UInt32 access_num, bool modeled)
 {
    // TODO: Verify why this works
+   bool cache_hit = false;
    CacheState::cstate_t cstate = getCacheState(mem_component, address);
+   
    switch (mem_op_type)
    {
       case Core::READ:
-         return CacheState(cstate).readable();
+         cache_hit = CacheState(cstate).readable();
+         break;
 
       case Core::READ_EX:
       case Core::WRITE:
-         return CacheState(cstate).writable();
+         cache_hit = CacheState(cstate).writable();
+         break;
 
       default:
          LOG_PRINT_ERROR("Unsupported mem_op_type: %u", mem_op_type);
-         return false;
+         break;
    }
+
+   if (modeled && (access_num == 1))
+   {
+      // Update the Cache Counters
+      getL1Cache(mem_component)->updateCounters(cache_hit);
+   }
+
+   return cache_hit;
 }
 
 void

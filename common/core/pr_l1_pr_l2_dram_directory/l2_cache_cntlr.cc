@@ -15,7 +15,6 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
       UInt32 cache_block_size,
       UInt32 l2_cache_size, UInt32 l2_cache_associativity,
       std::string l2_cache_replacement_policy,
-      bool l2_cache_track_detailed_counters,
       UInt32 l2_cache_data_access_time,
       UInt32 l2_cache_tags_access_time,
       std::string l2_cache_perf_model_type,
@@ -29,17 +28,16 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
    m_network_thread_sem(network_thread_sem),
    m_shmem_perf_model(shmem_perf_model)
 {
-   m_l2_cache = new Cache("l2_cache",
+   m_l2_cache = new Cache("L2",
          l2_cache_size, 
          l2_cache_associativity, 
          m_cache_block_size, 
          l2_cache_replacement_policy, 
          CacheBase::PR_L2_CACHE,
-         l2_cache_track_detailed_counters,
          l2_cache_data_access_time,
          l2_cache_tags_access_time,
          l2_cache_perf_model_type,
-         m_shmem_perf_model); 
+         m_shmem_perf_model);
 }
 
 L2CacheCntlr::~L2CacheCntlr()
@@ -168,12 +166,12 @@ L2CacheCntlr::insertCacheBlockInL1(MemComponent::component_t mem_component,
 }
 
 bool
-L2CacheCntlr::processShmemReqFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type, IntPtr address)
+L2CacheCntlr::processShmemReqFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type, IntPtr address, bool modeled)
 {
    PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
    CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
 
-   bool shmem_req_ends_in_l2_cache = shmemReqEndsInL2Cache(msg_type, cstate);
+   bool shmem_req_ends_in_l2_cache = shmemReqEndsInL2Cache(msg_type, cstate, modeled);
    if (shmem_req_ends_in_l2_cache)
    {
       Byte data_buf[getCacheBlockSize()];
@@ -422,20 +420,31 @@ L2CacheCntlr::processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 }
 
 bool
-L2CacheCntlr::shmemReqEndsInL2Cache(ShmemMsg::msg_t shmem_msg_type, CacheState::cstate_t cstate)
+L2CacheCntlr::shmemReqEndsInL2Cache(ShmemMsg::msg_t shmem_msg_type, CacheState::cstate_t cstate, bool modeled)
 {
+   bool cache_hit = false;
+
    switch (shmem_msg_type)
    {
       case ShmemMsg::EX_REQ:
-         return CacheState(cstate).writable();
+         cache_hit = CacheState(cstate).writable();
+         break;
 
       case ShmemMsg::SH_REQ:
-         return CacheState(cstate).readable();
+         cache_hit = CacheState(cstate).readable();
+         break;
 
       default:
          LOG_PRINT_ERROR("Unsupported Shmem Msg Type: %u", shmem_msg_type);
-         return false;
+         break;
    }
+
+   if (modeled)
+   {
+      m_l2_cache->updateCounters(cache_hit);
+   }
+
+   return cache_hit;
 }
 
 MemComponent::component_t

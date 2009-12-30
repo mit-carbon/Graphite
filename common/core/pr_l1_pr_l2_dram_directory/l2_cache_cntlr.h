@@ -59,7 +59,7 @@ namespace PrL1PrL2DramDirectory
          void processExReqFromL1Cache(ShmemMsg* shmem_msg);
          void processShReqFromL1Cache(ShmemMsg* shmem_msg);
          // Check if msg from L1 ends in the L2 cache
-         bool shmemReqEndsInL2Cache(ShmemMsg::msg_t msg_type, CacheState::cstate_t cstate);
+         bool shmemReqEndsInL2Cache(ShmemMsg::msg_t msg_type, CacheState::cstate_t cstate, bool modeled);
 
          // Process Request from Dram Dir
          void processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
@@ -96,7 +96,6 @@ namespace PrL1PrL2DramDirectory
                UInt32 cache_block_size,
                UInt32 l2_cache_size, UInt32 l2_cache_associativity,
                std::string l2_cache_replacement_policy,
-               bool l2_cache_track_detailed_counters,
                UInt32 l2_cache_data_access_time,
                UInt32 l2_cache_tags_access_time,
                std::string l2_cache_perf_model_type,
@@ -107,7 +106,7 @@ namespace PrL1PrL2DramDirectory
          Cache* getL2Cache() { return m_l2_cache; }
 
          // Handle Request from L1 Cache - This is done for better simulator performance
-         bool processShmemReqFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type, IntPtr address);
+         bool processShmemReqFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type, IntPtr address, bool modeled);
          // Write-through Cache. Hence needs to be written by user thread
          void writeCacheBlock(IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length);
 

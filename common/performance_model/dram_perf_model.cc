@@ -50,7 +50,9 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requ
    // m_dram_bandwidth is in 'Bytes per clock cycle'
    if ((!m_enabled) || 
          (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+   {
       return 0;
+   }
 
    UInt64 processing_time = (UInt64) ((float) pkt_size/m_dram_bandwidth) + 1;
 
@@ -66,6 +68,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requ
    }
 
    UInt64 access_latency = queue_delay + processing_time + (UInt64) m_dram_access_cost;
+
 
    // Update Memory Counters
    m_num_accesses ++;

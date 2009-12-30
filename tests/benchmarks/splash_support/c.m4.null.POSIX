@@ -195,7 +195,7 @@ define(MAIN_ENV,`
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#define MAX_THREADS 32
+#define MAX_THREADS 1024
 pthread_t PThreadTable[MAX_THREADS];
 ')
 

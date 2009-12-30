@@ -11,7 +11,7 @@ MemoryManager::MemoryManager(Core* core,
    MemoryManagerBase(core, network, shmem_perf_model)
 {
    // Read Parameters from the Config file
-   float core_frequency = 0.0;
+   volatile float core_frequency = 0.0;
 
    UInt32 l1_icache_size = 0;
    UInt32 l1_icache_associativity = 0;
@@ -23,7 +23,6 @@ MemoryManager::MemoryManager(Core* core,
    UInt32 l1_dcache_size = 0;
    UInt32 l1_dcache_associativity = 0;
    std::string l1_dcache_replacement_policy;
-   bool l1_dcache_track_detailed_counters = false;
    UInt32 l1_dcache_data_access_time = 0;
    UInt32 l1_dcache_tags_access_time = 0;
    std::string l1_dcache_perf_model_type;
@@ -31,7 +30,6 @@ MemoryManager::MemoryManager(Core* core,
    UInt32 l2_cache_size = 0;
    UInt32 l2_cache_associativity = 0;
    std::string l2_cache_replacement_policy;
-   bool l2_cache_track_detailed_counters = false;
    UInt32 l2_cache_data_access_time = 0;
    UInt32 l2_cache_tags_access_time = 0;
    std::string l2_cache_perf_model_type;
@@ -44,8 +42,8 @@ MemoryManager::MemoryManager(Core* core,
    UInt32 dram_directory_home_lookup_param = 0;
    UInt32 dram_directory_cache_access_time = 0;
 
-   float dram_access_cost = 0.0;
-   float total_dram_bandwidth = 0.0;
+   volatile float dram_access_cost = 0.0;
+   volatile float total_dram_bandwidth = 0.0;
    bool dram_queue_model_enabled = false;
    bool dram_queue_model_moving_avg_enabled = false;
    UInt32 dram_queue_model_moving_avg_window_size = 0;
@@ -69,7 +67,6 @@ MemoryManager::MemoryManager(Core* core,
       l1_dcache_size = Sim()->getCfg()->getInt("perf_model/l1_dcache/cache_size");
       l1_dcache_associativity = Sim()->getCfg()->getInt("perf_model/l1_dcache/associativity");
       l1_dcache_replacement_policy = Sim()->getCfg()->getString("perf_model/l1_dcache/replacement_policy");
-      l1_dcache_track_detailed_counters = Sim()->getCfg()->getBool("perf_model/l1_dcache/track_detailed_cache_counters");
       l1_dcache_data_access_time = Sim()->getCfg()->getInt("perf_model/l1_dcache/data_access_time");
       l1_dcache_tags_access_time = Sim()->getCfg()->getInt("perf_model/l1_dcache/tags_access_time");
       l1_dcache_perf_model_type = Sim()->getCfg()->getString("perf_model/l1_dcache/perf_model_type");
@@ -78,7 +75,6 @@ MemoryManager::MemoryManager(Core* core,
       l2_cache_size = Sim()->getCfg()->getInt("perf_model/l2_cache/cache_size");
       l2_cache_associativity = Sim()->getCfg()->getInt("perf_model/l2_cache/associativity");
       l2_cache_replacement_policy = Sim()->getCfg()->getString("perf_model/l2_cache/replacement_policy");
-      l2_cache_track_detailed_counters = Sim()->getCfg()->getBool("perf_model/l2_cache/track_detailed_cache_counters");
       l2_cache_data_access_time = Sim()->getCfg()->getInt("perf_model/l2_cache/data_access_time");
       l2_cache_tags_access_time = Sim()->getCfg()->getInt("perf_model/l2_cache/tags_access_time");
       l2_cache_perf_model_type = Sim()->getCfg()->getString("perf_model/l2_cache/perf_model_type");
@@ -123,7 +119,6 @@ MemoryManager::MemoryManager(Core* core,
          l1_icache_perf_model_type,
          l1_dcache_size, l1_dcache_associativity,
          l1_dcache_replacement_policy,
-         l1_dcache_track_detailed_counters,
          l1_dcache_data_access_time,
          l1_dcache_tags_access_time,
          l1_dcache_perf_model_type,
@@ -138,7 +133,6 @@ MemoryManager::MemoryManager(Core* core,
          getCacheBlockSize(),
          l2_cache_size, l2_cache_associativity,
          l2_cache_replacement_policy,
-         l2_cache_track_detailed_counters,
          l2_cache_data_access_time,
          l2_cache_tags_access_time,
          l2_cache_perf_model_type,
@@ -146,7 +140,7 @@ MemoryManager::MemoryManager(Core* core,
 
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
-   float single_dram_bandwidth = total_dram_bandwidth / Config::getSingleton()->getTotalCores();
+   volatile float single_dram_bandwidth = total_dram_bandwidth / Config::getSingleton()->getTotalCores();
    m_dram_cntlr = new DramCntlr(this,
          dram_access_cost,
          single_dram_bandwidth,
@@ -196,13 +190,15 @@ MemoryManager::coreInitiateMemoryAccess(
       Core::lock_signal_t lock_signal,
       Core::mem_op_t mem_op_type,
       IntPtr address, UInt32 offset,
-      Byte* data_buf, UInt32 data_length)
+      Byte* data_buf, UInt32 data_length,
+      bool modeled)
 {
    return m_l1_cache_cntlr->processMemOpFromCore(mem_component, 
          lock_signal, 
          mem_op_type, 
          address, offset, 
-         data_buf, data_length);
+         data_buf, data_length,
+         modeled);
 }
 
 void
@@ -317,9 +313,9 @@ MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t 
 void
 MemoryManager::enableModels()
 {
-   m_l1_cache_cntlr->getL1ICache()->getCachePerfModel()->enable();
-   m_l1_cache_cntlr->getL1DCache()->getCachePerfModel()->enable();
-   m_l2_cache_cntlr->getL2Cache()->getCachePerfModel()->enable();
+   m_l1_cache_cntlr->getL1ICache()->enable();
+   m_l1_cache_cntlr->getL1DCache()->enable();
+   m_l2_cache_cntlr->getL2Cache()->enable();
 
    m_dram_cntlr->getDramPerfModel()->enable();
 }
@@ -327,9 +323,9 @@ MemoryManager::enableModels()
 void
 MemoryManager::disableModels()
 {
-   m_l1_cache_cntlr->getL1ICache()->getCachePerfModel()->disable();
-   m_l1_cache_cntlr->getL1DCache()->getCachePerfModel()->disable();
-   m_l2_cache_cntlr->getL2Cache()->getCachePerfModel()->disable();
+   m_l1_cache_cntlr->getL1ICache()->disable();
+   m_l1_cache_cntlr->getL1DCache()->disable();
+   m_l2_cache_cntlr->getL2Cache()->disable();
 
    m_dram_cntlr->getDramPerfModel()->disable();
 }
@@ -337,6 +333,11 @@ MemoryManager::disableModels()
 void
 MemoryManager::outputSummary(std::ostream &os)
 {
+   os << "Cache Summary:\n";
+   m_l1_cache_cntlr->getL1ICache()->outputSummary(os);
+   m_l1_cache_cntlr->getL1DCache()->outputSummary(os);
+   m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
+
    m_dram_cntlr->getDramPerfModel()->outputSummary(os);
 }
 

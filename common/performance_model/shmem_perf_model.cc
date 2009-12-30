@@ -2,11 +2,12 @@
 #include "shmem_perf_model.h"
 #include "simulator.h"
 #include "core_manager.h"
+#include "fxsupport.h"
 
 ShmemPerfModel::ShmemPerfModel():
    m_enabled(false),
    m_num_memory_accesses(0),
-   m_total_memory_access_latency(0.0)
+   m_total_memory_access_latency(0)
 {
    for (UInt32 i = 0; i < NUM_CORE_THREADS; i++)
       m_cycle_count[i] = 0;
@@ -83,11 +84,12 @@ ShmemPerfModel::incrCycleCount(UInt64 count)
 void
 ShmemPerfModel::incrTotalMemoryAccessLatency(UInt64 shmem_time)
 {
-   if (isEnabled())
+   if (m_enabled)
    {
       ScopedLock sl(m_shmem_perf_model_lock);
+      
       m_num_memory_accesses ++;
-      m_total_memory_access_latency += (double) shmem_time;
+      m_total_memory_access_latency += shmem_time;
    }
 }
       
@@ -97,5 +99,5 @@ ShmemPerfModel::outputSummary(ostream& out)
    out << "Shmem Perf Model summary: " << endl;
    out << "    num memory accesses: " << m_num_memory_accesses << endl;
    out << "    average memory access latency: " << 
-      (float) (m_total_memory_access_latency / m_num_memory_accesses) << endl;
+      (float) (m_total_memory_access_latency) / m_num_memory_accesses << endl;
 }

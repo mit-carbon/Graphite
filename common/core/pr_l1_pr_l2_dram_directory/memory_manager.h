@@ -41,7 +41,8 @@ namespace PrL1PrL2DramDirectory
                Core::lock_signal_t lock_signal,
                Core::mem_op_t mem_op_type,
                IntPtr address, UInt32 offset,
-               Byte* data_buf, UInt32 data_length);
+               Byte* data_buf, UInt32 data_length,
+               bool modeled);
 
          void handleMsgFromNetwork(NetPacket& packet);
 

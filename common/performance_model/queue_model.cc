@@ -1,52 +1,28 @@
 #include "queue_model.h"
-#include "utils.h"
+#include "simulator.h"
+#include "config.h"
+#include "queue_model_basic.h"
+#include "queue_model_history_list.h"
 #include "log.h"
 
-QueueModel::QueueModel(bool moving_avg_enabled,
-      UInt32 moving_avg_window_size, 
-      std::string moving_avg_type_str):
-   m_queue_time(0),
-   m_moving_average(NULL)
+QueueModel*
+QueueModel::create(std::string model_type, UInt64 min_processing_time)
 {
-   if (moving_avg_enabled)
+   if (model_type == "basic")
    {
-      MovingAverage<UInt64>::AvgType_t moving_avg_type = MovingAverage<UInt64>::parseAvgType(moving_avg_type_str);
-      m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type, moving_avg_window_size);
+      bool moving_avg_enabled = Sim()->getCfg()->getBool("queue_model/basic/moving_avg_enabled", false);
+      UInt32 moving_avg_window_size = Sim()->getCfg()->getInt("queue_model/basic/moving_avg_window_size", 1);
+      std::string moving_avg_type = Sim()->getCfg()->getString("queue_model/basic/moving_avg_type", "none");
+      return new QueueModelBasic(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
    }
-
-}
-
-QueueModel::~QueueModel() 
-{}
-
-UInt64 
-QueueModel::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester)
-{
-   // Compute the moving average here
-   UInt64 ref_time;
-   if (m_moving_average)
+   else if (model_type == "history_list")
    {
-      ref_time = m_moving_average->compute(pkt_time);
+      return new QueueModelHistoryList(min_processing_time);
    }
    else
    {
-      ref_time = pkt_time;
+      LOG_PRINT_ERROR("Unrecognized Queue Model Type(%s)", model_type.c_str());
+      return (QueueModel*) NULL;
    }
-
-   UInt64 queue_delay = (m_queue_time > ref_time) ? (m_queue_time - ref_time) : 0;
-   if (queue_delay > 10000)
-   {
-      LOG_PRINT("Queue Time(%llu), Ref Time(%llu), Queue Delay(%llu), Requester(%i)", 
-         m_queue_time, ref_time, queue_delay, requester);
-   }
-   else if ((queue_delay == 0) && ((ref_time - m_queue_time) > 10000))
-   {
-      LOG_PRINT("Queue Time(%llu), Ref Time(%llu), Difference(%llu), Requester(%i)",
-            m_queue_time, ref_time, ref_time - m_queue_time, requester);
-   }
-   
-   // Update the Queue Time
-   m_queue_time = getMax<UInt64>(m_queue_time, ref_time) + processing_time;
-
-   return queue_delay;
 }
+

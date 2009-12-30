@@ -18,10 +18,8 @@ using namespace std;
 DramPerfModel::DramPerfModel(float dram_access_cost, 
       float dram_bandwidth,
       float core_frequency, 
-      bool queue_model_enabled, 
-      bool moving_avg_enabled,
-      UInt32 moving_avg_window_size, 
-      std::string moving_avg_type_str,
+      bool queue_model_enabled,
+      std::string queue_model_type, 
       UInt32 cache_block_size):
    m_queue_model(NULL),
    m_enabled(false),
@@ -35,7 +33,8 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
 
    if (queue_model_enabled)
    {
-      m_queue_model = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type_str);
+      UInt64 min_processing_time = (UInt64) ((float) cache_block_size / m_dram_bandwidth) + 1;
+      m_queue_model = QueueModel::create(queue_model_type, min_processing_time);
    }
 }
 

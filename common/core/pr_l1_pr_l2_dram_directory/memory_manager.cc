@@ -45,9 +45,7 @@ MemoryManager::MemoryManager(Core* core,
    volatile float dram_access_cost = 0.0;
    volatile float total_dram_bandwidth = 0.0;
    bool dram_queue_model_enabled = false;
-   bool dram_queue_model_moving_avg_enabled = false;
-   UInt32 dram_queue_model_moving_avg_window_size = 0;
-   std::string dram_queue_model_moving_avg_type;
+   std::string dram_queue_model_type;
 
    try
    {
@@ -92,10 +90,7 @@ MemoryManager::MemoryManager(Core* core,
       dram_access_cost = Sim()->getCfg()->getFloat("perf_model/dram/access_cost");
       total_dram_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/total_bandwidth");
       dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
-      dram_queue_model_moving_avg_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/moving_avg_enabled");
-      dram_queue_model_moving_avg_window_size = Sim()->getCfg()->getInt("perf_model/dram/queue_model/moving_avg_window_size");
-      dram_queue_model_moving_avg_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/moving_avg_type");
-      
+      dram_queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
    }
    catch(...)
    {
@@ -146,9 +141,7 @@ MemoryManager::MemoryManager(Core* core,
          single_dram_bandwidth,
          core_frequency,
          dram_queue_model_enabled,
-         dram_queue_model_moving_avg_enabled,
-         dram_queue_model_moving_avg_window_size,
-         dram_queue_model_moving_avg_type,
+         dram_queue_model_type,
          getCacheBlockSize(),
          getShmemPerfModel());
 

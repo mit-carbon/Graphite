@@ -33,10 +33,8 @@ class DramPerfModel
       DramPerfModel(float dram_access_cost, 
             float dram_bandwidth,
             float core_frequency, 
-            bool queue_model_enabled, 
-            bool moving_avg_enabled,
-            UInt32 moving_avg_window_size, 
-            std::string moving_avg_type_str,
+            bool queue_model_enabled,
+            std::string queue_model_type, 
             UInt32 cache_block_size);
 
       ~DramPerfModel();

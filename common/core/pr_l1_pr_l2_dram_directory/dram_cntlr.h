@@ -50,9 +50,7 @@ namespace PrL1PrL2DramDirectory
                volatile float dram_bandwidth,
                volatile float core_frequency,
                bool dram_queue_model_enabled,
-               bool dram_queue_model_moving_avg_enabled,
-               UInt32 dram_queue_model_moving_avg_window_size,
-               string dram_queue_model_moving_avg_type, 
+               std::string dram_queue_model_type,
                UInt32 cache_block_size,
                ShmemPerfModel* shmem_perf_model);
 

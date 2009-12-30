@@ -14,9 +14,7 @@ DramCntlr::DramCntlr(MemoryManager* memory_manager,
       float dram_bandwidth,
       float core_frequency,
       bool dram_queue_model_enabled,
-      bool dram_queue_model_moving_avg_enabled,
-      UInt32 dram_queue_model_moving_avg_window_size,
-      string dram_queue_model_moving_avg_type, 
+      std::string dram_queue_model_type,
       UInt32 cache_block_size,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
@@ -26,10 +24,8 @@ DramCntlr::DramCntlr(MemoryManager* memory_manager,
    m_dram_perf_model = new DramPerfModel(dram_access_cost, 
          dram_bandwidth,
          core_frequency, 
-         dram_queue_model_enabled, 
-         dram_queue_model_moving_avg_enabled,
-         dram_queue_model_moving_avg_window_size, 
-         dram_queue_model_moving_avg_type,
+         dram_queue_model_enabled,
+         dram_queue_model_type, 
          cache_block_size);
 
    m_dram_access_count = new AccessCountMap[NUM_ACCESS_TYPES];

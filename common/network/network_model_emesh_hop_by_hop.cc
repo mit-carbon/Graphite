@@ -20,14 +20,9 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    m_mesh_width = (SInt32) floor (sqrt(total_cores));
    m_mesh_height = (SInt32) ceil (1.0 * total_cores / m_mesh_width);
 
-   assert(total_cores <= m_mesh_width * m_mesh_height);
-   assert(total_cores > (m_mesh_width - 1) * m_mesh_height);
-   assert(total_cores > m_mesh_width * (m_mesh_height - 1));
+   assert(total_cores == m_mesh_width * m_mesh_height);
 
-   bool moving_avg_enabled = false;
-   UInt32 moving_avg_window_size = 0;
-   std::string moving_avg_type = "";
-
+   std::string queue_model_type = "";
    // Get the Link Bandwidth, Hop Latency and if it has broadcast tree mechanism
    try
    {
@@ -41,15 +36,14 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
 
       // Queue Model enabled? If no, this degrades into a hop counter model
       m_queue_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
-
-      moving_avg_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/moving_avg_enabled");
-      moving_avg_window_size = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/queue_model/moving_avg_window_size");
-      moving_avg_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/moving_avg_type");
+      queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
    }
    catch(...)
    {
       LOG_PRINT_ERROR("Could not read parameters from the configuration file");
    }
+
+   UInt64 min_processing_time = 1;
 
    // Initialize the queue models for all the '4' output directions
    for (UInt32 direction = 0; direction < NUM_OUTPUT_DIRECTIONS; direction ++)
@@ -59,19 +53,19 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
 
    if ((m_core_id / m_mesh_width) != 0)
    {
-      m_queue_models[DOWN] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+      m_queue_models[DOWN] = QueueModel::create(queue_model_type, min_processing_time);
    }
    if ((m_core_id % m_mesh_width) != 0)
    {
-      m_queue_models[LEFT] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+      m_queue_models[LEFT] = QueueModel::create(queue_model_type, min_processing_time);
    }
    if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
    {
-      m_queue_models[UP] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+      m_queue_models[UP] = QueueModel::create(queue_model_type, min_processing_time);
    }
    if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
    {
-      m_queue_models[RIGHT] = new QueueModel(moving_avg_enabled, moving_avg_window_size, moving_avg_type);
+      m_queue_models[RIGHT] = QueueModel::create(queue_model_type, min_processing_time);
    }
 }
 

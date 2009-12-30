@@ -7,6 +7,7 @@
 #include "network_model_hop_counter.h"
 #include "network_model_analytical.h"
 #include "network_model_emesh_hop_by_hop.h"
+#include "log.h"
 
 NetworkModel*
 NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_type)

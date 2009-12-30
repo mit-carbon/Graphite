@@ -1,7 +1,6 @@
 #include "queue_model.h"
 #include "utils.h"
 #include "log.h"
-#include "fxsupport.h"
 
 QueueModel::QueueModel(bool moving_avg_enabled,
       UInt32 moving_avg_window_size, 
@@ -27,13 +26,7 @@ QueueModel::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t
    UInt64 ref_time;
    if (m_moving_average)
    {
-      // Save floating point state
-      Fxsupport::getSingleton()->fxsave();
-   
       ref_time = m_moving_average->compute(pkt_time);
-
-      // Restore floating point state
-      Fxsupport::getSingleton()->fxrstor();
    }
    else
    {

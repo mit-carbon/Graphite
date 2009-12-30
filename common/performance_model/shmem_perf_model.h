@@ -23,8 +23,8 @@ class ShmemPerfModel
       bool m_enabled;
       Lock m_shmem_perf_model_lock;
 
-      UInt32 m_num_memory_accesses;
-      volatile double m_total_memory_access_latency;
+      UInt64 m_num_memory_accesses;
+      UInt64 m_total_memory_access_latency;
 
       Thread_t getThreadNum();
 

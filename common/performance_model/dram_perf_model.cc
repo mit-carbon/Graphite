@@ -3,7 +3,6 @@ using namespace std;
 
 #include "config.h"
 #include "dram_perf_model.h"
-#include "fxsupport.h"
 
 // Note: Each Dram Controller owns a single DramModel object
 // Hence, m_dram_bandwidth is the bandwidth for a single DRAM controller
@@ -47,17 +46,11 @@ DramPerfModel::~DramPerfModel()
 UInt64 
 DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requester)
 {
-   // Save floating point state
-   Fxsupport::getSingleton()->fxsave();
-   
    // pkt_size is in 'Bytes'
    // m_dram_bandwidth is in 'Bytes per clock cycle'
    if ((!m_enabled) || 
          (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
    {
-      // Restore floating point state
-      Fxsupport::getSingleton()->fxrstor();
-   
       return 0;
    }
 
@@ -82,9 +75,6 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requ
    m_total_access_latency += (double) access_latency;
    m_total_queueing_delay += (double) queue_delay;
 
-   // Restore floating point state
-   Fxsupport::getSingleton()->fxrstor();
-   
    return access_latency;
 }
 

@@ -150,7 +150,7 @@ define(MAIN_ENV,`
 #include <unistd.h>
 #include <stdlib.h>
 #include <malloc.h>
-#define MAX_THREADS 32
+#define MAX_THREADS 1024
 pthread_t PThreadTable[MAX_THREADS];
 ')
 

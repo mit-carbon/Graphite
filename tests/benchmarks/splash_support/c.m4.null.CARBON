@@ -143,7 +143,7 @@ define(MAIN_ENV,`
 #include <stdlib.h>
 #include <sync_api.h>
 #include "carbon_user.h"
-#define MAX_THREADS 32
+#define MAX_THREADS 1024
 carbon_thread_t ThreadTable[MAX_THREADS];
 ')
 

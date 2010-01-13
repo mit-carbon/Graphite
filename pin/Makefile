@@ -18,7 +18,7 @@ CXXFLAGS += -c \
 
 # Use the pin flags for building
 TARGET = ia32
-PIN_HOME = /afs/csail/group/carbon/tools/pin/current/
+include $(SIM_ROOT)/Makefile.config
 include $(PIN_HOME)/source/tools/makefile.gnu.config
 
 CXXFLAGS += $(PIN_CXXFLAGS)

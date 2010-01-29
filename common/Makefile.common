@@ -32,7 +32,14 @@ else
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
 endif
 
-include $(SIM_ROOT)/Makefile.config
+# Boost Support
+#   hack to find version -- this sucks
+#ifeq ($(strip $(wildcard /usr/include/boost/version.hpp)),)
+ifeq (1,1) # FIXME: Default to 1_38 since TiG installed the wrong versions
+	BOOST_VERSION = 1_38
+else
+	BOOST_VERSION = 1_35
+endif
 
 ifeq ($(BOOST_VERSION),1_38)
 	BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0

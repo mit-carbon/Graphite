@@ -22,7 +22,7 @@
 SIM_ROOT ?= $(CURDIR)/../../..
 
 # Run options
-include $(SIM_ROOT)/Makefile.config
+PIN_HOME = /afs/csail/group/carbon/tools/pin/current
 
 PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin
 PIN_TOOL?=$(SIM_ROOT)/lib/pin_sim

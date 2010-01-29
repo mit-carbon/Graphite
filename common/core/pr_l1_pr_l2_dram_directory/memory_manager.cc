@@ -158,14 +158,14 @@ MemoryManager::MemoryManager(Core* core,
          getShmemPerfModel());
 
    // Register Call-backs
-   m_network->registerCallback(SHARED_MEM_NET1, MemoryManagerNetworkCallback, this);
-   m_network->registerCallback(SHARED_MEM_NET2, MemoryManagerNetworkCallback, this);
+   m_network->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
+   m_network->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
 }
 
 MemoryManager::~MemoryManager()
 {
-   m_network->unregisterCallback(SHARED_MEM_NET1);
-   m_network->unregisterCallback(SHARED_MEM_NET2);
+   m_network->unregisterCallback(SHARED_MEM_1);
+   m_network->unregisterCallback(SHARED_MEM_2);
 
    delete m_user_thread_sem;
    delete m_network_thread_sem;
@@ -274,7 +274,7 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
 
    LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), receiver);
 
-   NetPacket packet(msg_time, SHARED_MEM_NET1,
+   NetPacket packet(msg_time, SHARED_MEM_1,
          m_core->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    m_network->netSend(packet);
@@ -294,7 +294,7 @@ MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t 
 
    LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), NetPacket::BROADCAST);
 
-   NetPacket packet(msg_time, SHARED_MEM_NET1,
+   NetPacket packet(msg_time, SHARED_MEM_1,
          m_core->getId(), NetPacket::BROADCAST,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    m_network->netSend(packet);

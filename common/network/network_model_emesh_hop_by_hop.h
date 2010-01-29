@@ -24,7 +24,7 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       core_id_t m_core_id;
       SInt32 m_mesh_width;
       SInt32 m_mesh_height;
-      float m_link_bandwidth;
+      UInt32 m_link_bandwidth;
       UInt64 m_hop_latency;
       bool m_broadcast_tree_enabled;
 
@@ -36,14 +36,15 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       // Counters
       UInt64 m_bytes_sent;
       UInt64 m_total_packets_sent;
-      double m_total_queueing_delay;
-      double m_total_packet_latency;
+      UInt64 m_total_queueing_delay;
+      UInt64 m_total_packet_latency;
 
       // Functions
       void computePosition(core_id_t core, SInt32 &x, SInt32 &y);
       core_id_t computeCoreId(SInt32 x, SInt32 y);
-      void addHop(OutputDirection direction, core_id_t final_dest, core_id_t next_dest, UInt64 pkt_time, UInt64 pkt_length, std::vector<Hop>& nextHops);
-      UInt64 computeLatency(OutputDirection direction, UInt64 pkt_time, UInt64 pkt_size);
+      void addHop(OutputDirection direction, core_id_t final_dest, core_id_t next_dest, UInt64 pkt_time, UInt32 pkt_length, std::vector<Hop>& nextHops, core_id_t requester);
+      UInt64 computeLatency(OutputDirection direction, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
+      UInt64 computeProcessingTime(UInt32 pkt_length);
       core_id_t getNextDest(core_id_t final_dest, OutputDirection& direction);
 
    public:

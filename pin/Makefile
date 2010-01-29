@@ -14,7 +14,7 @@ endif
 
 # Add other CXX Flags
 CXXFLAGS += -c \
-            -Wall -Werror -Wno-unknown-pragmas $(DBG) -O0 -MMD
+            -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD
 
 # Use the pin flags for building
 TARGET = ia32

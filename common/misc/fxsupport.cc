@@ -11,7 +11,7 @@ Fxsupport::Fxsupport(core_id_t core_count)
    m_fx_buf = (char**) malloc (m_core_count * sizeof (char*));
    for (int i = 0; i < m_core_count; i++)
    {
-      posix_memalign ((void**) &m_fx_buf[i], 512, 16);
+      posix_memalign ((void**) &m_fx_buf[i], 16, 512);
    }
 }
 

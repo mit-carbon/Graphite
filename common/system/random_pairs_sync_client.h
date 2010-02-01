@@ -52,28 +52,34 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
       std::list<SyncMsg> _msg_queue;
       Lock _lock;
       ConditionVariable _cond;
-
       Random _rand_num;
+
+      bool _enabled;
+
+      static UInt64 MAX_CYCLE_COUNT;
 
       // Called by user thread
       UInt64 userProcessSyncMsgList(void);
       void sendRandomSyncMsg();
-      void gotoSleep(UInt64 sleep_time);
+      void gotoSleep(const UInt64 sleep_time);
       UInt64 getElapsedWallClockTime(void);
      
       // Called by network thread 
-      void processSyncReq(SyncMsg& sync_msg, bool sleeping);
+      void processSyncReq(const SyncMsg& sync_msg, bool sleeping);
       
 
    public:
       RandomPairsSyncClient(Core* core);
       ~RandomPairsSyncClient();
 
+      void enable();
+      void disable();
+
       // Called by user thread
       void synchronize(void);
 
       // Called by network thread
-      void netProcessSyncMsg(NetPacket& recv_pkt);
+      void netProcessSyncMsg(const NetPacket& recv_pkt);
 
 
 

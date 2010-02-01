@@ -24,8 +24,11 @@ class RingSyncClient : public ClockSkewMinimizationClient
       RingSyncClient(Core* core);
       ~RingSyncClient();
 
+      void enable() {}
+      void disable() {}
+
       void synchronize(void);
-      void netProcessSyncMsg(NetPacket& packet) { assert(false); }
+      void netProcessSyncMsg(const NetPacket& packet) { assert(false); }
 
       Lock* getLock() { return &_lock; }
       UInt64 getCycleCount() { return _cycle_count; }

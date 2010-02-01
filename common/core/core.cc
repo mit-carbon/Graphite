@@ -111,6 +111,9 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
 
 void Core::enablePerformanceModels()
 {
+   if (m_clock_skew_minimization_client)
+      m_clock_skew_minimization_client->enable();
+
    getShmemPerfModel()->enable();
    getMemoryManager()->enableModels();
    getNetwork()->enableModels();
@@ -119,6 +122,9 @@ void Core::enablePerformanceModels()
 
 void Core::disablePerformanceModels()
 {
+   if (m_clock_skew_minimization_client)
+      m_clock_skew_minimization_client->disable();
+
    getShmemPerfModel()->disable();
    getMemoryManager()->disableModels();
    getNetwork()->disableModels();
@@ -157,14 +163,6 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
    // Setting the initial time
    UInt64 initial_time = getPerformanceModel()->getCycleCount();
    getShmemPerfModel()->setCycleCount(initial_time);
-
-   if (data_size > 100 && getPerformanceModel()->isEnabled())
-   {
-      LOG_PRINT("Time(%llu), %s - Address(0x%x), data_size(%u), Start",
-            initial_time,
-            ((mem_op_type == READ) ? "READ" : "WRITE"), 
-            address, data_size);
-   }
 
    LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), START",
         initial_time,
@@ -241,14 +239,6 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
          "final_time(%llu) < initial_time(%llu)",
          final_time, initial_time);
    
-   if (data_size > 100 && getPerformanceModel()->isEnabled())
-   {
-      LOG_PRINT("Time(%llu), %s - Address(0x%x), data_size(%u), End",
-            final_time,
-            ((mem_op_type == READ) ? "READ" : "WRITE"), 
-            address, data_size);
-   }
-
    LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), END\n", 
         final_time,
         ((mem_op_type == READ) ? "READ" : "WRITE"), 

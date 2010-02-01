@@ -5,6 +5,8 @@
 #include "network.h"
 #include "log.h"
 
+UInt64 RandomPairsSyncClient::MAX_CYCLE_COUNT = ((UInt64) 1) << 60;
+
 RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
    _core(core),
    _last_sync_cycle_count(0),
@@ -38,9 +40,24 @@ RandomPairsSyncClient::~RandomPairsSyncClient()
    _core->getNetwork()->unregisterCallback(CLOCK_SKEW_MINIMIZATION);
 }
 
+void 
+RandomPairsSyncClient::enable()
+{
+   _enabled = true;
+   
+   assert(_msg_queue.empty());
+   gettimeofday(&_start_wall_clock_time, NULL);
+}
+
+void
+RandomPairsSyncClient::disable()
+{
+   _enabled = false;
+}
+
 // Called by network thread
 void
-RandomPairsSyncClient::netProcessSyncMsg(NetPacket& recv_pkt)
+RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
 {
    UInt32 msg_type;
    UInt64 cycle_count;
@@ -53,6 +70,10 @@ RandomPairsSyncClient::netProcessSyncMsg(NetPacket& recv_pkt)
 
    LOG_PRINT("Core(%i), SyncMsg[sender(%i), type(%u), time(%llu)]",
          _core->getId(), sync_msg.sender, sync_msg.type, sync_msg.cycle_count);
+
+   LOG_ASSERT_ERROR(cycle_count < MAX_CYCLE_COUNT, 
+         "SyncMsg[sender(%i), msg_type(%u), cycle_count(%llu)]",
+         recv_pkt.sender, msg_type, cycle_count);
 
    _lock.acquire();
 
@@ -106,7 +127,7 @@ RandomPairsSyncClient::netProcessSyncMsg(NetPacket& recv_pkt)
 }
 
 void
-RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg, bool sleeping)
+RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
 {
    assert(sync_msg.cycle_count >= _slack);
 
@@ -114,7 +135,9 @@ RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg, bool sleeping)
    // Even if this is an approximate value, this is OK
    UInt64 cycle_count = _core->getPerformanceModel()->getCycleCount();
 
-   LOG_PRINT("Core(%i): Time(%llu), SyncReq[sender(%i), msg_type(%u), time(%llu)]", 
+   LOG_ASSERT_ERROR(cycle_count < MAX_CYCLE_COUNT, "Cycle Count(%llu)", cycle_count);
+
+   LOG_PRINT("Core(%i): Time(%llu), SyncReq[sender(%i), msg_type(%u), cycle_count(%llu)]", 
       _core->getId(), cycle_count, sync_msg.sender, sync_msg.type, sync_msg.cycle_count);
 
    // 3 possible scenarios
@@ -130,6 +153,9 @@ RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg, bool sleeping)
          // Goto sleep for a few microseconds
          // Self generate a WAIT msg
          LOG_PRINT("Core(%i): WAIT: Time(%llu)", _core->getId(), cycle_count - sync_msg.cycle_count);
+         LOG_ASSERT_ERROR((cycle_count - sync_msg.cycle_count) < MAX_CYCLE_COUNT,
+               "[>]: cycle_count(%llu), sync_msg[sender(%i), msg_type(%u), cycle_count(%llu)]", 
+               cycle_count, sync_msg.sender, sync_msg.type, sync_msg.cycle_count);
 
          SyncMsg wait_msg(_core->getId(), SyncMsg::WAIT, cycle_count - sync_msg.cycle_count);
          _msg_queue.push_back(wait_msg);
@@ -144,6 +170,10 @@ RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg, bool sleeping)
    }
    else if (cycle_count < (sync_msg.cycle_count - _slack))
    {
+      LOG_ASSERT_ERROR((sync_msg.cycle_count - cycle_count) < MAX_CYCLE_COUNT,
+            "[<]: cycle_count(%llu), sync_msg[sender(%i), msg_type(%u), cycle_count(%llu)]",
+            cycle_count, sync_msg.sender, sync_msg.type, sync_msg.cycle_count);
+
       // Double up and catch up. Meanwhile, ask the other core to wait
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) (sync_msg.cycle_count - cycle_count);
@@ -160,19 +190,26 @@ RandomPairsSyncClient::processSyncReq(SyncMsg& sync_msg, bool sleeping)
 void
 RandomPairsSyncClient::synchronize()
 {
+   if (! _enabled)
+      return;
+
    if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
    UInt64 cycle_count = _core->getPerformanceModel()->getCycleCount();
    assert(cycle_count >= _last_sync_cycle_count);
 
+   LOG_ASSERT_ERROR(cycle_count < MAX_CYCLE_COUNT, "cycle_count(%llu)", cycle_count);
+
    if ((cycle_count - _last_sync_cycle_count) >= _quantum)
    {
-      LOG_PRINT("Core(%i): Starting Synchronization: Time(%llu), LastSyncTime(%llu)", _core->getId(), cycle_count, _last_sync_cycle_count);
+      LOG_PRINT("Core(%i): Starting Synchronization: cycle_count(%llu), LastSyncTime(%llu)", _core->getId(), cycle_count, _last_sync_cycle_count);
 
       _lock.acquire();
 
       _last_sync_cycle_count = (cycle_count / _quantum) * _quantum;
+
+      LOG_ASSERT_ERROR(_last_sync_cycle_count < MAX_CYCLE_COUNT, "_last_sync_cycle_count(%llu)", _last_sync_cycle_count);
 
       // Send SyncMsg to another core
       sendRandomSyncMsg();
@@ -196,9 +233,14 @@ RandomPairsSyncClient::sendRandomSyncMsg()
 {
    UInt64 cycle_count = _core->getPerformanceModel()->getCycleCount();
    
+   LOG_ASSERT_ERROR(cycle_count < MAX_CYCLE_COUNT, "cycle_count(%llu)", cycle_count);
+
    UInt32 num_app_cores = Config::getSingleton()->getApplicationCores();
    SInt32 offset = 1 + (SInt32) _rand_num.next((Random::value_t) (((float)num_app_cores - 1) / 2));
    core_id_t receiver = (_core->getId() + offset) % num_app_cores;
+
+   LOG_ASSERT_ERROR((receiver >= 0) && (receiver < (core_id_t) num_app_cores), 
+         "receiver(%i)", receiver);
 
    LOG_PRINT("Core(%i) Sending SyncReq to %i", _core->getId(), receiver);
 
@@ -216,8 +258,13 @@ RandomPairsSyncClient::userProcessSyncMsgList()
    std::list<SyncMsg>::iterator it;
    for (it = _msg_queue.begin(); it != _msg_queue.end(); it++)
    {
-      LOG_PRINT("Core(%i) Process Sync Msg List: SyncMsg[sender(%i), type(%u), wait_time(%llu)]", _core->getId(), (*it).sender, (*it).type, (*it).cycle_count);
+      LOG_PRINT("Core(%i) Process Sync Msg List: SyncMsg[sender(%i), type(%u), wait_time(%llu)]", 
+            _core->getId(), (*it).sender, (*it).type, (*it).cycle_count);
       
+      LOG_ASSERT_ERROR((*it).cycle_count < MAX_CYCLE_COUNT,
+            "sync_msg[sender(%i), msg_type(%u), cycle_count(%llu)]",
+            (*it).sender, (*it).type, (*it).cycle_count);
+
       assert(((*it).type == SyncMsg::WAIT) || ((*it).type == SyncMsg::ACK));
 
       if ((*it).cycle_count >= max_wait_time)
@@ -233,8 +280,10 @@ RandomPairsSyncClient::userProcessSyncMsgList()
 }
 
 void
-RandomPairsSyncClient::gotoSleep(UInt64 sleep_time)
+RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
 {
+   LOG_ASSERT_ERROR(sleep_time < MAX_CYCLE_COUNT, "sleep_time(%llu)", sleep_time);
+
    if (sleep_time > 0)
    {
       LOG_PRINT("Core(%i) going to sleep", _core->getId());
@@ -242,16 +291,16 @@ RandomPairsSyncClient::gotoSleep(UInt64 sleep_time)
       // Set the CoreState to 'SLEEPING'
       _core->setState(Core::SLEEPING);
 
-      __attribute((__unused__)) UInt64 elapsed_simulated_time = _core->getPerformanceModel()->getCycleCount();
-      __attribute((__unused__)) UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
+      UInt64 elapsed_simulated_time = _core->getPerformanceModel()->getCycleCount();
+      UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
 
       // elapsed_simulated_time, sleep_time - in cycles (of target architecture)
       // elapsed_wall_clock_time - in microseconds
       assert(elapsed_simulated_time != 0);
-      useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * sleep_time * elapsed_wall_clock_time / elapsed_simulated_time);
+      useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * ((float)elapsed_wall_clock_time / elapsed_simulated_time) * sleep_time);
       if (sleep_wall_clock_time > 1000000)
       {
-         LOG_PRINT_WARNING("Large Sleep Time: %llu microseconds, SimSleep Time(%llu), elapsed_wall_clock_time(%llu), elapsed_simulated_time(%llu)", sleep_wall_clock_time, sleep_time, elapsed_wall_clock_time, elapsed_simulated_time);
+         LOG_PRINT_WARNING("Large Sleep Time(%u microseconds), SimSleep Time(%llu), elapsed_wall_clock_time(%llu), elapsed_simulated_time(%llu)", sleep_wall_clock_time, sleep_time, elapsed_wall_clock_time, elapsed_simulated_time);
          sleep_wall_clock_time = 1000000;
       }
       

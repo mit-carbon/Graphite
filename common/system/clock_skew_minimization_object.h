@@ -37,8 +37,10 @@ public:
    ~ClockSkewMinimizationClient() {}
    static ClockSkewMinimizationClient* create(std::string scheme_str, Core* core);
 
+   virtual void enable() = 0;
+   virtual void disable() = 0;
    virtual void synchronize() = 0;
-   virtual void netProcessSyncMsg(NetPacket& recv_pkt) = 0;
+   virtual void netProcessSyncMsg(const NetPacket& recv_pkt) = 0;
 };
 
 class ClockSkewMinimizationManager : public ClockSkewMinimizationObject

@@ -680,7 +680,6 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
 
    struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) args.arg0;
 
-#ifdef REDIRECT_MEMORY
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       m_send_buff.put (*mmap_args_ptr);
@@ -704,11 +703,8 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
    }
    else
    {
-#endif
       return (carbon_reg_t) syscall (SYS_mmap, mmap_args_ptr);
-#ifdef REDIRECT_MEMORY
    }
-#endif
 }
 
 carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
@@ -747,7 +743,6 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-#ifdef REDIRECT_MEMORY
       m_send_buff.put (start);
       m_send_buff.put (length);
       m_send_buff.put (prot);
@@ -773,9 +768,6 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
       delete [] (Byte*) recv_pkt.data;
 
       return (carbon_reg_t) addr;
-#else
-      return (carbon_reg_t) syscall (SYS_mmap2, start, length, prot, flags, fd, pgoffset);
-#endif
    }
    else
    {
@@ -812,7 +804,6 @@ carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-#ifdef REDIRECT_MEMORY
       m_send_buff.put (start);
       m_send_buff.put (length);
 
@@ -834,9 +825,6 @@ carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
       delete [] (Byte*) recv_pkt.data;
 
       return (carbon_reg_t) ret_val;
-#else
-      return (carbon_reg_t) syscall (SYS_munmap, start, length);
-#endif
    }
    else
    {
@@ -868,7 +856,6 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-#ifdef REDIRECT_MEMORY
       m_send_buff.put (end_data_segment);
 
       // send the data
@@ -889,9 +876,6 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
       delete [] (Byte*) recv_pkt.data;
 
       return (carbon_reg_t) new_end_data_segment;
-#else
-      return (carbon_reg_t) syscall (SYS_brk, end_data_segment);
-#endif
    }
    else
    {
@@ -910,7 +894,6 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-#ifdef REDIRECT_MEMORY
       struct timespec timeout_buf;
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
@@ -976,9 +959,6 @@ carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
       delete [] (Byte*) recv_pkt.data;
 
       return (carbon_reg_t) ret_val;
-#else
-      return (carbon_reg_t) syscall (SYS_futex, uaddr, op, val, timeout, uaddr2, val3);
-#endif
    }
    else
    {

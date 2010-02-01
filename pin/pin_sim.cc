@@ -253,9 +253,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
    {
       disablePerformanceModelsInCurrentProcess();
 
-#ifdef REDIRECT_MEMORY
       allocateStackSpace();
-#endif
       
       UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
       ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
@@ -264,7 +262,6 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       {
          Sim()->getCoreManager()->initializeThread(0);
 
-#ifdef REDIRECT_MEMORY
          ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
          // 1) Copying over Static Data
          // Get the image first
@@ -280,7 +277,6 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
          copyInitialStackData(reg_esp, 0);
          LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
-#endif
       }
 
       else

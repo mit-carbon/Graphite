@@ -20,8 +20,6 @@ class PinMemoryManager;
 #include "performance_model.h"
 #include "shmem_perf_model.h"
 
-#define REDIRECT_MEMORY 1
-
 using namespace std;
 
 class Core

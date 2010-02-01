@@ -277,15 +277,7 @@ Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_add
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-#ifdef REDIRECT_MEMORY
-      
       return initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
-
-#else
-      
-      return nativeMemOp (lock_signal, mem_op_type, d_addr, data_buffer, data_size);
-
-#endif
    }
    
    else

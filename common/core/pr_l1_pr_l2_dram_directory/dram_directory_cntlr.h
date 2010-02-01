@@ -65,7 +65,7 @@ namespace PrL1PrL2DramDirectory
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCntlr();
 
-         void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg, UInt64 msg_time);
+         void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
    };
 
 }

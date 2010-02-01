@@ -43,9 +43,10 @@ DramDirectoryCntlr::~DramDirectoryCntlr()
 }
 
 void
-DramDirectoryCntlr::handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg, UInt64 msg_time)
+DramDirectoryCntlr::handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
+   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
    switch (shmem_msg_type)
    {
@@ -103,8 +104,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
 
       // Update the Shared Mem Cycle Counts appropriately
-      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+      getShmemPerfModel()->setCycleCount(shmem_req->getTime());
 
       if (shmem_req->getShmemMsg()->getMsgType() == ShmemMsg::EX_REQ)
          processExReqFromL2Cache(shmem_req);
@@ -121,7 +121,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    core_id_t requester = shmem_req->getShmemMsg()->getRequester();
-   UInt64 msg_time = shmem_req->getTime();
+   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
    std::vector<DirectoryEntry*> replacement_candidate_list;
    m_dram_directory_cache->getReplacementCandidates(address, replacement_candidate_list);

@@ -235,7 +235,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
          switch(sender_mem_component)
          {
             case MemComponent::L2_CACHE:
-               m_dram_directory_cntlr->handleMsgFromL2Cache(sender, shmem_msg, msg_time);
+               m_dram_directory_cntlr->handleMsgFromL2Cache(sender, shmem_msg);
                break;
 
             default:

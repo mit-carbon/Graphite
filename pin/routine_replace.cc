@@ -64,6 +64,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CAPI_rank") msg_ptr = AFUNPTR(replacement_CAPI_rank);
    else if (name == "CAPI_message_send_w") msg_ptr = AFUNPTR(replacement_CAPI_message_send_w);
    else if (name == "CAPI_message_receive_w") msg_ptr = AFUNPTR(replacement_CAPI_message_receive_w);
+   else if (name == "CAPI_message_send_w_ex") msg_ptr = AFUNPTR(replacement_CAPI_message_send_w_ex);
+   else if (name == "CAPI_message_receive_w_ex") msg_ptr = AFUNPTR(replacement_CAPI_message_receive_w_ex);
 
    // synchronization
    else if (name == "CarbonMutexInit") msg_ptr = AFUNPTR(replacementMutexInit);
@@ -412,6 +414,36 @@ void replacement_CAPI_message_send_w (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
+void replacement_CAPI_message_send_w_ex (CONTEXT *ctxt)
+{
+   // Only the user-threads (all of which are cores) call
+   // the CAPI communication API functions
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert (core);
+   
+   CAPI_endpoint_t sender;
+   CAPI_endpoint_t receiver;
+   char *buffer;
+   int size;
+   carbon_network_t net_type;
+   CAPI_return_t ret_val = 0;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &sender,
+         IARG_UINT32, &receiver,
+         IARG_PTR, &buffer,
+         IARG_UINT32, &size,
+         IARG_UINT32, &net_type,
+         IARG_END);
+
+   char *buf = new char [size];
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) buffer, buf, size);
+   ret_val = CAPI_message_send_w_ex (sender, receiver, buf, size, net_type);
+
+   delete [] buf;
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
 void replacement_CAPI_message_receive_w (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
@@ -439,6 +471,37 @@ void replacement_CAPI_message_receive_w (CONTEXT *ctxt)
    delete [] buf;
    retFromReplacedRtn (ctxt, ret_val);
 }
+
+void replacement_CAPI_message_receive_w_ex (CONTEXT *ctxt)
+{
+   // Only the user-threads (all of which are cores) call
+   // the CAPI communication API functions
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   assert (core);
+   
+   CAPI_endpoint_t sender;
+   CAPI_endpoint_t receiver;
+   char *buffer;
+   int size;
+   carbon_network_t net_type;
+   CAPI_return_t ret_val = 0;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &sender,
+         IARG_UINT32, &receiver,
+         IARG_PTR, &buffer,
+         IARG_UINT32, &size,
+         IARG_UINT32, &net_type,
+         IARG_END);
+
+   char *buf = new char [size];
+   ret_val = CAPI_message_receive_w_ex (sender, receiver, buf, size, net_type);
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) buffer, buf, size);
+
+   delete [] buf;
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
 
 void replacementMutexInit (CONTEXT *ctxt)
 {

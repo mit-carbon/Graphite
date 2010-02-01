@@ -19,6 +19,8 @@ class PinMemoryManager;
 #include "config.h"
 #include "performance_model.h"
 #include "shmem_perf_model.h"
+#include "capi.h"
+#include "packet_type.h"
 
 using namespace std;
 
@@ -64,8 +66,8 @@ class Core
 
       void outputSummary(std::ostream &os);
 
-      int coreSendW(int sender, int receiver, char *buffer, int size);
-      int coreRecvW(int sender, int receiver, char *buffer, int size);
+      int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
+      int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
      
       UInt64 readInstructionMemory(IntPtr address, 
             UInt32 instruction_size);
@@ -114,6 +116,8 @@ class Core
       Lock m_core_state_lock;
 
       static Lock m_global_core_lock;
+
+      PacketType getPktTypeFromUserNetType(carbon_network_t net_type);
 };
 
 #endif

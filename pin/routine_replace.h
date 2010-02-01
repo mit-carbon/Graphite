@@ -44,6 +44,8 @@ void replacement_CAPI_Initialize (CONTEXT *ctxt);
 void replacement_CAPI_rank (CONTEXT *ctxt);
 void replacement_CAPI_message_send_w (CONTEXT *ctxt);
 void replacement_CAPI_message_receive_w (CONTEXT *ctxt);
+void replacement_CAPI_message_send_w_ex (CONTEXT *ctxt);
+void replacement_CAPI_message_receive_w_ex (CONTEXT *ctxt);
 
 // pthread
 void replacementPthreadCreate (CONTEXT *ctxt);

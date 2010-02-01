@@ -82,19 +82,30 @@ void Core::outputSummary(std::ostream &os)
    }
 }
 
-int Core::coreSendW(int sender, int receiver, char* buffer, int size)
+int Core::coreSendW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
 {
-   SInt32 sent = m_network->netSend(receiver, USER, buffer, size);
-   assert(sent == size);
+   PacketType pkt_type = getPktTypeFromUserNetType(net_type);
+
+   SInt32 sent;
+   if (receiver == CAPI_ENDPOINT_ALL)
+      sent = m_network->netBroadcast(pkt_type, buffer, size);
+   else
+      sent = m_network->netSend(receiver, pkt_type, buffer, size);
+   
+   LOG_ASSERT_ERROR(sent == size, "Bytes Sent(%i), Message Size(%i)", sent, size);
 
    return sent == size ? 0 : -1;
 }
 
-int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
+int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
 {
-   NetPacket packet;
+   PacketType pkt_type = getPktTypeFromUserNetType(net_type);
 
-   packet = m_network->netRecv(sender, USER);
+   NetPacket packet;
+   if (sender == CAPI_ENDPOINT_ANY)
+      packet = m_network->netRecvType(pkt_type);
+   else
+      packet = m_network->netRecv(sender, pkt_type);
 
    LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
 
@@ -107,6 +118,22 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size)
    delete [](Byte*)packet.data;
 
    return (unsigned)size == packet.length ? 0 : -1;
+}
+
+PacketType Core::getPktTypeFromUserNetType(carbon_network_t net_type)
+{
+   switch(net_type)
+   {
+      case CARBON_NET_USER_1:
+         return USER_1;
+
+      case CARBON_NET_USER_2:
+         return USER_2;
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized User Network(%u)", net_type);
+         return (PacketType) -1;
+   }
 }
 
 void Core::enablePerformanceModels()
@@ -329,8 +356,6 @@ Core::getState()
 void
 Core::setState(State core_state)
 {
-   LOG_PRINT("Started Setting State to %u", core_state);
    ScopedLock scoped_lock(m_core_state_lock);
    m_core_state = core_state;
-   LOG_PRINT("Finished Setting State to %u", core_state);
 }

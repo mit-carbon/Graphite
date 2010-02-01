@@ -4,7 +4,8 @@
 enum PacketType
 {
    INVALID,
-   USER,
+   USER_1,
+   USER_2,
    SHARED_MEM_1,
    SHARED_MEM_2,
    SIM_THREAD_TERMINATE_THREADS,
@@ -28,7 +29,8 @@ enum PacketType
 // This defines the different static network types
 enum EStaticNetwork
 {
-   STATIC_NETWORK_USER,
+   STATIC_NETWORK_USER_1,
+   STATIC_NETWORK_USER_2,
    STATIC_NETWORK_MEMORY_1,
    STATIC_NETWORK_MEMORY_2,
    STATIC_NETWORK_SYSTEM,
@@ -40,12 +42,13 @@ enum EStaticNetwork
 static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
 {
    STATIC_NETWORK_SYSTEM,        // INVALID
-   STATIC_NETWORK_USER,          // USER
+   STATIC_NETWORK_USER_1,        // USER_1
+   STATIC_NETWORK_USER_2,        // USER_2
    STATIC_NETWORK_MEMORY_1,      // SM_1
    STATIC_NETWORK_MEMORY_2,      // SM_2
    STATIC_NETWORK_MEMORY_1,      // ST_TERMINATE_THREADS
-   STATIC_NETWORK_USER,          // MCP_REQ
-   STATIC_NETWORK_USER,          // MCP_RESP
+   STATIC_NETWORK_USER_1,        // MCP_REQ
+   STATIC_NETWORK_USER_1,        // MCP_RESP
    STATIC_NETWORK_SYSTEM,        // MCP_UTIL
    STATIC_NETWORK_SYSTEM,        // MCP_SYSTEM
    STATIC_NETWORK_SYSTEM,        // MCP_SYSTEM_RESP

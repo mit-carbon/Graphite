@@ -8,7 +8,7 @@ using namespace std;
 struct Reply
 {
    UInt32 dummy;
-   UInt64 time;
+   UInt64 time __attribute__((packed));
 };
 
 // -- SimMutex -- //

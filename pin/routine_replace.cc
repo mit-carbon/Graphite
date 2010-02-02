@@ -826,6 +826,7 @@ void replacementDisableCacheCounters (CONTEXT *ctxt)
 
 void initialize_replacement_args (CONTEXT *ctxt, ...)
 {
+#ifdef TARGET_IA32
    va_list vl;
    va_start (vl, ctxt);
    int type;
@@ -858,7 +859,7 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
 
          case IARG_UINT32:
             ptr = va_arg (vl, ADDRINT);
-            * ((UINT32*) ptr) = (UINT32) buffer;
+            * ((UInt32*) ptr) = (UInt32) buffer;
             count++;
             break;
 
@@ -870,6 +871,54 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
             break;
       }
    } while (type != IARG_END);
+#endif
+
+#ifdef TARGET_X86_64
+   va_list vl;
+   va_start (vl, ctxt);
+   int type;
+   ADDRINT ptr;
+   ADDRINT val;
+   unsigned int count = 0;
+   REG reg_sequence[] = {REG_GDI, REG_GSI, REG_GDX, REG_GCX, REG_R8, REG_R9};
+
+   do
+   {
+      LOG_ASSERT_ERROR (count < 6, "Don't support more than 6 function call arguments for replaced functions");
+
+      type = va_arg (vl, int);
+      val = PIN_GetContextReg (ctxt, reg_sequence[count]);
+      LOG_PRINT("function args(%i) -> 0x%x", count, (IntPtr) val);
+     
+      switch (type)
+      {
+         case IARG_ADDRINT:
+            ptr = va_arg (vl, ADDRINT);
+            * ((ADDRINT*) ptr) = val;
+            count++;
+            break;
+
+         case IARG_PTR:
+            ptr = va_arg (vl, ADDRINT);
+            * ((ADDRINT*) ptr) = val;
+            count++;
+            break;
+
+         case IARG_UINT32:
+            ptr = va_arg (vl, ADDRINT);
+            * ((UInt32*) ptr) = (UInt32) val;
+            count++;
+            break;
+
+         case IARG_END:
+            break;
+
+         default:
+            assert (false);
+            break;
+      }
+   } while (type != IARG_END);
+#endif
 }
 
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val)

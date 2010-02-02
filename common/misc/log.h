@@ -70,7 +70,7 @@ class Log
       /* std::map<const char*, std::string> _modules; */
       /* Lock _modules_lock; */
 
-      static const UInt32 MODULE_LENGTH = 10;
+      static const size_t MODULE_LENGTH = 10;
 
       static Log *_singleton;
 };

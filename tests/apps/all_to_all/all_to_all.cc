@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
    CarbonBarrierInit(&rank_barrier, num_threads);
 
-   for(unsigned int i = 0; i < num_threads-1; i++)
+   for(int i = 0; i < num_threads-1; i++)
    {
        printf("Spawning thread: %d\n", i);
        threads[i] = CarbonSpawnThread(thread_func, (void *) i);
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
   
    thread_func((void*) (num_threads-1));
 
-   for(unsigned int i = 0; i < num_threads-1; i++)
+   for(int i = 0; i < num_threads-1; i++)
        CarbonJoinThread(threads[i]);
    
    printf("Ending all_to_all!\n");
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
 void* thread_func(void* threadid)
 {
-	int rank = (int)threadid;
+	long rank = (long)threadid;
 
    CAPI_Initialize(rank);
    CarbonBarrierWait(&rank_barrier);

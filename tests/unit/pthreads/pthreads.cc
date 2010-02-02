@@ -78,13 +78,13 @@ int main(int argc, char* argv[])  // main begins
 
 void* thread_func(void *threadid)
 {
-   fprintf(stdout, "Thread Test : Spawned thread #(%d)\n", (int) threadid);
+   fprintf(stdout, "Thread Test : Spawned thread #(%li)\n", (long) threadid);
    return NULL;
 }
 
 void* barrier_func(void *threadid)
 {
-   fprintf(stdout, "Barrier Test: Spawned thread #(%d)\n", (int) threadid);
+   fprintf(stdout, "Barrier Test: Spawned thread #(%li)\n", (long) threadid);
 
    for (unsigned int i = 0; i < 50; i++)
       pthread_barrier_wait(&barrier);
@@ -94,7 +94,7 @@ void* barrier_func(void *threadid)
 
 void* mutex_func(void *threadid)
 {
-   fprintf(stdout, "Mutex Test  : Spawned thread #(%d)\n", (int) threadid);
+   fprintf(stdout, "Mutex Test  : Spawned thread #(%li)\n", (long) threadid);
    
    for (unsigned int i = 0; i < 10; i++)
    {
@@ -102,7 +102,7 @@ void* mutex_func(void *threadid)
       pthread_mutex_lock(&mux2);
       pthread_mutex_lock(&mux3);
       if (i % 25 == 0)
-         fprintf(stderr, "Thread %d got %dth lock...\n", (int) threadid, i);
+         fprintf(stderr, "Thread %li got %dth lock...\n", (long) threadid, i);
       pthread_mutex_unlock(&mux3);
       pthread_mutex_unlock(&mux2);
       pthread_mutex_unlock(&mux1);
@@ -113,7 +113,7 @@ void* mutex_func(void *threadid)
 
 void* cond_func(void *threadid)
 {
-   fprintf(stdout, "Cond Test : Spawned thread #(%d)\n", (int) threadid);
+   fprintf(stdout, "Cond Test : Spawned thread #(%li)\n", (long) threadid);
    fprintf(stdout, "WARNING: Not implemented yet.\n");
 }
 

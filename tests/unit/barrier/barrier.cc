@@ -44,7 +44,7 @@ int main(int argc, char* argv[])  // main begins
 
 void* test_wait_barrier(void *threadid)
 {
-   fprintf(stderr, "Spawned thread %i\n", (int)threadid);
+   fprintf(stderr, "Spawned thread %li\n", (long) threadid);
 
    for (unsigned int i = 0; i < 50; i++)
       CarbonBarrierWait(&my_barrier);

@@ -58,8 +58,11 @@ ADDRINT initial_reg_esp;
 
 // clone stuff
 extern int *parent_tidptr;
+#ifdef TARGET_IA32
 extern struct user_desc *newtls;
+#endif
 extern int *child_tidptr;
+
 extern PIN_LOCK clone_memory_update_lock;
 // ---------------------------------------------------------------
 
@@ -97,10 +100,6 @@ INT32 usage()
 
 void initializeSyscallModeling ()
 {
-   // Initialize clone stuff
-   parent_tidptr = NULL;
-   newtls = NULL;
-   child_tidptr = NULL;
    InitLock (&clone_memory_update_lock);
 }
 
@@ -327,11 +326,19 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
          Sim()->getThreadManager()->onThreadStart(req);
       }
-     
+
+#ifdef TARGET_IA32 
       // Restore the clone syscall arguments
       PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
       PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
       PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
+#endif
+
+#ifdef TARGET_X86_64
+      // Restore the clone syscall arguments
+      PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
+      PIN_SetContextReg (ctxt, LEVEL_BASE::REG_R10, (ADDRINT) child_tidptr);
+#endif
 
       __attribute(__unused__) Core *core = Sim()->getCoreManager()->getCurrentCore();
       assert (core);

@@ -1,5 +1,11 @@
-#include <sys/types.h>
+// --- included for syscall: fstat
 #include <sys/stat.h>
+
+// ---- included for syscall: ioctl
+#include <sys/ioctl.h>
+#include <termios.h>
+
+#include <sys/types.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -39,7 +45,7 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    UInt8 syscall_number;
    m_recv_buff >> syscall_number;
 
-   LOG_PRINT("Syscall: %d", syscall_number);
+   LOG_PRINT("Syscall: %d from core(%i)", syscall_number, core_id);
 
    switch (syscall_number)
    {
@@ -58,6 +64,19 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_access:
       marshallAccessCall(core_id);
       break;
+#ifdef TARGET_X86_64
+   case SYS_fstat:
+      marshallFstatCall(core_id);
+      break;
+#endif
+#ifdef TARGET_IA32
+   case SYS_fstat64:
+      marshallFstat64Call(core_id);
+      break;
+#endif
+   case SYS_ioctl:
+      marshallIoctlCall(core_id);
+      break;
    case SYS_getpid:
       marshallGetpidCall(core_id);
       break;
@@ -70,9 +89,11 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_mmap:
       marshallMmapCall(core_id);
       break;
+#ifdef TARGET_IA32
    case SYS_mmap2:
       marshallMmap2Call(core_id);
       break;
+#endif
    case SYS_munmap:
       marshallMunmapCall (core_id);
       break;
@@ -281,6 +302,71 @@ void SyscallServer::marshallAccessCall(core_id_t core_id)
       delete[] path;
 }
 
+#ifdef TARGET_X86_64
+void SyscallServer::marshallFstatCall(core_id_t core_id)
+{
+   int fd;
+   struct stat buf;
+
+   // unpack the data
+   m_recv_buff.get<int>(fd);
+   m_recv_buff.get<struct stat>(buf);
+
+   LOG_PRINT("In marshallFstatCall(), fd(%i), buf(%p)", fd, &buf);
+   // Do the syscall
+   int ret = syscall(SYS_fstat, fd, &buf);
+
+   // pack the data and send
+   m_send_buff.put<int>(ret);
+   m_send_buff.put<struct stat>(buf);
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   LOG_PRINT("Finished marshallFstatCall(), fd(%i), buf(%p)", fd, &buf);
+}
+#endif
+
+#ifdef TARGET_IA32
+void SyscallServer::marshallFstat64Call(core_id_t core_id)
+{
+   int fd;
+   struct stat64 buf;
+
+   // unpack the data
+   m_recv_buff.get<int>(fd);
+   m_recv_buff.get<struct stat64>(buf);
+
+   // Do the syscall
+   int ret = syscall(SYS_fstat64, fd, &buf);
+
+   // pack the data and send
+   m_send_buff.put<int>(ret);
+   m_send_buff.put<struct stat64>(buf);
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+#endif
+
+void SyscallServer::marshallIoctlCall(core_id_t core_id)
+{
+   int fd;
+   int request;
+   struct termios buf;
+
+   // unpack the data
+   m_recv_buff.get<int>(fd);
+   m_recv_buff.get<int>(request);
+   m_recv_buff.get<struct termios>(buf);
+
+   // Do the syscall
+   int ret = syscall(SYS_ioctl, fd, request, &buf);
+
+   // pack the data and send
+   m_send_buff.put<int>(ret);
+   m_send_buff.put<struct termios>(buf);
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+
 void SyscallServer::marshallGetpidCall(core_id_t core_id)
 {
    // Actually do the getpid call
@@ -322,60 +408,67 @@ void SyscallServer::marshallPipeCall(core_id_t core_id)
 
 void SyscallServer::marshallMmapCall (core_id_t core_id)
 {
-   struct mmap_arg_struct mmap_args_buf;
-
-   m_recv_buff.get(mmap_args_buf);
-
-   void *start;
-   start = VMManager::getSingleton()->mmap ( (void*) mmap_args_buf.addr,
-         (size_t) mmap_args_buf.len,
-         (int) mmap_args_buf.prot,
-         (int) mmap_args_buf.flags,
-         (int) mmap_args_buf.fd,
-         (off_t) mmap_args_buf.offset);
-
-   m_send_buff.put (start);
-
-   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
-}
-
-void SyscallServer::marshallMmap2Call (core_id_t core_id)
-{
-   void *start;
+   void *addr;
    size_t length;
    int prot;
    int flags;
    int fd;
    off_t pgoffset;
 
-   m_recv_buff.get (start);
-   m_recv_buff.get (length);
-   m_recv_buff.get (prot);
-   m_recv_buff.get (flags);
-   m_recv_buff.get (fd);
-   m_recv_buff.get (pgoffset);
+   m_recv_buff.get(addr);
+   m_recv_buff.get(length);
+   m_recv_buff.get(prot);
+   m_recv_buff.get(flags);
+   m_recv_buff.get(fd);
+   m_recv_buff.get(pgoffset);
 
-   void *addr;
-   addr = VMManager::getSingleton()->mmap2 (start, length, prot, flags, fd, pgoffset);
+   void *start;
+   start = VMManager::getSingleton()->mmap(addr, length, prot, flags, fd, pgoffset);
 
-   m_send_buff.put (addr);
+   m_send_buff.put(start);
+
    m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
+#ifdef TARGET_IA32
+void SyscallServer::marshallMmap2Call (core_id_t core_id)
+{
+   void *addr;
+   size_t length;
+   int prot;
+   int flags;
+   int fd;
+   off_t pgoffset;
+
+   m_recv_buff.get(addr);
+   m_recv_buff.get(length);
+   m_recv_buff.get(prot);
+   m_recv_buff.get(flags);
+   m_recv_buff.get(fd);
+   m_recv_buff.get(pgoffset);
+
+   void *start;
+   start = VMManager::getSingleton()->mmap2 (addr, length, prot, flags, fd, pgoffset);
+
+   m_send_buff.put(start);
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+#endif
+
 void SyscallServer::marshallMunmapCall (core_id_t core_id)
 {
-   void *start;
+   void *addr;
    size_t length;
 
-   m_recv_buff.get(start);
+   m_recv_buff.get(addr);
    m_recv_buff.get(length);
 
    int ret_val;
-   ret_val = VMManager::getSingleton()->munmap (start, length);
+   ret_val = VMManager::getSingleton()->munmap (addr, length);
 
-   m_send_buff.put (ret_val);
+   m_send_buff.put(ret_val);
 
-   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
 void SyscallServer::marshallBrkCall (core_id_t core_id)
@@ -427,6 +520,8 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    m_recv_buff.get(curr_time);
 
+   LOG_PRINT("Futex syscall: uaddr(0x%x), op(%u), val(%u)", uaddr, op, val);
+
    // Right now, we handle only a subset of the functionality
    // assert the subset
 
@@ -468,7 +563,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
       futexWake(core_id, uaddr, val, curr_time);
    }
 #endif
-
+   
 #ifdef KERNEL_ETCH
    if (op == FUTEX_WAIT)
    {
@@ -485,6 +580,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 // -- Futex related functions --
 void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time)
 {
+   LOG_PRINT("Futex Wait");
    SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
   
    if (val != act_val)
@@ -502,6 +598,7 @@ void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_va
 
 void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time)
 {
+   LOG_PRINT("Futex Wake");
    SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
    int num_procs_woken_up = 0;
 

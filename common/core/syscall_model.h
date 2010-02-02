@@ -14,17 +14,17 @@ class SyscallMdl
    public:
       struct syscall_args_t
       {
-          int arg0;
-          int arg1;
-          int arg2;
-          int arg3;
-          int arg4;
-          int arg5;
+          carbon_reg_t arg0;
+          carbon_reg_t arg1;
+          carbon_reg_t arg2;
+          carbon_reg_t arg3;
+          carbon_reg_t arg4;
+          carbon_reg_t arg5;
       };
 
       SyscallMdl(Network *net);
 
-      carbon_reg_t runExit(int old_return);
+      carbon_reg_t runExit(carbon_reg_t old_return);
       UInt8 runEnter(UInt8 syscall_number, syscall_args_t &args);
       
       // ------------------------------------------------------
@@ -65,14 +65,20 @@ class SyscallMdl
       carbon_reg_t marshallWriteCall(syscall_args_t &args);
       carbon_reg_t marshallCloseCall(syscall_args_t &args);
       carbon_reg_t marshallAccessCall(syscall_args_t &args);
+#ifdef TARGET_X86_64
+      carbon_reg_t marshallFstatCall(syscall_args_t &args);
+#endif
+#ifdef TARGET_IA32
+      carbon_reg_t marshallFstat64Call(syscall_args_t &args);
+#endif
+      carbon_reg_t marshallIoctlCall(syscall_args_t &args);
       carbon_reg_t marshallGetpidCall(syscall_args_t &args);
       carbon_reg_t marshallReadaheadCall(syscall_args_t &args);
       carbon_reg_t marshallPipeCall(syscall_args_t &args);
-      carbon_reg_t marshallFstatCall(syscall_args_t &args);
-      carbon_reg_t marshallIoctlCall(syscall_args_t &args);
-      carbon_reg_t marshallMprotectCall(syscall_args_t &args);
       carbon_reg_t marshallMmapCall(syscall_args_t &args);
+#ifdef TARGET_IA32
       carbon_reg_t marshallMmap2Call(syscall_args_t &args);
+#endif
       carbon_reg_t marshallMunmapCall(syscall_args_t &args);
       carbon_reg_t marshallBrkCall(syscall_args_t &args);
       carbon_reg_t marshallFutexCall(syscall_args_t &args);

@@ -94,7 +94,7 @@ void SyscallMdl::copyArgFromBuffer (unsigned int arg_num, IntPtr arg_addr, unsig
 
 // --------------------------------------------
 
-carbon_reg_t SyscallMdl::runExit(int old_return)
+carbon_reg_t SyscallMdl::runExit(carbon_reg_t old_return)
 {
    if (m_called_enter)
    {
@@ -105,7 +105,6 @@ carbon_reg_t SyscallMdl::runExit(int old_return)
    {
       return old_return;
    }
-
 }
 
 UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
@@ -154,7 +153,26 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
             m_ret_val = marshallAccessCall(args);
             break;
          }
-      
+     
+#ifdef TARGET_X86_64
+      case SYS_fstat:
+         m_called_enter = true;
+         m_ret_val = marshallFstatCall(args);
+         break;
+#endif
+
+#ifdef TARGET_IA32
+      case SYS_fstat64:
+         m_called_enter = true;
+         m_ret_val = marshallFstat64Call(args);
+         break;
+#endif
+
+      case SYS_ioctl:
+         m_called_enter = true;
+         m_ret_val = marshallIoctlCall(args);
+         break;
+
       case SYS_getpid:
          m_called_enter = true;
          m_ret_val = marshallGetpidCall (args);
@@ -175,10 +193,12 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
          m_ret_val = marshallMmapCall (args);
          break;
 
+#ifdef TARGET_IA32
       case SYS_mmap2:
          m_called_enter = true;
          m_ret_val = marshallMmap2Call (args);
          break;
+#endif
       
       case SYS_munmap:
          m_called_enter = true;
@@ -284,9 +304,8 @@ carbon_reg_t SyscallMdl::marshallReadCall(syscall_args_t &args)
    void *buf = (void *)args.arg1;
    size_t count = (size_t)args.arg2;
 
-
    // if shared mem, provide the buf to read into
-   m_send_buff << fd << count << (int)buf;
+   m_send_buff << fd << count << (carbon_reg_t)buf;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
@@ -438,6 +457,114 @@ carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
    return result;
 }
 
+#ifdef TARGET_X86_64
+carbon_reg_t SyscallMdl::marshallFstatCall(syscall_args_t &args)
+{
+   int fd = (int) args.arg0;
+   struct stat buf;
+
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   // Read the data from memory
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
+
+   // pack the data
+   m_send_buff.put<int>(fd);
+   m_send_buff.put<struct stat>(buf);
+
+   // send the data
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   // get the result
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+   // Create a buffer out of the results
+   int result;
+   m_recv_buff.get<int>(result);
+   m_recv_buff.get<struct stat>(buf);
+
+   // Write the data to memory
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
+
+   delete [] (Byte*) recv_pkt.data;
+   
+   return result;
+}
+#endif
+
+#ifdef TARGET_IA32
+carbon_reg_t SyscallMdl::marshallFstat64Call(syscall_args_t &args)
+{
+   int fd = (int) args.arg0;
+   struct stat64 buf;
+
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   // Read the data from memory
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
+
+   // pack the data
+   m_send_buff.put<int>(fd);
+   m_send_buff.put<struct stat64>(buf);
+
+   // send the data
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   // get the result
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+   // Create a buffer out of the results
+   int result;
+   m_recv_buff.get<int>(result);
+   m_recv_buff.get<struct stat64>(buf);
+
+   // Write the data to memory
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
+
+   delete [] (Byte*) recv_pkt.data;
+   
+   return result;
+}
+#endif
+
+carbon_reg_t SyscallMdl::marshallIoctlCall(syscall_args_t &args)
+{
+   int fd = (int) args.arg0;
+   int request = (int) args.arg1;
+
+   LOG_ASSERT_ERROR(request == TCGETS, "ioctl() system call, only TCGETS request supported, request(0x%x)", request);
+
+   struct termios buf;
+
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   // Read the data from memory
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));
+
+   // pack the data
+   m_send_buff.put<int>(fd);
+   m_send_buff.put<int>(request);
+   m_send_buff.put<struct termios>(buf);
+
+   // send the data
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   // get the result
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+   // Create a buffer out of the results
+   int result;
+   m_recv_buff.get<int>(result);
+   m_recv_buff.get<struct termios>(buf);
+
+   // Write the data to memory
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));
+
+   delete [] (Byte*) recv_pkt.data;
+   
+   return result;
+}
+
 carbon_reg_t SyscallMdl::marshallGetpidCall (syscall_args_t &args)
 {
    // send the data
@@ -524,137 +651,6 @@ carbon_reg_t SyscallMdl::marshallPipeCall (syscall_args_t &args)
    return result;
 }
 
-carbon_reg_t SyscallMdl::marshallFstatCall (syscall_args_t &args)
-{
-   //------------------------------------------
-   //  Syscall Arguments:
-   //  int filedes, struct stat *buf
-   //
-   //  TRANSMIT
-   //
-   //  Field           Type
-   //  --------------|------
-   //  fd               int
-   //
-   //  RECEIVE
-   //
-   //  Field           Type
-   //  --------------|------
-   //  status          int
-   //  buf             struct stat
-   //
-   //
-   //  ------------------------------------------
-
-   int fd = (int) args.arg0;
-   struct stat *buf = (struct stat*) args.arg1;
-   
-   // pack the data
-   m_send_buff << fd;
-
-   // send the data
-   m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
-
-   // get a result
-   NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
-
-   // Create a buffer out of the result
-   m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
-
-   // return the result
-   int result;
-   struct stat buffer;
-   m_recv_buff >> result;
-   m_recv_buff.get<struct stat> (buffer);
-
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   // FIXME: Check that this is correct
-   core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) buf, (char*) &buffer, sizeof(buffer));
-   
-   delete [] (Byte*) recv_pkt.data;
-
-   return result;
-}
-
-carbon_reg_t SyscallMdl::marshallIoctlCall (syscall_args_t &args)
-{
-   // --------------------------------------------
-   // Syscall arguments:
-   // int fd, int request, struct termios *argp (we only support 'request == TCGETS')
-   //
-   //  TRANSMIT
-   //
-   //  Field           Type
-   //  --------------|------
-   //  fd               int
-   //  request          int
-   //
-   //
-   //  RECEIVE
-   //
-   //  Field           Type
-   //  --------------|------
-   //  ret             int
-   //  argp_buf        struct termios (only if ret != -1)
-   //
-   //  ------------------------------------------
-   
-   int fd = (int) args.arg0;
-   int request = (int) args.arg1;
-   struct termios *argp = (struct termios*) args.arg2; 
-
-   assert(request == TCGETS);
-   
-   // pack the data
-   m_send_buff << fd << request;
-
-   // send the data
-   m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
-
-   // get a result
-   NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
-
-   // Create a buffer out of the result
-   m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
-
-   // return the result
-   int ret;
-   struct termios argp_buf;
-   m_recv_buff >> ret;
-   if (ret != -1)
-   {
-      m_recv_buff.get<struct termios> (argp_buf);
-      Core *core = Sim()->getCoreManager()->getCurrentCore();
-      core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) argp, (char*) &argp_buf, sizeof (struct termios));
-   }
-
-   delete [] (Byte*) recv_pkt.data;
-   
-   return ret;
-}
-
-carbon_reg_t SyscallMdl::marshallMprotectCall (syscall_args_t &args)
-{
-   // --------------------------------------------
-   // Syscall arguments:
-   //
-   // const void *addr, size_t len, int prot
-   //
-   // Make the system call locally for now
-   // In multi-machine simulations, we should be making the system call on the MCP
-   // as well as making it locally, I think
-   //
-   // --------------------------------------------
-
-   void *fd = (void*) args.arg0;
-   size_t len = (size_t) args.arg1;
-   int prot = (int) args.arg2;
-
-   return (carbon_reg_t) syscall (SYS_mprotect, fd, len, prot);
-}
-
 carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
 {
    // --------------------------------------------
@@ -677,22 +673,32 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
    // 
    // --------------------------------------------
 
-
-   struct mmap_arg_struct *mmap_args_ptr = (struct mmap_arg_struct*) args.arg0;
+#ifdef TARGET_IA32
+   struct mmap_arg_struct mmap_arg_buf;
+   
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
+   core->accessMemory (Core::NONE, Core::READ, (IntPtr) args.arg0, (char*) &mmap_arg_buf, sizeof(mmap_arg_buf));
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_send_buff.put (*mmap_args_ptr);
+      // These are all 32-bit values
+      m_send_buff.put(mmap_arg_buf.addr);
+      m_send_buff.put(mmap_arg_buf.len);
+      m_send_buff.put(mmap_arg_buf.prot);
+      m_send_buff.put(mmap_arg_buf.flags);
+      m_send_buff.put(mmap_arg_buf.fd);
+      m_send_buff.put(mmap_arg_buf.offset);
       
       // send the data
-      m_network->netSend (Config::getSingleton()->getMCPCoreNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
+      m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
-      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+      m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
       // Return the result
       void *start;
@@ -703,10 +709,83 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
    }
    else
    {
-      return (carbon_reg_t) syscall (SYS_mmap, mmap_args_ptr);
+      return (carbon_reg_t) syscall (SYS_mmap, args.arg0);
    }
+#endif
+
+#ifdef TARGET_X86_64
+   // --------------------------------------------
+   // Syscall arguments:
+   //
+   //  void *start, size_t length, int prot, int flags, int fd, off_t pgoffset
+   //  TRANSMIT
+   //
+   //  Field           Type
+   //  --------------|------
+   //  start           void*
+   //  length          size_t
+   //  prot            int
+   //  flags           int
+   //  fd              int
+   //  pgoffset        off_t
+   //
+   //
+   //  RECEIVE
+   //
+   //  Field           Type
+   //  --------------|------
+   //  start           void*
+   // 
+   // --------------------------------------------
+
+
+   void *start = (void*) args.arg0;
+   size_t length = (size_t) args.arg1;
+   int prot = (int) args.arg2;
+   int flags = (int) args.arg3;
+   int fd = (int) args.arg4;
+   off_t pgoffset = (off_t) args.arg5;
+
+   LOG_PRINT("start(%p), length(0x%x), prot(0x%x), flags(0x%x), fd(%i), pgoffset(%u)",
+         start, length, prot, flags, fd, pgoffset);
+
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+      m_send_buff.put(start);
+      m_send_buff.put(length);
+      m_send_buff.put(prot);
+      m_send_buff.put(flags);
+      m_send_buff.put(fd);
+      m_send_buff.put(pgoffset);
+
+      // send the data
+      m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+      // get a result
+      NetPacket recv_pkt;
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+
+      // Create a buffer out of the result
+      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+
+      // Return the result
+      void *addr;
+      m_recv_buff.get(addr);
+
+      // Delete the data buffer
+      delete [] (Byte*) recv_pkt.data;
+
+      return (carbon_reg_t) addr;
+   }
+   else
+   {
+      return (carbon_reg_t) syscall(SYS_mmap, start, length, prot, flags, fd, pgoffset);
+   }
+#endif
+
 }
 
+#ifdef TARGET_IA32
 carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
 {
    // --------------------------------------------
@@ -771,9 +850,10 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
    }
    else
    {
-      return (carbon_reg_t) syscall (SYS_mmap2, start, length, prot, flags, fd, pgoffset);
+      return (carbon_reg_t) syscall(SYS_mmap2, start, length, prot, flags, fd, pgoffset);
    }
 }
+#endif
 
 carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
 {

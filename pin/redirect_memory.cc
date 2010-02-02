@@ -67,18 +67,33 @@ bool rewriteStringOp (INS ins)
       // Has a REP or REPNE prefix
       if (  (INS_Opcode(ins) == XED_ICLASS_MOVSB) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSW) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVSS) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD_XMM) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSB) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSW) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVDQU)
+            (INS_Opcode(ins) == XED_ICLASS_STOSQ) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVDQU) ||
+            (INS_Opcode(ins) == XED_ICLASS_RET_NEAR) ||
+            (INS_Opcode(ins) == XED_ICLASS_CVTSI2SS) ||
+            (INS_Opcode(ins) == XED_ICLASS_CVTSI2SD) ||
+            (INS_Opcode(ins) == XED_ICLASS_SQRTSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_SQRTSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MULSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_MULSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_DIVSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_DIVSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_ADDSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_ADDSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_SUBSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_SUBSD)
          )
       {
          return false;
       }
 
-      LOG_ASSERT_ERROR(! (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)), "Ins: %s not currently supported", INS_Disassemble(ins).c_str());
+      LOG_ASSERT_ERROR(! (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)), "Ins: %s (0x%x) not currently supported", INS_Disassemble(ins).c_str(), INS_Address (ins));
       
       return false;
    }

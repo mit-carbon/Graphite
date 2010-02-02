@@ -7,6 +7,7 @@
 #include "network_model_hop_counter.h"
 #include "network_model_analytical.h"
 #include "network_model_emesh_hop_by_hop.h"
+#include "network_model_atac_optical_bus.h"
 #include "log.h"
 
 NetworkModel*
@@ -26,6 +27,9 @@ NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_ty
    case NETWORK_EMESH_HOP_BY_HOP:
       return new NetworkModelEMeshHopByHop(net);
 
+   case NETWORK_ATAC_OPTICAL_BUS:
+      return new NetworkModelAtacOpticalBus(net);
+
    default:
       assert(false);
       return NULL;
@@ -43,6 +47,8 @@ NetworkModel::parseNetworkType(std::string str)
       return NETWORK_ANALYTICAL_MESH;
    else if (str == "emesh_hop_by_hop")
       return NETWORK_EMESH_HOP_BY_HOP;
+   else if (str == "atac_optical_bus")
+      return NETWORK_ATAC_OPTICAL_BUS;
    else
       return (UInt32)-1;
 }
@@ -55,6 +61,7 @@ NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count
       case NETWORK_MAGIC:
       case NETWORK_HOP_COUNTER:
       case NETWORK_ANALYTICAL_MESH:
+      case NETWORK_ATAC_OPTICAL_BUS:
          return std::make_pair(false,core_count);
 
       case NETWORK_EMESH_HOP_BY_HOP:

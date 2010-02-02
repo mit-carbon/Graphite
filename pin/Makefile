@@ -17,7 +17,7 @@ CXXFLAGS += -c \
             -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD
 
 # Use the pin flags for building
-TARGET = ia32
+TARGET = ia32e
 PIN_HOME = /afs/csail/group/carbon/tools/pin/current/
 include $(PIN_HOME)/source/tools/makefile.gnu.config
 

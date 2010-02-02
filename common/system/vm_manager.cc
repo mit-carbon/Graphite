@@ -55,7 +55,14 @@ VMManager::VMManager()
        "Problem with Application Stack: start_data_segment(0x%x), start_stack_segment(0x%x)",
        m_start_data_segment, m_start_stack_segment);
 
+#ifdef TARGET_IA32
    m_start_dynamic_segment = 0xb0000000;
+#endif
+
+#ifdef TARGET_X86_64
+   m_start_dynamic_segment = 0xf0000000;
+#endif
+
    m_end_dynamic_segment = m_start_dynamic_segment;
 
    LOG_ASSERT_ERROR(m_start_dynamic_segment > m_end_stack_segment,
@@ -93,8 +100,8 @@ void *VMManager::brk(void *end_data_segment)
 
 void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
-   LOG_PRINT("VMManager: mmap(start = %p, length = 0x%x, flags = 0x%x)",
-         start, length, (unsigned) flags);
+   LOG_PRINT("VMManager: mmap(start = %p, length = 0x%x, flags = 0x%x, fd = %i, offset = %u)",
+         start, length, flags, fd, flags);
 
    LOG_ASSERT_ERROR(fd == -1, 
          "Mmap() system call, received valid file descriptor. Not currently supported");

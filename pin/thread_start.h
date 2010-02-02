@@ -8,8 +8,8 @@
 
 int spawnThreadSpawner(CONTEXT *ctxt);
 VOID copyStaticData(IMG& img);
-VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id);
-VOID copySpawnedThreadStackData(ADDRINT reg_esp);
+VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id);
+VOID copySpawnedThreadStackData(IntPtr reg_esp);
 VOID allocateStackSpace();
 
 // Initialize stack attributes

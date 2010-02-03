@@ -46,7 +46,7 @@ static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
    STATIC_NETWORK_USER_2,        // USER_2
    STATIC_NETWORK_MEMORY_1,      // SM_1
    STATIC_NETWORK_MEMORY_2,      // SM_2
-   STATIC_NETWORK_MEMORY_1,      // ST_TERMINATE_THREADS
+   STATIC_NETWORK_SYSTEM,        // ST_TERMINATE_THREADS
    STATIC_NETWORK_USER_1,        // MCP_REQ
    STATIC_NETWORK_USER_1,        // MCP_RESP
    STATIC_NETWORK_SYSTEM,        // MCP_UTIL

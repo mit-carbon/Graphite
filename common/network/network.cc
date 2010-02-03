@@ -100,7 +100,11 @@ void Network::netPullFromTransport()
 
          // if this isn't a broadcast message, then we shouldn't process it further
          if (packet.receiver != NetPacket::BROADCAST)
+         {
+            if (packet.length > 0)
+               delete [] (Byte*) packet.data;
             continue;
+         }
       }
 
       // asynchronous I/O support

@@ -1,8 +1,10 @@
 #include <iostream>
 using namespace std;
 
+#include "simulator.h"
 #include "config.h"
 #include "dram_perf_model.h"
+#include "queue_model_history_list.h"
 
 // Note: Each Dram Controller owns a single DramModel object
 // Hence, m_dram_bandwidth is the bandwidth for a single DRAM controller
@@ -87,4 +89,15 @@ DramPerfModel::outputSummary(ostream& out)
       (float) (m_total_access_latency / m_num_accesses) << endl;
    out << "    average dram queueing delay: " << 
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
+   
+   std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+   if (m_queue_model && (queue_model_type == "history_list"))
+   {
+      out << "  Queue Model:" << endl;
+         
+      float queue_utilization = ((QueueModelHistoryList*) m_queue_model)->getQueueUtilization();
+      float frac_requests_using_analytical_model = ((QueueModelHistoryList*) m_queue_model)->getFracRequestsUsingAnalyticalModel();
+      out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
+      out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
+   }
 }

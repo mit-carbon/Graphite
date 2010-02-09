@@ -44,16 +44,24 @@ Fxsupport *Fxsupport::getSingleton()
 
 void Fxsupport::fxsave()
 {
+   LOG_PRINT("fxsave() start");
+   
    core_id_t core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
    char *buf = m_fx_buf[core_index];
    asm volatile ("fxsave %0\n\t"
                  "emms"
                  :"=m"(*buf));
+   
+   LOG_PRINT("fxsave() end");
 }
 
 void Fxsupport::fxrstor()
 {
+   LOG_PRINT("fxrstor() start");
+   
    core_id_t core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
    char *buf = m_fx_buf[core_index];
    asm volatile ("fxrstor %0"::"m"(*buf));
+   
+   LOG_PRINT("fxrstor() end");
 }

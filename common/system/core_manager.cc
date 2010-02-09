@@ -33,7 +33,7 @@ CoreManager::CoreManager()
 
    for (UInt32 i = 0; i < num_local_cores; i++)
    {
-       LOG_PRINT("Core[%u] == %d", i, local_cores.at(i));
+      LOG_PRINT("Core[%u] == %d", i, local_cores.at(i));
       m_cores.push_back(new Core(local_cores.at(i)));
       m_initialized_cores.push_back(false);
    }
@@ -172,7 +172,7 @@ Core *CoreManager::getCurrentCore()
 UInt32 CoreManager::getCurrentCoreIndex()
 {
     UInt32 idx = m_core_index_tls->getInt();
-    LOG_ASSERT_ERROR(idx < m_cores.size(), "Invalid core index.");
+    LOG_ASSERT_ERROR(idx < m_cores.size(), "Invalid core index, idx(%u) >= m_cores.size(%u)", idx, m_cores.size());
     return idx;
 }
 

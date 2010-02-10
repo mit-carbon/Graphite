@@ -55,30 +55,41 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
       m_queue_models[direction] = NULL;
    }
 
-   if ((m_core_id / m_mesh_width) != 0)
+   if (m_queue_model_enabled && ((m_core_id / m_mesh_width) != 0))
    {
       m_queue_models[DOWN] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if ((m_core_id % m_mesh_width) != 0)
+   if (m_queue_model_enabled && ((m_core_id % m_mesh_width) != 0))
    {
       m_queue_models[LEFT] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
+   if (m_queue_model_enabled && ((m_core_id / m_mesh_width) != (m_mesh_height - 1)))
    {
       m_queue_models[UP] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
+   if (m_queue_model_enabled && ((m_core_id % m_mesh_width) != (m_mesh_width - 1)))
    {
       m_queue_models[RIGHT] = QueueModel::create(queue_model_type, min_processing_time);
    }
 }
 
 NetworkModelEMeshHopByHop::~NetworkModelEMeshHopByHop()
-{}
+{
+   if (m_queue_model_enabled)
+   {
+      for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
+      {
+         if (m_queue_models[i])
+            delete m_queue_models[i];
+      }
+  }
+}
 
 void
 NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 {
+   ScopedLock sl(m_lock);
+
    core_id_t requester = INVALID_CORE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
@@ -284,7 +295,7 @@ NetworkModelEMeshHopByHop::outputSummary(std::ostream &out)
    }
 
    std::string queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
-   if (queue_model_type == "history_list")
+   if (m_queue_model_enabled && (queue_model_type == "history_list"))
    {
       out << "  Queue Models:" << endl;
          

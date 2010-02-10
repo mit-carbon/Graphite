@@ -107,7 +107,7 @@ UInt64
 QueueModelHistoryList::computeUsingHistoryList(UInt64 pkt_time, UInt64 processing_time)
 {
    LOG_ASSERT_ERROR(m_free_interval_list.size() <= m_max_free_interval_list_size,
-         "Free Interval list size > %u", m_max_free_interval_list_size);
+         "Free Interval list size(%u) > %u", m_free_interval_list.size(), m_max_free_interval_list_size);
    UInt64 queue_delay = UINT64_MAX;
   
    FreeIntervalList::iterator curr_it;

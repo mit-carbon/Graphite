@@ -5,6 +5,7 @@
 #include "network_model.h"
 #include "fixed_types.h"
 #include "queue_model.h"
+#include "lock.h"
 
 class NetworkModelEMeshHopByHop : public NetworkModel
 {
@@ -32,6 +33,9 @@ class NetworkModelEMeshHopByHop : public NetworkModel
 
       bool m_queue_model_enabled;
       bool m_enabled;
+
+      // Lock
+      Lock m_lock;
 
       // Counters
       UInt64 m_bytes_sent;

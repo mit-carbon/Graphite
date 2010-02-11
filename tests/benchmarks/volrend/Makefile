@@ -1,9 +1,9 @@
 TARGET = volrend
 OBJECTS = adaptive.o file.o main.o map.o normal.o octree.o opacity.o option.o raytrace.o render.o view.o
-APP_FLAGS = 8 $(CURDIR)/inputs/head-scaleddown2
-CORES = 45
+APP_FLAGS ?= 64 $(CURDIR)/inputs/head-scaleddown2
 
 MACROS := ../splash_support/c.m4.null.CARBON
+#MACROS := ../splash_support/c.m4.null.POSIX
 
 include ../../Makefile.tests
 

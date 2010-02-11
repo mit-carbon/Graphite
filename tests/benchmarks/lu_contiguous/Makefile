@@ -1,6 +1,6 @@
 TARGET = lu_contiguous
 OBJECTS = lu.o
-APP_FLAGS = -p8
+APP_FLAGS ?= -p64
 
 MACROS := ../splash_support/c.m4.null.CARBON
 #MACROS := ../splash_support/c.m4.null.POSIX

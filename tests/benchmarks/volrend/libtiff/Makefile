@@ -26,10 +26,6 @@
 #
 DESTDIR=/usr/local
 #
-
-MPI_DIR = /afs/csail/group/carbon/tools/mpich2-1.0.8/install
-CC = $(MPI_DIR)/bin/mpicc
-
 AR=	/usr/bin/ar
 NULL=
 
@@ -73,7 +69,7 @@ CONF_LIBRARY=\
 	-DCMYK_SUPPORT \
 	-DMMAP_SUPPORT \
 	${NULL}
-CFLAGS=	-O ${IPATH} ${CONF_LIBRARY} -ansi -m32 -DBSDTYPES
+CFLAGS=	-O ${IPATH} ${CONF_LIBRARY} -ansi -DBSDTYPES
 #
 INCS=	tiff.h tiffio.h
 SRCS=	tif_fax3.c \

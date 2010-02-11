@@ -147,6 +147,13 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
             break;
          }
 
+      case SYS_lseek:
+         {
+            m_called_enter = true;
+            m_ret_val = marshallLseekCall(args);
+            break;
+         }
+
       case SYS_access:
          {
             m_called_enter = true;
@@ -421,6 +428,47 @@ carbon_reg_t SyscallMdl::marshallCloseCall(syscall_args_t &args)
    delete [] (Byte*) recv_pkt.data;
 
    return status;
+}
+
+carbon_reg_t SyscallMdl::marshallLseekCall(syscall_args_t &args)
+{
+   /*
+       Syscall Args
+       int fd
+
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       FILE_DESCRIPTOR     int
+
+       Receive
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+
+   */
+
+   int fd = (int) args.arg0;
+   off_t offset = (off_t) args.arg1;
+   int whence = (int) args.arg2;
+
+   m_send_buff << fd << offset << whence ;
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   LOG_ASSERT_ERROR(recv_pkt.length == sizeof(off_t), "Recv Pkt length: expected(%u), got(%u)", sizeof(off_t), recv_pkt.length);
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   off_t ret_val;
+   m_recv_buff >> ret_val;
+
+   delete [] (Byte*) recv_pkt.data;
+
+   return ret_val;
 }
 
 carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)

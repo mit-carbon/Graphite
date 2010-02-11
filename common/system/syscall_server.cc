@@ -61,6 +61,9 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_close:
       marshallCloseCall(core_id);
       break;
+   case SYS_lseek:
+      marshallLseekCall(core_id);
+      break;
    case SYS_access:
       marshallAccessCall(core_id);
       break;
@@ -142,7 +145,7 @@ void SyscallServer::marshallOpenCall(core_id_t core_id)
    m_recv_buff >> make_pair(path, len_fname) >> flags;
 
    // Actually do the open call
-   int ret = open(path, flags);
+   int ret = syscall(SYS_open, path, flags);
 
    m_send_buff << ret;
 
@@ -186,7 +189,7 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
       buf = new char[count];
 
    // Actually do the read call
-   int bytes = read(fd, (void *) buf, count);
+   int bytes = syscall(SYS_read, fd, (void *) buf, count);
 
    // Copy the memory into shared mem
    m_network.getCore()->accessMemory(Core::NONE, Core::WRITE, (IntPtr)dest, buf, count);
@@ -237,7 +240,7 @@ void SyscallServer::marshallWriteCall(core_id_t core_id)
    m_recv_buff >> make_pair(buf, count);
 
    // Actually do the write call
-   int bytes = write(fd, (void *) buf, count);
+   int bytes = syscall(SYS_write, fd, (void *) buf, count);
 
    m_send_buff << bytes;
 
@@ -271,9 +274,24 @@ void SyscallServer::marshallCloseCall(core_id_t core_id)
    m_recv_buff >> fd;
 
    // Actually do the close call
-   int status = close(fd);
+   int status = syscall(SYS_close, fd);
 
    m_send_buff << status;
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+}
+
+void SyscallServer::marshallLseekCall(core_id_t core_id)
+{
+   int fd;
+   off_t offset;
+   int whence;
+   m_recv_buff >> fd >> offset >> whence;
+
+   // Actually do the lseek call
+   off_t ret_val = syscall(SYS_lseek, fd, offset, whence);
+
+   m_send_buff << ret_val;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
 }
@@ -292,7 +310,7 @@ void SyscallServer::marshallAccessCall(core_id_t core_id)
    m_recv_buff >> make_pair(path, len_fname) >> mode;
 
    // Actually do the open call
-   int ret = access(path, mode);
+   int ret = syscall(SYS_access, path, mode);
 
    m_send_buff << ret;
 
@@ -386,7 +404,7 @@ void SyscallServer::marshallReadaheadCall(core_id_t core_id)
    m_recv_buff >> fd >> offset >> count;
 
    // Actually do the readahead call
-   int ret = readahead (fd, offset, count);
+   int ret = syscall(SYS_readahead, fd, offset, count);
 
    m_send_buff << ret;
 
@@ -398,7 +416,7 @@ void SyscallServer::marshallPipeCall(core_id_t core_id)
    int fds[2];
 
    // Actually do the pipe call
-   int ret = pipe (fds);
+   int ret = syscall(SYS_pipe, fds);
 
    m_send_buff << ret;
    m_send_buff << fds[0] << fds[1];

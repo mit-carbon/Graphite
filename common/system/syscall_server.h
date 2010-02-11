@@ -56,6 +56,7 @@ class SyscallServer
       void marshallReadCall(core_id_t core_id);
       void marshallWriteCall(core_id_t core_id);
       void marshallCloseCall(core_id_t core_id);
+      void marshallLseekCall(core_id_t core_id);
       void marshallAccessCall(core_id_t core_id);
 #ifdef TARGET_X86_64
       void marshallFstatCall(core_id_t core_id);

@@ -64,6 +64,7 @@ class SyscallMdl
       carbon_reg_t marshallReadCall(syscall_args_t &args);
       carbon_reg_t marshallWriteCall(syscall_args_t &args);
       carbon_reg_t marshallCloseCall(syscall_args_t &args);
+      carbon_reg_t marshallLseekCall(syscall_args_t &args);
       carbon_reg_t marshallAccessCall(syscall_args_t &args);
 #ifdef TARGET_X86_64
       carbon_reg_t marshallFstatCall(syscall_args_t &args);

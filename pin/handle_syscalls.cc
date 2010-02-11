@@ -137,6 +137,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_read) ||
             (syscall_number == SYS_write) ||
             (syscall_number == SYS_close) ||
+            (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_fstat) ||
@@ -293,6 +294,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_read) ||
             (syscall_number == SYS_write) ||
             (syscall_number == SYS_close) ||
+            (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_fstat) ||

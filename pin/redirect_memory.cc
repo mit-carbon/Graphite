@@ -89,7 +89,9 @@ bool rewriteStringOp (INS ins)
             (INS_Opcode(ins) == XED_ICLASS_ADDSD) ||
             (INS_Opcode(ins) == XED_ICLASS_SUBSS) ||
             (INS_Opcode(ins) == XED_ICLASS_SUBSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MAXSS) ||
             (INS_Opcode(ins) == XED_ICLASS_MAXSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MINSS) ||
             (INS_Opcode(ins) == XED_ICLASS_MINSD) ||
             (INS_Opcode(ins) == XED_ICLASS_CMPSD_XMM)
          )

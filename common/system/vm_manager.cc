@@ -1,4 +1,3 @@
-#include "assert.h"
 #include "vm_manager.h"
 #include "simulator.h"
 #include <boost/lexical_cast.hpp>
@@ -152,7 +151,7 @@ int VMManager::munmap(void *start, size_t length)
          start, length);
 
    // Ignore for now
-   LOG_ASSERT_ERROR(((IntPtr) start >= m_start_dynamic_segment),
+   LOG_ASSERT_ERROR((((IntPtr) start) >= m_start_dynamic_segment),
          "Munmap() system call, start(0x%x), start_dynamic_segment(0x%x)",
          (IntPtr) start, m_start_dynamic_segment);
 

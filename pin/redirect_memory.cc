@@ -69,6 +69,7 @@ bool rewriteStringOp (INS ins)
             (INS_Opcode(ins) == XED_ICLASS_MOVSW) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSS) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVSQ) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD_XMM) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSB) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSW) ||
@@ -87,7 +88,10 @@ bool rewriteStringOp (INS ins)
             (INS_Opcode(ins) == XED_ICLASS_ADDSS) ||
             (INS_Opcode(ins) == XED_ICLASS_ADDSD) ||
             (INS_Opcode(ins) == XED_ICLASS_SUBSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_SUBSD)
+            (INS_Opcode(ins) == XED_ICLASS_SUBSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MAXSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MINSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_CMPSD_XMM)
          )
       {
          return false;

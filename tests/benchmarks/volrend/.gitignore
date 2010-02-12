@@ -1,0 +1,4 @@
+inputs/*.tiff
+libtiff/g3states.h
+libtiff/libtiff.a
+libtiff/mkg3states

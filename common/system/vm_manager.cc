@@ -83,11 +83,11 @@ void *VMManager::brk(void *end_data_segment)
       return (void*) m_end_data_segment;
    }
 
-   LOG_ASSERT_ERROR((IntPtr) end_data_segment > m_start_data_segment,
+   LOG_ASSERT_ERROR(m_start_data_segment < ((IntPtr) end_data_segment),
        "Problem with brk() system call: start_data_segment(0x%x), end_data_segment(0x%x)",
        m_start_data_segment, (IntPtr) end_data_segment);
 
-   LOG_ASSERT_ERROR((IntPtr) end_data_segment < m_start_stack_segment,
+   LOG_ASSERT_ERROR(m_start_stack_segment > ((IntPtr) end_data_segment),
        "Problem with brk() system call: No more memory to allocate! end_data_segment(0x%x), start_stack_segment(0x%x)",
        (IntPtr) end_data_segment, m_start_stack_segment);
 
@@ -111,13 +111,13 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
    LOG_ASSERT_ERROR((flags & MAP_PRIVATE) == MAP_PRIVATE,
          "Mmap() system call, MAP_PRIVATE should be set in flags");
    
-   LOG_ASSERT_ERROR((m_start_dynamic_segment - length) > m_end_stack_segment,
+   LOG_ASSERT_ERROR((m_end_stack_segment < m_start_dynamic_segment - length),
          "Mmap() system call: No more memory to allocate! end_stack_segment(0x%x), start_dynamic_segment(0x%x)",
          m_end_stack_segment, m_start_dynamic_segment - length);
 
    m_start_dynamic_segment -= length;
 
-   LOG_PRINT("VMManager: mmap() returned 0x%x", m_start_dynamic_segment);
+   LOG_PRINT("VMManager: mmap() returned %p", (void*) m_start_dynamic_segment);
    return ((void*) m_start_dynamic_segment);
 }
 
@@ -135,13 +135,13 @@ void *VMManager::mmap2(void *start, size_t length, int prot, int flags, int fd, 
    LOG_ASSERT_ERROR((flags & MAP_PRIVATE) == MAP_PRIVATE,
          "Mmap2() system call, MAP_PRIVATE should be set in flags");
    
-   LOG_ASSERT_ERROR((m_start_dynamic_segment - length) > m_end_stack_segment,
+   LOG_ASSERT_ERROR(m_end_stack_segment < (m_start_dynamic_segment - length),
          "Mmap2() system call: No more memory to allocate! end_stack_segment(0x%x), start_dynamic_segment(0x%x)",
          m_end_stack_segment, m_start_dynamic_segment - length);
 
    m_start_dynamic_segment -= length;
 
-   LOG_PRINT("VMManager: mmap2() returned 0x%x", m_start_dynamic_segment);
+   LOG_PRINT("VMManager: mmap2() returned %p", (void*) m_start_dynamic_segment);
    return ((void*) m_start_dynamic_segment);
 }
 
@@ -151,7 +151,7 @@ int VMManager::munmap(void *start, size_t length)
          start, length);
 
    // Ignore for now
-   LOG_ASSERT_ERROR((((IntPtr) start) >= m_start_dynamic_segment),
+   LOG_ASSERT_ERROR(m_start_dynamic_segment <= ((IntPtr) start),
          "Munmap() system call, start(0x%x), start_dynamic_segment(0x%x)",
          (IntPtr) start, m_start_dynamic_segment);
 

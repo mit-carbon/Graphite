@@ -43,17 +43,17 @@ SyscallMdl::SyscallMdl(Network *net)
 // --------------------------------------------
 // New stuff added with Memory redirection
 
-void SyscallMdl::saveSyscallNumber (carbon_reg_t syscall_number)
+void SyscallMdl::saveSyscallNumber(IntPtr syscall_number)
 {
    m_syscall_number = syscall_number;
 }
 
-carbon_reg_t SyscallMdl::retrieveSyscallNumber ()
+IntPtr SyscallMdl::retrieveSyscallNumber()
 {
    return m_syscall_number;
 }
 
-void SyscallMdl::saveSyscallArgs (syscall_args_t &args)
+void SyscallMdl::saveSyscallArgs(syscall_args_t &args)
 {
    m_saved_args.arg0 = args.arg0;
    m_saved_args.arg1 = args.arg1;
@@ -63,7 +63,7 @@ void SyscallMdl::saveSyscallArgs (syscall_args_t &args)
    m_saved_args.arg5 = args.arg5;
 }
 
-void SyscallMdl::retrieveSyscallArgs (syscall_args_t &args)
+void SyscallMdl::retrieveSyscallArgs(syscall_args_t &args)
 {
    args.arg0 = m_saved_args.arg0;
    args.arg1 = m_saved_args.arg1;
@@ -73,7 +73,7 @@ void SyscallMdl::retrieveSyscallArgs (syscall_args_t &args)
    args.arg5 = m_saved_args.arg5;
 }
 
-void* SyscallMdl::copyArgToBuffer (unsigned int arg_num, IntPtr arg_addr, unsigned int size)
+void* SyscallMdl::copyArgToBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size)
 {
    assert (arg_num < m_num_syscall_args);
    assert (size < m_scratchpad_size);
@@ -83,18 +83,18 @@ void* SyscallMdl::copyArgToBuffer (unsigned int arg_num, IntPtr arg_addr, unsign
    return (void*) scratchpad;
 }
    
-void SyscallMdl::copyArgFromBuffer (unsigned int arg_num, IntPtr arg_addr, unsigned int size)
+void SyscallMdl::copyArgFromBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size)
 {
    assert (arg_num < m_num_syscall_args);
    assert (size < m_scratchpad_size);
-   char *scratchpad = m_scratchpad [arg_num];
+   char *scratchpad = m_scratchpad[arg_num];
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, Core::WRITE, arg_addr, scratchpad, size);
+   core->accessMemory(Core::NONE, Core::WRITE, arg_addr, scratchpad, size);
 }
 
 // --------------------------------------------
 
-carbon_reg_t SyscallMdl::runExit(carbon_reg_t old_return)
+IntPtr SyscallMdl::runExit(IntPtr old_return)
 {
    if (m_called_enter)
    {
@@ -107,7 +107,7 @@ carbon_reg_t SyscallMdl::runExit(carbon_reg_t old_return)
    }
 }
 
-UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
+IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
 {
    LOG_PRINT("Got Syscall: %i", syscall_number);
 
@@ -122,46 +122,42 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
    switch (syscall_number)
    {
       case SYS_open:
-         {
             m_called_enter = true;
             m_ret_val = marshallOpenCall(args);
             break;
-         }
+      
       case SYS_read:
-         {
             m_called_enter = true;
             m_ret_val = marshallReadCall(args);
             break;
-         }
 
       case SYS_write:
-         {
             m_called_enter = true;
             m_ret_val = marshallWriteCall(args);
             break;
-         }
       case SYS_close:
-         {
             m_called_enter = true;
             m_ret_val = marshallCloseCall(args);
             break;
-         }
 
       case SYS_lseek:
-         {
             m_called_enter = true;
             m_ret_val = marshallLseekCall(args);
             break;
-         }
 
       case SYS_access:
-         {
             m_called_enter = true;
             m_ret_val = marshallAccessCall(args);
             break;
-         }
      
 #ifdef TARGET_X86_64
+      case SYS_stat:
+      case SYS_lstat:
+         // Same as stat() except that it stats a link
+         m_called_enter = true;
+         m_ret_val = marshallStatCall(args);
+         break;
+
       case SYS_fstat:
          m_called_enter = true;
          m_ret_val = marshallFstatCall(args);
@@ -230,10 +226,9 @@ UInt8 SyscallMdl::runEnter(UInt8 syscall_number, syscall_args_t &args)
    LOG_PRINT("Syscall finished");
 
    return m_called_enter ? SYS_getpid : syscall_number;
-
 }
 
-carbon_reg_t SyscallMdl::marshallOpenCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallOpenCall(syscall_args_t &args)
 {
    /*
        Syscall Args
@@ -283,7 +278,7 @@ carbon_reg_t SyscallMdl::marshallOpenCall(syscall_args_t &args)
 }
 
 
-carbon_reg_t SyscallMdl::marshallReadCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallReadCall(syscall_args_t &args)
 {
 
    /*
@@ -338,7 +333,7 @@ carbon_reg_t SyscallMdl::marshallReadCall(syscall_args_t &args)
    return bytes;
 }
 
-carbon_reg_t SyscallMdl::marshallWriteCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallWriteCall(syscall_args_t &args)
 {
    /*
        Syscall Args
@@ -391,7 +386,7 @@ carbon_reg_t SyscallMdl::marshallWriteCall(syscall_args_t &args)
    return status;
 }
 
-carbon_reg_t SyscallMdl::marshallCloseCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallCloseCall(syscall_args_t &args)
 {
    /*
        Syscall Args
@@ -430,7 +425,7 @@ carbon_reg_t SyscallMdl::marshallCloseCall(syscall_args_t &args)
    return status;
 }
 
-carbon_reg_t SyscallMdl::marshallLseekCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallLseekCall(syscall_args_t &args)
 {
    /*
        Syscall Args
@@ -471,7 +466,7 @@ carbon_reg_t SyscallMdl::marshallLseekCall(syscall_args_t &args)
    return ret_val;
 }
 
-carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallAccessCall(syscall_args_t &args)
 {
    char *path = (char *)args.arg0;
    int mode = (int)args.arg1;
@@ -506,7 +501,45 @@ carbon_reg_t SyscallMdl::marshallAccessCall(syscall_args_t &args)
 }
 
 #ifdef TARGET_X86_64
-carbon_reg_t SyscallMdl::marshallFstatCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
+{
+   char *path = (char*) args.arg0;
+   struct stat stat_buf;
+
+   UInt32 len_fname = getStrLen(path) + 1;
+   char* path_buf = new char[len_fname]; 
+
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   // Read the data from memory
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
+
+   // pack the data
+   m_send_buff << len_fname << make_pair(path_buf, len_fname);
+   m_send_buff.put<struct stat>(stat_buf);
+
+   // send the data
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   // get the result
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+
+   // Create a buffer out of the results
+   int result;
+   m_recv_buff.get<int>(result);
+   m_recv_buff.get<struct stat>(stat_buf);
+
+   // Write the data to memory
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
+
+   delete [] (Byte*) recv_pkt.data;
+   delete [] path_buf;
+   
+   return result;
+}
+
+IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
 {
    int fd = (int) args.arg0;
    struct stat buf;
@@ -541,7 +574,7 @@ carbon_reg_t SyscallMdl::marshallFstatCall(syscall_args_t &args)
 #endif
 
 #ifdef TARGET_IA32
-carbon_reg_t SyscallMdl::marshallFstat64Call(syscall_args_t &args)
+IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
 {
    int fd = (int) args.arg0;
    struct stat64 buf;
@@ -575,7 +608,7 @@ carbon_reg_t SyscallMdl::marshallFstat64Call(syscall_args_t &args)
 }
 #endif
 
-carbon_reg_t SyscallMdl::marshallIoctlCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
 {
    int fd = (int) args.arg0;
    int request = (int) args.arg1;
@@ -613,7 +646,7 @@ carbon_reg_t SyscallMdl::marshallIoctlCall(syscall_args_t &args)
    return result;
 }
 
-carbon_reg_t SyscallMdl::marshallGetpidCall (syscall_args_t &args)
+IntPtr SyscallMdl::marshallGetpidCall (syscall_args_t &args)
 {
    // send the data
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -634,7 +667,7 @@ carbon_reg_t SyscallMdl::marshallGetpidCall (syscall_args_t &args)
    return result;
 }
 
-carbon_reg_t SyscallMdl::marshallReadaheadCall(syscall_args_t &args)
+IntPtr SyscallMdl::marshallReadaheadCall(syscall_args_t &args)
 {
    int fd = (int) args.arg0;
    UInt32 offset_msb = (UInt32) args.arg1;
@@ -667,7 +700,7 @@ carbon_reg_t SyscallMdl::marshallReadaheadCall(syscall_args_t &args)
    return result;
 }
 
-carbon_reg_t SyscallMdl::marshallPipeCall (syscall_args_t &args)
+IntPtr SyscallMdl::marshallPipeCall (syscall_args_t &args)
 {
    int *fd = (int*) args.arg0;
 
@@ -699,7 +732,7 @@ carbon_reg_t SyscallMdl::marshallPipeCall (syscall_args_t &args)
    return result;
 }
 
-carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
+IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
 {
    // --------------------------------------------
    // Syscall arguments:
@@ -811,7 +844,7 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum (), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -834,7 +867,7 @@ carbon_reg_t SyscallMdl::marshallMmapCall (syscall_args_t &args)
 }
 
 #ifdef TARGET_IA32
-carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
+IntPtr SyscallMdl::marshallMmap2Call (syscall_args_t &args)
 {
    // --------------------------------------------
    // Syscall arguments:
@@ -903,7 +936,7 @@ carbon_reg_t SyscallMdl::marshallMmap2Call (syscall_args_t &args)
 }
 #endif
 
-carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
+IntPtr SyscallMdl::marshallMunmapCall (syscall_args_t &args)
 {
    // --------------------------------------------
    // Syscall arguments:
@@ -960,7 +993,7 @@ carbon_reg_t SyscallMdl::marshallMunmapCall (syscall_args_t &args)
    }
 }
 
-carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
+IntPtr SyscallMdl::marshallBrkCall (syscall_args_t &args)
 {
    // --------------------------------------------
    // Syscall arguments:
@@ -1011,7 +1044,7 @@ carbon_reg_t SyscallMdl::marshallBrkCall (syscall_args_t &args)
    }
 }
 
-carbon_reg_t SyscallMdl::marshallFutexCall (syscall_args_t &args)
+IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 {
    int *uaddr = (int*) args.arg0;
    int op = (int) args.arg1;

@@ -42,7 +42,7 @@ SyscallServer::~SyscallServer()
 
 void SyscallServer::handleSyscall(core_id_t core_id)
 {
-   UInt8 syscall_number;
+   IntPtr syscall_number;
    m_recv_buff >> syscall_number;
 
    LOG_PRINT("Syscall: %d from core(%i)", syscall_number, core_id);
@@ -68,6 +68,11 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       marshallAccessCall(core_id);
       break;
 #ifdef TARGET_X86_64
+   case SYS_stat:
+   case SYS_lstat:
+      // Same as stat() except for a link
+      marshallStatCall(syscall_number, core_id);
+      break;
    case SYS_fstat:
       marshallFstatCall(core_id);
       break;
@@ -321,6 +326,32 @@ void SyscallServer::marshallAccessCall(core_id_t core_id)
 }
 
 #ifdef TARGET_X86_64
+void SyscallServer::marshallStatCall(IntPtr syscall_number, core_id_t core_id)
+{
+   char *path = (char *) m_scratch;
+   struct stat stat_buf;
+
+   UInt32 len_fname;
+   // unpack the data
+   m_recv_buff >> len_fname;
+
+   if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
+      path = new char[len_fname];
+
+   m_recv_buff >> make_pair(path, len_fname);
+   m_recv_buff.get<struct stat>(stat_buf);
+
+   // Do the syscall
+   int ret = syscall(syscall_number, path, &stat_buf);
+
+   // pack the data and send
+   m_send_buff.put<int>(ret);
+   m_send_buff.put<struct stat>(stat_buf);
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   LOG_PRINT("Finished marshallStatCall(), path(%s), stat_buf(%p)", path, &stat_buf);
+}
+
 void SyscallServer::marshallFstatCall(core_id_t core_id)
 {
    int fd;
@@ -424,7 +455,7 @@ void SyscallServer::marshallPipeCall(core_id_t core_id)
    m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
-void SyscallServer::marshallMmapCall (core_id_t core_id)
+void SyscallServer::marshallMmapCall(core_id_t core_id)
 {
    void *addr;
    size_t length;
@@ -449,7 +480,7 @@ void SyscallServer::marshallMmapCall (core_id_t core_id)
 }
 
 #ifdef TARGET_IA32
-void SyscallServer::marshallMmap2Call (core_id_t core_id)
+void SyscallServer::marshallMmap2Call(core_id_t core_id)
 {
    void *addr;
    size_t length;
@@ -466,7 +497,7 @@ void SyscallServer::marshallMmap2Call (core_id_t core_id)
    m_recv_buff.get(pgoffset);
 
    void *start;
-   start = VMManager::getSingleton()->mmap2 (addr, length, prot, flags, fd, pgoffset);
+   start = VMManager::getSingleton()->mmap2(addr, length, prot, flags, fd, pgoffset);
 
    m_send_buff.put(start);
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -482,7 +513,7 @@ void SyscallServer::marshallMunmapCall (core_id_t core_id)
    m_recv_buff.get(length);
 
    int ret_val;
-   ret_val = VMManager::getSingleton()->munmap (addr, length);
+   ret_val = VMManager::getSingleton()->munmap(addr, length);
 
    m_send_buff.put(ret_val);
 
@@ -498,7 +529,7 @@ void SyscallServer::marshallBrkCall (core_id_t core_id)
    void *new_end_data_segment;
    new_end_data_segment = VMManager::getSingleton()->brk(end_data_segment);
 
-   m_send_buff.put (new_end_data_segment);
+   m_send_buff.put(new_end_data_segment);
 
    m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }

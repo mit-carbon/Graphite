@@ -123,15 +123,15 @@ VOID handleFutexSyscall (CONTEXT *ctx)
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
-   ADDRINT syscall_number = PIN_GetSyscallNumber (ctx, syscall_standard);
+   IntPtr syscall_number = PIN_GetSyscallNumber (ctx, syscall_standard);
    
    string core_null = core ? "CORE != NULL" : "CORE == NULL";
-   LOG_PRINT ("syscall_number %d, %s", syscall_number, core_null.c_str());
+   LOG_PRINT("syscall_number %d, %s", syscall_number, core_null.c_str());
 
    if (core)
    {
       // Save the syscall number
-      core->getSyscallMdl()->saveSyscallNumber (syscall_number);
+      core->getSyscallMdl()->saveSyscallNumber(syscall_number);
       
       if (  (syscall_number == SYS_open) ||
             (syscall_number == SYS_read) ||
@@ -140,7 +140,9 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
 #ifdef TARGET_X86_64
+            (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
+            (syscall_number == SYS_lstat) ||
 #endif
 #ifdef TARGET_IA32
             (syscall_number == SYS_fstat64) ||
@@ -157,7 +159,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_munmap))
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
-         UInt8 new_syscall = core->getSyscallMdl()->runEnter (syscall_number, args);
+         IntPtr new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
      
@@ -288,7 +290,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    
    if (core)
    {
-      ADDRINT syscall_number = core->getSyscallMdl()->retrieveSyscallNumber ();
+      IntPtr syscall_number = core->getSyscallMdl()->retrieveSyscallNumber();
       
       if (  (syscall_number == SYS_open) ||
             (syscall_number == SYS_read) ||
@@ -297,11 +299,14 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
 #ifdef TARGET_X86_64
+            (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
+            (syscall_number == SYS_lstat) ||
 #endif
 #ifdef TARGET_IA32
             (syscall_number == SYS_fstat64) ||
 #endif
+            (syscall_number == SYS_ioctl) ||
             (syscall_number == SYS_getpid) ||
             (syscall_number == SYS_readahead) ||
             (syscall_number == SYS_pipe) ||
@@ -313,8 +318,8 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_munmap) ||
             (syscall_number == SYS_futex))
       {
-         carbon_reg_t old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
-         ADDRINT syscall_return = (ADDRINT) core->getSyscallMdl()->runExit (old_return_val);
+         IntPtr old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
+         IntPtr syscall_return = core->getSyscallMdl()->runExit(old_return_val);
          PIN_SetContextReg (ctx, REG_GAX, syscall_return);
       }
 

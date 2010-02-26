@@ -59,7 +59,7 @@ VMManager::VMManager()
 #endif
 
 #ifdef TARGET_X86_64
-   m_start_dynamic_segment = 0xf0000000;
+   m_start_dynamic_segment = 0xf000000000;
 #endif
 
    m_end_dynamic_segment = m_start_dynamic_segment;

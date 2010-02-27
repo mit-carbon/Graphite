@@ -333,23 +333,24 @@ void SyscallServer::marshallStatCall(IntPtr syscall_number, core_id_t core_id)
 
    UInt32 len_fname;
    // unpack the data
+
    m_recv_buff >> len_fname;
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       path = new char[len_fname];
 
    m_recv_buff >> make_pair(path, len_fname);
-   m_recv_buff.get<struct stat>(stat_buf);
+   m_recv_buff >> make_pair(&stat_buf, sizeof(struct stat));
 
    // Do the syscall
    int ret = syscall(syscall_number, path, &stat_buf);
 
    // pack the data and send
    m_send_buff.put<int>(ret);
-   m_send_buff.put<struct stat>(stat_buf);
+   m_send_buff << make_pair(&stat_buf, sizeof(struct stat));
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
-   LOG_PRINT("Finished marshallStatCall(), path(%s), stat_buf(%p)", path, &stat_buf);
+   LOG_PRINT("Finished marshallStatCall(), path(%s), send_buf.size(%u)", path, m_send_buff.size());
 }
 
 void SyscallServer::marshallFstatCall(core_id_t core_id)
@@ -359,7 +360,7 @@ void SyscallServer::marshallFstatCall(core_id_t core_id)
 
    // unpack the data
    m_recv_buff.get<int>(fd);
-   m_recv_buff.get<struct stat>(buf);
+   m_recv_buff >> make_pair(&buf, sizeof(struct stat));
 
    LOG_PRINT("In marshallFstatCall(), fd(%i), buf(%p)", fd, &buf);
    // Do the syscall
@@ -367,7 +368,7 @@ void SyscallServer::marshallFstatCall(core_id_t core_id)
 
    // pack the data and send
    m_send_buff.put<int>(ret);
-   m_send_buff.put<struct stat>(buf);
+   m_send_buff << make_pair(&buf, sizeof(struct stat));
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    LOG_PRINT("Finished marshallFstatCall(), fd(%i), buf(%p)", fd, &buf);
@@ -382,14 +383,14 @@ void SyscallServer::marshallFstat64Call(core_id_t core_id)
 
    // unpack the data
    m_recv_buff.get<int>(fd);
-   m_recv_buff.get<struct stat64>(buf);
+   m_recv_buff >> make_pair(&buf, sizeof(struct stat64));
 
    // Do the syscall
    int ret = syscall(SYS_fstat64, fd, &buf);
 
    // pack the data and send
    m_send_buff.put<int>(ret);
-   m_send_buff.put<struct stat64>(buf);
+   m_send_buff << make_pair(&buf, sizeof(struct stat64));
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
@@ -404,14 +405,14 @@ void SyscallServer::marshallIoctlCall(core_id_t core_id)
    // unpack the data
    m_recv_buff.get<int>(fd);
    m_recv_buff.get<int>(request);
-   m_recv_buff.get<struct termios>(buf);
+   m_recv_buff >> make_pair(&buf, sizeof(struct termios));
 
    // Do the syscall
    int ret = syscall(SYS_ioctl, fd, request, &buf);
 
    // pack the data and send
    m_send_buff.put<int>(ret);
-   m_send_buff.put<struct termios>(buf);
+   m_send_buff << make_pair(&buf, sizeof(struct termios));
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }

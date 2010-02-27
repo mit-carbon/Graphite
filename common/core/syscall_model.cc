@@ -427,25 +427,6 @@ IntPtr SyscallMdl::marshallCloseCall(syscall_args_t &args)
 
 IntPtr SyscallMdl::marshallLseekCall(syscall_args_t &args)
 {
-   /*
-       Syscall Args
-       int fd
-
-
-       Transmit
-
-       Field               Type
-       -----------------|--------
-       FILE_DESCRIPTOR     int
-
-       Receive
-
-       Field               Type
-       -----------------|--------
-       STATUS              int
-
-   */
-
    int fd = (int) args.arg0;
    off_t offset = (off_t) args.arg1;
    int whence = (int) args.arg2;
@@ -516,7 +497,7 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
 
    // pack the data
    m_send_buff << len_fname << make_pair(path_buf, len_fname);
-   m_send_buff.put<struct stat>(stat_buf);
+   m_send_buff << make_pair(&stat_buf, sizeof(struct stat));
 
    // send the data
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -525,10 +506,13 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
-   // Create a buffer out of the results
+   // Create a buffer out of the result
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   // Get the results
    int result;
    m_recv_buff.get<int>(result);
-   m_recv_buff.get<struct stat>(stat_buf);
+   m_recv_buff >> make_pair(&stat_buf, sizeof(struct stat));
 
    // Write the data to memory
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
@@ -550,7 +534,7 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
 
    // pack the data
    m_send_buff.put<int>(fd);
-   m_send_buff.put<struct stat>(buf);
+   m_send_buff << make_pair(&buf, sizeof(struct stat));
 
    // send the data
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -559,10 +543,13 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
-   // Create a buffer out of the results
+   // Create a buffer out of the result
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+   
+   // Get the results
    int result;
    m_recv_buff.get<int>(result);
-   m_recv_buff.get<struct stat>(buf);
+   m_recv_buff >> make_pair(&buf, sizeof(struct stat));
 
    // Write the data to memory
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
@@ -585,7 +572,7 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
 
    // pack the data
    m_send_buff.put<int>(fd);
-   m_send_buff.put<struct stat64>(buf);
+   m_send_buff << make_pair(&buf, sizeof(struct stat64));
 
    // send the data
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -594,10 +581,13 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
-   // Create a buffer out of the results
+   // Create a buffer out of the result
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+  
+   // Get the results 
    int result;
    m_recv_buff.get<int>(result);
-   m_recv_buff.get<struct stat64>(buf);
+   m_recv_buff >> make_pair(&buf, sizeof(struct stat64));
 
    // Write the data to memory
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
@@ -624,7 +614,7 @@ IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
    // pack the data
    m_send_buff.put<int>(fd);
    m_send_buff.put<int>(request);
-   m_send_buff.put<struct termios>(buf);
+   m_send_buff << make_pair(&buf, sizeof(struct termios));
 
    // send the data
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -633,10 +623,13 @@ IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
-   // Create a buffer out of the results
+   // Create a buffer out of the result
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+  
+   // Get the results 
    int result;
    m_recv_buff.get<int>(result);
-   m_recv_buff.get<struct termios>(buf);
+   m_recv_buff >> make_pair(&buf, sizeof(struct termios));
 
    // Write the data to memory
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));

@@ -30,7 +30,7 @@ Core::Core(SInt32 id)
 
       LOG_PRINT("instantiated memory manager model");
       m_memory_manager = MemoryManagerBase::createMMU(
-            MemoryManagerBase::PR_L1_PR_L2_DRAM_DIR, 
+            Sim()->getCfg()->getString("cache_coherence/protocol_type"),
             this, m_network, m_shmem_perf_model);
 
       m_pin_memory_manager = new PinMemoryManager(this);

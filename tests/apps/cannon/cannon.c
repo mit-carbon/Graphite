@@ -227,7 +227,7 @@ int do_cannon(int argc, char* argv[])
    }
 
 #ifdef DEBUG
-   printf("  Done sending... exiting.\n");
+   printf("Done sending...waiting for worker threads to complete.\n");
 #endif
 
    // Wait for all threads to complete

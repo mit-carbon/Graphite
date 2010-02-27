@@ -46,7 +46,7 @@ int main(int argc, char* argv[])  // main begins
 
 void* thread_func(void *threadid)
 {
-//   CAPI_return_t rtnVal = CAPI_Initialize((int)threadid);
+   CAPI_return_t rtnVal = CAPI_Initialize((int)threadid);
    fprintf(stderr, "In Spawned Thread..\n");
 }
 

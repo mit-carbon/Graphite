@@ -52,30 +52,42 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_open:
       marshallOpenCall(core_id);
       break;
+
    case SYS_read:
       marshallReadCall(core_id);
       break;
+
    case SYS_write:
       marshallWriteCall(core_id);
       break;
+
+   case SYS_writev:
+      marshallWritevCall(core_id);
+      break;
+
    case SYS_close:
       marshallCloseCall(core_id);
       break;
+
    case SYS_lseek:
       marshallLseekCall(core_id);
       break;
+
    case SYS_access:
       marshallAccessCall(core_id);
       break;
+
 #ifdef TARGET_X86_64
    case SYS_stat:
    case SYS_lstat:
       // Same as stat() except for a link
       marshallStatCall(syscall_number, core_id);
       break;
+
    case SYS_fstat:
       marshallFstatCall(core_id);
       break;
+
 #endif
 #ifdef TARGET_IA32
    case SYS_fstat64:
@@ -85,34 +97,44 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_ioctl:
       marshallIoctlCall(core_id);
       break;
+
    case SYS_getpid:
       marshallGetpidCall(core_id);
       break;
+
    case SYS_readahead:
       marshallReadaheadCall(core_id);
       break;
+
    case SYS_pipe:
       marshallPipeCall(core_id);
       break;
+
    case SYS_mmap:
       marshallMmapCall(core_id);
       break;
+
 #ifdef TARGET_IA32
    case SYS_mmap2:
       marshallMmap2Call(core_id);
       break;
 #endif
+
    case SYS_munmap:
       marshallMunmapCall (core_id);
       break;
+
    case SYS_brk:
       marshallBrkCall (core_id);
       break;
+      
    case SYS_futex:
       marshallFutexCall (core_id);
       break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
+      break;
    }
 
    LOG_PRINT("Finished syscall: %d", syscall_number);
@@ -256,6 +278,46 @@ void SyscallServer::marshallWriteCall(core_id_t core_id)
 
 }
 
+void SyscallServer::marshallWritevCall(core_id_t core_id)
+{
+   //
+   // Receive
+   //
+   // Field               Type
+   // ------------------|---------
+   // FILE DESCRIPTOR     int
+   // COUNT               UInt64
+   // BUFFER              char[]
+   //
+   // Transmit
+   //
+   // Field               Type
+   // ------------------|---------
+   // BYTES               IntPtr
+
+   int fd;
+   UInt64 count;
+   char *buf = (char*) m_scratch;
+
+   m_recv_buff >> fd >> count;
+
+   if(count > m_SYSCALL_SERVER_MAX_BUFF)
+      buf = new char[count];
+
+   m_recv_buff >> make_pair(buf, count);
+
+   // Write data to the file
+   // Since we have already gathered data from all the various iovec's 
+   // passed to the writev syscall, this is just a write syscall
+   IntPtr bytes = syscall(SYS_write, fd, (void*) buf, count);
+
+   m_send_buff << bytes;
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   if(count > m_SYSCALL_SERVER_MAX_BUFF)
+      delete[] buf;
+}
 
 void SyscallServer::marshallCloseCall(core_id_t core_id)
 {

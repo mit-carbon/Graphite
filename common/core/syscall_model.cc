@@ -31,6 +31,9 @@
 // ------ Included for readahead
 #include <fcntl.h>
 
+// ------ Included for writev
+#include <sys/uio.h>
+
 using namespace std;
 
 SyscallMdl::SyscallMdl(Network *net)
@@ -135,6 +138,12 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
             m_called_enter = true;
             m_ret_val = marshallWriteCall(args);
             break;
+
+      case SYS_writev:
+            m_called_enter = true;
+            m_ret_val = marshallWritevCall(args);
+            break;
+
       case SYS_close:
             m_called_enter = true;
             m_ret_val = marshallCloseCall(args);
@@ -379,6 +388,63 @@ IntPtr SyscallMdl::marshallWriteCall(syscall_args_t &args)
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
    int status;
+   m_recv_buff >> status;
+
+   delete [] (Byte*) recv_pkt.data;
+
+   return status;
+}
+
+IntPtr SyscallMdl::marshallWritevCall(syscall_args_t &args)
+{
+   //
+   // Syscall Args
+   // int fd, const struct iovec *iov, int iovcnt
+   //
+   // Transmit
+   //
+   // Field               Type
+   // ------------------|---------
+   // FILE DESCRIPTOR     int
+   // COUNT               UInt64
+   // BUFFER              char[]
+   //
+   // Receive
+   //
+   // Field               Type
+   // ------------------|---------
+   // BYTES               IntPtr
+
+   int fd = (int) args.arg0;
+   struct iovec *iov = (struct iovec*) args.arg1;
+   int iovcnt = (int) args.arg2;
+
+   UInt64 count = 0;
+   for (int i = 0; i < iovcnt; i++)
+      count += iov[i].iov_len;
+
+   char *buf = new char[count];
+   char* head = buf;
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   
+   for (int i = 0; i < iovcnt; i++)
+   {
+      core->accessMemory(Core::NONE, Core::READ, (IntPtr) head, (char*)iov[i].iov_base, iov[i].iov_len);
+      head += iov[i].iov_len;
+   }
+
+   m_send_buff << fd << count << make_pair(buf, count);
+
+   delete [] buf;
+
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   assert(recv_pkt.length == sizeof(IntPtr));
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   IntPtr status;
    m_recv_buff >> status;
 
    delete [] (Byte*) recv_pkt.data;

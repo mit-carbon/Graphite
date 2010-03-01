@@ -55,6 +55,7 @@ class SyscallServer
       void marshallOpenCall(core_id_t core_id);
       void marshallReadCall(core_id_t core_id);
       void marshallWriteCall(core_id_t core_id);
+      void marshallWritevCall(core_id_t core_id);
       void marshallCloseCall(core_id_t core_id);
       void marshallLseekCall(core_id_t core_id);
       void marshallAccessCall(core_id_t core_id);

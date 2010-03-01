@@ -63,6 +63,7 @@ class SyscallMdl
       IntPtr marshallOpenCall(syscall_args_t &args);
       IntPtr marshallReadCall(syscall_args_t &args);
       IntPtr marshallWriteCall(syscall_args_t &args);
+      IntPtr marshallWritevCall(syscall_args_t &args);
       IntPtr marshallCloseCall(syscall_args_t &args);
       IntPtr marshallLseekCall(syscall_args_t &args);
       IntPtr marshallAccessCall(syscall_args_t &args);

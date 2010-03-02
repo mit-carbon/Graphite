@@ -421,18 +421,24 @@ IntPtr SyscallMdl::marshallWritevCall(syscall_args_t &args)
    struct iovec *iov = (struct iovec*) args.arg1;
    int iovcnt = (int) args.arg2;
 
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   
+   struct iovec *iov_buf = new struct iovec [iovcnt];
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) iov, (char*) iov_buf, iovcnt * sizeof (struct iovec));
+
    UInt64 count = 0;
    for (int i = 0; i < iovcnt; i++)
-      count += iov[i].iov_len;
+      count += iov_buf[i].iov_len;
 
    char *buf = new char[count];
    char* head = buf;
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   int running_count = 0;
    
    for (int i = 0; i < iovcnt; i++)
    {
-      core->accessMemory(Core::NONE, Core::READ, (IntPtr) head, (char*)iov[i].iov_base, iov[i].iov_len);
-      head += iov[i].iov_len;
+      core->accessMemory(Core::NONE, Core::READ, (IntPtr) iov_buf[i].iov_base, head, iov_buf[i].iov_len);
+      running_count += iov_buf[i].iov_len;
+      head = &buf[running_count];
    }
 
    m_send_buff << fd << count << make_pair(buf, count);

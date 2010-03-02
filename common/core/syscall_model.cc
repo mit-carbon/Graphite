@@ -592,6 +592,8 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the results
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
    int result;
    m_recv_buff.get<int>(result);
    m_recv_buff.get<struct stat>(stat_buf);
@@ -626,6 +628,8 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the results
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
    int result;
    m_recv_buff.get<int>(result);
    m_recv_buff.get<struct stat>(buf);
@@ -661,6 +665,8 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the results
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
    int result;
    m_recv_buff.get<int>(result);
    m_recv_buff.get<struct stat64>(buf);
@@ -700,6 +706,8 @@ IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the results
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
    int result;
    m_recv_buff.get<int>(result);
    m_recv_buff.get<struct termios>(buf);

@@ -9,6 +9,7 @@ class ShmemReq
    private:
       ShmemMsg* m_shmem_msg;
       UInt64 m_time;
+      core_id_t m_responder_core_id;
 
    public:
       ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
@@ -16,6 +17,7 @@ class ShmemReq
 
       ShmemMsg* getShmemMsg() { return m_shmem_msg; }
       UInt64 getTime() { return m_time; }
+      core_id_t getResponderCoreId() { return m_responder_core_id; }
       
       void setTime(UInt64 time) { m_time = time; }
       void updateTime(UInt64 time) 
@@ -23,6 +25,7 @@ class ShmemReq
          if (time > m_time)
             m_time = time;
       }
+      void setResponderCoreId(core_id_t core_id) { m_responder_core_id = core_id; }
 };
 
 #endif /* __SHMEM_REQ_H__ */

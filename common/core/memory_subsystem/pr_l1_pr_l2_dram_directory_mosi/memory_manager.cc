@@ -8,7 +8,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
 MemoryManager::MemoryManager(Core* core, 
       Network* network, ShmemPerfModel* shmem_perf_model):
-   MemoryManagerBase(core, network, shmem_perf_model)
+   MemoryManagerBase(core, network, shmem_perf_model),
+   m_enabled(false)
 {
    // Read Parameters from the Config file
    volatile float core_frequency = 0.0;
@@ -206,8 +207,11 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::component_t receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::component_t sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", 
-         shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender, packet.receiver);    
+   if (m_enabled)
+   {
+      LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", 
+            shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender, packet.receiver);    
+   }
 
    switch (receiver_mem_component)
    {
@@ -272,7 +276,10 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), receiver);
+   if (m_enabled)
+   {
+      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), receiver);
+   }
 
    NetPacket packet(msg_time, SHARED_MEM_1,
          m_core->getId(), receiver,
@@ -292,7 +299,10 @@ MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), NetPacket::BROADCAST);
+   if (m_enabled)
+   {
+      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), NetPacket::BROADCAST);
+   }
 
    NetPacket packet(msg_time, SHARED_MEM_1,
          m_core->getId(), NetPacket::BROADCAST,
@@ -306,6 +316,8 @@ MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t 
 void
 MemoryManager::enableModels()
 {
+   m_enabled = true;
+
    m_l1_cache_cntlr->getL1ICache()->enable();
    m_l1_cache_cntlr->getL1DCache()->enable();
    m_l2_cache_cntlr->getL2Cache()->enable();
@@ -316,6 +328,8 @@ MemoryManager::enableModels()
 void
 MemoryManager::disableModels()
 {
+   m_enabled = false;
+
    m_l1_cache_cntlr->getL1ICache()->disable();
    m_l1_cache_cntlr->getL1DCache()->disable();
    m_l2_cache_cntlr->getL2Cache()->disable();

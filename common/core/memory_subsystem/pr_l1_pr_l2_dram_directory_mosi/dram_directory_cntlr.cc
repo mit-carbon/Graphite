@@ -60,8 +60,12 @@ DramDirectoryCntlr::handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg)
             // Add request onto a queue
             ShmemReq* shmem_req = new ShmemReq(shmem_msg, msg_time);
             m_dram_directory_req_queue_list->enqueue(address, shmem_req);
+
             if (m_dram_directory_req_queue_list->size(address) == 1)
             {
+               // No data should be cached for this address
+               assert(m_cached_data_list->lookup(address) == NULL);
+               
                if (shmem_msg_type == ShmemMsg::EX_REQ)
                   processExReqFromL2Cache(shmem_req);
                else if (shmem_msg_type == ShmemMsg::SH_REQ)
@@ -98,6 +102,9 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    assert(m_dram_directory_req_queue_list->size(address) >= 1);
    ShmemReq* completed_shmem_req = m_dram_directory_req_queue_list->dequeue(address);
    delete completed_shmem_req;
+
+   // No longer should any data be cached for this address
+   assert(m_cached_data_list->lookup(address) == NULL);
 
    if (! m_dram_directory_req_queue_list->empty(address))
    {
@@ -379,6 +386,8 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req)
                   requester /* requester */, 
                   directory_entry->getOwner() /* receiver */, 
                   address);
+
+            shmem_req->setResponderCoreId(directory_entry->getOwner());
          }
          break;
    
@@ -404,6 +413,8 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req)
                      requester /* requester */,
                      sharer_id /* receiver */,
                      address);
+
+               shmem_req->setResponderCoreId(sharer_id);
             }
             else
             {
@@ -419,6 +430,8 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req)
                         requester /* requester */,
                         sharer_id /* receiver */,
                         address);
+
+                  shmem_req->setResponderCoreId(sharer_id);
                }
                else
                {
@@ -560,7 +573,7 @@ DramDirectoryCntlr::processInvRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_m
    {
       // Get the latest request for the data
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
-      restartShmemReq(shmem_req, directory_block_info->getDState());
+      restartShmemReq(sender, shmem_req, directory_block_info->getDState());
    }
 }
 
@@ -630,7 +643,7 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem
 
       // Get the latest request for the data
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
-      restartShmemReq(shmem_req, directory_block_info->getDState());
+      restartShmemReq(sender, shmem_req, directory_block_info->getDState());
    }
    else
    {
@@ -663,6 +676,9 @@ DramDirectoryCntlr::processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_ms
          break;
 
       case DirectoryState::OWNED:
+         LOG_ASSERT_ERROR(directory_entry->hasSharer(sender),
+               "Address(0x%x), sender(%i), NOT sharer", address, sender);
+
          break;
 
       case DirectoryState::SHARED:
@@ -687,16 +703,17 @@ DramDirectoryCntlr::processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_ms
 
       // Get the latest request for the data
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
-      restartShmemReq(shmem_req, directory_block_info->getDState());
+      restartShmemReq(sender, shmem_req, directory_block_info->getDState());
    }
    else
    {
       // Ignore the data since this data is already present in the caches of some cores
+      LOG_PRINT_ERROR("Address(0x%x), WB_REP, NO requester", address);
    }
 }
 
 void 
-DramDirectoryCntlr::restartShmemReq(ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate)
+DramDirectoryCntlr::restartShmemReq(core_id_t sender, ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate)
 {
    // Update Request & ShmemPerfModel times
    shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
@@ -712,7 +729,12 @@ DramDirectoryCntlr::restartShmemReq(ShmemReq* shmem_req, DirectoryState::dstate_
          break;
 
       case ShmemMsg::SH_REQ:
-         processShReqFromL2Cache(shmem_req);
+         assert(shmem_req->getResponderCoreId() != INVALID_CORE_ID);
+         if (sender == shmem_req->getResponderCoreId())
+         {
+            shmem_req->setResponderCoreId(INVALID_CORE_ID);
+            processShReqFromL2Cache(shmem_req);
+         }
          break;
 
       case ShmemMsg::NULLIFY_REQ:
@@ -746,7 +768,15 @@ DramDirectoryCntlr::DataList::insert(IntPtr address, Byte* data)
    Byte* alloc_data = new Byte[m_block_size];
    memcpy(alloc_data, data, m_block_size);
 
-   m_data_list[address] = alloc_data;
+   std::pair<std::map<IntPtr,Byte*>::iterator, bool> ret = m_data_list.insert(std::make_pair<IntPtr,Byte*>(address, alloc_data));
+   if (ret.second == false)
+   {
+      // There is already some data present
+      SInt32 equal = memcmp(alloc_data, (ret.first)->second, m_block_size);
+      LOG_ASSERT_ERROR(equal == 0, "Address(0x%x), cached data different from now received data");
+      delete [] alloc_data;
+   }
+   
    LOG_ASSERT_ERROR(m_data_list.size() <= Config::getSingleton()->getTotalCores(),
          "m_data_list.size() = %u, m_total_cores = %u",
          m_data_list.size(), Config::getSingleton()->getTotalCores());

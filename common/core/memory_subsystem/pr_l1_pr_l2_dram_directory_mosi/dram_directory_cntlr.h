@@ -70,7 +70,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          void sendDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
       
          void sendInvReq(IntPtr address, core_id_t requester, pair<bool, vector<core_id_t> >& sharers_list_pair);
-         void restartShmemReq(ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate);
+         void restartShmemReq(core_id_t sender, ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate);
 
       public:
          DramDirectoryCntlr(core_id_t core_id,
@@ -87,6 +87,8 @@ namespace PrL1PrL2DramDirectoryMOSI
          ~DramDirectoryCntlr();
 
          void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
+
+         DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
    };
 
 }

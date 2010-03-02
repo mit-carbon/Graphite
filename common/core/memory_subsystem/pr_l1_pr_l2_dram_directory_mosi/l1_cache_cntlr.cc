@@ -129,7 +129,8 @@ L1CacheCntlr::processMemOpFromCore(
       getMemoryManager()->sendMsg(shmem_msg_type, 
             mem_component, MemComponent::L2_CACHE,
             m_core_id /* requester */,
-            m_core_id /* receiver */, ca_address);
+            m_core_id /* receiver */, 
+            ca_address);
 
       waitForNetworkThread();
    }

@@ -321,6 +321,8 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          IntPtr old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
          IntPtr syscall_return = core->getSyscallMdl()->runExit(old_return_val);
          PIN_SetContextReg (ctx, REG_GAX, syscall_return);
+
+         LOG_PRINT("Syscall(%p) returned (%p)", syscall_number, syscall_return);
       }
 
       else if (syscall_number == SYS_mprotect)

@@ -154,6 +154,8 @@ void SyscallServer::marshallOpenCall(core_id_t core_id)
 
    m_send_buff << ret;
 
+   LOG_PRINT("Open(%s,%i) returns %i", path, flags, ret);
+   
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
@@ -181,32 +183,28 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
    */
 
    int fd;
-   char *buf = (char *) m_scratch;
+   char *read_buf = (char *) m_scratch;
    size_t count;
-   char *dest;
 
-   //create a temporary int for storing the addr
-   int d2;
-   m_recv_buff >> fd >> count >> d2;
-   dest = (char *)d2;
+   assert(m_recv_buff.size() == (sizeof(fd) + sizeof(count)));
+   m_recv_buff >> fd >> count;
 
    if (count > m_SYSCALL_SERVER_MAX_BUFF)
-      buf = new char[count];
+      read_buf = new char[count];
 
    // Actually do the read call
-   int bytes = syscall(SYS_read, fd, (void *) buf, count);
-
-   // Copy the memory into shared mem
-   m_network.getCore()->accessMemory(Core::NONE, Core::WRITE, (IntPtr)dest, buf, count);
+   int bytes = syscall(SYS_read, fd, (void *) read_buf, count);
 
    m_send_buff << bytes;
-   if (bytes != -1 && !Config::getSingleton()->isSimulatingSharedMemory())
-      m_send_buff << make_pair(buf, bytes);
+   if (bytes != -1)
+      m_send_buff << make_pair(read_buf, bytes);
+
+   LOG_PRINT("Read(%i,%i) returns %i", fd, count, bytes);
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (count > m_SYSCALL_SERVER_MAX_BUFF)
-      delete[] buf;
+      delete [] read_buf;
 }
 
 
@@ -248,6 +246,8 @@ void SyscallServer::marshallWriteCall(core_id_t core_id)
    int bytes = syscall(SYS_write, fd, (void *) buf, count);
 
    m_send_buff << bytes;
+
+   LOG_PRINT("Write(%i,%i) returns %i", fd, count, bytes);
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
@@ -335,6 +335,8 @@ void SyscallServer::marshallStatCall(IntPtr syscall_number, core_id_t core_id)
    // unpack the data
 
    m_recv_buff >> len_fname;
+   
+   assert(m_recv_buff.size() == ((SInt32) (len_fname + sizeof(struct stat))));
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       path = new char[len_fname];
@@ -357,6 +359,8 @@ void SyscallServer::marshallFstatCall(core_id_t core_id)
 {
    int fd;
    struct stat buf;
+
+   assert(m_recv_buff.size() == (sizeof(int) + sizeof(struct stat)));
 
    // unpack the data
    m_recv_buff.get<int>(fd);

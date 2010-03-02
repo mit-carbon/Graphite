@@ -307,7 +307,7 @@ IntPtr SyscallMdl::marshallReadCall(syscall_args_t &args)
    size_t count = (size_t)args.arg2;
 
    // if shared mem, provide the buf to read into
-   m_send_buff << fd << count << (carbon_reg_t)buf;
+   m_send_buff << fd << count;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
@@ -318,10 +318,18 @@ IntPtr SyscallMdl::marshallReadCall(syscall_args_t &args)
 
    int bytes;
    m_recv_buff >> bytes;
-
-   if (bytes != -1 && !Config::getSingleton()->isSimulatingSharedMemory())
+   
+   if (bytes != -1)
    {
-      m_recv_buff >> make_pair(buf, bytes);
+      assert(m_recv_buff.size() == bytes);
+
+      // Read data from MCP into a local buffer
+      char* read_buf = new char[bytes];
+      m_recv_buff >> make_pair(read_buf, bytes);
+      
+      // Write the data to memory
+      Core* core = Sim()->getCoreManager()->getCurrentCore();
+      core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) buf, read_buf, bytes);
    }
    else
    {
@@ -509,6 +517,8 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
+   assert(m_recv_buff.size() == (sizeof(int) + sizeof(struct stat)));
+   
    // Get the results
    int result;
    m_recv_buff.get<int>(result);
@@ -545,7 +555,9 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
-   
+  
+   assert(m_recv_buff.size() == (sizeof(int) + sizeof(struct stat)));
+
    // Get the results
    int result;
    m_recv_buff.get<int>(result);

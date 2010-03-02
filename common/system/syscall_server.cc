@@ -638,7 +638,9 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
 #ifdef KERNEL_LENNY
    LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) \
-            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)), "op = %u", op);
+            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)) \
+            || (op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)) \
+            , "op = 0x%x", op);
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
       LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
@@ -672,6 +674,10 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    else if ((op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)))
    {
       futexWake(core_id, uaddr, val, curr_time);
+   }
+   else if((op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)))
+   {
+      futexCmpRequeue(core_id, uaddr, val, uaddr, val3, act_val, curr_time);
    }
 #endif
    
@@ -732,6 +738,59 @@ void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 cur
    m_send_buff << (UInt64) curr_time;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
+}
+
+void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time)
+{
+   LOG_PRINT("Futex CMP_REQUEUE");
+   SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
+   int num_procs_woken_up = 0;
+
+   if(val3 != act_val)
+   {
+      m_send_buff.clear();
+      m_send_buff << (int) EAGAIN;
+      m_send_buff << curr_time;
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+   else
+   {
+      for(int i = 0; i < val; i++)
+      {
+         core_id_t waiter = sim_futex->dequeueWaiter();
+         if(waiter == INVALID_CORE_ID)
+            break;
+
+         num_procs_woken_up++;
+         
+         m_send_buff.clear();
+         m_send_buff << (int) 0;
+         m_send_buff << (UInt64) curr_time;
+         m_network.netSend(waiter, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      }
+
+      SimFutex *requeue_futex = &m_futexes[(IntPtr) uaddr2];
+
+      while(true)
+      {
+         // dequeueWaiter changes the thread state to
+         // RUNNING, which is changed back to STALLED 
+         // by enqueueWaiter. Since only the MCP uses this state
+         // this should be okay. 
+         core_id_t waiter = sim_futex->dequeueWaiter();
+         if(waiter == INVALID_CORE_ID)
+            break;
+
+         requeue_futex->enqueueWaiter(waiter);
+      }
+
+      m_send_buff.clear();
+      m_send_buff << num_procs_woken_up;
+      m_send_buff << (UInt64) curr_time;
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+
+   return;
 }
 
 // -- SimFutex -- //

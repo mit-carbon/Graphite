@@ -207,8 +207,8 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
    size_t count;
    char *dest;
 
-   //create a temporary int for storing the addr
-   int d2;
+   //create a temporary variable for storing the addr
+   carbon_reg_t d2;
    m_recv_buff >> fd >> count >> d2;
    dest = (char *)d2;
 

@@ -151,6 +151,7 @@ void SyscallServer::marshallOpenCall(core_id_t core_id)
        LEN_FNAME           UInt32
        FILE_NAME           char[]
        FLAGS               int
+       MODE                UInt64
 
        Transmit
 
@@ -163,16 +164,17 @@ void SyscallServer::marshallOpenCall(core_id_t core_id)
    UInt32 len_fname;
    char *path = (char *) m_scratch;
    int flags;
+   UInt64 mode;
 
    m_recv_buff >> len_fname;
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       path = new char[len_fname];
 
-   m_recv_buff >> make_pair(path, len_fname) >> flags;
+   m_recv_buff >> make_pair(path, len_fname) >> flags >> mode;
 
    // Actually do the open call
-   int ret = syscall(SYS_open, path, flags);
+   int ret = syscall(SYS_open, path, flags, mode);
 
    m_send_buff << ret;
 

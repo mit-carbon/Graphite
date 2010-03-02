@@ -251,6 +251,7 @@ IntPtr SyscallMdl::marshallOpenCall(syscall_args_t &args)
        LEN_FNAME           UInt32
        FILE_NAME           char[]
        STATUS_FLAGS        int
+       MODE                UInt64
 
        Receive Protocol
 
@@ -262,6 +263,7 @@ IntPtr SyscallMdl::marshallOpenCall(syscall_args_t &args)
 
    char *path = (char *)args.arg0;
    int flags = (int)args.arg1;
+   UInt64 mode = (UInt64) args.arg2;
 
    UInt32 len_fname = getStrLen (path) + 1;
    
@@ -269,7 +271,7 @@ IntPtr SyscallMdl::marshallOpenCall(syscall_args_t &args)
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    core->accessMemory (Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
-   m_send_buff << len_fname << make_pair(path_buf, len_fname) << flags;
+   m_send_buff << len_fname << make_pair(path_buf, len_fname) << flags << mode;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;

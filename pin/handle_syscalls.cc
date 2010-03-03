@@ -136,6 +136,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       if (  (syscall_number == SYS_open) ||
             (syscall_number == SYS_read) ||
             (syscall_number == SYS_write) ||
+            (syscall_number == SYS_writev) ||
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
@@ -162,7 +163,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
          IntPtr new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
-     
+      
       else if (syscall_number == SYS_futex)
       {
          PIN_SetSyscallNumber (ctx, syscall_standard, SYS_getpid);
@@ -279,7 +280,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       else
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
-         LOG_ASSERT_ERROR (false, "Unhandled syscall[enter] %d\n, arg0(%p), arg1(%p), arg2(%p), arg3(%p), arg4(%p), arg5(%p)", syscall_number, args.arg0, args.arg1, args.arg2, args.arg3, args.arg4, args.arg5);
+         LOG_ASSERT_ERROR (false, "Unhandled syscall[enter] %d at RIP(%p)\n, arg0(%p), arg1(%p), arg2(%p), arg3(%p), arg4(%p), arg5(%p)", syscall_number, PIN_GetContextReg(ctx, REG_INST_PTR), args.arg0, args.arg1, args.arg2, args.arg3, args.arg4, args.arg5);
       }
    }
 }
@@ -295,6 +296,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
       if (  (syscall_number == SYS_open) ||
             (syscall_number == SYS_read) ||
             (syscall_number == SYS_write) ||
+            (syscall_number == SYS_writev) ||
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
@@ -324,7 +326,6 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
          LOG_PRINT("Syscall(%p) returned (%p)", syscall_number, syscall_return);
       }
-
       else if (syscall_number == SYS_mprotect)
       {
          PIN_SetContextReg (ctx, REG_GAX, 0);

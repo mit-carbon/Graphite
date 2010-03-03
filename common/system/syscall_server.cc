@@ -52,30 +52,42 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_open:
       marshallOpenCall(core_id);
       break;
+
    case SYS_read:
       marshallReadCall(core_id);
       break;
+
    case SYS_write:
       marshallWriteCall(core_id);
       break;
+
+   case SYS_writev:
+      marshallWritevCall(core_id);
+      break;
+
    case SYS_close:
       marshallCloseCall(core_id);
       break;
+
    case SYS_lseek:
       marshallLseekCall(core_id);
       break;
+
    case SYS_access:
       marshallAccessCall(core_id);
       break;
+
 #ifdef TARGET_X86_64
    case SYS_stat:
    case SYS_lstat:
       // Same as stat() except for a link
       marshallStatCall(syscall_number, core_id);
       break;
+
    case SYS_fstat:
       marshallFstatCall(core_id);
       break;
+
 #endif
 #ifdef TARGET_IA32
    case SYS_fstat64:
@@ -85,34 +97,44 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_ioctl:
       marshallIoctlCall(core_id);
       break;
+
    case SYS_getpid:
       marshallGetpidCall(core_id);
       break;
+
    case SYS_readahead:
       marshallReadaheadCall(core_id);
       break;
+
    case SYS_pipe:
       marshallPipeCall(core_id);
       break;
+
    case SYS_mmap:
       marshallMmapCall(core_id);
       break;
+
 #ifdef TARGET_IA32
    case SYS_mmap2:
       marshallMmap2Call(core_id);
       break;
 #endif
+
    case SYS_munmap:
       marshallMunmapCall (core_id);
       break;
+
    case SYS_brk:
       marshallBrkCall (core_id);
       break;
+      
    case SYS_futex:
       marshallFutexCall (core_id);
       break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
+      break;
    }
 
    LOG_PRINT("Finished syscall: %d", syscall_number);
@@ -129,6 +151,7 @@ void SyscallServer::marshallOpenCall(core_id_t core_id)
        LEN_FNAME           UInt32
        FILE_NAME           char[]
        FLAGS               int
+       MODE                UInt64
 
        Transmit
 
@@ -141,16 +164,17 @@ void SyscallServer::marshallOpenCall(core_id_t core_id)
    UInt32 len_fname;
    char *path = (char *) m_scratch;
    int flags;
+   UInt64 mode;
 
    m_recv_buff >> len_fname;
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       path = new char[len_fname];
 
-   m_recv_buff >> make_pair(path, len_fname) >> flags;
+   m_recv_buff >> make_pair(path, len_fname) >> flags >> mode;
 
    // Actually do the open call
-   int ret = syscall(SYS_open, path, flags);
+   int ret = syscall(SYS_open, path, flags, mode);
 
    m_send_buff << ret;
 
@@ -256,6 +280,46 @@ void SyscallServer::marshallWriteCall(core_id_t core_id)
 
 }
 
+void SyscallServer::marshallWritevCall(core_id_t core_id)
+{
+   //
+   // Receive
+   //
+   // Field               Type
+   // ------------------|---------
+   // FILE DESCRIPTOR     int
+   // COUNT               UInt64
+   // BUFFER              char[]
+   //
+   // Transmit
+   //
+   // Field               Type
+   // ------------------|---------
+   // BYTES               IntPtr
+
+   int fd;
+   UInt64 count;
+   char *buf = (char*) m_scratch;
+
+   m_recv_buff >> fd >> count;
+
+   if(count > m_SYSCALL_SERVER_MAX_BUFF)
+      buf = new char[count];
+
+   m_recv_buff >> make_pair(buf, count);
+
+   // Write data to the file
+   // Since we have already gathered data from all the various iovec's 
+   // passed to the writev syscall, this is just a write syscall
+   IntPtr bytes = syscall(SYS_write, fd, (void*) buf, count);
+
+   m_send_buff << bytes;
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   if(count > m_SYSCALL_SERVER_MAX_BUFF)
+      delete[] buf;
+}
 
 void SyscallServer::marshallCloseCall(core_id_t core_id)
 {
@@ -581,7 +645,9 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
 #ifdef KERNEL_LENNY
    LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) \
-            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)), "op = %u", op);
+            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)) \
+            || (op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)) \
+            , "op = 0x%x", op);
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
       LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
@@ -615,6 +681,10 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    else if ((op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)))
    {
       futexWake(core_id, uaddr, val, curr_time);
+   }
+   else if((op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)))
+   {
+      futexCmpRequeue(core_id, uaddr, val, uaddr, val3, act_val, curr_time);
    }
 #endif
    
@@ -675,6 +745,59 @@ void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 cur
    m_send_buff << (UInt64) curr_time;
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
+}
+
+void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time)
+{
+   LOG_PRINT("Futex CMP_REQUEUE");
+   SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
+   int num_procs_woken_up = 0;
+
+   if(val3 != act_val)
+   {
+      m_send_buff.clear();
+      m_send_buff << (int) EAGAIN;
+      m_send_buff << curr_time;
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+   else
+   {
+      for(int i = 0; i < val; i++)
+      {
+         core_id_t waiter = sim_futex->dequeueWaiter();
+         if(waiter == INVALID_CORE_ID)
+            break;
+
+         num_procs_woken_up++;
+         
+         m_send_buff.clear();
+         m_send_buff << (int) 0;
+         m_send_buff << (UInt64) curr_time;
+         m_network.netSend(waiter, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      }
+
+      SimFutex *requeue_futex = &m_futexes[(IntPtr) uaddr2];
+
+      while(true)
+      {
+         // dequeueWaiter changes the thread state to
+         // RUNNING, which is changed back to STALLED 
+         // by enqueueWaiter. Since only the MCP uses this state
+         // this should be okay. 
+         core_id_t waiter = sim_futex->dequeueWaiter();
+         if(waiter == INVALID_CORE_ID)
+            break;
+
+         requeue_futex->enqueueWaiter(waiter);
+      }
+
+      m_send_buff.clear();
+      m_send_buff << num_procs_woken_up;
+      m_send_buff << (UInt64) curr_time;
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+
+   return;
 }
 
 // -- SimFutex -- //

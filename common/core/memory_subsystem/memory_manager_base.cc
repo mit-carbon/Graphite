@@ -26,7 +26,7 @@ MemoryManagerBase::createMMU(std::string protocol_type,
 MemoryManagerBase::CachingProtocol_t
 MemoryManagerBase::parseProtocolType(std::string& protocol_type)
 {
-   if (protocol_type == "pr_l2_pr_l2_dram_directory_msi")
+   if (protocol_type == "pr_l1_pr_l2_dram_directory_msi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else if (protocol_type == "pr_l1_pr_l2_dram_directory_mosi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;

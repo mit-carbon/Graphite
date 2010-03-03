@@ -5,8 +5,6 @@
 #include "core.h"
 #include "pin_memory_manager.h"
 
-VOID printInsInfo(CONTEXT *ctxt);
-
 bool rewriteStringOp (INS ins);
 bool rewriteStackOp (INS ins);
 void rewriteMemOp (INS ins);

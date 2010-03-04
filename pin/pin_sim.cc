@@ -116,7 +116,8 @@ void routineCallback(RTN rtn, void *v)
 
    // ---------------------------------------------------------------
 
-   if (Log::getSingleton()->isEnabled(__FILE__) &&
+   std::string module = Log::getSingleton()->getModule(__FILE__);
+   if (Log::getSingleton()->isEnabled(module.c_str()) &&
        Sim()->getCfg()->getBool("log/stack_trace",false))
    {
       RTN_Open (rtn);

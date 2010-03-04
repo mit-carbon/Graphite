@@ -20,7 +20,7 @@ class NetworkModelAnalytical : public NetworkModel
 
       void enable();
       void disable();
-
+      
    private:
       UInt64 computeLatency(const NetPacket &);
       void updateUtilization();

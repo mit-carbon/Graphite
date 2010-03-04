@@ -31,12 +31,10 @@ class NetworkModelMagic : public NetworkModel
       }
 
       void enable()
-      {
-      }
+      {}
 
       void disable()
-      {
-      }
+      {}
 };
 
 #endif /* NETWORK_MODEL_MAGIC_H */

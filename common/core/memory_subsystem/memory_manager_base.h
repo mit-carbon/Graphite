@@ -1,6 +1,8 @@
 #ifndef __MEMORY_MANAGER_BASE_H__
 #define __MEMORY_MANAGER_BASE_H__
 
+using namespace std;
+
 #include "core.h"
 #include "network.h"
 #include "mem_component.h"
@@ -52,6 +54,10 @@ class MemoryManagerBase
       Core* getCore() { return m_core; }
       Network* getNetwork() { return m_network; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
+      vector<core_id_t> getCoreListWithMemoryControllers(void);
+      void parseMemoryControllerList(string& memory_controller_positions, vector<core_id_t>& core_list_from_cfg_file, SInt32 application_core_count);
+      void printCoreListWithMemoryControllers(vector<core_id_t>& core_list_with_memory_controllers);
 
       static CachingProtocol_t parseProtocolType(std::string& protocol_type);
       static MemoryManagerBase* createMMU(std::string protocol_type,

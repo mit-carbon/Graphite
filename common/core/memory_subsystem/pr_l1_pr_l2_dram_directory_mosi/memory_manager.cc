@@ -9,6 +9,9 @@ namespace PrL1PrL2DramDirectoryMOSI
 MemoryManager::MemoryManager(Core* core, 
       Network* network, ShmemPerfModel* shmem_perf_model):
    MemoryManagerBase(core, network, shmem_perf_model),
+   m_dram_directory_cntlr(NULL),
+   m_dram_cntlr(NULL),
+   m_dram_cntlr_present(false),
    m_enabled(false)
 {
    // Read Parameters from the Config file
@@ -43,8 +46,8 @@ MemoryManager::MemoryManager(Core* core,
    UInt32 dram_directory_home_lookup_param = 0;
    UInt32 dram_directory_cache_access_time = 0;
 
-   volatile float dram_access_cost = 0.0;
-   volatile float total_dram_bandwidth = 0.0;
+   volatile float dram_latency = 0.0;
+   volatile float per_dram_controller_bandwidth = 0.0;
    bool dram_queue_model_enabled = false;
    std::string dram_queue_model_type;
 
@@ -88,8 +91,8 @@ MemoryManager::MemoryManager(Core* core,
       dram_directory_cache_access_time = Sim()->getCfg()->getInt("perf_model/dram_directory/directory_cache_access_time");
 
       // Dram Cntlr
-      dram_access_cost = Sim()->getCfg()->getFloat("perf_model/dram/access_cost");
-      total_dram_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/total_bandwidth");
+      dram_latency = Sim()->getCfg()->getFloat("perf_model/dram/latency");
+      per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/per_controller_bandwidth");
       dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
       dram_queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
    }
@@ -101,7 +104,37 @@ MemoryManager::MemoryManager(Core* core,
    m_user_thread_sem = new Semaphore(0);
    m_network_thread_sem = new Semaphore(0);
 
-   m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, Config::getSingleton()->getTotalCores(), getCacheBlockSize());
+   std::vector<core_id_t> core_list_with_dram_controllers = getCoreListWithMemoryControllers();
+   if (m_core->getId() == 0)
+      printCoreListWithMemoryControllers(core_list_with_dram_controllers);
+
+   if (find(core_list_with_dram_controllers.begin(), core_list_with_dram_controllers.end(), m_core->getId()) != core_list_with_dram_controllers.end())
+   {
+      m_dram_cntlr_present = true;
+
+      m_dram_cntlr = new DramCntlr(this,
+            dram_latency,
+            per_dram_controller_bandwidth,
+            core_frequency,
+            dram_queue_model_enabled,
+            dram_queue_model_type,
+            getCacheBlockSize(),
+            getShmemPerfModel());
+
+      m_dram_directory_cntlr = new DramDirectoryCntlr(m_core->getId(),
+            this,
+            m_dram_cntlr,
+            dram_directory_total_entries,
+            dram_directory_associativity,
+            getCacheBlockSize(),
+            dram_directory_max_num_sharers,
+            dram_directory_max_hw_sharers,
+            dram_directory_type_str,
+            dram_directory_cache_access_time,
+            getShmemPerfModel());
+   }
+
+   m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, core_list_with_dram_controllers, getCacheBlockSize());
 
    m_l1_cache_cntlr = new L1CacheCntlr(m_core->getId(),
          this,
@@ -136,27 +169,6 @@ MemoryManager::MemoryManager(Core* core,
 
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
-   volatile float single_dram_bandwidth = total_dram_bandwidth / Config::getSingleton()->getTotalCores();
-   m_dram_cntlr = new DramCntlr(this,
-         dram_access_cost,
-         single_dram_bandwidth,
-         core_frequency,
-         dram_queue_model_enabled,
-         dram_queue_model_type,
-         getCacheBlockSize(),
-         getShmemPerfModel());
-
-   m_dram_directory_cntlr = new DramDirectoryCntlr(m_core->getId(),
-         this,
-         m_dram_cntlr,
-         dram_directory_total_entries,
-         dram_directory_associativity,
-         getCacheBlockSize(),
-         dram_directory_max_num_sharers,
-         dram_directory_max_hw_sharers,
-         dram_directory_type_str,
-         dram_directory_cache_access_time,
-         getShmemPerfModel());
 
    // Register Call-backs
    m_network->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
@@ -173,10 +185,12 @@ MemoryManager::~MemoryManager()
    delete m_dram_directory_home_lookup;
    delete m_l1_cache_cntlr;
    delete m_l2_cache_cntlr;
-   delete m_dram_cntlr;
-   delete m_dram_directory_cntlr;
+   if (m_dram_cntlr_present)
+   {
+      delete m_dram_cntlr;
+      delete m_dram_directory_cntlr;
+   }
 }
-
 
 bool
 MemoryManager::coreInitiateMemoryAccess(
@@ -238,6 +252,8 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
       case MemComponent::DRAM_DIR:
          switch(sender_mem_component)
          {
+            LOG_ASSERT_ERROR(m_dram_cntlr_present, "Dram Cntlr NOT present");
+
             case MemComponent::L2_CACHE:
                m_dram_directory_cntlr->handleMsgFromL2Cache(sender, shmem_msg);
                break;
@@ -322,7 +338,8 @@ MemoryManager::enableModels()
    m_l1_cache_cntlr->getL1DCache()->enable();
    m_l2_cache_cntlr->getL2Cache()->enable();
 
-   m_dram_cntlr->getDramPerfModel()->enable();
+   if (m_dram_cntlr_present)
+      m_dram_cntlr->getDramPerfModel()->enable();
 }
 
 void
@@ -334,7 +351,8 @@ MemoryManager::disableModels()
    m_l1_cache_cntlr->getL1DCache()->disable();
    m_l2_cache_cntlr->getL2Cache()->disable();
 
-   m_dram_cntlr->getDramPerfModel()->disable();
+   if (m_dram_cntlr_present)
+      m_dram_cntlr->getDramPerfModel()->disable();
 }
 
 void
@@ -345,7 +363,8 @@ MemoryManager::outputSummary(std::ostream &os)
    m_l1_cache_cntlr->getL1DCache()->outputSummary(os);
    m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
 
-   m_dram_cntlr->getDramPerfModel()->outputSummary(os);
+   if (m_dram_cntlr_present)
+      m_dram_cntlr->getDramPerfModel()->outputSummary(os);
 }
 
 }

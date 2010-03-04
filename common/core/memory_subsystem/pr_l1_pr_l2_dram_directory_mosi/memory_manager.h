@@ -24,6 +24,8 @@ namespace PrL1PrL2DramDirectoryMOSI
          DramCntlr* m_dram_cntlr;
          AddressHomeLookup* m_dram_directory_home_lookup;
 
+         bool m_dram_cntlr_present;
+
          Semaphore* m_user_thread_sem;
          Semaphore* m_network_thread_sem;
 

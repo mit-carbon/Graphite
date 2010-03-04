@@ -46,6 +46,7 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       // Functions
       void computePosition(core_id_t core, SInt32 &x, SInt32 &y);
       core_id_t computeCoreId(SInt32 x, SInt32 y);
+
       void addHop(OutputDirection direction, core_id_t final_dest, core_id_t next_dest, UInt64 pkt_time, UInt32 pkt_length, std::vector<Hop>& nextHops, core_id_t requester);
       UInt64 computeLatency(OutputDirection direction, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
       UInt64 computeProcessingTime(UInt32 pkt_length);
@@ -56,6 +57,7 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       ~NetworkModelEMeshHopByHop();
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
+      static std::pair<bool,std::vector<core_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count);
       static std::pair<bool,SInt32> computeCoreCountConstraints(SInt32 core_count);
 
       void outputSummary(std::ostream &out);

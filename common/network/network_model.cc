@@ -1,4 +1,5 @@
 #include <cassert>
+using namespace std;
 
 #include "network.h"
 #include "network_types.h"
@@ -33,7 +34,7 @@ NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_ty
 }
 
 UInt32 
-NetworkModel::parseNetworkType(std::string str)
+NetworkModel::parseNetworkType(string str)
 {
    if (str == "magic")
       return NETWORK_MAGIC;
@@ -47,7 +48,7 @@ NetworkModel::parseNetworkType(std::string str)
       return (UInt32)-1;
 }
 
-std::pair<bool,SInt32> 
+pair<bool,SInt32> 
 NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count)
 {
    switch (network_type)
@@ -55,13 +56,42 @@ NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count
       case NETWORK_MAGIC:
       case NETWORK_HOP_COUNTER:
       case NETWORK_ANALYTICAL_MESH:
-         return std::make_pair(false,core_count);
+         return make_pair(false,core_count);
 
       case NETWORK_EMESH_HOP_BY_HOP:
          return NetworkModelEMeshHopByHop::computeCoreCountConstraints(core_count);
 
       default:
          LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
-         return std::make_pair(false,-1);
+         return make_pair(false,-1);
+   }
+}
+
+pair<bool, vector<core_id_t> > 
+NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_memory_controllers, SInt32 core_count)
+{
+   switch (network_type)
+   {
+      case NETWORK_MAGIC:
+      case NETWORK_HOP_COUNTER:
+      case NETWORK_ANALYTICAL_MESH:
+         {
+            SInt32 spacing_between_memory_controllers = core_count / num_memory_controllers;
+            vector<core_id_t> core_list_with_memory_controllers;
+            for (core_id_t i = 0; i < num_memory_controllers; i++)
+            {
+               assert((i*spacing_between_memory_controllers) < core_count);
+               core_list_with_memory_controllers.push_back(i * spacing_between_memory_controllers);
+            }
+            
+            return make_pair(false, core_list_with_memory_controllers);
+         }
+
+      case NETWORK_EMESH_HOP_BY_HOP:
+         return NetworkModelEMeshHopByHop::computeMemoryControllerPositions(num_memory_controllers, core_count);
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
+         return make_pair(false, vector<core_id_t>());
    }
 }

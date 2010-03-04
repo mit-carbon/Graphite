@@ -1,6 +1,9 @@
 #ifndef __ADDRESS_HOME_LOOKUP_H__
 #define __ADDRESS_HOME_LOOKUP_H__
 
+#include <vector>
+using namespace std;
+
 #include "fixed_types.h"
 
 /* 
@@ -20,15 +23,16 @@ class AddressHomeLookup
 {
    public:
       AddressHomeLookup(UInt32 ahl_param,
-            UInt32 total_modules,
+            vector<core_id_t>& core_list,
             UInt32 cache_block_size);
       ~AddressHomeLookup();
-      SInt32 getHome(IntPtr address) const;
+      core_id_t getHome(IntPtr address) const;
 
    private:
       UInt32 m_ahl_param;
+      vector<core_id_t> m_core_list;
       UInt32 m_total_modules;
       UInt32 m_cache_block_size;
 };
 
-#endif /* __HOME_LOOKUP_H__ */
+#endif /* __ADDRESS_HOME_LOOKUP_H__ */

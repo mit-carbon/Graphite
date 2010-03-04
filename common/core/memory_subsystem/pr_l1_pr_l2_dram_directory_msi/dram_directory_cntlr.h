@@ -65,6 +65,8 @@ namespace PrL1PrL2DramDirectoryMSI
          ~DramDirectoryCntlr();
 
          void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
+         
+         DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
    };
 
 }

@@ -365,6 +365,8 @@ MemoryManager::outputSummary(std::ostream &os)
 
    if (m_dram_cntlr_present)
       m_dram_cntlr->getDramPerfModel()->outputSummary(os);
+   else
+      DramPerfModel::dummyOutputSummary(os);
 }
 
 }

@@ -388,7 +388,10 @@ NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_co
    vector<core_id_t> core_id_list_with_memory_controllers;
 
    for (SInt32 i = 0; i < num_memory_controllers; i++)
-      core_id_list_with_memory_controllers.push_back(core_id_list_along_perimeter[i * spacing_between_memory_controllers]);
+   {
+      SInt32 index = (i * spacing_between_memory_controllers + mesh_width/2) % core_id_list_along_perimeter.size();
+      core_id_list_with_memory_controllers.push_back(core_id_list_along_perimeter[index]);
+   }
 
    return (make_pair(true, core_id_list_with_memory_controllers));
 }

@@ -364,9 +364,15 @@ MemoryManager::outputSummary(std::ostream &os)
    m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
 
    if (m_dram_cntlr_present)
+   {
+      m_dram_directory_cntlr->outputSummary(os);
       m_dram_cntlr->getDramPerfModel()->outputSummary(os);
+   }
    else
+   {
+      DramDirectoryCntlr::dummyOutputSummary(os);
       DramPerfModel::dummyOutputSummary(os);
+   }
 }
 
 }

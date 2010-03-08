@@ -56,19 +56,19 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
       m_queue_models[direction] = NULL;
    }
 
-   if (m_queue_model_enabled && ((m_core_id / m_mesh_width) != 0))
+   if ((m_core_id / m_mesh_width) != 0)
    {
       m_queue_models[DOWN] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if (m_queue_model_enabled && ((m_core_id % m_mesh_width) != 0))
+   if ((m_core_id % m_mesh_width) != 0)
    {
       m_queue_models[LEFT] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if (m_queue_model_enabled && ((m_core_id / m_mesh_width) != (m_mesh_height - 1)))
+   if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
    {
       m_queue_models[UP] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if (m_queue_model_enabled && ((m_core_id % m_mesh_width) != (m_mesh_width - 1)))
+   if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
    {
       m_queue_models[RIGHT] = QueueModel::create(queue_model_type, min_processing_time);
    }
@@ -76,14 +76,11 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
 
 NetworkModelEMeshHopByHop::~NetworkModelEMeshHopByHop()
 {
-   if (m_queue_model_enabled)
+   for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
    {
-      for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
-      {
-         if (m_queue_models[i])
-            delete m_queue_models[i];
-      }
-  }
+      if (m_queue_models[i])
+         delete m_queue_models[i];
+   }
 }
 
 void

@@ -5,7 +5,7 @@ using namespace std;
 #include "network_types.h"
 
 #include "network_model_magic.h"
-#include "network_model_hop_counter.h"
+#include "network_model_emesh_hop_counter.h"
 #include "network_model_analytical.h"
 #include "network_model_emesh_hop_by_hop.h"
 #include "log.h"
@@ -18,8 +18,8 @@ NetworkModel::createModel(Network *net, UInt32 model_type, EStaticNetwork net_ty
    case NETWORK_MAGIC:
       return new NetworkModelMagic(net);
 
-   case NETWORK_HOP_COUNTER:
-      return new NetworkModelHopCounter(net);
+   case NETWORK_EMESH_HOP_COUNTER:
+      return new NetworkModelEMeshHopCounter(net);
 
    case NETWORK_ANALYTICAL_MESH:
       return new NetworkModelAnalytical(net, net_type);
@@ -38,8 +38,8 @@ NetworkModel::parseNetworkType(string str)
 {
    if (str == "magic")
       return NETWORK_MAGIC;
-   else if (str == "hop_counter")
-      return NETWORK_HOP_COUNTER;
+   else if (str == "emesh_hop_counter")
+      return NETWORK_EMESH_HOP_COUNTER;
    else if (str == "analytical")
       return NETWORK_ANALYTICAL_MESH;
    else if (str == "emesh_hop_by_hop")
@@ -54,7 +54,7 @@ NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count
    switch (network_type)
    {
       case NETWORK_MAGIC:
-      case NETWORK_HOP_COUNTER:
+      case NETWORK_EMESH_HOP_COUNTER:
       case NETWORK_ANALYTICAL_MESH:
          return make_pair(false,core_count);
 
@@ -73,7 +73,7 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
    switch (network_type)
    {
       case NETWORK_MAGIC:
-      case NETWORK_HOP_COUNTER:
+      case NETWORK_EMESH_HOP_COUNTER:
       case NETWORK_ANALYTICAL_MESH:
          {
             SInt32 spacing_between_memory_controllers = core_count / num_memory_controllers;

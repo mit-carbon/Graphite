@@ -698,6 +698,20 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem
 
       // Get the latest request for the data
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
+      
+      // Write-back to memory in certain circumstances
+      if (shmem_req->getShmemMsg()->getMsgType() == ShmemMsg::SH_REQ)
+      {
+         DirectoryState::dstate_t initial_dstate = curr_dstate;
+         DirectoryState::dstate_t final_dstate = directory_block_info->getDState();
+
+         if ((initial_dstate == DirectoryState::MODIFIED || initial_dstate == DirectoryState::OWNED)
+            && (final_dstate == DirectoryState::SHARED || final_dstate == DirectoryState::UNCACHED))
+         {
+            sendDataToDram(address, shmem_msg->getRequester(), shmem_msg->getDataBuf());
+         }
+      }
+
       restartShmemReq(sender, shmem_req, directory_block_info->getDState());
    }
    else

@@ -352,7 +352,7 @@ void SyncServer::barrierWait(core_id_t core_id)
    UInt64 time;
    m_recv_buffer >> time;
 
-   assert((size_t)barrier < m_barriers.size());
+   LOG_ASSERT_ERROR(barrier < (core_id_t) m_barriers.size(), "barrier = %i, m_barriers.size()= %u", barrier, m_barriers.size());
 
    SimBarrier *psimbarrier = &m_barriers[barrier];
 

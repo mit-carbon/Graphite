@@ -83,7 +83,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          void processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
          void sendDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
       
-         void sendInvReq(ShmemMsg::msg_t requester_msg_type, IntPtr address, core_id_t requester, pair<bool, vector<core_id_t> >& sharers_list_pair);
+         void sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address, core_id_t requester, core_id_t single_receiver, pair<bool, vector<core_id_t> >& sharers_list_pair);
          void restartShmemReq(core_id_t sender, ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate);
 
          // Update Performance Counters
@@ -101,6 +101,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                UInt32 dram_directory_max_num_sharers,
                UInt32 dram_directory_max_hw_sharers,
                std::string dram_directory_type_str,
+               UInt32 num_dram_cntlrs,
                UInt32 dram_directory_cache_access_time,
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCntlr();

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <map>
-
 // Forward declarations
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -13,6 +11,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include "pr_l2_cache_block_info.h"
 #include "address_home_lookup.h"
 #include "shmem_msg.h"
+#include "shmem_req.h"
 #include "mem_component.h"
 #include "semaphore.h"
 #include "lock.h"
@@ -29,8 +28,10 @@ namespace PrL1PrL2DramDirectoryMOSI
          Cache* m_l2_cache;
          L1CacheCntlr* m_l1_cache_cntlr;
          AddressHomeLookup* m_dram_directory_home_lookup;
-         std::map<IntPtr, MemComponent::component_t> m_shmem_req_source_map;
-         
+
+         // Outstanding ShmemReq info
+         ShmemMsg m_outstanding_shmem_msg;
+
          core_id_t m_core_id;
          UInt32 m_cache_block_size;
 
@@ -39,6 +40,9 @@ namespace PrL1PrL2DramDirectoryMOSI
          Semaphore* m_network_thread_sem;
 
          ShmemPerfModel* m_shmem_perf_model;
+
+         // Buffered Msg Req From Dram Directory
+         ShmemReq m_buffered_shmem_req;
 
          // L2 Cache meta-data operations
          CacheState::cstate_t getCacheState(PrL2CacheBlockInfo* l2_cache_block_info);
@@ -68,6 +72,9 @@ namespace PrL1PrL2DramDirectoryMOSI
          void processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
          void processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
          void processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
+         void processInvFlushCombinedReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
+
+         void processBufferedShmemReqFromDramDirectory(void);
 
          // Cache Block Size
          UInt32 getCacheBlockSize() { return m_cache_block_size; }

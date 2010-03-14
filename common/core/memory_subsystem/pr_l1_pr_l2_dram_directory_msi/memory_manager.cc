@@ -105,10 +105,10 @@ MemoryManager::MemoryManager(Core* core,
    m_network_thread_sem = new Semaphore(0);
 
    std::vector<core_id_t> core_list_with_dram_controllers = getCoreListWithMemoryControllers();
-   if (m_core->getId() == 0)
+   if (getCore()->getId() == 0)
       printCoreListWithMemoryControllers(core_list_with_dram_controllers);
 
-   if (find(core_list_with_dram_controllers.begin(), core_list_with_dram_controllers.end(), m_core->getId()) != core_list_with_dram_controllers.end())
+   if (find(core_list_with_dram_controllers.begin(), core_list_with_dram_controllers.end(), getCore()->getId()) != core_list_with_dram_controllers.end())
    {
       m_dram_cntlr_present = true;
 
@@ -121,7 +121,7 @@ MemoryManager::MemoryManager(Core* core,
             getCacheBlockSize(),
             getShmemPerfModel());
 
-      m_dram_directory_cntlr = new DramDirectoryCntlr(m_core->getId(),
+      m_dram_directory_cntlr = new DramDirectoryCntlr(getCore()->getId(),
             this,
             m_dram_cntlr,
             dram_directory_total_entries,
@@ -136,7 +136,7 @@ MemoryManager::MemoryManager(Core* core,
 
    m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, core_list_with_dram_controllers, getCacheBlockSize());
 
-   m_l1_cache_cntlr = new L1CacheCntlr(m_core->getId(),
+   m_l1_cache_cntlr = new L1CacheCntlr(getCore()->getId(),
          this,
          m_user_thread_sem,
          m_network_thread_sem,
@@ -153,7 +153,7 @@ MemoryManager::MemoryManager(Core* core,
          l1_dcache_perf_model_type,
          getShmemPerfModel());
    
-   m_l2_cache_cntlr = new L2CacheCntlr(m_core->getId(),
+   m_l2_cache_cntlr = new L2CacheCntlr(getCore()->getId(),
          this,
          m_l1_cache_cntlr,
          m_dram_directory_home_lookup,
@@ -170,14 +170,14 @@ MemoryManager::MemoryManager(Core* core,
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
    // Register Call-backs
-   m_network->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
-   m_network->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
+   getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
+   getNetwork()->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
 }
 
 MemoryManager::~MemoryManager()
 {
-   m_network->unregisterCallback(SHARED_MEM_1);
-   m_network->unregisterCallback(SHARED_MEM_2);
+   getNetwork()->unregisterCallback(SHARED_MEM_1);
+   getNetwork()->unregisterCallback(SHARED_MEM_2);
 
    delete m_user_thread_sem;
    delete m_network_thread_sem;
@@ -233,7 +233,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
          {
             case MemComponent::L1_ICACHE:
             case MemComponent::L1_DCACHE:
-               assert(sender == m_core->getId());
+               assert(sender == getCore()->getId());
                m_l2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
                break;
 
@@ -293,13 +293,13 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
 
    if (m_enabled)
    {
-      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), receiver);
+      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, getCore()->getId(), receiver);
    }
 
    NetPacket packet(msg_time, SHARED_MEM_1,
-         m_core->getId(), receiver,
+         getCore()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
-   m_network->netSend(packet);
+   getNetwork()->netSend(packet);
 
    // Delete the Msg Buf
    delete [] msg_buf;
@@ -316,13 +316,13 @@ MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t 
 
    if (m_enabled)
    {
-      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, m_core->getId(), NetPacket::BROADCAST);
+      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, getCore()->getId(), NetPacket::BROADCAST);
    }
 
    NetPacket packet(msg_time, SHARED_MEM_1,
-         m_core->getId(), NetPacket::BROADCAST,
+         getCore()->getId(), NetPacket::BROADCAST,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
-   m_network->netSend(packet);
+   getNetwork()->netSend(packet);
 
    // Delete the Msg Buf
    delete [] msg_buf;

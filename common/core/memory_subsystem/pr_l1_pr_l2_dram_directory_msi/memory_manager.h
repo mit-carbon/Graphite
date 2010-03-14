@@ -62,6 +62,9 @@ namespace PrL1PrL2DramDirectoryMSI
          void enableModels();
          void disableModels();
 
+         core_id_t getShmemRequester(const void* pkt_data)
+         { return ((ShmemMsg*) pkt_data)->getRequester(); }
+
          void outputSummary(std::ostream &os);
 
    };

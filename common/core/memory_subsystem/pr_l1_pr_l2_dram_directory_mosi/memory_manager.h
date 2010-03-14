@@ -12,6 +12,7 @@
 #include "semaphore.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "network.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -31,6 +32,17 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          UInt32 m_cache_block_size;
          bool m_enabled;
+
+         // Packet Types for different kinds of traffic - See comment in carbon_sim.cfg
+         SInt32 m_unicast_threshold;
+         PacketType m_unicast_packet_type_lt_threshold;
+         PacketType m_unicast_packet_type_ge_threshold;
+         PacketType m_broadcast_packet_type;
+
+         // Get Packet Type for a message
+         PacketType getPacketType(core_id_t sender, core_id_t receiver);
+         // Parse Network Type
+         PacketType parseNetworkType(std::string& network_type);
 
       public:
          MemoryManager(Core* core, Network* network, ShmemPerfModel* shmem_perf_model);
@@ -55,12 +67,14 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          void handleMsgFromNetwork(NetPacket& packet);
 
-         void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, core_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
-
-         void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+         void sendMsg(core_id_t receiver, ShmemMsg& shmem_msg);
+         void broadcastMsg(ShmemMsg& shmem_msg);
          
          void enableModels();
          void disableModels();
+
+         core_id_t getShmemRequester(const void* pkt_data)
+         { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
          void outputSummary(std::ostream &os);
 

@@ -2,7 +2,7 @@
 #include "cache_base.h"
 #include "simulator.h"
 #include "network.h"
-#include "network_model_emesh_hop_by_hop.h"
+#include "network_model_emesh_hop_by_hop_generic.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -355,7 +355,7 @@ MemoryManager::getPacketType(core_id_t sender, core_id_t receiver)
       return m_broadcast_packet_type;
 
    // Whether we need to send on the 1st or 2nd SHARED_MEM network
-   SInt32 num_hops = NetworkModelEMeshHopByHop::computeNumHops(sender, receiver);
+   SInt32 num_hops = NetworkModelEMeshHopByHopGeneric::computeNumHops(sender, receiver);
 
    // Send on the first network if the hop count < 4
    if (num_hops < m_unicast_threshold)

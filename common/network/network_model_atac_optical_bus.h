@@ -3,6 +3,7 @@
 
 #include "queue_model.h"
 #include "network.h"
+#include "lock.h"
 
 // Single Sender Multiple Receivers Model
 // 1 sender, N receivers (1 to N)
@@ -19,6 +20,9 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       bool m_queue_model_enabled;
       bool m_enabled;
 
+      // Lock
+      Lock m_lock;
+
       // Performance Counters
       UInt64 m_bytes_sent;
       UInt64 m_total_packets_sent;
@@ -33,6 +37,8 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       ~NetworkModelAtacOpticalBus();
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
+      void processReceivedPacket(NetPacket& pkt);
+      
       void enable();
       void disable();
       

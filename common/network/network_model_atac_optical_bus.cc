@@ -3,7 +3,7 @@
 #include "config.h"
 #include "log.h"
 #include "simulator.h"
-#include "shmem_msg.h"
+#include "memory_manager_base.h"
 #include "packet_type.h"
 
 NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net) :
@@ -83,12 +83,17 @@ NetworkModelAtacOpticalBus::computeProcessingTime(UInt32 pkt_length)
 void 
 NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 {
+   ScopedLock sl(m_lock);
+
    core_id_t requester = INVALID_CORE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = ((ShmemMsg*) pkt.data)->getRequester();
+      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
+
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+         "requester(%i)", requester);
 
    UInt64 net_optical_latency = computeLatency(pkt.time, pkt.bufferSize(), requester);
 
@@ -99,7 +104,10 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
          Hop h;
          h.next_dest = i;
          h.final_dest = i;
-         h.time = pkt.time + net_optical_latency;
+         if (getNetwork()->getCore()->getId() != i)
+            h.time = pkt.time + net_optical_latency;
+         else
+            h.time = pkt.time;
          nextHops.push_back(h);
       }
    }
@@ -113,9 +121,18 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
       Hop h;
       h.next_dest = pkt.receiver;
       h.final_dest = pkt.receiver;
-      h.time = pkt.time + net_optical_latency;
+      if (getNetwork()->getCore()->getId() != pkt.receiver)
+         h.time = pkt.time + net_optical_latency;
+      else
+         h.time = pkt.time;
       nextHops.push_back(h);
    }
+}
+
+void
+NetworkModelAtacOpticalBus::processReceivedPacket(NetPacket& pkt)
+{
+   ScopedLock sl(m_lock);
 }
 
 void
@@ -126,9 +143,9 @@ NetworkModelAtacOpticalBus::outputSummary(std::ostream &out)
    if (m_total_packets_sent > 0)
    {
       out << "    average queueing delay: " << 
-         (m_total_queueing_delay / m_total_packets_sent) << std::endl;
+         ((float) m_total_queueing_delay / m_total_packets_sent) << std::endl;
       out << "    average packet latency: " <<
-         (m_total_packet_latency / m_total_packets_sent) << std::endl;
+         ((float) m_total_packet_latency / m_total_packets_sent) << std::endl;
    }
    else
    {

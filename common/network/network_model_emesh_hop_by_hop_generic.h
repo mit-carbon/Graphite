@@ -1,5 +1,5 @@
-#ifndef __NETWORK_MODEL_EMESH_HOP_BY_HOP_H__
-#define __NETWORK_MODEL_EMESH_HOP_BY_HOP_H__
+#ifndef __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__
+#define __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__
 
 #include "network.h"
 #include "network_model.h"
@@ -7,7 +7,7 @@
 #include "queue_model.h"
 #include "lock.h"
 
-class NetworkModelEMeshHopByHop : public NetworkModel
+class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 {
    public:
       typedef enum
@@ -25,13 +25,9 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       core_id_t m_core_id;
       SInt32 m_mesh_width;
       SInt32 m_mesh_height;
-      UInt32 m_link_bandwidth;
-      UInt64 m_hop_latency;
-      bool m_broadcast_tree_enabled;
 
       QueueModel* m_queue_models[NUM_OUTPUT_DIRECTIONS];
 
-      bool m_queue_model_enabled;
       bool m_enabled;
 
       // Lock
@@ -54,9 +50,19 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       UInt64 computeProcessingTime(UInt32 pkt_length);
       core_id_t getNextDest(core_id_t final_dest, OutputDirection& direction);
 
+   protected:
+      UInt32 m_link_bandwidth;
+      UInt64 m_hop_latency;
+      bool m_broadcast_tree_enabled;
+      
+      bool m_queue_model_enabled;
+      std::string m_queue_model_type;
+
+      void createQueueModels();
+   
    public:
-      NetworkModelEMeshHopByHop(Network* net);
-      ~NetworkModelEMeshHopByHop();
+      NetworkModelEMeshHopByHopGeneric(Network* net);
+      ~NetworkModelEMeshHopByHopGeneric();
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
       void processReceivedPacket(NetPacket &pkt);
@@ -70,4 +76,4 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       bool isEnabled();
 };
 
-#endif /* __NETWORK_MODEL_EMESH_HOP_BY_HOP_H__ */
+#endif /* __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__ */

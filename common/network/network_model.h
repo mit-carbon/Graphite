@@ -8,6 +8,7 @@ class Network;
 #include <vector>
 
 #include "packet_type.h"
+#include "fixed_types.h"
 
 // -- Network Models -- //
 
@@ -24,7 +25,7 @@ class Network;
 class NetworkModel
 {
    public:
-      NetworkModel(Network *network) : _network(network) { }
+      NetworkModel(Network *network);
       virtual ~NetworkModel() { }
 
       struct Hop
@@ -44,7 +45,6 @@ class NetworkModel
       virtual void disable() = 0;
 
       static NetworkModel *createModel(Network *network, UInt32 model_type, EStaticNetwork net_type);
-      
       static UInt32 parseNetworkType(std::string str);
 
       static std::pair<bool,SInt32> computeCoreCountConstraints(UInt32 network_type, SInt32 core_count);

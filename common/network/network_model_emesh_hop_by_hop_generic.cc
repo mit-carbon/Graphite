@@ -1,7 +1,7 @@
 #include <math.h>
 using namespace std;
 
-#include "network_model_emesh_hop_by_hop.h"
+#include "network_model_emesh_hop_by_hop_generic.h"
 #include "core.h"
 #include "simulator.h"
 #include "config.h"
@@ -10,7 +10,7 @@ using namespace std;
 #include "queue_model_history_list.h"
 #include "memory_manager_base.h"
 
-NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
+NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net):
    NetworkModel(net),
    m_enabled(false),
    m_num_bytes(0),
@@ -25,55 +25,9 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    m_mesh_height = (SInt32) ceil (1.0 * total_cores / m_mesh_width);
 
    assert(total_cores == (m_mesh_width * m_mesh_height));
-
-   string queue_model_type = "";
-   // Get the Link Bandwidth, Hop Latency and if it has broadcast tree mechanism
-   try
-   {
-      // Link Bandwidth is specified in bits/clock_cycle
-      m_link_bandwidth = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/link_bandwidth");
-      // Hop Latency is specified in cycles
-      m_hop_latency = (UInt64) Sim()->getCfg()->getInt("network/emesh_hop_by_hop/hop_latency");
-
-      // Has broadcast tree?
-      m_broadcast_tree_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/broadcast_tree_enabled");
-
-      // Queue Model enabled? If no, this degrades into a hop counter model
-      m_queue_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
-      queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
-   }
-   catch(...)
-   {
-      LOG_PRINT_ERROR("Could not read parameters from the configuration file");
-   }
-
-   UInt64 min_processing_time = 1;
-
-   // Initialize the queue models for all the '4' output directions
-   for (UInt32 direction = 0; direction < NUM_OUTPUT_DIRECTIONS; direction ++)
-   {
-      m_queue_models[direction] = NULL;
-   }
-
-   if ((m_core_id / m_mesh_width) != 0)
-   {
-      m_queue_models[DOWN] = QueueModel::create(queue_model_type, min_processing_time);
-   }
-   if ((m_core_id % m_mesh_width) != 0)
-   {
-      m_queue_models[LEFT] = QueueModel::create(queue_model_type, min_processing_time);
-   }
-   if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
-   {
-      m_queue_models[UP] = QueueModel::create(queue_model_type, min_processing_time);
-   }
-   if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
-   {
-      m_queue_models[RIGHT] = QueueModel::create(queue_model_type, min_processing_time);
-   }
 }
 
-NetworkModelEMeshHopByHop::~NetworkModelEMeshHopByHop()
+NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
 {
    for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
    {
@@ -83,7 +37,35 @@ NetworkModelEMeshHopByHop::~NetworkModelEMeshHopByHop()
 }
 
 void
-NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHops)
+NetworkModelEMeshHopByHopGeneric::createQueueModels()
+{
+   UInt64 min_processing_time = 1;
+   // Initialize the queue models for all the '4' output directions
+   for (UInt32 direction = 0; direction < NUM_OUTPUT_DIRECTIONS; direction ++)
+   {
+      m_queue_models[direction] = NULL;
+   }
+
+   if ((m_core_id / m_mesh_width) != 0)
+   {
+      m_queue_models[DOWN] = QueueModel::create(m_queue_model_type, min_processing_time);
+   }
+   if ((m_core_id % m_mesh_width) != 0)
+   {
+      m_queue_models[LEFT] = QueueModel::create(m_queue_model_type, min_processing_time);
+   }
+   if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
+   {
+      m_queue_models[UP] = QueueModel::create(m_queue_model_type, min_processing_time);
+   }
+   if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
+   {
+      m_queue_models[RIGHT] = QueueModel::create(m_queue_model_type, min_processing_time);
+   }
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> &nextHops)
 {
    ScopedLock sl(m_lock);
 
@@ -157,7 +139,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
 }
 
 void
-NetworkModelEMeshHopByHop::processReceivedPacket(NetPacket& pkt)
+NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 {
    ScopedLock sl(m_lock);
    
@@ -194,7 +176,7 @@ NetworkModelEMeshHopByHop::processReceivedPacket(NetPacket& pkt)
 }
 
 void
-NetworkModelEMeshHopByHop::addHop(OutputDirection direction, 
+NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction, 
       core_id_t final_dest, core_id_t next_dest, 
       UInt64 pkt_time, UInt32 pkt_length, 
       vector<Hop>& nextHops, core_id_t requester)
@@ -218,7 +200,7 @@ NetworkModelEMeshHopByHop::addHop(OutputDirection direction,
 }
 
 SInt32
-NetworkModelEMeshHopByHop::computeDistance(core_id_t sender, core_id_t receiver)
+NetworkModelEMeshHopByHopGeneric::computeDistance(core_id_t sender, core_id_t receiver)
 {
    SInt32 sx, sy, dx, dy;
 
@@ -229,20 +211,20 @@ NetworkModelEMeshHopByHop::computeDistance(core_id_t sender, core_id_t receiver)
 }
 
 void
-NetworkModelEMeshHopByHop::computePosition(core_id_t core_id, SInt32 &x, SInt32 &y)
+NetworkModelEMeshHopByHopGeneric::computePosition(core_id_t core_id, SInt32 &x, SInt32 &y)
 {
    x = core_id % m_mesh_width;
    y = core_id / m_mesh_width;
 }
 
 core_id_t
-NetworkModelEMeshHopByHop::computeCoreId(SInt32 x, SInt32 y)
+NetworkModelEMeshHopByHopGeneric::computeCoreId(SInt32 x, SInt32 y)
 {
    return (y * m_mesh_width + x);
 }
 
 UInt64
-NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
+NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
 {
    LOG_ASSERT_ERROR((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS),
          "Invalid Direction(%u)", direction);
@@ -268,13 +250,13 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, UInt64 pkt_
 }
 
 UInt64
-NetworkModelEMeshHopByHop::computeSerializationLatency(UInt32 pkt_length)
+NetworkModelEMeshHopByHopGeneric::computeSerializationLatency(UInt32 pkt_length)
 {
    return computeProcessingTime(pkt_length);
 }
 
 UInt64 
-NetworkModelEMeshHopByHop::computeProcessingTime(UInt32 pkt_length)
+NetworkModelEMeshHopByHopGeneric::computeProcessingTime(UInt32 pkt_length)
 {
    // Send: (pkt_length * 8) bits
    // Bandwidth: (m_link_bandwidth) bits/cycle
@@ -286,7 +268,7 @@ NetworkModelEMeshHopByHop::computeProcessingTime(UInt32 pkt_length)
 }
 
 SInt32
-NetworkModelEMeshHopByHop::getNextDest(SInt32 final_dest, OutputDirection& direction)
+NetworkModelEMeshHopByHopGeneric::getNextDest(SInt32 final_dest, OutputDirection& direction)
 {
    // Do dimension-order routing
    // Curently, do store-and-forward routing
@@ -326,7 +308,7 @@ NetworkModelEMeshHopByHop::getNextDest(SInt32 final_dest, OutputDirection& direc
 }
 
 void
-NetworkModelEMeshHopByHop::outputSummary(ostream &out)
+NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
 {
    out << "    bytes received: " << m_num_bytes << endl;
    out << "    packets received: " << m_num_packets << endl;
@@ -345,8 +327,7 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
          "NA" << endl;
    }
 
-   std::string queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
-   if (m_queue_model_enabled && (queue_model_type == "history_list"))
+   if (m_queue_model_enabled && (m_queue_model_type == "history_list"))
    {
       out << "  Queue Models:" << endl;
          
@@ -373,25 +354,25 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 }
 
 void
-NetworkModelEMeshHopByHop::enable()
+NetworkModelEMeshHopByHopGeneric::enable()
 {
    m_enabled = true;
 }
 
 void
-NetworkModelEMeshHopByHop::disable()
+NetworkModelEMeshHopByHopGeneric::disable()
 {
    m_enabled = false;
 }
 
 bool
-NetworkModelEMeshHopByHop::isEnabled()
+NetworkModelEMeshHopByHopGeneric::isEnabled()
 {
    return m_enabled;
 }
 
 pair<bool,SInt32>
-NetworkModelEMeshHopByHop::computeCoreCountConstraints(SInt32 core_count)
+NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(SInt32 core_count)
 {
    SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
    SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
@@ -404,7 +385,7 @@ NetworkModelEMeshHopByHop::computeCoreCountConstraints(SInt32 core_count)
 }
 
 pair<bool, vector<core_id_t> >
-NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
+NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
 {
    SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
    SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
@@ -447,15 +428,13 @@ NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_co
 }
 
 SInt32
-NetworkModelEMeshHopByHop::computeNumHops(core_id_t sender, core_id_t receiver)
+NetworkModelEMeshHopByHopGeneric::computeNumHops(core_id_t sender, core_id_t receiver)
 {
    SInt32 core_count = Config::getSingleton()->getTotalCores();
 
    SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
-   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+   // SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
    
-   assert(core_count == (mesh_height * mesh_width));
-
    SInt32 sx, sy, dx, dy;
 
    sx = sender % mesh_width;

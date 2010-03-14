@@ -55,6 +55,7 @@ int main (int argc, char *argv[])
    assert(num_misses == 1);
    assert(read_val_0 == 110);
 
+   CarbonStopSim();
    printf("Finished (shared_mem_basic) - SUCCESS\n");
    return 0;
 }

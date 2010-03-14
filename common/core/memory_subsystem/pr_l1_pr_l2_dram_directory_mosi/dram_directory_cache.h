@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <map>
+using namespace std;
 
 #include "directory.h"
 #include "shmem_perf_model.h"
@@ -12,7 +14,7 @@ namespace PrL1PrL2DramDirectoryMOSI
    {
       private:
          Directory* m_directory;
-         std::vector<DirectoryEntry*> m_replaced_directory_entry_list;
+         vector<DirectoryEntry*> m_replaced_directory_entry_list;
 
          UInt32 m_total_entries;
          UInt32 m_associativity;
@@ -21,6 +23,12 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt32 m_cache_block_size;
          UInt32 m_log_num_sets;
          UInt32 m_log_cache_block_size;
+
+         UInt32 m_log_num_dram_cntlrs;
+
+         // Collect replacement statistics
+         UInt64* histogram;
+         map<IntPtr, SInt32> m_replaced_address_list;
 
          UInt32 m_dram_directory_cache_access_time;
          ShmemPerfModel* m_shmem_perf_model;
@@ -32,15 +40,19 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt32 getLogCacheBlockSize() { return m_log_cache_block_size; }
          UInt32 getNumSets() { return m_num_sets; }
          UInt32 getLogNumSets() { return m_log_num_sets; }
-      
+         UInt32 getLogNumDramCntlrs() { return m_log_num_dram_cntlrs; }
+     
+         void aggregateStatistics(UInt64*, UInt64&, UInt64&, UInt64&, SInt32& max_index, IntPtr& max_replaced_address, SInt32& max_replaced_times);
+
       public:
 
-         DramDirectoryCache(std::string directory_type_str,
+         DramDirectoryCache(string directory_type_str,
                UInt32 total_entries,
                UInt32 associativity,
                UInt32 cache_block_size,
                UInt32 max_hw_sharers,
                UInt32 max_num_sharers,
+               UInt32 num_dram_cntlrs,
                UInt32 dram_directory_cache_access_time,
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCache();
@@ -48,7 +60,9 @@ namespace PrL1PrL2DramDirectoryMOSI
          DirectoryEntry* getDirectoryEntry(IntPtr address);
          DirectoryEntry* replaceDirectoryEntry(IntPtr replaced_address, IntPtr address);
          void invalidateDirectoryEntry(IntPtr address);
-         void getReplacementCandidates(IntPtr address, std::vector<DirectoryEntry*>& replacement_candidate_list); 
+         void getReplacementCandidates(IntPtr address, vector<DirectoryEntry*>& replacement_candidate_list); 
 
+         void outputSummary(ostream& out);
+         static void dummyOutputSummary(ostream& out);
    };
 }

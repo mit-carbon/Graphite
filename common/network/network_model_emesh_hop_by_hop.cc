@@ -345,32 +345,6 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
          "NA" << endl;
    }
 
-   string queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
-   if (m_queue_model_enabled && (queue_model_type == "history_list"))
-   {
-      out << "  Queue Models:" << endl;
-         
-      float queue_utilization = 0.0;
-      float frac_requests_using_analytical_model = 0.0;
-      UInt32 num_queue_models = 0;
-      
-      for (SInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
-      {
-         if (m_queue_models[i])
-         {
-            queue_utilization += ((QueueModelHistoryList*) m_queue_models[i])->getQueueUtilization();
-            frac_requests_using_analytical_model += ((QueueModelHistoryList*) m_queue_models[i])->getFracRequestsUsingAnalyticalModel();
-            num_queue_models ++;
-         }
-      }
-
-      queue_utilization /= num_queue_models;
-      frac_requests_using_analytical_model /= num_queue_models;
-
-      out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
-      out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
-   }
-
    std::string queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
    if (m_queue_model_enabled && (queue_model_type == "history_list"))
    {

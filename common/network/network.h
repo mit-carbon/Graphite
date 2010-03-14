@@ -21,6 +21,7 @@ class Network;
 class NetPacket
 {
 public:
+   UInt64 start_time;
    UInt64 time;
    PacketType type;
    SInt32 sender;

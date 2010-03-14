@@ -13,6 +13,7 @@ public:
 
    void routePacket(const NetPacket &pkt,
                     std::vector<Hop> &nextHops);
+   void processReceivedPacket(NetPacket &pkt);
 
    void outputSummary(std::ostream &out);
 
@@ -37,8 +38,9 @@ private:
    Lock _lock;
    
    // Performance Counters
-   UInt64 _bytesSent;
-   UInt64 _cyclesLatency;
+   UInt64 _num_packets;
+   UInt64 _num_bytes;
+   UInt64 _total_latency;
 };
 
 #endif

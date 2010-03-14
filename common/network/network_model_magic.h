@@ -25,6 +25,8 @@ class NetworkModelMagic : public NetworkModel
          _bytesSent += pkt.length;
       }
 
+      void processReceivedPacket(NetPacket& pkt) {}
+
       void outputSummary(std::ostream &out)
       {
          out << "    bytes sent: " << _bytesSent << std::endl;

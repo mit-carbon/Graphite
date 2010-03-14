@@ -36,6 +36,7 @@ class NetworkModel
 
       virtual void routePacket(const NetPacket &pkt,
                                std::vector<Hop> &nextHops) = 0;
+      virtual void processReceivedPacket(NetPacket &pkt) = 0;
 
       virtual void outputSummary(std::ostream &out) = 0;
 

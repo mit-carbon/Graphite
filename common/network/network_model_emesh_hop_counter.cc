@@ -5,12 +5,15 @@
 #include "config.h"
 #include "network_model_emesh_hop_counter.h"
 #include "config.h"
+#include "core.h"
+#include "memory_manager_base.h"
 
 NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net)
    : NetworkModel(net)
    , _enabled(false)
-   , _bytesSent(0)
-   , _cyclesLatency(0)
+   , _num_packets(0)
+   , _num_bytes(0)
+   , _total_latency(0)
 {
    SInt32 total_cores = Config::getSingleton()->getTotalCores();
 
@@ -51,8 +54,9 @@ SInt32 NetworkModelEMeshHopCounter::computeDistance(SInt32 x1, SInt32 y1, SInt32
 void NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
                                          std::vector<Hop> &nextHops)
 {
-   UInt64 curr_time = pkt.time;
-   UInt64 serialization_latency = computeSerializationLatency(pkt.length);
+   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
+
+   UInt64 serialization_latency = computeSerializationLatency(pkt_length);
 
    SInt32 sx, sy, dx, dy;
 
@@ -61,7 +65,8 @@ void NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
    if (pkt.receiver == NetPacket::BROADCAST)
    {
       UInt32 total_cores = Config::getSingleton()->getTotalCores();
-      UInt64 total_latency = 0;
+   
+      UInt64 curr_time = pkt.time;
       // There's no broadcast tree here, but I guess that won't be a
       // bottleneck at all since there's no contention
       for (SInt32 i = 0; i < (SInt32) total_cores; i++)
@@ -71,8 +76,6 @@ void NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
          UInt64 latency = computeDistance(sx, sy, dx, dy) * _hopLatency;
          if (i != pkt.sender)
             latency += serialization_latency;
-
-         total_latency += latency;
 
          Hop h;
          h.final_dest = i;
@@ -84,14 +87,6 @@ void NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
 
          nextHops.push_back(h);
       }
-      
-      if (!_enabled)
-         return;
-
-      _lock.acquire();
-      _bytesSent += total_cores * pkt.length;
-      _cyclesLatency += total_latency;
-      _lock.release();
    } 
    else
    {
@@ -107,15 +102,36 @@ void NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
       h.time = pkt.time + latency;
 
       nextHops.push_back(h);
-
-      if (!_enabled)
-         return;
-
-      _lock.acquire();
-      _bytesSent += pkt.length;
-      _cyclesLatency += latency;
-      _lock.release();
    }
+}
+
+void
+NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
+{
+   ScopedLock sl(_lock);
+
+   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
+
+   core_id_t requester = INVALID_CORE_ID;
+
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+   else // Other Packet types
+      requester = pkt.sender;
+   
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+         "requester(%i)", requester);
+
+   if ( (!_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
+      return;
+
+   // LOG_ASSERT_ERROR(pkt.start_time > 0, "start_time(%llu)", pkt.start_time);
+
+   UInt64 latency = pkt.time - pkt.start_time;
+
+   _num_packets ++;
+   _num_bytes += pkt_length;
+   _total_latency += latency;
 }
 
 UInt64 
@@ -132,6 +148,7 @@ NetworkModelEMeshHopCounter::computeSerializationLatency(UInt32 pkt_length)
 
 void NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
 {
-   out << "    bytes sent: " << _bytesSent << std::endl;
-   out << "    cycles spent latency: " << _cyclesLatency << std::endl;
+   out << "    num packets received: " << _num_packets << std::endl;
+   out << "    num bytes received: " << _num_bytes << std::endl;
+   out << "    average latency: " << ((float) _total_latency) / _num_packets << std::endl;
 }

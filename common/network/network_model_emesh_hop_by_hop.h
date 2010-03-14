@@ -38,17 +38,19 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       Lock m_lock;
 
       // Counters
-      UInt64 m_bytes_sent;
-      UInt64 m_total_packets_sent;
-      UInt64 m_total_queueing_delay;
-      UInt64 m_total_packet_latency;
+      UInt64 m_num_bytes;
+      UInt64 m_num_packets;
+      UInt64 m_total_contention_delay;
+      UInt64 m_total_latency;
 
       // Functions
       void computePosition(core_id_t core, SInt32 &x, SInt32 &y);
       core_id_t computeCoreId(SInt32 x, SInt32 y);
+      SInt32 computeDistance(core_id_t sender, core_id_t receiver);
 
       void addHop(OutputDirection direction, core_id_t final_dest, core_id_t next_dest, UInt64 pkt_time, UInt32 pkt_length, std::vector<Hop>& nextHops, core_id_t requester);
       UInt64 computeLatency(OutputDirection direction, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
+      UInt64 computeSerializationLatency(UInt32 pkt_length);
       UInt64 computeProcessingTime(UInt32 pkt_length);
       core_id_t getNextDest(core_id_t final_dest, OutputDirection& direction);
 
@@ -57,8 +59,10 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       ~NetworkModelEMeshHopByHop();
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
+      void processReceivedPacket(NetPacket &pkt);
       static std::pair<bool,std::vector<core_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count);
       static std::pair<bool,SInt32> computeCoreCountConstraints(SInt32 core_count);
+      static SInt32 computeNumHops(core_id_t sender, core_id_t receiver);
 
       void outputSummary(std::ostream &out);
       void enable();

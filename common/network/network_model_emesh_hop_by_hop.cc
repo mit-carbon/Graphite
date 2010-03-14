@@ -7,17 +7,16 @@ using namespace std;
 #include "config.h"
 #include "utils.h"
 #include "packet_type.h"
-// FIXME: This is a hack. No better way of doing this
-#include "shmem_msg.h"
 #include "queue_model_history_list.h"
+#include "memory_manager_base.h"
 
 NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
    NetworkModel(net),
    m_enabled(false),
-   m_bytes_sent(0),
-   m_total_packets_sent(0),
-   m_total_queueing_delay(0),
-   m_total_packet_latency(0)
+   m_num_bytes(0),
+   m_num_packets(0),
+   m_total_contention_delay(0),
+   m_total_latency(0)
 {
    SInt32 total_cores = Config::getSingleton()->getTotalCores();
    m_core_id = getNetwork()->getCore()->getId();
@@ -91,12 +90,14 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
    core_id_t requester = INVALID_CORE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = ((ShmemMsg*) pkt.data)->getRequester();
+      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
          "requester(%i)", requester);
+
+   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
 
    if (pkt.receiver == NetPacket::BROADCAST)
    {
@@ -110,17 +111,17 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
          computePosition(m_core_id, cx, cy);
 
          if (cy >= sy)
-            addHop(UP, NetPacket::BROADCAST, computeCoreId(cx,cy+1), pkt.time, pkt.length, nextHops, requester);
+            addHop(UP, NetPacket::BROADCAST, computeCoreId(cx,cy+1), pkt.time, pkt_length, nextHops, requester);
          if (cy <= sy)
-            addHop(DOWN, NetPacket::BROADCAST, computeCoreId(cx,cy-1), pkt.time, pkt.length, nextHops, requester);
+            addHop(DOWN, NetPacket::BROADCAST, computeCoreId(cx,cy-1), pkt.time, pkt_length, nextHops, requester);
          if (cy == sy)
          {
             if (cx >= sx)
-               addHop(RIGHT, NetPacket::BROADCAST, computeCoreId(cx+1,cy), pkt.time, pkt.length, nextHops, requester);
+               addHop(RIGHT, NetPacket::BROADCAST, computeCoreId(cx+1,cy), pkt.time, pkt_length, nextHops, requester);
             if (cx <= sx)
-               addHop(LEFT, NetPacket::BROADCAST, computeCoreId(cx-1,cy), pkt.time, pkt.length, nextHops, requester);
+               addHop(LEFT, NetPacket::BROADCAST, computeCoreId(cx-1,cy), pkt.time, pkt_length, nextHops, requester);
             if (cx == sx)
-               addHop(SELF, m_core_id, m_core_id, pkt.time, pkt.length, nextHops, requester); 
+               addHop(SELF, m_core_id, m_core_id, pkt.time, pkt_length, nextHops, requester); 
          }
       }
       else
@@ -131,13 +132,17 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
                "BROADCAST message to be sent at (%i), original sender(%i), Tree not enabled",
                m_core_id, pkt.sender);
 
+         UInt64 curr_time = pkt.time;
          for (core_id_t i = 0; i < (core_id_t) Config::getSingleton()->getTotalCores(); i++)
          {
             // Unicast message to each core
             OutputDirection direction;
             core_id_t next_dest = getNextDest(i, direction);
 
-            addHop(direction, i, next_dest, pkt.time, pkt.length, nextHops, requester);
+            addHop(direction, i, next_dest, curr_time, pkt_length, nextHops, requester);
+
+            // Increment the time
+            curr_time += computeSerializationLatency(pkt_length);
          }
       }
    }
@@ -147,8 +152,45 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
       OutputDirection direction;
       core_id_t next_dest = getNextDest(pkt.receiver, direction);
 
-      addHop(direction, pkt.receiver, next_dest, pkt.time, pkt.length, nextHops, requester);
+      addHop(direction, pkt.receiver, next_dest, pkt.time, pkt_length, nextHops, requester);
    }
+}
+
+void
+NetworkModelEMeshHopByHop::processReceivedPacket(NetPacket& pkt)
+{
+   ScopedLock sl(m_lock);
+   
+   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
+
+   core_id_t requester = INVALID_CORE_ID;
+
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+   else // Other Packet types
+      requester = pkt.sender;
+   
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+         "requester(%i)", requester);
+
+   if ( (!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
+      return;
+
+   // LOG_ASSERT_ERROR(pkt.start_time > 0, "start_time(%llu)", pkt.start_time);
+
+   UInt64 latency = pkt.time - pkt.start_time;
+   UInt64 contention_delay = latency - (computeDistance(pkt.sender, m_core_id) * m_hop_latency);
+
+   UInt64 serialization_latency = computeSerializationLatency(pkt_length);
+
+   latency += serialization_latency;
+   contention_delay += serialization_latency;
+   pkt.time += serialization_latency;
+
+   m_num_packets ++;
+   m_num_bytes += pkt_length;
+   m_total_latency += latency;
+   m_total_contention_delay += contention_delay;
 }
 
 void
@@ -168,11 +210,22 @@ NetworkModelEMeshHopByHop::addHop(OutputDirection direction,
 
       if (direction == SELF)
          h.time = pkt_time;
-      else      
-         h.time = pkt_time + computeLatency(direction, pkt_time, pkt_length + sizeof(NetPacket), requester);
+      else
+         h.time = pkt_time + computeLatency(direction, pkt_time, pkt_length, requester);
 
       nextHops.push_back(h);
    }
+}
+
+SInt32
+NetworkModelEMeshHopByHop::computeDistance(core_id_t sender, core_id_t receiver)
+{
+   SInt32 sx, sy, dx, dy;
+
+   computePosition(sender, sx, sy);
+   computePosition(receiver, dx, dy);
+
+   return abs(sx - dx) + abs(sy - dy);
 }
 
 void
@@ -209,15 +262,15 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, UInt64 pkt_
       queue_delay = 0;
    }
 
-   UInt64 packet_latency = m_hop_latency + queue_delay + processing_time;
+   UInt64 packet_latency = m_hop_latency + queue_delay;
 
-   // Update Counters
-   m_bytes_sent += (UInt64) pkt_length;
-   m_total_packets_sent ++;
-   m_total_queueing_delay += queue_delay;
-   m_total_packet_latency += packet_latency;
-   
    return packet_latency;
+}
+
+UInt64
+NetworkModelEMeshHopByHop::computeSerializationLatency(UInt32 pkt_length)
+{
+   return computeProcessingTime(pkt_length);
 }
 
 UInt64 
@@ -275,18 +328,18 @@ NetworkModelEMeshHopByHop::getNextDest(SInt32 final_dest, OutputDirection& direc
 void
 NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
-   out << "    bytes sent: " << m_bytes_sent << endl;
-   out << "    packets sent: " << m_total_packets_sent << endl;
-   if (m_total_packets_sent > 0)
+   out << "    bytes received: " << m_num_bytes << endl;
+   out << "    packets received: " << m_num_packets << endl;
+   if (m_num_packets > 0)
    {
-      out << "    average queueing delay: " << 
-         ((float) m_total_queueing_delay / m_total_packets_sent) << endl;
+      out << "    average contention delay: " << 
+         ((float) m_total_contention_delay / m_num_packets) << endl;
       out << "    average packet latency: " <<
-         ((float) m_total_packet_latency / m_total_packets_sent) << endl;
+         ((float) m_total_latency / m_num_packets) << endl;
    }
    else
    {
-      out << "    average queueing delay: " << 
+      out << "    average contention delay: " << 
          "NA" << endl;
       out << "    average packet latency: " <<
          "NA" << endl;
@@ -391,4 +444,24 @@ NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_co
    }
 
    return (make_pair(true, core_id_list_with_memory_controllers));
+}
+
+SInt32
+NetworkModelEMeshHopByHop::computeNumHops(core_id_t sender, core_id_t receiver)
+{
+   SInt32 core_count = Config::getSingleton()->getTotalCores();
+
+   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
+   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+   
+   assert(core_count == (mesh_height * mesh_width));
+
+   SInt32 sx, sy, dx, dy;
+
+   sx = sender % mesh_width;
+   sy = sender / mesh_width;
+   dx = receiver % mesh_width;
+   dy = receiver / mesh_width;
+
+   return abs(sx - dx) + abs(sy - dy);
 }

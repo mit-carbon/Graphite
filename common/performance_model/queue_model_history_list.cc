@@ -70,7 +70,25 @@ QueueModelHistoryList::getQueueUtilization()
    std::pair<UInt64,UInt64> newest_interval = m_free_interval_list.back();
    UInt64 total_cycles = newest_interval.first;
 
-   return ((float) m_utilized_cycles / total_cycles); 
+   if (total_cycles == 0)
+   {
+      LOG_ASSERT_ERROR(m_utilized_cycles == 0, "m_utilized_cycles(%llu), m_total_cycles(%llu)",
+            m_utilized_cycles, total_cycles);
+      return 0;
+   }
+   else
+   {
+      return ((float) m_utilized_cycles / total_cycles);
+   } 
+}
+   
+float
+QueueModelHistoryList::getFracRequestsUsingAnalyticalModel() 
+{
+  if (m_total_requests == 0)
+     return 0;
+  else
+     return ((float) m_total_requests_using_analytical_model / m_total_requests); 
 }
 
 void

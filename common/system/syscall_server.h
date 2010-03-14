@@ -55,13 +55,25 @@ class SyscallServer
       void marshallOpenCall(core_id_t core_id);
       void marshallReadCall(core_id_t core_id);
       void marshallWriteCall(core_id_t core_id);
+      void marshallWritevCall(core_id_t core_id);
       void marshallCloseCall(core_id_t core_id);
+      void marshallLseekCall(core_id_t core_id);
       void marshallAccessCall(core_id_t core_id);
+#ifdef TARGET_X86_64
+      void marshallStatCall(IntPtr syscall_number, core_id_t core_id);
+      void marshallFstatCall(core_id_t core_id);
+#endif
+#ifdef TARGET_IA32
+      void marshallFstat64Call(core_id_t core_id);
+#endif
+      void marshallIoctlCall(core_id_t core_id);
       void marshallGetpidCall(core_id_t core_id);
       void marshallReadaheadCall(core_id_t core_id);
       void marshallPipeCall(core_id_t core_id);
       void marshallMmapCall(core_id_t core_id);
+#ifdef TARGET_IA32
       void marshallMmap2Call(core_id_t core_id);
+#endif
       void marshallMunmapCall(core_id_t core_id);
       void marshallBrkCall(core_id_t core_id);
       void marshallFutexCall(core_id_t core_id);
@@ -69,6 +81,7 @@ class SyscallServer
       // Handling Futexes 
       void futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);
       void futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time);
+      void futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time);
 
       //Note: These structures are shared with the MCP
    private:

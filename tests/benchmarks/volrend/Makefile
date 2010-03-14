@@ -1,13 +1,15 @@
 TARGET = volrend
 OBJECTS = adaptive.o file.o main.o map.o normal.o octree.o opacity.o option.o raytrace.o render.o view.o
-APP_FLAGS = 8 $(CURDIR)/inputs/head-scaleddown2
-CORES = 45
+APP_FLAGS ?= 64 $(CURDIR)/inputs/head
 
 MACROS := ../splash_support/c.m4.null.CARBON
+#MACROS := ../splash_support/c.m4.null.POSIX
 
 include ../../Makefile.tests
 
 include ../splash_support/Makefile.config
+
+$(TARGET): libtiff/libtiff.a
 
 CFLAGS += -I$(CURDIR)/libtiff
 LD_FLAGS += -L$(CURDIR)/libtiff -ltiff
@@ -24,5 +26,12 @@ render.c: render.C incl.h
 adaptive.c: adaptive.C incl.h anl.h
 raytrace.c: raytrace.C incl.h address.h
 
+libtiff/libtiff.a:
+	make -C libtiff
+
 incl.h:	user_options.h const.h my_types.h global.h macros.h address.h
 tiffio.h:
+
+clean:
+	rm -f *.d *.o *.c *.h
+	make -C libtiff clean

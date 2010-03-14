@@ -58,12 +58,14 @@ ADDRINT initial_reg_esp;
 
 // clone stuff
 extern int *parent_tidptr;
+#ifdef TARGET_IA32
 extern struct user_desc *newtls;
+#endif
 extern int *child_tidptr;
+
 extern PIN_LOCK clone_memory_update_lock;
 // ---------------------------------------------------------------
 
-// ---------------------------------------------------------------
 map <ADDRINT, string> rtn_map;
 PIN_LOCK rtn_map_lock;
 
@@ -85,7 +87,13 @@ void printRtn (ADDRINT rtn_addr, bool enter)
    ReleaseLock (&rtn_map_lock);
 }
 
-// ---------------------------------------------------------------
+VOID printInsInfo(CONTEXT* ctxt)
+{
+   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+
+   LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
+}
 
 INT32 usage()
 {
@@ -97,10 +105,6 @@ INT32 usage()
 
 void initializeSyscallModeling ()
 {
-   // Initialize clone stuff
-   parent_tidptr = NULL;
-   newtls = NULL;
-   child_tidptr = NULL;
    InitLock (&clone_memory_update_lock);
 }
 
@@ -112,7 +116,8 @@ void routineCallback(RTN rtn, void *v)
 
    // ---------------------------------------------------------------
 
-   if (Log::getSingleton()->isEnabled(__FILE__) &&
+   std::string module = Log::getSingleton()->getModule(__FILE__);
+   if (Log::getSingleton()->isEnabled(module.c_str()) &&
        Sim()->getCfg()->getBool("log/stack_trace",false))
    {
       RTN_Open (rtn);
@@ -327,11 +332,19 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
          Sim()->getThreadManager()->onThreadStart(req);
       }
-     
+
+#ifdef TARGET_IA32 
       // Restore the clone syscall arguments
       PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
       PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
       PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
+#endif
+
+#ifdef TARGET_X86_64
+      // Restore the clone syscall arguments
+      PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
+      PIN_SetContextReg (ctxt, LEVEL_BASE::REG_R10, (ADDRINT) child_tidptr);
+#endif
 
       __attribute(__unused__) Core *core = Sim()->getCoreManager()->getCurrentCore();
       assert (core);

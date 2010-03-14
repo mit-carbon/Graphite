@@ -22,11 +22,8 @@ void modifyRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 void restoreRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifyNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
-
 void modifyUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
-void modifyUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
-void restoreUgetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifySet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreSet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifyTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
@@ -35,7 +32,12 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifyGettimeofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreGettimofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
-void modifyFstat64Context (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
-void restoreFstat64Context (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void modifyGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void restoreGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+
+#ifdef TARGET_X86_64
+void modifyArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+void restoreArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
+#endif
 
 #endif /* __HANDLE_SYSCALLS_H__ */

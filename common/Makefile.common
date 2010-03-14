@@ -1,9 +1,9 @@
 SIM_ROOT ?= $(CURDIR)/../
 
 DIRECTORIES = $(SIM_ROOT)/common/core/        \
-          $(SIM_ROOT)/common/core/cache/      \
-			 $(SIM_ROOT)/common/core/directory_schemes	\
-			 $(SIM_ROOT)/common/core/pr_l1_pr_l2_dram_directory	\
+			 $(SIM_ROOT)/common/core/memory_subsystem/	\
+          $(SIM_ROOT)/common/core/memory_subsystem/cache/      \
+			 $(SIM_ROOT)/common/core/memory_subsystem/directory_schemes/	\
           $(SIM_ROOT)/common/network/         \
           $(SIM_ROOT)/common/transport/       \
           $(SIM_ROOT)/common/misc/            \
@@ -14,28 +14,31 @@ DIRECTORIES = $(SIM_ROOT)/common/core/        \
           $(SIM_ROOT)/common/performance_model/performance_models/     \
           $(SIM_ROOT)/common/user/
 
+INCLUDE_DIRECTORIES = $(DIRECTORIES)
+
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
-BUILD_32 = 1
-
+TARGET_ARCH = x86_64
 KERNEL = LENNY
 
 # OS Services Support
 LD_LIBS += -los-services
-ifeq ($(BUILD_32),1)
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include-ia32 -DKERNEL_$(KERNEL)
+CXXFLAGS += -DKERNEL_$(KERNEL)
+ifeq ($(TARGET_ARCH),ia32)
+  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include-ia32 -m32 -DTARGET_IA32
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/ia32 -m32
-else
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include-intel64 -DKERNEL_$(KERNEL)
+endif 
+ifeq ($(TARGET_ARCH),x86_64)
+  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include-intel64 -fPIC -DTARGET_X86_64
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
 endif
 
 # Boost Support
 #   hack to find version -- this sucks
 #ifeq ($(strip $(wildcard /usr/include/boost/version.hpp)),)
-ifeq (1,1) # FIXME: Default to 1_38 since TiG installed the wrong versions
+ifeq ($(TARGET_ARCH),ia32)
 	BOOST_VERSION = 1_38
 else
 	BOOST_VERSION = 1_35
@@ -50,14 +53,15 @@ ifeq ($(BOOST_VERSION),1_38)
 else
 	BOOST_SUFFIX = mt
 endif
+
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)
 
 # Include paths
-CXXFLAGS+=-c $(foreach dir,$(DIRECTORIES),-I$(dir)) \
-          -Wall -Werror -Wno-unknown-pragmas -O2 -MMD -m32 -ggdb3
+CXXFLAGS+=-c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
+          -Wall -Werror -Wno-unknown-pragmas -O2 -MMD
 
 # Build rules for dependency generation
 %.d: %.cpp

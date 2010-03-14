@@ -45,6 +45,8 @@ class DramPerfModel
 
       UInt64 getTotalAccesses() { return m_num_accesses; }
       void outputSummary(ostream& out);
+
+      static void dummyOutputSummary(ostream& out);
 };
 
 #endif /* __DRAM_PERF_MODEL_H__ */

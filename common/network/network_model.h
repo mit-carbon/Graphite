@@ -5,6 +5,7 @@ class NetPacket;
 class Network;
 
 #include <string>
+#include <vector>
 
 #include "packet_type.h"
 
@@ -35,6 +36,7 @@ class NetworkModel
 
       virtual void routePacket(const NetPacket &pkt,
                                std::vector<Hop> &nextHops) = 0;
+      virtual void processReceivedPacket(NetPacket &pkt) = 0;
 
       virtual void outputSummary(std::ostream &out) = 0;
 
@@ -45,7 +47,8 @@ class NetworkModel
       
       static UInt32 parseNetworkType(std::string str);
 
-      static std::pair<bool,SInt32> computeCoreCountConstraints(UInt32 network_type, SInt32 total_cores);
+      static std::pair<bool,SInt32> computeCoreCountConstraints(UInt32 network_type, SInt32 core_count);
+      static std::pair<bool, std::vector<core_id_t> > computeMemoryControllerPositions(UInt32 network_type, SInt32 num_memory_controllers, SInt32 total_cores);
 
    protected:
       Network *getNetwork() { return _network; }

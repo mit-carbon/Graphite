@@ -1,5 +1,6 @@
 TARGET = radix
 OBJECTS = radix.o
+APP_FLAGS ?= -p64
 
 MACROS := ../splash_support/c.m4.null.CARBON
 #MACROS := ../splash_support/c.m4.null.POSIX

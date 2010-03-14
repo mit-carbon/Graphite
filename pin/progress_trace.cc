@@ -66,7 +66,9 @@ static VOID traceProgress()
       FILE *f = getFileDescriptor();
 
       if (f)
-         fprintf(f, "time: %llu, cycles: %llu\n", getTime(), cycles);
+         fprintf(f, "time: %llu, cycles: %llu\n", \
+               (long long unsigned int) getTime(),\
+               (long long unsigned int) cycles);
 
       *counter_ptr = cycles;
    }

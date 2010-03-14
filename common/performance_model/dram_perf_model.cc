@@ -101,3 +101,21 @@ DramPerfModel::outputSummary(ostream& out)
       out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
    }
 }
+
+void
+DramPerfModel::dummyOutputSummary(ostream& out)
+{
+   out << "Dram Perf Model summary: " << endl;
+   out << "    num dram accesses: NA" << endl;
+   out << "    average dram access latency: NA" << endl;
+   out << "    average dram queueing delay: NA" << endl;
+   
+   bool queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
+   std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+   if (queue_model_enabled && (queue_model_type == "history_list"))
+   {
+      out << "  Queue Model:" << endl;
+      out << "    Queue Utilization(\%): NA" << endl;
+      out << "    Analytical Model Used(\%): NA" << endl;
+   }
+}

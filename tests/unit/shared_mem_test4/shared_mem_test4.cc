@@ -61,7 +61,7 @@ int main (int argc, char *argv[])
 
 void* thread_func(void* threadid)
 {
-   int tid = (int) threadid;
+   long tid = (long) threadid;
    Core* core = Sim()->getCoreManager()->getCurrentCore();
 
    for (int i = 0; i < num_iterations; i++)

@@ -15,12 +15,13 @@ class NetworkModelAnalytical : public NetworkModel
 
       void routePacket(const NetPacket &pkt,
                        std::vector<Hop> &nextHops);
+      void processReceivedPacket(NetPacket& pkt) {}
 
       void outputSummary(std::ostream &out);
 
       void enable();
       void disable();
-
+      
    private:
       UInt64 computeLatency(const NetPacket &);
       void updateUtilization();

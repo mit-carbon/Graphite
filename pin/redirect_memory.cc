@@ -9,14 +9,6 @@
 // Only need this function because some memory accesses are made before cores have
 // been initialized. Should not evnentually need this
 
-VOID printInsInfo(CONTEXT* ctxt)
-{
-   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
-
-   LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
-}
-
 void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
 {   
    assert (lock_signal == Core::NONE);
@@ -67,18 +59,39 @@ bool rewriteStringOp (INS ins)
       // Has a REP or REPNE prefix
       if (  (INS_Opcode(ins) == XED_ICLASS_MOVSB) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSW) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVSS) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVSQ) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD_XMM) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSB) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSW) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVDQU)
+            (INS_Opcode(ins) == XED_ICLASS_STOSQ) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVDQU) ||
+            (INS_Opcode(ins) == XED_ICLASS_RET_NEAR) ||
+            (INS_Opcode(ins) == XED_ICLASS_CVTSI2SS) ||
+            (INS_Opcode(ins) == XED_ICLASS_CVTSI2SD) ||
+            (INS_Opcode(ins) == XED_ICLASS_SQRTSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_SQRTSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MULSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_MULSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_DIVSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_DIVSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_ADDSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_ADDSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_SUBSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_SUBSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MAXSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_MAXSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_MINSS) ||
+            (INS_Opcode(ins) == XED_ICLASS_MINSD) ||
+            (INS_Opcode(ins) == XED_ICLASS_CMPSD_XMM)
          )
       {
          return false;
       }
 
-      LOG_ASSERT_ERROR(! (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)), "Ins: %s not currently supported", INS_Disassemble(ins).c_str());
+      LOG_ASSERT_ERROR(! (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)), "Ins: %s (0x%x) not currently supported", INS_Disassemble(ins).c_str(), INS_Address (ins));
       
       return false;
    }

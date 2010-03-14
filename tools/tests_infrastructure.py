@@ -38,10 +38,10 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory, carbon_sim
    global app_flags_list
    global user_thread_index_list
 
-   i = 0
-   while i < len(sim_flags_list):
-      j = 0
-      while j < len(app_name_list):
+   j = 0
+   while j < len(app_name_list):
+      i = 0
+      while i < len(sim_flags_list):
          if (user_thread_index_list[j] == -1) or (sim_core_index_list[i] == -1) or (sim_core_index_list[i] == user_thread_index_list[j]):
             # Copy the results into a per-experiment per-run directory
             run_directory = experiment_directory + "ARGS_" + remove_unwanted_symbols(sim_flags_list[i]) + app_name_list[j] + "_" + remove_unwanted_symbols(app_flags_list[j]) + "_" + str(run_id) + "/"
@@ -68,8 +68,8 @@ def run_simulation(is_dryrun, run_id, sim_root, experiment_directory, carbon_sim
 
                make_exec_file_command = "echo \"" + command + "\" > " + run_directory + "exec_command.txt"
                os.system (make_exec_file_command)
-         j = j+1
-      i = i+1
+         i = i+1
+      j = j+1
 
    return
 

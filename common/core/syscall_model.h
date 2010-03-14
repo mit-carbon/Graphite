@@ -14,29 +14,29 @@ class SyscallMdl
    public:
       struct syscall_args_t
       {
-          int arg0;
-          int arg1;
-          int arg2;
-          int arg3;
-          int arg4;
-          int arg5;
+          IntPtr arg0;
+          IntPtr arg1;
+          IntPtr arg2;
+          IntPtr arg3;
+          IntPtr arg4;
+          IntPtr arg5;
       };
 
       SyscallMdl(Network *net);
 
-      carbon_reg_t runExit(int old_return);
-      UInt8 runEnter(UInt8 syscall_number, syscall_args_t &args);
+      IntPtr runExit(IntPtr old_return);
+      IntPtr runEnter(IntPtr syscall_number, syscall_args_t &args);
       
       // ------------------------------------------------------
       // New stuff added with Memory redirection
 
       void saveSyscallArgs (syscall_args_t &args);
       void retrieveSyscallArgs (syscall_args_t &args);
-      void saveSyscallNumber (carbon_reg_t syscall_number);
-      carbon_reg_t retrieveSyscallNumber ();
+      void saveSyscallNumber (IntPtr syscall_number);
+      IntPtr retrieveSyscallNumber();
 
-      void *copyArgToBuffer (unsigned int arg_num, IntPtr arg_addr, unsigned int size);
-      void copyArgFromBuffer (unsigned int arg_num, IntPtr arg_addr, unsigned int size);
+      void *copyArgToBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size);
+      void copyArgFromBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size);
 
       //---------------------------------------------------------
 
@@ -45,12 +45,12 @@ class SyscallMdl
       // ------------------------------------------------------
       // New stuff added with Memory redirection
       
-      static const unsigned int m_scratchpad_size = 512;
-      static const unsigned int m_num_syscall_args = 6;
+      static const UInt32 m_scratchpad_size = 512;
+      static const UInt32 m_num_syscall_args = 6;
      
-      carbon_reg_t m_syscall_number;
+      IntPtr m_syscall_number;
       bool m_called_enter;
-      int m_ret_val;
+      IntPtr m_ret_val;
       struct syscall_args_t m_saved_args;
       char m_scratchpad [m_num_syscall_args] [m_scratchpad_size];
       
@@ -60,22 +60,31 @@ class SyscallMdl
       UnstructuredBuffer m_recv_buff;
       Network *m_network;
 
-      carbon_reg_t marshallOpenCall(syscall_args_t &args);
-      carbon_reg_t marshallReadCall(syscall_args_t &args);
-      carbon_reg_t marshallWriteCall(syscall_args_t &args);
-      carbon_reg_t marshallCloseCall(syscall_args_t &args);
-      carbon_reg_t marshallAccessCall(syscall_args_t &args);
-      carbon_reg_t marshallGetpidCall(syscall_args_t &args);
-      carbon_reg_t marshallReadaheadCall(syscall_args_t &args);
-      carbon_reg_t marshallPipeCall(syscall_args_t &args);
-      carbon_reg_t marshallFstatCall(syscall_args_t &args);
-      carbon_reg_t marshallIoctlCall(syscall_args_t &args);
-      carbon_reg_t marshallMprotectCall(syscall_args_t &args);
-      carbon_reg_t marshallMmapCall(syscall_args_t &args);
-      carbon_reg_t marshallMmap2Call(syscall_args_t &args);
-      carbon_reg_t marshallMunmapCall(syscall_args_t &args);
-      carbon_reg_t marshallBrkCall(syscall_args_t &args);
-      carbon_reg_t marshallFutexCall(syscall_args_t &args);
+      IntPtr marshallOpenCall(syscall_args_t &args);
+      IntPtr marshallReadCall(syscall_args_t &args);
+      IntPtr marshallWriteCall(syscall_args_t &args);
+      IntPtr marshallWritevCall(syscall_args_t &args);
+      IntPtr marshallCloseCall(syscall_args_t &args);
+      IntPtr marshallLseekCall(syscall_args_t &args);
+      IntPtr marshallAccessCall(syscall_args_t &args);
+#ifdef TARGET_X86_64
+      IntPtr marshallStatCall(syscall_args_t &args);
+      IntPtr marshallFstatCall(syscall_args_t &args);
+#endif
+#ifdef TARGET_IA32
+      IntPtr marshallFstat64Call(syscall_args_t &args);
+#endif
+      IntPtr marshallIoctlCall(syscall_args_t &args);
+      IntPtr marshallGetpidCall(syscall_args_t &args);
+      IntPtr marshallReadaheadCall(syscall_args_t &args);
+      IntPtr marshallPipeCall(syscall_args_t &args);
+      IntPtr marshallMmapCall(syscall_args_t &args);
+#ifdef TARGET_IA32
+      IntPtr marshallMmap2Call(syscall_args_t &args);
+#endif
+      IntPtr marshallMunmapCall(syscall_args_t &args);
+      IntPtr marshallBrkCall(syscall_args_t &args);
+      IntPtr marshallFutexCall(syscall_args_t &args);
 
       // Helper functions
       UInt32 getStrLen (char *str);

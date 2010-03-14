@@ -1,0 +1,18 @@
+This is the source code for the Graphite multicore simulator developed
+by the Carbon research group in MIT's Computer Science and Artificial
+Intelligence Laboratory (CSAIL).  Please refer to the LICENSE file in
+the top level directory for licensing and copyright information.  For
+the latest version of the software or additional information, please
+see our website:
+
+http://groups.csail.mit.edu/carbon/graphite
+
+If you are using Graphite, please let us know by posting a message on
+our user forum.  If you use Graphite in your research please
+acknowledge us by referencing our HPCA 2010 paper:
+
+Jason E. Miller, Harshad Kasture, George Kurian, Charles Gruenwald
+III, Nathan Beckmann, Christopher Celio, Jonathan Eastep and Anant
+Agarwal, "Graphite: A Distributed Parallel Simulator for Multicores"
+The 16th IEEE International Symposium on High-Performance Computer
+Architecture (HPCA), Jan 2010.

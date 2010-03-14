@@ -15,7 +15,7 @@ int spawnThreadSpawner(CONTEXT *ctxt)
 {
    int res;
 
-   ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   IntPtr reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
 
    PIN_LockClient();
    
@@ -47,7 +47,7 @@ VOID copyStaticData(IMG& img)
 
    for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
    {
-      ADDRINT sec_address;
+      IntPtr sec_address;
 
       // I am not sure whether we want ot copy over all the sections or just the
       // sections which are relevant like the sections below: DATA, BSS, GOT
@@ -67,7 +67,7 @@ VOID copyStaticData(IMG& img)
    }
 }
 
-VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
+VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
 {
    // We should not get core_id for this stack_ptr
    Core* core = Sim()->getCoreManager()->getCurrentCore();
@@ -79,13 +79,13 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
 
    SInt32 initial_stack_size = 0;
 
-   ADDRINT stack_ptr_base;
-   ADDRINT stack_ptr_top;
+   IntPtr stack_ptr_base;
+   IntPtr stack_ptr_top;
    
-   ADDRINT params = reg_esp;
+   IntPtr params = reg_esp;
 
-   int argc = * ((int *) params);
-   char **argv = (char **) (params + sizeof(int));
+   carbon_reg_t argc = * ((carbon_reg_t *) params);
+   char **argv = (char **) (params + sizeof(carbon_reg_t));
    char **envir = argv+argc+1;
 
    //////////////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    initial_stack_size += sizeof(argc);
 
    // Write argv
-   for (SInt32 i = 0; i < argc; i++)
+   for (SInt32 i = 0; i < (SInt32) argc; i++)
    {
       // Writing argv[i]
       initial_stack_size += sizeof(char*);
@@ -121,7 +121,14 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    }
 
    // Auxiliary Vector Entry
+#ifdef TARGET_IA32
    initial_stack_size += sizeof(Elf32_auxv_t);
+#elif TARGET_X86_64
+   initial_stack_size += sizeof(Elf64_auxv_t);
+#else
+   LOG_PRINT_ERROR("Unrecognized Architecture Type");
+#endif
+
 
    //////////////////////////////////////////////////////////////////////
    // Pass 2
@@ -134,7 +141,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    PinConfig::getSingleton()->getStackAttributesFromCoreID (core_id, stack_attr);
    stack_ptr_top = stack_attr.lower_limit + stack_attr.size;
    stack_ptr_base = stack_ptr_top - initial_stack_size;
-   stack_ptr_base = (stack_ptr_base >> (sizeof(ADDRINT))) << (sizeof(ADDRINT));
+   stack_ptr_base = (stack_ptr_base >> (sizeof(IntPtr))) << (sizeof(IntPtr));
    
    // Assign the new ESP
    reg_esp = stack_ptr_base;
@@ -145,7 +152,7 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    stack_ptr_base += sizeof(argc);
 
    LOG_PRINT("Copying Command Line Arguments to Simulated Memory");
-   for (SInt32 i = 0; i < argc; i++)
+   for (SInt32 i = 0; i < (SInt32) argc; i++)
    {
       // Writing argv[i]
       stack_ptr_top -= (strlen(argv[i]) + 1);
@@ -180,8 +187,15 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
    
 
    LOG_PRINT("Copying Auxiliary Vector to Simulated Memory");
-   
+  
+#ifdef TARGET_IA32
    Elf32_auxv_t auxiliary_vector_entry_null;
+#elif TARGET_X86_64
+   Elf64_auxv_t auxiliary_vector_entry_null;
+#else
+   LOG_PRINT_ERROR("Unrecognized architecture type");
+#endif
+
    auxiliary_vector_entry_null.a_type = AT_NULL;
    auxiliary_vector_entry_null.a_un.a_val = 0;
 
@@ -192,14 +206,14 @@ VOID copyInitialStackData(ADDRINT& reg_esp, core_id_t core_id)
 
 }
 
-VOID copySpawnedThreadStackData(ADDRINT reg_esp)
+VOID copySpawnedThreadStackData(IntPtr reg_esp)
 {
    core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
 
    PinConfig::StackAttributes stack_attr;
    PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
-   ADDRINT stack_upper_limit = stack_attr.lower_limit + stack_attr.size;
+   IntPtr stack_upper_limit = stack_attr.lower_limit + stack_attr.size;
    
    UInt32 num_bytes_to_copy = (UInt32) (stack_upper_limit - reg_esp);
 

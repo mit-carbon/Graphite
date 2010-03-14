@@ -107,6 +107,10 @@ void Network::netPullFromTransport()
          }
       }
 
+      // I have received the packet
+      NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
+      model->processReceivedPacket(packet);
+
       // asynchronous I/O support
       NetworkCallback callback = _callbacks[packet.type];
 
@@ -164,6 +168,8 @@ SInt32 Network::netSend(const NetPacket& packet)
       NetPacket* buff_pkt = (NetPacket*) buffer;
       buff_pkt->time = hopVec[i].time;
       buff_pkt->receiver = hopVec[i].final_dest;
+      if (_core->getId() == buff_pkt->sender)
+         buff_pkt->start_time = packet.time;
 
       _transport->send(hopVec[i].next_dest, buffer, packet.bufferSize());
       
@@ -407,8 +413,9 @@ void Network::disableModels()
 // -- NetPacket
 
 NetPacket::NetPacket()
-   : time(0)
-   , type(INVALID)
+   : start_time(0)
+   , time(0)
+   , type(INVALID_PACKET_TYPE)
    , sender(INVALID_CORE_ID)
    , receiver(INVALID_CORE_ID)
    , length(0)
@@ -418,7 +425,8 @@ NetPacket::NetPacket()
 
 NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
                      SInt32 r, UInt32 l, const void *d)
-   : time(t)
+   : start_time(0)
+   , time(t)
    , type(ty)
    , sender(s)
    , receiver(r)

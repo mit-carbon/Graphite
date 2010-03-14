@@ -21,16 +21,26 @@
 
 SIM_ROOT ?= $(CURDIR)/../../..
 
+TARGET_ARCH = x86_64
+
 # Run options
 PIN_HOME = /afs/csail/group/carbon/tools/pin/current
 
-PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin
+ifeq ($(TARGET_ARCH),ia32)
+  PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin
+endif
+
+ifeq ($(TARGET_ARCH),x86_64)
+  PIN_BIN=$(PIN_HOME)/intel64/bin/pinbin
+endif
+
 PIN_TOOL?=$(SIM_ROOT)/lib/pin_sim
-# PIN_RUN=$(PIN_BIN) -pause_tool 10 -mt -t $(PIN_TOOL) 
-PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL) 
+
+# PIN_RUN=$(PIN_BIN) -pause_tool 10 -mt -t $(PIN_TOOL)
+PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL)
 
 PROCS ?= 1
-CORES ?= 8
+CORES ?= 64
 ENABLE_SM ?= true 
 APP_FLAGS ?=
 BUILD_MODE ?= # Set to nonempty to not run anything
@@ -64,7 +74,14 @@ ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
 endif
 
-CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -ggdb3 -Wall -m32 -O2
+CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -Wall -O2
+ifeq ($(TARGET_ARCH),ia32)
+	CXXFLAGS += -m32 -DTARGET_IA32
+endif
+ifeq ($(TARGET_ARCH),x86_64)
+	CXXFLAGS += -DTARGET_X86_64
+endif
+
 CFLAGS = $(CXXFLAGS) -std=c99
 
 # Rules

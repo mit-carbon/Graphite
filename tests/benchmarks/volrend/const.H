@@ -72,7 +72,7 @@
 #define PIX_CUR_VERSION 1       /*   version of .pix file used               */
 
 				/* Definition of string sizes:               */
-#define	FILENAME_SIZE		80			/* max user filename */
+#define	FILENAME_SIZE		200			/* max user filename */
 #define FILENAME_STRING_SIZE	(FILENAME_SIZE+1)	/* + 1 for null char */
 
 				/* Definition of minimum and maximum values: */

@@ -49,7 +49,7 @@ QueueModelHistoryList::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
    {
       // Increment the number of requests that use the analytical model
       m_total_requests_using_analytical_model ++;
-      queue_delay = computeUsingAnalyticalModel(processing_time);
+      queue_delay = computeUsingAnalyticalModel(pkt_time, processing_time);
    }
    else
    {
@@ -81,7 +81,7 @@ QueueModelHistoryList::updateQueueUtilization(UInt64 processing_time)
 }
 
 UInt64
-QueueModelHistoryList::computeUsingAnalyticalModel(UInt64 processing_time)
+QueueModelHistoryList::computeUsingAnalyticalModel(UInt64 pkt_time, UInt64 processing_time)
 {
    // processing_time = number of packet flits
    // Save the floating point register state
@@ -92,15 +92,29 @@ QueueModelHistoryList::computeUsingAnalyticalModel(UInt64 processing_time)
    
    volatile float rho = getQueueUtilization();
    
-   UInt64 queue_delay = (UInt64) (rho * processing_time / (2 * (1 - rho)));
-   
+   UInt64 queue_delay = (UInt64) (((rho * processing_time) / (2 * (1 - rho))) + 1);
+
+   LOG_ASSERT_ERROR(queue_delay < 10000000, "queue_delay(%llu), pkt_time(%llu), processing_time(%llu), rho(%f)",
+         queue_delay, pkt_time, processing_time, rho);
+  
+   // This can be done in a more efficient way. Doing it in the most stupid way now
+   insertInHistoryList(pkt_time, processing_time);
+
    // Restore the floating point register state
    if (Sim()->getCoreManager()->amiUserThread())
    {
       Fxsupport::getSingleton()->fxrstor();
    }
+   
+   LOG_PRINT("AnalyticalModel: pkt_time(%llu), processing_time(%llu), queue_delay(%llu)", pkt_time, processing_time, queue_delay);
 
    return queue_delay;
+}
+
+void
+QueueModelHistoryList::insertInHistoryList(UInt64 pkt_time, UInt64 processing_time)
+{
+   __attribute((unused)) UInt64 queue_delay = computeUsingHistoryList(pkt_time, processing_time);
 }
 
 UInt64
@@ -150,5 +164,7 @@ QueueModelHistoryList::computeUsingHistoryList(UInt64 pkt_time, UInt64 processin
       m_free_interval_list.erase(m_free_interval_list.begin());
    }
   
+   LOG_PRINT("HistoryList: pkt_time(%llu), processing_time(%llu), queue_delay(%llu)", pkt_time, processing_time, queue_delay);
+
    return queue_delay;
 }

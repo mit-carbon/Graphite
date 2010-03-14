@@ -48,10 +48,14 @@ Directory::setDirectoryEntry(UInt32 entry_num, DirectoryEntry* directory_entry)
 Directory::DirectoryType
 Directory::parseDirectoryType(string directory_type_str)
 {
-   if (directory_type_str == "limited_no_broadcast")
+   if (directory_type_str == "full_map")
+      return FULL_MAP;
+   else if (directory_type_str == "limited_no_broadcast")
       return LIMITED_NO_BROADCAST;
    else if (directory_type_str == "limited_broadcast")
       return LIMITED_BROADCAST;
+   else if (directory_type_str == "ackwise")
+      return ACKWISE;
    else if (directory_type_str == "limitless")
       return LIMITLESS;
    else
@@ -66,10 +70,16 @@ Directory::createDirectoryEntry()
 {
    switch (m_directory_type)
    {
+      case FULL_MAP:
+         return new DirectoryEntryLimitedNoBroadcast(m_max_num_sharers, m_max_num_sharers);
+
       case LIMITED_NO_BROADCAST:
          return new DirectoryEntryLimitedNoBroadcast(m_max_hw_sharers, m_max_num_sharers);
 
       case LIMITED_BROADCAST:
+         return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
+
+      case ACKWISE:
          return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
 
       case LIMITLESS:

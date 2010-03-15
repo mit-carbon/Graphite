@@ -95,7 +95,9 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
          "requester(%i)", requester);
 
-   UInt64 net_optical_latency = computeLatency(pkt.time, pkt.bufferSize(), requester);
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+
+   UInt64 net_optical_latency = computeLatency(pkt.time, pkt_length, requester);
 
    if (pkt.receiver == NetPacket::BROADCAST)
    {

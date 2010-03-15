@@ -36,7 +36,7 @@ public:
 
    UInt32 bufferSize() const;
    Byte *makeBuffer() const;
-   
+
    static const SInt32 BROADCAST = 0xDEADBABE;
 };
 
@@ -94,6 +94,9 @@ class Network
 
       void enableModels();
       void disableModels();
+
+      // Modeling
+      UInt32 getModeledLength(const NetPacket& pkt);
 
    private:
       NetworkModel * _models[NUM_STATIC_NETWORKS];

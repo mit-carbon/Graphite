@@ -65,6 +65,9 @@ namespace PrL1PrL2DramDirectoryMSI
          core_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
+         UInt32 getModeledLength(const void* pkt_data)
+         { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+
          void outputSummary(std::ostream &os);
 
    };

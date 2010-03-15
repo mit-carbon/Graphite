@@ -54,7 +54,7 @@ SInt32 NetworkModelEMeshHopCounter::computeDistance(SInt32 x1, SInt32 y1, SInt32
 void NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
                                          std::vector<Hop> &nextHops)
 {
-   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    UInt64 serialization_latency = computeSerializationLatency(pkt_length);
 
@@ -110,7 +110,7 @@ NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
 {
    ScopedLock sl(_lock);
 
-   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    core_id_t requester = INVALID_CORE_ID;
 

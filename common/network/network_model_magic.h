@@ -22,7 +22,7 @@ class NetworkModelMagic : public NetworkModel
          h.time = pkt.time + 1;
          nextHops.push_back(h);
 
-         _bytesSent += pkt.length;
+         _bytesSent += getNetwork()->getModeledLength(pkt);
       }
 
       void processReceivedPacket(NetPacket& pkt) {}

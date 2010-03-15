@@ -3,6 +3,7 @@
 #include "transport.h"
 #include "core.h"
 #include "network.h"
+#include "memory_manager_base.h"
 #include "log.h"
 
 using namespace std;
@@ -407,6 +408,22 @@ void Network::disableModels()
    for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       _models[i]->disable();
+   }
+}
+
+// Modeling
+UInt32 Network::getModeledLength(const NetPacket& pkt)
+{
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+   {
+      // type + sender + receiver + length + shmem_msg.size()
+      UInt32 metadata_size = sizeof(PacketType) + sizeof(SInt32) + sizeof(SInt32) + sizeof(UInt32);
+      UInt32 data_size = getCore()->getMemoryManager()->getModeledLength(pkt.data);
+      return metadata_size + data_size;
+   }
+   else
+   {
+      return pkt.bufferSize();
    }
 }
 

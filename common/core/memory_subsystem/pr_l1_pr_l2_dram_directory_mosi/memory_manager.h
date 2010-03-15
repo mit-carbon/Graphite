@@ -73,6 +73,9 @@ namespace PrL1PrL2DramDirectoryMOSI
          void enableModels();
          void disableModels();
 
+         UInt32 getModeledLength(const void* pkt_data)
+         { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+
          core_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }
 

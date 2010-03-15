@@ -86,4 +86,36 @@ namespace PrL1PrL2DramDirectoryMOSI
    {
       return (sizeof(*this) + m_data_length);
    }
+
+   UInt32
+   ShmemMsg::getModeledLength()
+   {
+      switch(m_msg_type)
+      {
+         case EX_REQ:
+         case SH_REQ:
+         case INV_REQ:
+         case FLUSH_REQ:
+         case WB_REQ:
+         case UPGRADE_REP:
+         case INV_REP:
+            // msg_type + address
+            return sizeof(msg_t) + sizeof(IntPtr);
+            
+         case INV_FLUSH_COMBINED_REQ:
+            // msg_type + address + single_receiver
+            return sizeof(msg_t) + sizeof(IntPtr) + sizeof(core_id_t);
+
+         case EX_REP:
+         case SH_REP:
+         case FLUSH_REP:
+         case WB_REP:
+            // msg_type + address + cache_block
+            return sizeof(msg_t) + sizeof(IntPtr) + m_data_length;
+
+         default:
+            LOG_PRINT_ERROR("Unrecognized Msg Type(%u)", m_msg_type);
+            return 0;
+      }
+   }
 }

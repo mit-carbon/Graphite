@@ -79,7 +79,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
          "requester(%i)", requester);
 
-   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    if (pkt.receiver == NetPacket::BROADCAST)
    {
@@ -143,7 +143,7 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 {
    ScopedLock sl(m_lock);
    
-   UInt32 pkt_length = pkt.length + sizeof(NetPacket);
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    core_id_t requester = INVALID_CORE_ID;
 

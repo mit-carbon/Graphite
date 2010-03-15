@@ -60,6 +60,9 @@ class MemoryManagerBase
       virtual void enableModels() = 0;
       virtual void disableModels() = 0;
 
+      // Modeling
+      virtual UInt32 getModeledLength(const void* pkt_data) = 0;
+
       Core* getCore() { return m_core; }
       
       static CachingProtocol_t parseProtocolType(std::string& protocol_type);

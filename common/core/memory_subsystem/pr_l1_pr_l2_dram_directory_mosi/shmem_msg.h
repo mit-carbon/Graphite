@@ -27,7 +27,7 @@ namespace PrL1PrL2DramDirectoryMOSI
             NULLIFY_REQ,
             MAX_MSG_TYPE = NULLIFY_REQ,
             NUM_MSG_TYPES = MAX_MSG_TYPE - MIN_MSG_TYPE + 1
-         };  
+         }; 
 
       private:   
          msg_t m_msg_type;
@@ -58,6 +58,9 @@ namespace PrL1PrL2DramDirectoryMOSI
          Byte* makeMsgBuf();
          UInt32 getMsgLen();
 
+         // Modeled Parameters
+         UInt32 getModeledLength();
+         
          msg_t getMsgType() { return m_msg_type; }
          MemComponent::component_t getSenderMemComponent() { return m_sender_mem_component; }
          MemComponent::component_t getReceiverMemComponent() { return m_receiver_mem_component; }

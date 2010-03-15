@@ -3,40 +3,33 @@
 
 #include "network.h"
 #include "core.h"
+#include "lock.h"
 
 class NetworkModelMagic : public NetworkModel
 {
    private:
-      UInt64 _bytesSent;
+      bool _enabled;
+     
+      Lock _lock;
+
+      UInt64 _num_packets;
+      UInt64 _num_bytes;
 
    public:
-      NetworkModelMagic(Network *net) : NetworkModel(net), _bytesSent(0) { }
+      NetworkModelMagic(Network *net);
       ~NetworkModelMagic() { }
 
-      void routePacket(const NetPacket &pkt,
-                       std::vector<Hop> &nextHops)
-      {
-         Hop h;
-         h.final_dest = pkt.receiver;
-         h.next_dest = pkt.receiver;
-         h.time = pkt.time + 1;
-         nextHops.push_back(h);
+      void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
 
-         _bytesSent += getNetwork()->getModeledLength(pkt);
-      }
+      void processReceivedPacket(NetPacket& pkt);
 
-      void processReceivedPacket(NetPacket& pkt) {}
-
-      void outputSummary(std::ostream &out)
-      {
-         out << "    bytes sent: " << _bytesSent << std::endl;
-      }
+      void outputSummary(std::ostream &out);
 
       void enable()
-      {}
+      { _enabled = true; }
 
       void disable()
-      {}
+      { _enabled = false; }
 };
 
 #endif /* NETWORK_MODEL_MAGIC_H */

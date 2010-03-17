@@ -416,8 +416,11 @@ UInt32 Network::getModeledLength(const NetPacket& pkt)
 {
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
    {
-      // type + sender + receiver + length + shmem_msg.size()
-      UInt32 metadata_size = sizeof(PacketType) + sizeof(SInt32) + sizeof(SInt32) + sizeof(UInt32);
+      // packet_type + sender + receiver + length + shmem_msg.size()
+      // 1 byte for packet_type
+      // log2(core_id) for sender and receiver
+      // 2 bytes for packet length
+      UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getCoreIdLength() + 2;
       UInt32 data_size = getCore()->getMemoryManager()->getModeledLength(pkt.data);
       return metadata_size + data_size;
    }

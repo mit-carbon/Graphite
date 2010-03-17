@@ -79,6 +79,10 @@ public:
    // Fills in an array with the models for each static network
    void getNetworkModels(UInt32 *) const;
 
+   // Get CoreId length
+   UInt32 getCoreIDLength() const
+   { return m_core_id_length; }
+
    // Knobs
    bool isSimulatingSharedMemory() const;
    bool getEnablePerformanceModeling() const;
@@ -121,6 +125,7 @@ private:
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
 
+   static UInt32 computeCoreIdLength(UInt32 core_count);
    static UInt32 getNearestAcceptableCoreCount(UInt32 core_count);
 };
 

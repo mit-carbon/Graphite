@@ -15,6 +15,10 @@ int main (int argc, char *argv[])
 
    UInt32 address = 0x1000;
 
+   // Enable Performance Models
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromID(i)->enablePerformanceModels();
+
    // 1) Get a core object
    Core* core_0 = Sim()->getCoreManager()->getCoreFromID(0);
    Core* core_1 = Sim()->getCoreManager()->getCoreFromID(1);
@@ -55,7 +59,11 @@ int main (int argc, char *argv[])
    assert(num_misses == 1);
    assert(read_val_0 == 110);
 
-   CarbonStopSim();
+   // Disable Performance Models
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromID(i)->disablePerformanceModels();
+   
    printf("Finished (shared_mem_basic) - SUCCESS\n");
+   CarbonStopSim();
    return 0;
 }

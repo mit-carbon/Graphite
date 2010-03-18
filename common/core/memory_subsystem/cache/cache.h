@@ -26,10 +26,6 @@ class Cache : public CacheBase
       cache_t m_cache_type;
       CacheSet** m_sets;
       
-      // Perf Modelling
-      ShmemPerfModel* m_shmem_perf_model;
-      CachePerfModel* m_cache_perf_model;
-
    public:
 
       // constructors/destructors
@@ -37,11 +33,7 @@ class Cache : public CacheBase
             UInt32 cache_size, 
             UInt32 associativity, UInt32 cache_block_size,
             std::string replacement_policy,
-            cache_t cache_type,
-            UInt32 cache_data_access_time,
-            UInt32 cache_tags_access_time,
-            std::string cache_perf_model_type,
-            ShmemPerfModel* shmem_perf_model);
+            cache_t cache_type);
       ~Cache();
 
       bool invalidateSingleLine(IntPtr addr);
@@ -52,14 +44,11 @@ class Cache : public CacheBase
             CacheBlockInfo* evict_block_info, Byte* evict_buff);
       CacheBlockInfo* peekSingleLine(IntPtr addr);
 
-      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
-      CachePerfModel* getCachePerfModel() { return m_cache_perf_model; }
-      
       // Update Cache Counters
       void updateCounters(bool cache_hit);
 
-      void enable() { m_enabled = true; getCachePerfModel()->enable(); }
-      void disable() { m_enabled = false; getCachePerfModel()->disable(); }
+      void enable() { m_enabled = true; }
+      void disable() { m_enabled = false; } 
 
       virtual void outputSummary(ostream& out);
 };

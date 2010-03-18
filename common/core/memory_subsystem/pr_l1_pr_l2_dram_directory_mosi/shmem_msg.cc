@@ -1,5 +1,6 @@
 #include <string.h>
 #include "shmem_msg.h"
+#include "config.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -105,7 +106,7 @@ namespace PrL1PrL2DramDirectoryMOSI
             
          case INV_FLUSH_COMBINED_REQ:
             // msg_type + address + single_receiver
-            return (1 + sizeof(IntPtr) + Config::getSingleton()->getCoreIdLength);
+            return (1 + sizeof(IntPtr) + Config::getSingleton()->getCoreIDLength());
 
          case EX_REP:
          case SH_REP:

@@ -4,6 +4,7 @@
 #include "network_types.h"
 #include "packet_type.h"
 #include "simulator.h"
+#include "utils.h"
 
 #include <sstream>
 #include "log.h"
@@ -67,7 +68,7 @@ Config::Config()
    // Adjust the number of cores corresponding to the network model we use
    m_total_cores = getNearestAcceptableCoreCount(m_total_cores);
 
-   m_core_id_length = computeCoreIdLength(m_total_cores);
+   m_core_id_length = computeCoreIDLength(m_total_cores);
 
    GenerateCoreMap();
 }
@@ -78,7 +79,7 @@ Config::~Config()
    delete [] m_proc_to_core_list_map;
 }
 
-UInt32 Config::computeCoreIdLength(UInt32 core_count)
+UInt32 Config::computeCoreIDLength(UInt32 core_count)
 {
    UInt32 num_bits = ceilLog2(core_count);
    if ((num_bits % 8) == 0)

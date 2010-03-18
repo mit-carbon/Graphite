@@ -15,9 +15,6 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
       UInt32 cache_block_size,
       UInt32 l2_cache_size, UInt32 l2_cache_associativity,
       std::string l2_cache_replacement_policy,
-      UInt32 l2_cache_data_access_time,
-      UInt32 l2_cache_tags_access_time,
-      std::string l2_cache_perf_model_type,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_l1_cache_cntlr(l1_cache_cntlr),
@@ -33,11 +30,7 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
          l2_cache_associativity, 
          m_cache_block_size, 
          l2_cache_replacement_policy, 
-         CacheBase::PR_L2_CACHE,
-         l2_cache_data_access_time,
-         l2_cache_tags_access_time,
-         l2_cache_perf_model_type,
-         m_shmem_perf_model);
+         CacheBase::PR_L2_CACHE);
 }
 
 L2CacheCntlr::~L2CacheCntlr()
@@ -292,6 +285,9 @@ L2CacheCntlr::processBufferedShmemReqFromDramDirectory()
 void
 L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
 {
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    IntPtr address = shmem_msg->getAddress();
    Byte* data_buf = shmem_msg->getDataBuf();
 
@@ -317,6 +313,9 @@ L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 void
 L2CacheCntlr::processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
 {
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    IntPtr address = shmem_msg->getAddress();
    Byte* data_buf = shmem_msg->getDataBuf();
 
@@ -342,6 +341,10 @@ L2CacheCntlr::processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 void
 L2CacheCntlr::processUpgradeRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
 {
+   // Update Shared Mem perf counters for access to L2 Cache
+   // This is not required in every case but just done conservatively
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    IntPtr address = shmem_msg->getAddress();
 
    // Just change state from (SHARED,OWNED) -> MODIFIED
@@ -403,7 +406,12 @@ L2CacheCntlr::processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_m
    if (cstate != CacheState::INVALID)
    {
       assert(cstate == CacheState::SHARED);
- 
+
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      // Update Shared Mem perf counters for access to L1 Cache
+      getMemoryManager()->incrCycleCount(l2_cache_block_info->getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+
       // SHARED -> INVALID 
       // Invalidate the line in L1 Cache
       invalidateCacheBlockInL1(l2_cache_block_info->getCachedLoc(), address);
@@ -412,6 +420,11 @@ L2CacheCntlr::processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_m
 
       ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIR, shmem_msg->getRequester(), INVALID_CORE_ID, address);
       getMemoryManager()->sendMsg(sender, send_shmem_msg); 
+   }
+   else
+   {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
    }
 }
 
@@ -434,6 +447,11 @@ L2CacheCntlr::processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem
    CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
    if (cstate != CacheState::INVALID)
    {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      // Update Shared Mem perf counters for access to L1 Cache
+      getMemoryManager()->incrCycleCount(l2_cache_block_info->getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+
       // Invalidate the line in L1 Cache
       // (MODIFIED, OWNED, SHARED) -> INVALID
       invalidateCacheBlockInL1(l2_cache_block_info->getCachedLoc(), address);
@@ -446,6 +464,11 @@ L2CacheCntlr::processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem
       ShmemMsg send_shmem_msg(ShmemMsg::FLUSH_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIR, shmem_msg->getRequester(), INVALID_CORE_ID, address, data_buf, getCacheBlockSize());
       getMemoryManager()->sendMsg(sender, send_shmem_msg);
    }
+   else
+   {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+   }
 }
 
 void
@@ -457,6 +480,11 @@ L2CacheCntlr::processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
    CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
    if (cstate != CacheState::INVALID)
    {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      // Update Shared Mem perf counters for access to L1 Cache
+      getMemoryManager()->incrCycleCount(l2_cache_block_info->getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+
       CacheState::cstate_t new_cstate = (cstate == CacheState::MODIFIED) ? CacheState::OWNED : cstate;
       // Set the Appropriate Cache State in L1 also
       // MODIFIED -> OWNED, OWNED -> OWNED, SHARED -> SHARED
@@ -469,6 +497,11 @@ L2CacheCntlr::processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 
       ShmemMsg send_shmem_msg(ShmemMsg::WB_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIR, shmem_msg->getRequester(), INVALID_CORE_ID, address, data_buf, getCacheBlockSize());
       getMemoryManager()->sendMsg(sender, send_shmem_msg);
+   }
+   else
+   {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
    }
 }
 

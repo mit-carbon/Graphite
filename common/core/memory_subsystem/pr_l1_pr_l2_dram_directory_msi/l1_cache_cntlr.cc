@@ -12,14 +12,8 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
       UInt32 cache_block_size,
       UInt32 l1_icache_size, UInt32 l1_icache_associativity,
       std::string l1_icache_replacement_policy,
-      UInt32 l1_icache_data_access_time,
-      UInt32 l1_icache_tags_access_time,
-      std::string l1_icache_perf_model_type,
       UInt32 l1_dcache_size, UInt32 l1_dcache_associativity,
       std::string l1_dcache_replacement_policy,
-      UInt32 l1_dcache_data_access_time,
-      UInt32 l1_dcache_tags_access_time,
-      std::string l1_dcache_perf_model_type,
       ShmemPerfModel* shmem_perf_model) :
    m_memory_manager(memory_manager),
    m_l2_cache_cntlr(NULL),
@@ -34,21 +28,13 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
          l1_icache_associativity, 
          m_cache_block_size,
          l1_icache_replacement_policy,
-         CacheBase::PR_L1_CACHE,
-         l1_icache_data_access_time,
-         l1_icache_tags_access_time,
-         l1_icache_perf_model_type,
-         m_shmem_perf_model);
+         CacheBase::PR_L1_CACHE);
    m_l1_dcache = new Cache("L1-D",
          l1_dcache_size,
          l1_dcache_associativity, 
          m_cache_block_size,
          l1_dcache_replacement_policy,
-         CacheBase::PR_L1_CACHE,
-         l1_dcache_data_access_time,
-         l1_dcache_tags_access_time,
-         l1_dcache_perf_model_type,
-         m_shmem_perf_model);
+         CacheBase::PR_L1_CACHE);
 }
 
 L1CacheCntlr::~L1CacheCntlr()
@@ -95,6 +81,10 @@ L1CacheCntlr::processMemOpFromCore(
 
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num, modeled))
       {
+         // Increment Shared Mem Perf model cycle counts
+         // L1 Cache
+         getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
          if (lock_signal != Core::LOCK)
@@ -102,6 +92,8 @@ L1CacheCntlr::processMemOpFromCore(
          return l1_cache_hit;
       }
 
+      getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
+      
       if (lock_signal == Core::UNLOCK)
          LOG_PRINT_ERROR("Expected to find address(0x%x) in L1 Cache", ca_address);
 
@@ -116,6 +108,12 @@ L1CacheCntlr::processMemOpFromCore(
       {
          m_l2_cache_cntlr->releaseLock();
          
+         // Increment Shared Mem Perf model cycle counts
+         // L2 Cache
+         getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         // L1 Cache
+         getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
          if (lock_signal != Core::LOCK)
@@ -124,6 +122,9 @@ L1CacheCntlr::processMemOpFromCore(
       }
 
       l1_cache_hit = false;
+      
+      // Increment shared mem perf model cycle counts
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
       
       m_l2_cache_cntlr->releaseLock();
       releaseLock(mem_component);

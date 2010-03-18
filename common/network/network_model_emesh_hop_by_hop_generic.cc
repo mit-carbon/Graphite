@@ -81,6 +81,8 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
+   LOG_PRINT("pkt length(%u)", pkt_length);
+
    if (pkt.receiver == NetPacket::BROADCAST)
    {
       if (m_broadcast_tree_enabled)
@@ -166,7 +168,6 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    UInt64 serialization_latency = computeSerializationLatency(pkt_length);
 
    latency += serialization_latency;
-   contention_delay += serialization_latency;
    pkt.time += serialization_latency;
 
    m_num_packets ++;

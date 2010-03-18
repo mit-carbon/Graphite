@@ -2,6 +2,7 @@
 #include "mem_component.h"
 #include "core_manager.h"
 #include "simulator.h"
+#include "config.h"
 
 #include "carbon_user.h"
 #include "fixed_types.h"
@@ -17,6 +18,10 @@ int main (int argc, char *argv[])
 
    // 1) Get a core object
    Core* core = Sim()->getCoreManager()->getCoreFromID(0);
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+   {
+      Sim()->getCoreManager()->getCoreFromID(i)->enablePerformanceModels();
+   }
 
    UInt32 written_val = 100;
    UInt32 read_val = 0;

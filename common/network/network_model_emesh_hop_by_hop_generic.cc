@@ -165,10 +165,13 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    UInt64 latency = pkt.time - pkt.start_time;
    UInt64 contention_delay = latency - (computeDistance(pkt.sender, m_core_id) * m_hop_latency);
 
-   UInt64 serialization_latency = computeSerializationLatency(pkt_length);
+   if (getNetwork()->getCore()->getId() != pkt.sender)
+   {
+      UInt64 serialization_latency = computeSerializationLatency(pkt_length);
 
-   latency += serialization_latency;
-   pkt.time += serialization_latency;
+      latency += serialization_latency;
+      pkt.time += serialization_latency;
+   }
 
    m_num_packets ++;
    m_num_bytes += pkt_length;

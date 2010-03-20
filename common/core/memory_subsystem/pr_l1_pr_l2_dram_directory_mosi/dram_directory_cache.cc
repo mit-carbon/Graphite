@@ -1,4 +1,5 @@
 #include "dram_directory_cache.h"
+#include "config.h"
 #include "log.h"
 #include "utils.h"
 
@@ -29,6 +30,9 @@ DramDirectoryCache::DramDirectoryCache(
    // Logs
    m_log_num_sets = floorLog2(m_num_sets);
    m_log_cache_block_size = floorLog2(m_cache_block_size);
+
+   // Get the number of cores
+   m_log_num_cores = (UInt32) floorLog2(Config::getSingleton()->getTotalCores());
 
    // Get the number of Dram Cntlrs
    if (isPower2(num_dram_cntlrs))
@@ -166,9 +170,42 @@ DramDirectoryCache::invalidateDirectoryEntry(IntPtr address)
 void
 DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 {
+   // Lets have some hard-coded values here
+   // Take them out later
    IntPtr cache_block_address = address >> getLogCacheBlockSize();
-   tag = cache_block_address >> getLogNumSets();
-   set_index = ((UInt32) cache_block_address) & (getNumSets() - 1);
+   tag = address;
+ 
+   /* 
+   {
+      // Intelligent way of hashing
+      // getLogNumCores, getLogNumDramCntlrs
+      cache_block_address = cache_block_address >> getLogNumDramCntlrs();
+
+      set_index = 0;
+      for (UInt32 i = ADDRESS_THRESHOLD; i <= (8*sizeof(IntPtr) - getLogNumCores()); i = i + getLogNumCores())
+      {
+         set_index = set_index ^ selectBits(address, i, i + getLogNumCores());
+      }
+      set_index = (set_index << (getLogNumSets() - getLogNumCores())) + selectBits(cache_block_address, 0, getLogNumSets() - getLogNumCores());
+
+      // LOG_PRINT_ERROR("Address(%#llx), set_index(%#x), ADDRESS_THRESHOLD(%u), logNumDramCntlrs(%u), logNumCores(%u), logNumSets(%u)",
+      //       address, set_index, ADDRESS_THRESHOLD, getLogNumDramCntlrs(), getLogNumCores(), getLogNumSets());
+   }
+   */
+
+   {
+      // Stupid way of hashing
+      set_index = ((UInt32) cache_block_address) & (getNumSets() - 1);
+   }
+}
+
+UInt32
+DramDirectoryCache::selectBits(IntPtr address, UInt32 low, UInt32 high)
+{
+   // Includes low but does not include high - (high, low]
+   LOG_ASSERT_ERROR((low < high) && ((high-low) <= (sizeof(UInt32)*8)),
+         "low(%u), high(%u), address(%#llx)", low, high, address);
+   return (address >> low) & ((2 << (high-low)) - 1); 
 }
 
 void

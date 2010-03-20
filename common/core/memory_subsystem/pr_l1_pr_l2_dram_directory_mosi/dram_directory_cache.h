@@ -25,6 +25,9 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt32 m_log_cache_block_size;
 
          UInt32 m_log_num_dram_cntlrs;
+         UInt32 m_log_num_cores;
+
+         static const UInt32 ADDRESS_THRESHOLD = 22;
 
          // Collect replacement statistics
          UInt64* histogram;
@@ -35,12 +38,15 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
-         void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index); 
+         void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index);
+         UInt32 selectBits(IntPtr address, UInt32 low, UInt32 high);
+
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
          UInt32 getLogCacheBlockSize() { return m_log_cache_block_size; }
          UInt32 getNumSets() { return m_num_sets; }
          UInt32 getLogNumSets() { return m_log_num_sets; }
          UInt32 getLogNumDramCntlrs() { return m_log_num_dram_cntlrs; }
+         UInt32 getLogNumCores() { return m_log_num_cores; }
      
          void aggregateStatistics(UInt64*, UInt64&, UInt64&, UInt64&, SInt32& max_index, IntPtr& max_replaced_address, SInt32& max_replaced_times);
 

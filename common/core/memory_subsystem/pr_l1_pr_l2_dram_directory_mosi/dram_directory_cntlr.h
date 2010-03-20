@@ -64,6 +64,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt64 m_num_exreq_generating_broadcast_invreq;
          UInt64 m_num_nullifyreq_generating_invreq;
          UInt64 m_num_nullifyreq_generating_broadcast_invreq;
+         UInt64 m_num_nullifyreq_with_uncached_directory_entry;
 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
          MemoryManager* getMemoryManager() { return m_memory_manager; }
@@ -88,7 +89,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          // Update Performance Counters
          void initializePerfCounters(void);
-         void updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester, core_id_t sharer);
+         void updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester,
+               core_id_t sharer, UInt32 num_sharers);
          void updateBroadcastPerfCounters(ShmemMsg::msg_t shmem_msg_type, bool inv_req_sent, bool broadcast_inv_req_sent);
 
       public:

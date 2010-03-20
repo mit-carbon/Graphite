@@ -189,17 +189,23 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
    {
       case DirectoryState::MODIFIED:
          {
-            ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, requester, INVALID_CORE_ID, address);
-            getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg); 
-            
             // Update Counters
             if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::MODIFIED, requester, directory_entry->getOwner());
+               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::MODIFIED, requester,
+                     directory_entry->getOwner(), directory_entry->getNumSharers());
+            
+            ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, requester, INVALID_CORE_ID, address);
+            getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg); 
          }
          break;
   
       case DirectoryState::OWNED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::OWNED, requester,
+                     directory_entry->getOwner(), directory_entry->getNumSharers());
+            
             LOG_ASSERT_ERROR(directory_entry->getOwner() != INVALID_CORE_ID,
                   "Address(0x%x), State(OWNED), owner(%i)", address, directory_entry->getOwner());
 
@@ -207,29 +213,31 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
             // INV_REQ to all sharers except owner (Also sent to the Owner for sake of convenience)
             sendShmemMsg(ShmemMsg::NULLIFY_REQ, ShmemMsg::INV_FLUSH_COMBINED_REQ, address, requester, 
                   directory_entry->getOwner(), directory_entry->getSharersList());
-            
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::OWNED, requester, directory_entry->getOwner());
          }
          break;
 
       case DirectoryState::SHARED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::SHARED, requester,
+                     directory_entry->getOneSharer(), directory_entry->getNumSharers());
+            
             LOG_ASSERT_ERROR(directory_entry->getOwner() == INVALID_CORE_ID,
                   "Address(0x%x), State(SHARED), owner(%i)", address, directory_entry->getOwner());
             
             sendShmemMsg(ShmemMsg::NULLIFY_REQ, ShmemMsg::INV_REQ, address, requester, 
                   INVALID_CORE_ID, directory_entry->getSharersList());
-
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::SHARED, requester, directory_entry->getOneSharer());
          }
          break;
    
       case DirectoryState::UNCACHED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::UNCACHED, requester,
+                     INVALID_CORE_ID, directory_entry->getNumSharers());
+            
             // Send data to Dram
             Byte* cached_data_buf = m_cached_data_list->lookup(shmem_req->getShmemMsg()->getAddress());
             if (cached_data_buf != NULL)
@@ -239,10 +247,6 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
             }
  
             m_dram_directory_cache->invalidateDirectoryEntry(address);
-            
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::NULLIFY_REQ, DirectoryState::UNCACHED, requester, INVALID_CORE_ID);
             
             // Process Next Request
             processNextReqFromL2Cache(address);
@@ -274,13 +278,14 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
    {
       case DirectoryState::MODIFIED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::MODIFIED, requester,
+                     directory_entry->getOwner(), directory_entry->getNumSharers());
+            
             // FLUSH_REQ to Owner
             ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, requester, INVALID_CORE_ID, address);
             getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
-
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::MODIFIED, requester, directory_entry->getOwner());
          }
          break;
 
@@ -288,7 +293,8 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
          {
             // Update Counters
             if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::OWNED, requester, directory_entry->getOwner());
+               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::OWNED, requester,
+                     directory_entry->getOwner(), directory_entry->getNumSharers());
             
             if ((directory_entry->getOwner() == requester) && (directory_entry->getNumSharers() == 1))
             {
@@ -311,14 +317,15 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
    
       case DirectoryState::SHARED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::SHARED, requester,
+                     directory_entry->getOneSharer(), directory_entry->getNumSharers());
+               
             LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, 
                   "Address(0x%x), Directory State(SHARED), Num Sharers(%u)",
                   address, directory_entry->getNumSharers());
             
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::SHARED, requester, directory_entry->getOneSharer());
-               
             if ((directory_entry->hasSharer(requester)) && (directory_entry->getNumSharers() == 1))
             {
                directory_entry->setOwner(requester);
@@ -351,6 +358,11 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
    
       case DirectoryState::UNCACHED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::UNCACHED, requester,
+                     INVALID_CORE_ID, directory_entry->getNumSharers());
+
             // Modifiy the directory entry contents
             LOG_ASSERT_ERROR(directory_entry->getNumSharers() == 0,
                   "Address(0x%x), State(UNCACHED), Num Sharers(%u)",
@@ -365,10 +377,6 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
             directory_block_info->setDState(DirectoryState::MODIFIED);
 
             retrieveDataAndSendToL2Cache(ShmemMsg::EX_REP, requester, address);
-
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::EX_REQ, DirectoryState::UNCACHED, requester, INVALID_CORE_ID);
 
             // Process Next Request
             processNextReqFromL2Cache(address);
@@ -400,30 +408,32 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
    {
       case DirectoryState::MODIFIED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::SH_REQ, DirectoryState::MODIFIED, requester,
+                     directory_entry->getOwner(), directory_entry->getNumSharers());
+            
             ShmemMsg shmem_msg(ShmemMsg::WB_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE, requester, INVALID_CORE_ID, address);
             getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
 
             shmem_req->setCoreId(directory_entry->getOwner());
-
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::SH_REQ, DirectoryState::MODIFIED, requester, directory_entry->getOwner());
          }
          break;
    
       case DirectoryState::OWNED:
       case DirectoryState::SHARED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::SH_REQ, curr_dstate, requester,
+                     directory_entry->getOneSharer(), directory_entry->getNumSharers());
+
             LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0,
                   "Address(0x%x), State(%u), Num Sharers(%u)",
                   address, curr_dstate, directory_entry->getNumSharers());
 
             // Fetch data from one sharer - Sharer can be the owner too !!
             core_id_t sharer_id = directory_entry->getOneSharer();
-
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::SH_REQ, curr_dstate, requester, directory_entry->getOneSharer());
 
             bool add_result = directory_entry->addSharer(requester);
             if (add_result == false)
@@ -464,6 +474,11 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
 
       case DirectoryState::UNCACHED:
          {
+            // Update Counters
+            if (first_call)
+               updateShmemReqPerfCounters(ShmemMsg::SH_REQ, DirectoryState::UNCACHED, requester,
+                     INVALID_CORE_ID, directory_entry->getNumSharers());
+
             // Modifiy the directory entry contents
             bool add_result = directory_entry->addSharer(requester);
             LOG_ASSERT_ERROR(add_result == true,
@@ -474,10 +489,6 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
 
             retrieveDataAndSendToL2Cache(ShmemMsg::SH_REP, requester, address);
      
-            // Update Counters
-            if (first_call)
-               updateShmemReqPerfCounters(ShmemMsg::SH_REQ, DirectoryState::UNCACHED, requester, INVALID_CORE_ID);
-
             // Process Next Request
             processNextReqFromL2Cache(address);
          }
@@ -803,10 +814,12 @@ DramDirectoryCntlr::initializePerfCounters()
    m_num_exreq_generating_broadcast_invreq = 0;
    m_num_nullifyreq_generating_invreq = 0;
    m_num_nullifyreq_generating_broadcast_invreq = 0;
+   m_num_nullifyreq_with_uncached_directory_entry = 0;
 }
 
 void
-DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester, core_id_t sharer)
+DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester,
+      core_id_t sharer, UInt32 num_sharers)
 {
    switch (shmem_msg_type)
    {
@@ -814,7 +827,7 @@ DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, D
          m_num_exreq ++;
          if (sharer != INVALID_CORE_ID)
          {
-            if (requester == sharer)
+            if ((requester == sharer) && (num_sharers == 1))
                m_num_exreq_with_upgrade_rep ++;
             m_num_exreq_with_data_onchip ++;
          }
@@ -828,6 +841,8 @@ DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, D
 
       case ShmemMsg::NULLIFY_REQ:
          m_num_nullifyreq ++;
+         if (dstate == DirectoryState::UNCACHED)
+            m_num_nullifyreq_with_uncached_directory_entry ++;
          break;
 
       default:
@@ -865,20 +880,22 @@ void
 DramDirectoryCntlr::outputSummary(ostream& out)
 {
    out << "Dram Directory Cntlr: " << endl;
+   out << "    Total Requests: " << m_num_exreq + m_num_shreq << endl;
    out << "    Exclusive Requests(\%): " << ((float) m_num_exreq) * 100 / (m_num_exreq + m_num_shreq)  << endl; 
    out << "    Shared Requests(\%): " << ((float) m_num_shreq) * 100 / (m_num_exreq + m_num_shreq) << endl;
    
    out << "    Nullify Requests(\%): " << ((float) m_num_nullifyreq) * 100 / (m_num_exreq + m_num_shreq) << endl;
+   out << "    Nullify Requests - Uncached Directory Entry(\%): " << ((float) m_num_nullifyreq_with_uncached_directory_entry) * 100 / (m_num_nullifyreq) << endl;
 
    out << "    Exclusive Requests - Upgrade Replies(\%): " << ((float) m_num_exreq_with_upgrade_rep) * 100 / (m_num_exreq) << endl;
    out << "    Exclusive Requests - Data On-Chip(\%): " << ((float) m_num_exreq_with_data_onchip) * 100 / (m_num_exreq) << endl;
    out << "    Shared Requests - Data On-Chip(\%): " << ((float) m_num_shreq_with_data_onchip) * 100 / (m_num_shreq) << endl;
 
    out << "    Exclusive Requests - Invalidate Requests(\%): " << ((float) m_num_exreq_generating_invreq) * 100 / (m_num_exreq) << endl;
-   out << "    Exclusive Requests - Invalidation Requests Broadcasted(\%): " << ((float) m_num_exreq_generating_broadcast_invreq) * 100 / (m_num_exreq_generating_invreq) << endl;
+   out << "    Exclusive Requests - Invalidation Requests Broadcasted(\%): " << ((float) m_num_exreq_generating_broadcast_invreq) * 100 / (m_num_exreq) << endl;
    
    out << "    Nullify Requests - Invalidate Requests(\%): " << ((float) m_num_nullifyreq_generating_invreq) * 100 / (m_num_nullifyreq) << endl;
-   out << "    Nullify Requests - Invalidation Requests Broadcasted(\%): " << ((float) m_num_nullifyreq_generating_broadcast_invreq) * 100 / (m_num_nullifyreq_generating_invreq) << endl;
+   out << "    Nullify Requests - Invalidation Requests Broadcasted(\%): " << ((float) m_num_nullifyreq_generating_broadcast_invreq) * 100 / (m_num_nullifyreq) << endl;
 
    m_dram_directory_cache->outputSummary(out);
 }
@@ -887,10 +904,12 @@ void
 DramDirectoryCntlr::dummyOutputSummary(ostream& out)
 {
    out << "Dram Directory Cntlr: " << endl;
+   out << "    Total Requests: NA" << endl;
    out << "    Exclusive Requests(\%): NA" << endl; 
    out << "    Shared Requests(\%): NA" << endl;
    
    out << "    Nullify Requests(\%): NA" << endl;
+   out << "    Nullify Requests - Uncached Directory Entry(\%): NA" << endl;
 
    out << "    Exclusive Requests - Upgrade Replies(\%): NA" << endl;
    out << "    Exclusive Requests - Data On-Chip(\%): NA" << endl;

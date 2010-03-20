@@ -27,6 +27,8 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       SInt32 m_mesh_height;
 
       QueueModel* m_queue_models[NUM_OUTPUT_DIRECTIONS];
+      QueueModel* m_injection_port_queue_model;
+      QueueModel* m_ejection_port_queue_model;
 
       bool m_enabled;
 
@@ -34,10 +36,10 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       Lock m_lock;
 
       // Counters
-      UInt64 m_num_bytes;
-      UInt64 m_num_packets;
+      UInt64 m_total_bytes_received;
+      UInt64 m_total_packets_received;
       UInt64 m_total_contention_delay;
-      UInt64 m_total_latency;
+      UInt64 m_total_packet_latency;
 
       // Functions
       void computePosition(core_id_t core, SInt32 &x, SInt32 &y);
@@ -46,9 +48,12 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 
       void addHop(OutputDirection direction, core_id_t final_dest, core_id_t next_dest, UInt64 pkt_time, UInt32 pkt_length, std::vector<Hop>& nextHops, core_id_t requester);
       UInt64 computeLatency(OutputDirection direction, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
-      UInt64 computeSerializationLatency(UInt32 pkt_length);
       UInt64 computeProcessingTime(UInt32 pkt_length);
       core_id_t getNextDest(core_id_t final_dest, OutputDirection& direction);
+
+      // Injection & Ejection Port Queue Models
+      UInt64 computeInjectionPortQueueDelay(core_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
+      UInt64 computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length);
 
    protected:
       UInt32 m_link_bandwidth;

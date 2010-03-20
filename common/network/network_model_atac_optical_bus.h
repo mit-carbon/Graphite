@@ -15,7 +15,7 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       UInt32 m_num_application_cores;
       UInt32 m_total_cores;
  
-      QueueModel* m_queue_model;
+      QueueModel* m_ejection_port_queue_model;
 
       bool m_queue_model_enabled;
       bool m_enabled;
@@ -24,12 +24,13 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       Lock m_lock;
 
       // Performance Counters
-      UInt64 m_bytes_sent;
-      UInt64 m_total_packets_sent;
-      UInt64 m_total_queueing_delay;
+      UInt64 m_total_bytes_received;
+      UInt64 m_total_packets_received;
+      UInt64 m_total_contention_delay;
       UInt64 m_total_packet_latency;
 
       UInt64 computeLatency(UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
+      UInt64 computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length);
       UInt64 computeProcessingTime(UInt32 pkt_length);
 
    public:

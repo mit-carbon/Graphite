@@ -13,10 +13,10 @@ using namespace std;
 NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net):
    NetworkModel(net),
    m_enabled(false),
-   m_num_bytes(0),
-   m_num_packets(0),
+   m_total_bytes_received(0),
+   m_total_packets_received(0),
    m_total_contention_delay(0),
-   m_total_latency(0)
+   m_total_packet_latency(0)
 {
    SInt32 total_cores = Config::getSingleton()->getTotalCores();
    m_core_id = getNetwork()->getCore()->getId();
@@ -34,6 +34,9 @@ NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
       if (m_queue_models[i])
          delete m_queue_models[i];
    }
+
+   delete m_injection_port_queue_model;
+   delete m_ejection_port_queue_model;
 }
 
 void
@@ -62,6 +65,9 @@ NetworkModelEMeshHopByHopGeneric::createQueueModels()
    {
       m_queue_models[RIGHT] = QueueModel::create(m_queue_model_type, min_processing_time);
    }
+
+   m_injection_port_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
+   m_ejection_port_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
 }
 
 void
@@ -87,6 +93,12 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
    {
       if (m_broadcast_tree_enabled)
       {
+         // Injection Port Modeling
+         UInt64 injection_port_queue_delay = 0;
+         if (pkt.sender == m_core_id)
+            injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver, pkt.time, pkt_length);
+         UInt64 curr_time = pkt.time + injection_port_queue_delay;         
+
          // Broadcast tree is enabled
          // Build the broadcast tree
          SInt32 sx, sy, cx, cy;
@@ -95,17 +107,17 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
          computePosition(m_core_id, cx, cy);
 
          if (cy >= sy)
-            addHop(UP, NetPacket::BROADCAST, computeCoreId(cx,cy+1), pkt.time, pkt_length, nextHops, requester);
+            addHop(UP, NetPacket::BROADCAST, computeCoreId(cx,cy+1), curr_time, pkt_length, nextHops, requester);
          if (cy <= sy)
-            addHop(DOWN, NetPacket::BROADCAST, computeCoreId(cx,cy-1), pkt.time, pkt_length, nextHops, requester);
+            addHop(DOWN, NetPacket::BROADCAST, computeCoreId(cx,cy-1), curr_time, pkt_length, nextHops, requester);
          if (cy == sy)
          {
             if (cx >= sx)
-               addHop(RIGHT, NetPacket::BROADCAST, computeCoreId(cx+1,cy), pkt.time, pkt_length, nextHops, requester);
+               addHop(RIGHT, NetPacket::BROADCAST, computeCoreId(cx+1,cy), curr_time, pkt_length, nextHops, requester);
             if (cx <= sx)
-               addHop(LEFT, NetPacket::BROADCAST, computeCoreId(cx-1,cy), pkt.time, pkt_length, nextHops, requester);
+               addHop(LEFT, NetPacket::BROADCAST, computeCoreId(cx-1,cy), curr_time, pkt_length, nextHops, requester);
             if (cx == sx)
-               addHop(SELF, m_core_id, m_core_id, pkt.time, pkt_length, nextHops, requester); 
+               addHop(SELF, m_core_id, m_core_id, curr_time, pkt_length, nextHops, requester); 
          }
       }
       else
@@ -116,27 +128,33 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
                "BROADCAST message to be sent at (%i), original sender(%i), Tree not enabled",
                m_core_id, pkt.sender);
 
-         UInt64 curr_time = pkt.time;
          for (core_id_t i = 0; i < (core_id_t) Config::getSingleton()->getTotalCores(); i++)
          {
+            // Injection Port Modeling
+            UInt64 injection_port_queue_delay = computeInjectionPortQueueDelay(i, pkt.time, pkt_length);
+            UInt64 curr_time = pkt.time + injection_port_queue_delay;         
+
             // Unicast message to each core
             OutputDirection direction;
             core_id_t next_dest = getNextDest(i, direction);
 
             addHop(direction, i, next_dest, curr_time, pkt_length, nextHops, requester);
-
-            // Increment the time
-            curr_time += computeSerializationLatency(pkt_length);
          }
       }
    }
    else
    {
+      // Injection Port Modeling
+      UInt64 injection_port_queue_delay = 0;
+      if (pkt.sender == m_core_id)
+         injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver, pkt.time, pkt_length);
+      UInt64 curr_time = pkt.time + injection_port_queue_delay;         
+      
       // A Unicast packet
       OutputDirection direction;
       core_id_t next_dest = getNextDest(pkt.receiver, direction);
 
-      addHop(direction, pkt.receiver, next_dest, pkt.time, pkt_length, nextHops, requester);
+      addHop(direction, pkt.receiver, next_dest, curr_time, pkt_length, nextHops, requester);
    }
 }
 
@@ -162,20 +180,22 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 
    // LOG_ASSERT_ERROR(pkt.start_time > 0, "start_time(%llu)", pkt.start_time);
 
-   UInt64 latency = pkt.time - pkt.start_time;
-   UInt64 contention_delay = latency - (computeDistance(pkt.sender, m_core_id) * m_hop_latency);
+   UInt64 packet_latency = pkt.time - pkt.start_time;
+   UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender, m_core_id) * m_hop_latency);
 
-   if (getNetwork()->getCore()->getId() != pkt.sender)
+   if (pkt.sender != m_core_id)
    {
-      UInt64 serialization_latency = computeSerializationLatency(pkt_length);
+      UInt64 processing_time = computeProcessingTime(pkt_length);
+      UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt.time, pkt_length);
 
-      latency += serialization_latency;
-      pkt.time += serialization_latency;
+      packet_latency += (ejection_port_queue_delay + processing_time);
+      contention_delay += ejection_port_queue_delay;
+      pkt.time += (ejection_port_queue_delay + processing_time);
    }
 
-   m_num_packets ++;
-   m_num_bytes += pkt_length;
-   m_total_latency += latency;
+   m_total_packets_received ++;
+   m_total_bytes_received += pkt_length;
+   m_total_packet_latency += packet_latency;
    m_total_contention_delay += contention_delay;
 }
 
@@ -238,15 +258,9 @@ NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, UInt
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
 
-   UInt64 queue_delay;
+   UInt64 queue_delay = 0;
    if (m_queue_model_enabled)
-   {
       queue_delay = m_queue_models[direction]->computeQueueDelay(pkt_time, processing_time);
-   }
-   else
-   {
-      queue_delay = 0;
-   }
 
    UInt64 packet_latency = m_hop_latency + queue_delay;
 
@@ -254,9 +268,26 @@ NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, UInt
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeSerializationLatency(UInt32 pkt_length)
+NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(core_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length)
 {
-   return computeProcessingTime(pkt_length);
+   if (!m_queue_model_enabled)
+      return 0;
+
+   if (pkt_receiver == m_core_id)
+      return 0;
+
+   UInt64 processing_time = computeProcessingTime(pkt_length);
+   return m_injection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+}
+
+UInt64
+NetworkModelEMeshHopByHopGeneric::computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length)
+{
+   if (!m_queue_model_enabled)
+      return 0;
+
+   UInt64 processing_time = computeProcessingTime(pkt_length);
+   return m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
 }
 
 UInt64 
@@ -314,14 +345,14 @@ NetworkModelEMeshHopByHopGeneric::getNextDest(SInt32 final_dest, OutputDirection
 void
 NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
 {
-   out << "    bytes received: " << m_num_bytes << endl;
-   out << "    packets received: " << m_num_packets << endl;
-   if (m_num_packets > 0)
+   out << "    bytes received: " << m_total_bytes_received << endl;
+   out << "    packets received: " << m_total_packets_received << endl;
+   if (m_total_packets_received > 0)
    {
       out << "    average contention delay: " << 
-         ((float) m_total_contention_delay / m_num_packets) << endl;
+         ((float) m_total_contention_delay / m_total_packets_received) << endl;
       out << "    average packet latency: " <<
-         ((float) m_total_latency / m_num_packets) << endl;
+         ((float) m_total_packet_latency / m_total_packets_received) << endl;
    }
    else
    {

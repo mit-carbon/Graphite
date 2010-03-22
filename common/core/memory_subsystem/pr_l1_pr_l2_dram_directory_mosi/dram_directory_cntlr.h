@@ -51,12 +51,15 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          ShmemPerfModel* m_shmem_perf_model;
 
+         bool m_enabled;
+
          // Performance Counters
          UInt64 m_num_exreq;
          UInt64 m_num_shreq;
          UInt64 m_num_nullifyreq;
 
          UInt64 m_num_exreq_with_upgrade_rep;
+         UInt64 m_num_exreq_enountering_exclusive_owners;
          UInt64 m_num_exreq_with_data_onchip;
          UInt64 m_num_shreq_with_data_onchip;
 
@@ -111,7 +114,10 @@ namespace PrL1PrL2DramDirectoryMOSI
          void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
 
          DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
-         
+        
+         void enable() { m_enabled = true; }
+         void disable() { m_enabled = false; }
+ 
          void outputSummary(ostream& out);
          static void dummyOutputSummary(ostream& out);
    };

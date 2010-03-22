@@ -23,7 +23,8 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
    m_dram_cntlr(dram_cntlr),
    m_core_id(core_id),
    m_cache_block_size(cache_block_size),
-   m_shmem_perf_model(shmem_perf_model)
+   m_shmem_perf_model(shmem_perf_model),
+   m_enabled(false)
 {
    m_dram_directory_cache = new DramDirectoryCache(
          dram_directory_type_str,
@@ -807,6 +808,7 @@ DramDirectoryCntlr::initializePerfCounters()
    m_num_nullifyreq = 0;
 
    m_num_exreq_with_upgrade_rep = 0;
+   m_num_exreq_enountering_exclusive_owners = 0;
    m_num_exreq_with_data_onchip = 0;
    m_num_shreq_with_data_onchip = 0;
 
@@ -818,9 +820,11 @@ DramDirectoryCntlr::initializePerfCounters()
 }
 
 void
-DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester,
-      core_id_t sharer, UInt32 num_sharers)
+DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester, core_id_t sharer, UInt32 num_sharers)
 {
+   if (!m_enabled)
+      return;
+
    switch (shmem_msg_type)
    {
       case ShmemMsg::EX_REQ:
@@ -829,6 +833,8 @@ DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, D
          {
             if ((requester == sharer) && (num_sharers == 1))
                m_num_exreq_with_upgrade_rep ++;
+            if (dstate == DirectoryState::MODIFIED)
+               m_num_exreq_enountering_exclusive_owners ++;
             m_num_exreq_with_data_onchip ++;
          }
          break;
@@ -854,6 +860,9 @@ DramDirectoryCntlr::updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, D
 void
 DramDirectoryCntlr::updateBroadcastPerfCounters(ShmemMsg::msg_t shmem_msg_type, bool inv_req_sent, bool broadcast_inv_req_sent)
 {
+   if (!m_enabled)
+      return;
+
    switch (shmem_msg_type)
    {
       case ShmemMsg::EX_REQ:
@@ -888,6 +897,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    out << "    Nullify Requests - Uncached Directory Entry(\%): " << ((float) m_num_nullifyreq_with_uncached_directory_entry) * 100 / (m_num_nullifyreq) << endl;
 
    out << "    Exclusive Requests - Upgrade Replies(\%): " << ((float) m_num_exreq_with_upgrade_rep) * 100 / (m_num_exreq) << endl;
+   out << "    Exclusive Requests - Exclusive Owners(\%): " << ((float) m_num_exreq_enountering_exclusive_owners) * 100 / (m_num_exreq) << endl;
    out << "    Exclusive Requests - Data On-Chip(\%): " << ((float) m_num_exreq_with_data_onchip) * 100 / (m_num_exreq) << endl;
    out << "    Shared Requests - Data On-Chip(\%): " << ((float) m_num_shreq_with_data_onchip) * 100 / (m_num_shreq) << endl;
 
@@ -912,6 +922,7 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Nullify Requests - Uncached Directory Entry(\%): NA" << endl;
 
    out << "    Exclusive Requests - Upgrade Replies(\%): NA" << endl;
+   out << "    Exclusive Requests - Exclusive Owners(\%): NA" << endl;
    out << "    Exclusive Requests - Data On-Chip(\%): NA" << endl;
    out << "    Shared Requests - Data On-Chip(\%): NA" << endl;
 

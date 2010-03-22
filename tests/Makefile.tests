@@ -24,7 +24,7 @@ SIM_ROOT ?= $(CURDIR)/../../..
 TARGET_ARCH = x86_64
 
 # Run options
-PIN_HOME = /afs/csail/group/carbon/tools/pin/current
+include $(SIM_ROOT)/Makefile.config
 
 ifeq ($(TARGET_ARCH),ia32)
   PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin

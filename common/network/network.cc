@@ -149,6 +149,11 @@ void Network::forwardPacket(const NetPacket &packet)
    netSend(packet);
 }
 
+NetworkModel* Network::getNetworkModelFromPacketType(PacketType packet_type)
+{
+   return _models[g_type_to_static_network_map[packet_type]];
+}
+
 SInt32 Network::netSend(const NetPacket& packet)
 {
    assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);

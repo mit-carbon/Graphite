@@ -95,6 +95,9 @@ class Network
       void enableModels();
       void disableModels();
 
+      // -- Network Models -- //
+      NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
+
       // Modeling
       UInt32 getModeledLength(const NetPacket& pkt);
 

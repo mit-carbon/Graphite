@@ -195,6 +195,7 @@ DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 
    {
       // Stupid way of hashing
+      cache_block_address = cache_block_address >> getLogNumDramCntlrs();
       set_index = ((UInt32) cache_block_address) & (getNumSets() - 1);
    }
 }

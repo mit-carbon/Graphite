@@ -188,8 +188,10 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
 
 // Called by user thread
 void
-RandomPairsSyncClient::synchronize()
+RandomPairsSyncClient::synchronize(UInt64 time)
 {
+   LOG_ASSERT_ERROR(time == 0, "Time(%llu), Cannot be used", time);
+
    if (! _enabled)
       return;
 

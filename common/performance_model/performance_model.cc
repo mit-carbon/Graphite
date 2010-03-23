@@ -126,7 +126,7 @@ void PerformanceModel::iterate()
 
 void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 {
-   if (!m_enabled)
+   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
    ScopedLock sl(m_dynamic_info_queue_lock);
@@ -135,7 +135,7 @@ void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 
 void PerformanceModel::popDynamicInstructionInfo()
 {
-   if (!m_enabled)
+   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
    ScopedLock sl(m_dynamic_info_queue_lock);

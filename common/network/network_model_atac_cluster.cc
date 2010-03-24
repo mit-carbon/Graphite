@@ -33,7 +33,7 @@ NetworkModelAtacCluster::NetworkModelAtacCluster(Network *net) :
       // Optical Bandwidth is specified in 'bits/clock cycle'
       // In other words, it states the number of wavelengths used
       m_optical_bus_bandwidth = Sim()->getCfg()->getInt("network/atac_cluster/optical_bus_bandwidth");
-      m_electrical_mesh_link_bandwidth = Sim()->getCfg()->getInt("network/atac_cluster/electrical_mesh_link_bandwidth");
+      m_num_electrical_broadcast_networks_per_cluster = Sim()->getCfg()->getInt("network/atac_cluster/num_electrical_broadcast_networks_per_cluster");
 
       // Cluster Size
       cluster_size = Sim()->getCfg()->getInt("network/atac_cluster/cluster_size");
@@ -64,6 +64,8 @@ NetworkModelAtacCluster::NetworkModelAtacCluster(Network *net) :
          "Mesh Width(%i), Mesh Height(%i)", m_mesh_width, m_mesh_height);
    LOG_ASSERT_ERROR((m_mesh_width * m_mesh_height) == (SInt32) m_total_cores,
          "Mesh Width(%i), Mesh Height(%i), Core Count(%i)", m_mesh_width, m_mesh_height, m_total_cores);
+   
+   m_num_clusters = (m_mesh_width / m_sqrt_cluster_size) * ceil(1.0 * m_mesh_height / m_sqrt_cluster_size);
 
    // Optical Hub created only on one of the cores in the cluster
    createOpticalHub();
@@ -93,44 +95,23 @@ NetworkModelAtacCluster::initializePerformanceCounters()
 
 
 UInt64
-NetworkModelAtacCluster::getHubQueueDelay(HubType hub_type, PacketType pkt_type, UInt64 pkt_time, UInt32 pkt_length)
-{
-   if (m_queue_model_enabled)
-   {
-      core_id_t core_with_optical_hub = getCoreIDWithOpticalHub(getClusterID(m_core_id));
-      if (m_core_id == core_with_optical_hub)
-      {
-         return computeHubQueueDelay(hub_type, pkt_time, pkt_length);
-      }
-      else
-      {
-         Core* core = Sim()->getCoreManager()->getCoreFromID(core_with_optical_hub);
-         assert(core);
-         
-         NetworkModelAtacCluster* network_model = (NetworkModelAtacCluster*) core->getNetwork()->getNetworkModelFromPacketType(pkt_type);
-         return network_model->computeHubQueueDelay(hub_type, pkt_time, pkt_length);
-      }
-   }
-   else
-   {
-      return 0;
-   }
-}
-
-UInt64
-NetworkModelAtacCluster::computeHubQueueDelay(HubType hub_type, UInt64 pkt_time, UInt32 pkt_length)
+NetworkModelAtacCluster::computeHubQueueDelay(HubType hub_type, SInt32 sender_cluster_id, UInt64 pkt_time, UInt32 pkt_length)
 {
    assert(m_queue_model_enabled);
    assert(m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id)));
    assert(m_sender_hub_queue_model);
-   assert(m_receiver_hub_queue_model);
+   assert(m_receiver_hub_queue_models);
 
    switch (hub_type)
    {
       case SENDER_HUB:
          {
-            UInt64 processing_time = computeProcessingTime(pkt_length, m_optical_bus_bandwidth);
             ScopedLock sl(m_sender_hub_lock);
+            
+            UInt64 processing_time = computeProcessingTime(pkt_length, m_optical_bus_bandwidth);
+
+            LOG_ASSERT_ERROR(sender_cluster_id == getClusterID(m_core_id), "sender_cluster_id(%i), curr_cluster_id(%i)",
+                  sender_cluster_id, getClusterID(m_core_id));
             UInt64 sender_hub_queue_delay = m_sender_hub_queue_model->computeQueueDelay(pkt_time, processing_time);
 
             // Performance Counters
@@ -141,9 +122,13 @@ NetworkModelAtacCluster::computeHubQueueDelay(HubType hub_type, UInt64 pkt_time,
 
       case RECEIVER_HUB:
          {
-            UInt64 processing_time = computeProcessingTime(pkt_length, m_electrical_mesh_link_bandwidth);
             ScopedLock sl(m_receiver_hub_lock);
-            UInt64 receiver_hub_queue_delay = m_receiver_hub_queue_model->computeQueueDelay(pkt_time, processing_time);
+            
+            UInt64 processing_time = computeProcessingTime(pkt_length, m_optical_bus_bandwidth);
+
+            // Assume the broadcast networks are statically divided up among the senders
+            SInt32 broadcast_network_num = sender_cluster_id % m_num_electrical_broadcast_networks_per_cluster;
+            UInt64 receiver_hub_queue_delay = m_receiver_hub_queue_models[broadcast_network_num]->computeQueueDelay(pkt_time, processing_time);
 
             // Performance Counters
             m_total_receiver_hub_contention_delay += receiver_hub_queue_delay;
@@ -186,9 +171,9 @@ NetworkModelAtacCluster::getRequester(const NetPacket& pkt)
 }
 
 UInt64
-NetworkModelAtacCluster::computeLatencySenderCoreToReceiverHub(const NetPacket& net_packet, core_id_t requester)
+NetworkModelAtacCluster::getHubQueueDelay(HubType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, UInt32 pkt_length, PacketType pkt_type, core_id_t requester)
 {
-   if ((!m_enabled) || (requester >= (core_id_t) m_num_application_cores))
+   if ((!m_enabled) || (!m_queue_model_enabled) || (requester >= (core_id_t) m_num_application_cores))
       return 0;
 
    // Components
@@ -196,52 +181,11 @@ NetworkModelAtacCluster::computeLatencySenderCoreToReceiverHub(const NetPacket& 
    // 2) sender_hub_queue_delay
    // 3) optical_latency
 
-   assert(net_packet.sender == m_core_id);
+   core_id_t core_id_with_optical_hub = getCoreIDWithOpticalHub(cluster_id);
+   Core* core = Sim()->getCoreManager()->getCoreFromID(core_id_with_optical_hub);
+   NetworkModelAtacCluster* network_model = (NetworkModelAtacCluster*) core->getNetwork()->getNetworkModelFromPacketType(pkt_type);
 
-   if (net_packet.sender == net_packet.receiver)
-   {
-      return 0;
-   }
-   else if (getClusterID(net_packet.sender) ==  getClusterID(net_packet.receiver))
-   {
-      return m_sender_cluster_electrical_network_delay;
-   }
-   else
-   {
-      UInt32 pkt_length = getNetwork()->getModeledLength(net_packet);
-      UInt64 sender_hub_queue_delay = getHubQueueDelay(SENDER_HUB, net_packet.type,
-            net_packet.time + m_sender_cluster_electrical_network_delay, pkt_length);
-      return m_sender_cluster_electrical_network_delay + sender_hub_queue_delay + m_optical_hop_latency;
-   }
-}
-
-UInt64
-NetworkModelAtacCluster::computeLatencyReceiverHubToReceiverCore(const NetPacket& net_packet, core_id_t requester)
-{
-   if ((!m_enabled) || (requester >= (core_id_t) m_num_application_cores))
-      return 0;
-
-   // Components
-   // 1) receiver_hub_queue_delay
-   // 2) receiver_cluster_electrical_network_latency
-
-   if (net_packet.sender == net_packet.receiver)
-   {
-      return 0;
-   }
-   else if (getClusterID(net_packet.sender) ==  getClusterID(net_packet.receiver))
-   {
-      return m_receiver_cluster_electrical_network_delay;
-   }
-   else
-   {
-      UInt32 pkt_length = getNetwork()->getModeledLength(net_packet);
-      // This assumes that at the receiver, a broadcast is converted into a series of unicasts
-      // This maybe a reasonable assumption - lets simulate and see !!
-      UInt64 receiver_hub_queue_delay = getHubQueueDelay(RECEIVER_HUB, net_packet.type,
-            net_packet.time, pkt_length);
-      return receiver_hub_queue_delay + m_receiver_cluster_electrical_network_delay;
-   }
+   return network_model->computeHubQueueDelay(hub_type, sender_cluster_id, pkt_time, pkt_length);
 }
 
 void 
@@ -251,31 +195,67 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
 
    core_id_t requester = getRequester(pkt);
 
-   UInt64 latency_sender_core_to_receiver_hub = computeLatencySenderCoreToReceiverHub(pkt, requester);
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+   UInt64 processing_time = computeProcessingTime(pkt_length, m_optical_bus_bandwidth);
 
    if (pkt.receiver == NetPacket::BROADCAST)
    {
+      UInt64 sender_hub_queue_delay = getHubQueueDelay(SENDER_HUB, getClusterID(pkt.sender), getClusterID(pkt.sender),
+            pkt.time + m_sender_cluster_electrical_network_delay, pkt_length, pkt.type, requester);
+      UInt64 latency_sender_core_to_receiver_hub = m_sender_cluster_electrical_network_delay + sender_hub_queue_delay + m_optical_hop_latency;
+      
+      UInt64 receiver_hub_queue_delay[m_num_clusters];
+      for (SInt32 i = 0; i < (SInt32) m_num_clusters; i++)
+      {
+         receiver_hub_queue_delay[i] = getHubQueueDelay(RECEIVER_HUB, getClusterID(pkt.sender), i,
+               pkt.time + latency_sender_core_to_receiver_hub, pkt_length, pkt.type, requester);
+      }
+
       for (core_id_t i = 0; i < (core_id_t) m_total_cores; i++)
       {
+         UInt64 latency_receiver_hub_to_receiver_core = receiver_hub_queue_delay[getClusterID(i)] + m_receiver_cluster_electrical_network_delay;
+
+         UInt64 total_latency = latency_sender_core_to_receiver_hub + latency_receiver_hub_to_receiver_core + processing_time;
+
          Hop h;
          h.next_dest = i;
          h.final_dest = i;
-         h.time = pkt.time + latency_sender_core_to_receiver_hub;
+         h.time = pkt.time + total_latency;
          
          nextHops.push_back(h);
       }
    }
    else
    {
-      // This is a multicast or unicast
       // Right now, it is a unicast
-      // Add support for multicast later
       LOG_ASSERT_ERROR(pkt.receiver < (core_id_t) m_total_cores, "Got invalid receiver ID = %i", pkt.receiver);
+
+      UInt64 total_latency;
+      if (pkt.sender == pkt.receiver)
+      {
+         total_latency = 0;
+      }
+      else if (getClusterID(pkt.sender) == getClusterID(pkt.receiver))
+      {
+         total_latency = m_sender_cluster_electrical_network_delay + m_receiver_cluster_electrical_network_delay + processing_time;
+      }
+      else
+      {
+         UInt64 sender_hub_queue_delay = getHubQueueDelay(SENDER_HUB, getClusterID(pkt.sender), getClusterID(pkt.sender),
+               pkt.time + m_sender_cluster_electrical_network_delay, pkt_length, pkt.type, requester);
+         UInt64 latency_sender_core_to_receiver_hub = m_sender_cluster_electrical_network_delay + sender_hub_queue_delay + m_optical_hop_latency;
+
+         UInt64 receiver_hub_queue_delay = getHubQueueDelay(RECEIVER_HUB, getClusterID(pkt.sender), getClusterID(pkt.receiver),
+               pkt.time + latency_sender_core_to_receiver_hub, pkt_length, pkt.type, requester);
+         UInt64 latency_receiver_hub_to_receiver_core = receiver_hub_queue_delay + m_receiver_cluster_electrical_network_delay;
+
+         total_latency = latency_sender_core_to_receiver_hub + latency_receiver_hub_to_receiver_core + processing_time;
+      }
 
       Hop h;
       h.next_dest = pkt.receiver;
       h.final_dest = pkt.receiver;
-      h.time = pkt.time + latency_sender_core_to_receiver_hub;
+      h.time = pkt.time + total_latency;
       
       nextHops.push_back(h);
    }
@@ -288,8 +268,8 @@ NetworkModelAtacCluster::processReceivedPacket(NetPacket& pkt)
  
    core_id_t requester = getRequester(pkt);
 
-   UInt64 latency_receiver_hub_to_receiver_core = computeLatencyReceiverHubToReceiverCore(pkt, requester);
-   pkt.time += latency_receiver_hub_to_receiver_core;
+   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+      return;
 
    // Performance Counters
    m_total_packets_received ++;
@@ -308,12 +288,15 @@ NetworkModelAtacCluster::createOpticalHub()
    {
       UInt64 min_processing_time = 1;
       m_sender_hub_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
-      m_receiver_hub_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
+      
+      m_receiver_hub_queue_models = new QueueModel*[m_num_electrical_broadcast_networks_per_cluster];
+      for (SInt32 i = 0; i < (SInt32) m_num_electrical_broadcast_networks_per_cluster; i++)
+         m_receiver_hub_queue_models[i] = QueueModel::create(m_queue_model_type, min_processing_time);
    }
    else
    {
       m_sender_hub_queue_model = (QueueModel*) NULL;
-      m_receiver_hub_queue_model = (QueueModel*) NULL;
+      m_receiver_hub_queue_models = (QueueModel**) NULL;
    }
 }
 
@@ -323,7 +306,10 @@ NetworkModelAtacCluster::destroyOpticalHub()
    if ((m_queue_model_enabled) && (m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id))))
    {
       delete m_sender_hub_queue_model;
-      delete m_receiver_hub_queue_model;
+      
+      for (SInt32 i = 0; i < (SInt32) m_num_electrical_broadcast_networks_per_cluster; i++)
+         delete m_receiver_hub_queue_models[i];
+      delete m_receiver_hub_queue_models;
    }
 }
 

@@ -31,6 +31,7 @@ class NetworkModelAtacOpticalBus : public NetworkModel
 
       UInt64 computeLatency(UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
       UInt64 computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length);
+      core_id_t getRequester(const NetPacket& pkt);
       UInt64 computeProcessingTime(UInt32 pkt_length);
 
    public:

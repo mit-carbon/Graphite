@@ -66,6 +66,19 @@ NetworkModelAtacOpticalBus::computeEjectionPortQueueDelay(UInt64 pkt_time, UInt3
    return m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
 }
 
+core_id_t
+NetworkModelAtacOpticalBus::getRequester(const NetPacket& pkt)
+{
+   core_id_t requester = INVALID_CORE_ID;
+
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+   else // Other Packet types
+      requester = pkt.sender;
+   
+   return requester;
+}
+
 UInt64 
 NetworkModelAtacOpticalBus::computeProcessingTime(UInt32 pkt_length)
 {
@@ -83,13 +96,8 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
 {
    ScopedLock sl(m_lock);
 
-   core_id_t requester = INVALID_CORE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender;
-
+   core_id_t requester = getRequester(pkt);
+   
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
          "requester(%i)", requester);
 
@@ -133,7 +141,12 @@ void
 NetworkModelAtacOpticalBus::processReceivedPacket(NetPacket& pkt)
 {
    ScopedLock sl(m_lock);
-      
+
+   core_id_t requester = getRequester(pkt);
+
+   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+      return;
+
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
   
    UInt64 packet_latency = pkt.time - pkt.start_time;

@@ -178,8 +178,6 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    if ( (!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
       return;
 
-   // LOG_ASSERT_ERROR(pkt.start_time > 0, "start_time(%llu)", pkt.start_time);
-
    UInt64 packet_latency = pkt.time - pkt.start_time;
    UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender, m_core_id) * m_hop_latency);
 

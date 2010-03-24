@@ -11,6 +11,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       m_receiver_mem_component(MemComponent::INVALID_MEM_COMPONENT),
       m_requester(INVALID_CORE_ID),
       m_single_receiver(INVALID_CORE_ID),
+      m_reply_expected(false),
       m_address(INVALID_ADDRESS),
       m_data_buf(NULL),
       m_data_length(0)
@@ -21,6 +22,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          MemComponent::component_t receiver_mem_component,
          core_id_t requester,
          core_id_t single_receiver,
+         bool reply_expected,
          IntPtr address,
          Byte* data_buf,
          UInt32 data_length) :
@@ -29,6 +31,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       m_receiver_mem_component(receiver_mem_component),
       m_requester(requester),
       m_single_receiver(single_receiver),
+      m_reply_expected(reply_expected),
       m_address(address),
       m_data_buf(data_buf),
       m_data_length(data_length)
@@ -50,6 +53,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       m_receiver_mem_component = shmem_msg->getReceiverMemComponent();
       m_requester = shmem_msg->getRequester();
       m_single_receiver = shmem_msg->getSingleReceiver();
+      m_reply_expected = shmem_msg->isReplyExpected();
       m_address = shmem_msg->getAddress();
       m_data_buf = shmem_msg->getDataBuf();
       m_data_length = shmem_msg->getDataLength();

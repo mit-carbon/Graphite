@@ -1,19 +1,18 @@
-#ifndef __DIRECTORY_ENTRY_LIMITLESS_H__
-#define __DIRECTORY_ENTRY_LIMITLESS_H__
+#ifndef __DIRECTORY_ENTRY_ACKWISE_H__
+#define __DIRECTORY_ENTRY_ACKWISE_H__
 
 #include "directory_entry.h"
 
-class DirectoryEntryLimitless : public DirectoryEntry
+class DirectoryEntryAckwise : public DirectoryEntry
 {
    private:
-      bool m_software_trap_enabled;
-      UInt32 m_software_trap_penalty;
+      bool m_global_enabled;
+      UInt32 m_num_untracked_sharers;
 
    public:
-      DirectoryEntryLimitless(UInt32 max_hw_sharers, 
-            UInt32 max_num_sharers, 
-            UInt32 software_trap_penalty);
-      ~DirectoryEntryLimitless();
+
+      DirectoryEntryAckwise(UInt32 max_hw_sharers, UInt32 max_num_sharers);
+      ~DirectoryEntryAckwise();
       
       bool hasSharer(core_id_t sharer_id);
       bool addSharer(core_id_t sharer_id);
@@ -29,4 +28,4 @@ class DirectoryEntryLimitless : public DirectoryEntry
       UInt32 getLatency();
 };
 
-#endif /* __DIRECTORY_ENTRY_LIMITLESS_H__ */
+#endif /* __DIRECTORY_ENTRY_ACKWISE_H__ */

@@ -3,6 +3,7 @@ using namespace std;
 #include "simulator.h"
 #include "directory.h"
 #include "directory_entry.h"
+#include "directory_entry_ackwise.h"
 #include "directory_entry_limited_broadcast.h"
 #include "directory_entry_limited_no_broadcast.h"
 #include "directory_entry_limitless.h"
@@ -80,7 +81,7 @@ Directory::createDirectoryEntry()
          return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
 
       case ACKWISE:
-         return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
+         return new DirectoryEntryAckwise(m_max_hw_sharers, m_max_num_sharers);
 
       case LIMITLESS:
          {

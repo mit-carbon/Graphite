@@ -34,8 +34,9 @@ DirectoryEntryLimitedNoBroadcast::addSharer(core_id_t sharer_id)
 }
 
 void
-DirectoryEntryLimitedNoBroadcast::removeSharer(core_id_t sharer_id)
+DirectoryEntryLimitedNoBroadcast::removeSharer(core_id_t sharer_id, bool reply_expected)
 {
+   assert(!reply_expected);
    assert(m_sharers->at(sharer_id));
    m_sharers->clear(sharer_id);
 }

@@ -1,22 +1,21 @@
-#include "directory_entry_limited_broadcast.h"
-#include "config.h"
+#include "directory_entry_ackwise.h"
 #include "log.h"
 
 using namespace std;
 
-DirectoryEntryLimitedBroadcast::DirectoryEntryLimitedBroadcast(
+DirectoryEntryAckwise::DirectoryEntryAckwise(
       UInt32 max_hw_sharers, 
       UInt32 max_num_sharers):
    DirectoryEntry(max_hw_sharers, max_num_sharers),
    m_global_enabled(false),
-   m_num_sharers(0)
+   m_num_untracked_sharers(0)
 {}
 
-DirectoryEntryLimitedBroadcast::~DirectoryEntryLimitedBroadcast()
+DirectoryEntryAckwise::~DirectoryEntryAckwise()
 {}
 
 bool
-DirectoryEntryLimitedBroadcast::hasSharer(core_id_t sharer_id)
+DirectoryEntryAckwise::hasSharer(core_id_t sharer_id)
 {
    return m_sharers->at(sharer_id);
 }
@@ -25,11 +24,11 @@ DirectoryEntryLimitedBroadcast::hasSharer(core_id_t sharer_id)
 //              'True' if it was successfully added
 //              'False' if there will be an eviction before adding
 bool
-DirectoryEntryLimitedBroadcast::addSharer(core_id_t sharer_id)
+DirectoryEntryAckwise::addSharer(core_id_t sharer_id)
 {
    if (m_global_enabled)
    {
-      assert(m_num_sharers == Config::getSingleton()->getTotalCores());
+      m_num_untracked_sharers ++;
    }
    else
    {
@@ -37,24 +36,34 @@ DirectoryEntryLimitedBroadcast::addSharer(core_id_t sharer_id)
       if (m_sharers->size() == m_max_hw_sharers)
       {
          m_global_enabled = true;
-         m_num_sharers = Config::getSingleton()->getTotalCores();
+         m_num_untracked_sharers = 1;
       }
       else
       {
          m_sharers->set(sharer_id);
       }
    }
+
    return true;
 }
 
 void
-DirectoryEntryLimitedBroadcast::removeSharer(core_id_t sharer_id, bool reply_expected)
+DirectoryEntryAckwise::removeSharer(core_id_t sharer_id, bool reply_expected)
 {
+   assert(!reply_expected);
+
    if (m_global_enabled)
    {
+      assert(m_num_untracked_sharers > 0);
       if (m_sharers->at(sharer_id))
       {
          m_sharers->clear(sharer_id);
+      }
+      else
+      {
+         m_num_untracked_sharers --;
+         if (m_num_untracked_sharers == 0)
+            m_global_enabled = false;
       }
    }
    else
@@ -62,36 +71,25 @@ DirectoryEntryLimitedBroadcast::removeSharer(core_id_t sharer_id, bool reply_exp
       assert(m_sharers->at(sharer_id));
       m_sharers->clear(sharer_id);
    }
-
-   if (reply_expected)
-   {
-      assert(m_global_enabled);
-      m_num_sharers --;
-      if (m_num_sharers == 0)
-      {
-         m_global_enabled = false;
-         assert(m_sharers->size() == 0);
-      }
-   }
 }
 
 UInt32
-DirectoryEntryLimitedBroadcast::getNumSharers()
+DirectoryEntryAckwise::getNumSharers()
 {
    if (m_global_enabled)
-      return Config::getSingleton()->getTotalCores();
+      return m_sharers->size() + m_num_untracked_sharers;
    else
       return m_sharers->size();
 }
 
 core_id_t
-DirectoryEntryLimitedBroadcast::getOwner()
+DirectoryEntryAckwise::getOwner()
 {
    return m_owner_id;
 }
 
 void
-DirectoryEntryLimitedBroadcast::setOwner(core_id_t owner_id)
+DirectoryEntryAckwise::setOwner(core_id_t owner_id)
 {
    if (owner_id != INVALID_CORE_ID)
    {
@@ -103,7 +101,7 @@ DirectoryEntryLimitedBroadcast::setOwner(core_id_t owner_id)
 }
 
 core_id_t
-DirectoryEntryLimitedBroadcast::getOneSharer()
+DirectoryEntryAckwise::getOneSharer()
 {
    m_sharers->resetFind();
    core_id_t sharer_id = m_sharers->find();
@@ -120,12 +118,11 @@ DirectoryEntryLimitedBroadcast::getOneSharer()
 // val.second :- 'Empty' if all cores are sharers
 //               A list of sharers if NOT all cores are sharers
 pair<bool, vector<core_id_t> >&
-DirectoryEntryLimitedBroadcast::getSharersList()
+DirectoryEntryAckwise::getSharersList()
 {
    if (m_global_enabled)
    {
-      assert(m_num_sharers == Config::getSingleton()->getTotalCores());
-
+      assert(m_num_untracked_sharers > 0);
       m_cached_sharers_list.first = true;
       m_cached_sharers_list.second.clear();
       return m_cached_sharers_list;
@@ -151,7 +148,7 @@ DirectoryEntryLimitedBroadcast::getSharersList()
 }
 
 UInt32
-DirectoryEntryLimitedBroadcast::getLatency()
+DirectoryEntryAckwise::getLatency()
 {
    return 0;
 }

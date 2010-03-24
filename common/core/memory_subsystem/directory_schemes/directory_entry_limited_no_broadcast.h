@@ -11,7 +11,7 @@ class DirectoryEntryLimitedNoBroadcast : public DirectoryEntry
       
       bool hasSharer(core_id_t sharer_id);
       bool addSharer(core_id_t sharer_id);
-      void removeSharer(core_id_t sharer_id);
+      void removeSharer(core_id_t sharer_id, bool reply_expected);
       UInt32 getNumSharers();
 
       core_id_t getOwner();

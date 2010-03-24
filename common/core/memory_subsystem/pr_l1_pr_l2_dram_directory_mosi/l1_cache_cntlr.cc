@@ -127,7 +127,8 @@ L1CacheCntlr::processMemOpFromCore(
       releaseLock(mem_component);
       
       // Send out a request to the network thread for the cache data
-      ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE, m_core_id, INVALID_CORE_ID, ca_address);
+      ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE,
+            m_core_id, INVALID_CORE_ID, false, ca_address);
       getMemoryManager()->sendMsg(m_core_id, shmem_msg);
 
       waitForNetworkThread();

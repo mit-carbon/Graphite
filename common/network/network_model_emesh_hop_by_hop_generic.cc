@@ -262,6 +262,7 @@ NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, UInt
    if (m_queue_model_enabled)
       queue_delay = m_queue_models[direction]->computeQueueDelay(pkt_time, processing_time);
 
+   LOG_PRINT("Queue Delay(%llu), Hop Latency(%llu)", queue_delay, m_hop_latency);
    UInt64 packet_latency = m_hop_latency + queue_delay;
 
    return packet_latency;

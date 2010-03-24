@@ -41,6 +41,10 @@ namespace PrL1PrL2DramDirectoryMOSI
          MemoryManager* m_memory_manager;
          
          DramDirectoryCache* m_dram_directory_cache;
+
+         // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
+         Directory::DirectoryType m_directory_type;
+
          ReqQueueList* m_dram_directory_req_queue_list;
          DataList* m_cached_data_list;
 

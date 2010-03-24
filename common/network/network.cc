@@ -148,6 +148,7 @@ void Network::netPullFromTransport()
 
 void Network::forwardPacket(NetPacket& packet)
 {
+   LOG_PRINT_ERROR("Temporarily disabled for now");
    netSend(packet);
 }
 
@@ -166,6 +167,7 @@ SInt32 Network::netSend(NetPacket& packet)
    model->routePacket(packet, hopVec);
 
    Byte *buffer = packet.makeBuffer();
+   UInt64 start_time = packet.time;
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
@@ -195,8 +197,12 @@ SInt32 Network::netSend(NetPacket& packet)
       }
 
       NetPacket* buff_pkt = (NetPacket*) buffer;
+
+      LOG_ASSERT_ERROR(_core->getId() == buff_pkt->sender,
+            "For now! _core->getId(%i), buff_pkt->sender(%i)", _core->getId(), buff_pkt->sender);
       if (_core->getId() == buff_pkt->sender)
-         buff_pkt->start_time = buff_pkt->time;
+         buff_pkt->start_time = start_time;;
+      
       buff_pkt->time = hopVec[i].time;
       buff_pkt->receiver = hopVec[i].final_dest;
 
@@ -206,7 +212,6 @@ SInt32 Network::netSend(NetPacket& packet)
    }
 
    delete [] buffer;
-
 
    return packet.length;
 }

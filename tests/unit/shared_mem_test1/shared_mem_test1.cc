@@ -10,7 +10,7 @@ using namespace std;
 
 int main (int argc, char *argv[])
 {
-   printf("Starting (shared_mem_basic)\n");
+   printf("Starting (shared_mem_test1)\n");
    CarbonStartSim(argc, argv);
 
    UInt32 address = 0x1000;
@@ -63,7 +63,7 @@ int main (int argc, char *argv[])
    for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
       Sim()->getCoreManager()->getCoreFromID(i)->disablePerformanceModels();
    
-   printf("Finished (shared_mem_basic) - SUCCESS\n");
+   printf("Finished (shared_mem_test1) - SUCCESS\n");
    CarbonStopSim();
    return 0;
 }

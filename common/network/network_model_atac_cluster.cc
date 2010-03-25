@@ -85,12 +85,6 @@ NetworkModelAtacCluster::initializePerformanceCounters()
    m_total_bytes_received = 0;
    m_total_packets_received = 0;
    m_total_packet_latency = 0;
-   
-   m_total_sender_hub_contention_delay = 0;
-   m_total_sender_hub_packets = 0;
-
-   m_total_receiver_hub_contention_delay = 0;
-   m_total_receiver_hub_packets = 0;
 }
 
 
@@ -131,8 +125,8 @@ NetworkModelAtacCluster::computeHubQueueDelay(HubType hub_type, SInt32 sender_cl
             UInt64 receiver_hub_queue_delay = m_receiver_hub_queue_models[broadcast_network_num]->computeQueueDelay(pkt_time, processing_time);
 
             // Performance Counters
-            m_total_receiver_hub_contention_delay += receiver_hub_queue_delay;
-            m_total_receiver_hub_packets ++;
+            m_total_receiver_hub_contention_delay[broadcast_network_num] += receiver_hub_queue_delay;
+            m_total_receiver_hub_packets[broadcast_network_num] ++;
             return receiver_hub_queue_delay;
          }
 
@@ -290,8 +284,17 @@ NetworkModelAtacCluster::createOpticalHub()
       m_sender_hub_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
       
       m_receiver_hub_queue_models = new QueueModel*[m_num_electrical_broadcast_networks_per_cluster];
+      m_total_receiver_hub_contention_delay = new UInt64[m_num_electrical_broadcast_networks_per_cluster];
+      m_total_receiver_hub_packets = new UInt64[m_num_electrical_broadcast_networks_per_cluster];
+      
       for (SInt32 i = 0; i < (SInt32) m_num_electrical_broadcast_networks_per_cluster; i++)
+      {
          m_receiver_hub_queue_models[i] = QueueModel::create(m_queue_model_type, min_processing_time);
+         m_total_receiver_hub_contention_delay[i] = 0;
+         m_total_receiver_hub_packets[i] = 0;
+      }
+      m_total_sender_hub_contention_delay = 0;
+      m_total_sender_hub_packets = 0; 
    }
    else
    {
@@ -310,28 +313,38 @@ NetworkModelAtacCluster::destroyOpticalHub()
       for (SInt32 i = 0; i < (SInt32) m_num_electrical_broadcast_networks_per_cluster; i++)
          delete m_receiver_hub_queue_models[i];
       delete m_receiver_hub_queue_models;
+
+      delete m_total_receiver_hub_contention_delay;
+      delete m_total_receiver_hub_packets;
    }
 }
 
 void
 NetworkModelAtacCluster::outputHubSummary(ostream& out)
 {
+   out << " ATAC Cluster: " << endl;
    if ((m_queue_model_enabled) && (m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id))))
    {
       if (m_total_sender_hub_packets > 0)
-         out << "    average sender hub contention delay: " << (float) m_total_sender_hub_contention_delay / m_total_sender_hub_packets << endl;
+         out << "    Sender Hub Contention Delay: " << (float) m_total_sender_hub_contention_delay / m_total_sender_hub_packets << endl;
       else
-         out << "    average sender hub contention delay: 0" << endl;
-      
-      if (m_total_receiver_hub_packets > 0)
-         out << "    average receiver hub contention delay: " << (float) m_total_receiver_hub_contention_delay / m_total_receiver_hub_packets << endl;
-      else
-         out << "    average receiver hub contention delay: 0" << endl;
+         out << "    Sender Hub Contention Delay: 0" << endl;
+    
+      for (UInt32 i = 0; i < m_num_electrical_broadcast_networks_per_cluster; i++)
+      {
+         if (m_total_receiver_hub_packets[i] > 0)
+            out << "    Receiver Hub (" << i << ") Contention Delay: " << ((float) m_total_receiver_hub_contention_delay[i]) / m_total_receiver_hub_packets[i] << endl;
+         else
+            out << "    Receiver Hub (" << i << ") Contention Delay: 0" << endl;
+      }
    }
    else
    {
-      out << "    average sender hub contention delay: NA" << endl;
-      out << "    average receiver hub contention delay: NA" << endl;
+      out << "    Sender Hub Contention Delay: NA" << endl;
+      for (UInt32 i = 0; i < m_num_electrical_broadcast_networks_per_cluster; i++)
+      {
+         out << "    Receiver Hub (" << i << ") Contention Delay: NA" << endl;
+      }
    }
 }
 

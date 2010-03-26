@@ -211,13 +211,11 @@ void* thread_func(void*)
 void initializeGlobalVariables()
 {
    // Get data from a file
-   ifstream input_file("tests/unit/synthetic_benchmark/input");
-
-   input_file >> m_num_threads;
-   input_file >> m_degree_of_sharing;
-   input_file >> m_num_shared_addresses;
-   input_file >> m_num_private_addresses;
-   input_file >> m_total_instructions_per_core;
+   cin >> m_num_threads;
+   cin >> m_degree_of_sharing;
+   cin >> m_num_shared_addresses;
+   cin >> m_num_private_addresses;
+   cin >> m_total_instructions_per_core;
 
    LOG_ASSERT_ERROR(m_num_threads >= m_degree_of_sharing, "m_num_threads(%i), m_degree_of_sharing(%i)",
          m_num_threads, m_degree_of_sharing);
@@ -227,10 +225,8 @@ void initializeGlobalVariables()
 
    // This is initially a discrete probablity function
    for (SInt32 i = 0; i < NUM_INSTRUCTION_TYPES; i++)
-      input_file >> m_instruction_type_probabilities[i];
+      cin >> m_instruction_type_probabilities[i];
    
-   input_file.close();
-
    m_log_num_shared_addresses = floorLog2(m_num_shared_addresses);
    m_log_cache_block_size = floorLog2(Sim()->getCfg()->getInt("perf_model/l1_dcache/cache_block_size", 0));
 

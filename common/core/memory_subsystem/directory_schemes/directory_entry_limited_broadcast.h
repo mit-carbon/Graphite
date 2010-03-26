@@ -2,6 +2,7 @@
 #define __DIRECTORY_ENTRY_LIMITED_BROADCAST_H__
 
 #include "directory_entry.h"
+#include "random.h"
 
 class DirectoryEntryLimitedBroadcast : public DirectoryEntry
 {
@@ -25,6 +26,9 @@ class DirectoryEntryLimitedBroadcast : public DirectoryEntry
       std::pair<bool, std::vector<core_id_t> >& getSharersList();
 
       UInt32 getLatency();
+
+   private:
+      Random m_rand_num;
 };
 
 #endif /* __DIRECTORY_ENTRY_LIMITED_BROADCAST_H__ */

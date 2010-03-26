@@ -105,13 +105,17 @@ DirectoryEntryLimitedBroadcast::setOwner(core_id_t owner_id)
 core_id_t
 DirectoryEntryLimitedBroadcast::getOneSharer()
 {
-   m_sharers->resetFind();
-   core_id_t sharer_id = m_sharers->find();
-   assert((sharer_id == -1) == (m_sharers->size() == 0));
-   if (sharer_id != -1)
-      return sharer_id;
+   pair<bool, vector<core_id_t> > sharers_list = getSharersList();
+   assert(sharers_list.first || (sharers_list.second.size() > 0));
+   if (sharers_list.second.size() > 0)
+   {
+      SInt32 index = m_rand_num.next(sharers_list.second.size());
+      return sharers_list.second[index];
+   }
    else
+   {
       return INVALID_CORE_ID;
+   }
 }
 
 // Return a pair:
@@ -125,29 +129,27 @@ DirectoryEntryLimitedBroadcast::getSharersList()
    if (m_global_enabled)
    {
       assert(m_num_sharers == Config::getSingleton()->getTotalCores());
-
       m_cached_sharers_list.first = true;
-      m_cached_sharers_list.second.clear();
-      return m_cached_sharers_list;
    }
    else
    {
       m_cached_sharers_list.first = false;
-      m_cached_sharers_list.second.resize(m_sharers->size());
-   
-      m_sharers->resetFind();
-
-      core_id_t new_sharer = -1;
-      SInt32 i = 0;
-      while ((new_sharer = m_sharers->find()) != -1)
-      {
-         m_cached_sharers_list.second[i] = new_sharer;
-         i++;
-         assert (i <= (core_id_t) m_sharers->size());
-      }
-
-      return m_cached_sharers_list;
    }
+
+   m_cached_sharers_list.second.resize(m_sharers->size());
+
+   m_sharers->resetFind();
+
+   core_id_t new_sharer = -1;
+   SInt32 i = 0;
+   while ((new_sharer = m_sharers->find()) != -1)
+   {
+      m_cached_sharers_list.second[i] = new_sharer;
+      i++;
+      assert (i <= (core_id_t) m_sharers->size());
+   }
+
+   return m_cached_sharers_list;
 }
 
 UInt32

@@ -23,8 +23,9 @@ using namespace std;
 enum InsType
 {
    NON_MEMORY = 0,
-   SHARED_MEMORY_READ,
-   SHARED_MEMORY_WRITE,
+   RD_ONLY_SHARED_MEMORY_READ,
+   RD_WR_SHARED_MEMORY_READ,
+   RD_WR_SHARED_MEMORY_WRITE,
    PRIVATE_MEMORY_READ,
    PRIVATE_MEMORY_WRITE,
    NUM_INSTRUCTION_TYPES
@@ -35,6 +36,7 @@ SInt32 m_degree_of_sharing;
 SInt32 m_num_shared_addresses;
 SInt32 m_num_private_addresses;
 SInt32 m_total_instructions_per_core;
+float m_fraction_read_only_shared_addresses;
 
 SInt32 m_log_num_shared_addresses;
 SInt32 m_log_cache_block_size;
@@ -42,7 +44,8 @@ SInt32 m_log_cache_block_size;
 vector<UInt64> m_core_clock_list;
 
 vector<Random> m_random_instruction_type_generator;
-vector<Random> m_random_address_generator;
+vector<Random> m_random_rd_only_shared_address_generator;
+vector<Random> m_random_rd_wr_shared_address_generator;
 
 float m_instruction_type_probabilities[NUM_INSTRUCTION_TYPES];
 vector<UInt64*> m_executed_instruction_types;
@@ -51,7 +54,8 @@ vector<UInt64*> m_executed_instruction_types;
 vector<SInt32> m_private_address_index;
 
 // A list of shared addresses per thread
-vector<vector<IntPtr> > m_shared_address_list;
+vector<vector<IntPtr> > m_rd_only_shared_address_list;
+vector<vector<IntPtr> > m_rd_wr_shared_address_list;
 
 carbon_barrier_t m_barrier;
 
@@ -61,7 +65,8 @@ void initializeGlobalVariables(void);
 void deInitializeGlobalVariables(void);
 void computeSharedAddressToThreadMapping(void);
 InsType getRandomInstructionType(SInt32 thread_id);
-IntPtr getRandomSharedAddress(SInt32 thread_id);
+IntPtr getRandomReadOnlySharedAddress(SInt32 thread_id);
+IntPtr getRandomReadWriteSharedAddress(SInt32 thread_id);
 IntPtr getPrivateAddress(SInt32 thread_id);
 
 int main(int argc, char* argv[])
@@ -153,21 +158,39 @@ void* thread_func(void*)
                break;
             }
 
-         case SHARED_MEMORY_READ:
+         case RD_ONLY_SHARED_MEMORY_READ:
             {
-               IntPtr address = getRandomSharedAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
-                     address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
-               m_core_clock_list[thread_id] += ret_val.second;
+               if (m_rd_only_shared_address_list[thread_id].size() != 0)
+               {
+                  IntPtr address = getRandomReadOnlySharedAddress(thread_id);
+                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
+                        address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
+                  m_core_clock_list[thread_id] += ret_val.second;
+               }
                break;
             }
 
-         case SHARED_MEMORY_WRITE:
+         case RD_WR_SHARED_MEMORY_READ:
             {
-               IntPtr address = getRandomSharedAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
-                     address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
-               m_core_clock_list[thread_id] += ret_val.second;
+               if (m_rd_wr_shared_address_list[thread_id].size() != 0)
+               {
+                  IntPtr address = getRandomReadWriteSharedAddress(thread_id);
+                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
+                        address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
+                  m_core_clock_list[thread_id] += ret_val.second;
+               }
+               break;
+            }
+
+         case RD_WR_SHARED_MEMORY_WRITE:
+            {
+               if (m_rd_wr_shared_address_list[thread_id].size() != 0)
+               {
+                  IntPtr address = getRandomReadWriteSharedAddress(thread_id);
+                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
+                        address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
+                  m_core_clock_list[thread_id] += ret_val.second;
+               }
                break;
             }
 
@@ -230,16 +253,23 @@ void initializeGlobalVariables()
    m_log_num_shared_addresses = floorLog2(m_num_shared_addresses);
    m_log_cache_block_size = floorLog2(Sim()->getCfg()->getInt("perf_model/l1_dcache/cache_block_size", 0));
 
+   // Do this calculation before converting them into cumulative probabilites
+   m_fraction_read_only_shared_addresses = m_instruction_type_probabilities[RD_ONLY_SHARED_MEMORY_READ] / (m_instruction_type_probabilities[RD_ONLY_SHARED_MEMORY_READ] + m_instruction_type_probabilities[RD_WR_SHARED_MEMORY_READ] + m_instruction_type_probabilities[RD_WR_SHARED_MEMORY_WRITE]);
+
+   printf("Fraction Read Only Shared Addresses(%f)\n", m_fraction_read_only_shared_addresses);
+
    // Convert them into cumulative probabilities
    for (SInt32 i = 1; i < NUM_INSTRUCTION_TYPES; i++)
       m_instruction_type_probabilities[i] = m_instruction_type_probabilities[i] + m_instruction_type_probabilities[i-1];
 
    m_core_clock_list.resize(m_num_threads);
    m_random_instruction_type_generator.resize(m_num_threads);
-   m_random_address_generator.resize(m_num_threads);
+   m_random_rd_only_shared_address_generator.resize(m_num_threads);
+   m_random_rd_wr_shared_address_generator.resize(m_num_threads);
 
    m_private_address_index.resize(m_num_threads);
-   m_shared_address_list.resize(m_num_threads);
+   m_rd_only_shared_address_list.resize(m_num_threads);
+   m_rd_wr_shared_address_list.resize(m_num_threads);
 
    m_executed_instruction_types.resize(m_num_threads);
 
@@ -248,7 +278,8 @@ void initializeGlobalVariables()
       m_core_clock_list[i] = 0;
       m_private_address_index[i] = 0;
       m_random_instruction_type_generator[i].seed(i);
-      m_random_address_generator[i].seed(i);
+      m_random_rd_only_shared_address_generator[i].seed(i);
+      m_random_rd_wr_shared_address_generator[i].seed(i);
 
       m_executed_instruction_types[i] = new UInt64[NUM_INSTRUCTION_TYPES];
       for (SInt32 j = 0; j < NUM_INSTRUCTION_TYPES; j++)
@@ -281,10 +312,24 @@ void computeSharedAddressToThreadMapping()
       for (SInt32 j = 0; j < m_degree_of_sharing; j++)
       {
          SInt32 thread_id = (SInt32) ((((float) random()) / RAND_MAX) * m_num_threads);
-         m_shared_address_list[thread_id].push_back(shared_address);
+         
+         if (i < ((SInt32) (m_fraction_read_only_shared_addresses * m_num_shared_addresses)))
+         {
+            m_rd_only_shared_address_list[thread_id].push_back(shared_address);
+         }
+         else
+         {
+            m_rd_wr_shared_address_list[thread_id].push_back(shared_address);
+         }
       }
    }
 
+   for (SInt32 i = 0; i < m_num_threads; i++)
+   {
+      printf("(%i) rd_only(%u), rd_wr(%u)\n", i, (UInt32) m_rd_only_shared_address_list[i].size(), (UInt32) m_rd_wr_shared_address_list[i].size());
+   }
+
+   /*
    UInt32 max_shared_address_list_size = 0;
    UInt32 min_shared_address_list_size = 1000000;
 
@@ -297,6 +342,7 @@ void computeSharedAddressToThreadMapping()
    }
    printf("max_shared_address_list_size(%u), min_shared_address_list_size(%u)\n", \
          max_shared_address_list_size, min_shared_address_list_size);
+     */
 }
 
 InsType getRandomInstructionType(SInt32 thread_id)
@@ -314,13 +360,22 @@ InsType getRandomInstructionType(SInt32 thread_id)
    return NUM_INSTRUCTION_TYPES;
 }
 
-IntPtr getRandomSharedAddress(SInt32 thread_id)
+IntPtr getRandomReadOnlySharedAddress(SInt32 thread_id)
 {
    // We get a random shared address from the list
-   LOG_ASSERT_ERROR(m_shared_address_list[thread_id].size() <= 32768, "Problem With Random Number Generator");
+   LOG_ASSERT_ERROR(m_rd_only_shared_address_list[thread_id].size() <= 32768, "Problem With Random Number Generator");
 
-   UInt32 index = m_random_address_generator[thread_id].next(m_shared_address_list[thread_id].size());
-   return m_shared_address_list[thread_id][index];
+   UInt32 index = m_random_rd_only_shared_address_generator[thread_id].next(m_rd_only_shared_address_list[thread_id].size());
+   return m_rd_only_shared_address_list[thread_id][index];
+}
+
+IntPtr getRandomReadWriteSharedAddress(SInt32 thread_id)
+{
+   // We get a random shared address from the list
+   LOG_ASSERT_ERROR(m_rd_wr_shared_address_list[thread_id].size() <= 32768, "Problem With Random Number Generator");
+
+   UInt32 index = m_random_rd_wr_shared_address_generator[thread_id].next(m_rd_wr_shared_address_list[thread_id].size());
+   return m_rd_wr_shared_address_list[thread_id][index];
 }
 
 IntPtr getPrivateAddress(SInt32 thread_id)

@@ -1,4 +1,5 @@
 #include "directory_entry_limited_no_broadcast.h"
+#include "log.h"
 
 using namespace std;
 
@@ -64,10 +65,12 @@ DirectoryEntryLimitedNoBroadcast::setOwner(core_id_t owner_id)
 core_id_t
 DirectoryEntryLimitedNoBroadcast::getOneSharer()
 {
-   m_sharers->resetFind();
-   core_id_t sharer_id = m_sharers->find();
-   assert(sharer_id != -1);
-   return sharer_id;
+   pair<bool, vector<core_id_t> > sharers_list = getSharersList();
+   assert(!sharers_list.first);
+   assert(sharers_list.second.size() > 0);
+
+   SInt32 index = m_rand_num.next(sharers_list.second.size());
+   return sharers_list.second[index];
 }
 
 pair<bool, vector<core_id_t> >&

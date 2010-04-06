@@ -21,8 +21,6 @@
 
 SIM_ROOT ?= $(CURDIR)/../../..
 
-TARGET_ARCH = x86_64
-
 # Run options
 include $(SIM_ROOT)/Makefile.config
 

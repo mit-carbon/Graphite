@@ -1,5 +1,7 @@
 SIM_ROOT ?= $(CURDIR)/../
 
+include $(SIM_ROOT)/Makefile.config
+
 DIRECTORIES = $(SIM_ROOT)/common/core/        \
 			 $(SIM_ROOT)/common/core/memory_subsystem/	\
           $(SIM_ROOT)/common/core/memory_subsystem/cache/      \
@@ -20,7 +22,6 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
-TARGET_ARCH = x86_64
 KERNEL = LENNY
 
 # OS Services Support

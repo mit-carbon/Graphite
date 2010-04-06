@@ -17,8 +17,15 @@ CXXFLAGS += -c \
             -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD
 
 # Use the pin flags for building
-TARGET = ia32e
 include $(SIM_ROOT)/Makefile.config
+
+ifeq ($(TARGET_ARCH),ia32)
+	TARGET = ia32
+endif
+ifeq ($(TARGET_ARCH),x86_64)
+	TARGET = ia32e
+endif
+
 PIN_KIT = $(PIN_HOME)
 include $(PIN_HOME)/source/tools/makefile.gnu.config
 

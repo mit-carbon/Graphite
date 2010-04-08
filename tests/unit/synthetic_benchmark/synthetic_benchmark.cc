@@ -61,7 +61,7 @@ carbon_barrier_t m_barrier;
 
 // Function Declarations
 void* thread_func(void*);
-void initializeGlobalVariables(void);
+void initializeGlobalVariables(int argc, char *argv[]);
 void deInitializeGlobalVariables(void);
 void computeSharedAddressToThreadMapping(void);
 InsType getRandomInstructionType(SInt32 thread_id);
@@ -72,13 +72,11 @@ IntPtr getPrivateAddress(SInt32 thread_id);
 int main(int argc, char* argv[])
 {
    // Command Line Arguments
-   //  -n <num_shared_addresses>
-   //  -t <num_threads>
-   //  -d <degree of sharing>
+   //  -ns <degree of sharing>
    CarbonStartSim(argc, argv);
 
    // Initialize all the global variables
-   initializeGlobalVariables();
+   initializeGlobalVariables(argc, argv);
 
    printf("Num Threads(%i)\nDegree of Sharing(%i)\nNum Shared Addresses(%i)\nNum Private Addresses(%i)\nTotal Instructions per Core(%i)\n\n", m_num_threads, m_degree_of_sharing, m_num_shared_addresses, m_num_private_addresses, m_total_instructions_per_core);
 
@@ -221,9 +219,8 @@ void* thread_func(void*)
       
       // Synchronize the clocks
       ClockSkewMinimizationClient *client = core->getClockSkewMinimizationClient();
-      assert(client);
-
-      client->synchronize(m_core_clock_list[thread_id]);
+      if (client)
+         client->synchronize(m_core_clock_list[thread_id]);
    }
 
    CarbonBarrierWait(&m_barrier);
@@ -231,7 +228,7 @@ void* thread_func(void*)
    return (void*) NULL;
 }
 
-void initializeGlobalVariables()
+void initializeGlobalVariables(int argc, char *argv[])
 {
    // Get data from a file
    cin >> m_num_threads;
@@ -239,6 +236,14 @@ void initializeGlobalVariables()
    cin >> m_num_shared_addresses;
    cin >> m_num_private_addresses;
    cin >> m_total_instructions_per_core;
+
+   // Check what is the current degree of sharing as specified from the command line arguments
+   if (strcmp(argv[1], "-ns") == 0)
+   {
+      // An override has been specified
+      // Overwrite the 'degree of sharing'
+      m_degree_of_sharing = atoi(argv[2]);
+   }
 
    LOG_ASSERT_ERROR(m_num_threads >= m_degree_of_sharing, "m_num_threads(%i), m_degree_of_sharing(%i)",
          m_num_threads, m_degree_of_sharing);

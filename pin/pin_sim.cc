@@ -1,5 +1,5 @@
 // Harshad Kasture, Jason Miller, Chris Celio, Charles Gruenwald,
-// Nathan Beckmann, David Wentzlaff, James Psota
+// Nathan Beckmann, George Kurian, David Wentzlaff, James Psota
 // 10.12.08
 //
 // Carbon Computer Simulator

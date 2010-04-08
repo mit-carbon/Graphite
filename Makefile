@@ -11,7 +11,7 @@ include common/Makefile
 include tests/apps/Makefile
 include tests/unit/Makefile
 include tests/benchmarks/Makefile
-include tests/Makefile.parsec
+#include tests/Makefile.parsec
 
 .PHONY: $(LIB_PIN_SIM)
 $(LIB_PIN_SIM):

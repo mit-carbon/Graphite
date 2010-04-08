@@ -75,7 +75,7 @@ VMManager::~VMManager()
 
 void *VMManager::brk(void *end_data_segment)
 {
-   LOG_PRINT ("VMManager: brk(%p)", end_data_segment);
+   LOG_PRINT("VMManager: brk(%p)", end_data_segment);
 
    if (end_data_segment == (void*) 0)
    {
@@ -93,7 +93,7 @@ void *VMManager::brk(void *end_data_segment)
 
    m_end_data_segment = (IntPtr) end_data_segment;
 
-   LOG_PRINT ("VMManager: brk(%p) returned %p", end_data_segment, m_end_data_segment);
+   LOG_PRINT("VMManager: brk(%p) returned %p", end_data_segment, m_end_data_segment);
    return ((void*) m_end_data_segment);
 }
 
@@ -111,7 +111,7 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
    LOG_ASSERT_ERROR((flags & MAP_PRIVATE) == MAP_PRIVATE,
          "Mmap() system call, MAP_PRIVATE should be set in flags");
    
-   LOG_ASSERT_ERROR((m_end_stack_segment < m_start_dynamic_segment - length),
+   LOG_ASSERT_ERROR(m_end_stack_segment < (m_start_dynamic_segment - length),
          "Mmap() system call: No more memory to allocate! end_stack_segment(0x%x), start_dynamic_segment(0x%x)",
          m_end_stack_segment, m_start_dynamic_segment - length);
 
@@ -121,6 +121,7 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
    return ((void*) m_start_dynamic_segment);
 }
 
+#ifdef TARGET_IA32
 void *VMManager::mmap2(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
    LOG_PRINT("VMManager: mmap2(start = %p, length = 0x%x, flags = 0x%x)",
@@ -144,6 +145,7 @@ void *VMManager::mmap2(void *start, size_t length, int prot, int flags, int fd, 
    LOG_PRINT("VMManager: mmap2() returned %p", (void*) m_start_dynamic_segment);
    return ((void*) m_start_dynamic_segment);
 }
+#endif
 
 int VMManager::munmap(void *start, size_t length)
 {

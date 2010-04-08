@@ -21,81 +21,6 @@ int UnstructuredBuffer::size()
    return m_chars.size();
 }
 
-
-// Wrappers
-
-// put scalar
-UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt64 data)
-{
-   put<UInt64>(data);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt64 data)
-{
-   put<SInt64>(data);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt32 data)
-{
-   put<UInt32>(data);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt32 data)
-{
-   put<SInt32>(data);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator<<(UInt8 data)
-{
-   put<UInt8>(data);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator<<(SInt8 data)
-{
-   put<SInt8>(data);
-   return *this;
-}
-
-// get scalar
-UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt64& data)
-{
-   __attribute(__unused__) bool res = get<UInt64>(data);
-   assert(res == true);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt64& data)
-{
-   __attribute(__unused__) bool res = get<SInt64>(data);
-   assert(res == true);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt32& data)
-{
-   __attribute(__unused__) bool res = get<UInt32>(data);
-   assert(res = true);
-   return *this;
-}
-
-UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt32& data)
-{
-   __attribute(__unused__) bool res = get<SInt32>(data);
-   assert(res == true);
-   return *this;
-}
-
-UnstructuredBuffer& UnstructuredBuffer::operator>>(UInt8&  data)
-{
-   __attribute(__unused__) bool res = get<UInt8>(data);
-   assert(res == true);
-   return *this;
-}
-UnstructuredBuffer& UnstructuredBuffer::operator>>(SInt8&  data)
-{
-   __attribute(__unused__) bool res = get<SInt8>(data);
-   assert(res == true);
-   return *this;
-}
-
 // put buffer
 
 UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<const void*, int> buffer)
@@ -110,7 +35,7 @@ UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<const void*, int> buffer
 
 // get buffer
 
-UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<const void*, int> buffer)
+UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<void*, int> buffer)
 {
    const void *buff = buffer.first;
    int size = buffer.second;
@@ -177,6 +102,5 @@ int main(int argc, char* argv[])
 
    return 0;
 }
-
 
 #endif

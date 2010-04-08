@@ -3,8 +3,12 @@ SIM_ROOT ?= $(CURDIR)/../
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 include $(SIM_ROOT)/common/Makefile.common
 
+SRC_DIRECTORIES = $(DIRECTORIES) \
+			 $(SIM_ROOT)/common/core/memory_subsystem/pr_l1_pr_l2_dram_directory_msi/	\
+			 $(SIM_ROOT)/common/core/memory_subsystem/pr_l1_pr_l2_dram_directory_mosi/
+
 # Grab all c/c++ files from subdirs
-SOURCES = $(foreach dir,$(DIRECTORIES),$(wildcard $(dir)/*.cc)) \
+SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
 	$(wildcard $(SIM_ROOT)/common/config/*.cpp)
 
 # Convert the .c and .cc's in to .o's

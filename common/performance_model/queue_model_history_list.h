@@ -37,7 +37,8 @@ private:
 
    void updateQueueUtilization(UInt64 processing_time);
    UInt64 computeUsingHistoryList(UInt64 pkt_time, UInt64 processing_time);
-   UInt64 computeUsingAnalyticalModel(UInt64 processing_time);
+   void insertInHistoryList(UInt64 pkt_time, UInt64 processing_time);
+   UInt64 computeUsingAnalyticalModel(UInt64 pkt_time, UInt64 processing_time);
 };
 
 #endif /* __QUEUE_MODEL_HISTORY_LIST_H__ */

@@ -3,7 +3,7 @@ TARGET = raytrace
 OBJECTS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
 	main.o matrix.o memory.o poly.o raystack.o shade.o sph.o trace.o \
 	tri.o workpool.o globals.o
-APP_FLAGS ?= -p64 $(CURDIR)/inputs/balls4.env
+APP_FLAGS ?= -p64 -m64 $(CURDIR)/inputs/car.env
 
 MACROS := ../splash_support/c.m4.null.CARBON
 # MACROS := ../splash_support/c.m4.null.POSIX

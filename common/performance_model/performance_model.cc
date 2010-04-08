@@ -4,6 +4,7 @@
 #include "simulator.h"
 #include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
+#include "magic_performance_model.h"
 #include "core_manager.h"
 
 PerformanceModel* PerformanceModel::create(Core* core)
@@ -20,6 +21,8 @@ PerformanceModel* PerformanceModel::create(Core* core)
       return new IOCOOMPerformanceModel(core);
    else if (type == "simple")
       return new SimplePerformanceModel(core);
+   else if (type == "magic")
+      return new MagicPerformanceModel(core);
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", type.c_str());

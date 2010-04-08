@@ -1,4 +1,5 @@
 #include <math.h>
+using namespace std;
 
 #include "network_model_emesh_hop_by_hop.h"
 #include "core.h"
@@ -26,7 +27,7 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
 
    assert(total_cores == (m_mesh_width * m_mesh_height));
 
-   std::string queue_model_type = "";
+   string queue_model_type = "";
    // Get the Link Bandwidth, Hop Latency and if it has broadcast tree mechanism
    try
    {
@@ -55,19 +56,19 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
       m_queue_models[direction] = NULL;
    }
 
-   if (m_queue_model_enabled && ((m_core_id / m_mesh_width) != 0))
+   if ((m_core_id / m_mesh_width) != 0)
    {
       m_queue_models[DOWN] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if (m_queue_model_enabled && ((m_core_id % m_mesh_width) != 0))
+   if ((m_core_id % m_mesh_width) != 0)
    {
       m_queue_models[LEFT] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if (m_queue_model_enabled && ((m_core_id / m_mesh_width) != (m_mesh_height - 1)))
+   if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
    {
       m_queue_models[UP] = QueueModel::create(queue_model_type, min_processing_time);
    }
-   if (m_queue_model_enabled && ((m_core_id % m_mesh_width) != (m_mesh_width - 1)))
+   if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
    {
       m_queue_models[RIGHT] = QueueModel::create(queue_model_type, min_processing_time);
    }
@@ -75,18 +76,15 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net):
 
 NetworkModelEMeshHopByHop::~NetworkModelEMeshHopByHop()
 {
-   if (m_queue_model_enabled)
+   for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
    {
-      for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
-      {
-         if (m_queue_models[i])
-            delete m_queue_models[i];
-      }
-  }
+      if (m_queue_models[i])
+         delete m_queue_models[i];
+   }
 }
 
 void
-NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
+NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHops)
 {
    ScopedLock sl(m_lock);
 
@@ -157,7 +155,7 @@ void
 NetworkModelEMeshHopByHop::addHop(OutputDirection direction, 
       core_id_t final_dest, core_id_t next_dest, 
       UInt64 pkt_time, UInt32 pkt_length, 
-      std::vector<Hop>& nextHops, core_id_t requester)
+      vector<Hop>& nextHops, core_id_t requester)
 {
    LOG_ASSERT_ERROR((direction == SELF) || ((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS)),
          "Invalid Direction(%u)", direction);
@@ -275,26 +273,26 @@ NetworkModelEMeshHopByHop::getNextDest(SInt32 final_dest, OutputDirection& direc
 }
 
 void
-NetworkModelEMeshHopByHop::outputSummary(std::ostream &out)
+NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
-   out << "    bytes sent: " << m_bytes_sent << std::endl;
-   out << "    packets sent: " << m_total_packets_sent << std::endl;
+   out << "    bytes sent: " << m_bytes_sent << endl;
+   out << "    packets sent: " << m_total_packets_sent << endl;
    if (m_total_packets_sent > 0)
    {
       out << "    average queueing delay: " << 
-         ((float) m_total_queueing_delay / m_total_packets_sent) << std::endl;
+         ((float) m_total_queueing_delay / m_total_packets_sent) << endl;
       out << "    average packet latency: " <<
-         ((float) m_total_packet_latency / m_total_packets_sent) << std::endl;
+         ((float) m_total_packet_latency / m_total_packets_sent) << endl;
    }
    else
    {
       out << "    average queueing delay: " << 
-         "NA" << std::endl;
+         "NA" << endl;
       out << "    average packet latency: " <<
-         "NA" << std::endl;
+         "NA" << endl;
    }
 
-   std::string queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
+   string queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
    if (m_queue_model_enabled && (queue_model_type == "history_list"))
    {
       out << "  Queue Models:" << endl;
@@ -339,7 +337,7 @@ NetworkModelEMeshHopByHop::isEnabled()
    return m_enabled;
 }
 
-std::pair<bool,SInt32>
+pair<bool,SInt32>
 NetworkModelEMeshHopByHop::computeCoreCountConstraints(SInt32 core_count)
 {
    SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
@@ -349,5 +347,48 @@ NetworkModelEMeshHopByHop::computeCoreCountConstraints(SInt32 core_count)
    assert(core_count > (mesh_width - 1) * mesh_height);
    assert(core_count > mesh_width * (mesh_height - 1));
 
-   return std::make_pair(true,mesh_height * mesh_width);
+   return make_pair(true,mesh_height * mesh_width);
+}
+
+pair<bool, vector<core_id_t> >
+NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
+{
+   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
+   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+   
+   assert(core_count == (mesh_height * mesh_width));
+
+   // core_id_list_along_perimeter : list of cores along the perimeter of the chip in clockwise order starting from (0,0)
+   vector<core_id_t> core_id_list_along_perimeter;
+
+   for (SInt32 i = 0; i < mesh_width; i++)
+      core_id_list_along_perimeter.push_back(i);
+   
+   for (SInt32 i = 1; i < (mesh_height-1); i++)
+      core_id_list_along_perimeter.push_back((i * mesh_width) + mesh_width-1);
+
+   for (SInt32 i = mesh_width-1; i >= 0; i--)
+      core_id_list_along_perimeter.push_back(((mesh_height-1) * mesh_width) + i);
+
+   for (SInt32 i = mesh_height-2; i >= 1; i--)
+      core_id_list_along_perimeter.push_back(i * mesh_width);
+
+   assert(core_id_list_along_perimeter.size() == (UInt32) (2 * (mesh_width + mesh_height - 2)));
+
+   LOG_ASSERT_ERROR(core_id_list_along_perimeter.size() >= (UInt32) num_memory_controllers,
+         "num cores along perimeter(%u), num memory controllers(%i)",
+         core_id_list_along_perimeter.size(), num_memory_controllers);
+
+   SInt32 spacing_between_memory_controllers = core_id_list_along_perimeter.size() / num_memory_controllers;
+   
+   // core_id_list_with_memory_controllers : list of cores that have memory controllers attached to them
+   vector<core_id_t> core_id_list_with_memory_controllers;
+
+   for (SInt32 i = 0; i < num_memory_controllers; i++)
+   {
+      SInt32 index = (i * spacing_between_memory_controllers + mesh_width/2) % core_id_list_along_perimeter.size();
+      core_id_list_with_memory_controllers.push_back(core_id_list_along_perimeter[index]);
+   }
+
+   return (make_pair(true, core_id_list_with_memory_controllers));
 }

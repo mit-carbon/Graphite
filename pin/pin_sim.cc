@@ -66,7 +66,6 @@ extern int *child_tidptr;
 extern PIN_LOCK clone_memory_update_lock;
 // ---------------------------------------------------------------
 
-// ---------------------------------------------------------------
 map <ADDRINT, string> rtn_map;
 PIN_LOCK rtn_map_lock;
 
@@ -88,7 +87,13 @@ void printRtn (ADDRINT rtn_addr, bool enter)
    ReleaseLock (&rtn_map_lock);
 }
 
-// ---------------------------------------------------------------
+VOID printInsInfo(CONTEXT* ctxt)
+{
+   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+
+   LOG_PRINT("eip = 0x%x, esp = 0x%x", reg_inst_ptr, reg_stack_ptr);
+}
 
 INT32 usage()
 {
@@ -111,7 +116,8 @@ void routineCallback(RTN rtn, void *v)
 
    // ---------------------------------------------------------------
 
-   if (Log::getSingleton()->isEnabled(__FILE__) &&
+   std::string module = Log::getSingleton()->getModule(__FILE__);
+   if (Log::getSingleton()->isEnabled(module.c_str()) &&
        Sim()->getCfg()->getBool("log/stack_trace",false))
    {
       RTN_Open (rtn);

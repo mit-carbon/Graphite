@@ -117,7 +117,6 @@ MemoryManager::MemoryManager(Core* core,
    m_network_thread_sem = new Semaphore(0);
 
    std::vector<core_id_t> core_list_with_dram_controllers = getCoreListWithMemoryControllers();
-   
    if (getCore()->getId() == 0)
       printCoreListWithMemoryControllers(core_list_with_dram_controllers);
    

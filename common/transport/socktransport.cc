@@ -15,6 +15,12 @@
 #include "simulator.h" //interface to config file singleton
 #include "socktransport.h"
 
+// #define __CHECKSUM_ENABLED__     1
+
+#ifdef __CHECKSUM_ENABLED__
+#include "checksum.h"
+#endif // __CHECKSUM_ENABLED__
+
 using std::string;
 
 SockTransport::SockTransport()
@@ -64,6 +70,8 @@ void SockTransport::initSockets()
 
    // -- client side
    m_send_sockets = new Socket[m_num_procs];
+   m_send_locks = new Lock[m_num_procs];
+
    for (SInt32 proc = 0; proc < m_num_procs; proc++)
    {
       // Look up the mapping in the config file to find the address for this
@@ -112,6 +120,11 @@ void SockTransport::initBufferLists()
       + 1; // for global node
 
    m_buffer_lists = new buffer_list[m_num_lists];
+
+#ifdef __CHECKSUM_ENABLED__
+   m_header_lists = new std::list<Header*>[m_num_lists];
+#endif // __CHECKSUM_ENABLED__
+
    m_buffer_list_locks = new Lock[m_num_lists];
    m_buffer_list_sems = new Semaphore[m_num_lists];
 }
@@ -150,12 +163,22 @@ void SockTransport::updateBufferLists()
             break;
          }
 
-         // now receive packet
+         // now receive tag
          SInt32 tag;
          m_recv_sockets[i].recv(&tag, sizeof(tag), true);
 
+         // now receive packet
          Byte *buffer = new Byte[length];
          m_recv_sockets[i].recv(buffer, length, true);
+
+#ifdef __CHECKSUM_ENABLED__
+         // now receive checksum
+         UInt64 checksum = 0;
+         if ((tag != TERMINATE_TAG) && (tag != BARRIER_TAG))
+         {
+            m_recv_sockets[i].recv(&checksum, sizeof(checksum), true);
+         }
+#endif // __CHECKSUM_ENABLED__
 
          m_recv_locks[i].release();
 
@@ -179,7 +202,12 @@ void SockTransport::updateBufferLists()
 
          case GLOBAL_TAG:
          default:
+#ifdef __CHECKSUM_ENABLED__
+            Header* header = new Header(length, checksum);
+            insertInBufferList(tag, buffer, header);
+#else
             insertInBufferList(tag, buffer);
+#endif // __CHECKSUM_ENABLED__
             // do NOT delete buffer
             break;
          };
@@ -187,7 +215,7 @@ void SockTransport::updateBufferLists()
    }
 }
 
-void SockTransport::insertInBufferList(SInt32 tag, Byte *buffer)
+void SockTransport::insertInBufferList(SInt32 tag, Byte *buffer, Header* header)
 {
    if (tag == GLOBAL_TAG)
       tag = m_num_lists - 1;
@@ -195,6 +223,11 @@ void SockTransport::insertInBufferList(SInt32 tag, Byte *buffer)
    LOG_ASSERT_ERROR(0 <= tag && tag < m_num_lists, "Unexpected tag value: %d", tag);
    m_buffer_list_locks[tag].acquire();
    m_buffer_lists[tag].push_back(buffer);
+
+#ifdef __CHECKSUM_ENABLED__
+   m_header_lists[tag].push_back(header);
+#endif // __CHECKSUM_ENABLED__
+   
    m_buffer_list_locks[tag].release();
    m_buffer_list_sems[tag].signal();
 }
@@ -225,6 +258,11 @@ SockTransport::~SockTransport()
 
    delete [] m_buffer_list_sems;
    delete [] m_buffer_list_locks;
+
+#ifdef __CHECKSUM_ENABLED__
+   delete [] m_header_lists;
+#endif // __CHECKSUM_ENABLED__
+
    delete [] m_buffer_lists;
 
    for (SInt32 i = 0; i < m_num_procs; i++)
@@ -236,6 +274,7 @@ SockTransport::~SockTransport()
    
    delete [] m_recv_locks;
    delete [] m_recv_sockets;
+   delete [] m_send_locks;
    delete [] m_send_sockets;
 }
 
@@ -314,18 +353,29 @@ Byte* SockTransport::SockNode::recv()
 
    core_id_t tag = getCoreId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
-
-   Byte *buffer;
-
-   buffer_list &list = m_transport->m_buffer_lists[tag];
-   Lock &lock = m_transport->m_buffer_list_locks[tag];
-
+   
    m_transport->m_buffer_list_sems[tag].wait();
 
+   Lock &lock = m_transport->m_buffer_list_locks[tag];
    lock.acquire();
+   
+   buffer_list &list = m_transport->m_buffer_lists[tag];
    LOG_ASSERT_ERROR(!list.empty(), "Buffer list empty after waiting on semaphore.");
-   buffer = list.front();
+   Byte* buffer = list.front();
    list.pop_front();
+
+#ifdef __CHECKSUM_ENABLED__
+   std::list<Header*> &header_list = m_transport->m_header_lists[tag];
+   Header* header = header_list.front();
+   header_list.pop_front();
+   
+   LOG_ASSERT_ERROR(header->m_checksum == computeCheckSum(buffer, header->m_length),
+         "Checksum Error: computed checksum(%llu), received checksum(%llu), received length(%u)",
+         computeCheckSum(buffer, header->m_length), header->m_checksum, header->m_length);
+
+   delete header;
+#endif // __CHECKSUM_ENABLED__
+
    lock.release();
 
    LOG_PRINT("Message recv'd");
@@ -356,24 +406,46 @@ void SockTransport::SockNode::send(SInt32 dest_proc,
    // (1) remote process, use sockets
    // (2) single process, put directly in buffer list
 
+#ifdef __CHECKSUM_ENABLED__
+   UInt64 checksum =  computeCheckSum((const Byte*) buffer, length);
+#endif // __CHECKSUM_ENABLED__
+
    if (dest_proc == m_transport->m_proc_index)
    {
       Byte *buff_cpy = new Byte[length];
       memcpy(buff_cpy, buffer, length);
+
+#ifdef __CHECKSUM_ENABLED__
+      Header* header =  new Header(length, checksum);
+      m_transport->insertInBufferList(tag, buff_cpy, header);
+#else
       m_transport->insertInBufferList(tag, buff_cpy);
+#endif // __CHECKSUM_ENABLED__
    }
    else
    {
-      SInt32 pkt_len = length + sizeof(tag) + sizeof(length);
+#ifdef __CHECKSUM_ENABLED__
+      SInt32 pkt_len = sizeof(length) + sizeof(tag) + length + sizeof(checksum);
+#else
+      SInt32 pkt_len = sizeof(length) + sizeof(tag) + length;
+#endif // __CHECKSUM_ENABLED__
 
       Byte *pkt_buff = new Byte[pkt_len];
 
+      // Length, Tag, Data, (Checksum)
       Packet *p = (Packet*)pkt_buff;
+      
       p->length = length;
       p->tag = tag;
       memcpy(&p->data, buffer, length);
 
+#ifdef __CHECKSUM_ENABLED__
+      memcpy(&p->data + length, &checksum, sizeof(checksum));
+#endif // __CHECKSUM_ENABLED__
+
+      m_transport->m_send_locks[dest_proc].acquire();
       m_transport->m_send_sockets[dest_proc].send(pkt_buff, pkt_len);
+      m_transport->m_send_locks[dest_proc].release();
 
       delete [] pkt_buff;
    }
@@ -496,7 +568,7 @@ void SockTransport::Socket::send(const void* buffer, UInt32 length)
 {
    SInt32 sent;
    sent = ::send(m_socket, buffer, length, 0);
-   LOG_ASSERT_ERROR(UInt32(sent) == length, "Failure sending packet on socket %d -- %d != %d", m_socket, sent, length);
+   LOG_ASSERT_ERROR(sent == SInt32(length), "Failure sending packet on socket %d -- %d != %d", m_socket, sent, length);
 }
 
 bool SockTransport::Socket::recv(void *buffer, UInt32 length, bool block)
@@ -506,6 +578,8 @@ bool SockTransport::Socket::recv(void *buffer, UInt32 length, bool block)
    while (true)
    {
       recvd = ::recv(m_socket, buffer, length, MSG_DONTWAIT);
+
+      LOG_ASSERT_ERROR(recvd >= -1, "recvd(%i), length(%u), block(%u)", recvd, length, (UInt32) block);
 
       if (recvd >= 1)
       {
@@ -518,9 +592,9 @@ bool SockTransport::Socket::recv(void *buffer, UInt32 length, bool block)
             recvd = ::recv(m_socket, buffer, length, 0);
          }
 
-         LOG_ASSERT_ERROR(UInt32(recvd) == length,
-                          "Didn't receive full message on socket %d -- %d != %d",
-                          m_socket, recvd, length);
+         LOG_ASSERT_ERROR(recvd == SInt32(length),
+                          "Didn't receive full message on socket %d -- %i != %i, block(%u)",
+                          m_socket, recvd, SInt32(length), (UInt32) block);
          return true;
       }
       else

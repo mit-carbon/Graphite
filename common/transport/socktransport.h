@@ -36,21 +36,30 @@ public:
    Node *getGlobalNode();
 
 private:
-   void getProcInfo();
-   void initSockets();
-   void initBufferLists();
-   void insertInBufferList(SInt32 tag, Byte *buffer);
-
-   static void updateThreadFunc(void *vp);
-   void updateBufferLists();
-   void terminateUpdateThread();
-
    struct Packet
    {
       UInt32 length;
       SInt32 tag;
       Byte data;
+   } __attribute__((__packed__));
+
+   struct Header
+   {
+      Header(UInt32 length, UInt64 checksum):
+         m_length(length), m_checksum(checksum) {}
+
+      UInt32 m_length;
+      UInt64 m_checksum;
    };
+   
+   void getProcInfo();
+   void initSockets();
+   void initBufferLists();
+   void insertInBufferList(SInt32 tag, Byte *buffer, Header* header = NULL);
+
+   static void updateThreadFunc(void *vp);
+   void updateBufferLists();
+   void terminateUpdateThread();
 
    class Socket
    {
@@ -84,7 +93,6 @@ private:
    };
 
    static const SInt32 DEFAULT_BASE_PORT = 2000;
-   static const SInt32 BUFFER_SIZE = 0x10000;
    static const SInt32 GLOBAL_TAG = -1;
    static const SInt32 BARRIER_TAG = -2;
    static const SInt32 TERMINATE_TAG = -3;
@@ -100,6 +108,7 @@ private:
    Socket m_server_socket;
    Lock *m_recv_locks;
    Socket *m_recv_sockets;
+   Lock *m_send_locks;
    Socket *m_send_sockets;
 
    Thread *m_update_thread;
@@ -108,6 +117,8 @@ private:
    typedef std::list<Byte*> buffer_list;
    SInt32 m_num_lists;
    buffer_list *m_buffer_lists;
+   std::list<Header*> *m_header_lists;
+
    Lock *m_buffer_list_locks;
    Semaphore *m_buffer_list_sems;
 };

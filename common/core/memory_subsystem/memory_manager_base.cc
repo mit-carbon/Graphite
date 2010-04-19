@@ -175,5 +175,5 @@ MemoryManagerBase::printCoreListWithMemoryControllers(vector<core_id_t>& core_li
    {
       core_list << *it << " ";
    }
-   LOG_PRINT_WARNING("Core IDs' with memory controllers = (%s)", (core_list.str()).c_str());
+   fprintf(stderr, "Core IDs' with memory controllers = (%s)\n", (core_list.str()).c_str());
 }

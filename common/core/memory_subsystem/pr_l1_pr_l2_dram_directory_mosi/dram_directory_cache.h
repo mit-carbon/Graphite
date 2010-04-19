@@ -3,7 +3,14 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 using namespace std;
+
+// Forward Decls
+namespace PrL1PrL2DramDirectoryMOSI
+{
+   class MemoryManager;
+}
 
 #include "directory.h"
 #include "shmem_perf_model.h"
@@ -13,6 +20,7 @@ namespace PrL1PrL2DramDirectoryMOSI
    class DramDirectoryCache
    {
       private:
+         MemoryManager* m_memory_manager;
          Directory* m_directory;
          vector<DirectoryEntry*> m_replaced_directory_entry_list;
 
@@ -36,6 +44,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt32 m_dram_directory_cache_access_time;
          ShmemPerfModel* m_shmem_perf_model;
 
+         MemoryManager* getMemoryManager() { return m_memory_manager; }
          ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
          void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index);
@@ -50,9 +59,20 @@ namespace PrL1PrL2DramDirectoryMOSI
      
          void aggregateStatistics(UInt64*, UInt64&, UInt64&, UInt64&, SInt32& max_index, IntPtr& max_replaced_address, SInt32& max_replaced_times);
 
+         // Bookkeeping of the random bits in an address
+         set<IntPtr> m_global_address_set;
+         vector<UInt64> m_address_histogram_one;
+         vector<UInt64> m_address_histogram;
+
+         void initializeRandomBitsTracker();
+         void processRandomBits(IntPtr address);
+         void printRandomBitsHistogram();
+         // --------------------------------------------
+
       public:
 
-         DramDirectoryCache(string directory_type_str,
+         DramDirectoryCache(MemoryManager* memory_manager,
+               string directory_type_str,
                UInt32 total_entries,
                UInt32 associativity,
                UInt32 cache_block_size,

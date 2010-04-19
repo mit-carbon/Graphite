@@ -63,7 +63,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt64 m_num_nullifyreq;
 
          UInt64 m_num_exreq_with_upgrade_rep;
-         UInt64 m_num_exreq_enountering_exclusive_owners;
+         UInt64 m_num_exreq_encountering_exclusive_owners;
          UInt64 m_num_exreq_with_data_onchip;
          UInt64 m_num_shreq_with_data_onchip;
 

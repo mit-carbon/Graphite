@@ -1,12 +1,21 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+using namespace std;
+
+#include "simulator.h"
+#include "config.h"
 #include "dram_directory_cache.h"
 #include "config.h"
 #include "log.h"
 #include "utils.h"
+#include "memory_manager.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
 DramDirectoryCache::DramDirectoryCache(
+      MemoryManager* memory_manager,
       std::string directory_type_str,
       UInt32 total_entries,
       UInt32 associativity,
@@ -16,6 +25,7 @@ DramDirectoryCache::DramDirectoryCache(
       UInt32 num_dram_cntlrs,
       UInt32 dram_directory_cache_access_time,
       ShmemPerfModel* shmem_perf_model):
+   m_memory_manager(memory_manager),
    m_total_entries(total_entries),
    m_associativity(associativity),
    m_cache_block_size(cache_block_size),
@@ -43,6 +53,8 @@ DramDirectoryCache::DramDirectoryCache(
    histogram = new UInt64[m_num_sets];
    for (UInt32 i = 0; i < m_num_sets; i++)
       histogram[i] = 0;
+
+   initializeRandomBitsTracker();
 }
 
 DramDirectoryCache::~DramDirectoryCache()
@@ -195,9 +207,57 @@ DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 
    {
       // Stupid way of hashing
+      processRandomBits(address);
+
       cache_block_address = cache_block_address >> getLogNumDramCntlrs();
       set_index = ((UInt32) cache_block_address) & (getNumSets() - 1);
    }
+}
+
+void
+DramDirectoryCache::initializeRandomBitsTracker()
+{
+   m_address_histogram_one.resize(sizeof(IntPtr) * 8);
+   m_address_histogram.resize(sizeof(IntPtr) * 8);
+}
+
+void
+DramDirectoryCache::processRandomBits(IntPtr address)
+{
+   if (m_global_address_set.find(address) != m_global_address_set.end())
+      return;
+
+   m_global_address_set.insert(address);
+
+   for (UInt32 i = 0; i < (8 * sizeof(IntPtr)); i++)
+   {
+      // Get the ith bit from address
+      UInt64 bit = (address >> i) & 0x1;
+      assert((bit == 0) || (bit == 1));
+
+      m_address_histogram_one[i] += bit;
+      m_address_histogram[i] += 1;
+   } 
+}
+
+void
+DramDirectoryCache::printRandomBitsHistogram()
+{
+   core_id_t core_id = getMemoryManager()->getCore()->getId();
+   
+   ostringstream file_name;
+   file_name << Sim()->getCfg()->getString("general/output_dir") << "address_histogram_" << core_id;
+
+   ofstream output_file((file_name.str()).c_str());
+   for (UInt32 i = 0; i < (8 * sizeof(IntPtr)); i++)
+   {
+      // LOG_PRINT_WARNING("printRandomBitsHistogram() (%u) - (%llu, %llu)", i, m_address_histogram_one[i], m_address_histogram[i]);
+      if (m_address_histogram[i] > 0)
+         output_file << i << "\t" << ((float) m_address_histogram_one[i]) / m_address_histogram[i] << endl;
+      else
+         output_file << i << "\t" << "NA" << endl;
+   }
+   output_file.close();
 }
 
 UInt32
@@ -216,6 +276,8 @@ DramDirectoryCache::outputSummary(std::ostream& out)
    SInt32 max_index;
    IntPtr max_replaced_address;
    SInt32 max_replaced_times;
+
+   // printRandomBitsHistogram();
 
    aggregateStatistics(histogram, mean, total, max, max_index, max_replaced_address, max_replaced_times);
 

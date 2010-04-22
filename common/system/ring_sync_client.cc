@@ -1,4 +1,5 @@
 #include "ring_sync_client.h"
+#include "log.h"
 
 RingSyncClient::RingSyncClient(Core* core):
    _core(core),
@@ -11,9 +12,12 @@ RingSyncClient::~RingSyncClient()
 
 // Called by the core thread
 void
-RingSyncClient::synchronize()
+RingSyncClient::synchronize(UInt64 time)
 {
+   LOG_ASSERT_ERROR(time == 0, "Time(%llu), Cannot be used", time);
+
    _lock.acquire();
+
    _cycle_count = _core->getPerformanceModel()->getCycleCount();
 
    while (_cycle_count >= _max_cycle_count)

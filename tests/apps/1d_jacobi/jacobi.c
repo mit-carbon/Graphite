@@ -84,6 +84,9 @@ int main(int argc, char *argv[])
    pthread_mutex_init(&print_lock, NULL);
 #endif
 
+   // Initialize the barrier
+   CarbonBarrierInit(&jacobi_barrier, g_num_cores);
+   
    carbon_thread_t threads[g_num_cores];
 
 #ifdef DEBUG
@@ -127,28 +130,11 @@ void* threadMain(void *threadid)
 
    if (tid == 0)
    {
-#ifdef DEBUG
-      pthread_mutex_lock(&print_lock);
-      fprintf(stderr, "Starting threadMain - Thread 0\n");
-      pthread_mutex_unlock(&print_lock);
-#endif
-
 #ifdef FULL_DEBUG
       pthread_mutex_lock(&print_lock);
       printArray(-1);
       pthread_mutex_unlock(&print_lock);
 #endif
-
-      CarbonBarrierInit(&jacobi_barrier, g_num_cores);
-   }
-   else
-   {
-      sleep(1);
-   }
-
-   if (tid != 0)
-   {
-      wait_some();
    }
 
 #ifdef FULL_DEBUG
@@ -159,7 +145,7 @@ void* threadMain(void *threadid)
 
    CarbonBarrierWait(&jacobi_barrier);
 
-#ifdef DEBUG
+#ifdef FULL_DEBUG
    pthread_mutex_lock(&print_lock);
    fprintf(stderr, "Thread [ %d ]: Finished barrier\n", tid);
    pthread_mutex_unlock(&print_lock);

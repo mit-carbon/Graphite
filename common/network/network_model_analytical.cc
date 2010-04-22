@@ -80,7 +80,8 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
 
    updateUtilization();
 
-   _bytesSent += pkt.length;
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+   _bytesSent += pkt_length;
 }
 
 UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
@@ -132,7 +133,9 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // different for different network configurations...say,
    // bidirectional networks)
    time_per_hop = s + pow(k, n/2.-1.);  // pg 6
-   B = ceil(packet.length * 8. / W);
+   
+   UInt32 packet_length = getNetwork()->getModeledLength(packet);
+   B = ceil(packet_length * 8. / W);
 
    // Compute the number of hops based on src, dest
    // Based on this eqn:

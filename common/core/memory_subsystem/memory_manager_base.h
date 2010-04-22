@@ -16,15 +16,23 @@ class MemoryManagerBase
       enum CachingProtocol_t
       {
          PR_L1_PR_L2_DRAM_DIRECTORY_MSI = 0,
-         PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
          NUM_CACHING_PROTOCOL_TYPES
       };
 
-   protected:
+   private:
       Core* m_core;
       Network* m_network;
       ShmemPerfModel* m_shmem_perf_model;
+      
+      void parseMemoryControllerList(string& memory_controller_positions, vector<core_id_t>& core_list_from_cfg_file, SInt32 application_core_count);
 
+   protected:
+      Network* getNetwork() { return m_network; }
+      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
+      vector<core_id_t> getCoreListWithMemoryControllers(void);
+      void printCoreListWithMemoryControllers(vector<core_id_t>& core_list_with_memory_controllers);
+   
    public:
       MemoryManagerBase(Core* core, Network* network, ShmemPerfModel* shmem_perf_model):
          m_core(core), 
@@ -46,24 +54,23 @@ class MemoryManagerBase
       // FIXME: Take this out of here
       virtual UInt32 getCacheBlockSize() = 0;
 
-      virtual void outputSummary(std::ostream& os) = 0;
+      virtual core_id_t getShmemRequester(const void* pkt_data) = 0;
 
       virtual void enableModels() = 0;
       virtual void disableModels() = 0;
 
+      // Modeling
+      virtual UInt32 getModeledLength(const void* pkt_data) = 0;
+
       Core* getCore() { return m_core; }
-      Network* getNetwork() { return m_network; }
-      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
-
-      vector<core_id_t> getCoreListWithMemoryControllers(void);
-      void parseMemoryControllerList(string& memory_controller_positions, vector<core_id_t>& core_list_from_cfg_file, SInt32 application_core_count);
-      void printCoreListWithMemoryControllers(vector<core_id_t>& core_list_with_memory_controllers);
-
+      
       static CachingProtocol_t parseProtocolType(std::string& protocol_type);
       static MemoryManagerBase* createMMU(std::string protocol_type,
             Core* core,
             Network* network, 
             ShmemPerfModel* shmem_perf_model);
+      
+      virtual void outputSummary(std::ostream& os) = 0;
 };
 
 #endif /* __MEMORY_MANAGER_BASE_H__ */

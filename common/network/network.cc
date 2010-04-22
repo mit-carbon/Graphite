@@ -148,7 +148,6 @@ void Network::netPullFromTransport()
 
 void Network::forwardPacket(NetPacket& packet)
 {
-   LOG_PRINT_ERROR("Temporarily disabled for now");
    netSend(packet);
 }
 
@@ -198,8 +197,6 @@ SInt32 Network::netSend(NetPacket& packet)
 
       NetPacket* buff_pkt = (NetPacket*) buffer;
 
-      LOG_ASSERT_ERROR(_core->getId() == buff_pkt->sender,
-            "For now! _core->getId(%i), buff_pkt->sender(%i)", _core->getId(), buff_pkt->sender);
       if (_core->getId() == buff_pkt->sender)
          buff_pkt->start_time = start_time;;
       

@@ -48,8 +48,10 @@ DirectoryEntryLimitless::addSharer(core_id_t sharer_id)
 }
 
 void
-DirectoryEntryLimitless::removeSharer(core_id_t sharer_id)
+DirectoryEntryLimitless::removeSharer(core_id_t sharer_id, bool reply_expected)
 {
+   assert(!reply_expected);
+
    assert(m_sharers->at(sharer_id));
    m_sharers->clear(sharer_id);
 }

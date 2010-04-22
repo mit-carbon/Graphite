@@ -78,7 +78,8 @@ class Core
             mem_op_t mem_op_type, 
             IntPtr address, 
             Byte* data_buf, UInt32 data_size,
-            bool modeled = false);
+            bool modeled = false,
+            UInt64 time = 0);
       
       pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled = false);
       pair<UInt32, UInt64> nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);

@@ -27,7 +27,7 @@ class RingSyncClient : public ClockSkewMinimizationClient
       void enable() {}
       void disable() {}
 
-      void synchronize(void);
+      void synchronize(UInt64 time);
       void netProcessSyncMsg(const NetPacket& packet) { assert(false); }
 
       Lock* getLock() { return &_lock; }

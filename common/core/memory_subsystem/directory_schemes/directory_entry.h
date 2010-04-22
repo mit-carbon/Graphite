@@ -26,7 +26,7 @@ class DirectoryEntry
 
       virtual bool hasSharer(core_id_t sharer_id) = 0;
       virtual bool addSharer(core_id_t sharer_id) = 0;
-      virtual void removeSharer(core_id_t sharer_id) = 0;
+      virtual void removeSharer(core_id_t sharer_id, bool reply_expected = false) = 0;
       virtual UInt32 getNumSharers() = 0;
 
       virtual core_id_t getOwner() = 0;

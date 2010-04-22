@@ -15,9 +15,6 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
       UInt32 cache_block_size,
       UInt32 l2_cache_size, UInt32 l2_cache_associativity,
       std::string l2_cache_replacement_policy,
-      UInt32 l2_cache_data_access_time,
-      UInt32 l2_cache_tags_access_time,
-      std::string l2_cache_perf_model_type,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_l1_cache_cntlr(l1_cache_cntlr),
@@ -33,11 +30,7 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
          l2_cache_associativity, 
          m_cache_block_size, 
          l2_cache_replacement_policy, 
-         CacheBase::PR_L2_CACHE,
-         l2_cache_data_access_time,
-         l2_cache_tags_access_time,
-         l2_cache_perf_model_type,
-         m_shmem_perf_model);
+         CacheBase::PR_L2_CACHE);
 }
 
 L2CacheCntlr::~L2CacheCntlr()
@@ -302,6 +295,9 @@ L2CacheCntlr::handleMsgFromDramDirectory(
 void
 L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
 {
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    IntPtr address = shmem_msg->getAddress();
    Byte* data_buf = shmem_msg->getDataBuf();
 
@@ -322,6 +318,9 @@ L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 void
 L2CacheCntlr::processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
 {
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    IntPtr address = shmem_msg->getAddress();
    Byte* data_buf = shmem_msg->getDataBuf();
 
@@ -350,6 +349,11 @@ L2CacheCntlr::processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_m
    {
       assert(cstate == CacheState::SHARED);
   
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      // Update Shared Mem perf counters for access to L1 Cache
+      getMemoryManager()->incrCycleCount(l2_cache_block_info->getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+
       // Invalidate the line in L1 Cache
       invalidateCacheBlockInL1(l2_cache_block_info->getCachedLoc(), address);
       // Invalidate the line in the L2 cache also
@@ -360,6 +364,11 @@ L2CacheCntlr::processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_m
             shmem_msg->getRequester() /* requester */, 
             sender /* receiver */, 
             address);
+   }
+   else
+   {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
    }
 }
 
@@ -374,6 +383,11 @@ L2CacheCntlr::processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem
    {
       assert(cstate == CacheState::MODIFIED);
       
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      // Update Shared Mem perf counters for access to L1 Cache
+      getMemoryManager()->incrCycleCount(l2_cache_block_info->getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+
       // Invalidate the line in L1 Cache
       invalidateCacheBlockInL1(l2_cache_block_info->getCachedLoc(), address);
 
@@ -389,6 +403,11 @@ L2CacheCntlr::processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem
             address, 
             data_buf, getCacheBlockSize());
    }
+   else
+   {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+   }
 }
 
 void
@@ -402,6 +421,11 @@ L2CacheCntlr::processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
    {
       assert(cstate == CacheState::MODIFIED);
  
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      // Update Shared Mem perf counters for access to L1 Cache
+      getMemoryManager()->incrCycleCount(l2_cache_block_info->getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+
       // Set the Appropriate Cache State in L1 also
       setCacheStateInL1(l2_cache_block_info->getCachedLoc(), address, CacheState::SHARED);
 
@@ -416,6 +440,11 @@ L2CacheCntlr::processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
             sender /* receiver */, 
             address,
             data_buf, getCacheBlockSize());
+   }
+   else
+   {
+      // Update Shared Mem perf counters for access to L2 Cache
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
    }
 }
 

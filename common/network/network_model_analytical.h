@@ -15,6 +15,7 @@ class NetworkModelAnalytical : public NetworkModel
 
       void routePacket(const NetPacket &pkt,
                        std::vector<Hop> &nextHops);
+      void processReceivedPacket(NetPacket& pkt) {}
 
       void outputSummary(std::ostream &out);
 

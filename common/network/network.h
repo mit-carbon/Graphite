@@ -21,6 +21,7 @@ class Network;
 class NetPacket
 {
 public:
+   UInt64 start_time;
    UInt64 time;
    PacketType type;
    SInt32 sender;
@@ -35,7 +36,7 @@ public:
 
    UInt32 bufferSize() const;
    Byte *makeBuffer() const;
-   
+
    static const SInt32 BROADCAST = 0xDEADBABE;
 };
 
@@ -80,7 +81,7 @@ class Network
 
       // -- Main interface -- //
 
-      SInt32 netSend(const NetPacket& packet);
+      SInt32 netSend(NetPacket& packet);
       NetPacket netRecv(const NetMatch &match);
 
       // -- Wrappers -- //
@@ -93,6 +94,12 @@ class Network
 
       void enableModels();
       void disableModels();
+
+      // -- Network Models -- //
+      NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
+
+      // Modeling
+      UInt32 getModeledLength(const NetPacket& pkt);
 
    private:
       NetworkModel * _models[NUM_STATIC_NETWORKS];
@@ -110,7 +117,7 @@ class Network
       Lock _netQueueLock;
       ConditionVariable _netQueueCond;
 
-      void forwardPacket(const NetPacket &packet);
+      void forwardPacket(NetPacket& packet);
 };
 
 #endif // NETWORK_H

@@ -51,11 +51,11 @@ DramDirectoryCache::getDirectoryEntry(IntPtr address)
    for (UInt32 i = 0; i < m_associativity; i++)
    {
       DirectoryEntry* directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
-      if (m_shmem_perf_model)
-         getShmemPerfModel()->incrCycleCount(directory_entry->getLatency());
 
       if (directory_entry->getAddress() == address)
       {
+         if (m_shmem_perf_model)
+            getShmemPerfModel()->incrCycleCount(directory_entry->getLatency());
          // Simple check for now. Make sophisticated later
          return directory_entry;
       }
@@ -104,6 +104,9 @@ DramDirectoryCache::getReplacementCandidates(IntPtr address, std::vector<Directo
 DirectoryEntry*
 DramDirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
 {
+   if (m_shmem_perf_model)
+      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_time);
+
    IntPtr tag;
    UInt32 set_index;
    splitAddress(replaced_address, tag, set_index);

@@ -622,6 +622,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    m_recv_buff.get(timeout_prefix);
 
+   struct timespec timeout_buf;
    if (timeout_prefix == 0)
    {
       timeout = (struct timespec*) NULL;
@@ -629,8 +630,8 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    else
    {
       assert(timeout_prefix == 1);
-      timeout = (struct timespec*) malloc(sizeof(struct timespec));
-      m_recv_buff >> make_pair((void*) timeout, sizeof(*timeout));
+      timeout = &timeout_buf;
+      m_recv_buff >> make_pair((char*) timeout, sizeof(struct timespec));
    }
 
    m_recv_buff.get(uaddr2);
@@ -661,11 +662,6 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
       LOG_ASSERT_ERROR(timeout == NULL, "timeout(%p)", timeout);
    }
 #endif
-
-   if (timeout != NULL)
-   {
-      free (timeout);
-   }
 
    Core* core = m_network.getCore();
    LOG_ASSERT_ERROR (core != NULL, "Core should not be NULL");

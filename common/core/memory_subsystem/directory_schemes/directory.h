@@ -11,8 +11,8 @@ class Directory
    public:
       enum DirectoryType
       {
-         LIMITED_NO_BROADCAST = 0,
-         LIMITED_BROADCAST,
+         FULL_MAP = 0,
+         LIMITED_NO_BROADCAST,
          LIMITLESS,
          NUM_DIRECTORY_TYPES
       };

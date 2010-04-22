@@ -32,6 +32,11 @@ namespace PrL1PrL2DramDirectoryMSI
          UInt32 m_cache_block_size;
          bool m_enabled;
 
+         // Performance Models
+         CachePerfModel* m_l1_icache_perf_model;
+         CachePerfModel* m_l1_dcache_perf_model;
+         CachePerfModel* m_l2_cache_perf_model;
+
       public:
          MemoryManager(Core* core, Network* network, ShmemPerfModel* shmem_perf_model);
          ~MemoryManager();
@@ -62,7 +67,14 @@ namespace PrL1PrL2DramDirectoryMSI
          void enableModels();
          void disableModels();
 
+         core_id_t getShmemRequester(const void* pkt_data)
+         { return ((ShmemMsg*) pkt_data)->getRequester(); }
+
+         UInt32 getModeledLength(const void* pkt_data)
+         { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+
          void outputSummary(std::ostream &os);
 
+         void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
    };
 }

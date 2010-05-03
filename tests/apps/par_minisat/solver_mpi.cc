@@ -43,7 +43,7 @@ bool removeWatch(vec<GClause>& ws, GClause elem)    // Pre-condition: 'elem' mus
 
 /*_________________________________________________________________________________________________
 |
-|  newClause : (ps : const vec<Lit>&) (learnt : bool)  ->  [void]
+|  newClause : (ps : const vec<Lit>&) (learnt : bool) (locally_generated_learnt : bool)  ->  [void]
 |  
 |  Description:
 |    Allocate and add a new clause to the SAT solvers clause database. If a conflict is detected,
@@ -55,11 +55,14 @@ bool removeWatch(vec<GClause>& ws, GClause elem)    // Pre-condition: 'elem' mus
 |             asserting literal. An appropriate 'enqueue()' operation will be performed on this
 |             literal. One of the watches will always be on this literal, the other will be set to
 |             the literal with the highest decision level.
+|    locally_generated_learnt - specifies whether this learnt was generated locally (by this
+|                               process or another process (which shared it). This argument
+|                               was added by jim for the parallel version of minisat
 |  
 |  Effect:
 |    Activity heuristics are updated.
 |________________________________________________________________________________________________@*/
-void Solver::newClause(const vec<Lit>& ps_, bool learnt)
+void Solver::newClause(const vec<Lit>& ps_, bool learnt, bool locally_generated_learnt)
 {
     if (!ok) return;
 
@@ -92,8 +95,9 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         ok = false;
 
     }else if (ps.size() == 1){
-        // NOTE: If enqueue takes place at root level, the assignment will be lost in incremental use (it doesn't seem to hurt much though).
-        if (!enqueue(ps[0]))
+		// NOTE: If enqueue takes place at root level, the assignment will be lost in incremental use (it doesn't seem to hurt much though).
+        // jim: only enqueue if learnt was locally-generated
+		if (locally_generated_learnt && !enqueue(ps[0]))
             ok = false;
 
     }else if (ps.size() == 2){
@@ -102,7 +106,8 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         watches[index(~ps[1])].push(GClause_new(ps[0]));
 
         if (learnt){
-            check(enqueue(ps[0], GClause_new(~ps[1])));
+			// jim: only enqueue if learnt was locally-generated
+			if(locally_generated_learnt) { check(enqueue(ps[0], GClause_new(~ps[1]))); }
             stats.learnts_literals += ps.size();
         }else
             stats.clauses_literals += ps.size();
@@ -125,7 +130,8 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
 
             // Bump, enqueue, store clause:
             claBumpActivity(c);         // (newly learnt clauses should be considered active)
-            check(enqueue((*c)[0], GClause_new(c)));
+			// jim: only enqueue if learnt was locally-generated
+			if(locally_generated_learnt) { check(enqueue((*c)[0], GClause_new(c))); }
             learnts.push(c);
             stats.learnts_literals += c->size();
         }else{
@@ -457,6 +463,12 @@ Clause* Solver::propagate()
         GClause*       i,* j, *end;
 
         for (i = j = (GClause*)ws, end = i + ws.size();  i != end;){
+
+
+			// psota: correct place to count number of propagate iterations?
+			num_propagate_iters++;
+
+			
             if (i->isLit()){
                 if (!enqueue(i->lit(), GClause_new(p))){
                     if (decisionLevel() == 0)
@@ -623,6 +635,100 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
     model.clear();
 
     for (;;){
+
+#ifdef MPI_PARALLEL
+		int myrank_local, num_processes;
+		MPI_Comm_rank(MPI_COMM_WORLD, &myrank_local);
+		MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
+
+#ifdef ENABLE_EARLY_STOPPING
+		MPI_Status stop_early_status;
+
+		int stop_early = 0;
+		MPI_Iprobe(MPI_ANY_SOURCE, STOPPING_TAG, MPI_COMM_WORLD, &stop_early, &stop_early_status);
+		//reportf("PARALLEL[%d]: Solver::search: got early-exit probe result of %d\n", myrank_local, stop_early);
+		if(stop_early == 1) {
+			reportf("PARALLEL[%d]: exiting early because process %d finished early\n", myrank_local, stop_early_status.MPI_SOURCE);
+			/* Shut down MPI */
+			MPI_Finalize();
+			exit(-100);
+		}
+#endif
+
+		//reportf("PARALLEL[%d]: nof_learnts=%d\n", myrank_local, nof_learnts);
+		reportf("PARALLEL[%d]: learnts.size()=%d, num_bytes_sent=%d\n", myrank_local, nLearnts(), num_bytes_sent);
+		if(learnts.size() > learnts_next_to_send_idx) {
+			reportf("PARALLEL[%d]: I have %d learnts to send out to everyone now...\n", myrank_local, learnts.size() - learnts_next_to_send_idx);
+
+			for (int i=learnts_next_to_send_idx; i<learnts.size(); i++) {
+				learnts_next_to_send_idx++;  // this instance variable of Solver prevents sending out learnt Clauses more than once
+				Clause *curr_learnt_clause = learnts[i];
+				//FROM WHEN WE SENT AROUND CLAUSES: int bytes_to_send = sizeof(uint) + (curr_learnt_clause->size() * sizeof(Lit)); // current size of this Clause
+				int bytes_to_send = curr_learnt_clause->size() * sizeof(Lit); // current size of this Clause's Lit array
+				for(int p=0; p<num_processes; p++) {   // do this instead of bcast, since bcast doesn't allow tags
+					if(p != myrank_local) {
+						reportf("PARALLEL[%d] sending out learnts[%d] to process %d, which contains %d literals (%d bytes)\n", myrank_local, i, p, curr_learnt_clause->size(), bytes_to_send);
+						// TODO: consider using MPI_ISend instead. may be higher perf.
+						int send_return = MPI_Send(curr_learnt_clause->data, bytes_to_send, MPI_BYTE, p, SHARED_LEARNT_TAG, MPI_COMM_WORLD);
+						if(send_return != MPI_SUCCESS) {
+							reportf("MPI_Send returned error code %d. Exiting...\n\n", send_return);
+							MPI_Finalize();
+							exit(-200);
+						}
+						num_bytes_sent += bytes_to_send;
+					}
+				}
+			}
+			
+			reportf("PARALLEL[%d]: DONE sending out my %d learnts.\n", myrank_local, learnts.size());
+		}
+
+		MPI_Status receive_updates_status;
+		int updates_to_receive = 0;
+		int num_learnts_this_time = 0;
+		for(;;) {  // keep receiving until there aren't any other clauses to receive
+			updates_to_receive = 0;
+			MPI_Iprobe(MPI_ANY_SOURCE, SHARED_LEARNT_TAG, MPI_COMM_WORLD, &updates_to_receive, &receive_updates_status);
+			
+			if(updates_to_receive == 1) {
+				int incoming_msg_size;
+				MPI_Get_count( &receive_updates_status, MPI_BYTE, &incoming_msg_size );
+				reportf("PARALLEL[%d]: there is a learnt of size %d bytes to receive from process %d\n", myrank_local, incoming_msg_size, receive_updates_status.MPI_SOURCE);
+
+				// HACK: just creating a buffer and then filling it with the clause data. There's probably a more elegant way using Clause_new, etc.
+				//FROM WHEN WE SENT AROUND CLAUSES: Clause *new_clause_ptr = (Clause *)malloc(incoming_msg_size);
+
+				Lit *incoming_lit_array = (Lit *)malloc(incoming_msg_size);
+				MPI_Status receive_learnts_status;
+				int recv_return = MPI_Recv(incoming_lit_array, incoming_msg_size, MPI_BYTE, MPI_ANY_SOURCE, SHARED_LEARNT_TAG, MPI_COMM_WORLD, &receive_learnts_status);
+				if(recv_return != MPI_SUCCESS) {
+					reportf("MPI_Recv returned error code %d. Exiting...\n\n", recv_return);
+					MPI_Finalize();
+					exit(-200);
+				}
+
+				// TODO: does lit_vector properly rip out the vector out of the clause? May need to cast properly to a vector<Lit> in the definition.
+				//FROM WHEN WE PASSED AROUND CLAUSES: newClause(*(new_clause_ptr->lit_vector()), true);
+				assert(incoming_msg_size % sizeof(Lit) == 0);
+				int num_lits = incoming_msg_size / sizeof(Lit); // note: incoming_msg_size is in bytes
+				const vec<Lit> *new_lit_vec = new vec<Lit>(incoming_lit_array, num_lits);  // here we make a Lit array into a vec<Lit>
+				newClause(*new_lit_vec, true, false);
+				
+				// TODO: I'm not sure this is doing what I want. Can learnts ever shrink?
+				// TODO: Add some asserts to validate that learnts.size() only monotonically increases
+				learnts_next_to_send_idx++; // don't send this one -- only send ones that I generate. Incrementing this here (after receiving a learnt from another process) essentially "skips" this learnt the next time this core tries to broadcast out learnts to other cores. Note that I can trust that this index was set properly above (while sending out my learnts)
+				
+				num_learnts_this_time++;
+				reportf("PARALLEL[%d]: Done receiving one learnts of size %d from process %d (%d so far this time)\n", myrank_local, incoming_msg_size, receive_updates_status.MPI_SOURCE, num_learnts_this_time);
+			} else {
+				//reportf("PARALLEL[%d]: no more learnts for me to receive.\n", myrank_local);
+				break;
+			}
+		}
+
+		
+#endif
+		
         Clause* confl = propagate();
         if (confl != NULL){
             // CONFLICT
@@ -636,7 +742,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
                 return l_False; }
             analyze(confl, learnt_clause, backtrack_level);
             cancelUntil(max(backtrack_level, root_level));
-            newClause(learnt_clause, true);
+            newClause(learnt_clause, true, true);
             if (learnt_clause.size() == 1) level[var(learnt_clause[0])] = 0;    // (this is ugly (but needed for 'analyzeFinal()') -- in future versions, we will backtrack past the 'root_level' and redo the assumptions)
             varDecayActivity();
             claDecayActivity();
@@ -670,9 +776,14 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
                 return l_True;
             }
 
+			// introduce randomness here?
             check(assume(~Lit(next)));
         }
     }
+
+//	reportf("PARALLEL[%d]: before leaving solve: nof_learnts=%d\n", myrank_local, nof_learnts);
+//	reportf("PARALLEL[%d]: before leaving solve: learnts.size()=%d\n", myrank_local, learnts.size());
+
 }
 
 
@@ -724,7 +835,8 @@ bool Solver::solve(const vec<Lit>& assumps)
     if (!ok) return false;
 
     SearchParams    params(default_params);
-    double  nof_conflicts = 100;
+    double  nof_conflicts = 100; // jim: original value 
+    //double  nof_conflicts = 100000; // jim: new value. we're trying to prevent restarts from happening
     double  nof_learnts   = nClauses() / 3;
     lbool   status        = l_Undef;
 
@@ -772,7 +884,10 @@ bool Solver::solve(const vec<Lit>& assumps)
         status = search((int)nof_conflicts, (int)nof_learnts, params);
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
-    }
+
+		reportf("PARALLEL[STATS_SOLVE]: \tlearnts.size()=%d\n", nLearnts());
+	}
+
     if (verbosity >= 1)
         reportf("==============================================================================\n");
 

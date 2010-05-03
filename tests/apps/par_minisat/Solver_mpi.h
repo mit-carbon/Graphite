@@ -23,6 +23,20 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SolverTypes.h"
 #include "VarOrder.h"
 
+#include "carbon_user.h"
+
+//#define MPI_PARALLEL
+
+#ifdef MPI_PARALLEL
+//#include <mpi.h>
+
+
+// TODO: consider enabling this!
+//#define ENABLE_EARLY_STOPPING
+#define STOPPING_TAG ((int)666666)
+#define SHARED_LEARNT_TAG ((int)333333)
+#endif
+
 // Redfine if you want output to go somewhere else:
 #define reportf(format, args...) ( printf(format , ## args), fflush(stdout) )
 
@@ -53,6 +67,7 @@ protected:
     bool                ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
     vec<Clause*>        clauses;          // List of problem clauses.
     vec<Clause*>        learnts;          // List of learnt clauses.
+
     int                 n_bin_clauses;    // Keep track of number of binary clauses "inlined" into the watcher lists (we do this primarily to get identical behavior to the version without the binary clauses trick).
     double              cla_inc;          // Amount to bump next clause with.
     double              cla_decay;        // INVERSE decay factor for clause activity: stores 1/decay.
@@ -113,8 +128,11 @@ protected:
 
     // Operations on clauses:
     //
-    void     newClause(const vec<Lit>& ps, bool learnt = false);
-    void     claBumpActivity (Clause* c) { if ( (c->activity() += cla_inc) > 1e20 ) claRescaleActivity(); }
+    // jim: old version of newClause: void     newClause(const vec<Lit>& ps, bool learnt = false);
+    void     newClause(const vec<Lit>& ps, bool learnt = false, bool locally_generated_learnt = true);
+
+
+	void     claBumpActivity (Clause* c) { if ( (c->activity() += cla_inc) > 1e20 ) claRescaleActivity(); }
     void     remove          (Clause* c, bool just_dealloc = false);
     bool     locked          (const Clause* c) const { GClause r = reason[var((*c)[0])]; return !r.isLit() && r.clause() == c; }
     bool     simplify        (Clause* c) const;
@@ -122,6 +140,11 @@ protected:
     int      decisionLevel() const { return trail_lim.size(); }
 
 public:
+	// psota: added for MPI parallelization version. making them public for easy access...
+	int                 learnts_next_to_send_idx; // index into learnts vector of the next learnt to send to other processes. this is to make sure we only send each learnt once to other processes
+	int                 num_propagate_iters;      // counter to count number of propagation steps
+	int                 num_bytes_sent;           // counter to count number of bytes of data broadcasted
+	
     Solver() : ok               (true)
              , n_bin_clauses    (0)
              , cla_inc          (1)
@@ -136,6 +159,9 @@ public:
              , expensive_ccmin  (true)
              , verbosity        (0)
              , progress_estimate(0)
+			 , learnts_next_to_send_idx (0)
+			 , num_propagate_iters(0)
+			 , num_bytes_sent(0)
              {
                 vec<Lit> dummy(2,lit_Undef);
                 propagate_tmpbin = Clause_new(false, dummy);
@@ -200,7 +226,6 @@ public:
 
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 inline void check(bool expr) { assert(expr); }
-
 
 //=================================================================================================
 #endif

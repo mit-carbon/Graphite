@@ -18,13 +18,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 
+//#define DEBUG_PRINT
 
-
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
 
 #include <unistd.h>
 #include <ctime>
@@ -51,6 +46,8 @@ using namespace std;
 
 // TODO: remove global S variable. make non-global.
 Solver S;
+Solver* solver;
+
 
 
 
@@ -95,6 +92,28 @@ static void readClause(B& in, Solver& S, vec<Lit>& lits) {
 }
 
 
+void printStats(SolverStats& stats)
+{
+    double  cpu_time = cpuTime();
+    int64   mem_used = memUsed();
+    reportf("restarts              : %"I64_fmt"\n", stats.starts);
+    reportf("conflicts             : %-12"I64_fmt"   (%.0f /sec)\n", stats.conflicts   , stats.conflicts   /cpu_time);
+    reportf("decisions             : %-12"I64_fmt"   (%.0f /sec)\n", stats.decisions   , stats.decisions   /cpu_time);
+    reportf("propagations          : %-12"I64_fmt"   (%.0f /sec)\n", stats.propagations, stats.propagations/cpu_time);
+    reportf("conflict literals     : %-12"I64_fmt"   (%4.2f %% deleted)\n", stats.tot_literals, (stats.max_literals - stats.tot_literals)*100 / (double)stats.max_literals);
+    if (mem_used != 0) reportf("Memory used           : %.2f MB\n", mem_used / 1048576.0);
+    reportf("CPU time              : %g s\n", cpu_time);
+}
+
+
+static void SIGINT_handler(int signum){
+    reportf("\n"); reportf("*** INTERRUPTED ***\n");
+    printStats(solver->stats);
+    reportf("\n"); reportf("*** INTERRUPTED ***\n");
+    exit(1);
+}
+
+
 // does the actual parsing work
 void parse_DIMACS_main(int /* FIXME */ in, Solver& S) {
 #ifdef ORIGINAL
@@ -106,8 +125,9 @@ void parse_DIMACS_main(int /* FIXME */ in, Solver& S) {
         else if (*in == 'c' || *in == 'p')
             skipLine(in);
         else
-            readClause(in, S, lits),
-            S.addClause(lits);
+            readClause(in, S, lits);
+			S.addClause(lits);
+
     }
 #endif
 
@@ -196,6 +216,7 @@ void parse_input(int argc, char** argv) {
 						//cout << "(" << *it << ")" << " --> " << parsed_lit << endl;	
 						
 						var = abs(parsed_lit) - 1;
+						if (parsed_lit == 0) break;
 						while (var >= S.nVars()) S.newVar();
 						lits.push( (parsed_lit > 0) ? Lit(var) : ~Lit(var) );
 					}
@@ -208,6 +229,21 @@ void parse_input(int argc, char** argv) {
 				
 				// 3. add new clause to solver
 				if(line_no % 100 == 0) cout << line_no << ".\t----- adding to solver -----" << endl;
+
+				// psota hack: 
+#ifdef DEBUG_PRINT
+				printf("START NEW LIT VECTOR____\n");
+				for(int i = 0; i < lits.size(); i++) {
+					printf("%d.\t%d\n", i, index(lits[i]));
+				}
+				printf("END NEW LIT VECTOR____\n");
+#endif
+				
+				// psota hack end
+				
+
+
+
 				S.addClause(lits);
 
 			}
@@ -251,6 +287,22 @@ int main(int argc, char** argv)
         exit(20);
     }
 	reportf("PARENT THREAD: DONE: Checking for unsatisfiability\n");
+
+
+	// TODO: parallelize this portion
+	reportf("PARENT THREAD: Solving system\n");
+    S.verbosity = 1;
+    solver = &S;
+    signal(SIGINT,SIGINT_handler);
+    signal(SIGHUP,SIGINT_handler);
+
+    S.solve();
+	fprintf(stderr, "Done solving system\n");
+    printStats(S.stats);
+    reportf("\n");
+    reportf(S.okay() ? "SATISFIABLE\n" : "UNSATISFIABLE\n");
+
+	reportf("PARENT THREAD: DONE: Solving system\n");
 
 	
 	for(int i = 0; i < num_processes; i++)

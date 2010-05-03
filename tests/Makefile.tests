@@ -64,8 +64,16 @@ all: $(TARGET)
 	$(RUN)
 
 # Compiler flags
+# PSOTA: hacking this to support loading zlib
+
+# original: 
 LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -L$(SIM_ROOT)/lib
+
+# libz version LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -L$(SIM_ROOT)/lib -L.
+
+# original: 
 LD_LIBS = -pthread -lcarbon_sim
+#libz version: LD_LIBS = -pthread -lcarbon_sim -lz
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 

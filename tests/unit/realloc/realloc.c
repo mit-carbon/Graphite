@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #include "carbon_user.h"
 
@@ -44,6 +45,10 @@ void* test_realloc(void *threadid)
 		myString = realloc(myString, num_chars * sizeof(char));
 		for(int j=0; j<num_chars; j++) {
 			myString[j] = 'j';
+		}
+		
+		for(int k=0; k<num_chars; k++) {
+			assert(myString[k] == 'j');
 		}
 	}
 

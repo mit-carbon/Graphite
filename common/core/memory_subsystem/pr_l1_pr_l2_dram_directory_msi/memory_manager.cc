@@ -132,6 +132,7 @@ MemoryManager::MemoryManager(Core* core,
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
             dram_directory_cache_access_time,
+            core_list_with_dram_controllers.size(),
             getShmemPerfModel());
    }
 
@@ -403,10 +404,15 @@ MemoryManager::outputSummary(std::ostream &os)
    m_l1_cache_cntlr->getL1DCache()->outputSummary(os);
    m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
 
-   if (m_dram_cntlr_present)      
+   if (m_dram_cntlr_present)
+   {      
       m_dram_cntlr->getDramPerfModel()->outputSummary(os);
+      m_dram_directory_cntlr->getDramDirectoryCache()->outputSummary(os);
+   }
    else
+   {
       DramPerfModel::dummyOutputSummary(os);
+   }
 }
 
 }

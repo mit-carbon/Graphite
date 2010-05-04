@@ -307,7 +307,7 @@ void check(IntPtr address, DirectoryState::dstate_t dstate, core_id_t owner, uns
    LOG_ASSERT_ERROR(dir_block_info->getDState() == dstate, "expected state(%u), actual state(%u)",
          dstate, dir_block_info->getDState());
    assert(dir_entry->getOwner() == owner);
-   assert(dir_entry->getNumSharers() == num_sharers);
+   LOG_ASSERT_ERROR(dir_entry->getNumSharers() == num_sharers, "dir_entry->numSharers(%u), num_sharers(%u)", dir_entry->getNumSharers(), num_sharers);
    for (core_id_t i = 1; i <= 3; i++)
    {
       assert(dir_entry->hasSharer(i) == isSharer(i, tracked_sharers_list));

@@ -2,6 +2,7 @@
 #define __DIRECTORY_ENTRY_LIMITED_NO_BROADCAST_H__
 
 #include "directory_entry.h"
+#include "random.h"
 
 class DirectoryEntryLimitedNoBroadcast : public DirectoryEntry
 {
@@ -11,7 +12,7 @@ class DirectoryEntryLimitedNoBroadcast : public DirectoryEntry
       
       bool hasSharer(core_id_t sharer_id);
       bool addSharer(core_id_t sharer_id);
-      void removeSharer(core_id_t sharer_id);
+      void removeSharer(core_id_t sharer_id, bool reply_expected);
       UInt32 getNumSharers();
 
       core_id_t getOwner();
@@ -21,6 +22,9 @@ class DirectoryEntryLimitedNoBroadcast : public DirectoryEntry
       std::pair<bool, std::vector<core_id_t> >& getSharersList();
 
       UInt32 getLatency();
+
+   private:
+      Random m_rand_num;
 };
 
 #endif /* __DIRECTORY_ENTRY_LIMITED_NO_BROADCAST_H__ */

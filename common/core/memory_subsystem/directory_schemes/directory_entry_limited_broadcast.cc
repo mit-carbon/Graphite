@@ -1,4 +1,5 @@
 #include "directory_entry_limited_broadcast.h"
+#include "config.h"
 #include "log.h"
 
 using namespace std;
@@ -8,7 +9,7 @@ DirectoryEntryLimitedBroadcast::DirectoryEntryLimitedBroadcast(
       UInt32 max_num_sharers):
    DirectoryEntry(max_hw_sharers, max_num_sharers),
    m_global_enabled(false),
-   m_num_untracked_sharers(0)
+   m_num_sharers(0)
 {}
 
 DirectoryEntryLimitedBroadcast::~DirectoryEntryLimitedBroadcast()
@@ -28,7 +29,7 @@ DirectoryEntryLimitedBroadcast::addSharer(core_id_t sharer_id)
 {
    if (m_global_enabled)
    {
-      m_num_untracked_sharers ++;
+      assert(m_num_sharers == Config::getSingleton()->getTotalCores());
    }
    else
    {
@@ -36,32 +37,24 @@ DirectoryEntryLimitedBroadcast::addSharer(core_id_t sharer_id)
       if (m_sharers->size() == m_max_hw_sharers)
       {
          m_global_enabled = true;
-         m_num_untracked_sharers = 1;
+         m_num_sharers = Config::getSingleton()->getTotalCores();
       }
       else
       {
          m_sharers->set(sharer_id);
       }
    }
-
    return true;
 }
 
 void
-DirectoryEntryLimitedBroadcast::removeSharer(core_id_t sharer_id)
+DirectoryEntryLimitedBroadcast::removeSharer(core_id_t sharer_id, bool reply_expected)
 {
    if (m_global_enabled)
    {
-      assert(m_num_untracked_sharers > 0);
       if (m_sharers->at(sharer_id))
       {
          m_sharers->clear(sharer_id);
-      }
-      else
-      {
-         m_num_untracked_sharers --;
-         if (m_num_untracked_sharers == 0)
-            m_global_enabled = false;
       }
    }
    else
@@ -69,13 +62,24 @@ DirectoryEntryLimitedBroadcast::removeSharer(core_id_t sharer_id)
       assert(m_sharers->at(sharer_id));
       m_sharers->clear(sharer_id);
    }
+
+   if (reply_expected)
+   {
+      assert(m_global_enabled);
+      m_num_sharers --;
+      if (m_num_sharers == 0)
+      {
+         m_global_enabled = false;
+         assert(m_sharers->size() == 0);
+      }
+   }
 }
 
 UInt32
 DirectoryEntryLimitedBroadcast::getNumSharers()
 {
    if (m_global_enabled)
-      return m_sharers->size() + m_num_untracked_sharers;
+      return Config::getSingleton()->getTotalCores();
    else
       return m_sharers->size();
 }
@@ -101,13 +105,17 @@ DirectoryEntryLimitedBroadcast::setOwner(core_id_t owner_id)
 core_id_t
 DirectoryEntryLimitedBroadcast::getOneSharer()
 {
-   m_sharers->resetFind();
-   core_id_t sharer_id = m_sharers->find();
-   assert((sharer_id == -1) == (m_sharers->size() == 0));
-   if (sharer_id != -1)
-      return sharer_id;
+   pair<bool, vector<core_id_t> > sharers_list = getSharersList();
+   assert(sharers_list.first || (sharers_list.second.size() > 0));
+   if (sharers_list.second.size() > 0)
+   {
+      SInt32 index = m_rand_num.next(sharers_list.second.size());
+      return sharers_list.second[index];
+   }
    else
+   {
       return INVALID_CORE_ID;
+   }
 }
 
 // Return a pair:
@@ -120,29 +128,28 @@ DirectoryEntryLimitedBroadcast::getSharersList()
 {
    if (m_global_enabled)
    {
-      assert(m_num_untracked_sharers > 0);
+      assert(m_num_sharers == Config::getSingleton()->getTotalCores());
       m_cached_sharers_list.first = true;
-      m_cached_sharers_list.second.clear();
-      return m_cached_sharers_list;
    }
    else
    {
       m_cached_sharers_list.first = false;
-      m_cached_sharers_list.second.resize(m_sharers->size());
-   
-      m_sharers->resetFind();
-
-      core_id_t new_sharer = -1;
-      SInt32 i = 0;
-      while ((new_sharer = m_sharers->find()) != -1)
-      {
-         m_cached_sharers_list.second[i] = new_sharer;
-         i++;
-         assert (i <= (core_id_t) m_sharers->size());
-      }
-
-      return m_cached_sharers_list;
    }
+
+   m_cached_sharers_list.second.resize(m_sharers->size());
+
+   m_sharers->resetFind();
+
+   core_id_t new_sharer = -1;
+   SInt32 i = 0;
+   while ((new_sharer = m_sharers->find()) != -1)
+   {
+      m_cached_sharers_list.second[i] = new_sharer;
+      i++;
+      assert (i <= (core_id_t) m_sharers->size());
+   }
+
+   return m_cached_sharers_list;
 }
 
 UInt32

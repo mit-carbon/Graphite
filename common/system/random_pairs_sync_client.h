@@ -76,7 +76,7 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
       void disable();
 
       // Called by user thread
-      void synchronize(void);
+      void synchronize(UInt64 time);
 
       // Called by network thread
       void netProcessSyncMsg(const NetPacket& recv_pkt);

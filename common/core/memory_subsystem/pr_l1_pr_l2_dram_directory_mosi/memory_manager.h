@@ -39,6 +39,11 @@ namespace PrL1PrL2DramDirectoryMOSI
          PacketType m_unicast_packet_type_ge_threshold;
          PacketType m_broadcast_packet_type;
 
+         // Performance Models
+         CachePerfModel* m_l1_icache_perf_model;
+         CachePerfModel* m_l1_dcache_perf_model;
+         CachePerfModel* m_l2_cache_perf_model;
+
          // Get Packet Type for a message
          PacketType getPacketType(core_id_t sender, core_id_t receiver);
          // Parse Network Type
@@ -81,5 +86,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          void outputSummary(std::ostream &os);
 
+         void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
    };
 }

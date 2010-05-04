@@ -21,10 +21,8 @@
 
 SIM_ROOT ?= $(CURDIR)/../../..
 
-TARGET_ARCH = x86_64
-
 # Run options
-PIN_HOME = /afs/csail/group/carbon/tools/pin/current
+include $(SIM_ROOT)/Makefile.config
 
 ifeq ($(TARGET_ARCH),ia32)
   PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin
@@ -113,8 +111,8 @@ LIB_PIN_SIM=$(SIM_ROOT)/lib/pin_sim.so
 $(TARGET): $(OBJECTS) 
 	make -C $(SIM_ROOT)/common
 	$(if $(findstring pin,$(MODE)),make -C $(SIM_ROOT)/pin)
-	if $(foreach source,$(OBJECTS),[ $(source) -nt $(TARGET) ] ||) [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
-	then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
+	if $(foreach source,$(OBJECTS),[ ! -e $(TARGET) ] || [ $(source) -nt $(TARGET) ] ||) [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
+   then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
 	fi
 
 $(LIB_CARBON):

@@ -102,9 +102,6 @@ namespace PrL1PrL2DramDirectoryMOSI
                UInt32 cache_block_size,
                UInt32 l2_cache_size, UInt32 l2_cache_associativity,
                std::string l2_cache_replacement_policy,
-               UInt32 l2_cache_data_access_time,
-               UInt32 l2_cache_tags_access_time,
-               std::string l2_cache_perf_model_type,
                ShmemPerfModel* shmem_perf_model);
          
          ~L2CacheCntlr();

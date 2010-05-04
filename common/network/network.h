@@ -81,7 +81,7 @@ class Network
 
       // -- Main interface -- //
 
-      SInt32 netSend(const NetPacket& packet);
+      SInt32 netSend(NetPacket& packet);
       NetPacket netRecv(const NetMatch &match);
 
       // -- Wrappers -- //
@@ -94,6 +94,9 @@ class Network
 
       void enableModels();
       void disableModels();
+
+      // -- Network Models -- //
+      NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
 
       // Modeling
       UInt32 getModeledLength(const NetPacket& pkt);
@@ -114,7 +117,7 @@ class Network
       Lock _netQueueLock;
       ConditionVariable _netQueueCond;
 
-      void forwardPacket(const NetPacket &packet);
+      void forwardPacket(NetPacket& packet);
 };
 
 #endif // NETWORK_H

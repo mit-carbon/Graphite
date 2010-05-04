@@ -4,6 +4,8 @@
 #include "core.h"
 #include "network.h"
 #include "memory_manager_base.h"
+#include "simulator.h"
+#include "core_manager.h"
 #include "log.h"
 
 using namespace std;
@@ -144,12 +146,17 @@ void Network::netPullFromTransport()
 
 // FIXME: Can forwardPacket be subsumed by netSend?
 
-void Network::forwardPacket(const NetPacket &packet)
+void Network::forwardPacket(NetPacket& packet)
 {
    netSend(packet);
 }
 
-SInt32 Network::netSend(const NetPacket& packet)
+NetworkModel* Network::getNetworkModelFromPacketType(PacketType packet_type)
+{
+   return _models[g_type_to_static_network_map[packet_type]];
+}
+
+SInt32 Network::netSend(NetPacket& packet)
 {
    assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
 
@@ -159,18 +166,42 @@ SInt32 Network::netSend(const NetPacket& packet)
    model->routePacket(packet, hopVec);
 
    Byte *buffer = packet.makeBuffer();
+   UInt64 start_time = packet.time;
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, core_id %i, time %llu", 
+      LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, core_id %i, time %llu",
             (SInt32) packet.type, packet.sender, hopVec[i].final_dest, hopVec[i].next_dest, _core->getId(), hopVec[i].time);
-      LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
+      // LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
+
+      // Do a shortcut here
+      if ((Config::getSingleton()->getProcessCount() == 1) && (hopVec[i].final_dest != NetPacket::BROADCAST))
+      {
+         // 1) Process Count = 1
+         // 2) The broadcast tree network model is not used
+         while (hopVec[i].next_dest != hopVec[i].final_dest)
+         {
+            packet.time = hopVec[i].time;
+            packet.receiver = hopVec[i].final_dest;
+
+            Core* remote_core = Sim()->getCoreManager()->getCoreFromID(hopVec[i].next_dest);
+            NetworkModel* remote_network_model = remote_core->getNetwork()->getNetworkModelFromPacketType(packet.type);
+
+            vector<NetworkModel::Hop> localHopVec;
+            remote_network_model->routePacket(packet, localHopVec);
+            assert(localHopVec.size() == 1);
+
+            hopVec[i] = localHopVec[0];
+         }
+      }
 
       NetPacket* buff_pkt = (NetPacket*) buffer;
+
+      if (_core->getId() == buff_pkt->sender)
+         buff_pkt->start_time = start_time;;
+      
       buff_pkt->time = hopVec[i].time;
       buff_pkt->receiver = hopVec[i].final_dest;
-      if (_core->getId() == buff_pkt->sender)
-         buff_pkt->start_time = packet.time;
 
       _transport->send(hopVec[i].next_dest, buffer, packet.bufferSize());
       
@@ -178,7 +209,6 @@ SInt32 Network::netSend(const NetPacket& packet)
    }
 
    delete [] buffer;
-
 
    return packet.length;
 }
@@ -416,8 +446,11 @@ UInt32 Network::getModeledLength(const NetPacket& pkt)
 {
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
    {
-      // type + sender + receiver + length + shmem_msg.size()
-      UInt32 metadata_size = sizeof(PacketType) + sizeof(SInt32) + sizeof(SInt32) + sizeof(UInt32);
+      // packet_type + sender + receiver + length + shmem_msg.size()
+      // 1 byte for packet_type
+      // log2(core_id) for sender and receiver
+      // 2 bytes for packet length
+      UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getCoreIDLength() + 2;
       UInt32 data_size = getCore()->getMemoryManager()->getModeledLength(pkt.data);
       return metadata_size + data_size;
    }

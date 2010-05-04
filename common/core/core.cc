@@ -72,13 +72,13 @@ void Core::outputSummary(std::ostream &os)
    if (Config::getSingleton()->getEnablePerformanceModeling())
    {
       getPerformanceModel()->outputSummary(os);
-      getNetwork()->outputSummary(os);
-   
-      if (Config::getSingleton()->isSimulatingSharedMemory())
-      {
-         getShmemPerfModel()->outputSummary(os);
-         getMemoryManager()->outputSummary(os);
-      }
+   }
+   getNetwork()->outputSummary(os);
+
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+      getShmemPerfModel()->outputSummary(os);
+      getMemoryManager()->outputSummary(os);
    }
 }
 
@@ -175,7 +175,8 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
       mem_op_t mem_op_type, 
       IntPtr address, 
       Byte* data_buf, UInt32 data_size,
-      bool modeled)
+      bool modeled,
+      UInt64 time)
 {
    if (data_size <= 0)
    {
@@ -188,7 +189,10 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
    }
 
    // Setting the initial time
-   UInt64 initial_time = getPerformanceModel()->getCycleCount();
+   UInt64 initial_time = time;
+   if (time == 0)
+      initial_time = getPerformanceModel()->getCycleCount();
+
    getShmemPerfModel()->setCycleCount(initial_time);
 
    LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), START",

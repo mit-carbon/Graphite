@@ -1,5 +1,6 @@
 #include <string.h>
 #include "shmem_msg.h"
+#include "config.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -10,6 +11,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       m_receiver_mem_component(MemComponent::INVALID_MEM_COMPONENT),
       m_requester(INVALID_CORE_ID),
       m_single_receiver(INVALID_CORE_ID),
+      m_reply_expected(false),
       m_address(INVALID_ADDRESS),
       m_data_buf(NULL),
       m_data_length(0)
@@ -20,6 +22,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          MemComponent::component_t receiver_mem_component,
          core_id_t requester,
          core_id_t single_receiver,
+         bool reply_expected,
          IntPtr address,
          Byte* data_buf,
          UInt32 data_length) :
@@ -28,6 +31,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       m_receiver_mem_component(receiver_mem_component),
       m_requester(requester),
       m_single_receiver(single_receiver),
+      m_reply_expected(reply_expected),
       m_address(address),
       m_data_buf(data_buf),
       m_data_length(data_length)
@@ -49,6 +53,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       m_receiver_mem_component = shmem_msg->getReceiverMemComponent();
       m_requester = shmem_msg->getRequester();
       m_single_receiver = shmem_msg->getSingleReceiver();
+      m_reply_expected = shmem_msg->isReplyExpected();
       m_address = shmem_msg->getAddress();
       m_data_buf = shmem_msg->getDataBuf();
       m_data_length = shmem_msg->getDataLength();
@@ -100,18 +105,19 @@ namespace PrL1PrL2DramDirectoryMOSI
          case UPGRADE_REP:
          case INV_REP:
             // msg_type + address
-            return sizeof(msg_t) + sizeof(IntPtr);
+            // msg_type - 1 byte
+            return (1 + sizeof(IntPtr));
             
          case INV_FLUSH_COMBINED_REQ:
             // msg_type + address + single_receiver
-            return sizeof(msg_t) + sizeof(IntPtr) + sizeof(core_id_t);
+            return (1 + sizeof(IntPtr) + Config::getSingleton()->getCoreIDLength());
 
          case EX_REP:
          case SH_REP:
          case FLUSH_REP:
          case WB_REP:
             // msg_type + address + cache_block
-            return sizeof(msg_t) + sizeof(IntPtr) + m_data_length;
+            return (1 + sizeof(IntPtr) + m_data_length);
 
          default:
             LOG_PRINT_ERROR("Unrecognized Msg Type(%u)", m_msg_type);

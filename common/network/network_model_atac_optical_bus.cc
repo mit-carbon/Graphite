@@ -9,9 +9,9 @@
 NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net) :
    NetworkModel(net),
    m_enabled(false),
-   m_bytes_sent(0),
-   m_total_packets_sent(0),
-   m_total_queueing_delay(0),
+   m_total_bytes_received(0),
+   m_total_packets_received(0),
+   m_total_contention_delay(0),
    m_total_packet_latency(0)
 {
    m_num_application_cores = Config::getSingleton()->getApplicationCores(); 
@@ -34,13 +34,17 @@ NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net) :
       LOG_PRINT_ERROR("Error reading atac network model parameters");
    }
 
-   UInt64 min_processing_time = 1;
-   m_queue_model = QueueModel::create(queue_model_type, min_processing_time);
+   if (m_queue_model_enabled)
+   {
+      UInt64 min_processing_time = 1;
+      m_ejection_port_queue_model = QueueModel::create(queue_model_type, min_processing_time);
+   }
 }
 
 NetworkModelAtacOpticalBus::~NetworkModelAtacOpticalBus()
 {
-   delete m_queue_model;
+   if (m_queue_model_enabled)
+      delete m_ejection_port_queue_model;
 }
 
 UInt64
@@ -49,23 +53,30 @@ NetworkModelAtacOpticalBus::computeLatency(UInt64 pkt_time, UInt32 pkt_length, c
    if ((!m_enabled) || (requester >= (core_id_t) m_num_application_cores))
       return 0;
 
+   return m_optical_latency;
+}
+
+UInt64
+NetworkModelAtacOpticalBus::computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length)
+{
+   if (!m_queue_model_enabled)
+      return 0;
+
    UInt64 processing_time = computeProcessingTime(pkt_length);
-   UInt64 queue_delay = 0;
-   if (m_queue_model_enabled)
-   {
-      queue_delay = m_queue_model->computeQueueDelay(pkt_time, processing_time);
-   }
+   return m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+}
 
-   // Ignore Receiver Queueing Delay for now
-   UInt64 packet_latency = queue_delay + m_optical_latency + processing_time;
+core_id_t
+NetworkModelAtacOpticalBus::getRequester(const NetPacket& pkt)
+{
+   core_id_t requester = INVALID_CORE_ID;
+
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+   else // Other Packet types
+      requester = pkt.sender;
    
-   // Performance Counters
-   m_bytes_sent += (UInt64) pkt_length;
-   m_total_packets_sent ++;
-   m_total_queueing_delay += queue_delay;
-   m_total_packet_latency += packet_latency;
-
-   return packet_latency;
+   return requester;
 }
 
 UInt64 
@@ -85,13 +96,8 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
 {
    ScopedLock sl(m_lock);
 
-   core_id_t requester = INVALID_CORE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender;
-
+   core_id_t requester = getRequester(pkt);
+   
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
          "requester(%i)", requester);
 
@@ -135,19 +141,46 @@ void
 NetworkModelAtacOpticalBus::processReceivedPacket(NetPacket& pkt)
 {
    ScopedLock sl(m_lock);
+
+   core_id_t requester = getRequester(pkt);
+
+   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+      return;
+
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+  
+   UInt64 packet_latency = pkt.time - pkt.start_time;
+   UInt64 contention_delay = 0;
+
+   if (pkt.sender != getNetwork()->getCore()->getId())
+   {
+      UInt64 processing_time = computeProcessingTime(pkt_length);
+      UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt.time, pkt_length);
+
+      packet_latency += (ejection_port_queue_delay + processing_time);
+      contention_delay += ejection_port_queue_delay;
+      pkt.time += (ejection_port_queue_delay + processing_time);
+   }
+
+   // Performance Counters
+   m_total_packets_received ++;
+   m_total_bytes_received += (UInt64) pkt_length;
+   m_total_packet_latency += packet_latency;
+   m_total_contention_delay += contention_delay;
+
 }
 
 void
 NetworkModelAtacOpticalBus::outputSummary(std::ostream &out)
 {
-   out << "    bytes sent: " << m_bytes_sent << std::endl;
-   out << "    packets sent: " << m_total_packets_sent << std::endl;
-   if (m_total_packets_sent > 0)
+   out << "    bytes received: " << m_total_bytes_received << std::endl;
+   out << "    packets received: " << m_total_packets_received << std::endl;
+   if (m_total_packets_received > 0)
    {
       out << "    average queueing delay: " << 
-         ((float) m_total_queueing_delay / m_total_packets_sent) << std::endl;
+         ((float) m_total_contention_delay / m_total_packets_received) << std::endl;
       out << "    average packet latency: " <<
-         ((float) m_total_packet_latency / m_total_packets_sent) << std::endl;
+         ((float) m_total_packet_latency / m_total_packets_received) << std::endl;
    }
    else
    {

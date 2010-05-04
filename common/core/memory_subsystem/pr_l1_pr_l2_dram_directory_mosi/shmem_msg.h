@@ -35,6 +35,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          MemComponent::component_t m_receiver_mem_component;
          core_id_t m_requester;
          core_id_t m_single_receiver;
+         bool m_reply_expected;
          IntPtr m_address;
          Byte* m_data_buf;
          UInt32 m_data_length;
@@ -46,6 +47,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                MemComponent::component_t receiver_mem_component,
                core_id_t requester,
                core_id_t single_receiver,
+               bool reply_expected,
                IntPtr address,
                Byte* data_buf = 0,
                UInt32 data_length = 0);
@@ -66,6 +68,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          MemComponent::component_t getReceiverMemComponent() { return m_receiver_mem_component; }
          core_id_t getRequester() { return m_requester; }
          core_id_t getSingleReceiver() { return m_single_receiver; }
+         bool isReplyExpected() { return m_reply_expected; }
          IntPtr getAddress() { return m_address; }
          Byte* getDataBuf() { return m_data_buf; }
          UInt32 getDataLength() { return m_data_length; }

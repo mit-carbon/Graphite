@@ -28,12 +28,15 @@ BarrierSyncClient::~BarrierSyncClient()
 {}
 
 void
-BarrierSyncClient::synchronize()
+BarrierSyncClient::synchronize(UInt64 time)
 {
    UnstructuredBuffer m_send_buff;
    UnstructuredBuffer m_recv_buff;
 
-   UInt64 curr_cycle_count = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 curr_cycle_count = time;
+   if (time == 0)
+      curr_cycle_count = m_core->getPerformanceModel()->getCycleCount();
+
    if (curr_cycle_count >= m_next_sync_time)
    {
       // Send 'SIM_BARRIER_WAIT' request

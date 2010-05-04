@@ -10,10 +10,14 @@ using namespace std;
 
 int main (int argc, char *argv[])
 {
-   printf("Starting (shared_mem_basic)\n");
+   printf("Starting (shared_mem_test1)\n");
    CarbonStartSim(argc, argv);
 
    UInt32 address = 0x1000;
+
+   // Enable Performance Models
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromID(i)->enablePerformanceModels();
 
    // 1) Get a core object
    Core* core_0 = Sim()->getCoreManager()->getCoreFromID(0);
@@ -55,7 +59,11 @@ int main (int argc, char *argv[])
    assert(num_misses == 1);
    assert(read_val_0 == 110);
 
+   // Disable Performance Models
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromID(i)->disablePerformanceModels();
+   
+   printf("Finished (shared_mem_test1) - SUCCESS\n");
    CarbonStopSim();
-   printf("Finished (shared_mem_basic) - SUCCESS\n");
    return 0;
 }

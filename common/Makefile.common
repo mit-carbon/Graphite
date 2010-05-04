@@ -1,5 +1,7 @@
 SIM_ROOT ?= $(CURDIR)/../
 
+include $(SIM_ROOT)/Makefile.config
+
 DIRECTORIES = $(SIM_ROOT)/common/core/        \
 			 $(SIM_ROOT)/common/core/memory_subsystem/	\
           $(SIM_ROOT)/common/core/memory_subsystem/cache/      \
@@ -20,7 +22,6 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
-TARGET_ARCH = x86_64
 KERNEL = LENNY
 
 # OS Services Support
@@ -35,14 +36,7 @@ ifeq ($(TARGET_ARCH),x86_64)
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
 endif
 
-# Boost Support
-#   hack to find version -- this sucks
-#ifeq ($(strip $(wildcard /usr/include/boost/version.hpp)),)
-ifeq ($(TARGET_ARCH),ia32)
-	BOOST_VERSION = 1_38
-else
-	BOOST_VERSION = 1_35
-endif
+include $(SIM_ROOT)/Makefile.config
 
 ifeq ($(BOOST_VERSION),1_38)
 	BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0

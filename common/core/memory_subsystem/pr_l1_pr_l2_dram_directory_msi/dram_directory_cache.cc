@@ -1,6 +1,6 @@
-#include <sstream>
-#include <fstream>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <iomanip>
 using namespace std;
 
@@ -12,7 +12,7 @@ using namespace std;
 #include "log.h"
 #include "utils.h"
 
-// #define TRACK_ADDRESSES    1
+// #define DETAILED_TRACKING_ENABLED    1
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -25,8 +25,8 @@ DramDirectoryCache::DramDirectoryCache(
       UInt32 cache_block_size,
       UInt32 max_hw_sharers,
       UInt32 max_num_sharers,
-      UInt32 dram_directory_cache_access_time,
       UInt32 num_dram_cntlrs,
+      UInt32 dram_directory_cache_access_time,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_total_entries(total_entries),
@@ -66,8 +66,9 @@ DramDirectoryCache::initializeParameters(UInt32 num_dram_cntlrs)
    LOG_ASSERT_ERROR(isPower2(stack_size), "stack_size(%#llx) should be a power of 2", stack_size);
    m_log_stack_size = floorLog2(stack_size);
    
-#ifdef TRACK_ADDRESSES
-   m_set_specific_address_set.resize(m_num_sets);
+#ifdef DETAILED_TRACKING_ENABLED
+   m_set_specific_address_map.resize(m_num_sets);
+   m_set_replacement_histogram.resize(m_num_sets);
 #endif
 }
 
@@ -158,6 +159,11 @@ DramDirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr addres
          directory_entry->setAddress(address);
          m_directory->setDirectoryEntry(set_index * m_associativity + i, directory_entry);
 
+#ifdef DETAILED_TRACKING_ENABLED
+         m_replaced_address_map[replaced_address] ++;
+         m_set_replacement_histogram[set_index] ++;
+#endif
+
          return directory_entry;
       }
    }
@@ -193,9 +199,9 @@ DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
    tag = cache_block_address;
    set_index = computeSetIndex(address);
   
-#ifdef TRACK_ADDRESSES 
+#ifdef DETAILED_TRACKING_ENABLED 
    m_address_map[address] ++;
-   m_set_specific_address_set[set_index].insert(address);
+   m_set_specific_address_map[set_index][address] ++;
 #endif
 }
 
@@ -250,7 +256,7 @@ DramDirectoryCache::outputSummary(ostream& out)
       }
    }
 
-#ifdef TRACK_ADDRESSES
+#ifdef DETAILED_TRACKING_ENABLED
    core_id_t core_id = m_memory_manager->getCore()->getId();
    string output_dir = Sim()->getCfg()->getString("general/output_dir", "");
 
@@ -258,39 +264,95 @@ DramDirectoryCache::outputSummary(ostream& out)
    filename << output_dir << "/address_set_" << core_id;
    ofstream address_set_file(filename.str().c_str());
 
-   map<IntPtr,UInt64>::iterator it;
-   for (it = m_address_map.begin(); it != m_address_map.end(); it++)
+   for (map<IntPtr,UInt64>::iterator it = m_address_map.begin(); \
+         it != m_address_map.end(); it++)
       address_set_file << setfill(' ') << setw(20) << left << hex << (*it).first << dec
          << setw(10) << left << (*it).second << "\n";
    address_set_file.close();
 
    UInt32 max_set_size = 0;
-   UInt32 min_set_size = 1000000;
-   UInt32 max_set_index = 1000000;
-   UInt32 min_set_index = 1000000;
+   UInt32 min_set_size = 100000000;
+   SInt32 set_index_with_max_size = -1;
+   SInt32 set_index_with_min_size = -1;
 
+   UInt64 total_evictions = 0;
+   UInt64 max_set_evictions = 0;
+   SInt32 set_index_with_max_evictions = -1;
+
+   UInt64 max_address_evictions = 0;
+   IntPtr address_with_max_evictions = INVALID_ADDRESS;
+   
    for (UInt32 i = 0; i < m_num_sets; i++)
    {
-      // max, min, average
-      if (m_set_specific_address_set[i].size() >= max_set_size)
+      // max, min, average set size, set evictions
+      if (m_set_specific_address_map[i].size() > max_set_size)
       {
-         max_set_size = m_set_specific_address_set[i].size();
-         max_set_index = i;
+         max_set_size = m_set_specific_address_map[i].size();
+         set_index_with_max_size = i;
       }
-      if (m_set_specific_address_set[i].size() <= min_set_size)
+      if (m_set_specific_address_map[i].size() < min_set_size)
       {
-         min_set_size = m_set_specific_address_set[i].size();
-         min_set_index = i;
+         min_set_size = m_set_specific_address_map[i].size();
+         set_index_with_min_size = i;
+      }
+      if (m_set_replacement_histogram[i] > max_set_evictions)
+      {
+         max_set_evictions = m_set_replacement_histogram[i];
+         set_index_with_max_evictions = i;
+      }
+      total_evictions += m_set_replacement_histogram[i];
+   }
+
+   for (map<IntPtr,UInt64>::iterator it = m_replaced_address_map.begin(); \
+         it != m_replaced_address_map.end(); it++)
+   {
+      if ((*it).second > max_address_evictions)
+      {
+         max_address_evictions = (*it).second;
+         address_with_max_evictions = (*it).first;
       }
    }
 
-   LOG_PRINT_WARNING("max(%u), max_index(%u), min(%u), min_index(%u), average(%f)",
-         max_set_size, max_set_index, min_set_size, min_set_index, float(m_address_map.size()) / m_num_sets);
-   set<IntPtr>::iterator set_it = m_set_specific_address_set[max_set_index].begin();
-   for (; set_it != m_set_specific_address_set[max_set_index].end(); set_it++)
-   {
-      LOG_PRINT_WARNING("Address (%#llx)", *set_it);
-   }
+   // Total Number of Addresses
+   // Max Set Size, Average Set Size, Min Set Size
+   // Evictions: Average per set, Max, Address with max evictions
+   out << "Dram Directory Cache: " << endl;
+   out << "    Total Addresses: " << m_address_map.size() << endl;
+
+   out << "    Average set size: " << float(m_address_map.size()) / m_num_sets << endl;
+   out << "    Set index with max size: " << set_index_with_max_size << endl;
+   out << "    Max set size: " << max_set_size << endl;
+   out << "    Set index with min size: " << set_index_with_min_size << endl;
+   out << "    Min set size: " << min_set_size << endl;
+
+   out << "    Average evictions per set: " << float(total_evictions) / m_num_sets << endl;
+   out << "    Set index with max evictions: " << set_index_with_max_evictions << endl;
+   out << "    Max set evictions: " << max_set_evictions << endl;
+   
+   out << "    Address with max evictions: 0x" << hex << address_with_max_evictions << dec << endl;
+   out << "    Max address evictions: " << max_address_evictions << endl;
+#endif
+}
+
+void
+DramDirectoryCache::dummyOutputSummary(ostream& out)
+{
+#ifdef DETAILED_TRACKING_ENABLED
+   out << "Dram Directory Cache: " << endl;
+   out << "    Total Addresses: NA" << endl;
+
+   out << "    Average set size: NA" << endl;
+   out << "    Set index with max size: NA" << endl;
+   out << "    Max set size: NA" << endl;
+   out << "    Set index with min size: NA" << endl;
+   out << "    Min set size: NA" << endl;
+
+   out << "    Average evictions per set: NA" << endl;
+   out << "    Set index with max evictions: NA" << endl;
+   out << "    Max set evictions: NA" << endl;
+   
+   out << "    Address with max evictions: NA" << endl;
+   out << "    Max address evictions: NA" << endl;
 #endif
 }
 

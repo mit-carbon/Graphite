@@ -1,22 +1,25 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 using namespace std;
 
-#include "simulator.h"
-#include "config.h"
+#include <boost/lexical_cast.hpp>
+#include "memory_manager.h"
 #include "dram_directory_cache.h"
+#include "simulator.h"
 #include "config.h"
 #include "log.h"
 #include "utils.h"
-#include "memory_manager.h"
+
+// #define DETAILED_TRACKING_ENABLED    1
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
 DramDirectoryCache::DramDirectoryCache(
       MemoryManager* memory_manager,
-      std::string directory_type_str,
+      string directory_type_str,
       UInt32 total_entries,
       UInt32 associativity,
       UInt32 cache_block_size,
@@ -37,29 +40,36 @@ DramDirectoryCache::DramDirectoryCache(
    // Instantiate the directory
    m_directory = new Directory(directory_type_str, total_entries, max_hw_sharers, max_num_sharers);
 
-   // Logs
-   m_log_num_sets = floorLog2(m_num_sets);
-   m_log_cache_block_size = floorLog2(m_cache_block_size);
-
-   // Get the number of cores
-   m_log_num_cores = (UInt32) floorLog2(Config::getSingleton()->getTotalCores());
-
-   // Get the number of Dram Cntlrs
-   if (isPower2(num_dram_cntlrs))
-      m_log_num_dram_cntlrs = (UInt32) floorLog2(num_dram_cntlrs);
-   else
-      m_log_num_dram_cntlrs = 0;
-
-   histogram = new UInt64[m_num_sets];
-   for (UInt32 i = 0; i < m_num_sets; i++)
-      histogram[i] = 0;
-
-   initializeRandomBitsTracker();
+   initializeParameters(num_dram_cntlrs);
 }
 
 DramDirectoryCache::~DramDirectoryCache()
 {
    delete m_directory;
+}
+
+void
+DramDirectoryCache::initializeParameters(UInt32 num_dram_cntlrs)
+{
+   UInt32 num_cores = Config::getSingleton()->getTotalCores();
+
+   m_log_num_sets = floorLog2(m_num_sets);
+   m_log_cache_block_size = floorLog2(m_cache_block_size);
+   m_log_num_cores = floorLog2(num_cores);
+   
+   if (isPower2(num_dram_cntlrs))
+      m_log_num_dram_cntlrs = floorLog2(num_dram_cntlrs);
+   else
+      m_log_num_dram_cntlrs = 0;
+
+   IntPtr stack_size = boost::lexical_cast<IntPtr> (Sim()->getCfg()->get("stack/stack_size_per_core"));
+   LOG_ASSERT_ERROR(isPower2(stack_size), "stack_size(%#llx) should be a power of 2", stack_size);
+   m_log_stack_size = floorLog2(stack_size);
+   
+#ifdef DETAILED_TRACKING_ENABLED
+   m_set_specific_address_map.resize(m_num_sets);
+   m_set_replacement_histogram.resize(m_num_sets);
+#endif
 }
 
 DirectoryEntry*
@@ -101,7 +111,7 @@ DramDirectoryCache::getDirectoryEntry(IntPtr address)
    }
 
    // Check in the m_replaced_directory_entry_list
-   std::vector<DirectoryEntry*>::iterator it;
+   vector<DirectoryEntry*>::iterator it;
    for (it = m_replaced_directory_entry_list.begin(); it != m_replaced_directory_entry_list.end(); it++)
    {
       if ((*it)->getAddress() == address)
@@ -114,7 +124,7 @@ DramDirectoryCache::getDirectoryEntry(IntPtr address)
 }
 
 void
-DramDirectoryCache::getReplacementCandidates(IntPtr address, std::vector<DirectoryEntry*>& replacement_candidate_list)
+DramDirectoryCache::getReplacementCandidates(IntPtr address, vector<DirectoryEntry*>& replacement_candidate_list)
 {
    assert(getDirectoryEntry(address) == NULL);
    
@@ -149,8 +159,10 @@ DramDirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr addres
          directory_entry->setAddress(address);
          m_directory->setDirectoryEntry(set_index * m_associativity + i, directory_entry);
 
-         m_replaced_address_list[replaced_address] ++;
-         histogram[set_index]++;
+#ifdef DETAILED_TRACKING_ENABLED
+         m_replaced_address_map[replaced_address] ++;
+         m_set_replacement_histogram[set_index] ++;
+#endif
 
          return directory_entry;
       }
@@ -163,7 +175,7 @@ DramDirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr addres
 void
 DramDirectoryCache::invalidateDirectoryEntry(IntPtr address)
 {
-   std::vector<DirectoryEntry*>::iterator it;
+   vector<DirectoryEntry*>::iterator it;
    for (it = m_replaced_directory_entry_list.begin(); it != m_replaced_directory_entry_list.end(); it++)
    {
       if ((*it)->getAddress() == address)
@@ -172,7 +184,7 @@ DramDirectoryCache::invalidateDirectoryEntry(IntPtr address)
          m_replaced_directory_entry_list.erase(it);
 
          return;
-      } 
+      }
    }
 
    // Should not reach here
@@ -182,154 +194,166 @@ DramDirectoryCache::invalidateDirectoryEntry(IntPtr address)
 void
 DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 {
-   // Lets have some hard-coded values here
-   // Take them out later
-   IntPtr cache_block_address = address >> getLogCacheBlockSize();
-   tag = address;
- 
-   /* 
-   {
-      // Intelligent way of hashing
-      // getLogNumCores, getLogNumDramCntlrs
-      cache_block_address = cache_block_address >> getLogNumDramCntlrs();
+   IntPtr cache_block_address = address >> (m_log_cache_block_size + m_log_num_dram_cntlrs);
 
-      set_index = 0;
-      for (UInt32 i = ADDRESS_THRESHOLD; i <= (8*sizeof(IntPtr) - getLogNumCores()); i = i + getLogNumCores())
+   tag = cache_block_address;
+   set_index = computeSetIndex(address);
+  
+#ifdef DETAILED_TRACKING_ENABLED 
+   m_address_map[address] ++;
+   m_set_specific_address_map[set_index][address] ++;
+#endif
+}
+
+IntPtr
+DramDirectoryCache::computeSetIndex(IntPtr address)
+{
+   IntPtr core_id = (address >> m_log_stack_size) & ((1 << m_log_num_cores) - 1);
+
+   UInt32 log_num_sub_block_bits = m_log_num_sets - m_log_num_cores;
+   IntPtr sub_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs)) \
+                         & ((1 << log_num_sub_block_bits) - 1);
+
+   IntPtr super_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs + log_num_sub_block_bits)) \
+                           & ((1 << m_log_num_cores) - 1);
+
+   return ((core_id ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
+}
+
+void
+DramDirectoryCache::outputSummary(ostream& out)
+{
+   if (m_memory_manager->getCore()->getId() == 0)
+   {
+      SInt32 num_cores = Config::getSingleton()->getTotalCores();
+      SInt32 num_dram_cntlrs = 0;
+      UInt64 l2_cache_size = 0;
+      try
       {
-         set_index = set_index ^ selectBits(address, i, i + getLogNumCores());
+         num_dram_cntlrs = (UInt32) Sim()->getCfg()->getInt("perf_model/dram/num_controllers");
+         l2_cache_size = (UInt64) Sim()->getCfg()->getInt("perf_model/l2_cache/cache_size");
       }
-      set_index = (set_index << (getLogNumSets() - getLogNumCores())) + selectBits(cache_block_address, 0, getLogNumSets() - getLogNumCores());
+      catch (...)
+      {
+         LOG_PRINT_ERROR("Could not read parameters from cfg file");
+      }
+      if (num_dram_cntlrs == -1)
+         num_dram_cntlrs = num_cores;
 
-      // LOG_PRINT_ERROR("Address(%#llx), set_index(%#x), ADDRESS_THRESHOLD(%u), logNumDramCntlrs(%u), logNumCores(%u), logNumSets(%u)",
-      //       address, set_index, ADDRESS_THRESHOLD, getLogNumDramCntlrs(), getLogNumCores(), getLogNumSets());
+      UInt64 expected_entries_per_dram_cntlr = (num_cores * l2_cache_size * 1024 / m_cache_block_size) / num_dram_cntlrs;
+      // Convert to a power of 2
+      expected_entries_per_dram_cntlr = UInt64(1) << floorLog2(expected_entries_per_dram_cntlr);
+
+      if (m_total_entries < (expected_entries_per_dram_cntlr / 2))
+      {
+         LOG_PRINT_WARNING("Dram Directory under-provisioned, use \"perf_model/dram_directory/total_entries\" = %u",
+               (expected_entries_per_dram_cntlr / 2));
+      }
+      else if (m_total_entries > (expected_entries_per_dram_cntlr * 2))
+      {
+         LOG_PRINT_WARNING("Dram Directory over-provisioned, use \"perf_model/dram_directory/total_entries\" = %u",
+               (expected_entries_per_dram_cntlr * 2));
+      }
    }
-   */
 
-   {
-      // Stupid way of hashing
-      processRandomBits(address);
+#ifdef DETAILED_TRACKING_ENABLED
+   core_id_t core_id = m_memory_manager->getCore()->getId();
+   string output_dir = Sim()->getCfg()->getString("general/output_dir", "");
 
-      cache_block_address = cache_block_address >> getLogNumDramCntlrs();
-      set_index = ((UInt32) cache_block_address) & (getNumSets() - 1);
-   }
-}
+   ostringstream filename;
+   filename << output_dir << "/address_set_" << core_id;
+   ofstream address_set_file(filename.str().c_str());
 
-void
-DramDirectoryCache::initializeRandomBitsTracker()
-{
-   m_address_histogram_one.resize(sizeof(IntPtr) * 8);
-   m_address_histogram.resize(sizeof(IntPtr) * 8);
-}
+   for (map<IntPtr,UInt64>::iterator it = m_address_map.begin(); \
+         it != m_address_map.end(); it++)
+      address_set_file << setfill(' ') << setw(20) << left << hex << (*it).first << dec
+         << setw(10) << left << (*it).second << "\n";
+   address_set_file.close();
 
-void
-DramDirectoryCache::processRandomBits(IntPtr address)
-{
-   if (m_global_address_set.find(address) != m_global_address_set.end())
-      return;
+   UInt32 max_set_size = 0;
+   UInt32 min_set_size = 100000000;
+   SInt32 set_index_with_max_size = -1;
+   SInt32 set_index_with_min_size = -1;
 
-   m_global_address_set.insert(address);
+   UInt64 total_evictions = 0;
+   UInt64 max_set_evictions = 0;
+   SInt32 set_index_with_max_evictions = -1;
 
-   for (UInt32 i = 0; i < (8 * sizeof(IntPtr)); i++)
-   {
-      // Get the ith bit from address
-      UInt64 bit = (address >> i) & 0x1;
-      assert((bit == 0) || (bit == 1));
-
-      m_address_histogram_one[i] += bit;
-      m_address_histogram[i] += 1;
-   } 
-}
-
-void
-DramDirectoryCache::printRandomBitsHistogram()
-{
-   core_id_t core_id = getMemoryManager()->getCore()->getId();
+   UInt64 max_address_evictions = 0;
+   IntPtr address_with_max_evictions = INVALID_ADDRESS;
    
-   ostringstream file_name;
-   file_name << Sim()->getCfg()->getString("general/output_dir") << "address_histogram_" << core_id;
-
-   ofstream output_file((file_name.str()).c_str());
-   for (UInt32 i = 0; i < (8 * sizeof(IntPtr)); i++)
-   {
-      // LOG_PRINT_WARNING("printRandomBitsHistogram() (%u) - (%llu, %llu)", i, m_address_histogram_one[i], m_address_histogram[i]);
-      if (m_address_histogram[i] > 0)
-         output_file << i << "\t" << ((float) m_address_histogram_one[i]) / m_address_histogram[i] << endl;
-      else
-         output_file << i << "\t" << "NA" << endl;
-   }
-   output_file.close();
-}
-
-UInt32
-DramDirectoryCache::selectBits(IntPtr address, UInt32 low, UInt32 high)
-{
-   // Includes low but does not include high - (high, low]
-   LOG_ASSERT_ERROR((low < high) && ((high-low) <= (sizeof(UInt32)*8)),
-         "low(%u), high(%u), address(%#llx)", low, high, address);
-   return (address >> low) & ((2 << (high-low)) - 1); 
-}
-
-void
-DramDirectoryCache::outputSummary(std::ostream& out)
-{
-   UInt64 mean, total, max;
-   SInt32 max_index;
-   IntPtr max_replaced_address;
-   SInt32 max_replaced_times;
-
-   // printRandomBitsHistogram();
-
-   aggregateStatistics(histogram, mean, total, max, max_index, max_replaced_address, max_replaced_times);
-
-   out << "Dram Directory Cache: " << endl;
-   out << "    mean evictions: " << mean << endl;
-   out << "    total evictions: " << total << endl;
-   out << "    max evictions: " << max << endl;
-   out << "    max replaced index: " << max_index << endl;
-   out << "    max replaced address: 0x" << hex << max_replaced_address << dec << endl;
-   out << "    max replaced times: " << max_replaced_times << endl;
-}
-
-void
-DramDirectoryCache::dummyOutputSummary(std::ostream& out)
-{
-   out << "Dram Directory Cache: " << endl;
-   out << "    mean evictions: NA" << endl;
-   out << "    total evictions: NA" << endl;
-   out << "    max evictions: NA" << endl;
-   out << "    max replaced index: NA" << endl;
-   out << "    max replaced address: NA" << endl;
-   out << "    max replaced times: NA" << endl;
-}
-
-void
-DramDirectoryCache::aggregateStatistics(UInt64* histogram, UInt64& mean, UInt64& total, UInt64& max, SInt32& max_index, IntPtr& max_replaced_address, SInt32& max_replaced_times)
-{
-   mean = total = max = 0;
-   max_index = -1;
-   max_replaced_address = INVALID_ADDRESS;
-   max_replaced_times = 0;
-
    for (UInt32 i = 0; i < m_num_sets; i++)
    {
-      if (histogram[i] > max)
+      // max, min, average set size, set evictions
+      if (m_set_specific_address_map[i].size() > max_set_size)
       {
-         max = histogram[i];
-         max_index = i;
+         max_set_size = m_set_specific_address_map[i].size();
+         set_index_with_max_size = i;
       }
-      total += histogram[i];
+      if (m_set_specific_address_map[i].size() < min_set_size)
+      {
+         min_set_size = m_set_specific_address_map[i].size();
+         set_index_with_min_size = i;
+      }
+      if (m_set_replacement_histogram[i] > max_set_evictions)
+      {
+         max_set_evictions = m_set_replacement_histogram[i];
+         set_index_with_max_evictions = i;
+      }
+      total_evictions += m_set_replacement_histogram[i];
    }
 
-   map<IntPtr, SInt32>::iterator it;
-   for (it = m_replaced_address_list.begin(); it != m_replaced_address_list.end(); it++)
+   for (map<IntPtr,UInt64>::iterator it = m_replaced_address_map.begin(); \
+         it != m_replaced_address_map.end(); it++)
    {
-      if ((*it).second > max_replaced_times)
+      if ((*it).second > max_address_evictions)
       {
-         max_replaced_address = (*it).first;
-         max_replaced_times = (*it).second;
-      } 
+         max_address_evictions = (*it).second;
+         address_with_max_evictions = (*it).first;
+      }
    }
-   mean = total / m_num_sets;
+
+   // Total Number of Addresses
+   // Max Set Size, Average Set Size, Min Set Size
+   // Evictions: Average per set, Max, Address with max evictions
+   out << "Dram Directory Cache: " << endl;
+   out << "    Total Addresses: " << m_address_map.size() << endl;
+
+   out << "    Average set size: " << float(m_address_map.size()) / m_num_sets << endl;
+   out << "    Set index with max size: " << set_index_with_max_size << endl;
+   out << "    Max set size: " << max_set_size << endl;
+   out << "    Set index with min size: " << set_index_with_min_size << endl;
+   out << "    Min set size: " << min_set_size << endl;
+
+   out << "    Average evictions per set: " << float(total_evictions) / m_num_sets << endl;
+   out << "    Set index with max evictions: " << set_index_with_max_evictions << endl;
+   out << "    Max set evictions: " << max_set_evictions << endl;
+   
+   out << "    Address with max evictions: 0x" << hex << address_with_max_evictions << dec << endl;
+   out << "    Max address evictions: " << max_address_evictions << endl;
+#endif
+}
+
+void
+DramDirectoryCache::dummyOutputSummary(ostream& out)
+{
+#ifdef DETAILED_TRACKING_ENABLED
+   out << "Dram Directory Cache: " << endl;
+   out << "    Total Addresses: NA" << endl;
+
+   out << "    Average set size: NA" << endl;
+   out << "    Set index with max size: NA" << endl;
+   out << "    Max set size: NA" << endl;
+   out << "    Set index with min size: NA" << endl;
+   out << "    Min set size: NA" << endl;
+
+   out << "    Average evictions per set: NA" << endl;
+   out << "    Set index with max evictions: NA" << endl;
+   out << "    Max set evictions: NA" << endl;
+   
+   out << "    Address with max evictions: NA" << endl;
+   out << "    Max address evictions: NA" << endl;
+#endif
 }
 
 }

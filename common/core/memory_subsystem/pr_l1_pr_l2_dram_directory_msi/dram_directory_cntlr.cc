@@ -33,8 +33,8 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
          cache_block_size,
          dram_directory_max_hw_sharers,
          dram_directory_max_num_sharers,
-         dram_directory_cache_access_time,
          num_dram_cntlrs,
+         dram_directory_cache_access_time,
          m_shmem_perf_model);
    m_dram_directory_req_queue_list = new ReqQueueList();
 }

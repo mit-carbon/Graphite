@@ -411,6 +411,7 @@ MemoryManager::outputSummary(std::ostream &os)
    else
    {
       DramPerfModel::dummyOutputSummary(os);
+      DramDirectoryCache::dummyOutputSummary(os);
    }
 }
 

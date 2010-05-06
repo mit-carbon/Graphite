@@ -24,7 +24,9 @@ namespace PrL1PrL2DramDirectoryMSI
          std::vector<DirectoryEntry*> m_replaced_directory_entry_list;
          
          std::map<IntPtr,UInt64> m_address_map;
-         std::vector<std::set<IntPtr> > m_set_specific_address_set;
+         std::vector<std::map<IntPtr,UInt64> > m_set_specific_address_map;
+         std::map<IntPtr,UInt64> m_replaced_address_map;
+         std::vector<UInt64> m_set_replacement_histogram;
 
          UInt32 m_total_entries;
          UInt32 m_associativity;
@@ -37,8 +39,6 @@ namespace PrL1PrL2DramDirectoryMSI
          UInt32 m_log_num_cores;
          UInt32 m_log_num_dram_cntlrs;
 
-         IntPtr m_stack_lower_limit;
-         IntPtr m_stack_upper_limit;
          UInt32 m_log_stack_size;
 
          UInt32 m_dram_directory_cache_access_time;
@@ -61,8 +61,8 @@ namespace PrL1PrL2DramDirectoryMSI
                UInt32 cache_block_size,
                UInt32 max_hw_sharers,
                UInt32 max_num_sharers,
-               UInt32 dram_directory_cache_access_time,
                UInt32 num_dram_cntlrs,
+               UInt32 dram_directory_cache_access_time,
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCache();
 
@@ -72,5 +72,6 @@ namespace PrL1PrL2DramDirectoryMSI
          void getReplacementCandidates(IntPtr address, std::vector<DirectoryEntry*>& replacement_candidate_list);
 
          void outputSummary(std::ostream& os);
+         static void dummyOutputSummary(std::ostream& os);
    };
 }

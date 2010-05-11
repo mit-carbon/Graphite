@@ -4,6 +4,7 @@
 #include "message_types.h"
 #include "packetize.h"
 #include "network.h"
+#include "vm_manager.h"
 #include "syscall_server.h"
 #include "sync_server.h"
 #include "clock_skew_minimization_object.h"
@@ -22,6 +23,7 @@ class MCP : public Runnable
       void finish();
       Boolean finished() { return m_finished; };
 
+      VMManager* getVMManager() { return &m_vm_manager; }
       ClockSkewMinimizationServer* getClockSkewMinimizationServer() { return m_clock_skew_minimization_server; }
 
    private:
@@ -32,6 +34,7 @@ class MCP : public Runnable
       const UInt32 m_MCP_SERVER_MAX_BUFF;
       char *m_scratch;
 
+      VMManager m_vm_manager;
       SyscallServer m_syscall_server;
       SyncServer m_sync_server;
       ClockSkewMinimizationServer *m_clock_skew_minimization_server;

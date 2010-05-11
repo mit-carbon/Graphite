@@ -1,27 +1,7 @@
 #include "vm_manager.h"
 #include "simulator.h"
 #include <boost/lexical_cast.hpp>
-
 #include "log.h"
-
-VMManager *VMManager::m_singleton = NULL;
-
-void VMManager::allocate()
-{
-   assert (m_singleton == NULL);
-   m_singleton = new VMManager();
-}
-
-void VMManager::release()
-{
-   delete m_singleton;
-   m_singleton = NULL;
-}
-
-VMManager *VMManager::getSingleton()
-{
-   return m_singleton;
-}
 
 VMManager::VMManager()
 {

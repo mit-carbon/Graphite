@@ -392,8 +392,6 @@ int main(int argc, char *argv[])
 
    PinConfig::allocate();
 
-   VMManager::allocate();
-
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");
    RTN_AddInstrumentFunction(routineCallback, 0);

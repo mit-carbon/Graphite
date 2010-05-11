@@ -16,6 +16,7 @@ Lock Core::m_global_core_lock;
 
 Core::Core(SInt32 id)
    : m_core_id(id)
+   , m_core_state(IDLE)
 {
    LOG_PRINT("Core ctor for: %d", id);
 

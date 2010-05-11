@@ -45,7 +45,7 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
       UInt64 _last_sync_cycle_count;
       UInt64 _quantum;
       UInt64 _slack;
-      float _sleep_fraction;
+      volatile float _sleep_fraction;
 
       struct timeval _start_wall_clock_time;
 

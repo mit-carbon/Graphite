@@ -3,6 +3,7 @@
 #include "config.h"
 #include "packetize.h"
 #include "network.h"
+#include "fxsupport.h"
 #include "log.h"
 
 UInt64 RandomPairsSyncClient::MAX_CYCLE_COUNT = ((UInt64) 1) << 60;
@@ -205,13 +206,15 @@ RandomPairsSyncClient::synchronize(UInt64 time)
 
    if ((cycle_count - _last_sync_cycle_count) >= _quantum)
    {
-      LOG_PRINT("Core(%i): Starting Synchronization: cycle_count(%llu), LastSyncTime(%llu)", _core->getId(), cycle_count, _last_sync_cycle_count);
+      LOG_PRINT("Core(%i): Starting Synchronization: cycle_count(%llu), LastSyncTime(%llu)",
+            _core->getId(), cycle_count, _last_sync_cycle_count);
 
       _lock.acquire();
 
       _last_sync_cycle_count = (cycle_count / _quantum) * _quantum;
 
-      LOG_ASSERT_ERROR(_last_sync_cycle_count < MAX_CYCLE_COUNT, "_last_sync_cycle_count(%llu)", _last_sync_cycle_count);
+      LOG_ASSERT_ERROR(_last_sync_cycle_count < MAX_CYCLE_COUNT,
+            "_last_sync_cycle_count(%llu)", _last_sync_cycle_count);
 
       // Send SyncMsg to another core
       sendRandomSyncMsg();
@@ -238,13 +241,13 @@ RandomPairsSyncClient::sendRandomSyncMsg()
    LOG_ASSERT_ERROR(cycle_count < MAX_CYCLE_COUNT, "cycle_count(%llu)", cycle_count);
 
    UInt32 num_app_cores = Config::getSingleton()->getApplicationCores();
-   SInt32 offset = 1 + (SInt32) _rand_num.next((Random::value_t) (((float)num_app_cores - 1) / 2));
+   SInt32 offset = 1 + (SInt32) _rand_num.next((Random::value_t) ((num_app_cores - 1) / 2));
    core_id_t receiver = (_core->getId() + offset) % num_app_cores;
 
    LOG_ASSERT_ERROR((receiver >= 0) && (receiver < (core_id_t) num_app_cores), 
          "receiver(%i)", receiver);
 
-   LOG_PRINT("Core(%i) Sending SyncReq to %i", _core->getId(), receiver);
+   LOG_PRINT("Core(%i) Sending SyncReq to %i, Cycle Count(%llu)", _core->getId(), receiver, cycle_count);
 
    UnstructuredBuffer send_buf;
    send_buf << (UInt32) SyncMsg::REQ << cycle_count;
@@ -299,13 +302,21 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
       // elapsed_simulated_time, sleep_time - in cycles (of target architecture)
       // elapsed_wall_clock_time - in microseconds
       assert(elapsed_simulated_time != 0);
-      useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * ((float)elapsed_wall_clock_time / elapsed_simulated_time) * sleep_time);
+
+      // Save floating point state here
+      Fxsupport::getSingleton()->fxsave();
+
+      volatile float wall_clock_time_per_simulated_cycle = float(elapsed_wall_clock_time) / elapsed_simulated_time;
+      useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * wall_clock_time_per_simulated_cycle * sleep_time);
       if (sleep_wall_clock_time > 1000000)
       {
-         LOG_PRINT_WARNING("Large Sleep Time(%u microseconds), SimSleep Time(%llu), elapsed_wall_clock_time(%llu), elapsed_simulated_time(%llu)", sleep_wall_clock_time, sleep_time, elapsed_wall_clock_time, elapsed_simulated_time);
+         // LOG_PRINT_WARNING("Large Sleep Time(%u microseconds), SimSleep Time(%llu), elapsed_wall_clock_time(%llu), elapsed_simulated_time(%llu)", sleep_wall_clock_time, sleep_time, elapsed_wall_clock_time, elapsed_simulated_time);
          sleep_wall_clock_time = 1000000;
       }
-      
+     
+      // Restore floating point state here
+      Fxsupport::getSingleton()->fxrstor();
+
       _lock.release();
 
       assert(usleep(sleep_wall_clock_time) == 0);

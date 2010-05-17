@@ -31,82 +31,101 @@ void fillOperandListMemOps(OperandList *list, INS ins)
    // rewriteMemOp etc from redirect_memory.cc and it MUST BE
    // MAINTAINED to reflect that code.
 
-   // string ops
-   if ((INS_RepPrefix(ins) || INS_RepnePrefix(ins)))
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
-      if (INS_Opcode(ins) == XED_ICLASS_SCASB ||
-          INS_Opcode(ins) == XED_ICLASS_CMPSB)
+      // string ops
+      if ((INS_RepPrefix(ins) || INS_RepnePrefix(ins)))
       {
-         // handled by StringInstruction
-         return;
+         if (INS_Opcode(ins) == XED_ICLASS_SCASB ||
+             INS_Opcode(ins) == XED_ICLASS_CMPSB)
+         {
+            // handled by StringInstruction
+            return;
+         }
       }
-   }
 
-   // stack ops
-   if (INS_Opcode (ins) == XED_ICLASS_PUSH)
-   {
-      if (INS_OperandIsImmediate (ins, 0))
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
-      
-      else if (INS_OperandIsReg (ins, 0))
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
-
-      else if (INS_OperandIsMemory (ins, 0))
+      // stack ops
+      if (INS_Opcode (ins) == XED_ICLASS_PUSH)
       {
+         if (INS_OperandIsImmediate (ins, 0))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
+         
+         else if (INS_OperandIsReg (ins, 0))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
+
+         else if (INS_OperandIsMemory (ins, 0))
+         {
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
+         }
+      }
+      
+      else if (INS_Opcode (ins) == XED_ICLASS_POP)
+      {
+         if (INS_OperandIsReg (ins, 0))
+         {
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+         }
+
+         else if (INS_OperandIsMemory (ins, 0))
+         {
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
+         }
+      }
+     
+      else if (INS_IsCall (ins))
+      {
+         if (INS_OperandIsMemory (ins, 0))
+         {
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
+         }
+
+         else
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
+      }
+
+      else if (INS_IsRet (ins))
          list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+
+      else if (INS_Opcode (ins) == XED_ICLASS_LEAVE)
+         list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+
+      else if ((INS_Opcode (ins) == XED_ICLASS_PUSHF) || (INS_Opcode (ins) == XED_ICLASS_PUSHFD))
          list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
+
+      else if ((INS_Opcode (ins) == XED_ICLASS_POPF) || (INS_Opcode (ins) == XED_ICLASS_POPFD))
+         list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+   
+      // mem ops
+      else if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins))
+      {
+         if (INS_IsMemoryRead (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+
+         if (INS_HasMemoryRead2 (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+
+         if (INS_IsMemoryWrite (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
       }
    }
    
-   else if (INS_Opcode (ins) == XED_ICLASS_POP)
+   else // Sim()->getConfig()->getSimulationMode() == Config::LITE
    {
-      if (INS_OperandIsReg (ins, 0))
+      // mem ops
+      if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins))
       {
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+         if (INS_IsMemoryRead (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+
+         if (INS_HasMemoryRead2 (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+
+         if (INS_IsMemoryWrite (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
       }
-
-      else if (INS_OperandIsMemory (ins, 0))
-      {
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
-      }
-   }
-  
-   else if (INS_IsCall (ins))
-   {
-      if (INS_OperandIsMemory (ins, 0))
-      {
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
-      }
-
-      else
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
-   }
-
-   else if (INS_IsRet (ins))
-      list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-
-   else if (INS_Opcode (ins) == XED_ICLASS_LEAVE)
-      list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-
-   else if ((INS_Opcode (ins) == XED_ICLASS_PUSHF) || (INS_Opcode (ins) == XED_ICLASS_PUSHFD))
-      list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
-
-   else if ((INS_Opcode (ins) == XED_ICLASS_POPF) || (INS_Opcode (ins) == XED_ICLASS_POPFD))
-      list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-
-   // mem ops
-   else if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins))
-   {
-      if (INS_IsMemoryRead (ins))
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-
-      if (INS_HasMemoryRead2 (ins))
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-
-      if (INS_IsMemoryWrite (ins))
-         list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
    }
 }
 
@@ -186,8 +205,11 @@ VOID addInstructionModeling(INS ins)
 
       case OPCODE_SCASB:
       case OPCODE_CMPSB:
-         basic_block->push_back(new StringInstruction(list));
-         break;
+         if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+         {
+            basic_block->push_back(new StringInstruction(list));
+            break;
+         }
       
       default:
          basic_block->push_back(new GenericInstruction(list));

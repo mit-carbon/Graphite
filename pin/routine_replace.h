@@ -10,7 +10,6 @@ void setupCarbonSpawnThreadSpawnerStack (CONTEXT *ctx);
 void setupCarbonThreadSpawnerStack (CONTEXT *ctx);
 
 // Thread spawning and management
-void replacement_start (CONTEXT *ctxt);
 void replacementMain (CONTEXT *ctxt);
 void replacementGetThreadToSpawn (CONTEXT *ctxt);
 void replacementThreadStartNull (CONTEXT *ctxt);
@@ -60,7 +59,4 @@ void replacementDisableCacheCounters(CONTEXT *ctxt);
 
 void initialize_replacement_args (CONTEXT *ctxt, ...);
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val);
-
-void enablePerformanceModelsInCurrentProcess();
-void disablePerformanceModelsInCurrentProcess();
 #endif

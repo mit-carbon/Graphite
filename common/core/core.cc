@@ -292,7 +292,7 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
 
 // FIXME: This should actually be 'accessDataMemory()'
 /*
- * accessMemory (lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+ * accessMemory (lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
  *
  * Arguments:
  *   lock_signal :: NONE, LOCK, or UNLOCK
@@ -300,6 +300,7 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
  *   d_addr :: address of location we want to access (read or write)
  *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
  *   data_size :: size of data we must read/write
+ *   modeled :: says whether it is modeled or not
  *
  * Return Value:
  *   number of misses :: State the number of cache misses

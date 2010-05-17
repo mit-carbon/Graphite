@@ -21,6 +21,13 @@ struct NetworkModelAnalyticalParameters;
 class Config
 {
 public:
+   enum SimulationMode
+   {
+      FULL = 0,
+      LITE,
+      NUM_SIMULATION_MODES
+   };
+   
    typedef std::vector<UInt32> CoreToProcMap;
    typedef std::vector<core_id_t> CoreList;
    typedef std::vector<core_id_t>::const_iterator CLCI;
@@ -45,8 +52,8 @@ public:
 
    core_id_t getMainThreadCoreNum() { return 0;}
 
-   core_id_t getThreadSpawnerCoreNum (UInt32 proc_num) { return (getTotalCores() - (1 + getProcessCount() - proc_num)); }
-   core_id_t getCurrentThreadSpawnerCoreNum () { return (getTotalCores() - (1 + getProcessCount() - getCurrentProcessNum())); }
+   core_id_t getThreadSpawnerCoreNum(UInt32 proc_num);
+   core_id_t getCurrentThreadSpawnerCoreNum(); 
 
    // Return the number of modules (cores) in a given process
    UInt32 getNumCoresInProcess(UInt32 proc_num)
@@ -58,8 +65,8 @@ public:
    UInt32 getNumLocalCores() { return getNumCoresInProcess(getCurrentProcessNum()); }
 
    // Return the total number of modules in all processes
-   UInt32 getTotalCores() { return m_total_cores; }
-   UInt32 getApplicationCores() { return getTotalCores() - (1 + getProcessCount()); }
+   UInt32 getTotalCores();
+   UInt32 getApplicationCores();
 
    // Return an array of core numbers for a given process
    //  The returned array will have numMods(proc_num) elements
@@ -82,6 +89,9 @@ public:
    // Get CoreId length
    UInt32 getCoreIDLength()
    { return m_core_id_length; }
+
+   SimulationMode getSimulationMode()
+   { return m_simulation_mode; }
 
    // Knobs
    bool isSimulatingSharedMemory() const;
@@ -114,6 +124,9 @@ private:
 
    CommToCoreMap m_comm_to_core_map;
 
+   // Simulation Mode
+   SimulationMode m_simulation_mode;
+
    UInt32  m_mcp_process;          // The process where the MCP lives
 
    static Config *m_singleton;
@@ -126,6 +139,7 @@ private:
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
 
+   static SimulationMode parseSimulationMode(std::string mode);
    static UInt32 computeCoreIDLength(UInt32 core_count);
    static UInt32 getNearestAcceptableCoreCount(UInt32 core_count);
 };

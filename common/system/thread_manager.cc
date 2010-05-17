@@ -28,12 +28,15 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
       m_thread_state.resize(config->getTotalCores());
       m_thread_state[0].status = Core::RUNNING;
 
-      // Reserve core-id's 1 to (num_processes) for thread-spawners
-      UInt32 first_thread_spawner_id = Sim()->getConfig()->getTotalCores() - Sim()->getConfig()->getProcessCount() - 1;
-      UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
-      for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
+      if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
       {
-         m_thread_state[i].status = Core::RUNNING;
+         // Reserve core-id's 1 to (num_processes) for thread-spawners
+         UInt32 first_thread_spawner_id = Sim()->getConfig()->getTotalCores() - Sim()->getConfig()->getProcessCount() - 1;
+         UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
+         for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
+         {
+            m_thread_state[i].status = Core::RUNNING;
+         }
       }
 
       m_thread_state[config->getMCPCoreNum()].status = Core::RUNNING;
@@ -51,12 +54,15 @@ ThreadManager::~ThreadManager()
       m_thread_state[Config::getSingleton()->getMCPCoreNum()].status = Core::IDLE;
       LOG_ASSERT_ERROR(Config::getSingleton()->getMCPCoreNum() < (SInt32)m_thread_state.size(), "MCP core num out of range (!?)");
 
-      // Reserve core-id's 1 to (num_processes) for thread-spawners
-      UInt32 first_thread_spawner_id = Sim()->getConfig()->getTotalCores() - Sim()->getConfig()->getProcessCount() - 1;
-      UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
-      for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
+      if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
       {
-         m_thread_state[i].status = Core::IDLE;
+         // Reserve core-id's 1 to (num_processes) for thread-spawners
+         UInt32 first_thread_spawner_id = Sim()->getConfig()->getTotalCores() - Sim()->getConfig()->getProcessCount() - 1;
+         UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
+         for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
+         {
+            m_thread_state[i].status = Core::IDLE;
+         }
       }
 
       for (UInt32 i = 0; i < m_thread_state.size(); i++)
@@ -66,6 +72,8 @@ ThreadManager::~ThreadManager()
 
 void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 {
+   LOG_PRINT("onThreadStart(%i)", req->core_id);
+
    m_core_manager->initializeThread(req->core_id);
 
    if (req->core_id == Sim()->getConfig()->getCurrentThreadSpawnerCoreNum())
@@ -115,7 +123,6 @@ void ThreadManager::onThreadExit()
                 MCP_REQUEST_TYPE,
                 msg,
                 sizeof(SInt32)*2);
-
 }
 
 void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
@@ -132,7 +139,8 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
 
    wakeUpWaiter(core_id, time);
 
-   slaveTerminateThreadSpawnerAck(core_id);
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+      slaveTerminateThreadSpawnerAck(core_id);
 }
 
 /*
@@ -167,6 +175,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    core->setState(Core::STALLED);
 
    NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
+   
    LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
 
    // Set the CoreState to 'RUNNING'
@@ -187,12 +196,9 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    LOG_ASSERT_ERROR(m_master, "masterSpawnThread should only be called on master.");
    LOG_PRINT("(2) masterSpawnThread with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
 
-   // Mark the requesting thread as stalled
-   stallThread(req->requester);
-    
    // find core to use
    // FIXME: Load balancing?
-   for (SInt32 i = 0; i < (SInt32)m_thread_state.size(); i++)
+   for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
    {
       if (m_thread_state[i].status == Core::IDLE)
       {
@@ -202,18 +208,40 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    }
 
    LOG_ASSERT_ERROR(req->core_id != INVALID_CORE_ID, "No cores available for spawnThread request.");
-   
-   // spawn process on child
-   SInt32 dest_proc = Config::getSingleton()->getProcessNumForCore(req->core_id);
-   Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
 
-   req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_MASTER;
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+   {  
+      // Mark the requesting thread as stalled
+      stallThread(req->requester);
+       
+      // spawn process on child
+      SInt32 dest_proc = Config::getSingleton()->getProcessNumForCore(req->core_id);
+      Transport::Node *globalNode = Transport::getSingleton()->getGlobalNode();
 
-   LOG_PRINT("Sending thread spawn request to proc: %d", dest_proc);
-   globalNode->globalSend(dest_proc, req, sizeof(*req));
-   LOG_PRINT("Sent thread spawn request to proc: %d", dest_proc);
-   
-   LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Core id out of range: %d", req->core_id);
+      req->msg_type = LCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_MASTER;
+
+      globalNode->globalSend(dest_proc, req, sizeof(*req));
+      
+      LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Core id out of range: %d", req->core_id);
+   }
+   else // Sim()->getConfig()->getSimulationMode() == Config::LITE
+   {
+      LOG_PRINT("New Thread to be spawned with core id(%i)", req->core_id);
+      ThreadSpawnRequest *req_cpy = new ThreadSpawnRequest;
+      *req_cpy = *req;
+      
+      // Insert the request in the thread request queue and
+      // the thread request map
+      insertThreadSpawnRequest(req_cpy);
+      m_thread_spawn_sem.signal();
+         
+      Core *core = m_core_manager->getCurrentCore();
+      core->getNetwork()->netSend(req->requester, 
+            MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
+            &req->core_id,
+            sizeof(req->core_id));
+   }
+
    LOG_PRINT("Setting status[%i] -> INITIALIZING", req->core_id);
    m_thread_state[req->core_id].status = Core::INITIALIZING;
    LOG_PRINT("Done with (2)");
@@ -232,7 +260,6 @@ void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
    // Insert the request in the thread request queue and
    // the thread request map
    insertThreadSpawnRequest (req_cpy);
-   
    m_thread_spawn_sem.signal();
 }
 
@@ -284,20 +311,21 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
    LOG_ASSERT_ERROR(m_master, "masterSpawnThreadReply should only be called on master.");
    LOG_PRINT("(6) masterSpawnThreadReply with req: { fun: %p, arg: %p, req: %d, core: %d }", req->func, req->arg, req->requester, req->core_id);
 
-   // Resume the requesting thread
-   resumeThread(req->requester);
-
    // Set the state of the actual thread spawned to running
    LOG_PRINT("Setting status[%i] -> RUNNING", req->core_id);
    m_thread_state[req->core_id].status = Core::RUNNING;
 
-   Core *core = m_core_manager->getCurrentCore();
-   core->getNetwork()->netSend(req->requester, 
-                               MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
-                               &req->core_id,
-                               sizeof(req->core_id));
-   
-   
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+   {
+      // Resume the requesting thread
+      resumeThread(req->requester);
+
+      Core *core = m_core_manager->getCurrentCore();
+      core->getNetwork()->netSend(req->requester, 
+                                  MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
+                                  &req->core_id,
+                                  sizeof(req->core_id));
+   }
 }
 
 bool ThreadManager::areAllCoresRunning()
@@ -393,15 +421,15 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
    LOG_PRINT("Exiting wakeUpWaiter");
 }
 
-void ThreadManager::insertThreadSpawnRequest (ThreadSpawnRequest *req)
+void ThreadManager::insertThreadSpawnRequest(ThreadSpawnRequest *req)
 {
    // Insert the request in the thread request queue
    m_thread_spawn_lock.acquire();
    m_thread_spawn_list.push(req);
    m_thread_spawn_lock.release();
 }
-  
-void ThreadManager::terminateThreadSpawners ()
+
+void ThreadManager::terminateThreadSpawners()
 {
    LOG_PRINT ("In terminateThreadSpawner");
 
@@ -430,7 +458,7 @@ void ThreadManager::terminateThreadSpawners ()
    }
 }
 
-void ThreadManager::slaveTerminateThreadSpawner ()
+void ThreadManager::slaveTerminateThreadSpawner()
 {
    LOG_PRINT ("slaveTerminateThreadSpawner on proc %d", Config::getSingleton()->getCurrentProcessNum());
 
@@ -442,7 +470,7 @@ void ThreadManager::slaveTerminateThreadSpawner ()
    req->requester = INVALID_CORE_ID;
    req->core_id = INVALID_CORE_ID;
 
-   insertThreadSpawnRequest (req);
+   insertThreadSpawnRequest(req);
    m_thread_spawn_sem.signal();
 }
 
@@ -451,7 +479,7 @@ void ThreadManager::slaveTerminateThreadSpawnerAck(core_id_t core_id)
    Config *config = Config::getSingleton();
    for (UInt32 i = 0; i < config->getProcessCount(); i++)
    {
-      if (core_id == config->getThreadSpawnerCoreNum (i))
+      if (core_id == config->getThreadSpawnerCoreNum(i))
       {
          Transport::Node *node = m_core_manager->getCurrentCore()->getNetwork()->getTransport();
 

@@ -44,15 +44,24 @@ Config::Config()
       // TODO: these should be removed and queried directly from the cache
       m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
       m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
+
+      // Simulation Mode
+      m_simulation_mode = parseSimulationMode(Sim()->getCfg()->getString("general/mode"));
    }
    catch(...)
    {
-      fprintf(stderr, "Config obtained a bad value from config.\n");
-      assert(false);
+      fprintf(stderr, "ERROR: Config obtained a bad value from config.\n");
+      exit(EXIT_FAILURE);
    }
-   
+
    m_num_processes = m_knob_num_process;
    m_total_cores = m_knob_total_cores;
+
+   if ((m_simulation_mode == LITE) && (m_num_processes > 1))
+   {
+      fprintf(stderr, "ERROR: Use only 1 process in lite mode\n");
+      exit(EXIT_FAILURE);
+   }
 
    m_singleton = this;
 
@@ -63,7 +72,8 @@ Config::Config()
    m_total_cores += 1;
 
    // Add the thread-spawners (one for each process)
-   m_total_cores += m_num_processes;
+   if (m_simulation_mode == FULL)
+      m_total_cores += m_num_processes;
 
    // Adjust the number of cores corresponding to the network model we use
    m_total_cores = getNearestAcceptableCoreCount(m_total_cores);
@@ -77,6 +87,35 @@ Config::~Config()
 {
    // Clean up the dynamic memory we allocated
    delete [] m_proc_to_core_list_map;
+}
+
+UInt32 Config::getTotalCores()
+{
+   return m_total_cores;
+}
+
+UInt32 Config::getApplicationCores()
+{
+   if (m_simulation_mode == FULL)
+      return (getTotalCores() - (1 + getProcessCount()));
+   else
+      return (getTotalCores() - 1);
+}
+
+core_id_t Config::getThreadSpawnerCoreNum(UInt32 proc_num)
+{
+   if (m_simulation_mode == FULL)
+      return (getTotalCores() - (1 + getProcessCount() - proc_num));
+   else
+      return INVALID_CORE_ID;
+}
+
+core_id_t Config::getCurrentThreadSpawnerCoreNum()
+{
+   if (m_simulation_mode == FULL)
+      return (getTotalCores() - (1 + getProcessCount() - getCurrentProcessNum()));
+   else
+      return INVALID_CORE_ID;
 }
 
 UInt32 Config::computeCoreIDLength(UInt32 core_count)
@@ -215,6 +254,18 @@ UInt32 Config::getCoreFromCommId(UInt32 comm_id)
 {
    CommToCoreMap::iterator it = m_comm_to_core_map.find(comm_id);
    return it == m_comm_to_core_map.end() ? INVALID_CORE_ID : it->second;
+}
+
+Config::SimulationMode Config::parseSimulationMode(string mode)
+{
+   if (mode == "full")
+      return FULL;
+   else if (mode == "lite")
+      return LITE;
+   else
+      LOG_PRINT_ERROR("Unrecognized Simulation Mode(%s)", mode.c_str());
+
+   return NUM_SIMULATION_MODES;
 }
 
 void Config::getNetworkModels(UInt32 *models) const

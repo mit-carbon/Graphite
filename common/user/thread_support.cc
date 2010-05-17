@@ -62,6 +62,9 @@ void CarbonDequeueThreadSpawnReq (ThreadSpawnRequest *req)
 
 void *CarbonSpawnManagedThread(void *)
 {
+   LOG_ASSERT_ERROR(Sim()->getConfig()->getSimulationMode() == Config::FULL,
+         "Function cannot be called in lite mode");
+
    ThreadSpawnRequest thread_req;
 
    CarbonDequeueThreadSpawnReq (&thread_req);
@@ -78,6 +81,9 @@ void *CarbonSpawnManagedThread(void *)
 // This function spawns the thread spawner
 int CarbonSpawnThreadSpawner()
 {
+   LOG_ASSERT_ERROR(Sim()->getConfig()->getSimulationMode() == Config::FULL,
+         "Function cannot be called in lite mode");
+
    setvbuf( stdout, NULL, _IONBF, 0 );
 
    pthread_t thread;
@@ -95,6 +101,9 @@ int CarbonSpawnThreadSpawner()
 // This function will spawn threads provided by the sim
 void *CarbonThreadSpawner(void *)
 {
+   LOG_ASSERT_ERROR(Sim()->getConfig()->getSimulationMode() == Config::FULL,
+         "Function cannot be called in lite mode");
+
    ThreadSpawnRequest req = {-1, NULL, NULL, -1, Sim()->getConfig()->getCurrentThreadSpawnerCoreNum() };
 
    CarbonThreadStart (&req);
@@ -123,7 +132,7 @@ void *CarbonThreadSpawner(void *)
       }
    }
 
-   CarbonThreadExit ();
+   CarbonThreadExit();
 
    return NULL;
 }

@@ -101,7 +101,8 @@ Simulator::~Simulator()
 
    LOG_PRINT("Simulator dtor starting...");
 
-   if (m_config.getCurrentProcessNum() == 0)
+   if ((m_config.getCurrentProcessNum() == 0) && \
+      (m_config.getSimulationMode() == Config::FULL))
       m_thread_manager->terminateThreadSpawners();
 
    broadcastFinish();
@@ -228,3 +229,18 @@ bool Simulator::finished()
 {
    return m_finished;
 }
+
+void Simulator::enablePerformanceModelsInCurrentProcess()
+{
+   Sim()->startTimer();
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->enablePerformanceModels();
+}
+
+void Simulator::disablePerformanceModelsInCurrentProcess()
+{
+   Sim()->stopTimer();
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
+}
+

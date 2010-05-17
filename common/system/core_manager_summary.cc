@@ -3,6 +3,7 @@
 #include <sstream>
 #include <algorithm>
 #include "log.h"
+#include "simulator.h"
 #include "config.h"
 #include "transport.h"
 #include "core.h"
@@ -158,12 +159,15 @@ void addColHeadings(Table &table)
       table(0, i+1) = heading.str();
    }
 
-   for (unsigned int i = 0; i < Config::getSingleton()->getProcessCount(); i++)
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
-      unsigned int core_num = Config::getSingleton()->getThreadSpawnerCoreNum(i);
-      stringstream heading;
-      heading << "TS " << i;
-      table(0, core_num + 1) = heading.str();
+      for (unsigned int i = 0; i < Config::getSingleton()->getProcessCount(); i++)
+      {
+         unsigned int core_num = Config::getSingleton()->getThreadSpawnerCoreNum(i);
+         stringstream heading;
+         heading << "TS " << i;
+         table(0, core_num + 1) = heading.str();
+      }
    }
 
    table(0, Config::getSingleton()->getMCPCoreNum()+1) = "MCP";

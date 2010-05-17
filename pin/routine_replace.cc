@@ -41,8 +41,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    // TODO: Check that the starting stack is located below the text segment
    // thread management
-   if (name == "_start") msg_ptr = AFUNPTR (replacement_start);
-   else if (name == "main") msg_ptr = AFUNPTR (replacementMain);
+   if (name == "main") msg_ptr = AFUNPTR (replacementMain);
    else if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(replacementGetThreadToSpawn);
    else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR (replacementThreadStartNull);
    else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR (replacementThreadExitNull);
@@ -89,13 +88,25 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
-   // turn off performance modeling after main()
+   // Turn off performance modeling at _start()
+   if (name == "_start")
+   {
+      RTN_Open (rtn);
+
+      RTN_InsertCall (rtn, IPOINT_BEFORE,
+                      AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
+                      IARG_END);
+
+      RTN_Close (rtn);
+   }
+   
+   // Turn off performance modeling after main()
    if (name == "main")
    {
       RTN_Open (rtn);
 
       RTN_InsertCall (rtn, IPOINT_AFTER,
-                      disablePerformanceModelsInCurrentProcess,
+                      AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
                       IARG_END);
 
       RTN_Close (rtn);
@@ -119,11 +130,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       return false;
    }
-}
-
-void replacement_start (CONTEXT *ctxt)
-{
-   return;
 }
 
 void replacementMain (CONTEXT *ctxt)
@@ -151,8 +157,8 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
-      enablePerformanceModelsInCurrentProcess();
-      
+      Simulator::enablePerformanceModelsInCurrentProcess();
+
       spawnThreadSpawner(ctxt);
 
       LOG_PRINT("ReplaceMain end");
@@ -161,13 +167,12 @@ void replacementMain (CONTEXT *ctxt)
    }
    else
    {
-      // FIXME: 
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
       core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
 
-      enablePerformanceModelsInCurrentProcess();
+      Simulator::enablePerformanceModelsInCurrentProcess();
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -198,20 +203,6 @@ void replacementMain (CONTEXT *ctxt)
 
       exit (0);
    }
-}
-
-void enablePerformanceModelsInCurrentProcess()
-{
-   Sim()->startTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromIndex(i)->enablePerformanceModels();
-}
-
-void disablePerformanceModelsInCurrentProcess()
-{
-   Sim()->stopTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
 }
 
 void replacementGetThreadToSpawn (CONTEXT *ctxt)
@@ -752,11 +743,9 @@ void replacementPthreadJoin (CONTEXT *ctxt)
          IARG_END);
 
    //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
-   if (return_value != NULL)
-   {
-      fprintf(stdout, "Warning: pthread_join() is expecting a return value to be passed through value_ptr input, which is unsupported.\n");
-   }
-      
+   LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value \
+         to be passed through value_ptr input, which is unsupported");
+   
    CarbonJoinThread ((carbon_thread_t) thread_id);
 
    //pthread_join() expects a return value of 0 on success

@@ -372,6 +372,9 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          __attribute(__unused__) Core *core = Sim()->getCoreManager()->getCurrentCore();
          LOG_ASSERT_ERROR(core, "core(NULL)");
 
+         // Copy over thread stack data
+         // copySpawnedThreadStackData(reg_esp);
+
          // Wait to make sure that the spawner has written stuff back to memory
          // FIXME: What is this for(?) This seems arbitrary
          GetLock (&clone_memory_update_lock, 2);

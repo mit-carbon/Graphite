@@ -26,13 +26,13 @@ DramDirectoryCache::DramDirectoryCache(
       UInt32 max_hw_sharers,
       UInt32 max_num_sharers,
       UInt32 num_dram_cntlrs,
-      UInt32 dram_directory_cache_access_time,
+      UInt64 dram_directory_cache_access_delay_in_ns,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_total_entries(total_entries),
    m_associativity(associativity),
    m_cache_block_size(cache_block_size),
-   m_dram_directory_cache_access_time(dram_directory_cache_access_time),
+   m_dram_directory_cache_access_delay_in_ns(dram_directory_cache_access_delay_in_ns),
    m_shmem_perf_model(shmem_perf_model)
 {
    m_num_sets = m_total_entries / m_associativity;
@@ -41,6 +41,10 @@ DramDirectoryCache::DramDirectoryCache(
    m_directory = new Directory(directory_type_str, total_entries, max_hw_sharers, max_num_sharers);
 
    initializeParameters(num_dram_cntlrs);
+   
+   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(m_memory_manager->getCore()->getId());
+   m_dram_directory_cache_access_delay_in_clock_cycles = \
+      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
 }
 
 DramDirectoryCache::~DramDirectoryCache()
@@ -76,7 +80,7 @@ DirectoryEntry*
 DramDirectoryCache::getDirectoryEntry(IntPtr address)
 {
    if (m_shmem_perf_model)
-      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_time);
+      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_delay_in_clock_cycles);
 
    IntPtr tag;
    UInt32 set_index;
@@ -142,7 +146,7 @@ DirectoryEntry*
 DramDirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
 {
    if (m_shmem_perf_model)
-      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_time);
+      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_delay_in_clock_cycles);
 
    IntPtr tag;
    UInt32 set_index;
@@ -218,6 +222,13 @@ DramDirectoryCache::computeSetIndex(IntPtr address)
                            & ((1 << m_log_num_cores) - 1);
 
    return ((core_id ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
+}
+
+void
+DramDirectoryCache::updateInternalVariablesOnFrequencyChange(volatile float core_frequency)
+{
+   m_dram_directory_cache_access_delay_in_clock_cycles = \
+      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
 }
 
 void

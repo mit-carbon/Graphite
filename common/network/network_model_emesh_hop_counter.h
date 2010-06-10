@@ -8,7 +8,7 @@
 class NetworkModelEMeshHopCounter : public NetworkModel
 {
 public:
-   NetworkModelEMeshHopCounter(Network *net);
+   NetworkModelEMeshHopCounter(Network *net, SInt32 network_id, float network_frequency);
    ~NetworkModelEMeshHopCounter();
 
    void routePacket(const NetPacket &pkt,
@@ -32,7 +32,7 @@ private:
    
    SInt32 _meshWidth;
    SInt32 _meshHeight;
-   
+
    bool _enabled;
 
    Lock _lock;

@@ -393,6 +393,36 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
             IARG_END);
    }
+
+   // Frequency Scaling Functions
+   else if (rtn_name == "getCoreFrequency")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(void),
+            CALLINGSTD_DEFAULT,
+            "getCoreFrequency",
+            PIN_PARG(float*),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(getCoreFrequency),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_END);
+   }
+   else if (rtn_name == "setCoreFrequency")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(void),
+            CALLINGSTD_DEFAULT,
+            "setCoreFrequency",
+            PIN_PARG(float*),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(setCoreFrequency),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_END);
+   }
 }
 
 AFUNPTR getFunptr(CONTEXT* context, string func_name)

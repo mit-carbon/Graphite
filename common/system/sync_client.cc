@@ -3,6 +3,7 @@
 #include "core.h"
 #include "packetize.h"
 #include "mcp.h"
+#include "clock_converter.h"
 
 #include <iostream>
 
@@ -47,7 +48,9 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << *mux << start_time;
 
@@ -72,7 +75,13 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    m_recv_buff >> time;
 
    if (time > start_time)
-      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
+   {
+      UInt64 cycles_elapsed = convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, \
+            time - start_time, \
+            static_cast<void*>(m_core));
+
+      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+   }
 
    delete [](Byte*) recv_pkt.data;
 }
@@ -85,7 +94,9 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << *mux << start_time;
 
@@ -111,7 +122,9 @@ void SyncClient::condInit(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_INIT;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << *cond << start_time;
 
@@ -134,7 +147,9 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_COND_WAIT;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << *cond << *mux << start_time;
 
@@ -159,7 +174,13 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    m_recv_buff >> time;
 
    if (time > start_time)
-      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
+   {
+      UInt64 cycles_elapsed = convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, \
+            time  - start_time, \
+            static_cast<void*>(m_core));
+
+      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+   }
 
    delete [](Byte*) recv_pkt.data;
 }
@@ -172,7 +193,9 @@ void SyncClient::condSignal(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << *cond << start_time;
 
@@ -198,7 +221,9 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << *cond << start_time;
 
@@ -224,7 +249,9 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 
    int msg_type = MCP_MESSAGE_BARRIER_INIT;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << count << start_time;
 
@@ -247,7 +274,9 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
 
    int msg_type = MCP_MESSAGE_BARRIER_WAIT;
 
-   UInt64 start_time = m_core->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         m_core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(m_core));
 
    m_send_buff << msg_type << *barrier << start_time;
 
@@ -272,8 +301,13 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    m_recv_buff >> time;
 
    if (time > start_time)
-      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(time - start_time));
+   {
+      UInt64 cycles_elapsed = convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, \
+            time - start_time, \
+            static_cast<void*>(m_core));
+
+      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+   }
 
    delete [](Byte*) recv_pkt.data;
 }
-

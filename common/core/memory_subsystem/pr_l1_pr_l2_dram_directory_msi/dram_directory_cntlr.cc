@@ -16,7 +16,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
       UInt32 dram_directory_max_num_sharers,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
-      UInt32 dram_directory_cache_access_time,
+      UInt64 dram_directory_cache_access_delay_in_ns,
       UInt32 num_dram_cntlrs,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
@@ -34,7 +34,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
          dram_directory_max_hw_sharers,
          dram_directory_max_num_sharers,
          num_dram_cntlrs,
-         dram_directory_cache_access_time,
+         dram_directory_cache_access_delay_in_ns,
          m_shmem_perf_model);
    m_dram_directory_req_queue_list = new ReqQueueList();
 }

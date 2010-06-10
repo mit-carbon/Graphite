@@ -12,7 +12,6 @@ class NetworkModelAtacOpticalBus : public NetworkModel
    private:
       UInt64 m_optical_latency;
       UInt32 m_optical_bandwidth;
-      UInt32 m_num_application_cores;
       UInt32 m_total_cores;
  
       QueueModel* m_ejection_port_queue_model;
@@ -35,12 +34,12 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       UInt64 computeProcessingTime(UInt32 pkt_length);
 
    public:
-      NetworkModelAtacOpticalBus(Network *net);
+      NetworkModelAtacOpticalBus(Network *net, SInt32 network_id, float network_frequency);
       ~NetworkModelAtacOpticalBus();
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
       void processReceivedPacket(NetPacket& pkt);
-      
+
       void enable();
       void disable();
       

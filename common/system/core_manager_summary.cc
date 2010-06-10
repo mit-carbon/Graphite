@@ -152,14 +152,20 @@ void addRowHeadings(Table &table, const vector<string> &summaries)
 
 void addColHeadings(Table &table)
 {
-   for (Table::size_type i = 0; i < Config::getSingleton()->getApplicationCores(); i++)
+   UInt32 num_non_system_cores;
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
+      num_non_system_cores = Config::getSingleton()->getTotalCores() - Config::getSingleton()->getProcessCount() - 1;
+   else // Config::getSingleton()->getSimulationMode() == Config::LITE
+      num_non_system_cores = Config::getSingleton()->getTotalCores() - 1;
+
+   for (Table::size_type i = 0; i < num_non_system_cores; i++)
    {
       stringstream heading;
       heading << "Core " << i;
       table(0, i+1) = heading.str();
    }
 
-   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
    {
       for (unsigned int i = 0; i < Config::getSingleton()->getProcessCount(); i++)
       {

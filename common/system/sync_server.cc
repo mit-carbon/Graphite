@@ -370,4 +370,3 @@ void SyncServer::barrierWait(core_id_t core_id)
       m_network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
    }
 }
-

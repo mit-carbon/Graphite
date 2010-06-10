@@ -1,6 +1,7 @@
 #include "dram_cntlr.h"
 #include "memory_manager.h"
 #include "core.h"
+#include "clock_converter.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -9,7 +10,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 DramCntlr::DramCntlr(MemoryManager* memory_manager,
       float dram_access_cost,
       float dram_bandwidth,
-      float core_frequency,
       bool dram_queue_model_enabled,
       std::string dram_queue_model_type,
       UInt32 cache_block_size,
@@ -20,7 +20,6 @@ DramCntlr::DramCntlr(MemoryManager* memory_manager,
 {
    m_dram_perf_model = new DramPerfModel(dram_access_cost, 
          dram_bandwidth,
-         core_frequency, 
          dram_queue_model_enabled,
          dram_queue_model_type, 
          cache_block_size);
@@ -69,10 +68,14 @@ DramCntlr::putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf)
 UInt64
 DramCntlr::runDramPerfModel(core_id_t requester)
 {
-   UInt64 pkt_time = getShmemPerfModel()->getCycleCount();
+   UInt64 pkt_cycle_count = getShmemPerfModel()->getCycleCount();
    UInt64 pkt_size = (UInt64) getCacheBlockSize();
+   
+   UInt64 pkt_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, pkt_cycle_count, static_cast<void*>(m_memory_manager->getCore()));
+
    UInt64 dram_access_latency = m_dram_perf_model->getAccessLatency(pkt_time, pkt_size, requester);
-   return dram_access_latency;
+   
+   return convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, dram_access_latency, static_cast<void*>(m_memory_manager->getCore()));
 }
 
 void

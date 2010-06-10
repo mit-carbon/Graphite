@@ -6,6 +6,7 @@
 #include "memory_manager_base.h"
 #include "simulator.h"
 #include "core_manager.h"
+#include "clock_converter.h"
 #include "log.h"
 
 using namespace std;
@@ -32,11 +33,13 @@ Network::Network(Core *core)
    for (SInt32 i = 0; i < NUM_PACKET_TYPES; i++)
       _callbacks[i] = NULL;
 
-   UInt32 modelTypes[NUM_STATIC_NETWORKS];
-   Config::getSingleton()->getNetworkModels(modelTypes);
-
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
-      _models[i] = NetworkModel::createModel(this, modelTypes[i], (EStaticNetwork)i);
+   {
+      UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
+      volatile float network_frequency = Config::getSingleton()->getNetworkFrequency(i);
+      
+      _models[i] = NetworkModel::createModel(this, i, network_model, network_frequency);
+   }
 
    LOG_PRINT("Initialized.");
 }
@@ -88,10 +91,12 @@ void Network::netPullFromTransport()
       LOG_PRINT("Entering netPullFromTransport");
 
       NetPacket packet(_transport->recv());
- 
+
       LOG_PRINT("Pull packet : type %i, from %i, time %llu", (SInt32)packet.type, packet.sender, packet.time);
-      assert(0 <= packet.sender && packet.sender < _numMod);
-      LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES, "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
+      LOG_ASSERT_ERROR(0 <= packet.sender && packet.sender < _numMod,
+            "Invalid Packet Sender(%i)", packet.sender);
+      LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES,
+            "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
 
       // was this packet sent to us, or should it just be forwarded?
       if (packet.receiver != _core->getId())
@@ -114,6 +119,12 @@ void Network::netPullFromTransport()
       NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
       model->processReceivedPacket(packet);
 
+      // Convert from network cycle count to core cycle count
+      packet.time = convertCycleCount(NETWORK_CLOCK_TO_CORE_CLOCK, \
+            packet.time, \
+            static_cast<void*>(_core), \
+            static_cast<void*>(_models[g_type_to_static_network_map[packet.type]]));
+ 
       // asynchronous I/O support
       NetworkCallback callback = _callbacks[packet.type];
 
@@ -144,21 +155,10 @@ void Network::netPullFromTransport()
    while (_transport->query());
 }
 
-// FIXME: Can forwardPacket be subsumed by netSend?
-
-void Network::forwardPacket(NetPacket& packet)
+SInt32 Network::forwardPacket(NetPacket& packet)
 {
-   netSend(packet);
-}
-
-NetworkModel* Network::getNetworkModelFromPacketType(PacketType packet_type)
-{
-   return _models[g_type_to_static_network_map[packet_type]];
-}
-
-SInt32 Network::netSend(NetPacket& packet)
-{
-   assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
+   LOG_ASSERT_ERROR(packet.type >= 0 && packet.type < NUM_PACKET_TYPES,
+         "packet.type(%u)", packet.type);
 
    NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
 
@@ -166,15 +166,14 @@ SInt32 Network::netSend(NetPacket& packet)
    model->routePacket(packet, hopVec);
 
    Byte *buffer = packet.makeBuffer();
-   UInt64 start_time = packet.time;
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
       LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, core_id %i, time %llu",
             (SInt32) packet.type, packet.sender, hopVec[i].final_dest, hopVec[i].next_dest, _core->getId(), hopVec[i].time);
-      // LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
+      LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
 
-      // Do a shortcut here
+      // Do a shared memory shortcut here
       if ((Config::getSingleton()->getProcessCount() == 1) && (hopVec[i].final_dest != NetPacket::BROADCAST))
       {
          // 1) Process Count = 1
@@ -197,9 +196,6 @@ SInt32 Network::netSend(NetPacket& packet)
 
       NetPacket* buff_pkt = (NetPacket*) buffer;
 
-      if (_core->getId() == buff_pkt->sender)
-         buff_pkt->start_time = start_time;;
-      
       buff_pkt->time = hopVec[i].time;
       buff_pkt->receiver = hopVec[i].final_dest;
 
@@ -211,6 +207,26 @@ SInt32 Network::netSend(NetPacket& packet)
    delete [] buffer;
 
    return packet.length;
+}
+
+NetworkModel* Network::getNetworkModelFromPacketType(PacketType packet_type)
+{
+   return _models[g_type_to_static_network_map[packet_type]];
+}
+
+SInt32 Network::netSend(NetPacket& packet)
+{
+   // Convert from core cycle count to network cycle count
+   packet.time = convertCycleCount(CORE_CLOCK_TO_NETWORK_CLOCK, \
+         packet.time, \
+         static_cast<void*>(_core), \
+         static_cast<void*>(_models[g_type_to_static_network_map[packet.type]]));
+
+   // Note the start time
+   packet.start_time = packet.time;
+
+   // Call forwardPacket(packet)
+   return forwardPacket(packet);
 }
 
 // Stupid helper class to eliminate special cases for empty

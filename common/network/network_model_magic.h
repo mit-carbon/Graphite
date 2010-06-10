@@ -16,7 +16,7 @@ class NetworkModelMagic : public NetworkModel
       UInt64 _num_bytes;
 
    public:
-      NetworkModelMagic(Network *net);
+      NetworkModelMagic(Network *net, SInt32 network_id, float network_frequency);
       ~NetworkModelMagic() { }
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);

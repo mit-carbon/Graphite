@@ -8,8 +8,8 @@
 #include "core.h"
 #include "memory_manager_base.h"
 
-NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net)
-   : NetworkModel(net)
+NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id, float network_frequency)
+   : NetworkModel(net, network_id, network_frequency)
    , _enabled(false)
    , _num_packets(0)
    , _num_bytes(0)

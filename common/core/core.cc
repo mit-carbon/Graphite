@@ -78,7 +78,7 @@ void Core::outputSummary(std::ostream &os)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      getShmemPerfModel()->outputSummary(os);
+      getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getId()));
       getMemoryManager()->outputSummary(os);
    }
 }
@@ -157,6 +157,14 @@ void Core::disablePerformanceModels()
    getMemoryManager()->disableModels();
    getNetwork()->disableModels();
    getPerformanceModel()->disable();
+}
+
+void
+Core::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+{
+   getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
+   getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
+   getMemoryManager()->updateInternalVariablesOnFrequencyChange(frequency);
 }
 
 UInt64
@@ -277,17 +285,18 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
         address, data_size);
 
    // Calculate the round-trip time
-   UInt64 shmem_time = final_time - initial_time;
+   UInt64 memory_access_latency = final_time - initial_time;
 
    if (modeled)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(shmem_time, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, \
+            address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
       m_performance_model->pushDynamicInstructionInfo(info);
 
-      getShmemPerfModel()->incrTotalMemoryAccessLatency(shmem_time);
+      getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);
    }
 
-   return make_pair<UInt32, UInt64>(num_misses, shmem_time);
+   return make_pair<UInt32, UInt64>(num_misses, memory_access_latency);
 }
 
 // FIXME: This should actually be 'accessDataMemory()'

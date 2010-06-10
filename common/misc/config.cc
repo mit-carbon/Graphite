@@ -56,6 +56,7 @@ Config::Config()
 
    m_num_processes = m_knob_num_process;
    m_total_cores = m_knob_total_cores;
+   m_application_cores = m_total_cores;
 
    if ((m_simulation_mode == LITE) && (m_num_processes > 1))
    {
@@ -75,8 +76,14 @@ Config::Config()
    if (m_simulation_mode == FULL)
       m_total_cores += m_num_processes;
 
+   // Parse Network Models - Need to be done here to initialize some parameters
+   parseNetworkParameters();
+
    // Adjust the number of cores corresponding to the network model we use
    m_total_cores = getNearestAcceptableCoreCount(m_total_cores);
+
+   // Parse Core Models
+   parseCoreParameters();
 
    m_core_id_length = computeCoreIDLength(m_total_cores);
 
@@ -96,10 +103,7 @@ UInt32 Config::getTotalCores()
 
 UInt32 Config::getApplicationCores()
 {
-   if (m_simulation_mode == FULL)
-      return (getTotalCores() - (1 + getProcessCount()));
-   else
-      return (getTotalCores() - 1);
+   return m_application_cores;
 }
 
 core_id_t Config::getThreadSpawnerCoreNum(UInt32 proc_num)
@@ -268,52 +272,211 @@ Config::SimulationMode Config::parseSimulationMode(string mode)
    return NUM_SIMULATION_MODES;
 }
 
-void Config::getNetworkModels(UInt32 *models) const
+void Config::parseCoreParameters()
 {
+   // Default values are as follows:
+   // 1) Number of cores -> Number of application cores
+   // 2) Frequency -> 1 GHz
+   // 3) Core Type -> simple
+
+   const UInt32 DEFAULT_NUM_CORES = getApplicationCores();
+   const float DEFAULT_FREQUENCY = 1;
+   const string DEFAULT_CORE_TYPE = "magic";
+
+   string core_parameter_tuple_str;
+   vector<string> core_parameter_tuple_vec;
+   try
+   {
+      core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/core/model_list");
+   }
+   catch(...)
+   {
+      fprintf(stderr, "Could not read perf_model/core/model_list from the cfg file\n");
+      exit(EXIT_FAILURE);
+   }
+
+   UInt32 num_initialized_cores = 0;
+
+   parseList(core_parameter_tuple_str, core_parameter_tuple_vec, "<>");
+   
+   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin(); \
+         tuple_it != core_parameter_tuple_vec.end(); tuple_it++)
+   {
+      // Initializing using default values
+      UInt32 num_cores = DEFAULT_NUM_CORES;
+      float frequency = DEFAULT_FREQUENCY;
+      string core_type = DEFAULT_CORE_TYPE;
+
+      vector<string> core_parameter_tuple;
+      parseList(*tuple_it, core_parameter_tuple, ",");
+     
+      SInt32 param_num = 0; 
+      for (vector<string>::iterator param_it = core_parameter_tuple.begin(); \
+            param_it != core_parameter_tuple.end(); param_it ++)
+      {
+         if (*param_it != "default")
+         {
+            switch (param_num)
+            {
+               case 0:
+                  convertFromString<UInt32>(num_cores, *param_it);
+                  break;
+
+               case 1:
+                  convertFromString<float>(frequency, *param_it);
+                  break;
+
+               case 2:
+                  core_type = trimSpaces(*param_it);
+                  break;
+
+               default:
+                  fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
+                  exit(EXIT_FAILURE);
+                  break;
+            }
+         }
+         param_num ++;
+      }
+
+      // Append these values to an internal list
+      for (UInt32 i = num_initialized_cores; i < num_initialized_cores + num_cores; i++)
+      {
+         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency));
+      }
+      num_initialized_cores += num_cores;
+
+      if (num_initialized_cores > getApplicationCores())
+      {
+         fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
+            num_initialized_cores, getApplicationCores());
+         exit(EXIT_FAILURE);
+      }
+   }
+   
+   if (num_initialized_cores != getApplicationCores())
+   {
+      fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
+         num_initialized_cores, getApplicationCores());
+      exit(EXIT_FAILURE);
+   }
+
+   for (UInt32 i = getApplicationCores(); i < getTotalCores(); i++)
+   {
+      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY));
+   }
+}
+
+void Config::parseNetworkParameters()
+{
+   const string DEFAULT_NETWORK_TYPE = "magic";
+   const float DEFAULT_FREQUENCY = 1;           // In GHz
+
+   string network_parameters_list[NUM_STATIC_NETWORKS];
    try
    {
       config::Config *cfg = Sim()->getCfg();
-      models[STATIC_NETWORK_USER_1] = NetworkModel::parseNetworkType(cfg->getString("network/user_model_1"));
-      models[STATIC_NETWORK_USER_2] = NetworkModel::parseNetworkType(cfg->getString("network/user_model_2"));
-      models[STATIC_NETWORK_MEMORY_1] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_1"));
-      models[STATIC_NETWORK_MEMORY_2] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_2"));
-      models[STATIC_NETWORK_SYSTEM] = NetworkModel::parseNetworkType(cfg->getString("network/system_model"));
+      network_parameters_list[STATIC_NETWORK_USER_1] = cfg->getString("network/user_model_1");
+      network_parameters_list[STATIC_NETWORK_USER_2] = cfg->getString("network/user_model_2");
+      network_parameters_list[STATIC_NETWORK_MEMORY_1] = cfg->getString("network/memory_model_1");
+      network_parameters_list[STATIC_NETWORK_MEMORY_2] = cfg->getString("network/memory_model_2");
+      network_parameters_list[STATIC_NETWORK_SYSTEM] = cfg->getString("network/system_model");
    }
    catch (...)
    {
-      LOG_PRINT_ERROR("Exception while reading network model types.");
+      fprintf(stderr, "Unable to read network parameters from the cfg file\n");
+      exit(EXIT_FAILURE);
    }
+
+   for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      vector<string> network_parameters;
+      parseList(network_parameters_list[i], network_parameters, ",");
+      
+      if (!((network_parameters.size() > 0) && (network_parameters.size() <= 2)))
+      {
+         fprintf(stderr, "network_parameters.size(%u)\n", (UInt32) network_parameters.size());
+         exit(EXIT_FAILURE);
+      }
+      
+      string network_type = DEFAULT_NETWORK_TYPE;
+      float frequency = DEFAULT_FREQUENCY;
+
+      network_type = trimSpaces(network_parameters[0]);
+      if (network_parameters.size() > 1)
+         convertFromString<float>(frequency, network_parameters[1]);
+
+      m_network_parameters_vec.push_back(NetworkParameters(network_type, frequency));
+   }
+}
+
+string Config::getCoreType(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
+         "m_core_parameters_vec.size(%u), total cores(%u)",
+         m_core_parameters_vec.size(), getTotalCores());
+
+   return m_core_parameters_vec[core_id].getType();
+}
+
+volatile float Config::getCoreFrequency(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
+         "m_core_parameters_vec.size(%u), total cores(%u)",
+         m_core_parameters_vec.size(), getTotalCores());
+
+   return m_core_parameters_vec[core_id].getFrequency();
+}
+
+void Config::setCoreFrequency(core_id_t core_id, volatile float frequency)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
+         "m_core_parameters_vec.size(%u), total cores(%u)",
+         m_core_parameters_vec.size(), getTotalCores());
+
+   return m_core_parameters_vec[core_id].setFrequency(frequency);
+}
+
+string Config::getNetworkType(SInt32 network_id)
+{
+   LOG_ASSERT_ERROR(m_network_parameters_vec.size() == NUM_STATIC_NETWORKS,
+         "m_network_parameters_vec.size(%u), NUM_STATIC_NETWORKS(%u)",
+         m_network_parameters_vec.size(), NUM_STATIC_NETWORKS);
+
+   return m_network_parameters_vec[network_id].getType();
+}
+
+volatile float Config::getNetworkFrequency(SInt32 network_id)
+{
+   LOG_ASSERT_ERROR(m_network_parameters_vec.size() == NUM_STATIC_NETWORKS,
+         "m_network_parameters_vec.size(%u), NUM_STATIC_NETWORKS(%u)",
+         m_network_parameters_vec.size(), NUM_STATIC_NETWORKS);
+
+   return m_network_parameters_vec[network_id].getFrequency();
 }
 
 UInt32 Config::getNearestAcceptableCoreCount(UInt32 core_count)
 {
    UInt32 nearest_acceptable_core_count = 0;
    
-   UInt32 l_models[NUM_STATIC_NETWORKS];
-   try
-   {
-      config::Config *cfg = Sim()->getCfg();
-      l_models[STATIC_NETWORK_USER_1] = NetworkModel::parseNetworkType(cfg->getString("network/user_model_1"));
-      l_models[STATIC_NETWORK_USER_2] = NetworkModel::parseNetworkType(cfg->getString("network/user_model_2"));
-      l_models[STATIC_NETWORK_MEMORY_1] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_1"));
-      l_models[STATIC_NETWORK_MEMORY_2] = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_2"));
-      l_models[STATIC_NETWORK_SYSTEM] = NetworkModel::parseNetworkType(cfg->getString("network/system_model"));
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Exception while reading network model types.");
-   }
-
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      pair<bool,SInt32> core_count_constraints = NetworkModel::computeCoreCountConstraints(l_models[i], (SInt32) core_count);
+      UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
+      pair<bool,SInt32> core_count_constraints = NetworkModel::computeCoreCountConstraints(network_model, (SInt32) core_count);
       if (core_count_constraints.first)
       {
          // Network Model has core count constraints
          if ((nearest_acceptable_core_count != 0) && 
              (core_count_constraints.second != (SInt32) nearest_acceptable_core_count))
          {
-            LOG_PRINT_ERROR("Problem using the network models specified in the configuration file.");
+            fprintf(stderr, "Problem using the network models specified in the configuration file\n");
+            exit(EXIT_FAILURE);
          }
          else
          {

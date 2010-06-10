@@ -9,9 +9,10 @@ class CachePerfModelParallel : public CachePerfModel
       bool m_enabled;
 
    public:
-      CachePerfModelParallel(UInt32 cache_data_access_time, 
-            UInt32 cache_tags_access_time) : 
-         CachePerfModel(cache_data_access_time, cache_tags_access_time),
+      CachePerfModelParallel(UInt64 cache_data_access_delay_in_ns,
+            UInt64 cache_tags_access_delay_in_ns,
+            volatile float core_frequency) : 
+         CachePerfModel(cache_data_access_delay_in_ns, cache_tags_access_delay_in_ns, core_frequency),
          m_enabled(false)
       {}
       ~CachePerfModelParallel() {}
@@ -20,7 +21,7 @@ class CachePerfModelParallel : public CachePerfModel
       void disable() { m_enabled = false; }
       bool isEnabled() { return m_enabled; }
 
-      UInt32 getLatency(CacheAccess_t access)
+      UInt64 getLatency(CacheAccess_t access)
       {
          if (!m_enabled)
             return 0;
@@ -28,11 +29,11 @@ class CachePerfModelParallel : public CachePerfModel
          switch(access)
          {
             case ACCESS_CACHE_TAGS:
-               return m_cache_tags_access_time;
+               return m_cache_tags_access_delay_in_clock_cycles;
 
             case ACCESS_CACHE_DATA:
             case ACCESS_CACHE_DATA_AND_TAGS:
-               return m_cache_data_access_time;
+               return m_cache_data_access_delay_in_clock_cycles;
 
             default:
                return 0;

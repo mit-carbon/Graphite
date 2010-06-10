@@ -2,6 +2,7 @@
 #include "sys/syscall.h"
 #include "transport.h"
 #include "config.h"
+#include "clock_converter.h"
 
 // --------------------------------------------
 // New stuff added with Memory redirection
@@ -1140,7 +1141,10 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
       UInt64 start_time;
       UInt64 end_time;
-      start_time = core->getPerformanceModel()->getCycleCount();
+
+      start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+            core->getPerformanceModel()->getCycleCount(), \
+            static_cast<void*>(core));
 
       if (timeout != NULL)
       {
@@ -1193,7 +1197,13 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       // For FUTEX_WAKE, end_time = start_time
       // Look at common/system/syscall_server.cc for this
       if (end_time > start_time)
-         core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(end_time - start_time));
+      {
+         UInt64 cycles_elapsed = convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, \
+               end_time - start_time, \
+               static_cast<void*>(core));
+
+         core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+      }
 
       // Delete the data buffer
       delete [] (Byte*) recv_pkt.data;
@@ -1226,4 +1236,3 @@ UInt32 SyscallMdl::getStrLen (char *str)
    }
    return len;
 }
-

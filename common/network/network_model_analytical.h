@@ -10,7 +10,7 @@ class Lock;
 class NetworkModelAnalytical : public NetworkModel
 {
    public:
-      NetworkModelAnalytical(Network *net, EStaticNetwork net_type);
+      NetworkModelAnalytical(Network *net, SInt32 network_id, float network_frequency);
       ~NetworkModelAnalytical();
 
       void routePacket(const NetPacket &pkt,

@@ -19,20 +19,17 @@ using namespace std;
 // simulated time period
 DramPerfModel::DramPerfModel(float dram_access_cost, 
       float dram_bandwidth,
-      float core_frequency, 
       bool queue_model_enabled,
       std::string queue_model_type, 
       UInt32 cache_block_size):
    m_queue_model(NULL),
+   m_dram_access_cost(UInt64(dram_access_cost)),
+   m_dram_bandwidth(dram_bandwidth),
    m_enabled(false),
    m_num_accesses(0),
    m_total_access_latency(0.0),
    m_total_queueing_delay(0.0)
 {
-   // Convert everything to be in 'clock cycles' instead of 'seconds'
-   m_dram_access_cost = (UInt32) (dram_access_cost * core_frequency);
-   m_dram_bandwidth = dram_bandwidth / core_frequency;
-
    if (queue_model_enabled)
    {
       UInt64 min_processing_time = (UInt64) ((float) cache_block_size / m_dram_bandwidth) + 1;
@@ -69,7 +66,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requ
       queue_delay = 0;
    }
 
-   UInt64 access_latency = queue_delay + processing_time + (UInt64) m_dram_access_cost;
+   UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
 
 
    // Update Memory Counters

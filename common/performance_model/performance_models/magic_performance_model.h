@@ -6,17 +6,12 @@
 class MagicPerformanceModel : public PerformanceModel
 {
 public:
-   MagicPerformanceModel(Core *core);
+   MagicPerformanceModel(Core *core, float frequency);
    ~MagicPerformanceModel();
 
    void outputSummary(std::ostream &os);
 
    UInt64 getInstructionCount() { return m_instruction_count; }
-   UInt64 getCycleCount() { return m_cycle_count; }
-   void resetCycleCount() { m_cycle_count = (UInt64) 0; }
-
-protected:
-   void setCycleCount(UInt64 time);
 
 private:
    void handleInstruction(Instruction *instruction);
@@ -24,7 +19,6 @@ private:
    bool isModeled(InstructionType instruction_type);
    
    UInt64 m_instruction_count;
-   UInt64 m_cycle_count;
 };
 
 #endif

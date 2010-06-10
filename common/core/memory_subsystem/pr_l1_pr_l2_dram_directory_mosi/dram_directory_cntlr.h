@@ -111,7 +111,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                UInt32 dram_directory_max_hw_sharers,
                std::string dram_directory_type_str,
                UInt32 num_dram_cntlrs,
-               UInt32 dram_directory_cache_access_time,
+               UInt64 dram_directory_cache_access_delay_in_ns,
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCntlr();
 

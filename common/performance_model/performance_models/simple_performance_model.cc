@@ -5,10 +5,9 @@
 
 using std::endl;
 
-SimplePerformanceModel::SimplePerformanceModel(Core *core)
-    : PerformanceModel(core)
+SimplePerformanceModel::SimplePerformanceModel(Core *core, float frequency)
+    : PerformanceModel(core, frequency)
     , m_instruction_count(0)
-    , m_cycle_count(0)
 {
 }
 
@@ -18,8 +17,8 @@ SimplePerformanceModel::~SimplePerformanceModel()
 
 void SimplePerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << getInstructionCount() << endl
-      << "  Cycles: " << getCycleCount() << endl;
+   os << "  Instructions: " << getInstructionCount() << endl;
+   frequencySummary(os);
 
    if (getBranchPredictor())
       getBranchPredictor()->outputSummary(os);
@@ -66,12 +65,4 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    // update counters
    m_instruction_count++;
    m_cycle_count += cost;
-}
-
-void SimplePerformanceModel::setCycleCount(UInt64 time)
-{
-   LOG_ASSERT_ERROR((time >= m_cycle_count) || (m_cycle_count == 0),
-         "time(%llu) < m_cycle_count(%llu)",
-         time, m_cycle_count);
-   m_cycle_count = time;
 }

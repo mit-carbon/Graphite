@@ -6,15 +6,14 @@
 #include "memory_manager_base.h"
 #include "packet_type.h"
 
-NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net) :
-   NetworkModel(net),
+NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 network_id, float network_frequency):
+   NetworkModel(net, network_id, network_frequency),
    m_enabled(false),
    m_total_bytes_received(0),
    m_total_packets_received(0),
    m_total_contention_delay(0),
    m_total_packet_latency(0)
 {
-   m_num_application_cores = Config::getSingleton()->getApplicationCores(); 
    m_total_cores = Config::getSingleton()->getTotalCores();
    
    std::string queue_model_type = ""; 
@@ -50,7 +49,7 @@ NetworkModelAtacOpticalBus::~NetworkModelAtacOpticalBus()
 UInt64
 NetworkModelAtacOpticalBus::computeLatency(UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
 {
-   if ((!m_enabled) || (requester >= (core_id_t) m_num_application_cores))
+   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return 0;
 
    return m_optical_latency;

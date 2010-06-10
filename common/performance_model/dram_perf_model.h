@@ -20,7 +20,7 @@ class DramPerfModel
 {
    private:
       QueueModel* m_queue_model;
-      volatile float m_dram_access_cost;
+      UInt64 m_dram_access_cost;
       volatile float m_dram_bandwidth;
 
       bool m_enabled;
@@ -32,7 +32,6 @@ class DramPerfModel
    public:
       DramPerfModel(float dram_access_cost, 
             float dram_bandwidth,
-            float core_frequency, 
             bool queue_model_enabled,
             std::string queue_model_type, 
             UInt32 cache_block_size);

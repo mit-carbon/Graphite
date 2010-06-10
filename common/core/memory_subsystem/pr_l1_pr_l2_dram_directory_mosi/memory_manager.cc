@@ -1,6 +1,7 @@
 #include "memory_manager.h"
 #include "cache_base.h"
 #include "simulator.h"
+#include "clock_converter.h"
 #include "network.h"
 #include "network_model_emesh_hop_by_hop_generic.h"
 #include "log.h"
@@ -17,8 +18,6 @@ MemoryManager::MemoryManager(Core* core,
    m_enabled(false)
 {
    // Read Parameters from the Config file
-   volatile float core_frequency = 0.0;
-
    UInt32 l1_icache_size = 0;
    UInt32 l1_icache_associativity = 0;
    std::string l1_icache_replacement_policy;
@@ -59,8 +58,6 @@ MemoryManager::MemoryManager(Core* core,
 
    try
    {
-      core_frequency = Sim()->getCfg()->getFloat("perf_model/core/frequency");
-
       m_cache_block_size = Sim()->getCfg()->getInt("perf_model/l1_icache/cache_block_size");
 
       // L1 ICache
@@ -120,14 +117,14 @@ MemoryManager::MemoryManager(Core* core,
    if (getCore()->getId() == 0)
       printCoreListWithMemoryControllers(core_list_with_dram_controllers);
    
-   if (find(core_list_with_dram_controllers.begin(), core_list_with_dram_controllers.end(), getCore()->getId()) != core_list_with_dram_controllers.end())
+   if (find(core_list_with_dram_controllers.begin(), core_list_with_dram_controllers.end(), getCore()->getId()) \
+         != core_list_with_dram_controllers.end())
    {
       m_dram_cntlr_present = true;
 
       m_dram_cntlr = new DramCntlr(this,
             dram_latency,
             per_dram_controller_bandwidth,
-            core_frequency,
             dram_queue_model_enabled,
             dram_queue_model_type,
             getCacheBlockSize(),
@@ -173,13 +170,14 @@ MemoryManager::MemoryManager(Core* core,
 
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
-   // Create Performance Models
-   m_l1_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type, 
-         l1_icache_data_access_time, l1_icache_tags_access_time);
+   // Create Cache Performance Models
+   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getCore()->getId());
+   m_l1_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
+         l1_icache_data_access_time, l1_icache_tags_access_time, core_frequency);
    m_l1_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,
-         l1_dcache_data_access_time, l1_dcache_tags_access_time);
+         l1_dcache_data_access_time, l1_dcache_tags_access_time, core_frequency);
    m_l2_cache_perf_model = CachePerfModel::create(l2_cache_perf_model_type,
-         l2_cache_data_access_time, l2_cache_tags_access_time);
+         l2_cache_data_access_time, l2_cache_tags_access_time, core_frequency);
 
    // Register Call-backs
    getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
@@ -406,6 +404,15 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
          LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
          break;
    }
+}
+
+void
+MemoryManager::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+{
+   m_l1_icache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
+   m_l1_dcache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
+   m_l2_cache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
+   m_dram_directory_cntlr->getDramDirectoryCache()->updateInternalVariablesOnFrequencyChange(frequency);
 }
 
 void

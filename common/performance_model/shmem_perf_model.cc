@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "simulator.h"
@@ -7,7 +9,8 @@
 ShmemPerfModel::ShmemPerfModel():
    m_enabled(false),
    m_num_memory_accesses(0),
-   m_total_memory_access_latency(0)
+   m_total_memory_access_latency_in_clock_cycles(0),
+   m_total_memory_access_latency_in_ns(0)
 {
    for (UInt32 i = 0; i < NUM_CORE_THREADS; i++)
       m_cycle_count[i] = 0;
@@ -68,7 +71,6 @@ ShmemPerfModel::updateCycleCount(UInt64 count)
 void
 ShmemPerfModel::incrCycleCount(UInt64 count)
 {
-   LOG_PRINT("incrCycleCount: count(%llu)", count);
    ScopedLock sl(m_shmem_perf_model_lock);
 
    UInt64 i_cycle_count = m_cycle_count[getThreadNum()];
@@ -82,22 +84,33 @@ ShmemPerfModel::incrCycleCount(UInt64 count)
 }
 
 void
-ShmemPerfModel::incrTotalMemoryAccessLatency(UInt64 shmem_time)
+ShmemPerfModel::incrTotalMemoryAccessLatency(UInt64 memory_access_latency)
 {
    if (m_enabled)
    {
       ScopedLock sl(m_shmem_perf_model_lock);
       
       m_num_memory_accesses ++;
-      m_total_memory_access_latency += shmem_time;
+      m_total_memory_access_latency_in_clock_cycles += memory_access_latency;
    }
 }
-      
+
 void
-ShmemPerfModel::outputSummary(ostream& out)
+ShmemPerfModel::updateInternalVariablesOnFrequencyChange(volatile float core_frequency)
 {
+   m_total_memory_access_latency_in_ns += \
+      static_cast<UInt64>(ceil(static_cast<float>(m_total_memory_access_latency_in_clock_cycles) / core_frequency));
+   m_total_memory_access_latency_in_clock_cycles = 0;
+}
+
+void
+ShmemPerfModel::outputSummary(ostream& out, volatile float core_frequency)
+{
+   m_total_memory_access_latency_in_ns += \
+      static_cast<UInt64>(ceil(static_cast<float>(m_total_memory_access_latency_in_clock_cycles) / core_frequency));
+   
    out << "Shmem Perf Model summary: " << endl;
    out << "    num memory accesses: " << m_num_memory_accesses << endl;
    out << "    average memory access latency: " << 
-      (float) (m_total_memory_access_latency) / m_num_memory_accesses << endl;
+      static_cast<float>(m_total_memory_access_latency_in_ns) / m_num_memory_accesses << endl;
 }

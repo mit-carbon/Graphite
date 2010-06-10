@@ -14,6 +14,8 @@
 #include <string>
 #include <iostream>
 #include <cassert>
+#include <stdio.h>
+#include <stdlib.h>
 #include "fixed_types.h"
 
 struct NetworkModelAnalyticalParameters;
@@ -26,6 +28,39 @@ public:
       FULL = 0,
       LITE,
       NUM_SIMULATION_MODES
+   };
+
+   class CoreParameters
+   {
+      private:
+         std::string m_type;
+         volatile float m_frequency;
+
+      public:
+         CoreParameters(std::string type, volatile float frequency):
+            m_type(type), m_frequency(frequency)
+         {}
+         ~CoreParameters() {}
+
+         volatile float getFrequency() { return m_frequency; }
+         void setFrequency(volatile float frequency) { m_frequency = frequency; }
+         std::string getType() { return m_type; }
+   };
+
+   class NetworkParameters
+   {
+      private:
+         std::string m_type;
+         volatile float m_frequency;
+
+      public:
+         NetworkParameters(std::string type, volatile float frequency):
+            m_type(type), m_frequency(frequency)
+         {}
+         ~NetworkParameters() {}
+
+         volatile float getFrequency() { return m_frequency; }
+         std::string getType() { return m_type; }
    };
    
    typedef std::vector<UInt32> CoreToProcMap;
@@ -50,14 +85,14 @@ public:
 
    core_id_t getMCPCoreNum() { return getTotalCores() -1; }
 
-   core_id_t getMainThreadCoreNum() { return 0;}
+   core_id_t getMainThreadCoreNum() { return 0; }
 
    core_id_t getThreadSpawnerCoreNum(UInt32 proc_num);
    core_id_t getCurrentThreadSpawnerCoreNum(); 
 
    // Return the number of modules (cores) in a given process
    UInt32 getNumCoresInProcess(UInt32 proc_num)
-   { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }
+   { assert (proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num].size(); }
 
    SInt32 getIndexFromCoreID(UInt32 proc_num, core_id_t core_id);
    core_id_t getCoreIDFromIndex(UInt32 proc_num, SInt32 index);
@@ -83,15 +118,20 @@ public:
    void updateCommToCoreMap(UInt32 comm_id, core_id_t core_id);
    UInt32 getCoreFromCommId(UInt32 comm_id);
 
-   // Fills in an array with the models for each static network
-   void getNetworkModels(UInt32 *) const;
-
    // Get CoreId length
    UInt32 getCoreIDLength()
    { return m_core_id_length; }
 
    SimulationMode getSimulationMode()
    { return m_simulation_mode; }
+
+   // Core & Network Parameters
+   std::string getCoreType(core_id_t core_id);
+   volatile float getCoreFrequency(core_id_t core_id);
+   void setCoreFrequency(core_id_t core_id, volatile float frequency);
+
+   std::string getNetworkType(SInt32 network_id);
+   volatile float getNetworkFrequency(SInt32 network_id);
 
    // Knobs
    bool isSimulatingSharedMemory() const;
@@ -111,9 +151,13 @@ private:
    
    UInt32  m_num_processes;         // Total number of processes (incl myself)
    UInt32  m_total_cores;           // Total number of cores in all processes
+   UInt32  m_application_cores;     // Total number of cores used by the application
    UInt32  m_core_id_length;        // Number of bytes needed to store a core_id
 
    UInt32  m_current_process_num;          // Process number for this process
+
+   std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding core parameters
+   std::vector<NetworkParameters> m_network_parameters_vec;   // Vector holding network parameters
 
    // This data structure keeps track of which cores are in each process.
    // It is an array of size num_processes where each element is a list of
@@ -138,6 +182,10 @@ private:
    static bool m_knob_enable_performance_modeling;
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
+
+   // Get Core & Network Parameters
+   void parseCoreParameters();
+   void parseNetworkParameters();
 
    static SimulationMode parseSimulationMode(std::string mode);
    static UInt32 computeCoreIDLength(UInt32 core_count);

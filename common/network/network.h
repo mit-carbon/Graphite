@@ -117,7 +117,7 @@ class Network
       Lock _netQueueLock;
       ConditionVariable _netQueueCond;
 
-      void forwardPacket(NetPacket& packet);
+      SInt32 forwardPacket(NetPacket& packet);
 };
 
 #endif // NETWORK_H

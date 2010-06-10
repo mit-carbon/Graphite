@@ -39,7 +39,7 @@ public:
 
    virtual void enable() = 0;
    virtual void disable() = 0;
-   virtual void synchronize(UInt64 time = 0) = 0;
+   virtual void synchronize(UInt64 cycle_count = 0) = 0;
    virtual void netProcessSyncMsg(const NetPacket& recv_pkt) = 0;
 };
 

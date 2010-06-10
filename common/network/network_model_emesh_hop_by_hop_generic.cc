@@ -10,8 +10,8 @@ using namespace std;
 #include "queue_model_history_list.h"
 #include "memory_manager_base.h"
 
-NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net):
-   NetworkModel(net),
+NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id, float network_frequency):
+   NetworkModel(net, network_id, network_frequency),
    m_enabled(false),
    m_total_bytes_received(0),
    m_total_packets_received(0),

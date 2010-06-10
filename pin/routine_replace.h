@@ -57,6 +57,10 @@ void replacementPthreadBarrierWait (CONTEXT *ctxt);
 void replacementResetCacheCounters(CONTEXT *ctxt);
 void replacementDisableCacheCounters(CONTEXT *ctxt);
 
+// Dynamic Frequency Scaling
+void replacementGetCoreFrequency(CONTEXT *ctxt);
+void replacementSetCoreFrequency(CONTEXT *ctxt);
+
 void initialize_replacement_args (CONTEXT *ctxt, ...);
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val);
 #endif

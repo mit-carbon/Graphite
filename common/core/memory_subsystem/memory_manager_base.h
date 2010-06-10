@@ -57,6 +57,8 @@ class MemoryManagerBase
 
       virtual core_id_t getShmemRequester(const void* pkt_data) = 0;
 
+      virtual void updateInternalVariablesOnFrequencyChange(volatile float frequency) = 0;
+
       virtual void enableModels() = 0;
       virtual void disableModels() = 0;
 

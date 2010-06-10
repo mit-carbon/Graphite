@@ -1,38 +1,41 @@
-#include "core.h"
 #include "performance_model.h"
-#include "branch_predictor.h"
-#include "simulator.h"
 #include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
 #include "magic_performance_model.h"
+#include "simulator.h"
 #include "core_manager.h"
+#include "config.h"
+#include "core.h"
+#include "branch_predictor.h"
+#include "fxsupport.h"
+#include "utils.h"
 
 PerformanceModel* PerformanceModel::create(Core* core)
 {
-   string type;
+   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
+   string core_model = Config::getSingleton()->getCoreType(core->getId());
 
-   try {
-      type = Sim()->getCfg()->getString("perf_model/core/type");
-   } catch (...) {
-      LOG_PRINT_ERROR("No perf model type provided.");
-   }
-
-   if (type == "iocoom")
-      return new IOCOOMPerformanceModel(core);
-   else if (type == "simple")
-      return new SimplePerformanceModel(core);
-   else if (type == "magic")
-      return new MagicPerformanceModel(core);
+   if (core_model == "iocoom")
+      return new IOCOOMPerformanceModel(core, frequency);
+   else if (core_model == "simple")
+      return new SimplePerformanceModel(core, frequency);
+   else if (core_model == "magic")
+      return new MagicPerformanceModel(core, frequency);
    else
    {
-      LOG_PRINT_ERROR("Invalid perf model type: %s", type.c_str());
+      LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
       return NULL;
    }
 }
 
 // Public Interface
-PerformanceModel::PerformanceModel(Core *core)
-   : m_core(core)
+PerformanceModel::PerformanceModel(Core *core, float frequency)
+   : m_cycle_count(0)
+   , m_core(core)
+   , m_frequency(frequency)
+   , m_average_frequency(0.0)
+   , m_total_time(0)
+   , m_checkpointed_cycle_count(0)
    , m_enabled(false)
    , m_current_ins_index(0)
    , m_bp(0)
@@ -43,6 +46,14 @@ PerformanceModel::PerformanceModel(Core *core)
 PerformanceModel::~PerformanceModel()
 {
    delete m_bp; m_bp = 0;
+}
+
+void PerformanceModel::frequencySummary(ostream& os)
+{
+   os << "   Completion Time: " \
+      << static_cast<UInt64>(static_cast<float>(m_cycle_count) / m_frequency) \
+      << endl;
+   os << "   Average Frequency: " << m_average_frequency << endl;
 }
 
 void PerformanceModel::enable()
@@ -57,6 +68,40 @@ void PerformanceModel::enable()
 void PerformanceModel::disable()
 {
    m_enabled = false;
+}
+
+// This function is called:
+// 1) Whenever frequency is changed
+void PerformanceModel::updateInternalVariablesOnFrequencyChange(float frequency)
+{
+   recomputeAverageFrequency();
+   m_frequency = frequency;
+}
+
+// This function is called:
+// 1) On thread start
+void PerformanceModel::setCycleCount(UInt64 cycle_count)
+{
+   m_checkpointed_cycle_count = cycle_count;
+   m_cycle_count = cycle_count;
+}
+
+// This function is called:
+// 1) On thread exit
+// 2) Whenever frequency is changed
+void PerformanceModel::recomputeAverageFrequency()
+{
+   Fxsupport::getSingleton()->fxsave();
+
+   volatile float cycles_elapsed = static_cast<float>(m_cycle_count - m_checkpointed_cycle_count);
+   volatile float total_cycles_executed = m_average_frequency * m_total_time + cycles_elapsed;
+   volatile float total_time_taken = m_total_time + cycles_elapsed / m_frequency;
+
+   m_average_frequency = total_cycles_executed / total_time_taken;
+   m_total_time = total_time_taken;
+   m_checkpointed_cycle_count = m_cycle_count;
+
+   Fxsupport::getSingleton()->fxrstor();
 }
 
 void PerformanceModel::queueDynamicInstruction(Instruction *i)

@@ -18,8 +18,8 @@
 
 using namespace std;
 
-NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_type)
-      : NetworkModel(net)
+NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id, float network_frequency)
+      : NetworkModel(net, network_id, network_frequency)
       , _bytesSent(0)
       , _cyclesProc(0)
       , _cyclesLatency(0)
@@ -34,19 +34,19 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, EStaticNetwork net_
                                   this);
 
    try
-     {
-       // Create network parameters
-       m_params.Tw2 = GET_INT("Tw2"); // single cycle between nodes in 2d mesh
-       m_params.s = GET_INT("s"); // single cycle switching time
-       m_params.n = GET_INT("n"); // 2-d mesh network
-       m_params.W = GET_INT("W"); // 32-bit wide channels
-       m_params.update_interval = GET_INT("update_interval");
-       m_params.proc_cost = ((net_type == STATIC_NETWORK_MEMORY_1) || (net_type == STATIC_NETWORK_MEMORY_2)) ? 0 : GET_INT("processing_cost");
-     }
+   {
+      // Create network parameters
+      m_params.Tw2 = GET_INT("Tw2"); // single cycle between nodes in 2d mesh
+      m_params.s = GET_INT("s"); // single cycle switching time
+      m_params.n = GET_INT("n"); // 2-d mesh network
+      m_params.W = GET_INT("W"); // 32-bit wide channels
+      m_params.update_interval = GET_INT("update_interval");
+      m_params.proc_cost = ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2)) ? 0 : GET_INT("processing_cost");
+   }
    catch (...)
-     {
-       LOG_PRINT_ERROR("Some analytical network parameters not available.");
-     }
+   {
+      LOG_PRINT_ERROR("Some analytical network parameters not available.");
+   }
 }
 
 NetworkModelAnalytical::~NetworkModelAnalytical()

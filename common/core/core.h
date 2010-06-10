@@ -84,7 +84,6 @@ class Core
       pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled = false);
       pair<UInt32, UInt64> nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);
 
-
       // network accessor since network is private
       int getId() { return m_core_id; }
       Network *getNetwork() { return m_network; }
@@ -95,6 +94,8 @@ class Core
       SyncClient *getSyncClient() { return m_sync_client; }
       ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
+      void updateInternalVariablesOnFrequencyChange(volatile float frequency);
 
       State getState();
       void setState(State core_state);

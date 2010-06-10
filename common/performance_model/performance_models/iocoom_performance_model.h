@@ -15,16 +15,10 @@
 class IOCOOMPerformanceModel : public PerformanceModel
 {
 public:
-   IOCOOMPerformanceModel(Core* core);
+   IOCOOMPerformanceModel(Core* core, float frequency);
    ~IOCOOMPerformanceModel();
 
    void outputSummary(std::ostream &os);
-
-   UInt64 getCycleCount();
-   void resetCycleCount();
-
-protected:
-   void setCycleCount(UInt64);
 
 private:
 
@@ -81,7 +75,6 @@ private:
    };
 
    UInt64 m_instruction_count;
-   UInt64 m_cycle_count;
 
    Scoreboard m_register_scoreboard;
    StoreBuffer *m_store_buffer;

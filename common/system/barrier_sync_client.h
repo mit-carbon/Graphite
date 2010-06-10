@@ -25,7 +25,7 @@ class BarrierSyncClient : public ClockSkewMinimizationClient
       void enable() {}
       void disable() {}
 
-      void synchronize(UInt64 time);
+      void synchronize(UInt64 cycle_count);
       void netProcessSyncMsg(const NetPacket& packet) { assert(false); }
 
       static const unsigned int BARRIER_RELEASE = 0xBABECAFE;

@@ -6,7 +6,7 @@
 class NetworkModelEMeshHopByHopBasic : public NetworkModelEMeshHopByHopGeneric
 {
    public:
-      NetworkModelEMeshHopByHopBasic(Network* net);
+      NetworkModelEMeshHopByHopBasic(Network* net, SInt32 network_id, float network_frequency);
       ~NetworkModelEMeshHopByHopBasic() {}
 };
 

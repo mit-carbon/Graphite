@@ -103,10 +103,7 @@ QueueModelHistoryList::computeUsingAnalyticalModel(UInt64 pkt_time, UInt64 proce
 {
    // processing_time = number of packet flits
    // Save the floating point register state
-   if (Sim()->getCoreManager()->amiUserThread())
-   {
-      Fxsupport::getSingleton()->fxsave();
-   }
+   Fxsupport::getSingleton()->fxsave();
    
    volatile float rho = getQueueUtilization();
    
@@ -119,10 +116,7 @@ QueueModelHistoryList::computeUsingAnalyticalModel(UInt64 pkt_time, UInt64 proce
    insertInHistoryList(pkt_time, processing_time);
 
    // Restore the floating point register state
-   if (Sim()->getCoreManager()->amiUserThread())
-   {
-      Fxsupport::getSingleton()->fxrstor();
-   }
+   Fxsupport::getSingleton()->fxrstor();
    
    LOG_PRINT("AnalyticalModel: pkt_time(%llu), processing_time(%llu), queue_delay(%llu)", pkt_time, processing_time, queue_delay);
 

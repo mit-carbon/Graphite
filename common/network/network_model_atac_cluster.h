@@ -31,7 +31,6 @@ class NetworkModelAtacCluster : public NetworkModel
       UInt32 m_num_electrical_broadcast_networks_per_cluster;
 
       core_id_t m_core_id;
-      UInt32 m_num_application_cores;
       UInt32 m_num_clusters;
       UInt32 m_total_cores;
 
@@ -80,11 +79,12 @@ class NetworkModelAtacCluster : public NetworkModel
       void initializePerformanceCounters();
 
    public:
-      NetworkModelAtacCluster(Network *net);
+      NetworkModelAtacCluster(Network *net, SInt32 network_id, float network_frequency);
       ~NetworkModelAtacCluster();
 
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
       void processReceivedPacket(NetPacket& pkt);
+
       static pair<bool, vector<core_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count);
       
       void enable();

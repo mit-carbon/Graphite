@@ -88,6 +88,10 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
+   // For Dynamic Frequency Scaling
+   else if (name == "getCoreFrequency") msg_ptr = AFUNPTR(replacementGetCoreFrequency);
+   else if (name == "setCoreFrequency") msg_ptr = AFUNPTR(replacementSetCoreFrequency);
+
    // Turn off performance modeling at _start()
    if (name == "_start")
    {
@@ -134,7 +138,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
 void replacementMain (CONTEXT *ctxt)
 {
-   LOG_PRINT ("In replacementMain");
+   LOG_PRINT("In replacementMain");
    
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
@@ -157,9 +161,13 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
+      LOG_PRINT("Starting enablePerformanceModelsInCurrentProcess()");
       Simulator::enablePerformanceModelsInCurrentProcess();
-
+      LOG_PRINT("Finished enablePerformanceModelsInCurrentProcess()");
+      
+      LOG_PRINT("Starting spawnThreadSpawner()");
       spawnThreadSpawner(ctxt);
+      LOG_PRINT("Finished spawnThreadSpawner()");
 
       LOG_PRINT("ReplaceMain end");
 
@@ -811,6 +819,42 @@ void replacementDisableCacheCounters (CONTEXT *ctxt)
    
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementGetCoreFrequency(CONTEXT *ctxt)
+{
+   float* core_frequency;
+
+   initialize_replacement_args(ctxt,
+         IARG_PTR, &core_frequency,
+         IARG_END);
+
+   volatile float core_frequency_buf;
+   getCoreFrequency(&core_frequency_buf);
+
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementSetCoreFrequency(CONTEXT *ctxt)
+{
+   float* core_frequency;
+
+   initialize_replacement_args(ctxt,
+         IARG_PTR, &core_frequency,
+         IARG_END);
+
+   volatile float core_frequency_buf;
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
+
+   setCoreFrequency(&core_frequency_buf);
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
 }
 
 void initialize_replacement_args (CONTEXT *ctxt, ...)

@@ -3,8 +3,8 @@
 #include "memory_manager_base.h"
 #include "log.h"
 
-NetworkModelMagic::NetworkModelMagic(Network *net) : 
-   NetworkModel(net),
+NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id, float network_frequency) : 
+   NetworkModel(net, network_id, network_frequency),
    _enabled(false),
    _num_packets(0),
    _num_bytes(0)

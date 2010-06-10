@@ -2,8 +2,8 @@
 #include "simulator.h"
 #include "config.h"
 
-NetworkModelEMeshHopByHopBasic::NetworkModelEMeshHopByHopBasic(Network* net):
-   NetworkModelEMeshHopByHopGeneric(net)
+NetworkModelEMeshHopByHopBasic::NetworkModelEMeshHopByHopBasic(Network* net, SInt32 network_id, float network_frequency):
+   NetworkModelEMeshHopByHopGeneric(net, network_id, network_frequency)
 {
    m_broadcast_tree_enabled = false;
 

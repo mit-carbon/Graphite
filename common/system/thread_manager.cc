@@ -12,6 +12,7 @@
 #include "core.h"
 #include "thread.h"
 #include "packetize.h"
+#include "clock_converter.h"
 
 ThreadManager::ThreadManager(CoreManager *core_manager)
    : m_thread_spawn_sem(0)
@@ -94,25 +95,33 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
                 sizeof(*req));
 
    PerformanceModel *pm = m_core_manager->getCurrentCore()->getPerformanceModel();
-   pm->resetCycleCount();
-   pm->queueDynamicInstruction(new SpawnInstruction(req->time));
+
+   UInt64 start_cycle_count = convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, \
+         req->time, \
+         static_cast<void*>(m_core_manager->getCurrentCore()));
+   pm->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
 }
 
 void ThreadManager::onThreadExit()
 {
    if (m_core_manager->getCurrentCoreID() == -1)
       return;
-   
+  
+   Core* core = m_core_manager->getCurrentCore();
+
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID() };
 
    LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread %d at time %llu",
-             m_core_manager->getCurrentCore()->getId(),
-             m_core_manager->getCurrentCore()->getPerformanceModel()->getCycleCount());
-   Network *net = m_core_manager->getCurrentCore()->getNetwork();
+             core->getId(),
+             core->getPerformanceModel()->getCycleCount());
+   Network *net = core->getNetwork();
 
    // Set the CoreState to 'IDLE'
-   m_core_manager->getCurrentCore()->setState(Core::IDLE);
+   core->setState(Core::IDLE);
+
+   // Recompute Average Frequency
+   core->getPerformanceModel()->recomputeAverageFrequency();
 
    // terminate thread locally so we are ready for new thread requests
    // on that core
@@ -139,7 +148,7 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
 
    wakeUpWaiter(core_id, time);
 
-   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
       slaveTerminateThreadSpawnerAck(core_id);
 }
 
@@ -162,9 +171,13 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    Core *core = m_core_manager->getCurrentCore();
    Network *net = core->getNetwork();
 
-   ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER, 
+   UInt64 global_cycle_count = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(core));
+
+   ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
                               func, arg, core->getId(), INVALID_CORE_ID,
-                              core->getPerformanceModel()->getCycleCount() };
+                              global_cycle_count };
 
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
                 MCP_REQUEST_TYPE,

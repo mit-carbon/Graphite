@@ -15,12 +15,11 @@ SInt32 NetworkModelAtacCluster::m_sqrt_cluster_size = 0;
 SInt32 NetworkModelAtacCluster::m_mesh_width = 0;
 SInt32 NetworkModelAtacCluster::m_mesh_height = 0;
 
-NetworkModelAtacCluster::NetworkModelAtacCluster(Network *net) :
-   NetworkModel(net),
+NetworkModelAtacCluster::NetworkModelAtacCluster(Network *net, SInt32 network_id, float network_frequency):
+   NetworkModel(net, network_id, network_frequency),
    m_enabled(false)
 {
    m_core_id = getNetwork()->getCore()->getId();
-   m_num_application_cores = Config::getSingleton()->getApplicationCores(); 
    m_total_cores = Config::getSingleton()->getTotalCores();
   
    SInt32 cluster_size = 0; 
@@ -167,7 +166,7 @@ NetworkModelAtacCluster::getRequester(const NetPacket& pkt)
 UInt64
 NetworkModelAtacCluster::getHubQueueDelay(HubType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, UInt32 pkt_length, PacketType pkt_type, core_id_t requester)
 {
-   if ((!m_enabled) || (!m_queue_model_enabled) || (requester >= (core_id_t) m_num_application_cores))
+   if ((!m_enabled) || (!m_queue_model_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return 0;
 
    // Components

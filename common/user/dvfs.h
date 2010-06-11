@@ -6,8 +6,8 @@ extern "C"
 {
 #endif
 
-void getCoreFrequency(volatile float* frequency);
-void setCoreFrequency(volatile float* frequency);
+void CarbonGetCoreFrequency(volatile float* frequency);
+void CarbonSetCoreFrequency(volatile float* frequency);
 
 #ifdef __cplusplus
 }

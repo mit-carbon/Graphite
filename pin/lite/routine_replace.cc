@@ -394,31 +394,45 @@ void routineCallback(RTN rtn, void* v)
             IARG_END);
    }
 
+   // Getting Simulated Time
+   else if (rtn_name == "CarbonGetTime")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(UInt64),
+            CALLINGSTD_DEFAULT,
+            "CarbonGetTime",
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonGetTime),
+            IARG_PROTOTYPE, proto,
+            IARG_END);
+   }
+
    // Frequency Scaling Functions
-   else if (rtn_name == "getCoreFrequency")
+   else if (rtn_name == "CarbonGetCoreFrequency")
    {
       PROTO proto = PROTO_Allocate(PIN_PARG(void),
             CALLINGSTD_DEFAULT,
-            "getCoreFrequency",
+            "CarbonGetCoreFrequency",
             PIN_PARG(float*),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
-            AFUNPTR(getCoreFrequency),
+            AFUNPTR(CarbonGetCoreFrequency),
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
    }
-   else if (rtn_name == "setCoreFrequency")
+   else if (rtn_name == "CarbonSetCoreFrequency")
    {
       PROTO proto = PROTO_Allocate(PIN_PARG(void),
             CALLINGSTD_DEFAULT,
-            "setCoreFrequency",
+            "CarbonSetCoreFrequency",
             PIN_PARG(float*),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
-            AFUNPTR(setCoreFrequency),
+            AFUNPTR(CarbonSetCoreFrequency),
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);

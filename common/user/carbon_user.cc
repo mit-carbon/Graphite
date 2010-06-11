@@ -6,6 +6,7 @@
 #include "thread_manager.h"
 #include "core_manager.h"
 #include "core.h"
+#include "clock_converter.h"
 #include "config_file.hpp"
 #include "handle_args.h"
 
@@ -70,4 +71,12 @@ int CarbonStartSim(int argc, char **argv)
 void CarbonStopSim()
 {
    Simulator::release();
+}
+
+UInt64 CarbonGetTime()
+{
+   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   return convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
+         core->getPerformanceModel()->getCycleCount(), \
+         static_cast<void*>(core));
 }

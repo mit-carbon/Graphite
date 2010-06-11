@@ -5,12 +5,12 @@
 #include "performance_model.h"
 #include "fxsupport.h"
 
-void getCoreFrequency(volatile float* frequency)
+void CarbonGetCoreFrequency(volatile float* frequency)
 {
    *frequency = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel()->getFrequency();
 }
 
-void setCoreFrequency(volatile float* frequency)
+void CarbonSetCoreFrequency(volatile float* frequency)
 {
    if (Fxsupport::isInitialized())
       Fxsupport::getSingleton()->fxsave();

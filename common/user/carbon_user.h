@@ -17,6 +17,7 @@ extern "C"
 SInt32 CarbonStartSim(int argc, char **argv);
 void CarbonStopSim();
 core_id_t CarbonGetCoreId();
+UInt64 CarbonGetTime();
 
 #ifdef __cplusplus
 }

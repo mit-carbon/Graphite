@@ -88,9 +88,12 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
+   // For Getting the Simulated Time
+   else if (name == "CarbonGetTime") msg_ptr = AFUNPTR(replacementCarbonGetTime);
+
    // For Dynamic Frequency Scaling
-   else if (name == "getCoreFrequency") msg_ptr = AFUNPTR(replacementGetCoreFrequency);
-   else if (name == "setCoreFrequency") msg_ptr = AFUNPTR(replacementSetCoreFrequency);
+   else if (name == "CarbonGetCoreFrequency") msg_ptr = AFUNPTR(replacementCarbonGetCoreFrequency);
+   else if (name == "CarbonSetCoreFrequency") msg_ptr = AFUNPTR(replacementCarbonSetCoreFrequency);
 
    // Turn off performance modeling at _start()
    if (name == "_start")
@@ -821,7 +824,14 @@ void replacementDisableCacheCounters (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementGetCoreFrequency(CONTEXT *ctxt)
+void replacementCarbonGetTime(CONTEXT *ctxt)
+{
+   UInt64 ret_val = CarbonGetTime();
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonGetCoreFrequency(CONTEXT *ctxt)
 {
    float* core_frequency;
 
@@ -830,7 +840,7 @@ void replacementGetCoreFrequency(CONTEXT *ctxt)
          IARG_END);
 
    volatile float core_frequency_buf;
-   getCoreFrequency(&core_frequency_buf);
+   CarbonGetCoreFrequency(&core_frequency_buf);
 
    Core* core = Sim()->getCoreManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
@@ -839,7 +849,7 @@ void replacementGetCoreFrequency(CONTEXT *ctxt)
    retFromReplacedRtn(ctxt, ret_val);
 }
 
-void replacementSetCoreFrequency(CONTEXT *ctxt)
+void replacementCarbonSetCoreFrequency(CONTEXT *ctxt)
 {
    float* core_frequency;
 
@@ -851,7 +861,7 @@ void replacementSetCoreFrequency(CONTEXT *ctxt)
    Core* core = Sim()->getCoreManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
 
-   setCoreFrequency(&core_frequency_buf);
+   CarbonSetCoreFrequency(&core_frequency_buf);
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);

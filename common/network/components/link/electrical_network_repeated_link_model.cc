@@ -6,7 +6,6 @@
 #include "log.h"
 
 ElectricalNetworkRepeatedLinkModel::ElectricalNetworkRepeatedLinkModel(volatile float link_frequency, volatile double link_length, UInt32 link_width):
-   NetworkLinkModel(),
    _frequency(link_frequency),
    _link_length(link_length),
    _link_width(link_width),

@@ -81,7 +81,7 @@ NetworkModelEMeshHopCounter::createRouterAndLinkModels()
    _electrical_router_model = ElectricalNetworkRouterModel::create(_num_router_ports, \
          num_flits_per_output_buffer, _link_width);
    
-   _electrical_link_model = NetworkLinkModel::create(_link_type, \
+   _electrical_link_model = ElectricalNetworkLinkModel::create(_link_type, \
          _frequency, \
          link_length, \
          _link_width);

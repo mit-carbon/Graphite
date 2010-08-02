@@ -153,7 +153,6 @@ NetworkModelAtacCluster::createANetLinkModels()
    try
    {
       m_gather_network_link_type = Sim()->getCfg()->getString("network/atac_cluster/enet/link/type");
-      m_optical_network_link_type = Sim()->getCfg()->getString("network/atac_cluster/onet/link/type");
       m_scatter_network_link_type = Sim()->getCfg()->getString("network/atac_cluster/bnet/link/type");
    }
    catch (...)
@@ -161,14 +160,13 @@ NetworkModelAtacCluster::createANetLinkModels()
       LOG_PRINT_ERROR("Could not read ANet link type parameters from the cfg file");
    }
 
-   m_optical_network_link_model = NetworkLinkModel::create(m_optical_network_link_type, \
-         m_optical_network_frequency, \
+   m_optical_network_link_model = new OpticalNetworkLinkModel(m_optical_network_frequency, \
          waveguide_length, \
          m_optical_network_link_width);
    m_optical_network_link_delay = (UInt64) (ceil( ((double) m_optical_network_link_model->getDelay()) / \
                       (m_optical_network_frequency / m_gather_network_frequency) ) );
 
-   m_gather_network_link_model = NetworkLinkModel::create(m_gather_network_link_type, \
+   m_gather_network_link_model = ElectricalNetworkLinkModel::create(m_gather_network_link_type, \
          m_gather_network_frequency, \
          gather_network_link_length, \
          m_gather_network_link_width);
@@ -181,7 +179,7 @@ NetworkModelAtacCluster::createANetLinkModels()
 
    // FIXME: Currently, the BNet network power is modeled using multiple scatter_network links.
    // This is not correct. It has to be changed
-   m_scatter_network_link_model = NetworkLinkModel::create(m_scatter_network_link_type, \
+   m_scatter_network_link_model = ElectricalNetworkLinkModel::create(m_scatter_network_link_type, \
          m_scatter_network_frequency, \
          scatter_network_link_length, \
          m_scatter_network_link_width);

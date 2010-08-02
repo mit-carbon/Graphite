@@ -1,9 +1,9 @@
 #pragma once
 
-#include "network_link_model.h"
+#include "electrical_network_link_model.h"
 #include "fixed_types.h"
 
-class ElectricalNetworkEqualizedLinkModel : public NetworkLinkModel
+class ElectricalNetworkEqualizedLinkModel : public ElectricalNetworkLinkModel
 {
 public:
    ElectricalNetworkEqualizedLinkModel(volatile float link_frequency, volatile double link_length, UInt32 link_width);

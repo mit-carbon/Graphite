@@ -1,13 +1,14 @@
 #pragma once
 
-#include "network_link_model.h"
+#include "electrical_network_link_model.h"
 #include "contrib/orion/orion.h"
 
-class NetworkLinkModelOrion : public NetworkLinkModel
+class ElectricalNetworkLinkModelOrion : public ElectricalNetworkLinkModel
 {
 public:
-   NetworkLinkModelOrion(LinkType link_type, volatile float link_frequency, volatile double link_length, UInt32 link_width);
-   ~NetworkLinkModelOrion();
+   ElectricalNetworkLinkModelOrion(LinkType link_type, volatile float link_frequency, \
+         volatile double link_length, UInt32 link_width);
+   ~ElectricalNetworkLinkModelOrion();
 
    UInt64 getDelay();
    volatile double getStaticPower();

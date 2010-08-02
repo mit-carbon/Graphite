@@ -7,7 +7,8 @@ using namespace std;
 #include "queue_model.h"
 #include "network.h"
 #include "lock.h"
-#include "network_link_model.h"
+#include "electrical_network_link_model.h"
+#include "optical_network_link_model.h"
 
 // Single Sender Multiple Receivers Model
 // 1 sender, N receivers (1 to N)
@@ -59,9 +60,9 @@ class NetworkModelAtacCluster : public NetworkModel
       UInt64 m_scatter_network_delay;
 
       // Link Power Models
-      NetworkLinkModel* m_gather_network_link_model;
-      NetworkLinkModel* m_optical_network_link_model;
-      NetworkLinkModel* m_scatter_network_link_model;
+      ElectricalNetworkLinkModel* m_gather_network_link_model;
+      OpticalNetworkLinkModel* m_optical_network_link_model;
+      ElectricalNetworkLinkModel* m_scatter_network_link_model;
 
       // Link Width Parameters
       UInt32 m_gather_network_link_width;
@@ -70,7 +71,6 @@ class NetworkModelAtacCluster : public NetworkModel
 
       // Link Type Parameters
       string m_gather_network_link_type;
-      string m_optical_network_link_type;
       string m_scatter_network_link_type;
 
       // Bandwidth Parameters

@@ -4,7 +4,7 @@
 #include "queue_model.h"
 #include "network.h"
 #include "lock.h"
-#include "network_link_model.h"
+#include "optical_network_link_model.h"
 
 // Single Sender Multiple Receivers Model
 // 1 sender, N receivers (1 to N)
@@ -16,10 +16,9 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       // Optical Network Link Parameters
       volatile float m_optical_network_frequency;
       UInt32 m_optical_network_link_width;
-      std::string m_optical_network_link_type;
       UInt64 m_optical_network_link_delay;
 
-      NetworkLinkModel* m_optical_network_link_model;
+      OpticalNetworkLinkModel* m_optical_network_link_model;
 
       QueueModel* m_ejection_port_queue_model;
 

@@ -7,7 +7,7 @@
 #include "queue_model.h"
 #include "lock.h"
 #include "electrical_network_router_model.h"
-#include "network_link_model.h"
+#include "electrical_network_link_model.h"
 
 class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 {
@@ -33,7 +33,7 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       UInt64 m_hop_latency;
 
       ElectricalNetworkRouterModel* m_electrical_router_model;
-      NetworkLinkModel* m_electrical_link_model;
+      ElectricalNetworkLinkModel* m_electrical_link_model;
 
       QueueModel* m_queue_models[NUM_OUTPUT_DIRECTIONS];
       QueueModel* m_injection_port_queue_model;

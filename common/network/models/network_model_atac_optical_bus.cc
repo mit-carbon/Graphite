@@ -20,7 +20,6 @@ NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 netw
    try
    {
       m_optical_network_frequency = Sim()->getCfg()->getFloat("network/atac_optical_bus/onet/frequency");
-      m_optical_network_link_type = Sim()->getCfg()->getString("network/atac_optical_bus/onet/link/type");
       m_optical_network_link_width = Sim()->getCfg()->getInt("network/atac_optical_bus/onet/link/width");
       waveguide_length = Sim()->getCfg()->getFloat("network/atac_optical_bus/onet/link/length");
       
@@ -33,8 +32,7 @@ NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 netw
    }
 
    // Create the Optical Network Link Model
-   m_optical_network_link_model = NetworkLinkModel::create(m_optical_network_link_type, \
-         m_optical_network_frequency, \
+   m_optical_network_link_model = new OpticalNetworkLinkModel(m_optical_network_frequency, \
          waveguide_length, \
          m_optical_network_link_width);
 

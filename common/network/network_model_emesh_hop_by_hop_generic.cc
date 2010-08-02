@@ -10,8 +10,8 @@ using namespace std;
 #include "queue_model_history_list.h"
 #include "memory_manager_base.h"
 
-NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id, float network_frequency):
-   NetworkModel(net, network_id, network_frequency),
+NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id):
+   NetworkModel(net, network_id),
    m_enabled(false),
    m_total_bytes_received(0),
    m_total_packets_received(0),
@@ -29,14 +29,21 @@ NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net,
 
 NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
 {
-   for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
-   {
-      if (m_queue_models[i])
-         delete m_queue_models[i];
-   }
+   // Destroy the Router & Link Models
+   destroyRouterAndLinkModels();
 
-   delete m_injection_port_queue_model;
-   delete m_ejection_port_queue_model;
+   // Destroy the Queue Models
+   destroyQueueModels();
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::initializeModels()
+{
+   // Create Queue Models
+   createQueueModels();
+
+   // Create Router & Link Models
+   createRouterAndLinkModels();
 }
 
 void
@@ -68,6 +75,87 @@ NetworkModelEMeshHopByHopGeneric::createQueueModels()
 
    m_injection_port_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
    m_ejection_port_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::destroyQueueModels()
+{
+   for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
+   {
+      if (m_queue_models[i])
+         delete m_queue_models[i];
+   }
+
+   delete m_injection_port_queue_model;
+   delete m_ejection_port_queue_model;
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::createRouterAndLinkModels()
+{
+   // Create Router & Link Models
+   // Right now,
+   // Router model yields only power
+   // Link model yields delay & power
+   // They both will be later augmented to yield area
+
+   // Assume,
+   // Router & Link have the same throughput (flit_width = phit_width)
+   // Router & Link are clocked at the same frequency
+   m_num_router_ports = 5;
+
+   m_electrical_router_model = ElectricalNetworkRouterModel::create(m_num_router_ports, \
+         m_num_flits_per_output_buffer, m_link_width);
+   m_electrical_link_model = NetworkLinkModel::create(m_link_type, \
+         m_frequency, \
+         m_link_length, \
+         m_link_width);
+
+   // It is possible that one hop can be accomodated in one cycles by
+   // intelligent circuit design but for simplicity, here we consider
+   // that a link takes 1 cycle
+
+   // NetworkLinkModel::getDelay() gets delay in cycles (clock frequency is the link frequency)
+   // The link frequency is the same as the network frequency here
+   UInt64 link_delay = m_electrical_link_model->getDelay();
+   LOG_ASSERT_WARNING(link_delay <= 1, "Network Link Delay(%llu) exceeds 1 cycle", link_delay);
+   
+   m_hop_latency = m_router_delay + link_delay;
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::destroyRouterAndLinkModels()
+{
+   delete m_electrical_router_model;
+   delete m_electrical_link_model;
+}
+
+UInt32
+NetworkModelEMeshHopByHopGeneric::computeAction(const NetPacket& pkt)
+{
+   if (pkt.receiver == NetPacket::BROADCAST)
+   {
+      LOG_ASSERT_ERROR(m_broadcast_tree_enabled, "pkt.sender(%i), pkt.receiver(%i)", \
+            pkt.sender, pkt.receiver);
+      if (pkt.sender == m_core_id)
+      {
+         // Dont call routePacket() recursively
+         return RoutingAction::RECEIVE;
+      }
+      else
+      {
+         // Need to receive as well as forward the packet
+         return (RoutingAction::FORWARD | RoutingAction::RECEIVE);
+      }
+   }
+   else if (pkt.receiver == m_core_id)
+   {
+      return RoutingAction::RECEIVE;
+   }
+   else
+   {
+      return RoutingAction::FORWARD;
+   }
 }
 
 void
@@ -107,17 +195,17 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
          computePosition(m_core_id, cx, cy);
 
          if (cy >= sy)
-            addHop(UP, NetPacket::BROADCAST, computeCoreId(cx,cy+1), curr_time, pkt_length, nextHops, requester);
+            addHop(UP, NetPacket::BROADCAST, computeCoreId(cx,cy+1), pkt, curr_time, pkt_length, nextHops, requester);
          if (cy <= sy)
-            addHop(DOWN, NetPacket::BROADCAST, computeCoreId(cx,cy-1), curr_time, pkt_length, nextHops, requester);
+            addHop(DOWN, NetPacket::BROADCAST, computeCoreId(cx,cy-1), pkt, curr_time, pkt_length, nextHops, requester);
          if (cy == sy)
          {
             if (cx >= sx)
-               addHop(RIGHT, NetPacket::BROADCAST, computeCoreId(cx+1,cy), curr_time, pkt_length, nextHops, requester);
+               addHop(RIGHT, NetPacket::BROADCAST, computeCoreId(cx+1,cy), pkt, curr_time, pkt_length, nextHops, requester);
             if (cx <= sx)
-               addHop(LEFT, NetPacket::BROADCAST, computeCoreId(cx-1,cy), curr_time, pkt_length, nextHops, requester);
+               addHop(LEFT, NetPacket::BROADCAST, computeCoreId(cx-1,cy), pkt, curr_time, pkt_length, nextHops, requester);
             if (cx == sx)
-               addHop(SELF, m_core_id, m_core_id, curr_time, pkt_length, nextHops, requester); 
+               addHop(SELF, NetPacket::BROADCAST, m_core_id, pkt, curr_time, pkt_length, nextHops, requester); 
          }
       }
       else
@@ -138,7 +226,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
             OutputDirection direction;
             core_id_t next_dest = getNextDest(i, direction);
 
-            addHop(direction, i, next_dest, curr_time, pkt_length, nextHops, requester);
+            addHop(direction, i, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
          }
       }
    }
@@ -154,7 +242,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
       OutputDirection direction;
       core_id_t next_dest = getNextDest(pkt.receiver, direction);
 
-      addHop(direction, pkt.receiver, next_dest, curr_time, pkt_length, nextHops, requester);
+      addHop(direction, pkt.receiver, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
    }
 }
 
@@ -184,7 +272,7 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    if (pkt.sender != m_core_id)
    {
       UInt64 processing_time = computeProcessingTime(pkt_length);
-      UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt.time, pkt_length);
+      UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt, pkt.time, pkt_length);
 
       packet_latency += (ejection_port_queue_delay + processing_time);
       contention_delay += ejection_port_queue_delay;
@@ -199,8 +287,9 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 
 void
 NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction, 
-      core_id_t final_dest, core_id_t next_dest, 
-      UInt64 pkt_time, UInt32 pkt_length, 
+      core_id_t final_dest, core_id_t next_dest,
+      const NetPacket& pkt,
+      UInt64 pkt_time, UInt32 pkt_length,
       vector<Hop>& nextHops, core_id_t requester)
 {
    LOG_ASSERT_ERROR((direction == SELF) || ((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS)),
@@ -215,7 +304,7 @@ NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction,
       if (direction == SELF)
          h.time = pkt_time;
       else
-         h.time = pkt_time + computeLatency(direction, pkt_time, pkt_length, requester);
+         h.time = pkt_time + computeLatency(direction, pkt, pkt_time, pkt_length, requester);
 
       nextHops.push_back(h);
    }
@@ -246,7 +335,7 @@ NetworkModelEMeshHopByHopGeneric::computeCoreId(SInt32 x, SInt32 y)
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
+NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
 {
    LOG_ASSERT_ERROR((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS),
          "Invalid Direction(%u)", direction);
@@ -256,9 +345,15 @@ NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, UInt
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
 
+   // Calculate the contention delay
    UInt64 queue_delay = 0;
    if (m_queue_model_enabled)
       queue_delay = m_queue_models[direction]->computeQueueDelay(pkt_time, processing_time);
+
+   // Update Dynamic Energy State of the Router & Link
+   updateDynamicEnergy(pkt       /* Packet */,        \
+         queue_delay             /* is_buffered */,   \
+         m_num_router_ports/2    /* contention */     );
 
    LOG_PRINT("Queue Delay(%llu), Hop Latency(%llu)", queue_delay, m_hop_latency);
    UInt64 packet_latency = m_hop_latency + queue_delay;
@@ -280,25 +375,32 @@ NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(core_id_t pkt_r
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length)
+NetworkModelEMeshHopByHopGeneric::computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length)
 {
    if (!m_queue_model_enabled)
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
-   return m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+   UInt64 ejection_port_queue_delay =  m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+
+   // Update Dynamic Energy State of the Router & Link
+   updateDynamicEnergy(pkt /* Packet */,              \
+         ejection_port_queue_delay /* is_buffered */, \
+         m_num_router_ports/2 /* contention */);
+
+   return ejection_port_queue_delay;
 }
 
 UInt64 
 NetworkModelEMeshHopByHopGeneric::computeProcessingTime(UInt32 pkt_length)
 {
    // Send: (pkt_length * 8) bits
-   // Bandwidth: (m_link_bandwidth) bits/cycle
+   // Link Width: (m_link_width) bits
    UInt32 num_bits = pkt_length * 8;
-   if (num_bits % m_link_bandwidth == 0)
-      return (UInt64) (num_bits/m_link_bandwidth);
+   if (num_bits % m_link_width == 0)
+      return (UInt64) (num_bits/m_link_width);
    else
-      return (UInt64) (num_bits/m_link_bandwidth + 1);
+      return (UInt64) (num_bits/m_link_width + 1);
 }
 
 SInt32
@@ -385,6 +487,8 @@ NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
       out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
       out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
    }
+
+   outputPowerSummary(out);
 }
 
 void
@@ -397,12 +501,6 @@ void
 NetworkModelEMeshHopByHopGeneric::disable()
 {
    m_enabled = false;
-}
-
-bool
-NetworkModelEMeshHopByHopGeneric::isEnabled()
-{
-   return m_enabled;
 }
 
 pair<bool,SInt32>
@@ -477,4 +575,63 @@ NetworkModelEMeshHopByHopGeneric::computeNumHops(core_id_t sender, core_id_t rec
    dy = receiver / mesh_width;
 
    return abs(sx - dx) + abs(sy - dy);
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::updateDynamicEnergy(const NetPacket& pkt,
+      bool is_buffered, UInt32 contention)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   // TODO: Make these models detailed later - Compute exact number of bit flips
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+   // For now, assume that half of the bits in the packet flip
+   UInt32 num_flits = computeProcessingTime(pkt_length);
+      
+   // Dynamic Energy Dissipated
+
+   // 1) Electrical Router
+   // For every activity, update the dynamic energy due to the clock
+
+   // Assume half of the input ports are contending for the same output port
+   // Switch allocation is only done for the head flit. All the other flits just follow.
+   // So, we dont need to update dynamic energies again
+   m_electrical_router_model->updateDynamicEnergySwitchAllocator(contention);
+   m_electrical_router_model->updateDynamicEnergyClock();
+
+   // Assume half of the bits flip while crossing the crossbar 
+   m_electrical_router_model->updateDynamicEnergyCrossbar(m_link_width/2, num_flits); 
+   m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+  
+   // Add the flit_buffer dynamic power. We need to write once and read once
+   if (is_buffered)
+   {
+      // Buffer Write Energy
+      m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::WRITE, \
+            m_link_width/2, num_flits);
+      m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+ 
+      // Buffer Read Energy
+      m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::READ, \
+            m_link_width/2, num_flits);
+      m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+   }
+
+   // 2) Electrical Link
+   m_electrical_link_model->updateDynamicEnergy(m_link_width/2, num_flits);
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::outputPowerSummary(ostream& out)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
+   volatile double static_power = m_electrical_router_model->getTotalStaticPower() + (m_electrical_link_model->getStaticPower() * NUM_OUTPUT_DIRECTIONS);
+   volatile double dynamic_energy = m_electrical_router_model->getTotalDynamicEnergy() + m_electrical_link_model->getDynamicEnergy();
+
+   out << "    Static Power: " << static_power << endl;
+   out << "    Dynamic Energy: " << dynamic_energy << endl;
 }

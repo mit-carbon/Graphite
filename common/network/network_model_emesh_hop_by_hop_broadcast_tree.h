@@ -6,7 +6,7 @@
 class NetworkModelEMeshHopByHopBroadcastTree : public NetworkModelEMeshHopByHopGeneric
 {
    public:
-      NetworkModelEMeshHopByHopBroadcastTree(Network* net, SInt32 network_id, float network_frequency);
+      NetworkModelEMeshHopByHopBroadcastTree(Network* net, SInt32 network_id);
       ~NetworkModelEMeshHopByHopBroadcastTree() {}
 };
 

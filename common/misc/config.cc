@@ -18,6 +18,7 @@ std::string Config::m_knob_output_file;
 bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_dcache_modeling;
 bool Config::m_knob_enable_icache_modeling;
+bool Config::m_knob_enable_power_modeling;
 
 using namespace std;
 
@@ -44,6 +45,7 @@ Config::Config()
       // TODO: these should be removed and queried directly from the cache
       m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
       m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
+      m_knob_enable_power_modeling = Sim()->getCfg()->getBool("general/enable_power_modeling");
 
       // Simulation Mode
       m_simulation_mode = parseSimulationMode(Sim()->getCfg()->getString("general/mode"));
@@ -239,6 +241,11 @@ bool Config::getEnableICacheModeling() const
    return (bool)m_knob_enable_icache_modeling;
 }
 
+bool Config::getEnablePowerModeling() const
+{
+   return (bool)m_knob_enable_power_modeling;
+}
+
 std::string Config::getOutputFileName() const
 {
    return formatOutputFileName(m_knob_output_file);
@@ -390,23 +397,7 @@ void Config::parseNetworkParameters()
 
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      vector<string> network_parameters;
-      parseList(network_parameters_list[i], network_parameters, ",");
-      
-      if (!((network_parameters.size() > 0) && (network_parameters.size() <= 2)))
-      {
-         fprintf(stderr, "network_parameters.size(%u)\n", (UInt32) network_parameters.size());
-         exit(EXIT_FAILURE);
-      }
-      
-      string network_type = DEFAULT_NETWORK_TYPE;
-      float frequency = DEFAULT_FREQUENCY;
-
-      network_type = trimSpaces(network_parameters[0]);
-      if (network_parameters.size() > 1)
-         convertFromString<float>(frequency, network_parameters[1]);
-
-      m_network_parameters_vec.push_back(NetworkParameters(network_type, frequency));
+      m_network_parameters_vec.push_back(NetworkParameters(network_parameters_list[i], DEFAULT_FREQUENCY));
    }
 }
 
@@ -450,15 +441,6 @@ string Config::getNetworkType(SInt32 network_id)
          m_network_parameters_vec.size(), NUM_STATIC_NETWORKS);
 
    return m_network_parameters_vec[network_id].getType();
-}
-
-volatile float Config::getNetworkFrequency(SInt32 network_id)
-{
-   LOG_ASSERT_ERROR(m_network_parameters_vec.size() == NUM_STATIC_NETWORKS,
-         "m_network_parameters_vec.size(%u), NUM_STATIC_NETWORKS(%u)",
-         m_network_parameters_vec.size(), NUM_STATIC_NETWORKS);
-
-   return m_network_parameters_vec[network_id].getFrequency();
 }
 
 UInt32 Config::getNearestAcceptableCoreCount(UInt32 core_count)

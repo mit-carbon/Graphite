@@ -18,8 +18,6 @@
 #include <stdlib.h>
 #include "fixed_types.h"
 
-struct NetworkModelAnalyticalParameters;
-
 class Config
 {
 public:
@@ -131,13 +129,13 @@ public:
    void setCoreFrequency(core_id_t core_id, volatile float frequency);
 
    std::string getNetworkType(SInt32 network_id);
-   volatile float getNetworkFrequency(SInt32 network_id);
 
    // Knobs
    bool isSimulatingSharedMemory() const;
    bool getEnablePerformanceModeling() const;
    bool getEnableDCacheModeling() const;
    bool getEnableICacheModeling() const;
+   bool getEnablePowerModeling() const;
 
    // Logging
    std::string getOutputFileName() const;
@@ -182,6 +180,7 @@ private:
    static bool m_knob_enable_performance_modeling;
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
+   static bool m_knob_enable_power_modeling;
 
    // Get Core & Network Parameters
    void parseCoreParameters();

@@ -18,7 +18,6 @@ string myDecStr(UInt64 v, UInt32 w);
 
 #define safeFDiv(x) (x ? (double) x : 1.0)
 
-
 // Checks if n is a power of 2.
 // returns true if n is power of 2
 
@@ -43,6 +42,17 @@ template <class T>
 T getMin(T v1, T v2)
 {
    return (v1 < v2) ? v1 : v2;
+}
+
+template <class T>
+T getMin(T v1, T v2, T v3)
+{
+   if ((v1 < v2) && (v1 < v3))
+      return v1;
+   else if (v2 < v3)
+      return v2;
+   else
+      return v3;
 }
 
 template <class T>

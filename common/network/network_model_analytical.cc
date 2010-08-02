@@ -18,8 +18,8 @@
 
 using namespace std;
 
-NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id, float network_frequency)
-      : NetworkModel(net, network_id, network_frequency)
+NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id)
+      : NetworkModel(net, network_id)
       , _bytesSent(0)
       , _cyclesProc(0)
       , _cyclesLatency(0)
@@ -36,12 +36,13 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id, 
    try
    {
       // Create network parameters
-      m_params.Tw2 = GET_INT("Tw2"); // single cycle between nodes in 2d mesh
-      m_params.s = GET_INT("s"); // single cycle switching time
-      m_params.n = GET_INT("n"); // 2-d mesh network
-      m_params.W = GET_INT("W"); // 32-bit wide channels
-      m_params.update_interval = GET_INT("update_interval");
-      m_params.proc_cost = ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2)) ? 0 : GET_INT("processing_cost");
+      _frequency = Sim()->getCfg()->getFloat("network/analytical/frequency");
+      _params.Tw2 = GET_INT("Tw2"); // single cycle between nodes in 2d mesh
+      _params.s = GET_INT("s"); // single cycle switching time
+      _params.n = GET_INT("n"); // 2-d mesh network
+      _params.W = GET_INT("W"); // 32-bit wide channels
+      _params.update_interval = GET_INT("update_interval");
+      _params.proc_cost = ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2)) ? 0 : GET_INT("processing_cost");
    }
    catch (...)
    {
@@ -52,6 +53,11 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id, 
 NetworkModelAnalytical::~NetworkModelAnalytical()
 {
    getNetwork()->unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
+}
+
+UInt32 NetworkModelAnalytical::computeAction(const NetPacket& pkt)
+{
+   return RoutingAction::RECEIVE;
 }
 
 void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
@@ -74,9 +80,9 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
 
    nextHops.push_back(h);
 
-   if (m_params.proc_cost > 0)
-      perf->queueDynamicInstruction(new DynamicInstruction(m_params.proc_cost));
-   _cyclesProc += m_params.proc_cost;
+   if (_params.proc_cost > 0)
+      perf->queueDynamicInstruction(new DynamicInstruction(_params.proc_cost));
+   _cyclesProc += _params.proc_cost;
 
    updateUtilization();
 
@@ -110,10 +116,10 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // of network hops.
 
    // Retrieve parameters
-   double Tw2 = m_params.Tw2;
-   double s = m_params.s;
-   int n = m_params.n;
-   double W = m_params.W;
+   double Tw2 = _params.Tw2;
+   double s = _params.s;
+   int n = _params.n;
+   double W = _params.W;
    double p = _globalUtilization;
    LOG_ASSERT_ERROR(!IS_NAN(_globalUtilization) && 0 <= _globalUtilization && _globalUtilization < 1, "Recv'd invalid global utilization value: %f", _globalUtilization);
 
@@ -222,7 +228,7 @@ void NetworkModelAnalytical::updateUtilization()
    UInt64 core_time = getNetwork()->getCore()->getPerformanceModel()->getCycleCount();
    UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
 
-   if (elapsed_time < m_params.update_interval)
+   if (elapsed_time < _params.update_interval)
       return;
 
    // FIXME: This assumes one cycle per flit, might not be accurate.

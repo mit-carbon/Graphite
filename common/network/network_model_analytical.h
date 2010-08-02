@@ -10,9 +10,12 @@ class Lock;
 class NetworkModelAnalytical : public NetworkModel
 {
    public:
-      NetworkModelAnalytical(Network *net, SInt32 network_id, float network_frequency);
+      NetworkModelAnalytical(Network *net, SInt32 network_id);
       ~NetworkModelAnalytical();
 
+      volatile float getFrequency() { return _frequency; }
+
+      UInt32 computeAction(const NetPacket& pkt);
       void routePacket(const NetPacket &pkt,
                        std::vector<Hop> &nextHops);
       void processReceivedPacket(NetPacket& pkt) {}
@@ -26,6 +29,8 @@ class NetworkModelAnalytical : public NetworkModel
       UInt64 computeLatency(const NetPacket &);
       void updateUtilization();
       static void receiveMCPUpdate(void *, NetPacket);
+
+      volatile float _frequency;
 
       UInt64 _bytesSent;
       UInt32 _bytesRecv;
@@ -42,7 +47,7 @@ class NetworkModelAnalytical : public NetworkModel
 
       Lock _lock;
 
-      NetworkModelAnalyticalParameters m_params;
+      NetworkModelAnalyticalParameters _params;
 
       bool m_enabled;
 };

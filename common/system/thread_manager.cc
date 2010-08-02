@@ -13,6 +13,7 @@
 #include "thread.h"
 #include "packetize.h"
 #include "clock_converter.h"
+#include "fxsupport.h"
 
 ThreadManager::ThreadManager(CoreManager *core_manager)
    : m_thread_spawn_sem(0)
@@ -73,6 +74,9 @@ ThreadManager::~ThreadManager()
 
 void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 {
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
    LOG_PRINT("onThreadStart(%i)", req->core_id);
 
    m_core_manager->initializeThread(req->core_id);
@@ -96,9 +100,9 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
    PerformanceModel *pm = m_core_manager->getCurrentCore()->getPerformanceModel();
 
-   UInt64 start_cycle_count = convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, \
-         req->time, \
-         static_cast<void*>(m_core_manager->getCurrentCore()));
+   // Global Clock to Core Clock
+   UInt64 start_cycle_count = convertCycleCount(req->time, \
+         1.0, pm->getFrequency());
    pm->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
 }
 
@@ -106,7 +110,10 @@ void ThreadManager::onThreadExit()
 {
    if (m_core_manager->getCurrentCoreID() == -1)
       return;
-  
+ 
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
    Core* core = m_core_manager->getCurrentCore();
 
    // send message to master process to update thread state
@@ -165,15 +172,18 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
 
 SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
 {
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
    // step 1
    LOG_PRINT("(1) spawnThread with func: %p and arg: %p", func, arg);
 
    Core *core = m_core_manager->getCurrentCore();
    Network *net = core->getNetwork();
 
-   UInt64 global_cycle_count = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
-         core->getPerformanceModel()->getCycleCount(), \
-         static_cast<void*>(core));
+   // Core Clock to Global Clock
+   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+         core->getPerformanceModel()->getFrequency(), 1.0);
 
    ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
                               func, arg, core->getId(), INVALID_CORE_ID,

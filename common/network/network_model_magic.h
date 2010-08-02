@@ -16,11 +16,13 @@ class NetworkModelMagic : public NetworkModel
       UInt64 _num_bytes;
 
    public:
-      NetworkModelMagic(Network *net, SInt32 network_id, float network_frequency);
+      NetworkModelMagic(Network *net, SInt32 network_id);
       ~NetworkModelMagic() { }
 
-      void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
+      volatile float getFrequency() { return 1.0; }
 
+      UInt32 computeAction(const NetPacket& pkt);
+      void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
       void processReceivedPacket(NetPacket& pkt);
 
       void outputSummary(std::ostream &out);

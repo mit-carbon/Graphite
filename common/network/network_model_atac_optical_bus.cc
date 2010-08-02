@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "network_model_atac_optical_bus.h"
 #include "core.h"
 #include "config.h"
@@ -6,63 +8,64 @@
 #include "memory_manager_base.h"
 #include "packet_type.h"
 
-NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 network_id, float network_frequency):
-   NetworkModel(net, network_id, network_frequency),
-   m_enabled(false),
-   m_total_bytes_received(0),
-   m_total_packets_received(0),
-   m_total_contention_delay(0),
-   m_total_packet_latency(0)
+NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 network_id):
+   NetworkModel(net, network_id),
+   m_enabled(false)
 {
+   // The frequency of the network is assumed to be the frequency at which the optical links are operated
    m_total_cores = Config::getSingleton()->getTotalCores();
-   
-   std::string queue_model_type = ""; 
+  
+   volatile double waveguide_length; 
    try
    {
-      // Optical delay is specified in 'clock cycles'
-      m_optical_latency = (UInt64) Sim()->getCfg()->getInt("network/atac_optical_bus/latency");
-      // Optical Bandwidth is specified in 'bits/clock cycle'
-      // In other words, it states the number of wavelengths used
-      m_optical_bandwidth = Sim()->getCfg()->getInt("network/atac_optical_bus/bandwidth");
+      m_optical_network_frequency = Sim()->getCfg()->getFloat("network/atac_optical_bus/onet/frequency");
+      m_optical_network_link_type = Sim()->getCfg()->getString("network/atac_optical_bus/onet/link/type");
+      m_optical_network_link_width = Sim()->getCfg()->getInt("network/atac_optical_bus/onet/link/width");
+      waveguide_length = Sim()->getCfg()->getFloat("network/atac_optical_bus/onet/link/length");
       
       m_queue_model_enabled = Sim()->getCfg()->getBool("network/atac_optical_bus/queue_model/enabled");
-      queue_model_type = Sim()->getCfg()->getString("network/atac_optical_bus/queue_model/type");
+      m_queue_model_type = Sim()->getCfg()->getString("network/atac_optical_bus/queue_model/type");
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Error reading atac network model parameters");
+      LOG_PRINT_ERROR("Error reading atac_optical_bus network model parameters");
    }
 
+   // Create the Optical Network Link Model
+   m_optical_network_link_model = NetworkLinkModel::create(m_optical_network_link_type, \
+         m_optical_network_frequency, \
+         waveguide_length, \
+         m_optical_network_link_width);
+
+   m_optical_network_link_delay = m_optical_network_link_model->getDelay();
+
+   // Create the Ejection Port Contention Models
    if (m_queue_model_enabled)
    {
       UInt64 min_processing_time = 1;
-      m_ejection_port_queue_model = QueueModel::create(queue_model_type, min_processing_time);
+      m_ejection_port_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
    }
+
+   // Initialize Performance Counters
+   initializePerformanceCounters();
 }
 
 NetworkModelAtacOpticalBus::~NetworkModelAtacOpticalBus()
 {
    if (m_queue_model_enabled)
       delete m_ejection_port_queue_model;
+   
+   // Delete the Optical Link Model
+   delete m_optical_network_link_model;
 }
 
-UInt64
-NetworkModelAtacOpticalBus::computeLatency(UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
+void
+NetworkModelAtacOpticalBus::initializePerformanceCounters()
 {
-   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
-      return 0;
-
-   return m_optical_latency;
-}
-
-UInt64
-NetworkModelAtacOpticalBus::computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length)
-{
-   if (!m_queue_model_enabled)
-      return 0;
-
-   UInt64 processing_time = computeProcessingTime(pkt_length);
-   return m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+   m_total_bytes_received = 0;
+   m_total_packets_received = 0;
+   m_total_contention_delay = 0;
+   m_total_packet_latency = 0;
 }
 
 core_id_t
@@ -79,15 +82,33 @@ NetworkModelAtacOpticalBus::getRequester(const NetPacket& pkt)
 }
 
 UInt64 
-NetworkModelAtacOpticalBus::computeProcessingTime(UInt32 pkt_length)
+NetworkModelAtacOpticalBus::computeProcessingTime(UInt32 pkt_length, volatile double bandwidth)
 {
    // Send: (pkt_length * 8) bits
-   // Bandwidth: (m_optical_bandwidth) bits/cycle
-   UInt32 num_bits = pkt_length * 8;
-   if (num_bits % m_optical_bandwidth == 0)
-      return (UInt64) (num_bits/m_optical_bandwidth);
-   else
-      return (UInt64) (num_bits/m_optical_bandwidth + 1);
+   // Bandwidth: (bandwidth) bits/cycle
+   // We need floating point comparison here since we are dividing frequencies
+   return (UInt64) (ceil(((double) (pkt_length * 8)) / bandwidth));
+}
+
+UInt64
+NetworkModelAtacOpticalBus::computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
+{
+   if ((!m_enabled) || (!m_queue_model_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+      return 0;
+
+   // Convert pkt_time from global clock to optical clock
+   UInt64 processing_time = computeProcessingTime(pkt_length, (volatile double) m_optical_network_link_width);
+   return m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+}
+
+UInt32
+NetworkModelAtacOpticalBus::computeAction(const NetPacket& pkt)
+{
+   core_id_t core_id = getNetwork()->getCore()->getId();
+   LOG_ASSERT_ERROR((pkt.receiver == NetPacket::BROADCAST) || (pkt.receiver == core_id),
+         "pkt.receiver(%i), core_id(%i)", pkt.receiver, core_id);
+
+   return RoutingAction::RECEIVE;
 }
 
 void 
@@ -100,21 +121,23 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
          "requester(%i)", requester);
 
-   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-
-   UInt64 net_optical_latency = computeLatency(pkt.time, pkt_length, requester);
-
    if (pkt.receiver == NetPacket::BROADCAST)
    {
       for (core_id_t i = 0; i < (core_id_t) m_total_cores; i++)
       {
          Hop h;
          h.next_dest = i;
-         h.final_dest = i;
+         h.final_dest = NetPacket::BROADCAST;
          if (getNetwork()->getCore()->getId() != i)
-            h.time = pkt.time + net_optical_latency;
+         {
+            // Update Dynamic Energy here - We use the optical link here
+            updateDynamicEnergy(pkt);
+            h.time = pkt.time + m_optical_network_link_delay;
+         }
          else
+         {
             h.time = pkt.time;
+         }
          nextHops.push_back(h);
       }
    }
@@ -123,15 +146,22 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
       // This is a multicast or unicast
       // Right now, it is a unicast
       // Add support for multicast later
-      LOG_ASSERT_ERROR(pkt.receiver < (core_id_t) m_total_cores, "Got invalid receiver ID = %i", pkt.receiver);
+      LOG_ASSERT_ERROR(pkt.receiver < (core_id_t) m_total_cores,
+            "Got invalid receiver ID = %i", pkt.receiver);
 
       Hop h;
       h.next_dest = pkt.receiver;
       h.final_dest = pkt.receiver;
       if (getNetwork()->getCore()->getId() != pkt.receiver)
-         h.time = pkt.time + net_optical_latency;
+      {
+         // Update Dynamic Energy here - We use the optical link here
+         updateDynamicEnergy(pkt);
+         h.time = pkt.time + m_optical_network_link_delay;
+      }
       else
+      {
          h.time = pkt.time;
+      }
       nextHops.push_back(h);
    }
 }
@@ -153,8 +183,8 @@ NetworkModelAtacOpticalBus::processReceivedPacket(NetPacket& pkt)
 
    if (pkt.sender != getNetwork()->getCore()->getId())
    {
-      UInt64 processing_time = computeProcessingTime(pkt_length);
-      UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt.time, pkt_length);
+      UInt64 processing_time = computeProcessingTime(pkt_length, (volatile double) m_optical_network_link_width);
+      UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt.time, pkt_length, requester);
 
       packet_latency += (ejection_port_queue_delay + processing_time);
       contention_delay += ejection_port_queue_delay;
@@ -166,7 +196,6 @@ NetworkModelAtacOpticalBus::processReceivedPacket(NetPacket& pkt)
    m_total_bytes_received += (UInt64) pkt_length;
    m_total_packet_latency += packet_latency;
    m_total_contention_delay += contention_delay;
-
 }
 
 void
@@ -188,6 +217,8 @@ NetworkModelAtacOpticalBus::outputSummary(std::ostream &out)
       out << "    average packet latency: " <<
          "NA" << std::endl;
    }
+
+   outputPowerSummary(out);
 }
 
 void
@@ -200,4 +231,31 @@ void
 NetworkModelAtacOpticalBus::disable()
 {
    m_enabled = false;
+}
+
+// Power/Energy related functions
+void
+NetworkModelAtacOpticalBus::updateDynamicEnergy(const NetPacket& pkt)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   // FIXME: Assume half the bits flip for now
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+   UInt32 num_flits = computeProcessingTime(pkt_length, (volatile double) m_optical_network_link_width);
+
+   m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width/2, num_flits);
+}
+
+void
+NetworkModelAtacOpticalBus::outputPowerSummary(ostream& out)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   volatile double static_power = m_optical_network_link_model->getStaticPower();
+   volatile double dynamic_energy = m_optical_network_link_model->getDynamicEnergy();
+
+   out << "    Static Power: " << static_power << endl;
+   out << "    Dynamic Energy: " << dynamic_energy << endl;
 }

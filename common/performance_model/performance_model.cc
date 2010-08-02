@@ -72,7 +72,7 @@ void PerformanceModel::disable()
 
 // This function is called:
 // 1) Whenever frequency is changed
-void PerformanceModel::updateInternalVariablesOnFrequencyChange(float frequency)
+void PerformanceModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    recomputeAverageFrequency();
    m_frequency = frequency;
@@ -91,8 +91,6 @@ void PerformanceModel::setCycleCount(UInt64 cycle_count)
 // 2) Whenever frequency is changed
 void PerformanceModel::recomputeAverageFrequency()
 {
-   Fxsupport::getSingleton()->fxsave();
-
    volatile float cycles_elapsed = static_cast<float>(m_cycle_count - m_checkpointed_cycle_count);
    volatile float total_cycles_executed = m_average_frequency * m_total_time + cycles_elapsed;
    volatile float total_time_taken = m_total_time + cycles_elapsed / m_frequency;
@@ -100,8 +98,6 @@ void PerformanceModel::recomputeAverageFrequency()
    m_average_frequency = total_cycles_executed / total_time_taken;
    m_total_time = total_time_taken;
    m_checkpointed_cycle_count = m_cycle_count;
-
-   Fxsupport::getSingleton()->fxrstor();
 }
 
 void PerformanceModel::queueDynamicInstruction(Instruction *i)

@@ -13,10 +13,9 @@ using namespace std;
 #include "network_model_atac_cluster.h"
 #include "log.h"
 
-NetworkModel::NetworkModel(Network *network, SInt32 network_id, float network_frequency):
+NetworkModel::NetworkModel(Network *network, SInt32 network_id):
    _network(network),
-   _network_id(network_id),
-   _network_frequency(network_frequency)
+   _network_id(network_id)
 {
    if (network_id == 0)
       _network_name = "network/user_model_1";
@@ -33,30 +32,30 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id, float network_fr
 }
 
 NetworkModel*
-NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type, float network_frequency)
+NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
 {
    switch (model_type)
    {
    case NETWORK_MAGIC:
-      return new NetworkModelMagic(net, network_id, network_frequency);
+      return new NetworkModelMagic(net, network_id);
 
    case NETWORK_EMESH_HOP_COUNTER:
-      return new NetworkModelEMeshHopCounter(net, network_id, network_frequency);
+      return new NetworkModelEMeshHopCounter(net, network_id);
 
    case NETWORK_ANALYTICAL_MESH:
-      return new NetworkModelAnalytical(net, network_id, network_frequency);
+      return new NetworkModelAnalytical(net, network_id);
 
    case NETWORK_EMESH_HOP_BY_HOP_BASIC:
-      return new NetworkModelEMeshHopByHopBasic(net, network_id, network_frequency);
+      return new NetworkModelEMeshHopByHopBasic(net, network_id);
 
    case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
-      return new NetworkModelEMeshHopByHopBroadcastTree(net, network_id, network_frequency);
+      return new NetworkModelEMeshHopByHopBroadcastTree(net, network_id);
 
    case NETWORK_ATAC_OPTICAL_BUS:
-      return new NetworkModelAtacOpticalBus(net, network_id, network_frequency);
+      return new NetworkModelAtacOpticalBus(net, network_id);
 
    case NETWORK_ATAC_CLUSTER:
-      return new NetworkModelAtacCluster(net, network_id, network_frequency);
+      return new NetworkModelAtacCluster(net, network_id);
 
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);

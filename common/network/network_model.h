@@ -25,18 +25,47 @@ class Network;
 class NetworkModel
 {
    public:
-      NetworkModel(Network *network, SInt32 network_id, float network_frequency);
+      NetworkModel(Network *network, SInt32 network_id);
       virtual ~NetworkModel() { }
 
-      struct Hop
+      class Hop
       {
+      public:
+         Hop(): 
+            final_dest(INVALID_CORE_ID), 
+            next_dest(INVALID_CORE_ID), 
+            specific(0), 
+            time(0) 
+         {}
+         ~Hop() {}
+
+         // Final & Next destinations of a packet
+         // 'final_dest' field is used to fill in the 'receiver' field in NetPacket
          SInt32 final_dest;
          SInt32 next_dest;
+
+         // This field may be used by network models to fill in the 'specific' field in NetPacket
+         // In general, specific field can be used by different network models for different functions
+         UInt32 specific;
+         
+         // This field fills in the 'time' field in NetPacket
          UInt64 time;
       };
 
-      float getFrequency() { return _network_frequency; }
+      class RoutingAction
+      {
+      public:
+         enum type_t
+         {
+            RECEIVE = 0x001,
+            FORWARD = 0x010,
+            DROP = 0x100
+         };
+      };
 
+      virtual volatile float getFrequency() = 0;
+
+      virtual UInt32 computeAction(const NetPacket& pkt) = 0;
       virtual void routePacket(const NetPacket &pkt,
                                std::vector<Hop> &nextHops) = 0;
       virtual void processReceivedPacket(NetPacket &pkt) = 0;
@@ -46,7 +75,7 @@ class NetworkModel
       virtual void enable() = 0;
       virtual void disable() = 0;
 
-      static NetworkModel *createModel(Network *network, SInt32 network_id, UInt32 model_type, float network_frequency);
+      static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
       static UInt32 parseNetworkType(std::string str);
 
       static std::pair<bool,SInt32> computeCoreCountConstraints(UInt32 network_type, SInt32 core_count);
@@ -60,9 +89,6 @@ class NetworkModel
       
       SInt32 _network_id;
       std::string _network_name;
-
-      volatile float _network_frequency;
-
 };
 
 #endif // NETWORK_MODEL_H

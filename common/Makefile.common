@@ -2,19 +2,23 @@ SIM_ROOT ?= $(CURDIR)/../
 
 include $(SIM_ROOT)/Makefile.config
 
-DIRECTORIES = $(SIM_ROOT)/common/core/        \
-			 $(SIM_ROOT)/common/core/memory_subsystem/	\
-          $(SIM_ROOT)/common/core/memory_subsystem/cache/      \
+DIRECTORIES = $(SIM_ROOT)/common/core/        									\
+			 $(SIM_ROOT)/common/core/memory_subsystem/							\
+          $(SIM_ROOT)/common/core/memory_subsystem/cache/      			\
 			 $(SIM_ROOT)/common/core/memory_subsystem/directory_schemes/	\
-          $(SIM_ROOT)/common/network/         \
-          $(SIM_ROOT)/common/transport/       \
-          $(SIM_ROOT)/common/misc/            \
-          $(SIM_ROOT)/common/config/	      \
-          $(SIM_ROOT)/common/system/          \
-          $(SIM_ROOT)/common/performance_model/      \
-          $(SIM_ROOT)/common/performance_model/branch_predictors/      \
-          $(SIM_ROOT)/common/performance_model/performance_models/     \
-          $(SIM_ROOT)/common/user/		\
+          $(SIM_ROOT)/common/network/         									\
+			 $(SIM_ROOT)/common/network/models	 									\
+			 $(SIM_ROOT)/common/network/components/router/						\
+			 $(SIM_ROOT)/common/network/components/link/							\
+          $(SIM_ROOT)/common/transport/       									\
+          $(SIM_ROOT)/common/misc/            									\
+          $(SIM_ROOT)/common/config/	      									\
+          $(SIM_ROOT)/common/system/          									\
+          $(SIM_ROOT)/common/performance_model/      							\
+          $(SIM_ROOT)/common/performance_model/branch_predictors/      	\
+          $(SIM_ROOT)/common/performance_model/performance_models/     	\
+          $(SIM_ROOT)/common/user/													\
+			 $(SIM_ROOT)/																	\
 			 $(CURDIR)/
 
 INCLUDE_DIRECTORIES = $(DIRECTORIES)
@@ -50,6 +54,10 @@ else
 endif
 
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
+
+# Other Libraries in Contrib
+LD_LIBS += -lorion
+LD_FLAGS += -L$(SIM_ROOT)/contrib/orion
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)

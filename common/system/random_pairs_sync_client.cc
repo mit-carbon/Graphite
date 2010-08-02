@@ -5,6 +5,7 @@
 #include "network.h"
 #include "fxsupport.h"
 #include "clock_converter.h"
+#include "fxsupport.h"
 #include "log.h"
 
 UInt64 RandomPairsSyncClient::MAX_TIME = ((UInt64) 1) << 60;
@@ -135,9 +136,10 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
 
    // I dont want to lock this, so I just try to read the cycle count
    // Even if this is an approximate value, this is OK
-   UInt64 curr_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
-         _core->getPerformanceModel()->getCycleCount(), \
-         static_cast<void*>(_core));
+   
+   // Core Clock to Global clock conversion
+   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
+         _core->getPerformanceModel()->getFrequency(), 1.0);
 
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
@@ -199,12 +201,14 @@ RandomPairsSyncClient::synchronize(UInt64 cycle_count)
    if (! _enabled)
       return;
 
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
    if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
-   UInt64 curr_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
-         _core->getPerformanceModel()->getCycleCount(), \
-         static_cast<void*>(_core));
+   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
+         _core->getPerformanceModel()->getFrequency(), 1.0);
 
    assert(curr_time >= _last_sync_time);
 
@@ -300,18 +304,14 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
       // Set the CoreState to 'SLEEPING'
       _core->setState(Core::SLEEPING);
 
-      UInt64 elapsed_simulated_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
-            _core->getPerformanceModel()->getCycleCount(),
-            static_cast<void*>(_core));
+      UInt64 elapsed_simulated_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
+            _core->getPerformanceModel()->getFrequency(), 1.0);
 
       UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
 
       // elapsed_simulated_time, sleep_time - in cycles (of target architecture)
       // elapsed_wall_clock_time - in microseconds
       assert(elapsed_simulated_time != 0);
-
-      // Save floating point state here
-      Fxsupport::getSingleton()->fxsave();
 
       volatile float wall_clock_time_per_simulated_cycle = float(elapsed_wall_clock_time) / elapsed_simulated_time;
       useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * wall_clock_time_per_simulated_cycle * sleep_time);
@@ -321,9 +321,6 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
          sleep_wall_clock_time = 1000000;
       }
      
-      // Restore floating point state here
-      Fxsupport::getSingleton()->fxrstor();
-
       _lock.release();
 
       assert(usleep(sleep_wall_clock_time) == 0);

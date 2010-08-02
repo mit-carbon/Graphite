@@ -9,6 +9,7 @@
 #include "clock_converter.h"
 #include "config_file.hpp"
 #include "handle_args.h"
+#include "fxsupport.h"
 
 #include "carbon_user.h"
 #include "thread_support_private.h"
@@ -75,8 +76,12 @@ void CarbonStopSim()
 
 UInt64 CarbonGetTime()
 {
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
    Core* core = Sim()->getCoreManager()->getCurrentCore();
-   return convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
-         core->getPerformanceModel()->getCycleCount(), \
-         static_cast<void*>(core));
+   UInt64 time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+         core->getPerformanceModel()->getFrequency(), 1.0);
+
+   return time;
 }

@@ -6,17 +6,27 @@ using namespace std;
 
 #include "fixed_types.h"
 
+class FloatingPointHandler
+{
+   public:
+      FloatingPointHandler();
+      ~FloatingPointHandler();
+
+   private:
+      bool is_saved;
+};
+
 class Fxsupport
 {
    public:
-      static void init();
-      static void fini();
+      static void allocate();
+      static void release();
 
       static Fxsupport *getSingleton();
-      static bool isInitialized();
 
-      void fxsave();
+      bool fxsave();
       void fxrstor();
+
    private:
       Fxsupport(core_id_t core_count);
       ~Fxsupport();

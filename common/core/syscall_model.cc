@@ -3,6 +3,7 @@
 #include "transport.h"
 #include "config.h"
 #include "clock_converter.h"
+#include "fxsupport.h"
 
 // --------------------------------------------
 // New stuff added with Memory redirection
@@ -1135,6 +1136,9 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
+      // Floating Point Save/Restore
+      FloatingPointHandler floating_point_handler;
+
       struct timespec timeout_buf;
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
@@ -1142,9 +1146,8 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       UInt64 start_time;
       UInt64 end_time;
 
-      start_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
-            core->getPerformanceModel()->getCycleCount(), \
-            static_cast<void*>(core));
+      volatile float core_frequency = core->getPerformanceModel()->getFrequency();
+      start_time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), core_frequency, 1.0);
 
       if (timeout != NULL)
       {
@@ -1198,9 +1201,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       // Look at common/system/syscall_server.cc for this
       if (end_time > start_time)
       {
-         UInt64 cycles_elapsed = convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, \
-               end_time - start_time, \
-               static_cast<void*>(core));
+         UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, core_frequency);
 
          core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
       }

@@ -3,12 +3,22 @@
 #include "memory_manager_base.h"
 #include "log.h"
 
-NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id, float network_frequency) : 
-   NetworkModel(net, network_id, network_frequency),
+NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id) : 
+   NetworkModel(net, network_id),
    _enabled(false),
    _num_packets(0),
    _num_bytes(0)
 { }
+
+UInt32
+NetworkModelMagic::computeAction(const NetPacket& pkt)
+{
+   core_id_t core_id = getNetwork()->getCore()->getId();
+   LOG_ASSERT_ERROR((pkt.receiver == NetPacket::BROADCAST) || (pkt.receiver == core_id), \
+         "pkt.receiver(%i), core_id(%i)", pkt.receiver, core_id);
+
+   return RoutingAction::RECEIVE;
+}
 
 void
 NetworkModelMagic::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
@@ -21,7 +31,7 @@ NetworkModelMagic::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
       for (SInt32 i = 0; i < (SInt32) total_cores; i++)
       {
          Hop h;
-         h.final_dest = i;
+         h.final_dest = NetPacket::BROADCAST;
          h.next_dest = i;
          h.time = pkt.time + 1;
 

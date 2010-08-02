@@ -71,11 +71,12 @@ DramCntlr::runDramPerfModel(core_id_t requester)
    UInt64 pkt_cycle_count = getShmemPerfModel()->getCycleCount();
    UInt64 pkt_size = (UInt64) getCacheBlockSize();
    
-   UInt64 pkt_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, pkt_cycle_count, static_cast<void*>(m_memory_manager->getCore()));
+   volatile float core_frequency = m_memory_manager->getCore()->getPerformanceModel()->getFrequency();
+   UInt64 pkt_time = convertCycleCount(pkt_cycle_count, core_frequency, 1.0);
 
    UInt64 dram_access_latency = m_dram_perf_model->getAccessLatency(pkt_time, pkt_size, requester);
-   
-   return convertCycleCount(GLOBAL_CLOCK_TO_CORE_CLOCK, dram_access_latency, static_cast<void*>(m_memory_manager->getCore()));
+
+   return convertCycleCount(dram_access_latency, 1.0, core_frequency);
 }
 
 void

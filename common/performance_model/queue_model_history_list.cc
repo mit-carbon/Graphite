@@ -102,9 +102,6 @@ UInt64
 QueueModelHistoryList::computeUsingAnalyticalModel(UInt64 pkt_time, UInt64 processing_time)
 {
    // processing_time = number of packet flits
-   // Save the floating point register state
-   Fxsupport::getSingleton()->fxsave();
-   
    volatile float rho = getQueueUtilization();
    
    UInt64 queue_delay = (UInt64) (((rho * processing_time) / (2 * (1 - rho))) + 1);
@@ -115,9 +112,6 @@ QueueModelHistoryList::computeUsingAnalyticalModel(UInt64 pkt_time, UInt64 proce
    // This can be done in a more efficient way. Doing it in the most stupid way now
    insertInHistoryList(pkt_time, processing_time);
 
-   // Restore the floating point register state
-   Fxsupport::getSingleton()->fxrstor();
-   
    LOG_PRINT("AnalyticalModel: pkt_time(%llu), processing_time(%llu), queue_delay(%llu)", pkt_time, processing_time, queue_delay);
 
    return queue_delay;

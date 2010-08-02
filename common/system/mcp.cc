@@ -54,7 +54,7 @@ void MCP::processPacket()
 
    m_recv_buff >> msg_type;
 
-   LOG_PRINT("MCP message type : %i", (SInt32)msg_type);
+   LOG_PRINT("MCP message type(%i), sender(%i)", (SInt32) msg_type, recv_pkt.sender);
 
    switch (msg_type)
    {

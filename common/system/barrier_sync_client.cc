@@ -10,6 +10,7 @@
 #include "core.h"
 #include "performance_model.h"
 #include "clock_converter.h"
+#include "fxsupport.h"
 
 BarrierSyncClient::BarrierSyncClient(Core* core):
    m_core(core)
@@ -34,12 +35,14 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
    UnstructuredBuffer m_send_buff;
    UnstructuredBuffer m_recv_buff;
 
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
    if (cycle_count == 0)
       cycle_count = m_core->getPerformanceModel()->getCycleCount();
 
-   UInt64 curr_time = convertCycleCount(CORE_CLOCK_TO_GLOBAL_CLOCK, \
-         cycle_count, \
-         static_cast<void*>(m_core));
+   // Convert from core clock to global clock
+   UInt64 curr_time = convertCycleCount(cycle_count, m_core->getPerformanceModel()->getFrequency(), 1.0);
 
    if (curr_time >= m_next_sync_time)
    {

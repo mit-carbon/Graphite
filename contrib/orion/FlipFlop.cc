@@ -1,6 +1,7 @@
 #include "FlipFlop.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "TechParameter.h"
 
@@ -23,6 +24,8 @@ FlipFlop::FlipFlop(
 
   if (m_ff_model != NO_MODEL)
   {
+    assert(load_ == load_);
+
     m_load = load_;
     m_tech_param_ptr = tech_param_ptr_;
 

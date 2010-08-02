@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <cassert>
 
 #include "Util.h"
 #include "OutdrvUnit.h"
@@ -32,6 +33,12 @@ SRAM::SRAM(
   const TechParameter* tech_param_ptr_
 )
 {
+  assert(num_entry_ == num_entry_);
+  assert(line_width_ == line_width_);
+  assert(num_read_port_ == num_read_port_);
+  assert(num_write_port_ == num_write_port_);
+  assert(num_data_end_ == num_data_end_);
+
   m_num_entry = num_entry_;
   m_line_width = line_width_;
   m_is_fifo = is_fifo_;

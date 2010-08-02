@@ -1,5 +1,6 @@
-#include <stdlib.h>
 #include <iostream>
+#include <cassert>
+#include <stdlib.h>
 
 #include "VCAllocator.h"
 #include "Util.h"
@@ -19,6 +20,11 @@ VCAllocator::VCAllocator(
   const TechParameter* tech_param_ptr_
 )
 {
+  assert(num_in_port_ == num_in_port_);
+  assert(num_out_port_ == num_out_port_);
+  assert(num_vclass_ == num_vclass_);
+  assert(num_vchannel_ == num_vchannel_);
+
   m_va_model = ONE_STAGE_ARB;
   m_num_in_port = num_in_port_;
   m_num_out_port = num_out_port_;
@@ -46,6 +52,11 @@ VCAllocator::VCAllocator(
   const TechParameter* tech_param_ptr_
 )
 {
+  assert(num_in_port_ == num_in_port_);
+  assert(num_out_port_ == num_out_port_);
+  assert(num_vclass_ == num_vclass_);
+  assert(num_vchannel_ == num_vchannel_);
+
   m_va_model = TWO_STAGE_ARB;
   m_num_in_port = num_in_port_;
   m_num_out_port = num_out_port_;
@@ -74,6 +85,11 @@ VCAllocator::VCAllocator(
   const OrionConfig* orion_cfg_ptr_  
 )
 {
+  assert(num_in_port_ == num_in_port_);
+  assert(num_out_port_ == num_out_port_);
+  assert(num_vclass_ == num_vclass_);
+  assert(num_vchannel_ == num_vchannel_);
+
   m_va_model = VC_SELECT;
   m_num_in_port = num_in_port_;
   m_num_out_port = num_out_port_;
@@ -166,6 +182,40 @@ double VCAllocator::get_static_power() const
   return p_va;
 }
 
+void VCAllocator::print_all() const
+{
+  switch(m_va_model)
+  {
+    case ONE_STAGE_ARB:
+      cout << "VCAllocator: ONE_STAGE_ARB" << endl;
+      for (uint32_t i = 0; i <  (m_num_in_port-1)*m_num_vchannel; i++)
+      {
+        cout << "\t" << "Global arb (" << i << ") = " << get_dynamic_energy_global_vc_arb(i, false) << endl;
+      }
+      break;
+    case TWO_STAGE_ARB:
+      cout << "VCAllocator: TWO_STAGE_ARB" << endl;
+      for (uint32_t i = 0; i < m_num_vchannel; i++)
+      {
+        cout << "\t" << "Local arb (" << i << ") = " << get_dynamic_energy_local_vc_arb(i, false) << endl;
+      }
+      for (uint32_t i = 0; i <  (m_num_in_port-1)*m_num_vchannel; i++)
+      {
+        cout << "\t" << "Global arb (" << i << ") = " << get_dynamic_energy_global_vc_arb(i, false) << endl;
+      }
+      break;
+    case VC_SELECT:
+      cout << "VCAllocator: VC_SELECT" << endl;
+      cout << "\t" << "Read = " << get_dynamic_energy_vc_select(true, false) << endl;
+      cout << "\t" << "Write = " << get_dynamic_energy_vc_select(false, false) << endl;
+      break;
+    default:
+      ;
+  }
+  cout << "\t" << "Static power = " << get_static_power() << endl;
+  return;
+}
+
 VCAllocator* VCAllocator::create_vcallocator(
   const string& vcalloc_model_str_,
   uint32_t num_in_port_,
@@ -175,9 +225,7 @@ VCAllocator* VCAllocator::create_vcallocator(
   const OrionConfig* orion_cfg_ptr_
 )
 {
-  uint32_t num_vchannel = orion_cfg_ptr_->get<uint32_t>("NUM_VIRTUAL_CHANNEL");
-
-  if (num_vchannel > 1)
+  if (num_vchannel_ > 1)
   {
     if (vcalloc_model_str_ == string("ONE_STAGE_ARB"))
     {
@@ -212,6 +260,8 @@ VCAllocator* VCAllocator::create_vcallocator(
   }
   else
   {
-    return (VCAllocator*)NULL;
+    // reduce to a register
+    return new VCAllocator(num_in_port_, num_out_port_, num_vclass_, 1,
+      "REGISTER", orion_cfg_ptr_);
   }
 }

@@ -14,6 +14,9 @@ OrionLink::OrionLink(
   const OrionConfig* orion_cfg_ptr_
 )
 {
+  assert(len_ == len_);
+  assert(line_width_ == line_width_);
+
   m_len = len_;
   m_line_width = line_width_;
   m_orion_cfg_ptr = orion_cfg_ptr_;
@@ -27,6 +30,7 @@ OrionLink::~OrionLink()
 double OrionLink::calc_dynamic_energy(uint32_t num_bit_flip_) const
 {
   assert(num_bit_flip_ <= m_line_width);
+
   return (num_bit_flip_*(m_dynamic_energy_per_bit/2));
 }
 

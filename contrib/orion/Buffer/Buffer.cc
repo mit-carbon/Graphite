@@ -1,6 +1,7 @@
 #include "Buffer.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "TechParameter.h"
 #include "OrionConfig.h"
@@ -35,6 +36,11 @@ Buffer::Buffer(
 
   if (m_buffer_model != NO_MODEL)
   {
+    assert(num_entry_ == num_entry_);
+    assert(line_width_ == line_width_);
+    assert(num_read_port_ == num_read_port_);
+    assert(num_write_port_ == num_write_port_);
+
     m_num_entry = num_entry_;
     m_line_width = line_width_;
     m_is_fifo = is_fifo_;
@@ -103,6 +109,15 @@ double Buffer::get_static_power() const
   {
     return 0;
   }
+}
+
+void Buffer::print_all() const
+{
+  cout << "Buffer" << endl;
+  cout << "\t" << "Read = " << get_dynamic_energy(true, false) << endl;
+  cout << "\t" << "Write = " << get_dynamic_energy(false, false) << endl;
+  cout << "\t" << "Static power = " << get_static_power() << endl;
+  return;
 }
 
 void Buffer::init()

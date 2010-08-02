@@ -1,6 +1,7 @@
-#include <stdlib.h>
 #include <iostream>
 #include <cmath>
+#include <cassert>
+#include <stdlib.h>
 
 #include "Wire.h"
 #include "TechParameter.h"
@@ -41,6 +42,10 @@ void Wire::calc_opt_buffering(
   double len_
 ) const
 {
+  assert(k_ != NULL);
+  assert(h_ != NULL);
+  assert((len_ == len_) && (len_ > 0));
+
   double BufferDriveResistance = m_tech_param_ptr->get_BufferDriveResistance();
   double BufferInputCapacitance = m_tech_param_ptr->get_BufferInputCapacitance();
   switch(m_buf_scheme)
@@ -88,13 +93,14 @@ void Wire::calc_opt_buffering(
 
 double Wire::calc_dynamic_energy(double len_) const
 {
+  assert((len_ == len_) && (len_ > 0));
 
   double c_g = 2*m_gnd_cap_unit_len*len_;
   double c_c = 2*m_couple_cap_unit_len*len_;
   double cap_wire = c_g + c_c;
 
-  int k;
-  double h;
+  int k = 0;
+  double h = 0;
 
   calc_opt_buffering(&k, &h, len_);
 
@@ -107,8 +113,10 @@ double Wire::calc_dynamic_energy(double len_) const
 
 double Wire::calc_static_power(double len_) const
 {
-  int k;
-  double h;
+  assert((len_ == len_) && (len_ > 0));
+
+  int k = 0;
+  double h = 0;
   calc_opt_buffering(&k, &h, len_);
 
   double BufferNMOSOffCurrent = m_tech_param_ptr->get_BufferNMOSOffCurrent();
@@ -210,7 +218,7 @@ double Wire::calc_res_unit_len()
 double Wire::calc_gnd_cap_unit_len()
 {
   // c_g is in F
-  double c_g = 0.0;
+  double c_g = 0;
 
   double WireMinWidth = m_tech_param_ptr->get_WireMinWidth();
   double WireMinSpacing = m_tech_param_ptr->get_WireMinSpacing();
@@ -273,7 +281,7 @@ double Wire::calc_gnd_cap_unit_len()
 double Wire::calc_couple_cap_unit_len()
 {
   //c_c is in F
-  double c_c = 0.0;
+  double c_c = 0;
 
   double WireMinWidth = m_tech_param_ptr->get_WireMinWidth();
   double WireMinSpacing = m_tech_param_ptr->get_WireMinSpacing();

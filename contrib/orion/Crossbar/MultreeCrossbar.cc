@@ -19,6 +19,7 @@ MultreeCrossbar::MultreeCrossbar(
       MULTREE_CROSSBAR, conn_type_str_, trans_type_str_,
       num_in_, num_out_, data_width_, 0, 0, degree_, tech_param_ptr_)
 {
+  m_len_req_wire = 0;
   init();
 }
 

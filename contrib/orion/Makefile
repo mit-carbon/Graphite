@@ -1,28 +1,35 @@
-DIRECTORIES = \
-				  $(CURDIR)					\
-				  $(CURDIR)/Allocator	\
-				  $(CURDIR)/Buffer		\
-				  $(CURDIR)/Crossbar
+BUFFER_DIR = Buffer
+CROSSBAR_DIR = Crossbar
+ALLOCATOR_DIR = Allocator
 
-# Grab all c++ files from subdirs
-SOURCES = $(foreach dir,$(DIRECTORIES),$(wildcard $(dir)/*.cc))
+DIRS = \
+  $(CURDIR) \
+  $(CURDIR)/$(BUFFER_DIR) \
+  $(CURDIR)/$(CROSSBAR_DIR) \
+  $(CURDIR)/$(ALLOCATOR_DIR)
 
-# All Objects
-OBJECTS = $(SOURCES:%.cc=%.o)
+SRCS = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.cc))
 
-# Include paths
-CXXFLAGS = -c $(foreach dir,$(DIRECTORIES),-I$(dir)) \
-          -Wall -Werror -Wno-unknown-pragmas -O2 -fPIC
+OBJS = $(SRCS:%.cc=%.o)
+
+INCLUDE_FLAGS = $(foreach dir, $(DIRS), -I$(dir))
+OPT_FLAGS = -O2 -g -fPIC
+WARN_FLAGS = -pedantic -Wall -W -Wextra -Werror
+CXXFLAGS = $(OPT_FLAGS) $(WARN_FLAGS) $(INCLUDE_FLAGS)
 
 TARGET = $(CURDIR)/liborion.a
 
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS)
+$(TARGET): $(OBJS)
 	ar rcs $@ $^
 
-%.o : %.cc
-	$(CXX) $(CXXFLAGS) -o $@ $<
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%/created:
+	mkdir -p $(dir $@)
+	touch $@
 
 clean:
-	rm -f $(TARGET) $(OBJECTS)
+	$(RM) -rf $(OBJS) *-test.o $(TARGET)

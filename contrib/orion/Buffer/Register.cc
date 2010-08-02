@@ -1,6 +1,7 @@
 #include "Register.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "TechParameter.h"
 #include "FlipFlop.h"
@@ -13,6 +14,9 @@ Register::Register(
   const TechParameter *tech_param_ptr_
 )
 {
+  assert(num_entry_ == num_entry_);
+  assert(line_width_ == line_width_);
+
   m_num_entry = num_entry_;
   m_line_width = line_width_;
   m_tech_param_ptr = tech_param_ptr_;
@@ -67,7 +71,7 @@ void Register::init()
   m_ff_ptr = new FlipFlop("NEG_DFF", 0, m_tech_param_ptr);
 
   uint32_t num_clock = m_line_width;
-  m_avg_read = m_ff_ptr->get_e_clock()*num_clock/2.0;
+  m_avg_read = m_ff_ptr->get_e_clock()*((double)num_clock)/2.0;
 
   double num_switch = m_line_width/2.0;
   m_avg_write = m_ff_ptr->get_e_switch()*num_switch+m_ff_ptr->get_e_clock()*num_clock;

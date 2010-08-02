@@ -1,6 +1,7 @@
 #include "MatrixCrossbar.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "TechParameter.h"
 
@@ -22,6 +23,9 @@ MatrixCrossbar::MatrixCrossbar(
       num_in_, num_out_, data_width_, num_in_seg_, num_out_seg_, 
       0, tech_param_ptr_)
 {
+  assert(len_in_wire_ == len_in_wire_);
+  assert(len_out_wire_ == len_out_wire_);
+
   m_len_in_wire = len_in_wire_;
   m_len_out_wire = len_out_wire_;
   init();

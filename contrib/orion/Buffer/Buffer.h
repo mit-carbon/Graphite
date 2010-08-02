@@ -36,6 +36,8 @@ class Buffer
     double get_dynamic_energy(bool is_read_, bool is_max_) const;
     double get_static_power() const;
 
+    void print_all() const;
+
   private:
     void init();
 

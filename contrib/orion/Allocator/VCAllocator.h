@@ -61,6 +61,8 @@ class VCAllocator
     double get_dynamic_energy_vc_select(bool is_read_, bool is_max_) const;
     double get_static_power() const;
 
+    void print_all() const;
+
   protected:
     VAModel m_va_model;
     uint32_t m_num_in_port;

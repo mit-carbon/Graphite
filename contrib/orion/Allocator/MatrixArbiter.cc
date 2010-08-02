@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <cassert>
 
 #include "TechParameter.h"
 #include "FlipFlop.h"
@@ -25,11 +26,7 @@ MatrixArbiter::~MatrixArbiter()
 
 double MatrixArbiter::calc_dynamic_energy(double num_req_, bool is_max_) const
 {
-  if (num_req_ > m_req_width)
-  {
-    cerr << "WARNING: (num_req_ > m_req_width). Set num_req_ = m_req_width" << endl;
-    num_req_ = m_req_width;
-  }
+  assert(num_req_ < m_req_width);
 
   double num_grant;
   if (num_req_ >= 1) num_grant = 1;

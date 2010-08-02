@@ -47,6 +47,8 @@ class Crossbar
     virtual double get_dynamic_energy(bool is_max_) const = 0;
     double get_static_power() const;
 
+    void print_all() const;
+
   protected:
     void set_conn_type(const string& conn_type_str_);
     void set_trans_type(const string& trans_type_str_);

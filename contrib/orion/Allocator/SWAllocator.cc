@@ -1,6 +1,7 @@
 #include "SWAllocator.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "Util.h"
 #include "OrionConfig.h"
@@ -22,6 +23,12 @@ SWAllocator::SWAllocator(
   const TechParameter* tech_param_ptr_
 )
 {
+  assert(num_in_port_ == num_in_port_);
+  assert(num_out_port_ == num_out_port_);
+  assert(num_vclass_ == num_vclass_);
+  assert(num_vchannel_ == num_vchannel_);
+  assert(len_in_wire_ == len_in_wire_);
+
   m_num_in_port = num_in_port_;
   m_num_out_port = num_out_port_;
   m_num_vclass = num_vclass_;
@@ -89,6 +96,29 @@ double SWAllocator::get_static_power() const
     p_va += m_global_arb_ptr->get_static_power()*m_num_out_port;
   }
   return p_va;
+}
+
+void SWAllocator::print_all() const
+{
+  cout << "SWAllocator:" << endl;
+  if (m_local_arb_ptr)
+  {
+    for (uint32_t i = 0; i < m_num_vclass*m_num_vchannel; i++)
+    {
+      cout << "\t" << "Local arb (" << i << ") = " << get_dynamic_energy_local_sw_arb(i, false) << endl;
+    }
+  }
+
+  if (m_global_arb_ptr)
+  {
+    for (uint32_t i = 0; i < m_num_in_port-1; i++)
+    {
+      cout << "\t" << "Global arb (" << i << ") = " << get_dynamic_energy_global_sw_arb(i, false) << endl;
+    }
+  }
+
+  cout << "\t" << "Static power = " << get_static_power() << endl;
+  return;
 }
 
 SWAllocator* SWAllocator::create_swallocator(

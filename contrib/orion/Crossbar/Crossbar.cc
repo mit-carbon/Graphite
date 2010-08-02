@@ -1,6 +1,7 @@
 #include "Crossbar.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "TechParameter.h"
 #include "OrionConfig.h"
@@ -25,6 +26,12 @@ Crossbar::Crossbar(
   m_xbar_model = xbar_model_;
   if (m_xbar_model != NO_MODEL)
   {
+    assert((num_in_ == num_in_) && (num_in_ != 0));
+    assert((num_out_ == num_out_) && (num_out_ != 0));
+    assert((data_width_ == data_width_) && (data_width_ != 0));
+    assert(num_in_seg_ == num_in_seg_);
+    assert(num_out_seg_ == num_out_seg_);
+
     set_conn_type(conn_type_str_);
     set_trans_type(trans_type_str_);
     m_num_in = num_in_;
@@ -49,6 +56,14 @@ double Crossbar::get_static_power() const
   double vdd = m_tech_param_ptr->get_vdd();
   double SCALE_S = m_tech_param_ptr->get_SCALE_S();
   return (m_i_static*vdd*SCALE_S);
+}
+
+void Crossbar::print_all() const
+{
+  cout << "Crossbar" << endl;
+  cout << "\t" << "Traversal = " << get_dynamic_energy(false) << endl;
+  cout << "\t" << "Static power = " << get_static_power() << endl;
+  return;
 }
 
 void Crossbar::set_conn_type(const string& conn_type_str_)

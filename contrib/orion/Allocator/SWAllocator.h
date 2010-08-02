@@ -32,6 +32,8 @@ class SWAllocator
     double get_dynamic_energy_global_sw_arb(double num_req_, bool is_max_) const;
     double get_static_power() const;
 
+    void print_all() const;
+
   protected:
     void init();
 

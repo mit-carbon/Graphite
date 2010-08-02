@@ -1,6 +1,7 @@
 #include "Arbiter.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "TechParameter.h"
 #include "RRArbiter.h"
@@ -15,6 +16,9 @@ Arbiter::Arbiter(
   const TechParameter* tech_param_ptr_
 )
 {
+  assert(req_width_ == req_width_);
+  assert(len_in_wire_ == len_in_wire_);
+
   m_arb_model = arb_model_;
   m_req_width = req_width_;
   m_len_in_wire = len_in_wire_;

@@ -1,5 +1,7 @@
 #include "OrionRouter.h"
 
+#include <cassert>
+
 #include "Util.h"
 #include "OrionConfig.h"
 #include "Buffer.h"
@@ -27,6 +29,13 @@ OrionRouter::OrionRouter(
   OrionConfig* orion_cfg_ptr_
 )
 {
+  assert((num_in_port_ == num_in_port_) && (num_in_port_ != 0));
+  assert((num_out_port_ == num_out_port_) && (num_out_port_ != 0));
+  assert((num_vclass_ == num_vclass_) && (num_vclass_ != 0));
+  assert((num_vchannel_ == num_vchannel_) && (num_vchannel_ != 0));
+  assert(in_buf_num_set_ == in_buf_num_set_);
+  assert((flit_width_ == flit_width_) && (flit_width_ != 0));
+
   orion_cfg_ptr_->set_num_in_port(num_in_port_);
   orion_cfg_ptr_->set_num_out_port(num_out_port_);
   orion_cfg_ptr_->set_num_vclass(num_vclass_);
@@ -356,12 +365,12 @@ void OrionRouter::print() const
   cout << "\t" << "Buffer Read = " << calc_dynamic_energy_buf(true) << endl;
   cout << "\t" << "Buffer Write = " << calc_dynamic_energy_buf(false) << endl;
   cout << "\t" << "Crossbar = " << calc_dynamic_energy_xbar() << endl;
-  cout << "\t" << "Local VC Allocator(2) = " << calc_dynamic_energy_local_vc_arb(2) << endl;
-  cout << "\t" << "Global VC Allocator(2) = " << calc_dynamic_energy_global_vc_arb(2) << endl;
+  cout << "\t" << "Local VC Allocator(1) = " << calc_dynamic_energy_local_vc_arb(1) << endl;
+  cout << "\t" << "Global VC Allocator(1) = " << calc_dynamic_energy_global_vc_arb(1) << endl;
   cout << "\t" << "VC Select Read = " << calc_dynamic_energy_vc_select(true) << endl;
   cout << "\t" << "VC Select Write = " << calc_dynamic_energy_vc_select(false) << endl;
-  cout << "\t" << "Local SW Allocator(2) = " << calc_dynamic_energy_local_sw_arb(2) << endl;
-  cout << "\t" << "Global SW Allocator(2) = " << calc_dynamic_energy_global_sw_arb(2) << endl;
+  cout << "\t" << "Local SW Allocator(1) = " << calc_dynamic_energy_local_sw_arb(1) << endl;
+  cout << "\t" << "Global SW Allocator(1) = " << calc_dynamic_energy_global_sw_arb(1) << endl;
   cout << "\t" << "Clock = " << calc_dynamic_energy_clock() << endl;
   cout << endl;
   cout << "Router - Static Power" << endl;

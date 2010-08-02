@@ -99,13 +99,12 @@ void Fxsupport::fxrstor()
       UInt32 core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
       if (core_index < Config::getSingleton()->getNumLocalCores())
       {
-         if (m_context_saved[core_index])
-         {
-            m_context_saved[core_index] = false;
+         LOG_ASSERT_ERROR(m_context_saved[core_index], "Context Not Saved(%u)", core_index);
+         
+         m_context_saved[core_index] = false;
 
-            char *buf = m_fx_buf[core_index];
-            asm volatile ("fxrstor %0"::"m"(*buf));
-         }
+         char *buf = m_fx_buf[core_index];
+         asm volatile ("fxrstor %0"::"m"(*buf));
       }
    
       LOG_PRINT("fxrstor() end");

@@ -10,6 +10,7 @@
 #include "performance_model.h"
 #include "transport.h"
 #include "lock.h"
+#include "clock_converter.h"
 #include "log.h"
 
 #define IS_NAN(x) (!((x < 0.0) || (x >= 0.0)))
@@ -201,8 +202,13 @@ void NetworkModelAnalytical::outputSummary(ostream &out)
 {
    out << "    bytes sent: " << _bytesSent << endl;
    out << "    cycles spent proc: " << _cyclesProc << endl;
-   out << "    cycles spent latency: " << _cyclesLatency << endl;
-   out << "    cycles spent contention: " << _cyclesContention << endl;
+   
+   UInt64 _cyclesLatencyInNS = convertCycleCount(_cyclesLatency, _frequency, 1.0);
+   UInt64 _cyclesContentionInNS = convertCycleCount(_cyclesContention, _frequency, 1.0);
+   out << "    cycles spent latency (in clock cycles): " << _cyclesLatency << endl;
+   out << "    cycles spent latency (in ns): " << _cyclesLatencyInNS << endl;
+   out << "    cycles spent contention (in clock cycles): " << _cyclesContention << endl;
+   out << "    cycles spent contention (in ns): " << _cyclesContentionInNS << endl;
 }
 
 struct UtilizationMessage

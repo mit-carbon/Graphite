@@ -9,6 +9,7 @@ using namespace std;
 #include "packet_type.h"
 #include "queue_model_history_list.h"
 #include "memory_manager_base.h"
+#include "clock_converter.h"
 
 NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id):
    NetworkModel(net, network_id),
@@ -450,17 +451,26 @@ NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
    out << "    packets received: " << m_total_packets_received << endl;
    if (m_total_packets_received > 0)
    {
-      out << "    average contention delay: " << 
+      UInt64 total_contention_delay_in_ns = convertCycleCount(m_total_contention_delay, m_frequency, 1.0);
+      UInt64 total_packet_latency_in_ns = convertCycleCount(m_total_packet_latency, m_frequency, 1.0);
+
+      out << "    average contention delay (in clock cycles): " << 
          ((float) m_total_contention_delay / m_total_packets_received) << endl;
-      out << "    average packet latency: " <<
+      out << "    average contention delay (in ns): " << 
+         ((float) total_contention_delay_in_ns / m_total_packets_received) << endl;
+      
+      out << "    average packet latency (in clock cycles): " <<
          ((float) m_total_packet_latency / m_total_packets_received) << endl;
+      out << "    average packet latency (in ns): " <<
+         ((float) total_packet_latency_in_ns / m_total_packets_received) << endl;
    }
    else
    {
-      out << "    average contention delay: " << 
-         "NA" << endl;
-      out << "    average packet latency: " <<
-         "NA" << endl;
+      out << "    average contention delay (in clock cycles): 0" << endl;
+      out << "    average contention delay (in ns): 0" << endl;
+      
+      out << "    average packet latency (in clock cycles): 0" << endl;
+      out << "    average packet latency (in ns): 0" << endl;
    }
 
    if (m_queue_model_enabled && (m_queue_model_type == "history_list"))

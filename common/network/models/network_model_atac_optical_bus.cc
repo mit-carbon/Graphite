@@ -7,6 +7,7 @@
 #include "simulator.h"
 #include "memory_manager_base.h"
 #include "packet_type.h"
+#include "clock_converter.h"
 
 NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 network_id):
    NetworkModel(net, network_id),
@@ -205,17 +206,26 @@ NetworkModelAtacOpticalBus::outputSummary(std::ostream &out)
    out << "    packets received: " << m_total_packets_received << std::endl;
    if (m_total_packets_received > 0)
    {
-      out << "    average queueing delay: " << 
-         ((float) m_total_contention_delay / m_total_packets_received) << std::endl;
-      out << "    average packet latency: " <<
-         ((float) m_total_packet_latency / m_total_packets_received) << std::endl;
+      UInt64 total_contention_delay_in_ns = convertCycleCount(m_total_contention_delay, getFrequency(), 1.0);
+      UInt64 total_packet_latency_in_ns = convertCycleCount(m_total_packet_latency, getFrequency(), 1.0);
+
+      out << "    average contention delay (in clock cycles): " << 
+         ((float) m_total_contention_delay / m_total_packets_received) << endl;
+      out << "    average contention delay (in ns): " << 
+         ((float) total_contention_delay_in_ns / m_total_packets_received) << endl;
+      
+      out << "    average packet latency (in clock cycles): " <<
+         ((float) m_total_packet_latency / m_total_packets_received) << endl;
+      out << "    average packet latency (in ns): " <<
+         ((float) total_packet_latency_in_ns / m_total_packets_received) << endl;
    }
    else
    {
-      out << "    average queueing delay: " << 
-         "NA" << std::endl;
-      out << "    average packet latency: " <<
-         "NA" << std::endl;
+      out << "    average contention delay (in clock cycles): 0" << endl;
+      out << "    average contention delay (in ns): 0" << endl;
+      
+      out << "    average packet latency (in clock cycles): 0" << endl;
+      out << "    average packet latency (in ns): 0" << endl;
    }
 
    outputPowerSummary(out);

@@ -776,11 +776,12 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
          UInt64 total_sender_hub_contention_delay_in_ns = convertCycleCount( \
                m_total_sender_hub_contention_delay, \
                m_optical_network_frequency, 1.0);
-         out << "    Sender Hub Contention Delay: " << ((float) total_sender_hub_contention_delay_in_ns) / m_total_sender_hub_packets << endl;
+         out << "    Sender Hub Contention Delay (in ns): " << \
+            ((float) total_sender_hub_contention_delay_in_ns) / m_total_sender_hub_packets << endl;
       }
       else
       {
-         out << "    Sender Hub Contention Delay: 0" << endl;
+         out << "    Sender Hub Contention Delay (in ns): 0" << endl;
       }
     
       for (UInt32 i = 0; i < m_num_scatter_networks_per_cluster; i++)
@@ -791,20 +792,21 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
             UInt64 total_receiver_hub_contention_delay_in_ns = convertCycleCount( \
                   m_total_receiver_hub_contention_delay[i], \
                   m_scatter_network_frequency, 1.0);
-            out << "    Receiver Hub (" << i << ") Contention Delay: " << ((float) total_receiver_hub_contention_delay_in_ns) / m_total_receiver_hub_packets[i] << endl;
+            out << "    Receiver Hub (" << i << ") Contention Delay (in ns): " \
+               << ((float) total_receiver_hub_contention_delay_in_ns) / m_total_receiver_hub_packets[i] << endl;
          }
          else
          {
-            out << "    Receiver Hub (" << i << ") Contention Delay: 0" << endl;
+            out << "    Receiver Hub (" << i << ") Contention Delay (in ns): 0" << endl;
          }
       }
    }
    else
    {
-      out << "    Sender Hub Contention Delay: NA" << endl;
+      out << "    Sender Hub Contention Delay (in ns): NA" << endl;
       for (UInt32 i = 0; i < m_num_scatter_networks_per_cluster; i++)
       {
-         out << "    Receiver Hub (" << i << ") Contention Delay: NA" << endl;
+         out << "    Receiver Hub (" << i << ") Contention Delay (in ns): NA" << endl;
       }
    }
 }
@@ -819,11 +821,12 @@ NetworkModelAtacCluster::outputSummary(ostream &out)
       // Convert from gather network clock to global clock
       UInt64 total_packet_latency_in_ns = convertCycleCount(m_total_packet_latency, \
             m_gather_network_frequency, 1.0);
-      out << "    average packet latency: " << ((float) total_packet_latency_in_ns) / m_total_packets_received << endl;
+      out << "    average packet latency (in ns): " << \
+         ((float) total_packet_latency_in_ns) / m_total_packets_received << endl;
    }
    else
    {
-      out << "    average packet latency: 0" << endl;
+      out << "    average packet latency (in ns): 0" << endl;
    }
 
    outputHubSummary(out);

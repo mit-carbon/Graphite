@@ -7,6 +7,7 @@
 #include "config.h"
 #include "core.h"
 #include "memory_manager_base.h"
+#include "clock_converter.h"
 
 UInt32 NetworkModelEMeshHopCounter::_NUM_OUTPUT_DIRECTIONS = 4;
 
@@ -249,7 +250,9 @@ NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
 {
    out << "    num packets received: " << _num_packets << std::endl;
    out << "    num bytes received: " << _num_bytes << std::endl;
-   out << "    average latency: " << ((float) _total_latency) / _num_packets << std::endl;
+   UInt64 total_latency_in_ns = convertCycleCount(_total_latency, _frequency, 1.0);
+   out << "    average latency (in clock cycles): " << ((float) _total_latency) / _num_packets << std::endl;
+   out << "    average latency (in ns): " << ((float) total_latency_in_ns) / _num_packets << std::endl;
 
    outputPowerSummary(out);
 }

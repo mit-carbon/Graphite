@@ -941,15 +941,18 @@ NetworkModelAtacCluster::updateDynamicEnergy(SubNetworkType sub_net_type, const 
       case GATHER_NETWORK:
          // TODO: Check if the number of gather network links traversed is correct
          // We basically look at a mesh and compute the average number of links traversed
-         m_gather_network_link_model->updateDynamicEnergy(pkt_length/2, m_sqrt_cluster_size/2 + 1);
+         m_gather_network_link_model->updateDynamicEnergy(m_gather_network_link_width / 2, \
+               computeProcessingTime(pkt_length, m_gather_network_link_width) * (m_sqrt_cluster_size/2 + 1));
          break;
 
       case OPTICAL_NETWORK:
-         m_optical_network_link_model->updateDynamicEnergy(pkt_length/2);
+         m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width / 2, \
+               computeProcessingTime(pkt_length, m_optical_network_link_width));
          break;
 
       case SCATTER_NETWORK:
-         m_scatter_network_link_model->updateDynamicEnergy(pkt_length/2, m_cluster_size);
+         m_scatter_network_link_model->updateDynamicEnergy(m_scatter_network_link_width / 2, \
+               computeProcessingTime(pkt_length, m_scatter_network_link_width) * m_cluster_size);
          break;
 
       default:

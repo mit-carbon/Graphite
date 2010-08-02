@@ -33,16 +33,26 @@ public:
       private:
          std::string m_type;
          volatile float m_frequency;
+         std::string m_l1_icache_type;
+         std::string m_l1_dcache_type;
+         std::string m_l2_cache_type;
 
       public:
-         CoreParameters(std::string type, volatile float frequency):
-            m_type(type), m_frequency(frequency)
+         CoreParameters(std::string type, volatile float frequency, std::string l1_icache_type, std::string l1_dcache_type, std::string l2_cache_type):
+            m_type(type),
+            m_frequency(frequency),
+            m_l1_icache_type(l1_icache_type),
+            m_l1_dcache_type(l1_dcache_type),
+            m_l2_cache_type(l2_cache_type)
          {}
          ~CoreParameters() {}
 
          volatile float getFrequency() { return m_frequency; }
          void setFrequency(volatile float frequency) { m_frequency = frequency; }
          std::string getType() { return m_type; }
+         std::string getL1ICacheType() { return m_l1_icache_type; }
+         std::string getL1DCacheType() { return m_l1_dcache_type; }
+         std::string getL2CacheType() { return m_l2_cache_type; }
    };
 
    class NetworkParameters
@@ -125,6 +135,9 @@ public:
 
    // Core & Network Parameters
    std::string getCoreType(core_id_t core_id);
+   std::string getL1ICacheType(core_id_t core_id);
+   std::string getL1DCacheType(core_id_t core_id);
+   std::string getL2CacheType(core_id_t core_id);
    volatile float getCoreFrequency(core_id_t core_id);
    void setCoreFrequency(core_id_t core_id, volatile float frequency);
 

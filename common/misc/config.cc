@@ -289,6 +289,7 @@ void Config::parseCoreParameters()
    const UInt32 DEFAULT_NUM_CORES = getApplicationCores();
    const float DEFAULT_FREQUENCY = 1;
    const string DEFAULT_CORE_TYPE = "magic";
+   const string DEFAULT_CACHE_TYPE = "T1";
 
    string core_parameter_tuple_str;
    vector<string> core_parameter_tuple_vec;
@@ -313,6 +314,9 @@ void Config::parseCoreParameters()
       UInt32 num_cores = DEFAULT_NUM_CORES;
       float frequency = DEFAULT_FREQUENCY;
       string core_type = DEFAULT_CORE_TYPE;
+      string l1_icache_type = DEFAULT_CACHE_TYPE;
+      string l1_dcache_type = DEFAULT_CACHE_TYPE;
+      string l2_cache_type = DEFAULT_CACHE_TYPE;
 
       vector<string> core_parameter_tuple;
       parseList(*tuple_it, core_parameter_tuple, ",");
@@ -337,6 +341,18 @@ void Config::parseCoreParameters()
                   core_type = trimSpaces(*param_it);
                   break;
 
+               case 3:
+                  l1_icache_type = trimSpaces(*param_it);
+                  break;
+
+               case 4:
+                  l1_dcache_type = trimSpaces(*param_it);
+                  break;
+
+               case 5:
+                  l2_cache_type = trimSpaces(*param_it);
+                  break;
+
                default:
                   fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
                   exit(EXIT_FAILURE);
@@ -349,7 +365,8 @@ void Config::parseCoreParameters()
       // Append these values to an internal list
       for (UInt32 i = num_initialized_cores; i < num_initialized_cores + num_cores; i++)
       {
-         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency));
+         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency, \
+                  l1_icache_type, l1_dcache_type, l2_cache_type));
       }
       num_initialized_cores += num_cores;
 
@@ -368,9 +385,11 @@ void Config::parseCoreParameters()
       exit(EXIT_FAILURE);
    }
 
+   // MCP, thread spawner and misc cores
    for (UInt32 i = getApplicationCores(); i < getTotalCores(); i++)
    {
-      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY));
+      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
+               DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
    }
 }
 
@@ -410,6 +429,39 @@ string Config::getCoreType(core_id_t core_id)
          m_core_parameters_vec.size(), getTotalCores());
 
    return m_core_parameters_vec[core_id].getType();
+}
+
+string Config::getL1ICacheType(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
+         "m_core_parameters_vec.size(%u), total cores(%u)",
+         m_core_parameters_vec.size(), getTotalCores());
+
+   return m_core_parameters_vec[core_id].getL1ICacheType();
+}
+
+string Config::getL1DCacheType(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
+         "m_core_parameters_vec.size(%u), total cores(%u)",
+         m_core_parameters_vec.size(), getTotalCores());
+
+   return m_core_parameters_vec[core_id].getL1DCacheType();
+}
+
+string Config::getL2CacheType(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
+         "m_core_parameters_vec.size(%u), total cores(%u)",
+         m_core_parameters_vec.size(), getTotalCores());
+
+   return m_core_parameters_vec[core_id].getL2CacheType();
 }
 
 volatile float Config::getCoreFrequency(core_id_t core_id)

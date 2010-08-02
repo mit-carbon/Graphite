@@ -242,7 +242,8 @@ DramDirectoryCache::outputSummary(ostream& out)
       try
       {
          num_dram_cntlrs = (UInt32) Sim()->getCfg()->getInt("perf_model/dram/num_controllers");
-         l2_cache_size = (UInt64) Sim()->getCfg()->getInt("perf_model/l2_cache/cache_size");
+         l2_cache_size = (UInt64) Sim()->getCfg()->getInt("perf_model/l2_cache/" + \
+               Config::getSingleton()->getL2CacheType(m_memory_manager->getCore()->getId()) + "/cache_size");
       }
       catch (...)
       {

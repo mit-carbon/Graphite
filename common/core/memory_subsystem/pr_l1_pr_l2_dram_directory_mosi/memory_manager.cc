@@ -18,6 +18,7 @@ MemoryManager::MemoryManager(Core* core,
    m_enabled(false)
 {
    // Read Parameters from the Config file
+   std::string l1_icache_type;
    UInt32 l1_icache_size = 0;
    UInt32 l1_icache_associativity = 0;
    std::string l1_icache_replacement_policy;
@@ -25,6 +26,7 @@ MemoryManager::MemoryManager(Core* core,
    UInt32 l1_icache_tags_access_time = 0;
    std::string l1_icache_perf_model_type;
 
+   std::string l1_dcache_type;
    UInt32 l1_dcache_size = 0;
    UInt32 l1_dcache_associativity = 0;
    std::string l1_dcache_replacement_policy;
@@ -32,6 +34,7 @@ MemoryManager::MemoryManager(Core* core,
    UInt32 l1_dcache_tags_access_time = 0;
    std::string l1_dcache_perf_model_type;
 
+   std::string l2_cache_type;
    UInt32 l2_cache_size = 0;
    UInt32 l2_cache_associativity = 0;
    std::string l2_cache_replacement_policy;
@@ -58,31 +61,33 @@ MemoryManager::MemoryManager(Core* core,
 
    try
    {
-      m_cache_block_size = Sim()->getCfg()->getInt("perf_model/l1_icache/cache_block_size");
-
       // L1 ICache
-      l1_icache_size = Sim()->getCfg()->getInt("perf_model/l1_icache/cache_size");
-      l1_icache_associativity = Sim()->getCfg()->getInt("perf_model/l1_icache/associativity");
-      l1_icache_replacement_policy = Sim()->getCfg()->getString("perf_model/l1_icache/replacement_policy");
-      l1_icache_data_access_time = Sim()->getCfg()->getInt("perf_model/l1_icache/data_access_time");
-      l1_icache_tags_access_time = Sim()->getCfg()->getInt("perf_model/l1_icache/tags_access_time");
-      l1_icache_perf_model_type = Sim()->getCfg()->getString("perf_model/l1_icache/perf_model_type");
+      l1_icache_type = "perf_model/l1_icache/" + Config::getSingleton()->getL1ICacheType(getCore()->getId());
+      m_cache_block_size = Sim()->getCfg()->getInt(l1_icache_type + "/cache_block_size");
+      l1_icache_size = Sim()->getCfg()->getInt(l1_icache_type + "/cache_size");
+      l1_icache_associativity = Sim()->getCfg()->getInt(l1_icache_type + "/associativity");
+      l1_icache_replacement_policy = Sim()->getCfg()->getString(l1_icache_type + "/replacement_policy");
+      l1_icache_data_access_time = Sim()->getCfg()->getInt(l1_icache_type + "/data_access_time");
+      l1_icache_tags_access_time = Sim()->getCfg()->getInt(l1_icache_type + "/tags_access_time");
+      l1_icache_perf_model_type = Sim()->getCfg()->getString(l1_icache_type + "/perf_model_type");
 
       // L1 DCache
-      l1_dcache_size = Sim()->getCfg()->getInt("perf_model/l1_dcache/cache_size");
-      l1_dcache_associativity = Sim()->getCfg()->getInt("perf_model/l1_dcache/associativity");
-      l1_dcache_replacement_policy = Sim()->getCfg()->getString("perf_model/l1_dcache/replacement_policy");
-      l1_dcache_data_access_time = Sim()->getCfg()->getInt("perf_model/l1_dcache/data_access_time");
-      l1_dcache_tags_access_time = Sim()->getCfg()->getInt("perf_model/l1_dcache/tags_access_time");
-      l1_dcache_perf_model_type = Sim()->getCfg()->getString("perf_model/l1_dcache/perf_model_type");
+      l1_dcache_type = "perf_model/l1_dcache/" + Config::getSingleton()->getL1DCacheType(getCore()->getId());
+      l1_dcache_size = Sim()->getCfg()->getInt(l1_dcache_type + "/cache_size");
+      l1_dcache_associativity = Sim()->getCfg()->getInt(l1_dcache_type + "/associativity");
+      l1_dcache_replacement_policy = Sim()->getCfg()->getString(l1_dcache_type + "/replacement_policy");
+      l1_dcache_data_access_time = Sim()->getCfg()->getInt(l1_dcache_type + "/data_access_time");
+      l1_dcache_tags_access_time = Sim()->getCfg()->getInt(l1_dcache_type + "/tags_access_time");
+      l1_dcache_perf_model_type = Sim()->getCfg()->getString(l1_dcache_type + "/perf_model_type");
 
       // L2 Cache
-      l2_cache_size = Sim()->getCfg()->getInt("perf_model/l2_cache/cache_size");
-      l2_cache_associativity = Sim()->getCfg()->getInt("perf_model/l2_cache/associativity");
-      l2_cache_replacement_policy = Sim()->getCfg()->getString("perf_model/l2_cache/replacement_policy");
-      l2_cache_data_access_time = Sim()->getCfg()->getInt("perf_model/l2_cache/data_access_time");
-      l2_cache_tags_access_time = Sim()->getCfg()->getInt("perf_model/l2_cache/tags_access_time");
-      l2_cache_perf_model_type = Sim()->getCfg()->getString("perf_model/l2_cache/perf_model_type");
+      l2_cache_type = "perf_model/l2_cache/" + Config::getSingleton()->getL2CacheType(getCore()->getId());
+      l2_cache_size = Sim()->getCfg()->getInt(l2_cache_type + "/cache_size");
+      l2_cache_associativity = Sim()->getCfg()->getInt(l2_cache_type + "/associativity");
+      l2_cache_replacement_policy = Sim()->getCfg()->getString(l2_cache_type + "/replacement_policy");
+      l2_cache_data_access_time = Sim()->getCfg()->getInt(l2_cache_type + "/data_access_time");
+      l2_cache_tags_access_time = Sim()->getCfg()->getInt(l2_cache_type + "/tags_access_time");
+      l2_cache_perf_model_type = Sim()->getCfg()->getString(l2_cache_type + "/perf_model_type");
 
       // Dram Directory Cache
       dram_directory_total_entries = Sim()->getCfg()->getInt("perf_model/dram_directory/total_entries");

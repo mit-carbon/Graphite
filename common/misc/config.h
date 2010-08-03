@@ -120,7 +120,14 @@ public:
    { return getCoreListForProcess(getCurrentProcessNum()); }
 
    UInt32 getProcessNumForCore(UInt32 core)
-   { assert(core < m_total_cores); return m_core_to_proc_map[core]; }
+   { 
+     if (core >= m_total_cores)
+     {
+       fprintf(stderr, "core(%u), m_total_cores(%u)\n", core, m_total_cores);
+       exit(-1);
+     }
+     return m_core_to_proc_map[core]; 
+   }
 
    // For mapping between user-land communication id's to actual core id's
    void updateCommToCoreMap(UInt32 comm_id, core_id_t core_id);

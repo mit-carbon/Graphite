@@ -683,6 +683,10 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                   pkt_length, \
                   requester);
 
+            LOG_ASSERT_ERROR(getClusterID(m_core_id) == getClusterID(pkt.receiver), \
+                  "m_core_id(%i), cluster(%u), pkt.receiver(%i), cluster(%u)", \
+                  m_core_id, getClusterID(m_core_id), pkt.receiver, getClusterID(pkt.receiver));
+
             hop_latency = (receiver_hub_queue_delay + m_scatter_network_delay);
             next_dest = pkt.receiver;
             next_component = RECEIVER_CORE;

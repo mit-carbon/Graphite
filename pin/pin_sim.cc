@@ -51,6 +51,7 @@
 // lite directories
 #include "lite/routine_replace.h"
 #include "lite/memory_modeling.h"
+#include "lite/handle_syscalls.h"
 
 // ---------------------------------------------------------------
 // FIXME: 
@@ -96,11 +97,6 @@ VOID printInsInfo(CONTEXT* ctxt)
    __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    LOG_PRINT("eip = %#llx, esp = %#llx", reg_inst_ptr, reg_stack_ptr);
-}
-
-void initializeSyscallModeling ()
-{
-   InitLock (&clone_memory_update_lock);
 }
 
 void routineCallback(RTN rtn, void *v)
@@ -214,29 +210,35 @@ VOID instructionCallback (INS ins, void *v)
                IARG_CONTEXT,
                IARG_END);
       }
-
-      // Emulate(/Rewrite) String, Stack and Memory Operations
-      if (rewriteStringOp (ins));
-      else if (rewriteStackOp (ins));
-      else rewriteMemOp (ins);
+      else
+      {
+         // Emulate(/Rewrite) String, Stack and Memory Operations
+         if (rewriteStringOp (ins));
+         else if (rewriteStackOp (ins));
+         else rewriteMemOp (ins);
+      }
    }
    else // Sim()->getConfig()->getSimulationMode() == Config::LITE
    {
-      // Instrument Memory Operations
-      lite::addMemoryModeling(ins);
+      if (INS_IsSyscall(ins))
+      {
+         INS_InsertCall(ins, IPOINT_BEFORE,
+               AFUNPTR(lite::handleFutexSyscall),
+               IARG_CONTEXT,
+               IARG_END);
+      }
+      else
+      {
+         // Instrument Memory Operations
+         lite::addMemoryModeling(ins);
+      }
    }
 }
 
 // syscall model wrappers
-
-void SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
+void initializeSyscallModeling()
 {
-   syscallEnterRunModel (ctxt, std);
-}
-
-void SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, void *v)
-{
-   syscallExitRunModel (ctxt, std);
+   InitLock(&clone_memory_update_lock);
 }
 
 void ApplicationStart()
@@ -428,17 +430,23 @@ int main(int argc, char *argv[])
    else // Sim()->getConfig()->getSimulationMode() == Config::LITE
       RTN_AddInstrumentFunction(lite::routineCallback, 0);
 
-   PIN_AddThreadStartFunction (threadStartCallback, 0);
-   PIN_AddThreadFiniFunction (threadFiniCallback, 0);
+   PIN_AddThreadStartFunction(threadStartCallback, 0);
+   PIN_AddThreadFiniFunction(threadFiniCallback, 0);
    
-   if ((cfg->getBool("general/enable_syscall_modeling")) && \
-         (Sim()->getConfig()->getSimulationMode() == Config::FULL))
+   if (cfg->getBool("general/enable_syscall_modeling"))
    {
-      initializeSyscallModeling();
-
-      PIN_AddSyscallEntryFunction(SyscallEntry, 0);
-      PIN_AddSyscallExitFunction(SyscallExit, 0);
-      PIN_AddContextChangeFunction(contextChange, NULL);
+      if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+      {
+         initializeSyscallModeling();
+         PIN_AddSyscallEntryFunction(syscallEnterRunModel, 0);
+         PIN_AddSyscallExitFunction(syscallExitRunModel, 0);
+         PIN_AddContextChangeFunction(contextChange, NULL);
+      }
+      else // Sim()->getConfig()->getSimulationMode() == Config::LITE
+      {
+         PIN_AddSyscallEntryFunction(lite::syscallEnterRunModel, 0);
+         PIN_AddSyscallExitFunction(lite::syscallExitRunModel, 0);
+      }
    }
 
    INS_AddInstrumentFunction(instructionCallback, 0);

@@ -4,8 +4,13 @@ PARSEC_DIR=/afs/csail.mit.edu/group/carbon/benchmarks/parsec/parsec-2.1
 
 PARSEC_LIST = blackscholes_parsec
 
-blackscholes_flags ?= 1 in_4.txt prices.txt
+blackscholes_flags ?= 16 in_4K.txt prices.txt
 bodytrack_flags ?= sequenceB_1 4 1 5 1 0 1
+ferret_flags ?= corel lsh queries 1 1 1 output.txt
+fluidanimate_flags ?=  1 1 in_5K.fluid out.fluid
+freqmine_flags ?= T10I4D100K_3.dat 1
+vips_flags ?= im_benchmark barbados_256x288.v output.v
+x264_flags ?=  --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 1 -o eledream.264 eledream_32x18_1.y4m
 
 include tests/Makefile.tests
 

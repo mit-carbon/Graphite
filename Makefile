@@ -11,7 +11,9 @@ include common/Makefile
 include tests/apps/Makefile
 include tests/unit/Makefile
 include tests/benchmarks/Makefile
-#include tests/Makefile.parsec
+ifneq ($(findstring parsec,$(MAKECMDGOALS)),)
+include tests/Makefile.parsec
+endif
 
 .PHONY: $(LIB_PIN_SIM)
 $(LIB_PIN_SIM):

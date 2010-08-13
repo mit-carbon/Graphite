@@ -122,6 +122,18 @@ NetworkModelEMeshHopByHopGeneric::createRouterAndLinkModels()
    LOG_ASSERT_WARNING(link_delay <= 1, "Network Link Delay(%llu) exceeds 1 cycle", link_delay);
    
    m_hop_latency = m_router_delay + link_delay;
+
+   initializeActivityCounters();
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::initializeActivityCounters()
+{
+   // Initialize Activity Counters
+   m_switch_allocator_traversals = 0;
+   m_crossbar_traversals = 0;
+   m_buffer_accesses = 0;
+   m_link_traversals = 0;
 }
 
 void
@@ -164,15 +176,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
 {
    ScopedLock sl(m_lock);
 
-   core_id_t requester = INVALID_CORE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender;
-   
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
-         "requester(%i)", requester);
+   core_id_t requester = getRequester(pkt);
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
@@ -252,20 +256,11 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 {
    ScopedLock sl(m_lock);
    
-   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-
-   core_id_t requester = INVALID_CORE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender;
-   
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
-         "requester(%i)", requester);
-
-   if ( (!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
+   core_id_t requester = getRequester(pkt);
+   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return;
+
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    UInt64 packet_latency = pkt.time - pkt.start_time;
    UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender, m_core_id) * m_hop_latency);
@@ -444,6 +439,22 @@ NetworkModelEMeshHopByHopGeneric::getNextDest(SInt32 final_dest, OutputDirection
    }
 }
 
+core_id_t
+NetworkModelEMeshHopByHopGeneric::getRequester(const NetPacket& pkt)
+{
+   core_id_t requester = INVALID_CORE_ID;
+
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+   else // Other Packet types
+      requester = pkt.sender;
+   
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+         "requester(%i)", requester);
+
+   return requester;
+}
+
 void
 NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
 {
@@ -591,7 +602,8 @@ void
 NetworkModelEMeshHopByHopGeneric::updateDynamicEnergy(const NetPacket& pkt,
       bool is_buffered, UInt32 contention)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
+   core_id_t requester = getRequester(pkt);
+   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return;
 
    // TODO: Make these models detailed later - Compute exact number of bit flips
@@ -607,41 +619,64 @@ NetworkModelEMeshHopByHopGeneric::updateDynamicEnergy(const NetPacket& pkt,
    // Assume half of the input ports are contending for the same output port
    // Switch allocation is only done for the head flit. All the other flits just follow.
    // So, we dont need to update dynamic energies again
-   m_electrical_router_model->updateDynamicEnergySwitchAllocator(contention);
-   m_electrical_router_model->updateDynamicEnergyClock();
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      m_electrical_router_model->updateDynamicEnergySwitchAllocator(contention);
+      m_electrical_router_model->updateDynamicEnergyClock();
+   }
+   m_switch_allocator_traversals ++;
 
    // Assume half of the bits flip while crossing the crossbar 
-   m_electrical_router_model->updateDynamicEnergyCrossbar(m_link_width/2, num_flits); 
-   m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      m_electrical_router_model->updateDynamicEnergyCrossbar(m_link_width/2, num_flits); 
+      m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+   }
+   m_crossbar_traversals += num_flits;
   
    // Add the flit_buffer dynamic power. We need to write once and read once
    if (is_buffered)
    {
-      // Buffer Write Energy
-      m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::WRITE, \
-            m_link_width/2, num_flits);
-      m_electrical_router_model->updateDynamicEnergyClock(num_flits);
- 
-      // Buffer Read Energy
-      m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::READ, \
-            m_link_width/2, num_flits);
-      m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+      if (Config::getSingleton()->getEnablePowerModeling())
+      {
+         // Buffer Write Energy
+         m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::WRITE, \
+               m_link_width/2, num_flits);
+         m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+    
+         // Buffer Read Energy
+         m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::READ, \
+               m_link_width/2, num_flits);
+         m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+      }
+
+      m_buffer_accesses += num_flits;
    }
 
    // 2) Electrical Link
-   m_electrical_link_model->updateDynamicEnergy(m_link_width/2, num_flits);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      m_electrical_link_model->updateDynamicEnergy(m_link_width/2, num_flits);
+   }
+   m_link_traversals += num_flits;
 }
 
 void
 NetworkModelEMeshHopByHopGeneric::outputPowerSummary(ostream& out)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
-      return;
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
+      volatile double static_power = m_electrical_router_model->getTotalStaticPower() + (m_electrical_link_model->getStaticPower() * NUM_OUTPUT_DIRECTIONS);
+      volatile double dynamic_energy = m_electrical_router_model->getTotalDynamicEnergy() + m_electrical_link_model->getDynamicEnergy();
 
-   // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
-   volatile double static_power = m_electrical_router_model->getTotalStaticPower() + (m_electrical_link_model->getStaticPower() * NUM_OUTPUT_DIRECTIONS);
-   volatile double dynamic_energy = m_electrical_router_model->getTotalDynamicEnergy() + m_electrical_link_model->getDynamicEnergy();
+      out << "    Static Power: " << static_power << endl;
+      out << "    Dynamic Energy: " << dynamic_energy << endl;
+   }
 
-   out << "    Static Power: " << static_power << endl;
-   out << "    Dynamic Energy: " << dynamic_energy << endl;
+   out << "  Activity Counters:" << endl;
+   out << "    Switch Allocator Traversals: " << m_switch_allocator_traversals << endl;
+   out << "    Crossbar Traversals: " << m_crossbar_traversals << endl;
+   out << "    Buffer Accesses: " << m_buffer_accesses << endl;
+   out << "    Link Traversals: " << m_link_traversals << endl;
 }

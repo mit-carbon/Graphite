@@ -47,6 +47,8 @@ NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 netw
 
    // Initialize Performance Counters
    initializePerformanceCounters();
+
+   initializeActivityCounters();
 }
 
 NetworkModelAtacOpticalBus::~NetworkModelAtacOpticalBus()
@@ -67,6 +69,12 @@ NetworkModelAtacOpticalBus::initializePerformanceCounters()
    m_total_packet_latency = 0;
 }
 
+void
+NetworkModelAtacOpticalBus::initializeActivityCounters()
+{
+   m_optical_network_link_traversals = 0;
+}
+
 core_id_t
 NetworkModelAtacOpticalBus::getRequester(const NetPacket& pkt)
 {
@@ -76,6 +84,9 @@ NetworkModelAtacOpticalBus::getRequester(const NetPacket& pkt)
       requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
+
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()), \
+         "requester(%i)", requester);
    
    return requester;
 }
@@ -115,13 +126,11 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
 {
    ScopedLock sl(m_lock);
 
-   core_id_t requester = getRequester(pkt);
-   
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
-         "requester(%i)", requester);
-
    if (pkt.receiver == NetPacket::BROADCAST)
    {
+      // Update Dynamic Energy here - We use the optical link here once for broadcast
+      updateDynamicEnergy(pkt);
+
       for (core_id_t i = 0; i < (core_id_t) m_total_cores; i++)
       {
          Hop h;
@@ -129,8 +138,6 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
          h.final_dest = NetPacket::BROADCAST;
          if (getNetwork()->getCore()->getId() != i)
          {
-            // Update Dynamic Energy here - We use the optical link here
-            updateDynamicEnergy(pkt);
             h.time = pkt.time + m_optical_network_link_delay;
          }
          else
@@ -153,8 +160,9 @@ NetworkModelAtacOpticalBus::routePacket(const NetPacket &pkt, std::vector<Hop> &
       h.final_dest = pkt.receiver;
       if (getNetwork()->getCore()->getId() != pkt.receiver)
       {
-         // Update Dynamic Energy here - We use the optical link here
+         // Update Dynamic Energy here - We use the optical link here for unicast
          updateDynamicEnergy(pkt);
+
          h.time = pkt.time + m_optical_network_link_delay;
       }
       else
@@ -171,7 +179,6 @@ NetworkModelAtacOpticalBus::processReceivedPacket(NetPacket& pkt)
    ScopedLock sl(m_lock);
 
    core_id_t requester = getRequester(pkt);
-
    if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return;
 
@@ -245,25 +252,33 @@ NetworkModelAtacOpticalBus::disable()
 void
 NetworkModelAtacOpticalBus::updateDynamicEnergy(const NetPacket& pkt)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
+   core_id_t requester = getRequester(pkt);
+   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return;
 
    // FIXME: Assume half the bits flip for now
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
    UInt32 num_flits = computeProcessingTime(pkt_length, (volatile double) m_optical_network_link_width);
 
-   m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width/2, num_flits);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width/2, num_flits);
+   }
+   m_optical_network_link_traversals ++;
 }
 
 void
 NetworkModelAtacOpticalBus::outputPowerSummary(ostream& out)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
-      return;
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      volatile double static_power = m_optical_network_link_model->getStaticPower();
+      volatile double dynamic_energy = m_optical_network_link_model->getDynamicEnergy();
 
-   volatile double static_power = m_optical_network_link_model->getStaticPower();
-   volatile double dynamic_energy = m_optical_network_link_model->getDynamicEnergy();
+      out << "    Static Power: " << static_power << endl;
+      out << "    Dynamic Energy: " << dynamic_energy << endl;
+   }
 
-   out << "    Static Power: " << static_power << endl;
-   out << "    Dynamic Energy: " << dynamic_energy << endl;
+   out << "  Activity Counters:" << endl;
+   out << "    Optical Network Link Traversals: " << m_optical_network_link_traversals << endl; 
 }

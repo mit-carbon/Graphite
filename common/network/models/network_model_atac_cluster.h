@@ -7,6 +7,7 @@ using namespace std;
 #include "queue_model.h"
 #include "network.h"
 #include "lock.h"
+#include "electrical_network_router_model.h"
 #include "electrical_network_link_model.h"
 #include "optical_network_link_model.h"
 
@@ -52,14 +53,14 @@ class NetworkModelAtacCluster : public NetworkModel
       volatile float m_scatter_network_frequency;
 
       // Latency Parameters
+      UInt32 m_num_gather_network_router_ports;
       UInt32 m_num_hops_sender_core_to_sender_hub;
-      UInt64 m_gather_network_link_delay;
       UInt64 m_gather_network_delay;
-
       UInt64 m_optical_network_link_delay;
       UInt64 m_scatter_network_delay;
 
-      // Link Power Models
+      // Router & Link Power Models
+      ElectricalNetworkRouterModel* m_gather_network_router_model;
       ElectricalNetworkLinkModel* m_gather_network_link_model;
       OpticalNetworkLinkModel* m_optical_network_link_model;
       ElectricalNetworkLinkModel* m_scatter_network_link_model;
@@ -105,6 +106,13 @@ class NetworkModelAtacCluster : public NetworkModel
       UInt64* m_total_receiver_hub_contention_delay;
       UInt64* m_total_receiver_hub_packets;
 
+      // Activity Counters
+      UInt64 m_gather_network_router_switch_allocator_traversals;
+      UInt64 m_gather_network_router_crossbar_traversals;
+      UInt64 m_gather_network_link_traversals;
+      UInt64 m_optical_network_link_traversals;
+      UInt64 m_scatter_network_link_traversals;
+
       // Private Functions
       static SInt32 getClusterID(core_id_t core_id);
       static core_id_t getCoreIDWithOpticalHub(SInt32 cluster_id);
@@ -116,15 +124,16 @@ class NetworkModelAtacCluster : public NetworkModel
       core_id_t getRequester(const NetPacket& pkt);
 
       void initializeANetTopologyParams();
-      void createANetLinkModels();
+      void createANetRouterAndLinkModels();
       void createOpticalHub();
+      void destroyOpticalHub();
+      void destroyANetRouterAndLinkModels();
+      
       void initializePerformanceCounters();
+      void initializeActivityCounters();
 
       void outputHubSummary(ostream& out);
       
-      void destroyOpticalHub();
-      void destroyANetLinkModels();
-
       // Energy/Power related functions
       void updateDynamicEnergy(SubNetworkType sub_net_type, const NetPacket& pkt);
       void outputPowerSummary(ostream& out);

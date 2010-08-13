@@ -50,6 +50,12 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       UInt64 m_total_contention_delay;
       UInt64 m_total_packet_latency;
 
+      // Activity Counters
+      UInt64 m_switch_allocator_traversals;
+      UInt64 m_crossbar_traversals;
+      UInt64 m_buffer_accesses;
+      UInt64 m_link_traversals;
+
       // Functions
       void computePosition(core_id_t core, SInt32 &x, SInt32 &y);
       core_id_t computeCoreId(SInt32 x, SInt32 y);
@@ -64,6 +70,7 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
             core_id_t requester);
       UInt64 computeProcessingTime(UInt32 pkt_length);
       core_id_t getNextDest(core_id_t final_dest, OutputDirection& direction);
+      core_id_t getRequester(const NetPacket& pkt);
 
       // Injection & Ejection Port Queue Models
       UInt64 computeInjectionPortQueueDelay(core_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
@@ -74,6 +81,9 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 
       void createRouterAndLinkModels();
       void destroyRouterAndLinkModels();
+
+      // Activity Counters for Power
+      void initializeActivityCounters();
       
       // Update Dynamic Energy
       void updateDynamicEnergy(const NetPacket& pkt, bool is_buffered, UInt32 contention);

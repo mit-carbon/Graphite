@@ -35,6 +35,9 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       UInt64 m_total_contention_delay;
       UInt64 m_total_packet_latency;
 
+      // Activity Counters
+      UInt64 m_optical_network_link_traversals;
+
       core_id_t getRequester(const NetPacket& pkt);
       UInt64 computeProcessingTime(UInt32 pkt_length, volatile double bandwidth);
       // Here we assume that even if N flits can arrive at a receiver at a given time,
@@ -42,6 +45,7 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       UInt64 computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
 
       void initializePerformanceCounters();
+      void initializeActivityCounters();
 
       // Energy/Power related Functions
       void updateDynamicEnergy(const NetPacket& pkt);

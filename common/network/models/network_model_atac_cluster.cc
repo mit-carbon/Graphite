@@ -28,7 +28,7 @@ NetworkModelAtacCluster::NetworkModelAtacCluster(Network *net, SInt32 network_id
    initializeANetTopologyParams();
 
    // Initialize ENet, ONet and BNet parameters
-   createANetLinkModels();
+   createANetRouterAndLinkModels();
 
    // Optical Hub created only on one of the cores in the cluster
    createOpticalHub();
@@ -43,7 +43,7 @@ NetworkModelAtacCluster::~NetworkModelAtacCluster()
    destroyOpticalHub();
 
    // Destroy the Link Models
-   destroyANetLinkModels();
+   destroyANetRouterAndLinkModels();
 }
 
 void
@@ -81,7 +81,7 @@ NetworkModelAtacCluster::initializeANetTopologyParams()
 }
 
 void
-NetworkModelAtacCluster::createANetLinkModels()
+NetworkModelAtacCluster::createANetRouterAndLinkModels()
 {
    // 1) Initialize Frequency Parameters
    // Everything is normalized to the frequency of the ENet - the frequency of the network
@@ -123,14 +123,15 @@ NetworkModelAtacCluster::createANetLinkModels()
    // 3) Initialize Latency Parameters
    volatile double gather_network_link_length;
    UInt32 gather_network_router_delay = 0;
+   UInt32 num_flits_per_output_buffer_gather_network_router = 0;
    volatile double waveguide_length;
    volatile double scatter_network_link_length;
    try
    {
-      // Number of Hops from the sender core to sender hub
-      m_num_hops_sender_core_to_sender_hub = Sim()->getCfg()->getInt("network/atac_cluster/enet/num_hops_to_hub");
       // Router Delay of the electrical mesh network - Specified in clock cycles
       gather_network_router_delay = Sim()->getCfg()->getInt("network/atac_cluster/enet/router/delay");
+      // Router Power Modeling
+      num_flits_per_output_buffer_gather_network_router = Sim()->getCfg()->getInt("network/atac_cluster/enet/router/num_flits_per_port_buffer");
       // Length of a gather delay link
       gather_network_link_length = Sim()->getCfg()->getFloat("network/atac_cluster/enet/link/length");
 
@@ -160,12 +161,19 @@ NetworkModelAtacCluster::createANetLinkModels()
       LOG_PRINT_ERROR("Could not read ANet link type parameters from the cfg file");
    }
 
+   // Optical Network Link Models
    m_optical_network_link_model = new OpticalNetworkLinkModel(m_optical_network_frequency, \
          waveguide_length, \
          m_optical_network_link_width);
    m_optical_network_link_delay = (UInt64) (ceil( ((double) m_optical_network_link_model->getDelay()) / \
                       (m_optical_network_frequency / m_gather_network_frequency) ) );
 
+   // Gather Network Router and Link Models
+   m_num_gather_network_router_ports = 5;
+   m_num_hops_sender_core_to_sender_hub = (m_sqrt_cluster_size/2 + 1);
+
+   m_gather_network_router_model = ElectricalNetworkRouterModel::create(m_num_gather_network_router_ports, \
+         num_flits_per_output_buffer_gather_network_router, m_gather_network_link_width);
    m_gather_network_link_model = ElectricalNetworkLinkModel::create(m_gather_network_link_type, \
          m_gather_network_frequency, \
          gather_network_link_length, \
@@ -173,12 +181,12 @@ NetworkModelAtacCluster::createANetLinkModels()
    // Specified in terms of clock cycles where the clock frequency = gather_network frequency
    // Delay is the delay of one gather_network link
    // There may be multiple gather_network links from the core to the sending hub
-   m_gather_network_link_delay = m_gather_network_link_model->getDelay();
-   // m_gather_network_link_delay is already initialized
-   m_gather_network_delay = (m_gather_network_link_delay + gather_network_router_delay) * m_num_hops_sender_core_to_sender_hub;
+   UInt64 gather_network_link_delay = m_gather_network_link_model->getDelay();
+   // gather_network_link_delay is already initialized
+   m_gather_network_delay = (gather_network_link_delay + gather_network_router_delay) * m_num_hops_sender_core_to_sender_hub;
 
+   // Scatter Network link models
    // FIXME: Currently, the BNet network power is modeled using multiple scatter_network links.
-   // This is not correct. It has to be changed
    m_scatter_network_link_model = ElectricalNetworkLinkModel::create(m_scatter_network_link_type, \
          m_scatter_network_frequency, \
          scatter_network_link_length, \
@@ -186,11 +194,25 @@ NetworkModelAtacCluster::createANetLinkModels()
    // m_scatter_network_delay is already initialized. Conversion needed here
    m_scatter_network_delay = (UInt64) (ceil( ((double) m_scatter_network_delay) / \
                       (m_scatter_network_frequency / m_gather_network_frequency) ) );
+
+   initializeActivityCounters();
 }
 
 void
-NetworkModelAtacCluster::destroyANetLinkModels()
+NetworkModelAtacCluster::initializeActivityCounters()
 {
+   // Initialize Activity Counters
+   m_gather_network_router_switch_allocator_traversals = 0;
+   m_gather_network_router_crossbar_traversals = 0;
+   m_gather_network_link_traversals = 0;
+   m_optical_network_link_traversals = 0;
+   m_scatter_network_link_traversals = 0;
+}
+
+void
+NetworkModelAtacCluster::destroyANetRouterAndLinkModels()
+{
+   delete m_gather_network_router_model;
    delete m_gather_network_link_model;
    delete m_optical_network_link_model;
    delete m_scatter_network_link_model;
@@ -745,7 +767,6 @@ NetworkModelAtacCluster::processReceivedPacket(NetPacket& pkt)
    ScopedLock sl(m_lock);
  
    core_id_t requester = getRequester(pkt);
-
    if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
       return;
 
@@ -930,31 +951,61 @@ NetworkModelAtacCluster::getCoreIDListInCluster(SInt32 cluster_id, vector<core_i
 void
 NetworkModelAtacCluster::updateDynamicEnergy(SubNetworkType sub_net_type, const NetPacket& pkt)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
+   // This function calls the power models as well as update power counters
+   core_id_t requester = getRequester(pkt);
+   if ((!m_enabled) || (requester >= ((core_id_t) Config::getSingleton()->getApplicationCores())))
       return;
 
    // TODO: Make these models more detailed later - Compute the exact number of bit flips
-   // FIXME: m_cluster_size is the number of links currently in the scatter network and
-   // the gather network
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    switch(sub_net_type)
    {
       case GATHER_NETWORK:
-         // TODO: Check if the number of gather network links traversed is correct
          // We basically look at a mesh and compute the average number of links traversed
-         m_gather_network_link_model->updateDynamicEnergy(m_gather_network_link_width / 2, \
-               computeProcessingTime(pkt_length, m_gather_network_link_width) * (m_sqrt_cluster_size/2 + 1));
+         if (Config::getSingleton()->getEnablePowerModeling())
+         {
+            // Update Dynamic Energy of router (switch allocator + crossbar)
+            m_gather_network_router_model->updateDynamicEnergySwitchAllocator(m_num_gather_network_router_ports/2, \
+                  m_num_hops_sender_core_to_sender_hub);
+            m_gather_network_router_model->updateDynamicEnergyCrossbar(m_gather_network_link_width/2, \
+                  computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_core_to_sender_hub);
+            // We assume that there is no buffering here - so dont update dynamic energy of buffer
+
+            // Update Dynamic Energy of link
+            m_gather_network_link_model->updateDynamicEnergy(m_gather_network_link_width / 2, \
+                  computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_core_to_sender_hub);
+         }
+
+         // Activity Counters
+         // Router
+         m_gather_network_router_switch_allocator_traversals += m_num_hops_sender_core_to_sender_hub;
+         m_gather_network_router_crossbar_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) * \
+                                                        m_num_hops_sender_core_to_sender_hub);
+         
+         // Link      
+         m_gather_network_link_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) * \
+                                             m_num_hops_sender_core_to_sender_hub);
          break;
 
       case OPTICAL_NETWORK:
-         m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width / 2, \
-               computeProcessingTime(pkt_length, m_optical_network_link_width));
+         if (Config::getSingleton()->getEnablePowerModeling())
+         {
+            m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width / 2, \
+                  computeProcessingTime(pkt_length, m_optical_network_link_width));
+         }
+         m_optical_network_link_traversals += computeProcessingTime(pkt_length, m_optical_network_link_width);
          break;
 
       case SCATTER_NETWORK:
-         m_scatter_network_link_model->updateDynamicEnergy(m_scatter_network_link_width / 2, \
-               computeProcessingTime(pkt_length, m_scatter_network_link_width) * m_cluster_size);
+         // We look at a tree and compute the number of hops in the tree
+         if (Config::getSingleton()->getEnablePowerModeling())
+         {
+            m_scatter_network_link_model->updateDynamicEnergy(m_scatter_network_link_width / 2, \
+                  computeProcessingTime(pkt_length, m_scatter_network_link_width) * m_cluster_size);
+         }
+         m_scatter_network_link_traversals += computeProcessingTime(pkt_length, m_scatter_network_link_width) * \
+                                              m_cluster_size;
          break;
 
       default:
@@ -966,36 +1017,46 @@ NetworkModelAtacCluster::updateDynamicEnergy(SubNetworkType sub_net_type, const 
 void
 NetworkModelAtacCluster::outputPowerSummary(ostream& out)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
-      return;
-
-   volatile double total_static_power = 0.0;
-   if (m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id)))
+   if (Config::getSingleton()->getEnablePowerModeling())
    {
-      // I have an optical Hub
-      // m_cluster_size is the number of cores in the cluster + 1 Hub
-      // So, a total of (m_cluster_size + 1) nodes
-      // We need m_cluster_size edges to connect them to form a tree
+      volatile double total_static_power = 0.0;
+      if (m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id)))
+      {
+         // I have an optical Hub
+         // m_cluster_size is the number of cores in the cluster + 1 Hub
+         // So, a total of (m_cluster_size + 1) nodes
+         // We need m_cluster_size edges to connect them to form a tree
 
-      // Get the static power for the entire network.
-      // This function will only be called only on Core0
+         // Get the static power for the entire network.
+         // This function will only be called only on Core0
 
-      // FIXME: Correct the number of gather network links
-      // Both the gather and scatter networks are modeled as H-trees now
-      UInt32 total_gather_network_links = m_cluster_size;
-      volatile double static_power_gather_network = m_gather_network_link_model->getStaticPower() * total_gather_network_links;
+         // Gather network is modeled as an electrical mesh
+         volatile double static_power_gather_network = m_cluster_size * (m_gather_network_router_model->getTotalStaticPower() + \
+               m_gather_network_link_model->getStaticPower() * (m_num_gather_network_router_ports-1));
 
-      volatile double static_power_optical_network = m_optical_network_link_model->getStaticPower();
+         volatile double static_power_optical_network = m_optical_network_link_model->getStaticPower();
 
-      UInt32 total_scatter_network_links = m_cluster_size;
-      volatile double static_power_scatter_network = m_scatter_network_link_model->getStaticPower() * total_scatter_network_links;
+         // Scatter network is modeled as an H-tree
+         UInt32 total_scatter_network_links = m_cluster_size;
+         volatile double static_power_scatter_network = m_scatter_network_link_model->getStaticPower() * total_scatter_network_links;
 
-      total_static_power = (static_power_gather_network + static_power_optical_network + static_power_scatter_network * m_num_scatter_networks_per_cluster);
+         total_static_power = (static_power_gather_network + static_power_optical_network + static_power_scatter_network * m_num_scatter_networks_per_cluster);
+      }
+
+      // This function is called on all the cores
+      volatile double total_dynamic_energy = m_gather_network_router_model->getTotalDynamicEnergy() + \
+                                             m_gather_network_link_model->getDynamicEnergy() + \
+                                             m_optical_network_link_model->getDynamicEnergy() + \
+                                             m_scatter_network_link_model->getDynamicEnergy();
+
+      out << "    Static Power: " << total_static_power << endl;
+      out << "    Dynamic Energy: " << total_dynamic_energy << endl;
    }
 
-   // This function is called on all the cores
-   volatile double total_dynamic_energy = (m_gather_network_link_model->getDynamicEnergy() + m_optical_network_link_model->getDynamicEnergy() + m_scatter_network_link_model->getDynamicEnergy());
-
-   out << "    Static Power: " << total_static_power << endl;
-   out << "    Dynamic Energy: " << total_dynamic_energy << endl;
+   out << "  Activity Counters:" << endl;
+   out << "    Gather Network Router Switch Allocator Traversals: " << m_gather_network_router_switch_allocator_traversals << endl;
+   out << "    Gather Network Router Crossbar Traversals: " << m_gather_network_router_crossbar_traversals << endl;
+   out << "    Gather Network Link Traversals: " << m_gather_network_link_traversals << endl;
+   out << "    Optical Network Link Traversals: " << m_optical_network_link_traversals << endl;
+   out << "    Scatter Network Link Traversals: " << m_scatter_network_link_traversals << endl;
 }

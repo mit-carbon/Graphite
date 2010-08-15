@@ -15,9 +15,11 @@ class NetworkModelMagic : public NetworkModel
       UInt64 _num_packets;
       UInt64 _num_bytes;
 
+      void initializePerformanceCounters();
+
    public:
       NetworkModelMagic(Network *net, SInt32 network_id);
-      ~NetworkModelMagic() { }
+      ~NetworkModelMagic();
 
       volatile float getFrequency() { return 1.0; }
 
@@ -32,6 +34,9 @@ class NetworkModelMagic : public NetworkModel
 
       void disable()
       { _enabled = false; }
+
+      void reset()
+      { initializePerformanceCounters(); }
 };
 
 #endif /* NETWORK_MODEL_MAGIC_H */

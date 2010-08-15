@@ -44,7 +44,7 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       // Lock
       Lock m_lock;
 
-      // Counters
+      // Performance Counters
       UInt64 m_total_bytes_received;
       UInt64 m_total_packets_received;
       UInt64 m_total_contention_delay;
@@ -76,12 +76,17 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       UInt64 computeInjectionPortQueueDelay(core_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
       UInt64 computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length);
 
+      // Queue Models
       void createQueueModels();
       void destroyQueueModels();
+      void resetQueueModels();
 
+      // Router & Link Models
       void createRouterAndLinkModels();
       void destroyRouterAndLinkModels();
 
+      // Performance Counters
+      void initializePerformanceCounters();
       // Activity Counters for Power
       void initializeActivityCounters();
       
@@ -127,6 +132,7 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 
       void enable();
       void disable();
+      void reset();
 };
 
 #endif /* __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__ */

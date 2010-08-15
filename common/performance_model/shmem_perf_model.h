@@ -28,6 +28,7 @@ class ShmemPerfModel
       UInt64 m_total_memory_access_latency_in_ns;
 
       Thread_t getThreadNum();
+      void initializePerformanceCounters();
 
    public:
       ShmemPerfModel();
@@ -47,8 +48,9 @@ class ShmemPerfModel
 
       void updateInternalVariablesOnFrequencyChange(volatile float core_frequency);
       
-      void enable() { m_enabled = true; }
-      void disable() { m_enabled = false; }
+      void enable();
+      void disable();
+      void reset();
       bool isEnabled() { return m_enabled; }
 
       void outputSummary(ostream& out, volatile float core_frequency);

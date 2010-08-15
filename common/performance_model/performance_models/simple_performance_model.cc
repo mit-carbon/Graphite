@@ -66,3 +66,9 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    m_instruction_count++;
    m_cycle_count += cost;
 }
+
+void SimplePerformanceModel::reset()
+{
+   PerformanceModel::reset();
+   m_instruction_count = 0;
+}

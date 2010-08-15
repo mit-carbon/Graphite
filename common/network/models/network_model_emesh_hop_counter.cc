@@ -267,6 +267,20 @@ NetworkModelEMeshHopCounter::getRequester(const NetPacket& pkt)
 }
 
 void
+NetworkModelEMeshHopCounter::reset()
+{
+   // Performance Counters
+   initializePerformanceCounters();
+   
+   // Activity Counters
+   initializeActivityCounters();
+   
+   // Router & Link Models
+   _electrical_router_model->resetCounters();
+   _electrical_link_model->resetCounters();
+}
+
+void
 NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
 {
    out << "    num packets received: " << _num_packets << std::endl;

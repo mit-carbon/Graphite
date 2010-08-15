@@ -19,15 +19,28 @@
 class DramPerfModel
 {
    private:
-      QueueModel* m_queue_model;
+      // Dram Model Parameters
       UInt64 m_dram_access_cost;
       volatile float m_dram_bandwidth;
 
+      UInt32 m_cache_block_size;
+
+      // Queue Model
+      QueueModel* m_queue_model;
+      std::string m_queue_model_type;
+      bool m_queue_model_enabled;
+      
       bool m_enabled;
 
+      // Performance Counters
       UInt64 m_num_accesses;
       volatile double m_total_access_latency;
       volatile double m_total_queueing_delay;
+
+      void createQueueModels();
+      void destroyQueueModels();
+      void resetQueueModels();
+      void initializePerformanceCounters();
 
    public:
       DramPerfModel(float dram_access_cost, 
@@ -39,8 +52,9 @@ class DramPerfModel
       ~DramPerfModel();
 
       UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requester);
-      void enable() { m_enabled = true; }
-      void disable() { m_enabled = false; }
+      void enable();
+      void disable();
+      void reset();
 
       UInt64 getTotalAccesses() { return m_num_accesses; }
       void outputSummary(ostream& out);

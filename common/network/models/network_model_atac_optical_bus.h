@@ -44,6 +44,12 @@ class NetworkModelAtacOpticalBus : public NetworkModel
       // only 1 flit can be accepted by the receiver
       UInt64 computeEjectionPortQueueDelay(UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
 
+      // Queue Models
+      void createQueueModels();
+      void destroyQueueModels();
+      void resetQueueModels();
+
+      // Performance & Activity Counters
       void initializePerformanceCounters();
       void initializeActivityCounters();
 
@@ -63,6 +69,7 @@ class NetworkModelAtacOpticalBus : public NetworkModel
 
       void enable();
       void disable();
+      void reset();
       
       void outputSummary(std::ostream &out);
 };

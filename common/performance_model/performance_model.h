@@ -43,6 +43,7 @@ public:
 
    void disable();
    void enable();
+   void reset();
    bool isEnabled() { return m_enabled; }
 
    virtual void outputSummary(std::ostream &os) = 0;

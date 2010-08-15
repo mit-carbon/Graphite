@@ -74,6 +74,7 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
 
       void enable();
       void disable();
+      void reset();
 
       // Called by user thread
       void synchronize(UInt64 cycle_count);

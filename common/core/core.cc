@@ -159,6 +159,18 @@ void Core::disablePerformanceModels()
    getPerformanceModel()->disable();
 }
 
+// Models must be disabled when calling this function
+void Core::resetPerformanceModels()
+{
+   if (m_clock_skew_minimization_client)
+      m_clock_skew_minimization_client->reset();
+
+   getShmemPerfModel()->reset();
+   getMemoryManager()->resetModels();
+   getNetwork()->resetModels();
+   getPerformanceModel()->reset();
+}
+
 void
 Core::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {

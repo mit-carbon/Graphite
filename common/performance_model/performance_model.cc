@@ -70,12 +70,49 @@ void PerformanceModel::disable()
    m_enabled = false;
 }
 
+void PerformanceModel::reset()
+{
+   LOG_PRINT_WARNING("Basic Block queue size(%u), Dynamic Instruction Info queue size(%u)", \
+        m_basic_block_queue.size(), m_dynamic_info_queue.size());
+
+   // Reset Average Frequency & Cycle Count
+   m_average_frequency = 0.0;
+   m_total_time = 0;
+   m_cycle_count = 0;
+   m_checkpointed_cycle_count = 0;
+
+   // Clear BasicBlockQueue
+   while (!m_basic_block_queue.empty())
+   {
+      BasicBlock* bb = m_basic_block_queue.front();
+      if (bb->isDynamic())
+         delete bb;
+      m_basic_block_queue.pop();
+   }
+   m_current_ins_index = 0;
+
+   // Clear Dynamic Instruction Info Queue
+   while (!m_dynamic_info_queue.empty())
+   {
+      m_dynamic_info_queue.pop();
+   }
+
+   // Reset Branch Predictor
+   m_bp->reset();
+}
+
 // This function is called:
 // 1) Whenever frequency is changed
 void PerformanceModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    recomputeAverageFrequency();
-   m_frequency = frequency;
+   
+   volatile float old_frequency = m_frequency;
+   volatile float new_frequency = frequency;
+   
+   m_checkpointed_cycle_count = (UInt64) (((double) m_cycle_count / old_frequency) * new_frequency);
+   m_cycle_count = m_checkpointed_cycle_count;
+   m_frequency = new_frequency;
 }
 
 // This function is called:
@@ -91,13 +128,12 @@ void PerformanceModel::setCycleCount(UInt64 cycle_count)
 // 2) Whenever frequency is changed
 void PerformanceModel::recomputeAverageFrequency()
 {
-   volatile float cycles_elapsed = static_cast<float>(m_cycle_count - m_checkpointed_cycle_count);
-   volatile float total_cycles_executed = m_average_frequency * m_total_time + cycles_elapsed;
-   volatile float total_time_taken = m_total_time + cycles_elapsed / m_frequency;
+   volatile double cycles_elapsed = (double) (m_cycle_count - m_checkpointed_cycle_count);
+   volatile double total_cycles_executed = (m_average_frequency * m_total_time) + cycles_elapsed;
+   volatile double total_time_taken = m_total_time + (cycles_elapsed / m_frequency);
 
    m_average_frequency = total_cycles_executed / total_time_taken;
-   m_total_time = total_time_taken;
-   m_checkpointed_cycle_count = m_cycle_count;
+   m_total_time = (UInt64) total_time_taken;
 }
 
 void PerformanceModel::queueDynamicInstruction(Instruction *i)

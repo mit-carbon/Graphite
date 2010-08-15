@@ -254,3 +254,9 @@ void Simulator::disablePerformanceModelsInCurrentProcess()
       Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
 }
 
+void Simulator::resetPerformanceModelsInCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->resetPerformanceModels();
+}
+

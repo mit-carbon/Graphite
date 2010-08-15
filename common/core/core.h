@@ -102,6 +102,7 @@ class Core
 
       void enablePerformanceModels();
       void disablePerformanceModels();
+      void resetPerformanceModels();
 
    private:
       core_id_t m_core_id;

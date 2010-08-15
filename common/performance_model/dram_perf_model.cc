@@ -22,24 +22,58 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
       bool queue_model_enabled,
       std::string queue_model_type, 
       UInt32 cache_block_size):
-   m_queue_model(NULL),
    m_dram_access_cost(UInt64(dram_access_cost)),
    m_dram_bandwidth(dram_bandwidth),
-   m_enabled(false),
-   m_num_accesses(0),
-   m_total_access_latency(0.0),
-   m_total_queueing_delay(0.0)
+   m_cache_block_size(cache_block_size),
+   m_queue_model_type(queue_model_type),
+   m_queue_model_enabled(queue_model_enabled),
+   m_enabled(false)
 {
-   if (queue_model_enabled)
-   {
-      UInt64 min_processing_time = (UInt64) ((float) cache_block_size / m_dram_bandwidth) + 1;
-      m_queue_model = QueueModel::create(queue_model_type, min_processing_time);
-   }
+   initializePerformanceCounters();
+   createQueueModels();
 }
 
 DramPerfModel::~DramPerfModel()
 {
-   delete m_queue_model;
+   destroyQueueModels();
+}
+
+void
+DramPerfModel::createQueueModels()
+{
+   if (m_queue_model_enabled)
+   {
+      UInt64 min_processing_time = (UInt64) ((float) m_cache_block_size / m_dram_bandwidth) + 1;
+      m_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
+   }
+   else
+   {
+      m_queue_model = NULL;
+   }
+}
+
+void
+DramPerfModel::destroyQueueModels()
+{
+   if (m_queue_model_enabled)
+   {
+      delete m_queue_model;
+   }
+}
+
+void
+DramPerfModel::resetQueueModels()
+{
+   destroyQueueModels();
+   createQueueModels();
+}
+
+void
+DramPerfModel::initializePerformanceCounters()
+{
+   m_num_accesses = 0;
+   m_total_access_latency = 0;
+   m_total_queueing_delay = 0;
 }
 
 UInt64 
@@ -75,6 +109,25 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requ
    m_total_queueing_delay += (double) queue_delay;
 
    return access_latency;
+}
+
+void
+DramPerfModel::enable()
+{
+   m_enabled = true;
+}
+
+void
+DramPerfModel::disable()
+{
+   m_enabled = false;
+}
+
+void
+DramPerfModel::reset()
+{
+   initializePerformanceCounters();
+   resetQueueModels();
 }
 
 void

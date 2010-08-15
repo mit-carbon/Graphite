@@ -64,6 +64,12 @@ public:
       return (_orion_router->get_static_power_buf() + _orion_router->get_static_power_xbar() + _orion_router->get_static_power_sa() + _orion_router->get_static_power_clock());
    }
 
+   // Reset Counters
+   void resetCounters()
+   {
+      initializeCounters();
+   }
+
 private:
    OrionRouter* _orion_router;
 

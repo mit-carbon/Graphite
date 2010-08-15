@@ -43,7 +43,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
    m_directory_type = Directory::parseDirectoryType(dram_directory_type_str);
 
    // Update Counters
-   initializePerfCounters();
+   initializePerformanceCounters();
 }
 
 DramDirectoryCntlr::~DramDirectoryCntlr()
@@ -814,7 +814,7 @@ DramDirectoryCntlr::sendDataToDram(IntPtr address, core_id_t requester, Byte* da
 }
 
 void
-DramDirectoryCntlr::initializePerfCounters()
+DramDirectoryCntlr::initializePerformanceCounters()
 {
    m_num_exreq = 0;
    m_num_shreq = 0;

@@ -47,15 +47,26 @@ void
 RandomPairsSyncClient::enable()
 {
    _enabled = true;
-   
-   assert(_msg_queue.empty());
+  
+   assert(_last_sync_time == 0); 
    gettimeofday(&_start_wall_clock_time, NULL);
+   assert(_msg_queue.empty());
 }
 
 void
 RandomPairsSyncClient::disable()
 {
    _enabled = false;
+}
+
+void
+RandomPairsSyncClient::reset()
+{
+   // Reset Variables
+   _last_sync_time = 0;
+   gettimeofday(&_start_wall_clock_time, NULL);
+   _msg_queue.clear();
+
 }
 
 // Called by network thread

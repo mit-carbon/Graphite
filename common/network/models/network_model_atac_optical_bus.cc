@@ -38,26 +38,46 @@ NetworkModelAtacOpticalBus::NetworkModelAtacOpticalBus(Network *net, SInt32 netw
 
    m_optical_network_link_delay = m_optical_network_link_model->getDelay();
 
+   createQueueModels();
+
+   // Initialize Performance Counters
+   initializePerformanceCounters();
+
+   // Initialize Counters for measuring power
+   initializeActivityCounters();
+}
+
+NetworkModelAtacOpticalBus::~NetworkModelAtacOpticalBus()
+{
+   destroyQueueModels();
+
+   // Delete the Optical Link Model
+   delete m_optical_network_link_model;
+}
+
+void
+NetworkModelAtacOpticalBus::createQueueModels()
+{
    // Create the Ejection Port Contention Models
    if (m_queue_model_enabled)
    {
       UInt64 min_processing_time = 1;
       m_ejection_port_queue_model = QueueModel::create(m_queue_model_type, min_processing_time);
    }
-
-   // Initialize Performance Counters
-   initializePerformanceCounters();
-
-   initializeActivityCounters();
 }
 
-NetworkModelAtacOpticalBus::~NetworkModelAtacOpticalBus()
+void
+NetworkModelAtacOpticalBus::destroyQueueModels()
 {
    if (m_queue_model_enabled)
       delete m_ejection_port_queue_model;
-   
-   // Delete the Optical Link Model
-   delete m_optical_network_link_model;
+}
+
+void
+NetworkModelAtacOpticalBus::resetQueueModels()
+{
+   destroyQueueModels();
+   createQueueModels();
 }
 
 void
@@ -246,6 +266,22 @@ void
 NetworkModelAtacOpticalBus::disable()
 {
    m_enabled = false;
+}
+
+void
+NetworkModelAtacOpticalBus::reset()
+{
+   // Performance Counters
+   initializePerformanceCounters();
+
+   // Reset Queue Models
+   resetQueueModels();
+
+   // Activity Counters
+   initializeActivityCounters();
+
+   // Reset Optical Network Link Model
+   m_optical_network_link_model->resetCounters();
 }
 
 // Power/Energy related functions

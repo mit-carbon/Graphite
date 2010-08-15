@@ -125,10 +125,14 @@ class NetworkModelAtacCluster : public NetworkModel
 
       void initializeANetTopologyParams();
       void createANetRouterAndLinkModels();
-      void createOpticalHub();
-      void destroyOpticalHub();
       void destroyANetRouterAndLinkModels();
       
+      void createOpticalHub();
+      void destroyOpticalHub();
+      void createQueueModels();
+      void destroyQueueModels();
+      void resetQueueModels();
+
       void initializePerformanceCounters();
       void initializeActivityCounters();
 
@@ -152,6 +156,7 @@ class NetworkModelAtacCluster : public NetworkModel
  
       void enable();
       void disable();
+      void reset();
       void outputSummary(std::ostream &out);
       
       // Only for NetworkModelAtacCluster

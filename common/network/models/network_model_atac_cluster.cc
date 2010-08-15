@@ -232,6 +232,18 @@ NetworkModelAtacCluster::createOpticalHub()
       LOG_PRINT_ERROR("Could not read cluster and queue model parameters from the cfg file");
    }
 
+   createQueueModels();
+}
+
+void
+NetworkModelAtacCluster::destroyOpticalHub()
+{
+   destroyQueueModels();
+}
+
+void
+NetworkModelAtacCluster::createQueueModels()
+{
    if (m_queue_model_enabled && (m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id))))
    {
       // I am one of the cores with an optical hub
@@ -263,7 +275,7 @@ NetworkModelAtacCluster::createOpticalHub()
 }
 
 void
-NetworkModelAtacCluster::destroyOpticalHub()
+NetworkModelAtacCluster::destroyQueueModels()
 {
    if ((m_queue_model_enabled) && (m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id))))
    {
@@ -276,6 +288,13 @@ NetworkModelAtacCluster::destroyOpticalHub()
       delete m_total_receiver_hub_contention_delay;
       delete m_total_receiver_hub_packets;
    }
+}
+
+void
+NetworkModelAtacCluster::resetQueueModels()
+{
+   destroyQueueModels();
+   createQueueModels();
 }
 
 void
@@ -866,6 +885,25 @@ void
 NetworkModelAtacCluster::disable()
 {
    m_enabled = false;
+}
+
+void
+NetworkModelAtacCluster::reset()
+{
+   // Performance Counters
+   initializePerformanceCounters();
+
+   // Queue Models
+   resetQueueModels();
+
+   // Activity Counters
+   initializeActivityCounters();
+
+   // Router & Link Models
+   m_gather_network_router_model->resetCounters();
+   m_gather_network_link_model->resetCounters();
+   m_optical_network_link_model->resetCounters();
+   m_scatter_network_link_model->resetCounters();
 }
 
 pair<bool, vector<core_id_t> >

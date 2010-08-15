@@ -13,11 +13,7 @@ using namespace std;
 
 NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id):
    NetworkModel(net, network_id),
-   m_enabled(false),
-   m_total_bytes_received(0),
-   m_total_packets_received(0),
-   m_total_contention_delay(0),
-   m_total_packet_latency(0)
+   m_enabled(false)
 {
    SInt32 total_cores = Config::getSingleton()->getTotalCores();
    m_core_id = getNetwork()->getCore()->getId();
@@ -45,6 +41,9 @@ NetworkModelEMeshHopByHopGeneric::initializeModels()
 
    // Create Router & Link Models
    createRouterAndLinkModels();
+
+   // Initialize Performance Counters
+   initializePerformanceCounters();
 }
 
 void
@@ -92,6 +91,13 @@ NetworkModelEMeshHopByHopGeneric::destroyQueueModels()
 }
 
 void
+NetworkModelEMeshHopByHopGeneric::resetQueueModels()
+{
+   destroyQueueModels();
+   createQueueModels();
+}
+
+void
 NetworkModelEMeshHopByHopGeneric::createRouterAndLinkModels()
 {
    // Create Router & Link Models
@@ -124,6 +130,15 @@ NetworkModelEMeshHopByHopGeneric::createRouterAndLinkModels()
    m_hop_latency = m_router_delay + link_delay;
 
    initializeActivityCounters();
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::initializePerformanceCounters()
+{
+   m_total_bytes_received = 0;
+   m_total_packets_received = 0;
+   m_total_contention_delay = 0;
+   m_total_packet_latency = 0;
 }
 
 void
@@ -522,6 +537,23 @@ void
 NetworkModelEMeshHopByHopGeneric::disable()
 {
    m_enabled = false;
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::reset()
+{
+   // Performance Counters
+   initializePerformanceCounters();
+   
+   // Reset Queue Models
+   resetQueueModels();
+   
+   // Activity Counters
+   initializeActivityCounters();
+   
+   // Reset Router & Link Models
+   m_electrical_router_model->resetCounters();
+   m_electrical_link_model->resetCounters();
 }
 
 pair<bool,SInt32>

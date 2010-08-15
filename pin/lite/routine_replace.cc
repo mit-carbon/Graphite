@@ -20,6 +20,48 @@ void routineCallback(RTN rtn, void* v)
 {
    string rtn_name = RTN_Name(rtn);
 
+   // Enable Models
+   if (rtn_name == "CarbonEnableModels")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(void),
+            CALLINGSTD_DEFAULT,
+            "CarbonEnableModels",
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonEnableModels),
+            IARG_PROTOTYPE, proto,
+            IARG_END);
+   }
+ 
+   // Disable Models
+   if (rtn_name == "CarbonDisableModels")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(void),
+            CALLINGSTD_DEFAULT,
+            "CarbonDisableModels",
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonDisableModels),
+            IARG_PROTOTYPE, proto,
+            IARG_END);
+   }
+
+   // Reset Models
+   if (rtn_name == "CarbonResetModels")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(void),
+            CALLINGSTD_DEFAULT,
+            "CarbonResetModels",
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonResetModels),
+            IARG_PROTOTYPE, proto,
+            IARG_END);
+   }
+
    // _start
    if (rtn_name == "_start")
    {
@@ -37,10 +79,16 @@ void routineCallback(RTN rtn, void* v)
    {
       RTN_Open(rtn);
 
+      // Before main()
       RTN_InsertCall(rtn, IPOINT_BEFORE,
             AFUNPTR(Simulator::enablePerformanceModelsInCurrentProcess),
             IARG_END);
 
+      RTN_InsertCall(rtn, IPOINT_BEFORE,
+            AFUNPTR(CarbonInitModels),
+            IARG_END);
+
+      // After main()
       RTN_InsertCall(rtn, IPOINT_AFTER,
             AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
             IARG_END);

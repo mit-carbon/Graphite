@@ -386,7 +386,9 @@ MemoryManager::enableModels()
    m_l2_cache_perf_model->enable();
 
    if (m_dram_cntlr_present)
+   {
       m_dram_cntlr->getDramPerfModel()->enable();
+   }
 }
 
 void
@@ -404,7 +406,22 @@ MemoryManager::disableModels()
    m_l2_cache_perf_model->disable();
 
    if (m_dram_cntlr_present)
+   {
       m_dram_cntlr->getDramPerfModel()->disable();
+   }
+}
+
+void
+MemoryManager::resetModels()
+{
+   m_l1_cache_cntlr->getL1ICache()->reset();
+   m_l1_cache_cntlr->getL1DCache()->reset();
+   m_l2_cache_cntlr->getL2Cache()->reset();
+
+   if (m_dram_cntlr_present)
+   {
+      m_dram_cntlr->getDramPerfModel()->reset();
+   }
 }
 
 void

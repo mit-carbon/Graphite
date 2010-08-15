@@ -83,3 +83,10 @@ bool MagicPerformanceModel::isModeled(InstructionType instruction_type)
          return false;
    }
 }
+
+void
+MagicPerformanceModel::reset()
+{
+   PerformanceModel::reset();
+   m_instruction_count = 0;
+}

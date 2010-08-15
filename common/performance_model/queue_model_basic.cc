@@ -1,13 +1,27 @@
+#include "simulator.h"
+#include "config.h"
 #include "queue_model_basic.h"
 #include "utils.h"
 #include "log.h"
 
-QueueModelBasic::QueueModelBasic(bool moving_avg_enabled,
-      UInt32 moving_avg_window_size, 
-      std::string moving_avg_type_str):
+QueueModelBasic::QueueModelBasic():
    m_queue_time(0),
    m_moving_average(NULL)
 {
+   bool moving_avg_enabled = false;
+   UInt32 moving_avg_window_size = 0;
+   std::string moving_avg_type_str;
+   try
+   {
+      moving_avg_enabled = Sim()->getCfg()->getBool("queue_model/basic/moving_avg_enabled", false);
+      moving_avg_window_size = Sim()->getCfg()->getInt("queue_model/basic/moving_avg_window_size", 1);
+      moving_avg_type_str = Sim()->getCfg()->getString("queue_model/basic/moving_avg_type", "none");
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Could not read queue_model/basic parameters from the cfg file");
+   }
+
    if (moving_avg_enabled)
    {
       MovingAverage<UInt64>::AvgType_t moving_avg_type = MovingAverage<UInt64>::parseAvgType(moving_avg_type_str);

@@ -7,17 +7,23 @@
 #include "fxsupport.h"
 
 ShmemPerfModel::ShmemPerfModel():
-   m_enabled(false),
-   m_num_memory_accesses(0),
-   m_total_memory_access_latency_in_clock_cycles(0),
-   m_total_memory_access_latency_in_ns(0)
+   m_enabled(false)
 {
    for (UInt32 i = 0; i < NUM_CORE_THREADS; i++)
       m_cycle_count[i] = 0;
+   initializePerformanceCounters();
 }
 
 ShmemPerfModel::~ShmemPerfModel()
 {}
+
+void
+ShmemPerfModel::initializePerformanceCounters()
+{
+   m_num_memory_accesses = 0;
+   m_total_memory_access_latency_in_clock_cycles = 0;
+   m_total_memory_access_latency_in_ns = 0;
+}
 
 ShmemPerfModel::Thread_t 
 ShmemPerfModel::getThreadNum()
@@ -93,6 +99,24 @@ ShmemPerfModel::incrTotalMemoryAccessLatency(UInt64 memory_access_latency)
       m_num_memory_accesses ++;
       m_total_memory_access_latency_in_clock_cycles += memory_access_latency;
    }
+}
+
+void
+ShmemPerfModel::enable()
+{
+   m_enabled = true;
+}
+
+void
+ShmemPerfModel::disable()
+{
+   m_enabled = false;
+}
+
+void
+ShmemPerfModel::reset()
+{
+   initializePerformanceCounters();
 }
 
 void

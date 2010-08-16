@@ -31,6 +31,8 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <limits.h>
+#include "carbon_user.h"
+
 #include "tiffio.h"
 
 #define SH_MEM_AMT 60000000
@@ -249,6 +251,8 @@ void Render_Loop()
 /*  POSSIBLE ENHANCEMENT:  Here's where one might bind the process to a
     processor, if one wanted to.
 */
+  // Reset Models Here
+  CarbonEnableModels();
 
   inv_num_nodes = 1.0/(float)num_nodes;
   image_partition = ROUNDUP(image_length*inv_num_nodes);

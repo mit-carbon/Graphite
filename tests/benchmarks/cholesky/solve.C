@@ -34,6 +34,8 @@
 MAIN_ENV
 
 #include <math.h>
+#include "carbon_user.h"
+
 #include "matrix.h"
 
 #define SH_MEM_AMT   100000000
@@ -340,6 +342,8 @@ void Go()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+  // Reset Models
+  CarbonEnableModels();
 
   if ((MyNum == 0) || (do_stats)) {
     CLOCK(lc->rs);

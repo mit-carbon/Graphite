@@ -44,7 +44,7 @@
 #define MIN_REAL DBL_MIN
 #define REAL_DIG __DBL_DIG__
 
-#define MAX_PROCS 64
+#define MAX_PROCS 1024
 
 /* Defines the maximum depth of the tree */
 #define MAX_LEVEL 100

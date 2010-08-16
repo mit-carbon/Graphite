@@ -267,7 +267,6 @@ void Render_Loop()
 /*  POSSIBLE ENHANCEMENT:  Here is where one might reset statistics, if
     		one wanted to.
 */
-
       frame = step;
       /* initialize images here */
       local_image_address = image_address + image_partition * my_node;

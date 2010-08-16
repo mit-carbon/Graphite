@@ -40,10 +40,7 @@ IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
 void IOCOOMPerformanceModel::outputSummary(std::ostream &os)
 {
    os << "  Instructions: " << m_instruction_count << std::endl;
-   frequencySummary(os);
-
-   if (getBranchPredictor())
-      getBranchPredictor()->outputSummary(os);
+   PerformanceModel::outputSummary(os);
 }
 
 void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)

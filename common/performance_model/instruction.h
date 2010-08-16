@@ -152,9 +152,7 @@ public:
 class SyncInstruction : public DynamicInstruction
 {
 public:
-   SyncInstruction(UInt64 cost)
-      : DynamicInstruction(cost, INST_SYNC)
-   {}
+   SyncInstruction(UInt64 cost);
 };
 
 // set clock to particular time

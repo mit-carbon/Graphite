@@ -18,10 +18,7 @@ SimplePerformanceModel::~SimplePerformanceModel()
 void SimplePerformanceModel::outputSummary(std::ostream &os)
 {
    os << "  Instructions: " << getInstructionCount() << endl;
-   frequencySummary(os);
-
-   if (getBranchPredictor())
-      getBranchPredictor()->outputSummary(os);
+   PerformanceModel::outputSummary(os);
 }
 
 void SimplePerformanceModel::handleInstruction(Instruction *instruction)

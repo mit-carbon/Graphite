@@ -40,7 +40,11 @@ PerformanceModel::PerformanceModel(Core *core, float frequency)
    , m_current_ins_index(0)
    , m_bp(0)
 {
+   // Create Branch Predictor
    m_bp = BranchPredictor::create();
+
+   // Initialize Instruction Counters
+   initializeInstructionCounters();
 }
 
 PerformanceModel::~PerformanceModel()
@@ -48,10 +52,26 @@ PerformanceModel::~PerformanceModel()
    delete m_bp; m_bp = 0;
 }
 
+void PerformanceModel::outputSummary(ostream& os)
+{
+   // Frequency Summary
+   frequencySummary(os);
+   
+   // Instruction Counter Summary
+   os << "    Total Recv Instructions: " << m_total_recv_instructions << endl;
+   os << "    Total Recv Instruction Costs: " << m_total_recv_instruction_costs << endl;
+   os << "    Total Sync Instructions: " << m_total_sync_instructions << endl;
+   os << "    Total Sync Instruction Costs: " << m_total_sync_instruction_costs << endl;
+
+   // Branch Predictor Summary
+   if (m_bp)
+      m_bp->outputSummary(os);
+}
+
 void PerformanceModel::frequencySummary(ostream& os)
 {
    os << "   Completion Time: " \
-      << static_cast<UInt64>(static_cast<float>(m_cycle_count) / m_frequency) \
+      << (UInt64) (((float) m_cycle_count) / m_frequency) \
       << endl;
    os << "   Average Frequency: " << m_average_frequency << endl;
 }
@@ -59,7 +79,7 @@ void PerformanceModel::frequencySummary(ostream& os)
 void PerformanceModel::enable()
 {
    // MCP perf model should never be enabled
-   if (Sim()->getCoreManager()->getCurrentCoreID() == Config::getSingleton()->getMCPCoreNum())
+   if (m_core->getId() == Config::getSingleton()->getMCPCoreNum())
       return;
 
    m_enabled = true;
@@ -72,14 +92,14 @@ void PerformanceModel::disable()
 
 void PerformanceModel::reset()
 {
-   LOG_PRINT_WARNING("Basic Block queue size(%u), Dynamic Instruction Info queue size(%u)", \
-        m_basic_block_queue.size(), m_dynamic_info_queue.size());
-
    // Reset Average Frequency & Cycle Count
    m_average_frequency = 0.0;
    m_total_time = 0;
    m_cycle_count = 0;
    m_checkpointed_cycle_count = 0;
+
+   // Reset Instruction Counters
+   initializeInstructionCounters();
 
    // Clear BasicBlockQueue
    while (!m_basic_block_queue.empty())
@@ -136,6 +156,33 @@ void PerformanceModel::recomputeAverageFrequency()
    m_total_time = (UInt64) total_time_taken;
 }
 
+void PerformanceModel::initializeInstructionCounters()
+{
+   m_total_recv_instructions = 0;
+   m_total_recv_instruction_costs = 0;
+   m_total_sync_instructions = 0;
+   m_total_sync_instruction_costs = 0;
+}
+
+void PerformanceModel::updateInstructionCounters(Instruction* i)
+{
+   switch (i->getType())
+   {
+      case INST_RECV:
+         m_total_recv_instructions ++;
+         m_total_recv_instruction_costs += i->getCost();
+         break;
+
+      case INST_SYNC:
+         m_total_sync_instructions ++;
+         m_total_sync_instruction_costs += i->getCost();
+         break;
+
+      default:
+         break;
+   }
+}
+
 void PerformanceModel::queueDynamicInstruction(Instruction *i)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
@@ -143,6 +190,9 @@ void PerformanceModel::queueDynamicInstruction(Instruction *i)
       delete i;
       return;
    }
+
+   // Update Instruction Counters
+   updateInstructionCounters(i);
 
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);

@@ -100,6 +100,12 @@ UInt64 StringInstruction::getCost()
    return cost;
 }
 
+// SyncInstruction
+
+SyncInstruction::SyncInstruction(UInt64 cost)
+   : DynamicInstruction(cost, INST_SYNC)
+{ }
+
 // SpawnInstruction
 
 SpawnInstruction::SpawnInstruction(UInt64 time)

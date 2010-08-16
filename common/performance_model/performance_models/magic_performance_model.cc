@@ -18,10 +18,7 @@ MagicPerformanceModel::~MagicPerformanceModel()
 void MagicPerformanceModel::outputSummary(std::ostream &os)
 {
    os << "  Instructions: " << getInstructionCount() << endl;
-   frequencySummary(os);
-
-   if (getBranchPredictor())
-      getBranchPredictor()->outputSummary(os);
+   PerformanceModel::outputSummary(os);
 }
 
 void MagicPerformanceModel::handleInstruction(Instruction *instruction)

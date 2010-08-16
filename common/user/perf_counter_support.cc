@@ -6,6 +6,7 @@
 #include "message_types.h"
 #include "network.h"
 #include "sync_api.h"
+#include "fxsupport.h"
 #include "log.h"
 
 carbon_barrier_t models_barrier;
@@ -24,6 +25,8 @@ void CarbonEnableModels()
 
    if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
    {
+      LOG_PRINT_WARNING("Core(%i): Entering CarbonEnableModels()", \
+            Sim()->getCoreManager()->getCurrentCore()->getId());
       // Enable the models of the cores in the current process
       Simulator::enablePerformanceModelsInCurrentProcess();
    }
@@ -39,6 +42,8 @@ void CarbonDisableModels()
 
    if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
    {
+      LOG_PRINT_WARNING("Core(%i): Entering CarbonDisableModels()", \
+            Sim()->getCoreManager()->getCurrentCore()->getId());
       // Disable performance models of cores in this process
       Simulator::disablePerformanceModelsInCurrentProcess();
    }
@@ -49,11 +54,15 @@ void CarbonDisableModels()
 
 void CarbonResetModels()
 {
+   FloatingPointHandler floating_point_handler;
+
    // Acquire & Release a barrier
    CarbonBarrierWait(&models_barrier);
 
    if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
    {
+      LOG_PRINT_WARNING("Core(%i): Entering CarbonResetModels()", \
+            Sim()->getCoreManager()->getCurrentCore()->getId());
       // Reset performance models of cores in this process
       Simulator::resetPerformanceModelsInCurrentProcess();
    }

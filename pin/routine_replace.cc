@@ -118,18 +118,24 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       RTN_Open (rtn);
 
       // Before main()
-      RTN_InsertCall(rtn, IPOINT_BEFORE,
-            AFUNPTR(Simulator::enablePerformanceModelsInCurrentProcess),
-            IARG_END);
+      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      {
+         RTN_InsertCall(rtn, IPOINT_BEFORE,
+               AFUNPTR(Simulator::enablePerformanceModelsInCurrentProcess),
+               IARG_END);
+      }
 
       RTN_InsertCall(rtn, IPOINT_BEFORE,
             AFUNPTR(CarbonInitModels),
             IARG_END);
 
       // After main()
-      RTN_InsertCall(rtn, IPOINT_AFTER,
-            AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
-            IARG_END);
+      if (Sim()->getCfg()->getBool("general/disable_models_at_shutdown",true))
+      {
+         RTN_InsertCall(rtn, IPOINT_AFTER,
+               AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
+               IARG_END);
+      }
       
       RTN_Close (rtn);
    }

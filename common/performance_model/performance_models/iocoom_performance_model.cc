@@ -39,7 +39,8 @@ IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
 
 void IOCOOMPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << m_instruction_count << std::endl;
+   os << "Core Performance Model Summary:" << endl;
+   os << "    Instructions: " << m_instruction_count << std::endl;
    PerformanceModel::outputSummary(os);
 }
 

@@ -17,7 +17,8 @@ MagicPerformanceModel::~MagicPerformanceModel()
 
 void MagicPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << getInstructionCount() << endl;
+   os << "Core Performance Model Summary:" << endl;
+   os << "    Instructions: " << getInstructionCount() << endl;
    PerformanceModel::outputSummary(os);
 }
 

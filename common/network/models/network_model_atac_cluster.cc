@@ -1006,7 +1006,11 @@ NetworkModelAtacCluster::updateDynamicEnergy(SubNetworkType sub_net_type, const 
             // Update Dynamic Energy of router (switch allocator + crossbar)
             m_gather_network_router_model->updateDynamicEnergySwitchAllocator(m_num_gather_network_router_ports/2, \
                   m_num_hops_sender_core_to_sender_hub);
+            m_gather_network_router_model->updateDynamicEnergyClock(m_num_hops_sender_core_to_sender_hub);
+
             m_gather_network_router_model->updateDynamicEnergyCrossbar(m_gather_network_link_width/2, \
+                  computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_core_to_sender_hub);
+            m_gather_network_router_model->updateDynamicEnergyClock( \
                   computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_core_to_sender_hub);
             // We assume that there is no buffering here - so dont update dynamic energy of buffer
 

@@ -130,12 +130,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
             IARG_END);
 
       // After main()
-      if (Sim()->getCfg()->getBool("general/disable_models_at_shutdown",true))
-      {
-         RTN_InsertCall(rtn, IPOINT_AFTER,
-               AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
-               IARG_END);
-      }
+      RTN_InsertCall(rtn, IPOINT_AFTER,
+            AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
+            IARG_END);
       
       RTN_Close (rtn);
    }

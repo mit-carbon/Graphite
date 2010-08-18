@@ -21,6 +21,7 @@ QueueModelHistoryList::QueueModelHistoryList(UInt64 min_processing_time):
    {
       m_analytical_model_enabled = Sim()->getCfg()->getBool("queue_model/history_list/analytical_model_enabled");
       m_max_free_interval_list_size = Sim()->getCfg()->getInt("queue_model/history_list/max_list_size");
+      m_interleaving_enabled = Sim()->getCfg()->getBool("queue_model/history_list/interleaving_enabled");
    }
    catch(...)
    {
@@ -83,7 +84,7 @@ QueueModelHistoryList::getQueueUtilization()
 }
    
 float
-QueueModelHistoryList::getFracRequestsUsingAnalyticalModel() 
+QueueModelHistoryList::getFracRequestsUsingAnalyticalModel()
 {
   if (m_total_requests == 0)
      return 0;
@@ -128,8 +129,8 @@ QueueModelHistoryList::computeUsingHistoryList(UInt64 pkt_time, UInt64 processin
 {
    LOG_ASSERT_ERROR(m_free_interval_list.size() <= m_max_free_interval_list_size,
          "Free Interval list size(%u) > %u", m_free_interval_list.size(), m_max_free_interval_list_size);
-   UInt64 queue_delay = UINT64_MAX;
-  
+   UInt64 queue_delay = 0;
+ 
    FreeIntervalList::iterator curr_it;
    for (curr_it = m_free_interval_list.begin(); curr_it != m_free_interval_list.end(); curr_it ++)
    {
@@ -137,7 +138,7 @@ QueueModelHistoryList::computeUsingHistoryList(UInt64 pkt_time, UInt64 processin
 
       if ((pkt_time >= interval.first) && ((pkt_time + processing_time) <= interval.second))
       {
-         queue_delay = 0;
+         // No additional queue delay
          // Adjust the data structure accordingly
          curr_it = m_free_interval_list.erase(curr_it);
          if ((pkt_time - interval.first) >= m_min_processing_time)
@@ -152,7 +153,8 @@ QueueModelHistoryList::computeUsingHistoryList(UInt64 pkt_time, UInt64 processin
       }
       else if ((pkt_time < interval.first) && ((interval.first + processing_time) <= interval.second))
       {
-         queue_delay = interval.first - pkt_time;
+         // Add additional queue delay
+         queue_delay += (interval.first - pkt_time);
          // Adjust the data structure accordingly
          curr_it = m_free_interval_list.erase(curr_it);
          if ((interval.second - (interval.first + processing_time)) >= m_min_processing_time)
@@ -161,9 +163,36 @@ QueueModelHistoryList::computeUsingHistoryList(UInt64 pkt_time, UInt64 processin
          }
          break;
       }
+      else if (m_interleaving_enabled)
+      {
+         if ((pkt_time >= interval.first) && (pkt_time < interval.second))
+         {
+            curr_it = m_free_interval_list.erase(curr_it);
+            if ((pkt_time - interval.first) >= m_min_processing_time)
+            {
+               m_free_interval_list.insert(curr_it, std::make_pair<UInt64,UInt64>(interval.first, pkt_time));
+            }
+            curr_it --;
+            
+            // Adjust times
+            pkt_time = interval.second;
+            processing_time -= (interval.second - pkt_time);
+         }
+         else if (pkt_time < interval.first)
+         {
+            curr_it = m_free_interval_list.erase(curr_it);
+            curr_it --;
+            // Add additional queue delay
+            queue_delay += (interval.first - pkt_time);
+            
+            // Adjust times
+            pkt_time = interval.second;
+            processing_time -= (interval.second - interval.first);
+         }
+      }
    }
 
-   LOG_ASSERT_ERROR(queue_delay != UINT64_MAX, "queue delay(%llu), free interval not found", queue_delay);
+   // LOG_ASSERT_ERROR(queue_delay != UINT64_MAX, "queue delay(%llu), free interval not found", queue_delay);
 
    if (m_free_interval_list.size() > m_max_free_interval_list_size)
    {

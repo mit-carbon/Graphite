@@ -22,6 +22,7 @@ public:
 private:
    UInt64 m_min_processing_time;
    UInt32 m_max_free_interval_list_size;
+   bool m_interleaving_enabled;
 
    FreeIntervalList m_free_interval_list;
    

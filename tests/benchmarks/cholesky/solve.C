@@ -40,7 +40,7 @@ MAIN_ENV
 
 #define SH_MEM_AMT   100000000
 #define DEFAULT_PPS         32
-#define DEFAULT_CS       16384
+#define DEFAULT_CS       32768
 #define DEFAULT_P            1
 
 double CacheSize = DEFAULT_CS;

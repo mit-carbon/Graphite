@@ -3,6 +3,7 @@
 #include "config.h"
 #include "queue_model_basic.h"
 #include "queue_model_history_list.h"
+#include "queue_model_history_tree.h"
 #include "log.h"
 
 QueueModel*
@@ -15,6 +16,10 @@ QueueModel::create(std::string model_type, UInt64 min_processing_time)
    else if (model_type == "history_list")
    {
       return new QueueModelHistoryList(min_processing_time);
+   }
+   else if (model_type == "history_tree")
+   {
+      return new QueueModelHistoryTree(min_processing_time);
    }
    else
    {

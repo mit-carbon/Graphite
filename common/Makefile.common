@@ -17,6 +17,8 @@ DIRECTORIES = $(SIM_ROOT)/common/core/        									\
           $(SIM_ROOT)/common/performance_model/      							\
           $(SIM_ROOT)/common/performance_model/branch_predictors/      	\
           $(SIM_ROOT)/common/performance_model/performance_models/     	\
+          $(SIM_ROOT)/common/performance_model/memory_subsystem/     	\
+          $(SIM_ROOT)/common/performance_model/queue_models/     			\
           $(SIM_ROOT)/common/user/													\
 			 $(SIM_ROOT)/																	\
 			 $(CURDIR)/

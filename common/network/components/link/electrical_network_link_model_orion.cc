@@ -7,7 +7,7 @@ ElectricalNetworkLinkModelOrion::ElectricalNetworkLinkModelOrion(LinkType link_t
 {
    LOG_ASSERT_ERROR(link_type == ELECTRICAL_REPEATED, \
          "Orion only supports REPEATED_ELECTRICAL link models currently");
-   _orion_link = new OrionLink(link_length, link_width, OrionConfig::getSingleton());
+   _orion_link = new OrionLink(link_length / 1000, link_width, OrionConfig::getSingleton());
 }
 
 ElectricalNetworkLinkModelOrion::~ElectricalNetworkLinkModelOrion()

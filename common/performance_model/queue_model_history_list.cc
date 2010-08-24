@@ -5,7 +5,6 @@
 #include "core_manager.h"
 #include "config.h"
 #include "queue_model_history_list.h"
-#include "fxsupport.h"
 #include "log.h"
 
 QueueModelHistoryList::QueueModelHistoryList(UInt64 min_processing_time):

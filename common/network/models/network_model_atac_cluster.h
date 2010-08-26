@@ -98,6 +98,7 @@ class NetworkModelAtacCluster : public NetworkModel
       // Performance Counters
       UInt64 m_total_bytes_received;
       UInt64 m_total_packets_received;
+      UInt64 m_total_contention_delay;
       UInt64 m_total_packet_latency;
 
       UInt64 m_total_sender_hub_contention_delay;

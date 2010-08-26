@@ -5,6 +5,7 @@ using namespace std;
 #include "config.h"
 #include "dram_perf_model.h"
 #include "queue_model_history_list.h"
+#include "queue_model_history_tree.h"
 
 // Note: Each Dram Controller owns a single DramModel object
 // Hence, m_dram_bandwidth is the bandwidth for a single DRAM controller
@@ -141,14 +142,28 @@ DramPerfModel::outputSummary(ostream& out)
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
    
    std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
-   if (m_queue_model && (queue_model_type == "history_list"))
+   if (m_queue_model && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {
       out << "  Queue Model:" << endl;
-         
-      float queue_utilization = ((QueueModelHistoryList*) m_queue_model)->getQueueUtilization();
-      float frac_requests_using_analytical_model = ((QueueModelHistoryList*) m_queue_model)->getFracRequestsUsingAnalyticalModel();
-      out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
-      out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
+       
+      if (queue_model_type == "history_list")
+      {  
+         float queue_utilization = ((QueueModelHistoryList*) m_queue_model)->getQueueUtilization();
+         float frac_requests_using_analytical_model = \
+            ((float) ((QueueModelHistoryList*) m_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
+            ((QueueModelHistoryList*) m_queue_model)->getTotalRequests();
+         out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
+         out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
+      }
+      else // (queue_model_type == "history_tree")
+      {
+         float queue_utilization = ((QueueModelHistoryTree*) m_queue_model)->getQueueUtilization();
+         float frac_requests_using_analytical_model = \
+            ((float) ((QueueModelHistoryTree*) m_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
+            ((QueueModelHistoryTree*) m_queue_model)->getTotalRequests();
+         out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
+         out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
+      }
    }
 }
 
@@ -162,7 +177,7 @@ DramPerfModel::dummyOutputSummary(ostream& out)
    
    bool queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
    std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
-   if (queue_model_enabled && (queue_model_type == "history_list"))
+   if (queue_model_enabled && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {
       out << "  Queue Model:" << endl;
       out << "    Queue Utilization(\%): NA" << endl;

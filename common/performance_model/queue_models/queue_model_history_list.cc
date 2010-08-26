@@ -82,13 +82,16 @@ QueueModelHistoryList::getQueueUtilization()
    } 
 }
    
-float
-QueueModelHistoryList::getFracRequestsUsingAnalyticalModel()
+UInt64
+QueueModelHistoryList::getTotalRequestsUsingAnalyticalModel()
 {
-  if (m_total_requests == 0)
-     return 0;
-  else
-     return ((float) m_total_requests_using_analytical_model / m_total_requests); 
+   return m_total_requests_using_analytical_model;
+}
+
+UInt64
+QueueModelHistoryList::getTotalRequests()
+{
+   return m_total_requests;
 }
 
 void

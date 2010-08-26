@@ -8,6 +8,7 @@ using namespace std;
 #include "utils.h"
 #include "packet_type.h"
 #include "queue_model_history_list.h"
+#include "queue_model_history_tree.h"
 #include "memory_manager_base.h"
 #include "clock_converter.h"
 
@@ -499,28 +500,66 @@ NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
       out << "    average packet latency (in ns): 0" << endl;
    }
 
-   if (m_queue_model_enabled && (m_queue_model_type == "history_list"))
+   if (m_queue_model_enabled && ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree")))
    {
       out << "  Queue Models:" << endl;
          
       float queue_utilization = 0.0;
-      float frac_requests_using_analytical_model = 0.0;
+      UInt64 total_requests_using_analytical_model = 0;
+      UInt64 total_requests = 0;
       UInt32 num_queue_models = 0;
-      
-      for (SInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
-      {
-         if (m_queue_models[i])
+     
+      if (m_queue_model_type == "history_list")
+      { 
+         for (SInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
          {
-            queue_utilization += ((QueueModelHistoryList*) m_queue_models[i])->getQueueUtilization();
-            frac_requests_using_analytical_model += ((QueueModelHistoryList*) m_queue_models[i])->getFracRequestsUsingAnalyticalModel();
-            num_queue_models ++;
+            if (m_queue_models[i])
+            {
+               queue_utilization += ((QueueModelHistoryList*) m_queue_models[i])->getQueueUtilization();
+               total_requests_using_analytical_model += ((QueueModelHistoryList*) m_queue_models[i])->getTotalRequestsUsingAnalyticalModel();
+               total_requests += ((QueueModelHistoryList*) m_queue_models[i])->getTotalRequests(); 
+               num_queue_models ++;
+            }
          }
+
+         queue_utilization += ((QueueModelHistoryList*) m_injection_port_queue_model)->getQueueUtilization();
+         total_requests_using_analytical_model += ((QueueModelHistoryList*) m_injection_port_queue_model)->getTotalRequestsUsingAnalyticalModel();
+         total_requests += ((QueueModelHistoryList*) m_injection_port_queue_model)->getTotalRequests();
+         
+         queue_utilization += ((QueueModelHistoryList*) m_ejection_port_queue_model)->getQueueUtilization();
+         total_requests_using_analytical_model += ((QueueModelHistoryList*) m_ejection_port_queue_model)->getTotalRequestsUsingAnalyticalModel();
+         total_requests += ((QueueModelHistoryList*) m_ejection_port_queue_model)->getTotalRequests();
+         
+         num_queue_models += 2;
+      }
+      else // m_queue_model_type == "history_tree"
+      {
+         for (SInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
+         {
+            if (m_queue_models[i])
+            {
+               queue_utilization += ((QueueModelHistoryTree*) m_queue_models[i])->getQueueUtilization();
+               total_requests_using_analytical_model += ((QueueModelHistoryTree*) m_queue_models[i])->getTotalRequestsUsingAnalyticalModel();
+               total_requests += ((QueueModelHistoryTree*) m_queue_models[i])->getTotalRequests(); 
+               num_queue_models ++;
+            }
+         }
+
+         queue_utilization += ((QueueModelHistoryTree*) m_injection_port_queue_model)->getQueueUtilization();
+         total_requests_using_analytical_model += ((QueueModelHistoryTree*) m_injection_port_queue_model)->getTotalRequestsUsingAnalyticalModel();
+         total_requests += ((QueueModelHistoryTree*) m_injection_port_queue_model)->getTotalRequests();
+         
+         queue_utilization += ((QueueModelHistoryTree*) m_ejection_port_queue_model)->getQueueUtilization();
+         total_requests_using_analytical_model += ((QueueModelHistoryTree*) m_ejection_port_queue_model)->getTotalRequestsUsingAnalyticalModel();
+         total_requests += ((QueueModelHistoryTree*) m_ejection_port_queue_model)->getTotalRequests();
+         
+         num_queue_models += 2;
       }
 
       queue_utilization /= num_queue_models;
-      frac_requests_using_analytical_model /= num_queue_models;
+      double frac_requests_using_analytical_model = ((double) total_requests_using_analytical_model) / total_requests;
 
-      out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
+      out << "    Link Utilization(\%): " << queue_utilization * 100 << endl;
       out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
    }
 

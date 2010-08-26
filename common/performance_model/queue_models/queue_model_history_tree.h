@@ -11,12 +11,15 @@ class QueueModelHistoryTree : public QueueModel
       ~QueueModelHistoryTree();
 
       UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester = INVALID_CORE_ID);
+      
+      float getQueueUtilization();
+      UInt64 getTotalRequestsUsingAnalyticalModel() { return 0; }
+      UInt64 getTotalRequests() { return _total_requests; }
 
    private:
 
       void initializeQueueCounters();
       void updateQueueCounters(UInt64 processing_time);
-      float getQueueUtilization();
 
       void allocateMemory();
       void releaseMemory();

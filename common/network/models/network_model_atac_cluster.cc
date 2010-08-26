@@ -12,6 +12,8 @@ using namespace std;
 #include "packet_type.h"
 #include "clock_converter.h"
 #include "utils.h"
+#include "queue_model_history_list.h"
+#include "queue_model_history_tree.h"
 
 SInt32 NetworkModelAtacCluster::m_cluster_size = 0;
 SInt32 NetworkModelAtacCluster::m_sqrt_cluster_size = 0;
@@ -302,6 +304,7 @@ NetworkModelAtacCluster::initializePerformanceCounters()
 {
    m_total_bytes_received = 0;
    m_total_packets_received = 0;
+   m_total_contention_delay = 0;
    m_total_packet_latency = 0;
 }
 
@@ -790,19 +793,22 @@ NetworkModelAtacCluster::processReceivedPacket(NetPacket& pkt)
       return;
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-   
+   UInt64 processing_time = computeProcessingTime(pkt_length, m_effective_anet_bandwidth); 
    if (Config::getSingleton()->getProcessCount() > 1)
    {
       // Serialization Delay
-      pkt.time += computeProcessingTime(pkt_length, m_effective_anet_bandwidth); 
+      pkt.time += processing_time;
    }
    
    // Performance Counters
    m_total_packets_received ++;
-   
    m_total_bytes_received += (UInt64) pkt_length;
    
    UInt64 packet_latency = pkt.time - pkt.start_time;
+
+   m_total_contention_delay += (packet_latency - \
+         m_gather_network_delay - m_scatter_network_delay - m_optical_network_link_delay - \
+         processing_time);
    m_total_packet_latency += packet_latency;
 }
 
@@ -812,20 +818,36 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
    out << " ATAC Cluster: " << endl;
    if ((m_queue_model_enabled) && (m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id))))
    {
+      // ONet
       if (m_total_sender_hub_packets > 0)
       {
          // Convert from optical network clock to global clock
          UInt64 total_sender_hub_contention_delay_in_ns = convertCycleCount( \
                m_total_sender_hub_contention_delay, \
                m_optical_network_frequency, 1.0);
-         out << "    Sender Hub Contention Delay (in ns): " << \
+         out << "    ONet Link Contention Delay (in ns): " << \
             ((float) total_sender_hub_contention_delay_in_ns) / m_total_sender_hub_packets << endl;
       }
       else
       {
-         out << "    Sender Hub Contention Delay (in ns): 0" << endl;
+         out << "    ONet Link Contention Delay (in ns): 0" << endl;
       }
     
+      if ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree"))
+      {
+         float sender_hub_utilization;
+         if (m_queue_model_type == "history_list")
+         {
+            sender_hub_utilization = ((QueueModelHistoryList*) m_sender_hub_queue_model)->getQueueUtilization();
+         }
+         else // (m_queue_model_type == "history_tree")
+         {
+            sender_hub_utilization = ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getQueueUtilization();
+         }
+         out << "    ONet Link Utilization(\%): " << sender_hub_utilization << endl; 
+      }
+
+      // BNet
       for (UInt32 i = 0; i < m_num_scatter_networks_per_cluster; i++)
       {
          if (m_total_receiver_hub_packets[i] > 0)
@@ -834,21 +856,37 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
             UInt64 total_receiver_hub_contention_delay_in_ns = convertCycleCount( \
                   m_total_receiver_hub_contention_delay[i], \
                   m_scatter_network_frequency, 1.0);
-            out << "    Receiver Hub (" << i << ") Contention Delay (in ns): " \
+            out << "    BNet (" << i << ") Link Contention Delay (in ns): " \
                << ((float) total_receiver_hub_contention_delay_in_ns) / m_total_receiver_hub_packets[i] << endl;
          }
          else
          {
-            out << "    Receiver Hub (" << i << ") Contention Delay (in ns): 0" << endl;
+            out << "    BNet (" << i << ") Link Contention Delay (in ns): 0" << endl;
+         }
+         
+         if ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree"))
+         {
+            float receiver_hub_utilization;
+            if (m_queue_model_type == "history_list")
+            {
+               receiver_hub_utilization = ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getQueueUtilization();
+            }
+            else // (m_queue_model_type == "history_tree")
+            {
+               receiver_hub_utilization = ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getQueueUtilization();
+            }
+            out << "    BNet (" << i << ") Link Utilization(\%): " << receiver_hub_utilization << endl;
          }
       }
    }
    else
    {
-      out << "    Sender Hub Contention Delay (in ns): NA" << endl;
+      out << "    ONet Link Contention Delay (in ns): NA" << endl;
+      out << "    ONet Link Utilization(\%): NA" << endl;
       for (UInt32 i = 0; i < m_num_scatter_networks_per_cluster; i++)
       {
-         out << "    Receiver Hub (" << i << ") Contention Delay (in ns): NA" << endl;
+         out << "    BNet (" << i << ") Link Contention Delay (in ns): NA" << endl;
+         out << "    BNet (" << i << ") Link Utilization(\%): NA" << endl;
       }
    }
 }
@@ -861,6 +899,11 @@ NetworkModelAtacCluster::outputSummary(ostream &out)
    if (m_total_packets_received > 0)
    {
       // Convert from gather network clock to global clock
+      UInt64 total_contention_delay_in_ns = convertCycleCount(m_total_contention_delay, \
+            m_gather_network_frequency, 1.0);
+      out << "    average contention delay (in ns): " << \
+         ((float) total_contention_delay_in_ns) / m_total_packets_received << endl;
+      
       UInt64 total_packet_latency_in_ns = convertCycleCount(m_total_packet_latency, \
             m_gather_network_frequency, 1.0);
       out << "    average packet latency (in ns): " << \

@@ -20,14 +20,7 @@
 
 class Config
 {
-public:
-   enum SimulationMode
-   {
-      FULL = 0,
-      LITE,
-      NUM_SIMULATION_MODES
-   };
-
+private:
    class CoreParameters
    {
       private:
@@ -71,6 +64,14 @@ public:
          std::string getType() { return m_type; }
    };
    
+public:
+   enum SimulationMode
+   {
+      FULL = 0,
+      LITE,
+      NUM_SIMULATION_MODES
+   };
+
    typedef std::vector<UInt32> CoreToProcMap;
    typedef std::vector<core_id_t> CoreList;
    typedef std::vector<core_id_t>::const_iterator CLCI;
@@ -120,12 +121,8 @@ public:
    { return getCoreListForProcess(getCurrentProcessNum()); }
 
    UInt32 getProcessNumForCore(UInt32 core)
-   { 
-     if (core >= m_total_cores)
-     {
-       fprintf(stderr, "core(%u), m_total_cores(%u)\n", core, m_total_cores);
-       exit(-1);
-     }
+   {
+     assert(core < m_total_cores); 
      return m_core_to_proc_map[core]; 
    }
 
@@ -166,6 +163,8 @@ public:
 
 private:
    void GenerateCoreMap();
+   std::vector<CoreList> computeProcessToCoreMapping();
+   void printProcessToCoreMapping();
    
    UInt32  m_num_processes;         // Total number of processes (incl myself)
    UInt32  m_total_cores;           // Total number of cores in all processes

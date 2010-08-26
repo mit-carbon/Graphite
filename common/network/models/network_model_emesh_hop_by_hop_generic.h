@@ -25,8 +25,8 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
    private:
       // Fields
       core_id_t m_core_id;
-      SInt32 m_mesh_width;
-      SInt32 m_mesh_height;
+      static SInt32 m_mesh_width;
+      static SInt32 m_mesh_height;
 
       // Router & Link Parameters
       UInt32 m_num_router_ports;
@@ -76,7 +76,7 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       UInt64 computeInjectionPortQueueDelay(core_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
       UInt64 computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length);
 
-      // Queue Models
+      static void initializeEMeshTopologyParams();
       void createQueueModels();
       void destroyQueueModels();
       void resetQueueModels();
@@ -126,6 +126,8 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 
       static std::pair<bool,std::vector<core_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count);
       static std::pair<bool,SInt32> computeCoreCountConstraints(SInt32 core_count);
+      static std::pair<bool,std::vector<Config::CoreList> > computeProcessToCoreMapping();
+
       static SInt32 computeNumHops(core_id_t sender, core_id_t receiver);
 
       void outputSummary(std::ostream &out);

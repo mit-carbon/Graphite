@@ -78,7 +78,7 @@ Config::Config()
    if (m_simulation_mode == FULL)
       m_total_cores += m_num_processes;
 
-   // Parse Network Models - Need to be done here to initialize some parameters
+   // Parse Network Models - Need to be done here to initialize the network models 
    parseNetworkParameters();
 
    // Adjust the number of cores corresponding to the network model we use
@@ -87,6 +87,7 @@ Config::Config()
    // Parse Core Models
    parseCoreParameters();
 
+   // Length of a core identifier
    m_core_id_length = computeCoreIDLength(m_total_cores);
 
    GenerateCoreMap();
@@ -135,33 +136,100 @@ UInt32 Config::computeCoreIDLength(UInt32 core_count)
 
 void Config::GenerateCoreMap()
 {
+   vector<CoreList> process_to_core_mapping = computeProcessToCoreMapping();
+   
    m_proc_to_core_list_map = new CoreList[m_num_processes];
    m_core_to_proc_map.resize(m_total_cores);
 
-   // Stripe the cores across the processes
-   UInt32 current_proc = 0;
-   for (UInt32 i = 0; i < (m_total_cores - m_num_processes - 1) ; i++)
+   // Populate the data structures for non-thread-spawner and non-MCP cores
+   assert(process_to_core_mapping.size() == m_num_processes);
+   for (UInt32 i = 0; i < m_num_processes; i++)
    {
-      m_core_to_proc_map [i] = current_proc;
-      m_proc_to_core_list_map[current_proc].push_back(i);
-      current_proc++;
-      current_proc %= m_num_processes;
+      CoreList::iterator core_it;
+      for (core_it = process_to_core_mapping[i].begin(); core_it != process_to_core_mapping[i].end(); core_it++)
+      {
+         if ((*core_it) < (SInt32) (m_total_cores - m_num_processes - 1))
+         {
+            m_core_to_proc_map[*core_it] = i;
+            m_proc_to_core_list_map[i].push_back(*core_it);
+         }
+      }
    }
-
+    
    // Assign the thread-spawners to cores
    // Thread-spawners occupy core-id's (m_total_cores - m_num_processes - 1) to (m_total_cores - 2)
-   current_proc = 0;
+   UInt32 current_proc = 0;
    for (UInt32 i = (m_total_cores - m_num_processes - 1); i < (m_total_cores - 1); i++)
    {
+      assert((current_proc >= 0) && (current_proc < m_num_processes));
       m_core_to_proc_map[i] = current_proc;
       m_proc_to_core_list_map[current_proc].push_back(i);
       current_proc++;
-      current_proc %= m_num_processes;
    }
    
    // Add one for the MCP
-   m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
    m_core_to_proc_map[m_total_cores - 1] = 0;
+   m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
+
+   // printProcessToCoreMapping();
+}
+
+vector<Config::CoreList>
+Config::computeProcessToCoreMapping()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
+      pair<bool,vector<CoreList> > process_to_core_mapping_struct = NetworkModel::computeProcessToCoreMapping(network_model);
+      if (process_to_core_mapping_struct.first)
+      {
+         switch(network_model)
+         {
+            case NETWORK_ATAC_CLUSTER:
+               return process_to_core_mapping_struct.second;
+
+            case NETWORK_EMESH_HOP_BY_HOP_BASIC:
+            case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
+               return process_to_core_mapping_struct.second;
+               break;
+
+            default:
+               LOG_PRINT_ERROR("Unrecognized Network Type(%u)", network_model);
+               break;
+         }
+      }
+   }
+   
+   vector<CoreList> process_to_core_mapping(m_num_processes);
+   if (process_to_core_mapping.size() == 0)
+   {
+      UInt32 current_proc = 0;
+      for (UInt32 i = 0; i < m_total_cores; i++)
+      {
+         process_to_core_mapping[current_proc].push_back(i);
+         current_proc = (current_proc + 1) % m_num_processes;
+      }
+   }
+   return process_to_core_mapping;
+}
+
+void Config::printProcessToCoreMapping()
+{
+   UInt32 curr_process_num = atoi(getenv("CARBON_PROCESS_INDEX"));
+   if (curr_process_num == 0)
+   {
+      for (UInt32 i = 0; i < m_num_processes; i++)
+      {
+         fprintf(stderr, "\nProcess(%u): %u\n", i, (UInt32) m_proc_to_core_list_map[i].size());
+         for (CoreList::iterator core_it = m_proc_to_core_list_map[i].begin(); \
+               core_it != m_proc_to_core_list_map[i].end(); core_it++)
+         {
+            fprintf(stderr, "%i, ", *core_it);
+         }
+         fprintf(stderr, "\n\n");
+      }
+   }
+   exit(-1);
 }
 
 void Config::logCoreMap()

@@ -139,3 +139,27 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
          return make_pair(false, vector<core_id_t>());
    }
 }
+
+pair<bool, vector<Config::CoreList> >
+NetworkModel::computeProcessToCoreMapping(UInt32 network_type)
+{
+   switch(network_type)
+   {
+      case NETWORK_MAGIC:
+      case NETWORK_ANALYTICAL_MESH:
+      case NETWORK_EMESH_HOP_COUNTER:
+      case NETWORK_ATAC_OPTICAL_BUS:
+         return make_pair(false, vector<vector<core_id_t> >());
+
+      case NETWORK_EMESH_HOP_BY_HOP_BASIC:
+      case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
+         return NetworkModelEMeshHopByHopGeneric::computeProcessToCoreMapping();
+
+      case NETWORK_ATAC_CLUSTER:
+         return NetworkModelAtacCluster::computeProcessToCoreMapping();
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
+         return make_pair(false, vector<vector<core_id_t> >());
+   }
+}

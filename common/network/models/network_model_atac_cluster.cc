@@ -15,8 +15,10 @@ using namespace std;
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
 
+UInt32 NetworkModelAtacCluster::m_total_cores = 0;
 SInt32 NetworkModelAtacCluster::m_cluster_size = 0;
 SInt32 NetworkModelAtacCluster::m_sqrt_cluster_size = 0;
+UInt32 NetworkModelAtacCluster::m_num_clusters = 0;
 SInt32 NetworkModelAtacCluster::m_mesh_width = 0;
 SInt32 NetworkModelAtacCluster::m_mesh_height = 0;
 
@@ -26,9 +28,6 @@ NetworkModelAtacCluster::NetworkModelAtacCluster(Network *net, SInt32 network_id
 {
    m_core_id = getNetwork()->getCore()->getId();
   
-   // Initialize Cluster size, num clusters, etc
-   initializeANetTopologyParams();
-
    // Initialize ENet, ONet and BNet parameters
    createANetRouterAndLinkModels();
 
@@ -51,6 +50,7 @@ NetworkModelAtacCluster::~NetworkModelAtacCluster()
 void
 NetworkModelAtacCluster::initializeANetTopologyParams()
 {
+   // Initialize m_total_cores, m_cluster_size, m_sqrt_cluster_size, m_mesh_width, m_mesh_height, m_num_clusters
    m_total_cores = Config::getSingleton()->getTotalCores();
 
    try
@@ -952,13 +952,9 @@ NetworkModelAtacCluster::reset()
 pair<bool, vector<core_id_t> >
 NetworkModelAtacCluster::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
 {
-   // Just a check to see if it is initialized
-   assert(m_sqrt_cluster_size > 0);
-   assert(m_mesh_width > 0);
-
+   // Initialization should be done by now
    // Get the cluster size, Get the number of clusters
    // Here we only include complete clusters, we dont include the incomplete clusters
-   
    SInt32 num_clusters = (m_mesh_width / m_sqrt_cluster_size) * (m_mesh_width / m_sqrt_cluster_size);
    LOG_ASSERT_ERROR(num_memory_controllers <= num_clusters,
          "num_memory_controllers(%i), num_clusters(%i)", num_memory_controllers, num_clusters);
@@ -1025,8 +1021,41 @@ NetworkModelAtacCluster::getCoreIDListInCluster(SInt32 cluster_id, vector<core_i
    for (SInt32 i = optical_hub_x; i < optical_hub_x + m_sqrt_cluster_size; i++)
    {
       for (SInt32 j = optical_hub_y; j < optical_hub_y + m_sqrt_cluster_size; j++)
-         core_id_list.push_back(j * m_mesh_width + i);
+      {
+         SInt32 core_id = j * m_mesh_width + i;
+         if (core_id < (SInt32) Config::getSingleton()->getTotalCores())
+            core_id_list.push_back(core_id);
+      }
    }
+}
+
+pair<bool, vector<Config::CoreList> >
+NetworkModelAtacCluster::computeProcessToCoreMapping()
+{
+   // Initialize m_total_cores, m_cluster_size, m_sqrt_cluster_size, m_mesh_width, m_mesh_height, m_num_clusters
+   initializeANetTopologyParams();
+
+   UInt32 process_count = Config::getSingleton()->getProcessCount();
+   vector<Config::CoreList> process_to_core_mapping(process_count);
+  
+   LOG_ASSERT_WARNING(m_num_clusters >= process_count,
+        "Number of Clusters(%u) < Total Process in Simulation(%u)",
+        m_num_clusters, process_count);
+        
+   UInt32 process_num = 0;
+   for (UInt32 i = 0; i < m_num_clusters; i++)
+   {
+      Config::CoreList core_id_list;
+      Config::CoreList::iterator core_it;
+      getCoreIDListInCluster(i, core_id_list);
+      for (core_it = core_id_list.begin(); core_it != core_id_list.end(); core_it ++)
+      {
+         process_to_core_mapping[process_num].push_back(*core_it);
+      }
+      process_num = (process_num + 1) % process_count;
+   }
+
+   return (make_pair(true, process_to_core_mapping));
 }
 
 void

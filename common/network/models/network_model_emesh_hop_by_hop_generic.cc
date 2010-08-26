@@ -12,17 +12,14 @@ using namespace std;
 #include "memory_manager_base.h"
 #include "clock_converter.h"
 
+SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_width = 0;
+SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_height = 0;
+
 NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id):
    NetworkModel(net, network_id),
    m_enabled(false)
 {
-   SInt32 total_cores = Config::getSingleton()->getTotalCores();
    m_core_id = getNetwork()->getCore()->getId();
-
-   m_mesh_width = (SInt32) floor (sqrt(total_cores));
-   m_mesh_height = (SInt32) ceil (1.0 * total_cores / m_mesh_width);
-
-   assert(total_cores == (m_mesh_width * m_mesh_height));
 }
 
 NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
@@ -45,6 +42,18 @@ NetworkModelEMeshHopByHopGeneric::initializeModels()
 
    // Initialize Performance Counters
    initializePerformanceCounters();
+}
+
+void
+NetworkModelEMeshHopByHopGeneric::initializeEMeshTopologyParams()
+{
+   SInt32 total_cores = Config::getSingleton()->getTotalCores();
+
+   m_mesh_width = (SInt32) floor (sqrt(total_cores));
+   m_mesh_height = (SInt32) ceil (1.0 * total_cores / m_mesh_width);
+   LOG_ASSERT_ERROR(total_cores == (m_mesh_width * m_mesh_height),
+         "total_cores(%i), m_mesh_width(%i), m_mesh_height(%i)",
+         total_cores, m_mesh_width, m_mesh_height);
 }
 
 void
@@ -611,27 +620,23 @@ NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(SInt32 core_count)
 pair<bool, vector<core_id_t> >
 NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
 {
-   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
-   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
-   
-   assert(core_count == (mesh_height * mesh_width));
-
-   // core_id_list_along_perimeter : list of cores along the perimeter of the chip in clockwise order starting from (0,0)
+   // core_id_list_along_perimeter : list of cores along the perimeter of 
+   // the chip in clockwise order starting from (0,0)
    vector<core_id_t> core_id_list_along_perimeter;
 
-   for (SInt32 i = 0; i < mesh_width; i++)
+   for (SInt32 i = 0; i < m_mesh_width; i++)
       core_id_list_along_perimeter.push_back(i);
    
-   for (SInt32 i = 1; i < (mesh_height-1); i++)
-      core_id_list_along_perimeter.push_back((i * mesh_width) + mesh_width-1);
+   for (SInt32 i = 1; i < (m_mesh_height-1); i++)
+      core_id_list_along_perimeter.push_back((i * m_mesh_width) + m_mesh_width-1);
 
-   for (SInt32 i = mesh_width-1; i >= 0; i--)
-      core_id_list_along_perimeter.push_back(((mesh_height-1) * mesh_width) + i);
+   for (SInt32 i = m_mesh_width-1; i >= 0; i--)
+      core_id_list_along_perimeter.push_back(((m_mesh_height-1) * m_mesh_width) + i);
 
-   for (SInt32 i = mesh_height-2; i >= 1; i--)
-      core_id_list_along_perimeter.push_back(i * mesh_width);
+   for (SInt32 i = m_mesh_height-2; i >= 1; i--)
+      core_id_list_along_perimeter.push_back(i * m_mesh_width);
 
-   assert(core_id_list_along_perimeter.size() == (UInt32) (2 * (mesh_width + mesh_height - 2)));
+   assert(core_id_list_along_perimeter.size() == (UInt32) (2 * (m_mesh_width + m_mesh_height - 2)));
 
    LOG_ASSERT_ERROR(core_id_list_along_perimeter.size() >= (UInt32) num_memory_controllers,
          "num cores along perimeter(%u), num memory controllers(%i)",
@@ -644,11 +649,81 @@ NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_me
 
    for (SInt32 i = 0; i < num_memory_controllers; i++)
    {
-      SInt32 index = (i * spacing_between_memory_controllers + mesh_width/2) % core_id_list_along_perimeter.size();
+      SInt32 index = (i * spacing_between_memory_controllers + m_mesh_width/2) % core_id_list_along_perimeter.size();
       core_id_list_with_memory_controllers.push_back(core_id_list_along_perimeter[index]);
    }
 
    return (make_pair(true, core_id_list_with_memory_controllers));
+}
+
+pair<bool, vector<Config::CoreList> >
+NetworkModelEMeshHopByHopGeneric::computeProcessToCoreMapping()
+{
+   // Initialize mesh_width, mesh_height
+   initializeEMeshTopologyParams();
+
+   UInt32 process_count = Config::getSingleton()->getProcessCount();
+
+   vector<Config::CoreList> process_to_core_mapping(process_count);
+   // Do a greedy mapping here
+   SInt32 proc_mesh_width = (SInt32) floor(sqrt(process_count));
+   SInt32 proc_mesh_height = (SInt32) floor(1.0 * process_count / proc_mesh_width);
+
+   SInt32 mesh_height_l = (SInt32) ((1.0 *  m_mesh_height * proc_mesh_width * proc_mesh_height) / process_count);
+   
+   for (SInt32 i = 0; i < proc_mesh_width; i++)
+   {
+      for (SInt32 j = 0; j < proc_mesh_height; j++)
+      {
+         SInt32 size_x = m_mesh_width / proc_mesh_width;
+         SInt32 size_y = mesh_height_l / proc_mesh_height;
+         SInt32 base_x = i * size_x;
+         SInt32 base_y = j * size_y;
+
+         if (i == (proc_mesh_width-1))
+         {
+            size_x = m_mesh_width - ((proc_mesh_width-1) * size_x);
+         }
+         if (j == (proc_mesh_height-1))
+         {
+            size_y = mesh_height_l - ((proc_mesh_height-1) * size_y);
+         }
+
+         for (SInt32 ii = 0; ii < size_x; ii++)
+         {
+            for (SInt32 jj = 0; jj < size_y; jj++)
+            {
+               core_id_t core_id = (base_x + ii) + ((base_y + jj) * m_mesh_width);
+               process_to_core_mapping[i + j*proc_mesh_width].push_back(core_id);
+            }
+         }
+      }
+   }
+
+   UInt32 procs_left = process_count - (proc_mesh_width * proc_mesh_height);
+   for (UInt32 i = proc_mesh_width * proc_mesh_height; i < process_count; i++)
+   {
+      SInt32 size_x = m_mesh_width / procs_left;
+      SInt32 size_y = m_mesh_height - mesh_height_l;
+      SInt32 base_x = (i - (proc_mesh_width * proc_mesh_height)) * size_x;
+      SInt32 base_y = mesh_height_l;
+
+      if (i == (process_count-1))
+      {
+         size_x = m_mesh_width - ((procs_left-1) * size_x);
+      }
+
+      for (SInt32 ii = 0; ii < size_x; ii++)
+      {
+         for (SInt32 jj = 0; jj < size_y; jj++)
+         {
+            core_id_t core_id = (base_x + ii) + ((base_y + jj) * m_mesh_width);
+            process_to_core_mapping[i].push_back(core_id);
+         }
+      }
+   }
+
+   return (make_pair(true, process_to_core_mapping));
 }
 
 SInt32

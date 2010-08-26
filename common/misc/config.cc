@@ -201,14 +201,11 @@ Config::computeProcessToCoreMapping()
    }
    
    vector<CoreList> process_to_core_mapping(m_num_processes);
-   if (process_to_core_mapping.size() == 0)
+   UInt32 current_proc = 0;
+   for (UInt32 i = 0; i < m_total_cores; i++)
    {
-      UInt32 current_proc = 0;
-      for (UInt32 i = 0; i < m_total_cores; i++)
-      {
-         process_to_core_mapping[current_proc].push_back(i);
-         current_proc = (current_proc + 1) % m_num_processes;
-      }
+      process_to_core_mapping[current_proc].push_back(i);
+      current_proc = (current_proc + 1) % m_num_processes;
    }
    return process_to_core_mapping;
 }

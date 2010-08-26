@@ -38,13 +38,13 @@ class NetworkModelAtacCluster : public NetworkModel
       core_id_t m_core_id;
       
       // ANet topology parameters
-      UInt32 m_total_cores;
-      UInt32 m_num_clusters;
-      UInt32 m_num_scatter_networks_per_cluster;
+      static UInt32 m_total_cores;
+      static UInt32 m_num_clusters;
       static SInt32 m_cluster_size;
       static SInt32 m_sqrt_cluster_size;
       static SInt32 m_mesh_width;
       static SInt32 m_mesh_height;
+      UInt32 m_num_scatter_networks_per_cluster;
 
       // Frequency Parameters
       volatile float m_gather_network_frequency;
@@ -115,7 +115,7 @@ class NetworkModelAtacCluster : public NetworkModel
       UInt64 computeProcessingTime(UInt32 pkt_length, volatile double bandwidth);
       core_id_t getRequester(const NetPacket& pkt);
 
-      void initializeANetTopologyParams();
+      static void initializeANetTopologyParams();
       void createANetLinkModels();
       void createOpticalHub();
       void initializePerformanceCounters();
@@ -140,6 +140,7 @@ class NetworkModelAtacCluster : public NetworkModel
       void processReceivedPacket(NetPacket& pkt);
 
       static pair<bool, vector<core_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count);
+      static pair<bool, vector<vector<core_id_t> > > computeProcessToCoreMapping();
  
       void enable();
       void disable();

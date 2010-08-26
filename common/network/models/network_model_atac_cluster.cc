@@ -923,7 +923,11 @@ NetworkModelAtacCluster::getCoreIDListInCluster(SInt32 cluster_id, vector<core_i
    for (SInt32 i = optical_hub_x; i < optical_hub_x + m_sqrt_cluster_size; i++)
    {
       for (SInt32 j = optical_hub_y; j < optical_hub_y + m_sqrt_cluster_size; j++)
-         core_id_list.push_back(j * m_mesh_width + i);
+      {
+         SInt32 core_id = j * m_mesh_width + i;
+         if (core_id < (SInt32) Config::getSingleton()->getTotalCores())
+            core_id_list.push_back(core_id);
+      }
    }
 }
 

@@ -13,7 +13,7 @@ class QueueModelHistoryTree : public QueueModel
       UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester = INVALID_CORE_ID);
       
       float getQueueUtilization();
-      UInt64 getTotalRequestsUsingAnalyticalModel() { return 0; }
+      UInt64 getTotalRequestsUsingAnalyticalModel() { return _total_wrongly_handled_requests; }
       UInt64 getTotalRequests() { return _total_requests; }
 
    private:
@@ -37,5 +37,6 @@ class QueueModelHistoryTree : public QueueModel
 
       // Queue Counters
       UInt64 _total_requests;
+      UInt64 _total_wrongly_handled_requests;
       UInt64 _total_utilized_cycles;
 };

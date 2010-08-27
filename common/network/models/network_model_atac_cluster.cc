@@ -836,15 +836,21 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
       if ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree"))
       {
          float sender_hub_utilization;
+         double frac_analytical_model_used;
          if (m_queue_model_type == "history_list")
          {
             sender_hub_utilization = ((QueueModelHistoryList*) m_sender_hub_queue_model)->getQueueUtilization();
+            frac_analytical_model_used = ((double) ((QueueModelHistoryList*) m_sender_hub_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
+                                         ((QueueModelHistoryList*) m_sender_hub_queue_model)->getTotalRequests();
          }
          else // (m_queue_model_type == "history_tree")
          {
             sender_hub_utilization = ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getQueueUtilization();
+            frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
+                                         ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequests();
          }
          out << "    ONet Link Utilization(\%): " << sender_hub_utilization << endl; 
+         out << "    ONet Analytical Model Used(\%): " << frac_analytical_model_used * 100 << endl;
       }
 
       // BNet
@@ -867,15 +873,21 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
          if ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree"))
          {
             float receiver_hub_utilization;
+            double frac_analytical_model_used;
             if (m_queue_model_type == "history_list")
             {
                receiver_hub_utilization = ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getQueueUtilization();
+               frac_analytical_model_used = ((double) ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getTotalRequestsUsingAnalyticalModel()) / \
+                                            ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getTotalRequests();
             }
             else // (m_queue_model_type == "history_tree")
             {
                receiver_hub_utilization = ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getQueueUtilization();
+               frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequestsUsingAnalyticalModel()) / \
+                                            ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequests();
             }
             out << "    BNet (" << i << ") Link Utilization(\%): " << receiver_hub_utilization << endl;
+            out << "    BNet (" << i << ") Analytical Model Used(\%): " << frac_analytical_model_used << endl;
          }
       }
    }
@@ -883,10 +895,12 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
    {
       out << "    ONet Link Contention Delay (in ns): NA" << endl;
       out << "    ONet Link Utilization(\%): NA" << endl;
+      out << "    ONet Analytical Model Used(\%): NA" << endl;
       for (UInt32 i = 0; i < m_num_scatter_networks_per_cluster; i++)
       {
          out << "    BNet (" << i << ") Link Contention Delay (in ns): NA" << endl;
          out << "    BNet (" << i << ") Link Utilization(\%): NA" << endl;
+         out << "    BNet (" << i << ") Analytical Model Used(\%): NA" << endl;
       }
    }
 }

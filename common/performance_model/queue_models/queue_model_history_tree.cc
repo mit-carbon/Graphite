@@ -93,11 +93,15 @@ QueueModelHistoryTree::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
       }
    }
 
+   IntervalTree::Node* min_node = _interval_tree->search(PAIR(0,1));
+   if (min_node->interval.first > pkt_time)
+   {
+      _total_wrongly_handled_requests ++;
+   }
    // Prune the Tree when it grows too large
    if (_interval_tree->size() >= ((UInt32) _max_free_interval_size))
    {
       // Remove the node with the minimum key
-      IntervalTree::Node* min_node = _interval_tree->search(PAIR(0,1));
       releaseNode(_interval_tree->remove(min_node));
    }
 
@@ -113,6 +117,7 @@ QueueModelHistoryTree::initializeQueueCounters()
 {
    _total_requests = 0;
    _total_utilized_cycles = 0;
+   _total_wrongly_handled_requests = 0;
 }
 
 void

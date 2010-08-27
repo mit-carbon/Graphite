@@ -103,9 +103,11 @@ class NetworkModelAtacCluster : public NetworkModel
 
       UInt64 m_total_sender_hub_contention_delay;
       UInt64 m_total_sender_hub_packets;
+      UInt64 m_total_buffered_sender_hub_packets;
 
       UInt64* m_total_receiver_hub_contention_delay;
       UInt64* m_total_receiver_hub_packets;
+      UInt64* m_total_buffered_receiver_hub_packets;
 
       // Activity Counters
       UInt64 m_gather_network_router_switch_allocator_traversals;

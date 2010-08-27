@@ -560,7 +560,7 @@ void daxpy(double *a, double *b, long n, double alpha)
 long BlockOwner(long I, long J)
 {
 //	return((J%num_cols) + (I%num_rows)*num_cols); 
-	return((I + J) % P);
+	return((I + J*nblocks) % P);
 }
 
 long BlockOwnerColumn(long I, long J)

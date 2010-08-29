@@ -195,7 +195,7 @@ Config::computeProcessToCoreMapping()
 
             default:
                fprintf(stderr, "Unrecognized Network Type(%u)\n", network_model);
-               break;
+               exit(EXIT_FAILURE);
          }
       }
    }
@@ -339,9 +339,10 @@ Config::SimulationMode Config::parseSimulationMode(string mode)
    else if (mode == "lite")
       return LITE;
    else
-      LOG_PRINT_ERROR("Unrecognized Simulation Mode(%s)", mode.c_str());
-
-   return NUM_SIMULATION_MODES;
+   {
+      fprintf(stderr, "Unrecognized Simulation Mode(%s)\n", mode.c_str());
+      exit(EXIT_FAILURE);
+   }
 }
 
 void Config::parseCoreParameters()

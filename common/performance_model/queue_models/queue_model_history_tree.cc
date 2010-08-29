@@ -43,6 +43,18 @@ QueueModelHistoryTree::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
 {
    LOG_PRINT("Packet(%llu,%llu)", pkt_time, processing_time);
    
+   IntervalTree::Node* min_node = _interval_tree->search(PAIR(0,1));
+   if (min_node->interval.first > pkt_time)
+   {
+      _total_wrongly_handled_requests ++;
+   }
+   // Prune the Tree when it grows too large
+   if (_interval_tree->size() >= ((UInt32) _max_free_interval_size))
+   {
+      // Remove the node with the minimum key
+      releaseNode(_interval_tree->remove(min_node));
+   }
+
    UInt64 queue_delay;
 
    IntervalTree::Node* node = _interval_tree->search(PAIR(pkt_time, pkt_time + processing_time));
@@ -91,18 +103,6 @@ QueueModelHistoryTree::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
       {
          releaseNode(_interval_tree->remove(node));
       }
-   }
-
-   IntervalTree::Node* min_node = _interval_tree->search(PAIR(0,1));
-   if (min_node->interval.first > pkt_time)
-   {
-      _total_wrongly_handled_requests ++;
-   }
-   // Prune the Tree when it grows too large
-   if (_interval_tree->size() >= ((UInt32) _max_free_interval_size))
-   {
-      // Remove the node with the minimum key
-      releaseNode(_interval_tree->remove(min_node));
    }
 
    updateQueueCounters(processing_time);

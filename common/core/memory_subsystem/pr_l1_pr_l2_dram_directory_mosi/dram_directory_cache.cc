@@ -12,7 +12,7 @@ using namespace std;
 #include "log.h"
 #include "utils.h"
 
-// #define DETAILED_TRACKING_ENABLED    1
+#define DETAILED_TRACKING_ENABLED    1
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -60,11 +60,8 @@ DramDirectoryCache::initializeParameters(UInt32 num_dram_cntlrs)
    m_log_num_sets = floorLog2(m_num_sets);
    m_log_cache_block_size = floorLog2(m_cache_block_size);
    m_log_num_cores = floorLog2(num_cores);
-   
-   if (isPower2(num_dram_cntlrs))
-      m_log_num_dram_cntlrs = floorLog2(num_dram_cntlrs);
-   else
-      m_log_num_dram_cntlrs = 0;
+  
+   m_log_num_dram_cntlrs = ceilLog2(num_dram_cntlrs); 
 
    IntPtr stack_size = boost::lexical_cast<IntPtr> (Sim()->getCfg()->get("stack/stack_size_per_core"));
    LOG_ASSERT_ERROR(isPower2(stack_size), "stack_size(%#llx) should be a power of 2", stack_size);

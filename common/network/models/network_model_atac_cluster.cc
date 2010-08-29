@@ -439,7 +439,6 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
    core_id_t requester = getRequester(pkt);
       
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-   UInt64 serialization_delay = computeProcessingTime(pkt_length, m_effective_anet_bandwidth);
 
    if (Config::getSingleton()->getProcessCount() == 1)
    {
@@ -478,8 +477,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                                                            m_scatter_network_delay;
 
             UInt64 total_latency = latency_sender_core_to_receiver_hub + \
-                                   latency_receiver_hub_to_receiver_core + \
-                                   serialization_delay;
+                                   latency_receiver_hub_to_receiver_core;
 
             Hop h;
             h.next_dest = i;
@@ -537,8 +535,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                                                            m_scatter_network_delay;
 
             total_latency = latency_sender_core_to_receiver_hub + \
-                            latency_receiver_hub_to_receiver_core + \
-                            serialization_delay;
+                            latency_receiver_hub_to_receiver_core;
          }
 
          Hop h;
@@ -607,7 +604,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
             {
                Hop h;
                h.next_dest = *core_it;
-               h.final_dest = *core_it;
+               h.final_dest = NetPacket::BROADCAST;
                h.specific = RECEIVER_CORE;
                h.time = pkt.time + receiver_hub_queue_delay + m_scatter_network_delay;
 
@@ -637,7 +634,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
             {
                Hop h;
                h.next_dest = *core_it;
-               h.final_dest = *core_it;
+               h.final_dest = NetPacket::BROADCAST;
                h.specific = RECEIVER_CORE;
                h.time = pkt.time + receiver_hub_queue_delay + m_scatter_network_delay;
 
@@ -801,7 +798,7 @@ NetworkModelAtacCluster::processReceivedPacket(NetPacket& pkt)
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
    UInt64 processing_time = computeProcessingTime(pkt_length, m_effective_anet_bandwidth); 
-   if (Config::getSingleton()->getProcessCount() > 1)
+   if (pkt.sender != pkt.receiver)
    {
       // Serialization Delay
       pkt.time += processing_time;
@@ -813,9 +810,24 @@ NetworkModelAtacCluster::processReceivedPacket(NetPacket& pkt)
    
    UInt64 packet_latency = pkt.time - pkt.start_time;
 
-   m_total_contention_delay += (packet_latency - \
-         m_gather_network_delay - m_scatter_network_delay - m_optical_network_link_delay - \
-         processing_time);
+   // Increment Total Contention Delay
+   if (pkt.sender == pkt.receiver)
+   {
+      m_total_contention_delay += 0;
+      assert(packet_latency == 0);
+   }
+   else if (getClusterID(pkt.sender) == getClusterID(pkt.receiver))
+   {
+      m_total_contention_delay += (packet_latency - \
+               (m_gather_network_delay + m_scatter_network_delay + processing_time));
+   }
+   else
+   {
+      m_total_contention_delay += (packet_latency - \
+               (m_gather_network_delay + m_optical_network_link_delay + m_scatter_network_delay + processing_time));
+   }
+
+   // Increment Total Packet Latency
    m_total_packet_latency += packet_latency;
 }
 
@@ -907,16 +919,22 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
       out << "    ONet Link Contention Delay (in ns): NA" << endl;
       out << "    ONet Total Packets: NA" << endl;
       out << "    ONet Total Buffered Packets: NA" << endl;
-      out << "    ONet Link Utilization(\%): NA" << endl;
-      out << "    ONet Analytical Model Used(\%): NA" << endl;
+      if ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree"))
+      {
+         out << "    ONet Link Utilization(\%): NA" << endl;
+         out << "    ONet Analytical Model Used(\%): NA" << endl;
+      }
       
       for (UInt32 i = 0; i < m_num_scatter_networks_per_cluster; i++)
       {
          out << "    BNet (" << i << ") Link Contention Delay (in ns): NA" << endl;
          out << "    BNet (" << i << ") Total Packets: NA" << endl;
          out << "    BNet (" << i << ") Total Buffered Packets: NA" << endl;
-         out << "    BNet (" << i << ") Link Utilization(\%): NA" << endl;
-         out << "    BNet (" << i << ") Analytical Model Used(\%): NA" << endl;
+         if ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree"))
+         {
+            out << "    BNet (" << i << ") Link Utilization(\%): NA" << endl;
+            out << "    BNet (" << i << ") Analytical Model Used(\%): NA" << endl;
+         }
       }
    }
 }

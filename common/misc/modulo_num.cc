@@ -3,8 +3,8 @@
 #include "modulo_num.h"
 
 ModuloNum::ModuloNum(UInt32 max_value, UInt32 value) :
-   m_value(value),
-   m_max_value(max_value)
+   _value(value),
+   _max_value(max_value)
 {}
 
 
@@ -14,47 +14,46 @@ ModuloNum::~ModuloNum()
 ModuloNum
 ModuloNum::operator+(ModuloNum& num)
 {
-   ModuloNum new_num(m_max_value);
-   assert(m_max_value == num.getMaxValue());
+   assert(_max_value == num._max_value);
 
-   new_num.setValue((m_value + num.getValue()) % m_max_value);
+   ModuloNum new_num(_max_value);
+   new_num._value = (_value + num._value) % _max_value;
    return new_num;
 }
 
 ModuloNum
 ModuloNum::operator-(ModuloNum& num)
 {
-   ModuloNum new_num(m_max_value);
-   assert(m_max_value == num.getMaxValue());
+   assert(_max_value == num._max_value);
 
-   if (m_value >= num.getValue())
-      new_num.setValue(m_value - num.getValue());
+   ModuloNum new_num(_max_value);
+   if (_value >= num._value)
+      new_num._value = _value - num._value;
    else
-      new_num.setValue(m_max_value - num.getValue() + m_value);
-   
+      new_num._value = _value + _max_value - num._value;
    return new_num;
 }
 
 ModuloNum
 ModuloNum::operator+(UInt32 value)
 {
-   ModuloNum num(m_max_value);
-   num.setValue(value % m_max_value);
+   ModuloNum num(_max_value);
+   num._value = value % _max_value;
    return (*this + num);
 }
 
 ModuloNum
 ModuloNum::operator-(UInt32 value)
 {
-   ModuloNum num(m_max_value);
-   num.setValue(value % m_max_value);
+   ModuloNum num(_max_value);
+   num._value = value % _max_value;
    return (*this - num);
 }
 
 bool
 ModuloNum::operator==(ModuloNum& num)
 {
-   return ((m_value == num.getValue()) && (m_max_value == num.getMaxValue()));
+   return ((_value == num._value) && (_max_value == num._max_value));
 }
 
 bool

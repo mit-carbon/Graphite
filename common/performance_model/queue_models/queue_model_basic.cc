@@ -24,8 +24,7 @@ QueueModelBasic::QueueModelBasic():
 
    if (moving_avg_enabled)
    {
-      MovingAverage<UInt64>::AvgType_t moving_avg_type = MovingAverage<UInt64>::parseAvgType(moving_avg_type_str);
-      m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type, moving_avg_window_size);
+      m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type_str, moving_avg_window_size);
    }
 }
 

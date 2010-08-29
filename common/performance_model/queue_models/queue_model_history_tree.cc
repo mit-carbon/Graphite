@@ -17,23 +17,25 @@ QueueModelHistoryTree::QueueModelHistoryTree(UInt64 min_processing_time):
    try
    {
       _max_free_interval_size = Sim()->getCfg()->getInt("queue_model/history_tree/max_list_size");
+      _analytical_model_enabled = Sim()->getCfg()->getBool("queue_model/history_tree/analytical_model_enabled");
    }
    catch(...)
    {
       LOG_PRINT_ERROR("Could not read queue_model/history_tree parameters from the cfg file");
    }
-
   
    allocateMemory();
 
    IntervalTree::Node* start_node = allocateNode(PAIR(0,_MAX_CYCLE_COUNT)); 
    _interval_tree = new IntervalTree(start_node);
+   _queue_model_m_g_1 = new QueueModelMG1();
 
    initializeQueueCounters();
 }
 
 QueueModelHistoryTree::~QueueModelHistoryTree()
 {
+   delete _queue_model_m_g_1;
    delete _interval_tree;
    releaseMemory();
 }
@@ -42,47 +44,66 @@ UInt64
 QueueModelHistoryTree::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester)
 {
    LOG_PRINT("Packet(%llu,%llu)", pkt_time, processing_time);
-   
+  
+   UInt64 queue_delay = UINT64_MAX;
+
    IntervalTree::Node* min_node = _interval_tree->search(PAIR(0,1));
-   if (min_node->interval.first > pkt_time)
-   {
-      _total_wrongly_handled_requests ++;
-   }
    // Prune the Tree when it grows too large
    if (_interval_tree->size() >= ((UInt32) _max_free_interval_size))
    {
       // Remove the node with the minimum key
       releaseNode(_interval_tree->remove(min_node));
    }
-
-   UInt64 queue_delay;
-
-   IntervalTree::Node* node = _interval_tree->search(PAIR(pkt_time, pkt_time + processing_time));
-   if (!node)
+  
+   // Check if we need to use Analytical Model - Get the min_node again 
+   min_node = _interval_tree->search(PAIR(0,1)); 
+   if ( _analytical_model_enabled && (min_node->interval.first > (pkt_time + processing_time)) )
    {
-      _interval_tree->inOrderTraversal();
-      LOG_PRINT_ERROR("node = (NULL)");
+      _total_requests_using_analytical_model ++;
+      queue_delay = _queue_model_m_g_1->computeQueueDelay(pkt_time, processing_time, requester);
    }
-
-   assert((pkt_time + processing_time) <= node->interval.second);
-
-   if (pkt_time >= node->interval.first)
+   else
    {
-      queue_delay = 0;
-      if ((pkt_time - node->interval.first) >= _min_processing_time)
+      IntervalTree::Node* node = _interval_tree->search(PAIR(pkt_time, pkt_time + processing_time));
+      if (!node)
       {
-         if ((node->interval.second - (pkt_time + processing_time)) >= _min_processing_time)
-         {
-            IntervalTree::Node* next_node = allocateNode(PAIR(pkt_time + processing_time, node->interval.second));
-            _interval_tree->insert(next_node);
-         }
-         node->interval.second = pkt_time;
+         _interval_tree->inOrderTraversal();
+         LOG_PRINT_ERROR("node = (NULL)");
       }
-      else // ((pkt_time - node->interval.first) < _min_processing_time)
+
+      assert((pkt_time + processing_time) <= node->interval.second);
+
+      if (pkt_time >= node->interval.first)
       {
-         if ((node->interval.second - (pkt_time + processing_time)) >= _min_processing_time)
+         queue_delay = 0;
+         if ((pkt_time - node->interval.first) >= _min_processing_time)
          {
-            node->interval.first = pkt_time + processing_time;
+            if ((node->interval.second - (pkt_time + processing_time)) >= _min_processing_time)
+            {
+               IntervalTree::Node* next_node = allocateNode(PAIR(pkt_time + processing_time, node->interval.second));
+               _interval_tree->insert(next_node);
+            }
+            node->interval.second = pkt_time;
+         }
+         else // ((pkt_time - node->interval.first) < _min_processing_time)
+         {
+            if ((node->interval.second - (pkt_time + processing_time)) >= _min_processing_time)
+            {
+               node->interval.first = pkt_time + processing_time;
+               node->key = node->interval.first;
+            }
+            else
+            {
+               releaseNode(_interval_tree->remove(node));
+            }
+         }
+      }
+      else // (pkt_time < node->interval.first)
+      {
+         queue_delay = node->interval.first - pkt_time;
+         if ((node->interval.second - (node->interval.first + processing_time)) >= _min_processing_time)
+         {
+            node->interval.first = node->interval.first + processing_time;
             node->key = node->interval.first;
          }
          else
@@ -91,21 +112,11 @@ QueueModelHistoryTree::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
          }
       }
    }
-   else // (pkt_time < node->interval.first)
-   {
-      queue_delay = node->interval.first - pkt_time;
-      if ((node->interval.second - (node->interval.first + processing_time)) >= _min_processing_time)
-      {
-         node->interval.first = node->interval.first + processing_time;
-         node->key = node->interval.first;
-      }
-      else
-      {
-         releaseNode(_interval_tree->remove(node));
-      }
-   }
+   
+   assert(queue_delay != UINT64_MAX);
 
    updateQueueCounters(processing_time);
+   _queue_model_m_g_1->updateQueue(pkt_time, processing_time, queue_delay);
 
    LOG_PRINT("Packet(%llu,%llu) -> Queue Delay(%llu)", pkt_time, processing_time, queue_delay);
 
@@ -117,7 +128,7 @@ QueueModelHistoryTree::initializeQueueCounters()
 {
    _total_requests = 0;
    _total_utilized_cycles = 0;
-   _total_wrongly_handled_requests = 0;
+   _total_requests_using_analytical_model = 0;
 }
 
 void

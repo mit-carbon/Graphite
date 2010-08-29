@@ -194,7 +194,7 @@ Config::computeProcessToCoreMapping()
                break;
 
             default:
-               LOG_PRINT_ERROR("Unrecognized Network Type(%u)", network_model);
+               fprintf(stderr, "Unrecognized Network Type(%u)\n", network_model);
                break;
          }
       }

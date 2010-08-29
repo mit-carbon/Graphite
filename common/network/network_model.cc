@@ -101,7 +101,8 @@ NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count
          return NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(core_count);
 
       default:
-         LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
+         fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
+         assert(false);
          return make_pair(false,-1);
    }
 }
@@ -159,7 +160,8 @@ NetworkModel::computeProcessToCoreMapping(UInt32 network_type)
          return NetworkModelAtacCluster::computeProcessToCoreMapping();
 
       default:
-         LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
+         fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
+         assert(false);
          return make_pair(false, vector<vector<core_id_t> >());
    }
 }

@@ -4,43 +4,45 @@
 #include <list>
 
 #include "queue_model.h"
+#include "queue_model_m_g_1.h"
 #include "fixed_types.h"
 
 class QueueModelHistoryList : public QueueModel
 {
 public:
-   typedef std::list<std::pair<UInt64,UInt64> > FreeIntervalList;
-
    QueueModelHistoryList(UInt64 min_processing_time);
    ~QueueModelHistoryList();
 
    UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester = INVALID_CORE_ID);
 
    float getQueueUtilization();
-   UInt64 getTotalRequestsUsingAnalyticalModel();
-   UInt64 getTotalRequests();
+   UInt64 getTotalRequestsUsingAnalyticalModel() { return _total_requests_using_analytical_model; }
+   UInt64 getTotalRequests() { return _total_requests; }
 
 private:
-   UInt64 m_min_processing_time;
-   UInt32 m_max_free_interval_list_size;
-   bool m_interleaving_enabled;
+   typedef std::list<std::pair<UInt64,UInt64> > FreeIntervalList;
 
-   FreeIntervalList m_free_interval_list;
-   
-   // Tracks queue utilization
-   UInt64 m_utilized_cycles;
+   QueueModelMG1* _queue_model_m_g_1;
+   FreeIntervalList _free_interval_list;
    
    // Is analytical model used ?
-   bool m_analytical_model_enabled;
+   bool _analytical_model_enabled;
+   
+   UInt64 _min_processing_time;
+   UInt32 _max_free_interval_list_size;
+   bool _interleaving_enabled;
 
+   // Tracks queue utilization
+   UInt64 _utilized_cycles;
    // Performance Counters
-   UInt64 m_total_requests;
-   UInt64 m_total_requests_using_analytical_model;
+   UInt64 _total_requests;
+   UInt64 _total_requests_using_analytical_model;
 
-   void updateQueueUtilization(UInt64 processing_time);
    UInt64 computeUsingHistoryList(UInt64 pkt_time, UInt64 processing_time);
    void insertInHistoryList(UInt64 pkt_time, UInt64 processing_time);
-   UInt64 computeUsingAnalyticalModel(UInt64 pkt_time, UInt64 processing_time);
+  
+   void initializeQueueCounters(); 
+   void updateQueueUtilization(UInt64 processing_time);
 };
 
 #endif /* __QUEUE_MODEL_HISTORY_LIST_H__ */

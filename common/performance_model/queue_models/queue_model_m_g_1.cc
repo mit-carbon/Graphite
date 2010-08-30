@@ -30,7 +30,8 @@ QueueModelMG1::computeQueueDelay(UInt64 pkt_time, UInt64 service_time, core_id_t
       volatile double arrival_rate = ((double) _num_arrivals) / _newest_arrival_time;
 
       LOG_PRINT("variance_serve_time(%g), service_rate(%g), arrival_rate(%g)\n", variance_service_time, service_rate, arrival_rate);
-      LOG_ASSERT_ERROR(arrival_rate < service_rate, "arrival_rate(%g), service_rate(%g)", arrival_rate, service_rate);
+      if (arrival_rate >= service_rate)
+         arrival_rate = 0.999 * service_rate;
       
       waiting_time_queue = (UInt64) ceil(0.5 * service_rate * arrival_rate * ( (1 / square(service_rate)) + variance_service_time) / (service_rate - arrival_rate));
    }

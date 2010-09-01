@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
       double total_buffer_accesses;
       double total_link_traversals;
 
-      UInt64 completion_time_emesh;
+      double completion_time_emesh;
       activity_counters_file >> completion_time_emesh;
 
       activity_counters_file >> total_switch_allocator_traversals;
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
       double total_scatter_network_crossbar_traversals;
       double total_scatter_network_link_traversals;
 
-      UInt64 completion_time_anet;
+      double completion_time_anet;
       activity_counters_file >> completion_time_anet;
       
       activity_counters_file >> total_gather_network_switch_allocator_traversals;
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
       printf("Static Energy(ANet) = %g, Dynamic Energy(ANet) = %g\n", \
             total_static_power_anet * completion_time_anet / 1e9 , total_dynamic_energy_anet);
 
-      fprintf(energy_out, "%g\n%g\n%g\n%g\n%g\n%g\n",
+      fprintf(energy_out, "%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n",
             total_static_power_enet_router * completion_time_anet / 1e9,
             total_dynamic_energy_enet_router,
             total_static_power_enet_link * completion_time_anet / 1e9,

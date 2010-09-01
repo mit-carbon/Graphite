@@ -12,9 +12,15 @@ public:
    UInt64 getDelay();
    volatile double getStaticPower();
    void updateDynamicEnergy(UInt32 num_bit_flips, UInt32 num_flits = 1);
-   volatile double getDynamicEnergy() { return _total_dynamic_energy; }
+   volatile double getDynamicEnergy() { return _total_dynamic_energy_sender + _total_dynamic_energy_receiver; }
 
-   void resetCounters() { _total_dynamic_energy = 0; }
+   // Public functions special to OpticalLink
+   volatile double getLaserPower();
+   volatile double getRingTuningPower();
+   volatile double getDynamicEnergySender();
+   volatile double getDynamicEnergyReceiver();
+
+   void resetCounters() { _total_dynamic_energy_sender = _total_dynamic_energy_receiver = 0; }
 
 private:
    volatile float _frequency;
@@ -40,5 +46,6 @@ private:
    // Dynamic Power parameters
    volatile double _electrical_tx_dynamic_energy;
    volatile double _electrical_rx_dynamic_energy;
-   volatile double _total_dynamic_energy;
+   volatile double _total_dynamic_energy_sender;
+   volatile double _total_dynamic_energy_receiver;
 };

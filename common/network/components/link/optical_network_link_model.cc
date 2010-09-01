@@ -57,9 +57,33 @@ OpticalNetworkLinkModel::getDelay()
 }
 
 volatile double
+OpticalNetworkLinkModel::getLaserPower()
+{
+   return ( _link_width * \
+            ( \
+              _laser_power \
+            ) \
+          );
+}
+
+volatile double
+OpticalNetworkLinkModel::getRingTuningPower()
+{
+   return ( _link_width * \
+            ( \
+              _ring_tuning_power + \
+              _num_receivers_per_wavelength * \
+              ( \
+                _ring_tuning_power \
+              ) \
+            ) \
+          );
+}
+
+volatile double
 OpticalNetworkLinkModel::getStaticPower()
 {
-   return ( _link_width * 
+   return ( _link_width * \
             ( \
                _laser_power + \
                _ring_tuning_power + _electrical_tx_static_power + _clock_static_power_tx + \
@@ -71,8 +95,21 @@ OpticalNetworkLinkModel::getStaticPower()
           );
 }
 
+volatile double
+OpticalNetworkLinkModel::getDynamicEnergySender()
+{
+   return _total_dynamic_energy_sender;
+}
+
+volatile double
+OpticalNetworkLinkModel::getDynamicEnergyReceiver()
+{
+   return _total_dynamic_energy_receiver;
+}
+
 void
 OpticalNetworkLinkModel::updateDynamicEnergy(UInt32 num_bit_flips, UInt32 num_flits)
 {
-   _total_dynamic_energy += (num_flits * (num_bit_flips * (_electrical_tx_dynamic_energy + _electrical_rx_dynamic_energy * _num_receivers_per_wavelength)));
+   _total_dynamic_energy_sender += (num_flits * (num_bit_flips * (_electrical_tx_dynamic_energy)));
+   _total_dynamic_energy_receiver += (num_flits * (num_bit_flips * (_electrical_rx_dynamic_energy * _num_receivers_per_wavelength)));
 }

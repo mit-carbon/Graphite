@@ -14,6 +14,8 @@ using namespace std;
 #include "utils.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
+// FIXME: Remove this and include separate function
+#include "network_model_emesh_hop_by_hop_generic.h"
 
 UInt32 NetworkModelAtacCluster::m_total_cores = 0;
 SInt32 NetworkModelAtacCluster::m_cluster_size = 0;
@@ -997,25 +999,6 @@ NetworkModelAtacCluster::reset()
    m_scatter_network_link_model->resetCounters();
 }
 
-pair<bool, vector<core_id_t> >
-NetworkModelAtacCluster::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
-{
-   // Initialization should be done by now
-   // Get the cluster size, Get the number of clusters
-   // Here we only include complete clusters, we dont include the incomplete clusters
-   SInt32 num_clusters = (m_mesh_width / m_sqrt_cluster_size) * (m_mesh_width / m_sqrt_cluster_size);
-   LOG_ASSERT_ERROR(num_memory_controllers <= num_clusters,
-         "num_memory_controllers(%i), num_clusters(%i)", num_memory_controllers, num_clusters);
-
-   vector<core_id_t> core_id_list_with_memory_controllers;
-   for (SInt32 i = 0; i < num_memory_controllers; i++)
-   {
-      core_id_list_with_memory_controllers.push_back(getCoreIDWithOpticalHub(i));
-   }
-
-   return (make_pair(true, core_id_list_with_memory_controllers));
-}
-
 SInt32
 NetworkModelAtacCluster::getClusterID(core_id_t core_id)
 {
@@ -1075,6 +1058,34 @@ NetworkModelAtacCluster::getCoreIDListInCluster(SInt32 cluster_id, vector<core_i
             core_id_list.push_back(core_id);
       }
    }
+}
+
+pair<bool,SInt32>
+NetworkModelAtacCluster::computeCoreCountConstraints(SInt32 core_count)
+{
+   return NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(core_count);
+}
+
+pair<bool, vector<core_id_t> >
+NetworkModelAtacCluster::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
+{
+   // Initialize the topology parameters in case called by an external model
+   initializeANetTopologyParams();
+
+   // Initialization should be done by now
+   // Get the cluster size, Get the number of clusters
+   // Here we only include complete clusters, we dont include the incomplete clusters
+   SInt32 num_clusters = (m_mesh_width / m_sqrt_cluster_size) * (m_mesh_width / m_sqrt_cluster_size);
+   LOG_ASSERT_ERROR(num_memory_controllers <= num_clusters,
+         "num_memory_controllers(%i), num_clusters(%i)", num_memory_controllers, num_clusters);
+
+   vector<core_id_t> core_id_list_with_memory_controllers;
+   for (SInt32 i = 0; i < num_memory_controllers; i++)
+   {
+      core_id_list_with_memory_controllers.push_back(getCoreIDWithOpticalHub(i));
+   }
+
+   return (make_pair(true, core_id_list_with_memory_controllers));
 }
 
 pair<bool, vector<Config::CoreList> >

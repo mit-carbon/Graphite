@@ -11,6 +11,8 @@ using namespace std;
 #include "queue_model_history_tree.h"
 #include "memory_manager_base.h"
 #include "clock_converter.h"
+// FIXME: Take me out while pushing
+#include "network_model_atac_cluster.h"
 
 SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_width = 0;
 SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_height = 0;
@@ -620,8 +622,15 @@ NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(SInt32 core_count)
 pair<bool, vector<core_id_t> >
 NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
 {
+   return NetworkModelAtacCluster::computeMemoryControllerPositions(num_memory_controllers, core_count);
+
+   /*
    // core_id_list_along_perimeter : list of cores along the perimeter of 
    // the chip in clockwise order starting from (0,0)
+   
+   // Initialize mesh_width, mesh_height
+   initializeEMeshTopologyParams();
+
    vector<core_id_t> core_id_list_along_perimeter;
 
    for (SInt32 i = 0; i < m_mesh_width; i++)
@@ -654,6 +663,7 @@ NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_me
    }
 
    return (make_pair(true, core_id_list_with_memory_controllers));
+    */
 }
 
 pair<bool, vector<Config::CoreList> >

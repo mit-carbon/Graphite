@@ -96,6 +96,8 @@ NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count
          return make_pair(false,core_count);
 
       case NETWORK_ATAC_CLUSTER:
+         return NetworkModelAtacCluster::computeCoreCountConstraints(core_count);
+      
       case NETWORK_EMESH_HOP_BY_HOP_BASIC:
       case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
          return NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(core_count);

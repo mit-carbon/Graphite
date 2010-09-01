@@ -155,6 +155,7 @@ class NetworkModelAtacCluster : public NetworkModel
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
       void processReceivedPacket(NetPacket& pkt);
 
+      static pair<bool,SInt32> computeCoreCountConstraints(SInt32 core_count);
       static pair<bool, vector<core_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count);
       static pair<bool, vector<vector<core_id_t> > > computeProcessToCoreMapping();
  

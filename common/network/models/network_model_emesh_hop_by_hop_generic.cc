@@ -124,7 +124,7 @@ NetworkModelEMeshHopByHopGeneric::createRouterAndLinkModels()
    m_num_router_ports = 5;
 
    m_electrical_router_model = ElectricalNetworkRouterModel::create(m_num_router_ports, \
-         m_num_flits_per_output_buffer, m_link_width);
+         m_num_router_ports, m_num_flits_per_output_buffer, m_link_width);
    m_electrical_link_model = ElectricalNetworkLinkModel::create(m_link_type, \
          m_frequency, \
          m_link_length, \

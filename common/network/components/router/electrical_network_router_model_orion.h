@@ -6,7 +6,7 @@
 class ElectricalNetworkRouterModelOrion : public ElectricalNetworkRouterModel
 {
 public:
-   ElectricalNetworkRouterModelOrion(UInt32 num_ports, UInt32 num_flits_per_buffer, UInt32 flit_width);
+   ElectricalNetworkRouterModelOrion(UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_buffer, UInt32 flit_width);
    ~ElectricalNetworkRouterModelOrion();
 
    // Update Dynamic Energy

@@ -1,8 +1,8 @@
 #include "electrical_network_router_model_orion.h"
 
-ElectricalNetworkRouterModelOrion::ElectricalNetworkRouterModelOrion(UInt32 num_ports, UInt32 num_flits_per_buffer, UInt32 flit_width)
+ElectricalNetworkRouterModelOrion::ElectricalNetworkRouterModelOrion(UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_buffer, UInt32 flit_width)
 {
-   _orion_router = new OrionRouter(num_ports, num_ports, 1, 1, num_flits_per_buffer, flit_width, OrionConfig::getSingleton());
+   _orion_router = new OrionRouter(num_input_ports, num_output_ports, 1, 1, num_flits_per_buffer, flit_width, OrionConfig::getSingleton());
    initializeCounters();
 }
 

@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
       ElectricalNetworkRouterModel* m_gather_network_router_model = ElectricalNetworkRouterModel::create(num_gather_network_router_ports, num_gather_network_router_ports, 4, gather_network_link_width);
       ElectricalNetworkLinkModel* m_gather_network_link_model = ElectricalNetworkLinkModel::create("electrical_repeated", 1.0, 1.0, gather_network_link_width, true);
       OpticalNetworkLinkModel* m_optical_network_link_model = new OpticalNetworkLinkModel(1.0, 100.0, optical_network_link_width);
-      ElectricalNetworkRouterModel* m_scatter_network_router_model = new ElectricalNetworkRouterModel::create(num_clusters/2, 1, 4, scatter_network_link_width);
+      ElectricalNetworkRouterModel* m_scatter_network_router_model = ElectricalNetworkRouterModel::create(num_clusters/2, 1, 4, scatter_network_link_width);
       ElectricalNetworkLinkModel* m_scatter_network_link_model = ElectricalNetworkLinkModel::create("electrical_repeated", 1.0, 1.0, scatter_network_link_width, true);
 
       m_gather_network_router_model->updateDynamicEnergySwitchAllocator(num_gather_network_router_ports/2);

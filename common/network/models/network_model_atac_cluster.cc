@@ -176,7 +176,8 @@ NetworkModelAtacCluster::createANetRouterAndLinkModels()
    m_num_gather_network_router_ports = 5;
    m_num_hops_sender_core_to_sender_hub = (m_sqrt_cluster_size/2 + 1);
 
-   m_gather_network_router_model = ElectricalNetworkRouterModel::create(m_num_gather_network_router_ports, \
+   m_gather_network_router_model = ElectricalNetworkRouterModel::create(m_num_gather_network_router_ports, 
+         m_num_gather_network_router_ports, \
          num_flits_per_output_buffer_gather_network_router, m_gather_network_link_width);
    m_gather_network_link_model = ElectricalNetworkLinkModel::create(m_gather_network_link_type, \
          m_gather_network_frequency, \

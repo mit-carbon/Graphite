@@ -266,8 +266,9 @@ DramDirectoryCache::outputSummary(ostream& out)
    }
 
 #ifdef DETAILED_TRACKING_ENABLED
+   /*
    core_id_t core_id = m_memory_manager->getCore()->getId();
-   string output_dir = Sim()->getCfg()->getString("general/output_dir", "");
+   string output_dir = Sim()->getCfg()->getString("general/output_dir", "./output_files/");
 
    ostringstream filename;
    filename << output_dir << "/address_set_" << core_id;
@@ -278,6 +279,7 @@ DramDirectoryCache::outputSummary(ostream& out)
       address_set_file << setfill(' ') << setw(20) << left << hex << (*it).first << dec
          << setw(10) << left << (*it).second << "\n";
    address_set_file.close();
+    */
 
    UInt32 max_set_size = 0;
    UInt32 min_set_size = 100000000;

@@ -1,6 +1,7 @@
 #ifndef __NETWORK_MODEL_ATAC_CLUSTER_H__
 #define __NETWORK_MODEL_ATAC_CLUSTER_H__
 
+#include <vector>
 #include <string>
 using namespace std;
 
@@ -10,6 +11,8 @@ using namespace std;
 #include "electrical_network_router_model.h"
 #include "electrical_network_link_model.h"
 #include "optical_network_link_model.h"
+
+// #define TRACK_UTILIZATION     1
 
 // Single Sender Multiple Receivers Model
 // 1 sender, N receivers (1 to N)
@@ -116,6 +119,12 @@ class NetworkModelAtacCluster : public NetworkModel
       UInt64 m_optical_network_link_traversals;
       UInt64 m_scatter_network_link_traversals;
 
+#ifdef TRACK_UTILIZATION
+      vector<UInt64> m_sender_hub_utilization;
+      vector<UInt64>* m_receiver_hub_utilization;
+      UInt64 m_update_interval;
+#endif
+
       // Private Functions
       static SInt32 getClusterID(core_id_t core_id);
       static core_id_t getCoreIDWithOpticalHub(SInt32 cluster_id);
@@ -144,6 +153,14 @@ class NetworkModelAtacCluster : public NetworkModel
       // Energy/Power related functions
       void updateDynamicEnergy(SubNetworkType sub_net_type, const NetPacket& pkt);
       void outputPowerSummary(ostream& out);
+
+#ifdef TRACK_UTILIZATION
+      void initializeUtilizationCounters();
+      void destroyUtilizationCounters();
+      void updateUtilization(NetworkComponentType hub_type, SInt32 hub_id, UInt64 pkt_time, UInt64 processing_time);
+      void updateVector(UInt64 interval_id, vector<UInt64>& utilization_vec);
+      void outputUtilizationSummary();
+#endif
 
    public:
       NetworkModelAtacCluster(Network *net, SInt32 network_id);

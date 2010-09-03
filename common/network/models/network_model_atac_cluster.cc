@@ -14,8 +14,6 @@ using namespace std;
 #include "utils.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
-// FIXME: Remove this and include separate function
-#include "network_model_emesh_hop_by_hop_generic.h"
 
 UInt32 NetworkModelAtacCluster::m_total_cores = 0;
 SInt32 NetworkModelAtacCluster::m_cluster_size = 0;
@@ -274,6 +272,10 @@ NetworkModelAtacCluster::createQueueModels()
          m_total_receiver_hub_packets[i] = 0;
          m_total_buffered_receiver_hub_packets[i] = 0;
       }
+
+#ifdef TRACK_UTILIZATION
+      initializeUtilizationCounters();
+#endif
    }
    else
    {
@@ -295,6 +297,10 @@ NetworkModelAtacCluster::destroyQueueModels()
 
       delete m_total_receiver_hub_contention_delay;
       delete m_total_receiver_hub_packets;
+
+#ifdef TRACK_UTILIZATION
+      destroyUtilizationCounters();
+#endif
    }
 }
 
@@ -372,6 +378,11 @@ NetworkModelAtacCluster::computeHubQueueDelay(NetworkComponentType hub_type, SIn
                   sender_cluster_id, getClusterID(m_core_id));
             UInt64 sender_hub_queue_delay = m_sender_hub_queue_model->computeQueueDelay(optical_network_pkt_time, processing_time);
 
+            // Update Utilization Counters
+#ifdef TRACK_UTILIZATION
+            updateUtilization(SENDER_HUB, -1, optical_network_pkt_time + sender_hub_queue_delay, processing_time);
+#endif
+
             // Performance Counters
             m_total_sender_hub_contention_delay += sender_hub_queue_delay;
             if (sender_hub_queue_delay != 0)
@@ -394,6 +405,11 @@ NetworkModelAtacCluster::computeHubQueueDelay(NetworkComponentType hub_type, SIn
             // Assume the broadcast networks are statically divided up among the senders
             SInt32 scatter_network_num = sender_cluster_id % m_num_scatter_networks_per_cluster;
             UInt64 receiver_hub_queue_delay = m_receiver_hub_queue_models[scatter_network_num]->computeQueueDelay(scatter_network_pkt_time, processing_time);
+
+            // Update Utilization Counters
+#ifdef TRACK_UTILIZATION
+            updateUtilization(RECEIVER_HUB, scatter_network_num, scatter_network_pkt_time + receiver_hub_queue_delay, processing_time);
+#endif
 
             // Performance Counters
             m_total_receiver_hub_contention_delay[scatter_network_num] += receiver_hub_queue_delay;
@@ -873,7 +889,7 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
             frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
                                          ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequests();
          }
-         out << "    ONet Link Utilization(\%): " << sender_hub_utilization << endl; 
+         out << "    ONet Link Utilization(\%): " << sender_hub_utilization * 100 << endl; 
          out << "    ONet Analytical Model Used(\%): " << frac_analytical_model_used * 100 << endl;
       }
 
@@ -912,10 +928,14 @@ NetworkModelAtacCluster::outputHubSummary(ostream& out)
                frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequestsUsingAnalyticalModel()) / \
                                             ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequests();
             }
-            out << "    BNet (" << i << ") Link Utilization(\%): " << receiver_hub_utilization << endl;
-            out << "    BNet (" << i << ") Analytical Model Used(\%): " << frac_analytical_model_used << endl;
+            out << "    BNet (" << i << ") Link Utilization(\%): " << receiver_hub_utilization * 100 << endl;
+            out << "    BNet (" << i << ") Analytical Model Used(\%): " << frac_analytical_model_used * 100 << endl;
          }
       }
+
+#ifdef TRACK_UTILIZATION
+      outputUtilizationSummary();
+#endif
    }
    else
    {
@@ -1064,7 +1084,15 @@ NetworkModelAtacCluster::getCoreIDListInCluster(SInt32 cluster_id, vector<core_i
 pair<bool,SInt32>
 NetworkModelAtacCluster::computeCoreCountConstraints(SInt32 core_count)
 {
-   return NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(core_count);
+   // Same Calculations as Electrical Mesh Model
+   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
+   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+
+   assert(core_count <= mesh_width * mesh_height);
+   assert(core_count > (mesh_width - 1) * mesh_height);
+   assert(core_count > mesh_width * (mesh_height - 1));
+
+   return make_pair(true,mesh_height * mesh_width);
 }
 
 pair<bool, vector<core_id_t> >
@@ -1234,3 +1262,72 @@ NetworkModelAtacCluster::outputPowerSummary(ostream& out)
    out << "    Optical Network Link Traversals: " << m_optical_network_link_traversals << endl;
    out << "    Scatter Network Link Traversals: " << m_scatter_network_link_traversals << endl;
 }
+
+#ifdef TRACK_UTILIZATION
+void
+NetworkModelAtacCluster::initializeUtilizationCounters()
+{
+   m_update_interval = 10000;
+   m_receiver_hub_utilization = new vector<UInt64>[m_num_scatter_networks_per_cluster];
+}
+
+void
+NetworkModelAtacCluster::destroyUtilizationCounters()
+{
+   delete [] m_receiver_hub_utilization;
+}
+
+void
+NetworkModelAtacCluster::updateUtilization(NetworkComponentType hub_type, SInt32 hub_id, UInt64 pkt_time, UInt64 processing_time)
+{
+   UInt64 interval_id = pkt_time / m_update_interval;
+   switch (hub_type)
+   {
+   case SENDER_HUB:
+      updateVector(interval_id, m_sender_hub_utilization);
+      m_sender_hub_utilization[interval_id] += processing_time;
+      break;
+
+   case RECEIVER_HUB:
+      updateVector(interval_id, m_receiver_hub_utilization[hub_id]);
+      m_receiver_hub_utilization[hub_id][interval_id] += processing_time;
+      break;
+
+   default:
+      LOG_PRINT_ERROR("Unrecognized hub_type(%u)", hub_type);
+      break;
+   }
+}
+
+void
+NetworkModelAtacCluster::updateVector(UInt64 interval_id, vector<UInt64>& utilization_vec)
+{
+   if (interval_id >= utilization_vec.size())
+   {
+      UInt64 next_interval = utilization_vec.size();
+      for (; next_interval <= interval_id; next_interval++)
+         utilization_vec.push_back(0);
+   }
+   assert(interval_id < utilization_vec.size());
+}
+
+void
+NetworkModelAtacCluster::outputUtilizationSummary()
+{
+   stringstream filename;
+   string output_dir = Sim()->getCfg()->getString("general/output_dir", "./output_files/"); 
+   filename << output_dir << "utilization_" << getNetwork()->getCore()->getId(); 
+   ofstream utilization_file((filename.str()).c_str());
+
+   assert(m_num_scatter_networks_per_cluster == 2);
+   UInt32 size = getMin<UInt32>(m_sender_hub_utilization.size(), \
+        m_receiver_hub_utilization[0].size(), m_receiver_hub_utilization[1].size()); 
+   for (UInt32 i = 0; i < size; i++)
+   {
+      float utilization = ( (float) (m_sender_hub_utilization[i] + m_receiver_hub_utilization[0][i] + \
+               m_receiver_hub_utilization[1][i]) ) / m_update_interval;
+      utilization_file << i << "\t" << utilization << endl;
+   }
+   utilization_file.close();
+}
+#endif

@@ -9,6 +9,7 @@ using namespace std;
 #include "electrical_network_link_model.h"
 #include "optical_network_link_model.h"
 #include "fixed_types.h"
+#include "log.h"
 
 int main(int argc, char *argv[])
 {
@@ -69,11 +70,9 @@ int main(int argc, char *argv[])
       printf("Static Energy(EMesh) = %g, Dynamic Energy(EMesh) = %g\n", \
             total_static_power_emesh * completion_time_emesh / 1e9, total_dynamic_energy_emesh);
       
-      fprintf(energy_out, "%g\n%g\n%g\n%g\n",
-            total_static_power_emesh_router * completion_time_emesh / 1e9,
-            total_dynamic_energy_emesh_router,
-            total_static_power_emesh_link * completion_time_emesh / 1e9,
-            total_dynamic_energy_emesh_link);
+      fprintf(energy_out, "%g\n%g\n",
+            total_dynamic_energy_emesh_router + (total_static_power_emesh_router * completion_time_emesh / 1e9),
+            total_dynamic_energy_emesh_link + (total_static_power_emesh_link * completion_time_emesh / 1e9));
    }
 
    else if (network == "anet")
@@ -182,7 +181,9 @@ int main(int argc, char *argv[])
                                        ( \
                                          m_optical_network_link_model->getStaticPower() \
                                        );
-      assert(total_static_power_onet == (total_static_power_onet_laser + total_static_power_onet_ring));
+      // LOG_ASSERT_ERROR(total_static_power_onet == (total_static_power_onet_laser + total_static_power_onet_ring), \
+      //       "onet(%g), onet_laser(%g), onet_ring(%g)", \
+      //       total_static_power_onet, total_static_power_onet_laser, total_static_power_onet_ring);
      
       // Static Power - BNet
       double total_static_power_bnet_router = num_clusters * \
@@ -200,19 +201,15 @@ int main(int argc, char *argv[])
       printf("Static Energy(ANet) = %g, Dynamic Energy(ANet) = %g\n", \
             total_static_power_anet * completion_time_anet / 1e9 , total_dynamic_energy_anet);
 
-      fprintf(energy_out, "%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n",
-            total_static_power_enet_router * completion_time_anet / 1e9,
-            total_dynamic_energy_enet_router,
-            total_static_power_enet_link * completion_time_anet / 1e9,
-            total_dynamic_energy_enet_link,
+      fprintf(energy_out, "%g\n%g\n%g\n%g\n%g\n%g\n%g\n%g\n",
+            total_dynamic_energy_enet_router + (total_static_power_enet_router * completion_time_anet / 1e9),
+            total_dynamic_energy_enet_link + (total_static_power_enet_link * completion_time_anet / 1e9),
             total_static_power_onet_laser * completion_time_anet / 1e9,
             total_static_power_onet_ring * completion_time_anet / 1e9,
             total_dynamic_energy_onet_sender,
             total_dynamic_energy_onet_receiver,
-            total_static_power_bnet_router * completion_time_anet / 1e9,
-            total_dynamic_energy_bnet_router,
-            total_static_power_bnet_link * completion_time_anet / 1e9,
-            total_dynamic_energy_bnet_link);
+            total_dynamic_energy_bnet_router + (total_static_power_bnet_router * completion_time_anet / 1e9),
+            total_dynamic_energy_bnet_link + (total_static_power_bnet_link * completion_time_anet / 1e9));
    }
 
    else

@@ -1326,7 +1326,7 @@ NetworkModelAtacCluster::outputUtilizationSummary()
    {
       float utilization = ( (float) (m_sender_hub_utilization[i] + m_receiver_hub_utilization[0][i] + \
                m_receiver_hub_utilization[1][i]) ) / m_update_interval;
-      utilization_file << i << "\t" << utilization << endl;
+      utilization_file << i << "\t" << utilization / 3 << endl;
    }
    utilization_file.close();
 }

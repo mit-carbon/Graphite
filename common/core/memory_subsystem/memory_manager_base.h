@@ -65,6 +65,7 @@ class MemoryManagerBase
 
       // Modeling
       virtual UInt32 getModeledLength(const void* pkt_data) = 0;
+      virtual bool isModeled(const void* pkt_data) = 0;
 
       Core* getCore() { return m_core; }
       

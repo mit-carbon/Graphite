@@ -130,7 +130,7 @@ class NetworkModelAtacCluster : public NetworkModel
       static core_id_t getCoreIDWithOpticalHub(SInt32 cluster_id);
       static void getCoreIDListInCluster(SInt32 cluster_id, vector<core_id_t>& core_id_list);
 
-      UInt64 getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, UInt32 pkt_length, PacketType pkt_type, core_id_t requester);
+      UInt64 getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, const NetPacket& pkt);
 
       UInt64 computeProcessingTime(UInt32 pkt_length, volatile double bandwidth);
       core_id_t getRequester(const NetPacket& pkt);
@@ -182,7 +182,7 @@ class NetworkModelAtacCluster : public NetworkModel
       void outputSummary(std::ostream &out);
       
       // Only for NetworkModelAtacCluster
-      UInt64 computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester);
+      UInt64 computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, UInt64 pkt_time, const NetPacket& pkt);
 };
 
 #endif /* __NETWORK_MODEL_ATAC_CLUSTER_H__ */

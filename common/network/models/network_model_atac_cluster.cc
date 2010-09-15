@@ -343,19 +343,22 @@ NetworkModelAtacCluster::getRequester(const NetPacket& pkt)
 }
 
 UInt64
-NetworkModelAtacCluster::getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, UInt32 pkt_length, PacketType pkt_type, core_id_t requester)
+NetworkModelAtacCluster::getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, const NetPacket& pkt)
 {
    core_id_t core_id_with_optical_hub = getCoreIDWithOpticalHub(cluster_id);
    Core* core = Sim()->getCoreManager()->getCoreFromID(core_id_with_optical_hub);
-   NetworkModelAtacCluster* network_model = (NetworkModelAtacCluster*) core->getNetwork()->getNetworkModelFromPacketType(pkt_type);
+   NetworkModelAtacCluster* network_model = (NetworkModelAtacCluster*) core->getNetwork()->getNetworkModelFromPacketType(pkt.type);
 
-   return network_model->computeHubQueueDelay(hub_type, sender_cluster_id, pkt_time, pkt_length, requester);
+   return network_model->computeHubQueueDelay(hub_type, sender_cluster_id, pkt_time, pkt);
 }
 
 UInt64
-NetworkModelAtacCluster::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
+NetworkModelAtacCluster::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, UInt64 pkt_time, const NetPacket& pkt)
 {
-   if ((!m_enabled) || (!m_queue_model_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+   core_id_t requester = getRequester(pkt);
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+
+   if ( (!m_enabled) || (!m_queue_model_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) || (!getNetwork()->getCore()->getMemoryManager()->isModeled(pkt.data)) )
       return 0;
 
    assert(m_core_id == getCoreIDWithOpticalHub(getClusterID(m_core_id)));
@@ -455,10 +458,6 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
 {
    ScopedLock sl(m_lock);
 
-   core_id_t requester = getRequester(pkt);
-      
-   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-
    if (Config::getSingleton()->getProcessCount() == 1)
    {
       // All the energies and delays are computed at source
@@ -471,8 +470,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                getClusterID(pkt.sender), \
                getClusterID(pkt.sender), \
                pkt.time + m_gather_network_delay, \
-               pkt_length, \
-               pkt.type, requester);
+               pkt);
          UInt64 latency_sender_core_to_receiver_hub = m_gather_network_delay + \
                                                       sender_hub_queue_delay + \
                                                       m_optical_network_link_delay;
@@ -486,8 +484,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                   getClusterID(pkt.sender), \
                   i, \
                   pkt.time + latency_sender_core_to_receiver_hub, \
-                  pkt_length, \
-                  pkt.type, requester);
+                  pkt);
          }
 
          for (core_id_t i = 0; i < (core_id_t) m_total_cores; i++)
@@ -535,8 +532,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                      getClusterID(pkt.sender), \
                      getClusterID(pkt.sender), \
                      pkt.time + m_gather_network_delay, \
-                     pkt_length, \
-                     pkt.type, requester);
+                     pkt);
                latency_sender_core_to_receiver_hub = m_gather_network_delay + \
                                                      sender_hub_queue_delay + \
                                                      m_optical_network_link_delay;
@@ -548,8 +544,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                   getClusterID(pkt.sender), \
                   getClusterID(pkt.receiver), \
                   pkt.time + latency_sender_core_to_receiver_hub, \
-                  pkt_length, \
-                  pkt.type, requester);
+                  pkt);
             UInt64 latency_receiver_hub_to_receiver_core = receiver_hub_queue_delay + \
                                                            m_scatter_network_delay;
 
@@ -587,8 +582,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
             UInt64 sender_hub_queue_delay = computeHubQueueDelay(SENDER_HUB, \
                   getClusterID(pkt.sender), \
                   pkt.time, \
-                  pkt_length, \
-                  requester);
+                  pkt);
             
             // First, send it to all the other hubs
             for (SInt32 i = 0; i < (SInt32) m_num_clusters; i++)
@@ -613,8 +607,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
             UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB, \
                   getClusterID(pkt.sender), \
                   pkt.time, \
-                  pkt_length, \
-                  requester);
+                  pkt);
 
             vector<core_id_t> core_id_list_in_cluster;
             getCoreIDListInCluster(getClusterID(m_core_id), core_id_list_in_cluster);
@@ -643,8 +636,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
             UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB, \
                   getClusterID(pkt.sender), \
                   pkt.time, \
-                  pkt_length, \
-                  requester);
+                  pkt);
 
             vector<core_id_t> core_id_list_in_cluster;
             getCoreIDListInCluster(getClusterID(m_core_id), core_id_list_in_cluster);
@@ -712,8 +704,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB, \
                    getClusterID(pkt.sender), \
                    pkt.time, \
-                   pkt_length, \
-                   requester);
+                   pkt);
 
                hop_latency = (receiver_hub_queue_delay + m_scatter_network_delay);
                next_dest = pkt.receiver;
@@ -728,8 +719,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
                UInt64 sender_hub_queue_delay = computeHubQueueDelay(SENDER_HUB, \
                     getClusterID(pkt.sender), \
                     pkt.time, \
-                    pkt_length, \
-                    requester);
+                    pkt);
 
                hop_latency = (sender_hub_queue_delay + m_optical_network_link_delay);
                next_dest = getCoreIDWithOpticalHub(getClusterID(pkt.receiver));
@@ -747,8 +737,7 @@ NetworkModelAtacCluster::routePacket(const NetPacket &pkt, std::vector<Hop> &nex
             UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB, \
                   getClusterID(pkt.sender), \
                   pkt.time, \
-                  pkt_length, \
-                  requester);
+                  pkt);
 
             LOG_ASSERT_ERROR(getClusterID(m_core_id) == getClusterID(pkt.receiver), \
                   "m_core_id(%i), cluster(%u), pkt.receiver(%i), cluster(%u)", \
@@ -812,7 +801,7 @@ NetworkModelAtacCluster::processReceivedPacket(NetPacket& pkt)
    ScopedLock sl(m_lock);
  
    core_id_t requester = getRequester(pkt);
-   if ((!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+   if ( (!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) || (!getNetwork()->getCore()->getMemoryManager()->isModeled(pkt.data)) )
       return;
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
@@ -1151,7 +1140,7 @@ NetworkModelAtacCluster::updateDynamicEnergy(SubNetworkType sub_net_type, const 
 {
    // This function calls the power models as well as update power counters
    core_id_t requester = getRequester(pkt);
-   if ((!m_enabled) || (requester >= ((core_id_t) Config::getSingleton()->getApplicationCores())))
+   if ( (!m_enabled) || (requester >= ((core_id_t) Config::getSingleton()->getApplicationCores())) || (!getNetwork()->getCore()->getMemoryManager()->isModeled(pkt.data)) )
       return;
 
    // TODO: Make these models more detailed later - Compute the exact number of bit flips

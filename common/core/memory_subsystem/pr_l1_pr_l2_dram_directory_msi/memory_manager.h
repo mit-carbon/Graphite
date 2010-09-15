@@ -75,6 +75,8 @@ namespace PrL1PrL2DramDirectoryMSI
 
          UInt32 getModeledLength(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+         bool isModeled(const void* pkt_data)
+         { return true; }
 
          void outputSummary(std::ostream &os);
 

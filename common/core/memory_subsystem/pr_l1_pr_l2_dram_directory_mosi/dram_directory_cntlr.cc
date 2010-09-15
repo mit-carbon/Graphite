@@ -86,6 +86,7 @@ DramDirectoryCntlr::handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg)
          break;
 
       case ShmemMsg::INV_REP:
+      case ShmemMsg::INV_REP_UNMODELED:
          processInvRepFromL2Cache(sender, shmem_msg);
          break;
 

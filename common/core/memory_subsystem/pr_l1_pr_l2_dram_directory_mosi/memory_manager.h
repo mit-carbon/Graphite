@@ -83,6 +83,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          UInt32 getModeledLength(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+         bool isModeled(const void* pkt_data)
+         { return  ((ShmemMsg*) pkt_data)->isModeled(); }
 
          core_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }

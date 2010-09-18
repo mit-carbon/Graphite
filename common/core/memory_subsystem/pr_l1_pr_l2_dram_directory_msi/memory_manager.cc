@@ -53,6 +53,8 @@ MemoryManager::MemoryManager(Core* core,
    bool dram_queue_model_enabled = false;
    std::string dram_queue_model_type;
 
+   std::string directory_type;
+
    try
    {
       // L1 ICache
@@ -97,10 +99,19 @@ MemoryManager::MemoryManager(Core* core,
       per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/per_controller_bandwidth");
       dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
       dram_queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+
+      // Directory Type
+      directory_type = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
    }
    catch(...)
    {
       LOG_PRINT_ERROR("Error reading memory system parameters from the config file");
+   }
+
+   if (getCore()->getId() == 0)
+   {
+      LOG_ASSERT_ERROR(directory_type != "limited_broadcast", \
+            "Limited Broadcast directory scheme CANNOT be used with the MSI protocol.");
    }
 
    m_user_thread_sem = new Semaphore(0);

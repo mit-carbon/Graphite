@@ -579,7 +579,7 @@ bool SockTransport::Socket::recv(void *buffer, UInt32 length, bool block)
    {
       recvd = ::recv(m_socket, buffer, length, MSG_DONTWAIT);
 
-      LOG_ASSERT_ERROR(recvd >= -1,
+      LOG_ASSERT_ERROR((recvd == -1 && errno == EAGAIN) || (recvd >= 0),
             "recvd(%i), length(%u), block(%u)", recvd, length, (UInt32) block);
 
       if (recvd >= 1)

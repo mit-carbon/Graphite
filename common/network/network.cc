@@ -6,6 +6,8 @@
 #include "memory_manager_base.h"
 #include "simulator.h"
 #include "core_manager.h"
+#include "clock_converter.h"
+#include "fxsupport.h"
 #include "log.h"
 
 using namespace std;
@@ -32,11 +34,12 @@ Network::Network(Core *core)
    for (SInt32 i = 0; i < NUM_PACKET_TYPES; i++)
       _callbacks[i] = NULL;
 
-   UInt32 modelTypes[NUM_STATIC_NETWORKS];
-   Config::getSingleton()->getNetworkModels(modelTypes);
-
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
-      _models[i] = NetworkModel::createModel(this, modelTypes[i], (EStaticNetwork)i);
+   {
+      UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
+      
+      _models[i] = NetworkModel::createModel(this, i, network_model);
+   }
 
    LOG_PRINT("Initialized.");
 }
@@ -88,123 +91,132 @@ void Network::netPullFromTransport()
       LOG_PRINT("Entering netPullFromTransport");
 
       NetPacket packet(_transport->recv());
- 
-      LOG_PRINT("Pull packet : type %i, from %i, time %llu", (SInt32)packet.type, packet.sender, packet.time);
-      assert(0 <= packet.sender && packet.sender < _numMod);
-      LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES, "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
 
-      // was this packet sent to us, or should it just be forwarded?
-      if (packet.receiver != _core->getId())
+      LOG_PRINT("Pull packet : type %i, from %i, time %llu", (SInt32)packet.type, packet.sender, packet.time);
+      LOG_ASSERT_ERROR(0 <= packet.sender && packet.sender < _numMod,
+            "Invalid Packet Sender(%i)", packet.sender);
+      LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES,
+            "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
+
+      NetworkModel* model = getNetworkModelFromPacketType(packet.type);
+     
+      UInt32 action = model->computeAction(packet);
+      
+      if (action & NetworkModel::RoutingAction::FORWARD)
       {
-         // Disable this feature now. None of the network models use it
          LOG_PRINT("Forwarding packet : type %i, from %i, to %i, core_id %i, time %llu.", 
                (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
          forwardPacket(packet);
+      }
+      
+      if (action & NetworkModel::RoutingAction::RECEIVE)
+      {
+         LOG_PRINT("Before Processing Received Packet: packet.time(%llu)", packet.time);
+         
+         // I have accepted the packet - process the received packet
+         model->processReceivedPacket(packet);
 
-         // if this isn't a broadcast message, then we shouldn't process it further
-         if (packet.receiver != NetPacket::BROADCAST)
+         LOG_PRINT("After Processing Received Packet: packet.time(%llu)", packet.time);
+         
+         // Convert from network cycle count to core cycle count
+         packet.time = convertCycleCount(packet.time, \
+               getNetworkModelFromPacketType(packet.type)->getFrequency(), \
+               _core->getPerformanceModel()->getFrequency());
+    
+         LOG_PRINT("After Converting Cycle Count: packet.time(%llu)", packet.time);
+         
+         // asynchronous I/O support
+         NetworkCallback callback = _callbacks[packet.type];
+
+         if (callback != NULL)
          {
+            LOG_PRINT("Executing callback on packet : type %i, from %i, to %i, core_id %i, cycle_count %llu", 
+                  (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
+            assert(0 <= packet.sender && packet.sender < _numMod);
+            assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
+
+            callback(_callbackObjs[packet.type], packet);
+
             if (packet.length > 0)
                delete [] (Byte*) packet.data;
-            continue;
+         }
+
+         // synchronous I/O support
+         else
+         {
+            LOG_PRINT("Enqueuing packet : type %i, from %i, to %i, core_id %i, cycle_count %llu", 
+                  (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
+            _netQueueLock.acquire();
+            _netQueue.push_back(packet);
+            _netQueueLock.release();
+            _netQueueCond.broadcast();
          }
       }
-
-      // I have received the packet
-      NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
-      model->processReceivedPacket(packet);
-
-      // asynchronous I/O support
-      NetworkCallback callback = _callbacks[packet.type];
-
-      if (callback != NULL)
+      else // if ((action & NetworkModel::RoutingAction::RECEIVE) == 0)
       {
-         LOG_PRINT("Executing callback on packet : type %i, from %i, to %i, core_id %i, time %llu", 
-               (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
-         assert(0 <= packet.sender && packet.sender < _numMod);
-         assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
-
-         callback(_callbackObjs[packet.type], packet);
-
          if (packet.length > 0)
             delete [] (Byte*) packet.data;
-      }
-
-      // synchronous I/O support
-      else
-      {
-         LOG_PRINT("Enqueuing packet : type %i, from %i, to %i, core_id %i, time %llu.", 
-               (SInt32)packet.type, packet.sender, packet.receiver, _core->getId(), packet.time);
-         _netQueueLock.acquire();
-         _netQueue.push_back(packet);
-         _netQueueLock.release();
-         _netQueueCond.broadcast();
       }
    }
    while (_transport->query());
 }
 
-// FIXME: Can forwardPacket be subsumed by netSend?
-
-void Network::forwardPacket(NetPacket& packet)
+SInt32 Network::forwardPacket(const NetPacket& packet)
 {
-   LOG_PRINT_ERROR("Temporarily disabled for now");
-   netSend(packet);
-}
+   // Create a buffer suitable for forwarding
+   Byte* buffer = packet.makeBuffer();
+   NetPacket* buff_pkt = (NetPacket*) buffer;
 
-NetworkModel* Network::getNetworkModelFromPacketType(PacketType packet_type)
-{
-   return _models[g_type_to_static_network_map[packet_type]];
-}
+   LOG_ASSERT_ERROR((buff_pkt->type >= 0) && (buff_pkt->type < NUM_PACKET_TYPES),
+         "buff_pkt->type(%u)", buff_pkt->type);
 
-SInt32 Network::netSend(NetPacket& packet)
-{
-   assert(packet.type >= 0 && packet.type < NUM_PACKET_TYPES);
-
-   NetworkModel *model = _models[g_type_to_static_network_map[packet.type]];
+   NetworkModel *model = getNetworkModelFromPacketType(buff_pkt->type);
 
    vector<NetworkModel::Hop> hopVec;
-   model->routePacket(packet, hopVec);
-
-   Byte *buffer = packet.makeBuffer();
-   UInt64 start_time = packet.time;
+   model->routePacket(*buff_pkt, hopVec);
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, core_id %i, time %llu",
-            (SInt32) packet.type, packet.sender, hopVec[i].final_dest, hopVec[i].next_dest, _core->getId(), hopVec[i].time);
-      // LOG_ASSERT_ERROR(hopVec[i].time >= packet.time, "hopVec[%d].time(%llu) < packet.time(%llu)", i, hopVec[i].time, packet.time);
+      LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, core_id %i, time %llu", \
+            (SInt32) buff_pkt->type, buff_pkt->sender, hopVec[i].final_dest, hopVec[i].next_dest, \
+            _core->getId(), hopVec[i].time);
 
-      // Do a shortcut here
+      // Do a shared memory shortcut here
       if ((Config::getSingleton()->getProcessCount() == 1) && (hopVec[i].final_dest != NetPacket::BROADCAST))
       {
          // 1) Process Count = 1
          // 2) The broadcast tree network model is not used
-         while (hopVec[i].next_dest != hopVec[i].final_dest)
+         while (1)
          {
-            packet.time = hopVec[i].time;
-            packet.receiver = hopVec[i].final_dest;
+            buff_pkt->time = hopVec[i].time;
+            buff_pkt->receiver = hopVec[i].final_dest;
+            buff_pkt->specific = hopVec[i].specific;
 
             Core* remote_core = Sim()->getCoreManager()->getCoreFromID(hopVec[i].next_dest);
-            NetworkModel* remote_network_model = remote_core->getNetwork()->getNetworkModelFromPacketType(packet.type);
+            NetworkModel* remote_network_model = remote_core->getNetwork()->getNetworkModelFromPacketType(buff_pkt->type);
 
+            UInt32 action = remote_network_model->computeAction(*buff_pkt);
+            LOG_ASSERT_ERROR(!((action & NetworkModel::RoutingAction::RECEIVE) && \
+                     (action & NetworkModel::RoutingAction::FORWARD)), "action(%u)", action);
+            
+            if (action & NetworkModel::RoutingAction::RECEIVE)
+            {
+               // Destination reached. Break out of the routing loop
+               break;
+            }
+            
             vector<NetworkModel::Hop> localHopVec;
-            remote_network_model->routePacket(packet, localHopVec);
-            assert(localHopVec.size() == 1);
+            remote_network_model->routePacket(*buff_pkt, localHopVec);
+            LOG_ASSERT_ERROR(localHopVec.size() == 1, "Only unicasts allowed in this routing loop(%u)",
+                  localHopVec.size());
 
             hopVec[i] = localHopVec[0];
          }
       }
 
-      NetPacket* buff_pkt = (NetPacket*) buffer;
-
-      LOG_ASSERT_ERROR(_core->getId() == buff_pkt->sender,
-            "For now! _core->getId(%i), buff_pkt->sender(%i)", _core->getId(), buff_pkt->sender);
-      if (_core->getId() == buff_pkt->sender)
-         buff_pkt->start_time = start_time;;
-      
       buff_pkt->time = hopVec[i].time;
       buff_pkt->receiver = hopVec[i].final_dest;
+      buff_pkt->specific = hopVec[i].specific;
 
       _transport->send(hopVec[i].next_dest, buffer, packet.bufferSize());
       
@@ -214,6 +226,30 @@ SInt32 Network::netSend(NetPacket& packet)
    delete [] buffer;
 
    return packet.length;
+}
+
+NetworkModel* Network::getNetworkModelFromPacketType(PacketType packet_type)
+{
+   return _models[g_type_to_static_network_map[packet_type]];
+}
+
+SInt32 Network::netSend(NetPacket& packet)
+{
+   // Interface for sending packets on a network
+
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
+   // Convert from core cycle count to network cycle count
+   packet.time = convertCycleCount(packet.time, \
+         _core->getPerformanceModel()->getFrequency(), \
+         getNetworkModelFromPacketType(packet.type)->getFrequency());
+
+   // Note the start time
+   packet.start_time = packet.time;
+
+   // Call forwardPacket(packet)
+   return forwardPacket(packet);
 }
 
 // Stupid helper class to eliminate special cases for empty
@@ -444,6 +480,14 @@ void Network::disableModels()
    }
 }
 
+void Network::resetModels()
+{
+   for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      _models[i]->reset();
+   }
+}
+
 // Modeling
 UInt32 Network::getModeledLength(const NetPacket& pkt)
 {
@@ -471,6 +515,7 @@ NetPacket::NetPacket()
    , type(INVALID_PACKET_TYPE)
    , sender(INVALID_CORE_ID)
    , receiver(INVALID_CORE_ID)
+   , specific(0)
    , length(0)
    , data(0)
 {
@@ -483,6 +528,7 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
    , type(ty)
    , sender(s)
    , receiver(r)
+   , specific(0)
    , length(l)
    , data(d)
 {

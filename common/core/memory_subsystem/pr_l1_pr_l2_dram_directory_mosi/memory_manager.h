@@ -74,12 +74,17 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          void sendMsg(core_id_t receiver, ShmemMsg& shmem_msg);
          void broadcastMsg(ShmemMsg& shmem_msg);
-         
+       
+         void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+
          void enableModels();
          void disableModels();
+         void resetModels();
 
          UInt32 getModeledLength(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+         bool isModeled(const void* pkt_data)
+         { return  ((ShmemMsg*) pkt_data)->isModeled(); }
 
          core_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }

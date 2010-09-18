@@ -63,15 +63,20 @@ namespace PrL1PrL2DramDirectoryMSI
          void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, core_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
 
          void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
-         
+        
+         void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+
          void enableModels();
          void disableModels();
+         void resetModels();
 
          core_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
          UInt32 getModeledLength(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+         bool isModeled(const void* pkt_data)
+         { return true; }
 
          void outputSummary(std::ostream &os);
 

@@ -134,7 +134,7 @@ define(MAIN_INITENV, `{
 	CarbonStartSim(0, argv);
       }')
 define(MAIN_END, `{
-      exit(0);
+      return(0);
       }')
 
 define(MAIN_ENV,`

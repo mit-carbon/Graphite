@@ -1,13 +1,13 @@
 #include "core.h"
 #include "log.h"
 #include "magic_performance_model.h"
+#include "branch_predictor.h"
 
 using std::endl;
 
-MagicPerformanceModel::MagicPerformanceModel(Core *core)
-    : PerformanceModel(core)
+MagicPerformanceModel::MagicPerformanceModel(Core *core, float frequency)
+    : PerformanceModel(core, frequency)
     , m_instruction_count(0)
-    , m_cycle_count(0)
 {
 }
 
@@ -17,8 +17,9 @@ MagicPerformanceModel::~MagicPerformanceModel()
 
 void MagicPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << getInstructionCount() << endl
-      << "  Cycles: " << getCycleCount() << endl;
+   os << "Core Performance Model Summary:" << endl;
+   os << "    Instructions: " << getInstructionCount() << endl;
+   PerformanceModel::outputSummary(os);
 }
 
 void MagicPerformanceModel::handleInstruction(Instruction *instruction)
@@ -81,10 +82,9 @@ bool MagicPerformanceModel::isModeled(InstructionType instruction_type)
    }
 }
 
-void MagicPerformanceModel::setCycleCount(UInt64 time)
+void
+MagicPerformanceModel::reset()
 {
-   LOG_ASSERT_ERROR((time >= m_cycle_count) || (m_cycle_count == 0),
-         "time(%llu) < m_cycle_count(%llu)",
-         time, m_cycle_count);
-   m_cycle_count = time;
+   PerformanceModel::reset();
+   m_instruction_count = 0;
 }

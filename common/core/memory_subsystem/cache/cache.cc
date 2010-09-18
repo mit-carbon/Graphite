@@ -14,8 +14,6 @@ Cache::Cache(string name,
       
    CacheBase(name, cache_size, associativity, cache_block_size),
    m_enabled(false),
-   m_num_accesses(0),
-   m_num_hits(0),
    m_cache_type(cache_type)
 {
    m_sets = new CacheSet*[m_num_sets];
@@ -23,6 +21,9 @@ Cache::Cache(string name,
    {
       m_sets[i] = CacheSet::createCacheSet(replacement_policy, m_cache_type, m_associativity, m_blocksize);
    }
+
+   // Initialize Cache Counters
+   initializePerformanceCounters();
 }
 
 Cache::~Cache()
@@ -111,6 +112,19 @@ Cache::updateCounters(bool cache_hit)
       if (cache_hit)
          m_num_hits ++;
    }
+}
+
+void
+Cache::reset()
+{
+   initializePerformanceCounters();
+}
+
+void
+Cache::initializePerformanceCounters()
+{
+   m_num_accesses = 0;
+   m_num_hits = 0;
 }
 
 void 

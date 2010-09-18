@@ -36,10 +36,10 @@ MAIN_ENV
 #define DEFAULT_E        1e-7
 #define DEFAULT_T    28800.0
 #define DEFAULT_R    20000.0
-#define INPROCS         16         /* Maximum number of processors */
-#define IMAX           258
-#define JMAX           258
-#define MAX_LEVELS       9
+#define INPROCS       1024         /* Maximum number of processors */
+#define IMAX          1026
+#define JMAX          1026
+#define MAX_LEVELS      11
 #define PAGE_SIZE     4096
 
 struct global_struct *global;

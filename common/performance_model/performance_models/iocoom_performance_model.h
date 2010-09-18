@@ -15,16 +15,11 @@
 class IOCOOMPerformanceModel : public PerformanceModel
 {
 public:
-   IOCOOMPerformanceModel(Core* core);
+   IOCOOMPerformanceModel(Core* core, float frequency);
    ~IOCOOMPerformanceModel();
 
+   void reset();
    void outputSummary(std::ostream &os);
-
-   UInt64 getCycleCount();
-   void resetCycleCount();
-
-protected:
-   void setCycleCount(UInt64);
 
 private:
 
@@ -33,6 +28,8 @@ private:
    void modelIcache(IntPtr address);
    std::pair<UInt64,UInt64> executeLoad(UInt64 time, const DynamicInstructionInfo &);
    UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
+
+   void initializeRegisterScoreboard();
 
    typedef std::vector<UInt64> Scoreboard;
 
@@ -44,8 +41,12 @@ private:
 
       UInt64 execute(UInt64 time, UInt64 occupancy);
 
+      void reset();
+
    private:
       Scoreboard m_scoreboard;
+      
+      void initialize();
    };
 
    class StoreBuffer
@@ -75,13 +76,16 @@ private:
       */
       Status isAddressAvailable(UInt64 time, IntPtr addr);
 
+      void reset();
+
    private:
       Scoreboard m_scoreboard;
       std::vector<IntPtr> m_addresses;
+      
+      void initialize();
    };
 
    UInt64 m_instruction_count;
-   UInt64 m_cycle_count;
 
    Scoreboard m_register_scoreboard;
    StoreBuffer *m_store_buffer;

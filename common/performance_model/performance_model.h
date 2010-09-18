@@ -4,6 +4,7 @@
 
 #include <queue>
 #include <iostream>
+#include <string>
 
 // Forward Decls
 class Core;
@@ -18,17 +19,19 @@ class BranchPredictor;
 class PerformanceModel
 {
 public:
-   PerformanceModel(Core* core);
+   PerformanceModel(Core* core, float frequency);
    virtual ~PerformanceModel();
 
    void queueDynamicInstruction(Instruction *i);
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
-   virtual void outputSummary(std::ostream &os) = 0;
+   volatile float getFrequency() { return m_frequency; }
+   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+   void recomputeAverageFrequency(); 
 
-   virtual UInt64 getCycleCount() = 0;
-   virtual void resetCycleCount() = 0;
+   UInt64 getCycleCount() { return m_cycle_count; }
+   void setCycleCount(UInt64 cycle_count);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
    void popDynamicInstructionInfo();
@@ -40,20 +43,23 @@ public:
 
    void disable();
    void enable();
-
    bool isEnabled() { return m_enabled; }
+   virtual void reset();
+
+   virtual void outputSummary(std::ostream &os) = 0;
 
    class AbortInstructionException { };
 
 protected:
    friend class SpawnInstruction;
 
-   virtual void setCycleCount(UInt64 time) = 0;
-
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 
    Core* getCore() { return m_core; }
+   void frequencySummary(std::ostream &os);
+
+   UInt64 m_cycle_count;
 
 private:
 
@@ -61,7 +67,17 @@ private:
 
    virtual void handleInstruction(Instruction *instruction) = 0;
 
+   // Instruction Counters
+   void initializeInstructionCounters();
+   void updateInstructionCounters(Instruction* i);
+
    Core* m_core;
+
+   volatile float m_frequency;
+
+   volatile float m_average_frequency;
+   UInt64 m_total_time;
+   UInt64 m_checkpointed_cycle_count;
 
    bool m_enabled;
 
@@ -74,6 +90,12 @@ private:
    UInt32 m_current_ins_index;
 
    BranchPredictor *m_bp;
+
+   // Instruction Counters
+   UInt64 m_total_recv_instructions;
+   UInt64 m_total_recv_instruction_costs;
+   UInt64 m_total_sync_instructions;
+   UInt64 m_total_sync_instruction_costs;
 };
 
 #endif

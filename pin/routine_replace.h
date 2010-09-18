@@ -10,7 +10,6 @@ void setupCarbonSpawnThreadSpawnerStack (CONTEXT *ctx);
 void setupCarbonThreadSpawnerStack (CONTEXT *ctx);
 
 // Thread spawning and management
-void replacement_start (CONTEXT *ctxt);
 void replacementMain (CONTEXT *ctxt);
 void replacementGetThreadToSpawn (CONTEXT *ctxt);
 void replacementThreadStartNull (CONTEXT *ctxt);
@@ -48,19 +47,28 @@ void replacement_CAPI_message_send_w_ex (CONTEXT *ctxt);
 void replacement_CAPI_message_receive_w_ex (CONTEXT *ctxt);
 
 // pthread
-void replacementPthreadCreate (CONTEXT *ctxt);
-void replacementPthreadJoin (CONTEXT *ctxt);
-void replacementPthreadExitNull (CONTEXT *ctxt);
-void replacementPthreadBarrierInit (CONTEXT *ctxt);
-void replacementPthreadBarrierWait (CONTEXT *ctxt);
+void replacementPthreadCreate(CONTEXT *ctxt);
+void replacementPthreadJoin(CONTEXT *ctxt);
+void replacementPthreadExitNull(CONTEXT *ctxt);
+void replacementPthreadBarrierInit(CONTEXT *ctxt);
+void replacementPthreadBarrierWait(CONTEXT *ctxt);
+
+// Enable/Disable Models
+void replacementEnableModels(CONTEXT* ctxt);
+void replacementDisableModels(CONTEXT* ctxt);
+void replacementResetModels(CONTEXT* ctxt);
 
 // Cache Counters
 void replacementResetCacheCounters(CONTEXT *ctxt);
 void replacementDisableCacheCounters(CONTEXT *ctxt);
 
+// Getting Simulated Time
+void replacementCarbonGetTime(CONTEXT *ctxt);
+
+// Dynamic Frequency Scaling
+void replacementCarbonGetCoreFrequency(CONTEXT *ctxt);
+void replacementCarbonSetCoreFrequency(CONTEXT *ctxt);
+
 void initialize_replacement_args (CONTEXT *ctxt, ...);
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val);
-
-void enablePerformanceModelsInCurrentProcess();
-void disablePerformanceModelsInCurrentProcess();
 #endif

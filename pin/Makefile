@@ -17,14 +17,22 @@ CXXFLAGS += -c \
             -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD
 
 # Use the pin flags for building
-TARGET = ia32e
-PIN_HOME = /afs/csail/group/carbon/tools/pin/current/
+include $(SIM_ROOT)/Makefile.config
+
+ifeq ($(TARGET_ARCH),ia32)
+	TARGET = ia32
+endif
+ifeq ($(TARGET_ARCH),x86_64)
+	TARGET = ia32e
+endif
+
+PIN_KIT = $(PIN_HOME)
 include $(PIN_HOME)/source/tools/makefile.gnu.config
 
 CXXFLAGS += $(PIN_CXXFLAGS)
 CFLAGS += $(CXXFLAGS)
 
-SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc)
+SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc $(SIM_ROOT)/pin/lite/*.cc)
 
 OBJECTS = $(SOURCES:%.cc=%.o)
 

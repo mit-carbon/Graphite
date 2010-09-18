@@ -100,6 +100,12 @@ UInt64 StringInstruction::getCost()
    return cost;
 }
 
+// SyncInstruction
+
+SyncInstruction::SyncInstruction(UInt64 cost)
+   : DynamicInstruction(cost, INST_SYNC)
+{ }
+
 // SpawnInstruction
 
 SpawnInstruction::SpawnInstruction(UInt64 time)
@@ -126,7 +132,7 @@ UInt64 BranchInstruction::getCost()
    BranchPredictor *bp = perf->getBranchPredictor();
 
    DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();
-   assert(i.type == DynamicInstructionInfo::BRANCH);
+   LOG_ASSERT_ERROR(i.type == DynamicInstructionInfo::BRANCH, "type(%u)", i.type);
 
    // branch prediction not modeled
    if (bp == NULL)

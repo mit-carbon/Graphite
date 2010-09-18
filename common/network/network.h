@@ -24,8 +24,13 @@ public:
    UInt64 start_time;
    UInt64 time;
    PacketType type;
+   
    SInt32 sender;
    SInt32 receiver;
+   
+   // This field may be used by specific network models in whatever way they please
+   UInt32 specific;
+   
    UInt32 length;
    const void *data;
 
@@ -59,7 +64,6 @@ class NetMatch
 class Network
 {
    public:
-
       // -- Ctor, housekeeping, etc. -- //
       Network(Core *core);
       ~Network();
@@ -94,6 +98,7 @@ class Network
 
       void enableModels();
       void disableModels();
+      void resetModels();
 
       // -- Network Models -- //
       NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
@@ -117,7 +122,7 @@ class Network
       Lock _netQueueLock;
       ConditionVariable _netQueueCond;
 
-      void forwardPacket(NetPacket& packet);
+      SInt32 forwardPacket(const NetPacket& packet);
 };
 
 #endif // NETWORK_H

@@ -297,7 +297,7 @@ void SockTransport::barrier()
    // used in the simulator, it should be OK. (Bear in mind this is
    // the Transport::barrier, NOT the CarbonBarrier implementation.)
 
-   LOG_PRINT("Entering barrier");
+   LOG_PRINT("Entering transport barrier");
 
    Socket &sock = m_send_sockets[(m_proc_index+1) % m_num_procs];
    SInt32 message[] = { sizeof(SInt32), BARRIER_TAG, 0 };
@@ -312,7 +312,7 @@ void SockTransport::barrier()
    if (m_proc_index != m_num_procs - 1)
       sock.send(message, sizeof(message));
 
-   LOG_PRINT("Exiting barrier");
+   LOG_PRINT("Exiting transport barrier");
 }
 
 Transport::Node* SockTransport::getGlobalNode()
@@ -579,7 +579,7 @@ bool SockTransport::Socket::recv(void *buffer, UInt32 length, bool block)
    {
       recvd = ::recv(m_socket, buffer, length, MSG_DONTWAIT);
 
-      LOG_ASSERT_ERROR((recvd == -1 && errno == EAGAIN) || (recvd >= 0),
+      LOG_ASSERT_ERROR(recvd >= -1,
             "recvd(%i), length(%u), block(%u)", recvd, length, (UInt32) block);
 
       if (recvd >= 1)

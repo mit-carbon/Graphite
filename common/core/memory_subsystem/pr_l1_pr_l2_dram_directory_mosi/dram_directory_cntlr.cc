@@ -17,7 +17,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
       UInt32 num_dram_cntlrs,
-      UInt32 dram_directory_cache_access_time,
+      UInt64 dram_directory_cache_access_delay_in_ns,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_dram_cntlr(dram_cntlr),
@@ -35,7 +35,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
          dram_directory_max_hw_sharers,
          dram_directory_max_num_sharers,
          num_dram_cntlrs,
-         dram_directory_cache_access_time,
+         dram_directory_cache_access_delay_in_ns,
          m_shmem_perf_model);
    m_dram_directory_req_queue_list = new ReqQueueList();
    m_cached_data_list = new DataList(m_cache_block_size);
@@ -43,7 +43,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(core_id_t core_id,
    m_directory_type = Directory::parseDirectoryType(dram_directory_type_str);
 
    // Update Counters
-   initializePerfCounters();
+   initializePerformanceCounters();
 }
 
 DramDirectoryCntlr::~DramDirectoryCntlr()
@@ -86,6 +86,7 @@ DramDirectoryCntlr::handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg)
          break;
 
       case ShmemMsg::INV_REP:
+      case ShmemMsg::INV_REP_UNMODELED:
          processInvRepFromL2Cache(sender, shmem_msg);
          break;
 
@@ -814,7 +815,7 @@ DramDirectoryCntlr::sendDataToDram(IntPtr address, core_id_t requester, Byte* da
 }
 
 void
-DramDirectoryCntlr::initializePerfCounters()
+DramDirectoryCntlr::initializePerformanceCounters()
 {
    m_num_exreq = 0;
    m_num_shreq = 0;

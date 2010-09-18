@@ -1,43 +1,50 @@
-#include "core.h"
 #include "performance_model.h"
-#include "branch_predictor.h"
-#include "simulator.h"
 #include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
 #include "magic_performance_model.h"
+#include "simulator.h"
 #include "core_manager.h"
+#include "config.h"
+#include "core.h"
+#include "branch_predictor.h"
+#include "fxsupport.h"
+#include "utils.h"
 
 PerformanceModel* PerformanceModel::create(Core* core)
 {
-   string type;
+   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
+   string core_model = Config::getSingleton()->getCoreType(core->getId());
 
-   try {
-      type = Sim()->getCfg()->getString("perf_model/core/type");
-   } catch (...) {
-      LOG_PRINT_ERROR("No perf model type provided.");
-   }
-
-   if (type == "iocoom")
-      return new IOCOOMPerformanceModel(core);
-   else if (type == "simple")
-      return new SimplePerformanceModel(core);
-   else if (type == "magic")
-      return new MagicPerformanceModel(core);
+   if (core_model == "iocoom")
+      return new IOCOOMPerformanceModel(core, frequency);
+   else if (core_model == "simple")
+      return new SimplePerformanceModel(core, frequency);
+   else if (core_model == "magic")
+      return new MagicPerformanceModel(core, frequency);
    else
    {
-      LOG_PRINT_ERROR("Invalid perf model type: %s", type.c_str());
+      LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
       return NULL;
    }
 }
 
 // Public Interface
-PerformanceModel::PerformanceModel(Core *core)
-   : m_core(core)
+PerformanceModel::PerformanceModel(Core *core, float frequency)
+   : m_cycle_count(0)
+   , m_core(core)
+   , m_frequency(frequency)
+   , m_average_frequency(0.0)
+   , m_total_time(0)
+   , m_checkpointed_cycle_count(0)
    , m_enabled(false)
    , m_current_ins_index(0)
    , m_bp(0)
 {
+   // Create Branch Predictor
    m_bp = BranchPredictor::create();
+
+   // Initialize Instruction Counters
+   initializeInstructionCounters();
 }
 
 PerformanceModel::~PerformanceModel()
@@ -45,10 +52,34 @@ PerformanceModel::~PerformanceModel()
    delete m_bp; m_bp = 0;
 }
 
+void PerformanceModel::outputSummary(ostream& os)
+{
+   // Frequency Summary
+   frequencySummary(os);
+   
+   // Instruction Counter Summary
+   os << "    Recv Instructions: " << m_total_recv_instructions << endl;
+   os << "    Recv Instruction Costs: " << m_total_recv_instruction_costs << endl;
+   os << "    Sync Instructions: " << m_total_sync_instructions << endl;
+   os << "    Sync Instruction Costs: " << m_total_sync_instruction_costs << endl;
+
+   // Branch Predictor Summary
+   if (m_bp)
+      m_bp->outputSummary(os);
+}
+
+void PerformanceModel::frequencySummary(ostream& os)
+{
+   os << "    Completion Time: " \
+      << (UInt64) (((float) m_cycle_count) / m_frequency) \
+      << endl;
+   os << "    Average Frequency: " << m_average_frequency << endl;
+}
+
 void PerformanceModel::enable()
 {
    // MCP perf model should never be enabled
-   if (Sim()->getCoreManager()->getCurrentCoreID() == Config::getSingleton()->getMCPCoreNum())
+   if (m_core->getId() == Config::getSingleton()->getMCPCoreNum())
       return;
 
    m_enabled = true;
@@ -59,6 +90,99 @@ void PerformanceModel::disable()
    m_enabled = false;
 }
 
+void PerformanceModel::reset()
+{
+   // Reset Average Frequency & Cycle Count
+   m_average_frequency = 0.0;
+   m_total_time = 0;
+   m_cycle_count = 0;
+   m_checkpointed_cycle_count = 0;
+
+   // Reset Instruction Counters
+   initializeInstructionCounters();
+
+   // Clear BasicBlockQueue
+   while (!m_basic_block_queue.empty())
+   {
+      BasicBlock* bb = m_basic_block_queue.front();
+      if (bb->isDynamic())
+         delete bb;
+      m_basic_block_queue.pop();
+   }
+   m_current_ins_index = 0;
+
+   // Clear Dynamic Instruction Info Queue
+   while (!m_dynamic_info_queue.empty())
+   {
+      m_dynamic_info_queue.pop();
+   }
+
+   // Reset Branch Predictor
+   m_bp->reset();
+}
+
+// This function is called:
+// 1) Whenever frequency is changed
+void PerformanceModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+{
+   recomputeAverageFrequency();
+   
+   volatile float old_frequency = m_frequency;
+   volatile float new_frequency = frequency;
+   
+   m_checkpointed_cycle_count = (UInt64) (((double) m_cycle_count / old_frequency) * new_frequency);
+   m_cycle_count = m_checkpointed_cycle_count;
+   m_frequency = new_frequency;
+}
+
+// This function is called:
+// 1) On thread start
+void PerformanceModel::setCycleCount(UInt64 cycle_count)
+{
+   m_checkpointed_cycle_count = cycle_count;
+   m_cycle_count = cycle_count;
+}
+
+// This function is called:
+// 1) On thread exit
+// 2) Whenever frequency is changed
+void PerformanceModel::recomputeAverageFrequency()
+{
+   volatile double cycles_elapsed = (double) (m_cycle_count - m_checkpointed_cycle_count);
+   volatile double total_cycles_executed = (m_average_frequency * m_total_time) + cycles_elapsed;
+   volatile double total_time_taken = m_total_time + (cycles_elapsed / m_frequency);
+
+   m_average_frequency = total_cycles_executed / total_time_taken;
+   m_total_time = (UInt64) total_time_taken;
+}
+
+void PerformanceModel::initializeInstructionCounters()
+{
+   m_total_recv_instructions = 0;
+   m_total_recv_instruction_costs = 0;
+   m_total_sync_instructions = 0;
+   m_total_sync_instruction_costs = 0;
+}
+
+void PerformanceModel::updateInstructionCounters(Instruction* i)
+{
+   switch (i->getType())
+   {
+      case INST_RECV:
+         m_total_recv_instructions ++;
+         m_total_recv_instruction_costs += i->getCost();
+         break;
+
+      case INST_SYNC:
+         m_total_sync_instructions ++;
+         m_total_sync_instruction_costs += i->getCost();
+         break;
+
+      default:
+         break;
+   }
+}
+
 void PerformanceModel::queueDynamicInstruction(Instruction *i)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
@@ -66,6 +190,9 @@ void PerformanceModel::queueDynamicInstruction(Instruction *i)
       delete i;
       return;
    }
+
+   // Update Instruction Counters
+   updateInstructionCounters(i);
 
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);

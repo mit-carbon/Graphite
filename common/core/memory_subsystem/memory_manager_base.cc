@@ -80,10 +80,21 @@ MemoryManagerBase::getCoreListWithMemoryControllers()
 
    if (num_memory_controllers != -1)
    {
+      vector<string> core_list_from_cfg_file_str_form;
       vector<core_id_t> core_list_from_cfg_file;
-      parseMemoryControllerList(memory_controller_positions_from_cfg_file, core_list_from_cfg_file, core_count);
+      parseList(memory_controller_positions_from_cfg_file, core_list_from_cfg_file_str_form, ",");
 
-      LOG_ASSERT_ERROR((core_list_from_cfg_file.size() == 0) || (core_list_from_cfg_file.size() == (size_t) num_memory_controllers),
+      // Do some type-cpnversions here
+      for (vector<string>::iterator it = core_list_from_cfg_file_str_form.begin(); \
+            it != core_list_from_cfg_file_str_form.end(); it ++)
+      {
+         core_id_t core_id;
+         convertFromString<core_id_t>(core_id, *it);
+         core_list_from_cfg_file.push_back(core_id);
+      }
+
+      LOG_ASSERT_ERROR((core_list_from_cfg_file.size() == 0) || \
+            (core_list_from_cfg_file.size() == (size_t) num_memory_controllers),
             "num_memory_controllers(%i), num_controller_positions specified(%i)",
             num_memory_controllers, core_list_from_cfg_file.size());
 
@@ -94,18 +105,8 @@ MemoryManagerBase::getCoreListWithMemoryControllers()
       }
       else
       {
-         UInt32 l_models_memory_1 = 0;
-         UInt32 l_models_memory_2 = 0;
-         try
-         {
-            config::Config *cfg = Sim()->getCfg();
-            l_models_memory_1 = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_1"));
-            l_models_memory_2 = NetworkModel::parseNetworkType(cfg->getString("network/memory_model_2"));
-         }
-         catch (...)
-         {
-            LOG_PRINT_ERROR("Exception while reading network model types.");
-         }
+         UInt32 l_models_memory_1 = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(STATIC_NETWORK_MEMORY_1));
+         UInt32 l_models_memory_2 = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(STATIC_NETWORK_MEMORY_2));
 
          pair<bool, vector<core_id_t> > core_list_with_memory_controllers_1 = NetworkModel::computeMemoryControllerPositions(l_models_memory_1, num_memory_controllers, core_count);
          pair<bool, vector<core_id_t> > core_list_with_memory_controllers_2 = NetworkModel::computeMemoryControllerPositions(l_models_memory_2, num_memory_controllers, core_count);
@@ -129,41 +130,6 @@ MemoryManagerBase::getCoreListWithMemoryControllers()
          core_list_with_memory_controllers.push_back(i);
 
       return core_list_with_memory_controllers;
-   }
-}
-
-void
-MemoryManagerBase::parseMemoryControllerList(string& memory_controller_positions, vector<core_id_t>& core_list_from_cfg_file, SInt32 core_count)
-{
-   if (memory_controller_positions == "")
-      return;
-
-   size_t i = 0;
-   bool end_reached = false;
-
-   while(!end_reached)
-   {
-      size_t position = memory_controller_positions.find(',', i);
-      core_id_t core_num;
-
-      if (position != string::npos)
-      {
-         // The end of the string has not been reached
-         string core_num_str = memory_controller_positions.substr(i, position-i);
-         core_num = atoi(core_num_str.c_str());
-      }
-      else
-      {
-         // The end of the string has been reached
-         string core_num_str = memory_controller_positions.substr(i);
-         core_num = atoi(core_num_str.c_str());
-         end_reached = true;
-      }
-      
-      LOG_ASSERT_ERROR(core_num < core_count, "core_num(%i), num_cores(%i)", core_num, core_count);
-      core_list_from_cfg_file.push_back(core_num);
-
-      i = position + 1;
    }
 }
 

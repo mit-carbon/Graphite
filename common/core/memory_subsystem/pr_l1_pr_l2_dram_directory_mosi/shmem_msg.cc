@@ -104,6 +104,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          case WB_REQ:
          case UPGRADE_REP:
          case INV_REP:
+         case INV_REP_UNMODELED:
             // msg_type + address
             // msg_type - 1 byte
             return (1 + sizeof(IntPtr));
@@ -123,5 +124,14 @@ namespace PrL1PrL2DramDirectoryMOSI
             LOG_PRINT_ERROR("Unrecognized Msg Type(%u)", m_msg_type);
             return 0;
       }
+   }
+
+   bool
+   ShmemMsg::isModeled()
+   {
+      if (m_msg_type == INV_REP_UNMODELED)
+         return false;
+      else
+         return true;
    }
 }

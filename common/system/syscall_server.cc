@@ -15,6 +15,7 @@
 #include "core.h"
 #include "config.h"
 #include "vm_manager.h"
+#include "mcp.h"
 #include "simulator.h"
 #include "thread_manager.h"
 
@@ -541,7 +542,7 @@ void SyscallServer::marshallMmapCall(core_id_t core_id)
    m_recv_buff.get(pgoffset);
 
    void *start;
-   start = VMManager::getSingleton()->mmap(addr, length, prot, flags, fd, pgoffset);
+   start = Sim()->getMCP()->getVMManager()->mmap(addr, length, prot, flags, fd, pgoffset);
 
    m_send_buff.put(start);
 
@@ -566,7 +567,7 @@ void SyscallServer::marshallMmap2Call(core_id_t core_id)
    m_recv_buff.get(pgoffset);
 
    void *start;
-   start = VMManager::getSingleton()->mmap2(addr, length, prot, flags, fd, pgoffset);
+   start = Sim()->getMCP()->getVMManager()->mmap2(addr, length, prot, flags, fd, pgoffset);
 
    m_send_buff.put(start);
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -582,7 +583,7 @@ void SyscallServer::marshallMunmapCall (core_id_t core_id)
    m_recv_buff.get(length);
 
    int ret_val;
-   ret_val = VMManager::getSingleton()->munmap(addr, length);
+   ret_val = Sim()->getMCP()->getVMManager()->munmap(addr, length);
 
    m_send_buff.put(ret_val);
 
@@ -596,7 +597,7 @@ void SyscallServer::marshallBrkCall (core_id_t core_id)
    m_recv_buff.get(end_data_segment);
 
    void *new_end_data_segment;
-   new_end_data_segment = VMManager::getSingleton()->brk(end_data_segment);
+   new_end_data_segment = Sim()->getMCP()->getVMManager()->brk(end_data_segment);
 
    m_send_buff.put(new_end_data_segment);
 

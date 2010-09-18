@@ -95,7 +95,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          void restartShmemReq(core_id_t sender, ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate);
 
          // Update Performance Counters
-         void initializePerfCounters(void);
+         void initializePerformanceCounters(void);
          void updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester,
                core_id_t sharer, UInt32 num_sharers);
          void updateBroadcastPerfCounters(ShmemMsg::msg_t shmem_msg_type, bool inv_req_sent, bool broadcast_inv_req_sent);
@@ -111,7 +111,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                UInt32 dram_directory_max_hw_sharers,
                std::string dram_directory_type_str,
                UInt32 num_dram_cntlrs,
-               UInt32 dram_directory_cache_access_time,
+               UInt64 dram_directory_cache_access_delay_in_ns,
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCntlr();
 
@@ -121,6 +121,7 @@ namespace PrL1PrL2DramDirectoryMOSI
         
          void enable() { m_enabled = true; }
          void disable() { m_enabled = false; }
+         void reset() { initializePerformanceCounters(); }
  
          void outputSummary(ostream& out);
          static void dummyOutputSummary(ostream& out);

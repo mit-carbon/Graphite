@@ -21,10 +21,8 @@
 
 SIM_ROOT ?= $(CURDIR)/../../..
 
-TARGET_ARCH = x86_64
-
 # Run options
-PIN_HOME = /afs/csail/group/carbon/tools/pin/current
+include $(SIM_ROOT)/Makefile.config
 
 ifeq ($(TARGET_ARCH),ia32)
   PIN_BIN=$(PIN_HOME)/ia32/bin/pinbin
@@ -38,6 +36,7 @@ PIN_TOOL?=$(SIM_ROOT)/lib/pin_sim
 
 # PIN_RUN=$(PIN_BIN) -pause_tool 10 -mt -t $(PIN_TOOL)
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL)
+VALGRIND = # valgrind --leak-check=yes
 
 PROCS ?= 1
 CORES ?= 64
@@ -56,7 +55,7 @@ EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
 launch_fn = $(SIM_ROOT)/tools/spawn.py $(1) $(2) # 1 - NUM_PROCS # 2 - config file
 
 # Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
-run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(5)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(5)) $(2) $(4)))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(5)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(5)) $(VALGRIND) $(2) $(4)))
 RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
 
 # Build targets
@@ -64,7 +63,7 @@ all: $(TARGET)
 	$(RUN)
 
 # Compiler flags
-LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -L$(SIM_ROOT)/lib
+LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -upthread_create -upthread_join -L$(SIM_ROOT)/lib
 LD_LIBS = -pthread -lcarbon_sim
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
@@ -105,8 +104,8 @@ LIB_PIN_SIM=$(SIM_ROOT)/lib/pin_sim.so
 $(TARGET): $(OBJECTS) 
 	make -C $(SIM_ROOT)/common
 	$(if $(findstring pin,$(MODE)),make -C $(SIM_ROOT)/pin)
-	if $(foreach source,$(OBJECTS),[ $(source) -nt $(TARGET) ] ||) [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
-	then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
+	if $(foreach source,$(OBJECTS),[ ! -e $(TARGET) ] || [ $(source) -nt $(TARGET) ] ||) [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
+   then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
 	fi
 
 $(LIB_CARBON):

@@ -17,6 +17,7 @@ public:
    UInt64 getMispredictPenalty();
    static BranchPredictor* create();
 
+   virtual void reset();
    virtual void outputSummary(std::ostream &os);
    UInt64 getNumCorrectPredictions() { return m_correct_predictions; }
    UInt64 getNumIncorrectPredictions() { return m_incorrect_predictions; }
@@ -29,6 +30,8 @@ private:
    UInt64 m_incorrect_predictions;
 
    static UInt64 m_mispredict_penalty;
+
+   void initializeCounters();
 };
 
 #endif

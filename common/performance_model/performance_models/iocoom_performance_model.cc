@@ -9,10 +9,9 @@ using namespace std;
 #include "simulator.h"
 #include "branch_predictor.h"
 
-IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core)
-   : PerformanceModel(core)
+IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core, float frequency)
+   : PerformanceModel(core, frequency)
    , m_instruction_count(0)
-   , m_cycle_count(0)
    , m_register_scoreboard(512)
    , m_store_buffer(0)
    , m_load_unit(0)
@@ -29,10 +28,7 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core)
       LOG_PRINT_ERROR("Config info not available.");
    }
 
-   for (unsigned int i = 0; i < m_register_scoreboard.size(); i++)
-   {
-      m_register_scoreboard[i] = 0;
-   }
+   initializeRegisterScoreboard();
 }
 
 IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
@@ -43,26 +39,9 @@ IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
 
 void IOCOOMPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << m_instruction_count << std::endl
-      << "  Cycles: " << m_cycle_count << std::endl;
-
-   if (getBranchPredictor())
-      getBranchPredictor()->outputSummary(os);
-}
-
-UInt64 IOCOOMPerformanceModel::getCycleCount()
-{
-   return m_cycle_count;
-}
-
-void IOCOOMPerformanceModel::resetCycleCount()
-{
-   m_cycle_count = (UInt64) 0;
-}
-
-void IOCOOMPerformanceModel::setCycleCount(UInt64 time)
-{
-   m_cycle_count = time;
+   os << "Core Performance Model Summary:" << endl;
+   os << "    Instructions: " << m_instruction_count << std::endl;
+   PerformanceModel::outputSummary(os);
 }
 
 void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
@@ -235,15 +214,30 @@ void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
    m_cycle_count += access_time;
 }
 
+void IOCOOMPerformanceModel::initializeRegisterScoreboard()
+{
+   for (unsigned int i = 0; i < m_register_scoreboard.size(); i++)
+   {
+      m_register_scoreboard[i] = 0;
+   }
+}
+
+void IOCOOMPerformanceModel::reset()
+{
+   PerformanceModel::reset();
+
+   m_instruction_count = 0;
+   initializeRegisterScoreboard();
+   m_store_buffer->reset();
+   m_load_unit->reset();
+}
+
 // Helper classes 
 
 IOCOOMPerformanceModel::LoadUnit::LoadUnit(unsigned int num_units)
    : m_scoreboard(num_units)
 {
-   for (unsigned int i = 0; i < m_scoreboard.size(); i++)
-   {
-      m_scoreboard[i] = 0;
-   }
+   initialize();
 }
 
 IOCOOMPerformanceModel::LoadUnit::~LoadUnit()
@@ -274,15 +268,24 @@ UInt64 IOCOOMPerformanceModel::LoadUnit::execute(UInt64 time, UInt64 occupancy)
    return m_scoreboard[unit] - occupancy;
 }
 
-IOCOOMPerformanceModel::StoreBuffer::StoreBuffer(unsigned int num_entries)
-   : m_scoreboard(num_entries)
-   , m_addresses(num_entries)
+void IOCOOMPerformanceModel::LoadUnit::initialize()
 {
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {
       m_scoreboard[i] = 0;
-      m_addresses[i] = 0;
    }
+}
+
+void IOCOOMPerformanceModel::LoadUnit::reset()
+{
+   initialize();
+}
+
+IOCOOMPerformanceModel::StoreBuffer::StoreBuffer(unsigned int num_entries)
+   : m_scoreboard(num_entries)
+   , m_addresses(num_entries)
+{
+   initialize();
 }
 
 IOCOOMPerformanceModel::StoreBuffer::~StoreBuffer()
@@ -343,4 +346,18 @@ IOCOOMPerformanceModel::StoreBuffer::Status IOCOOMPerformanceModel::StoreBuffer:
    }
    
    return NOT_FOUND;
+}
+
+void IOCOOMPerformanceModel::StoreBuffer::initialize()
+{
+   for (unsigned int i = 0; i < m_scoreboard.size(); i++)
+   {
+      m_scoreboard[i] = 0;
+      m_addresses[i] = 0;
+   }
+}
+
+void IOCOOMPerformanceModel::StoreBuffer::reset()
+{
+   initialize();
 }

@@ -1,18 +1,27 @@
 SIM_ROOT ?= $(CURDIR)/../
 
-DIRECTORIES = $(SIM_ROOT)/common/core/        \
-			 $(SIM_ROOT)/common/core/memory_subsystem/	\
-          $(SIM_ROOT)/common/core/memory_subsystem/cache/      \
+include $(SIM_ROOT)/Makefile.config
+
+DIRECTORIES = $(SIM_ROOT)/common/core/        									\
+			 $(SIM_ROOT)/common/core/memory_subsystem/							\
+          $(SIM_ROOT)/common/core/memory_subsystem/cache/      			\
 			 $(SIM_ROOT)/common/core/memory_subsystem/directory_schemes/	\
-          $(SIM_ROOT)/common/network/         \
-          $(SIM_ROOT)/common/transport/       \
-          $(SIM_ROOT)/common/misc/            \
-          $(SIM_ROOT)/common/config/	      \
-          $(SIM_ROOT)/common/system/          \
-          $(SIM_ROOT)/common/performance_model/      \
-          $(SIM_ROOT)/common/performance_model/branch_predictors/      \
-          $(SIM_ROOT)/common/performance_model/performance_models/     \
-          $(SIM_ROOT)/common/user/
+          $(SIM_ROOT)/common/network/         									\
+			 $(SIM_ROOT)/common/network/models	 									\
+			 $(SIM_ROOT)/common/network/components/router/						\
+			 $(SIM_ROOT)/common/network/components/link/							\
+          $(SIM_ROOT)/common/transport/       									\
+          $(SIM_ROOT)/common/misc/            									\
+          $(SIM_ROOT)/common/config/	      									\
+          $(SIM_ROOT)/common/system/          									\
+          $(SIM_ROOT)/common/performance_model/      							\
+          $(SIM_ROOT)/common/performance_model/branch_predictors/      	\
+          $(SIM_ROOT)/common/performance_model/performance_models/     	\
+          $(SIM_ROOT)/common/performance_model/memory_subsystem/     	\
+          $(SIM_ROOT)/common/performance_model/queue_models/     			\
+          $(SIM_ROOT)/common/user/													\
+			 $(SIM_ROOT)/																	\
+			 $(CURDIR)/
 
 INCLUDE_DIRECTORIES = $(DIRECTORIES)
 
@@ -20,7 +29,6 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
-TARGET_ARCH = x86_64
 KERNEL = LENNY
 
 # OS Services Support
@@ -35,14 +43,7 @@ ifeq ($(TARGET_ARCH),x86_64)
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
 endif
 
-# Boost Support
-#   hack to find version -- this sucks
-#ifeq ($(strip $(wildcard /usr/include/boost/version.hpp)),)
-ifeq ($(TARGET_ARCH),ia32)
-	BOOST_VERSION = 1_38
-else
-	BOOST_VERSION = 1_35
-endif
+include $(SIM_ROOT)/Makefile.config
 
 ifeq ($(BOOST_VERSION),1_38)
 	BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0
@@ -55,6 +56,10 @@ else
 endif
 
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
+
+# Other Libraries in Contrib
+LD_LIBS += -lorion
+LD_FLAGS += -L$(SIM_ROOT)/contrib/orion
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(LD_LIBRARY_PATH)

@@ -2,6 +2,8 @@
 #include "sys/syscall.h"
 #include "transport.h"
 #include "config.h"
+#include "clock_converter.h"
+#include "fxsupport.h"
 
 // --------------------------------------------
 // New stuff added with Memory redirection
@@ -1134,13 +1136,18 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
+      // Floating Point Save/Restore
+      FloatingPointHandler floating_point_handler;
+
       struct timespec timeout_buf;
       Core *core = Sim()->getCoreManager()->getCurrentCore();
       LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
 
       UInt64 start_time;
       UInt64 end_time;
-      start_time = core->getPerformanceModel()->getCycleCount();
+
+      volatile float core_frequency = core->getPerformanceModel()->getFrequency();
+      start_time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), core_frequency, 1.0);
 
       if (timeout != NULL)
       {
@@ -1193,7 +1200,11 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       // For FUTEX_WAKE, end_time = start_time
       // Look at common/system/syscall_server.cc for this
       if (end_time > start_time)
-         core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(end_time - start_time));
+      {
+         UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, core_frequency);
+
+         core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+      }
 
       // Delete the data buffer
       delete [] (Byte*) recv_pkt.data;
@@ -1226,4 +1237,3 @@ UInt32 SyscallMdl::getStrLen (char *str)
    }
    return len;
 }
-

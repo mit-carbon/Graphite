@@ -9,8 +9,6 @@ using namespace std;
 #include "network_model_analytical.h"
 #include "network_model_emesh_hop_by_hop_basic.h"
 #include "network_model_emesh_hop_by_hop_broadcast_tree.h"
-#include "network_model_atac_optical_bus.h"
-#include "network_model_atac_cluster.h"
 #include "log.h"
 
 NetworkModel::NetworkModel(Network *network, SInt32 network_id):
@@ -51,12 +49,6 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
    case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
       return new NetworkModelEMeshHopByHopBroadcastTree(net, network_id);
 
-   case NETWORK_ATAC_OPTICAL_BUS:
-      return new NetworkModelAtacOpticalBus(net, network_id);
-
-   case NETWORK_ATAC_CLUSTER:
-      return new NetworkModelAtacCluster(net, network_id);
-
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);
       return NULL;
@@ -76,10 +68,6 @@ NetworkModel::parseNetworkType(string str)
       return NETWORK_EMESH_HOP_BY_HOP_BASIC;
    else if (str == "emesh_hop_by_hop_broadcast_tree")
       return NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE;
-   else if (str == "atac_optical_bus")
-      return NETWORK_ATAC_OPTICAL_BUS;
-   else if (str == "atac_cluster")
-      return NETWORK_ATAC_CLUSTER;
    else
       return (UInt32)-1;
 }
@@ -92,12 +80,8 @@ NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
       case NETWORK_ANALYTICAL_MESH:
-      case NETWORK_ATAC_OPTICAL_BUS:
          return make_pair(false,core_count);
 
-      case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeCoreCountConstraints(core_count);
-      
       case NETWORK_EMESH_HOP_BY_HOP_BASIC:
       case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
          return NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(core_count);
@@ -117,7 +101,6 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
       case NETWORK_ANALYTICAL_MESH:
-      case NETWORK_ATAC_OPTICAL_BUS:
          {
             SInt32 spacing_between_memory_controllers = core_count / num_memory_controllers;
             vector<core_id_t> core_list_with_memory_controllers;
@@ -134,9 +117,6 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
       case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
          return NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(num_memory_controllers, core_count);
 
-      case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeMemoryControllerPositions(num_memory_controllers, core_count);
-
       default:
          LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
          return make_pair(false, vector<core_id_t>());
@@ -151,15 +131,11 @@ NetworkModel::computeProcessToCoreMapping(UInt32 network_type)
       case NETWORK_MAGIC:
       case NETWORK_ANALYTICAL_MESH:
       case NETWORK_EMESH_HOP_COUNTER:
-      case NETWORK_ATAC_OPTICAL_BUS:
          return make_pair(false, vector<vector<core_id_t> >());
 
       case NETWORK_EMESH_HOP_BY_HOP_BASIC:
       case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
          return NetworkModelEMeshHopByHopGeneric::computeProcessToCoreMapping();
-
-      case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeProcessToCoreMapping();
 
       default:
          fprintf(stderr, "Unrecognized network type(%u)\n", network_type);

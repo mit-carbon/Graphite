@@ -1,7 +1,6 @@
 TARGET = fft
 OBJECTS = fft.o
 APP_FLAGS ?= -p64 -m16
-#APP_FLAGS ?= -p1024 -m20 -t
 
 MACROS := ../splash_support/c.m4.null.CARBON
 #MACROS := ../splash_support/c.m4.null.POSIX

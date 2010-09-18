@@ -147,7 +147,8 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
    LOG_PRINT("masterOnThreadExit : %d", core_id);
    LOG_ASSERT_ERROR((UInt32)core_id < m_thread_state.size(), "Core id out of range: %d", core_id);
    
-   assert(m_thread_state[core_id].status == Core::RUNNING);
+   LOG_ASSERT_ERROR(m_thread_state[core_id].status == Core::RUNNING, \
+         "m_thread_state[%i].status = %u", core_id, m_thread_state[core_id].status);
    m_thread_state[core_id].status = Core::IDLE;
    
    if (Sim()->getMCP()->getClockSkewMinimizationServer())

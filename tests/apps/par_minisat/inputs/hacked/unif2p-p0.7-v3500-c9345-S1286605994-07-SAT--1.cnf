@@ -1,4 +1,0 @@
-c SAT07-Contest Parameters: unif2p p=7 nbc2=2803 nbc3=6541 v=3500 seed=1286605994
-c Uniform UNKNOWN (2+p)-SAT Instance nbc2=2803, nbc3=6541, p=0.70, nbv=3500, seed=1286605994
-p cnf 3500 9344
--1765 -1070 0

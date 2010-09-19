@@ -5,8 +5,8 @@
 #include "syscall_model.h"
 
 void handleFutexSyscall(CONTEXT *ctx);
-void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
-void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard);
+void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard, void* v);
+void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard, void* v);
 void contextChange (THREADID threadIndex, CONTEXT_CHANGE_REASON context_change_reason, const CONTEXT *from, CONTEXT *to, INT32 info, VOID *v);
 void threadStart (THREADID threadIndex, CONTEXT *ctx, INT32 flags, VOID *v);
 

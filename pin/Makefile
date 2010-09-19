@@ -32,7 +32,7 @@ include $(PIN_HOME)/source/tools/makefile.gnu.config
 CXXFLAGS += $(PIN_CXXFLAGS)
 CFLAGS += $(CXXFLAGS)
 
-SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc)
+SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc $(SIM_ROOT)/pin/lite/*.cc)
 
 OBJECTS = $(SOURCES:%.cc=%.o)
 

@@ -27,13 +27,13 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
 
          core_id_t sender;
          MsgType type;
-         UInt64 cycle_count;
+         UInt64 time;
       
-         SyncMsg(core_id_t sender, MsgType type, UInt64 cycle_count)
+         SyncMsg(core_id_t sender, MsgType type, UInt64 time)
          {
             this->sender = sender;
             this->type = type;
-            this->cycle_count = cycle_count;
+            this->time = time;
          }
          ~SyncMsg() {}
       };
@@ -42,10 +42,10 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
       // Data Fields
       Core* _core;
       
-      UInt64 _last_sync_cycle_count;
+      UInt64 _last_sync_time;
       UInt64 _quantum;
       UInt64 _slack;
-      float _sleep_fraction;
+      volatile float _sleep_fraction;
 
       struct timeval _start_wall_clock_time;
 
@@ -56,11 +56,11 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
 
       bool _enabled;
 
-      static UInt64 MAX_CYCLE_COUNT;
+      static UInt64 MAX_TIME;
 
       // Called by user thread
       UInt64 userProcessSyncMsgList(void);
-      void sendRandomSyncMsg();
+      void sendRandomSyncMsg(UInt64 curr_time);
       void gotoSleep(const UInt64 sleep_time);
       UInt64 getElapsedWallClockTime(void);
      
@@ -74,9 +74,10 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
 
       void enable();
       void disable();
+      void reset();
 
       // Called by user thread
-      void synchronize(UInt64 time);
+      void synchronize(UInt64 cycle_count);
 
       // Called by network thread
       void netProcessSyncMsg(const NetPacket& recv_pkt);

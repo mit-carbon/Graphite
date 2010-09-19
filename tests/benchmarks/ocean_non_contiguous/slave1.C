@@ -22,6 +22,7 @@
 #include <math.h>
 #include <time.h>
 #include <stdlib.h>
+#include "carbon_user.h"
 
 #include "decs.h"
 
@@ -515,6 +516,8 @@ BARRIER(bars->barrier,nprocs)
          }
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+         // Reset Models
+         CarbonEnableModels();
        }
 
        slave2(procid,firstrow,lastrow,numrows,firstcol,lastcol,numcols);

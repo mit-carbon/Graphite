@@ -47,7 +47,6 @@ namespace PrL1PrL2DramDirectoryMSI
          DramCntlr(MemoryManager* memory_manager,
                volatile float dram_access_cost,
                volatile float dram_bandwidth,
-               volatile float core_frequency,
                bool dram_queue_model_enabled,
                std::string dram_queue_model_type,
                UInt32 cache_block_size,

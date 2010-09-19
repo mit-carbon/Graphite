@@ -3,6 +3,7 @@
 #include <sstream>
 #include <algorithm>
 #include "log.h"
+#include "simulator.h"
 #include "config.h"
 #include "transport.h"
 #include "core.h"
@@ -151,19 +152,28 @@ void addRowHeadings(Table &table, const vector<string> &summaries)
 
 void addColHeadings(Table &table)
 {
-   for (Table::size_type i = 0; i < Config::getSingleton()->getApplicationCores(); i++)
+   UInt32 num_non_system_cores;
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
+      num_non_system_cores = Config::getSingleton()->getTotalCores() - Config::getSingleton()->getProcessCount() - 1;
+   else // Config::getSingleton()->getSimulationMode() == Config::LITE
+      num_non_system_cores = Config::getSingleton()->getTotalCores() - 1;
+
+   for (Table::size_type i = 0; i < num_non_system_cores; i++)
    {
       stringstream heading;
       heading << "Core " << i;
       table(0, i+1) = heading.str();
    }
 
-   for (unsigned int i = 0; i < Config::getSingleton()->getProcessCount(); i++)
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
    {
-      unsigned int core_num = Config::getSingleton()->getThreadSpawnerCoreNum(i);
-      stringstream heading;
-      heading << "TS " << i;
-      table(0, core_num + 1) = heading.str();
+      for (unsigned int i = 0; i < Config::getSingleton()->getProcessCount(); i++)
+      {
+         unsigned int core_num = Config::getSingleton()->getThreadSpawnerCoreNum(i);
+         stringstream heading;
+         heading << "TS " << i;
+         table(0, core_num + 1) = heading.str();
+      }
    }
 
    table(0, Config::getSingleton()->getMCPCoreNum()+1) = "MCP";

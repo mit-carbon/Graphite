@@ -11,6 +11,7 @@
 #include "sim_thread_manager.h"
 #include "clock_skew_minimization_object.h"
 #include "fxsupport.h"
+#include "contrib/orion/orion.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -73,6 +74,11 @@ void Simulator::start()
 
    m_config.logCoreMap();
 
+   // Create Orion Config Object
+   string orion_cfg_file = "./contrib/orion/orion.cfg";
+   OrionConfig::allocate(orion_cfg_file);
+   // OrionConfig::getSingleton()->print_config(cout);
+ 
    m_transport = Transport::create();
    m_core_manager = new CoreManager();
    m_thread_manager = new ThreadManager(m_core_manager);
@@ -80,8 +86,9 @@ void Simulator::start()
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
 
-   Fxsupport::init();
- 
+   // Floating Point Support
+   Fxsupport::allocate();
+
    startMCP();
 
    m_sim_thread_manager->spawnSimThreads();
@@ -101,7 +108,8 @@ Simulator::~Simulator()
 
    LOG_PRINT("Simulator dtor starting...");
 
-   if (m_config.getCurrentProcessNum() == 0)
+   if ((m_config.getCurrentProcessNum() == 0) && \
+      (m_config.getSimulationMode() == Config::FULL))
       m_thread_manager->terminateThreadSpawners();
 
    broadcastFinish();
@@ -145,6 +153,9 @@ Simulator::~Simulator()
    delete m_thread_manager;
    delete m_core_manager;
    delete m_transport;
+
+   // Delete Orion Config Object
+   OrionConfig::release();
 }
 
 void Simulator::startTimer()
@@ -208,7 +219,7 @@ void Simulator::startMCP()
 
    // FIXME: Can't the MCP look up its network itself in the
    // constructor?
-   Core * mcp_core = m_core_manager->getCoreFromID(m_config.getMCPCoreNum());
+   Core* mcp_core = m_core_manager->getCoreFromID(m_config.getMCPCoreNum());
    LOG_ASSERT_ERROR(mcp_core, "Could not find the MCP's core!");
 
    Network & mcp_network = *(mcp_core->getNetwork());
@@ -228,3 +239,24 @@ bool Simulator::finished()
 {
    return m_finished;
 }
+
+void Simulator::enablePerformanceModelsInCurrentProcess()
+{
+   Sim()->startTimer();
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->enablePerformanceModels();
+}
+
+void Simulator::disablePerformanceModelsInCurrentProcess()
+{
+   Sim()->stopTimer();
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
+}
+
+void Simulator::resetPerformanceModelsInCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+      Sim()->getCoreManager()->getCoreFromIndex(i)->resetPerformanceModels();
+}
+

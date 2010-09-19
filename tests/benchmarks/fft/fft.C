@@ -45,6 +45,8 @@
 
 #include <stdio.h>
 #include <math.h>
+#include "carbon_user.h"
+
 #define PAGE_SIZE               4096
 #define NUM_CACHE_LINES        65536 
 #define LOG2_LINE_SIZE             4
@@ -457,6 +459,8 @@ void SlaveStart()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+  // Reset Models
+  CarbonEnableModels();
 
   if ((MyNum == 0) || (dostats)) {
     CLOCK(initdone);

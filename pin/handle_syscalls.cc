@@ -4,10 +4,10 @@
 #include "simulator.h"
 #include "core.h"
 #include "core_manager.h"
-#include <syscall.h>
 #include "redirect_memory.h"
 #include "vm_manager.h"
 
+#include <syscall.h>
 // ----------------------------
 // Here to handle rt_sigaction syscall
 #include <signal.h>
@@ -69,7 +69,7 @@ PIN_LOCK clone_memory_update_lock;
 // End Clone stuff
 // -----------------------------------
 
-VOID handleFutexSyscall (CONTEXT *ctx)
+VOID handleFutexSyscall(CONTEXT *ctx)
 {
    ADDRINT syscall_number = PIN_GetContextReg (ctx, REG_GAX);
    if (syscall_number != SYS_futex)
@@ -87,40 +87,27 @@ VOID handleFutexSyscall (CONTEXT *ctx)
 #endif
 
 #ifdef TARGET_X86_64
-   args.arg0 = PIN_GetContextReg (ctx, REG_GDI);
-   args.arg1 = PIN_GetContextReg (ctx, REG_GSI);
-   args.arg2 = PIN_GetContextReg (ctx, REG_GDX);
-
-   // FIXME
-   // The LEVEL_BASE:: ugliness is required by the fact that REG_R8 etc 
+   // FIXME: The LEVEL_BASE:: ugliness is required by the fact that REG_R8 etc 
    // are also defined in /usr/include/sys/ucontext.h
-   // Why is this file included etc? 
-   
+   args.arg0 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_GDI);
+   args.arg1 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_GSI);
+   args.arg2 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_GDX);
    args.arg3 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_R10); 
    args.arg4 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_R8);
    args.arg5 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_R9);
 #endif
 
-   LOG_PRINT("syscall_number = %u", syscall_number);
-   LOG_PRINT("syscall_arg0 = 0x%x", args.arg0);
-   LOG_PRINT("syscall_arg1 = 0x%x", args.arg1);
-   LOG_PRINT("syscall_arg2 = 0x%x", args.arg2);
-   LOG_PRINT("syscall_arg3 = 0x%x", args.arg3);
-   LOG_PRINT("syscall_arg4 = 0x%x", args.arg4);
-   LOG_PRINT("syscall_arg5 = 0x%x", args.arg5);
-
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    
    string core_null = core ? "CORE != NULL" : "CORE == NULL";
-   LOG_PRINT ("syscall_number %d, %s", syscall_number, core_null.c_str());
-   
-   assert(core != NULL);
+   LOG_PRINT("syscall_number %d, %s", syscall_number, core_null.c_str());
+   LOG_ASSERT_ERROR(core != NULL, "Core(NULL)");
 
-   core->getSyscallMdl ()->runEnter (syscall_number, args);
+   core->getSyscallMdl()->runEnter(syscall_number, args);
 }
 
 
-void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard, void* v)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    IntPtr syscall_number = PIN_GetSyscallNumber (ctx, syscall_standard);
@@ -285,7 +272,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
    }
 }
 
-void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
+void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard, void* v)
 {
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    

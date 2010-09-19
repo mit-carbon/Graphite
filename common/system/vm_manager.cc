@@ -1,27 +1,7 @@
 #include "vm_manager.h"
 #include "simulator.h"
 #include <boost/lexical_cast.hpp>
-
 #include "log.h"
-
-VMManager *VMManager::m_singleton = NULL;
-
-void VMManager::allocate()
-{
-   assert (m_singleton == NULL);
-   m_singleton = new VMManager();
-}
-
-void VMManager::release()
-{
-   delete m_singleton;
-   m_singleton = NULL;
-}
-
-VMManager *VMManager::getSingleton()
-{
-   return m_singleton;
-}
 
 VMManager::VMManager()
 {
@@ -34,8 +14,8 @@ VMManager::VMManager()
    UInt32 stack_size_per_core;
    try
    {
-      m_start_stack_segment = (IntPtr) boost::lexical_cast <unsigned long int> (Sim()->getCfg()->get("stack/stack_base"));
-      stack_size_per_core = (UInt32) boost::lexical_cast <unsigned long int> (Sim()->getCfg()->get("stack/stack_size_per_core"));
+      m_start_stack_segment = boost::lexical_cast <IntPtr> (Sim()->getCfg()->get("stack/stack_base"));
+      stack_size_per_core = boost::lexical_cast <UInt32> (Sim()->getCfg()->get("stack/stack_size_per_core"));
    }
    catch (boost::bad_lexical_cast &)
    {

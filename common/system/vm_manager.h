@@ -9,10 +9,8 @@
 class VMManager
 {
    public:
-
-      static VMManager *getSingleton();
-      static void allocate();
-      static void release();
+      VMManager();
+      ~VMManager();
 
       void *brk(void *end_data_segment);
       void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
@@ -20,10 +18,6 @@ class VMManager
       int munmap(void *start, size_t length);
 
    private:
-
-      VMManager();
-      ~VMManager();
-
       IntPtr m_start_data_segment;
       IntPtr m_end_data_segment;
       
@@ -32,19 +26,6 @@ class VMManager
 
       IntPtr m_start_dynamic_segment;
       IntPtr m_end_dynamic_segment;
-
-      static VMManager *m_singleton;
 };
-
-struct mmap_arg_struct
-{
-   unsigned long addr;
-   unsigned long len;
-   unsigned long prot;
-   unsigned long flags;
-   unsigned long fd;
-   unsigned long offset;
-};
-
 
 #endif /* __VM_MANAGER_H__ */

@@ -69,7 +69,8 @@ void CoreManager::initializeCommId(SInt32 comm_id)
 
    UInt32 idx = getCurrentCoreIndex();
 
-   LOG_ASSERT_ERROR(idx < Config::getSingleton()->getNumLocalCores(), "CoreManager got and index [%d] out of range (0-%d).", 
+   LOG_ASSERT_ERROR(idx < Config::getSingleton()->getNumLocalCores(),
+         "CoreManager got and index [%d] out of range (0-%d).", 
          idx, Config::getSingleton()->getNumLocalCores());
 
    Network *network = m_cores.at(idx)->getNetwork();
@@ -173,7 +174,9 @@ Core *CoreManager::getCurrentCore()
 UInt32 CoreManager::getCurrentCoreIndex()
 {
     UInt32 idx = m_core_index_tls->getInt();
-    LOG_ASSERT_ERROR(idx < m_cores.size(), "Invalid core index, idx(%u) >= m_cores.size(%u)", idx, m_cores.size());
+    // LOG_ASSERT_ERROR(idx < m_cores.size(),
+    //       "Invalid core index, idx(%u) >= m_cores.size(%u)",
+    //       idx, m_cores.size());
     return idx;
 }
 

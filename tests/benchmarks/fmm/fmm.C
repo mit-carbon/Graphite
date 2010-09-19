@@ -71,6 +71,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include "carbon_user.h"
+
 #include "defs.h"
 #include "memory.h"
 #include "particle.h"
@@ -216,6 +218,8 @@ ParallelExecute ()
       if (MY_TIME_STEP == 2) {
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+         // Reset Models
+         CarbonEnableModels();
       }
 
       if (MY_TIME_STEP == 2) {

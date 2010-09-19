@@ -27,6 +27,8 @@ int spawnThreadSpawner(CONTEXT *ctxt)
    PIN_UnlockClient();
    LOG_ASSERT_ERROR( thread_spawner != NULL, "ThreadSpawner function is null. You may not have linked to the carbon APIs correctly.");
    
+   LOG_PRINT("Starting CarbonSpawnThreadSpawner(%p)", thread_spawner);
+   
    PIN_CallApplicationFunction(ctxt,
             PIN_ThreadId(),
             CALLINGSTD_DEFAULT,
@@ -34,7 +36,7 @@ int spawnThreadSpawner(CONTEXT *ctxt)
             PIN_PARG(int), &res,
             PIN_PARG_END());
 
-   LOG_PRINT ("Thread spawner spawned");
+   LOG_PRINT("Thread spawner spawned");
    LOG_ASSERT_ERROR(res == 0, "Failed to spawn Thread Spawner");
 
    return res;

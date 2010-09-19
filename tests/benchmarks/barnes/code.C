@@ -70,6 +70,7 @@ MAIN_ENV
 #define global  /* nada */
 
 #include "stdinc.h"
+#include "carbon_user.h"
 
 string defv[] = {                 /* DEFAULT PARAMETER VALUES              */
     /* file names for input/output                                         */
@@ -622,6 +623,8 @@ void stepsystem(long ProcessId)
     if (Local[ProcessId].nstep == 2) {
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+        // Reset Parallel Execution statistics
+        CarbonEnableModels();
     }
 
     if ((ProcessId == 0) && (Local[ProcessId].nstep >= 2)) {

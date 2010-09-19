@@ -38,6 +38,10 @@ public:
    Config *getConfig() { return &m_config; }
    config::Config *getCfg() { return m_config_file; }
 
+   static void enablePerformanceModelsInCurrentProcess();
+   static void disablePerformanceModelsInCurrentProcess();
+   static void resetPerformanceModelsInCurrentProcess();
+
    void startTimer();
    void stopTimer();
    bool finished();

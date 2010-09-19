@@ -16,6 +16,7 @@ public:
       {
          if (m_dynamic)
          {
+            // FIXME: I think there is a bug here
             for (unsigned int i = 0; i < size(); i++)
             {
                delete (*this)[i];

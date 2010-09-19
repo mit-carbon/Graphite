@@ -23,7 +23,7 @@
 
 #define PI           3.14159265358979323846
 
-#define MAX_NUMPROC           64
+#define MAX_NUMPROC           1024
 #define NODE0                  0    /* processor no. to which first process is bound */
 
                                 /* rendering parameters                      */

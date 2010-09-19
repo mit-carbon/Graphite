@@ -5,6 +5,71 @@
 #include "packet_type.h"
 #include "message_types.h"
 #include "network.h"
+#include "sync_api.h"
+#include "fxsupport.h"
+#include "log.h"
+
+carbon_barrier_t models_barrier;
+
+void CarbonInitModels() 
+{
+   // Initialize the barrier for Carbon[Enable/Disable/Reset]Models
+   if (Config::getSingleton()->getCurrentProcessNum() == 0)
+      CarbonBarrierInit(&models_barrier, Config::getSingleton()->getApplicationCores());
+}
+
+void CarbonEnableModels()
+{
+   if (! Sim()->getCfg()->getBool("general/enable_models_at_startup", true))
+   {
+      // Acquire & Release a barrier
+      CarbonBarrierWait(&models_barrier);
+
+      if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
+      {
+         fprintf(stderr, "---> [[  Enabling Performance and Power Models  ]]\n");
+         // Enable the models of the cores in the current process
+         Simulator::enablePerformanceModelsInCurrentProcess();
+      }
+
+      // Acquire & Release a barrier again
+      CarbonBarrierWait(&models_barrier);
+   }
+}
+
+void CarbonDisableModels()
+{
+   // Acquire & Release a barrier
+   CarbonBarrierWait(&models_barrier);
+
+   if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
+   {
+      fprintf(stderr, "---> [[  Disabling Performance and Power Models  ]]\n");
+      // Disable performance models of cores in this process
+      Simulator::disablePerformanceModelsInCurrentProcess();
+   }
+
+   // Acquire & Release a barrier again
+   CarbonBarrierWait(&models_barrier);
+} 
+
+void CarbonResetModels()
+{
+   FloatingPointHandler floating_point_handler;
+
+   // Acquire & Release a barrier
+   CarbonBarrierWait(&models_barrier);
+
+   if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
+   {
+      fprintf(stderr, "---> [[  Reset Performance and Power Models  ]]\n");
+      // Reset performance models of cores in this process
+      Simulator::resetPerformanceModelsInCurrentProcess();
+   }
+
+   // Acquire & Release a barrier again
+   CarbonBarrierWait(&models_barrier);
+} 
 
 void CarbonResetCacheCounters()
 {

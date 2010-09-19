@@ -82,6 +82,8 @@
 
 #include <stdio.h>
 #include <math.h>
+#include "carbon_user.h"
+
 #include "rt.h"
 
 
@@ -211,6 +213,8 @@ VOID	StartRayTrace()
 
 	/* POSSIBLE ENHANCEMENT:  Here's where one would RESET STATISTICS
 	and TIMING if one wanted to measure only the parallel part */
+   // Reset Models
+   CarbonEnableModels();
 
 	RayTrace(pid);
 

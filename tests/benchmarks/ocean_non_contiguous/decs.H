@@ -14,10 +14,10 @@
 /*                                                                       */
 /*************************************************************************/
 
-#define INPROCS        16
-#define IMAX          258
-#define JMAX          258
-#define MAX_LEVELS      9
+#define INPROCS      1024
+#define IMAX         1026
+#define JMAX         1026
+#define MAX_LEVELS     11
 #define MASTER          0
 #define RED_ITER        0
 #define BLACK_ITER      1

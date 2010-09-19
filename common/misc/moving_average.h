@@ -7,7 +7,6 @@
 
 #include "fixed_types.h"
 #include "modulo_num.h"
-#include "log.h"
 
 using namespace std;
 
@@ -26,50 +25,35 @@ class MovingAverage
       MovingAverage(UInt32 max_window_size);
       virtual ~MovingAverage();
 
-      static AvgType_t parseAvgType(string avg_type)
-      {
-         if (avg_type == "arithmetic_mean")
-            return ARITHMETIC_MEAN;
-         else if (avg_type == "geometric_mean")
-            return GEOMETRIC_MEAN;
-         else if (avg_type == "median")
-            return MEDIAN;
-         else
-         {
-            LOG_PRINT_ERROR("Unsupported Average Type: %s", avg_type.c_str());
-            return (AvgType_t) -1;
-         }
-      }
-
-      static MovingAverage<T>* createAvgType(AvgType_t avg_type, UInt32 max_window_size);
+      static MovingAverage<T>* createAvgType(string avg_type, UInt32 max_window_size);
 
       virtual T compute(T next_num) { return (T) 0; }
 
    protected:
-      vector<T> m_num_list;
-      UInt32 m_max_window_size;
-      ModuloNum m_curr_window_front;
-      ModuloNum m_curr_window_back;
+      vector<T> _num_list;
+      UInt32 _max_window_size;
+      ModuloNum _curr_window_front;
+      ModuloNum _curr_window_back;
 
       void addToWindow(T next_num);
       
       void printElements()
       {
          printf("Elements: ");
-         ModuloNum curr_num(m_curr_window_front);
-         for ( ; curr_num != m_curr_window_back; curr_num = curr_num+1)
-            printf("%f ", (float) m_num_list[curr_num.getValue()]);
+         ModuloNum curr_num(_curr_window_front);
+         for ( ; curr_num != _curr_window_back; curr_num = curr_num + 1)
+            printf("%llu ", _num_list[curr_num._value]);
          printf("\n");
       }
 };
 
 template<class T>
 MovingAverage<T>::MovingAverage(UInt32 max_window_size)
-   : m_max_window_size(max_window_size)
+   : _max_window_size(max_window_size)
 {
-   m_num_list.resize(m_max_window_size + 1);
-   m_curr_window_front = ModuloNum(m_max_window_size + 1);
-   m_curr_window_back = ModuloNum(m_max_window_size + 1);
+   _num_list.resize(_max_window_size + 1);
+   _curr_window_front = ModuloNum(_max_window_size + 1);
+   _curr_window_back = ModuloNum(_max_window_size + 1);
 }
 
 template<class T>
@@ -79,11 +63,11 @@ MovingAverage<T>::~MovingAverage()
 template<class T> 
 void MovingAverage<T>::addToWindow(T next_num)
 {
-   m_num_list[m_curr_window_back.getValue()] = next_num;
-   m_curr_window_back = m_curr_window_back + 1;
-   if (m_curr_window_back == m_curr_window_front)
+   _num_list[_curr_window_back._value] = next_num;
+   _curr_window_back = _curr_window_back + 1;
+   if (_curr_window_back == _curr_window_front)
    {
-      m_curr_window_front = m_curr_window_front + 1;
+      _curr_window_front = _curr_window_front + 1;
    }
 }
 
@@ -91,52 +75,62 @@ template <class T>
 class MovingArithmeticMean : public MovingAverage<T>
 {
    private:
-      T sum;
+      volatile double _arithmetic_mean;
 
    public:
       MovingArithmeticMean(UInt32 max_window_size):
          MovingAverage<T>(max_window_size),
-         sum(0)
+         _arithmetic_mean(0.0)
       { }
 
       T compute(T next_num)
       {
-         UInt32 curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue();
-         if (curr_window_size == this->m_max_window_size)
+         UInt32 curr_window_size = (this->_curr_window_back - this->_curr_window_front)._value;
+         if (curr_window_size == this->_max_window_size)
          {
-            curr_window_size --;
-            sum -= this->m_num_list[this->m_curr_window_front.getValue()];
+            T old_num = this->_num_list[this->_curr_window_front._value];
+            _arithmetic_mean += ( ((double) next_num / curr_window_size) - \
+                                  ((double) old_num / curr_window_size) );
          }
-         sum += next_num;
-         curr_window_size ++;
+         else // Still adding elements to fill the window
+         {
+            _arithmetic_mean = (_arithmetic_mean * curr_window_size + next_num) / (curr_window_size + 1);
+         }
          
          addToWindow(next_num);
 
-         curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue(); // recompute
-         return sum / curr_window_size;
+         return (T) _arithmetic_mean;
       }
 };
 
 template <class T>
 class MovingGeometricMean : public MovingAverage<T>
 {
+   private:
+      volatile double _geometric_mean;
+
    public:
       MovingGeometricMean(UInt32 max_window_size):
-         MovingAverage<T>(max_window_size)
+         MovingAverage<T>(max_window_size),
+         _geometric_mean(1.0)
       { }
 
       T compute(T next_num)
       {
+         UInt32 curr_window_size = (this->_curr_window_back - this->_curr_window_front)._value;
+         if (curr_window_size == this->_max_window_size)
+         {
+            T old_num = this->_num_list[this->_curr_window_front._value];
+            _geometric_mean *= ( pow((double) next_num, (1.0 / curr_window_size)) / pow((double) old_num, (1.0 / curr_window_size)) );
+         }
+         else // Still adding elements to fill the window
+         {
+            _geometric_mean = pow( pow(_geometric_mean, curr_window_size) * next_num, (1.0 / (curr_window_size+1)) );
+         }
+
          addToWindow(next_num);
-        
-         UInt32 curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue();
-         T geometric_mean = (T) 1;
-
-         ModuloNum curr_num(this->m_curr_window_front);
-         for ( ; curr_num != this->m_curr_window_back; curr_num = curr_num+1)
-            geometric_mean *= this->m_num_list[curr_num.getValue()];
-
-         return (T) pow((double) geometric_mean, (double) 1.0/curr_window_size); 
+         
+         return (T) _geometric_mean; 
       }
 };
 
@@ -150,31 +144,28 @@ class MovingMedian : public MovingAverage<T>
 
       T compute(T next_num)
       {
+         // FIXME: Might want to sort this before returning any value
          addToWindow(next_num);
         
-         UInt32 curr_window_size = (this->m_curr_window_back - this->m_curr_window_front).getValue();
-         UInt32 median_index = (this->m_curr_window_front + (curr_window_size / 2)).getValue();
-         return this->m_num_list[median_index];
+         UInt32 curr_window_size = (this->_curr_window_back - this->_curr_window_front)._value;
+         UInt32 median_index = (this->_curr_window_front + (curr_window_size / 2))._value;
+         return this->_num_list[median_index];
       }
 };
 
 template <class T>
-MovingAverage<T>* MovingAverage<T>::createAvgType(AvgType_t avg_type, UInt32 max_window_size)
+MovingAverage<T>* MovingAverage<T>::createAvgType(string avg_type, UInt32 max_window_size)
 {
-   switch(avg_type)
+   if (avg_type == "arithmetic_mean")
+      return new MovingArithmeticMean<T>(max_window_size);
+   else if (avg_type == "geometric_mean")
+      return new MovingGeometricMean<T>(max_window_size);
+   else if (avg_type == "median")
+      return new MovingMedian<T>(max_window_size);
+   else
    {
-      case ARITHMETIC_MEAN:
-         return new MovingArithmeticMean<T>(max_window_size);
-
-      case GEOMETRIC_MEAN:
-         return new MovingGeometricMean<T>(max_window_size);
-
-      case MEDIAN:
-         return new MovingMedian<T>(max_window_size);
-
-      default:
-         LOG_PRINT_ERROR("Unsupported Average Type: %u", (UInt32) avg_type);
-         return NULL;
+      printf("ERROR: Unsupported Average Type: %s\n", avg_type.c_str());
+      return NULL;
    }
 }
 

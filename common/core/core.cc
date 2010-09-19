@@ -16,6 +16,7 @@ Lock Core::m_global_core_lock;
 
 Core::Core(SInt32 id)
    : m_core_id(id)
+   , m_core_state(IDLE)
 {
    LOG_PRINT("Core ctor for: %d", id);
 
@@ -77,7 +78,7 @@ void Core::outputSummary(std::ostream &os)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      getShmemPerfModel()->outputSummary(os);
+      getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getId()));
       getMemoryManager()->outputSummary(os);
    }
 }
@@ -156,6 +157,26 @@ void Core::disablePerformanceModels()
    getMemoryManager()->disableModels();
    getNetwork()->disableModels();
    getPerformanceModel()->disable();
+}
+
+// Models must be disabled when calling this function
+void Core::resetPerformanceModels()
+{
+   if (m_clock_skew_minimization_client)
+      m_clock_skew_minimization_client->reset();
+
+   getShmemPerfModel()->reset();
+   getMemoryManager()->resetModels();
+   getNetwork()->resetModels();
+   getPerformanceModel()->reset();
+}
+
+void
+Core::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+{
+   getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
+   getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
+   getMemoryManager()->updateInternalVariablesOnFrequencyChange(frequency);
 }
 
 UInt64
@@ -276,22 +297,23 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
         address, data_size);
 
    // Calculate the round-trip time
-   UInt64 shmem_time = final_time - initial_time;
+   UInt64 memory_access_latency = final_time - initial_time;
 
    if (modeled)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(shmem_time, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, \
+            address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
       m_performance_model->pushDynamicInstructionInfo(info);
 
-      getShmemPerfModel()->incrTotalMemoryAccessLatency(shmem_time);
+      getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);
    }
 
-   return make_pair<UInt32, UInt64>(num_misses, shmem_time);
+   return make_pair<UInt32, UInt64>(num_misses, memory_access_latency);
 }
 
 // FIXME: This should actually be 'accessDataMemory()'
 /*
- * accessMemory (lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+ * accessMemory (lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
  *
  * Arguments:
  *   lock_signal :: NONE, LOCK, or UNLOCK
@@ -299,6 +321,7 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
  *   d_addr :: address of location we want to access (read or write)
  *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
  *   data_size :: size of data we must read/write
+ *   modeled :: says whether it is modeled or not
  *
  * Return Value:
  *   number of misses :: State the number of cache misses

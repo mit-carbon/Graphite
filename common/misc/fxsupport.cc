@@ -1,37 +1,54 @@
 #include <stdlib.h>
+using namespace std;
+
 #include "fxsupport.h"
 #include "core_manager.h"
 #include "simulator.h"
+#include "core.h"
 
-Fxsupport *Fxsupport::m_singleton;
-
-Fxsupport::Fxsupport(core_id_t core_count)
+FloatingPointHandler::FloatingPointHandler()
 {
-   m_core_count = core_count;
-   m_fx_buf = (char**) malloc (m_core_count * sizeof (char*));
-   for (int i = 0; i < m_core_count; i++)
+   is_saved = Fxsupport::getSingleton()->fxsave();
+}
+
+FloatingPointHandler::~FloatingPointHandler()
+{
+   if (is_saved)
+      Fxsupport::getSingleton()->fxrstor();
+}
+
+Fxsupport *Fxsupport::m_singleton = NULL;
+
+Fxsupport::Fxsupport(core_id_t num_local_cores):
+   m_num_local_cores(num_local_cores)
+{
+   m_fx_buf = (char**) malloc(m_num_local_cores * sizeof(char*));
+   m_context_saved = (bool*) malloc(m_num_local_cores * sizeof(bool));
+   for (int i = 0; i < m_num_local_cores; i++)
    {
+      // FIXME: I think it is not nice to hard-code these values, esp. 512
       int status = posix_memalign ((void**) &m_fx_buf[i], 16, 512);
       assert (status == 0);
+      m_context_saved[i] = false;
    }
 }
 
 Fxsupport::~Fxsupport()
 {
-   for (int i = 0; i < m_core_count; i++)
+   for (int i = 0; i < m_num_local_cores; i++)
       free ((void*) m_fx_buf[i]);
-
-   free (m_fx_buf);
+   free((void*) m_fx_buf);
+   free((void*) m_context_saved);
 }
 
-void Fxsupport::init()
+void Fxsupport::allocate()
 {
    assert (m_singleton == NULL);
-   core_id_t core_count = Sim()->getConfig()->getNumLocalCores();
-   m_singleton = new Fxsupport (core_count);
+   core_id_t num_local_cores = Sim()->getConfig()->getNumLocalCores();
+   m_singleton = new Fxsupport(num_local_cores);
 }
 
-void Fxsupport::fini()
+void Fxsupport::release()
 {
    assert (m_singleton);
    delete m_singleton;
@@ -43,26 +60,54 @@ Fxsupport *Fxsupport::getSingleton()
    return m_singleton;
 }
 
-void Fxsupport::fxsave()
+bool Fxsupport::fxsave()
 {
-   LOG_PRINT("fxsave() start");
+   if (Sim()->getCoreManager()->amiUserThread())
+   {
+      LOG_PRINT("fxsave() start");
+
+      UInt32 core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
+      // This check is done to ensure that the thread has not exited
+      if (core_index < Config::getSingleton()->getNumLocalCores())
+      {
+         if (!m_context_saved[core_index])
+         {
+            m_context_saved[core_index] = true;
+
+            char *buf = m_fx_buf[core_index];
+            asm volatile ("fxsave %0\n\t"
+                          "emms"
+                          :"=m"(*buf));
+            return true;
+         }
+         else
+         {
+            return false;
+         }
+      }
    
-   core_id_t core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
-   char *buf = m_fx_buf[core_index];
-   asm volatile ("fxsave %0\n\t"
-                 "emms"
-                 :"=m"(*buf));
-   
-   LOG_PRINT("fxsave() end");
+      LOG_PRINT("fxsave() end");
+   }
+   return false;
 }
 
 void Fxsupport::fxrstor()
 {
-   LOG_PRINT("fxrstor() start");
+   if (Sim()->getCoreManager()->amiUserThread())
+   {
+      LOG_PRINT("fxrstor() start");
    
-   core_id_t core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
-   char *buf = m_fx_buf[core_index];
-   asm volatile ("fxrstor %0"::"m"(*buf));
+      UInt32 core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
+      if (core_index < Config::getSingleton()->getNumLocalCores())
+      {
+         LOG_ASSERT_ERROR(m_context_saved[core_index], "Context Not Saved(%u)", core_index);
+         
+         m_context_saved[core_index] = false;
+
+         char *buf = m_fx_buf[core_index];
+         asm volatile ("fxrstor %0"::"m"(*buf));
+      }
    
-   LOG_PRINT("fxrstor() end");
+      LOG_PRINT("fxrstor() end");
+   }
 }

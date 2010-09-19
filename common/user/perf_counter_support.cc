@@ -20,19 +20,21 @@ void CarbonInitModels()
 
 void CarbonEnableModels()
 {
-   // Acquire & Release a barrier
-   CarbonBarrierWait(&models_barrier);
-
-   if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
+   if (! Sim()->getCfg()->getBool("general/enable_models_at_startup", true))
    {
-      LOG_PRINT_WARNING("Core(%i): Entering CarbonEnableModels()", \
-            Sim()->getCoreManager()->getCurrentCore()->getId());
-      // Enable the models of the cores in the current process
-      Simulator::enablePerformanceModelsInCurrentProcess();
-   }
+      // Acquire & Release a barrier
+      CarbonBarrierWait(&models_barrier);
 
-   // Acquire & Release a barrier again
-   CarbonBarrierWait(&models_barrier);
+      if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
+      {
+         fprintf(stderr, "---> [[  Enabling Performance and Power Models  ]]\n");
+         // Enable the models of the cores in the current process
+         Simulator::enablePerformanceModelsInCurrentProcess();
+      }
+
+      // Acquire & Release a barrier again
+      CarbonBarrierWait(&models_barrier);
+   }
 }
 
 void CarbonDisableModels()
@@ -42,8 +44,7 @@ void CarbonDisableModels()
 
    if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
    {
-      LOG_PRINT_WARNING("Core(%i): Entering CarbonDisableModels()", \
-            Sim()->getCoreManager()->getCurrentCore()->getId());
+      fprintf(stderr, "---> [[  Disabling Performance and Power Models  ]]\n");
       // Disable performance models of cores in this process
       Simulator::disablePerformanceModelsInCurrentProcess();
    }
@@ -61,8 +62,7 @@ void CarbonResetModels()
 
    if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
    {
-      LOG_PRINT_WARNING("Core(%i): Entering CarbonResetModels()", \
-            Sim()->getCoreManager()->getCurrentCore()->getId());
+      fprintf(stderr, "---> [[  Reset Performance and Power Models  ]]\n");
       // Reset performance models of cores in this process
       Simulator::resetPerformanceModelsInCurrentProcess();
    }

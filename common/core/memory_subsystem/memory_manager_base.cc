@@ -141,5 +141,5 @@ MemoryManagerBase::printCoreListWithMemoryControllers(vector<core_id_t>& core_li
    {
       core_list << *it << " ";
    }
-   fprintf(stderr, "\n---> [[  Core IDs' with memory controllers = (%s)  ]]\n", (core_list.str()).c_str());
+   fprintf(stderr, "\n[[Graphite]] --> [ Core IDs' with memory controllers = (%s) ]\n", (core_list.str()).c_str());
 }

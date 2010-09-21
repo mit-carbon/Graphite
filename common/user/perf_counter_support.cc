@@ -27,7 +27,7 @@ void CarbonEnableModels()
 
       if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
       {
-         fprintf(stderr, "---> [[  Enabling Performance and Power Models  ]]\n");
+         fprintf(stderr, "[[Graphite]] --> [ Enabling Performance and Power Models ]\n");
          // Enable the models of the cores in the current process
          Simulator::enablePerformanceModelsInCurrentProcess();
       }
@@ -44,7 +44,7 @@ void CarbonDisableModels()
 
    if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
    {
-      fprintf(stderr, "---> [[  Disabling Performance and Power Models  ]]\n");
+      fprintf(stderr, "[[Graphite]] --> [ Disabling Performance and Power Models ]\n");
       // Disable performance models of cores in this process
       Simulator::disablePerformanceModelsInCurrentProcess();
    }
@@ -62,7 +62,7 @@ void CarbonResetModels()
 
    if (Sim()->getCoreManager()->getCurrentCoreIndex() == 0)
    {
-      fprintf(stderr, "---> [[  Reset Performance and Power Models  ]]\n");
+      fprintf(stderr, "[[Graphite]] --> [ Reset Performance and Power Models ]\n");
       // Reset performance models of cores in this process
       Simulator::resetPerformanceModelsInCurrentProcess();
    }

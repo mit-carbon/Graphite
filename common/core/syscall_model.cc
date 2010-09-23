@@ -834,23 +834,27 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
    //  start           void*
    // 
    // --------------------------------------------
+   void *start = (void*) args.arg0;
+   size_t length = (size_t) args.arg1;
+   int prot = (int) args.arg2;
+   int flags = (int) args.arg3;
+   int fd = (int) args.arg4;
+   off_t pgoffset = (off_t) args.arg5;
 
 #ifdef TARGET_IA32
-   struct mmap_arg_struct mmap_arg_buf;
    
    Core *core = Sim()->getCoreManager()->getCurrentCore();
    LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
-   core->accessMemory (Core::NONE, Core::READ, (IntPtr) args.arg0, (char*) &mmap_arg_buf, sizeof(mmap_arg_buf));
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       // These are all 32-bit values
-      m_send_buff.put(mmap_arg_buf.addr);
-      m_send_buff.put(mmap_arg_buf.len);
-      m_send_buff.put(mmap_arg_buf.prot);
-      m_send_buff.put(mmap_arg_buf.flags);
-      m_send_buff.put(mmap_arg_buf.fd);
-      m_send_buff.put(mmap_arg_buf.offset);
+      m_send_buff.put(start);
+      m_send_buff.put(length);
+      m_send_buff.put(prot);
+      m_send_buff.put(flags);
+      m_send_buff.put(fd);
+      m_send_buff.put(pgoffset);
       
       // send the data
       m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -901,12 +905,6 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
    // --------------------------------------------
 
 
-   void *start = (void*) args.arg0;
-   size_t length = (size_t) args.arg1;
-   int prot = (int) args.arg2;
-   int flags = (int) args.arg3;
-   int fd = (int) args.arg4;
-   off_t pgoffset = (off_t) args.arg5;
 
    LOG_PRINT("start(%p), length(0x%x), prot(0x%x), flags(0x%x), fd(%i), pgoffset(%u)",
          start, length, prot, flags, fd, pgoffset);

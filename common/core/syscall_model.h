@@ -89,6 +89,15 @@ class SyscallMdl
       // Helper functions
       UInt32 getStrLen (char *str);
 
+      struct mmap_arg_struct
+      {
+         unsigned long addr;
+         unsigned long len;
+         unsigned long prot;
+         unsigned long flags;
+         unsigned long fd;
+         unsigned long offset;
+      };
 };
 
 #endif

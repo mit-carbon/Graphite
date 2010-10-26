@@ -140,7 +140,7 @@ public:
    SimulationMode getSimulationMode()
    { return m_simulation_mode; }
 
-   // Core & Network Parameters
+   // Tile & Network Parameters
    std::string getCoreType(core_id_t core_id);
    std::string getL1ICacheType(core_id_t core_id);
    std::string getL1DCacheType(core_id_t core_id);
@@ -202,7 +202,7 @@ private:
    static bool m_knob_enable_icache_modeling;
    static bool m_knob_enable_power_modeling;
 
-   // Get Core & Network Parameters
+   // Get Tile & Network Parameters
    void parseCoreParameters();
    void parseNetworkParameters();
 

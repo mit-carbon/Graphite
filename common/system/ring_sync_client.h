@@ -12,7 +12,7 @@
 class RingSyncClient : public ClockSkewMinimizationClient
 {
    private:
-      Core* _core;
+      Tile* _core;
 
       UInt64 _cycle_count;
       UInt64 _max_cycle_count;
@@ -21,7 +21,7 @@ class RingSyncClient : public ClockSkewMinimizationClient
       ConditionVariable _cond;
 
    public:
-      RingSyncClient(Core* core);
+      RingSyncClient(Tile* core);
       ~RingSyncClient();
 
       void enable() {}

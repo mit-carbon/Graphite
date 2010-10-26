@@ -8,18 +8,18 @@
 #include "packetize.h"
 
 // Forward Decls
-class Core;
+class Tile;
 
 class BarrierSyncClient : public ClockSkewMinimizationClient
 {
    private:
-      Core* m_core;
+      Tile* m_core;
 
       UInt64 m_barrier_interval;
       UInt64 m_next_sync_time;
 
    public:
-      BarrierSyncClient(Core* core);
+      BarrierSyncClient(Tile* core);
       ~BarrierSyncClient();
 
       void enable() {}

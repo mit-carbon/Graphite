@@ -7,7 +7,7 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-MemoryManager::MemoryManager(Core* core, 
+MemoryManager::MemoryManager(Tile* core, 
       Network* network, ShmemPerfModel* shmem_perf_model):
    MemoryManagerBase(core, network, shmem_perf_model),
    m_dram_directory_cntlr(NULL),
@@ -202,8 +202,8 @@ MemoryManager::~MemoryManager()
 bool
 MemoryManager::coreInitiateMemoryAccess(
       MemComponent::component_t mem_component,
-      Core::lock_signal_t lock_signal,
-      Core::mem_op_t mem_op_type,
+      Tile::lock_signal_t lock_signal,
+      Tile::mem_op_t mem_op_type,
       IntPtr address, UInt32 offset,
       Byte* data_buf, UInt32 data_length,
       bool modeled)

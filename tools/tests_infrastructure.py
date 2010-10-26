@@ -428,7 +428,7 @@ def clearPlotQuantityList():
 # Getting results
 def getPlotVal(quantity, directory, core):
    """ Returns the value corresponding to the 3-tuple (quantity, directory, core)
-       The returned value is either a float or a list of floats (if the core is a 'Core *', 'TS *' etc)
+       The returned value is either a float or a list of floats (if the core is a 'Tile *', 'TS *' etc)
    """
    return aggregate_stats[quantity][directory][core]
 

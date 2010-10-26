@@ -50,7 +50,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          PacketType parseNetworkType(std::string& network_type);
 
       public:
-         MemoryManager(Core* core, Network* network, ShmemPerfModel* shmem_perf_model);
+         MemoryManager(Tile* core, Network* network, ShmemPerfModel* shmem_perf_model);
          ~MemoryManager();
 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
@@ -64,8 +64,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          bool coreInitiateMemoryAccess(
                MemComponent::component_t mem_component,
-               Core::lock_signal_t lock_signal,
-               Core::mem_op_t mem_op_type,
+               Tile::lock_signal_t lock_signal,
+               Tile::mem_op_t mem_op_type,
                IntPtr address, UInt32 offset,
                Byte* data_buf, UInt32 data_length,
                bool modeled);

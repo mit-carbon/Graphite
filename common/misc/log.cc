@@ -260,7 +260,7 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
          assert(_coreFiles[core_id] != NULL);
       }
 
-      // Core file
+      // Tile file
       *file = _coreFiles[core_id];
       *lock = &_coreLocks[core_id];
    }

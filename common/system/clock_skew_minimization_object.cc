@@ -39,7 +39,7 @@ ClockSkewMinimizationObject::parseScheme(std::string scheme)
 }
 
 ClockSkewMinimizationClient*
-ClockSkewMinimizationClient::create(std::string scheme_str, Core* core)
+ClockSkewMinimizationClient::create(std::string scheme_str, Tile* core)
 {
    Scheme scheme = ClockSkewMinimizationObject::parseScheme(scheme_str);
 

@@ -24,7 +24,7 @@ class PinMemoryManager;
 
 using namespace std;
 
-class Core
+class Tile
 {
    public:
 
@@ -61,8 +61,8 @@ class Core
          NUM_MEM_OP_TYPES = MAX_MEM_OP - MIN_MEM_OP + 1
       };
 
-      Core(SInt32 id);
-      ~Core();
+      Tile(SInt32 id);
+      ~Tile();
 
       void outputSummary(std::ostream &os);
 

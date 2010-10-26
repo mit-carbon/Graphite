@@ -56,7 +56,7 @@ Transport::Node* SmTransport::getGlobalNode()
 SmTransport::SmNode* SmTransport::getNodeFromId(core_id_t core_id)
 {
    LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
-                    "Core id out of range: %d", core_id);
+                    "Tile id out of range: %d", core_id);
    return m_core_nodes[core_id];
 }
 

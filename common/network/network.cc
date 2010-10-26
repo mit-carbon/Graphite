@@ -18,7 +18,7 @@ using namespace std;
 // intelligent about the time stamps, right now the method is very
 // ugly.
 
-Network::Network(Core *core)
+Network::Network(Tile *core)
       : _core(core)
 {
    LOG_ASSERT_ERROR(sizeof(g_type_to_static_network_map) / sizeof(EStaticNetwork) == NUM_PACKET_TYPES,
@@ -192,7 +192,7 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
             buff_pkt->receiver = hopVec[i].final_dest;
             buff_pkt->specific = hopVec[i].specific;
 
-            Core* remote_core = Sim()->getCoreManager()->getCoreFromID(hopVec[i].next_dest);
+            Tile* remote_core = Sim()->getCoreManager()->getCoreFromID(hopVec[i].next_dest);
             NetworkModel* remote_network_model = remote_core->getNetwork()->getNetworkModelFromPacketType(buff_pkt->type);
 
             UInt32 action = remote_network_model->computeAction(*buff_pkt);
@@ -353,7 +353,7 @@ NetPacket Network::netRecv(const NetMatch &match)
                           : NetRecvIterator(match.types);
 
    LOG_ASSERT_ERROR(_core && _core->getPerformanceModel(),
-                    "Core and/or performance model not initialized.");
+                    "Tile and/or performance model not initialized.");
    UInt64 start_time = _core->getPerformanceModel()->getCycleCount();
 
    _netQueueLock.acquire();

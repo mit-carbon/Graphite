@@ -10,7 +10,7 @@
 #include "tls.h"
 #include "lock.h"
 
-class Core;
+class Tile;
 class Lock;
 
 class CoreManager
@@ -27,10 +27,10 @@ class CoreManager
 
       core_id_t getCurrentCoreID(); // id of currently active core (or INVALID_CORE_ID)
 
-      Core *getCurrentCore();
+      Tile *getCurrentCore();
       UInt32 getCurrentCoreIndex();
-      Core *getCoreFromID(core_id_t id);
-      Core *getCoreFromIndex(UInt32 index);
+      Tile *getCoreFromID(core_id_t id);
+      Tile *getCoreFromIndex(UInt32 index);
 
       void outputSummary(std::ostream &os);
 
@@ -59,7 +59,7 @@ class CoreManager
       UInt32 m_num_registered_sim_threads;
       Lock m_num_registered_sim_threads_lock;
 
-      std::vector<Core*> m_cores;
+      std::vector<Tile*> m_cores;
 };
 
 #endif

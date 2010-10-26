@@ -31,7 +31,7 @@ static UInt64 getTime()
 
 static FILE* getFileDescriptor()
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
    core_id_t id = core->getId();
 
    if (!core) return NULL;

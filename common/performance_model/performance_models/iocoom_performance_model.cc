@@ -9,7 +9,7 @@ using namespace std;
 #include "simulator.h"
 #include "branch_predictor.h"
 
-IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core, float frequency)
+IOCOOMPerformanceModel::IOCOOMPerformanceModel(Tile *core, float frequency)
    : PerformanceModel(core, frequency)
    , m_instruction_count(0)
    , m_register_scoreboard(512)

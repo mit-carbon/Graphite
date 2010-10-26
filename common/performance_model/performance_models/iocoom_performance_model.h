@@ -15,7 +15,7 @@
 class IOCOOMPerformanceModel : public PerformanceModel
 {
 public:
-   IOCOOMPerformanceModel(Core* core, float frequency);
+   IOCOOMPerformanceModel(Tile* core, float frequency);
    ~IOCOOMPerformanceModel();
 
    void outputSummary(std::ostream &os);

@@ -12,13 +12,13 @@
 
 using namespace std;
 
-Lock Core::m_global_core_lock;
+Lock Tile::m_global_core_lock;
 
-Core::Core(SInt32 id)
+Tile::Tile(SInt32 id)
    : m_core_id(id)
    , m_core_state(IDLE)
 {
-   LOG_PRINT("Core ctor for: %d", id);
+   LOG_PRINT("Tile ctor for: %d", id);
 
    m_network = new Network(this);
 
@@ -51,7 +51,7 @@ Core::Core(SInt32 id)
    m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
-Core::~Core()
+Tile::~Tile()
 {
    if (m_clock_skew_minimization_client)
       delete m_clock_skew_minimization_client;
@@ -68,7 +68,7 @@ Core::~Core()
    delete m_network;
 }
 
-void Core::outputSummary(std::ostream &os)
+void Tile::outputSummary(std::ostream &os)
 {
    if (Config::getSingleton()->getEnablePerformanceModeling())
    {
@@ -83,7 +83,7 @@ void Core::outputSummary(std::ostream &os)
    }
 }
 
-int Core::coreSendW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
+int Tile::coreSendW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
 {
    PacketType pkt_type = getPktTypeFromUserNetType(net_type);
 
@@ -98,7 +98,7 @@ int Core::coreSendW(int sender, int receiver, char* buffer, int size, carbon_net
    return sent == size ? 0 : -1;
 }
 
-int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
+int Tile::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
 {
    PacketType pkt_type = getPktTypeFromUserNetType(net_type);
 
@@ -110,7 +110,7 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
 
    LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
 
-   LOG_ASSERT_ERROR((unsigned)size == packet.length, "Core: User thread requested packet of size: %d, got a packet from %d of size: %d", size, sender, packet.length);
+   LOG_ASSERT_ERROR((unsigned)size == packet.length, "Tile: User thread requested packet of size: %d, got a packet from %d of size: %d", size, sender, packet.length);
 
    memcpy(buffer, packet.data, size);
 
@@ -121,7 +121,7 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
    return (unsigned)size == packet.length ? 0 : -1;
 }
 
-PacketType Core::getPktTypeFromUserNetType(carbon_network_t net_type)
+PacketType Tile::getPktTypeFromUserNetType(carbon_network_t net_type)
 {
    switch(net_type)
    {
@@ -137,7 +137,7 @@ PacketType Core::getPktTypeFromUserNetType(carbon_network_t net_type)
    }
 }
 
-void Core::enablePerformanceModels()
+void Tile::enablePerformanceModels()
 {
    if (m_clock_skew_minimization_client)
       m_clock_skew_minimization_client->enable();
@@ -148,7 +148,7 @@ void Core::enablePerformanceModels()
    getPerformanceModel()->enable();
 }
 
-void Core::disablePerformanceModels()
+void Tile::disablePerformanceModels()
 {
    if (m_clock_skew_minimization_client)
       m_clock_skew_minimization_client->disable();
@@ -160,7 +160,7 @@ void Core::disablePerformanceModels()
 }
 
 void
-Core::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
    getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
@@ -168,18 +168,18 @@ Core::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 }
 
 UInt64
-Core::readInstructionMemory(IntPtr address, UInt32 instruction_size)
+Tile::readInstructionMemory(IntPtr address, UInt32 instruction_size)
 {
    LOG_PRINT("Instruction: Address(0x%x), Size(%u), Start READ", 
            address, instruction_size);
 
    Byte buf[instruction_size];
    return (initiateMemoryAccess(MemComponent::L1_ICACHE,
-         Core::NONE, Core::READ, address, buf, instruction_size).second);
+         Tile::NONE, Tile::READ, address, buf, instruction_size).second);
 }
 
 pair<UInt32, UInt64>
-Core::initiateMemoryAccess(MemComponent::component_t mem_component, 
+Tile::initiateMemoryAccess(MemComponent::component_t mem_component, 
       lock_signal_t lock_signal, 
       mem_op_t mem_op_type, 
       IntPtr address, 
@@ -315,7 +315,7 @@ Core::initiateMemoryAccess(MemComponent::component_t mem_component,
  *   number of misses :: State the number of cache misses
  */
 pair<UInt32, UInt64>
-Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
+Tile::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -330,7 +330,7 @@ Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_add
 
 
 pair<UInt32, UInt64>
-Core::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
+Tile::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
 {
    if (data_size <= 0)
    {
@@ -361,15 +361,15 @@ Core::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr
    return make_pair<UInt32, UInt64>(0,0);
 }
 
-Core::State 
-Core::getState()
+Tile::State 
+Tile::getState()
 {
    ScopedLock scoped_lock(m_core_state_lock);
    return m_core_state;
 }
 
 void
-Core::setState(State core_state)
+Tile::setState(State core_state)
 {
    ScopedLock scoped_lock(m_core_state_lock);
    m_core_state = core_state;

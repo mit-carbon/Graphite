@@ -10,7 +10,7 @@
 
 using namespace std;
 
-SyncClient::SyncClient(Core *core)
+SyncClient::SyncClient(Tile *core)
       : m_core(core)
       , m_network(core->getNetwork())
 {
@@ -52,7 +52,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -62,14 +62,14 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    // Set the CoreState to 'STALLED'
-   m_network->getCore()->setState(Core::STALLED);
+   m_network->getCore()->setState(Tile::STALLED);
 
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
-   m_network->getCore()->setState(Core::WAKING_UP);
+   m_network->getCore()->setState(Tile::WAKING_UP);
 
    unsigned int dummy;
    UInt64 time;
@@ -81,7 +81,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    if (time > start_time)
    {
-      // Global Clock to Core Clock
+      // Global Clock to Tile Clock
       UInt64 cycles_elapsed = convertCycleCount(time - start_time, \
             1.0, m_core->getPerformanceModel()->getFrequency());
 
@@ -102,7 +102,7 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -134,7 +134,7 @@ void SyncClient::condInit(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_INIT;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -162,7 +162,7 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_COND_WAIT;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -172,14 +172,14 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    // Set the CoreState to 'STALLED'
-   m_network->getCore()->setState(Core::STALLED);
+   m_network->getCore()->setState(Tile::STALLED);
 
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
-   m_network->getCore()->setState(Core::WAKING_UP);
+   m_network->getCore()->setState(Tile::WAKING_UP);
 
    unsigned int dummy;
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -191,7 +191,7 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
    if (time > start_time)
    {
-      // Global Clock to Core Clock
+      // Global Clock to Tile Clock
       UInt64 cycles_elapsed = convertCycleCount(time  - start_time, \
             1.0, m_core->getPerformanceModel()->getFrequency());
 
@@ -212,7 +212,7 @@ void SyncClient::condSignal(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -244,7 +244,7 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -276,7 +276,7 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 
    int msg_type = MCP_MESSAGE_BARRIER_INIT;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -304,7 +304,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
 
    int msg_type = MCP_MESSAGE_BARRIER_WAIT;
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -314,14 +314,14 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    // Set the CoreState to 'STALLED'
-   m_network->getCore()->setState(Core::STALLED);
+   m_network->getCore()->setState(Tile::STALLED);
 
    NetPacket recv_pkt;
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
-   m_network->getCore()->setState(Core::WAKING_UP);
+   m_network->getCore()->setState(Tile::WAKING_UP);
 
    unsigned int dummy;
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -333,7 +333,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
 
    if (time > start_time)
    {
-      // Global Clock to Core Clock
+      // Global Clock to Tile Clock
       UInt64 cycles_elapsed = convertCycleCount(time - start_time, \
             1.0, m_core->getPerformanceModel()->getFrequency());
 

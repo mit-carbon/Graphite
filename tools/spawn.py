@@ -106,8 +106,12 @@ def get_sim_root():
     if sim_root == None:
         pwd = os.environ.get('PWD')
         assert(pwd != None)
-        print "[spawn.py] 'GRAPHITE_ROOT' undefined. Setting 'GRAPHITE_ROOT' to '" + pwd
-        return pwd
+        # print "[spawn.py] 'GRAPHITE_ROOT' undefined. Setting 'GRAPHITE_ROOT' to '" + pwd
+        # return pwd
+
+        print "[spawn.py] 'GRAPHITE_ROOT' undefined. Setting 'GRAPHITE_ROOT' to '" + '/afs/csail.mit.edu/u/e/elau/graphite/carbon_sim/'
+        return '/afs/csail.mit.edu/u/e/elau/graphite/carbon_sim/'
+
 
     return sim_root
 

@@ -161,7 +161,7 @@ void addColHeadings(Table &table)
    for (Table::size_type i = 0; i < num_non_system_cores; i++)
    {
       stringstream heading;
-      heading << "Core " << i;
+      heading << "Tile " << i;
       table(0, i+1) = heading.str();
    }
 

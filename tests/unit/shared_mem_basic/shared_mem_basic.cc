@@ -17,7 +17,7 @@ int main (int argc, char *argv[])
    UInt32 address = 0x1000;
 
    // 1) Get a core object
-   Core* core = Sim()->getCoreManager()->getCoreFromID(0);
+   Tile* core = Sim()->getCoreManager()->getCoreFromID(0);
    for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
    {
       Sim()->getCoreManager()->getCoreFromID(i)->enablePerformanceModels();
@@ -29,13 +29,13 @@ int main (int argc, char *argv[])
    printf("Writing(%u) into address(0x%x)\n", written_val, address);
    UInt32 num_misses;
    // Write some value into this address
-   num_misses = (core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &written_val, sizeof(written_val))).first;
+   num_misses = (core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address, (Byte*) &written_val, sizeof(written_val))).first;
    assert(num_misses == 1);
    printf("Writing(%u) into address(0x%x) completed\n", written_val, address);
 
    // Read out the value
    printf("Reading from address(0x%x)\n", address);
-   num_misses = (core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &read_val, sizeof(read_val))).first;
+   num_misses = (core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address, (Byte*) &read_val, sizeof(read_val))).first;
    printf("Reading(%u) from address(0x%x) completed\n", read_val, address);
    assert(num_misses == 0);
    assert(read_val == 100);

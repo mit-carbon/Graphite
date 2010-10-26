@@ -10,7 +10,7 @@
 #include "fxsupport.h"
 #include "utils.h"
 
-PerformanceModel* PerformanceModel::create(Core* core)
+PerformanceModel* PerformanceModel::create(Tile* core)
 {
    volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
    string core_model = Config::getSingleton()->getCoreType(core->getId());
@@ -29,7 +29,7 @@ PerformanceModel* PerformanceModel::create(Core* core)
 }
 
 // Public Interface
-PerformanceModel::PerformanceModel(Core *core, float frequency)
+PerformanceModel::PerformanceModel(Tile *core, float frequency)
    : m_cycle_count(0)
    , m_core(core)
    , m_frequency(frequency)

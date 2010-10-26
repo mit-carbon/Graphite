@@ -10,7 +10,7 @@
 
 UInt64 RandomPairsSyncClient::MAX_TIME = ((UInt64) 1) << 60;
 
-RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
+RandomPairsSyncClient::RandomPairsSyncClient(Tile* core):
    _core(core),
    _last_sync_time(0),
    _quantum(0),
@@ -71,7 +71,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    recv_buf >> msg_type >> time;
    SyncMsg sync_msg(recv_pkt.sender, (SyncMsg::MsgType) msg_type, time);
 
-   LOG_PRINT("Core(%i), SyncMsg[sender(%i), type(%u), time(%llu)]",
+   LOG_PRINT("Tile(%i), SyncMsg[sender(%i), type(%u), time(%llu)]",
          _core->getId(), sync_msg.sender, sync_msg.type, sync_msg.time);
 
    LOG_ASSERT_ERROR(time < MAX_TIME, 
@@ -85,8 +85,8 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    //  - type (REQ,ACK,WAIT)
    //  - time
    // Called by the Network thread
-   Core::State core_state = _core->getState();
-   if (core_state == Core::RUNNING)
+   Tile::State core_state = _core->getState();
+   if (core_state == Tile::RUNNING)
    {
       // Thread is RUNNING on core
       // Network thread must process the random sync requests
@@ -106,7 +106,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
          LOG_PRINT_ERROR("Unrecognized Sync Msg, type(%u) from(%i)", sync_msg.type, sync_msg.sender);
       }
    }
-   else if (core_state == Core::SLEEPING)
+   else if (core_state == Tile::SLEEPING)
    {
       LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
             "sync_msg.type(%u)", sync_msg.type);
@@ -119,7 +119,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
       LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
             "sync_msg.type(%u)", sync_msg.type);
 
-      LOG_PRINT("Core(%i) not RUNNING: Sending ACK", _core->getId());
+      LOG_PRINT("Tile(%i) not RUNNING: Sending ACK", _core->getId());
 
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
@@ -137,13 +137,13 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    // I dont want to lock this, so I just try to read the cycle count
    // Even if this is an approximate value, this is OK
    
-   // Core Clock to Global clock conversion
+   // Tile Clock to Global clock conversion
    UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
          _core->getPerformanceModel()->getFrequency(), 1.0);
 
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
-   LOG_PRINT("Core(%i): Time(%llu), SyncReq[sender(%i), msg_type(%u), time(%llu)]", 
+   LOG_PRINT("Tile(%i): Time(%llu), SyncReq[sender(%i), msg_type(%u), time(%llu)]", 
       _core->getId(), curr_time, sync_msg.sender, sync_msg.type, sync_msg.time);
 
    // 3 possible scenarios
@@ -158,7 +158,7 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       {
          // Goto sleep for a few microseconds
          // Self generate a WAIT msg
-         LOG_PRINT("Core(%i): WAIT: Time(%llu)", _core->getId(), curr_time - sync_msg.time);
+         LOG_PRINT("Tile(%i): WAIT: Time(%llu)", _core->getId(), curr_time - sync_msg.time);
          LOG_ASSERT_ERROR((curr_time - sync_msg.time) < MAX_TIME,
                "[>]: curr_time(%llu), sync_msg[sender(%i), msg_type(%u), time(%llu)]", 
                curr_time, sync_msg.sender, sync_msg.type, sync_msg.time);
@@ -204,8 +204,8 @@ RandomPairsSyncClient::synchronize(UInt64 cycle_count)
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   if (_core->getState() == Core::WAKING_UP)
-      _core->setState(Core::RUNNING);
+   if (_core->getState() == Tile::WAKING_UP)
+      _core->setState(Tile::RUNNING);
 
    UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
          _core->getPerformanceModel()->getFrequency(), 1.0);
@@ -216,7 +216,7 @@ RandomPairsSyncClient::synchronize(UInt64 cycle_count)
 
    if ((curr_time - _last_sync_time) >= _quantum)
    {
-      LOG_PRINT("Core(%i): Starting Synchronization: curr_time(%llu), _last_sync_time(%llu)",
+      LOG_PRINT("Tile(%i): Starting Synchronization: curr_time(%llu), _last_sync_time(%llu)",
             _core->getId(), curr_time, _last_sync_time);
 
       _lock.acquire();
@@ -255,7 +255,7 @@ RandomPairsSyncClient::sendRandomSyncMsg(UInt64 curr_time)
    LOG_ASSERT_ERROR((receiver >= 0) && (receiver < (core_id_t) num_app_cores), 
          "receiver(%i)", receiver);
 
-   LOG_PRINT("Core(%i) Sending SyncReq to %i, curr_time(%llu)", _core->getId(), receiver, curr_time);
+   LOG_PRINT("Tile(%i) Sending SyncReq to %i, curr_time(%llu)", _core->getId(), receiver, curr_time);
 
    UnstructuredBuffer send_buf;
    send_buf << (UInt32) SyncMsg::REQ << curr_time;
@@ -271,7 +271,7 @@ RandomPairsSyncClient::userProcessSyncMsgList()
    std::list<SyncMsg>::iterator it;
    for (it = _msg_queue.begin(); it != _msg_queue.end(); it++)
    {
-      LOG_PRINT("Core(%i) Process Sync Msg List: SyncMsg[sender(%i), type(%u), wait_time(%llu)]", 
+      LOG_PRINT("Tile(%i) Process Sync Msg List: SyncMsg[sender(%i), type(%u), wait_time(%llu)]", 
             _core->getId(), (*it).sender, (*it).type, (*it).time);
       
       LOG_ASSERT_ERROR((*it).time < MAX_TIME,
@@ -299,10 +299,10 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
 
    if (sleep_time > 0)
    {
-      LOG_PRINT("Core(%i) going to sleep", _core->getId());
+      LOG_PRINT("Tile(%i) going to sleep", _core->getId());
 
       // Set the CoreState to 'SLEEPING'
-      _core->setState(Core::SLEEPING);
+      _core->setState(Tile::SLEEPING);
 
       UInt64 elapsed_simulated_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
             _core->getPerformanceModel()->getFrequency(), 1.0);
@@ -328,9 +328,9 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
       _lock.acquire();
 
       // Set the CoreState to 'RUNNING'
-      _core->setState(Core::RUNNING);
+      _core->setState(Tile::RUNNING);
       
-      LOG_PRINT("Core(%i) woken up", _core->getId());
+      LOG_PRINT("Tile(%i) woken up", _core->getId());
    }
 }
 

@@ -62,7 +62,7 @@ void PinConfig::setStackBoundaries()
    m_stack_upper_limit = m_stack_lower_limit + m_num_local_cores * m_stack_size_per_core;
 }
 
-// Get Core ID from stack pointer
+// Get Tile ID from stack pointer
 core_id_t PinConfig::getCoreIDFromStackPtr(IntPtr stack_ptr)
 {
    if ( (stack_ptr < m_stack_lower_limit) || (stack_ptr > m_stack_upper_limit) )
@@ -79,7 +79,7 @@ SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttribut
 {
    // Get the stack attributes
    SInt32 core_index = Config::getSingleton()->getIndexFromCoreID(m_current_process_num, core_id);
-   LOG_ASSERT_ERROR (core_index != -1, "Core %i does not belong to Process %i", 
+   LOG_ASSERT_ERROR (core_index != -1, "Tile %i does not belong to Process %i", 
          core_id, Config::getSingleton()->getCurrentProcessNum());
 
    stack_attr.lower_limit = m_stack_lower_limit + (core_index * m_stack_size_per_core);

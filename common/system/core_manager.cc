@@ -34,8 +34,8 @@ CoreManager::CoreManager()
 
    for (UInt32 i = 0; i < num_local_cores; i++)
    {
-      LOG_PRINT("Core[%u] == %d", i, local_cores.at(i));
-      m_cores.push_back(new Core(local_cores.at(i)));
+      LOG_PRINT("Tile[%u] == %d", i, local_cores.at(i));
+      m_cores.push_back(new Tile(local_cores.at(i)));
       m_initialized_cores.push_back(false);
    }
 
@@ -44,7 +44,7 @@ CoreManager::CoreManager()
 
 CoreManager::~CoreManager()
 {
-   for (std::vector<Core *>::iterator i = m_cores.begin(); i != m_cores.end(); i++)
+   for (std::vector<Tile *>::iterator i = m_cores.begin(); i != m_cores.end(); i++)
       delete *i;
 
    delete m_core_tls;
@@ -117,7 +117,7 @@ void CoreManager::initializeThread(core_id_t core_id)
 
    const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
    LOG_ASSERT_ERROR(core_list.size() == Config::getSingleton()->getNumLocalCores(),
-                    "Core list size different from num local cores? %d != %d", core_list.size(), Config::getSingleton()->getNumLocalCores());
+                    "Tile list size different from num local cores? %d != %d", core_list.size(), Config::getSingleton()->getNumLocalCores());
 
    for (UInt32 i = 0; i < core_list.size(); i++)
    {
@@ -159,16 +159,16 @@ void CoreManager::terminateThread()
 
 core_id_t CoreManager::getCurrentCoreID()
 {
-   Core *core = getCurrentCore();
+   Tile *core = getCurrentCore();
    if (!core)
        return INVALID_CORE_ID;
    else
        return core->getId();
 }
 
-Core *CoreManager::getCurrentCore()
+Tile *CoreManager::getCurrentCore()
 {
-    return m_core_tls->getPtr<Core>();
+    return m_core_tls->getPtr<Tile>();
 }
 
 UInt32 CoreManager::getCurrentCoreIndex()
@@ -180,9 +180,9 @@ UInt32 CoreManager::getCurrentCoreIndex()
     return idx;
 }
 
-Core *CoreManager::getCoreFromID(core_id_t id)
+Tile *CoreManager::getCoreFromID(core_id_t id)
 {
-   Core *core = NULL;
+   Tile *core = NULL;
    // Look up the index from the core list
    // FIXME: make this more cached
    const Config::CoreList & cores(Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum()));
@@ -203,7 +203,7 @@ Core *CoreManager::getCoreFromID(core_id_t id)
    return core;
 }
 
-Core *CoreManager::getCoreFromIndex(UInt32 index)
+Tile *CoreManager::getCoreFromIndex(UInt32 index)
 {
    LOG_ASSERT_ERROR(index < Config::getSingleton()->getNumLocalCores(), "getCoreFromIndex -- invalid index %d", index);
 
@@ -224,7 +224,7 @@ UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
       idx++;
    }
 
-   LOG_ASSERT_ERROR(false, "Core lookup failed for core id: %d!", core_id);
+   LOG_ASSERT_ERROR(false, "Tile lookup failed for core id: %d!", core_id);
    return INVALID_CORE_ID;
 }
 
@@ -242,7 +242,7 @@ core_id_t CoreManager::registerSimThread()
                      "All sim threads already registered. %d > %d",
                      m_num_registered_sim_threads+1, Config::getSingleton()->getNumLocalCores());
 
-    Core *core = m_cores.at(m_num_registered_sim_threads);
+    Tile *core = m_cores.at(m_num_registered_sim_threads);
 
     m_core_tls->set(core);
     m_core_index_tls->setInt(m_num_registered_sim_threads);

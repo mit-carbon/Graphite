@@ -9,7 +9,7 @@ using namespace std;
 
 MemoryManagerBase* 
 MemoryManagerBase::createMMU(std::string protocol_type,
-      Core* core, Network* network, ShmemPerfModel* shmem_perf_model)
+      Tile* core, Network* network, ShmemPerfModel* shmem_perf_model)
 {
    CachingProtocol_t caching_protocol = parseProtocolType(protocol_type);
 
@@ -141,5 +141,5 @@ MemoryManagerBase::printCoreListWithMemoryControllers(vector<core_id_t>& core_li
    {
       core_list << *it << " ";
    }
-   fprintf(stderr, "Core IDs' with memory controllers = (%s)\n", (core_list.str()).c_str());
+   fprintf(stderr, "Tile IDs' with memory controllers = (%s)\n", (core_list.str()).c_str());
 }

@@ -175,15 +175,15 @@ void* starter_function(void *threadid)
 
    if (tid==0)
    {
-//  cerr << "Executing awesome test suite Core # 0 " << endl;
+//  cerr << "Executing awesome test suite Tile # 0 " << endl;
       awesome_test_suite_msi(tid);
-//  cerr << "FInished Executing awesome test suite  Core #0" << endl;
+//  cerr << "FInished Executing awesome test suite  Tile #0" << endl;
    }
    else
    {
-//  cerr << "Executing awesome test suite Core #1 " << endl;
+//  cerr << "Executing awesome test suite Tile #1 " << endl;
       awesome_test_suite_msi(tid);
-//  cerr << "FInished Executing awesome test suite  Core #1" << endl;
+//  cerr << "FInished Executing awesome test suite  Tile #1" << endl;
    }
    // CAPI_Finish(tid);
    pthread_exit(NULL);
@@ -295,10 +295,10 @@ void initialize_test_parameters()
    sharers_list_0_1.push_back(1);
    sharers_list_0_1.push_back(0);
 
-   // Core 1 reads dram1_address[0]
-   // Core 0 writes dram0_address[0]
-   // Core 1 reads dram0_address[1]
-   // Core 1 writes dram1_address[0]
+   // Tile 1 reads dram1_address[0]
+   // Tile 0 writes dram0_address[0]
+   // Tile 1 reads dram0_address[1]
+   // Tile 1 writes dram1_address[0]
 
    // Initial, all blocks are uncached
 
@@ -368,7 +368,7 @@ void initialize_test_parameters()
    data[1][1][INIT].d_data = dramBlock11;
    data[1][1][INIT].c_data = NULL;
 
-   // After Core 1 writes data[1][0]
+   // After Tile 1 writes data[1][0]
 
    // data[0][0] - OP 0
    data[0][0][CORE1_WRITE_10].address = dram0_address[0];
@@ -411,7 +411,7 @@ void initialize_test_parameters()
    data[1][1][CORE1_WRITE_10].c_data = NULL;
 
 
-   // After Core 0 writes data[0][0]
+   // After Tile 0 writes data[0][0]
    // data[0][0] - OP 0
    data[0][0][CORE0_WRITE_00].address = dram0_address[0];
    data[0][0][CORE0_WRITE_00].dram_addr_home_id = 0;
@@ -453,7 +453,7 @@ void initialize_test_parameters()
    data[1][1][CORE0_WRITE_00].c_data = NULL;
 
 
-   // After Core 0 reads data[0][1]
+   // After Tile 0 reads data[0][1]
    // data[0][0] - OP 0
    data[0][0][CORE0_READ_01].address = dram0_address[0];
    data[0][0][CORE0_READ_01].dram_addr_home_id = 0;
@@ -495,7 +495,7 @@ void initialize_test_parameters()
    data[1][1][CORE0_READ_01].c_data = NULL;
 
 
-   // After Core 0 writes data[1][0] - Eviction of d[0][0]
+   // After Tile 0 writes data[1][0] - Eviction of d[0][0]
    // data[0][0] - OP 0
    data[0][0][CORE0_WRITE_10].address = dram0_address[0];
    data[0][0][CORE0_WRITE_10].dram_addr_home_id = 0;
@@ -536,7 +536,7 @@ void initialize_test_parameters()
    data[1][1][CORE0_WRITE_10].d_data = dramBlock11;
    data[1][1][CORE0_WRITE_10].c_data = NULL;
 
-   // Core 0 reads data[1][1] - Eviction of d[0][1]
+   // Tile 0 reads data[1][1] - Eviction of d[0][1]
    // data[0][0] - OP 0
    data[0][0][CORE0_READ_11].address = dram0_address[0];
    data[0][0][CORE0_READ_11].dram_addr_home_id = 0;
@@ -789,14 +789,14 @@ void awesome_test_suite_msi(int tid)
    if (tid==0)
    {
       cerr << endl << endl;
-      cerr << " *** Core # " << tid << endl;
+      cerr << " *** Tile # " << tid << endl;
       cerr << " *** Tests Passed: " << dec << tests_passed << endl;
       cerr << " *** Tests Failed: " << dec << tests_failed << endl;
       cerr << " *** TOTAL TESTS : " << dec << test_count << endl;
 
       cerr << endl;
       cerr << "********************************************* " << endl
-           << " Finished Dual Core Shared Memory Test Suite  " << endl
+           << " Finished Dual Tile Shared Memory Test Suite  " << endl
            << "********************************************* " << endl;
    }
 

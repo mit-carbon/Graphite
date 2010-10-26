@@ -4,13 +4,13 @@
 #include "sync_api.h"
 #include "packetize.h"
 
-class Core;
+class Tile;
 class Network;
 
 class SyncClient
 {
    public:
-      SyncClient(Core*);
+      SyncClient(Tile*);
       ~SyncClient();
 
       void mutexInit(carbon_mutex_t *mux);
@@ -43,7 +43,7 @@ class SyncClient
       static const unsigned int BARRIER_WAIT_RESPONSE  = 0xCACACAFE;
 
    private:
-      Core *m_core;
+      Tile *m_core;
       Network *m_network;
       UnstructuredBuffer m_send_buff;
       UnstructuredBuffer m_recv_buff;

@@ -8,9 +8,14 @@ ConfigFile::ConfigFile( string filename, string delimiter,
                         string comment, string sentry )
 	: myDelimiter(delimiter), myComment(comment), mySentry(sentry)
 {
+
+// The filename is ./contrib/orion/orion.cfg, which doesn't work.
+filename = "/afs/csail.mit.edu/u/e/elau/graphite/carbon_sim/contrib/orion/orion.cfg";
+std::cout << filename.c_str() << std::endl;	
+
 	// Construct a ConfigFile, getting keys and values from given file
-	
-	std::ifstream in( filename.c_str() );
+  
+   std::ifstream in( filename.c_str() );
 	
 	if( !in ) throw file_not_found( filename ); 
 	

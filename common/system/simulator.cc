@@ -219,7 +219,7 @@ void Simulator::startMCP()
 
    // FIXME: Can't the MCP look up its network itself in the
    // constructor?
-   Core* mcp_core = m_core_manager->getCoreFromID(m_config.getMCPCoreNum());
+   Tile* mcp_core = m_core_manager->getCoreFromID(m_config.getMCPCoreNum());
    LOG_ASSERT_ERROR(mcp_core, "Could not find the MCP's core!");
 
    Network & mcp_network = *(mcp_core->getNetwork());

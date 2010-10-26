@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
    // Initialize all the global variables
    initializeGlobalVariables(argc, argv);
 
-   printf("Num Threads(%i)\nDegree of Sharing(%i)\nNum Shared Addresses(%i)\nNum Private Addresses(%i)\nTotal Instructions per Core(%i)\n\n", m_num_threads, m_degree_of_sharing, m_num_shared_addresses, m_num_private_addresses, m_total_instructions_per_core);
+   printf("Num Threads(%i)\nDegree of Sharing(%i)\nNum Shared Addresses(%i)\nNum Private Addresses(%i)\nTotal Instructions per Tile(%i)\n\n", m_num_threads, m_degree_of_sharing, m_num_shared_addresses, m_num_private_addresses, m_total_instructions_per_core);
 
    for (SInt32 i = 0; i < NUM_INSTRUCTION_TYPES; i++)
       printf("Probability[%i] -> %f\n", i, m_instruction_type_probabilities[i]);
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 
    CarbonStopSim();
 
-   printf("Success: Max Core Clock(%llu)\n", (long long unsigned int) max_clock);
+   printf("Success: Max Tile Clock(%llu)\n", (long long unsigned int) max_clock);
 
    // First, determine the mapping of addresses to threads
    return 0;
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
 
 void* thread_func(void*)
 {
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    assert((core->getId() >= 0) && (core->getId() < m_num_threads));
  
    SInt32 thread_id = core->getId();
@@ -161,7 +161,7 @@ void* thread_func(void*)
                if (m_rd_only_shared_address_list[thread_id].size() != 0)
                {
                   IntPtr address = getRandomReadOnlySharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
+                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, 
                         address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                   m_core_clock_list[thread_id] += ret_val.second;
                }
@@ -173,7 +173,7 @@ void* thread_func(void*)
                if (m_rd_wr_shared_address_list[thread_id].size() != 0)
                {
                   IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
+                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, 
                         address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                   m_core_clock_list[thread_id] += ret_val.second;
                }
@@ -185,7 +185,7 @@ void* thread_func(void*)
                if (m_rd_wr_shared_address_list[thread_id].size() != 0)
                {
                   IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
+                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE,
                         address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                   m_core_clock_list[thread_id] += ret_val.second;
                }
@@ -195,7 +195,7 @@ void* thread_func(void*)
          case PRIVATE_MEMORY_READ:
             {
                IntPtr address = getPrivateAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ,
+               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ,
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
                break;
@@ -204,7 +204,7 @@ void* thread_func(void*)
          case PRIVATE_MEMORY_WRITE:
             {
                IntPtr address = getPrivateAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
+               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE,
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
                break;

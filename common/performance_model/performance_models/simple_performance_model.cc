@@ -5,7 +5,7 @@
 
 using std::endl;
 
-SimplePerformanceModel::SimplePerformanceModel(Core *core, float frequency)
+SimplePerformanceModel::SimplePerformanceModel(Tile *core, float frequency)
     : PerformanceModel(core, frequency)
     , m_instruction_count(0)
 {

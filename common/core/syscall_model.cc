@@ -83,8 +83,8 @@ void* SyscallMdl::copyArgToBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size)
    assert (arg_num < m_num_syscall_args);
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad [arg_num];
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, Core::READ, arg_addr, scratchpad, size);
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Tile::NONE, Tile::READ, arg_addr, scratchpad, size);
    return (void*) scratchpad;
 }
    
@@ -93,8 +93,8 @@ void SyscallMdl::copyArgFromBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size)
    assert (arg_num < m_num_syscall_args);
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad[arg_num];
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory(Core::NONE, Core::WRITE, arg_addr, scratchpad, size);
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory(Tile::NONE, Tile::WRITE, arg_addr, scratchpad, size);
 }
 
 // --------------------------------------------
@@ -270,8 +270,8 @@ IntPtr SyscallMdl::marshallOpenCall(syscall_args_t &args)
    UInt32 len_fname = getStrLen (path) + 1;
    
    char *path_buf = new char [len_fname];
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    m_send_buff << len_fname << make_pair(path_buf, len_fname) << flags << mode;
    m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
@@ -341,8 +341,8 @@ IntPtr SyscallMdl::marshallReadCall(syscall_args_t &args)
       m_recv_buff >> make_pair(read_buf, bytes);
       
       // Write the data to memory
-      Core* core = Sim()->getCoreManager()->getCurrentCore();
-      core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) buf, read_buf, bytes);
+      Tile* core = Sim()->getCoreManager()->getCurrentCore();
+      core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) buf, read_buf, bytes);
    }
    else
    {
@@ -385,8 +385,8 @@ IntPtr SyscallMdl::marshallWriteCall(syscall_args_t &args)
    // Always pass all the data in the message, even if shared memory is available
    // I think this is a reasonable model and is definitely one less thing to keep
    // track of when you switch between shared-memory/no shared-memory
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, Core::READ, (IntPtr) buf, (char*) write_buf, count);
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) buf, (char*) write_buf, count);
 
    m_send_buff << fd << count << make_pair(write_buf, count);
 
@@ -431,10 +431,10 @@ IntPtr SyscallMdl::marshallWritevCall(syscall_args_t &args)
    struct iovec *iov = (struct iovec*) args.arg1;
    int iovcnt = (int) args.arg2;
 
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
    
    struct iovec *iov_buf = new struct iovec [iovcnt];
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) iov, (char*) iov_buf, iovcnt * sizeof (struct iovec));
+   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) iov, (char*) iov_buf, iovcnt * sizeof (struct iovec));
 
    UInt64 count = 0;
    for (int i = 0; i < iovcnt; i++)
@@ -446,7 +446,7 @@ IntPtr SyscallMdl::marshallWritevCall(syscall_args_t &args)
    
    for (int i = 0; i < iovcnt; i++)
    {
-      core->accessMemory(Core::NONE, Core::READ, (IntPtr) iov_buf[i].iov_base, head, iov_buf[i].iov_len);
+      core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) iov_buf[i].iov_base, head, iov_buf[i].iov_len);
       running_count += iov_buf[i].iov_len;
       head = &buf[running_count];
    }
@@ -539,8 +539,8 @@ IntPtr SyscallMdl::marshallAccessCall(syscall_args_t &args)
    UInt32 len_fname = getStrLen(path) + 1;
    char *path_buf = new char [len_fname];
 
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    // pack the data
    m_send_buff << len_fname << make_pair(path_buf, len_fname) << mode;
@@ -574,10 +574,10 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
    UInt32 len_fname = getStrLen(path) + 1;
    char* path_buf = new char[len_fname]; 
 
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    // Read the data from memory
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
+   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) path, (char*) path_buf, len_fname);
+   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
 
    // pack the data
    m_send_buff << len_fname << make_pair(path_buf, len_fname);
@@ -601,7 +601,7 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
    m_recv_buff >> make_pair(&stat_buf, sizeof(struct stat));
 
    // Write the data to memory
-   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
+   core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
 
    delete [] (Byte*) recv_pkt.data;
    delete [] path_buf;
@@ -614,9 +614,9 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
    int fd = (int) args.arg0;
    struct stat buf;
 
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    // Read the data from memory
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
+   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
 
    // pack the data
    m_send_buff.put<int>(fd);
@@ -640,7 +640,7 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
    m_recv_buff >> make_pair(&buf, sizeof(struct stat));
 
    // Write the data to memory
-   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
+   core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
 
    delete [] (Byte*) recv_pkt.data;
    
@@ -654,9 +654,9 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
    int fd = (int) args.arg0;
    struct stat64 buf;
 
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    // Read the data from memory
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
+   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
 
    // pack the data
    m_send_buff.put<int>(fd);
@@ -678,7 +678,7 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
    m_recv_buff >> make_pair(&buf, sizeof(struct stat64));
 
    // Write the data to memory
-   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
+   core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
 
    delete [] (Byte*) recv_pkt.data;
    
@@ -695,9 +695,9 @@ IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
 
    struct termios buf;
 
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    // Read the data from memory
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));
+   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));
 
    // pack the data
    m_send_buff.put<int>(fd);
@@ -720,7 +720,7 @@ IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
    m_recv_buff >> make_pair(&buf, sizeof(struct termios));
 
    // Write the data to memory
-   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));
+   core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));
 
    delete [] (Byte*) recv_pkt.data;
    
@@ -805,8 +805,8 @@ IntPtr SyscallMdl::marshallPipeCall (syscall_args_t &args)
       m_recv_buff >> fd_buff[0] >> fd_buff[1];
    }
    
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   core->accessMemory (Core::NONE, Core::WRITE, (IntPtr) fd, (char*) fd_buff, 2 * sizeof(int));
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) fd, (char*) fd_buff, 2 * sizeof(int));
       
    delete [] (Byte*) recv_pkt.data;
 
@@ -838,9 +838,9 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
 #ifdef TARGET_IA32
    struct mmap_arg_struct mmap_arg_buf;
    
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
-   core->accessMemory (Core::NONE, Core::READ, (IntPtr) args.arg0, (char*) &mmap_arg_buf, sizeof(mmap_arg_buf));
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   LOG_ASSERT_ERROR(core != NULL, "Tile should not be null");
+   core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) args.arg0, (char*) &mmap_arg_buf, sizeof(mmap_arg_buf));
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -1140,8 +1140,8 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       FloatingPointHandler floating_point_handler;
 
       struct timespec timeout_buf;
-      Core *core = Sim()->getCoreManager()->getCurrentCore();
-      LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
+      Tile *core = Sim()->getCoreManager()->getCurrentCore();
+      LOG_ASSERT_ERROR(core != NULL, "Tile should not be null");
 
       UInt64 start_time;
       UInt64 end_time;
@@ -1151,7 +1151,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
       if (timeout != NULL)
       {
-         core->accessMemory(Core::NONE, Core::READ, (IntPtr) timeout, (char*) &timeout_buf, sizeof(timeout_buf));
+         core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) timeout, (char*) &timeout_buf, sizeof(timeout_buf));
       }
       
       m_send_buff.put(uaddr);
@@ -1180,14 +1180,14 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       m_network->netSend (Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
       // Set the CoreState to 'STALLED'
-      m_network->getCore()->setState(Core::STALLED);
+      m_network->getCore()->setState(Tile::STALLED);
 
       // get a result
       NetPacket recv_pkt;
       recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
 
       // Set the CoreState to 'RUNNING'
-      m_network->getCore()->setState(Core::WAKING_UP);
+      m_network->getCore()->setState(Tile::WAKING_UP);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -1225,8 +1225,8 @@ UInt32 SyscallMdl::getStrLen (char *str)
    char *ptr = str;
    while (1)
    {
-      Core *core = Sim()->getCoreManager()->getCurrentCore();
-      core->accessMemory (Core::NONE, Core::READ, (IntPtr) ptr, &c, sizeof(char));
+      Tile *core = Sim()->getCoreManager()->getCurrentCore();
+      core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) ptr, &c, sizeof(char));
       if (c != '\0')
       {
          len++;

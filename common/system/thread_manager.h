@@ -65,11 +65,11 @@ private:
 
    struct ThreadState
    {
-      Core::State status;
+      Tile::State status;
       SInt32 waiter;
 
       ThreadState()
-         : status(Core::IDLE)
+         : status(Tile::IDLE)
          , waiter(-1)
       {} 
    };

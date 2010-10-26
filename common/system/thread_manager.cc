@@ -28,7 +28,7 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
    if (m_master)
    {
       m_thread_state.resize(config->getTotalCores());
-      m_thread_state[0].status = Core::RUNNING;
+      m_thread_state[0].status = Tile::RUNNING;
 
       if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
       {
@@ -37,11 +37,11 @@ ThreadManager::ThreadManager(CoreManager *core_manager)
          UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
          for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
          {
-            m_thread_state[i].status = Core::RUNNING;
+            m_thread_state[i].status = Tile::RUNNING;
          }
       }
 
-      m_thread_state[config->getMCPCoreNum()].status = Core::RUNNING;
+      m_thread_state[config->getMCPCoreNum()].status = Tile::RUNNING;
       
       LOG_ASSERT_ERROR(config->getMCPCoreNum() < (SInt32) m_thread_state.size(),
                        "MCP core num out of range (!?)");
@@ -52,8 +52,8 @@ ThreadManager::~ThreadManager()
 {
    if (m_master)
    {
-      m_thread_state[0].status = Core::IDLE;
-      m_thread_state[Config::getSingleton()->getMCPCoreNum()].status = Core::IDLE;
+      m_thread_state[0].status = Tile::IDLE;
+      m_thread_state[Config::getSingleton()->getMCPCoreNum()].status = Tile::IDLE;
       LOG_ASSERT_ERROR(Config::getSingleton()->getMCPCoreNum() < (SInt32)m_thread_state.size(), "MCP core num out of range (!?)");
 
       if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
@@ -63,12 +63,12 @@ ThreadManager::~ThreadManager()
          UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
          for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
          {
-            m_thread_state[i].status = Core::IDLE;
+            m_thread_state[i].status = Tile::IDLE;
          }
       }
 
       for (UInt32 i = 0; i < m_thread_state.size(); i++)
-         LOG_ASSERT_ERROR(m_thread_state[i].status == Core::IDLE, "Thread %d still active when ThreadManager destructs!", i);
+         LOG_ASSERT_ERROR(m_thread_state[i].status == Tile::IDLE, "Thread %d still active when ThreadManager destructs!", i);
    }
 }
 
@@ -85,7 +85,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
       return;
 
    // Set the CoreState to 'RUNNING'
-   m_core_manager->getCurrentCore()->setState(Core::RUNNING);
+   m_core_manager->getCurrentCore()->setState(Tile::RUNNING);
  
    // send ack to master
    LOG_PRINT("(5) onThreadStart -- send ack to master; req : { %p, %p, %i, %i }",
@@ -100,7 +100,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
    PerformanceModel *pm = m_core_manager->getCurrentCore()->getPerformanceModel();
 
-   // Global Clock to Core Clock
+   // Global Clock to Tile Clock
    UInt64 start_cycle_count = convertCycleCount(req->time, \
          1.0, pm->getFrequency());
    pm->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
@@ -114,7 +114,7 @@ void ThreadManager::onThreadExit()
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   Core* core = m_core_manager->getCurrentCore();
+   Tile* core = m_core_manager->getCurrentCore();
 
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID() };
@@ -125,7 +125,7 @@ void ThreadManager::onThreadExit()
    Network *net = core->getNetwork();
 
    // Set the CoreState to 'IDLE'
-   core->setState(Core::IDLE);
+   core->setState(Tile::IDLE);
 
    // Recompute Average Frequency
    core->getPerformanceModel()->recomputeAverageFrequency();
@@ -145,10 +145,10 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
 {
    LOG_ASSERT_ERROR(m_master, "masterOnThreadExit should only be called on master.");
    LOG_PRINT("masterOnThreadExit : %d", core_id);
-   LOG_ASSERT_ERROR((UInt32)core_id < m_thread_state.size(), "Core id out of range: %d", core_id);
+   LOG_ASSERT_ERROR((UInt32)core_id < m_thread_state.size(), "Tile id out of range: %d", core_id);
    
-   assert(m_thread_state[core_id].status == Core::RUNNING);
-   m_thread_state[core_id].status = Core::IDLE;
+   assert(m_thread_state[core_id].status == Tile::RUNNING);
+   m_thread_state[core_id].status = Tile::IDLE;
    
    if (Sim()->getMCP()->getClockSkewMinimizationServer())
       Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
@@ -178,10 +178,10 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    // step 1
    LOG_PRINT("(1) spawnThread with func: %p and arg: %p", func, arg);
 
-   Core *core = m_core_manager->getCurrentCore();
+   Tile *core = m_core_manager->getCurrentCore();
    Network *net = core->getNetwork();
 
-   // Core Clock to Global Clock
+   // Tile Clock to Global Clock
    UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
          core->getPerformanceModel()->getFrequency(), 1.0);
 
@@ -195,14 +195,14 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
                 sizeof(req));
 
    // Set the CoreState to 'STALLED'
-   core->setState(Core::STALLED);
+   core->setState(Tile::STALLED);
 
    NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
    
    LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
 
    // Set the CoreState to 'RUNNING'
-   core->setState(Core::RUNNING);
+   core->setState(Tile::RUNNING);
 
    core_id_t core_id = *((core_id_t*)pkt.data);
    LOG_PRINT("Thread spawned on core: %d", core_id);
@@ -223,7 +223,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    // FIXME: Load balancing?
    for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
    {
-      if (m_thread_state[i].status == Core::IDLE)
+      if (m_thread_state[i].status == Tile::IDLE)
       {
          req->core_id = i;
          break;
@@ -245,7 +245,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
 
       globalNode->globalSend(dest_proc, req, sizeof(*req));
       
-      LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Core id out of range: %d", req->core_id);
+      LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Tile id out of range: %d", req->core_id);
    }
    else // Sim()->getConfig()->getSimulationMode() == Config::LITE
    {
@@ -258,7 +258,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       insertThreadSpawnRequest(req_cpy);
       m_thread_spawn_sem.signal();
          
-      Core *core = m_core_manager->getCurrentCore();
+      Tile *core = m_core_manager->getCurrentCore();
       core->getNetwork()->netSend(req->requester, 
             MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
             &req->core_id,
@@ -266,7 +266,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    }
 
    LOG_PRINT("Setting status[%i] -> INITIALIZING", req->core_id);
-   m_thread_state[req->core_id].status = Core::INITIALIZING;
+   m_thread_state[req->core_id].status = Tile::INITIALIZING;
    LOG_PRINT("Done with (2)");
 }
 
@@ -336,14 +336,14 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
 
    // Set the state of the actual thread spawned to running
    LOG_PRINT("Setting status[%i] -> RUNNING", req->core_id);
-   m_thread_state[req->core_id].status = Core::RUNNING;
+   m_thread_state[req->core_id].status = Tile::RUNNING;
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
       // Resume the requesting thread
       resumeThread(req->requester);
 
-      Core *core = m_core_manager->getCurrentCore();
+      Tile *core = m_core_manager->getCurrentCore();
       core->getNetwork()->netSend(req->requester, 
                                   MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
                                   &req->core_id,
@@ -358,7 +358,7 @@ bool ThreadManager::areAllCoresRunning()
    bool is_all_running = true;
    for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
    {
-      if (m_thread_state[i].status == Core::IDLE)
+      if (m_thread_state[i].status == Tile::IDLE)
       {
          is_all_running = false;
          break;
@@ -384,13 +384,13 @@ void ThreadManager::joinThread(core_id_t core_id)
                 sizeof(msg));
 
    // Set the CoreState to 'STALLED'
-   m_core_manager->getCurrentCore()->setState(Core::STALLED);
+   m_core_manager->getCurrentCore()->setState(Tile::STALLED);
 
    // Wait for reply
    NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY);
 
    // Set the CoreState to 'WAKING_UP'
-   m_core_manager->getCurrentCore()->setState(Core::WAKING_UP);
+   m_core_manager->getCurrentCore()->setState(Tile::WAKING_UP);
 
    LOG_PRINT("Exiting join thread.");
 }
@@ -408,9 +408,9 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req, UInt64 time)
    // Stall the 'pthread_join' caller
    stallThread(req->sender);
 
-   // Core not running, so the thread must have joined
-   LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Core id out of range: %d", req->core_id);
-   if (m_thread_state[req->core_id].status == Core::IDLE)
+   // Tile not running, so the thread must have joined
+   LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Tile id out of range: %d", req->core_id);
+   if (m_thread_state[req->core_id].status == Tile::IDLE)
    {
       LOG_PRINT("Not running, sending reply.");
       wakeUpWaiter(req->core_id, time);
@@ -423,7 +423,7 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
    {
       LOG_PRINT("Waking up core: %d at time: %llu", m_thread_state[core_id].waiter, time);
 
-      Core *core = m_core_manager->getCurrentCore();
+      Tile *core = m_core_manager->getCurrentCore();
       core_id_t dest = m_thread_state[core_id].waiter;
 
       // Resume the 'pthread_join' caller
@@ -522,9 +522,9 @@ void ThreadManager::updateTerminateThreadSpawner()
 
 void ThreadManager::stallThread(core_id_t core_id)
 {
-   LOG_PRINT("Core(%i) -> STALLED", core_id);
+   LOG_PRINT("Tile(%i) -> STALLED", core_id);
    LOG_ASSERT_ERROR(m_master, "stallThread() must only be called on master");
-   m_thread_state[core_id].status = Core::STALLED;
+   m_thread_state[core_id].status = Tile::STALLED;
    
    if (Sim()->getMCP()->getClockSkewMinimizationServer())
       Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
@@ -532,19 +532,19 @@ void ThreadManager::stallThread(core_id_t core_id)
 
 void ThreadManager::resumeThread(core_id_t core_id)
 {
-   LOG_PRINT("Core(%i) -> RUNNING", core_id);
+   LOG_PRINT("Tile(%i) -> RUNNING", core_id);
    LOG_ASSERT_ERROR(m_master, "resumeThread() must only be called on master");
-   m_thread_state[core_id].status = Core::RUNNING;
+   m_thread_state[core_id].status = Tile::RUNNING;
 }
 
 bool ThreadManager::isThreadRunning(core_id_t core_id)
 {
    LOG_ASSERT_ERROR(m_master, "isThreadRunning() must only be called on master");
-   return (m_thread_state[core_id].status == Core::RUNNING);
+   return (m_thread_state[core_id].status == Tile::RUNNING);
 }
 
 bool ThreadManager::isThreadInitializing(core_id_t core_id)
 {
    LOG_ASSERT_ERROR(m_master, "isThreadInitializing() must only be called on master");
-   return (m_thread_state[core_id].status == Core::INITIALIZING);
+   return (m_thread_state[core_id].status == Tile::INITIALIZING);
 }

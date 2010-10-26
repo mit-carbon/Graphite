@@ -1,7 +1,7 @@
 #include "ring_sync_client.h"
 #include "log.h"
 
-RingSyncClient::RingSyncClient(Core* core):
+RingSyncClient::RingSyncClient(Tile* core):
    _core(core),
    _cycle_count(0),
    _max_cycle_count(0)

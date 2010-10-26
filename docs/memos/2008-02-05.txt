@@ -5,7 +5,7 @@ New names for simulator layers:
 
        User Code
   ====================
-     Core Modeling
+     Tile Modeling
   ====================
     Network Modeling
   ====================

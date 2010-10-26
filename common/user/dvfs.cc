@@ -19,10 +19,10 @@ void CarbonSetCoreFrequency(volatile float* frequency)
    FloatingPointHandler floating_point_handler;
 
    // Stuff to change
-   // 1) Core Performance Model
+   // 1) Tile Performance Model
    // 2) Shared Memory Performance Model
    // 3) Cache Performance Model
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    core->updateInternalVariablesOnFrequencyChange(*frequency);
    Config::getSingleton()->setCoreFrequency(core->getId(), *frequency);
 }

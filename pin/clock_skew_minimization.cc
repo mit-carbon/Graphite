@@ -12,11 +12,11 @@ static bool enabled()
 
 void handlePeriodicSync()
 {
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    assert(core);
    if (core->getId() >= (core_id_t) Sim()->getConfig()->getApplicationCores())
    {
-      // Thread Spawner Core / MCP
+      // Thread Spawner Tile / MCP
       return;
    }
 

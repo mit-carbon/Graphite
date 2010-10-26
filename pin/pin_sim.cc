@@ -195,7 +195,7 @@ VOID instructionCallback (INS ins, void *v)
             IARG_END);
    }
 
-   // Core Performance Modeling
+   // Tile Performance Modeling
    if (Config::getSingleton()->getEnablePerformanceModeling())
       addInstructionModeling(ins);
 
@@ -298,7 +298,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
             Sim()->getCoreManager()->initializeThread(core_id);
             
-            Core *core = Sim()->getCoreManager()->getCurrentCore();
+            Tile *core = Sim()->getCoreManager()->getCurrentCore();
 
             // main thread clock is not affected by start-up time of other processes
             core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
@@ -369,7 +369,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          PIN_SetContextReg (ctxt, LEVEL_BASE::REG_R10, (ADDRINT) child_tidptr);
 #endif
 
-         __attribute(__unused__) Core *core = Sim()->getCoreManager()->getCurrentCore();
+         __attribute(__unused__) Tile *core = Sim()->getCoreManager()->getCurrentCore();
          LOG_ASSERT_ERROR(core, "core(NULL)");
 
          // Copy over thread stack data

@@ -495,7 +495,9 @@ void SockTransport::Socket::listen(SInt32 port, SInt32 max_pending)
    err = ::bind(m_socket,
                 (struct sockaddr *) &addr,
                 sizeof(addr));
-   LOG_ASSERT_ERROR(err >= 0, "Failed to bind");
+   printf("m_socket: %d", m_socket);
+	LOG_ASSERT_ERROR(err >= 0, "Failed to bind");
+   
 
    err = ::listen(m_socket,
                   max_pending);

@@ -16,7 +16,7 @@ void validateDramModelCounters(void);
 const SInt32 num_threads = 9;
 const SInt32 shared_var = num_threads;
 const SInt32 num_consecutive_reads = 2;
-Core* core_list[num_threads];
+Tile* core_list[num_threads];
 
 carbon_barrier_t thread_barrier;
 
@@ -56,20 +56,20 @@ void* threadFunc(void* threadid_ptr)
    {
       if (threadid == i)
       {
-         Core* core = Sim()->getCoreManager()->getCurrentCore();
+         Tile* core = Sim()->getCoreManager()->getCurrentCore();
          core_list[threadid] = core;
 
          if (threadid % (num_consecutive_reads+1) == 0)
          {
             // Write a shared variable
-            core->accessMemory(Core::NONE, WRITE, (IntPtr) &shared_var, 
+            core->accessMemory(Tile::NONE, WRITE, (IntPtr) &shared_var, 
                   (char*) &threadid, sizeof(threadid), true);
          }
          else
          {
             // Read the shared variable
             SInt32 act_value;
-            core->accessMemory(Core::NONE, READ, (IntPtr) &shared_var,
+            core->accessMemory(Tile::NONE, READ, (IntPtr) &shared_var,
                   (char*) &act_value, sizeof(act_value), true);
             printf("Thread(%i), Shared Var: %i\n", threadid, act_value);
 
@@ -102,10 +102,10 @@ void validateCacheModelCounters()
    for (SInt32 i = 0; i < num_threads; i++)
    {
       // This is a cached core_list
-      Core* core = core_list[i];
+      Tile* core = core_list[i];
 
       SInt32 buffer;
-      bool is_miss = (bool) core->accessMemory(Core::NONE,
+      bool is_miss = (bool) core->accessMemory(Tile::NONE,
             READ,
             (IntPtr) &shared_var,
             (char*) &buffer,
@@ -131,9 +131,9 @@ void validateDramModelCounters()
 
    for (SInt32 i = 0; i < (SInt32) total_cores; i++)
    {
-      Core* core = Sim()->getCoreManager()->getCoreFromID(i);
+      Tile* core = Sim()->getCoreManager()->getCoreFromID(i);
       UInt64 total_dram_accesses = core->getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->getTotalAccesses();
 
-      printf("Core(%i), total_dram_accesses: %llu\n", i, total_dram_accesses);
+      printf("Tile(%i), total_dram_accesses: %llu\n", i, total_dram_accesses);
    }
 }

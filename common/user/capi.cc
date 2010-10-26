@@ -22,7 +22,7 @@ CAPI_return_t CAPI_message_send_w(CAPI_endpoint_t sender,
       char *buffer, 
       int size)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
 
    LOG_PRINT("SimSendW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
@@ -46,7 +46,7 @@ CAPI_return_t CAPI_message_send_w_ex(CAPI_endpoint_t sender,
       int size,
       carbon_network_t net_type)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
 
    LOG_PRINT("SimSendW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
@@ -69,7 +69,7 @@ CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t sender,
       char *buffer, 
       int size)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
 
    LOG_PRINT("SimRecvW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
@@ -93,7 +93,7 @@ CAPI_return_t CAPI_message_receive_w_ex(CAPI_endpoint_t sender,
       int size,
       carbon_network_t net_type)
 {
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getCoreManager()->getCurrentCore();
 
    LOG_PRINT("SimRecvW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 

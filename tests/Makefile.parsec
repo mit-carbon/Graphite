@@ -2,6 +2,8 @@
 
 PARSEC_DIR=/afs/csail.mit.edu/group/carbon/benchmarks/parsec/parsec-2.1
 
+#PARSEC_DIR=/afs/csail.mit.edu/u/e/elau/graphite/carbon_sim/parsec/parsec-2.1
+
 PARSEC_LIST = blackscholes_parsec
 
 blackscholes_flags ?= 16 in_4K.txt prices.txt

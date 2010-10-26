@@ -84,7 +84,7 @@ Config::Config()
    // Adjust the number of cores corresponding to the network model we use
    m_total_cores = getNearestAcceptableCoreCount(m_total_cores);
 
-   // Parse Core Models
+   // Parse Tile Models
    parseCoreParameters();
 
    m_core_id_length = computeCoreIDLength(m_total_cores);
@@ -284,7 +284,7 @@ void Config::parseCoreParameters()
    // Default values are as follows:
    // 1) Number of cores -> Number of application cores
    // 2) Frequency -> 1 GHz
-   // 3) Core Type -> simple
+   // 3) Tile Type -> simple
 
    const UInt32 DEFAULT_NUM_CORES = getApplicationCores();
    const float DEFAULT_FREQUENCY = 1;

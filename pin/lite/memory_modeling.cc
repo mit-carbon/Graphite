@@ -48,10 +48,10 @@ void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_da
    // FIXME: May want to do something intelligent here. Dont know how time consuming this operation is!
    Byte read_data_buf[read_data_size];
 
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    core->initiateMemoryAccess(MemComponent::L1_DCACHE,
-         (is_atomic_update) ? Core::LOCK : Core::NONE,
-         (is_atomic_update) ? Core::READ_EX : Core::READ,
+         (is_atomic_update) ? Tile::LOCK : Tile::NONE,
+         (is_atomic_update) ? Tile::READ_EX : Tile::READ,
          read_address,
          read_data_buf,
          read_data_size,
@@ -60,10 +60,10 @@ void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_da
 
 void handleMemoryWrite(bool is_atomic_update, IntPtr write_address, UInt32 write_data_size)
 {
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
    core->initiateMemoryAccess(MemComponent::L1_DCACHE,
-         (is_atomic_update) ? Core::UNLOCK : Core::NONE,
-         Core::WRITE,
+         (is_atomic_update) ? Tile::UNLOCK : Tile::NONE,
+         Tile::WRITE,
          write_address,
          (Byte*) write_address,
          write_data_size,

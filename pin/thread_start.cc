@@ -44,8 +44,8 @@ int spawnThreadSpawner(CONTEXT *ctxt)
 
 VOID copyStaticData(IMG& img)
 {
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
-   LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Core ID");
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Tile ID");
 
    for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
    {
@@ -63,7 +63,7 @@ VOID copyStaticData(IMG& img)
             sec_address = SEC_Address(sec);
 
             LOG_PRINT ("Copying Section: %s at Address: 0x%x of Size: %u to Simulated Memory", SEC_Name(sec).c_str(), (UInt32) sec_address, (UInt32) SEC_Size(sec));
-            core->accessMemory(Core::NONE, Core::WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
+            core->accessMemory(Tile::NONE, Tile::WRITE, sec_address, (char*) sec_address, SEC_Size(sec));
          }
       }
    }
@@ -72,8 +72,8 @@ VOID copyStaticData(IMG& img)
 VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
 {
    // We should not get core_id for this stack_ptr
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
-   LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Core ID");
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Tile ID");
 
    // 1) Command Line Arguments
    // 2) Environment Variables
@@ -150,7 +150,7 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
 
    // fprintf (stderr, "argc = %d\n", argc);
    // Write argc
-   core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &argc, sizeof(argc));
+   core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_base, (char*) &argc, sizeof(argc));
    stack_ptr_base += sizeof(argc);
 
    LOG_PRINT("Copying Command Line Arguments to Simulated Memory");
@@ -158,14 +158,14 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
    {
       // Writing argv[i]
       stack_ptr_top -= (strlen(argv[i]) + 1);
-      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_top, (char*) argv[i], strlen(argv[i])+1);
+      core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_top, (char*) argv[i], strlen(argv[i])+1);
 
-      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
+      core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
       stack_ptr_base += sizeof(stack_ptr_top);
    }
 
    // I have found this to be '0' in most cases
-   core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &argv[argc], sizeof(argv[argc]));
+   core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_base, (char*) &argv[argc], sizeof(argv[argc]));
    stack_ptr_base += sizeof(argv[argc]);
 
    // We need to copy over the environmental parameters also
@@ -175,15 +175,15 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
       // Writing environ[i]
       if (envir[i] == 0)
       {
-         core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &envir[i], sizeof(envir[i]));
+         core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_base, (char*) &envir[i], sizeof(envir[i]));
          stack_ptr_base += sizeof(envir[i]);
          break;
       }
 
       stack_ptr_top -= (strlen(envir[i]) + 1);
-      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_top, (char*) envir[i], strlen(envir[i])+1);
+      core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_top, (char*) envir[i], strlen(envir[i])+1);
 
-      core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
+      core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_base, (char*) &stack_ptr_top, sizeof(stack_ptr_top));
       stack_ptr_base += sizeof(stack_ptr_top);
    }
    
@@ -201,7 +201,7 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
    auxiliary_vector_entry_null.a_type = AT_NULL;
    auxiliary_vector_entry_null.a_un.a_val = 0;
 
-   core->accessMemory(Core::NONE, Core::WRITE, stack_ptr_base, (char*) &auxiliary_vector_entry_null, sizeof(auxiliary_vector_entry_null));
+   core->accessMemory(Tile::NONE, Tile::WRITE, stack_ptr_base, (char*) &auxiliary_vector_entry_null, sizeof(auxiliary_vector_entry_null));
    stack_ptr_base += sizeof(auxiliary_vector_entry_null);
 
    LOG_ASSERT_ERROR(stack_ptr_base <= stack_ptr_top, "stack_ptr_base = 0x%x, stack_ptr_top = 0x%x", stack_ptr_base, stack_ptr_top);
@@ -219,9 +219,9 @@ VOID copySpawnedThreadStackData(IntPtr reg_esp)
    
    UInt32 num_bytes_to_copy = (UInt32) (stack_upper_limit - reg_esp);
 
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
 
-   core->accessMemory(Core::NONE, Core::WRITE, reg_esp, (char*) reg_esp, num_bytes_to_copy);
+   core->accessMemory(Tile::NONE, Tile::WRITE, reg_esp, (char*) reg_esp, num_bytes_to_copy);
 
 }
 

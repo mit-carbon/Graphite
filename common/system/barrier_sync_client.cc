@@ -12,7 +12,7 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-BarrierSyncClient::BarrierSyncClient(Core* core):
+BarrierSyncClient::BarrierSyncClient(Tile* core):
    m_core(core)
 {
    try
@@ -52,7 +52,7 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
       m_send_buff << msg_type << curr_time;
       m_core->getNetwork()->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
-      LOG_PRINT("Core(%i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getId(), curr_time, m_next_sync_time);
+      LOG_PRINT("Tile(%i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getId(), curr_time, m_next_sync_time);
 
       // Receive 'BARRIER_RELEASE' response
       NetPacket recv_pkt;
@@ -64,7 +64,7 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
       m_recv_buff >> dummy;
       assert(dummy == BARRIER_RELEASE);
 
-      LOG_PRINT("Core(%i) received SIM_BARRIER_RELEASE", m_core->getId());
+      LOG_PRINT("Tile(%i) received SIM_BARRIER_RELEASE", m_core->getId());
 
       // Update 'm_next_sync_time'
       m_next_sync_time = ((curr_time / m_barrier_interval) * m_barrier_interval) + m_barrier_interval;

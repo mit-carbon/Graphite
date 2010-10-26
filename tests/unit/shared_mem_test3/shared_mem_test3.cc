@@ -23,7 +23,7 @@ int main (int argc, char *argv[])
 
    carbon_thread_t tid_list[num_threads];
 
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
 
    address = new IntPtr[num_addresses];
 
@@ -31,7 +31,7 @@ int main (int argc, char *argv[])
    {
       int val = 0;
       address[j] = j << 18;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address[j], (Byte*) &val, sizeof(val));
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address[j], (Byte*) &val, sizeof(val));
    }
 
    for (int i = 0; i < num_threads; i++)
@@ -47,7 +47,7 @@ int main (int argc, char *argv[])
    for (int j = 0; j < num_addresses; j++)
    {
       int val;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address[j], (Byte*) &val, sizeof(val));
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address[j], (Byte*) &val, sizeof(val));
       
       printf("val[%i] = %i\n", j, val);
       if (val != (num_threads * num_iterations))
@@ -66,18 +66,18 @@ int main (int argc, char *argv[])
 
 void* thread_func(void*)
 {
-   Core* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getCoreManager()->getCurrentCore();
 
    for (int i = 0; i < num_iterations; i++)
    {
       for (int j = 0; j < num_addresses; j++)
       {
          int val;
-         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address[j], (Byte*) &val, sizeof(val));
+         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::LOCK, Tile::READ_EX, address[j], (Byte*) &val, sizeof(val));
          
          val += 1;
 
-         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address[j], (Byte*) &val, sizeof(val));
+         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::UNLOCK, Tile::WRITE, address[j], (Byte*) &val, sizeof(val));
       }
    }
 }

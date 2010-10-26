@@ -39,16 +39,16 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          // Private Functions
          void accessCache(MemComponent::component_t mem_component,
-               Core::mem_op_t mem_op_type, 
+               Tile::mem_op_t mem_op_type, 
                IntPtr ca_address, UInt32 offset,
                Byte* data_buf, UInt32 data_length);
          bool operationPermissibleinL1Cache(
                MemComponent::component_t mem_component, 
-               IntPtr address, Core::mem_op_t mem_op_type,
+               IntPtr address, Tile::mem_op_t mem_op_type,
                UInt32 access_num, bool modeled);
 
          Cache* getL1Cache(MemComponent::component_t mem_component);
-         ShmemMsg::msg_t getShmemMsgType(Core::mem_op_t mem_op_type);
+         ShmemMsg::msg_t getShmemMsgType(Tile::mem_op_t mem_op_type);
 
          // Get Cache Block Size
          UInt32 getCacheBlockSize(void) { return m_cache_block_size; }
@@ -82,8 +82,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          bool processMemOpFromCore(
                MemComponent::component_t mem_component,
-               Core::lock_signal_t lock_signal,
-               Core::mem_op_t mem_op_type, 
+               Tile::lock_signal_t lock_signal,
+               Tile::mem_op_t mem_op_type, 
                IntPtr ca_address, UInt32 offset,
                Byte* data_buf, UInt32 data_length,
                bool modeled);

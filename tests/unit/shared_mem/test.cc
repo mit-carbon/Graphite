@@ -189,15 +189,15 @@ void* starter_function(void *threadid)
 
    if (tid==0)
    {
-      cerr << "Executing awesome test suite Core # 0 " << endl;
+      cerr << "Executing awesome test suite Tile # 0 " << endl;
       awesome_test_suite_msi(tid);
-      cerr << "FInished Executing awesome test suite  Core #0" << endl;
+      cerr << "FInished Executing awesome test suite  Tile #0" << endl;
    }
    else
    {
-      cerr << "Executing awesome test suite Core #1 " << endl;
+      cerr << "Executing awesome test suite Tile #1 " << endl;
       awesome_test_suite_msi(tid);
-      cerr << "FInished Executing awesome test suite  Core #1" << endl;
+      cerr << "FInished Executing awesome test suite  Tile #1" << endl;
    }
    // CAPI_Finish(tid);
    pthread_exit(NULL);
@@ -1238,7 +1238,7 @@ void awesome_test_suite_msi(int tid)
                operation_t operation = operation_vector[test_index];
 
                test_code.str(""); //error_str.str("");
-               test_code << "Test #" << test_count << "Tindex[" << test_index << "], State#:" << state_index << " " << " -- Core # " << tid << " OP: "
+               test_code << "Test #" << test_count << "Tindex[" << test_index << "], State#:" << state_index << " " << " -- Tile # " << tid << " OP: "
                << operationToString(operation) << " ," <<  test_code_vector[state_index] << " -> " << fini_state_str_vector[test_index];
                //    error_str = error_str_vector[test_index];
 
@@ -1316,14 +1316,14 @@ void awesome_test_suite_msi(int tid)
    if (tid==0)
    {
       cerr << endl << endl;
-      cerr << " *** Core # " << tid << endl;
+      cerr << " *** Tile # " << tid << endl;
       cerr << " *** Tests Passed: " << dec << tests_passed << endl;
       cerr << " *** Tests Failed: " << dec << tests_failed << endl;
       cerr << " *** TOTAL TESTS : " << dec << test_count << endl;
 
       cerr << endl;
       cerr << "********************************************* " << endl
-           << " Finished Dual Core Shared Memory Test Suite  " << endl
+           << " Finished Dual Tile Shared Memory Test Suite  " << endl
            << "********************************************* " << endl;
    }
 

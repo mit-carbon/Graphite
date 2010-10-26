@@ -53,7 +53,7 @@ BarrierSyncServer::barrierWait(core_id_t core_id)
    UInt64 time;
    m_recv_buff >> time;
 
-   LOG_PRINT("Received 'SIM_BARRIER_WAIT' from Core(%i), Time(%llu)", core_id, time);
+   LOG_PRINT("Received 'SIM_BARRIER_WAIT' from Tile(%i), Time(%llu)", core_id, time);
 
    LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(core_id) || m_thread_manager->isThreadInitializing(core_id), "Thread on core(%i) is not running or initializing at time(%llu)", core_id, time);
 

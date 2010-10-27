@@ -192,7 +192,7 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
             buff_pkt->receiver = hopVec[i].final_dest;
             buff_pkt->specific = hopVec[i].specific;
 
-            Tile* remote_core = Sim()->getCoreManager()->getCoreFromID(hopVec[i].next_dest);
+            Tile* remote_core = Sim()->getTileManager()->getTileFromID(hopVec[i].next_dest);
             NetworkModel* remote_network_model = remote_core->getNetwork()->getNetworkModelFromPacketType(buff_pkt->type);
 
             UInt32 action = remote_network_model->computeAction(*buff_pkt);

@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
    // Get the cores
    Tile* cores[2];
    for (UInt32 j = 0; j < 2; j++)
-      cores[j] = Sim()->getCoreManager()->getCoreFromID(j);
+      cores[j] = Sim()->getTileManager()->getTileFromID(j);
 
    // Read many lines into cache
    // 10 * 2 cold misses

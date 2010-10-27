@@ -55,7 +55,7 @@ Simulator::Simulator()
    , m_config()
    , m_log(m_config)
    , m_transport(NULL)
-   , m_core_manager(NULL)
+   , m_tile_manager(NULL)
    , m_thread_manager(NULL)
    , m_perf_counter_manager(NULL)
    , m_sim_thread_manager(NULL)
@@ -80,8 +80,8 @@ void Simulator::start()
    // OrionConfig::getSingleton()->print_config(cout);
  
    m_transport = Transport::create();
-   m_core_manager = new CoreManager();
-   m_thread_manager = new ThreadManager(m_core_manager);
+   m_tile_manager = new TileManager();
+   m_thread_manager = new ThreadManager(m_tile_manager);
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
@@ -134,13 +134,13 @@ Simulator::~Simulator()
          << "stop time\t" << (m_stop_time - m_boot_time) << endl
          << "shutdown time\t" << (m_shutdown_time - m_boot_time) << endl;
 
-      m_core_manager->outputSummary(os);
+      m_tile_manager->outputSummary(os);
       os.close();
    }
    else
    {
       stringstream temp;
-      m_core_manager->outputSummary(temp);
+      m_tile_manager->outputSummary(temp);
       assert(temp.str().length() == 0);
    }
 
@@ -151,7 +151,7 @@ Simulator::~Simulator()
    delete m_sim_thread_manager;
    delete m_perf_counter_manager;
    delete m_thread_manager;
-   delete m_core_manager;
+   delete m_tile_manager;
    delete m_transport;
 
    // Delete Orion Config Object
@@ -219,7 +219,7 @@ void Simulator::startMCP()
 
    // FIXME: Can't the MCP look up its network itself in the
    // constructor?
-   Tile* mcp_core = m_core_manager->getCoreFromID(m_config.getMCPCoreNum());
+   Tile* mcp_core = m_tile_manager->getTileFromID(m_config.getMCPCoreNum());
    LOG_ASSERT_ERROR(mcp_core, "Could not find the MCP's core!");
 
    Network & mcp_network = *(mcp_core->getNetwork());
@@ -244,13 +244,13 @@ void Simulator::enablePerformanceModelsInCurrentProcess()
 {
    Sim()->startTimer();
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromIndex(i)->enablePerformanceModels();
+      Sim()->getTileManager()->getTileFromIndex(i)->enablePerformanceModels();
 }
 
 void Simulator::disablePerformanceModelsInCurrentProcess()
 {
    Sim()->stopTimer();
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromIndex(i)->disablePerformanceModels();
+      Sim()->getTileManager()->getTileFromIndex(i)->disablePerformanceModels();
 }
 

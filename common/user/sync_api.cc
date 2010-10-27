@@ -13,54 +13,54 @@
 
 void CarbonMutexInit(carbon_mutex_t *mux)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->mutexInit(mux);
 }
 
 void CarbonMutexLock(carbon_mutex_t *mux)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->mutexLock(mux);
 }
 
 void CarbonMutexUnlock(carbon_mutex_t *mux)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->mutexUnlock(mux);
 }
 
 void CarbonCondInit(carbon_cond_t *cond)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->condInit(cond);
 }
 
 void CarbonCondWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->condWait(cond, mux);
 }
 
 void CarbonCondSignal(carbon_cond_t *cond)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->condSignal(cond);
 }
 
 void CarbonCondBroadcast(carbon_cond_t *cond)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->condBroadcast(cond);
 }
 
 void CarbonBarrierInit(carbon_barrier_t *barrier, UInt32 count)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->barrierInit(barrier, count);
 }
 
 void CarbonBarrierWait(carbon_barrier_t *barrier)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->getSyncClient()->barrierWait(barrier);
 }

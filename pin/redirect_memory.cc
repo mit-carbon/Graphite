@@ -13,7 +13,7 @@ void memOp (Tile::lock_signal_t lock_signal, Tile::mem_op_t mem_op_type, IntPtr 
 {   
    assert (lock_signal == Tile::NONE);
 
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    LOG_ASSERT_ERROR(core, "Could not find Tile object for current thread");
    core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
 }
@@ -157,7 +157,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       }
    }
 
-   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   PerformanceModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
    DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
    perf->pushDynamicInstructionInfo(info);
 
@@ -239,7 +239,7 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       }
    }
 
-   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   PerformanceModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
    DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
    perf->pushDynamicInstructionInfo(info);
 
@@ -653,7 +653,7 @@ ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL modeled)
 
    ADDRINT next_ip;
 
-   Sim()->getCoreManager()->getCurrentCore()->accessMemory(Tile::NONE, Tile::READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
+   Sim()->getTileManager()->getCurrentTile()->accessMemory(Tile::NONE, Tile::READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
 
    *tgt_esp = *tgt_esp + read_size;
    *tgt_esp = *tgt_esp + imm;
@@ -678,7 +678,7 @@ ADDRINT redirectPushf ( ADDRINT tgt_esp, ADDRINT size )
 {
    assert (size == sizeof (ADDRINT));
 
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    
    if (core)
    {
@@ -694,7 +694,7 @@ ADDRINT completePushf ( ADDRINT esp, ADDRINT size )
 {
    assert (size == sizeof(ADDRINT));
    
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
 
    if (core)
    {
@@ -710,7 +710,7 @@ ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
 
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
   
    if (core)
    {
@@ -726,7 +726,7 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
    
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
 
    if (core)
    {
@@ -745,7 +745,7 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 
 ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
   
    if (core)
    {
@@ -767,7 +767,7 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
 
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
 
    if (core)
    {

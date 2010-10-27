@@ -1,4 +1,4 @@
-#include "core.h"
+include "core.h"
 #include "memory_manager_base.h"
 
 #include "shmem_perf_model.h"
@@ -22,7 +22,7 @@ int main (int argc, char *argv[])
    // 2) Get a memory_manager object from it
    // 3) Do initiateSharedMemReq() on the memory_manager object
 
-   Tile* core = Sim()->getCoreManager()->getCoreFromIndex(0);
+   Tile* core = Sim()->getTileManager()->getTileFromIndex(0);
    MemoryManagerBase* memory_manager = core->getMemoryManager();
    ShmemPerfModel* shmem_perf_model = core->getShmemPerfModel();
 

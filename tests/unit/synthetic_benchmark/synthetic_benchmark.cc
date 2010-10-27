@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
    // Enable all the models
    for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromID(i)->enablePerformanceModels();
+      Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
 
    CarbonBarrierInit(&m_barrier, m_num_threads);
 
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
    
    // Disable all the models
    for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromID(i)->disablePerformanceModels();
+      Sim()->getTileManager()->getTileFromID(i)->disablePerformanceModels();
 
    deInitializeGlobalVariables();
 
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
 
 void* thread_func(void*)
 {
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    assert((core->getId() >= 0) && (core->getId() < m_num_threads));
  
    SInt32 thread_id = core->getId();

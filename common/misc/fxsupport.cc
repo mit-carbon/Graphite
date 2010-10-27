@@ -61,11 +61,11 @@ Fxsupport *Fxsupport::getSingleton()
 
 bool Fxsupport::fxsave()
 {
-   if (Sim()->getCoreManager()->amiUserThread())
+   if (Sim()->getTileManager()->amiUserThread())
    {
       LOG_PRINT("fxsave() start");
 
-      UInt32 core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
+      UInt32 core_index = Sim()->getTileManager()->getCurrentTileIndex();
       // This check is done to ensure that the thread has not exited
       if (core_index < Config::getSingleton()->getNumLocalCores())
       {
@@ -92,11 +92,11 @@ bool Fxsupport::fxsave()
 
 void Fxsupport::fxrstor()
 {
-   if (Sim()->getCoreManager()->amiUserThread())
+   if (Sim()->getTileManager()->amiUserThread())
    {
       LOG_PRINT("fxrstor() start");
    
-      UInt32 core_index = Sim()->getCoreManager()->getCurrentCoreIndex();
+      UInt32 core_index = Sim()->getTileManager()->getCurrentTileIndex();
       if (core_index < Config::getSingleton()->getNumLocalCores())
       {
          LOG_ASSERT_ERROR(m_context_saved[core_index], "Context Not Saved(%u)", core_index);

@@ -32,7 +32,7 @@ PerfCounterManager::resetCacheCounters(SInt32 sender)
 
       assert (m_thread_manager->areAllCoresRunning());
       
-      Network* net = Sim()->getCoreManager()->getCurrentCore()->getNetwork();
+      Network* net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
 
       // Send a message to all real cores to reset cache counters
       for (UInt32 i = 0; i < num_app_cores; i++)
@@ -66,7 +66,7 @@ PerfCounterManager::disableCacheCounters(SInt32 sender)
 
       assert (m_thread_manager->areAllCoresRunning());
       
-      Network* net = Sim()->getCoreManager()->getCurrentCore()->getNetwork();
+      Network* net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
 
       // Send a message to all real cores to reset cache counters
       for (UInt32 i = 0; i < num_app_cores; i++)

@@ -216,9 +216,9 @@ string formatSummaries(const vector<string> &summaries)
    return table.flatten();
 }
 
-void CoreManager::outputSummary(ostream &os)
+void TileManager::outputSummary(ostream &os)
 {
-   LOG_PRINT("Starting CoreManager::outputSummary");
+   LOG_PRINT("Starting TileManager::outputSummary");
 
    // Note: Using the global_node only works here because the lcp has
    // finished and therefore is no longer waiting on a receive. This
@@ -243,7 +243,7 @@ void CoreManager::outputSummary(ostream &os)
    {
       LOG_PRINT("Output summary core %i", cl[i]);
       stringstream ss;
-      m_cores[i]->outputSummary(ss);
+      m_tiles[i]->outputSummary(ss);
       global_node->globalSend(0, &cl[i], sizeof(cl[i]));
       global_node->globalSend(0, ss.str().c_str(), ss.str().length()+1);
    }

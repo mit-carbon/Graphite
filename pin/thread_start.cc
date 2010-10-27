@@ -44,7 +44,7 @@ int spawnThreadSpawner(CONTEXT *ctxt)
 
 VOID copyStaticData(IMG& img)
 {
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Tile ID");
 
    for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
@@ -72,7 +72,7 @@ VOID copyStaticData(IMG& img)
 VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
 {
    // We should not get core_id for this stack_ptr
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    LOG_ASSERT_ERROR (core != NULL, "Does not have a valid Tile ID");
 
    // 1) Command Line Arguments
@@ -219,7 +219,7 @@ VOID copySpawnedThreadStackData(IntPtr reg_esp)
    
    UInt32 num_bytes_to_copy = (UInt32) (stack_upper_limit - reg_esp);
 
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
 
    core->accessMemory(Tile::NONE, Tile::WRITE, reg_esp, (char*) reg_esp, num_bytes_to_copy);
 

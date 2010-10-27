@@ -56,7 +56,7 @@ void* threadFunc(void* threadid_ptr)
    {
       if (threadid == i)
       {
-         Tile* core = Sim()->getCoreManager()->getCurrentCore();
+         Tile* core = Sim()->getTileManager()->getCurrentTile();
          core_list[threadid] = core;
 
          if (threadid % (num_consecutive_reads+1) == 0)
@@ -131,7 +131,7 @@ void validateDramModelCounters()
 
    for (SInt32 i = 0; i < (SInt32) total_cores; i++)
    {
-      Tile* core = Sim()->getCoreManager()->getCoreFromID(i);
+      Tile* core = Sim()->getTileManager()->getTileFromID(i);
       UInt64 total_dram_accesses = core->getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->getTotalAccesses();
 
       printf("Tile(%i), total_dram_accesses: %llu\n", i, total_dram_accesses);

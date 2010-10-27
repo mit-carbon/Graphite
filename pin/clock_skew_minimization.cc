@@ -12,7 +12,7 @@ static bool enabled()
 
 void handlePeriodicSync()
 {
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    assert(core);
    if (core->getId() >= (core_id_t) Sim()->getConfig()->getApplicationCores())
    {

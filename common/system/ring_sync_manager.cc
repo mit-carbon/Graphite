@@ -26,7 +26,7 @@ RingSyncManager::RingSyncManager():
    {
       if ((*it) < (core_id_t) Sim()->getConfig()->getApplicationCores())
       {
-         Tile* core = Sim()->getCoreManager()->getCoreFromID(*it);
+         Tile* core = Sim()->getTileManager()->getTileFromID(*it);
          assert(core != NULL);
          _core_list.push_back(core);
       }
@@ -109,13 +109,13 @@ RingSyncManager::updateClientObjectsAndRingMsg(CycleCountUpdate* cycle_count_upd
    {
       // Read the Cycle Count and State of the core
       // May need locks around this
-      Tile::State core_state = (*it)->getState();
+      Tile::State tile_state = (*it)->getState();
 
       RingSyncClient* ring_sync_client = (RingSyncClient*) (*it)->getClockSkewMinimizationClient();
       ring_sync_client->getLock()->acquire();
 
       UInt64 cycle_count = ring_sync_client->getCycleCount();
-      if ((core_state == Tile::RUNNING) && (cycle_count < min_cycle_count))
+      if ((tile_state == Tile::RUNNING) && (cycle_count < min_cycle_count))
       {
          // Dont worry about the cycle counts of threads that are not running
          min_cycle_count = cycle_count;

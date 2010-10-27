@@ -10,7 +10,7 @@ void CarbonResetCacheCounters()
 {
    UInt32 msg = MCP_MESSAGE_RESET_CACHE_COUNTERS;
    // Send a message to the MCP asking it to reset all the cache counters
-   Network *net = Sim()->getCoreManager()->getCurrentCore()->getNetwork();
+   Network *net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
    net->netSend(Sim()->getConfig()->getMCPCoreNum(), MCP_SYSTEM_TYPE,
          (const void*) &msg, sizeof(msg));
 
@@ -25,7 +25,7 @@ void CarbonDisableCacheCounters()
 {
    UInt32 msg = MCP_MESSAGE_DISABLE_CACHE_COUNTERS;
    // Send a message to the MCP asking it to reset all the cache counters
-   Network *net = Sim()->getCoreManager()->getCurrentCore()->getNetwork();
+   Network *net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
    net->netSend(Sim()->getConfig()->getMCPCoreNum(), MCP_SYSTEM_TYPE,
          (const void*) &msg, sizeof(msg));
 

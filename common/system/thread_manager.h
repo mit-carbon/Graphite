@@ -13,12 +13,12 @@
 
 #include "thread_support.h"
 
-class CoreManager;
+class TileManager;
 
 class ThreadManager
 {
 public:
-   ThreadManager(CoreManager*);
+   ThreadManager(TileManager*);
    ~ThreadManager();
 
    // services
@@ -80,7 +80,7 @@ private:
    Semaphore m_thread_spawn_sem;
    Lock m_thread_spawn_lock;
 
-   CoreManager *m_core_manager;
+   TileManager *m_tile_manager;
 
    Lock m_thread_spawners_terminated_lock;
    UInt32 m_thread_spawners_terminated;

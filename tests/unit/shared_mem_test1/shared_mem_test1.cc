@@ -17,11 +17,11 @@ int main (int argc, char *argv[])
 
    // Enable Performance Models
    for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromID(i)->enablePerformanceModels();
+      Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
 
    // 1) Get a core object
-   Tile* core_0 = Sim()->getCoreManager()->getCoreFromID(0);
-   Tile* core_1 = Sim()->getCoreManager()->getCoreFromID(1);
+   Tile* core_0 = Sim()->getTileManager()->getTileFromID(0);
+   Tile* core_1 = Sim()->getTileManager()->getTileFromID(1);
 
    UInt32 write_val_0 = 100;
    UInt32 read_val_0 = 0;
@@ -61,7 +61,7 @@ int main (int argc, char *argv[])
 
    // Disable Performance Models
    for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
-      Sim()->getCoreManager()->getCoreFromID(i)->disablePerformanceModels();
+      Sim()->getTileManager()->getTileFromID(i)->disablePerformanceModels();
    
    printf("Finished (shared_mem_test1) - SUCCESS\n");
    CarbonStopSim();

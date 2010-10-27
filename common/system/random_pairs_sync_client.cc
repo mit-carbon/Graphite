@@ -85,8 +85,8 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    //  - type (REQ,ACK,WAIT)
    //  - time
    // Called by the Network thread
-   Tile::State core_state = _core->getState();
-   if (core_state == Tile::RUNNING)
+   Tile::State tile_state = _core->getState();
+   if (tile_state == Tile::RUNNING)
    {
       // Thread is RUNNING on core
       // Network thread must process the random sync requests
@@ -106,7 +106,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
          LOG_PRINT_ERROR("Unrecognized Sync Msg, type(%u) from(%i)", sync_msg.type, sync_msg.sender);
       }
    }
-   else if (core_state == Tile::SLEEPING)
+   else if (tile_state == Tile::SLEEPING)
    {
       LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
             "sync_msg.type(%u)", sync_msg.type);

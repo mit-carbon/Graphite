@@ -22,14 +22,14 @@ ShmemPerfModel::~ShmemPerfModel()
 ShmemPerfModel::Thread_t 
 ShmemPerfModel::getThreadNum()
 {
-   if (Sim()->getCoreManager()->amiUserThread())
+   if (Sim()->getTileManager()->amiUserThread())
    {
-      assert(!Sim()->getCoreManager()->amiSimThread());
+      assert(!Sim()->getTileManager()->amiSimThread());
       return _USER_THREAD;
    }
-   else if (Sim()->getCoreManager()->amiSimThread())
+   else if (Sim()->getTileManager()->amiSimThread())
    {
-      assert(!Sim()->getCoreManager()->amiUserThread());
+      assert(!Sim()->getTileManager()->amiUserThread());
       return _SIM_THREAD;
    }
    else

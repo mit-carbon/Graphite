@@ -23,7 +23,7 @@ int main (int argc, char *argv[])
 
    carbon_thread_t tid_list[num_threads];
 
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
 
    address = new IntPtr[num_addresses];
 
@@ -66,7 +66,7 @@ int main (int argc, char *argv[])
 
 void* thread_func(void*)
 {
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
 
    for (int i = 0; i < num_iterations; i++)
    {

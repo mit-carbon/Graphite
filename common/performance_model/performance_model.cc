@@ -59,7 +59,7 @@ void PerformanceModel::frequencySummary(ostream& os)
 void PerformanceModel::enable()
 {
    // MCP perf model should never be enabled
-   if (Sim()->getCoreManager()->getCurrentCoreID() == Config::getSingleton()->getMCPCoreNum())
+   if (Sim()->getTileManager()->getCurrentCoreID() == Config::getSingleton()->getMCPCoreNum())
       return;
 
    m_enabled = true;

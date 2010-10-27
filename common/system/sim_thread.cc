@@ -17,11 +17,11 @@ SimThread::~SimThread()
 
 void SimThread::run()
 {
-   core_id_t core_id = Sim()->getCoreManager()->registerSimThread();
+   core_id_t core_id = Sim()->getTileManager()->registerSimThread();
 
    LOG_PRINT("Sim thread starting...");
 
-   Network *net = Sim()->getCoreManager()->getCoreFromID(core_id)->getNetwork();
+   Network *net = Sim()->getTileManager()->getTileFromID(core_id)->getNetwork();
    bool cont = true;
 
    Sim()->getSimThreadManager()->simThreadStartCallback();

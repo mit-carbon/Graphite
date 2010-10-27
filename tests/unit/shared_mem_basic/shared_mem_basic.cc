@@ -17,10 +17,10 @@ int main (int argc, char *argv[])
    UInt32 address = 0x1000;
 
    // 1) Get a core object
-   Tile* core = Sim()->getCoreManager()->getCoreFromID(0);
+   Tile* core = Sim()->getTileManager()->getTileFromID(0);
    for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
    {
-      Sim()->getCoreManager()->getCoreFromID(i)->enablePerformanceModels();
+      Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
    }
 
    UInt32 written_val = 100;

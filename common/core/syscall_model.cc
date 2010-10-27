@@ -83,7 +83,7 @@ void* SyscallMdl::copyArgToBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size)
    assert (arg_num < m_num_syscall_args);
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad [arg_num];
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->accessMemory (Tile::NONE, Tile::READ, arg_addr, scratchpad, size);
    return (void*) scratchpad;
 }
@@ -93,7 +93,7 @@ void SyscallMdl::copyArgFromBuffer(UInt32 arg_num, IntPtr arg_addr, UInt32 size)
    assert (arg_num < m_num_syscall_args);
    assert (size < m_scratchpad_size);
    char *scratchpad = m_scratchpad[arg_num];
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->accessMemory(Tile::NONE, Tile::WRITE, arg_addr, scratchpad, size);
 }
 
@@ -270,7 +270,7 @@ IntPtr SyscallMdl::marshallOpenCall(syscall_args_t &args)
    UInt32 len_fname = getStrLen (path) + 1;
    
    char *path_buf = new char [len_fname];
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    m_send_buff << len_fname << make_pair(path_buf, len_fname) << flags << mode;
@@ -341,7 +341,7 @@ IntPtr SyscallMdl::marshallReadCall(syscall_args_t &args)
       m_recv_buff >> make_pair(read_buf, bytes);
       
       // Write the data to memory
-      Tile* core = Sim()->getCoreManager()->getCurrentCore();
+      Tile* core = Sim()->getTileManager()->getCurrentTile();
       core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) buf, read_buf, bytes);
    }
    else
@@ -385,7 +385,7 @@ IntPtr SyscallMdl::marshallWriteCall(syscall_args_t &args)
    // Always pass all the data in the message, even if shared memory is available
    // I think this is a reasonable model and is definitely one less thing to keep
    // track of when you switch between shared-memory/no shared-memory
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) buf, (char*) write_buf, count);
 
    m_send_buff << fd << count << make_pair(write_buf, count);
@@ -431,7 +431,7 @@ IntPtr SyscallMdl::marshallWritevCall(syscall_args_t &args)
    struct iovec *iov = (struct iovec*) args.arg1;
    int iovcnt = (int) args.arg2;
 
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    
    struct iovec *iov_buf = new struct iovec [iovcnt];
    core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) iov, (char*) iov_buf, iovcnt * sizeof (struct iovec));
@@ -539,7 +539,7 @@ IntPtr SyscallMdl::marshallAccessCall(syscall_args_t &args)
    UInt32 len_fname = getStrLen(path) + 1;
    char *path_buf = new char [len_fname];
 
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    // pack the data
@@ -574,7 +574,7 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
    UInt32 len_fname = getStrLen(path) + 1;
    char* path_buf = new char[len_fname]; 
 
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    // Read the data from memory
    core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) path, (char*) path_buf, len_fname);
    core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg1, (char*) &stat_buf, sizeof(struct stat));
@@ -614,7 +614,7 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
    int fd = (int) args.arg0;
    struct stat buf;
 
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    // Read the data from memory
    core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat));
 
@@ -654,7 +654,7 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
    int fd = (int) args.arg0;
    struct stat64 buf;
 
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    // Read the data from memory
    core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
 
@@ -695,7 +695,7 @@ IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
 
    struct termios buf;
 
-   Tile* core = Sim()->getCoreManager()->getCurrentCore();
+   Tile* core = Sim()->getTileManager()->getCurrentTile();
    // Read the data from memory
    core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) args.arg2, (char*) &buf, sizeof(struct termios));
 
@@ -805,7 +805,7 @@ IntPtr SyscallMdl::marshallPipeCall (syscall_args_t &args)
       m_recv_buff >> fd_buff[0] >> fd_buff[1];
    }
    
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    core->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) fd, (char*) fd_buff, 2 * sizeof(int));
       
    delete [] (Byte*) recv_pkt.data;
@@ -838,7 +838,7 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
 #ifdef TARGET_IA32
    struct mmap_arg_struct mmap_arg_buf;
    
-   Tile *core = Sim()->getCoreManager()->getCurrentCore();
+   Tile *core = Sim()->getTileManager()->getCurrentTile();
    LOG_ASSERT_ERROR(core != NULL, "Tile should not be null");
    core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) args.arg0, (char*) &mmap_arg_buf, sizeof(mmap_arg_buf));
 
@@ -1140,7 +1140,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       FloatingPointHandler floating_point_handler;
 
       struct timespec timeout_buf;
-      Tile *core = Sim()->getCoreManager()->getCurrentCore();
+      Tile *core = Sim()->getTileManager()->getCurrentTile();
       LOG_ASSERT_ERROR(core != NULL, "Tile should not be null");
 
       UInt64 start_time;
@@ -1225,7 +1225,7 @@ UInt32 SyscallMdl::getStrLen (char *str)
    char *ptr = str;
    while (1)
    {
-      Tile *core = Sim()->getCoreManager()->getCurrentCore();
+      Tile *core = Sim()->getTileManager()->getCurrentTile();
       core->accessMemory (Tile::NONE, Tile::READ, (IntPtr) ptr, &c, sizeof(char));
       if (c != '\0')
       {

@@ -19,13 +19,13 @@
 
 using namespace std;
 
-CoreManager::CoreManager()
+TileManager::TileManager()
       : m_core_tls(TLS::create())
       , m_core_index_tls(TLS::create())
       , m_thread_type_tls(TLS::create())
       , m_num_registered_sim_threads(0)
 {
-   LOG_PRINT("Starting CoreManager Constructor.");
+   LOG_PRINT("Starting TileManager Constructor.");
 
    UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
 
@@ -35,16 +35,16 @@ CoreManager::CoreManager()
    for (UInt32 i = 0; i < num_local_cores; i++)
    {
       LOG_PRINT("Tile[%u] == %d", i, local_cores.at(i));
-      m_cores.push_back(new Tile(local_cores.at(i)));
-      m_initialized_cores.push_back(false);
+      m_tiles.push_back(new Tile(local_cores.at(i)));
+      m_initialized_tiles.push_back(false);
    }
 
-   LOG_PRINT("Finished CoreManager Constructor.");
+   LOG_PRINT("Finished TileManager Constructor.");
 }
 
-CoreManager::~CoreManager()
+TileManager::~TileManager()
 {
-   for (std::vector<Tile *>::iterator i = m_cores.begin(); i != m_cores.end(); i++)
+   for (std::vector<Tile *>::iterator i = m_tiles.begin(); i != m_tiles.end(); i++)
       delete *i;
 
    delete m_core_tls;
@@ -52,9 +52,9 @@ CoreManager::~CoreManager()
    delete m_thread_type_tls;
 }
 
-void CoreManager::initializeCommId(SInt32 comm_id)
+void TileManager::initializeCommId(SInt32 comm_id)
 {
-   LOG_PRINT("initializeCommId - current core (id) = %p (%d)", getCurrentCore(), getCurrentCoreID());
+   LOG_PRINT("initializeCommId - current core (id) = %p (%d)", getCurrentTile(), getCurrentCoreID());
 
    core_id_t core_id = getCurrentCoreID();
 
@@ -67,13 +67,13 @@ void CoreManager::initializeCommId(SInt32 comm_id)
 
    // Broadcast this update to other processes
 
-   UInt32 idx = getCurrentCoreIndex();
+   UInt32 idx = getCurrentTileIndex();
 
    LOG_ASSERT_ERROR(idx < Config::getSingleton()->getNumLocalCores(),
-         "CoreManager got and index [%d] out of range (0-%d).", 
+         "TileManager got and index [%d] out of range (0-%d).", 
          idx, Config::getSingleton()->getNumLocalCores());
 
-   Network *network = m_cores.at(idx)->getNetwork();
+   Network *network = m_tiles.at(idx)->getNetwork();
    Transport::Node *transport = Transport::getSingleton()->getGlobalNode();
    UInt32 num_procs = Config::getSingleton()->getProcessCount();
 
@@ -95,13 +95,13 @@ void CoreManager::initializeCommId(SInt32 comm_id)
    LOG_PRINT("Finished.");
 }
 
-void CoreManager::initializeThread()
+void TileManager::initializeThread()
 {
-   ScopedLock sl(m_initialized_cores_lock);
+   ScopedLock sl(m_initialized_tiles_lock);
 
-   for (core_id_t i = 0; i < (core_id_t)m_initialized_cores.size(); i++)
+   for (core_id_t i = 0; i < (core_id_t)m_initialized_tiles.size(); i++)
    {
-       if (!m_initialized_cores.at(i))
+       if (!m_initialized_tiles.at(i))
        {
            doInitializeThread(i);
            return;
@@ -111,9 +111,9 @@ void CoreManager::initializeThread()
    LOG_PRINT_ERROR("initializeThread - No free cores out of %d total.", Config::getSingleton()->getNumLocalCores());
 }
 
-void CoreManager::initializeThread(core_id_t core_id)
+void TileManager::initializeThread(core_id_t core_id)
 {
-   ScopedLock sl(m_initialized_cores_lock);
+   ScopedLock sl(m_initialized_tiles_lock);
 
    const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
    LOG_ASSERT_ERROR(core_list.size() == Config::getSingleton()->getNumLocalCores(),
@@ -124,7 +124,7 @@ void CoreManager::initializeThread(core_id_t core_id)
       core_id_t local_core_id = core_list.at(i);
       if (local_core_id == core_id)
       {
-          if (m_initialized_cores.at(i))
+          if (m_initialized_tiles.at(i))
               LOG_PRINT_ERROR("initializeThread -- %d/%d already mapped", i, Config::getSingleton()->getNumLocalCores());
 
           doInitializeThread(i);
@@ -135,52 +135,52 @@ void CoreManager::initializeThread(core_id_t core_id)
    LOG_PRINT_ERROR("initializeThread - Requested core %d does not live on process %d.", core_id, Config::getSingleton()->getCurrentProcessNum());
 }
 
-void CoreManager::doInitializeThread(UInt32 core_index)
+void TileManager::doInitializeThread(UInt32 core_index)
 {
-    m_core_tls->set(m_cores.at(core_index));
+    m_core_tls->set(m_tiles.at(core_index));
     m_core_index_tls->setInt(core_index);
     m_thread_type_tls->setInt(APP_THREAD);
-    m_initialized_cores.at(core_index) = true;
-    LOG_PRINT("Initialize thread : index %d mapped to core (id): %p (%d)", core_index, m_cores.at(core_index), m_cores.at(core_index)->getId());
-    LOG_ASSERT_ERROR(m_core_tls->get() == (void*)(m_cores.at(core_index)),
-                     "TLS appears to be broken. %p != %p", m_core_tls->get(), (void*)(m_cores.at(core_index)));
+    m_initialized_tiles.at(core_index) = true;
+    LOG_PRINT("Initialize thread : index %d mapped to core (id): %p (%d)", core_index, m_tiles.at(core_index), m_tiles.at(core_index)->getId());
+    LOG_ASSERT_ERROR(m_core_tls->get() == (void*)(m_tiles.at(core_index)),
+                     "TLS appears to be broken. %p != %p", m_core_tls->get(), (void*)(m_tiles.at(core_index)));
 }
 
-void CoreManager::terminateThread()
+void TileManager::terminateThread()
 {
    LOG_ASSERT_WARNING(m_core_tls->get() != NULL, "Thread not initialized while terminating.");
 
    core_id_t core_index = m_core_index_tls->getInt();
-   m_initialized_cores.at(core_index) = false;
+   m_initialized_tiles.at(core_index) = false;
 
    m_core_tls->set(NULL);
    m_core_index_tls->setInt(-1);
 }
 
-core_id_t CoreManager::getCurrentCoreID()
+core_id_t TileManager::getCurrentCoreID()
 {
-   Tile *core = getCurrentCore();
+   Tile *core = getCurrentTile();
    if (!core)
        return INVALID_CORE_ID;
    else
        return core->getId();
 }
 
-Tile *CoreManager::getCurrentCore()
+Tile *TileManager::getCurrentTile()
 {
     return m_core_tls->getPtr<Tile>();
 }
 
-UInt32 CoreManager::getCurrentCoreIndex()
+UInt32 TileManager::getCurrentTileIndex()
 {
     UInt32 idx = m_core_index_tls->getInt();
-    // LOG_ASSERT_ERROR(idx < m_cores.size(),
-    //       "Invalid core index, idx(%u) >= m_cores.size(%u)",
-    //       idx, m_cores.size());
+    // LOG_ASSERT_ERROR(idx < m_tiles.size(),
+    //       "Invalid core index, idx(%u) >= m_tiles.size(%u)",
+    //       idx, m_tiles.size());
     return idx;
 }
 
-Tile *CoreManager::getCoreFromID(core_id_t id)
+Tile *TileManager::getTileFromID(core_id_t id)
 {
    Tile *core = NULL;
    // Look up the index from the core list
@@ -191,26 +191,26 @@ Tile *CoreManager::getCoreFromID(core_id_t id)
    {
       if (*i == id)
       {
-         core = m_cores.at(idx);
+         core = m_tiles.at(idx);
          break;
       }
 
       idx++;
    }
 
-   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getCoreFromID!");
+   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getTileFromID!");
 
    return core;
 }
 
-Tile *CoreManager::getCoreFromIndex(UInt32 index)
+Tile *TileManager::getTileFromIndex(UInt32 index)
 {
-   LOG_ASSERT_ERROR(index < Config::getSingleton()->getNumLocalCores(), "getCoreFromIndex -- invalid index %d", index);
+   LOG_ASSERT_ERROR(index < Config::getSingleton()->getNumLocalCores(), "getTileFromIndex -- invalid index %d", index);
 
-   return m_cores.at(index);
+   return m_tiles.at(index);
 }
 
-UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
+UInt32 TileManager::getTileIndexFromID(core_id_t core_id)
 {
    // Look up the index from the core list
    // FIXME: make this more cached
@@ -228,12 +228,12 @@ UInt32 CoreManager::getCoreIndexFromID(core_id_t core_id)
    return INVALID_CORE_ID;
 }
 
-core_id_t CoreManager::registerSimThread()
+core_id_t TileManager::registerSimThread()
 {
-    if (getCurrentCore() != NULL)
+    if (getCurrentTile() != NULL)
     {
         LOG_PRINT_ERROR("registerSimMemThread - Initialized thread twice");
-        return getCurrentCore()->getId();
+        return getCurrentTile()->getId();
     }
 
     ScopedLock sl(m_num_registered_sim_threads_lock);
@@ -242,7 +242,7 @@ core_id_t CoreManager::registerSimThread()
                      "All sim threads already registered. %d > %d",
                      m_num_registered_sim_threads+1, Config::getSingleton()->getNumLocalCores());
 
-    Tile *core = m_cores.at(m_num_registered_sim_threads);
+    Tile *core = m_tiles.at(m_num_registered_sim_threads);
 
     m_core_tls->set(core);
     m_core_index_tls->setInt(m_num_registered_sim_threads);
@@ -253,12 +253,12 @@ core_id_t CoreManager::registerSimThread()
     return core->getId();
 }
 
-bool CoreManager::amiSimThread()
+bool TileManager::amiSimThread()
 {
     return m_thread_type_tls->getInt() == SIM_THREAD;
 }
 
-bool CoreManager::amiUserThread()
+bool TileManager::amiUserThread()
 {
     return m_thread_type_tls->getInt() == APP_THREAD;
 }

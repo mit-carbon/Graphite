@@ -13,11 +13,11 @@
 class Tile;
 class Lock;
 
-class CoreManager
+class TileManager
 {
    public:
-      CoreManager();
-      ~CoreManager();
+      TileManager();
+      ~TileManager();
 
       void initializeCommId(SInt32 comm_id);
       void initializeThread();
@@ -27,14 +27,14 @@ class CoreManager
 
       core_id_t getCurrentCoreID(); // id of currently active core (or INVALID_CORE_ID)
 
-      Tile *getCurrentCore();
-      UInt32 getCurrentCoreIndex();
-      Tile *getCoreFromID(core_id_t id);
-      Tile *getCoreFromIndex(UInt32 index);
+      Tile *getCurrentTile();
+      UInt32 getCurrentTileIndex();
+      Tile *getTileFromID(core_id_t id);
+      Tile *getTileFromIndex(UInt32 index);
 
       void outputSummary(std::ostream &os);
 
-      UInt32 getCoreIndexFromID(core_id_t core_id);
+      UInt32 getTileIndexFromID(core_id_t core_id);
 
       bool amiUserThread();
       bool amiSimThread();
@@ -53,13 +53,13 @@ class CoreManager
           SIM_THREAD
       };
 
-      std::vector<bool> m_initialized_cores;
-      Lock m_initialized_cores_lock;
+      std::vector<bool> m_initialized_tiles;
+      Lock m_initialized_tiles_lock;
 
       UInt32 m_num_registered_sim_threads;
       Lock m_num_registered_sim_threads_lock;
 
-      std::vector<Tile*> m_cores;
+      std::vector<Tile*> m_tiles;
 };
 
 #endif

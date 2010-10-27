@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
    // Let have 4 application cores for now
    for (core_id_t i = 0; i < total_cores; i++)
    {
-      core[i] = Sim()->getCoreManager()->getCoreFromID(i);
+      core[i] = Sim()->getTileManager()->getTileFromID(i);
       core_val[i] = i * 100;
    }
 
@@ -315,7 +315,7 @@ void check(IntPtr address, DirectoryState::dstate_t dstate, core_id_t owner, uns
    PrL1PrL2DramDirectoryMOSI::DramCntlr* home_dram_cntlr = (PrL1PrL2DramDirectoryMOSI::DramCntlr*) home_memory_manager->getDramCntlr();
    UInt32 cache_block_size = home_memory_manager->getCacheBlockSize();
    Byte data_buf[cache_block_size];
-   home_dram_cntlr->getDataFromDram(address, Sim()->getCoreManager()->getCurrentCore()->getId(), data_buf);
+   home_dram_cntlr->getDataFromDram(address, Sim()->getTileManager()->getCurrentTile()->getId(), data_buf);
    int actual_memory_val = *((int*) &data_buf[address & (cache_block_size-1)]);
    assert(actual_memory_val == memory_val);
 }

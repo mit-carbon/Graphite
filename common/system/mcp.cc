@@ -157,8 +157,8 @@ void MCP::run()
    LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPCoreNum());
 
    int mcp_core_num = Config::getSingleton()->getMCPCoreNum();
-   Sim()->getCoreManager()->initializeThread(mcp_core_num);
-   Sim()->getCoreManager()->initializeCommId(mcp_core_num);
+   Sim()->getTileManager()->initializeThread(mcp_core_num);
+   Sim()->getTileManager()->initializeCommId(mcp_core_num);
 
    while (!finished())
    {

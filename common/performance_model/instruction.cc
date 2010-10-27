@@ -72,7 +72,7 @@ StringInstruction::StringInstruction(OperandList &ops)
 UInt64 StringInstruction::getCost()
 {
    // dequeue mem ops until we hit the final marker, then check count
-   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   PerformanceModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
    UInt32 count = 0;
    UInt64 cost = 0;
    DynamicInstructionInfo* i;
@@ -109,7 +109,7 @@ SpawnInstruction::SpawnInstruction(UInt64 time)
 
 UInt64 SpawnInstruction::getCost()
 {
-   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   PerformanceModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
    perf->setCycleCount(m_time);
    throw PerformanceModel::AbortInstructionException(); // exit out of handleInstruction
 }
@@ -122,7 +122,7 @@ BranchInstruction::BranchInstruction(OperandList &l)
 
 UInt64 BranchInstruction::getCost()
 {
-   PerformanceModel *perf = Sim()->getCoreManager()->getCurrentCore()->getPerformanceModel();
+   PerformanceModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
    BranchPredictor *bp = perf->getBranchPredictor();
 
    DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();

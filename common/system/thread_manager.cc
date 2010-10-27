@@ -15,10 +15,10 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-ThreadManager::ThreadManager(CoreManager *core_manager)
+ThreadManager::ThreadManager(TileManager *core_manager)
    : m_thread_spawn_sem(0)
    , m_thread_spawn_lock()
-   , m_core_manager(core_manager)
+   , m_tile_manager(core_manager)
    , m_thread_spawners_terminated(0)
 {
    Config *config = Config::getSingleton();
@@ -79,26 +79,26 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
    LOG_PRINT("onThreadStart(%i)", req->core_id);
 
-   m_core_manager->initializeThread(req->core_id);
+   m_tile_manager->initializeThread(req->core_id);
 
    if (req->core_id == Sim()->getConfig()->getCurrentThreadSpawnerCoreNum())
       return;
 
    // Set the CoreState to 'RUNNING'
-   m_core_manager->getCurrentCore()->setState(Tile::RUNNING);
+   m_tile_manager->getCurrentTile()->setState(Tile::RUNNING);
  
    // send ack to master
    LOG_PRINT("(5) onThreadStart -- send ack to master; req : { %p, %p, %i, %i }",
              req->func, req->arg, req->requester, req->core_id);
 
    req->msg_type = MCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
-   Network *net = m_core_manager->getCurrentCore()->getNetwork();
+   Network *net = m_tile_manager->getCurrentTile()->getNetwork();
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
                 MCP_REQUEST_TYPE,
                 req,
                 sizeof(*req));
 
-   PerformanceModel *pm = m_core_manager->getCurrentCore()->getPerformanceModel();
+   PerformanceModel *pm = m_tile_manager->getCurrentTile()->getPerformanceModel();
 
    // Global Clock to Tile Clock
    UInt64 start_cycle_count = convertCycleCount(req->time, \
@@ -108,16 +108,16 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
 void ThreadManager::onThreadExit()
 {
-   if (m_core_manager->getCurrentCoreID() == -1)
+   if (m_tile_manager->getCurrentCoreID() == -1)
       return;
  
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   Tile* core = m_core_manager->getCurrentCore();
+   Tile* core = m_tile_manager->getCurrentTile();
 
    // send message to master process to update thread state
-   SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_core_manager->getCurrentCoreID() };
+   SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_tile_manager->getCurrentCoreID() };
 
    LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread %d at time %llu",
              core->getId(),
@@ -132,7 +132,7 @@ void ThreadManager::onThreadExit()
 
    // terminate thread locally so we are ready for new thread requests
    // on that core
-   m_core_manager->terminateThread();
+   m_tile_manager->terminateThread();
 
    // update global thread state
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
@@ -178,7 +178,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    // step 1
    LOG_PRINT("(1) spawnThread with func: %p and arg: %p", func, arg);
 
-   Tile *core = m_core_manager->getCurrentCore();
+   Tile *core = m_tile_manager->getCurrentTile();
    Network *net = core->getNetwork();
 
    // Tile Clock to Global Clock
@@ -258,7 +258,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       insertThreadSpawnRequest(req_cpy);
       m_thread_spawn_sem.signal();
          
-      Tile *core = m_core_manager->getCurrentCore();
+      Tile *core = m_tile_manager->getCurrentTile();
       core->getNetwork()->netSend(req->requester, 
             MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
             &req->core_id,
@@ -343,7 +343,7 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
       // Resume the requesting thread
       resumeThread(req->requester);
 
-      Tile *core = m_core_manager->getCurrentCore();
+      Tile *core = m_tile_manager->getCurrentTile();
       core->getNetwork()->netSend(req->requester, 
                                   MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
                                   &req->core_id,
@@ -374,23 +374,23 @@ void ThreadManager::joinThread(core_id_t core_id)
 
    // Send the message to the master process; will get reply when thread is finished
    ThreadJoinRequest msg = { MCP_MESSAGE_THREAD_JOIN_REQUEST,
-                             m_core_manager->getCurrentCoreID(),
+                             m_tile_manager->getCurrentCoreID(),
                              core_id };
 
-   Network *net = m_core_manager->getCurrentCore()->getNetwork();
+   Network *net = m_tile_manager->getCurrentTile()->getNetwork();
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
                 MCP_REQUEST_TYPE,
                 &msg,
                 sizeof(msg));
 
    // Set the CoreState to 'STALLED'
-   m_core_manager->getCurrentCore()->setState(Tile::STALLED);
+   m_tile_manager->getCurrentTile()->setState(Tile::STALLED);
 
    // Wait for reply
    NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY);
 
    // Set the CoreState to 'WAKING_UP'
-   m_core_manager->getCurrentCore()->setState(Tile::WAKING_UP);
+   m_tile_manager->getCurrentTile()->setState(Tile::WAKING_UP);
 
    LOG_PRINT("Exiting join thread.");
 }
@@ -423,7 +423,7 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
    {
       LOG_PRINT("Waking up core: %d at time: %llu", m_thread_state[core_id].waiter, time);
 
-      Tile *core = m_core_manager->getCurrentCore();
+      Tile *core = m_tile_manager->getCurrentTile();
       core_id_t dest = m_thread_state[core_id].waiter;
 
       // Resume the 'pthread_join' caller
@@ -504,7 +504,7 @@ void ThreadManager::slaveTerminateThreadSpawnerAck(core_id_t core_id)
    {
       if (core_id == config->getThreadSpawnerCoreNum(i))
       {
-         Transport::Node *node = m_core_manager->getCurrentCore()->getNetwork()->getTransport();
+         Transport::Node *node = m_tile_manager->getCurrentTile()->getNetwork()->getTransport();
 
          int req_type = LCP_MESSAGE_QUIT_THREAD_SPAWNER_ACK;
 

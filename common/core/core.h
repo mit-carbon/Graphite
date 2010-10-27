@@ -98,7 +98,7 @@ class Tile
       void updateInternalVariablesOnFrequencyChange(volatile float frequency);
 
       State getState();
-      void setState(State core_state);
+      void setState(State tile_state);
 
       void enablePerformanceModels();
       void disablePerformanceModels();
@@ -114,10 +114,10 @@ class Tile
       ClockSkewMinimizationClient *m_clock_skew_minimization_client;
       ShmemPerfModel* m_shmem_perf_model;
       
-      State m_core_state;
-      Lock m_core_state_lock;
+      State m_tile_state;
+      Lock m_tile_state_lock;
 
-      static Lock m_global_core_lock;
+      static Lock m_global_tile_lock;
 
       PacketType getPktTypeFromUserNetType(carbon_network_t net_type);
 };

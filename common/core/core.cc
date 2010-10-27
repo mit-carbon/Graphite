@@ -12,11 +12,11 @@
 
 using namespace std;
 
-Lock Tile::m_global_core_lock;
+Lock Tile::m_global_tile_lock;
 
 Tile::Tile(SInt32 id)
    : m_core_id(id)
-   , m_core_state(IDLE)
+   , m_tile_state(IDLE)
 {
    LOG_PRINT("Tile ctor for: %d", id);
 
@@ -340,7 +340,7 @@ Tile::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr
    if (lock_signal == LOCK)
    {
       assert(mem_op_type == READ_EX);
-      m_global_core_lock.acquire();
+      m_global_tile_lock.acquire();
    }
 
    if ( (mem_op_type == READ) || (mem_op_type == READ_EX) )
@@ -355,7 +355,7 @@ Tile::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr
    if (lock_signal == UNLOCK)
    {
       assert(mem_op_type == WRITE);
-      m_global_core_lock.release();
+      m_global_tile_lock.release();
    }
 
    return make_pair<UInt32, UInt64>(0,0);
@@ -364,13 +364,13 @@ Tile::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr
 Tile::State 
 Tile::getState()
 {
-   ScopedLock scoped_lock(m_core_state_lock);
-   return m_core_state;
+   ScopedLock scoped_lock(m_tile_state_lock);
+   return m_tile_state;
 }
 
 void
-Tile::setState(State core_state)
+Tile::setState(State tile_state)
 {
-   ScopedLock scoped_lock(m_core_state_lock);
-   m_core_state = core_state;
+   ScopedLock scoped_lock(m_tile_state_lock);
+   m_tile_state = tile_state;
 }

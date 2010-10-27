@@ -184,9 +184,9 @@ UInt64 Log::getTimestamp()
 
 void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 {
-   CoreManager *core_manager;
+   TileManager *core_manager;
 
-   if (!Sim() || !(core_manager = Sim()->getCoreManager()))
+   if (!Sim() || !(core_manager = Sim()->getTileManager()))
    {
 
       *core_id = INVALID_CORE_ID;

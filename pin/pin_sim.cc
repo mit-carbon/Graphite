@@ -169,7 +169,7 @@ void routineCallback(RTN rtn, void *v)
 
 void showInstructionInfo(INS ins)
 {
-   if (Sim()->getCoreManager()->getCurrentCore()->getId() != 0)
+   if (Sim()->getTileManager()->getCurrentTile()->getId() != 0)
       return;
    printf("\t");
    if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins))
@@ -266,7 +266,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       if (Sim()->getConfig()->getSimulationMode() == Config::LITE)
       {
          LOG_ASSERT_ERROR(curr_process_num == 0, "Lite mode can only be run with 1 process");
-         Sim()->getCoreManager()->initializeThread(0);
+         Sim()->getTileManager()->initializeThread(0);
       }
       else // Sim()->getConfig()->getSimulationMode() == Config::FULL
       { 
@@ -275,7 +275,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          
          if (curr_process_num == 0)
          {
-            Sim()->getCoreManager()->initializeThread(0);
+            Sim()->getTileManager()->initializeThread(0);
 
             ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
             // 1) Copying over Static Data
@@ -296,9 +296,9 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          else
          {
             core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
-            Sim()->getCoreManager()->initializeThread(core_id);
+            Sim()->getTileManager()->initializeThread(core_id);
             
-            Tile *core = Sim()->getCoreManager()->getCurrentCore();
+            Tile *core = Sim()->getTileManager()->getCurrentTile();
 
             // main thread clock is not affected by start-up time of other processes
             core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
@@ -341,7 +341,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          if (core_id == Sim()->getConfig()->getCurrentThreadSpawnerCoreNum())
          {
             // 'Thread Spawner' thread
-            Sim()->getCoreManager()->initializeThread(core_id);
+            Sim()->getTileManager()->initializeThread(core_id);
          }
          else
          {
@@ -369,7 +369,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          PIN_SetContextReg (ctxt, LEVEL_BASE::REG_R10, (ADDRINT) child_tidptr);
 #endif
 
-         __attribute(__unused__) Tile *core = Sim()->getCoreManager()->getCurrentCore();
+         __attribute(__unused__) Tile *core = Sim()->getTileManager()->getCurrentTile();
          LOG_ASSERT_ERROR(core, "core(NULL)");
 
          // Copy over thread stack data

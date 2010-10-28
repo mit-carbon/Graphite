@@ -5,7 +5,7 @@
 #include "lcp.h"
 #include "mcp.h"
 #include "tile.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "thread_manager.h"
 #include "perf_counter_manager.h"
 #include "sim_thread_manager.h"

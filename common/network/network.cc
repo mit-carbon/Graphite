@@ -5,7 +5,7 @@
 #include "network.h"
 #include "memory_manager_base.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
 #include "log.h"

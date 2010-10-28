@@ -116,7 +116,7 @@ void LCP::updateCommId(void *vp)
 
    NetPacket ack(/*time*/ 0,
                  /*type*/ LCP_COMM_ID_UPDATE_REPLY,
-                 /*sender*/ 0, // doesn't matter ; see core_manager.cc
+                 /*sender*/ 0, // doesn't matter ; see tile_manager.cc
                  /*receiver*/ update->core_id,
                  /*length*/ 0,
                  /*data*/ NULL);

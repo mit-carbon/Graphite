@@ -1,6 +1,6 @@
 #include "clock_skew_minimization.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "tile.h"
 #include "clock_skew_minimization_object.h"
 

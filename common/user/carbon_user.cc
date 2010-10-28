@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include "simulator.h"
 #include "thread_manager.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "tile.h"
 #include "clock_converter.h"
 #include "config_file.hpp"

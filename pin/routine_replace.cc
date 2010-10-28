@@ -10,7 +10,7 @@
 #include "config.h"
 #include "simulator.h"
 #include "tile.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "redirect_memory.h"
 #include "thread_start.h"
 #include "network.h"

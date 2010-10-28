@@ -1,5 +1,5 @@
 #include "tile.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "perf_counter_manager.h"
 #include "log.h"
 #include "packet_type.h"

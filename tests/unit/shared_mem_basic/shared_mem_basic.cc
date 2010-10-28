@@ -1,6 +1,6 @@
 #include "tile.h"
 #include "mem_component.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "simulator.h"
 #include "config.h"
 

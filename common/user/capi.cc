@@ -1,5 +1,5 @@
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "config.h"
 #include "tile.h"
 #include "carbon_user.h"

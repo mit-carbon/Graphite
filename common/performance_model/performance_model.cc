@@ -3,7 +3,7 @@
 #include "iocoom_performance_model.h"
 #include "magic_performance_model.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "config.h"
 #include "tile.h"
 #include "branch_predictor.h"

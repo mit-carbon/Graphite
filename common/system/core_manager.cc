@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "tile.h"
 #include "network.h"
 #include "cache.h"

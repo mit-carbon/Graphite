@@ -28,7 +28,7 @@
 
 // FIXME: This list could probably be trimmed down a lot.
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "config.h"
 #include "tile.h"
 #include "syscall_model.h"

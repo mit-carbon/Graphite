@@ -4,7 +4,7 @@
 #include "carbon_user.h"
 #include "fixed_types.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "core.h"
 #include "memory_manager.h"
 

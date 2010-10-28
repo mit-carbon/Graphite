@@ -5,7 +5,7 @@
 #include "ring_sync_manager.h"
 #include "simulator.h"
 #include "config.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "packetize.h"
 #include "message_types.h"
 #include "utils.h"

@@ -1,6 +1,6 @@
 #include "lite/memory_modeling.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "tile.h"
 
 namespace lite

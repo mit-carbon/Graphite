@@ -1,6 +1,6 @@
 #include "redirect_memory.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "tile.h"
 #include "pin_memory_manager.h"
 #include "performance_model.h"

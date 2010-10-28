@@ -3,7 +3,7 @@ include "tile.h"
 
 #include "shmem_perf_model.h"
 
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "simulator.h"
 
 #include "carbon_user.h"

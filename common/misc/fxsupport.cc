@@ -2,7 +2,7 @@
 using namespace std;
 
 #include "fxsupport.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "simulator.h"
 #include "tile.h"
 

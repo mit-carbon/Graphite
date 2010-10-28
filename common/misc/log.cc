@@ -6,7 +6,7 @@
 #include "log.h"
 #include "config.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 
 using namespace std;
 
@@ -184,9 +184,9 @@ UInt64 Log::getTimestamp()
 
 void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
 {
-   TileManager *core_manager;
+   TileManager *tile_manager;
 
-   if (!Sim() || !(core_manager = Sim()->getTileManager()))
+   if (!Sim() || !(tile_manager = Sim()->getTileManager()))
    {
 
       *core_id = INVALID_CORE_ID;
@@ -195,8 +195,8 @@ void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
    }
    else
    {
-      *core_id = core_manager->getCurrentCoreID();
-      *sim_thread = core_manager->amiSimThread();
+      *core_id = tile_manager->getCurrentCoreID();
+      *sim_thread = tile_manager->amiSimThread();
    }
 }
 

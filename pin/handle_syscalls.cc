@@ -3,7 +3,7 @@
 #include "syscall_model.h"
 #include "simulator.h"
 #include "tile.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include <syscall.h>
 #include "redirect_memory.h"
 #include "vm_manager.h"

@@ -5,7 +5,7 @@ using namespace std;
 #include "carbon_user.h"
 #include "tile.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "clock_skew_minimization_object.h"
 #include "config.h"
 #include "random.h"

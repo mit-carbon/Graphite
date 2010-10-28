@@ -4,7 +4,7 @@
 
 #include "mcp.h"
 #include "config.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "log.h"
 #include "tile.h"
 #include "simulator.h"

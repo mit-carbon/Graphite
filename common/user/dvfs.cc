@@ -1,6 +1,6 @@
 #include "dvfs.h"
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "tile.h"
 #include "performance_model.h"
 #include "fxsupport.h"

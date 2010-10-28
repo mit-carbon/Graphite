@@ -7,7 +7,7 @@
 #include "config.h"
 #include "transport.h"
 #include "tile.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 
 using namespace std;
 

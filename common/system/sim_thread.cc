@@ -1,5 +1,5 @@
 #include "sim_thread.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "log.h"
 #include "simulator.h"
 #include "tile.h"

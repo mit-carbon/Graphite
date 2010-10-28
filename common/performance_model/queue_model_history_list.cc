@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "config.h"
 #include "queue_model_history_list.h"
 #include "fxsupport.h"

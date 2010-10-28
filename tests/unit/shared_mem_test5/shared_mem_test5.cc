@@ -1,7 +1,7 @@
 #include "carbon_user.h"
 
 #include "simulator.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "tile.h"
 #include "memory_manager_base.h"
 

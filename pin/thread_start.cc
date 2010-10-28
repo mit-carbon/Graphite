@@ -7,7 +7,7 @@
 #include "simulator.h"
 #include "fixed_types.h"
 #include "pin_config.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "thread_manager.h"
 #include "thread_support.h"
 

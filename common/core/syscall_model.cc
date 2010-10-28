@@ -10,7 +10,7 @@
 
 #include "simulator.h"
 #include "tile.h"
-#include "core_manager.h"
+#include "tile_manager.h"
 #include "vm_manager.h"
 
 #include <errno.h>

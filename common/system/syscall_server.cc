@@ -12,7 +12,7 @@
 
 #include "syscall_server.h"
 #include "sys/syscall.h"
-#include "core.h"
+#include "tile.h"
 #include "config.h"
 #include "vm_manager.h"
 #include "mcp.h"
@@ -664,11 +664,11 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    }
 #endif
 
-   Tile* core = m_network.getCore();
-   LOG_ASSERT_ERROR (core != NULL, "Tile should not be NULL");
+   Tile* tile = m_network.getCore();
+   LOG_ASSERT_ERROR (tile != NULL, "Tile should not be NULL");
    int act_val;
 
-   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
+   tile->accessMemory(Tile::NONE, Tile::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
 
 #ifdef KERNEL_LENNY
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))

@@ -5,22 +5,22 @@
 #include "simulator.h"
 #include "core_manager.h"
 #include "config.h"
-#include "core.h"
+#include "tile.h"
 #include "branch_predictor.h"
 #include "fxsupport.h"
 #include "utils.h"
 
-PerformanceModel* PerformanceModel::create(Tile* core)
+PerformanceModel* PerformanceModel::create(Tile* tile)
 {
-   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
-   string core_model = Config::getSingleton()->getCoreType(core->getId());
+   volatile float frequency = Config::getSingleton()->getCoreFrequency(tile->getId());
+   string core_model = Config::getSingleton()->getCoreType(tile->getId());
 
    if (core_model == "iocoom")
-      return new IOCOOMPerformanceModel(core, frequency);
+      return new IOCOOMPerformanceModel(tile, frequency);
    else if (core_model == "simple")
-      return new SimplePerformanceModel(core, frequency);
+      return new SimplePerformanceModel(tile, frequency);
    else if (core_model == "magic")
-      return new MagicPerformanceModel(core, frequency);
+      return new MagicPerformanceModel(tile, frequency);
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
@@ -29,9 +29,9 @@ PerformanceModel* PerformanceModel::create(Tile* core)
 }
 
 // Public Interface
-PerformanceModel::PerformanceModel(Tile *core, float frequency)
+PerformanceModel::PerformanceModel(Tile *tile, float frequency)
    : m_cycle_count(0)
-   , m_core(core)
+   , m_tile(tile)
    , m_frequency(frequency)
    , m_average_frequency(0.0)
    , m_total_time(0)

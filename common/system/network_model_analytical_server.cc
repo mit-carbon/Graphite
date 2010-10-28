@@ -4,7 +4,7 @@
 #include "network.h"
 #include "packetize.h"
 #include "config.h"
-#include "core.h"
+#include "tile.h"
 
 #include "log.h"
 

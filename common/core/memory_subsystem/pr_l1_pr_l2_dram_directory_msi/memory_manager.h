@@ -38,7 +38,7 @@ namespace PrL1PrL2DramDirectoryMSI
          CachePerfModel* m_l2_cache_perf_model;
 
       public:
-         MemoryManager(Tile* core, Network* network, ShmemPerfModel* shmem_perf_model);
+         MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
          ~MemoryManager();
 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }

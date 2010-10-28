@@ -1,6 +1,6 @@
 #include "lcp.h"
 #include "simulator.h"
-#include "core.h"
+#include "tile.h"
 #include "message_types.h"
 #include "thread_manager.h"
 #include "clock_skew_minimization_object.h"

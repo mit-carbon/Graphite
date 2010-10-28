@@ -15,7 +15,7 @@ RingSyncManager::RingSyncManager():
    _transport(Transport::getSingleton()->getGlobalNode()),
    _slack(0)
 {
-   // Cache the core pointers corresponding to all the application cores
+   // Cache the tile pointers corresponding to all the application cores
    UInt32 num_cores = Config::getSingleton()->getNumLocalCores();
    UInt32 num_app_cores = (Config::getSingleton()->getCurrentProcessNum() == 0) ? num_cores - 2 : num_cores - 1;
 
@@ -26,9 +26,9 @@ RingSyncManager::RingSyncManager():
    {
       if ((*it) < (core_id_t) Sim()->getConfig()->getApplicationCores())
       {
-         Tile* core = Sim()->getTileManager()->getTileFromID(*it);
-         assert(core != NULL);
-         _core_list.push_back(core);
+         Tile* tile = Sim()->getTileManager()->getTileFromID(*it);
+         assert(tile != NULL);
+         _core_list.push_back(tile);
       }
    }
    assert(_core_list.size() == num_app_cores);
@@ -70,7 +70,7 @@ void
 RingSyncManager::processSyncMsg(Byte* msg)
 {
    // How do I model the slight time delay that should be put in 
-   // before sending the message to another core
+   // before sending the message to another tile
    CycleCountUpdate* cycle_count_update = (CycleCountUpdate*) msg;
 
    Config* config = Config::getSingleton();
@@ -107,7 +107,7 @@ RingSyncManager::updateClientObjectsAndRingMsg(CycleCountUpdate* cycle_count_upd
    std::vector<Tile*>::iterator it;
    for (it = _core_list.begin(); it != _core_list.end(); it++)
    {
-      // Read the Cycle Count and State of the core
+      // Read the Cycle Count and State of the tile
       // May need locks around this
       Tile::State tile_state = (*it)->getState();
 

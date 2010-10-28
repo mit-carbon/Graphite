@@ -51,7 +51,7 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       UInt64 m_total_packet_latency;
 
       // Functions
-      void computePosition(core_id_t core, SInt32 &x, SInt32 &y);
+      void computePosition(core_id_t tile, SInt32 &x, SInt32 &y);
       core_id_t computeCoreId(SInt32 x, SInt32 y);
       SInt32 computeDistance(core_id_t sender, core_id_t receiver);
 

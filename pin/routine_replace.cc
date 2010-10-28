@@ -9,7 +9,7 @@
 // Begin Memory redirection stuff
 #include "config.h"
 #include "simulator.h"
-#include "core.h"
+#include "tile.h"
 #include "core_manager.h"
 #include "redirect_memory.h"
 #include "thread_start.h"
@@ -147,21 +147,21 @@ void replacementMain (CONTEXT *ctxt)
    {
       LOG_PRINT("ReplaceMain start");
       
-      Tile *core = Sim()->getTileManager()->getCurrentTile();
+      Tile *tile = Sim()->getTileManager()->getCurrentTile();
       UInt32 num_processes = Sim()->getConfig()->getProcessCount();
       for (UInt32 i = 1; i < num_processes; i++)
       {
          // FIXME: 
          // This whole process should probably happen through the MCP
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+         tile->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
+         tile->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
       }
       
       for (UInt32 i = 1; i < num_processes; i++)
       {
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
+         tile->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
       LOG_PRINT("Starting enablePerformanceModelsInCurrentProcess()");
@@ -179,9 +179,9 @@ void replacementMain (CONTEXT *ctxt)
    else
    {
       // This whole process should probably happen through the MCP
-      Tile *core = Sim()->getTileManager()->getCurrentTile();
-      core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
+      Tile *tile = Sim()->getTileManager()->getCurrentTile();
+      tile->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
+      tile->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
 
       Simulator::enablePerformanceModelsInCurrentProcess();
 
@@ -218,8 +218,8 @@ void replacementMain (CONTEXT *ctxt)
 
 void replacementGetThreadToSpawn (CONTEXT *ctxt)
 {
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core != NULL);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile != NULL);
    
    ThreadSpawnRequest *req;
    ThreadSpawnRequest req_buf;
@@ -233,7 +233,7 @@ void replacementGetThreadToSpawn (CONTEXT *ctxt)
 
    CarbonGetThreadToSpawn (&req_buf);
 
-   core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) req, (char*) &req_buf, sizeof (ThreadSpawnRequest));
+   tile->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) req, (char*) &req_buf, sizeof (ThreadSpawnRequest));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -261,8 +261,8 @@ void replacementGetCoreId (CONTEXT *ctxt)
 
 void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
 {
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
 
    ThreadSpawnRequest *thread_req;
    ThreadSpawnRequest thread_req_buf;
@@ -274,7 +274,7 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
    
    CarbonDequeueThreadSpawnReq (&thread_req_buf);
 
-   core->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) thread_req, (char*) &thread_req_buf, sizeof (ThreadSpawnRequest));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) thread_req, (char*) &thread_req_buf, sizeof (ThreadSpawnRequest));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -282,8 +282,8 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
 // PIN specific stack management
 void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
 {
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert(core != NULL);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert(tile != NULL);
 
    pthread_attr_t *attr;
    pthread_attr_t attr_buf;
@@ -292,13 +292,13 @@ void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
          IARG_PTR, &attr,
          IARG_END);
 
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
 
    SimPthreadAttrInitOtherAttr(&attr_buf);
 
-   core->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
 
    retFromReplacedRtn(ctxt, ret_val);
 }
@@ -351,8 +351,8 @@ void replacement_CAPI_Initialize (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the CAPI communication API functions
-   __attribute(__unused__) Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   __attribute(__unused__) Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    int comm_id;
    initialize_replacement_args (ctxt,
@@ -370,8 +370,8 @@ void replacement_CAPI_rank (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the CAPI communication API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    int *core_id;
    int core_id_buf;
@@ -383,7 +383,7 @@ void replacement_CAPI_rank (CONTEXT *ctxt)
 
    ret_val = CAPI_rank (&core_id_buf);
    
-   core->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) core_id, (char*) &core_id_buf, sizeof (int));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) core_id, (char*) &core_id_buf, sizeof (int));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -392,8 +392,8 @@ void replacement_CAPI_message_send_w (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the CAPI communication API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    CAPI_endpoint_t sender;
    CAPI_endpoint_t receiver;
@@ -409,7 +409,7 @@ void replacement_CAPI_message_send_w (CONTEXT *ctxt)
          IARG_END);
 
    char *buf = new char [size];
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) buffer, buf, size);
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) buffer, buf, size);
    ret_val = CAPI_message_send_w (sender, receiver, buf, size);
 
    delete [] buf;
@@ -420,8 +420,8 @@ void replacement_CAPI_message_send_w_ex (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the CAPI communication API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    CAPI_endpoint_t sender;
    CAPI_endpoint_t receiver;
@@ -439,7 +439,7 @@ void replacement_CAPI_message_send_w_ex (CONTEXT *ctxt)
          IARG_END);
 
    char *buf = new char [size];
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) buffer, buf, size);
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) buffer, buf, size);
    ret_val = CAPI_message_send_w_ex (sender, receiver, buf, size, net_type);
 
    delete [] buf;
@@ -450,8 +450,8 @@ void replacement_CAPI_message_receive_w (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the CAPI communication API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    CAPI_endpoint_t sender;
    CAPI_endpoint_t receiver;
@@ -468,7 +468,7 @@ void replacement_CAPI_message_receive_w (CONTEXT *ctxt)
 
    char *buf = new char [size];
    ret_val = CAPI_message_receive_w (sender, receiver, buf, size);
-   core->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) buffer, buf, size);
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) buffer, buf, size);
 
    delete [] buf;
    retFromReplacedRtn (ctxt, ret_val);
@@ -478,8 +478,8 @@ void replacement_CAPI_message_receive_w_ex (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the CAPI communication API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    CAPI_endpoint_t sender;
    CAPI_endpoint_t receiver;
@@ -498,7 +498,7 @@ void replacement_CAPI_message_receive_w_ex (CONTEXT *ctxt)
 
    char *buf = new char [size];
    ret_val = CAPI_message_receive_w_ex (sender, receiver, buf, size, net_type);
-   core->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) buffer, buf, size);
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) buffer, buf, size);
 
    delete [] buf;
    retFromReplacedRtn (ctxt, ret_val);
@@ -509,8 +509,8 @@ void replacementMutexInit (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the Carbon synch API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    carbon_mutex_t *mux;
    initialize_replacement_args (ctxt,
@@ -520,9 +520,9 @@ void replacementMutexInit (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
    CarbonMutexInit (&mux_buf);
-   core->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -531,8 +531,8 @@ void replacementMutexLock (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the Carbon synch API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    carbon_mutex_t *mux;
    initialize_replacement_args (ctxt,
@@ -542,7 +542,7 @@ void replacementMutexLock (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
    CarbonMutexLock (&mux_buf);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -552,8 +552,8 @@ void replacementMutexUnlock (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the Carbon synch API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    carbon_mutex_t *mux;
    initialize_replacement_args (ctxt,
@@ -563,7 +563,7 @@ void replacementMutexUnlock (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
    CarbonMutexUnlock (&mux_buf);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -573,8 +573,8 @@ void replacementCondInit (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the Carbon synch API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    carbon_cond_t *cond;
    initialize_replacement_args (ctxt,
@@ -584,9 +584,9 @@ void replacementCondInit (CONTEXT *ctxt)
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
    CarbonCondInit (&cond_buf);
-   core->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -595,8 +595,8 @@ void replacementCondWait (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the Carbon synch API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    carbon_cond_t *cond;
    carbon_mutex_t *mux;
@@ -609,8 +609,8 @@ void replacementCondWait (CONTEXT *ctxt)
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) mux, (char*) &mux_buf, sizeof (mux_buf));
    CarbonCondWait (&cond_buf, &mux_buf);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -620,8 +620,8 @@ void replacementCondSignal (CONTEXT *ctxt)
 {
    // Only the user-threads (all of which are cores) call
    // the Carbon synch API functions
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
    
    carbon_cond_t *cond;
    initialize_replacement_args (ctxt,
@@ -631,7 +631,7 @@ void replacementCondSignal (CONTEXT *ctxt)
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
    CarbonCondSignal (&cond_buf);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -647,9 +647,9 @@ void replacementCondBroadcast (CONTEXT *ctxt)
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) cond, (char*) &cond_buf, sizeof (cond_buf));
    CarbonCondBroadcast (&cond_buf);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -667,11 +667,11 @@ void replacementBarrierInit (CONTEXT *ctxt)
    carbon_barrier_t barrier_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier_buf));
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier_buf));
    CarbonBarrierInit (&barrier_buf, count);
-   core->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier_buf));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier_buf));
 
    retFromReplacedRtn (ctxt, ret_val);
 }
@@ -686,9 +686,9 @@ void replacementBarrierWait (CONTEXT *ctxt)
    carbon_barrier_t barrier_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
-   core->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier_buf));
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
+   tile->accessMemory (Tile::NONE, Tile::READ, (ADDRINT) barrier, (char*) &barrier_buf, sizeof (barrier_buf));
    CarbonBarrierWait (&barrier_buf);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -732,10 +732,10 @@ void replacementPthreadCreate (CONTEXT *ctxt)
       
       carbon_thread_t new_thread_id = CarbonSpawnThread(func, func_arg);
       
-      Tile *core = Sim()->getTileManager()->getCurrentTile();
-      assert (core);
+      Tile *tile = Sim()->getTileManager()->getCurrentTile();
+      assert (tile);
       
-      core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) thread_id, (char*) &new_thread_id, sizeof (pthread_t));
+      tile->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) thread_id, (char*) &new_thread_id, sizeof (pthread_t));
       
       //pthread_create() expects a return value of 0 on success
       ADDRINT ret_val = 0;
@@ -842,8 +842,8 @@ void replacementCarbonGetCoreFrequency(CONTEXT *ctxt)
    volatile float core_frequency_buf;
    CarbonGetCoreFrequency(&core_frequency_buf);
 
-   Tile* core = Sim()->getTileManager()->getCurrentTile();
-   core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   tile->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
@@ -858,8 +858,8 @@ void replacementCarbonSetCoreFrequency(CONTEXT *ctxt)
          IARG_END);
 
    volatile float core_frequency_buf;
-   Tile* core = Sim()->getTileManager()->getCurrentTile();
-   core->accessMemory(Tile::NONE, Tile::READ, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   tile->accessMemory(Tile::NONE, Tile::READ, (IntPtr) core_frequency, (char*) &core_frequency_buf, sizeof(core_frequency_buf));
 
    CarbonSetCoreFrequency(&core_frequency_buf);
 
@@ -877,15 +877,15 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
    ADDRINT ptr;
    ADDRINT buffer;
    unsigned int count = 0;
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
 
    do
    {
       type = va_arg (vl, int);
       addr = PIN_GetContextReg (ctxt, REG_STACK_PTR) + ((count + 1) * sizeof (ADDRINT));
      
-      core->accessMemory (Tile::NONE, Tile::READ, addr, (char*) &buffer, sizeof (ADDRINT));
+      tile->accessMemory (Tile::NONE, Tile::READ, addr, (char*) &buffer, sizeof (ADDRINT));
       switch (type)
       {
          case IARG_ADDRINT:
@@ -987,10 +987,10 @@ void setupCarbonSpawnThreadSpawnerStack (CONTEXT *ctx)
    ADDRINT esp = PIN_GetContextReg (ctx, REG_STACK_PTR);
    ADDRINT ret_ip = * (ADDRINT*) esp;
 
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
 
-   core->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
+   tile->accessMemory(Tile::NONE, Tile::WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
 }
 
 void setupCarbonThreadSpawnerStack (CONTEXT *ctx)
@@ -1002,11 +1002,11 @@ void setupCarbonThreadSpawnerStack (CONTEXT *ctx)
    ADDRINT ret_ip = * (ADDRINT*) esp;
    ADDRINT p = * (ADDRINT*) (esp + sizeof (ADDRINT));
 
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   assert (core);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   assert (tile);
 
-   core->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
-   core->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) (esp + sizeof (ADDRINT)), (char*) &p, sizeof (ADDRINT));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) esp, (char*) &ret_ip, sizeof (ADDRINT));
+   tile->accessMemory (Tile::NONE, Tile::WRITE, (IntPtr) (esp + sizeof (ADDRINT)), (char*) &p, sizeof (ADDRINT));
 }
 
 

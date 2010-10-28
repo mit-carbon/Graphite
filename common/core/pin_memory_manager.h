@@ -1,7 +1,7 @@
 #ifndef __PIN_MEMORY_MANAGER_H__
 #define __PIN_MEMORY_MANAGER_H__
 
-#include "core.h"
+#include "tile.h"
 
 class PinMemoryManager
 {
@@ -27,7 +27,7 @@ class PinMemoryManager
       carbon_reg_t m_saved_esp;
 
    public:
-      PinMemoryManager(Tile* core);
+      PinMemoryManager(Tile* tile);
       ~PinMemoryManager();
 
       // Functions for redirecting general memory accesses

@@ -2,7 +2,7 @@
 #define __REDIRECT_MEMORY_H__
 
 #include "pin.H"
-#include "core.h"
+#include "tile.h"
 #include "pin_memory_manager.h"
 
 bool rewriteStringOp (INS ins);

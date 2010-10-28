@@ -6,7 +6,7 @@
 #include <map>
 
 #include "semaphore.h"
-#include "core.h"
+#include "tile.h"
 #include "fixed_types.h"
 #include "message_types.h"
 #include "lock.h"

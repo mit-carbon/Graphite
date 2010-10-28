@@ -250,7 +250,7 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
    }
    else
    {
-      // core file
+      // tile file
       if (_coreFiles[core_id] == NULL)
       {
          assert(core_id < _coreCount);
@@ -316,8 +316,8 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    char message[512];
    char *p = message;
 
-   // This is ugly, but it just prints the time stamp, process number, core number, source file/line
-   if (core_id != INVALID_CORE_ID) // valid core id
+   // This is ugly, but it just prints the time stamp, process number, tile number, source file/line
+   if (core_id != INVALID_CORE_ID) // valid tile id
       p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", (long long unsigned int) getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), source_file, source_line);
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
       p += sprintf(p, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", (long long unsigned int) getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), source_file, source_line);

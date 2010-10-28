@@ -7,13 +7,13 @@
 #include "packet_type.h"
 #include "packetize.h"
 #include "network.h"
-#include "core.h"
+#include "tile.h"
 #include "performance_model.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-BarrierSyncClient::BarrierSyncClient(Tile* core):
-   m_core(core)
+BarrierSyncClient::BarrierSyncClient(Tile* tile):
+   m_core(tile)
 {
    try
    {
@@ -41,7 +41,7 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
    if (cycle_count == 0)
       cycle_count = m_core->getPerformanceModel()->getCycleCount();
 
-   // Convert from core clock to global clock
+   // Convert from tile clock to global clock
    UInt64 curr_time = convertCycleCount(cycle_count, m_core->getPerformanceModel()->getFrequency(), 1.0);
 
    if (curr_time >= m_next_sync_time)

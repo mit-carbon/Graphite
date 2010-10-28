@@ -1,4 +1,4 @@
-#include "core.h"
+#include "tile.h"
 #include "mem_component.h"
 #include "core_manager.h"
 #include "simulator.h"
@@ -26,11 +26,11 @@ int main (int argc, char *argv[])
 
    carbon_thread_t tid_list[num_threads];
 
-   Tile* core = Sim()->getTileManager()->getCurrentTile();
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
 
    int val = 0;
-   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address, (Byte*) &val, sizeof(val));
-   LOG_PRINT("Tile(%i): Access Time(%llu)", core->getId(), core->getShmemPerfModel()->getCycleCount());
+   tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address, (Byte*) &val, sizeof(val));
+   LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
 
    for (int i = 0; i < num_threads; i++)
    {
@@ -42,8 +42,8 @@ int main (int argc, char *argv[])
       CarbonJoinThread(tid_list[i]);
    }
   
-   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address, (Byte*) &val, sizeof(val));
-   LOG_PRINT("Tile(%i): Access Time(%llu)", core->getId(), core->getShmemPerfModel()->getCycleCount());
+   tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address, (Byte*) &val, sizeof(val));
+   LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
    
    printf("val = %i\n", val);
    if (val != (num_iterations))
@@ -62,21 +62,21 @@ int main (int argc, char *argv[])
 void* thread_func(void* threadid)
 {
    long tid = (long) threadid;
-   Tile* core = Sim()->getTileManager()->getCurrentTile();
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
 
    for (int i = 0; i < num_iterations; i++)
    {
       int val;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address, (Byte*) &val, sizeof(val));
-      LOG_PRINT("Tile(%i): Access Time(%llu)", core->getId(), core->getShmemPerfModel()->getCycleCount());
+      tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address, (Byte*) &val, sizeof(val));
+      LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
 
       CarbonBarrierWait(&barrier); 
 
       if (tid == 0)
       {
          val ++;
-         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address, (Byte*) &val, sizeof(val));
-         LOG_PRINT("Tile(%i): Access Time(%llu)", core->getId(), core->getShmemPerfModel()->getCycleCount());
+         tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address, (Byte*) &val, sizeof(val));
+         LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
       }
    }
    return NULL;

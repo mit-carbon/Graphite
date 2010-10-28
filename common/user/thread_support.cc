@@ -6,7 +6,7 @@
 #include "simulator.h"
 #include "thread_manager.h"
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "config_file.hpp"
 #include "carbon_user.h"
 #include "thread_support_private.h"

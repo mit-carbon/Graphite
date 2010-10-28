@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include "clock_skew_minimization_object.h"
-#include "core.h"
+#include "tile.h"
 #include "lock.h"
 #include "cond.h"
 #include "fixed_types.h"
@@ -12,7 +12,7 @@
 class RingSyncClient : public ClockSkewMinimizationClient
 {
    private:
-      Tile* _core;
+      Tile* _tile;
 
       UInt64 _cycle_count;
       UInt64 _max_cycle_count;
@@ -21,7 +21,7 @@ class RingSyncClient : public ClockSkewMinimizationClient
       ConditionVariable _cond;
 
    public:
-      RingSyncClient(Tile* core);
+      RingSyncClient(Tile* tile);
       ~RingSyncClient();
 
       void enable() {}

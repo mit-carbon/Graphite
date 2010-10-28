@@ -3,7 +3,7 @@
 using namespace std;
 
 #include "carbon_user.h"
-#include "core.h"
+#include "tile.h"
 #include "simulator.h"
 #include "core_manager.h"
 #include "clock_skew_minimization_object.h"
@@ -131,10 +131,10 @@ int main(int argc, char* argv[])
 
 void* thread_func(void*)
 {
-   Tile* core = Sim()->getTileManager()->getCurrentTile();
-   assert((core->getId() >= 0) && (core->getId() < m_num_threads));
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   assert((tile->getId() >= 0) && (tile->getId() < m_num_threads));
  
-   SInt32 thread_id = core->getId();
+   SInt32 thread_id = tile->getId();
 
    SInt32 num_instructions_simulated = 0; 
    while(num_instructions_simulated < m_total_instructions_per_core)
@@ -161,7 +161,7 @@ void* thread_func(void*)
                if (m_rd_only_shared_address_list[thread_id].size() != 0)
                {
                   IntPtr address = getRandomReadOnlySharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, 
+                  pair<UInt32, UInt64> ret_val = tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, 
                         address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                   m_core_clock_list[thread_id] += ret_val.second;
                }
@@ -173,7 +173,7 @@ void* thread_func(void*)
                if (m_rd_wr_shared_address_list[thread_id].size() != 0)
                {
                   IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, 
+                  pair<UInt32, UInt64> ret_val = tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, 
                         address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                   m_core_clock_list[thread_id] += ret_val.second;
                }
@@ -185,7 +185,7 @@ void* thread_func(void*)
                if (m_rd_wr_shared_address_list[thread_id].size() != 0)
                {
                   IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE,
+                  pair<UInt32, UInt64> ret_val = tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE,
                         address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                   m_core_clock_list[thread_id] += ret_val.second;
                }
@@ -195,7 +195,7 @@ void* thread_func(void*)
          case PRIVATE_MEMORY_READ:
             {
                IntPtr address = getPrivateAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ,
+               pair<UInt32, UInt64> ret_val = tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ,
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
                break;
@@ -204,7 +204,7 @@ void* thread_func(void*)
          case PRIVATE_MEMORY_WRITE:
             {
                IntPtr address = getPrivateAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE,
+               pair<UInt32, UInt64> ret_val = tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE,
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
                break;
@@ -218,7 +218,7 @@ void* thread_func(void*)
       num_instructions_simulated ++;
       
       // Synchronize the clocks
-      ClockSkewMinimizationClient *client = core->getClockSkewMinimizationClient();
+      ClockSkewMinimizationClient *client = tile->getClockSkewMinimizationClient();
       if (client)
          client->synchronize(m_core_clock_list[thread_id]);
    }

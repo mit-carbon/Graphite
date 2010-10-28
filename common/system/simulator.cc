@@ -4,7 +4,7 @@
 #include "log.h"
 #include "lcp.h"
 #include "mcp.h"
-#include "core.h"
+#include "tile.h"
 #include "core_manager.h"
 #include "thread_manager.h"
 #include "perf_counter_manager.h"

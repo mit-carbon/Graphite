@@ -6,7 +6,7 @@
 #include "simulator.h"
 #include "config.h"
 #include "transport.h"
-#include "core.h"
+#include "tile.h"
 #include "core_manager.h"
 
 using namespace std;
@@ -35,7 +35,7 @@ static void gatherSummaries(vector<string> &summaries)
       // receive summary
       for (UInt32 c = 0; c < cl.size(); c++)
       {
-         LOG_PRINT("Collect from core %d", cl[c]);
+         LOG_PRINT("Collect from tile %d", cl[c]);
 
          Byte *buf;
 
@@ -179,7 +179,7 @@ void addColHeadings(Table &table)
    table(0, Config::getSingleton()->getMCPCoreNum()+1) = "MCP";
 }
 
-void addCoreSummary(Table &table, core_id_t core, const string &summary)
+void addCoreSummary(Table &table, core_id_t tile, const string &summary)
 {
    string::size_type pos = summary.find(':')+1;
 
@@ -190,13 +190,13 @@ void addCoreSummary(Table &table, core_id_t core, const string &summary)
       pos = summary.find(':',pos)+1;
       assert(pos != string::npos);
 
-      table(i, core+1) = value;
+      table(i, tile+1) = value;
    }
 }
 
 string formatSummaries(const vector<string> &summaries)
 {
-   // assume that each core outputs the same information
+   // assume that each tile outputs the same information
    // assume that output is formatted as "label: value"
 
    // from first summary, find number of rows needed
@@ -241,7 +241,7 @@ void TileManager::outputSummary(ostream &os)
 
    for (UInt32 i = 0; i < cl.size(); i++)
    {
-      LOG_PRINT("Output summary core %i", cl[i]);
+      LOG_PRINT("Output summary tile %i", cl[i]);
       stringstream ss;
       m_tiles[i]->outputSummary(ss);
       global_node->globalSend(0, &cl[i], sizeof(cl[i]));

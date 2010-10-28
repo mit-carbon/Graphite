@@ -1,4 +1,4 @@
-#include "core.h"
+#include "tile.h"
 #include "mem_component.h"
 #include "core_manager.h"
 #include "simulator.h"
@@ -19,7 +19,7 @@ int main (int argc, char *argv[])
    for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
       Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
 
-   // 1) Get a core object
+   // 1) Get a tile object
    Tile* core_0 = Sim()->getTileManager()->getTileFromID(0);
    Tile* core_1 = Sim()->getTileManager()->getTileFromID(1);
 

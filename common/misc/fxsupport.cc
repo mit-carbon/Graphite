@@ -4,7 +4,7 @@ using namespace std;
 #include "fxsupport.h"
 #include "core_manager.h"
 #include "simulator.h"
-#include "core.h"
+#include "tile.h"
 
 FloatingPointHandler::FloatingPointHandler()
 {

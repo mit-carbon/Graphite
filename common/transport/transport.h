@@ -34,7 +34,7 @@ public:
    virtual Node* createNode(core_id_t core_id) = 0;
 
    virtual void barrier() = 0;
-   virtual Node* getGlobalNode() = 0; // for communication not linked to a core
+   virtual Node* getGlobalNode() = 0; // for communication not linked to a tile
 
 protected:
    Transport();

@@ -3,7 +3,7 @@
 
 using namespace std;
 
-#include "core.h"
+#include "tile.h"
 #include "network.h"
 #include "mem_component.h"
 #include "shmem_perf_model.h"
@@ -35,8 +35,8 @@ class MemoryManagerBase
       void printCoreListWithMemoryControllers(vector<core_id_t>& core_list_with_memory_controllers);
    
    public:
-      MemoryManagerBase(Tile* core, Network* network, ShmemPerfModel* shmem_perf_model):
-         m_core(core), 
+      MemoryManagerBase(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model):
+         m_core(tile), 
          m_network(network), 
          m_shmem_perf_model(shmem_perf_model)
       {}
@@ -69,7 +69,7 @@ class MemoryManagerBase
       
       static CachingProtocol_t parseProtocolType(std::string& protocol_type);
       static MemoryManagerBase* createMMU(std::string protocol_type,
-            Tile* core,
+            Tile* tile,
             Network* network, 
             ShmemPerfModel* shmem_perf_model);
       

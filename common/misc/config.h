@@ -111,7 +111,7 @@ public:
    UInt32 getTotalCores();
    UInt32 getApplicationCores();
 
-   // Return an array of core numbers for a given process
+   // Return an array of tile numbers for a given process
    //  The returned array will have numMods(proc_num) elements
    const CoreList & getCoreListForProcess(UInt32 proc_num)
    { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num]; }
@@ -119,17 +119,17 @@ public:
    const CoreList & getCoreListForCurrentProcess()
    { return getCoreListForProcess(getCurrentProcessNum()); }
 
-   UInt32 getProcessNumForCore(UInt32 core)
+   UInt32 getProcessNumForCore(UInt32 tile)
    { 
-     if (core >= m_total_cores)
+     if (tile >= m_total_cores)
      {
-       fprintf(stderr, "core(%u), m_total_cores(%u)\n", core, m_total_cores);
+       fprintf(stderr, "tile(%u), m_total_cores(%u)\n", tile, m_total_cores);
        exit(-1);
      }
-     return m_core_to_proc_map[core]; 
+     return m_core_to_proc_map[tile]; 
    }
 
-   // For mapping between user-land communication id's to actual core id's
+   // For mapping between user-land communication id's to actual tile id's
    void updateCommToCoreMap(UInt32 comm_id, core_id_t core_id);
    UInt32 getCoreFromCommId(UInt32 comm_id);
 
@@ -174,12 +174,12 @@ private:
 
    UInt32  m_current_process_num;          // Process number for this process
 
-   std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding core parameters
+   std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding tile parameters
    std::vector<NetworkParameters> m_network_parameters_vec;   // Vector holding network parameters
 
    // This data structure keeps track of which cores are in each process.
    // It is an array of size num_processes where each element is a list of
-   // core numbers.  Each list specifies which cores are in the corresponding
+   // tile numbers.  Each list specifies which cores are in the corresponding
    // process.
    CoreToProcMap m_core_to_proc_map;
    CoreList* m_proc_to_core_list_map;

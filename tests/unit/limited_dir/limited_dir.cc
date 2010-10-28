@@ -3,7 +3,7 @@
 
 #include "carbon_user.h"
 #include "fixed_types.h"
-#include "core.h"
+#include "tile.h"
 #include "memory_manager.h"
 #include "simulator.h"
 
@@ -56,20 +56,20 @@ void* threadFunc(void* threadid_ptr)
    {
       if (threadid == i)
       {
-         Tile* core = Sim()->getTileManager()->getCurrentTile();
-         core_list[threadid] = core;
+         Tile* tile = Sim()->getTileManager()->getCurrentTile();
+         core_list[threadid] = tile;
 
          if (threadid % (num_consecutive_reads+1) == 0)
          {
             // Write a shared variable
-            core->accessMemory(Tile::NONE, WRITE, (IntPtr) &shared_var, 
+            tile->accessMemory(Tile::NONE, WRITE, (IntPtr) &shared_var, 
                   (char*) &threadid, sizeof(threadid), true);
          }
          else
          {
             // Read the shared variable
             SInt32 act_value;
-            core->accessMemory(Tile::NONE, READ, (IntPtr) &shared_var,
+            tile->accessMemory(Tile::NONE, READ, (IntPtr) &shared_var,
                   (char*) &act_value, sizeof(act_value), true);
             printf("Thread(%i), Shared Var: %i\n", threadid, act_value);
 
@@ -102,10 +102,10 @@ void validateCacheModelCounters()
    for (SInt32 i = 0; i < num_threads; i++)
    {
       // This is a cached core_list
-      Tile* core = core_list[i];
+      Tile* tile = core_list[i];
 
       SInt32 buffer;
-      bool is_miss = (bool) core->accessMemory(Tile::NONE,
+      bool is_miss = (bool) tile->accessMemory(Tile::NONE,
             READ,
             (IntPtr) &shared_var,
             (char*) &buffer,
@@ -131,8 +131,8 @@ void validateDramModelCounters()
 
    for (SInt32 i = 0; i < (SInt32) total_cores; i++)
    {
-      Tile* core = Sim()->getTileManager()->getTileFromID(i);
-      UInt64 total_dram_accesses = core->getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->getTotalAccesses();
+      Tile* tile = Sim()->getTileManager()->getTileFromID(i);
+      UInt64 total_dram_accesses = tile->getMemoryManager()->getDramDirectory()->getDramPerformanceModel()->getTotalAccesses();
 
       printf("Tile(%i), total_dram_accesses: %llu\n", i, total_dram_accesses);
    }

@@ -5,7 +5,7 @@
 #include "simulator.h"
 #include "thread_manager.h"
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "clock_converter.h"
 #include "config_file.hpp"
 #include "handle_args.h"
@@ -79,9 +79,9 @@ UInt64 CarbonGetTime()
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   Tile* core = Sim()->getTileManager()->getCurrentTile();
-   UInt64 time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
-         core->getPerformanceModel()->getFrequency(), 1.0);
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   UInt64 time = convertCycleCount(tile->getPerformanceModel()->getCycleCount(), \
+         tile->getPerformanceModel()->getFrequency(), 1.0);
 
    return time;
 }

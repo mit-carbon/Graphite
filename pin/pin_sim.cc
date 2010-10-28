@@ -30,7 +30,7 @@
 #include "simulator.h"
 #include "core_manager.h"
 #include "config.h"
-#include "core.h"
+#include "tile.h"
 #include "syscall_model.h"
 #include "thread_manager.h"
 #include "config_file.hpp"
@@ -298,10 +298,10 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
             Sim()->getTileManager()->initializeThread(core_id);
             
-            Tile *core = Sim()->getTileManager()->getCurrentTile();
+            Tile *tile = Sim()->getTileManager()->getCurrentTile();
 
             // main thread clock is not affected by start-up time of other processes
-            core->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
+            tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, core_id);
@@ -369,8 +369,8 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          PIN_SetContextReg (ctxt, LEVEL_BASE::REG_R10, (ADDRINT) child_tidptr);
 #endif
 
-         __attribute(__unused__) Tile *core = Sim()->getTileManager()->getCurrentTile();
-         LOG_ASSERT_ERROR(core, "core(NULL)");
+         __attribute(__unused__) Tile *tile = Sim()->getTileManager()->getCurrentTile();
+         LOG_ASSERT_ERROR(tile, "tile(NULL)");
 
          // Copy over thread stack data
          // copySpawnedThreadStackData(reg_esp);

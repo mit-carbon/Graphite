@@ -5,7 +5,7 @@
 #include <list>
 
 #include "clock_skew_minimization_object.h"
-#include "core.h"
+#include "tile.h"
 #include "lock.h"
 #include "cond.h"
 #include "random.h"
@@ -69,7 +69,7 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
       
 
    public:
-      RandomPairsSyncClient(Tile* core);
+      RandomPairsSyncClient(Tile* tile);
       ~RandomPairsSyncClient();
 
       void enable();

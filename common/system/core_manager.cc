@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "network.h"
 #include "cache.h"
 #include "config.h"
@@ -54,11 +54,11 @@ TileManager::~TileManager()
 
 void TileManager::initializeCommId(SInt32 comm_id)
 {
-   LOG_PRINT("initializeCommId - current core (id) = %p (%d)", getCurrentTile(), getCurrentCoreID());
+   LOG_PRINT("initializeCommId - current tile (id) = %p (%d)", getCurrentTile(), getCurrentCoreID());
 
    core_id_t core_id = getCurrentCoreID();
 
-   LOG_ASSERT_ERROR(core_id != INVALID_CORE_ID, "Unexpected invalid core id : %d", core_id);
+   LOG_ASSERT_ERROR(core_id != INVALID_CORE_ID, "Unexpected invalid tile id : %d", core_id);
 
    UnstructuredBuffer send_buff;
    send_buff << (SInt32) LCP_MESSAGE_COMMID_UPDATE << comm_id << core_id;
@@ -132,7 +132,7 @@ void TileManager::initializeThread(core_id_t core_id)
       }
    }
 
-   LOG_PRINT_ERROR("initializeThread - Requested core %d does not live on process %d.", core_id, Config::getSingleton()->getCurrentProcessNum());
+   LOG_PRINT_ERROR("initializeThread - Requested tile %d does not live on process %d.", core_id, Config::getSingleton()->getCurrentProcessNum());
 }
 
 void TileManager::doInitializeThread(UInt32 core_index)
@@ -141,7 +141,7 @@ void TileManager::doInitializeThread(UInt32 core_index)
     m_core_index_tls->setInt(core_index);
     m_thread_type_tls->setInt(APP_THREAD);
     m_initialized_tiles.at(core_index) = true;
-    LOG_PRINT("Initialize thread : index %d mapped to core (id): %p (%d)", core_index, m_tiles.at(core_index), m_tiles.at(core_index)->getId());
+    LOG_PRINT("Initialize thread : index %d mapped to tile (id): %p (%d)", core_index, m_tiles.at(core_index), m_tiles.at(core_index)->getId());
     LOG_ASSERT_ERROR(m_core_tls->get() == (void*)(m_tiles.at(core_index)),
                      "TLS appears to be broken. %p != %p", m_core_tls->get(), (void*)(m_tiles.at(core_index)));
 }
@@ -159,11 +159,11 @@ void TileManager::terminateThread()
 
 core_id_t TileManager::getCurrentCoreID()
 {
-   Tile *core = getCurrentTile();
-   if (!core)
+   Tile *tile = getCurrentTile();
+   if (!tile)
        return INVALID_CORE_ID;
    else
-       return core->getId();
+       return tile->getId();
 }
 
 Tile *TileManager::getCurrentTile()
@@ -175,15 +175,15 @@ UInt32 TileManager::getCurrentTileIndex()
 {
     UInt32 idx = m_core_index_tls->getInt();
     // LOG_ASSERT_ERROR(idx < m_tiles.size(),
-    //       "Invalid core index, idx(%u) >= m_tiles.size(%u)",
+    //       "Invalid tile index, idx(%u) >= m_tiles.size(%u)",
     //       idx, m_tiles.size());
     return idx;
 }
 
 Tile *TileManager::getTileFromID(core_id_t id)
 {
-   Tile *core = NULL;
-   // Look up the index from the core list
+   Tile *tile = NULL;
+   // Look up the index from the tile list
    // FIXME: make this more cached
    const Config::CoreList & cores(Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum()));
    UInt32 idx = 0;
@@ -191,16 +191,16 @@ Tile *TileManager::getTileFromID(core_id_t id)
    {
       if (*i == id)
       {
-         core = m_tiles.at(idx);
+         tile = m_tiles.at(idx);
          break;
       }
 
       idx++;
    }
 
-   LOG_ASSERT_ERROR(!core || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getTileFromID!");
+   LOG_ASSERT_ERROR(!tile || idx < Config::getSingleton()->getNumLocalCores(), "Illegal index in getTileFromID!");
 
-   return core;
+   return tile;
 }
 
 Tile *TileManager::getTileFromIndex(UInt32 index)
@@ -212,7 +212,7 @@ Tile *TileManager::getTileFromIndex(UInt32 index)
 
 UInt32 TileManager::getTileIndexFromID(core_id_t core_id)
 {
-   // Look up the index from the core list
+   // Look up the index from the tile list
    // FIXME: make this more cached
    const Config::CoreList & cores(Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum()));
    UInt32 idx = 0;
@@ -224,7 +224,7 @@ UInt32 TileManager::getTileIndexFromID(core_id_t core_id)
       idx++;
    }
 
-   LOG_ASSERT_ERROR(false, "Tile lookup failed for core id: %d!", core_id);
+   LOG_ASSERT_ERROR(false, "Tile lookup failed for tile id: %d!", core_id);
    return INVALID_CORE_ID;
 }
 
@@ -242,15 +242,15 @@ core_id_t TileManager::registerSimThread()
                      "All sim threads already registered. %d > %d",
                      m_num_registered_sim_threads+1, Config::getSingleton()->getNumLocalCores());
 
-    Tile *core = m_tiles.at(m_num_registered_sim_threads);
+    Tile *tile = m_tiles.at(m_num_registered_sim_threads);
 
-    m_core_tls->set(core);
+    m_core_tls->set(tile);
     m_core_index_tls->setInt(m_num_registered_sim_threads);
     m_thread_type_tls->setInt(SIM_THREAD);
 
     ++m_num_registered_sim_threads;
 
-    return core->getId();
+    return tile->getId();
 }
 
 bool TileManager::amiSimThread()

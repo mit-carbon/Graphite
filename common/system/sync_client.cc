@@ -1,6 +1,6 @@
 #include "sync_client.h"
 #include "network.h"
-#include "core.h"
+#include "tile.h"
 #include "packetize.h"
 #include "mcp.h"
 #include "clock_converter.h"
@@ -10,9 +10,9 @@
 
 using namespace std;
 
-SyncClient::SyncClient(Tile *core)
-      : m_core(core)
-      , m_network(core->getNetwork())
+SyncClient::SyncClient(Tile *tile)
+      : m_tile(tile)
+      , m_network(tile->getNetwork())
 {
 }
 
@@ -53,8 +53,8 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *mux << start_time;
 
@@ -83,9 +83,9 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    {
       // Global Clock to Tile Clock
       UInt64 cycles_elapsed = convertCycleCount(time - start_time, \
-            1.0, m_core->getPerformanceModel()->getFrequency());
+            1.0, m_tile->getPerformanceModel()->getFrequency());
 
-      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+      m_tile->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
    }
 
    delete [](Byte*) recv_pkt.data;
@@ -103,8 +103,8 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
    int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *mux << start_time;
 
@@ -135,8 +135,8 @@ void SyncClient::condInit(carbon_cond_t *cond)
    int msg_type = MCP_MESSAGE_COND_INIT;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *cond << start_time;
 
@@ -163,8 +163,8 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    int msg_type = MCP_MESSAGE_COND_WAIT;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *cond << *mux << start_time;
 
@@ -193,9 +193,9 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    {
       // Global Clock to Tile Clock
       UInt64 cycles_elapsed = convertCycleCount(time  - start_time, \
-            1.0, m_core->getPerformanceModel()->getFrequency());
+            1.0, m_tile->getPerformanceModel()->getFrequency());
 
-      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+      m_tile->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
    }
 
    delete [](Byte*) recv_pkt.data;
@@ -213,8 +213,8 @@ void SyncClient::condSignal(carbon_cond_t *cond)
    int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *cond << start_time;
 
@@ -245,8 +245,8 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
    int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *cond << start_time;
 
@@ -277,8 +277,8 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
    int msg_type = MCP_MESSAGE_BARRIER_INIT;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << count << start_time;
 
@@ -305,8 +305,8 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    int msg_type = MCP_MESSAGE_BARRIER_WAIT;
 
    // Tile Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
-         m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 start_time = convertCycleCount(m_tile->getPerformanceModel()->getCycleCount(), \
+         m_tile->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *barrier << start_time;
 
@@ -335,9 +335,9 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    {
       // Global Clock to Tile Clock
       UInt64 cycles_elapsed = convertCycleCount(time - start_time, \
-            1.0, m_core->getPerformanceModel()->getFrequency());
+            1.0, m_tile->getPerformanceModel()->getFrequency());
 
-      m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+      m_tile->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
    }
 
    delete [](Byte*) recv_pkt.data;

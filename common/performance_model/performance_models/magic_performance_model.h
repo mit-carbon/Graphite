@@ -6,7 +6,7 @@
 class MagicPerformanceModel : public PerformanceModel
 {
 public:
-   MagicPerformanceModel(Tile *core, float frequency);
+   MagicPerformanceModel(Tile *tile, float frequency);
    ~MagicPerformanceModel();
 
    void outputSummary(std::ostream &os);

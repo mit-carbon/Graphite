@@ -1,5 +1,5 @@
 #include "perf_counter_support.h"
-#include "core.h"
+#include "tile.h"
 #include "core_manager.h"
 #include "simulator.h"
 #include "packet_type.h"

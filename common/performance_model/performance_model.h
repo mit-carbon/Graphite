@@ -19,7 +19,7 @@ class BranchPredictor;
 class PerformanceModel
 {
 public:
-   PerformanceModel(Tile* core, float frequency);
+   PerformanceModel(Tile* tile, float frequency);
    virtual ~PerformanceModel();
 
    void queueDynamicInstruction(Instruction *i);
@@ -37,7 +37,7 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static PerformanceModel *create(Tile* core);
+   static PerformanceModel *create(Tile* tile);
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
@@ -55,7 +55,7 @@ protected:
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 
-   Tile* getCore() { return m_core; }
+   Tile* getCore() { return m_tile; }
    void frequencySummary(std::ostream &os);
 
    UInt64 m_cycle_count;
@@ -66,7 +66,7 @@ private:
 
    virtual void handleInstruction(Instruction *instruction) = 0;
 
-   Tile* m_core;
+   Tile* m_tile;
 
    volatile float m_frequency;
 

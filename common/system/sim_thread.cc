@@ -2,7 +2,7 @@
 #include "core_manager.h"
 #include "log.h"
 #include "simulator.h"
-#include "core.h"
+#include "tile.h"
 #include "sim_thread_manager.h"
 
 SimThread::SimThread()

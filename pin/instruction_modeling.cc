@@ -4,7 +4,7 @@
 #include "performance_model.h"
 #include "opcodes.h"
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 
 void handleBasicBlock(BasicBlock *sim_basic_block)
 {

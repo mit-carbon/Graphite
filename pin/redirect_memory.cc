@@ -1,7 +1,7 @@
 #include "redirect_memory.h"
 #include "simulator.h"
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "pin_memory_manager.h"
 #include "performance_model.h"
 
@@ -13,9 +13,9 @@ void memOp (Tile::lock_signal_t lock_signal, Tile::mem_op_t mem_op_type, IntPtr 
 {   
    assert (lock_signal == Tile::NONE);
 
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   LOG_ASSERT_ERROR(core, "Could not find Tile object for current thread");
-   core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   LOG_ASSERT_ERROR(tile, "Could not find Tile object for current thread");
+   tile->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
 }
 
 bool rewriteStringOp (INS ins)
@@ -678,11 +678,11 @@ ADDRINT redirectPushf ( ADDRINT tgt_esp, ADDRINT size )
 {
    assert (size == sizeof (ADDRINT));
 
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
    
-   if (core)
+   if (tile)
    {
-      return core->getPinMemoryManager()->redirectPushf (tgt_esp, size);
+      return tile->getPinMemoryManager()->redirectPushf (tgt_esp, size);
    }
    else
    {
@@ -694,11 +694,11 @@ ADDRINT completePushf ( ADDRINT esp, ADDRINT size )
 {
    assert (size == sizeof(ADDRINT));
    
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
 
-   if (core)
+   if (tile)
    {
-      return core->getPinMemoryManager()->completePushf (esp, size);
+      return tile->getPinMemoryManager()->completePushf (esp, size);
    }
    else
    {
@@ -710,11 +710,11 @@ ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
 
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
   
-   if (core)
+   if (tile)
    {
-      return core->getPinMemoryManager()->redirectPopf (tgt_esp, size);
+      return tile->getPinMemoryManager()->redirectPopf (tgt_esp, size);
    }
    else
    {
@@ -726,11 +726,11 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
    
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
 
-   if (core)
+   if (tile)
    {
-      return core->getPinMemoryManager()->completePopf (esp, size);
+      return tile->getPinMemoryManager()->completePopf (esp, size);
    }
    else
    {
@@ -745,11 +745,11 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 
 ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
   
-   if (core)
+   if (tile)
    {
-      PinMemoryManager *mem_manager = core->getPinMemoryManager ();
+      PinMemoryManager *mem_manager = tile->getPinMemoryManager ();
       assert (mem_manager != NULL);
 
       return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
@@ -757,9 +757,9 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
    else
    {
       // Make sure that no instructions with the 
-      // LOCK prefix execute in a non-core
+      // LOCK prefix execute in a non-tile
       // assert (!has_lock_prefix);
-      // cerr << "ins with LOCK prefix in a non-core" << endl;
+      // cerr << "ins with LOCK prefix in a non-tile" << endl;
 
       return tgt_ea;
    }
@@ -767,18 +767,18 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
 
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
 
-   if (core)
+   if (tile)
    {
-      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+      tile->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
    }
    else
    {
       // Make sure that no instructions with the 
-      // LOCK prefix execute in a non-core
+      // LOCK prefix execute in a non-tile
       // assert (!has_lock_prefix);
-      // cerr << "ins with LOCK prefix in a non-core" << endl;
+      // cerr << "ins with LOCK prefix in a non-tile" << endl;
    }
 
    return;

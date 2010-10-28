@@ -6,7 +6,7 @@
 #include "config.h"
 #include "core_manager.h"
 #include "log.h"
-#include "core.h"
+#include "tile.h"
 #include "simulator.h"
 #include "syscall.h"
 #include "thread_manager.h"

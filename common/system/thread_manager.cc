@@ -9,16 +9,16 @@
 #include "clock_skew_minimization_object.h"
 #include "network.h"
 #include "message_types.h"
-#include "core.h"
+#include "tile.h"
 #include "thread.h"
 #include "packetize.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-ThreadManager::ThreadManager(TileManager *core_manager)
+ThreadManager::ThreadManager(TileManager *tile_manager)
    : m_thread_spawn_sem(0)
    , m_thread_spawn_lock()
-   , m_tile_manager(core_manager)
+   , m_tile_manager(tile_manager)
    , m_thread_spawners_terminated(0)
 {
    Config *config = Config::getSingleton();
@@ -114,24 +114,24 @@ void ThreadManager::onThreadExit()
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   Tile* core = m_tile_manager->getCurrentTile();
+   Tile* tile = m_tile_manager->getCurrentTile();
 
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_tile_manager->getCurrentCoreID() };
 
    LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread %d at time %llu",
-             core->getId(),
-             core->getPerformanceModel()->getCycleCount());
-   Network *net = core->getNetwork();
+             tile->getId(),
+             tile->getPerformanceModel()->getCycleCount());
+   Network *net = tile->getNetwork();
 
    // Set the CoreState to 'IDLE'
-   core->setState(Tile::IDLE);
+   tile->setState(Tile::IDLE);
 
    // Recompute Average Frequency
-   core->getPerformanceModel()->recomputeAverageFrequency();
+   tile->getPerformanceModel()->recomputeAverageFrequency();
 
    // terminate thread locally so we are ready for new thread requests
-   // on that core
+   // on that tile
    m_tile_manager->terminateThread();
 
    // update global thread state
@@ -178,15 +178,15 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    // step 1
    LOG_PRINT("(1) spawnThread with func: %p and arg: %p", func, arg);
 
-   Tile *core = m_tile_manager->getCurrentTile();
-   Network *net = core->getNetwork();
+   Tile *tile = m_tile_manager->getCurrentTile();
+   Network *net = tile->getNetwork();
 
    // Tile Clock to Global Clock
-   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
-         core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 global_cycle_count = convertCycleCount(tile->getPerformanceModel()->getCycleCount(), \
+         tile->getPerformanceModel()->getFrequency(), 1.0);
 
    ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
-                              func, arg, core->getId(), INVALID_CORE_ID,
+                              func, arg, tile->getId(), INVALID_CORE_ID,
                               global_cycle_count };
 
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
@@ -195,14 +195,14 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
                 sizeof(req));
 
    // Set the CoreState to 'STALLED'
-   core->setState(Tile::STALLED);
+   tile->setState(Tile::STALLED);
 
    NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
    
    LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
 
    // Set the CoreState to 'RUNNING'
-   core->setState(Tile::RUNNING);
+   tile->setState(Tile::RUNNING);
 
    core_id_t core_id = *((core_id_t*)pkt.data);
    LOG_PRINT("Thread spawned on core: %d", core_id);
@@ -258,8 +258,8 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       insertThreadSpawnRequest(req_cpy);
       m_thread_spawn_sem.signal();
          
-      Tile *core = m_tile_manager->getCurrentTile();
-      core->getNetwork()->netSend(req->requester, 
+      Tile *tile = m_tile_manager->getCurrentTile();
+      tile->getNetwork()->netSend(req->requester, 
             MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
             &req->core_id,
             sizeof(req->core_id));
@@ -343,8 +343,8 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
       // Resume the requesting thread
       resumeThread(req->requester);
 
-      Tile *core = m_tile_manager->getCurrentTile();
-      core->getNetwork()->netSend(req->requester, 
+      Tile *tile = m_tile_manager->getCurrentTile();
+      tile->getNetwork()->netSend(req->requester, 
                                   MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
                                   &req->core_id,
                                   sizeof(req->core_id));
@@ -423,7 +423,7 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
    {
       LOG_PRINT("Waking up core: %d at time: %llu", m_thread_state[core_id].waiter, time);
 
-      Tile *core = m_tile_manager->getCurrentTile();
+      Tile *tile = m_tile_manager->getCurrentTile();
       core_id_t dest = m_thread_state[core_id].waiter;
 
       // Resume the 'pthread_join' caller
@@ -433,11 +433,11 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
       // manufacturing a time stamp
       NetPacket pkt(time,
                     MCP_THREAD_JOIN_REPLY,
-                    core->getId(),
+                    tile->getId(),
                     dest,
                     0,
                     NULL);
-      core->getNetwork()->netSend(pkt);
+      tile->getNetwork()->netSend(pkt);
 
       m_thread_state[core_id].waiter = INVALID_CORE_ID;
    }

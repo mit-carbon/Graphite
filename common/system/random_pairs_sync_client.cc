@@ -10,8 +10,8 @@
 
 UInt64 RandomPairsSyncClient::MAX_TIME = ((UInt64) 1) << 60;
 
-RandomPairsSyncClient::RandomPairsSyncClient(Tile* core):
-   _core(core),
+RandomPairsSyncClient::RandomPairsSyncClient(Tile* tile):
+   _core(tile),
    _last_sync_time(0),
    _quantum(0),
    _slack(0),
@@ -88,7 +88,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    Tile::State tile_state = _core->getState();
    if (tile_state == Tile::RUNNING)
    {
-      // Thread is RUNNING on core
+      // Thread is RUNNING on tile
       // Network thread must process the random sync requests
       if (sync_msg.type == SyncMsg::REQ)
       {
@@ -115,7 +115,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    }
    else
    {
-      // I dont want to synchronize against a non-running core
+      // I dont want to synchronize against a non-running tile
       LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
             "sync_msg.type(%u)", sync_msg.type);
 
@@ -149,7 +149,7 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    // 3 possible scenarios
    if (curr_time > (sync_msg.time + _slack))
    {
-      // Wait till the other core reaches this one
+      // Wait till the other tile reaches this one
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
       _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
@@ -180,7 +180,7 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
             "[<]: curr_time(%llu), sync_msg[sender(%i), msg_type(%u), time(%llu)]",
             curr_time, sync_msg.sender, sync_msg.type, sync_msg.time);
 
-      // Double up and catch up. Meanwhile, ask the other core to wait
+      // Double up and catch up. Meanwhile, ask the other tile to wait
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) (sync_msg.time - curr_time);
       _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
@@ -226,7 +226,7 @@ RandomPairsSyncClient::synchronize(UInt64 cycle_count)
       LOG_ASSERT_ERROR(_last_sync_time < MAX_TIME,
             "_last_sync_time(%llu)", _last_sync_time);
 
-      // Send SyncMsg to another core
+      // Send SyncMsg to another tile
       sendRandomSyncMsg(curr_time);
 
       // Wait for Acknowledgement and other Wait messages

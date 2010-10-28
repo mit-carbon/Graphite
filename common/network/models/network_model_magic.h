@@ -2,7 +2,7 @@
 #define NETWORK_MODEL_MAGIC_H
 
 #include "network.h"
-#include "core.h"
+#include "tile.h"
 #include "lock.h"
 
 class NetworkModelMagic : public NetworkModel

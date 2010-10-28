@@ -19,7 +19,7 @@ class BarrierSyncClient : public ClockSkewMinimizationClient
       UInt64 m_next_sync_time;
 
    public:
-      BarrierSyncClient(Tile* core);
+      BarrierSyncClient(Tile* tile);
       ~BarrierSyncClient();
 
       void enable() {}

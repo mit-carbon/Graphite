@@ -1,6 +1,6 @@
 #include "dram_cntlr.h"
 #include "memory_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "clock_converter.h"
 #include "log.h"
 

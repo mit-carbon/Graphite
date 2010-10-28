@@ -7,7 +7,7 @@
 
 #include "cache_state.h"
 #include "dram_directory_entry.h"
-#include "core.h"
+#include "tile.h"
 #include "chip.h"
 #include "pin.H"
 

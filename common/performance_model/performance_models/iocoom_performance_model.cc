@@ -1,6 +1,6 @@
 using namespace std;
 
-#include "core.h"
+#include "tile.h"
 #include "iocoom_performance_model.h"
 
 #include "log.h"
@@ -9,8 +9,8 @@ using namespace std;
 #include "simulator.h"
 #include "branch_predictor.h"
 
-IOCOOMPerformanceModel::IOCOOMPerformanceModel(Tile *core, float frequency)
-   : PerformanceModel(core, frequency)
+IOCOOMPerformanceModel::IOCOOMPerformanceModel(Tile *tile, float frequency)
+   : PerformanceModel(tile, frequency)
    , m_instruction_count(0)
    , m_register_scoreboard(512)
    , m_store_buffer(0)

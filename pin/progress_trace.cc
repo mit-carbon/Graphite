@@ -7,7 +7,7 @@ using std::vector;
 #include "pin.H"
 #include "simulator.h"
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "progress_trace.h"
 
 static UInt64 applicationStartTime;
@@ -31,10 +31,10 @@ static UInt64 getTime()
 
 static FILE* getFileDescriptor()
 {
-   Tile *core = Sim()->getTileManager()->getCurrentTile();
-   core_id_t id = core->getId();
+   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   core_id_t id = tile->getId();
 
-   if (!core) return NULL;
+   if (!tile) return NULL;
 
    FILE *f = files[id];
 

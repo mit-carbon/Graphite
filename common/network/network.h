@@ -65,10 +65,10 @@ class Network
 {
    public:
       // -- Ctor, housekeeping, etc. -- //
-      Network(Tile *core);
+      Network(Tile *tile);
       ~Network();
 
-      Tile *getCore() const { return _core; }
+      Tile *getCore() const { return _tile; }
       Transport::Node *getTransport() const { return _transport; }
 
       typedef void (*NetworkCallback)(void*, NetPacket);
@@ -111,7 +111,7 @@ class Network
       NetworkCallback *_callbacks;
       void **_callbackObjs;
 
-      Tile *_core;
+      Tile *_tile;
       Transport::Node *_transport;
 
       SInt32 _tid;

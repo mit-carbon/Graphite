@@ -78,7 +78,7 @@ SmTransport::SmNode::SmNode(core_id_t core_id, SmTransport *smt)
 
 SmTransport::SmNode::~SmNode()
 {
-   LOG_ASSERT_WARNING(m_queue.empty(), "Unread messages in queue for core: %d", getCoreId());
+   LOG_ASSERT_WARNING(m_queue.empty(), "Unread messages in queue for tile: %d", getCoreId());
    m_smt->clearNodeForId(getCoreId());
 }
 

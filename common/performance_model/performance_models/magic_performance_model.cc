@@ -1,12 +1,12 @@
-#include "core.h"
+#include "tile.h"
 #include "log.h"
 #include "magic_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-MagicPerformanceModel::MagicPerformanceModel(Tile *core, float frequency)
-    : PerformanceModel(core, frequency)
+MagicPerformanceModel::MagicPerformanceModel(Tile *tile, float frequency)
+    : PerformanceModel(tile, frequency)
     , m_instruction_count(0)
 {
 }

@@ -2,7 +2,7 @@
 using namespace std;
 
 #include "network_model_emesh_hop_by_hop_generic.h"
-#include "core.h"
+#include "tile.h"
 #include "simulator.h"
 #include "config.h"
 #include "utils.h"

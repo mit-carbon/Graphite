@@ -5,7 +5,7 @@ using namespace std;
 #include "lite/routine_replace.h"
 #include "simulator.h"
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "log.h"
 
 // The Pintool can easily read from application memory, so

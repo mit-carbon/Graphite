@@ -6,7 +6,7 @@
 #include "network_model_analytical_params.h"
 #include "message_types.h"
 #include "config.h"
-#include "core.h"
+#include "tile.h"
 #include "performance_model.h"
 #include "transport.h"
 #include "lock.h"

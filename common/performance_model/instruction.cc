@@ -1,7 +1,7 @@
 #include "instruction.h"
 #include "simulator.h"
 #include "core_manager.h"
-#include "core.h"
+#include "tile.h"
 #include "performance_model.h"
 #include "branch_predictor.h"
 

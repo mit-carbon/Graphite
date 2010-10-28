@@ -43,7 +43,7 @@ class SyncClient
       static const unsigned int BARRIER_WAIT_RESPONSE  = 0xCACACAFE;
 
    private:
-      Tile *m_core;
+      Tile *m_tile;
       Network *m_network;
       UnstructuredBuffer m_send_buff;
       UnstructuredBuffer m_recv_buff;

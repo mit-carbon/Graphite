@@ -7,7 +7,7 @@ namespace PrL1PrL2DramDirectoryMOSI
    class MemoryManager;
 }
 
-#include "core.h"
+#include "tile.h"
 #include "cache.h"
 #include "pr_l1_cache_block_info.h"
 #include "shmem_msg.h"

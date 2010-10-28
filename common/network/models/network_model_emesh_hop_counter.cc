@@ -5,7 +5,7 @@
 #include "config.h"
 #include "network_model_emesh_hop_counter.h"
 #include "config.h"
-#include "core.h"
+#include "tile.h"
 #include "memory_manager_base.h"
 #include "clock_converter.h"
 
@@ -114,11 +114,11 @@ NetworkModelEMeshHopCounter::initializePerformanceCounters()
 }
 
 void
-NetworkModelEMeshHopCounter::computePosition(core_id_t core,
+NetworkModelEMeshHopCounter::computePosition(core_id_t tile,
                                              SInt32 &x, SInt32 &y)
 {
-   x = core % _mesh_width;
-   y = core / _mesh_width;
+   x = tile % _mesh_width;
+   y = tile / _mesh_width;
 }
 
 SInt32

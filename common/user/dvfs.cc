@@ -2,7 +2,7 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
-#include "performance_model.h"
+#include "core_perf_model.h"
 #include "fxsupport.h"
 
 void CarbonGetCoreFrequency(volatile float* frequency)

@@ -1,7 +1,8 @@
-#include "performance_model.h"
+#include "core_perf_model.h"
 #include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
 #include "magic_performance_model.h"
+#include "magic_pep_performance_model.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "config.h"
@@ -10,26 +11,50 @@
 #include "fxsupport.h"
 #include "utils.h"
 
-PerformanceModel* PerformanceModel::create(Tile* tile)
+CorePerfModel* CorePerfModel::create(Tile* tile, core_t core_type)
 {
    volatile float frequency = Config::getSingleton()->getCoreFrequency(tile->getId());
-   string core_model = Config::getSingleton()->getCoreType(tile->getId());
+   if (core_type == MAIN_CORE_TYPE)
+   {
+      string core_model = Config::getSingleton()->getCoreType(tile->getId());
 
-   if (core_model == "iocoom")
-      return new IOCOOMPerformanceModel(tile, frequency);
-   else if (core_model == "simple")
-      return new SimplePerformanceModel(tile, frequency);
-   else if (core_model == "magic")
-      return new MagicPerformanceModel(tile, frequency);
+      if (core_model == "iocoom")
+         return new IOCOOMPerformanceModel(tile, frequency);
+      else if (core_model == "simple")
+         return new SimplePerformanceModel(tile, frequency);
+      else if (core_model == "magic")
+         return new MagicPerformanceModel(tile, frequency);
+      else
+      {
+         LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
+         return NULL;
+      }
+   }
+   else if (core_type == PEP_CORE_TYPE)
+   {
+      string pep_core_model = Config::getSingleton()->getPepCoreType(tile->getId());
+
+      if (pep_core_model == "none")
+         return NULL;
+      else if (pep_core_model == "magic")
+         return new MagicPepPerformanceModel(tile, frequency);
+      else
+      {
+         LOG_PRINT_ERROR("Invalid pep perf model type: %s", pep_core_model.c_str());
+         return NULL;
+      }
+
+   }
    else
    {
-      LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
+      LOG_PRINT_ERROR("Invalid core type (PEP, MAIN) requested for create.");
       return NULL;
    }
+   
 }
 
 // Public Interface
-PerformanceModel::PerformanceModel(Tile *tile, float frequency)
+CorePerfModel::CorePerfModel(Tile *tile, float frequency)
    : m_cycle_count(0)
    , m_tile(tile)
    , m_frequency(frequency)
@@ -43,12 +68,12 @@ PerformanceModel::PerformanceModel(Tile *tile, float frequency)
    m_bp = BranchPredictor::create();
 }
 
-PerformanceModel::~PerformanceModel()
+CorePerfModel::~CorePerfModel()
 {
    delete m_bp; m_bp = 0;
 }
 
-void PerformanceModel::frequencySummary(ostream& os)
+void CorePerfModel::frequencySummary(ostream& os)
 {
    os << "   Completion Time: " \
       << static_cast<UInt64>(static_cast<float>(m_cycle_count) / m_frequency) \
@@ -56,7 +81,7 @@ void PerformanceModel::frequencySummary(ostream& os)
    os << "   Average Frequency: " << m_average_frequency << endl;
 }
 
-void PerformanceModel::enable()
+void CorePerfModel::enable()
 {
    // MCP perf model should never be enabled
    if (Sim()->getTileManager()->getCurrentCoreID() == Config::getSingleton()->getMCPCoreNum())
@@ -65,14 +90,14 @@ void PerformanceModel::enable()
    m_enabled = true;
 }
 
-void PerformanceModel::disable()
+void CorePerfModel::disable()
 {
    m_enabled = false;
 }
 
 // This function is called:
 // 1) Whenever frequency is changed
-void PerformanceModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+void CorePerfModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    recomputeAverageFrequency();
    m_frequency = frequency;
@@ -80,7 +105,7 @@ void PerformanceModel::updateInternalVariablesOnFrequencyChange(volatile float f
 
 // This function is called:
 // 1) On thread start
-void PerformanceModel::setCycleCount(UInt64 cycle_count)
+void CorePerfModel::setCycleCount(UInt64 cycle_count)
 {
    m_checkpointed_cycle_count = cycle_count;
    m_cycle_count = cycle_count;
@@ -89,7 +114,7 @@ void PerformanceModel::setCycleCount(UInt64 cycle_count)
 // This function is called:
 // 1) On thread exit
 // 2) Whenever frequency is changed
-void PerformanceModel::recomputeAverageFrequency()
+void CorePerfModel::recomputeAverageFrequency()
 {
    volatile float cycles_elapsed = static_cast<float>(m_cycle_count - m_checkpointed_cycle_count);
    volatile float total_cycles_executed = m_average_frequency * m_total_time + cycles_elapsed;
@@ -100,7 +125,7 @@ void PerformanceModel::recomputeAverageFrequency()
    m_checkpointed_cycle_count = m_cycle_count;
 }
 
-void PerformanceModel::queueDynamicInstruction(Instruction *i)
+void CorePerfModel::queueDynamicInstruction(Instruction *i)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
    {
@@ -114,7 +139,7 @@ void PerformanceModel::queueDynamicInstruction(Instruction *i)
    m_basic_block_queue.push(bb);
 }
 
-void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
+void CorePerfModel::queueBasicBlock(BasicBlock *basic_block)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
@@ -124,7 +149,7 @@ void PerformanceModel::queueBasicBlock(BasicBlock *basic_block)
 }
 
 //FIXME: this will go in a thread
-void PerformanceModel::iterate()
+void CorePerfModel::iterate()
 {
    // Because we will sometimes not have info available (we will throw
    // a DynamicInstructionInfoNotAvailable), we need to be able to
@@ -165,7 +190,7 @@ void PerformanceModel::iterate()
    }
 }
 
-void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
+void CorePerfModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
@@ -174,7 +199,7 @@ void PerformanceModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    m_dynamic_info_queue.push(i);
 }
 
-void PerformanceModel::popDynamicInstructionInfo()
+void CorePerfModel::popDynamicInstructionInfo()
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
@@ -187,7 +212,7 @@ void PerformanceModel::popDynamicInstructionInfo()
    m_dynamic_info_queue.pop();
 }
 
-DynamicInstructionInfo& PerformanceModel::getDynamicInstructionInfo()
+DynamicInstructionInfo& CorePerfModel::getDynamicInstructionInfo()
 {
    ScopedLock sl(m_dynamic_info_queue_lock);
 

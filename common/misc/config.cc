@@ -393,6 +393,121 @@ void Config::parseCoreParameters()
    }
 }
 
+void Config::parsePepCoreParameters()
+{
+   // Default values are as follows:
+   // 1) Number of cores -> Number of application cores
+   // 2) Frequency -> 1 GHz
+   // 3) Tile Type -> simple
+
+   const UInt32 DEFAULT_NUM_CORES = getApplicationCores();
+   const float DEFAULT_FREQUENCY = 1;
+   const string DEFAULT_CORE_TYPE = "none";
+   const string DEFAULT_CACHE_TYPE = "T1";
+
+   string pep_core_parameter_tuple_str;
+   vector<string> pep_core_parameter_tuple_vec;
+   try
+   {
+      pep_core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/pep_core/model_list");
+   }
+   catch(...)
+   {
+      fprintf(stderr, "Could not read perf_model/pep_core/model_list from the cfg file\n");
+      exit(EXIT_FAILURE);
+   }
+
+   UInt32 num_initialized_cores = 0;
+
+   parseList(pep_core_parameter_tuple_str, pep_core_parameter_tuple_vec, "<>");
+   
+   for (vector<string>::iterator tuple_it = pep_core_parameter_tuple_vec.begin(); \
+         tuple_it != pep_core_parameter_tuple_vec.end(); tuple_it++)
+   {
+      // Initializing using default values
+      UInt32 num_cores = DEFAULT_NUM_CORES;
+      float frequency = DEFAULT_FREQUENCY;
+      string core_type = DEFAULT_CORE_TYPE;
+      string l1_icache_type = DEFAULT_CACHE_TYPE;
+      string l1_dcache_type = DEFAULT_CACHE_TYPE;
+      //string l2_cache_type = DEFAULT_CACHE_TYPE;
+
+      vector<string> pep_core_parameter_tuple;
+      parseList(*tuple_it, pep_core_parameter_tuple, ",");
+     
+      SInt32 param_num = 0; 
+      for (vector<string>::iterator param_it = pep_core_parameter_tuple.begin(); \
+            param_it != pep_core_parameter_tuple.end(); param_it ++)
+      {
+         if (*param_it != "default")
+         {
+            switch (param_num)
+            {
+               case 0:
+                  convertFromString<UInt32>(num_cores, *param_it);
+                  break;
+
+               case 1:
+                  convertFromString<float>(frequency, *param_it);
+                  break;
+
+               case 2:
+                  core_type = trimSpaces(*param_it);
+                  break;
+
+               case 3:
+                  l1_icache_type = trimSpaces(*param_it);
+                  break;
+
+               case 4:
+                  l1_dcache_type = trimSpaces(*param_it);
+                  break;
+
+               //case 5:
+                  //l2_cache_type = trimSpaces(*param_it);
+                  //break;
+
+               default:
+                  fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
+                  exit(EXIT_FAILURE);
+                  break;
+            }
+         }
+         param_num ++;
+      }
+
+      // Append these values to an internal list
+      for (UInt32 i = num_initialized_cores; i < num_initialized_cores + num_cores; i++)
+      {
+         m_pep_core_parameters_vec.push_back(PepCoreParameters(core_type, frequency, \
+                  l1_icache_type, l1_dcache_type/*, l2_cache_type*/));
+      }
+      num_initialized_cores += num_cores;
+
+      if (num_initialized_cores > getApplicationCores())
+      {
+         fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
+            num_initialized_cores, getApplicationCores());
+         exit(EXIT_FAILURE);
+      }
+   }
+   
+   if (num_initialized_cores != getApplicationCores())
+   {
+      fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
+         num_initialized_cores, getApplicationCores());
+      exit(EXIT_FAILURE);
+   }
+
+   // MCP, thread spawner and misc cores
+   for (UInt32 i = getApplicationCores(); i < getTotalCores(); i++)
+   {
+      m_pep_core_parameters_vec.push_back(PepCoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
+               DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE/*, DEFAULT_CACHE_TYPE*/));
+   }
+}
+
+
 void Config::parseNetworkParameters()
 {
    const string DEFAULT_NETWORK_TYPE = "magic";
@@ -484,6 +599,61 @@ void Config::setCoreFrequency(core_id_t core_id, volatile float frequency)
          m_core_parameters_vec.size(), getTotalCores());
 
    return m_core_parameters_vec[core_id].setFrequency(frequency);
+}
+
+string Config::getPepCoreType(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
+         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
+         m_pep_core_parameters_vec.size(), getTotalCores());
+
+   return m_pep_core_parameters_vec[core_id].getType();
+}
+
+string Config::getPepL1ICacheType(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
+         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
+         m_pep_core_parameters_vec.size(), getTotalCores());
+
+   return m_pep_core_parameters_vec[core_id].getL1ICacheType();
+}
+
+string Config::getPepL1DCacheType(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
+         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
+         m_pep_core_parameters_vec.size(), getTotalCores());
+
+   return m_pep_core_parameters_vec[core_id].getL1DCacheType();
+}
+
+volatile float Config::getPepCoreFrequency(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
+         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
+         m_pep_core_parameters_vec.size(), getTotalCores());
+
+   return m_pep_core_parameters_vec[core_id].getFrequency();
+}
+
+void Config::setPepCoreFrequency(core_id_t core_id, volatile float frequency)
+{
+   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
+         "core_id(%i), total cores(%u)", core_id, getTotalCores());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
+         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
+         m_pep_core_parameters_vec.size(), getTotalCores());
+
+   return m_pep_core_parameters_vec[core_id].setFrequency(frequency);
 }
 
 string Config::getNetworkType(SInt32 network_id)

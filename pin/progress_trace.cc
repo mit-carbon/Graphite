@@ -55,7 +55,7 @@ static VOID traceProgress()
    UInt64* counter_ptr = (UInt64*) PIN_GetThreadData(threadCounterKey);
    UInt64 counter = *counter_ptr;
 
-   PerformanceModel *pm = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *pm = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
 
    UInt64 cycles = pm->getCycleCount();
 

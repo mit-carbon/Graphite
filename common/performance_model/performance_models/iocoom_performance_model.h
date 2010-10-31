@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "performance_model.h"
+#include "core_perf_model.h"
 
 /*
   In-order tile, out-of-order memory performance model.
@@ -12,7 +12,7 @@
 
   We also keep a store buffer to short circuit loads.
  */
-class IOCOOMPerformanceModel : public PerformanceModel
+class IOCOOMPerformanceModel : public CorePerfModel
 {
 public:
    IOCOOMPerformanceModel(Tile* tile, float frequency);

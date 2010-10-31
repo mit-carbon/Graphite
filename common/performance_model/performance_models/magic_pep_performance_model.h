@@ -1,13 +1,13 @@
-#ifndef MAGIC_PERFORMANCE_MODEL_H
-#define MAGIC_PERFORMANCE_MODEL_H
+#ifndef MAGIC_PEP_PERFORMANCE_MODEL_H
+#define MAGIC_PEP_PERFORMANCE_MODEL_H
 
 #include "core_perf_model.h"
 
-class MagicPerformanceModel : public CorePerfModel
+class MagicPepPerformanceModel : public CorePerfModel
 {
 public:
-   MagicPerformanceModel(Tile *tile, float frequency);
-   ~MagicPerformanceModel();
+   MagicPepPerformanceModel(Tile *tile, float frequency);
+   ~MagicPepPerformanceModel();
 
    void outputSummary(std::ostream &os);
 

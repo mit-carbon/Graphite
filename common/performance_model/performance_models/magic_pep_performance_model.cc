@@ -1,21 +1,21 @@
 #include "tile.h"
 #include "log.h"
-#include "magic_performance_model.h"
+#include "magic_pep_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-MagicPerformanceModel::MagicPerformanceModel(Tile *tile, float frequency)
+MagicPepPerformanceModel::MagicPepPerformanceModel(Tile *tile, float frequency)
     : CorePerfModel(tile, frequency)
     , m_instruction_count(0)
 {
 }
 
-MagicPerformanceModel::~MagicPerformanceModel()
+MagicPepPerformanceModel::~MagicPepPerformanceModel()
 {
 }
 
-void MagicPerformanceModel::outputSummary(std::ostream &os)
+void MagicPepPerformanceModel::outputSummary(std::ostream &os)
 {
    os << "  Instructions: " << getInstructionCount() << endl;
    frequencySummary(os);
@@ -24,7 +24,7 @@ void MagicPerformanceModel::outputSummary(std::ostream &os)
       getBranchPredictor()->outputSummary(os);
 }
 
-void MagicPerformanceModel::handleInstruction(Instruction *instruction)
+void MagicPepPerformanceModel::handleInstruction(Instruction *instruction)
 {
    // compute cost
    UInt64 cost = 0;
@@ -70,7 +70,7 @@ void MagicPerformanceModel::handleInstruction(Instruction *instruction)
    m_cycle_count += cost;
 }
 
-bool MagicPerformanceModel::isModeled(InstructionType instruction_type)
+bool MagicPepPerformanceModel::isModeled(InstructionType instruction_type)
 {
    switch(instruction_type)
    {

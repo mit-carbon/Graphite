@@ -10,7 +10,7 @@ using namespace std;
 #include "branch_predictor.h"
 
 IOCOOMPerformanceModel::IOCOOMPerformanceModel(Tile *tile, float frequency)
-   : PerformanceModel(tile, frequency)
+   : CorePerfModel(tile, frequency)
    , m_instruction_count(0)
    , m_register_scoreboard(512)
    , m_store_buffer(0)

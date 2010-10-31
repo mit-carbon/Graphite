@@ -1,5 +1,5 @@
-#ifndef PERFORMANCE_MODEL_H
-#define PERFORMANCE_MODEL_H
+#ifndef CORE_PERF_MODEL_H
+#define CORE_PERF_MODEL_H
 // This class represents the actual performance model for a given core
 
 #include <queue>
@@ -16,11 +16,17 @@ class BranchPredictor;
 #include "lock.h"
 #include "dynamic_instruction_info.h"
 
-class PerformanceModel
+class CorePerfModel
 {
 public:
-   PerformanceModel(Tile* tile, float frequency);
-   virtual ~PerformanceModel();
+   enum core_t
+   {
+      MAIN_CORE_TYPE = 0,
+      PEP_CORE_TYPE
+   };
+
+   CorePerfModel(Tile* tile, float frequency);
+   virtual ~CorePerfModel();
 
    void queueDynamicInstruction(Instruction *i);
    void queueBasicBlock(BasicBlock *basic_block);
@@ -37,7 +43,7 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static PerformanceModel *create(Tile* tile);
+   static CorePerfModel *create(Tile* tile, core_t core_type = MAIN_CORE_TYPE);
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
@@ -48,6 +54,7 @@ public:
    virtual void outputSummary(std::ostream &os) = 0;
 
    class AbortInstructionException { };
+
 
 protected:
    friend class SpawnInstruction;

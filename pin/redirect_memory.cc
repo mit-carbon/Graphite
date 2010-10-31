@@ -3,7 +3,7 @@
 #include "tile_manager.h"
 #include "tile.h"
 #include "pin_memory_manager.h"
-#include "performance_model.h"
+#include "core_perf_model.h"
 
 // FIXME
 // Only need this function because some memory accesses are made before cores have
@@ -157,7 +157,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       }
    }
 
-   PerformanceModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
    DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
    perf->pushDynamicInstructionInfo(info);
 
@@ -239,7 +239,7 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       }
    }
 
-   PerformanceModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
    DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
    perf->pushDynamicInstructionInfo(info);
 

@@ -98,7 +98,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
                 req,
                 sizeof(*req));
 
-   PerformanceModel *pm = m_tile_manager->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *pm = m_tile_manager->getCurrentTile()->getPerformanceModel();
 
    // Global Clock to Tile Clock
    UInt64 start_cycle_count = convertCycleCount(req->time, \

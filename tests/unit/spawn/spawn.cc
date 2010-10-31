@@ -41,6 +41,7 @@ void* thread_func(void *threadid)
 {
 //   int tid = CarbonSpawnThread(thread_func_simple, (void*)1);
 //   CarbonJoinThread(tid);
+   printf("Hi I'm thread %d\n", *((unsigned int*) threadid));
    return 0;
 }
 

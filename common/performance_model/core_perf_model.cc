@@ -34,6 +34,7 @@ CorePerfModel* CorePerfModel::create(Tile* tile, core_t core_type)
    {
       string pep_core_model = Config::getSingleton()->getPepCoreType(tile->getId());
 
+      // Note that the MCP and TS cores will always have NULL PEP cores (at least for now).
       if (pep_core_model == "none")
          return NULL;
       else if (pep_core_model == "magic")

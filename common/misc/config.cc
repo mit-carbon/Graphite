@@ -84,8 +84,11 @@ Config::Config()
    // Adjust the number of cores corresponding to the network model we use
    m_total_cores = getNearestAcceptableCoreCount(m_total_cores);
 
-   // Parse Tile Models
+   // Parse Core Models
    parseCoreParameters();
+
+   // Parse PEP Core Models
+   parsePepCoreParameters();
 
    m_core_id_length = computeCoreIDLength(m_total_cores);
 
@@ -407,22 +410,13 @@ void Config::parsePepCoreParameters()
 
    string pep_core_parameter_tuple_str;
    vector<string> pep_core_parameter_tuple_vec;
-   try
-   {
-      pep_core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/pep_core/model_list");
-   }
-   catch(...)
-   {
-      fprintf(stderr, "Could not read perf_model/pep_core/model_list from the cfg file\n");
-      exit(EXIT_FAILURE);
-   }
+      
+   pep_core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/pep_core/model_list");
 
-   UInt32 num_initialized_cores = 0;
-
-   parseList(pep_core_parameter_tuple_str, pep_core_parameter_tuple_vec, "<>");
+   UInt32 num_initialized_pep_cores = 0;
    
-   for (vector<string>::iterator tuple_it = pep_core_parameter_tuple_vec.begin(); \
-         tuple_it != pep_core_parameter_tuple_vec.end(); tuple_it++)
+   // By default, the pep_core string is missing, so we will instantiate PEP cores with type "none"
+   if (pep_core_parameter_tuple_str.empty())
    {
       // Initializing using default values
       UInt32 num_cores = DEFAULT_NUM_CORES;
@@ -432,70 +426,100 @@ void Config::parsePepCoreParameters()
       string l1_dcache_type = DEFAULT_CACHE_TYPE;
       //string l2_cache_type = DEFAULT_CACHE_TYPE;
 
-      vector<string> pep_core_parameter_tuple;
-      parseList(*tuple_it, pep_core_parameter_tuple, ",");
-     
-      SInt32 param_num = 0; 
-      for (vector<string>::iterator param_it = pep_core_parameter_tuple.begin(); \
-            param_it != pep_core_parameter_tuple.end(); param_it ++)
-      {
-         if (*param_it != "default")
-         {
-            switch (param_num)
-            {
-               case 0:
-                  convertFromString<UInt32>(num_cores, *param_it);
-                  break;
-
-               case 1:
-                  convertFromString<float>(frequency, *param_it);
-                  break;
-
-               case 2:
-                  core_type = trimSpaces(*param_it);
-                  break;
-
-               case 3:
-                  l1_icache_type = trimSpaces(*param_it);
-                  break;
-
-               case 4:
-                  l1_dcache_type = trimSpaces(*param_it);
-                  break;
-
-               //case 5:
-                  //l2_cache_type = trimSpaces(*param_it);
-                  //break;
-
-               default:
-                  fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
-                  exit(EXIT_FAILURE);
-                  break;
-            }
-         }
-         param_num ++;
-      }
-
       // Append these values to an internal list
-      for (UInt32 i = num_initialized_cores; i < num_initialized_cores + num_cores; i++)
+      for (UInt32 i = num_initialized_pep_cores; i < num_initialized_pep_cores + num_cores; i++)
       {
          m_pep_core_parameters_vec.push_back(PepCoreParameters(core_type, frequency, \
                   l1_icache_type, l1_dcache_type/*, l2_cache_type*/));
       }
-      num_initialized_cores += num_cores;
+      num_initialized_pep_cores += num_cores;
 
-      if (num_initialized_cores > getApplicationCores())
+      if (num_initialized_pep_cores > getApplicationCores())
       {
-         fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-            num_initialized_cores, getApplicationCores());
+         fprintf(stderr, "1num initialized cores(%u), num application cores(%u)\n",
+            num_initialized_pep_cores, getApplicationCores());
          exit(EXIT_FAILURE);
       }
    }
-   
-   if (num_initialized_cores != getApplicationCores())
+   else
+   {
+      parseList(pep_core_parameter_tuple_str, pep_core_parameter_tuple_vec, "<>");
+
+      for (vector<string>::iterator tuple_it = pep_core_parameter_tuple_vec.begin(); \
+            tuple_it != pep_core_parameter_tuple_vec.end(); tuple_it++)
+      {
+         // Initializing using default values
+         UInt32 num_cores = DEFAULT_NUM_CORES;
+         float frequency = DEFAULT_FREQUENCY;
+         string core_type = DEFAULT_CORE_TYPE;
+         string l1_icache_type = DEFAULT_CACHE_TYPE;
+         string l1_dcache_type = DEFAULT_CACHE_TYPE;
+         //string l2_cache_type = DEFAULT_CACHE_TYPE;
+
+         vector<string> pep_core_parameter_tuple;
+         parseList(*tuple_it, pep_core_parameter_tuple, ",");
+        
+         SInt32 param_num = 0; 
+         for (vector<string>::iterator param_it = pep_core_parameter_tuple.begin(); \
+               param_it != pep_core_parameter_tuple.end(); param_it ++)
+         {
+            if (*param_it != "default")
+            {
+               switch (param_num)
+               {
+                  case 0:
+                     convertFromString<UInt32>(num_cores, *param_it);
+                     break;
+
+                  case 1:
+                     convertFromString<float>(frequency, *param_it);
+                     break;
+
+                  case 2:
+                     core_type = trimSpaces(*param_it);
+                     break;
+
+                  case 3:
+                     l1_icache_type = trimSpaces(*param_it);
+                     break;
+
+                  case 4:
+                     l1_dcache_type = trimSpaces(*param_it);
+                     break;
+
+                  //case 5:
+                     //l2_cache_type = trimSpaces(*param_it);
+                     //break;
+
+                  default:
+                     fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
+                     exit(EXIT_FAILURE);
+                     break;
+               }
+            }
+            param_num ++;
+         }
+         // Append these values to an internal list
+         for (UInt32 i = num_initialized_pep_cores; i < num_initialized_pep_cores + num_cores; i++)
+         {
+            m_pep_core_parameters_vec.push_back(PepCoreParameters(core_type, frequency, \
+                     l1_icache_type, l1_dcache_type/*, l2_cache_type*/));
+         }
+         num_initialized_pep_cores += num_cores;
+
+         if (num_initialized_pep_cores > getApplicationCores())
+         {
+            fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
+               num_initialized_pep_cores, getApplicationCores());
+            exit(EXIT_FAILURE);
+         }
+      }
+   }
+
+   if (num_initialized_pep_cores != getApplicationCores())
    {
       fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-         num_initialized_cores, getApplicationCores());
+         num_initialized_pep_cores, getApplicationCores());
       exit(EXIT_FAILURE);
    }
 

@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 carbon_thread_t CarbonSpawnThread(thread_func_t func, void *arg);
+carbon_thread_t CarbonSpawnHelperThread(thread_func_t func, void *arg);
 void CarbonJoinThread(carbon_thread_t tid);
 
 #ifdef __cplusplus

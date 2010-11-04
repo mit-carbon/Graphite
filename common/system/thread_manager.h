@@ -24,6 +24,8 @@ public:
    // services
    SInt32 spawnThread(thread_func_t func, void *arg);
    void joinThread(core_id_t core_id);
+   
+   SInt32 spawnHelperThread(thread_func_t func, void *arg);
 
    void getThreadToSpawn(ThreadSpawnRequest *req);
    ThreadSpawnRequest* getThreadSpawnReq();
@@ -51,6 +53,8 @@ private:
    void masterSpawnThread(ThreadSpawnRequest*);
    void slaveSpawnThread(ThreadSpawnRequest*);
    void masterSpawnThreadReply(ThreadSpawnRequest*);
+
+   void masterSpawnHelperThread(ThreadSpawnRequest*);
 
    void masterOnThreadExit(core_id_t core_id, UInt64 time);
 

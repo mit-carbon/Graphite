@@ -213,11 +213,62 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    return core_id;
 }
 
+SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
+{
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
+   // step 1
+   LOG_PRINT("(1) spawnHelperThread with func: %p and arg: %p", func, arg);
+
+   Tile *tile = m_tile_manager->getCurrentTile();
+   Network *net = tile->getNetwork();
+
+   // Tile Clock to Global Clock
+   UInt64 global_cycle_count = convertCycleCount(tile->getPerformanceModel()->getCycleCount(), \
+         tile->getPerformanceModel()->getFrequency(), 1.0);
+
+   // The request is to spawn this new thread to the same tile.
+   ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
+                              func, arg, tile->getId(), tile->getId(),
+                              global_cycle_count };
+
+   net->netSend(Config::getSingleton()->getMCPCoreNum(),
+                MCP_REQUEST_TYPE,
+                &req,
+                sizeof(req));
+
+   // Set the CoreState to 'STALLED'
+   tile->setState(Tile::STALLED);
+
+   NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
+   
+   LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
+
+   // Set the CoreState to 'RUNNING'
+   tile->setState(Tile::RUNNING);
+
+   core_id_t core_id = *((core_id_t*)pkt.data);
+   LOG_PRINT("Thread spawned on core: %d", core_id);
+
+   // Delete the data buffer
+   delete [] (Byte*) pkt.data;
+
+   return core_id;
+}
+
+
 void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
 {
    // step 2
    LOG_ASSERT_ERROR(m_master, "masterSpawnThread should only be called on master.");
    LOG_PRINT("(2) masterSpawnThread with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
+
+   if (req->requester == req->core_id)
+   {
+      LOG_PRINT("Tada! This is a helper thread.");
+      exit(0);
+   }
 
    // find core to use
    // FIXME: Load balancing?

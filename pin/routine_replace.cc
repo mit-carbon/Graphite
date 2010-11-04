@@ -57,7 +57,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
-
+   else if (name == "CarbonSpawnHelperThread") msg_ptr = AFUNPTR(replacementSpawnHelperThread);
+   
    // CAPI
    else if (name == "CAPI_Initialize") msg_ptr = AFUNPTR(replacement_CAPI_Initialize);
    else if (name == "CAPI_rank") msg_ptr = AFUNPTR(replacement_CAPI_rank);
@@ -343,6 +344,22 @@ void replacementJoinThread (CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
 
    CarbonJoinThread ((int) tid);
+
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementSpawnHelperThread (CONTEXT *ctxt)
+{
+   thread_func_t func;
+   void *arg;
+
+   initialize_replacement_args (ctxt,
+         IARG_PTR, &func,
+         IARG_PTR, &arg,
+         IARG_END);
+
+   LOG_PRINT("Calling SimSpawnHelperThread");
+   ADDRINT ret_val = (ADDRINT) CarbonSpawnHelperThread (func, arg);
 
    retFromReplacedRtn (ctxt, ret_val);
 }

@@ -40,7 +40,7 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
 
    private:
       // Data Fields
-      Tile* _core;
+      Core* _core;
       
       UInt64 _last_sync_time;
       UInt64 _quantum;
@@ -69,7 +69,7 @@ class RandomPairsSyncClient : public ClockSkewMinimizationClient
       
 
    public:
-      RandomPairsSyncClient(Tile* tile);
+      RandomPairsSyncClient(Core* core);
       ~RandomPairsSyncClient();
 
       void enable();

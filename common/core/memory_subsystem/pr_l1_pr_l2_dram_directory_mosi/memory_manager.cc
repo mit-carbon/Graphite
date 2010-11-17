@@ -9,9 +9,9 @@
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
-MemoryManager::MemoryManager(Tile* tile, 
+MemoryManager::MemoryManager(Core* core, 
       Network* network, ShmemPerfModel* shmem_perf_model):
-   MemoryManagerBase(tile, network, shmem_perf_model),
+   MemoryManagerBase(core, network, shmem_perf_model),
    m_dram_directory_cntlr(NULL),
    m_dram_cntlr(NULL),
    m_dram_cntlr_present(false),
@@ -219,8 +219,8 @@ MemoryManager::~MemoryManager()
 bool
 MemoryManager::coreInitiateMemoryAccess(
       MemComponent::component_t mem_component,
-      Tile::lock_signal_t lock_signal,
-      Tile::mem_op_t mem_op_type,
+      Core::lock_signal_t lock_signal,
+      Core::mem_op_t mem_op_type,
       IntPtr address, UInt32 offset,
       Byte* data_buf, UInt32 data_length,
       bool modeled)

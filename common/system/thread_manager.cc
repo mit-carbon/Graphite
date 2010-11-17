@@ -10,6 +10,7 @@
 #include "network.h"
 #include "message_types.h"
 #include "tile.h"
+#include "core.h"
 #include "thread.h"
 #include "packetize.h"
 #include "clock_converter.h"
@@ -28,7 +29,7 @@ ThreadManager::ThreadManager(TileManager *tile_manager)
    if (m_master)
    {
       m_thread_state.resize(config->getTotalCores());
-      m_thread_state[0].status = Tile::RUNNING;
+      m_thread_state[0].status = Core::RUNNING;
 
       if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
       {
@@ -37,11 +38,11 @@ ThreadManager::ThreadManager(TileManager *tile_manager)
          UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
          for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
          {
-            m_thread_state[i].status = Tile::RUNNING;
+            m_thread_state[i].status = Core::RUNNING;
          }
       }
 
-      m_thread_state[config->getMCPCoreNum()].status = Tile::RUNNING;
+      m_thread_state[config->getMCPCoreNum()].status = Core::RUNNING;
       
       LOG_ASSERT_ERROR(config->getMCPCoreNum() < (SInt32) m_thread_state.size(),
                        "MCP core num out of range (!?)");
@@ -52,8 +53,8 @@ ThreadManager::~ThreadManager()
 {
    if (m_master)
    {
-      m_thread_state[0].status = Tile::IDLE;
-      m_thread_state[Config::getSingleton()->getMCPCoreNum()].status = Tile::IDLE;
+      m_thread_state[0].status = Core::IDLE;
+      m_thread_state[Config::getSingleton()->getMCPCoreNum()].status = Core::IDLE;
       LOG_ASSERT_ERROR(Config::getSingleton()->getMCPCoreNum() < (SInt32)m_thread_state.size(), "MCP core num out of range (!?)");
 
       if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
@@ -63,12 +64,12 @@ ThreadManager::~ThreadManager()
          UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalCores() - 2;
          for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
          {
-            m_thread_state[i].status = Tile::IDLE;
+            m_thread_state[i].status = Core::IDLE;
          }
       }
 
       for (UInt32 i = 0; i < m_thread_state.size(); i++)
-         LOG_ASSERT_ERROR(m_thread_state[i].status == Tile::IDLE, "Thread %d still active when ThreadManager destructs!", i);
+         LOG_ASSERT_ERROR(m_thread_state[i].status == Core::IDLE, "Thread %d still active when ThreadManager destructs!", i);
    }
 }
 
@@ -85,7 +86,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
       return;
 
    // Set the CoreState to 'RUNNING'
-   m_tile_manager->getCurrentTile()->setState(Tile::RUNNING);
+   m_tile_manager->getCurrentCore()->setState(Core::RUNNING);
  
    // send ack to master
    LOG_PRINT("(5) onThreadStart -- send ack to master; req : { %p, %p, %i, %i }",
@@ -98,7 +99,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
                 req,
                 sizeof(*req));
 
-   CorePerfModel *pm = m_tile_manager->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *pm = m_tile_manager->getCurrentCore()->getPerformanceModel();
 
    // Global Clock to Tile Clock
    UInt64 start_cycle_count = convertCycleCount(req->time, \
@@ -108,6 +109,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
 void ThreadManager::onThreadExit()
 {
+   LOG_PRINT("elau:hi!");
    if (m_tile_manager->getCurrentCoreID() == -1)
       return;
  
@@ -115,20 +117,21 @@ void ThreadManager::onThreadExit()
    FloatingPointHandler floating_point_handler;
 
    Tile* tile = m_tile_manager->getCurrentTile();
+   Core* core = m_tile_manager->getCurrentCore();
 
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_tile_manager->getCurrentCoreID() };
 
    LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread %d at time %llu",
              tile->getId(),
-             tile->getPerformanceModel()->getCycleCount());
+             core->getPerformanceModel()->getCycleCount());
    Network *net = tile->getNetwork();
 
    // Set the CoreState to 'IDLE'
-   tile->setState(Tile::IDLE);
+   core->setState(Core::IDLE);
 
    // Recompute Average Frequency
-   tile->getPerformanceModel()->recomputeAverageFrequency();
+   core->getPerformanceModel()->recomputeAverageFrequency();
 
    // terminate thread locally so we are ready for new thread requests
    // on that tile
@@ -147,8 +150,8 @@ void ThreadManager::masterOnThreadExit(core_id_t core_id, UInt64 time)
    LOG_PRINT("masterOnThreadExit : %d", core_id);
    LOG_ASSERT_ERROR((UInt32)core_id < m_thread_state.size(), "Tile id out of range: %d", core_id);
    
-   assert(m_thread_state[core_id].status == Tile::RUNNING);
-   m_thread_state[core_id].status = Tile::IDLE;
+   assert(m_thread_state[core_id].status == Core::RUNNING);
+   m_thread_state[core_id].status = Core::IDLE;
    
    if (Sim()->getMCP()->getClockSkewMinimizationServer())
       Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
@@ -177,16 +180,17 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
 
    // step 1
    LOG_PRINT("(1) spawnThread with func: %p and arg: %p", func, arg);
-
-   Tile *tile = m_tile_manager->getCurrentTile();
-   Network *net = tile->getNetwork();
+//printf("elau:lol!\n");
+//exit(EXIT_FAILURE);
+   Core *core = m_tile_manager->getCurrentCore();
+   Network *net = core->getNetwork();
 
    // Tile Clock to Global Clock
-   UInt64 global_cycle_count = convertCycleCount(tile->getPerformanceModel()->getCycleCount(), \
-         tile->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+         core->getPerformanceModel()->getFrequency(), 1.0);
 
    ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
-                              func, arg, tile->getId(), INVALID_CORE_ID,
+                              func, arg, core->getId(), INVALID_CORE_ID,
                               global_cycle_count };
 
    net->netSend(Config::getSingleton()->getMCPCoreNum(),
@@ -195,14 +199,14 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
                 sizeof(req));
 
    // Set the CoreState to 'STALLED'
-   tile->setState(Tile::STALLED);
+   core->setState(Core::STALLED);
 
    NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
    
    LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
 
    // Set the CoreState to 'RUNNING'
-   tile->setState(Tile::RUNNING);
+   core->setState(Core::RUNNING);
 
    core_id_t core_id = *((core_id_t*)pkt.data);
    LOG_PRINT("Thread spawned on core: %d", core_id);
@@ -213,17 +217,68 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    return core_id;
 }
 
+SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
+{
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
+   // step 1
+   LOG_PRINT("(1) spawnHelperThread with func: %p and arg: %p", func, arg);
+
+   Core *core = m_tile_manager->getCurrentCore();
+   Network *net = core->getNetwork();
+
+   // Tile Clock to Global Clock
+   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+         core->getPerformanceModel()->getFrequency(), 1.0);
+
+   // The request is to spawn this new thread to the same tile.
+   ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
+                              func, arg, core->getId(), core->getId(),
+                              global_cycle_count };
+
+   net->netSend(Config::getSingleton()->getMCPCoreNum(),
+                MCP_REQUEST_TYPE,
+                &req,
+                sizeof(req));
+
+   // Set the CoreState to 'STALLED'
+   core->setState(Core::STALLED);
+
+   NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
+   
+   LOG_ASSERT_ERROR(pkt.length == sizeof(SInt32), "Unexpected reply size.");
+
+   // Set the CoreState to 'RUNNING'
+   core->setState(Core::RUNNING);
+
+   core_id_t core_id = *((core_id_t*)pkt.data);
+   LOG_PRINT("Thread spawned on core: %d", core_id);
+
+   // Delete the data buffer
+   delete [] (Byte*) pkt.data;
+
+   return core_id;
+}
+
+
 void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
 {
    // step 2
    LOG_ASSERT_ERROR(m_master, "masterSpawnThread should only be called on master.");
    LOG_PRINT("(2) masterSpawnThread with req: { %p, %p, %d, %d }", req->func, req->arg, req->requester, req->core_id);
 
+   if (req->requester == req->core_id)
+   {
+      LOG_PRINT("Tada! This is a helper thread.");
+      exit(0);
+   }
+
    // find core to use
    // FIXME: Load balancing?
    for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
    {
-      if (m_thread_state[i].status == Tile::IDLE)
+      if (m_thread_state[i].status == Core::IDLE)
       {
          req->core_id = i;
          break;
@@ -258,15 +313,15 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       insertThreadSpawnRequest(req_cpy);
       m_thread_spawn_sem.signal();
          
-      Tile *tile = m_tile_manager->getCurrentTile();
-      tile->getNetwork()->netSend(req->requester, 
+      Core *core = m_tile_manager->getCurrentCore();
+      core->getNetwork()->netSend(req->requester, 
             MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
             &req->core_id,
             sizeof(req->core_id));
    }
 
    LOG_PRINT("Setting status[%i] -> INITIALIZING", req->core_id);
-   m_thread_state[req->core_id].status = Tile::INITIALIZING;
+   m_thread_state[req->core_id].status = Core::INITIALIZING;
    LOG_PRINT("Done with (2)");
 }
 
@@ -336,15 +391,15 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
 
    // Set the state of the actual thread spawned to running
    LOG_PRINT("Setting status[%i] -> RUNNING", req->core_id);
-   m_thread_state[req->core_id].status = Tile::RUNNING;
+   m_thread_state[req->core_id].status = Core::RUNNING;
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
       // Resume the requesting thread
       resumeThread(req->requester);
 
-      Tile *tile = m_tile_manager->getCurrentTile();
-      tile->getNetwork()->netSend(req->requester, 
+      Core *core = m_tile_manager->getCurrentCore();
+      core->getNetwork()->netSend(req->requester, 
                                   MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
                                   &req->core_id,
                                   sizeof(req->core_id));
@@ -358,7 +413,7 @@ bool ThreadManager::areAllCoresRunning()
    bool is_all_running = true;
    for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
    {
-      if (m_thread_state[i].status == Tile::IDLE)
+      if (m_thread_state[i].status == Core::IDLE)
       {
          is_all_running = false;
          break;
@@ -384,13 +439,13 @@ void ThreadManager::joinThread(core_id_t core_id)
                 sizeof(msg));
 
    // Set the CoreState to 'STALLED'
-   m_tile_manager->getCurrentTile()->setState(Tile::STALLED);
+   m_tile_manager->getCurrentCore()->setState(Core::STALLED);
 
    // Wait for reply
    NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY);
 
    // Set the CoreState to 'WAKING_UP'
-   m_tile_manager->getCurrentTile()->setState(Tile::WAKING_UP);
+   m_tile_manager->getCurrentCore()->setState(Core::WAKING_UP);
 
    LOG_PRINT("Exiting join thread.");
 }
@@ -410,7 +465,7 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req, UInt64 time)
 
    // Tile not running, so the thread must have joined
    LOG_ASSERT_ERROR((UInt32)req->core_id < m_thread_state.size(), "Tile id out of range: %d", req->core_id);
-   if (m_thread_state[req->core_id].status == Tile::IDLE)
+   if (m_thread_state[req->core_id].status == Core::IDLE)
    {
       LOG_PRINT("Not running, sending reply.");
       wakeUpWaiter(req->core_id, time);
@@ -423,7 +478,7 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
    {
       LOG_PRINT("Waking up core: %d at time: %llu", m_thread_state[core_id].waiter, time);
 
-      Tile *tile = m_tile_manager->getCurrentTile();
+      Core *core = m_tile_manager->getCurrentCore();
       core_id_t dest = m_thread_state[core_id].waiter;
 
       // Resume the 'pthread_join' caller
@@ -433,11 +488,11 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
       // manufacturing a time stamp
       NetPacket pkt(time,
                     MCP_THREAD_JOIN_REPLY,
-                    tile->getId(),
+                    core->getId(),
                     dest,
                     0,
                     NULL);
-      tile->getNetwork()->netSend(pkt);
+      core->getNetwork()->netSend(pkt);
 
       m_thread_state[core_id].waiter = INVALID_CORE_ID;
    }
@@ -522,9 +577,9 @@ void ThreadManager::updateTerminateThreadSpawner()
 
 void ThreadManager::stallThread(core_id_t core_id)
 {
-   LOG_PRINT("Tile(%i) -> STALLED", core_id);
+   LOG_PRINT("Core(%i) -> STALLED", core_id);
    LOG_ASSERT_ERROR(m_master, "stallThread() must only be called on master");
-   m_thread_state[core_id].status = Tile::STALLED;
+   m_thread_state[core_id].status = Core::STALLED;
    
    if (Sim()->getMCP()->getClockSkewMinimizationServer())
       Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
@@ -532,19 +587,19 @@ void ThreadManager::stallThread(core_id_t core_id)
 
 void ThreadManager::resumeThread(core_id_t core_id)
 {
-   LOG_PRINT("Tile(%i) -> RUNNING", core_id);
+   LOG_PRINT("Core(%i) -> RUNNING", core_id);
    LOG_ASSERT_ERROR(m_master, "resumeThread() must only be called on master");
-   m_thread_state[core_id].status = Tile::RUNNING;
+   m_thread_state[core_id].status = Core::RUNNING;
 }
 
 bool ThreadManager::isThreadRunning(core_id_t core_id)
 {
    LOG_ASSERT_ERROR(m_master, "isThreadRunning() must only be called on master");
-   return (m_thread_state[core_id].status == Tile::RUNNING);
+   return (m_thread_state[core_id].status == Core::RUNNING);
 }
 
 bool ThreadManager::isThreadInitializing(core_id_t core_id)
 {
    LOG_ASSERT_ERROR(m_master, "isThreadInitializing() must only be called on master");
-   return (m_thread_state[core_id].status == Tile::INITIALIZING);
+   return (m_thread_state[core_id].status == Core::INITIALIZING);
 }

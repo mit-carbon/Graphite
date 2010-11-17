@@ -1,4 +1,4 @@
-#include "tile.h"
+#include "core.h"
 #include "network.h"
 #include "transport.h"
 #include "packetize.h"
@@ -39,20 +39,20 @@ ClockSkewMinimizationObject::parseScheme(std::string scheme)
 }
 
 ClockSkewMinimizationClient*
-ClockSkewMinimizationClient::create(std::string scheme_str, Tile* tile)
+ClockSkewMinimizationClient::create(std::string scheme_str, Core* core)
 {
    Scheme scheme = ClockSkewMinimizationObject::parseScheme(scheme_str);
 
    switch (scheme)
    {
       case BARRIER:
-         return new BarrierSyncClient(tile);
+         return new BarrierSyncClient(core);
 
       case RING:
-         return new RingSyncClient(tile);
+         return new RingSyncClient(core);
 
       case RANDOM_PAIRS:
-         return new RandomPairsSyncClient(tile);
+         return new RandomPairsSyncClient(core);
 
       case NONE:
          return (ClockSkewMinimizationClient*) NULL;

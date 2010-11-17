@@ -77,7 +77,7 @@ void Simulator::start()
    // Create Orion Config Object
    string orion_cfg_file = "./contrib/orion/orion.cfg";
    OrionConfig::allocate(orion_cfg_file);
-   // OrionConfig::getSingleton()->print_config(cout);
+   //OrionConfig::getSingleton()->print_config(cout);
  
    m_transport = Transport::create();
    m_tile_manager = new TileManager();
@@ -86,7 +86,7 @@ void Simulator::start()
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
 
-   // Floating Point Support
+   //// Floating Point Support
    Fxsupport::allocate();
 
    startMCP();

@@ -664,11 +664,12 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    }
 #endif
 
-   Tile* tile = m_network.getCore();
-   LOG_ASSERT_ERROR (tile != NULL, "Tile should not be NULL");
+   // Get the main core, assume for now PEP cores can't make syscalls.
+   Core* core = m_network.getTile()->getCore();
+   LOG_ASSERT_ERROR (core != NULL, "Core should not be NULL");
    int act_val;
 
-   tile->accessMemory(Tile::NONE, Tile::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
 
 #ifdef KERNEL_LENNY
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))

@@ -52,8 +52,8 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr)
 bool
 L1CacheCntlr::processMemOpFromCore(
       MemComponent::component_t mem_component,
-      Tile::lock_signal_t lock_signal,
-      Tile::mem_op_t mem_op_type, 
+      Core::lock_signal_t lock_signal,
+      Core::mem_op_t mem_op_type, 
       IntPtr ca_address, UInt32 offset,
       Byte* data_buf, UInt32 data_length,
       bool modeled)
@@ -70,7 +70,7 @@ L1CacheCntlr::processMemOpFromCore(
       LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2),
             "Error: access_num(%u)", access_num);
 
-      if (lock_signal != Tile::UNLOCK)
+      if (lock_signal != Core::UNLOCK)
          acquireLock(mem_component);
 
       // Wake up the network thread after acquiring the lock
@@ -87,14 +87,14 @@ L1CacheCntlr::processMemOpFromCore(
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
-         if (lock_signal != Tile::LOCK)
+         if (lock_signal != Core::LOCK)
             releaseLock(mem_component);
          return l1_cache_hit;
       }
 
       getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
 
-      if (lock_signal == Tile::UNLOCK)
+      if (lock_signal == Core::UNLOCK)
          LOG_PRINT_ERROR("Expected to find address(0x%x) in L1 Cache", ca_address);
 
       m_l2_cache_cntlr->acquireLock();
@@ -113,7 +113,7 @@ L1CacheCntlr::processMemOpFromCore(
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
-         if (lock_signal != Tile::LOCK)
+         if (lock_signal != Core::LOCK)
             releaseLock(mem_component);
          return false;
       }
@@ -140,18 +140,18 @@ L1CacheCntlr::processMemOpFromCore(
 
 void
 L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
-      Tile::mem_op_t mem_op_type, IntPtr ca_address, UInt32 offset,
+      Core::mem_op_t mem_op_type, IntPtr ca_address, UInt32 offset,
       Byte* data_buf, UInt32 data_length)
 {
    Cache* l1_cache = getL1Cache(mem_component);
    switch (mem_op_type)
    {
-      case Tile::READ:
-      case Tile::READ_EX:
+      case Core::READ:
+      case Core::READ_EX:
          l1_cache->accessSingleLine(ca_address + offset, Cache::LOAD, data_buf, data_length);
          break;
 
-      case Tile::WRITE:
+      case Core::WRITE:
          l1_cache->accessSingleLine(ca_address + offset, Cache::STORE, data_buf, data_length);
          // Write-through cache - Write the L2 Cache also
          m_l2_cache_cntlr->acquireLock();
@@ -168,7 +168,7 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
 bool
 L1CacheCntlr::operationPermissibleinL1Cache(
       MemComponent::component_t mem_component, 
-      IntPtr address, Tile::mem_op_t mem_op_type,
+      IntPtr address, Core::mem_op_t mem_op_type,
       UInt32 access_num, bool modeled)
 {
    // TODO: Verify why this works
@@ -177,12 +177,12 @@ L1CacheCntlr::operationPermissibleinL1Cache(
    
    switch (mem_op_type)
    {
-      case Tile::READ:
+      case Core::READ:
          cache_hit = CacheState(cstate).readable();
          break;
 
-      case Tile::READ_EX:
-      case Tile::WRITE:
+      case Core::READ_EX:
+      case Core::WRITE:
          cache_hit = CacheState(cstate).writable();
          break;
 
@@ -243,15 +243,15 @@ L1CacheCntlr::invalidateCacheBlock(MemComponent::component_t mem_component, IntP
 }
 
 ShmemMsg::msg_t
-L1CacheCntlr::getShmemMsgType(Tile::mem_op_t mem_op_type)
+L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)
 {
    switch(mem_op_type)
    {
-      case Tile::READ:
+      case Core::READ:
          return ShmemMsg::SH_REQ;
 
-      case Tile::READ_EX:
-      case Tile::WRITE:
+      case Core::READ_EX:
+      case Core::WRITE:
          return ShmemMsg::EX_REQ;
 
       default:

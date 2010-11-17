@@ -96,6 +96,7 @@ VOID printInsInfo(CONTEXT* ctxt)
    __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    LOG_PRINT("eip = %#llx, esp = %#llx", reg_inst_ptr, reg_stack_ptr);
+   LOG_PRINT("elau:dead");
 }
 
 void initializeSyscallModeling ()
@@ -307,7 +308,6 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             copyInitialStackData(reg_esp, core_id);
             LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
          }
-
          // Set the current ESP accordingly
          PIN_SetContextReg(ctxt, REG_STACK_PTR, reg_esp);
       }
@@ -315,6 +315,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       // All the real initialization is done in 
       // replacement_start at the moment
       done_app_initialization = true;
+      LOG_PRINT("elau: app init is done!");
    }
    else
    {
@@ -381,10 +382,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          ReleaseLock (&clone_memory_update_lock);
       }
    }
+   LOG_PRINT("elau: about to leave threadStartCallBack");
 }
 
 VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, VOID *v)
 {
+   LOG_PRINT("elau:hello!");
    Sim()->getThreadManager()->onThreadExit();
 }
 
@@ -429,10 +432,10 @@ int main(int argc, char *argv[])
       RTN_AddInstrumentFunction(lite::routineCallback, 0);
 
    PIN_AddThreadStartFunction (threadStartCallback, 0);
+   LOG_PRINT("elau: back in pin_sim");
    PIN_AddThreadFiniFunction (threadFiniCallback, 0);
    
-   if ((cfg->getBool("general/enable_syscall_modeling")) && \
-         (Sim()->getConfig()->getSimulationMode() == Config::FULL))
+   if ((cfg->getBool("general/enable_syscall_modeling")) && (Sim()->getConfig()->getSimulationMode() == Config::FULL))
    {
       initializeSyscallModeling();
 
@@ -447,7 +450,7 @@ int main(int argc, char *argv[])
 
    PIN_AddFiniFunction(ApplicationExit, 0);
 
-   // Just in case ... might not be strictly necessary
+   //Just in case ... might not be strictly necessary
    Transport::getSingleton()->barrier();
 
    // Never returns

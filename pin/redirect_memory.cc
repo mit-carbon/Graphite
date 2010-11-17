@@ -1,7 +1,7 @@
 #include "redirect_memory.h"
 #include "simulator.h"
 #include "tile_manager.h"
-#include "tile.h"
+#include "core.h"
 #include "pin_memory_manager.h"
 #include "core_perf_model.h"
 
@@ -9,13 +9,13 @@
 // Only need this function because some memory accesses are made before cores have
 // been initialized. Should not evnentually need this
 
-void memOp (Tile::lock_signal_t lock_signal, Tile::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
+void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
 {   
-   assert (lock_signal == Tile::NONE);
+   assert (lock_signal == Core::NONE);
 
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   LOG_ASSERT_ERROR(tile, "Could not find Tile object for current thread");
-   tile->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   LOG_ASSERT_ERROR(core, "Could not find Core object for current thread");
+   core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
 }
 
 bool rewriteStringOp (INS ins)
@@ -132,8 +132,8 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       Byte byte_buf1;
       Byte byte_buf2;
 
-      memOp (Tile::NONE, Tile::READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
-      memOp (Tile::NONE, Tile::READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
+      memOp (Core::NONE, Core::READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
+      memOp (Core::NONE, Core::READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
       num_mem_ops += 2;
 
       // Decrement the counter
@@ -157,7 +157,7 @@ void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       }
    }
 
-   CorePerfModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
    DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
    perf->pushDynamicInstructionInfo(info);
 
@@ -218,7 +218,7 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
    {
       Byte byte_buf;
       ++num_mem_ops;
-      memOp (Tile::NONE, Tile::READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
+      memOp (Core::NONE, Core::READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
 
       // Decrement the counter
       reg_gcx --;
@@ -239,7 +239,7 @@ void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
       }
    }
 
-   CorePerfModel *perf = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
    DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
    perf->pushDynamicInstructionInfo(info);
 
@@ -580,7 +580,7 @@ ADDRINT emuPushValue (ADDRINT tgt_esp, ADDRINT value, ADDRINT write_size)
 
    tgt_esp -= write_size;
 
-   memOp (Tile::NONE, Tile::WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
    
    return tgt_esp;
 }
@@ -594,8 +594,8 @@ ADDRINT emuPushMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
 
    ADDRINT buf;
 
-   memOp (Tile::NONE, Tile::READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
-   memOp (Tile::NONE, Tile::WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
 
    return tgt_esp;
 }
@@ -605,7 +605,7 @@ ADDRINT emuPopReg(ADDRINT tgt_esp, ADDRINT *reg, ADDRINT read_size)
    assert (read_size != 0);
    assert ( read_size == sizeof ( ADDRINT ) );
 
-   memOp (Tile::NONE, Tile::READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
+   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
    
    return tgt_esp + read_size;
 }
@@ -616,8 +616,8 @@ ADDRINT emuPopMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
    
    ADDRINT buf;
 
-   memOp (Tile::NONE, Tile::READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
-   memOp (Tile::NONE, Tile::WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
 
    return tgt_esp + size;
 }
@@ -628,10 +628,10 @@ ADDRINT emuCallMem(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT 
    assert (write_size == sizeof(ADDRINT));
    
    ADDRINT called_ip;
-   memOp (Tile::NONE, Tile::READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
+   memOp (Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
 
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
-   memOp (Tile::NONE, Tile::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return called_ip;
 }
@@ -642,7 +642,7 @@ ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADD
    
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
 
-   memOp (Tile::NONE, Tile::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return br_tgt_ip;
 }
@@ -653,7 +653,7 @@ ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL modeled)
 
    ADDRINT next_ip;
 
-   Sim()->getTileManager()->getCurrentTile()->accessMemory(Tile::NONE, Tile::READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
+   Sim()->getTileManager()->getCurrentCore()->accessMemory(Core::NONE, Core::READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
 
    *tgt_esp = *tgt_esp + read_size;
    *tgt_esp = *tgt_esp + imm;
@@ -667,7 +667,7 @@ ADDRINT emuLeave(ADDRINT tgt_esp, ADDRINT *tgt_ebp, ADDRINT read_size)
 
    tgt_esp = *tgt_ebp;
 
-   memOp (Tile::NONE, Tile::READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
+   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
    
    tgt_esp += read_size;
    
@@ -678,11 +678,11 @@ ADDRINT redirectPushf ( ADDRINT tgt_esp, ADDRINT size )
 {
    assert (size == sizeof (ADDRINT));
 
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
    
-   if (tile)
+   if (core)
    {
-      return tile->getPinMemoryManager()->redirectPushf (tgt_esp, size);
+      return core->getPinMemoryManager()->redirectPushf (tgt_esp, size);
    }
    else
    {
@@ -694,11 +694,11 @@ ADDRINT completePushf ( ADDRINT esp, ADDRINT size )
 {
    assert (size == sizeof(ADDRINT));
    
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
-   if (tile)
+   if (core)
    {
-      return tile->getPinMemoryManager()->completePushf (esp, size);
+      return core->getPinMemoryManager()->completePushf (esp, size);
    }
    else
    {
@@ -710,11 +710,11 @@ ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
 
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
   
-   if (tile)
+   if (core)
    {
-      return tile->getPinMemoryManager()->redirectPopf (tgt_esp, size);
+      return core->getPinMemoryManager()->redirectPopf (tgt_esp, size);
    }
    else
    {
@@ -726,11 +726,11 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
    
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
-   if (tile)
+   if (core)
    {
-      return tile->getPinMemoryManager()->completePopf (esp, size);
+      return core->getPinMemoryManager()->completePopf (esp, size);
    }
    else
    {
@@ -745,11 +745,11 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 
 ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
   
-   if (tile)
+   if (core)
    {
-      PinMemoryManager *mem_manager = tile->getPinMemoryManager ();
+      PinMemoryManager *mem_manager = core->getPinMemoryManager ();
       assert (mem_manager != NULL);
 
       return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
@@ -757,9 +757,9 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
    else
    {
       // Make sure that no instructions with the 
-      // LOCK prefix execute in a non-tile
+      // LOCK prefix execute in a non-core
       // assert (!has_lock_prefix);
-      // cerr << "ins with LOCK prefix in a non-tile" << endl;
+      // cerr << "ins with LOCK prefix in a non-core" << endl;
 
       return tgt_ea;
    }
@@ -767,18 +767,18 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
 
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
-   if (tile)
+   if (core)
    {
-      tile->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
    }
    else
    {
       // Make sure that no instructions with the 
-      // LOCK prefix execute in a non-tile
+      // LOCK prefix execute in a non-core
       // assert (!has_lock_prefix);
-      // cerr << "ins with LOCK prefix in a non-tile" << endl;
+      // cerr << "ins with LOCK prefix in a non-core" << endl;
    }
 
    return;

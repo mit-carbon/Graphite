@@ -70,7 +70,7 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    // (1) compute latency of packet
    // (2) update utilization
 
-   CorePerfModel *perf = getNetwork()->getCore()->getPerformanceModel();
+   CorePerfModel *perf = getNetwork()->getTile()->getCore()->getPerformanceModel();
 
    Hop h;
    h.final_dest = pkt.receiver;
@@ -231,7 +231,7 @@ void NetworkModelAnalytical::updateUtilization()
    // ** send updates
 
    // don't lock because this is all approximate anyway
-   UInt64 core_time = getNetwork()->getCore()->getPerformanceModel()->getCycleCount();
+   UInt64 core_time = getNetwork()->getTile()->getCore()->getPerformanceModel()->getCycleCount();
    UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
 
    if (elapsed_time < _params.update_interval)
@@ -252,7 +252,7 @@ void NetworkModelAnalytical::updateUtilization()
    m.msg.model = this;
 
    NetPacket update;
-   update.sender = getNetwork()->getCore()->getId();
+   update.sender = getNetwork()->getTile()->getId();
    update.receiver = Config::getSingleton()->getMCPCoreNum();
    update.length = sizeof(m);
    update.type = MCP_SYSTEM_TYPE;

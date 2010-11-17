@@ -6,7 +6,7 @@
 #include <map>
 
 #include "semaphore.h"
-#include "tile.h"
+#include "core.h"
 #include "fixed_types.h"
 #include "message_types.h"
 #include "lock.h"
@@ -24,6 +24,8 @@ public:
    // services
    SInt32 spawnThread(thread_func_t func, void *arg);
    void joinThread(core_id_t core_id);
+   
+   SInt32 spawnHelperThread(thread_func_t func, void *arg);
 
    void getThreadToSpawn(ThreadSpawnRequest *req);
    ThreadSpawnRequest* getThreadSpawnReq();
@@ -52,6 +54,8 @@ private:
    void slaveSpawnThread(ThreadSpawnRequest*);
    void masterSpawnThreadReply(ThreadSpawnRequest*);
 
+   void masterSpawnHelperThread(ThreadSpawnRequest*);
+
    void masterOnThreadExit(core_id_t core_id, UInt64 time);
 
    void slaveTerminateThreadSpawnerAck (core_id_t);
@@ -65,11 +69,11 @@ private:
 
    struct ThreadState
    {
-      Tile::State status;
+      Core::State status;
       SInt32 waiter;
 
       ThreadState()
-         : status(Tile::IDLE)
+         : status(Core::IDLE)
          , waiter(-1)
       {} 
    };

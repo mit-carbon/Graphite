@@ -1,4 +1,5 @@
 #include "tls.h"
+#include "log.h"
 #include <pthread.h>
 
 // TLS

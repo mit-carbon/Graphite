@@ -9,17 +9,17 @@ using namespace std;
 
 MemoryManagerBase* 
 MemoryManagerBase::createMMU(std::string protocol_type,
-      Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
+      Core* core, Network* network, ShmemPerfModel* shmem_perf_model)
 {
    CachingProtocol_t caching_protocol = parseProtocolType(protocol_type);
 
    switch (caching_protocol)
    {
       case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-         return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile, network, shmem_perf_model);
+         return new PrL1PrL2DramDirectoryMSI::MemoryManager(core, network, shmem_perf_model);
 
       case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
-         return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile, network, shmem_perf_model);
+         return new PrL1PrL2DramDirectoryMOSI::MemoryManager(core, network, shmem_perf_model);
 
       default:
          LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", caching_protocol);
@@ -141,5 +141,5 @@ MemoryManagerBase::printCoreListWithMemoryControllers(vector<core_id_t>& core_li
    {
       core_list << *it << " ";
    }
-   fprintf(stderr, "Tile IDs' with memory controllers = (%s)\n", (core_list.str()).c_str());
+   fprintf(stderr, "Core IDs' with memory controllers = (%s)\n", (core_list.str()).c_str());
 }

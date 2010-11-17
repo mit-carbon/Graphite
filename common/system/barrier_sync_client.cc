@@ -7,13 +7,13 @@
 #include "packet_type.h"
 #include "packetize.h"
 #include "network.h"
-#include "tile.h"
+#include "core.h"
 #include "core_perf_model.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-BarrierSyncClient::BarrierSyncClient(Tile* tile):
-   m_core(tile)
+BarrierSyncClient::BarrierSyncClient(Core* core):
+   m_core(core)
 {
    try
    {

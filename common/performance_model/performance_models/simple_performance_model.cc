@@ -1,12 +1,12 @@
-#include "tile.h"
+#include "core.h"
 #include "log.h"
 #include "simple_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-SimplePerformanceModel::SimplePerformanceModel(Tile *tile, float frequency)
-    : CorePerfModel(tile, frequency)
+SimplePerformanceModel::SimplePerformanceModel(Core *core, float frequency)
+    : CorePerfModel(core, frequency)
     , m_instruction_count(0)
 {
 }

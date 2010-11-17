@@ -20,7 +20,7 @@ NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net,
    m_total_packet_latency(0)
 {
    SInt32 total_cores = Config::getSingleton()->getTotalCores();
-   m_core_id = getNetwork()->getCore()->getId();
+   m_core_id = getNetwork()->getTile()->getId();
 
    m_mesh_width = (SInt32) floor (sqrt(total_cores));
    m_mesh_height = (SInt32) ceil (1.0 * total_cores / m_mesh_width);
@@ -167,7 +167,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
    core_id_t requester = INVALID_CORE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+      requester = getNetwork()->getTile()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    
@@ -257,7 +257,7 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    core_id_t requester = INVALID_CORE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+      requester = getNetwork()->getTile()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    

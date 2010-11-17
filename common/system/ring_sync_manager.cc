@@ -26,9 +26,9 @@ RingSyncManager::RingSyncManager():
    {
       if ((*it) < (core_id_t) Sim()->getConfig()->getApplicationCores())
       {
-         Tile* tile = Sim()->getTileManager()->getTileFromID(*it);
-         assert(tile != NULL);
-         _core_list.push_back(tile);
+         Core* core = Sim()->getTileManager()->getCoreFromID(*it);
+         assert(core != NULL);
+         _core_list.push_back(core);
       }
    }
    assert(_core_list.size() == num_app_cores);
@@ -104,18 +104,18 @@ RingSyncManager::updateClientObjectsAndRingMsg(CycleCountUpdate* cycle_count_upd
    // Get the min cycle counts of all the application cores in this process
    UInt64 min_cycle_count = UINT64_MAX;
 
-   std::vector<Tile*>::iterator it;
+   std::vector<Core*>::iterator it;
    for (it = _core_list.begin(); it != _core_list.end(); it++)
    {
       // Read the Cycle Count and State of the tile
       // May need locks around this
-      Tile::State tile_state = (*it)->getState();
+      Core::State core_state = (*it)->getState();
 
       RingSyncClient* ring_sync_client = (RingSyncClient*) (*it)->getClockSkewMinimizationClient();
       ring_sync_client->getLock()->acquire();
 
       UInt64 cycle_count = ring_sync_client->getCycleCount();
-      if ((tile_state == Tile::RUNNING) && (cycle_count < min_cycle_count))
+      if ((core_state == Core::RUNNING) && (cycle_count < min_cycle_count))
       {
          // Dont worry about the cycle counts of threads that are not running
          min_cycle_count = cycle_count;

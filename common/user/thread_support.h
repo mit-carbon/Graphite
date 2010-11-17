@@ -15,6 +15,7 @@ typedef struct
    SInt32 requester;
    core_id_t core_id;
    UInt64 time;
+   bool is_helper_thread;
 } ThreadSpawnRequest;
 
 typedef struct 
@@ -29,6 +30,7 @@ extern "C" {
 #endif
 
 carbon_thread_t CarbonSpawnThread(thread_func_t func, void *arg);
+carbon_thread_t CarbonSpawnHelperThread(thread_func_t func, void *arg);
 void CarbonJoinThread(carbon_thread_t tid);
 
 #ifdef __cplusplus

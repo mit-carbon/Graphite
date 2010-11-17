@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "pin_memory_manager.h"
 
-PinMemoryManager::PinMemoryManager(Tile* core):
+PinMemoryManager::PinMemoryManager(Core* core):
    m_core(core)
 {
    // Allocate scratchpads (aligned at 4 * sizeof (void*) to correctly handle
@@ -25,19 +25,19 @@ PinMemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr siz
    
    if ((access_type == ACCESS_TYPE_READ) || (access_type == ACCESS_TYPE_READ2))
    {
-      Tile::mem_op_t mem_op_type;
-      Tile::lock_signal_t lock_signal;
+      Core::mem_op_t mem_op_type;
+      Core::lock_signal_t lock_signal;
 
       if (has_lock_prefix)
       {
          // FIXME: Now, when we have a LOCK prefix, we do an exclusive READ
-         mem_op_type = Tile::READ_EX;
-         lock_signal = Tile::LOCK;
+         mem_op_type = Core::READ_EX;
+         lock_signal = Core::LOCK;
       }
       else
       {
-         mem_op_type = Tile::READ;
-         lock_signal = Tile::NONE;
+         mem_op_type = Core::READ;
+         lock_signal = Core::NONE;
       }
        
       m_core->accessMemory (lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
@@ -51,9 +51,9 @@ PinMemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPtr 
 {
    char *scratchpad = m_scratchpad [access_type];
 
-   Tile::lock_signal_t lock_signal = (has_lock_prefix) ? Tile::UNLOCK : Tile::NONE;
+   Core::lock_signal_t lock_signal = (has_lock_prefix) ? Core::UNLOCK : Core::NONE;
       
-   m_core->accessMemory (lock_signal, Tile::WRITE, tgt_ea, scratchpad, size, true);
+   m_core->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
    
    return;
 }

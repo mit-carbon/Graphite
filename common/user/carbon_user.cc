@@ -79,9 +79,9 @@ UInt64 CarbonGetTime()
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   UInt64 time = convertCycleCount(tile->getPerformanceModel()->getCycleCount(), \
-         tile->getPerformanceModel()->getFrequency(), 1.0);
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   UInt64 time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+         core->getPerformanceModel()->getFrequency(), 1.0);
 
    return time;
 }

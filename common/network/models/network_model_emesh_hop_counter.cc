@@ -130,7 +130,7 @@ NetworkModelEMeshHopCounter::computeDistance(SInt32 x1, SInt32 y1, SInt32 x2, SI
 UInt32
 NetworkModelEMeshHopCounter::computeAction(const NetPacket& pkt)
 {
-   core_id_t core_id = getNetwork()->getCore()->getId();
+   core_id_t core_id = getNetwork()->getTile()->getId();
    LOG_ASSERT_ERROR((pkt.receiver == NetPacket::BROADCAST) || (pkt.receiver == core_id), \
          "pkt.receiver(%i), core_id(%i)", pkt.receiver, core_id);
 
@@ -214,7 +214,7 @@ NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
    core_id_t requester = INVALID_CORE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+      requester = getNetwork()->getTile()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    

@@ -34,6 +34,7 @@ int main(int argc, char **argv)
    CarbonStopSim();
 
    fprintf(stderr, "done.\n");
+   i++;
    return 0;
 }
 

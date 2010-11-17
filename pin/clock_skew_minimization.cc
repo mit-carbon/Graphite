@@ -20,10 +20,11 @@ void handlePeriodicSync()
       return;
    }
 
-   ClockSkewMinimizationClient *client = tile->getClockSkewMinimizationClient();
-   assert(client);
+   ClockSkewMinimizationClient *client = tile->getCore()->getClockSkewMinimizationClient();
 
-   client->synchronize();
+   // A NULL client is returned by a PEP core, we're not synchronizing them right now.
+   if (client)
+      client->synchronize();
 }
 
 void addPeriodicSync(INS ins)

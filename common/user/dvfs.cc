@@ -10,7 +10,7 @@ void CarbonGetCoreFrequency(volatile float* frequency)
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   *frequency = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel()->getFrequency();
+   *frequency = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel()->getFrequency();
 }
 
 void CarbonSetCoreFrequency(volatile float* frequency)

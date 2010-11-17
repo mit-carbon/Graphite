@@ -2,6 +2,7 @@
 #define TLS_H
 
 #include "fixed_types.h"
+#include "log.h"
 
 class TLS
 {

@@ -3,7 +3,7 @@
 
 using namespace std;
 
-#include "tile.h"
+#include "core.h"
 #include "network.h"
 #include "mem_component.h"
 #include "shmem_perf_model.h"
@@ -21,7 +21,7 @@ class MemoryManagerBase
       };
 
    private:
-      Tile* m_core;
+      Core* m_core;
       Network* m_network;
       ShmemPerfModel* m_shmem_perf_model;
       
@@ -35,8 +35,8 @@ class MemoryManagerBase
       void printCoreListWithMemoryControllers(vector<core_id_t>& core_list_with_memory_controllers);
    
    public:
-      MemoryManagerBase(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model):
-         m_core(tile), 
+      MemoryManagerBase(Core* core, Network* network, ShmemPerfModel* shmem_perf_model):
+         m_core(core), 
          m_network(network), 
          m_shmem_perf_model(shmem_perf_model)
       {}
@@ -44,8 +44,8 @@ class MemoryManagerBase
 
       virtual bool coreInitiateMemoryAccess(
             MemComponent::component_t mem_component,
-            Tile::lock_signal_t lock_signal,
-            Tile::mem_op_t mem_op_type,
+            Core::lock_signal_t lock_signal,
+            Core::mem_op_t mem_op_type,
             IntPtr address, UInt32 offset,
             Byte* data_buf, UInt32 data_length,
             bool modeled) = 0;
@@ -65,11 +65,11 @@ class MemoryManagerBase
       // Modeling
       virtual UInt32 getModeledLength(const void* pkt_data) = 0;
 
-      Tile* getCore() { return m_core; }
+      Core* getCore() { return m_core; }
       
       static CachingProtocol_t parseProtocolType(std::string& protocol_type);
       static MemoryManagerBase* createMMU(std::string protocol_type,
-            Tile* tile,
+            Core* core,
             Network* network, 
             ShmemPerfModel* shmem_perf_model);
       

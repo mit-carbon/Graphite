@@ -6,7 +6,7 @@
 class SimplePerformanceModel : public CorePerfModel
 {
 public:
-   SimplePerformanceModel(Tile *tile, float frequency);
+   SimplePerformanceModel(Core *core, float frequency);
    ~SimplePerformanceModel();
 
    void outputSummary(std::ostream &os);

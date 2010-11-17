@@ -10,8 +10,8 @@
 
 UInt64 RandomPairsSyncClient::MAX_TIME = ((UInt64) 1) << 60;
 
-RandomPairsSyncClient::RandomPairsSyncClient(Tile* tile):
-   _core(tile),
+RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
+   _core(core),
    _last_sync_time(0),
    _quantum(0),
    _slack(0),
@@ -85,8 +85,8 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    //  - type (REQ,ACK,WAIT)
    //  - time
    // Called by the Network thread
-   Tile::State tile_state = _core->getState();
-   if (tile_state == Tile::RUNNING)
+   Core::State tile_state = _core->getState();
+   if (tile_state == Core::RUNNING)
    {
       // Thread is RUNNING on tile
       // Network thread must process the random sync requests
@@ -106,7 +106,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
          LOG_PRINT_ERROR("Unrecognized Sync Msg, type(%u) from(%i)", sync_msg.type, sync_msg.sender);
       }
    }
-   else if (tile_state == Tile::SLEEPING)
+   else if (tile_state == Core::SLEEPING)
    {
       LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
             "sync_msg.type(%u)", sync_msg.type);
@@ -204,8 +204,8 @@ RandomPairsSyncClient::synchronize(UInt64 cycle_count)
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   if (_core->getState() == Tile::WAKING_UP)
-      _core->setState(Tile::RUNNING);
+   if (_core->getState() == Core::WAKING_UP)
+      _core->setState(Core::RUNNING);
 
    UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
          _core->getPerformanceModel()->getFrequency(), 1.0);
@@ -302,7 +302,7 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
       LOG_PRINT("Tile(%i) going to sleep", _core->getId());
 
       // Set the CoreState to 'SLEEPING'
-      _core->setState(Tile::SLEEPING);
+      _core->setState(Core::SLEEPING);
 
       UInt64 elapsed_simulated_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
             _core->getPerformanceModel()->getFrequency(), 1.0);
@@ -328,7 +328,7 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
       _lock.acquire();
 
       // Set the CoreState to 'RUNNING'
-      _core->setState(Tile::RUNNING);
+      _core->setState(Core::RUNNING);
       
       LOG_PRINT("Tile(%i) woken up", _core->getId());
    }

@@ -1,12 +1,12 @@
-#include "tile.h"
+#include "core.h"
 #include "log.h"
 #include "magic_pep_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-MagicPepPerformanceModel::MagicPepPerformanceModel(Tile *tile, float frequency)
-    : CorePerfModel(tile, frequency)
+MagicPepPerformanceModel::MagicPepPerformanceModel(Core *core, float frequency)
+    : CorePerfModel(core, frequency)
     , m_instruction_count(0)
 {
 }
@@ -17,7 +17,7 @@ MagicPepPerformanceModel::~MagicPepPerformanceModel()
 
 void MagicPepPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << getInstructionCount() << endl;
+   os << "  PEP Instructions: " << getInstructionCount() << endl;
    frequencySummary(os);
 
    if (getBranchPredictor())

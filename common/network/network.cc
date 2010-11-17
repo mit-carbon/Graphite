@@ -118,10 +118,12 @@ void Network::netPullFromTransport()
 
          LOG_PRINT("After Processing Received Packet: packet.time(%llu)", packet.time);
          
+         // Assume that the network is used by the main core for now, until I had packet types
+         // for the PEP core.
          // Convert from network cycle count to core cycle count
          packet.time = convertCycleCount(packet.time, \
                getNetworkModelFromPacketType(packet.type)->getFrequency(), \
-               _tile->getPerformanceModel()->getFrequency());
+               _tile->getCore()->getPerformanceModel()->getFrequency());
     
          LOG_PRINT("After Converting Cycle Count: packet.time(%llu)", packet.time);
          
@@ -242,7 +244,7 @@ SInt32 Network::netSend(NetPacket& packet)
 
    // Convert from core cycle count to network cycle count
    packet.time = convertCycleCount(packet.time, \
-         _tile->getPerformanceModel()->getFrequency(), \
+         _tile->getCore()->getPerformanceModel()->getFrequency(), \
          getNetworkModelFromPacketType(packet.type)->getFrequency());
 
    // Note the start time
@@ -352,9 +354,9 @@ NetPacket Network::netRecv(const NetMatch &match)
                           ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
                           : NetRecvIterator(match.types);
 
-   LOG_ASSERT_ERROR(_tile && _tile->getPerformanceModel(),
+   LOG_ASSERT_ERROR(_tile && _tile->getCore()->getPerformanceModel(),
                     "Tile and/or performance model not initialized.");
-   UInt64 start_time = _tile->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = _tile->getCore()->getPerformanceModel()->getCycleCount();
 
    _netQueueLock.acquire();
 
@@ -413,7 +415,7 @@ NetPacket Network::netRecv(const NetMatch &match)
    {
       LOG_PRINT("Queueing RecvInstruction(%llu)", packet.time - start_time);
       Instruction *i = new RecvInstruction(packet.time - start_time);
-      _tile->getPerformanceModel()->queueDynamicInstruction(i);
+      _tile->getCore()->getPerformanceModel()->queueDynamicInstruction(i);
    }
 
    LOG_PRINT("Exiting netRecv : type %i, from %i", (SInt32)packet.type, packet.sender);
@@ -426,8 +428,8 @@ NetPacket Network::netRecv(const NetMatch &match)
 SInt32 Network::netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len)
 {
    NetPacket packet;
-   assert(_tile && _tile->getPerformanceModel());
-   packet.time = _tile->getPerformanceModel()->getCycleCount();
+   assert(_tile && _tile->getCore()->getPerformanceModel());
+   packet.time = _tile->getCore()->getPerformanceModel()->getCycleCount();
    packet.sender = _tile->getId();
    packet.receiver = dest;
    packet.length = len;
@@ -490,7 +492,7 @@ UInt32 Network::getModeledLength(const NetPacket& pkt)
       // log2(core_id) for sender and receiver
       // 2 bytes for packet length
       UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getCoreIDLength() + 2;
-      UInt32 data_size = getCore()->getMemoryManager()->getModeledLength(pkt.data);
+      UInt32 data_size = getTile()->getCore()->getMemoryManager()->getModeledLength(pkt.data);
       return metadata_size + data_size;
    }
    else

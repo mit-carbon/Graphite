@@ -68,7 +68,7 @@ class Network
       Network(Tile *tile);
       ~Network();
 
-      Tile *getCore() const { return _tile; }
+      Tile *getTile() const { return _tile; }
       Transport::Node *getTransport() const { return _transport; }
 
       typedef void (*NetworkCallback)(void*, NetPacket);

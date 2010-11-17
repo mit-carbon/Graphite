@@ -4,7 +4,7 @@
 #include <string>
 
 // Forward Decls
-class Tile;
+class Core;
 class Network;
 class UnstructuredBuffer;
 class NetPacket;
@@ -35,7 +35,7 @@ protected:
 
 public:
    ~ClockSkewMinimizationClient() {}
-   static ClockSkewMinimizationClient* create(std::string scheme_str, Tile* core);
+   static ClockSkewMinimizationClient* create(std::string scheme_str, Core* core);
 
    virtual void enable() = 0;
    virtual void disable() = 0;

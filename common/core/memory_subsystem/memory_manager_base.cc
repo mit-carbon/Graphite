@@ -5,6 +5,7 @@ using namespace std;
 #include "memory_manager_base.h"
 #include "pr_l1_pr_l2_dram_directory_msi/memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
+#include "pr_l1_pr_l1_pr_l2_dram_directory_msi/memory_manager.h"
 #include "log.h"
 
 MemoryManagerBase* 
@@ -21,6 +22,9 @@ MemoryManagerBase::createMMU(std::string protocol_type,
       case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
          return new PrL1PrL2DramDirectoryMOSI::MemoryManager(core, network, shmem_perf_model);
 
+      case PR_L1_PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+         return new PrL1PrL1PrL2DramDirectoryMSI::MemoryManager(core, network, shmem_perf_model);
+
       default:
          LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", caching_protocol);
          return NULL;
@@ -34,6 +38,8 @@ MemoryManagerBase::parseProtocolType(std::string& protocol_type)
       return PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else if (protocol_type == "pr_l1_pr_l2_dram_directory_mosi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;
+   else if (protocol_type == "pr_l1_pr_l1_pr_l2_dram_directory_msi")
+      return PR_L1_PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else
       return NUM_CACHING_PROTOCOL_TYPES;
 }

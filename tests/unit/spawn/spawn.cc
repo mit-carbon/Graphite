@@ -24,14 +24,14 @@ void do_a_sim()
 int main(int argc, char **argv)
 {
    int i = 0;
-   CarbonStartSim(argc, argv);
+   //CarbonStartSim(argc, argv);
 
    for(i = 0; i < 20; i++)
    {
        fprintf(stderr, "%d...", i);
-       do_a_sim();
+       //do_a_sim();
    }
-   CarbonStopSim();
+   //CarbonStopSim();
 
    fprintf(stderr, "done.\n");
    i++;

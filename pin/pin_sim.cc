@@ -96,7 +96,6 @@ VOID printInsInfo(CONTEXT* ctxt)
    __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    LOG_PRINT("eip = %#llx, esp = %#llx", reg_inst_ptr, reg_stack_ptr);
-   LOG_PRINT("elau:dead");
 }
 
 void initializeSyscallModeling ()
@@ -432,7 +431,6 @@ int main(int argc, char *argv[])
       RTN_AddInstrumentFunction(lite::routineCallback, 0);
 
    PIN_AddThreadStartFunction (threadStartCallback, 0);
-   LOG_PRINT("elau: back in pin_sim");
    PIN_AddThreadFiniFunction (threadFiniCallback, 0);
    
    if ((cfg->getBool("general/enable_syscall_modeling")) && (Sim()->getConfig()->getSimulationMode() == Config::FULL))

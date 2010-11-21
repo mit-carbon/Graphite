@@ -3,7 +3,7 @@
 #include "log.h"
 #include "memory_manager.h"
 
-namespace PrL1PrL2DramDirectoryMSI
+namespace PrL1PrL1PrL2DramDirectoryMSI
 {
 
 L2CacheCntlr::L2CacheCntlr(core_id_t core_id,

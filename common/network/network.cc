@@ -59,7 +59,6 @@ Network::~Network()
 
 void Network::registerCallback(PacketType type, NetworkCallback callback, void *obj)
 {
-   assert((UInt32)type < NUM_PACKET_TYPES);
    _callbacks[type] = callback;
    _callbackObjs[type] = obj;
 }
@@ -118,7 +117,7 @@ void Network::netPullFromTransport()
 
          LOG_PRINT("After Processing Received Packet: packet.time(%llu)", packet.time);
          
-         // Assume that the network is used by the main core for now, until I had packet types
+         // Assume that the network is used by the main core for now, until I have packet types
          // for the PEP core.
          // Convert from network cycle count to core cycle count
          packet.time = convertCycleCount(packet.time, \

@@ -6,7 +6,7 @@
 namespace PrL1PrL1PrL2DramDirectoryMSI
 {
 
-L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
+L2CacheCntlr::L2CacheCntlr(tile_id_t tile_id,
       MemoryManager* memory_manager,
       L1CacheCntlr* l1_cache_cntlr,
       AddressHomeLookup* dram_directory_home_lookup,
@@ -19,7 +19,7 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
    m_memory_manager(memory_manager),
    m_l1_cache_cntlr(l1_cache_cntlr),
    m_dram_directory_home_lookup(dram_directory_home_lookup),
-   m_core_id(core_id),
+   m_tile_id(tile_id),
    m_cache_block_size(cache_block_size),
    m_user_thread_sem(user_thread_sem),
    m_network_thread_sem(network_thread_sem),
@@ -101,7 +101,7 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
          // Send back the data also
          getMemoryManager()->sendMsg(ShmemMsg::FLUSH_REP, 
                MemComponent::L2_CACHE, MemComponent::DRAM_DIR, 
-               m_core_id /* requester */, 
+               m_tile_id /* requester */, 
                home_node_id /* receiver */, 
                evict_address, 
                evict_buf, getCacheBlockSize());
@@ -113,7 +113,7 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
                evict_address, evict_block_info.getCState(), evict_block_info.getCachedLoc());
          getMemoryManager()->sendMsg(ShmemMsg::INV_REP, 
                MemComponent::L2_CACHE, MemComponent::DRAM_DIR, 
-               m_core_id /* requester */, 
+               m_tile_id /* requester */, 
                home_node_id /* receiver */, 
                evict_address);
       }
@@ -223,14 +223,14 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemMsg* shmem_msg)
       invalidateCacheBlock(address);
       getMemoryManager()->sendMsg(ShmemMsg::INV_REP, 
             MemComponent::L2_CACHE, MemComponent::DRAM_DIR, 
-            m_core_id /* requester */, 
+            m_tile_id /* requester */, 
             getHome(address) /* receiver */, 
             address);
    }
 
    getMemoryManager()->sendMsg(ShmemMsg::EX_REQ, 
          MemComponent::L2_CACHE, MemComponent::DRAM_DIR, 
-         m_core_id /* requester */, 
+         m_tile_id /* requester */, 
          getHome(address) /* receiver */, 
          address);
 }
@@ -242,14 +242,14 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemMsg* shmem_msg)
 
    getMemoryManager()->sendMsg(ShmemMsg::SH_REQ, 
          MemComponent::L2_CACHE, MemComponent::DRAM_DIR, 
-         m_core_id /* requester */, 
+         m_tile_id /* requester */, 
          getHome(address) /* receiver */, 
          address);
 }
 
 void
 L2CacheCntlr::handleMsgFromDramDirectory(
-      core_id_t sender, ShmemMsg* shmem_msg)
+      tile_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
    IntPtr address = shmem_msg->getAddress();
@@ -296,7 +296,7 @@ LOG_PRINT("elau: handleMsgFromDramDirectory in l2_cache_cntlr with shmem_msg_typ
 }
 
 void
-L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
+L2CacheCntlr::processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    // Update Shared Mem perf counters for access to L2 Cache
    getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
@@ -317,7 +317,7 @@ L2CacheCntlr::processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 }
 
 void
-L2CacheCntlr::processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
+L2CacheCntlr::processShRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    // Update Shared Mem perf counters for access to L2 Cache
    getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
@@ -340,7 +340,7 @@ L2CacheCntlr::processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_ms
 }
 
 void
-L2CacheCntlr::processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
+L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    IntPtr address = shmem_msg->getAddress();
 
@@ -374,7 +374,7 @@ L2CacheCntlr::processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_m
 }
 
 void
-L2CacheCntlr::processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
+L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    IntPtr address = shmem_msg->getAddress();
 
@@ -412,7 +412,7 @@ L2CacheCntlr::processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem
 }
 
 void
-L2CacheCntlr::processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg)
+L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    IntPtr address = shmem_msg->getAddress();
 

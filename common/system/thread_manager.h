@@ -23,7 +23,7 @@ public:
 
    // services
    SInt32 spawnThread(thread_func_t func, void *arg);
-   void joinThread(core_id_t core_id);
+   void joinThread(tile_id_t core_id);
    
    SInt32 spawnHelperThread(thread_func_t func, void *arg);
 
@@ -38,10 +38,10 @@ public:
    void onThreadExit();
 
    // misc
-   void stallThread(core_id_t core_id);
-   void resumeThread(core_id_t core_id);
-   bool isThreadRunning(core_id_t core_id);
-   bool isThreadInitializing(core_id_t core_id);
+   void stallThread(tile_id_t core_id);
+   void resumeThread(tile_id_t core_id);
+   bool isThreadRunning(tile_id_t core_id);
+   bool isThreadInitializing(tile_id_t core_id);
    
    bool areAllCoresRunning();
 
@@ -56,14 +56,14 @@ private:
 
    void masterSpawnHelperThread(ThreadSpawnRequest*);
 
-   void masterOnThreadExit(core_id_t core_id, UInt64 time);
+   void masterOnThreadExit(tile_id_t core_id, UInt64 time);
 
-   void slaveTerminateThreadSpawnerAck (core_id_t);
+   void slaveTerminateThreadSpawnerAck (tile_id_t);
    void slaveTerminateThreadSpawner ();
    void updateTerminateThreadSpawner ();
 
    void masterJoinThread(ThreadJoinRequest *req, UInt64 time);
-   void wakeUpWaiter(core_id_t core_id, UInt64 time);
+   void wakeUpWaiter(tile_id_t core_id, UInt64 time);
 
    void insertThreadSpawnRequest (ThreadSpawnRequest *req);
 

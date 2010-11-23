@@ -34,7 +34,7 @@ QueueModelHistoryList::~QueueModelHistoryList()
 {}
 
 UInt64 
-QueueModelHistoryList::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester)
+QueueModelHistoryList::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester)
 {
    LOG_ASSERT_ERROR(m_free_interval_list.size() >= 1,
          "Free Interval list size < 1");

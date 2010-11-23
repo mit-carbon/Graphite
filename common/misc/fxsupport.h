@@ -28,13 +28,13 @@ class Fxsupport
       void fxrstor();
 
    private:
-      Fxsupport(core_id_t core_count);
+      Fxsupport(tile_id_t core_count);
       ~Fxsupport();
 
       // Per-thread buffers for storing fx state
       char** m_fx_buf;
       bool* m_context_saved;
-      core_id_t m_num_local_cores;
+      tile_id_t m_num_local_cores;
 
       static Fxsupport *m_singleton;
 };

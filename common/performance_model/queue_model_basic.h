@@ -11,7 +11,7 @@ public:
    QueueModelBasic(bool moving_avg_enabled, UInt32 moving_avg_window_size, std::string moving_avg_type_str);
    ~QueueModelBasic();
 
-   UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester = INVALID_CORE_ID);
+   UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester = INVALID_TILE_ID);
 
 private:
    UInt64 m_queue_time;

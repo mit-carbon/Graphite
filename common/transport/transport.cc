@@ -47,12 +47,12 @@ Transport* Transport::getSingleton()
 
 // -- Node -- //
 
-Transport::Node::Node(core_id_t core_id)
-   : m_core_id(core_id)
+Transport::Node::Node(tile_id_t tile_id)
+   : m_tile_id(tile_id)
 {
 }
 
-core_id_t Transport::Node::getCoreId()
+tile_id_t Transport::Node::getTileId()
 {
-   return m_core_id;
+   return m_tile_id;
 }

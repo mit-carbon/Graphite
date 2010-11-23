@@ -27,7 +27,7 @@ namespace PrL1PrL2DramDirectoryMSI
          Cache* m_l1_dcache;
          L2CacheCntlr* m_l2_cache_cntlr;
 
-         core_id_t m_core_id;
+         tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
          Lock m_l1_icache_lock;
@@ -62,7 +62,7 @@ namespace PrL1PrL2DramDirectoryMSI
          
       public:
          
-         L1CacheCntlr(core_id_t core_id,
+         L1CacheCntlr(tile_id_t tile_id,
                MemoryManager* memory_manager,
                Semaphore* user_thread_sem,
                Semaphore* network_thread_sem,
@@ -80,7 +80,7 @@ namespace PrL1PrL2DramDirectoryMSI
 
          void setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr);
 
-         bool processMemOpFromCore(
+         bool processMemOpFromTile(
                MemComponent::component_t mem_component,
                Core::lock_signal_t lock_signal,
                Core::mem_op_t mem_op_type, 

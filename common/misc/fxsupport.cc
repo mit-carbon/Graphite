@@ -19,7 +19,7 @@ FloatingPointHandler::~FloatingPointHandler()
 
 Fxsupport *Fxsupport::m_singleton = NULL;
 
-Fxsupport::Fxsupport(core_id_t num_local_cores):
+Fxsupport::Fxsupport(tile_id_t num_local_cores):
    m_num_local_cores(num_local_cores)
 {
    m_fx_buf = (char**) malloc(m_num_local_cores * sizeof(char*));
@@ -43,7 +43,7 @@ Fxsupport::~Fxsupport()
 void Fxsupport::allocate()
 {
    assert (m_singleton == NULL);
-   core_id_t num_local_cores = Sim()->getConfig()->getNumLocalCores();
+   tile_id_t num_local_cores = Sim()->getConfig()->getNumLocalTiles();
    m_singleton = new Fxsupport(num_local_cores);
 }
 
@@ -65,15 +65,15 @@ bool Fxsupport::fxsave()
    {
       LOG_PRINT("fxsave() start");
 
-      UInt32 core_index = Sim()->getTileManager()->getCurrentTileIndex();
+      UInt32 tile_index = Sim()->getTileManager()->getCurrentTileIndex();
       // This check is done to ensure that the thread has not exited
-      if (core_index < Config::getSingleton()->getNumLocalCores())
+      if (tile_index < Config::getSingleton()->getNumLocalTiles())
       {
-         if (!m_context_saved[core_index])
+         if (!m_context_saved[tile_index])
          {
-            m_context_saved[core_index] = true;
+            m_context_saved[tile_index] = true;
 
-            char *buf = m_fx_buf[core_index];
+            char *buf = m_fx_buf[tile_index];
             asm volatile ("fxsave %0\n\t"
                           "emms"
                           :"=m"(*buf));
@@ -96,14 +96,14 @@ void Fxsupport::fxrstor()
    {
       LOG_PRINT("fxrstor() start");
    
-      UInt32 core_index = Sim()->getTileManager()->getCurrentTileIndex();
-      if (core_index < Config::getSingleton()->getNumLocalCores())
+      UInt32 tile_index = Sim()->getTileManager()->getCurrentTileIndex();
+      if (tile_index < Config::getSingleton()->getNumLocalTiles())
       {
-         LOG_ASSERT_ERROR(m_context_saved[core_index], "Context Not Saved(%u)", core_index);
+         LOG_ASSERT_ERROR(m_context_saved[tile_index], "Context Not Saved(%u)", tile_index);
          
-         m_context_saved[core_index] = false;
+         m_context_saved[tile_index] = false;
 
-         char *buf = m_fx_buf[core_index];
+         char *buf = m_fx_buf[tile_index];
          asm volatile ("fxrstor %0"::"m"(*buf));
       }
    

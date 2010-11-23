@@ -9,7 +9,7 @@ VMManager::VMManager()
    m_start_data_segment = (IntPtr) sbrk(0);
    m_end_data_segment = m_start_data_segment;
 
-   UInt32 total_cores = Sim()->getConfig()->getTotalCores();
+   UInt32 total_tiles = Sim()->getConfig()->getTotalTiles();
   
    UInt32 stack_size_per_core;
    try
@@ -24,7 +24,7 @@ VMManager::VMManager()
    }
 
    // FIXME: MCP does not have a stack. Do something about this
-   m_end_stack_segment = m_start_stack_segment + total_cores * stack_size_per_core;
+   m_end_stack_segment = m_start_stack_segment + total_tiles * stack_size_per_core;
 
    LOG_ASSERT_ERROR(m_end_stack_segment > m_start_stack_segment,
        "Problem with Application Stack: start_stack_segment(0x%x), end_stack_segment(0x%x)",

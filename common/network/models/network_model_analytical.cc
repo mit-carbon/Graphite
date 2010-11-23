@@ -134,7 +134,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    double hops_in_network;   // number of nodes visited
    double Tb;                // latency, without contention
 
-   N = Config::getSingleton()->getTotalCores();
+   N = Config::getSingleton()->getTotalTiles();
    k = pow(N, 1./n);                  // pg 5
    kd = k/2.;                         // pg 5 (note this will be
    // different for different network configurations...say,
@@ -231,8 +231,8 @@ void NetworkModelAnalytical::updateUtilization()
    // ** send updates
 
    // don't lock because this is all approximate anyway
-   UInt64 core_time = getNetwork()->getTile()->getCore()->getPerformanceModel()->getCycleCount();
-   UInt64 elapsed_time = core_time - _localUtilizationLastUpdate;
+   UInt64 tile_time = getNetwork()->getTile()->getCore()->getPerformanceModel()->getCycleCount();
+   UInt64 elapsed_time = tile_time - _localUtilizationLastUpdate;
 
    if (elapsed_time < _params.update_interval)
       return;
@@ -242,7 +242,7 @@ void NetworkModelAnalytical::updateUtilization()
 
    LOG_ASSERT_WARNING(0 <= local_utilization && local_utilization < 1, "Unusual local utilization value: %f", local_utilization);
 
-   _localUtilizationLastUpdate = core_time;
+   _localUtilizationLastUpdate = tile_time;
    _localUtilizationFlitsSent = 0;
 
    // build packet
@@ -253,7 +253,7 @@ void NetworkModelAnalytical::updateUtilization()
 
    NetPacket update;
    update.sender = getNetwork()->getTile()->getId();
-   update.receiver = Config::getSingleton()->getMCPCoreNum();
+   update.receiver = Config::getSingleton()->getMCPTileNum();
    update.length = sizeof(m);
    update.type = MCP_SYSTEM_TYPE;
    update.data = &m;

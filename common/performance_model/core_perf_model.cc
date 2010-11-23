@@ -55,8 +55,8 @@
 
 CorePerfModel* CorePerfModel::createMainPerfModel(Core* core)
 {
-   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
-   string core_model = Config::getSingleton()->getCoreType(core->getId());
+   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getTileId());
+   string core_model = Config::getSingleton()->getCoreType(core->getTileId());
 
    if (core_model == "iocoom")
       return new IOCOOMPerformanceModel(core, frequency);
@@ -74,8 +74,8 @@ CorePerfModel* CorePerfModel::createMainPerfModel(Core* core)
 
 CorePerfModel* CorePerfModel::createPepPerfModel(Core* core)
 {
-   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
-   string core_model = Config::getSingleton()->getCoreType(core->getId());
+   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getTileId());
+   string core_model = Config::getSingleton()->getCoreType(core->getTileId());
 
    if (core_model == "")
       return NULL;
@@ -119,7 +119,7 @@ void CorePerfModel::frequencySummary(ostream& os)
 void CorePerfModel::enable()
 {
    // MCP perf model should never be enabled
-   if (Sim()->getTileManager()->getCurrentCoreID() == Config::getSingleton()->getMCPCoreNum())
+   if (Sim()->getTileManager()->getCurrentTileID() == Config::getSingleton()->getMCPTileNum())
       return;
 
    m_enabled = true;

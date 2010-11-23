@@ -36,7 +36,7 @@ DramCntlr::~DramCntlr()
 }
 
 void
-DramCntlr::getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf)
+DramCntlr::getDataFromDram(IntPtr address, tile_id_t requester, Byte* data_buf)
 {
    if (m_data_map[address] == NULL)
    {
@@ -52,7 +52,7 @@ DramCntlr::getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf)
 }
 
 void
-DramCntlr::putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf)
+DramCntlr::putDataToDram(IntPtr address, tile_id_t requester, Byte* data_buf)
 {
    if (m_data_map[address] == NULL)
    {
@@ -66,17 +66,17 @@ DramCntlr::putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf)
 }
 
 UInt64
-DramCntlr::runDramPerfModel(core_id_t requester)
+DramCntlr::runDramPerfModel(tile_id_t requester)
 {
    UInt64 pkt_cycle_count = getShmemPerfModel()->getCycleCount();
    UInt64 pkt_size = (UInt64) getCacheBlockSize();
 
-   volatile float core_frequency = m_memory_manager->getCore()->getPerformanceModel()->getFrequency();
-   UInt64 pkt_time = convertCycleCount(pkt_cycle_count, core_frequency, 1.0);
+   volatile float tile_frequency = m_memory_manager->getTile()->getCore()->getPerformanceModel()->getFrequency();
+   UInt64 pkt_time = convertCycleCount(pkt_cycle_count, tile_frequency, 1.0);
 
    UInt64 dram_access_latency = m_dram_perf_model->getAccessLatency(pkt_time, pkt_size, requester);
    
-   return convertCycleCount(dram_access_latency, 1.0, core_frequency);
+   return convertCycleCount(dram_access_latency, 1.0, tile_frequency);
 }
 
 void
@@ -95,7 +95,7 @@ DramCntlr::printDramAccessCount()
          if ((*i).second > 100)
          {
             LOG_PRINT("Dram Cntlr(%i), Address(0x%x), Access Count(%llu), Access Type(%s)", 
-                  m_memory_manager->getCore()->getId(), (*i).first, (*i).second,
+                  m_memory_manager->getTile()->getId(), (*i).first, (*i).second,
                   (k == READ)? "READ" : "WRITE");
          }
       }

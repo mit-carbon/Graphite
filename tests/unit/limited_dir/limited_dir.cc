@@ -127,7 +127,7 @@ void validateCacheModelCounters()
 
 void validateDramModelCounters()
 {
-   UInt32 total_cores = Sim()->getConfig()->getTotalCores();
+   UInt32 total_cores = Sim()->getConfig()->getTotalTiles();
 
    for (SInt32 i = 0; i < (SInt32) total_cores; i++)
    {

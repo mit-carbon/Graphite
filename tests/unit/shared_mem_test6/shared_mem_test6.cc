@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 {
    CarbonStartSim(argc, argv);
 
-   unsigned int total_cores = Sim()->getConfig()->getTotalCores();
+   unsigned int total_cores = Sim()->getConfig()->getTotalTiles();
    tile = new Tile*[total_cores];
    core_val = new int[total_cores];
 

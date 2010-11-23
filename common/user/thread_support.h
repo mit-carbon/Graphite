@@ -13,7 +13,7 @@ typedef struct
    thread_func_t func;
    void *arg;
    SInt32 requester;
-   core_id_t core_id;
+   tile_id_t tile_id;
    UInt64 time;
    bool is_helper_thread;
 } ThreadSpawnRequest;
@@ -22,7 +22,7 @@ typedef struct
 {
    SInt32 msg_type;
    SInt32 sender;
-   core_id_t core_id;
+   tile_id_t tile_id;
 } ThreadJoinRequest;
 
 #ifdef __cplusplus

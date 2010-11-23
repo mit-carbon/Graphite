@@ -24,7 +24,7 @@ public:
    void generateSyncMsg(void);
    
 private:
-   std::vector<Core*> _core_list;
+   std::vector<Tile*> _tile_list;
    Transport::Node *_transport;
    UInt64 _slack;
 

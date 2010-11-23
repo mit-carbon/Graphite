@@ -7,9 +7,9 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-MemoryManager::MemoryManager(Core* core, 
+MemoryManager::MemoryManager(Tile* tile, 
       Network* network, ShmemPerfModel* shmem_perf_model):
-   MemoryManagerBase(core, network, shmem_perf_model),
+   MemoryManagerBase(tile, network, shmem_perf_model),
    m_dram_directory_cntlr(NULL),
    m_dram_cntlr(NULL),
    m_dram_cntlr_present(false),
@@ -56,7 +56,7 @@ MemoryManager::MemoryManager(Core* core,
    try
    {
       // L1 ICache
-      l1_icache_type = "perf_model/l1_icache/" + Config::getSingleton()->getL1ICacheType(getCore()->getId());
+      l1_icache_type = "perf_model/l1_icache/" + Config::getSingleton()->getL1ICacheType(getTile()->getId());
       m_cache_block_size = Sim()->getCfg()->getInt(l1_icache_type + "/cache_block_size");
       l1_icache_size = Sim()->getCfg()->getInt(l1_icache_type + "/cache_size");
       l1_icache_associativity = Sim()->getCfg()->getInt(l1_icache_type + "/associativity");
@@ -66,7 +66,7 @@ MemoryManager::MemoryManager(Core* core,
       l1_icache_perf_model_type = Sim()->getCfg()->getString(l1_icache_type + "/perf_model_type");
 
       // L1 DCache
-      l1_dcache_type = "perf_model/l1_dcache/" + Config::getSingleton()->getL1DCacheType(getCore()->getId());
+      l1_dcache_type = "perf_model/l1_dcache/" + Config::getSingleton()->getL1DCacheType(getTile()->getId());
       l1_dcache_size = Sim()->getCfg()->getInt(l1_dcache_type + "/cache_size");
       l1_dcache_associativity = Sim()->getCfg()->getInt(l1_dcache_type + "/associativity");
       l1_dcache_replacement_policy = Sim()->getCfg()->getString(l1_dcache_type + "/replacement_policy");
@@ -75,7 +75,7 @@ MemoryManager::MemoryManager(Core* core,
       l1_dcache_perf_model_type = Sim()->getCfg()->getString(l1_dcache_type + "/perf_model_type");
 
       // L2 Cache
-      l2_cache_type = "perf_model/l2_cache/" + Config::getSingleton()->getL2CacheType(getCore()->getId());
+      l2_cache_type = "perf_model/l2_cache/" + Config::getSingleton()->getL2CacheType(getTile()->getId());
       l2_cache_size = Sim()->getCfg()->getInt(l2_cache_type + "/cache_size");
       l2_cache_associativity = Sim()->getCfg()->getInt(l2_cache_type + "/associativity");
       l2_cache_replacement_policy = Sim()->getCfg()->getString(l2_cache_type + "/replacement_policy");
@@ -86,7 +86,7 @@ MemoryManager::MemoryManager(Core* core,
       // Dram Directory Cache
       dram_directory_total_entries = Sim()->getCfg()->getInt("perf_model/dram_directory/total_entries");
       dram_directory_associativity = Sim()->getCfg()->getInt("perf_model/dram_directory/associativity");
-      dram_directory_max_num_sharers = Sim()->getConfig()->getTotalCores();
+      dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
       dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("perf_model/dram_directory/max_hw_sharers");
       dram_directory_type_str = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
       dram_directory_home_lookup_param = Sim()->getCfg()->getInt("perf_model/dram_directory/home_lookup_param");
@@ -105,13 +105,12 @@ MemoryManager::MemoryManager(Core* core,
 
    m_user_thread_sem = new Semaphore(0);
    m_network_thread_sem = new Semaphore(0);
+   std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
+   if (getTile()->getId() == 0)
+      printTileListWithMemoryControllers(tile_list_with_dram_controllers);
 
-   std::vector<core_id_t> core_list_with_dram_controllers = getCoreListWithMemoryControllers();
-   if (getCore()->getId() == 0)
-      printCoreListWithMemoryControllers(core_list_with_dram_controllers);
-
-   if (find(core_list_with_dram_controllers.begin(), core_list_with_dram_controllers.end(), getCore()->getId()) \
-         != core_list_with_dram_controllers.end())
+   if (find(tile_list_with_dram_controllers.begin(), tile_list_with_dram_controllers.end(), getTile()->getId()) \
+         != tile_list_with_dram_controllers.end())
    {
       m_dram_cntlr_present = true;
 
@@ -123,7 +122,7 @@ MemoryManager::MemoryManager(Core* core,
             getCacheBlockSize(),
             getShmemPerfModel());
 
-      m_dram_directory_cntlr = new DramDirectoryCntlr(getCore()->getId(),
+      m_dram_directory_cntlr = new DramDirectoryCntlr(getTile()->getId(),
             this,
             m_dram_cntlr,
             dram_directory_total_entries,
@@ -133,13 +132,14 @@ MemoryManager::MemoryManager(Core* core,
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
             dram_directory_cache_access_time,
-            core_list_with_dram_controllers.size(),
+            tile_list_with_dram_controllers.size(),
             getShmemPerfModel());
    }
 
-   m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, core_list_with_dram_controllers, getCacheBlockSize());
 
-   m_l1_cache_cntlr = new L1CacheCntlr(getCore()->getId(),
+   m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_dram_controllers, getCacheBlockSize());
+
+   m_l1_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
          this,
          m_user_thread_sem,
          m_network_thread_sem,
@@ -150,7 +150,7 @@ MemoryManager::MemoryManager(Core* core,
          l1_dcache_replacement_policy,
          getShmemPerfModel());
    
-   m_l2_cache_cntlr = new L2CacheCntlr(getCore()->getId(),
+   m_l2_cache_cntlr = new L2CacheCntlr(getTile()->getId(),
          this,
          m_l1_cache_cntlr,
          m_dram_directory_home_lookup,
@@ -164,13 +164,13 @@ MemoryManager::MemoryManager(Core* core,
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
    // Create Cache Performance Models
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getCore()->getId());
+   volatile float tile_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getId());
    m_l1_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
-         l1_icache_data_access_time, l1_icache_tags_access_time, core_frequency);
+         l1_icache_data_access_time, l1_icache_tags_access_time, tile_frequency);
    m_l1_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,
-         l1_dcache_data_access_time, l1_dcache_tags_access_time, core_frequency);
+         l1_dcache_data_access_time, l1_dcache_tags_access_time, tile_frequency);
    m_l2_cache_perf_model = CachePerfModel::create(l2_cache_perf_model_type,
-         l2_cache_data_access_time, l2_cache_tags_access_time, core_frequency);
+         l2_cache_data_access_time, l2_cache_tags_access_time, tile_frequency);
 
    // Register Call-backs
    getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
@@ -208,7 +208,7 @@ MemoryManager::coreInitiateMemoryAccess(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   return m_l1_cache_cntlr->processMemOpFromCore(mem_component, 
+   return m_l1_cache_cntlr->processMemOpFromTile(mem_component, 
          lock_signal, 
          mem_op_type, 
          address, offset, 
@@ -219,8 +219,7 @@ MemoryManager::coreInitiateMemoryAccess(
 void
 MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
-   LOG_PRINT("elau: in handleMsgFromNetwork for msi");
-   core_id_t sender = packet.sender;
+   tile_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
 
@@ -229,8 +228,6 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::component_t receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::component_t sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   LOG_PRINT("elau: got the mem_components"); 
-   
    if (m_enabled)
    {
       LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", 
@@ -244,13 +241,11 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
          {
             case MemComponent::L1_ICACHE:
             case MemComponent::L1_DCACHE:
-   LOG_PRINT("elau: L1->L2!"); 
-               assert(sender == getCore()->getId());
+               assert(sender == getTile()->getId());
                m_l2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
                break;
 
             case MemComponent::DRAM_DIR:
-   LOG_PRINT("elau: DRAM->L2"); 
                m_l2_cache_cntlr->handleMsgFromDramDirectory(sender, shmem_msg);
                break;
 
@@ -267,7 +262,6 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
             LOG_ASSERT_ERROR(m_dram_cntlr_present, "Dram Cntlr NOT present");
 
             case MemComponent::L2_CACHE:
-   LOG_PRINT("elau: L2->DRAM "); 
                m_dram_directory_cntlr->handleMsgFromL2Cache(sender, shmem_msg);
                break;
 
@@ -297,7 +291,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 }
 
 void
-MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, core_id_t receiver, IntPtr address, Byte* data_buf, UInt32 data_length)
+MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, tile_id_t receiver, IntPtr address, Byte* data_buf, UInt32 data_length)
 {
    assert((data_buf == NULL) == (data_length == 0));
    ShmemMsg shmem_msg(msg_type, sender_mem_component, receiver_mem_component, requester, address, data_buf, data_length);
@@ -307,11 +301,11 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
 
    if (m_enabled)
    {
-      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, getCore()->getId(), receiver);
+      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, getTile()->getId(), receiver);
    }
 
    NetPacket packet(msg_time, SHARED_MEM_1,
-         getCore()->getId(), receiver,
+         getTile()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
 
@@ -320,7 +314,7 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
 }
 
 void
-MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, IntPtr address, Byte* data_buf, UInt32 data_length)
+MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, IntPtr address, Byte* data_buf, UInt32 data_length)
 {
    assert((data_buf == NULL) == (data_length == 0));
    ShmemMsg shmem_msg(msg_type, sender_mem_component, receiver_mem_component, requester, address, data_buf, data_length);
@@ -330,11 +324,11 @@ MemoryManager::broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t 
 
    if (m_enabled)
    {
-      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, getCore()->getId(), NetPacket::BROADCAST);
+      LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, getTile()->getId(), NetPacket::BROADCAST);
    }
 
    NetPacket packet(msg_time, SHARED_MEM_1,
-         getCore()->getId(), NetPacket::BROADCAST,
+         getTile()->getId(), NetPacket::BROADCAST,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
 

@@ -31,7 +31,7 @@ KERNEL = LENNY
 
 # OS Services Support
 LD_LIBS += -los-services
-CXXFLAGS += -DKERNEL_$(KERNEL)
+CXXFLAGS += -DKERNEL_$(KERNEL) -g
 ifeq ($(TARGET_ARCH),ia32)
   CXXFLAGS += -I$(OS_SERVICES_ROOT)/include-ia32 -m32 -DTARGET_IA32
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/ia32 -m32

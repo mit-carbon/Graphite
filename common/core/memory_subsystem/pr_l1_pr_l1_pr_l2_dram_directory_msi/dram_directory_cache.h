@@ -36,7 +36,7 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 
          UInt32 m_log_num_sets;
          UInt32 m_log_cache_block_size;
-         UInt32 m_log_num_cores;
+         UInt32 m_log_num_tiles;
          UInt32 m_log_num_dram_cntlrs;
 
          UInt32 m_log_stack_size;
@@ -73,7 +73,7 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          void invalidateDirectoryEntry(IntPtr address);
          void getReplacementCandidates(IntPtr address, std::vector<DirectoryEntry*>& replacement_candidate_list);
 
-         void updateInternalVariablesOnFrequencyChange(volatile float core_frequency);
+         void updateInternalVariablesOnFrequencyChange(volatile float tile_frequency);
 
          void outputSummary(std::ostream& os);
          static void dummyOutputSummary(std::ostream& os);

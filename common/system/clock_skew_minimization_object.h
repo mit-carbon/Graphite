@@ -64,7 +64,7 @@ public:
    ~ClockSkewMinimizationServer() {}
    static ClockSkewMinimizationServer* create(std::string scheme_str, Network& network, UnstructuredBuffer& recv_buff);
 
-   virtual void processSyncMsg(core_id_t core_id) = 0;
+   virtual void processSyncMsg(tile_id_t tile_id) = 0;
    virtual void signal() = 0;
 };
 

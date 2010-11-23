@@ -14,7 +14,7 @@ void replacementMain (CONTEXT *ctxt);
 void replacementGetThreadToSpawn (CONTEXT *ctxt);
 void replacementThreadStartNull (CONTEXT *ctxt);
 void replacementThreadExitNull (CONTEXT *ctxt);
-void replacementGetCoreId (CONTEXT *ctxt);
+void replacementGetTileId (CONTEXT *ctxt);
 void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt);
 
 // Pin specific stack management

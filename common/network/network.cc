@@ -24,7 +24,7 @@ Network::Network(Tile *tile)
    LOG_ASSERT_ERROR(sizeof(g_type_to_static_network_map) / sizeof(EStaticNetwork) == NUM_PACKET_TYPES,
                     "Static network type map has incorrect number of entries.");
 
-   _numMod = Config::getSingleton()->getTotalCores();
+   _numMod = Config::getSingleton()->getTotalTiles();
    _tid = _tile->getId();
 
    _transport = Transport::getSingleton()->createNode(_tile->getId());
@@ -490,7 +490,7 @@ UInt32 Network::getModeledLength(const NetPacket& pkt)
       // 1 byte for packet_type
       // log2(core_id) for sender and receiver
       // 2 bytes for packet length
-      UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getCoreIDLength() + 2;
+      UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getTileIDLength() + 2;
       UInt32 data_size = getTile()->getCore()->getMemoryManager()->getModeledLength(pkt.data);
       return metadata_size + data_size;
    }
@@ -506,8 +506,8 @@ NetPacket::NetPacket()
    : start_time(0)
    , time(0)
    , type(INVALID_PACKET_TYPE)
-   , sender(INVALID_CORE_ID)
-   , receiver(INVALID_CORE_ID)
+   , sender(INVALID_TILE_ID)
+   , receiver(INVALID_TILE_ID)
    , specific(0)
    , length(0)
    , data(0)

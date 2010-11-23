@@ -24,8 +24,8 @@ PinConfig *PinConfig::getSingleton()
 PinConfig::PinConfig()
 {
    m_current_process_num = Sim()->getConfig()->getCurrentProcessNum();
-   m_total_cores = Sim()->getConfig()->getTotalCores();
-   m_num_local_cores = Sim()->getConfig()->getNumLocalCores();
+   m_total_tiles = Sim()->getConfig()->getTotalTiles();
+   m_num_local_cores = Sim()->getConfig()->getNumLocalTiles();
    
    setStackBoundaries();
 }
@@ -55,7 +55,7 @@ void PinConfig::setStackBoundaries()
    UInt32 num_cores = 0;
    for (SInt32 i = 0; i < (SInt32) m_current_process_num; i++)
    {
-      num_cores += Sim()->getConfig()->getNumCoresInProcess(i);
+      num_cores += Sim()->getConfig()->getNumTilesInProcess(i);
    }
    
    m_stack_lower_limit = global_stack_base + num_cores * m_stack_size_per_core;
@@ -63,22 +63,22 @@ void PinConfig::setStackBoundaries()
 }
 
 // Get Tile ID from stack pointer
-core_id_t PinConfig::getCoreIDFromStackPtr(IntPtr stack_ptr)
+tile_id_t PinConfig::getTileIDFromStackPtr(IntPtr stack_ptr)
 {
    if ( (stack_ptr < m_stack_lower_limit) || (stack_ptr > m_stack_upper_limit) )
    {
       return -1;
    }     
   
-   SInt32 core_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / m_stack_size_per_core);
+   SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / m_stack_size_per_core);
 
-   return (Config::getSingleton()->getCoreIDFromIndex(m_current_process_num, core_index));
+   return (Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index));
 }
 
-SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr)
+SInt32 PinConfig::getStackAttributesFromTileID (tile_id_t core_id, StackAttributes& stack_attr)
 {
    // Get the stack attributes
-   SInt32 core_index = Config::getSingleton()->getIndexFromCoreID(m_current_process_num, core_id);
+   SInt32 core_index = Config::getSingleton()->getIndexFromTileID(m_current_process_num, core_id);
    LOG_ASSERT_ERROR (core_index != -1, "Tile %i does not belong to Process %i", 
          core_id, Config::getSingleton()->getCurrentProcessNum());
 

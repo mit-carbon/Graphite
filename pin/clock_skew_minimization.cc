@@ -14,7 +14,7 @@ void handlePeriodicSync()
 {
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    assert(tile);
-   if (tile->getId() >= (core_id_t) Sim()->getConfig()->getApplicationCores())
+   if (tile->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Thread Spawner Tile / MCP
       return;

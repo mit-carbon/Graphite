@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
    computeSharedAddressToThreadMapping();
 
    // Enable all the models
-   for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalCores(); i++)
+   for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalTiles(); i++)
       Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
 
    CarbonBarrierInit(&m_barrier, m_num_threads);
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
    }
    
    // Disable all the models
-   for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalCores(); i++)
+   for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalTiles(); i++)
       Sim()->getTileManager()->getTileFromID(i)->disablePerformanceModels();
 
    deInitializeGlobalVariables();

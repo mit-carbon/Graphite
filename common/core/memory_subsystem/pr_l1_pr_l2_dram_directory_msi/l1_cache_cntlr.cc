@@ -5,7 +5,7 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
+L1CacheCntlr::L1CacheCntlr(tile_id_t tile_id,
       MemoryManager* memory_manager,
       Semaphore* user_thread_sem,
       Semaphore* network_thread_sem,
@@ -17,7 +17,7 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
       ShmemPerfModel* shmem_perf_model) :
    m_memory_manager(memory_manager),
    m_l2_cache_cntlr(NULL),
-   m_core_id(core_id),
+   m_tile_id(tile_id),
    m_cache_block_size(cache_block_size),
    m_user_thread_sem(user_thread_sem),
    m_network_thread_sem(network_thread_sem),
@@ -50,7 +50,7 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr)
 }
 
 bool
-L1CacheCntlr::processMemOpFromCore(
+L1CacheCntlr::processMemOpFromTile(
       MemComponent::component_t mem_component,
       Core::lock_signal_t lock_signal,
       Core::mem_op_t mem_op_type, 
@@ -58,7 +58,7 @@ L1CacheCntlr::processMemOpFromCore(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
+   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
          lock_signal, mem_op_type, ca_address);
 
    bool l1_cache_hit = true;
@@ -132,8 +132,8 @@ L1CacheCntlr::processMemOpFromCore(
       // Send out a request to the network thread for the cache data
       getMemoryManager()->sendMsg(shmem_msg_type, 
             mem_component, MemComponent::L2_CACHE,
-            m_core_id /* requester */,
-            m_core_id /* receiver */, ca_address);
+            m_tile_id /* requester */,
+            m_tile_id /* receiver */, ca_address);
 
       waitForNetworkThread();
    }

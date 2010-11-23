@@ -10,7 +10,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       private:
          ShmemMsg* m_shmem_msg;
          UInt64 m_time;
-         core_id_t m_core_id;
+         tile_id_t m_tile_id;
 
       public:
          ShmemReq();
@@ -19,7 +19,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          ShmemMsg* getShmemMsg() { return m_shmem_msg; }
          UInt64 getTime() { return m_time; }
-         core_id_t getCoreId() { return m_core_id; }
+         tile_id_t getTileId() { return m_tile_id; }
         
          void setShmemMsg(ShmemMsg* shmem_msg) { m_shmem_msg = shmem_msg; } 
          void setTime(UInt64 time) { m_time = time; }
@@ -28,6 +28,6 @@ namespace PrL1PrL2DramDirectoryMOSI
             if (time > m_time)
                m_time = time;
          }
-         void setCoreId(core_id_t core_id) { m_core_id = core_id; }
+         void setTileId(tile_id_t tile_id) { m_tile_id = tile_id; }
    };
 }

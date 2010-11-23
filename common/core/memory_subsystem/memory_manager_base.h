@@ -3,6 +3,7 @@
 
 using namespace std;
 
+#include "tile.h"
 #include "core.h"
 #include "network.h"
 #include "mem_component.h"
@@ -22,22 +23,22 @@ class MemoryManagerBase
       };
 
    private:
-      Core* m_core;
+      Tile* m_tile;
       Network* m_network;
       ShmemPerfModel* m_shmem_perf_model;
       
-      void parseMemoryControllerList(string& memory_controller_positions, vector<core_id_t>& core_list_from_cfg_file, SInt32 application_core_count);
+      void parseMemoryControllerList(string& memory_controller_positions, vector<tile_id_t>& tile_list_from_cfg_file, SInt32 application_tile_count);
 
    protected:
       Network* getNetwork() { return m_network; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
-      vector<core_id_t> getCoreListWithMemoryControllers(void);
-      void printCoreListWithMemoryControllers(vector<core_id_t>& core_list_with_memory_controllers);
+      vector<tile_id_t> getTileListWithMemoryControllers(void);
+      void printTileListWithMemoryControllers(vector<tile_id_t>& tile_list_with_memory_controllers);
    
    public:
-      MemoryManagerBase(Core* core, Network* network, ShmemPerfModel* shmem_perf_model):
-         m_core(core), 
+      MemoryManagerBase(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model):
+         m_tile(tile), 
          m_network(network), 
          m_shmem_perf_model(shmem_perf_model)
       {}
@@ -51,12 +52,20 @@ class MemoryManagerBase
             Byte* data_buf, UInt32 data_length,
             bool modeled) = 0;
 
-      virtual void handleMsgFromNetwork(NetPacket& packet) = 0;
+      virtual bool PepCoreInitiateMemoryAccess(
+            MemComponent::component_t mem_component,
+            Core::lock_signal_t lock_signal,
+            Core::mem_op_t mem_op_type,
+            IntPtr address, UInt32 offset,
+            Byte* data_buf, UInt32 data_length,
+            bool modeled) = 0;
+
+virtual void handleMsgFromNetwork(NetPacket& packet) = 0;
 
       // FIXME: Take this out of here
       virtual UInt32 getCacheBlockSize() = 0;
 
-      virtual core_id_t getShmemRequester(const void* pkt_data) = 0;
+      virtual tile_id_t getShmemRequester(const void* pkt_data) = 0;
 
       virtual void updateInternalVariablesOnFrequencyChange(volatile float frequency) = 0;
 
@@ -66,11 +75,11 @@ class MemoryManagerBase
       // Modeling
       virtual UInt32 getModeledLength(const void* pkt_data) = 0;
 
-      Core* getCore() { return m_core; }
+      Tile* getTile() { return m_tile; }
       
       static CachingProtocol_t parseProtocolType(std::string& protocol_type);
       static MemoryManagerBase* createMMU(std::string protocol_type,
-            Core* core,
+            Tile* tile,
             Network* network, 
             ShmemPerfModel* shmem_perf_model);
       

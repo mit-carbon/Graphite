@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 {
    CarbonStartSim(argc, argv);
 
-   unsigned int total_cores = Sim()->getConfig()->getTotalCores();
+   unsigned int total_cores = Sim()->getConfig()->getTotalTiles();
    tile = new Tile*[total_cores];
    core_val = new int[total_cores];
 
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
    // num sharers -> 2
    // Owner -> Core1
    sleep(1);
-   check(address_0, DirectoryState::OWNED, 1, Config::getSingleton()->getTotalCores(), CORE1, 100, 0);
+   check(address_0, DirectoryState::OWNED, 1, Config::getSingleton()->getTotalTiles(), CORE1, 100, 0);
    printf("Test2 Passed\n");
 
    tile[3]->accessMemory(Tile::NONE, Tile::READ, address_0, (char*) &buf, sizeof(buf));
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
    // num sharers -> 3
    // Owner -> Core1
    sleep(1);
-   check(address_0, DirectoryState::OWNED, 1, Config::getSingleton()->getTotalCores(), CORE1, 100, 0);
+   check(address_0, DirectoryState::OWNED, 1, Config::getSingleton()->getTotalTiles(), CORE1, 100, 0);
    printf("Test3 Passed\n");
 
    tile[1]->accessMemory(Tile::NONE, Tile::READ, address_1, (char*) &buf, sizeof(buf));
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
    // num sharers -> 1
    // Owner -> INVALID_CORE_ID
    sleep(1);
-   check(address_0, DirectoryState::SHARED, INVALID_CORE_ID, Config::getSingleton()->getTotalCores(), 0, 100, 100);
+   check(address_0, DirectoryState::SHARED, INVALID_CORE_ID, Config::getSingleton()->getTotalTiles(), 0, 100, 100);
    check(address_1, DirectoryState::SHARED, INVALID_CORE_ID, 1, CORE1, 0, 0);
    printf("Test4 Passed\n");
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
    // Owner -> INVALID_CORE_ID
    sleep(1);
    check(address_0, DirectoryState::UNCACHED, INVALID_CORE_ID, 0, 0, 0, 200);
-   check(address_1, DirectoryState::SHARED, INVALID_CORE_ID, Config::getSingleton()->getTotalCores(), CORE1, 0, 0);  
+   check(address_1, DirectoryState::SHARED, INVALID_CORE_ID, Config::getSingleton()->getTotalTiles(), CORE1, 0, 0);  
    printf("Test6 Passed\n");
 
    tile[3]->accessMemory(Tile::NONE, Tile::WRITE, address_1, (char*) &core_val[3], sizeof(core_val[3]));
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
    // num sharers -> 2
    // Owner -> Core1
    sleep(1);
-   check(address_0, DirectoryState::OWNED, 1, Config::getSingleton()->getTotalCores(), CORE1, 100, 200);
+   check(address_0, DirectoryState::OWNED, 1, Config::getSingleton()->getTotalTiles(), CORE1, 100, 200);
    check(address_1, DirectoryState::UNCACHED, INVALID_CORE_ID, 0, 0, 0, 300);
    printf("Test10 Passed\n");
    printf("All Tests Passed\n");

@@ -29,14 +29,14 @@
 class SimFutex
 {
    private:
-      typedef std::queue<core_id_t> ThreadQueue;
+      typedef std::queue<tile_id_t> ThreadQueue;
       ThreadQueue m_waiting;
 
    public:
       SimFutex();
       ~SimFutex();
-      void enqueueWaiter(core_id_t core_id);
-      core_id_t dequeueWaiter();
+      void enqueueWaiter(tile_id_t core_id);
+      tile_id_t dequeueWaiter();
 };
 
 class SyscallServer
@@ -49,39 +49,39 @@ class SyscallServer
 
       ~SyscallServer();
 
-      void handleSyscall(core_id_t core_id);
+      void handleSyscall(tile_id_t core_id);
 
    private:
-      void marshallOpenCall(core_id_t core_id);
-      void marshallReadCall(core_id_t core_id);
-      void marshallWriteCall(core_id_t core_id);
-      void marshallWritevCall(core_id_t core_id);
-      void marshallCloseCall(core_id_t core_id);
-      void marshallLseekCall(core_id_t core_id);
-      void marshallAccessCall(core_id_t core_id);
+      void marshallOpenCall(tile_id_t core_id);
+      void marshallReadCall(tile_id_t core_id);
+      void marshallWriteCall(tile_id_t core_id);
+      void marshallWritevCall(tile_id_t core_id);
+      void marshallCloseCall(tile_id_t core_id);
+      void marshallLseekCall(tile_id_t core_id);
+      void marshallAccessCall(tile_id_t core_id);
 #ifdef TARGET_X86_64
-      void marshallStatCall(IntPtr syscall_number, core_id_t core_id);
-      void marshallFstatCall(core_id_t core_id);
+      void marshallStatCall(IntPtr syscall_number, tile_id_t core_id);
+      void marshallFstatCall(tile_id_t core_id);
 #endif
 #ifdef TARGET_IA32
-      void marshallFstat64Call(core_id_t core_id);
+      void marshallFstat64Call(tile_id_t core_id);
 #endif
-      void marshallIoctlCall(core_id_t core_id);
-      void marshallGetpidCall(core_id_t core_id);
-      void marshallReadaheadCall(core_id_t core_id);
-      void marshallPipeCall(core_id_t core_id);
-      void marshallMmapCall(core_id_t core_id);
+      void marshallIoctlCall(tile_id_t core_id);
+      void marshallGetpidCall(tile_id_t core_id);
+      void marshallReadaheadCall(tile_id_t core_id);
+      void marshallPipeCall(tile_id_t core_id);
+      void marshallMmapCall(tile_id_t core_id);
 #ifdef TARGET_IA32
-      void marshallMmap2Call(core_id_t core_id);
+      void marshallMmap2Call(tile_id_t core_id);
 #endif
-      void marshallMunmapCall(core_id_t core_id);
-      void marshallBrkCall(core_id_t core_id);
-      void marshallFutexCall(core_id_t core_id);
+      void marshallMunmapCall(tile_id_t core_id);
+      void marshallBrkCall(tile_id_t core_id);
+      void marshallFutexCall(tile_id_t core_id);
 
       // Handling Futexes 
-      void futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);
-      void futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time);
-      void futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time);
+      void futexWait(tile_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);
+      void futexWake(tile_id_t core_id, int *uaddr, int val, UInt64 curr_time);
+      void futexCmpRequeue(tile_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time);
 
       //Note: These structures are shared with the MCP
    private:

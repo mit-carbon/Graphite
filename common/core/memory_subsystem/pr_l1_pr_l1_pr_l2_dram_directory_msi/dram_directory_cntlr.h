@@ -27,7 +27,7 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          ReqQueueList* m_dram_directory_req_queue_list;
          DramCntlr* m_dram_cntlr;
 
-         core_id_t m_core_id;
+         tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
          ShmemPerfModel* m_shmem_perf_model;
@@ -43,15 +43,15 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          void processNextReqFromL2Cache(IntPtr address);
          void processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
          void processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
-         void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, core_id_t receiver, IntPtr address, Byte* cached_data_buf);
+         void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, tile_id_t receiver, IntPtr address, Byte* cached_data_buf);
 
-         void processInvRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
-         void processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
-         void processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
-         void sendDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
+         void processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processWbRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+         void sendDataToDram(IntPtr address, tile_id_t requester, Byte* data_buf);
       
       public:
-         DramDirectoryCntlr(core_id_t core_id,
+         DramDirectoryCntlr(tile_id_t tile_id,
                MemoryManager* memory_manager,
                DramCntlr* dram_cntlr,
                UInt32 dram_directory_total_entries,
@@ -65,7 +65,7 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCntlr();
 
-         void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
+         void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
          
          DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
    };

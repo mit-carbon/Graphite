@@ -8,7 +8,7 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
       m_msg_type(INVALID_MSG_TYPE),
       m_sender_mem_component(MemComponent::INVALID_MEM_COMPONENT),
       m_receiver_mem_component(MemComponent::INVALID_MEM_COMPONENT),
-      m_requester(INVALID_CORE_ID),
+      m_requester(INVALID_TILE_ID),
       m_address(INVALID_ADDRESS),
       m_data_buf(NULL),
       m_data_length(0)
@@ -17,7 +17,7 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
    ShmemMsg::ShmemMsg(msg_t msg_type,
          MemComponent::component_t sender_mem_component,
          MemComponent::component_t receiver_mem_component,
-         core_id_t requester,
+         tile_id_t requester,
          IntPtr address,
          Byte* data_buf,
          UInt32 data_length) :

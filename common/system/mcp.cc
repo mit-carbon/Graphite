@@ -107,7 +107,7 @@ void MCP::processPacket()
       Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)recv_pkt.data);
       break;
    case MCP_MESSAGE_THREAD_EXIT:
-      Sim()->getThreadManager()->masterOnThreadExit(*(core_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), recv_pkt.time);
+      Sim()->getThreadManager()->masterOnThreadExit(*(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), recv_pkt.time);
       break;
 
    case MCP_MESSAGE_THREAD_JOIN_REQUEST:
@@ -141,7 +141,7 @@ void MCP::finish()
    LOG_PRINT("Send MCP quit message");
 
    SInt32 msg_type = MCP_MESSAGE_QUIT;
-   m_network.netSend(Config::getSingleton()->getMCPCoreNum(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
+   m_network.netSend(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
 
    while (!finished())
    {
@@ -154,9 +154,9 @@ void MCP::finish()
 void MCP::run()
 {
    __attribute(__unused__) int tid =  syscall(__NR_gettid);
-   LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPCoreNum());
+   LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPTileNum());
 
-   int mcp_core_num = Config::getSingleton()->getMCPCoreNum();
+   int mcp_core_num = Config::getSingleton()->getMCPTileNum();
    Sim()->getTileManager()->initializeThread(mcp_core_num);
    Sim()->getTileManager()->initializeCommId(mcp_core_num);
 

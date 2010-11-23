@@ -38,7 +38,7 @@ namespace PrL1PrL2DramDirectoryMSI
          CachePerfModel* m_l2_cache_perf_model;
 
       public:
-         MemoryManager(Core* core, Network* network, ShmemPerfModel* shmem_perf_model);
+         MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
          ~MemoryManager();
 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
@@ -58,18 +58,25 @@ namespace PrL1PrL2DramDirectoryMSI
                Byte* data_buf, UInt32 data_length,
                bool modeled);
 
+         bool PepCoreInitiateMemoryAccess(
+               MemComponent::component_t mem_component,
+               Core::lock_signal_t lock_signal,
+               Core::mem_op_t mem_op_type,
+               IntPtr address, UInt32 offset,
+               Byte* data_buf, UInt32 data_length,
+               bool modeled) { LOG_PRINT_ERROR("No PEP cores in this model"); return false;}
          void handleMsgFromNetwork(NetPacket& packet);
 
-         void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, core_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+         void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, tile_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
 
-         void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, core_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+         void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
         
          void updateInternalVariablesOnFrequencyChange(volatile float frequency);
 
          void enableModels();
          void disableModels();
 
-         core_id_t getShmemRequester(const void* pkt_data)
+         tile_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
          UInt32 getModeledLength(const void* pkt_data)

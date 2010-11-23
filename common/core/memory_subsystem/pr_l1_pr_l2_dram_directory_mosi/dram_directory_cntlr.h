@@ -50,7 +50,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          DramCntlr* m_dram_cntlr;
 
-         core_id_t m_core_id;
+         tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
          ShmemPerfModel* m_shmem_perf_model;
@@ -84,24 +84,24 @@ namespace PrL1PrL2DramDirectoryMOSI
          void processNextReqFromL2Cache(IntPtr address);
          void processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call = false);
          void processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call = false);
-         void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, core_id_t receiver, IntPtr address);
+         void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, tile_id_t receiver, IntPtr address);
 
-         void processInvRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
-         void processFlushRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
-         void processWbRepFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
-         void sendDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
+         void processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processWbRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+         void sendDataToDram(IntPtr address, tile_id_t requester, Byte* data_buf);
       
-         void sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address, core_id_t requester, core_id_t single_receiver, pair<bool, vector<core_id_t> >& sharers_list_pair);
-         void restartShmemReq(core_id_t sender, ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate);
+         void sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address, tile_id_t requester, tile_id_t single_receiver, pair<bool, vector<tile_id_t> >& sharers_list_pair);
+         void restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate);
 
          // Update Performance Counters
          void initializePerfCounters(void);
-         void updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, core_id_t requester,
-               core_id_t sharer, UInt32 num_sharers);
+         void updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, tile_id_t requester,
+               tile_id_t sharer, UInt32 num_sharers);
          void updateBroadcastPerfCounters(ShmemMsg::msg_t shmem_msg_type, bool inv_req_sent, bool broadcast_inv_req_sent);
 
       public:
-         DramDirectoryCntlr(core_id_t core_id,
+         DramDirectoryCntlr(tile_id_t tile_id,
                MemoryManager* memory_manager,
                DramCntlr* dram_cntlr,
                UInt32 dram_directory_total_entries,
@@ -115,7 +115,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCntlr();
 
-         void handleMsgFromL2Cache(core_id_t sender, ShmemMsg* shmem_msg);
+         void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
 
          DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
         

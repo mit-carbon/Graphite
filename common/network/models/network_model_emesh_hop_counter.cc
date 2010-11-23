@@ -15,10 +15,10 @@ NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 ne
    : NetworkModel(net, network_id)
    , _enabled(false)
 {
-   SInt32 total_cores = Config::getSingleton()->getTotalCores();
+   SInt32 total_tiles = Config::getSingleton()->getTotalTiles();
 
-   _mesh_width = (SInt32) floor (sqrt(total_cores));
-   _mesh_height = (SInt32) ceil (1.0 * total_cores / _mesh_width);
+   _mesh_width = (SInt32) floor (sqrt(total_tiles));
+   _mesh_height = (SInt32) ceil (1.0 * total_tiles / _mesh_width);
 
    try
    {
@@ -29,9 +29,9 @@ NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 ne
       LOG_PRINT_ERROR("Could not read emesh_hop_counter paramters from the cfg file");
    }
 
-   assert(total_cores <= _mesh_width * _mesh_height);
-   assert(total_cores > (_mesh_width - 1) * _mesh_height);
-   assert(total_cores > _mesh_width * (_mesh_height - 1));
+   assert(total_tiles <= _mesh_width * _mesh_height);
+   assert(total_tiles > (_mesh_width - 1) * _mesh_height);
+   assert(total_tiles > _mesh_width * (_mesh_height - 1));
 
    // Create Rounter & Link Models
    createRouterAndLinkModels();
@@ -114,7 +114,7 @@ NetworkModelEMeshHopCounter::initializePerformanceCounters()
 }
 
 void
-NetworkModelEMeshHopCounter::computePosition(core_id_t tile,
+NetworkModelEMeshHopCounter::computePosition(tile_id_t tile,
                                              SInt32 &x, SInt32 &y)
 {
    x = tile % _mesh_width;
@@ -130,9 +130,9 @@ NetworkModelEMeshHopCounter::computeDistance(SInt32 x1, SInt32 y1, SInt32 x2, SI
 UInt32
 NetworkModelEMeshHopCounter::computeAction(const NetPacket& pkt)
 {
-   core_id_t core_id = getNetwork()->getTile()->getId();
-   LOG_ASSERT_ERROR((pkt.receiver == NetPacket::BROADCAST) || (pkt.receiver == core_id), \
-         "pkt.receiver(%i), core_id(%i)", pkt.receiver, core_id);
+   tile_id_t tile_id = getNetwork()->getTile()->getId();
+   LOG_ASSERT_ERROR((pkt.receiver == NetPacket::BROADCAST) || (pkt.receiver == tile_id), \
+         "pkt.receiver(%i), tile_id(%i)", pkt.receiver, tile_id);
 
    return RoutingAction::RECEIVE;
 }
@@ -151,12 +151,12 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
 
    if (pkt.receiver == NetPacket::BROADCAST)
    {
-      UInt32 total_cores = Config::getSingleton()->getTotalCores();
+      UInt32 total_tiles = Config::getSingleton()->getTotalTiles();
    
       UInt64 curr_time = pkt.time;
       // There's no broadcast tree here, but I guess that won't be a
       // bottleneck at all since there's no contention
-      for (SInt32 i = 0; i < (SInt32) total_cores; i++)
+      for (SInt32 i = 0; i < (SInt32) total_tiles; i++)
       {
          computePosition(i, dx, dy);
 
@@ -211,17 +211,17 @@ NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
-   core_id_t requester = INVALID_CORE_ID;
+   tile_id_t requester = INVALID_TILE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getTile()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
          "requester(%i)", requester);
 
-   if ( (!_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
+   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return;
 
    // LOG_ASSERT_ERROR(pkt.start_time > 0, "start_time(%llu)", pkt.start_time);

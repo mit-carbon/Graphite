@@ -18,7 +18,7 @@ int main (int argc, char *argv[])
 
    // 1) Get a tile object
    Tile* tile = Sim()->getTileManager()->getTileFromID(0);
-   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalTiles(); i++)
    {
       Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
    }

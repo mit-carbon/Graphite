@@ -98,10 +98,15 @@ public:
          std::string getType() { return m_type; }
    };
    
-   typedef std::vector<UInt32> CoreToProcMap;
-   typedef std::vector<core_id_t> CoreList;
-   typedef std::vector<core_id_t>::const_iterator CLCI;
-   typedef std::map<UInt32,core_id_t> CommToCoreMap;
+   //typedef std::vector<UInt32> TileToProcMap;
+   //typedef std::vector<tile_id_t> TileList;
+   //typedef std::vector<tile_id_t>::const_iterator CLCI;
+   //typedef std::map<UInt32,tile_id_t> CommToTileMap;
+
+   typedef std::vector<UInt32> TileToProcMap;
+   typedef std::vector<tile_id_t> TileList;
+   typedef std::vector<tile_id_t>::const_iterator TLCI;
+   typedef std::map<UInt32,tile_id_t> CommToTileMap;
 
    Config();
    ~Config();
@@ -118,72 +123,72 @@ public:
    UInt32 getCurrentProcessNum() { return m_current_process_num; }
    void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
-   core_id_t getMCPCoreNum() { return getTotalCores() -1; }
+   tile_id_t getMCPTileNum() { return getTotalTiles() -1; }
 
-   core_id_t getMainThreadCoreNum() { return 0; }
+   tile_id_t getMainThreadTileNum() { return 0; }
 
-   core_id_t getThreadSpawnerCoreNum(UInt32 proc_num);
-   core_id_t getCurrentThreadSpawnerCoreNum(); 
+   tile_id_t getThreadSpawnerTileNum(UInt32 proc_num);
+   tile_id_t getCurrentThreadSpawnerTileNum(); 
 
-   // Return the number of modules (cores) in a given process
-   UInt32 getNumCoresInProcess(UInt32 proc_num)
+   // Return the number of modules (tiles) in a given process
+   UInt32 getNumTilesInProcess(UInt32 proc_num)
    { 
       assert (proc_num < m_num_processes); 
-      return m_proc_to_core_list_map[proc_num].size(); 
+      return m_proc_to_tile_list_map[proc_num].size(); 
    }
 
-   SInt32 getIndexFromCoreID(UInt32 proc_num, core_id_t core_id);
-   core_id_t getCoreIDFromIndex(UInt32 proc_num, SInt32 index);
+   SInt32 getIndexFromTileID(UInt32 proc_num, tile_id_t tile_id);
+   tile_id_t getTileIDFromIndex(UInt32 proc_num, SInt32 index);
    
-   UInt32 getNumLocalCores() { return getNumCoresInProcess(getCurrentProcessNum()); }
+   UInt32 getNumLocalTiles() { return getNumTilesInProcess(getCurrentProcessNum()); }
 
    // Return the total number of modules in all processes
-   UInt32 getTotalCores();
-   UInt32 getApplicationCores();
+   UInt32 getTotalTiles();
+   UInt32 getApplicationTiles();
 
    // Return an array of tile numbers for a given process
    //  The returned array will have numMods(proc_num) elements
-   const CoreList & getCoreListForProcess(UInt32 proc_num)
-   { assert(proc_num < m_num_processes); return m_proc_to_core_list_map[proc_num]; }
+   const TileList & getTileListForProcess(UInt32 proc_num)
+   { assert(proc_num < m_num_processes); return m_proc_to_tile_list_map[proc_num]; }
 
-   const CoreList & getCoreListForCurrentProcess()
-   { return getCoreListForProcess(getCurrentProcessNum()); }
+   const TileList & getTileListForCurrentProcess()
+   { return getTileListForProcess(getCurrentProcessNum()); }
 
-   UInt32 getProcessNumForCore(UInt32 tile)
+   UInt32 getProcessNumForTile(UInt32 tile)
    { 
-     if (tile >= m_total_cores)
+     if (tile >= m_total_tiles)
      {
-       fprintf(stderr, "tile(%u), m_total_cores(%u)\n", tile, m_total_cores);
+       fprintf(stderr, "tile(%u), m_total_tiles(%u)\n", tile, m_total_tiles);
        exit(-1);
      }
-     return m_core_to_proc_map[tile]; 
+     return m_tile_to_proc_map[tile]; 
    }
 
    // For mapping between user-land communication id's to actual tile id's
-   void updateCommToCoreMap(UInt32 comm_id, core_id_t core_id);
-   UInt32 getCoreFromCommId(UInt32 comm_id);
+   void updateCommToTileMap(UInt32 comm_id, tile_id_t tile_id);
+   UInt32 getTileFromCommId(UInt32 comm_id);
 
-   // Get CoreId length
-   UInt32 getCoreIDLength()
-   { return m_core_id_length; }
+   // Get TileId length
+   UInt32 getTileIDLength()
+   { return m_tile_id_length; }
 
    SimulationMode getSimulationMode()
    { return m_simulation_mode; }
 
    // Tile & Network Parameters
-   std::string getCoreType(core_id_t core_id);
-   std::string getL1ICacheType(core_id_t core_id);
-   std::string getL1DCacheType(core_id_t core_id);
-   std::string getL2CacheType(core_id_t core_id);
-   volatile float getCoreFrequency(core_id_t core_id);
-   void setCoreFrequency(core_id_t core_id, volatile float frequency);
+   std::string getCoreType(tile_id_t tile_id);
+   std::string getL1ICacheType(tile_id_t tile_id);
+   std::string getL1DCacheType(tile_id_t tile_id);
+   std::string getL2CacheType(tile_id_t tile_id);
+   volatile float getCoreFrequency(tile_id_t tile_id);
+   void setCoreFrequency(tile_id_t tile_id, volatile float frequency);
 
-   std::string getPepCoreType(core_id_t core_id);
-   std::string getPepL1ICacheType(core_id_t core_id);
-   std::string getPepL1DCacheType(core_id_t core_id);
-   //std::string getL2CacheType(core_id_t core_id);  PEP will probably share L2 cache
-   volatile float getPepCoreFrequency(core_id_t core_id);
-   void setPepCoreFrequency(core_id_t core_id, volatile float frequency);
+   std::string getPepCoreType(tile_id_t tile_id);
+   std::string getPepL1ICacheType(tile_id_t tile_id);
+   std::string getPepL1DCacheType(tile_id_t tile_id);
+   //std::string getL2CacheType(tile_id_t tile_id);  PEP will probably share L2 cache
+   volatile float getPepCoreFrequency(tile_id_t tile_id);
+   void setPepCoreFrequency(tile_id_t tile_id, volatile float frequency);
 
    std::string getNetworkType(SInt32 network_id);
 
@@ -193,36 +198,40 @@ public:
    bool getEnableDCacheModeling() const;
    bool getEnableICacheModeling() const;
    bool getEnablePowerModeling() const;
+   bool getEnablePepCores() const;
 
    // Logging
    std::string getOutputFileName() const;
    std::string formatOutputFileName(std::string filename) const;
-   void logCoreMap();
+   void logTileMap();
 
    static Config *getSingleton();
 
 private:
-   void GenerateCoreMap();
+   void GenerateTileMap();
    
    UInt32  m_num_processes;         // Total number of processes (incl myself)
-   UInt32  m_total_cores;           // Total number of cores in all processes
-   UInt32  m_application_cores;     // Total number of cores used by the application
-   UInt32  m_core_id_length;        // Number of bytes needed to store a core_id
+   UInt32  m_total_tiles;           // Total number of tiles in all processes
+   UInt32  m_application_tiles;     // Total number of tiles used by the application
+   UInt32  m_tile_id_length;        // Number of bytes needed to store a tile_id
 
    UInt32  m_current_process_num;          // Process number for this process
 
-   std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding main core parameters
-   std::vector<PepCoreParameters> m_pep_core_parameters_vec;         // Vector holding PEP core parameters
+   std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding main tile parameters
+   std::vector<PepCoreParameters> m_pep_core_parameters_vec;         // Vector holding PEP tile parameters
    std::vector<NetworkParameters> m_network_parameters_vec;   // Vector holding network parameters
 
-   // This data structure keeps track of which cores are in each process.
+   // This data structure keeps track of which tiles are in each process.
    // It is an array of size num_processes where each element is a list of
-   // tile numbers.  Each list specifies which cores are in the corresponding
+   // tile numbers.  Each list specifies which tiles are in the corresponding
    // process.
-   CoreToProcMap m_core_to_proc_map;
-   CoreList* m_proc_to_core_list_map;
+   //TileToProcMap m_tile_to_proc_map;
+   //TileList* m_proc_to_tile_list_map;
+   //CommToTileMap m_comm_to_tile_map;
 
-   CommToCoreMap m_comm_to_core_map;
+   TileToProcMap m_tile_to_proc_map;
+   TileList* m_proc_to_tile_list_map;
+   CommToTileMap m_comm_to_tile_map;
 
    // Simulation Mode
    SimulationMode m_simulation_mode;
@@ -231,7 +240,7 @@ private:
 
    static Config *m_singleton;
 
-   static UInt32 m_knob_total_cores;
+   static UInt32 m_knob_total_tiles;
    static UInt32 m_knob_num_process;
    static bool m_knob_simarch_has_shared_mem;
    static std::string m_knob_output_file;
@@ -239,6 +248,7 @@ private:
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
    static bool m_knob_enable_power_modeling;
+   static bool m_knob_enable_pep_cores;
 
    // Get Tile & Network Parameters
    void parseCoreParameters();
@@ -246,8 +256,8 @@ private:
    void parseNetworkParameters();
 
    static SimulationMode parseSimulationMode(std::string mode);
-   static UInt32 computeCoreIDLength(UInt32 core_count);
-   static UInt32 getNearestAcceptableCoreCount(UInt32 core_count);
+   static UInt32 computeTileIDLength(UInt32 tile_count);
+   static UInt32 getNearestAcceptableTileCount(UInt32 tile_count);
 };
 
 #endif

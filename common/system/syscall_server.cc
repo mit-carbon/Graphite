@@ -41,107 +41,107 @@ SyscallServer::~SyscallServer()
 }
 
 
-void SyscallServer::handleSyscall(core_id_t core_id)
+void SyscallServer::handleSyscall(tile_id_t tile_id)
 {
    IntPtr syscall_number;
    m_recv_buff >> syscall_number;
 
-   LOG_PRINT("Syscall: %d from core(%i)", syscall_number, core_id);
+   LOG_PRINT("Syscall: %d from core(%i)", syscall_number, tile_id);
 
    switch (syscall_number)
    {
    case SYS_open:
-      marshallOpenCall(core_id);
+      marshallOpenCall(tile_id);
       break;
 
    case SYS_read:
-      marshallReadCall(core_id);
+      marshallReadCall(tile_id);
       break;
 
    case SYS_write:
-      marshallWriteCall(core_id);
+      marshallWriteCall(tile_id);
       break;
 
    case SYS_writev:
-      marshallWritevCall(core_id);
+      marshallWritevCall(tile_id);
       break;
 
    case SYS_close:
-      marshallCloseCall(core_id);
+      marshallCloseCall(tile_id);
       break;
 
    case SYS_lseek:
-      marshallLseekCall(core_id);
+      marshallLseekCall(tile_id);
       break;
 
    case SYS_access:
-      marshallAccessCall(core_id);
+      marshallAccessCall(tile_id);
       break;
 
 #ifdef TARGET_X86_64
    case SYS_stat:
    case SYS_lstat:
       // Same as stat() except for a link
-      marshallStatCall(syscall_number, core_id);
+      marshallStatCall(syscall_number, tile_id);
       break;
 
    case SYS_fstat:
-      marshallFstatCall(core_id);
+      marshallFstatCall(tile_id);
       break;
 
 #endif
 #ifdef TARGET_IA32
    case SYS_fstat64:
-      marshallFstat64Call(core_id);
+      marshallFstat64Call(tile_id);
       break;
 #endif
    case SYS_ioctl:
-      marshallIoctlCall(core_id);
+      marshallIoctlCall(tile_id);
       break;
 
    case SYS_getpid:
-      marshallGetpidCall(core_id);
+      marshallGetpidCall(tile_id);
       break;
 
    case SYS_readahead:
-      marshallReadaheadCall(core_id);
+      marshallReadaheadCall(tile_id);
       break;
 
    case SYS_pipe:
-      marshallPipeCall(core_id);
+      marshallPipeCall(tile_id);
       break;
 
    case SYS_mmap:
-      marshallMmapCall(core_id);
+      marshallMmapCall(tile_id);
       break;
 
 #ifdef TARGET_IA32
    case SYS_mmap2:
-      marshallMmap2Call(core_id);
+      marshallMmap2Call(tile_id);
       break;
 #endif
 
    case SYS_munmap:
-      marshallMunmapCall (core_id);
+      marshallMunmapCall (tile_id);
       break;
 
    case SYS_brk:
-      marshallBrkCall (core_id);
+      marshallBrkCall (tile_id);
       break;
       
    case SYS_futex:
-      marshallFutexCall (core_id);
+      marshallFutexCall (tile_id);
       break;
 
    default:
-      LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
+      LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, tile_id);
       break;
    }
 
    LOG_PRINT("Finished syscall: %d", syscall_number);
 }
 
-void SyscallServer::marshallOpenCall(core_id_t core_id)
+void SyscallServer::marshallOpenCall(tile_id_t tile_id)
 {
 
    /*
@@ -181,13 +181,13 @@ void SyscallServer::marshallOpenCall(core_id_t core_id)
 
    LOG_PRINT("Open(%s,%i) returns %i", path, flags, ret);
    
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] path;
 }
 
-void SyscallServer::marshallReadCall(core_id_t core_id)
+void SyscallServer::marshallReadCall(tile_id_t tile_id)
 {
 
    /*
@@ -226,14 +226,14 @@ void SyscallServer::marshallReadCall(core_id_t core_id)
 
    LOG_PRINT("Read(%i,%i) returns %i", fd, count, bytes);
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (count > m_SYSCALL_SERVER_MAX_BUFF)
       delete [] read_buf;
 }
 
 
-void SyscallServer::marshallWriteCall(core_id_t core_id)
+void SyscallServer::marshallWriteCall(tile_id_t tile_id)
 {
 
    /*
@@ -274,14 +274,14 @@ void SyscallServer::marshallWriteCall(core_id_t core_id)
 
    LOG_PRINT("Write(%i,%i) returns %i", fd, count, bytes);
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (count > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] buf;
 
 }
 
-void SyscallServer::marshallWritevCall(core_id_t core_id)
+void SyscallServer::marshallWritevCall(tile_id_t tile_id)
 {
    //
    // Receive
@@ -316,13 +316,13 @@ void SyscallServer::marshallWritevCall(core_id_t core_id)
 
    m_send_buff << bytes;
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if(count > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] buf;
 }
 
-void SyscallServer::marshallCloseCall(core_id_t core_id)
+void SyscallServer::marshallCloseCall(tile_id_t tile_id)
 {
 
    /*
@@ -347,11 +347,11 @@ void SyscallServer::marshallCloseCall(core_id_t core_id)
    int status = syscall(SYS_close, fd);
 
    m_send_buff << status;
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
 }
 
-void SyscallServer::marshallLseekCall(core_id_t core_id)
+void SyscallServer::marshallLseekCall(tile_id_t tile_id)
 {
    int fd;
    off_t offset;
@@ -362,11 +362,11 @@ void SyscallServer::marshallLseekCall(core_id_t core_id)
    off_t ret_val = syscall(SYS_lseek, fd, offset, whence);
 
    m_send_buff << ret_val;
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
 }
 
-void SyscallServer::marshallAccessCall(core_id_t core_id)
+void SyscallServer::marshallAccessCall(tile_id_t tile_id)
 {
    UInt32 len_fname;
    char *path = (char *) m_scratch;
@@ -384,14 +384,14 @@ void SyscallServer::marshallAccessCall(core_id_t core_id)
 
    m_send_buff << ret;
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] path;
 }
 
 #ifdef TARGET_X86_64
-void SyscallServer::marshallStatCall(IntPtr syscall_number, core_id_t core_id)
+void SyscallServer::marshallStatCall(IntPtr syscall_number, tile_id_t tile_id)
 {
    char *path = (char *) m_scratch;
    struct stat stat_buf;
@@ -416,11 +416,11 @@ void SyscallServer::marshallStatCall(IntPtr syscall_number, core_id_t core_id)
    m_send_buff.put<int>(ret);
    m_send_buff << make_pair(&stat_buf, sizeof(struct stat));
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    LOG_PRINT("Finished marshallStatCall(), path(%s), send_buf.size(%u)", path, m_send_buff.size());
 }
 
-void SyscallServer::marshallFstatCall(core_id_t core_id)
+void SyscallServer::marshallFstatCall(tile_id_t tile_id)
 {
    int fd;
    struct stat buf;
@@ -439,13 +439,13 @@ void SyscallServer::marshallFstatCall(core_id_t core_id)
    m_send_buff.put<int>(ret);
    m_send_buff << make_pair(&buf, sizeof(struct stat));
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    LOG_PRINT("Finished marshallFstatCall(), fd(%i), buf(%p)", fd, &buf);
 }
 #endif
 
 #ifdef TARGET_IA32
-void SyscallServer::marshallFstat64Call(core_id_t core_id)
+void SyscallServer::marshallFstat64Call(tile_id_t tile_id)
 {
    int fd;
    struct stat64 buf;
@@ -461,11 +461,11 @@ void SyscallServer::marshallFstat64Call(core_id_t core_id)
    m_send_buff.put<int>(ret);
    m_send_buff << make_pair(&buf, sizeof(struct stat64));
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 #endif
 
-void SyscallServer::marshallIoctlCall(core_id_t core_id)
+void SyscallServer::marshallIoctlCall(tile_id_t tile_id)
 {
    int fd;
    int request;
@@ -483,20 +483,20 @@ void SyscallServer::marshallIoctlCall(core_id_t core_id)
    m_send_buff.put<int>(ret);
    m_send_buff << make_pair(&buf, sizeof(struct termios));
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
-void SyscallServer::marshallGetpidCall(core_id_t core_id)
+void SyscallServer::marshallGetpidCall(tile_id_t tile_id)
 {
    // Actually do the getpid call
    int ret = getpid();
 
    m_send_buff << ret;
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
-void SyscallServer::marshallReadaheadCall(core_id_t core_id)
+void SyscallServer::marshallReadaheadCall(tile_id_t tile_id)
 {
    int fd;
    off64_t offset;
@@ -509,10 +509,10 @@ void SyscallServer::marshallReadaheadCall(core_id_t core_id)
 
    m_send_buff << ret;
 
-   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend (tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
-void SyscallServer::marshallPipeCall(core_id_t core_id)
+void SyscallServer::marshallPipeCall(tile_id_t tile_id)
 {
    int fds[2];
 
@@ -522,10 +522,10 @@ void SyscallServer::marshallPipeCall(core_id_t core_id)
    m_send_buff << ret;
    m_send_buff << fds[0] << fds[1];
 
-   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend (tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
-void SyscallServer::marshallMmapCall(core_id_t core_id)
+void SyscallServer::marshallMmapCall(tile_id_t tile_id)
 {
    void *addr;
    size_t length;
@@ -546,11 +546,11 @@ void SyscallServer::marshallMmapCall(core_id_t core_id)
 
    m_send_buff.put(start);
 
-   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend (tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
 #ifdef TARGET_IA32
-void SyscallServer::marshallMmap2Call(core_id_t core_id)
+void SyscallServer::marshallMmap2Call(tile_id_t tile_id)
 {
    void *addr;
    size_t length;
@@ -570,11 +570,11 @@ void SyscallServer::marshallMmap2Call(core_id_t core_id)
    start = Sim()->getMCP()->getVMManager()->mmap2(addr, length, prot, flags, fd, pgoffset);
 
    m_send_buff.put(start);
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 #endif
 
-void SyscallServer::marshallMunmapCall (core_id_t core_id)
+void SyscallServer::marshallMunmapCall (tile_id_t tile_id)
 {
    void *addr;
    size_t length;
@@ -587,10 +587,10 @@ void SyscallServer::marshallMunmapCall (core_id_t core_id)
 
    m_send_buff.put(ret_val);
 
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
-void SyscallServer::marshallBrkCall (core_id_t core_id)
+void SyscallServer::marshallBrkCall (tile_id_t tile_id)
 {
    void *end_data_segment;
 
@@ -601,10 +601,10 @@ void SyscallServer::marshallBrkCall (core_id_t core_id)
 
    m_send_buff.put(new_end_data_segment);
 
-   m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend (tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
 
-void SyscallServer::marshallFutexCall (core_id_t core_id)
+void SyscallServer::marshallFutexCall (tile_id_t tile_id)
 {
    int *uaddr;
    int op;
@@ -674,33 +674,33 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 #ifdef KERNEL_LENNY
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
-      futexWait(core_id, uaddr, val, act_val, curr_time); 
+      futexWait(tile_id, uaddr, val, act_val, curr_time); 
    }
    else if ((op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)))
    {
-      futexWake(core_id, uaddr, val, curr_time);
+      futexWake(tile_id, uaddr, val, curr_time);
    }
    else if((op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)))
    {
-      futexCmpRequeue(core_id, uaddr, val, uaddr, val3, act_val, curr_time);
+      futexCmpRequeue(tile_id, uaddr, val, uaddr, val3, act_val, curr_time);
    }
 #endif
    
 #ifdef KERNEL_ETCH
    if (op == FUTEX_WAIT)
    {
-      futexWait(core_id, uaddr, val, act_val, curr_time); 
+      futexWait(tile_id, uaddr, val, act_val, curr_time); 
    }
    else if (op == FUTEX_WAKE)
    {
-      futexWake(core_id, uaddr, val, curr_time);
+      futexWake(tile_id, uaddr, val, curr_time);
    }
 #endif
 
 }
 
 // -- Futex related functions --
-void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time)
+void SyscallServer::futexWait(tile_id_t tile_id, int *uaddr, int val, int act_val, UInt64 curr_time)
 {
    LOG_PRINT("Futex Wait");
    SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
@@ -710,15 +710,15 @@ void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_va
       m_send_buff.clear();
       m_send_buff << (int) EWOULDBLOCK;
       m_send_buff << curr_time;
-      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
    else
    {
-      sim_futex->enqueueWaiter(core_id);
+      sim_futex->enqueueWaiter(tile_id);
    }
 }
 
-void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time)
+void SyscallServer::futexWake(tile_id_t tile_id, int *uaddr, int val, UInt64 curr_time)
 {
    LOG_PRINT("Futex Wake");
    SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
@@ -726,8 +726,8 @@ void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 cur
 
    for (int i = 0; i < val; i++)
    {
-      core_id_t waiter = sim_futex->dequeueWaiter();
-      if (waiter == INVALID_CORE_ID)
+      tile_id_t waiter = sim_futex->dequeueWaiter();
+      if (waiter == INVALID_TILE_ID)
          break;
 
       num_procs_woken_up ++;
@@ -741,11 +741,11 @@ void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 cur
    m_send_buff.clear();
    m_send_buff << num_procs_woken_up;
    m_send_buff << (UInt64) curr_time;
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
 }
 
-void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time)
+void SyscallServer::futexCmpRequeue(tile_id_t tile_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time)
 {
    LOG_PRINT("Futex CMP_REQUEUE");
    SimFutex *sim_futex = &m_futexes[(IntPtr) uaddr];
@@ -756,14 +756,14 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int 
       m_send_buff.clear();
       m_send_buff << (int) EAGAIN;
       m_send_buff << curr_time;
-      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
    else
    {
       for(int i = 0; i < val; i++)
       {
-         core_id_t waiter = sim_futex->dequeueWaiter();
-         if(waiter == INVALID_CORE_ID)
+         tile_id_t waiter = sim_futex->dequeueWaiter();
+         if(waiter == INVALID_TILE_ID)
             break;
 
          num_procs_woken_up++;
@@ -782,8 +782,8 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int 
          // RUNNING, which is changed back to STALLED 
          // by enqueueWaiter. Since only the MCP uses this state
          // this should be okay. 
-         core_id_t waiter = sim_futex->dequeueWaiter();
-         if(waiter == INVALID_CORE_ID)
+         tile_id_t waiter = sim_futex->dequeueWaiter();
+         if(waiter == INVALID_TILE_ID)
             break;
 
          requeue_futex->enqueueWaiter(waiter);
@@ -792,7 +792,7 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int 
       m_send_buff.clear();
       m_send_buff << num_procs_woken_up;
       m_send_buff << (UInt64) curr_time;
-      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_network.netSend(tile_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
 
    return;
@@ -807,23 +807,23 @@ SimFutex::~SimFutex()
    assert(m_waiting.empty());
 }
 
-void SimFutex::enqueueWaiter(core_id_t core_id)
+void SimFutex::enqueueWaiter(tile_id_t tile_id)
 {
-   Sim()->getThreadManager()->stallThread(core_id);
-   m_waiting.push(core_id);
+   Sim()->getThreadManager()->stallThread(tile_id);
+   m_waiting.push(tile_id);
 }
 
-core_id_t SimFutex::dequeueWaiter()
+tile_id_t SimFutex::dequeueWaiter()
 {
    if (m_waiting.empty())
-      return INVALID_CORE_ID;
+      return INVALID_TILE_ID;
    else
    {
-      core_id_t core_id = m_waiting.front();
+      tile_id_t tile_id = m_waiting.front();
       m_waiting.pop();
 
-      Sim()->getThreadManager()->resumeThread(core_id);
-      return core_id;
+      Sim()->getThreadManager()->resumeThread(tile_id);
+      return tile_id;
    }
 }
 

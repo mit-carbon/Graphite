@@ -22,10 +22,10 @@ PerfCounterManager::resetCacheCounters(SInt32 sender)
 {
    LOG_ASSERT_WARNING(!m_has_been_reset, 
          "ResetCacheCounters called again, Sender(%i)", sender);
-   UInt32 num_app_cores = Sim()->getConfig()->getApplicationCores();
+   UInt32 num_app_tiles = Sim()->getConfig()->getApplicationTiles();
 
    m_counter ++;
-   if (m_counter == num_app_cores)
+   if (m_counter == num_app_tiles)
    {
       m_has_been_reset = true;
       m_counter = 0;
@@ -34,15 +34,15 @@ PerfCounterManager::resetCacheCounters(SInt32 sender)
       
       Network* net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
 
-      // Send a message to all real cores to reset cache counters
-      for (UInt32 i = 0; i < num_app_cores; i++)
+      // Send a message to all real tiles to reset cache counters
+      for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
          net->netSend(i, RESET_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
       }
 
       // Send a message to all worker threads to continue execution
-      for (UInt32 i = 0; i < num_app_cores; i++)
+      for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
          net->netSend(i, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
@@ -56,10 +56,10 @@ PerfCounterManager::disableCacheCounters(SInt32 sender)
 {
    LOG_ASSERT_WARNING(!m_has_been_disabled, 
          "DisableCacheCounters called again, Sender(%i)", sender);
-   UInt32 num_app_cores = Sim()->getConfig()->getApplicationCores();
+   UInt32 num_app_tiles = Sim()->getConfig()->getApplicationTiles();
 
    m_counter ++;
-   if (m_counter == num_app_cores)
+   if (m_counter == num_app_tiles)
    {
       m_has_been_disabled = true;
       m_counter = 0;
@@ -68,15 +68,15 @@ PerfCounterManager::disableCacheCounters(SInt32 sender)
       
       Network* net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
 
-      // Send a message to all real cores to reset cache counters
-      for (UInt32 i = 0; i < num_app_cores; i++)
+      // Send a message to all real tiles to reset cache counters
+      for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
          net->netSend(i, DISABLE_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
       }
 
       // Send a message to all worker threads to continue execution
-      for (UInt32 i = 0; i < num_app_cores; i++)
+      for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
          net->netSend(i, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));

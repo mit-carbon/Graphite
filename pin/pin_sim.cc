@@ -295,8 +295,8 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          }
          else
          {
-            core_id_t core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
-            Sim()->getTileManager()->initializeThread(core_id);
+            tile_id_t tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
+            Sim()->getTileManager()->initializeThread(tile_id);
             
             Tile *tile = Sim()->getTileManager()->getCurrentTile();
 
@@ -304,7 +304,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
-            copyInitialStackData(reg_esp, core_id);
+            copyInitialStackData(reg_esp, tile_id);
             LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
          }
          // Set the current ESP accordingly
@@ -327,21 +327,21 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          Sim()->getThreadManager()->getThreadToSpawn(&req);
          Sim()->getThreadManager()->dequeueThreadSpawnReq(&req);
 
-         LOG_ASSERT_ERROR(req.core_id < SInt32(Config::getSingleton()->getApplicationCores()),
-               "req.core_id(%i), num application cores(%u)", req.core_id, Config::getSingleton()->getApplicationCores());
+         LOG_ASSERT_ERROR(req.tile_id < SInt32(Config::getSingleton()->getApplicationTiles()),
+               "req.tile_id(%i), num application cores(%u)", req.tile_id, Config::getSingleton()->getApplicationTiles());
          Sim()->getThreadManager()->onThreadStart(&req);
       }
       else // Sim()->getConfig()->getSimulationMode() == Config::FULL
       {
          ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
-         core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
+         tile_id_t tile_id = PinConfig::getSingleton()->getTileIDFromStackPtr(reg_esp);
 
-         LOG_ASSERT_ERROR(core_id != -1, "All application threads and thread spawner are cores now");
+         LOG_ASSERT_ERROR(tile_id != -1, "All application threads and thread spawner are cores now");
 
-         if (core_id == Sim()->getConfig()->getCurrentThreadSpawnerCoreNum())
+         if (tile_id == Sim()->getConfig()->getCurrentThreadSpawnerTileNum())
          {
             // 'Thread Spawner' thread
-            Sim()->getTileManager()->initializeThread(core_id);
+            Sim()->getTileManager()->initializeThread(tile_id);
          }
          else
          {
@@ -351,7 +351,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             LOG_ASSERT_ERROR (req != NULL, "ThreadSpawnRequest is NULL !!");
 
             // This is an application thread
-            LOG_ASSERT_ERROR(core_id == req->core_id, "Got 2 different core_ids: req->core_id = %i, core_id = %i", req->core_id, core_id);
+            LOG_ASSERT_ERROR(tile_id == req->tile_id, "Got 2 different tile_ids: req->tile_id = %i, tile_id = %i", req->tile_id, tile_id);
 
             Sim()->getThreadManager()->onThreadStart(req);
          }

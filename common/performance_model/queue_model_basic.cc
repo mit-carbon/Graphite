@@ -19,7 +19,7 @@ QueueModelBasic::~QueueModelBasic()
 {}
 
 UInt64
-QueueModelBasic::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, core_id_t requester)
+QueueModelBasic::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester)
 {
    // Compute the moving average here
    UInt64 ref_time;

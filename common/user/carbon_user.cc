@@ -16,10 +16,15 @@
 
 static config::ConfigFile cfg;
 
-core_id_t CarbonGetCoreId()
+tile_id_t CarbonGetTileId()
 {
-   return Sim()->getTileManager()->getCurrentCoreID();
+   return Sim()->getTileManager()->getCurrentTileID();
 }
+
+//core_id_t CarbonGetCoreId()
+//{
+   //return Sim()->getTileManager()->getCurrentCoreID();
+//}
 
 int CarbonStartSim(int argc, char **argv)
 {

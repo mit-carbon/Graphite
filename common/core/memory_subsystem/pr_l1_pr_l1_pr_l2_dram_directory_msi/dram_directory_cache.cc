@@ -42,9 +42,9 @@ DramDirectoryCache::DramDirectoryCache(
 
    initializeParameters(num_dram_cntlrs);
    
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(m_memory_manager->getCore()->getId());
+   volatile float tile_frequency = Config::getSingleton()->getCoreFrequency(m_memory_manager->getTile()->getId());
    m_dram_directory_cache_access_delay_in_clock_cycles = \
-      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
+      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * tile_frequency));
 }
 
 DramDirectoryCache::~DramDirectoryCache()
@@ -55,11 +55,11 @@ DramDirectoryCache::~DramDirectoryCache()
 void
 DramDirectoryCache::initializeParameters(UInt32 num_dram_cntlrs)
 {
-   UInt32 num_cores = Config::getSingleton()->getTotalCores();
+   UInt32 num_tiles = Config::getSingleton()->getTotalTiles();
 
    m_log_num_sets = floorLog2(m_num_sets);
    m_log_cache_block_size = floorLog2(m_cache_block_size);
-   m_log_num_cores = floorLog2(num_cores);
+   m_log_num_tiles = floorLog2(num_tiles);
    
    if (isPower2(num_dram_cntlrs))
       m_log_num_dram_cntlrs = floorLog2(num_dram_cntlrs);
@@ -212,47 +212,47 @@ DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 IntPtr
 DramDirectoryCache::computeSetIndex(IntPtr address)
 {
-   IntPtr core_id = (address >> m_log_stack_size) & ((1 << m_log_num_cores) - 1);
+   IntPtr tile_id = (address >> m_log_stack_size) & ((1 << m_log_num_tiles) - 1);
 
-   UInt32 log_num_sub_block_bits = m_log_num_sets - m_log_num_cores;
+   UInt32 log_num_sub_block_bits = m_log_num_sets - m_log_num_tiles;
    IntPtr sub_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs)) \
                          & ((1 << log_num_sub_block_bits) - 1);
 
    IntPtr super_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs + log_num_sub_block_bits)) \
-                           & ((1 << m_log_num_cores) - 1);
+                           & ((1 << m_log_num_tiles) - 1);
 
-   return ((core_id ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
+   return ((tile_id ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
 }
 
 void
-DramDirectoryCache::updateInternalVariablesOnFrequencyChange(volatile float core_frequency)
+DramDirectoryCache::updateInternalVariablesOnFrequencyChange(volatile float tile_frequency)
 {
    m_dram_directory_cache_access_delay_in_clock_cycles = \
-      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
+      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * tile_frequency));
 }
 
 void
 DramDirectoryCache::outputSummary(ostream& out)
 {
-   if (m_memory_manager->getCore()->getId() == 0)
+   if (m_memory_manager->getTile()->getId() == 0)
    {
-      SInt32 num_cores = Config::getSingleton()->getTotalCores();
+      SInt32 num_tiles = Config::getSingleton()->getTotalTiles();
       SInt32 num_dram_cntlrs = 0;
       UInt64 l2_cache_size = 0;
       try
       {
          num_dram_cntlrs = (UInt32) Sim()->getCfg()->getInt("perf_model/dram/num_controllers");
          l2_cache_size = (UInt64) Sim()->getCfg()->getInt("perf_model/l2_cache/" + \
-               Config::getSingleton()->getL2CacheType(m_memory_manager->getCore()->getId()) + "/cache_size");
+               Config::getSingleton()->getL2CacheType(m_memory_manager->getTile()->getId()) + "/cache_size");
       }
       catch (...)
       {
          LOG_PRINT_ERROR("Could not read parameters from cfg file");
       }
       if (num_dram_cntlrs == -1)
-         num_dram_cntlrs = num_cores;
+         num_dram_cntlrs = num_tiles;
 
-      UInt64 expected_entries_per_dram_cntlr = (num_cores * l2_cache_size * 1024 / m_cache_block_size) / num_dram_cntlrs;
+      UInt64 expected_entries_per_dram_cntlr = (num_tiles * l2_cache_size * 1024 / m_cache_block_size) / num_dram_cntlrs;
       // Convert to a power of 2
       expected_entries_per_dram_cntlr = UInt64(1) << floorLog2(expected_entries_per_dram_cntlr);
 
@@ -269,11 +269,11 @@ DramDirectoryCache::outputSummary(ostream& out)
    }
 
 #ifdef DETAILED_TRACKING_ENABLED
-   core_id_t core_id = m_memory_manager->getCore()->getId();
+   tile_id_t tile_id = m_memory_manager->getTile()->getId();
    string output_dir = Sim()->getCfg()->getString("general/output_dir", "");
 
    ostringstream filename;
-   filename << output_dir << "/address_set_" << core_id;
+   filename << output_dir << "/address_set_" << tile_id;
    ofstream address_set_file(filename.str().c_str());
 
    for (map<IntPtr,UInt64>::iterator it = m_address_map.begin(); \

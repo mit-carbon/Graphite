@@ -45,7 +45,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonGetThreadToSpawn") msg_ptr = AFUNPTR(replacementGetThreadToSpawn);
    else if (name == "CarbonThreadStart") msg_ptr = AFUNPTR (replacementThreadStartNull);
    else if (name == "CarbonThreadExit") msg_ptr = AFUNPTR (replacementThreadExitNull);
-   else if (name == "CarbonGetCoreId") msg_ptr = AFUNPTR(replacementGetCoreId);
+   //else if (name == "CarbonGetCoreId") msg_ptr = AFUNPTR(replacementGetCoreId);
+   else if (name == "CarbonGetTileId") msg_ptr = AFUNPTR(replacementGetTileId);
    else if (name == "CarbonDequeueThreadSpawnReq") msg_ptr = AFUNPTR (replacementDequeueThreadSpawnRequest);
 
    // PIN specific stack management
@@ -144,6 +145,7 @@ void replacementMain (CONTEXT *ctxt)
 {
    LOG_PRINT("In replacementMain");
    
+   // The main process, which is the first thread (thread 0), waits for all thread spawners to be created.
    if (Sim()->getConfig()->getCurrentProcessNum() == 0)
    {
       LOG_PRINT("ReplaceMain start");
@@ -151,19 +153,22 @@ void replacementMain (CONTEXT *ctxt)
       Core *core = Sim()->getTileManager()->getCurrentCore();
       UInt32 num_processes = Sim()->getConfig()->getProcessCount();
 
+      // For each process, send a message to the thread spawner for that process telling it that
+      // we're initializing, wait until the thread spawners are all initialized.
       for (UInt32 i = 1; i < num_processes; i++)
       {
          // FIXME: 
          // This whole process should probably happen through the MCP
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerTileNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_ACK);
+         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerTileNum (i), SYSTEM_INITIALIZATION_ACK);
       }
       
+      // Tell the thread spawner for each process that we're done initializing...even though we haven't?
       for (UInt32 i = 1; i < num_processes; i++)
       {
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
+         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerTileNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
       LOG_PRINT("Starting enablePerformanceModelsInCurrentProcess()");
@@ -182,8 +187,8 @@ void replacementMain (CONTEXT *ctxt)
    {
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
-      core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreNum(), SYSTEM_INITIALIZATION_FINI);
+      core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadTileNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
+      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadTileNum(), SYSTEM_INITIALIZATION_FINI);
 
       Simulator::enablePerformanceModelsInCurrentProcess();
 
@@ -252,13 +257,21 @@ void replacementThreadExitNull (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementGetCoreId (CONTEXT *ctxt)
+void replacementGetTileId (CONTEXT *ctxt)
 {
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   CarbonGetCoreId ();
+   CarbonGetTileId ();
 
    retFromReplacedRtn (ctxt, ret_val);
 }
+
+//void replacementGetCoreId (CONTEXT *ctxt)
+//{
+   //ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
+   //CarbonGetCoreId ();
+
+   //retFromReplacedRtn (ctxt, ret_val);
+//}
 
 
 void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
@@ -717,12 +730,12 @@ bool pthread_create_first_time = true;
 
 void replacementPthreadCreate (CONTEXT *ctxt)
 {
-   core_id_t current_core_id =  
-                        Sim()->getTileManager()->getCurrentCoreID();
-   core_id_t current_thread_spawner_id =  
-                        Sim()->getConfig()->getCurrentThreadSpawnerCoreNum();
+   tile_id_t current_tile_id =  
+                        Sim()->getTileManager()->getCurrentTileID();
+   tile_id_t current_thread_spawner_id =  
+                        Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
    
-   if ( pthread_create_first_time || current_core_id == current_thread_spawner_id )
+   if ( pthread_create_first_time || current_tile_id == current_thread_spawner_id )
    {
       //let the pthread_create call fall through 
       pthread_create_first_time = false;

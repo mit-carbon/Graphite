@@ -116,7 +116,7 @@ void SockTransport::initSockets()
 void SockTransport::initBufferLists()
 {
    m_num_lists
-      = Config::getSingleton()->getTotalCores() // for cores
+      = Config::getSingleton()->getTotalTiles() // for tiles
       + 1; // for global node
 
    m_buffer_lists = new buffer_list[m_num_lists];
@@ -278,16 +278,16 @@ SockTransport::~SockTransport()
    delete [] m_send_sockets;
 }
 
-Transport::Node* SockTransport::createNode(core_id_t core_id)
+Transport::Node* SockTransport::createNode(tile_id_t tile_id)
 {
-   return new SockNode(core_id, this);
+   return new SockNode(tile_id, this);
 }
 
 void SockTransport::barrier()
 {
    // We implement a barrier using a ring of messages. We are using a
    // single socket for the entire process, however, and it is
-   // multiplexed between many cores. So updates occur asynchronously
+   // multiplexed between many tiles. So updates occur asynchronously
    // and possibly in other threads. That's what the semaphore takes
    // care of.
 
@@ -322,8 +322,8 @@ Transport::Node* SockTransport::getGlobalNode()
 
 // -- SockTransport::SockNode
 
-SockTransport::SockNode::SockNode(core_id_t core_id, SockTransport *trans)
-   : Node(core_id)
+SockTransport::SockNode::SockNode(tile_id_t tile_id, SockTransport *trans)
+   : Node(tile_id)
    , m_transport(trans)
 {
 }
@@ -339,19 +339,19 @@ void SockTransport::SockNode::globalSend(SInt32 dest_proc,
    send(dest_proc, GLOBAL_TAG, buffer, length);
 }
 
-void SockTransport::SockNode::send(core_id_t dest_core, 
+void SockTransport::SockNode::send(tile_id_t dest_tile, 
                                    const void *buffer, 
                                    UInt32 length)
 {
-   int dest_proc = Config::getSingleton()->getProcessNumForCore(dest_core);
-   send(dest_proc, dest_core, buffer, length);
+   int dest_proc = Config::getSingleton()->getProcessNumForTile(dest_tile);
+   send(dest_proc, dest_tile, buffer, length);
 }
 
 Byte* SockTransport::SockNode::recv()
 {
    LOG_PRINT("Entering recv");
 
-   core_id_t tag = getCoreId();
+   tile_id_t tag = getTileId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
    
    m_transport->m_buffer_list_sems[tag].wait();
@@ -385,7 +385,7 @@ Byte* SockTransport::SockNode::recv()
 
 bool SockTransport::SockNode::query()
 {
-   core_id_t tag = getCoreId();
+   tile_id_t tag = getTileId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
 
    buffer_list &list = m_transport->m_buffer_lists[tag];

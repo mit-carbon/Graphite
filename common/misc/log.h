@@ -40,28 +40,28 @@ class Log
       void getEnabledModules();
       bool initIsLoggingEnabled();
 
-      void discoverCore(core_id_t *core_id, bool *sim_thread);
-      void getFile(core_id_t core_id, bool sim_thread, FILE ** f, Lock ** l);
+      void discoverTile(tile_id_t *tile_id, bool *sim_thread);
+      void getFile(tile_id_t tile_id, bool sim_thread, FILE ** f, Lock ** l);
 
       ErrorState _state;
 
-      // when core id is known
-      FILE** _coreFiles;
+      // when tile id is known
+      FILE** _tileFiles;
       FILE** _simFiles;
-      Lock* _coreLocks;
+      Lock* _tileLocks;
       Lock *_simLocks;
 
-      // when core is id unknown but process # is
+      // when tile is id unknown but process # is
       FILE* _systemFile;
       Lock _systemLock;
 
-      // when both no. procs and core id are unknown
+      // when both no. procs and tile id are unknown
       // there is the possibility of race conditions and stuff being
       // overwritten between multiple processes for this file
       FILE *_defaultFile;
       Lock _defaultLock;
 
-      core_id_t _coreCount;
+      tile_id_t _tileCount;
       UInt64 _startTime;
       std::set<std::string> _disabledModules;
       std::set<std::string> _enabledModules;

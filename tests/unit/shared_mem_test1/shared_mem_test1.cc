@@ -16,7 +16,7 @@ int main (int argc, char *argv[])
    UInt32 address = 0x1000;
 
    // Enable Performance Models
-   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalTiles(); i++)
       Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
 
    // 1) Get a tile object
@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
    assert(read_val_0 == 110);
 
    // Disable Performance Models
-   for (UInt32 i = 0; i < Config::getSingleton()->getTotalCores(); i++)
+   for (UInt32 i = 0; i < Config::getSingleton()->getTotalTiles(); i++)
       Sim()->getTileManager()->getTileFromID(i)->disablePerformanceModels();
    
    printf("Finished (shared_mem_test1) - SUCCESS\n");

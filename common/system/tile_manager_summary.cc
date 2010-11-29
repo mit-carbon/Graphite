@@ -26,25 +26,25 @@ static void gatherSummaries(vector<string> &summaries)
    {
       LOG_PRINT("Collect from process %d", p);
 
-      const Config::TileList &cl = cfg->getTileListForProcess(p);
+      const Config::TileList &tl = cfg->getTileListForProcess(p);
 
       // signal process to send
       if (p != 0)
          global_node->globalSend(p, &p, sizeof(p));
 
       // receive summary
-      for (UInt32 c = 0; c < cl.size(); c++)
+      for (UInt32 t = 0; t < tl.size(); t++)
       {
-         LOG_PRINT("Collect from tile %d", cl[c]);
+         LOG_PRINT("Collect from tile %d", tl[t]);
 
          Byte *buf;
 
          buf = global_node->recv();
-         assert(*((tile_id_t*)buf) == cl[c]);
+         assert(*((tile_id_t*)buf) == tl[t]);
          delete [] buf;
 
          buf = global_node->recv();
-         summaries[cl[c]] = string((char*)buf);
+         summaries[tl[t]] = string((char*)buf);
          delete [] buf;
       }
    }
@@ -237,14 +237,14 @@ void TileManager::outputSummary(ostream &os)
    }
 
    // send each summary
-   const Config::TileList &cl = cfg->getTileListForProcess(cfg->getCurrentProcessNum());
+   const Config::TileList &tl = cfg->getTileListForProcess(cfg->getCurrentProcessNum());
 
-   for (UInt32 i = 0; i < cl.size(); i++)
+   for (UInt32 i = 0; i < tl.size(); i++)
    {
-      LOG_PRINT("Output summary tile %i", cl[i]);
+      LOG_PRINT("Output summary tile %i", tl[i]);
       stringstream ss;
       m_tiles[i]->outputSummary(ss);
-      global_node->globalSend(0, &cl[i], sizeof(cl[i]));
+      global_node->globalSend(0, &tl[i], sizeof(tl[i]));
       global_node->globalSend(0, ss.str().c_str(), ss.str().length()+1);
    }
 

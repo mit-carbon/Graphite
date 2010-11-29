@@ -60,7 +60,7 @@ protected:
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 
-   Core* getCore() { return m_tile; }
+   Core* getCore() { return m_core; }
    void frequencySummary(std::ostream &os);
 
    UInt64 m_cycle_count;
@@ -71,7 +71,7 @@ private:
 
    virtual void handleInstruction(Instruction *instruction) = 0;
 
-   Core* m_tile;
+   Core* m_core;
 
    volatile float m_frequency;
 

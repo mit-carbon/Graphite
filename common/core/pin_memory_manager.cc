@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include "pin_memory_manager.h"
 
-PinMemoryManager::PinMemoryManager(Core* core):
-   m_core(core)
+PinMemoryManager::PinMemoryManager(Tile* tile):
+   m_tile(tile)
 {
    // Allocate scratchpads (aligned at 4 * sizeof (void*) to correctly handle
    // memory access instructions that require addresses to be aligned such as
@@ -40,7 +40,7 @@ PinMemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr siz
          lock_signal = Core::NONE;
       }
        
-      m_core->accessMemory (lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
+      m_tile->getCurrentCore()->accessMemory (lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
 
    }
    return (carbon_reg_t) scratchpad;
@@ -53,7 +53,7 @@ PinMemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPtr 
 
    Core::lock_signal_t lock_signal = (has_lock_prefix) ? Core::UNLOCK : Core::NONE;
       
-   m_core->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
+   m_tile->getCurrentCore()->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
    
    return;
 }

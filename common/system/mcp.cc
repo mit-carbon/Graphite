@@ -107,7 +107,7 @@ void MCP::processPacket()
       Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)recv_pkt.data);
       break;
    case MCP_MESSAGE_THREAD_EXIT:
-      Sim()->getThreadManager()->masterOnThreadExit(*(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), recv_pkt.time);
+      Sim()->getThreadManager()->masterOnThreadExit(*(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), recv_pkt.time);
       break;
 
    case MCP_MESSAGE_THREAD_JOIN_REQUEST:
@@ -157,7 +157,7 @@ void MCP::run()
    LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPTileNum());
 
    int mcp_core_num = Config::getSingleton()->getMCPTileNum();
-   Sim()->getTileManager()->initializeThread(mcp_core_num);
+   Sim()->getTileManager()->initializeThread((core_id_t) {mcp_core_num, MAIN_CORE_TYPE});
    Sim()->getTileManager()->initializeCommId(mcp_core_num);
 
    while (!finished())

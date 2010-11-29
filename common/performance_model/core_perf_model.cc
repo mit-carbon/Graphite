@@ -91,7 +91,7 @@ CorePerfModel* CorePerfModel::createPepPerfModel(Core* core)
 // Public Interface
 CorePerfModel::CorePerfModel(Core *core, float frequency)
    : m_cycle_count(0)
-   , m_tile(core)
+   , m_core(core)
    , m_frequency(frequency)
    , m_average_frequency(0.0)
    , m_total_time(0)
@@ -220,6 +220,7 @@ void CorePerfModel::iterate()
       }
       catch (DynamicInstructionInfoNotAvailableException)
       {
+         LOG_PRINT("elau: threw DynamicInstructionInfoNotAvailable!");
          return;
       }
    }
@@ -230,8 +231,10 @@ void CorePerfModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
+   LOG_PRINT("elau: running pushDynamicInstructionInfo for tile(%d) type(%d)", getCore()->getCoreId().first, getCore()->getCoreId().second);
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
+   LOG_PRINT("elau: pushing dynamic info %d", i.type);
 }
 
 void CorePerfModel::popDynamicInstructionInfo()

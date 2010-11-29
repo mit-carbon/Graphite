@@ -50,7 +50,7 @@ int CarbonStartSim(int argc, char **argv)
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {
       // Main process
-      Sim()->getTileManager()->initializeThread(0);
+      Sim()->getTileManager()->initializeThread((core_id_t) {0, MAIN_CORE_TYPE});
    
       CarbonSpawnThreadSpawner();
 

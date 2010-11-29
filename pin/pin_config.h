@@ -28,7 +28,9 @@ class PinConfig
       { return m_stack_size_per_core; }
 
       tile_id_t getTileIDFromStackPtr(IntPtr stack_ptr);
-      SInt32 getStackAttributesFromTileID (tile_id_t tile_id, StackAttributes& stack_attr);
+      core_id_t getCoreIDFromStackPtr(IntPtr stack_ptr);
+      //SInt32 getStackAttributesFromTileID (tile_id_t tile_id, StackAttributes& stack_attr);
+      SInt32 getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr);
 
    private:
 

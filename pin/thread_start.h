@@ -8,7 +8,7 @@
 
 int spawnThreadSpawner(CONTEXT *ctxt);
 VOID copyStaticData(IMG& img);
-VOID copyInitialStackData(IntPtr& reg_esp, tile_id_t core_id);
+VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id);
 VOID copySpawnedThreadStackData(IntPtr reg_esp);
 VOID allocateStackSpace();
 

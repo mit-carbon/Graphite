@@ -171,7 +171,9 @@ void showInstructionInfo(INS ins)
 {
    if (Sim()->getTileManager()->getCurrentTile()->getId() != 0)
       return;
+
    printf("\t");
+
    if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins))
       printf("* ");
    else
@@ -185,7 +187,7 @@ void showInstructionInfo(INS ins)
 VOID instructionCallback (INS ins, void *v)
 {
    // Debugging Functions
-   // showInstructionInfo(ins);
+   //showInstructionInfo(ins);
    if (Log::getSingleton()->isLoggingEnabled())
    {
       INS_InsertCall(ins, IPOINT_BEFORE,
@@ -194,6 +196,7 @@ VOID instructionCallback (INS ins, void *v)
             IARG_CONTEXT,
             IARG_END);
    }
+   LOG_PRINT("elau: 0x%x: %x - %s ", INS_Address(ins), INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
 
    // Tile Performance Modeling
    if (Config::getSingleton()->getEnablePerformanceModeling())
@@ -261,12 +264,13 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
    if (! done_app_initialization)
    {
+      // The app is not initialized, start the main thread on the main core on tile 0.
       UInt32 curr_process_num = Sim()->getConfig()->getCurrentProcessNum();
 
       if (Sim()->getConfig()->getSimulationMode() == Config::LITE)
       {
          LOG_ASSERT_ERROR(curr_process_num == 0, "Lite mode can only be run with 1 process");
-         Sim()->getTileManager()->initializeThread(0);
+         Sim()->getTileManager()->initializeThread((core_id_t) {0, MAIN_CORE_TYPE});
       }
       else // Sim()->getConfig()->getSimulationMode() == Config::FULL
       { 
@@ -275,7 +279,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          
          if (curr_process_num == 0)
          {
-            Sim()->getTileManager()->initializeThread(0);
+            Sim()->getTileManager()->initializeThread((core_id_t) {0, MAIN_CORE_TYPE});
 
             ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
             // 1) Copying over Static Data
@@ -290,13 +294,13 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
             // 2) Copying over initial stack data
             LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
-            copyInitialStackData(reg_esp, 0);
+            copyInitialStackData(reg_esp, (core_id_t) {0, MAIN_CORE_TYPE});
             LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
          }
          else
          {
             tile_id_t tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
-            Sim()->getTileManager()->initializeThread(tile_id);
+            Sim()->getTileManager()->initializeThread((core_id_t) {tile_id, MAIN_CORE_TYPE});
             
             Tile *tile = Sim()->getTileManager()->getCurrentTile();
 
@@ -304,7 +308,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
-            copyInitialStackData(reg_esp, tile_id);
+            copyInitialStackData(reg_esp, (core_id_t) {tile_id, MAIN_CORE_TYPE});
             LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
          }
          // Set the current ESP accordingly
@@ -314,7 +318,6 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       // All the real initialization is done in 
       // replacement_start at the moment
       done_app_initialization = true;
-      LOG_PRINT("elau: app init is done!");
    }
    else
    {
@@ -327,21 +330,22 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          Sim()->getThreadManager()->getThreadToSpawn(&req);
          Sim()->getThreadManager()->dequeueThreadSpawnReq(&req);
 
-         LOG_ASSERT_ERROR(req.tile_id < SInt32(Config::getSingleton()->getApplicationTiles()),
-               "req.tile_id(%i), num application cores(%u)", req.tile_id, Config::getSingleton()->getApplicationTiles());
+         LOG_ASSERT_ERROR(req.destination.first < SInt32(Config::getSingleton()->getApplicationTiles()),
+               "req.tile_id(%i), num application cores(%u)", req.destination.first, Config::getSingleton()->getApplicationTiles());
          Sim()->getThreadManager()->onThreadStart(&req);
       }
       else // Sim()->getConfig()->getSimulationMode() == Config::FULL
       {
          ADDRINT reg_esp = PIN_GetContextReg(ctxt, REG_STACK_PTR);
          tile_id_t tile_id = PinConfig::getSingleton()->getTileIDFromStackPtr(reg_esp);
+         LOG_PRINT("Got tile %d from stack ptr 0x%x", tile_id, reg_esp);
 
          LOG_ASSERT_ERROR(tile_id != -1, "All application threads and thread spawner are cores now");
 
          if (tile_id == Sim()->getConfig()->getCurrentThreadSpawnerTileNum())
          {
             // 'Thread Spawner' thread
-            Sim()->getTileManager()->initializeThread(tile_id);
+            Sim()->getTileManager()->initializeThread((core_id_t) {tile_id, MAIN_CORE_TYPE});
          }
          else
          {
@@ -351,7 +355,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             LOG_ASSERT_ERROR (req != NULL, "ThreadSpawnRequest is NULL !!");
 
             // This is an application thread
-            LOG_ASSERT_ERROR(tile_id == req->tile_id, "Got 2 different tile_ids: req->tile_id = %i, tile_id = %i", req->tile_id, tile_id);
+            LOG_ASSERT_ERROR(tile_id == req->destination.first, "Got 2 different tile_ids: req->destination = {%i, %i}, tile_id = %i", req->destination.first, req->destination.second, tile_id);
 
             Sim()->getThreadManager()->onThreadStart(req);
          }
@@ -381,12 +385,10 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          ReleaseLock (&clone_memory_update_lock);
       }
    }
-   LOG_PRINT("elau: about to leave threadStartCallBack");
 }
 
 VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-   LOG_PRINT("elau:hello!");
    Sim()->getThreadManager()->onThreadExit();
 }
 

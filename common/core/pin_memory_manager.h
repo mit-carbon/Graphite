@@ -1,7 +1,7 @@
 #ifndef __PIN_MEMORY_MANAGER_H__
 #define __PIN_MEMORY_MANAGER_H__
 
-#include "core.h"
+#include "tile.h"
 
 class PinMemoryManager
 {
@@ -15,7 +15,8 @@ class PinMemoryManager
       };
 
    private:
-      Core *m_core;
+      //Core *m_core;
+      Tile *m_tile;
 
       // scratchpads are used to implement memory redirection for
       // all memory accesses that do not involve the stack, plus
@@ -27,7 +28,7 @@ class PinMemoryManager
       carbon_reg_t m_saved_esp;
 
    public:
-      PinMemoryManager(Core* core);
+      PinMemoryManager(Tile* tile);
       ~PinMemoryManager();
 
       // Functions for redirecting general memory accesses

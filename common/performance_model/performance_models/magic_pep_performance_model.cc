@@ -29,6 +29,7 @@ void MagicPepPerformanceModel::handleInstruction(Instruction *instruction)
    // compute cost
    UInt64 cost = 0;
 
+   LOG_PRINT("elau: Handling instruction at addr(0x%x) with type(%d)", instruction->getAddress(), instruction->getType());
    const OperandList &ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)
    {

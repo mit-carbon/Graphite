@@ -69,7 +69,7 @@ VOID copyStaticData(IMG& img)
    }
 }
 
-VOID copyInitialStackData(IntPtr& reg_esp, tile_id_t core_id)
+VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
 {
    // We should not get core_id for this stack_ptr
    Core* core = Sim()->getTileManager()->getCurrentCore();
@@ -140,7 +140,7 @@ VOID copyInitialStackData(IntPtr& reg_esp, tile_id_t core_id)
    
 
    PinConfig::StackAttributes stack_attr;
-   PinConfig::getSingleton()->getStackAttributesFromTileID (core_id, stack_attr);
+   PinConfig::getSingleton()->getStackAttributesFromCoreID (core_id, stack_attr);
    stack_ptr_top = stack_attr.lower_limit + stack_attr.size;
    stack_ptr_base = stack_ptr_top - initial_stack_size;
    stack_ptr_base = (stack_ptr_base >> (sizeof(IntPtr))) << (sizeof(IntPtr));
@@ -210,10 +210,10 @@ VOID copyInitialStackData(IntPtr& reg_esp, tile_id_t core_id)
 
 VOID copySpawnedThreadStackData(IntPtr reg_esp)
 {
-   tile_id_t core_id = PinConfig::getSingleton()->getTileIDFromStackPtr(reg_esp);
+   core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
 
    PinConfig::StackAttributes stack_attr;
-   PinConfig::getSingleton()->getStackAttributesFromTileID(core_id, stack_attr);
+   PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
    IntPtr stack_upper_limit = stack_attr.lower_limit + stack_attr.size;
    
@@ -234,38 +234,54 @@ VOID allocateStackSpace()
    __attribute(__unused__) UInt32 num_cores = Sim()->getConfig()->getNumLocalTiles();
    __attribute(__unused__) IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
 
+
    LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x", stack_size_per_core);
    LOG_PRINT("allocateStackSpace: num_local_cores = %i", num_cores);
    LOG_PRINT("allocateStackSpace: stack_base = 0x%x", stack_base);
 
    // TODO: Make sure that this is a multiple of the page size 
    
-   // mmap() the total amount of memory needed for the stacks
-   LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
-         "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_cores);
+
+   if (Sim()->getConfig()->getEnablePepCores())
+   {
+      __attribute(__unused__) UInt32 num_pep_cores = Sim()->getConfig()->getNumLocalTiles();
+      LOG_PRINT("allocateStackSpace: num_pep_cores = %i", num_pep_cores);
+
+      // mmap() the total amount of memory needed for the stacks
+      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * (num_pep_cores + num_cores),  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
+            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * (num_pep_cores + num_cores));
+   }
+   else
+   {
+      // mmap() the total amount of memory needed for the stacks
+      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
+            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_cores);
+   }
 }
 
 VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 {
    LOG_PRINT ("In SimPthreadAttrInitOtherAttr");
 
-   tile_id_t tile_id;
+   //tile_id_t tile_id;
+   core_id_t core_id;
    
    ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
 
    if (req == NULL)
    {
       // This is the thread spawner
-      tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
+      core_id = (core_id_t) {Sim()->getConfig()->getCurrentThreadSpawnerTileNum(), MAIN_CORE_TYPE};
    }
    else
    {
       // This is an application thread
-      tile_id = req->tile_id;
+      core_id = (core_id_t) {req->destination.first, req->destination.second};
+      //LOG_ASSERT_ERROR(req->destination.second == MAIN_CORE_TYPE, "PEP not supported");
    }
 
    PinConfig::StackAttributes stack_attr;
-   PinConfig::getSingleton()->getStackAttributesFromTileID(tile_id, stack_attr);
+   PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
 
    pthread_attr_setstack(attr, (void*) stack_attr.lower_limit, stack_attr.size);
 

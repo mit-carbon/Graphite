@@ -43,6 +43,11 @@ void CarbonJoinThread(carbon_thread_t tid)
    Sim()->getThreadManager()->joinThread(tid);
 }
 
+void CarbonJoinHelperThread(carbon_thread_t tid)
+{
+   Sim()->getThreadManager()->joinHelperThread(tid);
+}
+
 // Support functions provided by the simulator
 void CarbonThreadStart(ThreadSpawnRequest *req)
 {
@@ -100,7 +105,8 @@ int CarbonSpawnThreadSpawner()
 // This function will spawn threads provided by the sim
 void *CarbonThreadSpawner(void *)
 {
-   ThreadSpawnRequest req = {-1, NULL, NULL, -1, Sim()->getConfig()->getCurrentThreadSpawnerTileNum() };
+   //ThreadSpawnRequest req = {-1, NULL, NULL, -1, Sim()->getConfig()->getCurrentThreadSpawnerTileNum() };
+   ThreadSpawnRequest req = {-1, NULL, NULL, INVALID_CORE_ID, (core_id_t) {Sim()->getConfig()->getCurrentThreadSpawnerTileNum(), MAIN_CORE_TYPE}};
 
    CarbonThreadStart (&req);
 

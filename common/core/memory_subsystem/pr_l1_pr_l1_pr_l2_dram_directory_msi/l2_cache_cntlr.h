@@ -27,7 +27,12 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          // Data Members
          MemoryManager* m_memory_manager;
          Cache* m_l2_cache;
+
+         // The first pointer points to the controller in use.
          L1CacheCntlr* m_l1_cache_cntlr;
+         L1CacheCntlr* m_l1_main_cache_cntlr;
+         L1CacheCntlr* m_l1_pep_cache_cntlr;
+
          AddressHomeLookup* m_dram_directory_home_lookup;
          std::map<IntPtr, MemComponent::component_t> m_shmem_req_source_map;
          
@@ -89,6 +94,8 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          L2CacheCntlr(tile_id_t tile_id,
                MemoryManager* memory_manager,
                L1CacheCntlr* l1_cache_cntlr,
+               L1CacheCntlr* l1_main_cache_cntlr,
+               L1CacheCntlr* l1_pep_cache_cntlr,
                AddressHomeLookup* dram_directory_home_lookup,
                Semaphore* user_thread_sem,
                Semaphore* network_thread_sem,
@@ -100,6 +107,9 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          ~L2CacheCntlr();
 
          Cache* getL2Cache() { return m_l2_cache; }
+         
+         void setL1CacheCntlr(L1CacheCntlr* l1_cache_cntlr);
+         void clearL1CacheCntlr() {m_l1_cache_cntlr = NULL;}
 
          // Handle Request from L1 Cache - This is done for better simulator performance
          bool processShmemReqFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type, IntPtr address, bool modeled);

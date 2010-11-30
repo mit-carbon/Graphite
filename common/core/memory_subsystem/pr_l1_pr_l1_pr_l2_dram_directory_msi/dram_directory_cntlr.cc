@@ -288,7 +288,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
       case DirectoryState::UNCACHED:
 
          {
-            // Modifiy the directory entry contents
+            // Modify the directory entry contents
             bool add_result = directory_entry->addSharer(requester);
             assert(add_result == true);
             directory_entry->setOwner(requester);

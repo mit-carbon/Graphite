@@ -9,6 +9,8 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 L2CacheCntlr::L2CacheCntlr(tile_id_t tile_id,
       MemoryManager* memory_manager,
       L1CacheCntlr* l1_cache_cntlr,
+      L1CacheCntlr* l1_main_cache_cntlr,
+      L1CacheCntlr* l1_pep_cache_cntlr,
       AddressHomeLookup* dram_directory_home_lookup,
       Semaphore* user_thread_sem,
       Semaphore* network_thread_sem,
@@ -18,6 +20,8 @@ L2CacheCntlr::L2CacheCntlr(tile_id_t tile_id,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_l1_cache_cntlr(l1_cache_cntlr),
+   m_l1_main_cache_cntlr(l1_main_cache_cntlr),
+   m_l1_pep_cache_cntlr(l1_pep_cache_cntlr),
    m_dram_directory_home_lookup(dram_directory_home_lookup),
    m_tile_id(tile_id),
    m_cache_block_size(cache_block_size),
@@ -126,14 +130,26 @@ void
 L2CacheCntlr::setCacheStateInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::cstate_t cstate)
 {
    if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
-      m_l1_cache_cntlr->setCacheState(mem_component, address, cstate);
+   {
+      if (mem_component == MemComponent::L1_ICACHE || mem_component == MemComponent::L1_DCACHE)
+         m_l1_main_cache_cntlr->setCacheState(mem_component, address, cstate);
+      else if (mem_component == MemComponent::L1_PEP_ICACHE || mem_component == MemComponent::L1_PEP_DCACHE)
+         m_l1_pep_cache_cntlr->setCacheState(mem_component, address, cstate);
+      else
+         LOG_ASSERT_ERROR(false, "Wrong mem component to set for L1");
+   }
 }
 
 void
 L2CacheCntlr::invalidateCacheBlockInL1(MemComponent::component_t mem_component, IntPtr address)
 {
+   // When we invalidate L1, we should invalidate both, since invalidates are only from
+   // EX requests.  Any EX request should invalidate all other L1 caches.
    if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
-      m_l1_cache_cntlr->invalidateCacheBlock(mem_component, address);
+   {
+      m_l1_main_cache_cntlr->invalidateCacheBlock(mem_component, address);
+      m_l1_pep_cache_cntlr->invalidateCacheBlock(mem_component, address);
+   }
 }
 
 void
@@ -145,7 +161,10 @@ L2CacheCntlr::insertCacheBlockInL1(MemComponent::component_t mem_component,
    IntPtr evict_address;
 
    // Insert the Cache Block in L1 Cache
-   m_l1_cache_cntlr->insertCacheBlock(mem_component, address, cstate, data_buf, &eviction, &evict_address);
+   if (mem_component == MemComponent::L1_ICACHE || mem_component == MemComponent::L1_DCACHE)
+      m_l1_main_cache_cntlr->insertCacheBlock(mem_component, address, cstate, data_buf, &eviction, &evict_address);
+   else if (mem_component == MemComponent::L1_PEP_ICACHE || mem_component == MemComponent::L1_PEP_DCACHE)
+      m_l1_pep_cache_cntlr->insertCacheBlock(mem_component, address, cstate, data_buf, &eviction, &evict_address);
 
    // Set the Present bit in L2 Cache corresponding to the inserted block
    l2_cache_block_info->setCachedLoc(mem_component);
@@ -254,7 +273,6 @@ L2CacheCntlr::handleMsgFromDramDirectory(
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
    IntPtr address = shmem_msg->getAddress();
 
-LOG_PRINT("elau: handleMsgFromDramDirectory in l2_cache_cntlr with shmem_msg_type %d.", shmem_msg_type);
    // Acquire Locks
    MemComponent::component_t caching_mem_component = acquireL1CacheLock(shmem_msg_type, address);
    acquireLock();
@@ -283,7 +301,12 @@ LOG_PRINT("elau: handleMsgFromDramDirectory in l2_cache_cntlr with shmem_msg_typ
    // Release Locks
    releaseLock();
    if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
-      m_l1_cache_cntlr->releaseLock(caching_mem_component);
+   { 
+      if (caching_mem_component == MemComponent::L1_ICACHE || caching_mem_component == MemComponent::L1_DCACHE)
+         m_l1_main_cache_cntlr->releaseLock(caching_mem_component);
+      else if (caching_mem_component == MemComponent::L1_PEP_ICACHE || caching_mem_component == MemComponent::L1_PEP_DCACHE)
+         m_l1_pep_cache_cntlr->releaseLock(caching_mem_component);
+   }
 
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP))
    {
@@ -308,7 +331,7 @@ L2CacheCntlr::processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    // Insert Cache Block in L1 Cache
    // Support for non-blocking caches can be added in this way
    MemComponent::component_t mem_component = m_shmem_req_source_map[address];
-   assert (mem_component == MemComponent::L1_DCACHE);
+   assert ((mem_component == MemComponent::MemComponent::L1_DCACHE) || (mem_component == MemComponent::MemComponent::L1_PEP_DCACHE));
    insertCacheBlockInL1(mem_component, address, l2_cache_block_info, CacheState::MODIFIED, data_buf);
    // Set the Counters in the Shmem Perf model accordingly
    // Set the counter value in the USER thread to that in the SIM thread
@@ -484,8 +507,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
    {
       case ShmemMsg::EX_REP:
       case ShmemMsg::SH_REP:
-         
-         m_l1_cache_cntlr->acquireLock(m_shmem_req_source_map[address]);
+            m_l1_cache_cntlr->acquireLock(m_shmem_req_source_map[address]);
          return m_shmem_req_source_map[address];
 
       case ShmemMsg::INV_REQ:
@@ -500,10 +522,17 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
             
             releaseLock();
 
-            assert(caching_mem_component != MemComponent::L1_ICACHE);
+            // Can't writeback an instruction.
+            assert((caching_mem_component != MemComponent::MemComponent::L1_ICACHE) || (caching_mem_component != MemComponent::MemComponent::L1_PEP_ICACHE));
+
             if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
             {
-               m_l1_cache_cntlr->acquireLock(caching_mem_component);
+               if (caching_mem_component == MemComponent::L1_DCACHE)
+                  m_l1_main_cache_cntlr->acquireLock(caching_mem_component);
+               else if (caching_mem_component == MemComponent::L1_PEP_DCACHE)
+                  m_l1_pep_cache_cntlr->acquireLock(caching_mem_component);
+               else
+                  LOG_ASSERT_ERROR(false, "Invalid mem component to acquire lock.");
             }
             return caching_mem_component;
          }
@@ -537,6 +566,12 @@ void
 L2CacheCntlr::waitForUserThread()
 {
    m_network_thread_sem->wait();
+}
+
+void
+L2CacheCntlr::setL1CacheCntlr(L1CacheCntlr* l1_cache_cntlr)
+{
+   m_l1_cache_cntlr = l1_cache_cntlr;
 }
 
 }

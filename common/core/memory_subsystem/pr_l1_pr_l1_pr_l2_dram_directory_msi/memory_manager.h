@@ -18,7 +18,8 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
    class MemoryManager : public MemoryManagerBase
    {
       private:
-         L1CacheCntlr* m_l1_cache_cntlr;
+         L1CacheCntlr* m_l1_main_cache_cntlr;
+         L1CacheCntlr* m_l1_pep_cache_cntlr;
          L2CacheCntlr* m_l2_cache_cntlr;
          DramDirectoryCntlr* m_dram_directory_cntlr;
          DramCntlr* m_dram_cntlr;
@@ -33,8 +34,10 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          bool m_enabled;
 
          // Performance Models
-         CachePerfModel* m_l1_icache_perf_model;
-         CachePerfModel* m_l1_dcache_perf_model;
+         CachePerfModel* m_l1_main_icache_perf_model;
+         CachePerfModel* m_l1_main_dcache_perf_model;
+         CachePerfModel* m_l1_pep_icache_perf_model;
+         CachePerfModel* m_l1_pep_dcache_perf_model;
          CachePerfModel* m_l2_cache_perf_model;
 
       public:
@@ -43,8 +46,10 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
 
-         Cache* getL1ICache() { return m_l1_cache_cntlr->getL1ICache(); }
-         Cache* getL1DCache() { return m_l1_cache_cntlr->getL1DCache(); }
+         Cache* getMainL1ICache() { return m_l1_main_cache_cntlr->getL1ICache(); }
+         Cache* getMainL1DCache() { return m_l1_main_cache_cntlr->getL1DCache(); }
+         Cache* getPepL1ICache() { return m_l1_pep_cache_cntlr->getL1ICache(); }
+         Cache* getPepL1DCache() { return m_l1_pep_cache_cntlr->getL1DCache(); }
          Cache* getL2Cache() { return m_l2_cache_cntlr->getL2Cache(); }
          DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cntlr->getDramDirectoryCache(); }
          DramCntlr* getDramCntlr() { return m_dram_cntlr; }
@@ -58,13 +63,14 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
                Byte* data_buf, UInt32 data_length,
                bool modeled);
 
-         bool PepCoreInitiateMemoryAccess(
+         virtual bool pepCoreInitiateMemoryAccess(
                MemComponent::component_t mem_component,
                Core::lock_signal_t lock_signal,
                Core::mem_op_t mem_op_type,
                IntPtr address, UInt32 offset,
                Byte* data_buf, UInt32 data_length,
-               bool modeled) { LOG_PRINT_ERROR("No PEP cores support yet"); return false;}
+               bool modeled);
+
          void handleMsgFromNetwork(NetPacket& packet);
 
          void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, tile_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);

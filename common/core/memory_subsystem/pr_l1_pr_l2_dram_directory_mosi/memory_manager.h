@@ -70,13 +70,13 @@ namespace PrL1PrL2DramDirectoryMOSI
                Byte* data_buf, UInt32 data_length,
                bool modeled);
 
-         bool PepCoreInitiateMemoryAccess(
+         virtual bool pepCoreInitiateMemoryAccess(
                MemComponent::component_t mem_component,
                Core::lock_signal_t lock_signal,
                Core::mem_op_t mem_op_type,
                IntPtr address, UInt32 offset,
                Byte* data_buf, UInt32 data_length,
-               bool modeled) { LOG_PRINT_ERROR("No PEP cores in this model"); return false;}
+               bool modeled) { LOG_ASSERT_ERROR(false, "No PEP cores in this cache model!"); return false;}
 
          void handleMsgFromNetwork(NetPacket& packet);
 

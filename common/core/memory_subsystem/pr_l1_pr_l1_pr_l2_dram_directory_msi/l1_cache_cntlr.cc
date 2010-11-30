@@ -50,7 +50,7 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr)
 }
 
 bool
-L1CacheCntlr::processMemOpFromTile(
+L1CacheCntlr::processMemOpFromCore(
       MemComponent::component_t mem_component,
       Core::lock_signal_t lock_signal,
       Core::mem_op_t mem_op_type, 
@@ -58,7 +58,7 @@ L1CacheCntlr::processMemOpFromTile(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
+   LOG_PRINT("processMemOpFromMainCore(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
          lock_signal, mem_op_type, ca_address);
 
    bool l1_cache_hit = true;
@@ -101,6 +101,9 @@ L1CacheCntlr::processMemOpFromTile(
       invalidateCacheBlock(mem_component, ca_address);
 
       m_l2_cache_cntlr->acquireLock();
+
+      // Set the l1_cache_cntlr to the main L1 cache so the L2 cntlr knows it needs to update the main L1.
+      m_l2_cache_cntlr->setL1CacheCntlr(this);
  
       ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
 
@@ -118,6 +121,7 @@ L1CacheCntlr::processMemOpFromTile(
 
          if (lock_signal != Core::LOCK)
             releaseLock(mem_component);
+
          return false;
       }
 
@@ -230,6 +234,7 @@ L1CacheCntlr::getCacheState(MemComponent::component_t mem_component, IntPtr addr
 void
 L1CacheCntlr::setCacheState(MemComponent::component_t mem_component, IntPtr address, CacheState::cstate_t cstate)
 {
+   LOG_PRINT("elau: about to set cache state");
    Cache* l1_cache = getL1Cache(mem_component);
 
    PrL1CacheBlockInfo* l1_cache_block_info = (PrL1CacheBlockInfo*) l1_cache->peekSingleLine(address);
@@ -270,9 +275,11 @@ L1CacheCntlr::getL1Cache(MemComponent::component_t mem_component)
    switch(mem_component)
    {
       case MemComponent::L1_ICACHE:
+      case MemComponent::L1_PEP_ICACHE:
          return m_l1_icache;
 
       case MemComponent::L1_DCACHE:
+      case MemComponent::L1_PEP_DCACHE:
          return m_l1_dcache;
 
       default:
@@ -287,9 +294,11 @@ L1CacheCntlr::acquireLock(MemComponent::component_t mem_component)
    switch(mem_component)
    {
       case MemComponent::L1_ICACHE:
+      case MemComponent::L1_PEP_ICACHE:
          m_l1_icache_lock.acquire();
          break;
       case MemComponent::L1_DCACHE:
+      case MemComponent::L1_PEP_DCACHE:
          m_l1_dcache_lock.acquire();
          break;
       default:
@@ -305,9 +314,11 @@ L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
    switch(mem_component)
    {
       case MemComponent::L1_ICACHE:
+      case MemComponent::L1_PEP_ICACHE:
          m_l1_icache_lock.release();
          break;
       case MemComponent::L1_DCACHE:
+      case MemComponent::L1_PEP_DCACHE:
          m_l1_dcache_lock.release();
          break;
       default:

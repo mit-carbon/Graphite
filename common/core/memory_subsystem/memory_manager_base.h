@@ -52,7 +52,7 @@ class MemoryManagerBase
             Byte* data_buf, UInt32 data_length,
             bool modeled) = 0;
 
-      virtual bool PepCoreInitiateMemoryAccess(
+      virtual bool pepCoreInitiateMemoryAccess(
             MemComponent::component_t mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type,

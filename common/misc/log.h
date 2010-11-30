@@ -40,16 +40,18 @@ class Log
       void getEnabledModules();
       bool initIsLoggingEnabled();
 
-      void discoverTile(tile_id_t *tile_id, bool *sim_thread);
-      void getFile(tile_id_t tile_id, bool sim_thread, FILE ** f, Lock ** l);
+      void discoverTile(tile_id_t *tile_id, bool *sim_thread, bool *helper_thread);
+      void getFile(tile_id_t tile_id, bool sim_thread, bool helper_thread, FILE ** f, Lock ** l);
 
       ErrorState _state;
 
       // when tile id is known
       FILE** _tileFiles;
       FILE** _simFiles;
+      FILE** _helperFiles;
       Lock* _tileLocks;
       Lock *_simLocks;
+      Lock *_helperLocks;
 
       // when tile is id unknown but process # is
       FILE* _systemFile;

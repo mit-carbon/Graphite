@@ -139,7 +139,7 @@ MemoryManager::MemoryManager(Tile* tile,
 
    m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_dram_controllers, getCacheBlockSize());
 
-   m_l1_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
+   m_l1_main_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
          this,
          m_user_thread_sem,
          m_network_thread_sem,
@@ -149,10 +149,23 @@ MemoryManager::MemoryManager(Tile* tile,
          l1_dcache_size, l1_dcache_associativity,
          l1_dcache_replacement_policy,
          getShmemPerfModel());
-   
+
+   m_l1_pep_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
+         this,
+         m_user_thread_sem,
+         m_network_thread_sem,
+         getCacheBlockSize(),
+         l1_icache_size, l1_icache_associativity,
+         l1_icache_replacement_policy,
+         l1_dcache_size, l1_dcache_associativity,
+         l1_dcache_replacement_policy,
+         getShmemPerfModel());
+
    m_l2_cache_cntlr = new L2CacheCntlr(getTile()->getId(),
          this,
-         m_l1_cache_cntlr,
+         m_l1_main_cache_cntlr,
+         m_l1_main_cache_cntlr,
+         m_l1_pep_cache_cntlr,
          m_dram_directory_home_lookup,
          m_user_thread_sem,
          m_network_thread_sem,
@@ -161,14 +174,22 @@ MemoryManager::MemoryManager(Tile* tile,
          l2_cache_replacement_policy,
          getShmemPerfModel());
 
-   m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
+   m_l1_main_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
+   m_l1_pep_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
    // Create Cache Performance Models
    volatile float tile_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getId());
-   m_l1_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
+
+   m_l1_main_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
          l1_icache_data_access_time, l1_icache_tags_access_time, tile_frequency);
-   m_l1_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,
+   m_l1_main_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,
          l1_dcache_data_access_time, l1_dcache_tags_access_time, tile_frequency);
+
+   m_l1_pep_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
+         l1_icache_data_access_time, l1_icache_tags_access_time, tile_frequency);
+   m_l1_pep_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,
+         l1_dcache_data_access_time, l1_dcache_tags_access_time, tile_frequency);
+
    m_l2_cache_perf_model = CachePerfModel::create(l2_cache_perf_model_type,
          l2_cache_data_access_time, l2_cache_tags_access_time, tile_frequency);
 
@@ -183,14 +204,17 @@ MemoryManager::~MemoryManager()
    getNetwork()->unregisterCallback(SHARED_MEM_2);
 
    // Delete the Models
-   delete m_l1_icache_perf_model;
-   delete m_l1_dcache_perf_model;
+   delete m_l1_main_icache_perf_model;
+   delete m_l1_main_dcache_perf_model;
+   delete m_l1_pep_icache_perf_model;
+   delete m_l1_pep_dcache_perf_model;
    delete m_l2_cache_perf_model;
 
    delete m_user_thread_sem;
    delete m_network_thread_sem;
    delete m_dram_directory_home_lookup;
-   delete m_l1_cache_cntlr;
+   delete m_l1_main_cache_cntlr;
+   delete m_l1_pep_cache_cntlr;
    delete m_l2_cache_cntlr;
    if (m_dram_cntlr_present)
    {
@@ -208,7 +232,26 @@ MemoryManager::coreInitiateMemoryAccess(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   return m_l1_cache_cntlr->processMemOpFromTile(mem_component, 
+   LOG_PRINT("elau: initiating main core memory access");
+   return m_l1_main_cache_cntlr->processMemOpFromCore(mem_component, 
+         lock_signal, 
+         mem_op_type, 
+         address, offset, 
+         data_buf, data_length,
+         modeled);
+}
+
+bool
+MemoryManager::pepCoreInitiateMemoryAccess(
+      MemComponent::component_t mem_component,
+      Core::lock_signal_t lock_signal,
+      Core::mem_op_t mem_op_type,
+      IntPtr address, UInt32 offset,
+      Byte* data_buf, UInt32 data_length,
+      bool modeled)
+{
+   LOG_PRINT("elau: initiating Pep core memory access");
+   return m_l1_pep_cache_cntlr->processMemOpFromCore(mem_component, 
          lock_signal, 
          mem_op_type, 
          address, offset, 
@@ -219,7 +262,6 @@ MemoryManager::coreInitiateMemoryAccess(
 void
 MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
-   LOG_PRINT("elau: in handleMsgFromNetwork for msi");
    tile_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
@@ -229,8 +271,6 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::component_t receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::component_t sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   LOG_PRINT("elau: got the mem_components"); 
-   
    if (m_enabled)
    {
       LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", 
@@ -244,6 +284,8 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
          {
             case MemComponent::L1_ICACHE:
             case MemComponent::L1_DCACHE:
+            case MemComponent::L1_PEP_ICACHE:
+            case MemComponent::L1_PEP_DCACHE:
    LOG_PRINT("elau: L1->L2!"); 
                assert(sender == getTile()->getId());
                m_l2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
@@ -348,11 +390,18 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
    switch (mem_component)
    {
       case MemComponent::L1_ICACHE:
-         getShmemPerfModel()->incrCycleCount(m_l1_icache_perf_model->getLatency(access_type));
+         getShmemPerfModel()->incrCycleCount(m_l1_main_icache_perf_model->getLatency(access_type));
+
+      case MemComponent::L1_PEP_ICACHE:
+         getShmemPerfModel()->incrCycleCount(m_l1_pep_icache_perf_model->getLatency(access_type));
          break;
 
       case MemComponent::L1_DCACHE:
-         getShmemPerfModel()->incrCycleCount(m_l1_dcache_perf_model->getLatency(access_type));
+         getShmemPerfModel()->incrCycleCount(m_l1_main_dcache_perf_model->getLatency(access_type));
+         break;
+
+      case MemComponent::L1_PEP_DCACHE:
+         getShmemPerfModel()->incrCycleCount(m_l1_pep_dcache_perf_model->getLatency(access_type));
          break;
 
       case MemComponent::L2_CACHE:
@@ -371,8 +420,10 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
 void
 MemoryManager::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
-   m_l1_icache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
-   m_l1_dcache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
+   m_l1_main_icache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
+   m_l1_main_dcache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
+   m_l1_pep_icache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
+   m_l1_pep_dcache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
    m_l2_cache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
    m_dram_directory_cntlr->getDramDirectoryCache()->updateInternalVariablesOnFrequencyChange(frequency);
 }
@@ -382,12 +433,18 @@ MemoryManager::enableModels()
 {
    m_enabled = true;
 
-   m_l1_cache_cntlr->getL1ICache()->enable();
-   m_l1_icache_perf_model->enable();
+   m_l1_main_cache_cntlr->getL1ICache()->enable();
+   m_l1_main_icache_perf_model->enable();
    
-   m_l1_cache_cntlr->getL1DCache()->enable();
-   m_l1_dcache_perf_model->enable();
+   m_l1_main_cache_cntlr->getL1DCache()->enable();
+   m_l1_main_dcache_perf_model->enable();
    
+   m_l1_pep_cache_cntlr->getL1ICache()->enable();
+   m_l1_pep_icache_perf_model->enable();
+   
+   m_l1_pep_cache_cntlr->getL1DCache()->enable();
+   m_l1_pep_dcache_perf_model->enable();
+
    m_l2_cache_cntlr->getL2Cache()->enable();
    m_l2_cache_perf_model->enable();
 
@@ -400,11 +457,17 @@ MemoryManager::disableModels()
 {
    m_enabled = false;
 
-   m_l1_cache_cntlr->getL1ICache()->disable();
-   m_l1_icache_perf_model->disable();
+   m_l1_main_cache_cntlr->getL1ICache()->disable();
+   m_l1_main_icache_perf_model->disable();
 
-   m_l1_cache_cntlr->getL1DCache()->disable();
-   m_l1_dcache_perf_model->disable();
+   m_l1_main_cache_cntlr->getL1DCache()->disable();
+   m_l1_main_dcache_perf_model->disable();
+
+   m_l1_pep_cache_cntlr->getL1ICache()->disable();
+   m_l1_pep_icache_perf_model->disable();
+
+   m_l1_pep_cache_cntlr->getL1DCache()->disable();
+   m_l1_pep_dcache_perf_model->disable();
 
    m_l2_cache_cntlr->getL2Cache()->disable();
    m_l2_cache_perf_model->disable();
@@ -417,8 +480,13 @@ void
 MemoryManager::outputSummary(std::ostream &os)
 {
    os << "Cache Summary:\n";
-   m_l1_cache_cntlr->getL1ICache()->outputSummary(os);
-   m_l1_cache_cntlr->getL1DCache()->outputSummary(os);
+   os << "Main L1 Cache:\n";
+   m_l1_main_cache_cntlr->getL1ICache()->outputSummary(os);
+   m_l1_main_cache_cntlr->getL1DCache()->outputSummary(os);
+   os << "PEP L1 Cache:\n";
+   m_l1_pep_cache_cntlr->getL1ICache()->outputSummary(os);
+   m_l1_pep_cache_cntlr->getL1DCache()->outputSummary(os);
+   os << "Shared L2 Cache:\n";
    m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
 
    if (m_dram_cntlr_present)

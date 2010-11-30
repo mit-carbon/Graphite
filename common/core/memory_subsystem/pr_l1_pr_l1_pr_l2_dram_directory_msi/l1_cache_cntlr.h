@@ -80,7 +80,7 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 
          void setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr);
 
-         bool processMemOpFromTile(
+         bool processMemOpFromCore(
                MemComponent::component_t mem_component,
                Core::lock_signal_t lock_signal,
                Core::mem_op_t mem_op_type, 

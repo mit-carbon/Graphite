@@ -131,7 +131,7 @@ void Network::netPullFromTransport()
 
          if (callback != NULL)
          {
-            LOG_PRINT("Executing callback on packet : type %i, from %i, to %i, core_id %i, cycle_count %llu", 
+            LOG_PRINT("Executing callback on packet : type %i, from %i, to %i, tile_id %i, cycle_count %llu", 
                   (SInt32)packet.type, packet.sender, packet.receiver, _tile->getId(), packet.time);
             assert(0 <= packet.sender && packet.sender < _numMod);
             assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
@@ -178,7 +178,7 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, core_id %i, time %llu", \
+      LOG_PRINT("Send packet : type %i, from %i, to %i, next_hop %i, tile_id %i, time %llu", \
             (SInt32) buff_pkt->type, buff_pkt->sender, hopVec[i].final_dest, hopVec[i].next_dest, \
             _tile->getId(), hopVec[i].time);
 

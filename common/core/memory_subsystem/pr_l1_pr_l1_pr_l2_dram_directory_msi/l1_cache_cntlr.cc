@@ -58,7 +58,7 @@ L1CacheCntlr::processMemOpFromCore(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   LOG_PRINT("processMemOpFromMainCore(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
+   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
          lock_signal, mem_op_type, ca_address);
 
    bool l1_cache_hit = true;
@@ -89,6 +89,7 @@ L1CacheCntlr::processMemOpFromCore(
                  
          if (lock_signal != Core::LOCK)
             releaseLock(mem_component);
+
          return l1_cache_hit;
       }
 
@@ -102,7 +103,7 @@ L1CacheCntlr::processMemOpFromCore(
 
       m_l2_cache_cntlr->acquireLock();
 
-      // Set the l1_cache_cntlr to the main L1 cache so the L2 cntlr knows it needs to update the main L1.
+      // Set the l1_cache_cntlr to this cache so it can ask for the lock.
       m_l2_cache_cntlr->setL1CacheCntlr(this);
  
       ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);

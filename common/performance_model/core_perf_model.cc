@@ -220,7 +220,7 @@ void CorePerfModel::iterate()
       }
       catch (DynamicInstructionInfoNotAvailableException)
       {
-         LOG_PRINT("elau: threw DynamicInstructionInfoNotAvailable!");
+         LOG_PRINT("Throwing DynamicInstructionInfoNotAvailable!");
          return;
       }
    }
@@ -231,10 +231,8 @@ void CorePerfModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
-   LOG_PRINT("elau: running pushDynamicInstructionInfo for tile(%d) type(%d)", getCore()->getCoreId().first, getCore()->getCoreId().second);
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
-   LOG_PRINT("elau: pushing dynamic info %d", i.type);
 }
 
 void CorePerfModel::popDynamicInstructionInfo()

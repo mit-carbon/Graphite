@@ -1,8 +1,6 @@
 #include "pin_config.h"
 #include "simulator.h"
 #include <boost/lexical_cast.hpp>
-//elau: temp
-#include "tile_manager.h"
 #include "core.h"
 PinConfig *PinConfig::m_singleton = NULL;
 
@@ -111,28 +109,6 @@ core_id_t PinConfig::getCoreIDFromStackPtr(IntPtr stack_ptr)
       return ((core_id_t) {Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index), MAIN_CORE_TYPE});
    }
 }
-
-//SInt32 PinConfig::getStackAttributesFromTileID (tile_id_t tile_id, StackAttributes& stack_attr)
-//{
-   //LOG_ASSERT_ERROR ( Sim()->getTileManager()->getCurrentCore()->getCoreId().second == MAIN_CORE_TYPE, "PEP not supported!");
-
-   //// Get the stack attributes
-   //SInt32 core_index = Config::getSingleton()->getIndexFromTileID(m_current_process_num, tile_id);
-   //LOG_ASSERT_ERROR (core_index != -1, "Tile %i does not belong to Process %i", 
-         //tile_id, Config::getSingleton()->getCurrentProcessNum());
-
-   //if (Config::getSingleton()->getEnablePepCores())
-   //{
-      //stack_attr.lower_limit = m_stack_lower_limit + (core_index * 2 * m_stack_size_per_core);
-      //stack_attr.size = m_stack_size_per_core;
-   //}
-   //else
-   //{
-      //stack_attr.lower_limit = m_stack_lower_limit + (core_index * m_stack_size_per_core);
-      //stack_attr.size = m_stack_size_per_core;
-   //}
-   //return 0;
-//}
 
 SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr)
 {

@@ -106,35 +106,19 @@ class Core
       virtual ClockSkewMinimizationClient* getClockSkewMinimizationClient() = 0;
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
-      //void updateInternalVariablesOnFrequencyChange(volatile float frequency);
-
       State getState();
       void setState(State core_state);
 
-      //void enablePerformanceModels();
-      //void disablePerformanceModels();
    protected:
       Tile *m_tile;
       core_id_t m_core_id;
       CorePerfModel *m_core_perf_model;
       MemoryManagerBase *m_memory_manager;
       PinMemoryManager *m_pin_memory_manager;
-      //Network *m_network;
       ShmemPerfModel* m_shmem_perf_model;
       SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
-      //ClockSkewMinimizationClient *m_clock_skew_minimization_client;
 
-      //core_id_t m_core_id;
-      //MemoryManagerBase *m_memory_manager;
-      //PinMemoryManager *m_pin_memory_manager;
-      //Network *m_network;
-      //CorePerfModel *m_pep_core_perf_model;
-      //SyscallMdl *m_syscall_model;
-      //SyncClient *m_sync_client;
-      //ClockSkewMinimizationClient *m_clock_skew_minimization_client;
-      //ShmemPerfModel* m_shmem_perf_model;
-      
       State m_core_state;
       Lock m_core_state_lock;
 

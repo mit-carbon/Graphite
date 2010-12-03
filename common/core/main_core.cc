@@ -54,12 +54,16 @@ MainCore::MainCore(Tile* tile) : Core(tile)
 MainCore::~MainCore()
 {
    delete m_core_perf_model;
+
    if (m_clock_skew_minimization_client)
       delete m_clock_skew_minimization_client;
    
-   delete m_pin_memory_manager;
-   delete m_memory_manager;
-   delete m_shmem_perf_model;
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+   {
+      delete m_pin_memory_manager;
+      delete m_memory_manager;
+      delete m_shmem_perf_model;
+   }
 }
 
 // FIXME: This should actually be 'accessDataMemory()'
@@ -172,7 +176,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
          curr_size = cache_block_size - (curr_offset);
       }
 
-      LOG_PRINT("Start InitiateSharedMemReq: ADDR(0x%x), offset(%u), curr_size(%u)", curr_addr_aligned, curr_offset, curr_size);
+      LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(0x%x), offset(%u), curr_size(%u), core_id(%d, %d)", curr_addr_aligned, curr_offset, curr_size, getCoreId().first, getCoreId().second);
 
       if (!getMemoryManager()->coreInitiateMemoryAccess(
                mem_component,

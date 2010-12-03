@@ -62,14 +62,14 @@ void* threadFunc(void* threadid_ptr)
          if (threadid % (num_consecutive_reads+1) == 0)
          {
             // Write a shared variable
-            tile->accessMemory(Tile::NONE, WRITE, (IntPtr) &shared_var, 
+            tile->accessMemory(Core::NONE, WRITE, (IntPtr) &shared_var, 
                   (char*) &threadid, sizeof(threadid), true);
          }
          else
          {
             // Read the shared variable
             SInt32 act_value;
-            tile->accessMemory(Tile::NONE, READ, (IntPtr) &shared_var,
+            tile->accessMemory(Core::NONE, READ, (IntPtr) &shared_var,
                   (char*) &act_value, sizeof(act_value), true);
             printf("Thread(%i), Shared Var: %i\n", threadid, act_value);
 
@@ -105,7 +105,7 @@ void validateCacheModelCounters()
       Tile* tile = core_list[i];
 
       SInt32 buffer;
-      bool is_miss = (bool) tile->accessMemory(Tile::NONE,
+      bool is_miss = (bool) tile->accessMemory(Core::NONE,
             READ,
             (IntPtr) &shared_var,
             (char*) &buffer,

@@ -48,6 +48,7 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet)
 {
    MemoryManagerBase *mm = (MemoryManagerBase*) obj;
    assert(mm != NULL);
+   LOG_PRINT("elau: In handleMsgFromNetwork in base");
 
    switch (packet.type)
    {

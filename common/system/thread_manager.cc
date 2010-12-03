@@ -211,12 +211,7 @@ void ThreadManager::masterOnThreadExit(tile_id_t tile_id, UInt32 core_type,  UIn
    if (Sim()->getMCP()->getClockSkewMinimizationServer())
       Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
 
-   if (core_type == PEP_CORE_TYPE)
-   {
-      wakeUpHelperWaiter((core_id_t) {tile_id, core_type}, time);
-   }
-   else
-      wakeUpWaiter((core_id_t) {tile_id, core_type}, time);
+   wakeUpWaiter((core_id_t) {tile_id, core_type}, time);
 
    if (Config::getSingleton()->getSimulationMode() == Config::FULL)
       slaveTerminateThreadSpawnerAck(tile_id);
@@ -578,7 +573,7 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req, UInt64 time)
       if (m_helper_thread_state[req->receiver.first].status == Core::IDLE)
       {
          LOG_PRINT("Not running, sending reply.");
-         wakeUpHelperWaiter(req->receiver, time);
+         wakeUpWaiter(req->receiver, time);
       }
    }
    else
@@ -604,6 +599,16 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req, UInt64 time)
 
 void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
 {
+   if (core_id.second == PEP_CORE_TYPE)
+      wakeUpHelperWaiter(core_id, time);
+   else if (core_id.second == MAIN_CORE_TYPE)
+      wakeUpMainWaiter(core_id, time);
+   else
+      LOG_ASSERT_ERROR(false, "Unrecognized core type to wake up");
+}
+
+void ThreadManager::wakeUpMainWaiter(core_id_t core_id, UInt64 time)
+{
    LOG_ASSERT_ERROR(core_id.second == MAIN_CORE_TYPE, "wakeUpWaiter is for threads waiting on main threads only!");
    if (m_thread_state[core_id.first].waiter.first != INVALID_TILE_ID)
    {
@@ -627,7 +632,7 @@ void ThreadManager::wakeUpWaiter(core_id_t core_id, UInt64 time)
 
       m_thread_state[core_id.first].waiter = INVALID_CORE_ID;
    }
-   LOG_PRINT("Exiting wakeUpWaiter");
+   LOG_PRINT("Exiting wakeUpMainWaiter");
 }
 
 void ThreadManager::wakeUpHelperWaiter(core_id_t core_id, UInt64 time)

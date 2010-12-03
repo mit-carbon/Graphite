@@ -232,7 +232,6 @@ MemoryManager::coreInitiateMemoryAccess(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   LOG_PRINT("elau: initiating main core memory access");
    return m_l1_main_cache_cntlr->processMemOpFromCore(mem_component, 
          lock_signal, 
          mem_op_type, 
@@ -250,7 +249,6 @@ MemoryManager::pepCoreInitiateMemoryAccess(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   LOG_PRINT("elau: initiating Pep core memory access");
    return m_l1_pep_cache_cntlr->processMemOpFromCore(mem_component, 
          lock_signal, 
          mem_op_type, 
@@ -262,6 +260,7 @@ MemoryManager::pepCoreInitiateMemoryAccess(
 void
 MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
+   LOG_PRINT("elau: In handleMsgFromNetwork in memory model manager");
    tile_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
@@ -286,13 +285,11 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
             case MemComponent::L1_DCACHE:
             case MemComponent::L1_PEP_ICACHE:
             case MemComponent::L1_PEP_DCACHE:
-   LOG_PRINT("elau: L1->L2!"); 
                assert(sender == getTile()->getId());
                m_l2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
                break;
 
             case MemComponent::DRAM_DIR:
-   LOG_PRINT("elau: DRAM->L2"); 
                m_l2_cache_cntlr->handleMsgFromDramDirectory(sender, shmem_msg);
                break;
 
@@ -309,7 +306,6 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
             LOG_ASSERT_ERROR(m_dram_cntlr_present, "Dram Cntlr NOT present");
 
             case MemComponent::L2_CACHE:
-   LOG_PRINT("elau: L2->DRAM "); 
                m_dram_directory_cntlr->handleMsgFromL2Cache(sender, shmem_msg);
                break;
 
@@ -480,14 +476,24 @@ void
 MemoryManager::outputSummary(std::ostream &os)
 {
    os << "Cache Summary:\n";
-   os << "Main L1 Cache:\n";
-   m_l1_main_cache_cntlr->getL1ICache()->outputSummary(os);
-   m_l1_main_cache_cntlr->getL1DCache()->outputSummary(os);
-   os << "PEP L1 Cache:\n";
-   m_l1_pep_cache_cntlr->getL1ICache()->outputSummary(os);
-   m_l1_pep_cache_cntlr->getL1DCache()->outputSummary(os);
-   os << "Shared L2 Cache:\n";
-   m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
+
+   if (!Config::getSingleton()->getEnablePepCores())
+   {
+      m_l1_main_cache_cntlr->getL1ICache()->outputSummary(os);
+      m_l1_main_cache_cntlr->getL1DCache()->outputSummary(os);
+      m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
+   }
+   else
+   {
+      os << " Main L1 Cache:\n";
+      m_l1_main_cache_cntlr->getL1ICache()->outputSummary(os);
+      m_l1_main_cache_cntlr->getL1DCache()->outputSummary(os);
+      os << " PEP L1 Cache:\n";
+      m_l1_pep_cache_cntlr->getL1ICache()->outputSummary(os);
+      m_l1_pep_cache_cntlr->getL1DCache()->outputSummary(os);
+      os << " Shared L2 Cache:\n";
+      m_l2_cache_cntlr->getL2Cache()->outputSummary(os);
+   }
 
    if (m_dram_cntlr_present)
    {      

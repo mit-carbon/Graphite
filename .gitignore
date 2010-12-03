@@ -22,3 +22,22 @@ lib/pin_sim.so
 # result files
 results/
 !results/.DO_NOT_DELETE
+
+# temp
+tests/unit/cache_counters/cache_counters.cc
+tests/unit/limited_dir/limited_dir.cc
+tests/unit/shared_mem/Makefile
+tests/unit/shared_mem/output
+tests/unit/shared_mem/test.cc
+tests/unit/shared_mem/test_evic.cc
+tests/unit/shared_mem/test_new.cc
+tests/unit/shared_mem_basic/shared_mem_basic.cc
+tests/unit/shared_mem_test1/shared_mem_test1.cc
+tests/unit/shared_mem_test2/shared_mem_test2.cc
+tests/unit/shared_mem_test3/shared_mem_test3.cc
+tests/unit/shared_mem_test4/shared_mem_test4.cc
+tests/unit/shared_mem_test5/shared_mem_test5.cc
+tests/unit/shared_mem_test6/shared_mem_test6.cc
+tests/unit/shared_mem_test7/shared_mem_test7.cc
+tests/unit/shmem_perf_model/shmem_perf_model.cc
+tests/unit/synthetic_benchmark/synthetic_benchmark.cc

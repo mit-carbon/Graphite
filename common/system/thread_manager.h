@@ -76,6 +76,7 @@ private:
 
    void masterJoinThread(ThreadJoinRequest *req, UInt64 time);
    void wakeUpWaiter(core_id_t core_id, UInt64 time);
+   void wakeUpMainWaiter(core_id_t core_id, UInt64 time);
    void wakeUpHelperWaiter(core_id_t core_id, UInt64 time);
 
    void insertThreadSpawnRequest (ThreadSpawnRequest *req);

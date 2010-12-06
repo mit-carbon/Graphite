@@ -114,7 +114,7 @@ ThreadManager::~ThreadManager()
       }
 
       for (UInt32 i = 0; i < m_helper_thread_state.size(); i++)
-         LOG_ASSERT_ERROR(m_helper_thread_state[i].status == Core::IDLE, "Thread %d still active when ThreadManager destructs!", i);
+         LOG_ASSERT_ERROR(m_helper_thread_state[i].status == Core::IDLE, "Helper thread %d still active when ThreadManager destructs!", i);
 
       }
    }

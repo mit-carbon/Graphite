@@ -239,6 +239,9 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemMsg* shmem_msg)
    if (cstate == CacheState::SHARED)
    {
       // This will clear the 'Present' bit also
+
+      // You've got to invalidate both L1 Caches, so this different from other models.
+      invalidateCacheBlockInL1(l2_cache_block_info->getCachedLoc(), address);
       invalidateCacheBlock(address);
       getMemoryManager()->sendMsg(ShmemMsg::INV_REP, 
             MemComponent::L2_CACHE, MemComponent::DRAM_DIR, 

@@ -7,13 +7,13 @@
 #include "packet_type.h"
 #include "packetize.h"
 #include "network.h"
-#include "tile.h"
+#include "core.h"
 #include "core_perf_model.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-BarrierSyncClient::BarrierSyncClient(Tile* tile):
-   m_core(tile)
+BarrierSyncClient::BarrierSyncClient(Core* core):
+   m_core(core)
 {
    try
    {
@@ -50,13 +50,13 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
       int msg_type = MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION;
 
       m_send_buff << msg_type << curr_time;
-      m_core->getNetwork()->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_core->getNetwork()->netSend(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
-      LOG_PRINT("Tile(%i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getId(), curr_time, m_next_sync_time);
+      LOG_PRINT("Tile(%i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getTileId(), curr_time, m_next_sync_time);
 
       // Receive 'BARRIER_RELEASE' response
       NetPacket recv_pkt;
-      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_SYSTEM_RESPONSE_TYPE);
+      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_RESPONSE_TYPE);
       assert(recv_pkt.length == sizeof(int));
 
       unsigned int dummy;
@@ -64,7 +64,7 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
       m_recv_buff >> dummy;
       assert(dummy == BARRIER_RELEASE);
 
-      LOG_PRINT("Tile(%i) received SIM_BARRIER_RELEASE", m_core->getId());
+      LOG_PRINT("Tile(%i) received SIM_BARRIER_RELEASE", m_core->getTileId());
 
       // Update 'm_next_sync_time'
       m_next_sync_time = ((curr_time / m_barrier_interval) * m_barrier_interval) + m_barrier_interval;

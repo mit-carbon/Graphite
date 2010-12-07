@@ -13,7 +13,7 @@ endif
 .SUFFIXES:  .o .c .h .cc
 
 # Add other CXX Flags
-CXXFLAGS += -c \
+CXXFLAGS += -g -c \
             -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD
 
 # Use the pin flags for building

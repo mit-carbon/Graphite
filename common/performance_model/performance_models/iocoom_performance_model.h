@@ -6,7 +6,7 @@
 #include "core_perf_model.h"
 
 /*
-  In-order tile, out-of-order memory performance model.
+  In-order core, out-of-order memory performance model.
 
   We use a simpe scoreboard to keep track of registers.
 
@@ -15,7 +15,7 @@
 class IOCOOMPerformanceModel : public CorePerfModel
 {
 public:
-   IOCOOMPerformanceModel(Tile* tile, float frequency);
+   IOCOOMPerformanceModel(Core* core, float frequency);
    ~IOCOOMPerformanceModel();
 
    void outputSummary(std::ostream &os);

@@ -15,11 +15,11 @@ public:
    class SmNode : public Node
    {
    public:
-      SmNode(core_id_t core_id, SmTransport *smt);
+      SmNode(tile_id_t tile_id, SmTransport *smt);
       ~SmNode();
 
       void globalSend(SInt32, const void*, UInt32);
-      void send(core_id_t, const void*, UInt32);
+      void send(tile_id_t, const void*, UInt32);
       Byte* recv();
       bool query();
 
@@ -32,17 +32,17 @@ public:
       SmTransport *m_smt;
    };
 
-   Node* createNode(core_id_t core_id);
+   Node* createNode(tile_id_t tile_id);
 
    void barrier();
    Node* getGlobalNode();
 
 private:
    Node *m_global_node;
-   SmNode **m_core_nodes;
+   SmNode **m_tile_nodes;
 
-   SmNode *getNodeFromId(core_id_t core_id);
-   void clearNodeForId(core_id_t core_id);
+   SmNode *getNodeFromId(tile_id_t tile_id);
+   void clearNodeForId(tile_id_t tile_id);
 };
 
 #endif

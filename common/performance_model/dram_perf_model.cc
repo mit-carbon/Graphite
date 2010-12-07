@@ -43,12 +43,12 @@ DramPerfModel::~DramPerfModel()
 }
 
 UInt64 
-DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, core_id_t requester)
+DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, tile_id_t requester)
 {
    // pkt_size is in 'Bytes'
    // m_dram_bandwidth is in 'Bytes per clock cycle'
    if ((!m_enabled) || 
-         (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()))
+         (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
    {
       return 0;
    }

@@ -13,7 +13,7 @@ class NetworkModelAnalyticalServer
       NetworkModelAnalyticalServer(Network &network, UnstructuredBuffer &recv_buffer);
       ~NetworkModelAnalyticalServer();
 
-      void update(core_id_t);
+      void update(tile_id_t);
 
    private:
       std::vector<double> _local_utilizations;

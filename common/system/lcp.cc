@@ -104,23 +104,23 @@ void LCP::finish()
 struct CommMapUpdate
 {
    SInt32 comm_id;
-   core_id_t core_id;
+   tile_id_t tile_id;
 };
 
 void LCP::updateCommId(void *vp)
 {
    CommMapUpdate *update = (CommMapUpdate*)vp;
 
-   LOG_PRINT("Initializing comm_id: %d to core_id: %d", update->comm_id, update->core_id);
-   Config::getSingleton()->updateCommToCoreMap(update->comm_id, update->core_id);
+   LOG_PRINT("Initializing comm_id: %d to tile_id: %d", update->comm_id, update->tile_id);
+   Config::getSingleton()->updateCommToTileMap(update->comm_id, update->tile_id);
 
    NetPacket ack(/*time*/ 0,
                  /*type*/ LCP_COMM_ID_UPDATE_REPLY,
                  /*sender*/ 0, // doesn't matter ; see tile_manager.cc
-                 /*receiver*/ update->core_id,
+                 /*receiver*/ update->tile_id,
                  /*length*/ 0,
                  /*data*/ NULL);
    Byte *buffer = ack.makeBuffer();
-   m_transport->send(update->core_id, buffer, ack.bufferSize());
+   m_transport->send(update->tile_id, buffer, ack.bufferSize());
    delete [] buffer;
 }

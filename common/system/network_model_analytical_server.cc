@@ -13,9 +13,9 @@ NetworkModelAnalyticalServer::NetworkModelAnalyticalServer(Network &network,
       : _network(network),
       _recv_buffer(recv_buffer)
 {
-   int num_cores = Config::getSingleton()->getTotalCores();
-   _local_utilizations.resize(num_cores);
-   for (int i = 0; i < num_cores; i++)
+   int num_tiles = Config::getSingleton()->getTotalTiles();
+   _local_utilizations.resize(num_tiles);
+   for (int i = 0; i < num_tiles; i++)
    {
       _local_utilizations[i] = 0.0;
    }
@@ -30,17 +30,17 @@ struct UtilizationMessage
    void *vpmodel;
 };
 
-void NetworkModelAnalyticalServer::update(core_id_t core_id)
+void NetworkModelAnalyticalServer::update(tile_id_t tile_id)
 {
    // extract update
    assert(_recv_buffer.size() == sizeof(UtilizationMessage));
-   assert(0 <= core_id && (unsigned int)core_id < Config::getSingleton()->getTotalCores());
+   assert(0 <= tile_id && (unsigned int)tile_id < Config::getSingleton()->getTotalTiles());
 
    UtilizationMessage *msg;
    msg = (UtilizationMessage*)_recv_buffer.getBuffer();
    assert(msg->vpmodel != NULL);
 
-   _local_utilizations[core_id] = msg->ut;
+   _local_utilizations[tile_id] = msg->ut;
 
    // compute global utilization
    double global_utilization = 0.0;
@@ -60,8 +60,8 @@ void NetworkModelAnalyticalServer::update(core_id_t core_id)
 
    // send response
    NetPacket response;
-   response.sender = Config::getSingleton()->getMCPCoreNum();
-   response.receiver = core_id;
+   response.sender = Config::getSingleton()->getMCPTileNum();
+   response.receiver = tile_id;
    response.length = sizeof(response_msg);
    response.type = MCP_UTILIZATION_UPDATE_TYPE;
    response.data = &response_msg;

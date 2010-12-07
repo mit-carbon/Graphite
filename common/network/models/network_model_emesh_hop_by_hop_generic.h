@@ -24,7 +24,7 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 
    private:
       // Fields
-      core_id_t m_core_id;
+      tile_id_t m_tile_id;
       SInt32 m_mesh_width;
       SInt32 m_mesh_height;
 
@@ -51,22 +51,22 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       UInt64 m_total_packet_latency;
 
       // Functions
-      void computePosition(core_id_t tile, SInt32 &x, SInt32 &y);
-      core_id_t computeCoreId(SInt32 x, SInt32 y);
-      SInt32 computeDistance(core_id_t sender, core_id_t receiver);
+      void computePosition(tile_id_t tile, SInt32 &x, SInt32 &y);
+      tile_id_t computeTileId(SInt32 x, SInt32 y);
+      SInt32 computeDistance(tile_id_t sender, tile_id_t receiver);
 
-      void addHop(OutputDirection direction, core_id_t final_dest, core_id_t next_dest, \
+      void addHop(OutputDirection direction, tile_id_t final_dest, tile_id_t next_dest, \
             const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, \
             std::vector<Hop>& nextHops, \
-            core_id_t requester);
+            tile_id_t requester);
       UInt64 computeLatency(OutputDirection direction, \
             const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, \
-            core_id_t requester);
+            tile_id_t requester);
       UInt64 computeProcessingTime(UInt32 pkt_length);
-      core_id_t getNextDest(core_id_t final_dest, OutputDirection& direction);
+      tile_id_t getNextDest(tile_id_t final_dest, OutputDirection& direction);
 
       // Injection & Ejection Port Queue Models
-      UInt64 computeInjectionPortQueueDelay(core_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
+      UInt64 computeInjectionPortQueueDelay(tile_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
       UInt64 computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length);
 
       void createQueueModels();
@@ -109,9 +109,9 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
       void processReceivedPacket(NetPacket &pkt);
 
-      static std::pair<bool,std::vector<core_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count);
-      static std::pair<bool,SInt32> computeCoreCountConstraints(SInt32 core_count);
-      static SInt32 computeNumHops(core_id_t sender, core_id_t receiver);
+      static std::pair<bool,std::vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
+      static std::pair<bool,SInt32> computeTileCountConstraints(SInt32 tile_count);
+      static SInt32 computeNumHops(tile_id_t sender, tile_id_t receiver);
 
       void outputSummary(std::ostream &out);
 

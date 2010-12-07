@@ -13,9 +13,9 @@ NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id) :
 UInt32
 NetworkModelMagic::computeAction(const NetPacket& pkt)
 {
-   core_id_t core_id = getNetwork()->getCore()->getId();
-   LOG_ASSERT_ERROR((pkt.receiver == NetPacket::BROADCAST) || (pkt.receiver == core_id), \
-         "pkt.receiver(%i), core_id(%i)", pkt.receiver, core_id);
+   tile_id_t tile_id = getNetwork()->getTile()->getId();
+   LOG_ASSERT_ERROR((pkt.receiver == NetPacket::BROADCAST) || (pkt.receiver == tile_id), \
+         "pkt.receiver(%i), tile_id(%i)", pkt.receiver, tile_id);
 
    return RoutingAction::RECEIVE;
 }
@@ -26,9 +26,9 @@ NetworkModelMagic::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
    // A latency of '1'
    if (pkt.receiver == NetPacket::BROADCAST)
    {
-      UInt32 total_cores = Config::getSingleton()->getTotalCores();
+      UInt32 total_tiles = Config::getSingleton()->getTotalTiles();
    
-      for (SInt32 i = 0; i < (SInt32) total_cores; i++)
+      for (SInt32 i = 0; i < (SInt32) total_tiles; i++)
       {
          Hop h;
          h.final_dest = NetPacket::BROADCAST;
@@ -54,17 +54,17 @@ NetworkModelMagic::processReceivedPacket(NetPacket &pkt)
 {
    ScopedLock sl(_lock);
 
-   core_id_t requester = INVALID_CORE_ID;
+   tile_id_t requester = INVALID_TILE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
          "requester(%i)", requester);
 
-   if ( (!_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
+   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return;
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);

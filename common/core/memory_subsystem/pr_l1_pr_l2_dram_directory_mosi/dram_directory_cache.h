@@ -36,7 +36,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          UInt32 m_log_num_sets;
          UInt32 m_log_cache_block_size;
-         UInt32 m_log_num_cores;
+         UInt32 m_log_num_tiles;
          UInt32 m_log_num_dram_cntlrs;
 
          UInt32 m_log_stack_size;

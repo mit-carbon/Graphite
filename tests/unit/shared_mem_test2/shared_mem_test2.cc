@@ -23,7 +23,7 @@ int main (int argc, char *argv[])
 
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    int val = 0;
-   tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address, (Byte*) &val, sizeof(val));
+   tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val));
 
    for (int i = 0; i < num_threads; i++)
    {
@@ -35,7 +35,7 @@ int main (int argc, char *argv[])
       CarbonJoinThread(tid_list[i]);
    }
    
-   tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address, (Byte*) &val, sizeof(val));
+   tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
    
    printf("val(%i)\n", val);
    if (val == (num_threads * num_iterations))
@@ -58,10 +58,10 @@ void* thread_func(void*)
    for (int i = 0; i < num_iterations; i++)
    {
       int val;
-      tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::LOCK, Tile::READ_EX, address, (Byte*) &val, sizeof(val));
+      tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address, (Byte*) &val, sizeof(val));
       
       val += 1;
 
-      tile->initiateMemoryAccess(MemComponent::L1_DCACHE, Tile::UNLOCK, Tile::WRITE, address, (Byte*) &val, sizeof(val));
+      tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address, (Byte*) &val, sizeof(val));
    }
 }

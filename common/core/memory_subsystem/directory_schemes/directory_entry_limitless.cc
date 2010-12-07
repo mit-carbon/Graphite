@@ -24,7 +24,7 @@ DirectoryEntryLimitless::getLatency()
 }
 
 bool
-DirectoryEntryLimitless::hasSharer(core_id_t sharer_id)
+DirectoryEntryLimitless::hasSharer(tile_id_t sharer_id)
 {
    return m_sharers->at(sharer_id);
 }
@@ -33,7 +33,7 @@ DirectoryEntryLimitless::hasSharer(core_id_t sharer_id)
 //              'True' if it was successfully added
 //              'False' if there will be an eviction before adding
 bool
-DirectoryEntryLimitless::addSharer(core_id_t sharer_id)
+DirectoryEntryLimitless::addSharer(tile_id_t sharer_id)
 {
    assert(! m_sharers->at(sharer_id));
 
@@ -48,7 +48,7 @@ DirectoryEntryLimitless::addSharer(core_id_t sharer_id)
 }
 
 void
-DirectoryEntryLimitless::removeSharer(core_id_t sharer_id, bool reply_expected)
+DirectoryEntryLimitless::removeSharer(tile_id_t sharer_id, bool reply_expected)
 {
    assert(!reply_expected);
 
@@ -62,30 +62,30 @@ DirectoryEntryLimitless::getNumSharers()
    return m_sharers->size();
 }
 
-core_id_t
+tile_id_t
 DirectoryEntryLimitless::getOwner()
 {
    return m_owner_id;
 }
 
 void
-DirectoryEntryLimitless::setOwner(core_id_t owner_id)
+DirectoryEntryLimitless::setOwner(tile_id_t owner_id)
 {
-   if (owner_id != INVALID_CORE_ID)
+   if (owner_id != INVALID_TILE_ID)
       assert(m_sharers->at(owner_id));
    m_owner_id = owner_id;
 }
 
-core_id_t
+tile_id_t
 DirectoryEntryLimitless::getOneSharer()
 {
    m_sharers->resetFind();
-   core_id_t sharer_id = m_sharers->find();
+   tile_id_t sharer_id = m_sharers->find();
    assert(sharer_id != -1);
    return sharer_id;
 }
 
-pair<bool, vector<core_id_t> >&
+pair<bool, vector<tile_id_t> >&
 DirectoryEntryLimitless::getSharersList()
 {
    m_cached_sharers_list.first = false;
@@ -93,13 +93,13 @@ DirectoryEntryLimitless::getSharersList()
 
    m_sharers->resetFind();
 
-   core_id_t new_sharer = -1;
+   tile_id_t new_sharer = -1;
    SInt32 i = 0;
    while ((new_sharer = m_sharers->find()) != -1)
    {
       m_cached_sharers_list.second[i] = new_sharer;
       i++;
-      assert (i <= (core_id_t) m_sharers->size());
+      assert (i <= (tile_id_t) m_sharers->size());
    }
 
    return m_cached_sharers_list;

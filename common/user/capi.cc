@@ -5,9 +5,9 @@
 #include "carbon_user.h"
 #include "log.h"
 
-CAPI_return_t CAPI_rank(int *core_id)
+CAPI_return_t CAPI_rank(int *tile_id)
 {
-   *core_id = CarbonGetCoreId();
+   *tile_id = CarbonGetTileId();
    return 0;
 }
 
@@ -22,22 +22,22 @@ CAPI_return_t CAPI_message_send_w(CAPI_endpoint_t sender,
       char *buffer, 
       int size)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
    LOG_PRINT("SimSendW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
-   core_id_t sending_core = Config::getSingleton()->getCoreFromCommId(sender);
+   tile_id_t sending_tile = Config::getSingleton()->getTileFromCommId(sender);
    
-   core_id_t receiving_core = CAPI_ENDPOINT_ALL;
+   tile_id_t receiving_tile = CAPI_ENDPOINT_ALL;
    if (receiver != CAPI_ENDPOINT_ALL)
-      receiving_core = Config::getSingleton()->getCoreFromCommId(receiver);
+      receiving_tile = Config::getSingleton()->getTileFromCommId(receiver);
 
-   if(sending_core == INVALID_CORE_ID)
+   if(sending_tile == INVALID_TILE_ID)
        return CAPI_SenderNotInitialized;
-   if(receiving_core == INVALID_CORE_ID)
+   if(receiving_tile == INVALID_TILE_ID)
        return CAPI_ReceiverNotInitialized;
 
-   return tile ? tile->coreSendW(sending_core, receiving_core, buffer, size, (carbon_network_t) CARBON_NET_USER_1) : CAPI_SenderNotInitialized;
+   return core ? core->coreSendW(sending_tile, receiving_tile, buffer, size, (carbon_network_t) CARBON_NET_USER_1) : CAPI_SenderNotInitialized;
 }
 
 CAPI_return_t CAPI_message_send_w_ex(CAPI_endpoint_t sender, 
@@ -46,22 +46,22 @@ CAPI_return_t CAPI_message_send_w_ex(CAPI_endpoint_t sender,
       int size,
       carbon_network_t net_type)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
    LOG_PRINT("SimSendW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
-   core_id_t sending_core = Config::getSingleton()->getCoreFromCommId(sender);
+   tile_id_t sending_tile = Config::getSingleton()->getTileFromCommId(sender);
    
-   core_id_t receiving_core = CAPI_ENDPOINT_ALL;
+   tile_id_t receiving_tile = CAPI_ENDPOINT_ALL;
    if (receiver != CAPI_ENDPOINT_ALL)
-      receiving_core = Config::getSingleton()->getCoreFromCommId(receiver);
+      receiving_tile = Config::getSingleton()->getTileFromCommId(receiver);
 
-   if(sending_core == INVALID_CORE_ID)
+   if(sending_tile == INVALID_TILE_ID)
        return CAPI_SenderNotInitialized;
-   if(receiving_core == INVALID_CORE_ID)
+   if(receiving_tile == INVALID_TILE_ID)
        return CAPI_ReceiverNotInitialized;
 
-   return tile ? tile->coreSendW(sending_core, receiving_core, buffer, size, net_type) : CAPI_SenderNotInitialized;
+   return core ? core->coreSendW(sending_tile, receiving_tile, buffer, size, net_type) : CAPI_SenderNotInitialized;
 }
 
 CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t sender, 
@@ -69,22 +69,22 @@ CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t sender,
       char *buffer, 
       int size)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
    LOG_PRINT("SimRecvW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
-   core_id_t sending_core = CAPI_ENDPOINT_ANY;
+   tile_id_t sending_tile = CAPI_ENDPOINT_ANY;
    if (sender != CAPI_ENDPOINT_ANY)
-      sending_core = Config::getSingleton()->getCoreFromCommId(sender);
+      sending_tile = Config::getSingleton()->getTileFromCommId(sender);
    
-   core_id_t receiving_core = Config::getSingleton()->getCoreFromCommId(receiver);
+   tile_id_t receiving_tile = Config::getSingleton()->getTileFromCommId(receiver);
 
-   if(sending_core == INVALID_CORE_ID)
+   if(sending_tile == INVALID_TILE_ID)
        return CAPI_SenderNotInitialized;
-   if(receiving_core == INVALID_CORE_ID)
+   if(receiving_tile == INVALID_TILE_ID)
        return CAPI_ReceiverNotInitialized;
 
-   return tile ? tile->coreRecvW(sending_core, receiving_core, buffer, size, (carbon_network_t) CARBON_NET_USER_1) : CAPI_ReceiverNotInitialized;
+   return core ? core->coreRecvW(sending_tile, receiving_tile, buffer, size, (carbon_network_t) CARBON_NET_USER_1) : CAPI_ReceiverNotInitialized;
 }
 
 CAPI_return_t CAPI_message_receive_w_ex(CAPI_endpoint_t sender, 
@@ -93,20 +93,20 @@ CAPI_return_t CAPI_message_receive_w_ex(CAPI_endpoint_t sender,
       int size,
       carbon_network_t net_type)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
    LOG_PRINT("SimRecvW - sender: %d, recv: %d, size: %d", sender, receiver, size);
 
-   core_id_t sending_core = CAPI_ENDPOINT_ANY;
+   tile_id_t sending_tile = CAPI_ENDPOINT_ANY;
    if (sender != CAPI_ENDPOINT_ANY)
-      sending_core = Config::getSingleton()->getCoreFromCommId(sender);
+      sending_tile = Config::getSingleton()->getTileFromCommId(sender);
    
-   core_id_t receiving_core = Config::getSingleton()->getCoreFromCommId(receiver);
+   tile_id_t receiving_tile = Config::getSingleton()->getTileFromCommId(receiver);
 
-   if(sending_core == INVALID_CORE_ID)
+   if(sending_tile == INVALID_TILE_ID)
        return CAPI_SenderNotInitialized;
-   if(receiving_core == INVALID_CORE_ID)
+   if(receiving_tile == INVALID_TILE_ID)
        return CAPI_ReceiverNotInitialized;
 
-   return tile ? tile->coreRecvW(sending_core, receiving_core, buffer, size, net_type) : CAPI_ReceiverNotInitialized;
+   return core ? core->coreRecvW(sending_tile, receiving_tile, buffer, size, net_type) : CAPI_ReceiverNotInitialized;
 }

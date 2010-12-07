@@ -15,7 +15,7 @@ DirectoryEntryAckwise::~DirectoryEntryAckwise()
 {}
 
 bool
-DirectoryEntryAckwise::hasSharer(core_id_t sharer_id)
+DirectoryEntryAckwise::hasSharer(tile_id_t sharer_id)
 {
    return m_sharers->at(sharer_id);
 }
@@ -24,7 +24,7 @@ DirectoryEntryAckwise::hasSharer(core_id_t sharer_id)
 //              'True' if it was successfully added
 //              'False' if there will be an eviction before adding
 bool
-DirectoryEntryAckwise::addSharer(core_id_t sharer_id)
+DirectoryEntryAckwise::addSharer(tile_id_t sharer_id)
 {
    if (m_global_enabled)
    {
@@ -48,7 +48,7 @@ DirectoryEntryAckwise::addSharer(core_id_t sharer_id)
 }
 
 void
-DirectoryEntryAckwise::removeSharer(core_id_t sharer_id, bool reply_expected)
+DirectoryEntryAckwise::removeSharer(tile_id_t sharer_id, bool reply_expected)
 {
    assert(!reply_expected);
 
@@ -82,16 +82,16 @@ DirectoryEntryAckwise::getNumSharers()
       return m_sharers->size();
 }
 
-core_id_t
+tile_id_t
 DirectoryEntryAckwise::getOwner()
 {
    return m_owner_id;
 }
 
 void
-DirectoryEntryAckwise::setOwner(core_id_t owner_id)
+DirectoryEntryAckwise::setOwner(tile_id_t owner_id)
 {
-   if (owner_id != INVALID_CORE_ID)
+   if (owner_id != INVALID_TILE_ID)
    {
       LOG_ASSERT_ERROR(m_sharers->at(owner_id),
             "owner_id(%i), m_owner_id(%i), num sharers(%u), one sharer(%i)",
@@ -100,10 +100,10 @@ DirectoryEntryAckwise::setOwner(core_id_t owner_id)
    m_owner_id = owner_id;
 }
 
-core_id_t
+tile_id_t
 DirectoryEntryAckwise::getOneSharer()
 {
-   pair<bool, vector<core_id_t> > sharers_list = getSharersList();
+   pair<bool, vector<tile_id_t> > sharers_list = getSharersList();
    assert(sharers_list.first || (sharers_list.second.size() > 0));
    if (sharers_list.second.size() > 0)
    {
@@ -112,16 +112,16 @@ DirectoryEntryAckwise::getOneSharer()
    }
    else
    {
-      return INVALID_CORE_ID;
+      return INVALID_TILE_ID;
    }
 }
 
 // Return a pair:
-// val.first :- 'True' if all cores are sharers
-//              'False' if NOT all cores are sharers
-// val.second :- 'Empty' if all cores are sharers
-//               A list of sharers if NOT all cores are sharers
-pair<bool, vector<core_id_t> >&
+// val.first :- 'True' if all tiles are sharers
+//              'False' if NOT all tiles are sharers
+// val.second :- 'Empty' if all tiles are sharers
+//               A list of sharers if NOT all tiles are sharers
+pair<bool, vector<tile_id_t> >&
 DirectoryEntryAckwise::getSharersList()
 {
    if (m_global_enabled)
@@ -138,13 +138,13 @@ DirectoryEntryAckwise::getSharersList()
 
    m_sharers->resetFind();
 
-   core_id_t new_sharer = -1;
+   tile_id_t new_sharer = -1;
    SInt32 i = 0;
    while ((new_sharer = m_sharers->find()) != -1)
    {
       m_cached_sharers_list.second[i] = new_sharer;
       i++;
-      assert (i <= (core_id_t) m_sharers->size());
+      assert (i <= (tile_id_t) m_sharers->size());
    }
 
    return m_cached_sharers_list;

@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
       for (UInt32 j = 0; j < 2; j++)
       {
-         bool is_miss = (bool) cores[j]->accessMemory(Tile::NONE, shmem_req_type, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
+         bool is_miss = (bool) cores[j]->accessMemory(Core::NONE, shmem_req_type, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
          assert (is_miss == true);
       }
    }
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
    // Invalidate some lines
    for (UInt32 i = 0; i < size; i += 3)
    {
-      bool is_miss = (bool) cores[1]->accessMemory(Tile::NONE, WRITE, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
+      bool is_miss = (bool) cores[1]->accessMemory(Core::NONE, WRITE, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
       printf("Tile(1) WRITE: %i, is_miss: %s\n", i, (is_miss) ? "true" : "false");
    }
 
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
    // Read some lines
    for (UInt32 i = 0; i < size; i += 4)
    {
-      bool is_miss = (bool) cores[0]->accessMemory(Tile::NONE, READ, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
+      bool is_miss = (bool) cores[0]->accessMemory(Core::NONE, READ, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
       printf("Tile(0) READ: %i, is_miss: %s\n", i, (is_miss) ? "true" : "false");
    }
 
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
    // Write some lines again
    for (UInt32 i = 0; i < size; i += 2)
    {
-      bool is_miss = (bool) cores[0]->accessMemory(Tile::NONE, WRITE, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
+      bool is_miss = (bool) cores[0]->accessMemory(Core::NONE, WRITE, address_list[i], (char*) &buff[i], sizeof(buff[i]), true);
       printf("Tile(0) WRITE: %i, is_miss: %s\n", i, (is_miss) ? "true" : "false");
    }
 
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 
    for (UInt32 i = 0; i < size; i++)
    {
-      bool is_miss = (bool) cores[0]->accessMemory(Tile::NONE, WRITE, address_list_2[i], (char*) &buff[i], sizeof(buff[i]), true);
+      bool is_miss = (bool) cores[0]->accessMemory(Core::NONE, WRITE, address_list_2[i], (char*) &buff[i], sizeof(buff[i]), true);
       printf("Tile(0) WRITE: 0x%x, is_miss: %s\n", address_list_2[i] >> 16, (is_miss) ? "true" : "false");
    }
 

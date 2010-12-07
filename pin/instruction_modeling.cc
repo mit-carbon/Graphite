@@ -8,7 +8,7 @@
 
 void handleBasicBlock(BasicBlock *sim_basic_block)
 {
-   CorePerfModel *prfmdl = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *prfmdl = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
 
    prfmdl->queueBasicBlock(sim_basic_block);
 
@@ -19,7 +19,7 @@ void handleBasicBlock(BasicBlock *sim_basic_block)
 void handleBranch(BOOL taken, ADDRINT target)
 {
    assert(Sim() && Sim()->getTileManager() && Sim()->getTileManager()->getCurrentTile());
-   CorePerfModel *prfmdl = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *prfmdl = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
 
    DynamicInstructionInfo info = DynamicInstructionInfo::createBranchInfo(taken, target);
    prfmdl->pushDynamicInstructionInfo(info);

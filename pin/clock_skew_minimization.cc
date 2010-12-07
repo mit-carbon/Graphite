@@ -14,16 +14,17 @@ void handlePeriodicSync()
 {
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    assert(tile);
-   if (tile->getId() >= (core_id_t) Sim()->getConfig()->getApplicationCores())
+   if (tile->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Thread Spawner Tile / MCP
       return;
    }
 
-   ClockSkewMinimizationClient *client = tile->getClockSkewMinimizationClient();
-   assert(client);
+   ClockSkewMinimizationClient *client = tile->getCore()->getClockSkewMinimizationClient();
 
-   client->synchronize();
+   // A NULL client is returned by a PEP core, we're not synchronizing them right now.
+   if (client)
+      client->synchronize();
 }
 
 void addPeriodicSync(INS ins)

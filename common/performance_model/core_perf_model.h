@@ -7,8 +7,9 @@
 #include <string>
 
 // Forward Decls
-class Tile;
+class Core;
 class BranchPredictor;
+class Core;
 
 #include "instruction.h"
 #include "basic_block.h"
@@ -19,13 +20,8 @@ class BranchPredictor;
 class CorePerfModel
 {
 public:
-   enum core_t
-   {
-      MAIN_CORE_TYPE = 0,
-      PEP_CORE_TYPE
-   };
 
-   CorePerfModel(Tile* tile, float frequency);
+   CorePerfModel(Core* core, float frequency);
    virtual ~CorePerfModel();
 
    void queueDynamicInstruction(Instruction *i);
@@ -43,7 +39,9 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static CorePerfModel *create(Tile* tile, core_t core_type = MAIN_CORE_TYPE);
+   static CorePerfModel *createMainPerfModel(Core* core);
+   static CorePerfModel *createPepPerfModel(Core* core);
+   //static CorePerfModel *create(Core *core, Core::core_type_t core_type); 
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
@@ -62,7 +60,7 @@ protected:
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 
-   Tile* getCore() { return m_tile; }
+   Core* getCore() { return m_core; }
    void frequencySummary(std::ostream &os);
 
    UInt64 m_cycle_count;
@@ -73,7 +71,7 @@ private:
 
    virtual void handleInstruction(Instruction *instruction) = 0;
 
-   Tile* m_tile;
+   Core* m_core;
 
    volatile float m_frequency;
 

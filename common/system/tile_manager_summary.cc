@@ -13,7 +13,7 @@ using namespace std;
 
 // -- outputSummary
 //
-// Collect output summaries for all the cores and send them to process
+// Collect output summaries for all the tiles and send them to process
 // zero. This process then formats the output to look pretty. Only
 // process zero writes to the output stream passed in.
 
@@ -26,25 +26,25 @@ static void gatherSummaries(vector<string> &summaries)
    {
       LOG_PRINT("Collect from process %d", p);
 
-      const Config::CoreList &cl = cfg->getCoreListForProcess(p);
+      const Config::TileList &tl = cfg->getTileListForProcess(p);
 
       // signal process to send
       if (p != 0)
          global_node->globalSend(p, &p, sizeof(p));
 
       // receive summary
-      for (UInt32 c = 0; c < cl.size(); c++)
+      for (UInt32 t = 0; t < tl.size(); t++)
       {
-         LOG_PRINT("Collect from tile %d", cl[c]);
+         LOG_PRINT("Collect from tile %d", tl[t]);
 
          Byte *buf;
 
          buf = global_node->recv();
-         assert(*((core_id_t*)buf) == cl[c]);
+         assert(*((tile_id_t*)buf) == tl[t]);
          delete [] buf;
 
          buf = global_node->recv();
-         summaries[cl[c]] = string((char*)buf);
+         summaries[tl[t]] = string((char*)buf);
          delete [] buf;
       }
    }
@@ -152,13 +152,13 @@ void addRowHeadings(Table &table, const vector<string> &summaries)
 
 void addColHeadings(Table &table)
 {
-   UInt32 num_non_system_cores;
+   UInt32 num_non_system_tiles;
    if (Config::getSingleton()->getSimulationMode() == Config::FULL)
-      num_non_system_cores = Config::getSingleton()->getTotalCores() - Config::getSingleton()->getProcessCount() - 1;
+      num_non_system_tiles = Config::getSingleton()->getTotalTiles() - Config::getSingleton()->getProcessCount() - 1;
    else // Config::getSingleton()->getSimulationMode() == Config::LITE
-      num_non_system_cores = Config::getSingleton()->getTotalCores() - 1;
+      num_non_system_tiles = Config::getSingleton()->getTotalTiles() - 1;
 
-   for (Table::size_type i = 0; i < num_non_system_cores; i++)
+   for (Table::size_type i = 0; i < num_non_system_tiles; i++)
    {
       stringstream heading;
       heading << "Tile " << i;
@@ -169,17 +169,17 @@ void addColHeadings(Table &table)
    {
       for (unsigned int i = 0; i < Config::getSingleton()->getProcessCount(); i++)
       {
-         unsigned int core_num = Config::getSingleton()->getThreadSpawnerCoreNum(i);
+         unsigned int tile_num = Config::getSingleton()->getThreadSpawnerTileNum(i);
          stringstream heading;
          heading << "TS " << i;
-         table(0, core_num + 1) = heading.str();
+         table(0, tile_num + 1) = heading.str();
       }
    }
 
-   table(0, Config::getSingleton()->getMCPCoreNum()+1) = "MCP";
+   table(0, Config::getSingleton()->getMCPTileNum()+1) = "MCP";
 }
 
-void addCoreSummary(Table &table, core_id_t tile, const string &summary)
+void addTileSummary(Table &table, tile_id_t tile, const string &summary)
 {
    string::size_type pos = summary.find(':')+1;
 
@@ -203,14 +203,14 @@ string formatSummaries(const vector<string> &summaries)
    unsigned int rows = count(summaries[0].begin(), summaries[0].end(), '\n');
 
    // fill in row headings
-   Table table(rows+1, Config::getSingleton()->getTotalCores()+1);
+   Table table(rows+1, Config::getSingleton()->getTotalTiles()+1);
 
    addRowHeadings(table, summaries);
    addColHeadings(table);
 
    for (unsigned int i = 0; i < summaries.size(); i++)
    {
-      addCoreSummary(table, i, summaries[i]);
+      addTileSummary(table, i, summaries[i]);
    }
 
    return table.flatten();
@@ -237,14 +237,14 @@ void TileManager::outputSummary(ostream &os)
    }
 
    // send each summary
-   const Config::CoreList &cl = cfg->getCoreListForProcess(cfg->getCurrentProcessNum());
+   const Config::TileList &tl = cfg->getTileListForProcess(cfg->getCurrentProcessNum());
 
-   for (UInt32 i = 0; i < cl.size(); i++)
+   for (UInt32 i = 0; i < tl.size(); i++)
    {
-      LOG_PRINT("Output summary tile %i", cl[i]);
+      LOG_PRINT("Output summary tile %i", tl[i]);
       stringstream ss;
       m_tiles[i]->outputSummary(ss);
-      global_node->globalSend(0, &cl[i], sizeof(cl[i]));
+      global_node->globalSend(0, &tl[i], sizeof(tl[i]));
       global_node->globalSend(0, ss.str().c_str(), ss.str().length()+1);
    }
 
@@ -252,7 +252,7 @@ void TileManager::outputSummary(ostream &os)
    if (cfg->getCurrentProcessNum() != 0)
       return;
 
-   vector<string> summaries(cfg->getTotalCores());
+   vector<string> summaries(cfg->getTotalTiles());
    string formatted;
 
    gatherSummaries(summaries);

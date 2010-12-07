@@ -32,8 +32,8 @@ class NetworkModel
       {
       public:
          Hop(): 
-            final_dest(INVALID_CORE_ID), 
-            next_dest(INVALID_CORE_ID), 
+            final_dest(INVALID_TILE_ID), 
+            next_dest(INVALID_TILE_ID), 
             specific(0), 
             time(0) 
          {}
@@ -78,8 +78,8 @@ class NetworkModel
       static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
       static UInt32 parseNetworkType(std::string str);
 
-      static std::pair<bool,SInt32> computeCoreCountConstraints(UInt32 network_type, SInt32 core_count);
-      static std::pair<bool, std::vector<core_id_t> > computeMemoryControllerPositions(UInt32 network_type, SInt32 num_memory_controllers, SInt32 total_cores);
+      static std::pair<bool,SInt32> computeTileCountConstraints(UInt32 network_type, SInt32 tile_count);
+      static std::pair<bool, std::vector<tile_id_t> > computeMemoryControllerPositions(UInt32 network_type, SInt32 num_memory_controllers, SInt32 total_tiles);
 
    protected:
       Network *getNetwork() { return _network; }

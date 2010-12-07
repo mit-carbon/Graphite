@@ -27,6 +27,7 @@ class PinConfig
       UInt32 getStackSizePerCore() const
       { return m_stack_size_per_core; }
 
+      tile_id_t getTileIDFromStackPtr(IntPtr stack_ptr);
       core_id_t getCoreIDFromStackPtr(IntPtr stack_ptr);
       SInt32 getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr);
 
@@ -39,7 +40,7 @@ class PinConfig
 
       // Pin specific variables
       UInt32 m_current_process_num;
-      UInt32 m_total_cores;
+      UInt32 m_total_tiles;
       UInt32 m_num_local_cores;
 
       IntPtr m_stack_lower_limit;

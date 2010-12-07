@@ -1,12 +1,12 @@
-#include "tile.h"
+#include "core.h"
 #include "log.h"
 #include "magic_pep_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-MagicPepPerformanceModel::MagicPepPerformanceModel(Tile *tile, float frequency)
-    : CorePerfModel(tile, frequency)
+MagicPepPerformanceModel::MagicPepPerformanceModel(Core *core, float frequency)
+    : CorePerfModel(core, frequency)
     , m_instruction_count(0)
 {
 }
@@ -17,7 +17,7 @@ MagicPepPerformanceModel::~MagicPepPerformanceModel()
 
 void MagicPepPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << getInstructionCount() << endl;
+   os << "  PEP Instructions: " << getInstructionCount() << endl;
    frequencySummary(os);
 
    if (getBranchPredictor())
@@ -29,6 +29,7 @@ void MagicPepPerformanceModel::handleInstruction(Instruction *instruction)
    // compute cost
    UInt64 cost = 0;
 
+   LOG_PRINT("elau: Handling instruction at addr(0x%x) with type(%d)", instruction->getAddress(), instruction->getType());
    const OperandList &ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)
    {

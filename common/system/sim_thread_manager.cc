@@ -19,7 +19,7 @@ SimThreadManager::~SimThreadManager()
 
 void SimThreadManager::spawnSimThreads()
 {
-   UInt32 num_sim_threads = Config::getSingleton()->getNumLocalCores();
+   UInt32 num_sim_threads = Config::getSingleton()->getNumLocalTiles();
 
    LOG_PRINT("Starting %d threads on proc: %d.", num_sim_threads, Config::getSingleton()->getCurrentProcessNum());
 
@@ -42,18 +42,18 @@ void SimThreadManager::quitSimThreads()
    LOG_PRINT("Sending quit messages.");
 
    Transport::Node *global_node = Transport::getSingleton()->getGlobalNode();
-   UInt32 num_local_cores = Config::getSingleton()->getNumLocalCores();
+   UInt32 num_local_tiles = Config::getSingleton()->getNumLocalTiles();
 
    // This is something of a hard-wired emulation of Network::netSend
    // ... not the greatest thing to do, but whatever.
    NetPacket pkt(0, SIM_THREAD_TERMINATE_THREADS, 0, 0, 0, NULL);
-   const Config::CoreList &core_list = Config::getSingleton()->getCoreListForProcess(Config::getSingleton()->getCurrentProcessNum());
+   const Config::TileList &tile_list = Config::getSingleton()->getTileListForProcess(Config::getSingleton()->getCurrentProcessNum());
 
-   for (UInt32 i = 0; i < num_local_cores; i++)
+   for (UInt32 i = 0; i < num_local_tiles; i++)
    {
-      core_id_t core_id = core_list[i];
-      pkt.receiver = core_id;
-      global_node->send(core_id, &pkt, pkt.bufferSize());
+      tile_id_t tile_id = tile_list[i];
+      pkt.receiver = tile_id;
+      global_node->send(tile_id, &pkt, pkt.bufferSize());
    }
 
    LOG_PRINT("Waiting for local sim threads to exit.");

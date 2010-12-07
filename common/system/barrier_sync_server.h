@@ -22,16 +22,16 @@ class BarrierSyncServer : public ClockSkewMinimizationServer
       std::vector<UInt64> m_local_clock_list;
       std::vector<bool> m_barrier_acquire_list;
       
-      UInt32 m_num_application_cores;
+      UInt32 m_num_application_tiles;
 
    public:
       BarrierSyncServer(Network &network, UnstructuredBuffer &recv_buff);
       ~BarrierSyncServer();
 
-      void processSyncMsg(core_id_t core_id);
+      void processSyncMsg(tile_id_t tile_id);
       void signal();
 
-      void barrierWait(core_id_t core_id);
+      void barrierWait(tile_id_t tile_id);
       bool isBarrierReached(void);
       void barrierRelease(void);
 };

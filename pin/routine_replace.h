@@ -14,7 +14,7 @@ void replacementMain (CONTEXT *ctxt);
 void replacementGetThreadToSpawn (CONTEXT *ctxt);
 void replacementThreadStartNull (CONTEXT *ctxt);
 void replacementThreadExitNull (CONTEXT *ctxt);
-void replacementGetCoreId (CONTEXT *ctxt);
+void replacementGetTileId (CONTEXT *ctxt);
 void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt);
 
 // Pin specific stack management
@@ -24,8 +24,9 @@ void replacementPthreadAttrInitOtherAttr (CONTEXT *ctxt);
 void replacementStartSimNull (CONTEXT *ctxt);
 void replacementStopSim (CONTEXT *ctxt);
 void replacementSpawnThread (CONTEXT *ctxt);
-void replacementJoinThread (CONTEXT *ctxt);
 void replacementSpawnHelperThread (CONTEXT *ctxt);
+void replacementJoinThread (CONTEXT *ctxt);
+void replacementJoinHelperThread (CONTEXT *ctxt);
 
 void replacementMutexInit(CONTEXT *ctxt);
 void replacementMutexLock(CONTEXT *ctxt);

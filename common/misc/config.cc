@@ -11,7 +11,7 @@
 
 #define DEBUG
 
-UInt32 Config::m_knob_total_cores;
+UInt32 Config::m_knob_total_tiles;
 UInt32 Config::m_knob_num_process;
 bool Config::m_knob_simarch_has_shared_mem;
 std::string Config::m_knob_output_file;
@@ -19,6 +19,7 @@ bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_dcache_modeling;
 bool Config::m_knob_enable_icache_modeling;
 bool Config::m_knob_enable_power_modeling;
+bool Config::m_knob_enable_pep_cores;
 
 using namespace std;
 
@@ -37,11 +38,12 @@ Config::Config()
    // has not been instantiated at this point!
    try
    {
-      m_knob_total_cores = Sim()->getCfg()->getInt("general/total_cores");
+      m_knob_total_tiles = Sim()->getCfg()->getInt("general/total_cores");
       m_knob_num_process = Sim()->getCfg()->getInt("general/num_processes");
       m_knob_simarch_has_shared_mem = Sim()->getCfg()->getBool("general/enable_shared_mem");
       m_knob_output_file = Sim()->getCfg()->getString("general/output_file");
       m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
+      m_knob_enable_pep_cores = Sim()->getCfg()->getBool("general/enable_pep_cores");
       // TODO: these should be removed and queried directly from the cache
       m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
       m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
@@ -57,8 +59,8 @@ Config::Config()
    }
 
    m_num_processes = m_knob_num_process;
-   m_total_cores = m_knob_total_cores;
-   m_application_cores = m_total_cores;
+   m_total_tiles = m_knob_total_tiles;
+   m_application_tiles = m_total_tiles;
 
    if ((m_simulation_mode == LITE) && (m_num_processes > 1))
    {
@@ -69,20 +71,20 @@ Config::Config()
    m_singleton = this;
 
    assert(m_num_processes > 0);
-   assert(m_total_cores > 0);
+   assert(m_total_tiles > 0);
 
    // Add one for the MCP
-   m_total_cores += 1;
+   m_total_tiles += 1;
 
    // Add the thread-spawners (one for each process)
    if (m_simulation_mode == FULL)
-      m_total_cores += m_num_processes;
+      m_total_tiles += m_num_processes;
 
    // Parse Network Models - Need to be done here to initialize some parameters
    parseNetworkParameters();
 
-   // Adjust the number of cores corresponding to the network model we use
-   m_total_cores = getNearestAcceptableCoreCount(m_total_cores);
+   // Adjust the number of tiles corresponding to the network model we use
+   m_total_tiles = getNearestAcceptableTileCount(m_total_tiles);
 
    // Parse Core Models
    parseCoreParameters();
@@ -90,117 +92,117 @@ Config::Config()
    // Parse PEP Core Models
    parsePepCoreParameters();
 
-   m_core_id_length = computeCoreIDLength(m_total_cores);
+   m_tile_id_length = computeTileIDLength(m_total_tiles);
 
-   GenerateCoreMap();
+   GenerateTileMap();
 }
 
 Config::~Config()
 {
    // Clean up the dynamic memory we allocated
-   delete [] m_proc_to_core_list_map;
+   delete [] m_proc_to_tile_list_map;
 }
 
-UInt32 Config::getTotalCores()
+UInt32 Config::getTotalTiles()
 {
-   return m_total_cores;
+   return m_total_tiles;
 }
 
-UInt32 Config::getApplicationCores()
+UInt32 Config::getApplicationTiles()
 {
-   return m_application_cores;
+   return m_application_tiles;
 }
 
-core_id_t Config::getThreadSpawnerCoreNum(UInt32 proc_num)
-{
-   if (m_simulation_mode == FULL)
-      return (getTotalCores() - (1 + getProcessCount() - proc_num));
-   else
-      return INVALID_CORE_ID;
-}
-
-core_id_t Config::getCurrentThreadSpawnerCoreNum()
+tile_id_t Config::getThreadSpawnerTileNum(UInt32 proc_num)
 {
    if (m_simulation_mode == FULL)
-      return (getTotalCores() - (1 + getProcessCount() - getCurrentProcessNum()));
+      return (getTotalTiles() - (1 + getProcessCount() - proc_num));
    else
-      return INVALID_CORE_ID;
+      return INVALID_TILE_ID;
 }
 
-UInt32 Config::computeCoreIDLength(UInt32 core_count)
+tile_id_t Config::getCurrentThreadSpawnerTileNum()
 {
-   UInt32 num_bits = ceilLog2(core_count);
+   if (m_simulation_mode == FULL)
+      return (getTotalTiles() - (1 + getProcessCount() - getCurrentProcessNum()));
+   else
+      return INVALID_TILE_ID;
+}
+
+UInt32 Config::computeTileIDLength(UInt32 tile_count)
+{
+   UInt32 num_bits = ceilLog2(tile_count);
    if ((num_bits % 8) == 0)
       return (num_bits / 8);
    else
       return (num_bits / 8) + 1;
 }
 
-void Config::GenerateCoreMap()
+void Config::GenerateTileMap()
 {
-   m_proc_to_core_list_map = new CoreList[m_num_processes];
-   m_core_to_proc_map.resize(m_total_cores);
+   m_proc_to_tile_list_map = new TileList[m_num_processes];
+   m_tile_to_proc_map.resize(m_total_tiles);
 
-   // Stripe the cores across the processes
+   // Stripe the tiles across the processes
    UInt32 current_proc = 0;
-   for (UInt32 i = 0; i < (m_total_cores - m_num_processes - 1) ; i++)
+   for (UInt32 i = 0; i < (m_total_tiles - m_num_processes - 1) ; i++)
    {
-      m_core_to_proc_map [i] = current_proc;
-      m_proc_to_core_list_map[current_proc].push_back(i);
+      m_tile_to_proc_map [i] = current_proc;
+      m_proc_to_tile_list_map[current_proc].push_back(i);
       current_proc++;
       current_proc %= m_num_processes;
    }
 
-   // Assign the thread-spawners to cores
-   // Thread-spawners occupy core-id's (m_total_cores - m_num_processes - 1) to (m_total_cores - 2)
+   // Assign the thread-spawners to tiles
+   // Thread-spawners occupy tile-id's (m_total_tiles - m_num_processes - 1) to (m_total_tiles - 2)
    current_proc = 0;
-   for (UInt32 i = (m_total_cores - m_num_processes - 1); i < (m_total_cores - 1); i++)
+   for (UInt32 i = (m_total_tiles - m_num_processes - 1); i < (m_total_tiles - 1); i++)
    {
-      m_core_to_proc_map[i] = current_proc;
-      m_proc_to_core_list_map[current_proc].push_back(i);
+      m_tile_to_proc_map[i] = current_proc;
+      m_proc_to_tile_list_map[current_proc].push_back(i);
       current_proc++;
       current_proc %= m_num_processes;
    }
    
    // Add one for the MCP
-   m_proc_to_core_list_map[0].push_back(m_total_cores - 1);
-   m_core_to_proc_map[m_total_cores - 1] = 0;
+   m_proc_to_tile_list_map[0].push_back(m_total_tiles - 1);
+   m_tile_to_proc_map[m_total_tiles - 1] = 0;
 }
 
-void Config::logCoreMap()
+void Config::logTileMap()
 {
    // Log the map we just created
    LOG_PRINT("Process num: %d\n", m_num_processes);
    for (UInt32 i=0; i < m_num_processes; i++)
    {
-      LOG_ASSERT_ERROR(!m_proc_to_core_list_map[i].empty(),
-                       "Process %u assigned zero cores.", i);
+      LOG_ASSERT_ERROR(!m_proc_to_tile_list_map[i].empty(),
+                       "Process %u assigned zero tiles.", i);
 
       stringstream ss;
-      ss << "Process " << i << ": (" << m_proc_to_core_list_map[i].size() << ") ";
-      for (CLCI m = m_proc_to_core_list_map[i].begin(); m != m_proc_to_core_list_map[i].end(); m++)
+      ss << "Process " << i << ": (" << m_proc_to_tile_list_map[i].size() << ") ";
+      for (TLCI m = m_proc_to_tile_list_map[i].begin(); m != m_proc_to_tile_list_map[i].end(); m++)
          ss << "[" << *m << "]";
       LOG_PRINT(ss.str().c_str());
    }
 }
 
-SInt32 Config::getIndexFromCoreID(UInt32 proc_num, core_id_t core_id)
+SInt32 Config::getIndexFromTileID(UInt32 proc_num, tile_id_t tile_id)
 { 
-   CoreList core_list = getCoreListForProcess(proc_num);
-   for (UInt32 i = 0; i < core_list.size(); i++)
+   TileList tile_list = getTileListForProcess(proc_num);
+   for (UInt32 i = 0; i < tile_list.size(); i++)
    {
-      if (core_list[i] == core_id)
+      if (tile_list[i] == tile_id)
          return (SInt32) i;
    }
    return -1;
 }
 
-core_id_t Config::getCoreIDFromIndex(UInt32 proc_num, SInt32 index)
+tile_id_t Config::getTileIDFromIndex(UInt32 proc_num, SInt32 index)
 {
-   CoreList core_list = getCoreListForProcess(proc_num);
-   if (index < ((SInt32) core_list.size()))
+   TileList tile_list = getTileListForProcess(proc_num);
+   if (index < ((SInt32) tile_list.size()))
    {
-      return core_list[index];
+      return tile_list[index];
    }
    else
    {
@@ -249,6 +251,11 @@ bool Config::getEnablePowerModeling() const
    return (bool)m_knob_enable_power_modeling;
 }
 
+bool Config::getEnablePepCores() const
+{
+   return (bool)m_knob_enable_pep_cores;
+}
+
 std::string Config::getOutputFileName() const
 {
    return formatOutputFileName(m_knob_output_file);
@@ -259,15 +266,15 @@ std::string Config::formatOutputFileName(string filename) const
    return Sim()->getCfg()->getString("general/output_dir",".") + "/" + filename;
 }
 
-void Config::updateCommToCoreMap(UInt32 comm_id, core_id_t core_id)
+void Config::updateCommToTileMap(UInt32 comm_id, tile_id_t tile_id)
 {
-   m_comm_to_core_map[comm_id] = core_id;
+   m_comm_to_tile_map[comm_id] = tile_id;
 }
 
-UInt32 Config::getCoreFromCommId(UInt32 comm_id)
+UInt32 Config::getTileFromCommId(UInt32 comm_id)
 {
-   CommToCoreMap::iterator it = m_comm_to_core_map.find(comm_id);
-   return it == m_comm_to_core_map.end() ? INVALID_CORE_ID : it->second;
+   CommToTileMap::iterator it = m_comm_to_tile_map.find(comm_id);
+   return it == m_comm_to_tile_map.end() ? INVALID_TILE_ID : it->second;
 }
 
 Config::SimulationMode Config::parseSimulationMode(string mode)
@@ -287,9 +294,9 @@ void Config::parseCoreParameters()
    // Default values are as follows:
    // 1) Number of cores -> Number of application cores
    // 2) Frequency -> 1 GHz
-   // 3) Tile Type -> simple
+   // 3) Core Type -> simple
 
-   const UInt32 DEFAULT_NUM_CORES = getApplicationCores();
+   const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
    const float DEFAULT_FREQUENCY = 1;
    const string DEFAULT_CORE_TYPE = "magic";
    const string DEFAULT_CACHE_TYPE = "T1";
@@ -373,23 +380,23 @@ void Config::parseCoreParameters()
       }
       num_initialized_cores += num_cores;
 
-      if (num_initialized_cores > getApplicationCores())
+      if (num_initialized_cores > getApplicationTiles())
       {
          fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-            num_initialized_cores, getApplicationCores());
+            num_initialized_cores, getApplicationTiles());
          exit(EXIT_FAILURE);
       }
    }
    
-   if (num_initialized_cores != getApplicationCores())
+   if (num_initialized_cores != getApplicationTiles())
    {
       fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-         num_initialized_cores, getApplicationCores());
+         num_initialized_cores, getApplicationTiles());
       exit(EXIT_FAILURE);
    }
 
    // MCP, thread spawner and misc cores
-   for (UInt32 i = getApplicationCores(); i < getTotalCores(); i++)
+   for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
       m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
                DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
@@ -399,11 +406,11 @@ void Config::parseCoreParameters()
 void Config::parsePepCoreParameters()
 {
    // Default values are as follows:
-   // 1) Number of cores -> Number of application cores
+   // 1) Number of Pep cores -> Number of application tiles
    // 2) Frequency -> 1 GHz
-   // 3) Tile Type -> simple
+   // 3) Core Type -> simple
 
-   const UInt32 DEFAULT_NUM_CORES = getApplicationCores();
+   const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
    const float DEFAULT_FREQUENCY = 1;
    const string DEFAULT_CORE_TYPE = "none";
    const string DEFAULT_CACHE_TYPE = "T1";
@@ -434,10 +441,10 @@ void Config::parsePepCoreParameters()
       }
       num_initialized_pep_cores += num_cores;
 
-      if (num_initialized_pep_cores > getApplicationCores())
+      if (num_initialized_pep_cores > getApplicationTiles())
       {
          fprintf(stderr, "1num initialized cores(%u), num application cores(%u)\n",
-            num_initialized_pep_cores, getApplicationCores());
+            num_initialized_pep_cores, getApplicationTiles());
          exit(EXIT_FAILURE);
       }
    }
@@ -507,24 +514,24 @@ void Config::parsePepCoreParameters()
          }
          num_initialized_pep_cores += num_cores;
 
-         if (num_initialized_pep_cores > getApplicationCores())
+         if (num_initialized_pep_cores > getApplicationTiles())
          {
             fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-               num_initialized_pep_cores, getApplicationCores());
+               num_initialized_pep_cores, getApplicationTiles());
             exit(EXIT_FAILURE);
          }
       }
    }
 
-   if (num_initialized_pep_cores != getApplicationCores())
+   if (num_initialized_pep_cores != getApplicationTiles())
    {
       fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-         num_initialized_pep_cores, getApplicationCores());
+         num_initialized_pep_cores, getApplicationTiles());
       exit(EXIT_FAILURE);
    }
 
    // MCP, thread spawner and misc cores
-   for (UInt32 i = getApplicationCores(); i < getTotalCores(); i++)
+   for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
       m_pep_core_parameters_vec.push_back(PepCoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
                DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE/*, DEFAULT_CACHE_TYPE*/));
@@ -559,125 +566,125 @@ void Config::parseNetworkParameters()
    }
 }
 
-string Config::getCoreType(core_id_t core_id)
+string Config::getCoreType(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
-         "m_core_parameters_vec.size(%u), total cores(%u)",
-         m_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
+         "m_core_parameters_vec.size(%u), total tiles(%u)",
+         m_core_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[core_id].getType();
+   return m_core_parameters_vec[tile_id].getType();
 }
 
-string Config::getL1ICacheType(core_id_t core_id)
+string Config::getL1ICacheType(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
-         "m_core_parameters_vec.size(%u), total cores(%u)",
-         m_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
+         "m_core_parameters_vec.size(%u), total tiles(%u)",
+         m_core_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[core_id].getL1ICacheType();
+   return m_core_parameters_vec[tile_id].getL1ICacheType();
 }
 
-string Config::getL1DCacheType(core_id_t core_id)
+string Config::getL1DCacheType(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
-         "m_core_parameters_vec.size(%u), total cores(%u)",
-         m_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
+         "m_core_parameters_vec.size(%u), total tiles(%u)",
+         m_core_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[core_id].getL1DCacheType();
+   return m_core_parameters_vec[tile_id].getL1DCacheType();
 }
 
-string Config::getL2CacheType(core_id_t core_id)
+string Config::getL2CacheType(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
-         "m_core_parameters_vec.size(%u), total cores(%u)",
-         m_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
+         "m_core_parameters_vec.size(%u), total tiles(%u)",
+         m_core_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[core_id].getL2CacheType();
+   return m_core_parameters_vec[tile_id].getL2CacheType();
 }
 
-volatile float Config::getCoreFrequency(core_id_t core_id)
+volatile float Config::getCoreFrequency(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
-         "m_core_parameters_vec.size(%u), total cores(%u)",
-         m_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
+         "m_core_parameters_vec.size(%u), total tiles(%u)",
+         m_core_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[core_id].getFrequency();
+   return m_core_parameters_vec[tile_id].getFrequency();
 }
 
-void Config::setCoreFrequency(core_id_t core_id, volatile float frequency)
+void Config::setCoreFrequency(tile_id_t tile_id, volatile float frequency)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalCores(),
-         "m_core_parameters_vec.size(%u), total cores(%u)",
-         m_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
+         "m_core_parameters_vec.size(%u), total tiles(%u)",
+         m_core_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[core_id].setFrequency(frequency);
+   return m_core_parameters_vec[tile_id].setFrequency(frequency);
 }
 
-string Config::getPepCoreType(core_id_t core_id)
+string Config::getPepCoreType(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
-         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
-         m_pep_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
+         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
+         m_pep_core_parameters_vec.size(), getTotalTiles());
 
-   return m_pep_core_parameters_vec[core_id].getType();
+   return m_pep_core_parameters_vec[tile_id].getType();
 }
 
-string Config::getPepL1ICacheType(core_id_t core_id)
+string Config::getPepL1ICacheType(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
-         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
-         m_pep_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
+         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
+         m_pep_core_parameters_vec.size(), getTotalTiles());
 
-   return m_pep_core_parameters_vec[core_id].getL1ICacheType();
+   return m_pep_core_parameters_vec[tile_id].getL1ICacheType();
 }
 
-string Config::getPepL1DCacheType(core_id_t core_id)
+string Config::getPepL1DCacheType(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
-         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
-         m_pep_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
+         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
+         m_pep_core_parameters_vec.size(), getTotalTiles());
 
-   return m_pep_core_parameters_vec[core_id].getL1DCacheType();
+   return m_pep_core_parameters_vec[tile_id].getL1DCacheType();
 }
 
-volatile float Config::getPepCoreFrequency(core_id_t core_id)
+volatile float Config::getPepCoreFrequency(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
-         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
-         m_pep_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
+         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
+         m_pep_core_parameters_vec.size(), getTotalTiles());
 
-   return m_pep_core_parameters_vec[core_id].getFrequency();
+   return m_pep_core_parameters_vec[tile_id].getFrequency();
 }
 
-void Config::setPepCoreFrequency(core_id_t core_id, volatile float frequency)
+void Config::setPepCoreFrequency(tile_id_t tile_id, volatile float frequency)
 {
-   LOG_ASSERT_ERROR(core_id < ((SInt32) getTotalCores()),
-         "core_id(%i), total cores(%u)", core_id, getTotalCores());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalCores(),
-         "m_pep_core_parameters_vec.size(%u), total cores(%u)",
-         m_pep_core_parameters_vec.size(), getTotalCores());
+   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
+         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
+         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
+         m_pep_core_parameters_vec.size(), getTotalTiles());
 
-   return m_pep_core_parameters_vec[core_id].setFrequency(frequency);
+   return m_pep_core_parameters_vec[tile_id].setFrequency(frequency);
 }
 
 string Config::getNetworkType(SInt32 network_id)
@@ -689,32 +696,32 @@ string Config::getNetworkType(SInt32 network_id)
    return m_network_parameters_vec[network_id].getType();
 }
 
-UInt32 Config::getNearestAcceptableCoreCount(UInt32 core_count)
+UInt32 Config::getNearestAcceptableTileCount(UInt32 tile_count)
 {
-   UInt32 nearest_acceptable_core_count = 0;
+   UInt32 nearest_acceptable_tile_count = 0;
    
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
-      pair<bool,SInt32> core_count_constraints = NetworkModel::computeCoreCountConstraints(network_model, (SInt32) core_count);
-      if (core_count_constraints.first)
+      pair<bool,SInt32> tile_count_constraints = NetworkModel::computeTileCountConstraints(network_model, (SInt32) tile_count);
+      if (tile_count_constraints.first)
       {
-         // Network Model has core count constraints
-         if ((nearest_acceptable_core_count != 0) && 
-             (core_count_constraints.second != (SInt32) nearest_acceptable_core_count))
+         // Network Model has tile count constraints
+         if ((nearest_acceptable_tile_count != 0) && 
+             (tile_count_constraints.second != (SInt32) nearest_acceptable_tile_count))
          {
             fprintf(stderr, "Problem using the network models specified in the configuration file\n");
             exit(EXIT_FAILURE);
          }
          else
          {
-            nearest_acceptable_core_count = core_count_constraints.second;
+            nearest_acceptable_tile_count = tile_count_constraints.second;
          }
       }
    }
 
-   if (nearest_acceptable_core_count == 0)
-      nearest_acceptable_core_count = core_count;
+   if (nearest_acceptable_tile_count == 0)
+      nearest_acceptable_tile_count = tile_count;
 
-   return nearest_acceptable_core_count;
+   return nearest_acceptable_tile_count;
 }

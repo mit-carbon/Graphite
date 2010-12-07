@@ -32,7 +32,7 @@ static UInt64 getTime()
 static FILE* getFileDescriptor()
 {
    Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   core_id_t id = tile->getId();
+   tile_id_t id = tile->getId();
 
    if (!tile) return NULL;
 
@@ -55,7 +55,7 @@ static VOID traceProgress()
    UInt64* counter_ptr = (UInt64*) PIN_GetThreadData(threadCounterKey);
    UInt64 counter = *counter_ptr;
 
-   CorePerfModel *pm = Sim()->getTileManager()->getCurrentTile()->getPerformanceModel();
+   CorePerfModel *pm = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
 
    UInt64 cycles = pm->getCycleCount();
 
@@ -95,7 +95,7 @@ VOID initProgressTrace()
 
    applicationStartTime = getTime();
 
-   files.resize(Sim()->getConfig()->getTotalCores());
+   files.resize(Sim()->getConfig()->getTotalTiles());
    for (unsigned int i = 0; i < files.size(); i++)
       files[i] = NULL;
 

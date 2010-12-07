@@ -13,34 +13,34 @@ SmTransport::SmTransport()
    Config::getSingleton()->setProcessNum(0);
 
    m_global_node = new SmNode(-1, this);
-   m_core_nodes = new SmNode* [ Config::getSingleton()->getNumLocalCores() ];
-   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
-      m_core_nodes[i] = NULL;
+   m_tile_nodes = new SmNode* [ Config::getSingleton()->getNumLocalTiles() ];
+   for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalTiles(); i++)
+      m_tile_nodes[i] = NULL;
 }
 
 SmTransport::~SmTransport()
 {
    // The networks actually delete the Transport::Nodes, so we
    // shouldn't do it ourselves.
-   // for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalCores(); i++)
-   //    delete m_core_nodes[i];
+   // for (UInt32 i = 0; i < Config::getSingleton()->getNumLocalTiles(); i++)
+   //    delete m_tile_nodes[i];
 
-   delete [] m_core_nodes;
+   delete [] m_tile_nodes;
    delete m_global_node;
 }
 
-Transport::Node* SmTransport::createNode(core_id_t core_id)
+Transport::Node* SmTransport::createNode(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
-                    "Request index out of range: %d", core_id);
-   LOG_ASSERT_ERROR(m_core_nodes[core_id] == NULL,
-                    "Transport already allocated for id: %d.", core_id);
+   LOG_ASSERT_ERROR((UInt32)tile_id < Config::getSingleton()->getNumLocalTiles(),
+                    "Request index out of range: %d", tile_id);
+   LOG_ASSERT_ERROR(m_tile_nodes[tile_id] == NULL,
+                    "Transport already allocated for id: %d.", tile_id);
 
-   m_core_nodes[core_id] = new SmNode(core_id, this);
+   m_tile_nodes[tile_id] = new SmNode(tile_id, this);
 
-   LOG_PRINT("Created node: %p on id: %d", m_core_nodes[core_id], core_id);
+   LOG_PRINT("Created node: %p on id: %d", m_tile_nodes[tile_id], tile_id);
 
-   return m_core_nodes[core_id];
+   return m_tile_nodes[tile_id];
 }
 
 void SmTransport::barrier()
@@ -53,33 +53,33 @@ Transport::Node* SmTransport::getGlobalNode()
    return m_global_node;
 }
 
-SmTransport::SmNode* SmTransport::getNodeFromId(core_id_t core_id)
+SmTransport::SmNode* SmTransport::getNodeFromId(tile_id_t tile_id)
 {
-   LOG_ASSERT_ERROR((UInt32)core_id < Config::getSingleton()->getNumLocalCores(),
-                    "Tile id out of range: %d", core_id);
-   return m_core_nodes[core_id];
+   LOG_ASSERT_ERROR((UInt32)tile_id < Config::getSingleton()->getNumLocalTiles(),
+                    "Tile id out of range: %d", tile_id);
+   return m_tile_nodes[tile_id];
 }
 
-void SmTransport::clearNodeForId(core_id_t core_id)
+void SmTransport::clearNodeForId(tile_id_t tile_id)
 {
    // This is called upon deletion of the node, so we should simply
    // not keep around a dead pointer.
-   if ((UInt32)core_id < Config::getSingleton()->getNumLocalCores())
-      m_core_nodes[core_id] = NULL;
+   if ((UInt32)tile_id < Config::getSingleton()->getNumLocalTiles())
+      m_tile_nodes[tile_id] = NULL;
 }
 
 // -- SmTransportNode -- //
 
-SmTransport::SmNode::SmNode(core_id_t core_id, SmTransport *smt)
-   : Node(core_id)
+SmTransport::SmNode::SmNode(tile_id_t tile_id, SmTransport *smt)
+   : Node(tile_id)
    , m_smt(smt)
 {
 }
 
 SmTransport::SmNode::~SmNode()
 {
-   LOG_ASSERT_WARNING(m_queue.empty(), "Unread messages in queue for tile: %d", getCoreId());
-   m_smt->clearNodeForId(getCoreId());
+   LOG_ASSERT_WARNING(m_queue.empty(), "Unread messages in queue for tile: %d", getTileId());
+   m_smt->clearNodeForId(getTileId());
 }
 
 void SmTransport::SmNode::globalSend(SInt32 dest_proc, const void *buffer, UInt32 length)

@@ -45,12 +45,12 @@ namespace PrL1PrL2DramDirectoryMOSI
          CachePerfModel* m_l2_cache_perf_model;
 
          // Get Packet Type for a message
-         PacketType getPacketType(core_id_t sender, core_id_t receiver);
+         PacketType getPacketType(tile_id_t sender, tile_id_t receiver);
          // Parse Network Type
          PacketType parseNetworkType(std::string& network_type);
 
       public:
-         MemoryManager(Tile* core, Network* network, ShmemPerfModel* shmem_perf_model);
+         MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
          ~MemoryManager();
 
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
@@ -64,15 +64,23 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          bool coreInitiateMemoryAccess(
                MemComponent::component_t mem_component,
-               Tile::lock_signal_t lock_signal,
-               Tile::mem_op_t mem_op_type,
+               Core::lock_signal_t lock_signal,
+               Core::mem_op_t mem_op_type,
                IntPtr address, UInt32 offset,
                Byte* data_buf, UInt32 data_length,
                bool modeled);
 
+         virtual bool pepCoreInitiateMemoryAccess(
+               MemComponent::component_t mem_component,
+               Core::lock_signal_t lock_signal,
+               Core::mem_op_t mem_op_type,
+               IntPtr address, UInt32 offset,
+               Byte* data_buf, UInt32 data_length,
+               bool modeled) { LOG_ASSERT_ERROR(false, "No PEP cores in this cache model!"); return false;}
+
          void handleMsgFromNetwork(NetPacket& packet);
 
-         void sendMsg(core_id_t receiver, ShmemMsg& shmem_msg);
+         void sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg);
          void broadcastMsg(ShmemMsg& shmem_msg);
        
          void updateInternalVariablesOnFrequencyChange(volatile float frequency);
@@ -83,7 +91,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt32 getModeledLength(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
 
-         core_id_t getShmemRequester(const void* pkt_data)
+         tile_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
          void outputSummary(std::ostream &os);

@@ -72,12 +72,12 @@ void Simulator::start()
 {
    LOG_PRINT("In Simulator ctor.");
 
-   m_config.logCoreMap();
+   m_config.logTileMap();
 
    // Create Orion Config Object
    string orion_cfg_file = "./contrib/orion/orion.cfg";
    OrionConfig::allocate(orion_cfg_file);
-   // OrionConfig::getSingleton()->print_config(cout);
+   //OrionConfig::getSingleton()->print_config(cout);
  
    m_transport = Transport::create();
    m_tile_manager = new TileManager();
@@ -86,7 +86,7 @@ void Simulator::start()
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
 
-   // Floating Point Support
+   //// Floating Point Support
    Fxsupport::allocate();
 
    startMCP();
@@ -212,14 +212,14 @@ void Simulator::deallocateProcess()
 
 void Simulator::startMCP()
 {
-   if (m_config.getCurrentProcessNum() != m_config.getProcessNumForCore(Config::getSingleton()->getMCPCoreNum()))
+   if (m_config.getCurrentProcessNum() != m_config.getProcessNumForTile(Config::getSingleton()->getMCPTileNum()))
       return;
 
    LOG_PRINT("Creating new MCP object in process %i", m_config.getCurrentProcessNum());
 
    // FIXME: Can't the MCP look up its network itself in the
    // constructor?
-   Tile* mcp_core = m_tile_manager->getTileFromID(m_config.getMCPCoreNum());
+   Tile* mcp_core = m_tile_manager->getTileFromID(m_config.getMCPTileNum());
    LOG_ASSERT_ERROR(mcp_core, "Could not find the MCP's core!");
 
    Network & mcp_network = *(mcp_core->getNetwork());
@@ -231,7 +231,7 @@ void Simulator::startMCP()
 
 void Simulator::endMCP()
 {
-   if (m_config.getCurrentProcessNum() == m_config.getProcessNumForCore(m_config.getMCPCoreNum()))
+   if (m_config.getCurrentProcessNum() == m_config.getProcessNumForTile(m_config.getMCPTileNum()))
       m_mcp->finish();
 }
 
@@ -243,14 +243,14 @@ bool Simulator::finished()
 void Simulator::enablePerformanceModelsInCurrentProcess()
 {
    Sim()->startTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
       Sim()->getTileManager()->getTileFromIndex(i)->enablePerformanceModels();
 }
 
 void Simulator::disablePerformanceModelsInCurrentProcess()
 {
    Sim()->stopTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalCores(); i++)
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
       Sim()->getTileManager()->getTileFromIndex(i)->disablePerformanceModels();
 }
 

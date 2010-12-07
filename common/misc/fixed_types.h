@@ -3,6 +3,13 @@
 
 #include <stdint.h>
 
+// Why are we using a C library...
+//#ifdef __cplusplus
+//extern "C++" {
+//#include <utility>
+//}
+//#endif
+
 typedef uint64_t UInt64;
 typedef uint32_t UInt32;
 typedef uint16_t UInt16;
@@ -19,11 +26,20 @@ typedef UInt8 Boolean;
 typedef uintptr_t IntPtr;
 
 typedef uintptr_t carbon_reg_t;
+typedef enum core_type_t { MAIN_CORE_TYPE = 0, PEP_CORE_TYPE } core_type_t;
 
 // Carbon core types
-typedef SInt32 core_id_t;
+//typedef std::pair<SInt32, UInt32> core_id_t;
+typedef struct {
+   SInt32 first;
+   UInt32 second;
+} core_id_t;
 
-#define INVALID_CORE_ID ((core_id_t) -1)
+typedef SInt32 tile_id_t;
+
+#define INVALID_CORE_ID ((core_id_t) {-1,0})
+#define INVALID_TILE_ID ((tile_id_t) -1)
 #define INVALID_ADDRESS  ((IntPtr) -1)
+
 
 #endif

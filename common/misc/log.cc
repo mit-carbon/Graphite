@@ -20,7 +20,7 @@ static string formatFileName(const char* s)
 }
 
 Log::Log(Config &config)
-   : _coreCount(config.getTotalCores())
+   : _tileCount(config.getTotalTiles())
    , _startTime(0)
 {
    assert(Config::getSingleton()->getProcessCount() != 0);
@@ -39,18 +39,21 @@ Log::~Log()
 {
    _singleton = NULL;
 
-   for (core_id_t i = 0; i < _coreCount; i++)
+   for (tile_id_t i = 0; i < _tileCount; i++)
    {
-      if (_coreFiles[i])
-         fclose(_coreFiles[i]);
+      if (_tileFiles[i])
+         fclose(_tileFiles[i]);
       if (_simFiles[i])
          fclose(_simFiles[i]);
+      if (_helperFiles[i])
+         fclose(_helperFiles[i]);
    }
 
-   delete [] _coreLocks;
+   delete [] _tileLocks;
    delete [] _simLocks;
-   delete [] _coreFiles;
+   delete [] _tileFiles;
    delete [] _simFiles;
+   delete [] _helperFiles;
 
    if (_systemFile)
       fclose(_systemFile);
@@ -78,17 +81,20 @@ bool Log::isLoggingEnabled()
 
 void Log::initFileDescriptors()
 {
-   _coreFiles = new FILE* [_coreCount];
-   _simFiles = new FILE* [_coreCount];
+   _tileFiles = new FILE* [_tileCount];
+   _simFiles = new FILE* [_tileCount];
+   _helperFiles = new FILE* [_tileCount];
 
-   for (core_id_t i = 0; i < _coreCount; i++)
+   for (tile_id_t i = 0; i < _tileCount; i++)
    {
-      _coreFiles[i] = NULL;
+      _tileFiles[i] = NULL;
       _simFiles[i] = NULL;
+      _helperFiles[i] = NULL;
    }
 
-   _coreLocks = new Lock [_coreCount];
-   _simLocks = new Lock [_coreCount];
+   _tileLocks = new Lock [_tileCount];
+   _simLocks = new Lock [_tileCount];
+   _helperLocks = new Lock [_tileCount];
 
    _systemFile = NULL;
 
@@ -182,25 +188,27 @@ UInt64 Log::getTimestamp()
    return time - _startTime;
 }
 
-void Log::discoverCore(core_id_t *core_id, bool *sim_thread)
+void Log::discoverTile(tile_id_t *tile_id, bool *sim_thread, bool *helper_thread)
 {
    TileManager *tile_manager;
 
    if (!Sim() || !(tile_manager = Sim()->getTileManager()))
    {
 
-      *core_id = INVALID_CORE_ID;
+      *tile_id = INVALID_TILE_ID;
       *sim_thread = false;
+      *helper_thread = false;
       return;
    }
    else
    {
-      *core_id = tile_manager->getCurrentCoreID();
+      *tile_id = tile_manager->getCurrentTileID();
       *sim_thread = tile_manager->amiSimThread();
+      *helper_thread = tile_manager->amiHelperThread();
    }
 }
 
-void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
+void Log::getFile(tile_id_t tile_id, bool sim_thread, bool helper_thread, FILE **file, Lock **lock)
 {
    // we use on-demand file allocation to prevent contention between
    // processes for files
@@ -208,7 +216,7 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
    *file = NULL;
    *lock = NULL;
 
-   if (core_id == INVALID_CORE_ID)
+   if (tile_id == INVALID_TILE_ID)
    {
       // System file -- use process num if available
       UInt32 procNum = Config::getSingleton()->getCurrentProcessNum();
@@ -236,33 +244,48 @@ void Log::getFile(core_id_t core_id, bool sim_thread, FILE **file, Lock **lock)
    else if (sim_thread)
    {
       // sim thread file
-      if (_simFiles[core_id] == NULL)
+      if (_simFiles[tile_id] == NULL)
       {
-         assert(core_id < _coreCount);
+         assert(tile_id < _tileCount);
          char filename[256];
-         sprintf(filename, "sim_%u.log", core_id);
-         _simFiles[core_id] = fopen(formatFileName(filename).c_str(), "w");
-         assert(_simFiles[core_id] != NULL);
+         sprintf(filename, "sim_%u.log", tile_id);
+         _simFiles[tile_id] = fopen(formatFileName(filename).c_str(), "w");
+         assert(_simFiles[tile_id] != NULL);
       }
 
-      *file = _simFiles[core_id];
-      *lock = &_simLocks[core_id];
+      *file = _simFiles[tile_id];
+      *lock = &_simLocks[tile_id];
+   }
+   else if (helper_thread)
+   {
+      // helper thread file
+      if (_helperFiles[tile_id] == NULL)
+      {
+         assert(tile_id < _tileCount);
+         char filename[256];
+         sprintf(filename, "helper_%u.log", tile_id);
+         _helperFiles[tile_id] = fopen(formatFileName(filename).c_str(), "w");
+         assert(_helperFiles[tile_id] != NULL);
+      }
+
+      *file = _helperFiles[tile_id];
+      *lock = &_helperLocks[tile_id];
    }
    else
    {
       // tile file
-      if (_coreFiles[core_id] == NULL)
+      if (_tileFiles[tile_id] == NULL)
       {
-         assert(core_id < _coreCount);
+         assert(tile_id < _tileCount);
          char filename[256];
-         sprintf(filename, "app_%u.log", core_id);
-         _coreFiles[core_id] = fopen(formatFileName(filename).c_str(), "w");
-         assert(_coreFiles[core_id] != NULL);
+         sprintf(filename, "app_%u.log", tile_id);
+         _tileFiles[tile_id] = fopen(formatFileName(filename).c_str(), "w");
+         assert(_tileFiles[tile_id] != NULL);
       }
 
       // Tile file
-      *file = _coreFiles[core_id];
-      *lock = &_coreLocks[core_id];
+      *file = _tileFiles[tile_id];
+      *lock = &_tileLocks[tile_id];
    }
 }
 
@@ -302,14 +325,15 @@ string Log::getModule(const char *filename)
 
 void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const char *format, ...)
 {
-   core_id_t core_id;
+   tile_id_t tile_id;
    bool sim_thread;
-   discoverCore(&core_id, &sim_thread);
+   bool helper_thread;
+   discoverTile(&tile_id, &sim_thread, &helper_thread);
    
    FILE *file;
    Lock *lock;
 
-   getFile(core_id, sim_thread, &file, &lock);
+   getFile(tile_id, sim_thread, helper_thread,&file, &lock);
    int tid = syscall(__NR_gettid);
 
 
@@ -317,8 +341,8 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
    char *p = message;
 
    // This is ugly, but it just prints the time stamp, process number, tile number, source file/line
-   if (core_id != INVALID_CORE_ID) // valid tile id
-      p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", (long long unsigned int) getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), core_id, (sim_thread ? "* " : "  "), source_file, source_line);
+   if (tile_id != INVALID_TILE_ID) // valid tile id
+      p += sprintf(p, "%-10llu [%5d]  (%2i) [%2i]%s[%s:%4d]  ", (long long unsigned int) getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), tile_id, (sim_thread ? "* " : "  "), source_file, source_line);
    else if (Config::getSingleton()->getCurrentProcessNum() != (UInt32)-1) // valid proc id
       p += sprintf(p, "%-10llu [%5d]  (%2i) [  ]  [%s:%4d]  ", (long long unsigned int) getTimestamp(), tid, Config::getSingleton()->getCurrentProcessNum(), source_file, source_line);
    else // who knows

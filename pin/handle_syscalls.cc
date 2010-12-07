@@ -2,7 +2,7 @@
 #include "fixed_types.h"
 #include "syscall_model.h"
 #include "simulator.h"
-#include "tile.h"
+#include "core.h"
 #include "tile_manager.h"
 #include <syscall.h>
 #include "redirect_memory.h"
@@ -109,29 +109,29 @@ VOID handleFutexSyscall (CONTEXT *ctx)
    LOG_PRINT("syscall_arg4 = 0x%x", args.arg4);
    LOG_PRINT("syscall_arg5 = 0x%x", args.arg5);
 
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
    
-   string core_null = tile ? "CORE != NULL" : "CORE == NULL";
+   string core_null = core ? "CORE != NULL" : "CORE == NULL";
    LOG_PRINT ("syscall_number %d, %s", syscall_number, core_null.c_str());
    
-   assert(tile != NULL);
+   assert(core != NULL);
 
-   tile->getSyscallMdl ()->runEnter (syscall_number, args);
+   core->getSyscallMdl ()->runEnter (syscall_number, args);
 }
 
 
 void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
    IntPtr syscall_number = PIN_GetSyscallNumber (ctx, syscall_standard);
    
-   string core_null = tile ? "CORE != NULL" : "CORE == NULL";
+   string core_null = core ? "CORE != NULL" : "CORE == NULL";
    LOG_PRINT("syscall_number %d, %s", syscall_number, core_null.c_str());
 
-   if (tile)
+   if (core)
    {
       // Save the syscall number
-      tile->getSyscallMdl()->saveSyscallNumber(syscall_number);
+      core->getSyscallMdl()->saveSyscallNumber(syscall_number);
       
       if (  (syscall_number == SYS_open) ||
             (syscall_number == SYS_read) ||
@@ -160,7 +160,7 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_munmap))
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
-         IntPtr new_syscall = tile->getSyscallMdl()->runEnter(syscall_number, args);
+         IntPtr new_syscall = core->getSyscallMdl()->runEnter(syscall_number, args);
          PIN_SetSyscallNumber (ctx, syscall_standard, new_syscall);
       }
       
@@ -287,11 +287,11 @@ void syscallEnterRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 
 void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
    
-   if (tile)
+   if (core)
    {
-      IntPtr syscall_number = tile->getSyscallMdl()->retrieveSyscallNumber();
+      IntPtr syscall_number = core->getSyscallMdl()->retrieveSyscallNumber();
       
       if (  (syscall_number == SYS_open) ||
             (syscall_number == SYS_read) ||
@@ -321,7 +321,7 @@ void syscallExitRunModel(CONTEXT *ctx, SYSCALL_STANDARD syscall_standard)
             (syscall_number == SYS_futex))
       {
          IntPtr old_return_val = PIN_GetSyscallReturn (ctx, syscall_standard);
-         IntPtr syscall_return = tile->getSyscallMdl()->runExit(old_return_val);
+         IntPtr syscall_return = core->getSyscallMdl()->runExit(old_return_val);
          PIN_SetContextReg (ctx, REG_GAX, syscall_return);
 
          LOG_PRINT("Syscall(%p) returned (%p)", syscall_number, syscall_return);
@@ -449,10 +449,10 @@ void contextChange (THREADID threadIndex, CONTEXT_CHANGE_REASON context_change_r
       // the simulated stack
       if (esp_to != esp_from)
       {
-         Tile *tile = Sim()->getTileManager()->getCurrentTile();
-         if (tile)
+         Core *core = Sim()->getTileManager()->getCurrentCore();
+         if (core)
          {
-            tile->accessMemory (Tile::NONE, Tile::WRITE, esp_to, (char*) esp_to, esp_from - esp_to);
+            core->accessMemory (Core::NONE, Core::WRITE, esp_to, (char*) esp_to, esp_from - esp_to);
          }
       }
    }
@@ -471,24 +471,24 @@ void contextChange (THREADID threadIndex, CONTEXT_CHANGE_REASON context_change_r
 
 void modifyRtsigprocmaskContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       sigset_t *set = (sigset_t*) args.arg1;
       sigset_t *oset = (sigset_t*) args.arg2;
 
       if (set)
       {
-         sigset_t *set_arg = (sigset_t*) tile->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) set, sizeof (sigset_t));
+         sigset_t *set_arg = (sigset_t*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) set, sizeof (sigset_t));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) set_arg);
       }
 
       if (oset)
       {
-         sigset_t *oset_arg = (sigset_t*) tile->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) oset, sizeof (sigset_t));
+         sigset_t *oset_arg = (sigset_t*) core->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) oset, sizeof (sigset_t));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) oset_arg);
       }
    }
@@ -496,16 +496,16 @@ void modifyRtsigprocmaskContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standar
 
 void restoreRtsigprocmaskContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
       sigset_t *set = (sigset_t*) args.arg1;
       sigset_t *oset = (sigset_t*) args.arg2;
       if (oset)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (2, (IntPtr) oset, sizeof (sigset_t));
+         core->getSyscallMdl()->copyArgFromBuffer (2, (IntPtr) oset, sizeof (sigset_t));
       }
       PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) set);
       PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) oset);
@@ -514,16 +514,16 @@ void restoreRtsigprocmaskContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standa
 
 void modifyRtsigsuspendContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       sigset_t *unewset = (sigset_t*) args.arg0;
       if (unewset)
       {
-         sigset_t *unewset_arg = (sigset_t*) tile->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) unewset, sizeof (sigset_t));
+         sigset_t *unewset_arg = (sigset_t*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) unewset, sizeof (sigset_t));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) unewset_arg);
       }
    }
@@ -531,11 +531,11 @@ void modifyRtsigsuspendContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard
 
 void restoreRtsigsuspendContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       sigset_t *unewset = (sigset_t*) args.arg0;
       PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) unewset);
@@ -544,24 +544,24 @@ void restoreRtsigsuspendContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standar
 
 void modifyRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
       
       struct sigaction *act = (struct sigaction*) args.arg1;
       struct sigaction *oact = (struct sigaction*) args.arg2;
 
       if (act)
       {
-         struct sigaction *act_arg = (struct sigaction*) tile->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) act, sizeof (struct sigaction));
+         struct sigaction *act_arg = (struct sigaction*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) act, sizeof (struct sigaction));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) act_arg);
       }
 
       if (oact)
       {
-         struct sigaction *oact_arg = (struct sigaction*) tile->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) oact, sizeof (struct sigaction));
+         struct sigaction *oact_arg = (struct sigaction*) core->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) oact, sizeof (struct sigaction));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) oact_arg);
       }
    }
@@ -569,18 +569,18 @@ void modifyRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void restoreRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       struct sigaction *act = (struct sigaction*) args.arg1;
       struct sigaction *oact = (struct sigaction*) args.arg2;
 
       if (oact)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (2, (IntPtr) oact, sizeof (struct sigaction));
+         core->getSyscallMdl()->copyArgFromBuffer (2, (IntPtr) oact, sizeof (struct sigaction));
       }
 
       PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) act);
@@ -590,24 +590,24 @@ void restoreRtsigactionContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard
 
 void modifyNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile ();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore ();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl ()->saveSyscallArgs (args);
+      core->getSyscallMdl ()->saveSyscallArgs (args);
 
       struct timespec *req = (struct timespec*) args.arg0;
       struct timespec *rem = (struct timespec*) args.arg1;
 
       if (req)
       {
-         struct timespec *req_arg = (struct timespec*) tile->getSyscallMdl ()->copyArgToBuffer (0, (IntPtr) req, sizeof (struct timespec));
+         struct timespec *req_arg = (struct timespec*) core->getSyscallMdl ()->copyArgToBuffer (0, (IntPtr) req, sizeof (struct timespec));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) req_arg);
       }
 
       if (rem)
       {
-         struct timespec *rem_arg = (struct timespec*) tile->getSyscallMdl ()->copyArgToBuffer (1, (IntPtr) rem, sizeof (struct timespec));
+         struct timespec *rem_arg = (struct timespec*) core->getSyscallMdl ()->copyArgToBuffer (1, (IntPtr) rem, sizeof (struct timespec));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) rem_arg);
       }
    }
@@ -615,18 +615,18 @@ void modifyNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void restoreNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       struct timespec *req = (struct timespec*) args.arg0;
       struct timespec *rem = (struct timespec*) args.arg1;
 
       if (rem)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) rem, sizeof (struct timespec));
+         core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) rem, sizeof (struct timespec));
       }
 
       PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) req);
@@ -636,17 +636,17 @@ void restoreNanosleepContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void modifyUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       struct utsname *buf = (struct utsname*) args.arg0;
 
       if (buf)
       {
-         struct utsname *buf_arg = (struct utsname*) tile->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) buf, sizeof (struct utsname));
+         struct utsname *buf_arg = (struct utsname*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) buf, sizeof (struct utsname));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) buf_arg);
       }
    }
@@ -654,17 +654,17 @@ void modifyUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void restoreUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       struct utsname *buf = (struct utsname*) args.arg0;
 
       if (buf)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer(0, (IntPtr) buf, sizeof (struct utsname));
+         core->getSyscallMdl()->copyArgFromBuffer(0, (IntPtr) buf, sizeof (struct utsname));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) buf);
       }
    }
@@ -672,17 +672,17 @@ void restoreUnameContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void modifySet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       struct user_desc *uinfo = (struct user_desc*) args.arg0;
 
       if (uinfo)
       {
-         struct user_desc *uinfo_arg = (struct user_desc*) tile->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) uinfo, sizeof (struct user_desc));
+         struct user_desc *uinfo_arg = (struct user_desc*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) uinfo, sizeof (struct user_desc));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) uinfo_arg);
       }
    }
@@ -690,17 +690,17 @@ void modifySet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_stand
 
 void restoreSet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       struct user_desc *uinfo = (struct user_desc*) args.arg0;
 
       if (uinfo)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) uinfo, sizeof (struct user_desc));
+         core->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) uinfo, sizeof (struct user_desc));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) uinfo);
       }
    }
@@ -708,11 +708,11 @@ void restoreSet_thread_areaContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_stan
 
 void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       LOG_PRINT("Clone Syscall: flags(0x%x), stack(0x%x), parent_tidptr(0x%x), child_tidptr(0x%x), tls(0x%x)",
             (IntPtr) args.arg0, (IntPtr) args.arg1, (IntPtr) args.arg2, (IntPtr) args.arg3, (IntPtr) args.arg4);
@@ -735,20 +735,20 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
       if (parent_tidptr)
       {
-         int *parent_tidptr_arg = (int*) tile->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) parent_tidptr, sizeof (int));
+         int *parent_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (2, (IntPtr) parent_tidptr, sizeof (int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr_arg);
       }
 
 #ifdef TARGET_IA32
       if (newtls)
       {
-         struct user_desc *newtls_arg = (struct user_desc*) tile->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) newtls, sizeof (struct user_desc));
+         struct user_desc *newtls_arg = (struct user_desc*) core->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) newtls, sizeof (struct user_desc));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls_arg);
       }
       
       if (child_tidptr)
       {
-         int *child_tidptr_arg = (int*) tile->getSyscallMdl()->copyArgToBuffer (4, (IntPtr) child_tidptr, sizeof (int));
+         int *child_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (4, (IntPtr) child_tidptr, sizeof (int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr_arg);
       }
 
@@ -757,7 +757,7 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 #ifdef TARGET_X86_64
       if (child_tidptr)
       {
-         int *child_tidptr_arg = (int*) tile->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) child_tidptr, sizeof (int));
+         int *child_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) child_tidptr, sizeof (int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) child_tidptr_arg);
       }
 #endif
@@ -766,28 +766,28 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       if (parent_tidptr)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (2, (IntPtr) parent_tidptr, sizeof(int));
+         core->getSyscallMdl()->copyArgFromBuffer (2, (IntPtr) parent_tidptr, sizeof(int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr);
       }
 
 #ifdef TARGET_IA32
       if (newtls)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (3, (IntPtr) newtls, sizeof(struct user_desc));
+         core->getSyscallMdl()->copyArgFromBuffer (3, (IntPtr) newtls, sizeof(struct user_desc));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls);
       }
 
       if (child_tidptr)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (4, (IntPtr) child_tidptr, sizeof(int));
+         core->getSyscallMdl()->copyArgFromBuffer (4, (IntPtr) child_tidptr, sizeof(int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr);
       }
 #endif
@@ -795,7 +795,7 @@ void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 #ifdef TARGET_X86_64
       if (child_tidptr)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (3, (IntPtr) child_tidptr, sizeof(int));
+         core->getSyscallMdl()->copyArgFromBuffer (3, (IntPtr) child_tidptr, sizeof(int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) child_tidptr);
       }
 #endif
@@ -807,17 +807,17 @@ void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void modifyTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       time_t *t = (time_t*) args.arg0;
 
       if (t)
       {
-         time_t *t_arg = (time_t*) tile->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) t, sizeof (time_t));
+         time_t *t_arg = (time_t*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) t, sizeof (time_t));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) t_arg);
       }
    }
@@ -825,17 +825,17 @@ void modifyTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void restoreTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       time_t *t = (time_t*) args.arg0;
 
       if (t)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) t, sizeof (time_t));
+         core->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) t, sizeof (time_t));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) t);
       }
    }
@@ -843,24 +843,24 @@ void restoreTimeContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void modifyGettimeofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       struct timeval *tv = (struct timeval*) args.arg0;
       struct timezone *tz = (struct timezone*) args.arg1;
 
       if (tv)
       {
-         struct timeval *tv_arg = (struct timeval*) tile->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) tv, sizeof (struct timeval));
+         struct timeval *tv_arg = (struct timeval*) core->getSyscallMdl()->copyArgToBuffer (0, (IntPtr) tv, sizeof (struct timeval));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) tv_arg);
       }
 
       if (tz)
       {
-         struct timezone *tz_arg = (struct timezone*) tile->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) tz, sizeof (struct timezone));
+         struct timezone *tz_arg = (struct timezone*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) tz, sizeof (struct timezone));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) tz_arg);
       }
    }
@@ -868,24 +868,24 @@ void modifyGettimeofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard
 
 void restoreGettimofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       struct timeval *tv = (struct timeval*) args.arg0;
       struct timezone *tz = (struct timezone*) args.arg1;
 
       if (tv)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) tv, sizeof (struct timeval));
+         core->getSyscallMdl()->copyArgFromBuffer (0, (IntPtr) tv, sizeof (struct timeval));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 0, (ADDRINT) tv);
       }
 
       if (tz)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) tz, sizeof (struct timezone));
+         core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) tz, sizeof (struct timezone));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) tz);
       }
    }
@@ -893,17 +893,17 @@ void restoreGettimofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard
 
 void modifyGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
 
       struct rlimit *rlim = (struct rlimit*) args.arg1;
 
       if (rlim)
       {
-         struct rlimit *rlim_arg = (struct rlimit*) tile->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) rlim, sizeof (struct rlimit));
+         struct rlimit *rlim_arg = (struct rlimit*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) rlim, sizeof (struct rlimit));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) rlim_arg);
       }
    }
@@ -911,17 +911,17 @@ void modifyGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void restoreGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       struct rlimit *rlim = (struct rlimit*) args.arg1;
 
       if (rlim)
       {
-         tile->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) rlim, sizeof(struct rlimit));
+         core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) rlim, sizeof(struct rlimit));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) rlim);
       }
    }
@@ -931,17 +931,17 @@ void restoreGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void modifyArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args = syscallArgs (ctxt, syscall_standard);
-      tile->getSyscallMdl()->saveSyscallArgs (args);
+      core->getSyscallMdl()->saveSyscallArgs (args);
       
       int code = (int) args.arg0;
       if ((code == ARCH_GET_FS) || (code == ARCH_GET_GS))
       {
          unsigned long *addr = (unsigned long*) args.arg1;
-         unsigned long *addr_arg = (unsigned long*) tile->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) addr, sizeof (unsigned long));
+         unsigned long *addr_arg = (unsigned long*) core->getSyscallMdl()->copyArgToBuffer (1, (IntPtr) addr, sizeof (unsigned long));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) addr_arg);
       }
    }
@@ -949,17 +949,17 @@ void modifyArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 
 void restoreArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
-   if (tile)
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   if (core)
    {
       SyscallMdl::syscall_args_t args;
-      tile->getSyscallMdl()->retrieveSyscallArgs (args);
+      core->getSyscallMdl()->retrieveSyscallArgs (args);
 
       int code = (int) args.arg0;
       if ((code == ARCH_GET_FS) || (code == ARCH_GET_GS))
       {
          unsigned long *addr = (unsigned long*) args.arg1;
-         tile->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) addr, sizeof (unsigned long));
+         core->getSyscallMdl()->copyArgFromBuffer (1, (IntPtr) addr, sizeof (unsigned long));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 1, (ADDRINT) addr);
       }
    }

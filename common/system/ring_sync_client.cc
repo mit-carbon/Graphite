@@ -1,8 +1,8 @@
 #include "ring_sync_client.h"
 #include "log.h"
 
-RingSyncClient::RingSyncClient(Tile* tile):
-   _tile(tile),
+RingSyncClient::RingSyncClient(Core* core):
+   _core(core),
    _cycle_count(0),
    _max_cycle_count(0)
 {}
@@ -18,7 +18,7 @@ RingSyncClient::synchronize(UInt64 time)
 
    _lock.acquire();
 
-   _cycle_count = _tile->getPerformanceModel()->getCycleCount();
+   _cycle_count = _core->getPerformanceModel()->getCycleCount();
 
    while (_cycle_count >= _max_cycle_count)
    {

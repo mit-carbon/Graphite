@@ -38,7 +38,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          UInt32 getCacheBlockSize() { return m_cache_block_size; }
          MemoryManager* getMemoryManager() { return m_memory_manager; }
          ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
-         UInt64 runDramPerfModel(core_id_t requester);
+         UInt64 runDramPerfModel(tile_id_t requester);
 
          void addToDramAccessCount(IntPtr address, access_t access_type);
          void printDramAccessCount(void);
@@ -56,7 +56,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          DramPerfModel* getDramPerfModel() { return m_dram_perf_model; }
 
-         void getDataFromDram(IntPtr address, core_id_t requester, Byte* data_buf);
-         void putDataToDram(IntPtr address, core_id_t requester, Byte* data_buf);
+         void getDataFromDram(IntPtr address, tile_id_t requester, Byte* data_buf);
+         void putDataToDram(IntPtr address, tile_id_t requester, Byte* data_buf);
    };
 }

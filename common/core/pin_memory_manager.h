@@ -15,7 +15,8 @@ class PinMemoryManager
       };
 
    private:
-      Tile *m_core;
+      //Core *m_core;
+      Tile *m_tile;
 
       // scratchpads are used to implement memory redirection for
       // all memory accesses that do not involve the stack, plus

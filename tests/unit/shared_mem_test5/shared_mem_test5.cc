@@ -1,8 +1,8 @@
 #include "carbon_user.h"
 
 #include "simulator.h"
-#include "tile_manager.h"
-#include "tile.h"
+#include "core_manager.h"
+#include "core.h"
 #include "memory_manager_base.h"
 
 #include "cache.h"
@@ -31,7 +31,7 @@
 void check(IntPtr address, DirectoryState::dstate_t dstate, core_id_t owner, unsigned int num_sharers, int tracked_sharers_list, int cached_val, int memory_val);
 bool isSharer(core_id_t i, int tracked_sharers_list);
 
-Tile** tile;
+Core** core;
 int* core_val;
 IntPtr address_0 = (IntPtr) 0x800;
 IntPtr address_1 = (IntPtr) 0x400;
@@ -48,19 +48,19 @@ int main(int argc, char *argv[])
    CarbonStartSim(argc, argv);
 
    unsigned int total_cores = Sim()->getConfig()->getTotalCores();
-   tile = new Tile*[total_cores];
+   core = new Core*[total_cores];
    core_val = new int[total_cores];
 
    // Let have 4 application cores for now
    for (core_id_t i = 0; i < total_cores; i++)
    {
-      tile[i] = Sim()->getTileManager()->getTileFromID(i);
+      core[i] = Sim()->getCoreManager()->getCoreFromID(i);
       core_val[i] = i * 100;
    }
 
    int buf = 0;
 
-   tile[1]->accessMemory(Tile::NONE, Tile::WRITE, address_0, (char*) &core_val[1], sizeof(core_val[1]));
+   core[1]->accessMemory(Core::NONE, Core::WRITE, address_0, (char*) &core_val[1], sizeof(core_val[1]));
    // Core1 writes address_0
    // Assertions:
    // [[address_0]]
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
    check(address_0, DirectoryState::MODIFIED, 1, 1, CORE1, 100, 0);
    printf("Test1 Passed\n");
 
-   tile[2]->accessMemory(Tile::NONE, Tile::READ, address_0, (char*) &buf, sizeof(buf));
+   core[2]->accessMemory(Core::NONE, Core::READ, address_0, (char*) &buf, sizeof(buf));
    // Core2 reads address_0 
    // Assertions:
    // [[address_0]]
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
    check(address_0, DirectoryState::OWNED, 1, 2, CORE1, 100, 0);
    printf("Test2 Passed\n");
 
-   tile[3]->accessMemory(Tile::NONE, Tile::READ, address_0, (char*) &buf, sizeof(buf));
+   core[3]->accessMemory(Core::NONE, Core::READ, address_0, (char*) &buf, sizeof(buf));
    // Core3 reads address_0
    // Assertions:
    // [[address_0]]
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
    check(address_0, DirectoryState::OWNED, 1, 3, CORE1, 100, 0);
    printf("Test3 Passed\n");
 
-   tile[1]->accessMemory(Tile::NONE, Tile::READ, address_1, (char*) &buf, sizeof(buf));
+   core[1]->accessMemory(Core::NONE, Core::READ, address_1, (char*) &buf, sizeof(buf));
    // Core1 reads address_1
    // Assertions:
    // [[address_0]]
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
    check(address_1, DirectoryState::SHARED, INVALID_CORE_ID, 1, CORE1, 0, 0);
    printf("Test4 Passed\n");
 
-   tile[2]->accessMemory(Tile::NONE, Tile::WRITE, address_0, (char*) &core_val[2], sizeof(core_val[2]));
+   core[2]->accessMemory(Core::NONE, Core::WRITE, address_0, (char*) &core_val[2], sizeof(core_val[2]));
    // Core2 writes address_0
    // Assertions:
    // [[address_0]]
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
    check(address_0, DirectoryState::MODIFIED, 2, 1, CORE2, 200, 100);
    printf("Test5 Passed\n");
    
-   tile[2]->accessMemory(Tile::NONE, Tile::READ, address_1, (char*) &buf, sizeof(buf));
+   core[2]->accessMemory(Core::NONE, Core::READ, address_1, (char*) &buf, sizeof(buf));
    // Core2 reads address_1
    // Assertions:
    // [[address_0]]
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
    check(address_1, DirectoryState::SHARED, INVALID_CORE_ID, 2, CORE1, 0, 0);  
    printf("Test6 Passed\n");
 
-   tile[3]->accessMemory(Tile::NONE, Tile::WRITE, address_1, (char*) &core_val[3], sizeof(core_val[3]));
+   core[3]->accessMemory(Core::NONE, Core::WRITE, address_1, (char*) &core_val[3], sizeof(core_val[3]));
    // Core3 writes address_1
    // Assertions:
    // [[address_1]]
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
    check(address_1, DirectoryState::MODIFIED, 3, 1, CORE3, 300, 0);
    printf("Test7 Passed\n");
 
-   tile[1]->accessMemory(Tile::NONE, Tile::READ, address_0, (char*) &buf, sizeof(buf));
+   core[1]->accessMemory(Core::NONE, Core::READ, address_0, (char*) &buf, sizeof(buf));
    // Core1 reads address_0
    // Assertions:
    // [[address_0]]
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
    check(address_0, DirectoryState::SHARED, INVALID_CORE_ID, 1, CORE1, 200, 200);
    printf("Test8 Passed\n");
 
-   tile[1]->accessMemory(Tile::NONE, Tile::WRITE, address_0, (char*) &core_val[1], sizeof(core_val[1]));
+   core[1]->accessMemory(Core::NONE, Core::WRITE, address_0, (char*) &core_val[1], sizeof(core_val[1]));
    // Core1 writes address_0
    // Assertions:
    // [[address_0]]
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
    check(address_0, DirectoryState::MODIFIED, 1, 1, CORE1, 100, 200);
    printf("Test9 Passed\n");
 
-   tile[3]->accessMemory(Tile::NONE, Tile::READ, address_0, (char*) &buf, sizeof(buf));
+   core[3]->accessMemory(Core::NONE, Core::READ, address_0, (char*) &buf, sizeof(buf));
    // Core3 reads address_0
    // Assertions:
    // [[address_0]]
@@ -193,7 +193,7 @@ void check(IntPtr address, DirectoryState::dstate_t dstate, core_id_t owner, uns
 
    for (core_id_t i = 1; i <= 3; i++)
    {
-      PrL1PrL2DramDirectoryMOSI::MemoryManager* memory_manager = (PrL1PrL2DramDirectoryMOSI::MemoryManager*) tile[i]->getMemoryManager();
+      PrL1PrL2DramDirectoryMOSI::MemoryManager* memory_manager = (PrL1PrL2DramDirectoryMOSI::MemoryManager*) core[i]->getMemoryManager();
       Cache* pr_l1_dcache = memory_manager->getL1DCache();
       Cache* pr_l2_cache = memory_manager->getL2Cache();
 
@@ -294,11 +294,11 @@ void check(IntPtr address, DirectoryState::dstate_t dstate, core_id_t owner, uns
    }
 
 
-   PrL1PrL2DramDirectoryMOSI::MemoryManager* memory_manager = (PrL1PrL2DramDirectoryMOSI::MemoryManager*) tile[0]->getMemoryManager();
+   PrL1PrL2DramDirectoryMOSI::MemoryManager* memory_manager = (PrL1PrL2DramDirectoryMOSI::MemoryManager*) core[0]->getMemoryManager();
    AddressHomeLookup* dram_dir_home_lookup = memory_manager->getDramDirectoryHomeLookup();
    core_id_t home = dram_dir_home_lookup->getHome(address);
 
-   PrL1PrL2DramDirectoryMOSI::MemoryManager* home_memory_manager = (PrL1PrL2DramDirectoryMOSI::MemoryManager*) tile[home]->getMemoryManager();
+   PrL1PrL2DramDirectoryMOSI::MemoryManager* home_memory_manager = (PrL1PrL2DramDirectoryMOSI::MemoryManager*) core[home]->getMemoryManager();
    PrL1PrL2DramDirectoryMOSI::DramDirectoryCache* dram_dir_cache = home_memory_manager->getDramDirectoryCache();
    
    DirectoryEntryLimitedBroadcast* dir_entry = (DirectoryEntryLimitedBroadcast*) dram_dir_cache->getDirectoryEntry(address);
@@ -316,7 +316,7 @@ void check(IntPtr address, DirectoryState::dstate_t dstate, core_id_t owner, uns
    PrL1PrL2DramDirectoryMOSI::DramCntlr* home_dram_cntlr = (PrL1PrL2DramDirectoryMOSI::DramCntlr*) home_memory_manager->getDramCntlr();
    UInt32 cache_block_size = home_memory_manager->getCacheBlockSize();
    Byte data_buf[cache_block_size];
-   home_dram_cntlr->getDataFromDram(address, Sim()->getTileManager()->getCurrentTile()->getId(), data_buf);
+   home_dram_cntlr->getDataFromDram(address, Sim()->getCoreManager()->getCurrentCore()->getId(), data_buf);
    int actual_memory_val = *((int*) &data_buf[address & (cache_block_size-1)]);
    assert(actual_memory_val == memory_val);
 }

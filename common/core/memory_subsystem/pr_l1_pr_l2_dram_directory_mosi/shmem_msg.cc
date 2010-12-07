@@ -9,8 +9,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       m_msg_type(INVALID_MSG_TYPE),
       m_sender_mem_component(MemComponent::INVALID_MEM_COMPONENT),
       m_receiver_mem_component(MemComponent::INVALID_MEM_COMPONENT),
-      m_requester(INVALID_CORE_ID),
-      m_single_receiver(INVALID_CORE_ID),
+      m_requester(INVALID_TILE_ID),
+      m_single_receiver(INVALID_TILE_ID),
       m_reply_expected(false),
       m_address(INVALID_ADDRESS),
       m_data_buf(NULL),
@@ -20,8 +20,8 @@ namespace PrL1PrL2DramDirectoryMOSI
    ShmemMsg::ShmemMsg(msg_t msg_type,
          MemComponent::component_t sender_mem_component,
          MemComponent::component_t receiver_mem_component,
-         core_id_t requester,
-         core_id_t single_receiver,
+         tile_id_t requester,
+         tile_id_t single_receiver,
          bool reply_expected,
          IntPtr address,
          Byte* data_buf,
@@ -110,7 +110,7 @@ namespace PrL1PrL2DramDirectoryMOSI
             
          case INV_FLUSH_COMBINED_REQ:
             // msg_type + address + single_receiver
-            return (1 + sizeof(IntPtr) + Config::getSingleton()->getCoreIDLength());
+            return (1 + sizeof(IntPtr) + Config::getSingleton()->getTileIDLength());
 
          case EX_REP:
          case SH_REP:

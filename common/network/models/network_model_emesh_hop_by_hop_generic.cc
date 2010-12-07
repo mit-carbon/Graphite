@@ -19,13 +19,13 @@ NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net,
    m_total_contention_delay(0),
    m_total_packet_latency(0)
 {
-   SInt32 total_cores = Config::getSingleton()->getTotalCores();
-   m_core_id = getNetwork()->getCore()->getId();
+   SInt32 total_tiles = Config::getSingleton()->getTotalTiles();
+   m_tile_id = getNetwork()->getTile()->getId();
 
-   m_mesh_width = (SInt32) floor (sqrt(total_cores));
-   m_mesh_height = (SInt32) ceil (1.0 * total_cores / m_mesh_width);
+   m_mesh_width = (SInt32) floor (sqrt(total_tiles));
+   m_mesh_height = (SInt32) ceil (1.0 * total_tiles / m_mesh_width);
 
-   assert(total_cores == (m_mesh_width * m_mesh_height));
+   assert(total_tiles == (m_mesh_width * m_mesh_height));
 }
 
 NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
@@ -57,19 +57,19 @@ NetworkModelEMeshHopByHopGeneric::createQueueModels()
       m_queue_models[direction] = NULL;
    }
 
-   if ((m_core_id / m_mesh_width) != 0)
+   if ((m_tile_id / m_mesh_width) != 0)
    {
       m_queue_models[DOWN] = QueueModel::create(m_queue_model_type, min_processing_time);
    }
-   if ((m_core_id % m_mesh_width) != 0)
+   if ((m_tile_id % m_mesh_width) != 0)
    {
       m_queue_models[LEFT] = QueueModel::create(m_queue_model_type, min_processing_time);
    }
-   if ((m_core_id / m_mesh_width) != (m_mesh_height - 1))
+   if ((m_tile_id / m_mesh_width) != (m_mesh_height - 1))
    {
       m_queue_models[UP] = QueueModel::create(m_queue_model_type, min_processing_time);
    }
-   if ((m_core_id % m_mesh_width) != (m_mesh_width - 1))
+   if ((m_tile_id % m_mesh_width) != (m_mesh_width - 1))
    {
       m_queue_models[RIGHT] = QueueModel::create(m_queue_model_type, min_processing_time);
    }
@@ -138,7 +138,7 @@ NetworkModelEMeshHopByHopGeneric::computeAction(const NetPacket& pkt)
    {
       LOG_ASSERT_ERROR(m_broadcast_tree_enabled, "pkt.sender(%i), pkt.receiver(%i)", \
             pkt.sender, pkt.receiver);
-      if (pkt.sender == m_core_id)
+      if (pkt.sender == m_tile_id)
       {
          // Dont call routePacket() recursively
          return RoutingAction::RECEIVE;
@@ -149,7 +149,7 @@ NetworkModelEMeshHopByHopGeneric::computeAction(const NetPacket& pkt)
          return (RoutingAction::FORWARD | RoutingAction::RECEIVE);
       }
    }
-   else if (pkt.receiver == m_core_id)
+   else if (pkt.receiver == m_tile_id)
    {
       return RoutingAction::RECEIVE;
    }
@@ -164,14 +164,14 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
 {
    ScopedLock sl(m_lock);
 
-   core_id_t requester = INVALID_CORE_ID;
+   tile_id_t requester = INVALID_TILE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
          "requester(%i)", requester);
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
@@ -184,7 +184,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
       {
          // Injection Port Modeling
          UInt64 injection_port_queue_delay = 0;
-         if (pkt.sender == m_core_id)
+         if (pkt.sender == m_tile_id)
             injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver, pkt.time, pkt_length);
          UInt64 curr_time = pkt.time + injection_port_queue_delay;         
 
@@ -193,39 +193,39 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
          SInt32 sx, sy, cx, cy;
             
          computePosition(pkt.sender, sx, sy);
-         computePosition(m_core_id, cx, cy);
+         computePosition(m_tile_id, cx, cy);
 
          if (cy >= sy)
-            addHop(UP, NetPacket::BROADCAST, computeCoreId(cx,cy+1), pkt, curr_time, pkt_length, nextHops, requester);
+            addHop(UP, NetPacket::BROADCAST, computeTileId(cx,cy+1), pkt, curr_time, pkt_length, nextHops, requester);
          if (cy <= sy)
-            addHop(DOWN, NetPacket::BROADCAST, computeCoreId(cx,cy-1), pkt, curr_time, pkt_length, nextHops, requester);
+            addHop(DOWN, NetPacket::BROADCAST, computeTileId(cx,cy-1), pkt, curr_time, pkt_length, nextHops, requester);
          if (cy == sy)
          {
             if (cx >= sx)
-               addHop(RIGHT, NetPacket::BROADCAST, computeCoreId(cx+1,cy), pkt, curr_time, pkt_length, nextHops, requester);
+               addHop(RIGHT, NetPacket::BROADCAST, computeTileId(cx+1,cy), pkt, curr_time, pkt_length, nextHops, requester);
             if (cx <= sx)
-               addHop(LEFT, NetPacket::BROADCAST, computeCoreId(cx-1,cy), pkt, curr_time, pkt_length, nextHops, requester);
+               addHop(LEFT, NetPacket::BROADCAST, computeTileId(cx-1,cy), pkt, curr_time, pkt_length, nextHops, requester);
             if (cx == sx)
-               addHop(SELF, NetPacket::BROADCAST, m_core_id, pkt, curr_time, pkt_length, nextHops, requester); 
+               addHop(SELF, NetPacket::BROADCAST, m_tile_id, pkt, curr_time, pkt_length, nextHops, requester); 
          }
       }
       else
       {
          // Broadcast tree is not enabled
          // Here, broadcast messages are sent as a collection of unicast messages
-         LOG_ASSERT_ERROR(pkt.sender == m_core_id,
+         LOG_ASSERT_ERROR(pkt.sender == m_tile_id,
                "BROADCAST message to be sent at (%i), original sender(%i), Tree not enabled",
-               m_core_id, pkt.sender);
+               m_tile_id, pkt.sender);
 
-         for (core_id_t i = 0; i < (core_id_t) Config::getSingleton()->getTotalCores(); i++)
+         for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
          {
             // Injection Port Modeling
             UInt64 injection_port_queue_delay = computeInjectionPortQueueDelay(i, pkt.time, pkt_length);
             UInt64 curr_time = pkt.time + injection_port_queue_delay;         
 
-            // Unicast message to each core
+            // Unicast message to each tile
             OutputDirection direction;
-            core_id_t next_dest = getNextDest(i, direction);
+            tile_id_t next_dest = getNextDest(i, direction);
 
             addHop(direction, i, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
          }
@@ -235,13 +235,13 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
    {
       // Injection Port Modeling
       UInt64 injection_port_queue_delay = 0;
-      if (pkt.sender == m_core_id)
+      if (pkt.sender == m_tile_id)
          injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver, pkt.time, pkt_length);
       UInt64 curr_time = pkt.time + injection_port_queue_delay;         
       
       // A Unicast packet
       OutputDirection direction;
-      core_id_t next_dest = getNextDest(pkt.receiver, direction);
+      tile_id_t next_dest = getNextDest(pkt.receiver, direction);
 
       addHop(direction, pkt.receiver, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
    }
@@ -254,23 +254,23 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
-   core_id_t requester = INVALID_CORE_ID;
+   tile_id_t requester = INVALID_TILE_ID;
 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getCore()->getMemoryManager()->getShmemRequester(pkt.data);
+      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
       requester = pkt.sender;
    
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (core_id_t) Config::getSingleton()->getTotalCores()),
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
          "requester(%i)", requester);
 
-   if ( (!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
+   if ( (!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return;
 
    UInt64 packet_latency = pkt.time - pkt.start_time;
-   UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender, m_core_id) * m_hop_latency);
+   UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender, m_tile_id) * m_hop_latency);
 
-   if (pkt.sender != m_core_id)
+   if (pkt.sender != m_tile_id)
    {
       UInt64 processing_time = computeProcessingTime(pkt_length);
       UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt, pkt.time, pkt_length);
@@ -288,10 +288,10 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 
 void
 NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction, 
-      core_id_t final_dest, core_id_t next_dest,
+      tile_id_t final_dest, tile_id_t next_dest,
       const NetPacket& pkt,
       UInt64 pkt_time, UInt32 pkt_length,
-      vector<Hop>& nextHops, core_id_t requester)
+      vector<Hop>& nextHops, tile_id_t requester)
 {
    LOG_ASSERT_ERROR((direction == SELF) || ((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS)),
          "Invalid Direction(%u)", direction);
@@ -312,7 +312,7 @@ NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction,
 }
 
 SInt32
-NetworkModelEMeshHopByHopGeneric::computeDistance(core_id_t sender, core_id_t receiver)
+NetworkModelEMeshHopByHopGeneric::computeDistance(tile_id_t sender, tile_id_t receiver)
 {
    SInt32 sx, sy, dx, dy;
 
@@ -323,25 +323,25 @@ NetworkModelEMeshHopByHopGeneric::computeDistance(core_id_t sender, core_id_t re
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::computePosition(core_id_t core_id, SInt32 &x, SInt32 &y)
+NetworkModelEMeshHopByHopGeneric::computePosition(tile_id_t tile_id, SInt32 &x, SInt32 &y)
 {
-   x = core_id % m_mesh_width;
-   y = core_id / m_mesh_width;
+   x = tile_id % m_mesh_width;
+   y = tile_id / m_mesh_width;
 }
 
-core_id_t
-NetworkModelEMeshHopByHopGeneric::computeCoreId(SInt32 x, SInt32 y)
+tile_id_t
+NetworkModelEMeshHopByHopGeneric::computeTileId(SInt32 x, SInt32 y)
 {
    return (y * m_mesh_width + x);
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, core_id_t requester)
+NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, tile_id_t requester)
 {
    LOG_ASSERT_ERROR((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS),
          "Invalid Direction(%u)", direction);
 
-   if ( (!m_enabled) || (requester >= (core_id_t) Config::getSingleton()->getApplicationCores()) )
+   if ( (!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
@@ -363,12 +363,12 @@ NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, cons
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(core_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length)
+NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(tile_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length)
 {
    if (!m_queue_model_enabled)
       return 0;
 
-   if (pkt_receiver == m_core_id)
+   if (pkt_receiver == m_tile_id)
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
@@ -413,34 +413,34 @@ NetworkModelEMeshHopByHopGeneric::getNextDest(SInt32 final_dest, OutputDirection
    
    SInt32 sx, sy, dx, dy;
 
-   computePosition(m_core_id, sx, sy);
+   computePosition(m_tile_id, sx, sy);
    computePosition(final_dest, dx, dy);
 
    if (sx > dx)
    {
       direction = LEFT;
-      return computeCoreId(sx-1,sy);
+      return computeTileId(sx-1,sy);
    }
    else if (sx < dx)
    {
       direction = RIGHT;
-      return computeCoreId(sx+1,sy);
+      return computeTileId(sx+1,sy);
    }
    else if (sy > dy)
    {
       direction = DOWN;
-      return computeCoreId(sx,sy-1);
+      return computeTileId(sx,sy-1);
    }
    else if (sy < dy)
    {
       direction = UP;
-      return computeCoreId(sx,sy+1);
+      return computeTileId(sx,sy+1);
    }
    else
    {
       // A send to itself
       direction = SELF;
-      return m_core_id;
+      return m_tile_id;
    }
 }
 
@@ -514,68 +514,68 @@ NetworkModelEMeshHopByHopGeneric::disable()
 }
 
 pair<bool,SInt32>
-NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(SInt32 core_count)
+NetworkModelEMeshHopByHopGeneric::computeTileCountConstraints(SInt32 tile_count)
 {
-   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
-   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+   SInt32 mesh_width = (SInt32) floor (sqrt(tile_count));
+   SInt32 mesh_height = (SInt32) ceil (1.0 * tile_count / mesh_width);
 
-   assert(core_count <= mesh_width * mesh_height);
-   assert(core_count > (mesh_width - 1) * mesh_height);
-   assert(core_count > mesh_width * (mesh_height - 1));
+   assert(tile_count <= mesh_width * mesh_height);
+   assert(tile_count > (mesh_width - 1) * mesh_height);
+   assert(tile_count > mesh_width * (mesh_height - 1));
 
    return make_pair(true,mesh_height * mesh_width);
 }
 
-pair<bool, vector<core_id_t> >
-NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 core_count)
+pair<bool, vector<tile_id_t> >
+NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count)
 {
-   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
-   SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+   SInt32 mesh_width = (SInt32) floor (sqrt(tile_count));
+   SInt32 mesh_height = (SInt32) ceil (1.0 * tile_count / mesh_width);
    
-   assert(core_count == (mesh_height * mesh_width));
+   assert(tile_count == (mesh_height * mesh_width));
 
-   // core_id_list_along_perimeter : list of cores along the perimeter of the chip in clockwise order starting from (0,0)
-   vector<core_id_t> core_id_list_along_perimeter;
+   // tile_id_list_along_perimeter : list of tiles along the perimeter of the chip in clockwise order starting from (0,0)
+   vector<tile_id_t> tile_id_list_along_perimeter;
 
    for (SInt32 i = 0; i < mesh_width; i++)
-      core_id_list_along_perimeter.push_back(i);
+      tile_id_list_along_perimeter.push_back(i);
    
    for (SInt32 i = 1; i < (mesh_height-1); i++)
-      core_id_list_along_perimeter.push_back((i * mesh_width) + mesh_width-1);
+      tile_id_list_along_perimeter.push_back((i * mesh_width) + mesh_width-1);
 
    for (SInt32 i = mesh_width-1; i >= 0; i--)
-      core_id_list_along_perimeter.push_back(((mesh_height-1) * mesh_width) + i);
+      tile_id_list_along_perimeter.push_back(((mesh_height-1) * mesh_width) + i);
 
    for (SInt32 i = mesh_height-2; i >= 1; i--)
-      core_id_list_along_perimeter.push_back(i * mesh_width);
+      tile_id_list_along_perimeter.push_back(i * mesh_width);
 
-   assert(core_id_list_along_perimeter.size() == (UInt32) (2 * (mesh_width + mesh_height - 2)));
+   assert(tile_id_list_along_perimeter.size() == (UInt32) (2 * (mesh_width + mesh_height - 2)));
 
-   LOG_ASSERT_ERROR(core_id_list_along_perimeter.size() >= (UInt32) num_memory_controllers,
-         "num cores along perimeter(%u), num memory controllers(%i)",
-         core_id_list_along_perimeter.size(), num_memory_controllers);
+   LOG_ASSERT_ERROR(tile_id_list_along_perimeter.size() >= (UInt32) num_memory_controllers,
+         "num tiles along perimeter(%u), num memory controllers(%i)",
+         tile_id_list_along_perimeter.size(), num_memory_controllers);
 
-   SInt32 spacing_between_memory_controllers = core_id_list_along_perimeter.size() / num_memory_controllers;
+   SInt32 spacing_between_memory_controllers = tile_id_list_along_perimeter.size() / num_memory_controllers;
    
-   // core_id_list_with_memory_controllers : list of cores that have memory controllers attached to them
-   vector<core_id_t> core_id_list_with_memory_controllers;
+   // tile_id_list_with_memory_controllers : list of tiles that have memory controllers attached to them
+   vector<tile_id_t> tile_id_list_with_memory_controllers;
 
    for (SInt32 i = 0; i < num_memory_controllers; i++)
    {
-      SInt32 index = (i * spacing_between_memory_controllers + mesh_width/2) % core_id_list_along_perimeter.size();
-      core_id_list_with_memory_controllers.push_back(core_id_list_along_perimeter[index]);
+      SInt32 index = (i * spacing_between_memory_controllers + mesh_width/2) % tile_id_list_along_perimeter.size();
+      tile_id_list_with_memory_controllers.push_back(tile_id_list_along_perimeter[index]);
    }
 
-   return (make_pair(true, core_id_list_with_memory_controllers));
+   return (make_pair(true, tile_id_list_with_memory_controllers));
 }
 
 SInt32
-NetworkModelEMeshHopByHopGeneric::computeNumHops(core_id_t sender, core_id_t receiver)
+NetworkModelEMeshHopByHopGeneric::computeNumHops(tile_id_t sender, tile_id_t receiver)
 {
-   SInt32 core_count = Config::getSingleton()->getTotalCores();
+   SInt32 tile_count = Config::getSingleton()->getTotalTiles();
 
-   SInt32 mesh_width = (SInt32) floor (sqrt(core_count));
-   // SInt32 mesh_height = (SInt32) ceil (1.0 * core_count / mesh_width);
+   SInt32 mesh_width = (SInt32) floor (sqrt(tile_count));
+   // SInt32 mesh_height = (SInt32) ceil (1.0 * tile_count / mesh_width);
    
    SInt32 sx, sy, dx, dy;
 

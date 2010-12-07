@@ -2,7 +2,7 @@
 #define __REDIRECT_MEMORY_H__
 
 #include "pin.H"
-#include "tile.h"
+#include "core.h"
 #include "pin_memory_manager.h"
 
 bool rewriteStringOp (INS ins);
@@ -28,6 +28,6 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size);
 ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type);
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type);
 
-void memOp (Tile::lock_signal_t lock_signal, Tile::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size);
+void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size);
 
 #endif /* __REDIRECT_MEMORY_H__ */

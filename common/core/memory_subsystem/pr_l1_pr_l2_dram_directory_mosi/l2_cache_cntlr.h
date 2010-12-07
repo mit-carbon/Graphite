@@ -32,7 +32,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          // Outstanding ShmemReq info
          ShmemMsg m_outstanding_shmem_msg;
 
-         core_id_t m_core_id;
+         tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
          Lock m_l2_cache_lock;
@@ -66,13 +66,13 @@ namespace PrL1PrL2DramDirectoryMOSI
          bool shmemReqEndsInL2Cache(ShmemMsg::msg_t msg_type, CacheState::cstate_t cstate, bool modeled);
 
          // Process Request from Dram Dir
-         void processExRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
-         void processShRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
-         void processUpgradeRepFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
-         void processInvReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
-         void processFlushReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
-         void processWbReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
-         void processInvFlushCombinedReqFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
+         void processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processShRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processUpgradeRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
+         void processInvFlushCombinedReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
 
          void processBufferedShmemReqFromDramDirectory(void);
 
@@ -87,13 +87,13 @@ namespace PrL1PrL2DramDirectoryMOSI
          void waitForUserThread(void);
 
          // Dram Directory Home Lookup
-         core_id_t getHome(IntPtr address) { return m_dram_directory_home_lookup->getHome(address); }
+         tile_id_t getHome(IntPtr address) { return m_dram_directory_home_lookup->getHome(address); }
 
          MemComponent::component_t acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address);
 
       public:
 
-         L2CacheCntlr(core_id_t core_id,
+         L2CacheCntlr(tile_id_t tile_id,
                MemoryManager* memory_manager,
                L1CacheCntlr* l1_cache_cntlr,
                AddressHomeLookup* dram_directory_home_lookup,
@@ -116,7 +116,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          // Handle message from L1 Cache
          void handleMsgFromL1Cache(ShmemMsg* shmem_msg);
          // Handle message from Dram Dir
-         void handleMsgFromDramDirectory(core_id_t sender, ShmemMsg* shmem_msg);
+         void handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
          // Acquiring and Releasing Locks
          void acquireLock(void);
          void releaseLock(void);

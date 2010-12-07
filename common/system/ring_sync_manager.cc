@@ -16,22 +16,22 @@ RingSyncManager::RingSyncManager():
    _slack(0)
 {
    // Cache the tile pointers corresponding to all the application cores
-   UInt32 num_cores = Config::getSingleton()->getNumLocalCores();
-   UInt32 num_app_cores = (Config::getSingleton()->getCurrentProcessNum() == 0) ? num_cores - 2 : num_cores - 1;
+   UInt32 num_tiles = Config::getSingleton()->getNumLocalTiles();
+   UInt32 num_app_tiles = (Config::getSingleton()->getCurrentProcessNum() == 0) ? num_tiles - 2 : num_tiles - 1;
 
-   Config::CoreList core_list = Config::getSingleton()->getCoreListForCurrentProcess();
-   Config::CoreList::iterator it;
+   Config::TileList tile_list = Config::getSingleton()->getTileListForCurrentProcess();
+   Config::TileList::iterator it;
 
-   for (it = core_list.begin(); it != core_list.end(); it++)
+   for (it = tile_list.begin(); it != tile_list.end(); it++)
    {
-      if ((*it) < (core_id_t) Sim()->getConfig()->getApplicationCores())
+      if ((*it) < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
       {
          Tile* tile = Sim()->getTileManager()->getTileFromID(*it);
          assert(tile != NULL);
-         _core_list.push_back(tile);
+         _tile_list.push_back(tile);
       }
    }
-   assert(_core_list.size() == num_app_cores);
+   assert(_tile_list.size() == num_app_tiles);
 
    // Has Fields
    try
@@ -105,17 +105,17 @@ RingSyncManager::updateClientObjectsAndRingMsg(CycleCountUpdate* cycle_count_upd
    UInt64 min_cycle_count = UINT64_MAX;
 
    std::vector<Tile*>::iterator it;
-   for (it = _core_list.begin(); it != _core_list.end(); it++)
+   for (it = _tile_list.begin(); it != _tile_list.end(); it++)
    {
       // Read the Cycle Count and State of the tile
       // May need locks around this
-      Tile::State tile_state = (*it)->getState();
+      Core::State core_state = (*it)->getCore()->getState();
 
-      RingSyncClient* ring_sync_client = (RingSyncClient*) (*it)->getClockSkewMinimizationClient();
+      RingSyncClient* ring_sync_client = (RingSyncClient*) (*it)->getCore()->getClockSkewMinimizationClient();
       ring_sync_client->getLock()->acquire();
 
       UInt64 cycle_count = ring_sync_client->getCycleCount();
-      if ((tile_state == Tile::RUNNING) && (cycle_count < min_cycle_count))
+      if ((core_state == Core::RUNNING) && (cycle_count < min_cycle_count))
       {
          // Dont worry about the cycle counts of threads that are not running
          min_cycle_count = cycle_count;

@@ -16,11 +16,11 @@ public:
    class SockNode : public Node
    {
    public:
-      SockNode(core_id_t core_id, SockTransport *trans);
+      SockNode(tile_id_t tile_id, SockTransport *trans);
       ~SockNode();
 
       void globalSend(SInt32 dest_proc, const void *buffer, UInt32 length);
-      void send(core_id_t dest_core, const void *buffer, UInt32 length);
+      void send(tile_id_t dest_tile, const void *buffer, UInt32 length);
       Byte* recv();
       bool query();
 
@@ -30,7 +30,7 @@ public:
       SockTransport *m_transport;
    };
 
-   Node *createNode(core_id_t core_id);
+   Node *createNode(tile_id_t tile_id);
 
    void barrier();
    Node *getGlobalNode();

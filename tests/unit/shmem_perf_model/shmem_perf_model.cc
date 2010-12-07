@@ -32,25 +32,25 @@ int main (int argc, char *argv[])
 
    // ACCESS - 0
    shmem_perf_model->setCycleCount(0);
-   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address[0], 0, data_buf, 4);
+   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address[0], 0, data_buf, 4);
    shmem_time = shmem_perf_model->getCycleCount();
    printf("Access(0x%x) - READ : Cache Hit(%s), Shmem Time(%llu)\n", address[0], (cache_hit == true) ? "YES" : "NO", shmem_time);
 
    // ACCESS - 1
    shmem_perf_model->setCycleCount(0);
-   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address[1], 0, data_buf, 4);
+   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address[1], 0, data_buf, 4);
    shmem_time = shmem_perf_model->getCycleCount();
    printf("Access(0x%x)- WRITE : Cache Hit(%s), Shmem Time(%llu)\n", address[1], (cache_hit == true) ? "YES" : "NO", shmem_time);
 
    // ACCESS - 2
    shmem_perf_model->setCycleCount(0);
-   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::WRITE, address[0], 0, data_buf, 4);
+   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address[0], 0, data_buf, 4);
    shmem_time = shmem_perf_model->getCycleCount();
    printf("Access(0x%x)- WRITE : Cache Hit(%s), Shmem Time(%llu)\n", address[0], (cache_hit == true) ? "YES" : "NO", shmem_time);
 
    // ACCESS - 2
    shmem_perf_model->setCycleCount(0);
-   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Tile::NONE, Tile::READ, address[0], 0, data_buf, 4);
+   cache_hit = memory_manager->coreInitiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address[0], 0, data_buf, 4);
    shmem_time = shmem_perf_model->getCycleCount();
    printf("Access(0x%x)- READ : Cache Hit(%s), Shmem Time(%llu)\n", address[0], (cache_hit == true) ? "YES" : "NO", shmem_time);
 

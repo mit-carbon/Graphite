@@ -13,7 +13,7 @@ DirectoryEntryLimitedNoBroadcast::~DirectoryEntryLimitedNoBroadcast()
 {}
 
 bool
-DirectoryEntryLimitedNoBroadcast::hasSharer(core_id_t sharer_id)
+DirectoryEntryLimitedNoBroadcast::hasSharer(tile_id_t sharer_id)
 {
    return m_sharers->at(sharer_id);
 }
@@ -22,7 +22,7 @@ DirectoryEntryLimitedNoBroadcast::hasSharer(core_id_t sharer_id)
 //              'True' if it was successfully added
 //              'False' if there will be an eviction before adding
 bool
-DirectoryEntryLimitedNoBroadcast::addSharer(core_id_t sharer_id)
+DirectoryEntryLimitedNoBroadcast::addSharer(tile_id_t sharer_id)
 {
    assert(! m_sharers->at(sharer_id));
    if (m_sharers->size() == m_max_hw_sharers)
@@ -35,7 +35,7 @@ DirectoryEntryLimitedNoBroadcast::addSharer(core_id_t sharer_id)
 }
 
 void
-DirectoryEntryLimitedNoBroadcast::removeSharer(core_id_t sharer_id, bool reply_expected)
+DirectoryEntryLimitedNoBroadcast::removeSharer(tile_id_t sharer_id, bool reply_expected)
 {
    assert(!reply_expected);
    assert(m_sharers->at(sharer_id));
@@ -48,24 +48,24 @@ DirectoryEntryLimitedNoBroadcast::getNumSharers()
    return m_sharers->size();
 }
 
-core_id_t
+tile_id_t
 DirectoryEntryLimitedNoBroadcast::getOwner()
 {
    return m_owner_id;
 }
 
 void
-DirectoryEntryLimitedNoBroadcast::setOwner(core_id_t owner_id)
+DirectoryEntryLimitedNoBroadcast::setOwner(tile_id_t owner_id)
 {
-   if (owner_id != INVALID_CORE_ID)
+   if (owner_id != INVALID_TILE_ID)
       assert(m_sharers->at(owner_id));
    m_owner_id = owner_id;
 }
 
-core_id_t
+tile_id_t
 DirectoryEntryLimitedNoBroadcast::getOneSharer()
 {
-   pair<bool, vector<core_id_t> > sharers_list = getSharersList();
+   pair<bool, vector<tile_id_t> > sharers_list = getSharersList();
    assert(!sharers_list.first);
    assert(sharers_list.second.size() > 0);
 
@@ -73,7 +73,7 @@ DirectoryEntryLimitedNoBroadcast::getOneSharer()
    return sharers_list.second[index];
 }
 
-pair<bool, vector<core_id_t> >&
+pair<bool, vector<tile_id_t> >&
 DirectoryEntryLimitedNoBroadcast::getSharersList()
 {
    m_cached_sharers_list.first = false;
@@ -81,13 +81,13 @@ DirectoryEntryLimitedNoBroadcast::getSharersList()
 
    m_sharers->resetFind();
 
-   core_id_t new_sharer = -1;
+   tile_id_t new_sharer = -1;
    SInt32 i = 0;
    while ((new_sharer = m_sharers->find()) != -1)
    {
       m_cached_sharers_list.second[i] = new_sharer;
       i++;
-      assert (i <= (core_id_t) m_sharers->size());
+      assert (i <= (tile_id_t) m_sharers->size());
    }
 
    return m_cached_sharers_list;

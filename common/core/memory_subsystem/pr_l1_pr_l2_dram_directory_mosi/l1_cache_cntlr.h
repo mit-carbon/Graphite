@@ -27,7 +27,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          Cache* m_l1_dcache;
          L2CacheCntlr* m_l2_cache_cntlr;
 
-         core_id_t m_core_id;
+         tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
          Lock m_l1_icache_lock;
@@ -39,16 +39,16 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          // Private Functions
          void accessCache(MemComponent::component_t mem_component,
-               Tile::mem_op_t mem_op_type, 
+               Core::mem_op_t mem_op_type, 
                IntPtr ca_address, UInt32 offset,
                Byte* data_buf, UInt32 data_length);
          bool operationPermissibleinL1Cache(
                MemComponent::component_t mem_component, 
-               IntPtr address, Tile::mem_op_t mem_op_type,
+               IntPtr address, Core::mem_op_t mem_op_type,
                UInt32 access_num, bool modeled);
 
          Cache* getL1Cache(MemComponent::component_t mem_component);
-         ShmemMsg::msg_t getShmemMsgType(Tile::mem_op_t mem_op_type);
+         ShmemMsg::msg_t getShmemMsgType(Core::mem_op_t mem_op_type);
 
          // Get Cache Block Size
          UInt32 getCacheBlockSize(void) { return m_cache_block_size; }
@@ -62,7 +62,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          
       public:
          
-         L1CacheCntlr(core_id_t core_id,
+         L1CacheCntlr(tile_id_t tile_id,
                MemoryManager* memory_manager,
                Semaphore* user_thread_sem,
                Semaphore* network_thread_sem,
@@ -80,10 +80,10 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          void setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr);
 
-         bool processMemOpFromCore(
+         bool processMemOpFromTile(
                MemComponent::component_t mem_component,
-               Tile::lock_signal_t lock_signal,
-               Tile::mem_op_t mem_op_type, 
+               Core::lock_signal_t lock_signal,
+               Core::mem_op_t mem_op_type, 
                IntPtr ca_address, UInt32 offset,
                Byte* data_buf, UInt32 data_length,
                bool modeled);

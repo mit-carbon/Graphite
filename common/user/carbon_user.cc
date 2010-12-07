@@ -16,10 +16,15 @@
 
 static config::ConfigFile cfg;
 
-core_id_t CarbonGetCoreId()
+tile_id_t CarbonGetTileId()
 {
-   return Sim()->getTileManager()->getCurrentCoreID();
+   return Sim()->getTileManager()->getCurrentTileID();
 }
+
+//core_id_t CarbonGetCoreId()
+//{
+   //return Sim()->getTileManager()->getCurrentCoreID();
+//}
 
 int CarbonStartSim(int argc, char **argv)
 {
@@ -45,7 +50,7 @@ int CarbonStartSim(int argc, char **argv)
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {
       // Main process
-      Sim()->getTileManager()->initializeThread(0);
+      Sim()->getTileManager()->initializeThread((core_id_t) {0, MAIN_CORE_TYPE});
    
       CarbonSpawnThreadSpawner();
 
@@ -79,9 +84,9 @@ UInt64 CarbonGetTime()
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   UInt64 time = convertCycleCount(tile->getPerformanceModel()->getCycleCount(), \
-         tile->getPerformanceModel()->getFrequency(), 1.0);
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   UInt64 time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+         core->getPerformanceModel()->getFrequency(), 1.0);
 
    return time;
 }

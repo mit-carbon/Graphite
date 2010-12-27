@@ -39,6 +39,8 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
+         Lock m_pep_core_lock;
+         Lock m_main_core_lock;
          Lock m_l2_cache_lock;
          Semaphore* m_user_thread_sem;
          Semaphore* m_network_thread_sem;
@@ -123,6 +125,10 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          // Acquiring and Releasing Locks
          void acquireLock(void);
          void releaseLock(void);
+         void lockToPepCore();
+         void releaseFromPepCore();
+         void lockToMainCore();
+         void releaseFromMainCore();
    };
 
 }

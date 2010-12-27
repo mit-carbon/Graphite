@@ -21,3 +21,9 @@ void Lock::release()
 {
    pthread_mutex_unlock(&_mutx);
 }
+
+bool Lock::tryLock()
+{
+   int res = pthread_mutex_trylock(&_mutx);
+   return (res == 0);
+}

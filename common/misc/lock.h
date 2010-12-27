@@ -11,6 +11,7 @@ public:
 
    void acquire();
    void release();
+   bool tryLock();
 
 private:
    pthread_mutex_t _mutx;

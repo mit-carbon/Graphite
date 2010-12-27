@@ -202,6 +202,7 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
    MemComponent::component_t sender_mem_component = shmem_msg->getSenderMemComponent();
 
+   LOG_PRINT("elau: in handleMsgFromL1Cache, about to acquire L2 lock");
    acquireLock();
 
    assert(shmem_msg->getDataBuf() == NULL);
@@ -235,8 +236,9 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemMsg* shmem_msg)
    PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
    CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
 
-   assert((cstate == CacheState::INVALID) || (cstate == CacheState::SHARED));
-   if (cstate == CacheState::SHARED)
+   // There is a case where one L1 cache is in MODIFIED state, and the other L1 makes an EX_REQ.
+   assert((cstate == CacheState::INVALID) || (cstate == CacheState::SHARED) || (cstate == CacheState::MODIFIED));
+   if ((cstate == CacheState::SHARED) || (cstate == CacheState::MODIFIED))
    {
       // This will clear the 'Present' bit also
 
@@ -273,11 +275,13 @@ void
 L2CacheCntlr::handleMsgFromDramDirectory(
       tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   LOG_PRINT("elau: in handleMsgFromDramCache\n");
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
    IntPtr address = shmem_msg->getAddress();
 
    // Acquire Locks
    MemComponent::component_t caching_mem_component = acquireL1CacheLock(shmem_msg_type, address);
+   LOG_PRINT("elau: in handleMsgFromDramDirectory, about to acquire L2 cache lock");
    acquireLock();
 
    switch (shmem_msg_type)
@@ -338,13 +342,17 @@ L2CacheCntlr::processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    insertCacheBlockInL1(mem_component, address, l2_cache_block_info, CacheState::MODIFIED, data_buf);
    // Set the Counters in the Shmem Perf model accordingly
    // Set the counter value in the USER thread to that in the SIM thread
-   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, 
-         getShmemPerfModel()->getCycleCount());
+   if (mem_component == MemComponent::L1_PEP_ICACHE || mem_component == MemComponent::L1_PEP_DCACHE)
+      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_HELPER_THREAD, getShmemPerfModel()->getCycleCount());
+   else
+      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, getShmemPerfModel()->getCycleCount());
 }
 
 void
 L2CacheCntlr::processShRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   LOG_PRINT("elau: about to processShRepFromDramDirectory\n");
+   
    // Update Shared Mem perf counters for access to L2 Cache
    getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
@@ -358,11 +366,13 @@ L2CacheCntlr::processShRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    // Support for non-blocking caches can be added in this way
    MemComponent::component_t mem_component = m_shmem_req_source_map[address];
    insertCacheBlockInL1(mem_component, address, l2_cache_block_info, CacheState::SHARED, data_buf);
-   
+
    // Set the Counters in the Shmem Perf model accordingly
    // Set the counter value in the USER thread to that in the SIM thread
-   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, 
-         getShmemPerfModel()->getCycleCount());
+   if (mem_component == MemComponent::L1_PEP_ICACHE || mem_component == MemComponent::L1_PEP_DCACHE)
+      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_HELPER_THREAD, getShmemPerfModel()->getCycleCount());
+   else
+      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, getShmemPerfModel()->getCycleCount());
 }
 
 void
@@ -510,7 +520,10 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
    {
       case ShmemMsg::EX_REP:
       case ShmemMsg::SH_REP:
-            m_l1_cache_cntlr->acquireLock(m_shmem_req_source_map[address]);
+         if(m_shmem_req_source_map[address] == MemComponent::L1_PEP_DCACHE || m_shmem_req_source_map[address] == MemComponent::L1_PEP_ICACHE) 
+            m_l1_pep_cache_cntlr->acquireLock(m_shmem_req_source_map[address]);
+         else
+            m_l1_main_cache_cntlr->acquireLock(m_shmem_req_source_map[address]);
          return m_shmem_req_source_map[address];
 
       case ShmemMsg::INV_REQ:
@@ -518,6 +531,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
       case ShmemMsg::WB_REQ:
       
          {
+            LOG_PRINT("elau: in acquireL1CacheLock during WB_REQ right before acquireLock()");
             acquireLock();
             
             PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
@@ -548,15 +562,58 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
 }
 
 void
+L2CacheCntlr::lockToPepCore()
+{
+   LOG_PRINT("elau: about to acquire L2 main core lock");
+   m_main_core_lock.acquire();
+   m_main_core_lock.release();
+   LOG_PRINT("elau: acquired L2 main core lock");
+   LOG_PRINT("elau: about to trylock L2 PEP core lock");
+   m_pep_core_lock.tryLock();
+   LOG_PRINT("elau: acquired L2 PEP core lock");
+}
+
+void
+L2CacheCntlr::releaseFromPepCore()
+{
+   LOG_PRINT("elau: about to release L2 PEP core lock");
+   m_pep_core_lock.release();
+   LOG_PRINT("elau: released L2 PEP core lock");
+}
+
+void
+L2CacheCntlr::lockToMainCore()
+{
+   LOG_PRINT("elau: about to acquire L2 pep core lock");
+   m_pep_core_lock.acquire();
+   m_pep_core_lock.release();
+   LOG_PRINT("elau: acquired L2 pep core lock");
+   LOG_PRINT("elau: about to trylock L2 main core lock");
+   m_main_core_lock.tryLock();
+   LOG_PRINT("elau: acquired L2 main core lock");
+}
+
+void
+L2CacheCntlr::releaseFromMainCore()
+{
+   LOG_PRINT("elau: about to release L2 main core lock");
+   m_main_core_lock.release();
+   LOG_PRINT("elau: released L2 main core lock");
+}
+void
 L2CacheCntlr::acquireLock()
 {
+   LOG_PRINT("elau: about to acquire L2CacheLock\n");
    m_l2_cache_lock.acquire();
+   LOG_PRINT("elau: acquired L2CacheLock\n");
 }
 
 void
 L2CacheCntlr::releaseLock()
 {
+   LOG_PRINT("elau: about to release L2CacheLock\n");
    m_l2_cache_lock.release();
+   LOG_PRINT("elau: released L2CacheLock\n");
 }
 
 void

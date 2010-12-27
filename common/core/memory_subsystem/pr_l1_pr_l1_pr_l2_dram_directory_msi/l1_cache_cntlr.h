@@ -37,6 +37,8 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 
          ShmemPerfModel* m_shmem_perf_model;
 
+         bool m_is_pep_cache;
+
          // Private Functions
          void accessCache(MemComponent::component_t mem_component,
                Core::mem_op_t mem_op_type, 
@@ -101,5 +103,10 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 
          void acquireLock(MemComponent::component_t mem_component);
          void releaseLock(MemComponent::component_t mem_component);
+         void lockL2ToCore(MemComponent::component_t mem_component);
+         void releaseL2FromCore(MemComponent::component_t mem_component);
+
+         bool isPepCache() {return m_is_pep_cache;}
+         void setAsPepCache(bool is_pep_cache) {m_is_pep_cache = is_pep_cache;}
    };
 }

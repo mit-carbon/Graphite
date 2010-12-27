@@ -29,7 +29,7 @@ class ShmemPerfModel
       UInt64 m_total_memory_access_latency_in_ns;
 
       Thread_t getThreadNum();
-
+      
    public:
       ShmemPerfModel();
       ~ShmemPerfModel();

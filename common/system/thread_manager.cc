@@ -274,6 +274,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
 
 SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
 {
+   printf("elau: starting spawnHelperThread\n");
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
@@ -313,6 +314,7 @@ SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
    // Delete the data buffer
    delete [] (Byte*) pkt.data;
 
+   printf("elau: finishing spawnHelperThread\n");
    return core_id.first;
 }
 
@@ -327,13 +329,21 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    // FIXME: Load balancing?
    if (req->destination.second == PEP_CORE_TYPE)
    {
+      if (req->destination.first == INVALID_TILE_ID)
+      {
       for (SInt32 i = 0; i < (SInt32) m_helper_thread_state.size(); i++)
       {
          if (m_helper_thread_state[i].status == Core::IDLE)
          {
+            printf("elau: MCP is about to spawn thread on tile %d and core %d\n", i, PEP_CORE_TYPE);
             req->destination = (core_id_t) {i, PEP_CORE_TYPE};
             break;
          }
+      }
+      }
+      else
+      {
+         LOG_ASSERT_ERROR(m_helper_thread_state[req->destination.first].status == Core::IDLE, "The PEP core on this tile is already running!");
       }
    }
    else

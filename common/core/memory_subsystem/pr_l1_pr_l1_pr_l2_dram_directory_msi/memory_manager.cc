@@ -150,6 +150,8 @@ MemoryManager::MemoryManager(Tile* tile,
          l1_dcache_replacement_policy,
          getShmemPerfModel());
 
+   m_l1_main_cache_cntlr->setAsPepCache(false);
+
    m_l1_pep_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
          this,
          m_user_thread_sem,
@@ -160,6 +162,7 @@ MemoryManager::MemoryManager(Tile* tile,
          l1_dcache_size, l1_dcache_associativity,
          l1_dcache_replacement_policy,
          getShmemPerfModel());
+   m_l1_pep_cache_cntlr->setAsPepCache(true);
 
    m_l2_cache_cntlr = new L2CacheCntlr(getTile()->getId(),
          this,
@@ -291,6 +294,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
             case MemComponent::DRAM_DIR:
                m_l2_cache_cntlr->handleMsgFromDramDirectory(sender, shmem_msg);
+               LOG_PRINT("elau: about to go handleMsgFromDramCache\n");
                break;
 
             default:

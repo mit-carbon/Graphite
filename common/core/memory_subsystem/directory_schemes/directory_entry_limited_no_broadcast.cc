@@ -1,4 +1,5 @@
 #include "directory_entry_limited_no_broadcast.h"
+#include "simulator.h"
 #include "log.h"
 
 using namespace std;
@@ -24,7 +25,7 @@ DirectoryEntryLimitedNoBroadcast::hasSharer(tile_id_t sharer_id)
 bool
 DirectoryEntryLimitedNoBroadcast::addSharer(tile_id_t sharer_id)
 {
-   assert(! m_sharers->at(sharer_id));
+   assert(! m_sharers->at(sharer_id) || Config::getSingleton()->getEnablePepCores());
    if (m_sharers->size() == m_max_hw_sharers)
    {
       return false;

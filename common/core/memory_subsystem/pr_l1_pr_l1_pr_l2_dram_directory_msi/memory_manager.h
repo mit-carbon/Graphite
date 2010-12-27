@@ -91,5 +91,6 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          void outputSummary(std::ostream &os);
 
          void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
+
    };
 }

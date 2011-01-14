@@ -30,11 +30,15 @@ class MainCore : protected Core
             Byte* data_buf, UInt32 data_size,
             bool modeled = false,
             UInt64 time = 0);
+     
+      virtual PinMemoryManager *getPinMemoryManager() { return m_pin_memory_manager; }
+      SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       
-    
       private:
       
       ClockSkewMinimizationClient *m_clock_skew_minimization_client;
+      PinMemoryManager *m_pin_memory_manager;
+      SyscallMdl *m_syscall_model;
 };
 
 #endif

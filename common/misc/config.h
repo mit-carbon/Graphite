@@ -124,6 +124,7 @@ public:
    void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
    tile_id_t getMCPTileNum() { return getTotalTiles() -1; }
+   core_id_t getMCPCoreId() { return (core_id_t) {getTotalTiles() -1, MAIN_CORE_TYPE}; }
 
    tile_id_t getMainThreadTileNum() { return 0; }
 

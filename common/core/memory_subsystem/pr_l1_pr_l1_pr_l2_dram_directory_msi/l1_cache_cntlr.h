@@ -33,7 +33,9 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          Lock m_l1_icache_lock;
          Lock m_l1_dcache_lock;
          Semaphore* m_user_thread_sem;
+         Semaphore* m_helper_thread_sem;
          Semaphore* m_network_thread_sem;
+         Semaphore* m_network_helper_thread_sem;
 
          ShmemPerfModel* m_shmem_perf_model;
 
@@ -67,7 +69,9 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          L1CacheCntlr(tile_id_t tile_id,
                MemoryManager* memory_manager,
                Semaphore* user_thread_sem,
+               Semaphore* helper_thread_sem,
                Semaphore* network_thread_sem,
+               Semaphore* network_helper_thread_sem,
                UInt32 cache_block_size,
                UInt32 l1_icache_size, UInt32 l1_icache_associativity,
                std::string l1_icache_replacement_policy,

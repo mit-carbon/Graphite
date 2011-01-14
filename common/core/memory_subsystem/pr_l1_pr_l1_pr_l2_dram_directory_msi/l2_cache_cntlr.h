@@ -33,6 +33,8 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          L1CacheCntlr* m_l1_main_cache_cntlr;
          L1CacheCntlr* m_l1_pep_cache_cntlr;
 
+         bool m_is_pep_access;
+
          AddressHomeLookup* m_dram_directory_home_lookup;
          std::map<IntPtr, MemComponent::component_t> m_shmem_req_source_map;
          
@@ -43,7 +45,9 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          Lock m_main_core_lock;
          Lock m_l2_cache_lock;
          Semaphore* m_user_thread_sem;
+         Semaphore* m_helper_thread_sem;
          Semaphore* m_network_thread_sem;
+         Semaphore* m_network_helper_thread_sem;
 
          ShmemPerfModel* m_shmem_perf_model;
 
@@ -83,8 +87,10 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 
          // Wake up User Thread
          void wakeUpUserThread(void);
+         void wakeUpHelperThread(void);
          // Wait for User Thread
          void waitForUserThread(void);
+         void waitForHelperThread(void);
 
          // Dram Directory Home Lookup
          tile_id_t getHome(IntPtr address) { return m_dram_directory_home_lookup->getHome(address); }
@@ -100,7 +106,9 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
                L1CacheCntlr* l1_pep_cache_cntlr,
                AddressHomeLookup* dram_directory_home_lookup,
                Semaphore* user_thread_sem,
+               Semaphore* helper_thread_sem,
                Semaphore* network_thread_sem,
+               Semaphore* network_helper_thread_sem,
                UInt32 cache_block_size,
                UInt32 l2_cache_size, UInt32 l2_cache_associativity,
                std::string l2_cache_replacement_policy,

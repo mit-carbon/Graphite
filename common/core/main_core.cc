@@ -10,6 +10,7 @@
 #include "clock_skew_minimization_object.h"
 #include "simulator.h"
 #include "log.h"
+#include "tile_manager.h"
 
 using namespace std;
 
@@ -32,10 +33,10 @@ MainCore::MainCore(Tile* tile) : Core(tile)
             m_tile, m_tile->getNetwork(), m_shmem_perf_model);
       LOG_PRINT("instantiated memory manager model");
 
-      m_pin_memory_manager = new PinMemoryManager(tile);
+      m_pin_memory_manager = new PinMemoryManager(this);
 
       tile->setMemoryManager(m_memory_manager);
-      tile->setPinMemoryManager(m_pin_memory_manager);
+      //tile->setPinMemoryManager(m_pin_memory_manager);
       tile->setShmemPerfModel(m_shmem_perf_model);
    }
    else
@@ -47,7 +48,7 @@ MainCore::MainCore(Tile* tile) : Core(tile)
       LOG_PRINT("No Memory Manager being used for main core");
    }
 
-
+   m_syscall_model = new SyscallMdl(m_tile->getNetwork());
    m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
@@ -86,7 +87,12 @@ MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      return initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
+      this->getTile()->m_elau_memory_lock.acquire();
+      Sim()->getTileManager()->m_elau_global_lock.acquire();
+      pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
+      Sim()->getTileManager()->m_elau_global_lock.release();
+      this->getTile()->m_elau_memory_lock.release();
+      return res;
    }
    
    else

@@ -295,6 +295,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             // 2) Copying over initial stack data
             LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, (core_id_t) {0, MAIN_CORE_TYPE});
+            //copyInitialStackData(reg_esp, (core_id_t) {0, PEP_CORE_TYPE});
             LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
          }
          else
@@ -305,7 +306,8 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             Tile *tile = Sim()->getTileManager()->getCurrentTile();
 
             // main thread clock is not affected by start-up time of other processes
-            tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
+            //tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
+            tile->getNetwork()->netRecv ((core_id_t) {0, MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, (core_id_t) {tile_id, MAIN_CORE_TYPE});
@@ -340,12 +342,17 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          tile_id_t tile_id = PinConfig::getSingleton()->getTileIDFromStackPtr(reg_esp);
          LOG_PRINT("Got tile %d from stack ptr 0x%x", tile_id, reg_esp);
 
+         core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
+         LOG_PRINT("Got core {%d, %d} from stack ptr 0x%x", core_id.first, core_id.second, reg_esp);
+
          LOG_ASSERT_ERROR(tile_id != -1, "All application threads and thread spawner are cores now");
 
          if (tile_id == Sim()->getConfig()->getCurrentThreadSpawnerTileNum())
          {
             // 'Thread Spawner' thread
-            Sim()->getTileManager()->initializeThread((core_id_t) {tile_id, MAIN_CORE_TYPE});
+            LOG_ASSERT_ERROR(core_id.second == MAIN_CORE_TYPE, "The thread spawner should be on a main core!");
+            //Sim()->getTileManager()->initializeThread((core_id_t) {tile_id, MAIN_CORE_TYPE});
+            Sim()->getTileManager()->initializeThread(core_id);
          }
          else
          {
@@ -377,7 +384,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          LOG_ASSERT_ERROR(tile, "tile(NULL)");
 
          // Copy over thread stack data
-         // copySpawnedThreadStackData(reg_esp);
+         //copySpawnedThreadStackData(reg_esp);
 
          // Wait to make sure that the spawner has written stuff back to memory
          // FIXME: What is this for(?) This seems arbitrary

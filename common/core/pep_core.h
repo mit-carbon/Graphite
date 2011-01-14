@@ -31,8 +31,13 @@ class PepCore : protected Core
             bool modeled = false,
             UInt64 time = 0);
 
+      virtual PinMemoryManager *getPinMemoryManager() { return m_pin_memory_manager; }
+      SyscallMdl *getSyscallMdl() { return m_syscall_model; }
+
       private:
       
+      PinMemoryManager *m_pin_memory_manager;
+      SyscallMdl *m_syscall_model;
 };
 
 #endif

@@ -134,11 +134,11 @@ NetworkModelEMeshHopByHopGeneric::destroyRouterAndLinkModels()
 UInt32
 NetworkModelEMeshHopByHopGeneric::computeAction(const NetPacket& pkt)
 {
-   if (pkt.receiver == NetPacket::BROADCAST)
+   if (pkt.receiver.first == NetPacket::BROADCAST)
    {
-      LOG_ASSERT_ERROR(m_broadcast_tree_enabled, "pkt.sender(%i), pkt.receiver(%i)", \
-            pkt.sender, pkt.receiver);
-      if (pkt.sender == m_tile_id)
+      LOG_ASSERT_ERROR(m_broadcast_tree_enabled, "pkt.sender.first(%i), pkt.receiver.first(%i)", \
+            pkt.sender.first, pkt.receiver.first);
+      if (pkt.sender.first == m_tile_id)
       {
          // Dont call routePacket() recursively
          return RoutingAction::RECEIVE;
@@ -149,7 +149,7 @@ NetworkModelEMeshHopByHopGeneric::computeAction(const NetPacket& pkt)
          return (RoutingAction::FORWARD | RoutingAction::RECEIVE);
       }
    }
-   else if (pkt.receiver == m_tile_id)
+   else if (pkt.receiver.first == m_tile_id)
    {
       return RoutingAction::RECEIVE;
    }
@@ -169,7 +169,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
       requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
-      requester = pkt.sender;
+      requester = pkt.sender.first;
    
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
          "requester(%i)", requester);
@@ -178,21 +178,21 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
 
    LOG_PRINT("pkt length(%u)", pkt_length);
 
-   if (pkt.receiver == NetPacket::BROADCAST)
+   if (pkt.receiver.first == NetPacket::BROADCAST)
    {
       if (m_broadcast_tree_enabled)
       {
          // Injection Port Modeling
          UInt64 injection_port_queue_delay = 0;
-         if (pkt.sender == m_tile_id)
-            injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver, pkt.time, pkt_length);
+         if (pkt.sender.first == m_tile_id)
+            injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver.first, pkt.time, pkt_length);
          UInt64 curr_time = pkt.time + injection_port_queue_delay;         
 
          // Broadcast tree is enabled
          // Build the broadcast tree
          SInt32 sx, sy, cx, cy;
             
-         computePosition(pkt.sender, sx, sy);
+         computePosition(pkt.sender.first, sx, sy);
          computePosition(m_tile_id, cx, cy);
 
          if (cy >= sy)
@@ -213,9 +213,9 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
       {
          // Broadcast tree is not enabled
          // Here, broadcast messages are sent as a collection of unicast messages
-         LOG_ASSERT_ERROR(pkt.sender == m_tile_id,
+         LOG_ASSERT_ERROR(pkt.sender.first == m_tile_id,
                "BROADCAST message to be sent at (%i), original sender(%i), Tree not enabled",
-               m_tile_id, pkt.sender);
+               m_tile_id, pkt.sender.first);
 
          for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
          {
@@ -235,15 +235,15 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
    {
       // Injection Port Modeling
       UInt64 injection_port_queue_delay = 0;
-      if (pkt.sender == m_tile_id)
-         injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver, pkt.time, pkt_length);
+      if (pkt.sender.first == m_tile_id)
+         injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver.first, pkt.time, pkt_length);
       UInt64 curr_time = pkt.time + injection_port_queue_delay;         
       
       // A Unicast packet
       OutputDirection direction;
-      tile_id_t next_dest = getNextDest(pkt.receiver, direction);
+      tile_id_t next_dest = getNextDest(pkt.receiver.first, direction);
 
-      addHop(direction, pkt.receiver, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
+      addHop(direction, pkt.receiver.first, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
    }
 }
 
@@ -259,7 +259,7 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
       requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
-      requester = pkt.sender;
+      requester = pkt.sender.first;
    
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
          "requester(%i)", requester);
@@ -268,9 +268,9 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
       return;
 
    UInt64 packet_latency = pkt.time - pkt.start_time;
-   UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender, m_tile_id) * m_hop_latency);
+   UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender.first, m_tile_id) * m_hop_latency);
 
-   if (pkt.sender != m_tile_id)
+   if (pkt.sender.first != m_tile_id)
    {
       UInt64 processing_time = computeProcessingTime(pkt_length);
       UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt, pkt.time, pkt_length);
@@ -299,8 +299,8 @@ NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction,
    if ((direction == SELF) || m_queue_models[direction])
    {
       Hop h;
-      h.final_dest = final_dest;
-      h.next_dest = next_dest;
+      h.final_dest.first = final_dest;
+      h.next_dest.first = next_dest;
 
       if (direction == SELF)
          h.time = pkt_time;
@@ -363,12 +363,12 @@ NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, cons
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(tile_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length)
+NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(tile_id_t receiver, UInt64 pkt_time, UInt32 pkt_length)
 {
    if (!m_queue_model_enabled)
       return 0;
 
-   if (pkt_receiver == m_tile_id)
+   if (receiver == m_tile_id)
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);

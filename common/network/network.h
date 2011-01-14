@@ -7,6 +7,7 @@
 #include "packet_type.h"
 #include "fixed_types.h"
 #include "cond.h"
+#include "semaphore.h"
 #include "transport.h"
 #include "network_model.h"
 
@@ -25,9 +26,13 @@ public:
    UInt64 time;
    PacketType type;
    
-   SInt32 sender;
-   SInt32 receiver;
-   
+   core_id_t sender;
+   core_id_t receiver;
+
+   //SInt32 sender;
+   //SInt32 receiver;
+   //UInt32 core_type;
+
    // This field may be used by specific network models in whatever way they please
    UInt32 specific;
    
@@ -36,8 +41,12 @@ public:
 
    NetPacket();
    explicit NetPacket(Byte*);
+   NetPacket(UInt64 time, PacketType type, core_id_t sender, 
+             core_id_t receiver, UInt32 length, const void *data);
    NetPacket(UInt64 time, PacketType type, SInt32 sender, 
              SInt32 receiver, UInt32 length, const void *data);
+   //NetPacket(UInt64 time, PacketType type, SInt32 sender, 
+             //SInt32 receiver, UInt32 length, const void *data, UInt32 core_type = MAIN_CORE_TYPE);
 
    UInt32 bufferSize() const;
    Byte *makeBuffer() const;
@@ -52,8 +61,10 @@ typedef std::list<NetPacket> NetQueue;
 class NetMatch
 {
    public:
-      std::vector<SInt32> senders;
+      //std::vector<SInt32> senders;
+      std::vector<core_id_t> senders;
       std::vector<PacketType> types;
+      //std::vector<core_type_t> core_types;
 };
 
 // -- Network -- //
@@ -90,10 +101,13 @@ class Network
 
       // -- Wrappers -- //
 
-      SInt32 netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len);
+      //SInt32 netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len);
+      SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
       SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-      NetPacket netRecv(SInt32 src, PacketType type);
-      NetPacket netRecvFrom(SInt32 src);
+      //NetPacket netRecv(SInt32 src, PacketType type);
+      NetPacket netRecv(core_id_t src, PacketType type);
+      //NetPacket netRecvFrom(SInt32 src);
+      NetPacket netRecvFrom(core_id_t src);
       NetPacket netRecvType(PacketType type);
 
       void enableModels();
@@ -120,6 +134,7 @@ class Network
       NetQueue _netQueue;
       Lock _netQueueLock;
       ConditionVariable _netQueueCond;
+      Semaphore _netQueueSem;
 
       SInt32 forwardPacket(const NetPacket& packet);
 };

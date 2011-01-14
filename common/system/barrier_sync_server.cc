@@ -62,7 +62,10 @@ BarrierSyncServer::barrierWait(tile_id_t tile_id)
       LOG_PRINT("Sent 'SIM_BARRIER_RELEASE' immediately time(%llu), m_next_barrier_time(%llu)", time, m_next_barrier_time);
       // LOG_PRINT_WARNING("tile_id(%i), local_clock(%llu), m_next_barrier_time(%llu), m_barrier_interval(%llu)", tile_id, time, m_next_barrier_time, m_barrier_interval);
       unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
-      m_network.netSend(tile_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
+
+      // elau: syncing is only for MAIN core's right now.
+      core_id_t core_id = (core_id_t) {tile_id, MAIN_CORE_TYPE};
+      m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
       return;
    }
 
@@ -131,7 +134,10 @@ BarrierSyncServer::barrierRelease()
                LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(tile_id) || m_thread_manager->isThreadInitializing(tile_id), "(%i) has acquired barrier, local_clock(%i), m_next_barrier_time(%llu), but not initializing or running", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
 
                unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
-               m_network.netSend(tile_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
+
+               // elau: syncing is only for MAIN core's right now.
+               core_id_t core_id = (core_id_t) {tile_id, MAIN_CORE_TYPE};
+               m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
 
                m_barrier_acquire_list[tile_id] = false;
 

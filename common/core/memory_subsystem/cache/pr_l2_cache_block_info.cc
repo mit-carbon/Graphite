@@ -2,6 +2,18 @@
 #include "log.h"
 
 MemComponent::component_t 
+PrL2CacheBlockInfo::getSingleCachedLoc()
+{
+   LOG_ASSERT_ERROR(m_cached_loc_bitvec != ((1 << MemComponent::L1_ICACHE) | (1 << MemComponent::L1_PEP_ICACHE)),
+         "Cached in multiple L1 caches: m_cached_loc_bitvec(%u)", m_cached_loc_bitvec);
+
+   LOG_ASSERT_ERROR(m_cached_loc_bitvec != ((1 << MemComponent::L1_DCACHE) | (1 << MemComponent::L1_PEP_DCACHE)),
+         "Cached in multiple L1 caches: m_cached_loc_bitvec(%u)", m_cached_loc_bitvec);
+
+   return getCachedLoc();
+}
+
+MemComponent::component_t 
 PrL2CacheBlockInfo::getCachedLoc()
 {
    LOG_ASSERT_ERROR(m_cached_loc_bitvec != ((1 << MemComponent::L1_ICACHE) | (1 << MemComponent::L1_DCACHE)),
@@ -13,18 +25,24 @@ PrL2CacheBlockInfo::getCachedLoc()
    switch(m_cached_loc_bitvec)
    {
       case ((UInt32) 1) << MemComponent::L1_ICACHE:
-      case ((((UInt32) 1) << MemComponent::L1_ICACHE) + (((UInt32) 1) << MemComponent::L1_PEP_ICACHE)):
          return MemComponent::L1_ICACHE;
       
       case ((UInt32) 1) << MemComponent::L1_PEP_ICACHE:
          return MemComponent::L1_PEP_ICACHE;
 
       case ((UInt32) 1) << MemComponent::L1_DCACHE:
-      case ((((UInt32) 1) << MemComponent::L1_DCACHE) + (((UInt32) 1) << MemComponent::L1_PEP_DCACHE)):
          return MemComponent::L1_DCACHE;
 
       case ((UInt32) 1) << MemComponent::L1_PEP_DCACHE:
          return MemComponent::L1_PEP_DCACHE;
+
+      case ((((UInt32) 1) << MemComponent::L1_ICACHE) + (((UInt32) 1) << MemComponent::L1_PEP_ICACHE)):
+         LOG_ASSERT_ERROR(false, "icache not modeled!");
+         return MemComponent::INVALID_MEM_COMPONENT;
+
+      case ((((UInt32) 1) << MemComponent::L1_DCACHE) + (((UInt32) 1) << MemComponent::L1_PEP_DCACHE)):
+         //LOG_ASSERT_ERROR(false, "in both L1 caches!");
+         return MemComponent::L1_BOTH_DCACHE;
 
       case ((UInt32) 0):
          return MemComponent::INVALID_MEM_COMPONENT;
@@ -66,6 +84,13 @@ PrL2CacheBlockInfo::clearCachedLoc(MemComponent::component_t cached_loc)
 
    m_cached_loc_bitvec &= (~(((UInt32) 1) << cached_loc));
 }
+
+void 
+PrL2CacheBlockInfo::clearAllCachedLoc()
+{
+   m_cached_loc_bitvec = 0;
+}
+
 
 void 
 PrL2CacheBlockInfo::invalidate()

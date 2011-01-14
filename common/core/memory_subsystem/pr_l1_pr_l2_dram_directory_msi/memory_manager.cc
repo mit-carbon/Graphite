@@ -219,7 +219,7 @@ MemoryManager::coreInitiateMemoryAccess(
 void
 MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
-   tile_id_t sender = packet.sender;
+   core_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
 
@@ -230,8 +230,10 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    if (m_enabled)
    {
-      LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", 
-            shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender, packet.receiver);    
+      LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
+            shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender.first, sender.second, packet.receiver.first, packet.receiver.second);    
+      assert(sender.second == MAIN_CORE_TYPE);
+      assert(packet.receiver.second == MAIN_CORE_TYPE);
    }
 
    switch (receiver_mem_component)
@@ -241,12 +243,12 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
          {
             case MemComponent::L1_ICACHE:
             case MemComponent::L1_DCACHE:
-               assert(sender == getTile()->getId());
+               assert(sender.first == getTile()->getId());
                m_l2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
                break;
 
             case MemComponent::DRAM_DIR:
-               m_l2_cache_cntlr->handleMsgFromDramDirectory(sender, shmem_msg);
+               m_l2_cache_cntlr->handleMsgFromDramDirectory(sender.first, shmem_msg);
                break;
 
             default:
@@ -262,7 +264,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
             LOG_ASSERT_ERROR(m_dram_cntlr_present, "Dram Cntlr NOT present");
 
             case MemComponent::L2_CACHE:
-               m_dram_directory_cntlr->handleMsgFromL2Cache(sender, shmem_msg);
+               m_dram_directory_cntlr->handleMsgFromL2Cache(sender.first, shmem_msg);
                break;
 
             default:

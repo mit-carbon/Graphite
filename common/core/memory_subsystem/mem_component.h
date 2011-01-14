@@ -13,6 +13,7 @@ class MemComponent
          L1_DCACHE,
          L1_PEP_ICACHE,
          L1_PEP_DCACHE,
+         L1_BOTH_DCACHE,
          L2_CACHE,
          DRAM_DIR,
          DRAM,

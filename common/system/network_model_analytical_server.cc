@@ -60,8 +60,8 @@ void NetworkModelAnalyticalServer::update(tile_id_t tile_id)
 
    // send response
    NetPacket response;
-   response.sender = Config::getSingleton()->getMCPTileNum();
-   response.receiver = tile_id;
+   response.sender.first = Config::getSingleton()->getMCPTileNum();
+   response.receiver.first = tile_id;
    response.length = sizeof(response_msg);
    response.type = MCP_UTILIZATION_UPDATE_TYPE;
    response.data = &response_msg;

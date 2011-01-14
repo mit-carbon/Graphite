@@ -104,7 +104,9 @@ MemoryManager::MemoryManager(Tile* tile,
    }
 
    m_user_thread_sem = new Semaphore(0);
+   m_helper_thread_sem = new Semaphore(0);
    m_network_thread_sem = new Semaphore(0);
+   m_network_helper_thread_sem = new Semaphore(0);
 
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    if (getTile()->getId() == 0)
@@ -142,7 +144,9 @@ MemoryManager::MemoryManager(Tile* tile,
    m_l1_main_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
          this,
          m_user_thread_sem,
+         m_helper_thread_sem,
          m_network_thread_sem,
+         m_network_helper_thread_sem,
          getCacheBlockSize(),
          l1_icache_size, l1_icache_associativity,
          l1_icache_replacement_policy,
@@ -155,7 +159,9 @@ MemoryManager::MemoryManager(Tile* tile,
    m_l1_pep_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
          this,
          m_user_thread_sem,
+         m_helper_thread_sem,
          m_network_thread_sem,
+         m_network_helper_thread_sem,
          getCacheBlockSize(),
          l1_icache_size, l1_icache_associativity,
          l1_icache_replacement_policy,
@@ -171,7 +177,9 @@ MemoryManager::MemoryManager(Tile* tile,
          m_l1_pep_cache_cntlr,
          m_dram_directory_home_lookup,
          m_user_thread_sem,
+         m_helper_thread_sem,
          m_network_thread_sem,
+         m_network_helper_thread_sem,
          getCacheBlockSize(),
          l2_cache_size, l2_cache_associativity,
          l2_cache_replacement_policy,
@@ -214,7 +222,9 @@ MemoryManager::~MemoryManager()
    delete m_l2_cache_perf_model;
 
    delete m_user_thread_sem;
+   delete m_helper_thread_sem;
    delete m_network_thread_sem;
+   delete m_network_helper_thread_sem;
    delete m_dram_directory_home_lookup;
    delete m_l1_main_cache_cntlr;
    delete m_l1_pep_cache_cntlr;
@@ -235,12 +245,21 @@ MemoryManager::coreInitiateMemoryAccess(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   return m_l1_main_cache_cntlr->processMemOpFromCore(mem_component, 
+   LOG_PRINT("elau: Main core trying to get test_lock");
+   m_elau_test_lock.acquire();
+   LOG_PRINT("elau: Main core got test_lock");
+
+   bool res = m_l1_main_cache_cntlr->processMemOpFromCore(mem_component, 
          lock_signal, 
          mem_op_type, 
          address, offset, 
          data_buf, data_length,
          modeled);
+
+   LOG_PRINT("elau: Main core releasing test_lock");
+   m_elau_test_lock.release();
+   LOG_PRINT("elau: Main core released test_lock");
+   return res;
 }
 
 bool
@@ -252,19 +271,28 @@ MemoryManager::pepCoreInitiateMemoryAccess(
       Byte* data_buf, UInt32 data_length,
       bool modeled)
 {
-   return m_l1_pep_cache_cntlr->processMemOpFromCore(mem_component, 
+   LOG_PRINT("elau: Pep core trying to get test_lock");
+   m_elau_test_lock.acquire();
+   LOG_PRINT("elau: Pep core got test_lock");
+   bool res = m_l1_pep_cache_cntlr->processMemOpFromCore(mem_component, 
          lock_signal, 
          mem_op_type, 
          address, offset, 
          data_buf, data_length,
          modeled);
+   
+   LOG_PRINT("elau: Pep core releasing test_lock");
+   m_elau_test_lock.release();
+   LOG_PRINT("elau: Pep core released test_lock");
+   return res;
 }
 
 void
 MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
    LOG_PRINT("elau: In handleMsgFromNetwork in memory model manager");
-   tile_id_t sender = packet.sender;
+
+   core_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
 
@@ -275,8 +303,8 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    if (m_enabled)
    {
-      LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i), receiver(%i)", 
-            shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender, packet.receiver);    
+      LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
+            shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender.first, sender.second, packet.receiver.first, packet.receiver.second);    
    }
 
    switch (receiver_mem_component)
@@ -288,18 +316,31 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
             case MemComponent::L1_DCACHE:
             case MemComponent::L1_PEP_ICACHE:
             case MemComponent::L1_PEP_DCACHE:
-               assert(sender == getTile()->getId());
+               assert(sender.first == getTile()->getId());
                m_l2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
                break;
 
             case MemComponent::DRAM_DIR:
-               m_l2_cache_cntlr->handleMsgFromDramDirectory(sender, shmem_msg);
-               LOG_PRINT("elau: about to go handleMsgFromDramCache\n");
+               {
+                  //if (sender.first != getTile()->getId())
+                  //{
+                     //LOG_PRINT("elau: Network trying to get test_lock");
+                     //m_elau_test_lock.acquire();
+                     //LOG_PRINT("elau: Network got test_lock");
+                  //}
+                  LOG_PRINT("elau: about to go handleMsgFromDramCache\n");
+                  m_l2_cache_cntlr->handleMsgFromDramDirectory(sender.first, shmem_msg);
+                  //if (sender.first != getTile()->getId())
+                  //{
+                     //LOG_PRINT("elau: Network trying to release test_lock");
+                     //m_elau_test_lock.release();
+                     //LOG_PRINT("elau: Network released test_lock");
+                  //}
+               }
                break;
 
             default:
-               LOG_PRINT_ERROR("Unrecognized sender component(%u)",
-                     sender_mem_component);
+               LOG_PRINT_ERROR("Unrecognized sender component(%u)", sender_mem_component);
                break;
          }
          break;
@@ -310,7 +351,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
             LOG_ASSERT_ERROR(m_dram_cntlr_present, "Dram Cntlr NOT present");
 
             case MemComponent::L2_CACHE:
-               m_dram_directory_cntlr->handleMsgFromL2Cache(sender, shmem_msg);
+               m_dram_directory_cntlr->handleMsgFromL2Cache(sender.first, shmem_msg);
                break;
 
             default:
@@ -328,7 +369,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    // Delete the allocated Shared Memory Message
    // First delete 'data_buf' if it is present
-   // LOG_PRINT("Finished handling Shmem Msg");
+   LOG_PRINT("Finished handling Shmem Msg");
 
    if (shmem_msg->getDataLength() > 0)
    {
@@ -356,6 +397,25 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
          getTile()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
+
+   //if (sender_mem_component == MemComponent::L1_PEP_ICACHE || sender_mem_component == MemComponent::L1_PEP_DCACHE)
+   //{
+      //NetPacket packet(msg_time, SHARED_MEM_1,
+            //(core_id_t) {getTile()->getId(), PEP_CORE_TYPE},
+            //(core_id_t) {receiver, PEP_CORE_TYPE},
+            //shmem_msg.getMsgLen(), (const void*) msg_buf);
+      //getNetwork()->netSend(packet);
+   //}
+   //else
+   //{
+      //NetPacket packet(msg_time, SHARED_MEM_1,
+            //(core_id_t) {getTile()->getId(), MAIN_CORE_TYPE},
+            //(core_id_t) {receiver, MAIN_CORE_TYPE},
+            //shmem_msg.getMsgLen(), (const void*) msg_buf);
+      //getNetwork()->netSend(packet);
+   //}
+
+
 
    // Delete the Msg Buf
    delete [] msg_buf;
@@ -402,6 +462,11 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
 
       case MemComponent::L1_PEP_DCACHE:
          getShmemPerfModel()->incrCycleCount(m_l1_pep_dcache_perf_model->getLatency(access_type));
+         break;
+
+      case MemComponent::L1_BOTH_DCACHE:
+         getShmemPerfModel()->incrCycleCount(m_l1_pep_dcache_perf_model->getLatency(access_type));
+         getShmemPerfModel()->incrCycleCount(m_l1_main_dcache_perf_model->getLatency(access_type));
          break;
 
       case MemComponent::L2_CACHE:

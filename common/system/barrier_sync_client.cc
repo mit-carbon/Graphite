@@ -50,13 +50,13 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
       int msg_type = MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION;
 
       m_send_buff << msg_type << curr_time;
-      m_core->getNetwork()->netSend(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_core->getNetwork()->netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
       LOG_PRINT("Tile(%i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getTileId(), curr_time, m_next_sync_time);
 
       // Receive 'BARRIER_RELEASE' response
       NetPacket recv_pkt;
-      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_RESPONSE_TYPE);
+      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_RESPONSE_TYPE);
       assert(recv_pkt.length == sizeof(int));
 
       unsigned int dummy;

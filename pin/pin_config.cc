@@ -100,7 +100,7 @@ core_id_t PinConfig::getCoreIDFromStackPtr(IntPtr stack_ptr)
    {
       // Stacks for each tile per core are stored adjacent to each other:  |main core 1|pep core 1|main core 2| ...
       SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (2 * m_stack_size_per_core));
-      UInt32 core_type = (UInt32) ((stack_ptr - (tile_index * (2 * m_stack_size_per_core))) / m_stack_size_per_core);
+      UInt32 core_type = (UInt32) (((stack_ptr - m_stack_lower_limit) - (tile_index * (2 * m_stack_size_per_core))) / m_stack_size_per_core);
       return ((core_id_t) {Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index), core_type});
    }
    else

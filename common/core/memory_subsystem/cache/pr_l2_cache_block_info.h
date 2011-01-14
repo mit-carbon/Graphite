@@ -20,8 +20,10 @@ class PrL2CacheBlockInfo : public CacheBlockInfo
       ~PrL2CacheBlockInfo() {}
 
       MemComponent::component_t getCachedLoc();
+      MemComponent::component_t getSingleCachedLoc();
       void setCachedLoc(MemComponent::component_t cached_loc);
       void clearCachedLoc(MemComponent::component_t cached_loc);
+      void clearAllCachedLoc();
 
       UInt32 getCachedLocBitVec() { return m_cached_loc_bitvec; }
 

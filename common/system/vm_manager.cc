@@ -24,7 +24,10 @@ VMManager::VMManager()
    }
 
    // FIXME: MCP does not have a stack. Do something about this
-   m_end_stack_segment = m_start_stack_segment + total_tiles * stack_size_per_core;
+   if (Sim()->getConfig()->getEnablePepCores())
+      m_end_stack_segment = m_start_stack_segment + 2 * total_tiles * stack_size_per_core;
+   else
+      m_end_stack_segment = m_start_stack_segment + total_tiles * stack_size_per_core;
 
    LOG_ASSERT_ERROR(m_end_stack_segment > m_start_stack_segment,
        "Problem with Application Stack: start_stack_segment(0x%x), end_stack_segment(0x%x)",

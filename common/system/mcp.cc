@@ -90,14 +90,14 @@ void MCP::processPacket()
       break;
 
    case MCP_MESSAGE_BARRIER_INIT:
-      m_sync_server.barrierInit(recv_pkt.sender);
+      m_sync_server.barrierInit(recv_pkt.sender.first);
       break;
    case MCP_MESSAGE_BARRIER_WAIT:
-      m_sync_server.barrierWait(recv_pkt.sender);
+      m_sync_server.barrierWait(recv_pkt.sender.first);
       break;
 
    case MCP_MESSAGE_UTILIZATION_UPDATE:
-      m_network_model_analytical_server.update(recv_pkt.sender);
+      m_network_model_analytical_server.update(recv_pkt.sender.first);
       break;
 
    case MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:
@@ -116,15 +116,15 @@ void MCP::processPacket()
 
    case MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
       assert(m_clock_skew_minimization_server);
-      m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender);
+      m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender.first);
       break;
 
    case MCP_MESSAGE_RESET_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->resetCacheCounters(recv_pkt.sender);
+      Sim()->getPerfCounterManager()->resetCacheCounters(recv_pkt.sender.first);
       break;
 
    case MCP_MESSAGE_DISABLE_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->disableCacheCounters(recv_pkt.sender);
+      Sim()->getPerfCounterManager()->disableCacheCounters(recv_pkt.sender.first);
       break;
 
    default:
@@ -141,7 +141,8 @@ void MCP::finish()
    LOG_PRINT("Send MCP quit message");
 
    SInt32 msg_type = MCP_MESSAGE_QUIT;
-   m_network.netSend(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
+   //m_network.netSend(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
+   m_network.netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
 
    while (!finished())
    {

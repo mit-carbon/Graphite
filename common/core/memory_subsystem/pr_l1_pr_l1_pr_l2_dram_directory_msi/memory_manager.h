@@ -28,7 +28,11 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          bool m_dram_cntlr_present;
 
          Semaphore* m_user_thread_sem;
+         Semaphore* m_helper_thread_sem;
          Semaphore* m_network_thread_sem;
+         Semaphore* m_network_helper_thread_sem;
+
+         Lock m_elau_test_lock;
 
          UInt32 m_cache_block_size;
          bool m_enabled;

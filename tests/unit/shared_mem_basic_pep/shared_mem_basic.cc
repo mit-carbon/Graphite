@@ -63,6 +63,11 @@ void* main_memory_access(void *thread_args)
    assert(num_misses == 1);
    printf("Main writing(%u) into args->address(0x%x) completed\n", written_val, args->address);
 
+   // Start a thread on the PEP core and test the current state of the L2 cache.
+   thread_data_t pep_thread_args = (thread_data_t) {args->address};
+   int tid = CarbonSpawnHelperThread(pep_memory_access, (void *) &pep_thread_args);
+   //CarbonJoinHelperThread(tid);
+   
    // Read out the value
    printf("Main reading from args->address(0x%x)\n", args->address);
    num_misses = (core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, args->address, (Byte*) &read_val, sizeof(read_val))).first;
@@ -70,10 +75,10 @@ void* main_memory_access(void *thread_args)
    assert(num_misses == 0);
    assert(read_val == 100);
 
-   // Start a thread on the PEP core and test the current state of the L2 cache.
-   thread_data_t pep_thread_args = (thread_data_t) {args->address};
-   int tid = CarbonSpawnHelperThread(pep_memory_access, (void *) &pep_thread_args);
-   CarbonJoinHelperThread(tid);
+   //Start a thread on the PEP core and test the current state of the L2 cache.
+   //thread_data_t pep_thread_args = (thread_data_t) {args->address};
+   //int tid = CarbonSpawnHelperThread(pep_memory_access, (void *) &pep_thread_args);
+   //CarbonJoinHelperThread(tid);
 
    printf("Finished (shared_mem_basic) - SUCCESS\n");
 }

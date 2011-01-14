@@ -15,46 +15,46 @@
 class SimMutex
 {
    public:
-      static const tile_id_t NO_OWNER = UINT_MAX;
+      //static const core_id_t NO_OWNER = (core_id_t) {UINT_MAX, UINT_MAX};
 
       SimMutex();
       ~SimMutex();
 
       // returns true if this thread now owns the lock
-      bool lock(tile_id_t tile_id);
+      bool lock(core_id_t core_id);
 
       // returns the next owner of the lock so that it can be signaled by
       // the server
-      tile_id_t unlock(tile_id_t tile_id);
+      core_id_t unlock(core_id_t core_id);
 
    private:
-      typedef std::queue<tile_id_t> ThreadQueue;
+      typedef std::queue<core_id_t> ThreadQueue;
 
       ThreadQueue m_waiting;
-      tile_id_t m_owner;
+      core_id_t m_owner;
 };
 
 class SimCond
 {
 
    public:
-      typedef std::vector<tile_id_t> WakeupList;
+      typedef std::vector<core_id_t> WakeupList;
 
       SimCond();
       ~SimCond();
 
       // returns the thread that gets woken up when the mux is unlocked
-      tile_id_t wait(tile_id_t tile_id, UInt64 time, StableIterator<SimMutex> & it);
-      tile_id_t signal(tile_id_t tile_id, UInt64 time);
-      void broadcast(tile_id_t tile_id, UInt64 time, WakeupList &woken);
+      core_id_t wait(core_id_t core_id, UInt64 time, StableIterator<SimMutex> & it);
+      core_id_t signal(core_id_t core_id, UInt64 time);
+      void broadcast(core_id_t core_id, UInt64 time, WakeupList &woken);
 
    private:
       class CondWaiter
       {
          public:
-            CondWaiter(tile_id_t tile_id, StableIterator<SimMutex> mutex, UInt64 time)
-                  : m_tile_id(tile_id), m_mutex(mutex), m_arrival_time(time) {}
-            tile_id_t m_tile_id;
+            CondWaiter(core_id_t core_id, StableIterator<SimMutex> mutex, UInt64 time)
+                  : m_core_id(core_id), m_mutex(mutex), m_arrival_time(time) {}
+            core_id_t m_core_id;
             StableIterator<SimMutex> m_mutex;
             UInt64 m_arrival_time;
       };
@@ -101,14 +101,14 @@ class SyncServer
 
       // Remaining parameters to these functions are stored
       // in the recv buffer and get unpacked
-      void mutexInit(tile_id_t);
-      void mutexLock(tile_id_t);
-      void mutexUnlock(tile_id_t);
+      void mutexInit(core_id_t core_id);
+      void mutexLock(core_id_t core_id);
+      void mutexUnlock(core_id_t core_id);
 
-      void condInit(tile_id_t);
-      void condWait(tile_id_t);
-      void condSignal(tile_id_t);
-      void condBroadcast(tile_id_t);
+      void condInit(core_id_t core_id);
+      void condWait(core_id_t core_id);
+      void condSignal(core_id_t core_id);
+      void condBroadcast(core_id_t core_id);
 
       void barrierInit(tile_id_t);
       void barrierWait(tile_id_t);

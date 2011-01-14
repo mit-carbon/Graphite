@@ -11,11 +11,11 @@ void CarbonResetCacheCounters()
    UInt32 msg = MCP_MESSAGE_RESET_CACHE_COUNTERS;
    // Send a message to the MCP asking it to reset all the cache counters
    Network *net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
-   net->netSend(Sim()->getConfig()->getMCPTileNum(), MCP_SYSTEM_TYPE,
+   net->netSend(Sim()->getConfig()->getMCPCoreId(), MCP_SYSTEM_TYPE,
          (const void*) &msg, sizeof(msg));
 
    NetPacket recv_pkt;
-   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPTileNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), MCP_RESPONSE_TYPE);
    
    assert(recv_pkt.length == sizeof(UInt32));
    delete [](Byte*)recv_pkt.data;
@@ -26,11 +26,11 @@ void CarbonDisableCacheCounters()
    UInt32 msg = MCP_MESSAGE_DISABLE_CACHE_COUNTERS;
    // Send a message to the MCP asking it to reset all the cache counters
    Network *net = Sim()->getTileManager()->getCurrentTile()->getNetwork();
-   net->netSend(Sim()->getConfig()->getMCPTileNum(), MCP_SYSTEM_TYPE,
+   net->netSend(Sim()->getConfig()->getMCPCoreId(), MCP_SYSTEM_TYPE,
          (const void*) &msg, sizeof(msg));
 
    NetPacket recv_pkt;
-   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPTileNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), MCP_RESPONSE_TYPE);
    
    assert(recv_pkt.length == sizeof(UInt32));
    delete [](Byte*)recv_pkt.data;

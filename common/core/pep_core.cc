@@ -10,6 +10,7 @@
 #include "core_perf_model.h"
 #include "simulator.h"
 #include "log.h"
+#include "tile_manager.h"
 
 
 
@@ -25,12 +26,13 @@ PepCore::PepCore(Tile* tile) : Core(tile)
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       assert(tile->getMemoryManager() != NULL);
-      assert(tile->getPinMemoryManager() != NULL);
+      //assert(tile->getPinMemoryManager() != NULL);
       assert(tile->getShmemPerfModel() != NULL);
 
+      m_pin_memory_manager = new PinMemoryManager(this);
 
       m_memory_manager = tile->getMemoryManager();
-      m_pin_memory_manager = tile->getPinMemoryManager();
+      //m_pin_memory_manager = tile->getPinMemoryManager();
       m_shmem_perf_model = tile->getShmemPerfModel();
    }
    else
@@ -42,7 +44,7 @@ PepCore::PepCore(Tile* tile) : Core(tile)
       LOG_PRINT("No Memory Manager being used for PEP core");
    }
 
-
+   m_syscall_model = new SyscallMdl(m_tile->getNetwork());
 }
 
 PepCore::~PepCore()
@@ -70,7 +72,12 @@ PepCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      return initiateMemoryAccess(MemComponent::L1_PEP_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
+      this->getTile()->m_elau_memory_lock.acquire();
+      Sim()->getTileManager()->m_elau_global_lock.acquire();
+      pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_PEP_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
+      Sim()->getTileManager()->m_elau_global_lock.release();
+      this->getTile()->m_elau_memory_lock.release();
+      return res;
    }
    
    else

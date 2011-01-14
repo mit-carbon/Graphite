@@ -231,12 +231,12 @@ VOID allocateStackSpace()
    // We should probably get the amount of stack space per thread from a configuration parameter
    // Each process allocates whatever it is responsible for !!
    __attribute(__unused__) UInt32 stack_size_per_core = PinConfig::getSingleton()->getStackSizePerCore();
-   __attribute(__unused__) UInt32 num_cores = Sim()->getConfig()->getNumLocalTiles();
+   __attribute(__unused__) UInt32 num_tiles = Sim()->getConfig()->getNumLocalTiles();
    __attribute(__unused__) IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
 
 
    LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x", stack_size_per_core);
-   LOG_PRINT("allocateStackSpace: num_local_cores = %i", num_cores);
+   LOG_PRINT("allocateStackSpace: num_local_cores = %i", num_tiles);
    LOG_PRINT("allocateStackSpace: stack_base = 0x%x", stack_base);
 
    // TODO: Make sure that this is a multiple of the page size 
@@ -248,14 +248,14 @@ VOID allocateStackSpace()
       LOG_PRINT("allocateStackSpace: num_pep_cores = %i", num_pep_cores);
 
       // mmap() the total amount of memory needed for the stacks
-      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * (num_pep_cores + num_cores),  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
-            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * (num_pep_cores + num_cores));
+      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * (num_pep_cores + num_tiles),  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
+            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * (num_pep_cores + num_tiles));
    }
    else
    {
       // mmap() the total amount of memory needed for the stacks
-      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_cores,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
-            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_cores);
+      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_tiles,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
+            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_tiles);
    }
 }
 

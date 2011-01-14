@@ -14,7 +14,7 @@ struct Reply
 // -- SimMutex -- //
 
 SimMutex::SimMutex()
-      : m_owner(NO_OWNER)
+      : m_owner(INVALID_CORE_ID)
 { }
 
 SimMutex::~SimMutex()
@@ -22,27 +22,28 @@ SimMutex::~SimMutex()
    assert(m_waiting.empty());
 }
 
-bool SimMutex::lock(tile_id_t tile_id)
+bool SimMutex::lock(core_id_t core_id)
 {
-   if (m_owner == NO_OWNER)
+   if (m_owner.first == INVALID_TILE_ID)
    {
-      m_owner = tile_id;
+      m_owner = core_id;
       return true;
    }
    else
    {
-      Sim()->getThreadManager()->stallThread(tile_id);
-      m_waiting.push(tile_id);
+      Sim()->getThreadManager()->stallThread(core_id);
+      m_waiting.push(core_id);
       return false;
    }
 }
 
-tile_id_t SimMutex::unlock(tile_id_t tile_id)
+core_id_t SimMutex::unlock(core_id_t core_id)
 {
-   assert(m_owner == tile_id);
+   assert(m_owner.first == core_id.first && m_owner.second == core_id.second);
+
    if (m_waiting.empty())
    {
-      m_owner = NO_OWNER;
+      m_owner = INVALID_CORE_ID;
    }
    else
    {
@@ -61,16 +62,16 @@ SimCond::~SimCond()
    assert(m_waiting.empty());
 }
 
-tile_id_t SimCond::wait(tile_id_t tile_id, UInt64 time, StableIterator<SimMutex> & simMux)
+core_id_t SimCond::wait(core_id_t core_id, UInt64 time, StableIterator<SimMutex> & simMux)
 {
-   Sim()->getThreadManager()->stallThread(tile_id);
+   Sim()->getThreadManager()->stallThread(core_id);
 
    // If we don't have any later signals, then put this request in the queue
-   m_waiting.push_back(CondWaiter(tile_id, simMux, time));
-   return simMux->unlock(tile_id);
+   m_waiting.push_back(CondWaiter(core_id, simMux, time));
+   return simMux->unlock(core_id);
 }
 
-tile_id_t SimCond::signal(tile_id_t tile_id, UInt64 time)
+core_id_t SimCond::signal(core_id_t core_id, UInt64 time)
 {
    // If there is a list of threads waiting, wake up one of them
    if (!m_waiting.empty())
@@ -78,36 +79,36 @@ tile_id_t SimCond::signal(tile_id_t tile_id, UInt64 time)
       CondWaiter woken = *(m_waiting.begin());
       m_waiting.erase(m_waiting.begin());
 
-      Sim()->getThreadManager()->resumeThread(woken.m_tile_id);
+      Sim()->getThreadManager()->resumeThread(woken.m_core_id);
 
-      if (woken.m_mutex->lock(woken.m_tile_id))
+      if (woken.m_mutex->lock(woken.m_core_id))
       {
          // Woken up thread is able to grab lock immediately
-         return woken.m_tile_id;
+         return woken.m_core_id;
       }
       else
       {
          // Woken up thread is *NOT* able to grab lock immediately
-         return INVALID_TILE_ID;
+         return INVALID_CORE_ID;
       }
    }
 
    // There are *NO* threads waiting on the condition variable
-   return INVALID_TILE_ID;
+   return INVALID_CORE_ID;
 }
 
-void SimCond::broadcast(tile_id_t tile_id, UInt64 time, WakeupList &woken_list)
+void SimCond::broadcast(core_id_t core_id, UInt64 time, WakeupList &woken_list)
 {
    for (ThreadQueue::iterator i = m_waiting.begin(); i != m_waiting.end(); i++)
    {
       CondWaiter woken = *(i);
 
-      Sim()->getThreadManager()->resumeThread(woken.m_tile_id);
+      Sim()->getThreadManager()->resumeThread(woken.m_core_id);
 
-      if (woken.m_mutex->lock(woken.m_tile_id))
+      if (woken.m_mutex->lock(woken.m_core_id))
       {
          // Woken up thread is able to grab lock immediately
-         woken_list.push_back(woken.m_tile_id);
+         woken_list.push_back(woken.m_core_id);
       }
    }
 
@@ -164,15 +165,15 @@ SyncServer::SyncServer(Network &network, UnstructuredBuffer &recv_buffer)
 SyncServer::~SyncServer()
 { }
 
-void SyncServer::mutexInit(tile_id_t tile_id)
+void SyncServer::mutexInit(core_id_t core_id)
 {
    m_mutexes.push_back(SimMutex());
    UInt32 mux = (UInt32)m_mutexes.size()-1;
 
-   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, (char*)&mux, sizeof(mux));
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&mux, sizeof(mux));
 }
 
-void SyncServer::mutexLock(tile_id_t tile_id)
+void SyncServer::mutexLock(core_id_t core_id)
 {
    carbon_mutex_t mux;
    m_recv_buffer >> mux;
@@ -184,13 +185,13 @@ void SyncServer::mutexLock(tile_id_t tile_id)
 
    SimMutex *psimmux = &m_mutexes[mux];
 
-   if (psimmux->lock(tile_id))
+   if (psimmux->lock(core_id))
    {
       // notify the owner
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      m_network.netSend(tile_id, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
    }
    else
    {
@@ -198,7 +199,7 @@ void SyncServer::mutexLock(tile_id_t tile_id)
    }
 }
 
-void SyncServer::mutexUnlock(tile_id_t tile_id)
+void SyncServer::mutexUnlock(core_id_t core_id)
 {
    carbon_mutex_t mux;
    m_recv_buffer >> mux;
@@ -210,9 +211,9 @@ void SyncServer::mutexUnlock(tile_id_t tile_id)
 
    SimMutex *psimmux = &m_mutexes[mux];
 
-   tile_id_t new_owner = psimmux->unlock(tile_id);
+   core_id_t new_owner = psimmux->unlock(core_id);
 
-   if (new_owner != SimMutex::NO_OWNER)
+   if (new_owner.first != INVALID_TILE_ID)
    {
       // wake up the new owner
       Reply r;
@@ -226,19 +227,19 @@ void SyncServer::mutexUnlock(tile_id_t tile_id)
    }
 
    UInt32 dummy = SyncClient::MUTEX_UNLOCK_RESPONSE;
-   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
 // -- Condition Variable Stuffs -- //
-void SyncServer::condInit(tile_id_t tile_id)
+void SyncServer::condInit(core_id_t core_id)
 {
    m_conds.push_back(SimCond());
    UInt32 cond = (UInt32)m_conds.size()-1;
 
-   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, (char*)&cond, sizeof(cond));
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&cond, sizeof(cond));
 }
 
-void SyncServer::condWait(tile_id_t tile_id)
+void SyncServer::condWait(core_id_t core_id)
 {
    carbon_cond_t cond;
    carbon_mutex_t mux;
@@ -254,9 +255,9 @@ void SyncServer::condWait(tile_id_t tile_id)
    SimCond *psimcond = &m_conds[cond];
 
    StableIterator<SimMutex> it(m_mutexes, mux);
-   tile_id_t new_mutex_owner = psimcond->wait(tile_id, time, it);
+   core_id_t new_mutex_owner = psimcond->wait(core_id, time, it);
 
-   if (new_mutex_owner != SimMutex::NO_OWNER)
+   if (new_mutex_owner.first != INVALID_TILE_ID)
    {
       // wake up the new owner
       Reply r;
@@ -268,7 +269,7 @@ void SyncServer::condWait(tile_id_t tile_id)
 }
 
 
-void SyncServer::condSignal(tile_id_t tile_id)
+void SyncServer::condSignal(core_id_t core_id)
 {
    carbon_cond_t cond;
    m_recv_buffer >> cond;
@@ -280,9 +281,9 @@ void SyncServer::condSignal(tile_id_t tile_id)
 
    SimCond *psimcond = &m_conds[cond];
 
-   tile_id_t woken = psimcond->signal(tile_id, time);
+   core_id_t woken = psimcond->signal(core_id, time);
 
-   if (woken != INVALID_TILE_ID)
+   if (woken.first != INVALID_TILE_ID)
    {
       // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
@@ -298,10 +299,10 @@ void SyncServer::condSignal(tile_id_t tile_id)
 
    // Alert the signaler
    UInt32 dummy = SyncClient::COND_SIGNAL_RESPONSE;
-   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
-void SyncServer::condBroadcast(tile_id_t tile_id)
+void SyncServer::condBroadcast(core_id_t core_id)
 {
    carbon_cond_t cond;
    m_recv_buffer >> cond;
@@ -314,23 +315,23 @@ void SyncServer::condBroadcast(tile_id_t tile_id)
    SimCond *psimcond = &m_conds[cond];
 
    SimCond::WakeupList woken_list;
-   psimcond->broadcast(tile_id, time, woken_list);
+   psimcond->broadcast(core_id, time, woken_list);
 
    for (SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
    {
-      assert(*it != INVALID_TILE_ID);
+      assert((*it).first != INVALID_TILE_ID);
 
       // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
       Reply r;
       r.dummy = SyncClient::MUTEX_LOCK_RESPONSE;
       r.time = time;
-      m_network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      m_network.netSend((*it), MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
    }
 
    // Alert the signaler
    UInt32 dummy = SyncClient::COND_BROADCAST_RESPONSE;
-   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
 void SyncServer::barrierInit(tile_id_t tile_id)
@@ -341,7 +342,7 @@ void SyncServer::barrierInit(tile_id_t tile_id)
    m_barriers.push_back(SimBarrier(count));
    UInt32 barrier = (UInt32)m_barriers.size()-1;
 
-   m_network.netSend(tile_id, MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
+   m_network.netSend((core_id_t) {tile_id, MAIN_CORE_TYPE}, MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
 }
 
 void SyncServer::barrierWait(tile_id_t tile_id)
@@ -363,10 +364,11 @@ void SyncServer::barrierWait(tile_id_t tile_id)
 
    for (SimBarrier::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
    {
-      assert(*it != INVALID_TILE_ID);
+      assert((*it) != INVALID_TILE_ID);
       Reply r;
       r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
       r.time = max_time;
-      m_network.netSend(*it, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
+      core_id_t core_id = (core_id_t) {(*it), MAIN_CORE_TYPE};
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
    }
 }

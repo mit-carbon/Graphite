@@ -160,16 +160,16 @@ void replacementMain (CONTEXT *ctxt)
       {
          // FIXME: 
          // This whole process should probably happen through the MCP
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerTileNum (i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+         core->getNetwork()->netSend ((core_id_t) {Sim()->getConfig()->getThreadSpawnerTileNum (i), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerTileNum (i), SYSTEM_INITIALIZATION_ACK);
+         core->getNetwork()->netRecv ((core_id_t) {Sim()->getConfig()->getThreadSpawnerTileNum (i), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_ACK);
       }
       
       // Tell the thread spawner for each process that we're done initializing...even though we haven't?
       for (UInt32 i = 1; i < num_processes; i++)
       {
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerTileNum (i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
+         core->getNetwork()->netSend ((core_id_t) {Sim()->getConfig()->getThreadSpawnerTileNum (i), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
       LOG_PRINT("Starting enablePerformanceModelsInCurrentProcess()");
@@ -188,8 +188,8 @@ void replacementMain (CONTEXT *ctxt)
    {
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
-      core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadTileNum(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadTileNum(), SYSTEM_INITIALIZATION_FINI);
+      core->getNetwork()->netSend ((core_id_t) {Sim()->getConfig()->getMainThreadTileNum(), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_ACK, NULL, 0);
+      core->getNetwork()->netRecv ((core_id_t) {Sim()->getConfig()->getMainThreadTileNum(), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_FINI);
 
       Simulator::enablePerformanceModelsInCurrentProcess();
 

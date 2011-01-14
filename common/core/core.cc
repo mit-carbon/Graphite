@@ -55,7 +55,7 @@ Core::Core(Tile *tile)
       //LOG_PRINT("No Memory Manager being used");
    //}
 
-   m_syscall_model = new SyscallMdl(m_tile->getNetwork());
+   //m_syscall_model = new SyscallMdl(m_tile->getNetwork());
    m_sync_client = new SyncClient(this);
 }
 
@@ -72,18 +72,20 @@ Core::~Core()
    }
 
    delete m_sync_client;
-   delete m_syscall_model;
+   //delete m_syscall_model;
 }
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
 {
    PacketType pkt_type = getPktTypeFromUserNetType(net_type);
 
+   core_id_t receiver_core = (core_id_t) {receiver, this->getCoreType()};
+
    SInt32 sent;
    if (receiver == CAPI_ENDPOINT_ALL)
       sent = m_tile->getNetwork()->netBroadcast(pkt_type, buffer, size);
    else
-      sent = m_tile->getNetwork()->netSend(receiver, pkt_type, buffer, size);
+      sent = m_tile->getNetwork()->netSend(receiver_core, pkt_type, buffer, size);
    
    LOG_ASSERT_ERROR(sent == size, "Bytes Sent(%i), Message Size(%i)", sent, size);
 
@@ -94,13 +96,15 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
 {
    PacketType pkt_type = getPktTypeFromUserNetType(net_type);
 
+   core_id_t sender_core = (core_id_t) {sender, this->getCoreType()};
+
    NetPacket packet;
    if (sender == CAPI_ENDPOINT_ANY)
       packet = m_tile->getNetwork()->netRecvType(pkt_type);
    else
-      packet = m_tile->getNetwork()->netRecv(sender, pkt_type);
+      packet = m_tile->getNetwork()->netRecv(sender_core, pkt_type);
 
-   LOG_PRINT("Got packet: from %i, to %i, type %i, len %i", packet.sender, packet.receiver, (SInt32)packet.type, packet.length);
+   LOG_PRINT("Got packet: from {%i, %i}, to {%i, %i}, type %i, len %i", packet.sender.first, packet.sender.second, packet.receiver.first, packet.receiver.second, (SInt32)packet.type, packet.length);
 
    LOG_ASSERT_ERROR((unsigned)size == packet.length, "Tile: User thread requested packet of size: %d, got a packet from %d of size: %d", size, sender, packet.length);
 

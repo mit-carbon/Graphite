@@ -8,7 +8,9 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
 L1CacheCntlr::L1CacheCntlr(tile_id_t tile_id,
       MemoryManager* memory_manager,
       Semaphore* user_thread_sem,
+      Semaphore* helper_thread_sem,
       Semaphore* network_thread_sem,
+      Semaphore* network_helper_thread_sem,
       UInt32 cache_block_size,
       UInt32 l1_icache_size, UInt32 l1_icache_associativity,
       std::string l1_icache_replacement_policy,
@@ -20,7 +22,9 @@ L1CacheCntlr::L1CacheCntlr(tile_id_t tile_id,
    m_tile_id(tile_id),
    m_cache_block_size(cache_block_size),
    m_user_thread_sem(user_thread_sem),
+   m_helper_thread_sem(helper_thread_sem),
    m_network_thread_sem(network_thread_sem),
+   m_network_helper_thread_sem(network_helper_thread_sem),
    m_shmem_perf_model(shmem_perf_model)
 {
    m_l1_icache = new Cache("L1-I",
@@ -104,6 +108,7 @@ L1CacheCntlr::processMemOpFromCore(
       // Invalidate the cache block before passing the request to L2 Cache
       invalidateCacheBlock(mem_component, ca_address);
 
+
       LOG_PRINT("elau: in processMemOpFromCore in the L1 Cache, about to lock out other core");
       lockL2ToCore(mem_component); 
 
@@ -168,9 +173,9 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
          break;
 
       case Core::WRITE:
-         l1_cache->accessSingleLine(ca_address + offset, Cache::STORE, data_buf, data_length);
          // Write-through cache - Write the L2 Cache also
          m_l2_cache_cntlr->acquireLock();
+         l1_cache->accessSingleLine(ca_address + offset, Cache::STORE, data_buf, data_length);
          m_l2_cache_cntlr->writeCacheBlock(ca_address, offset, data_buf, data_length);
          m_l2_cache_cntlr->releaseLock();
          break;
@@ -288,6 +293,7 @@ L1CacheCntlr::getL1Cache(MemComponent::component_t mem_component)
 
       case MemComponent::L1_DCACHE:
       case MemComponent::L1_PEP_DCACHE:
+      case MemComponent::L1_BOTH_DCACHE:
          return m_l1_dcache;
 
       default:
@@ -406,13 +412,20 @@ L1CacheCntlr::releaseL2FromCore(MemComponent::component_t mem_component)
 void
 L1CacheCntlr::waitForNetworkThread()
 {
-   m_user_thread_sem->wait();
+   if (isPepCache())
+      m_helper_thread_sem->wait();
+   else
+      m_user_thread_sem->wait();
 }
 
 void
 L1CacheCntlr::wakeUpNetworkThread()
 {
-   m_network_thread_sem->signal();
+   if (isPepCache())
+      m_network_helper_thread_sem->signal();
+   else
+      m_network_thread_sem->signal();
+
 }
 
 }

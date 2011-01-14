@@ -46,13 +46,15 @@ void SimThreadManager::quitSimThreads()
 
    // This is something of a hard-wired emulation of Network::netSend
    // ... not the greatest thing to do, but whatever.
-   NetPacket pkt(0, SIM_THREAD_TERMINATE_THREADS, 0, 0, 0, NULL);
+   //NetPacket pkt(0, SIM_THREAD_TERMINATE_THREADS, 0, 0, 0, NULL);
+   NetPacket pkt(0, SIM_THREAD_TERMINATE_THREADS, (core_id_t) {0,0}, (core_id_t) {0,0}, 0, NULL);
    const Config::TileList &tile_list = Config::getSingleton()->getTileListForProcess(Config::getSingleton()->getCurrentProcessNum());
 
    for (UInt32 i = 0; i < num_local_tiles; i++)
    {
       tile_id_t tile_id = tile_list[i];
-      pkt.receiver = tile_id;
+      pkt.receiver.first = tile_id;
+      pkt.receiver.second = MAIN_CORE_TYPE;
       global_node->send(tile_id, &pkt, pkt.bufferSize());
    }
 

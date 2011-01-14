@@ -94,7 +94,7 @@ ThreadManager::~ThreadManager()
       }
 
       for (UInt32 i = 0; i < m_thread_state.size(); i++)
-         LOG_ASSERT_ERROR(m_thread_state[i].status == Core::IDLE, "Thread %d still active when ThreadManager destructs!", i);
+         LOG_ASSERT_ERROR(m_thread_state[i].status == Core::IDLE, "Main thread %d still active when ThreadManager destructs!", i);
 
       if(m_enable_pep_cores)
       {
@@ -141,7 +141,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
    req->msg_type = MCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE;
    Network *net = m_tile_manager->getCurrentTile()->getNetwork();
-   net->netSend(Config::getSingleton()->getMCPTileNum(),
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 req,
                 sizeof(*req));
@@ -184,7 +184,7 @@ void ThreadManager::onThreadExit()
    m_tile_manager->terminateThread();
 
    // update global thread state
-   net->netSend(Config::getSingleton()->getMCPTileNum(),
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 msg,
                 sizeof(SInt32) + sizeof(core_id_t));
@@ -247,7 +247,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
                               func, arg, core->getCoreId(), INVALID_CORE_ID,
                               global_cycle_count };
 
-   net->netSend(Config::getSingleton()->getMCPTileNum(),
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 &req,
                 sizeof(req));
@@ -274,7 +274,6 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
 
 SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
 {
-   printf("elau: starting spawnHelperThread\n");
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
@@ -290,10 +289,10 @@ SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
 
    // The request is to spawn this new thread to the same tile.
    ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
-                              func, arg, core->getCoreId(), (core_id_t) {core->getCoreId().first, PEP_CORE_TYPE},
+                              func, arg, core->getCoreId(), (core_id_t) {INVALID_TILE_ID, PEP_CORE_TYPE},
                               global_cycle_count };
 
-   net->netSend(Config::getSingleton()->getMCPTileNum(),
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 &req,
                 sizeof(req));
@@ -314,7 +313,6 @@ SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
    // Delete the data buffer
    delete [] (Byte*) pkt.data;
 
-   printf("elau: finishing spawnHelperThread\n");
    return core_id.first;
 }
 
@@ -329,22 +327,22 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    // FIXME: Load balancing?
    if (req->destination.second == PEP_CORE_TYPE)
    {
-      if (req->destination.first == INVALID_TILE_ID)
-      {
-      for (SInt32 i = 0; i < (SInt32) m_helper_thread_state.size(); i++)
-      {
-         if (m_helper_thread_state[i].status == Core::IDLE)
+      //if (req->destination.first == INVALID_TILE_ID)
+      //{
+         for (SInt32 i = 0; i < (SInt32) m_helper_thread_state.size(); i++)
          {
-            printf("elau: MCP is about to spawn thread on tile %d and core %d\n", i, PEP_CORE_TYPE);
-            req->destination = (core_id_t) {i, PEP_CORE_TYPE};
-            break;
+            if (m_helper_thread_state[i].status == Core::IDLE)
+            {
+               printf("elau: MCP is about to spawn thread on tile %d and core %d\n", i, PEP_CORE_TYPE);
+               req->destination = (core_id_t) {i, PEP_CORE_TYPE};
+               break;
+            }
          }
-      }
-      }
-      else
-      {
-         LOG_ASSERT_ERROR(m_helper_thread_state[req->destination.first].status == Core::IDLE, "The PEP core on this tile is already running!");
-      }
+      //}
+      //else
+      //{
+         //LOG_ASSERT_ERROR(m_helper_thread_state[req->destination.first].status == Core::IDLE, "The PEP core on this tile is already running!");
+      //}
    }
    else
    {
@@ -387,7 +385,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
       m_thread_spawn_sem.signal();
          
       Core *core = m_tile_manager->getCurrentCore();
-      core->getNetwork()->netSend(req->requester.first, 
+      core->getNetwork()->netSend(req->requester, 
             MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
             &req->destination,
             sizeof(req->destination));
@@ -481,7 +479,7 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
       resumeThread(req->requester);
 
       Core *core = m_tile_manager->getCurrentCore();
-      core->getNetwork()->netSend(req->requester.first, 
+      core->getNetwork()->netSend(req->requester, 
                                   MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
                                   &req->destination,
                                   sizeof(req->destination));
@@ -516,7 +514,7 @@ void ThreadManager::joinThread(tile_id_t tile_id)
                              (core_id_t) {tile_id, MAIN_CORE_TYPE} };
 
    Network *net = m_tile_manager->getCurrentTile()->getNetwork();
-   net->netSend(Config::getSingleton()->getMCPTileNum(),
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 &msg,
                 sizeof(msg));
@@ -544,7 +542,7 @@ void ThreadManager::joinHelperThread(tile_id_t tile_id)
                              (core_id_t) {tile_id, PEP_CORE_TYPE} };
 
    Network *net = m_tile_manager->getCurrentTile()->getNetwork();
-   net->netSend(Config::getSingleton()->getMCPTileNum(),
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 &msg,
                 sizeof(msg));
@@ -634,8 +632,8 @@ void ThreadManager::wakeUpMainWaiter(core_id_t core_id, UInt64 time)
       // manufacturing a time stamp
       NetPacket pkt(time,
                     MCP_THREAD_JOIN_REPLY,
-                    core->getTileId(),
-                    dest.first,
+                    core->getCoreId(),
+                    dest,
                     0,
                     NULL);
       core->getNetwork()->netSend(pkt);
@@ -662,8 +660,8 @@ void ThreadManager::wakeUpHelperWaiter(core_id_t core_id, UInt64 time)
       // manufacturing a time stamp
       NetPacket pkt(time,
                     MCP_THREAD_JOIN_REPLY,
-                    core->getTileId(),
-                    dest.first,
+                    core->getCoreId(),
+                    dest,
                     0,
                     NULL);
       core->getNetwork()->netSend(pkt);

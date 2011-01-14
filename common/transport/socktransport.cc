@@ -229,7 +229,10 @@ void SockTransport::insertInBufferList(SInt32 tag, Byte *buffer, Header* header)
 #endif // __CHECKSUM_ENABLED__
    
    m_buffer_list_locks[tag].release();
+   
+   LOG_PRINT("elau: about to signal on buffer_list sems for tag: %d", tag);
    m_buffer_list_sems[tag].signal();
+   LOG_PRINT("elau: signaled on buffer_list sems for tag: %d", tag);
 }
 
 void SockTransport::terminateUpdateThread()
@@ -354,10 +357,14 @@ Byte* SockTransport::SockNode::recv()
    tile_id_t tag = getTileId();
    tag = (tag == GLOBAL_TAG) ? m_transport->m_num_lists - 1 : tag;
    
+   LOG_PRINT("elau: about to wait on buffer_list sems for tag: %d", tag);
    m_transport->m_buffer_list_sems[tag].wait();
+   LOG_PRINT("elau: woke up on buffer_list sems for tag: %d", tag);
 
+   LOG_PRINT("elau: about to acquire buffer_list locks for tag: %d", tag);
    Lock &lock = m_transport->m_buffer_list_locks[tag];
    lock.acquire();
+   LOG_PRINT("elau: acquired buffer_list locks for tag: %d", tag);
    
    buffer_list &list = m_transport->m_buffer_lists[tag];
    LOG_ASSERT_ERROR(!list.empty(), "Buffer list empty after waiting on semaphore.");
@@ -376,7 +383,9 @@ Byte* SockTransport::SockNode::recv()
    delete header;
 #endif // __CHECKSUM_ENABLED__
 
+   LOG_PRINT("elau: about to release buffer_list locks for tag: %d", tag);
    lock.release();
+   LOG_PRINT("elau: released buffer_list locks for tag: %d", tag);
 
    LOG_PRINT("Message recv'd");
 

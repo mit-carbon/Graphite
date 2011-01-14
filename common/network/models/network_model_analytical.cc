@@ -97,7 +97,7 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
       return 0;
 
    // self-sends incur no cost
-   if (packet.sender == packet.receiver)
+   if (packet.sender.first == packet.receiver.first)
      return 0;
 
    // We model a unidirectional network with end-around connections
@@ -148,8 +148,8 @@ UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
    // Based on this eqn:
    // node number = x1 + x2 k + x3 k^2 + ... + xn k^(n-1)
    int network_distance = 0;
-   int src = packet.sender;
-   int dest = packet.receiver;
+   int src = packet.sender.first;
+   int dest = packet.receiver.first;
    int ki = (int)k;
    for (int i = 0; i < n; i++)
    {
@@ -252,8 +252,8 @@ void NetworkModelAnalytical::updateUtilization()
    m.msg.model = this;
 
    NetPacket update;
-   update.sender = getNetwork()->getTile()->getId();
-   update.receiver = Config::getSingleton()->getMCPTileNum();
+   update.sender.first = getNetwork()->getTile()->getId();
+   update.receiver.first = Config::getSingleton()->getMCPTileNum();
    update.length = sizeof(m);
    update.type = MCP_SYSTEM_TYPE;
    update.data = &m;

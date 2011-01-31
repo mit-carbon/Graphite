@@ -209,16 +209,17 @@ DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 IntPtr
 DramDirectoryCache::computeSetIndex(IntPtr address)
 {
-   IntPtr core_id = (address >> m_log_stack_size) & ((1 << m_log_num_cores) - 1);
+   UInt32 num_core_id_bits = (m_log_num_cores <= m_log_num_sets) ? m_log_num_cores : m_log_num_sets;
+   IntPtr core_id_bits = (address >> m_log_stack_size) & ((1 << num_core_id_bits) - 1);
 
-   UInt32 log_num_sub_block_bits = m_log_num_sets - m_log_num_cores;
+   UInt32 log_num_sub_block_bits = m_log_num_sets - num_core_id_bits;
    IntPtr sub_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs)) \
                          & ((1 << log_num_sub_block_bits) - 1);
 
    IntPtr super_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs + log_num_sub_block_bits)) \
-                           & ((1 << m_log_num_cores) - 1);
+                           & ((1 << num_core_id_bits) - 1);
 
-   return ((core_id ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
+   return ((core_id_bits ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
 }
 
 void

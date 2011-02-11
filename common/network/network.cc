@@ -515,7 +515,7 @@ NetPacket::NetPacket()
    , type(INVALID_PACKET_TYPE)
    , sender(INVALID_CORE_ID)
    , receiver(INVALID_CORE_ID)
-   , specific(0)
+   , specific(-1)
    , length(0)
    , data(0)
 {
@@ -528,7 +528,7 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
    , type(ty)
    , sender(s)
    , receiver(r)
-   , specific(0)
+   , specific(-1)
    , length(l)
    , data(d)
 {

@@ -4,6 +4,7 @@
 #include <vector>
 using namespace std;
 
+#include "lock.h"
 #include "network.h"
 #include "network_model.h"
 #include "queue_model.h"
@@ -101,6 +102,8 @@ class NetworkModelEClos : public NetworkModel
       UInt64 _link_delay;
 
       bool _enabled;
+
+      Lock _lock;
 
       // Performance Counters
       UInt64 _total_packets_received;

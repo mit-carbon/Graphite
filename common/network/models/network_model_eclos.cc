@@ -50,6 +50,8 @@ NetworkModelEClos::NetworkModelEClos(Network* network, SInt32 network_id):
    _eclos_router_to_core_mapping.resize(NUM_ROUTER_STAGES);
    // Create the EClos Node Models
    _eclos_node_list.resize(NUM_ROUTER_STAGES);
+   for (SInt32 i = 0; i < NUM_ROUTER_STAGES; i++)
+      _eclos_node_list[i] = (EClosNode*) NULL;
 
    // INGRESS_ROUTER
    for (SInt32 i = 0; i < _n; i++)
@@ -150,6 +152,8 @@ NetworkModelEClos::computeAction(const NetPacket& pkt)
 void
 NetworkModelEClos::routePacket(const NetPacket& pkt, vector<Hop>& next_hops)
 {
+   ScopedLock sl(_lock);
+
    Stage curr_stage = (pkt.specific == (UInt32) -1) ? (SENDING_CORE) : ((Stage) pkt.specific);
 
    Stage next_stage = NUM_STAGES;
@@ -178,6 +182,7 @@ NetworkModelEClos::routePacket(const NetPacket& pkt, vector<Hop>& next_hops)
             next_stage = MIDDLE_ROUTER;
 
             EClosNode* eclos_node = _eclos_node_list[INGRESS_ROUTER];
+            assert(eclos_node);
             eclos_node->process(pkt.time, num_flits, middle_router_idx, next_dest_info_vec);
          }
          break;
@@ -188,6 +193,7 @@ NetworkModelEClos::routePacket(const NetPacket& pkt, vector<Hop>& next_hops)
             next_stage = EGRESS_ROUTER;
 
             EClosNode* eclos_node = _eclos_node_list[MIDDLE_ROUTER];
+            assert(eclos_node);
             eclos_node->process(pkt.time, num_flits, egress_router_idx, next_dest_info_vec);
          }
          break;
@@ -198,6 +204,7 @@ NetworkModelEClos::routePacket(const NetPacket& pkt, vector<Hop>& next_hops)
             next_stage = RECEIVING_CORE;
             
             EClosNode* eclos_node = _eclos_node_list[EGRESS_ROUTER];
+            assert(eclos_node);
             eclos_node->process(pkt.time, num_flits, receiving_node_idx, next_dest_info_vec);
          }
          break;
@@ -265,6 +272,8 @@ NetworkModelEClos::getName(Stage stage)
 void
 NetworkModelEClos::processReceivedPacket(NetPacket& pkt)
 {
+   ScopedLock sl(_lock);
+
    pair<bool,bool> modeled = isModeled(pkt);
    if ( (modeled.first == true) || 
         ((modeled.second == true) && isApplicationCore(getNetwork()->getCore()->getId())) )
@@ -353,7 +362,11 @@ NetworkModelEClos::isModeled(const NetPacket& pkt)
    else // (network_id == STATIC_NETWORK_SYSTEM)
       requester = INVALID_CORE_ID;
 
-   if (_enabled && isApplicationCore(requester) && isApplicationCore(pkt.sender))
+   if (pkt.sender == pkt.receiver)
+   {
+      return make_pair<bool,bool>(false,false);
+   }
+   else if (_enabled && isApplicationCore(requester) && isApplicationCore(pkt.sender))
    {
       if (isApplicationCore(pkt.receiver))
          return make_pair<bool,bool>(true, false);
@@ -508,6 +521,7 @@ NetworkModelEClos::EClosNode::process(UInt64 pkt_time, SInt32 num_flits, SInt32 
 
    if (output_link_id != -1)
    {
+      assert((output_link_id >= 0) && (output_link_id < _output_ports));
       // Calculate Output Link Contention
       UInt64 contention_delay = _contention_model_enabled ? 
          _contention_models[output_link_id]->computeQueueDelay(pkt_time, num_flits) : 0;

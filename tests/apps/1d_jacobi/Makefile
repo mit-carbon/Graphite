@@ -3,7 +3,7 @@ SOURCES = jacobi.c
 
 SIZE ?= 4
 APP_FLAGS ?= $(SIZE) 64
-CORES = $(shell echo $$(( $(SIZE) + 1 )))
+CORES = $(SIZE)
 ENABLE_SM = true
 
 include ../../Makefile.tests

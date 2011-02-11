@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
    // Initialize the barrier
    CarbonBarrierInit(&jacobi_barrier, g_num_cores);
    
-   carbon_thread_t threads[g_num_cores];
+   carbon_thread_t threads[g_num_cores-1];
 
 #ifdef DEBUG
    pthread_mutex_lock(&print_lock);
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
    pthread_mutex_unlock(&print_lock);
 #endif
 
-   for (SInt32 i = 0; i < g_num_cores; i++)
+   for (SInt32 i = 0; i < g_num_cores-1; i++)
    {
 #ifdef FULL_DEBUG
       pthread_mutex_lock(&print_lock);
@@ -112,7 +112,9 @@ int main(int argc, char *argv[])
       }
    }
 
-   for (SInt32 i = 0; i < g_num_cores; i++)
+   threadMain((void*) g_num_cores-1);
+
+   for (SInt32 i = 0; i < g_num_cores-1; i++)
    {
       CarbonJoinThread(threads[i]);
    }

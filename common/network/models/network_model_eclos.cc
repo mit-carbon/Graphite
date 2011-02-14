@@ -291,7 +291,7 @@ NetworkModelEClos::processReceivedPacket(NetPacket& pkt)
 
       // Increment Counters
       _total_packets_received += 1;
-      _total_bytes_received += num_flits;
+      _total_bytes_received += pkt_length;
       _total_contention_delay += contention_delay;
       _total_packet_delay += packet_delay;
    }

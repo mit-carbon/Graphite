@@ -18,7 +18,7 @@ public:
    ElectricalNetworkLinkModel();
    virtual ~ElectricalNetworkLinkModel();
 
-   static ElectricalNetworkLinkModel* create(std::string link_type_str, volatile float link_frequency, volatile double link_length, UInt32 link_width, bool use_orion = false);
+   static ElectricalNetworkLinkModel* create(std::string link_type_str, volatile float link_frequency, volatile double link_length, UInt32 link_width, bool use_orion = true);
 
 private:
    static LinkType parseLinkType(std::string link_type_str);

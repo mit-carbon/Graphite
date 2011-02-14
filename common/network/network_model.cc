@@ -9,6 +9,7 @@ using namespace std;
 #include "network_model_analytical.h"
 #include "network_model_emesh_hop_by_hop_basic.h"
 #include "network_model_emesh_hop_by_hop_broadcast_tree.h"
+#include "network_model_eclos.h"
 #include "log.h"
 
 NetworkModel::NetworkModel(Network *network, SInt32 network_id):
@@ -49,6 +50,9 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
    case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
       return new NetworkModelEMeshHopByHopBroadcastTree(net, network_id);
 
+   case NETWORK_ECLOS:
+      return new NetworkModelEClos(net, network_id);
+
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);
       return NULL;
@@ -68,6 +72,8 @@ NetworkModel::parseNetworkType(string str)
       return NETWORK_EMESH_HOP_BY_HOP_BASIC;
    else if (str == "emesh_hop_by_hop_broadcast_tree")
       return NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE;
+   else if (str == "eclos")
+      return NETWORK_ECLOS;
    else
       return (UInt32)-1;
 }
@@ -86,6 +92,9 @@ NetworkModel::computeCoreCountConstraints(UInt32 network_type, SInt32 core_count
       case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
          return NetworkModelEMeshHopByHopGeneric::computeCoreCountConstraints(core_count);
 
+      case NETWORK_ECLOS:
+         return NetworkModelEClos::computeCoreCountConstraints(core_count);
+
       default:
          fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
          assert(false);
@@ -101,6 +110,7 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
       case NETWORK_ANALYTICAL_MESH:
+      case NETWORK_ECLOS:
          {
             SInt32 spacing_between_memory_controllers = core_count / num_memory_controllers;
             vector<core_id_t> core_list_with_memory_controllers;
@@ -131,6 +141,7 @@ NetworkModel::computeProcessToCoreMapping(UInt32 network_type)
       case NETWORK_MAGIC:
       case NETWORK_ANALYTICAL_MESH:
       case NETWORK_EMESH_HOP_COUNTER:
+      case NETWORK_ECLOS:
          return make_pair(false, vector<vector<core_id_t> >());
 
       case NETWORK_EMESH_HOP_BY_HOP_BASIC:

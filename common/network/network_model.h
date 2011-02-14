@@ -86,6 +86,7 @@ class NetworkModel
 
    protected:
       Network *getNetwork() { return _network; }
+      SInt32 getNetworkId() { return _network_id; }
 
    private:
       Network *_network;

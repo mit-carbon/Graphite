@@ -56,13 +56,14 @@ void nearestNeighborTrafficGenerator(int core_id, vector<int>& send_vec, vector<
 bool canSendPacket(double offered_load, RandNum& rand_num);
 void synchronize(UInt64 time, Core* core);
 void printHelpMessage();
+NetworkTrafficType parseTrafficPattern(string traffic_pattern);
 
-string _traffic_pattern_type = "uniform_random";      // Network Traffic Pattern Type
-double _offered_load = 0.1;                           // Number of packets injected per core per cycle
-SInt32 _packet_size = 8;                              // Size of each Packet in Bytes
-UInt64 _total_packets = 10000;                        // Total number of packets injected into the network per core
+NetworkTrafficType _traffic_pattern_type = UNIFORM_RANDOM;     // Network Traffic Pattern Type
+double _offered_load = 0.1;                                    // Number of packets injected per core per cycle
+SInt32 _packet_size = 8;                                       // Size of each Packet in Bytes
+UInt64 _total_packets = 10000;                                 // Total number of packets injected into the network per core
 
-PacketType _packet_type = USER_2;                     // Type of each packet (so as to send on 2nd user network)
+PacketType _packet_type = USER_2;                              // Type of each packet (so as to send on 2nd user network)
 carbon_barrier_t _global_barrier;
 SInt32 _num_cores;
 
@@ -76,7 +77,7 @@ int main(int argc, char* argv[])
    for (SInt32 i = 1; i < argc-1; i += 2)
    {
       if (string(argv[i]) == "-p")
-         _traffic_pattern_type = string(argv[i+1]);
+         _traffic_pattern_type = parseTrafficPattern(string(argv[i+1]));
       else if (string(argv[i]) == "-l")
          _offered_load = (double) atof(argv[i+1]);
       else if (string(argv[i]) == "-s")
@@ -92,6 +93,7 @@ int main(int argc, char* argv[])
       }
       else
       {
+         fprintf(stderr, "** ERROR **\n");
          printHelpMessage();
          exit(-1);
       }
@@ -130,6 +132,27 @@ void printHelpMessage()
    fprintf(stderr, " and  <arg4> = Total Number of Packets injected into the Network per Core (default 10000)\n");
 }
 
+NetworkTrafficType parseTrafficPattern(string traffic_pattern)
+{
+   if (traffic_pattern == "uniform_random")
+      return UNIFORM_RANDOM;
+   else if (traffic_pattern == "bit_complement")
+      return BIT_COMPLEMENT;
+   else if (traffic_pattern == "shuffle")
+      return SHUFFLE;
+   else if (traffic_pattern == "transpose")
+      return TRANSPOSE;
+   else if (traffic_pattern == "tornado")
+      return TORNADO;
+   else if (traffic_pattern == "nearest_neighbor")
+      return NEAREST_NEIGHBOR;
+   else
+   {
+      fprintf(stderr, "** ERROR **\n");
+      fprintf(stderr, "Unrecognized Network Traffic Pattern Type (Use uniform_random, bit_complement, shuffle, transpose, tornado, nearest_neighbor)\n");
+      exit(-1);
+   }
+}
 
 void* sendNetworkTraffic(void*)
 {
@@ -138,11 +161,11 @@ void* sendNetworkTraffic(void*)
 
    Core* core = Sim()->getCoreManager()->getCurrentCore();
    
-   int network_traffic_type = UNIFORM_RANDOM;
    vector<int> send_vec;
    vector<int> receive_vec;
+   
    // Generate the Network Traffic
-   switch (network_traffic_type)
+   switch (_traffic_pattern_type)
    {
       case UNIFORM_RANDOM:
          uniformRandomTrafficGenerator(core->getId(), send_vec, receive_vec);

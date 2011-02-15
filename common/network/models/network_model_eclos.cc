@@ -102,7 +102,7 @@ NetworkModelEClos::NetworkModelEClos(Network* network, SInt32 network_id):
             core_id) != _eclos_router_to_core_mapping[EGRESS_ROUTER].end())
    {
       _eclos_node_list[EGRESS_ROUTER] = new EClosNode((core_id - (_m-1)) / _m,
-            _m, _r,
+            _r, _m,
             _flit_width, _frequency,
             num_flits_per_output_port, _router_delay,
             link_type, link_length, _link_delay,

@@ -52,8 +52,9 @@ PinMemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPtr 
 {
    char *scratchpad = m_scratchpad [access_type];
 
+
    Core::lock_signal_t lock_signal = (has_lock_prefix) ? Core::UNLOCK : Core::NONE;
-      
+
    //m_tile->getCurrentCore()->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
    m_core->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
    

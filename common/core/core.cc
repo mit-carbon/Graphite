@@ -33,29 +33,6 @@ Core::Core(Tile *tile)
 {
    m_tile = tile;
    m_core_state = IDLE;
-
-   //if (Config::getSingleton()->isSimulatingSharedMemory())
-   //{
-      //LOG_PRINT("instantiated shared memory performance model");
-      //m_shmem_perf_model = new ShmemPerfModel();
-
-      //LOG_PRINT("instantiated memory manager model");
-      //m_memory_manager = MemoryManagerBase::createMMU(
-            //Sim()->getCfg()->getString("caching_protocol/type"),
-            //this, m_tile->getNetwork(), m_shmem_perf_model);
-
-      //m_pin_memory_manager = new PinMemoryManager(this);
-   //}
-   //else
-   //{
-      //m_shmem_perf_model = (ShmemPerfModel*) NULL;
-      //m_memory_manager = (MemoryManagerBase *) NULL;
-      //m_pin_memory_manager = (PinMemoryManager*) NULL;
-
-      //LOG_PRINT("No Memory Manager being used");
-   //}
-
-   //m_syscall_model = new SyscallMdl(m_tile->getNetwork());
    m_sync_client = new SyncClient(this);
 }
 
@@ -72,7 +49,6 @@ Core::~Core()
    }
 
    delete m_sync_client;
-   //delete m_syscall_model;
 }
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)

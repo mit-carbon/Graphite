@@ -33,6 +33,8 @@ namespace PrL1PrL1PrL2DramDirectoryMSI
          Semaphore* m_network_helper_thread_sem;
 
          Lock m_elau_test_lock;
+         bool m_main_atomic;
+         bool m_pep_atomic;
 
          UInt32 m_cache_block_size;
          bool m_enabled;

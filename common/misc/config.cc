@@ -412,7 +412,7 @@ void Config::parsePepCoreParameters()
 
    const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
    const float DEFAULT_FREQUENCY = 1;
-   const string DEFAULT_CORE_TYPE = "none";
+   const string DEFAULT_CORE_TYPE = "magic";
    const string DEFAULT_CACHE_TYPE = "T1";
 
    string pep_core_parameter_tuple_str;

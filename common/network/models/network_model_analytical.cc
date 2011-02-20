@@ -70,7 +70,7 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    // (1) compute latency of packet
    // (2) update utilization
 
-   CorePerfModel *perf = getNetwork()->getTile()->getCore()->getPerformanceModel();
+   CorePerfModel *perf = getNetwork()->getTile()->getCurrentCore()->getPerformanceModel();
 
    Hop h;
    h.final_dest = pkt.receiver;
@@ -82,7 +82,8 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    nextHops.push_back(h);
 
    if (_params.proc_cost > 0)
-      perf->queueDynamicInstruction(new DynamicInstruction(_params.proc_cost));
+      //perf->queueDynamicInstruction(new DynamicInstruction(_params.proc_cost));
+      perf->queueDynamicInstruction(new DynamicInstruction(0));
    _cyclesProc += _params.proc_cost;
 
    updateUtilization();

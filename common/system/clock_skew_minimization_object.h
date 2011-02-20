@@ -40,6 +40,7 @@ public:
    virtual void enable() = 0;
    virtual void disable() = 0;
    virtual void synchronize(UInt64 cycle_count = 0) = 0;
+   //virtual void synchronize(UInt64 cycle_count = 0) {printf("synchronize is purely virtual!"); assert(false);}
    virtual void netProcessSyncMsg(const NetPacket& recv_pkt) = 0;
 };
 
@@ -64,7 +65,8 @@ public:
    ~ClockSkewMinimizationServer() {}
    static ClockSkewMinimizationServer* create(std::string scheme_str, Network& network, UnstructuredBuffer& recv_buff);
 
-   virtual void processSyncMsg(tile_id_t tile_id) = 0;
+   virtual void processSyncMsg(core_id_t core_id) = 0;
+   //virtual void processSyncMsg(core_id_t core_id) {printf("processSyncMsg is purely virtual!"); assert(false);}
    virtual void signal() = 0;
 };
 

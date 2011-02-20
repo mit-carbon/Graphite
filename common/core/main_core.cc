@@ -16,12 +16,8 @@ using namespace std;
 
 MainCore::MainCore(Tile* tile) : Core(tile)
 {
-   //m_core_id = make_core_id(tile->getId(), MAIN_CORE_TYPE);
    m_core_id = (core_id_t) {tile->getId(), MAIN_CORE_TYPE};
    m_core_perf_model = CorePerfModel::createMainPerfModel((Core *) this);
-   //m_core_perf_model = CorePerfModel::create(tile, CORE::MAIN_CORE_TYPE);
-  
-   //m_network = new Network(tile);
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -36,7 +32,6 @@ MainCore::MainCore(Tile* tile) : Core(tile)
       m_pin_memory_manager = new PinMemoryManager(this);
 
       tile->setMemoryManager(m_memory_manager);
-      //tile->setPinMemoryManager(m_pin_memory_manager);
       tile->setShmemPerfModel(m_shmem_perf_model);
    }
    else
@@ -87,11 +82,13 @@ MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      this->getTile()->m_elau_memory_lock.acquire();
-      Sim()->getTileManager()->m_elau_global_lock.acquire();
+      if (lock_signal != Core::UNLOCK)
+         this->getTile()->m_elau_memory_lock.acquire();
+
       pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
-      Sim()->getTileManager()->m_elau_global_lock.release();
-      this->getTile()->m_elau_memory_lock.release();
+
+      if (lock_signal != Core::LOCK)
+         this->getTile()->m_elau_memory_lock.release();
       return res;
    }
    
@@ -223,8 +220,8 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
 
    if (modeled)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, \
-            address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+
       m_core_perf_model->pushDynamicInstructionInfo(info);
 
       getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);

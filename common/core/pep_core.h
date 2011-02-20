@@ -17,7 +17,7 @@ class PepCore : protected Core
       PepCore(Tile* tile);
       ~PepCore();
 
-      ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return NULL; }
+      ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
 
       virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size);
       virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled = false);
@@ -36,6 +36,7 @@ class PepCore : protected Core
 
       private:
       
+      ClockSkewMinimizationClient *m_clock_skew_minimization_client;
       PinMemoryManager *m_pin_memory_manager;
       SyscallMdl *m_syscall_model;
 };

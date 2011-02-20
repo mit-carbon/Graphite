@@ -20,7 +20,7 @@ void handlePeriodicSync()
       return;
    }
 
-   ClockSkewMinimizationClient *client = tile->getCore()->getClockSkewMinimizationClient();
+   ClockSkewMinimizationClient *client = tile->getCurrentCore()->getClockSkewMinimizationClient();
 
    // A NULL client is returned by a PEP core, we're not synchronizing them right now.
    if (client)

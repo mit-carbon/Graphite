@@ -45,6 +45,7 @@ PepCore::PepCore(Tile* tile) : Core(tile)
    }
 
    m_syscall_model = new SyscallMdl(m_tile->getNetwork());
+   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
 PepCore::~PepCore()
@@ -72,11 +73,13 @@ PepCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      this->getTile()->m_elau_memory_lock.acquire();
-      Sim()->getTileManager()->m_elau_global_lock.acquire();
+      if (lock_signal != Core::UNLOCK)
+         this->getTile()->m_elau_memory_lock.acquire();
+
       pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_PEP_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
-      Sim()->getTileManager()->m_elau_global_lock.release();
-      this->getTile()->m_elau_memory_lock.release();
+
+      if (lock_signal != Core::LOCK)
+         this->getTile()->m_elau_memory_lock.release();
       return res;
    }
    
@@ -208,11 +211,20 @@ PepCore::initiateMemoryAccess(MemComponent::component_t mem_component,
 
    if (modeled)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, \
+      //DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+
+      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, \
             address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+
       m_core_perf_model->pushDynamicInstructionInfo(info);
 
-      getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);
+      // elau: hack to ensure that PEP memory access doesn't mess with the shared ShmemPerfModel for now.
+      getShmemPerfModel()->incrTotalMemoryAccessLatency((UInt64) 0);
+
+      //DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      //m_core_perf_model->pushDynamicInstructionInfo(info);
+
+      //getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);
    }
 
    return make_pair<UInt32, UInt64>(num_misses, memory_access_latency);

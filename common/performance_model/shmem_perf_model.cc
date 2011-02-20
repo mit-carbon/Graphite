@@ -58,8 +58,6 @@ ShmemPerfModel::getCycleCount()
 {
    ScopedLock sl(m_shmem_perf_model_lock);
    
-   LOG_PRINT("elau: getCycleCount: thread(%u) cycle(%llu)", getThreadNum(), m_cycle_count[getThreadNum()]);
-
    return m_cycle_count[getThreadNum()];
 }
 

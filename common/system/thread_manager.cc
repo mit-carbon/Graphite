@@ -54,7 +54,7 @@ ThreadManager::ThreadManager(TileManager *tile_manager)
       if(m_enable_pep_cores)
       {
          m_helper_thread_state.resize(config->getTotalTiles());
-         m_helper_thread_state[0].status = Core::RUNNING;
+         m_helper_thread_state[0].status = Core::IDLE;
 
          if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
          {
@@ -63,10 +63,10 @@ ThreadManager::ThreadManager(TileManager *tile_manager)
             UInt32 last_thread_spawner_id = Sim()->getConfig()->getTotalTiles() - 2;
             for (UInt32 i = first_thread_spawner_id; i <= last_thread_spawner_id; i++)
             {
-               m_helper_thread_state[i].status = Core::RUNNING;
+               m_helper_thread_state[i].status = Core::IDLE;
             }
          }
-         m_helper_thread_state[config->getMCPTileNum()].status = Core::RUNNING;
+         m_helper_thread_state[config->getMCPTileNum()].status = Core::IDLE;
 
          LOG_ASSERT_ERROR(config->getMCPTileNum() < (SInt32) m_helper_thread_state.size(),
                "MCP core num out of range (!?)");
@@ -289,7 +289,7 @@ SInt32 ThreadManager::spawnHelperThread(thread_func_t func, void *arg)
 
    // The request is to spawn this new thread to the same tile.
    ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
-                              func, arg, core->getCoreId(), (core_id_t) {INVALID_TILE_ID, PEP_CORE_TYPE},
+                              func, arg, core->getCoreId(), (core_id_t) {core->getCoreId().first, PEP_CORE_TYPE},
                               global_cycle_count };
 
    net->netSend(Config::getSingleton()->getMCPCoreId(),
@@ -327,22 +327,21 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    // FIXME: Load balancing?
    if (req->destination.second == PEP_CORE_TYPE)
    {
-      //if (req->destination.first == INVALID_TILE_ID)
-      //{
+      if (req->destination.first == INVALID_TILE_ID)
+      {
          for (SInt32 i = 0; i < (SInt32) m_helper_thread_state.size(); i++)
          {
             if (m_helper_thread_state[i].status == Core::IDLE)
             {
-               printf("elau: MCP is about to spawn thread on tile %d and core %d\n", i, PEP_CORE_TYPE);
                req->destination = (core_id_t) {i, PEP_CORE_TYPE};
                break;
             }
          }
-      //}
-      //else
-      //{
-         //LOG_ASSERT_ERROR(m_helper_thread_state[req->destination.first].status == Core::IDLE, "The PEP core on this tile is already running!");
-      //}
+      }
+      else
+      {
+         LOG_ASSERT_ERROR(m_helper_thread_state[req->destination.first].status == Core::IDLE, "The PEP core on this tile is already running!");
+      }
    }
    else
    {

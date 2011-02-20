@@ -100,9 +100,7 @@ class Core
       UInt32 getCoreType() { return m_core_id.second; }
       CorePerfModel *getPerformanceModel() { return m_core_perf_model; }
       MemoryManagerBase *getMemoryManager() { return m_memory_manager; } 
-      //PinMemoryManager *getPinMemoryManager() { return m_pin_memory_manager; }
       virtual PinMemoryManager *getPinMemoryManager() = 0;
-      //SyscallMdl *getSyscallMdl() { return m_syscall_model; }
       virtual SyscallMdl *getSyscallMdl() = 0; 
       SyncClient *getSyncClient() { return m_sync_client; }
       virtual ClockSkewMinimizationClient* getClockSkewMinimizationClient() = 0;
@@ -116,9 +114,7 @@ class Core
       core_id_t m_core_id;
       CorePerfModel *m_core_perf_model;
       MemoryManagerBase *m_memory_manager;
-      //PinMemoryManager *m_pin_memory_manager;
       ShmemPerfModel* m_shmem_perf_model;
-      //SyscallMdl *m_syscall_model;
       SyncClient *m_sync_client;
 
       State m_core_state;

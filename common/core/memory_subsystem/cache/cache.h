@@ -21,8 +21,23 @@ class Cache : public CacheBase
       // Cache counters
       UInt64 m_num_accesses;
       UInt64 m_num_hits;
+      UInt64 m_num_evicts;
 
+      //elau PEP Cache counters
+      UInt64 m_num_pep_accesses;
+      UInt64 m_num_pep_hits;
+      UInt64 m_num_pep_evicts;
+
+      UInt64 m_num_both_evicts;
+      UInt64 m_num_total_evicts;
+
+      UInt64 m_num_pep_insertions;
+      UInt64 m_num_main_insertions;
+
+      UInt64 m_num_pep_fills;
+      UInt64 m_num_main_fills;
       // Generic Cache Info
+      //
       cache_t m_cache_type;
       CacheSet** m_sets;
       
@@ -46,6 +61,16 @@ class Cache : public CacheBase
 
       // Update Cache Counters
       void updateCounters(bool cache_hit);
+      //elau
+      void updatePepCounters(bool cache_hit);
+      void incrMainEvict() {m_num_evicts++;}
+      void incrPepEvict() {m_num_pep_evicts++;}
+      void incrBothEvict() {m_num_both_evicts++;}
+      void incrTotalEvicts() {m_num_total_evicts++;}
+      void incrPepInsertion() {m_num_pep_insertions++;}
+      void incrMainInsertion() {m_num_main_insertions++;}
+      void incrPepFill() {m_num_pep_fills++;}
+      void incrMainFill() {m_num_main_fills++;}
 
       void enable() { m_enabled = true; }
       void disable() { m_enabled = false; } 

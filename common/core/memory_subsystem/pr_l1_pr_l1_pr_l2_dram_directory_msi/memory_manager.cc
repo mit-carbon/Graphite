@@ -108,6 +108,9 @@ MemoryManager::MemoryManager(Tile* tile,
    m_network_thread_sem = new Semaphore(0);
    m_network_helper_thread_sem = new Semaphore(0);
 
+   m_main_atomic = false;
+   m_pep_atomic = false;
+
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    if (getTile()->getId() == 0)
       printTileListWithMemoryControllers(tile_list_with_dram_controllers);
@@ -246,7 +249,14 @@ MemoryManager::coreInitiateMemoryAccess(
       bool modeled)
 {
    LOG_PRINT("elau: Main core trying to get test_lock");
-   m_elau_test_lock.acquire();
+   if (lock_signal != Core::UNLOCK)
+      m_elau_test_lock.acquire();
+   else
+   {
+      assert(m_main_atomic == true);
+      m_main_atomic = false;
+   }
+
    LOG_PRINT("elau: Main core got test_lock");
 
    bool res = m_l1_main_cache_cntlr->processMemOpFromCore(mem_component, 
@@ -257,7 +267,14 @@ MemoryManager::coreInitiateMemoryAccess(
          modeled);
 
    LOG_PRINT("elau: Main core releasing test_lock");
-   m_elau_test_lock.release();
+   if (lock_signal != Core::LOCK)
+      m_elau_test_lock.release();
+   else
+   {
+      assert(m_main_atomic == false);
+      m_main_atomic = true;
+   }
+
    LOG_PRINT("elau: Main core released test_lock");
    return res;
 }
@@ -272,7 +289,16 @@ MemoryManager::pepCoreInitiateMemoryAccess(
       bool modeled)
 {
    LOG_PRINT("elau: Pep core trying to get test_lock");
-   m_elau_test_lock.acquire();
+   if (lock_signal != Core::UNLOCK)
+   {
+      m_elau_test_lock.acquire();
+   }
+   else
+   {
+      assert(m_pep_atomic = true);
+      m_pep_atomic=false;
+   }
+
    LOG_PRINT("elau: Pep core got test_lock");
    bool res = m_l1_pep_cache_cntlr->processMemOpFromCore(mem_component, 
          lock_signal, 
@@ -282,7 +308,13 @@ MemoryManager::pepCoreInitiateMemoryAccess(
          modeled);
    
    LOG_PRINT("elau: Pep core releasing test_lock");
-   m_elau_test_lock.release();
+   if (lock_signal != Core::LOCK)
+      m_elau_test_lock.release();
+   else
+   {
+      assert(m_pep_atomic == false);
+      m_pep_atomic = true;
+   }
    LOG_PRINT("elau: Pep core released test_lock");
    return res;
 }
@@ -393,29 +425,27 @@ MemoryManager::sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sende
       LOG_PRINT("Sending Msg: type(%u), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", msg_type, address, sender_mem_component, receiver_mem_component, requester, getTile()->getId(), receiver);
    }
 
-   NetPacket packet(msg_time, SHARED_MEM_1,
-         getTile()->getId(), receiver,
-         shmem_msg.getMsgLen(), (const void*) msg_buf);
-   getNetwork()->netSend(packet);
+   //NetPacket packet(msg_time, SHARED_MEM_1,
+         //getTile()->getId(), receiver,
+         //shmem_msg.getMsgLen(), (const void*) msg_buf);
+   //getNetwork()->netSend(packet);
 
-   //if (sender_mem_component == MemComponent::L1_PEP_ICACHE || sender_mem_component == MemComponent::L1_PEP_DCACHE)
-   //{
-      //NetPacket packet(msg_time, SHARED_MEM_1,
-            //(core_id_t) {getTile()->getId(), PEP_CORE_TYPE},
-            //(core_id_t) {receiver, PEP_CORE_TYPE},
-            //shmem_msg.getMsgLen(), (const void*) msg_buf);
-      //getNetwork()->netSend(packet);
-   //}
-   //else
-   //{
-      //NetPacket packet(msg_time, SHARED_MEM_1,
-            //(core_id_t) {getTile()->getId(), MAIN_CORE_TYPE},
-            //(core_id_t) {receiver, MAIN_CORE_TYPE},
-            //shmem_msg.getMsgLen(), (const void*) msg_buf);
-      //getNetwork()->netSend(packet);
-   //}
-
-
+   if (sender_mem_component == MemComponent::L1_PEP_ICACHE || sender_mem_component == MemComponent::L1_PEP_DCACHE)
+   {
+      NetPacket packet(msg_time, SHARED_MEM_1,
+            (core_id_t) {getTile()->getId(), PEP_CORE_TYPE},
+            (core_id_t) {receiver, MAIN_CORE_TYPE},
+            shmem_msg.getMsgLen(), (const void*) msg_buf);
+      getNetwork()->netSend(packet);
+   }
+   else
+   {
+      NetPacket packet(msg_time, SHARED_MEM_1,
+            (core_id_t) {getTile()->getId(), MAIN_CORE_TYPE},
+            (core_id_t) {receiver, MAIN_CORE_TYPE},
+            shmem_msg.getMsgLen(), (const void*) msg_buf);
+      getNetwork()->netSend(packet);
+   }
 
    // Delete the Msg Buf
    delete [] msg_buf;
@@ -453,7 +483,8 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
          getShmemPerfModel()->incrCycleCount(m_l1_main_icache_perf_model->getLatency(access_type));
 
       case MemComponent::L1_PEP_ICACHE:
-         getShmemPerfModel()->incrCycleCount(m_l1_pep_icache_perf_model->getLatency(access_type));
+         // elau: let's ignore PEP accesses for now
+         //getShmemPerfModel()->incrCycleCount(m_l1_pep_icache_perf_model->getLatency(access_type));
          break;
 
       case MemComponent::L1_DCACHE:
@@ -461,11 +492,11 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
          break;
 
       case MemComponent::L1_PEP_DCACHE:
-         getShmemPerfModel()->incrCycleCount(m_l1_pep_dcache_perf_model->getLatency(access_type));
+         // elau: let's ignore PEP accesses for now
+         //getShmemPerfModel()->incrCycleCount(m_l1_pep_dcache_perf_model->getLatency(access_type));
          break;
 
       case MemComponent::L1_BOTH_DCACHE:
-         getShmemPerfModel()->incrCycleCount(m_l1_pep_dcache_perf_model->getLatency(access_type));
          getShmemPerfModel()->incrCycleCount(m_l1_main_dcache_perf_model->getLatency(access_type));
          break;
 

@@ -74,13 +74,15 @@ CorePerfModel* CorePerfModel::createMainPerfModel(Core* core)
 
 CorePerfModel* CorePerfModel::createPepPerfModel(Core* core)
 {
-   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getTileId());
-   string core_model = Config::getSingleton()->getCoreType(core->getTileId());
+   volatile float frequency = Config::getSingleton()->getPepCoreFrequency(core->getTileId());
+   string core_model = Config::getSingleton()->getPepCoreType(core->getTileId());
 
    if (core_model == "")
       return NULL;
    else if (core_model == "magic")
+   {
       return new MagicPepPerformanceModel(core, frequency);
+   }
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
@@ -114,6 +116,7 @@ void CorePerfModel::frequencySummary(ostream& os)
       << static_cast<UInt64>(static_cast<float>(m_cycle_count) / m_frequency) \
       << endl;
    os << "   Average Frequency: " << m_average_frequency << endl;
+   os << "   Frequency: " << m_frequency << endl;
 }
 
 void CorePerfModel::enable()

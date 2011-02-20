@@ -116,7 +116,7 @@ void MCP::processPacket()
 
    case MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
       assert(m_clock_skew_minimization_server);
-      m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender.first);
+      m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender);
       break;
 
    case MCP_MESSAGE_RESET_CACHE_COUNTERS:

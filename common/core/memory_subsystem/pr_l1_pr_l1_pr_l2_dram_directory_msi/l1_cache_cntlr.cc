@@ -109,10 +109,8 @@ L1CacheCntlr::processMemOpFromCore(
       invalidateCacheBlock(mem_component, ca_address);
 
 
-      LOG_PRINT("elau: in processMemOpFromCore in the L1 Cache, about to lock out other core");
       lockL2ToCore(mem_component); 
 
-      LOG_PRINT("elau: in processMemOpFromCore in the L1 Cache, about to acquire L2 lock");
       m_l2_cache_cntlr->acquireLock();
 
       // Set the l1_cache_cntlr to this cache so it can ask for the lock.
@@ -247,7 +245,6 @@ L1CacheCntlr::getCacheState(MemComponent::component_t mem_component, IntPtr addr
 void
 L1CacheCntlr::setCacheState(MemComponent::component_t mem_component, IntPtr address, CacheState::cstate_t cstate)
 {
-   LOG_PRINT("elau: about to set cache state");
    Cache* l1_cache = getL1Cache(mem_component);
 
    PrL1CacheBlockInfo* l1_cache_block_info = (PrL1CacheBlockInfo*) l1_cache->peekSingleLine(address);
@@ -305,13 +302,6 @@ L1CacheCntlr::getL1Cache(MemComponent::component_t mem_component)
 void
 L1CacheCntlr::acquireLock(MemComponent::component_t mem_component)
 {
-   if (m_is_pep_cache){
-      LOG_PRINT("elau: about to acquire L1CacheLock through PEP controller");
-   }
-   else{
-      LOG_PRINT("elau: about to acquire L1CacheLock through main controller");
-   }
-
    switch(mem_component)
    {
       case MemComponent::L1_ICACHE:
@@ -326,25 +316,11 @@ L1CacheCntlr::acquireLock(MemComponent::component_t mem_component)
          LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
          break;
    }
-
-   if (m_is_pep_cache) {
-      LOG_PRINT("elau: acquired L1CacheLock through PEP controller");
-   }
-   else {
-      LOG_PRINT("elau: acquired L1CacheLock through main controller");
-   }
 }
 
 void
 L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
 {
-   if (m_is_pep_cache) {
-      LOG_PRINT("elau: about to release L1CacheLock through PEP controller");
-   }
-   else {
-      LOG_PRINT("elau: about to release L1CacheLock through main controller");
-   }
-
    switch(mem_component)
    {
       case MemComponent::L1_ICACHE:
@@ -359,33 +335,16 @@ L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
          LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
          break;
    }
-
-   if (m_is_pep_cache) {
-      LOG_PRINT("elau: released L1CacheLock through PEP controller");
-   }
-   else {
-      LOG_PRINT("elau: released L1CacheLock through main controller");
-   }
 }
 
 void
 L1CacheCntlr::lockL2ToCore(MemComponent::component_t mem_component)
 {
    if (m_is_pep_cache) {
-      LOG_PRINT("elau: about to lock to PEP core");
       m_l2_cache_cntlr->lockToPepCore();
    }
    else {
-      LOG_PRINT("elau: about to lock to main core");
       m_l2_cache_cntlr->lockToMainCore();
-   }
-
-
-   if (m_is_pep_cache) {
-      LOG_PRINT("elau: locked to PEP core");
-   }
-   else {
-      LOG_PRINT("elau: locked to main core");
    }
 }
 
@@ -393,22 +352,13 @@ void
 L1CacheCntlr::releaseL2FromCore(MemComponent::component_t mem_component)
 {
    if (m_is_pep_cache) {
-      LOG_PRINT("elau: about to release from PEP core");
       m_l2_cache_cntlr->releaseFromPepCore();
    }
    else {
-      LOG_PRINT("elau: about to release from main core");
       m_l2_cache_cntlr->releaseFromMainCore();
    }
-
-
-   if (m_is_pep_cache) {
-      LOG_PRINT("elau: released from PEP core");
-   }
-   else {
-      LOG_PRINT("elau: released from main core");
-   }
 }
+
 void
 L1CacheCntlr::waitForNetworkThread()
 {

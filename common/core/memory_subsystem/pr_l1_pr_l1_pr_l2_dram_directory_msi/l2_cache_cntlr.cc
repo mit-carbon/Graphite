@@ -93,6 +93,16 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
    PrL2CacheBlockInfo evict_block_info;
    Byte evict_buf[getCacheBlockSize()];
 
+if (m_is_pep_access)
+{
+   m_l2_cache->incrPepInsertion();
+}
+else
+{
+   m_l2_cache->incrMainInsertion();
+}
+
+
    m_l2_cache->insertSingleLine(address, data_buf,
          &eviction, &evict_address, &evict_block_info, evict_buf);
    PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
@@ -100,6 +110,33 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
 
    if (eviction)
    {
+      //elau
+      switch(evict_block_info.getCachedLoc())
+      {
+         case MemComponent::L1_DCACHE:
+            m_l2_cache->incrMainEvict();
+            m_l2_cache->incrTotalEvicts();
+            break;
+
+         case MemComponent::L1_PEP_DCACHE:
+            m_l2_cache->incrPepEvict();
+            m_l2_cache->incrTotalEvicts();
+            break;
+
+         case MemComponent::L1_BOTH_DCACHE: 
+            m_l2_cache->incrBothEvict();
+            m_l2_cache->incrTotalEvicts();
+            break;
+
+         case ((UInt32) 0):
+            m_l2_cache->incrTotalEvicts();
+            break;
+
+         default:
+            LOG_PRINT_ERROR("Invalid eviction (%i)!", evict_block_info.getCachedLoc());
+            exit(0);
+      }
+
       LOG_PRINT("Eviction: addr(0x%x)", evict_address);
       invalidateCacheBlockInL1(evict_block_info.getCachedLoc(), evict_address);
 
@@ -193,9 +230,17 @@ L2CacheCntlr::processShmemReqFromL1Cache(MemComponent::component_t req_mem_compo
    CacheState::cstate_t cstate = getCacheState(l2_cache_block_info);
 
    if (req_mem_component == MemComponent::L1_PEP_ICACHE || req_mem_component == MemComponent::L1_PEP_DCACHE)
+   {
+      //LOG_PRINT("PEP L2 access for address 0x%x", address);
+      //printf("elau: PEP L2 access for address 0x%x\n", (unsigned int) address);
       m_is_pep_access = true;
+   }
    else
+   {
+      //LOG_PRINT("MAIN L2 access for address 0x%x",address);
+      //printf("elau: MAIN L2 access for address 0x%x\n", (unsigned int) address);
       m_is_pep_access = false;
+   }
 
    bool shmem_req_ends_in_l2_cache = shmemReqEndsInL2Cache(msg_type, cstate, modeled);
    if (shmem_req_ends_in_l2_cache)
@@ -407,9 +452,15 @@ L2CacheCntlr::processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    // Set the Counters in the Shmem Perf model accordingly
    // Set the counter value in the USER thread to that in the SIM thread
    if (mem_component == MemComponent::L1_PEP_ICACHE || mem_component == MemComponent::L1_PEP_DCACHE)
+   {
+      m_l2_cache->incrPepFill();
       getShmemPerfModel()->setCycleCount(ShmemPerfModel::_HELPER_THREAD, getShmemPerfModel()->getCycleCount());
+   }
    else
+   {
+      m_l2_cache->incrMainFill();
       getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, getShmemPerfModel()->getCycleCount());
+   }
 }
 
 void
@@ -434,9 +485,15 @@ L2CacheCntlr::processShRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    // Set the Counters in the Shmem Perf model accordingly
    // Set the counter value in the USER thread to that in the SIM thread
    if (mem_component == MemComponent::L1_PEP_ICACHE || mem_component == MemComponent::L1_PEP_DCACHE)
+   {
+      m_l2_cache->incrPepFill();
       getShmemPerfModel()->setCycleCount(ShmemPerfModel::_HELPER_THREAD, getShmemPerfModel()->getCycleCount());
+   }
    else
+   {
+      m_l2_cache->incrMainFill();
       getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, getShmemPerfModel()->getCycleCount());
+   }
 }
 
 void
@@ -573,9 +630,11 @@ L2CacheCntlr::shmemReqEndsInL2Cache(ShmemMsg::msg_t shmem_msg_type, CacheState::
 
    if (modeled)
    {
-      // elau: temporary, let's just see L2 access from MAIN core.
-   if (!m_is_pep_access)
+   if (m_is_pep_access)
+         m_l2_cache->updatePepCounters(cache_hit);
+   else
          m_l2_cache->updateCounters(cache_hit);
+
    }
 
    return cache_hit;
@@ -611,7 +670,6 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
       case ShmemMsg::FLUSH_REQ:
       case ShmemMsg::WB_REQ:
          {
-            LOG_PRINT("elau: in acquireL1CacheLock during ShmemMsg(%d) right before acquireLock()", msg_type);
             acquireLock();
             
             PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
@@ -657,56 +715,40 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
 void
 L2CacheCntlr::lockToPepCore()
 {
-   LOG_PRINT("elau: about to acquire L2 main core lock");
    m_main_core_lock.acquire();
    m_main_core_lock.release();
-   LOG_PRINT("elau: acquired L2 main core lock");
-   LOG_PRINT("elau: about to trylock L2 PEP core lock");
    m_pep_core_lock.tryLock();
-   LOG_PRINT("elau: acquired L2 PEP core lock");
 }
 
 void
 L2CacheCntlr::releaseFromPepCore()
 {
-   LOG_PRINT("elau: about to release L2 PEP core lock");
    m_pep_core_lock.release();
-   LOG_PRINT("elau: released L2 PEP core lock");
 }
 
 void
 L2CacheCntlr::lockToMainCore()
 {
-   LOG_PRINT("elau: about to acquire L2 pep core lock");
    m_pep_core_lock.acquire();
    m_pep_core_lock.release();
-   LOG_PRINT("elau: acquired L2 pep core lock");
-   LOG_PRINT("elau: about to trylock L2 main core lock");
    m_main_core_lock.tryLock();
-   LOG_PRINT("elau: acquired L2 main core lock");
 }
 
 void
 L2CacheCntlr::releaseFromMainCore()
 {
-   LOG_PRINT("elau: about to release L2 main core lock");
    m_main_core_lock.release();
-   LOG_PRINT("elau: released L2 main core lock");
 }
 void
 L2CacheCntlr::acquireLock()
 {
-   LOG_PRINT("elau: about to acquire L2CacheLock\n");
    m_l2_cache_lock.acquire();
-   LOG_PRINT("elau: acquired L2CacheLock\n");
 }
 
 void
 L2CacheCntlr::releaseLock()
 {
-   LOG_PRINT("elau: about to release L2CacheLock\n");
    m_l2_cache_lock.release();
-   LOG_PRINT("elau: released L2CacheLock\n");
 }
 
 void

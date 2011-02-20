@@ -118,7 +118,7 @@ void Network::netPullFromTransport()
          LOG_PRINT("After Processing Received Packet: packet.time(%llu)", packet.time);
          
          // Assume that the network is used by the main core for now, until I have packet types
-         // for the PEP core.
+         // for the PEP core. - elau
          // Convert from network cycle count to core cycle count
          packet.time = convertCycleCount(packet.time, \
                getNetworkModelFromPacketType(packet.type)->getFrequency(), \
@@ -148,17 +148,20 @@ void Network::netPullFromTransport()
             LOG_PRINT("Enqueuing packet : type %i, from {%i, %i}, to {%i, %i}, core_id %i, cycle_count %llu", 
                   (SInt32)packet.type, packet.sender.first, packet.sender.second, packet.receiver.first, packet.receiver.second, _tile->getId(), packet.time);
 
-            LOG_PRINT("elau: about to acquire netQueueLock");
             _netQueueLock.acquire();
-            LOG_PRINT("elau: acquired netQueueLock");
             _netQueue.push_back(packet);
-            LOG_PRINT("elau: about to release netQueueLock");
             _netQueueLock.release();
-            LOG_PRINT("elau: released netQueueLock");
             
-            LOG_PRINT("elau: broadcasting netQueueCond");
-            _netQueueCond.broadcast();
-            LOG_PRINT("elau: broadcasted netQueueCond");
+            // elau: I had to split this condition variable because the futexes would choke sometimes.
+            //       I'm not sure why, but occasionally, the broadcast only wakes up one thread...
+            if (packet.receiver.second == PEP_CORE_TYPE)
+            {
+               _netHelperQueueCond.broadcast();
+            }
+            else
+            {
+               _netQueueCond.broadcast();
+            }
          }
       }
       else // if ((action & NetworkModel::RoutingAction::RECEIVE) == 0)
@@ -404,9 +407,7 @@ NetPacket Network::netRecv(const NetMatch &match)
                     "Tile and/or performance model not initialized.");
    UInt64 start_time = _tile->getCore()->getPerformanceModel()->getCycleCount();
 
-   LOG_PRINT("elau: about to acquire netQueueLock");
    _netQueueLock.acquire();
-   LOG_PRINT("elau: acquired netQueueLock");
 
    while (!found)
    {
@@ -448,9 +449,15 @@ NetPacket Network::netRecv(const NetMatch &match)
       // go to sleep until a packet arrives if none have been found
       if (!found)
       {
-         LOG_PRINT("elau: Starting to wait on netQueueCond");
-         _netQueueCond.wait(_netQueueLock);
-         LOG_PRINT("elau: Woke up on netQueueCond");
+         if ( _tile->getCurrentCore()->getCoreType() == PEP_CORE_TYPE)
+         {
+            _netHelperQueueCond.wait(_netQueueLock);
+         }
+         else
+         {
+            _netQueueCond.wait(_netQueueLock);
+
+         }
       }
    }
 
@@ -463,9 +470,7 @@ NetPacket Network::netRecv(const NetMatch &match)
    NetPacket packet = *itr;
    _netQueue.erase(itr);
 
-   LOG_PRINT("elau: about to release netQueueLock");
    _netQueueLock.release();
-   LOG_PRINT("elau: released netQueueLock");
 
    LOG_PRINT("packet.time(%llu), start_time(%llu)", packet.time, start_time);
 

@@ -260,7 +260,7 @@ RandomPairsSyncClient::sendRandomSyncMsg(UInt64 curr_time)
    UnstructuredBuffer send_buf;
    send_buf << (UInt32) SyncMsg::REQ << curr_time;
 
-   // elau: syncing only valid for main cores.
+   // elau: syncing only valid for main cores for this model, only barriers work for now.
    _core->getNetwork()->netSend((core_id_t) {receiver, MAIN_CORE_TYPE }, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
 }
 

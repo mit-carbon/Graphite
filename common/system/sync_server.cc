@@ -208,6 +208,7 @@ void SyncServer::mutexUnlock(core_id_t core_id)
    m_recv_buffer >> time;
 
    assert((size_t)mux < m_mutexes.size());
+   //printf("elau: m_mutexes.size() = %i", m_mutexes.size());
 
    SimMutex *psimmux = &m_mutexes[mux];
 

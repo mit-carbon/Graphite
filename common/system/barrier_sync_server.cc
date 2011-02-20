@@ -24,10 +24,23 @@ BarrierSyncServer::BarrierSyncServer(Network &network, UnstructuredBuffer &recv_
    m_num_application_tiles = Config::getSingleton()->getApplicationTiles();
    m_local_clock_list.resize(m_num_application_tiles);
    m_barrier_acquire_list.resize(m_num_application_tiles);
+
    for (UInt32 i = 0; i < m_num_application_tiles; i++)
    {
       m_local_clock_list[i] = 0;
       m_barrier_acquire_list[i] = false;
+   }
+
+   if(Config::getSingleton()->getEnablePepCores())
+   {
+      m_local_pep_clock_list.resize(m_num_application_tiles);
+      m_barrier_pep_acquire_list.resize(m_num_application_tiles);
+      
+      for (UInt32 i = 0; i < m_num_application_tiles; i++)
+      {
+         m_local_clock_list[i] = 0;
+         m_barrier_acquire_list[i] = false;
+      }
    }
 }
 
@@ -35,9 +48,9 @@ BarrierSyncServer::~BarrierSyncServer()
 {}
 
 void
-BarrierSyncServer::processSyncMsg(tile_id_t tile_id)
+BarrierSyncServer::processSyncMsg(core_id_t core_id)
 {
-   barrierWait(tile_id);
+   barrierWait(core_id);
 }
 
 void
@@ -48,14 +61,14 @@ BarrierSyncServer::signal()
 }
 
 void
-BarrierSyncServer::barrierWait(tile_id_t tile_id)
+BarrierSyncServer::barrierWait(core_id_t core_id)
 {
    UInt64 time;
    m_recv_buff >> time;
 
-   LOG_PRINT("Received 'SIM_BARRIER_WAIT' from Tile(%i), Time(%llu)", tile_id, time);
+   LOG_PRINT("Received 'SIM_BARRIER_WAIT' from Core(%i, %i), Time(%llu)", core_id.first, core_id.second, time);
 
-   LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(tile_id) || m_thread_manager->isThreadInitializing(tile_id), "Thread on core(%i) is not running or initializing at time(%llu)", tile_id, time);
+   LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(core_id) || m_thread_manager->isThreadInitializing(core_id), "Thread on core(%i) is not running or initializing at time(%llu)", core_id, time);
 
    if (time < m_next_barrier_time)
    {
@@ -63,14 +76,21 @@ BarrierSyncServer::barrierWait(tile_id_t tile_id)
       // LOG_PRINT_WARNING("tile_id(%i), local_clock(%llu), m_next_barrier_time(%llu), m_barrier_interval(%llu)", tile_id, time, m_next_barrier_time, m_barrier_interval);
       unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
 
-      // elau: syncing is only for MAIN core's right now.
-      core_id_t core_id = (core_id_t) {tile_id, MAIN_CORE_TYPE};
       m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
       return;
    }
 
-   m_local_clock_list[tile_id] = time;
-   m_barrier_acquire_list[tile_id] = true;
+   if (core_id.second == PEP_CORE_TYPE && Config::getSingleton()->getEnablePepCores())
+   {
+      m_local_pep_clock_list[core_id.first] = time;
+      m_barrier_pep_acquire_list[core_id.first] = true;
+   }
+   else
+   {
+      m_local_clock_list[core_id.first] = time;
+      m_barrier_acquire_list[core_id.first] = true;
+
+   }
  
    signal(); 
 }
@@ -99,6 +119,26 @@ BarrierSyncServer::isBarrierReached()
 
          // At least one thread has reached the barrier
          single_thread_barrier_reached = true;
+      }
+      
+      if(Config::getSingleton()->getEnablePepCores())
+      {
+         if (m_local_pep_clock_list[tile_id] < m_next_barrier_time)
+         {
+            if (m_thread_manager->isHelperThreadRunning(tile_id))
+            {
+               // Thread Running on this core has not reached the barrier
+               // Wait for it to sync
+               return false;
+            }
+         }
+         else
+         {
+            LOG_ASSERT_ERROR(m_thread_manager->isHelperThreadRunning(tile_id) || m_thread_manager->isHelperThreadInitializing(tile_id), "Thread on core(%i) is not running or initializing at local_clock(%llu), m_next_barrier_time(%llu)", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
+
+            // At least one thread has reached the barrier
+            single_thread_barrier_reached = true;
+         }
       }
    }
 
@@ -135,13 +175,33 @@ BarrierSyncServer::barrierRelease()
 
                unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
 
-               // elau: syncing is only for MAIN core's right now.
                core_id_t core_id = (core_id_t) {tile_id, MAIN_CORE_TYPE};
                m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
 
                m_barrier_acquire_list[tile_id] = false;
 
                thread_resumed = true;
+            }
+         }
+
+         if(Config::getSingleton()->getEnablePepCores())
+         {
+            if (m_local_pep_clock_list[tile_id] < m_next_barrier_time)
+            {
+               // Check if this core was running. If yes, send a message to that core
+               if (m_barrier_pep_acquire_list[tile_id] == true)
+               {
+                  LOG_ASSERT_ERROR(m_thread_manager->isHelperThreadRunning(tile_id) || m_thread_manager->isHelperThreadInitializing(tile_id), "(%i) has acquired barrier, local_clock(%i), m_next_barrier_time(%llu), but not initializing or running", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
+
+                  unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
+
+                  core_id_t core_id = (core_id_t) {tile_id, PEP_CORE_TYPE};
+                  m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
+
+                  m_barrier_pep_acquire_list[tile_id] = false;
+
+                  thread_resumed = true;
+               }
             }
          }
       }

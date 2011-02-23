@@ -52,7 +52,7 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
       m_send_buff << msg_type << curr_time;
       m_core->getNetwork()->netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
-      LOG_PRINT("Core(%i, %i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getCoreId().first, m_core->getCoreId().second, curr_time, m_next_sync_time);
+      LOG_PRINT("Core(%i, %i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getCoreId().tile_id, m_core->getCoreId().core_type, curr_time, m_next_sync_time);
 
       // Receive 'BARRIER_RELEASE' response
       NetPacket recv_pkt;

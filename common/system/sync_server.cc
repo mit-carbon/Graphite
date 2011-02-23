@@ -2,6 +2,7 @@
 #include "sync_client.h"
 #include "simulator.h"
 #include "thread_manager.h"
+#include "tile_manager.h"
 
 using namespace std;
 
@@ -24,7 +25,7 @@ SimMutex::~SimMutex()
 
 bool SimMutex::lock(core_id_t core_id)
 {
-   if (m_owner.first == INVALID_TILE_ID)
+   if (m_owner.tile_id == INVALID_TILE_ID)
    {
       m_owner = core_id;
       return true;
@@ -39,7 +40,7 @@ bool SimMutex::lock(core_id_t core_id)
 
 core_id_t SimMutex::unlock(core_id_t core_id)
 {
-   assert(m_owner.first == core_id.first && m_owner.second == core_id.second);
+   assert(m_owner.tile_id == core_id.tile_id && m_owner.core_type == core_id.core_type);
 
    if (m_waiting.empty())
    {
@@ -208,13 +209,12 @@ void SyncServer::mutexUnlock(core_id_t core_id)
    m_recv_buffer >> time;
 
    assert((size_t)mux < m_mutexes.size());
-   //printf("elau: m_mutexes.size() = %i", m_mutexes.size());
 
    SimMutex *psimmux = &m_mutexes[mux];
 
    core_id_t new_owner = psimmux->unlock(core_id);
 
-   if (new_owner.first != INVALID_TILE_ID)
+   if (new_owner.tile_id != INVALID_TILE_ID)
    {
       // wake up the new owner
       Reply r;
@@ -258,7 +258,7 @@ void SyncServer::condWait(core_id_t core_id)
    StableIterator<SimMutex> it(m_mutexes, mux);
    core_id_t new_mutex_owner = psimcond->wait(core_id, time, it);
 
-   if (new_mutex_owner.first != INVALID_TILE_ID)
+   if (new_mutex_owner.tile_id != INVALID_TILE_ID)
    {
       // wake up the new owner
       Reply r;
@@ -284,7 +284,7 @@ void SyncServer::condSignal(core_id_t core_id)
 
    core_id_t woken = psimcond->signal(core_id, time);
 
-   if (woken.first != INVALID_TILE_ID)
+   if (woken.tile_id != INVALID_TILE_ID)
    {
       // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
@@ -320,7 +320,7 @@ void SyncServer::condBroadcast(core_id_t core_id)
 
    for (SimCond::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
    {
-      assert((*it).first != INVALID_TILE_ID);
+      assert((*it).tile_id != INVALID_TILE_ID);
 
       // wake up the new owner
       // (note: COND_WAIT_RESPONSE == MUTEX_LOCK_RESPONSE, see header)
@@ -343,7 +343,7 @@ void SyncServer::barrierInit(tile_id_t tile_id)
    m_barriers.push_back(SimBarrier(count));
    UInt32 barrier = (UInt32)m_barriers.size()-1;
 
-   m_network.netSend((core_id_t) {tile_id, MAIN_CORE_TYPE}, MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
+   m_network.netSend(TileManager::getMainCoreId(tile_id), MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
 }
 
 void SyncServer::barrierWait(tile_id_t tile_id)
@@ -369,7 +369,7 @@ void SyncServer::barrierWait(tile_id_t tile_id)
       Reply r;
       r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
       r.time = max_time;
-      core_id_t core_id = (core_id_t) {(*it), MAIN_CORE_TYPE};
+      core_id_t core_id = TileManager::getMainCoreId((*it));
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
    }
 }

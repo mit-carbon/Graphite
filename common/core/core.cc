@@ -1,6 +1,5 @@
 #include "core.h"
 #include "main_core.h"
-#include "pep_core.h"
 #include "tile.h"
 #include "network.h"
 #include "syscall_model.h"
@@ -19,14 +18,7 @@ Lock Core::m_global_core_lock;
 
 Core * Core::create(Tile* tile, core_type_t core_type)
 {
-   if (core_type == MAIN_CORE_TYPE)
-   {
-      return new MainCore(tile); 
-   }
-   else
-   {
-      return new PepCore(tile);
-   }
+   return new MainCore(tile); 
 }
 
 Core::Core(Tile *tile)
@@ -38,15 +30,7 @@ Core::Core(Tile *tile)
 
 Core::~Core()
 {
-   if (this->getCoreId().second == MAIN_CORE_TYPE){
-      LOG_PRINT("Deleting main core on tile %d", this->getCoreId().first);
-   }
-   else if (this->getCoreId().second == PEP_CORE_TYPE) {
-      LOG_PRINT("Deleting PEP core on tile %d", this->getCoreId().first);
-   }
-   else {
-      LOG_PRINT_ERROR("Invalid core type!");
-   }
+   LOG_PRINT("Deleting main core on tile %d", this->getCoreId().tile_id);
 
    delete m_sync_client;
 }
@@ -80,7 +64,7 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
    else
       packet = m_tile->getNetwork()->netRecv(sender_core, pkt_type);
 
-   LOG_PRINT("Got packet: from {%i, %i}, to {%i, %i}, type %i, len %i", packet.sender.first, packet.sender.second, packet.receiver.first, packet.receiver.second, (SInt32)packet.type, packet.length);
+   LOG_PRINT("Got packet: from {%i, %i}, to {%i, %i}, type %i, len %i", packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, (SInt32)packet.type, packet.length);
 
    LOG_ASSERT_ERROR((unsigned)size == packet.length, "Tile: User thread requested packet of size: %d, got a packet from %d of size: %d", size, sender, packet.length);
 

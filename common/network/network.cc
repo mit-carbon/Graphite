@@ -91,8 +91,8 @@ void Network::netPullFromTransport()
 
       NetPacket packet(_transport->recv());
 
-      LOG_PRINT("Pull packet : type %i, from {%i, %i}, time %llu", (SInt32)packet.type, packet.sender.first, packet.sender.second, packet.time);
-      LOG_ASSERT_ERROR(0 <= packet.sender.first && packet.sender.first < _numMod,
+      LOG_PRINT("Pull packet : type %i, from {%i, %i}, time %llu", (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.time);
+      LOG_ASSERT_ERROR(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod,
             "Invalid Packet Sender(%i)", packet.sender);
       LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES,
             "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
@@ -104,7 +104,7 @@ void Network::netPullFromTransport()
       if (action & NetworkModel::RoutingAction::FORWARD)
       {
          LOG_PRINT("Forwarding packet : type %i, from {%i, %i}, to {%i, %i}, tile_id %i, time %llu.", 
-               (SInt32)packet.type, packet.sender.first, packet.sender.second, packet.receiver.first, packet.receiver.second, _tile->getId(), packet.time);
+               (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
          forwardPacket(packet);
       }
       
@@ -117,8 +117,6 @@ void Network::netPullFromTransport()
 
          LOG_PRINT("After Processing Received Packet: packet.time(%llu)", packet.time);
          
-         // Assume that the network is used by the main core for now, until I have packet types
-         // for the PEP core. - elau
          // Convert from network cycle count to core cycle count
          packet.time = convertCycleCount(packet.time, \
                getNetworkModelFromPacketType(packet.type)->getFrequency(), \
@@ -132,8 +130,8 @@ void Network::netPullFromTransport()
          if (callback != NULL)
          {
             LOG_PRINT("Executing callback on packet : type %i, from {%i, %i}, to {%i, %i}, tile_id %i, cycle_count %llu", 
-                  (SInt32)packet.type, packet.sender.first, packet.sender.second, packet.receiver.first, packet.receiver.second, _tile->getId(), packet.time);
-            assert(0 <= packet.sender.first && packet.sender.first < _numMod);
+                  (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
+            assert(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod);
             assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
 
             callback(_callbackObjs[packet.type], packet);
@@ -146,22 +144,13 @@ void Network::netPullFromTransport()
          else
          {
             LOG_PRINT("Enqueuing packet : type %i, from {%i, %i}, to {%i, %i}, core_id %i, cycle_count %llu", 
-                  (SInt32)packet.type, packet.sender.first, packet.sender.second, packet.receiver.first, packet.receiver.second, _tile->getId(), packet.time);
+                  (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
 
             _netQueueLock.acquire();
             _netQueue.push_back(packet);
             _netQueueLock.release();
-            
-            // elau: I had to split this condition variable because the futexes would choke sometimes.
-            //       I'm not sure why, but occasionally, the broadcast only wakes up one thread...
-            if (packet.receiver.second == PEP_CORE_TYPE)
-            {
-               _netHelperQueueCond.broadcast();
-            }
-            else
-            {
-               _netQueueCond.broadcast();
-            }
+
+            _netQueueCond.broadcast();
          }
       }
       else // if ((action & NetworkModel::RoutingAction::RECEIVE) == 0)
@@ -189,30 +178,23 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      // HACK! elau: if it comes from a PEP core, send it to a PEP core.  This should be taken care of in the network models, not here.
-      if (packet.receiver.second == PEP_CORE_TYPE) 
-      {
-         LOG_ASSERT_ERROR(hopVec[i].final_dest.second == MAIN_CORE_TYPE, "Packet sent from {%i,%i} to {%i,%i}", buff_pkt->sender.first, buff_pkt->sender.second, hopVec[i].final_dest.first, hopVec[i].final_dest.second);
-         hopVec[i].final_dest.second = PEP_CORE_TYPE;
-      }
-      
       LOG_PRINT("Send packet : type %i, from {%i,%i}, to {%i, %i}, next_hop %i, tile_id %i, time %llu", \
-            (SInt32) buff_pkt->type, buff_pkt->sender.first, buff_pkt->sender.second, hopVec[i].final_dest.first, hopVec[i].final_dest.second, hopVec[i].next_dest.first, \
+            (SInt32) buff_pkt->type, buff_pkt->sender.tile_id, buff_pkt->sender.core_type, hopVec[i].final_dest.tile_id, hopVec[i].final_dest.core_type, hopVec[i].next_dest.tile_id, \
             _tile->getId(), hopVec[i].time);
 
       // Do a shared memory shortcut here
-      if ((Config::getSingleton()->getProcessCount() == 1) && (hopVec[i].final_dest.first != NetPacket::BROADCAST))
+      if ((Config::getSingleton()->getProcessCount() == 1) && (hopVec[i].final_dest.tile_id != NetPacket::BROADCAST))
       {
          // 1) Process Count = 1
          // 2) The broadcast tree network model is not used
          while (1)
          {
             buff_pkt->time = hopVec[i].time;
-            buff_pkt->receiver.first = hopVec[i].final_dest.first;
-            buff_pkt->receiver.second = hopVec[i].final_dest.second;
+            buff_pkt->receiver.tile_id = hopVec[i].final_dest.tile_id;
+            buff_pkt->receiver.core_type = hopVec[i].final_dest.core_type;
             buff_pkt->specific = hopVec[i].specific;
 
-            Tile* remote_tile = Sim()->getTileManager()->getTileFromID(hopVec[i].next_dest.first);
+            Tile* remote_tile = Sim()->getTileManager()->getTileFromID(hopVec[i].next_dest.tile_id);
             NetworkModel* remote_network_model = remote_tile->getNetwork()->getNetworkModelFromPacketType(buff_pkt->type);
 
             UInt32 action = remote_network_model->computeAction(*buff_pkt);
@@ -235,11 +217,11 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
       }
 
       buff_pkt->time = hopVec[i].time;
-      buff_pkt->receiver.first = hopVec[i].final_dest.first;
-      buff_pkt->receiver.second = hopVec[i].final_dest.second;
+      buff_pkt->receiver.tile_id = hopVec[i].final_dest.tile_id;
+      buff_pkt->receiver.core_type = hopVec[i].final_dest.core_type;
       buff_pkt->specific = hopVec[i].specific;
 
-      _transport->send(hopVec[i].next_dest.first, buffer, packet.bufferSize());
+      _transport->send(hopVec[i].next_dest.tile_id, buffer, packet.bufferSize());
       
       LOG_PRINT("Sent packet");
    }
@@ -322,7 +304,7 @@ class NetRecvIterator
          case SENDER_VECTOR:
             return (core_id_t)_senders->at(_i);
          case INT:
-            return (core_id_t) {_i, _core_type};
+            return Sim()->getTileManager()->getMainCoreId(_i);
          default:
             assert(false);
             return INVALID_CORE_ID;
@@ -349,20 +331,6 @@ class NetRecvIterator
          ++_i;
       }
 
-      inline void nextCore()
-      {
-         if (_mode == SENDER_VECTOR) {
-            ++_i;
-         } else {
-            assert(_mode == INT);
-            if (_core_type == PEP_CORE_TYPE) {
-               ++_i;
-               _core_type = MAIN_CORE_TYPE;
-            } else {
-               _core_type = PEP_CORE_TYPE;
-            }
-         }
-      }
       inline void reset()
       {
          _i = 0;
@@ -419,14 +387,14 @@ NetPacket Network::netRecv(const NetMatch &match)
             i++)
       {
          // make sure that this core is the proper destination core for this tile
-         if (i->receiver.first != _tile->getId() || i->receiver.second != _tile->getCurrentCore()->getCoreType())
-            if (i->receiver.first != NetPacket::BROADCAST)
+         if (i->receiver.tile_id != _tile->getId() || i->receiver.core_type != _tile->getCurrentCore()->getCoreType())
+            if (i->receiver.tile_id != NetPacket::BROADCAST)
                continue;
 
          // only find packets that match
-         for (sender.reset(); !sender.done(); sender.nextCore())
+         for (sender.reset(); !sender.done(); sender.next())
          {
-            if (i->sender.first != sender.getCoreId().first || i->sender.second != sender.getCoreId().second)
+            if (i->sender.tile_id != sender.getCoreId().tile_id || i->sender.core_type != sender.getCoreId().core_type)
                continue;
 
             for (type.reset(); !type.done(); type.next())
@@ -449,22 +417,14 @@ NetPacket Network::netRecv(const NetMatch &match)
       // go to sleep until a packet arrives if none have been found
       if (!found)
       {
-         if ( _tile->getCurrentCore()->getCoreType() == PEP_CORE_TYPE)
-         {
-            _netHelperQueueCond.wait(_netQueueLock);
-         }
-         else
-         {
             _netQueueCond.wait(_netQueueLock);
-
-         }
       }
    }
 
    assert(found == true && itr != _netQueue.end());
-   assert(0 <= itr->sender.first && itr->sender.first < _numMod);
+   assert(0 <= itr->sender.tile_id && itr->sender.tile_id < _numMod);
    assert(0 <= itr->type && itr->type < NUM_PACKET_TYPES);
-   assert((itr->receiver.first == _tile->getId()) || (itr->receiver.first == NetPacket::BROADCAST));
+   assert((itr->receiver.tile_id == _tile->getId()) || (itr->receiver.tile_id == NetPacket::BROADCAST));
 
    // Copy result
    NetPacket packet = *itr;
@@ -481,7 +441,7 @@ NetPacket Network::netRecv(const NetMatch &match)
       _tile->getCore()->getPerformanceModel()->queueDynamicInstruction(i);
    }
 
-   LOG_PRINT("Exiting netRecv : type %i, from {%i,%i}", (SInt32)packet.type, packet.sender.first, packet.sender.second);
+   LOG_PRINT("Exiting netRecv : type %i, from {%i,%i}", (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type);
 
    return packet;
 }
@@ -494,10 +454,10 @@ SInt32 Network::netSend(core_id_t dest, PacketType type, const void *buf, UInt32
    assert(_tile);
    assert(_tile->getCurrentCore()->getPerformanceModel()); 
    packet.time = _tile->getCurrentCore()->getPerformanceModel()->getCycleCount();
-   packet.sender.first = _tile->getCurrentCore()->getCoreId().first;
-   packet.sender.second = _tile->getCurrentCore()->getCoreId().second;
-   packet.receiver.first = dest.first;
-   packet.receiver.second = dest.second;
+   packet.sender.tile_id = _tile->getCurrentCore()->getCoreId().tile_id;
+   packet.sender.core_type = _tile->getCurrentCore()->getCoreId().core_type;
+   packet.receiver.tile_id = dest.tile_id;
+   packet.receiver.core_type = dest.core_type;
    packet.length = len;
    packet.type = type;
    packet.data = buf;
@@ -601,8 +561,8 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
    , length(l)
    , data(d)
 {
-   sender = (core_id_t) {s, MAIN_CORE_TYPE};
-   receiver = (core_id_t) {r, MAIN_CORE_TYPE};
+   sender = Sim()->getTileManager()->getMainCoreId(s);
+   receiver = Sim()->getTileManager()->getMainCoreId(r);
 }
 
 

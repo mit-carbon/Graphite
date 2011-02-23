@@ -32,10 +32,6 @@ ShmemPerfModel::getThreadNum()
       assert(!Sim()->getTileManager()->amiUserThread());
       return _SIM_THREAD;
    }
-   else if (Sim()->getTileManager()->amiHelperThread())
-   {
-      return _HELPER_THREAD;
-   }
    else
    {
       assert(false);

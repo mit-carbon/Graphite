@@ -1,7 +1,7 @@
 #include "pin_config.h"
 #include "simulator.h"
+#include "tile_manager.h"
 #include <boost/lexical_cast.hpp>
-#include "core.h"
 PinConfig *PinConfig::m_singleton = NULL;
 
 void PinConfig::allocate()
@@ -57,17 +57,9 @@ void PinConfig::setStackBoundaries()
    {
       num_tiles += Sim()->getConfig()->getNumTilesInProcess(i);
    }
-   
-   if (Config::getSingleton()->getEnablePepCores())
-   {
-      m_stack_lower_limit = global_stack_base + 2 * num_tiles * m_stack_size_per_core;
-      m_stack_upper_limit = m_stack_lower_limit + 2 * m_num_local_cores * m_stack_size_per_core;
-   }
-   else
-   {
-      m_stack_lower_limit = global_stack_base + num_tiles * m_stack_size_per_core;
-      m_stack_upper_limit = m_stack_lower_limit + m_num_local_cores * m_stack_size_per_core;
-   }
+
+   m_stack_lower_limit = global_stack_base + num_tiles * m_stack_size_per_core;
+   m_stack_upper_limit = m_stack_lower_limit + m_num_local_cores * m_stack_size_per_core;
 }
 
 // Get Tile ID from stack pointer
@@ -79,11 +71,7 @@ tile_id_t PinConfig::getTileIDFromStackPtr(IntPtr stack_ptr)
    }     
 
    SInt32 tile_index;
-
-   if (Config::getSingleton()->getEnablePepCores())
-      tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (2*m_stack_size_per_core));
-   else
-      tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (m_stack_size_per_core));
+   tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (m_stack_size_per_core));
 
    return (Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index));
 }
@@ -94,45 +82,21 @@ core_id_t PinConfig::getCoreIDFromStackPtr(IntPtr stack_ptr)
    {
       return INVALID_CORE_ID;
    }     
-  
 
-   if (Config::getSingleton()->getEnablePepCores())
-   {
-      // Stacks for each tile per core are stored adjacent to each other:  |main core 1|pep core 1|main core 2| ...
-      SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (2 * m_stack_size_per_core));
-      UInt32 core_type = (UInt32) (((stack_ptr - m_stack_lower_limit) - (tile_index * (2 * m_stack_size_per_core))) / m_stack_size_per_core);
-      return ((core_id_t) {Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index), core_type});
-   }
-   else
-   {
-      SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / m_stack_size_per_core);
-      return ((core_id_t) {Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index), MAIN_CORE_TYPE});
-   }
+   SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / m_stack_size_per_core);
+   return (TileManager::getMainCoreId(Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index)));
 }
 
 SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr)
 {
    // Get the stack attributes
-   SInt32 tile_index = Config::getSingleton()->getIndexFromTileID(m_current_process_num, core_id.first);
+   SInt32 tile_index = Config::getSingleton()->getIndexFromTileID(m_current_process_num, core_id.tile_id);
    LOG_ASSERT_ERROR (tile_index != -1, "Tile %i does not belong to Process %i", 
-         core_id.first, Config::getSingleton()->getCurrentProcessNum());
+         core_id.tile_id, Config::getSingleton()->getCurrentProcessNum());
 
-   if (Config::getSingleton()->getEnablePepCores())
-   {
-      stack_attr.lower_limit = m_stack_lower_limit + (tile_index * 2 * m_stack_size_per_core);
+   stack_attr.lower_limit = m_stack_lower_limit + (tile_index * m_stack_size_per_core);
+   stack_attr.size = m_stack_size_per_core;
 
-      if (core_id.second == PEP_CORE_TYPE)
-      {
-         stack_attr.lower_limit += m_stack_size_per_core;
-      }
-
-      stack_attr.size = m_stack_size_per_core;
-   }
-   else
-   {
-      stack_attr.lower_limit = m_stack_lower_limit + (tile_index * m_stack_size_per_core);
-      stack_attr.size = m_stack_size_per_core;
-   }
    return 0;
 }
 

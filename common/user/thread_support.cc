@@ -33,19 +33,9 @@ carbon_thread_t CarbonSpawnThread(thread_func_t func, void *arg)
    return Sim()->getThreadManager()->spawnThread(func, arg);
 }
 
-carbon_thread_t CarbonSpawnHelperThread(thread_func_t func, void *arg)
-{
-   return Sim()->getThreadManager()->spawnHelperThread(func, arg);
-}
-
 void CarbonJoinThread(carbon_thread_t tid)
 {
    Sim()->getThreadManager()->joinThread(tid);
-}
-
-void CarbonJoinHelperThread(carbon_thread_t tid)
-{
-   Sim()->getThreadManager()->joinHelperThread(tid);
 }
 
 // Support functions provided by the simulator

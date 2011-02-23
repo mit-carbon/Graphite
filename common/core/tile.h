@@ -39,9 +39,11 @@ class Tile
       Core* getCore(core_id_t core_id);
       Core* getCurrentCore();
       Core* getCore() {return m_main_core; }
-      Core* getPepCore() { return m_pep_core; }
       MemoryManagerBase *getMemoryManager() { return m_memory_manager; }
       ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+
+      core_id_t getMainCoreId();
+      bool isMainCore(core_id_t core_id);
 
       void setMemoryManager(MemoryManagerBase *memory_manager) { m_memory_manager = memory_manager; }
       void setShmemPerfModel(ShmemPerfModel *shmem_perf_model) { m_shmem_perf_model = shmem_perf_model; }
@@ -51,13 +53,11 @@ class Tile
       void enablePerformanceModels();
       void disablePerformanceModels();
 
-      Lock m_elau_memory_lock;
    private:
       tile_id_t m_tile_id;
       MemoryManagerBase *m_memory_manager;
       Network *m_network;
       Core *m_main_core;
-      Core *m_pep_core;
       ShmemPerfModel* m_shmem_perf_model;
 
 };

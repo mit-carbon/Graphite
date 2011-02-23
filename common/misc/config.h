@@ -55,33 +55,6 @@ public:
          std::string getL2CacheType() { return m_l2_cache_type; }
    };
 
-   class PepCoreParameters
-   {
-      private:
-         std::string m_type;
-         volatile float m_frequency;
-         std::string m_l1_icache_type;
-         std::string m_l1_dcache_type;
-         //std::string m_l2_cache_type;
-
-      public:
-         PepCoreParameters(std::string type, volatile float frequency, std::string l1_icache_type, std::string l1_dcache_type/*, std::string l2_cache_type*/):
-            m_type(type),
-            m_frequency(frequency),
-            m_l1_icache_type(l1_icache_type),
-            m_l1_dcache_type(l1_dcache_type)
-            //m_l2_cache_type(l2_cache_type)
-         {}
-         ~PepCoreParameters() {}
-
-         volatile float getFrequency() { return m_frequency; }
-         void setFrequency(volatile float frequency) { m_frequency = frequency; }
-         std::string getType() { return m_type; }
-         std::string getL1ICacheType() { return m_l1_icache_type; }
-         std::string getL1DCacheType() { return m_l1_dcache_type; }
-         //std::string getL2CacheType() { return m_l2_cache_type; }
-   };
-
    class NetworkParameters
    {
       private:
@@ -127,9 +100,12 @@ public:
    core_id_t getMCPCoreId() { return (core_id_t) {getTotalTiles() -1, MAIN_CORE_TYPE}; }
 
    tile_id_t getMainThreadTileNum() { return 0; }
+   core_id_t getMainThreadCoreId() { return (core_id_t) {0, MAIN_CORE_TYPE}; }
 
    tile_id_t getThreadSpawnerTileNum(UInt32 proc_num);
+   core_id_t getThreadSpawnerCoreId(UInt32 proc_num);
    tile_id_t getCurrentThreadSpawnerTileNum(); 
+   core_id_t getCurrentThreadSpawnerCoreId(); 
 
    // Return the number of modules (tiles) in a given process
    UInt32 getNumTilesInProcess(UInt32 proc_num)
@@ -181,15 +157,8 @@ public:
    std::string getL1ICacheType(tile_id_t tile_id);
    std::string getL1DCacheType(tile_id_t tile_id);
    std::string getL2CacheType(tile_id_t tile_id);
-   volatile float getCoreFrequency(tile_id_t tile_id);
-   void setCoreFrequency(tile_id_t tile_id, volatile float frequency);
-
-   std::string getPepCoreType(tile_id_t tile_id);
-   std::string getPepL1ICacheType(tile_id_t tile_id);
-   std::string getPepL1DCacheType(tile_id_t tile_id);
-   //std::string getL2CacheType(tile_id_t tile_id);  PEP will probably share L2 cache
-   volatile float getPepCoreFrequency(tile_id_t tile_id);
-   void setPepCoreFrequency(tile_id_t tile_id, volatile float frequency);
+   volatile float getCoreFrequency(core_id_t core_id);
+   void setCoreFrequency(core_id_t core_id, volatile float frequency);
 
    std::string getNetworkType(SInt32 network_id);
 
@@ -199,7 +168,6 @@ public:
    bool getEnableDCacheModeling() const;
    bool getEnableICacheModeling() const;
    bool getEnablePowerModeling() const;
-   bool getEnablePepCores() const;
 
    // Logging
    std::string getOutputFileName() const;
@@ -219,7 +187,6 @@ private:
    UInt32  m_current_process_num;          // Process number for this process
 
    std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding main tile parameters
-   std::vector<PepCoreParameters> m_pep_core_parameters_vec;         // Vector holding PEP tile parameters
    std::vector<NetworkParameters> m_network_parameters_vec;   // Vector holding network parameters
 
    // This data structure keeps track of which tiles are in each process.
@@ -249,11 +216,9 @@ private:
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
    static bool m_knob_enable_power_modeling;
-   static bool m_knob_enable_pep_cores;
 
    // Get Tile & Network Parameters
    void parseCoreParameters();
-   void parsePepCoreParameters();
    void parseNetworkParameters();
 
    static SimulationMode parseSimulationMode(std::string mode);

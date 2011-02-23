@@ -57,9 +57,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonStartSim") msg_ptr = AFUNPTR(replacementStartSimNull); 
    else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
-   else if (name == "CarbonSpawnHelperThread") msg_ptr = AFUNPTR(replacementSpawnHelperThread);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
-   else if (name == "CarbonJoinHelperThread") msg_ptr = AFUNPTR(replacementJoinHelperThread);
    
    // CAPI
    else if (name == "CAPI_Initialize") msg_ptr = AFUNPTR(replacement_CAPI_Initialize);
@@ -160,16 +158,16 @@ void replacementMain (CONTEXT *ctxt)
       {
          // FIXME: 
          // This whole process should probably happen through the MCP
-         core->getNetwork()->netSend ((core_id_t) {Sim()->getConfig()->getThreadSpawnerTileNum (i), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv ((core_id_t) {Sim()->getConfig()->getThreadSpawnerTileNum (i), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_ACK);
+         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_ACK);
       }
       
       // Tell the thread spawner for each process that we're done initializing...even though we haven't?
       for (UInt32 i = 1; i < num_processes; i++)
       {
-         core->getNetwork()->netSend ((core_id_t) {Sim()->getConfig()->getThreadSpawnerTileNum (i), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_FINI, NULL, 0);
+         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
       LOG_PRINT("Starting enablePerformanceModelsInCurrentProcess()");
@@ -188,8 +186,8 @@ void replacementMain (CONTEXT *ctxt)
    {
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
-      core->getNetwork()->netSend ((core_id_t) {Sim()->getConfig()->getMainThreadTileNum(), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv ((core_id_t) {Sim()->getConfig()->getMainThreadTileNum(), MAIN_CORE_TYPE}, SYSTEM_INITIALIZATION_FINI);
+      core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
+      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_FINI);
 
       Simulator::enablePerformanceModelsInCurrentProcess();
 
@@ -359,38 +357,6 @@ void replacementJoinThread (CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
 
    CarbonJoinThread ((int) tid);
-
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementJoinHelperThread (CONTEXT *ctxt)
-{
-   ADDRINT tid;
-
-   initialize_replacement_args (ctxt,
-         IARG_ADDRINT, &tid,
-         IARG_END);
-
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-
-   CarbonJoinHelperThread ((int) tid);
-
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-
-void replacementSpawnHelperThread (CONTEXT *ctxt)
-{
-   thread_func_t func;
-   void *arg;
-
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &func,
-         IARG_PTR, &arg,
-         IARG_END);
-
-   LOG_PRINT("Calling SimSpawnHelperThread");
-   ADDRINT ret_val = (ADDRINT) CarbonSpawnHelperThread (func, arg);
 
    retFromReplacedRtn (ctxt, ret_val);
 }

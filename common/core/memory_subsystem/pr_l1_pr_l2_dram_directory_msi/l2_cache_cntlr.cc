@@ -254,7 +254,6 @@ L2CacheCntlr::handleMsgFromDramDirectory(
    ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
    IntPtr address = shmem_msg->getAddress();
 
-LOG_PRINT("elau: handleMsgFromDramDirectory in l2_cache_cntlr with shmem_msg_type %d.", shmem_msg_type);
    // Acquire Locks
    MemComponent::component_t caching_mem_component = acquireL1CacheLock(shmem_msg_type, address);
    acquireLock();

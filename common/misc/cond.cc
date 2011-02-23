@@ -50,9 +50,7 @@ void ConditionVariable::broadcast()
 
    m_futx = 1;
 
-   int elau = syscall(SYS_futex, (void*) &m_futx, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
-
-   LOG_PRINT("Broadcasted to %d threads on m_futx(0x%x)", elau, &m_futx);
+   syscall(SYS_futex, (void*) &m_futx, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
 
    m_lock.release();
 }

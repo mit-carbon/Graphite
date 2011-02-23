@@ -26,13 +26,12 @@ typedef UInt8 Boolean;
 typedef uintptr_t IntPtr;
 
 typedef uintptr_t carbon_reg_t;
-typedef enum core_type_t { MAIN_CORE_TYPE = 0, PEP_CORE_TYPE } core_type_t;
+typedef enum core_type_t { MAIN_CORE_TYPE = 0 } core_type_t;
 
 // Carbon core types
-//typedef std::pair<SInt32, UInt32> core_id_t;
 typedef struct {
-   SInt32 first;
-   UInt32 second;
+   SInt32 tile_id;
+   UInt32 core_type;
 } core_id_t;
 
 typedef SInt32 tile_id_t;

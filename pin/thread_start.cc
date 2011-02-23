@@ -240,23 +240,10 @@ VOID allocateStackSpace()
    LOG_PRINT("allocateStackSpace: stack_base = 0x%x", stack_base);
 
    // TODO: Make sure that this is a multiple of the page size 
-   
 
-   if (Sim()->getConfig()->getEnablePepCores())
-   {
-      __attribute(__unused__) UInt32 num_pep_cores = Sim()->getConfig()->getNumLocalTiles();
-      LOG_PRINT("allocateStackSpace: num_pep_cores = %i", num_pep_cores);
-
-      // mmap() the total amount of memory needed for the stacks
-      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * (num_pep_cores + num_tiles),  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
-            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * (num_pep_cores + num_tiles));
-   }
-   else
-   {
-      // mmap() the total amount of memory needed for the stacks
-      LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_tiles,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
-            "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_tiles);
-   }
+   // mmap() the total amount of memory needed for the stacks
+   LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_tiles,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
+         "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_tiles);
 }
 
 VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
@@ -271,13 +258,12 @@ VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
    if (req == NULL)
    {
       // This is the thread spawner
-      core_id = (core_id_t) {Sim()->getConfig()->getCurrentThreadSpawnerTileNum(), MAIN_CORE_TYPE};
+      core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreId();
    }
    else
    {
       // This is an application thread
-      core_id = (core_id_t) {req->destination.first, req->destination.second};
-      //LOG_ASSERT_ERROR(req->destination.second == MAIN_CORE_TYPE, "PEP not supported");
+      core_id = (core_id_t) {req->destination.tile_id, req->destination.core_type};
    }
 
    PinConfig::StackAttributes stack_attr;

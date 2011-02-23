@@ -45,8 +45,6 @@ public:
              core_id_t receiver, UInt32 length, const void *data);
    NetPacket(UInt64 time, PacketType type, SInt32 sender, 
              SInt32 receiver, UInt32 length, const void *data);
-   //NetPacket(UInt64 time, PacketType type, SInt32 sender, 
-             //SInt32 receiver, UInt32 length, const void *data, UInt32 core_type = MAIN_CORE_TYPE);
 
    UInt32 bufferSize() const;
    Byte *makeBuffer() const;
@@ -101,12 +99,9 @@ class Network
 
       // -- Wrappers -- //
 
-      //SInt32 netSend(SInt32 dest, PacketType type, const void *buf, UInt32 len);
       SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
       SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-      //NetPacket netRecv(SInt32 src, PacketType type);
       NetPacket netRecv(core_id_t src, PacketType type);
-      //NetPacket netRecvFrom(SInt32 src);
       NetPacket netRecvFrom(core_id_t src);
       NetPacket netRecvType(PacketType type);
 

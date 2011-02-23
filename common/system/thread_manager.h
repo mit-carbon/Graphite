@@ -25,9 +25,6 @@ public:
    SInt32 spawnThread(thread_func_t func, void *arg);
    void joinThread(tile_id_t tile_id);
    
-   SInt32 spawnHelperThread(thread_func_t func, void *arg);
-   void joinHelperThread(tile_id_t tile_id);
-
    void getThreadToSpawn(ThreadSpawnRequest *req);
    ThreadSpawnRequest* getThreadSpawnReq();
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
@@ -40,19 +37,13 @@ public:
 
    // misc
    void stallThread(tile_id_t tile_id);
-   void stallHelperThread(tile_id_t tile_id);
-   void stallThread(core_id_t core_id);
-
    void resumeThread(tile_id_t tile_id);
-   void resumeHelperThread(tile_id_t tile_id);
-   void resumeThread(core_id_t core_id);
-
    bool isThreadRunning(tile_id_t core_id);
-   bool isHelperThreadRunning(tile_id_t tile_id);
-   bool isThreadRunning(core_id_t core_id);
-
    bool isThreadInitializing(tile_id_t tile_id);
-   bool isHelperThreadInitializing(tile_id_t tile_id);
+
+   void stallThread(core_id_t core_id);
+   void resumeThread(core_id_t core_id);
+   bool isThreadRunning(core_id_t core_id);
    bool isThreadInitializing(core_id_t core_id);
    
    bool areAllCoresRunning();
@@ -66,7 +57,6 @@ private:
    void slaveSpawnThread(ThreadSpawnRequest*);
    void masterSpawnThreadReply(ThreadSpawnRequest*);
 
-   void masterSpawnHelperThread(ThreadSpawnRequest*);
 
    void masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, UInt64 time);
 
@@ -76,8 +66,6 @@ private:
 
    void masterJoinThread(ThreadJoinRequest *req, UInt64 time);
    void wakeUpWaiter(core_id_t core_id, UInt64 time);
-   void wakeUpMainWaiter(core_id_t core_id, UInt64 time);
-   void wakeUpHelperWaiter(core_id_t core_id, UInt64 time);
 
    void insertThreadSpawnRequest (ThreadSpawnRequest *req);
 
@@ -94,9 +82,7 @@ private:
    };
 
    bool m_master;
-   bool m_enable_pep_cores;
    std::vector<ThreadState> m_thread_state;
-   std::vector<ThreadState> m_helper_thread_state;
    std::queue<ThreadSpawnRequest*> m_thread_spawn_list;
    Semaphore m_thread_spawn_sem;
    Lock m_thread_spawn_lock;

@@ -90,14 +90,14 @@ void MCP::processPacket()
       break;
 
    case MCP_MESSAGE_BARRIER_INIT:
-      m_sync_server.barrierInit(recv_pkt.sender.first);
+      m_sync_server.barrierInit(recv_pkt.sender.tile_id);
       break;
    case MCP_MESSAGE_BARRIER_WAIT:
-      m_sync_server.barrierWait(recv_pkt.sender.first);
+      m_sync_server.barrierWait(recv_pkt.sender.tile_id);
       break;
 
    case MCP_MESSAGE_UTILIZATION_UPDATE:
-      m_network_model_analytical_server.update(recv_pkt.sender.first);
+      m_network_model_analytical_server.update(recv_pkt.sender.tile_id);
       break;
 
    case MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:
@@ -120,11 +120,11 @@ void MCP::processPacket()
       break;
 
    case MCP_MESSAGE_RESET_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->resetCacheCounters(recv_pkt.sender.first);
+      Sim()->getPerfCounterManager()->resetCacheCounters(recv_pkt.sender.tile_id);
       break;
 
    case MCP_MESSAGE_DISABLE_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->disableCacheCounters(recv_pkt.sender.first);
+      Sim()->getPerfCounterManager()->disableCacheCounters(recv_pkt.sender.tile_id);
       break;
 
    default:
@@ -157,9 +157,9 @@ void MCP::run()
    __attribute(__unused__) int tid =  syscall(__NR_gettid);
    LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPTileNum());
 
-   int mcp_core_num = Config::getSingleton()->getMCPTileNum();
-   Sim()->getTileManager()->initializeThread((core_id_t) {mcp_core_num, MAIN_CORE_TYPE});
-   Sim()->getTileManager()->initializeCommId(mcp_core_num);
+   core_id_t mcp_core_id = Config::getSingleton()->getMCPCoreId();
+   Sim()->getTileManager()->initializeThread(mcp_core_id);
+   Sim()->getTileManager()->initializeCommId(mcp_core_id.tile_id);
 
    while (!finished())
    {

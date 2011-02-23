@@ -3,7 +3,6 @@
 #include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
 #include "magic_performance_model.h"
-#include "magic_pep_performance_model.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "config.h"
@@ -12,50 +11,10 @@
 #include "fxsupport.h"
 #include "utils.h"
 
-//CorePerfModel* CorePerfModel::create(Core* core, core_type_t core_type)
-//{
-   //if (core_type == CORE::MAIN_CORE_TYPE)
-   //{
-      //volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
-      //string core_model = Config::getSingleton()->getCoreType(core->getId());
-
-      //if (core_model == "iocoom")
-         //return new IOCOOMPerformanceModel(core, frequency);
-      //else if (core_model == "simple")
-         //return new SimplePerformanceModel(core, frequency);
-      //else if (core_model == "magic")
-         //return new MagicPerformanceModel(core, frequency);
-      //else
-      //{
-         //LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
-         //return NULL;
-      //}
-   //}
-   //else if (core_type == CORE::PEP_CORE_TYPE)
-   //{
-      //volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
-      //string core_model = Config::getSingleton()->getCoreType(core->getId());
-
-      //if (core_model == "")
-         //return NULL;
-      //else if (core_model == "magic")
-         //return new MagicPepPerformanceModel(core, frequency);
-      //else
-      //{
-         //LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
-         //return NULL;
-      //}
-   //}
-   //else
-   //{
-         //LOG_PRINT_ERROR("Invalid core type: %s", core_type.c_str());
-         //return NULL;
-   //}
-//}
 
 CorePerfModel* CorePerfModel::createMainPerfModel(Core* core)
 {
-   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getTileId());
+   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getCoreId());
    string core_model = Config::getSingleton()->getCoreType(core->getTileId());
 
    if (core_model == "iocoom")
@@ -64,25 +23,6 @@ CorePerfModel* CorePerfModel::createMainPerfModel(Core* core)
       return new SimplePerformanceModel(core, frequency);
    else if (core_model == "magic")
       return new MagicPerformanceModel(core, frequency);
-   else
-   {
-      LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
-      return NULL;
-   }
-}
-
-
-CorePerfModel* CorePerfModel::createPepPerfModel(Core* core)
-{
-   volatile float frequency = Config::getSingleton()->getPepCoreFrequency(core->getTileId());
-   string core_model = Config::getSingleton()->getPepCoreType(core->getTileId());
-
-   if (core_model == "")
-      return NULL;
-   else if (core_model == "magic")
-   {
-      return new MagicPepPerformanceModel(core, frequency);
-   }
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());

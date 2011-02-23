@@ -40,8 +40,6 @@ public:
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
    static CorePerfModel *createMainPerfModel(Core* core);
-   static CorePerfModel *createPepPerfModel(Core* core);
-   //static CorePerfModel *create(Core *core, Core::core_type_t core_type); 
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 

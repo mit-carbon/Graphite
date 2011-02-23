@@ -19,7 +19,6 @@ bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_dcache_modeling;
 bool Config::m_knob_enable_icache_modeling;
 bool Config::m_knob_enable_power_modeling;
-bool Config::m_knob_enable_pep_cores;
 
 using namespace std;
 
@@ -43,7 +42,6 @@ Config::Config()
       m_knob_simarch_has_shared_mem = Sim()->getCfg()->getBool("general/enable_shared_mem");
       m_knob_output_file = Sim()->getCfg()->getString("general/output_file");
       m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
-      m_knob_enable_pep_cores = Sim()->getCfg()->getBool("general/enable_pep_cores");
       // TODO: these should be removed and queried directly from the cache
       m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
       m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
@@ -89,9 +87,6 @@ Config::Config()
    // Parse Core Models
    parseCoreParameters();
 
-   // Parse PEP Core Models
-   parsePepCoreParameters();
-
    m_tile_id_length = computeTileIDLength(m_total_tiles);
 
    GenerateTileMap();
@@ -121,12 +116,22 @@ tile_id_t Config::getThreadSpawnerTileNum(UInt32 proc_num)
       return INVALID_TILE_ID;
 }
 
+core_id_t Config::getThreadSpawnerCoreId(UInt32 proc_num)
+{
+   return (core_id_t) {getThreadSpawnerTileNum(proc_num), MAIN_CORE_TYPE};
+}
+
 tile_id_t Config::getCurrentThreadSpawnerTileNum()
 {
    if (m_simulation_mode == FULL)
       return (getTotalTiles() - (1 + getProcessCount() - getCurrentProcessNum()));
    else
       return INVALID_TILE_ID;
+}
+
+core_id_t Config::getCurrentThreadSpawnerCoreId()
+{
+   return (core_id_t) {getCurrentThreadSpawnerTileNum(), MAIN_CORE_TYPE};
 }
 
 UInt32 Config::computeTileIDLength(UInt32 tile_count)
@@ -249,11 +254,6 @@ bool Config::getEnableICacheModeling() const
 bool Config::getEnablePowerModeling() const
 {
    return (bool)m_knob_enable_power_modeling;
-}
-
-bool Config::getEnablePepCores() const
-{
-   return (bool)m_knob_enable_pep_cores;
 }
 
 std::string Config::getOutputFileName() const
@@ -403,142 +403,6 @@ void Config::parseCoreParameters()
    }
 }
 
-void Config::parsePepCoreParameters()
-{
-   // Default values are as follows:
-   // 1) Number of Pep cores -> Number of application tiles
-   // 2) Frequency -> 1 GHz
-   // 3) Core Type -> simple
-
-   const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
-   const float DEFAULT_FREQUENCY = 1;
-   const string DEFAULT_CORE_TYPE = "magic";
-   const string DEFAULT_CACHE_TYPE = "T1";
-
-   string pep_core_parameter_tuple_str;
-   vector<string> pep_core_parameter_tuple_vec;
-      
-   pep_core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/pep_core/model_list");
-
-   UInt32 num_initialized_pep_cores = 0;
-   
-   // By default, the pep_core string is missing, so we will instantiate PEP cores with type "none"
-   if (pep_core_parameter_tuple_str.empty())
-   {
-      // Initializing using default values
-      UInt32 num_cores = DEFAULT_NUM_CORES;
-      float frequency = DEFAULT_FREQUENCY;
-      string core_type = DEFAULT_CORE_TYPE;
-      string l1_icache_type = DEFAULT_CACHE_TYPE;
-      string l1_dcache_type = DEFAULT_CACHE_TYPE;
-      //string l2_cache_type = DEFAULT_CACHE_TYPE;
-
-      // Append these values to an internal list
-      for (UInt32 i = num_initialized_pep_cores; i < num_initialized_pep_cores + num_cores; i++)
-      {
-         m_pep_core_parameters_vec.push_back(PepCoreParameters(core_type, frequency, \
-                  l1_icache_type, l1_dcache_type/*, l2_cache_type*/));
-      }
-      num_initialized_pep_cores += num_cores;
-
-      if (num_initialized_pep_cores > getApplicationTiles())
-      {
-         fprintf(stderr, "1num initialized cores(%u), num application cores(%u)\n",
-            num_initialized_pep_cores, getApplicationTiles());
-         exit(EXIT_FAILURE);
-      }
-   }
-   else
-   {
-      parseList(pep_core_parameter_tuple_str, pep_core_parameter_tuple_vec, "<>");
-
-      for (vector<string>::iterator tuple_it = pep_core_parameter_tuple_vec.begin(); \
-            tuple_it != pep_core_parameter_tuple_vec.end(); tuple_it++)
-      {
-         // Initializing using default values
-         UInt32 num_cores = DEFAULT_NUM_CORES;
-         float frequency = DEFAULT_FREQUENCY;
-         string core_type = DEFAULT_CORE_TYPE;
-         string l1_icache_type = DEFAULT_CACHE_TYPE;
-         string l1_dcache_type = DEFAULT_CACHE_TYPE;
-         //string l2_cache_type = DEFAULT_CACHE_TYPE;
-
-         vector<string> pep_core_parameter_tuple;
-         parseList(*tuple_it, pep_core_parameter_tuple, ",");
-        
-         SInt32 param_num = 0; 
-         for (vector<string>::iterator param_it = pep_core_parameter_tuple.begin(); \
-               param_it != pep_core_parameter_tuple.end(); param_it ++)
-         {
-            if (*param_it != "default")
-            {
-               switch (param_num)
-               {
-                  case 0:
-                     convertFromString<UInt32>(num_cores, *param_it);
-                     break;
-
-                  case 1:
-                     convertFromString<float>(frequency, *param_it);
-                     break;
-
-                  case 2:
-                     core_type = trimSpaces(*param_it);
-                     break;
-
-                  case 3:
-                     l1_icache_type = trimSpaces(*param_it);
-                     break;
-
-                  case 4:
-                     l1_dcache_type = trimSpaces(*param_it);
-                     break;
-
-                  //case 5:
-                     //l2_cache_type = trimSpaces(*param_it);
-                     //break;
-
-                  default:
-                     fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
-                     exit(EXIT_FAILURE);
-                     break;
-               }
-            }
-            param_num ++;
-         }
-         // Append these values to an internal list
-         for (UInt32 i = num_initialized_pep_cores; i < num_initialized_pep_cores + num_cores; i++)
-         {
-            m_pep_core_parameters_vec.push_back(PepCoreParameters(core_type, frequency, \
-                     l1_icache_type, l1_dcache_type/*, l2_cache_type*/));
-         }
-         num_initialized_pep_cores += num_cores;
-
-         if (num_initialized_pep_cores > getApplicationTiles())
-         {
-            fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-               num_initialized_pep_cores, getApplicationTiles());
-            exit(EXIT_FAILURE);
-         }
-      }
-   }
-
-   if (num_initialized_pep_cores != getApplicationTiles())
-   {
-      fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-         num_initialized_pep_cores, getApplicationTiles());
-      exit(EXIT_FAILURE);
-   }
-
-   // MCP, thread spawner and misc cores
-   for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
-   {
-      m_pep_core_parameters_vec.push_back(PepCoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
-               DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE/*, DEFAULT_CACHE_TYPE*/));
-   }
-}
-
-
 void Config::parseNetworkParameters()
 {
    const string DEFAULT_NETWORK_TYPE = "magic";
@@ -610,10 +474,12 @@ string Config::getL2CacheType(tile_id_t tile_id)
    return m_core_parameters_vec[tile_id].getL2CacheType();
 }
 
-volatile float Config::getCoreFrequency(tile_id_t tile_id)
+volatile float Config::getCoreFrequency(core_id_t core_id)
 {
+   tile_id_t tile_id = core_id.tile_id;
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+
    LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
          "m_core_parameters_vec.size(%u), total tiles(%u)",
          m_core_parameters_vec.size(), getTotalTiles());
@@ -621,70 +487,17 @@ volatile float Config::getCoreFrequency(tile_id_t tile_id)
    return m_core_parameters_vec[tile_id].getFrequency();
 }
 
-void Config::setCoreFrequency(tile_id_t tile_id, volatile float frequency)
+void Config::setCoreFrequency(core_id_t core_id, volatile float frequency)
 {
+   tile_id_t tile_id = core_id.tile_id;
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
+
    LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
          "m_core_parameters_vec.size(%u), total tiles(%u)",
          m_core_parameters_vec.size(), getTotalTiles());
 
    return m_core_parameters_vec[tile_id].setFrequency(frequency);
-}
-
-string Config::getPepCoreType(tile_id_t tile_id)
-{
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
-         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
-         m_pep_core_parameters_vec.size(), getTotalTiles());
-
-   return m_pep_core_parameters_vec[tile_id].getType();
-}
-
-string Config::getPepL1ICacheType(tile_id_t tile_id)
-{
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
-         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
-         m_pep_core_parameters_vec.size(), getTotalTiles());
-
-   return m_pep_core_parameters_vec[tile_id].getL1ICacheType();
-}
-
-string Config::getPepL1DCacheType(tile_id_t tile_id)
-{
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
-         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
-         m_pep_core_parameters_vec.size(), getTotalTiles());
-
-   return m_pep_core_parameters_vec[tile_id].getL1DCacheType();
-}
-
-volatile float Config::getPepCoreFrequency(tile_id_t tile_id)
-{
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
-         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
-         m_pep_core_parameters_vec.size(), getTotalTiles());
-
-   return m_pep_core_parameters_vec[tile_id].getFrequency();
-}
-
-void Config::setPepCoreFrequency(tile_id_t tile_id, volatile float frequency)
-{
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_pep_core_parameters_vec.size() == getTotalTiles(),
-         "m_pep_core_parameters_vec.size(%u), total tiles(%u)",
-         m_pep_core_parameters_vec.size(), getTotalTiles());
-
-   return m_pep_core_parameters_vec[tile_id].setFrequency(frequency);
 }
 
 string Config::getNetworkType(SInt32 network_id)

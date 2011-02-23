@@ -131,8 +131,8 @@ UInt32
 NetworkModelEMeshHopCounter::computeAction(const NetPacket& pkt)
 {
    tile_id_t tile_id = getNetwork()->getTile()->getId();
-   LOG_ASSERT_ERROR((pkt.receiver.first == NetPacket::BROADCAST) || (pkt.receiver.first == tile_id), \
-         "pkt.receiver.first(%i), tile_id(%i)", pkt.receiver.first, tile_id);
+   LOG_ASSERT_ERROR((pkt.receiver.tile_id == NetPacket::BROADCAST) || (pkt.receiver.tile_id == tile_id), \
+         "pkt.receiver.tile_id(%i), tile_id(%i)", pkt.receiver.tile_id, tile_id);
 
    return RoutingAction::RECEIVE;
 }
@@ -147,9 +147,9 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
 
    SInt32 sx, sy, dx, dy;
 
-   computePosition(pkt.sender.first, sx, sy);
+   computePosition(pkt.sender.tile_id, sx, sy);
 
-   if (pkt.receiver.first == NetPacket::BROADCAST)
+   if (pkt.receiver.tile_id == NetPacket::BROADCAST)
    {
       UInt32 total_tiles = Config::getSingleton()->getTotalTiles();
    
@@ -163,12 +163,12 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
          UInt32 num_hops = computeDistance(sx, sy, dx, dy);
          UInt64 latency = num_hops * _hop_latency;
 
-         if (i != pkt.sender.first)
+         if (i != pkt.sender.tile_id)
             latency += serialization_latency;
 
          Hop h;
-         h.final_dest.first = NetPacket::BROADCAST;
-         h.next_dest.first = i;
+         h.final_dest.tile_id = NetPacket::BROADCAST;
+         h.next_dest.tile_id = i;
          h.time = curr_time + latency;
 
          // Update curr_time
@@ -183,17 +183,17 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
    }
    else
    {
-      computePosition(pkt.receiver.first, dx, dy);
+      computePosition(pkt.receiver.tile_id, dx, dy);
 
       UInt32 num_hops = computeDistance(sx, sy, dx, dy);
       UInt64 latency = num_hops * _hop_latency;
 
-      if (pkt.receiver.first != pkt.sender.first)
+      if (pkt.receiver.tile_id != pkt.sender.tile_id)
          latency += serialization_latency;
 
       Hop h;
-      h.final_dest.first = pkt.receiver.first;
-      h.next_dest.first = pkt.receiver.first;
+      h.final_dest.tile_id = pkt.receiver.tile_id;
+      h.next_dest.tile_id = pkt.receiver.tile_id;
       h.time = pkt.time + latency;
 
       next_hops.push_back(h);
@@ -216,7 +216,7 @@ NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
       requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
    else // Other Packet types
-      requester = pkt.sender.first;
+      requester = pkt.sender.tile_id;
    
    LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
          "requester(%i)", requester);

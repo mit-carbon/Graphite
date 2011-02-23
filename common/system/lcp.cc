@@ -3,6 +3,7 @@
 #include "tile.h"
 #include "message_types.h"
 #include "thread_manager.h"
+#include "tile_manager.h"
 #include "clock_skew_minimization_object.h"
 
 #include "log.h"
@@ -116,9 +117,9 @@ void LCP::updateCommId(void *vp)
 
    NetPacket ack(/*time*/ 0,
                  /*type*/ LCP_COMM_ID_UPDATE_REPLY,
-                 /*sender*/ (core_id_t) {0, MAIN_CORE_TYPE}, // doesn't matter ; see tile_manager.cc
+                 /*sender*/ TileManager::getMainCoreId(0), // doesn't matter ; see tile_manager.cc
                  //receiver update->tile_id,
-                 /*receiver*/ (core_id_t) {update->tile_id, MAIN_CORE_TYPE},
+                 /*receiver*/ TileManager::getMainCoreId(update->tile_id),
                  /*length*/ 0,
                  /*data*/ NULL);
    Byte *buffer = ack.makeBuffer();

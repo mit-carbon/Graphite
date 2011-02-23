@@ -46,7 +46,7 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    IntPtr syscall_number;
    m_recv_buff >> syscall_number;
 
-   LOG_PRINT("Syscall: %d from core(%i, %i)", syscall_number, core_id.first, core_id.second);
+   LOG_PRINT("Syscall: %d from core(%i, %i)", syscall_number, core_id.tile_id, core_id.core_type);
 
    switch (syscall_number)
    {
@@ -664,7 +664,6 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    }
 #endif
 
-   // Get the main core, assume for now PEP cores can't make syscalls.
    Core* core = m_network.getTile()->getCurrentCore();
    LOG_ASSERT_ERROR (core != NULL, "Core should not be NULL");
    int act_val;
@@ -727,7 +726,7 @@ void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 cur
    for (int i = 0; i < val; i++)
    {
       core_id_t waiter = sim_futex->dequeueWaiter();
-      if (waiter.first == INVALID_TILE_ID)
+      if (waiter.tile_id == INVALID_TILE_ID)
          break;
 
       num_procs_woken_up ++;
@@ -763,7 +762,7 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int 
       for(int i = 0; i < val; i++)
       {
          core_id_t waiter = sim_futex->dequeueWaiter();
-         if(waiter.first == INVALID_TILE_ID)
+         if(waiter.tile_id == INVALID_TILE_ID)
             break;
 
          num_procs_woken_up++;
@@ -783,7 +782,7 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int 
          // by enqueueWaiter. Since only the MCP uses this state
          // this should be okay. 
          core_id_t waiter = sim_futex->dequeueWaiter();
-         if(waiter.first == INVALID_TILE_ID)
+         if(waiter.tile_id == INVALID_TILE_ID)
             break;
 
          requeue_futex->enqueueWaiter(waiter);

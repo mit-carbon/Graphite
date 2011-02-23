@@ -38,21 +38,14 @@ PerfCounterManager::resetCacheCounters(SInt32 sender)
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend((core_id_t) {i, MAIN_CORE_TYPE}, RESET_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
-
-         if (Sim()->getConfig()->getEnablePepCores())
-               net->netSend((core_id_t) {i, PEP_CORE_TYPE}, RESET_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
-         //net->netSend(i, RESET_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
+         net->netSend(Sim()->getTileManager()->getMainCoreId(i), RESET_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
       }
 
       // Send a message to all worker threads to continue execution
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend((core_id_t) {i, MAIN_CORE_TYPE}, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
-         if (Sim()->getConfig()->getEnablePepCores())
-            net->netSend((core_id_t) {i, PEP_CORE_TYPE}, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
-         //net->netSend(i, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
+         net->netSend(Sim()->getTileManager()->getMainCoreId(i), MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
       }
 
    }
@@ -79,22 +72,14 @@ PerfCounterManager::disableCacheCounters(SInt32 sender)
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend((core_id_t) {i, MAIN_CORE_TYPE}, DISABLE_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
-
-         if (Sim()->getConfig()->getEnablePepCores())
-            net->netSend((core_id_t) {i, PEP_CORE_TYPE}, DISABLE_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
-         //net->netSend(i, DISABLE_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
+         net->netSend(Sim()->getTileManager()->getMainCoreId(i), DISABLE_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
       }
 
       // Send a message to all worker threads to continue execution
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend((core_id_t) {i, MAIN_CORE_TYPE}, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
-
-         if (Sim()->getConfig()->getEnablePepCores())
-            net->netSend((core_id_t) {i, PEP_CORE_TYPE}, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
-         //net->netSend(i, MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
+         net->netSend(Sim()->getTileManager()->getMainCoreId(i), MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
       }
 
    }

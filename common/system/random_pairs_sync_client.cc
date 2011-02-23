@@ -7,6 +7,7 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 #include "log.h"
+#include "tile_manager.h"
 
 UInt64 RandomPairsSyncClient::MAX_TIME = ((UInt64) 1) << 60;
 
@@ -72,11 +73,11 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    SyncMsg sync_msg(recv_pkt.sender, (SyncMsg::MsgType) msg_type, time);
 
    LOG_PRINT("Core(%i,%i), SyncMsg[sender(%i), type(%u), time(%llu)]",
-         _core->getTileId(), sync_msg.sender.first, sync_msg.sender.second, sync_msg.type, sync_msg.time);
+         _core->getTileId(), sync_msg.sender.tile_id, sync_msg.sender.core_type, sync_msg.type, sync_msg.time);
 
    LOG_ASSERT_ERROR(time < MAX_TIME, 
          "SyncMsg[sender(%i, %i), msg_type(%u), time(%llu)]",
-         recv_pkt.sender.first, recv_pkt.sender.second, msg_type, time);
+         recv_pkt.sender.tile_id, recv_pkt.sender.core_type, msg_type, time);
 
    _lock.acquire();
 
@@ -144,7 +145,7 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
    LOG_PRINT("Core(%i, %i): Time(%llu), SyncReq[sender(%i), msg_type(%u), time(%llu)]", 
-      _core->getCoreId().first, _core->getCoreId().second, curr_time, sync_msg.sender, sync_msg.type, sync_msg.time);
+      _core->getCoreId().tile_id, _core->getCoreId().core_type, curr_time, sync_msg.sender, sync_msg.type, sync_msg.time);
 
    // 3 possible scenarios
    if (curr_time > (sync_msg.time + _slack))
@@ -158,10 +159,10 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       {
          // Goto sleep for a few microseconds
          // Self generate a WAIT msg
-         LOG_PRINT("Core(%i, %i): WAIT: Time(%llu)", _core->getCoreId().first, _core->getCoreId().second, curr_time - sync_msg.time);
+         LOG_PRINT("Core(%i, %i): WAIT: Time(%llu)", _core->getCoreId().tile_id, _core->getCoreId().core_type, curr_time - sync_msg.time);
          LOG_ASSERT_ERROR((curr_time - sync_msg.time) < MAX_TIME,
                "[>]: curr_time(%llu), sync_msg[sender(%i, %i), msg_type(%u), time(%llu)]", 
-               curr_time, sync_msg.sender.first, sync_msg.sender.second, sync_msg.type, sync_msg.time);
+               curr_time, sync_msg.sender.tile_id, sync_msg.sender.core_type, sync_msg.type, sync_msg.time);
 
          SyncMsg wait_msg(_core->getCoreId(), SyncMsg::WAIT, curr_time - sync_msg.time);
          _msg_queue.push_back(wait_msg);
@@ -260,8 +261,7 @@ RandomPairsSyncClient::sendRandomSyncMsg(UInt64 curr_time)
    UnstructuredBuffer send_buf;
    send_buf << (UInt32) SyncMsg::REQ << curr_time;
 
-   // elau: syncing only valid for main cores for this model, only barriers work for now.
-   _core->getNetwork()->netSend((core_id_t) {receiver, MAIN_CORE_TYPE }, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+   _core->getNetwork()->netSend(TileManager::getMainCoreId(receiver), CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
 }
 
 UInt64

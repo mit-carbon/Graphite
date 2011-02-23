@@ -42,12 +42,6 @@ class Core
          NUM_STATES
       };
 
-      enum core_type_t
-      {
-         MAIN_CORE_TYPE = 0,
-         PEP_CORE_TYPE
-      };
-
       enum lock_signal_t
       {
          INVALID_LOCK_SIGNAL = 0,
@@ -73,7 +67,7 @@ class Core
       Core(Tile *tile);
       virtual ~Core();
 
-      static Core *create(Tile* tile, core_type_t core_type = MAIN_CORE_TYPE);
+      static Core *create(Tile* tile, core_type_t core_type);
 
       int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
       int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
@@ -97,7 +91,7 @@ class Core
       core_id_t getCoreId() { return m_core_id; }
       Network *getNetwork();
       Tile *getTile() { return m_tile; }
-      UInt32 getCoreType() { return m_core_id.second; }
+      UInt32 getCoreType() { return m_core_id.core_type; }
       CorePerfModel *getPerformanceModel() { return m_core_perf_model; }
       MemoryManagerBase *getMemoryManager() { return m_memory_manager; } 
       virtual PinMemoryManager *getPinMemoryManager() = 0;

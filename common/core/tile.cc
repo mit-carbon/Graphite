@@ -26,11 +26,7 @@ Tile::Tile(SInt32 id)
    m_shmem_perf_model = (ShmemPerfModel*) NULL;
    m_memory_manager = (MemoryManagerBase *) NULL;
 
-   m_main_core = Core::create(this, Core::MAIN_CORE_TYPE);
-   if(Config::getSingleton()->getEnablePepCores())
-      m_pep_core = Core::create(this, Core::PEP_CORE_TYPE);
-   else
-      m_pep_core = NULL;
+   m_main_core = Core::create(this, MAIN_CORE_TYPE);
 }
 
 Tile::~Tile()
@@ -38,7 +34,6 @@ Tile::~Tile()
 
    LOG_PRINT("Deleting tile with id %d", this->getId());
    delete m_main_core;
-   delete m_pep_core;
 }
 
 void Tile::outputSummary(std::ostream &os)
@@ -46,23 +41,13 @@ void Tile::outputSummary(std::ostream &os)
    os << "Core summary:\n";
    if (Config::getSingleton()->getEnablePerformanceModeling())
    {
-      if (!Config::getSingleton()->getEnablePepCores())
-      {
-         getCore()->getPerformanceModel()->outputSummary(os);
-      }
-      else
-      {
-         os << " Main core:\n";
-         getCore()->getPerformanceModel()->outputSummary(os);
-         os << " PEP core:\n";
-         getPepCore()->getPerformanceModel()->outputSummary(os);
-      }
+      getCore()->getPerformanceModel()->outputSummary(os);
    }
    getNetwork()->outputSummary(os);
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      getCore()->getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getId()));
+      getCore()->getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getCore()->getCoreId()));
       getCore()->getMemoryManager()->outputSummary(os);
    }
 }
@@ -77,16 +62,6 @@ void Tile::enablePerformanceModels()
    getCore()->getShmemPerfModel()->enable();
    getCore()->getMemoryManager()->enableModels();
    getCore()->getPerformanceModel()->enable();
-
-   if (Config::getSingleton()->getEnablePepCores())
-   {
-      if (getPepCore()->getClockSkewMinimizationClient())
-         getPepCore()->getClockSkewMinimizationClient()->enable();
-
-      getPepCore()->getShmemPerfModel()->enable();
-      getPepCore()->getMemoryManager()->enableModels();
-      getPepCore()->getPerformanceModel()->enable();
-   }
 }
 
 void Tile::disablePerformanceModels()
@@ -99,45 +74,39 @@ void Tile::disablePerformanceModels()
    getCore()->getShmemPerfModel()->disable();
    getCore()->getMemoryManager()->disableModels();
    getCore()->getPerformanceModel()->disable();
-
-   if (Config::getSingleton()->getEnablePepCores())
-   {
-      if (getPepCore()->getClockSkewMinimizationClient())
-         getPepCore()->getClockSkewMinimizationClient()->disable();
-         
-      getPepCore()->getShmemPerfModel()->disable();
-      getPepCore()->getMemoryManager()->disableModels();
-      getPepCore()->getPerformanceModel()->disable();
-   }
 }
 
 void
 Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    getCore()->getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
-   getPepCore()->getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
-
    getCore()->getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
-   getPepCore()->getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
-
    getCore()->getMemoryManager()->updateInternalVariablesOnFrequencyChange(frequency);
-   getPepCore()->getMemoryManager()->updateInternalVariablesOnFrequencyChange(frequency);
 }
 
 Core* Tile::getCore(core_id_t core_id)
 {
    Core * res = NULL;
-   if (core_id.second == MAIN_CORE_TYPE)
+
+   if (this->isMainCore(core_id))
       res = m_main_core;
-   else if (core_id.second == PEP_CORE_TYPE)
-      res = m_pep_core;
 
    LOG_ASSERT_ERROR(res != NULL, "Invalid core id!");
    return res;
 }
 
+// This method is used for differentiating different cores if you decide to add different types of cores per tile.
 Core* Tile::getCurrentCore()
 {
-   // elau: Tile's getting the manager?  Fix this...
-   return Sim()->getTileManager()->getCore(this);
+   return getCore();
 }
+
+core_id_t Tile::getMainCoreId()
+{
+   return (core_id_t) {m_tile_id, MAIN_CORE_TYPE};
+}
+bool Tile::isMainCore(core_id_t core_id)
+{
+   return (core_id.core_type == MAIN_CORE_TYPE);
+}
+

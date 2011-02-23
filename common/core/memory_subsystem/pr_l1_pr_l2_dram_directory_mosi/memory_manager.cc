@@ -176,13 +176,13 @@ MemoryManager::MemoryManager(Tile* tile,
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
    // Create Cache Performance Models
-   volatile float tile_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getId());
+   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
    m_l1_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
-         l1_icache_data_access_time, l1_icache_tags_access_time, tile_frequency);
+         l1_icache_data_access_time, l1_icache_tags_access_time, core_frequency);
    m_l1_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,
-         l1_dcache_data_access_time, l1_dcache_tags_access_time, tile_frequency);
+         l1_dcache_data_access_time, l1_dcache_tags_access_time, core_frequency);
    m_l2_cache_perf_model = CachePerfModel::create(l2_cache_perf_model_type,
-         l2_cache_data_access_time, l2_cache_tags_access_time, tile_frequency);
+         l2_cache_data_access_time, l2_cache_tags_access_time, core_frequency);
 
    // Register Call-backs
    getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
@@ -248,9 +248,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    if (m_enabled)
    {
       LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
-            shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender.first, sender.second, packet.receiver.first, packet.receiver.second);    
-      assert(sender.second == MAIN_CORE_TYPE);
-      assert(packet.receiver.second == MAIN_CORE_TYPE);
+            shmem_msg->getMsgType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
    }
 
    switch (receiver_mem_component)
@@ -260,12 +258,12 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
          {
             case MemComponent::L1_ICACHE:
             case MemComponent::L1_DCACHE:
-               assert(sender.first == getTile()->getId());
+               assert(sender.tile_id == getTile()->getId());
                m_l2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
                break;
 
             case MemComponent::DRAM_DIR:
-               m_l2_cache_cntlr->handleMsgFromDramDirectory(sender.first, shmem_msg);
+               m_l2_cache_cntlr->handleMsgFromDramDirectory(sender.tile_id, shmem_msg);
                break;
 
             default:
@@ -281,7 +279,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
             LOG_ASSERT_ERROR(m_dram_cntlr_present, "Dram Cntlr NOT present");
 
             case MemComponent::L2_CACHE:
-               m_dram_directory_cntlr->handleMsgFromL2Cache(sender.first, shmem_msg);
+               m_dram_directory_cntlr->handleMsgFromL2Cache(sender.tile_id, shmem_msg);
                break;
 
             default:

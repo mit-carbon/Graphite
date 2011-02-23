@@ -16,7 +16,7 @@ using namespace std;
 
 MainCore::MainCore(Tile* tile) : Core(tile)
 {
-   m_core_id = (core_id_t) {tile->getId(), MAIN_CORE_TYPE};
+   m_core_id = tile->getMainCoreId();
    m_core_perf_model = CorePerfModel::createMainPerfModel((Core *) this);
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
@@ -82,13 +82,7 @@ MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d
 {
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      if (lock_signal != Core::UNLOCK)
-         this->getTile()->m_elau_memory_lock.acquire();
-
       pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
-
-      if (lock_signal != Core::LOCK)
-         this->getTile()->m_elau_memory_lock.release();
       return res;
    }
    
@@ -179,7 +173,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
          curr_size = cache_block_size - (curr_offset);
       }
 
-      LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(0x%x), offset(%u), curr_size(%u), core_id(%d, %d)", curr_addr_aligned, curr_offset, curr_size, getCoreId().first, getCoreId().second);
+      LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(0x%x), offset(%u), curr_size(%u), core_id(%d, %d)", curr_addr_aligned, curr_offset, curr_size, getCoreId().tile_id, getCoreId().core_type);
 
       if (!getMemoryManager()->coreInitiateMemoryAccess(
                mem_component,

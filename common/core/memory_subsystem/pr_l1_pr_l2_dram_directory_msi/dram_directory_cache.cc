@@ -42,10 +42,10 @@ DramDirectoryCache::DramDirectoryCache(
 
    initializeParameters(num_dram_cntlrs);
 
-   volatile float tile_frequency = Config::getSingleton()->getCoreFrequency(m_memory_manager->getTile()->getId());
+   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(m_memory_manager->getTile()->getMainCoreId());
 
    m_dram_directory_cache_access_delay_in_clock_cycles = \
-      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * tile_frequency));
+      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
 }
 
 DramDirectoryCache::~DramDirectoryCache()
@@ -227,10 +227,10 @@ DramDirectoryCache::computeSetIndex(IntPtr address)
 }
 
 void
-DramDirectoryCache::updateInternalVariablesOnFrequencyChange(volatile float tile_frequency)
+DramDirectoryCache::updateInternalVariablesOnFrequencyChange(volatile float core_frequency)
 {
    m_dram_directory_cache_access_delay_in_clock_cycles = \
-      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * tile_frequency));
+      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
 }
 
 void

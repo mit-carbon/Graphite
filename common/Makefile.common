@@ -2,10 +2,11 @@ SIM_ROOT ?= $(CURDIR)/../
 
 include $(SIM_ROOT)/Makefile.config
 
-DIRECTORIES = $(SIM_ROOT)/common/core/        									\
-			 $(SIM_ROOT)/common/core/memory_subsystem/							\
-          $(SIM_ROOT)/common/core/memory_subsystem/cache/      			\
-			 $(SIM_ROOT)/common/core/memory_subsystem/directory_schemes/	\
+DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
+			 $(SIM_ROOT)/common/tile/memory_subsystem/							\
+          $(SIM_ROOT)/common/tile/memory_subsystem/cache/      			\
+			 $(SIM_ROOT)/common/tile/memory_subsystem/directory_schemes/	\
+			 $(SIM_ROOT)/common/tile/core_models/									\
           $(SIM_ROOT)/common/network/         									\
 			 $(SIM_ROOT)/common/network/models	 									\
 			 $(SIM_ROOT)/common/network/components/router/						\

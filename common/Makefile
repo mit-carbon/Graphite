@@ -4,9 +4,9 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 include $(SIM_ROOT)/common/Makefile.common
 
 SRC_DIRECTORIES = $(DIRECTORIES) \
-			 $(SIM_ROOT)/common/core/memory_subsystem/pr_l1_pr_l2_dram_directory_msi/	\
-			 $(SIM_ROOT)/common/core/memory_subsystem/pr_l1_pr_l2_dram_directory_mosi/ \
-			 $(SIM_ROOT)/common/core/memory_subsystem/pr_l1_pr_l1_pr_l2_dram_directory_msi/
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_msi/	\
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_mosi/ \
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l1_pr_l2_dram_directory_msi/
 
 # Grab all c/c++ files from subdirs
 SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \

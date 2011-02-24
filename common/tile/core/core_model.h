@@ -1,5 +1,5 @@
-#ifndef CORE_PERF_MODEL_H
-#define CORE_PERF_MODEL_H
+#ifndef CORE_MODEL_H
+#define CORE_MODEL_H
 // This class represents the actual performance model for a given core
 
 #include <queue>
@@ -9,7 +9,6 @@
 // Forward Decls
 class Core;
 class BranchPredictor;
-class Core;
 
 #include "instruction.h"
 #include "basic_block.h"
@@ -17,12 +16,12 @@ class Core;
 #include "lock.h"
 #include "dynamic_instruction_info.h"
 
-class CorePerfModel
+class CoreModel
 {
 public:
 
-   CorePerfModel(Core* core, float frequency);
-   virtual ~CorePerfModel();
+   CoreModel(Core* core, float frequency);
+   virtual ~CoreModel();
 
    void queueDynamicInstruction(Instruction *i);
    void queueBasicBlock(BasicBlock *basic_block);
@@ -39,7 +38,7 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static CorePerfModel *createMainPerfModel(Core* core);
+   static CoreModel *createMainPerfModel(Core* core);
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 

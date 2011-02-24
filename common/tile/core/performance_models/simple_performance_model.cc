@@ -1,28 +1,28 @@
 #include "core.h"
 #include "log.h"
-#include "magic_performance_model.h"
+#include "simple_performance_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-MagicPerformanceModel::MagicPerformanceModel(Core *core, float frequency)
-    : CorePerfModel(core, frequency)
+SimplePerformanceModel::SimplePerformanceModel(Core *core, float frequency)
+    : CoreModel(core, frequency)
     , m_instruction_count(0)
 {
 }
 
-MagicPerformanceModel::~MagicPerformanceModel()
+SimplePerformanceModel::~SimplePerformanceModel()
 {
 }
 
-void MagicPerformanceModel::outputSummary(std::ostream &os)
+void SimplePerformanceModel::outputSummary(std::ostream &os)
 {
    os << "Core Performance Model Summary:" << endl;
    os << "    Instructions: " << getInstructionCount() << endl;
-   CorePerfModel::outputSummary(os);
+   CoreModel::outputSummary(os);
 }
 
-void MagicPerformanceModel::handleInstruction(Instruction *instruction)
+void SimplePerformanceModel::handleInstruction(Instruction *instruction)
 {
    // compute cost
    UInt64 cost = 0;
@@ -57,34 +57,16 @@ void MagicPerformanceModel::handleInstruction(Instruction *instruction)
       }
    }
 
-   UInt64 instruction_cost = instruction->getCost();
-   if (isModeled(instruction->getType()))
-      cost += instruction_cost;
-   else
-      cost += 1;
+   cost += instruction->getCost();
+   // LOG_ASSERT_WARNING(cost < 10000, "Cost is too big - cost:%llu, cycle_count: %llu, type: %d", cost, m_cycle_count, instruction->getType());
 
    // update counters
    m_instruction_count++;
    m_cycle_count += cost;
 }
 
-bool MagicPerformanceModel::isModeled(InstructionType instruction_type)
+void SimplePerformanceModel::reset()
 {
-   switch(instruction_type)
-   {
-      case INST_RECV:
-      case INST_SYNC:
-      case INST_SPAWN:
-         return true;
-
-      default:
-         return false;
-   }
-}
-
-void
-MagicPerformanceModel::reset()
-{
-   CorePerfModel::reset();
+   CoreModel::reset();
    m_instruction_count = 0;
 }

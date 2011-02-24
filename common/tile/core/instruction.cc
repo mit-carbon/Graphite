@@ -2,7 +2,7 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
-#include "core_perf_model.h"
+#include "core_model.h"
 #include "branch_predictor.h"
 
 // Instruction
@@ -72,7 +72,7 @@ StringInstruction::StringInstruction(OperandList &ops)
 UInt64 StringInstruction::getCost()
 {
    // dequeue mem ops until we hit the final marker, then check count
-   CorePerfModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
    UInt32 count = 0;
    UInt64 cost = 0;
    DynamicInstructionInfo* i;
@@ -115,9 +115,9 @@ SpawnInstruction::SpawnInstruction(UInt64 time)
 
 UInt64 SpawnInstruction::getCost()
 {
-   CorePerfModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
    perf->setCycleCount(m_time);
-   throw CorePerfModel::AbortInstructionException(); // exit out of handleInstruction
+   throw CoreModel::AbortInstructionException(); // exit out of handleInstruction
 }
 
 // BranchInstruction
@@ -128,7 +128,7 @@ BranchInstruction::BranchInstruction(OperandList &l)
 
 UInt64 BranchInstruction::getCost()
 {
-   CorePerfModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
    BranchPredictor *bp = perf->getBranchPredictor();
 
    DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();

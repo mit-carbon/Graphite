@@ -1,4 +1,4 @@
-#include "core_perf_model.h"
+#include "core_model.h"
 #include "core.h"
 #include "simple_performance_model.h"
 #include "iocoom_performance_model.h"
@@ -12,7 +12,7 @@
 #include "utils.h"
 
 
-CorePerfModel* CorePerfModel::createMainPerfModel(Core* core)
+CoreModel* CoreModel::createMainPerfModel(Core* core)
 {
    volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getCoreId());
    string core_model = Config::getSingleton()->getCoreType(core->getTileId());
@@ -31,7 +31,7 @@ CorePerfModel* CorePerfModel::createMainPerfModel(Core* core)
 }
 
 // Public Interface
-CorePerfModel::CorePerfModel(Core *core, float frequency)
+CoreModel::CoreModel(Core *core, float frequency)
    : m_cycle_count(0)
    , m_core(core)
    , m_frequency(frequency)
@@ -49,12 +49,12 @@ CorePerfModel::CorePerfModel(Core *core, float frequency)
    initializeInstructionCounters();
 }
 
-CorePerfModel::~CorePerfModel()
+CoreModel::~CoreModel()
 {
    delete m_bp; m_bp = 0;
 }
 
-void CorePerfModel::outputSummary(ostream& os)
+void CoreModel::outputSummary(ostream& os)
 {
    // Frequency Summary
    frequencySummary(os);
@@ -70,7 +70,7 @@ void CorePerfModel::outputSummary(ostream& os)
       m_bp->outputSummary(os);
 }
 
-void CorePerfModel::frequencySummary(ostream& os)
+void CoreModel::frequencySummary(ostream& os)
 {
    os << "    Completion Time: " \
       << (UInt64) (((float) m_cycle_count) / m_frequency) \
@@ -78,7 +78,7 @@ void CorePerfModel::frequencySummary(ostream& os)
    os << "    Average Frequency: " << m_average_frequency << endl;
 }
 
-void CorePerfModel::enable()
+void CoreModel::enable()
 {
    // MCP perf model should never be enabled
    if (Sim()->getTileManager()->getCurrentTileID() == Config::getSingleton()->getMCPTileNum())
@@ -87,12 +87,12 @@ void CorePerfModel::enable()
    m_enabled = true;
 }
 
-void CorePerfModel::disable()
+void CoreModel::disable()
 {
    m_enabled = false;
 }
 
-void CorePerfModel::reset()
+void CoreModel::reset()
 {
    // Reset Average Frequency & Cycle Count
    m_average_frequency = 0.0;
@@ -125,7 +125,7 @@ void CorePerfModel::reset()
 
 // This function is called:
 // 1) Whenever frequency is changed
-void CorePerfModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+void CoreModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    recomputeAverageFrequency();
    
@@ -139,7 +139,7 @@ void CorePerfModel::updateInternalVariablesOnFrequencyChange(volatile float freq
 
 // This function is called:
 // 1) On thread start
-void CorePerfModel::setCycleCount(UInt64 cycle_count)
+void CoreModel::setCycleCount(UInt64 cycle_count)
 {
    m_checkpointed_cycle_count = cycle_count;
    m_cycle_count = cycle_count;
@@ -148,7 +148,7 @@ void CorePerfModel::setCycleCount(UInt64 cycle_count)
 // This function is called:
 // 1) On thread exit
 // 2) Whenever frequency is changed
-void CorePerfModel::recomputeAverageFrequency()
+void CoreModel::recomputeAverageFrequency()
 {
    volatile double cycles_elapsed = (double) (m_cycle_count - m_checkpointed_cycle_count);
    volatile double total_cycles_executed = (m_average_frequency * m_total_time) + cycles_elapsed;
@@ -158,7 +158,7 @@ void CorePerfModel::recomputeAverageFrequency()
    m_total_time = (UInt64) total_time_taken;
 }
 
-void CorePerfModel::initializeInstructionCounters()
+void CoreModel::initializeInstructionCounters()
 {
    m_total_recv_instructions = 0;
    m_total_recv_instruction_costs = 0;
@@ -166,7 +166,7 @@ void CorePerfModel::initializeInstructionCounters()
    m_total_sync_instruction_costs = 0;
 }
 
-void CorePerfModel::updateInstructionCounters(Instruction* i)
+void CoreModel::updateInstructionCounters(Instruction* i)
 {
    switch (i->getType())
    {
@@ -185,7 +185,7 @@ void CorePerfModel::updateInstructionCounters(Instruction* i)
    }
 }
 
-void CorePerfModel::queueDynamicInstruction(Instruction *i)
+void CoreModel::queueDynamicInstruction(Instruction *i)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
    {
@@ -202,7 +202,7 @@ void CorePerfModel::queueDynamicInstruction(Instruction *i)
    m_basic_block_queue.push(bb);
 }
 
-void CorePerfModel::queueBasicBlock(BasicBlock *basic_block)
+void CoreModel::queueBasicBlock(BasicBlock *basic_block)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
@@ -212,7 +212,7 @@ void CorePerfModel::queueBasicBlock(BasicBlock *basic_block)
 }
 
 //FIXME: this will go in a thread
-void CorePerfModel::iterate()
+void CoreModel::iterate()
 {
    // Because we will sometimes not have info available (we will throw
    // a DynamicInstructionInfoNotAvailable), we need to be able to
@@ -254,7 +254,7 @@ void CorePerfModel::iterate()
    }
 }
 
-void CorePerfModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
+void CoreModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
@@ -263,7 +263,7 @@ void CorePerfModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    m_dynamic_info_queue.push(i);
 }
 
-void CorePerfModel::popDynamicInstructionInfo()
+void CoreModel::popDynamicInstructionInfo()
 {
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
@@ -276,7 +276,7 @@ void CorePerfModel::popDynamicInstructionInfo()
    m_dynamic_info_queue.pop();
 }
 
-DynamicInstructionInfo& CorePerfModel::getDynamicInstructionInfo()
+DynamicInstructionInfo& CoreModel::getDynamicInstructionInfo()
 {
    ScopedLock sl(m_dynamic_info_queue_lock);
 

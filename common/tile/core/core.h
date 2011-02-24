@@ -5,7 +5,7 @@
 
 // some forward declarations for cross includes
 class Tile;
-class CorePerfModel;
+class CoreModel;
 class Network;
 class MemoryManagerBase;
 class SyscallMdl;
@@ -20,7 +20,7 @@ class PinMemoryManager;
 #include "mem_component.h"
 #include "fixed_types.h"
 #include "config.h"
-#include "core_perf_model.h"
+#include "core_model.h"
 #include "shmem_perf_model.h"
 #include "capi.h"
 #include "packet_type.h"
@@ -92,7 +92,7 @@ class Core
       Network *getNetwork();
       Tile *getTile() { return m_tile; }
       UInt32 getCoreType() { return m_core_id.core_type; }
-      CorePerfModel *getPerformanceModel() { return m_core_perf_model; }
+      CoreModel *getPerformanceModel() { return m_core_model; }
       MemoryManagerBase *getMemoryManager() { return m_memory_manager; } 
       virtual PinMemoryManager *getPinMemoryManager() = 0;
       virtual SyscallMdl *getSyscallMdl() = 0; 
@@ -106,7 +106,7 @@ class Core
    protected:
       Tile *m_tile;
       core_id_t m_core_id;
-      CorePerfModel *m_core_perf_model;
+      CoreModel *m_core_model;
       MemoryManagerBase *m_memory_manager;
       ShmemPerfModel* m_shmem_perf_model;
       SyncClient *m_sync_client;

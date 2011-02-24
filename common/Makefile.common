@@ -6,7 +6,10 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/							\
           $(SIM_ROOT)/common/tile/memory_subsystem/cache/      			\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/directory_schemes/	\
-			 $(SIM_ROOT)/common/tile/core_models/									\
+			 $(SIM_ROOT)/common/tile/memory_subsystem/performance_models/	\
+			 $(SIM_ROOT)/common/tile/core/      									\
+			 $(SIM_ROOT)/common/tile/core/performance_models/					\
+			 $(SIM_ROOT)/common/tile/core/branch_predictors/	            \
           $(SIM_ROOT)/common/network/         									\
 			 $(SIM_ROOT)/common/network/models	 									\
 			 $(SIM_ROOT)/common/network/components/router/						\
@@ -16,9 +19,6 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
           $(SIM_ROOT)/common/config/	      									\
           $(SIM_ROOT)/common/system/          									\
           $(SIM_ROOT)/common/performance_model/      							\
-          $(SIM_ROOT)/common/performance_model/branch_predictors/      	\
-          $(SIM_ROOT)/common/performance_model/performance_models/     	\
-          $(SIM_ROOT)/common/performance_model/memory_subsystem/     	\
           $(SIM_ROOT)/common/performance_model/queue_models/     			\
           $(SIM_ROOT)/common/user/													\
 			 $(SIM_ROOT)/																	\

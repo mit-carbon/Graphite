@@ -7,7 +7,7 @@
 #include "message_types.h"
 #include "config.h"
 #include "tile.h"
-#include "core_perf_model.h"
+#include "core_model.h"
 #include "transport.h"
 #include "lock.h"
 #include "clock_converter.h"
@@ -76,7 +76,7 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
    // (1) compute latency of packet
    // (2) update utilization
 
-   CorePerfModel *perf = getNetwork()->getTile()->getCurrentCore()->getPerformanceModel();
+   CoreModel *perf = getNetwork()->getTile()->getCurrentCore()->getPerformanceModel();
 
    Hop h;
    h.final_dest = pkt.receiver;

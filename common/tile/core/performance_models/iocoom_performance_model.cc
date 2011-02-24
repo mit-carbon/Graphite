@@ -10,7 +10,7 @@ using namespace std;
 #include "branch_predictor.h"
 
 IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core, float frequency)
-   : CorePerfModel(core, frequency)
+   : CoreModel(core, frequency)
    , m_instruction_count(0)
    , m_register_scoreboard(512)
    , m_store_buffer(0)
@@ -41,7 +41,7 @@ void IOCOOMPerformanceModel::outputSummary(std::ostream &os)
 {
    os << "Core Performance Model Summary:" << endl;
    os << "    Instructions: " << m_instruction_count << std::endl;
-   CorePerfModel::outputSummary(os);
+   CoreModel::outputSummary(os);
 }
 
 void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
@@ -224,7 +224,7 @@ void IOCOOMPerformanceModel::initializeRegisterScoreboard()
 
 void IOCOOMPerformanceModel::reset()
 {
-   CorePerfModel::reset();
+   CoreModel::reset();
 
    m_instruction_count = 0;
    initializeRegisterScoreboard();

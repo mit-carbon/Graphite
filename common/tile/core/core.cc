@@ -8,7 +8,7 @@
 #include "memory_manager_base.h"
 #include "pin_memory_manager.h"
 #include "clock_skew_minimization_object.h"
-#include "core_perf_model.h"
+#include "core_model.h"
 #include "simulator.h"
 #include "log.h"
 

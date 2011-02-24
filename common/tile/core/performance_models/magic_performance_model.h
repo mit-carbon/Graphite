@@ -1,9 +1,9 @@
 #ifndef MAGIC_PERFORMANCE_MODEL_H
 #define MAGIC_PERFORMANCE_MODEL_H
 
-#include "core_perf_model.h"
+#include "core_model.h"
 
-class MagicPerformanceModel : public CorePerfModel
+class MagicPerformanceModel : public CoreModel
 {
 public:
    MagicPerformanceModel(Core *core, float frequency);

@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "core_perf_model.h"
+#include "core_model.h"
 
 /*
   In-order core, out-of-order memory performance model.
@@ -12,7 +12,7 @@
 
   We also keep a store buffer to short circuit loads.
  */
-class IOCOOMPerformanceModel : public CorePerfModel
+class IOCOOMPerformanceModel : public CoreModel
 {
 public:
    IOCOOMPerformanceModel(Core* core, float frequency);

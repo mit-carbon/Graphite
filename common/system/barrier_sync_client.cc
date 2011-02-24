@@ -8,7 +8,7 @@
 #include "packetize.h"
 #include "network.h"
 #include "core.h"
-#include "core_perf_model.h"
+#include "core_model.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
 

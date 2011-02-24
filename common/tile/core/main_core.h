@@ -4,7 +4,7 @@
 #include <string.h>
 
 // some forward declarations for cross includes
-class CorePerfModel;
+class CoreModel;
 
 #include "core.h"
 

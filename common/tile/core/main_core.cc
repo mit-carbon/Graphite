@@ -4,7 +4,7 @@
 #include "network.h"
 #include "memory_manager_base.h"
 #include "pin_memory_manager.h"
-#include "core_perf_model.h"
+#include "core_model.h"
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "clock_skew_minimization_object.h"
@@ -17,7 +17,7 @@ using namespace std;
 MainCore::MainCore(Tile* tile) : Core(tile)
 {
    m_core_id = tile->getMainCoreId();
-   m_core_perf_model = CorePerfModel::createMainPerfModel((Core *) this);
+   m_core_model = CoreModel::createMainPerfModel((Core *) this);
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -49,7 +49,7 @@ MainCore::MainCore(Tile* tile) : Core(tile)
 
 MainCore::~MainCore()
 {
-   delete m_core_perf_model;
+   delete m_core_model;
 
    if (m_clock_skew_minimization_client)
       delete m_clock_skew_minimization_client;
@@ -117,7 +117,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
       if (modeled)
       {
          DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
-         m_core_perf_model->pushDynamicInstructionInfo(info);
+         m_core_model->pushDynamicInstructionInfo(info);
       }
       return make_pair<UInt32, UInt64>(0,0);
    }
@@ -216,7 +216,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
    {
       DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
 
-      m_core_perf_model->pushDynamicInstructionInfo(info);
+      m_core_model->pushDynamicInstructionInfo(info);
 
       getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);
    }

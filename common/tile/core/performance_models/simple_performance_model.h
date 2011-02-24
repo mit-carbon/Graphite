@@ -1,9 +1,9 @@
 #ifndef SIMPLE_PERFORMANCE_MODEL_H
 #define SIMPLE_PERFORMANCE_MODEL_H
 
-#include "core_perf_model.h"
+#include "core_model.h"
 
-class SimplePerformanceModel : public CorePerfModel
+class SimplePerformanceModel : public CoreModel
 {
 public:
    SimplePerformanceModel(Core *core, float frequency);

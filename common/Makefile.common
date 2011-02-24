@@ -18,8 +18,8 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
           $(SIM_ROOT)/common/misc/            									\
           $(SIM_ROOT)/common/config/	      									\
           $(SIM_ROOT)/common/system/          									\
-          $(SIM_ROOT)/common/performance_model/      							\
-          $(SIM_ROOT)/common/performance_model/queue_models/     			\
+          $(SIM_ROOT)/common/shared_models/      							\
+          $(SIM_ROOT)/common/shared_models/queue_models/     			\
           $(SIM_ROOT)/common/user/													\
 			 $(SIM_ROOT)/																	\
 			 $(CURDIR)/

@@ -42,7 +42,11 @@ CorePerfModel::CorePerfModel(Core *core, float frequency)
    , m_current_ins_index(0)
    , m_bp(0)
 {
+   // Create Branch Predictor
    m_bp = BranchPredictor::create();
+
+   // Initialize Instruction Counters
+   initializeInstructionCounters();
 }
 
 CorePerfModel::~CorePerfModel()
@@ -50,13 +54,28 @@ CorePerfModel::~CorePerfModel()
    delete m_bp; m_bp = 0;
 }
 
+void CorePerfModel::outputSummary(ostream& os)
+{
+   // Frequency Summary
+   frequencySummary(os);
+   
+   // Instruction Counter Summary
+   os << "    Recv Instructions: " << m_total_recv_instructions << endl;
+   os << "    Recv Instruction Costs: " << m_total_recv_instruction_costs << endl;
+   os << "    Sync Instructions: " << m_total_sync_instructions << endl;
+   os << "    Sync Instruction Costs: " << m_total_sync_instruction_costs << endl;
+
+   // Branch Predictor Summary
+   if (m_bp)
+      m_bp->outputSummary(os);
+}
+
 void CorePerfModel::frequencySummary(ostream& os)
 {
-   os << "   Completion Time: " \
-      << static_cast<UInt64>(static_cast<float>(m_cycle_count) / m_frequency) \
+   os << "    Completion Time: " \
+      << (UInt64) (((float) m_cycle_count) / m_frequency) \
       << endl;
-   os << "   Average Frequency: " << m_average_frequency << endl;
-   os << "   Frequency: " << m_frequency << endl;
+   os << "    Average Frequency: " << m_average_frequency << endl;
 }
 
 void CorePerfModel::enable()
@@ -73,12 +92,49 @@ void CorePerfModel::disable()
    m_enabled = false;
 }
 
+void CorePerfModel::reset()
+{
+   // Reset Average Frequency & Cycle Count
+   m_average_frequency = 0.0;
+   m_total_time = 0;
+   m_cycle_count = 0;
+   m_checkpointed_cycle_count = 0;
+
+   // Reset Instruction Counters
+   initializeInstructionCounters();
+
+   // Clear BasicBlockQueue
+   while (!m_basic_block_queue.empty())
+   {
+      BasicBlock* bb = m_basic_block_queue.front();
+      if (bb->isDynamic())
+         delete bb;
+      m_basic_block_queue.pop();
+   }
+   m_current_ins_index = 0;
+
+   // Clear Dynamic Instruction Info Queue
+   while (!m_dynamic_info_queue.empty())
+   {
+      m_dynamic_info_queue.pop();
+   }
+
+   // Reset Branch Predictor
+   m_bp->reset();
+}
+
 // This function is called:
 // 1) Whenever frequency is changed
 void CorePerfModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    recomputeAverageFrequency();
-   m_frequency = frequency;
+   
+   volatile float old_frequency = m_frequency;
+   volatile float new_frequency = frequency;
+   
+   m_checkpointed_cycle_count = (UInt64) (((double) m_cycle_count / old_frequency) * new_frequency);
+   m_cycle_count = m_checkpointed_cycle_count;
+   m_frequency = new_frequency;
 }
 
 // This function is called:
@@ -94,13 +150,39 @@ void CorePerfModel::setCycleCount(UInt64 cycle_count)
 // 2) Whenever frequency is changed
 void CorePerfModel::recomputeAverageFrequency()
 {
-   volatile float cycles_elapsed = static_cast<float>(m_cycle_count - m_checkpointed_cycle_count);
-   volatile float total_cycles_executed = m_average_frequency * m_total_time + cycles_elapsed;
-   volatile float total_time_taken = m_total_time + cycles_elapsed / m_frequency;
+   volatile double cycles_elapsed = (double) (m_cycle_count - m_checkpointed_cycle_count);
+   volatile double total_cycles_executed = (m_average_frequency * m_total_time) + cycles_elapsed;
+   volatile double total_time_taken = m_total_time + (cycles_elapsed / m_frequency);
 
    m_average_frequency = total_cycles_executed / total_time_taken;
-   m_total_time = total_time_taken;
-   m_checkpointed_cycle_count = m_cycle_count;
+   m_total_time = (UInt64) total_time_taken;
+}
+
+void CorePerfModel::initializeInstructionCounters()
+{
+   m_total_recv_instructions = 0;
+   m_total_recv_instruction_costs = 0;
+   m_total_sync_instructions = 0;
+   m_total_sync_instruction_costs = 0;
+}
+
+void CorePerfModel::updateInstructionCounters(Instruction* i)
+{
+   switch (i->getType())
+   {
+      case INST_RECV:
+         m_total_recv_instructions ++;
+         m_total_recv_instruction_costs += i->getCost();
+         break;
+
+      case INST_SYNC:
+         m_total_sync_instructions ++;
+         m_total_sync_instruction_costs += i->getCost();
+         break;
+
+      default:
+         break;
+   }
 }
 
 void CorePerfModel::queueDynamicInstruction(Instruction *i)
@@ -110,6 +192,9 @@ void CorePerfModel::queueDynamicInstruction(Instruction *i)
       delete i;
       return;
    }
+
+   // Update Instruction Counters
+   updateInstructionCounters(i);
 
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);

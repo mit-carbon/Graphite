@@ -3,9 +3,9 @@
 #include "one_bit_branch_predictor.h"
 
 BranchPredictor::BranchPredictor()
-   : m_correct_predictions(0)
-   , m_incorrect_predictions(0)
-{ }
+{
+   initializeCounters();
+}
 
 BranchPredictor::~BranchPredictor()
 { }
@@ -55,6 +55,17 @@ void BranchPredictor::updateCounters(bool predicted, bool actual)
       ++m_correct_predictions;
    else
       ++m_incorrect_predictions;
+}
+
+void BranchPredictor::initializeCounters()
+{
+   m_correct_predictions = 0;
+   m_incorrect_predictions = 0;
+}
+
+void BranchPredictor::reset()
+{
+   initializeCounters();
 }
 
 void BranchPredictor::outputSummary(std::ostream &os)

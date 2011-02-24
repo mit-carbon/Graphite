@@ -53,6 +53,8 @@ MemoryManager::MemoryManager(Tile* tile,
    bool dram_queue_model_enabled = false;
    std::string dram_queue_model_type;
 
+   std::string directory_type;
+
    try
    {
       // L1 ICache
@@ -97,18 +99,28 @@ MemoryManager::MemoryManager(Tile* tile,
       per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/per_controller_bandwidth");
       dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
       dram_queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+
+      // Directory Type
+      directory_type = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
    }
    catch(...)
    {
       LOG_PRINT_ERROR("Error reading memory system parameters from the config file");
    }
 
+   if (getTile()->getId() == 0)
+   {
+      LOG_ASSERT_ERROR(directory_type != "limited_broadcast", \
+            "Limited Broadcast directory scheme CANNOT be used with the MSI protocol.");
+   }
+
    m_user_thread_sem = new Semaphore(0);
    m_network_thread_sem = new Semaphore(0);
-   std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
-   if (getTile()->getId() == 0)
-      printTileListWithMemoryControllers(tile_list_with_dram_controllers);
+   //std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
+   //if (getTile()->getId() == 0)
+      //printTileListWithMemoryControllers(tile_list_with_dram_controllers);
 
+   std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    if (find(tile_list_with_dram_controllers.begin(), tile_list_with_dram_controllers.end(), getTile()->getId()) \
          != tile_list_with_dram_controllers.end())
    {
@@ -386,7 +398,9 @@ MemoryManager::enableModels()
    m_l2_cache_perf_model->enable();
 
    if (m_dram_cntlr_present)
+   {
       m_dram_cntlr->getDramPerfModel()->enable();
+   }
 }
 
 void
@@ -404,7 +418,22 @@ MemoryManager::disableModels()
    m_l2_cache_perf_model->disable();
 
    if (m_dram_cntlr_present)
+   {
       m_dram_cntlr->getDramPerfModel()->disable();
+   }
+}
+
+void
+MemoryManager::resetModels()
+{
+   m_l1_cache_cntlr->getL1ICache()->reset();
+   m_l1_cache_cntlr->getL1DCache()->reset();
+   m_l2_cache_cntlr->getL2Cache()->reset();
+
+   if (m_dram_cntlr_present)
+   {
+      m_dram_cntlr->getDramPerfModel()->reset();
+   }
 }
 
 void

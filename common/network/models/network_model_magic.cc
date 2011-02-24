@@ -5,10 +5,20 @@
 
 NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id) : 
    NetworkModel(net, network_id),
-   _enabled(false),
-   _num_packets(0),
-   _num_bytes(0)
-{ }
+   _enabled(false)
+{
+   initializePerformanceCounters();
+}
+
+NetworkModelMagic::~NetworkModelMagic()
+{}
+
+void
+NetworkModelMagic::initializePerformanceCounters()
+{
+   _num_packets = 0;
+   _num_bytes = 0;
+}
 
 UInt32
 NetworkModelMagic::computeAction(const NetPacket& pkt)

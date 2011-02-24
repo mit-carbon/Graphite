@@ -17,11 +17,9 @@ SimplePerformanceModel::~SimplePerformanceModel()
 
 void SimplePerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << getInstructionCount() << endl;
-   frequencySummary(os);
-
-   if (getBranchPredictor())
-      getBranchPredictor()->outputSummary(os);
+   os << "Core Performance Model Summary:" << endl;
+   os << "    Instructions: " << getInstructionCount() << endl;
+   CorePerfModel::outputSummary(os);
 }
 
 void SimplePerformanceModel::handleInstruction(Instruction *instruction)
@@ -65,4 +63,10 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    // update counters
    m_instruction_count++;
    m_cycle_count += cost;
+}
+
+void SimplePerformanceModel::reset()
+{
+   CorePerfModel::reset();
+   m_instruction_count = 0;
 }

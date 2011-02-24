@@ -1,3 +1,7 @@
+SIM_ROOT ?= $(CURDIR)/../../
+
+include $(SIM_ROOT)/Makefile.config
+
 BUFFER_DIR = Buffer
 CROSSBAR_DIR = Crossbar
 ALLOCATOR_DIR = Allocator
@@ -13,9 +17,15 @@ SRCS = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.cc))
 OBJS = $(SRCS:%.cc=%.o)
 
 INCLUDE_FLAGS = $(foreach dir, $(DIRS), -I$(dir))
-OPT_FLAGS = -O2 -g -fPIC
+OPT_FLAGS = -O2 -g
 WARN_FLAGS = -pedantic -Wall -W -Wextra -Werror
 CXXFLAGS = $(OPT_FLAGS) $(WARN_FLAGS) $(INCLUDE_FLAGS)
+ifeq ($(TARGET_ARCH),ia32)
+	CXXFLAGS += -m32
+endif
+ifeq ($(TARGET_ARCH),x86_64)
+	CXXFLAGS += -fPIC
+endif
 
 TARGET = $(CURDIR)/liborion.a
 

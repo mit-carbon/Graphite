@@ -61,7 +61,7 @@ EXTERN_ENV
 
 #define MAX_X		1280		/* Max # pixels along x-axis.	     */
 #define MAX_Y		1024		/* Max # pixels along y-axis.	     */
-#define MAX_PROCS	4096		/* Max # of processors. 	     */
+#define MAX_PROCS	1024		/* Max # of processors. 	     */
 #define MAX_VERTS	100		/* Max # of vertices in a polygon.   */
 #define MAX_LIGHTS	20		/* Max # of lights in a scene.	     */
 #define MAX_AA_ROW	9		/* Max antialias super sample is 9x9 */

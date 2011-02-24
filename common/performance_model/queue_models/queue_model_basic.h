@@ -8,7 +8,7 @@
 class QueueModelBasic : public QueueModel
 {
 public:
-   QueueModelBasic(bool moving_avg_enabled, UInt32 moving_avg_window_size, std::string moving_avg_type_str);
+   QueueModelBasic();
    ~QueueModelBasic();
 
    UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester = INVALID_TILE_ID);

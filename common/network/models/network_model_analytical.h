@@ -24,6 +24,7 @@ class NetworkModelAnalytical : public NetworkModel
 
       void enable();
       void disable();
+      void reset();
       
    private:
       UInt64 computeLatency(const NetPacket &);
@@ -33,23 +34,21 @@ class NetworkModelAnalytical : public NetworkModel
       volatile float _frequency;
 
       UInt64 _bytesSent;
-      UInt32 _bytesRecv;
-
       UInt64 _cyclesProc;
       UInt64 _cyclesLatency;
       UInt64 _cyclesContention;
-      UInt64 _procCost;
 
       double _globalUtilization;
       UInt64 _localUtilizationLastUpdate;
       UInt64 _localUtilizationFlitsSent;
-      UInt64 _updateInterval;
 
       Lock _lock;
 
       NetworkModelAnalyticalParameters _params;
 
       bool m_enabled;
+
+      void initializePerformanceCounters();
 };
 
 #endif // NETWORK_MODEL_ANALYTICAL_H

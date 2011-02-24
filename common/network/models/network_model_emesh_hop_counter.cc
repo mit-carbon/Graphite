@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "network_model_emesh_hop_counter.h"
 #include "simulator.h"
 #include "config.h"
-#include "network_model_emesh_hop_counter.h"
 #include "config.h"
 #include "tile.h"
 #include "memory_manager_base.h"
@@ -79,7 +79,7 @@ NetworkModelEMeshHopCounter::createRouterAndLinkModels()
    _num_router_ports = 5;
 
    _electrical_router_model = ElectricalNetworkRouterModel::create(_num_router_ports, \
-         num_flits_per_output_buffer, _link_width);
+         _num_router_ports, num_flits_per_output_buffer, _link_width);
    
    _electrical_link_model = ElectricalNetworkLinkModel::create(_link_type, \
          _frequency, \
@@ -96,6 +96,16 @@ NetworkModelEMeshHopCounter::createRouterAndLinkModels()
    LOG_ASSERT_WARNING(link_delay <= 1, "Network Link Delay(%llu) exceeds 1 cycle", link_delay);
    
    _hop_latency = router_delay + link_delay;
+
+   initializeActivityCounters();
+}
+
+void
+NetworkModelEMeshHopCounter::initializeActivityCounters()
+{
+   _switch_allocator_traversals = 0;
+   _crossbar_traversals = 0;
+   _link_traversals = 0;
 }
 
 void
@@ -164,7 +174,13 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
          UInt64 latency = num_hops * _hop_latency;
 
          if (i != pkt.sender.tile_id)
+         {
+            // Update the Dynamic Energy - Need to update the dynamic energy for all routers to the destination
+            // We dont keep track of contention here. So, assume contention = 0
+            updateDynamicEnergy(pkt, _num_router_ports/2, num_hops);
+            
             latency += serialization_latency;
+         }
 
          Hop h;
          h.final_dest.tile_id = NetPacket::BROADCAST;
@@ -175,10 +191,6 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
          curr_time += serialization_latency;
 
          next_hops.push_back(h);
-
-         // Update the Dynamic Energy - Need to update the dynamic energy for all routers to the destination
-         // We dont keep track of contention here. So, assume contention = 0
-         updateDynamicEnergy(pkt, _num_router_ports/2, num_hops);
       }
    }
    else
@@ -189,7 +201,13 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
       UInt64 latency = num_hops * _hop_latency;
 
       if (pkt.receiver.tile_id != pkt.sender.tile_id)
+      {
+         // Update the Dynamic Energy - Need to update the dynamic energy for all routers to the destination
+         // We dont keep track of contention here. So, assume contention = 0
+         updateDynamicEnergy(pkt, _num_router_ports/2, num_hops);
+         
          latency += serialization_latency;
+      }
 
       Hop h;
       h.final_dest.tile_id = pkt.receiver.tile_id;
@@ -197,10 +215,6 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt,
       h.time = pkt.time + latency;
 
       next_hops.push_back(h);
-
-      // Update the Dynamic Energy - Need to update the dynamic energy for all routers to the destination
-      // We dont keep track of contention here. So, assume contention = 0
-      updateDynamicEnergy(pkt, _num_router_ports/2, num_hops);
    }
 }
 
@@ -209,20 +223,11 @@ NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
 {
    ScopedLock sl(_lock);
 
-   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-
-   tile_id_t requester = INVALID_TILE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender.tile_id;
-   
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-         "requester(%i)", requester);
-
-   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
+   tile_id_t requester = getRequester(pkt);
+   if ((!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
+
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    // LOG_ASSERT_ERROR(pkt.start_time > 0, "start_time(%llu)", pkt.start_time);
 
@@ -245,6 +250,36 @@ NetworkModelEMeshHopCounter::computeProcessingTime(UInt32 pkt_length)
       return (UInt64) (num_bits/_link_width + 1);
 }
 
+tile_id_t
+NetworkModelEMeshHopCounter::getRequester(const NetPacket& pkt)
+{
+   tile_id_t requester = INVALID_TILE_ID;
+
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
+   else // Other Packet types
+      requester = pkt.sender.tile_id;
+   
+   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
+         "requester(%i)", requester);
+
+   return requester;
+}
+
+void
+NetworkModelEMeshHopCounter::reset()
+{
+   // Performance Counters
+   initializePerformanceCounters();
+   
+   // Activity Counters
+   initializeActivityCounters();
+   
+   // Router & Link Models
+   _electrical_router_model->resetCounters();
+   _electrical_link_model->resetCounters();
+}
+
 void
 NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
 {
@@ -262,7 +297,8 @@ void
 NetworkModelEMeshHopCounter::updateDynamicEnergy(const NetPacket& pkt,
       UInt32 contention, UInt32 num_hops)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
+   tile_id_t requester = getRequester(pkt);
+   if ((!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
 
    // TODO: Make these models detailed later - Compute exact number of bit flips
@@ -278,31 +314,48 @@ NetworkModelEMeshHopCounter::updateDynamicEnergy(const NetPacket& pkt,
    // Assume half of the input ports are contending for the same output port
    // Switch allocation is only done for the head flit. All the other flits just follow.
    // So, we dont need to update dynamic energies again
-   _electrical_router_model->updateDynamicEnergySwitchAllocator(contention, num_hops);
-   _electrical_router_model->updateDynamicEnergyClock(num_hops);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      _electrical_router_model->updateDynamicEnergySwitchAllocator(contention, num_hops);
+      _electrical_router_model->updateDynamicEnergyClock(num_hops);
+   }
+   _switch_allocator_traversals += num_hops;
 
    // Assume half of the bits flip while crossing the crossbar 
-   _electrical_router_model->updateDynamicEnergyCrossbar(_link_width/2, num_flits * num_hops); 
-   _electrical_router_model->updateDynamicEnergyClock(num_flits * num_hops);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      _electrical_router_model->updateDynamicEnergyCrossbar(_link_width/2, num_flits * num_hops); 
+      _electrical_router_model->updateDynamicEnergyClock(num_flits * num_hops);
+   }
+   _crossbar_traversals += (num_flits * num_hops);
   
    // 2) Electrical Link
-   _electrical_link_model->updateDynamicEnergy(_link_width/2, num_flits * num_hops);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      _electrical_link_model->updateDynamicEnergy(_link_width/2, num_flits * num_hops);
+   }
+   _link_traversals += (num_flits * num_hops);
 }
 
 void
 NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out)
 {
-   if (!Config::getSingleton()->getEnablePowerModeling())
-      return;
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      LOG_PRINT("Router Static Power(%g), Link Static Power(%g)", \
+            _electrical_router_model->getTotalStaticPower(), \
+            _electrical_link_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
 
-   LOG_PRINT("Router Static Power(%g), Link Static Power(%g)", \
-         _electrical_router_model->getTotalStaticPower(), \
-         _electrical_link_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
+      // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
+      volatile double static_power = _electrical_router_model->getTotalStaticPower() + (_electrical_link_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
+      volatile double dynamic_energy = _electrical_router_model->getTotalDynamicEnergy() + _electrical_link_model->getDynamicEnergy();
 
-   // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
-   volatile double static_power = _electrical_router_model->getTotalStaticPower() + (_electrical_link_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
-   volatile double dynamic_energy = _electrical_router_model->getTotalDynamicEnergy() + _electrical_link_model->getDynamicEnergy();
+      out << "    Static Power: " << static_power << endl;
+      out << "    Dynamic Energy: " << dynamic_energy << endl;
+   }
 
-   out << "    Static Power: " << static_power << endl;
-   out << "    Dynamic Energy: " << dynamic_energy << endl;
+   out << "  Activity Counters:" << endl;
+   out << "    Switch Allocator Traversals: " << _switch_allocator_traversals << endl;
+   out << "    Crossbar Traversals: " << _crossbar_traversals << endl;
+   out << "    Link Traversals: " << _link_traversals << endl;
 }

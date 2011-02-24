@@ -22,6 +22,7 @@ namespace PrL1PrL2DramDirectoryMOSI
             SH_REP,
             UPGRADE_REP,
             INV_REP,
+            INV_REP_UNMODELED,
             FLUSH_REP,
             WB_REP,
             NULLIFY_REQ,
@@ -62,7 +63,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          // Modeled Parameters
          UInt32 getModeledLength();
-         
+         bool isModeled();
+
          msg_t getMsgType() { return m_msg_type; }
          MemComponent::component_t getSenderMemComponent() { return m_sender_mem_component; }
          MemComponent::component_t getReceiverMemComponent() { return m_receiver_mem_component; }

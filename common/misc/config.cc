@@ -78,7 +78,7 @@ Config::Config()
    if (m_simulation_mode == FULL)
       m_total_tiles += m_num_processes;
 
-   // Parse Network Models - Need to be done here to initialize some parameters
+   // Parse Network Models - Need to be done here to initialize the network models 
    parseNetworkParameters();
 
    // Adjust the number of tiles corresponding to the network model we use
@@ -145,33 +145,95 @@ UInt32 Config::computeTileIDLength(UInt32 tile_count)
 
 void Config::GenerateTileMap()
 {
+
+   vector<TileList> process_to_tile_mapping = computeProcessToTileMapping();
+   
    m_proc_to_tile_list_map = new TileList[m_num_processes];
    m_tile_to_proc_map.resize(m_total_tiles);
 
-   // Stripe the tiles across the processes
-   UInt32 current_proc = 0;
-   for (UInt32 i = 0; i < (m_total_tiles - m_num_processes - 1) ; i++)
+   // Populate the data structures for non-thread-spawner and non-MCP tiles
+   assert(process_to_tile_mapping.size() == m_num_processes);
+   for (UInt32 i = 0; i < m_num_processes; i++)
    {
-      m_tile_to_proc_map [i] = current_proc;
-      m_proc_to_tile_list_map[current_proc].push_back(i);
-      current_proc++;
-      current_proc %= m_num_processes;
+      TileList::iterator tile_it;
+      for (tile_it = process_to_tile_mapping[i].begin(); tile_it != process_to_tile_mapping[i].end(); tile_it++)
+      {
+         if ((*tile_it) < (SInt32) (m_total_tiles - m_num_processes - 1))
+         {
+            m_tile_to_proc_map[*tile_it] = i;
+            m_proc_to_tile_list_map[i].push_back(*tile_it);
+         }
+      }
    }
-
+    
    // Assign the thread-spawners to tiles
    // Thread-spawners occupy tile-id's (m_total_tiles - m_num_processes - 1) to (m_total_tiles - 2)
-   current_proc = 0;
+   UInt32 current_proc = 0;
    for (UInt32 i = (m_total_tiles - m_num_processes - 1); i < (m_total_tiles - 1); i++)
    {
+      assert((current_proc >= 0) && (current_proc < m_num_processes));
       m_tile_to_proc_map[i] = current_proc;
       m_proc_to_tile_list_map[current_proc].push_back(i);
       current_proc++;
-      current_proc %= m_num_processes;
    }
    
    // Add one for the MCP
    m_proc_to_tile_list_map[0].push_back(m_total_tiles - 1);
    m_tile_to_proc_map[m_total_tiles - 1] = 0;
+
+   // printProcessToTileMapping();
+}
+
+vector<Config::TileList>
+Config::computeProcessToTileMapping()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
+      pair<bool,vector<TileList> > process_to_tile_mapping_struct = NetworkModel::computeProcessToTileMapping(network_model);
+      if (process_to_tile_mapping_struct.first)
+      {
+         switch(network_model)
+         {
+            case NETWORK_EMESH_HOP_BY_HOP_BASIC:
+            case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
+               return process_to_tile_mapping_struct.second;
+               break;
+
+            default:
+               fprintf(stderr, "Unrecognized Network Type(%u)\n", network_model);
+               exit(EXIT_FAILURE);
+         }
+      }
+   }
+   
+   vector<TileList> process_to_tile_mapping(m_num_processes);
+   UInt32 current_proc = 0;
+   for (UInt32 i = 0; i < m_total_tiles; i++)
+   {
+      process_to_tile_mapping[current_proc].push_back(i);
+      current_proc = (current_proc + 1) % m_num_processes;
+   }
+   return process_to_tile_mapping;
+}
+
+void Config::printProcessToTileMapping()
+{
+   UInt32 curr_process_num = atoi(getenv("CARBON_PROCESS_INDEX"));
+   if (curr_process_num == 0)
+   {
+      for (UInt32 i = 0; i < m_num_processes; i++)
+      {
+         fprintf(stderr, "\nProcess(%u): %u\n", i, (UInt32) m_proc_to_tile_list_map[i].size());
+         for (TileList::iterator tile_it = m_proc_to_tile_list_map[i].begin(); \
+               tile_it != m_proc_to_tile_list_map[i].end(); tile_it++)
+         {
+            fprintf(stderr, "%i, ", *tile_it);
+         }
+         fprintf(stderr, "\n\n");
+      }
+   }
+   exit(-1);
 }
 
 void Config::logTileMap()
@@ -284,9 +346,10 @@ Config::SimulationMode Config::parseSimulationMode(string mode)
    else if (mode == "lite")
       return LITE;
    else
-      LOG_PRINT_ERROR("Unrecognized Simulation Mode(%s)", mode.c_str());
-
-   return NUM_SIMULATION_MODES;
+   {
+      fprintf(stderr, "Unrecognized Simulation Mode(%s)\n", mode.c_str());
+      exit(EXIT_FAILURE);
+   }
 }
 
 void Config::parseCoreParameters()

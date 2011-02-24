@@ -78,6 +78,11 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonBarrierInit") msg_ptr = AFUNPTR(replacementBarrierInit);
    else if (name == "CarbonBarrierWait") msg_ptr = AFUNPTR(replacementBarrierWait);
 
+   // Enable/Disable/Reset Models
+   else if (name == "CarbonEnableModels") msg_ptr = AFUNPTR(replacementEnableModels);
+   else if (name == "CarbonDisableModels") msg_ptr = AFUNPTR(replacementDisableModels);
+   else if (name == "CarbonResetModels") msg_ptr = AFUNPTR(replacementResetModels);
+
    // Resetting Cache Counters
    else if (name == "CarbonResetCacheCounters") msg_ptr = AFUNPTR(replacementResetCacheCounters);
    else if (name == "CarbonDisableCacheCounters") msg_ptr = AFUNPTR(replacementDisableCacheCounters);
@@ -113,10 +118,23 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    {
       RTN_Open (rtn);
 
-      RTN_InsertCall (rtn, IPOINT_AFTER,
-                      AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
-                      IARG_END);
+      // Before main()
+      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      {
+         RTN_InsertCall(rtn, IPOINT_BEFORE,
+               AFUNPTR(Simulator::enablePerformanceModelsInCurrentProcess),
+               IARG_END);
+      }
 
+      RTN_InsertCall(rtn, IPOINT_BEFORE,
+            AFUNPTR(CarbonInitModels),
+            IARG_END);
+
+      // After main()
+      RTN_InsertCall(rtn, IPOINT_AFTER,
+            AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
+            IARG_END);
+      
       RTN_Close (rtn);
    }
 
@@ -170,13 +188,7 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
-      LOG_PRINT("Starting enablePerformanceModelsInCurrentProcess()");
-      Simulator::enablePerformanceModelsInCurrentProcess();
-      LOG_PRINT("Finished enablePerformanceModelsInCurrentProcess()");
-      
-      LOG_PRINT("Starting spawnThreadSpawner()");
       spawnThreadSpawner(ctxt);
-      LOG_PRINT("Finished spawnThreadSpawner()");
 
       LOG_PRINT("ReplaceMain end");
 
@@ -188,8 +200,6 @@ void replacementMain (CONTEXT *ctxt)
       Core *core = Sim()->getTileManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
       core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_FINI);
-
-      Simulator::enablePerformanceModelsInCurrentProcess();
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -821,7 +831,31 @@ void replacementPthreadBarrierWait (CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }
-  
+
+void replacementEnableModels(CONTEXT* ctxt)
+{
+   CarbonEnableModels();
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementDisableModels(CONTEXT* ctxt)
+{
+   CarbonDisableModels();
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementResetModels(CONTEXT* ctxt)
+{
+   CarbonResetModels();
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
 void replacementResetCacheCounters (CONTEXT *ctxt)
 {
    CarbonResetCacheCounters();

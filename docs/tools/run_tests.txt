@@ -40,4 +40,4 @@ Current Limitations
 
 1) Currently, 'comments' in the configuration file are not supported -  This feature is currently being added
 2) The example configuration files should not be used to run tests. They are just provided as examples to illustrate the features of the automatic test script
-3) 'run_tests.py' must always be run from the simulator root directory, i.e, as './tools/run_tests.py' - A workaround for this would be to use an environment variable like '$GRAPHITE_ROOT' to specify the simulator root directory and is currently being added
+3) 'run_tests.py' must always be run from the simulator root directory, i.e, as './tools/run_tests.py' - A workaround for this would be to use an environment variable like '$GRAPHITE_HOME' to specify the simulator root directory and is currently being added

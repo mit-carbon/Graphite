@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <sstream>
 
 #include "simulator.h"
@@ -75,7 +76,9 @@ void Simulator::start()
    m_config.logTileMap();
 
    // Create Orion Config Object
-   string orion_cfg_file = "./contrib/orion/orion.cfg";
+   char* graphite_home = getenv("GRAPHITE_HOME");
+   string graphite_home_str = (graphite_home) ? ((string)graphite_home) : ".";
+   string orion_cfg_file = graphite_home_str + "/contrib/orion/orion.cfg";
    OrionConfig::allocate(orion_cfg_file);
    //OrionConfig::getSingleton()->print_config(cout);
  
@@ -252,5 +255,11 @@ void Simulator::disablePerformanceModelsInCurrentProcess()
    Sim()->stopTimer();
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
       Sim()->getTileManager()->getTileFromIndex(i)->disablePerformanceModels();
+}
+
+void Simulator::resetPerformanceModelsInCurrentProcess()
+{
+   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
+      Sim()->getTileManager()->getTileFromIndex(i)->resetPerformanceModels();
 }
 

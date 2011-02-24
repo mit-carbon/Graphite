@@ -14,6 +14,8 @@ public:
    void updateDynamicEnergy(UInt32 num_bit_flips, UInt32 num_flits = 1);
    volatile double getDynamicEnergy() { return _total_dynamic_energy; }
 
+   void resetCounters() { _total_dynamic_energy = 0; }
+
 private:
    volatile float _frequency;
    volatile double _link_length;

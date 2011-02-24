@@ -43,7 +43,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(tile_id_t tile_id,
    m_directory_type = Directory::parseDirectoryType(dram_directory_type_str);
 
    // Update Counters
-   initializePerfCounters();
+   initializePerformanceCounters();
 }
 
 DramDirectoryCntlr::~DramDirectoryCntlr()
@@ -86,6 +86,7 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          break;
 
       case ShmemMsg::INV_REP:
+      case ShmemMsg::INV_REP_UNMODELED:
          processInvRepFromL2Cache(sender, shmem_msg);
          break;
 
@@ -814,7 +815,7 @@ DramDirectoryCntlr::sendDataToDram(IntPtr address, tile_id_t requester, Byte* da
 }
 
 void
-DramDirectoryCntlr::initializePerfCounters()
+DramDirectoryCntlr::initializePerformanceCounters()
 {
    m_num_exreq = 0;
    m_num_shreq = 0;

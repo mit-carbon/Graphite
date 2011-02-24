@@ -17,11 +17,9 @@ MagicPerformanceModel::~MagicPerformanceModel()
 
 void MagicPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << getInstructionCount() << endl;
-   frequencySummary(os);
-
-   if (getBranchPredictor())
-      getBranchPredictor()->outputSummary(os);
+   os << "Core Performance Model Summary:" << endl;
+   os << "    Instructions: " << getInstructionCount() << endl;
+   CorePerfModel::outputSummary(os);
 }
 
 void MagicPerformanceModel::handleInstruction(Instruction *instruction)
@@ -82,4 +80,11 @@ bool MagicPerformanceModel::isModeled(InstructionType instruction_type)
       default:
          return false;
    }
+}
+
+void
+MagicPerformanceModel::reset()
+{
+   CorePerfModel::reset();
+   m_instruction_count = 0;
 }

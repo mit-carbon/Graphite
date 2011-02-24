@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include "carbon_user.h"
 
 #define DEFAULT_P                    1
 #define DEFAULT_N               262144
@@ -460,6 +461,8 @@ void slave_sort()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+   // Reset Models
+   CarbonEnableModels();
 
    BARRIER(global->barrier_key, number_of_processors) 
 

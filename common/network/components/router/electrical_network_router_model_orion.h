@@ -6,7 +6,7 @@
 class ElectricalNetworkRouterModelOrion : public ElectricalNetworkRouterModel
 {
 public:
-   ElectricalNetworkRouterModelOrion(UInt32 num_ports, UInt32 num_flits_per_buffer, UInt32 flit_width);
+   ElectricalNetworkRouterModelOrion(UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_buffer, UInt32 flit_width);
    ~ElectricalNetworkRouterModelOrion();
 
    // Update Dynamic Energy
@@ -62,6 +62,12 @@ public:
    volatile double getTotalStaticPower()
    {
       return (_orion_router->get_static_power_buf() + _orion_router->get_static_power_xbar() + _orion_router->get_static_power_sa() + _orion_router->get_static_power_clock());
+   }
+
+   // Reset Counters
+   void resetCounters()
+   {
+      initializeCounters();
    }
 
 private:

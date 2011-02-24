@@ -143,5 +143,5 @@ MemoryManagerBase::printTileListWithMemoryControllers(vector<tile_id_t>& tile_li
    {
       tile_list << *it << " ";
    }
-   fprintf(stderr, "Tile IDs' with memory controllers = (%s)\n", (tile_list.str()).c_str());
+   fprintf(stderr, "\n[[Graphite]] --> [ Tile IDs' with memory controllers = (%s) ]\n", (tile_list.str()).c_str());
 }

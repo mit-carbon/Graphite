@@ -1,3 +1,4 @@
+PARSEC_HOME = /path/to/parsec
 
 
 PARSEC_DIR=/afs/csail.mit.edu/group/carbon/benchmarks/parsec/parsec-2.1
@@ -17,6 +18,6 @@ x264_flags ?=  --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-
 include tests/Makefile.tests
 
 %_parsec:
-	mkdir -p $(PARSEC_DIR)/pkgs/apps/$(patsubst %_parsec,%,$@)/run/output_files
-	cd $(PARSEC_DIR)/pkgs/apps/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_DIR)/pkgs/apps/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
+	mkdir -p $(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/run/output_files
+	cd $(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
 

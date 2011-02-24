@@ -68,12 +68,15 @@ namespace PrL1PrL2DramDirectoryMSI
 
          void enableModels();
          void disableModels();
+         void resetModels();
 
          tile_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
          UInt32 getModeledLength(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+         bool isModeled(const void* pkt_data)
+         { return true; }
 
          void outputSummary(std::ostream &os);
 

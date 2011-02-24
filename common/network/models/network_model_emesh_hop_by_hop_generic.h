@@ -25,8 +25,8 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
    private:
       // Fields
       tile_id_t m_tile_id;
-      SInt32 m_mesh_width;
-      SInt32 m_mesh_height;
+      static SInt32 m_mesh_width;
+      static SInt32 m_mesh_height;
 
       // Router & Link Parameters
       UInt32 m_num_router_ports;
@@ -44,11 +44,17 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       // Lock
       Lock m_lock;
 
-      // Counters
+      // Performance Counters
       UInt64 m_total_bytes_received;
       UInt64 m_total_packets_received;
       UInt64 m_total_contention_delay;
       UInt64 m_total_packet_latency;
+
+      // Activity Counters
+      UInt64 m_switch_allocator_traversals;
+      UInt64 m_crossbar_traversals;
+      UInt64 m_buffer_accesses;
+      UInt64 m_link_traversals;
 
       // Functions
       void computePosition(tile_id_t tile, SInt32 &x, SInt32 &y);
@@ -64,16 +70,25 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
             tile_id_t requester);
       UInt64 computeProcessingTime(UInt32 pkt_length);
       tile_id_t getNextDest(tile_id_t final_dest, OutputDirection& direction);
+      tile_id_t getRequester(const NetPacket& pkt);
 
       // Injection & Ejection Port Queue Models
       UInt64 computeInjectionPortQueueDelay(tile_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
       UInt64 computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length);
 
+      static void initializeEMeshTopologyParams();
       void createQueueModels();
       void destroyQueueModels();
+      void resetQueueModels();
 
+      // Router & Link Models
       void createRouterAndLinkModels();
       void destroyRouterAndLinkModels();
+
+      // Performance Counters
+      void initializePerformanceCounters();
+      // Activity Counters for Power
+      void initializeActivityCounters();
       
       // Update Dynamic Energy
       void updateDynamicEnergy(const NetPacket& pkt, bool is_buffered, UInt32 contention);
@@ -111,12 +126,15 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
 
       static std::pair<bool,std::vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
       static std::pair<bool,SInt32> computeTileCountConstraints(SInt32 tile_count);
+      static std::pair<bool,std::vector<Config::TileList> > computeProcessToTileMapping();
+
       static SInt32 computeNumHops(tile_id_t sender, tile_id_t receiver);
 
       void outputSummary(std::ostream &out);
 
       void enable();
       void disable();
+      void reset();
 };
 
 #endif /* __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__ */

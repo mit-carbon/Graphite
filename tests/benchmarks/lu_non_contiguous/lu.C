@@ -39,6 +39,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include "carbon_user.h"
+
 MAIN_ENV
 
 #define MAXRAND					32767.0
@@ -354,6 +356,8 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+  // Reset Models
+  CarbonEnableModels();
 
   if ((MyNum == 0) || (dostats)) {
     CLOCK(myrs);
@@ -456,7 +460,7 @@ void daxpy(double *a, double *b, long n, double alpha)
 long BlockOwner(long I, long J)
 {
 //	return((I%num_cols) + (J%num_rows)*num_cols);
-	return((I + J) % P);
+	return((I + J*nblocks) % P);
 }
 
 long BlockOwnerColumn(long I, long J)

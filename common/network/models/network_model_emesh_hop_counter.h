@@ -24,6 +24,7 @@ public:
 
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
+   void reset();
 
 private:
 
@@ -53,13 +54,20 @@ private:
    UInt64 _num_bytes;
    UInt64 _total_latency;
 
+   // Activity Counters
+   UInt64 _switch_allocator_traversals;
+   UInt64 _crossbar_traversals;
+   UInt64 _link_traversals;
+
    // Private Functions
    void computePosition(tile_id_t tile, SInt32 &x, SInt32 &y);
    SInt32 computeDistance(SInt32 x1, SInt32 y1, SInt32 x2, SInt32 y2);
 
    UInt64 computeProcessingTime(UInt32 pkt_length);
+   tile_id_t getRequester(const NetPacket& pkt);
 
    void initializePerformanceCounters();
+   void initializeActivityCounters();
 
    // Power/Energy related
    void createRouterAndLinkModels();

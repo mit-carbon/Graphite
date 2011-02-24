@@ -67,7 +67,7 @@ class Core
       Core(Tile *tile);
       virtual ~Core();
 
-      static Core *create(Tile* tile, core_type_t core_type);
+      static Core *create(Tile* tile, core_type_t core_type = MAIN_CORE_TYPE);
 
       int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
       int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);

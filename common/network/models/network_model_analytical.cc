@@ -21,13 +21,6 @@ using namespace std;
 
 NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id)
       : NetworkModel(net, network_id)
-      , _bytesSent(0)
-      , _cyclesProc(0)
-      , _cyclesLatency(0)
-      , _cyclesContention(0)
-      , _globalUtilization(0)
-      , _localUtilizationLastUpdate(0)
-      , _localUtilizationFlitsSent(0)
       , m_enabled(false)
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
@@ -49,11 +42,24 @@ NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id)
    {
       LOG_PRINT_ERROR("Some analytical network parameters not available.");
    }
+
+   initializePerformanceCounters();
 }
 
 NetworkModelAnalytical::~NetworkModelAnalytical()
 {
    getNetwork()->unregisterCallback(MCP_UTILIZATION_UPDATE_TYPE);
+}
+
+void NetworkModelAnalytical::initializePerformanceCounters()
+{
+   _bytesSent = 0;
+   _cyclesProc = 0;
+   _cyclesLatency = 0;
+   _cyclesContention = 0;
+   _globalUtilization = 0;
+   _localUtilizationLastUpdate = 0;
+   _localUtilizationFlitsSent = 0;
 }
 
 UInt32 NetworkModelAnalytical::computeAction(const NetPacket& pkt)
@@ -284,4 +290,9 @@ void NetworkModelAnalytical::enable()
 void NetworkModelAnalytical::disable()
 {
    m_enabled = false;
+}
+
+void NetworkModelAnalytical::reset()
+{
+   initializePerformanceCounters();
 }

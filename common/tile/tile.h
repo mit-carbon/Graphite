@@ -52,6 +52,7 @@ class Tile
 
       void enablePerformanceModels();
       void disablePerformanceModels();
+      void resetPerformanceModels();
 
    private:
       tile_id_t m_tile_id;

@@ -14,8 +14,7 @@ filename = "/afs/csail.mit.edu/u/e/elau/graphite/carbon_sim/contrib/orion/orion.
 std::cout << filename.c_str() << std::endl;	
 
 	// Construct a ConfigFile, getting keys and values from given file
-  
-   std::ifstream in( filename.c_str() );
+	std::ifstream in( filename.c_str() );
 	
 	if( !in ) throw file_not_found( filename ); 
 	

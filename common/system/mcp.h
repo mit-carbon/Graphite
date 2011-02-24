@@ -37,7 +37,7 @@ class MCP : public Runnable
       VMManager m_vm_manager;
       SyscallServer m_syscall_server;
       SyncServer m_sync_server;
-      ClockSkewMinimizationServer *m_clock_skew_minimization_server;
+      ClockSkewMinimizationServer* m_clock_skew_minimization_server;
       NetworkModelAnalyticalServer m_network_model_analytical_server;
 
 };

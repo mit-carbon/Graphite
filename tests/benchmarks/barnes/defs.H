@@ -19,7 +19,7 @@
 
 //#include <assert.h>
 
-#define MAX_PROC 128
+#define MAX_PROC 1024
 #define MAX_BODIES_PER_LEAF 10
 #define MAXLOCK 2048            	/* maximum number of locks on DASH */
 #define PAGE_SIZE 4096			/* in bytes */

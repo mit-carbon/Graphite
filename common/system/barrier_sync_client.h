@@ -24,6 +24,7 @@ class BarrierSyncClient : public ClockSkewMinimizationClient
 
       void enable() {}
       void disable() {}
+      void reset() {}
 
       void synchronize(UInt64 cycle_count);
       void netProcessSyncMsg(const NetPacket& packet) { assert(false); }

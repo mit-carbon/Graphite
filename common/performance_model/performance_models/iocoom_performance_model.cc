@@ -28,10 +28,7 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core, float frequency)
       LOG_PRINT_ERROR("Config info not available.");
    }
 
-   for (unsigned int i = 0; i < m_register_scoreboard.size(); i++)
-   {
-      m_register_scoreboard[i] = 0;
-   }
+   initializeRegisterScoreboard();
 }
 
 IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
@@ -42,11 +39,9 @@ IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
 
 void IOCOOMPerformanceModel::outputSummary(std::ostream &os)
 {
-   os << "  Instructions: " << m_instruction_count << std::endl;
-   frequencySummary(os);
-
-   if (getBranchPredictor())
-      getBranchPredictor()->outputSummary(os);
+   os << "Core Performance Model Summary:" << endl;
+   os << "    Instructions: " << m_instruction_count << std::endl;
+   CorePerfModel::outputSummary(os);
 }
 
 void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
@@ -219,15 +214,30 @@ void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
    m_cycle_count += access_time;
 }
 
+void IOCOOMPerformanceModel::initializeRegisterScoreboard()
+{
+   for (unsigned int i = 0; i < m_register_scoreboard.size(); i++)
+   {
+      m_register_scoreboard[i] = 0;
+   }
+}
+
+void IOCOOMPerformanceModel::reset()
+{
+   CorePerfModel::reset();
+
+   m_instruction_count = 0;
+   initializeRegisterScoreboard();
+   m_store_buffer->reset();
+   m_load_unit->reset();
+}
+
 // Helper classes 
 
 IOCOOMPerformanceModel::LoadUnit::LoadUnit(unsigned int num_units)
    : m_scoreboard(num_units)
 {
-   for (unsigned int i = 0; i < m_scoreboard.size(); i++)
-   {
-      m_scoreboard[i] = 0;
-   }
+   initialize();
 }
 
 IOCOOMPerformanceModel::LoadUnit::~LoadUnit()
@@ -258,15 +268,24 @@ UInt64 IOCOOMPerformanceModel::LoadUnit::execute(UInt64 time, UInt64 occupancy)
    return m_scoreboard[unit] - occupancy;
 }
 
-IOCOOMPerformanceModel::StoreBuffer::StoreBuffer(unsigned int num_entries)
-   : m_scoreboard(num_entries)
-   , m_addresses(num_entries)
+void IOCOOMPerformanceModel::LoadUnit::initialize()
 {
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {
       m_scoreboard[i] = 0;
-      m_addresses[i] = 0;
    }
+}
+
+void IOCOOMPerformanceModel::LoadUnit::reset()
+{
+   initialize();
+}
+
+IOCOOMPerformanceModel::StoreBuffer::StoreBuffer(unsigned int num_entries)
+   : m_scoreboard(num_entries)
+   , m_addresses(num_entries)
+{
+   initialize();
 }
 
 IOCOOMPerformanceModel::StoreBuffer::~StoreBuffer()
@@ -327,4 +346,18 @@ IOCOOMPerformanceModel::StoreBuffer::Status IOCOOMPerformanceModel::StoreBuffer:
    }
    
    return NOT_FOUND;
+}
+
+void IOCOOMPerformanceModel::StoreBuffer::initialize()
+{
+   for (unsigned int i = 0; i < m_scoreboard.size(); i++)
+   {
+      m_scoreboard[i] = 0;
+      m_addresses[i] = 0;
+   }
+}
+
+void IOCOOMPerformanceModel::StoreBuffer::reset()
+{
+   initialize();
 }

@@ -7,6 +7,7 @@ class Network;
 #include <string>
 #include <vector>
 
+#include "config.h"
 #include "packet_type.h"
 #include "fixed_types.h"
 
@@ -78,15 +79,18 @@ class NetworkModel
 
       virtual void enable() = 0;
       virtual void disable() = 0;
+      virtual void reset() = 0;
 
       static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
       static UInt32 parseNetworkType(std::string str);
 
       static std::pair<bool,SInt32> computeTileCountConstraints(UInt32 network_type, SInt32 tile_count);
       static std::pair<bool, std::vector<tile_id_t> > computeMemoryControllerPositions(UInt32 network_type, SInt32 num_memory_controllers, SInt32 total_tiles);
+      static std::pair<bool, std::vector<Config::TileList> > computeProcessToTileMapping(UInt32 network_type);
 
    protected:
       Network *getNetwork() { return _network; }
+      SInt32 getNetworkId() { return _network_id; }
 
    private:
       Network *_network;

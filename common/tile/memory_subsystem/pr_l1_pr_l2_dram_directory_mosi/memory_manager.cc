@@ -119,8 +119,8 @@ MemoryManager::MemoryManager(Tile* tile,
    m_network_thread_sem = new Semaphore(0);
 
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
-   if (getTile()->getId() == 0)
-      printTileListWithMemoryControllers(tile_list_with_dram_controllers);
+   //if (getTile()->getId() == 0)
+      //printTileListWithMemoryControllers(tile_list_with_dram_controllers);
    
    if (find(tile_list_with_dram_controllers.begin(), tile_list_with_dram_controllers.end(), getTile()->getId()) \
          != tile_list_with_dram_controllers.end())
@@ -459,6 +459,20 @@ MemoryManager::disableModels()
    {
       m_dram_directory_cntlr->disable();
       m_dram_cntlr->getDramPerfModel()->disable();
+   }
+}
+
+void
+MemoryManager::resetModels()
+{
+   m_l1_cache_cntlr->getL1ICache()->reset();
+   m_l1_cache_cntlr->getL1DCache()->reset();
+   m_l2_cache_cntlr->getL2Cache()->reset();
+
+   if (m_dram_cntlr_present)
+   {
+      m_dram_directory_cntlr->reset();
+      m_dram_cntlr->getDramPerfModel()->reset();
    }
 }
 

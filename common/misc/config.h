@@ -21,13 +21,6 @@
 class Config
 {
 public:
-   enum SimulationMode
-   {
-      FULL = 0,
-      LITE,
-      NUM_SIMULATION_MODES
-   };
-
    class CoreParameters
    {
       private:
@@ -70,14 +63,15 @@ public:
          volatile float getFrequency() { return m_frequency; }
          std::string getType() { return m_type; }
    };
-   
-   //typedef std::vector<UInt32> TileToProcMap;
-   //typedef std::vector<tile_id_t> TileList;
-   //typedef std::vector<tile_id_t>::const_iterator CLCI;
-   //typedef std::map<UInt32,tile_id_t> CommToTileMap;
 
-   typedef std::vector<UInt32> TileToProcMap;
+   enum SimulationMode
+   {
+      FULL = 0,
+      LITE,
+      NUM_SIMULATION_MODES
+   };
    typedef std::vector<tile_id_t> TileList;
+   typedef std::vector<UInt32> TileToProcMap;
    typedef std::vector<tile_id_t>::const_iterator TLCI;
    typedef std::map<UInt32,tile_id_t> CommToTileMap;
 
@@ -178,6 +172,8 @@ public:
 
 private:
    void GenerateTileMap();
+   std::vector<TileList> computeProcessToTileMapping();
+   void printProcessToTileMapping();
    
    UInt32  m_num_processes;         // Total number of processes (incl myself)
    UInt32  m_total_tiles;           // Total number of tiles in all processes

@@ -12,7 +12,7 @@ using namespace std;
 #include "log.h"
 #include "utils.h"
 
-// #define DETAILED_TRACKING_ENABLED    1
+#define DETAILED_TRACKING_ENABLED    1
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -59,12 +59,9 @@ DramDirectoryCache::initializeParameters(UInt32 num_dram_cntlrs)
 
    m_log_num_sets = floorLog2(m_num_sets);
    m_log_cache_block_size = floorLog2(m_cache_block_size);
+
    m_log_num_tiles = floorLog2(num_tiles);
-   
-   if (isPower2(num_dram_cntlrs))
-      m_log_num_dram_cntlrs = floorLog2(num_dram_cntlrs);
-   else
-      m_log_num_dram_cntlrs = 0;
+   m_log_num_dram_cntlrs = ceilLog2(num_dram_cntlrs); 
 
    IntPtr stack_size = boost::lexical_cast<IntPtr> (Sim()->getCfg()->get("stack/stack_size_per_core"));
    LOG_ASSERT_ERROR(isPower2(stack_size), "stack_size(%#llx) should be a power of 2", stack_size);
@@ -212,16 +209,18 @@ DramDirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 IntPtr
 DramDirectoryCache::computeSetIndex(IntPtr address)
 {
-   IntPtr tile_id = (address >> m_log_stack_size) & ((1 << m_log_num_tiles) - 1);
+   UInt32 num_tile_id_bits = (m_log_num_tiles <= m_log_num_sets) ? m_log_num_tiles : m_log_num_sets;
+   IntPtr tile_id_bits = (address >> m_log_stack_size) & ((1 << num_tile_id_bits) - 1);
 
-   UInt32 log_num_sub_block_bits = m_log_num_sets - m_log_num_tiles;
+   UInt32 log_num_sub_block_bits = m_log_num_sets - num_tile_id_bits;
+
    IntPtr sub_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs)) \
                          & ((1 << log_num_sub_block_bits) - 1);
 
    IntPtr super_block_id = (address >> (m_log_cache_block_size + m_log_num_dram_cntlrs + log_num_sub_block_bits)) \
-                           & ((1 << m_log_num_tiles) - 1);
+                           & ((1 << num_tile_id_bits) - 1);
 
-   return ((tile_id ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
+   return ((tile_id_bits ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
 }
 
 void
@@ -269,8 +268,9 @@ DramDirectoryCache::outputSummary(ostream& out)
    }
 
 #ifdef DETAILED_TRACKING_ENABLED
-   tile_id_t tile_id = m_memory_manager->getTile()->getId();
-   string output_dir = Sim()->getCfg()->getString("general/output_dir", "");
+   /*
+   tile_id_t tile_id = m_memory_manager->getCore()->getId();
+   string output_dir = Sim()->getCfg()->getString("general/output_dir", "./output_files/");
 
    ostringstream filename;
    filename << output_dir << "/address_set_" << tile_id;
@@ -281,6 +281,7 @@ DramDirectoryCache::outputSummary(ostream& out)
       address_set_file << setfill(' ') << setw(20) << left << hex << (*it).first << dec
          << setw(10) << left << (*it).second << "\n";
    address_set_file.close();
+    */
 
    UInt32 max_set_size = 0;
    UInt32 min_set_size = 100000000;

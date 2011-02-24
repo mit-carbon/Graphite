@@ -76,6 +76,17 @@ void Tile::disablePerformanceModels()
    getCore()->getPerformanceModel()->disable();
 }
 
+void Tile::resetPerformanceModels()
+{
+   if (getCore()->getClockSkewMinimizationClient())
+      getCore()->getClockSkewMinimizationClient()->reset();
+
+   getCore()->getShmemPerfModel()->reset();
+   getCore()->getMemoryManager()->resetModels();
+   getCore()->getNetwork()->resetModels();
+   getCore()->getPerformanceModel()->reset();
+}
+
 void
 Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {

@@ -63,9 +63,11 @@ class MemoryManagerBase
 
       virtual void enableModels() = 0;
       virtual void disableModels() = 0;
+      virtual void resetModels() = 0;
 
       // Modeling
       virtual UInt32 getModeledLength(const void* pkt_data) = 0;
+      virtual bool isModeled(const void* pkt_data) = 0;
 
       Tile* getTile() { return m_tile; }
       

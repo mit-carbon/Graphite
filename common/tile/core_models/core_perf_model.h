@@ -46,6 +46,7 @@ public:
    void disable();
    void enable();
    bool isEnabled() { return m_enabled; }
+   virtual void reset();
 
    virtual void outputSummary(std::ostream &os) = 0;
 
@@ -69,6 +70,10 @@ private:
 
    virtual void handleInstruction(Instruction *instruction) = 0;
 
+   // Instruction Counters
+   void initializeInstructionCounters();
+   void updateInstructionCounters(Instruction* i);
+
    Core* m_core;
 
    volatile float m_frequency;
@@ -88,6 +93,12 @@ private:
    UInt32 m_current_ins_index;
 
    BranchPredictor *m_bp;
+
+   // Instruction Counters
+   UInt64 m_total_recv_instructions;
+   UInt64 m_total_recv_instruction_costs;
+   UInt64 m_total_sync_instructions;
+   UInt64 m_total_sync_instruction_costs;
 };
 
 #endif

@@ -8,12 +8,12 @@ import subprocess
 
 # get sim root from environment variable, or use pwd
 def get_sim_root():
-    sim_root = os.environ.get('GRAPHITE_ROOT')
+    sim_root = os.environ.get('GRAPHITE_HOME')
 
     if sim_root == None:
         pwd = os.environ.get('PWD')
         assert(pwd != None)
-        print "[spawn.py] 'GRAPHITE_ROOT' undefined. Setting 'GRAPHITE_ROOT' to '" + pwd
+        print "[spawn.py] 'GRAPHITE_HOME' undefined. Setting 'GRAPHITE_HOME' to '" + pwd
         return pwd
 
     return sim_root

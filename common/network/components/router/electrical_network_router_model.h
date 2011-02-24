@@ -39,5 +39,8 @@ public:
    virtual volatile double getStaticPowerClock() = 0;
    virtual volatile double getTotalStaticPower() = 0;
 
-   static ElectricalNetworkRouterModel* create(UInt32 num_ports, UInt32 num_flits_per_buffer, UInt32 flit_width, bool use_orion = true);
+   // Reset Counters
+   virtual void resetCounters() = 0;
+
+   static ElectricalNetworkRouterModel* create(UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_buffer, UInt32 flit_width, bool use_orion = true);
 };

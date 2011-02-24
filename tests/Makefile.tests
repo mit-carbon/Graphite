@@ -36,6 +36,7 @@ PIN_TOOL?=$(SIM_ROOT)/lib/pin_sim
 
 # PIN_RUN=$(PIN_BIN) -pause_tool 10 -mt -t $(PIN_TOOL)
 PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL)
+VALGRIND = # valgrind --leak-check=yes
 
 PROCS ?= 1
 CORES ?= 64
@@ -54,7 +55,7 @@ EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
 launch_fn = $(SIM_ROOT)/tools/spawn.py $(1) $(2) # 1 - NUM_PROCS # 2 - config file
 
 # Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
-run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(5)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(5)) $(2) $(4)))
+run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(5)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(5)) $(VALGRIND) $(2) $(4)))
 RUN ?= cd $(SIM_ROOT) ; $(call run_fn,$(MODE),$(EXEC),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
 
 # Build targets

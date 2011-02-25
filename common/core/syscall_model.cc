@@ -229,6 +229,16 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
          m_ret_val = marshallFutexCall (args);
          break;
 
+      case SYS_rmdir:
+         m_called_enter = true;
+         m_ret_val = marshallRmdirCall(args);
+         break;
+
+      case SYS_unlink:
+         m_called_enter = true;
+         m_ret_val = marshallUnlinkCall(args);
+         break;
+     
       case -1:
       default:
          break;
@@ -1216,6 +1226,59 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       return (carbon_reg_t) syscall (SYS_futex, uaddr, op, val, timeout, uaddr2, val3);
    }
 }
+
+IntPtr SyscallMdl::marshallUnlinkCall(syscall_args_t &args)
+{
+   /*
+       Syscall Args
+       const char *pathname
+
+
+       Transmit Protocol
+
+       Field               Type
+       -----------------|--------
+       LEN_FNAME           UInt32
+       FILE_NAME           char[]
+
+       Receive Protocol
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+
+   */
+
+   char *path = (char *)args.arg0;
+
+   UInt32 len_fname = getStrLen (path) + 1;
+   
+   char *path_buf = new char [len_fname];
+   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
+
+   m_send_buff << len_fname << make_pair(path_buf, len_fname);
+   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   assert(recv_pkt.length == sizeof(int));
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   int status;
+   m_recv_buff >> status;
+
+   delete [] path_buf;
+   delete [] (Byte*) recv_pkt.data;
+
+   return status;
+}
+
+IntPtr SyscallMdl::marshallRmdirCall(syscall_args_t &args)
+{
+  return(this->marshallUnlinkCall(args));
+}
+
 
 // Helper functions
 UInt32 SyscallMdl::getStrLen (char *str)

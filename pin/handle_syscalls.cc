@@ -113,6 +113,7 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
    IntPtr syscall_number = PIN_GetSyscallNumber (ctx, syscall_standard);
    
    string core_null = core ? "CORE != NULL" : "CORE == NULL";
+
    LOG_PRINT("syscall_number %d, %s", syscall_number, core_null.c_str());
 
    if (core)
@@ -127,6 +128,8 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_rmdir) ||
+            (syscall_number == SYS_unlink) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
@@ -287,6 +290,8 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_rmdir) ||
+            (syscall_number == SYS_unlink) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||

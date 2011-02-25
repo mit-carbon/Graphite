@@ -133,6 +133,14 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       marshallFutexCall (core_id);
       break;
 
+   case SYS_rmdir:
+      marshallRmdirCall (core_id);
+      break;
+
+   case SYS_unlink:
+      marshallUnlinkCall (core_id);
+      break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
       break;
@@ -602,6 +610,91 @@ void SyscallServer::marshallBrkCall (core_id_t core_id)
    m_send_buff.put(new_end_data_segment);
 
    m_network.netSend (core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
+
+void SyscallServer::marshallRmdirCall(core_id_t core_id)
+{
+
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       LEN_FNAME           UInt32
+       FILE_NAME           char[]
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+
+   */
+
+   UInt32 len_fname;
+   char *path = (char *) m_scratch;
+
+   m_recv_buff >> len_fname;
+
+   if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
+      path = new char[len_fname];
+
+   m_recv_buff >> make_pair(path, len_fname);
+
+   // Actually do rmdir open call
+   int ret = syscall(SYS_rmdir, path);
+
+   m_send_buff << ret;
+
+   LOG_PRINT("Rmdir(%s) returns %i", path, ret);
+   
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
+      delete[] path;
+}
+
+
+void SyscallServer::marshallUnlinkCall(core_id_t core_id)
+{
+
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       LEN_FNAME           UInt32
+       FILE_NAME           char[]
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+
+   */
+
+   UInt32 len_fname;
+   char *path = (char *) m_scratch;
+
+   m_recv_buff >> len_fname;
+
+   if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
+      path = new char[len_fname];
+
+   m_recv_buff >> make_pair(path, len_fname);
+
+   // Actually do the unlink call
+   int ret = syscall(SYS_unlink, path);
+
+   m_send_buff << ret;
+
+   LOG_PRINT("Unlink(%s) returns %i", path, ret);
+   
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
+      delete[] path;
 }
 
 void SyscallServer::marshallFutexCall (core_id_t core_id)

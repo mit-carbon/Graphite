@@ -34,6 +34,10 @@ McPATCache::McPATCache()
    {
       LOG_PRINT_ERROR("Could not read McPAT home location");
    }
+   if (_mcpat_home == "/path/to/McPAT")
+   {
+      LOG_PRINT_ERROR("Enter Correct Path to McPAT installation");
+   }
 }
 
 McPATCache::~McPATCache()

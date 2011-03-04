@@ -46,6 +46,8 @@ public:
    void stopTimer();
    bool finished();
 
+   std::string getGraphiteHome() { return _graphite_home; }
+
 private:
 
    void startMCP();
@@ -83,6 +85,8 @@ private:
    UInt64 m_shutdown_time;
    
    static config::Config *m_config_file;
+
+   std::string _graphite_home;
 };
 
 __attribute__((unused)) static Simulator *Sim()

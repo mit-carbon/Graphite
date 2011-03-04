@@ -15,6 +15,8 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
       UInt32 cache_block_size,
       UInt32 l2_cache_size, UInt32 l2_cache_associativity,
       std::string l2_cache_replacement_policy,
+      UInt32 l2_cache_access_delay,
+      volatile float frequency,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_l1_cache_cntlr(l1_cache_cntlr),
@@ -30,7 +32,9 @@ L2CacheCntlr::L2CacheCntlr(core_id_t core_id,
          l2_cache_associativity, 
          m_cache_block_size, 
          l2_cache_replacement_policy, 
-         CacheBase::PR_L2_CACHE);
+         CacheBase::PR_L2_CACHE,
+         l2_cache_access_delay,
+         frequency);
 }
 
 L2CacheCntlr::~L2CacheCntlr()

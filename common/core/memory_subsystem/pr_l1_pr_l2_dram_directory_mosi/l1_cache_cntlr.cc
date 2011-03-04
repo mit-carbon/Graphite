@@ -12,8 +12,11 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
       UInt32 cache_block_size,
       UInt32 l1_icache_size, UInt32 l1_icache_associativity,
       std::string l1_icache_replacement_policy,
+      UInt32 l1_icache_access_delay,
       UInt32 l1_dcache_size, UInt32 l1_dcache_associativity,
       std::string l1_dcache_replacement_policy,
+      UInt32 l1_dcache_access_delay,
+      volatile float frequency,
       ShmemPerfModel* shmem_perf_model) :
    m_memory_manager(memory_manager),
    m_l2_cache_cntlr(NULL),
@@ -28,13 +31,17 @@ L1CacheCntlr::L1CacheCntlr(core_id_t core_id,
          l1_icache_associativity, 
          m_cache_block_size,
          l1_icache_replacement_policy,
-         CacheBase::PR_L1_CACHE);
+         CacheBase::PR_L1_CACHE,
+         l1_icache_access_delay,
+         frequency);
    m_l1_dcache = new Cache("L1-D",
          l1_dcache_size,
          l1_dcache_associativity, 
          m_cache_block_size,
          l1_dcache_replacement_policy,
-         CacheBase::PR_L1_CACHE);
+         CacheBase::PR_L1_CACHE,
+         l1_dcache_access_delay,
+         frequency);
 }
 
 L1CacheCntlr::~L1CacheCntlr()

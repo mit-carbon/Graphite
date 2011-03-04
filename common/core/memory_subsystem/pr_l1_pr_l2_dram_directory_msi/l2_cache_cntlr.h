@@ -95,6 +95,8 @@ namespace PrL1PrL2DramDirectoryMSI
                UInt32 cache_block_size,
                UInt32 l2_cache_size, UInt32 l2_cache_associativity,
                std::string l2_cache_replacement_policy,
+               UInt32 l2_cache_access_delay,
+               volatile float frequency,
                ShmemPerfModel* shmem_perf_model);
          
          ~L2CacheCntlr();

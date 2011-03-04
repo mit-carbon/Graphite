@@ -20,6 +20,7 @@ DIRECTORIES = $(SIM_ROOT)/common/core/        									\
           $(SIM_ROOT)/common/performance_model/memory_subsystem/     	\
           $(SIM_ROOT)/common/performance_model/queue_models/     			\
           $(SIM_ROOT)/common/user/													\
+          $(SIM_ROOT)/common/mcpat/													\
 			 $(SIM_ROOT)/																	\
 			 $(CURDIR)/
 

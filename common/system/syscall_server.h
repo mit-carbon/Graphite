@@ -78,6 +78,9 @@ class SyscallServer
       void marshallBrkCall(core_id_t core_id);
       void marshallFutexCall(core_id_t core_id);
 
+      void marshallRmdirCall(core_id_t core_id);
+      void marshallUnlinkCall(core_id_t core_id);
+
       // Handling Futexes 
       void futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);
       void futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time);

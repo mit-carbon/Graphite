@@ -86,6 +86,9 @@ class SyscallMdl
       IntPtr marshallBrkCall(syscall_args_t &args);
       IntPtr marshallFutexCall(syscall_args_t &args);
 
+      IntPtr marshallUnlinkCall(syscall_args_t &args);
+      IntPtr marshallRmdirCall(syscall_args_t &args);
+
       // Helper functions
       UInt32 getStrLen (char *str);
 

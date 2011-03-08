@@ -96,7 +96,7 @@ int CarbonSpawnThreadSpawner()
 void *CarbonThreadSpawner(void *)
 {
    //ThreadSpawnRequest req = {-1, NULL, NULL, -1, Sim()->getConfig()->getCurrentThreadSpawnerTileNum() };
-   ThreadSpawnRequest req = {-1, NULL, NULL, INVALID_CORE_ID, (core_id_t) {Sim()->getConfig()->getCurrentThreadSpawnerTileNum(), MAIN_CORE_TYPE}};
+   ThreadSpawnRequest req = {-1, NULL, NULL, INVALID_CORE_ID, Sim()->getConfig()->getCurrentThreadSpawnerCoreId()};
 
    CarbonThreadStart (&req);
 

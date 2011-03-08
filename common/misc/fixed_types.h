@@ -3,13 +3,6 @@
 
 #include <stdint.h>
 
-// Why are we using a C library...
-//#ifdef __cplusplus
-//extern "C++" {
-//#include <utility>
-//}
-//#endif
-
 typedef uint64_t UInt64;
 typedef uint32_t UInt32;
 typedef uint16_t UInt16;
@@ -26,9 +19,12 @@ typedef UInt8 Boolean;
 typedef uintptr_t IntPtr;
 
 typedef uintptr_t carbon_reg_t;
+
+// The core_type_t enum allows you to add additional cores per tile.
+// To do so, add a class that derives from the Core class, and instantiate it from the Tile constructor.
 typedef enum core_type_t { MAIN_CORE_TYPE = 0 } core_type_t;
 
-// Carbon core types
+// Cores are labeled by core_id_t, which identify the tile that contains them, and their type. 
 typedef struct {
    SInt32 tile_id;
    UInt32 core_type;

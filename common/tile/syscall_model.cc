@@ -1256,14 +1256,14 @@ IntPtr SyscallMdl::marshallUnlinkCall(syscall_args_t &args)
    UInt32 len_fname = getStrLen (path) + 1;
    
    char *path_buf = new char [len_fname];
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
+   Core *core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory (Core::NONE, Core::READ, (IntPtr) path, (char*) path_buf, len_fname);
 
    m_send_buff << len_fname << make_pair(path_buf, len_fname);
-   m_network->netSend(Config::getSingleton()->getMCPCoreNum(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreNum(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 

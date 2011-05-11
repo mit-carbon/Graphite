@@ -12,6 +12,8 @@
 #include "cache_perf_model.h"
 #include "shmem_perf_model.h"
 #include "log.h"
+#include "cache_power_model.h"
+#include "cache_area_model.h"
 
 class Cache : public CacheBase
 {
@@ -27,6 +29,10 @@ class Cache : public CacheBase
       //
       cache_t m_cache_type;
       CacheSet** m_sets;
+
+      // Power and Area Models
+      CachePowerModel* m_power_model;
+      CacheAreaModel* m_area_model;
       
    public:
 
@@ -35,7 +41,9 @@ class Cache : public CacheBase
             UInt32 cache_size, 
             UInt32 associativity, UInt32 cache_block_size,
             std::string replacement_policy,
-            cache_t cache_type);
+            cache_t cache_type,
+            UInt32 access_delay,
+            volatile float frequency);
       ~Cache();
 
       bool invalidateSingleLine(IntPtr addr);

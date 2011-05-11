@@ -13,6 +13,7 @@
 #include "clock_skew_minimization_object.h"
 #include "fxsupport.h"
 #include "contrib/orion/orion.h"
+#include "mcpat_cache.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -75,12 +76,20 @@ void Simulator::start()
 
    m_config.logTileMap();
 
+   // Get Graphite Home
+   char* graphite_home_str = getenv("GRAPHITE_HOME");
+   _graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
+   
    // Create Orion Config Object
-   char* graphite_home = getenv("GRAPHITE_HOME");
-   string graphite_home_str = (graphite_home) ? ((string)graphite_home) : ".";
-   string orion_cfg_file = graphite_home_str + "/contrib/orion/orion.cfg";
+   string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
    OrionConfig::allocate(orion_cfg_file);
-   //OrionConfig::getSingleton()->print_config(cout);
+   // OrionConfig::getSingleton()->print_config(cout);
+
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Create McPAT Object
+      McPATCache::allocate();
+   }
  
    m_transport = Transport::create();
    m_tile_manager = new TileManager();
@@ -157,7 +166,13 @@ Simulator::~Simulator()
    delete m_tile_manager;
    delete m_transport;
 
-   // Delete Orion Config Object
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Release McPAT Object
+      McPATCache::release();
+   }
+   
+   // Release Orion Config Object
    OrionConfig::release();
 }
 

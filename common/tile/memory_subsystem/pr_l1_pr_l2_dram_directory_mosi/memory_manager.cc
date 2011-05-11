@@ -115,6 +115,8 @@ MemoryManager::MemoryManager(Tile* tile,
       LOG_PRINT_ERROR("Error reading memory system parameters from the config file");
    }
 
+   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
+   
    m_user_thread_sem = new Semaphore(0);
    m_network_thread_sem = new Semaphore(0);
 
@@ -158,8 +160,11 @@ MemoryManager::MemoryManager(Tile* tile,
          getCacheBlockSize(),
          l1_icache_size, l1_icache_associativity,
          l1_icache_replacement_policy,
+         l1_icache_data_access_time,
          l1_dcache_size, l1_dcache_associativity,
          l1_dcache_replacement_policy,
+         l1_dcache_data_access_time,
+         core_frequency,
          getShmemPerfModel());
    
    m_l2_cache_cntlr = new L2CacheCntlr(getTile()->getId(),
@@ -171,12 +176,13 @@ MemoryManager::MemoryManager(Tile* tile,
          getCacheBlockSize(),
          l2_cache_size, l2_cache_associativity,
          l2_cache_replacement_policy,
+         l2_cache_data_access_time,
+         core_frequency,
          getShmemPerfModel());
 
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
    // Create Cache Performance Models
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
    m_l1_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
          l1_icache_data_access_time, l1_icache_tags_access_time, core_frequency);
    m_l1_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,

@@ -10,16 +10,29 @@ Cache::Cache(string name,
       UInt32 cache_size,
       UInt32 associativity, UInt32 cache_block_size,
       string replacement_policy,
-      cache_t cache_type) :
+      cache_t cache_type,
+      UInt32 access_delay,
+      volatile float frequency) :
       
    CacheBase(name, cache_size, associativity, cache_block_size),
    m_enabled(false),
-   m_cache_type(cache_type)
+   m_cache_type(cache_type),
+   m_power_model(NULL),
+   m_area_model(NULL)
 {
    m_sets = new CacheSet*[m_num_sets];
    for (UInt32 i = 0; i < m_num_sets; i++)
    {
       m_sets[i] = CacheSet::createCacheSet(replacement_policy, m_cache_type, m_associativity, m_blocksize);
+   }
+
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Instantiate area and power models
+      m_power_model = new CachePowerModel("data", k_KILO * cache_size, cache_block_size,
+            associativity, access_delay * frequency, frequency);
+      m_area_model = new CacheAreaModel("data", k_KILO * cache_size, cache_block_size,
+            associativity, access_delay * frequency, frequency);
    }
 
    // Initialize Cache Counters
@@ -41,6 +54,8 @@ Cache::invalidateSingleLine(IntPtr addr)
 
    splitAddress(addr, tag, set_index);
    assert(set_index < m_num_sets);
+
+   // FIXME: Need to update power model here but dont have the numbers
 
    return m_sets[set_index]->invalidate(tag);
 }
@@ -69,6 +84,12 @@ Cache::accessSingleLine(IntPtr addr, access_t access_type,
    else
       set->write_line(line_index, block_offset, buff, bytes);
 
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Update Dynamic Energy Counters
+      m_power_model->updateDynamicEnergy();
+   }
+
    return cache_block_info;
 }
 
@@ -87,6 +108,13 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
    m_sets[set_index]->insert(cache_block_info, fill_buff, 
          eviction, evict_block_info, evict_buff);
    *evict_addr = tagToAddress(evict_block_info->getTag());
+
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Update Dynamic Energy Counters
+      m_power_model->updateDynamicEnergy();
+   }
+   
    delete cache_block_info;
 }
 
@@ -98,6 +126,8 @@ Cache::peekSingleLine(IntPtr addr)
    IntPtr tag;
    UInt32 set_index;
    splitAddress(addr, tag, set_index);
+
+   // FIXME: Need to update power model here but dont have the numbers
 
    return m_sets[set_index]->find(tag);
 }
@@ -132,6 +162,13 @@ Cache::outputSummary(ostream& out)
    out << "  Cache " << m_name << ":\n";
    out << "    num cache accesses: " << m_num_accesses << endl;
    out << "    miss rate: " <<
-      ((float) (m_num_accesses - m_num_hits) / (m_num_accesses)) * 100 << endl;
-   out << "    num cache misses: " <<m_num_accesses - m_num_hits << endl;
+      ((float) (m_num_accesses - m_num_hits) / m_num_accesses) * 100 << endl;
+   out << "    num cache misses: " << m_num_accesses - m_num_hits << endl;
+  
+   if (Config::getSingleton()->getEnablePowerModeling())
+   { 
+      // Output Power and Area Summaries
+      m_power_model->outputSummary(out);
+      m_area_model->outputSummary(out);
+   }
 }

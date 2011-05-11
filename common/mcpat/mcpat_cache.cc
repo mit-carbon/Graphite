@@ -36,7 +36,7 @@ McPATCache::McPATCache()
    }
    if (_mcpat_home == "/path/to/McPAT")
    {
-      LOG_PRINT_ERROR("Enter Correct Path to McPAT installation");
+      LOG_PRINT_ERROR("Enter Correct Path to McPAT installation (or) Set [general/enable_power_modeling] to false");
    }
 }
 

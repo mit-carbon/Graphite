@@ -85,8 +85,11 @@ void Simulator::start()
    OrionConfig::allocate(orion_cfg_file);
    // OrionConfig::getSingleton()->print_config(cout);
 
-   // Create McPAT Object
-   McPATCache::allocate();
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Create McPAT Object
+      McPATCache::allocate();
+   }
  
    m_transport = Transport::create();
    m_core_manager = new CoreManager();
@@ -163,9 +166,12 @@ Simulator::~Simulator()
    delete m_core_manager;
    delete m_transport;
 
-   // Release McPAT Object
-   McPATCache::release();
-
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Release McPAT Object
+      McPATCache::release();
+   }
+   
    // Release Orion Config Object
    OrionConfig::release();
 }

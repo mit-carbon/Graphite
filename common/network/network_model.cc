@@ -102,7 +102,7 @@ NetworkModel::computeTileCountConstraints(UInt32 network_type, SInt32 tile_count
          return NetworkModelEClos::computeTileCountConstraints(tile_count);
 
       case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeCoreCountConstraints(tile_count);
+         return NetworkModelAtacCluster::computeTileCountConstraints(tile_count);
       
       default:
          fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
@@ -161,7 +161,7 @@ NetworkModel::computeProcessToTileMapping(UInt32 network_type)
          return NetworkModelEMeshHopByHopGeneric::computeProcessToTileMapping();
 
       case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeProcessToCoreMapping();
+         return NetworkModelAtacCluster::computeProcessToTileMapping();
 
       default:
          fprintf(stderr, "Unrecognized network type(%u)\n", network_type);

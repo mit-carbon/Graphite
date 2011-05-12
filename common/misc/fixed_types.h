@@ -25,16 +25,16 @@ typedef uintptr_t carbon_reg_t;
 typedef enum core_type_t { MAIN_CORE_TYPE = 0 } core_type_t;
 
 // Cores are labeled by core_id_t, which identify the tile that contains them, and their type. 
+typedef SInt32 tile_id_t;
+
 typedef struct {
-   SInt32 tile_id;
+   tile_id_t tile_id;
    UInt32 core_type;
 } core_id_t;
 
-typedef SInt32 tile_id_t;
-
-#define INVALID_CORE_ID ((core_id_t) {-1,0})
 #define INVALID_TILE_ID ((tile_id_t) -1)
-#define INVALID_ADDRESS  ((IntPtr) -1)
+#define INVALID_CORE_ID ((core_id_t) {INVALID_TILE_ID, MAIN_CORE_TYPE})
+#define INVALID_ADDRESS ((IntPtr) -1)
 
 
 #endif

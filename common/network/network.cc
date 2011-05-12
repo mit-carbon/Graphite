@@ -198,7 +198,7 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
             NetworkModel* remote_network_model = remote_tile->getNetwork()->getNetworkModelFromPacketType(buff_pkt->type);
 
             UInt32 action = remote_network_model->computeAction(*buff_pkt);
-            LOG_ASSERT_ERROR(!((action & NetworkModel::RoutingAction::RECEIVE) && \
+            LOG_ASSERT_ERROR(!((action & NetworkModel::RoutingAction::RECEIVE) &&
                      (action & NetworkModel::RoutingAction::FORWARD)), "action(%u)", action);
             
             if (action & NetworkModel::RoutingAction::RECEIVE)
@@ -586,7 +586,6 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, core_id_t s,
    , data(d)
 {
 }
-
 
 NetPacket::NetPacket(Byte *buffer)
 {

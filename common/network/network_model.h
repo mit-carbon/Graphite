@@ -33,8 +33,6 @@ class NetworkModel
       {
       public:
          Hop(): 
-            //final_dest(INVALID_TILE_ID), 
-            //next_dest(INVALID_TILE_ID), 
             final_dest(INVALID_CORE_ID), 
             next_dest(INVALID_CORE_ID), 
             specific(0), 
@@ -44,8 +42,6 @@ class NetworkModel
 
          // Final & Next destinations of a packet
          // 'final_dest' field is used to fill in the 'receiver' field in NetPacket
-         //SInt32 final_dest;
-         //SInt32 next_dest;
          core_id_t final_dest;
          core_id_t next_dest;
 

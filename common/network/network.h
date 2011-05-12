@@ -29,10 +29,6 @@ public:
    core_id_t sender;
    core_id_t receiver;
 
-   //SInt32 sender;
-   //SInt32 receiver;
-   //UInt32 core_type;
-
    // This field may be used by specific network models in whatever way they please
    UInt32 specific;
    
@@ -59,10 +55,8 @@ typedef std::list<NetPacket> NetQueue;
 class NetMatch
 {
    public:
-      //std::vector<SInt32> senders;
       std::vector<core_id_t> senders;
       std::vector<PacketType> types;
-      //std::vector<core_type_t> core_types;
 };
 
 // -- Network -- //

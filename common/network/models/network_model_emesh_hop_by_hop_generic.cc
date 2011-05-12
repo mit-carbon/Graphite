@@ -19,13 +19,7 @@ NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net,
    NetworkModel(net, network_id),
    m_enabled(false)
 {
-   //SInt32 total_tiles = Config::getSingleton()->getTotalTiles();
    m_tile_id = getNetwork()->getTile()->getId();
-
-   //m_mesh_width = (SInt32) floor (sqrt(total_tiles));
-   //m_mesh_height = (SInt32) ceil (1.0 * total_tiles / m_mesh_width);
-
-   //assert(total_tiles == (m_mesh_width * m_mesh_height));
 }
 
 NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
@@ -207,15 +201,6 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
 {
    ScopedLock sl(m_lock);
 
-   //tile_id_t requester = INVALID_TILE_ID;
-
-   //if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      //requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   //else // Other Packet types
-      //requester = pkt.sender.tile_id;
-   
-   //LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-         //"requester(%i)", requester);
    tile_id_t requester = getRequester(pkt);
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
@@ -296,19 +281,6 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 {
    ScopedLock sl(m_lock);
    
-   //UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-
-   //tile_id_t requester = INVALID_TILE_ID;
-
-   //if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      //requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   //else // Other Packet types
-      //requester = pkt.sender.tile_id;
-   
-   //LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-         //"requester(%i)", requester);
-
-   //if ( (!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
    tile_id_t requester = getRequester(pkt);
    if ((!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
@@ -648,29 +620,6 @@ NetworkModelEMeshHopByHopGeneric::computeTileCountConstraints(SInt32 tile_count)
 pair<bool, vector<tile_id_t> >
 NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count)
 {
-   //SInt32 mesh_width = (SInt32) floor (sqrt(tile_count));
-   //SInt32 mesh_height = (SInt32) ceil (1.0 * tile_count / mesh_width);
-   
-   //assert(tile_count == (mesh_height * mesh_width));
-
-   //// tile_id_list_along_perimeter : list of tiles along the perimeter of the chip in clockwise order starting from (0,0)
-   //vector<tile_id_t> tile_id_list_along_perimeter;
-
-   //for (SInt32 i = 0; i < mesh_width; i++)
-      //tile_id_list_along_perimeter.push_back(i);
-   
-   //for (SInt32 i = 1; i < (mesh_height-1); i++)
-      //tile_id_list_along_perimeter.push_back((i * mesh_width) + mesh_width-1);
-
-   //for (SInt32 i = mesh_width-1; i >= 0; i--)
-      //tile_id_list_along_perimeter.push_back(((mesh_height-1) * mesh_width) + i);
-
-   //for (SInt32 i = mesh_height-2; i >= 1; i--)
-      //tile_id_list_along_perimeter.push_back(i * mesh_width);
-
-   //assert(tile_id_list_along_perimeter.size() == (UInt32) (2 * (mesh_width + mesh_height - 2)));
-   
-   
    // tile_id_list_along_perimeter : list of tiles along the perimeter of 
    // the chip in clockwise order starting from (0,0)
    

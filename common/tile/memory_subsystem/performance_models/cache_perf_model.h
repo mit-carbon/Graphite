@@ -22,21 +22,17 @@ class CachePerfModel
       };
 
    protected:
-      UInt64 m_cache_data_access_delay_in_ns;
-      UInt64 m_cache_tags_access_delay_in_ns;
       UInt64 m_cache_data_access_delay_in_clock_cycles;
       UInt64 m_cache_tags_access_delay_in_clock_cycles;
 
    public:
-      CachePerfModel(UInt64 cache_data_access_delay_in_ns, UInt64 cache_tags_access_delay_in_ns,
+      CachePerfModel(UInt64 cache_data_access_delay_in_clock_cycles, UInt64 cache_tags_access_delay_in_clock_cycles,
             volatile float core_frequency);
       virtual ~CachePerfModel();
 
-      void updateInternalVariablesOnFrequencyChange(volatile float core_frequency);
-      
       static CachePerfModel* create(std::string cache_perf_model_type,
-            UInt64 cache_data_access_delay_in_ns,
-            UInt64 cache_tags_access_delay_in_ns,
+            UInt64 cache_data_access_delay_in_clock_cycles,
+            UInt64 cache_tags_access_delay_in_clock_cycles,
             volatile float core_frequency);
       static PerfModel_t parseModelType(std::string model_type);
 

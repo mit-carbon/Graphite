@@ -418,15 +418,6 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
 }
 
 void
-MemoryManager::updateInternalVariablesOnFrequencyChange(volatile float frequency)
-{
-   m_l1_icache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
-   m_l1_dcache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
-   m_l2_cache_perf_model->updateInternalVariablesOnFrequencyChange(frequency);
-   m_dram_directory_cntlr->getDramDirectoryCache()->updateInternalVariablesOnFrequencyChange(frequency);
-}
-
-void
 MemoryManager::enableModels()
 {
    m_enabled = true;

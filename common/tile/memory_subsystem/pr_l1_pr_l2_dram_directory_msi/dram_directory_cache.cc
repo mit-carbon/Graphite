@@ -26,13 +26,13 @@ DramDirectoryCache::DramDirectoryCache(
       UInt32 max_hw_sharers,
       UInt32 max_num_sharers,
       UInt32 num_dram_cntlrs,
-      UInt64 dram_directory_cache_access_delay_in_ns,
+      UInt64 dram_directory_cache_access_delay_in_clock_cycles,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_total_entries(total_entries),
    m_associativity(associativity),
    m_cache_block_size(cache_block_size),
-   m_dram_directory_cache_access_delay_in_ns(dram_directory_cache_access_delay_in_ns),
+   m_dram_directory_cache_access_delay_in_clock_cycles(dram_directory_cache_access_delay_in_clock_cycles),
    m_shmem_perf_model(shmem_perf_model)
 {
    m_num_sets = m_total_entries / m_associativity;
@@ -41,11 +41,6 @@ DramDirectoryCache::DramDirectoryCache(
    m_directory = new Directory(directory_type_str, total_entries, max_hw_sharers, max_num_sharers);
 
    initializeParameters(num_dram_cntlrs);
-
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(m_memory_manager->getTile()->getMainCoreId());
-
-   m_dram_directory_cache_access_delay_in_clock_cycles = \
-      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
 }
 
 DramDirectoryCache::~DramDirectoryCache()
@@ -223,13 +218,6 @@ DramDirectoryCache::computeSetIndex(IntPtr address)
                            & ((1 << num_tile_id_bits) - 1);
 
    return ((tile_id_bits ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
-}
-
-void
-DramDirectoryCache::updateInternalVariablesOnFrequencyChange(volatile float core_frequency)
-{
-   m_dram_directory_cache_access_delay_in_clock_cycles = \
-      static_cast<UInt64>(ceil(static_cast<float>(m_dram_directory_cache_access_delay_in_ns) * core_frequency));
 }
 
 void

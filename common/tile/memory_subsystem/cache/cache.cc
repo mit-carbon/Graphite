@@ -30,9 +30,9 @@ Cache::Cache(string name,
    {
       // Instantiate area and power models
       m_power_model = new CachePowerModel("data", k_KILO * cache_size, cache_block_size,
-            associativity, access_delay * frequency, frequency);
+            associativity, access_delay, frequency);
       m_area_model = new CacheAreaModel("data", k_KILO * cache_size, cache_block_size,
-            associativity, access_delay * frequency, frequency);
+            associativity, access_delay, frequency);
    }
 
    // Initialize Cache Counters

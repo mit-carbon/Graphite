@@ -92,7 +92,6 @@ Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    getCore()->getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
    getCore()->getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
-   getCore()->getMemoryManager()->updateInternalVariablesOnFrequencyChange(frequency);
 }
 
 Core* Tile::getCore(core_id_t core_id)

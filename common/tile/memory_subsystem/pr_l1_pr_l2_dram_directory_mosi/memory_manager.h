@@ -75,8 +75,6 @@ namespace PrL1PrL2DramDirectoryMOSI
          void sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg);
          void broadcastMsg(ShmemMsg& shmem_msg);
        
-         void updateInternalVariablesOnFrequencyChange(volatile float frequency);
-
          void enableModels();
          void disableModels();
          void resetModels();

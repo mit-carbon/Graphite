@@ -9,10 +9,10 @@ class CachePerfModelSequential : public CachePerfModel
       bool m_enabled;
 
    public:
-      CachePerfModelSequential(UInt64 cache_data_access_delay_in_ns, 
-            UInt64 cache_tags_access_delay_in_ns,
+      CachePerfModelSequential(UInt64 cache_data_access_delay_in_clock_cycles, 
+            UInt64 cache_tags_access_delay_in_clock_cycles,
             volatile float core_frequency) : 
-         CachePerfModel(cache_data_access_delay_in_ns, cache_tags_access_delay_in_ns, core_frequency),
+         CachePerfModel(cache_data_access_delay_in_clock_cycles, cache_tags_access_delay_in_clock_cycles, core_frequency),
          m_enabled(false)
       {}
       ~CachePerfModelSequential() {}

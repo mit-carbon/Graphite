@@ -41,7 +41,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          UInt32 m_log_stack_size;
 
-         UInt64 m_dram_directory_cache_access_delay_in_ns;
          UInt64 m_dram_directory_cache_access_delay_in_clock_cycles;
 
          ShmemPerfModel* m_shmem_perf_model;
@@ -64,7 +63,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                UInt32 max_hw_sharers,
                UInt32 max_num_sharers,
                UInt32 num_dram_cntlrs,
-               UInt64 dram_directory_cache_access_delay_in_ns,
+               UInt64 dram_directory_cache_access_delay_in_clock_cycles,
                ShmemPerfModel* shmem_perf_model);
          ~DramDirectoryCache();
 
@@ -72,8 +71,6 @@ namespace PrL1PrL2DramDirectoryMOSI
          DirectoryEntry* replaceDirectoryEntry(IntPtr replaced_address, IntPtr address);
          void invalidateDirectoryEntry(IntPtr address);
          void getReplacementCandidates(IntPtr address, std::vector<DirectoryEntry*>& replacement_candidate_list);
-
-         void updateInternalVariablesOnFrequencyChange(volatile float core_frequency);
 
          void outputSummary(std::ostream& os);
          static void dummyOutputSummary(std::ostream& os);

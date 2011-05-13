@@ -38,7 +38,7 @@ Tile::~Tile()
 
 void Tile::outputSummary(std::ostream &os)
 {
-   os << "Core summary:\n";
+   os << "Tile Summary:\n";
    if (Config::getSingleton()->getEnablePerformanceModeling())
    {
       getCore()->getPerformanceModel()->outputSummary(os);

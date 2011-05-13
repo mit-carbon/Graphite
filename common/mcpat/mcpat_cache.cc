@@ -100,8 +100,12 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
    UInt32 num_read_accesses = 100000;
    UInt64 total_cycles = 100000;
 
+   SInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node", 0);
+   assert(technology_node != 0);
+
    ostringstream cmd; 
    cmd << Sim()->getGraphiteHome() << "/common/mcpat/mcpat_cache_parser.py "
+       << " --technology-node " << technology_node
        << " --mcpat-home " << _mcpat_home
        << " --graphite-home " << Sim()->getGraphiteHome()
        << " --type " << cache_params->_type

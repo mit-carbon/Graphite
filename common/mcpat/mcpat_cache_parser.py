@@ -45,6 +45,7 @@ def createMcPATInput(options, mcpat_dir):
    core = getArchComponent(dom,'core0')
    setAttribute(core, "clock_rate", clockrate)
    system_comp = getArchComponent(dom,'system')
+   setAttribute(system_comp, "core_tech_node", options.technology_node)
    setAttribute(system_comp, "total_cycles", options.total_cycles)
    setAttribute(system_comp, "idle_cycles", "0")
    setAttribute(system_comp, "busy_cycles", options.total_cycles)
@@ -133,6 +134,7 @@ def parseMcPATOutput(component, mcpat_dir):
 # Parse the Command Line Options
 parser = OptionParser()
 parser.add_option("-t", "--type", dest="type", help="Cache Type (data,directory)")
+parser.add_option("--technology-node", dest="technology_node", help="Technology Node (in nm)")
 parser.add_option("-s", "--size", dest="size", type="int", help="Cache Size (in Bytes)")
 parser.add_option("-b", "--blocksize", dest="blocksize", type="int", help="Block Size (in Bytes)")
 parser.add_option("-a", "--associativity", dest="associativity", type="int", help="Associativity")

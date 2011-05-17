@@ -73,7 +73,7 @@ ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
 endif
 
-CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -Wall #-O2
+CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -Wall -O2
 ifeq ($(TARGET_ARCH),ia32)
 	CXXFLAGS += -m32 -DTARGET_IA32
 endif

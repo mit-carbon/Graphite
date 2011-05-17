@@ -9,7 +9,7 @@
 #include "electrical_network_router_model.h"
 #include "electrical_network_link_model.h"
 
-class NetworkModelEMeshHopByHopGeneric : public NetworkModel
+class NetworkModelEMeshHopByHop : public NetworkModel
 {
    public:
       typedef enum
@@ -115,8 +115,8 @@ class NetworkModelEMeshHopByHopGeneric : public NetworkModel
       void initializeModels();
    
    public:
-      NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id);
-      ~NetworkModelEMeshHopByHopGeneric();
+      NetworkModelEMeshHopByHop(Network* net, SInt32 network_id);
+      ~NetworkModelEMeshHopByHop();
 
       volatile float getFrequency() { return m_frequency; }
 

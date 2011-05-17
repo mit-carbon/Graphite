@@ -7,8 +7,7 @@ using namespace std;
 #include "network_model_magic.h"
 #include "network_model_emesh_hop_counter.h"
 #include "network_model_analytical.h"
-#include "network_model_emesh_hop_by_hop_basic.h"
-#include "network_model_emesh_hop_by_hop_broadcast_tree.h"
+#include "network_model_emesh_hop_by_hop.h"
 #include "network_model_eclos.h"
 #include "network_model_atac.h"
 #include "log.h"
@@ -45,11 +44,8 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
    case NETWORK_ANALYTICAL_MESH:
       return new NetworkModelAnalytical(net, network_id);
 
-   case NETWORK_EMESH_HOP_BY_HOP_BASIC:
-      return new NetworkModelEMeshHopByHopBasic(net, network_id);
-
-   case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
-      return new NetworkModelEMeshHopByHopBroadcastTree(net, network_id);
+   case NETWORK_EMESH_HOP_BY_HOP:
+      return new NetworkModelEMeshHopByHop(net, network_id);
 
    case NETWORK_ECLOS:
       return new NetworkModelEClos(net, network_id);
@@ -72,10 +68,8 @@ NetworkModel::parseNetworkType(string str)
       return NETWORK_EMESH_HOP_COUNTER;
    else if (str == "analytical")
       return NETWORK_ANALYTICAL_MESH;
-   else if (str == "emesh_hop_by_hop_basic")
-      return NETWORK_EMESH_HOP_BY_HOP_BASIC;
-   else if (str == "emesh_hop_by_hop_broadcast_tree")
-      return NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE;
+   else if (str == "emesh_hop_by_hop")
+      return NETWORK_EMESH_HOP_BY_HOP;
    else if (str == "eclos")
       return NETWORK_ECLOS;
    else if (str == "atac")
@@ -94,9 +88,8 @@ NetworkModel::computeTileCountConstraints(UInt32 network_type, SInt32 tile_count
       case NETWORK_ANALYTICAL_MESH:
          return make_pair(false,tile_count);
 
-      case NETWORK_EMESH_HOP_BY_HOP_BASIC:
-      case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
-         return NetworkModelEMeshHopByHopGeneric::computeTileCountConstraints(tile_count);
+      case NETWORK_EMESH_HOP_BY_HOP:
+         return NetworkModelEMeshHopByHop::computeTileCountConstraints(tile_count);
 
       case NETWORK_ECLOS:
          return NetworkModelEClos::computeTileCountConstraints(tile_count);
@@ -132,9 +125,8 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
             return make_pair(false, tile_list_with_memory_controllers);
          }
 
-      case NETWORK_EMESH_HOP_BY_HOP_BASIC:
-      case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
-         return NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(num_memory_controllers, tile_count);
+      case NETWORK_EMESH_HOP_BY_HOP:
+         return NetworkModelEMeshHopByHop::computeMemoryControllerPositions(num_memory_controllers, tile_count);
 
       case NETWORK_ATAC:
          return NetworkModelAtac::computeMemoryControllerPositions(num_memory_controllers, tile_count);
@@ -156,9 +148,8 @@ NetworkModel::computeProcessToTileMapping(UInt32 network_type)
       case NETWORK_ECLOS:
          return make_pair(false, vector<vector<tile_id_t> >());
 
-      case NETWORK_EMESH_HOP_BY_HOP_BASIC:
-      case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
-         return NetworkModelEMeshHopByHopGeneric::computeProcessToTileMapping();
+      case NETWORK_EMESH_HOP_BY_HOP:
+         return NetworkModelEMeshHopByHop::computeProcessToTileMapping();
 
       case NETWORK_ATAC:
          return NetworkModelAtac::computeProcessToTileMapping();

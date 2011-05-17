@@ -1,7 +1,7 @@
 #include <math.h>
 using namespace std;
 
-#include "network_model_emesh_hop_by_hop_generic.h"
+#include "network_model_emesh_hop_by_hop.h"
 #include "tile.h"
 #include "simulator.h"
 #include "config.h"
@@ -15,17 +15,46 @@ using namespace std;
 #define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
 #define TILE_ID(x)         (x.tile_id)
 
-SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_width = 0;
-SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_height = 0;
+SInt32 NetworkModelEMeshHopByHop::m_mesh_width = 0;
+SInt32 NetworkModelEMeshHopByHop::m_mesh_height = 0;
 
-NetworkModelEMeshHopByHopGeneric::NetworkModelEMeshHopByHopGeneric(Network* net, SInt32 network_id):
+NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id):
    NetworkModel(net, network_id),
    m_enabled(false)
 {
    m_tile_id = getNetwork()->getTile()->getId();
+   
+   try
+   {
+      // Network Frequency is specified in GHz
+      m_frequency = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/frequency");
+      // Link Width is specified in bits
+      m_link_width = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/link/width");
+      // Link Length in mm
+      m_link_length = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/link/length");
+      // Link Type
+      m_link_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/link/type");
+      // Router Delay (pipeline delay) is specified in cycles
+      m_router_delay = (UInt64) Sim()->getCfg()->getInt("network/emesh_hop_by_hop/router/delay");
+      // Number of flits per port - Used for power modeling purposes now - Should be used later for performance modeling
+      m_num_flits_per_output_buffer = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/router/num_flits_per_port_buffer");
+
+      // Is broadcast tree enabled?
+      m_broadcast_tree_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/broadcast_tree_enabled");
+
+      // Queue Model enabled? If no, this degrades into a hop counter model
+      m_queue_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
+      m_queue_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Could not read emesh_hop_by_hop parameters from the configuration file");
+   }
+
+   initializeModels();
 }
 
-NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
+NetworkModelEMeshHopByHop::~NetworkModelEMeshHopByHop()
 {
    // Destroy the Router & Link Models
    destroyRouterAndLinkModels();
@@ -35,7 +64,7 @@ NetworkModelEMeshHopByHopGeneric::~NetworkModelEMeshHopByHopGeneric()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::initializeModels()
+NetworkModelEMeshHopByHop::initializeModels()
 {
    // Create Queue Models
    createQueueModels();
@@ -48,7 +77,7 @@ NetworkModelEMeshHopByHopGeneric::initializeModels()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::initializeEMeshTopologyParams()
+NetworkModelEMeshHopByHop::initializeEMeshTopologyParams()
 {
    SInt32 total_tiles = Config::getSingleton()->getTotalTiles();
 
@@ -60,7 +89,7 @@ NetworkModelEMeshHopByHopGeneric::initializeEMeshTopologyParams()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::createQueueModels()
+NetworkModelEMeshHopByHop::createQueueModels()
 {
    UInt64 min_processing_time = 1;
    // Initialize the queue models for all the '4' output directions
@@ -91,7 +120,7 @@ NetworkModelEMeshHopByHopGeneric::createQueueModels()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::destroyQueueModels()
+NetworkModelEMeshHopByHop::destroyQueueModels()
 {
    for (UInt32 i = 0; i < NUM_OUTPUT_DIRECTIONS; i++)
    {
@@ -104,14 +133,14 @@ NetworkModelEMeshHopByHopGeneric::destroyQueueModels()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::resetQueueModels()
+NetworkModelEMeshHopByHop::resetQueueModels()
 {
    destroyQueueModels();
    createQueueModels();
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::createRouterAndLinkModels()
+NetworkModelEMeshHopByHop::createRouterAndLinkModels()
 {
    // Create Router & Link Models
    // Right now,
@@ -146,7 +175,7 @@ NetworkModelEMeshHopByHopGeneric::createRouterAndLinkModels()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::initializePerformanceCounters()
+NetworkModelEMeshHopByHop::initializePerformanceCounters()
 {
    m_total_bytes_received = 0;
    m_total_packets_received = 0;
@@ -155,7 +184,7 @@ NetworkModelEMeshHopByHopGeneric::initializePerformanceCounters()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::initializeActivityCounters()
+NetworkModelEMeshHopByHop::initializeActivityCounters()
 {
    // Initialize Activity Counters
    m_switch_allocator_traversals = 0;
@@ -165,14 +194,14 @@ NetworkModelEMeshHopByHopGeneric::initializeActivityCounters()
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::destroyRouterAndLinkModels()
+NetworkModelEMeshHopByHop::destroyRouterAndLinkModels()
 {
    delete m_electrical_router_model;
    delete m_electrical_link_model;
 }
 
 UInt32
-NetworkModelEMeshHopByHopGeneric::computeAction(const NetPacket& pkt)
+NetworkModelEMeshHopByHop::computeAction(const NetPacket& pkt)
 {
    if (pkt.receiver.tile_id == NetPacket::BROADCAST)
    {
@@ -200,7 +229,7 @@ NetworkModelEMeshHopByHopGeneric::computeAction(const NetPacket& pkt)
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> &nextHops)
+NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHops)
 {
    ScopedLock sl(m_lock);
 
@@ -280,7 +309,7 @@ NetworkModelEMeshHopByHopGeneric::routePacket(const NetPacket &pkt, vector<Hop> 
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
+NetworkModelEMeshHopByHop::processReceivedPacket(NetPacket& pkt)
 {
    ScopedLock sl(m_lock);
    
@@ -312,7 +341,7 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction, 
+NetworkModelEMeshHopByHop::addHop(OutputDirection direction, 
       tile_id_t final_dest, tile_id_t next_dest,
       const NetPacket& pkt,
       UInt64 pkt_time, UInt32 pkt_length,
@@ -337,7 +366,7 @@ NetworkModelEMeshHopByHopGeneric::addHop(OutputDirection direction,
 }
 
 SInt32
-NetworkModelEMeshHopByHopGeneric::computeDistance(tile_id_t sender, tile_id_t receiver)
+NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
 {
    SInt32 sx, sy, dx, dy;
 
@@ -348,20 +377,20 @@ NetworkModelEMeshHopByHopGeneric::computeDistance(tile_id_t sender, tile_id_t re
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::computePosition(tile_id_t tile_id, SInt32 &x, SInt32 &y)
+NetworkModelEMeshHopByHop::computePosition(tile_id_t tile_id, SInt32 &x, SInt32 &y)
 {
    x = tile_id % m_mesh_width;
    y = tile_id / m_mesh_width;
 }
 
 tile_id_t
-NetworkModelEMeshHopByHopGeneric::computeTileId(SInt32 x, SInt32 y)
+NetworkModelEMeshHopByHop::computeTileId(SInt32 x, SInt32 y)
 {
    return (y * m_mesh_width + x);
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, tile_id_t requester)
+NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, tile_id_t requester)
 {
    LOG_ASSERT_ERROR((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS),
          "Invalid Direction(%u)", direction);
@@ -388,7 +417,7 @@ NetworkModelEMeshHopByHopGeneric::computeLatency(OutputDirection direction, cons
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(tile_id_t receiver, UInt64 pkt_time, UInt32 pkt_length)
+NetworkModelEMeshHopByHop::computeInjectionPortQueueDelay(tile_id_t receiver, UInt64 pkt_time, UInt32 pkt_length)
 {
    if (!m_queue_model_enabled)
       return 0;
@@ -401,7 +430,7 @@ NetworkModelEMeshHopByHopGeneric::computeInjectionPortQueueDelay(tile_id_t recei
 }
 
 UInt64
-NetworkModelEMeshHopByHopGeneric::computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length)
+NetworkModelEMeshHopByHop::computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length)
 {
    if (!m_queue_model_enabled)
       return 0;
@@ -418,7 +447,7 @@ NetworkModelEMeshHopByHopGeneric::computeEjectionPortQueueDelay(const NetPacket&
 }
 
 UInt64 
-NetworkModelEMeshHopByHopGeneric::computeProcessingTime(UInt32 pkt_length)
+NetworkModelEMeshHopByHop::computeProcessingTime(UInt32 pkt_length)
 {
    // Send: (pkt_length * 8) bits
    // Link Width: (m_link_width) bits
@@ -430,7 +459,7 @@ NetworkModelEMeshHopByHopGeneric::computeProcessingTime(UInt32 pkt_length)
 }
 
 SInt32
-NetworkModelEMeshHopByHopGeneric::getNextDest(SInt32 final_dest, OutputDirection& direction)
+NetworkModelEMeshHopByHop::getNextDest(SInt32 final_dest, OutputDirection& direction)
 {
    // Do dimension-order routing
    // Curently, do store-and-forward routing
@@ -470,7 +499,7 @@ NetworkModelEMeshHopByHopGeneric::getNextDest(SInt32 final_dest, OutputDirection
 }
 
 tile_id_t
-NetworkModelEMeshHopByHopGeneric::getRequester(const NetPacket& pkt)
+NetworkModelEMeshHopByHop::getRequester(const NetPacket& pkt)
 {
    tile_id_t requester = INVALID_TILE_ID;
 
@@ -486,7 +515,7 @@ NetworkModelEMeshHopByHopGeneric::getRequester(const NetPacket& pkt)
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
+NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
    out << "    bytes received: " << m_total_bytes_received << endl;
    out << "    packets received: " << m_total_packets_received << endl;
@@ -581,19 +610,19 @@ NetworkModelEMeshHopByHopGeneric::outputSummary(ostream &out)
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::enable()
+NetworkModelEMeshHopByHop::enable()
 {
    m_enabled = true;
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::disable()
+NetworkModelEMeshHopByHop::disable()
 {
    m_enabled = false;
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::reset()
+NetworkModelEMeshHopByHop::reset()
 {
    // Performance Counters
    initializePerformanceCounters();
@@ -610,7 +639,7 @@ NetworkModelEMeshHopByHopGeneric::reset()
 }
 
 pair<bool,SInt32>
-NetworkModelEMeshHopByHopGeneric::computeTileCountConstraints(SInt32 tile_count)
+NetworkModelEMeshHopByHop::computeTileCountConstraints(SInt32 tile_count)
 {
    SInt32 mesh_width = (SInt32) floor (sqrt(tile_count));
    SInt32 mesh_height = (SInt32) ceil (1.0 * tile_count / mesh_width);
@@ -623,7 +652,7 @@ NetworkModelEMeshHopByHopGeneric::computeTileCountConstraints(SInt32 tile_count)
 }
 
 pair<bool, vector<tile_id_t> >
-NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count)
+NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count)
 {
    // tile_id_list_along_perimeter : list of tiles along the perimeter of 
    // the chip in clockwise order starting from (0,0)
@@ -666,7 +695,7 @@ NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(SInt32 num_me
 }
 
 pair<bool, vector<Config::TileList> >
-NetworkModelEMeshHopByHopGeneric::computeProcessToTileMapping()
+NetworkModelEMeshHopByHop::computeProcessToTileMapping()
 {
    // Initialize mesh_width, mesh_height
    initializeEMeshTopologyParams();
@@ -736,7 +765,7 @@ NetworkModelEMeshHopByHopGeneric::computeProcessToTileMapping()
 }
 
 SInt32
-NetworkModelEMeshHopByHopGeneric::computeNumHops(tile_id_t sender, tile_id_t receiver)
+NetworkModelEMeshHopByHop::computeNumHops(tile_id_t sender, tile_id_t receiver)
 {
    SInt32 tile_count = Config::getSingleton()->getTotalTiles();
 
@@ -754,7 +783,7 @@ NetworkModelEMeshHopByHopGeneric::computeNumHops(tile_id_t sender, tile_id_t rec
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::updateDynamicEnergy(const NetPacket& pkt,
+NetworkModelEMeshHopByHop::updateDynamicEnergy(const NetPacket& pkt,
       bool is_buffered, UInt32 contention)
 {
    tile_id_t requester = getRequester(pkt);
@@ -817,7 +846,7 @@ NetworkModelEMeshHopByHopGeneric::updateDynamicEnergy(const NetPacket& pkt,
 }
 
 void
-NetworkModelEMeshHopByHopGeneric::outputPowerSummary(ostream& out)
+NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out)
 {
    if (Config::getSingleton()->getEnablePowerModeling())
    {

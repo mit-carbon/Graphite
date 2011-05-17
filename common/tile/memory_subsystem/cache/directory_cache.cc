@@ -31,7 +31,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
    m_dram_directory_cache_access_delay_in_clock_cycles(dram_directory_cache_access_delay_in_clock_cycles),
    m_shmem_perf_model(shmem_perf_model),
    m_cache_power_model(NULL),
-   m_cache_area_model(NULL)
+   m_cache_area_model(NULL),
+   m_total_directory_cache_accesses(0)
 {
    LOG_PRINT("Directory Cache ctor enter");
    m_num_sets = m_total_entries / m_associativity;
@@ -101,6 +102,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    {
       // Update Dynamic Energy Counters
       m_cache_power_model->updateDynamicEnergy();
+      m_total_directory_cache_accesses ++;
    }
 
    IntPtr tag;
@@ -175,6 +177,7 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    {
       // Update Dynamic Energy Counters
       m_cache_power_model->updateDynamicEnergy();
+      m_total_directory_cache_accesses ++;
    }
 
    IntPtr tag;
@@ -292,6 +295,7 @@ DirectoryCache::outputSummary(ostream& out)
       }
    }
 
+   out << "    Total Directory Cache Accesses: " << m_total_directory_cache_accesses << endl;
    // The power and area model summary
    if (Config::getSingleton()->getEnablePowerModeling())
       m_cache_power_model->outputSummary(out);

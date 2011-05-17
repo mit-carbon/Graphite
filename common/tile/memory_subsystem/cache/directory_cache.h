@@ -64,6 +64,9 @@ private:
    CachePowerModel* m_cache_power_model;
    CacheAreaModel* m_cache_area_model;
 
+   // Counters
+   UInt64 m_total_directory_cache_accesses;
+
    ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
    void initializeParameters(UInt32 num_dram_cntlrs);

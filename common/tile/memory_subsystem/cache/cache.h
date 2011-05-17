@@ -21,12 +21,11 @@ class Cache : public CacheBase
       bool m_enabled;
 
       // Cache counters
-      UInt64 m_num_accesses;
-      UInt64 m_num_hits;
-      UInt64 m_num_evicts;
+      UInt64 m_total_cache_accesses;
+      UInt64 m_total_cache_accesses_from_core;
+      UInt64 m_total_cache_hits;
 
       // Generic Cache Info
-      //
       cache_t m_cache_type;
       CacheSet** m_sets;
 

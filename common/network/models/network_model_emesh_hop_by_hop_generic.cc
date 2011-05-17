@@ -12,6 +12,9 @@ using namespace std;
 #include "memory_manager_base.h"
 #include "clock_converter.h"
 
+#define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
+#define TILE_ID(x)         (x.tile_id)
+
 SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_width = 0;
 SInt32 NetworkModelEMeshHopByHopGeneric::m_mesh_height = 0;
 
@@ -284,13 +287,15 @@ NetworkModelEMeshHopByHopGeneric::processReceivedPacket(NetPacket& pkt)
    tile_id_t requester = getRequester(pkt);
    if ((!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
+   if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
+      return;
 
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
    UInt64 packet_latency = pkt.time - pkt.start_time;
    UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender.tile_id, m_tile_id) * m_hop_latency);
 
-   if (pkt.sender.tile_id != m_tile_id)
+   if (TILE_ID(pkt.sender) != m_tile_id)
    {
       UInt64 processing_time = computeProcessingTime(pkt_length);
       UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt, pkt.time, pkt_length);

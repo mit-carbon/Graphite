@@ -89,6 +89,7 @@ Cache::accessSingleLine(IntPtr addr, access_t access_type,
    {
       // Update Dynamic Energy Counters
       m_power_model->updateDynamicEnergy();
+      m_total_cache_accesses ++;
    }
 
    return cache_block_info;
@@ -114,6 +115,7 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
    {
       // Update Dynamic Energy Counters
       m_power_model->updateDynamicEnergy();
+      m_total_cache_accesses ++;
    }
    
    delete cache_block_info;
@@ -138,9 +140,9 @@ Cache::updateCounters(bool cache_hit)
 {
    if (m_enabled)
    {
-      m_num_accesses ++;
+      m_total_cache_accesses_from_core ++;
       if (cache_hit)
-         m_num_hits ++;
+         m_total_cache_hits ++;
    }
 }
 
@@ -153,19 +155,21 @@ Cache::reset()
 void
 Cache::initializePerformanceCounters()
 {
-   m_num_accesses = 0;
-   m_num_hits = 0;
+   m_total_cache_accesses = 0;
+   m_total_cache_accesses_from_core = 0;
+   m_total_cache_hits = 0;
 }
 
 void 
 Cache::outputSummary(ostream& out)
 {
    out << "  Cache " << m_name << ":\n";
-   out << "    num cache accesses: " << m_num_accesses << endl;
-   out << "    miss rate: " <<
-      ((float) (m_num_accesses - m_num_hits) / m_num_accesses) * 100 << endl;
-   out << "    num cache misses: " << m_num_accesses - m_num_hits << endl;
-  
+   out << "    Total Cache Accesses (Core): " << m_total_cache_accesses_from_core << endl;
+   out << "    Miss Rate: " <<
+      ((float) (m_total_cache_accesses_from_core - m_total_cache_hits) / m_total_cache_accesses_from_core) * 100 << endl;
+   out << "    Total Cache Misses: " << m_total_cache_accesses_from_core - m_total_cache_hits << endl;
+ 
+   out << "    Total Cache Accesses: " << m_total_cache_accesses << endl; 
    // Output Power and Area Summaries
    if (Config::getSingleton()->getEnablePowerModeling())
       m_power_model->outputSummary(out);

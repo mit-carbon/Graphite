@@ -36,7 +36,7 @@ McPATCache::McPATCache()
    }
    if (_mcpat_home == "/path/to/McPAT")
    {
-      LOG_PRINT_ERROR("Enter Correct Path to McPAT installation (or) Set [general/enable_power_modeling] to false");
+      LOG_PRINT_ERROR("\"Enter Correct Path to McPAT installation\" (or) \"Set [general/enable_power_modeling] and [general/enable_area_modeling] to false\"");
    }
 }
 
@@ -55,12 +55,14 @@ McPATCache::~McPATCache()
 void
 McPATCache::getArea(CacheParams* cache_params, CacheArea* cache_area)
 {
+   LOG_PRINT("getArea(%p, %p) enter", cache_params, cache_area)
    bool found = false;
    CacheInfo cache_info = findCached(cache_params, found);
    if (found)
       *cache_area = *(cache_info.first);
    else
       *cache_area = *(runMcPAT(cache_params).first);
+   LOG_PRINT("getArea(%p, %p) exit", cache_params, cache_area)
 }
 
 void
@@ -93,6 +95,8 @@ McPATCache::findCached(CacheParams* cache_params, bool& found)
 McPATCache::CacheInfo
 McPATCache::runMcPAT(CacheParams* cache_params_)
 {
+   LOG_PRINT("runMcPAT(%p) enter", cache_params_);
+
    CacheParams* cache_params = new CacheParams(*cache_params_);
    CacheArea* cache_area = new CacheArea();
    CachePower* cache_power = new CachePower();
@@ -143,6 +147,8 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
    
    _cache_info_map.insert(make_pair<CacheParams*, CacheInfo>(
             cache_params, make_pair<CacheArea*, CachePower*>(cache_area, cache_power) ) );
+
+   LOG_PRINT("runMcPAT(%p) exit", cache_params_);
 
    return make_pair<CacheArea*,CachePower*>(cache_area, cache_power);
 }

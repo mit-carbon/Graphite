@@ -12,8 +12,7 @@ Cache::Cache(string name,
       string replacement_policy,
       cache_t cache_type,
       UInt32 access_delay,
-      volatile float frequency) :
-      
+      volatile float frequency):
    CacheBase(name, cache_size, associativity, cache_block_size),
    m_enabled(false),
    m_cache_type(cache_type),
@@ -28,9 +27,11 @@ Cache::Cache(string name,
 
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      // Instantiate area and power models
       m_power_model = new CachePowerModel("data", k_KILO * cache_size, cache_block_size,
             associativity, access_delay, frequency);
+   }
+   if (Config::getSingleton()->getEnableAreaModeling())
+   {
       m_area_model = new CacheAreaModel("data", k_KILO * cache_size, cache_block_size,
             associativity, access_delay, frequency);
    }
@@ -165,10 +166,9 @@ Cache::outputSummary(ostream& out)
       ((float) (m_num_accesses - m_num_hits) / m_num_accesses) * 100 << endl;
    out << "    num cache misses: " << m_num_accesses - m_num_hits << endl;
   
+   // Output Power and Area Summaries
    if (Config::getSingleton()->getEnablePowerModeling())
-   { 
-      // Output Power and Area Summaries
       m_power_model->outputSummary(out);
+   if (Config::getSingleton()->getEnableAreaModeling())
       m_area_model->outputSummary(out);
-   }
 }

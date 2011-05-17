@@ -9,7 +9,7 @@ namespace PrL1PrL2DramDirectoryMOSI
    class MemoryManager;
 }
 
-#include "dram_directory_cache.h"
+#include "directory_cache.h"
 #include "req_queue_list.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
@@ -39,8 +39,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          // Functional Models
          MemoryManager* m_memory_manager;
-         
-         DramDirectoryCache* m_dram_directory_cache;
+         DirectoryCache* m_dram_directory_cache;
 
          // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
          Directory::DirectoryType m_directory_type;
@@ -50,7 +49,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          DramCntlr* m_dram_cntlr;
 
-         tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
          ShmemPerfModel* m_shmem_perf_model;
@@ -101,8 +99,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          void updateBroadcastPerfCounters(ShmemMsg::msg_t shmem_msg_type, bool inv_req_sent, bool broadcast_inv_req_sent);
 
       public:
-         DramDirectoryCntlr(tile_id_t tile_id,
-               MemoryManager* memory_manager,
+         DramDirectoryCntlr(MemoryManager* memory_manager,
                DramCntlr* dram_cntlr,
                UInt32 dram_directory_total_entries,
                UInt32 dram_directory_associativity,
@@ -117,7 +114,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
          void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
 
-         DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
+         DirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
         
          void enable() { m_enabled = true; }
          void disable() { m_enabled = false; }

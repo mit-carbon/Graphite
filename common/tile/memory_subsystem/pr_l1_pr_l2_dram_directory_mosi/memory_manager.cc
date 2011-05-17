@@ -137,8 +137,7 @@ MemoryManager::MemoryManager(Tile* tile,
             getCacheBlockSize(),
             getShmemPerfModel());
 
-      m_dram_directory_cntlr = new DramDirectoryCntlr(getTile()->getId(),
-            this,
+      m_dram_directory_cntlr = new DramDirectoryCntlr(this,
             m_dram_cntlr,
             dram_directory_total_entries,
             dram_directory_associativity,
@@ -484,11 +483,15 @@ MemoryManager::outputSummary(std::ostream &os)
    if (m_dram_cntlr_present)
    {
       m_dram_directory_cntlr->outputSummary(os);
+      os << "Dram Directory Cache Summary:\n";
+      m_dram_directory_cntlr->getDramDirectoryCache()->outputSummary(os);
       m_dram_cntlr->getDramPerfModel()->outputSummary(os);
    }
    else
    {
       DramDirectoryCntlr::dummyOutputSummary(os);
+      os << "Dram Directory Cache Summary:\n";
+      DirectoryCache::dummyOutputSummary(os);
       DramPerfModel::dummyOutputSummary(os);
    }
 }

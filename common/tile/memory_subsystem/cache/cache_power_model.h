@@ -15,6 +15,7 @@ class CachePowerModel
       volatile double getTotalStaticPower() { return _total_static_power; }
 
       void outputSummary(std::ostream& out);
+      static void dummyOutputSummary(std::ostream& out);
 
    private:
       volatile double _total_dynamic_energy;

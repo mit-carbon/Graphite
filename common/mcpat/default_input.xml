@@ -13,7 +13,7 @@
 		<param name="homogeneous_L1Directorys" value="1"/>
 		<param name="homogeneous_L2Directorys" value="1"/>
 		<param name="homogeneous_L3s" value="1"/>
-		<param name="homogeneous_ccs" value="1"/><!--cache coherece hardware -->
+		<param name="homogeneous_ccs" value="1"/><!--cache coherence hardware -->
 		<param name="homogeneous_NoCs" value="1"/>
 		<param name="core_tech_node" value="22"/><!-- nm -->
 		<param name="target_core_clockrate" value="1000"/><!--MHz -->

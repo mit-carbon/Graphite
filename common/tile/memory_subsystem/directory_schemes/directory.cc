@@ -8,6 +8,7 @@ using namespace std;
 #include "directory_entry_limited_no_broadcast.h"
 #include "directory_entry_limitless.h"
 #include "log.h"
+#include "utils.h"
 
 Directory::Directory(string directory_type_str, UInt32 num_entries, UInt32 max_hw_sharers, UInt32 max_num_sharers):
    m_num_entries(num_entries),
@@ -38,6 +39,24 @@ DirectoryEntry*
 Directory::getDirectoryEntry(UInt32 entry_num)
 {
    return m_directory_entry_list[entry_num]; 
+}
+
+UInt32
+Directory::getDirectoryEntrySize()
+{
+   LOG_PRINT("getDirectoryEntrySize(%u)", m_directory_type);
+   switch(m_directory_type)
+   {
+   case FULL_MAP:
+      return m_max_num_sharers;
+   case LIMITED_NO_BROADCAST:
+   case LIMITED_BROADCAST:
+   case ACKWISE:
+      return m_max_hw_sharers * ceilLog2(m_max_num_sharers);
+   default:
+      LOG_PRINT_ERROR("Unrecognized directory type(%u)", m_directory_type);
+      return 0;
+   }
 }
 
 void
@@ -71,36 +90,36 @@ Directory::createDirectoryEntry()
 {
    switch (m_directory_type)
    {
-      case FULL_MAP:
-         return new DirectoryEntryLimitedNoBroadcast(m_max_num_sharers, m_max_num_sharers);
+   case FULL_MAP:
+      return new DirectoryEntryLimitedNoBroadcast(m_max_num_sharers, m_max_num_sharers);
 
-      case LIMITED_NO_BROADCAST:
-         return new DirectoryEntryLimitedNoBroadcast(m_max_hw_sharers, m_max_num_sharers);
+   case LIMITED_NO_BROADCAST:
+      return new DirectoryEntryLimitedNoBroadcast(m_max_hw_sharers, m_max_num_sharers);
 
-      case LIMITED_BROADCAST:
-         return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
+   case LIMITED_BROADCAST:
+      return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
 
-      case ACKWISE:
-         return new DirectoryEntryAckwise(m_max_hw_sharers, m_max_num_sharers);
+   case ACKWISE:
+      return new DirectoryEntryAckwise(m_max_hw_sharers, m_max_num_sharers);
 
-      case LIMITLESS:
+   case LIMITLESS:
+      {
+         if (m_limitless_software_trap_penalty == 0)
          {
-            if (m_limitless_software_trap_penalty == 0)
+            try
             {
-               try
-               {
-                  m_limitless_software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
-               }
-               catch (...)
-               {
-                  LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
-               }
+               m_limitless_software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
             }
-            return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, m_limitless_software_trap_penalty);
+            catch (...)
+            {
+               LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
+            }
          }
+         return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, m_limitless_software_trap_penalty);
+      }
 
-      default:
-         LOG_PRINT_ERROR("Unrecognized Directory Type: %u", m_directory_type);
-         return NULL;
+   default:
+      LOG_PRINT_ERROR("Unrecognized Directory Type: %u", m_directory_type);
+      return NULL;
    }
 }

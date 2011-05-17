@@ -58,7 +58,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          Cache* getL1ICache() { return m_l1_cache_cntlr->getL1ICache(); }
          Cache* getL1DCache() { return m_l1_cache_cntlr->getL1DCache(); }
          Cache* getL2Cache() { return m_l2_cache_cntlr->getL2Cache(); }
-         DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cntlr->getDramDirectoryCache(); }
+         DirectoryCache* getDramDirectoryCache() { return m_dram_directory_cntlr->getDramDirectoryCache(); }
          DramCntlr* getDramCntlr() { return m_dram_cntlr; }
          AddressHomeLookup* getDramDirectoryHomeLookup() { return m_dram_directory_home_lookup; }
 

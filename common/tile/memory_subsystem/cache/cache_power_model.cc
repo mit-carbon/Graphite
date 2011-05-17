@@ -4,10 +4,13 @@ using namespace std;
 #include "cache_power_model.h"
 #include "mcpat_cache.h"
 #include "cache_info.h"
+#include "config.h"
+#include "log.h"
 
 CachePowerModel::CachePowerModel(string type, UInt32 size, UInt32 blocksize,
       UInt32 associativity, UInt32 delay, volatile float frequency)
 {
+   LOG_ASSERT_ERROR(Config::getSingleton()->getEnablePowerModeling(), "Power Modeling Disabled");
    CacheParams cache_params(type, size, blocksize, associativity, delay, frequency);
    CachePower cache_power;
    McPATCache::getSingleton()->getPower(&cache_params, &cache_power);
@@ -21,4 +24,11 @@ CachePowerModel::outputSummary(ostream& out)
 {
    out << "    Total Dynamic Energy: " << _total_dynamic_energy << endl;
    out << "    Total Static Power: " << _total_static_power << endl;
+}
+
+void
+CachePowerModel::dummyOutputSummary(ostream& out)
+{
+   out << "    Total Dynamic Energy: NA" << endl;
+   out << "    Total Static Power: NA" << endl;
 }

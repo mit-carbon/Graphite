@@ -85,7 +85,7 @@ void Simulator::start()
    OrionConfig::allocate(orion_cfg_file);
    // OrionConfig::getSingleton()->print_config(cout);
 
-   if (Config::getSingleton()->getEnablePowerModeling())
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
       // Create McPAT Object
       McPATCache::allocate();
@@ -166,7 +166,7 @@ Simulator::~Simulator()
    delete m_tile_manager;
    delete m_transport;
 
-   if (Config::getSingleton()->getEnablePowerModeling())
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
       // Release McPAT Object
       McPATCache::release();

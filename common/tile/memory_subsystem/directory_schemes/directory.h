@@ -35,6 +35,7 @@ class Directory
       ~Directory();
 
       DirectoryEntry* getDirectoryEntry(UInt32 entry_num);
+      UInt32 getDirectoryEntrySize();
       void setDirectoryEntry(UInt32 entry_num, DirectoryEntry* directory_entry);
       DirectoryEntry* createDirectoryEntry();
       

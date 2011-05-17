@@ -136,8 +136,9 @@ MemoryManager::MemoryManager(Tile* tile,
             getCacheBlockSize(),
             getShmemPerfModel());
 
-      m_dram_directory_cntlr = new DramDirectoryCntlr(getTile()->getId(),
-            this,
+      LOG_PRINT("Instantiated Dram Cntlr");
+
+      m_dram_directory_cntlr = new DramDirectoryCntlr(this,
             m_dram_cntlr,
             dram_directory_total_entries,
             dram_directory_associativity,
@@ -148,10 +149,13 @@ MemoryManager::MemoryManager(Tile* tile,
             dram_directory_cache_access_time,
             tile_list_with_dram_controllers.size(),
             getShmemPerfModel());
+      
+      LOG_PRINT("Instantiated Dram Directory Cntlr");
    }
 
-
    m_dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_dram_controllers, getCacheBlockSize());
+
+   LOG_PRINT("Instantiated Dram Directory Home Lookup");
 
    m_l1_cache_cntlr = new L1CacheCntlr(getTile()->getId(),
          this,
@@ -167,6 +171,8 @@ MemoryManager::MemoryManager(Tile* tile,
          core_frequency,
          getShmemPerfModel());
    
+   LOG_PRINT("Instantiated L1 Cache Cntlr");
+
    m_l2_cache_cntlr = new L2CacheCntlr(getTile()->getId(),
          this,
          m_l1_cache_cntlr,
@@ -180,6 +186,8 @@ MemoryManager::MemoryManager(Tile* tile,
          core_frequency,
          getShmemPerfModel());
 
+   LOG_PRINT("Instantiated L2 Cache Cntlr");
+
    m_l1_cache_cntlr->setL2CacheCntlr(m_l2_cache_cntlr);
 
    // Create Cache Performance Models
@@ -189,6 +197,8 @@ MemoryManager::MemoryManager(Tile* tile,
          l1_dcache_data_access_time, l1_dcache_tags_access_time, core_frequency);
    m_l2_cache_perf_model = CachePerfModel::create(l2_cache_perf_model_type,
          l2_cache_data_access_time, l2_cache_tags_access_time, core_frequency);
+
+   LOG_PRINT("Instantiated Cache Performance Models");
 
    // Register Call-backs
    getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
@@ -444,12 +454,14 @@ MemoryManager::outputSummary(std::ostream &os)
    if (m_dram_cntlr_present)
    {      
       m_dram_cntlr->getDramPerfModel()->outputSummary(os);
+      os << "Dram Directory Cache Summary:\n";
       m_dram_directory_cntlr->getDramDirectoryCache()->outputSummary(os);
    }
    else
    {
       DramPerfModel::dummyOutputSummary(os);
-      DramDirectoryCache::dummyOutputSummary(os);
+      os << "Dram Directory Cache Summary:\n";
+      DirectoryCache::dummyOutputSummary(os);
    }
 }
 

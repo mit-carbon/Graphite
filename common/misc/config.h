@@ -90,7 +90,7 @@ public:
    UInt32 getCurrentProcessNum() { return m_current_process_num; }
    void setProcessNum(UInt32 in_my_proc_num) { m_current_process_num = in_my_proc_num; }
 
-   tile_id_t getMCPTileNum() { return getTotalTiles() -1; }
+   tile_id_t getMCPTileNum() { return (getTotalTiles() -1); }
    core_id_t getMCPCoreId() { return (core_id_t) {getTotalTiles() -1, MAIN_CORE_TYPE}; }
 
    tile_id_t getMainThreadTileNum() { return 0; }
@@ -157,11 +157,12 @@ public:
    std::string getNetworkType(SInt32 network_id);
 
    // Knobs
-   bool isSimulatingSharedMemory() const;
-   bool getEnablePerformanceModeling() const;
    bool getEnableDCacheModeling() const;
    bool getEnableICacheModeling() const;
+   bool isSimulatingSharedMemory() const;
+   bool getEnablePerformanceModeling() const;
    bool getEnablePowerModeling() const;
+   bool getEnableAreaModeling() const;
 
    // Logging
    std::string getOutputFileName() const;
@@ -180,7 +181,7 @@ private:
    UInt32  m_application_tiles;     // Total number of tiles used by the application
    UInt32  m_tile_id_length;        // Number of bytes needed to store a tile_id
 
-   UInt32  m_current_process_num;          // Process number for this process
+   UInt32  m_current_process_num;   // Process number for this process
 
    std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding main tile parameters
    std::vector<NetworkParameters> m_network_parameters_vec;   // Vector holding network parameters
@@ -189,9 +190,6 @@ private:
    // It is an array of size num_processes where each element is a list of
    // tile numbers.  Each list specifies which tiles are in the corresponding
    // process.
-   //TileToProcMap m_tile_to_proc_map;
-   //TileList* m_proc_to_tile_list_map;
-   //CommToTileMap m_comm_to_tile_map;
 
    TileToProcMap m_tile_to_proc_map;
    TileList* m_proc_to_tile_list_map;
@@ -208,10 +206,11 @@ private:
    static UInt32 m_knob_num_process;
    static bool m_knob_simarch_has_shared_mem;
    static std::string m_knob_output_file;
-   static bool m_knob_enable_performance_modeling;
    static bool m_knob_enable_dcache_modeling;
    static bool m_knob_enable_icache_modeling;
+   static bool m_knob_enable_performance_modeling;
    static bool m_knob_enable_power_modeling;
+   static bool m_knob_enable_area_modeling;
 
    // Get Tile & Network Parameters
    void parseCoreParameters();

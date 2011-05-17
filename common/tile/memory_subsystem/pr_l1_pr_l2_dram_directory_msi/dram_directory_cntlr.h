@@ -8,7 +8,7 @@ namespace PrL1PrL2DramDirectoryMSI
    class MemoryManager;
 }
 
-#include "dram_directory_cache.h"
+#include "directory_cache.h"
 #include "req_queue_list.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
@@ -23,11 +23,10 @@ namespace PrL1PrL2DramDirectoryMSI
       private:
          // Functional Models
          MemoryManager* m_memory_manager;
-         DramDirectoryCache* m_dram_directory_cache;
+         DirectoryCache* m_dram_directory_cache;
          ReqQueueList* m_dram_directory_req_queue_list;
          DramCntlr* m_dram_cntlr;
 
-         tile_id_t m_tile_id;
          UInt32 m_cache_block_size;
 
          ShmemPerfModel* m_shmem_perf_model;
@@ -51,8 +50,7 @@ namespace PrL1PrL2DramDirectoryMSI
          void sendDataToDram(IntPtr address, tile_id_t requester, Byte* data_buf);
       
       public:
-         DramDirectoryCntlr(tile_id_t tile_id,
-               MemoryManager* memory_manager,
+         DramDirectoryCntlr(MemoryManager* memory_manager,
                DramCntlr* dram_cntlr,
                UInt32 dram_directory_total_entries,
                UInt32 dram_directory_associativity,
@@ -67,7 +65,7 @@ namespace PrL1PrL2DramDirectoryMSI
 
          void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
          
-         DramDirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
+         DirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
    };
 
 }

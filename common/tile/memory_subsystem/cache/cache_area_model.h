@@ -11,6 +11,7 @@ class CacheAreaModel
       ~CacheAreaModel() {}
 
       void outputSummary(std::ostream& out);
+      static void dummyOutputSummary(std::ostream& out);
 
    private:
       volatile double _area;

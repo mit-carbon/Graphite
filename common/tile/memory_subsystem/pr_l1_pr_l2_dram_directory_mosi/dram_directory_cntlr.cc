@@ -7,8 +7,7 @@ using namespace std;
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
-DramDirectoryCntlr::DramDirectoryCntlr(tile_id_t tile_id,
-      MemoryManager* memory_manager,
+DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
       DramCntlr* dram_cntlr,
       UInt32 dram_directory_total_entries,
       UInt32 dram_directory_associativity,
@@ -21,22 +20,20 @@ DramDirectoryCntlr::DramDirectoryCntlr(tile_id_t tile_id,
       ShmemPerfModel* shmem_perf_model):
    m_memory_manager(memory_manager),
    m_dram_cntlr(dram_cntlr),
-   m_tile_id(tile_id),
    m_cache_block_size(cache_block_size),
    m_shmem_perf_model(shmem_perf_model),
    m_enabled(false)
 {
-   m_dram_directory_cache = new DramDirectoryCache(
-         memory_manager,
-         dram_directory_type_str,
-         dram_directory_total_entries,
-         dram_directory_associativity,
-         cache_block_size,
-         dram_directory_max_hw_sharers,
-         dram_directory_max_num_sharers,
-         num_dram_cntlrs,
-         dram_directory_cache_access_delay_in_ns,
-         m_shmem_perf_model);
+   m_dram_directory_cache = new DirectoryCache(m_memory_manager->getTile(),
+                                               dram_directory_type_str,
+                                               dram_directory_total_entries,
+                                               dram_directory_associativity,
+                                               cache_block_size,
+                                               dram_directory_max_hw_sharers,
+                                               dram_directory_max_num_sharers,
+                                               num_dram_cntlrs,
+                                               dram_directory_cache_access_delay_in_ns,
+                                               m_shmem_perf_model);
    m_dram_directory_req_queue_list = new ReqQueueList();
    m_cached_data_list = new DataList(m_cache_block_size);
 
@@ -920,8 +917,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    
    out << "    Nullify Requests - Invalidate Requests(\%): " << ((float) m_num_nullifyreq_generating_invreq) * 100 / (m_num_nullifyreq) << endl;
    out << "    Nullify Requests - Invalidation Requests Broadcasted(\%): " << ((float) m_num_nullifyreq_generating_broadcast_invreq) * 100 / (m_num_nullifyreq) << endl;
-
-   m_dram_directory_cache->outputSummary(out);
 }
 
 void
@@ -945,8 +940,6 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    
    out << "    Nullify Requests - Invalidate Requests(\%): NA" << endl;
    out << "    Nullify Requests - Invalidation Requests Broadcasted(\%): NA" << endl;
-
-   DramDirectoryCache::dummyOutputSummary(out);
 }
 
 DramDirectoryCntlr::DataList::DataList(UInt32 block_size):

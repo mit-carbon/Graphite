@@ -199,6 +199,7 @@ Config::computeProcessToTileMapping()
          {
             case NETWORK_EMESH_HOP_BY_HOP_BASIC:
             case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
+            case NETWORK_ATAC:
                return process_to_tile_mapping_struct.second;
                break;
 

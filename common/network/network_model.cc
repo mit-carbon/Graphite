@@ -10,7 +10,7 @@ using namespace std;
 #include "network_model_emesh_hop_by_hop_basic.h"
 #include "network_model_emesh_hop_by_hop_broadcast_tree.h"
 #include "network_model_eclos.h"
-#include "network_model_atac_cluster.h"
+#include "network_model_atac.h"
 #include "log.h"
 
 NetworkModel::NetworkModel(Network *network, SInt32 network_id):
@@ -54,8 +54,8 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
    case NETWORK_ECLOS:
       return new NetworkModelEClos(net, network_id);
 
-   case NETWORK_ATAC_CLUSTER:
-      return new NetworkModelAtacCluster(net, network_id);
+   case NETWORK_ATAC:
+      return new NetworkModelAtac(net, network_id);
 
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);
@@ -78,8 +78,8 @@ NetworkModel::parseNetworkType(string str)
       return NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE;
    else if (str == "eclos")
       return NETWORK_ECLOS;
-   else if (str == "atac_cluster")
-      return NETWORK_ATAC_CLUSTER;
+   else if (str == "atac")
+      return NETWORK_ATAC;
    else
       return (UInt32)-1;
 }
@@ -101,8 +101,8 @@ NetworkModel::computeTileCountConstraints(UInt32 network_type, SInt32 tile_count
       case NETWORK_ECLOS:
          return NetworkModelEClos::computeTileCountConstraints(tile_count);
 
-      case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeTileCountConstraints(tile_count);
+      case NETWORK_ATAC:
+         return NetworkModelAtac::computeTileCountConstraints(tile_count);
       
       default:
          fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
@@ -136,8 +136,8 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
       case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
          return NetworkModelEMeshHopByHopGeneric::computeMemoryControllerPositions(num_memory_controllers, tile_count);
 
-      case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeMemoryControllerPositions(num_memory_controllers, tile_count);
+      case NETWORK_ATAC:
+         return NetworkModelAtac::computeMemoryControllerPositions(num_memory_controllers, tile_count);
 
       default:
          LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
@@ -160,8 +160,8 @@ NetworkModel::computeProcessToTileMapping(UInt32 network_type)
       case NETWORK_EMESH_HOP_BY_HOP_BROADCAST_TREE:
          return NetworkModelEMeshHopByHopGeneric::computeProcessToTileMapping();
 
-      case NETWORK_ATAC_CLUSTER:
-         return NetworkModelAtacCluster::computeProcessToTileMapping();
+      case NETWORK_ATAC:
+         return NetworkModelAtac::computeProcessToTileMapping();
 
       default:
          fprintf(stderr, "Unrecognized network type(%u)\n", network_type);

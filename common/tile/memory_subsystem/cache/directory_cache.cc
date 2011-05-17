@@ -102,8 +102,8 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    {
       // Update Dynamic Energy Counters
       m_cache_power_model->updateDynamicEnergy();
-      m_total_directory_cache_accesses ++;
    }
+   m_total_directory_cache_accesses ++;
 
    IntPtr tag;
    UInt32 set_index;
@@ -177,8 +177,8 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    {
       // Update Dynamic Energy Counters
       m_cache_power_model->updateDynamicEnergy();
-      m_total_directory_cache_accesses ++;
    }
+   m_total_directory_cache_accesses ++;
 
    IntPtr tag;
    UInt32 set_index;

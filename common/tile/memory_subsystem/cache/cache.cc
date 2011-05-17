@@ -89,8 +89,8 @@ Cache::accessSingleLine(IntPtr addr, access_t access_type,
    {
       // Update Dynamic Energy Counters
       m_power_model->updateDynamicEnergy();
-      m_total_cache_accesses ++;
    }
+   m_total_cache_accesses ++;
 
    return cache_block_info;
 }
@@ -115,8 +115,8 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
    {
       // Update Dynamic Energy Counters
       m_power_model->updateDynamicEnergy();
-      m_total_cache_accesses ++;
    }
+   m_total_cache_accesses ++;
    
    delete cache_block_info;
 }

@@ -76,8 +76,8 @@ class NetworkModel
 
       virtual void outputSummary(std::ostream &out) = 0;
 
-      virtual void enable() = 0;
-      virtual void disable() = 0;
+      void enable() { _enabled = true; }
+      void disable() { _enabled = false; }
       virtual void reset() = 0;
 
       // Update Send & Receive Counters
@@ -93,6 +93,7 @@ class NetworkModel
    protected:
       Network *getNetwork() { return _network; }
       SInt32 getNetworkId() { return _network_id; }
+      bool isEnabled() { return _enabled; }
 
       // Get Requester of a Packet
       tile_id_t getRequester(const NetPacket& packet);
@@ -105,6 +106,7 @@ class NetworkModel
       
       SInt32 _network_id;
       std::string _network_name;
+      bool _enabled;
 
       // Performance Counters
       UInt64 _total_packets_sent;

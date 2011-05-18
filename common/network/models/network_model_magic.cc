@@ -3,8 +3,7 @@
 #include "log.h"
 
 NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id) : 
-   NetworkModel(net, network_id),
-   _enabled(false)
+   NetworkModel(net, network_id)
 {}
 
 NetworkModelMagic::~NetworkModelMagic()
@@ -53,10 +52,6 @@ void
 NetworkModelMagic::processReceivedPacket(NetPacket &pkt)
 {
    ScopedLock sl(_lock);
-
-   tile_id_t requester = getRequester(pkt);
-   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
-      return;
 
    // Update Receive Counters
    UInt64 latency = pkt.time - pkt.start_time;

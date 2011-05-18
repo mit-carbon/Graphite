@@ -11,7 +11,6 @@ UInt32 NetworkModelEMeshHopCounter::_NUM_OUTPUT_DIRECTIONS = 4;
 
 NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id)
    : NetworkModel(net, network_id)
-   , _enabled(false)
 {
    SInt32 total_tiles = Config::getSingleton()->getTotalTiles();
 
@@ -210,10 +209,6 @@ NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
 {
    ScopedLock sl(_lock);
 
-   tile_id_t requester = getRequester(pkt);
-   if ((!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
-      return;
-
    // Update Receive Counters
    UInt64 zero_load_latency = pkt.time - pkt.start_time;
    updateReceiveCounters(pkt, zero_load_latency);   
@@ -255,7 +250,7 @@ NetworkModelEMeshHopCounter::updateDynamicEnergy(const NetPacket& pkt,
       UInt32 contention, UInt32 num_hops)
 {
    tile_id_t requester = getRequester(pkt);
-   if ((!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
+   if ((!isEnabled()) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
 
    // TODO: Make these models detailed later - Compute exact number of bit flips

@@ -16,7 +16,8 @@ using namespace std;
 
 NetworkModel::NetworkModel(Network *network, SInt32 network_id):
    _network(network),
-   _network_id(network_id)
+   _network_id(network_id),
+   _enabled(false)
 {
    if (network_id == 0)
       _network_name = "network/user_model_1";
@@ -102,6 +103,10 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
    tile_id_t sender = TILE_ID(packet.sender);
    tile_id_t receiver = TILE_ID(packet.receiver);
 
+   tile_id_t requester = getRequester(packet);
+   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
+      return;
+
    if (sender == receiver)
       return;
 
@@ -120,6 +125,10 @@ NetworkModel::updateReceiveCounters(const NetPacket& packet, UInt64 zero_load_la
 {
    tile_id_t sender = TILE_ID(packet.sender);
    tile_id_t receiver = TILE_ID(packet.receiver);
+
+   tile_id_t requester = getRequester(packet);
+   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
+      return;
 
    if (sender == receiver)
       return;

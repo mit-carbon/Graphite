@@ -36,8 +36,6 @@ class NetworkModelEClos : public NetworkModel
 
       void outputSummary(ostream& out);
 
-      void enable() { _enabled = true; }
-      void disable() { _enabled = false; }
       void reset() {}
 
       static pair<bool,SInt32> computeTileCountConstraints(SInt32 tile_count);
@@ -100,8 +98,6 @@ class NetworkModelEClos : public NetworkModel
 
       UInt64 _router_delay;
       UInt64 _link_delay;
-
-      bool _enabled;
 
       Lock _lock;
 

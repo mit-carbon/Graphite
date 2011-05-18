@@ -14,8 +14,7 @@ SInt32 NetworkModelEMeshHopByHop::m_mesh_width = 0;
 SInt32 NetworkModelEMeshHopByHop::m_mesh_height = 0;
 
 NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id):
-   NetworkModel(net, network_id),
-   m_enabled(false)
+   NetworkModel(net, network_id)
 {
    m_tile_id = getNetwork()->getTile()->getId();
    
@@ -298,7 +297,7 @@ NetworkModelEMeshHopByHop::processReceivedPacket(NetPacket& pkt)
    ScopedLock sl(m_lock);
    
    tile_id_t requester = getRequester(pkt);
-   if ((!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
+   if ((!isEnabled()) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
 
    UInt64 zero_load_latency = computeDistance(TILE_ID(pkt.sender), m_tile_id) * m_hop_latency;
@@ -371,7 +370,7 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, const NetPa
    LOG_ASSERT_ERROR((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS),
          "Invalid Direction(%u)", direction);
 
-   if ( (!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
+   if ( (!isEnabled()) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
@@ -546,18 +545,6 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 }
 
 void
-NetworkModelEMeshHopByHop::enable()
-{
-   m_enabled = true;
-}
-
-void
-NetworkModelEMeshHopByHop::disable()
-{
-   m_enabled = false;
-}
-
-void
 NetworkModelEMeshHopByHop::reset()
 {
    // Reset Queue Models
@@ -720,7 +707,7 @@ NetworkModelEMeshHopByHop::updateDynamicEnergy(const NetPacket& pkt,
       bool is_buffered, UInt32 contention)
 {
    tile_id_t requester = getRequester(pkt);
-   if ((!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
+   if ((!isEnabled()) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
 
    // TODO: Make these models detailed later - Compute exact number of bit flips

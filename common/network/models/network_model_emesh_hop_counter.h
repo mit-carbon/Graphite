@@ -22,8 +22,6 @@ public:
 
    void outputSummary(std::ostream &out);
 
-   void enable() { _enabled = true; }
-   void disable() { _enabled = false; }
    void reset();
 
 private:
@@ -40,8 +38,6 @@ private:
    SInt32 _mesh_height;
 
    static UInt32 _NUM_OUTPUT_DIRECTIONS;
-
-   bool _enabled;
 
    Lock _lock;
 

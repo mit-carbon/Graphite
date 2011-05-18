@@ -8,8 +8,6 @@
 class NetworkModelMagic : public NetworkModel
 {
    private:
-      bool _enabled;
-     
       Lock _lock;
 
    public:
@@ -23,12 +21,6 @@ class NetworkModelMagic : public NetworkModel
       void processReceivedPacket(NetPacket& pkt);
 
       void outputSummary(std::ostream &out);
-
-      void enable()
-      { _enabled = true; }
-
-      void disable()
-      { _enabled = false; }
 
       void reset()
       {}

@@ -92,7 +92,6 @@ class NetworkModelAtac : public NetworkModel
       // Queue Models
       bool m_queue_model_enabled;
       string m_queue_model_type;
-      bool m_enabled;
 
       // General Lock
       Lock m_lock;

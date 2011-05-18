@@ -23,8 +23,7 @@ SInt32 NetworkModelAtac::m_mesh_width = 0;
 SInt32 NetworkModelAtac::m_mesh_height = 0;
 
 NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
-   NetworkModel(net, network_id),
-   m_enabled(false)
+   NetworkModel(net, network_id)
 {
    m_tile_id = getNetwork()->getTile()->getId();
   
@@ -330,7 +329,7 @@ NetworkModelAtac::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sen
    tile_id_t requester = getRequester(pkt);
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
-   if ( (!m_enabled) || (!m_queue_model_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) || (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
+   if ( (!isEnabled()) || (!m_queue_model_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) || (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
       return 0;
 
    assert(m_tile_id == getTileIDWithOpticalHub(getClusterID(m_tile_id)));
@@ -775,7 +774,7 @@ NetworkModelAtac::processReceivedPacket(NetPacket& pkt)
    ScopedLock sl(m_lock);
  
    tile_id_t requester = getRequester(pkt);
-   if ( (!m_enabled) || 
+   if ( (!isEnabled()) || 
         (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
         (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
       return;
@@ -918,18 +917,6 @@ NetworkModelAtac::outputSummary(ostream &out)
 
    outputHubSummary(out);
    outputPowerSummary(out);
-}
-
-void
-NetworkModelAtac::enable()
-{
-   m_enabled = true;
-}
-
-void
-NetworkModelAtac::disable()
-{
-   m_enabled = false;
 }
 
 void
@@ -1083,7 +1070,7 @@ NetworkModelAtac::updateDynamicEnergy(SubNetworkType sub_net_type, const NetPack
 {
    // This function calls the power models as well as update power counters
    tile_id_t requester = getRequester(pkt);
-   if ( (!m_enabled) || (requester >= ((tile_id_t) Config::getSingleton()->getApplicationTiles())) || (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
+   if ( (!isEnabled()) || (requester >= ((tile_id_t) Config::getSingleton()->getApplicationTiles())) || (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
       return;
 
    // TODO: Make these models more detailed later - Compute the exact number of bit flips

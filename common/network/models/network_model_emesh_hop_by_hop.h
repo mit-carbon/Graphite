@@ -39,8 +39,6 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       QueueModel* m_injection_port_queue_model;
       QueueModel* m_ejection_port_queue_model;
 
-      bool m_enabled;
-
       // Lock
       Lock m_lock;
 

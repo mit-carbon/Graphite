@@ -7,8 +7,7 @@
 #include "log.h"
 
 NetworkModelEClos::NetworkModelEClos(Network* network, SInt32 network_id):
-   NetworkModel(network, network_id),
-   _enabled(false)
+   NetworkModel(network, network_id)
 {
    readTopologyParams(_m, _n, _r);
    
@@ -346,7 +345,7 @@ NetworkModelEClos::isModeled(const NetPacket& pkt)
    {
       return make_pair<bool,bool>(false,false);
    }
-   else if (_enabled && isApplicationTile(requester) && isApplicationTile(TILE_ID(pkt.sender)))
+   else if (isEnabled() && isApplicationTile(requester) && isApplicationTile(TILE_ID(pkt.sender)))
    {
       if (isApplicationTile(TILE_ID(pkt.receiver)))
          return make_pair<bool,bool>(true, false);

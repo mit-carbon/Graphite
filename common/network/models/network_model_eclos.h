@@ -105,12 +105,6 @@ class NetworkModelEClos : public NetworkModel
 
       Lock _lock;
 
-      // Performance Counters
-      UInt64 _total_packets_received;
-      UInt64 _total_bytes_received;
-      UInt64 _total_contention_delay;
-      UInt64 _total_packet_delay;
-
       // Rand Data Buffer
       drand48_data _rand_data_buffer;
 

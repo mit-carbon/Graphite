@@ -9,11 +9,6 @@ using namespace std;
 #include "packet_type.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
-#include "memory_manager_base.h"
-#include "clock_converter.h"
-
-#define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
-#define TILE_ID(x)         (x.tile_id)
 
 SInt32 NetworkModelEMeshHopByHop::m_mesh_width = 0;
 SInt32 NetworkModelEMeshHopByHop::m_mesh_height = 0;
@@ -71,9 +66,6 @@ NetworkModelEMeshHopByHop::initializeModels()
 
    // Create Router & Link Models
    createRouterAndLinkModels();
-
-   // Initialize Performance Counters
-   initializePerformanceCounters();
 }
 
 void
@@ -153,11 +145,11 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    // Router & Link are clocked at the same frequency
    m_num_router_ports = 5;
 
-   m_electrical_router_model = ElectricalNetworkRouterModel::create(m_num_router_ports, \
+   m_electrical_router_model = ElectricalNetworkRouterModel::create(m_num_router_ports,
          m_num_router_ports, m_num_flits_per_output_buffer, m_link_width);
-   m_electrical_link_model = ElectricalNetworkLinkModel::create(m_link_type, \
-         m_frequency, \
-         m_link_length, \
+   m_electrical_link_model = ElectricalNetworkLinkModel::create(m_link_type,
+         m_frequency,
+         m_link_length,
          m_link_width);
 
    // It is possible that one hop can be accomodated in one cycles by
@@ -172,15 +164,6 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    m_hop_latency = m_router_delay + link_delay;
 
    initializeActivityCounters();
-}
-
-void
-NetworkModelEMeshHopByHop::initializePerformanceCounters()
-{
-   m_total_bytes_received = 0;
-   m_total_packets_received = 0;
-   m_total_contention_delay = 0;
-   m_total_packet_latency = 0;
 }
 
 void
@@ -203,11 +186,11 @@ NetworkModelEMeshHopByHop::destroyRouterAndLinkModels()
 UInt32
 NetworkModelEMeshHopByHop::computeAction(const NetPacket& pkt)
 {
-   if (pkt.receiver.tile_id == NetPacket::BROADCAST)
+   if (TILE_ID(pkt.receiver) == NetPacket::BROADCAST)
    {
-      LOG_ASSERT_ERROR(m_broadcast_tree_enabled, "pkt.sender.tile_id(%i), pkt.receiver.tile_id(%i)", \
+      LOG_ASSERT_ERROR(m_broadcast_tree_enabled, "pkt.sender.tile_id(%i), pkt.receiver.tile_id(%i)",
             pkt.sender.tile_id, pkt.receiver.tile_id);
-      if (pkt.sender.tile_id == m_tile_id)
+      if (TILE_ID(pkt.sender) == m_tile_id)
       {
          // Dont call routePacket() recursively
          return RoutingAction::RECEIVE;
@@ -218,7 +201,7 @@ NetworkModelEMeshHopByHop::computeAction(const NetPacket& pkt)
          return (RoutingAction::FORWARD | RoutingAction::RECEIVE);
       }
    }
-   else if (pkt.receiver.tile_id == m_tile_id)
+   else if (TILE_ID(pkt.receiver) == m_tile_id)
    {
       return RoutingAction::RECEIVE;
    }
@@ -239,14 +222,15 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
 
    LOG_PRINT("pkt length(%u)", pkt_length);
 
-   if (pkt.receiver.tile_id == NetPacket::BROADCAST)
+   if (TILE_ID(pkt.receiver) == NetPacket::BROADCAST)
    {
       if (m_broadcast_tree_enabled)
       {
          // Injection Port Modeling
          UInt64 injection_port_queue_delay = 0;
-         if (pkt.sender.tile_id == m_tile_id)
+         if (TILE_ID(pkt.sender) == m_tile_id)
             injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver.tile_id, pkt.time, pkt_length);
+
          UInt64 curr_time = pkt.time + injection_port_queue_delay;         
 
          // Broadcast tree is enabled
@@ -274,9 +258,9 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
       {
          // Broadcast tree is not enabled
          // Here, broadcast messages are sent as a collection of unicast messages
-         LOG_ASSERT_ERROR(pkt.sender.tile_id == m_tile_id,
+         LOG_ASSERT_ERROR(TILE_ID(pkt.sender) == m_tile_id,
                "BROADCAST message to be sent at (%i), original sender(%i), Tree not enabled",
-               m_tile_id, pkt.sender.tile_id);
+               m_tile_id, TILE_ID(pkt.sender));
 
          for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
          {
@@ -296,15 +280,15 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
    {
       // Injection Port Modeling
       UInt64 injection_port_queue_delay = 0;
-      if (pkt.sender.tile_id == m_tile_id)
-         injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver.tile_id, pkt.time, pkt_length);
+      if (TILE_ID(pkt.sender) == m_tile_id)
+         injection_port_queue_delay = computeInjectionPortQueueDelay(TILE_ID(pkt.receiver), pkt.time, pkt_length);
       UInt64 curr_time = pkt.time + injection_port_queue_delay;         
       
       // A Unicast packet
       OutputDirection direction;
       tile_id_t next_dest = getNextDest(pkt.receiver.tile_id, direction);
 
-      addHop(direction, pkt.receiver.tile_id, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
+      addHop(direction, TILE_ID(pkt.receiver), next_dest, pkt, curr_time, pkt_length, nextHops, requester);
    }
 }
 
@@ -316,28 +300,20 @@ NetworkModelEMeshHopByHop::processReceivedPacket(NetPacket& pkt)
    tile_id_t requester = getRequester(pkt);
    if ((!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
-   if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
-      return;
 
-   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-
-   UInt64 packet_latency = pkt.time - pkt.start_time;
-   UInt64 contention_delay = packet_latency - (computeDistance(pkt.sender.tile_id, m_tile_id) * m_hop_latency);
+   UInt64 zero_load_latency = computeDistance(TILE_ID(pkt.sender), m_tile_id) * m_hop_latency;
 
    if (TILE_ID(pkt.sender) != m_tile_id)
    {
+      UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
       UInt64 processing_time = computeProcessingTime(pkt_length);
       UInt64 ejection_port_queue_delay = computeEjectionPortQueueDelay(pkt, pkt.time, pkt_length);
 
-      packet_latency += (ejection_port_queue_delay + processing_time);
-      contention_delay += ejection_port_queue_delay;
+      zero_load_latency += processing_time;
       pkt.time += (ejection_port_queue_delay + processing_time);
    }
 
-   m_total_packets_received ++;
-   m_total_bytes_received += pkt_length;
-   m_total_packet_latency += packet_latency;
-   m_total_contention_delay += contention_delay;
+   updateReceiveCounters(pkt, zero_load_latency);
 }
 
 void
@@ -498,51 +474,11 @@ NetworkModelEMeshHopByHop::getNextDest(SInt32 final_dest, OutputDirection& direc
    }
 }
 
-tile_id_t
-NetworkModelEMeshHopByHop::getRequester(const NetPacket& pkt)
-{
-   tile_id_t requester = INVALID_TILE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender.tile_id;
-   
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-         "requester(%i)", requester);
-
-   return requester;
-}
-
 void
 NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
-   out << "    bytes received: " << m_total_bytes_received << endl;
-   out << "    packets received: " << m_total_packets_received << endl;
-   if (m_total_packets_received > 0)
-   {
-      UInt64 total_contention_delay_in_ns = convertCycleCount(m_total_contention_delay, m_frequency, 1.0);
-      UInt64 total_packet_latency_in_ns = convertCycleCount(m_total_packet_latency, m_frequency, 1.0);
-
-      out << "    average contention delay (in clock cycles): " << 
-         ((float) m_total_contention_delay / m_total_packets_received) << endl;
-      out << "    average contention delay (in ns): " << 
-         ((float) total_contention_delay_in_ns / m_total_packets_received) << endl;
-      
-      out << "    average packet latency (in clock cycles): " <<
-         ((float) m_total_packet_latency / m_total_packets_received) << endl;
-      out << "    average packet latency (in ns): " <<
-         ((float) total_packet_latency_in_ns / m_total_packets_received) << endl;
-   }
-   else
-   {
-      out << "    average contention delay (in clock cycles): 0" << endl;
-      out << "    average contention delay (in ns): 0" << endl;
-      
-      out << "    average packet latency (in clock cycles): 0" << endl;
-      out << "    average packet latency (in ns): 0" << endl;
-   }
-
+   NetworkModel::outputSummary(out);
+   
    if (m_queue_model_enabled && ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree")))
    {
       out << "  Queue Models:" << endl;
@@ -624,9 +560,6 @@ NetworkModelEMeshHopByHop::disable()
 void
 NetworkModelEMeshHopByHop::reset()
 {
-   // Performance Counters
-   initializePerformanceCounters();
-   
    // Reset Queue Models
    resetQueueModels();
    

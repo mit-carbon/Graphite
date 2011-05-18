@@ -11,6 +11,9 @@ class Network;
 #include "packet_type.h"
 #include "fixed_types.h"
 
+#define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
+#define TILE_ID(x)         (x.tile_id)
+
 // -- Network Models -- //
 
 // To implement a new network model, you must implement this routing
@@ -77,6 +80,9 @@ class NetworkModel
       virtual void disable() = 0;
       virtual void reset() = 0;
 
+      // Update Send & Receive Counters
+      void updateSendCounters(const NetPacket& packet);
+
       static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
       static UInt32 parseNetworkType(std::string str);
 
@@ -88,11 +94,29 @@ class NetworkModel
       Network *getNetwork() { return _network; }
       SInt32 getNetworkId() { return _network_id; }
 
+      // Get Requester of a Packet
+      tile_id_t getRequester(const NetPacket& packet);
+
+      // Update Receive Counters
+      void updateReceiveCounters(const NetPacket& packet, UInt64 zero_load_latency);
+
    private:
       Network *_network;
       
       SInt32 _network_id;
       std::string _network_name;
+
+      // Performance Counters
+      UInt64 _total_packets_sent;
+      UInt64 _total_bytes_sent;
+      UInt64 _total_packets_broadcasted;
+      UInt64 _total_bytes_broadcasted;
+      UInt64 _total_packets_received;
+      UInt64 _total_bytes_received;
+      UInt64 _total_packet_latency;
+      UInt64 _total_contention_delay;
+
+      void initializePerformanceCounters();
 };
 
 #endif // NETWORK_MODEL_H

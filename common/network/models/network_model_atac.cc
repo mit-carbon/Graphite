@@ -8,15 +8,12 @@ using namespace std;
 #include "tile.h"
 #include "config.h"
 #include "log.h"
-#include "memory_manager_base.h"
 #include "packet_type.h"
 #include "clock_converter.h"
 #include "utils.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
-
-#define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
-#define TILE_ID(x)         (x.tile_id)
+#include "memory_manager_base.h"
 
 UInt32 NetworkModelAtac::m_total_tiles = 0;
 SInt32 NetworkModelAtac::m_cluster_size = 0;
@@ -36,9 +33,6 @@ NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
 
    // Optical Hub created only on one of the tiles in the cluster
    createOpticalHub();
-
-   // Performance Counters
-   initializePerformanceCounters();
 }
 
 NetworkModelAtac::~NetworkModelAtac()
@@ -314,35 +308,10 @@ NetworkModelAtac::resetQueueModels()
    createQueueModels();
 }
 
-void
-NetworkModelAtac::initializePerformanceCounters()
-{
-   m_total_bytes_received = 0;
-   m_total_packets_received = 0;
-   m_total_contention_delay = 0;
-   m_total_packet_latency = 0;
-}
-
 UInt64 
 NetworkModelAtac::computeProcessingTime(UInt32 pkt_length, volatile double bandwidth)
 {
    return static_cast<UInt64>(ceil(static_cast<double>(pkt_length * 8) / bandwidth));
-}
-
-tile_id_t
-NetworkModelAtac::getRequester(const NetPacket& pkt)
-{
-   tile_id_t requester = INVALID_TILE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender.tile_id;
-
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-         "requester(%i)", requester);
-   
-   return requester;
 }
 
 UInt64
@@ -806,42 +775,30 @@ NetworkModelAtac::processReceivedPacket(NetPacket& pkt)
    ScopedLock sl(m_lock);
  
    tile_id_t requester = getRequester(pkt);
-   if ( (!m_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) || (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
+   if ( (!m_enabled) || 
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
+        (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
       return;
 
+   // Compute Processing Time
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
    UInt64 processing_time = computeProcessingTime(pkt_length, m_effective_anet_bandwidth); 
+   
+   // Add Serialization Delay
    if (TILE_ID(pkt.sender) != TILE_ID(pkt.receiver))
-   {
-      // Serialization Delay
       pkt.time += processing_time;
-   }
-   
-   // Performance Counters
-   m_total_packets_received ++;
-   m_total_bytes_received += (UInt64) pkt_length;
-   
-   UInt64 packet_latency = pkt.time - pkt.start_time;
 
-   // Increment Total Contention Delay
+   // Compute Zero Load Latency
+   UInt64 zero_load_latency;  
    if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
-   {
-      m_total_contention_delay += 0;
-      assert(packet_latency == 0);
-   }
+     zero_load_latency = 0; 
    else if (getClusterID(pkt.sender) == getClusterID(pkt.receiver))
-   {
-      m_total_contention_delay += (packet_latency -
-               (m_gather_network_delay + m_scatter_network_delay + processing_time));
-   }
+      zero_load_latency = m_gather_network_delay + m_scatter_network_delay + processing_time;
    else
-   {
-      m_total_contention_delay += (packet_latency -
-               (m_gather_network_delay + m_optical_network_link_delay + m_scatter_network_delay + processing_time));
-   }
+      zero_load_latency = m_gather_network_delay + m_optical_network_link_delay + m_scatter_network_delay + processing_time;
 
-   // Increment Total Packet Latency
-   m_total_packet_latency += packet_latency;
+   // Update Receive Counters
+   updateReceiveCounters(pkt, zero_load_latency);
 }
 
 void
@@ -854,11 +811,12 @@ NetworkModelAtac::outputHubSummary(ostream& out)
       if (m_total_sender_hub_packets > 0)
       {
          // Convert from optical network clock to global clock
-         UInt64 total_sender_hub_contention_delay_in_ns = convertCycleCount( \
-               m_total_sender_hub_contention_delay, \
+         UInt64 total_sender_hub_contention_delay_in_ns = convertCycleCount(
+               m_total_sender_hub_contention_delay,
                m_optical_network_frequency, 1.0);
-         out << "    ONet Link Contention Delay (in ns): " << \
-            ((float) total_sender_hub_contention_delay_in_ns) / m_total_sender_hub_packets << endl;
+         out << "    ONet Link Contention Delay (in ns): "
+             << ((float) total_sender_hub_contention_delay_in_ns) / m_total_sender_hub_packets
+             << endl;
       }
       else
       {
@@ -874,14 +832,12 @@ NetworkModelAtac::outputHubSummary(ostream& out)
          if (m_queue_model_type == "history_list")
          {
             sender_hub_utilization = ((QueueModelHistoryList*) m_sender_hub_queue_model)->getQueueUtilization();
-            frac_analytical_model_used = ((double) ((QueueModelHistoryList*) m_sender_hub_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
-                                         ((QueueModelHistoryList*) m_sender_hub_queue_model)->getTotalRequests();
+            frac_analytical_model_used = ((double) ((QueueModelHistoryList*) m_sender_hub_queue_model)->getTotalRequestsUsingAnalyticalModel()) / ((QueueModelHistoryList*) m_sender_hub_queue_model)->getTotalRequests();
          }
          else // (m_queue_model_type == "history_tree")
          {
             sender_hub_utilization = ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getQueueUtilization();
-            frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
-                                         ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequests();
+            frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequestsUsingAnalyticalModel()) / ((QueueModelHistoryTree*) m_sender_hub_queue_model)->getTotalRequests();
          }
          out << "    ONet Link Utilization(\%): " << sender_hub_utilization * 100 << endl; 
          out << "    ONet Analytical Model Used(\%): " << frac_analytical_model_used * 100 << endl;
@@ -893,11 +849,12 @@ NetworkModelAtac::outputHubSummary(ostream& out)
          if (m_total_receiver_hub_packets[i] > 0)
          {
             // Convert from scatter network clock to global clock
-            UInt64 total_receiver_hub_contention_delay_in_ns = convertCycleCount( \
-                  m_total_receiver_hub_contention_delay[i], \
+            UInt64 total_receiver_hub_contention_delay_in_ns = convertCycleCount(
+                  m_total_receiver_hub_contention_delay[i],
                   m_scatter_network_frequency, 1.0);
-            out << "    BNet (" << i << ") Link Contention Delay (in ns): " \
-               << ((float) total_receiver_hub_contention_delay_in_ns) / m_total_receiver_hub_packets[i] << endl;
+            out << "    BNet (" << i << ") Link Contention Delay (in ns): "
+                << ((float) total_receiver_hub_contention_delay_in_ns) / m_total_receiver_hub_packets[i]
+                << endl;
          }
          else
          {
@@ -913,14 +870,12 @@ NetworkModelAtac::outputHubSummary(ostream& out)
             if (m_queue_model_type == "history_list")
             {
                receiver_hub_utilization = ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getQueueUtilization();
-               frac_analytical_model_used = ((double) ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getTotalRequestsUsingAnalyticalModel()) / \
-                                            ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getTotalRequests();
+               frac_analytical_model_used = ((double) ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getTotalRequestsUsingAnalyticalModel()) / ((QueueModelHistoryList*) m_receiver_hub_queue_models[i])->getTotalRequests();
             }
             else // (m_queue_model_type == "history_tree")
             {
                receiver_hub_utilization = ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getQueueUtilization();
-               frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequestsUsingAnalyticalModel()) / \
-                                            ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequests();
+               frac_analytical_model_used = ((double) ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequestsUsingAnalyticalModel()) / ((QueueModelHistoryTree*) m_receiver_hub_queue_models[i])->getTotalRequests();
             }
             out << "    BNet (" << i << ") Link Utilization(\%): " << receiver_hub_utilization * 100 << endl;
             out << "    BNet (" << i << ") Analytical Model Used(\%): " << frac_analytical_model_used * 100 << endl;
@@ -959,25 +914,7 @@ NetworkModelAtac::outputHubSummary(ostream& out)
 void
 NetworkModelAtac::outputSummary(ostream &out)
 {
-   out << "    bytes received: " << m_total_bytes_received << endl;
-   out << "    packets received: " << m_total_packets_received << endl;
-   if (m_total_packets_received > 0)
-   {
-      // Convert from gather network clock to global clock
-      UInt64 total_contention_delay_in_ns = convertCycleCount(m_total_contention_delay, \
-            m_gather_network_frequency, 1.0);
-      out << "    average contention delay (in ns): " << \
-         ((float) total_contention_delay_in_ns) / m_total_packets_received << endl;
-      
-      UInt64 total_packet_latency_in_ns = convertCycleCount(m_total_packet_latency, \
-            m_gather_network_frequency, 1.0);
-      out << "    average packet latency (in ns): " << \
-         ((float) total_packet_latency_in_ns) / m_total_packets_received << endl;
-   }
-   else
-   {
-      out << "    average packet latency (in ns): 0" << endl;
-   }
+   NetworkModel::outputSummary(out);
 
    outputHubSummary(out);
    outputPowerSummary(out);
@@ -998,9 +935,6 @@ NetworkModelAtac::disable()
 void
 NetworkModelAtac::reset()
 {
-   // Performance Counters
-   initializePerformanceCounters();
-
    // Queue Models
    resetQueueModels();
 

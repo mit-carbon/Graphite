@@ -1,24 +1,14 @@
 #include "network.h"
 #include "network_model_magic.h"
-#include "memory_manager_base.h"
 #include "log.h"
 
 NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id) : 
    NetworkModel(net, network_id),
    _enabled(false)
-{
-   initializePerformanceCounters();
-}
+{}
 
 NetworkModelMagic::~NetworkModelMagic()
 {}
-
-void
-NetworkModelMagic::initializePerformanceCounters()
-{
-   _num_packets = 0;
-   _num_bytes = 0;
-}
 
 UInt32
 NetworkModelMagic::computeAction(const NetPacket& pkt)
@@ -64,26 +54,16 @@ NetworkModelMagic::processReceivedPacket(NetPacket &pkt)
 {
    ScopedLock sl(_lock);
 
-   tile_id_t requester = INVALID_TILE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender.tile_id;
-   
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-         "requester(%i)", requester);
-
+   tile_id_t requester = getRequester(pkt);
    if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return;
 
-   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-   _num_packets ++;
-   _num_bytes += pkt_length;
+   // Update Receive Counters
+   UInt64 latency = pkt.time - pkt.start_time;
+   updateReceiveCounters(pkt, latency);
 }
 
 void NetworkModelMagic::outputSummary(std::ostream &out)
 {
-   out << "    num packets received: " << _num_packets << std::endl;
-   out << "    num bytes received: " << _num_bytes << std::endl;
+   NetworkModel::outputSummary(out);
 }

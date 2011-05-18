@@ -118,8 +118,8 @@ void Network::netPullFromTransport()
          LOG_PRINT("After Processing Received Packet: packet.time(%llu)", packet.time);
          
          // Convert from network cycle count to core cycle count
-         packet.time = convertCycleCount(packet.time, \
-               getNetworkModelFromPacketType(packet.type)->getFrequency(), \
+         packet.time = convertCycleCount(packet.time,
+               getNetworkModelFromPacketType(packet.type)->getFrequency(),
                _tile->getCore()->getPerformanceModel()->getFrequency());
     
          LOG_PRINT("After Converting Cycle Count: packet.time(%llu)", packet.time);
@@ -246,12 +246,15 @@ SInt32 Network::netSend(NetPacket& packet)
    assert(_tile);
 
    // Convert from core cycle count to network cycle count
-   packet.time = convertCycleCount(packet.time, \
-         _tile->getCore()->getPerformanceModel()->getFrequency(), \
+   packet.time = convertCycleCount(packet.time,
+         _tile->getCore()->getPerformanceModel()->getFrequency(),
          getNetworkModelFromPacketType(packet.type)->getFrequency());
 
    // Note the start time
    packet.start_time = packet.time;
+
+   // Update Send Counters
+   (getNetworkModelFromPacketType(packet.type))->updateSendCounters(packet);
 
    // Call forwardPacket(packet)
    return forwardPacket(packet);

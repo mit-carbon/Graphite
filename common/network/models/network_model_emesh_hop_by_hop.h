@@ -44,12 +44,6 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       // Lock
       Lock m_lock;
 
-      // Performance Counters
-      UInt64 m_total_bytes_received;
-      UInt64 m_total_packets_received;
-      UInt64 m_total_contention_delay;
-      UInt64 m_total_packet_latency;
-
       // Activity Counters
       UInt64 m_switch_allocator_traversals;
       UInt64 m_crossbar_traversals;
@@ -70,7 +64,6 @@ class NetworkModelEMeshHopByHop : public NetworkModel
             tile_id_t requester);
       UInt64 computeProcessingTime(UInt32 pkt_length);
       tile_id_t getNextDest(tile_id_t final_dest, OutputDirection& direction);
-      tile_id_t getRequester(const NetPacket& pkt);
 
       // Injection & Ejection Port Queue Models
       UInt64 computeInjectionPortQueueDelay(tile_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
@@ -85,8 +78,6 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       void createRouterAndLinkModels();
       void destroyRouterAndLinkModels();
 
-      // Performance Counters
-      void initializePerformanceCounters();
       // Activity Counters for Power
       void initializeActivityCounters();
       

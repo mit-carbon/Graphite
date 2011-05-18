@@ -49,11 +49,6 @@ private:
    ElectricalNetworkRouterModel* _electrical_router_model;
    ElectricalNetworkLinkModel* _electrical_link_model;
 
-   // Performance Counters
-   UInt64 _num_packets;
-   UInt64 _num_bytes;
-   UInt64 _total_latency;
-
    // Activity Counters
    UInt64 _switch_allocator_traversals;
    UInt64 _crossbar_traversals;
@@ -64,7 +59,6 @@ private:
    SInt32 computeDistance(SInt32 x1, SInt32 y1, SInt32 x2, SInt32 y2);
 
    UInt64 computeProcessingTime(UInt32 pkt_length);
-   tile_id_t getRequester(const NetPacket& pkt);
 
    void initializePerformanceCounters();
    void initializeActivityCounters();

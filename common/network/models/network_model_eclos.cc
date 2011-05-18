@@ -4,8 +4,6 @@
 #include "simulator.h"
 #include "config.h"
 #include "tile.h"
-#include "clock_converter.h"
-#include "memory_manager_base.h"
 #include "log.h"
 
 NetworkModelEClos::NetworkModelEClos(Network* network, SInt32 network_id):
@@ -111,12 +109,6 @@ NetworkModelEClos::NetworkModelEClos(Network* network, SInt32 network_id):
 
    // Seed the buffer for random number generation
    srand48_r(tile_id, &_rand_data_buffer);
-
-   // Initialize Performance Counters
-   _total_packets_received = 0;
-   _total_bytes_received = 0;
-   _total_contention_delay = 0;
-   _total_packet_delay = 0;
 }
 
 NetworkModelEClos::~NetworkModelEClos()
@@ -286,14 +278,9 @@ NetworkModelEClos::processReceivedPacket(NetPacket& pkt)
       UInt64 zero_load_delay = serialization_delay + 
          NUM_ROUTER_STAGES * _router_delay + 
          (NUM_ROUTER_STAGES + 1) * _link_delay;
-      UInt64 packet_delay = pkt.time - pkt.start_time;
-      UInt64 contention_delay = packet_delay - zero_load_delay;
 
-      // Increment Counters
-      _total_packets_received += 1;
-      _total_bytes_received += pkt_length;
-      _total_contention_delay += contention_delay;
-      _total_packet_delay += packet_delay;
+      // Update Receive Counters
+      updateReceiveCounters(pkt, zero_load_delay);
    }
 }
 
@@ -353,24 +340,17 @@ pair<bool,bool>
 NetworkModelEClos::isModeled(const NetPacket& pkt)
 {
    // Get the requester first
-   tile_id_t requester;
-   SInt32 network_id = getNetworkId();
-   if ((network_id == STATIC_NETWORK_USER_1) || (network_id == STATIC_NETWORK_USER_2))
-      requester = pkt.sender.tile_id;
-   else if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
-      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // (network_id == STATIC_NETWORK_SYSTEM)
-      requester = INVALID_TILE_ID;
+   tile_id_t requester = getRequester(pkt);
 
-   if (pkt.sender.tile_id == pkt.receiver.tile_id)
+   if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
    {
       return make_pair<bool,bool>(false,false);
    }
-   else if (_enabled && isApplicationTile(requester) && isApplicationTile(pkt.sender.tile_id))
+   else if (_enabled && isApplicationTile(requester) && isApplicationTile(TILE_ID(pkt.sender)))
    {
-      if (isApplicationTile(pkt.receiver.tile_id))
+      if (isApplicationTile(TILE_ID(pkt.receiver)))
          return make_pair<bool,bool>(true, false);
-      else if (pkt.receiver.tile_id == NetPacket::BROADCAST)
+      else if (TILE_ID(pkt.receiver) == NetPacket::BROADCAST)
          return make_pair<bool,bool>(false, true);
       else
          return make_pair<bool,bool>(false,false);
@@ -424,31 +404,7 @@ NetworkModelEClos::outputSummary(ostream& out)
 {
    out << " EClos Network: " << endl;
    out << "   Performance Counters: " << endl;
-   out << "    Bytes Received: " << _total_bytes_received << endl;
-   out << "    Packets Received: " << _total_packets_received << endl;
-   if (_total_packets_received > 0)
-   {
-      UInt64 total_contention_delay_in_ns = convertCycleCount(_total_contention_delay, _frequency, 1.0);
-      UInt64 total_packet_delay_in_ns = convertCycleCount(_total_packet_delay, _frequency, 1.0);
-
-      out << "    Average Contention Delay (in clock cycles): " << 
-         ((float) _total_contention_delay / _total_packets_received) << endl;
-      out << "    Average Contention Delay (in ns): " << 
-         ((float) total_contention_delay_in_ns / _total_packets_received) << endl;
-      
-      out << "    Average Packet Delay (in clock cycles): " <<
-         ((float) _total_packet_delay / _total_packets_received) << endl;
-      out << "    Average Packet Delay (in ns): " <<
-         ((float) total_packet_delay_in_ns / _total_packets_received) << endl;
-   }
-   else
-   {
-      out << "    Average Contention Delay (in clock cycles): 0" << endl;
-      out << "    Average Contention Delay (in ns): 0" << endl;
-      
-      out << "    Average Packet Delay (in clock cycles): 0" << endl;
-      out << "    Average Packet Delay (in ns): 0" << endl;
-   }
+   NetworkModel::outputSummary(out);
 
    out << "  Ingress Router: " << endl;
    if (_eclos_node_list[INGRESS_ROUTER])

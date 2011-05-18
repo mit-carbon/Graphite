@@ -98,11 +98,6 @@ class NetworkModelAtac : public NetworkModel
       Lock m_lock;
 
       // Performance Counters
-      UInt64 m_total_bytes_received;
-      UInt64 m_total_packets_received;
-      UInt64 m_total_contention_delay;
-      UInt64 m_total_packet_latency;
-
       UInt64 m_total_sender_hub_contention_delay;
       UInt64 m_total_sender_hub_packets;
       UInt64 m_total_buffered_sender_hub_packets;
@@ -133,7 +128,6 @@ class NetworkModelAtac : public NetworkModel
       UInt64 getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, const NetPacket& pkt);
 
       UInt64 computeProcessingTime(UInt32 pkt_length, volatile double bandwidth);
-      tile_id_t getRequester(const NetPacket& pkt);
 
       static void initializeANetTopologyParams();
       void createANetRouterAndLinkModels();
@@ -145,7 +139,6 @@ class NetworkModelAtac : public NetworkModel
       void destroyQueueModels();
       void resetQueueModels();
 
-      void initializePerformanceCounters();
       void initializeActivityCounters();
 
       void outputHubSummary(ostream& out);

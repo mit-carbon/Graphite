@@ -10,6 +10,8 @@ using namespace std;
 #include "network_model_emesh_hop_by_hop.h"
 #include "network_model_eclos.h"
 #include "network_model_atac.h"
+#include "memory_manager_base.h"
+#include "clock_converter.h"
 #include "log.h"
 
 NetworkModel::NetworkModel(Network *network, SInt32 network_id):
@@ -28,6 +30,9 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id):
       _network_name = "network/system_model";
    else
       LOG_PRINT_ERROR("Unrecognized Network Num(%u)", network_id);
+
+   // Initialize Performance Counters
+   initializePerformanceCounters();
 }
 
 NetworkModel*
@@ -56,6 +61,113 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);
       return NULL;
+   }
+}
+
+tile_id_t
+NetworkModel::getRequester(const NetPacket& packet)
+{
+   tile_id_t requester = INVALID_TILE_ID;
+
+   SInt32 network_id = getNetworkId();
+   if ((network_id == STATIC_NETWORK_USER_1) || (network_id == STATIC_NETWORK_USER_2))
+      requester = TILE_ID(packet.sender);
+   else if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
+      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(packet.data);
+   else // (network_id == STATIC_NETWORK_SYSTEM)
+      requester = INVALID_TILE_ID;
+   
+   // LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
+   //       "requester(%i)", requester);
+
+   return requester;
+}
+
+void
+NetworkModel::initializePerformanceCounters()
+{
+   _total_packets_sent = 0;
+   _total_bytes_sent = 0;
+   _total_packets_broadcasted = 0;
+   _total_bytes_broadcasted = 0;
+   _total_packets_received = 0;
+   _total_bytes_received = 0;
+   _total_packet_latency = 0;
+   _total_contention_delay = 0;
+}
+
+void
+NetworkModel::updateSendCounters(const NetPacket& packet)
+{
+   tile_id_t sender = TILE_ID(packet.sender);
+   tile_id_t receiver = TILE_ID(packet.receiver);
+
+   if (sender == receiver)
+      return;
+
+   UInt32 packet_length = getNetwork()->getModeledLength(packet);
+   _total_bytes_sent += packet_length;
+   _total_packets_sent ++;
+   if (receiver == NetPacket::BROADCAST)
+   {
+      _total_bytes_broadcasted += packet_length;
+      _total_packets_broadcasted ++;
+   }
+}
+
+void
+NetworkModel::updateReceiveCounters(const NetPacket& packet, UInt64 zero_load_latency)
+{
+   tile_id_t sender = TILE_ID(packet.sender);
+   tile_id_t receiver = TILE_ID(packet.receiver);
+
+   if (sender == receiver)
+      return;
+
+   assert( (receiver == NetPacket::BROADCAST) || (receiver == getNetwork()->getTile()->getId()) );
+
+   UInt32 packet_length = getNetwork()->getModeledLength(packet);
+   _total_bytes_received += packet_length;
+   _total_packets_received ++;
+
+   UInt64 packet_latency = packet.time - packet.start_time;
+   UInt64 contention_delay = packet_latency - zero_load_latency;
+   _total_packet_latency += packet_latency;
+   _total_contention_delay += contention_delay;
+}
+
+void
+NetworkModel::outputSummary(ostream& out)
+{
+   out << "    Total Packets Sent: " << _total_packets_sent << endl;
+   out << "    Total Bytes Sent: " << _total_bytes_sent << endl;
+   out << "    Total Packets Broadcasted: " << _total_packets_broadcasted << endl;
+   out << "    Total Bytes Broadcasted: " << _total_bytes_broadcasted << endl;
+   out << "    Total Packets Received: " << _total_packets_received << endl;
+   out << "    Total Bytes Received: " << _total_bytes_received << endl;
+
+   if (_total_packets_received > 0)
+   {
+      UInt64 total_packet_latency_in_ns = convertCycleCount(_total_packet_latency, getFrequency(), 1.0);
+      UInt64 total_contention_delay_in_ns = convertCycleCount(_total_contention_delay, getFrequency(), 1.0);
+
+      out << "    Average Packet Latency (in clock cycles): " <<
+         ((float) _total_packet_latency) / _total_packets_received << endl;
+      out << "    Average Packet Latency (in ns): " <<
+         ((float) total_packet_latency_in_ns) / _total_packets_received << endl;
+
+      out << "    Average Contention Delay (in clock cycles): " <<
+         ((float) _total_contention_delay) / _total_packets_received << endl;
+      out << "    Average Contention Delay (in ns): " <<
+         ((float) total_contention_delay_in_ns) / _total_packets_received << endl;
+   }
+   else
+   {
+      out << "    Average Packet Latency (in clock cycles): 0" << endl;
+      out << "    Average Packet Latency (in ns): 0" << endl;
+      
+      out << "    Average Contention Delay (in clock cycles): 0" << endl;
+      out << "    Average Contention Delay (in ns): 0" << endl;
    }
 }
 

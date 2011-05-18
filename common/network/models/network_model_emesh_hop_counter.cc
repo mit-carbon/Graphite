@@ -6,8 +6,6 @@
 #include "config.h"
 #include "config.h"
 #include "tile.h"
-#include "memory_manager_base.h"
-#include "clock_converter.h"
 
 UInt32 NetworkModelEMeshHopCounter::_NUM_OUTPUT_DIRECTIONS = 4;
 
@@ -35,9 +33,6 @@ NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 ne
 
    // Create Rounter & Link Models
    createRouterAndLinkModels();
-
-   // Initialize Performance Counters
-   initializePerformanceCounters();
 }
 
 NetworkModelEMeshHopCounter::~NetworkModelEMeshHopCounter()
@@ -113,14 +108,6 @@ NetworkModelEMeshHopCounter::destroyRouterAndLinkModels()
 {
    delete _electrical_router_model;
    delete _electrical_link_model;
-}
-
-void
-NetworkModelEMeshHopCounter::initializePerformanceCounters()
-{
-   _num_packets = 0;
-   _num_bytes = 0;
-   _total_latency = 0;
 }
 
 void
@@ -227,15 +214,9 @@ NetworkModelEMeshHopCounter::processReceivedPacket(NetPacket &pkt)
    if ((!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
       return;
 
-   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-
-   // LOG_ASSERT_ERROR(pkt.start_time > 0, "start_time(%llu)", pkt.start_time);
-
-   UInt64 latency = pkt.time - pkt.start_time;
-
-   _num_packets ++;
-   _num_bytes += pkt_length;
-   _total_latency += latency;
+   // Update Receive Counters
+   UInt64 zero_load_latency = pkt.time - pkt.start_time;
+   updateReceiveCounters(pkt, zero_load_latency);   
 }
 
 UInt64 
@@ -250,28 +231,9 @@ NetworkModelEMeshHopCounter::computeProcessingTime(UInt32 pkt_length)
       return (UInt64) (num_bits/_link_width + 1);
 }
 
-tile_id_t
-NetworkModelEMeshHopCounter::getRequester(const NetPacket& pkt)
-{
-   tile_id_t requester = INVALID_TILE_ID;
-
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(pkt.data);
-   else // Other Packet types
-      requester = pkt.sender.tile_id;
-   
-   LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-         "requester(%i)", requester);
-
-   return requester;
-}
-
 void
 NetworkModelEMeshHopCounter::reset()
 {
-   // Performance Counters
-   initializePerformanceCounters();
-   
    // Activity Counters
    initializeActivityCounters();
    
@@ -283,12 +245,7 @@ NetworkModelEMeshHopCounter::reset()
 void
 NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
 {
-   out << "    num packets received: " << _num_packets << std::endl;
-   out << "    num bytes received: " << _num_bytes << std::endl;
-   UInt64 total_latency_in_ns = convertCycleCount(_total_latency, _frequency, 1.0);
-   out << "    average latency (in clock cycles): " << ((float) _total_latency) / _num_packets << std::endl;
-   out << "    average latency (in ns): " << ((float) total_latency_in_ns) / _num_packets << std::endl;
-
+   NetworkModel::outputSummary(out);
    outputPowerSummary(out);
 }
 

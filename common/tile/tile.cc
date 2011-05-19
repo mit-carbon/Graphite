@@ -31,7 +31,6 @@ Tile::Tile(SInt32 id)
 
 Tile::~Tile()
 {
-
    LOG_PRINT("Deleting tile with id %d", this->getId());
    delete m_main_core;
 }

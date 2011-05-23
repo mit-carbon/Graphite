@@ -32,7 +32,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
    m_shmem_perf_model(shmem_perf_model),
    m_cache_power_model(NULL),
    m_cache_area_model(NULL),
-   m_total_directory_cache_accesses(0)
+   m_total_directory_cache_accesses(0),
+   m_enabled(false)
 {
    LOG_PRINT("Directory Cache ctor enter");
    m_num_sets = m_total_entries / m_associativity;
@@ -97,13 +98,13 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    if (getShmemPerfModel())
       getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_delay_in_clock_cycles);
 
-   // Update Power Model
-   if (Config::getSingleton()->getEnablePowerModeling())
+   if (m_enabled)
    {
-      // Update Dynamic Energy Counters
-      m_cache_power_model->updateDynamicEnergy();
+      // Update Event & Dynamic Energy Counters
+      if (Config::getSingleton()->getEnablePowerModeling())
+         m_cache_power_model->updateDynamicEnergy();
+      m_total_directory_cache_accesses ++;
    }
-   m_total_directory_cache_accesses ++;
 
    IntPtr tag;
    UInt32 set_index;
@@ -172,13 +173,13 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    if (getShmemPerfModel())
       getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_delay_in_clock_cycles);
 
-   // Update Power Model
-   if (Config::getSingleton()->getEnablePowerModeling())
+   if (m_enabled)
    {
-      // Update Dynamic Energy Counters
-      m_cache_power_model->updateDynamicEnergy();
+      // Update Event & Dynamic Energy Counters
+      if (Config::getSingleton()->getEnablePowerModeling())
+         m_cache_power_model->updateDynamicEnergy();
+      m_total_directory_cache_accesses ++;
    }
-   m_total_directory_cache_accesses ++;
 
    IntPtr tag;
    UInt32 set_index;

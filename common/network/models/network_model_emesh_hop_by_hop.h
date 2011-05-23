@@ -77,8 +77,8 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       void createRouterAndLinkModels();
       void destroyRouterAndLinkModels();
 
-      // Activity Counters for Power
-      void initializeActivityCounters();
+      // Event Counters for Power
+      void initializeEventCounters();
       
       // Update Dynamic Energy
       void updateDynamicEnergy(const NetPacket& pkt, bool is_buffered, UInt32 contention, UInt32 multicast_index);

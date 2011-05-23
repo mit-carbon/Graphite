@@ -162,11 +162,11 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    
    m_hop_latency = m_router_delay + link_delay;
 
-   initializeActivityCounters();
+   initializeEventCounters();
 }
 
 void
-NetworkModelEMeshHopByHop::initializeActivityCounters()
+NetworkModelEMeshHopByHop::initializeEventCounters()
 {
    // Initialize Activity Counters
    m_switch_allocator_traversals = 0;
@@ -579,8 +579,8 @@ NetworkModelEMeshHopByHop::reset()
    // Reset Queue Models
    resetQueueModels();
    
-   // Activity Counters
-   initializeActivityCounters();
+   // Event Counters
+   initializeEventCounters();
    
    // Reset Router & Link Models
    m_electrical_router_model->resetCounters();

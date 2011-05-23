@@ -154,6 +154,8 @@ class NetworkModelAtac : public NetworkModel
       void outputUtilizationSummary();
 #endif
 
+      UInt32 getFlitWidth() { return m_gather_network_link_width; }
+
    public:
       NetworkModelAtac(Network *net, SInt32 network_id);
       ~NetworkModelAtac();
@@ -168,8 +170,6 @@ class NetworkModelAtac : public NetworkModel
       static pair<bool, vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
       static pair<bool, vector<vector<tile_id_t> > > computeProcessToTileMapping();
  
-      void enable();
-      void disable();
       void reset();
       void outputSummary(std::ostream &out);
       

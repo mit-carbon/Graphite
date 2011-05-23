@@ -53,12 +53,12 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       tile_id_t computeTileId(SInt32 x, SInt32 y);
       SInt32 computeDistance(tile_id_t sender, tile_id_t receiver);
 
-      void addHop(OutputDirection direction, tile_id_t final_dest, tile_id_t next_dest, \
-            const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, \
-            std::vector<Hop>& nextHops, \
+      void addHop(OutputDirection direction, tile_id_t final_dest, tile_id_t next_dest,
+            const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length,
+            std::vector<Hop>& nextHops,
             tile_id_t requester);
-      UInt64 computeLatency(OutputDirection direction, \
-            const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, \
+      UInt64 computeLatency(OutputDirection direction,
+            const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length,
             tile_id_t requester);
       UInt64 computeProcessingTime(UInt32 pkt_length);
       tile_id_t getNextDest(tile_id_t final_dest, OutputDirection& direction);
@@ -82,6 +82,9 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       // Update Dynamic Energy
       void updateDynamicEnergy(const NetPacket& pkt, bool is_buffered, UInt32 contention);
       void outputPowerSummary(std::ostream& out);
+
+      // Flit Width
+      UInt32 getFlitWidth() { return m_link_width; }
 
    protected:
       volatile float m_frequency;
@@ -121,8 +124,6 @@ class NetworkModelEMeshHopByHop : public NetworkModel
 
       void outputSummary(std::ostream &out);
 
-      void enable();
-      void disable();
       void reset();
 };
 

@@ -21,7 +21,6 @@ using namespace std;
 
 NetworkModelAnalytical::NetworkModelAnalytical(Network *net, SInt32 network_id)
       : NetworkModel(net, network_id)
-      , m_enabled(false)
 {
    getNetwork()->registerCallback(MCP_UTILIZATION_UPDATE_TYPE,
                                   receiveMCPUpdate,
@@ -100,7 +99,7 @@ void NetworkModelAnalytical::routePacket(const NetPacket &pkt,
 
 UInt64 NetworkModelAnalytical::computeLatency(const NetPacket &packet)
 {
-   if (!m_enabled)
+   if (!isEnabled())
       return 0;
 
    // self-sends incur no cost
@@ -265,7 +264,7 @@ void NetworkModelAnalytical::updateUtilization()
    update.type = MCP_SYSTEM_TYPE;
    update.data = &m;
 
-//   getNetwork()->netSend(update);
+// getNetwork()->netSend(update);
 }
 
 void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
@@ -277,19 +276,9 @@ void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
    ScopedLock sl(pr->model->_lock);
 
    LOG_ASSERT_ERROR(!IS_NAN(pr->ut) && 0 <= pr->ut && pr->ut < 1, "Recv'd invalid global utilization value: %f", pr->ut);
-//   fprintf(stderr, "Recv'd global utilization: %f\n", pr->ut);
+// fprintf(stderr, "Recv'd global utilization: %f\n", pr->ut);
 
    pr->model->_globalUtilization = pr->ut;
-}
-
-void NetworkModelAnalytical::enable()
-{
-   m_enabled = true;
-}
-
-void NetworkModelAnalytical::disable()
-{
-   m_enabled = false;
 }
 
 void NetworkModelAnalytical::reset()

@@ -22,8 +22,6 @@ class NetworkModelAnalytical : public NetworkModel
 
       void outputSummary(std::ostream &out);
 
-      void enable();
-      void disable();
       void reset();
       
    private:
@@ -46,9 +44,9 @@ class NetworkModelAnalytical : public NetworkModel
 
       NetworkModelAnalyticalParameters _params;
 
-      bool m_enabled;
-
       void initializePerformanceCounters();
+      // Get Flit Width
+      UInt32 getFlitWidth() { return _params.W; }
 };
 
 #endif // NETWORK_MODEL_ANALYTICAL_H

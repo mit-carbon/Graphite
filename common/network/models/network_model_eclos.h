@@ -112,4 +112,7 @@ class NetworkModelEClos : public NetworkModel
       bool isApplicationTile(tile_id_t tile_id);
       pair<bool,bool> isModeled(const NetPacket& pkt);
       string getName(Stage stage);
+
+      // Flit Width
+      UInt32 getFlitWidth() { return _flit_width; }
 };

@@ -37,7 +37,7 @@ Cache::Cache(string name,
    }
 
    // Initialize Cache Counters
-   initializePerformanceCounters();
+   initializeEventCounters();
 }
 
 Cache::~Cache()

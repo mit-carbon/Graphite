@@ -1084,29 +1084,29 @@ NetworkModelAtac::updateDynamicEnergy(SubNetworkType sub_net_type, const NetPack
          if (Config::getSingleton()->getEnablePowerModeling())
          {
             // Update Dynamic Energy of router (switch allocator + crossbar)
-            m_gather_network_router_model->updateDynamicEnergySwitchAllocator(m_num_gather_network_router_ports/2, \
+            m_gather_network_router_model->updateDynamicEnergySwitchAllocator(m_num_gather_network_router_ports/2,
                   m_num_hops_sender_tile_to_sender_hub);
             m_gather_network_router_model->updateDynamicEnergyClock(m_num_hops_sender_tile_to_sender_hub);
 
-            m_gather_network_router_model->updateDynamicEnergyCrossbar(m_gather_network_link_width/2, \
+            m_gather_network_router_model->updateDynamicEnergyCrossbar(m_gather_network_link_width/2,
                   computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_tile_to_sender_hub);
-            m_gather_network_router_model->updateDynamicEnergyClock( \
+            m_gather_network_router_model->updateDynamicEnergyClock(
                   computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_tile_to_sender_hub);
             // We assume that there is no buffering here - so dont update dynamic energy of buffer
 
             // Update Dynamic Energy of link
-            m_gather_network_link_model->updateDynamicEnergy(m_gather_network_link_width / 2, \
+            m_gather_network_link_model->updateDynamicEnergy(m_gather_network_link_width / 2,
                   computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_tile_to_sender_hub);
          }
 
          // Activity Counters
          // Router
          m_gather_network_router_switch_allocator_traversals += m_num_hops_sender_tile_to_sender_hub;
-         m_gather_network_router_crossbar_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) * \
+         m_gather_network_router_crossbar_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) *
                                                         m_num_hops_sender_tile_to_sender_hub);
          
          // Link      
-         m_gather_network_link_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) * \
+         m_gather_network_link_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) *
                                              m_num_hops_sender_tile_to_sender_hub);
          break;
 

@@ -108,17 +108,28 @@ class NetworkModel
       std::string _network_name;
       bool _enabled;
 
-      // Performance Counters
+      // Event Counters
       UInt64 _total_packets_sent;
+      UInt64 _total_flits_sent;
       UInt64 _total_bytes_sent;
+
       UInt64 _total_packets_broadcasted;
+      UInt64 _total_flits_broadcasted;
       UInt64 _total_bytes_broadcasted;
+
       UInt64 _total_packets_received;
+      UInt64 _total_flits_received;
       UInt64 _total_bytes_received;
+
       UInt64 _total_packet_latency;
       UInt64 _total_contention_delay;
 
-      void initializePerformanceCounters();
+      // Initialize Event Counters
+      void initializeEventCounters();
+      // Compute Number of Flits
+      UInt32 computeNumFlits(UInt32 pkt_length);
+      // Get Flit Width
+      virtual UInt32 getFlitWidth() = 0;
 };
 
 #endif // NETWORK_MODEL_H

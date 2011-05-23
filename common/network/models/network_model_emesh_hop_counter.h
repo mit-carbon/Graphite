@@ -64,7 +64,10 @@ private:
    void destroyRouterAndLinkModels();
 
    void updateDynamicEnergy(const NetPacket& pkt, UInt32 contention, UInt32 num_hops);
-   void outputPowerSummary(std::ostream& out); 
+   void outputPowerSummary(std::ostream& out);
+
+   // Flit Width
+   UInt32 getFlitWidth() { return _link_width; }
 };
 
 #endif

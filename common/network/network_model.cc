@@ -32,8 +32,8 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id):
    else
       LOG_PRINT_ERROR("Unrecognized Network Num(%u)", network_id);
 
-   // Initialize Performance Counters
-   initializePerformanceCounters();
+   // Initialize Event Counters
+   initializeEventCounters();
 }
 
 NetworkModel*
@@ -85,16 +85,32 @@ NetworkModel::getRequester(const NetPacket& packet)
 }
 
 void
-NetworkModel::initializePerformanceCounters()
+NetworkModel::initializeEventCounters()
 {
    _total_packets_sent = 0;
+   _total_flits_sent = 0;
    _total_bytes_sent = 0;
+   
    _total_packets_broadcasted = 0;
+   _total_flits_broadcasted = 0;
    _total_bytes_broadcasted = 0;
+   
    _total_packets_received = 0;
+   _total_flits_received = 0;
    _total_bytes_received = 0;
+   
    _total_packet_latency = 0;
    _total_contention_delay = 0;
+}
+
+UInt32
+NetworkModel::computeNumFlits(UInt32 packet_length)
+{
+   UInt32 num_bits = packet_length * 8;
+   if ( (num_bits % getFlitWidth()) == 0 )
+      return (num_bits / getFlitWidth());
+   else
+      return ( (num_bits / getFlitWidth()) + 1 );
 }
 
 void
@@ -104,19 +120,23 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
    tile_id_t receiver = TILE_ID(packet.receiver);
 
    tile_id_t requester = getRequester(packet);
-   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
-      return;
-
-   if (sender == receiver)
+   if ( (!_enabled) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
+        (sender == receiver) )
       return;
 
    UInt32 packet_length = getNetwork()->getModeledLength(packet);
-   _total_bytes_sent += packet_length;
+   UInt32 num_flits = computeNumFlits(packet_length);
+   
    _total_packets_sent ++;
+   _total_flits_sent += num_flits;
+   _total_bytes_sent += packet_length;
+
    if (receiver == NetPacket::BROADCAST)
    {
-      _total_bytes_broadcasted += packet_length;
       _total_packets_broadcasted ++;
+      _total_flits_broadcasted += num_flits;
+      _total_bytes_broadcasted += packet_length;
    }
 }
 
@@ -127,17 +147,19 @@ NetworkModel::updateReceiveCounters(const NetPacket& packet, UInt64 zero_load_la
    tile_id_t receiver = TILE_ID(packet.receiver);
 
    tile_id_t requester = getRequester(packet);
-   if ( (!_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
-      return;
-
-   if (sender == receiver)
+   if ( (!_enabled) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
+        (sender == receiver) )
       return;
 
    assert( (receiver == NetPacket::BROADCAST) || (receiver == getNetwork()->getTile()->getId()) );
 
    UInt32 packet_length = getNetwork()->getModeledLength(packet);
-   _total_bytes_received += packet_length;
+   UInt32 num_flits = computeNumFlits(packet_length);
+
    _total_packets_received ++;
+   _total_flits_received += num_flits;
+   _total_bytes_received += packet_length;
 
    UInt64 packet_latency = packet.time - packet.start_time;
    UInt64 contention_delay = packet_latency - zero_load_latency;
@@ -149,10 +171,15 @@ void
 NetworkModel::outputSummary(ostream& out)
 {
    out << "    Total Packets Sent: " << _total_packets_sent << endl;
+   out << "    Total Flits Sent: " << _total_flits_sent << endl;
    out << "    Total Bytes Sent: " << _total_bytes_sent << endl;
+
    out << "    Total Packets Broadcasted: " << _total_packets_broadcasted << endl;
+   out << "    Total Flits Broadcasted: " << _total_flits_broadcasted << endl;
    out << "    Total Bytes Broadcasted: " << _total_bytes_broadcasted << endl;
+
    out << "    Total Packets Received: " << _total_packets_received << endl;
+   out << "    Total Flits Received: " << _total_flits_received << endl;
    out << "    Total Bytes Received: " << _total_bytes_received << endl;
 
    if (_total_packets_received > 0)

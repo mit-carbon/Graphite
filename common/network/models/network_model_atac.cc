@@ -329,7 +329,10 @@ NetworkModelAtac::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sen
    tile_id_t requester = getRequester(pkt);
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
 
-   if ( (!isEnabled()) || (!m_queue_model_enabled) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) || (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
+   if ( (!isEnabled()) ||
+        (!m_queue_model_enabled) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
+        (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
       return 0;
 
    assert(m_tile_id == getTileIDWithOpticalHub(getClusterID(m_tile_id)));
@@ -347,8 +350,8 @@ NetworkModelAtac::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sen
             
             UInt64 processing_time = computeProcessingTime(pkt_length, (volatile double) m_optical_network_link_width);
 
-            LOG_ASSERT_ERROR(sender_cluster_id == getClusterID(m_tile_id), \
-                  "sender_cluster_id(%i), curr_cluster_id(%i)", \
+            LOG_ASSERT_ERROR(sender_cluster_id == getClusterID(m_tile_id),
+                  "sender_cluster_id(%i), curr_cluster_id(%i)",
                   sender_cluster_id, getClusterID(m_tile_id));
             UInt64 sender_hub_queue_delay = m_sender_hub_queue_model->computeQueueDelay(optical_network_pkt_time, processing_time);
 
@@ -442,8 +445,8 @@ NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
                getClusterID(pkt.sender),
                pkt.time + m_gather_network_delay,
                pkt);
-         UInt64 latency_sender_tile_to_receiver_hub = m_gather_network_delay + \
-                                                      sender_hub_queue_delay + \
+         UInt64 latency_sender_tile_to_receiver_hub = m_gather_network_delay +
+                                                      sender_hub_queue_delay +
                                                       m_optical_network_link_delay;
 
          UInt64 receiver_hub_queue_delay[m_num_clusters];
@@ -460,10 +463,10 @@ NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 
          for (tile_id_t i = 0; i < (tile_id_t) m_total_tiles; i++)
          {
-            UInt64 latency_receiver_hub_to_receiver_tile = receiver_hub_queue_delay[getClusterID(i)] + \
+            UInt64 latency_receiver_hub_to_receiver_tile = receiver_hub_queue_delay[getClusterID(i)] +
                                                            m_scatter_network_delay;
 
-            UInt64 total_latency = latency_sender_tile_to_receiver_hub + \
+            UInt64 total_latency = latency_sender_tile_to_receiver_hub +
                                    latency_receiver_hub_to_receiver_tile;
 
             Hop h;

@@ -44,8 +44,9 @@ class NetworkModelEMeshHopByHop : public NetworkModel
 
       // Activity Counters
       UInt64 m_switch_allocator_traversals;
-      UInt64 m_crossbar_traversals;
-      UInt64 m_buffer_accesses;
+      vector<UInt64> m_crossbar_traversals;
+      UInt64 m_buffer_reads;
+      UInt64 m_buffer_writes;
       UInt64 m_link_traversals;
 
       // Functions
@@ -80,7 +81,7 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       void initializeActivityCounters();
       
       // Update Dynamic Energy
-      void updateDynamicEnergy(const NetPacket& pkt, bool is_buffered, UInt32 contention);
+      void updateDynamicEnergy(const NetPacket& pkt, bool is_buffered, UInt32 contention, UInt32 multicast_index);
       void outputPowerSummary(std::ostream& out);
 
       // Flit Width

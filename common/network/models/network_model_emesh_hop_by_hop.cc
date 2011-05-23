@@ -188,7 +188,7 @@ NetworkModelEMeshHopByHop::computeAction(const NetPacket& pkt)
    if (TILE_ID(pkt.receiver) == NetPacket::BROADCAST)
    {
       LOG_ASSERT_ERROR(m_broadcast_tree_enabled, "pkt.sender.tile_id(%i), pkt.receiver.tile_id(%i)",
-            pkt.sender.tile_id, pkt.receiver.tile_id);
+            TILE_ID(pkt.sender), TILE_ID(pkt.receiver));
       if (TILE_ID(pkt.sender) == m_tile_id)
       {
          // Dont call routePacket() recursively
@@ -228,7 +228,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
          // Injection Port Modeling
          UInt64 injection_port_queue_delay = 0;
          if (TILE_ID(pkt.sender) == m_tile_id)
-            injection_port_queue_delay = computeInjectionPortQueueDelay(pkt.receiver.tile_id, pkt.time, pkt_length);
+            injection_port_queue_delay = computeInjectionPortQueueDelay(pkt, TILE_ID(pkt.receiver), pkt.time, pkt_length);
 
          UInt64 curr_time = pkt.time + injection_port_queue_delay;         
 
@@ -236,7 +236,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
          // Build the broadcast tree
          SInt32 sx, sy, cx, cy;
             
-         computePosition(pkt.sender.tile_id, sx, sy);
+         computePosition(TILE_ID(pkt.sender), sx, sy);
          computePosition(m_tile_id, cx, cy);
 
          if (cy >= sy)
@@ -264,7 +264,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
          for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
          {
             // Injection Port Modeling
-            UInt64 injection_port_queue_delay = computeInjectionPortQueueDelay(i, pkt.time, pkt_length);
+            UInt64 injection_port_queue_delay = computeInjectionPortQueueDelay(pkt, i, pkt.time, pkt_length);
             UInt64 curr_time = pkt.time + injection_port_queue_delay;         
 
             // Unicast message to each tile
@@ -280,12 +280,12 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
       // Injection Port Modeling
       UInt64 injection_port_queue_delay = 0;
       if (TILE_ID(pkt.sender) == m_tile_id)
-         injection_port_queue_delay = computeInjectionPortQueueDelay(TILE_ID(pkt.receiver), pkt.time, pkt_length);
+         injection_port_queue_delay = computeInjectionPortQueueDelay(pkt, TILE_ID(pkt.receiver), pkt.time, pkt_length);
       UInt64 curr_time = pkt.time + injection_port_queue_delay;         
       
       // A Unicast packet
       OutputDirection direction;
-      tile_id_t next_dest = getNextDest(pkt.receiver.tile_id, direction);
+      tile_id_t next_dest = getNextDest(TILE_ID(pkt.receiver), direction);
 
       addHop(direction, TILE_ID(pkt.receiver), next_dest, pkt, curr_time, pkt_length, nextHops, requester);
    }
@@ -297,7 +297,8 @@ NetworkModelEMeshHopByHop::processReceivedPacket(NetPacket& pkt)
    ScopedLock sl(m_lock);
    
    tile_id_t requester = getRequester(pkt);
-   if ((!isEnabled()) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
+   if ( (!isEnabled()) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return;
 
    UInt64 zero_load_latency = computeDistance(TILE_ID(pkt.sender), m_tile_id) * m_hop_latency;
@@ -328,8 +329,8 @@ NetworkModelEMeshHopByHop::addHop(OutputDirection direction,
    if ((direction == SELF) || m_queue_models[direction])
    {
       Hop h;
-      h.final_dest.tile_id = final_dest;
-      h.next_dest.tile_id = next_dest;
+      TILE_ID(h.final_dest) = final_dest;
+      TILE_ID(h.next_dest) = next_dest;
 
       if (direction == SELF)
          h.time = pkt_time;
@@ -370,7 +371,8 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, const NetPa
    LOG_ASSERT_ERROR((direction >= 0) && (direction < NUM_OUTPUT_DIRECTIONS),
          "Invalid Direction(%u)", direction);
 
-   if ( (!isEnabled()) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
+   if ( (!isEnabled()) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
@@ -378,12 +380,12 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, const NetPa
    // Calculate the contention delay
    UInt64 queue_delay = 0;
    if (m_queue_model_enabled)
-      queue_delay = m_queue_models[direction]->computeQueueDelay(pkt_time, processing_time);
+      queue_delay = m_queue_models[direction]->computeQueueDelay(pkt_time, processing_time, requester);
 
    // Update Dynamic Energy State of the Router & Link
-   updateDynamicEnergy(pkt       /* Packet */,        \
-         queue_delay             /* is_buffered */,   \
-         m_num_router_ports/2    /* contention */     );
+   updateDynamicEnergy(pkt       /* Packet */,
+         queue_delay             /* is_buffered */,
+         m_num_router_ports/2    /* contention */);
 
    LOG_PRINT("Queue Delay(%llu), Hop Latency(%llu)", queue_delay, m_hop_latency);
    UInt64 packet_latency = m_hop_latency + queue_delay;
@@ -392,31 +394,37 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, const NetPa
 }
 
 UInt64
-NetworkModelEMeshHopByHop::computeInjectionPortQueueDelay(tile_id_t receiver, UInt64 pkt_time, UInt32 pkt_length)
+NetworkModelEMeshHopByHop::computeInjectionPortQueueDelay(const NetPacket& pkt, tile_id_t receiver, UInt64 pkt_time, UInt32 pkt_length)
 {
-   if (!m_queue_model_enabled)
-      return 0;
+   tile_id_t requester = getRequester(pkt);
 
-   if (receiver == m_tile_id)
+   if ( (!m_queue_model_enabled) ||
+        (!isEnabled()) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
+        (receiver == m_tile_id) )
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
-   return m_injection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+   return m_injection_port_queue_model->computeQueueDelay(pkt_time, processing_time, requester);
 }
 
 UInt64
 NetworkModelEMeshHopByHop::computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length)
 {
-   if (!m_queue_model_enabled)
+   tile_id_t requester = getRequester(pkt);
+
+   if ( (!m_queue_model_enabled) ||
+        (!isEnabled()) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
       return 0;
 
    UInt64 processing_time = computeProcessingTime(pkt_length);
-   UInt64 ejection_port_queue_delay =  m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time);
+   UInt64 ejection_port_queue_delay =  m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time, requester);
 
    // Update Dynamic Energy State of the Router & Link
-   updateDynamicEnergy(pkt /* Packet */,              \
-         ejection_port_queue_delay /* is_buffered */, \
-         m_num_router_ports/2 /* contention */);
+   updateDynamicEnergy(pkt          /* Packet */,
+         ejection_port_queue_delay  /* is_buffered */,
+         m_num_router_ports/2       /* contention */);
 
    return ejection_port_queue_delay;
 }
@@ -704,12 +712,10 @@ NetworkModelEMeshHopByHop::computeNumHops(tile_id_t sender, tile_id_t receiver)
 
 void
 NetworkModelEMeshHopByHop::updateDynamicEnergy(const NetPacket& pkt,
-      bool is_buffered, UInt32 contention)
+                                               bool is_buffered,
+                                               UInt32 contention)
 {
-   tile_id_t requester = getRequester(pkt);
-   if ((!isEnabled()) || (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
-      return;
-
+   assert(isEnabled());
    // TODO: Make these models detailed later - Compute exact number of bit flips
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
    // For now, assume that half of the bits in the packet flip
@@ -744,12 +750,12 @@ NetworkModelEMeshHopByHop::updateDynamicEnergy(const NetPacket& pkt,
       if (Config::getSingleton()->getEnablePowerModeling())
       {
          // Buffer Write Energy
-         m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::WRITE, \
+         m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::WRITE,
                m_link_width/2, num_flits);
          m_electrical_router_model->updateDynamicEnergyClock(num_flits);
     
          // Buffer Read Energy
-         m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::READ, \
+         m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::READ,
                m_link_width/2, num_flits);
          m_electrical_router_model->updateDynamicEnergyClock(num_flits);
       }

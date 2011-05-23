@@ -46,17 +46,10 @@ QueueModelBasic::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile
    }
 
    UInt64 queue_delay = (m_queue_time > ref_time) ? (m_queue_time - ref_time) : 0;
-   if (queue_delay > 10000)
-   {
-      LOG_PRINT("Queue Time(%llu), Ref Time(%llu), Queue Delay(%llu), Requester(%i)", 
-         m_queue_time, ref_time, queue_delay, requester);
-   }
-   else if ((queue_delay == 0) && ((ref_time - m_queue_time) > 10000))
-   {
-      LOG_PRINT("Queue Time(%llu), Ref Time(%llu), Difference(%llu), Requester(%i)",
-            m_queue_time, ref_time, ref_time - m_queue_time, requester);
-   }
-   
+  
+   LOG_PRINT("Pkt Time(%llu), Ref Time(%llu), Queue Time(%llu), Queue Delay(%llu), Requester(%i)", \
+         pkt_time, ref_time, m_queue_time, queue_delay, requester);
+
    // Update the Queue Time
    m_queue_time = getMax<UInt64>(m_queue_time, ref_time) + processing_time;
 

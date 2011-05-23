@@ -64,7 +64,7 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       tile_id_t getNextDest(tile_id_t final_dest, OutputDirection& direction);
 
       // Injection & Ejection Port Queue Models
-      UInt64 computeInjectionPortQueueDelay(tile_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
+      UInt64 computeInjectionPortQueueDelay(const NetPacket& pkt, tile_id_t pkt_receiver, UInt64 pkt_time, UInt32 pkt_length);
       UInt64 computeEjectionPortQueueDelay(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length);
 
       static void initializeEMeshTopologyParams();

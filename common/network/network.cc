@@ -179,46 +179,14 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
       LOG_PRINT("Send packet : type %i, from {%i,%i}, to {%i, %i}, next_hop %i, tile_id %i, time %llu", \
-            (SInt32) buff_pkt->type, buff_pkt->sender.tile_id, buff_pkt->sender.core_type, hopVec[i].final_dest.tile_id, hopVec[i].final_dest.core_type, hopVec[i].next_dest.tile_id, \
+            (SInt32) buff_pkt->type, \
+            buff_pkt->sender.tile_id, buff_pkt->sender.core_type, \
+            hopVec[i].final_dest.tile_id, hopVec[i].final_dest.core_type, \
+            hopVec[i].next_dest.tile_id, \
             _tile->getId(), hopVec[i].time);
 
-      // Do a shared memory shortcut here
-      if ((Config::getSingleton()->getProcessCount() == 1) && (hopVec[i].final_dest.tile_id != NetPacket::BROADCAST))
-      {
-         // 1) Process Count = 1
-         // 2) The broadcast tree network model is not used
-         while (1)
-         {
-            buff_pkt->time = hopVec[i].time;
-            buff_pkt->receiver.tile_id = hopVec[i].final_dest.tile_id;
-            buff_pkt->receiver.core_type = hopVec[i].final_dest.core_type;
-            buff_pkt->specific = hopVec[i].specific;
-
-            Tile* remote_tile = Sim()->getTileManager()->getTileFromID(hopVec[i].next_dest.tile_id);
-            NetworkModel* remote_network_model = remote_tile->getNetwork()->getNetworkModelFromPacketType(buff_pkt->type);
-
-            UInt32 action = remote_network_model->computeAction(*buff_pkt);
-            LOG_ASSERT_ERROR(!((action & NetworkModel::RoutingAction::RECEIVE) &&
-                     (action & NetworkModel::RoutingAction::FORWARD)), "action(%u)", action);
-            
-            if (action & NetworkModel::RoutingAction::RECEIVE)
-            {
-               // Destination reached. Break out of the routing loop
-               break;
-            }
-            
-            vector<NetworkModel::Hop> localHopVec;
-            remote_network_model->routePacket(*buff_pkt, localHopVec);
-            LOG_ASSERT_ERROR(localHopVec.size() == 1, "Only unicasts allowed in this routing loop(%u)",
-                  localHopVec.size());
-
-            hopVec[i] = localHopVec[0];
-         }
-      }
-
       buff_pkt->time = hopVec[i].time;
-      buff_pkt->receiver.tile_id = hopVec[i].final_dest.tile_id;
-      buff_pkt->receiver.core_type = hopVec[i].final_dest.core_type;
+      buff_pkt->receiver = hopVec[i].final_dest;
       buff_pkt->specific = hopVec[i].specific;
 
       _transport->send(hopVec[i].next_dest.tile_id, buffer, packet.bufferSize());

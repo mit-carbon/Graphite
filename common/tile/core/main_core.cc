@@ -223,4 +223,3 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
 
    return make_pair<UInt32, UInt64>(num_misses, memory_access_latency);
 }
-

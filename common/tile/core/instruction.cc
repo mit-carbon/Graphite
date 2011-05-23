@@ -33,6 +33,25 @@ UInt64 Instruction::getCost()
    return Instruction::m_instruction_costs[m_type]; 
 }
 
+bool Instruction::isSimpleLoad()
+{
+   if (m_operands.size() != 2)
+      return false;
+
+   bool memory_read = false;
+   bool reg_write = false;
+   for (unsigned int i = 0; i < m_operands.size(); i++)
+   {
+      const Operand& o = m_operands[i];
+      if ((o.m_type == Operand::MEMORY) && (o.m_direction == Operand::READ))
+         memory_read = true;
+      if ((o.m_type == Operand::REG) && (o.m_direction == Operand::WRITE))
+         reg_write = true;
+   }
+
+   return (memory_read && reg_write) ? true : false;
+}
+
 void Instruction::initializeStaticInstructionModel()
 {
    m_instruction_costs.resize(MAX_INSTRUCTION_COUNT);

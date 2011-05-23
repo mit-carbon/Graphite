@@ -51,7 +51,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    UInt64 cost = instruction->getCost();
 
    // icache modeling
-   modelIcache(instruction->getAddress());
+   // modelIcache(instruction->getAddress());
 
    /* 
       model instruction in the following steps:
@@ -66,7 +66,6 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
 
    // find when read operands are available
    UInt64 read_operands_ready = m_cycle_count;
-   UInt64 write_operands_ready = m_cycle_count;
    UInt64 max_load_latency = 0;
 
    // REG read operands
@@ -74,16 +73,13 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    {
       const Operand &o = ops[i];
 
-      if (o.m_direction != Operand::READ)
-         continue;
-
-      if (o.m_type != Operand::REG)
+      if ( (o.m_direction != Operand::READ) || (o.m_type != Operand::REG) )
          continue;
 
       LOG_ASSERT_ERROR(o.m_value < m_register_scoreboard.size(),
                        "Register value out of range: %llu", o.m_value);
 
-      if (m_register_scoreboard[o.m_value] > read_operands_ready)
+      if (read_operands_ready < m_register_scoreboard[o.m_value])
          read_operands_ready = m_register_scoreboard[o.m_value];
    }
 
@@ -124,14 +120,11 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
       popDynamicInstructionInfo();
    }
 
-   // update cycle count with instruction cost
-   m_instruction_count++;
-   // This is the completion time of an instruction 
-   // leaving out the register and memory write
+   // Calculate the completion time of instruction (after fetching read operands + execution unit)
    UInt64 execute_unit_completion_time = read_operands_ready + max_load_latency + cost;
 
-   if (m_cycle_count < execute_unit_completion_time)
-      m_cycle_count = execute_unit_completion_time;
+   // Time when write operands are ready
+   UInt64 write_operands_ready = execute_unit_completion_time;
 
    // REG write operands
    // In this core model, we directly resolve WAR hazards since we wait
@@ -142,10 +135,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    {
       const Operand &o = ops[i];
 
-      if (o.m_direction != Operand::WRITE)
-         continue;
-
-      if (o.m_type != Operand::REG)
+      if ( (o.m_direction != Operand::WRITE) || (o.m_type != Operand::REG) )
          continue;
 
       // Note that m_cycle_count can be less then the previous value
@@ -162,10 +152,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    {
       const Operand &o = ops[i];
 
-      if (o.m_direction != Operand::WRITE)
-         continue;
-
-      if (o.m_type != Operand::MEMORY)
+      if ( (o.m_direction != Operand::WRITE) || (o.m_type != Operand::MEMORY) )
          continue;
 
       const DynamicInstructionInfo &info = write_info.front();
@@ -177,22 +164,31 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
          write_operands_ready = store_time;
    }
 
-   if (m_cycle_count < write_operands_ready)
-      m_cycle_count = write_operands_ready;
+   // Completion Time of instruction
+   UInt64 completion_time = write_operands_ready;
+
+   // update cycle count with instruction cost
+   // If it is a simple load instruction, execute the next instruction,
+   // else wait till all the operands are fetched to execute the next instruction
+   if (instruction->isSimpleLoad())
+      m_cycle_count = read_operands_ready + cost;
+   else
+      m_cycle_count = completion_time;
 
    LOG_ASSERT_ERROR(write_info.empty(), "Some write info left over?");
+   
+   // Update Statistics
+   m_instruction_count++;
 }
 
 pair<UInt64,UInt64>
 IOCOOMPerformanceModel::executeLoad(UInt64 time, const DynamicInstructionInfo &info)
 {
-   bool l1_hit = info.memory_info.num_misses == 0;
-
    // similarly, a miss in the l1 with a completed entry in the store
    // buffer is treated as an invalidation
    StoreBuffer::Status status = m_store_buffer->isAddressAvailable(time, info.memory_info.addr);
 
-   if ((status == StoreBuffer::VALID) || (l1_hit && status == StoreBuffer::COMPLETED))
+   if (status == StoreBuffer::VALID)
       return make_pair<UInt64,UInt64>(time,0);
 
    // a miss in the l1 forces a miss in the store buffer
@@ -340,8 +336,6 @@ IOCOOMPerformanceModel::StoreBuffer::Status IOCOOMPerformanceModel::StoreBuffer:
       {
          if (m_scoreboard[i] >= time)
             return VALID;
-         else
-            return COMPLETED;
       }
    }
    

@@ -82,6 +82,8 @@ public:
    IntPtr getAddress()
    { return m_addr; }
 
+   bool isSimpleLoad();
+
 private:
    typedef std::vector<unsigned int> StaticInstructionCosts;
    static StaticInstructionCosts m_instruction_costs;

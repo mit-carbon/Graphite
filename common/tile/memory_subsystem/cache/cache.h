@@ -22,8 +22,13 @@ class Cache : public CacheBase
 
       // Cache counters
       UInt64 m_total_cache_accesses;
-      UInt64 m_total_cache_accesses_from_core;
       UInt64 m_total_cache_hits;
+
+      // Event Counters
+      UInt64 m_tag_array_reads;
+      UInt64 m_tag_array_writes;
+      UInt64 m_data_array_reads;
+      UInt64 m_data_array_writes;
 
       // Generic Cache Info
       cache_t m_cache_type;
@@ -54,7 +59,7 @@ class Cache : public CacheBase
       CacheBlockInfo* peekSingleLine(IntPtr addr);
 
       // Update Cache Counters
-      void initializePerformanceCounters();
+      void initializeEventCounters();
       void updateCounters(bool cache_hit);
       void enable() { m_enabled = true; }
       void disable() { m_enabled = false; }

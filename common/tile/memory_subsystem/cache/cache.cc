@@ -57,6 +57,7 @@ Cache::invalidateSingleLine(IntPtr addr)
    assert(set_index < m_num_sets);
 
    // FIXME: Need to update power model here but dont have the numbers
+   m_tag_array_writes ++;
 
    return m_sets[set_index]->invalidate(tag);
 }
@@ -81,16 +82,19 @@ Cache::accessSingleLine(IntPtr addr, access_t access_type,
       return NULL;
 
    if (access_type == LOAD)
-      set->read_line(line_index, block_offset, buff, bytes);
-   else
-      set->write_line(line_index, block_offset, buff, bytes);
-
-   if (Config::getSingleton()->getEnablePowerModeling())
    {
-      // Update Dynamic Energy Counters
-      m_power_model->updateDynamicEnergy();
+      set->read_line(line_index, block_offset, buff, bytes);
+      m_data_array_reads ++;
    }
-   m_total_cache_accesses ++;
+   else
+   {
+      set->write_line(line_index, block_offset, buff, bytes);
+      m_data_array_writes ++;
+   }
+
+   // Update Dynamic Energy Models
+   if (Config::getSingleton()->getEnablePowerModeling())
+      m_power_model->updateDynamicEnergy();
 
    return cache_block_info;
 }
@@ -111,12 +115,13 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
          eviction, evict_block_info, evict_buff);
    *evict_addr = tagToAddress(evict_block_info->getTag());
 
+   // Update Event Counters
+   m_data_array_reads ++;
+   m_data_array_writes ++;
+
+   // Update Dynamic Energy Counters
    if (Config::getSingleton()->getEnablePowerModeling())
-   {
-      // Update Dynamic Energy Counters
       m_power_model->updateDynamicEnergy();
-   }
-   m_total_cache_accesses ++;
    
    delete cache_block_info;
 }
@@ -130,7 +135,8 @@ Cache::peekSingleLine(IntPtr addr)
    UInt32 set_index;
    splitAddress(addr, tag, set_index);
 
-   // FIXME: Need to update power model here but dont have the numbers
+   // FIXME: Need to update dynamic energy model here but dont have the numbers
+   m_tag_array_reads ++;
 
    return m_sets[set_index]->find(tag);
 }
@@ -140,7 +146,7 @@ Cache::updateCounters(bool cache_hit)
 {
    if (m_enabled)
    {
-      m_total_cache_accesses_from_core ++;
+      m_total_cache_accesses ++;
       if (cache_hit)
          m_total_cache_hits ++;
    }
@@ -149,27 +155,39 @@ Cache::updateCounters(bool cache_hit)
 void
 Cache::reset()
 {
-   initializePerformanceCounters();
+   initializeEventCounters();
 }
 
 void
-Cache::initializePerformanceCounters()
+Cache::initializeEventCounters()
 {
+   // From Core perspective for calculating miss rate
    m_total_cache_accesses = 0;
-   m_total_cache_accesses_from_core = 0;
    m_total_cache_hits = 0;
+   // Tag and Data array reads and writes
+   m_tag_array_reads = 0;
+   m_tag_array_writes = 0;
+   m_data_array_reads = 0;
+   m_data_array_writes = 0;
 }
 
-void 
+void
 Cache::outputSummary(ostream& out)
 {
+   // Cache Miss Summary
    out << "  Cache " << m_name << ":\n";
-   out << "    Total Cache Accesses (Core): " << m_total_cache_accesses_from_core << endl;
+   out << "    Total Cache Accesses: " << m_total_cache_accesses << endl;
    out << "    Miss Rate: " <<
-      ((float) (m_total_cache_accesses_from_core - m_total_cache_hits) / m_total_cache_accesses_from_core) * 100 << endl;
-   out << "    Total Cache Misses: " << m_total_cache_accesses_from_core - m_total_cache_hits << endl;
+      ((float) (m_total_cache_accesses - m_total_cache_hits) / m_total_cache_accesses) * 100 << endl;
+   out << "    Total Cache Misses: " << m_total_cache_accesses - m_total_cache_hits << endl;
  
-   out << "    Total Cache Accesses: " << m_total_cache_accesses << endl; 
+   // Event Counters Summary
+   out << "   Event Counters:" << endl;
+   out << "    Tag Array Reads: " << m_tag_array_reads << endl;
+   out << "    Tag Array Writes: " << m_tag_array_writes << endl;
+   out << "    Data Array Reads: " << m_data_array_reads << endl;
+   out << "    Data Array Writes: " << m_data_array_writes << endl;
+   
    // Output Power and Area Summaries
    if (Config::getSingleton()->getEnablePowerModeling())
       m_power_model->outputSummary(out);

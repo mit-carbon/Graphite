@@ -178,7 +178,6 @@ L1CacheCntlr::operationPermissibleinL1Cache(
       IntPtr address, Core::mem_op_t mem_op_type,
       UInt32 access_num, bool modeled)
 {
-   // TODO: Verify why this works
    bool cache_hit = false;
    CacheState::cstate_t cstate = getCacheState(mem_component, address);
    

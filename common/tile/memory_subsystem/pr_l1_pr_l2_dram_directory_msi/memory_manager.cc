@@ -406,6 +406,7 @@ MemoryManager::enableModels()
 
    if (m_dram_cntlr_present)
    {
+      m_dram_directory_cntlr->getDramDirectoryCache()->enable();
       m_dram_cntlr->getDramPerfModel()->enable();
    }
 }
@@ -426,6 +427,7 @@ MemoryManager::disableModels()
 
    if (m_dram_cntlr_present)
    {
+      m_dram_directory_cntlr->getDramDirectoryCache()->disable();
       m_dram_cntlr->getDramPerfModel()->disable();
    }
 }

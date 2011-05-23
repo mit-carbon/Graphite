@@ -33,6 +33,9 @@ public:
    void outputSummary(std::ostream& os);
    static void dummyOutputSummary(std::ostream& os);
 
+   void enable() { m_enabled = true; }
+   void disable() { m_enabled = false; }
+
 private:
    Tile* m_tile;
    Directory* m_directory;
@@ -66,6 +69,8 @@ private:
 
    // Counters
    UInt64 m_total_directory_cache_accesses;
+
+   bool m_enabled;
 
    ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 

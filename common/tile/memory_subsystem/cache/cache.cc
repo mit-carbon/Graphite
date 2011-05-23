@@ -56,8 +56,11 @@ Cache::invalidateSingleLine(IntPtr addr)
    splitAddress(addr, tag, set_index);
    assert(set_index < m_num_sets);
 
-   // FIXME: Need to update power model here but dont have the numbers
-   m_tag_array_writes ++;
+   if (m_enabled)
+   {
+      // FIXME: Need to update power model here but dont have the numbers
+      m_tag_array_writes ++;
+   }
 
    return m_sets[set_index]->invalidate(tag);
 }
@@ -82,19 +85,21 @@ Cache::accessSingleLine(IntPtr addr, access_t access_type,
       return NULL;
 
    if (access_type == LOAD)
-   {
       set->read_line(line_index, block_offset, buff, bytes);
-      m_data_array_reads ++;
-   }
    else
-   {
       set->write_line(line_index, block_offset, buff, bytes);
-      m_data_array_writes ++;
-   }
 
-   // Update Dynamic Energy Models
-   if (Config::getSingleton()->getEnablePowerModeling())
-      m_power_model->updateDynamicEnergy();
+   if (m_enabled)
+   {
+      if (access_type == LOAD)
+         m_data_array_reads ++;
+      else
+         m_data_array_writes ++;
+
+      // Update Dynamic Energy Models
+      if (Config::getSingleton()->getEnablePowerModeling())
+         m_power_model->updateDynamicEnergy();
+   }
 
    return cache_block_info;
 }
@@ -115,13 +120,16 @@ Cache::insertSingleLine(IntPtr addr, Byte* fill_buff,
          eviction, evict_block_info, evict_buff);
    *evict_addr = tagToAddress(evict_block_info->getTag());
 
-   // Update Event Counters
-   m_data_array_reads ++;
-   m_data_array_writes ++;
+   if (m_enabled)
+   {
+      // Update Event Counters
+      m_data_array_reads ++;
+      m_data_array_writes ++;
 
-   // Update Dynamic Energy Counters
-   if (Config::getSingleton()->getEnablePowerModeling())
-      m_power_model->updateDynamicEnergy();
+      // Update Dynamic Energy Counters
+      if (Config::getSingleton()->getEnablePowerModeling())
+         m_power_model->updateDynamicEnergy();
+   }
    
    delete cache_block_info;
 }
@@ -135,8 +143,11 @@ Cache::peekSingleLine(IntPtr addr)
    UInt32 set_index;
    splitAddress(addr, tag, set_index);
 
-   // FIXME: Need to update dynamic energy model here but dont have the numbers
-   m_tag_array_reads ++;
+   if (m_enabled)
+   {
+      // FIXME: Need to update dynamic energy model here but dont have the numbers
+      m_tag_array_reads ++;
+   }
 
    return m_sets[set_index]->find(tag);
 }

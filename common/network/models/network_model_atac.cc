@@ -160,10 +160,10 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    }
 
    // Optical Network Link Models
-   m_optical_network_link_model = new OpticalNetworkLinkModel(m_optical_network_frequency, \
-         waveguide_length, \
+   m_optical_network_link_model = new OpticalNetworkLinkModel(m_optical_network_frequency,
+         waveguide_length,
          m_optical_network_link_width);
-   m_optical_network_link_delay = (UInt64) (ceil( ((double) m_optical_network_link_model->getDelay()) / \
+   m_optical_network_link_delay = (UInt64) (ceil( ((double) m_optical_network_link_model->getDelay()) /
                       (m_optical_network_frequency / m_gather_network_frequency) ) );
 
    // Gather Network Router and Link Models
@@ -171,11 +171,11 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    m_num_hops_sender_tile_to_sender_hub = (m_sqrt_cluster_size/2 + 1);
 
    m_gather_network_router_model = ElectricalNetworkRouterModel::create(m_num_gather_network_router_ports, 
-         m_num_gather_network_router_ports, \
+         m_num_gather_network_router_ports,
          num_flits_per_output_buffer_gather_network_router, m_gather_network_link_width);
-   m_gather_network_link_model = ElectricalNetworkLinkModel::create(m_gather_network_link_type, \
-         m_gather_network_frequency, \
-         gather_network_link_length, \
+   m_gather_network_link_model = ElectricalNetworkLinkModel::create(m_gather_network_link_type,
+         m_gather_network_frequency,
+         gather_network_link_length,
          m_gather_network_link_width);
    // Specified in terms of clock cycles where the clock frequency = gather_network frequency
    // Delay is the delay of one gather_network link
@@ -186,12 +186,12 @@ NetworkModelAtac::createANetRouterAndLinkModels()
 
    // Scatter Network link models
    // FIXME: Currently, the BNet network power is modeled using multiple scatter_network links.
-   m_scatter_network_link_model = ElectricalNetworkLinkModel::create(m_scatter_network_link_type, \
-         m_scatter_network_frequency, \
-         scatter_network_link_length, \
+   m_scatter_network_link_model = ElectricalNetworkLinkModel::create(m_scatter_network_link_type,
+         m_scatter_network_frequency,
+         scatter_network_link_length,
          m_scatter_network_link_width);
    // m_scatter_network_delay is already initialized. Conversion needed here
-   m_scatter_network_delay = (UInt64) (ceil( ((double) m_scatter_network_delay) / \
+   m_scatter_network_delay = (UInt64) (ceil( ((double) m_scatter_network_delay) /
                       (m_scatter_network_frequency / m_gather_network_frequency) ) );
 
    initializeActivityCounters();
@@ -582,7 +582,7 @@ NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 
             vector<tile_id_t> tile_id_list_in_cluster;
             getTileIDListInCluster(getClusterID(m_tile_id), tile_id_list_in_cluster);
-            for (vector<tile_id_t>::iterator tile_it = tile_id_list_in_cluster.begin(); \
+            for (vector<tile_id_t>::iterator tile_it = tile_id_list_in_cluster.begin();
                   tile_it != tile_id_list_in_cluster.end(); tile_it++)
             {
                Hop h;
@@ -611,7 +611,7 @@ NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 
             vector<tile_id_t> tile_id_list_in_cluster;
             getTileIDListInCluster(getClusterID(m_tile_id), tile_id_list_in_cluster);
-            for (vector<tile_id_t>::iterator tile_it = tile_id_list_in_cluster.begin(); \
+            for (vector<tile_id_t>::iterator tile_it = tile_id_list_in_cluster.begin();
                   tile_it != tile_id_list_in_cluster.end(); tile_it++)
             {
                Hop h;
@@ -648,9 +648,7 @@ NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 
          else // pkt.specific is not one of the known values
          {
-            LOG_PRINT_ERROR("Routing Function not defined: pkt.sender(%i), \
-                  pkt.receiver(%i), pkt.specific(%u), pkt.time(%llu)",
-                  pkt.sender, pkt.receiver, pkt.specific, pkt.time);
+            LOG_PRINT_ERROR("Routing Function not defined: pkt.sender(%i), pkt.receiver(%i), pkt.specific(%u), pkt.time(%llu)", pkt.sender, pkt.receiver, pkt.specific, pkt.time);
          }
       }
 
@@ -706,13 +704,13 @@ NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 
             // Receiver Hub
             // Forward the packet to the actual receiver
-            UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB, \
-                  getClusterID(pkt.sender), \
-                  pkt.time, \
+            UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB,
+                  getClusterID(pkt.sender),
+                  pkt.time,
                   pkt);
 
-            LOG_ASSERT_ERROR(getClusterID(m_tile_id) == getClusterID(pkt.receiver), \
-                  "m_tile_id(%i), cluster(%u), pkt.receiver(%i), cluster(%u)", \
+            LOG_ASSERT_ERROR(getClusterID(m_tile_id) == getClusterID(pkt.receiver),
+                  "m_tile_id(%i), cluster(%u), pkt.receiver(%i), cluster(%u)",
                   m_tile_id, getClusterID(m_tile_id), pkt.receiver, getClusterID(pkt.receiver));
 
             hop_latency = (receiver_hub_queue_delay + m_scatter_network_delay);
@@ -726,7 +724,7 @@ NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
             LOG_ASSERT_ERROR(TILE_ID(pkt.sender) == m_tile_id,
                   "pkt.sender(%i), m_tile_id(%i)",
                   TILE_ID(pkt.sender), m_tile_id);
-            
+           
             if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
             {
                hop_latency = 0;

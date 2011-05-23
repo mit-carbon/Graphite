@@ -170,12 +170,14 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    // update cycle count with instruction cost
    // If it is a simple load instruction, execute the next instruction,
    // else wait till all the operands are fetched to execute the next instruction
-   if (instruction->isSimpleLoad())
+   if (instruction->isSimpleMemoryLoad())
       m_cycle_count = read_operands_ready + cost;
    else
       m_cycle_count = completion_time;
 
    LOG_ASSERT_ERROR(write_info.empty(), "Some write info left over?");
+
+   // instruction->print();
    
    // Update Statistics
    m_instruction_count++;

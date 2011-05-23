@@ -1,8 +1,9 @@
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
 
-#include "fixed_types.h"
+#include <sstream>
 #include <vector>
+#include "fixed_types.h"
 
 enum InstructionType
 {
@@ -55,6 +56,8 @@ public:
    Type m_type;
    Value m_value;
    Direction m_direction;
+
+   void print(std::ostringstream& out) const;
 };
 
 typedef std::vector<Operand> OperandList;
@@ -82,7 +85,8 @@ public:
    IntPtr getAddress()
    { return m_addr; }
 
-   bool isSimpleLoad();
+   bool isSimpleMemoryLoad() const;
+   void print() const;
 
 private:
    typedef std::vector<unsigned int> StaticInstructionCosts;

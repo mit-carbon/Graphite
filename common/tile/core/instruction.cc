@@ -33,9 +33,9 @@ UInt64 Instruction::getCost()
    return Instruction::m_instruction_costs[m_type]; 
 }
 
-bool Instruction::isSimpleLoad()
+bool Instruction::isSimpleMemoryLoad() const
 {
-   if (m_operands.size() != 2)
+   if (m_operands.size() > 2)
       return false;
 
    bool memory_read = false;
@@ -49,7 +49,15 @@ bool Instruction::isSimpleLoad()
          reg_write = true;
    }
 
-   return (memory_read && reg_write) ? true : false;
+   switch (m_operands.size())
+   {
+   case 1:
+      return (memory_read);
+   case 2:
+      return (memory_read && reg_write);
+   default:
+      return false;
+   }
 }
 
 void Instruction::initializeStaticInstructionModel()
@@ -168,4 +176,55 @@ UInt64 BranchInstruction::getCost()
       
    perf->popDynamicInstructionInfo();
    return cost;
+}
+
+// Instruction
+
+void Instruction::print() const
+{
+   ostringstream out;
+   out << "Address(0x" << hex << m_addr << dec << "): ";
+   for (unsigned int i = 0; i < m_operands.size(); i++)
+   {
+      const Operand& o = m_operands[i];
+      o.print(out);
+   }
+   LOG_PRINT("%s", out.str().c_str());
+}
+
+// Operand
+
+void Operand::print(ostringstream& out) const
+{
+   // Type
+   if (m_type == REG)
+   {
+      out << "REG-";
+      // Value
+      out << m_value << "-";
+      // Direction
+      if (m_direction == READ)
+         out << "READ, ";
+      else
+         out << "WRITE, ";
+   }
+   else if (m_type == MEMORY)
+   {
+      out << "MEMORY-";
+      // Direction
+      if (m_direction == READ)
+         out << "READ, ";
+      else
+         out << "WRITE, ";
+   }
+   else if (m_type == IMMEDIATE)
+   {
+      out << "IMMEDIATE-";
+      // Value
+      out << m_value << ", ";
+   }
+   else
+   {
+      LOG_PRINT_ERROR("Unrecognized Operand Type(%u)", m_type);
+   }
 }

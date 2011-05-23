@@ -170,8 +170,11 @@ NetworkModelEMeshHopByHop::initializeActivityCounters()
 {
    // Initialize Activity Counters
    m_switch_allocator_traversals = 0;
-   m_crossbar_traversals = 0;
-   m_buffer_accesses = 0;
+   m_crossbar_traversals.resize(m_num_router_ports);
+   for (UInt32 i = 0; i < m_num_router_ports; i++)
+      m_crossbar_traversals[i] = 0;
+   m_buffer_reads = 0;
+   m_buffer_writes = 0;
    m_link_traversals = 0;
 }
 
@@ -239,19 +242,38 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
          computePosition(TILE_ID(pkt.sender), sx, sy);
          computePosition(m_tile_id, cx, cy);
 
+         UInt32 multicast_index = 0;
          if (cy >= sy)
+         {
             addHop(UP, NetPacket::BROADCAST, computeTileId(cx,cy+1), pkt, curr_time, pkt_length, nextHops, requester);
+            multicast_index ++;
+         }
          if (cy <= sy)
+         {
             addHop(DOWN, NetPacket::BROADCAST, computeTileId(cx,cy-1), pkt, curr_time, pkt_length, nextHops, requester);
+            multicast_index ++;
+         }
          if (cy == sy)
          {
             if (cx >= sx)
+            {
                addHop(RIGHT, NetPacket::BROADCAST, computeTileId(cx+1,cy), pkt, curr_time, pkt_length, nextHops, requester);
+               multicast_index ++;
+            }
             if (cx <= sx)
+            {
                addHop(LEFT, NetPacket::BROADCAST, computeTileId(cx-1,cy), pkt, curr_time, pkt_length, nextHops, requester);
+               multicast_index ++;
+            }
             if (cx == sx)
-               addHop(SELF, NetPacket::BROADCAST, m_tile_id, pkt, curr_time, pkt_length, nextHops, requester); 
+            {
+               addHop(SELF, NetPacket::BROADCAST, m_tile_id, pkt, curr_time, pkt_length, nextHops, requester);
+               multicast_index ++;
+            }
          }
+
+         // Update Energy Counters
+         updateDynamicEnergy(pkt, true, m_num_router_ports/2, multicast_index);
       }
       else
       {
@@ -272,6 +294,9 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
             tile_id_t next_dest = getNextDest(i, direction);
 
             addHop(direction, i, next_dest, pkt, curr_time, pkt_length, nextHops, requester);
+
+            // Update Energy Counters
+            updateDynamicEnergy(pkt, true, m_num_router_ports/2, 1);
          }
       }
    }
@@ -288,6 +313,9 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, vector<Hop> &nextHo
       tile_id_t next_dest = getNextDest(TILE_ID(pkt.receiver), direction);
 
       addHop(direction, TILE_ID(pkt.receiver), next_dest, pkt, curr_time, pkt_length, nextHops, requester);
+
+      // Update Energy Counters
+      updateDynamicEnergy(pkt, true, m_num_router_ports/2, 1);
    }
 }
 
@@ -382,11 +410,6 @@ NetworkModelEMeshHopByHop::computeLatency(OutputDirection direction, const NetPa
    if (m_queue_model_enabled)
       queue_delay = m_queue_models[direction]->computeQueueDelay(pkt_time, processing_time, requester);
 
-   // Update Dynamic Energy State of the Router & Link
-   updateDynamicEnergy(pkt       /* Packet */,
-         queue_delay             /* is_buffered */,
-         m_num_router_ports/2    /* contention */);
-
    LOG_PRINT("Queue Delay(%llu), Hop Latency(%llu)", queue_delay, m_hop_latency);
    UInt64 packet_latency = m_hop_latency + queue_delay;
 
@@ -422,9 +445,7 @@ NetworkModelEMeshHopByHop::computeEjectionPortQueueDelay(const NetPacket& pkt, U
    UInt64 ejection_port_queue_delay =  m_ejection_port_queue_model->computeQueueDelay(pkt_time, processing_time, requester);
 
    // Update Dynamic Energy State of the Router & Link
-   updateDynamicEnergy(pkt          /* Packet */,
-         ejection_port_queue_delay  /* is_buffered */,
-         m_num_router_ports/2       /* contention */);
+   updateDynamicEnergy(pkt, true, m_num_router_ports/2, 1);
 
    return ejection_port_queue_delay;
 }
@@ -713,9 +734,14 @@ NetworkModelEMeshHopByHop::computeNumHops(tile_id_t sender, tile_id_t receiver)
 void
 NetworkModelEMeshHopByHop::updateDynamicEnergy(const NetPacket& pkt,
                                                bool is_buffered,
-                                               UInt32 contention)
+                                               UInt32 contention,
+                                               UInt32 multicast_index)
 {
-   assert(isEnabled());
+   tile_id_t requester = getRequester(pkt);
+   if ( (!isEnabled()) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) )
+      return;
+
    // TODO: Make these models detailed later - Compute exact number of bit flips
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
    // For now, assume that half of the bits in the packet flip
@@ -742,7 +768,7 @@ NetworkModelEMeshHopByHop::updateDynamicEnergy(const NetPacket& pkt,
       m_electrical_router_model->updateDynamicEnergyCrossbar(m_link_width/2, num_flits); 
       m_electrical_router_model->updateDynamicEnergyClock(num_flits);
    }
-   m_crossbar_traversals += num_flits;
+   m_crossbar_traversals[multicast_index-1] += num_flits;
   
    // Add the flit_buffer dynamic power. We need to write once and read once
    if (is_buffered)
@@ -751,24 +777,25 @@ NetworkModelEMeshHopByHop::updateDynamicEnergy(const NetPacket& pkt,
       {
          // Buffer Write Energy
          m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::WRITE,
-               m_link_width/2, num_flits);
-         m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+               m_link_width/2, num_flits * multicast_index);
+         m_electrical_router_model->updateDynamicEnergyClock(num_flits * multicast_index);
     
          // Buffer Read Energy
          m_electrical_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::READ,
-               m_link_width/2, num_flits);
-         m_electrical_router_model->updateDynamicEnergyClock(num_flits);
+               m_link_width/2, num_flits * multicast_index);
+         m_electrical_router_model->updateDynamicEnergyClock(num_flits * multicast_index);
       }
 
-      m_buffer_accesses += num_flits;
+      m_buffer_reads += (num_flits * multicast_index);
+      m_buffer_writes += (num_flits * multicast_index);
    }
 
    // 2) Electrical Link
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      m_electrical_link_model->updateDynamicEnergy(m_link_width/2, num_flits);
+      m_electrical_link_model->updateDynamicEnergy(m_link_width/2, num_flits * multicast_index);
    }
-   m_link_traversals += num_flits;
+   m_link_traversals += (num_flits * multicast_index);
 }
 
 void
@@ -785,8 +812,10 @@ NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out)
    }
 
    out << "  Activity Counters:" << endl;
-   out << "    Switch Allocator Traversals: " << m_switch_allocator_traversals << endl;
-   out << "    Crossbar Traversals: " << m_crossbar_traversals << endl;
-   out << "    Buffer Accesses: " << m_buffer_accesses << endl;
+   out << "    SAStage2 Traversals: " << m_switch_allocator_traversals << endl;
+   for (UInt32 i = 0; i < m_num_router_ports; i++)
+      out << "    Crossbar" << i+1 << " Traversals: " << m_crossbar_traversals[i] << endl;
+   out << "    Buffer Reads: " << m_buffer_reads << endl;
+   out << "    Buffer Writes: " << m_buffer_writes << endl;
    out << "    Link Traversals: " << m_link_traversals << endl;
 }

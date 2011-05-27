@@ -22,3 +22,6 @@ lib/pin_sim.so
 # result files
 results/
 !results/.DO_NOT_DELETE
+
+# McPAT result file
+common/mcpat/mcpat.out

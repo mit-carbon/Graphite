@@ -64,14 +64,14 @@ ShmemPerfModel::getCycleCount()
 }
 
 void
-ShmemPerfModel::updateCycleCount(UInt64 count)
+ShmemPerfModel::updateCycleCount(UInt64 cycle_count)
 {
-   LOG_PRINT("updateCycleCount: count(%llu)", count);
+   LOG_PRINT("updateCycleCount: cycle_count(%llu)", cycle_count);
    ScopedLock sl(m_shmem_perf_model_lock);
 
    Thread_t thread_num = getThreadNum();
-   if (m_cycle_count[thread_num] < count)
-      m_cycle_count[thread_num] = count;
+   if (m_cycle_count[thread_num] < cycle_count)
+      m_cycle_count[thread_num] = cycle_count;
 }
 
 void

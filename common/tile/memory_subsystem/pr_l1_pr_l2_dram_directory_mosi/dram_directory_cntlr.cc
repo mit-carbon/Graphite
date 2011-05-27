@@ -119,7 +119,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
 
       // Update the Shared Mem Cycle Counts appropriately
-      getShmemPerfModel()->setCycleCount(shmem_req->getTime());
+      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
 
       if (shmem_req->getShmemMsg()->getMsgType() == ShmemMsg::EX_REQ)
          processExReqFromL2Cache(shmem_req, true);

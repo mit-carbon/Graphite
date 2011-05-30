@@ -21,6 +21,7 @@ SInt32 NetworkModelAtac::m_sqrt_cluster_size = 0;
 UInt32 NetworkModelAtac::m_num_clusters = 0;
 SInt32 NetworkModelAtac::m_mesh_width = 0;
 SInt32 NetworkModelAtac::m_mesh_height = 0;
+UInt32 NetworkModelAtac::m_unicast_routing_threshold = 0;
 
 NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
    NetworkModel(net, network_id)
@@ -52,6 +53,7 @@ NetworkModelAtac::initializeANetTopologyParams()
    try
    {
       m_cluster_size = Sim()->getCfg()->getInt("network/atac/cluster_size");
+      m_unicast_routing_threshold = Sim()->getCfg()->getInt("network/atac/unicast_routing_threshold");
    }
    catch (...)
    {
@@ -168,7 +170,6 @@ NetworkModelAtac::createANetRouterAndLinkModels()
 
    // Gather Network Router and Link Models
    m_num_gather_network_router_ports = 5;
-   m_num_hops_sender_tile_to_sender_hub = (m_sqrt_cluster_size/2 + 1);
 
    m_gather_network_router_model = ElectricalNetworkRouterModel::create(m_num_gather_network_router_ports, 
          m_num_gather_network_router_ports,
@@ -182,7 +183,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    // There may be multiple gather_network links from the tile to the sending hub
    UInt64 gather_network_link_delay = m_gather_network_link_model->getDelay();
    // gather_network_link_delay is already initialized
-   m_gather_network_delay = (gather_network_link_delay + gather_network_router_delay) * m_num_hops_sender_tile_to_sender_hub;
+   m_gather_network_hop_delay = gather_network_link_delay + gather_network_router_delay;
 
    // Scatter Network link models
    // FIXME: Currently, the BNet network power is modeled using multiple scatter_network links.
@@ -194,13 +195,15 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    m_scatter_network_delay = (UInt64) (ceil( ((double) m_scatter_network_delay) /
                       (m_scatter_network_frequency / m_gather_network_frequency) ) );
 
-   initializeActivityCounters();
+   initializeEventCounters();
 }
 
 void
-NetworkModelAtac::initializeActivityCounters()
+NetworkModelAtac::initializeEventCounters()
 {
-   // Initialize Activity Counters
+   // Initialize Event Counters
+   m_gather_network_router_buffer_reads = 0;
+   m_gather_network_router_buffer_writes = 0;
    m_gather_network_router_switch_allocator_traversals = 0;
    m_gather_network_router_crossbar_traversals = 0;
    m_gather_network_link_traversals = 0;
@@ -243,10 +246,10 @@ NetworkModelAtac::destroyOpticalHub()
 void
 NetworkModelAtac::createQueueModels()
 {
+   // Hub Queue Models
    if (m_queue_model_enabled && (m_tile_id == getTileIDWithOpticalHub(getClusterID(m_tile_id))))
    {
       // I am one of the tiles with an optical hub
-
       UInt64 min_processing_time = 1;
      
       // Create Sending Hub 
@@ -268,21 +271,28 @@ NetworkModelAtac::createQueueModels()
          m_total_receiver_hub_packets[i] = 0;
          m_total_buffered_receiver_hub_packets[i] = 0;
       }
-
-#ifdef TRACK_UTILIZATION
-      initializeUtilizationCounters();
-#endif
    }
    else
    {
       m_sender_hub_queue_model = (QueueModel*) NULL;
       m_receiver_hub_queue_models = (QueueModel**) NULL;
    }
+
+   // Gather Network Queue Models
+   if (m_queue_model_enabled)
+   {
+      for (UInt32 direction = 0; direction < NUM_GATHER_NETWORK_OUTPUT_DIRECTIONS; direction ++)
+      {
+         UInt64 min_processing_time = 1;
+         m_gather_network_queue_models[direction] = QueueModel::create(m_queue_model_type, min_processing_time);
+      }
+   }
 }
 
 void
 NetworkModelAtac::destroyQueueModels()
 {
+   // Hub Queue Models
    if ((m_queue_model_enabled) && (m_tile_id == getTileIDWithOpticalHub(getClusterID(m_tile_id))))
    {
       delete m_sender_hub_queue_model;
@@ -293,18 +303,14 @@ NetworkModelAtac::destroyQueueModels()
 
       delete m_total_receiver_hub_contention_delay;
       delete m_total_receiver_hub_packets;
-
-#ifdef TRACK_UTILIZATION
-      destroyUtilizationCounters();
-#endif
    }
-}
 
-void
-NetworkModelAtac::resetQueueModels()
-{
-   destroyQueueModels();
-   createQueueModels();
+   // Gather Network Queue Models
+   if (m_queue_model_enabled)
+   {
+      for (UInt32 direction = 0; direction < NUM_GATHER_NETWORK_OUTPUT_DIRECTIONS; direction ++)
+         delete m_gather_network_queue_models[direction];
+   }
 }
 
 UInt64 
@@ -318,6 +324,7 @@ NetworkModelAtac::getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_
 {
    tile_id_t tile_id_with_optical_hub = getTileIDWithOpticalHub(cluster_id);
    Tile* tile = Sim()->getTileManager()->getTileFromID(tile_id_with_optical_hub);
+   assert(tile);
    NetworkModelAtac* network_model = (NetworkModelAtac*) tile->getNetwork()->getNetworkModelFromPacketType(pkt.type);
 
    return network_model->computeHubQueueDelay(hub_type, sender_cluster_id, pkt_time, pkt);
@@ -355,11 +362,6 @@ NetworkModelAtac::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sen
                   sender_cluster_id, getClusterID(m_tile_id));
             UInt64 sender_hub_queue_delay = m_sender_hub_queue_model->computeQueueDelay(optical_network_pkt_time, processing_time);
 
-            // Update Utilization Counters
-#ifdef TRACK_UTILIZATION
-            updateUtilization(SENDER_HUB, -1, optical_network_pkt_time + sender_hub_queue_delay, processing_time);
-#endif
-
             // Performance Counters
             m_total_sender_hub_contention_delay += sender_hub_queue_delay;
             if (sender_hub_queue_delay != 0)
@@ -383,11 +385,6 @@ NetworkModelAtac::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sen
             SInt32 scatter_network_num = sender_cluster_id % m_num_scatter_networks_per_cluster;
             UInt64 receiver_hub_queue_delay = m_receiver_hub_queue_models[scatter_network_num]->computeQueueDelay(scatter_network_pkt_time, processing_time);
 
-            // Update Utilization Counters
-#ifdef TRACK_UTILIZATION
-            updateUtilization(RECEIVER_HUB, scatter_network_num, scatter_network_pkt_time + receiver_hub_queue_delay, processing_time);
-#endif
-
             // Performance Counters
             m_total_receiver_hub_contention_delay[scatter_network_num] += receiver_hub_queue_delay;
             if (receiver_hub_queue_delay != 0)
@@ -407,366 +404,166 @@ NetworkModelAtac::computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sen
 UInt32
 NetworkModelAtac::computeAction(const NetPacket& pkt)
 {
-   // If this endpoint is a hub, FORWARD it, else RECEIVE it
-   // FORWARD may mean forward it to mutiple recipients too depending
-   // on the routing function
-   if ((pkt.specific == SENDER_HUB) || (pkt.specific == RECEIVER_HUB))
+   assert(pkt.specific == RECEIVER_TILE);
+   LOG_ASSERT_ERROR((TILE_ID(pkt.receiver) == NetPacket::BROADCAST) || (TILE_ID(pkt.receiver) == m_tile_id),
+                    "pkt.receiver(%i)", pkt.receiver);
+   return RoutingAction::RECEIVE;
+}
+
+UInt64
+NetworkModelAtac::routePacketOnGatherNetwork(const NetPacket &pkt, tile_id_t next_receiver)
+{
+   // Release Lock
+   m_lock.release();
+
+   // Return Latency
+   assert(TILE_ID(pkt.sender) == m_tile_id);
+   tile_id_t requester = getRequester(pkt);
+   if ( (!isEnabled()) ||
+        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
+        (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
    {
-      return RoutingAction::FORWARD;
+      // Acquire Lock back again
+      m_lock.acquire();
+
+      return 0;
    }
-   else if (pkt.specific == RECEIVER_TILE)
+
+   UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
+   tile_id_t curr_tile_id = m_tile_id;
+   UInt64 curr_time = pkt.time;
+   do
    {
-      LOG_ASSERT_ERROR((pkt.receiver.tile_id == NetPacket::BROADCAST) || (pkt.receiver.tile_id == m_tile_id),
-            "pkt.receiver(%i)", pkt.receiver);
-      return RoutingAction::RECEIVE;
-   }
-   else
-   {
-      LOG_PRINT_ERROR("Unhandled sub network type(%u)", pkt.specific);
-      return RoutingAction::DROP;
-   }
+      // Get the remote network model
+      Tile* tile = Sim()->getTileManager()->getTileFromID(curr_tile_id);
+      assert(tile);
+      NetworkModelAtac* model = (NetworkModelAtac*) tile->getNetwork()->getNetworkModelFromPacketType(pkt.type);
+
+      // Do Routing
+      pair<tile_id_t,UInt64> next_hop = model->__routePacketOnGatherNetwork(pkt, curr_time, pkt_length, next_receiver);
+
+      // Update Variables
+      curr_tile_id = next_hop.first;
+      curr_time = next_hop.second;
+   } while (curr_tile_id != next_receiver);
+
+   // Acquire Lock back again
+   m_lock.acquire();
+
+   assert(curr_time >= pkt.time);
+   return (curr_time - pkt.time);
 }
 
 void 
 NetworkModelAtac::routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops)
 {
-   ScopedLock sl(m_lock);
+   // Lock
+   m_lock.acquire();
 
-   if (Config::getSingleton()->getProcessCount() == 1)
+   assert(Config::getSingleton()->getProcessCount() == 1);
+   assert(m_tile_id == TILE_ID(pkt.sender));
+
+   // All the energies and delays are computed at source
+   if (TILE_ID(pkt.receiver) == NetPacket::BROADCAST)
    {
-      // All the energies and delays are computed at source
-      if (TILE_ID(pkt.receiver) == NetPacket::BROADCAST)
+      UInt64 gather_network_delay = routePacketOnGatherNetwork(pkt, getTileIDWithOpticalHub(getClusterID(m_tile_id)));
+
+      updateDynamicEnergy(OPTICAL_NETWORK, pkt);
+      
+      UInt64 sender_hub_queue_delay = getHubQueueDelay(SENDER_HUB,
+            getClusterID(pkt.sender),
+            getClusterID(pkt.sender),
+            pkt.time + gather_network_delay,
+            pkt);
+      UInt64 latency_sender_tile_to_receiver_hub = gather_network_delay + 
+                                                   sender_hub_queue_delay + 
+                                                   m_optical_network_link_delay;
+
+      UInt64 receiver_hub_queue_delay[m_num_clusters];
+      for (SInt32 i = 0; i < (SInt32) m_num_clusters; i++)
       {
-         updateDynamicEnergy(GATHER_NETWORK, pkt);
-         updateDynamicEnergy(OPTICAL_NETWORK, pkt);
+         updateDynamicEnergy(SCATTER_NETWORK, pkt);
          
-         UInt64 sender_hub_queue_delay = getHubQueueDelay(SENDER_HUB,
+         receiver_hub_queue_delay[i] = getHubQueueDelay(RECEIVER_HUB,
                getClusterID(pkt.sender),
-               getClusterID(pkt.sender),
-               pkt.time + m_gather_network_delay,
+               i,
+               pkt.time + latency_sender_tile_to_receiver_hub,
                pkt);
-         UInt64 latency_sender_tile_to_receiver_hub = m_gather_network_delay +
-                                                      sender_hub_queue_delay +
-                                                      m_optical_network_link_delay;
-
-         UInt64 receiver_hub_queue_delay[m_num_clusters];
-         for (SInt32 i = 0; i < (SInt32) m_num_clusters; i++)
-         {
-            updateDynamicEnergy(SCATTER_NETWORK, pkt);
-            
-            receiver_hub_queue_delay[i] = getHubQueueDelay(RECEIVER_HUB,
-                  getClusterID(pkt.sender),
-                  i,
-                  pkt.time + latency_sender_tile_to_receiver_hub,
-                  pkt);
-         }
-
-         for (tile_id_t i = 0; i < (tile_id_t) m_total_tiles; i++)
-         {
-            UInt64 latency_receiver_hub_to_receiver_tile = receiver_hub_queue_delay[getClusterID(i)] +
-                                                           m_scatter_network_delay;
-
-            UInt64 total_latency = latency_sender_tile_to_receiver_hub +
-                                   latency_receiver_hub_to_receiver_tile;
-
-            Hop h;
-            h.next_dest = CORE_ID(i);
-            h.final_dest = CORE_ID(NetPacket::BROADCAST);
-            h.specific = RECEIVER_TILE;
-            h.time = pkt.time + total_latency;
-            
-            nextHops.push_back(h);
-         }
       }
-      else // if (pkt.receiver != NetPacket::BROADCAST)
+
+      for (tile_id_t i = 0; i < (tile_id_t) m_total_tiles; i++)
       {
-         // Right now, it is a unicast/multicast
-         LOG_ASSERT_ERROR(TILE_ID(pkt.receiver) < (tile_id_t) m_total_tiles,
-               "Got invalid receiver ID = %i", pkt.receiver);
+         UInt64 latency_receiver_hub_to_receiver_tile = receiver_hub_queue_delay[getClusterID(i)] +
+                                                        m_scatter_network_delay;
 
-         UInt64 total_latency;
-         if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
-         {
-            total_latency = 0;
-         }
-         else
-         {
-            updateDynamicEnergy(GATHER_NETWORK, pkt);
-
-            UInt64 latency_sender_tile_to_receiver_hub;
-            if (getClusterID(pkt.sender) == getClusterID(pkt.receiver))
-            {
-               latency_sender_tile_to_receiver_hub = m_gather_network_delay;
-            }
-            else
-            {
-               updateDynamicEnergy(OPTICAL_NETWORK, pkt);
-               
-               UInt64 sender_hub_queue_delay = getHubQueueDelay(SENDER_HUB,
-                     getClusterID(pkt.sender),
-                     getClusterID(pkt.sender),
-                     pkt.time + m_gather_network_delay,
-                     pkt);
-               latency_sender_tile_to_receiver_hub = m_gather_network_delay +
-                                                     sender_hub_queue_delay +
-                                                     m_optical_network_link_delay;
-            }
-
-            updateDynamicEnergy(SCATTER_NETWORK, pkt);
-
-            UInt64 receiver_hub_queue_delay = getHubQueueDelay(RECEIVER_HUB,
-                  getClusterID(pkt.sender),
-                  getClusterID(pkt.receiver),
-                  pkt.time + latency_sender_tile_to_receiver_hub,
-                  pkt);
-            UInt64 latency_receiver_hub_to_receiver_tile = receiver_hub_queue_delay +
-                                                           m_scatter_network_delay;
-
-            total_latency = latency_sender_tile_to_receiver_hub +
-                            latency_receiver_hub_to_receiver_tile;
-         }
+         UInt64 total_latency = latency_sender_tile_to_receiver_hub +
+                                latency_receiver_hub_to_receiver_tile;
 
          Hop h;
-         h.next_dest = pkt.receiver;
-         h.final_dest = pkt.receiver;
+         h.next_dest = CORE_ID(i);
+         h.final_dest = CORE_ID(NetPacket::BROADCAST);
          h.specific = RECEIVER_TILE;
          h.time = pkt.time + total_latency;
          
          nextHops.push_back(h);
       }
    }
-   else // Config::getSingleton()->getProcessCount() > 1
+   else // if (pkt.receiver != NetPacket::BROADCAST)
    {
-      // Process Count > 1
-      // Let me have at least 2 hops within the same process
-      // and 1 hop between processes
-      if (TILE_ID(pkt.receiver) == NetPacket::BROADCAST)
+      // Right now, it is a unicast/multicast
+      LOG_ASSERT_ERROR(TILE_ID(pkt.receiver) < (tile_id_t) m_total_tiles,
+            "Got invalid receiver ID = %i", pkt.receiver);
+
+      UInt64 total_latency;
+      if (computeGlobalRoute(pkt.sender, pkt.receiver) == GLOBAL_ENET)
       {
-         if (pkt.specific == SENDER_HUB)
-         {
-            // Sender Hub
-            // 1) Send it to all the other Hubs on the chip
-            // 2) Broadcast it to all the tiles within the same cluster
-            // Compute:
-            // 1) Sender Hub queue delay
-            
-            // Optical Link Traversal
-            updateDynamicEnergy(OPTICAL_NETWORK, pkt);
+         // Router on ENet
+         total_latency = routePacketOnGatherNetwork(pkt, TILE_ID(pkt.receiver));
+      }
+      else
+      {
+         // Route on ANet
+         UInt64 gather_network_delay = routePacketOnGatherNetwork(pkt, getTileIDWithOpticalHub(getClusterID(m_tile_id)));
 
-            UInt64 sender_hub_queue_delay = computeHubQueueDelay(SENDER_HUB,
-                  getClusterID(pkt.sender),
-                  pkt.time,
-                  pkt);
-            
-            // First, send it to all the other hubs
-            for (SInt32 i = 0; i < (SInt32) m_num_clusters; i++)
-            {
-               if (i != getClusterID(m_tile_id))
-               {
-                  Hop h;
-                  h.next_dest = CORE_ID(getTileIDWithOpticalHub(i));
-                  h.final_dest = CORE_ID(NetPacket::BROADCAST);
-                  h.specific = RECEIVER_HUB;
-                  h.time = pkt.time + sender_hub_queue_delay + m_optical_network_link_delay;
+         UInt64 latency_sender_tile_to_receiver_hub;
 
-                  nextHops.push_back(h);
-               }
-            }
-
-            // Broadcast Network Traversal
-            updateDynamicEnergy(SCATTER_NETWORK, pkt);
-
-            // Second, send it to all the tiles within the same cluster
-            // We need to compute receiver hub queue delay here
-            UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB,
-                  getClusterID(pkt.sender),
-                  pkt.time,
-                  pkt);
-
-            vector<tile_id_t> tile_id_list_in_cluster;
-            getTileIDListInCluster(getClusterID(m_tile_id), tile_id_list_in_cluster);
-            for (vector<tile_id_t>::iterator tile_it = tile_id_list_in_cluster.begin();
-                  tile_it != tile_id_list_in_cluster.end(); tile_it++)
-            {
-               Hop h;
-               h.next_dest = CORE_ID(*tile_it);
-               h.final_dest = CORE_ID(NetPacket::BROADCAST);
-               h.specific = RECEIVER_TILE;
-               h.time = pkt.time + receiver_hub_queue_delay + m_scatter_network_delay;
-
-               nextHops.push_back(h);
-            }
-         }
+         // Update Dynamic Energy Counters         
+         updateDynamicEnergy(OPTICAL_NETWORK, pkt);
          
-         else if (pkt.specific == RECEIVER_HUB)
-         {
-            // Receiver Hub
-            
-            // Broadcast Network Traversal
-            updateDynamicEnergy(SCATTER_NETWORK, pkt);
+         UInt64 sender_hub_queue_delay = getHubQueueDelay(SENDER_HUB,
+               getClusterID(pkt.sender),
+               getClusterID(pkt.sender),
+               pkt.time + gather_network_delay,
+               pkt);
+         latency_sender_tile_to_receiver_hub = gather_network_delay +
+                                               sender_hub_queue_delay +
+                                               m_optical_network_link_delay;
 
-            // Send it to all the tiles within the same cluster
-            // We need to compute receiver hub queue delay here
-            UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB,
-                  getClusterID(pkt.sender),
-                  pkt.time,
-                  pkt);
+         // Update Dynamic Energy Counters
+         updateDynamicEnergy(SCATTER_NETWORK, pkt);
 
-            vector<tile_id_t> tile_id_list_in_cluster;
-            getTileIDListInCluster(getClusterID(m_tile_id), tile_id_list_in_cluster);
-            for (vector<tile_id_t>::iterator tile_it = tile_id_list_in_cluster.begin();
-                  tile_it != tile_id_list_in_cluster.end(); tile_it++)
-            {
-               Hop h;
-               h.next_dest = CORE_ID(*tile_it);
-               h.final_dest = CORE_ID(NetPacket::BROADCAST);
-               h.specific = RECEIVER_TILE;
-               h.time = pkt.time + receiver_hub_queue_delay + m_scatter_network_delay;
+         UInt64 receiver_hub_queue_delay = getHubQueueDelay(RECEIVER_HUB,
+               getClusterID(pkt.sender),
+               getClusterID(pkt.receiver),
+               pkt.time + latency_sender_tile_to_receiver_hub,
+               pkt);
+         UInt64 latency_receiver_hub_to_receiver_tile = receiver_hub_queue_delay +
+                                                        m_scatter_network_delay;
 
-               nextHops.push_back(h);
-            }
-         }
-
-         else if (pkt.specific == INVALID_COMPONENT)
-         {
-            // Must be the sender. pkt.specific is not set
-            LOG_ASSERT_ERROR(TILE_ID(pkt.sender) == m_tile_id,
-                  "pkt.sender(%i), m_tile_id(%i)",
-                  TILE_ID(pkt.sender), m_tile_id);
-               
-            // Sender Cluster Electrical Network(ENet) traversal
-            updateDynamicEnergy(GATHER_NETWORK, pkt);
-
-            // I am the sender of the broadcast packet
-            // I dont have an associated optical hub
-            // Send it to the tile having the hub associated with the current cluster
-            Hop h;
-            h.next_dest = CORE_ID(getTileIDWithOpticalHub(getClusterID(m_tile_id)));
-            h.final_dest = CORE_ID(NetPacket::BROADCAST);
-            h.specific = SENDER_HUB;
-            h.time = pkt.time + m_gather_network_delay;
-
-            nextHops.push_back(h);
-         }
-
-         else // pkt.specific is not one of the known values
-         {
-            LOG_PRINT_ERROR("Routing Function not defined: pkt.sender(%i), pkt.receiver(%i), pkt.specific(%u), pkt.time(%llu)", pkt.sender, pkt.receiver, pkt.specific, pkt.time);
-         }
+         total_latency = latency_sender_tile_to_receiver_hub +
+                         latency_receiver_hub_to_receiver_tile;
       }
 
-      else // TILE_ID(pkt.receiver) != NetPacket::BROADCAST
-      {
-         // Unicasted/Multicasted packet
-         LOG_ASSERT_ERROR(TILE_ID(pkt.receiver) < (tile_id_t) m_total_tiles,
-               "Got invalid receiver ID = %i", pkt.receiver);
+      Hop h;
+      h.next_dest = pkt.receiver;
+      h.final_dest = pkt.receiver;
+      h.specific = RECEIVER_TILE;
+      h.time = pkt.time + total_latency;
+      
+      nextHops.push_back(h);
+   }
 
-         UInt64 hop_latency = 0;
-         tile_id_t next_dest = INVALID_TILE_ID;
-         UInt32 next_component = 0;
-
-         if (pkt.specific == SENDER_HUB)
-         {
-            // Is receiver in the same cluster
-            if (getClusterID(pkt.sender) == getClusterID(pkt.receiver))
-            {
-               // BNet traversal
-               updateDynamicEnergy(SCATTER_NETWORK, pkt);
-
-               // Yes, calculate the receiver hub queue delay
-               UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB,
-                   getClusterID(TILE_ID(pkt.sender)),
-                   pkt.time,
-                   pkt);
-
-               hop_latency = (receiver_hub_queue_delay + m_scatter_network_delay);
-               next_dest = TILE_ID(pkt.receiver);
-               next_component = RECEIVER_TILE;
-            }
-            else // getClusterID(pkt.sender) != getClusterID(pkt.receiver)
-            {
-               // ONet traversal
-               updateDynamicEnergy(OPTICAL_NETWORK, pkt);
-
-               // Receiving cluster different from sending cluster
-               UInt64 sender_hub_queue_delay = computeHubQueueDelay(SENDER_HUB,
-                    getClusterID(pkt.sender),
-                    pkt.time,
-                    pkt);
-
-               hop_latency = (sender_hub_queue_delay + m_optical_network_link_delay);
-               next_dest = getTileIDWithOpticalHub(getClusterID(pkt.receiver));
-               next_component = RECEIVER_HUB;
-            }
-         }
-
-         else if (pkt.specific == RECEIVER_HUB)
-         {
-            // BNet traversal
-            updateDynamicEnergy(SCATTER_NETWORK, pkt);
-
-            // Receiver Hub
-            // Forward the packet to the actual receiver
-            UInt64 receiver_hub_queue_delay = computeHubQueueDelay(RECEIVER_HUB,
-                  getClusterID(pkt.sender),
-                  pkt.time,
-                  pkt);
-
-            LOG_ASSERT_ERROR(getClusterID(m_tile_id) == getClusterID(pkt.receiver),
-                  "m_tile_id(%i), cluster(%u), pkt.receiver(%i), cluster(%u)",
-                  m_tile_id, getClusterID(m_tile_id), pkt.receiver, getClusterID(pkt.receiver));
-
-            hop_latency = (receiver_hub_queue_delay + m_scatter_network_delay);
-            next_dest = TILE_ID(pkt.receiver);
-            next_component = RECEIVER_TILE;
-         }
-
-         else if (pkt.specific == INVALID_COMPONENT)
-         {
-            // pkt.specific is not set. Must be the sender
-            LOG_ASSERT_ERROR(TILE_ID(pkt.sender) == m_tile_id,
-                  "pkt.sender(%i), m_tile_id(%i)",
-                  TILE_ID(pkt.sender), m_tile_id);
-           
-            if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
-            {
-               hop_latency = 0;
-               next_dest = TILE_ID(pkt.receiver);
-               next_component = RECEIVER_TILE;
-            }
-            else
-            {
-               // ENet traversal
-               updateDynamicEnergy(GATHER_NETWORK, pkt);
-
-               // Sending node - I am not optical hub
-               hop_latency = m_gather_network_delay;
-               next_dest = getTileIDWithOpticalHub(getClusterID(pkt.sender));
-               next_component = SENDER_HUB;
-            }
-         }
-         
-         else
-         {
-            LOG_PRINT_ERROR("Unrecognized Routing Function: pkt.sender(%i), \
-                  pkt.receiver(%i), pkt.specific(%u), m_tile_id(%i)",
-                  pkt.sender, pkt.receiver, pkt.specific, m_tile_id);
-         }
-
-         if (next_dest != INVALID_TILE_ID)
-         {
-            Hop h;
-            h.next_dest = CORE_ID(next_dest);
-            h.final_dest = pkt.receiver;
-            h.specific = next_component;
-            h.time = pkt.time + hop_latency;
-
-            nextHops.push_back(h);
-         }
-
-      } // if (pkt.receiver == NetPacket::BROADCAST)
-
-   } // if (Config::getSingleton()->getProcessCount() == 1)
+   m_lock.release();
 }
 
 void
@@ -782,7 +579,7 @@ NetworkModelAtac::processReceivedPacket(NetPacket& pkt)
 
    // Compute Processing Time
    UInt32 pkt_length = getNetwork()->getModeledLength(pkt);
-   UInt64 processing_time = computeProcessingTime(pkt_length, m_effective_anet_bandwidth); 
+   UInt64 processing_time = computeProcessingTime(pkt_length, m_scatter_network_link_width); 
    
    // Add Serialization Delay
    if (TILE_ID(pkt.sender) != TILE_ID(pkt.receiver))
@@ -791,14 +588,32 @@ NetworkModelAtac::processReceivedPacket(NetPacket& pkt)
    // Compute Zero Load Latency
    UInt64 zero_load_latency;  
    if (TILE_ID(pkt.sender) == TILE_ID(pkt.receiver))
-     zero_load_latency = 0; 
-   else if (getClusterID(pkt.sender) == getClusterID(pkt.receiver))
-      zero_load_latency = m_gather_network_delay + m_scatter_network_delay + processing_time;
-   else
-      zero_load_latency = m_gather_network_delay + m_optical_network_link_delay + m_scatter_network_delay + processing_time;
+   {
+      zero_load_latency = 0;
+   }
+   else if (computeGlobalRoute(pkt.sender, pkt.receiver) == GLOBAL_ANET)
+   {
+      UInt64 gather_network_delay = computeNumHopsOnGatherNetwork(TILE_ID(pkt.sender), getTileIDWithOpticalHub(getClusterID(pkt.sender))) * 
+                                    m_gather_network_hop_delay;
+      zero_load_latency = gather_network_delay + m_optical_network_link_delay + m_scatter_network_delay + processing_time;
+   }
+   else if (computeGlobalRoute(pkt.sender, pkt.receiver) == GLOBAL_ENET)
+   {
+      zero_load_latency = computeNumHopsOnGatherNetwork(TILE_ID(pkt.sender), TILE_ID(pkt.receiver)) * m_gather_network_hop_delay;
+   }
 
    // Update Receive Counters
    updateReceiveCounters(pkt, zero_load_latency);
+}
+
+NetworkModelAtac::GlobalRoute
+NetworkModelAtac::computeGlobalRoute(core_id_t sender, core_id_t receiver)
+{
+   if (TILE_ID(receiver) == NetPacket::BROADCAST)
+      return GLOBAL_ANET;
+
+   UInt32 num_hops_on_gather_network = computeNumHopsOnGatherNetwork(TILE_ID(sender), TILE_ID(receiver));
+   return (num_hops_on_gather_network <= m_unicast_routing_threshold) ? GLOBAL_ENET : GLOBAL_ANET;
 }
 
 void
@@ -881,10 +696,6 @@ NetworkModelAtac::outputHubSummary(ostream& out)
             out << "    BNet (" << i << ") Analytical Model Used(\%): " << frac_analytical_model_used * 100 << endl;
          }
       }
-
-#ifdef TRACK_UTILIZATION
-      outputUtilizationSummary();
-#endif
    }
    else
    {
@@ -920,22 +731,6 @@ NetworkModelAtac::outputSummary(ostream &out)
    outputPowerSummary(out);
 }
 
-void
-NetworkModelAtac::reset()
-{
-   // Queue Models
-   resetQueueModels();
-
-   // Activity Counters
-   initializeActivityCounters();
-
-   // Router & Link Models
-   m_gather_network_router_model->resetCounters();
-   m_gather_network_link_model->resetCounters();
-   m_optical_network_link_model->resetCounters();
-   m_scatter_network_link_model->resetCounters();
-}
-
 SInt32
 NetworkModelAtac::getClusterID(core_id_t core_id)
 {
@@ -968,14 +763,18 @@ NetworkModelAtac::getTileIDWithOpticalHub(SInt32 cluster_id)
    cluster_mesh_width = m_mesh_width / m_sqrt_cluster_size;
 
    SInt32 cluster_pos_x, cluster_pos_y;
-   cluster_pos_x = cluster_id % cluster_mesh_width;
-   cluster_pos_y = cluster_id / cluster_mesh_width;
+   cluster_pos_x = (cluster_id % cluster_mesh_width);
+   cluster_pos_y = (cluster_id / cluster_mesh_width);
 
    SInt32 optical_hub_x, optical_hub_y; 
-   optical_hub_x = cluster_pos_x * m_sqrt_cluster_size;
-   optical_hub_y = cluster_pos_y * m_sqrt_cluster_size;
+   optical_hub_x = (cluster_pos_x * m_sqrt_cluster_size) + (m_sqrt_cluster_size-1)/2;
+   optical_hub_y = (cluster_pos_y * m_sqrt_cluster_size) + (m_sqrt_cluster_size-1)/2;
+   
+   SInt32 tile_x, tile_y;
+   tile_x = (optical_hub_x >= m_mesh_width) ? (optical_hub_x - (m_sqrt_cluster_size-1)/2) : optical_hub_x;
+   tile_y = (optical_hub_y >= m_mesh_height) ? (optical_hub_y - (m_sqrt_cluster_size-1)/2) : optical_hub_y;
 
-   return (optical_hub_y * m_mesh_width + optical_hub_x);
+   return (tile_y * m_mesh_width + tile_x);
 }
 
 void
@@ -1001,6 +800,100 @@ NetworkModelAtac::getTileIDListInCluster(SInt32 cluster_id, vector<tile_id_t>& t
             tile_id_list.push_back(tile_id);
       }
    }
+}
+
+UInt32
+NetworkModelAtac::computeNumHopsOnGatherNetwork(tile_id_t sender, tile_id_t receiver)
+{
+   SInt32 sx, sy, dx, dy;
+   computePositionOnGatherNetwork(sender, sx, sy);
+   computePositionOnGatherNetwork(receiver, dx, dy);
+   return (abs(sx-dx) + abs(sy-dy));
+}
+
+void
+NetworkModelAtac::computePositionOnGatherNetwork(tile_id_t tile_id, SInt32& x, SInt32& y)
+{
+   x = tile_id % m_mesh_width;
+   y = tile_id / m_mesh_width;
+}
+
+tile_id_t
+NetworkModelAtac::computeTileIdOnGatherNetwork(SInt32 x, SInt32 y)
+{
+   return (y * m_mesh_width + x);
+}
+
+UInt64
+NetworkModelAtac::computeLatencyOnGatherNetwork(GatherNetworkOutputDirection direction, UInt64 pkt_time, UInt32 pkt_length)
+{
+   LOG_ASSERT_ERROR((direction == SELF) || ((direction >= 0) && (direction < NUM_GATHER_NETWORK_OUTPUT_DIRECTIONS)),
+         "Invalid Direction(%u)", direction);
+
+   if (direction == SELF)
+      return 0;
+      
+   UInt64 processing_time = computeProcessingTime(pkt_length, m_gather_network_link_width);
+   // Calculate the contention delay
+   UInt64 queue_delay = 0;
+   if (m_queue_model_enabled)
+      queue_delay = m_gather_network_queue_models[direction]->computeQueueDelay(pkt_time, processing_time);
+
+   return queue_delay + m_gather_network_hop_delay;
+}
+
+tile_id_t
+NetworkModelAtac::getNextDestOnGatherNetwork(tile_id_t next_receiver, GatherNetworkOutputDirection& direction)
+{
+   // Do dimension-order routing
+   // Curently, do store-and-forward routing
+   
+   SInt32 sx, sy, dx, dy;
+
+   computePositionOnGatherNetwork(m_tile_id, sx, sy);
+   computePositionOnGatherNetwork(next_receiver, dx, dy);
+
+   if (sx > dx)
+   {
+      direction = LEFT;
+      return computeTileIdOnGatherNetwork(sx-1,sy);
+   }
+   else if (sx < dx)
+   {
+      direction = RIGHT;
+      return computeTileIdOnGatherNetwork(sx+1,sy);
+   }
+   else if (sy > dy)
+   {
+      direction = DOWN;
+      return computeTileIdOnGatherNetwork(sx,sy-1);
+   }
+   else if (sy < dy)
+   {
+      direction = UP;
+      return computeTileIdOnGatherNetwork(sx,sy+1);
+   }
+   else
+   {
+      // A send to itself
+      direction = SELF;
+      return m_tile_id;
+   }
+}
+
+pair<tile_id_t,UInt64>
+NetworkModelAtac::__routePacketOnGatherNetwork(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, tile_id_t next_receiver)
+{
+   ScopedLock sl(m_lock);
+   
+   GatherNetworkOutputDirection direction;
+   tile_id_t next_dest = getNextDestOnGatherNetwork(next_receiver, direction);
+   UInt64 latency = computeLatencyOnGatherNetwork(direction, pkt_time, pkt_length);
+   
+   // Update Energy Counters
+   updateDynamicEnergy(GATHER_NETWORK, pkt);
+
+   return make_pair(next_dest, pkt_time + latency);
 }
 
 pair<bool,SInt32>
@@ -1071,7 +964,9 @@ NetworkModelAtac::updateDynamicEnergy(SubNetworkType sub_net_type, const NetPack
 {
    // This function calls the power models as well as update power counters
    tile_id_t requester = getRequester(pkt);
-   if ( (!isEnabled()) || (requester >= ((tile_id_t) Config::getSingleton()->getApplicationTiles())) || (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
+   if ( (!isEnabled()) ||
+        (requester >= ((tile_id_t) Config::getSingleton()->getApplicationTiles())) ||
+        (!getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) )
       return;
 
    // TODO: Make these models more detailed later - Compute the exact number of bit flips
@@ -1080,54 +975,72 @@ NetworkModelAtac::updateDynamicEnergy(SubNetworkType sub_net_type, const NetPack
    switch(sub_net_type)
    {
       case GATHER_NETWORK:
-         // We basically look at a mesh and compute the average number of links traversed
-         if (Config::getSingleton()->getEnablePowerModeling())
          {
-            // Update Dynamic Energy of router (switch allocator + crossbar)
-            m_gather_network_router_model->updateDynamicEnergySwitchAllocator(m_num_gather_network_router_ports/2,
-                  m_num_hops_sender_tile_to_sender_hub);
-            m_gather_network_router_model->updateDynamicEnergyClock(m_num_hops_sender_tile_to_sender_hub);
+            UInt32 num_flits = computeProcessingTime(pkt_length, m_gather_network_link_width);
 
-            m_gather_network_router_model->updateDynamicEnergyCrossbar(m_gather_network_link_width/2,
-                  computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_tile_to_sender_hub);
-            m_gather_network_router_model->updateDynamicEnergyClock(
-                  computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_tile_to_sender_hub);
-            // We assume that there is no buffering here - so dont update dynamic energy of buffer
+            if (Config::getSingleton()->getEnablePowerModeling())
+            {
+               // Buffer Write Energy
+               m_gather_network_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::WRITE,
+                                                                        m_gather_network_link_width/2, num_flits);
+               m_gather_network_router_model->updateDynamicEnergyClock(num_flits);
+          
+               // Buffer Read Energy
+               m_gather_network_router_model->updateDynamicEnergyBuffer(ElectricalNetworkRouterModel::BufferAccess::READ,
+                                                                        m_gather_network_link_width/2, num_flits);
+               m_gather_network_router_model->updateDynamicEnergyClock(num_flits);
+               
+               // Update Dynamic Energy of router (switch allocator + crossbar)
+               m_gather_network_router_model->updateDynamicEnergySwitchAllocator(m_num_gather_network_router_ports/2);
+               m_gather_network_router_model->updateDynamicEnergyClock(1);
 
-            // Update Dynamic Energy of link
-            m_gather_network_link_model->updateDynamicEnergy(m_gather_network_link_width / 2,
-                  computeProcessingTime(pkt_length, m_gather_network_link_width) * m_num_hops_sender_tile_to_sender_hub);
+               m_gather_network_router_model->updateDynamicEnergyCrossbar(m_gather_network_link_width/2, num_flits);
+               m_gather_network_router_model->updateDynamicEnergyClock(num_flits);
+               // We assume that there is no buffering here - so dont update dynamic energy of buffer
+
+               // Update Dynamic Energy of link
+               m_gather_network_link_model->updateDynamicEnergy(m_gather_network_link_width / 2, num_flits);
+            }
+
+            // Event Counters
+            // Router
+            m_gather_network_router_buffer_reads += num_flits;
+            m_gather_network_router_buffer_writes += num_flits;
+            m_gather_network_router_switch_allocator_traversals += 1;
+            m_gather_network_router_crossbar_traversals += num_flits;
+            
+            // Link      
+            m_gather_network_link_traversals += num_flits;
          }
-
-         // Activity Counters
-         // Router
-         m_gather_network_router_switch_allocator_traversals += m_num_hops_sender_tile_to_sender_hub;
-         m_gather_network_router_crossbar_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) *
-                                                        m_num_hops_sender_tile_to_sender_hub);
-         
-         // Link      
-         m_gather_network_link_traversals += (computeProcessingTime(pkt_length, m_gather_network_link_width) *
-                                             m_num_hops_sender_tile_to_sender_hub);
          break;
 
       case OPTICAL_NETWORK:
-         if (Config::getSingleton()->getEnablePowerModeling())
          {
-            m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width / 2, \
-                  computeProcessingTime(pkt_length, m_optical_network_link_width));
+            UInt32 num_flits = computeProcessingTime(pkt_length, m_optical_network_link_width);
+            
+            if (Config::getSingleton()->getEnablePowerModeling())
+            {
+               m_optical_network_link_model->updateDynamicEnergy(m_optical_network_link_width / 2, num_flits);
+            }
+            
+            // Event Counters
+            m_optical_network_link_traversals += num_flits;
          }
-         m_optical_network_link_traversals += computeProcessingTime(pkt_length, m_optical_network_link_width);
          break;
 
       case SCATTER_NETWORK:
-         // We look at a tree and compute the number of hops in the tree
-         if (Config::getSingleton()->getEnablePowerModeling())
          {
-            m_scatter_network_link_model->updateDynamicEnergy(m_scatter_network_link_width / 2, \
-                  computeProcessingTime(pkt_length, m_scatter_network_link_width) * m_cluster_size);
+            UInt32 num_flits = computeProcessingTime(pkt_length, m_scatter_network_link_width);
+            
+            // We look at a tree and compute the number of hops in the tree
+            if (Config::getSingleton()->getEnablePowerModeling())
+            {
+               m_scatter_network_link_model->updateDynamicEnergy(m_scatter_network_link_width / 2, num_flits * m_cluster_size);
+            }
+            
+            // Event Counters
+            m_scatter_network_link_traversals += num_flits;
          }
-         m_scatter_network_link_traversals += computeProcessingTime(pkt_length, m_scatter_network_link_width) * \
-                                              m_cluster_size;
          break;
 
       default:
@@ -1153,7 +1066,7 @@ NetworkModelAtac::outputPowerSummary(ostream& out)
          // This function will only be called only on Tile0
 
          // Gather network is modeled as an electrical mesh
-         volatile double static_power_gather_network = m_cluster_size * (m_gather_network_router_model->getTotalStaticPower() + \
+         volatile double static_power_gather_network = m_cluster_size * (m_gather_network_router_model->getTotalStaticPower() +
                m_gather_network_link_model->getStaticPower() * (m_num_gather_network_router_ports-1));
 
          volatile double static_power_optical_network = m_optical_network_link_model->getStaticPower();
@@ -1162,92 +1075,27 @@ NetworkModelAtac::outputPowerSummary(ostream& out)
          UInt32 total_scatter_network_links = m_cluster_size;
          volatile double static_power_scatter_network = m_scatter_network_link_model->getStaticPower() * total_scatter_network_links;
 
-         total_static_power = (static_power_gather_network + static_power_optical_network + static_power_scatter_network * m_num_scatter_networks_per_cluster);
+         total_static_power = ( static_power_gather_network +
+                                static_power_optical_network + 
+                                (static_power_scatter_network * m_num_scatter_networks_per_cluster) );
       }
 
       // This function is called on all the tiles
-      volatile double total_dynamic_energy = m_gather_network_router_model->getTotalDynamicEnergy() + \
-                                             m_gather_network_link_model->getDynamicEnergy() + \
-                                             m_optical_network_link_model->getDynamicEnergy() + \
+      volatile double total_dynamic_energy = m_gather_network_router_model->getTotalDynamicEnergy() +
+                                             m_gather_network_link_model->getDynamicEnergy() +
+                                             m_optical_network_link_model->getDynamicEnergy() +
                                              m_scatter_network_link_model->getDynamicEnergy();
 
       out << "    Static Power: " << total_static_power << endl;
       out << "    Dynamic Energy: " << total_dynamic_energy << endl;
    }
 
-   out << "  Activity Counters:" << endl;
-   out << "    Gather Network Router Switch Allocator Traversals: " << m_gather_network_router_switch_allocator_traversals << endl;
-   out << "    Gather Network Router Crossbar Traversals: " << m_gather_network_router_crossbar_traversals << endl;
-   out << "    Gather Network Link Traversals: " << m_gather_network_link_traversals << endl;
-   out << "    Optical Network Link Traversals: " << m_optical_network_link_traversals << endl;
-   out << "    Scatter Network Link Traversals: " << m_scatter_network_link_traversals << endl;
+   out << "  Event Counters:" << endl;
+   out << "    ENet Router Buffer Reads: " << m_gather_network_router_buffer_reads << endl;
+   out << "    ENet Router Buffer Writes: " << m_gather_network_router_buffer_writes << endl;
+   out << "    ENet Router Switch Allocator Traversals: " << m_gather_network_router_switch_allocator_traversals << endl;
+   out << "    ENet Router Crossbar Traversals: " << m_gather_network_router_crossbar_traversals << endl;
+   out << "    ENet Link Traversals: " << m_gather_network_link_traversals << endl;
+   out << "    ONet Link Traversals: " << m_optical_network_link_traversals << endl;
+   out << "    BNet Link Traversals: " << m_scatter_network_link_traversals << endl;
 }
-
-#ifdef TRACK_UTILIZATION
-void
-NetworkModelAtac::initializeUtilizationCounters()
-{
-   m_update_interval = 10000;
-   m_receiver_hub_utilization = new vector<UInt64>[m_num_scatter_networks_per_cluster];
-}
-
-void
-NetworkModelAtac::destroyUtilizationCounters()
-{
-   delete [] m_receiver_hub_utilization;
-}
-
-void
-NetworkModelAtac::updateUtilization(NetworkComponentType hub_type, SInt32 hub_id, UInt64 pkt_time, UInt64 processing_time)
-{
-   UInt64 interval_id = pkt_time / m_update_interval;
-   switch (hub_type)
-   {
-   case SENDER_HUB:
-      updateVector(interval_id, m_sender_hub_utilization);
-      m_sender_hub_utilization[interval_id] += processing_time;
-      break;
-
-   case RECEIVER_HUB:
-      updateVector(interval_id, m_receiver_hub_utilization[hub_id]);
-      m_receiver_hub_utilization[hub_id][interval_id] += processing_time;
-      break;
-
-   default:
-      LOG_PRINT_ERROR("Unrecognized hub_type(%u)", hub_type);
-      break;
-   }
-}
-
-void
-NetworkModelAtac::updateVector(UInt64 interval_id, vector<UInt64>& utilization_vec)
-{
-   if (interval_id >= utilization_vec.size())
-   {
-      UInt64 next_interval = utilization_vec.size();
-      for (; next_interval <= interval_id; next_interval++)
-         utilization_vec.push_back(0);
-   }
-   assert(interval_id < utilization_vec.size());
-}
-
-void
-NetworkModelAtac::outputUtilizationSummary()
-{
-   stringstream filename;
-   string output_dir = Sim()->getCfg()->getString("general/output_dir", "./output_files/"); 
-   filename << output_dir << "utilization_" << getNetwork()->getTile()->getId(); 
-   ofstream utilization_file((filename.str()).c_str());
-
-   assert(m_num_scatter_networks_per_cluster == 2);
-   UInt32 size = getMin<UInt32>(m_sender_hub_utilization.size(), \
-        m_receiver_hub_utilization[0].size(), m_receiver_hub_utilization[1].size()); 
-   for (UInt32 i = 0; i < size; i++)
-   {
-      float utilization = ( (float) (m_sender_hub_utilization[i] + m_receiver_hub_utilization[0][i] + \
-               m_receiver_hub_utilization[1][i]) ) / m_update_interval;
-      utilization_file << i << "\t" << utilization / 3 << endl;
-   }
-   utilization_file.close();
-}
-#endif

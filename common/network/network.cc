@@ -536,7 +536,7 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
    : start_time(0)
    , time(t)
    , type(ty)
-   , specific(0)
+   , specific(-1)
    , length(l)
    , data(d)
 {

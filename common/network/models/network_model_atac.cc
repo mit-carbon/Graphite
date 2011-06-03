@@ -591,15 +591,15 @@ NetworkModelAtac::processReceivedPacket(NetPacket& pkt)
    {
       zero_load_latency = 0;
    }
+   else if (computeGlobalRoute(pkt.sender, pkt.receiver) == GLOBAL_ENET)
+   {
+      zero_load_latency = computeNumHopsOnGatherNetwork(TILE_ID(pkt.sender), TILE_ID(pkt.receiver)) * m_gather_network_hop_delay;
+   }
    else if (computeGlobalRoute(pkt.sender, pkt.receiver) == GLOBAL_ANET)
    {
       UInt64 gather_network_delay = computeNumHopsOnGatherNetwork(TILE_ID(pkt.sender), getTileIDWithOpticalHub(getClusterID(pkt.sender))) * 
                                     m_gather_network_hop_delay;
       zero_load_latency = gather_network_delay + m_optical_network_link_delay + m_scatter_network_delay + processing_time;
-   }
-   else if (computeGlobalRoute(pkt.sender, pkt.receiver) == GLOBAL_ENET)
-   {
-      zero_load_latency = computeNumHopsOnGatherNetwork(TILE_ID(pkt.sender), TILE_ID(pkt.receiver)) * m_gather_network_hop_delay;
    }
 
    // Update Receive Counters

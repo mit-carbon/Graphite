@@ -21,7 +21,7 @@ class Network;
 // time stamp for when that packet will be forwarded.
 //   This lets one implement "magic" networks, analytical models,
 // realistic hop-by-hop modeling, as well as broadcast models, such as
-// a bus or ATAC.  Each static network has its own model object. This
+// a bus.  Each static network has its own model object. This
 // lets the user network be modeled accurately, while the MCP is a
 // stupid magic network.
 //   A packet will be dropped if no hops are filled in the nextHops

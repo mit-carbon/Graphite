@@ -586,18 +586,20 @@ bool SockTransport::Socket::recv(void *buffer, UInt32 length, bool block)
 
       if (recvd >= 1)
       {
-         if (recvd < SInt32(length))
-         {
-            buffer = (void*)((Byte*)buffer + recvd);
-            length -= recvd;
+         buffer = (void*)((Byte*)buffer + recvd);
+         length -= recvd;
 
+         while (length > 0)
+         {
             // block to receive remainder of message
             recvd = ::recv(m_socket, buffer, length, 0);
-         }
+            LOG_ASSERT_ERROR(recvd >= 1 && recvd <= (SInt32) length,
+                  "Error on socket(%i): recvd(%i), length(%u), block(%s)",
+                  m_socket, recvd, length, block ? "Yes" : "No");
 
-         LOG_ASSERT_ERROR(recvd == SInt32(length),
-                          "Didn't receive full message on socket %d -- %i != %i, block(%u)",
-                          m_socket, recvd, SInt32(length), (UInt32) block);
+            buffer = (void*)((Byte*)buffer + recvd);
+            length -= recvd;
+         }
          return true;
       }
       else

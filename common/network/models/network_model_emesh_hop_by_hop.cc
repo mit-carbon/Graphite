@@ -626,10 +626,10 @@ NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_co
    assert(tile_id_list_along_perimeter.size() == (UInt32) (2 * (m_mesh_width + m_mesh_height - 2)));
 
    LOG_ASSERT_ERROR(tile_id_list_along_perimeter.size() >= (UInt32) num_memory_controllers,
-         "num tiles along perimeter(%u), num memory controllers(%i)",
-         tile_id_list_along_perimeter.size(), num_memory_controllers);
+                    "num tiles along perimeter(%u), num memory controllers(%i)",
+                    tile_id_list_along_perimeter.size(), num_memory_controllers);
 
-   SInt32 spacing_between_memory_controllers = tile_id_list_along_perimeter.size() / num_memory_controllers;
+   SInt32 spacing_between_memory_controllers = ceil(((float)tile_id_list_along_perimeter.size()) / num_memory_controllers);
    
    // tile_id_list_with_memory_controllers : list of tiles that have memory controllers attached to them
    vector<tile_id_t> tile_id_list_with_memory_controllers;
@@ -637,7 +637,21 @@ NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_co
    for (SInt32 i = 0; i < num_memory_controllers; i++)
    {
       SInt32 index = (i * spacing_between_memory_controllers + m_mesh_width/2) % tile_id_list_along_perimeter.size();
-      tile_id_list_with_memory_controllers.push_back(tile_id_list_along_perimeter[index]);
+      if (find(tile_id_list_with_memory_controllers.begin(), tile_id_list_with_memory_controllers.end(),
+          tile_id_list_along_perimeter[index]) == tile_id_list_with_memory_controllers.end())
+      {
+         tile_id_list_with_memory_controllers.push_back(tile_id_list_along_perimeter[index]);
+      }
+      else if (find(tile_id_list_with_memory_controllers.begin(), tile_id_list_with_memory_controllers.end(),
+               tile_id_list_along_perimeter[index+1]) == tile_id_list_with_memory_controllers.end())
+      {
+         tile_id_list_with_memory_controllers.push_back(tile_id_list_along_perimeter[index+1]);
+      }
+      else
+      {
+         LOG_PRINT_ERROR("Could not find a memory controller position: Num Tiles On Perimeter(%u), Num Memory Controllers(%i)",
+                         tile_id_list_along_perimeter.size(), num_memory_controllers);
+      }
    }
 
    return (make_pair(true, tile_id_list_with_memory_controllers));

@@ -348,6 +348,7 @@ DirectoryCache::outputSummary(ostream& out)
       }
    }
 
+   out << "Dram Directory Cache: " << endl;
    // Total Number of Addresses
    // Max Set Size, Average Set Size, Min Set Size
    // Evictions: Average per set, Max, Address with max evictions
@@ -371,6 +372,7 @@ DirectoryCache::outputSummary(ostream& out)
 void
 DirectoryCache::dummyOutputSummary(ostream& out)
 {
+   out << "    Total Directory Cache Accesses: NA" << endl;
    // The power and area model summary
    if (Config::getSingleton()->getEnablePowerModeling())
       CachePowerModel::dummyOutputSummary(out);

@@ -30,26 +30,38 @@ class NetworkModelAtac : public NetworkModel
 
       enum SubNetworkType
       {
-         GATHER_NETWORK = 0,
+         MESH_NETWORK = 0,
          OPTICAL_NETWORK,
-         SCATTER_NETWORK,
+         BROADCAST_NETWORK,
          NUM_SUB_NETWORK_TYPES
       };
 
-      enum GatherNetworkOutputDirection
+      enum MeshNetworkOutputDirection
       {
          UP = 0,
          DOWN,
          LEFT,
          RIGHT,
-         NUM_GATHER_NETWORK_OUTPUT_DIRECTIONS,
+         NUM_MESH_NETWORK_OUTPUT_DIRECTIONS,
          SELF
+      };
+
+      enum GlobalRoutingStrategy
+      {
+         CLUSTER_BASED = 0,
+         DISTANCE_BASED
       };
 
       enum GlobalRoute
       {
          GLOBAL_ENET = 0,
          GLOBAL_ANET
+      };
+
+      enum LocalRoute
+      {
+         LOCAL_ENET = 0,
+         LOCAL_BNET
       };
 
       tile_id_t m_tile_id;
@@ -61,40 +73,43 @@ class NetworkModelAtac : public NetworkModel
       static SInt32 m_sqrt_cluster_size;
       static SInt32 m_mesh_width;
       static SInt32 m_mesh_height;
-      UInt32 m_num_scatter_networks_per_cluster;
-      // Routing Threshold
+      UInt32 m_num_broadcast_networks_per_cluster;
+      
+      // Routing Algorithm
+      static GlobalRoutingStrategy m_global_routing_strategy;
+      static LocalRoute m_local_route;
       static UInt32 m_unicast_routing_threshold;
 
       // Frequency Parameters
-      volatile float m_gather_network_frequency;
+      volatile float m_mesh_network_frequency;
       volatile float m_optical_network_frequency;
-      volatile float m_scatter_network_frequency;
+      volatile float m_broadcast_network_frequency;
 
       // Latency Parameters
-      UInt32 m_num_gather_network_router_ports;
-      UInt64 m_gather_network_hop_delay;
+      UInt32 m_num_mesh_network_router_ports;
+      UInt64 m_mesh_network_hop_delay;
       UInt64 m_optical_network_link_delay;
-      UInt64 m_scatter_network_delay;
+      UInt64 m_broadcast_network_delay;
 
       // Router & Link Power Models
-      ElectricalNetworkRouterModel* m_gather_network_router_model;
-      ElectricalNetworkLinkModel* m_gather_network_link_model;
+      ElectricalNetworkRouterModel* m_mesh_network_router_model;
+      ElectricalNetworkLinkModel* m_mesh_network_link_model;
       OpticalNetworkLinkModel* m_optical_network_link_model;
-      ElectricalNetworkLinkModel* m_scatter_network_link_model;
+      ElectricalNetworkLinkModel* m_broadcast_network_link_model;
 
       // Link Width Parameters
-      UInt32 m_gather_network_link_width;
+      UInt32 m_mesh_network_link_width;
       UInt32 m_optical_network_link_width;
-      UInt32 m_scatter_network_link_width;
+      UInt32 m_broadcast_network_link_width;
 
       // Link Type Parameters
-      string m_gather_network_link_type;
-      string m_scatter_network_link_type;
+      string m_mesh_network_link_type;
+      string m_broadcast_network_link_type;
 
       // Bandwidth Parameters
-      volatile double m_gather_network_bandwidth;
+      volatile double m_mesh_network_bandwidth;
       volatile double m_optical_network_bandwidth;
-      volatile double m_scatter_network_bandwidth;
+      volatile double m_broadcast_network_bandwidth;
       volatile double m_effective_anet_bandwidth;
 
       // Optical Hub models
@@ -105,7 +120,7 @@ class NetworkModelAtac : public NetworkModel
       Lock m_receiver_hub_lock;
 
       // Gather Network Queue Models
-      QueueModel* m_gather_network_queue_models[NUM_GATHER_NETWORK_OUTPUT_DIRECTIONS];
+      QueueModel* m_mesh_network_queue_models[NUM_MESH_NETWORK_OUTPUT_DIRECTIONS];
 
       // Queue Models
       bool m_queue_model_enabled;
@@ -124,13 +139,13 @@ class NetworkModelAtac : public NetworkModel
       UInt64* m_total_buffered_receiver_hub_packets;
 
       // Event Counters
-      UInt64 m_gather_network_router_buffer_reads;
-      UInt64 m_gather_network_router_buffer_writes;
-      UInt64 m_gather_network_router_switch_allocator_traversals;
-      UInt64 m_gather_network_router_crossbar_traversals;
-      UInt64 m_gather_network_link_traversals;
+      UInt64 m_mesh_network_router_buffer_reads;
+      UInt64 m_mesh_network_router_buffer_writes;
+      UInt64 m_mesh_network_router_switch_allocator_traversals;
+      UInt64 m_mesh_network_router_crossbar_traversals;
+      UInt64 m_mesh_network_link_traversals;
       UInt64 m_optical_network_link_traversals;
-      UInt64 m_scatter_network_link_traversals;
+      UInt64 m_broadcast_network_link_traversals;
 
       // Private Functions
       static SInt32 getClusterID(core_id_t core_id);
@@ -138,13 +153,13 @@ class NetworkModelAtac : public NetworkModel
       static tile_id_t getTileIDWithOpticalHub(SInt32 cluster_id);
       static void getTileIDListInCluster(SInt32 cluster_id, vector<tile_id_t>& tile_id_list);
 
-      UInt64 routePacketOnGatherNetwork(const NetPacket& pkt, tile_id_t next_receiver);
+      UInt64 routePacketOnMeshNetwork(const NetPacket& pkt, tile_id_t next_receiver);
 
-      static UInt32 computeNumHopsOnGatherNetwork(tile_id_t sender, tile_id_t receiver);
-      static void computePositionOnGatherNetwork(tile_id_t tile_id, SInt32& x, SInt32& y);
-      static tile_id_t computeTileIdOnGatherNetwork(SInt32 x, SInt32 y);
-      UInt64 computeLatencyOnGatherNetwork(GatherNetworkOutputDirection direction, UInt64 time, UInt32 pkt_length);
-      tile_id_t getNextDestOnGatherNetwork(tile_id_t next_receiver, GatherNetworkOutputDirection& direction);
+      static UInt32 computeNumHopsOnMeshNetwork(tile_id_t sender, tile_id_t receiver);
+      static void computePositionOnMeshNetwork(tile_id_t tile_id, SInt32& x, SInt32& y);
+      static tile_id_t computeTileIdOnMeshNetwork(SInt32 x, SInt32 y);
+      UInt64 computeLatencyOnMeshNetwork(MeshNetworkOutputDirection direction, UInt64 time, UInt32 pkt_length);
+      tile_id_t getNextDestOnMeshNetwork(tile_id_t next_receiver, MeshNetworkOutputDirection& direction);
 
       UInt64 getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, const NetPacket& pkt);
 
@@ -169,14 +184,16 @@ class NetworkModelAtac : public NetworkModel
 
       // Routing
       GlobalRoute computeGlobalRoute(core_id_t sender, core_id_t receiver);
+      static GlobalRoutingStrategy parseGlobalRoutingStrategy(string strategy);
+      static LocalRoute parseLocalRoute(string route);
 
-      UInt32 getFlitWidth() { return m_gather_network_link_width; }
+      UInt32 getFlitWidth() { return m_mesh_network_link_width; }
 
    public:
       NetworkModelAtac(Network *net, SInt32 network_id);
       ~NetworkModelAtac();
 
-      volatile float getFrequency() { return m_gather_network_frequency; }
+      volatile float getFrequency() { return m_mesh_network_frequency; }
 
       UInt32 computeAction(const NetPacket& pkt);
       void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
@@ -191,5 +208,5 @@ class NetworkModelAtac : public NetworkModel
       
       // Only for NetworkModelAtac
       UInt64 computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, UInt64 pkt_time, const NetPacket& pkt);
-      pair<tile_id_t,UInt64> __routePacketOnGatherNetwork(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, tile_id_t next_receiver);
+      pair<tile_id_t,UInt64> __routePacketOnMeshNetwork(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, tile_id_t next_receiver);
 };

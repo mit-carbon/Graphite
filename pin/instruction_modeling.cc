@@ -170,7 +170,7 @@ VOID addInstructionModeling(INS ins)
    // branches
    if (INS_IsBranch(ins) && INS_HasFallThrough(ins))
    {
-      basic_block->push_back(new BranchInstruction(list));
+      basic_block->push_back(new BranchInstruction(INS_Opcode(ins), list));
 
       INS_InsertCall(
          ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)handleBranch,
@@ -191,28 +191,28 @@ VOID addInstructionModeling(INS ins)
       switch(INS_Opcode(ins))
       {
       case OPCODE_DIV:
-         basic_block->push_back(new ArithInstruction(INST_DIV, list));
+         basic_block->push_back(new ArithInstruction(INST_DIV, INS_Opcode(ins), list));
          break;
       case OPCODE_MUL:
-         basic_block->push_back(new ArithInstruction(INST_MUL, list));
+         basic_block->push_back(new ArithInstruction(INST_MUL, INS_Opcode(ins), list));
          break;
       case OPCODE_FDIV:
-         basic_block->push_back(new ArithInstruction(INST_FDIV, list));
+         basic_block->push_back(new ArithInstruction(INST_FDIV, INS_Opcode(ins), list));
          break;
       case OPCODE_FMUL:
-         basic_block->push_back(new ArithInstruction(INST_FMUL, list));
+         basic_block->push_back(new ArithInstruction(INST_FMUL, INS_Opcode(ins), list));
          break;
 
       case OPCODE_SCASB:
       case OPCODE_CMPSB:
          if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
          {
-            basic_block->push_back(new StringInstruction(list));
+            basic_block->push_back(new StringInstruction(INS_Opcode(ins), list));
             break;
          }
       
       default:
-         basic_block->push_back(new GenericInstruction(list));
+         basic_block->push_back(new GenericInstruction(INS_Opcode(ins), list));
       }
    }
 

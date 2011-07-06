@@ -9,8 +9,9 @@
 
 Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
 
-Instruction::Instruction(InstructionType type, OperandList &operands)
+Instruction::Instruction(InstructionType type, UInt64 opcode, OperandList &operands)
    : m_type(type)
+   , m_opcode(opcode)
    , m_addr(0)
    , m_operands(operands)
 {
@@ -18,13 +19,9 @@ Instruction::Instruction(InstructionType type, OperandList &operands)
 
 Instruction::Instruction(InstructionType type)
    : m_type(type)
+   , m_opcode(0)
    , m_addr(0)
 {
-}
-
-InstructionType Instruction::getType()
-{
-    return m_type;
 }
 
 UInt64 Instruction::getCost()
@@ -91,8 +88,8 @@ UInt64 DynamicInstruction::getCost()
 
 // StringInstruction
 
-StringInstruction::StringInstruction(OperandList &ops)
-   : Instruction(INST_STRING, ops)
+StringInstruction::StringInstruction(UInt64 opcode, OperandList &ops)
+   : Instruction(INST_STRING, opcode, ops)
 {
 }
 
@@ -149,8 +146,8 @@ UInt64 SpawnInstruction::getCost()
 
 // BranchInstruction
 
-BranchInstruction::BranchInstruction(OperandList &l)
-   : Instruction(INST_BRANCH, l)
+BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
+   : Instruction(INST_BRANCH, opcode, l)
 { }
 
 UInt64 BranchInstruction::getCost()

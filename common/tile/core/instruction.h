@@ -66,6 +66,7 @@ class Instruction
 {
 public:
    Instruction(InstructionType type,
+               UInt64 opcode,
                OperandList &operands);
 
    Instruction(InstructionType type);
@@ -73,7 +74,8 @@ public:
    virtual ~Instruction() { };
    virtual UInt64 getCost();
 
-   InstructionType getType();
+   InstructionType getType()
+   { return m_type; }
    UInt64 getOpcode()
    { return m_opcode; }
 
@@ -106,24 +108,24 @@ protected:
 class GenericInstruction : public Instruction
 {
 public:
-   GenericInstruction(OperandList &operands)
-      : Instruction(INST_GENERIC, operands)
+   GenericInstruction(UInt64 opcode, OperandList &operands)
+      : Instruction(INST_GENERIC, opcode, operands)
    {}
 };
 
 class ArithInstruction : public Instruction
 {
 public:
-   ArithInstruction(InstructionType type, OperandList &operands)
-      : Instruction(type, operands)
+   ArithInstruction(InstructionType type, UInt64 opcode, OperandList &operands)
+      : Instruction(type, opcode, operands)
    {}
 };
 
 class JmpInstruction : public Instruction
 {
 public:
-   JmpInstruction(OperandList &dest)
-      : Instruction(INST_JMP, dest)
+   JmpInstruction(UInt64 opcode, OperandList &dest)
+      : Instruction(INST_JMP, opcode, dest)
    {}
 };
 
@@ -131,7 +133,7 @@ public:
 class StringInstruction : public Instruction
 {
 public:
-   StringInstruction(OperandList &ops);
+   StringInstruction(UInt64 opcode, OperandList &ops);
 
    UInt64 getCost();
 };
@@ -179,7 +181,7 @@ private:
 class BranchInstruction : public Instruction
 {
 public:
-   BranchInstruction(OperandList &l);
+   BranchInstruction(UInt64 opcode, OperandList &l);
 
    UInt64 getCost();
 };

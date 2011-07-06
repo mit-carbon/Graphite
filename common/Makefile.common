@@ -8,7 +8,7 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/directory_schemes/	\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/performance_models/	\
 			 $(SIM_ROOT)/common/tile/core/      									\
-			 $(SIM_ROOT)/common/tile/core/performance_models/					\
+			 $(SIM_ROOT)/common/tile/core/models/					\
 			 $(SIM_ROOT)/common/tile/core/branch_predictors/	            \
           $(SIM_ROOT)/common/network/         									\
 			 $(SIM_ROOT)/common/network/models	 									\

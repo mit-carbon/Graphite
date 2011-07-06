@@ -1,13 +1,13 @@
-#ifndef SIMPLE_PERFORMANCE_MODEL_H
-#define SIMPLE_PERFORMANCE_MODEL_H
+#ifndef MAGIC_CORE_MODEL_H
+#define MAGIC_CORE_MODEL_H
 
 #include "core_model.h"
 
-class SimplePerformanceModel : public CoreModel
+class MagicCoreModel : public CoreModel
 {
 public:
-   SimplePerformanceModel(Core *core, float frequency);
-   ~SimplePerformanceModel();
+   MagicCoreModel(Core *core, float frequency);
+   ~MagicCoreModel();
 
    void reset();
    void outputSummary(std::ostream &os);
@@ -16,6 +16,8 @@ public:
 
 private:
    void handleInstruction(Instruction *instruction);
+
+   bool isModeled(InstructionType instruction_type);
    
    UInt64 m_instruction_count;
 };

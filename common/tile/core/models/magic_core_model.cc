@@ -1,28 +1,28 @@
 #include "core.h"
 #include "log.h"
-#include "magic_performance_model.h"
+#include "magic_core_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-MagicPerformanceModel::MagicPerformanceModel(Core *core, float frequency)
+MagicCoreModel::MagicCoreModel(Core *core, float frequency)
     : CoreModel(core, frequency)
     , m_instruction_count(0)
 {
 }
 
-MagicPerformanceModel::~MagicPerformanceModel()
+MagicCoreModel::~MagicCoreModel()
 {
 }
 
-void MagicPerformanceModel::outputSummary(std::ostream &os)
+void MagicCoreModel::outputSummary(std::ostream &os)
 {
    os << "Core Performance Model Summary:" << endl;
    os << "    Instructions: " << getInstructionCount() << endl;
    CoreModel::outputSummary(os);
 }
 
-void MagicPerformanceModel::handleInstruction(Instruction *instruction)
+void MagicCoreModel::handleInstruction(Instruction *instruction)
 {
    // compute cost
    UInt64 cost = 0;
@@ -68,7 +68,7 @@ void MagicPerformanceModel::handleInstruction(Instruction *instruction)
    m_cycle_count += cost;
 }
 
-bool MagicPerformanceModel::isModeled(InstructionType instruction_type)
+bool MagicCoreModel::isModeled(InstructionType instruction_type)
 {
    switch(instruction_type)
    {
@@ -83,7 +83,7 @@ bool MagicPerformanceModel::isModeled(InstructionType instruction_type)
 }
 
 void
-MagicPerformanceModel::reset()
+MagicCoreModel::reset()
 {
    CoreModel::reset();
    m_instruction_count = 0;

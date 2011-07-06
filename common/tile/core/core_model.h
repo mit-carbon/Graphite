@@ -38,7 +38,7 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static CoreModel *createMainPerfModel(Core* core);
+   static CoreModel *createMainCoreModel(Core* core);
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
@@ -53,6 +53,20 @@ public:
 
 
 protected:
+   enum RegType
+   {
+      INTEGER = 0,
+      FLOATING_POINT
+   };
+   enum AccessType
+   {
+      READ = 0,
+      WRITE
+   };
+   enum ExecutionUnitType
+   {
+   };
+
    friend class SpawnInstruction;
 
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;

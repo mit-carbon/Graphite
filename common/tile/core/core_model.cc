@@ -1,8 +1,8 @@
 #include "core_model.h"
 #include "core.h"
-#include "simple_performance_model.h"
-#include "iocoom_performance_model.h"
-#include "magic_performance_model.h"
+#include "simple_core_model.h"
+#include "iocoom_core_model.h"
+#include "magic_core_model.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "config.h"
@@ -12,17 +12,17 @@
 #include "utils.h"
 
 
-CoreModel* CoreModel::createMainPerfModel(Core* core)
+CoreModel* CoreModel::createMainCoreModel(Core* core)
 {
    volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getCoreId());
    string core_model = Config::getSingleton()->getCoreType(core->getTileId());
 
    if (core_model == "iocoom")
-      return new IOCOOMPerformanceModel(core, frequency);
+      return new IOCOOMCoreModel(core, frequency);
    else if (core_model == "simple")
-      return new SimplePerformanceModel(core, frequency);
+      return new SimpleCoreModel(core, frequency);
    else if (core_model == "magic")
-      return new MagicPerformanceModel(core, frequency);
+      return new MagicCoreModel(core, frequency);
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
@@ -72,8 +72,8 @@ void CoreModel::outputSummary(ostream& os)
 
 void CoreModel::frequencySummary(ostream& os)
 {
-   os << "    Completion Time: " \
-      << (UInt64) (((float) m_cycle_count) / m_frequency) \
+   os << "    Completion Time: "
+      << (UInt64) (((float) m_cycle_count) / m_frequency)
       << endl;
    os << "    Average Frequency: " << m_average_frequency << endl;
 }
@@ -211,7 +211,7 @@ void CoreModel::queueBasicBlock(BasicBlock *basic_block)
    m_basic_block_queue.push(basic_block);
 }
 
-//FIXME: this will go in a thread
+// TODO: this will go in a thread
 void CoreModel::iterate()
 {
    // Because we will sometimes not have info available (we will throw

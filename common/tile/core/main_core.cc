@@ -17,7 +17,7 @@ using namespace std;
 MainCore::MainCore(Tile* tile) : Core(tile)
 {
    m_core_id = tile->getMainCoreId();
-   m_core_model = CoreModel::createMainPerfModel((Core *) this);
+   m_core_model = CoreModel::createMainCoreModel((Core *) this);
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {

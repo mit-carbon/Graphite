@@ -1,7 +1,7 @@
 using namespace std;
 
 #include "core.h"
-#include "iocoom_performance_model.h"
+#include "iocoom_core_model.h"
 
 #include "log.h"
 #include "dynamic_instruction_info.h"
@@ -9,7 +9,7 @@ using namespace std;
 #include "simulator.h"
 #include "branch_predictor.h"
 
-IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core, float frequency)
+IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
    : CoreModel(core, frequency)
    , m_instruction_count(0)
    , m_register_scoreboard(512)
@@ -29,29 +29,34 @@ IOCOOMPerformanceModel::IOCOOMPerformanceModel(Core *core, float frequency)
    }
 
    initializeRegisterScoreboard();
+   
+   // For Power and AreaModeling
+   m_mcpat_core_interface = new McPATCoreInterface(
+                            cfg->getInt("perf_model/core/iocoom/num_outstanding_loads", 3),
+                            cfg->getInt("perf_model/core/iocoom/num_store_buffer_entries", 1));
 }
 
-IOCOOMPerformanceModel::~IOCOOMPerformanceModel()
+IOCOOMCoreModel::~IOCOOMCoreModel()
 {
    delete m_load_unit;
    delete m_store_buffer;
 }
 
-void IOCOOMPerformanceModel::outputSummary(std::ostream &os)
+void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    os << "Core Performance Model Summary:" << endl;
    os << "    Instructions: " << m_instruction_count << std::endl;
    CoreModel::outputSummary(os);
 }
 
-void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
+void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
 {
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
    UInt64 cost = instruction->getCost();
 
    // icache modeling
-   // modelIcache(instruction->getAddress());
+   modelIcache(instruction->getAddress());
 
    /* 
       model instruction in the following steps:
@@ -66,7 +71,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
 
    // find when read operands are available
    UInt64 read_operands_ready = m_cycle_count;
-   UInt64 max_load_latency = 0;
+   UInt64 read_completion_time = m_cycle_count;
 
    // REG read operands
    for (unsigned int i = 0; i < ops.size(); i++)
@@ -82,6 +87,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
       if (read_operands_ready < m_register_scoreboard[o.m_value])
          read_operands_ready = m_register_scoreboard[o.m_value];
    }
+   read_completion_time = read_operands_ready;
 
    // MEMORY read & write operands
    for (unsigned int i = 0; i < ops.size(); i++)
@@ -98,16 +104,18 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
          LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_READ,
                           "Expected memory read info, got: %d.", info.type);
 
-         pair<UInt64,UInt64> load_timing_info = executeLoad(read_operands_ready, info);
+         pair<UInt64,UInt64> load_timing_info = executeLoad(m_cycle_count, info);
          UInt64 load_ready = load_timing_info.first;
          UInt64 load_latency = load_timing_info.second;
-
-         if (max_load_latency < load_latency)
-            max_load_latency = load_latency;
+         UInt64 load_completion_time = load_ready + load_latency;
 
          // This 'ready' is related to a structural hazard in the LOAD Unit
          if (read_operands_ready < load_ready)
             read_operands_ready = load_ready;
+         
+         // Read completion time is when all the read operands are available and ready for execution unit
+         if (read_completion_time < load_completion_time)
+            read_completion_time = load_completion_time;
       }
       else
       {
@@ -121,7 +129,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    }
 
    // Calculate the completion time of instruction (after fetching read operands + execution unit)
-   UInt64 execute_unit_completion_time = read_operands_ready + max_load_latency + cost;
+   UInt64 execute_unit_completion_time = read_completion_time + cost;
 
    // Time when write operands are ready
    UInt64 write_operands_ready = execute_unit_completion_time;
@@ -135,6 +143,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    {
       const Operand &o = ops[i];
 
+      // REG write operands
       if ( (o.m_direction != Operand::WRITE) || (o.m_type != Operand::REG) )
          continue;
 
@@ -145,6 +154,7 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
          write_operands_ready = m_register_scoreboard[o.m_value];
    }
 
+   bool has_memory_write_operand = false;
    // MEMORY write operands
    // This is done before doing register
    // operands to make sure the scoreboard is updated correctly
@@ -152,8 +162,12 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    {
       const Operand &o = ops[i];
 
+      // MEMORY write operands
       if ( (o.m_direction != Operand::WRITE) || (o.m_type != Operand::MEMORY) )
          continue;
+
+      // Instruction has a MEMORY WRITE operand
+      has_memory_write_operand = true;
 
       const DynamicInstructionInfo &info = write_info.front();
       // This just updates the contents of the store buffer
@@ -164,27 +178,32 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
          write_operands_ready = store_time;
    }
 
-   // Completion Time of instruction
-   UInt64 completion_time = write_operands_ready;
-
+   //                   ----->  time
+   // -----------|-------------------------|---------------------------|----------------------------|-----------
+   //    read_operands_ready      read_completion_time    execute_unit_completion_time      write_operands_ready
+   //            |    load_latency         |            cost           |                            |
+   
    // update cycle count with instruction cost
    // If it is a simple load instruction, execute the next instruction,
    // else wait till all the operands are fetched to execute the next instruction
    if (instruction->isSimpleMemoryLoad())
-      m_cycle_count = read_operands_ready + cost;
+      m_cycle_count = read_operands_ready + 1;
+   else if (!has_memory_write_operand)
+      m_cycle_count = read_completion_time + 1;
    else
-      m_cycle_count = completion_time;
+      m_cycle_count = write_operands_ready + 1;
 
    LOG_ASSERT_ERROR(write_info.empty(), "Some write info left over?");
 
-   // instruction->print();
-   
    // Update Statistics
    m_instruction_count++;
+
+   // Update Event Counters
+   m_mcpat_core_interface->updateEventCounters(instruction, m_cycle_count);
 }
 
 pair<UInt64,UInt64>
-IOCOOMPerformanceModel::executeLoad(UInt64 time, const DynamicInstructionInfo &info)
+IOCOOMCoreModel::executeLoad(UInt64 time, const DynamicInstructionInfo &info)
 {
    // similarly, a miss in the l1 with a completed entry in the store
    // buffer is treated as an invalidation
@@ -199,20 +218,20 @@ IOCOOMPerformanceModel::executeLoad(UInt64 time, const DynamicInstructionInfo &i
    return make_pair<UInt64,UInt64>(m_load_unit->execute(time, latency), latency);
 }
 
-UInt64 IOCOOMPerformanceModel::executeStore(UInt64 time, const DynamicInstructionInfo &info)
+UInt64 IOCOOMCoreModel::executeStore(UInt64 time, const DynamicInstructionInfo &info)
 {
    UInt64 latency = info.memory_info.latency;
 
    return m_store_buffer->executeStore(time, latency, info.memory_info.addr);
 }
 
-void IOCOOMPerformanceModel::modelIcache(IntPtr addr)
+void IOCOOMCoreModel::modelIcache(IntPtr addr)
 {
    UInt64 access_time = getCore()->readInstructionMemory(addr, sizeof(IntPtr));
    m_cycle_count += access_time;
 }
 
-void IOCOOMPerformanceModel::initializeRegisterScoreboard()
+void IOCOOMCoreModel::initializeRegisterScoreboard()
 {
    for (unsigned int i = 0; i < m_register_scoreboard.size(); i++)
    {
@@ -220,7 +239,7 @@ void IOCOOMPerformanceModel::initializeRegisterScoreboard()
    }
 }
 
-void IOCOOMPerformanceModel::reset()
+void IOCOOMCoreModel::reset()
 {
    CoreModel::reset();
 
@@ -230,19 +249,21 @@ void IOCOOMPerformanceModel::reset()
    m_load_unit->reset();
 }
 
+
+
 // Helper classes 
 
-IOCOOMPerformanceModel::LoadUnit::LoadUnit(unsigned int num_units)
+IOCOOMCoreModel::LoadUnit::LoadUnit(unsigned int num_units)
    : m_scoreboard(num_units)
 {
    initialize();
 }
 
-IOCOOMPerformanceModel::LoadUnit::~LoadUnit()
+IOCOOMCoreModel::LoadUnit::~LoadUnit()
 {
 }
 
-UInt64 IOCOOMPerformanceModel::LoadUnit::execute(UInt64 time, UInt64 occupancy)
+UInt64 IOCOOMCoreModel::LoadUnit::execute(UInt64 time, UInt64 occupancy)
 {
    UInt64 unit = 0;
 
@@ -266,7 +287,7 @@ UInt64 IOCOOMPerformanceModel::LoadUnit::execute(UInt64 time, UInt64 occupancy)
    return m_scoreboard[unit] - occupancy;
 }
 
-void IOCOOMPerformanceModel::LoadUnit::initialize()
+void IOCOOMCoreModel::LoadUnit::initialize()
 {
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {
@@ -274,23 +295,23 @@ void IOCOOMPerformanceModel::LoadUnit::initialize()
    }
 }
 
-void IOCOOMPerformanceModel::LoadUnit::reset()
+void IOCOOMCoreModel::LoadUnit::reset()
 {
    initialize();
 }
 
-IOCOOMPerformanceModel::StoreBuffer::StoreBuffer(unsigned int num_entries)
+IOCOOMCoreModel::StoreBuffer::StoreBuffer(unsigned int num_entries)
    : m_scoreboard(num_entries)
    , m_addresses(num_entries)
 {
    initialize();
 }
 
-IOCOOMPerformanceModel::StoreBuffer::~StoreBuffer()
+IOCOOMCoreModel::StoreBuffer::~StoreBuffer()
 {
 }
 
-UInt64 IOCOOMPerformanceModel::StoreBuffer::executeStore(UInt64 time, UInt64 occupancy, IntPtr addr)
+UInt64 IOCOOMCoreModel::StoreBuffer::executeStore(UInt64 time, UInt64 occupancy, IntPtr addr)
 {
    // Note: basically identical to ExecutionUnit, except we need to
    // track addresses as well
@@ -330,7 +351,7 @@ UInt64 IOCOOMPerformanceModel::StoreBuffer::executeStore(UInt64 time, UInt64 occ
    return m_scoreboard[unit] - occupancy;
 }
 
-IOCOOMPerformanceModel::StoreBuffer::Status IOCOOMPerformanceModel::StoreBuffer::isAddressAvailable(UInt64 time, IntPtr addr)
+IOCOOMCoreModel::StoreBuffer::Status IOCOOMCoreModel::StoreBuffer::isAddressAvailable(UInt64 time, IntPtr addr)
 {
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {
@@ -344,7 +365,7 @@ IOCOOMPerformanceModel::StoreBuffer::Status IOCOOMPerformanceModel::StoreBuffer:
    return NOT_FOUND;
 }
 
-void IOCOOMPerformanceModel::StoreBuffer::initialize()
+void IOCOOMCoreModel::StoreBuffer::initialize()
 {
    for (unsigned int i = 0; i < m_scoreboard.size(); i++)
    {
@@ -353,7 +374,7 @@ void IOCOOMPerformanceModel::StoreBuffer::initialize()
    }
 }
 
-void IOCOOMPerformanceModel::StoreBuffer::reset()
+void IOCOOMCoreModel::StoreBuffer::reset()
 {
    initialize();
 }

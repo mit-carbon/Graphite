@@ -1,22 +1,22 @@
-#ifndef IOCOOM_PERFORMANCE_MODEL_H
-#define IOCOOM_PERFORMANCE_MODEL_H
+#ifndef IOCOOM_CORE_MODEL_H
+#define IOCOOM_CORE_MODEL_H
 
 #include <vector>
+#include <string>
+using std::string;
 
 #include "core_model.h"
-
+#include "mcpat_core_interface.h"
 /*
-  In-order core, out-of-order memory performance model.
-
-  We use a simpe scoreboard to keep track of registers.
-
+  In-order core, out-of-order memory model.
+  We use a simple scoreboard to keep track of registers.
   We also keep a store buffer to short circuit loads.
  */
-class IOCOOMPerformanceModel : public CoreModel
+class IOCOOMCoreModel : public CoreModel
 {
 public:
-   IOCOOMPerformanceModel(Core* core, float frequency);
-   ~IOCOOMPerformanceModel();
+   IOCOOMCoreModel(Core* core, float frequency);
+   ~IOCOOMCoreModel();
 
    void reset();
    void outputSummary(std::ostream &os);
@@ -90,6 +90,9 @@ private:
    Scoreboard m_register_scoreboard;
    StoreBuffer *m_store_buffer;
    LoadUnit *m_load_unit;
+
+   McPATCoreInterface* m_mcpat_core_interface;
+  
 };
 
-#endif // IOCOOM_PERFORMANCE_MODEL_H
+#endif // IOCOOM_CORE_MODEL_H

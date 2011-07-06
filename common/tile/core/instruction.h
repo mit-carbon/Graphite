@@ -74,6 +74,8 @@ public:
    virtual UInt64 getCost();
 
    InstructionType getType();
+   UInt64 getOpcode()
+   { return m_opcode; }
 
    static void initializeStaticInstructionModel();
 
@@ -93,6 +95,7 @@ private:
    static StaticInstructionCosts m_instruction_costs;
 
    InstructionType m_type;
+   UInt64 m_opcode;
 
    IntPtr m_addr;
 

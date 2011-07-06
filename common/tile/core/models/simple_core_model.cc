@@ -1,28 +1,28 @@
 #include "core.h"
 #include "log.h"
-#include "simple_performance_model.h"
+#include "simple_core_model.h"
 #include "branch_predictor.h"
 
 using std::endl;
 
-SimplePerformanceModel::SimplePerformanceModel(Core *core, float frequency)
+SimpleCoreModel::SimpleCoreModel(Core *core, float frequency)
     : CoreModel(core, frequency)
     , m_instruction_count(0)
 {
 }
 
-SimplePerformanceModel::~SimplePerformanceModel()
+SimpleCoreModel::~SimpleCoreModel()
 {
 }
 
-void SimplePerformanceModel::outputSummary(std::ostream &os)
+void SimpleCoreModel::outputSummary(std::ostream &os)
 {
    os << "Core Performance Model Summary:" << endl;
    os << "    Instructions: " << getInstructionCount() << endl;
    CoreModel::outputSummary(os);
 }
 
-void SimplePerformanceModel::handleInstruction(Instruction *instruction)
+void SimpleCoreModel::handleInstruction(Instruction *instruction)
 {
    // compute cost
    UInt64 cost = 0;
@@ -65,7 +65,7 @@ void SimplePerformanceModel::handleInstruction(Instruction *instruction)
    m_cycle_count += cost;
 }
 
-void SimplePerformanceModel::reset()
+void SimpleCoreModel::reset()
 {
    CoreModel::reset();
    m_instruction_count = 0;

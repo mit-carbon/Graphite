@@ -5,6 +5,8 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 
+#include <math.h>
+
 // --------------------------------------------
 // New stuff added with Memory redirection
 
@@ -239,6 +241,11 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
          m_ret_val = marshallUnlinkCall(args);
          break;
      
+      case SYS_clock_gettime:
+            m_called_enter = true;
+            m_ret_val = handleClockGettimeCall(args);
+            break;
+      
       case -1:
       default:
          break;
@@ -1280,6 +1287,53 @@ IntPtr SyscallMdl::marshallUnlinkCall(syscall_args_t &args)
 IntPtr SyscallMdl::marshallRmdirCall(syscall_args_t &args)
 {
   return(this->marshallUnlinkCall(args));
+}
+
+IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
+{
+   /* Notes
+      (0) This syscall is handled locally rather than marshalling
+          over to the MCP to handle it.  The reason is that
+          for purposes of measuring elapsed time we want to be
+          able to do that relative to *this* core, not the master
+      (1) CoreModel is keeping a frequency re-normalized
+          cycle count, so just using current cycle count and 
+          frequency works fine to compute elapsed time.
+          To convince yourself, read the code in:
+          CoreModel::updateInternalVariablesOnFrequencyChange
+      (2) if the core gets reset then 'time' also gets reset
+   */
+
+   clockid_t clk_id = (clockid_t ) args.arg0;
+   struct timespec *ts = (struct timespec *) args.arg1;
+
+   struct timespec temp_ts;
+   UInt64 cycles = 0;
+   float frequency = 0.0;
+   double elapsed_time = 0.0;
+   CoreModel* perf_model = 0L;
+
+   if (clk_id != CLOCK_REALTIME) {
+     /* we currently do not support anything but CLOCK_REALTIME */
+     return -1;
+   }
+
+   // compute the elapsed time
+   perf_model = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   cycles = perf_model->getCycleCount();
+   frequency = perf_model->getFrequency();
+   elapsed_time = ( 1 / (frequency * 1000000000) ) * cycles;
+   temp_ts.tv_sec = (time_t) floor(elapsed_time);
+   temp_ts.tv_nsec = (long) ((elapsed_time - floor(elapsed_time))* 1000000000.0);
+
+   // Write the data to memory
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) ts, (char*) (&temp_ts), sizeof(temp_ts));
+   
+   LOG_PRINT("clock_gettime called: cycles=%lu, frequency=%lf, elapse=%1.9lf, secs=%ld, nsecs=%ld\n",
+             cycles, frequency, elapsed_time, (long) temp_ts.tv_sec, temp_ts.tv_nsec);
+
+   return 0;
 }
 
 

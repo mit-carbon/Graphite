@@ -105,7 +105,6 @@ VOID handleFutexSyscall(CONTEXT *ctx)
    core->getSyscallMdl()->runEnter(syscall_number, args);
 }
 
-
 void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD syscall_standard, void* v)
 {
    Core *core = Sim()->getTileManager()->getCurrentCore();
@@ -126,6 +125,9 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_rmdir) ||
+            (syscall_number == SYS_unlink) ||
+            (syscall_number == SYS_clock_gettime) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
@@ -286,6 +288,9 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_rmdir) ||
+            (syscall_number == SYS_unlink) ||
+            (syscall_number == SYS_clock_gettime) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||

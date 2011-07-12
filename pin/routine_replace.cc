@@ -1,6 +1,7 @@
 #include "routine_replace.h"
 #include "simulator.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "log.h"
 #include "carbon_user.h"
 #include "thread_support_private.h"
@@ -57,6 +58,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonStartSim") msg_ptr = AFUNPTR(replacementStartSimNull); 
    else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
+   else if (name == "CarbonSpawnThreadOnTile") msg_ptr = AFUNPTR(replacementSpawnThreadOnTile);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
    
    // CAPI
@@ -350,11 +352,31 @@ void replacementSpawnThread (CONTEXT *ctxt)
          IARG_PTR, &arg,
          IARG_END);
 
-   LOG_PRINT("Calling SimSpawnThread");
+   LOG_PRINT("Calling CarbonSpawnThread");
    ADDRINT ret_val = (ADDRINT) CarbonSpawnThread (func, arg);
 
    retFromReplacedRtn (ctxt, ret_val);
+
 }
+
+void replacementSpawnThreadOnTile (CONTEXT *ctxt)
+{
+   thread_func_t func;
+   tile_id_t tile_id;
+   void *arg;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_PTR, &func,
+         IARG_PTR, &arg,
+         IARG_END);
+
+   LOG_PRINT("Calling SimSpawnThread");
+   ADDRINT ret_val = (ADDRINT) CarbonSpawnThreadOnTile (tile_id, func, arg);
+
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
 
 void replacementJoinThread (CONTEXT *ctxt)
 {

@@ -129,11 +129,11 @@ SimBarrier::~SimBarrier()
    assert(m_waiting.empty());
 }
 
-void SimBarrier::wait(tile_id_t tile_id, UInt64 time, WakeupList &woken_list)
+void SimBarrier::wait(core_id_t core_id, UInt64 time, WakeupList &woken_list)
 {
-   m_waiting.push_back(tile_id);
+   m_waiting.push_back(core_id);
 
-   Sim()->getThreadManager()->stallThread(tile_id);
+   Sim()->getThreadManager()->stallThread(core_id);
 
    assert(m_waiting.size() <= m_count);
 
@@ -335,7 +335,7 @@ void SyncServer::condBroadcast(core_id_t core_id)
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&dummy, sizeof(dummy));
 }
 
-void SyncServer::barrierInit(tile_id_t tile_id)
+void SyncServer::barrierInit(core_id_t core_id)
 {
    UInt32 count;
    m_recv_buffer >> count;
@@ -343,10 +343,10 @@ void SyncServer::barrierInit(tile_id_t tile_id)
    m_barriers.push_back(SimBarrier(count));
    UInt32 barrier = (UInt32)m_barriers.size()-1;
 
-   m_network.netSend(TileManager::getMainCoreId(tile_id), MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&barrier, sizeof(barrier));
 }
 
-void SyncServer::barrierWait(tile_id_t tile_id)
+void SyncServer::barrierWait(core_id_t core_id)
 {
    carbon_barrier_t barrier;
    m_recv_buffer >> barrier;
@@ -354,22 +354,22 @@ void SyncServer::barrierWait(tile_id_t tile_id)
    UInt64 time;
    m_recv_buffer >> time;
 
-   LOG_ASSERT_ERROR(barrier < (tile_id_t) m_barriers.size(), "barrier = %i, m_barriers.size()= %u", barrier, m_barriers.size());
+   LOG_ASSERT_ERROR(barrier < (carbon_barrier_t) m_barriers.size(), "barrier = %i, m_barriers.size()= %u", barrier, m_barriers.size());
 
    SimBarrier *psimbarrier = &m_barriers[barrier];
 
    SimBarrier::WakeupList woken_list;
-   psimbarrier->wait(tile_id, time, woken_list);
+   psimbarrier->wait(core_id, time, woken_list);
 
    UInt64 max_time = psimbarrier->getMaxTime();
 
    for (SimBarrier::WakeupList::iterator it = woken_list.begin(); it != woken_list.end(); it++)
    {
-      assert((*it) != INVALID_TILE_ID);
+      assert((*it).tile_id != INVALID_TILE_ID);
       Reply r;
       r.dummy = SyncClient::BARRIER_WAIT_RESPONSE;
       r.time = max_time;
-      core_id_t core_id = TileManager::getMainCoreId((*it));
+      core_id_t core_id = (*it);
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, (char*)&r, sizeof(r));
    }
 }

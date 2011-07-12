@@ -1,7 +1,7 @@
 #include "pin_config.h"
 #include "simulator.h"
-#include "tile_manager.h"
 #include <boost/lexical_cast.hpp>
+#include "core.h"
 PinConfig *PinConfig::m_singleton = NULL;
 
 void PinConfig::allocate()
@@ -25,7 +25,8 @@ PinConfig::PinConfig()
 {
    m_current_process_num = Sim()->getConfig()->getCurrentProcessNum();
    m_total_tiles = Sim()->getConfig()->getTotalTiles();
-   m_num_local_cores = Sim()->getConfig()->getNumLocalTiles();
+   m_num_local_tiles = Sim()->getConfig()->getNumLocalTiles();
+   m_max_threads_per_core = Sim()->getConfig()->getMaxThreadsPerCore();
    
    setStackBoundaries();
 }
@@ -58,20 +59,23 @@ void PinConfig::setStackBoundaries()
       num_tiles += Sim()->getConfig()->getNumTilesInProcess(i);
    }
 
-   m_stack_lower_limit = global_stack_base + num_tiles * m_stack_size_per_core;
-   m_stack_upper_limit = m_stack_lower_limit + m_num_local_cores * m_stack_size_per_core;
+   UInt32 num_cores_per_tile = Config::getSingleton()->getNumCoresPerTile();
+
+   m_stack_lower_limit = global_stack_base + num_cores_per_tile * num_tiles * m_stack_size_per_core;
+   m_stack_upper_limit = m_stack_lower_limit + num_cores_per_tile * m_num_local_tiles * m_stack_size_per_core;
 }
 
 // Get Tile ID from stack pointer
 tile_id_t PinConfig::getTileIDFromStackPtr(IntPtr stack_ptr)
 {
    if ( (stack_ptr < m_stack_lower_limit) || (stack_ptr > m_stack_upper_limit) )
-   {
-      return -1;
-   }     
+      return INVALID_THREAD_ID;
 
    SInt32 tile_index;
-   tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (m_stack_size_per_core));
+
+   UInt32 num_cores_per_tile = Config::getSingleton()->getNumCoresPerTile();
+
+   tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (num_cores_per_tile * m_stack_size_per_core));
 
    return (Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index));
 }
@@ -79,14 +83,32 @@ tile_id_t PinConfig::getTileIDFromStackPtr(IntPtr stack_ptr)
 core_id_t PinConfig::getCoreIDFromStackPtr(IntPtr stack_ptr)
 {
    if ( (stack_ptr < m_stack_lower_limit) || (stack_ptr > m_stack_upper_limit) )
-   {
       return INVALID_CORE_ID;
-   }     
+  
 
-   SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / m_stack_size_per_core);
-   return (TileManager::getMainCoreId(Config::getSingleton()->getTileIDFromIndex(m_current_process_num, tile_index)));
+   UInt32 num_cores_per_tile = Config::getSingleton()->getNumCoresPerTile();
+   SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (num_cores_per_tile * m_stack_size_per_core));
+
+   return (Config::getSingleton()->getMainCoreIDFromIndex(m_current_process_num, tile_index));
 }
 
+
+thread_id_t PinConfig::getThreadIDFromStackPtr(IntPtr stack_ptr)
+{
+   if ( (stack_ptr < m_stack_lower_limit) || (stack_ptr > m_stack_upper_limit) )
+      return INVALID_THREAD_ID;
+  
+   UInt32 stack_size_per_thread = m_stack_size_per_core/m_max_threads_per_core;
+   UInt32 num_cores_per_tile = Config::getSingleton()->getNumCoresPerTile();
+
+   SInt32 tile_index = (SInt32) ((stack_ptr - m_stack_lower_limit) / (num_cores_per_tile * m_stack_size_per_core));
+   thread_id_t thread_id = (SInt32) ((stack_ptr - (tile_index * (num_cores_per_tile * m_stack_size_per_core))) / stack_size_per_thread);
+
+   return thread_id;
+}
+
+
+// The stack looks like | main core 0 | main core 1 | 
 SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr)
 {
    // Get the stack attributes
@@ -94,9 +116,34 @@ SInt32 PinConfig::getStackAttributesFromCoreID (core_id_t core_id, StackAttribut
    LOG_ASSERT_ERROR (tile_index != -1, "Tile %i does not belong to Process %i", 
          core_id.tile_id, Config::getSingleton()->getCurrentProcessNum());
 
-   stack_attr.lower_limit = m_stack_lower_limit + (tile_index * m_stack_size_per_core);
-   stack_attr.size = m_stack_size_per_core;
+   UInt32 stack_size_per_thread = m_stack_size_per_core/m_max_threads_per_core;
+   UInt32 num_cores_per_tile = Config::getSingleton()->getNumCoresPerTile();
+
+   stack_attr.lower_limit = m_stack_lower_limit + (tile_index * num_cores_per_tile * m_stack_size_per_core);
+
+   stack_attr.size = stack_size_per_thread;
 
    return 0;
 }
 
+// The stack looks like | main core 0 | main core 1 | main core 2 | main core 3 | 
+//                      |tid0|tid1|...|tid0|tid1|...|tid0|tid1|...|tid0|tid1|..|
+SInt32 PinConfig::getStackAttributesFromCoreAndThreadID (core_id_t core_id, thread_id_t thread_idx, StackAttributes& stack_attr)
+{
+   // Get the stack attributes
+   SInt32 tile_index = Config::getSingleton()->getIndexFromTileID(m_current_process_num, core_id.tile_id);
+   LOG_ASSERT_ERROR (tile_index != -1, "Tile %i does not belong to Process %i", 
+         core_id.tile_id, Config::getSingleton()->getCurrentProcessNum());
+
+   SInt32 thread_index = thread_idx;
+
+   UInt32 num_cores_per_tile = Config::getSingleton()->getNumCoresPerTile();
+   UInt32 stack_size_per_thread = m_stack_size_per_core/m_max_threads_per_core;
+
+
+   stack_attr.lower_limit = m_stack_lower_limit + (tile_index * num_cores_per_tile * m_stack_size_per_core);
+   stack_attr.lower_limit += thread_index * stack_size_per_thread;
+   stack_attr.size = stack_size_per_thread;
+
+   return 0;
+}

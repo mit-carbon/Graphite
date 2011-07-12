@@ -162,6 +162,7 @@ VOID fillOperandList(OperandList *list, INS ins)
 
 VOID addInstructionModeling(INS ins)
 {
+
    BasicBlock *basic_block = new BasicBlock();
 
    OperandList list;

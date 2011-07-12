@@ -140,7 +140,7 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
    
 
    PinConfig::StackAttributes stack_attr;
-   PinConfig::getSingleton()->getStackAttributesFromCoreID (core_id, stack_attr);
+   PinConfig::getSingleton()->getStackAttributesFromCoreAndThreadID (core_id, 0, stack_attr);
    stack_ptr_top = stack_attr.lower_limit + stack_attr.size;
    stack_ptr_base = stack_ptr_top - initial_stack_size;
    stack_ptr_base = (stack_ptr_base >> (sizeof(IntPtr))) << (sizeof(IntPtr));
@@ -154,6 +154,7 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
    stack_ptr_base += sizeof(argc);
 
    LOG_PRINT("Copying Command Line Arguments to Simulated Memory");
+   LOG_PRINT("From 0x%x to 0x%x", reg_esp, stack_ptr_base);
    for (SInt32 i = 0; i < (SInt32) argc; i++)
    {
       // Writing argv[i]
@@ -211,9 +212,10 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
 VOID copySpawnedThreadStackData(IntPtr reg_esp)
 {
    core_id_t core_id = PinConfig::getSingleton()->getCoreIDFromStackPtr(reg_esp);
+   thread_id_t thread_idx = PinConfig::getSingleton()->getThreadIDFromStackPtr(reg_esp);
 
    PinConfig::StackAttributes stack_attr;
-   PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
+   PinConfig::getSingleton()->getStackAttributesFromCoreAndThreadID(core_id, thread_idx, stack_attr);
 
    IntPtr stack_upper_limit = stack_attr.lower_limit + stack_attr.size;
    
@@ -232,15 +234,17 @@ VOID allocateStackSpace()
    // Each process allocates whatever it is responsible for !!
    __attribute(__unused__) UInt32 stack_size_per_core = PinConfig::getSingleton()->getStackSizePerCore();
    __attribute(__unused__) UInt32 num_tiles = Sim()->getConfig()->getNumLocalTiles();
+   __attribute(__unused__) UInt32 max_threads_per_core = PinConfig::getSingleton()->getMaxThreadsPerCore();
    __attribute(__unused__) IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
 
 
    LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x", stack_size_per_core);
    LOG_PRINT("allocateStackSpace: num_local_cores = %i", num_tiles);
+   LOG_PRINT("allocateStackSpace: max_threads_per_core = %i", max_threads_per_core);
    LOG_PRINT("allocateStackSpace: stack_base = 0x%x", stack_base);
 
    // TODO: Make sure that this is a multiple of the page size 
-
+   
    // mmap() the total amount of memory needed for the stacks
    LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_tiles,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
          "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_tiles);
@@ -252,6 +256,7 @@ VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
 
    //tile_id_t tile_id;
    core_id_t core_id;
+   thread_id_t thread_idx;
    
    ThreadSpawnRequest* req = Sim()->getThreadManager()->getThreadSpawnReq();
 
@@ -259,15 +264,17 @@ VOID SimPthreadAttrInitOtherAttr(pthread_attr_t *attr)
    {
       // This is the thread spawner
       core_id = Sim()->getConfig()->getCurrentThreadSpawnerCoreId();
+      thread_idx = 0;
    }
    else
    {
       // This is an application thread
       core_id = (core_id_t) {req->destination.tile_id, req->destination.core_type};
+      thread_idx = req->destination_tidx;
    }
 
    PinConfig::StackAttributes stack_attr;
-   PinConfig::getSingleton()->getStackAttributesFromCoreID(core_id, stack_attr);
+   PinConfig::getSingleton()->getStackAttributesFromCoreAndThreadID(core_id, thread_idx, stack_attr);
 
    pthread_attr_setstack(attr, (void*) stack_attr.lower_limit, stack_attr.size);
 

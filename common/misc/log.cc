@@ -45,12 +45,15 @@ Log::~Log()
          fclose(_tileFiles[i]);
       if (_simFiles[i])
          fclose(_simFiles[i]);
+      if (_helperFiles[i])
+         fclose(_helperFiles[i]);
    }
 
    delete [] _tileLocks;
    delete [] _simLocks;
    delete [] _tileFiles;
    delete [] _simFiles;
+   delete [] _helperFiles;
 
    if (_systemFile)
       fclose(_systemFile);
@@ -80,15 +83,18 @@ void Log::initFileDescriptors()
 {
    _tileFiles = new FILE* [_tileCount];
    _simFiles = new FILE* [_tileCount];
+   _helperFiles = new FILE* [_tileCount];
 
    for (tile_id_t i = 0; i < _tileCount; i++)
    {
       _tileFiles[i] = NULL;
       _simFiles[i] = NULL;
+      _helperFiles[i] = NULL;
    }
 
    _tileLocks = new Lock [_tileCount];
    _simLocks = new Lock [_tileCount];
+   _helperLocks = new Lock [_tileCount];
 
    _systemFile = NULL;
 
@@ -182,7 +188,7 @@ UInt64 Log::getTimestamp()
    return time - _startTime;
 }
 
-void Log::discoverCore(tile_id_t *tile_id, bool *sim_thread)
+void Log::discoverTile(tile_id_t *tile_id, bool *sim_thread, bool *helper_thread)
 {
    TileManager *tile_manager;
 
@@ -191,16 +197,18 @@ void Log::discoverCore(tile_id_t *tile_id, bool *sim_thread)
 
       *tile_id = INVALID_TILE_ID;
       *sim_thread = false;
+      *helper_thread = false;
       return;
    }
    else
    {
       *tile_id = tile_manager->getCurrentTileID();
       *sim_thread = tile_manager->amiSimThread();
+      *helper_thread = tile_manager->amiHelperThread();
    }
 }
 
-void Log::getFile(tile_id_t tile_id, bool sim_thread, FILE **file, Lock **lock)
+void Log::getFile(tile_id_t tile_id, bool sim_thread, bool helper_thread, FILE **file, Lock **lock)
 {
    // we use on-demand file allocation to prevent contention between
    // processes for files
@@ -247,6 +255,21 @@ void Log::getFile(tile_id_t tile_id, bool sim_thread, FILE **file, Lock **lock)
 
       *file = _simFiles[tile_id];
       *lock = &_simLocks[tile_id];
+   }
+   else if (helper_thread)
+   {
+      // helper thread file
+      if (_helperFiles[tile_id] == NULL)
+      {
+         assert(tile_id < _tileCount);
+         char filename[256];
+         sprintf(filename, "helper_%u.log", tile_id);
+         _helperFiles[tile_id] = fopen(formatFileName(filename).c_str(), "w");
+         assert(_helperFiles[tile_id] != NULL);
+      }
+
+      *file = _helperFiles[tile_id];
+      *lock = &_helperLocks[tile_id];
    }
    else
    {
@@ -304,12 +327,13 @@ void Log::log(ErrorState err, const char* source_file, SInt32 source_line, const
 {
    tile_id_t tile_id;
    bool sim_thread;
-   discoverCore(&tile_id, &sim_thread);
+   bool helper_thread;
+   discoverTile(&tile_id, &sim_thread, &helper_thread);
    
    FILE *file;
    Lock *lock;
 
-   getFile(tile_id, sim_thread, &file, &lock);
+   getFile(tile_id, sim_thread, helper_thread,&file, &lock);
    int tid = syscall(__NR_gettid);
 
 

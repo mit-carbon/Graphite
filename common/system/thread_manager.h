@@ -14,17 +14,33 @@
 #include "thread_support.h"
 
 class TileManager;
+class ThreadScheduler;
 
 class ThreadManager
 {
 public:
+   struct ThreadState
+   {
+      Core::State status;
+      //SInt32 waiter;
+      core_id_t waiter_core;
+      thread_id_t waiter_tid;
+      thread_id_t thread_id;
+
+      ThreadState()
+         : status(Core::IDLE)
+         , waiter_core(INVALID_CORE_ID)
+         , waiter_tid(INVALID_THREAD_ID)
+      {} 
+   };
+
    ThreadManager(TileManager*);
    ~ThreadManager();
 
    // services
-   SInt32 spawnThread(thread_func_t func, void *arg);
-   void joinThread(tile_id_t tile_id);
-   
+   SInt32 spawnThread(tile_id_t tile_id, thread_func_t func, void *arg);
+   void joinThread(thread_id_t thread_id = 0);
+
    void getThreadToSpawn(ThreadSpawnRequest *req);
    ThreadSpawnRequest* getThreadSpawnReq();
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
@@ -35,18 +51,38 @@ public:
    void onThreadStart(ThreadSpawnRequest *req);
    void onThreadExit();
 
-   // misc
-   void stallThread(tile_id_t tile_id);
-   void resumeThread(tile_id_t tile_id);
-   bool isThreadRunning(tile_id_t core_id);
-   bool isThreadInitializing(tile_id_t tile_id);
 
+   // misc
+   void stallThread(tile_id_t tile_id, thread_id_t thread_id);
+   void stallThread(core_id_t core_id, thread_id_t thread_id);
    void stallThread(core_id_t core_id);
+
+   void resumeThread(tile_id_t tile_id, thread_id_t thread_id);
+   void resumeThread(core_id_t core_id, thread_id_t thread_id);
    void resumeThread(core_id_t core_id);
-   bool isThreadRunning(core_id_t core_id);
-   bool isThreadInitializing(core_id_t core_id);
+   //void resumeCallingThread();
+
+   bool isThreadRunning(tile_id_t core_id, thread_id_t thread_id);
+   bool isThreadRunning(core_id_t core_id, thread_id_t thread_id);
+
+   bool isThreadInitializing(tile_id_t tile_id, thread_id_t thread_id);
+   bool isThreadInitializing(core_id_t core_id, thread_id_t thread_id);
    
    bool areAllCoresRunning();
+   thread_id_t isCoreRunning(core_id_t core_id);
+   thread_id_t isPepCoreRunning(tile_id_t tile_id);
+   thread_id_t isCoreRunning(tile_id_t tile_id);
+
+   bool isCoreInitializing(tile_id_t tile_id);
+   bool isPepCoreInitializing(tile_id_t tile_id);
+   bool isCoreInitializing(core_id_t core_id);
+
+   std::vector< std::vector<ThreadState> > getThreadState() {assert(m_master); return m_thread_state;}
+
+   void setThreadState(tile_id_t tile_id, thread_id_t tidx, Core::State state) {m_thread_state[tile_id][tidx].status = state;}
+
+   friend class ThreadScheduler;
+   void setThreadScheduler(ThreadScheduler* thread_scheduler) {m_thread_scheduler = thread_scheduler;}
 
 private:
 
@@ -58,36 +94,43 @@ private:
    void masterSpawnThreadReply(ThreadSpawnRequest*);
 
 
-   void masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, UInt64 time);
+   void masterOnThreadStart(tile_id_t tile_id, UInt32 core_type, SInt32 thread_idx);
+   void masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, SInt32 thread_idx, UInt64 time);
 
    void slaveTerminateThreadSpawnerAck (tile_id_t);
    void slaveTerminateThreadSpawner ();
    void updateTerminateThreadSpawner ();
 
    void masterJoinThread(ThreadJoinRequest *req, UInt64 time);
-   void wakeUpWaiter(core_id_t core_id, UInt64 time);
+   void wakeUpWaiter(core_id_t core_id, thread_id_t thread_id, UInt64 time);
+   void wakeUpMainWaiter(core_id_t core_id, thread_id_t thread_id, UInt64 time);
 
    void insertThreadSpawnRequest (ThreadSpawnRequest *req);
 
-   struct ThreadState
-   {
-      Core::State status;
-      //SInt32 waiter;
-      core_id_t waiter;
+   thread_id_t getNewThreadId(core_id_t core_id, thread_id_t thread_index);
 
-      ThreadState()
-         : status(Core::IDLE)
-         , waiter(INVALID_CORE_ID)
-      {} 
-   };
+
+   thread_id_t m_tid_counter;
+   Lock m_tid_counter_lock;
 
    bool m_master;
-   std::vector<ThreadState> m_thread_state;
+   bool m_enable_pep_cores;
+   std::vector< std::vector<ThreadState> > m_thread_state;
+   std::vector< std::vector<ThreadState> > m_helper_thread_state;
+
+   std::vector<thread_id_t> m_last_stalled_thread;
+   std::vector<thread_id_t> m_last_stalled_helper_thread;
+
+
+   std::vector< std::pair<core_id_t, thread_id_t> > m_tid_to_core_map;
+
    std::queue<ThreadSpawnRequest*> m_thread_spawn_list;
    Semaphore m_thread_spawn_sem;
    Lock m_thread_spawn_lock;
 
+
    TileManager *m_tile_manager;
+   ThreadScheduler *m_thread_scheduler;
 
    Lock m_thread_spawners_terminated_lock;
    UInt32 m_thread_spawners_terminated;

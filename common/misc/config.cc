@@ -20,6 +20,7 @@ bool Config::m_knob_enable_icache_modeling;
 bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_power_modeling;
 bool Config::m_knob_enable_area_modeling;
+UInt32 Config::m_knob_max_threads_per_core;
 
 using namespace std;
 
@@ -48,6 +49,7 @@ Config::Config()
       // TODO: these should be removed and queried directly from the cache
       m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
       m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
+      m_knob_max_threads_per_core = Sim()->getCfg()->getInt("general/max_threads_per_core");
 
       // Simulation Mode
       m_simulation_mode = parseSimulationMode(Sim()->getCfg()->getString("general/mode"));
@@ -61,6 +63,9 @@ Config::Config()
    m_num_processes = m_knob_num_process;
    m_total_tiles = m_knob_total_tiles;
    m_application_tiles = m_total_tiles;
+   m_max_threads_per_core = m_knob_max_threads_per_core;
+
+   m_num_cores_per_tile = 1;
 
    if ((m_simulation_mode == LITE) && (m_num_processes > 1))
    {
@@ -276,6 +281,11 @@ tile_id_t Config::getTileIDFromIndex(UInt32 proc_num, SInt32 index)
    {
       return -1;
    }
+}
+
+core_id_t Config::getMainCoreIDFromIndex(UInt32 proc_num, SInt32 index)
+{
+   return (core_id_t) {getTileIDFromIndex(proc_num, index), MAIN_CORE_TYPE};
 }
 
 // Parse XML config file and use it to fill in config state.  Only modifies

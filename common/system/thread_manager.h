@@ -60,7 +60,6 @@ public:
    void resumeThread(tile_id_t tile_id, thread_id_t thread_id);
    void resumeThread(core_id_t core_id, thread_id_t thread_id);
    void resumeThread(core_id_t core_id);
-   //void resumeCallingThread();
 
    bool isThreadRunning(tile_id_t core_id, thread_id_t thread_id);
    bool isThreadRunning(core_id_t core_id, thread_id_t thread_id);
@@ -70,11 +69,9 @@ public:
    
    bool areAllCoresRunning();
    thread_id_t isCoreRunning(core_id_t core_id);
-   thread_id_t isPepCoreRunning(tile_id_t tile_id);
    thread_id_t isCoreRunning(tile_id_t tile_id);
 
    bool isCoreInitializing(tile_id_t tile_id);
-   bool isPepCoreInitializing(tile_id_t tile_id);
    bool isCoreInitializing(core_id_t core_id);
 
    std::vector< std::vector<ThreadState> > getThreadState() {assert(m_master); return m_thread_state;}
@@ -114,13 +111,9 @@ private:
    Lock m_tid_counter_lock;
 
    bool m_master;
-   bool m_enable_pep_cores;
    std::vector< std::vector<ThreadState> > m_thread_state;
-   std::vector< std::vector<ThreadState> > m_helper_thread_state;
 
    std::vector<thread_id_t> m_last_stalled_thread;
-   std::vector<thread_id_t> m_last_stalled_helper_thread;
-
 
    std::vector< std::pair<core_id_t, thread_id_t> > m_tid_to_core_map;
 

@@ -25,9 +25,7 @@ void replacementStartSimNull (CONTEXT *ctxt);
 void replacementStopSim (CONTEXT *ctxt);
 void replacementSpawnThread (CONTEXT *ctxt);
 void replacementSpawnThreadOnTile (CONTEXT *ctxt);
-void replacementSpawnHelperThread (CONTEXT *ctxt);
 void replacementJoinThread (CONTEXT *ctxt);
-void replacementJoinHelperThread (CONTEXT *ctxt);
 
 void replacementMutexInit(CONTEXT *ctxt);
 void replacementMutexLock(CONTEXT *ctxt);

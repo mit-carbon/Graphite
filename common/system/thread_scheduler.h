@@ -39,7 +39,6 @@ protected:
    friend class MCP;
 
    bool m_master;
-   bool m_enable_pep_cores;
 
    UInt32 m_total_tiles;
    UInt32 m_threads_per_core;

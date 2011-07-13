@@ -124,7 +124,6 @@ class Network
       NetQueue _netQueue;
       Lock _netQueueLock;
       ConditionVariable _netQueueCond;
-      ConditionVariable _netHelperQueueCond;
       Semaphore _netQueueSem;
 
       SInt32 forwardPacket(const NetPacket& packet);

@@ -39,14 +39,11 @@ class TileManager
       Core *getCoreFromID(core_id_t id);
 
       static core_id_t getMainCoreId(tile_id_t tile_id);
-      static core_id_t getPepCoreId(tile_id_t tile_id);
-      //Core *getCoreFromIndex(UInt32 index);
 
       thread_id_t getCurrentThreadIndex();
       thread_id_t getCurrentThreadId();
 
       bool isMainCore(core_id_t core_id);
-      bool isPepCore(core_id_t core_id);
 
       void outputSummary(std::ostream &os);
 
@@ -54,12 +51,10 @@ class TileManager
 
       bool amiUserThread();
       bool amiSimThread();
-      bool amiHelperThread();
 
    private:
 
       void doInitializeThread(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id);
-      void doInitializeHelperThread(UInt32 tile_index);
 
       UInt32 *tid_map;
       TLS *m_tile_tls;
@@ -71,7 +66,6 @@ class TileManager
       enum ThreadType {
           INVALID,
           APP_THREAD,
-          HELPER_THREAD,
           SIM_THREAD
       };
 
@@ -83,9 +77,6 @@ class TileManager
 
       std::vector<bool> m_initialized_cores;
       Lock m_initialized_cores_lock;
-
-      std::vector<bool> m_initialized_pep_cores;
-      Lock m_initialized_pep_cores_lock;
 
       UInt32 m_num_registered_sim_threads;
       Lock m_num_registered_sim_threads_lock;

@@ -42,7 +42,6 @@ TileManager::TileManager()
       LOG_PRINT("Tile[%u] == %d", i, local_tiles.at(i));
       m_tiles.push_back(new Tile(local_tiles.at(i)));
       m_initialized_cores.push_back(false);
-      m_initialized_pep_cores.push_back(false);
       m_num_initialized_threads.push_back(0);
 
       m_initialized_threads[i] = new bool[m_max_threads_per_core];
@@ -160,10 +159,7 @@ void TileManager::terminateThread()
    tile_id_t tile_index = m_tile_index_tls->getInt();
    thread_id_t thread_index = m_thread_index_tls->getInt();
 
-   if (m_thread_type_tls->getInt() == HELPER_THREAD)
-      m_initialized_pep_cores.at(tile_index) = false;
-   else
-      m_initialized_cores.at(tile_index) = false;
+   m_initialized_cores.at(tile_index) = false;
 
    m_initialized_threads[tile_index][thread_index] = false;
 
@@ -354,7 +350,3 @@ bool TileManager::amiUserThread()
     return m_thread_type_tls->getInt() == APP_THREAD;
 }
 
-bool TileManager::amiHelperThread()
-{
-    return m_thread_type_tls->getInt() == HELPER_THREAD;
-}

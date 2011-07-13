@@ -1,8 +1,5 @@
 PARSEC_HOME = /path/to/parsec
 
-
-PARSEC_DIR=/afs/csail.mit.edu/group/carbon/benchmarks/parsec/parsec-2.1
-
 PARSEC_LIST = blackscholes_parsec
 
 blackscholes_flags ?= 16 in_4K.txt prices.txt

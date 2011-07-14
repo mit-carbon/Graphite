@@ -38,6 +38,7 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
 
 IOCOOMCoreModel::~IOCOOMCoreModel()
 {
+   delete m_mcpat_core_interface;
    delete m_load_unit;
    delete m_store_buffer;
 }

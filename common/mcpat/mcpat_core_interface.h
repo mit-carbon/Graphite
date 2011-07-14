@@ -146,3 +146,4 @@ McPATCoreInterface::InstructionType getInstructionType(UInt64 opcode);
 McPATCoreInterface::ExecutionUnitList getExecutionUnitAccessList(UInt64 opcode);
 bool isIntegerReg(UInt32 reg_id);
 bool isFloatingPointReg(UInt32 reg_id);
+bool isXMMReg(UInt32 reg_id);

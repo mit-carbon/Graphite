@@ -10,6 +10,9 @@ McPATCoreInterface::McPATCoreInterface(UInt32 load_buffer_size, UInt32 store_buf
    initializeEventCounters();
 }
 
+McPATCoreInterface::~McPATCoreInterface()
+{}
+
 void McPATCoreInterface::initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size)
 {
    // I have retained the same values from McPAT here
@@ -62,14 +65,16 @@ void McPATCoreInterface::initializeArchitecturalParameters(UInt32 load_buffer_si
 void McPATCoreInterface::initializeRegFileParameters()
 {
    // Reg File (hard-coded for x86-64 architecture)
-   // General Purpose Registers - RAX,RBX,RCX,RDX,RSI,RDI,RBP,RSP,R8,R9,R10,R11,R12,R13,R14,R15
-   m_arch_regs_IRF_size = 16;
+   // General Purpose Registers - RIP,RFLAGS,RAX,RBX,RCX,RDX,RSI,RDI,RBP,RSP,R8,R9,R10,R11,R12,R13,R14,R15
+   // Segment Registers - CS,SS,DS,ES,FS,GS
+   m_arch_regs_IRF_size = 24;
    // Floating Point Registers - ST0-ST7
-   m_arch_regs_FRF_size = 8;
-   m_phy_regs_IRF_size = 16;
-   m_phy_regs_FRF_size = 8;
+   // SSE Registers - XMM0-XMM7 (Each SSE register treated as 2 floating point registers)
+   m_arch_regs_FRF_size = 24;
 
-   // No Segment, MMX, XMM and Branch Registers
+   // Number of Physical Registers same as number of architectural registers currently
+   m_phy_regs_IRF_size = 24;
+   m_phy_regs_FRF_size = 24;
 }
 
 void McPATCoreInterface::initializeLoadStoreUnitParameters(UInt32 load_buffer_size, UInt32 store_buffer_size)
@@ -247,6 +252,8 @@ void McPATCoreInterface::updateRegFileAccessCounters(Operand::Direction operand_
          m_int_regfile_reads ++;
       else if (isFloatingPointReg(reg_id))
          m_fp_regfile_reads ++;
+      else if (isXMMReg(reg_id))
+         m_fp_regfile_reads += 2;
    }
    else if (operand_direction == Operand::WRITE)
    {
@@ -254,6 +261,8 @@ void McPATCoreInterface::updateRegFileAccessCounters(Operand::Direction operand_
          m_int_regfile_writes ++;
       else if (isFloatingPointReg(reg_id))
          m_fp_regfile_writes ++;
+      else if (isXMMReg(reg_id))
+         m_fp_regfile_writes += 2;
    }
    else
    {
@@ -304,11 +313,17 @@ getInstructionType(UInt64 opcode)
 __attribute__((weak)) bool
 isIntegerReg(UInt32 reg_id)
 {
-   return true;
+   return false;
 }
 
 __attribute__((weak)) bool
 isFloatingPointReg(UInt32 reg_id)
+{
+   return false;
+}
+
+__attribute__((weak)) bool
+isXMMReg(UInt32 reg_id)
 {
    return false;
 }

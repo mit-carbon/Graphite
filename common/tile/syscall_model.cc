@@ -696,7 +696,7 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
    m_recv_buff >> make_pair(&buf, sizeof(struct stat64));
 
    // Write the data to memory
-   tile->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
 
    delete [] (Byte*) recv_pkt.data;
    
@@ -864,9 +864,6 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
    
    Core *core = Sim()->getTileManager()->getCurrentCore();
    LOG_ASSERT_ERROR(core != NULL, "Tile should not be null");
-   core->accessMemory (Core::NONE, Core::READ, (IntPtr) args.arg0, (char*) &mmap_arg_buf, sizeof(mmap_arg_buf));
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -1012,11 +1009,11 @@ IntPtr SyscallMdl::marshallMmap2Call (syscall_args_t &args)
       m_send_buff.put (pgoffset);
 
       // send the data
-      m_network->netSend (Config::getSingleton()->getMCPTileNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
+      m_network->netSend (Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPTileNum (), MCP_RESPONSE_TYPE);
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);

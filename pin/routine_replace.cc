@@ -59,7 +59,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
    else if (name == "CarbonSpawnThreadOnTile") msg_ptr = AFUNPTR(replacementSpawnThreadOnTile);
-   else if (name == "CarbonMigrateThread") msg_ptr = AFUNPTR(replacementMigrateThread);
    else if (name == "CarbonSchedSetAffinity") msg_ptr = AFUNPTR(replacementSchedSetAffinity);
    else if (name == "CarbonSchedGetAffinity") msg_ptr = AFUNPTR(replacementSchedGetAffinity);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
@@ -374,23 +373,6 @@ void replacementSpawnThreadOnTile (CONTEXT *ctxt)
          IARG_END);
 
    ADDRINT ret_val = (ADDRINT) CarbonSpawnThreadOnTile (tile_id, func, arg);
-
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementMigrateThread (CONTEXT *ctxt)
-{
-   tile_id_t tile_id;
-   thread_id_t thread_id;
-
-   initialize_replacement_args (ctxt,
-         IARG_UINT32, &thread_id,
-         IARG_UINT32, &tile_id,
-         IARG_END);
-
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-
-   CarbonMigrateThread (thread_id, tile_id);
 
    retFromReplacedRtn (ctxt, ret_val);
 }

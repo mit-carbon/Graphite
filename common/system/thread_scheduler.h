@@ -42,8 +42,12 @@ public:
    bool schedGetAffinity(thread_id_t tid, unsigned int cpusetsize, cpu_set_t* set);
    void masterSchedGetAffinity(ThreadAffinityRequest * req);
 
-   virtual void yieldThread();
-   virtual void masterYieldThread(ThreadYieldRequest* req);
+   void yieldThread();
+   void masterYieldThread(ThreadYieldRequest* req);
+
+   // Implement these functions for different scheduling types.
+   virtual void enqueueThread(core_id_t core_id, ThreadSpawnRequest * req);
+   virtual void requeueThread(core_id_t core_id);
 
    thread_id_t getNextThreadIdx(core_id_t core_id);
 
@@ -70,6 +74,8 @@ protected:
    std::vector< std::queue<ThreadSpawnRequest*> > m_waiter_queue;
 
    std::vector< std::vector<UInt32> > m_last_start_time;
+
+   UInt32 m_thread_switch_quantum;
 };
 
 #endif // THREAD_SCHEDULER_SERVER_H

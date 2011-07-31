@@ -630,7 +630,6 @@ void ThreadManager::queryThreadIndex(thread_id_t thread_id, core_id_t &core_id, 
    ThreadIndexRequest * reply = (ThreadIndexRequest*) ((Byte*)pkt.data);
    LOG_ASSERT_ERROR(reply->thread_id == m_tile_manager->getCurrentThreadId(), "Received incorrect queryThreadIndex reply!");
 
-   LOG_PRINT("elau ThreadManager::queryThreadIndex received %i on {%i, %i} for id %i, next tidx is %i", reply->thread_idx, reply->core_id.tile_id, reply->core_id.core_type, thread_id, reply->next_tidx);
    core_id = reply->core_id;
    thread_idx = reply->thread_idx;
    next_tidx = reply->next_tidx;
@@ -692,7 +691,6 @@ void ThreadManager::setThreadIndex(thread_id_t thread_id, core_id_t core_id, thr
 thread_id_t ThreadManager::getIdleThread(core_id_t core_id)
 {
    LOG_ASSERT_ERROR(m_master, "getIdleThread() must only be called on master");
-   LOG_PRINT("elau: getIdleThread for {%i, %i}\n", core_id.tile_id, core_id.core_type);
 
    thread_id_t thread_idx = INVALID_THREAD_ID;
    Config * config = Config::getSingleton();
@@ -840,11 +838,6 @@ bool ThreadManager::isCoreInitializing(tile_id_t tile_id)
       {
          is_core_initializing = true;
          break;
-         //if (!is_core_initializing)
-            //is_core_initializing = true;
-         //else
-            //LOG_PRINT_ERROR("Two threads on main core of tile %i are initializing simultaneously!", tile_id);
-
       }
    }
 
@@ -854,6 +847,7 @@ bool ThreadManager::isCoreInitializing(tile_id_t tile_id)
 bool ThreadManager::areAllCoresRunning()
 {
    LOG_ASSERT_ERROR(m_master, "areAllCoresRunning() should only be called on master.");
+
    // Check if all the cores are running
    bool is_all_running = true;
    thread_id_t thread_index = INVALID_THREAD_ID;
@@ -903,43 +897,6 @@ thread_id_t ThreadManager::isCoreRunning(tile_id_t tile_id)
    return thread_index;
 }
 
-//std::vector< std::vector<ThreadManager::ThreadState> > ThreadManager::clientGetThreadState() 
-//{
-   //Core* core = m_tile_manager->getCurrentCore();
-
-   //ThreadStateRequest req =   {  MCP_MESSAGE_THREAD_STATE_REQUEST,
-                                    //core->getCoreId(),
-                                    //NULL
-                                 //};
-
-   //Network *net = core->getNetwork();
-   //core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
-   //net->netSend(Config::getSingleton()->getMCPCoreId(),
-                //MCP_REQUEST_TYPE,
-                //&req,
-                //sizeof(req));
-
-   //NetPacket pkt = net->netRecvType(MCP_THREAD_STATE_REPLY_FROM_MASTER_TYPE);
-   //LOG_ASSERT_ERROR(pkt.length == sizeof(m_thread_state), "Unexpected reply size (got %i expected %i).", pkt.length, sizeof(m_thread_state));
-
-   //m_thread_state = *(( std::vector< std::vector<ThreadState> > *) ((Byte*)pkt.data));
-   //return m_thread_state;
-//}
-
-//void ThreadManager::masterGetThreadState(ThreadStateRequest *req) 
-//{
-   //ThreadStateRequest reply =   {  MCP_MESSAGE_THREAD_STATE_REQUEST,
-                                    //req->requester,
-                                    //&m_thread_state
-                                 //};
-
-   //Core *core = m_tile_manager->getCurrentCore();
-   //core->getNetwork()->netSend(req->requester, 
-         //MCP_THREAD_STATE_REPLY_FROM_MASTER_TYPE,
-         //&reply,
-         //sizeof(reply));
-
-//}
 void ThreadManager::setThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set)
 {
    CPU_ZERO_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), m_thread_state[tile_id][tidx].cpu_set);

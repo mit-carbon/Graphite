@@ -2,7 +2,7 @@
 #include <time.h>
 #include "thread_scheduler.h"
 #include "thread_manager.h"
-#include "timer_thread_scheduler.h"
+#include "round_robin_thread_scheduler.h"
 #include "tile_manager.h"
 #include "config.h"
 #include "log.h"
@@ -19,8 +19,8 @@ ThreadScheduler* ThreadScheduler::create(ThreadManager *thread_manager, TileMana
    std::string scheme = Sim()->getCfg()->getString("thread_scheduling/scheme");
    ThreadScheduler* thread_scheduler = NULL;
 
-   if (scheme == "timer") {
-      thread_scheduler = new TimerThreadScheduler(thread_manager, tile_manager);
+   if (scheme == "round_robin") {
+      thread_scheduler = new RoundRobinThreadScheduler(thread_manager, tile_manager);
    }
    else if (scheme == "none") {
       thread_scheduler = new ThreadScheduler(thread_manager, tile_manager);
@@ -60,6 +60,16 @@ ThreadScheduler::ThreadScheduler(ThreadManager *thread_manager, TileManager *til
          m_last_start_time[i][j] = 0;
 
    m_waiter_queue.resize(m_total_tiles);
+
+   try
+   {
+      m_thread_switch_quantum = (UInt64) Sim()->getCfg()->getInt("thread_scheduling/quantum"); 
+   }
+   catch(...)
+   {
+      LOG_PRINT_ERROR("Error Reading 'thread_scheduling/quantum' from the config file");
+   }
+
 }
 
 ThreadScheduler::~ThreadScheduler()
@@ -198,8 +208,6 @@ void ThreadScheduler::masterStartThread(core_id_t core_id)
    // Spawn the thread by calling LCP on correct process.
    LOG_ASSERT_ERROR(thread_state[req->destination.tile_id][req->destination_tidx].status == Core::INITIALIZING, "Haven't made this work for starting waiting threads yet");
 
-   // set to resume
-   
    LOG_PRINT("Thread(%i) to be started on  core id(%i, %i)", req->destination_tidx, req->destination.tile_id, req->destination.core_type);
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {  
@@ -293,7 +301,6 @@ void ThreadScheduler::masterMigrateThread(thread_id_t src_thread_idx, core_id_t 
          waiter_queue_size = m_waiter_queue[src_core_id.tile_id].size();
          for (unsigned int i = 0; i < waiter_queue_size; i++)
          {
-            LOG_PRINT("%i: %i", i, m_waiter_queue[src_core_id.tile_id].front()->destination_tidx);
             ThreadSpawnRequest * req_cpy = m_waiter_queue[src_core_id.tile_id].front();
             m_waiter_queue[src_core_id.tile_id].pop();
 
@@ -307,15 +314,6 @@ void ThreadScheduler::masterMigrateThread(thread_id_t src_thread_idx, core_id_t 
                migrating_thread_req = req_cpy;
             }
          }
-
-         for (unsigned int i = 0; i < m_waiter_queue[src_core_id.tile_id].size(); i++)
-         {
-            LOG_PRINT("%i", m_waiter_queue[src_core_id.tile_id].front()->destination_tidx);
-            ThreadSpawnRequest * req_cpy = m_waiter_queue[src_core_id.tile_id].front();
-            m_waiter_queue[src_core_id.tile_id].pop();
-            m_waiter_queue[src_core_id.tile_id].push(req_cpy);
-         }
-
          LOG_ASSERT_ERROR(found, "Could not find thread idx (%i) in core {%i, %i}", src_thread_idx, src_core_id.tile_id, src_core_id.core_type);
          LOG_ASSERT_ERROR(migrating_thread_req != NULL, "Request on source waiter queue was broken on (%i) in core {%i, %i}!", src_thread_idx, src_core_id.tile_id, src_core_id.core_type);
 
@@ -330,6 +328,7 @@ void ThreadScheduler::masterMigrateThread(thread_id_t src_thread_idx, core_id_t 
          // Start thread if it is startable.
          thread_id_t running_thread = m_thread_manager->isCoreRunning(dst_core_id);
          bool is_thread_startable = false;
+
          if (running_thread == INVALID_THREAD_ID)
             is_thread_startable = !m_thread_manager->isCoreInitializing(dst_core_id);
 
@@ -468,7 +467,7 @@ void ThreadScheduler::masterSchedGetAffinity(ThreadAffinityRequest* req)
    CPU_OR_S(CPU_ALLOC_SIZE(total_tiles), set, temp_set, set);
    CPU_FREE(temp_set);
 
-   ThreadAffinityRequest reply =   {  MCP_MESSAGE_THREAD_GETAFFINITY_REPLY,
+   ThreadAffinityRequest reply =   {  MCP_MESSAGE_THREAD_GETAFFINITY_REQUEST,
                                     req->requester,
                                     req->tid,
                                     (UInt32) req->cpusetsize,
@@ -484,8 +483,7 @@ void ThreadScheduler::masterSchedGetAffinity(ThreadAffinityRequest* req)
 
 
 // Return true if affinity matches current core, return false if affinity does not match.
-// This function will deal with all migrating tasks, so callers only need to take action if
-// this returns true.
+// This function will deal with all migrating tasks, so callers only need to take action if this returns true.
 bool ThreadScheduler::masterCheckAffinityAndMigrate(core_id_t core_id, thread_id_t thread_idx, core_id_t &dst_core_id, thread_id_t &dst_thread_idx)
 {
    LOG_PRINT("ThreadScheduler::masterCheckAffinityAndMigrate for %i on {%i, %i}", thread_idx, core_id.tile_id, core_id.core_type);
@@ -568,10 +566,154 @@ thread_id_t ThreadScheduler::getNextThreadIdx(core_id_t core_id)
 
 void ThreadScheduler::yieldThread()
 {
-   LOG_PRINT_ERROR("No scheme was set for yielding threads!");
+   LOG_PRINT("In ThreadScheduler::yieldThread()");
+
+   Core* core = m_tile_manager->getCurrentCore();
+   core_id_t core_id = m_tile_manager->getCurrentCoreID();
+   thread_id_t thread_idx = m_tile_manager->getCurrentThreadIndex();
+
+   core_id_t   dst_core_id    = core_id;
+   thread_id_t dst_thread_idx = thread_idx;
+
+
+   // Core 0 is not allowed to be multithreaded or yield.
+   if (core_id.tile_id == 0 && m_tile_manager->isMainCore(core_id))
+      return;
+
+   UInt32 current_time = (UInt32) time(NULL);
+   if (current_time - m_last_start_time[core_id.tile_id][thread_idx] >= m_thread_switch_quantum)
+   {
+
+      ThreadYieldRequest req = { MCP_MESSAGE_THREAD_YIELD_REQUEST,
+         core_id,
+         thread_idx,
+         INVALID_THREAD_ID,
+         INVALID_CORE_ID,
+         INVALID_THREAD_ID,
+         INVALID_THREAD_ID
+      };
+
+      Network *net = core->getNetwork();
+      core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
+      net->netSend(Config::getSingleton()->getMCPCoreId(),
+            MCP_REQUEST_TYPE,
+            &req,
+            sizeof(req));
+
+      NetPacket pkt = net->netRecvType(MCP_THREAD_YIELD_REPLY_FROM_MASTER_TYPE);
+
+      m_core_lock[core_id.tile_id].acquire();
+
+      ThreadYieldRequest * reply = (ThreadYieldRequest*) ((Byte*)pkt.data);
+      core_id_t req_core_id      = reply->requester;
+      thread_id_t req_thread_idx = reply->requester_tidx;
+      thread_id_t req_next_tidx  = reply->requester_next_tidx;
+
+      assert(req_core_id.tile_id == core_id.tile_id && req_core_id.core_type == core_id.core_type && req_thread_idx == thread_idx);
+
+      dst_core_id       = reply->destination;
+      dst_thread_idx    = reply->destination_tidx;
+      thread_id_t dst_next_tidx  = reply->destination_next_tidx;
+
+      // Set next tidx on current running process.
+      m_local_next_tidx[core_id.tile_id] = req_next_tidx;
+      m_local_next_tidx[dst_core_id.tile_id] = dst_next_tidx;
+
+      // If this thread has migrated, update local data structures.
+      if(dst_core_id.tile_id != core_id.tile_id)
+      {
+         m_core_lock[core_id.tile_id].release();
+         m_core_lock[dst_core_id.tile_id].acquire();
+         m_tile_manager->updateTLS(dst_core_id.tile_id, dst_thread_idx, m_tile_manager->getCurrentThreadId());
+      }
+
+      m_thread_wait_cond[req_core_id.tile_id].broadcast();
+
+      while (dst_thread_idx != m_local_next_tidx[dst_core_id.tile_id])
+      {
+         m_tile_manager->getCurrentCore()->setState(Core::STALLED);
+         m_thread_wait_cond[dst_core_id.tile_id].wait(m_core_lock[dst_core_id.tile_id]);
+      }
+
+      m_tile_manager->getCurrentCore()->setState(Core::RUNNING);
+
+      m_last_start_time[dst_core_id.tile_id][dst_thread_idx] = (UInt32) time(NULL);
+   }
+
+   LOG_PRINT("Resuming thread %i on {%i, %i}", dst_thread_idx, dst_core_id.tile_id, dst_core_id.core_type);
+   m_core_lock[dst_core_id.tile_id].release();
 }
 
 void ThreadScheduler::masterYieldThread(ThreadYieldRequest* req)
 {
-   LOG_PRINT_ERROR("No scheme was set for yielding threads!");
+   LOG_ASSERT_ERROR(m_master, "ThreadScheduler::masterYieldThread should only be called on master.");
+   core_id_t req_core_id = req->requester;
+   thread_id_t requester_tidx = req->requester_tidx;
+   m_local_next_tidx[req_core_id.tile_id] = requester_tidx;
+   core_id_t dst_core_id = req->requester;
+   thread_id_t destination_tidx = req->requester_tidx;
+
+   LOG_PRINT("In ThreadScheduler::masterYieldThread() for %i on {%i, %i}", requester_tidx, req_core_id.tile_id, req_core_id.core_type);
+
+
+   std::vector< std::vector<ThreadManager::ThreadState> > thread_state = m_thread_manager->getThreadState();
+
+   m_core_lock[req_core_id.tile_id].acquire();
+
+   assert(m_waiter_queue[req_core_id.tile_id].front()->destination_tidx == requester_tidx);
+   LOG_PRINT("Yielding thread %i on {%i, %i}", requester_tidx, req_core_id.tile_id, req_core_id.core_type); 
+
+   m_thread_manager->stallThread(req_core_id, requester_tidx);
+
+   this->requeueThread(req_core_id);
+
+   bool is_thread_new = false;
+   m_local_next_tidx[req_core_id.tile_id] = m_waiter_queue[req_core_id.tile_id].front()->destination_tidx;
+
+   // Migrate this thread if it's affinity is set to another core.
+   this->masterCheckAffinityAndMigrate(req_core_id, requester_tidx, dst_core_id, destination_tidx);
+
+   // If the queue is empty, that means all threads have moved, there is no next_tidx
+   if (m_waiter_queue[req_core_id.tile_id].empty())
+   {
+      m_local_next_tidx[req_core_id.tile_id] = INVALID_THREAD_ID;
+   }
+   else
+   {
+      if (m_tile_manager->isMainCore(req_core_id))
+         is_thread_new = m_thread_manager->isThreadInitializing(req_core_id, m_local_next_tidx[req_core_id.tile_id]);
+
+      if (is_thread_new)
+         masterStartThread(req_core_id);
+      else
+         m_thread_manager->resumeThread(req_core_id, m_local_next_tidx[req_core_id.tile_id]);
+   }
+
+   ThreadYieldRequest reply = {  MCP_MESSAGE_THREAD_YIELD_REQUEST,
+                                 req_core_id,
+                                 requester_tidx,
+                                 m_local_next_tidx[req_core_id.tile_id],
+                                 dst_core_id,
+                                 destination_tidx,
+                                 m_local_next_tidx[dst_core_id.tile_id]
+                              };
+
+   m_tile_manager->getCurrentCore()->getNetwork()->netSend( req_core_id, 
+                                                            MCP_THREAD_YIELD_REPLY_FROM_MASTER_TYPE,
+                                                            &reply,
+                                                            sizeof(reply));
+
+   m_core_lock[req_core_id.tile_id].release();
+}
+
+void ThreadScheduler::enqueueThread(core_id_t core_id, ThreadSpawnRequest * req)
+{
+   ThreadSpawnRequest *req_cpy = new ThreadSpawnRequest;
+   *req_cpy = *req;
+   m_waiter_queue[core_id.tile_id].push(req_cpy);
+}
+
+void ThreadScheduler::requeueThread(core_id_t core_id)
+{
+   LOG_PRINT_ERROR("No scheme was set for requeuing threads!");
 }

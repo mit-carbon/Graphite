@@ -37,8 +37,6 @@ typedef struct
    core_id_t destination;
    thread_id_t destination_tidx;
    thread_id_t destination_next_tidx;;  
-   //thread_id_t requester_tid;
-   //thread_id_t next_tid;  
 } ThreadYieldRequest;
 
 typedef struct 
@@ -60,22 +58,12 @@ typedef struct
    thread_id_t next_tidx;
 } ThreadIndexRequest;
 
-//typedef struct 
-//{
-   //SInt32 msg_type;
-   //core_id_t requester;
-   //std::vector< std::vector<unsigned int> > * thread_state; 
-//} ThreadStateRequest;
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 carbon_thread_t CarbonSpawnThread(thread_func_t func, void *arg);
 carbon_thread_t CarbonSpawnThreadOnTile(tile_id_t tile_id, thread_func_t func, void *arg);
-void CarbonMigrateThread(thread_id_t thread_id, tile_id_t tile_id);
 bool CarbonSchedSetAffinity(thread_id_t thread_id, UInt32 cpusetsize, cpu_set_t* set);
 bool CarbonSchedGetAffinity(thread_id_t thread_id, UInt32 cpusetsize, cpu_set_t* set);
 void CarbonJoinThread(carbon_thread_t tid);

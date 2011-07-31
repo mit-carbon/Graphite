@@ -23,7 +23,6 @@ public:
    struct ThreadState
    {
       Core::State status;
-      //SInt32 waiter;
       core_id_t waiter_core;
       thread_id_t waiter_tid;
       thread_id_t thread_id;
@@ -36,16 +35,6 @@ public:
          , thread_id(INVALID_THREAD_ID)
       {
       } 
-
-      //void operator=(ThreadState &state)
-      //{
-         //this->status = state.status;
-         //this->waiter_core.tile_id = state.waiter_core.tile_id;
-         //this->waiter_core.core_type = state.waiter_core.core_type;
-         //this->waiter_tid = state.waiter_tid;
-         //this->thread_id = state.thread_id;
-         //this->cpu_set = state.cpu_set;
-      //}
    };
 
    ThreadManager(TileManager*);
@@ -88,10 +77,8 @@ public:
    bool isCoreInitializing(tile_id_t tile_id);
    bool isCoreInitializing(core_id_t core_id);
 
-   //std::vector< std::vector<ThreadState> > clientGetThreadState();
    std::vector< std::vector<ThreadState> > getThreadState() {assert(m_master); return m_thread_state;}
    Core::State getThreadState(tile_id_t tile_id, thread_id_t tidx) {assert(m_master); return m_thread_state[tile_id][tidx].status; }
-   //void masterGetThreadState(ThreadStateRequest *req);
 
 
    void setThreadState(tile_id_t tile_id, thread_id_t tidx, ThreadState state);

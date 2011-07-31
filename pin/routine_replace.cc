@@ -59,6 +59,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
    else if (name == "CarbonSpawnThreadOnTile") msg_ptr = AFUNPTR(replacementSpawnThreadOnTile);
+   else if (name == "CarbonMigrateThread") msg_ptr = AFUNPTR(replacementMigrateThread);
+   else if (name == "CarbonSchedSetAffinity") msg_ptr = AFUNPTR(replacementSchedSetAffinity);
+   else if (name == "CarbonSchedGetAffinity") msg_ptr = AFUNPTR(replacementSchedGetAffinity);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
    
    // CAPI
@@ -352,7 +355,6 @@ void replacementSpawnThread (CONTEXT *ctxt)
          IARG_PTR, &arg,
          IARG_END);
 
-   LOG_PRINT("Calling CarbonSpawnThread");
    ADDRINT ret_val = (ADDRINT) CarbonSpawnThread (func, arg);
 
    retFromReplacedRtn (ctxt, ret_val);
@@ -371,12 +373,72 @@ void replacementSpawnThreadOnTile (CONTEXT *ctxt)
          IARG_PTR, &arg,
          IARG_END);
 
-   LOG_PRINT("Calling SimSpawnThread");
    ADDRINT ret_val = (ADDRINT) CarbonSpawnThreadOnTile (tile_id, func, arg);
 
    retFromReplacedRtn (ctxt, ret_val);
 }
 
+void replacementMigrateThread (CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   thread_id_t thread_id;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &thread_id,
+         IARG_UINT32, &tile_id,
+         IARG_END);
+
+   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
+
+   CarbonMigrateThread (thread_id, tile_id);
+
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementSchedSetAffinity (CONTEXT *ctxt)
+{
+   thread_id_t thread_id;
+   UInt32 cpusetsize;
+   cpu_set_t *set;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &thread_id,
+         IARG_UINT32, &cpusetsize,
+         IARG_PTR, &set,
+         IARG_END);
+
+   cpu_set_t* set_cpy = CPU_ALLOC(cpusetsize);
+
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) set, (char*) set_cpy, CPU_ALLOC_SIZE(cpusetsize));
+
+   ADDRINT ret_val = (ADDRINT) CarbonSchedSetAffinity (thread_id, cpusetsize, set_cpy);
+
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementSchedGetAffinity (CONTEXT *ctxt)
+{
+   thread_id_t thread_id;
+   UInt32 cpusetsize;
+   cpu_set_t *set;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &thread_id,
+         IARG_UINT32, &cpusetsize,
+         IARG_PTR, &set,
+         IARG_END);
+
+   cpu_set_t* set_cpy = CPU_ALLOC(cpusetsize);
+
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) set, (char*) set_cpy, CPU_ALLOC_SIZE(cpusetsize));
+
+   ADDRINT ret_val = (ADDRINT) CarbonSchedGetAffinity (thread_id, cpusetsize, set_cpy);
+
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) set, (char*) set_cpy, CPU_ALLOC_SIZE(cpusetsize));
+   retFromReplacedRtn (ctxt, ret_val);
+}
 
 void replacementJoinThread (CONTEXT *ctxt)
 {

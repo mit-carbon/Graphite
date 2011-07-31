@@ -152,6 +152,23 @@ void TileManager::doInitializeThread(UInt32 tile_index, UInt32 thread_index, SIn
                      "TLS appears to be broken. %p != %p", m_tile_tls->get(), (void*)(m_tiles.at(tile_index)));
 }
 
+void TileManager::updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id)
+{
+    LOG_PRINT("in updateTLS");
+    m_tile_tls->set(m_tiles.at(tile_index));
+    m_tile_index_tls->setInt(tile_index);
+    m_thread_id_tls->setInt(thread_id);
+    m_thread_index_tls->setInt(thread_index);
+    m_thread_type_tls->setInt(APP_THREAD);
+    m_initialized_cores.at(tile_index) = true;
+
+    m_initialized_threads[this->getCurrentTileIndex()][this->getCurrentThreadIndex()] = false;
+    m_initialized_threads[tile_index][thread_index] = true;
+
+    LOG_ASSERT_ERROR(m_tile_tls->get() == (void*)(m_tiles.at(tile_index)),
+                     "TLS appears to be broken. %p != %p", m_tile_tls->get(), (void*)(m_tiles.at(tile_index)));
+}
+
 void TileManager::terminateThread()
 {
    LOG_ASSERT_WARNING(m_tile_tls->get() != NULL, "Thread not initialized while terminating.");

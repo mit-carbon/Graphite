@@ -6,7 +6,6 @@
 #include "tile_manager.h"
 #include "config.h"
 #include "log.h"
-#include "transport.h"
 #include "simulator.h"
 #include "mcp.h"
 #include "network.h"
@@ -61,15 +60,6 @@ ThreadScheduler::ThreadScheduler(ThreadManager *thread_manager, TileManager *til
          m_last_start_time[i][j] = 0;
 
    m_waiter_queue.resize(m_total_tiles);
-
-   try
-   {
-      m_thread_switch_time = (UInt64) Sim()->getCfg()->getInt("thread_scheduling/quantum"); 
-   }
-   catch(...)
-   {
-      LOG_PRINT_ERROR("Error Reading 'thread_scheduling/quantum' from the config file");
-   }
 }
 
 ThreadScheduler::~ThreadScheduler()
@@ -177,14 +167,13 @@ void ThreadScheduler::masterScheduleThread(ThreadSpawnRequest *req)
    }
 
    // Grab the thread states on destination tile and set to initializing.
-
-   if (m_tile_manager->isMainCore(req->destination))
-   {
-      if (thread_state[req->destination.tile_id][req->destination_tidx].status == Core::IDLE) 
-         m_thread_manager->setThreadState(req->destination.tile_id, req->destination_tidx, Core::INITIALIZING);
+   if (m_tile_manager->isMainCore(req->destination)) {
+      LOG_ASSERT_ERROR(thread_state[req->destination.tile_id][req->destination_tidx].status == Core::IDLE, "Spawning a non-idle thread at %i on {%i, %i}", req->destination_tidx, req->destination.tile_id, req->destination.core_type); 
+      m_thread_manager->setThreadState(req->destination.tile_id, req->destination_tidx, Core::INITIALIZING);
    }
-   else
+   else {
       LOG_ASSERT_ERROR(false, "Invalid core type");
+   }
 
    // Start this thread if the core is idle.
    if (is_thread_startable)
@@ -207,7 +196,11 @@ void ThreadScheduler::masterStartThread(core_id_t core_id)
    m_last_start_time[req->destination.tile_id][req->destination_tidx] = (UInt32) time(NULL);
 
    // Spawn the thread by calling LCP on correct process.
-   LOG_PRINT("New Thread(%i) to be spawned core id(%i, %i)", req->destination_tidx, req->destination.tile_id, req->destination.core_type);
+   LOG_ASSERT_ERROR(thread_state[req->destination.tile_id][req->destination_tidx].status == Core::INITIALIZING, "Haven't made this work for starting waiting threads yet");
+
+   // set to resume
+   
+   LOG_PRINT("Thread(%i) to be started on  core id(%i, %i)", req->destination_tidx, req->destination.tile_id, req->destination.core_type);
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {  
       // Spawn process on child
@@ -236,6 +229,341 @@ void ThreadScheduler::masterStartThread(core_id_t core_id)
                                   sizeof(req->destination.tile_id)+sizeof(req->destination.core_type)+sizeof(req->destination_tidx));
    }
 
+}
+
+void ThreadScheduler::migrateThread(thread_id_t thread_id, tile_id_t tile_id)
+{
+   core_id_t core_id = m_tile_manager->getMainCoreId(tile_id);
+
+   // Send message to master process to update the waiter queues, the local thread keeps running and DOESN'T wait.
+   SInt32 msg[] = { MCP_MESSAGE_THREAD_MIGRATE_REQUEST_FROM_REQUESTER, thread_id, core_id.tile_id, core_id.core_type};
+
+   LOG_PRINT("migrateThread -- send message to master ThreadScheduler; tid %i to migrate to {%d, %d} at time %llu",
+             thread_id,
+             core_id.tile_id,
+             core_id.core_type,
+             m_tile_manager->getCurrentCore()->getPerformanceModel()->getCycleCount());
+
+   Network *net = m_tile_manager->getCurrentTile()->getNetwork();
+
+   // update global thread state
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
+                MCP_REQUEST_TYPE,
+                msg,
+                sizeof(SInt32) + sizeof(thread_id_t) + sizeof(tile_id_t) + sizeof(UInt32));
+}
+
+void ThreadScheduler::masterMigrateThread(thread_id_t src_thread_id, tile_id_t dst_tile_id, UInt32 dst_core_type)
+{
+   thread_id_t src_thread_idx = INVALID_THREAD_ID;
+   core_id_t   src_core_id    = INVALID_CORE_ID;
+   core_id_t   dst_core_id    = (core_id_t) {dst_tile_id, dst_core_type}; 
+
+   // Check if destination core has threads open, if not, ignore this request.
+   thread_id_t dst_thread_idx = m_thread_manager->getIdleThread(dst_core_id);
+
+   if (dst_thread_idx != INVALID_THREAD_ID)
+   {
+      // Get the core and thread index of the migrating thread.
+      m_thread_manager->lookupThreadIndex(src_thread_id, src_core_id, src_thread_idx);
+      assert(src_thread_idx != INVALID_THREAD_ID);
+
+      this->masterMigrateThread(src_thread_idx, src_core_id, dst_thread_idx, dst_core_id);
+   }
+}
+
+void ThreadScheduler::masterMigrateThread(thread_id_t src_thread_idx, core_id_t src_core_id, thread_id_t dst_thread_idx, core_id_t dst_core_id)
+{
+   LOG_PRINT("ThreadScheduler::masterMigrateThread called to migrate %i on {%i, %i} to %i on {%i, %i}", src_thread_idx, src_core_id.tile_id, src_core_id.core_type, dst_thread_idx, dst_core_id.tile_id, dst_core_id.core_type);
+   if (dst_thread_idx != INVALID_THREAD_ID)
+   {
+      m_core_lock[src_core_id.tile_id].acquire();
+      m_core_lock[dst_core_id.tile_id].acquire();
+
+      if (m_thread_manager->isThreadRunning(src_core_id, src_thread_idx))
+      {
+         LOG_ASSERT_ERROR(false, "Trying to migrate %i on {%i, %i}, but I can't migrate threads currently running!", src_thread_idx, src_core_id.tile_id, src_core_id.core_type);
+      }
+      else 
+      {
+         // Find the thread on the source core's waiter queue.
+         bool found = false;
+         unsigned int waiter_queue_size = 0;
+         ThreadSpawnRequest * migrating_thread_req = NULL;
+         waiter_queue_size = m_waiter_queue[src_core_id.tile_id].size();
+         for (unsigned int i = 0; i < waiter_queue_size; i++)
+         {
+            LOG_PRINT("%i: %i", i, m_waiter_queue[src_core_id.tile_id].front()->destination_tidx);
+            ThreadSpawnRequest * req_cpy = m_waiter_queue[src_core_id.tile_id].front();
+            m_waiter_queue[src_core_id.tile_id].pop();
+
+            if (req_cpy->destination_tidx != src_thread_idx)
+            {
+               m_waiter_queue[src_core_id.tile_id].push(req_cpy);
+            }
+            else
+            {
+               found = true;
+               migrating_thread_req = req_cpy;
+            }
+         }
+
+         for (unsigned int i = 0; i < m_waiter_queue[src_core_id.tile_id].size(); i++)
+         {
+            LOG_PRINT("%i", m_waiter_queue[src_core_id.tile_id].front()->destination_tidx);
+            ThreadSpawnRequest * req_cpy = m_waiter_queue[src_core_id.tile_id].front();
+            m_waiter_queue[src_core_id.tile_id].pop();
+            m_waiter_queue[src_core_id.tile_id].push(req_cpy);
+         }
+
+         LOG_ASSERT_ERROR(found, "Could not find thread idx (%i) in core {%i, %i}", src_thread_idx, src_core_id.tile_id, src_core_id.core_type);
+         LOG_ASSERT_ERROR(migrating_thread_req != NULL, "Request on source waiter queue was broken on (%i) in core {%i, %i}!", src_thread_idx, src_core_id.tile_id, src_core_id.core_type);
+
+
+         // Get an idle thread on the destination core, and push it onto the end of the waiter queue.
+         migrating_thread_req->destination.tile_id = dst_core_id.tile_id;
+         migrating_thread_req->destination.core_type = dst_core_id.core_type;
+         migrating_thread_req->destination_tidx = dst_thread_idx;
+
+         m_waiter_queue[dst_core_id.tile_id].push(migrating_thread_req);
+
+         // Start thread if it is startable.
+         thread_id_t running_thread = m_thread_manager->isCoreRunning(dst_core_id);
+         bool is_thread_startable = false;
+         if (running_thread == INVALID_THREAD_ID)
+            is_thread_startable = !m_thread_manager->isCoreInitializing(dst_core_id);
+
+         // Update the thread states in the thread manager.
+         std::vector< std::vector<ThreadManager::ThreadState> > thread_state = m_thread_manager->getThreadState();
+
+         LOG_ASSERT_ERROR(thread_state[src_core_id.tile_id][src_thread_idx].status != Core::IDLE, "The migrating thread at %i on {%i, %i} is IDLE!", src_thread_idx, src_core_id.tile_id, src_core_id.core_type);
+         LOG_ASSERT_ERROR(thread_state[dst_core_id.tile_id][dst_thread_idx].status == Core::IDLE, "The destination thread at %i on {%i, %i} is not IDLE!", src_thread_idx, src_core_id.tile_id, src_core_id.core_type);
+
+         m_thread_manager->setThreadIndex(thread_state[src_core_id.tile_id][src_thread_idx].thread_id, dst_core_id, dst_thread_idx);
+
+         m_thread_manager->setThreadState(dst_core_id.tile_id, dst_thread_idx, thread_state[src_core_id.tile_id][src_thread_idx]);
+         m_thread_manager->setThreadState(src_core_id.tile_id, src_thread_idx, Core::IDLE);
+
+         if (is_thread_startable)
+         {
+            m_local_next_tidx[dst_core_id.tile_id] = dst_thread_idx;
+            if(m_thread_manager->getThreadState(dst_core_id.tile_id, dst_thread_idx) == Core::INITIALIZING)
+            {
+               this->masterStartThread(dst_core_id);
+            }
+            else
+            {
+               m_thread_manager->resumeThread(dst_core_id, dst_thread_idx);
+               m_tile_manager->getCoreFromID(dst_core_id)->setState(Core::RUNNING);
+            }
+         }
+      }
+
+      m_core_lock[dst_core_id.tile_id].release();
+      m_core_lock[src_core_id.tile_id].release();
+   }
+}
+
+bool ThreadScheduler::schedSetAffinity(thread_id_t tid, unsigned int cpusetsize, cpu_set_t* set)
+{
+   LOG_PRINT("ThreadScheduler::schedSetAffinity called to set affinity for %i and total cores %i", tid, cpusetsize);
+   Core* core = m_tile_manager->getCurrentCore();
+
+   ThreadAffinityRequest req =   {  MCP_MESSAGE_THREAD_SETAFFINITY_REQUEST,
+                                    core->getCoreId(),
+                                    tid,
+                                    (UInt32) cpusetsize,
+                                    set
+                                 };
+
+   Network *net = core->getNetwork();
+   core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
+                MCP_REQUEST_TYPE,
+                &req,
+                sizeof(req));
+
+   return true;
+}
+
+void ThreadScheduler::masterSchedSetAffinity(ThreadAffinityRequest* req)
+{
+   LOG_PRINT("ThreadScheduler::masterSchedSetAffinity called to set affinity for %i", req->tid);
+   thread_id_t tid = req->tid;
+   unsigned int cpusetsize = req->cpusetsize;
+   cpu_set_t *set = req->cpu_set;
+
+   UInt32 total_tiles = Config::getSingleton()->getTotalTiles();
+   LOG_ASSERT_ERROR(cpusetsize <= total_tiles, "You are using a cpu mask with %i cores, but we are only simulating %d!", cpusetsize, total_tiles);
+
+   if (cpusetsize < total_tiles)
+   {
+      cpu_set_t *temp_set = set;
+      set = CPU_ALLOC(total_tiles);
+      CPU_ZERO_S(CPU_ALLOC_SIZE(total_tiles), set);
+      CPU_OR_S(CPU_ALLOC_SIZE(total_tiles), set, temp_set, set);
+      CPU_FREE(temp_set);
+   }
+
+
+   core_id_t core_id = INVALID_CORE_ID;
+   thread_id_t thread_idx = INVALID_THREAD_ID;
+
+   m_thread_manager->lookupThreadIndex(tid, core_id, thread_idx);
+   assert(thread_idx != INVALID_THREAD_ID);
+
+   m_thread_manager->setThreadAffinity(core_id.tile_id, thread_idx, set);
+}
+
+
+bool ThreadScheduler::schedGetAffinity(thread_id_t tid, unsigned int cpusetsize, cpu_set_t* set)
+{
+   LOG_PRINT("ThreadScheduler::schedGetAffinity called to get affinity for %i and total cores %i", tid, cpusetsize);
+   Core* core = m_tile_manager->getCurrentCore();
+
+   ThreadAffinityRequest req =   {  MCP_MESSAGE_THREAD_GETAFFINITY_REQUEST,
+                                    core->getCoreId(),
+                                    tid,
+                                    (UInt32) cpusetsize,
+                                    set
+                                 };
+
+   Network *net = core->getNetwork();
+   core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
+                MCP_REQUEST_TYPE,
+                &req,
+                sizeof(req));
+
+   NetPacket pkt = net->netRecvType(MCP_THREAD_GETAFFINITY_REPLY_FROM_MASTER_TYPE);
+   LOG_ASSERT_ERROR(pkt.length == sizeof(req), "Unexpected reply size (got %i expected %i).", pkt.length, sizeof(req));
+
+   ThreadAffinityRequest * reply = (ThreadAffinityRequest*) ((Byte*)pkt.data);
+
+   CPU_ZERO_S(CPU_ALLOC_SIZE(cpusetsize), set);
+   CPU_OR_S(CPU_ALLOC_SIZE(cpusetsize), set, reply->cpu_set, set);
+
+   return true;
+}
+
+void ThreadScheduler::masterSchedGetAffinity(ThreadAffinityRequest* req)
+{
+   LOG_PRINT("ThreadScheduler::masterSchedGetAffinity called to set affinity for %i", req->tid);
+   thread_id_t tid = req->tid;
+   cpu_set_t* set = CPU_ALLOC(req->cpusetsize);
+   core_id_t core_id = INVALID_CORE_ID;
+   thread_id_t thread_idx = INVALID_THREAD_ID;
+
+   m_thread_manager->lookupThreadIndex(tid, core_id, thread_idx);
+   assert(thread_idx != INVALID_THREAD_ID);
+   m_thread_manager->getThreadAffinity(core_id.tile_id, thread_idx, set);
+   assert(set != NULL);
+
+   UInt32 total_tiles = Config::getSingleton()->getTotalTiles();
+   LOG_ASSERT_ERROR(req->cpusetsize <= total_tiles, "You are using a cpu mask with %i cores, but we are only simulating %d!", req->cpusetsize, total_tiles);
+
+   cpu_set_t *temp_set = set;
+   set = CPU_ALLOC(total_tiles);
+   CPU_ZERO_S(CPU_ALLOC_SIZE(total_tiles), set);
+   CPU_OR_S(CPU_ALLOC_SIZE(total_tiles), set, temp_set, set);
+   CPU_FREE(temp_set);
+
+   ThreadAffinityRequest reply =   {  MCP_MESSAGE_THREAD_GETAFFINITY_REPLY,
+                                    req->requester,
+                                    req->tid,
+                                    (UInt32) req->cpusetsize,
+                                    set
+                                 };
+
+   Core *core = m_tile_manager->getCurrentCore();
+   core->getNetwork()->netSend(req->requester, 
+         MCP_THREAD_GETAFFINITY_REPLY_FROM_MASTER_TYPE,
+         &reply,
+         sizeof(reply));
+}
+
+
+// Return true if affinity matches current core, return false if affinity does not match.
+// This function will deal with all migrating tasks, so callers only need to take action if
+// this returns true.
+bool ThreadScheduler::masterCheckAffinityAndMigrate(core_id_t core_id, thread_id_t thread_idx, core_id_t &dst_core_id, thread_id_t &dst_thread_idx)
+{
+   LOG_PRINT("ThreadScheduler::masterCheckAffinityAndMigrate for %i on {%i, %i}", thread_idx, core_id.tile_id, core_id.core_type);
+   bool res = true;
+
+   dst_core_id = core_id;
+   dst_thread_idx = thread_idx;
+
+   UInt32 total_tiles = Config::getSingleton()->getTotalTiles();
+   size_t setsize = CPU_ALLOC_SIZE(total_tiles);
+   cpu_set_t* set = CPU_ALLOC(total_tiles);
+   m_thread_manager->getThreadAffinity(core_id.tile_id, thread_idx, set);
+
+   // Check if this core has any affinity.
+   cpu_set_t* zero_set = CPU_ALLOC(total_tiles);
+   CPU_ZERO_S(setsize, zero_set);
+   if (CPU_EQUAL_S(setsize, zero_set, set) == 0)
+   {
+      // Check if this core is inside this threads mask set.
+      if (CPU_ISSET_S(core_id.tile_id, CPU_ALLOC_SIZE(total_tiles), set) == 0) 
+      {
+         // Find first idle core to migrate thread.
+         // If no cores are idle, pick first core with available idle threads.
+         core_id_t current_core_id = INVALID_CORE_ID;
+
+         for (unsigned int i = 0; i < total_tiles; i++)
+         {
+            if (CPU_ISSET_S(i, setsize, set) != 0)
+            {
+               current_core_id =  m_tile_manager->getMainCoreId(i);
+               if (m_thread_manager->isCoreRunning(current_core_id) == INVALID_THREAD_ID)
+               {
+                  dst_core_id = current_core_id;
+                  break;
+               }
+               else if (dst_core_id.tile_id == INVALID_TILE_ID)
+               {
+                  // If this core has idle threads, set it as a placeholder, if a free core exists,
+                  // that will get set and this inner loop will break.
+                  if (m_thread_manager->getIdleThread(current_core_id) != INVALID_THREAD_ID)
+                     dst_core_id = current_core_id;
+               }
+            }
+         }
+      }
+   }
+
+   if (dst_core_id.tile_id != core_id.tile_id)
+   {
+
+      dst_thread_idx = m_thread_manager->getIdleThread(dst_core_id);
+      LOG_PRINT("Thread %i on {%i, %i} is moving away to %i on {%i, %i}", thread_idx, core_id.tile_id, core_id.core_type, dst_thread_idx, dst_core_id.tile_id, dst_core_id.core_type);
+
+      m_core_lock[core_id.tile_id].release();
+      this->masterMigrateThread(thread_idx, core_id, dst_thread_idx, dst_core_id);
+      m_core_lock[core_id.tile_id].acquire();
+      res = false;
+   }
+   else
+   {
+      LOG_PRINT("Thread %i on {%i, %i} is staying put.", thread_idx, core_id.tile_id, core_id.core_type);
+   }
+
+   CPU_FREE(zero_set);
+   CPU_FREE(set);
+   return res;
+}
+
+thread_id_t ThreadScheduler::getNextThreadIdx(core_id_t core_id) 
+{
+   thread_id_t next_tidx;
+
+   if(!m_waiter_queue[core_id.tile_id].empty())
+      next_tidx = m_waiter_queue[core_id.tile_id].front()->destination_tidx;
+   else
+      next_tidx = INVALID_THREAD_ID;
+
+   return next_tidx;
 }
 
 void ThreadScheduler::yieldThread()

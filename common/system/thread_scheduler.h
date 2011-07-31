@@ -2,8 +2,10 @@
 #define THREAD_SCHEDULER_SERVER_H
 
 #include <vector>
+#include <bitset>
 #include <queue>
 #include <map>
+//#include <sched.h>
 
 #include "cond.h"
 #include "core.h"
@@ -20,6 +22,7 @@ class ThreadScheduler
 {
 protected:
    ThreadScheduler(ThreadManager*, TileManager*);
+
 public:
    ~ThreadScheduler();
    static ThreadScheduler* create(ThreadManager*, TileManager*);
@@ -30,14 +33,26 @@ public:
    void onThreadExit();
    void masterOnThreadExit(core_id_t core_id, SInt32 thread_idx);
 
+   void migrateThread(thread_id_t thread_id, tile_id_t tile_id);
+   void masterMigrateThread(thread_id_t src_thread_id, tile_id_t dst_tile_id, UInt32 dst_core_type);
+   void masterMigrateThread(thread_id_t src_thread_idx, core_id_t src_core_id, thread_id_t dst_thread_idx, core_id_t dst_core_id);
+
+   bool schedSetAffinity(thread_id_t tid, unsigned int cpusetsize, cpu_set_t* set);
+   void masterSchedSetAffinity(ThreadAffinityRequest * req);
+   bool schedGetAffinity(thread_id_t tid, unsigned int cpusetsize, cpu_set_t* set);
+   void masterSchedGetAffinity(ThreadAffinityRequest * req);
+
    virtual void yieldThread();
    virtual void masterYieldThread(ThreadYieldRequest* req);
+
+   thread_id_t getNextThreadIdx(core_id_t core_id);
 
 protected:
 
    friend class LCP;
    friend class MCP;
 
+   bool masterCheckAffinityAndMigrate(core_id_t core_id, thread_id_t thread_idx, core_id_t &dst_core_id, thread_id_t &dst_thread_idx);
    bool m_master;
 
    UInt32 m_total_tiles;
@@ -55,7 +70,6 @@ protected:
    std::vector< std::queue<ThreadSpawnRequest*> > m_waiter_queue;
 
    std::vector< std::vector<UInt32> > m_last_start_time;
-   UInt32 m_thread_switch_time;
 };
 
 #endif // THREAD_SCHEDULER_SERVER_H

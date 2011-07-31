@@ -107,8 +107,27 @@ void MCP::processPacket()
    case MCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE:
       Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)recv_pkt.data);
       break;
-   case MCP_MESSAGE_THREAD_YIELD_REQUEST_FROM_REQUESTER:
+   case MCP_MESSAGE_THREAD_YIELD_REQUEST:
       Sim()->getThreadScheduler()->masterYieldThread((ThreadYieldRequest*)recv_pkt.data);
+      break;
+   case MCP_MESSAGE_THREAD_MIGRATE_REQUEST_FROM_REQUESTER:
+      Sim()->getThreadScheduler()->masterMigrateThread( *(SInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                        *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(SInt32)), 
+                                                        *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(SInt32)+sizeof(tile_id_t))); 
+      break;
+   case MCP_MESSAGE_THREAD_SETAFFINITY_REQUEST:
+      Sim()->getThreadScheduler()->masterSchedSetAffinity((ThreadAffinityRequest*)recv_pkt.data);
+      break;
+   case MCP_MESSAGE_THREAD_GETAFFINITY_REQUEST:
+      Sim()->getThreadScheduler()->masterSchedGetAffinity((ThreadAffinityRequest*)recv_pkt.data);
+      break;
+   //case MCP_MESSAGE_THREAD_GETLATEST_REQUEST:
+      //Sim()->getThreadManager()->masterGetThreadState((ThreadStateRequest*)recv_pkt.data);
+      //break;
+   case MCP_MESSAGE_QUERY_THREAD_INDEX:
+      Sim()->getThreadManager()->masterQueryThreadIndex( *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                         *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
+                                                         *(thread_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(UInt32)));
       break;
    case MCP_MESSAGE_THREAD_START:
       Sim()->getThreadManager()->masterOnThreadStart( *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 

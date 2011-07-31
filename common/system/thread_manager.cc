@@ -27,7 +27,6 @@ ThreadManager::ThreadManager(TileManager *tile_manager)
 
    m_master = config->getCurrentProcessNum() == 0;
 
-   // Thread ID's start at 0
    m_tid_counter = 0;
 
    // Set the thread-spawner and MCP tiles to running.
@@ -40,13 +39,17 @@ ThreadManager::ThreadManager(TileManager *tile_manager)
       for (UInt32 i = 0; i < total_tiles; i++)
          m_thread_state[i].resize(threads_per_core);
 
-      // Initialize all threads to IDLE
-      for (UInt32 i = 0; i < total_tiles; i++)
-         for (UInt32 j = 0; j < threads_per_core; j++)
+      // Initialize all threads to IDLE and zero affinity masks
+      for (UInt32 i = 0; i < total_tiles; i++) {
+         for (UInt32 j = 0; j < threads_per_core; j++) {
             m_thread_state[i][j].status = Core::IDLE;
+            m_thread_state[i][j].cpu_set = CPU_ALLOC(total_tiles);
+            CPU_ZERO_S(CPU_ALLOC_SIZE(total_tiles), m_thread_state[i][j].cpu_set);
+         }
+      }
 
       m_thread_state[0][0].status = Core::RUNNING;
-      
+            
       m_last_stalled_thread.resize(total_tiles);
       for (UInt32 i = 0; i < total_tiles; i++)
          m_last_stalled_thread[i] = INVALID_THREAD_ID;
@@ -90,6 +93,7 @@ ThreadManager::~ThreadManager()
          for (UInt32 j = 0; j < Sim()->getConfig()->getMaxThreadsPerCore(); j++)
          {
             LOG_ASSERT_ERROR(m_thread_state[i][j].status == Core::IDLE, "Main thread %d on tile %d still active when ThreadManager destructs!", j, i);
+            CPU_FREE(m_thread_state[i][j].cpu_set);
          }
    }
 }
@@ -99,9 +103,9 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
    
-   LOG_PRINT("onThreadStart(Tile: %i Core: %i Thread: %i tid: %i)", req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->new_tid);
+   LOG_PRINT("onThreadStart(Tile: %i Core: %i Thread: %i tid: %i)", req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->destination_tid);
 
-   m_tile_manager->initializeThread(req->destination, req->destination_tidx, req->new_tid);
+   m_tile_manager->initializeThread(req->destination, req->destination_tidx, req->destination_tid);
    assert(req->destination.tile_id == m_tile_manager->getCurrentCoreID().tile_id && req->destination.core_type == m_tile_manager->getCurrentCoreID().core_type && req->destination_tidx == m_tile_manager->getCurrentThreadIndex());
 
    if (req->destination.tile_id == Sim()->getConfig()->getCurrentThreadSpawnerTileNum())
@@ -298,22 +302,15 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    else
    {
       // Find a free thread.
-      for (SInt32 j = 0; j < (SInt32) config->getMaxThreadsPerCore(); j++)
-      {
-         if (m_thread_state[req->destination.tile_id][j].status == Core::IDLE)
-         {
-            req->destination_tidx =  j;
-            break;
-         }
-      }
+      req->destination_tidx = this->getIdleThread(req->destination);
    }
 
 
    LOG_ASSERT_ERROR(req->destination.tile_id != INVALID_TILE_ID, "No cores available for spawnThread request.");
    LOG_ASSERT_ERROR(req->destination_tidx != INVALID_THREAD_ID, "No threads available on destination core for spawnThread request.");
 
-   req->new_tid = this->getNewThreadId(req->destination, req->destination_tidx);
-   LOG_ASSERT_ERROR(req->new_tid != INVALID_THREAD_ID, "Problem generating new thread id.");
+   req->destination_tid = this->getNewThreadId(req->destination, req->destination_tidx);
+   LOG_ASSERT_ERROR(req->destination_tid != INVALID_THREAD_ID, "Problem generating new thread id.");
 
    m_thread_scheduler->masterScheduleThread(req);
 
@@ -326,14 +323,14 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
                                                                                                             req->destination.tile_id, 
                                                                                                             req->destination.core_type, 
                                                                                                             req->destination_tidx, 
-                                                                                                            req->new_tid);
+                                                                                                            req->destination_tid);
 
    masterSpawnThreadReply(req);
 }
 
 void ThreadManager::slaveSpawnThread(ThreadSpawnRequest *req)
 {
-   LOG_PRINT("(5) slaveSpawnThread with req: { fun: %p, arg: %p, req: {%d, %d}, req thread: %i, dst: {%d, %d}, dst thread: %i new_tid: %i }", req->func, req->arg, req->requester.tile_id, req->requester.core_type, req->requester_tidx, req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->new_tid);
+   LOG_PRINT("(5) slaveSpawnThread with req: { fun: %p, arg: %p, req: {%d, %d}, req thread: %i, dst: {%d, %d}, dst thread: %i destination_tid: %i }", req->func, req->arg, req->requester.tile_id, req->requester.core_type, req->requester_tidx, req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->destination_tid);
 
    // This is deleted after the thread has been spawned and we have sent the acknowledgement back to the requester
    ThreadSpawnRequest *req_cpy = new ThreadSpawnRequest;
@@ -391,7 +388,7 @@ void ThreadManager::dequeueThreadSpawnReq (ThreadSpawnRequest *req)
 void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
 {
    LOG_ASSERT_ERROR(m_master, "masterSpawnThreadReply should only be called on master.");
-   LOG_PRINT("(4) masterSpawnThreadReply with req: { fun: %p, arg: %p, req: {%d, %d}, req thread: %i, dst: {%d, %d}, dst thread: %i new_tid: %i}", req->func, req->arg, req->requester.tile_id, req->requester.core_type, req->requester_tidx, req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->new_tid);
+   LOG_PRINT("(4) masterSpawnThreadReply with req: { fun: %p, arg: %p, req: {%d, %d}, req thread: %i, dst: {%d, %d}, dst thread: %i destination_tid: %i}", req->func, req->arg, req->requester.tile_id, req->requester.core_type, req->requester_tidx, req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->destination_tid);
 
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
@@ -611,6 +608,115 @@ thread_id_t ThreadManager::getNewThreadId(core_id_t core_id, thread_id_t thread_
    m_tid_counter_lock.release();
    return new_thread_id;
 }
+
+void ThreadManager::queryThreadIndex(thread_id_t thread_id, core_id_t &core_id, thread_id_t &thread_idx, thread_id_t &next_tidx)
+{
+   LOG_PRINT("ThreadManager::queryThreadIndex called for tid %i", thread_id);
+   m_tid_map_lock.acquire();
+   SInt32 req[] = { MCP_MESSAGE_QUERY_THREAD_INDEX,
+                  m_tile_manager->getCurrentCoreID().tile_id,
+                  m_tile_manager->getCurrentCoreID().core_type,
+                  thread_id};
+
+   Network *net = m_tile_manager->getCurrentCore()->getNetwork();
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
+                MCP_REQUEST_TYPE,
+                &req,
+                sizeof(req));
+
+   NetPacket pkt = net->netRecvType(MCP_THREAD_QUERY_INDEX_REPLY_FROM_MASTER_TYPE);
+   LOG_ASSERT_ERROR(pkt.length == sizeof(ThreadIndexRequest), "Unexpected reply size.");
+
+   ThreadIndexRequest * reply = (ThreadIndexRequest*) ((Byte*)pkt.data);
+   LOG_ASSERT_ERROR(reply->thread_id == m_tile_manager->getCurrentThreadId(), "Received incorrect queryThreadIndex reply!");
+
+   LOG_PRINT("elau ThreadManager::queryThreadIndex received %i on {%i, %i} for id %i, next tidx is %i", reply->thread_idx, reply->core_id.tile_id, reply->core_id.core_type, thread_id, reply->next_tidx);
+   core_id = reply->core_id;
+   thread_idx = reply->thread_idx;
+   next_tidx = reply->next_tidx;
+   m_tid_map_lock.release();
+}
+
+void ThreadManager::masterQueryThreadIndex(tile_id_t req_tile_id, UInt32 req_core_type, thread_id_t thread_id)
+{
+   LOG_PRINT("ThreadManager::masterQueryThreadIndex called for tid %i", thread_id);
+   core_id_t requester = (core_id_t) {req_tile_id, req_core_type};
+   core_id_t core_id = INVALID_CORE_ID;
+   thread_id_t thread_idx = INVALID_THREAD_ID;
+
+   this->lookupThreadIndex(thread_id, core_id, thread_idx);
+   thread_id_t next_tidx = m_thread_scheduler->getNextThreadIdx(core_id);
+
+   ThreadIndexRequest reply =   {   MCP_MESSAGE_QUERY_THREAD_INDEX,
+                                    requester,
+                                    thread_id,
+                                    core_id,
+                                    thread_idx,
+                                    next_tidx
+                                 };
+
+   Core *core = m_tile_manager->getCurrentCore();
+   core->getNetwork()->netSend(  requester, 
+                                 MCP_THREAD_QUERY_INDEX_REPLY_FROM_MASTER_TYPE,
+                                 &reply,
+                                 sizeof(reply));
+}
+
+// Returns the thread INDEX and the core_id (by reference).
+void ThreadManager::lookupThreadIndex(thread_id_t thread_id, core_id_t &core_id, thread_id_t &thread_idx)
+{
+   LOG_ASSERT_ERROR(thread_id <= m_tid_counter, "A thread with this tid %i has not been spawned before, the highest is %i!", thread_id, m_tid_counter);
+   m_tid_counter_lock.acquire();
+
+   core_id = m_tid_to_core_map[thread_id].first;
+   thread_idx = m_tid_to_core_map[thread_id].second;
+
+   m_tid_counter_lock.release();
+}
+
+// Returns the thread INDEX and the core_id (by reference).
+void ThreadManager::setThreadIndex(thread_id_t thread_id, core_id_t core_id, thread_id_t thread_idx)
+{
+   LOG_ASSERT_ERROR(m_master, "setThreadIdx() must only be called on master");
+   LOG_ASSERT_ERROR(thread_id < (int) m_tid_to_core_map.size(), "A thread with this tid has not been spawned before!");
+   m_tid_counter_lock.acquire();
+
+   m_tid_to_core_map[thread_id].first = core_id;
+   m_tid_to_core_map[thread_id].second = thread_idx;  
+
+   m_tid_counter_lock.release();
+}
+
+
+
+thread_id_t ThreadManager::getIdleThread(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(m_master, "getIdleThread() must only be called on master");
+   LOG_PRINT("elau: getIdleThread for {%i, %i}\n", core_id.tile_id, core_id.core_type);
+
+   thread_id_t thread_idx = INVALID_THREAD_ID;
+   Config * config = Config::getSingleton();
+
+   // Find a free thread.
+   if (m_tile_manager->isMainCore(core_id))
+   {
+      for (SInt32 j = 0; j < (SInt32) config->getMaxThreadsPerCore(); j++)
+      {
+         if (m_thread_state[core_id.tile_id][j].status == Core::IDLE)
+         {
+            thread_idx = j;
+            break;
+         }
+      }
+   }
+   else
+   {
+      LOG_ASSERT_ERROR(false, "Invalid core type!");
+   }
+
+   return thread_idx;
+}
+
 // Stalls the current running thread.
 void ThreadManager::stallThread(core_id_t core_id)
 {
@@ -795,5 +901,65 @@ thread_id_t ThreadManager::isCoreRunning(tile_id_t tile_id)
    }
 
    return thread_index;
+}
+
+//std::vector< std::vector<ThreadManager::ThreadState> > ThreadManager::clientGetThreadState() 
+//{
+   //Core* core = m_tile_manager->getCurrentCore();
+
+   //ThreadStateRequest req =   {  MCP_MESSAGE_THREAD_STATE_REQUEST,
+                                    //core->getCoreId(),
+                                    //NULL
+                                 //};
+
+   //Network *net = core->getNetwork();
+   //core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
+   //net->netSend(Config::getSingleton()->getMCPCoreId(),
+                //MCP_REQUEST_TYPE,
+                //&req,
+                //sizeof(req));
+
+   //NetPacket pkt = net->netRecvType(MCP_THREAD_STATE_REPLY_FROM_MASTER_TYPE);
+   //LOG_ASSERT_ERROR(pkt.length == sizeof(m_thread_state), "Unexpected reply size (got %i expected %i).", pkt.length, sizeof(m_thread_state));
+
+   //m_thread_state = *(( std::vector< std::vector<ThreadState> > *) ((Byte*)pkt.data));
+   //return m_thread_state;
+//}
+
+//void ThreadManager::masterGetThreadState(ThreadStateRequest *req) 
+//{
+   //ThreadStateRequest reply =   {  MCP_MESSAGE_THREAD_STATE_REQUEST,
+                                    //req->requester,
+                                    //&m_thread_state
+                                 //};
+
+   //Core *core = m_tile_manager->getCurrentCore();
+   //core->getNetwork()->netSend(req->requester, 
+         //MCP_THREAD_STATE_REPLY_FROM_MASTER_TYPE,
+         //&reply,
+         //sizeof(reply));
+
+//}
+void ThreadManager::setThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set)
+{
+   CPU_ZERO_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), m_thread_state[tile_id][tidx].cpu_set);
+   CPU_OR_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), m_thread_state[tile_id][tidx].cpu_set, set, set);
+}
+
+void ThreadManager::getThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set)
+{
+   CPU_ZERO_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), set);
+   CPU_OR_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), set, m_thread_state[tile_id][tidx].cpu_set, set);
+}
+
+
+void ThreadManager::setThreadState(tile_id_t tile_id, thread_id_t tidx, ThreadManager::ThreadState state)
+{
+   m_thread_state[tile_id][tidx].status = state.status;
+   m_thread_state[tile_id][tidx].waiter_core.tile_id = state.waiter_core.tile_id;
+   m_thread_state[tile_id][tidx].waiter_core.core_type = state.waiter_core.core_type;
+   m_thread_state[tile_id][tidx].waiter_tid = state.waiter_tid;
+   m_thread_state[tile_id][tidx].thread_id = state.thread_id;
+   m_thread_state[tile_id][tidx].cpu_set = state.cpu_set;
 }
 

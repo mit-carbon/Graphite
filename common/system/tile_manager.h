@@ -43,6 +43,8 @@ class TileManager
       thread_id_t getCurrentThreadIndex();
       thread_id_t getCurrentThreadId();
 
+      void updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id);
+
       bool isMainCore(core_id_t core_id);
 
       void outputSummary(std::ostream &os);

@@ -4,6 +4,7 @@
 #include <vector>
 #include <queue>
 #include <map>
+//#include <sched.h>
 
 #include "semaphore.h"
 #include "core.h"
@@ -26,12 +27,25 @@ public:
       core_id_t waiter_core;
       thread_id_t waiter_tid;
       thread_id_t thread_id;
+      cpu_set_t * cpu_set;
 
       ThreadState()
          : status(Core::IDLE)
          , waiter_core(INVALID_CORE_ID)
          , waiter_tid(INVALID_THREAD_ID)
-      {} 
+         , thread_id(INVALID_THREAD_ID)
+      {
+      } 
+
+      //void operator=(ThreadState &state)
+      //{
+         //this->status = state.status;
+         //this->waiter_core.tile_id = state.waiter_core.tile_id;
+         //this->waiter_core.core_type = state.waiter_core.core_type;
+         //this->waiter_tid = state.waiter_tid;
+         //this->thread_id = state.thread_id;
+         //this->cpu_set = state.cpu_set;
+      //}
    };
 
    ThreadManager(TileManager*);
@@ -61,8 +75,8 @@ public:
    void resumeThread(core_id_t core_id, thread_id_t thread_id);
    void resumeThread(core_id_t core_id);
 
-   bool isThreadRunning(tile_id_t core_id, thread_id_t thread_id);
-   bool isThreadRunning(core_id_t core_id, thread_id_t thread_id);
+   bool isThreadRunning(tile_id_t core_id, thread_id_t thread_index);
+   bool isThreadRunning(core_id_t core_id, thread_id_t thread_index);
 
    bool isThreadInitializing(tile_id_t tile_id, thread_id_t thread_id);
    bool isThreadInitializing(core_id_t core_id, thread_id_t thread_id);
@@ -74,9 +88,18 @@ public:
    bool isCoreInitializing(tile_id_t tile_id);
    bool isCoreInitializing(core_id_t core_id);
 
+   //std::vector< std::vector<ThreadState> > clientGetThreadState();
    std::vector< std::vector<ThreadState> > getThreadState() {assert(m_master); return m_thread_state;}
+   Core::State getThreadState(tile_id_t tile_id, thread_id_t tidx) {assert(m_master); return m_thread_state[tile_id][tidx].status; }
+   //void masterGetThreadState(ThreadStateRequest *req);
 
-   void setThreadState(tile_id_t tile_id, thread_id_t tidx, Core::State state) {m_thread_state[tile_id][tidx].status = state;}
+
+   void setThreadState(tile_id_t tile_id, thread_id_t tidx, ThreadState state);
+   void setThreadState(tile_id_t tile_id, thread_id_t tidx, Core::State state) {assert(m_master); m_thread_state[tile_id][tidx].status = state;}
+   void setThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set);
+   void getThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set);
+
+   void queryThreadIndex(thread_id_t thread_id, core_id_t &core_id, thread_id_t &thread_idx, thread_id_t &next_tidx);
 
    friend class ThreadScheduler;
    void setThreadScheduler(ThreadScheduler* thread_scheduler) {m_thread_scheduler = thread_scheduler;}
@@ -105,10 +128,15 @@ private:
    void insertThreadSpawnRequest (ThreadSpawnRequest *req);
 
    thread_id_t getNewThreadId(core_id_t core_id, thread_id_t thread_index);
+   void lookupThreadIndex(thread_id_t thread_id, core_id_t &core_id, thread_id_t &thread_idx);
+   void setThreadIndex(thread_id_t thread_id, core_id_t core_id, thread_id_t thread_idx);
+   thread_id_t getIdleThread(core_id_t core_id);
+   void masterQueryThreadIndex(tile_id_t req_tile_id, UInt32 req_core_type, thread_id_t thread_id);
 
 
    thread_id_t m_tid_counter;
    Lock m_tid_counter_lock;
+   Lock m_tid_map_lock;
 
    bool m_master;
    std::vector< std::vector<ThreadState> > m_thread_state;

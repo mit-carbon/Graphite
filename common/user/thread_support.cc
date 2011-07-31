@@ -40,6 +40,21 @@ carbon_thread_t CarbonSpawnThreadOnTile(tile_id_t tile_id, thread_func_t func, v
    return Sim()->getThreadManager()->spawnThread(tile_id, func, arg);
 }
 
+void CarbonMigrateThread(thread_id_t thread_id, tile_id_t tile_id)
+{
+   Sim()->getThreadScheduler()->migrateThread(thread_id, tile_id);
+}
+
+bool CarbonSchedSetAffinity(thread_id_t thread_id, UInt32 cpusetsize, cpu_set_t* set)
+{
+   return Sim()->getThreadScheduler()->schedSetAffinity(thread_id, cpusetsize, set);
+}
+
+bool CarbonSchedGetAffinity(thread_id_t thread_id, UInt32 cpusetsize, cpu_set_t* set)
+{
+   return Sim()->getThreadScheduler()->schedGetAffinity(thread_id, cpusetsize, set);
+}
+
 void CarbonJoinThread(carbon_thread_t tid)
 {
    Sim()->getThreadManager()->joinThread(tid);

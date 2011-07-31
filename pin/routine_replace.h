@@ -25,6 +25,9 @@ void replacementStartSimNull (CONTEXT *ctxt);
 void replacementStopSim (CONTEXT *ctxt);
 void replacementSpawnThread (CONTEXT *ctxt);
 void replacementSpawnThreadOnTile (CONTEXT *ctxt);
+void replacementMigrateThread (CONTEXT *ctxt);
+void replacementSchedSetAffinity (CONTEXT *ctxt);
+void replacementSchedGetAffinity (CONTEXT *ctxt);
 void replacementJoinThread (CONTEXT *ctxt);
 
 void replacementMutexInit(CONTEXT *ctxt);

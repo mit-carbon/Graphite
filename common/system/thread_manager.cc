@@ -229,7 +229,6 @@ SInt32 ThreadManager::spawnThread(tile_id_t tile_id, thread_func_t func, void *a
          core->getPerformanceModel()->getFrequency(), 1.0);
    
    core->setState(Core::STALLED);
-   stallThread(core->getCoreId(), thread_index);
 
    core_id_t dest_core = INVALID_CORE_ID;
 
@@ -276,6 +275,7 @@ void ThreadManager::masterSpawnThread(ThreadSpawnRequest *req)
    Config * config = Config::getSingleton();
    tile_id_t target_tile = req->requester.tile_id;
    UInt32 num_application_tiles = config->getApplicationTiles();;
+   stallThread(req->requester, req->requester_tidx);
 
    if (req->destination.tile_id == INVALID_TILE_ID)
    {
@@ -391,20 +391,17 @@ void ThreadManager::masterSpawnThreadReply(ThreadSpawnRequest *req)
    LOG_PRINT("(4) masterSpawnThreadReply with req: { fun: %p, arg: %p, req: {%d, %d}, req thread: %i, dst: {%d, %d}, dst thread: %i destination_tid: %i}", req->func, req->arg, req->requester.tile_id, req->requester.core_type, req->requester_tidx, req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->destination_tid);
 
 
-   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
-   {
-      // Resume the requesting thread
-      LOG_PRINT("masterSpawnThreadReply resuming thread {%i, %i} %i", req->requester.tile_id, req->requester.core_type, req->requester_tidx);
-      resumeThread(req->requester);
+   // Resume the requesting thread
+   LOG_PRINT("masterSpawnThreadReply resuming thread {%i, %i} %i", req->requester.tile_id, req->requester.core_type, req->requester_tidx);
+   resumeThread(req->requester);
 
-      SInt32 msg[] = { req->destination.tile_id, req->destination.core_type, req->destination_tidx};
+   SInt32 msg[] = { req->destination.tile_id, req->destination.core_type, req->destination_tidx};
 
-      Core *core = m_tile_manager->getCurrentCore();
-      core->getNetwork()->netSend(req->requester, 
-                                  MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
-                                  msg,
-                                  sizeof(req->destination.tile_id)+sizeof(req->destination.core_type)+sizeof(req->destination_tidx));
-   }
+   Core *core = m_tile_manager->getCurrentCore();
+   core->getNetwork()->netSend(req->requester, 
+         MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
+         msg,
+         sizeof(req->destination.tile_id)+sizeof(req->destination.core_type)+sizeof(req->destination_tidx));
 }
 
 

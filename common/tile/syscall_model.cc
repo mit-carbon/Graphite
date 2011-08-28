@@ -240,12 +240,18 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
          m_called_enter = true;
          m_ret_val = marshallUnlinkCall(args);
          break;
-     
+
       case SYS_clock_gettime:
-            m_called_enter = true;
-            m_ret_val = handleClockGettimeCall(args);
-            break;
-      
+         m_called_enter = true;
+         m_ret_val = handleClockGettimeCall(args);
+         break;
+
+      case SYS_getcwd:
+         m_called_enter = true;
+         m_ret_val = marshallGetCwdCall(args);
+         break;
+
+
       case -1:
       default:
          break;
@@ -1332,6 +1338,66 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
 
    return 0;
 }
+
+IntPtr SyscallMdl::marshallGetCwdCall(syscall_args_t &args)
+{
+
+   /*
+       Syscall Args
+       char* buf, size_t size
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       SIZE               size_t
+
+       Receive
+
+       Field               Type
+       -----------------|--------
+       BYTES               int
+       BUFFER              void *
+
+   */
+
+   char* buf = (char *)args.arg0;
+   size_t size = (size_t)args.arg1;
+
+   m_send_buff << size;
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+
+   assert(recv_pkt.length >= sizeof(int));
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   int bytes;
+   m_recv_buff >> bytes;
+   
+   if (bytes != -1)
+   {
+      // Read data from MCP into a local buffer
+      char* read_buf = new char[bytes];
+      m_recv_buff >> read_buf;
+
+      assert(strlen((const char*) read_buf) + 1 == (unsigned int) bytes);
+   
+      // Write the data to memory
+      Core* core = Sim()->getTileManager()->getCurrentCore();
+      core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) buf, read_buf, bytes);
+   }
+   else
+   {
+      assert(m_recv_buff.size() == 0);
+   }
+
+   delete [] (Byte*) recv_pkt.data;
+
+   return (carbon_reg_t) buf;
+}
+
 
 
 // Helper functions

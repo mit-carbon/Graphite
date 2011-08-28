@@ -90,6 +90,7 @@ class SyscallMdl
       IntPtr marshallRmdirCall(syscall_args_t &args);
 
       IntPtr handleClockGettimeCall(syscall_args_t &args);
+      IntPtr marshallGetCwdCall(syscall_args_t &args);
 
       // Helper functions
       UInt32 getStrLen (char *str);

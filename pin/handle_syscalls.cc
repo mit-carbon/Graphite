@@ -128,6 +128,7 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||
+            (syscall_number == SYS_getcwd) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
@@ -264,7 +265,6 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
          // Let the syscall fall through
       }
 #endif
-
       else
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
@@ -291,6 +291,7 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||
+            (syscall_number == SYS_getcwd) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||

@@ -399,7 +399,7 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
          }
 
       case NETWORK_EMESH_HOP_BY_HOP:
-         return NetworkModelEMeshHopByHop::computeMemoryControllerPositions(num_memory_controllers, tile_count);
+         // return NetworkModelEMeshHopByHop::computeMemoryControllerPositions(num_memory_controllers, tile_count);
 
       case NETWORK_ATAC:
          return NetworkModelAtac::computeMemoryControllerPositions(num_memory_controllers, tile_count);

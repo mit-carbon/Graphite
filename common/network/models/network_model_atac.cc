@@ -221,7 +221,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
       volatile double waveguide_length = computeOpticalLinkLength();   // In mm
       _optical_link = new OpticalNetworkLinkModel(this, _num_clusters,
                                                   _frequency, waveguide_length, _flit_width);
-      assert(_optical_link->getDelay() == 2);
+      assert(_optical_link->getDelay() == 3);
 
       // Receive Hub Router Models
       _receive_hub_router = new NetworkRouterModel(this, _num_clusters, _num_receive_networks_per_cluster,

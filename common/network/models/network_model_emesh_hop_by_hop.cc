@@ -279,8 +279,8 @@ NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
    dx = receiver % mesh_width;
    dy = receiver / mesh_width;
 
-   assert(sy < mesh_height);
-   assert(dy < mesh_height);
+   LOG_ASSERT_ERROR(sy <= mesh_height, "sy(%i), mesh_height(%i)", sy, mesh_height);
+   LOG_ASSERT_ERROR(dy <= mesh_height, "dy(%i), mesh_height(%i)", dy, mesh_height);
 
    return abs(sx-dx) + abs(sy-dy);
 }

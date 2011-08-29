@@ -63,6 +63,7 @@ bool rewriteStringOp (INS ins)
             (INS_Opcode(ins) == XED_ICLASS_MOVSD) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSQ) ||
             (INS_Opcode(ins) == XED_ICLASS_MOVSD_XMM) ||
+            (INS_Opcode(ins) == XED_ICLASS_MOVQ) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSB) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSW) ||
             (INS_Opcode(ins) == XED_ICLASS_STOSD) ||

@@ -459,7 +459,8 @@ void SlaveStart()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-  // Reset Models
+  
+  // Enable Models
   CarbonEnableModels();
 
   if ((MyNum == 0) || (dostats)) {
@@ -485,6 +486,9 @@ void SlaveStart()
     Global->finishtime = finish;
     Global->initdonetime = initdone;
   }
+
+  // DisableModels
+  CarbonDisableModels();
 }
 
 

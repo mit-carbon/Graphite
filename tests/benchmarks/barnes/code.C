@@ -448,6 +448,9 @@ void SlaveStart()
 //      printtree(Global->G_root);
 //      printf("Going to next step!!!\n");
    }
+
+   // Disable Models when threads are joining
+   CarbonDisableModels();
 }
 
 
@@ -623,7 +626,7 @@ void stepsystem(long ProcessId)
     if (Local[ProcessId].nstep == 2) {
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-        // Reset Parallel Execution statistics
+        // Enable Models
         CarbonEnableModels();
     }
 

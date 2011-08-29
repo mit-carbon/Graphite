@@ -62,21 +62,25 @@ class SpawnJob(Job):
 #  a job built around the make system
 class MakeJob(SpawnJob):
 
-    def __init__(self, num_machines, command, results_dir="./output_files", sub_dir="", sim_flags=""):
+    def __init__(self, num_machines, command, results_dir="./output_files", sub_dir="", sim_flags="", mode="pin"):
         SpawnJob.__init__(self, num_machines, command)
         self.results_dir = results_dir
         self.sub_dir = "%s/%s" % (results_dir, sub_dir)
         self.sim_flags = sim_flags
+        self.mode = mode
 
     def make_pin_command(self):
-        self.sim_flags += " -c %s/carbon_sim.cfg --general/output_dir=\"%s\" --general/num_processes=%d" % (self.results_dir, self.sub_dir, len(self.machines))
+        self.sim_flags += " --general/output_dir=\"%s\" --general/num_processes=%d" % (self.sub_dir, len(self.machines))
         for i in range(0,len(self.machines)):
             self.sim_flags += " --process_map/process%i=\"%s\"" % (i, self.machines[i])
 
-        PIN_PATH = "/afs/csail/group/carbon/tools/pin/current/ia32/bin/pinbin"
+        PIN_PATH = "/afs/csail/group/carbon/tools/pin/current/intel64/bin/pinbin"
         PIN_LIB = "%s/lib/pin_sim" % spawn.get_sim_root()
 
-        self.command = "%s -mt -t %s %s -- %s" % (PIN_PATH, PIN_LIB, self.sim_flags, self.command)
+        if (self.mode == "pin"):
+            self.command = "%s -mt -t %s %s -- %s" % (PIN_PATH, PIN_LIB, self.sim_flags, self.command)
+        elif (self.mode == "standalone"):
+            self.command = "%s %s" % (self.command, self.sim_flags)
 
         self.command += " >& %s/output" % self.sub_dir
 

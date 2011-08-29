@@ -269,8 +269,6 @@ NetworkModelEMeshHopByHop::computeTileID(SInt32 x, SInt32 y)
 SInt32
 NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
 {
-   LOG_ASSERT_ERROR(_initialized, "EMesh Hop by Hop network not initialized");
-
    SInt32 num_application_tiles = (SInt32) Config::getSingleton()->getApplicationTiles();
    SInt32 mesh_width = (SInt32) floor(sqrt(1.0 * num_application_tiles));
    SInt32 mesh_height = (SInt32) ceil(1.0 * num_application_tiles / mesh_width);

@@ -218,7 +218,7 @@ ParallelExecute ()
       if (MY_TIME_STEP == 2) {
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-         // Reset Models
+         // Enable Models
          CarbonEnableModels();
       }
 
@@ -259,6 +259,9 @@ ParallelExecute ()
    }
    Local[my_id].init_done_times = local_init_done;
    BARRIER(G_Memory->synch, Number_Of_Processors);
+
+   // Disable Models
+   CarbonDisableModels();
 }
 
 

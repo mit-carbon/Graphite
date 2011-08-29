@@ -832,5 +832,8 @@ eof(double) +
     CLOCK(t1);
     gp[procid].total_time = t1-gp[procid].total_time;
   }
+
+  // Disable Models at the end of parallel execution
+  CarbonDisableModels();
 }
 

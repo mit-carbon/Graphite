@@ -419,6 +419,9 @@ void SlaveStart()
 
   BARINCLUDE(Global->start);
   OneSolve(n, block_size, MyNum, dostats);
+
+  // Disable Models at the end of parallel execution
+  CarbonDisableModels();
 }
 
 

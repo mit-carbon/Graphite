@@ -461,7 +461,8 @@ void slave_sort()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-   // Reset Models
+   
+   // Enable Performance Models
    CarbonEnableModels();
 
    BARRIER(global->barrier_key, number_of_processors) 
@@ -645,6 +646,9 @@ void slave_sort()
      global->rf = time6;
      global->final = to;
    }
+
+   // Disable Performance Models
+   CarbonDisableModels();
 
 }
 

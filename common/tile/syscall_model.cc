@@ -251,6 +251,15 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
          m_ret_val = marshallGetCwdCall(args);
          break;
 
+      case SYS_sched_setaffinity:
+         m_called_enter = true;
+         m_ret_val = marshallSchedSetAffinityCall(args);
+         break;
+
+      case SYS_sched_getaffinity:
+         m_called_enter = true;
+         m_ret_val = marshallSchedGetAffinityCall(args);
+         break;
 
       case -1:
       default:
@@ -1398,7 +1407,104 @@ IntPtr SyscallMdl::marshallGetCwdCall(syscall_args_t &args)
    return (carbon_reg_t) buf;
 }
 
+IntPtr SyscallMdl::marshallSchedSetAffinityCall(syscall_args_t &args)
+{
+   assert(false);
+   
+   /*
+       Syscall Args
+       pid_t pid, unsigned int cpusetsize, cpu_set_t *mask
 
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+       BUFFER            char[]
+
+       Receive
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+
+   */
+
+   pid_t pid = (pid_t) args.arg0;
+   unsigned int cpusetsize = (unsigned int) args.arg1;
+   cpu_set_t* mask = (cpu_set_t*) args.arg2;
+   int status = -1;
+
+   char *write_buf = new char [CPU_ALLOC_SIZE(cpusetsize)];
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, Core::READ, (IntPtr) mask, (char*) write_buf, CPU_ALLOC_SIZE(cpusetsize));
+
+   m_send_buff << pid << cpusetsize << write_buf;
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+   m_recv_buff >> status;
+
+   delete [] (Byte*) recv_pkt.data;
+   delete [] write_buf;
+
+   return status;
+
+}
+IntPtr SyscallMdl::marshallSchedGetAffinityCall(syscall_args_t &args)
+{
+   /*
+       Syscall Args
+       pid_t pid, unsigned int cpusetsize, cpu_set_t *mask
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+
+       Receive
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+       BUFFER              void *
+
+   */
+
+   pid_t pid = (pid_t) args.arg0;
+   unsigned int cpusetsize = (unsigned int) args.arg1;
+   cpu_set_t* mask = (cpu_set_t*) args.arg2;
+   int status = -1;
+
+   m_send_buff << pid << cpusetsize;
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   m_recv_buff >> status;
+
+   // Read data from MCP into a local buffer
+   char* read_buf = new char[CPU_ALLOC_SIZE(cpusetsize)];
+   m_recv_buff >> read_buf;
+
+   // Write the data to memory
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) mask, read_buf, CPU_ALLOC_SIZE(cpusetsize));
+
+   delete [] (Byte*) recv_pkt.data;
+   delete [] read_buf;
+
+   return status;
+}
 
 // Helper functions
 UInt32 SyscallMdl::getStrLen (char *str)

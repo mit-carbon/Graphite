@@ -625,6 +625,9 @@ void ThreadScheduler::yieldThread()
          m_core_lock[core_id.tile_id].release();
          m_core_lock[dst_core_id.tile_id].acquire();
          m_tile_manager->updateTLS(dst_core_id.tile_id, dst_thread_idx, m_tile_manager->getCurrentThreadId());
+
+         // Set PID of this thread
+         m_thread_manager->setPid(dst_core_id, dst_thread_idx, syscall(__NR_gettid));
       }
 
       m_thread_wait_cond[req_core_id.tile_id].broadcast();
@@ -636,6 +639,7 @@ void ThreadScheduler::yieldThread()
       }
 
       m_tile_manager->getCurrentCore()->setState(Core::RUNNING);
+
 
       m_last_start_time[dst_core_id.tile_id][dst_thread_idx] = (UInt32) time(NULL);
    }

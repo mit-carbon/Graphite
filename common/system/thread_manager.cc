@@ -113,7 +113,10 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
    assert(m_tile_manager->getCurrentCore()->getState() == Core::IDLE || m_tile_manager->getCurrentCore()->getState() == Core::STALLED);
 
-   //// Set the CoreState to 'RUNNING'
+   // Set PID of this thread
+   this->setPid(req->destination, req->destination_tidx, syscall(__NR_gettid));
+
+   // Set the CoreState to 'RUNNING'
    m_tile_manager->getCurrentCore()->setState(Core::RUNNING);
 
    // send message to master process to update global thread state 
@@ -606,6 +609,32 @@ thread_id_t ThreadManager::getNewThreadId(core_id_t core_id, thread_id_t thread_
    return new_thread_id;
 }
 
+void ThreadManager::setPid(core_id_t core_id, thread_id_t thread_idx, pid_t pid)
+{
+   LOG_PRINT("ThreadManager::setPid called for %i on {%i, %i} with pid %i", thread_idx, core_id.tile_id, core_id.core_type, pid);
+   m_tid_map_lock.acquire();
+   SInt32 req[] = { MCP_MESSAGE_THREAD_SET_PID,
+                  core_id.tile_id,
+                  core_id.core_type,
+                  thread_idx,
+                  pid};
+
+   Network *net = m_tile_manager->getCurrentCore()->getNetwork();
+
+   net->netSend(Config::getSingleton()->getMCPCoreId(),
+                MCP_REQUEST_TYPE,
+                &req,
+                sizeof(req));
+
+   m_tid_map_lock.release();
+}
+
+void ThreadManager::masterSetPid(tile_id_t tile_id, thread_id_t thread_idx, pid_t pid)
+{
+   m_thread_state[tile_id][thread_idx].pid = pid;
+}
+
+
 void ThreadManager::queryThreadIndex(thread_id_t thread_id, core_id_t &core_id, thread_id_t &thread_idx, thread_id_t &next_tidx)
 {
    LOG_PRINT("ThreadManager::queryThreadIndex called for tid %i", thread_id);
@@ -894,10 +923,77 @@ thread_id_t ThreadManager::isCoreRunning(tile_id_t tile_id)
    return thread_index;
 }
 
+int ThreadManager::setThreadAffinity(pid_t pid, cpu_set_t* set)
+{
+   LOG_PRINT("elau: getting thread affinity for pid %i", pid);
+   thread_id_t thread_index = INVALID_THREAD_ID;
+   tile_id_t tile_id = INVALID_TILE_ID;
+   int res = -1;
+
+   for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
+   {
+      for (SInt32 j = 0; j < (SInt32) m_thread_state[i].size(); j++)
+      {
+         if (m_thread_state[i][j].pid == pid)
+         {
+            if(thread_index == INVALID_THREAD_ID)
+            {
+               tile_id = i;
+               thread_index = j;
+            }
+            else
+               LOG_PRINT_ERROR("Two threads %i on %i and %i on %i have the same pid %i!", thread_index, tile_id, j, i, pid);
+         }
+      }
+   }
+
+   if (thread_index != INVALID_THREAD_ID)
+   {
+      res = 0;
+      setThreadAffinity(tile_id, thread_index, set);
+   }
+
+   return res;
+}
+
+
 void ThreadManager::setThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set)
 {
    CPU_ZERO_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), m_thread_state[tile_id][tidx].cpu_set);
    CPU_OR_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), m_thread_state[tile_id][tidx].cpu_set, set, set);
+}
+
+int ThreadManager::getThreadAffinity(pid_t pid, cpu_set_t* set)
+{
+   LOG_PRINT("elau: getting thread affinity for pid %i", pid);
+   thread_id_t thread_index = INVALID_THREAD_ID;
+   tile_id_t tile_id = INVALID_TILE_ID;
+   int res = -1;
+
+   for (SInt32 i = 0; i < (SInt32) m_thread_state.size(); i++)
+   {
+      for (SInt32 j = 0; j < (SInt32) m_thread_state[i].size(); j++)
+      {
+         if (m_thread_state[i][j].pid == pid)
+         {
+            if(thread_index == INVALID_THREAD_ID)
+            {
+               tile_id = i;
+               thread_index = j;
+            }
+            else
+               LOG_PRINT_ERROR("Two threads %i on %i and %i on %i have the same pid %i!", thread_index, tile_id, j, i, pid);
+         }
+      }
+   }
+
+   if (thread_index != INVALID_THREAD_ID)
+   {
+      res = 0;
+      getThreadAffinity(tile_id, thread_index, set);
+   }
+
+   return res;
 }
 
 void ThreadManager::getThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set)

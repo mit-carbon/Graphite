@@ -81,6 +81,8 @@ class SyscallServer
       void marshallRmdirCall(core_id_t core_id);
       void marshallUnlinkCall(core_id_t core_id);
       void marshallGetCwdCall(core_id_t core_id);
+      void marshallSchedSetAffinityCall(core_id_t core_id);
+      void marshallSchedGetAffinityCall(core_id_t core_id);
 
       // Handling Futexes 
       void futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);

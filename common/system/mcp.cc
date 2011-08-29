@@ -121,6 +121,13 @@ void MCP::processPacket()
    case MCP_MESSAGE_THREAD_GETAFFINITY_REQUEST:
       Sim()->getThreadScheduler()->masterSchedGetAffinity((ThreadAffinityRequest*)recv_pkt.data);
       break;
+
+    case MCP_MESSAGE_THREAD_SET_PID:
+      Sim()->getThreadManager()->masterSetPid(  *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                *(thread_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
+                                                *(pid_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(thread_id_t)));
+      break;
+
    case MCP_MESSAGE_QUERY_THREAD_INDEX:
       Sim()->getThreadManager()->masterQueryThreadIndex( *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
                                                          *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 

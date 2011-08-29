@@ -218,7 +218,7 @@ private:
 
    static SimulationMode parseSimulationMode(std::string mode);
    static UInt32 computeTileIDLength(UInt32 tile_count);
-   static UInt32 getNearestAcceptableTileCount(UInt32 tile_count);
+   static bool isTileCountPermissible(UInt32 tile_count);
 };
 
 #endif

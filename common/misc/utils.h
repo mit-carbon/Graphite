@@ -37,6 +37,15 @@ SInt32 floorLog2(UInt32 n);
 
 SInt32 ceilLog2(UInt32 n);
 
+// Checks if (n) is a perfect square
+
+bool isPerfectSquare(UInt32 n);
+
+// Is Even and Is Odd ?
+
+bool isEven(UInt32 n);
+bool isOdd(UInt32 n);
+
 // Max and Min functions
 template <class T>
 T getMin(T v1, T v2)

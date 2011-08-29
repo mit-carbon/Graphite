@@ -1,3 +1,4 @@
+#include <cmath>
 #include "utils.h"
 
 /* ================================================================ */
@@ -36,6 +37,18 @@ SInt32 floorLog2(UInt32 n)
 
 SInt32 ceilLog2(UInt32 n)
 { return floorLog2(n - 1) + 1; }
+
+bool isPerfectSquare(UInt32 n)
+{ 
+   UInt32 sqrtn = (UInt32) floor(sqrt((float) n));
+   return (n == (sqrtn * sqrtn)) ? true : false;
+}
+
+bool isEven(UInt32 n)
+{ return ((n%2) == 0); }
+
+bool isOdd(UInt32 n)
+{ return !isEven(n); }
 
 // Trim the beginning and ending spaces in a string
 string trimSpaces(string& str)

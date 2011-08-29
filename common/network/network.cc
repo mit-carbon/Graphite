@@ -8,6 +8,7 @@
 #include "tile_manager.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
+#include "network_model.h"
 #include "log.h"
 
 using namespace std;
@@ -39,6 +40,14 @@ Network::Network(Tile *tile)
       UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
       
       _models[i] = NetworkModel::createModel(this, i, network_model);
+   }
+
+   // Shared Memory Shortcut enabled
+   _shared_memory_shortcut_enabled = Sim()->getCfg()->getBool("general/enable_shared_memory_shortcut_for_network", false);
+   if (_shared_memory_shortcut_enabled)
+   {
+      LOG_ASSERT_ERROR(Config::getSingleton()->getProcessCount() == 1,
+                       "Cannot Enable Shared Memory Shortcut for (%i) processes", Config::getSingleton()->getProcessCount());
    }
 
    LOG_PRINT("Initialized.");
@@ -98,39 +107,24 @@ void Network::netPullFromTransport()
             "Packet type: %d not between 0 and %d", packet.type, NUM_PACKET_TYPES);
 
       NetworkModel* model = getNetworkModelFromPacketType(packet.type);
-     
-      UInt32 action = model->computeAction(packet);
-      
-      if (action & NetworkModel::RoutingAction::FORWARD)
+   
+      if (model->isPacketReadyToBeReceived(packet))   // Receive Packet
       {
-         LOG_PRINT("Forwarding packet : type %i, from {%i, %i}, to {%i, %i}, tile_id %i, time %llu.", 
-               (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
-         forwardPacket(packet);
-      }
-      
-      if (action & NetworkModel::RoutingAction::RECEIVE)
-      {
-         LOG_PRINT("Before Processing Received Packet: packet.time(%llu)", packet.time);
-         
          // I have accepted the packet - process the received packet
-         model->processReceivedPacket(packet);
-
-         LOG_PRINT("After Processing Received Packet: packet.time(%llu)", packet.time);
+         model->__processReceivedPacket(packet);
          
          // Convert from network cycle count to core cycle count
-         packet.time = convertCycleCount(packet.time,
-               getNetworkModelFromPacketType(packet.type)->getFrequency(),
-               _tile->getCore()->getPerformanceModel()->getFrequency());
-    
-         LOG_PRINT("After Converting Cycle Count: packet.time(%llu)", packet.time);
-         
+         packet.time = convertCycleCount(packet.time, model->getFrequency(),
+                                         _tile->getCore()->getPerformanceModel()->getFrequency());
+          
          // asynchronous I/O support
          NetworkCallback callback = _callbacks[packet.type];
 
          if (callback != NULL)
          {
             LOG_PRINT("Executing callback on packet : type %i, from {%i, %i}, to {%i, %i}, tile_id %i, cycle_count %llu", 
-                  (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
+                  (SInt32) packet.type, packet.sender.tile_id, packet.sender.core_type,
+                  packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
             assert(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod);
             assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
 
@@ -153,10 +147,13 @@ void Network::netPullFromTransport()
             _netQueueCond.broadcast();
          }
       }
-      else // if ((action & NetworkModel::RoutingAction::RECEIVE) == 0)
-      {
-         if (packet.length > 0)
-            delete [] (Byte*) packet.data;
+
+      else // Forward Packet
+      { 
+         LOG_PRINT("Forwarding packet : type %i, from {%i, %i}, to {%i, %i}, tile_id %i, time %llu.", 
+               (SInt32) packet.type, packet.sender.tile_id, packet.sender.core_type,
+               packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
+         forwardPacket(packet);
       }
    }
    while (_transport->query());
@@ -166,32 +163,43 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
 {
    // Create a buffer suitable for forwarding
    Byte* buffer = packet.makeBuffer();
-   NetPacket* buff_pkt = (NetPacket*) buffer;
+   NetPacket* buf_pkt = (NetPacket*) buffer;
 
-   LOG_ASSERT_ERROR((buff_pkt->type >= 0) && (buff_pkt->type < NUM_PACKET_TYPES),
-         "buff_pkt->type(%u)", buff_pkt->type);
+   LOG_ASSERT_ERROR((buf_pkt->type >= 0) && (buf_pkt->type < NUM_PACKET_TYPES),
+         "buf_pkt->type(%u)", buf_pkt->type);
 
-   NetworkModel *model = getNetworkModelFromPacketType(buff_pkt->type);
+   NetworkModel *model = getNetworkModelFromPacketType(buf_pkt->type);
 
-   vector<NetworkModel::Hop> hopVec;
-   model->routePacket(*buff_pkt, hopVec);
+   queue<NetworkModel::Hop> hop_queue;
+   model->__routePacket(*buf_pkt, hop_queue);
 
-   for (UInt32 i = 0; i < hopVec.size(); i++)
+   while (!hop_queue.empty())
    {
-      LOG_PRINT("Send packet : type %i, from {%i,%i}, to {%i, %i}, next_hop %i, tile_id %i, time %llu", \
-            (SInt32) buff_pkt->type, \
-            buff_pkt->sender.tile_id, buff_pkt->sender.core_type, \
-            hopVec[i].final_dest.tile_id, hopVec[i].final_dest.core_type, \
-            hopVec[i].next_dest.tile_id, \
-            _tile->getId(), hopVec[i].time);
+      NetworkModel::Hop hop = hop_queue.front();
+      hop_queue.pop();
 
-      buff_pkt->time = hopVec[i].time;
-      buff_pkt->receiver = hopVec[i].final_dest;
-      buff_pkt->specific = hopVec[i].specific;
-
-      _transport->send(hopVec[i].next_dest.tile_id, buffer, packet.bufferSize());
+      buf_pkt->node_type = hop._next_node_type;
+      buf_pkt->time = hop._time;
+      buf_pkt->zero_load_delay = hop._zero_load_delay;
+      buf_pkt->contention_delay = hop._contention_delay;
       
-      LOG_PRINT("Sent packet");
+      if ( (hop._next_node_type != NetworkModel::RECEIVE_TILE) && (_shared_memory_shortcut_enabled) )
+      {
+         Tile* next_tile = Sim()->getTileManager()->getTileFromID(hop._next_tile_id);
+         assert(next_tile);
+         NetworkModel* next_network_model = next_tile->getNetwork()->getNetworkModelFromPacketType(buf_pkt->type);
+         next_network_model->__routePacket(*buf_pkt, hop_queue);
+      }
+      else
+      {
+         LOG_PRINT("Send packet : type %i, from {%i,%i}, to {%i, %i}, next_hop %i, tile_id %i, time %llu",
+                   (SInt32) buf_pkt->type,
+                   buf_pkt->sender.tile_id, buf_pkt->sender.core_type,
+                   buf_pkt->receiver.tile_id, buf_pkt->receiver.core_type,
+                   hop._next_tile_id,
+                   _tile->getId(), hop._time);
+         _transport->send(hop._next_tile_id, buffer, packet.bufferSize());
+      }
    }
 
    delete [] buffer;
@@ -213,19 +221,31 @@ SInt32 Network::netSend(NetPacket& packet)
 
    assert(_tile);
 
+   NetworkModel* model = getNetworkModelFromPacketType(packet.type);
+
    // Convert from core cycle count to network cycle count
    packet.time = convertCycleCount(packet.time,
          _tile->getCore()->getPerformanceModel()->getFrequency(),
-         getNetworkModelFromPacketType(packet.type)->getFrequency());
+         model->getFrequency());
 
-   // Note the start time
-   packet.start_time = packet.time;
+   // Send packet as multiple packets if model has not broadcast capability and receiver is ALL
+   if ( (TILE_ID(packet.receiver) == NetPacket::BROADCAST) && (!model->hasBroadcastCapability()) )
+   {
+      for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
+      {
+         packet.receiver = CORE_ID(i);
+         SInt32 ret = forwardPacket(packet);
+         LOG_ASSERT_ERROR(ret == (SInt32) packet.length, "ret(%i) != packet.length(%u)", ret, packet.length);
+      }
+   }
 
-   // Update Send Counters
-   (getNetworkModelFromPacketType(packet.type))->updateSendCounters(packet);
+   else // (packet.receiver != NetPacket::BROADCAST) || (model->hasBroadcastCapability())
+   {
+      SInt32 ret = forwardPacket(packet);
+      LOG_ASSERT_ERROR(ret == (SInt32) packet.length, "ret(%i) != packet.length(%u)", ret, packet.length);
+   }
 
-   // Call forwardPacket(packet)
-   return forwardPacket(packet);
+   return packet.length;
 }
 
 // Stupid helper class to eliminate special cases for empty
@@ -450,16 +470,6 @@ NetPacket Network::netRecv(core_id_t src, PacketType type)
    return netRecv(match);
 }
 
-//NetPacket Network::netRecv(SInt32 src, PacketType type, UInt32 core_type)
-//{
-   //NetMatch match;
-   //match.senders.push_back(src);
-   //match.types.push_back(type);
-   //match.core_types.push_back((core_type_t) core_type);
-   //return netRecv(match);
-//}
-
-//NetPacket Network::netRecvFrom(SInt32 src)
 NetPacket Network::netRecvFrom(core_id_t src)
 {
    NetMatch match;
@@ -498,47 +508,30 @@ void Network::resetModels()
    }
 }
 
-// Modeling
-UInt32 Network::getModeledLength(const NetPacket& pkt)
-{
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
-   {
-      // packet_type + sender + receiver + length + shmem_msg.size()
-      // 1 byte for packet_type
-      // log2(core_id) for sender and receiver
-      // 2 bytes for packet length
-      UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getTileIDLength() + 2;
-      UInt32 data_size = getTile()->getCore()->getMemoryManager()->getModeledLength(pkt.data);
-      return metadata_size + data_size;
-   }
-   else
-   {
-      return pkt.bufferSize();
-   }
-}
-
 // -- NetPacket
 
 NetPacket::NetPacket()
-   : start_time(0)
-   , time(0)
+   : time(0)
    , type(INVALID_PACKET_TYPE)
    , sender(INVALID_CORE_ID)
    , receiver(INVALID_CORE_ID)
-   , specific(-1)
+   , node_type(NetworkModel::SEND_TILE)
    , length(0)
    , data(0)
+   , zero_load_delay(0)
+   , contention_delay(0)
 {
 }
 
 NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
                      SInt32 r, UInt32 l, const void *d)
-   : start_time(0)
-   , time(t)
+   : time(t)
    , type(ty)
-   , specific(-1)
+   , node_type(NetworkModel::SEND_TILE)
    , length(l)
    , data(d)
+   , zero_load_delay(0)
+   , contention_delay(0)
 {
    sender = Sim()->getTileManager()->getMainCoreId(s);
    receiver = Sim()->getTileManager()->getMainCoreId(r);
@@ -547,14 +540,15 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
 
 NetPacket::NetPacket(UInt64 t, PacketType ty, core_id_t s,
                      core_id_t r, UInt32 l, const void *d)
-   : start_time(0)
-   , time(t)
+   : time(t)
    , type(ty)
    , sender(s)
    , receiver(r)
-   , specific(-1)
+   , node_type(NetworkModel::SEND_TILE)
    , length(l)
    , data(d)
+   , zero_load_delay(0)
+   , contention_delay(0)
 {
 }
 

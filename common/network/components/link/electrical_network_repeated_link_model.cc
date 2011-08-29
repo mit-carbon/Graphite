@@ -5,11 +5,9 @@
 #include "config.h"
 #include "log.h"
 
-ElectricalNetworkRepeatedLinkModel::ElectricalNetworkRepeatedLinkModel(volatile float link_frequency, volatile double link_length, UInt32 link_width):
-   _frequency(link_frequency),
-   _link_length(link_length),
-   _link_width(link_width),
-   _total_dynamic_energy(0)
+ElectricalNetworkRepeatedLinkModel::ElectricalNetworkRepeatedLinkModel(NetworkModel* model, volatile float link_frequency,
+                                                                       volatile double link_length, UInt32 link_width)
+   : ElectricalNetworkLinkModel(model, link_frequency, link_length, link_width)
 {
    try
    {
@@ -28,22 +26,11 @@ ElectricalNetworkRepeatedLinkModel::ElectricalNetworkRepeatedLinkModel(volatile 
    }
    
    _net_link_delay = (UInt64) ceil(_delay_per_mm * _link_length);
+   _total_static_power = _link_width * _static_link_power_per_mm * _link_length;
 }
 
 ElectricalNetworkRepeatedLinkModel::~ElectricalNetworkRepeatedLinkModel()
 {}
-
-UInt64
-ElectricalNetworkRepeatedLinkModel::getDelay()
-{
-   return _net_link_delay;
-}
-
-volatile double
-ElectricalNetworkRepeatedLinkModel::getStaticPower()
-{
-   return _link_width * _static_link_power_per_mm * _link_length;
-}
 
 void
 ElectricalNetworkRepeatedLinkModel::updateDynamicEnergy(UInt32 num_bit_flips, UInt32 num_flits)

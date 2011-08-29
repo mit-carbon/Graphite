@@ -6,11 +6,13 @@ using namespace std;
 
 #include "network_model_magic.h"
 #include "network_model_emesh_hop_counter.h"
-#include "network_model_analytical.h"
+// #include "network_model_analytical.h"
 #include "network_model_emesh_hop_by_hop.h"
-#include "network_model_eclos.h"
+// #include "network_model_eclos.h"
 #include "network_model_atac.h"
 #include "memory_manager_base.h"
+#include "simulator.h"
+#include "config.h"
 #include "clock_converter.h"
 #include "log.h"
 
@@ -32,6 +34,18 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id):
    else
       LOG_PRINT_ERROR("Unrecognized Network Num(%u)", network_id);
 
+   // Get the Tile ID
+   _tile_id = getNetwork()->getTile()->getId();
+   // Get the Tile Width
+   try
+   {
+      _tile_width = Sim()->getCfg()->getFloat("general/tile_width");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read tile_width from the cfg file");
+   }
+
    // Initialize Event Counters
    initializeEventCounters();
 }
@@ -47,14 +61,14 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
    case NETWORK_EMESH_HOP_COUNTER:
       return new NetworkModelEMeshHopCounter(net, network_id);
 
-   case NETWORK_ANALYTICAL_MESH:
-      return new NetworkModelAnalytical(net, network_id);
+//    case NETWORK_ANALYTICAL_MESH:
+//       return new NetworkModelAnalytical(net, network_id);
 
    case NETWORK_EMESH_HOP_BY_HOP:
       return new NetworkModelEMeshHopByHop(net, network_id);
 
-   case NETWORK_ECLOS:
-      return new NetworkModelEClos(net, network_id);
+//    case NETWORK_ECLOS:
+//       return new NetworkModelEClos(net, network_id);
 
    case NETWORK_ATAC:
       return new NetworkModelAtac(net, network_id);
@@ -63,6 +77,84 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);
       return NULL;
    }
+}
+
+bool
+NetworkModel::isPacketReadyToBeReceived(const NetPacket& pkt)
+{
+   if ( (_network_id >= STATIC_NETWORK_USER_1) && (_network_id <= STATIC_NETWORK_MEMORY_2) )
+   {
+      return (pkt.node_type == RECEIVE_TILE);
+   }
+   else
+   {
+      assert(TILE_ID(pkt.receiver) == _tile_id);
+      return true;
+   }
+}
+
+void
+NetworkModel::__routePacket(const NetPacket& pkt, queue<Hop>& next_hops)
+{
+   ScopedLock sl(_lock);
+
+   tile_id_t pkt_sender = TILE_ID(pkt.sender);
+   tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
+
+   if (pkt.node_type == SEND_TILE)
+   {
+      LOG_ASSERT_ERROR(pkt_sender == _tile_id, "pkt_sender(%i), _tile_id(%i), name(%s)", pkt_sender, _tile_id, _network_name.c_str());
+      bool processed = processCornerCases(pkt, next_hops);
+      if (processed)
+         return;
+
+      if (isModelEnabled(pkt))
+      {
+         // Update Send Counters
+         updateSendCounters(pkt);
+      }
+   }
+
+   assert( isApplicationTile(pkt_sender)                                               &&
+           (isApplicationTile(pkt_receiver) || (pkt_receiver == NetPacket::BROADCAST)) &&
+           (pkt_sender != pkt_receiver) );
+
+   // Call the routePacket() of the network model
+   routePacket(pkt, next_hops);
+}
+
+void
+NetworkModel::__processReceivedPacket(NetPacket& pkt)
+{
+   ScopedLock sl(_lock);
+
+   tile_id_t pkt_sender = TILE_ID(pkt.sender);
+   tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
+  
+   if (_network_id != STATIC_NETWORK_SYSTEM)
+      assert(pkt.node_type == RECEIVE_TILE);
+
+   if ( (isSystemTile(pkt_sender))     ||
+        (isSystemTile(_tile_id))       ||
+        (pkt_sender == pkt_receiver)   ||
+        (!isModelEnabled(pkt)) )
+      return;
+
+   // Do modifications of packet time
+   processReceivedPacket(pkt);
+
+   // Update Receive Counters
+   updateReceiveCounters(pkt);
+}
+
+void
+NetworkModel::processReceivedPacket(NetPacket& pkt)
+{
+   // Add serialization latency due to finite link bandwidth
+   UInt64 num_flits = computeNumFlits(getModeledLength(pkt));
+
+   pkt.time += num_flits;
+   pkt.zero_load_delay += num_flits;
 }
 
 tile_id_t
@@ -103,14 +195,59 @@ NetworkModel::initializeEventCounters()
    _total_contention_delay = 0;
 }
 
+bool
+NetworkModel::isModelEnabled(const NetPacket& pkt)
+{
+   tile_id_t requester = getRequester(pkt);
+   return ( _enabled && 
+            (isApplicationTile(requester)) &&
+            (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
+}
+
 UInt32
+NetworkModel::getModeledLength(const NetPacket& pkt)
+{   
+   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+   {
+      // packet_type + sender + receiver + length + shmem_msg.size()
+      // 1 byte for packet_type
+      // log2(core_id) for sender and receiver
+      // 2 bytes for packet length
+      UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getTileIDLength() + 2;
+      UInt32 data_size = getNetwork()->getTile()->getCore()->getMemoryManager()->getModeledLength(pkt.data);
+      return metadata_size + data_size;
+   }
+   else
+   {
+      return pkt.bufferSize();
+   }
+}
+
+SInt32
 NetworkModel::computeNumFlits(UInt32 packet_length)
 {
-   UInt32 num_bits = packet_length * 8;
-   if ( (num_bits % getFlitWidth()) == 0 )
-      return (num_bits / getFlitWidth());
+   if (_flit_width == -1)
+      return 0;
+
+   SInt32 num_bits = packet_length * 8;
+   if ( (num_bits % _flit_width) == 0 )
+      return (num_bits / _flit_width);
    else
-      return ( (num_bits / getFlitWidth()) + 1 );
+      return ( (num_bits / _flit_width) + 1 );
+}
+
+bool
+NetworkModel::isApplicationTile(tile_id_t tile_id)
+{
+   return ( (0 <= tile_id) && (tile_id < (tile_id_t) Config::getSingleton()->getApplicationTiles()) );
+}
+
+// Is System Tile - Thread Spawner or MCP
+bool
+NetworkModel::isSystemTile(tile_id_t tile_id)
+{
+   return ( (tile_id >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) &&
+            (tile_id < (tile_id_t) Config::getSingleton()->getTotalTiles()) );
 }
 
 void
@@ -119,14 +256,10 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
    tile_id_t sender = TILE_ID(packet.sender);
    tile_id_t receiver = TILE_ID(packet.receiver);
 
-   tile_id_t requester = getRequester(packet);
-   if ( (!_enabled) ||
-        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
-        (sender == receiver) )
-      return;
+   assert(sender == _tile_id);
 
-   UInt32 packet_length = getNetwork()->getModeledLength(packet);
-   UInt32 num_flits = computeNumFlits(packet_length);
+   UInt32 packet_length = getModeledLength(packet);
+   SInt32 num_flits = computeNumFlits(packet_length);
    
    _total_packets_sent ++;
    _total_flits_sent += num_flits;
@@ -141,28 +274,20 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
 }
 
 void
-NetworkModel::updateReceiveCounters(const NetPacket& packet, UInt64 zero_load_latency)
+NetworkModel::updateReceiveCounters(const NetPacket& packet)
 {
-   tile_id_t sender = TILE_ID(packet.sender);
    tile_id_t receiver = TILE_ID(packet.receiver);
-
-   tile_id_t requester = getRequester(packet);
-   if ( (!_enabled) ||
-        (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()) ||
-        (sender == receiver) )
-      return;
-
-   assert( (receiver == NetPacket::BROADCAST) || (receiver == getNetwork()->getTile()->getId()) );
-
-   UInt32 packet_length = getNetwork()->getModeledLength(packet);
-   UInt32 num_flits = computeNumFlits(packet_length);
+   assert( (receiver == NetPacket::BROADCAST) || (receiver == _tile_id) );
+   
+   UInt32 packet_length = getModeledLength(packet);
+   SInt32 num_flits = computeNumFlits(packet_length);
 
    _total_packets_received ++;
    _total_flits_received += num_flits;
    _total_bytes_received += packet_length;
 
-   UInt64 packet_latency = packet.time - packet.start_time;
-   UInt64 contention_delay = packet_latency - zero_load_latency;
+   UInt64 packet_latency = packet.zero_load_delay + packet.contention_delay;
+   UInt64 contention_delay = packet.contention_delay;
    _total_packet_latency += packet_latency;
    _total_contention_delay += contention_delay;
 }
@@ -226,29 +351,29 @@ NetworkModel::parseNetworkType(string str)
       return (UInt32)-1;
 }
 
-pair<bool,SInt32> 
-NetworkModel::computeTileCountConstraints(UInt32 network_type, SInt32 tile_count)
+bool
+NetworkModel::isTileCountPermissible(UInt32 network_type, SInt32 tile_count)
 {
    switch (network_type)
    {
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
-      case NETWORK_ANALYTICAL_MESH:
-         return make_pair(false,tile_count);
+//       case NETWORK_ANALYTICAL_MESH:
+         return true;
 
       case NETWORK_EMESH_HOP_BY_HOP:
-         return NetworkModelEMeshHopByHop::computeTileCountConstraints(tile_count);
+         return NetworkModelEMeshHopByHop::isTileCountPermissible(tile_count);
 
-      case NETWORK_ECLOS:
-         return NetworkModelEClos::computeTileCountConstraints(tile_count);
+//       case NETWORK_ECLOS:
+//          return NetworkModelEClos::isTileCountPermissible(tile_count);
 
       case NETWORK_ATAC:
-         return NetworkModelAtac::computeTileCountConstraints(tile_count);
+         return NetworkModelAtac::isTileCountPermissible(tile_count);
       
       default:
          fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
          assert(false);
-         return make_pair(false,-1);
+         return false;
    }
 }
 
@@ -259,8 +384,8 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
    {
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
-      case NETWORK_ANALYTICAL_MESH:
-      case NETWORK_ECLOS:
+//       case NETWORK_ANALYTICAL_MESH:
+//       case NETWORK_ECLOS:
          {
             SInt32 spacing_between_memory_controllers = tile_count / num_memory_controllers;
             vector<tile_id_t> tile_list_with_memory_controllers;
@@ -291,9 +416,9 @@ NetworkModel::computeProcessToTileMapping(UInt32 network_type)
    switch(network_type)
    {
       case NETWORK_MAGIC:
-      case NETWORK_ANALYTICAL_MESH:
       case NETWORK_EMESH_HOP_COUNTER:
-      case NETWORK_ECLOS:
+//       case NETWORK_ANALYTICAL_MESH:
+//       case NETWORK_ECLOS:
          return make_pair(false, vector<vector<tile_id_t> >());
 
       case NETWORK_EMESH_HOP_BY_HOP:
@@ -308,3 +433,72 @@ NetworkModel::computeProcessToTileMapping(UInt32 network_type)
          return make_pair(false, vector<vector<tile_id_t> >());
    }
 }
+
+bool
+NetworkModel::processCornerCases(const NetPacket& pkt, queue<Hop>& next_hops)
+{
+   tile_id_t pkt_sender = TILE_ID(pkt.sender);
+   tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
+
+   assert(pkt_sender == _tile_id);
+
+   if (pkt_sender == pkt_receiver)
+   {
+      next_hops.push(Hop(pkt, pkt_receiver, RECEIVE_TILE));
+   }
+
+   else if (isSystemTile(pkt_sender))
+   {
+      if (pkt_receiver == NetPacket::BROADCAST)
+      {
+         for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
+         {
+            next_hops.push(Hop(pkt, i, RECEIVE_TILE));
+         }
+      }
+      else // (pkt_receiver != NetPacket::BROADCAST)
+      {
+         next_hops.push(Hop(pkt, pkt_receiver, RECEIVE_TILE));
+      }
+   }
+
+   else if (isSystemTile(pkt_receiver))
+   {
+      next_hops.push(Hop(pkt, pkt_receiver, RECEIVE_TILE));
+   }
+
+   else
+   {
+      assert( (pkt_sender != pkt_receiver)                                                   &&
+              isApplicationTile(pkt_sender)                                                  &&
+              (isApplicationTile(pkt_receiver) || (pkt_receiver == NetPacket::BROADCAST)) );
+
+      if (pkt_receiver == NetPacket::BROADCAST)
+      {
+         for (tile_id_t i = (tile_id_t) Config::getSingleton()->getApplicationTiles();
+                        i < (tile_id_t) Config::getSingleton()->getTotalTiles();
+                        i++)
+         {
+            next_hops.push(Hop(pkt, i, RECEIVE_TILE));
+         }
+      }
+
+      // Only case where further processing is necessary
+      return false;
+   }
+
+   // Completed processing corner cases
+   return true;
+}
+
+NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,
+                       UInt64 zero_load_delay, UInt64 contention_delay)
+   : _next_tile_id(next_tile_id)
+   , _next_node_type(next_node_type)
+   , _time(pkt.time + contention_delay + zero_load_delay)
+   , _zero_load_delay(pkt.zero_load_delay + zero_load_delay)
+   , _contention_delay(pkt.contention_delay + contention_delay)
+{}
+
+NetworkModel::Hop::~Hop()
+{}

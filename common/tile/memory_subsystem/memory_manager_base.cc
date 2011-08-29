@@ -5,6 +5,7 @@ using namespace std;
 #include "memory_manager_base.h"
 #include "pr_l1_pr_l2_dram_directory_msi/memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
+#include "network_model.h"
 #include "log.h"
 
 MemoryManagerBase* 

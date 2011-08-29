@@ -83,8 +83,10 @@ Config::Config()
    // Parse Network Models - Need to be done here to initialize the network models 
    parseNetworkParameters();
 
-   // Adjust the number of tiles corresponding to the network model we use
-   m_total_tiles = getNearestAcceptableTileCount(m_total_tiles);
+   // Check if any of the on-chip networks have restrictions on the tile_count
+   // If those restrictions are not met, quit
+   if (!isTileCountPermissible(m_application_tiles))
+      exit(-1);
 
    // Parse Core Models
    parseCoreParameters();
@@ -579,32 +581,17 @@ string Config::getNetworkType(SInt32 network_id)
    return m_network_parameters_vec[network_id].getType();
 }
 
-UInt32 Config::getNearestAcceptableTileCount(UInt32 tile_count)
+bool Config::isTileCountPermissible(UInt32 tile_count)
 {
-   UInt32 nearest_acceptable_tile_count = 0;
-   
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
-      pair<bool,SInt32> tile_count_constraints = NetworkModel::computeTileCountConstraints(network_model, (SInt32) tile_count);
-      if (tile_count_constraints.first)
+      bool permissible = NetworkModel::isTileCountPermissible(network_model, (SInt32) tile_count);
+      if (!permissible)
       {
-         // Network Model has tile count constraints
-         if ((nearest_acceptable_tile_count != 0) && 
-             (tile_count_constraints.second != (SInt32) nearest_acceptable_tile_count))
-         {
-            fprintf(stderr, "Problem using the network models specified in the configuration file\n");
-            exit(EXIT_FAILURE);
-         }
-         else
-         {
-            nearest_acceptable_tile_count = tile_count_constraints.second;
-         }
+         fprintf(stderr, "Problem using the network models specified in the cfg file\n");
+         return false;
       }
    }
-
-   if (nearest_acceptable_tile_count == 0)
-      nearest_acceptable_tile_count = tile_count;
-
-   return nearest_acceptable_tile_count;
+   return true;
 }

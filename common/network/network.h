@@ -9,31 +9,29 @@
 #include "cond.h"
 #include "semaphore.h"
 #include "transport.h"
-#include "network_model.h"
-
-// TODO: Do we need to support multicast to some (but not all)
-// destinations?
 
 class Tile;
 class Network;
+class NetworkModel;
 
 // -- Network Packets -- //
 
 class NetPacket
 {
 public:
-   UInt64 start_time;
    UInt64 time;
    PacketType type;
    
    core_id_t sender;
    core_id_t receiver;
 
-   // This field may be used by specific network models in whatever way they please
-   UInt32 specific;
+   SInt32 node_type;
    
    UInt32 length;
    const void *data;
+
+   UInt64 zero_load_delay;
+   UInt64 contention_delay;
 
    NetPacket();
    explicit NetPacket(Byte*);
@@ -106,9 +104,6 @@ class Network
       // -- Network Models -- //
       NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
 
-      // Modeling
-      UInt32 getModeledLength(const NetPacket& pkt);
-
    private:
       NetworkModel * _models[NUM_STATIC_NETWORKS];
 
@@ -126,6 +121,9 @@ class Network
       ConditionVariable _netQueueCond;
       ConditionVariable _netHelperQueueCond;
       Semaphore _netQueueSem;
+      
+      // ShortCut available through shared memory
+      bool _shared_memory_shortcut_enabled;
 
       SInt32 forwardPacket(const NetPacket& packet);
 };

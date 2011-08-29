@@ -6,8 +6,8 @@ using namespace std;
 
 #include "queue_model.h"
 #include "network.h"
-#include "lock.h"
-#include "electrical_network_router_model.h"
+#include "network_model.h"
+#include "network_router_model.h"
 #include "electrical_network_link_model.h"
 #include "optical_network_link_model.h"
 
@@ -15,198 +15,160 @@ using namespace std;
 // 1 sender, N receivers (1 to N)
 class NetworkModelAtac : public NetworkModel
 {
-   private:
-      enum NetworkComponentType
-      {
-         INVALID_COMPONENT = 0,
-         MIN_COMPONENT_TYPE,
-         SENDER_HUB = MIN_COMPONENT_TYPE,
-         RECEIVER_HUB,
-         SENDER_TILE,
-         RECEIVER_TILE,
-         MAX_COMPONENT_TYPE = RECEIVER_TILE,
-         NUM_COMPONENT_TYPES = MAX_COMPONENT_TYPE - MIN_COMPONENT_TYPE
-      };
+public:
+   NetworkModelAtac(Network *net, SInt32 network_id);
+   ~NetworkModelAtac();
 
-      enum SubNetworkType
-      {
-         MESH_NETWORK = 0,
-         OPTICAL_NETWORK,
-         BROADCAST_NETWORK,
-         NUM_SUB_NETWORK_TYPES
-      };
+   void routePacket(const NetPacket &pkt, queue<Hop> &nextHops);
 
-      enum MeshNetworkOutputDirection
-      {
-         UP = 0,
-         DOWN,
-         LEFT,
-         RIGHT,
-         NUM_MESH_NETWORK_OUTPUT_DIRECTIONS,
-         SELF
-      };
+   static bool isTileCountPermissible(SInt32 tile_count);
+   static pair<bool, vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
+   static pair<bool, vector<vector<tile_id_t> > > computeProcessToTileMapping();
 
-      enum GlobalRoutingStrategy
-      {
-         CLUSTER_BASED = 0,
-         DISTANCE_BASED
-      };
+   void reset() {}
+   void outputSummary(std::ostream &out);
 
-      enum GlobalRoute
-      {
-         GLOBAL_ENET = 0,
-         GLOBAL_ANET
-      };
+private:
+   enum NodeType
+   {
+      EMESH = 2,  // Start at 2 always
+      SEND_HUB,
+      RECEIVE_HUB,
+      STAR_NET_ROUTER_BASE
+   };
 
-      enum LocalRoute
-      {
-         LOCAL_ENET = 0,
-         LOCAL_BNET
-      };
+   enum OutputDirection
+   {
+      SELF = 0,
+      LEFT,
+      RIGHT,
+      DOWN,
+      UP
+   };
 
-      tile_id_t m_tile_id;
-      
-      // ANet topology parameters
-      static UInt32 m_total_tiles;
-      static UInt32 m_num_clusters;
-      static SInt32 m_cluster_size;
-      static SInt32 m_sqrt_cluster_size;
-      static SInt32 m_mesh_width;
-      static SInt32 m_mesh_height;
-      UInt32 m_num_broadcast_networks_per_cluster;
-      
-      // Routing Algorithm
-      static GlobalRoutingStrategy m_global_routing_strategy;
-      static LocalRoute m_local_route;
-      static UInt32 m_unicast_routing_threshold;
+   enum GlobalRoutingStrategy
+   {
+      CLUSTER_BASED = 0,
+      DISTANCE_BASED
+   };
 
-      // Frequency Parameters
-      volatile float m_mesh_network_frequency;
-      volatile float m_optical_network_frequency;
-      volatile float m_broadcast_network_frequency;
+   enum GlobalRoute
+   {
+      GLOBAL_ENET = 0,
+      GLOBAL_ONET
+   };
 
-      // Latency Parameters
-      UInt32 m_num_mesh_network_router_ports;
-      UInt64 m_mesh_network_hop_delay;
-      UInt64 m_optical_network_link_delay;
-      UInt64 m_broadcast_network_delay;
+   enum ReceiveNetType
+   {
+      HTREE = 0,
+      STAR
+   };
 
-      // Router & Link Power Models
-      ElectricalNetworkRouterModel* m_mesh_network_router_model;
-      ElectricalNetworkLinkModel* m_mesh_network_link_model;
-      OpticalNetworkLinkModel* m_optical_network_link_model;
-      ElectricalNetworkLinkModel* m_broadcast_network_link_model;
-
-      // Link Width Parameters
-      UInt32 m_mesh_network_link_width;
-      UInt32 m_optical_network_link_width;
-      UInt32 m_broadcast_network_link_width;
-
-      // Link Type Parameters
-      string m_mesh_network_link_type;
-      string m_broadcast_network_link_type;
-
-      // Bandwidth Parameters
-      volatile double m_mesh_network_bandwidth;
-      volatile double m_optical_network_bandwidth;
-      volatile double m_broadcast_network_bandwidth;
-      volatile double m_effective_anet_bandwidth;
-
-      // Optical Hub models
-      QueueModel* m_sender_hub_queue_model;
-      QueueModel** m_receiver_hub_queue_models;
-      // Locks for the Queue Models
-      Lock m_sender_hub_lock;
-      Lock m_receiver_hub_lock;
-
-      // Gather Network Queue Models
-      QueueModel* m_mesh_network_queue_models[NUM_MESH_NETWORK_OUTPUT_DIRECTIONS];
-
-      // Queue Models
-      bool m_queue_model_enabled;
-      string m_queue_model_type;
-
-      // General Lock
-      Lock m_lock;
-
-      // Performance Counters
-      UInt64 m_total_sender_hub_contention_delay;
-      UInt64 m_total_sender_hub_packets;
-      UInt64 m_total_buffered_sender_hub_packets;
-
-      UInt64* m_total_receiver_hub_contention_delay;
-      UInt64* m_total_receiver_hub_packets;
-      UInt64* m_total_buffered_receiver_hub_packets;
-
-      // Event Counters
-      UInt64 m_mesh_network_router_buffer_reads;
-      UInt64 m_mesh_network_router_buffer_writes;
-      UInt64 m_mesh_network_router_switch_allocator_traversals;
-      UInt64 m_mesh_network_router_crossbar_traversals;
-      UInt64 m_mesh_network_link_traversals;
-      UInt64 m_optical_network_link_traversals;
-      UInt64 m_broadcast_network_link_traversals;
-
-      // Private Functions
-      static SInt32 getClusterID(core_id_t core_id);
-      static SInt32 getClusterID(tile_id_t tile_id);
-      static tile_id_t getTileIDWithOpticalHub(SInt32 cluster_id);
-      static void getTileIDListInCluster(SInt32 cluster_id, vector<tile_id_t>& tile_id_list);
-
-      UInt64 routePacketOnMeshNetwork(const NetPacket& pkt, tile_id_t next_receiver);
-
-      static UInt32 computeNumHopsOnMeshNetwork(tile_id_t sender, tile_id_t receiver);
-      static void computePositionOnMeshNetwork(tile_id_t tile_id, SInt32& x, SInt32& y);
-      static tile_id_t computeTileIdOnMeshNetwork(SInt32 x, SInt32 y);
-      UInt64 computeLatencyOnMeshNetwork(MeshNetworkOutputDirection direction, UInt64 time, UInt32 pkt_length);
-      tile_id_t getNextDestOnMeshNetwork(tile_id_t next_receiver, MeshNetworkOutputDirection& direction);
-
-      UInt64 getHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, SInt32 cluster_id, UInt64 pkt_time, const NetPacket& pkt);
-
-      static UInt64 computeProcessingTime(UInt32 pkt_length, volatile double bandwidth);
-
-      static void initializeANetTopologyParams();
-      void createANetRouterAndLinkModels();
-      void destroyANetRouterAndLinkModels();
-      
-      void createOpticalHub();
-      void destroyOpticalHub();
-      void createQueueModels();
-      void destroyQueueModels();
-
-      void initializeEventCounters();
-
-      void outputHubSummary(ostream& out);
-      
-      // Energy/Power related functions
-      void updateDynamicEnergy(SubNetworkType sub_net_type, const NetPacket& pkt);
-      void outputPowerSummary(ostream& out);
-
-      // Routing
-      GlobalRoute computeGlobalRoute(core_id_t sender, core_id_t receiver);
-      static GlobalRoutingStrategy parseGlobalRoutingStrategy(string strategy);
-      static LocalRoute parseLocalRoute(string route);
-
-      UInt32 getFlitWidth() { return m_mesh_network_link_width; }
-
+   static bool _initialized;
+   
+   // ENet
+   static SInt32 _enet_width;
+   static SInt32 _enet_height;
+   
+   // Clusters
+   static SInt32 _num_clusters;
+   static SInt32 _cluster_size;
+   static SInt32 _numX_clusters;
+   static SInt32 _numY_clusters;
+   static SInt32 _cluster_width;
+   static SInt32 _cluster_height;
+   
+   // Sub Clusters
+   static SInt32 _num_access_points_per_cluster;
+   static SInt32 _num_sub_clusters;
+   static SInt32 _numX_sub_clusters;
+   static SInt32 _numY_sub_clusters;
+   static SInt32 _sub_cluster_width;
+   static SInt32 _sub_cluster_height;
+   
+   // Cluster Boundaries and Access Points
+   class ClusterInfo
+   {
    public:
-      NetworkModelAtac(Network *net, SInt32 network_id);
-      ~NetworkModelAtac();
+      class Boundary
+      { 
+      public:
+         Boundary()
+            : minX(0), maxX(0), minY(0), maxY(0) {}
+         Boundary(SInt32 minX_, SInt32 maxX_, SInt32 minY_, SInt32 maxY_)
+            : minX(minX_), maxX(maxX_), minY(minY_), maxY(maxY_) {}
+         ~Boundary() {}
+         SInt32 minX, maxX, minY, maxY;
+      };
+      Boundary _boundary;
+      vector<tile_id_t> _access_point_list;
+   };
 
-      volatile float getFrequency() { return m_mesh_network_frequency; }
+   static vector<ClusterInfo> _cluster_info_list;
+   
+   // Type of Receive Network
+   static ReceiveNetType _receive_net_type;
+   // Num Receive Nets
+   static SInt32 _num_receive_networks_per_cluster;
+   
+   // Global Routing Strategy
+   static GlobalRoutingStrategy _global_routing_strategy;
+   static SInt32 _unicast_distance_threshold;
 
-      UInt32 computeAction(const NetPacket& pkt);
-      void routePacket(const NetPacket &pkt, std::vector<Hop> &nextHops);
-      void processReceivedPacket(NetPacket& pkt);
+   // Injection Port Router
+   NetworkRouterModel* _injection_router;
 
-      static pair<bool,SInt32> computeTileCountConstraints(SInt32 tile_count);
-      static pair<bool, vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
-      static pair<bool, vector<vector<tile_id_t> > > computeProcessToTileMapping();
- 
-      void reset() {}
-      void outputSummary(std::ostream &out);
-      
-      // Only for NetworkModelAtac
-      UInt64 computeHubQueueDelay(NetworkComponentType hub_type, SInt32 sender_cluster_id, UInt64 pkt_time, const NetPacket& pkt);
-      pair<tile_id_t,UInt64> __routePacketOnMeshNetwork(const NetPacket& pkt, UInt64 pkt_time, UInt32 pkt_length, tile_id_t next_receiver);
+   // Latency Parameters
+   SInt32 _num_enet_router_ports;
+   // Router & Link Models
+   // ENet Router & Link
+   NetworkRouterModel* _enet_router;
+   vector<ElectricalNetworkLinkModel*> _enet_link_list;
+   
+   // Send Hub Router
+   NetworkRouterModel* _send_hub_router;
+   // Receive Hub Router
+   NetworkRouterModel* _receive_hub_router;
+   // Opto-electronic Link
+   OpticalNetworkLinkModel* _optical_link;
+   
+   // Htree Link List
+   vector<ElectricalNetworkLinkModel*> _htree_link_list;
+   // Star Net Router + Link List
+   vector<NetworkRouterModel*> _star_net_router_list;
+   vector<vector<ElectricalNetworkLinkModel*> > _star_net_link_list;
+
+   // Private Functions
+   void routePacketOnENet(const NetPacket& pkt, tile_id_t sender, tile_id_t receiver, queue<Hop>& next_hops);
+   void routePacketOnONet(const NetPacket& pkt, tile_id_t sender, tile_id_t receiver, queue<Hop>& next_hops);
+
+   static void initializeANetTopologyParams();
+   void createANetRouterAndLinkModels();
+   void destroyANetRouterAndLinkModels();
+   
+   void outputEventCountSummary(ostream& out);
+  
+   // Static Functions
+   static void initializeClusters();
+   static void initializeAccessPointList(SInt32 cluster_id);
+   static SInt32 getClusterID(tile_id_t tile_id);
+   static SInt32 getSubClusterID(tile_id_t tile_id);
+   static tile_id_t getNearestAccessPoint(tile_id_t tile_id);
+   bool isAccessPoint(tile_id_t tile_id);
+   static tile_id_t getTileIDWithOpticalHub(SInt32 cluster_id);
+   static void getTileIDListInCluster(SInt32 cluster_id, vector<tile_id_t>& tile_id_list);
+   static SInt32 getIndexInList(tile_id_t tile_id, vector<tile_id_t>& tile_id_list);
+    
+   static SInt32 computeNumHopsOnENet(tile_id_t sender, tile_id_t receiver);
+   static void computePositionOnENet(tile_id_t tile_id, SInt32& x, SInt32& y);
+   static tile_id_t computeTileIDOnENet(SInt32 x, SInt32 y);
+   static SInt32 computeReceiveNetID(tile_id_t sender);
+
+   // Compute Waveguide Length
+   volatile double computeOpticalLinkLength();
+
+   // Routing
+   static GlobalRoutingStrategy parseGlobalRoutingStrategy(string strategy);
+   GlobalRoute computeGlobalRoute(tile_id_t sender, tile_id_t receiver);
+   static ReceiveNetType parseReceiveNetType(string receive_net_type);
 };

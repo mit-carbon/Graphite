@@ -3,66 +3,66 @@ using namespace std;
 #include "simulator.h"
 #include "directory.h"
 #include "directory_entry.h"
-#include "directory_entry_ackwise.h"
+#include "directory_entry_full_map.h"
 #include "directory_entry_limited_broadcast.h"
 #include "directory_entry_limited_no_broadcast.h"
+#include "directory_entry_ackwise.h"
 #include "directory_entry_limitless.h"
 #include "log.h"
 #include "utils.h"
 
-Directory::Directory(string directory_type_str, UInt32 num_entries, UInt32 max_hw_sharers, UInt32 max_num_sharers):
-   m_num_entries(num_entries),
-   m_max_hw_sharers(max_hw_sharers),
-   m_max_num_sharers(max_num_sharers),
-   m_limitless_software_trap_penalty(0)
+Directory::Directory(string directory_type_str, SInt32 num_entries, SInt32 max_hw_sharers, SInt32 max_num_sharers)
+   : _num_entries(num_entries)
+   , _max_hw_sharers(max_hw_sharers)
+   , _max_num_sharers(max_num_sharers)
 {
    // Look at the type of directory and create 
-   m_directory_entry_list = new DirectoryEntry*[m_num_entries];
+   _directory_entry_list.resize(_num_entries);
   
-   m_directory_type = parseDirectoryType(directory_type_str);
-   for (UInt32 i = 0; i < m_num_entries; i++)
+   _directory_type = parseDirectoryType(directory_type_str);
+   for (SInt32 i = 0; i < _num_entries; i++)
    {
-      m_directory_entry_list[i] = createDirectoryEntry();
+      _directory_entry_list[i] = createDirectoryEntry();
    }
 }
 
 Directory::~Directory()
 {
-   for (UInt32 i = 0; i < m_num_entries; i++)
+   for (SInt32 i = 0; i < _num_entries; i++)
    {
-      delete m_directory_entry_list[i];
+      delete _directory_entry_list[i];
    }
-   delete [] m_directory_entry_list;
 }
 
 DirectoryEntry*
-Directory::getDirectoryEntry(UInt32 entry_num)
+Directory::getDirectoryEntry(SInt32 entry_num)
 {
-   return m_directory_entry_list[entry_num]; 
+   return _directory_entry_list[entry_num]; 
 }
 
 UInt32
 Directory::getDirectoryEntrySize()
 {
-   LOG_PRINT("getDirectoryEntrySize(%u)", m_directory_type);
-   switch(m_directory_type)
+   LOG_PRINT("getDirectoryEntrySize(%u)", _directory_type);
+   switch(_directory_type)
    {
    case FULL_MAP:
-      return m_max_num_sharers;
+      return _max_num_sharers;
    case LIMITED_NO_BROADCAST:
    case LIMITED_BROADCAST:
    case ACKWISE:
-      return m_max_hw_sharers * ceilLog2(m_max_num_sharers);
+   case LIMITLESS:
+      return _max_hw_sharers * ceilLog2(_max_num_sharers);
    default:
-      LOG_PRINT_ERROR("Unrecognized directory type(%u)", m_directory_type);
+      LOG_PRINT_ERROR("Unrecognized directory type(%u)", _directory_type);
       return 0;
    }
 }
 
 void
-Directory::setDirectoryEntry(UInt32 entry_num, DirectoryEntry* directory_entry)
+Directory::setDirectoryEntry(SInt32 entry_num, DirectoryEntry* directory_entry)
 {
-   m_directory_entry_list[entry_num] = directory_entry;
+   _directory_entry_list[entry_num] = directory_entry;
 }
 
 Directory::DirectoryType
@@ -88,38 +88,25 @@ Directory::parseDirectoryType(string directory_type_str)
 DirectoryEntry*
 Directory::createDirectoryEntry()
 {
-   switch (m_directory_type)
+   switch (_directory_type)
    {
    case FULL_MAP:
-      return new DirectoryEntryLimitedNoBroadcast(m_max_num_sharers, m_max_num_sharers);
+      return new DirectoryEntryFullMap(_max_num_sharers);
 
    case LIMITED_NO_BROADCAST:
-      return new DirectoryEntryLimitedNoBroadcast(m_max_hw_sharers, m_max_num_sharers);
+      return new DirectoryEntryLimitedNoBroadcast(_max_hw_sharers);
 
    case LIMITED_BROADCAST:
-      return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
+      return new DirectoryEntryLimitedBroadcast(_max_hw_sharers);
 
    case ACKWISE:
-      return new DirectoryEntryAckwise(m_max_hw_sharers, m_max_num_sharers);
+      return new DirectoryEntryAckwise(_max_hw_sharers);
 
    case LIMITLESS:
-      {
-         if (m_limitless_software_trap_penalty == 0)
-         {
-            try
-            {
-               m_limitless_software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
-            }
-            catch (...)
-            {
-               LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
-            }
-         }
-         return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, m_limitless_software_trap_penalty);
-      }
+      return new DirectoryEntryLimitless(_max_hw_sharers, _max_num_sharers);
 
    default:
-      LOG_PRINT_ERROR("Unrecognized Directory Type: %u", m_directory_type);
+      LOG_PRINT_ERROR("Unrecognized Directory Type: %u", _directory_type);
       return NULL;
    }
 }

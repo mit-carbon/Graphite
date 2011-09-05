@@ -188,8 +188,9 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req)
       case DirectoryState::SHARED:
 
          {
-            pair<bool, vector<SInt32> > sharers_list_pair = directory_entry->getSharersList();
-            if (sharers_list_pair.first == true)
+            vector<tile_id_t> sharers_list;
+            bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+            if (all_tiles_sharers)
             {
                // Broadcast Invalidation Request to all tiles 
                // (irrespective of whether they are sharers or not)
@@ -201,12 +202,12 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req)
             else
             {
                // Send Invalidation Request to only a specific set of sharers
-               for (UInt32 i = 0; i < sharers_list_pair.second.size(); i++)
+               for (UInt32 i = 0; i < sharers_list.size(); i++)
                {
                   getMemoryManager()->sendMsg(ShmemMsg::INV_REQ, 
                         MemComponent::DRAM_DIR, MemComponent::L2_CACHE, 
                         requester /* requester */, 
-                        sharers_list_pair.second[i] /* receiver */, 
+                        sharers_list[i] /* receiver */, 
                         address);
                }
             }
@@ -260,8 +261,9 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
 
          {
             assert(cached_data_buf == NULL);
-            pair<bool, vector<SInt32> > sharers_list_pair = directory_entry->getSharersList();
-            if (sharers_list_pair.first == true)
+            vector<tile_id_t> sharers_list;
+            bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+            if (all_tiles_sharers)
             {
                // Broadcast Invalidation Request to all tiles 
                // (irrespective of whether they are sharers or not)
@@ -273,12 +275,12 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
             else
             {
                // Send Invalidation Request to only a specific set of sharers
-               for (UInt32 i = 0; i < sharers_list_pair.second.size(); i++)
+               for (UInt32 i = 0; i < sharers_list.size(); i++)
                {
                   getMemoryManager()->sendMsg(ShmemMsg::INV_REQ, 
                         MemComponent::DRAM_DIR, MemComponent::L2_CACHE, 
                         requester /* requester */, 
-                        sharers_list_pair.second[i] /* receiver */, 
+                        sharers_list[i] /* receiver */, 
                         address);
                }
             }

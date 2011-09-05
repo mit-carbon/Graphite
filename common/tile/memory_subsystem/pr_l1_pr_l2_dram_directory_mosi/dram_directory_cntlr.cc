@@ -215,8 +215,12 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
 
             // FLUSH_REQ to Owner
             // INV_REQ to all sharers except owner (Also sent to the Owner for sake of convenience)
+            
+            vector<tile_id_t> sharers_list;
+            bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+            
             sendShmemMsg(ShmemMsg::NULLIFY_REQ, ShmemMsg::INV_FLUSH_COMBINED_REQ, address, requester, 
-                  directory_entry->getOwner(), directory_entry->getSharersList());
+                  directory_entry->getOwner(), all_tiles_sharers, sharers_list);
          }
          break;
 
@@ -230,8 +234,11 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
             LOG_ASSERT_ERROR(directory_entry->getOwner() == INVALID_TILE_ID,
                   "Address(0x%x), State(SHARED), owner(%i)", address, directory_entry->getOwner());
             
+            vector<tile_id_t> sharers_list;
+            bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+            
             sendShmemMsg(ShmemMsg::NULLIFY_REQ, ShmemMsg::INV_REQ, address, requester, 
-                  INVALID_TILE_ID, directory_entry->getSharersList());
+                  INVALID_TILE_ID, all_tiles_sharers, sharers_list);
          }
          break;
    
@@ -315,8 +322,12 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
             {
                // FLUSH_REQ to Owner
                // INV_REQ to all sharers except owner (Also sent to the Owner for sake of convenience)
+               
+               vector<tile_id_t> sharers_list;
+               bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+               
                sendShmemMsg(ShmemMsg::EX_REQ, ShmemMsg::INV_FLUSH_COMBINED_REQ, address, requester, 
-                     directory_entry->getOwner(), directory_entry->getSharersList());
+                     directory_entry->getOwner(), all_tiles_sharers, sharers_list);
             }
          }
          break;
@@ -348,8 +359,12 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
                // getOneSharer() is a deterministic function
                // FLUSH_REQ to One Sharer (If present)
                // INV_REQ to all other sharers
+               
+               vector<tile_id_t> sharers_list;
+               bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+               
                sendShmemMsg(ShmemMsg::EX_REQ, ShmemMsg::INV_FLUSH_COMBINED_REQ, address, requester,
-                     directory_entry->getOneSharer(), directory_entry->getSharersList());
+                     directory_entry->getOneSharer(), all_tiles_sharers, sharers_list);
             }
          }
          break;
@@ -503,11 +518,11 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
 
 void
 DramDirectoryCntlr::sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address,
-      tile_id_t requester, tile_id_t single_receiver, pair<bool, vector<tile_id_t> >& sharers_list_pair)
+      tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list)
 {
    bool broadcast_inv_req = false;
 
-   if (sharers_list_pair.first == true)
+   if (all_tiles_sharers)
    {
       broadcast_inv_req = true;
 
@@ -524,11 +539,11 @@ DramDirectoryCntlr::sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::m
    else
    {
       // Send Invalidation Request to only a specific set of sharers
-      for (UInt32 i = 0; i < sharers_list_pair.second.size(); i++)
+      for (UInt32 i = 0; i < sharers_list.size(); i++)
       {
          ShmemMsg shmem_msg(send_msg_type, MemComponent::DRAM_DIR, MemComponent::L2_CACHE,
                requester, single_receiver, false, address);
-         getMemoryManager()->sendMsg(sharers_list_pair.second[i], shmem_msg);
+         getMemoryManager()->sendMsg(sharers_list[i], shmem_msg);
       }
    }
 

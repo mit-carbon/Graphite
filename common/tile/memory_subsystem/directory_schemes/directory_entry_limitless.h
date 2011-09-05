@@ -1,32 +1,32 @@
-#ifndef __DIRECTORY_ENTRY_LIMITLESS_H__
-#define __DIRECTORY_ENTRY_LIMITLESS_H__
+#pragma once
 
-#include "directory_entry.h"
+#include "directory_entry_limited.h"
+#include "bit_vector.h"
 
-class DirectoryEntryLimitless : public DirectoryEntry
+class DirectoryEntryLimitless : public DirectoryEntryLimited
 {
-   private:
-      bool m_software_trap_enabled;
-      UInt32 m_software_trap_penalty;
+public:
+   DirectoryEntryLimitless(SInt32 max_hw_sharers, SInt32 max_num_sharers);
+   ~DirectoryEntryLimitless();
+   
+   bool hasSharer(tile_id_t sharer_id);
+   bool addSharer(tile_id_t sharer_id);
+   void removeSharer(tile_id_t sharer_id, bool reply_expected);
 
-   public:
-      DirectoryEntryLimitless(UInt32 max_hw_sharers, 
-            UInt32 max_num_sharers, 
-            UInt32 software_trap_penalty);
-      ~DirectoryEntryLimitless();
-      
-      bool hasSharer(tile_id_t sharer_id);
-      bool addSharer(tile_id_t sharer_id);
-      void removeSharer(tile_id_t sharer_id, bool reply_expected);
-      UInt32 getNumSharers();
+   bool getSharersList(vector<tile_id_t>& sharers_list);
+   SInt32 getNumSharers();
 
-      tile_id_t getOwner();
-      void setOwner(tile_id_t owner_id);
+   UInt32 getLatency();
 
-      tile_id_t getOneSharer();
-      std::pair<bool, std::vector<tile_id_t> >& getSharersList();
+private:
+   // Software Sharers
+   BitVector* _software_sharers;
 
-      UInt32 getLatency();
+   // Max Num Sharers - For Software Trap
+   SInt32 _max_num_sharers;
+
+   // Software Trap Variables
+   bool _software_trap_enabled;
+   static UInt32 _software_trap_penalty;
+   static bool _software_trap_penalty_initialized;
 };
-
-#endif /* __DIRECTORY_ENTRY_LIMITLESS_H__ */

@@ -10,9 +10,9 @@
 
 #define PAIR(x_,y_)  (make_pair<UInt64,UInt64>(x_,y_))
 
-QueueModelHistoryTree::QueueModelHistoryTree(UInt64 min_processing_time):
-   _min_processing_time(min_processing_time),
-   _MAX_CYCLE_COUNT(UINT64_MAX)
+QueueModelHistoryTree::QueueModelHistoryTree(UInt64 min_processing_time)
+   : QueueModel(HISTORY_TREE)
+   , _min_processing_time(min_processing_time)
 {
    try
    {
@@ -26,11 +26,11 @@ QueueModelHistoryTree::QueueModelHistoryTree(UInt64 min_processing_time):
   
    allocateMemory();
 
-   IntervalTree::Node* start_node = allocateNode(PAIR(0,_MAX_CYCLE_COUNT)); 
+   IntervalTree::Node* start_node = allocateNode(PAIR(0,UINT64_MAX)); 
    _interval_tree = new IntervalTree(start_node);
    _queue_model_m_g_1 = new QueueModelMG1();
 
-   initializeQueueCounters();
+   _total_requests_using_analytical_model = 0;
 }
 
 QueueModelHistoryTree::~QueueModelHistoryTree()
@@ -115,37 +115,14 @@ QueueModelHistoryTree::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
    
    assert(queue_delay != UINT64_MAX);
 
-   updateQueueCounters(processing_time);
    _queue_model_m_g_1->updateQueue(pkt_time, processing_time, queue_delay);
 
+   // Update Utilization Counters
+   updateQueueUtilizationCounters(pkt_time, processing_time, queue_delay);
+   
    LOG_PRINT("Packet(%llu,%llu) -> Queue Delay(%llu)", pkt_time, processing_time, queue_delay);
 
    return queue_delay;
-}
-
-void
-QueueModelHistoryTree::initializeQueueCounters()
-{
-   _total_requests = 0;
-   _total_utilized_cycles = 0;
-   _total_requests_using_analytical_model = 0;
-}
-
-void
-QueueModelHistoryTree::updateQueueCounters(UInt64 processing_time)
-{
-   _total_requests ++;
-   _total_utilized_cycles += processing_time;
-}
-
-float
-QueueModelHistoryTree::getQueueUtilization()
-{
-   // Get the node with the maximum key
-   IntervalTree::Node* node = _interval_tree->search(PAIR(_MAX_CYCLE_COUNT-1,_MAX_CYCLE_COUNT));
-   assert(node->interval.second == _MAX_CYCLE_COUNT);
-
-   return ((float) _total_utilized_cycles / node->interval.first);
 }
 
 void
@@ -168,7 +145,7 @@ QueueModelHistoryTree::releaseMemory()
 IntervalTree::Node*
 QueueModelHistoryTree::allocateNode(pair<UInt64,UInt64> interval)
 {
-   LOG_ASSERT_ERROR(_free_memory_block_list_tail >= 0, \
+   LOG_ASSERT_ERROR(_free_memory_block_list_tail >= 0,
       "_free_memory_block_list_tail(%i)", _free_memory_block_list_tail);
    
    SInt32 free_index = _free_memory_block_list[_free_memory_block_list_tail];

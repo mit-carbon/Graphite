@@ -516,6 +516,7 @@ NetworkModelAtac::outputSummary(ostream &out)
 {
    NetworkModel::outputSummary(out);
    outputEventCountSummary(out);
+   outputContentionModelsSummary(out);
 }
 
 volatile double
@@ -1045,6 +1046,100 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
          out << "    Star Net Router Crossbar Broadcasts: NA" << endl;
          for (SInt32 j = 0; j < _cluster_size; j++)
             out << "    Star Net Link Traversals[" << j << "]: NA" << endl;
+      }
+   }
+
+   else
+   {
+      LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
+   }
+}
+
+void
+NetworkModelAtac::outputContentionModelsSummary(ostream& out)
+{
+   if (isApplicationTile(_tile_id))
+   {
+      // ENet Router
+      out << "    Average Contention Delay ENet Router: " << _enet_router->getAverageContentionDelay(0, _num_enet_router_ports-1) << endl;
+      out << "    Average Link Utilization ENet Router: " << _enet_router->getAverageLinkUtilization(0, _num_enet_router_ports-1) << endl;         
+      out << "    Percentage Analytical Models Used ENet Router: " << _enet_router->getPercentAnalyticalModelsUsed(0, _num_enet_router_ports-1) << endl;         
+      // ENet Router To Send Hub Link
+      if (isAccessPoint(_tile_id))
+      {
+         out << "    Average Contention Delay ENet Router To Send Hub Router Link: " << _enet_router->getAverageContentionDelay(_num_enet_router_ports) << endl;
+         out << "    Average Link Utilization ENet Router To Send Hub Router Link: " << _enet_router->getAverageLinkUtilization(_num_enet_router_ports) << endl;
+         out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << _enet_router->getPercentAnalyticalModelsUsed(_num_enet_router_ports) << endl;
+      }
+      else
+      {
+         out << "    Average Contention Delay ENet Router To Send Hub Router Link: NA" << endl;
+         out << "    Average Link Utilization ENet Router To Send Hub Router Link: " <<  endl;
+         out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << endl;
+      }
+
+      if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
+      {
+         // Send Hub Router
+         if (_num_access_points_per_cluster > 1)
+         {
+            out << "    Average Contention Delay Send Hub Router: " << _send_hub_router->getAverageContentionDelay(0) << endl;
+            out << "    Average Link Utilization Send Hub Router: " << _send_hub_router->getAverageLinkUtilization(0) << endl;
+            out << "    Percentage Analytical Models Used Send Hub Router: " << _send_hub_router->getPercentAnalyticalModelsUsed(0) << endl;
+         }
+
+         // Receive Hub Router
+         for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
+         {
+            out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getAverageContentionDelay(i) << endl;
+            out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getAverageLinkUtilization(i) << endl;
+            out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getPercentAnalyticalModelsUsed(i) << endl;
+         }
+      }
+      else // No send/receive hub
+      {
+         // Send Hub Router
+         if (_num_access_points_per_cluster > 1)
+         {
+            out << "    Average Contention Delay Send Hub Router: NA" << endl;
+            out << "    Average Link Utilization Send Hub Router: NA" << endl;
+            out << "    Percentage Analytical Models Used Send Hub Router: NA" << endl;
+         }
+
+         // Receive Hub Router
+         for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
+         {
+            out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: NA" << endl;
+            out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: NA" << endl;
+            out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: NA" << endl;
+         }
+      }
+   }
+
+   else if (isSystemTile(_tile_id))
+   {
+      // ENet Router
+      out << "    Average Contention Delay ENet Router: NA" << endl;
+      out << "    Average Link Utilization ENet Router: NA" << endl;
+      out << "    Percentage Analytical Models Used ENet Router: NA" << endl;
+      // ENet Router to Send Hub Router Link
+      out << "    Average Contention Delay ENet Router To Send Hub Router Link: NA" << endl;
+      out << "    Average Link Utilization ENet Router To Send Hub Router Link: NA" << endl;
+      out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: NA" << endl;
+       
+      // Send Hub Router
+      if (_num_access_points_per_cluster > 1)
+      {
+         out << "    Average Contention Delay Send Hub Router: NA" << endl;
+         out << "    Average Link Utilization Send Hub Router: NA" << endl;
+         out << "    Percentage Analytical Models Used Send Hub Router: NA" << endl;
+      }
+      // Receive Hub Router
+      for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
+      {
+         out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: NA" << endl;
+         out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: NA" << endl;
+         out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: NA" << endl;
       }
    }
 

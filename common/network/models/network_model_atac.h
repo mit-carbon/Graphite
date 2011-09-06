@@ -145,8 +145,10 @@ private:
    static void initializeANetTopologyParams();
    void createANetRouterAndLinkModels();
    void destroyANetRouterAndLinkModels();
-   
+  
+   // Output Summary 
    void outputEventCountSummary(ostream& out);
+   void outputContentionModelsSummary(ostream& out);
   
    // Static Functions
    static void initializeClusters();

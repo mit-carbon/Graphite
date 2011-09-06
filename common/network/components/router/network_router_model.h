@@ -24,12 +24,22 @@ public:
    void processPacket(const NetPacket& pkt, vector<SInt32>& output_port_list,
                       UInt64& zero_load_delay, UInt64& contention_delay);
    
+   // Event Counters
    UInt64 getTotalBufferWrites()                            { return _total_buffer_writes; }
    UInt64 getTotalBufferReads()                             { return _total_buffer_reads; }
    UInt64 getTotalSwitchAllocatorRequests()                 { return _total_switch_allocator_requests; }
    UInt64 getTotalCrossbarTraversals(SInt32 multicast_idx)  { return _total_crossbar_traversals[multicast_idx-1]; }
 
-   static const SInt32 OUTPUT_PORT_ALL = -1;
+   // Contention Counters
+   float getAverageContentionDelay(SInt32 output_port_start, SInt32 output_port_end = INVALID_PORT);
+
+   // Link Utilization
+   float getAverageLinkUtilization(SInt32 output_port_start, SInt32 output_port_end = INVALID_PORT);
+   // Percent Analytical Model Used
+   float getPercentAnalyticalModelsUsed(SInt32 output_port_start, SInt32 output_port_end = INVALID_PORT);
+
+   static const SInt32 OUTPUT_PORT_ALL = 0xbabecafe;
+   static const SInt32 INVALID_PORT = 0xdeadbeef;
 
 private:
    NetworkModel* _model;
@@ -46,6 +56,16 @@ private:
    UInt64 _total_switch_allocator_requests;
    vector<UInt64> _total_crossbar_traversals;
 
+   // Contention Counters
+   vector<UInt64> _total_contention_delay;
+   vector<UInt64> _total_packets;
+
    // Initialize Event Counters
    void initializeEventCounters();
+   // Update Event Counters
+   void updateEventCounters(SInt32 num_flits, vector<SInt32>& output_port_list);
+   // Initialize Contention Counters
+   void initializeContentionCounters();
+   // Update Contention Counters
+   void updateContentionCounters(UInt64 contention_delay, vector<SInt32>& output_port_list);
 };

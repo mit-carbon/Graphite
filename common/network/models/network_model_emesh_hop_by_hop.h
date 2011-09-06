@@ -1,9 +1,10 @@
-#ifndef __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__
-#define __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__
+#pragma once
 
 #include <vector>
+#include <iostream>
 using std::vector;
 using std::pair;
+using std::ostream;
 
 #include "network.h"
 #include "network_model.h"
@@ -70,7 +71,6 @@ private:
    static void computePosition(tile_id_t tile, SInt32 &x, SInt32 &y);
    static tile_id_t computeTileID(SInt32 x, SInt32 y);
 
-   void outputEventCountSummary(std::ostream& out);
+   void outputEventCountSummary(ostream& out);
+   void outputContentionModelsSummary(ostream& out);
 };
-
-#endif /* __NETWORK_MODEL_EMESH_HOP_BY_HOP_H__ */

@@ -280,7 +280,7 @@ NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
    dy = receiver / mesh_width;
 
    LOG_ASSERT_ERROR(sy <= mesh_height, "sy(%i), mesh_height(%i)", sy, mesh_height);
-   LOG_ASSERT_ERROR(dy <= mesh_height, "dy(%i), mesh_height(%i)", dy, mesh_height);
+   LOG_ASSERT_ERROR(dy <= mesh_height, "dy(%i), mesh_width(%i), mesh_height(%i), sender(%i), receiver(%i), total_tiles(%i), app_tiles(%i)", dy, mesh_width, mesh_height, sender, receiver, Config::getSingleton()->getTotalTiles(), Config::getSingleton()->getApplicationTiles());
 
    return abs(sx-dx) + abs(sy-dy);
 }
@@ -290,6 +290,7 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
    NetworkModel::outputSummary(out);
    outputEventCountSummary(out);
+   outputContentionModelsSummary(out);
 }
 
 bool
@@ -460,6 +461,29 @@ NetworkModelEMeshHopByHop::outputEventCountSummary(ostream& out)
       for (SInt32 i = 1; i <= _num_mesh_router_ports; i++)
          out << "    Crossbar[" << i << "] Traversals: NA" << endl;
       out << "    Link Traversals: NA" << endl;
+   }
+
+   else
+   {
+      LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
+   }
+}
+
+void
+NetworkModelEMeshHopByHop::outputContentionModelsSummary(ostream& out)
+{
+   if (isApplicationTile(_tile_id))
+   {
+      out << "    Average EMesh Router Contention Delay: " << _mesh_router->getAverageContentionDelay(0, _num_mesh_router_ports-1) << endl;
+      out << "    Average EMesh Router Link Uitlization: " << _mesh_router->getAverageLinkUtilization(0, _num_mesh_router_ports-1) << endl;
+      out << "    Percentage Analytical Models Used: " << _mesh_router->getPercentAnalyticalModelsUsed(0, _num_mesh_router_ports-1) << endl;
+   }
+
+   else if (isSystemTile(_tile_id))
+   {
+      out << "    Average EMesh Router Contention Delay: NA" << endl;
+      out << "    Average EMesh Router Link Uitlization: NA" << endl;
+      out << "    Percentage Analytical Models Used: NA" << endl;
    }
 
    else

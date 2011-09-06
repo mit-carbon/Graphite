@@ -455,12 +455,12 @@ NetworkModelEMeshHopByHop::outputEventCountSummary(ostream& out)
 
    else if (isSystemTile(_tile_id))
    {
-      out << "    Buffer Writes: NA" << endl;
-      out << "    Buffer Reads: NA" << endl;
-      out << "    Switch Allocator Requests: NA" << endl;
+      out << "    Buffer Writes: " << endl;
+      out << "    Buffer Reads: " << endl;
+      out << "    Switch Allocator Requests: " << endl;
       for (SInt32 i = 1; i <= _num_mesh_router_ports; i++)
-         out << "    Crossbar[" << i << "] Traversals: NA" << endl;
-      out << "    Link Traversals: NA" << endl;
+         out << "    Crossbar[" << i << "] Traversals: " << endl;
+      out << "    Link Traversals: " << endl;
    }
 
    else
@@ -481,9 +481,9 @@ NetworkModelEMeshHopByHop::outputContentionModelsSummary(ostream& out)
 
    else if (isSystemTile(_tile_id))
    {
-      out << "    Average EMesh Router Contention Delay: NA" << endl;
-      out << "    Average EMesh Router Link Uitlization: NA" << endl;
-      out << "    Percentage Analytical Models Used: NA" << endl;
+      out << "    Average EMesh Router Contention Delay: " << endl;
+      out << "    Average EMesh Router Link Uitlization: " << endl;
+      out << "    Percentage Analytical Models Used: " << endl;
    }
 
    else

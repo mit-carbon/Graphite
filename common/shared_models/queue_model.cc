@@ -58,5 +58,5 @@ QueueModel::getQueueUtilization()
 {
    // Approximate total cycles as _last_request_time + _last_service_time
    UInt64 total_cycles = _last_request_time;
-   return ((float) _total_utilized_cycles) / total_cycles;
+   return (total_cycles > 0) ? (((float) _total_utilized_cycles) / total_cycles) : 0.0;
 }

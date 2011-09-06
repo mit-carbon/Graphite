@@ -892,7 +892,7 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
       if (isAccessPoint(_tile_id))
          out << "    ENet Router To Send Hub Router Link Traversals: " << _enet_link_list[_num_enet_router_ports]->getTotalTraversals() << endl;
       else
-         out << "    ENet Router To Send Hub Router Link Traversals: NA" << endl;
+         out << "    ENet Router To Send Hub Router Link Traversals: " << endl;
 
       // Send Hub Router
       if (_num_access_points_per_cluster > 1)
@@ -906,10 +906,10 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
          }
          else
          {
-            out << "    Send Hub Router Buffer Writes: NA" << endl;
-            out << "    Send Hub Router Buffer Reads: NA" << endl;
-            out << "    Send Hub Router Switch Allocator Requests: NA" << endl;
-            out << "    Send Hub Router Crossbar Traversals: NA" << endl;
+            out << "    Send Hub Router Buffer Writes: " << endl;
+            out << "    Send Hub Router Buffer Reads: " << endl;
+            out << "    Send Hub Router Switch Allocator Requests: " << endl;
+            out << "    Send Hub Router Crossbar Traversals: " << endl;
          }
       }
 
@@ -921,8 +921,8 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
       }
       else
       {
-         out << "    Optical Link Unicasts: NA" << endl;
-         out << "    Optical Link Broadcasts: NA" << endl;
+         out << "    Optical Link Unicasts: " << endl;
+         out << "    Optical Link Broadcasts: " << endl;
       }
 
       // Receive Hub Router
@@ -935,10 +935,10 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
       }
       else
       {
-         out << "    Receive Hub Router Buffer Writes: NA" << endl;
-         out << "    Receive Hub Router Buffer Reads: NA" << endl;
-         out << "    Receive Hub Router Switch Allocator Requests: NA" << endl;
-         out << "    Receive Hub Router Crossbar Traversals: NA" << endl;
+         out << "    Receive Hub Router Buffer Writes: " << endl;
+         out << "    Receive Hub Router Buffer Reads: " << endl;
+         out << "    Receive Hub Router Switch Allocator Requests: " << endl;
+         out << "    Receive Hub Router Crossbar Traversals: " << endl;
       }
      
       // Receive Net
@@ -984,17 +984,17 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
       {
          if (_receive_net_type == HTREE)
          {
-            out << "    HTree Link Traversals: NA" << endl;
+            out << "    HTree Link Traversals: " << endl;
          }
          else // (_receive_net_type == STAR)
          {
-            out << "    Star Net Router Buffer Writes: NA" << endl;
-            out << "    Star Net Router Buffer Reads: NA" << endl;
-            out << "    Star Net Router Switch Allocator Requests: NA" << endl;
-            out << "    Star Net Router Crossbar Unicasts: NA" << endl;
-            out << "    Star Net Router Crossbar Broadcasts: NA" << endl;
+            out << "    Star Net Router Buffer Writes: " << endl;
+            out << "    Star Net Router Buffer Reads: " << endl;
+            out << "    Star Net Router Switch Allocator Requests: " << endl;
+            out << "    Star Net Router Crossbar Unicasts: " << endl;
+            out << "    Star Net Router Crossbar Broadcasts: " << endl;
             for (SInt32 j = 0; j < _cluster_size; j++)
-               out << "    Star Net Link Traversals[" << j << "]: NA" << endl;
+               out << "    Star Net Link Traversals[" << j << "]: " << endl;
          }
       }
    }
@@ -1002,50 +1002,50 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
    else if (isSystemTile(_tile_id))
    {
       // ENet Router
-      out << "    ENet Router Buffer Writes: NA" << endl;
-      out << "    ENet Router Buffer Reads: NA" << endl;
-      out << "    ENet Router Switch Allocator Requests: NA" << endl;
-      out << "    ENet Router Crossbar Traversals: NA" << endl;
+      out << "    ENet Router Buffer Writes: " << endl;
+      out << "    ENet Router Buffer Reads: " << endl;
+      out << "    ENet Router Switch Allocator Requests: " << endl;
+      out << "    ENet Router Crossbar Traversals: " << endl;
       
       // ENet Link
-      out << "    ENet Router To ENet Router Link Traversals: NA" << endl;
+      out << "    ENet Router To ENet Router Link Traversals: " << endl;
       
       // Access Point
-      out << "    ENet Router To Send Hub Router Link Traversals: NA" << endl;
+      out << "    ENet Router To Send Hub Router Link Traversals: " << endl;
 
       // Send Hub Router
       if (_num_access_points_per_cluster > 1)
       {
-         out << "    Send Hub Router Buffer Writes: NA" << endl;
-         out << "    Send Hub Router Buffer Reads: NA" << endl;
-         out << "    Send Hub Router Switch Allocator Requests: NA" << endl;
-         out << "    Send Hub Router Crossbar Traversals: NA" << endl;
+         out << "    Send Hub Router Buffer Writes: " << endl;
+         out << "    Send Hub Router Buffer Reads: " << endl;
+         out << "    Send Hub Router Switch Allocator Requests: " << endl;
+         out << "    Send Hub Router Crossbar Traversals: " << endl;
       }
 
       // Optical Link
-      out << "    Optical Link Unicasts: NA" << endl;
-      out << "    Optical Link Broadcasts: NA" << endl;
+      out << "    Optical Link Unicasts: " << endl;
+      out << "    Optical Link Broadcasts: " << endl;
 
       // Receive Hub Router
-      out << "    Receive Hub Router Buffer Writes: NA" << endl;
-      out << "    Receive Hub Router Buffer Reads: NA" << endl;
-      out << "    Receive Hub Router Switch Allocator Requests: NA" << endl;
-      out << "    Receive Hub Router Crossbar Traversals: NA" << endl;
+      out << "    Receive Hub Router Buffer Writes: " << endl;
+      out << "    Receive Hub Router Buffer Reads: " << endl;
+      out << "    Receive Hub Router Switch Allocator Requests: " << endl;
+      out << "    Receive Hub Router Crossbar Traversals: " << endl;
      
       // Receive Net
       if (_receive_net_type == HTREE)
       {
-         out << "    HTree Link Traversals: NA" << endl;
+         out << "    HTree Link Traversals: " << endl;
       }
       else // (_receive_net_type == STAR)
       {
-         out << "    Star Net Router Buffer Writes: NA" << endl;
-         out << "    Star Net Router Buffer Reads: NA" << endl;
-         out << "    Star Net Router Switch Allocator Requests: NA" << endl;
-         out << "    Star Net Router Crossbar Unicasts: NA" << endl;
-         out << "    Star Net Router Crossbar Broadcasts: NA" << endl;
+         out << "    Star Net Router Buffer Writes: " << endl;
+         out << "    Star Net Router Buffer Reads: " << endl;
+         out << "    Star Net Router Switch Allocator Requests: " << endl;
+         out << "    Star Net Router Crossbar Unicasts: " << endl;
+         out << "    Star Net Router Crossbar Broadcasts: " << endl;
          for (SInt32 j = 0; j < _cluster_size; j++)
-            out << "    Star Net Link Traversals[" << j << "]: NA" << endl;
+            out << "    Star Net Link Traversals[" << j << "]: " << endl;
       }
    }
 
@@ -1073,7 +1073,7 @@ NetworkModelAtac::outputContentionModelsSummary(ostream& out)
       }
       else
       {
-         out << "    Average Contention Delay ENet Router To Send Hub Router Link: NA" << endl;
+         out << "    Average Contention Delay ENet Router To Send Hub Router Link: " << endl;
          out << "    Average Link Utilization ENet Router To Send Hub Router Link: " <<  endl;
          out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << endl;
       }
@@ -1101,17 +1101,17 @@ NetworkModelAtac::outputContentionModelsSummary(ostream& out)
          // Send Hub Router
          if (_num_access_points_per_cluster > 1)
          {
-            out << "    Average Contention Delay Send Hub Router: NA" << endl;
-            out << "    Average Link Utilization Send Hub Router: NA" << endl;
-            out << "    Percentage Analytical Models Used Send Hub Router: NA" << endl;
+            out << "    Average Contention Delay Send Hub Router: " << endl;
+            out << "    Average Link Utilization Send Hub Router: " << endl;
+            out << "    Percentage Analytical Models Used Send Hub Router: " << endl;
          }
 
          // Receive Hub Router
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
-            out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: NA" << endl;
-            out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: NA" << endl;
-            out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: NA" << endl;
+            out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: " << endl;
+            out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: " << endl;
+            out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << endl;
          }
       }
    }
@@ -1119,27 +1119,27 @@ NetworkModelAtac::outputContentionModelsSummary(ostream& out)
    else if (isSystemTile(_tile_id))
    {
       // ENet Router
-      out << "    Average Contention Delay ENet Router: NA" << endl;
-      out << "    Average Link Utilization ENet Router: NA" << endl;
-      out << "    Percentage Analytical Models Used ENet Router: NA" << endl;
+      out << "    Average Contention Delay ENet Router: " << endl;
+      out << "    Average Link Utilization ENet Router: " << endl;
+      out << "    Percentage Analytical Models Used ENet Router: " << endl;
       // ENet Router to Send Hub Router Link
-      out << "    Average Contention Delay ENet Router To Send Hub Router Link: NA" << endl;
-      out << "    Average Link Utilization ENet Router To Send Hub Router Link: NA" << endl;
-      out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: NA" << endl;
+      out << "    Average Contention Delay ENet Router To Send Hub Router Link: " << endl;
+      out << "    Average Link Utilization ENet Router To Send Hub Router Link: " << endl;
+      out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << endl;
        
       // Send Hub Router
       if (_num_access_points_per_cluster > 1)
       {
-         out << "    Average Contention Delay Send Hub Router: NA" << endl;
-         out << "    Average Link Utilization Send Hub Router: NA" << endl;
-         out << "    Percentage Analytical Models Used Send Hub Router: NA" << endl;
+         out << "    Average Contention Delay Send Hub Router: " << endl;
+         out << "    Average Link Utilization Send Hub Router: " << endl;
+         out << "    Percentage Analytical Models Used Send Hub Router: " << endl;
       }
       // Receive Hub Router
       for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
       {
-         out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: NA" << endl;
-         out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: NA" << endl;
-         out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: NA" << endl;
+         out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: " << endl;
+         out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: " << endl;
+         out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << endl;
       }
    }
 

@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
+#include "log.h"
 
 NetworkRouterModel::NetworkRouterModel(NetworkModel* model,
                                        SInt32 num_input_ports, SInt32 num_output_ports,
@@ -133,6 +134,9 @@ NetworkRouterModel::getAverageContentionDelay(SInt32 output_port_start, SInt32 o
    if (output_port_end == INVALID_PORT)
       output_port_end = output_port_start;
 
+   LOG_ASSERT_ERROR(output_port_end >= output_port_start, "output_port_end(%i) < output_port_start(%i)",
+                    output_port_end, output_port_start);
+
    UInt64 total_contention_delay = 0;
    UInt64 total_packets = 0;
    
@@ -150,6 +154,9 @@ NetworkRouterModel::getAverageLinkUtilization(SInt32 output_port_start, SInt32 o
 {
    if (output_port_end == INVALID_PORT)
       output_port_end = output_port_start;
+   
+   LOG_ASSERT_ERROR(output_port_end >= output_port_start, "output_port_end(%i) < output_port_start(%i)",
+                    output_port_end, output_port_start);
 
    float link_utilization = 0.0;
    for (SInt32 i = output_port_start; i <= output_port_end; i++)
@@ -166,24 +173,26 @@ NetworkRouterModel::getPercentAnalyticalModelsUsed(SInt32 output_port_start, SIn
    if (output_port_end == INVALID_PORT)
       output_port_end = output_port_start;
 
+   LOG_ASSERT_ERROR(output_port_end >= output_port_start, "output_port_end(%i) < output_port_start(%i)",
+                    output_port_end, output_port_start);
+   
    UInt64 total_analytical_model_requests = 0;
    UInt64 total_requests = 0;
    for (SInt32 i = output_port_start; i <= output_port_end; i++)
    {
+      assert(_total_packets[i] == _contention_model_list[i]->getTotalRequests());
+      total_requests += _total_packets[i];
+
       QueueModel::Type queue_model_type = _contention_model_list[i]->getType();
       if (queue_model_type == QueueModel::HISTORY_LIST)
       {
          QueueModelHistoryList* queue_model = (QueueModelHistoryList*) _contention_model_list[i];
          total_analytical_model_requests += queue_model->getTotalRequestsUsingAnalyticalModel();
-         assert(_total_packets[i] == queue_model->getTotalRequests());
-         total_requests += _total_packets[i];
       }
       else if (queue_model_type == QueueModel::HISTORY_TREE)
       {
          QueueModelHistoryTree* queue_model = (QueueModelHistoryTree*) _contention_model_list[i];
          total_analytical_model_requests += queue_model->getTotalRequestsUsingAnalyticalModel();
-         assert(_total_packets[i] == queue_model->getTotalRequests());
-         total_requests += _total_packets[i];
       }
    }
 

@@ -145,7 +145,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    string electrical_link_type;
 
    // Contention Model
-   bool contention_model_enabled = false;
+   _contention_model_enabled = false;
    string contention_model_type;
 
    try
@@ -169,7 +169,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
       // Electrical Link Type
       electrical_link_type = Sim()->getCfg()->getString("network/atac/electrical_link_type");
       
-      contention_model_enabled = Sim()->getCfg()->getBool("network/atac/queue_model/enabled");
+      _contention_model_enabled = Sim()->getCfg()->getBool("network/atac/queue_model/enabled");
       contention_model_type = Sim()->getCfg()->getString("network/atac/queue_model/type");
    }
    catch (...)
@@ -182,7 +182,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    // Injection Port
    _injection_router = new NetworkRouterModel(this, 1, 1,
                                               4, 0, _flit_width,
-                                              contention_model_enabled, contention_model_type);
+                                              _contention_model_enabled, contention_model_type);
 
    // ENet Router
    _num_enet_router_ports = 5;
@@ -193,7 +193,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
 
    _enet_router = new NetworkRouterModel(this, _num_enet_router_ports, num_enet_router_output_ports,
                                           num_flits_per_output_buffer_enet_router, enet_router_delay, _flit_width,
-                                          contention_model_enabled, contention_model_type);
+                                          _contention_model_enabled, contention_model_type);
    
    // ENet Link
    volatile double enet_link_length = _tile_width;
@@ -214,7 +214,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
       {
          _send_hub_router = new NetworkRouterModel(this, _num_access_points_per_cluster, 1 /* num_output_ports */,
                                                    num_flits_per_output_buffer_send_hub_router, send_hub_router_delay, _flit_width,
-                                                   contention_model_enabled, contention_model_type);
+                                                   _contention_model_enabled, contention_model_type);
       }
 
       // Optical Network Link Models
@@ -226,7 +226,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
       // Receive Hub Router Models
       _receive_hub_router = new NetworkRouterModel(this, _num_clusters, _num_receive_networks_per_cluster,
                                                    num_flits_per_output_buffer_receive_hub_router, receive_hub_router_delay, _flit_width,
-                                                   contention_model_enabled, contention_model_type);
+                                                   _contention_model_enabled, contention_model_type);
 
          // Receive Net
       if (_receive_net_type == HTREE) // HTree BNet
@@ -252,7 +252,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
             // Star Net Router
             _star_net_router_list[i] = new NetworkRouterModel(this, 1 /* num_input_ports */, _cluster_size,
                                                               num_flits_per_output_buffer_star_net_router, star_net_router_delay, _flit_width,
-                                                              contention_model_enabled, contention_model_type);
+                                                              _contention_model_enabled, contention_model_type);
 
             // Star Net Link
             vector<tile_id_t> tile_id_list;
@@ -516,7 +516,8 @@ NetworkModelAtac::outputSummary(ostream &out)
 {
    NetworkModel::outputSummary(out);
    outputEventCountSummary(out);
-   outputContentionModelsSummary(out);
+   if (_contention_model_enabled)
+      outputContentionModelsSummary(out);
 }
 
 volatile double

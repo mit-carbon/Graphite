@@ -115,6 +115,9 @@ private:
    static GlobalRoutingStrategy _global_routing_strategy;
    static SInt32 _unicast_distance_threshold;
 
+   // Contention Modeling
+   bool _contention_model_enabled;
+
    // Injection Port Router
    NetworkRouterModel* _injection_router;
 

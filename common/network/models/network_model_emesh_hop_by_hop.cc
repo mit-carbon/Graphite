@@ -74,7 +74,6 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    // Link
    string link_type;
    // Contention Model
-   bool contention_model_enabled = false;
    string contention_model_type;
    try
    {
@@ -86,7 +85,7 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
       link_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/link_type");
 
       // Queue Model enabled? If no, this degrades into a hop counter model
-      contention_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
+      _contention_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
       contention_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
    }
    catch (...)
@@ -97,12 +96,12 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    // Create the injection port contention model first
    _injection_router = new NetworkRouterModel(this, 1, 1,
                                               4, 0, _flit_width,
-                                              contention_model_enabled, contention_model_type);
+                                              _contention_model_enabled, contention_model_type);
    // Mesh Router
    _num_mesh_router_ports = 5;
    _mesh_router = new NetworkRouterModel(this, _num_mesh_router_ports, _num_mesh_router_ports,
                                          num_flits_per_output_buffer, router_delay, _flit_width,
-                                         contention_model_enabled, contention_model_type);
+                                         _contention_model_enabled, contention_model_type);
    // Mesh Link List
    volatile double link_length = _tile_width;
    _mesh_link_list.resize(_num_mesh_router_ports);
@@ -290,7 +289,8 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
    NetworkModel::outputSummary(out);
    outputEventCountSummary(out);
-   outputContentionModelsSummary(out);
+   if (_contention_model_enabled)
+      outputContentionModelsSummary(out);
 }
 
 bool

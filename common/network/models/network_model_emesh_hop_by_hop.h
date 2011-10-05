@@ -57,6 +57,9 @@ private:
    NetworkRouterModel* _mesh_router;
    vector<ElectricalNetworkLinkModel*> _mesh_link_list;
 
+   // Contention Modeling
+   bool _contention_model_enabled;
+
    // Routing Function
    void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
    

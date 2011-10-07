@@ -60,10 +60,10 @@ void CoreModel::outputSummary(ostream& os)
    frequencySummary(os);
    
    // Instruction Counter Summary
-   os << "    Recv Instructions: " << m_total_recv_instructions << endl;
-   os << "    Recv Instruction Costs: " << m_total_recv_instruction_costs << endl;
-   os << "    Sync Instructions: " << m_total_sync_instructions << endl;
-   os << "    Sync Instruction Costs: " << m_total_sync_instruction_costs << endl;
+   os << "  Recv Instructions: " << m_total_recv_instructions << endl;
+   os << "  Recv Instruction Costs: " << m_total_recv_instruction_costs << endl;
+   os << "  Sync Instructions: " << m_total_sync_instructions << endl;
+   os << "  Sync Instruction Costs: " << m_total_sync_instruction_costs << endl;
 
    // Branch Predictor Summary
    if (m_bp)
@@ -72,10 +72,10 @@ void CoreModel::outputSummary(ostream& os)
 
 void CoreModel::frequencySummary(ostream& os)
 {
-   os << "    Completion Time: "
+   os << "  Completion Time: "
       << (UInt64) (((float) m_cycle_count) / m_frequency)
       << endl;
-   os << "    Average Frequency: " << m_average_frequency << endl;
+   os << "  Average Frequency: " << m_average_frequency << endl;
 }
 
 void CoreModel::enable()

@@ -23,6 +23,14 @@ public:
 
 private:
 
+   enum CoreUnit
+   {
+      INVALID_UNIT = 0,
+      LOAD_UNIT = 1,
+      STORE_UNIT = 2,
+      EXECUTION_UNIT = 3
+   };
+
    void handleInstruction(Instruction *instruction);
 
    void modelIcache(IntPtr address);
@@ -30,6 +38,7 @@ private:
    UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
 
    void initializeRegisterScoreboard();
+   void initializeRegisterWaitUnitList();
 
    typedef std::vector<UInt64> Scoreboard;
 
@@ -86,13 +95,15 @@ private:
    };
 
    UInt64 m_instruction_count;
+   UInt64 m_total_memory_stall_cycles;
 
    Scoreboard m_register_scoreboard;
+   std::vector<CoreUnit> m_register_wait_unit_list;
+
    StoreBuffer *m_store_buffer;
    LoadUnit *m_load_unit;
 
    McPATCoreInterface* m_mcpat_core_interface;
-  
 };
 
 #endif // IOCOOM_CORE_MODEL_H

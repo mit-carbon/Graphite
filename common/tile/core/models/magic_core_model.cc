@@ -18,7 +18,7 @@ MagicCoreModel::~MagicCoreModel()
 void MagicCoreModel::outputSummary(std::ostream &os)
 {
    os << "Core Performance Model Summary:" << endl;
-   os << "    Instructions: " << getInstructionCount() << endl;
+   os << "  Instructions: " << getInstructionCount() << endl;
    CoreModel::outputSummary(os);
 }
 

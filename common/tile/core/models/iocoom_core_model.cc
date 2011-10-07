@@ -12,7 +12,9 @@ using namespace std;
 IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
    : CoreModel(core, frequency)
    , m_instruction_count(0)
+   , m_total_memory_stall_cycles(0)
    , m_register_scoreboard(512)
+   , m_register_wait_unit_list(512)
    , m_store_buffer(0)
    , m_load_unit(0)
 {
@@ -29,6 +31,7 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
    }
 
    initializeRegisterScoreboard();
+   initializeRegisterWaitUnitList();
    
    // For Power and AreaModeling
    m_mcpat_core_interface = new McPATCoreInterface(
@@ -46,8 +49,9 @@ IOCOOMCoreModel::~IOCOOMCoreModel()
 void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    os << "Core Performance Model Summary:" << endl;
-   os << "    Instructions: " << m_instruction_count << std::endl;
+   os << "  Instructions: " << m_instruction_count << endl;
    CoreModel::outputSummary(os);
+   os << "  Memory Stall Cycles: " << m_total_memory_stall_cycles << endl;
 }
 
 void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
@@ -70,10 +74,9 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // buffer write operands to be updated after instruction executes
    DynamicInstructionInfoQueue write_info;
 
-   // find when read operands are available
-   UInt64 read_operands_ready = m_cycle_count;
-   UInt64 read_completion_time = m_cycle_count;
-
+   // Time when register operands are ready
+   UInt64 read_register_operands_ready = m_cycle_count;
+   CoreUnit register_wait_unit = INVALID_UNIT;
    // REG read operands
    for (unsigned int i = 0; i < ops.size(); i++)
    {
@@ -85,11 +88,30 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
       LOG_ASSERT_ERROR(o.m_value < m_register_scoreboard.size(),
                        "Register value out of range: %llu", o.m_value);
 
-      if (read_operands_ready < m_register_scoreboard[o.m_value])
-         read_operands_ready = m_register_scoreboard[o.m_value];
-   }
-   read_completion_time = read_operands_ready;
+      // Check which register takes the longest to get ready
+      // If that register is waiting on a memory read, count as memory stall cycles
+      // Else, do not count as memory stall cycles
+      if (read_register_operands_ready < m_register_scoreboard[o.m_value])
+      {
+         if (m_register_wait_unit_list[o.m_value] == LOAD_UNIT)
+            register_wait_unit = LOAD_UNIT;
+         else if (m_register_wait_unit_list[o.m_value] == EXECUTION_UNIT)
+            register_wait_unit = EXECUTION_UNIT;
+         else
+            LOG_PRINT_ERROR("Unrecognized Core Unit(%u)", m_register_wait_unit_list[o.m_value]);
 
+         read_register_operands_ready = m_register_scoreboard[o.m_value];
+      }
+   }
+   // Update total memory stall cycles
+   if (register_wait_unit == LOAD_UNIT)
+      m_total_memory_stall_cycles += (read_register_operands_ready - m_cycle_count);
+
+   // Assume memory is read only after all registers are read
+   // This may be required since some registers may be used as the address for memory operations
+   // Time when load unit and memory operands are ready
+   UInt64 load_unit_ready = read_register_operands_ready;
+   UInt64 read_memory_operands_ready = read_register_operands_ready;
    // MEMORY read & write operands
    for (unsigned int i = 0; i < ops.size(); i++)
    {
@@ -105,18 +127,18 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
          LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_READ,
                           "Expected memory read info, got: %d.", info.type);
 
-         pair<UInt64,UInt64> load_timing_info = executeLoad(m_cycle_count, info);
+         pair<UInt64,UInt64> load_timing_info = executeLoad(read_register_operands_ready, info);
          UInt64 load_ready = load_timing_info.first;
          UInt64 load_latency = load_timing_info.second;
          UInt64 load_completion_time = load_ready + load_latency;
 
          // This 'ready' is related to a structural hazard in the LOAD Unit
-         if (read_operands_ready < load_ready)
-            read_operands_ready = load_ready;
+         if (load_unit_ready < load_ready)
+            load_unit_ready = load_ready;
          
-         // Read completion time is when all the read operands are available and ready for execution unit
-         if (read_completion_time < load_completion_time)
-            read_completion_time = load_completion_time;
+         // Read memory completion time is when all the read operands are available and ready for execution unit
+         if (read_memory_operands_ready < load_completion_time)
+            read_memory_operands_ready = load_completion_time;
       }
       else
       {
@@ -125,15 +147,21 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
 
          write_info.push(info);
       }
-
+      
       popDynamicInstructionInfo();
    }
 
+   assert(read_memory_operands_ready >= load_unit_ready);
+
+   // Time when read operands (both register and memory) are ready
+   UInt64 read_operands_ready = read_memory_operands_ready;
+
    // Calculate the completion time of instruction (after fetching read operands + execution unit)
-   UInt64 execute_unit_completion_time = read_completion_time + cost;
+   // Assume that there is no structural hazard at the execution unit
+   UInt64 execution_unit_completion_time = read_operands_ready + cost;
 
    // Time when write operands are ready
-   UInt64 write_operands_ready = execute_unit_completion_time;
+   UInt64 write_operands_ready = execution_unit_completion_time;
 
    // REG write operands
    // In this core model, we directly resolve WAR hazards since we wait
@@ -148,13 +176,25 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
       if ( (o.m_direction != Operand::WRITE) || (o.m_type != Operand::REG) )
          continue;
 
-      // Note that m_cycle_count can be less then the previous value
-      // of m_register_scoreboard[o.m_value]
-      m_register_scoreboard[o.m_value] = execute_unit_completion_time;
-      if (write_operands_ready < m_register_scoreboard[o.m_value])
-         write_operands_ready = m_register_scoreboard[o.m_value];
+      // The only case where this assertion is not true is when the register is written
+      // into but is never read before the next write operation. We assume
+      // that this never happend
+      // LOG_ASSERT_ERROR(write_operands_ready > m_register_scoreboard[o.m_value],
+      //       "Write Operands Ready(%llu), Register Scoreboard Value(%llu)",
+      //       write_operands_ready, m_register_scoreboard[o.m_value]);
+      m_register_scoreboard[o.m_value] = write_operands_ready;
+
+      // Update the unit that the register is waiting for
+      if (instruction->isSimpleMemoryLoad())
+         m_register_wait_unit_list[o.m_value] = LOAD_UNIT;
+      else
+         m_register_wait_unit_list[o.m_value] = EXECUTION_UNIT;
+
+      // if (write_operands_ready < m_register_scoreboard[o.m_value])
+      //    write_operands_ready = m_register_scoreboard[o.m_value];
    }
 
+   UInt64 store_unit_ready = write_operands_ready;
    bool has_memory_write_operand = false;
    // MEMORY write operands
    // This is done before doing register
@@ -172,27 +212,37 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
 
       const DynamicInstructionInfo &info = write_info.front();
       // This just updates the contents of the store buffer
-      UInt64 store_time = executeStore(execute_unit_completion_time, info);
+      UInt64 store_time = executeStore(write_operands_ready, info);
       write_info.pop();
 
-      if (write_operands_ready < store_time)
-         write_operands_ready = store_time;
+      if (store_unit_ready < store_time)
+         store_unit_ready = store_time;
    }
 
    //                   ----->  time
    // -----------|-------------------------|---------------------------|----------------------------|-----------
-   //    read_operands_ready      read_completion_time    execute_unit_completion_time      write_operands_ready
+   //    load_unit_ready          read_operands_ready         write_operands_ready          store_unit_ready
    //            |    load_latency         |            cost           |                            |
    
    // update cycle count with instruction cost
-   // If it is a simple load instruction, execute the next instruction,
+   // If it is a simple load instruction, execute the next instruction after load_unit_ready,
    // else wait till all the operands are fetched to execute the next instruction
    if (instruction->isSimpleMemoryLoad())
-      m_cycle_count = read_operands_ready + 1;
+   {
+      m_total_memory_stall_cycles += (load_unit_ready - read_register_operands_ready);
+      m_cycle_count = load_unit_ready + 1;
+   }
    else if (!has_memory_write_operand)
-      m_cycle_count = read_completion_time + 1;
+   {
+      m_total_memory_stall_cycles += (read_operands_ready - read_register_operands_ready);
+      m_cycle_count = read_operands_ready + 1;
+   }
    else
-      m_cycle_count = write_operands_ready + 1;
+   {
+      m_total_memory_stall_cycles += (read_operands_ready - read_register_operands_ready);
+      m_total_memory_stall_cycles += (store_unit_ready - write_operands_ready);
+      m_cycle_count = store_unit_ready + 1;
+   }
 
    LOG_ASSERT_ERROR(write_info.empty(), "Some write info left over?");
 
@@ -237,6 +287,14 @@ void IOCOOMCoreModel::initializeRegisterScoreboard()
    for (unsigned int i = 0; i < m_register_scoreboard.size(); i++)
    {
       m_register_scoreboard[i] = 0;
+   }
+}
+
+void IOCOOMCoreModel::initializeRegisterWaitUnitList()
+{
+   for (unsigned int i = 0; i < m_register_wait_unit_list.size(); i++)
+   {
+      m_register_wait_unit_list[i] = INVALID_UNIT;
    }
 }
 

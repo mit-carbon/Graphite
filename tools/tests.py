@@ -10,45 +10,41 @@ from schedule import *
 # job info
 machines = [
     "cagnode1",
-    "cagnode1",
-    "cagnode2",
     "cagnode2",
     "cagnode3",
-    "cagnode3",
-    "cagnode4",
-    "cagnode4",
-    "cagnode8",
-    "cagnode8",
-    "cagnode9",
-    "cagnode9"
+    "cagnode4"
     ]
 
-results_dir = "./results/64-core"
+results_dir = "./results/cache-line-replication"
 cfg_file = "carbon_sim_64.cfg"
 
-benchmarks = ["fft", "radix", "barnes", "ocean_contiguous", "fmm", "lu_contiguous"]
+benchmarks = ["fft", "radix", "barnes", "ocean_contiguous", "fmm", "lu_contiguous","lu_non_contiguous","ocean_non_contiguous","cholesky","water-nsquared","water-spatial","raytrace","volrend"]
 commands = ["./tests/benchmarks/fft/fft -p64 -m16",
             "./tests/benchmarks/radix/radix -p64",
-            "./tests/benchmarks/barnes/barnes \< ./tests/benchmarks/barnes/input",
+            "./tests/benchmarks/barnes/barnes < ./tests/benchmarks/barnes/input",
             "./tests/benchmarks/ocean_contiguous/ocean_contiguous -p64",
-            "./tests/benchmarks/fmm/fmm \< ./tests/benchmarks/fmm/inputs/input.65536",
-            "./tests/benchmarks/lu_contiguous/lu_contiguous -p64"]
-protocols = ["ackwise","full_map","limited_no_broadcast"]
-networks = ["emesh","atac"]
-hardware_sharer_count = 4
+            "./tests/benchmarks/fmm/fmm < ./tests/benchmarks/fmm/inputs/input.16384",
+            "./tests/benchmarks/lu_contiguous/lu_contiguous -p64",
+            "./tests/benchmarks/lu_non_contiguous/lu_non_contiguous -p64 -n512",
+            "./tests/benchmarks/ocean_non_contiguous/ocean_non_contiguous -p64",
+            "./tests/benchmarks/cholesky/cholesky -p64 ./tests/benchmarks/cholesky/inputs/tk15.O",
+            "./tests/benchmarks/water-nsquared/water-nsquared < ./tests/benchmarks/water-nsquared/input",
+            "./tests/benchmarks/water-spatial/water-spatial < ./tests/benchmarks/water-spatial/input",
+            "./tests/benchmarks/raytrace/raytrace -p64 -m64 ./tests/benchmarks/raytrace/inputs/car.env",
+            "./tests/benchmarks/volrend/volrend 64 ./tests/benchmarks/volrend/inputs/head"]
 
 jobs = []
 
-jobs.append(LocalJob(12, "echo Starting"))
+jobs.append(LocalJob(4, "echo Starting"))
 
 for benchmark, command in zip(benchmarks, commands):
-   for protocol in protocols:
-      for network in networks:
-         sim_flags = "-c %s/%s --general/total_cores=64 --general/enable_shared_mem=true --network/memory_model_1=finite_buffer_%s --perf_model/dram_directory/directory_type=%s --perf_model/dram_directory/max_hw_sharers=%i" % (results_dir, cfg_file, network, protocol, hardware_sharer_count)
-         sub_dir = "%s-%s-%s" % (benchmark, protocol, network)
-         jobs.append(MakeJob(1, command, results_dir, sub_dir, sim_flags, "pin"))
+   sim_flags = "-c %s/%s --general/total_cores=64 --general/enable_shared_mem=true --network/memory_model_1=emesh_hop_by_hop" % (results_dir, cfg_file)
+   print sim_flags
+   sub_dir = "%s" % (benchmark)
+   print sub_dir
+   jobs.append(MakeJob(1, command, results_dir, sub_dir, sim_flags, "pin"))
 
-jobs.append(LocalJob(12, "echo Finished"))
+jobs.append(LocalJob(4, "echo Finished"))
 
 # jobs = [
 #     LocalJob(1, "echo Starting..."),

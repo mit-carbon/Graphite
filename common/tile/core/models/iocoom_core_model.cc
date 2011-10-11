@@ -74,9 +74,10 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // buffer write operands to be updated after instruction executes
    DynamicInstructionInfoQueue write_info;
 
-   // Time when register operands are ready
-   UInt64 read_register_operands_ready = m_cycle_count;
-   CoreUnit register_wait_unit = INVALID_UNIT;
+   // Time when register operands are ready (waiting for either the load unit or the execution unit)
+   UInt64 read_register_operands_ready_load_unit_wait = m_cycle_count;
+   UInt64 read_register_operands_ready_execution_unit_wait = m_cycle_count;
+
    // REG read operands
    for (unsigned int i = 0; i < ops.size(); i++)
    {
@@ -88,24 +89,32 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
       LOG_ASSERT_ERROR(o.m_value < m_register_scoreboard.size(),
                        "Register value out of range: %llu", o.m_value);
 
-      // Check which register takes the longest to get ready
-      // If that register is waiting on a memory read, count as memory stall cycles
-      // Else, do not count as memory stall cycles
-      if (read_register_operands_ready < m_register_scoreboard[o.m_value])
+      // Compute the ready time for registers that are waiting on the LOAD_UNIT
+      // and on the EXECUTION_UNIT
+      // The final ready time is the max of this
+      if (m_register_wait_unit_list[o.m_value] == LOAD_UNIT)
       {
-         if (m_register_wait_unit_list[o.m_value] == LOAD_UNIT)
-            register_wait_unit = LOAD_UNIT;
-         else if (m_register_wait_unit_list[o.m_value] == EXECUTION_UNIT)
-            register_wait_unit = EXECUTION_UNIT;
-         else
-            LOG_PRINT_ERROR("Unrecognized Core Unit(%u)", m_register_wait_unit_list[o.m_value]);
-
-         read_register_operands_ready = m_register_scoreboard[o.m_value];
+         if (read_register_operands_ready_load_unit_wait < m_register_scoreboard[o.m_value])
+            read_register_operands_ready_load_unit_wait = m_register_scoreboard[o.m_value];
+      }
+      else if (m_register_wait_unit_list[o.m_value] == EXECUTION_UNIT)
+      {
+         if (read_register_operands_ready_execution_unit_wait < m_register_scoreboard[o.m_value])
+            read_register_operands_ready_execution_unit_wait = m_register_scoreboard[o.m_value];
+      }
+      else
+      {
+         LOG_ASSERT_ERROR(m_register_scoreboard[o.m_value] <= m_cycle_count,
+                          "Unrecognized Core Unit(%u)", m_register_wait_unit_list[o.m_value]);
       }
    }
-   // Update total memory stall cycles
-   if (register_wait_unit == LOAD_UNIT)
-      m_total_memory_stall_cycles += (read_register_operands_ready - m_cycle_count);
+   
+   // The read register ready time is the max of this
+   UInt64 read_register_operands_ready = max<UInt64>(read_register_operands_ready_load_unit_wait,
+                                                     read_register_operands_ready_execution_unit_wait);
+   
+   // Update total memory stall cycles - Subtract out the stall cycles for the execution unit
+   m_total_memory_stall_cycles += (read_register_operands_ready - read_register_operands_ready_execution_unit_wait);
 
    // Assume memory is read only after all registers are read
    // This may be required since some registers may be used as the address for memory operations

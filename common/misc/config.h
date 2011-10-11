@@ -103,7 +103,7 @@ public:
 
    // Return the number of modules (tiles) in a given process
    UInt32 getNumTilesInProcess(UInt32 proc_num)
-   { 
+   {
       assert (proc_num < m_num_processes); 
       return m_proc_to_tile_list_map[proc_num].size(); 
    }

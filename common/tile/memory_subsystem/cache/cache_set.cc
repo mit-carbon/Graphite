@@ -90,7 +90,6 @@ CacheSet::insert(CacheBlockInfo* cache_block_info, Byte* fill_buff, bool* evicti
    if (m_cache_block_info_array[index]->isValid())
    {
       *eviction = true;
-      // FIXME: This is a hack. I dont know if this is the best way to do
       evict_block_info->clone(m_cache_block_info_array[index]);
       if (evict_buff != NULL)
          memcpy((void*) evict_buff, &m_blocks[index * m_blocksize], m_blocksize);

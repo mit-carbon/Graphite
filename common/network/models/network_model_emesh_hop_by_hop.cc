@@ -315,49 +315,36 @@ NetworkModelEMeshHopByHop::computeMemoryControllerPositions(SInt32 num_memory_co
    
    // Initialize mesh_width, mesh_height
    initializeEMeshTopologyParams();
-
-   vector<tile_id_t> tile_id_list_along_perimeter;
-
-   for (SInt32 i = 0; i < _mesh_width; i++)
-      tile_id_list_along_perimeter.push_back(i);
    
-   for (SInt32 i = 1; i < (_mesh_height-1); i++)
-      tile_id_list_along_perimeter.push_back((i * _mesh_width) + _mesh_width-1);
-
-   for (SInt32 i = _mesh_width-1; i >= 0; i--)
-      tile_id_list_along_perimeter.push_back(((_mesh_height-1) * _mesh_width) + i);
-
-   for (SInt32 i = _mesh_height-2; i >= 1; i--)
-      tile_id_list_along_perimeter.push_back(i * _mesh_width);
-
-   assert(tile_id_list_along_perimeter.size() == (UInt32) (2 * (_mesh_width + _mesh_height - 2)));
-
-   LOG_ASSERT_ERROR(tile_id_list_along_perimeter.size() >= (UInt32) num_memory_controllers,
-                    "num tiles along perimeter(%u), num memory controllers(%i)",
-                    tile_id_list_along_perimeter.size(), num_memory_controllers);
-
-   SInt32 spacing_between_memory_controllers = ceil(((float)tile_id_list_along_perimeter.size()) / num_memory_controllers);
-   
-   // tile_id_list_with_memory_controllers : list of tiles that have memory controllers attached to them
    vector<tile_id_t> tile_id_list_with_memory_controllers;
+   // Do a greedy mapping here
+   SInt32 memory_controller_mesh_width = (SInt32) floor(sqrt(num_memory_controllers));
+   SInt32 memory_controller_mesh_height = (SInt32) ceil(1.0 * num_memory_controllers / memory_controller_mesh_width);
 
-   for (SInt32 i = 0; i < num_memory_controllers; i++)
+   SInt32 num_computed_memory_controllers = 0;
+   for (SInt32 j = 0; j < (memory_controller_mesh_height) && (num_computed_memory_controllers < num_memory_controllers); j++)
    {
-      SInt32 index = (i * spacing_between_memory_controllers + _mesh_width/2) % tile_id_list_along_perimeter.size();
-      if (find(tile_id_list_with_memory_controllers.begin(), tile_id_list_with_memory_controllers.end(),
-          tile_id_list_along_perimeter[index]) == tile_id_list_with_memory_controllers.end())
+      for (SInt32 i = 0; (i < memory_controller_mesh_width) && (num_computed_memory_controllers < num_memory_controllers); i++)
       {
-         tile_id_list_with_memory_controllers.push_back(tile_id_list_along_perimeter[index]);
-      }
-      else if (find(tile_id_list_with_memory_controllers.begin(), tile_id_list_with_memory_controllers.end(),
-               tile_id_list_along_perimeter[index+1]) == tile_id_list_with_memory_controllers.end())
-      {
-         tile_id_list_with_memory_controllers.push_back(tile_id_list_along_perimeter[index+1]);
-      }
-      else
-      {
-         LOG_PRINT_ERROR("Could not find a memory controller position: Num Tiles On Perimeter(%u), Num Memory Controllers(%i)",
-                         tile_id_list_along_perimeter.size(), num_memory_controllers);
+         SInt32 size_x = _mesh_width / memory_controller_mesh_width;
+         SInt32 size_y = _mesh_height / memory_controller_mesh_height;
+         SInt32 base_x = i * size_x;
+         SInt32 base_y = j * size_y;
+
+         if (i == (memory_controller_mesh_width-1))
+         {
+            size_x = _mesh_width - ((memory_controller_mesh_width-1) * size_x);
+         }
+         if (j == (memory_controller_mesh_height-1))
+         {
+            size_y = _mesh_height - ((memory_controller_mesh_height-1) * size_y);
+         }
+
+         SInt32 pos_x = base_x + size_x/2;
+         SInt32 pos_y = base_y + size_y/2;
+         tile_id_t tile_id_with_memory_controller = pos_x + (pos_y * _mesh_width);
+         tile_id_list_with_memory_controllers.push_back(tile_id_with_memory_controller);
+         num_computed_memory_controllers ++;
       }
    }
 
@@ -373,7 +360,6 @@ NetworkModelEMeshHopByHop::computeProcessToTileMapping()
    UInt32 process_count = Config::getSingleton()->getProcessCount();
 
    vector<Config::TileList> process_to_tile_mapping(process_count);
-   // Do a greedy mapping here
    SInt32 proc_mesh_width = (SInt32) floor(sqrt(process_count));
    SInt32 proc_mesh_height = (SInt32) floor(1.0 * process_count / proc_mesh_width);
 

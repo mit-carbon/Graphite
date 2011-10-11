@@ -60,7 +60,7 @@ vector<vector<IntPtr> > m_rd_wr_shared_address_list;
 carbon_barrier_t m_barrier;
 
 // Function Declarations
-void* thread_func(void*);
+void* threadFunc(void*);
 void initializeGlobalVariables(int argc, char *argv[]);
 void deInitializeGlobalVariables(void);
 void computeSharedAddressToThreadMapping(void);
@@ -97,9 +97,9 @@ int main(int argc, char* argv[])
    // Spawn t-1 threads. Directly call the thread func from the main thread
    for (SInt32 i = 1; i < m_num_threads; i++)
    {
-      thread_list[i] = CarbonSpawnThread(thread_func, (void*) i);
+      thread_list[i] = CarbonSpawnThread(threadFunc, (void*) i);
    }
-   thread_func((void*) 0);
+   threadFunc((void*) 0);
 
    // Join t-1 threads
    for (SInt32 i = 1; i < m_num_threads; i++)
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
    return 0;
 }
 
-void* thread_func(void*)
+void* threadFunc(void*)
 {
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    assert((tile->getId() >= 0) && (tile->getId() < m_num_threads));
@@ -150,75 +150,75 @@ void* thread_func(void*)
 
       switch(ins_type)
       {
-         case NON_MEMORY:
-            {
-               m_core_clock_list[thread_id] += 1;
-               break;
-            }
+      case NON_MEMORY:
+         {
+            m_core_clock_list[thread_id] += 1;
+            break;
+         }
 
-         case RD_ONLY_SHARED_MEMORY_READ:
+      case RD_ONLY_SHARED_MEMORY_READ:
+         {
+            if (m_rd_only_shared_address_list[thread_id].size() != 0)
             {
-               if (m_rd_only_shared_address_list[thread_id].size() != 0)
-               {
-                  IntPtr address = getRandomReadOnlySharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
-                        address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
-                  m_core_clock_list[thread_id] += ret_val.second;
-               }
-               break;
-            }
-
-         case RD_WR_SHARED_MEMORY_READ:
-            {
-               if (m_rd_wr_shared_address_list[thread_id].size() != 0)
-               {
-                  IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
-                        address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
-                  m_core_clock_list[thread_id] += ret_val.second;
-               }
-               break;
-            }
-
-         case RD_WR_SHARED_MEMORY_WRITE:
-            {
-               if (m_rd_wr_shared_address_list[thread_id].size() != 0)
-               {
-                  IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-                  pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
-                        address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
-                  m_core_clock_list[thread_id] += ret_val.second;
-               }
-               break;
-            }
-
-         case PRIVATE_MEMORY_READ:
-            {
-               IntPtr address = getPrivateAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ,
+               IntPtr address = getRandomReadOnlySharedAddress(thread_id);
+               pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
-               break;
             }
+            break;
+         }
 
-         case PRIVATE_MEMORY_WRITE:
+      case RD_WR_SHARED_MEMORY_READ:
+         {
+            if (m_rd_wr_shared_address_list[thread_id].size() != 0)
             {
-               IntPtr address = getPrivateAddress(thread_id);
+               IntPtr address = getRandomReadWriteSharedAddress(thread_id);
+               pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
+                     address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
+               m_core_clock_list[thread_id] += ret_val.second;
+            }
+            break;
+         }
+
+      case RD_WR_SHARED_MEMORY_WRITE:
+         {
+            if (m_rd_wr_shared_address_list[thread_id].size() != 0)
+            {
+               IntPtr address = getRandomReadWriteSharedAddress(thread_id);
                pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
-               break;
             }
-
-         default:
-            LOG_PRINT_ERROR("Unrecognized Instruction Type(%u)", ins_type);
             break;
+         }
+
+      case PRIVATE_MEMORY_READ:
+         {
+            IntPtr address = getPrivateAddress(thread_id);
+            pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ,
+                  address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
+            m_core_clock_list[thread_id] += ret_val.second;
+            break;
+         }
+
+      case PRIVATE_MEMORY_WRITE:
+         {
+            IntPtr address = getPrivateAddress(thread_id);
+            pair<UInt32, UInt64> ret_val = tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
+                  address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
+            m_core_clock_list[thread_id] += ret_val.second;
+            break;
+         }
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized Instruction Type(%u)", ins_type);
+         break;
       }
 
       num_instructions_simulated ++;
       
       // Synchronize the clocks
-      ClockSkewMinimizationClient *client = tile->getClockSkewMinimizationClient();
+      ClockSkewMinimizationClient *client = tile->getCurrentCore()->getClockSkewMinimizationClient();
       if (client)
          client->synchronize(m_core_clock_list[thread_id]);
    }
@@ -256,7 +256,7 @@ void initializeGlobalVariables(int argc, char *argv[])
       cin >> m_instruction_type_probabilities[i];
    
    m_log_num_shared_addresses = floorLog2(m_num_shared_addresses);
-   m_log_cache_block_size = floorLog2(Sim()->getCfg()->getInt("perf_model/l1_dcache/cache_block_size", 0));
+   m_log_cache_block_size = floorLog2(Sim()->getCfg()->getInt("perf_model/l1_dcache/T1/cache_block_size", 0));
 
    // Do this calculation before converting them into cumulative probabilites
    m_fraction_read_only_shared_addresses = m_instruction_type_probabilities[RD_ONLY_SHARED_MEMORY_READ] / (m_instruction_type_probabilities[RD_ONLY_SHARED_MEMORY_READ] + m_instruction_type_probabilities[RD_WR_SHARED_MEMORY_READ] + m_instruction_type_probabilities[RD_WR_SHARED_MEMORY_WRITE]);
@@ -313,7 +313,7 @@ void computeSharedAddressToThreadMapping()
    // This is pre-computed before the application starts
    for (SInt32 i = 0; i < m_num_shared_addresses; i++)
    {
-      IntPtr shared_address = i << m_log_cache_block_size;
+      IntPtr shared_address = ((IntPtr) i) << m_log_cache_block_size;
       for (SInt32 j = 0; j < m_degree_of_sharing; j++)
       {
          SInt32 thread_id = (SInt32) ((((float) random()) / RAND_MAX) * m_num_threads);
@@ -371,6 +371,7 @@ IntPtr getRandomReadOnlySharedAddress(SInt32 thread_id)
    LOG_ASSERT_ERROR(m_rd_only_shared_address_list[thread_id].size() <= 32768, "Problem With Random Number Generator");
 
    UInt32 index = m_random_rd_only_shared_address_generator[thread_id].next(m_rd_only_shared_address_list[thread_id].size());
+   LOG_PRINT("Thread Id(%i), Index(%u), Address(0x%llx)", thread_id, index, m_rd_only_shared_address_list[thread_id][index]);
    return m_rd_only_shared_address_list[thread_id][index];
 }
 

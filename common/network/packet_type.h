@@ -1,6 +1,8 @@
 #ifndef __PACKET_TYPE_H__
 #define __PACKET_TYPE_H__
 
+#include <string>
+
 enum PacketType
 {
    INVALID_PACKET_TYPE,
@@ -35,6 +37,16 @@ enum EStaticNetwork
    STATIC_NETWORK_MEMORY_2,
    STATIC_NETWORK_SYSTEM,
    NUM_STATIC_NETWORKS
+};
+
+// This gives the list of names for the static networks
+static std::string g_static_network_name_list[] __attribute__((unused)) =
+{
+   "user_1",
+   "user_2",
+   "memory_1",
+   "memory_2",
+   "system"
 };
 
 // Packets are routed to a static network based on their type. This

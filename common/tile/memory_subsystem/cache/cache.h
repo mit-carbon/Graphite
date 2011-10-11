@@ -17,55 +17,65 @@
 
 class Cache : public CacheBase
 {
-   private:
-      bool m_enabled;
+private:
+   bool m_enabled;
 
-      // Cache counters
-      UInt64 m_total_cache_accesses;
-      UInt64 m_total_cache_hits;
+   // Cache counters
+   UInt64 m_total_cache_accesses;
+   UInt64 m_total_cache_hits;
 
-      // Event Counters
-      UInt64 m_tag_array_reads;
-      UInt64 m_tag_array_writes;
-      UInt64 m_data_array_reads;
-      UInt64 m_data_array_writes;
+   // Event Counters
+   UInt64 m_tag_array_reads;
+   UInt64 m_tag_array_writes;
+   UInt64 m_data_array_reads;
+   UInt64 m_data_array_writes;
 
-      // Generic Cache Info
-      cache_t m_cache_type;
-      CacheSet** m_sets;
+   // Cache Stats - Exclusive and Shared Lines
+   UInt64 m_num_exclusive_lines;
+   UInt64 m_num_shared_lines;
 
-      // Power and Area Models
-      CachePowerModel* m_power_model;
-      CacheAreaModel* m_area_model;
-      
-   public:
+   // Generic Cache Info
+   cache_t m_cache_type;
+   CacheSet** m_sets;
 
-      // constructors/destructors
-      Cache(string name, 
-            UInt32 cache_size, 
-            UInt32 associativity, UInt32 cache_block_size,
-            std::string replacement_policy,
-            cache_t cache_type,
-            UInt32 access_delay,
-            volatile float frequency);
-      ~Cache();
+   // Power and Area Models
+   CachePowerModel* m_power_model;
+   CacheAreaModel* m_area_model;
+   
+   void initializeEventCounters();
+   void initializeStats();
 
-      bool invalidateSingleLine(IntPtr addr);
-      CacheBlockInfo* accessSingleLine(IntPtr addr, 
-            access_t access_type, Byte* buff = NULL, UInt32 bytes = 0);
-      void insertSingleLine(IntPtr addr, Byte* fill_buff,
-            bool* eviction, IntPtr* evict_addr, 
-            CacheBlockInfo* evict_block_info, Byte* evict_buff);
-      CacheBlockInfo* peekSingleLine(IntPtr addr);
+public:
 
-      // Update Cache Counters
-      void initializeEventCounters();
-      void updateCounters(bool cache_hit);
-      void enable() { m_enabled = true; }
-      void disable() { m_enabled = false; }
-      void reset(); 
+   // constructors/destructors
+   Cache(string name, 
+         UInt32 cache_size, 
+         UInt32 associativity, UInt32 cache_block_size,
+         std::string replacement_policy,
+         cache_t cache_type,
+         UInt32 access_delay,
+         volatile float frequency);
+   ~Cache();
 
-      virtual void outputSummary(ostream& out);
+   bool invalidateSingleLine(IntPtr addr);
+   CacheBlockInfo* accessSingleLine(IntPtr addr, 
+         access_t access_type, Byte* buff = NULL, UInt32 bytes = 0);
+   void insertSingleLine(IntPtr addr, Byte* fill_buff,
+         bool* eviction, IntPtr* evict_addr,
+         CacheBlockInfo* evict_block_info, Byte* evict_buff);
+   CacheBlockInfo* peekSingleLine(IntPtr addr);
+
+   // Update Cache Counters
+   void updateCounters(bool cache_hit);
+   void enable() { m_enabled = true; }
+   void disable() { m_enabled = false; }
+   void reset();
+
+   // Update Cache Statistics
+   void updateStats(CacheState::cstate_t old_cstate, CacheState::cstate_t new_cstate);
+   void getStats(UInt64& num_exclusive_lines, UInt64& num_shared_lines);
+
+   virtual void outputSummary(ostream& out);
 };
 
 template <class T>

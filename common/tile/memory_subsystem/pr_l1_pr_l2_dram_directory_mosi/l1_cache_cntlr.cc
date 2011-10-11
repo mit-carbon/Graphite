@@ -218,6 +218,14 @@ L1CacheCntlr::insertCacheBlock(MemComponent::component_t mem_component,
    l1_cache->insertSingleLine(address, data_buf,
          eviction_ptr, evict_address_ptr, &evict_block_info, evict_buf);
    setCacheState(mem_component, address, cstate);
+  
+   if (*eviction_ptr)
+   { 
+      // Update Cache Statistics of Evicted Block
+      CacheState::cstate_t evict_state = evict_block_info.getCState();
+      assert(evict_state != CacheState::INVALID);
+      l1_cache->updateStats(evict_state, CacheState::INVALID);
+   }
 }
 
 CacheState::cstate_t
@@ -237,6 +245,10 @@ L1CacheCntlr::setCacheState(MemComponent::component_t mem_component, IntPtr addr
    PrL1CacheBlockInfo* l1_cache_block_info = (PrL1CacheBlockInfo*) l1_cache->peekSingleLine(address);
    assert(l1_cache_block_info);
 
+   // Update Cache Statistics
+   assert(cstate != CacheState::INVALID);
+   l1_cache->updateStats(l1_cache_block_info->getCState(), cstate);
+
    l1_cache_block_info->setCState(cstate);
 }
 
@@ -244,6 +256,11 @@ void
 L1CacheCntlr::invalidateCacheBlock(MemComponent::component_t mem_component, IntPtr address)
 {
    Cache* l1_cache = getL1Cache(mem_component);
+
+   // Update Cache Statistics
+   CacheState::cstate_t old_cstate = getCacheState(mem_component, address);
+   assert(old_cstate != CacheState::INVALID);
+   l1_cache->updateStats(old_cstate, CacheState::INVALID);
 
    l1_cache->invalidateSingleLine(address);
 }

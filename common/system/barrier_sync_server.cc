@@ -5,6 +5,7 @@
 #include "network.h"
 #include "tile_manager.h"
 #include "config.h"
+#include "statistics_thread.h"
 #include "log.h"
 
 BarrierSyncServer::BarrierSyncServer(Network &network, UnstructuredBuffer &recv_buff):
@@ -145,4 +146,8 @@ BarrierSyncServer::barrierRelease()
          }
       }
    }
+
+   // Notify Statistics thread about the global time
+   if (Sim()->getStatisticsThread())
+      Sim()->getStatisticsThread()->notify(m_next_barrier_time);
 }

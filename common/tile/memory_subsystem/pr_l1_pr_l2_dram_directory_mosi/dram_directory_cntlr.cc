@@ -113,7 +113,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    // No longer should any data be cached for this address
    assert(m_cached_data_list->lookup(address) == NULL);
 
-   if (! m_dram_directory_req_queue_list->empty(address))
+   if (!m_dram_directory_req_queue_list->empty(address))
    {
       LOG_PRINT("A new shmem req for address(0x%x) found", address);
       ShmemReq* shmem_req = m_dram_directory_req_queue_list->front(address);
@@ -381,11 +381,11 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
                   "Address(0x%x), State(UNCACHED), Num Sharers(%u)",
                   address, directory_entry->getNumSharers());
 
-            bool add_result = directory_entry->addSharer(requester);
+            bool add_result = addSharer(directory_entry, requester);
             LOG_ASSERT_ERROR(add_result == true,
                   "Address(0x%x), State(UNCACHED)",
                   address);
-
+            
             directory_entry->setOwner(requester);
             directory_block_info->setDState(DirectoryState::MODIFIED);
 
@@ -449,7 +449,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
             // Fetch data from one sharer - Sharer can be the owner too !!
             tile_id_t sharer_id = directory_entry->getOneSharer();
 
-            bool add_result = directory_entry->addSharer(requester);
+            bool add_result = addSharer(directory_entry, requester);
             if (add_result == false)
             {
                LOG_ASSERT_ERROR(sharer_id != INVALID_TILE_ID, "Address(0x%x), SH_REQ, state(%u), sharer(%i)",
@@ -468,7 +468,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
                if ((cached_data_buf == NULL) && (sharer_id != INVALID_TILE_ID))
                {
                   // Remove the added sharer since the request has not been completed
-                  directory_entry->removeSharer(requester, false);
+                  removeSharer(directory_entry, requester, false);
 
                   // Get data from one of the sharers
                   ShmemMsg shmem_msg(ShmemMsg::WB_REQ, MemComponent::DRAM_DIR, MemComponent::L2_CACHE,
@@ -496,7 +496,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
                      INVALID_TILE_ID, directory_entry->getNumSharers());
 
             // Modifiy the directory entry contents
-            bool add_result = directory_entry->addSharer(requester);
+            bool add_result = addSharer(directory_entry, requester);
             LOG_ASSERT_ERROR(add_result == true,
                   "Address(0x%x), Requester(%i), State(UNCACHED), Num Sharers(%u)",
                   address, requester, directory_entry->getNumSharers());
@@ -602,7 +602,7 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_m
                "Address(%#llx), State(OWNED), num sharers(%u), sender(%i), owner(%i)",
                address, directory_entry->getNumSharers(), sender, directory_entry->getOwner());
 
-         directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
+         removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
          break;
 
       case DirectoryState::SHARED:
@@ -610,7 +610,7 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_m
                "Address(%#llx), State(SHARED), num sharers(%u), sender(%i), owner(%i)",
                address, directory_entry->getNumSharers(), sender, directory_entry->getOwner());
 
-         directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
+         removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
          if (directory_entry->getNumSharers() == 0)
             directory_block_info->setDState(DirectoryState::UNCACHED);
          break;
@@ -653,7 +653,7 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem
                address, sender, directory_entry->getOwner());
 
          assert(! shmem_msg->isReplyExpected());
-         directory_entry->removeSharer(sender, false);
+         removeSharer(directory_entry, sender, false);
          directory_entry->setOwner(INVALID_TILE_ID);
          directory_block_info->setDState(DirectoryState::UNCACHED); 
          break;
@@ -663,7 +663,7 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem
                "Address(%#llx), State(OWNED), owner(%i), num sharers(%u)",
                address, directory_entry->getOwner(), directory_entry->getNumSharers());
          
-         directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
+         removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
          if (sender == directory_entry->getOwner())
          {
             directory_entry->setOwner(INVALID_TILE_ID);
@@ -679,7 +679,7 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem
                "Address(%#llx), State(SHARED), owner(%i), num sharers(%u)",
                address, directory_entry->getOwner(), directory_entry->getNumSharers());
 
-         directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
+         removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
          if (directory_entry->getNumSharers() == 0)
             directory_block_info->setDState(DirectoryState::UNCACHED);
          break;
@@ -909,6 +909,20 @@ DramDirectoryCntlr::updateBroadcastPerfCounters(ShmemMsg::msg_t shmem_msg_type, 
          LOG_PRINT_ERROR("Unrecognized ShmemMsg type(%u)", shmem_msg_type);
          break;
    }
+}
+
+bool
+DramDirectoryCntlr::addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id)
+{
+   m_dram_directory_cache->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() + 1);
+   return directory_entry->addSharer(sharer_id);
+}
+
+void
+DramDirectoryCntlr::removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected)
+{
+   m_dram_directory_cache->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() - 1);
+   directory_entry->removeSharer(sharer_id, reply_expected);
 }
 
 void

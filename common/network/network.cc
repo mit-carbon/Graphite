@@ -7,6 +7,8 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 #include "network_model.h"
+#include "statistics_manager.h"
+#include "utils.h"
 #include "log.h"
 
 using namespace std;
@@ -16,6 +18,10 @@ using namespace std;
 // by the transport layer and given to us. We also should be more
 // intelligent about the time stamps, right now the method is very
 // ugly.
+
+// For getting a periodic summary of network utilization
+bool Network::_utilizationTraceEnabled[NUM_STATIC_NETWORKS];
+ofstream Network::_utilizationTraceFiles[NUM_STATIC_NETWORKS];
 
 Network::Network(Tile *tile)
       : _tile(tile)
@@ -41,8 +47,8 @@ Network::Network(Tile *tile)
    }
 
    // Shared Memory Shortcut enabled
-   _shared_memory_shortcut_enabled = Sim()->getCfg()->getBool("general/enable_shared_memory_shortcut_for_network", false);
-   if (_shared_memory_shortcut_enabled)
+   _sharedMemoryShortcutEnabled = Sim()->getCfg()->getBool("general/enable_shared_memory_shortcut_for_network", false);
+   if (_sharedMemoryShortcutEnabled)
    {
       LOG_ASSERT_ERROR(Config::getSingleton()->getProcessCount() == 1,
                        "Cannot Enable Shared Memory Shortcut for (%i) processes", Config::getSingleton()->getProcessCount());
@@ -181,7 +187,7 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
       buf_pkt->zero_load_delay = hop._zero_load_delay;
       buf_pkt->contention_delay = hop._contention_delay;
       
-      if ( (hop._next_node_type != NetworkModel::RECEIVE_TILE) && (_shared_memory_shortcut_enabled) )
+      if ( (hop._next_node_type != NetworkModel::RECEIVE_TILE) && (_sharedMemoryShortcutEnabled) )
       {
          Tile* next_tile = Sim()->getTileManager()->getTileFromID(hop._next_tile_id);
          assert(next_tile);
@@ -503,6 +509,110 @@ void Network::resetModels()
    for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       _models[i]->reset();
+   }
+}
+
+// Get a Trace of Network Traffic
+// Works only on a single process currently
+
+void Network::openUtilizationTraceFiles()
+{
+   // Populate _network_traffic_trace_enabled with the networks for which tracing is enabled 
+   computeTraceEnabledNetworks();
+
+   // Open the trace files 
+   for (SInt32 network_id = 0; network_id < NUM_STATIC_NETWORKS; network_id ++)
+   {
+      if (_utilizationTraceEnabled[network_id])
+      {
+         string output_dir;
+         try
+         {
+            output_dir = Sim()->getCfg()->getString("general/output_dir");
+         }
+         catch (...)
+         {
+            LOG_PRINT_ERROR("Could not read general/output_dir from the cfg file");
+         }
+
+         string filename = output_dir + "/network_utilization_" + g_static_network_name_list[network_id] + ".dat";
+         _utilizationTraceFiles[network_id].open(filename.c_str());
+      }
+   }
+}
+
+void Network::computeTraceEnabledNetworks()
+{
+   // Is tracing enabled for the individual networks
+   for (SInt32 network_id = 0; network_id < NUM_STATIC_NETWORKS; network_id ++)
+      _utilizationTraceEnabled[network_id] = false;
+
+   string enabled_networks_line;
+   try
+   {
+      enabled_networks_line = Sim()->getCfg()->getString("statistics_trace/network_utilization/enabled_networks");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read statistics_trace/network/enabled_networks from the cfg file");
+   }
+ 
+   vector<string> enabled_networks; 
+   splitIntoTokens(enabled_networks_line, enabled_networks, ", "); 
+   for (vector<string>::iterator it = enabled_networks.begin(); it != enabled_networks.end(); it ++)
+   {
+      string network_name = *it;
+      for (SInt32 network_id = 0; network_id < NUM_STATIC_NETWORKS; network_id ++)
+      {
+         if (g_static_network_name_list[network_id] == network_name)
+            _utilizationTraceEnabled[network_id] = true;
+      }
+   }
+}
+
+void Network::closeUtilizationTraceFiles()
+{
+   for (SInt32 network_id = 0; network_id < NUM_STATIC_NETWORKS; network_id ++)
+   {
+      if (_utilizationTraceEnabled[network_id])
+      {
+         _utilizationTraceFiles[network_id].close();
+      }
+   }
+}
+
+void Network::outputUtilizationSummary()
+{
+   for (SInt32 network_id = 0; network_id < NUM_STATIC_NETWORKS; network_id ++)
+   {
+      if (_utilizationTraceEnabled[network_id])
+      {
+         UInt64 total_flits_sent = 0;
+         UInt64 total_flits_broadcasted = 0;
+         UInt64 total_flits_received = 0;
+
+         SInt32 total_tiles = (SInt32) Config::getSingleton()->getTotalTiles();
+         SInt32 sampling_interval = Sim()->getStatisticsManager()->getSamplingInterval();
+
+         for (SInt32 tile_id = 0; tile_id < total_tiles; tile_id ++)
+         {
+            Tile* tile = Sim()->getTileManager()->getTileFromID(tile_id);
+            assert(tile);
+            NetworkModel* network_model = tile->getNetwork()->getNetworkModel(network_id);
+           
+            UInt64 flits_sent, flits_broadcasted, flits_received;
+            network_model->popCurrentUtilizationStatistics(flits_sent, flits_broadcasted, flits_received);
+            
+            total_flits_sent += flits_sent;
+            total_flits_broadcasted += flits_broadcasted;
+            total_flits_received += flits_received;
+         }
+           
+         double flits_send_rate = ((double) total_flits_sent) / (total_tiles * sampling_interval);
+         double flits_broadcast_rate = ((double) total_flits_broadcasted) / (total_tiles * sampling_interval);
+         double flits_receive_rate = ((double) total_flits_received) / (total_tiles * sampling_interval);
+         _utilizationTraceFiles[network_id] << flits_send_rate << ", " << flits_broadcast_rate << ", " << flits_receive_rate << endl;
+      }
    }
 }
 

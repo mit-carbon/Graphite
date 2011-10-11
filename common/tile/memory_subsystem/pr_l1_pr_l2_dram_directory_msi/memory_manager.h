@@ -17,67 +17,67 @@ namespace PrL1PrL2DramDirectoryMSI
 {
    class MemoryManager : public MemoryManagerBase
    {
-      private:
-         L1CacheCntlr* m_l1_cache_cntlr;
-         L2CacheCntlr* m_l2_cache_cntlr;
-         DramDirectoryCntlr* m_dram_directory_cntlr;
-         DramCntlr* m_dram_cntlr;
-         AddressHomeLookup* m_dram_directory_home_lookup;
+   public:
+      MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
+      ~MemoryManager();
 
-         bool m_dram_cntlr_present;
+      UInt32 getCacheBlockSize() { return m_cache_block_size; }
 
-         Semaphore* m_user_thread_sem;
-         Semaphore* m_network_thread_sem;
+      Cache* getL1ICache() { return m_l1_cache_cntlr->getL1ICache(); }
+      Cache* getL1DCache() { return m_l1_cache_cntlr->getL1DCache(); }
+      Cache* getL2Cache() { return m_l2_cache_cntlr->getL2Cache(); }
+      DirectoryCache* getDramDirectoryCache() { return m_dram_directory_cntlr->getDramDirectoryCache(); }
+      DramCntlr* getDramCntlr() { return m_dram_cntlr; }
+      AddressHomeLookup* getDramDirectoryHomeLookup() { return m_dram_directory_home_lookup; }
 
-         UInt32 m_cache_block_size;
-         bool m_enabled;
+      bool coreInitiateMemoryAccess(
+            MemComponent::component_t mem_component,
+            Core::lock_signal_t lock_signal,
+            Core::mem_op_t mem_op_type,
+            IntPtr address, UInt32 offset,
+            Byte* data_buf, UInt32 data_length,
+            bool modeled);
 
-         // Performance Models
-         CachePerfModel* m_l1_icache_perf_model;
-         CachePerfModel* m_l1_dcache_perf_model;
-         CachePerfModel* m_l2_cache_perf_model;
+      void handleMsgFromNetwork(NetPacket& packet);
 
-      public:
-         MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
-         ~MemoryManager();
+      void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, tile_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
 
-         UInt32 getCacheBlockSize() { return m_cache_block_size; }
+      void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+     
+      void enableModels();
+      void disableModels();
+      void resetModels();
 
-         Cache* getL1ICache() { return m_l1_cache_cntlr->getL1ICache(); }
-         Cache* getL1DCache() { return m_l1_cache_cntlr->getL1DCache(); }
-         Cache* getL2Cache() { return m_l2_cache_cntlr->getL2Cache(); }
-         DirectoryCache* getDramDirectoryCache() { return m_dram_directory_cntlr->getDramDirectoryCache(); }
-         DramCntlr* getDramCntlr() { return m_dram_cntlr; }
-         AddressHomeLookup* getDramDirectoryHomeLookup() { return m_dram_directory_home_lookup; }
+      tile_id_t getShmemRequester(const void* pkt_data)
+      { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
-         bool coreInitiateMemoryAccess(
-               MemComponent::component_t mem_component,
-               Core::lock_signal_t lock_signal,
-               Core::mem_op_t mem_op_type,
-               IntPtr address, UInt32 offset,
-               Byte* data_buf, UInt32 data_length,
-               bool modeled);
+      UInt32 getModeledLength(const void* pkt_data)
+      { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
+      bool isModeled(const void* pkt_data)
+      { return true; }
 
-         void handleMsgFromNetwork(NetPacket& packet);
+      void outputSummary(std::ostream &os);
 
-         void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, tile_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+      void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
+   
+   private:
+      L1CacheCntlr* m_l1_cache_cntlr;
+      L2CacheCntlr* m_l2_cache_cntlr;
+      DramDirectoryCntlr* m_dram_directory_cntlr;
+      DramCntlr* m_dram_cntlr;
+      AddressHomeLookup* m_dram_directory_home_lookup;
 
-         void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
-        
-         void enableModels();
-         void disableModels();
-         void resetModels();
+      bool m_dram_cntlr_present;
 
-         tile_id_t getShmemRequester(const void* pkt_data)
-         { return ((ShmemMsg*) pkt_data)->getRequester(); }
+      Semaphore* m_user_thread_sem;
+      Semaphore* m_network_thread_sem;
 
-         UInt32 getModeledLength(const void* pkt_data)
-         { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
-         bool isModeled(const void* pkt_data)
-         { return true; }
+      UInt32 m_cache_block_size;
+      bool m_enabled;
 
-         void outputSummary(std::ostream &os);
-
-         void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
+      // Performance Models
+      CachePerfModel* m_l1_icache_perf_model;
+      CachePerfModel* m_l1_dcache_perf_model;
+      CachePerfModel* m_l2_cache_perf_model;
    };
 }

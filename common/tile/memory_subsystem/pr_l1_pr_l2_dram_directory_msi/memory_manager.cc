@@ -7,13 +7,12 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-MemoryManager::MemoryManager(Tile* tile, 
-      Network* network, ShmemPerfModel* shmem_perf_model):
-   MemoryManagerBase(tile, network, shmem_perf_model),
-   m_dram_directory_cntlr(NULL),
-   m_dram_cntlr(NULL),
-   m_dram_cntlr_present(false),
-   m_enabled(false)
+MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
+   : MemoryManagerBase(tile, network, shmem_perf_model)
+   , m_dram_directory_cntlr(NULL)
+   , m_dram_cntlr(NULL)
+   , m_dram_cntlr_present(false)
+   , m_enabled(false)
 {
    // Read Parameters from the Config file
    std::string l1_icache_type;

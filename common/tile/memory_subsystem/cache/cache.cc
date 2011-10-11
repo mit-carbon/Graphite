@@ -38,6 +38,9 @@ Cache::Cache(string name,
 
    // Initialize Cache Counters
    initializeEventCounters();
+
+   // Cache Stats
+   initializeStats();
 }
 
 Cache::~Cache()
@@ -161,6 +164,34 @@ Cache::updateCounters(bool cache_hit)
       if (cache_hit)
          m_total_cache_hits ++;
    }
+}
+
+void
+Cache::initializeStats()
+{
+   m_num_exclusive_lines = 0;
+   m_num_shared_lines = 0;
+}
+
+void
+Cache::updateStats(CacheState::cstate_t old_cstate, CacheState::cstate_t new_cstate)
+{
+   if (old_cstate == CacheState::MODIFIED)
+      m_num_exclusive_lines --;
+   else if ((old_cstate == CacheState::OWNED) || (old_cstate == CacheState::SHARED))
+      m_num_shared_lines --;
+
+   if (new_cstate == CacheState::MODIFIED)
+      m_num_exclusive_lines ++;
+   else if ((new_cstate == CacheState::OWNED) || (new_cstate == CacheState::SHARED))
+      m_num_shared_lines ++;
+}
+
+void
+Cache::getStats(UInt64& num_exclusive_lines, UInt64& num_shared_lines)
+{
+   num_exclusive_lines = m_num_exclusive_lines;
+   num_shared_lines = m_num_shared_lines;
 }
 
 void

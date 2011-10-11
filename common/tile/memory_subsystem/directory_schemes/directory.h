@@ -29,6 +29,10 @@ public:
    
    static DirectoryType parseDirectoryType(std::string directory_type_str);
 
+   // Sharer Stats
+   void updateSharerStats(SInt32 old_sharer_count, SInt32 new_sharer_count);
+   void getSharerStats(vector<UInt64>& sharer_count_vec);
+
 private:
    DirectoryType _directory_type;
    SInt32 _num_entries;
@@ -36,4 +40,8 @@ private:
    SInt32 _max_num_sharers;
 
    vector<DirectoryEntry*> _directory_entry_list;
+
+   // Sharer Stats
+   vector<UInt64> _sharer_count_vec;
+   void initializeSharerStats();
 };

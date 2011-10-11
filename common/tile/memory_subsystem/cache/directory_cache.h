@@ -25,6 +25,7 @@ public:
                   ShmemPerfModel* shmem_perf_model);
    ~DirectoryCache();
 
+   Directory* getDirectory() { return m_directory; }
    DirectoryEntry* getDirectoryEntry(IntPtr address);
    DirectoryEntry* replaceDirectoryEntry(IntPtr replaced_address, IntPtr address);
    void invalidateDirectoryEntry(IntPtr address);

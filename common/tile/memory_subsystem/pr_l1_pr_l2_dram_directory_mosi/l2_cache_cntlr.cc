@@ -58,12 +58,24 @@ void
 L2CacheCntlr::setCacheState(PrL2CacheBlockInfo* l2_cache_block_info, CacheState::cstate_t cstate)
 {
    assert(l2_cache_block_info);
+   
+   // Update Cache Statistics
+   assert(cstate != CacheState::INVALID);
+   m_l2_cache->updateStats(l2_cache_block_info->getCState(), cstate);
+
    l2_cache_block_info->setCState(cstate);
 }
 
 void
 L2CacheCntlr::invalidateCacheBlock(IntPtr address)
 {
+   // Remove this line from the cache
+
+   // Update Cache Statistics
+   CacheState::cstate_t old_cstate = getCacheState(getCacheBlockInfo(address));
+   assert(old_cstate != CacheState::INVALID);
+   m_l2_cache->updateStats(old_cstate, CacheState::INVALID);
+
    m_l2_cache->invalidateSingleLine(address);
 }
 
@@ -96,6 +108,11 @@ L2CacheCntlr::insertCacheBlock(IntPtr address, CacheState::cstate_t cstate, Byte
 
    if (eviction)
    {
+      // Update Cache Statistics
+      CacheState::cstate_t evict_state = getCacheState(&evict_block_info);
+      assert(evict_state != CacheState::INVALID);
+      m_l2_cache->updateStats(evict_state, CacheState::INVALID);
+      
       LOG_PRINT("Eviction: addr(0x%x)", evict_address);
       invalidateCacheBlockInL1(evict_block_info.getCachedLoc(), evict_address);
 

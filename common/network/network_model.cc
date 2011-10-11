@@ -21,18 +21,8 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id):
    _network_id(network_id),
    _enabled(false)
 {
-   if (network_id == 0)
-      _network_name = "network/user_model_1";
-   else if (network_id == 1)
-      _network_name = "network/user_model_2";
-   else if (network_id == 2)
-      _network_name = "network/memory_model_1";
-   else if (network_id == 3)
-      _network_name = "network/memory_model_2";
-   else if (network_id == 4)
-      _network_name = "network/system_model";
-   else
-      LOG_PRINT_ERROR("Unrecognized Network Num(%u)", network_id);
+   assert(network_id >= 0 && network_id < NUM_STATIC_NETWORKS);
+   _network_name = g_static_network_name_list[network_id];
 
    // Get the Tile ID
    _tile_id = getNetwork()->getTile()->getId();
@@ -48,6 +38,8 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id):
 
    // Initialize Event Counters
    initializeEventCounters();
+   // Trace of Injection/Ejection Rate
+   initializeCurrentUtilizationStatistics();
 }
 
 NetworkModel*
@@ -264,12 +256,14 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
    _total_packets_sent ++;
    _total_flits_sent += num_flits;
    _total_bytes_sent += packet_length;
+   _total_flits_sent_in_current_interval += num_flits;
 
    if (receiver == NetPacket::BROADCAST)
    {
       _total_packets_broadcasted ++;
       _total_flits_broadcasted += num_flits;
       _total_bytes_broadcasted += packet_length;
+      _total_flits_broadcasted_in_current_interval += num_flits;
    }
 }
 
@@ -285,6 +279,7 @@ NetworkModel::updateReceiveCounters(const NetPacket& packet)
    _total_packets_received ++;
    _total_flits_received += num_flits;
    _total_bytes_received += packet_length;
+   _total_flits_received_in_current_interval += num_flits;
 
    UInt64 packet_latency = packet.zero_load_delay + packet.contention_delay;
    UInt64 contention_delay = packet.contention_delay;
@@ -399,7 +394,7 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
          }
 
       case NETWORK_EMESH_HOP_BY_HOP:
-         // return NetworkModelEMeshHopByHop::computeMemoryControllerPositions(num_memory_controllers, tile_count);
+         return NetworkModelEMeshHopByHop::computeMemoryControllerPositions(num_memory_controllers, tile_count);
 
       case NETWORK_ATAC:
          return NetworkModelAtac::computeMemoryControllerPositions(num_memory_controllers, tile_count);
@@ -489,6 +484,24 @@ NetworkModel::processCornerCases(const NetPacket& pkt, queue<Hop>& next_hops)
 
    // Completed processing corner cases
    return true;
+}
+
+void
+NetworkModel::initializeCurrentUtilizationStatistics()
+{
+   _total_flits_sent_in_current_interval = 0;
+   _total_flits_broadcasted_in_current_interval = 0;
+   _total_flits_received_in_current_interval = 0;
+}
+
+void
+NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_broadcasted, UInt64& flits_received)
+{
+   flits_sent = _total_flits_sent_in_current_interval;
+   flits_broadcasted = _total_flits_broadcasted_in_current_interval;
+   flits_received = _total_flits_received_in_current_interval;
+   
+   initializeCurrentUtilizationStatistics();
 }
 
 NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,

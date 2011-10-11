@@ -2,8 +2,14 @@
 #define NETWORK_H
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <list>
+using std::ostream;
+using std::ofstream;
+using std::vector;
+using std::list;
+
 #include "packet_type.h"
 #include "fixed_types.h"
 #include "cond.h"
@@ -46,15 +52,15 @@ public:
    static const SInt32 BROADCAST = 0xDEADBABE;
 };
 
-typedef std::list<NetPacket> NetQueue;
+typedef list<NetPacket> NetQueue;
 
 // -- Network Matches -- //
 
 class NetMatch
 {
    public:
-      std::vector<core_id_t> senders;
-      std::vector<PacketType> types;
+      vector<core_id_t> senders;
+      vector<PacketType> types;
 };
 
 // -- Network -- //
@@ -64,68 +70,79 @@ class NetMatch
 
 class Network
 {
-   public:
-      // -- Ctor, housekeeping, etc. -- //
-      Network(Tile *tile);
-      ~Network();
+public:
+   // -- Ctor, housekeeping, etc. -- //
+   Network(Tile *tile);
+   ~Network();
 
-      Tile *getTile() const { return _tile; }
-      Transport::Node *getTransport() const { return _transport; }
+   Tile *getTile() const { return _tile; }
+   Transport::Node *getTransport() const { return _transport; }
 
-      typedef void (*NetworkCallback)(void*, NetPacket);
+   typedef void (*NetworkCallback)(void*, NetPacket);
 
-      void registerCallback(PacketType type,
-                            NetworkCallback callback,
-                            void *obj);
+   void registerCallback(PacketType type,
+                         NetworkCallback callback,
+                         void *obj);
 
-      void unregisterCallback(PacketType type);
+   void unregisterCallback(PacketType type);
 
-      void outputSummary(std::ostream &out) const;
+   void outputSummary(ostream &out) const;
 
-      void netPullFromTransport();
+   void netPullFromTransport();
 
-      // -- Main interface -- //
+   // -- Main interface -- //
 
-      SInt32 netSend(NetPacket& packet);
-      NetPacket netRecv(const NetMatch &match);
+   SInt32 netSend(NetPacket& packet);
+   NetPacket netRecv(const NetMatch &match);
 
-      // -- Wrappers -- //
+   // -- Wrappers -- //
 
-      SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
-      SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-      NetPacket netRecv(core_id_t src, PacketType type);
-      NetPacket netRecvFrom(core_id_t src);
-      NetPacket netRecvType(PacketType type);
+   SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
+   SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
+   NetPacket netRecv(core_id_t src, PacketType type);
+   NetPacket netRecvFrom(core_id_t src);
+   NetPacket netRecvType(PacketType type);
 
-      void enableModels();
-      void disableModels();
-      void resetModels();
+   void enableModels();
+   void disableModels();
+   void resetModels();
 
-      // -- Network Models -- //
-      NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
+   // -- Network Injection/Ejection Rate Trace -- //
+   static void openUtilizationTraceFiles();
+   static void closeUtilizationTraceFiles();
+   static void outputUtilizationSummary();
 
-   private:
-      NetworkModel * _models[NUM_STATIC_NETWORKS];
+   // -- Network Models -- //
+   NetworkModel* getNetworkModel(SInt32 network_id) { return _models[network_id]; }
+   NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
 
-      NetworkCallback *_callbacks;
-      void **_callbackObjs;
+private:
+   NetworkModel * _models[NUM_STATIC_NETWORKS];
 
-      Tile *_tile;
-      Transport::Node *_transport;
+   NetworkCallback *_callbacks;
+   void **_callbackObjs;
 
-      SInt32 _tid;
-      SInt32 _numMod;
+   Tile *_tile;
+   Transport::Node *_transport;
 
-      NetQueue _netQueue;
-      Lock _netQueueLock;
-      ConditionVariable _netQueueCond;
-      ConditionVariable _netHelperQueueCond;
-      Semaphore _netQueueSem;
-      
-      // ShortCut available through shared memory
-      bool _shared_memory_shortcut_enabled;
+   SInt32 _tid;
+   SInt32 _numMod;
 
-      SInt32 forwardPacket(const NetPacket& packet);
+   NetQueue _netQueue;
+   Lock _netQueueLock;
+   ConditionVariable _netQueueCond;
+   
+   // -- Network Injection/Ejection Rate Trace -- //
+   static bool _utilizationTraceEnabled[NUM_STATIC_NETWORKS];
+   static ofstream _utilizationTraceFiles[NUM_STATIC_NETWORKS];
+
+   // Is shortCut available through shared memory
+   bool _sharedMemoryShortcutEnabled;
+
+   SInt32 forwardPacket(const NetPacket& packet);
+   
+   // -- Network Injection/Ejection Rate Trace -- //
+   static void computeTraceEnabledNetworks();
 };
 
 #endif // NETWORK_H

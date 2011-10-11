@@ -1,6 +1,7 @@
 #include "memory_manager.h"
 #include "cache_base.h"
 #include "simulator.h"
+#include "tile_manager.h"
 #include "clock_converter.h"
 #include "network.h"
 #include "network_model_emesh_hop_by_hop.h"
@@ -9,13 +10,15 @@
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
-MemoryManager::MemoryManager(Tile* tile, 
-      Network* network, ShmemPerfModel* shmem_perf_model):
-   MemoryManagerBase(tile, network, shmem_perf_model),
-   m_dram_directory_cntlr(NULL),
-   m_dram_cntlr(NULL),
-   m_dram_cntlr_present(false),
-   m_enabled(false)
+// Static variables
+ofstream MemoryManager::m_cache_line_replication_file;
+
+MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
+   : MemoryManagerBase(tile, network, shmem_perf_model)
+   , m_dram_directory_cntlr(NULL)
+   , m_dram_cntlr(NULL)
+   , m_dram_cntlr_present(false)
+   , m_enabled(false)
 {
    // Read Parameters from the Config file
    std::string l1_icache_type;
@@ -496,6 +499,149 @@ MemoryManager::outputSummary(std::ostream &os)
       DirectoryCache::dummyOutputSummary(os);
       DramPerfModel::dummyOutputSummary(os);
    }
+}
+
+void
+MemoryManager::openCacheLineReplicationTraceFiles()
+{
+   string output_dir;
+   try
+   {
+      output_dir = Sim()->getCfg()->getString("general/output_dir");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read general/output_dir from the cfg file");
+   }
+
+   string filename = output_dir + "/cache_line_replication.dat";
+   m_cache_line_replication_file.open(filename.c_str());
+}
+
+void
+MemoryManager::closeCacheLineReplicationTraceFiles()
+{
+   m_cache_line_replication_file.close();
+}
+
+void
+MemoryManager::outputCacheLineReplicationSummary()
+{
+   // Static Function to Compute the Time Varying Replication Index of a Cache Block
+   // Go through the set of all caches and directories and get the
+   // number of times each cache block is replicated
+
+   SInt32 total_tiles = (SInt32) Config::getSingleton()->getTotalTiles();
+   
+   UInt64 total_exclusive_blocks_l1_cache = 0;
+   UInt64 total_shared_blocks_l1_cache = 0;
+   UInt64 total_exclusive_blocks_l2_cache = 0;
+   UInt64 total_shared_blocks_l2_cache = 0;
+   UInt64 total_cache_lines_l2_cache = 0;
+   vector<UInt64> total_cache_line_sharer_count(total_tiles+1, 0);
+   
+   for (SInt32 tile_id = 0; tile_id < total_tiles; tile_id ++)
+   {
+      // Tile Ptr
+      Tile* tile = Sim()->getTileManager()->getTileFromID(tile_id);
+      assert(tile);
+      MemoryManager* memory_manager = (MemoryManager*) tile->getMemoryManager();
+      Cache* l1_icache = memory_manager->getL1ICache();
+      Cache* l1_dcache = memory_manager->getL1DCache();
+      Cache* l2_cache = memory_manager->getL2Cache();
+      Directory* directory = (Directory*) NULL;
+      if (memory_manager->isDramCntlrPresent())
+         directory = memory_manager->getDramDirectoryCache()->getDirectory();
+   
+      // Get total blocks in L1 caches & L2 cache
+      UInt64 num_exclusive_blocks_l1_icache;
+      UInt64 num_shared_blocks_l1_icache;
+      UInt64 num_exclusive_blocks_l1_dcache;
+      UInt64 num_shared_blocks_l1_dcache;
+      UInt64 num_exclusive_blocks_l2_cache;
+      UInt64 num_shared_blocks_l2_cache;
+      
+      l1_icache->getStats(num_exclusive_blocks_l1_icache, num_shared_blocks_l1_icache);
+      l1_dcache->getStats(num_exclusive_blocks_l1_dcache, num_shared_blocks_l1_dcache);
+      l2_cache->getStats(num_exclusive_blocks_l2_cache, num_shared_blocks_l2_cache);
+
+      // Get total
+      total_exclusive_blocks_l1_cache += (num_exclusive_blocks_l1_icache + num_exclusive_blocks_l1_dcache);
+      total_shared_blocks_l1_cache += (num_shared_blocks_l1_icache + num_shared_blocks_l1_dcache);
+      total_exclusive_blocks_l2_cache += num_exclusive_blocks_l2_cache;
+      total_shared_blocks_l2_cache += num_shared_blocks_l2_cache;
+
+      if (directory)
+      {
+         vector<UInt64> cache_line_sharer_count;
+         directory->getSharerStats(cache_line_sharer_count);
+         for (SInt32 num_sharers = 1; num_sharers <= total_tiles; num_sharers ++)
+         {
+            total_cache_line_sharer_count[num_sharers] += cache_line_sharer_count[num_sharers];
+            total_cache_lines_l2_cache += cache_line_sharer_count[num_sharers];
+         }
+      }
+   }
+
+   // Write to file
+   // L1 cache, L2 cache
+   m_cache_line_replication_file << total_exclusive_blocks_l1_cache << ", " << total_shared_blocks_l1_cache << ", " << endl;
+   m_cache_line_replication_file << total_exclusive_blocks_l2_cache << ", " << total_shared_blocks_l2_cache << ", " << endl;
+   for (SInt32 i = 1; i <= total_tiles; i++)
+      m_cache_line_replication_file << total_cache_line_sharer_count[i] << ", ";
+   m_cache_line_replication_file << endl;
+   
+   // Replication count
+   // For Pr L1, Pr L2 configuration
+   vector<UInt64> total_cache_line_replication_count(2*total_tiles+1, 0);
+   // Approximate for Pr L1, Sh L2 configuration
+   vector<UInt64> total_cache_line_replication_count_pr_l1_sh_l2(total_tiles+2, 0); 
+   
+   // Account for exclusive blocks first
+   // For Pr L1, Pr L2 configuration
+   total_cache_line_replication_count[1] += (total_exclusive_blocks_l2_cache - total_exclusive_blocks_l1_cache);
+   total_cache_line_replication_count[2] += total_exclusive_blocks_l1_cache;
+   // Approximate for Pr L1, Sh L2 configuration
+   total_cache_line_replication_count_pr_l1_sh_l2[1] += (total_exclusive_blocks_l2_cache - total_exclusive_blocks_l1_cache);
+   total_cache_line_replication_count_pr_l1_sh_l2[2] += total_exclusive_blocks_l1_cache;
+   
+   // Subtract out the exclusive blocks 
+   total_cache_line_sharer_count[1] -= total_exclusive_blocks_l2_cache;
+
+   double shared_blocks_ratio = 1.0 * total_shared_blocks_l1_cache / total_shared_blocks_l2_cache;
+   
+   // Accout for shared blocks next
+   for (SInt32 num_sharers = 1; num_sharers <= total_tiles; num_sharers ++)
+   {
+      UInt64 num_cache_lines = total_cache_line_sharer_count[num_sharers];
+      SInt32 degree_l2 = num_sharers;
+      double degree_l1 = shared_blocks_ratio * degree_l2;
+      
+      // Some lines are replicated in floor(degree_l1) L1 cache slices
+      // while some lines are replicated in ceil(degree_l1) L1 cache caches
+      UInt64 num_low = (UInt64) (num_cache_lines * (ceil(degree_l1) - degree_l1));
+      SInt32 degree_low = (SInt32) floor(degree_l1);
+      UInt64 num_high = num_cache_lines - num_low;
+      SInt32 degree_high = (SInt32) ceil(degree_l1);
+
+      // Approximate For Pr L1, Pr L2 configuration
+      total_cache_line_replication_count[num_sharers + degree_low] += num_low;
+      total_cache_line_replication_count[num_sharers + degree_high] += num_high;
+      // Approximate for Pr L1, Sh L2 configuration
+      total_cache_line_replication_count_pr_l1_sh_l2[1 + degree_low] += num_low;
+      total_cache_line_replication_count_pr_l1_sh_l2[1 + degree_high] += num_high;
+   }
+
+   // For Pr L1, Pr L2 configuration
+   for (SInt32 i = 1; i <= (2*total_tiles); i++)
+      m_cache_line_replication_file << total_cache_line_replication_count[i] << ", ";
+   m_cache_line_replication_file << endl;
+   // Approximate for Pr L1, Sh L2 configuration
+   for (SInt32 i = 1; i <= (total_tiles+1); i++)
+      m_cache_line_replication_file << total_cache_line_replication_count_pr_l1_sh_l2[i] << ", ";
+   m_cache_line_replication_file << endl;
+
+   m_cache_line_replication_file << endl;
 }
 
 }

@@ -24,6 +24,9 @@ Directory::Directory(string directory_type_str, SInt32 num_entries, SInt32 max_h
    {
       _directory_entry_list[i] = createDirectoryEntry();
    }
+
+   // Sharer Stats
+   initializeSharerStats();
 }
 
 Directory::~Directory()
@@ -57,6 +60,34 @@ Directory::getDirectoryEntrySize()
       LOG_PRINT_ERROR("Unrecognized directory type(%u)", _directory_type);
       return 0;
    }
+}
+
+void
+Directory::initializeSharerStats()
+{
+   _sharer_count_vec.resize(Config::getSingleton()->getTotalTiles()+1, 0);
+}
+
+void
+Directory::updateSharerStats(SInt32 old_sharer_count, SInt32 new_sharer_count)
+{
+   assert(old_sharer_count >= 0 && old_sharer_count < (SInt32) Config::getSingleton()->getTotalTiles());
+   assert(new_sharer_count >= 0 && old_sharer_count < (SInt32) Config::getSingleton()->getTotalTiles());
+   if (old_sharer_count > 0)
+   {
+      assert(_sharer_count_vec[old_sharer_count] > 0);
+      _sharer_count_vec[old_sharer_count] --;
+   }
+   if (new_sharer_count > 0)
+   {
+      _sharer_count_vec[new_sharer_count] ++;
+   }
+}
+
+void
+Directory::getSharerStats(vector<UInt64>& sharer_count_vec)
+{
+   sharer_count_vec = _sharer_count_vec;
 }
 
 void

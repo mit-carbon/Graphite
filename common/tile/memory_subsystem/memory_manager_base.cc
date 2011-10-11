@@ -8,23 +8,26 @@ using namespace std;
 #include "network_model.h"
 #include "log.h"
 
+// Static Members
+MemoryManagerBase::CachingProtocol_t MemoryManagerBase::m_caching_protocol_type;
+
 MemoryManagerBase* 
 MemoryManagerBase::createMMU(std::string protocol_type,
       Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
 {
-   CachingProtocol_t caching_protocol = parseProtocolType(protocol_type);
+   m_caching_protocol_type = parseProtocolType(protocol_type);
 
-   switch (caching_protocol)
+   switch (m_caching_protocol_type)
    {
-      case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-         return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile, network, shmem_perf_model);
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+      return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile, network, shmem_perf_model);
 
-      case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
-         return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile, network, shmem_perf_model);
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
+      return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile, network, shmem_perf_model);
 
-      default:
-         LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", caching_protocol);
-         return NULL;
+   default:
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      return NULL;
    }
 }
 
@@ -35,8 +38,6 @@ MemoryManagerBase::parseProtocolType(std::string& protocol_type)
       return PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else if (protocol_type == "pr_l1_pr_l2_dram_directory_mosi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;
-   else if (protocol_type == "pr_l1_pr_l1_pr_l2_dram_directory_msi")
-      return PR_L1_PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else
       return NUM_CACHING_PROTOCOL_TYPES;
 }
@@ -56,6 +57,60 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet)
       default:
          LOG_PRINT_ERROR("Got unrecognized packet type(%u)", packet.type);
          break;
+   }
+}
+
+void
+MemoryManagerBase::openCacheLineReplicationTraceFiles()
+{
+   switch (m_caching_protocol_type)
+   {
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+      break;
+
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
+      PrL1PrL2DramDirectoryMOSI::MemoryManager::openCacheLineReplicationTraceFiles();
+      break;
+
+   default:
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      break;
+   }
+}
+
+void
+MemoryManagerBase::closeCacheLineReplicationTraceFiles()
+{
+   switch (m_caching_protocol_type)
+   {
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+      break;
+
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
+      PrL1PrL2DramDirectoryMOSI::MemoryManager::closeCacheLineReplicationTraceFiles();
+      break;
+
+   default:
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      break;
+   }
+}
+
+void
+MemoryManagerBase::outputCacheLineReplicationSummary()
+{
+   switch (m_caching_protocol_type)
+   {
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+      break;
+
+   case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
+      PrL1PrL2DramDirectoryMOSI::MemoryManager::outputCacheLineReplicationSummary();
+      break;
+
+   default:
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      break;
    }
 }
 
@@ -88,7 +143,7 @@ MemoryManagerBase::getTileListWithMemoryControllers()
       parseList(memory_controller_positions_from_cfg_file, tile_list_from_cfg_file_str_form, ",");
 
       // Do some type-cpnversions here
-      for (vector<string>::iterator it = tile_list_from_cfg_file_str_form.begin(); \
+      for (vector<string>::iterator it = tile_list_from_cfg_file_str_form.begin();
             it != tile_list_from_cfg_file_str_form.end(); it ++)
       {
          tile_id_t tile_id;
@@ -96,7 +151,7 @@ MemoryManagerBase::getTileListWithMemoryControllers()
          tile_list_from_cfg_file.push_back(tile_id);
       }
 
-      LOG_ASSERT_ERROR((tile_list_from_cfg_file.size() == 0) || \
+      LOG_ASSERT_ERROR((tile_list_from_cfg_file.size() == 0) ||
             (tile_list_from_cfg_file.size() == (size_t) num_memory_controllers),
             "num_memory_controllers(%i), num_controller_positions specified(%i)",
             num_memory_controllers, tile_list_from_cfg_file.size());

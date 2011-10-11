@@ -88,6 +88,9 @@ public:
    // Compute Number of Flits
    SInt32 computeNumFlits(UInt32 pkt_length);
 
+   // Tracing Network Injection/Ejection Rate
+   void popCurrentUtilizationStatistics(UInt64& total_flits_sent, UInt64& total_flits_broadcasted, UInt64& total_flits_received);
+
 protected:
    class NextDest
    {
@@ -148,6 +151,11 @@ private:
    UInt64 _total_packet_latency;
    UInt64 _total_contention_delay;
 
+   // For getting a trace of network injection/ejection rate
+   UInt64 _total_flits_sent_in_current_interval;
+   UInt64 _total_flits_broadcasted_in_current_interval;
+   UInt64 _total_flits_received_in_current_interval;
+
    virtual void routePacket(const NetPacket &pkt, queue<Hop> &next_hops) = 0;
    virtual void processReceivedPacket(NetPacket &pkt);
   
@@ -162,6 +170,8 @@ private:
    tile_id_t getRequester(const NetPacket& packet);
    // Initialize Event Counters
    void initializeEventCounters();
+   // Trace of Injection/Ejection Rate
+   void initializeCurrentUtilizationStatistics();
 };
 
 #endif // NETWORK_MODEL_H

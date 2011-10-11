@@ -36,5 +36,6 @@ typedef struct {
 #define INVALID_CORE_ID ((core_id_t) {INVALID_TILE_ID, MAIN_CORE_TYPE})
 #define INVALID_ADDRESS ((IntPtr) -1)
 
+#define UINT64_MAX_ ((UInt64)-1)
 
 #endif

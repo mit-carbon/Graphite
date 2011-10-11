@@ -93,4 +93,8 @@ string trimSpaces(string& str);
 
 void parseList(string& list, vector<string>& vec, string delim);
 
+// Split a line into tokens separated by a list of delimiters
+
+void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters);
+
 #endif

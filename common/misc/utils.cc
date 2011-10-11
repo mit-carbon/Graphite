@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstring>
 #include "utils.h"
 
 /* ================================================================ */
@@ -141,5 +142,19 @@ void parseList(string& list, vector<string>& vec, string delim)
    {
       fprintf(stderr, "Unsupported Number of delimiters(%s)\n", delim.c_str());
       exit(EXIT_FAILURE);
+   }
+}
+
+void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters)
+{
+   char character_set[line.length() + 1];
+   strncpy(character_set, line.c_str(), line.length() + 1);
+
+   char* save_ptr;
+   char* token = strtok_r(character_set, delimiters, &save_ptr);
+   while (token != NULL)
+   {
+      tokens.push_back((string) token);
+      token = strtok_r(NULL, delimiters, &save_ptr);
    }
 }

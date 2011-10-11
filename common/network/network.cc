@@ -1,5 +1,3 @@
-#include <string.h>
-
 #include "transport.h"
 #include "tile.h"
 #include "network.h"

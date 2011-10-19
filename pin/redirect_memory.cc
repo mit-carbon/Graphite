@@ -778,7 +778,7 @@ ADDRINT redirectMemOpAndCaptureEa (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT
    return redirectMemOp(has_lock_prefix, tgt_ea, size, access_type);
 }
 
-ADDRINT captureWriteEA (ADDRINT tgt_ea)
+ADDRINT captureWriteEa (ADDRINT tgt_ea)
 {
    return tgt_ea;
 }

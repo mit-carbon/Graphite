@@ -37,11 +37,11 @@ KERNEL = LENNY
 LD_LIBS += -los-services
 CXXFLAGS += -DKERNEL_$(KERNEL)
 ifeq ($(TARGET_ARCH),ia32)
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include-ia32 -m32 -DTARGET_IA32
+  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include -m32 -DTARGET_IA32
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/ia32 -m32
 endif 
 ifeq ($(TARGET_ARCH),x86_64)
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include-intel64 -fPIC -DTARGET_X86_64
+  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include -fPIC -DTARGET_X86_64
   LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
 endif
 

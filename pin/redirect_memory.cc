@@ -500,12 +500,13 @@ void rewriteMemOp (INS ins)
          assert(! INS_IsAtomicUpdate(ins));
 
          INS_InsertCall (ins, IPOINT_BEFORE,
-               AFUNPTR (redirectMemOp),
+               AFUNPTR (redirectMemOpAndCaptureEa),
                IARG_BOOL, false,
                IARG_MEMORYWRITE_EA,
                IARG_MEMORYWRITE_SIZE,
                IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
                IARG_RETURN_REGS, REG_INST_G2,
+               IARG_REG_REFERENCE, REG_INST_G3,  /* store IARG_MEMORYWRITE_EA in G3 */
                IARG_END);
 
          IPOINT ipoint = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
@@ -514,7 +515,7 @@ void rewriteMemOp (INS ins)
          INS_InsertCall (ins, ipoint, 
                AFUNPTR (completeMemWrite),
                IARG_BOOL, false,
-               IARG_MEMORYWRITE_EA,
+               IARG_REG_VALUE, REG_INST_G3,  /* value of IARG_MEMORYWRITE_EA at IPOINT_BEFORE */
                IARG_MEMORYWRITE_SIZE,
                IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
                IARG_END);
@@ -557,10 +558,16 @@ void rewriteMemOp (INS ins)
             assert (num_mem_read_operands > 0);
             assert (access_type != PinMemoryManager::ACCESS_TYPE_WRITE);
 
+            INS_InsertCall (ins, IPOINT_BEFORE,
+                  AFUNPTR (captureWriteEa),
+                  IARG_MEMORYWRITE_EA,
+                  IARG_RETURN_REGS, REG_INST_G3,  /* store IARG_MEMORYWRITE_EA in G3 */
+                  IARG_END);
+
             INS_InsertCall (ins, ipoint2,
                   AFUNPTR (completeMemWrite),
                   IARG_BOOL, INS_IsAtomicUpdate(ins),
-                  IARG_MEMORYWRITE_EA,
+                  IARG_REG_VALUE, REG_INST_G3,  /* value of IARG_MEMORYWRITE_EA at IPOINT_BEFORE */
                   IARG_MEMORYWRITE_SIZE,
                   IARG_UINT32, access_type,
                   IARG_END);
@@ -763,6 +770,17 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
 
       return tgt_ea;
    }
+}
+
+ADDRINT redirectMemOpAndCaptureEa (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type, ADDRINT *ea_out)
+{
+   *ea_out = tgt_ea;
+   return redirectMemOp(has_lock_prefix, tgt_ea, size, access_type);
+}
+
+ADDRINT captureWriteEA (ADDRINT tgt_ea)
+{
+   return tgt_ea;
 }
 
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)

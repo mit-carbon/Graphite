@@ -32,11 +32,17 @@ void addMemoryModeling(INS ins)
       }
       if (INS_IsMemoryWrite(ins))
       {
+         INS_InsertCall(ins, IPOINT_BEFORE,
+               AFUNPTR(captureWriteEa),
+               IARG_MEMORYWRITE_EA,
+               IARG_RETURN_REGS, REG_INST_G0, /* store IARG_MEMORYWRITE_EA in G0 */
+               IARG_END);
+
          IPOINT ipoint = INS_HasFallThrough(ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
          INS_InsertCall(ins, ipoint,
                AFUNPTR(lite::handleMemoryWrite),
                IARG_BOOL, INS_IsAtomicUpdate(ins),
-               IARG_MEMORYWRITE_EA,
+               IARG_REG_VALUE, REG_INST_G0, /* value of IARG_MEMORYWRITE_EA at IPOINT_BEFORE */
                IARG_MEMORYWRITE_SIZE,
                IARG_END);
       }
@@ -45,7 +51,6 @@ void addMemoryModeling(INS ins)
 
 void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_data_size)
 {
-   // FIXME: May want to do something intelligent here. Dont know how time consuming this operation is!
    Byte read_data_buf[read_data_size];
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
@@ -68,6 +73,11 @@ void handleMemoryWrite(bool is_atomic_update, IntPtr write_address, UInt32 write
          (Byte*) write_address,
          write_data_size,
          true);
+}
+
+IntPtr captureWriteEa(IntPtr tgt_ea)
+{
+   return tgt_ea;
 }
 
 }

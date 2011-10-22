@@ -164,12 +164,12 @@ define(EXTERN_ENV, `
 extern pthread_t PThreadTable[];
 ')
 
-define(G_MALLOC, `valloc($1);')
+define(G_MALLOC, `malloc($1);')
 define(G_FREE, `;')
-define(G_MALLOC_F, `valloc($1)')
-define(NU_MALLOC, `valloc($1);')
+define(G_MALLOC_F, `malloc($1)')
+define(NU_MALLOC, `malloc($1);')
 define(NU_FREE, `;')
-define(NU_MALLOC_F, `valloc($1)')
+define(NU_MALLOC_F, `malloc($1)')
 
 define(GET_HOME, `{($1) = 0;}')
 define(GET_PID, `{($1) = 0;}')

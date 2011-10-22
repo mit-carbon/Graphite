@@ -736,13 +736,18 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    LOG_PRINT("Futex syscall: uaddr(0x%x), op(%u), val(%u)", uaddr, op, val);
 
    // Right now, we handle only a subset of the functionality
-   // assert the subset
+   // Assert the fact that we handle only the subset
 
 #ifdef KERNEL_LENNY
-   LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) \
-            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)) \
-            || (op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)) \
-            , "op = 0x%x", op);
+   LOG_ASSERT_ERROR( (op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) ||
+                     (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)) ||
+                     (op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)),
+                     "op = %#x (NOT %#x, %#x, %#x, %#x, %#x, %#x)",
+                     op,
+                     FUTEX_WAIT, FUTEX_WAIT | FUTEX_PRIVATE_FLAG,
+                     FUTEX_WAKE, FUTEX_WAKE | FUTEX_PRIVATE_FLAG,
+                     FUTEX_CMP_REQUEUE, FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG);
+
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
       LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
@@ -774,7 +779,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    }
    else if((op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)))
    {
-      futexCmpRequeue(core_id, uaddr, val, uaddr, val3, act_val, curr_time);
+      futexCmpRequeue(core_id, uaddr, val, uaddr2, val3, act_val, curr_time);
    }
 #endif
    

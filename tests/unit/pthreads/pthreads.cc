@@ -7,11 +7,18 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+const int numThreads = 3;
+
 pthread_barrier_t barrier;
 
 pthread_mutex_t mux1;
 pthread_mutex_t mux2;
 pthread_mutex_t mux3;
+
+pthread_cond_t cond;
+pthread_mutex_t mux_cond;
+int counter;
+bool cycle;
 
 // Functions executed by threads
 void* thread_func(void * threadid);
@@ -21,55 +28,67 @@ void* cond_func(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-   // Read in the command line arguments
-   const unsigned int numThreads = 3;
-
    // Declare threads and related variables
    pthread_t threads[numThreads];
 
+   // Initialize for barrier test
    pthread_barrier_init(&barrier, NULL, numThreads);
+   
+   // Initialize for mutex test
    pthread_mutex_init(&mux1, NULL);
    pthread_mutex_init(&mux2, NULL);
    pthread_mutex_init(&mux3, NULL);
 
-   for(unsigned int i = 0; i < 2; i++)
+   // Initialize for condition variable test
+   pthread_cond_init(&cond, NULL);
+   pthread_mutex_init(&mux_cond, NULL);
+   counter = 0;
+   cycle = false;
+
+   for(int i = 0; i < 2; i++)
    {
       fprintf(stdout, "Spawning thread %d\n", i);
 
       //spawn test
-      for(unsigned int j = 0; j < numThreads; j++)
-          pthread_create(&threads[j], NULL, thread_func, (void *) (j + 1));
+      for(int j = 0; j < numThreads; j++)
+         pthread_create(&threads[j], NULL, thread_func, (void *) (j + 1));
 
-      for(unsigned int j = 0; j < numThreads; j++)
-          pthread_join(threads[j], NULL);
+      for(int j = 0; j < numThreads; j++)
+         pthread_join(threads[j], NULL);
 
       //barrier test
-      for(unsigned int j = 0; j < numThreads; j++)
-          pthread_create(&threads[j], NULL, barrier_func, (void *) (j + 1));
+      for(int j = 0; j < numThreads; j++)
+         pthread_create(&threads[j], NULL, barrier_func, (void *) (j + 1));
 
-      for(unsigned int j = 0; j < numThreads; j++)
-          pthread_join(threads[j], NULL);
+      for(int j = 0; j < numThreads; j++)
+         pthread_join(threads[j], NULL);
 
       //mutex test
-      for(unsigned int j = 0; j < numThreads; j++)
-          pthread_create(&threads[j], NULL, mutex_func, (void *) (j + 1));
+      for(int j = 0; j < numThreads; j++)
+         pthread_create(&threads[j], NULL, mutex_func, (void *) (j + 1));
 
-      for(unsigned int j = 0; j < numThreads; j++)
-          pthread_join(threads[j], NULL);
+      for(int j = 0; j < numThreads; j++)
+         pthread_join(threads[j], NULL);
       
       //cond test
-//      for(unsigned int j = 0; j < numThreads; j++)
-//          pthread_create(&threads[j], NULL, cond_func, (void *) (j + 1));
+      for(int j = 0; j < numThreads; j++)
+         pthread_create(&threads[j], NULL, cond_func, (void *) (j + 1));
 
-//      for(unsigned int j = 0; j < numThreads; j++)
-//          pthread_join(threads[j], NULL);
+     for(int j = 0; j < numThreads; j++)
+         pthread_join(threads[j], NULL);
    }
-   
+  
+   // De-initialize for barrier test 
    pthread_barrier_destroy(&barrier);
 
+   // De-initialize for mutex test
    pthread_mutex_destroy(&mux1);
    pthread_mutex_destroy(&mux2);
    pthread_mutex_destroy(&mux3);
+
+   // De-initialize for cond test
+   pthread_cond_destroy(&cond);
+   pthread_mutex_destroy(&mux_cond);
 
    fprintf(stdout, "UserApplication: About to exit!\n");
 
@@ -114,6 +133,29 @@ void* mutex_func(void *threadid)
 void* cond_func(void *threadid)
 {
    fprintf(stdout, "Cond Test : Spawned thread #(%li)\n", (long) threadid);
-   fprintf(stdout, "WARNING: Not implemented yet.\n");
-}
 
+   for (unsigned int i = 0; i < 50; i++)
+   {
+      pthread_mutex_lock(&mux_cond);
+      bool cycle_ = cycle;
+      
+      if (++counter != numThreads)
+      {
+         while (cycle_ == cycle)
+         {
+            int error = pthread_cond_wait(&cond, &mux_cond);
+            if (error != 0)
+               break;
+         }
+      }
+      else
+      {
+         cycle = !cycle;
+         counter = 0;
+         pthread_cond_broadcast(&cond);
+      }
+      pthread_mutex_unlock(&mux_cond);
+   }
+
+   return NULL;
+}

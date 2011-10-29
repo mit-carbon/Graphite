@@ -82,7 +82,8 @@ void ThreadScheduler::onThreadExit()
    {
       // Wait for master to update the next thread
       Network *net = m_tile_manager->getCurrentCore()->getNetwork();
-      NetPacket pkt = net->netRecvType(MCP_THREAD_EXIT_REPLY_FROM_MASTER_TYPE);
+      Core *core = m_tile_manager->getCurrentCore();
+      NetPacket pkt = net->netRecvType(MCP_THREAD_EXIT_REPLY_FROM_MASTER_TYPE, core->getCoreId());
       LOG_ASSERT_ERROR(pkt.length == sizeof(core_id_t) + sizeof(thread_id_t), "Unexpected reply size.");
 
       core_id_t dst_core_id = *(core_id_t*)((Byte*)pkt.data);
@@ -434,7 +435,7 @@ bool ThreadScheduler::schedGetAffinity(thread_id_t tid, unsigned int cpusetsize,
                 &req,
                 sizeof(req));
 
-   NetPacket pkt = net->netRecvType(MCP_THREAD_GETAFFINITY_REPLY_FROM_MASTER_TYPE);
+   NetPacket pkt = net->netRecvType(MCP_THREAD_GETAFFINITY_REPLY_FROM_MASTER_TYPE, core->getCoreId());
    LOG_ASSERT_ERROR(pkt.length == sizeof(req), "Unexpected reply size (got %i expected %i).", pkt.length, sizeof(req));
 
    ThreadAffinityRequest * reply = (ThreadAffinityRequest*) ((Byte*)pkt.data);
@@ -600,7 +601,7 @@ void ThreadScheduler::yieldThread()
             &req,
             sizeof(req));
 
-      NetPacket pkt = net->netRecvType(MCP_THREAD_YIELD_REPLY_FROM_MASTER_TYPE);
+      NetPacket pkt = net->netRecvType(MCP_THREAD_YIELD_REPLY_FROM_MASTER_TYPE, core->getCoreId());
 
       m_core_lock[core_id.tile_id].acquire();
 

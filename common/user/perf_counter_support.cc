@@ -80,7 +80,8 @@ void CarbonResetCacheCounters()
          (const void*) &msg, sizeof(msg));
 
    NetPacket recv_pkt;
-   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    
    assert(recv_pkt.length == sizeof(UInt32));
    delete [](Byte*)recv_pkt.data;
@@ -95,7 +96,8 @@ void CarbonDisableCacheCounters()
          (const void*) &msg, sizeof(msg));
 
    NetPacket recv_pkt;
-   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    
    assert(recv_pkt.length == sizeof(UInt32));
    delete [](Byte*)recv_pkt.data;

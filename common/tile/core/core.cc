@@ -60,9 +60,9 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
 
    NetPacket packet;
    if (sender == CAPI_ENDPOINT_ANY)
-      packet = m_tile->getNetwork()->netRecvType(pkt_type);
+      packet = m_tile->getNetwork()->netRecvType(pkt_type, this->getCoreId());
    else
-      packet = m_tile->getNetwork()->netRecv(sender_core, pkt_type);
+      packet = m_tile->getNetwork()->netRecv(sender_core, this->getCoreId(), pkt_type);
 
    LOG_PRINT("Got packet: from {%i, %i}, to {%i, %i}, type %i, len %i", packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, (SInt32)packet.type, packet.length);
 

@@ -56,7 +56,7 @@ BarrierSyncClient::synchronize(UInt64 cycle_count)
 
       // Receive 'BARRIER_RELEASE' response
       NetPacket recv_pkt;
-      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_RESPONSE_TYPE);
+      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_SYSTEM_RESPONSE_TYPE);
       assert(recv_pkt.length == sizeof(int));
 
       unsigned int dummy;

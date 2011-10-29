@@ -249,7 +249,7 @@ SInt32 ThreadManager::spawnThread(tile_id_t tile_id, thread_func_t func, void *a
                 &req,
                 sizeof(req));
 
-   NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE);
+   NetPacket pkt = net->netRecvType(MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE, core->getCoreId());
    
    LOG_ASSERT_ERROR(pkt.length == sizeof(core_id_t) + sizeof(thread_id_t), "Unexpected reply size.");
 
@@ -427,7 +427,8 @@ void ThreadManager::joinThread(thread_id_t thread_id)
    m_tile_manager->getCurrentCore()->setState(Core::STALLED);
 
    // Wait for reply
-   NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY);
+   Core *core = m_tile_manager->getCurrentCore();
+   NetPacket pkt = net->netRecvType(MCP_THREAD_JOIN_REPLY, core->getCoreId());
 
    // Set the CoreState to 'WAKING_UP'
    m_tile_manager->getCurrentCore()->setState(Core::WAKING_UP);
@@ -650,7 +651,8 @@ void ThreadManager::queryThreadIndex(thread_id_t thread_id, core_id_t &core_id, 
                 &req,
                 sizeof(req));
 
-   NetPacket pkt = net->netRecvType(MCP_THREAD_QUERY_INDEX_REPLY_FROM_MASTER_TYPE);
+   Core *core = m_tile_manager->getCurrentCore();
+   NetPacket pkt = net->netRecvType(MCP_THREAD_QUERY_INDEX_REPLY_FROM_MASTER_TYPE, core->getCoreId());
    LOG_ASSERT_ERROR(pkt.length == sizeof(ThreadIndexRequest), "Unexpected reply size.");
 
    ThreadIndexRequest * reply = (ThreadIndexRequest*) ((Byte*)pkt.data);

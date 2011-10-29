@@ -183,7 +183,7 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_ACK);
+         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getCoreId(), SYSTEM_INITIALIZATION_ACK);
       }
       
       // Tell the thread spawner for each process that we're done initializing...even though we haven't?
@@ -203,7 +203,7 @@ void replacementMain (CONTEXT *ctxt)
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_FINI);
+      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getCoreId(), SYSTEM_INITIALIZATION_FINI);
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);

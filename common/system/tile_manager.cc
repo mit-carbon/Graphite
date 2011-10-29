@@ -102,7 +102,7 @@ void TileManager::initializeCommId(SInt32 comm_id)
 
    for (UInt32 i = 0; i < num_procs; i++)
    {
-      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY);
+      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY, this->getCurrentCore()->getCoreId());
       LOG_PRINT("Received reply from proc: %d", i);
    }
 

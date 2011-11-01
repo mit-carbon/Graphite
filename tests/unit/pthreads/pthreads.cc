@@ -24,7 +24,8 @@ bool cycle;
 void* thread_func(void * threadid);
 void* barrier_func(void * threadid);
 void* mutex_func(void * threadid);
-void* cond_func(void * threadid);
+void* cond_broadcast_func(void * threadid);
+void* cond_signal_func(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
@@ -47,8 +48,6 @@ int main(int argc, char* argv[])  // main begins
 
    for(int i = 0; i < 2; i++)
    {
-      fprintf(stdout, "Spawning thread %d\n", i);
-
       //spawn test
       for(int j = 0; j < numThreads; j++)
          pthread_create(&threads[j], NULL, thread_func, (void *) (j + 1));
@@ -70,11 +69,18 @@ int main(int argc, char* argv[])  // main begins
       for(int j = 0; j < numThreads; j++)
          pthread_join(threads[j], NULL);
       
-      //cond test
+      //cond broadcast test
       for(int j = 0; j < numThreads; j++)
-         pthread_create(&threads[j], NULL, cond_func, (void *) (j + 1));
+         pthread_create(&threads[j], NULL, cond_broadcast_func, (void *) (j + 1));
 
      for(int j = 0; j < numThreads; j++)
+         pthread_join(threads[j], NULL);
+      
+      //cond signal test
+      for(int j = 0; j < 2; j++)
+         pthread_create(&threads[j], NULL, cond_signal_func, (void *) (j + 1));
+
+     for(int j = 0; j < 2; j++)
          pthread_join(threads[j], NULL);
    }
   
@@ -115,13 +121,12 @@ void* mutex_func(void *threadid)
 {
    fprintf(stdout, "Mutex Test  : Spawned thread #(%li)\n", (long) threadid);
    
-   for (unsigned int i = 0; i < 10; i++)
+   for (unsigned int i = 0; i < 50; i++)
    {
       pthread_mutex_lock(&mux1);
       pthread_mutex_lock(&mux2);
       pthread_mutex_lock(&mux3);
-      if (i % 25 == 0)
-         fprintf(stderr, "Thread %li got %dth lock...\n", (long) threadid, i);
+      
       pthread_mutex_unlock(&mux3);
       pthread_mutex_unlock(&mux2);
       pthread_mutex_unlock(&mux1);
@@ -130,9 +135,9 @@ void* mutex_func(void *threadid)
    return NULL;
 }
 
-void* cond_func(void *threadid)
+void* cond_broadcast_func(void *threadid)
 {
-   fprintf(stdout, "Cond Test : Spawned thread #(%li)\n", (long) threadid);
+   fprintf(stdout, "Condition Variable Broadcast Test : Spawned thread #(%li)\n", (long) threadid);
 
    for (unsigned int i = 0; i < 50; i++)
    {
@@ -153,6 +158,36 @@ void* cond_func(void *threadid)
          cycle = !cycle;
          counter = 0;
          pthread_cond_broadcast(&cond);
+      }
+      pthread_mutex_unlock(&mux_cond);
+   }
+
+   return NULL;
+}
+
+void* cond_signal_func(void *threadid)
+{
+   fprintf(stdout, "Cond Variable Signal Test : Spawned thread #(%li)\n", (long) threadid);
+
+   for (unsigned int i = 0; i < 50; i++)
+   {
+      pthread_mutex_lock(&mux_cond);
+      bool cycle_ = cycle;
+      
+      if (++counter != 2)
+      {
+         while (cycle_ == cycle)
+         {
+            int error = pthread_cond_wait(&cond, &mux_cond);
+            if (error != 0)
+               break;
+         }
+      }
+      else
+      {
+         cycle = !cycle;
+         counter = 0;
+         pthread_cond_signal(&cond);
       }
       pthread_mutex_unlock(&mux_cond);
    }

@@ -33,5 +33,5 @@ incl.h:	user_options.h const.h my_types.h global.h macros.h address.h
 tiffio.h:
 
 clean:
-	rm -f *.d *.o *.c *.h
+	$(RM) -f *.d *.o *.c *.h
 	make -C libtiff clean

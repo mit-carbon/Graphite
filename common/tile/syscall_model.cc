@@ -1140,11 +1140,11 @@ IntPtr SyscallMdl::marshallBrkCall (syscall_args_t &args)
 
 IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 {
-   int *uaddr = (int*) args.arg0;
+   int *addr1 = (int*) args.arg0;
    int op = (int) args.arg1;
-   int val = (int) args.arg2;
+   int val1 = (int) args.arg2;
    const struct timespec *timeout = (const struct timespec*) args.arg3;
-   int *uaddr2 = (int*) args.arg4;
+   int *addr2 = (int*) args.arg4;
    int val3 = (int) args.arg5;
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
@@ -1152,9 +1152,8 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       // Floating Point Save/Restore
       FloatingPointHandler floating_point_handler;
 
-      struct timespec timeout_buf;
       Core *core = Sim()->getTileManager()->getCurrentCore();
-      LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
+      LOG_ASSERT_ERROR(core, "Core = ((NULL))");
 
       UInt64 start_time;
       UInt64 end_time;
@@ -1162,48 +1161,31 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       volatile float core_frequency = core->getPerformanceModel()->getFrequency();
       start_time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), core_frequency, 1.0);
 
-      if (timeout != NULL)
-      {
-         core->accessMemory(Core::NONE, Core::READ, (IntPtr) timeout, (char*) &timeout_buf, sizeof(timeout_buf));
-      }
-      
-      m_send_buff.put(uaddr);
+      // Package the arguments for the syscall
+      m_send_buff.put(addr1);
       m_send_buff.put(op);
-      m_send_buff.put(val);
-
-      int timeout_prefix;
-      if (timeout == NULL)
-      { 
-         timeout_prefix = 0;
-         m_send_buff.put(timeout_prefix);
-      }
-      else
-      {
-         timeout_prefix = 1;
-         m_send_buff.put(timeout_prefix);
-         m_send_buff << make_pair((const void*) &timeout_buf, sizeof(timeout_buf));
-      }
-
-      m_send_buff.put(uaddr2);
+      m_send_buff.put(val1);
+      m_send_buff.put(timeout);
+      m_send_buff.put(addr2);
       m_send_buff.put(val3);
 
       m_send_buff.put(start_time);
 
       // send the data
-      m_network->netSend (Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
       // Set the CoreState to 'STALLED'
       core->setState(Core::STALLED);
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
 
       // Set the CoreState to 'RUNNING'
       core->setState(Core::WAKING_UP);
 
       // Create a buffer out of the result
-      m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
+      m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
       // Return the result
       int ret_val;
@@ -1226,7 +1208,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
    }
    else
    {
-      return (carbon_reg_t) syscall (SYS_futex, uaddr, op, val, timeout, uaddr2, val3);
+      return (carbon_reg_t) syscall (SYS_futex, addr1, op, val1, timeout, addr2, val3);
    }
 }
 

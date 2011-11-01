@@ -82,12 +82,14 @@ class SyscallServer
       void marshallUnlinkCall(core_id_t core_id);
 
       // Handling Futexes 
-      void futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);
-      void futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time);
-      void futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time);
+      void futexWait(core_id_t core_id, int *addr, int val, UInt64 curr_time);
+      void futexWake(core_id_t core_id, int *addr, int val, UInt64 curr_time);
+      void futexWakeOp(core_id_t core_id, int *addr1, int val1, int val2, int *addr2, int val3, UInt64 curr_time);
+      void futexCmpRequeue(core_id_t core_id, int *addr1, int val1, int val2, int *addr2, int val3, UInt64 curr_time);
+      int __futexWake(int *addr, int val, UInt64 curr_time);
 
-      //Note: These structures are shared with the MCP
-   private:
+      // Private data fields
+      // Note: These structures are shared with the MCP
       Network & m_network;
       UnstructuredBuffer & m_send_buff;
       UnstructuredBuffer & m_recv_buff;
@@ -97,8 +99,6 @@ class SyscallServer
       // Handling Futexes
       typedef std::map<IntPtr, SimFutex> FutexMap;
       FutexMap m_futexes;
-
-
 };
 
 

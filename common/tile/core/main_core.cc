@@ -80,7 +80,7 @@ MainCore::~MainCore()
 pair<UInt32, UInt64>
 MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
 {
-   if (Config::getSingleton()->isSimulatingSharedMemory())
+   if (Config::getSingleton()->isSimulatingSharedMemory() || (Config::getSingleton()->getSimulationMode() == Config::LITE) )
    {
       pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
       return res;

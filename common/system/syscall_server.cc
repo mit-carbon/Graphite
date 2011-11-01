@@ -27,12 +27,11 @@ SyscallServer::SyscallServer(Network & network,
                              UnstructuredBuffer & send_buff_, UnstructuredBuffer &recv_buff_,
                              const UInt32 SERVER_MAX_BUFF,
                              char *scratch_)
-      :
-      m_network(network),
-      m_send_buff(send_buff_),
-      m_recv_buff(recv_buff_),
-      m_SYSCALL_SERVER_MAX_BUFF(SERVER_MAX_BUFF),
-      m_scratch(scratch_)
+   : m_network(network)
+   , m_send_buff(send_buff_)
+   , m_recv_buff(recv_buff_)
+   , m_SYSCALL_SERVER_MAX_BUFF(SERVER_MAX_BUFF)
+   , m_scratch(scratch_)
 {
 }
 

@@ -15,8 +15,6 @@ UInt32 Config::m_knob_total_tiles;
 UInt32 Config::m_knob_num_process;
 bool Config::m_knob_simarch_has_shared_mem;
 std::string Config::m_knob_output_file;
-bool Config::m_knob_enable_dcache_modeling;
-bool Config::m_knob_enable_icache_modeling;
 bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_power_modeling;
 bool Config::m_knob_enable_area_modeling;
@@ -45,9 +43,6 @@ Config::Config()
       m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
       m_knob_enable_power_modeling = Sim()->getCfg()->getBool("general/enable_power_modeling");
       m_knob_enable_area_modeling = Sim()->getCfg()->getBool("general/enable_area_modeling");
-      // TODO: these should be removed and queried directly from the cache
-      m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
-      m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
 
       // Simulation Mode
       m_simulation_mode = parseSimulationMode(Sim()->getCfg()->getString("general/mode"));
@@ -297,16 +292,6 @@ void Config::loadFromCmdLine()
 bool Config::isSimulatingSharedMemory() const
 {
    return (bool)m_knob_simarch_has_shared_mem;
-}
-
-bool Config::getEnableDCacheModeling() const
-{
-   return (bool)m_knob_enable_dcache_modeling;
-}
-
-bool Config::getEnableICacheModeling() const
-{
-   return (bool)m_knob_enable_icache_modeling;
 }
 
 bool Config::getEnablePerformanceModeling() const

@@ -72,7 +72,7 @@ class Core
       int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
       int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
      
-      virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size) = 0;
+      virtual void readInstructionMemory(IntPtr address, UInt32 instruction_size) = 0;
 
       virtual pair<UInt32, UInt64> initiateMemoryAccess(
             MemComponent::component_t mem_component,

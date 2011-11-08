@@ -25,7 +25,6 @@ private:
 
    void handleInstruction(Instruction *instruction);
 
-   void modelIcache(IntPtr address);
    std::pair<UInt64,UInt64> executeLoad(UInt64 time, const DynamicInstructionInfo &);
    UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
 

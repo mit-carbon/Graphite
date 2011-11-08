@@ -62,7 +62,6 @@ MainCore::~MainCore()
    }
 }
 
-// FIXME: This should actually be 'accessDataMemory()'
 /*
  * accessMemory (lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
  *
@@ -92,25 +91,27 @@ MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d
    }
 }
 
-UInt64
+void
 MainCore::readInstructionMemory(IntPtr address, UInt32 instruction_size)
 {
+   if (!m_core_model->isEnabled())
+      return;
+
    LOG_PRINT("Instruction: Address(0x%x), Size(%u), Start READ", 
            address, instruction_size);
 
    Byte buf[instruction_size];
-   return (initiateMemoryAccess(MemComponent::L1_ICACHE,
-         Core::NONE, Core::READ, address, buf, instruction_size).second);
+   initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size, true);
 }
 
 pair<UInt32, UInt64>
-MainCore::initiateMemoryAccess(MemComponent::component_t mem_component, 
-      lock_signal_t lock_signal, 
-      mem_op_t mem_op_type, 
-      IntPtr address, 
-      Byte* data_buf, UInt32 data_size,
-      bool modeled,
-      UInt64 time)
+MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
+                               lock_signal_t lock_signal,
+                               mem_op_t mem_op_type,
+                               IntPtr address,
+                               Byte* data_buf, UInt32 data_size,
+                               bool modeled,
+                               UInt64 time)
 {
    if (data_size <= 0)
    {
@@ -131,7 +132,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
 
    LOG_PRINT("Time(%llu), %s - ADDR(0x%x), data_size(%u), START",
         initial_time,
-        ((mem_op_type == READ) ? "READ" : "WRITE"), 
+        ((mem_op_type == READ) ? "READ" : "WRITE"),
         address, data_size);
 
    UInt32 num_misses = 0;

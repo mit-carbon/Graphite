@@ -24,8 +24,22 @@ void SimplePerformanceModel::outputSummary(std::ostream &os)
 
 void SimplePerformanceModel::handleInstruction(Instruction *instruction)
 {
-   // compute cost
+   // Compute cost of the instruction
    UInt64 cost = 0;
+
+   LOG_PRINT("Instruction Address(%#llx)", instruction->getAddress());
+
+   if (instruction->getAddress() != 0)
+   {
+      // Not a dynamic instruction
+      // Instruction Cache modeling
+      DynamicInstructionInfo &icache_info = getDynamicInstructionInfo();
+      LOG_ASSERT_ERROR(icache_info.type == DynamicInstructionInfo::MEMORY_READ, "Info Expected(%u), Got(%u)",
+                       DynamicInstructionInfo::MEMORY_READ, icache_info.type);
+      // Just add the time taken to access the icache
+      cost += icache_info.memory_info.latency;
+      popDynamicInstructionInfo();
+   }
 
    const OperandList &ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)

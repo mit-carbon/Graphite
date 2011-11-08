@@ -42,8 +42,8 @@ public:
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
-   void disable();
    void enable();
+   void disable();
    bool isEnabled() { return m_enabled; }
    virtual void reset();
 

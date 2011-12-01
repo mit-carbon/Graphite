@@ -64,10 +64,12 @@ StatisticsThread::finish()
 void
 StatisticsThread::notify(UInt64 time)
 {
-   // assert(!_flag);
-   _flag = true;
+   if ((time % _statistics_manager->getSamplingInterval()) == 0)
+   {
+      LOG_ASSERT_WARNING(!_flag, "Sampling interval too small");
+      _flag = true;
 
-   _time = time;
-   if ((_time % _statistics_manager->getSamplingInterval()) == 0)
+      _time = time;
       _cond_var.signal();
+   }
 }

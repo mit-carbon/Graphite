@@ -125,7 +125,9 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
 
    // cerr << cmd.str() << endl;
 
-   system((cmd.str()).c_str());
+   int ret = system((cmd.str()).c_str());
+   if (ret != 0)
+      exit(-1);
 
    ifstream mcpat_output((Sim()->getGraphiteHome() + "/common/mcpat/mcpat.out").c_str());
 

@@ -158,8 +158,15 @@ mcpat_dir = options.graphite_home + "/common/mcpat";
 createMcPATInput(options, mcpat_dir)
 
 # Run McPAT
-mcpatCmd = options.mcpat_home + "/mcpat -infile " + mcpat_dir + "/.mcpat_input.xml > " + mcpat_dir + "/.mcpat.out"
-os.system(mcpatCmd)
+mcpat_executable = options.mcpat_home + "/mcpat"
+
+if (os.path.exists(mcpat_executable) == False):
+   print "ERROR: Could not find McPAT executable (%s).\n" \
+         "ERROR: Make sure [general/McPAT_home] is set correctly in carbon_sim.cfg and McPAT is compiled" % (mcpat_executable)
+   sys.exit(-1)
+
+mcpat_cmd = mcpat_executable + " -infile " + mcpat_dir + "/.mcpat_input.xml > " + mcpat_dir + "/.mcpat.out"
+os.system(mcpat_cmd)
 
 # Parse McPAT Output
 if (options.type == "data"):
@@ -178,5 +185,5 @@ output_file.write(output_str)
 #print output_str
 
 # Remove the Temporary Files
-rmCmd = "rm -f " + mcpat_dir + "/.mcpat_input.xml " + mcpat_dir + "/.mcpat.out"
-os.system(rmCmd)
+rm_cmd = "rm -f " + mcpat_dir + "/.mcpat_input.xml " + mcpat_dir + "/.mcpat.out"
+os.system(rm_cmd)

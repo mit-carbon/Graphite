@@ -65,14 +65,24 @@ T getMax(T v1, T v2)
 // char, int, float, double
 
 template <class T>
-void convertFromString(T& t, const string& s)
+T convertFromString(const string& s)
 {
+   T t;
    istringstream iss(s);
    if ((iss >> t).fail())
    {
       fprintf(stderr, "Conversion from (std::string) -> (%s) FAILED\n", typeid(t).name());
       exit(EXIT_FAILURE);
    }
+   return t;
+}
+
+template <class T>
+string convertToString(const T& t)
+{
+   ostringstream oss;
+   oss << t;
+   return oss.str();
 }
 
 // Trim the beginning and ending spaces in a string

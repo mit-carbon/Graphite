@@ -409,11 +409,11 @@ void Config::parseCoreParameters()
             switch (param_num)
             {
                case 0:
-                  convertFromString<UInt32>(num_cores, *param_it);
+                  num_cores = convertFromString<UInt32>(*param_it);
                   break;
 
                case 1:
-                  convertFromString<float>(frequency, *param_it);
+                  frequency = convertFromString<float>(*param_it);
                   break;
 
                case 2:

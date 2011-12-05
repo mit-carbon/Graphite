@@ -6,6 +6,7 @@ using namespace std;
 #include "mcpat_cache.h"
 #include "simulator.h"
 #include "config.h"
+#include "utils.h"
 #include "log.h"
 
 McPATCache* McPATCache::_singleton = (McPATCache*) NULL;
@@ -107,29 +108,36 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
    SInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node", 0);
    assert(technology_node != 0);
 
-   ostringstream cmd; 
-   cmd << Sim()->getGraphiteHome() << "/common/mcpat/mcpat_cache_parser.py "
-       << " --technology-node " << technology_node
-       << " --mcpat-home " << _mcpat_home
-       << " --graphite-home " << Sim()->getGraphiteHome()
-       << " --type " << cache_params->_type
-       << " --size " << cache_params->_size
-       << " --blocksize " << cache_params->_blocksize
-       << " --associativity " << cache_params->_associativity
-       << " --delay " << cache_params->_delay
-       << " --frequency " << cache_params->_frequency
-       << " --input-file default_input.xml" 
-       << " --output-file mcpat.out"
-       << " --read-accesses " << num_read_accesses
-       << " --total-cycles " << total_cycles;
+   // Get Global and Local (process-specific) McPAT directories
+   string mcpat_dir = Sim()->getGraphiteHome() + "/common/mcpat";
+   UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
 
-   // cerr << cmd.str() << endl;
-
-   int ret = system((cmd.str()).c_str());
+   int ret;
+   
+   // Run McPAT to get Cache Area and Power parameters
+   ostringstream mcpat_cmd; 
+   mcpat_cmd << Sim()->getGraphiteHome() << "/common/mcpat/mcpat_cache_parser.py "
+             << " --technology-node " << technology_node
+             << " --mcpat-home " << _mcpat_home
+             << " --type " << cache_params->_type
+             << " --size " << cache_params->_size
+             << " --blocksize " << cache_params->_blocksize
+             << " --associativity " << cache_params->_associativity
+             << " --delay " << cache_params->_delay
+             << " --frequency " << cache_params->_frequency
+             << " --input-file " << mcpat_dir << "/default_input.xml" 
+             << " --output-file " << mcpat_dir << "/mcpat.out"
+             << " --suffix " << curr_process_num
+             << " --read-accesses " << num_read_accesses
+             << " --total-cycles " << total_cycles;
+   ret = system((mcpat_cmd.str()).c_str());
    if (ret != 0)
-      exit(-1);
+      LOG_PRINT_ERROR("McPAT failed");
 
-   ifstream mcpat_output((Sim()->getGraphiteHome() + "/common/mcpat/mcpat.out").c_str());
+   // Parse McPAT output file to get the Cache Area and Power Parameters
+   ostringstream mcpat_output_filename;
+   mcpat_output_filename << mcpat_dir << "/mcpat.out." << curr_process_num;
+   ifstream mcpat_output((mcpat_output_filename.str()).c_str());
 
    mcpat_output >> cache_area->_area;
    
@@ -144,9 +152,18 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
    cache_power->_dynamic_energy = (runtime_dynamic_power / ((double)num_read_accesses)) *
                                   (((double)total_cycles) / (1e9 * cache_params->_frequency));
 
+   mcpat_output.close();
+
    // cerr << cache_area->_area << ", " << cache_power->_subthreshold_leakage_power << ", "
    //      << cache_power->_gate_leakage_power << ", " << cache_power->_dynamic_energy << endl;
-   
+  
+   // Remove the output file
+   ostringstream rm_cmd;
+   rm_cmd << "rm -f " << mcpat_output_filename.str();
+   ret = system((rm_cmd.str()).c_str());
+   if (ret != 0)
+      LOG_PRINT_ERROR("McPAT Cache: Could not delete output file (%s)", (mcpat_output_filename.str()).c_str());
+
    _cache_info_map.insert(make_pair<CacheParams*, CacheInfo>(
             cache_params, make_pair<CacheArea*, CachePower*>(cache_area, cache_power) ) );
 

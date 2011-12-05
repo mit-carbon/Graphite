@@ -12,7 +12,8 @@ Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
 Instruction::Instruction(InstructionType type, UInt64 opcode, OperandList &operands)
    : m_type(type)
    , m_opcode(opcode)
-   , m_addr(0)
+   , m_address(0)
+   , m_size(0)
    , m_operands(operands)
 {
 }
@@ -20,7 +21,8 @@ Instruction::Instruction(InstructionType type, UInt64 opcode, OperandList &opera
 Instruction::Instruction(InstructionType type)
    : m_type(type)
    , m_opcode(0)
-   , m_addr(0)
+   , m_address(0)
+   , m_size(0)
 {
 }
 
@@ -180,7 +182,7 @@ UInt64 BranchInstruction::getCost()
 void Instruction::print() const
 {
    ostringstream out;
-   out << "Address(0x" << hex << m_addr << dec << "): ";
+   out << "Address(0x" << hex << m_address << dec << ") Size(" << m_size << ") : ";
    for (unsigned int i = 0; i < m_operands.size(); i++)
    {
       const Operand& o = m_operands[i];

@@ -74,22 +74,28 @@ public:
    virtual ~Instruction() { };
    virtual UInt64 getCost();
 
+   static void initializeStaticInstructionModel();
+
    InstructionType getType()
    { return m_type; }
    UInt64 getOpcode()
    { return m_opcode; }
-
-   static void initializeStaticInstructionModel();
-
+   IntPtr getAddress()
+   { return m_address; }
+   UInt32 getSize()
+   { return m_size; }
    const OperandList& getOperands()
    { return m_operands; }
 
-   void setAddress(IntPtr addr)
-   { m_addr = addr; }
-   IntPtr getAddress()
-   { return m_addr; }
+   void setAddress(IntPtr address)
+   { m_address = address; }
+   void setSize(UInt32 size)
+   { m_size = size; }
 
    bool isSimpleMemoryLoad() const;
+   bool isDynamic() const
+   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC)); }
+
    void print() const;
 
 private:
@@ -99,7 +105,8 @@ private:
    InstructionType m_type;
    UInt64 m_opcode;
 
-   IntPtr m_addr;
+   IntPtr m_address;
+   UInt32 m_size;
 
 protected:
    OperandList m_operands;

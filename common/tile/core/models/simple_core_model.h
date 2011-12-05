@@ -9,15 +9,19 @@ public:
    SimpleCoreModel(Core *core, float frequency);
    ~SimpleCoreModel();
 
+   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
    void reset();
    void outputSummary(std::ostream &os);
-
-   UInt64 getInstructionCount() { return m_instruction_count; }
 
 private:
    void handleInstruction(Instruction *instruction);
    
-   UInt64 m_instruction_count;
+   UInt64 modelICache(IntPtr ins_address, UInt32 ins_size);
+   void initializePipelineStallCounters();
+
+   UInt64 m_total_l1icache_stall_cycles;
+   UInt64 m_total_l1dcache_read_stall_cycles;
+   UInt64 m_total_l1dcache_write_stall_cycles;
 };
 
 #endif

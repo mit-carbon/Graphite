@@ -532,11 +532,7 @@ L2CacheCntlr::shmemReqEndsInL2Cache(ShmemMsg::msg_t shmem_msg_type, CacheState::
          break;
    }
 
-   if (modeled)
-   {
-      m_l2_cache->updateCounters(cache_hit);
-   }
-
+   m_l2_cache->updateCounters(cache_hit);
    return cache_hit;
 }
 

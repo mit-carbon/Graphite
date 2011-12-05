@@ -212,13 +212,12 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
    // Calculate the round-trip time
    UInt64 memory_access_latency = final_time - initial_time;
 
+   getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);
+   
    if (modeled)
    {
       DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
-
       m_core_model->pushDynamicInstructionInfo(info);
-
-      getShmemPerfModel()->incrTotalMemoryAccessLatency(memory_access_latency);
    }
 
    return make_pair<UInt32, UInt64>(num_misses, memory_access_latency);

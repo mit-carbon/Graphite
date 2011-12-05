@@ -2,7 +2,6 @@
 #include "core.h"
 #include "simple_core_model.h"
 #include "iocoom_core_model.h"
-#include "magic_core_model.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "config.h"
@@ -21,8 +20,6 @@ CoreModel* CoreModel::createMainCoreModel(Core* core)
       return new IOCOOMCoreModel(core, frequency);
    else if (core_model == "simple")
       return new SimpleCoreModel(core, frequency);
-   else if (core_model == "magic")
-      return new MagicCoreModel(core, frequency);
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
@@ -33,8 +30,9 @@ CoreModel* CoreModel::createMainCoreModel(Core* core)
 // Public Interface
 CoreModel::CoreModel(Core *core, float frequency)
    : m_cycle_count(0)
-   , m_core(core)
+   , m_instruction_count(0)
    , m_frequency(frequency)
+   , m_core(core)
    , m_average_frequency(0.0)
    , m_total_time(0)
    , m_checkpointed_cycle_count(0)
@@ -45,8 +43,8 @@ CoreModel::CoreModel(Core *core, float frequency)
    // Create Branch Predictor
    m_bp = BranchPredictor::create();
 
-   // Initialize Instruction Counters
-   initializeInstructionCounters();
+   // Initialize Pipeline Stall Counters
+   initializePipelineStallCounters();
 }
 
 CoreModel::~CoreModel()
@@ -56,26 +54,21 @@ CoreModel::~CoreModel()
 
 void CoreModel::outputSummary(ostream& os)
 {
-   // Frequency Summary
-   frequencySummary(os);
+   os << "Core Model Summary:" << endl;
+   os << "    Total Instructions: " << m_instruction_count << endl;
+   os << "    Completion Time (in ns): " << (UInt64) ((double) m_cycle_count / m_frequency) << endl;
+   os << "    Average Frequency (in GHz): " << m_average_frequency << endl;
    
-   // Instruction Counter Summary
-   os << "  Recv Instructions: " << m_total_recv_instructions << endl;
-   os << "  Recv Instruction Costs: " << m_total_recv_instruction_costs << endl;
-   os << "  Sync Instructions: " << m_total_sync_instructions << endl;
-   os << "  Sync Instruction Costs: " << m_total_sync_instruction_costs << endl;
+   os << "    Total Recv Instructions: " << m_total_recv_instructions << endl;
+   os << "    Total Sync Instructions: " << m_total_sync_instructions << endl;
+   os << "    Total Memory Stall Time (in ns): " << (UInt64) ((double) m_total_memory_stall_cycles / m_frequency) << endl;
+   os << "    Total Execution Unit Stall Time (in ns): " << (UInt64) ((double) m_total_execution_unit_stall_cycles / m_frequency) << endl;
+   os << "    Total Recv Instruction Stall Time (in ns): " << (UInt64) ((double) m_total_recv_instruction_stall_cycles / m_frequency) << endl;
+   os << "    Total Sync Instruction Stall Time (in ns): " << (UInt64) ((double) m_total_sync_instruction_stall_cycles / m_frequency) << endl;
 
    // Branch Predictor Summary
    if (m_bp)
       m_bp->outputSummary(os);
-}
-
-void CoreModel::frequencySummary(ostream& os)
-{
-   os << "  Completion Time: "
-      << (UInt64) (((float) m_cycle_count) / m_frequency)
-      << endl;
-   os << "  Average Frequency: " << m_average_frequency << endl;
 }
 
 void CoreModel::enable()
@@ -100,8 +93,8 @@ void CoreModel::reset()
    m_cycle_count = 0;
    m_checkpointed_cycle_count = 0;
 
-   // Reset Instruction Counters
-   initializeInstructionCounters();
+   // Reset Pipeline Stall Counters
+   initializePipelineStallCounters();
 
    // Clear BasicBlockQueue
    while (!m_basic_block_queue.empty())
@@ -135,6 +128,12 @@ void CoreModel::updateInternalVariablesOnFrequencyChange(volatile float frequenc
    m_checkpointed_cycle_count = (UInt64) (((double) m_cycle_count / old_frequency) * new_frequency);
    m_cycle_count = m_checkpointed_cycle_count;
    m_frequency = new_frequency;
+
+   // Update Pipeline Stall Counters
+   m_total_memory_stall_cycles = (UInt64) (((double) m_total_memory_stall_cycles / old_frequency) * new_frequency);
+   m_total_execution_unit_stall_cycles = (UInt64) (((double) m_total_execution_unit_stall_cycles / old_frequency) * new_frequency);
+   m_total_recv_instruction_stall_cycles = (UInt64) (((double) m_total_recv_instruction_stall_cycles / old_frequency) * new_frequency);
+   m_total_sync_instruction_stall_cycles = (UInt64) (((double) m_total_sync_instruction_stall_cycles / old_frequency) * new_frequency);
 }
 
 // This function is called:
@@ -158,31 +157,36 @@ void CoreModel::recomputeAverageFrequency()
    m_total_time = (UInt64) total_time_taken;
 }
 
-void CoreModel::initializeInstructionCounters()
+void CoreModel::initializePipelineStallCounters()
 {
    m_total_recv_instructions = 0;
-   m_total_recv_instruction_costs = 0;
    m_total_sync_instructions = 0;
-   m_total_sync_instruction_costs = 0;
+   m_total_recv_instruction_stall_cycles = 0;
+   m_total_sync_instruction_stall_cycles = 0;
+   m_total_memory_stall_cycles = 0;
+   m_total_execution_unit_stall_cycles = 0;
 }
 
-void CoreModel::updateInstructionCounters(Instruction* i)
+void CoreModel::updatePipelineStallCounters(Instruction* i, UInt64 memory_stall_cycles, UInt64 execution_unit_stall_cycles)
 {
    switch (i->getType())
    {
       case INST_RECV:
          m_total_recv_instructions ++;
-         m_total_recv_instruction_costs += i->getCost();
+         m_total_recv_instruction_stall_cycles += i->getCost();
          break;
 
       case INST_SYNC:
          m_total_sync_instructions ++;
-         m_total_sync_instruction_costs += i->getCost();
+         m_total_sync_instruction_stall_cycles += i->getCost();
          break;
 
       default:
          break;
    }
+   
+   m_total_memory_stall_cycles += memory_stall_cycles;
+   m_total_execution_unit_stall_cycles += execution_unit_stall_cycles;
 }
 
 void CoreModel::queueDynamicInstruction(Instruction *i)
@@ -192,9 +196,6 @@ void CoreModel::queueDynamicInstruction(Instruction *i)
       delete i;
       return;
    }
-
-   // Update Instruction Counters
-   updateInstructionCounters(i);
 
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);

@@ -18,6 +18,7 @@ public:
    IOCOOMCoreModel(Core* core, float frequency);
    ~IOCOOMCoreModel();
 
+   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
    void reset();
    void outputSummary(std::ostream &os);
 
@@ -33,7 +34,7 @@ private:
 
    void handleInstruction(Instruction *instruction);
 
-   void modelIcache(IntPtr address);
+   UInt64 modelICache(IntPtr ins_address, UInt32 ins_size);
    std::pair<UInt64,UInt64> executeLoad(UInt64 time, const DynamicInstructionInfo &);
    UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
 
@@ -42,11 +43,11 @@ private:
 
    typedef std::vector<UInt64> Scoreboard;
 
-   class LoadUnit
+   class LoadBuffer
    {
    public:
-      LoadUnit(unsigned int num_units);
-      ~LoadUnit();
+      LoadBuffer(unsigned int num_units);
+      ~LoadBuffer();
 
       UInt64 execute(UInt64 time, UInt64 occupancy);
 
@@ -94,14 +95,22 @@ private:
       void initialize();
    };
 
-   UInt64 m_instruction_count;
-   UInt64 m_total_memory_stall_cycles;
-
    Scoreboard m_register_scoreboard;
    std::vector<CoreUnit> m_register_wait_unit_list;
 
    StoreBuffer *m_store_buffer;
-   LoadUnit *m_load_unit;
+   LoadBuffer *m_load_buffer;
+
+   // Pipeline Stall Counters
+   UInt64 m_total_load_buffer_stall_cycles;
+   UInt64 m_total_store_buffer_stall_cycles;
+   UInt64 m_total_l1icache_stall_cycles;
+   UInt64 m_total_intra_ins_l1dcache_read_stall_cycles;
+   UInt64 m_total_inter_ins_l1dcache_read_stall_cycles;
+   UInt64 m_total_l1dcache_write_stall_cycles;
+   UInt64 m_total_intra_ins_execution_unit_stall_cycles;
+   UInt64 m_total_inter_ins_execution_unit_stall_cycles;
+   void initializePipelineStallCounters();
 
    McPATCoreInterface* m_mcpat_core_interface;
 };

@@ -367,7 +367,7 @@ void Config::parseCoreParameters()
 
    const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
    const float DEFAULT_FREQUENCY = 1;
-   const string DEFAULT_CORE_TYPE = "magic";
+   const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
    string core_parameter_tuple_str;
@@ -386,7 +386,7 @@ void Config::parseCoreParameters()
 
    parseList(core_parameter_tuple_str, core_parameter_tuple_vec, "<>");
    
-   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin(); \
+   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin();
          tuple_it != core_parameter_tuple_vec.end(); tuple_it++)
    {
       // Initializing using default values
@@ -467,7 +467,7 @@ void Config::parseCoreParameters()
    // MCP, thread spawner and misc cores
    for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
-      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
+      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY,
                DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
    }
 }

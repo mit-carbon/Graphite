@@ -47,17 +47,17 @@ DirectoryCache::DirectoryCache(Tile* tile,
    LOG_PRINT("Got Core Frequency");
 
    // Size of each directory entry (in bits)
-   UInt32 directory_entry_size = m_directory->getDirectoryEntrySize();
+   UInt32 directory_entry_size = ceil(1.0 * m_directory->getDirectoryEntrySize() / 8);
    LOG_PRINT("Got Directory Entry Size");
 
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      m_cache_power_model = new CachePowerModel("directory", ceil(m_total_entries * directory_entry_size / 8),
+      m_cache_power_model = new CachePowerModel("directory", m_total_entries * directory_entry_size,
             directory_entry_size, m_associativity, m_dram_directory_cache_access_delay_in_clock_cycles, core_frequency);
    }
    if (Config::getSingleton()->getEnableAreaModeling())
    {
-      m_cache_area_model = new CacheAreaModel("directory", ceil(m_total_entries * directory_entry_size / 8),
+      m_cache_area_model = new CacheAreaModel("directory", m_total_entries * directory_entry_size,
             directory_entry_size, m_associativity, m_dram_directory_cache_access_delay_in_clock_cycles, core_frequency);
    }
    LOG_PRINT("Directory Cache ctor exit");

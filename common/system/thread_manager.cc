@@ -485,7 +485,7 @@ void ThreadManager::terminateThreadSpawners()
    {
       {
          ScopedLock sl(m_thread_spawners_terminated_lock);
-         if (m_thread_spawners_terminated < Config::getSingleton()->getProcessCount())
+         if (m_thread_spawners_terminated == (Config::getSingleton()->getProcessCount()-1))
             break;
       }
       sched_yield();

@@ -351,26 +351,28 @@ DirectoryCache::outputSummary(ostream& out)
    // Total Number of Addresses
    // Max Set Size, Average Set Size, Min Set Size
    // Evictions: Average per set, Max, Address with max evictions
-   out << "    Total Addresses: " << m_address_map.size() << endl;
+   out << "    Detailed Counters: " << endl;
+   out << "      Total Addresses: " << m_address_map.size() << endl;
 
-   out << "    Average set size: " << float(m_address_map.size()) / m_num_sets << endl;
-   out << "    Set index with max size: " << set_index_with_max_size << endl;
-   out << "    Max set size: " << max_set_size << endl;
-   out << "    Set index with min size: " << set_index_with_min_size << endl;
-   out << "    Min set size: " << min_set_size << endl;
+   out << "      Average set size: " << float(m_address_map.size()) / m_num_sets << endl;
+   out << "      Set index with max size: " << set_index_with_max_size << endl;
+   out << "      Max set size: " << max_set_size << endl;
+   out << "      Set index with min size: " << set_index_with_min_size << endl;
+   out << "      Min set size: " << min_set_size << endl;
 
-   out << "    Average evictions per set: " << float(total_evictions) / m_num_sets << endl;
-   out << "    Set index with max evictions: " << set_index_with_max_evictions << endl;
-   out << "    Max set evictions: " << max_set_evictions << endl;
+   out << "      Average evictions per set: " << float(total_evictions) / m_num_sets << endl;
+   out << "      Set index with max evictions: " << set_index_with_max_evictions << endl;
+   out << "      Max set evictions: " << max_set_evictions << endl;
    
-   out << "    Address with max evictions: 0x" << hex << address_with_max_evictions << dec << endl;
-   out << "    Max address evictions: " << max_address_evictions << endl;
+   out << "      Address with max evictions: 0x" << hex << address_with_max_evictions << dec << endl;
+   out << "      Max address evictions: " << max_address_evictions << endl;
 #endif
 }
 
 void
 DirectoryCache::dummyOutputSummary(ostream& out)
 {
+   out << "    Total Directory Cache Accesses: " << endl;
    // The power and area model summary
    if (Config::getSingleton()->getEnablePowerModeling())
       CachePowerModel::dummyOutputSummary(out);
@@ -378,20 +380,20 @@ DirectoryCache::dummyOutputSummary(ostream& out)
       CacheAreaModel::dummyOutputSummary(out);
 
 #ifdef DETAILED_TRACKING_ENABLED
-   out << "Dram Directory Cache: " << endl;
-   out << "    Total Addresses: NA" << endl;
+   out << "    Detailed Counters: " << endl;
+   out << "      Total Addresses: " << endl;
 
-   out << "    Average set size: NA" << endl;
-   out << "    Set index with max size: NA" << endl;
-   out << "    Max set size: NA" << endl;
-   out << "    Set index with min size: NA" << endl;
-   out << "    Min set size: NA" << endl;
+   out << "      Average set size: " << endl;
+   out << "      Set index with max size: " << endl;
+   out << "      Max set size: " << endl;
+   out << "      Set index with min size: " << endl;
+   out << "      Min set size: " << endl;
 
-   out << "    Average evictions per set: NA" << endl;
-   out << "    Set index with max evictions: NA" << endl;
-   out << "    Max set evictions: NA" << endl;
+   out << "      Average evictions per set: " << endl;
+   out << "      Set index with max evictions: " << endl;
+   out << "      Max set evictions: " << endl;
    
-   out << "    Address with max evictions: NA" << endl;
-   out << "    Max address evictions: NA" << endl;
+   out << "      Address with max evictions: " << endl;
+   out << "      Max address evictions: " << endl;
 #endif
 }

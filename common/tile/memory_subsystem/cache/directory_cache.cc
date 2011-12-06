@@ -348,7 +348,6 @@ DirectoryCache::outputSummary(ostream& out)
       }
    }
 
-   out << "Dram Directory Cache: " << endl;
    // Total Number of Addresses
    // Max Set Size, Average Set Size, Min Set Size
    // Evictions: Average per set, Max, Address with max evictions

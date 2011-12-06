@@ -1,6 +1,8 @@
 #include <sstream>
 #include <fstream>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 using namespace std;
 
 #include "mcpat_cache.h"
@@ -110,10 +112,17 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
 
    // Get Global and Local (process-specific) McPAT directories
    string mcpat_dir = Sim()->getGraphiteHome() + "/common/mcpat";
-   UInt32 curr_process_num = Config::getSingleton()->getCurrentProcessNum();
 
    int ret;
-   
+ 
+   char hostname[1024];
+   if (gethostname(hostname, 1024) != 0)
+      LOG_PRINT_ERROR("Error Reading Hostname of the Machine");    
+   pid_t pid = getpid();
+
+   ostringstream suffix;
+   suffix << (string) hostname << "." << pid;
+
    // Run McPAT to get Cache Area and Power parameters
    ostringstream mcpat_cmd; 
    mcpat_cmd << Sim()->getGraphiteHome() << "/common/mcpat/mcpat_cache_parser.py "
@@ -127,7 +136,7 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
              << " --frequency " << cache_params->_frequency
              << " --input-file " << mcpat_dir << "/default_input.xml" 
              << " --output-file " << mcpat_dir << "/mcpat.out"
-             << " --suffix " << curr_process_num
+             << " --suffix " << suffix.str()
              << " --read-accesses " << num_read_accesses
              << " --total-cycles " << total_cycles;
    ret = system((mcpat_cmd.str()).c_str());
@@ -136,7 +145,7 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
 
    // Parse McPAT output file to get the Cache Area and Power Parameters
    ostringstream mcpat_output_filename;
-   mcpat_output_filename << mcpat_dir << "/mcpat.out." << curr_process_num;
+   mcpat_output_filename << mcpat_dir << "/mcpat.out." << suffix.str();
    ifstream mcpat_output((mcpat_output_filename.str()).c_str());
 
    mcpat_output >> cache_area->_area;

@@ -191,17 +191,17 @@ Cache::outputSummary(ostream& out)
    out << "    Miss Rate: " <<
       ((float) (m_total_cache_accesses - m_total_cache_hits) / m_total_cache_accesses) * 100 << endl;
    out << "    Total Cache Misses: " << m_total_cache_accesses - m_total_cache_hits << endl;
- 
-   // Event Counters Summary
-   out << "   Event Counters:" << endl;
-   out << "    Tag Array Reads: " << m_tag_array_reads << endl;
-   out << "    Tag Array Writes: " << m_tag_array_writes << endl;
-   out << "    Data Array Reads: " << m_data_array_reads << endl;
-   out << "    Data Array Writes: " << m_data_array_writes << endl;
    
    // Output Power and Area Summaries
    if (Config::getSingleton()->getEnablePowerModeling())
       m_power_model->outputSummary(out);
    if (Config::getSingleton()->getEnableAreaModeling())
       m_area_model->outputSummary(out);
+ 
+   // Event Counters Summary
+   out << "    Event Counters:" << endl;
+   out << "      Tag Array Reads: " << m_tag_array_reads << endl;
+   out << "      Tag Array Writes: " << m_tag_array_writes << endl;
+   out << "      Data Array Reads: " << m_data_array_reads << endl;
+   out << "      Data Array Writes: " << m_data_array_writes << endl;
 }

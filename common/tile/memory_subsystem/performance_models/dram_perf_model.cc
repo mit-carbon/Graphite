@@ -180,7 +180,7 @@ DramPerfModel::dummyOutputSummary(ostream& out)
    if (queue_model_enabled && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {
       out << "    Queue Model:" << endl;
-      out << "      Queue Utilization(\%): NA" << endl;
-      out << "      Analytical Model Used(\%): NA" << endl;
+      out << "      Queue Utilization(\%): " << endl;
+      out << "      Analytical Model Used(\%): " << endl;
    }
 }

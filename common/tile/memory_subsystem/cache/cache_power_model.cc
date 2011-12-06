@@ -30,5 +30,5 @@ void
 CachePowerModel::dummyOutputSummary(ostream& out)
 {
    out << "    Dynamic Energy (in J): " << endl;
-   out << "    Static Power (in W): NA" << endl;
+   out << "    Static Power (in W): " << endl;
 }

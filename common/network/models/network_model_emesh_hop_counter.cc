@@ -294,20 +294,21 @@ NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out)
 {
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      LOG_PRINT("Router Static Power(%g), Link Static Power(%g)", \
-            _electrical_router_model->getTotalStaticPower(), \
+      LOG_PRINT("Router Static Power(%g), Link Static Power(%g)",
+            _electrical_router_model->getTotalStaticPower(),
             _electrical_link_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
 
       // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
       volatile double static_power = _electrical_router_model->getTotalStaticPower() + (_electrical_link_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
       volatile double dynamic_energy = _electrical_router_model->getTotalDynamicEnergy() + _electrical_link_model->getDynamicEnergy();
 
-      out << "    Static Power: " << static_power << endl;
-      out << "    Dynamic Energy: " << dynamic_energy << endl;
+      out << "    Energy Counters: " << endl;
+      out << "      Static Power (in W): " << static_power << endl;
+      out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
    }
 
-   out << "  Activity Counters:" << endl;
-   out << "    Switch Allocator Traversals: " << _switch_allocator_traversals << endl;
-   out << "    Crossbar Traversals: " << _crossbar_traversals << endl;
-   out << "    Link Traversals: " << _link_traversals << endl;
+   out << "    Event Counters:" << endl;
+   out << "      Switch Allocator Traversals: " << _switch_allocator_traversals << endl;
+   out << "      Crossbar Traversals: " << _crossbar_traversals << endl;
+   out << "      Link Traversals: " << _link_traversals << endl;
 }

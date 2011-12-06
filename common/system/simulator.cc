@@ -82,7 +82,7 @@ void Simulator::start()
    
    // Create Orion Config Object
    string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
-   OrionConfig::allocate(orion_cfg_file);
+   OrionConfig::allocate(orion_cfg_file, getCfg()->getInt("general/technology_node"));
    // OrionConfig::getSingleton()->print_config(cout);
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())

@@ -28,8 +28,8 @@ TechParameter::TechParameter(
       m_tech_node = tech_node;
       break;
     default:
-      cerr << "Invalid technology node (" << tech_node << ")" << endl;
-      exit(1);
+      fprintf(stderr, "ERROR: Orion: Invalid technology node: %u nm\n", tech_node);
+      exit(EXIT_FAILURE);
   }
 
   const string& transistor_type_str = m_orion_cfg_ptr->get<string>("TRANSISTOR_TYPE");

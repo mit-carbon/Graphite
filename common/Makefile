@@ -28,7 +28,7 @@ $(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
 	ar rcs $@ $(OBJECTS)
 
 $(ORION_LIB):
-	make -C $(SIM_ROOT)/contrib/orion
+	$(MAKE) -C $(SIM_ROOT)/contrib/orion
 
 ifneq ($(CLEAN),)
 clean:

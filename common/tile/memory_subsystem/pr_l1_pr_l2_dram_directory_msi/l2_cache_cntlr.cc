@@ -499,7 +499,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
             
             releaseLock();
 
-            assert(caching_mem_component != MemComponent::L1_ICACHE);
+            // assert(caching_mem_component != MemComponent::L1_ICACHE);
             if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
             {
                m_l1_cache_cntlr->acquireLock(caching_mem_component);

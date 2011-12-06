@@ -9,10 +9,10 @@
 using namespace std;
 
 OrionConfig* OrionConfig::m_singleton = NULL;
-void OrionConfig::allocate(string& orion_cfg_file)
+void OrionConfig::allocate(string& orion_cfg_file_, uint32_t tech_node_)
 {
    assert(!m_singleton);
-   m_singleton = new OrionConfig(orion_cfg_file);
+   m_singleton = new OrionConfig(orion_cfg_file_, tech_node_);
 }
 void OrionConfig::release()
 {
@@ -81,7 +81,7 @@ string OrionConfig::ms_param_name[] = {
   "ROUTER_DIAGONAL"
 };
 
-OrionConfig::OrionConfig(const string& cfg_fn_)
+OrionConfig::OrionConfig(const string& cfg_fn_, uint32_t tech_node_)
 {
   uint32_t num_param = sizeof(ms_param_name)/sizeof(string);
 
@@ -91,6 +91,8 @@ OrionConfig::OrionConfig(const string& cfg_fn_)
   }
 
   read_file(cfg_fn_);
+  m_params_map["TECH_NODE"] = T_as_string<uint32_t>(tech_node_);
+
   m_tech_param_ptr = new TechParameter(this);
 }
 
@@ -154,9 +156,7 @@ void OrionConfig::set_flit_width(uint32_t flit_width_)
   return;
 }
 
-void OrionConfig::read_file(
-  const string& filename_
-)
+void OrionConfig::read_file(const string& filename_)
 {
   ConfigFile cfg_file(filename_);
 

@@ -509,7 +509,7 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
    
    if (m_queue_model_enabled && ((m_queue_model_type == "history_list") || (m_queue_model_type == "history_tree")))
    {
-      out << "  Queue Models:" << endl;
+      out << "    Queue Models:" << endl;
          
       float queue_utilization = 0.0;
       UInt64 total_requests_using_analytical_model = 0;
@@ -566,8 +566,8 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
       queue_utilization /= num_queue_models;
       double frac_requests_using_analytical_model = ((double) total_requests_using_analytical_model) / total_requests;
 
-      out << "    Link Utilization(\%): " << queue_utilization * 100 << endl;
-      out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
+      out << "      Link Utilization(\%): " << queue_utilization * 100 << endl;
+      out << "      Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
    }
 
    outputPowerSummary(out);
@@ -821,15 +821,16 @@ NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out)
       volatile double static_power = m_electrical_router_model->getTotalStaticPower() + (m_electrical_link_model->getStaticPower() * NUM_OUTPUT_DIRECTIONS);
       volatile double dynamic_energy = m_electrical_router_model->getTotalDynamicEnergy() + m_electrical_link_model->getDynamicEnergy();
 
-      out << "    Static Power: " << static_power << endl;
-      out << "    Dynamic Energy: " << dynamic_energy << endl;
+      out << "    Energy Counters: " << endl;
+      out << "      Static Power (in W): " << static_power << endl;
+      out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
    }
 
-   out << "  Activity Counters:" << endl;
-   out << "    SAStage2 Traversals: " << m_switch_allocator_traversals << endl;
+   out << "    Event Counters:" << endl;
+   out << "      Switch Allocator Requests: " << m_switch_allocator_traversals << endl;
    for (UInt32 i = 0; i < m_num_router_ports; i++)
-      out << "    Crossbar" << i+1 << " Traversals: " << m_crossbar_traversals[i] << endl;
-   out << "    Buffer Reads: " << m_buffer_reads << endl;
-   out << "    Buffer Writes: " << m_buffer_writes << endl;
-   out << "    Link Traversals: " << m_link_traversals << endl;
+      out << "      Crossbar" << i+1 << " Traversals: " << m_crossbar_traversals[i] << endl;
+   out << "      Buffer Reads: " << m_buffer_reads << endl;
+   out << "      Buffer Writes: " << m_buffer_writes << endl;
+   out << "      Link Traversals: " << m_link_traversals << endl;
 }

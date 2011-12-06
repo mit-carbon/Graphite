@@ -401,23 +401,22 @@ NetworkModelEClos::computeTileCountConstraints(SInt32 tile_count)
 void
 NetworkModelEClos::outputSummary(ostream& out)
 {
-   out << " EClos Network: " << endl;
-   out << "   Performance Counters: " << endl;
+   out << "   EClos Network: " << endl;
    NetworkModel::outputSummary(out);
 
-   out << "  Ingress Router: " << endl;
+   out << "    Ingress Router: " << endl;
    if (_eclos_node_list[INGRESS_ROUTER])
       _eclos_node_list[INGRESS_ROUTER]->outputSummary(out);
    else
       EClosNode::dummyOutputSummary(out);
 
-   out << "  Middle Router: " << endl;
+   out << "    Middle Router: " << endl;
    if (_eclos_node_list[MIDDLE_ROUTER])
       _eclos_node_list[MIDDLE_ROUTER]->outputSummary(out);
    else
       EClosNode::dummyOutputSummary(out);
 
-   out << "  Egress Router: " << endl;
+   out << "    Egress Router: " << endl;
    if (_eclos_node_list[EGRESS_ROUTER])
       _eclos_node_list[EGRESS_ROUTER]->outputSummary(out);
    else
@@ -531,19 +530,19 @@ NetworkModelEClos::EClosNode::outputSummary(ostream& out)
 {
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      out << "   Energy Counters: " << endl;
-      out << "    Router Static Power: " << _router_model->getTotalStaticPower() << endl;
-      out << "    Router Dynamic Energy: " << _router_model->getTotalDynamicEnergy() << endl;
-      out << "    Link Static Power: " << _link_model->getStaticPower() * _output_ports << endl;
-      out << "    Link Dynamic Energy: " << _link_model->getDynamicEnergy() << endl;
+      out << "      Energy Counters: " << endl;
+      out << "        Router Static Power (in W): " << _router_model->getTotalStaticPower() << endl;
+      out << "        Router Dynamic Energy (in J): " << _router_model->getTotalDynamicEnergy() << endl;
+      out << "        Link Static Power (in W): " << _link_model->getStaticPower() * _output_ports << endl;
+      out << "        Link Dynamic Energy (in J): " << _link_model->getDynamicEnergy() << endl;
    }
-   out << "   Event Counters: " << endl;
-   out << "    SAStage2 Arbitrates: " << _switch_allocator_arbitrates << endl;
-   out << "    Crossbar Traversals (Unicast): " << _crossbar_traversals_unicast << endl;
-   out << "    Crossbar Traversals (Broadcast): " << _crossbar_traversals_broadcast << endl;
-   out << "    Buffer Writes: " << _buffer_writes << endl;
-   out << "    Buffer Reads: " << _buffer_reads << endl;
-   out << "    Output Link Traversals: " << _output_link_traversals << endl;
+   out << "      Event Counters: " << endl;
+   out << "        Switch Allocator Requests: " << _switch_allocator_arbitrates << endl;
+   out << "        Crossbar Traversals (Unicast): " << _crossbar_traversals_unicast << endl;
+   out << "        Crossbar Traversals (Broadcast): " << _crossbar_traversals_broadcast << endl;
+   out << "        Buffer Writes: " << _buffer_writes << endl;
+   out << "        Buffer Reads: " << _buffer_reads << endl;
+   out << "        Output Link Traversals: " << _output_link_traversals << endl;
 }
 
 void
@@ -551,17 +550,17 @@ NetworkModelEClos::EClosNode::dummyOutputSummary(ostream& out)
 {
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      out << "   Energy Counters: " << endl;
-      out << "    Router Static Power: NA" << endl;
-      out << "    Router Dynamic Energy: NA" << endl;
-      out << "    Link Static Power: NA" <<  endl;
-      out << "    Link Dynamic Energy: NA" << endl;
+      out << "    Energy Counters: " << endl;
+      out << "      Router Static Power (in W): " << endl;
+      out << "      Router Dynamic Energy (in J): " << endl;
+      out << "      Link Static Power (in W): " <<  endl;
+      out << "      Link Dynamic Energy (in J): " << endl;
    }
-   out << "   Event Counters: " << endl;
-   out << "    SAStage2 Arbitrates: NA" << endl;
-   out << "    Crossbar Traversals (Unicast): NA" << endl;
-   out << "    Crossbar Traversals (Broadcast): NA" << endl;
-   out << "    Buffer Writes: NA" << endl;
-   out << "    Buffer Reads: NA" << endl;
-   out << "    Output Link Traversals: NA" << endl;
+   out << "    Event Counters: " << endl;
+   out << "      Switch Allocator Requests: " << endl;
+   out << "      Crossbar Traversals (Unicast): " << endl;
+   out << "      Crossbar Traversals (Broadcast): " << endl;
+   out << "      Buffer Writes: " << endl;
+   out << "      Buffer Reads: " << endl;
+   out << "      Output Link Traversals: " << endl;
 }

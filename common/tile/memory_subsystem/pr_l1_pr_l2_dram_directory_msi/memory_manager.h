@@ -1,7 +1,7 @@
 #pragma once
 
-#include "memory_manager_base.h"
-#include "cache_base.h"
+#include "../memory_manager.h"
+#include "cache.h"
 #include "l1_cache_cntlr.h"
 #include "l2_cache_cntlr.h"
 #include "dram_directory_cntlr.h"
@@ -15,23 +15,23 @@
 
 namespace PrL1PrL2DramDirectoryMSI
 {
-   class MemoryManager : public MemoryManagerBase
+   class MemoryManager : public ::MemoryManager
    {
    public:
       MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
       ~MemoryManager();
 
-      UInt32 getCacheBlockSize() { return m_cache_block_size; }
+      UInt32 getCacheLineSize() { return _cache_line_size; }
 
-      Cache* getL1ICache() { return m_l1_cache_cntlr->getL1ICache(); }
-      Cache* getL1DCache() { return m_l1_cache_cntlr->getL1DCache(); }
-      Cache* getL2Cache() { return m_l2_cache_cntlr->getL2Cache(); }
-      DirectoryCache* getDramDirectoryCache() { return m_dram_directory_cntlr->getDramDirectoryCache(); }
-      DramCntlr* getDramCntlr() { return m_dram_cntlr; }
-      AddressHomeLookup* getDramDirectoryHomeLookup() { return m_dram_directory_home_lookup; }
+      Cache* getL1ICache() { return _l1_cache_cntlr->getL1ICache(); }
+      Cache* getL1DCache() { return _l1_cache_cntlr->getL1DCache(); }
+      Cache* getL2Cache() { return _l2_cache_cntlr->getL2Cache(); }
+      DirectoryCache* getDramDirectoryCache() { return _dram_directory_cntlr->getDramDirectoryCache(); }
+      DramCntlr* getDramCntlr() { return _dram_cntlr; }
+      bool isDramCntlrPresent() { return _dram_cntlr_present; }
+      AddressHomeLookup* getDramDirectoryHomeLookup() { return _dram_directory_home_lookup; }
 
-      bool coreInitiateMemoryAccess(
-            MemComponent::component_t mem_component,
+      bool coreInitiateMemoryAccess(MemComponent::component_t mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type,
             IntPtr address, UInt32 offset,
@@ -40,9 +40,9 @@ namespace PrL1PrL2DramDirectoryMSI
 
       void handleMsgFromNetwork(NetPacket& packet);
 
-      void sendMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, tile_id_t receiver, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
-
-      void broadcastMsg(ShmemMsg::msg_t msg_type, MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component, tile_id_t requester, IntPtr address, Byte* data_buf = NULL, UInt32 data_length = 0);
+      // Send/Broadcast msg
+      void sendMsg(tile_id_t receiver, ShmemMsg& msg);
+      void broadcastMsg(ShmemMsg& msg);
      
       void enableModels();
       void disableModels();
@@ -50,34 +50,41 @@ namespace PrL1PrL2DramDirectoryMSI
 
       tile_id_t getShmemRequester(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
-
       UInt32 getModeledLength(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->getModeledLength(); }
       bool isModeled(const void* pkt_data)
-      { return true; }
+      { return ((ShmemMsg*) pkt_data)->isModeled(); }
 
       void outputSummary(std::ostream &os);
 
+      // Cache line replication trace
+      static void openCacheLineReplicationTraceFiles();
+      static void closeCacheLineReplicationTraceFiles();
+      static void outputCacheLineReplicationSummary();
+      
       void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:
-      L1CacheCntlr* m_l1_cache_cntlr;
-      L2CacheCntlr* m_l2_cache_cntlr;
-      DramDirectoryCntlr* m_dram_directory_cntlr;
-      DramCntlr* m_dram_cntlr;
-      AddressHomeLookup* m_dram_directory_home_lookup;
+      L1CacheCntlr* _l1_cache_cntlr;
+      L2CacheCntlr* _l2_cache_cntlr;
+      DramDirectoryCntlr* _dram_directory_cntlr;
+      DramCntlr* _dram_cntlr;
+      AddressHomeLookup* _dram_directory_home_lookup;
 
-      bool m_dram_cntlr_present;
+      bool _dram_cntlr_present;
 
-      Semaphore* m_user_thread_sem;
-      Semaphore* m_network_thread_sem;
+      Semaphore* _user_thread_sem;
+      Semaphore* _network_thread_sem;
 
-      UInt32 m_cache_block_size;
-      bool m_enabled;
+      UInt32 _cache_line_size;
+      bool _enabled;
 
       // Performance Models
-      CachePerfModel* m_l1_icache_perf_model;
-      CachePerfModel* m_l1_dcache_perf_model;
-      CachePerfModel* m_l2_cache_perf_model;
+      CachePerfModel* _l1_icache_perf_model;
+      CachePerfModel* _l1_dcache_perf_model;
+      CachePerfModel* _l2_cache_perf_model;
+      
+      // Cache Line Replication
+      static ofstream _cache_line_replication_file;
    };
 }

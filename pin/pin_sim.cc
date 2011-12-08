@@ -93,10 +93,10 @@ void printRtn (ADDRINT rtn_addr, bool enter)
 
 VOID printInsInfo(CONTEXT* ctxt)
 {
-   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+   ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
-   LOG_PRINT("eip = %#llx, esp = %#llx", reg_inst_ptr, reg_stack_ptr);
+   LOG_PRINT("eip(%#llx), esp (%#llx)", reg_inst_ptr, reg_stack_ptr);
 }
 
 void routineCallback(RTN rtn, void *v)
@@ -163,27 +163,9 @@ void routineCallback(RTN rtn, void *v)
    }
 }
 
-void showInstructionInfo(INS ins)
-{
-   if (Sim()->getTileManager()->getCurrentTile()->getId() != 0)
-      return;
-
-   printf("\t");
-
-   if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins))
-      printf("* ");
-   else
-      printf("  ");
-//   printf("%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
-   printf("%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
-   printf(" %s ", INS_Disassemble(ins).c_str());
-   printf("\n");
-}
-
 VOID instructionCallback (INS ins, void *v)
 {
    // Debugging Functions
-   //showInstructionInfo(ins);
    if (Log::getSingleton()->isLoggingEnabled())
    {
       INS_InsertCall(ins, IPOINT_BEFORE,

@@ -78,12 +78,11 @@ DramPerfModel::initializePerformanceCounters()
 }
 
 UInt64 
-DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, tile_id_t requester)
+DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
 {
    // pkt_size is in 'Bytes'
    // m_dram_bandwidth is in 'Bytes per clock cycle'
-   if ((!m_enabled) || 
-         (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
+   if (!m_enabled) 
    {
       return 0;
    }
@@ -94,7 +93,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, tile_id_t requ
    UInt64 queue_delay;
    if (m_queue_model)
    {
-      queue_delay = m_queue_model->computeQueueDelay(pkt_time, processing_time, requester);
+      queue_delay = m_queue_model->computeQueueDelay(pkt_time, processing_time);
    }
    else
    {

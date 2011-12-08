@@ -1,141 +1,111 @@
+#include <cstring>
 #include "cache_set.h"
-#include "cache_base.h"
+#include "cache.h"
 #include "log.h"
 
-CacheSet::CacheSet(CacheBase::cache_t cache_type,
-      UInt32 associativity, UInt32 blocksize):
-      m_associativity(associativity), m_blocksize(blocksize)
+CacheSet::CacheSet(Cache::Type cache_type, UInt32 associativity, UInt32 line_size)
+   : _associativity(associativity)
+   , _line_size(line_size)
 {
-   m_cache_block_info_array = new CacheBlockInfo*[m_associativity];
-   for (UInt32 i = 0; i < m_associativity; i++)
+   _cache_line_info_array = new CacheLineInfo*[_associativity];
+   for (UInt32 i = 0; i < _associativity; i++)
    {
-      m_cache_block_info_array[i] = CacheBlockInfo::create(cache_type);
+      _cache_line_info_array[i] = CacheLineInfo::create(cache_type);
    }
-   m_blocks = new char[m_associativity * m_blocksize];
+   _lines = new char[_associativity * _line_size];
    
-   memset(m_blocks, 0x00, m_associativity * m_blocksize);
+   memset(_lines, 0x00, _associativity * _line_size);
 }
 
 CacheSet::~CacheSet()
 {
-   for (UInt32 i = 0; i < m_associativity; i++)
-      delete m_cache_block_info_array[i];
-   delete [] m_cache_block_info_array;
-   delete [] m_blocks;
+   for (UInt32 i = 0; i < _associativity; i++)
+      delete _cache_line_info_array[i];
+   delete [] _cache_line_info_array;
+   delete [] _lines;
 }
 
 void 
-CacheSet::read_line(UInt32 line_index, UInt32 offset, Byte *out_buff, UInt32 bytes)
+CacheSet::read_line(UInt32 line_index, UInt32 offset, Byte *out_buf, UInt32 bytes)
 {
-   assert(offset + bytes <= m_blocksize);
-   assert((out_buff == NULL) == (bytes == 0));
+   assert(offset + bytes <= _line_size);
+   assert((out_buf == NULL) == (bytes == 0));
 
-   if (out_buff != NULL)
-      memcpy((void*) out_buff, &m_blocks[line_index * m_blocksize + offset], bytes);
+   if (out_buf != NULL)
+      memcpy((void*) out_buf, &_lines[line_index * _line_size + offset], bytes);
 
    updateReplacementIndex(line_index);
 }
 
 void 
-CacheSet::write_line(UInt32 line_index, UInt32 offset, Byte *in_buff, UInt32 bytes)
+CacheSet::write_line(UInt32 line_index, UInt32 offset, Byte *in_buf, UInt32 bytes)
 {
-   assert(offset + bytes <= m_blocksize);
-   assert((in_buff == NULL) == (bytes == 0));
+   assert(offset + bytes <= _line_size);
+   assert((in_buf == NULL) == (bytes == 0));
 
-   if (in_buff != NULL)
-      memcpy(&m_blocks[line_index * m_blocksize + offset], (void*) in_buff, bytes);
+   if (in_buf != NULL)
+      memcpy(&_lines[line_index * _line_size + offset], (void*) in_buf, bytes);
 
    updateReplacementIndex(line_index);
 }
 
-CacheBlockInfo* 
+CacheLineInfo* 
 CacheSet::find(IntPtr tag, UInt32* line_index)
 {
-   for (SInt32 index = m_associativity-1; index >= 0; index--)
+   for (SInt32 index = _associativity-1; index >= 0; index--)
    {
-      if (m_cache_block_info_array[index]->getTag() == tag)
+      if (_cache_line_info_array[index]->getTag() == tag)
       {
          if (line_index != NULL)
             *line_index = index;
-         return (m_cache_block_info_array[index]);
+         return (_cache_line_info_array[index]);
       }
    }
    return NULL;
 }
 
-bool 
-CacheSet::invalidate(IntPtr& tag)
-{
-   for (SInt32 index = m_associativity-1; index >= 0; index--)
-   {
-      if (m_cache_block_info_array[index]->getTag() == tag)
-      {
-         m_cache_block_info_array[index]->invalidate();
-         return true;
-      }
-   }
-   return false;
-}
-
 void 
-CacheSet::insert(CacheBlockInfo* cache_block_info, Byte* fill_buff, bool* eviction, CacheBlockInfo* evict_block_info, Byte* evict_buff)
+CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
+                 bool* eviction, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf)
 {
    // This replacement strategy does not take into account the fact that
-   // cache blocks can be voluntarily flushed or invalidated due to another write request
+   // cache lines can be voluntarily flushed or invalidated due to another write request
    const UInt32 index = getReplacementIndex();
-   assert(index < m_associativity);
+   assert(index < _associativity);
 
    assert(eviction != NULL);
          
-   if (m_cache_block_info_array[index]->isValid())
+   if (_cache_line_info_array[index]->isValid())
    {
       *eviction = true;
-      evict_block_info->clone(m_cache_block_info_array[index]);
-      if (evict_buff != NULL)
-         memcpy((void*) evict_buff, &m_blocks[index * m_blocksize], m_blocksize);
+      evicted_cache_line_info->assign(_cache_line_info_array[index]);
+      if (writeback_buf != NULL)
+         memcpy((void*) writeback_buf, &_lines[index * _line_size], _line_size);
    }
    else
    {
       *eviction = false;
    }
 
-   // FIXME: This is a hack. I dont know if this is the best way to do
-   m_cache_block_info_array[index]->clone(cache_block_info);
-   
-   if (fill_buff != NULL)
-      memcpy(&m_blocks[index * m_blocksize], (void*) fill_buff, m_blocksize);
+   _cache_line_info_array[index]->assign(inserted_cache_line_info);
+   if (fill_buf != NULL)
+      memcpy(&_lines[index * _line_size], (void*) fill_buf, _line_size);
 }
 
 CacheSet* 
-CacheSet::createCacheSet (std::string replacement_policy,
-      CacheBase::cache_t cache_type,
-      UInt32 associativity, UInt32 blocksize)
+CacheSet::createCacheSet(Cache::ReplacementPolicy replacement_policy, Cache::Type cache_type,
+                         UInt32 associativity, UInt32 line_size)
 {
-   CacheBase::ReplacementPolicy policy = parsePolicyType(replacement_policy);
-   switch(policy)
+   switch(replacement_policy)
    {
-      case CacheBase::ROUND_ROBIN:
-         return new CacheSetRoundRobin(cache_type, associativity, blocksize);
+   case Cache::ROUND_ROBIN:
+      return new CacheSetRoundRobin(cache_type, associativity, line_size);
 
-      case CacheBase::LRU:
-         return new CacheSetLRU(cache_type, associativity, blocksize);
+   case Cache::LRU:
+      return new CacheSetLRU(cache_type, associativity, line_size);
 
-      default:
-         LOG_PRINT_ERROR("Unrecognized Cache Replacement Policy: %i",
-               policy);
-         break;
+   default:
+      LOG_PRINT_ERROR("Unrecognized Cache Replacement Policy: %i", replacement_policy);
+      return (CacheSet*) NULL;
    }
-
-   return (CacheSet*) NULL;
-}
-
-CacheBase::ReplacementPolicy 
-CacheSet::parsePolicyType(string policy)
-{
-   if (policy == "round_robin")
-      return CacheBase::ROUND_ROBIN;
-   if (policy == "lru")
-      return CacheBase::LRU;
-   else
-      return (CacheBase::ReplacementPolicy) -1;
 }

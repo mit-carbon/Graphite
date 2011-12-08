@@ -86,6 +86,7 @@ ShmemPerfModel::incrCycleCount(UInt64 count)
          "t_cycle_count(%llu) < i_cycle_count(%llu)",
          t_cycle_count, i_cycle_count);
 
+   LOG_PRINT("Initial(%llu), Final(%llu)", i_cycle_count, t_cycle_count);
    m_cycle_count[getThreadNum()] = t_cycle_count;
 }
 

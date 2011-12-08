@@ -270,7 +270,7 @@ NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
 {
    SInt32 num_application_tiles = (SInt32) Config::getSingleton()->getApplicationTiles();
    SInt32 mesh_width = (SInt32) floor(sqrt(1.0 * num_application_tiles));
-   SInt32 mesh_height = (SInt32) ceil(1.0 * num_application_tiles / mesh_width);
+   __attribute__((__unused__)) SInt32 mesh_height = (SInt32) ceil(1.0 * num_application_tiles / mesh_width);
 
    SInt32 sx, sy, dx, dy;
    sx = sender % mesh_width;
@@ -278,8 +278,8 @@ NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
    dx = receiver % mesh_width;
    dy = receiver / mesh_width;
 
-   LOG_ASSERT_ERROR(sy <= mesh_height, "sy(%i), mesh_height(%i)", sy, mesh_height);
-   LOG_ASSERT_ERROR(dy <= mesh_height, "dy(%i), mesh_width(%i), mesh_height(%i), sender(%i), receiver(%i), total_tiles(%i), app_tiles(%i)", dy, mesh_width, mesh_height, sender, receiver, Config::getSingleton()->getTotalTiles(), Config::getSingleton()->getApplicationTiles());
+   // LOG_ASSERT_ERROR(sy <= mesh_height, "sy(%i), mesh_height(%i)", sy, mesh_height);
+   // LOG_ASSERT_ERROR(dy <= mesh_height, "dy(%i), mesh_width(%i), mesh_height(%i), sender(%i), receiver(%i), total_tiles(%i), app_tiles(%i)", dy, mesh_width, mesh_height, sender, receiver, Config::getSingleton()->getTotalTiles(), Config::getSingleton()->getApplicationTiles());
 
    return abs(sx-dx) + abs(sy-dy);
 }
@@ -301,7 +301,7 @@ NetworkModelEMeshHopByHop::isTileCountPermissible(SInt32 tile_count)
 
    if (tile_count != (mesh_width * mesh_height))
    {
-      fprintf(stderr, "Tile Count(%i) != Mesh Width(%i) * Mesh Height(%i)", tile_count, mesh_width, mesh_height);
+      fprintf(stderr, "ERROR: Tile Count(%i) != Mesh Width(%i) * Mesh Height(%i)\n", tile_count, mesh_width, mesh_height);
       return false;
    }
    return true;

@@ -7,66 +7,74 @@ namespace PrL1PrL2DramDirectoryMSI
 {
    class ShmemMsg
    {
-      public:
-         enum msg_t
-         {
-            INVALID_MSG_TYPE = 0,
-            MIN_MSG_TYPE,
-            EX_REQ = MIN_MSG_TYPE,
-            SH_REQ,
-            INV_REQ,
-            FLUSH_REQ,
-            WB_REQ,
-            EX_REP,
-            SH_REP,
-            UPGRADE_REP,
-            INV_REP,
-            FLUSH_REP,
-            WB_REP,
-            NULLIFY_REQ,
-            MAX_MSG_TYPE = NULLIFY_REQ,
-            NUM_MSG_TYPES = MAX_MSG_TYPE - MIN_MSG_TYPE + 1
-         };  
+   public:
+      enum msg_t
+      {
+         INVALID_MSG_TYPE = 0,
+         MIN_MSG_TYPE,
+         EX_REQ = MIN_MSG_TYPE,
+         SH_REQ,
+         INV_REQ,
+         FLUSH_REQ,
+         WB_REQ,
+         EX_REP,
+         SH_REP,
+         UPGRADE_REP,
+         INV_REP,
+         FLUSH_REP,
+         WB_REP,
+         NULLIFY_REQ,
+         MAX_MSG_TYPE = NULLIFY_REQ,
+         NUM_MSG_TYPES = MAX_MSG_TYPE - MIN_MSG_TYPE + 1
+      };  
+      
+      ShmemMsg();
+      ShmemMsg(msg_t msg_type,
+            MemComponent::component_t sender_mem_component,
+            MemComponent::component_t receiver_mem_component,
+            tile_id_t requester,
+            IntPtr address,
+            bool modeled);
+      ShmemMsg(msg_t msg_type,
+            MemComponent::component_t sender_mem_component,
+            MemComponent::component_t receiver_mem_component,
+            tile_id_t requester,
+            IntPtr address,
+            Byte* data_buf,
+            UInt32 data_length,
+            bool modeled);
+      ShmemMsg(const ShmemMsg* shmem_msg);
 
-      private:   
-         msg_t m_msg_type;
-         MemComponent::component_t m_sender_mem_component;
-         MemComponent::component_t m_receiver_mem_component;
-         tile_id_t m_requester;
-         IntPtr m_address;
-         Byte* m_data_buf;
-         UInt32 m_data_length;
+      ~ShmemMsg();
 
-      public:
-         ShmemMsg();
-         ShmemMsg(msg_t msg_type,
-               MemComponent::component_t sender_mem_component,
-               MemComponent::component_t receiver_mem_component,
-               tile_id_t requester,
-               IntPtr address,
-               Byte* data_buf,
-               UInt32 data_length);
-         ShmemMsg(ShmemMsg* shmem_msg);
+      static ShmemMsg* getShmemMsg(Byte* msg_buf);
+      Byte* makeMsgBuf();
+      UInt32 getMsgLen();
 
-         ~ShmemMsg();
+      // Modeling
+      UInt32 getModeledLength();
 
-         static ShmemMsg* getShmemMsg(Byte* msg_buf);
-         Byte* makeMsgBuf();
-         UInt32 getMsgLen();
+      msg_t getMsgType() const { return _msg_type; }
+      MemComponent::component_t getSenderMemComponent() const { return _sender_mem_component; }
+      MemComponent::component_t getReceiverMemComponent() const { return _receiver_mem_component; }
+      tile_id_t getRequester() const { return _requester; }
+      IntPtr getAddress() const { return _address; }
+      Byte* getDataBuf() const { return _data_buf; }
+      UInt32 getDataLength() const { return _data_length; }
+      bool isModeled() const { return _modeled; }
 
-         // Modeling
-         UInt32 getModeledLength();
+      void setAddress(IntPtr address) { _address = address; }
+      void setSenderMemComponent(MemComponent::component_t mem_component) { _sender_mem_component = mem_component; }
+      void setDataBuf(Byte* data_buf) { _data_buf = data_buf; }
 
-         msg_t getMsgType() { return m_msg_type; }
-         MemComponent::component_t getSenderMemComponent() { return m_sender_mem_component; }
-         MemComponent::component_t getReceiverMemComponent() { return m_receiver_mem_component; }
-         tile_id_t getRequester() { return m_requester; }
-         IntPtr getAddress() { return m_address; }
-         Byte* getDataBuf() { return m_data_buf; }
-         UInt32 getDataLength() { return m_data_length; }
-
-         void setDataBuf(Byte* data_buf) { m_data_buf = data_buf; }
-    
+   private:   
+      msg_t _msg_type;
+      MemComponent::component_t _sender_mem_component;
+      MemComponent::component_t _receiver_mem_component;
+      tile_id_t _requester;
+      IntPtr _address;
+      Byte* _data_buf;
+      UInt32 _data_length;
+      bool _modeled;
    };
-
 }

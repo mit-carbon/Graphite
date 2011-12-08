@@ -2,22 +2,37 @@ using namespace std;
 
 #include "simulator.h"
 #include "config.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_msi/memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
+#include "sh_l1_sh_l2/memory_manager.h"
 #include "network_model.h"
 #include "log.h"
 
 // Static Members
-MemoryManagerBase::CachingProtocol_t MemoryManagerBase::m_caching_protocol_type;
+MemoryManager::CachingProtocol_t MemoryManager::_caching_protocol_type;
 
-MemoryManagerBase* 
-MemoryManagerBase::createMMU(std::string protocol_type,
+bool MemoryManager::_miss_type_modeled[Cache::NUM_MISS_TYPES+1];
+
+MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
+   : _tile(tile)
+   , _network(network)
+   , _shmem_perf_model(shmem_perf_model)
+{
+   // Miss Type Modeling
+   initializeModeledMissTypes();
+}
+
+MemoryManager::~MemoryManager()
+{}
+
+MemoryManager* 
+MemoryManager::createMMU(std::string protocol_type,
       Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
 {
-   m_caching_protocol_type = parseProtocolType(protocol_type);
+   _caching_protocol_type = parseProtocolType(protocol_type);
 
-   switch (m_caching_protocol_type)
+   switch (_caching_protocol_type)
    {
    case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
       return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile, network, shmem_perf_model);
@@ -25,26 +40,31 @@ MemoryManagerBase::createMMU(std::string protocol_type,
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile, network, shmem_perf_model);
 
+   case SH_L1_SH_L2:
+      return new ShL1ShL2::MemoryManager(tile, network, shmem_perf_model);
+
    default:
-      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       return NULL;
    }
 }
 
-MemoryManagerBase::CachingProtocol_t
-MemoryManagerBase::parseProtocolType(std::string& protocol_type)
+MemoryManager::CachingProtocol_t
+MemoryManager::parseProtocolType(std::string& protocol_type)
 {
    if (protocol_type == "pr_l1_pr_l2_dram_directory_msi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else if (protocol_type == "pr_l1_pr_l2_dram_directory_mosi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;
+   else if (protocol_type == "sh_l1_sh_l2")
+      return SH_L1_SH_L2;
    else
       return NUM_CACHING_PROTOCOL_TYPES;
 }
 
 void MemoryManagerNetworkCallback(void* obj, NetPacket packet)
 {
-   MemoryManagerBase *mm = (MemoryManagerBase*) obj;
+   MemoryManager *mm = (MemoryManager*) obj;
    assert(mm != NULL);
 
    switch (packet.type)
@@ -61,11 +81,12 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet)
 }
 
 void
-MemoryManagerBase::openCacheLineReplicationTraceFiles()
+MemoryManager::openCacheLineReplicationTraceFiles()
 {
-   switch (m_caching_protocol_type)
+   switch (_caching_protocol_type)
    {
    case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+      PrL1PrL2DramDirectoryMSI::MemoryManager::openCacheLineReplicationTraceFiles();
       break;
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
@@ -73,17 +94,18 @@ MemoryManagerBase::openCacheLineReplicationTraceFiles()
       break;
 
    default:
-      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       break;
    }
 }
 
 void
-MemoryManagerBase::closeCacheLineReplicationTraceFiles()
+MemoryManager::closeCacheLineReplicationTraceFiles()
 {
-   switch (m_caching_protocol_type)
+   switch (_caching_protocol_type)
    {
    case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+      PrL1PrL2DramDirectoryMSI::MemoryManager::closeCacheLineReplicationTraceFiles();
       break;
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
@@ -91,17 +113,18 @@ MemoryManagerBase::closeCacheLineReplicationTraceFiles()
       break;
 
    default:
-      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       break;
    }
 }
 
 void
-MemoryManagerBase::outputCacheLineReplicationSummary()
+MemoryManager::outputCacheLineReplicationSummary()
 {
-   switch (m_caching_protocol_type)
+   switch (_caching_protocol_type)
    {
    case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
+      PrL1PrL2DramDirectoryMSI::MemoryManager::outputCacheLineReplicationSummary();
       break;
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
@@ -109,13 +132,13 @@ MemoryManagerBase::outputCacheLineReplicationSummary()
       break;
 
    default:
-      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", m_caching_protocol_type);
+      LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       break;
    }
 }
 
 vector<tile_id_t>
-MemoryManagerBase::getTileListWithMemoryControllers()
+MemoryManager::getTileListWithMemoryControllers()
 {
    SInt32 num_memory_controllers = -1;
    string memory_controller_positions_from_cfg_file = "";
@@ -192,7 +215,7 @@ MemoryManagerBase::getTileListWithMemoryControllers()
 }
 
 void
-MemoryManagerBase::printTileListWithMemoryControllers(vector<tile_id_t>& tile_list_with_memory_controllers)
+MemoryManager::printTileListWithMemoryControllers(vector<tile_id_t>& tile_list_with_memory_controllers)
 {
    ostringstream tile_list;
    for (vector<tile_id_t>::iterator it = tile_list_with_memory_controllers.begin(); it != tile_list_with_memory_controllers.end(); it++)
@@ -200,4 +223,35 @@ MemoryManagerBase::printTileListWithMemoryControllers(vector<tile_id_t>& tile_li
       tile_list << *it << " ";
    }
    fprintf(stderr, "\n[[Graphite]] --> [ Tile IDs' with memory controllers = (%s) ]\n", (tile_list.str()).c_str());
+}
+
+void
+MemoryManager::initializeModeledMissTypes()
+{
+   for (SInt32 i = 0; i < Cache::NUM_MISS_TYPES + 1; i++)
+      _miss_type_modeled[i] = true;
+  
+   string unmodeled_miss_types;
+   try
+   {
+      unmodeled_miss_types = Sim()->getCfg()->getString("caching_protocol/unmodeled_miss_types");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read caching_protocol/unmodeled_miss_types from the cfg file");
+   }
+
+   vector<string> tokens;
+   splitIntoTokens(unmodeled_miss_types, tokens, " ");
+   for (vector<string>::iterator it = tokens.begin(); it != tokens.end(); it ++)
+   {
+      Cache::MissType miss_type = Cache::parseMissType(*it);
+      _miss_type_modeled[miss_type] = false;
+   }
+}
+
+bool
+MemoryManager::isMissTypeModeled(Cache::MissType cache_miss_type)
+{
+   return _miss_type_modeled[cache_miss_type];
 }

@@ -1,5 +1,4 @@
-#ifndef CACHE_STATE_H
-#define CACHE_STATE_H
+#pragma once
 
 #include <string>
 #include <cassert>
@@ -10,32 +9,29 @@ using namespace std;
 
 class CacheState
 {
-   public:
-      enum cstate_t
-      {
-         INVALID = 0,
-         SHARED,
-         OWNED,
-         MODIFIED,
-         NUM_CSTATE_STATES
-      };
+public:
+   enum CState
+   {
+      INVALID = 0,
+      SHARED,
+      OWNED,
+      MODIFIED,
+      NUM_CSTATE_STATES
+   };
 
-      CacheState(cstate_t state = INVALID) : cstate(state) {}
-      ~CacheState() {}
+   CacheState(CState cstate = INVALID) : _cstate(cstate) {}
+   ~CacheState() {}
 
-      bool readable()
-      {
-         return (cstate == MODIFIED) || (cstate == OWNED) || (cstate == SHARED);
-      }
-      
-      bool writable()
-      {
-         return (cstate == MODIFIED);
-      }
+   bool readable()
+   {
+      return (_cstate == MODIFIED) || (_cstate == OWNED) || (_cstate == SHARED);
+   }
+   
+   bool writable()
+   {
+      return (_cstate == MODIFIED);
+   }
 
-   private:
-      cstate_t cstate;
-
+private:
+   CState _cstate;
 };
-
-#endif /* CACHE_STATE_H */

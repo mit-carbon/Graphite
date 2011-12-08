@@ -112,6 +112,11 @@ UInt32 Config::getApplicationTiles()
    return m_application_tiles;
 }
 
+bool Config::isApplicationTile(tile_id_t tile_id)
+{
+   return ((tile_id >= 0) && (tile_id < (tile_id_t) getApplicationTiles()));
+}
+
 tile_id_t Config::getThreadSpawnerTileNum(UInt32 proc_num)
 {
    if (m_simulation_mode == FULL)
@@ -381,7 +386,7 @@ void Config::parseCoreParameters()
    }
    catch(...)
    {
-      fprintf(stderr, "Could not read perf_model/core/model_list from the cfg file\n");
+      fprintf(stderr, "ERROR: Could not read perf_model/core/model_list from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 
@@ -389,7 +394,7 @@ void Config::parseCoreParameters()
 
    parseList(core_parameter_tuple_str, core_parameter_tuple_vec, "<>");
    
-   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin(); \
+   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin();
          tuple_it != core_parameter_tuple_vec.end(); tuple_it++)
    {
       // Initializing using default values
@@ -404,7 +409,7 @@ void Config::parseCoreParameters()
       parseList(*tuple_it, core_parameter_tuple, ",");
      
       SInt32 param_num = 0; 
-      for (vector<string>::iterator param_it = core_parameter_tuple.begin(); \
+      for (vector<string>::iterator param_it = core_parameter_tuple.begin();
             param_it != core_parameter_tuple.end(); param_it ++)
       {
          if (*param_it != "default")
@@ -447,7 +452,7 @@ void Config::parseCoreParameters()
       // Append these values to an internal list
       for (UInt32 i = num_initialized_cores; i < num_initialized_cores + num_cores; i++)
       {
-         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency, \
+         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency,
                   l1_icache_type, l1_dcache_type, l2_cache_type));
       }
       num_initialized_cores += num_cores;
@@ -470,7 +475,7 @@ void Config::parseCoreParameters()
    // MCP, thread spawner and misc cores
    for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
-      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
+      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY,
                DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
    }
 }
@@ -492,7 +497,7 @@ void Config::parseNetworkParameters()
    }
    catch (...)
    {
-      fprintf(stderr, "Unable to read network parameters from the cfg file\n");
+      fprintf(stderr, "ERROR: Unable to read network parameters from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 
@@ -589,7 +594,7 @@ bool Config::isTileCountPermissible(UInt32 tile_count)
       bool permissible = NetworkModel::isTileCountPermissible(network_model, (SInt32) tile_count);
       if (!permissible)
       {
-         fprintf(stderr, "Problem using the network models specified in the cfg file\n");
+         fprintf(stderr, "ERROR: Problem using the network models specified in the cfg file\n");
          return false;
       }
    }

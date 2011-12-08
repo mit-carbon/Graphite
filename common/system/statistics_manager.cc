@@ -1,7 +1,7 @@
 #include "statistics_manager.h"
 #include "simulator.h"
 #include "config.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "network.h"
 #include "utils.h"
 #include "log.h"
@@ -48,7 +48,7 @@ StatisticsManager::openTraceFiles()
          switch (i)
          {
          case CACHE_LINE_REPLICATION:
-            MemoryManagerBase::openCacheLineReplicationTraceFiles();
+            MemoryManager::openCacheLineReplicationTraceFiles();
             break;
 
          case NETWORK_UTILIZATION:
@@ -73,7 +73,7 @@ StatisticsManager::closeTraceFiles()
          switch (i)
          {
          case CACHE_LINE_REPLICATION:
-            MemoryManagerBase::closeCacheLineReplicationTraceFiles();
+            MemoryManager::closeCacheLineReplicationTraceFiles();
             break;
 
          case NETWORK_UTILIZATION:
@@ -98,7 +98,7 @@ StatisticsManager::outputPeriodicSummary()
          switch (i)
          {
          case CACHE_LINE_REPLICATION:
-            MemoryManagerBase::outputCacheLineReplicationSummary();
+            MemoryManager::outputCacheLineReplicationSummary();
             break;
 
          case NETWORK_UTILIZATION:

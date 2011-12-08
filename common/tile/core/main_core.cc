@@ -2,7 +2,7 @@
 #include "core.h"
 #include "main_core.h"
 #include "network.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "core_model.h"
 #include "syscall_model.h"
@@ -24,7 +24,7 @@ MainCore::MainCore(Tile* tile) : Core(tile)
       m_shmem_perf_model = new ShmemPerfModel();
       LOG_PRINT("instantiated shared memory performance model");
 
-      m_memory_manager = MemoryManagerBase::createMMU(
+      m_memory_manager = MemoryManager::createMMU(
             Sim()->getCfg()->getString("caching_protocol/type"),
             m_tile, m_tile->getNetwork(), m_shmem_perf_model);
       LOG_PRINT("instantiated memory manager model");
@@ -37,7 +37,7 @@ MainCore::MainCore(Tile* tile) : Core(tile)
    else
    {
       m_shmem_perf_model = (ShmemPerfModel*) NULL;
-      m_memory_manager = (MemoryManagerBase *) NULL;
+      m_memory_manager = (MemoryManager *) NULL;
       m_pin_memory_manager = (PinMemoryManager*) NULL;
 
       LOG_PRINT("No Memory Manager being used for main core");
@@ -135,15 +135,15 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
         address, data_size);
 
    UInt32 num_misses = 0;
-   UInt32 cache_block_size = getMemoryManager()->getCacheBlockSize();
+   UInt32 cache_line_size = getMemoryManager()->getCacheLineSize();
 
    IntPtr begin_addr = address;
    IntPtr end_addr = address + data_size;
-   IntPtr begin_addr_aligned = begin_addr - (begin_addr % cache_block_size);
-   IntPtr end_addr_aligned = end_addr - (end_addr % cache_block_size);
+   IntPtr begin_addr_aligned = begin_addr - (begin_addr % cache_line_size);
+   IntPtr end_addr_aligned = end_addr - (end_addr % cache_line_size);
    Byte *curr_data_buffer_head = (Byte*) data_buf;
 
-   for (IntPtr curr_addr_aligned = begin_addr_aligned; curr_addr_aligned <= end_addr_aligned; curr_addr_aligned += cache_block_size)
+   for (IntPtr curr_addr_aligned = begin_addr_aligned; curr_addr_aligned <= end_addr_aligned; curr_addr_aligned += cache_line_size)
    {
       // Access the cache one line at a time
       UInt32 curr_offset;
@@ -152,7 +152,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
       // Determine the offset
       if (curr_addr_aligned == begin_addr_aligned)
       {
-         curr_offset = begin_addr % cache_block_size;
+         curr_offset = begin_addr % cache_line_size;
       }
       else
       {
@@ -162,7 +162,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
       // Determine the size
       if (curr_addr_aligned == end_addr_aligned)
       {
-         curr_size = (end_addr % cache_block_size) - (curr_offset);
+         curr_size = (end_addr % cache_line_size) - (curr_offset);
          if (curr_size == 0)
          {
             continue;
@@ -170,7 +170,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
       }
       else
       {
-         curr_size = cache_block_size - (curr_offset);
+         curr_size = cache_line_size - (curr_offset);
       }
 
       LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(0x%x), offset(%u), curr_size(%u), core_id(%d, %d)", curr_addr_aligned, curr_offset, curr_size, getCoreId().tile_id, getCoreId().core_type);

@@ -10,7 +10,7 @@ using namespace std;
 #include "network_model_emesh_hop_by_hop.h"
 // #include "network_model_eclos.h"
 #include "network_model_atac.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "simulator.h"
 #include "config.h"
 #include "clock_converter.h"

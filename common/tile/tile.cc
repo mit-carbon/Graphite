@@ -5,7 +5,7 @@
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "network_types.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "clock_skew_minimization_object.h"
 #include "core_model.h"
@@ -24,7 +24,7 @@ Tile::Tile(SInt32 id)
 
    // Initialize memory models as NULL, the Core constructor will create them.
    m_shmem_perf_model = (ShmemPerfModel*) NULL;
-   m_memory_manager = (MemoryManagerBase *) NULL;
+   m_memory_manager = (MemoryManager *) NULL;
 
    m_main_core = Core::create(this, MAIN_CORE_TYPE);
 }

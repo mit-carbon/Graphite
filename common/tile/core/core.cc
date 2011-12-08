@@ -5,7 +5,7 @@
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "network_types.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "clock_skew_minimization_object.h"
 #include "core_model.h"

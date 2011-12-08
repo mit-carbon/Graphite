@@ -1,72 +1,73 @@
 #include "l1_cache_cntlr.h"
 #include "l2_cache_cntlr.h" 
 #include "memory_manager.h"
+#include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
-L1CacheCntlr::L1CacheCntlr(tile_id_t tile_id,
-      MemoryManager* memory_manager,
-      Semaphore* user_thread_sem,
-      Semaphore* network_thread_sem,
-      UInt32 cache_block_size,
-      UInt32 l1_icache_size, UInt32 l1_icache_associativity,
-      std::string l1_icache_replacement_policy,
-      UInt32 l1_icache_access_delay,
-      UInt32 l1_dcache_size, UInt32 l1_dcache_associativity,
-      std::string l1_dcache_replacement_policy,
-      UInt32 l1_dcache_access_delay,
-      volatile float frequency,
-      ShmemPerfModel* shmem_perf_model) :
-   m_memory_manager(memory_manager),
-   m_l2_cache_cntlr(NULL),
-   m_tile_id(tile_id),
-   m_cache_block_size(cache_block_size),
-   m_user_thread_sem(user_thread_sem),
-   m_network_thread_sem(network_thread_sem),
-   m_shmem_perf_model(shmem_perf_model)
+L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
+                           Semaphore* user_thread_sem,
+                           Semaphore* network_thread_sem,
+                           UInt32 cache_line_size,
+                           UInt32 l1_icache_size,
+                           UInt32 l1_icache_associativity,
+                           string l1_icache_replacement_policy,
+                           UInt32 l1_icache_access_delay,
+                           bool l1_icache_track_miss_types,
+                           UInt32 l1_dcache_size,
+                           UInt32 l1_dcache_associativity,
+                           string l1_dcache_replacement_policy,
+                           UInt32 l1_dcache_access_delay,
+                           bool l1_dcache_track_miss_types,
+                           volatile float frequency)
+   : _memory_manager(memory_manager)
+   , _l2_cache_cntlr(NULL)
+   , _user_thread_sem(user_thread_sem)
+   , _network_thread_sem(network_thread_sem)
 {
-   m_l1_icache = new Cache("L1-I",
+   _l1_icache = new Cache("L1-I",
          l1_icache_size,
          l1_icache_associativity, 
-         m_cache_block_size,
+         cache_line_size,
          l1_icache_replacement_policy,
-         CacheBase::PR_L1_CACHE,
+         Cache::PR_L1_CACHE,
          l1_icache_access_delay,
-         frequency);
-   m_l1_dcache = new Cache("L1-D",
+         frequency,
+         l1_icache_track_miss_types);
+   _l1_dcache = new Cache("L1-D",
          l1_dcache_size,
          l1_dcache_associativity, 
-         m_cache_block_size,
+         cache_line_size,
          l1_dcache_replacement_policy,
-         CacheBase::PR_L1_CACHE,
+         Cache::PR_L1_CACHE,
          l1_dcache_access_delay,
-         frequency);
+         frequency,
+         l1_dcache_track_miss_types);
 }
 
 L1CacheCntlr::~L1CacheCntlr()
 {
-   delete m_l1_icache;
-   delete m_l1_dcache;
+   delete _l1_icache;
+   delete _l1_dcache;
 }      
 
 void
 L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr)
 {
-   m_l2_cache_cntlr = l2_cache_cntlr;
+   _l2_cache_cntlr = l2_cache_cntlr;
 }
 
 bool
-L1CacheCntlr::processMemOpFromTile(
-      MemComponent::component_t mem_component,
-      Core::lock_signal_t lock_signal,
-      Core::mem_op_t mem_op_type, 
-      IntPtr ca_address, UInt32 offset,
-      Byte* data_buf, UInt32 data_length,
-      bool modeled)
+L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
+                                   Core::lock_signal_t lock_signal,
+                                   Core::mem_op_t mem_op_type, 
+                                   IntPtr ca_address, UInt32 offset,
+                                   Byte* data_buf, UInt32 data_length,
+                                   bool modeled)
 {
-   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
-         lock_signal, mem_op_type, ca_address);
+   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
+             lock_signal, mem_op_type, ca_address);
 
    bool l1_cache_hit = true;
    UInt32 access_num = 0;
@@ -101,16 +102,23 @@ L1CacheCntlr::processMemOpFromTile(
 
       getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
 
+      // The memory request misses in the L1 cache
+      l1_cache_hit = false;
+
       if (lock_signal == Core::UNLOCK)
          LOG_PRINT_ERROR("Expected to find address(0x%x) in L1 Cache", ca_address);
 
-      m_l2_cache_cntlr->acquireLock();
+      _l2_cache_cntlr->acquireLock();
  
       ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
 
-      if (m_l2_cache_cntlr->processShmemReqFromL1Cache(mem_component, shmem_msg_type, ca_address, modeled))
+      pair<bool,Cache::MissType> l2_cache_miss_info = _l2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, shmem_msg_type, ca_address, modeled);
+      bool l2_cache_miss = l2_cache_miss_info.first;
+      Cache::MissType l2_cache_miss_type = l2_cache_miss_info.second;
+
+      if (!l2_cache_miss)
       {
-         m_l2_cache_cntlr->releaseLock();
+         _l2_cache_cntlr->releaseLock();
          
          // Increment Shared Mem Perf model cycle counts
          // L2 Cache
@@ -125,18 +133,19 @@ L1CacheCntlr::processMemOpFromTile(
          return false;
       }
 
-      l1_cache_hit = false;
-
       // Increment shared mem perf model cycle counts
       getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
       
-      m_l2_cache_cntlr->releaseLock();
+      _l2_cache_cntlr->releaseLock();
       releaseLock(mem_component);
       
       // Send out a request to the network thread for the cache data
+      bool msg_modeled = ::MemoryManager::isMissTypeModeled(l2_cache_miss_type) &&
+                         Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
+
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE,
-            m_tile_id, INVALID_TILE_ID, false, ca_address);
-      getMemoryManager()->sendMsg(m_tile_id, shmem_msg);
+                         getTileId(), INVALID_TILE_ID, false, ca_address, msg_modeled);
+      getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
       waitForNetworkThread();
    }
@@ -153,116 +162,111 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
    Cache* l1_cache = getL1Cache(mem_component);
    switch (mem_op_type)
    {
-      case Core::READ:
-      case Core::READ_EX:
-         l1_cache->accessSingleLine(ca_address + offset, Cache::LOAD, data_buf, data_length);
-         break;
+   case Core::READ:
+   case Core::READ_EX:
+      l1_cache->accessCacheLine(ca_address + offset, Cache::LOAD, data_buf, data_length);
+      break;
 
-      case Core::WRITE:
-         l1_cache->accessSingleLine(ca_address + offset, Cache::STORE, data_buf, data_length);
-         // Write-through cache - Write the L2 Cache also
-         m_l2_cache_cntlr->acquireLock();
-         m_l2_cache_cntlr->writeCacheBlock(ca_address, offset, data_buf, data_length);
-         m_l2_cache_cntlr->releaseLock();
-         break;
+   case Core::WRITE:
+      l1_cache->accessCacheLine(ca_address + offset, Cache::STORE, data_buf, data_length);
+      // Write-through cache - Write the L2 Cache also
+      _l2_cache_cntlr->acquireLock();
+      _l2_cache_cntlr->writeCacheLine(ca_address, offset, data_buf, data_length);
+      _l2_cache_cntlr->releaseLock();
+      break;
 
-      default:
-         LOG_PRINT_ERROR("Unsupported Mem Op Type: %u", mem_op_type);
-         break;
+   default:
+      LOG_PRINT_ERROR("Unsupported Mem Op Type: %u", mem_op_type);
+      break;
    }
 }
 
 bool
-L1CacheCntlr::operationPermissibleinL1Cache(
-      MemComponent::component_t mem_component, 
+L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_component, 
       IntPtr address, Core::mem_op_t mem_op_type,
       UInt32 access_num, bool modeled)
 {
    bool cache_hit = false;
-   CacheState::cstate_t cstate = getCacheState(mem_component, address);
+   CacheState::CState cstate = getCacheLineState(mem_component, address);
    
    switch (mem_op_type)
    {
-      case Core::READ:
-         cache_hit = CacheState(cstate).readable();
-         break;
+   case Core::READ:
+      cache_hit = CacheState(cstate).readable();
+      break;
 
-      case Core::READ_EX:
-      case Core::WRITE:
-         cache_hit = CacheState(cstate).writable();
-         break;
+   case Core::READ_EX:
+   case Core::WRITE:
+      cache_hit = CacheState(cstate).writable();
+      break;
 
-      default:
-         LOG_PRINT_ERROR("Unsupported mem_op_type: %u", mem_op_type);
-         break;
+   default:
+      LOG_PRINT_ERROR("Unsupported mem_op_type: %u", mem_op_type);
+      break;
    }
 
    if (modeled && (access_num == 1))
    {
       // Update the Cache Counters
-      getL1Cache(mem_component)->updateCounters(cache_hit);
+      getL1Cache(mem_component)->updateMissCounters(address, !cache_hit);
    }
 
    return cache_hit;
 }
 
 void
-L1CacheCntlr::insertCacheBlock(MemComponent::component_t mem_component,
-      IntPtr address, CacheState::cstate_t cstate, Byte* data_buf,
-      bool* eviction_ptr, IntPtr* evict_address_ptr)
+L1CacheCntlr::insertCacheLine(MemComponent::component_t mem_component,
+      IntPtr address, CacheState::CState cstate, Byte* fill_buf,
+      bool* eviction, IntPtr* evicted_address)
 {
-   __attribute(__unused__) PrL1CacheBlockInfo evict_block_info;
-   __attribute(__unused__) Byte evict_buf[getCacheBlockSize()];
-
    Cache* l1_cache = getL1Cache(mem_component);
-   l1_cache->insertSingleLine(address, data_buf,
-         eviction_ptr, evict_address_ptr, &evict_block_info, evict_buf);
-   setCacheState(mem_component, address, cstate);
-  
-   if (*eviction_ptr)
-   { 
-      // Update Cache Statistics of Evicted Block
-      CacheState::cstate_t evict_state = evict_block_info.getCState();
-      assert(evict_state != CacheState::INVALID);
-      l1_cache->updateStats(evict_state, CacheState::INVALID);
-   }
+   assert(l1_cache);
+
+   PrL1CacheLineInfo evicted_cache_line_info;
+
+   PrL1CacheLineInfo l1_cache_line_info;
+   l1_cache_line_info.setTag(l1_cache->getTag(address));
+   l1_cache_line_info.setCState(cstate);
+
+   l1_cache->insertCacheLine(address, &l1_cache_line_info, fill_buf,
+                             eviction, evicted_address, &evicted_cache_line_info, NULL);
 }
 
-CacheState::cstate_t
-L1CacheCntlr::getCacheState(MemComponent::component_t mem_component, IntPtr address)
+CacheState::CState
+L1CacheCntlr::getCacheLineState(MemComponent::component_t mem_component, IntPtr address)
 {
    Cache* l1_cache = getL1Cache(mem_component);
+   assert(l1_cache);
 
-   PrL1CacheBlockInfo* l1_cache_block_info = (PrL1CacheBlockInfo*) l1_cache->peekSingleLine(address);
-   return (l1_cache_block_info == NULL) ? CacheState::INVALID : l1_cache_block_info->getCState(); 
-}
-
-void
-L1CacheCntlr::setCacheState(MemComponent::component_t mem_component, IntPtr address, CacheState::cstate_t cstate)
-{
-   Cache* l1_cache = getL1Cache(mem_component);
-
-   PrL1CacheBlockInfo* l1_cache_block_info = (PrL1CacheBlockInfo*) l1_cache->peekSingleLine(address);
-   assert(l1_cache_block_info);
-
-   // Update Cache Statistics
-   assert(cstate != CacheState::INVALID);
-   l1_cache->updateStats(l1_cache_block_info->getCState(), cstate);
-
-   l1_cache_block_info->setCState(cstate);
+   PrL1CacheLineInfo l1_cache_line_info;
+   // Get cache line state
+   l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
+   return l1_cache_line_info.getCState();
 }
 
 void
-L1CacheCntlr::invalidateCacheBlock(MemComponent::component_t mem_component, IntPtr address)
+L1CacheCntlr::setCacheLineState(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate)
 {
    Cache* l1_cache = getL1Cache(mem_component);
+   assert(l1_cache);
 
-   // Update Cache Statistics
-   CacheState::cstate_t old_cstate = getCacheState(mem_component, address);
-   assert(old_cstate != CacheState::INVALID);
-   l1_cache->updateStats(old_cstate, CacheState::INVALID);
+   PrL1CacheLineInfo l1_cache_line_info;
+   l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
+   assert(l1_cache_line_info.getCState() != CacheState::INVALID);
 
-   l1_cache->invalidateSingleLine(address);
+   // Set cache line state
+   l1_cache_line_info.setCState(cstate);
+   l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
+}
+
+void
+L1CacheCntlr::invalidateCacheLine(MemComponent::component_t mem_component, IntPtr address)
+{
+   Cache* l1_cache = getL1Cache(mem_component);
+   assert(l1_cache);
+
+   // Invalidate cache line
+   l1_cache->invalidateCacheLine(address);
 }
 
 ShmemMsg::msg_t
@@ -270,16 +274,16 @@ L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)
 {
    switch(mem_op_type)
    {
-      case Core::READ:
-         return ShmemMsg::SH_REQ;
+   case Core::READ:
+      return ShmemMsg::SH_REQ;
 
-      case Core::READ_EX:
-      case Core::WRITE:
-         return ShmemMsg::EX_REQ;
+   case Core::READ_EX:
+   case Core::WRITE:
+      return ShmemMsg::EX_REQ;
 
-      default:
-         LOG_PRINT_ERROR("Unsupported Mem Op Type(%u)", mem_op_type);
-         return ShmemMsg::INVALID_MSG_TYPE;
+   default:
+      LOG_PRINT_ERROR("Unsupported Mem Op Type(%u)", mem_op_type);
+      return ShmemMsg::INVALID_MSG_TYPE;
    }
 }
 
@@ -288,15 +292,15 @@ L1CacheCntlr::getL1Cache(MemComponent::component_t mem_component)
 {
    switch(mem_component)
    {
-      case MemComponent::L1_ICACHE:
-         return m_l1_icache;
+   case MemComponent::L1_ICACHE:
+      return _l1_icache;
 
-      case MemComponent::L1_DCACHE:
-         return m_l1_dcache;
+   case MemComponent::L1_DCACHE:
+      return _l1_dcache;
 
-      default:
-         LOG_PRINT_ERROR("Unrecognized Memory Component(%u)", mem_component);
-         return NULL;
+   default:
+      LOG_PRINT_ERROR("Unrecognized Memory Component(%u)", mem_component);
+      return NULL;
    }
 }
 
@@ -305,15 +309,17 @@ L1CacheCntlr::acquireLock(MemComponent::component_t mem_component)
 {
    switch(mem_component)
    {
-      case MemComponent::L1_ICACHE:
-         m_l1_icache_lock.acquire();
-         break;
-      case MemComponent::L1_DCACHE:
-         m_l1_dcache_lock.acquire();
-         break;
-      default:
-         LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-         break;
+   case MemComponent::L1_ICACHE:
+      _l1_icache_lock.acquire();
+      break;
+   
+   case MemComponent::L1_DCACHE:
+      _l1_dcache_lock.acquire();
+      break;
+   
+   default:
+      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
+      break;
    }
 
 }
@@ -323,28 +329,48 @@ L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
 {
    switch(mem_component)
    {
-      case MemComponent::L1_ICACHE:
-         m_l1_icache_lock.release();
-         break;
-      case MemComponent::L1_DCACHE:
-         m_l1_dcache_lock.release();
-         break;
-      default:
-         LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-         break;
+   case MemComponent::L1_ICACHE:
+      _l1_icache_lock.release();
+      break;
+   
+   case MemComponent::L1_DCACHE:
+      _l1_dcache_lock.release();
+      break;
+   
+   default:
+      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
+      break;
    }
 }
 
 void
 L1CacheCntlr::waitForNetworkThread()
 {
-   m_user_thread_sem->wait();
+   _user_thread_sem->wait();
 }
 
 void
 L1CacheCntlr::wakeUpNetworkThread()
 {
-   m_network_thread_sem->signal();
+   _network_thread_sem->signal();
+}
+
+tile_id_t
+L1CacheCntlr::getTileId()
+{
+   return _memory_manager->getTile()->getId();
+}
+
+UInt32
+L1CacheCntlr::getCacheLineSize()
+{ 
+   return _memory_manager->getCacheLineSize();
+}
+ 
+ShmemPerfModel*
+L1CacheCntlr::getShmemPerfModel()
+{ 
+   return _memory_manager->getShmemPerfModel();
 }
 
 }

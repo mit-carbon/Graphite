@@ -116,6 +116,7 @@ public:
    // Return the total number of modules in all processes
    UInt32 getTotalTiles();
    UInt32 getApplicationTiles();
+   bool isApplicationTile(tile_id_t tile_id);
 
    // Return an array of tile numbers for a given process
    //  The returned array will have numMods(proc_num) elements

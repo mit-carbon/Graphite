@@ -12,7 +12,7 @@ class MemComponent
          L1_ICACHE,
          L1_DCACHE,
          L2_CACHE,
-         DRAM_DIR,
+         DRAM_DIRECTORY,
          DRAM,
          MAX_MEM_COMPONENT = DRAM,
          NUM_MEM_COMPONENTS = MAX_MEM_COMPONENT - MIN_MEM_COMPONENT + 1

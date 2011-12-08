@@ -7,7 +7,7 @@
 class Tile;
 class CoreModel;
 class Network;
-class MemoryManagerBase;
+class MemoryManager;
 class SyscallMdl;
 class SyncClient;
 class ClockSkewMinimizationClient;
@@ -91,7 +91,7 @@ public:
    Tile *getTile() { return m_tile; }
    UInt32 getCoreType() { return m_core_id.core_type; }
    CoreModel *getPerformanceModel() { return m_core_model; }
-   MemoryManagerBase *getMemoryManager() { return m_memory_manager; } 
+   MemoryManager *getMemoryManager() { return m_memory_manager; } 
    virtual PinMemoryManager *getPinMemoryManager() = 0;
    virtual SyscallMdl *getSyscallMdl() = 0; 
    SyncClient *getSyncClient() { return m_sync_client; }
@@ -105,7 +105,7 @@ protected:
    Tile *m_tile;
    core_id_t m_core_id;
    CoreModel *m_core_model;
-   MemoryManagerBase *m_memory_manager;
+   MemoryManager *m_memory_manager;
    ShmemPerfModel* m_shmem_perf_model;
    SyncClient *m_sync_client;
 

@@ -1,7 +1,7 @@
 #include "transport.h"
 #include "tile.h"
 #include "network.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "clock_converter.h"

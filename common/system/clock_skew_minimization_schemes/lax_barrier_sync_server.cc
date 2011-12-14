@@ -1,5 +1,5 @@
-#include "barrier_sync_client.h"
-#include "barrier_sync_server.h"
+#include "lax_barrier_sync_client.h"
+#include "lax_barrier_sync_server.h"
 #include "simulator.h"
 #include "thread_manager.h"
 #include "network.h"
@@ -7,14 +7,14 @@
 #include "config.h"
 #include "log.h"
 
-BarrierSyncServer::BarrierSyncServer(Network &network, UnstructuredBuffer &recv_buff):
+LaxBarrierSyncServer::LaxBarrierSyncServer(Network &network, UnstructuredBuffer &recv_buff):
    m_network(network),
    m_recv_buff(recv_buff)
 {
    m_thread_manager = Sim()->getThreadManager();
    try
    {
-      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/barrier/quantum"); 
+      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_barrier/quantum"); 
    }
    catch(...)
    {
@@ -33,24 +33,24 @@ BarrierSyncServer::BarrierSyncServer(Network &network, UnstructuredBuffer &recv_
    }
 }
 
-BarrierSyncServer::~BarrierSyncServer()
+LaxBarrierSyncServer::~LaxBarrierSyncServer()
 {}
 
 void
-BarrierSyncServer::processSyncMsg(core_id_t core_id)
+LaxBarrierSyncServer::processSyncMsg(core_id_t core_id)
 {
    barrierWait(core_id);
 }
 
 void
-BarrierSyncServer::signal()
+LaxBarrierSyncServer::signal()
 {
    if (isBarrierReached())
      barrierRelease(); 
 }
 
 void
-BarrierSyncServer::barrierWait(core_id_t core_id)
+LaxBarrierSyncServer::barrierWait(core_id_t core_id)
 {
    UInt64 time;
    m_recv_buff >> time;
@@ -63,7 +63,7 @@ BarrierSyncServer::barrierWait(core_id_t core_id)
    {
       LOG_PRINT("Sent 'SIM_BARRIER_RELEASE' immediately time(%llu), m_next_barrier_time(%llu)", time, m_next_barrier_time);
       // LOG_PRINT_WARNING("tile_id(%i), local_clock(%llu), m_next_barrier_time(%llu), m_barrier_interval(%llu)", tile_id, time, m_next_barrier_time, m_barrier_interval);
-      unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
+      unsigned int reply = LaxBarrierSyncClient::BARRIER_RELEASE;
 
       m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
       return;
@@ -76,7 +76,7 @@ BarrierSyncServer::barrierWait(core_id_t core_id)
 }
 
 bool
-BarrierSyncServer::isBarrierReached()
+LaxBarrierSyncServer::isBarrierReached()
 {
    bool single_thread_barrier_reached = false;
 
@@ -106,7 +106,7 @@ BarrierSyncServer::isBarrierReached()
 }
 
 void
-BarrierSyncServer::barrierRelease()
+LaxBarrierSyncServer::barrierRelease()
 {
    LOG_PRINT("Sending 'BARRIER_RELEASE'");
 
@@ -133,7 +133,7 @@ BarrierSyncServer::barrierRelease()
             {
                LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(tile_id) || m_thread_manager->isThreadInitializing(tile_id), "(%i) has acquired barrier, local_clock(%i), m_next_barrier_time(%llu), but not initializing or running", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
 
-               unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
+               unsigned int reply = LaxBarrierSyncClient::BARRIER_RELEASE;
 
                core_id_t core_id = TileManager::getMainCoreId(tile_id);
                m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));

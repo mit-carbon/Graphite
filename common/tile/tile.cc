@@ -77,9 +77,6 @@ void Tile::disablePerformanceModels()
 
 void Tile::resetPerformanceModels()
 {
-   if (getCore()->getClockSkewMinimizationClient())
-      getCore()->getClockSkewMinimizationClient()->reset();
-
    getCore()->getShmemPerfModel()->reset();
    getCore()->getMemoryManager()->resetModels();
    getCore()->getNetwork()->resetModels();

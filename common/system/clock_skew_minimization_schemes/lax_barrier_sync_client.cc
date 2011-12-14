@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include "barrier_sync_client.h"
+#include "lax_barrier_sync_client.h"
 #include "simulator.h"
 #include "config.h"
 #include "message_types.h"
@@ -12,12 +12,12 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-BarrierSyncClient::BarrierSyncClient(Core* core):
+LaxBarrierSyncClient::LaxBarrierSyncClient(Core* core):
    m_core(core)
 {
    try
    {
-      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/barrier/quantum"); 
+      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_barrier/quantum"); 
    }
    catch(...)
    {
@@ -26,11 +26,11 @@ BarrierSyncClient::BarrierSyncClient(Core* core):
    m_next_sync_time = m_barrier_interval;
 }
 
-BarrierSyncClient::~BarrierSyncClient()
+LaxBarrierSyncClient::~LaxBarrierSyncClient()
 {}
 
 void
-BarrierSyncClient::synchronize(UInt64 cycle_count)
+LaxBarrierSyncClient::synchronize(UInt64 cycle_count)
 {
    UnstructuredBuffer m_send_buff;
    UnstructuredBuffer m_recv_buff;

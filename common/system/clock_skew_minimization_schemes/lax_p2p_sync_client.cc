@@ -1,4 +1,4 @@
-#include "random_pairs_sync_client.h"
+#include "lax_p2p_sync_client.h"
 #include "simulator.h"
 #include "config.h"
 #include "packetize.h"
@@ -9,9 +9,9 @@
 #include "log.h"
 #include "tile_manager.h"
 
-UInt64 RandomPairsSyncClient::MAX_TIME = ((UInt64) 1) << 60;
+UInt64 LaxP2PSyncClient::MAX_TIME = ((UInt64) 1) << 60;
 
-RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
+LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    _core(core),
    _last_sync_time(0),
    _quantum(0),
@@ -23,9 +23,9 @@ RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
 
    try
    {
-      _slack = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/random_pairs/slack");
-      _quantum = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/random_pairs/quantum");
-      _sleep_fraction = Sim()->getCfg()->getFloat("clock_skew_minimization/random_pairs/sleep_fraction");
+      _slack = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_p2p/slack");
+      _quantum = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_p2p/quantum");
+      _sleep_fraction = Sim()->getCfg()->getFloat("clock_skew_minimization/lax_p2p/sleep_fraction");
    }
    catch(...)
    {
@@ -39,13 +39,13 @@ RandomPairsSyncClient::RandomPairsSyncClient(Core* core):
    _core->getNetwork()->registerCallback(CLOCK_SKEW_MINIMIZATION, ClockSkewMinimizationClientNetworkCallback, this);
 }
 
-RandomPairsSyncClient::~RandomPairsSyncClient()
+LaxP2PSyncClient::~LaxP2PSyncClient()
 {
    _core->getNetwork()->unregisterCallback(CLOCK_SKEW_MINIMIZATION);
 }
 
 void 
-RandomPairsSyncClient::enable()
+LaxP2PSyncClient::enable()
 {
    _enabled = true;
   
@@ -55,24 +55,14 @@ RandomPairsSyncClient::enable()
 }
 
 void
-RandomPairsSyncClient::disable()
+LaxP2PSyncClient::disable()
 {
    _enabled = false;
 }
 
-void
-RandomPairsSyncClient::reset()
-{
-   // Reset Variables
-   _last_sync_time = 0;
-   gettimeofday(&_start_wall_clock_time, NULL);
-   _msg_queue.clear();
-
-}
-
 // Called by network thread
 void
-RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
+LaxP2PSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
 {
    UInt32 msg_type;
    UInt64 time;
@@ -142,7 +132,7 @@ RandomPairsSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
 }
 
 void
-RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
+LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
 {
    assert(sync_msg.time >= _slack);
 
@@ -150,7 +140,7 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    // Even if this is an approximate value, this is OK
    
    // Tile Clock to Global clock conversion
-   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
+   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(),
          _core->getPerformanceModel()->getFrequency(), 1.0);
 
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
@@ -206,7 +196,7 @@ RandomPairsSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
 
 // Called by user thread
 void
-RandomPairsSyncClient::synchronize(UInt64 cycle_count)
+LaxP2PSyncClient::synchronize(UInt64 cycle_count)
 {
    LOG_ASSERT_ERROR(cycle_count == 0, "cycle_count(%llu), Cannot be used", cycle_count);
 
@@ -219,7 +209,7 @@ RandomPairsSyncClient::synchronize(UInt64 cycle_count)
    if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
-   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
+   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(),
          _core->getPerformanceModel()->getFrequency(), 1.0);
 
    assert(curr_time >= _last_sync_time);
@@ -256,7 +246,7 @@ RandomPairsSyncClient::synchronize(UInt64 cycle_count)
 }
 
 void
-RandomPairsSyncClient::sendRandomSyncMsg(UInt64 curr_time)
+LaxP2PSyncClient::sendRandomSyncMsg(UInt64 curr_time)
 {
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
@@ -276,7 +266,7 @@ RandomPairsSyncClient::sendRandomSyncMsg(UInt64 curr_time)
 }
 
 UInt64
-RandomPairsSyncClient::userProcessSyncMsgList()
+LaxP2PSyncClient::userProcessSyncMsgList()
 {
    bool ack_present = false;
    UInt64 max_wait_time = 0;
@@ -306,7 +296,7 @@ RandomPairsSyncClient::userProcessSyncMsgList()
 }
 
 void
-RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
+LaxP2PSyncClient::gotoSleep(const UInt64 sleep_time)
 {
    LOG_ASSERT_ERROR(sleep_time < MAX_TIME, "sleep_time(%llu)", sleep_time);
 
@@ -317,7 +307,7 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
       // Set the CoreState to 'SLEEPING'
       _core->setState(Core::SLEEPING);
 
-      UInt64 elapsed_simulated_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(), \
+      UInt64 elapsed_simulated_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(),
             _core->getPerformanceModel()->getFrequency(), 1.0);
 
       UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
@@ -348,7 +338,7 @@ RandomPairsSyncClient::gotoSleep(const UInt64 sleep_time)
 }
 
 UInt64
-RandomPairsSyncClient::getElapsedWallClockTime()
+LaxP2PSyncClient::getElapsedWallClockTime()
 {
    // Returns the elapsed time in microseconds
    struct timeval curr_wall_clock_time;

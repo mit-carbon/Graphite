@@ -1,51 +1,28 @@
 #include "electrical_network_link_model.h"
-#include "electrical_network_repeated_link_model.h"
-#include "electrical_network_equalized_link_model.h"
-#include "electrical_network_link_model_orion.h"
 #include "log.h"
 
-ElectricalNetworkLinkModel::ElectricalNetworkLinkModel()
-{}
-
-ElectricalNetworkLinkModel::~ElectricalNetworkLinkModel()
-{}
-
-ElectricalNetworkLinkModel*
-ElectricalNetworkLinkModel::create(std::string link_type_str, volatile float link_frequency, volatile double link_length, UInt32 link_width, bool use_orion)
+ElectricalNetworkLinkModel::ElectricalNetworkLinkModel(string link_type, float link_frequency, double link_length, UInt32 link_width)
+   : _total_dynamic_energy(0)
 {
-   LinkType link_type = parseLinkType(link_type_str);
-
-   if (! use_orion)
-   {
-      switch (link_type)
-      {
-         case ELECTRICAL_REPEATED:
-            return new ElectricalNetworkRepeatedLinkModel(link_frequency, link_length, link_width);
-
-         case ELECTRICAL_EQUALIZED:
-            return new ElectricalNetworkEqualizedLinkModel(link_frequency, link_length, link_width);
-
-         default:
-            LOG_PRINT_ERROR("Unrecognized Link Type(%u)", link_type);
-            return (ElectricalNetworkLinkModel*) NULL;
-      }
-   }
-   else
-   {
-      return new ElectricalNetworkLinkModelOrion(link_type, link_frequency, link_length, link_width);
-   }
+   LOG_ASSERT_ERROR(link_type == "electrical_repeated", "Orion only supports electrical_repeated link models currently");
+   // Link Length is passed in meters(m)
+   _orion_link = new OrionLink(link_frequency, link_length / 1000, link_width, OrionConfig::getSingleton());
 }
 
-ElectricalNetworkLinkModel::LinkType
-ElectricalNetworkLinkModel::parseLinkType(std::string link_type_str)
+ElectricalNetworkLinkModel::~ElectricalNetworkLinkModel()
 {
-   if (link_type_str == "electrical_repeated")
-      return ELECTRICAL_REPEATED;
-   else if (link_type_str == "electrical_equalized")
-      return ELECTRICAL_EQUALIZED;
-   else
-   {
-      LOG_PRINT_ERROR("Unrecognized Link Type(%s)", link_type_str.c_str());
-      return NUM_ELECTRICAL_LINK_TYPES;
-   }
+   delete _orion_link;
+}
+
+volatile double
+ElectricalNetworkLinkModel::getStaticPower()
+{
+   return _orion_link->get_static_power();
+}
+
+void
+ElectricalNetworkLinkModel::updateDynamicEnergy(UInt32 num_bit_flips, UInt32 num_flits)
+{
+   volatile double dynamic_energy = _orion_link->calc_dynamic_energy(num_bit_flips);
+   _total_dynamic_energy += (num_flits * dynamic_energy);
 }

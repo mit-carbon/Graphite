@@ -436,6 +436,8 @@ NetworkModelEClos::EClosNode::EClosNode(SInt32 router_idx,
    , _contention_model_enabled(contention_model_enabled)
    , _router_delay(router_delay)
    , _link_delay(link_delay)
+   , _router_model(NULL)
+   , _link_model(NULL)
 {
    if (_contention_model_enabled)
    {
@@ -443,9 +445,12 @@ NetworkModelEClos::EClosNode::EClosNode(SInt32 router_idx,
          _contention_models.push_back(QueueModel::create(contention_model_type, 1));
    }
 
-   _router_model = ElectricalNetworkRouterModel::create(input_ports, output_ports, 
-         num_flits_per_output_port, flit_width);
-   _link_model = ElectricalNetworkLinkModel::create(link_type, frequency, link_length, flit_width);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      _router_model = new ElectricalNetworkRouterModel(frequency, 
+            input_ports, output_ports, num_flits_per_output_port, flit_width);
+      _link_model = new ElectricalNetworkLinkModel(link_type, frequency, link_length, flit_width);
+   }
 
    // Initialize Event Counters
    _switch_allocator_arbitrates = 0;
@@ -458,8 +463,11 @@ NetworkModelEClos::EClosNode::EClosNode(SInt32 router_idx,
 
 NetworkModelEClos::EClosNode::~EClosNode()
 {
-   delete _link_model;
-   delete _router_model;
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      delete _link_model;
+      delete _router_model;
+   }
    if (_contention_model_enabled)
    {
       for (SInt32 i = 0; i < _output_ports; i++)

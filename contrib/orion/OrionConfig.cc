@@ -156,6 +156,11 @@ void OrionConfig::set_flit_width(uint32_t flit_width_)
   return;
 }
 
+void OrionConfig::set_frequency(float frequency_)
+{
+   m_params_map[string("FREQUENCY")] = T_as_string<float>(frequency_);
+}
+
 void OrionConfig::read_file(const string& filename_)
 {
   ConfigFile cfg_file(filename_);

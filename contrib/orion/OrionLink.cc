@@ -9,14 +9,17 @@
 using namespace std;
 
 OrionLink::OrionLink(
+  float frequency_,
   double len_,
   uint32_t line_width_,
-  const OrionConfig* orion_cfg_ptr_
+  OrionConfig* orion_cfg_ptr_
 )
 {
+  assert(frequency_ > 0);
   assert(len_ == len_);
   assert(line_width_ == line_width_);
 
+  orion_cfg_ptr_->set_frequency(frequency_);
   m_len = len_;
   m_line_width = line_width_;
   m_orion_cfg_ptr = orion_cfg_ptr_;
@@ -31,6 +34,7 @@ double OrionLink::calc_dynamic_energy(uint32_t num_bit_flip_) const
 {
   assert(num_bit_flip_ <= m_line_width);
 
+  // Why do you divide this by 2?
   return (num_bit_flip_*(m_dynamic_energy_per_bit/2));
 }
 

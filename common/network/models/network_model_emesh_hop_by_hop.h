@@ -93,6 +93,7 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       // Link Characteristics
       UInt32 m_link_width;
       volatile double m_link_length;
+      UInt64 m_link_delay;
       std::string m_link_type;
 
       // Router Characteristics

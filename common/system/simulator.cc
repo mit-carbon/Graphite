@@ -79,12 +79,14 @@ void Simulator::start()
    // Get Graphite Home
    char* graphite_home_str = getenv("GRAPHITE_HOME");
    _graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
-   
-   // Create Orion Config Object
-   string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
-   OrionConfig::allocate(orion_cfg_file, getCfg()->getInt("general/technology_node"));
-   // OrionConfig::getSingleton()->print_config(cout);
-
+  
+   if (Config::getSingleton()->getEnablePowerModeling())
+   { 
+      // Create Orion Config Object
+      string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
+      OrionConfig::allocate(orion_cfg_file, getCfg()->getInt("general/technology_node"));
+      // OrionConfig::getSingleton()->print_config(cout);
+   }
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
       // Create McPAT Object
@@ -98,7 +100,7 @@ void Simulator::start()
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
 
-   //// Floating Point Support
+   // Save floating-point registers on context switch from user space to pin space
    Fxsupport::allocate();
 
    startMCP();
@@ -171,9 +173,11 @@ Simulator::~Simulator()
       // Release McPAT Object
       McPATCache::release();
    }
-   
-   // Release Orion Config Object
-   OrionConfig::release();
+   if (Config::getSingleton()->getEnablePowerModeling())
+   { 
+      // Release Orion Config Object
+      OrionConfig::release();
+   }
 }
 
 void Simulator::startTimer()

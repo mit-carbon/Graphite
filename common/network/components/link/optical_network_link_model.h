@@ -9,7 +9,6 @@ public:
    OpticalNetworkLinkModel(volatile float link_frequency, volatile double waveguide_length, UInt32 link_width);
    ~OpticalNetworkLinkModel();
 
-   UInt64 getDelay();
    volatile double getStaticPower();
    void updateDynamicEnergy(UInt32 num_bit_flips, UInt32 num_flits = 1);
    volatile double getDynamicEnergy() { return _total_dynamic_energy_sender + _total_dynamic_energy_receiver; }
@@ -19,8 +18,6 @@ public:
    volatile double getRingTuningPower();
    volatile double getDynamicEnergySender();
    volatile double getDynamicEnergyReceiver();
-
-   void resetCounters() { _total_dynamic_energy_sender = _total_dynamic_energy_receiver = 0; }
 
 private:
    volatile float _frequency;

@@ -30,6 +30,7 @@ class OrionConfig
     void set_num_vchannel(uint32_t num_vchannel_);
     void set_in_buf_num_set(uint32_t in_buf_num_set_);
     void set_flit_width(uint32_t flit_width_);
+    void set_frequency(float frequency_);
 
     void read_file(const string& filename_);
     void print_config(ostream& out_);

@@ -22,13 +22,13 @@ CachePowerModel::CachePowerModel(string type, UInt32 size, UInt32 blocksize,
 void
 CachePowerModel::outputSummary(ostream& out)
 {
-   out << "    Dynamic Energy (in J): " << _total_dynamic_energy << endl;
    out << "    Static Power (in W): " << _total_static_power << endl;
+   out << "    Dynamic Energy (in J): " << _total_dynamic_energy << endl;
 }
 
 void
 CachePowerModel::dummyOutputSummary(ostream& out)
 {
-   out << "    Dynamic Energy (in J): " << endl;
    out << "    Static Power (in W): " << endl;
+   out << "    Dynamic Energy (in J): " << endl;
 }

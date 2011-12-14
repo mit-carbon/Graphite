@@ -50,12 +50,6 @@ OpticalNetworkLinkModel::OpticalNetworkLinkModel(volatile float link_frequency, 
 OpticalNetworkLinkModel::~OpticalNetworkLinkModel()
 {}
 
-UInt64
-OpticalNetworkLinkModel::getDelay()
-{
-   return _net_optical_link_delay;
-}
-
 volatile double
 OpticalNetworkLinkModel::getLaserPower()
 {

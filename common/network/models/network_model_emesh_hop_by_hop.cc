@@ -13,8 +13,10 @@ using namespace std;
 SInt32 NetworkModelEMeshHopByHop::m_mesh_width = 0;
 SInt32 NetworkModelEMeshHopByHop::m_mesh_height = 0;
 
-NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id):
-   NetworkModel(net, network_id)
+NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id)
+   : NetworkModel(net, network_id)
+   , m_electrical_router_model(NULL)
+   , m_electrical_link_model(NULL)
 {
    m_tile_id = getNetwork()->getTile()->getId();
    
@@ -26,6 +28,8 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 networ
       m_link_width = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/link/width");
       // Link Length in mm
       m_link_length = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/link/length");
+      // Link Delay (in cycles)
+      m_link_delay = (UInt64) Sim()->getCfg()->getInt("network/emesh_hop_by_hop/link/delay");
       // Link Type
       m_link_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/link/type");
       // Router Delay (pipeline delay) is specified in cycles
@@ -144,23 +148,21 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    // Router & Link are clocked at the same frequency
    m_num_router_ports = 5;
 
-   m_electrical_router_model = ElectricalNetworkRouterModel::create(m_num_router_ports,
-         m_num_router_ports, m_num_flits_per_output_buffer, m_link_width);
-   m_electrical_link_model = ElectricalNetworkLinkModel::create(m_link_type,
-         m_frequency,
-         m_link_length,
-         m_link_width);
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      m_electrical_router_model = new ElectricalNetworkRouterModel(m_frequency,
+            m_num_router_ports, m_num_router_ports, m_num_flits_per_output_buffer, m_link_width);
+      m_electrical_link_model = new ElectricalNetworkLinkModel(m_link_type,
+            m_frequency, m_link_length, m_link_width);
+   }
 
    // It is possible that one hop can be accomodated in one cycles by
    // intelligent circuit design but for simplicity, here we consider
    // that a link takes 1 cycle
 
-   // NetworkLinkModel::getDelay() gets delay in cycles (clock frequency is the link frequency)
-   // The link frequency is the same as the network frequency here
-   UInt64 link_delay = m_electrical_link_model->getDelay();
-   LOG_ASSERT_WARNING(link_delay <= 1, "Network Link Delay(%llu) exceeds 1 cycle", link_delay);
+   LOG_ASSERT_WARNING(m_link_delay == 1, "Network Link Delay(%llu) is not 1 cycle", m_link_delay);
    
-   m_hop_latency = m_router_delay + link_delay;
+   m_hop_latency = m_router_delay + m_link_delay;
 
    initializeEventCounters();
 }
@@ -181,8 +183,11 @@ NetworkModelEMeshHopByHop::initializeEventCounters()
 void
 NetworkModelEMeshHopByHop::destroyRouterAndLinkModels()
 {
-   delete m_electrical_router_model;
-   delete m_electrical_link_model;
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      delete m_electrical_router_model;
+      delete m_electrical_link_model;
+   }
 }
 
 UInt32
@@ -581,10 +586,6 @@ NetworkModelEMeshHopByHop::reset()
    
    // Event Counters
    initializeEventCounters();
-   
-   // Reset Router & Link Models
-   m_electrical_router_model->resetCounters();
-   m_electrical_link_model->resetCounters();
 }
 
 pair<bool,SInt32>

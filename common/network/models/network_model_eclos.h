@@ -36,8 +36,6 @@ class NetworkModelEClos : public NetworkModel
 
       void outputSummary(ostream& out);
 
-      void reset() {}
-
       static pair<bool,SInt32> computeTileCountConstraints(SInt32 tile_count);
 
    private:

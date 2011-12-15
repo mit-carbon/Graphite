@@ -280,8 +280,3 @@ void NetworkModelAnalytical::receiveMCPUpdate(void *obj, NetPacket response)
 
    pr->model->_globalUtilization = pr->ut;
 }
-
-void NetworkModelAnalytical::reset()
-{
-   initializePerformanceCounters();
-}

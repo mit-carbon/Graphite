@@ -489,14 +489,6 @@ void Network::disableModels()
    }
 }
 
-void Network::resetModels()
-{
-   for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
-   {
-      _models[i]->reset();
-   }
-}
-
 // Modeling
 UInt32 Network::getModeledLength(const NetPacket& pkt)
 {

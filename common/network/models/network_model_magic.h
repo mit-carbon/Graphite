@@ -19,8 +19,6 @@ class NetworkModelMagic : public NetworkModel
 
       void outputSummary(std::ostream &out);
 
-      void reset() {}
-   
    private:
       Lock _lock;
 

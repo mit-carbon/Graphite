@@ -101,7 +101,6 @@ class Network
 
       void enableModels();
       void disableModels();
-      void resetModels();
 
       // -- Network Models -- //
       NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);

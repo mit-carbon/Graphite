@@ -230,13 +230,6 @@ NetworkModelEMeshHopCounter::computeProcessingTime(UInt32 pkt_length)
 }
 
 void
-NetworkModelEMeshHopCounter::reset()
-{
-   // Activity Counters
-   initializeActivityCounters();
-}
-
-void
 NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
 {
    NetworkModel::outputSummary(out);

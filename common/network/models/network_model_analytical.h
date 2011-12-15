@@ -22,8 +22,6 @@ class NetworkModelAnalytical : public NetworkModel
 
       void outputSummary(std::ostream &out);
 
-      void reset();
-      
    private:
       UInt64 computeLatency(const NetPacket &);
       void updateUtilization();

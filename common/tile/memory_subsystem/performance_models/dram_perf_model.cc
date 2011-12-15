@@ -63,13 +63,6 @@ DramPerfModel::destroyQueueModels()
 }
 
 void
-DramPerfModel::resetQueueModels()
-{
-   destroyQueueModels();
-   createQueueModels();
-}
-
-void
 DramPerfModel::initializePerformanceCounters()
 {
    m_num_accesses = 0;

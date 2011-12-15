@@ -63,11 +63,6 @@ void BranchPredictor::initializeCounters()
    m_incorrect_predictions = 0;
 }
 
-void BranchPredictor::reset()
-{
-   initializeCounters();
-}
-
 void BranchPredictor::outputSummary(std::ostream &os)
 {
    os << "  Branch predictor stats:" << endl

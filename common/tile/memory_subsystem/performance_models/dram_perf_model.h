@@ -39,7 +39,6 @@ class DramPerfModel
 
       void createQueueModels();
       void destroyQueueModels();
-      void resetQueueModels();
       void initializePerformanceCounters();
 
    public:

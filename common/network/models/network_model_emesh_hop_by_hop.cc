@@ -128,13 +128,6 @@ NetworkModelEMeshHopByHop::destroyQueueModels()
 }
 
 void
-NetworkModelEMeshHopByHop::resetQueueModels()
-{
-   destroyQueueModels();
-   createQueueModels();
-}
-
-void
 NetworkModelEMeshHopByHop::createRouterAndLinkModels()
 {
    // Create Router & Link Models
@@ -576,16 +569,6 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
    }
 
    outputPowerSummary(out);
-}
-
-void
-NetworkModelEMeshHopByHop::reset()
-{
-   // Reset Queue Models
-   resetQueueModels();
-   
-   // Event Counters
-   initializeEventCounters();
 }
 
 pair<bool,SInt32>

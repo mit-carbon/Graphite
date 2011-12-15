@@ -23,13 +23,6 @@ void OneBitBranchPredictor::update(bool predicted, bool actual, IntPtr ip, IntPt
    m_bits[index] = actual;
 }
 
-void OneBitBranchPredictor::reset()
-{
-   BranchPredictor::reset();
-   // Reset the history table
-   m_bits = std::vector<bool>(m_bits.size());
-}
-
 void OneBitBranchPredictor::outputSummary(std::ostream &os)
 {
    BranchPredictor::outputSummary(os);

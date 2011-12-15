@@ -71,7 +71,6 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       static void initializeEMeshTopologyParams();
       void createQueueModels();
       void destroyQueueModels();
-      void resetQueueModels();
 
       // Router & Link Models
       void createRouterAndLinkModels();
@@ -125,8 +124,6 @@ class NetworkModelEMeshHopByHop : public NetworkModel
       static SInt32 computeNumHops(tile_id_t sender, tile_id_t receiver);
 
       void outputSummary(std::ostream &out);
-
-      void reset();
 };
 
 #endif /* __NETWORK_MODEL_EMESH_HOP_BY_HOP_GENERIC_H__ */

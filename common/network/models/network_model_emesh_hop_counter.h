@@ -22,8 +22,6 @@ public:
 
    void outputSummary(std::ostream &out);
 
-   void reset();
-
 private:
 
    volatile float _frequency;

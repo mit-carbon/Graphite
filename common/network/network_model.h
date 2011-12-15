@@ -78,7 +78,6 @@ class NetworkModel
 
       void enable() { _enabled = true; }
       void disable() { _enabled = false; }
-      virtual void reset() = 0;
 
       // Update Send & Receive Counters
       void updateSendCounters(const NetPacket& packet);

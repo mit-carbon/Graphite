@@ -51,7 +51,6 @@ class ShmemPerfModel
       
       void enable();
       void disable();
-      void reset();
       bool isEnabled() { return m_enabled; }
 
       void outputSummary(ostream& out, volatile float core_frequency);

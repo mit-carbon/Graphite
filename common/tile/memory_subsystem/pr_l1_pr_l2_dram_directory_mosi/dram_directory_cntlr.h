@@ -118,7 +118,6 @@ namespace PrL1PrL2DramDirectoryMOSI
         
          void enable() { m_enabled = true; }
          void disable() { m_enabled = false; }
-         void reset() { initializePerformanceCounters(); }
  
          void outputSummary(ostream& out);
          static void dummyOutputSummary(ostream& out);

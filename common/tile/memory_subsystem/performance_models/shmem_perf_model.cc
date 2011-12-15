@@ -114,12 +114,6 @@ ShmemPerfModel::disable()
 }
 
 void
-ShmemPerfModel::reset()
-{
-   initializePerformanceCounters();
-}
-
-void
 ShmemPerfModel::updateInternalVariablesOnFrequencyChange(volatile float core_frequency)
 {
    m_total_memory_access_latency_in_ns +=

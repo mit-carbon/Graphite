@@ -4,7 +4,7 @@ define(NEWPROC,) dnl
 define(BARRIER, `{
 	unsigned long	Error, Cycle;
 	int		Temp;
-    int         Cancel;
+   int         Cancel;
 
 	Error = pthread_mutex_lock(&($1).mutex);
 	if (Error != 0) {
@@ -213,12 +213,12 @@ define(THREAD_INIT, `{;}')
 define(THREAD_INIT_FREE, `{;}')
 
 
-define(G_MALLOC, `valloc($1);')
+define(G_MALLOC, `malloc($1);')
 define(G_FREE, `;')
-define(G_MALLOC_F, `valloc($1)')
-define(NU_MALLOC, `valloc($1);')
+define(G_MALLOC_F, `malloc($1)')
+define(NU_MALLOC, `malloc($1);')
 define(NU_FREE, `;')
-define(NU_MALLOC_F, `valloc($1)')
+define(NU_MALLOC_F, `malloc($1)')
 
 define(GET_HOME, `{($1) = 0;}')
 define(GET_PID, `{($1) = 0;}')

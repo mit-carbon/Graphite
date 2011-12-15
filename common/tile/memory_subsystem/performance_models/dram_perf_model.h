@@ -54,7 +54,6 @@ class DramPerfModel
       UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, tile_id_t requester);
       void enable();
       void disable();
-      void reset();
 
       UInt64 getTotalAccesses() { return m_num_accesses; }
       void outputSummary(ostream& out);

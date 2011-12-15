@@ -63,7 +63,6 @@ class Cache : public CacheBase
       void updateCounters(bool cache_hit);
       void enable() { m_enabled = true; }
       void disable() { m_enabled = false; }
-      void reset(); 
 
       virtual void outputSummary(ostream& out);
 };

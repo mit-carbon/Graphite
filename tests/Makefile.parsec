@@ -1,21 +1,29 @@
 PARSEC_HOME = /path/to/parsec
 
+APPS = blackscholes bodytrack facesim ferret fluidanimate freqmine raytrace swaptions vips x264
+KERNELS = canneal dedup streamcluster
 
-PARSEC_DIR=/afs/csail.mit.edu/group/carbon/benchmarks/parsec/parsec-2.1
-
-PARSEC_LIST = blackscholes_parsec
-
+# APPS
 blackscholes_flags ?= 16 in_4K.txt prices.txt
 bodytrack_flags ?= sequenceB_1 4 1 5 1 0 1
-ferret_flags ?= corel lsh queries 1 1 1 output.txt
+facesim_flags ?=
+ferret_flags ?= corel lsh queries 10 20 8 output.txt
 fluidanimate_flags ?=  1 1 in_5K.fluid out.fluid
 freqmine_flags ?= T10I4D100K_3.dat 1
+raytrace_flags ?=
+swaptions_flags ?=
 vips_flags ?= im_benchmark barbados_256x288.v output.v
 x264_flags ?=  --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 1 -o eledream.264 eledream_32x18_1.y4m
+# KERNELS
+canneal_flags ?=
+dedup_flags ?= -c -p -f -t 8 -i media.dat -o output.dat.ddp
+streamcluster_flags ?=
 
 include tests/Makefile.tests
 
+DIRECTORY ?= $(if $(findstring $(patsubst %_parsec,%,$@),$(APPS)),apps,kernels)
+
 %_parsec:
-	mkdir -p $(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/run/output_files
-	cd $(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
+	mkdir -p $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run/output_files
+	cd $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
 

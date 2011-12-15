@@ -111,9 +111,3 @@ UInt64 SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)
 {
    return getCore()->readInstructionMemory(ins_address, ins_size);
 }
-
-void SimpleCoreModel::reset()
-{
-   CoreModel::reset();
-   m_instruction_count = 0;
-}

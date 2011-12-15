@@ -15,18 +15,17 @@
 using namespace std;
 
 MCP::MCP(Network & network)
-      :
-      m_finished(false),
-      m_network(network),
-      m_MCP_SERVER_MAX_BUFF(256*1024),
-      m_scratch(new char[m_MCP_SERVER_MAX_BUFF]),
-      m_vm_manager(),
-      m_syscall_server(m_network, m_send_buff, m_recv_buff, m_MCP_SERVER_MAX_BUFF, m_scratch),
-      m_sync_server(m_network, m_recv_buff),
-      m_clock_skew_minimization_server(NULL),
-      m_network_model_analytical_server(m_network, m_recv_buff)
+   : m_finished(false)
+   , m_network(network)
+   , m_MCP_SERVER_MAX_BUFF(256*1024)
+   , m_scratch(new char[m_MCP_SERVER_MAX_BUFF])
+   , m_vm_manager()
+   , m_syscall_server(m_network, m_send_buff, m_recv_buff, m_MCP_SERVER_MAX_BUFF, m_scratch)
+   , m_sync_server(m_network, m_recv_buff)
+   , m_clock_skew_minimization_server(NULL)
+   , m_network_model_analytical_server(m_network, m_recv_buff)
 {
-   m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), m_network, m_recv_buff);
+   m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme"), m_network, m_recv_buff);
 }
 
 MCP::~MCP()
@@ -54,7 +53,7 @@ void MCP::processPacket()
 
    m_recv_buff >> msg_type;
 
-   LOG_PRINT("MCP message type(%i), sender(%i)", (SInt32) msg_type, recv_pkt.sender);
+   LOG_PRINT("MCP message type(%i), sender(%i,%i)", (SInt32) msg_type, recv_pkt.sender.tile_id, recv_pkt.sender.core_type);
 
    switch (msg_type)
    {

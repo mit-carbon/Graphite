@@ -81,7 +81,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // Enable/Disable/Reset Models
    else if (name == "CarbonEnableModels") msg_ptr = AFUNPTR(replacementEnableModels);
    else if (name == "CarbonDisableModels") msg_ptr = AFUNPTR(replacementDisableModels);
-   else if (name == "CarbonResetModels") msg_ptr = AFUNPTR(replacementResetModels);
 
    // Resetting Cache Counters
    else if (name == "CarbonResetCacheCounters") msg_ptr = AFUNPTR(replacementResetCacheCounters);
@@ -90,8 +89,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // pthread wrappers
    else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
    else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
-   else if (name.find("pthread_barrier_init") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierInit);
-   else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
    // For Getting the Simulated Time
@@ -794,44 +791,6 @@ void replacementPthreadExitNull (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementPthreadBarrierInit (CONTEXT *ctxt)
-{
-   pthread_barrier_t *barrier;
-   pthread_barrierattr_t *attributes;
-   UInt32 count;
-
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &barrier,
-         IARG_PTR, &attributes,
-         IARG_UINT32, &count,
-         IARG_INVALID);
-
-   //TODO: add support for different attributes and throw warnings for unsupported attrs
-   if (attributes != NULL)
-   {
-      fprintf(stdout, "Warning: pthread_barrier_init() is using unsupported attributes.\n");
-   }
-   
-   CarbonBarrierInit((carbon_barrier_t*) barrier, count);
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementPthreadBarrierWait (CONTEXT *ctxt)
-{
-   pthread_barrier_t *barrier;
-
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &barrier,
-         IARG_INVALID);
-
-   CarbonBarrierWait((carbon_barrier_t*) barrier);
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
 void replacementEnableModels(CONTEXT* ctxt)
 {
    CarbonEnableModels();
@@ -843,14 +802,6 @@ void replacementEnableModels(CONTEXT* ctxt)
 void replacementDisableModels(CONTEXT* ctxt)
 {
    CarbonDisableModels();
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementResetModels(CONTEXT* ctxt)
-{
-   CarbonResetModels();
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);

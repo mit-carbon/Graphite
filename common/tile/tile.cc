@@ -37,13 +37,16 @@ Tile::~Tile()
 
 void Tile::outputSummary(std::ostream &os)
 {
+   LOG_PRINT("Core Model Summary");
    os << "Tile Summary:\n";
    if (Config::getSingleton()->getEnablePerformanceModeling())
    {
       getCore()->getPerformanceModel()->outputSummary(os);
    }
+   LOG_PRINT("Network Summary");
    getNetwork()->outputSummary(os);
 
+   LOG_PRINT("Memory Model Summary");
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       getCore()->getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getCore()->getCoreId()));
@@ -73,14 +76,6 @@ void Tile::disablePerformanceModels()
    getCore()->getShmemPerfModel()->disable();
    getCore()->getMemoryManager()->disableModels();
    getCore()->getPerformanceModel()->disable();
-}
-
-void Tile::resetPerformanceModels()
-{
-   getCore()->getShmemPerfModel()->reset();
-   getCore()->getMemoryManager()->resetModels();
-   getCore()->getNetwork()->resetModels();
-   getCore()->getPerformanceModel()->reset();
 }
 
 void

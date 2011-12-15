@@ -53,24 +53,6 @@ void CarbonDisableModels()
    CarbonBarrierWait(&models_barrier);
 } 
 
-void CarbonResetModels()
-{
-   FloatingPointHandler floating_point_handler;
-
-   // Acquire & Release a barrier
-   CarbonBarrierWait(&models_barrier);
-
-   if (Sim()->getTileManager()->getCurrentTileIndex() == 0)
-   {
-      fprintf(stderr, "[[Graphite]] --> [ Reset Performance and Power Models ]\n");
-      // Reset performance models of cores in this process
-      Simulator::resetPerformanceModelsInCurrentProcess();
-   }
-
-   // Acquire & Release a barrier again
-   CarbonBarrierWait(&models_barrier);
-} 
-
 void CarbonResetCacheCounters()
 {
    UInt32 msg = MCP_MESSAGE_RESET_CACHE_COUNTERS;

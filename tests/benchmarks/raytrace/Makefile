@@ -5,8 +5,8 @@ OBJECTS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
 	tri.o workpool.o globals.o
 APP_FLAGS ?= -p64 -m64 $(CURDIR)/inputs/car.env
 
-MACROS := ../splash_support/c.m4.null.CARBON
-# MACROS := ../splash_support/c.m4.null.POSIX
+#MACROS := ../splash_support/c.m4.null.CARBON
+MACROS := ../splash_support/c.m4.null.POSIX
 
 include ../../Makefile.tests
 

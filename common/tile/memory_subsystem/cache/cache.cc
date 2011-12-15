@@ -164,12 +164,6 @@ Cache::updateCounters(bool cache_hit)
 }
 
 void
-Cache::reset()
-{
-   initializeEventCounters();
-}
-
-void
 Cache::initializeEventCounters()
 {
    // From Core perspective for calculating miss rate

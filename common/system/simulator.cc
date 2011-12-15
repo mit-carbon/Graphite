@@ -98,7 +98,7 @@ void Simulator::start()
    m_thread_manager = new ThreadManager(m_tile_manager);
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
-   m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
+   m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme"));
 
    // Save floating-point registers on context switch from user space to pin space
    Fxsupport::allocate();
@@ -122,7 +122,7 @@ Simulator::~Simulator()
 
    LOG_PRINT("Simulator dtor starting...");
 
-   if ((m_config.getCurrentProcessNum() == 0) && \
+   if ((m_config.getCurrentProcessNum() == 0) &&
       (m_config.getSimulationMode() == Config::FULL))
       m_thread_manager->terminateThreadSpawners();
 
@@ -166,6 +166,7 @@ Simulator::~Simulator()
    delete m_perf_counter_manager;
    delete m_thread_manager;
    delete m_tile_manager;
+   m_tile_manager = NULL;
    delete m_transport;
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
@@ -275,10 +276,3 @@ void Simulator::disablePerformanceModelsInCurrentProcess()
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
       Sim()->getTileManager()->getTileFromIndex(i)->disablePerformanceModels();
 }
-
-void Simulator::resetPerformanceModelsInCurrentProcess()
-{
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
-      Sim()->getTileManager()->getTileFromIndex(i)->resetPerformanceModels();
-}
-

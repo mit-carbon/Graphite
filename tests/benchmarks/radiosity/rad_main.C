@@ -801,6 +801,8 @@ void radiosity()
 
     /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
        statistics that one is measuring about the parallel execution */
+    // Enable Modeling
+    CarbonEnableModels();
 
     /* Decompose model objects into patches and build the BSP tree */
     /* Create the initial tasks */
@@ -844,6 +846,8 @@ void radiosity()
         timing[process_id]->wait_time = vertex_start - refine_done;
     }
 
+    // Disable Models
+    CarbonDisableModels();
 }
 
 

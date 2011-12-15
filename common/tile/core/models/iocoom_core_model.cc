@@ -370,18 +370,6 @@ void IOCOOMCoreModel::initializeRegisterWaitUnitList()
    }
 }
 
-void IOCOOMCoreModel::reset()
-{
-   CoreModel::reset();
-
-   m_instruction_count = 0;
-   initializeRegisterScoreboard();
-   m_store_buffer->reset();
-   m_load_buffer->reset();
-}
-
-
-
 // Helper classes 
 
 IOCOOMCoreModel::LoadBuffer::LoadBuffer(unsigned int num_units)
@@ -424,11 +412,6 @@ void IOCOOMCoreModel::LoadBuffer::initialize()
    {
       m_scoreboard[i] = 0;
    }
-}
-
-void IOCOOMCoreModel::LoadBuffer::reset()
-{
-   initialize();
 }
 
 IOCOOMCoreModel::StoreBuffer::StoreBuffer(unsigned int num_entries)
@@ -503,9 +486,4 @@ void IOCOOMCoreModel::StoreBuffer::initialize()
       m_scoreboard[i] = 0;
       m_addresses[i] = 0;
    }
-}
-
-void IOCOOMCoreModel::StoreBuffer::reset()
-{
-   initialize();
 }

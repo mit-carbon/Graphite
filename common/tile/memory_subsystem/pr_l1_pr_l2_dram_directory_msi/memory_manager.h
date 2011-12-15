@@ -66,7 +66,6 @@ namespace PrL1PrL2DramDirectoryMSI
         
          void enableModels();
          void disableModels();
-         void resetModels();
 
          tile_id_t getShmemRequester(const void* pkt_data)
          { return ((ShmemMsg*) pkt_data)->getRequester(); }

@@ -18,7 +18,6 @@ class MemoryManagerBase
       {
          PR_L1_PR_L2_DRAM_DIRECTORY_MSI = 0,
          PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
-         PR_L1_PR_L1_PR_L2_DRAM_DIRECTORY_MSI,
          NUM_CACHING_PROTOCOL_TYPES
       };
 
@@ -61,7 +60,6 @@ class MemoryManagerBase
 
       virtual void enableModels() = 0;
       virtual void disableModels() = 0;
-      virtual void resetModels() = 0;
 
       // Modeling
       virtual UInt32 getModeledLength(const void* pkt_data) = 0;

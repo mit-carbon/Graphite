@@ -48,20 +48,6 @@ void routineCallback(RTN rtn, void* v)
             IARG_END);
    }
 
-   // Reset Models
-   if (rtn_name == "CarbonResetModels")
-   {
-      PROTO proto = PROTO_Allocate(PIN_PARG(void),
-            CALLINGSTD_DEFAULT,
-            "CarbonResetModels",
-            PIN_PARG_END());
-
-      RTN_ReplaceSignature(rtn,
-            AFUNPTR(CarbonResetModels),
-            IARG_PROTOTYPE, proto,
-            IARG_END);
-   }
-
    // _start
    if (rtn_name == "_start")
    {
@@ -509,8 +495,9 @@ carbon_thread_t emuCarbonSpawnThread(CONTEXT* context,
   
    tile_id_t tid = CarbonSpawnThread(thread_func, arg);
 
+   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
-   LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create");
+   LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
 
    int ret;
    pthread_t* thread_ptr = new pthread_t;
@@ -537,9 +524,10 @@ int emuPthreadCreate(CONTEXT* context,
       thread_func_t thread_func, void* arg)
 {
    tile_id_t tid = CarbonSpawnThread(thread_func, arg);
-   
+  
+   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
-   LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create");
+   LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
 
    int ret;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),
@@ -576,8 +564,9 @@ void emuCarbonJoinThread(CONTEXT* context,
 
    tid_to_thread_ptr_map.erase(it);
 
+   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
-   LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join");
+   LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
 
    int ret;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),
@@ -618,8 +607,9 @@ int emuPthreadJoin(CONTEXT* context,
 
    tid_to_thread_ptr_map.erase(it);
 
+   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
-   LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join");
+   LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
 
    int ret;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),

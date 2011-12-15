@@ -40,7 +40,6 @@ public:
 
    static void enablePerformanceModelsInCurrentProcess();
    static void disablePerformanceModelsInCurrentProcess();
-   static void resetPerformanceModelsInCurrentProcess();
 
    void startTimer();
    void stopTimer();

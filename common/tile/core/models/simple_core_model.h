@@ -10,7 +10,6 @@ public:
    ~SimpleCoreModel();
 
    void updateInternalVariablesOnFrequencyChange(volatile float frequency);
-   void reset();
    void outputSummary(std::ostream &os);
 
 private:

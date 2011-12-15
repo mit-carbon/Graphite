@@ -73,8 +73,8 @@ void CoreModel::outputSummary(ostream& os)
 
 void CoreModel::enable()
 {
-   // MCP perf model should never be enabled
-   if (m_core->getTileId() == Config::getSingleton()->getMCPTileNum())
+   // Thread Spawner and MCP performance models should never be enabled
+   if (m_core->getTileId() >= (tile_id_t) Config::getSingleton()->getApplicationTiles())
       return;
 
    m_enabled = true;
@@ -83,37 +83,6 @@ void CoreModel::enable()
 void CoreModel::disable()
 {
    m_enabled = false;
-}
-
-void CoreModel::reset()
-{
-   // Reset Average Frequency & Cycle Count
-   m_average_frequency = 0.0;
-   m_total_time = 0;
-   m_cycle_count = 0;
-   m_checkpointed_cycle_count = 0;
-
-   // Reset Pipeline Stall Counters
-   initializePipelineStallCounters();
-
-   // Clear BasicBlockQueue
-   while (!m_basic_block_queue.empty())
-   {
-      BasicBlock* bb = m_basic_block_queue.front();
-      if (bb->isDynamic())
-         delete bb;
-      m_basic_block_queue.pop();
-   }
-   m_current_ins_index = 0;
-
-   // Clear Dynamic Instruction Info Queue
-   while (!m_dynamic_info_queue.empty())
-   {
-      m_dynamic_info_queue.pop();
-   }
-
-   // Reset Branch Predictor
-   m_bp->reset();
 }
 
 // This function is called:
@@ -212,7 +181,6 @@ void CoreModel::queueBasicBlock(BasicBlock *basic_block)
    m_basic_block_queue.push(basic_block);
 }
 
-// TODO: this will go in a thread
 void CoreModel::iterate()
 {
    // Because we will sometimes not have info available (we will throw
@@ -225,6 +193,7 @@ void CoreModel::iterate()
 
    while (m_basic_block_queue.size() > 1)
    {
+      LOG_PRINT("Basic Block Queue Size(%lu)", m_basic_block_queue.size());
       BasicBlock *current_bb = m_basic_block_queue.front();
 
       try
@@ -260,6 +229,7 @@ void CoreModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
+   LOG_PRINT("Push Info(%u)", i.type);
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
 }
@@ -274,6 +244,7 @@ void CoreModel::popDynamicInstructionInfo()
                     "Expected some dynamic info to be available.");
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
                     "Dynamic info queue is growing too big.");
+   LOG_PRINT("Pop Info(%u)", m_dynamic_info_queue.front().type);
    m_dynamic_info_queue.pop();
 }
 
@@ -297,5 +268,6 @@ DynamicInstructionInfo& CoreModel::getDynamicInstructionInfo()
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
                     "Dynamic info queue is growing too big.");
 
+   LOG_PRINT("Get Info(%u)", m_dynamic_info_queue.front().type);
    return m_dynamic_info_queue.front();
 }

@@ -125,13 +125,6 @@ DramPerfModel::disable()
 }
 
 void
-DramPerfModel::reset()
-{
-   initializePerformanceCounters();
-   resetQueueModels();
-}
-
-void
 DramPerfModel::outputSummary(ostream& out)
 {
    out << "Dram Perf Model summary: " << endl;

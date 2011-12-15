@@ -19,7 +19,6 @@ public:
    ~IOCOOMCoreModel();
 
    void updateInternalVariablesOnFrequencyChange(volatile float frequency);
-   void reset();
    void outputSummary(std::ostream &os);
 
 private:
@@ -50,8 +49,6 @@ private:
       ~LoadBuffer();
 
       UInt64 execute(UInt64 time, UInt64 occupancy);
-
-      void reset();
 
    private:
       Scoreboard m_scoreboard;
@@ -85,8 +82,6 @@ private:
         @param addr Address to check.
       */
       Status isAddressAvailable(UInt64 time, IntPtr addr);
-
-      void reset();
 
    private:
       Scoreboard m_scoreboard;

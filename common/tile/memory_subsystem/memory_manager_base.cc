@@ -34,8 +34,6 @@ MemoryManagerBase::parseProtocolType(std::string& protocol_type)
       return PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else if (protocol_type == "pr_l1_pr_l2_dram_directory_mosi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;
-   else if (protocol_type == "pr_l1_pr_l1_pr_l2_dram_directory_msi")
-      return PR_L1_PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else
       return NUM_CACHING_PROTOCOL_TYPES;
 }

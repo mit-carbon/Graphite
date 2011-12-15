@@ -82,7 +82,6 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "carbon_user.h"
 
 #include "rt.h"
 

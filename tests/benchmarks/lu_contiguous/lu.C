@@ -42,7 +42,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "carbon_user.h"
 
 MAIN_ENV
 

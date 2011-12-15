@@ -45,7 +45,6 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "carbon_user.h"
 
 #define PAGE_SIZE               4096
 #define NUM_CACHE_LINES        65536 

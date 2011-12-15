@@ -39,7 +39,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include "carbon_user.h"
 
 #define DEFAULT_P                    1
 #define DEFAULT_N               262144

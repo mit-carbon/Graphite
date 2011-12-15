@@ -71,7 +71,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include "carbon_user.h"
 
 #include "defs.h"
 #include "memory.h"

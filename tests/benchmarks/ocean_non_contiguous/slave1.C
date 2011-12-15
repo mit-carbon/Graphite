@@ -22,7 +22,6 @@
 #include <math.h>
 #include <time.h>
 #include <stdlib.h>
-#include "carbon_user.h"
 
 #include "decs.h"
 

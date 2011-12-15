@@ -70,7 +70,6 @@ MAIN_ENV
 #define global  /* nada */
 
 #include "stdinc.h"
-#include "carbon_user.h"
 
 string defv[] = {                 /* DEFAULT PARAMETER VALUES              */
     /* file names for input/output                                         */

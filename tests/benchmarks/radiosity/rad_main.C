@@ -845,9 +845,6 @@ void radiosity()
         timing[process_id]->vertex_time = vertex_done - vertex_start;
         timing[process_id]->wait_time = vertex_start - refine_done;
     }
-
-    // Disable Models
-    CarbonDisableModels();
 }
 
 

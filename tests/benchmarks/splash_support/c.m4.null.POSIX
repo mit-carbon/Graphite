@@ -188,7 +188,7 @@ define(CREATE, `{
 }')
 
 define(MAIN_INITENV, `{;}')
-define(MAIN_END, `{exit(0);}')
+define(MAIN_END, `{return(0);}')
 
 define(MAIN_ENV,`
 #include <pthread.h>

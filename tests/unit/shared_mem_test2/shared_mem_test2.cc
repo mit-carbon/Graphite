@@ -11,19 +11,27 @@ using namespace std;
 void* thread_func(void*);
 
 IntPtr address = 0x1000;
-int num_threads = 100;
-int num_iterations = 100;
+int num_threads = 2;
+int num_iterations = 1;
+
+carbon_barrier_t barrier;
 
 int main (int argc, char *argv[])
 {
-   CarbonStartSim(argc, argv);
    printf("Starting (shared_mem_test2)\n");
+   // Start simulator
+   CarbonStartSim(argc, argv);
+   // Enable performance models
+   Simulator::enablePerformanceModelsInCurrentProcess();
+
+   // Init barrier
+   CarbonBarrierInit(&barrier, num_threads);
 
    carbon_thread_t tid_list[num_threads];
 
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
    int val = 0;
-   tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val));
+   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val), true);
 
    for (int i = 0; i < num_threads; i++)
    {
@@ -35,7 +43,7 @@ int main (int argc, char *argv[])
       CarbonJoinThread(tid_list[i]);
    }
    
-   tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
+   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val), true);
    
    printf("val(%i)\n", val);
    if (val == (num_threads * num_iterations))
@@ -46,22 +54,29 @@ int main (int argc, char *argv[])
    {
       printf("shared_mem_test2 (FAILURE)\n");
    }
-   
+  
+   // Disable performance models
+   Simulator::disablePerformanceModelsInCurrentProcess();
+   // Shutdown simulator 
    CarbonStopSim();
+
    return 0;
 }
 
 void* thread_func(void*)
 {
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   // Wait on barrier
+   CarbonBarrierWait(&barrier);
+
+   Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
 
    for (int i = 0; i < num_iterations; i++)
    {
       int val;
-      tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address, (Byte*) &val, sizeof(val));
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address, (Byte*) &val, sizeof(val), true);
       
       val += 1;
 
-      tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address, (Byte*) &val, sizeof(val));
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address, (Byte*) &val, sizeof(val), true);
    }
 }

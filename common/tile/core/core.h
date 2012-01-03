@@ -93,22 +93,20 @@ class Core
       Tile *getTile() { return m_tile; }
       UInt32 getCoreType() { return m_core_id.core_type; }
       CoreModel *getPerformanceModel() { return m_core_model; }
-      MemoryManagerBase *getMemoryManager() { return m_memory_manager; } 
+      MemoryManagerBase *getMemoryManager();
       virtual PinMemoryManager *getPinMemoryManager() = 0;
       virtual SyscallMdl *getSyscallMdl() = 0; 
       SyncClient *getSyncClient() { return m_sync_client; }
       virtual ClockSkewMinimizationClient* getClockSkewMinimizationClient() = 0;
-      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+      ShmemPerfModel* getShmemPerfModel();
 
       State getState();
       void setState(State core_state);
 
    protected:
+
       Tile *m_tile;
-      core_id_t m_core_id;
       CoreModel *m_core_model;
-      MemoryManagerBase *m_memory_manager;
-      ShmemPerfModel* m_shmem_perf_model;
       SyncClient *m_sync_client;
 
       State m_core_state;
@@ -117,6 +115,8 @@ class Core
       static Lock m_global_core_lock;
 
       PacketType getPktTypeFromUserNetType(carbon_network_t net_type);
+
+      core_id_t m_core_id;
 };
 
 #endif

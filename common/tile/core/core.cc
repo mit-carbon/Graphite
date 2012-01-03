@@ -149,3 +149,13 @@ Core::setState(State core_state)
    ScopedLock scoped_lock(m_core_state_lock);
    m_core_state = core_state;
 }
+
+MemoryManagerBase* Core::getMemoryManager() 
+{ 
+   return m_tile->getMemoryManager(); 
+} 
+
+ShmemPerfModel* Core::getShmemPerfModel() 
+{ 
+   return m_tile->getShmemPerfModel(); 
+}

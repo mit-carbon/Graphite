@@ -21,25 +21,11 @@ MainCore::MainCore(Tile* tile) : Core(tile)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_shmem_perf_model = new ShmemPerfModel();
-      LOG_PRINT("instantiated shared memory performance model");
-
-      m_memory_manager = MemoryManagerBase::createMMU(
-            Sim()->getCfg()->getString("caching_protocol/type"),
-            m_tile, m_tile->getNetwork(), m_shmem_perf_model);
-      LOG_PRINT("instantiated memory manager model");
-
       m_pin_memory_manager = new PinMemoryManager(this);
-
-      tile->setMemoryManager(m_memory_manager);
-      tile->setShmemPerfModel(m_shmem_perf_model);
    }
    else
    {
-      m_shmem_perf_model = (ShmemPerfModel*) NULL;
-      m_memory_manager = (MemoryManagerBase *) NULL;
       m_pin_memory_manager = (PinMemoryManager*) NULL;
-
       LOG_PRINT("No Memory Manager being used for main core");
    }
 
@@ -57,8 +43,6 @@ MainCore::~MainCore()
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       delete m_pin_memory_manager;
-      delete m_memory_manager;
-      delete m_shmem_perf_model;
    }
 }
 

@@ -26,11 +26,17 @@ Core::Core(Tile *tile)
    m_tile = tile;
    m_core_state = IDLE;
    m_sync_client = new SyncClient(this);
+
+   m_syscall_model = new SyscallMdl(tile->getNetwork());
+   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
 Core::~Core()
 {
    LOG_PRINT("Deleting main core on tile %d", this->getCoreId().tile_id);
+
+   if (m_clock_skew_minimization_client)
+      delete m_clock_skew_minimization_client;
 
    delete m_sync_client;
 }

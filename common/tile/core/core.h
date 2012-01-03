@@ -95,10 +95,11 @@ class Core
       CoreModel *getPerformanceModel() { return m_core_model; }
       MemoryManagerBase *getMemoryManager();
       virtual PinMemoryManager *getPinMemoryManager() = 0;
-      virtual SyscallMdl *getSyscallMdl() = 0; 
       SyncClient *getSyncClient() { return m_sync_client; }
-      virtual ClockSkewMinimizationClient* getClockSkewMinimizationClient() = 0;
       ShmemPerfModel* getShmemPerfModel();
+
+      ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
+      SyscallMdl *getSyscallMdl() { return m_syscall_model; }
 
       State getState();
       void setState(State core_state);
@@ -108,6 +109,8 @@ class Core
       Tile *m_tile;
       CoreModel *m_core_model;
       SyncClient *m_sync_client;
+      ClockSkewMinimizationClient *m_clock_skew_minimization_client;
+      SyscallMdl *m_syscall_model;
 
       State m_core_state;
       Lock m_core_state_lock;

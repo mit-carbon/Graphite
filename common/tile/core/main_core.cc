@@ -5,9 +5,7 @@
 #include "memory_manager_base.h"
 #include "pin_memory_manager.h"
 #include "core_model.h"
-#include "syscall_model.h"
 #include "sync_client.h"
-#include "clock_skew_minimization_object.h"
 #include "simulator.h"
 #include "log.h"
 #include "tile_manager.h"
@@ -29,16 +27,11 @@ MainCore::MainCore(Tile* tile) : Core(tile)
       LOG_PRINT("No Memory Manager being used for main core");
    }
 
-   m_syscall_model = new SyscallMdl(m_tile->getNetwork());
-   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
 MainCore::~MainCore()
 {
    delete m_core_model;
-
-   if (m_clock_skew_minimization_client)
-      delete m_clock_skew_minimization_client;
    
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {

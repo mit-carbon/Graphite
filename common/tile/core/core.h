@@ -69,20 +69,20 @@ public:
 
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
-  
+   
    virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size) = 0;
 
-   virtual pair<UInt32, UInt64> initiateMemoryAccess(
-         MemComponent::component_t mem_component,
-         lock_signal_t lock_signal, 
-         mem_op_t mem_op_type, 
-         IntPtr address, 
-         Byte* data_buf, UInt32 data_size,
-         bool modeled = false,
-         UInt64 time = 0) = 0;
+   virtual pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::component_t mem_component,
+                                                     lock_signal_t lock_signal,
+                                                     mem_op_t mem_op_type,
+                                                     IntPtr address,
+                                                     Byte* data_buf, UInt32 data_size,
+                                                     bool push_info = false,
+                                                     UInt64 time = 0) = 0;
    
-   virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled = false) = 0;
-   pair<UInt32, UInt64> nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);
+   virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
+                                             char* data_buffer, UInt32 data_size, bool push_info = false) = 0;
+   pair<UInt32, UInt64> nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size);
 
    // network accessor since network is private
    int getTileId();

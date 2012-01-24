@@ -487,12 +487,7 @@ L2CacheCntlr::shmemRequestStatusInL2Cache(ShmemMsg::msg_t shmem_msg_type, IntPtr
       break;
    }
 
-   Cache::MissType cache_miss_type = Cache::INVALID_MISS_TYPE;
-   if (modeled)
-   {
-      _l2_cache->updateMissCounters(address, !cache_hit);
-   }
-
+   Cache::MissType cache_miss_type = _l2_cache->updateMissCounters(address, !cache_hit);
    return make_pair(!cache_hit, cache_miss_type);
 }
 

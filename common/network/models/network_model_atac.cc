@@ -180,9 +180,9 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    //// Electrical Mesh Router & Link
   
    // Injection Port
-   _injection_router = new NetworkRouterModel(this, 1, 1,
-                                              4, 0, _flit_width,
-                                              _contention_model_enabled, contention_model_type);
+   _injection_router = new RouterModel(this, _frequency, 1, 1,
+                                       4, 0, _flit_width,
+                                       _contention_model_enabled, contention_model_type);
 
    // ENet Router
    _num_enet_router_ports = 5;
@@ -191,17 +191,17 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    if (isAccessPoint(_tile_id))
       num_enet_router_output_ports += 1;
 
-   _enet_router = new NetworkRouterModel(this, _num_enet_router_ports, num_enet_router_output_ports,
-                                          num_flits_per_output_buffer_enet_router, enet_router_delay, _flit_width,
-                                          _contention_model_enabled, contention_model_type);
+   _enet_router = new RouterModel(this, _frequency, _num_enet_router_ports, num_enet_router_output_ports,
+                                  num_flits_per_output_buffer_enet_router, enet_router_delay, _flit_width,
+                                  _contention_model_enabled, contention_model_type);
    
    // ENet Link
    volatile double enet_link_length = _tile_width;
    _enet_link_list.resize(num_enet_router_output_ports);
    for (SInt32 i = 0; i < num_enet_router_output_ports; i++)
    {
-      _enet_link_list[i] = ElectricalNetworkLinkModel::create(electrical_link_type, this,
-                                                              _frequency, enet_link_length, _flit_width);
+      _enet_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
+                                                   _frequency, enet_link_length, _flit_width);
       assert(_enet_link_list[i]->getDelay() == 1);
    }
 
@@ -212,21 +212,20 @@ NetworkModelAtac::createANetRouterAndLinkModels()
       // Performance Model
       if (_num_access_points_per_cluster > 1)
       {
-         _send_hub_router = new NetworkRouterModel(this, _num_access_points_per_cluster, 1 /* num_output_ports */,
-                                                   num_flits_per_output_buffer_send_hub_router, send_hub_router_delay, _flit_width,
-                                                   _contention_model_enabled, contention_model_type);
+         _send_hub_router = new RouterModel(this, _frequency, _num_access_points_per_cluster, 1 /* num_output_ports */,
+                                            num_flits_per_output_buffer_send_hub_router, send_hub_router_delay, _flit_width,
+                                            _contention_model_enabled, contention_model_type);
       }
 
       // Optical Network Link Models
       volatile double waveguide_length = computeOpticalLinkLength();   // In mm
-      _optical_link = new OpticalNetworkLinkModel(this, _num_clusters,
-                                                  _frequency, waveguide_length, _flit_width);
+      _optical_link = new OpticalLinkModel(this, _num_clusters, _frequency, waveguide_length, _flit_width);
       assert(_optical_link->getDelay() == 3);
 
       // Receive Hub Router Models
-      _receive_hub_router = new NetworkRouterModel(this, _num_clusters, _num_receive_networks_per_cluster,
-                                                   num_flits_per_output_buffer_receive_hub_router, receive_hub_router_delay, _flit_width,
-                                                   _contention_model_enabled, contention_model_type);
+      _receive_hub_router = new RouterModel(this, _frequency, _num_clusters, _num_receive_networks_per_cluster,
+                                            num_flits_per_output_buffer_receive_hub_router, receive_hub_router_delay, _flit_width,
+                                            _contention_model_enabled, contention_model_type);
 
          // Receive Net
       if (_receive_net_type == HTREE) // HTree BNet
@@ -237,8 +236,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
          _htree_link_list.resize(_num_receive_networks_per_cluster);
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
-            _htree_link_list[i] = ElectricalNetworkLinkModel::create(electrical_link_type, this,
-                                                                     _frequency, htree_link_length, _flit_width);
+            _htree_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
+                                                          _frequency, htree_link_length, _flit_width);
             assert(_htree_link_list[i]->getDelay() == 1);
          }
       }
@@ -250,9 +249,9 @@ NetworkModelAtac::createANetRouterAndLinkModels()
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
             // Star Net Router
-            _star_net_router_list[i] = new NetworkRouterModel(this, 1 /* num_input_ports */, _cluster_size,
-                                                              num_flits_per_output_buffer_star_net_router, star_net_router_delay, _flit_width,
-                                                              _contention_model_enabled, contention_model_type);
+            _star_net_router_list[i] = new RouterModel(this, _frequency, 1 /* num_input_ports */, _cluster_size,
+                                                       num_flits_per_output_buffer_star_net_router, star_net_router_delay, _flit_width,
+                                                       _contention_model_enabled, contention_model_type);
 
             // Star Net Link
             vector<tile_id_t> tile_id_list;
@@ -265,8 +264,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
                volatile double star_net_link_length = computeNumHopsOnENet(_tile_id, tile_id_list[j]) * _tile_width;
                if (star_net_link_length == 0)
                   star_net_link_length = 0.1;   // A small quantity
-               _star_net_link_list[i][j] = ElectricalNetworkLinkModel::create(electrical_link_type, this,
-                                                                              _frequency, star_net_link_length, _flit_width);
+               _star_net_link_list[i][j] = new ElectricalLinkModel(this, electrical_link_type,
+                                                                   _frequency, star_net_link_length, _flit_width);
                assert(_star_net_link_list[i][j]->getDelay() == 1);
             }
          }
@@ -425,7 +424,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
          _send_hub_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
 
       if (pkt_receiver == NetPacket::BROADCAST)
-         _optical_link->processPacket(pkt, OpticalNetworkLinkModel::ENDPOINT_ALL, zero_load_delay);
+         _optical_link->processPacket(pkt, OpticalLinkModel::ENDPOINT_ALL, zero_load_delay);
       else // (pkt_receiver != NetPacket::BROADCAST)
          _optical_link->processPacket(pkt, 1 /* Send to only 1 endpoint */, zero_load_delay);
 
@@ -469,7 +468,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
       {
          if (pkt_receiver == NetPacket::BROADCAST)
          {
-            _star_net_router_list[receive_net_id]->processPacket(pkt, NetworkRouterModel::OUTPUT_PORT_ALL, zero_load_delay, contention_delay);
+            _star_net_router_list[receive_net_id]->processPacket(pkt, RouterModel::OUTPUT_PORT_ALL, zero_load_delay, contention_delay);
             // For links, compute max_delay
             UInt64 max_link_delay = 0;
             for (SInt32 i = 0; i < _cluster_size; i++)

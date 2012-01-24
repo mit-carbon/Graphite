@@ -115,15 +115,9 @@ ShmemPerfModel::disable()
 }
 
 void
-ShmemPerfModel::reset()
-{
-   initializePerformanceCounters();
-}
-
-void
 ShmemPerfModel::updateInternalVariablesOnFrequencyChange(volatile float core_frequency)
 {
-   m_total_memory_access_latency_in_ns += \
+   m_total_memory_access_latency_in_ns +=
       static_cast<UInt64>(ceil(static_cast<float>(m_total_memory_access_latency_in_clock_cycles) / core_frequency));
    m_total_memory_access_latency_in_clock_cycles = 0;
 }
@@ -131,11 +125,11 @@ ShmemPerfModel::updateInternalVariablesOnFrequencyChange(volatile float core_fre
 void
 ShmemPerfModel::outputSummary(ostream& out, volatile float core_frequency)
 {
-   m_total_memory_access_latency_in_ns += \
+   m_total_memory_access_latency_in_ns +=
       static_cast<UInt64>(ceil(static_cast<float>(m_total_memory_access_latency_in_clock_cycles) / core_frequency));
    
-   out << "Shmem Perf Model summary: " << endl;
-   out << "    num memory accesses: " << m_num_memory_accesses << endl;
-   out << "    average memory access latency: " << 
+   out << "Shared Memory Model summary: " << endl;
+   out << "    Total Memory Accesses: " << m_num_memory_accesses << endl;
+   out << "    Average Memory Access Latency (in ns): " << 
       static_cast<float>(m_total_memory_access_latency_in_ns) / m_num_memory_accesses << endl;
 }

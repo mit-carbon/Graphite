@@ -74,8 +74,7 @@ public:
 	template<class T> T read( const string& key ) const;  // call as read<T>
 	template<class T> T read( const string& key, const T& value ) const;
 	template<class T> bool readInto( T& var, const string& key ) const;
-	template<class T>
-	bool readInto( T& var, const string& key, const T& value ) const;
+	template<class T> bool readInto( T& var, const string& key, const T& value ) const;
 	
 	// Modify keys and values
 	template<class T> void add( string key, const T& value );

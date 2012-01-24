@@ -104,7 +104,8 @@ void Network::netPullFromTransport()
 
       NetPacket packet(_transport->recv());
 
-      LOG_PRINT("Pull packet : type %i, from {%i, %i}, time %llu", (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.time);
+      LOG_PRINT("Pull packet : type %i, from {%i, %i}, time %llu",
+            (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, (long long unsigned int) packet.time);
       LOG_ASSERT_ERROR(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod,
             "Invalid Packet Sender(%i)", packet.sender);
       LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES,
@@ -141,8 +142,9 @@ void Network::netPullFromTransport()
          // synchronous I/O support
          else
          {
-            LOG_PRINT("Enqueuing packet : type %i, from {%i, %i}, to {%i, %i}, core_id %i, cycle_count %llu", 
-                  (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
+            LOG_PRINT("Enqueuing packet : type %i, from {%i, %i}, to {%i, %i}, core_id %i, cycle_count %llu",
+                  (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type,
+                  _tile->getId(), (long long unsigned int) packet.time);
 
             _netQueueLock.acquire();
             _netQueue.push_back(packet);
@@ -305,6 +307,7 @@ class NetRecvIterator
             return INVALID_CORE_ID;
          };
       }
+
       inline Boolean done()
       {
          switch (_mode)
@@ -383,8 +386,10 @@ NetPacket Network::netRecv(const NetMatch &match)
       {
          // make sure that this core is the proper destination core for this tile
          if (i->receiver.tile_id != _tile->getId() || i->receiver.core_type != _tile->getCurrentCore()->getCoreType())
+         {
             if (i->receiver.tile_id != NetPacket::BROADCAST)
                continue;
+         }
 
          // only find packets that match
          for (sender.reset(); !sender.done(); sender.next())
@@ -465,7 +470,6 @@ SInt32 Network::netBroadcast(PacketType type, const void *buf, UInt32 len)
    return netSend((core_id_t) {NetPacket::BROADCAST, -1} , type, buf, len);
 }
 
-//NetPacket Network::netRecv(SInt32 src, PacketType type)
 NetPacket Network::netRecv(core_id_t src, PacketType type)
 {
    NetMatch match;
@@ -501,14 +505,6 @@ void Network::disableModels()
    for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       _models[i]->disable();
-   }
-}
-
-void Network::resetModels()
-{
-   for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
-   {
-      _models[i]->reset();
    }
 }
 

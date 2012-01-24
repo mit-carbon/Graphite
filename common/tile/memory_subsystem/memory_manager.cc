@@ -169,8 +169,7 @@ MemoryManager::getTileListWithMemoryControllers()
       for (vector<string>::iterator it = tile_list_from_cfg_file_str_form.begin();
             it != tile_list_from_cfg_file_str_form.end(); it ++)
       {
-         tile_id_t tile_id;
-         convertFromString<tile_id_t>(tile_id, *it);
+         tile_id_t tile_id = convertFromString<tile_id_t>(*it);
          tile_list_from_cfg_file.push_back(tile_id);
       }
 

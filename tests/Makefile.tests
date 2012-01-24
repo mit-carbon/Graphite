@@ -42,7 +42,7 @@ PROCS ?= 1
 CORES ?= 64
 ENABLE_SM ?= true 
 APP_FLAGS ?=
-BUILD_MODE ?= # Set to nonempty to not run anything
+BUILD_MODE ?= # Set to build to not run anything
 MODE ?= pin # Set to 'pin' to use pin
 APP_SPECIFIC_CXX_FLAGS ?= 
 CONFIG_FILE ?= $(SIM_ROOT)/carbon_sim.cfg
@@ -64,7 +64,7 @@ all: $(TARGET)
 	$(RUN)
 
 # Compiler flags
-LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -upthread_create -upthread_join -L$(SIM_ROOT)/lib
+LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join -L$(SIM_ROOT)/lib
 LD_LIBS = -pthread -lcarbon_sim
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )

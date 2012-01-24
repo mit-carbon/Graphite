@@ -14,7 +14,6 @@ public:
    bool predict(IntPtr ip, IntPtr target);
    void update(bool predicted, bool actual, IntPtr ip, IntPtr target);
 
-   void reset();
    void outputSummary(std::ostream &os);
 
 private:

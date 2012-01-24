@@ -10,9 +10,10 @@ class OrionLink
 {
   public:
     OrionLink(
+      float frequency_,
       double len_,
       uint32_t line_width_,
-      const OrionConfig* orion_cfg_ptr_
+      OrionConfig* orion_cfg_ptr_
     );
     ~OrionLink();
 

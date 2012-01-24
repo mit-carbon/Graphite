@@ -28,7 +28,7 @@ public:
    void iterate();
 
    volatile float getFrequency() { return m_frequency; }
-   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+   virtual void updateInternalVariablesOnFrequencyChange(volatile float frequency);
    void recomputeAverageFrequency(); 
 
    UInt64 getCycleCount() { return m_cycle_count; }
@@ -38,14 +38,13 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static CoreModel *createMainPerfModel(Core* core);
+   static CoreModel *createMainCoreModel(Core* core);
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 
-   void disable();
    void enable();
+   void disable();
    bool isEnabled() { return m_enabled; }
-   virtual void reset();
 
    virtual void outputSummary(std::ostream &os) = 0;
 
@@ -53,15 +52,33 @@ public:
 
 
 protected:
+   enum RegType
+   {
+      INTEGER = 0,
+      FLOATING_POINT
+   };
+   enum AccessType
+   {
+      READ = 0,
+      WRITE
+   };
+   enum ExecutionUnitType
+   {
+   };
+
    friend class SpawnInstruction;
 
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
    typedef std::queue<BasicBlock *> BasicBlockQueue;
 
    Core* getCore() { return m_core; }
-   void frequencySummary(std::ostream &os);
 
    UInt64 m_cycle_count;
+   UInt64 m_instruction_count;
+   
+   volatile float m_frequency;
+
+   void updatePipelineStallCounters(Instruction* i, UInt64 memory_stall_cycles, UInt64 execution_unit_stall_cycles);
 
 private:
 
@@ -69,13 +86,10 @@ private:
 
    virtual void handleInstruction(Instruction *instruction) = 0;
 
-   // Instruction Counters
-   void initializeInstructionCounters();
-   void updateInstructionCounters(Instruction* i);
+   // Pipeline Stall Counters
+   void initializePipelineStallCounters();
 
    Core* m_core;
-
-   volatile float m_frequency;
 
    volatile float m_average_frequency;
    UInt64 m_total_time;
@@ -93,11 +107,13 @@ private:
 
    BranchPredictor *m_bp;
 
-   // Instruction Counters
+   // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;
-   UInt64 m_total_recv_instruction_costs;
    UInt64 m_total_sync_instructions;
-   UInt64 m_total_sync_instruction_costs;
+   UInt64 m_total_recv_instruction_stall_cycles;
+   UInt64 m_total_sync_instruction_stall_cycles;
+   UInt64 m_total_memory_stall_cycles;
+   UInt64 m_total_execution_unit_stall_cycles;
 };
 
 #endif

@@ -217,7 +217,7 @@ L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_compon
 
    LOG_PRINT("Cache Hit(%s)", cache_hit ? "true" : "false");
 
-   if (modeled && (access_num == 1))
+   if (access_num == 1)
    {
       // Update the Cache Counters
       getL1Cache(mem_component)->updateMissCounters(address, !cache_hit);

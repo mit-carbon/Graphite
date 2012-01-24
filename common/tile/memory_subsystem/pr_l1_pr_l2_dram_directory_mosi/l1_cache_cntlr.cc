@@ -205,7 +205,7 @@ L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_compon
       break;
    }
 
-   if (modeled && (access_num == 1))
+   if (access_num == 1)
    {
       // Update the Cache Counters
       getL1Cache(mem_component)->updateMissCounters(address, !cache_hit);

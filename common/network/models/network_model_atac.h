@@ -7,9 +7,9 @@ using namespace std;
 #include "queue_model.h"
 #include "network.h"
 #include "network_model.h"
-#include "network_router_model.h"
-#include "electrical_network_link_model.h"
-#include "optical_network_link_model.h"
+#include "router_model.h"
+#include "electrical_link_model.h"
+#include "optical_link_model.h"
 
 // Single Sender Multiple Receivers Model
 // 1 sender, N receivers (1 to N)
@@ -119,27 +119,27 @@ private:
    bool _contention_model_enabled;
 
    // Injection Port Router
-   NetworkRouterModel* _injection_router;
+   RouterModel* _injection_router;
 
    // Latency Parameters
    SInt32 _num_enet_router_ports;
    // Router & Link Models
    // ENet Router & Link
-   NetworkRouterModel* _enet_router;
-   vector<ElectricalNetworkLinkModel*> _enet_link_list;
+   RouterModel* _enet_router;
+   vector<ElectricalLinkModel*> _enet_link_list;
    
    // Send Hub Router
-   NetworkRouterModel* _send_hub_router;
+   RouterModel* _send_hub_router;
    // Receive Hub Router
-   NetworkRouterModel* _receive_hub_router;
+   RouterModel* _receive_hub_router;
    // Opto-electronic Link
-   OpticalNetworkLinkModel* _optical_link;
+   OpticalLinkModel* _optical_link;
    
    // Htree Link List
-   vector<ElectricalNetworkLinkModel*> _htree_link_list;
+   vector<ElectricalLinkModel*> _htree_link_list;
    // Star Net Router + Link List
-   vector<NetworkRouterModel*> _star_net_router_list;
-   vector<vector<ElectricalNetworkLinkModel*> > _star_net_link_list;
+   vector<RouterModel*> _star_net_router_list;
+   vector<vector<ElectricalLinkModel*> > _star_net_link_list;
 
    // Private Functions
    void routePacketOnENet(const NetPacket& pkt, tile_id_t sender, tile_id_t receiver, queue<Hop>& next_hops);

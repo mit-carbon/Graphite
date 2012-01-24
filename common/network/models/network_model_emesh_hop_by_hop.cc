@@ -12,14 +12,14 @@ bool NetworkModelEMeshHopByHop::_initialized = false;
 SInt32 NetworkModelEMeshHopByHop::_mesh_width = 0;
 SInt32 NetworkModelEMeshHopByHop::_mesh_height = 0;
 
-NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id):
-   NetworkModel(net, network_id)
+NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id)
+   : NetworkModel(net, network_id)
 {
    try
    {
       // Network Frequency is specified in GHz
       _frequency = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/frequency");
-      // Flit Width is specified in bits/cycle
+      // Flit Width is specified in bits
       _flit_width = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/flit_width");
 
       // Is broadcast tree enabled?
@@ -73,16 +73,19 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    UInt32 num_flits_per_output_buffer = 0;
    // Link
    string link_type;
+   UInt64 link_delay = 0;
    // Contention Model
    string contention_model_type;
    try
    {
-      // Router Parameters
+      // Router Delay (pipeline delay) is specified in cycles
       router_delay = (UInt64) Sim()->getCfg()->getInt("network/emesh_hop_by_hop/router/delay");
+      // Number of flits per port - used only for power modeling purposes now
       num_flits_per_output_buffer = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/router/num_flits_per_port_buffer");
      
       // Link Parameters
-      link_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/link_type");
+      link_delay = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/link/delay");
+      link_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/link/type");
 
       // Queue Model enabled? If no, this degrades into a hop counter model
       _contention_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
@@ -94,22 +97,22 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    }
 
    // Create the injection port contention model first
-   _injection_router = new NetworkRouterModel(this, 1, 1,
-                                              4, 0, _flit_width,
-                                              _contention_model_enabled, contention_model_type);
+   _injection_router = new RouterModel(this, _frequency, 1, 1,
+                                       4, 0, _flit_width,
+                                       _contention_model_enabled, contention_model_type);
    // Mesh Router
    _num_mesh_router_ports = 5;
-   _mesh_router = new NetworkRouterModel(this, _num_mesh_router_ports, _num_mesh_router_ports,
-                                         num_flits_per_output_buffer, router_delay, _flit_width,
-                                         _contention_model_enabled, contention_model_type);
+   _mesh_router = new RouterModel(this, _frequency, _num_mesh_router_ports, _num_mesh_router_ports,
+                                  num_flits_per_output_buffer, router_delay, _flit_width,
+                                  _contention_model_enabled, contention_model_type);
    // Mesh Link List
    volatile double link_length = _tile_width;
    _mesh_link_list.resize(_num_mesh_router_ports);
    for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
    {
-      _mesh_link_list[i] = ElectricalNetworkLinkModel::create(link_type, this,
-                                                              _frequency, link_length, _flit_width);
-      assert(_mesh_link_list[i]->getDelay() == 1);
+      _mesh_link_list[i] = new ElectricalLinkModel(this, link_type,
+                                                   _frequency, link_length, _flit_width);
+      assert(_mesh_link_list[i]->getDelay() == link_delay);
    }
 }
 
@@ -289,6 +292,7 @@ NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
    NetworkModel::outputSummary(out);
    outputEventCountSummary(out);
+   outputPowerSummary(out);
    if (_contention_model_enabled)
       outputContentionModelsSummary(out);
 }
@@ -423,30 +427,30 @@ NetworkModelEMeshHopByHop::computeProcessToTileMapping()
 void
 NetworkModelEMeshHopByHop::outputEventCountSummary(ostream& out)
 {
-   out << "   Event Counters:" << endl;
+   out << "    Event Counters:" << endl;
 
    if (isApplicationTile(_tile_id))
    {
-      out << "    Buffer Writes: " << _mesh_router->getTotalBufferWrites() << endl;
-      out << "    Buffer Reads: " << _mesh_router->getTotalBufferReads() << endl;
-      out << "    Switch Allocator Requests: " << _mesh_router->getTotalSwitchAllocatorRequests() << endl;
+      out << "      Buffer Writes: " << _mesh_router->getTotalBufferWrites() << endl;
+      out << "      Buffer Reads: " << _mesh_router->getTotalBufferReads() << endl;
+      out << "      Switch Allocator Requests: " << _mesh_router->getTotalSwitchAllocatorRequests() << endl;
       for (SInt32 i = 1; i <= _num_mesh_router_ports; i++)
-         out << "    Crossbar[" << i << "] Traversals: " << _mesh_router->getTotalCrossbarTraversals(i) << endl;
+         out << "      Crossbar[" << i << "] Traversals: " << _mesh_router->getTotalCrossbarTraversals(i) << endl;
       
       UInt64 total_link_traversals = 0;
       for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
          total_link_traversals += _mesh_link_list[i]->getTotalTraversals();
-      out << "    Link Traversals: " << total_link_traversals << endl;
+      out << "      Link Traversals: " << total_link_traversals << endl;
    }
 
    else if (isSystemTile(_tile_id))
    {
-      out << "    Buffer Writes: " << endl;
-      out << "    Buffer Reads: " << endl;
-      out << "    Switch Allocator Requests: " << endl;
+      out << "      Buffer Writes: " << endl;
+      out << "      Buffer Reads: " << endl;
+      out << "      Switch Allocator Requests: " << endl;
       for (SInt32 i = 1; i <= _num_mesh_router_ports; i++)
-         out << "    Crossbar[" << i << "] Traversals: " << endl;
-      out << "    Link Traversals: " << endl;
+         out << "      Crossbar[" << i << "] Traversals: " << endl;
+      out << "      Link Traversals: " << endl;
    }
 
    else
@@ -458,20 +462,45 @@ NetworkModelEMeshHopByHop::outputEventCountSummary(ostream& out)
 void
 NetworkModelEMeshHopByHop::outputContentionModelsSummary(ostream& out)
 {
+   out << "    Contention Counters:" << endl;
+
    if (isApplicationTile(_tile_id))
    {
-      out << "    Average EMesh Router Contention Delay: " << _mesh_router->getAverageContentionDelay(0, _num_mesh_router_ports-1) << endl;
-      out << "    Average EMesh Router Link Uitlization: " << _mesh_router->getAverageLinkUtilization(0, _num_mesh_router_ports-1) << endl;
-      out << "    Percentage Analytical Models Used: " << _mesh_router->getPercentAnalyticalModelsUsed(0, _num_mesh_router_ports-1) << endl;
+      out << "      Average EMesh Router Contention Delay: " << _mesh_router->getAverageContentionDelay(0, _num_mesh_router_ports-1) << endl;
+      out << "      Average EMesh Router Link Uitlization: " << _mesh_router->getAverageLinkUtilization(0, _num_mesh_router_ports-1) << endl;
+      out << "      Percentage Analytical Models Used: " << _mesh_router->getPercentAnalyticalModelsUsed(0, _num_mesh_router_ports-1) << endl;
    }
 
    else if (isSystemTile(_tile_id))
    {
-      out << "    Average EMesh Router Contention Delay: " << endl;
-      out << "    Average EMesh Router Link Uitlization: " << endl;
-      out << "    Percentage Analytical Models Used: " << endl;
+      out << "      Average EMesh Router Contention Delay: " << endl;
+      out << "      Average EMesh Router Link Uitlization: " << endl;
+      out << "      Percentage Analytical Models Used: " << endl;
    }
 
+   else
+   {
+      LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
+   }
+}
+
+void
+NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   out << "    Energy Counters:" << endl;
+   if (isApplicationTile(_tile_id))
+   {
+      out << "      Static Power (in W): " << _mesh_router->getPowerModel()->getStaticPower() << endl;
+      out << "      Dynamic Energy (in J): " << _mesh_router->getPowerModel()->getDynamicEnergy() << endl;
+   }
+   else if (isSystemTile(_tile_id))
+   {
+      out << "      Static Power (in W): " << endl;
+      out << "      Dynamic Energy (in J): " << endl;
+   }
    else
    {
       LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);

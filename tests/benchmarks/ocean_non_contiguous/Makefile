@@ -2,8 +2,8 @@ TARGET = ocean_non_contiguous
 OBJECTS = jacobcalc.o laplacalc.o main.o multi.o slave1.o slave2.o
 APP_FLAGS ?= -p64
 
-MACROS := ../splash_support/c.m4.null.CARBON
-# MACROS := ../splash_support/c.m4.null.POSIX
+#MACROS := ../splash_support/c.m4.null.CARBON
+MACROS := ../splash_support/c.m4.null.POSIX
 
 include ../../Makefile.tests
 

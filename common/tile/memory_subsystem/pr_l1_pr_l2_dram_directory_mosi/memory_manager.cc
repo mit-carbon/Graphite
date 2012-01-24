@@ -483,20 +483,6 @@ MemoryManager::disableModels()
 }
 
 void
-MemoryManager::resetModels()
-{
-   _l1_cache_cntlr->getL1ICache()->reset();
-   _l1_cache_cntlr->getL1DCache()->reset();
-   _l2_cache_cntlr->getL2Cache()->reset();
-
-   if (_dram_cntlr_present)
-   {
-      _dram_directory_cntlr->reset();
-      _dram_cntlr->getDramPerfModel()->reset();
-   }
-}
-
-void
 MemoryManager::outputSummary(std::ostream &os)
 {
    os << "Cache Summary:\n";

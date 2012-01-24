@@ -81,7 +81,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // Enable/Disable/Reset Models
    else if (name == "CarbonEnableModels") msg_ptr = AFUNPTR(replacementEnableModels);
    else if (name == "CarbonDisableModels") msg_ptr = AFUNPTR(replacementDisableModels);
-   else if (name == "CarbonResetModels") msg_ptr = AFUNPTR(replacementResetModels);
 
    // Resetting Cache Counters
    else if (name == "CarbonResetCacheCounters") msg_ptr = AFUNPTR(replacementResetCacheCounters);
@@ -90,8 +89,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // pthread wrappers
    else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
    else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
-   else if (name.find("pthread_barrier_init") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierInit);
-   else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
    // For Getting the Simulated Time
@@ -244,7 +241,7 @@ void replacementGetThreadToSpawn (CONTEXT *ctxt)
    ThreadSpawnRequest req_buf;
    initialize_replacement_args (ctxt,
          IARG_PTR, &req,
-         IARG_END);
+         IARG_INVALID);
    
    // Preserve REG_GAX across function call with
    // void return type
@@ -296,7 +293,7 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
    
    initialize_replacement_args (ctxt,
          IARG_PTR, &thread_req,
-         IARG_END);
+         IARG_INVALID);
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
    CarbonDequeueThreadSpawnReq (&thread_req_buf);
@@ -317,7 +314,7 @@ void replacementPthreadAttrInitOtherAttr(CONTEXT *ctxt)
 
    initialize_replacement_args(ctxt,
          IARG_PTR, &attr,
-         IARG_END);
+         IARG_INVALID);
 
    core->accessMemory (Core::NONE, Core::READ, (ADDRINT) attr, (char*) &attr_buf, sizeof (pthread_attr_t));
 
@@ -351,7 +348,7 @@ void replacementSpawnThread (CONTEXT *ctxt)
    initialize_replacement_args (ctxt,
          IARG_PTR, &func,
          IARG_PTR, &arg,
-         IARG_END);
+         IARG_INVALID);
 
    LOG_PRINT("Calling SimSpawnThread");
    ADDRINT ret_val = (ADDRINT) CarbonSpawnThread (func, arg);
@@ -365,7 +362,7 @@ void replacementJoinThread (CONTEXT *ctxt)
 
    initialize_replacement_args (ctxt,
          IARG_ADDRINT, &tid,
-         IARG_END);
+         IARG_INVALID);
 
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
 
@@ -384,7 +381,7 @@ void replacement_CAPI_Initialize (CONTEXT *ctxt)
    int comm_id;
    initialize_replacement_args (ctxt,
          IARG_UINT32, &comm_id,
-         IARG_END);
+         IARG_INVALID);
 
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
 
@@ -406,7 +403,7 @@ void replacement_CAPI_rank (CONTEXT *ctxt)
 
    initialize_replacement_args (ctxt,
          IARG_PTR, &core_id,
-         IARG_END);
+         IARG_INVALID);
 
    ret_val = CAPI_rank (&core_id_buf);
    
@@ -433,7 +430,7 @@ void replacement_CAPI_message_send_w (CONTEXT *ctxt)
          IARG_UINT32, &receiver,
          IARG_PTR, &buffer,
          IARG_UINT32, &size,
-         IARG_END);
+         IARG_INVALID);
 
    char *buf = new char [size];
    core->accessMemory (Core::NONE, Core::READ, (ADDRINT) buffer, buf, size);
@@ -463,7 +460,7 @@ void replacement_CAPI_message_send_w_ex (CONTEXT *ctxt)
          IARG_PTR, &buffer,
          IARG_UINT32, &size,
          IARG_UINT32, &net_type,
-         IARG_END);
+         IARG_INVALID);
 
    char *buf = new char [size];
    core->accessMemory (Core::NONE, Core::READ, (ADDRINT) buffer, buf, size);
@@ -491,7 +488,7 @@ void replacement_CAPI_message_receive_w (CONTEXT *ctxt)
          IARG_UINT32, &receiver,
          IARG_PTR, &buffer,
          IARG_UINT32, &size,
-         IARG_END);
+         IARG_INVALID);
 
    char *buf = new char [size];
    ret_val = CAPI_message_receive_w (sender, receiver, buf, size);
@@ -521,7 +518,7 @@ void replacement_CAPI_message_receive_w_ex (CONTEXT *ctxt)
          IARG_PTR, &buffer,
          IARG_UINT32, &size,
          IARG_UINT32, &net_type,
-         IARG_END);
+         IARG_INVALID);
 
    char *buf = new char [size];
    ret_val = CAPI_message_receive_w_ex (sender, receiver, buf, size, net_type);
@@ -542,7 +539,7 @@ void replacementMutexInit (CONTEXT *ctxt)
    carbon_mutex_t *mux;
    initialize_replacement_args (ctxt,
          IARG_PTR, &mux,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -564,7 +561,7 @@ void replacementMutexLock (CONTEXT *ctxt)
    carbon_mutex_t *mux;
    initialize_replacement_args (ctxt,
          IARG_PTR, &mux,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -585,7 +582,7 @@ void replacementMutexUnlock (CONTEXT *ctxt)
    carbon_mutex_t *mux;
    initialize_replacement_args (ctxt,
          IARG_PTR, &mux,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_mutex_t mux_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -606,7 +603,7 @@ void replacementCondInit (CONTEXT *ctxt)
    carbon_cond_t *cond;
    initialize_replacement_args (ctxt,
          IARG_PTR, &cond,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -630,7 +627,7 @@ void replacementCondWait (CONTEXT *ctxt)
    initialize_replacement_args (ctxt,
          IARG_PTR, &cond,
          IARG_PTR, &mux,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_cond_t cond_buf;
    carbon_mutex_t mux_buf;
@@ -653,7 +650,7 @@ void replacementCondSignal (CONTEXT *ctxt)
    carbon_cond_t *cond;
    initialize_replacement_args (ctxt,
          IARG_PTR, &cond,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -669,7 +666,7 @@ void replacementCondBroadcast (CONTEXT *ctxt)
    carbon_cond_t *cond;
    initialize_replacement_args (ctxt,
          IARG_PTR, &cond,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_cond_t cond_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -689,7 +686,7 @@ void replacementBarrierInit (CONTEXT *ctxt)
    initialize_replacement_args (ctxt,
          IARG_PTR, &barrier,
          IARG_UINT32, &count,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_barrier_t barrier_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -708,7 +705,7 @@ void replacementBarrierWait (CONTEXT *ctxt)
    carbon_barrier_t *barrier;
    initialize_replacement_args (ctxt,
          IARG_ADDRINT, &barrier,
-         IARG_END);
+         IARG_INVALID);
    
    carbon_barrier_t barrier_buf;
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
@@ -748,7 +745,7 @@ void replacementPthreadCreate (CONTEXT *ctxt)
             IARG_PTR, &attributes,
             IARG_PTR, &func,
             IARG_PTR, &func_arg,
-            IARG_END);
+            IARG_INVALID);
 
       //TODO: add support for different attributes and throw warnings for unsupported attrs
       
@@ -778,7 +775,7 @@ void replacementPthreadJoin (CONTEXT *ctxt)
    initialize_replacement_args (ctxt,
          IARG_PTR, &thread_id,
          IARG_PTR, &return_value,
-         IARG_END);
+         IARG_INVALID);
 
    //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
    LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value \
@@ -797,44 +794,6 @@ void replacementPthreadExitNull (CONTEXT *ctxt)
    retFromReplacedRtn (ctxt, ret_val);
 }
 
-void replacementPthreadBarrierInit (CONTEXT *ctxt)
-{
-   pthread_barrier_t *barrier;
-   pthread_barrierattr_t *attributes;
-   UInt32 count;
-
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &barrier,
-         IARG_PTR, &attributes,
-         IARG_UINT32, &count,
-         IARG_END);
-
-   //TODO: add support for different attributes and throw warnings for unsupported attrs
-   if (attributes != NULL)
-   {
-      fprintf(stdout, "Warning: pthread_barrier_init() is using unsupported attributes.\n");
-   }
-   
-   CarbonBarrierInit((carbon_barrier_t*) barrier, count);
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementPthreadBarrierWait (CONTEXT *ctxt)
-{
-   pthread_barrier_t *barrier;
-
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &barrier,
-         IARG_END);
-
-   CarbonBarrierWait((carbon_barrier_t*) barrier);
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
 void replacementEnableModels(CONTEXT* ctxt)
 {
    CarbonEnableModels();
@@ -846,14 +805,6 @@ void replacementEnableModels(CONTEXT* ctxt)
 void replacementDisableModels(CONTEXT* ctxt)
 {
    CarbonDisableModels();
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementResetModels(CONTEXT* ctxt)
-{
-   CarbonResetModels();
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
@@ -888,7 +839,7 @@ void replacementCarbonGetCoreFrequency(CONTEXT *ctxt)
 
    initialize_replacement_args(ctxt,
          IARG_PTR, &core_frequency,
-         IARG_END);
+         IARG_INVALID);
 
    volatile float core_frequency_buf;
    CarbonGetCoreFrequency(&core_frequency_buf);
@@ -906,7 +857,7 @@ void replacementCarbonSetCoreFrequency(CONTEXT *ctxt)
 
    initialize_replacement_args(ctxt,
          IARG_PTR, &core_frequency,
-         IARG_END);
+         IARG_INVALID);
 
    volatile float core_frequency_buf;
    Core* core = Sim()->getTileManager()->getCurrentCore();
@@ -957,14 +908,14 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
             count++;
             break;
 
-         case IARG_END:
+         case IARG_INVALID:
             break;
 
          default:
             assert (false);
             break;
       }
-   } while (type != IARG_END);
+   } while (type != IARG_INVALID);
 #endif
 
 #ifdef TARGET_X86_64
@@ -1004,14 +955,14 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
             count++;
             break;
 
-         case IARG_END:
+         case IARG_INVALID:
             break;
 
          default:
             assert (false);
             break;
       }
-   } while (type != IARG_END);
+   } while (type != IARG_INVALID);
 #endif
 }
 

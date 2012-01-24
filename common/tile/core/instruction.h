@@ -66,6 +66,7 @@ class Instruction
 {
 public:
    Instruction(InstructionType type,
+               UInt64 opcode,
                OperandList &operands);
 
    Instruction(InstructionType type);
@@ -73,19 +74,28 @@ public:
    virtual ~Instruction() { };
    virtual UInt64 getCost();
 
-   InstructionType getType();
-
    static void initializeStaticInstructionModel();
 
+   InstructionType getType()
+   { return m_type; }
+   UInt64 getOpcode()
+   { return m_opcode; }
+   IntPtr getAddress()
+   { return m_address; }
+   UInt32 getSize()
+   { return m_size; }
    const OperandList& getOperands()
    { return m_operands; }
 
-   void setAddress(IntPtr addr)
-   { m_addr = addr; }
-   IntPtr getAddress()
-   { return m_addr; }
+   void setAddress(IntPtr address)
+   { m_address = address; }
+   void setSize(UInt32 size)
+   { m_size = size; }
 
    bool isSimpleMemoryLoad() const;
+   bool isDynamic() const
+   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC)); }
+
    void print() const;
 
 private:
@@ -93,8 +103,10 @@ private:
    static StaticInstructionCosts m_instruction_costs;
 
    InstructionType m_type;
+   UInt64 m_opcode;
 
-   IntPtr m_addr;
+   IntPtr m_address;
+   UInt32 m_size;
 
 protected:
    OperandList m_operands;
@@ -103,24 +115,24 @@ protected:
 class GenericInstruction : public Instruction
 {
 public:
-   GenericInstruction(OperandList &operands)
-      : Instruction(INST_GENERIC, operands)
+   GenericInstruction(UInt64 opcode, OperandList &operands)
+      : Instruction(INST_GENERIC, opcode, operands)
    {}
 };
 
 class ArithInstruction : public Instruction
 {
 public:
-   ArithInstruction(InstructionType type, OperandList &operands)
-      : Instruction(type, operands)
+   ArithInstruction(InstructionType type, UInt64 opcode, OperandList &operands)
+      : Instruction(type, opcode, operands)
    {}
 };
 
 class JmpInstruction : public Instruction
 {
 public:
-   JmpInstruction(OperandList &dest)
-      : Instruction(INST_JMP, dest)
+   JmpInstruction(UInt64 opcode, OperandList &dest)
+      : Instruction(INST_JMP, opcode, dest)
    {}
 };
 
@@ -128,7 +140,7 @@ public:
 class StringInstruction : public Instruction
 {
 public:
-   StringInstruction(OperandList &ops);
+   StringInstruction(UInt64 opcode, OperandList &ops);
 
    UInt64 getCost();
 };
@@ -176,7 +188,7 @@ private:
 class BranchInstruction : public Instruction
 {
 public:
-   BranchInstruction(OperandList &l);
+   BranchInstruction(UInt64 opcode, OperandList &l);
 
    UInt64 getCost();
 };

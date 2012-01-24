@@ -58,7 +58,6 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
                                    Byte* data_buf, UInt32 data_length,
                                    bool modeled)
 {
-   assert(mem_component == MemComponent::L1_DCACHE);
    LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(%#lx)",
              lock_signal, mem_op_type, ca_address);
 

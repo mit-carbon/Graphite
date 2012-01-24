@@ -46,10 +46,12 @@ TileManager::~TileManager()
 {
    for (std::vector<Tile *>::iterator i = m_tiles.begin(); i != m_tiles.end(); i++)
       delete *i;
-
    delete m_tile_tls;
+   m_tile_tls = NULL;
    delete m_tile_index_tls;
+   m_tile_index_tls = NULL;
    delete m_thread_type_tls;
+   m_thread_type_tls = NULL;
 }
 
 void TileManager::initializeCommId(SInt32 comm_id)
@@ -178,12 +180,12 @@ tile_id_t TileManager::getCurrentTileID()
 
 Tile *TileManager::getCurrentTile()
 {
-    return m_tile_tls->getPtr<Tile>();
+    return m_tile_tls ? m_tile_tls->getPtr<Tile>() : NULL;
 }
 
 UInt32 TileManager::getCurrentTileIndex()
 {
-    UInt32 idx = m_tile_index_tls->getInt();
+    UInt32 idx = m_tile_index_tls ? (m_tile_index_tls->getInt()) : -1;
     // LOG_ASSERT_ERROR(idx < m_tiles.size(),
     //       "Invalid tile index, idx(%u) >= m_tiles.size(%u)",
     //       idx, m_tiles.size());
@@ -317,11 +319,11 @@ tile_id_t TileManager::registerSimThread()
 
 bool TileManager::amiSimThread()
 {
-    return m_thread_type_tls->getInt() == SIM_THREAD;
+    return m_thread_type_tls ? (m_thread_type_tls->getInt() == SIM_THREAD) : false;
 }
 
 bool TileManager::amiUserThread()
 {
-    return m_thread_type_tls->getInt() == APP_THREAD;
+    return m_thread_type_tls ? (m_thread_type_tls->getInt() == APP_THREAD) : false;
 }
 

@@ -381,7 +381,7 @@ NetPacket Network::netRecv(const NetMatch &match)
 
       // check every entry in the queue
       for (NetQueue::iterator i = _netQueue.begin();
-            i != _netQueue.end();
+            (i != _netQueue.end()) && !found;
             i++)
       {
          // make sure that this core is the proper destination core for this tile
@@ -392,24 +392,18 @@ NetPacket Network::netRecv(const NetMatch &match)
          }
 
          // only find packets that match
-         for (sender.reset(); !sender.done(); sender.next())
+         for (sender.reset(); !sender.done() && !found; sender.next())
          {
             if (i->sender.tile_id != sender.getCoreId().tile_id || i->sender.core_type != sender.getCoreId().core_type)
                continue;
 
-            for (type.reset(); !type.done(); type.next())
+            for (type.reset(); !type.done() && !found; type.next())
             {
                if (i->type != (PacketType)type.get())
                   continue;
 
                found = true;
-
-               // find the earliest packet
-               if (itr == _netQueue.end() ||
-                     itr->time > i->time)
-               {
-                  itr = i;
-               }
+               itr = i;
             }
          }
       }
@@ -417,7 +411,7 @@ NetPacket Network::netRecv(const NetMatch &match)
       // go to sleep until a packet arrives if none have been found
       if (!found)
       {
-            _netQueueCond.wait(_netQueueLock);
+         _netQueueCond.wait(_netQueueLock);
       }
    }
 

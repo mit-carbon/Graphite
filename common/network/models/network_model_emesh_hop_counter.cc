@@ -12,11 +12,15 @@ NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 ne
    , _router_power_model(NULL)
    , _electrical_link_power_model(NULL)
 {
-   SInt32 total_tiles = Config::getSingleton()->getTotalTiles();
+   SInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
 
-   _mesh_width = (SInt32) floor (sqrt(total_tiles));
-   _mesh_height = (SInt32) ceil (1.0 * total_tiles / _mesh_width);
+   _mesh_width = (SInt32) floor (sqrt(num_application_tiles));
+   _mesh_height = (SInt32) ceil (1.0 * num_application_tiles / _mesh_width);
 
+   assert(num_application_tiles <= _mesh_width * _mesh_height);
+   assert(num_application_tiles > (_mesh_width - 1) * _mesh_height);
+   assert(num_application_tiles > _mesh_width * (_mesh_height - 1));
+   
    try
    {
       _frequency = Sim()->getCfg()->getFloat("network/emesh_hop_counter/frequency");
@@ -30,10 +34,6 @@ NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 ne
    // Broadcast Capability
    _has_broadcast_capability = false;
 
-   assert(total_tiles <= _mesh_width * _mesh_height);
-   assert(total_tiles > (_mesh_width - 1) * _mesh_height);
-   assert(total_tiles > _mesh_width * (_mesh_height - 1));
-   
    createRouterAndLinkModels();
    
    // Initialize event counters
@@ -49,6 +49,9 @@ NetworkModelEMeshHopCounter::~NetworkModelEMeshHopCounter()
 void
 NetworkModelEMeshHopCounter::createRouterAndLinkModels()
 {
+   if (isSystemTile(_tile_id))
+      return;
+
    // Link parameters
    UInt64 link_delay = 0;
    string link_type;
@@ -93,6 +96,9 @@ NetworkModelEMeshHopCounter::createRouterAndLinkModels()
 void
 NetworkModelEMeshHopCounter::destroyRouterAndLinkModels()
 {
+   if (isSystemTile(_tile_id))
+      return;
+   
    if (Config::getSingleton()->getEnablePowerModeling())
    {
       delete _router_power_model;
@@ -184,22 +190,50 @@ NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out)
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
 
-   // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
-   volatile double static_power = _router_power_model->getStaticPower() + (_electrical_link_power_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
-   volatile double dynamic_energy = _router_power_model->getDynamicEnergy() + _electrical_link_power_model->getDynamicEnergy();
-
    out << "    Energy Counters: " << endl;
-   out << "      Static Power (in W): " << static_power << endl;
-   out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
+   if (isApplicationTile(_tile_id))
+   {
+      // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
+      volatile double static_power = _router_power_model->getStaticPower() +
+                                     (_electrical_link_power_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
+      volatile double dynamic_energy = _router_power_model->getDynamicEnergy() +
+                                       _electrical_link_power_model->getDynamicEnergy();
+      out << "      Static Power (in W): " << static_power << endl;
+      out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
+   }
+   else if (isSystemTile(_tile_id))
+   {
+      out << "      Static Power (in W): " << endl;
+      out << "      Dynamic Energy (in J): " << endl;
+   }
+   else
+   {
+      LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
+   }
 }
 
 void
 NetworkModelEMeshHopCounter::outputEventCountSummary(ostream& out)
 {
    out << "    Event Counters:" << endl;
-   out << "      Buffer Writes: " << _buffer_writes << endl;
-   out << "      Buffer Reads: " << _buffer_reads << endl;
-   out << "      Switch Allocator Traversals: " << _switch_allocator_traversals << endl;
-   out << "      Crossbar Traversals: " << _crossbar_traversals << endl;
-   out << "      Link Traversals: " << _link_traversals << endl;
+   if (isApplicationTile(_tile_id))
+   {
+      out << "      Buffer Writes: " << _buffer_writes << endl;
+      out << "      Buffer Reads: " << _buffer_reads << endl;
+      out << "      Switch Allocator Traversals: " << _switch_allocator_traversals << endl;
+      out << "      Crossbar Traversals: " << _crossbar_traversals << endl;
+      out << "      Link Traversals: " << _link_traversals << endl;
+   }
+   else if (isSystemTile(_tile_id))
+   {
+      out << "      Buffer Writes: " << endl;
+      out << "      Buffer Reads: " << endl;
+      out << "      Switch Allocator Traversals: " << endl;
+      out << "      Crossbar Traversals: " << endl;
+      out << "      Link Traversals: " << endl;
+   }
+   else
+   {
+      LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
+   }
 }

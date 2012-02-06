@@ -47,6 +47,9 @@ private:
    static SInt32 _mesh_width;
    static SInt32 _mesh_height;
 
+   // Is contention model enabled?
+   static bool _contention_model_enabled;
+
    // Injection Router 
    RouterModel* _injection_router;
 
@@ -54,9 +57,6 @@ private:
    SInt32 _num_mesh_router_ports;
    RouterModel* _mesh_router;
    vector<ElectricalLinkModel*> _mesh_link_list;
-
-   // Contention Modeling
-   bool _contention_model_enabled;
 
    // Routing Function
    void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);

@@ -9,8 +9,9 @@ using namespace std;
 #include "packet_type.h"
 
 bool NetworkModelEMeshHopByHop::_initialized = false;
-SInt32 NetworkModelEMeshHopByHop::_mesh_width = 0;
-SInt32 NetworkModelEMeshHopByHop::_mesh_height = 0;
+SInt32 NetworkModelEMeshHopByHop::_mesh_width;
+SInt32 NetworkModelEMeshHopByHop::_mesh_height;
+bool NetworkModelEMeshHopByHop::_contention_model_enabled;
 
 NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id)
    : NetworkModel(net, network_id)
@@ -34,6 +35,7 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 networ
    initializeEMeshTopologyParams();
 
    // Create Router & Link Models
+   _num_mesh_router_ports = 5;
    createRouterAndLinkModels();
 }
 
@@ -57,6 +59,16 @@ NetworkModelEMeshHopByHop::initializeEMeshTopologyParams()
    LOG_ASSERT_ERROR(num_application_tiles == (_mesh_width * _mesh_height),
          "Num Application Tiles(%i), Mesh Width(%i), Mesh Height(%i)",
          num_application_tiles, _mesh_width, _mesh_height);
+      
+   try
+   {
+      // Is contention model enabled?
+      _contention_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read parameters from the emesh_hop_by_hop section of the cfg file");
+   }
 }
 
 void
@@ -88,7 +100,6 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
       link_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/link/type");
 
       // Queue Model enabled? If no, this degrades into a hop counter model
-      _contention_model_enabled = Sim()->getCfg()->getBool("network/emesh_hop_by_hop/queue_model/enabled");
       contention_model_type = Sim()->getCfg()->getString("network/emesh_hop_by_hop/queue_model/type");
    }
    catch (...)
@@ -101,7 +112,6 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
                                        4, 0, _flit_width,
                                        _contention_model_enabled, contention_model_type);
    // Mesh Router
-   _num_mesh_router_ports = 5;
    _mesh_router = new RouterModel(this, _frequency, _num_mesh_router_ports, _num_mesh_router_ports,
                                   num_flits_per_output_buffer, router_delay, _flit_width,
                                   _contention_model_enabled, contention_model_type);
@@ -280,9 +290,6 @@ NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
    sy = sender / mesh_width;
    dx = receiver % mesh_width;
    dy = receiver / mesh_width;
-
-   // LOG_ASSERT_ERROR(sy <= mesh_height, "sy(%i), mesh_height(%i)", sy, mesh_height);
-   // LOG_ASSERT_ERROR(dy <= mesh_height, "dy(%i), mesh_width(%i), mesh_height(%i), sender(%i), receiver(%i), total_tiles(%i), app_tiles(%i)", dy, mesh_width, mesh_height, sender, receiver, Config::getSingleton()->getTotalTiles(), Config::getSingleton()->getApplicationTiles());
 
    return abs(sx-dx) + abs(sy-dy);
 }

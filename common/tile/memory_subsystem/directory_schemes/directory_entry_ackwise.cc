@@ -62,6 +62,12 @@ DirectoryEntryAckwise::removeSharer(tile_id_t sharer_id, bool reply_expected)
    }
 }
 
+bool
+DirectoryEntryAckwise::inBroadcastMode()
+{
+   return _global_enabled;
+}
+
 // Return a pair:
 // val.first :- 'True' if all tiles are sharers
 //              'False' if NOT all tiles are sharers

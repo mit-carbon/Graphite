@@ -24,6 +24,7 @@ public:
    IntPtr getAddress() { return _address; }
    void setAddress(IntPtr address) { _address = address; }
 
+   virtual bool inBroadcastMode() { return false; }
    virtual bool getSharersList(vector<tile_id_t>& sharers_list) = 0;
    virtual tile_id_t getOneSharer() = 0;
    virtual SInt32 getNumSharers() = 0;

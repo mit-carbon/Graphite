@@ -14,6 +14,8 @@ Cache::Cache(string name,
              UInt32 associativity,
              UInt32 cache_line_size,
              string replacement_policy,
+             Category cache_category,
+             WritePolicy write_policy,
              Type cache_type,
              UInt32 access_delay,
              volatile float frequency,
@@ -23,6 +25,8 @@ Cache::Cache(string name,
    , _cache_size(k_KILO * cache_size)
    , _associativity(associativity)
    , _line_size(cache_line_size)
+   , _cache_category(cache_category)
+   , _write_policy(write_policy)
    , _cache_type(cache_type)
    , _power_model(NULL)
    , _area_model(NULL)
@@ -52,6 +56,7 @@ Cache::Cache(string name,
    // Initialize Cache Counters
    // Hit/miss counters
    initializeMissCounters();
+   _total_dirty_replacements = 0;
    // Tracking tag/data read/writes
    initializeTagAndDataArrayCounters();
    // Cache line state counters
@@ -90,7 +95,7 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
          _data_array_reads ++;
       else
          _data_array_writes ++;
-
+      
       // Update dynamic energy counters
       if (_power_model)
          _power_model->updateDynamicEnergy();
@@ -114,9 +119,13 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
    {
       // Add to evicted set for tracking miss type
       assert(*evicted_address != INVALID_ADDRESS);
-      
+
       if (_track_miss_types)
          _evicted_address_set.insert(*evicted_address);
+
+      // Update number of dirty replacements
+      if ( (_write_policy == WRITE_BACK) && (CacheState(evicted_cache_line_info->getCState()).writable()) )
+         _total_dirty_replacements ++;
 
       // Update exclusive/sharing counters
       updateCacheLineStateCounters(evicted_cache_line_info->getCState(), CacheState::INVALID);
@@ -140,6 +149,7 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          assert(evicted_cache_line_info->getCState() != CacheState::INVALID);
 
          // Update tag/data array reads
+         // Read data array only if there is an eviction
          _tag_array_reads ++;
          _data_array_reads ++;
       }
@@ -226,12 +236,18 @@ Cache::invalidateCacheLine(IntPtr address)
 
    CacheLineInfo* cache_line_info = set->find(tag);
 
+   if (_enabled)
+   {
+      // Update tag array reads
+      _tag_array_reads ++;
+   }
+
    if (cache_line_info)
    {
       // Update exclusive/sharing counters
       updateCacheLineStateCounters(cache_line_info->getCState(), CacheState::INVALID);
-     
-      // Invalidate cache line 
+    
+      // Invalidate cache line
       cache_line_info->invalidate();
       
       // Add to invalidated set for tracking miss type
@@ -260,6 +276,10 @@ Cache::initializeMissCounters()
 {
    _total_cache_accesses = 0;
    _total_cache_misses = 0;
+   _total_read_accesses = 0;
+   _total_read_misses = 0;
+   _total_write_accesses = 0;
+   _total_write_misses = 0;
 
    if (_track_miss_types)
       initializeMissTypeCounters();
@@ -270,7 +290,6 @@ Cache::initializeMissTypeCounters()
 {
    _total_cold_misses = 0;
    _total_capacity_misses = 0;
-   _total_upgrade_misses = 0;
    _total_sharing_misses = 0;
 }
 
@@ -291,16 +310,35 @@ Cache::initializeCacheLineStateCounters()
 }
 
 Cache::MissType
-Cache::updateMissCounters(IntPtr address, bool cache_miss)
+Cache::updateMissCounters(IntPtr address, CacheLineInfo* cache_line_info, Core::mem_op_t mem_op_type, bool cache_miss)
 {
    MissType miss_type = INVALID_MISS_TYPE;
    
    if (_enabled)
    {
       _total_cache_accesses ++;
+
+      // Read/Write access
+      if ((mem_op_type == Core::READ) || (mem_op_type == Core::READ_EX))
+      {
+         _total_read_accesses ++;
+      }
+      else // (mem_op_type == Core::WRITE)
+      {
+         assert(_cache_category != INSTRUCTION_CACHE);
+         _total_write_accesses ++;
+      }
+
       if (cache_miss)
       {
          _total_cache_misses ++;
+         
+         // Read/Write miss
+         if ((mem_op_type == Core::READ) || (mem_op_type == Core::READ_EX))
+            _total_read_misses ++;
+         else
+            _total_write_misses ++;
+         
          // Compute the miss type counters for the inserted line
          if (_track_miss_types)
          {
@@ -322,7 +360,7 @@ Cache::getMissType(IntPtr address) const
    else if (_invalidated_address_set.find(address) != _invalidated_address_set.end())
       return SHARING_MISS;
    else if (_fetched_address_set.find(address) != _fetched_address_set.end())
-      return UPGRADE_MISS;
+      return SHARING_MISS;
    else
       return COLD_MISS;
 }
@@ -338,10 +376,6 @@ Cache::updateMissTypeCounters(IntPtr address, MissType miss_type)
 
    case CAPACITY_MISS:
       _total_capacity_misses ++;
-      break;
-
-   case UPGRADE_MISS:
-      _total_upgrade_misses ++;
       break;
 
    case SHARING_MISS:
@@ -388,31 +422,54 @@ Cache::outputSummary(ostream& out)
 {
    // Cache Miss Summary
    out << "  Cache " << _name << ":\n";
-   out << "    Total Cache Accesses: " << _total_cache_accesses << endl;
-   out << "    Total Cache Misses: " << _total_cache_misses << endl;
-   out << "    Miss Rate: " <<
-      ((float) _total_cache_misses) * 100 / _total_cache_accesses << endl;
-
-   if (_track_miss_types)
+   out << "    Cache Accesses: " << _total_cache_accesses << endl;
+   out << "    Cache Misses: " << _total_cache_misses << endl;
+   if (_total_cache_accesses > 0)
+      out << "    Miss Rate (%): " << ((float) _total_cache_misses) * 100 / _total_cache_accesses << endl;
+   else
+      out << "    Miss Rate (%): " << endl;
+   
+   if (_cache_category != INSTRUCTION_CACHE)
    {
-      out << "    Total Cold Misses: " << _total_cold_misses << endl;
-      out << "    Total Capacity Misses: " << _total_capacity_misses << endl;
-      out << "    Total Upgrade Misses: " << _total_upgrade_misses << endl;
-      out << "    Total Sharing Misses: " << _total_sharing_misses << endl;
+      out << "    Read Accesses: " << _total_read_accesses << endl;
+      out << "    Read Misses: " << _total_read_misses << endl;
+      if (_total_read_accesses > 0)
+         out << "    Read Miss Rate (%): " << 100.0 * _total_read_misses / _total_read_accesses << endl;
+      else
+         out << "    Read Miss Rate (%): " << endl;
+      
+      out << "    Write Accesses: " << _total_write_accesses << endl;
+      out << "    Write Misses: " << _total_write_misses << endl;
+      if (_total_write_accesses > 0)
+         out << "    Write Miss Rate (%): " << 100.0 * _total_write_misses / _total_write_accesses << endl;
+      else
+         out << "    Write Miss Rate (%): " << endl;
    }
-
-   // Event Counters Summary
-   out << "   Event Counters:" << endl;
-   out << "    Tag Array Reads: " << _tag_array_reads << endl;
-   out << "    Tag Array Writes: " << _tag_array_writes << endl;
-   out << "    Data Array Reads: " << _data_array_reads << endl;
-   out << "    Data Array Writes: " << _data_array_writes << endl;
+   if (_write_policy == WRITE_BACK)
+   {
+      out << "    Dirty Replacements: " << _total_dirty_replacements << endl;
+   }
    
    // Output Power and Area Summaries
    if (_power_model)
       _power_model->outputSummary(out);
    if (_area_model)
       _area_model->outputSummary(out);
+
+   if (_track_miss_types)
+   {
+      out << "    Miss Types:" << endl;
+      out << "      Cold Misses: " << _total_cold_misses << endl;
+      out << "      Capacity Misses: " << _total_capacity_misses << endl;
+      out << "      Sharing Misses: " << _total_sharing_misses << endl;
+   }
+
+   // Event Counters Summary
+   out << "    Event Counters:" << endl;
+   out << "      Tag Array Reads: " << _tag_array_reads << endl;
+   out << "      Tag Array Writes: " << _tag_array_writes << endl;
+   out << "      Data Array Reads: " << _data_array_reads << endl;
+   out << "      Data Array Writes: " << _data_array_writes << endl;
 }
 
 // Utilities
@@ -462,8 +519,6 @@ Cache::parseMissType(string miss_type)
       return COLD_MISS;
    else if (miss_type == "capacity")
       return CAPACITY_MISS;
-   else if (miss_type == "upgrade")
-      return UPGRADE_MISS;
    else if (miss_type == "sharing")
       return SHARING_MISS;
    else

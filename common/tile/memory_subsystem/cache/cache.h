@@ -6,6 +6,7 @@
 using std::string;
 using std::set;
 
+#include "core.h"
 #include "cache_state.h"
 #include "cache_perf_model.h"
 #include "shmem_perf_model.h"
@@ -28,12 +29,8 @@ public:
    // types, constants
    enum AccessType
    {
-      INVALID_ACCESS_TYPE = 0,
-      MIN_ACCESS_TYPE,
-      LOAD = MIN_ACCESS_TYPE,
-      STORE,
-      MAX_ACCESS_TYPE = STORE,
-      NUM_ACCESS_TYPES = MAX_ACCESS_TYPE - MIN_ACCESS_TYPE + 1
+      LOAD = 0,
+      STORE
    };
 
    enum ReplacementPolicy
@@ -45,24 +42,31 @@ public:
 
    enum MissType
    {
-      INVALID_MISS_TYPE = 0,
-      MIN_MISS_TYPE,
-      COLD_MISS = MIN_MISS_TYPE,
+      COLD_MISS = 0,
       CAPACITY_MISS,
-      UPGRADE_MISS,
       SHARING_MISS,
-      MAX_MISS_TYPE = SHARING_MISS,
-      NUM_MISS_TYPES = MAX_MISS_TYPE - MIN_MISS_TYPE + 1
+      NUM_MISS_TYPES,
+      INVALID_MISS_TYPE
+   };
+
+   enum WritePolicy
+   {
+      UNDEFINED_WRITE_POLICY = 0,
+      WRITE_THROUGH,
+      WRITE_BACK
+   };
+
+   enum Category
+   {
+      INSTRUCTION_CACHE = 0,
+      DATA_CACHE,
+      UNIFIED_CACHE
    };
 
    enum Type
    {
-      INVALID_CACHE_TYPE = 0,
-      MIN_CACHE_TYPE,
-      PR_L1_CACHE = MIN_CACHE_TYPE,
-      PR_L2_CACHE,
-      MAX_CACHE_TYPE = PR_L2_CACHE,
-      NUM_CACHE_TYPES = MAX_CACHE_TYPE - MIN_CACHE_TYPE + 1
+      PR_L1_CACHE = 0,
+      PR_L2_CACHE
    };
 
    // Constructors/destructors
@@ -71,6 +75,8 @@ public:
          UInt32 associativity,
          UInt32 cache_line_size,
          string replacement_policy,
+         Category cache_category,
+         WritePolicy write_policy,
          Type cache_type,
          UInt32 access_delay,
          volatile float frequency,
@@ -88,7 +94,7 @@ public:
    // Get the tag associated with an address
    IntPtr getTag(IntPtr address) const;
    // Update miss counters - only updated on an access from the core (as opposed from the network)
-   MissType updateMissCounters(IntPtr address, bool cache_miss);
+   MissType updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache_miss);
    // Get cache line state counters
    void getCacheLineStateCounters(UInt64& total_exclusive_lines, UInt64& total_shared_lines);
 
@@ -116,6 +122,10 @@ private:
    // Cache hit/miss counters
    UInt64 _total_cache_accesses;
    UInt64 _total_cache_misses;
+   UInt64 _total_read_accesses;
+   UInt64 _total_read_misses;
+   UInt64 _total_write_accesses;
+   UInt64 _total_write_misses;
    // Counters for types of misses
    UInt64 _total_cold_misses;
    UInt64 _total_capacity_misses;
@@ -131,12 +141,16 @@ private:
    UInt64 _tag_array_writes;
    UInt64 _data_array_reads;
    UInt64 _data_array_writes;
+   // Dirty data replacements
+   UInt64 _total_dirty_replacements;
 
    // Cache line state counters - Number of exclusive and shared lines
    UInt64 _total_exclusive_lines;
    UInt64 _total_shared_lines;
 
    // Generic Cache Info
+   Category _cache_category;
+   WritePolicy _write_policy;
    Type _cache_type;
    CacheSet** _sets;
 

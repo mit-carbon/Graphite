@@ -2,15 +2,26 @@
 
 #include "link_model.h"
 #include "fixed_types.h"
-#include "optical_link_power_model.h"
 
 class NetPacket;
 class NetworkModel;
+class OpticalLinkPowerModel;
+
+class LaserModes
+{
+public:
+   LaserModes(): idle(false), unicast(false), broadcast(false) {}
+   LaserModes(const LaserModes& modes): idle(modes.idle), unicast(modes.unicast), broadcast(modes.broadcast) {}
+   ~LaserModes() {}
+   bool idle;
+   bool unicast;
+   bool broadcast;
+};
 
 class OpticalLinkModel : public LinkModel
 {
 public:
-   OpticalLinkModel(NetworkModel* model, UInt32 num_receivers_per_wavelength,
+   OpticalLinkModel(NetworkModel* model, LaserModes& laser_modes, UInt32 num_receivers_per_wavelength,
                     float link_frequency, double waveguide_length, UInt32 link_width);
    ~OpticalLinkModel();
 
@@ -23,7 +34,11 @@ public:
    UInt64 getTotalBroadcasts()   { return _total_link_broadcasts; }
 
 private:
+   // Power model
    OpticalLinkPowerModel* _power_model;
+
+   // Possible laser modes - (idle, unicast, broadcast)
+   LaserModes _laser_modes;
 
    // Delay parameters
    volatile double _waveguide_delay_per_mm;

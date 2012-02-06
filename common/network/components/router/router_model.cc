@@ -47,7 +47,7 @@ RouterModel::~RouterModel()
 
 void
 RouterModel::processPacket(const NetPacket& pkt, SInt32 output_port,
-                                  UInt64& zero_load_delay, UInt64& contention_delay)
+                           UInt64& zero_load_delay, UInt64& contention_delay)
 {
    vector<SInt32> output_port_list;
    
@@ -157,8 +157,8 @@ RouterModel::getAverageContentionDelay(SInt32 output_port_start, SInt32 output_p
       total_contention_delay += _total_contention_delay[i];
       total_packets += _total_packets[i];
    }
-   
-   return ((float) total_contention_delay) / total_packets;
+  
+   return (total_packets > 0) ? (((float) total_contention_delay) / total_packets) : 0.0;
 }
 
 float

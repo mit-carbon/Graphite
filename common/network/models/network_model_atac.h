@@ -25,7 +25,6 @@ public:
    static pair<bool, vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
    static pair<bool, vector<vector<tile_id_t> > > computeProcessToTileMapping();
 
-   void reset() {}
    void outputSummary(std::ostream &out);
 
 private:
@@ -116,7 +115,10 @@ private:
    static SInt32 _unicast_distance_threshold;
 
    // Contention Modeling
-   bool _contention_model_enabled;
+   static bool _contention_model_enabled;
+
+   // Laser Capabilities
+   LaserModes _laser_modes;
 
    // Injection Port Router
    RouterModel* _injection_router;
@@ -132,7 +134,7 @@ private:
    RouterModel* _send_hub_router;
    // Receive Hub Router
    RouterModel* _receive_hub_router;
-   // Opto-electronic Link
+   // Optical Link
    OpticalLinkModel* _optical_link;
    
    // Htree Link List
@@ -146,6 +148,7 @@ private:
    void routePacketOnONet(const NetPacket& pkt, tile_id_t sender, tile_id_t receiver, queue<Hop>& next_hops);
 
    static void initializeANetTopologyParams();
+   void initializeLaserModes();
    void createANetRouterAndLinkModels();
    void destroyANetRouterAndLinkModels();
   

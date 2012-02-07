@@ -982,7 +982,7 @@ DramDirectoryCntlr::updateShmemReqLatencyCounters(ShmemReq* shmem_req)
    case ShmemMsg::EX_REQ:
       _total_exreq_serialization_time += shmem_req->getSerializationTime();
       _total_exreq_processing_time += shmem_req->getProcessingTime();
-      if ( ((initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED)) && (!shmem_req->isUpgradeReply) )
+      if ( ((initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED)) && (!shmem_req->isUpgradeReply()) )
          updateInvalidationLatencyCounters(initial_broadcast_mode, shmem_req->getProcessingTime());
       break;
    case ShmemMsg::SH_REQ:

@@ -123,10 +123,6 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
       if (_track_miss_types)
          _evicted_address_set.insert(*evicted_address);
 
-      // Update number of dirty replacements
-      if ( (_write_policy == WRITE_BACK) && (CacheState(evicted_cache_line_info->getCState()).writable()) )
-         _total_dirty_replacements ++;
-
       // Update exclusive/sharing counters
       updateCacheLineStateCounters(evicted_cache_line_info->getCState(), CacheState::INVALID);
    }
@@ -152,6 +148,10 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          // Read data array only if there is an eviction
          _tag_array_reads ++;
          _data_array_reads ++;
+         
+         // Update number of dirty replacements
+         if ( (_write_policy == WRITE_BACK) && (CacheState(evicted_cache_line_info->getCState()).writable()) )
+            _total_dirty_replacements ++;
       }
       else // (! (*eviction))
       {
@@ -336,7 +336,7 @@ Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache
          // Read/Write miss
          if ((mem_op_type == Core::READ) || (mem_op_type == Core::READ_EX))
             _total_read_misses ++;
-         else
+         else // (mem_op_type == Core::WRITE)
             _total_write_misses ++;
          
          // Compute the miss type counters for the inserted line
@@ -368,6 +368,7 @@ Cache::getMissType(IntPtr address) const
 void
 Cache::updateMissTypeCounters(IntPtr address, MissType miss_type)
 {
+   assert(_enabled);
    switch (miss_type)
    {
    case COLD_MISS:
@@ -425,23 +426,23 @@ Cache::outputSummary(ostream& out)
    out << "    Cache Accesses: " << _total_cache_accesses << endl;
    out << "    Cache Misses: " << _total_cache_misses << endl;
    if (_total_cache_accesses > 0)
-      out << "    Miss Rate (%): " << ((float) _total_cache_misses) * 100 / _total_cache_accesses << endl;
+      out << "    Miss Rate (%): " << 100.0 * _total_cache_misses / _total_cache_accesses << endl;
    else
       out << "    Miss Rate (%): " << endl;
    
    if (_cache_category != INSTRUCTION_CACHE)
    {
-      out << "    Read Accesses: " << _total_read_accesses << endl;
-      out << "    Read Misses: " << _total_read_misses << endl;
+      out << "      Read Accesses: " << _total_read_accesses << endl;
+      out << "      Read Misses: " << _total_read_misses << endl;
       if (_total_read_accesses > 0)
-         out << "    Read Miss Rate (%): " << 100.0 * _total_read_misses / _total_read_accesses << endl;
+         out << "      Read Miss Rate (%): " << 100.0 * _total_read_misses / _total_read_accesses << endl;
       else
-         out << "    Read Miss Rate (%): " << endl;
+         out << "      Read Miss Rate (%): " << endl;
       
-      out << "    Write Accesses: " << _total_write_accesses << endl;
-      out << "    Write Misses: " << _total_write_misses << endl;
+      out << "      Write Accesses: " << _total_write_accesses << endl;
+      out << "      Write Misses: " << _total_write_misses << endl;
       if (_total_write_accesses > 0)
-         out << "    Write Miss Rate (%): " << 100.0 * _total_write_misses / _total_write_accesses << endl;
+         out << "      Write Miss Rate (%): " << 100.0 * _total_write_misses / _total_write_accesses << endl;
       else
          out << "    Write Miss Rate (%): " << endl;
    }

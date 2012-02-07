@@ -40,10 +40,10 @@ namespace PrL1PrL2DramDirectoryMOSI
       Cache* getL2Cache() { return _l2_cache; }
 
       // Handle Request from L1 Cache - This is done for better simulator performance
-      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type,
-                                                                IntPtr address, bool modeled);
+      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::component_t req_mem_component, Core::mem_op_t mem_op_type, IntPtr address);
       // Write-through Cache. Hence needs to be written by the APP thread
       void writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length);
+      void assertCacheLineWritable(IntPtr address);
 
       // Handle message from L1 Cache
       void handleMsgFromL1Cache(ShmemMsg* shmem_msg);
@@ -68,9 +68,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       Semaphore* _user_thread_sem;
       Semaphore* _network_thread_sem;
 
-      // Buffered Msg Req From Dram Directory
-      ShmemReq _buffered_shmem_req;
-
       // L2 cache operations
       void getCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info);
       void setCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info);
@@ -88,7 +85,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Process Request from L1 Cache
       // Check if msg from L1 ends in the L2 cache
-      pair<bool,Cache::MissType> shmemRequestStatusInL2Cache(ShmemMsg::msg_t msg_type, IntPtr address, CacheState::CState cstate, bool modeled);
+      pair<bool,Cache::MissType> operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::CState cstate);
 
       // Process Request from Dram Dir
       void processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);

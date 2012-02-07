@@ -91,7 +91,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
          wakeUpNetworkThread();
       }
 
-      if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num, modeled))
+      if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num))
       {
          // Increment Shared Mem Perf model cycle counts
          // L1 Cache
@@ -113,10 +113,8 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
          LOG_PRINT_ERROR("Expected to find address(0x%x) in L1 Cache", ca_address);
 
       _l2_cache_cntlr->acquireLock();
- 
-      ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
 
-      pair<bool,Cache::MissType> l2_cache_miss_info = _l2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, shmem_msg_type, ca_address, modeled);
+      pair<bool,Cache::MissType> l2_cache_miss_info = _l2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool l2_cache_miss = l2_cache_miss_info.first;
       Cache::MissType l2_cache_miss_type = l2_cache_miss_info.second;
 
@@ -147,6 +145,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(l2_cache_miss_type) &&
                          Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
 
+      ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE,
                          getTileId(), INVALID_TILE_ID, false, ca_address, msg_modeled);
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
@@ -175,6 +174,7 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
       l1_cache->accessCacheLine(ca_address + offset, Cache::STORE, data_buf, data_length);
       // Write-through cache - Write the L2 Cache also
       _l2_cache_cntlr->acquireLock();
+      _l2_cache_cntlr->assertCacheLineWritable(ca_address);
       _l2_cache_cntlr->writeCacheLine(ca_address, offset, data_buf, data_length);
       _l2_cache_cntlr->releaseLock();
       break;
@@ -188,7 +188,7 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
 bool
 L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_component, 
       IntPtr address, Core::mem_op_t mem_op_type,
-      UInt32 access_num, bool modeled)
+      UInt32 access_num)
 {
    bool cache_hit = false;
    CacheState::CState cstate = getCacheLineState(mem_component, address);
@@ -212,7 +212,7 @@ L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_compon
    if (access_num == 1)
    {
       // Update the Cache Counters
-      getL1Cache(mem_component)->updateMissCounters(address, !cache_hit);
+      getL1Cache(mem_component)->updateMissCounters(address, mem_op_type, !cache_hit);
    }
 
    return cache_hit;

@@ -82,7 +82,7 @@ namespace PrL1PrL2DramDirectoryMOSI
             Byte* data_buf, UInt32 data_length);
       bool operationPermissibleinL1Cache(MemComponent::component_t mem_component, 
             IntPtr address, Core::mem_op_t mem_op_type,
-            UInt32 access_num, bool modeled);
+            UInt32 access_num);
 
       Cache* getL1Cache(MemComponent::component_t mem_component);
       ShmemMsg::msg_t getShmemMsgType(Core::mem_op_t mem_op_type);

@@ -73,6 +73,15 @@ L2CacheCntlr::writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt
 }
 
 void
+L2CacheCntlr::assertCacheLineWritable(IntPtr address)
+{
+   PrL2CacheLineInfo l2_cache_line_info;
+   getCacheLineInfo(address, &l2_cache_line_info);
+   CacheState::CState l2_cstate = l2_cache_line_info.getCState();
+   assert(CacheState(l2_cstate).writable());
+}
+
+void
 L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* fill_buf, MemComponent::component_t mem_component)
 {
    // Construct meta-data info about l2 cache line
@@ -176,13 +185,13 @@ L2CacheCntlr::insertCacheLineInHierarchy(IntPtr address, CacheState::CState csta
 }
 
 pair<bool,Cache::MissType>
-L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::component_t mem_component, ShmemMsg::msg_t msg_type, IntPtr address, bool modeled)
+L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::component_t mem_component, Core::mem_op_t mem_op_type, IntPtr address)
 {
    PrL2CacheLineInfo l2_cache_line_info;
    getCacheLineInfo(address,  &l2_cache_line_info);
    CacheState::CState l2_cstate = l2_cache_line_info.getCState();
 
-   pair<bool,Cache::MissType> shmem_request_status_in_l2_cache = shmemRequestStatusInL2Cache(msg_type, address, l2_cstate, modeled);
+   pair<bool,Cache::MissType> shmem_request_status_in_l2_cache = operationPermissibleinL2Cache(mem_op_type, address, l2_cstate);
    if (!shmem_request_status_in_l2_cache.first)
    {
       Byte data_buf[getCacheLineSize()];
@@ -511,26 +520,27 @@ L2CacheCntlr::processInvFlushCombinedReqFromDramDirectory(tile_id_t sender, Shme
 }
 
 pair<bool,Cache::MissType>
-L2CacheCntlr::shmemRequestStatusInL2Cache(ShmemMsg::msg_t shmem_msg_type, IntPtr address, CacheState::CState cstate, bool modeled)
+L2CacheCntlr::operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::CState cstate)
 {
    bool cache_hit = false;
 
-   switch (shmem_msg_type)
+   switch (mem_op_type)
    {
-   case ShmemMsg::EX_REQ:
-      cache_hit = CacheState(cstate).writable();
-      break;
-
-   case ShmemMsg::SH_REQ:
+   case Core::READ:
       cache_hit = CacheState(cstate).readable();
       break;
 
+   case Core::READ_EX:
+   case Core::WRITE:
+      cache_hit = CacheState(cstate).writable();
+      break;
+
    default:
-      LOG_PRINT_ERROR("Unsupported Shmem Msg Type: %u", shmem_msg_type);
+      LOG_PRINT_ERROR("Unsupported Mem Op Type(%u)", mem_op_type);
       break;
    }
 
-   Cache::MissType cache_miss_type = _l2_cache->updateMissCounters(address, !cache_hit);
+   Cache::MissType cache_miss_type = _l2_cache->updateMissCounters(address, mem_op_type, !cache_hit);
    return make_pair(!cache_hit, cache_miss_type);
 }
 

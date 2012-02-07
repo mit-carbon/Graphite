@@ -105,8 +105,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
       dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("perf_model/dram_directory/max_hw_sharers");
       dram_directory_type_str = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
-      dram_directory_home_lookup_param = Sim()->getCfg()->getInt("perf_model/dram_directory/home_lookup_param");
-      dram_directory_cache_access_time = Sim()->getCfg()->getInt("perf_model/dram_directory/directory_cache_access_time");
+      dram_directory_cache_access_time = Sim()->getCfg()->getInt("perf_model/dram_directory/directory_access_time");
 
       // Dram Cntlr
       dram_latency = Sim()->getCfg()->getFloat("perf_model/dram/latency");
@@ -135,6 +134,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       l1_icache_line_size, l1_dcache_line_size, l2_cache_line_size);
    
    _cache_line_size = l1_icache_line_size;
+   dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
 
    volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
   
@@ -474,7 +474,7 @@ MemoryManager::outputSummary(std::ostream &os)
    {
       DramPerfModel::dummyOutputSummary(os);
       os << "Dram Directory Cache Summary:\n";
-      DirectoryCache::dummyOutputSummary(os);
+      DirectoryCache::dummyOutputSummary(os, getTile()->getId());
    }
 }
 

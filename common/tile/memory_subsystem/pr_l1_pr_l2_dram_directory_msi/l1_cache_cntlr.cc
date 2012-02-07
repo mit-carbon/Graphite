@@ -31,6 +31,8 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          l1_icache_associativity, 
          cache_line_size,
          l1_icache_replacement_policy,
+         Cache::INSTRUCTION_CACHE,
+         Cache::UNDEFINED_WRITE_POLICY,
          Cache::PR_L1_CACHE,
          l1_icache_access_delay,
          frequency,
@@ -40,6 +42,8 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          l1_dcache_associativity, 
          cache_line_size,
          l1_dcache_replacement_policy,
+         Cache::DATA_CACHE,
+         Cache::WRITE_THROUGH,
          Cache::PR_L1_CACHE,
          l1_dcache_access_delay,
          frequency,
@@ -88,7 +92,7 @@ L1CacheCntlr::processMemOpFromTile(
          wakeUpNetworkThread();
       }
 
-      if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num, modeled))
+      if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num))
       {
          // Increment Shared Mem Perf model cycle counts
          // L1 Cache
@@ -114,10 +118,8 @@ L1CacheCntlr::processMemOpFromTile(
 
       _l2_cache_cntlr->acquireLock();
  
-      ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
-
       // (1) Is cache miss? (2) Cache miss type (COLD, CAPACITY, UPGRADE, SHARING)
-      pair<bool,Cache::MissType> l2_cache_miss_info = _l2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, shmem_msg_type, ca_address, modeled);
+      pair<bool,Cache::MissType> l2_cache_miss_info = _l2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool l2_cache_miss = l2_cache_miss_info.first;
       Cache::MissType l2_cache_miss_type = l2_cache_miss_info.second;
 
@@ -148,6 +150,8 @@ L1CacheCntlr::processMemOpFromTile(
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(l2_cache_miss_type) &&
                          Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
+
+      ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
 
       // Construct the message and send out a request to the SIM thread for the cache data
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE, getTileId(), ca_address, msg_modeled);
@@ -190,7 +194,7 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
 bool
 L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_component, 
                                             IntPtr address, Core::mem_op_t mem_op_type,
-                                            UInt32 access_num, bool modeled)
+                                            UInt32 access_num)
 {
    LOG_PRINT("operationPermissibleinL1Cache[Mem Component(%u), Address(%#llx), MemOp Type(%u), Access Num(%u)]",
              mem_component, address, mem_op_type, access_num);
@@ -220,7 +224,7 @@ L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_compon
    if (access_num == 1)
    {
       // Update the Cache Counters
-      getL1Cache(mem_component)->updateMissCounters(address, !cache_hit);
+      getL1Cache(mem_component)->updateMissCounters(address, mem_op_type, !cache_hit);
    }
 
    LOG_PRINT("operationPermissibleinL1Cache returns(%s)", cache_hit ? "true" : "false");

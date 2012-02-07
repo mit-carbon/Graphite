@@ -44,8 +44,7 @@ namespace PrL1PrL2DramDirectoryMSI
       Cache* getL2Cache() { return _l2_cache; }
 
       // Handle Request from L1 Cache - This is done for better simulator performance
-      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type,
-                                                                IntPtr address, bool modeled);
+      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::component_t mem_component, Core::mem_op_t mem_op_type, IntPtr address);
       // Write-through Cache. Hence needs to be written by the APP thread
       void writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length);
 
@@ -91,7 +90,7 @@ namespace PrL1PrL2DramDirectoryMSI
       void processExReqFromL1Cache(ShmemMsg* shmem_msg);
       void processShReqFromL1Cache(ShmemMsg* shmem_msg);
       // Check if msg from L1 ends in the L2 cache
-      pair<bool,Cache::MissType> shmemRequestStatusInL2Cache(ShmemMsg::msg_t msg_type, IntPtr address, CacheState::CState cstate, bool modeled);
+      pair<bool,Cache::MissType> operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::CState cstate);
 
       // Process Request from Dram Dir
       void processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);

@@ -40,7 +40,6 @@ namespace PrL1PrL2DramDirectoryMOSI
      
       void enable() { _enabled = true; }
       void disable() { _enabled = false; }
-      void reset() { initializePerformanceCounters(); }
 
       void outputSummary(ostream& out);
       static void dummyOutputSummary(ostream& out);
@@ -74,21 +73,36 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       bool _enabled;
 
-      // Performance Counters
-      UInt64 _num_exreq;
-      UInt64 _num_shreq;
-      UInt64 _num_nullifyreq;
+      // Event Counters
+      UInt64 _total_exreq;
+      UInt64 _total_exreq_in_modified_state;
+      UInt64 _total_exreq_in_shared_state;
+      UInt64 _total_exreq_with_upgrade_replies;
+      UInt64 _total_exreq_in_uncached_state;
+      UInt64 _total_exreq_serialization_time;
+      UInt64 _total_exreq_processing_time;
 
-      UInt64 _num_exreq_with_upgrade_rep;
-      UInt64 _num_exreq_encountering_exclusive_owners;
-      UInt64 _num_exreq_with_data_onchip;
-      UInt64 _num_shreq_with_data_onchip;
+      UInt64 _total_shreq;
+      UInt64 _total_shreq_in_modified_state;
+      UInt64 _total_shreq_in_shared_state;
+      UInt64 _total_shreq_in_uncached_state;
+      UInt64 _total_shreq_serialization_time;
+      UInt64 _total_shreq_processing_time;
 
-      UInt64 _num_exreq_generating_invreq;
-      UInt64 _num_exreq_generating_broadcast_invreq;
-      UInt64 _num_nullifyreq_generating_invreq;
-      UInt64 _num_nullifyreq_generating_broadcast_invreq;
-      UInt64 _num_nullifyreq_with_uncached_directory_entry;
+      UInt64 _total_nullifyreq;
+      UInt64 _total_nullifyreq_in_modified_state;
+      UInt64 _total_nullifyreq_in_shared_state;
+      UInt64 _total_nullifyreq_in_uncached_state;
+      UInt64 _total_nullifyreq_serialization_time;
+      UInt64 _total_nullifyreq_processing_time;
+
+      UInt64 _total_invalidations_unicast_mode;
+      UInt64 _total_sharers_invalidated_unicast_mode;
+      UInt64 _total_invalidation_processing_time_unicast_mode;
+
+      UInt64 _total_invalidations_broadcast_mode;
+      UInt64 _total_sharers_invalidated_broadcast_mode;
+      UInt64 _total_invalidation_processing_time_broadcast_mode;
 
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager() { return _memory_manager; }
@@ -109,13 +123,15 @@ namespace PrL1PrL2DramDirectoryMOSI
       void sendDataToDram(IntPtr address, Byte* data_buf, bool msg_modeled);
    
       void sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address, tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list, bool msg_modeled);
-      void restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, DirectoryState::dstate_t curr_dstate);
+      void restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, DirectoryEntry* directory_entry);
 
       // Update Performance Counters
-      void initializePerformanceCounters();
-      void updateShmemReqPerfCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate, tile_id_t requester,
-            tile_id_t sharer, UInt32 num_sharers);
-      void updateBroadcastPerfCounters(ShmemMsg::msg_t shmem_msg_type, bool inv_req_sent, bool broadcast_inv_req_sent);
+      void initializeEventCounters();
+      void updateShmemReqEventCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate,
+                                       tile_id_t requester, DirectoryEntry* directory_entry);
+      void updateInvalidationEventCounters(bool in_broadcast_mode, SInt32 num_sharers);
+      void updateShmemReqLatencyCounters(ShmemReq* shmem_req);
+      void updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 shmem_req_latency);
 
       // Add/Remove Sharer
       bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);

@@ -113,8 +113,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       void processNullifyReq(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call = false);
 
       void processNextReqFromL2Cache(IntPtr address);
-      void processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call = false);
-      void processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call = false);
+      void processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call = false);
+      void processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call = false);
       void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, tile_id_t receiver, IntPtr address, bool msg_modeled);
 
       void processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);

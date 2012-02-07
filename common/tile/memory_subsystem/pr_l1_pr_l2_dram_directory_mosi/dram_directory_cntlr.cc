@@ -75,10 +75,10 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
             switch (shmem_msg_type)
             {
             case ShmemMsg::EX_REQ:
-               processExReqFromL2Cache(shmem_req, NULL, true);
+               processExReqFromL2Cache(shmem_req, (DirectoryEntry*) NULL, true);
                break;
             case ShmemMsg::SH_REQ:
-               processShReqFromL2Cache(shmem_req, NULL, true);
+               processShReqFromL2Cache(shmem_req, (DirectoryEntry*) NULL, true);
                break;
             default:
                LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", shmem_msg_type);
@@ -140,10 +140,10 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       switch (shmem_req->getShmemMsg()->getMsgType())
       {
       case ShmemMsg::EX_REQ:
-         processExReqFromL2Cache(shmem_req, NULL, true);
+         processExReqFromL2Cache(shmem_req, (DirectoryEntry*) NULL, true);
          break;
       case ShmemMsg::SH_REQ:
-         processShReqFromL2Cache(shmem_req, NULL, true);
+         processShReqFromL2Cache(shmem_req, (DirectoryEntry*) NULL, true);
          break;
       default:
          LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", shmem_req->getShmemMsg()->getMsgType());
@@ -195,7 +195,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
    _dram_directory_req_queue_list->enqueue(replaced_address, nullify_req);
 
    assert(_dram_directory_req_queue_list->size(replaced_address) == 1);
-   processNullifyReq(nullify_req, NULL, true);
+   processNullifyReq(nullify_req, (DirectoryEntry*) NULL, true);
 
    return directory_entry;
 }

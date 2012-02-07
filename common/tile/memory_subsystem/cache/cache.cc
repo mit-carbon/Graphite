@@ -310,7 +310,7 @@ Cache::initializeCacheLineStateCounters()
 }
 
 Cache::MissType
-Cache::updateMissCounters(IntPtr address, CacheLineInfo* cache_line_info, Core::mem_op_t mem_op_type, bool cache_miss)
+Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache_miss)
 {
    MissType miss_type = INVALID_MISS_TYPE;
    

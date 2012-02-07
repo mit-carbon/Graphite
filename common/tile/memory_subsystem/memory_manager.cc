@@ -12,7 +12,7 @@ using namespace std;
 // Static Members
 MemoryManager::CachingProtocol_t MemoryManager::_caching_protocol_type;
 
-bool MemoryManager::_miss_type_modeled[Cache::NUM_MISS_TYPES+1];
+bool MemoryManager::_miss_type_modeled[Cache::NUM_MISS_TYPES];
 
 MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
    : _tile(tile)
@@ -140,15 +140,13 @@ MemoryManager::outputCacheLineReplicationSummary()
 vector<tile_id_t>
 MemoryManager::getTileListWithMemoryControllers()
 {
-   SInt32 num_memory_controllers = -1;
+   string num_memory_controllers_str;
    string memory_controller_positions_from_cfg_file = "";
 
-   SInt32 tile_count;
-   
-   tile_count = Config::getSingleton()->getTotalTiles();
+   UInt32 application_tile_count = Config::getSingleton()->getApplicationTiles();
    try
    {
-      num_memory_controllers = Sim()->getCfg()->getInt("perf_model/dram/num_controllers");
+      num_memory_controllers_str = Sim()->getCfg()->getString("perf_model/dram/num_controllers");
       memory_controller_positions_from_cfg_file = Sim()->getCfg()->getString("perf_model/dram/controller_positions");
    }
    catch (...)
@@ -156,10 +154,12 @@ MemoryManager::getTileListWithMemoryControllers()
       LOG_PRINT_ERROR("Error reading number of memory controllers or controller positions");
    }
 
-   LOG_ASSERT_ERROR(num_memory_controllers <= tile_count, "Num Memory Controllers(%i), Num Tiles(%i)",
-         num_memory_controllers, tile_count);
+   UInt32 num_memory_controllers = (num_memory_controllers_str == "ALL") ? application_tile_count : convertFromString<UInt32>(num_memory_controllers_str);
+   
+   LOG_ASSERT_ERROR(num_memory_controllers <= application_tile_count, "Num Memory Controllers(%i), Num Application Tiles(%i)",
+                    num_memory_controllers, application_tile_count);
 
-   if (num_memory_controllers != -1)
+   if (num_memory_controllers != application_tile_count)
    {
       vector<string> tile_list_from_cfg_file_str_form;
       vector<tile_id_t> tile_list_from_cfg_file;
@@ -188,8 +188,8 @@ MemoryManager::getTileListWithMemoryControllers()
          UInt32 l_models_memory_1 = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(STATIC_NETWORK_MEMORY_1));
          UInt32 l_models_memory_2 = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(STATIC_NETWORK_MEMORY_2));
 
-         pair<bool, vector<tile_id_t> > tile_list_with_memory_controllers_1 = NetworkModel::computeMemoryControllerPositions(l_models_memory_1, num_memory_controllers, tile_count);
-         pair<bool, vector<tile_id_t> > tile_list_with_memory_controllers_2 = NetworkModel::computeMemoryControllerPositions(l_models_memory_2, num_memory_controllers, tile_count);
+         pair<bool, vector<tile_id_t> > tile_list_with_memory_controllers_1 = NetworkModel::computeMemoryControllerPositions(l_models_memory_1, num_memory_controllers, application_tile_count);
+         pair<bool, vector<tile_id_t> > tile_list_with_memory_controllers_2 = NetworkModel::computeMemoryControllerPositions(l_models_memory_2, num_memory_controllers, application_tile_count);
 
          if (tile_list_with_memory_controllers_1.first)
             return tile_list_with_memory_controllers_1.second;
@@ -206,7 +206,7 @@ MemoryManager::getTileListWithMemoryControllers()
    {
       vector<tile_id_t> tile_list_with_memory_controllers;
       // All tiles have memory controllers
-      for (tile_id_t i = 0; i < tile_count; i++)
+      for (tile_id_t i = 0; i < (tile_id_t) application_tile_count; i++)
          tile_list_with_memory_controllers.push_back(i);
 
       return tile_list_with_memory_controllers;
@@ -227,7 +227,7 @@ MemoryManager::printTileListWithMemoryControllers(vector<tile_id_t>& tile_list_w
 void
 MemoryManager::initializeModeledMissTypes()
 {
-   for (SInt32 i = 0; i < Cache::NUM_MISS_TYPES + 1; i++)
+   for (SInt32 i = 0; i < Cache::NUM_MISS_TYPES; i++)
       _miss_type_modeled[i] = true;
   
    string unmodeled_miss_types;

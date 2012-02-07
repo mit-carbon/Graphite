@@ -80,7 +80,7 @@ private:
                                   SInt32 application_tile_count);
 
    // Handling of different miss types
-   static bool _miss_type_modeled[Cache::NUM_MISS_TYPES+1];
+   static bool _miss_type_modeled[Cache::NUM_MISS_TYPES];
 
    void initializeModeledMissTypes();
 };

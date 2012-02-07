@@ -1,3 +1,4 @@
+#include <cassert>
 #include "shmem_req.h"
 #include "log.h"
 
@@ -7,7 +8,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       : _arrival_time(time)
       , _processing_start_time(time)
       , _processing_finish_time(time)
-      , _curr_time(time)
       , _initial_dstate(DirectoryState::UNCACHED)
       , _initial_broadcast_mode(false)
       , _sharer_tile_id(INVALID_TILE_ID)
@@ -26,9 +26,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
    void ShmemReq::updateProcessingStartTime(UInt64 time)
    {
-      if (_curr_time < time)
+      if (_processing_start_time < time)
       {
-         _curr_time = time;
          _processing_start_time = time;
          _processing_finish_time = time;
       }
@@ -36,18 +35,9 @@ namespace PrL1PrL2DramDirectoryMOSI
 
    void ShmemReq::updateProcessingFinishTime(UInt64 time)
    {
-      if (_curr_time < time)
+      if (_processing_finish_time < time)
       {
-         _curr_time = time;
          _processing_finish_time = time;
-      }
-   }
-
-   void ShmemReq::updateTime(UInt64 time)
-   {
-      if (_curr_time < time)
-      {
-         _curr_time = time;
       }
    }
 }

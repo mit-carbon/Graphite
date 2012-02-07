@@ -14,7 +14,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _arrival_time;
       UInt64 _processing_start_time;
       UInt64 _processing_finish_time;
-      UInt64 _curr_time;
       
       DirectoryState::dstate_t _initial_dstate;
       bool _initial_broadcast_mode;
@@ -28,11 +27,13 @@ namespace PrL1PrL2DramDirectoryMOSI
       ShmemMsg* getShmemMsg() const          { return _shmem_msg; }
       UInt64 getSerializationTime() const    { return _processing_start_time - _arrival_time; }
       UInt64 getProcessingTime() const       { return _processing_finish_time - _processing_start_time; }
-      UInt64 getTime() const                 { return _curr_time; }
+      UInt64 getTime() const                 { return _processing_finish_time; }
+      UInt64 getArrivalTime() const          { return _arrival_time; }
+      UInt64 getProcessingStartTime() const  { return _processing_start_time; }
+      UInt64 getProcessingFinishTime() const { return _processing_finish_time; }
      
       void updateProcessingStartTime(UInt64 time);
       void updateProcessingFinishTime(UInt64 time);
-      void updateTime(UInt64 time);
 
       DirectoryState::dstate_t getInitialDState() const
       { return _initial_dstate; }

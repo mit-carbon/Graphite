@@ -792,7 +792,7 @@ void
 DramDirectoryCntlr::restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, DirectoryEntry* directory_entry)
 {
    // Update Request & ShmemPerfModel times
-   shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
+   shmem_req->updateProcessingFinishTime(getShmemPerfModel()->getCycleCount());
    getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
 
    ShmemMsg::msg_t msg_type = shmem_req->getShmemMsg()->getMsgType();

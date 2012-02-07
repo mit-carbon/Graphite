@@ -9,46 +9,14 @@ namespace ShL1ShL2
 L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            AddressHomeLookup* address_home_lookup,
                            UInt32 cache_line_size,
-                           UInt32 l1_icache_size,
-                           UInt32 l1_icache_associativity,
-                           string l1_icache_replacement_policy,
-                           UInt32 l1_icache_access_delay,
-                           bool l1_icache_track_miss_types,
-                           UInt32 l1_dcache_size,
-                           UInt32 l1_dcache_associativity,
-                           string l1_dcache_replacement_policy,
-                           UInt32 l1_dcache_access_delay,
-                           bool l1_dcache_track_miss_types,
                            volatile float frequency)
    : _memory_manager(memory_manager)
    , _address_home_lookup(address_home_lookup)
    , _outstanding_data_buf(NULL)
-{
-   _l1_icache = new Cache("L1-I",
-         l1_icache_size,
-         l1_icache_associativity, 
-         cache_line_size,
-         l1_icache_replacement_policy,
-         Cache::PR_L1_CACHE,
-         l1_icache_access_delay,
-         frequency,
-         l1_icache_track_miss_types);
-   _l1_dcache = new Cache("L1-D",
-         l1_dcache_size,
-         l1_dcache_associativity, 
-         cache_line_size,
-         l1_dcache_replacement_policy,
-         Cache::PR_L1_CACHE,
-         l1_dcache_access_delay,
-         frequency,
-         l1_icache_track_miss_types);
-}
+{}
 
 L1CacheCntlr::~L1CacheCntlr()
-{
-   delete _l1_icache;
-   delete _l1_dcache;
-}      
+{}      
 
 bool
 L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,

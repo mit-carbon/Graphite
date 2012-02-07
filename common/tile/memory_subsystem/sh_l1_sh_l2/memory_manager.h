@@ -23,8 +23,6 @@ namespace ShL1ShL2
 
       UInt32 getCacheLineSize() { return _cache_line_size; }
 
-      Cache* getL1ICache() { return _l1_cache_cntlr->getL1ICache(); }
-      Cache* getL1DCache() { return _l1_cache_cntlr->getL1DCache(); }
       Cache* getL2Cache() { return _l2_cache_cntlr->getL2Cache(); }
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cntlr->getDramDirectoryCache(); }
       DramCntlr* getDramCntlr() { return _dram_cntlr; }
@@ -44,7 +42,6 @@ namespace ShL1ShL2
      
       void enableModels();
       void disableModels();
-      void resetModels();
 
       tile_id_t getShmemRequester(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->getRequester(); }

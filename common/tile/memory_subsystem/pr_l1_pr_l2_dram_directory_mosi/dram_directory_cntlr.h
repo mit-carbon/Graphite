@@ -110,7 +110,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Private Functions
       DirectoryEntry* processDirectoryEntryAllocationReq(ShmemReq* shmem_req);
-      void processNullifyReq(ShmemReq* shmem_req, bool first_call = false);
+      void processNullifyReq(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call = false);
 
       void processNextReqFromL2Cache(IntPtr address);
       void processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call = false);
@@ -129,7 +129,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       void initializeEventCounters();
       void updateShmemReqEventCounters(ShmemReq* shmem_req, DirectoryEntry* directory_entry);
       void updateInvalidationEventCounters(bool in_broadcast_mode, SInt32 num_sharers);
-      void updateShmemReqLatencyCounters(ShmemReq* shmem_req);
+      void updateShmemReqLatencyCounters(const ShmemReq* shmem_req);
       void updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 shmem_req_latency);
 
       // Add/Remove Sharer

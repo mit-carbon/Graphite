@@ -25,33 +25,33 @@ namespace PrL1PrL2DramDirectoryMOSI
       ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
       ~ShmemReq();
 
-      ShmemMsg* getShmemMsg()             { return _shmem_msg; }
-      UInt64 getSerializationTime()       { return _processing_start_time - _arrival_time; }
-      UInt64 getProcessingTime()          { return _processing_finish_time - _processing_start_time; }
-      UInt64 getTime()                    { return _curr_time; }
+      ShmemMsg* getShmemMsg() const          { return _shmem_msg; }
+      UInt64 getSerializationTime() const    { return _processing_start_time - _arrival_time; }
+      UInt64 getProcessingTime() const       { return _processing_finish_time - _processing_start_time; }
+      UInt64 getTime() const                 { return _curr_time; }
      
       void updateProcessingStartTime(UInt64 time);
       void updateProcessingFinishTime(UInt64 time);
       void updateTime(UInt64 time);
 
-      DirectoryState::dstate_t getInitialDState()
+      DirectoryState::dstate_t getInitialDState() const
       { return _initial_dstate; }
       void setInitialDState(DirectoryState::dstate_t dstate)
       { _initial_dstate = dstate; }
       
-      bool getInitialBroadcastMode()
+      bool getInitialBroadcastMode() const
       { return _initial_broadcast_mode; }
       void setInitialBroadcastMode(bool in_broadcast_mode)
       { _initial_broadcast_mode = in_broadcast_mode; }
 
-      tile_id_t getSharerTileId()
+      tile_id_t getSharerTileId() const
       { return _sharer_tile_id; }
       void setSharerTileId(tile_id_t tile_id)
       { _sharer_tile_id = tile_id; }
 
       void setUpgradeReply()
       { _upgrade_reply = true; }
-      bool isUpgradeReply()
+      bool isUpgradeReply() const
       { return _upgrade_reply; }
    };
 }

@@ -75,10 +75,10 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
             switch (shmem_msg_type)
             {
             case ShmemMsg::EX_REQ:
-               processExReqFromL2Cache(shmem_req, true);
+               processExReqFromL2Cache(shmem_req, NULL, true);
                break;
             case ShmemMsg::SH_REQ:
-               processShReqFromL2Cache(shmem_req, true);
+               processShReqFromL2Cache(shmem_req, NULL, true);
                break;
             default:
                LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", shmem_msg_type);
@@ -140,10 +140,10 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       switch (shmem_req->getShmemMsg()->getMsgType())
       {
       case ShmemMsg::EX_REQ:
-         processExReqFromL2Cache(shmem_req, true);
+         processExReqFromL2Cache(shmem_req, NULL, true);
          break;
       case ShmemMsg::SH_REQ:
-         processShReqFromL2Cache(shmem_req, true);
+         processShReqFromL2Cache(shmem_req, NULL, true);
          break;
       default:
          LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", shmem_req->getShmemMsg()->getMsgType());
@@ -195,19 +195,21 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
    _dram_directory_req_queue_list->enqueue(replaced_address, nullify_req);
 
    assert(_dram_directory_req_queue_list->size(replaced_address) == 1);
-   processNullifyReq(nullify_req, true);
+   processNullifyReq(nullify_req, NULL, true);
 
    return directory_entry;
 }
 
 void
-DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
+DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
    bool msg_modeled = shmem_req->getShmemMsg()->isModeled();
-   
-   DirectoryEntry* directory_entry = _dram_directory_cache->getDirectoryEntry(address);
+  
+   if (!directory_entry)
+      directory_entry = _dram_directory_cache->getDirectoryEntry(address);
+
    assert(directory_entry);
 
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
@@ -287,13 +289,15 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
 }
 
 void
-DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call)
+DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
    bool msg_modeled = shmem_req->getShmemMsg()->isModeled();
+  
+   if (!directory_entry)
+      directory_entry = _dram_directory_cache->getDirectoryEntry(address);
    
-   DirectoryEntry* directory_entry = _dram_directory_cache->getDirectoryEntry(address);
    if (directory_entry == NULL)
    {
       directory_entry = processDirectoryEntryAllocationReq(shmem_req);
@@ -411,13 +415,15 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
 }
 
 void
-DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call)
+DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
    bool msg_modeled = shmem_req->getShmemMsg()->isModeled();
 
-   DirectoryEntry* directory_entry = _dram_directory_cache->getDirectoryEntry(address);
+   if (!directory_entry)
+      directory_entry = _dram_directory_cache->getDirectoryEntry(address);
+
    if (directory_entry == NULL)
    {
       directory_entry = processDirectoryEntryAllocationReq(shmem_req);
@@ -968,7 +974,7 @@ DramDirectoryCntlr::updateInvalidationEventCounters(bool in_broadcast_mode, SInt
 }
 
 void
-DramDirectoryCntlr::updateShmemReqLatencyCounters(ShmemReq* shmem_req)
+DramDirectoryCntlr::updateShmemReqLatencyCounters(const ShmemReq* shmem_req)
 {
    if (!_enabled)
       return;

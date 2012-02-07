@@ -64,10 +64,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    bool dram_queue_model_enabled = false;
    std::string dram_queue_model_type;
 
-   std::string unicast_network_type_lt_threshold;
-   std::string unicast_network_type_ge_threshold;
-   std::string broadcast_network_type;
-
    try
    {
       // L1 ICache
@@ -109,8 +105,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
       dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("perf_model/dram_directory/max_hw_sharers");
       dram_directory_type_str = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
-      dram_directory_home_lookup_param = Sim()->getCfg()->getInt("perf_model/dram_directory/home_lookup_param");
-      dram_directory_cache_access_time = Sim()->getCfg()->getInt("perf_model/dram_directory/directory_cache_access_time");
+      dram_directory_cache_access_time = Sim()->getCfg()->getInt("perf_model/dram_directory/directory_access_time");
 
       // Dram Cntlr
       dram_latency = Sim()->getCfg()->getFloat("perf_model/dram/latency");
@@ -118,11 +113,11 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
       dram_queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
 
-      // Packet Types
-      _unicast_threshold = Sim()->getCfg()->getInt("caching_protocol/pr_l1_pr_l2_dram_directory_mosi/unicast_threshold");
-      unicast_network_type_lt_threshold = Sim()->getCfg()->getString("caching_protocol/pr_l1_pr_l2_dram_directory_mosi/unicast_network_type_lt_threshold");
-      unicast_network_type_ge_threshold = Sim()->getCfg()->getString("caching_protocol/pr_l1_pr_l2_dram_directory_mosi/unicast_network_type_ge_threshold");
-      broadcast_network_type = Sim()->getCfg()->getString("caching_protocol/pr_l1_pr_l2_dram_directory_mosi/broadcast_network_type");
+      // If TRUE, use two networks to communicate shared memory messages.
+      // If FALSE, use just one network
+      // SHARED_MEM_1 is used to communicate messages from L2_CACHE to DRAM_DIRECTORY
+      // SHARED_MEM_2 is used to communicate messages from DRAM_DIRECTORY to L2_CACHE
+      _switch_networks = Sim()->getCfg()->getBool("caching_protocol/pr_l1_pr_l2_dram_directory_mosi/switch_networks");
    }
    catch(...)
    {
@@ -136,6 +131,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       l1_icache_line_size, l1_dcache_line_size, l2_cache_line_size);
    
    _cache_line_size = l1_icache_line_size;
+   dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
 
    volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
    
@@ -214,11 +210,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    // Register Call-backs
    getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
    getNetwork()->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
-
-   // Resolve the Packet Types
-   _unicast_packet_type_lt_threshold = parseNetworkType(unicast_network_type_lt_threshold);
-   _unicast_packet_type_ge_threshold = parseNetworkType(unicast_network_type_ge_threshold);
-   _broadcast_packet_type = parseNetworkType(broadcast_network_type);
 }
 
 MemoryManager::~MemoryManager()
@@ -347,7 +338,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
       LOG_PRINT("Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", shmem_msg.getMsgType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(), shmem_msg.getRequester(), getTile()->getId(), receiver);
    }
 
-   PacketType packet_type = getPacketType(getTile()->getId(), receiver);
+   PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
 
    NetPacket packet(msg_time, packet_type,
          getTile()->getId(), receiver,
@@ -371,7 +362,7 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
       LOG_PRINT("Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)", shmem_msg.getMsgType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(), shmem_msg.getRequester(), getTile()->getId(), NetPacket::BROADCAST);
    }
 
-   PacketType packet_type = getPacketType(getTile()->getId(), NetPacket::BROADCAST);
+   PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
 
    NetPacket packet(msg_time, packet_type,
          getTile()->getId(), NetPacket::BROADCAST,
@@ -383,32 +374,34 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 }
 
 PacketType
-MemoryManager::getPacketType(tile_id_t sender, tile_id_t receiver)
+MemoryManager::getPacketType(MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component)
 {
-   if (receiver == NetPacket::BROADCAST)
-      return _broadcast_packet_type;
-
-   // Whether we need to send on the 1st or 2nd SHARED_MEM network
-   SInt32 num_hops = NetworkModelEMeshHopByHop::computeDistance(sender, receiver);
-
-   // Send on the first network if the hop count < 4
-   if (num_hops < _unicast_threshold)
-      return _unicast_packet_type_lt_threshold;
-   else
-      return _unicast_packet_type_ge_threshold;
-}
-
-PacketType
-MemoryManager::parseNetworkType(std::string& network_type)
-{
-   if (network_type == "memory_model_1")
-      return SHARED_MEM_1;
-   else if (network_type == "memory_model_2")
-      return SHARED_MEM_2;
+   if (_switch_networks)
+   {
+      if ( (sender_mem_component == MemComponent::L1_ICACHE) || (sender_mem_component == MemComponent::L1_DCACHE) )
+      {
+         assert(receiver_mem_component == MemComponent::L2_CACHE);
+         return SHARED_MEM_1;
+      }
+      else if (sender_mem_component == MemComponent::L2_CACHE)
+      {
+         assert(receiver_mem_component == MemComponent::DRAM_DIRECTORY);
+         return SHARED_MEM_1;
+      }
+      else if (sender_mem_component == MemComponent::DRAM_DIRECTORY)
+      {
+         assert(receiver_mem_component == MemComponent::L2_CACHE);
+         return SHARED_MEM_2;
+      }
+      else
+      {
+         LOG_PRINT_ERROR("Unrecognized Types(%u,%u)", sender_mem_component, receiver_mem_component);
+         return INVALID_PACKET_TYPE;
+      }
+   }
    else
    {
-      LOG_PRINT_ERROR("Unrecognized Network Type(%s)", network_type.c_str());
-      return INVALID_PACKET_TYPE;
+      return SHARED_MEM_1;
    }
 }
 
@@ -417,24 +410,24 @@ MemoryManager::incrCycleCount(MemComponent::component_t mem_component, CachePerf
 {
    switch (mem_component)
    {
-      case MemComponent::L1_ICACHE:
-         getShmemPerfModel()->incrCycleCount(_l1_icache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L1_ICACHE:
+      getShmemPerfModel()->incrCycleCount(_l1_icache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::L1_DCACHE:
-         getShmemPerfModel()->incrCycleCount(_l1_dcache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L1_DCACHE:
+      getShmemPerfModel()->incrCycleCount(_l1_dcache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::L2_CACHE:
-         getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L2_CACHE:
+      getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::INVALID_MEM_COMPONENT:
-         break;
+   case MemComponent::INVALID_MEM_COMPONENT:
+      break;
 
-      default:
-         LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
-         break;
+   default:
+      LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
+      break;
    }
 }
 
@@ -501,7 +494,7 @@ MemoryManager::outputSummary(std::ostream &os)
    {
       DramDirectoryCntlr::dummyOutputSummary(os);
       os << "Dram Directory Cache Summary:\n";
-      DirectoryCache::dummyOutputSummary(os);
+      DirectoryCache::dummyOutputSummary(os, getTile()->getId());
       DramPerfModel::dummyOutputSummary(os);
    }
 }

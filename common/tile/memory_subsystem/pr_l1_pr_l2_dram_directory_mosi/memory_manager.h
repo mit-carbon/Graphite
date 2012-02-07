@@ -83,23 +83,19 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt32 _cache_line_size;
       bool _enabled;
 
-      // Packet Types for different kinds of traffic - See comment in carbon_sim.cfg
-      SInt32 _unicast_threshold;
-      PacketType _unicast_packet_type_lt_threshold;
-      PacketType _unicast_packet_type_ge_threshold;
-      PacketType _broadcast_packet_type;
-
       // Performance Models
       CachePerfModel* _l1_icache_perf_model;
       CachePerfModel* _l1_dcache_perf_model;
       CachePerfModel* _l2_cache_perf_model;
 
+      // If TRUE, use two networks to communicate shared memory messages.
+      // If FALSE, use just one network
+      bool _switch_networks;
+
       // Cache Line Replication
       static ofstream _cache_line_replication_file;
 
       // Get Packet Type for a message
-      PacketType getPacketType(tile_id_t sender, tile_id_t receiver);
-      // Parse Network Type
-      PacketType parseNetworkType(std::string& network_type);
+      PacketType getPacketType(MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component);
    };
 }

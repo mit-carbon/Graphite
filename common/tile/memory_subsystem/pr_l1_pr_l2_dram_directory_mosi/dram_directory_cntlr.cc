@@ -218,7 +218,7 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, bool first_call)
       shmem_req->setInitialDState(curr_dstate);
       shmem_req->setInitialBroadcastMode(directory_entry->inBroadcastMode());
       // Update Counters
-      updateShmemReqEventCounters(ShmemMsg::NULLIFY_REQ, curr_dstate, requester, directory_entry);
+      updateShmemReqEventCounters(shmem_req, directory_entry);
    }
 
    switch (curr_dstate)
@@ -307,7 +307,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
       shmem_req->setInitialDState(curr_dstate);
       shmem_req->setInitialBroadcastMode(directory_entry->inBroadcastMode());
       // Update Counters
-      updateShmemReqEventCounters(ShmemMsg::EX_REQ, curr_dstate, requester, directory_entry);
+      updateShmemReqEventCounters(shmem_req, directory_entry);
    }
 
    switch (curr_dstate)
@@ -431,7 +431,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
       shmem_req->setInitialDState(curr_dstate);
       shmem_req->setInitialBroadcastMode(directory_entry->inBroadcastMode());
       // Update Counters
-      updateShmemReqEventCounters(ShmemMsg::SH_REQ, curr_dstate, requester, directory_entry);
+      updateShmemReqEventCounters(shmem_req, directory_entry);
    }
 
    switch (curr_dstate)
@@ -865,12 +865,15 @@ DramDirectoryCntlr::initializeEventCounters()
 }
 
 void
-DramDirectoryCntlr::updateShmemReqEventCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate,
-                                                tile_id_t requester, DirectoryEntry* directory_entry)
+DramDirectoryCntlr::updateShmemReqEventCounters(ShmemReq* shmem_req, DirectoryEntry* directory_entry)
 {
    if (!_enabled)
       return;
 
+   ShmemMsg::msg_t shmem_msg_type = shmem_req->getShmemMsg()->getMsgType();
+   DirectoryState::dstate_t dstate = directory_entry->getDirectoryBlockInfo()->getDState();
+   tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
+   
    switch (shmem_msg_type)
    {
    case ShmemMsg::EX_REQ:
@@ -884,8 +887,14 @@ DramDirectoryCntlr::updateShmemReqEventCounters(ShmemMsg::msg_t shmem_msg_type, 
       case DirectoryState::SHARED:
          _total_exreq_in_shared_state ++;
          if ((directory_entry->getNumSharers() == 1) && (directory_entry->getOneSharer() == requester))
+         {
+            shmem_req->setUpgradeReply();
             _total_exreq_with_upgrade_replies ++;
-         updateInvalidationEventCounters(directory_entry->inBroadcastMode(), directory_entry->getNumSharers());
+         }
+         else
+         {
+            updateInvalidationEventCounters(directory_entry->inBroadcastMode(), directory_entry->getNumSharers());
+         }
          break;
       case DirectoryState::UNCACHED:
          _total_exreq_in_uncached_state ++;
@@ -973,7 +982,7 @@ DramDirectoryCntlr::updateShmemReqLatencyCounters(ShmemReq* shmem_req)
    case ShmemMsg::EX_REQ:
       _total_exreq_serialization_time += shmem_req->getSerializationTime();
       _total_exreq_processing_time += shmem_req->getProcessingTime();
-      if ((initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED))
+      if ( ((initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED)) && (!shmem_req->isUpgradeReply) )
          updateInvalidationLatencyCounters(initial_broadcast_mode, shmem_req->getProcessingTime());
       break;
    case ShmemMsg::SH_REQ:

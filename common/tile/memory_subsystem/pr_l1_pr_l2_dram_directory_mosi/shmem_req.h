@@ -19,6 +19,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       DirectoryState::dstate_t _initial_dstate;
       bool _initial_broadcast_mode;
       tile_id_t _sharer_tile_id;
+      bool _upgrade_reply;
 
    public:
       ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
@@ -47,5 +48,10 @@ namespace PrL1PrL2DramDirectoryMOSI
       { return _sharer_tile_id; }
       void setSharerTileId(tile_id_t tile_id)
       { _sharer_tile_id = tile_id; }
+
+      void setUpgradeReply()
+      { _upgrade_reply = true; }
+      bool isUpgradeReply()
+      { return _upgrade_reply; }
    };
 }

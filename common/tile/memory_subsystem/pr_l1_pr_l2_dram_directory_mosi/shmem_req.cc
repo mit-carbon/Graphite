@@ -11,6 +11,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _initial_dstate(DirectoryState::UNCACHED)
       , _initial_broadcast_mode(false)
       , _sharer_tile_id(INVALID_TILE_ID)
+      , _upgrade_reply(false)
    {
       // Make a local copy of the shmem_msg
       _shmem_msg = new ShmemMsg(shmem_msg);

@@ -127,8 +127,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Update Performance Counters
       void initializeEventCounters();
-      void updateShmemReqEventCounters(ShmemMsg::msg_t shmem_msg_type, DirectoryState::dstate_t dstate,
-                                       tile_id_t requester, DirectoryEntry* directory_entry);
+      void updateShmemReqEventCounters(ShmemReq* shmem_req, DirectoryEntry* directory_entry);
       void updateInvalidationEventCounters(bool in_broadcast_mode, SInt32 num_sharers);
       void updateShmemReqLatencyCounters(ShmemReq* shmem_req);
       void updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 shmem_req_latency);

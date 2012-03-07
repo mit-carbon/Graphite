@@ -17,6 +17,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(NULL)
       , _data_length(0)
       , _modeled(false)
+      , _cache_line_utilization(0)
    {}
 
    ShmemMsg::ShmemMsg(msg_t msg_type,
@@ -26,7 +27,8 @@ namespace PrL1PrL2DramDirectoryMOSI
          tile_id_t single_receiver,
          bool reply_expected,
          IntPtr address,
-         bool modeled)
+         bool modeled,
+         UInt32 cache_line_utilization)
       : _msg_type(msg_type)
       , _sender_mem_component(sender_mem_component)
       , _receiver_mem_component(receiver_mem_component)
@@ -37,6 +39,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(NULL)
       , _data_length(0)
       , _modeled(modeled)
+      , _cache_line_utilization(cache_line_utilization)
    {}
 
    ShmemMsg::ShmemMsg(msg_t msg_type,
@@ -48,7 +51,8 @@ namespace PrL1PrL2DramDirectoryMOSI
          IntPtr address,
          Byte* data_buf,
          UInt32 data_length,
-         bool modeled)
+         bool modeled,
+         UInt32 cache_line_utilization)
       : _msg_type(msg_type)
       , _sender_mem_component(sender_mem_component)
       , _receiver_mem_component(receiver_mem_component)
@@ -59,6 +63,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(data_buf)
       , _data_length(data_length)
       , _modeled(modeled)
+      , _cache_line_utilization(cache_line_utilization)
    {}
 
    ShmemMsg::ShmemMsg(const ShmemMsg* shmem_msg)
@@ -82,6 +87,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       _data_buf = shmem_msg->getDataBuf();
       _data_length = shmem_msg->getDataLength();
       _modeled = shmem_msg->isModeled();
+      _cache_line_utilization = shmem_msg->getCacheLineUtilization();
    }
 
    ShmemMsg*

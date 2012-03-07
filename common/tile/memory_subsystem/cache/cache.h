@@ -178,6 +178,9 @@ private:
    // Cache line state counters
    void initializeCacheLineStateCounters();
 
+   // Get cache line info
+   CacheLineInfo* getCacheLineInfo(IntPtr address);
+
    // Update counters that record the state of cache lines
    void updateCacheLineStateCounters(CacheState::CState old_cstate, CacheState::CState new_cstate);
    // Update miss type counters

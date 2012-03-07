@@ -28,9 +28,9 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       UInt32 getCacheLineSize() { return _cache_line_size; }
 
-      Cache* getL1ICache() { return _l1_cache_cntlr->getL1ICache(); }
-      Cache* getL1DCache() { return _l1_cache_cntlr->getL1DCache(); }
-      Cache* getL2Cache() { return _l2_cache_cntlr->getL2Cache(); }
+      Cache* getL1ICache() { return _L1_cache_cntlr->getL1ICache(); }
+      Cache* getL1DCache() { return _L1_cache_cntlr->getL1DCache(); }
+      Cache* getL2Cache() { return _L2_cache_cntlr->getL2Cache(); }
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cntlr->getDramDirectoryCache(); }
       DramCntlr* getDramCntlr() { return _dram_cntlr; }
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
@@ -69,8 +69,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
 
    private:
-      L1CacheCntlr* _l1_cache_cntlr;
-      L2CacheCntlr* _l2_cache_cntlr;
+      L1CacheCntlr* _L1_cache_cntlr;
+      L2CacheCntlr* _L2_cache_cntlr;
       DramDirectoryCntlr* _dram_directory_cntlr;
       DramCntlr* _dram_cntlr;
       AddressHomeLookup* _dram_directory_home_lookup;
@@ -84,9 +84,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool _enabled;
 
       // Performance Models
-      CachePerfModel* _l1_icache_perf_model;
-      CachePerfModel* _l1_dcache_perf_model;
-      CachePerfModel* _l2_cache_perf_model;
+      CachePerfModel* _L1_icache_perf_model;
+      CachePerfModel* _L1_dcache_perf_model;
+      CachePerfModel* _L2_cache_perf_model;
 
       // If TRUE, use two networks to communicate shared memory messages.
       // If FALSE, use just one network

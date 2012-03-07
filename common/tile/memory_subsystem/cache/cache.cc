@@ -109,7 +109,8 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
    CacheSet* set = getSet(inserted_address);
 
    // Write into the data array
-   set->insert(inserted_cache_line_info, fill_buf, eviction, evicted_cache_line_info, writeback_buf);
+   set->insert(inserted_cache_line_info, fill_buf,
+               eviction, evicted_cache_line_info, writeback_buf);
   
    // Evicted address 
    *evicted_address = getAddressFromTag(evicted_cache_line_info->getTag());
@@ -178,12 +179,7 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
 {
    LOG_PRINT("getCacheLineInfo[Address(%#llx), Cache Line Info Ptr(%p)] start", address, cache_line_info);
 
-   CacheSet* set = getSet(address);
-   IntPtr tag = getTag(address);
-
-   CacheLineInfo* line_info = set->find(tag);
-
-   LOG_PRINT("Set Ptr(%p), Tag(%#llx), Line Info Ptr(%p)", set, tag, line_info);
+   CacheLineInfo* line_info = getCacheLineInfo(address);
 
    // Assign it to the second argument in the function (copies it over) 
    if (line_info)
@@ -203,13 +199,22 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
    LOG_PRINT("getCacheLineInfo[Address(%#llx), Cache Line Info Ptr(%p)] end", address, cache_line_info);
 }
 
-void
-Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
+CacheLineInfo*
+Cache::getCacheLineInfo(IntPtr address)
 {
    CacheSet* set = getSet(address);
    IntPtr tag = getTag(address);
 
-   CacheLineInfo* cache_line_info = set->find(tag);
+   CacheLineInfo* line_info = set->find(tag);
+
+   LOG_PRINT("Set Ptr(%p), Tag(%#llx), Line Info Ptr(%p)", set, tag, line_info);
+   return line_info;
+}
+
+void
+Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
+{
+   CacheLineInfo* cache_line_info = getCacheLineInfo(address);
    assert(cache_line_info);
 
    // Update exclusive/shared counters
@@ -231,10 +236,7 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
 bool 
 Cache::invalidateCacheLine(IntPtr address)
 {
-   CacheSet* set = getSet(address);
-   IntPtr tag = getTag(address);
-
-   CacheLineInfo* cache_line_info = set->find(tag);
+   CacheLineInfo* cache_line_info = getCacheLineInfo(address);
 
    if (_enabled)
    {
@@ -246,7 +248,7 @@ Cache::invalidateCacheLine(IntPtr address)
    {
       // Update exclusive/sharing counters
       updateCacheLineStateCounters(cache_line_info->getCState(), CacheState::INVALID);
-    
+
       // Invalidate cache line
       cache_line_info->invalidate();
       
@@ -345,6 +347,16 @@ Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache
             miss_type = getMissType(address);
             updateMissTypeCounters(address, miss_type);
          }
+      }
+      else
+      {
+         // Update utilization
+         CacheLineInfo* line_info = getCacheLineInfo(address);
+         assert(line_info);
+         if ((mem_op_type == Core::READ) || (mem_op_type == Core::READ_EX))
+            line_info->incrReadUtilization();
+         else
+            line_info->incrWriteUtilization();
       }
    }
   

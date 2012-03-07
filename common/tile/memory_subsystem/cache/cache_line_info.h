@@ -2,6 +2,7 @@
 
 #include "fixed_types.h"
 #include "cache_state.h"
+#include "cache_line_utilization.h"
 #include "cache.h"
 
 class CacheLineInfo
@@ -21,9 +22,15 @@ public:
    
    IntPtr getTag() const { return _tag; }
    CacheState::CState getCState() const { return _cstate; }
+   CacheLineUtilization getUtilization() const { return _utilization; }
 
    void setTag(IntPtr tag) { _tag = tag; }
    void setCState(CacheState::CState cstate) { _cstate = cstate; }
+   void incrReadUtilization() { _utilization.read ++; }
+   void incrWriteUtilization() { _utilization.write ++; }
+
+protected:
+   CacheLineUtilization _utilization;
 
 private:
    IntPtr _tag;

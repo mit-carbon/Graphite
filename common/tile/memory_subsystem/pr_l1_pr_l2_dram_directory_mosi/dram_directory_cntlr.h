@@ -74,11 +74,15 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool _enabled;
 
       // Event Counters
+      static const UInt32 MAX_TRACKED_LOCAL_UTILIZATION = 31;
       UInt64 _total_exreq;
       UInt64 _total_exreq_in_modified_state;
       UInt64 _total_exreq_in_shared_state;
       UInt64 _total_exreq_with_upgrade_replies;
       UInt64 _total_exreq_in_uncached_state;
+      UInt64 _total_exreq_in_modified_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+      UInt64 _total_exreq_in_shared_state_with_invrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+      UInt64 _total_exreq_in_shared_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
       UInt64 _total_exreq_serialization_time;
       UInt64 _total_exreq_processing_time;
 
@@ -86,6 +90,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_shreq_in_modified_state;
       UInt64 _total_shreq_in_shared_state;
       UInt64 _total_shreq_in_uncached_state;
+      UInt64 _total_shreq_in_modified_state_with_wbrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+      UInt64 _total_shreq_in_shared_state_with_wbrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
       UInt64 _total_shreq_serialization_time;
       UInt64 _total_shreq_processing_time;
 
@@ -93,6 +99,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_nullifyreq_in_modified_state;
       UInt64 _total_nullifyreq_in_shared_state;
       UInt64 _total_nullifyreq_in_uncached_state;
+      UInt64 _total_nullifyreq_in_modified_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+      UInt64 _total_nullifyreq_in_shared_state_with_invrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+      UInt64 _total_nullifyreq_in_shared_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
       UInt64 _total_nullifyreq_serialization_time;
       UInt64 _total_nullifyreq_processing_time;
 
@@ -117,9 +126,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       void processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call = false);
       void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, tile_id_t receiver, IntPtr address, bool msg_modeled);
 
-      void processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
-      void processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
-      void processWbRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+      void processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* shmem_msg);
+      void processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg* shmem_msg);
+      void processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* shmem_msg);
       void sendDataToDram(IntPtr address, Byte* data_buf, bool msg_modeled);
    
       void sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address, tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list, bool msg_modeled);
@@ -131,6 +140,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       void updateInvalidationEventCounters(bool in_broadcast_mode, SInt32 num_sharers);
       void updateShmemReqLatencyCounters(const ShmemReq* shmem_req);
       void updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 shmem_req_latency);
+      void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, tile_id_t sender, const ShmemMsg* shmem_msg);
 
       // Add/Remove Sharer
       bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);

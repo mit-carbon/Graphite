@@ -33,6 +33,7 @@ CacheLineInfo::invalidate()
 {
    _tag = ~0;
    _cstate = CacheState::INVALID;
+   _utilization = CacheLineUtilization();
 }
 
 void
@@ -40,4 +41,5 @@ CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
    _tag = cache_line_info->getTag();
    _cstate = cache_line_info->getCState();
+   _utilization = cache_line_info->getUtilization();
 }

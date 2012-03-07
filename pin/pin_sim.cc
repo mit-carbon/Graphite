@@ -40,7 +40,6 @@
 #include "log.h"
 #include "vm_manager.h"
 #include "instruction_modeling.h"
-#include "instruction_cache_modeling.h"
 #include "progress_trace.h"
 #include "clock_skew_minimization.h"
 
@@ -180,8 +179,6 @@ VOID instructionCallback (INS ins, void *v)
    {
       // Core Performance Modeling
       addInstructionModeling(ins);
-      // Add I-cache modeling call
-      addInstructionCacheModeling(ins);
    }
 
    // Progress Trace

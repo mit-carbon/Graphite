@@ -348,16 +348,17 @@ Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache
             updateMissTypeCounters(address, miss_type);
          }
       }
+   }
+
+   // Update utilization counters
+   if (!cache_miss)
+   {
+      CacheLineInfo* line_info = getCacheLineInfo(address);
+      assert(line_info);
+      if ((mem_op_type == Core::READ) || (mem_op_type == Core::READ_EX))
+         line_info->incrReadUtilization();
       else
-      {
-         // Update utilization
-         CacheLineInfo* line_info = getCacheLineInfo(address);
-         assert(line_info);
-         if ((mem_op_type == Core::READ) || (mem_op_type == Core::READ_EX))
-            line_info->incrReadUtilization();
-         else
-            line_info->incrWriteUtilization();
-      }
+         line_info->incrWriteUtilization();
    }
   
    return miss_type;

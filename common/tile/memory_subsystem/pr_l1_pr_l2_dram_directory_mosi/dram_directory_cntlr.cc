@@ -50,7 +50,7 @@ DramDirectoryCntlr::~DramDirectoryCntlr()
 void
 DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
-   ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
+   ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
    switch (shmem_msg_type)
@@ -138,7 +138,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       shmem_req->updateProcessingStartTime(getShmemPerfModel()->getCycleCount());
       getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
 
-      switch (shmem_req->getShmemMsg()->getMsgType())
+      switch (shmem_req->getShmemMsg()->getType())
       {
       case ShmemMsg::EX_REQ:
          processExReqFromL2Cache(shmem_req, (DirectoryEntry*) NULL, true);
@@ -147,7 +147,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
          processShReqFromL2Cache(shmem_req, (DirectoryEntry*) NULL, true);
          break;
       default:
-         LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", shmem_req->getShmemMsg()->getMsgType());
+         LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", shmem_req->getShmemMsg()->getType());
          break;
       }
    }
@@ -214,7 +214,7 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, DirectoryEntry* direc
    assert(directory_entry);
 
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
 
    if (first_call)
    {
@@ -305,7 +305,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
    }
 
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
 
    if (first_call)
    {
@@ -431,7 +431,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
    }
 
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
 
    if (first_call)
    {
@@ -529,7 +529,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
 }
 
 void
-DramDirectoryCntlr::sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address,
+DramDirectoryCntlr::sendShmemMsg(ShmemMsg::Type requester_msg_type, ShmemMsg::Type send_msg_type, IntPtr address,
       tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list, bool msg_modeled)
 {
    if (all_tiles_sharers)
@@ -557,7 +557,7 @@ DramDirectoryCntlr::sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::m
 }
 
 void
-DramDirectoryCntlr::retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type,
+DramDirectoryCntlr::retrieveDataAndSendToL2Cache(ShmemMsg::Type reply_msg_type,
       tile_id_t receiver, IntPtr address, bool msg_modeled)
 {
    Byte* cached_data_buf = _cached_data_list->lookup(address);
@@ -599,7 +599,7 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* s
    assert(directory_entry);
 
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
   
    switch (curr_dstate)
    {
@@ -651,7 +651,7 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg*
    assert(directory_entry);
 
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
    
    LOG_ASSERT_ERROR(curr_dstate != DirectoryState::UNCACHED,
          "Address(%#lx), State(%u)", address, curr_dstate);
@@ -714,10 +714,10 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg*
       updateCacheLineUtilizationCounters(shmem_req, sender, shmem_msg);
 
       // Write-back to memory in certain circumstances
-      if (shmem_req->getShmemMsg()->getMsgType() == ShmemMsg::SH_REQ)
+      if (shmem_req->getShmemMsg()->getType() == ShmemMsg::SH_REQ)
       {
-         DirectoryState::dstate_t initial_dstate = curr_dstate;
-         DirectoryState::dstate_t final_dstate = directory_block_info->getDState();
+         DirectoryState::Type initial_dstate = curr_dstate;
+         DirectoryState::Type final_dstate = directory_block_info->getDState();
 
          if ((initial_dstate == DirectoryState::MODIFIED || initial_dstate == DirectoryState::OWNED)
             && (final_dstate == DirectoryState::SHARED || final_dstate == DirectoryState::UNCACHED))
@@ -745,7 +745,7 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* sh
    assert(directory_entry);
    
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
 
    assert(! shmem_msg->isReplyExpected());
 
@@ -808,9 +808,9 @@ DramDirectoryCntlr::restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, Direc
    shmem_req->updateProcessingFinishTime(getShmemPerfModel()->getCycleCount());
    getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
 
-   ShmemMsg::msg_t msg_type = shmem_req->getShmemMsg()->getMsgType();
+   ShmemMsg::Type msg_type = shmem_req->getShmemMsg()->getType();
 
-   DirectoryState::dstate_t curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();
+   DirectoryState::Type curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();
 
    switch(msg_type)
    {
@@ -906,8 +906,8 @@ DramDirectoryCntlr::updateShmemReqEventCounters(ShmemReq* shmem_req, DirectoryEn
    if (!_enabled)
       return;
 
-   ShmemMsg::msg_t shmem_msg_type = shmem_req->getShmemMsg()->getMsgType();
-   DirectoryState::dstate_t dstate = directory_entry->getDirectoryBlockInfo()->getDState();
+   ShmemMsg::Type shmem_msg_type = shmem_req->getShmemMsg()->getType();
+   DirectoryState::Type dstate = directory_entry->getDirectoryBlockInfo()->getDState();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
    
    switch (shmem_msg_type)
@@ -1010,8 +1010,8 @@ DramDirectoryCntlr::updateShmemReqLatencyCounters(const ShmemReq* shmem_req)
    if (!_enabled)
       return;
 
-   ShmemMsg::msg_t shmem_req_type = shmem_req->getShmemMsg()->getMsgType();
-   DirectoryState::dstate_t initial_dstate = shmem_req->getInitialDState();
+   ShmemMsg::Type shmem_req_type = shmem_req->getShmemMsg()->getType();
+   DirectoryState::Type initial_dstate = shmem_req->getInitialDState();
    bool initial_broadcast_mode = shmem_req->getInitialBroadcastMode();
 
    switch (shmem_req_type)
@@ -1053,11 +1053,11 @@ DramDirectoryCntlr::updateCacheLineUtilizationCounters(const ShmemReq* dir_reque
    if (!_enabled)
       return;
 
-   DirectoryState::dstate_t initial_dstate = dir_request->getInitialDState();
-   ShmemMsg::msg_t dir_request_type = dir_request->getShmemMsg()->getMsgType();
+   DirectoryState::Type initial_dstate = dir_request->getInitialDState();
+   ShmemMsg::Type dir_request_type = dir_request->getShmemMsg()->getType();
    
-   ShmemMsg::msg_t local_msg_type = shmem_msg->getMsgType();
-   UInt32 utilization = shmem_msg->getCacheLineUtilization();
+   ShmemMsg::Type local_msg_type = shmem_msg->getType();
+   UInt64 utilization = shmem_msg->getCacheLineUtilization();
 
    // Track utilization only till a particular point
    if (utilization > MAX_TRACKED_LOCAL_UTILIZATION)

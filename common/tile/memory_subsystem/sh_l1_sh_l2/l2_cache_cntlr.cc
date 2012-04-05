@@ -35,7 +35,7 @@ L2CacheCntlr::~L2CacheCntlr()
 }
 
 void
-L2CacheCntlr::setCacheLineState(IntPtr address, CacheState::CState cstate)
+L2CacheCntlr::setCacheLineState(IntPtr address, CacheState::Type cstate)
 {
    PrL2CacheLineInfo l2_cache_line_info;
    _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
@@ -56,7 +56,7 @@ L2CacheCntlr::writeData(IntPtr address, UInt32 offset, UInt32 size, Byte* data_b
 }
 
 void
-L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* fill_buf)
+L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf)
 {
    // Construct meta-data info about l2 cache line
    PrL2CacheLineInfo l2_cache_line_info;

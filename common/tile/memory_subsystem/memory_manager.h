@@ -26,7 +26,7 @@ public:
    virtual ~MemoryManager();
 
    virtual bool coreInitiateMemoryAccess(
-         MemComponent::component_t mem_component,
+         MemComponent::Type mem_component,
          Core::lock_signal_t lock_signal,
          Core::mem_op_t mem_op_type,
          IntPtr address, UInt32 offset,

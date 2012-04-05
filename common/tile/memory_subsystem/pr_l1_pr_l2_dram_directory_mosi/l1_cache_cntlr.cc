@@ -63,7 +63,7 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* L2_cache_cntlr)
 }
 
 bool
-L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
+L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
                                    Core::lock_signal_t lock_signal,
                                    Core::mem_op_t mem_op_type, 
                                    IntPtr ca_address, UInt32 offset,
@@ -145,7 +145,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(L2_cache_miss_type) &&
                          Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
 
-      ShmemMsg::msg_t shmem_msg_type = getShmemMsgType(mem_op_type);
+      ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE,
                          getTileId(), INVALID_TILE_ID, false, ca_address, msg_modeled);
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
@@ -158,7 +158,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
 }
 
 void
-L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
+L1CacheCntlr::accessCache(MemComponent::Type mem_component,
       Core::mem_op_t mem_op_type, IntPtr ca_address, UInt32 offset,
       Byte* data_buf, UInt32 data_length)
 {
@@ -186,12 +186,12 @@ L1CacheCntlr::accessCache(MemComponent::component_t mem_component,
 }
 
 bool
-L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::component_t mem_component, 
+L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::Type mem_component, 
       IntPtr address, Core::mem_op_t mem_op_type,
       UInt32 access_num)
 {
    bool cache_hit = false;
-   CacheState::CState cstate = getCacheLineState(mem_component, address);
+   CacheState::Type cstate = getCacheLineState(mem_component, address);
    
    switch (mem_op_type)
    {
@@ -234,8 +234,8 @@ L1CacheCntlr::insertCacheLine(MemComponent::component_t mem_component,
                              eviction, evicted_address, evicted_cache_line_info, NULL);
 }
 
-CacheState::CState
-L1CacheCntlr::getCacheLineState(MemComponent::component_t mem_component, IntPtr address)
+CacheState::Type
+L1CacheCntlr::getCacheLineState(MemComponent::Type mem_component, IntPtr address)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
@@ -247,7 +247,7 @@ L1CacheCntlr::getCacheLineState(MemComponent::component_t mem_component, IntPtr 
 }
 
 void
-L1CacheCntlr::setCacheLineState(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate)
+L1CacheCntlr::setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
@@ -262,17 +262,19 @@ L1CacheCntlr::setCacheLineState(MemComponent::component_t mem_component, IntPtr 
 }
 
 void
-L1CacheCntlr::invalidateCacheLine(MemComponent::component_t mem_component, IntPtr address)
+L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr address, CacheLineUtilization& cache_line_utilization, UInt64 curr_time)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
 
+   // fprintf(stderr, "Tile(%i): L1(%u): Invalidate(%#lx) - Time(%llu)\n", getTileId(), mem_component, address, (long long unsigned int) curr_time);
+
    // Invalidate cache line
-   L1_cache->invalidateCacheLine(address);
+   L1_cache->invalidateCacheLine(address, cache_line_utilization, curr_time);
 }
 
 CacheLineUtilization
-L1CacheCntlr::getCacheLineUtilization(MemComponent::component_t mem_component, IntPtr address)
+L1CacheCntlr::getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
@@ -301,7 +303,7 @@ L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)
 }
 
 Cache*
-L1CacheCntlr::getL1Cache(MemComponent::component_t mem_component)
+L1CacheCntlr::getL1Cache(MemComponent::Type mem_component)
 {
    switch(mem_component)
    {
@@ -318,7 +320,7 @@ L1CacheCntlr::getL1Cache(MemComponent::component_t mem_component)
 }
 
 void
-L1CacheCntlr::acquireLock(MemComponent::component_t mem_component)
+L1CacheCntlr::acquireLock(MemComponent::Type mem_component)
 {
    switch(mem_component)
    {
@@ -338,7 +340,7 @@ L1CacheCntlr::acquireLock(MemComponent::component_t mem_component)
 }
 
 void
-L1CacheCntlr::releaseLock(MemComponent::component_t mem_component)
+L1CacheCntlr::releaseLock(MemComponent::Type mem_component)
 {
    switch(mem_component)
    {

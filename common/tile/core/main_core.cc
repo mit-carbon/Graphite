@@ -99,7 +99,7 @@ MainCore::readInstructionMemory(IntPtr address, UInt32 instruction_size)
 }
 
 pair<UInt32, UInt64>
-MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
+MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
                                lock_signal_t lock_signal,
                                mem_op_t mem_op_type,
                                IntPtr address,
@@ -169,13 +169,10 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
       LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(%#lx), offset(%u), curr_size(%u), core_id(%i, %i)",
                 curr_addr_aligned, curr_offset, curr_size, getCoreId().tile_id, getCoreId().core_type);
 
-      if (!getMemoryManager()->coreInitiateMemoryAccess(
-               mem_component,
-               lock_signal, 
-               mem_op_type, 
-               curr_addr_aligned, curr_offset, 
-               curr_data_buffer_head, curr_size,
-               push_info))
+      if (!getMemoryManager()->coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type, 
+                                                        curr_addr_aligned, curr_offset, 
+                                                        curr_data_buffer_head, curr_size,
+                                                        push_info))
       {
          // If it is a READ or READ_EX operation, 
          // 'initiateSharedMemReq' causes curr_data_buffer_head 

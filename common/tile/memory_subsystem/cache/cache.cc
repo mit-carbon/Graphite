@@ -411,7 +411,7 @@ Cache::clearMissTypeTrackingSets(IntPtr address)
 }
 
 void
-Cache::updateCacheLineStateCounters(CacheState::CState old_cstate, CacheState::CState new_cstate)
+Cache::updateCacheLineStateCounters(CacheState::Type old_cstate, CacheState::Type new_cstate)
 {
    if (old_cstate == CacheState::MODIFIED)
       _total_exclusive_lines --;

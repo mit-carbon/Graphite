@@ -36,12 +36,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
       AddressHomeLookup* getDramDirectoryHomeLookup() { return _dram_directory_home_lookup; }
       
-      bool coreInitiateMemoryAccess(
-            MemComponent::component_t mem_component,
-            Core::lock_signal_t lock_signal,
-            Core::mem_op_t mem_op_type,
-            IntPtr address, UInt32 offset,
-            Byte* data_buf, UInt32 data_length,
+      bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
+            Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
+            IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
             bool modeled);
 
       void handleMsgFromNetwork(NetPacket& packet);
@@ -66,7 +63,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       static void closeCacheLineReplicationTraceFiles();
       static void outputCacheLineReplicationSummary();
       
-      void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
    private:
       L1CacheCntlr* _L1_cache_cntlr;
@@ -96,6 +93,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       static ofstream _cache_line_replication_file;
 
       // Get Packet Type for a message
-      PacketType getPacketType(MemComponent::component_t sender_mem_component, MemComponent::component_t receiver_mem_component);
+      PacketType getPacketType(MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component);
    };
 }

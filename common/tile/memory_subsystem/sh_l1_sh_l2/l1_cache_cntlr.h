@@ -30,7 +30,7 @@ namespace ShL1ShL2
                    volatile float frequency);
       ~L1CacheCntlr();
 
-      bool processMemOpFromTile(MemComponent::component_t mem_component,
+      bool processMemOpFromTile(MemComponent::Type mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type, 
             IntPtr ca_address, UInt32 offset,

@@ -19,7 +19,7 @@ L1CacheCntlr::~L1CacheCntlr()
 {}      
 
 bool
-L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
+L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
                                    Core::lock_signal_t lock_signal,
                                    Core::mem_op_t mem_op_type, 
                                    IntPtr ca_address, UInt32 offset,
@@ -68,7 +68,7 @@ void
 L1CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    assert(_outstanding_data_buf);
-   if (shmem_msg->getMsgType() == ShmemMsg::READ_REP)
+   if (shmem_msg->getType() == ShmemMsg::READ_REP)
       memcpy(_outstanding_data_buf, shmem_msg->getDataBuf(), shmem_msg->getDataLength());
    _outstanding_data_buf = NULL;
 

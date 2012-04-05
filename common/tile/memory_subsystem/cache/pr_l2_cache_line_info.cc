@@ -25,7 +25,7 @@ PrL2CacheLineInfo::getCachedLoc()
 }
 
 void 
-PrL2CacheLineInfo::setCachedLoc(MemComponent::component_t cached_loc)
+PrL2CacheLineInfo::setCachedLoc(MemComponent::Type cached_loc)
 {
    LOG_ASSERT_ERROR(cached_loc != MemComponent::INVALID_MEM_COMPONENT,
          "_cached_loc_bitvec(%u), cached_loc(%u)",
@@ -39,7 +39,7 @@ PrL2CacheLineInfo::setCachedLoc(MemComponent::component_t cached_loc)
 }
 
 void
-PrL2CacheLineInfo::clearCachedLoc(MemComponent::component_t cached_loc)
+PrL2CacheLineInfo::clearCachedLoc(MemComponent::Type cached_loc)
 {
    LOG_ASSERT_ERROR(cached_loc != MemComponent::INVALID_MEM_COMPONENT,
          "_cached_loc_bitvec(%u), cached_loc(%u)",

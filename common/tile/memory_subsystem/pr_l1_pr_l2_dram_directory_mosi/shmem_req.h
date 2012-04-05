@@ -15,7 +15,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _processing_start_time;
       UInt64 _processing_finish_time;
       
-      DirectoryState::dstate_t _initial_dstate;
+      DirectoryState::Type _initial_dstate;
       bool _initial_broadcast_mode;
       tile_id_t _sharer_tile_id;
       bool _upgrade_reply;
@@ -35,9 +35,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       void updateProcessingStartTime(UInt64 time);
       void updateProcessingFinishTime(UInt64 time);
 
-      DirectoryState::dstate_t getInitialDState() const
+      DirectoryState::Type getInitialDState() const
       { return _initial_dstate; }
-      void setInitialDState(DirectoryState::dstate_t dstate)
+      void setInitialDState(DirectoryState::Type dstate)
       { _initial_dstate = dstate; }
       
       bool getInitialBroadcastMode() const

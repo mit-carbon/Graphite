@@ -22,7 +22,7 @@ public:
    pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                      char* data_buffer, UInt32 data_size, bool push_info = false);
 
-   pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::component_t mem_component,
+   pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::Type mem_component,
                                              lock_signal_t lock_signal,
                                              mem_op_t mem_op_type,
                                              IntPtr address,

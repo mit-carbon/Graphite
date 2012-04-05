@@ -23,15 +23,15 @@ namespace PrL1PrL2DramDirectoryMOSI
    {
    public:
       DramDirectoryCntlr(MemoryManager* memory_manager,
-            DramCntlr* dram_cntlr,
-            UInt32 dram_directory_total_entries,
-            UInt32 dram_directory_associativity,
-            UInt32 cache_block_size,
-            UInt32 dram_directory_max_num_sharers,
-            UInt32 dram_directory_max_hw_sharers,
-            std::string dram_directory_type_str,
-            UInt32 num_dram_cntlrs,
-            UInt64 dram_directory_cache_access_delay_in_ns);
+                         DramCntlr* dram_cntlr,
+                         UInt32 dram_directory_total_entries,
+                         UInt32 dram_directory_associativity,
+                         UInt32 cache_block_size,
+                         UInt32 dram_directory_max_num_sharers,
+                         UInt32 dram_directory_max_hw_sharers,
+                         std::string dram_directory_type_str,
+                         UInt32 num_dram_cntlrs,
+                         UInt64 dram_directory_cache_access_delay_in_ns);
       ~DramDirectoryCntlr();
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
@@ -124,14 +124,14 @@ namespace PrL1PrL2DramDirectoryMOSI
       void processNextReqFromL2Cache(IntPtr address);
       void processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call = false);
       void processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry, bool first_call = false);
-      void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, tile_id_t receiver, IntPtr address, bool msg_modeled);
+      void retrieveDataAndSendToL2Cache(ShmemMsg::Type reply_msg_type, tile_id_t receiver, IntPtr address, bool msg_modeled);
 
       void processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* shmem_msg);
       void processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg* shmem_msg);
       void processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* shmem_msg);
       void sendDataToDram(IntPtr address, Byte* data_buf, bool msg_modeled);
    
-      void sendShmemMsg(ShmemMsg::msg_t requester_msg_type, ShmemMsg::msg_t send_msg_type, IntPtr address, tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list, bool msg_modeled);
+      void sendShmemMsg(ShmemMsg::Type requester_msg_type, ShmemMsg::Type send_msg_type, IntPtr address, tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list, bool msg_modeled);
       void restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, DirectoryEntry* directory_entry);
 
       // Update Performance Counters

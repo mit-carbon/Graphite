@@ -22,8 +22,8 @@ namespace ShL1ShL2
    {}
 
    ShmemMsg::ShmemMsg(Type msg_type,
-                      MemComponent::component_t sender_mem_component,
-                      MemComponent::component_t receiver_mem_component,
+                      MemComponent::Type sender_mem_component,
+                      MemComponent::Type receiver_mem_component,
                       tile_id_t requester,
                       IntPtr address,
                       UInt32 offset,

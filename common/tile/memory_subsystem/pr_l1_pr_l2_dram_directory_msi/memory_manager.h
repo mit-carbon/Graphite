@@ -31,7 +31,7 @@ namespace PrL1PrL2DramDirectoryMSI
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
       AddressHomeLookup* getDramDirectoryHomeLookup() { return _dram_directory_home_lookup; }
 
-      bool coreInitiateMemoryAccess(MemComponent::component_t mem_component,
+      bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type,
             IntPtr address, UInt32 offset,
@@ -61,7 +61,7 @@ namespace PrL1PrL2DramDirectoryMSI
       static void closeCacheLineReplicationTraceFiles();
       static void outputCacheLineReplicationSummary();
       
-      void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:
       L1CacheCntlr* _l1_cache_cntlr;

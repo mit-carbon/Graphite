@@ -37,10 +37,10 @@ namespace ShL1ShL2
 
       Cache* getL2Cache() { return _l2_cache; }
 
-      void setCacheLineState(IntPtr address, CacheState::CState cstate);
+      void setCacheLineState(IntPtr address, CacheState::Type cstate);
       void readData(IntPtr address, UInt32 offset, UInt32 size, Byte* data_buf);
       void writeData(IntPtr address, UInt32 offset, UInt32 size, Byte* data_buf);
-      void insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* fill_buf);
+      void insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf);
 
    private:
       // Data Members

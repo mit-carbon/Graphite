@@ -3,7 +3,7 @@
 class MemComponent
 {
 public:
-   enum component_t
+   enum Type
    {
       INVALID_MEM_COMPONENT = 0,
       MIN_MEM_COMPONENT,

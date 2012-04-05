@@ -10,16 +10,15 @@ using namespace std;
 class CacheState
 {
 public:
-   enum CState
+   enum Type
    {
       INVALID = 0,
       SHARED,
       OWNED,
-      MODIFIED,
-      NUM_CSTATE_STATES
+      MODIFIED
    };
 
-   CacheState(CState cstate = INVALID) : _cstate(cstate) {}
+   CacheState(Type cstate = INVALID) : _cstate(cstate) {}
    ~CacheState() {}
 
    bool readable()
@@ -33,5 +32,5 @@ public:
    }
 
 private:
-   CState _cstate;
+   Type _cstate;
 };

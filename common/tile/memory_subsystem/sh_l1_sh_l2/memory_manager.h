@@ -28,7 +28,7 @@ namespace ShL1ShL2
       DramCntlr* getDramCntlr() { return _dram_cntlr; }
       AddressHomeLookup* getAddressHomeLookup() { return _address_home_lookup; }
 
-      bool coreInitiateMemoryAccess(MemComponent::component_t mem_component,
+      bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type,
             IntPtr address, UInt32 offset,
@@ -52,7 +52,7 @@ namespace ShL1ShL2
 
       void outputSummary(std::ostream &os);
 
-      void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:
       L1CacheCntlr* _l1_cache_cntlr;

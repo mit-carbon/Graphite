@@ -72,7 +72,7 @@ public:
    
    virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size) = 0;
 
-   virtual pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::component_t mem_component,
+   virtual pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::Type mem_component,
                                                      lock_signal_t lock_signal,
                                                      mem_op_t mem_op_type,
                                                      IntPtr address,

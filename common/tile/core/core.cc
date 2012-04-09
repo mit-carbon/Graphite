@@ -26,11 +26,17 @@ Core::Core(Tile *tile)
    m_tile = tile;
    m_core_state = IDLE;
    m_sync_client = new SyncClient(this);
+
+   m_syscall_model = new SyscallMdl(tile->getNetwork());
+   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
 Core::~Core()
 {
    LOG_PRINT("Deleting main core on tile %d", this->getCoreId().tile_id);
+
+   if (m_clock_skew_minimization_client)
+      delete m_clock_skew_minimization_client;
 
    delete m_sync_client;
 }
@@ -60,9 +66,9 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
 
    NetPacket packet;
    if (sender == CAPI_ENDPOINT_ANY)
-      packet = m_tile->getNetwork()->netRecvType(pkt_type);
+      packet = m_tile->getNetwork()->netRecvType(pkt_type, this->getCoreId());
    else
-      packet = m_tile->getNetwork()->netRecv(sender_core, pkt_type);
+      packet = m_tile->getNetwork()->netRecv(sender_core, this->getCoreId(), pkt_type);
 
    LOG_PRINT("Got packet: from {%i, %i}, to {%i, %i}, type %i, len %i", packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, (SInt32)packet.type, packet.length);
 
@@ -148,4 +154,14 @@ Core::setState(State core_state)
 {
    ScopedLock scoped_lock(m_core_state_lock);
    m_core_state = core_state;
+}
+
+MemoryManagerBase* Core::getMemoryManager() 
+{ 
+   return m_tile->getMemoryManager(); 
+} 
+
+ShmemPerfModel* Core::getShmemPerfModel() 
+{ 
+   return m_tile->getShmemPerfModel(); 
 }

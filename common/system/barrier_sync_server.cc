@@ -2,8 +2,8 @@
 #include "barrier_sync_server.h"
 #include "simulator.h"
 #include "thread_manager.h"
-#include "network.h"
 #include "tile_manager.h"
+#include "network.h"
 #include "config.h"
 #include "log.h"
 
@@ -46,7 +46,9 @@ void
 BarrierSyncServer::signal()
 {
    if (isBarrierReached())
+   {
      barrierRelease(); 
+   }
 }
 
 void
@@ -57,7 +59,7 @@ BarrierSyncServer::barrierWait(core_id_t core_id)
 
    LOG_PRINT("Received 'SIM_BARRIER_WAIT' from Core(%i, %i), Time(%llu)", core_id.tile_id, core_id.core_type, time);
 
-   LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(core_id) || m_thread_manager->isThreadInitializing(core_id), "Thread on core(%i) is not running or initializing at time(%llu)", core_id, time);
+   LOG_ASSERT_ERROR(m_thread_manager->isCoreRunning(core_id) != INVALID_THREAD_ID || m_thread_manager->isCoreInitializing(core_id) != INVALID_THREAD_ID, "Thread on core(%i) is not running or initializing at time(%llu)", core_id, time);
 
    if (time < m_next_barrier_time)
    {
@@ -69,9 +71,14 @@ BarrierSyncServer::barrierWait(core_id_t core_id)
       return;
    }
 
-   m_local_clock_list[core_id.tile_id] = time;
-   m_barrier_acquire_list[core_id.tile_id] = true;
-
+   if (core_id.core_type == MAIN_CORE_TYPE)
+   {
+      m_local_clock_list[core_id.tile_id] = time;
+      m_barrier_acquire_list[core_id.tile_id] = true;
+   }
+   else
+      LOG_ASSERT_ERROR(false, "Invalid core type!");
+ 
    signal(); 
 }
 
@@ -86,7 +93,7 @@ BarrierSyncServer::isBarrierReached()
    {
       if (m_local_clock_list[tile_id] < m_next_barrier_time)
       {
-         if (m_thread_manager->isThreadRunning(tile_id))
+         if (m_thread_manager->isCoreRunning(tile_id) != INVALID_THREAD_ID)
          {
             // Thread Running on this core has not reached the barrier
             // Wait for it to sync
@@ -95,7 +102,7 @@ BarrierSyncServer::isBarrierReached()
       }
       else
       {
-         LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(tile_id) || m_thread_manager->isThreadInitializing(tile_id), "Thread on core(%i) is not running or initializing at local_clock(%llu), m_next_barrier_time(%llu)", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
+         LOG_ASSERT_ERROR(m_thread_manager->isCoreRunning(tile_id) != INVALID_THREAD_ID  || m_thread_manager->isCoreInitializing(tile_id) != INVALID_THREAD_ID , "Thread on core(%i) is not running or initializing at local_clock(%llu), m_next_barrier_time(%llu)", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
 
          // At least one thread has reached the barrier
          single_thread_barrier_reached = true;
@@ -131,12 +138,11 @@ BarrierSyncServer::barrierRelease()
             // Check if this core was running. If yes, send a message to that core
             if (m_barrier_acquire_list[tile_id] == true)
             {
-               LOG_ASSERT_ERROR(m_thread_manager->isThreadRunning(tile_id) || m_thread_manager->isThreadInitializing(tile_id), "(%i) has acquired barrier, local_clock(%i), m_next_barrier_time(%llu), but not initializing or running", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
+               LOG_ASSERT_ERROR(m_thread_manager->isCoreRunning(tile_id) != INVALID_THREAD_ID || m_thread_manager->isCoreInitializing(tile_id) != INVALID_THREAD_ID, "(%i) has acquired barrier, local_clock(%i), m_next_barrier_time(%llu), but not initializing or running", tile_id, m_local_clock_list[tile_id], m_next_barrier_time);
 
                unsigned int reply = BarrierSyncClient::BARRIER_RELEASE;
 
-               core_id_t core_id = TileManager::getMainCoreId(tile_id);
-               m_network.netSend(core_id, MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
+               m_network.netSend(Sim()->getTileManager()->getMainCoreId(tile_id), MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
 
                m_barrier_acquire_list[tile_id] = false;
 

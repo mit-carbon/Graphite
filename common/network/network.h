@@ -55,8 +55,10 @@ typedef std::list<NetPacket> NetQueue;
 class NetMatch
 {
    public:
+      NetMatch() {receiver = INVALID_CORE_ID;}
       std::vector<core_id_t> senders;
       std::vector<PacketType> types;
+      core_id_t receiver;
 };
 
 // -- Network -- //
@@ -95,9 +97,9 @@ class Network
 
       SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
       SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-      NetPacket netRecv(core_id_t src, PacketType type);
-      NetPacket netRecvFrom(core_id_t src);
-      NetPacket netRecvType(PacketType type);
+      NetPacket netRecv(core_id_t src, core_id_t recv, PacketType type);
+      NetPacket netRecvFrom(core_id_t src, core_id_t recv);
+      NetPacket netRecvType(PacketType type, core_id_t recv);
 
       void enableModels();
       void disableModels();
@@ -124,7 +126,6 @@ class Network
       NetQueue _netQueue;
       Lock _netQueueLock;
       ConditionVariable _netQueueCond;
-      ConditionVariable _netHelperQueueCond;
       Semaphore _netQueueSem;
 
       SInt32 forwardPacket(const NetPacket& packet);

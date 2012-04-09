@@ -15,7 +15,6 @@ class ShmemPerfModel
       {
          _USER_THREAD = 0,
          _SIM_THREAD,
-         _HELPER_THREAD,
          NUM_CORE_THREADS
       };
 

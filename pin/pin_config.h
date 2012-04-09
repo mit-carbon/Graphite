@@ -27,9 +27,14 @@ class PinConfig
       UInt32 getStackSizePerCore() const
       { return m_stack_size_per_core; }
 
+      UInt32 getMaxThreadsPerCore() const
+      { return m_max_threads_per_core; }
+
       tile_id_t getTileIDFromStackPtr(IntPtr stack_ptr);
       core_id_t getCoreIDFromStackPtr(IntPtr stack_ptr);
+      thread_id_t getThreadIDFromStackPtr(IntPtr stack_ptr);
       SInt32 getStackAttributesFromCoreID (core_id_t core_id, StackAttributes& stack_attr);
+      SInt32 getStackAttributesFromCoreAndThreadID (core_id_t core_id, thread_id_t thread_id, StackAttributes& stack_attr);
 
    private:
 
@@ -41,7 +46,8 @@ class PinConfig
       // Pin specific variables
       UInt32 m_current_process_num;
       UInt32 m_total_tiles;
-      UInt32 m_num_local_cores;
+      UInt32 m_num_local_tiles;
+      UInt32 m_max_threads_per_core;
 
       IntPtr m_stack_lower_limit;
       UInt32 m_stack_size_per_core;
@@ -52,4 +58,4 @@ class PinConfig
       void setStackBoundaries();
 };
 
-#endif /* __PIN_CONFIG_H__ */
+#endif

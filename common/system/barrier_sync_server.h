@@ -21,7 +21,7 @@ class BarrierSyncServer : public ClockSkewMinimizationServer
       UInt64 m_next_barrier_time;
       std::vector<UInt64> m_local_clock_list;
       std::vector<bool> m_barrier_acquire_list;
-      
+
       UInt32 m_num_application_tiles;
 
    public:

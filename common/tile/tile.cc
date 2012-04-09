@@ -23,8 +23,16 @@ Tile::Tile(SInt32 id)
    m_network = new Network(this);
 
    // Initialize memory models as NULL, the Core constructor will create them.
-   m_shmem_perf_model = (ShmemPerfModel*) NULL;
-   m_memory_manager = (MemoryManagerBase *) NULL;
+   //m_shmem_perf_model = (ShmemPerfModel*) NULL;
+   //m_memory_manager = (MemoryManagerBase *) NULL;
+
+   m_shmem_perf_model = new ShmemPerfModel();
+   LOG_PRINT("instantiated shared memory performance model");
+
+   m_memory_manager = MemoryManagerBase::createMMU(
+         Sim()->getCfg()->getString("caching_protocol/type"),
+         this, this->getNetwork(), m_shmem_perf_model);
+   LOG_PRINT("instantiated memory manager model");
 
    m_main_core = Core::create(this, MAIN_CORE_TYPE);
 }

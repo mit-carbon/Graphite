@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include "simulator.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "tile_manager.h"
 #include "tile.h"
 #include "config_file.hpp"
@@ -30,7 +31,24 @@ int CarbonPthreadJoin(pthread_t tid, void **pparg)
 
 carbon_thread_t CarbonSpawnThread(thread_func_t func, void *arg)
 {
-   return Sim()->getThreadManager()->spawnThread(func, arg);
+   carbon_thread_t tid = Sim()->getThreadManager()->spawnThread(INVALID_TILE_ID, func, arg);
+   return tid;
+}
+
+carbon_thread_t CarbonSpawnThreadOnTile(tile_id_t tile_id, thread_func_t func, void *arg)
+{
+   return Sim()->getThreadManager()->spawnThread(tile_id, func, arg);
+}
+
+
+bool CarbonSchedSetAffinity(thread_id_t thread_id, UInt32 cpusetsize, cpu_set_t* set)
+{
+   return Sim()->getThreadScheduler()->schedSetAffinity(thread_id, cpusetsize, set);
+}
+
+bool CarbonSchedGetAffinity(thread_id_t thread_id, UInt32 cpusetsize, cpu_set_t* set)
+{
+   return Sim()->getThreadScheduler()->schedGetAffinity(thread_id, cpusetsize, set);
 }
 
 void CarbonJoinThread(carbon_thread_t tid)
@@ -96,7 +114,7 @@ int CarbonSpawnThreadSpawner()
 void *CarbonThreadSpawner(void *)
 {
    //ThreadSpawnRequest req = {-1, NULL, NULL, -1, Sim()->getConfig()->getCurrentThreadSpawnerTileNum() };
-   ThreadSpawnRequest req = {-1, NULL, NULL, INVALID_CORE_ID, Sim()->getConfig()->getCurrentThreadSpawnerCoreId()};
+   ThreadSpawnRequest req = {-1, NULL, NULL, INVALID_CORE_ID, INVALID_THREAD_ID, Sim()->getConfig()->getCurrentThreadSpawnerCoreId(), 0};
 
    CarbonThreadStart (&req);
 

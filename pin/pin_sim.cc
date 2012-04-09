@@ -33,6 +33,7 @@
 #include "tile.h"
 #include "syscall_model.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "config_file.hpp"
 #include "handle_args.h"
 #include "thread_start.h"
@@ -42,6 +43,7 @@
 #include "instruction_modeling.h"
 #include "progress_trace.h"
 #include "clock_skew_minimization.h"
+#include "handle_threads.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -182,7 +184,7 @@ void showInstructionInfo(INS ins)
 
 VOID instructionCallback (INS ins, void *v)
 {
-   // Debugging Functions
+   //Debugging Functions
    //showInstructionInfo(ins);
    if (Log::getSingleton()->isLoggingEnabled())
    {
@@ -201,6 +203,8 @@ VOID instructionCallback (INS ins, void *v)
    addProgressTrace(ins);
    // Clock Skew Minimization
    addPeriodicSync(ins);
+   // Scheduling
+   addYield(ins);
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
@@ -303,11 +307,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             tile_id_t tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
             Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(tile_id));
             
-            Tile *tile = Sim()->getTileManager()->getCurrentTile();
+            //Tile *tile = Sim()->getTileManager()->getCurrentTile();
+            Core *core = Sim()->getTileManager()->getCurrentCore();
 
             // main thread clock is not affected by start-up time of other processes
             //tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-            tile->getNetwork()->netRecv (Sim()->getTileManager()->getMainCoreId(0), SYSTEM_INITIALIZATION_NOTIFY);
+            core->getTile()->getNetwork()->netRecv (Sim()->getTileManager()->getMainCoreId(0), core->getCoreId(), SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, Sim()->getTileManager()->getMainCoreId(tile_id));

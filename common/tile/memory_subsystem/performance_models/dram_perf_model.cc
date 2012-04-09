@@ -32,6 +32,21 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
 {
    initializePerformanceCounters();
    createQueueModels();
+
+   // Power (should probably refactor this out)
+   if(Config::getSingleton()->getEnablePowerModeling())
+   {
+      try
+      {
+         m_dynamic_energy = Sim()->getCfg()->getFloat("power_model/dram/dynamic_energy"); 
+         m_total_static_power = Sim()->getCfg()->getFloat("power_model/dram/static_power"); 
+      }
+      catch(...)
+      {
+         LOG_PRINT_ERROR("Error Reading 'dram_power_model/' from the config file");
+      }
+   }
+
 }
 
 DramPerfModel::~DramPerfModel()
@@ -140,6 +155,15 @@ DramPerfModel::outputSummary(ostream& out)
       (float) (m_total_access_latency / m_num_accesses) << endl;
    out << "    average dram queueing delay: " << 
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
+
+
+   if(Config::getSingleton()->getEnablePowerModeling())
+   {
+      out << "    total dynamic energy: " <<
+         (float) (m_dynamic_energy * m_num_accesses) << endl;
+      out << "    total static power: " <<
+         (float) (m_total_static_power) << endl;
+   }
    
    std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
    if (m_queue_model && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
@@ -174,6 +198,7 @@ DramPerfModel::dummyOutputSummary(ostream& out)
    out << "    num dram accesses: NA" << endl;
    out << "    average dram access latency: NA" << endl;
    out << "    average dram queueing delay: NA" << endl;
+
    
    bool queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
    std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");

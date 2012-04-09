@@ -5,9 +5,7 @@
 #include "memory_manager_base.h"
 #include "pin_memory_manager.h"
 #include "core_model.h"
-#include "syscall_model.h"
 #include "sync_client.h"
-#include "clock_skew_minimization_object.h"
 #include "simulator.h"
 #include "log.h"
 #include "tile_manager.h"
@@ -21,44 +19,23 @@ MainCore::MainCore(Tile* tile) : Core(tile)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      m_shmem_perf_model = new ShmemPerfModel();
-      LOG_PRINT("instantiated shared memory performance model");
-
-      m_memory_manager = MemoryManagerBase::createMMU(
-            Sim()->getCfg()->getString("caching_protocol/type"),
-            m_tile, m_tile->getNetwork(), m_shmem_perf_model);
-      LOG_PRINT("instantiated memory manager model");
-
       m_pin_memory_manager = new PinMemoryManager(this);
-
-      tile->setMemoryManager(m_memory_manager);
-      tile->setShmemPerfModel(m_shmem_perf_model);
    }
    else
    {
-      m_shmem_perf_model = (ShmemPerfModel*) NULL;
-      m_memory_manager = (MemoryManagerBase *) NULL;
       m_pin_memory_manager = (PinMemoryManager*) NULL;
-
       LOG_PRINT("No Memory Manager being used for main core");
    }
 
-   m_syscall_model = new SyscallMdl(m_tile->getNetwork());
-   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
 }
 
 MainCore::~MainCore()
 {
    delete m_core_model;
-
-   if (m_clock_skew_minimization_client)
-      delete m_clock_skew_minimization_client;
    
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
       delete m_pin_memory_manager;
-      delete m_memory_manager;
-      delete m_shmem_perf_model;
    }
 }
 

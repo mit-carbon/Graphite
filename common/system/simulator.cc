@@ -8,6 +8,7 @@
 #include "tile.h"
 #include "tile_manager.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "perf_counter_manager.h"
 #include "sim_thread_manager.h"
 #include "clock_skew_minimization_object.h"
@@ -30,6 +31,7 @@ void Simulator::allocate()
 {
    assert(m_singleton == NULL);
    m_singleton = new Simulator();
+   assert(m_singleton);
 }
 
 void Simulator::setConfig(config::Config *cfg)
@@ -59,6 +61,7 @@ Simulator::Simulator()
    , m_transport(NULL)
    , m_tile_manager(NULL)
    , m_thread_manager(NULL)
+   , m_thread_scheduler(NULL)
    , m_perf_counter_manager(NULL)
    , m_sim_thread_manager(NULL)
    , m_clock_skew_minimization_manager(NULL)
@@ -94,6 +97,7 @@ void Simulator::start()
    m_transport = Transport::create();
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);
+   m_thread_scheduler = ThreadScheduler::create(m_thread_manager, m_tile_manager);
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
@@ -163,6 +167,7 @@ Simulator::~Simulator()
    delete m_sim_thread_manager;
    delete m_perf_counter_manager;
    delete m_thread_manager;
+   delete m_thread_scheduler;
    delete m_tile_manager;
    delete m_transport;
 

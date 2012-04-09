@@ -141,6 +141,14 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       marshallUnlinkCall (core_id);
       break;
 
+   case SYS_getcwd:
+      marshallGetCwdCall (core_id);
+      break;
+
+   case SYS_sched_getaffinity:
+      marshallSchedGetAffinityCall (core_id);
+      break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
       break;
@@ -654,6 +662,49 @@ void SyscallServer::marshallRmdirCall(core_id_t core_id)
       delete[] path;
 }
 
+void SyscallServer::marshallGetCwdCall(core_id_t core_id)
+{
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       SIZE               size_t
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       BYTES               int
+       BUFFER              void *
+
+   */
+   char *read_buf = (char *) m_scratch;
+   size_t size;
+
+   assert(m_recv_buff.size() == (sizeof(size)));
+   m_recv_buff >> size;
+
+   if (size > m_SYSCALL_SERVER_MAX_BUFF)
+      read_buf = new char[size];
+
+   // Actually do the read call
+   int bytes = syscall(SYS_getcwd, read_buf, size);
+
+   m_send_buff << bytes;
+   if (bytes != -1)
+      m_send_buff << read_buf;
+
+
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   if (size > m_SYSCALL_SERVER_MAX_BUFF)
+      delete [] read_buf;
+}
+
+
+
 
 void SyscallServer::marshallUnlinkCall(core_id_t core_id)
 {
@@ -696,6 +747,83 @@ void SyscallServer::marshallUnlinkCall(core_id_t core_id)
    if (len_fname > m_SYSCALL_SERVER_MAX_BUFF)
       delete[] path;
 }
+
+void SyscallServer::marshallSchedSetAffinityCall(core_id_t core_id)
+{
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+       BUFFER            char[]
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+   */
+
+   pid_t pid;
+   unsigned int cpusetsize;
+   int status;
+
+   m_recv_buff >> pid >> cpusetsize;
+
+
+   char *buf = new char [CPU_ALLOC_SIZE(cpusetsize)];
+   m_recv_buff >> buf;
+   cpu_set_t * mask = CPU_ALLOC(cpusetsize);
+   *mask = *(cpu_set_t *) buf;
+
+   status = Sim()->getThreadManager()->setThreadAffinity(pid, mask);
+
+   m_send_buff << status;
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   CPU_FREE(mask);
+}
+
+
+
+void SyscallServer::marshallSchedGetAffinityCall(core_id_t core_id)
+{
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+       BUFFER              void *
+
+   */
+
+   pid_t pid;
+   unsigned int cpusetsize;
+   int status;
+
+   m_recv_buff >> pid >>cpusetsize;
+   cpu_set_t *mask = CPU_ALLOC(cpusetsize);
+
+   status = Sim()->getThreadManager()->getThreadAffinity(pid, mask);
+
+   m_send_buff << status << mask;
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   CPU_FREE(mask);
+}
+
 
 void SyscallServer::marshallFutexCall (core_id_t core_id)
 {

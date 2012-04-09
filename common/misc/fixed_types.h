@@ -3,6 +3,13 @@
 
 #include <stdint.h>
 
+// Why are we using a C library...
+//#ifdef __cplusplus
+//extern "C++" {
+//#include <utility>
+//}
+//#endif
+
 typedef uint64_t UInt64;
 typedef uint32_t UInt32;
 typedef uint16_t UInt16;
@@ -19,22 +26,21 @@ typedef UInt8 Boolean;
 typedef uintptr_t IntPtr;
 
 typedef uintptr_t carbon_reg_t;
+typedef enum core_type_t { MAIN_CORE_TYPE = 0} core_type_t;
 
-// The core_type_t enum allows you to add additional cores per tile.
-// To do so, add a class that derives from the Core class, and instantiate it from the Tile constructor.
-typedef enum core_type_t { MAIN_CORE_TYPE = 0 } core_type_t;
-
-// Cores are labeled by core_id_t, which identify the tile that contains them, and their type. 
-typedef SInt32 tile_id_t;
-
-typedef struct {
-   tile_id_t tile_id;
+// Carbon core types
+typedef struct core_id_t {
+   SInt32 tile_id;
    UInt32 core_type;
 } core_id_t;
 
+typedef SInt32 tile_id_t;
+typedef SInt32 thread_id_t;
+
+#define INVALID_THREAD_ID ((thread_id_t) -1)
+#define INVALID_CORE_ID ((core_id_t) {-1,0})
 #define INVALID_TILE_ID ((tile_id_t) -1)
-#define INVALID_CORE_ID ((core_id_t) {INVALID_TILE_ID, MAIN_CORE_TYPE})
-#define INVALID_ADDRESS ((IntPtr) -1)
+#define INVALID_ADDRESS  ((IntPtr) -1)
 
 
 #endif

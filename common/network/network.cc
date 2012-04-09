@@ -244,7 +244,7 @@ class NetRecvIterator
             : _mode(SENDER_VECTOR)
             , _senders(&v)
             , _i(0)
-            , _core_type(MAIN_CORE_TYPE)
+            , _core_type(v.empty() ? MAIN_CORE_TYPE : v[0].core_type)
       {
       }
       NetRecvIterator(const std::vector<PacketType> &v)
@@ -321,7 +321,7 @@ class NetRecvIterator
       };
 
       UInt32 _i;
-      core_type_t _core_type;
+      unsigned int _core_type;
 };
 
 NetPacket Network::netRecv(const NetMatch &match)
@@ -342,6 +342,10 @@ NetPacket Network::netRecv(const NetMatch &match)
                           ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
                           : NetRecvIterator(match.types);
 
+   core_id_t receiver = match.receiver.tile_id == INVALID_TILE_ID 
+                           ? _tile->getCurrentCore()->getCoreId() 
+                           : match.receiver;
+
    LOG_ASSERT_ERROR(_tile && _tile->getCore()->getPerformanceModel(),
                     "Tile and/or performance model not initialized.");
    UInt64 start_time = _tile->getCore()->getPerformanceModel()->getCycleCount();
@@ -358,7 +362,7 @@ NetPacket Network::netRecv(const NetMatch &match)
             i++)
       {
          // make sure that this core is the proper destination core for this tile
-         if (i->receiver.tile_id != _tile->getId() || i->receiver.core_type != _tile->getCurrentCore()->getCoreType())
+         if (i->receiver.tile_id != receiver.tile_id || i->receiver.core_type != receiver.core_type)
             if (i->receiver.tile_id != NetPacket::BROADCAST)
                continue;
 
@@ -441,36 +445,27 @@ SInt32 Network::netBroadcast(PacketType type, const void *buf, UInt32 len)
    return netSend((core_id_t) {NetPacket::BROADCAST, -1} , type, buf, len);
 }
 
-//NetPacket Network::netRecv(SInt32 src, PacketType type)
-NetPacket Network::netRecv(core_id_t src, PacketType type)
+NetPacket Network::netRecv(core_id_t src, core_id_t recv, PacketType type)
 {
    NetMatch match;
    match.senders.push_back(src);
    match.types.push_back(type);
+   match.receiver = recv;
    return netRecv(match);
 }
-
-//NetPacket Network::netRecv(SInt32 src, PacketType type, UInt32 core_type)
-//{
-   //NetMatch match;
-   //match.senders.push_back(src);
-   //match.types.push_back(type);
-   //match.core_types.push_back((core_type_t) core_type);
-   //return netRecv(match);
-//}
-
-//NetPacket Network::netRecvFrom(SInt32 src)
-NetPacket Network::netRecvFrom(core_id_t src)
+NetPacket Network::netRecvFrom(core_id_t src, core_id_t recv)
 {
    NetMatch match;
    match.senders.push_back(src);
+   match.receiver = recv;
    return netRecv(match);
 }
 
-NetPacket Network::netRecvType(PacketType type)
+NetPacket Network::netRecvType(PacketType type, core_id_t recv)
 {
    NetMatch match;
    match.types.push_back(type);
+   match.receiver = recv;
    return netRecv(match);
 }
 

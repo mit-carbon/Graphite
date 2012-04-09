@@ -240,12 +240,27 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
          m_called_enter = true;
          m_ret_val = marshallUnlinkCall(args);
          break;
-     
+
       case SYS_clock_gettime:
-            m_called_enter = true;
-            m_ret_val = handleClockGettimeCall(args);
-            break;
-      
+         m_called_enter = true;
+         m_ret_val = handleClockGettimeCall(args);
+         break;
+
+      case SYS_getcwd:
+         m_called_enter = true;
+         m_ret_val = marshallGetCwdCall(args);
+         break;
+
+      case SYS_sched_setaffinity:
+         m_called_enter = true;
+         m_ret_val = marshallSchedSetAffinityCall(args);
+         break;
+
+      case SYS_sched_getaffinity:
+         m_called_enter = true;
+         m_ret_val = marshallSchedGetAffinityCall(args);
+         break;
+
       case -1:
       default:
          break;
@@ -295,7 +310,7 @@ IntPtr SyscallMdl::marshallOpenCall(syscall_args_t &args)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -336,13 +351,14 @@ IntPtr SyscallMdl::marshallReadCall(syscall_args_t &args)
    int fd = (int)args.arg0;
    void *buf = (void *)args.arg1;
    size_t count = (size_t)args.arg2;
+   Core *core = Sim()->getTileManager()->getCurrentCore();
 
    // if shared mem, provide the buf to read into
    m_send_buff << fd << count;
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    assert(recv_pkt.length >= sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -413,7 +429,7 @@ IntPtr SyscallMdl::marshallWriteCall(syscall_args_t &args)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -476,7 +492,7 @@ IntPtr SyscallMdl::marshallWritevCall(syscall_args_t &args)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(IntPtr));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -515,7 +531,8 @@ IntPtr SyscallMdl::marshallCloseCall(syscall_args_t &args)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -537,7 +554,8 @@ IntPtr SyscallMdl::marshallLseekCall(syscall_args_t &args)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    LOG_ASSERT_ERROR(recv_pkt.length == sizeof(off_t), "Recv Pkt length: expected(%u), got(%u)", sizeof(off_t), recv_pkt.length);
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -568,7 +586,7 @@ IntPtr SyscallMdl::marshallAccessCall(syscall_args_t &args)
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -606,7 +624,7 @@ IntPtr SyscallMdl::marshallStatCall(syscall_args_t &args)
 
    // get the result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -645,7 +663,7 @@ IntPtr SyscallMdl::marshallFstatCall(syscall_args_t &args)
 
    // get the result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -685,7 +703,7 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
 
    // get the result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -696,7 +714,7 @@ IntPtr SyscallMdl::marshallFstat64Call(syscall_args_t &args)
    m_recv_buff >> make_pair(&buf, sizeof(struct stat64));
 
    // Write the data to memory
-   tile->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) args.arg1, (char*) &buf, sizeof(struct stat64));
 
    delete [] (Byte*) recv_pkt.data;
    
@@ -727,7 +745,7 @@ IntPtr SyscallMdl::marshallIoctlCall(syscall_args_t &args)
 
    // get the result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -752,7 +770,8 @@ IntPtr SyscallMdl::marshallGetpidCall (syscall_args_t &args)
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -785,7 +804,8 @@ IntPtr SyscallMdl::marshallReadaheadCall(syscall_args_t &args)
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -810,7 +830,7 @@ IntPtr SyscallMdl::marshallPipeCall (syscall_args_t &args)
 
    // get a result
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
    // Create a buffer out of the result
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -864,9 +884,6 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
    
    Core *core = Sim()->getTileManager()->getCurrentCore();
    LOG_ASSERT_ERROR(core != NULL, "Tile should not be null");
-   core->accessMemory (Core::NONE, Core::READ, (IntPtr) args.arg0, (char*) &mmap_arg_buf, sizeof(mmap_arg_buf));
-   Core *core = Sim()->getCoreManager()->getCurrentCore();
-   LOG_ASSERT_ERROR(core != NULL, "Core should not be null");
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
@@ -883,7 +900,7 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
@@ -945,7 +962,8 @@ IntPtr SyscallMdl::marshallMmapCall (syscall_args_t &args)
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -1012,11 +1030,11 @@ IntPtr SyscallMdl::marshallMmap2Call (syscall_args_t &args)
       m_send_buff.put (pgoffset);
 
       // send the data
-      m_network->netSend (Config::getSingleton()->getMCPTileNum (), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
+      m_network->netSend (Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer (), m_send_buff.size ());
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPTileNum (), MCP_RESPONSE_TYPE);
+      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -1074,7 +1092,8 @@ IntPtr SyscallMdl::marshallMunmapCall (syscall_args_t &args)
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+      Core *core = Sim()->getTileManager()->getCurrentCore();
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -1125,7 +1144,8 @@ IntPtr SyscallMdl::marshallBrkCall (syscall_args_t &args)
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+      Core *core = Sim()->getTileManager()->getCurrentCore();
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
       // Create a buffer out of the result
       m_recv_buff << make_pair (recv_pkt.data, recv_pkt.length);
@@ -1204,7 +1224,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
       // get a result
       NetPacket recv_pkt;
-      recv_pkt = m_network->netRecv (Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+      recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
 
       // Set the CoreState to 'RUNNING'
       core->setState(Core::WAKING_UP);
@@ -1271,7 +1291,7 @@ IntPtr SyscallMdl::marshallUnlinkCall(syscall_args_t &args)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(int));
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
 
@@ -1336,6 +1356,164 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
    return 0;
 }
 
+IntPtr SyscallMdl::marshallGetCwdCall(syscall_args_t &args)
+{
+
+   /*
+       Syscall Args
+       char* buf, size_t size
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       SIZE               size_t
+
+       Receive
+
+       Field               Type
+       -----------------|--------
+       BYTES               int
+       BUFFER              void *
+
+   */
+
+   char* buf = (char *)args.arg0;
+   size_t size = (size_t)args.arg1;
+
+   m_send_buff << size;
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
+
+   assert(recv_pkt.length >= sizeof(int));
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   int bytes;
+   m_recv_buff >> bytes;
+   
+   if (bytes != -1)
+   {
+      // Read data from MCP into a local buffer
+      char* read_buf = new char[bytes];
+      m_recv_buff >> read_buf;
+
+      assert(strlen((const char*) read_buf) + 1 == (unsigned int) bytes);
+   
+      // Write the data to memory
+      Core* core = Sim()->getTileManager()->getCurrentCore();
+      core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) buf, read_buf, bytes);
+   }
+   else
+   {
+      assert(m_recv_buff.size() == 0);
+   }
+
+   delete [] (Byte*) recv_pkt.data;
+
+   return (carbon_reg_t) buf;
+}
+
+IntPtr SyscallMdl::marshallSchedSetAffinityCall(syscall_args_t &args)
+{
+   assert(false);
+   
+   /*
+       Syscall Args
+       pid_t pid, unsigned int cpusetsize, cpu_set_t *mask
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+       BUFFER            char[]
+
+       Receive
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+
+   */
+
+   pid_t pid = (pid_t) args.arg0;
+   unsigned int cpusetsize = (unsigned int) args.arg1;
+   cpu_set_t* mask = (cpu_set_t*) args.arg2;
+   int status = -1;
+
+   char *write_buf = new char [CPU_ALLOC_SIZE(cpusetsize)];
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, Core::READ, (IntPtr) mask, (char*) write_buf, CPU_ALLOC_SIZE(cpusetsize));
+
+   m_send_buff << pid << cpusetsize << write_buf;
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
+
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+   m_recv_buff >> status;
+
+   delete [] (Byte*) recv_pkt.data;
+   delete [] write_buf;
+
+   return status;
+
+}
+IntPtr SyscallMdl::marshallSchedGetAffinityCall(syscall_args_t &args)
+{
+   /*
+       Syscall Args
+       pid_t pid, unsigned int cpusetsize, cpu_set_t *mask
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+
+       Receive
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+       BUFFER              void *
+
+   */
+
+   pid_t pid = (pid_t) args.arg0;
+   unsigned int cpusetsize = (unsigned int) args.arg1;
+   cpu_set_t* mask = (cpu_set_t*) args.arg2;
+   int status = -1;
+
+   m_send_buff << pid << cpusetsize;
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
+
+   m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);
+
+   m_recv_buff >> status;
+
+   // Read data from MCP into a local buffer
+   char* read_buf = new char[CPU_ALLOC_SIZE(cpusetsize)];
+   m_recv_buff >> read_buf;
+
+   // Write the data to memory
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) mask, read_buf, CPU_ALLOC_SIZE(cpusetsize));
+
+   delete [] (Byte*) recv_pkt.data;
+   delete [] read_buf;
+
+   return status;
+}
 
 // Helper functions
 UInt32 SyscallMdl::getStrLen (char *str)

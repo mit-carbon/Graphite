@@ -1,6 +1,7 @@
 #include "routine_replace.h"
 #include "simulator.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "log.h"
 #include "carbon_user.h"
 #include "thread_support_private.h"
@@ -57,6 +58,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonStartSim") msg_ptr = AFUNPTR(replacementStartSimNull); 
    else if (name == "CarbonStopSim") msg_ptr = AFUNPTR(replacementStopSim);
    else if (name == "CarbonSpawnThread") msg_ptr = AFUNPTR(replacementSpawnThread);
+   else if (name == "CarbonSpawnThreadOnTile") msg_ptr = AFUNPTR(replacementSpawnThreadOnTile);
+   else if (name == "CarbonSchedSetAffinity") msg_ptr = AFUNPTR(replacementSchedSetAffinity);
+   else if (name == "CarbonSchedGetAffinity") msg_ptr = AFUNPTR(replacementSchedGetAffinity);
    else if (name == "CarbonJoinThread") msg_ptr = AFUNPTR(replacementJoinThread);
    
    // CAPI
@@ -179,7 +183,7 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_ACK);
+         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getCoreId(), SYSTEM_INITIALIZATION_ACK);
       }
       
       // Tell the thread spawner for each process that we're done initializing...even though we haven't?
@@ -199,7 +203,7 @@ void replacementMain (CONTEXT *ctxt)
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_FINI);
+      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getCoreId(), SYSTEM_INITIALIZATION_FINI);
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -350,9 +354,71 @@ void replacementSpawnThread (CONTEXT *ctxt)
          IARG_PTR, &arg,
          IARG_END);
 
-   LOG_PRINT("Calling SimSpawnThread");
    ADDRINT ret_val = (ADDRINT) CarbonSpawnThread (func, arg);
 
+   retFromReplacedRtn (ctxt, ret_val);
+
+}
+
+void replacementSpawnThreadOnTile (CONTEXT *ctxt)
+{
+   thread_func_t func;
+   tile_id_t tile_id;
+   void *arg;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_PTR, &func,
+         IARG_PTR, &arg,
+         IARG_END);
+
+   ADDRINT ret_val = (ADDRINT) CarbonSpawnThreadOnTile (tile_id, func, arg);
+
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementSchedSetAffinity (CONTEXT *ctxt)
+{
+   thread_id_t thread_id;
+   UInt32 cpusetsize;
+   cpu_set_t *set;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &thread_id,
+         IARG_UINT32, &cpusetsize,
+         IARG_PTR, &set,
+         IARG_END);
+
+   cpu_set_t* set_cpy = CPU_ALLOC(cpusetsize);
+
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) set, (char*) set_cpy, CPU_ALLOC_SIZE(cpusetsize));
+
+   ADDRINT ret_val = (ADDRINT) CarbonSchedSetAffinity (thread_id, cpusetsize, set_cpy);
+
+   retFromReplacedRtn (ctxt, ret_val);
+}
+
+void replacementSchedGetAffinity (CONTEXT *ctxt)
+{
+   thread_id_t thread_id;
+   UInt32 cpusetsize;
+   cpu_set_t *set;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &thread_id,
+         IARG_UINT32, &cpusetsize,
+         IARG_PTR, &set,
+         IARG_END);
+
+   cpu_set_t* set_cpy = CPU_ALLOC(cpusetsize);
+
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory (Core::NONE, Core::READ, (ADDRINT) set, (char*) set_cpy, CPU_ALLOC_SIZE(cpusetsize));
+
+   ADDRINT ret_val = (ADDRINT) CarbonSchedGetAffinity (thread_id, cpusetsize, set_cpy);
+
+   core->accessMemory (Core::NONE, Core::WRITE, (ADDRINT) set, (char*) set_cpy, CPU_ALLOC_SIZE(cpusetsize));
    retFromReplacedRtn (ctxt, ret_val);
 }
 

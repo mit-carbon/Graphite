@@ -11,7 +11,7 @@ import subprocess
 import time
 import signal
 
-boost_path = "/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib"
+l_path = "/afs/csail/group/carbon/tools/pin/pintest/intel64/runtime:/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib"
 
 # spawn_job:
 #  start up a command across multiple machines
@@ -24,7 +24,7 @@ def spawn_job(machine_list, command, working_dir = os.getcwd()):
     for i in range(0,len(machine_list)):
   
         exec_command = "export CARBON_PROCESS_INDEX=" + str(i) + "; " + \
-                       "export LD_LIBRARY_PATH=\"" + boost_path + "\"; " + \
+                       "export LD_LIBRARY_PATH=\"" + l_path + "\"; " + \
                        command
 
         if (machine_list[i] != "localhost") and (machine_list[i] != r'127.0.0.1'):

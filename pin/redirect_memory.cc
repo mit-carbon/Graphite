@@ -462,113 +462,50 @@ void rewriteMemOp (INS ins)
 {
    if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins))
    {
-      if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_READ, REG_INST_G0))
-      {
-         INS_InsertCall (ins, IPOINT_BEFORE, 
-               AFUNPTR (redirectMemOp),
-               IARG_BOOL, INS_IsAtomicUpdate(ins),
-               IARG_MEMORYREAD_EA,
-               IARG_MEMORYREAD_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_READ ,
-               IARG_RETURN_REGS, REG_INST_G0,
-               IARG_END);
-      }
-      else if (INS_IsMemoryRead (ins))
-      {
-         LOG_PRINT_ERROR ("Could not rewrite memory read at ip = 0x%x", INS_Address(ins));
-      }
+      REG reg = REG_INST_G0;
+      unsigned int num_writes = 0;
 
-      if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_READ2, REG_INST_G1))
+      for (unsigned int i = 0; i < INS_MemoryOperandCount(ins); i++)
       {
-         assert(! INS_IsAtomicUpdate(ins));
+         INS_RewriteMemoryOperand(ins, i, reg);
 
          INS_InsertCall (ins, IPOINT_BEFORE, 
                AFUNPTR (redirectMemOp),
-               IARG_BOOL, false,
-               IARG_MEMORYREAD2_EA,
+               IARG_BOOL, INS_MemoryOperandIsWritten(ins, i) ? INS_IsAtomicUpdate(ins) : false,
+               IARG_MEMORYOP_EA, i,
+
                IARG_MEMORYREAD_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_READ2,
-               IARG_RETURN_REGS, REG_INST_G1,
+               IARG_UINT32, i,
+               IARG_UINT32, INS_MemoryOperandIsRead(ins, i),
+               IARG_RETURN_REGS, reg,
+
                IARG_END);
-      }
-      else if (INS_HasMemoryRead2 (ins))
-      {
-         LOG_PRINT_ERROR ("Could not rewrite memory read2 at ip = 0x%x", INS_Address(ins));
-      }
-
-      if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_WRITE, REG_INST_G2))
-      {
-         assert(! INS_IsAtomicUpdate(ins));
-
-         INS_InsertCall (ins, IPOINT_BEFORE,
-               AFUNPTR (redirectMemOp),
-               IARG_BOOL, false,
-               IARG_MEMORYWRITE_EA,
-               IARG_MEMORYWRITE_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
-               IARG_RETURN_REGS, REG_INST_G2,
-               IARG_END);
-
-         IPOINT ipoint = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
-         assert (ipoint == IPOINT_AFTER);
-
-         INS_InsertCall (ins, ipoint, 
-               AFUNPTR (completeMemWrite),
-               IARG_BOOL, false,
-               IARG_MEMORYWRITE_EA,
-               IARG_MEMORYWRITE_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
-               IARG_END);
-      }
-      else if (INS_IsMemoryWrite (ins))
-      {
-         if (INS_IsMemoryRead (ins))
+         if (INS_MemoryOperandIsWritten(ins, i))
          {
-            PinMemoryManager::AccessType access_type = PinMemoryManager::ACCESS_TYPE_WRITE;
-            IPOINT ipoint2 = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
-            assert (ipoint2 == IPOINT_AFTER);
-            
-            UINT32 operand_count = INS_OperandCount (ins);
-            UINT32 num_mem_read_operands = 0;
+            num_writes ++;
+            assert(num_writes <= 1);
 
-            for (UINT32 i = 0; i < operand_count; i++)
-            {
-               if (INS_OperandIsMemory (ins, i) && INS_OperandReadAndWriten (ins, i))
-               {
-                  if (num_mem_read_operands == 0)
-                  {
-                     access_type = PinMemoryManager::ACCESS_TYPE_READ;
-                  }
-                  else if (num_mem_read_operands == 1)
-                  {
-                     access_type = PinMemoryManager::ACCESS_TYPE_READ2;
-                  }
-                  else
-                  {
-                     LOG_PRINT_ERROR ("Could not rewrite memory write at ip = 0x%x", INS_Address(ins));
-                  }
-                  num_mem_read_operands++;
-               }
-               else if (INS_OperandIsMemory (ins, i) && INS_OperandRead (ins, i))
-               {
-                  num_mem_read_operands++;
-               }
-            }
 
-            assert (num_mem_read_operands > 0);
-            assert (access_type != PinMemoryManager::ACCESS_TYPE_WRITE);
+            INS_InsertCall (ins, IPOINT_BEFORE,
+                  AFUNPTR (redirectMemOpSaveEa),
+                  IARG_MEMORYOP_EA, i,
+                  IARG_RETURN_REGS, REG_INST_G3,
+                  IARG_END);
 
-            INS_InsertCall (ins, ipoint2,
+
+            IPOINT ipoint = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
+
+            assert (ipoint == IPOINT_AFTER);
+
+            INS_InsertCall (ins, ipoint,
+
                   AFUNPTR (completeMemWrite),
                   IARG_BOOL, INS_IsAtomicUpdate(ins),
-                  IARG_MEMORYWRITE_EA,
+                  IARG_REG_VALUE, REG_INST_G3, // Is IARG_MEMORYWRITE_EA,
                   IARG_MEMORYWRITE_SIZE,
-                  IARG_UINT32, access_type,
+                  IARG_UINT32, i,
+
                   IARG_END);
-         }
-         else
-         {
-            LOG_PRINT_ERROR ("Could not rewrite memory write at ip = 0x%x", INS_Address(ins));
          }
       }
    }
@@ -744,7 +681,7 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
 // Once the memory accesses go through the coherent shared memory system, all LOCK'ed
 // memory accesses from the cores would be handled correctly. 
 
-ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
+ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num, UInt32 is_read)
 {
    Core *core = Sim()->getTileManager()->getCurrentCore();
   
@@ -753,7 +690,8 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
       PinMemoryManager *mem_manager = core->getPinMemoryManager ();
       assert (mem_manager != NULL);
 
-      return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+      return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num, is_read);
+
    }
    else
    {
@@ -766,13 +704,18 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
    }
 }
 
-VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
+ADDRINT redirectMemOpSaveEa(ADDRINT ea)
+{
+   return ea;
+}
+
+VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num)
 {
    Core *core = Sim()->getTileManager()->getCurrentCore();
 
    if (core)
    {
-      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num);
    }
    else
    {

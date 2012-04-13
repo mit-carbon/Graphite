@@ -1,21 +1,39 @@
-PARSEC_HOME = /path/to/parsec
+NTHREADS ?= 64
 
+APPS = blackscholes bodytrack facesim ferret fluidanimate freqmine raytrace swaptions vips x264
+KERNELS = canneal dedup streamcluster
 
-PARSEC_DIR=/afs/csail.mit.edu/group/carbon/benchmarks/parsec/parsec-2.1
+## APPS
 
-PARSEC_LIST = blackscholes_parsec
-
-blackscholes_flags ?= 16 in_4K.txt prices.txt
+blackscholes_flags ?= 64 in_4K.txt prices.txt
 bodytrack_flags ?= sequenceB_1 4 1 5 1 0 1
-ferret_flags ?= corel lsh queries 1 1 1 output.txt
+facesim_flags ?=
+ferret_flags ?= corel lsh queries 10 20 15 output.txt
 fluidanimate_flags ?=  1 1 in_5K.fluid out.fluid
-freqmine_flags ?= T10I4D100K_3.dat 1
+freqmine_flags ?= kosarak_250k.dat 220 64
+raytrace_flags ?=
+swaptions_flags ?= -ns 32 -sm 10000 -nt 64
 vips_flags ?= im_benchmark barbados_256x288.v output.v
-x264_flags ?=  --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 1 -o eledream.264 eledream_32x18_1.y4m
+x264_flags ?= --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 64 -o eledream.264 eledream_640x360_32.y4m
+
+# KERNELS
+
+canneal_flags ?= 64 15000 2000 100000.nets 64
+dedup_flags ?= -c -p -f -t 21 -i media.dat -o output.dat.ddp
+streamcluster_flags ?= 10 20 32 4096 4096 1000 none output.txt 64
 
 include tests/Makefile.tests
 
-%_parsec:
-	mkdir -p $(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/run/output_files
-	cd $(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/apps/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
+DIRECTORY ?= $(if $(findstring $(patsubst %_parsec,%,$@),$(APPS)),apps,kernels)
+COMMAND ?= mkdir -p $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run/output_files; cd $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
 
+freqmine_parsec:
+	export OMP_NUM_THREADS=$(NTHREADS)
+	$(COMMAND)
+
+vips_parsec:
+	export IM_CONCURRENCY=$(NTHREADS)
+	$(COMMAND)
+
+%_parsec:
+	$(COMMAND)

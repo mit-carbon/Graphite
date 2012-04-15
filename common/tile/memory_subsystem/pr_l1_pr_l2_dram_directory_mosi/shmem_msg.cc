@@ -17,18 +17,25 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(NULL)
       , _data_length(0)
       , _modeled(false)
-      , _cache_line_utilization(0)
+#ifdef TRACK_UTILIZATION_COUNTERS
+      , _cache_line_birth_time(0)
+#endif
    {}
 
-   ShmemMsg::ShmemMsg(msg_t msg_type,
-         MemComponent::component_t sender_mem_component,
-         MemComponent::component_t receiver_mem_component,
-         tile_id_t requester,
-         tile_id_t single_receiver,
-         bool reply_expected,
-         IntPtr address,
-         bool modeled,
-         UInt32 cache_line_utilization)
+   ShmemMsg::ShmemMsg(Type msg_type
+                     , MemComponent::Type sender_mem_component
+                     , MemComponent::Type receiver_mem_component
+                     , tile_id_t requester
+                     , tile_id_t single_receiver
+                     , bool reply_expected
+                     , IntPtr address
+                     , bool modeled
+#ifdef TRACK_UTILIZATION_COUNTERS
+                     , UInt64 cache_line_birth_time
+                     , AggregateCacheLineUtilization aggregate_utilization
+                     , AggregateCacheLineLifetime aggregate_lifetime
+#endif
+                     )
       : _msg_type(msg_type)
       , _sender_mem_component(sender_mem_component)
       , _receiver_mem_component(receiver_mem_component)
@@ -39,20 +46,29 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(NULL)
       , _data_length(0)
       , _modeled(modeled)
-      , _cache_line_utilization(cache_line_utilization)
+#ifdef TRACK_UTILIZATION_COUNTERS
+      , _cache_line_birth_time(cache_line_birth_time)
+      , _aggregate_cache_line_utilization(aggregate_utilization)
+      , _aggregate_cache_line_lifetime(aggregate_lifetime)
+#endif
    {}
 
-   ShmemMsg::ShmemMsg(msg_t msg_type,
-         MemComponent::component_t sender_mem_component,
-         MemComponent::component_t receiver_mem_component,
-         tile_id_t requester,
-         tile_id_t single_receiver,
-         bool reply_expected,
-         IntPtr address,
-         Byte* data_buf,
-         UInt32 data_length,
-         bool modeled,
-         UInt32 cache_line_utilization)
+   ShmemMsg::ShmemMsg(Type msg_type
+                     , MemComponent::Type sender_mem_component
+                     , MemComponent::Type receiver_mem_component
+                     , tile_id_t requester
+                     , tile_id_t single_receiver
+                     , bool reply_expected
+                     , IntPtr address
+                     , Byte* data_buf
+                     , UInt32 data_length
+                     , bool modeled
+#ifdef TRACK_UTILIZATION_COUNTERS
+                     , UInt64 cache_line_birth_time
+                     , AggregateCacheLineUtilization aggregate_utilization
+                     , AggregateCacheLineLifetime aggregate_lifetime
+#endif
+                     )
       : _msg_type(msg_type)
       , _sender_mem_component(sender_mem_component)
       , _receiver_mem_component(receiver_mem_component)
@@ -63,7 +79,11 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(data_buf)
       , _data_length(data_length)
       , _modeled(modeled)
-      , _cache_line_utilization(cache_line_utilization)
+#ifdef TRACK_UTILIZATION_COUNTERS
+      , _cache_line_birth_time(cache_line_birth_time)
+      , _aggregate_cache_line_utilization(aggregate_utilization)
+      , _aggregate_cache_line_lifetime(aggregate_lifetime)
+#endif
    {}
 
    ShmemMsg::ShmemMsg(const ShmemMsg* shmem_msg)
@@ -77,7 +97,7 @@ namespace PrL1PrL2DramDirectoryMOSI
    void
    ShmemMsg::clone(const ShmemMsg* shmem_msg)
    {
-      _msg_type = shmem_msg->getMsgType();
+      _msg_type = shmem_msg->getType();
       _sender_mem_component = shmem_msg->getSenderMemComponent();
       _receiver_mem_component = shmem_msg->getReceiverMemComponent();
       _requester = shmem_msg->getRequester();
@@ -87,7 +107,11 @@ namespace PrL1PrL2DramDirectoryMOSI
       _data_buf = shmem_msg->getDataBuf();
       _data_length = shmem_msg->getDataLength();
       _modeled = shmem_msg->isModeled();
-      _cache_line_utilization = shmem_msg->getCacheLineUtilization();
+#ifdef TRACK_UTILIZATION_COUNTERS
+      _cache_line_birth_time = shmem_msg->getCacheLineBirthTime();
+      _aggregate_cache_line_utilization = shmem_msg->getAggregateCacheLineUtilization();
+      _aggregate_cache_line_lifetime = shmem_msg->getAggregateCacheLineLifetime();
+#endif
    }
 
    ShmemMsg*

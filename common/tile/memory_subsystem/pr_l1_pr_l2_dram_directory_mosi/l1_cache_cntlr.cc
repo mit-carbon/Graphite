@@ -219,19 +219,22 @@ L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::Type mem_component,
 }
 
 void
-L1CacheCntlr::insertCacheLine(MemComponent::component_t mem_component,
-                              IntPtr address, CacheState::CState cstate, Byte* fill_buf,
-                              bool* eviction, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evicted_address)
+L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component,
+                              IntPtr address, CacheState::Type cstate, Byte* fill_buf,
+                              bool* eviction, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evicted_address,
+                              UInt64 curr_time)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
 
-   PrL1CacheLineInfo L1_cache_line_info;
-   L1_cache_line_info.setTag(L1_cache->getTag(address));
-   L1_cache_line_info.setCState(cstate);
+   // fprintf(stderr, "Tile(%i): L1(%u): Insert(%#lx) - Time(%llu)\n", getTileId(), mem_component, address, (long long unsigned int) curr_time);
+   PrL1CacheLineInfo L1_cache_line_info(L1_cache->getTag(address), cstate, curr_time);
 
    L1_cache->insertCacheLine(address, &L1_cache_line_info, fill_buf,
                              eviction, evicted_address, evicted_cache_line_info, NULL);
+
+   // if (*eviction)
+   //    fprintf(stderr, "Tile(%i): L1(%u): Eviction(%#lx) - Time(%llu)\n", getTileId(), mem_component, *evicted_address, (long long unsigned int) curr_time);
 }
 
 CacheState::Type
@@ -284,7 +287,53 @@ L1CacheCntlr::getCacheLineUtilization(MemComponent::Type mem_component, IntPtr a
    return L1_cache_line_info.getUtilization();
 }
 
-ShmemMsg::msg_t
+UInt64
+L1CacheCntlr::getCacheLineLifetime(MemComponent::Type mem_component, IntPtr address, UInt64 curr_time)
+{
+   Cache* L1_cache = getL1Cache(mem_component);
+   assert(L1_cache);
+
+   PrL1CacheLineInfo L1_cache_line_info;
+   L1_cache->getCacheLineInfo(address, &L1_cache_line_info);
+   return L1_cache_line_info.getLifetime(curr_time);
+}
+
+void
+L1CacheCntlr::updateAggregateCacheLineUtilization(AggregateCacheLineUtilization& aggregate_utilization,
+                                                  MemComponent::Type mem_component, IntPtr address)
+{
+   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   {
+      CacheLineUtilization utilization = getCacheLineUtilization(mem_component, address);
+      if (mem_component == MemComponent::L1_ICACHE)
+         aggregate_utilization.L1_I += utilization;
+      else if (mem_component == MemComponent::L1_DCACHE)
+         aggregate_utilization.L1_D += utilization;
+      else
+         LOG_PRINT_ERROR("Unrecognized mem component(%u)", mem_component);
+   }
+}
+
+void
+L1CacheCntlr::updateAggregateCacheLineLifetime(AggregateCacheLineLifetime& aggregate_lifetime,
+                                               MemComponent::Type mem_component, IntPtr address, UInt64 curr_time)
+{
+   // Currently, L1-I, L1-D and L2 are all in the same frequency domain
+   // Assume that the core, L1-I, L1-D and L2 caches are in same frequency domain
+   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   {
+      UInt64 lifetime = getCacheLineLifetime(mem_component, address, curr_time);
+
+      if (mem_component == MemComponent::L1_ICACHE)
+         aggregate_lifetime.L1_I += lifetime;
+      else if (mem_component == MemComponent::L1_DCACHE)
+         aggregate_lifetime.L1_D += lifetime;
+      else
+         LOG_PRINT_ERROR("Unrecognized mem component(%u)", mem_component);
+   }
+}
+
+ShmemMsg::Type
 L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)
 {
    switch(mem_op_type)

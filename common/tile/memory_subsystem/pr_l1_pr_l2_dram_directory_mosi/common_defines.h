@@ -1,0 +1,8 @@
+#pragma once
+
+#define TRACK_UTILIZATION_COUNTERS        1
+
+#ifdef TRACK_UTILIZATION_COUNTERS
+#define MAX_TRACKED_UTILIZATION           15
+#define MAX_PRIVATE_COPY_THRESHOLD        16
+#endif

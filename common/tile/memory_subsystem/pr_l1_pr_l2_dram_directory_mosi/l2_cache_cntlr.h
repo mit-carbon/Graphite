@@ -10,6 +10,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include <map>
 using std::map;
 
+#include "common_defines.h"
 #include "cache.h"
 #include "pr_l2_cache_line_info.h"
 #include "address_home_lookup.h"
@@ -20,7 +21,10 @@ using std::map;
 #include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+
+#ifdef TRACK_UTILIZATION_COUNTERS
 #include "aggregate_cache_line_utilization.h"
+#endif
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -44,7 +48,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       Cache* getL2Cache() { return _L2_cache; }
 
       // Handle Request from L1 Cache - This is done for better simulator performance
-      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::component_t req_mem_component, Core::mem_op_t mem_op_type, IntPtr address);
+      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::Type req_mem_component, Core::mem_op_t mem_op_type, IntPtr address);
       // Write-through Cache. Hence needs to be written by the APP thread
       void writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length);
       void assertCacheLineWritable(IntPtr address);
@@ -63,6 +67,13 @@ namespace PrL1PrL2DramDirectoryMOSI
       void disable() { _enabled = false; }
 
    private:
+      enum CacheOperationType
+      {
+         CACHE_EVICTION,
+         CACHE_INVALIDATION,
+         NUM_CACHE_OPERATION_TYPES
+      };
+
       // Data Members
       MemoryManager* _memory_manager;
       Cache* _L2_cache;
@@ -71,7 +82,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Outstanding ShmemReq info
       ShmemMsg _outstanding_shmem_msg;
-      UInt64 _outstanding_shmem_msg_time;
+      UInt64 _outstanding_shmem_Typeime;
 
       // Synchronization
       Lock _L2_cache_lock;
@@ -81,19 +92,17 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Is enabled?
       bool _enabled;
 
-      // Measure cache line utilization
-      UInt64 _total_evictions;
-      UInt64 _total_invalidations;
-      static const UInt32 MAX_TRACKED_LOCAL_UTILIZATION = 31;
-      UInt64 _total_evictions_by_utilization[MAX_TRACKED_LOCAL_UTILIZATION + 1];
-      UInt64 _total_invalidations_by_utilization[MAX_TRACKED_LOCAL_UTILIZATION + 1];
-      AggregateCacheLineUtilization _utilization_counters_for_eviction[MAX_TRACKED_LOCAL_UTILIZATION + 1];
-      AggregateCacheLineUtilization _utilization_counters_for_invalidation[MAX_TRACKED_LOCAL_UTILIZATION + 1];
-      UInt64 _modified_state_count_during_eviction[MAX_TRACKED_LOCAL_UTILIZATION + 1];
-      UInt64 _shared_state_count_during_eviction[MAX_TRACKED_LOCAL_UTILIZATION + 1];
-      UInt64 _modified_state_count_during_invalidation[MAX_TRACKED_LOCAL_UTILIZATION + 1];
-      UInt64 _shared_state_count_during_invalidation[MAX_TRACKED_LOCAL_UTILIZATION + 1];
+      // Utilization counters
+      UInt64 _total_cache_operations[NUM_CACHE_OPERATION_TYPES];
+      UInt64 _total_cache_operations_by_utilization[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
+      AggregateCacheLineUtilization _utilization_counters[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
+      UInt64 _modified_state_count_by_utilization[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
+      UInt64 _shared_state_count_by_utilization[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
 
+      // Lifetime counters
+      AggregateCacheLineLifetime _lifetime_counters[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
+
+      // Eviction Counters
       // Measure clean/dirty evictions
       UInt64 _total_dirty_evictions_exreq;
       UInt64 _total_clean_evictions_exreq;
@@ -103,23 +112,21 @@ namespace PrL1PrL2DramDirectoryMOSI
       // L2 cache operations
       void getCacheLineInfo(IntPtr address, PrL2CacheLineInfo* L2_cache_line_info);
       void setCacheLineInfo(IntPtr address, PrL2CacheLineInfo* L2_cache_line_info);
-      void invalidateCacheLine(IntPtr address);
+      void invalidateCacheLine(IntPtr address, CacheLineUtilization& net_cache_line_utilization, UInt64 time);
       void readCacheLine(IntPtr address, Byte* data_buf);
-      void insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* fill_buf, MemComponent::component_t mem_component);
+      void insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf, MemComponent::Type mem_component);
 
       // L1 cache operations
-      void setCacheLineStateInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate);
-      void invalidateCacheLineInL1(MemComponent::component_t mem_component, IntPtr address);
-      void insertCacheLineInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate, Byte* fill_buf);
-      void updateAggregateCacheLineUtilizationFromL1(AggregateCacheLineUtilization& aggregate_utilization,
-                                                     MemComponent::component_t mem_component, IntPtr address);
+      void setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
+      void invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr address, CacheLineUtilization& net_cache_line_utilization, UInt64 time);
+      void insertCacheLineInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate, Byte* fill_buf);
 
       // Insert cache line in hierarchy
-      void insertCacheLineInHierarchy(IntPtr address, CacheState::CState cstate, Byte* fill_buf);
+      void insertCacheLineInHierarchy(IntPtr address, CacheState::Type cstate, Byte* fill_buf);
 
       // Process Request from L1 Cache
       // Check if msg from L1 ends in the L2 cache
-      pair<bool,Cache::MissType> operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::CState cstate);
+      pair<bool,Cache::MissType> operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::Type cstate);
 
       // Process Request from Dram Dir
       void processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
@@ -137,6 +144,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
+      UInt64 getTime();
 
       // Wake up User Thread
       void wakeUpUserThread();
@@ -146,13 +154,15 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Dram Directory Home Lookup
       tile_id_t getHome(IntPtr address) { return _dram_directory_home_lookup->getHome(address); }
 
-      MemComponent::component_t acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address);
+      MemComponent::Type acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address);
 
       // Cache line utilization
-      void initializeCounters();
-      void updateEvictionCounters(CacheState::CState inserted_cstate, CacheState::CState evicted_cstate);
-      void updateUtilizationCountersOnEviction(AggregateCacheLineUtilization& aggregate_utilization, CacheState::CState evicted_cstate);
-      void updateUtilizationCountersOnInvalidation(AggregateCacheLineUtilization& aggregate_utilization, CacheState::CState invalidated_cstate);
+      void initializeUtilizationCounters();
+      void initializeEvictionCounters();
+      void updateUtilizationCounters(CacheOperationType operation, AggregateCacheLineUtilization& aggregate_utilization, CacheState::Type cstate);
+      void updateLifetimeCounters(CacheOperationType operation, AggregateCacheLineLifetime& aggregate_lifetime, UInt64 cache_line_utilization);
+      void updateLifetimeCounters(CacheOperationType operation, MemComponent::Type mem_component, UInt64 cache_line_lifetime, UInt64 cache_line_utilization);
+      void updateEvictionCounters(CacheState::Type inserted_cstate, CacheState::Type evicted_cstate);
    };
 
 }

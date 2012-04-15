@@ -81,7 +81,7 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
    UInt32 line_index = -1;
    
    CacheLineInfo* cache_line_info = set->find(tag, &line_index);
-   LOG_ASSERT_ERROR(cache_line_info, "Address(%#llx)", address);
+   LOG_ASSERT_ERROR(cache_line_info, "Address(%#lx)", address);
 
    if (access_type == LOAD)
       set->read_line(line_index, line_offset, buf, num_bytes);
@@ -234,7 +234,7 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
 }
 
 bool 
-Cache::invalidateCacheLine(IntPtr address)
+Cache::invalidateCacheLine(IntPtr address, CacheLineUtilization cache_line_utilization, UInt64 curr_time)
 {
    CacheLineInfo* cache_line_info = getCacheLineInfo(address);
 
@@ -250,7 +250,7 @@ Cache::invalidateCacheLine(IntPtr address)
       updateCacheLineStateCounters(cache_line_info->getCState(), CacheState::INVALID);
 
       // Invalidate cache line
-      cache_line_info->invalidate();
+      cache_line_info->invalidate(cache_line_utilization, curr_time);
       
       // Add to invalidated set for tracking miss type
       if (_track_miss_types)

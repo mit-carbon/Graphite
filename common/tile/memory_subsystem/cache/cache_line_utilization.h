@@ -3,12 +3,17 @@
 class CacheLineUtilization
 {
 public:
-   CacheLineUtilization(): read(0), write(0) {}
-   CacheLineUtilization(const CacheLineUtilization& util): read(util.read), write(util.write) {}
+   CacheLineUtilization()
+      : read(0), write(0) {}
+   CacheLineUtilization(const CacheLineUtilization& util)
+      : read(util.read), write(util.write) {}
    ~CacheLineUtilization() {}
 
    UInt64 read;
    UInt64 write;
+
+   UInt64 total()
+   { return read + write; }
 
    void operator+=(const CacheLineUtilization& util)
    {

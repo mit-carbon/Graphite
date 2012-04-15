@@ -91,7 +91,7 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 {
-   LOG_PRINT("Start processNextReqFromL2Cache(0x%x)", address);
+   LOG_PRINT("Start processNextReqFromL2Cache(%#lx)", address);
 
    assert(_dram_directory_req_queue_list->size(address) >= 1);
    ShmemReq* completed_shmem_req = _dram_directory_req_queue_list->dequeue(address);
@@ -99,7 +99,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 
    if (! _dram_directory_req_queue_list->empty(address))
    {
-      LOG_PRINT("A new shmem req for address(0x%x) found", address);
+      LOG_PRINT("A new shmem req for address(%#lx) found", address);
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
 
       // Update the Shared Mem Cycle Counts appropriately
@@ -113,7 +113,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       else
          LOG_PRINT_ERROR("Unrecognized Request(%u)", shmem_req->getShmemMsg()->getType());
    }
-   LOG_PRINT("End processNextReqFromL2Cache(0x%x)", address);
+   LOG_PRINT("End processNextReqFromL2Cache(%#lx)", address);
 }
 
 DirectoryEntry*

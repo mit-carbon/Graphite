@@ -19,6 +19,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "aggregate_cache_line_utilization.h"
+#include "aggregate_cache_line_lifetime.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -47,24 +49,30 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void setL2CacheCntlr(L2CacheCntlr* L2_cache_cntlr);
 
-      bool processMemOpFromTile(MemComponent::component_t mem_component,
+      bool processMemOpFromTile(MemComponent::Type mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type, 
             IntPtr ca_address, UInt32 offset,
             Byte* data_buf, UInt32 data_length,
             bool modeled);
 
-      void insertCacheLine(MemComponent::component_t mem_component,
-                           IntPtr address, CacheState::CState cstate, Byte* data_buf,
-                           bool* eviction_ptr, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evict_address_ptr);
+      void insertCacheLine(MemComponent::Type mem_component,
+                           IntPtr address, CacheState::Type cstate, Byte* data_buf,
+                           bool* eviction_ptr, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evict_address_ptr,
+                           UInt64 curr_time);
 
-      CacheState::CState getCacheLineState(MemComponent::component_t mem_component, IntPtr address);
-      void setCacheLineState(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate);
-      void invalidateCacheLine(MemComponent::component_t mem_component, IntPtr address);
-      CacheLineUtilization getCacheLineUtilization(MemComponent::component_t mem_component, IntPtr address);
+      CacheState::Type getCacheLineState(MemComponent::Type mem_component, IntPtr address);
+      void setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
+      void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address, CacheLineUtilization& cache_line_utilization, UInt64 curr_time);
 
-      void acquireLock(MemComponent::component_t mem_component);
-      void releaseLock(MemComponent::component_t mem_component);
+      // Cache line utilization & lifetime
+      void updateAggregateCacheLineUtilization(AggregateCacheLineUtilization& aggregate_utilization,
+                                               MemComponent::Type mem_component, IntPtr address);
+      void updateAggregateCacheLineLifetime(AggregateCacheLineLifetime& aggregate_lifetime,
+                                            MemComponent::Type mem_component, IntPtr address, UInt64 curr_time);
+
+      void acquireLock(MemComponent::Type mem_component);
+      void releaseLock(MemComponent::Type mem_component);
    
    private:
       MemoryManager* _memory_manager;
@@ -77,17 +85,21 @@ namespace PrL1PrL2DramDirectoryMOSI
       Semaphore* _user_thread_sem;
       Semaphore* _network_thread_sem;
 
-      void accessCache(MemComponent::component_t mem_component,
+      void accessCache(MemComponent::Type mem_component,
             Core::mem_op_t mem_op_type, 
             IntPtr ca_address, UInt32 offset,
             Byte* data_buf, UInt32 data_length);
-      bool operationPermissibleinL1Cache(MemComponent::component_t mem_component, 
+      bool operationPermissibleinL1Cache(MemComponent::Type mem_component, 
             IntPtr address, Core::mem_op_t mem_op_type,
             UInt32 access_num);
 
-      Cache* getL1Cache(MemComponent::component_t mem_component);
-      ShmemMsg::msg_t getShmemMsgType(Core::mem_op_t mem_op_type);
+      Cache* getL1Cache(MemComponent::Type mem_component);
+      ShmemMsg::Type getShmemMsgType(Core::mem_op_t mem_op_type);
 
+      // Cache line utilization & lifetime
+      CacheLineUtilization getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address);
+      UInt64 getCacheLineLifetime(MemComponent::Type mem_component, IntPtr address, UInt64 curr_time);
+      
       // Utilities
       tile_id_t getTileId();
       UInt32 getCacheLineSize();

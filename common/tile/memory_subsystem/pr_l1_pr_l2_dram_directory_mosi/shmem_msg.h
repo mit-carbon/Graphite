@@ -1,14 +1,17 @@
 #pragma once
 
+#include "common_defines.h"
 #include "mem_component.h"
 #include "fixed_types.h"
+#include "aggregate_cache_line_utilization.h"
+#include "aggregate_cache_line_lifetime.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
    class ShmemMsg
    {
    public:
-      enum msg_t
+      enum Type
       {
          INVALID_MSG_TYPE = 0,
          MIN_MSG_TYPE,
@@ -30,28 +33,37 @@ namespace PrL1PrL2DramDirectoryMOSI
       }; 
 
       ShmemMsg();
-      ShmemMsg(msg_t msg_type,
-            MemComponent::component_t sender_mem_component,
-            MemComponent::component_t receiver_mem_component,
-            tile_id_t requester,
-            tile_id_t single_receiver,
-            bool reply_expected,
-            IntPtr address,
-            bool modeled,
-            UInt32 cache_line_utilization = 0);
-      ShmemMsg(msg_t msg_type,
-            MemComponent::component_t sender_mem_component,
-            MemComponent::component_t receiver_mem_component,
-            tile_id_t requester,
-            tile_id_t single_receiver,
-            bool reply_expected,
-            IntPtr address,
-            Byte* data_buf,
-            UInt32 data_length,
-            bool modeled,
-            UInt32 cache_line_utilization = 0);
+      ShmemMsg(Type msg_type
+               , MemComponent::Type sender_mem_component
+               , MemComponent::Type receiver_mem_component
+               , tile_id_t requester
+               , tile_id_t single_receiver
+               , bool reply_expected
+               , IntPtr address
+               , bool modeled
+#ifdef TRACK_UTILIZATION_COUNTERS
+               , UInt64 cache_line_birth_time = 0
+               , AggregateCacheLineUtilization aggregate_utilization = AggregateCacheLineUtilization()
+               , AggregateCacheLineLifetime aggregate_lifetime = AggregateCacheLineLifetime()
+#endif
+               );
+      ShmemMsg(Type msg_type
+               , MemComponent::Type sender_mem_component
+               , MemComponent::Type receiver_mem_component
+               , tile_id_t requester
+               , tile_id_t single_receiver
+               , bool reply_expected
+               , IntPtr address
+               , Byte* data_buf
+               , UInt32 data_length
+               , bool modeled
+#ifdef TRACK_UTILIZATION_COUNTERS
+               , UInt64 cache_line_birth_time = 0
+               , AggregateCacheLineUtilization aggregate_utilization = AggregateCacheLineUtilization()
+               , AggregateCacheLineLifetime aggregate_lifetime = AggregateCacheLineLifetime()
+#endif
+               );
       ShmemMsg(const ShmemMsg* shmem_msg);
-
       ~ShmemMsg();
 
       void clone(const ShmemMsg* shmem_msg);
@@ -62,25 +74,32 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Modeled Parameters
       UInt32 getModeledLength();
 
-      msg_t getMsgType() const { return _msg_type; }
-      MemComponent::component_t getSenderMemComponent() const { return _sender_mem_component; }
-      MemComponent::component_t getReceiverMemComponent() const { return _receiver_mem_component; }
-      tile_id_t getRequester() const { return _requester; }
-      tile_id_t getSingleReceiver() const { return _single_receiver; }
-      bool isReplyExpected() const { return _reply_expected; }
-      IntPtr getAddress() const { return _address; }
-      Byte* getDataBuf() const { return _data_buf; }
-      UInt32 getDataLength() const { return _data_length; }
-      bool isModeled() const { return _modeled; }
-      UInt32 getCacheLineUtilization() const { return _cache_line_utilization; }
+      Type getType() const                               { return _msg_type; }
+      MemComponent::Type getSenderMemComponent() const   { return _sender_mem_component; }
+      MemComponent::Type getReceiverMemComponent() const { return _receiver_mem_component; }
+      tile_id_t getRequester() const                     { return _requester; }
+      tile_id_t getSingleReceiver() const                { return _single_receiver; }
+      bool isReplyExpected() const                       { return _reply_expected; }
+      IntPtr getAddress() const                          { return _address; }
+      Byte* getDataBuf() const                           { return _data_buf; }
+      UInt32 getDataLength() const                       { return _data_length; }
+      bool isModeled() const                             { return _modeled; }
+#ifdef TRACK_UTILIZATION_COUNTERS
+      UInt64 getCacheLineBirthTime() const
+      { return _cache_line_birth_time; }
+      AggregateCacheLineUtilization getAggregateCacheLineUtilization() const
+      { return _aggregate_cache_line_utilization; }
+      AggregateCacheLineLifetime getAggregateCacheLineLifetime() const
+      { return _aggregate_cache_line_lifetime; }
+#endif
 
-      void setMsgType(msg_t msg_type) { _msg_type = msg_type; }
+      void setMsgType(Type msg_type) { _msg_type = msg_type; }
       void setDataBuf(Byte* data_buf) { _data_buf = data_buf; }
 
    private:   
-      msg_t _msg_type;
-      MemComponent::component_t _sender_mem_component;
-      MemComponent::component_t _receiver_mem_component;
+      Type _msg_type;
+      MemComponent::Type _sender_mem_component;
+      MemComponent::Type _receiver_mem_component;
       tile_id_t _requester;
       tile_id_t _single_receiver;
       bool _reply_expected;
@@ -88,6 +107,10 @@ namespace PrL1PrL2DramDirectoryMOSI
       Byte* _data_buf;
       UInt32 _data_length;
       bool _modeled;
-      UInt32 _cache_line_utilization;
+#ifdef TRACK_UTILIZATION_COUNTERS
+      UInt64 _cache_line_birth_time;
+      AggregateCacheLineUtilization _aggregate_cache_line_utilization;
+      AggregateCacheLineLifetime _aggregate_cache_line_lifetime;
+#endif
    };
 }

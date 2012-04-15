@@ -14,6 +14,7 @@ using std::set;
 #include "cache_area_model.h"
 #include "utils.h"
 #include "fixed_types.h"
+#include "cache_line_utilization.h"
 
 #define k_KILO 1024
 #define k_MEGA (k_KILO*k_KILO)
@@ -89,7 +90,7 @@ public:
                         bool* eviction, IntPtr* evicted_address, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf);
    void getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info);
    void setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info);
-   bool invalidateCacheLine(IntPtr address);
+   bool invalidateCacheLine(IntPtr address, CacheLineUtilization cache_line_utilization = CacheLineUtilization(), UInt64 time = 0);
 
    // Get the tag associated with an address
    IntPtr getTag(IntPtr address) const;

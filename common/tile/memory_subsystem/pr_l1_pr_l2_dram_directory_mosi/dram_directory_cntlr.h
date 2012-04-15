@@ -74,15 +74,16 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool _enabled;
 
       // Event Counters
-      static const UInt32 MAX_TRACKED_LOCAL_UTILIZATION = 31;
       UInt64 _total_exreq;
       UInt64 _total_exreq_in_modified_state;
       UInt64 _total_exreq_in_shared_state;
       UInt64 _total_exreq_with_upgrade_replies;
       UInt64 _total_exreq_in_uncached_state;
-      UInt64 _total_exreq_in_modified_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
-      UInt64 _total_exreq_in_shared_state_with_invrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
-      UInt64 _total_exreq_in_shared_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+#ifdef TRACK_UTILIZATION_COUNTERS
+      UInt64 _total_exreq_in_modified_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
+      UInt64 _total_exreq_in_shared_state_with_invrep[MAX_TRACKED_UTILIZATION+1];
+      UInt64 _total_exreq_in_shared_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
+#endif
       UInt64 _total_exreq_serialization_time;
       UInt64 _total_exreq_processing_time;
 
@@ -90,8 +91,10 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_shreq_in_modified_state;
       UInt64 _total_shreq_in_shared_state;
       UInt64 _total_shreq_in_uncached_state;
-      UInt64 _total_shreq_in_modified_state_with_wbrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
-      UInt64 _total_shreq_in_shared_state_with_wbrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+#ifdef TRACK_UTILIZATION_COUNTERS
+      UInt64 _total_shreq_in_modified_state_with_wbrep[MAX_TRACKED_UTILIZATION+1];
+      UInt64 _total_shreq_in_shared_state_with_wbrep[MAX_TRACKED_UTILIZATION+1];
+#endif
       UInt64 _total_shreq_serialization_time;
       UInt64 _total_shreq_processing_time;
 
@@ -99,9 +102,11 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_nullifyreq_in_modified_state;
       UInt64 _total_nullifyreq_in_shared_state;
       UInt64 _total_nullifyreq_in_uncached_state;
-      UInt64 _total_nullifyreq_in_modified_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
-      UInt64 _total_nullifyreq_in_shared_state_with_invrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
-      UInt64 _total_nullifyreq_in_shared_state_with_flushrep[MAX_TRACKED_LOCAL_UTILIZATION+1];
+#ifdef TRACK_UTILIZATION_COUNTERS
+      UInt64 _total_nullifyreq_in_modified_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
+      UInt64 _total_nullifyreq_in_shared_state_with_invrep[MAX_TRACKED_UTILIZATION+1];
+      UInt64 _total_nullifyreq_in_shared_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
+#endif
       UInt64 _total_nullifyreq_serialization_time;
       UInt64 _total_nullifyreq_processing_time;
 
@@ -112,6 +117,16 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_invalidations_broadcast_mode;
       UInt64 _total_sharers_invalidated_broadcast_mode;
       UInt64 _total_invalidation_processing_time_broadcast_mode;
+
+#ifdef TRACK_UTILIZATION_COUNTERS
+      // Computing sharer count vs private copy threshold
+      UInt32 _max_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
+      UInt64 _total_sharers_invalidated_by_utilization[MAX_TRACKED_UTILIZATION+1];
+      UInt64 _total_invalidations;
+      // Cache capacity savings by private copy threshold
+      AggregateCacheLineLifetime _cache_capacity_savings_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
+
+#endif
 
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager() { return _memory_manager; }
@@ -131,7 +146,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       void processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* shmem_msg);
       void sendDataToDram(IntPtr address, Byte* data_buf, bool msg_modeled);
    
-      void sendShmemMsg(ShmemMsg::Type requester_msg_type, ShmemMsg::Type send_msg_type, IntPtr address, tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list, bool msg_modeled);
+      void sendShmemMsg(ShmemMsg::Type requester_msg_type, ShmemMsg::Type send_msg_type, IntPtr address,
+                        tile_id_t requester, tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list,
+                        bool msg_modeled);
       void restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, DirectoryEntry* directory_entry);
 
       // Update Performance Counters
@@ -140,7 +157,31 @@ namespace PrL1PrL2DramDirectoryMOSI
       void updateInvalidationEventCounters(bool in_broadcast_mode, SInt32 num_sharers);
       void updateShmemReqLatencyCounters(const ShmemReq* shmem_req);
       void updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 shmem_req_latency);
-      void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, tile_id_t sender, const ShmemMsg* shmem_msg);
+
+#ifdef TRACK_UTILIZATION_COUNTERS
+      // Initialization
+      void initializeSharerCounters();
+      void initializeCacheCapacitySavingsCounters();
+
+      // Operation
+      void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
+                                              tile_id_t sender, const ShmemMsg* shmem_msg);
+      void computeCacheCapacitySavings(ShmemReq* dir_request, DirectoryEntry* directory_entry,
+                                       tile_id_t sender, const ShmemMsg* shmem_msg);
+      void updateCacheCapacitySavingsCounters(ShmemReq* completed_shmem_req);
+      void updateCacheCapacitySavingsCounters(tile_id_t sender, const ShmemMsg* shmem_msg);
+      void updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
+                                tile_id_t sender, UInt64 cache_line_utilization);
+
+      // Output summary
+      void outputSharerCountSummary(ostream& out);
+      void outputCacheCapacitySavingsSummary(ostream& out);
+      static void dummyOutputSharerCountSummary(ostream& out);
+      static void dummyOutputCacheCapacitySavingsSummary(ostream& out);
+
+      // Utils
+      UInt64 getTime();
+#endif
 
       // Add/Remove Sharer
       bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);

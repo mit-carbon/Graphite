@@ -31,9 +31,17 @@ public:
 
    virtual UInt32 getLatency() = 0;
 
+   // Utilization
+   void setUtilization(UInt64 utilization);
+   void getUtilizationVec(vector<UInt64>& utilization_vec);
+   void resetUtilizationVec();
+
 protected:
    IntPtr _address;
    DirectoryBlockInfo* _directory_block_info;
    tile_id_t _owner_id;
    SInt32 _max_hw_sharers;
+
+private:
+   vector<UInt64> _utilization_vec;
 };

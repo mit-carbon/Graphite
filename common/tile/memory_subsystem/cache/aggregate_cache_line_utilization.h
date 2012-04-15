@@ -16,7 +16,7 @@ public:
   
    UInt64 total()
    {
-      return L1_I.read + L1_I.write + L1_D.read + L1_D.write + L2.read + L2.write;
+      return L1_I.total() + L1_D.total() + L2.total();
    }
 
    void operator+=(const AggregateCacheLineUtilization& util)

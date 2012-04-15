@@ -85,6 +85,8 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
    else
    {
       *eviction = false;
+      // Get the line info for the purpose of getting the utilization and birth time
+      evicted_cache_line_info->assign(_cache_line_info_array[index]);
    }
 
    _cache_line_info_array[index]->assign(inserted_cache_line_info);

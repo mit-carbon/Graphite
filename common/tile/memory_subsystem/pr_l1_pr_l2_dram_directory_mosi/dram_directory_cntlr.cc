@@ -1,7 +1,7 @@
-#include "common_defines.h"
 #include "dram_directory_cntlr.h"
 #include "log.h"
 #include "memory_manager.h"
+#include "common_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -30,10 +30,10 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                                num_dram_cntlrs,
                                                dram_directory_cache_access_delay_in_ns);
 
-   _dram_directory_req_queue_list = new ReqQueueList();
+   _dram_directory_req_queue_list = new HashMapQueue<IntPtr,ShmemReq*>();
    _cached_data_list = new DataList(cache_line_size);
 
-   _directory_type = Directory::parseDirectoryType(dram_directory_type_str);
+   _directory_type = DirectoryEntry::parseDirectoryType(dram_directory_type_str);
 
    // Update Counters
    initializeEventCounters();
@@ -63,7 +63,7 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          ShmemReq* shmem_req = new ShmemReq(shmem_msg, msg_time);
          _dram_directory_req_queue_list->enqueue(address, shmem_req);
 
-         if (_dram_directory_req_queue_list->size(address) == 1)
+         if (_dram_directory_req_queue_list->count(address) == 1)
          {
             // The req is processed immediately
             shmem_req->updateProcessingStartTime(msg_time);
@@ -110,7 +110,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 {
    LOG_PRINT("Start processNextReqFromL2Cache(%#lx)", address);
 
-   assert(_dram_directory_req_queue_list->size(address) >= 1);
+   assert(_dram_directory_req_queue_list->count(address) >= 1);
    
    // Get the completed shmem req
    ShmemReq* completed_shmem_req = _dram_directory_req_queue_list->dequeue(address);
@@ -120,9 +120,6 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 
    // Update latency counters
    updateShmemReqLatencyCounters(completed_shmem_req);
-
-   // Update cache line lifetime counters
-   updateCacheCapacitySavingsCounters(completed_shmem_req);
 
    // Delete the completed shmem req
    delete completed_shmem_req;
@@ -174,7 +171,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
              ((*replacement_candidate)->getNumSharers() > (*it)->getNumSharers()) 
            )
            &&
-           (_dram_directory_req_queue_list->size((*it)->getAddress()) == 0)
+           (_dram_directory_req_queue_list->count((*it)->getAddress()) == 0)
          )
       {
          replacement_candidate = it;
@@ -196,7 +193,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
    ShmemReq* nullify_req = new ShmemReq(&nullify_msg, msg_time);
    _dram_directory_req_queue_list->enqueue(replaced_address, nullify_req);
 
-   assert(_dram_directory_req_queue_list->size(replaced_address) == 1);
+   assert(_dram_directory_req_queue_list->count(replaced_address) == 1);
    processNullifyReq(nullify_req, (DirectoryEntry*) NULL, true);
 
    return directory_entry;
@@ -536,7 +533,7 @@ DramDirectoryCntlr::sendShmemMsg(ShmemMsg::Type requester_msg_type, ShmemMsg::Ty
    if (all_tiles_sharers)
    {
       bool reply_expected = false;
-      if (_directory_type == Directory::LIMITED_BROADCAST)
+      if (_directory_type == LIMITED_BROADCAST)
          reply_expected = true;
 
       // Broadcast Invalidation Request to all tiles 
@@ -631,7 +628,7 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* s
       break;
    }
 
-   if (_dram_directory_req_queue_list->size(address) > 0)
+   if (_dram_directory_req_queue_list->count(address) > 0)
    {
       // Get the latest request for the data
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
@@ -639,18 +636,7 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* s
       // Update the utilization statistics
       updateCacheLineUtilizationCounters(shmem_req, directory_entry, sender, shmem_msg);
 
-      // Compute the cache capacity savings
-      computeCacheCapacitySavings(shmem_req, directory_entry, sender, shmem_msg);
-
       restartShmemReq(sender, shmem_req, directory_entry);
-   }
-   else
-   {
-      if (directory_block_info->getDState() != DirectoryState::UNCACHED)
-      {
-         // This was an eviction and this is not the last sharer
-         updateCacheCapacitySavingsCounters(sender, shmem_msg);
-      }
    }
 }
 
@@ -714,7 +700,7 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg*
       break;
    }
 
-   if (_dram_directory_req_queue_list->size(address) > 0)
+   if (_dram_directory_req_queue_list->count(address) > 0)
    {
       // First save the data in one of the buffers in the directory cntlr
       _cached_data_list->insert(address, shmem_msg->getDataBuf());
@@ -745,12 +731,6 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg*
       // This was just an eviction
       // Write Data to Dram
       sendDataToDram(address, shmem_msg->getDataBuf(), shmem_msg->isModeled());
-      
-      if (directory_block_info->getDState() != DirectoryState::UNCACHED)
-      {
-         // This was an eviction and this is not the last sharer
-         updateCacheCapacitySavingsCounters(sender, shmem_msg);
-      }
    }
 }
 
@@ -772,7 +752,7 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* sh
    case DirectoryState::MODIFIED:
       LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
             "Address(%#lx), sender(%i), owner(%i)", address, sender, directory_entry->getOwner());
-      LOG_ASSERT_ERROR(_dram_directory_req_queue_list->size(address) > 0,
+      LOG_ASSERT_ERROR(_dram_directory_req_queue_list->count(address) > 0,
             "Address(%#lx), WB_REP, req queue empty!!", address);
 
       directory_block_info->setDState(DirectoryState::OWNED);
@@ -799,7 +779,7 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* sh
       break;
    }
 
-   if (_dram_directory_req_queue_list->size(address) > 0)
+   if (_dram_directory_req_queue_list->count(address) > 0)
    {
       // First save the data in one of the buffers in the directory cntlr
       _cached_data_list->insert(address, shmem_msg->getDataBuf());
@@ -873,7 +853,7 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_exreq_in_shared_state = 0;
    _total_exreq_with_upgrade_replies = 0;
    _total_exreq_in_uncached_state = 0;
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
    for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
    {
       _total_exreq_in_modified_state_with_flushrep[i] = 0;
@@ -889,7 +869,7 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_shreq_in_modified_state = 0;
    _total_shreq_in_shared_state = 0;
    _total_shreq_in_uncached_state = 0;
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
    for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
    {
       _total_shreq_in_modified_state_with_wbrep[i] = 0;
@@ -904,7 +884,7 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_nullifyreq_in_modified_state = 0;
    _total_nullifyreq_in_shared_state = 0;
    _total_nullifyreq_in_uncached_state = 0;
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
    for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
    {
       _total_nullifyreq_in_modified_state_with_flushrep[i] = 0;
@@ -923,14 +903,13 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_invalidation_processing_time_unicast_mode = 0;
    _total_invalidation_processing_time_broadcast_mode = 0;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
    initializeSharerCounters();
-   initializeCacheCapacitySavingsCounters();
 #endif
 
 }
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
 
 void
 DramDirectoryCntlr::initializeSharerCounters()
@@ -941,12 +920,6 @@ DramDirectoryCntlr::initializeSharerCounters()
    for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
       _total_sharers_invalidated_by_utilization[i] = 0;
    _total_invalidations = 0;
-}
-
-void
-DramDirectoryCntlr::initializeCacheCapacitySavingsCounters()
-{
-   // Nothing to initialize here for now
 }
 
 #endif
@@ -1097,7 +1070,7 @@ DramDirectoryCntlr::updateInvalidationLatencyCounters(bool initial_broadcast_mod
       _total_invalidation_processing_time_unicast_mode += invalidation_processing_time;
 }
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
 
 void
 DramDirectoryCntlr::updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
@@ -1160,8 +1133,7 @@ DramDirectoryCntlr::updateCacheLineUtilizationCounters(const ShmemReq* dir_reque
    ShmemMsg::Type dir_request_type = dir_request->getShmemMsg()->getType();
    
    ShmemMsg::Type local_msg_type = shmem_msg->getType();
-   AggregateCacheLineUtilization aggregate_utilization = shmem_msg->getAggregateCacheLineUtilization();
-   UInt64 utilization = aggregate_utilization.total();
+   UInt64 utilization = shmem_msg->getCacheLineUtilization();
 
    // Track utilization only till a particular point
    if (utilization > MAX_TRACKED_UTILIZATION)
@@ -1240,95 +1212,6 @@ DramDirectoryCntlr::updateCacheLineUtilizationCounters(const ShmemReq* dir_reque
    }
 }
 
-// For invalidations that are forced by an exclusive request
-void
-DramDirectoryCntlr::computeCacheCapacitySavings(ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                                tile_id_t sender, const ShmemMsg* shmem_msg)
-{
-   if (!_enabled)
-      return;
-
-   ShmemMsg::Type dir_request_type = dir_request->getShmemMsg()->getType();
-  
-   // Get cache line utilization 
-   AggregateCacheLineUtilization aggregate_utilization = shmem_msg->getAggregateCacheLineUtilization();
-   UInt64 utilization = aggregate_utilization.total();
-   // Get cache line lifetime
-   AggregateCacheLineLifetime aggregate_lifetime = shmem_msg->getAggregateCacheLineLifetime();
-
-   // Track utilization only till a particular point
-   if (utilization > MAX_TRACKED_UTILIZATION)
-      utilization = MAX_TRACKED_UTILIZATION;
-
-   switch (dir_request_type)
-   {
-   case ShmemMsg::EX_REQ:
-   case ShmemMsg::NULLIFY_REQ:
-      // Compute the oldest cache line (in terms of birth)
-      for (UInt32 private_copy_threshold = utilization + 2; 
-                  private_copy_threshold <= MAX_PRIVATE_COPY_THRESHOLD;
-                  private_copy_threshold ++)
-      {
-         // Counters to track the savings in L1/L2 capacity
-         dir_request->updateCacheCapacitySavingsCounters(private_copy_threshold,
-                                                         shmem_msg->getCacheLineBirthTime(),
-                                                         shmem_msg->getAggregateCacheLineLifetime());
-      }
-      break;
-
-   case ShmemMsg::SH_REQ:
-      // FIXME: We don't waste any lifetime here
-      break;
-
-   default:
-      LOG_PRINT_ERROR("Unrecognized Shmem Req(%u)", dir_request_type);
-      break;
-   }
-}
-
-// Update the global counters once the shared memory request has completed
-void
-DramDirectoryCntlr::updateCacheCapacitySavingsCounters(ShmemReq* completed_shmem_req)
-{
-   if (!_enabled)
-      return;
-
-   UInt64 curr_time = getTime();
-   for (UInt32 private_copy_threshold = 1;
-               private_copy_threshold <= MAX_PRIVATE_COPY_THRESHOLD;
-               private_copy_threshold ++)
-   {
-      AggregateCacheLineLifetime cache_capacity_savings;
-      completed_shmem_req->getCacheCapacitySavings(private_copy_threshold, curr_time, cache_capacity_savings);
-      _cache_capacity_savings_by_PCT[private_copy_threshold] += cache_capacity_savings;
-   }
-}
-
-// For evictions where last sharer is still standing
-void
-DramDirectoryCntlr::updateCacheCapacitySavingsCounters(tile_id_t sender, const ShmemMsg* shmem_msg)
-{
-   if (!_enabled)
-      return;
-
-   // Get utilization
-   AggregateCacheLineUtilization aggregate_utilization = shmem_msg->getAggregateCacheLineUtilization();
-   UInt64 utilization = aggregate_utilization.total();
-   // Get lifetime
-   AggregateCacheLineLifetime aggregate_lifetime = shmem_msg->getAggregateCacheLineLifetime();
-
-   // Track utilization only till a particular point
-   if (utilization > MAX_TRACKED_UTILIZATION)
-      utilization = MAX_TRACKED_UTILIZATION;
-
-   for (UInt32 private_copy_threshold = utilization + 2;
-               private_copy_threshold <= MAX_PRIVATE_COPY_THRESHOLD;
-               private_copy_threshold ++)
-   {
-      _cache_capacity_savings_by_PCT[private_copy_threshold] += aggregate_lifetime;
-   }
-}
-
 #endif
 
 bool
@@ -1361,7 +1244,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - UNCACHED State: " << _total_exreq_in_uncached_state << endl;
       out << "    Exclusive Request - Upgrade Reply: " << _total_exreq_with_upgrade_replies << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Exclusive Request - MODIFIED State - FLUSH Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << _total_exreq_in_modified_state_with_flushrep[i] << endl;
@@ -1385,7 +1268,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - UNCACHED State: " << endl;
       out << "    Exclusive Request - Upgrade Reply: " << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Exclusive Request - MODIFIED State - FLUSH Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << endl;
@@ -1409,7 +1292,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - SHARED State: " << _total_shreq_in_shared_state << endl;
       out << "    Shared Request - UNCACHED State: " << _total_shreq_in_uncached_state << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Shared Request - MODIFIED State - WB Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << _total_shreq_in_modified_state_with_wbrep[i] << endl;
@@ -1428,7 +1311,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - SHARED State: " << endl;
       out << "    Shared Request - UNCACHED State: " << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Shared Request - MODIFIED State - WB Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << endl;
@@ -1448,7 +1331,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - SHARED State: " << _total_nullifyreq_in_shared_state << endl;
       out << "    Nullify Request - UNCACHED State: " << _total_nullifyreq_in_uncached_state << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Nullify Request - MODIFIED State - FLUSH Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << _total_nullifyreq_in_modified_state_with_flushrep[i] << endl;
@@ -1471,7 +1354,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - SHARED State: " << endl;
       out << "    Nullify Request - UNCACHED State: " << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Nullify Request - MODIFIED State - FLUSH Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << endl;
@@ -1517,13 +1400,12 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
    }
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
    outputSharerCountSummary(out);
-   outputCacheCapacitySavingsSummary(out);
 #endif
 }
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
 void
 DramDirectoryCntlr::outputSharerCountSummary(ostream& out)
 {
@@ -1548,17 +1430,6 @@ DramDirectoryCntlr::outputSharerCountSummary(ostream& out)
    out << "    Total Invalidations: " << _total_invalidations << endl;
 }
 
-void
-DramDirectoryCntlr::outputCacheCapacitySavingsSummary(ostream& out)
-{
-   out << "    Cache Capacity Savings by Private Copy Threshold: " << endl;
-   for (UInt32 i = 1; i <= MAX_PRIVATE_COPY_THRESHOLD; i++)
-   {
-      out << "    L1-I_PCT-" << i << ": " << _cache_capacity_savings_by_PCT[i].L1_I << endl;
-      out << "    L1-D_PCT-" << i << ": " << _cache_capacity_savings_by_PCT[i].L1_D << endl;
-      out << "    L2_PCT-" << i << ": " << _cache_capacity_savings_by_PCT[i].L2 << endl;
-   }
-}
 #endif
 
 void
@@ -1575,7 +1446,7 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Exclusive Request - UNCACHED State: " << endl;
    out << "    Exclusive Request - Upgrade Reply: " << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Exclusive Request - MODIFIED State - FLUSH Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << endl;
@@ -1596,7 +1467,7 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Shared Request - SHARED State: " << endl;
    out << "    Shared Request - UNCACHED State: " << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Shared Request - MODIFIED State - WB Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << endl;
@@ -1613,7 +1484,7 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Nullify Request - SHARED State: " << endl;
    out << "    Nullify Request - UNCACHED State: " << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       out << "    Utilization Summary (Nullify Request - MODIFIED State - FLUSH Rep): " << endl;
       for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
          out << "      Utilization-" << i << ": " << endl;
@@ -1638,13 +1509,12 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
    out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
    dummyOutputSharerCountSummary(out);
-   dummyOutputCacheCapacitySavingsSummary(out);
 #endif
 }
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
 
 void
 DramDirectoryCntlr::dummyOutputSharerCountSummary(ostream& out)
@@ -1659,28 +1529,7 @@ DramDirectoryCntlr::dummyOutputSharerCountSummary(ostream& out)
    out << "    Total Invalidations: " << endl;
 }
 
-void
-DramDirectoryCntlr::dummyOutputCacheCapacitySavingsSummary(ostream& out)
-{
-   out << "    Cache Capacity Savings by Private Copy Threshold: " << endl;
-   for (UInt32 i = 1; i <= MAX_PRIVATE_COPY_THRESHOLD; i++)
-   {
-      out << "    L1-I_PCT-" << i << ": " << endl;
-      out << "    L1-D_PCT-" << i << ": " << endl;
-      out << "    L2_PCT-" << i << ": " << endl;
-   }
-}
-
-UInt64
-DramDirectoryCntlr::getTime()
-{
-   volatile float frequency = getMemoryManager()->getTile()->getCore()->getPerformanceModel()->getFrequency();
-   assert(frequency == 1.0);
-   return (UInt64) (((double) getShmemPerfModel()->getCycleCount()) / frequency);
-}
-
 #endif
-
 
 UInt32
 DramDirectoryCntlr::getCacheLineSize()

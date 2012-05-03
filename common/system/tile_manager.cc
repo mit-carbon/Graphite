@@ -322,7 +322,7 @@ bool TileManager::amiSimThread()
     return m_thread_type_tls ? (m_thread_type_tls->getInt() == SIM_THREAD) : false;
 }
 
-bool TileManager::amiUserThread()
+bool TileManager::amiAppThread()
 {
     return m_thread_type_tls ? (m_thread_type_tls->getInt() == APP_THREAD) : false;
 }

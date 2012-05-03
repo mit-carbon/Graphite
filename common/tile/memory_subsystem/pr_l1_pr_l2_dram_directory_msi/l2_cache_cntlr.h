@@ -13,7 +13,7 @@ namespace PrL1PrL2DramDirectoryMSI
 }
 
 #include "cache.h"
-#include "pr_l2_cache_line_info.h"
+#include "cache_line_info.h"
 #include "address_home_lookup.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
@@ -30,15 +30,15 @@ namespace PrL1PrL2DramDirectoryMSI
       L2CacheCntlr(MemoryManager* memory_manager,
                    L1CacheCntlr* l1_cache_cntlr,
                    AddressHomeLookup* dram_directory_home_lookup,
-                   Semaphore* user_thread_sem,
-                   Semaphore* network_thread_sem,
+                   Semaphore* app_thread_sem,
+                   Semaphore* sim_thread_sem,
                    UInt32 cache_line_size,
                    UInt32 l2_cache_size,
                    UInt32 l2_cache_associativity,
                    string l2_cache_replacement_policy,
                    UInt32 l2_cache_access_delay,
                    bool l2_cache_track_miss_types,
-                   volatile float frequency);
+                   float frequency);
       ~L2CacheCntlr();
 
       Cache* getL2Cache() { return _l2_cache; }
@@ -68,15 +68,13 @@ namespace PrL1PrL2DramDirectoryMSI
       UInt64 _outstanding_shmem_msg_time;
       
       Lock _l2_cache_lock;
-      Semaphore* _user_thread_sem;
-      Semaphore* _network_thread_sem;
+      Semaphore* _app_thread_sem;
+      Semaphore* _sim_thread_sem;
 
       // L2 cache operations
-      void getCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info);
-      void setCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info);
-      void invalidateCacheLine(IntPtr address);
       void readCacheLine(IntPtr address, Byte* data_buf);
       void insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf, MemComponent::Type mem_component);
+      void invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& l2_cache_line_info);
 
       // L1 cache operations
       void setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
@@ -105,10 +103,10 @@ namespace PrL1PrL2DramDirectoryMSI
       MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
 
-      // Wake up User Thread
-      void wakeUpUserThread();
-      // Wait for User Thread
-      void waitForUserThread();
+      // Wake up App Thread
+      void wakeUpAppThread();
+      // Wait for App Thread
+      void waitForAppThread();
 
       // Dram Directory Home Lookup
       tile_id_t getHome(IntPtr address) { return _dram_directory_home_lookup->getHome(address); }

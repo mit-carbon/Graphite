@@ -28,14 +28,14 @@ ShmemPerfModel::initializePerformanceCounters()
 ShmemPerfModel::Thread_t 
 ShmemPerfModel::getThreadNum()
 {
-   if (Sim()->getTileManager()->amiUserThread())
+   if (Sim()->getTileManager()->amiAppThread())
    {
       assert(!Sim()->getTileManager()->amiSimThread());
-      return _USER_THREAD;
+      return _APP_THREAD;
    }
    else if (Sim()->getTileManager()->amiSimThread())
    {
-      assert(!Sim()->getTileManager()->amiUserThread());
+      assert(!Sim()->getTileManager()->amiAppThread());
       return _SIM_THREAD;
    }
    else

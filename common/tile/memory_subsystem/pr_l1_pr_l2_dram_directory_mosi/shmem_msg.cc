@@ -17,9 +17,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(NULL)
       , _data_length(0)
       , _modeled(false)
-#ifdef TRACK_UTILIZATION_COUNTERS
-      , _cache_line_birth_time(0)
-#endif
    {}
 
    ShmemMsg::ShmemMsg(Type msg_type
@@ -30,10 +27,9 @@ namespace PrL1PrL2DramDirectoryMOSI
                      , bool reply_expected
                      , IntPtr address
                      , bool modeled
-#ifdef TRACK_UTILIZATION_COUNTERS
-                     , UInt64 cache_line_birth_time
-                     , AggregateCacheLineUtilization aggregate_utilization
-                     , AggregateCacheLineLifetime aggregate_lifetime
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+                     , UInt64 cache_line_utilization
+                     , UInt64 L2_cache_line_lifetime
 #endif
                      )
       : _msg_type(msg_type)
@@ -46,10 +42,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(NULL)
       , _data_length(0)
       , _modeled(modeled)
-#ifdef TRACK_UTILIZATION_COUNTERS
-      , _cache_line_birth_time(cache_line_birth_time)
-      , _aggregate_cache_line_utilization(aggregate_utilization)
-      , _aggregate_cache_line_lifetime(aggregate_lifetime)
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+      , _cache_line_utilization(cache_line_utilization)
+      , _L2_cache_line_lifetime(L2_cache_line_lifetime)
 #endif
    {}
 
@@ -63,10 +58,9 @@ namespace PrL1PrL2DramDirectoryMOSI
                      , Byte* data_buf
                      , UInt32 data_length
                      , bool modeled
-#ifdef TRACK_UTILIZATION_COUNTERS
-                     , UInt64 cache_line_birth_time
-                     , AggregateCacheLineUtilization aggregate_utilization
-                     , AggregateCacheLineLifetime aggregate_lifetime
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+                     , UInt64 cache_line_utilization
+                     , UInt64 L2_cache_line_lifetime
 #endif
                      )
       : _msg_type(msg_type)
@@ -79,10 +73,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(data_buf)
       , _data_length(data_length)
       , _modeled(modeled)
-#ifdef TRACK_UTILIZATION_COUNTERS
-      , _cache_line_birth_time(cache_line_birth_time)
-      , _aggregate_cache_line_utilization(aggregate_utilization)
-      , _aggregate_cache_line_lifetime(aggregate_lifetime)
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+      , _cache_line_utilization(cache_line_utilization)
+      , _L2_cache_line_lifetime(L2_cache_line_lifetime)
 #endif
    {}
 
@@ -107,10 +100,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       _data_buf = shmem_msg->getDataBuf();
       _data_length = shmem_msg->getDataLength();
       _modeled = shmem_msg->isModeled();
-#ifdef TRACK_UTILIZATION_COUNTERS
-      _cache_line_birth_time = shmem_msg->getCacheLineBirthTime();
-      _aggregate_cache_line_utilization = shmem_msg->getAggregateCacheLineUtilization();
-      _aggregate_cache_line_lifetime = shmem_msg->getAggregateCacheLineLifetime();
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+      _cache_line_utilization = shmem_msg->getCacheLineUtilization();
+      _L2_cache_line_lifetime = shmem_msg->getL2CacheLineLifetime();
 #endif
    }
 

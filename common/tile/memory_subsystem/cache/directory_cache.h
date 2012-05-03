@@ -13,6 +13,8 @@ using std::ostream;
 #include "shmem_perf_model.h"
 #include "cache_power_model.h"
 #include "cache_area_model.h"
+#include "directory_entry.h"
+#include "directory_type.h"
 
 class DirectoryCache
 {
@@ -50,6 +52,9 @@ private:
    map<IntPtr,UInt64> _replaced_address_map;
    vector<UInt64> _set_replacement_histogram;
 
+   DirectoryType _directory_type;
+   UInt32 _max_hw_sharers;
+   UInt32 _max_num_sharers;
    UInt32 _total_entries;
    UInt32 _associativity;
 

@@ -11,7 +11,7 @@ namespace ShL1ShL2
 }
 
 #include "cache.h"
-#include "pr_l2_cache_line_info.h"
+#include "cache_line_info.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
 #include "fixed_types.h"
@@ -29,7 +29,7 @@ namespace ShL1ShL2
                    string l2_cache_replacement_policy,
                    UInt32 l2_cache_access_delay,
                    bool l2_cache_track_miss_types,
-                   volatile float frequency);
+                   float frequency);
       ~L2CacheCntlr();
 
       void setDramDirectoryCntlr(DramDirectoryCntlr* dram_directory_cntlr)

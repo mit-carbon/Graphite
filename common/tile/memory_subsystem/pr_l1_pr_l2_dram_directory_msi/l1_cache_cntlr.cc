@@ -7,8 +7,8 @@ namespace PrL1PrL2DramDirectoryMSI
 {
 
 L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
-                           Semaphore* user_thread_sem,
-                           Semaphore* network_thread_sem,
+                           Semaphore* app_thread_sem,
+                           Semaphore* sim_thread_sem,
                            UInt32 cache_line_size,
                            UInt32 l1_icache_size,
                            UInt32 l1_icache_associativity,
@@ -20,31 +20,33 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            string l1_dcache_replacement_policy,
                            UInt32 l1_dcache_access_delay,
                            bool l1_dcache_track_miss_types,
-                           volatile float frequency)
+                           float frequency)
    : _memory_manager(memory_manager)
    , _l2_cache_cntlr(NULL)
-   , _user_thread_sem(user_thread_sem)
-   , _network_thread_sem(network_thread_sem)
+   , _app_thread_sem(app_thread_sem)
+   , _sim_thread_sem(sim_thread_sem)
 {
    _l1_icache = new Cache("L1-I",
+         PR_L1_PR_L2_DRAM_DIRECTORY_MSI,
+         Cache::INSTRUCTION_CACHE,
+         L1,
+         Cache::UNDEFINED_WRITE_POLICY,
          l1_icache_size,
          l1_icache_associativity, 
          cache_line_size,
          l1_icache_replacement_policy,
-         Cache::INSTRUCTION_CACHE,
-         Cache::UNDEFINED_WRITE_POLICY,
-         Cache::PR_L1_CACHE,
          l1_icache_access_delay,
          frequency,
          l1_icache_track_miss_types);
    _l1_dcache = new Cache("L1-D",
+         PR_L1_PR_L2_DRAM_DIRECTORY_MSI,
+         Cache::DATA_CACHE,
+         L1,
+         Cache::WRITE_THROUGH,
          l1_dcache_size,
          l1_dcache_associativity, 
          cache_line_size,
          l1_dcache_replacement_policy,
-         Cache::DATA_CACHE,
-         Cache::WRITE_THROUGH,
-         Cache::PR_L1_CACHE,
          l1_dcache_access_delay,
          frequency,
          l1_icache_track_miss_types);
@@ -63,13 +65,12 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr)
 }
 
 bool
-L1CacheCntlr::processMemOpFromTile(
-      MemComponent::Type mem_component,
-      Core::lock_signal_t lock_signal,
-      Core::mem_op_t mem_op_type, 
-      IntPtr ca_address, UInt32 offset,
-      Byte* data_buf, UInt32 data_length,
-      bool modeled)
+L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
+                                   Core::lock_signal_t lock_signal,
+                                   Core::mem_op_t mem_op_type, 
+                                   IntPtr ca_address, UInt32 offset,
+                                   Byte* data_buf, UInt32 data_length,
+                                   bool modeled)
 {
    LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(0x%x)",
          lock_signal, mem_op_type, ca_address);
@@ -81,7 +82,7 @@ L1CacheCntlr::processMemOpFromTile(
    {
       access_num ++;
       LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2),
-            "Error: access_num(%u)", access_num);
+                       "access_num(%u)", access_num);
 
       if (lock_signal != Core::UNLOCK)
          acquireLock(mem_component);
@@ -89,7 +90,7 @@ L1CacheCntlr::processMemOpFromTile(
       // Wake up the network thread after acquiring the lock
       if (access_num == 2)
       {
-         wakeUpNetworkThread();
+         wakeUpSimThread();
       }
 
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num))
@@ -110,8 +111,7 @@ L1CacheCntlr::processMemOpFromTile(
       // Miss in the L1 cache 
       l1_cache_hit = false;
       
-      if (lock_signal == Core::UNLOCK)
-         LOG_PRINT_ERROR("Expected to find address(0x%x) in L1 Cache", ca_address);
+      LOG_ASSERT_ERROR(lock_signal != Core::UNLOCK, "Expected to find address(%#lx) in L1 Cache", ca_address);
 
       // Invalidate the cache line before passing the request to L2 Cache
       invalidateCacheLine(mem_component, ca_address);
@@ -157,7 +157,7 @@ L1CacheCntlr::processMemOpFromTile(
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE, getTileId(), ca_address, msg_modeled);
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
-      waitForNetworkThread();
+      waitForSimThread();
    }
 
    LOG_PRINT_ERROR("Should not reach here");
@@ -284,7 +284,10 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
 {
    Cache* l1_cache = getL1Cache(mem_component);
 
-   l1_cache->invalidateCacheLine(address);
+   PrL1CacheLineInfo l1_cache_line_info;
+   l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
+   l1_cache_line_info.invalidate();
+   l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
 }
 
 ShmemMsg::Type
@@ -358,15 +361,15 @@ L1CacheCntlr::releaseLock(MemComponent::Type mem_component)
 }
 
 void
-L1CacheCntlr::waitForNetworkThread()
+L1CacheCntlr::waitForSimThread()
 {
-   _user_thread_sem->wait();
+   _app_thread_sem->wait();
 }
 
 void
-L1CacheCntlr::wakeUpNetworkThread()
+L1CacheCntlr::wakeUpSimThread()
 {
-   _network_thread_sem->signal();
+   _sim_thread_sem->signal();
 }
 
 tile_id_t

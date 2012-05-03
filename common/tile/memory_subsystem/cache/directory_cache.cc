@@ -25,6 +25,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 num_directories,
                                UInt64 directory_access_delay_in_clock_cycles)
    : _tile(tile)
+   , _max_hw_sharers(max_hw_sharers)
+   , _max_num_sharers(max_num_sharers)
    , _total_entries(total_entries)
    , _associativity(associativity)
    , _cache_line_size(cache_line_size)
@@ -36,9 +38,12 @@ DirectoryCache::DirectoryCache(Tile* tile,
 {
    LOG_PRINT("Directory Cache ctor enter");
    _num_sets = _total_entries / _associativity;
-   
+ 
+   // Parse the directory type (full_map, limited_no_broadcast, limited_broadcast, ackwise, limitless) 
+   _directory_type = DirectoryEntry::parseDirectoryType(directory_type_str);
+
    // Instantiate the directory
-   _directory = new Directory(directory_type_str, total_entries, max_hw_sharers, max_num_sharers);
+   _directory = new Directory(_directory_type, total_entries, max_hw_sharers, max_num_sharers);
 
    initializeParameters();
   
@@ -46,7 +51,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    LOG_PRINT("Got Core Frequency");
 
    // Size of each directory entry (in bits)
-   UInt32 directory_entry_size = ceil(1.0 * _directory->getDirectoryEntrySize() / 8);
+   UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_num_sharers)  / 8);
    LOG_PRINT("Got Directory Entry Size");
 
    if (Config::getSingleton()->getEnablePowerModeling())
@@ -212,7 +217,7 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
       {
          _replaced_directory_entry_list.push_back(replaced_directory_entry);
 
-         DirectoryEntry* directory_entry = _directory->createDirectoryEntry();
+         DirectoryEntry* directory_entry = DirectoryEntry::create(_directory_type, _max_hw_sharers, _max_num_sharers);
          directory_entry->setAddress(address);
          _directory->setDirectoryEntry(set_index * _associativity + i, directory_entry);
 
@@ -292,11 +297,11 @@ DirectoryCache::checkDirectorySize(tile_id_t tile_id)
    UInt32 cache_line_size = 0;
    try
    {
-      total_entries = Sim()->getCfg()->getInt("perf_model/dram_directory/total_entries");
-      num_directories_str = Sim()->getCfg()->getString("perf_model/dram/num_controllers");
-      l2_cache_size = (UInt64) Sim()->getCfg()->getInt("perf_model/l2_cache/" +
+      total_entries = Sim()->getCfg()->getInt("dram_directory/total_entries");
+      num_directories_str = Sim()->getCfg()->getString("dram/num_controllers");
+      l2_cache_size = (UInt64) Sim()->getCfg()->getInt("l2_cache/" +
                       Config::getSingleton()->getL2CacheType(tile_id) + "/cache_size");
-      cache_line_size = (UInt64) Sim()->getCfg()->getInt("perf_model/l2_cache/" +
+      cache_line_size = (UInt64) Sim()->getCfg()->getInt("l2_cache/" +
                         Config::getSingleton()->getL2CacheType(tile_id) + "/cache_line_size");
    }
    catch (...)
@@ -312,12 +317,12 @@ DirectoryCache::checkDirectorySize(tile_id_t tile_id)
 
    if (total_entries < expected_entries_per_directory)
    {
-      LOG_PRINT_WARNING("Dram Directory under-provisioned, use \"perf_model/dram_directory/total_entries\" = %u",
+      LOG_PRINT_WARNING("Dram Directory under-provisioned, use \"dram_directory/total_entries\" = %u",
             expected_entries_per_directory);
    }
    else if (total_entries > (expected_entries_per_directory * 2))
    {
-      LOG_PRINT_WARNING("Dram Directory over-provisioned, use \"perf_model/dram_directory/total_entries\" = %u",
+      LOG_PRINT_WARNING("Dram Directory over-provisioned, use \"dram_directory/total_entries\" = %u",
             (expected_entries_per_directory * 2));
    }
 }

@@ -20,7 +20,7 @@ class DramDirectoryPerfModelBase
    public:
       DramDirectoryPerfModelBase() 
       {
-         access_dir_cache_delay = Sim()->getCfg()->getInt("perf_model/dram_dir/access_time");
+         access_dir_cache_delay = Sim()->getCfg()->getInt("dram_dir/access_time");
          // enqueue_request_delay = Config::getSingleton()->getEnqueueRequestDelay();
          // dequeue_request_delay = Config::getSingleton()->getDequeueRequestDelay();
          // process_request_delay = Config::getSingleton()->getProcessRequestDelay();

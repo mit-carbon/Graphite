@@ -7,8 +7,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 {
 
 L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
-                           Semaphore* user_thread_sem,
-                           Semaphore* network_thread_sem,
+                           Semaphore* app_thread_sem,
+                           Semaphore* sim_thread_sem,
                            UInt32 cache_line_size,
                            UInt32 L1_icache_size,
                            UInt32 L1_icache_associativity,
@@ -20,31 +20,33 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            string L1_dcache_replacement_policy,
                            UInt32 L1_dcache_access_delay,
                            bool L1_dcache_track_miss_types,
-                           volatile float frequency)
+                           float frequency)
    : _memory_manager(memory_manager)
    , _L2_cache_cntlr(NULL)
-   , _user_thread_sem(user_thread_sem)
-   , _network_thread_sem(network_thread_sem)
+   , _app_thread_sem(app_thread_sem)
+   , _sim_thread_sem(sim_thread_sem)
 {
    _L1_icache = new Cache("L1-I",
+         PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
+         Cache::INSTRUCTION_CACHE,
+         L1,
+         Cache::UNDEFINED_WRITE_POLICY,
          L1_icache_size,
          L1_icache_associativity, 
          cache_line_size,
          L1_icache_replacement_policy,
-         Cache::INSTRUCTION_CACHE,
-         Cache::UNDEFINED_WRITE_POLICY,
-         Cache::PR_L1_CACHE,
          L1_icache_access_delay,
          frequency,
          L1_icache_track_miss_types);
    _L1_dcache = new Cache("L1-D",
+         PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
+         Cache::DATA_CACHE,
+         L1,
+         Cache::WRITE_THROUGH,
          L1_dcache_size,
          L1_dcache_associativity, 
          cache_line_size,
          L1_dcache_replacement_policy,
-         Cache::DATA_CACHE,
-         Cache::WRITE_THROUGH,
-         Cache::PR_L1_CACHE,
          L1_dcache_access_delay,
          frequency,
          L1_dcache_track_miss_types);
@@ -88,7 +90,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       // Wake up the network thread after acquiring the lock
       if (access_num == 2)
       {
-         wakeUpNetworkThread();
+         wakeUpSimThread();
       }
 
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num))
@@ -150,7 +152,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
                          getTileId(), INVALID_TILE_ID, false, ca_address, msg_modeled);
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
-      waitForNetworkThread();
+      waitForSimThread();
    }
 
    LOG_PRINT_ERROR("Should not reach here");
@@ -227,14 +229,10 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component,
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
 
-   // fprintf(stderr, "Tile(%i): L1(%u): Insert(%#lx) - Time(%llu)\n", getTileId(), mem_component, address, (long long unsigned int) curr_time);
    PrL1CacheLineInfo L1_cache_line_info(L1_cache->getTag(address), cstate, curr_time);
 
    L1_cache->insertCacheLine(address, &L1_cache_line_info, fill_buf,
                              eviction, evicted_address, evicted_cache_line_info, NULL);
-
-   // if (*eviction)
-   //    fprintf(stderr, "Tile(%i): L1(%u): Eviction(%#lx) - Time(%llu)\n", getTileId(), mem_component, *evicted_address, (long long unsigned int) curr_time);
 }
 
 CacheState::Type
@@ -265,17 +263,29 @@ L1CacheCntlr::setCacheLineState(MemComponent::Type mem_component, IntPtr address
 }
 
 void
-L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr address, CacheLineUtilization& cache_line_utilization, UInt64 curr_time)
+L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr address
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+                                 , CacheLineUtilization& cache_line_utilization, UInt64 curr_time
+#endif
+                                 )
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
 
    // fprintf(stderr, "Tile(%i): L1(%u): Invalidate(%#lx) - Time(%llu)\n", getTileId(), mem_component, address, (long long unsigned int) curr_time);
 
+   PrL1CacheLineInfo L1_cache_line_info;
+   L1_cache->getCacheLineInfo(address, &L1_cache_line_info);
    // Invalidate cache line
-   L1_cache->invalidateCacheLine(address, cache_line_utilization, curr_time);
+   L1_cache_line_info.invalidate();
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+   L1_cache_line_info.setUtilization(cache_line_utilization);
+   L1_cache_line_info.setBirthTime(curr_time);
+#endif
+   L1_cache->setCacheLineInfo(address, &L1_cache_line_info);
 }
 
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
 CacheLineUtilization
 L1CacheCntlr::getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address)
 {
@@ -332,6 +342,7 @@ L1CacheCntlr::updateAggregateCacheLineLifetime(AggregateCacheLineLifetime& aggre
          LOG_PRINT_ERROR("Unrecognized mem component(%u)", mem_component);
    }
 }
+#endif
 
 ShmemMsg::Type
 L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)
@@ -408,15 +419,15 @@ L1CacheCntlr::releaseLock(MemComponent::Type mem_component)
 }
 
 void
-L1CacheCntlr::waitForNetworkThread()
+L1CacheCntlr::waitForSimThread()
 {
-   _user_thread_sem->wait();
+   _app_thread_sem->wait();
 }
 
 void
-L1CacheCntlr::wakeUpNetworkThread()
+L1CacheCntlr::wakeUpSimThread()
 {
-   _network_thread_sem->signal();
+   _sim_thread_sem->signal();
 }
 
 tile_id_t

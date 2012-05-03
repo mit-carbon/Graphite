@@ -14,10 +14,10 @@ DramCntlr::DramCntlr(Tile* tile,
    , _cache_line_size(cache_line_size)
 {
    _dram_perf_model = new DramPerfModel(dram_access_cost, 
-         dram_bandwidth,
-         dram_queue_model_enabled,
-         dram_queue_model_type, 
-         cache_line_size);
+                                        dram_bandwidth,
+                                        dram_queue_model_enabled,
+                                        dram_queue_model_type,
+                                        cache_line_size);
 
    _dram_access_count = new AccessCountMap[NUM_ACCESS_TYPES];
 }

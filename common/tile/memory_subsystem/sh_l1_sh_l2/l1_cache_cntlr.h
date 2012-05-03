@@ -11,7 +11,7 @@ namespace ShL1ShL2
 
 #include "tile.h"
 #include "cache.h"
-#include "pr_l1_cache_line_info.h"
+#include "cache_line_info.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
 #include "semaphore.h"
@@ -27,7 +27,7 @@ namespace ShL1ShL2
       L1CacheCntlr(MemoryManager* memory_manager,
                    AddressHomeLookup* address_home_lookup,
                    UInt32 cache_line_size,
-                   volatile float frequency);
+                   float frequency);
       ~L1CacheCntlr();
 
       bool processMemOpFromTile(MemComponent::Type mem_component,

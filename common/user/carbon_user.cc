@@ -21,11 +21,6 @@ tile_id_t CarbonGetTileId()
    return Sim()->getTileManager()->getCurrentTileID();
 }
 
-//core_id_t CarbonGetCoreId()
-//{
-   //return Sim()->getTileManager()->getCurrentCoreID();
-//}
-
 int CarbonStartSim(int argc, char **argv)
 {
    string_vec args;

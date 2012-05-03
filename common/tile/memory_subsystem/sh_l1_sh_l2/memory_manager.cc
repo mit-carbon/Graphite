@@ -43,7 +43,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    try
    {
       // L2 Cache
-      l2_cache_type = "perf_model/l2_cache/" + Config::getSingleton()->getL2CacheType(getTile()->getId());
+      l2_cache_type = "l2_cache/" + Config::getSingleton()->getL2CacheType(getTile()->getId());
       l2_cache_line_size = Sim()->getCfg()->getInt(l2_cache_type + "/cache_line_size");
       l2_cache_size = Sim()->getCfg()->getInt(l2_cache_type + "/cache_size");
       l2_cache_associativity = Sim()->getCfg()->getInt(l2_cache_type + "/associativity");
@@ -54,21 +54,21 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       l2_cache_track_miss_types = Sim()->getCfg()->getBool(l2_cache_type + "/track_miss_types");
 
       // Dram Directory Cache
-      dram_directory_total_entries = Sim()->getCfg()->getInt("perf_model/dram_directory/total_entries");
-      dram_directory_associativity = Sim()->getCfg()->getInt("perf_model/dram_directory/associativity");
+      dram_directory_total_entries = Sim()->getCfg()->getInt("dram_directory/total_entries");
+      dram_directory_associativity = Sim()->getCfg()->getInt("dram_directory/associativity");
       dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
-      dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("perf_model/dram_directory/max_hw_sharers");
-      dram_directory_type_str = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
-      dram_directory_cache_access_time = Sim()->getCfg()->getInt("perf_model/dram_directory/directory_cache_access_time");
+      dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("dram_directory/max_hw_sharers");
+      dram_directory_type_str = Sim()->getCfg()->getString("dram_directory/directory_type");
+      dram_directory_cache_access_time = Sim()->getCfg()->getInt("dram_directory/access_time");
 
       // Dram Cntlr
-      dram_latency = Sim()->getCfg()->getFloat("perf_model/dram/latency");
-      per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/per_controller_bandwidth");
-      dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
-      dram_queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+      dram_latency = Sim()->getCfg()->getFloat("dram/latency");
+      per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("dram/per_controller_bandwidth");
+      dram_queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
+      dram_queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
 
       // Directory Type
-      directory_type = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
+      directory_type = Sim()->getCfg()->getString("dram_directory/directory_type");
    }
    catch(...)
    {

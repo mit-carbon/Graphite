@@ -256,7 +256,7 @@ void initializeGlobalVariables(int argc, char *argv[])
       cin >> m_instruction_type_probabilities[i];
    
    m_log_num_shared_addresses = floorLog2(m_num_shared_addresses);
-   m_log_cache_block_size = floorLog2(Sim()->getCfg()->getInt("perf_model/l1_dcache/T1/cache_block_size", 0));
+   m_log_cache_block_size = floorLog2(Sim()->getCfg()->getInt("l1_dcache/T1/cache_block_size", 0));
 
    // Do this calculation before converting them into cumulative probabilites
    m_fraction_read_only_shared_addresses = m_instruction_type_probabilities[RD_ONLY_SHARED_MEMORY_READ] / (m_instruction_type_probabilities[RD_ONLY_SHARED_MEMORY_READ] + m_instruction_type_probabilities[RD_WR_SHARED_MEMORY_READ] + m_instruction_type_probabilities[RD_WR_SHARED_MEMORY_WRITE]);

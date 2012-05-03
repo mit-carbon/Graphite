@@ -10,7 +10,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 }
 
 #include "directory_cache.h"
-#include "req_queue_list.h"
+#include "hash_map_queue.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
 #include "shmem_req.h"
@@ -66,9 +66,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       DramCntlr* _dram_cntlr;
 
       // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
-      Directory::DirectoryType _directory_type;
+      DirectoryType _directory_type;
 
-      ReqQueueList* _dram_directory_req_queue_list;
+      HashMapQueue<IntPtr,ShmemReq*>* _dram_directory_req_queue_list;
       DataList* _cached_data_list;
 
       bool _enabled;
@@ -79,7 +79,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_exreq_in_shared_state;
       UInt64 _total_exreq_with_upgrade_replies;
       UInt64 _total_exreq_in_uncached_state;
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       UInt64 _total_exreq_in_modified_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_exreq_in_shared_state_with_invrep[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_exreq_in_shared_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
@@ -91,7 +91,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_shreq_in_modified_state;
       UInt64 _total_shreq_in_shared_state;
       UInt64 _total_shreq_in_uncached_state;
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       UInt64 _total_shreq_in_modified_state_with_wbrep[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_shreq_in_shared_state_with_wbrep[MAX_TRACKED_UTILIZATION+1];
 #endif
@@ -102,7 +102,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_nullifyreq_in_modified_state;
       UInt64 _total_nullifyreq_in_shared_state;
       UInt64 _total_nullifyreq_in_uncached_state;
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       UInt64 _total_nullifyreq_in_modified_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_nullifyreq_in_shared_state_with_invrep[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_nullifyreq_in_shared_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
@@ -118,14 +118,11 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_sharers_invalidated_broadcast_mode;
       UInt64 _total_invalidation_processing_time_broadcast_mode;
 
-#ifdef TRACK_UTILIZATION_COUNTERS
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       // Computing sharer count vs private copy threshold
       UInt32 _max_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
       UInt64 _total_sharers_invalidated_by_utilization[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_invalidations;
-      // Cache capacity savings by private copy threshold
-      AggregateCacheLineLifetime _cache_capacity_savings_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
-
 #endif
 
       UInt32 getCacheLineSize();
@@ -158,33 +155,21 @@ namespace PrL1PrL2DramDirectoryMOSI
       void updateShmemReqLatencyCounters(const ShmemReq* shmem_req);
       void updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 shmem_req_latency);
 
-#ifdef TRACK_UTILIZATION_COUNTERS
-      // Initialization
-      void initializeSharerCounters();
-      void initializeCacheCapacitySavingsCounters();
-
-      // Operation
-      void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                              tile_id_t sender, const ShmemMsg* shmem_msg);
-      void computeCacheCapacitySavings(ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                       tile_id_t sender, const ShmemMsg* shmem_msg);
-      void updateCacheCapacitySavingsCounters(ShmemReq* completed_shmem_req);
-      void updateCacheCapacitySavingsCounters(tile_id_t sender, const ShmemMsg* shmem_msg);
-      void updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                tile_id_t sender, UInt64 cache_line_utilization);
-
-      // Output summary
-      void outputSharerCountSummary(ostream& out);
-      void outputCacheCapacitySavingsSummary(ostream& out);
-      static void dummyOutputSharerCountSummary(ostream& out);
-      static void dummyOutputCacheCapacitySavingsSummary(ostream& out);
-
-      // Utils
-      UInt64 getTime();
-#endif
-
       // Add/Remove Sharer
       bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);
       void removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected);
+
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+      // Cache Line Utilization
+      void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
+                                              tile_id_t sender, const ShmemMsg* shmem_msg);
+
+      // Output summary
+      void initializeSharerCounters();
+      void updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
+                                tile_id_t sender, UInt64 cache_line_utilization);
+      void outputSharerCountSummary(ostream& out);
+      static void dummyOutputSharerCountSummary(ostream& out);
+#endif
    };
 }

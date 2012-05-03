@@ -12,15 +12,19 @@ namespace PrL1PrL2DramDirectoryMOSI
 
 #include "tile.h"
 #include "cache.h"
-#include "pr_l1_cache_line_info.h"
+#include "cache_line_info.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
 #include "semaphore.h"
 #include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+
+#include "common_defines.h"
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
 #include "aggregate_cache_line_utilization.h"
 #include "aggregate_cache_line_lifetime.h"
+#endif
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -28,8 +32,8 @@ namespace PrL1PrL2DramDirectoryMOSI
    {
    public:
       L1CacheCntlr(MemoryManager* memory_manager,
-                   Semaphore* user_thread_sem,
-                   Semaphore* network_thread_sem,
+                   Semaphore* app_thread_sem,
+                   Semaphore* sim_thread_sem,
                    UInt32 cache_line_size,
                    UInt32 L1_icache_size,
                    UInt32 L1_icache_associativity,
@@ -41,7 +45,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                    string L1_dcache_replacement_policy,
                    UInt32 L1_dcache_access_delay,
                    bool L1_dcache_track_miss_types,
-                   volatile float frequency);
+                   float frequency);
       ~L1CacheCntlr();
 
       Cache* getL1ICache() { return _L1_icache; }
@@ -63,13 +67,19 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       CacheState::Type getCacheLineState(MemComponent::Type mem_component, IntPtr address);
       void setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
-      void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address, CacheLineUtilization& cache_line_utilization, UInt64 curr_time);
+      void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+                              , CacheLineUtilization& cache_line_utilization, UInt64 curr_time
+#endif
+                              );
 
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       // Cache line utilization & lifetime
       void updateAggregateCacheLineUtilization(AggregateCacheLineUtilization& aggregate_utilization,
                                                MemComponent::Type mem_component, IntPtr address);
       void updateAggregateCacheLineLifetime(AggregateCacheLineLifetime& aggregate_lifetime,
                                             MemComponent::Type mem_component, IntPtr address, UInt64 curr_time);
+#endif
 
       void acquireLock(MemComponent::Type mem_component);
       void releaseLock(MemComponent::Type mem_component);
@@ -82,8 +92,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       Lock _L1_icache_lock;
       Lock _L1_dcache_lock;
-      Semaphore* _user_thread_sem;
-      Semaphore* _network_thread_sem;
+      Semaphore* _app_thread_sem;
+      Semaphore* _sim_thread_sem;
 
       void accessCache(MemComponent::Type mem_component,
             Core::mem_op_t mem_op_type, 
@@ -96,9 +106,11 @@ namespace PrL1PrL2DramDirectoryMOSI
       Cache* getL1Cache(MemComponent::Type mem_component);
       ShmemMsg::Type getShmemMsgType(Core::mem_op_t mem_op_type);
 
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
       // Cache line utilization & lifetime
       CacheLineUtilization getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address);
       UInt64 getCacheLineLifetime(MemComponent::Type mem_component, IntPtr address, UInt64 curr_time);
+#endif
       
       // Utilities
       tile_id_t getTileId();
@@ -106,9 +118,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
 
-      // Wait for Network Thread
-      void waitForNetworkThread();
-      // Wake up Network Thread
-      void wakeUpNetworkThread();
+      // Wait for Sim Thread
+      void waitForSimThread();
+      // Wake up Sim Thread
+      void wakeUpSimThread();
    };
 }

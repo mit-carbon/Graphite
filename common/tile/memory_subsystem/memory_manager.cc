@@ -6,11 +6,12 @@ using namespace std;
 #include "pr_l1_pr_l2_dram_directory_msi/memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
 #include "sh_l1_sh_l2/memory_manager.h"
+#include "pr_l1_sh_l2_msi/memory_manager.h"
 #include "network_model.h"
 #include "log.h"
 
 // Static Members
-MemoryManager::CachingProtocol_t MemoryManager::_caching_protocol_type;
+CachingProtocolType MemoryManager::_caching_protocol_type;
 
 bool MemoryManager::_miss_type_modeled[Cache::NUM_MISS_TYPES];
 
@@ -43,13 +44,16 @@ MemoryManager::createMMU(std::string protocol_type,
    case SH_L1_SH_L2:
       return new ShL1ShL2::MemoryManager(tile, network, shmem_perf_model);
 
+   case PR_L1_SH_L2_MSI:
+      return new PrL1ShL2MSI::MemoryManager(tile, network, shmem_perf_model);
+
    default:
       LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       return NULL;
    }
 }
 
-MemoryManager::CachingProtocol_t
+CachingProtocolType
 MemoryManager::parseProtocolType(std::string& protocol_type)
 {
    if (protocol_type == "pr_l1_pr_l2_dram_directory_msi")
@@ -58,6 +62,8 @@ MemoryManager::parseProtocolType(std::string& protocol_type)
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;
    else if (protocol_type == "sh_l1_sh_l2")
       return SH_L1_SH_L2;
+   else if (protocol_type == "pr_l1_sh_l2_msi")
+      return PR_L1_SH_L2_MSI;
    else
       return NUM_CACHING_PROTOCOL_TYPES;
 }
@@ -93,6 +99,12 @@ MemoryManager::openCacheLineReplicationTraceFiles()
       PrL1PrL2DramDirectoryMOSI::MemoryManager::openCacheLineReplicationTraceFiles();
       break;
 
+   case SH_L1_SH_L2:
+      break;
+
+   case PR_L1_SH_L2_MSI:
+      break;
+
    default:
       LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       break;
@@ -110,6 +122,12 @@ MemoryManager::closeCacheLineReplicationTraceFiles()
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       PrL1PrL2DramDirectoryMOSI::MemoryManager::closeCacheLineReplicationTraceFiles();
+      break;
+
+   case SH_L1_SH_L2:
+      break;
+
+   case PR_L1_SH_L2_MSI:
       break;
 
    default:
@@ -131,6 +149,12 @@ MemoryManager::outputCacheLineReplicationSummary()
       PrL1PrL2DramDirectoryMOSI::MemoryManager::outputCacheLineReplicationSummary();
       break;
 
+   case SH_L1_SH_L2:
+      break;
+
+   case PR_L1_SH_L2_MSI:
+      break;
+
    default:
       LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       break;
@@ -146,8 +170,8 @@ MemoryManager::getTileListWithMemoryControllers()
    UInt32 application_tile_count = Config::getSingleton()->getApplicationTiles();
    try
    {
-      num_memory_controllers_str = Sim()->getCfg()->getString("perf_model/dram/num_controllers");
-      memory_controller_positions_from_cfg_file = Sim()->getCfg()->getString("perf_model/dram/controller_positions");
+      num_memory_controllers_str = Sim()->getCfg()->getString("dram/num_controllers");
+      memory_controller_positions_from_cfg_file = Sim()->getCfg()->getString("dram/controller_positions");
    }
    catch (...)
    {

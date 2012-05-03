@@ -14,7 +14,7 @@ DirectoryEntryLimitless::DirectoryEntryLimitless(SInt32 max_hw_sharers, SInt32 m
 {
    if (!_software_trap_penalty_initialized)
    {
-      _software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty",0);
+      _software_trap_penalty = Sim()->getCfg()->getInt("dram_directory/limitless/software_trap_penalty",0);
       _software_trap_penalty_initialized = true;
    }
 }

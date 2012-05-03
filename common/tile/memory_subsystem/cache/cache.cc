@@ -10,24 +10,24 @@ using namespace std;
 // Cache class
 // constructors/destructors
 Cache::Cache(string name,
+             CachingProtocolType caching_protocol_type,
+             CacheCategory cache_category,
+             SInt32 cache_level,
+             WritePolicy write_policy,
              UInt32 cache_size,
              UInt32 associativity,
-             UInt32 cache_line_size,
+             UInt32 line_size,
              string replacement_policy,
-             Category cache_category,
-             WritePolicy write_policy,
-             Type cache_type,
              UInt32 access_delay,
-             volatile float frequency,
+             float frequency,
              bool track_miss_types)
    : _enabled(false)
    , _name(name)
-   , _cache_size(k_KILO * cache_size)
-   , _associativity(associativity)
-   , _line_size(cache_line_size)
    , _cache_category(cache_category)
    , _write_policy(write_policy)
-   , _cache_type(cache_type)
+   , _cache_size(k_KILO * cache_size)
+   , _associativity(associativity)
+   , _line_size(line_size)
    , _power_model(NULL)
    , _area_model(NULL)
    , _track_miss_types(track_miss_types)
@@ -39,24 +39,25 @@ Cache::Cache(string name,
    ReplacementPolicy policy = parseReplacementPolicy(replacement_policy);
    for (UInt32 i = 0; i < _num_sets; i++)
    {
-      _sets[i] = CacheSet::createCacheSet(policy, _cache_type, _associativity, _line_size);
+      _sets[i] = CacheSet::createCacheSet(policy, caching_protocol_type, cache_level, _associativity, _line_size);
    }
 
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      _power_model = new CachePowerModel("data", k_KILO * cache_size, cache_line_size,
+      _power_model = new CachePowerModel("data", _cache_size, _line_size,
             associativity, access_delay, frequency);
    }
    if (Config::getSingleton()->getEnableAreaModeling())
    {
-      _area_model = new CacheAreaModel("data", k_KILO * cache_size, cache_line_size,
+      _area_model = new CacheAreaModel("data", _cache_size, _line_size,
             associativity, access_delay, frequency);
    }
 
    // Initialize Cache Counters
    // Hit/miss counters
    initializeMissCounters();
-   _total_dirty_replacements = 0;
+   // Initialize eviction counters
+   initializeEvictionCounters();
    // Tracking tag/data read/writes
    initializeTagAndDataArrayCounters();
    // Cache line state counters
@@ -95,7 +96,7 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
          _data_array_reads ++;
       else
          _data_array_writes ++;
-      
+ 
       // Update dynamic energy counters
       if (_power_model)
          _power_model->updateDynamicEnergy();
@@ -150,9 +151,11 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          _tag_array_reads ++;
          _data_array_reads ++;
          
-         // Update number of dirty replacements
+         // Increment number of evictions and dirty evictions
+         _total_evictions ++;
+         // Update number of dirty evictions
          if ( (_write_policy == WRITE_BACK) && (CacheState(evicted_cache_line_info->getCState()).writable()) )
-            _total_dirty_replacements ++;
+            _total_dirty_evictions ++;
       }
       else // (! (*eviction))
       {
@@ -172,12 +175,11 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
    }
 }
 
-
 // Single line cache access at address
 void
 Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
 {
-   LOG_PRINT("getCacheLineInfo[Address(%#llx), Cache Line Info Ptr(%p)] start", address, cache_line_info);
+   LOG_PRINT("getCacheLineInfo[Address(%#lx), Cache Line Info Ptr(%p)] start", address, cache_line_info);
 
    CacheLineInfo* line_info = getCacheLineInfo(address);
 
@@ -185,8 +187,6 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
    if (line_info)
       cache_line_info->assign(line_info);
 
-   LOG_PRINT("Assigned Line Info");
-   
    if (_enabled)
    {
       // Update tag/data array reads/writes
@@ -196,7 +196,7 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
          _power_model->updateDynamicEnergy();
    }
 
-   LOG_PRINT("getCacheLineInfo[Address(%#llx), Cache Line Info Ptr(%p)] end", address, cache_line_info);
+   LOG_PRINT("getCacheLineInfo[Address(%#lx), Cache Line Info Ptr(%p)] end", address, cache_line_info);
 }
 
 CacheLineInfo*
@@ -219,7 +219,11 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
 
    // Update exclusive/shared counters
    updateCacheLineStateCounters(cache_line_info->getCState(), updated_cache_line_info->getCState());
-   
+  
+   // Update _invalidated_address_set
+   if ( (updated_cache_line_info->getCState() == CacheState::INVALID) && (_track_miss_types) )
+      _invalidated_address_set.insert(address);
+
    // Update the cache line info   
    cache_line_info->assign(updated_cache_line_info);
    
@@ -230,46 +234,6 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
       // Update dynamic energy counters
       if (_power_model)
          _power_model->updateDynamicEnergy();
-   }
-}
-
-bool 
-Cache::invalidateCacheLine(IntPtr address, CacheLineUtilization cache_line_utilization, UInt64 curr_time)
-{
-   CacheLineInfo* cache_line_info = getCacheLineInfo(address);
-
-   if (_enabled)
-   {
-      // Update tag array reads
-      _tag_array_reads ++;
-   }
-
-   if (cache_line_info)
-   {
-      // Update exclusive/sharing counters
-      updateCacheLineStateCounters(cache_line_info->getCState(), CacheState::INVALID);
-
-      // Invalidate cache line
-      cache_line_info->invalidate(cache_line_utilization, curr_time);
-      
-      // Add to invalidated set for tracking miss type
-      if (_track_miss_types)
-         _invalidated_address_set.insert(address);
-      
-      if (_enabled)
-      {
-         // Update tag array writes
-         _tag_array_writes ++;
-         // Update dynamic energy counters
-         if (_power_model)
-            _power_model->updateDynamicEnergy();
-      }
-
-      return true;
-   }
-   else
-   {
-      return false;
    }
 }
 
@@ -296,6 +260,13 @@ Cache::initializeMissTypeCounters()
 }
 
 void
+Cache::initializeEvictionCounters()
+{
+   _total_evictions = 0;
+   _total_dirty_evictions = 0;   
+}
+
+void
 Cache::initializeTagAndDataArrayCounters()
 {
    _tag_array_reads = 0;
@@ -307,8 +278,7 @@ Cache::initializeTagAndDataArrayCounters()
 void
 Cache::initializeCacheLineStateCounters()
 {
-   _total_exclusive_lines = 0;
-   _total_shared_lines = 0;
+   _cache_line_state_counters.resize(CacheState::NUM_STATES, 0);
 }
 
 Cache::MissType
@@ -387,15 +357,12 @@ Cache::updateMissTypeCounters(IntPtr address, MissType miss_type)
    case COLD_MISS:
       _total_cold_misses ++;
       break;
-
    case CAPACITY_MISS:
       _total_capacity_misses ++;
       break;
-
    case SHARING_MISS:
       _total_sharing_misses ++;
       break;
-
    default:
       LOG_PRINT_ERROR("Unrecognized Cache Miss Type(%i)", miss_type);
       break;
@@ -413,22 +380,14 @@ Cache::clearMissTypeTrackingSets(IntPtr address)
 void
 Cache::updateCacheLineStateCounters(CacheState::Type old_cstate, CacheState::Type new_cstate)
 {
-   if (old_cstate == CacheState::MODIFIED)
-      _total_exclusive_lines --;
-   else if ((old_cstate == CacheState::OWNED) || (old_cstate == CacheState::SHARED))
-      _total_shared_lines --;
-
-   if (new_cstate == CacheState::MODIFIED)
-      _total_exclusive_lines ++;
-   else if ((new_cstate == CacheState::OWNED) || (new_cstate == CacheState::SHARED))
-      _total_shared_lines ++;
+   _cache_line_state_counters[old_cstate] --;
+   _cache_line_state_counters[new_cstate] ++;
 }
 
 void
-Cache::getCacheLineStateCounters(UInt64& total_exclusive_lines, UInt64& total_shared_lines)
+Cache::getCacheLineStateCounters(vector<UInt64>& cache_line_state_counters) const
 {
-   total_exclusive_lines = _total_exclusive_lines;
-   total_shared_lines = _total_shared_lines;
+   cache_line_state_counters = _cache_line_state_counters;
 }
 
 void
@@ -459,9 +418,12 @@ Cache::outputSummary(ostream& out)
       else
          out << "    Write Miss Rate (%): " << endl;
    }
+
+   // Evictions
+   out << "    Evictions: " << _total_evictions << endl;
    if (_write_policy == WRITE_BACK)
    {
-      out << "    Dirty Replacements: " << _total_dirty_replacements << endl;
+      out << "    Dirty Evictions: " << _total_dirty_evictions << endl;
    }
    
    // Output Power and Area Summaries
@@ -470,6 +432,7 @@ Cache::outputSummary(ostream& out)
    if (_area_model)
       _area_model->outputSummary(out);
 
+   // Track miss types
    if (_track_miss_types)
    {
       out << "    Miss Types:" << endl;

@@ -67,7 +67,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    try
    {
       // L1 ICache
-      l1_icache_type = "perf_model/l1_icache/" + Config::getSingleton()->getL1ICacheType(getTile()->getId());
+      l1_icache_type = "l1_icache/" + Config::getSingleton()->getL1ICacheType(getTile()->getId());
       l1_icache_line_size = Sim()->getCfg()->getInt(l1_icache_type + "/cache_line_size");
       l1_icache_size = Sim()->getCfg()->getInt(l1_icache_type + "/cache_size");
       l1_icache_associativity = Sim()->getCfg()->getInt(l1_icache_type + "/associativity");
@@ -78,7 +78,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       l1_icache_track_miss_types = Sim()->getCfg()->getBool(l1_icache_type + "/track_miss_types");
 
       // L1 DCache
-      l1_dcache_type = "perf_model/l1_dcache/" + Config::getSingleton()->getL1DCacheType(getTile()->getId());
+      l1_dcache_type = "l1_dcache/" + Config::getSingleton()->getL1DCacheType(getTile()->getId());
       l1_dcache_line_size = Sim()->getCfg()->getInt(l1_dcache_type + "/cache_line_size");
       l1_dcache_size = Sim()->getCfg()->getInt(l1_dcache_type + "/cache_size");
       l1_dcache_associativity = Sim()->getCfg()->getInt(l1_dcache_type + "/associativity");
@@ -89,7 +89,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       l1_dcache_track_miss_types = Sim()->getCfg()->getBool(l1_dcache_type + "/track_miss_types");
 
       // L2 Cache
-      l2_cache_type = "perf_model/l2_cache/" + Config::getSingleton()->getL2CacheType(getTile()->getId());
+      l2_cache_type = "l2_cache/" + Config::getSingleton()->getL2CacheType(getTile()->getId());
       l2_cache_line_size = Sim()->getCfg()->getInt(l2_cache_type + "/cache_line_size");
       l2_cache_size = Sim()->getCfg()->getInt(l2_cache_type + "/cache_size");
       l2_cache_associativity = Sim()->getCfg()->getInt(l2_cache_type + "/associativity");
@@ -100,21 +100,21 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       l2_cache_track_miss_types = Sim()->getCfg()->getBool(l2_cache_type + "/track_miss_types");
 
       // Dram Directory Cache
-      dram_directory_total_entries = Sim()->getCfg()->getInt("perf_model/dram_directory/total_entries");
-      dram_directory_associativity = Sim()->getCfg()->getInt("perf_model/dram_directory/associativity");
+      dram_directory_total_entries = Sim()->getCfg()->getInt("dram_directory/total_entries");
+      dram_directory_associativity = Sim()->getCfg()->getInt("dram_directory/associativity");
       dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
-      dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("perf_model/dram_directory/max_hw_sharers");
-      dram_directory_type_str = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
-      dram_directory_cache_access_time = Sim()->getCfg()->getInt("perf_model/dram_directory/directory_access_time");
+      dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("dram_directory/max_hw_sharers");
+      dram_directory_type_str = Sim()->getCfg()->getString("dram_directory/directory_type");
+      dram_directory_cache_access_time = Sim()->getCfg()->getInt("dram_directory/access_time");
 
       // Dram Cntlr
-      dram_latency = Sim()->getCfg()->getFloat("perf_model/dram/latency");
-      per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("perf_model/dram/per_controller_bandwidth");
-      dram_queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
-      dram_queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+      dram_latency = Sim()->getCfg()->getFloat("dram/latency");
+      per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("dram/per_controller_bandwidth");
+      dram_queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
+      dram_queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
 
       // Directory Type
-      directory_type = Sim()->getCfg()->getString("perf_model/dram_directory/directory_type");
+      directory_type = Sim()->getCfg()->getString("dram_directory/directory_type");
    }
    catch(...)
    {
@@ -531,16 +531,19 @@ MemoryManager::outputCacheLineReplicationSummary()
          directory = memory_manager->getDramDirectoryCache()->getDirectory();
    
       // Get total lines in L1 caches & L2 cache
-      UInt64 num_exclusive_lines_l1_icache;
-      UInt64 num_shared_lines_l1_icache;
-      UInt64 num_exclusive_lines_l1_dcache;
-      UInt64 num_shared_lines_l1_dcache;
-      UInt64 num_exclusive_lines_l2_cache;
-      UInt64 num_shared_lines_l2_cache;
-      
-      l1_icache->getCacheLineStateCounters(num_exclusive_lines_l1_icache, num_shared_lines_l1_icache);
-      l1_dcache->getCacheLineStateCounters(num_exclusive_lines_l1_dcache, num_shared_lines_l1_dcache);
-      l2_cache->getCacheLineStateCounters(num_exclusive_lines_l2_cache, num_shared_lines_l2_cache);
+      vector<UInt64> _l1_icache_line_state_counters;
+      vector<UInt64> _l1_dcache_line_state_counters;
+      vector<UInt64> _l2_cache_line_state_counters;
+      l1_icache->getCacheLineStateCounters(_l1_icache_line_state_counters);
+      l1_dcache->getCacheLineStateCounters(_l1_dcache_line_state_counters);
+      l2_cache->getCacheLineStateCounters(_l2_cache_line_state_counters);
+
+      UInt64 num_exclusive_lines_l1_icache = _l1_icache_line_state_counters[CacheState::MODIFIED];
+      UInt64 num_shared_lines_l1_icache = _l1_icache_line_state_counters[CacheState::SHARED];
+      UInt64 num_exclusive_lines_l1_dcache = _l1_dcache_line_state_counters[CacheState::MODIFIED];
+      UInt64 num_shared_lines_l1_dcache = _l1_dcache_line_state_counters[CacheState::SHARED];
+      UInt64 num_exclusive_lines_l2_cache = _l2_cache_line_state_counters[CacheState::MODIFIED];
+      UInt64 num_shared_lines_l2_cache = _l2_cache_line_state_counters[CacheState::SHARED];
 
       // Get total
       total_exclusive_lines_l1_cache += (num_exclusive_lines_l1_icache + num_exclusive_lines_l1_dcache);

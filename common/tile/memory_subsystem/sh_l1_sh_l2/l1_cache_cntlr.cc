@@ -9,7 +9,7 @@ namespace ShL1ShL2
 L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            AddressHomeLookup* address_home_lookup,
                            UInt32 cache_line_size,
-                           volatile float frequency)
+                           float frequency)
    : _memory_manager(memory_manager)
    , _address_home_lookup(address_home_lookup)
    , _outstanding_data_buf(NULL)
@@ -72,7 +72,7 @@ L1CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
       memcpy(_outstanding_data_buf, shmem_msg->getDataBuf(), shmem_msg->getDataLength());
    _outstanding_data_buf = NULL;
 
-   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD,
+   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_APP_THREAD,
                                       getShmemPerfModel()->getCycleCount());
 
    wakeUpAppThread();

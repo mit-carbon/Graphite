@@ -1,16 +1,23 @@
 #pragma once
 
 #include <vector>
+#include <string>
 using std::vector;
+using std::string;
 
 #include "fixed_types.h"
 #include "directory_block_info.h"
+#include "directory_type.h"
 
 class DirectoryEntry
 {
 public:
    DirectoryEntry(SInt32 max_hw_sharers);
    virtual ~DirectoryEntry();
+
+   static DirectoryType parseDirectoryType(string directory_type);
+   static DirectoryEntry* create(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers);
+   static UInt32 getSize(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers);
 
    DirectoryBlockInfo* getDirectoryBlockInfo();
 

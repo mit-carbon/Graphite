@@ -13,17 +13,18 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            string l2_cache_replacement_policy,
                            UInt32 l2_cache_access_delay,
                            bool l2_cache_track_miss_types,
-                           volatile float frequency)
+                           float frequency)
    : _memory_manager(memory_manager)
 {
    _l2_cache = new Cache("L2",
+         SH_L1_SH_L2,
+         Cache::UNIFIED_CACHE,
+         L2,
+         Cache::WRITE_BACK, 
          l2_cache_size, 
          l2_cache_associativity, 
          cache_line_size, 
          l2_cache_replacement_policy,
-         Cache::UNIFIED_CACHE,
-         Cache::WRITE_BACK, 
-         Cache::PR_L2_CACHE,
          l2_cache_access_delay,
          frequency,
          l2_cache_track_miss_types);
@@ -37,7 +38,7 @@ L2CacheCntlr::~L2CacheCntlr()
 void
 L2CacheCntlr::setCacheLineState(IntPtr address, CacheState::Type cstate)
 {
-   PrL2CacheLineInfo l2_cache_line_info;
+   ShL2CacheLineInfo l2_cache_line_info;
    _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
    l2_cache_line_info.setCState(cstate);
    _l2_cache->setCacheLineInfo(address, &l2_cache_line_info);
@@ -59,14 +60,14 @@ void
 L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf)
 {
    // Construct meta-data info about l2 cache line
-   PrL2CacheLineInfo l2_cache_line_info;
+   ShL2CacheLineInfo l2_cache_line_info;
    l2_cache_line_info.setTag(_l2_cache->getTag(address));
    l2_cache_line_info.setCState(cstate);
 
    // Evicted line information
    bool eviction;
    IntPtr evicted_address;
-   PrL2CacheLineInfo evicted_cache_line_info;
+   ShL2CacheLineInfo evicted_cache_line_info;
    Byte writeback_buf[getCacheLineSize()];
 
    _l2_cache->insertCacheLine(address, &l2_cache_line_info, fill_buf,

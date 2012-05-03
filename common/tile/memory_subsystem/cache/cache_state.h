@@ -15,12 +15,17 @@ public:
       INVALID = 0,
       SHARED,
       OWNED,
-      MODIFIED
+      MODIFIED,
+      DATA_INVALID,
+      CLEAN,
+      DIRTY,
+      NUM_STATES
    };
 
    CacheState(Type cstate = INVALID) : _cstate(cstate) {}
    ~CacheState() {}
 
+   // These functions are only called in a private cache
    bool readable()
    {
       return (_cstate == MODIFIED) || (_cstate == OWNED) || (_cstate == SHARED);

@@ -20,8 +20,8 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
 
    try
    {
-      m_store_buffer = new StoreBuffer(cfg->getInt("perf_model/core/iocoom/num_store_buffer_entries",1));
-      m_load_buffer = new LoadBuffer(cfg->getInt("perf_model/core/iocoom/num_outstanding_loads",3));
+      m_store_buffer = new StoreBuffer(cfg->getInt("core/iocoom/num_store_buffer_entries",1));
+      m_load_buffer = new LoadBuffer(cfg->getInt("core/iocoom/num_outstanding_loads",3));
    }
    catch (...)
    {
@@ -33,8 +33,8 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
    
    // For Power and AreaModeling
    m_mcpat_core_interface = new McPATCoreInterface(
-                            cfg->getInt("perf_model/core/iocoom/num_outstanding_loads", 3),
-                            cfg->getInt("perf_model/core/iocoom/num_store_buffer_entries", 1));
+                            cfg->getInt("core/iocoom/num_outstanding_loads", 3),
+                            cfg->getInt("core/iocoom/num_store_buffer_entries", 1));
 
    initializePipelineStallCounters();
 }

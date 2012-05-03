@@ -367,11 +367,11 @@ void Config::parseCoreParameters()
    vector<string> core_parameter_tuple_vec;
    try
    {
-      core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/core/model_list");
+      core_parameter_tuple_str = Sim()->getCfg()->getString("core/model_list");
    }
    catch(...)
    {
-      fprintf(stderr, "ERROR: Could not read perf_model/core/model_list from the cfg file\n");
+      fprintf(stderr, "ERROR: Could not read core/model_list from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 

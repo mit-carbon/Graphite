@@ -126,7 +126,7 @@ DramPerfModel::outputSummary(ostream& out)
    out << "    Average Dram Contention Delay: " << 
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
    
-   std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+   std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
    if (m_queue_model && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {
       out << "    Queue Model:" << endl;
@@ -160,8 +160,8 @@ DramPerfModel::dummyOutputSummary(ostream& out)
    out << "    Average Dram Access Latency: " << endl;
    out << "    Average Dram Contention Delay: " << endl;
    
-   bool queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
-   std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+   bool queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
+   std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
    if (queue_model_enabled && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {
       out << "    Queue Model:" << endl;

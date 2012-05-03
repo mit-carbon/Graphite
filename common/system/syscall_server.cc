@@ -866,6 +866,18 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    // Right now, we handle only a subset of the functionality
    // assert the subset
 
+#ifdef KERNEL_SQUEEZE
+   LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) \
+|| (op == (FUTEX_CLOCK_REALTIME | FUTEX_PRIVATE_FLAG | FUTEX_WAIT_BITSET))
+            || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)) \
+            || (op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)) \
+            , "op = 0x%x", op);
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
+   {
+      LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
+   }
+#endif
+
 #ifdef KERNEL_LENNY
    LOG_ASSERT_ERROR((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)) \
             || (op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)) \
@@ -891,6 +903,25 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
 
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) uaddr, (char*) &act_val, sizeof(act_val));
 
+#ifdef KERNEL_SQUEEZE
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
+   {
+      futexWait(core_id, uaddr, val, act_val, curr_time); 
+   }
+   else if (op == (FUTEX_CLOCK_REALTIME|FUTEX_PRIVATE_FLAG|FUTEX_WAIT_BITSET))
+   {
+      futexWaitClockReal(core_id, uaddr, val, act_val, curr_time); 
+   }
+   else if ((op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)))
+   {
+      futexWake(core_id, uaddr, val, curr_time);
+   }
+   else if((op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)))
+   {
+      futexCmpRequeue(core_id, uaddr, val, uaddr2, val3, act_val, curr_time);
+   }
+#endif
+
 #ifdef KERNEL_LENNY
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
@@ -902,7 +933,7 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    }
    else if((op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)))
    {
-      futexCmpRequeue(core_id, uaddr, val, uaddr, val3, act_val, curr_time);
+      futexCmpRequeue(core_id, uaddr, val, uaddr2, val3, act_val, curr_time);
    }
 #endif
    
@@ -928,7 +959,7 @@ void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_va
    if (val != act_val)
    {
       m_send_buff.clear();
-      m_send_buff << (int) EWOULDBLOCK;
+      m_send_buff << -(int) EWOULDBLOCK;
       m_send_buff << curr_time;
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
@@ -937,6 +968,24 @@ void SyscallServer::futexWait(core_id_t core_id, int *uaddr, int val, int act_va
       sim_futex->enqueueWaiter(core_id);
    }
 }
+
+#ifdef KERNEL_SQUEEZE
+void SyscallServer::futexWaitClockReal(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time)
+{
+   LOG_PRINT("Futex Wait");
+   if (val != act_val)
+   {
+      m_send_buff.clear();
+      m_send_buff << -(int) ENOSYS;
+      m_send_buff << curr_time;
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+   else
+   {
+      LOG_PRINT_ERROR ("FUTEX_CLOCK_REALTIME not supported\n");
+   }
+}
+#endif
 
 void SyscallServer::futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time)
 {

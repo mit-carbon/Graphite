@@ -72,6 +72,8 @@ bool rewriteStringOp (INS ins)
             (INS_Opcode(ins) == XED_ICLASS_RET_NEAR) ||
             (INS_Opcode(ins) == XED_ICLASS_CVTSI2SS) ||
             (INS_Opcode(ins) == XED_ICLASS_CVTSI2SD) ||
+            (INS_Opcode(ins) == XED_ICLASS_CVTSS2SD) ||
+            (INS_Opcode(ins) == XED_ICLASS_CVTTSD2SI) ||
             (INS_Opcode(ins) == XED_ICLASS_SQRTSS) ||
             (INS_Opcode(ins) == XED_ICLASS_SQRTSD) ||
             (INS_Opcode(ins) == XED_ICLASS_MULSS) ||

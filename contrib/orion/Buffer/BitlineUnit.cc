@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "BitlineUnit.h"
 
 #include "SRAM.h"

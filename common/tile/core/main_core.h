@@ -10,7 +10,7 @@ class CoreModel;
 
 using namespace std;
 
-class MainCore : protected Core
+class MainCore : public Core
 {
    public:
 

@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "OutdrvUnit.h"
 
 #include "TechParameter.h"

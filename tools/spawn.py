@@ -11,7 +11,7 @@ import subprocess
 import time
 import signal
 
-l_path = "/afs/csail/group/carbon/tools/pin/pintest/intel64/runtime:/afs/csail/group/carbon/tools/boost_1_38_0/stage/lib"
+l_path = "/afs/csail/group/carbon/tools/pin/pintest/intel64/runtime"
 
 # spawn_job:
 #  start up a command across multiple machines

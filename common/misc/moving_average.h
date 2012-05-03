@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <cstdio>
 
 #include "fixed_types.h"
 #include "modulo_num.h"

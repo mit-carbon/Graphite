@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "PrechargeUnit.h"
 
 #include "TechParameter.h"

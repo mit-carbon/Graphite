@@ -2,6 +2,7 @@
 
 #include "../cache/cache_line_info.h"
 #include "directory_entry.h"
+
 namespace PrL1ShL2MSI
 {
 
@@ -28,7 +29,7 @@ public:
    ShL2CacheLineInfo(IntPtr tag = ~0, DirectoryEntry* directory_entry = NULL);
    ~ShL2CacheLineInfo();
 
-   void assign(CacheLineInfo* cache_line_info);
+   void assign(::CacheLineInfo* cache_line_info);
    
    DirectoryEntry* getDirectoryEntry() const
    { return _directory_entry; }

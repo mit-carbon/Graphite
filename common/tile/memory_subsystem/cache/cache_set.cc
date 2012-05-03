@@ -3,14 +3,14 @@
 #include "cache.h"
 #include "log.h"
 
-CacheSet::CacheSet(CachingProtocolType caching_protocol_type, SInt32 cache_type, UInt32 associativity, UInt32 line_size)
+CacheSet::CacheSet(CachingProtocolType caching_protocol_type, SInt32 cache_level, UInt32 associativity, UInt32 line_size)
    : _associativity(associativity)
    , _line_size(line_size)
 {
    _cache_line_info_array = new CacheLineInfo*[_associativity];
    for (UInt32 i = 0; i < _associativity; i++)
    {
-      _cache_line_info_array[i] = CacheLineInfo::create(caching_protocol_type, cache_type);
+      _cache_line_info_array[i] = CacheLineInfo::create(caching_protocol_type, cache_level);
    }
    _lines = new char[_associativity * _line_size];
    
@@ -97,16 +97,16 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
 
 CacheSet* 
 CacheSet::createCacheSet(Cache::ReplacementPolicy replacement_policy,
-                         CachingProtocolType caching_protocol_type, SInt32 cache_type,
+                         CachingProtocolType caching_protocol_type, SInt32 cache_level,
                          UInt32 associativity, UInt32 line_size)
 {
    switch(replacement_policy)
    {
    case Cache::ROUND_ROBIN:
-      return new CacheSetRoundRobin(caching_protocol_type, cache_type, associativity, line_size);
+      return new CacheSetRoundRobin(caching_protocol_type, cache_level, associativity, line_size);
 
    case Cache::LRU:
-      return new CacheSetLRU(caching_protocol_type, cache_type, associativity, line_size);
+      return new CacheSetLRU(caching_protocol_type, cache_level, associativity, line_size);
 
    default:
       LOG_PRINT_ERROR("Unrecognized Cache Replacement Policy: %i", replacement_policy);

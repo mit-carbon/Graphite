@@ -252,7 +252,7 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component,
 CacheState::Type
 L1CacheCntlr::getCacheLineState(MemComponent::Type mem_component, IntPtr address)
 {
-   LOG_PRINT("getCacheLineState[Mem Component(%u), Address(%#llx)] start", mem_component, address);
+   LOG_PRINT("getCacheLineState[Mem Component(%u), Address(%#lx)] start", mem_component, address);
 
    Cache* l1_cache = getL1Cache(mem_component);
    assert(l1_cache);
@@ -260,7 +260,7 @@ L1CacheCntlr::getCacheLineState(MemComponent::Type mem_component, IntPtr address
    PrL1CacheLineInfo l1_cache_line_info;
    l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
 
-   LOG_PRINT("getCacheLineState[Mem Component(%u), Address(%#llx)] returns(%u)", mem_component, address, l1_cache_line_info.getCState());
+   LOG_PRINT("getCacheLineState[Mem Component(%u), Address(%#lx)] returns(%u)", mem_component, address, l1_cache_line_info.getCState());
    return l1_cache_line_info.getCState(); 
 }
 
@@ -286,8 +286,11 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
 
    PrL1CacheLineInfo l1_cache_line_info;
    l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
-   l1_cache_line_info.invalidate();
-   l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
+   if (l1_cache_line_info.isValid())
+   {
+      l1_cache_line_info.invalidate();
+      l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
+   }
 }
 
 ShmemMsg::Type

@@ -1,8 +1,8 @@
 #include "cache_set.h"
 #include "log.h"
 
-CacheSetLRU::CacheSetLRU(CachingProtocolType caching_protocol_type, SInt32 cache_type, UInt32 associativity, UInt32 linesize)
-   : CacheSet(caching_protocol_type, cache_type, associativity, linesize)
+CacheSetLRU::CacheSetLRU(CachingProtocolType caching_protocol_type, SInt32 cache_level, UInt32 associativity, UInt32 linesize)
+   : CacheSet(caching_protocol_type, cache_level, associativity, linesize)
 {
    _lru_bits = new UInt8[_associativity];
    for (UInt32 i = 0; i < _associativity; i++)

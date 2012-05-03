@@ -18,7 +18,7 @@ public:
    CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID, UInt64 curr_time = 0);
    virtual ~CacheLineInfo();
 
-   static CacheLineInfo* create(CachingProtocolType caching_protocol_type, SInt32 cache_type);
+   static CacheLineInfo* create(CachingProtocolType caching_protocol_type, SInt32 cache_level);
 
    virtual void invalidate();
    virtual void assign(CacheLineInfo* cache_line_info);

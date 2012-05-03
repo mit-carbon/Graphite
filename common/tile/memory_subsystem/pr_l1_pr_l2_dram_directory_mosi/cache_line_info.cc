@@ -78,7 +78,7 @@ PrL2CacheLineInfo::invalidate()
 }
 
 void 
-PrL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
+PrL2CacheLineInfo::assign(::CacheLineInfo* cache_line_info)
 {
    CacheLineInfo::assign(cache_line_info);
    _cached_loc = ((PrL2CacheLineInfo*) cache_line_info)->getCachedLoc();

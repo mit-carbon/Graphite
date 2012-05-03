@@ -1,6 +1,15 @@
 #pragma once
 
 #include "../cache/cache_line_info.h"
+#include "cache_state.h"
+#include "cache_line_info.h"
+#include "mem_component.h"
+#include "common_defines.h"
+
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+#include "aggregate_cache_line_utilization.h"
+#include "aggregate_cache_line_lifetime.h"
+#endif
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -22,16 +31,6 @@ public:
 
 typedef CacheLineInfo PrL1CacheLineInfo;
 
-#include "cache_state.h"
-#include "cache_line_info.h"
-#include "mem_component.h"
-#include "common_defines.h"
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-#include "aggregate_cache_line_utilization.h"
-#include "aggregate_cache_line_lifetime.h"
-#endif
-
 class PrL2CacheLineInfo : public CacheLineInfo
 {
 public:
@@ -44,7 +43,7 @@ public:
    void clearCachedLoc(MemComponent::Type cached_loc);
 
    void invalidate();
-   void assign(CacheLineInfo* cache_line_info);
+   void assign(::CacheLineInfo* cache_line_info);
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    void incrUtilization(MemComponent::Type mem_component, CacheLineUtilization& utilization);

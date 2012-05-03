@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../cache/cache_line_info.h"
+#include "cache_state.h"
+#include "mem_component.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -14,7 +16,7 @@ enum CacheLevel
 class CacheLineInfo : public ::CacheLineInfo
 {
 public:
-   CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID, UInt64 curr_time = 0);
+   CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID);
    ~CacheLineInfo();
    
    static CacheLineInfo* create(SInt32 cache_level);
@@ -22,20 +24,11 @@ public:
 
 typedef CacheLineInfo PrL1CacheLineInfo;
 
-}
-
-#include "cache_state.h"
-#include "cache_line_info.h"
-#include "mem_component.h"
-
-namespace PrL1PrL2DramDirectoryMSI
-{
-
 class PrL2CacheLineInfo : public CacheLineInfo
 {
 public:
    PrL2CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID,
-                     MemComponent::Type cached_loc = MemComponent::INVALID_MEM_COMPONENT, UInt64 curr_time = 0);
+                     MemComponent::Type cached_loc = MemComponent::INVALID_MEM_COMPONENT);
    ~PrL2CacheLineInfo();
 
    MemComponent::Type getCachedLoc();
@@ -43,7 +36,7 @@ public:
    void clearCachedLoc(MemComponent::Type cached_loc);
 
    void invalidate();
-   void assign(CacheLineInfo* cache_line_info);
+   void assign(::CacheLineInfo* cache_line_info);
 
 private:
    MemComponent::Type _cached_loc;

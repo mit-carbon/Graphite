@@ -11,12 +11,12 @@ using std::string;
 class CacheSet
 {
 public:
-   CacheSet(CachingProtocolType caching_protocol_type, SInt32 cache_type, UInt32 associativity, UInt32 line_size);
+   CacheSet(CachingProtocolType caching_protocol_type, SInt32 cache_level, UInt32 associativity, UInt32 line_size);
    virtual ~CacheSet();
 
    // Functions to create a cache set and replacement policy
    static CacheSet* createCacheSet(Cache::ReplacementPolicy replacement_policy,
-                                   CachingProtocolType caching_protocol_type, SInt32 cache_type,
+                                   CachingProtocolType caching_protocol_type, SInt32 cache_level,
                                    UInt32 associativity, UInt32 line_size);
 
    void read_line(UInt32 line_index, UInt32 offset, Byte *out_buf, UInt32 bytes);
@@ -39,7 +39,7 @@ private:
 class CacheSetRoundRobin : public CacheSet
 {
 public:
-   CacheSetRoundRobin(CachingProtocolType caching_protocol_type, SInt32 cache_type, UInt32 associativity, UInt32 line_size);
+   CacheSetRoundRobin(CachingProtocolType caching_protocol_type, SInt32 cache_level, UInt32 associativity, UInt32 line_size);
    ~CacheSetRoundRobin();
 
 private:
@@ -52,7 +52,7 @@ private:
 class CacheSetLRU : public CacheSet
 {
 public:
-   CacheSetLRU(CachingProtocolType caching_protocol_type, SInt32 cache_type, UInt32 associativity, UInt32 line_size);
+   CacheSetLRU(CachingProtocolType caching_protocol_type, SInt32 cache_level, UInt32 associativity, UInt32 line_size);
    ~CacheSetLRU();
 
 private:

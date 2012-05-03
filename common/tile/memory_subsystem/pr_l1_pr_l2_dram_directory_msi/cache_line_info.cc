@@ -5,8 +5,8 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt64 curr_time)
-   : ::CacheLineInfo(tag, cstate, curr_time)
+CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate)
+   : ::CacheLineInfo(tag, cstate)
 {}
 
 CacheLineInfo::~CacheLineInfo()
@@ -29,8 +29,8 @@ CacheLineInfo::create(SInt32 cache_level)
 
 //// PrL2 CacheLineInfo
 
-PrL2CacheLineInfo::PrL2CacheLineInfo(IntPtr tag, CacheState::Type cstate, MemComponent::Type cached_loc, UInt64 curr_time)
-   : CacheLineInfo(tag, cstate, curr_time)
+PrL2CacheLineInfo::PrL2CacheLineInfo(IntPtr tag, CacheState::Type cstate, MemComponent::Type cached_loc)
+   : CacheLineInfo(tag, cstate)
    , _cached_loc(cached_loc)
 {}
 
@@ -67,10 +67,11 @@ PrL2CacheLineInfo::invalidate()
 }
 
 void 
-PrL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
+PrL2CacheLineInfo::assign(::CacheLineInfo* cache_line_info)
 {
    CacheLineInfo::assign(cache_line_info);
-   _cached_loc = ((PrL2CacheLineInfo*) cache_line_info)->getCachedLoc();
+   PrL2CacheLineInfo* L2_cache_line_info = dynamic_cast<PrL2CacheLineInfo*>(cache_line_info);
+   _cached_loc = L2_cache_line_info->getCachedLoc();
 }
 
 }

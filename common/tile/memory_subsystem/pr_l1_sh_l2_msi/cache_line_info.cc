@@ -39,7 +39,7 @@ ShL2CacheLineInfo::~ShL2CacheLineInfo()
 {}
 
 void
-ShL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
+ShL2CacheLineInfo::assign(::CacheLineInfo* cache_line_info)
 {
    CacheLineInfo::assign(cache_line_info);
    _directory_entry = ((ShL2CacheLineInfo*) cache_line_info)->getDirectoryEntry();

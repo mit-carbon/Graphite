@@ -17,21 +17,21 @@ CacheLineInfo::~CacheLineInfo()
 {}
 
 CacheLineInfo*
-CacheLineInfo::create(CachingProtocolType caching_protocol_type, SInt32 cache_type)
+CacheLineInfo::create(CachingProtocolType caching_protocol_type, SInt32 cache_level)
 {
    switch (caching_protocol_type)
    {
    case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      return PrL1PrL2DramDirectoryMSI::CacheLineInfo::create(cache_type);
+      return PrL1PrL2DramDirectoryMSI::CacheLineInfo::create(cache_level);
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
-      return PrL1PrL2DramDirectoryMOSI::CacheLineInfo::create(cache_type);
+      return PrL1PrL2DramDirectoryMOSI::CacheLineInfo::create(cache_level);
 
    case SH_L1_SH_L2:
-      return ShL1ShL2::CacheLineInfo::create(cache_type);
+      return ShL1ShL2::CacheLineInfo::create(cache_level);
 
    case PR_L1_SH_L2_MSI:
-      return PrL1ShL2MSI::CacheLineInfo::create(cache_type);
+      return PrL1ShL2MSI::CacheLineInfo::create(cache_level);
 
    default:
       LOG_PRINT_ERROR("Unrecognized caching protocol type(%u)", caching_protocol_type);

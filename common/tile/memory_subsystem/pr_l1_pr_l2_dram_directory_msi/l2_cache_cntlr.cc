@@ -82,7 +82,7 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
 
    if (eviction)
    {
-      LOG_PRINT("Eviction: address(0x%x)", evicted_address);
+      LOG_PRINT("Eviction: address(%#lx)", evicted_address);
       invalidateCacheLineInL1(evicted_cache_line_info.getCachedLoc(), evicted_address);
 
       UInt32 home_node_id = getHome(evicted_address);
@@ -98,7 +98,7 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
       else
       {
          LOG_ASSERT_ERROR(evicted_cache_line_info.getCState() == CacheState::SHARED,
-               "evicted_address(0x%x), cache state(%u), cached loc(%u)",
+               "evicted_address(%#lx), cache state(%u), cached loc(%u)",
                evicted_address, evicted_cache_line_info.getCState(), evicted_cache_line_info.getCachedLoc());
          ShmemMsg msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY, getTileId(), evicted_address, eviction_msg_modeled);
          getMemoryManager()->sendMsg(home_node_id, msg);

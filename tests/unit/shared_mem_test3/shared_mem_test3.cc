@@ -10,9 +10,9 @@ using namespace std;
 
 void* thread_func(void*);
 
-int num_addresses = 100;
-int num_threads = 125;
-int num_iterations = 100;
+int num_addresses = 2;
+int num_threads = 2;
+int num_iterations = 2;
 
 carbon_barrier_t barrier;
 IntPtr* address;

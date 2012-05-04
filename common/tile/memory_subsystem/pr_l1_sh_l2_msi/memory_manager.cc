@@ -142,7 +142,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    {
       _dram_cntlr_present = true;
 
-      _dram_cntlr = new DramCntlr(getTile(),
+      _dram_cntlr = new DramCntlr(this,
             dram_latency,
             per_dram_controller_bandwidth,
             dram_queue_model_enabled,
@@ -248,10 +248,11 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    if (_enabled)
    {
-      LOG_PRINT("Time(%llu), Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
+      LOG_PRINT("Time(%llu), Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i), modeled(%s)", 
             msg_time, shmem_msg->getType(), shmem_msg->getAddress(),
             sender_mem_component, receiver_mem_component,
-            sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
+            sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type,
+            shmem_msg->isModeled() ? "TRUE" : "FALSE");
    }
 
    switch (receiver_mem_component)
@@ -329,10 +330,11 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 
    if (_enabled)
    {
-      LOG_PRINT("Time(%llu), Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)",
+      LOG_PRINT("Time(%llu), Sending Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i), modeled(%s)",
             msg_time, shmem_msg.getType(), shmem_msg.getAddress(),
             shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
-            shmem_msg.getRequester(), getTile()->getId(), receiver);
+            shmem_msg.getRequester(), getTile()->getId(), receiver,
+            shmem_msg.isModeled() ? "TRUE" : "FALSE");
    }
 
    PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
@@ -344,6 +346,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 
    // Delete the Msg Buf
    delete [] msg_buf;
+   LOG_PRINT("Deleted the temporary msg buf");
 }
 
 void
@@ -356,10 +359,11 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 
    if (_enabled)
    {
-      LOG_PRINT("Time(%llu), Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i)",
+      LOG_PRINT("Time(%llu), Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), modeled(%s)",
             msg_time, shmem_msg.getType(), shmem_msg.getAddress(),
             shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
-            shmem_msg.getRequester(), getTile()->getId());
+            shmem_msg.getRequester(), getTile()->getId(),
+            shmem_msg.isModeled() ? "TRUE" : "FALSE");
    }
 
    PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());

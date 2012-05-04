@@ -113,6 +113,10 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       // Send out a request to the network thread for the cache data
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(cache_miss_type) &&
                          Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
+      LOG_PRINT("msg_modeled(%s), miss type modeled(%s), application tile(%s)",
+                msg_modeled ? "TRUE" : "FALSE",
+                ::MemoryManager::isMissTypeModeled(cache_miss_type) ? "TRUE" : "FALSE",
+                Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId()) ? "TRUE" : "FALSE");
 
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,

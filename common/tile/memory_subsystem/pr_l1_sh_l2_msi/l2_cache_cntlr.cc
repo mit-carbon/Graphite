@@ -118,10 +118,12 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
    if (eviction)
    {
       assert(evicted_cache_line_info.isValid());
-      assert(evicted_cache_line_info.getCState() == CacheState::CLEAN || evicted_cache_line_info.getCState() == CacheState::DIRTY);
       LOG_ASSERT_ERROR(_L2_cache_req_queue_list.empty(evicted_address),
                        "Address(%#lx) is already being processed", evicted_address);
-      assert(evicted_cache_line_info.getDirectoryEntry());
+      LOG_ASSERT_ERROR(evicted_cache_line_info.getCState() == CacheState::CLEAN || evicted_cache_line_info.getCState() == CacheState::DIRTY,
+                       "Cache Line State(%u)", evicted_cache_line_info.getCState());
+      LOG_ASSERT_ERROR(evicted_cache_line_info.getDirectoryEntry(),
+                       "Cant find directory entry for address(%#lx)", evicted_address);
 
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(Cache::CAPACITY_MISS);
       UInt64 eviction_time = getShmemPerfModel()->getCycleCount();
@@ -168,10 +170,10 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       }
    }
 
-   else if ( (shmem_msg_type == ShmemMsg::INV_REP) || (shmem_msg_type == ShmemMsg::FLUSH_REP) || (shmem_msg_type == ShmemMsg::WB_REQ) )
+   else if ( (shmem_msg_type == ShmemMsg::INV_REP) || (shmem_msg_type == ShmemMsg::FLUSH_REP) || (shmem_msg_type == ShmemMsg::WB_REP) )
    {
       // Get the ShL2CacheLineInfo object
-      ShL2CacheLineInfo L2_cache_line_info(false);
+      ShL2CacheLineInfo L2_cache_line_info;
       getCacheLineInfo(address, &L2_cache_line_info);
       // I either find the cache line in the evicted_cache_line_map or in the L2 cache
       assert(L2_cache_line_info.isValid());
@@ -214,7 +216,7 @@ L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    IntPtr address = shmem_msg->getAddress();
 
-   ShL2CacheLineInfo L2_cache_line_info(false);
+   ShL2CacheLineInfo L2_cache_line_info;
    getCacheLineInfo(address, &L2_cache_line_info);
 
    // Write the data into the L2 cache if it is a SH_REQ

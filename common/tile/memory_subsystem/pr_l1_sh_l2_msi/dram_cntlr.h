@@ -17,7 +17,7 @@ namespace PrL1ShL2MSI
 class DramCntlr : public ::DramCntlr
 {
 public:
-   DramCntlr(Tile* tile,
+   DramCntlr(MemoryManager* memory_manager,
              float dram_access_cost, float dram_bandwidth,
              bool dram_queue_model_enabled, string dram_queue_model_type,
              UInt32 cache_line_size);

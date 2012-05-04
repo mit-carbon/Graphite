@@ -77,10 +77,12 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    // m_dram_bandwidth is in 'Bytes per clock cycle'
    if (!m_enabled) 
    {
+      LOG_PRINT("Not enabled. Return 0");
       return 0;
    }
 
    UInt64 processing_time = (UInt64) ((float) pkt_size/m_dram_bandwidth) + 1;
+   LOG_PRINT("Processing Time(%llu)", processing_time);
 
    // Compute Queue Delay
    UInt64 queue_delay;
@@ -92,8 +94,9 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    {
       queue_delay = 0;
    }
-
+   LOG_PRINT("Queue Delay(%llu)", queue_delay);
    UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
+   LOG_PRINT("Access Latency(%llu)", access_latency);
 
 
    // Update Memory Counters

@@ -150,6 +150,10 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(l2_cache_miss_type) &&
                          Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
+      LOG_PRINT("msg_modeled(%s), miss type modeled(%s), application tile(%s)",
+                msg_modeled ? "TRUE" : "FALSE",
+                ::MemoryManager::isMissTypeModeled(l2_cache_miss_type) ? "TRUE" : "FALSE",
+                Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId()) ? "TRUE" : "FALSE");
 
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
 

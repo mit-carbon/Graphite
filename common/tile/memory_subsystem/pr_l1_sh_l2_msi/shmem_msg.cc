@@ -126,6 +126,7 @@ ShmemMsg::getModeledLength()
    case WB_REQ:
    case UPGRADE_REP:
    case INV_REP:
+   case GET_DATA_REQ:
       // msg_type + address
       // msg_type - 1 byte
       return (1 + sizeof(IntPtr));
@@ -134,6 +135,8 @@ ShmemMsg::getModeledLength()
    case SH_REP:
    case FLUSH_REP:
    case WB_REP:
+   case GET_DATA_REP:
+   case PUT_DATA_REQ:
       // msg_type + address + cache_block
       return (1 + sizeof(IntPtr) + _data_length);
 

@@ -21,6 +21,7 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "cache_replacement_policy.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -60,6 +61,7 @@ namespace PrL1PrL2DramDirectoryMSI
       // Data Members
       MemoryManager* _memory_manager;
       Cache* _l2_cache;
+      CacheReplacementPolicy* _l2_cache_replacement_policy_obj;
       L1CacheCntlr* _l1_cache_cntlr;
       AddressHomeLookup* _dram_directory_home_lookup;
       

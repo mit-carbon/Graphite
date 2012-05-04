@@ -19,6 +19,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "cache_replacement_policy.h"
 
 #include "common_defines.h"
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
@@ -88,6 +89,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       MemoryManager* _memory_manager;
       Cache* _L1_icache;
       Cache* _L1_dcache;
+      CacheReplacementPolicy* _L1_icache_replacement_policy_obj;
+      CacheReplacementPolicy* _L1_dcache_replacement_policy_obj;
       L2CacheCntlr* _L2_cache_cntlr;
 
       Lock _L1_icache_lock;

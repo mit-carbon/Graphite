@@ -27,6 +27,9 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
    , _sim_thread_sem(sim_thread_sem)
    , _enabled(false)
 {
+   _L2_cache_replacement_policy_obj = 
+      CacheReplacementPolicy::create(L2_cache_replacement_policy, L2_cache_size, L2_cache_associativity, cache_line_size);
+   
    _L2_cache = new Cache("L2",
          PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
          Cache::UNIFIED_CACHE,
@@ -35,7 +38,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          L2_cache_size, 
          L2_cache_associativity, 
          cache_line_size, 
-         L2_cache_replacement_policy,
+         _L2_cache_replacement_policy_obj,
          L2_cache_access_delay,
          frequency,
          L2_cache_track_miss_types);
@@ -52,6 +55,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
 L2CacheCntlr::~L2CacheCntlr()
 {
    delete _L2_cache;
+   delete _L2_cache_replacement_policy_obj;
 }
 
 void

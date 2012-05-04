@@ -3,6 +3,7 @@
 #include "directory_type.h"
 #include "l2_directory_cfg.h"
 #include "directory_entry.h"
+#include "l2_cache_replacement_policy.h"
 #include "log.h"
 
 #define TYPE(shmem_req)    (shmem_req->getShmemMsg()->getType())
@@ -23,6 +24,9 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
    , _dram_home_lookup(dram_home_lookup)
    , _enabled(false)
 {
+   _L2_cache_replacement_policy_obj =
+      new L2CacheReplacementPolicy(L2_cache_size, L2_cache_associativity, cache_line_size, _L2_cache_req_queue_list);
+
    // L2 cache
    _L2_cache = new Cache("L2",
          PR_L1_SH_L2_MSI,
@@ -32,7 +36,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          L2_cache_size, 
          L2_cache_associativity, 
          cache_line_size, 
-         L2_cache_replacement_policy,
+         _L2_cache_replacement_policy_obj,
          L2_cache_access_delay,
          frequency,
          L2_cache_track_miss_types);
@@ -43,6 +47,7 @@ L2CacheCntlr::~L2CacheCntlr()
    assert(_L2_cache_req_queue_list.size() == 0);
    assert(_evicted_cache_line_map.size() == 0);
    delete _L2_cache;
+   delete _L2_cache_replacement_policy_obj;
 }
 
 void
@@ -122,12 +127,17 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
                        "Address(%#lx) is already being processed", evicted_address);
       LOG_ASSERT_ERROR(evicted_cache_line_info.getCState() == CacheState::CLEAN || evicted_cache_line_info.getCState() == CacheState::DIRTY,
                        "Cache Line State(%u)", evicted_cache_line_info.getCState());
-      LOG_ASSERT_ERROR(evicted_cache_line_info.getDirectoryEntry(),
+      DirectoryEntry* evicted_directory_entry = evicted_cache_line_info.getDirectoryEntry();
+      LOG_ASSERT_ERROR(evicted_directory_entry,
                        "Cant find directory entry for address(%#lx)", evicted_address);
 
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(Cache::CAPACITY_MISS);
       UInt64 eviction_time = getShmemPerfModel()->getCycleCount();
       
+      LOG_PRINT("Eviction: Address(%#lx), Cache State(%u), Directory State(%u), Num Sharers(%i)",
+                evicted_address, evicted_cache_line_info.getCState(),
+                evicted_directory_entry->getDirectoryBlockInfo()->getDState(), evicted_directory_entry->getNumSharers());
+
       // Create a nullify req and add it onto the queue for processing
       ShmemMsg nullify_msg(ShmemMsg::NULLIFY_REQ, MemComponent::L2_CACHE, MemComponent::L2_CACHE,
                            getTileId(), false, evicted_address,
@@ -354,17 +364,19 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
       break;
    }
 
-   // Write the cache line info back
-   setCacheLineInfo(address, &L2_cache_line_info);
-
-   // Delete the directory entry
-   delete L2_cache_line_info.getDirectoryEntry();
-   // Remove the address from the evicted map since its handling is complete
-   _evicted_cache_line_map.erase(address);
-
-   // Process the next request if completed
    if (completed)
+   {
+      // Write the cache line info back
+      setCacheLineInfo(address, &L2_cache_line_info);
+
+      // Delete the directory entry
+      delete L2_cache_line_info.getDirectoryEntry();
+      // Remove the address from the evicted map since its handling is complete
+      _evicted_cache_line_map.erase(address);
+
+      // Process the next request if completed
       processNextReqFromL1Cache(address);
+   }
 }
 
 void
@@ -480,12 +492,14 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
       fetchDataFromDram(address, requester, msg_modeled);
    }
 
-   // Write the cache line info back
-   setCacheLineInfo(address, &L2_cache_line_info);
-
-   // Process the next request if completed
    if (completed)
+   {
+      // Write the cache line info back
+      setCacheLineInfo(address, &L2_cache_line_info);
+
+      // Process the next request if completed
       processNextReqFromL1Cache(address);
+   }
 }
 
 void
@@ -534,8 +548,8 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
             LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, "Address(%#lx), State(%u), Num Sharers(%u)",
                              address, curr_dstate, directory_entry->getNumSharers());
             LOG_ASSERT_ERROR(L2_cache_line_info.getCachingComponent() == requester_mem_component,
-                             "caching component(%u), requester component(%u)",
-                             L2_cache_line_info.getCachingComponent(), requester_mem_component);
+                             "Address(%#lx), Num sharers(%i), caching component(%u), requester component(%u)",
+                             address, directory_entry->getNumSharers(), L2_cache_line_info.getCachingComponent(), requester_mem_component);
 
             // Try to add the sharer to the sharer list
             bool add_result = directory_entry->addSharer(requester);
@@ -567,7 +581,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
           
             // Set caching component 
             assert(L2_cache_line_info.getCachingComponent() == MemComponent::INVALID_MEM_COMPONENT);
-            L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
+            L2_cache_line_info.setCachingComponent(requester_mem_component);
             
             // Modifiy the directory entry contents
             bool add_result = directory_entry->addSharer(requester);
@@ -596,12 +610,14 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
       fetchDataFromDram(address, requester, msg_modeled);
    }
 
-   // Write the cache line info back
-   setCacheLineInfo(address, &L2_cache_line_info);
-
-   // Process the next request if completed
    if (completed)
+   {
+      // Write the cache line info back
+      setCacheLineInfo(address, &L2_cache_line_info);
+
+      // Process the next request if completed
       processNextReqFromL1Cache(address);
+   }
 }
 
 void
@@ -675,8 +691,9 @@ L2CacheCntlr::processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem
    case DirectoryState::SHARED:
    case DirectoryState::UNCACHED:
    default:
-      LOG_PRINT_ERROR("Address(%#lx), FLUSH_REP, State(%u), num sharers(%u), owner(%i)",
-                      address, curr_dstate, directory_entry->getNumSharers(), directory_entry->getOwner());
+      LOG_PRINT_ERROR("Address(%#lx), FLUSH_REP, Sender(%i), Sender mem component(%u), State(%u), num sharers(%u), owner(%i)",
+                      address, sender, shmem_msg->getSenderMemComponent(),
+                      curr_dstate, directory_entry->getNumSharers(), directory_entry->getOwner());
       break;
    }
 }

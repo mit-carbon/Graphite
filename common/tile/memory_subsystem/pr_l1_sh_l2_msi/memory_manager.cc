@@ -246,7 +246,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   if (_enabled)
+   // if (_enabled)
    {
       LOG_PRINT("Time(%llu), Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i), modeled(%s)", 
             msg_time, shmem_msg->getType(), shmem_msg->getAddress(),
@@ -310,7 +310,6 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    // Delete the allocated Shared Memory Message
    // First delete 'data_buf' if it is present
-   // LOG_PRINT("Finished handling Shmem Msg");
 
    if (shmem_msg->getDataLength() > 0)
    {
@@ -328,7 +327,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
+   // if (_enabled)
    {
       LOG_PRINT("Time(%llu), Sending Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i), modeled(%s)",
             msg_time, shmem_msg.getType(), shmem_msg.getAddress(),
@@ -346,7 +345,6 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 
    // Delete the Msg Buf
    delete [] msg_buf;
-   LOG_PRINT("Deleted the temporary msg buf");
 }
 
 void
@@ -357,7 +355,7 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
+   // if (_enabled)
    {
       LOG_PRINT("Time(%llu), Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), modeled(%s)",
             msg_time, shmem_msg.getType(), shmem_msg.getAddress(),

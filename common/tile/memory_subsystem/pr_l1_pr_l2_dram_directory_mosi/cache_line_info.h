@@ -3,6 +3,7 @@
 #include "../cache/cache_line_info.h"
 #include "cache_state.h"
 #include "cache_line_info.h"
+#include "cache_level.h"
 #include "mem_component.h"
 #include "common_defines.h"
 
@@ -14,20 +15,7 @@
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
-enum CacheLevel
-{
-   L1,
-   L2
-};
-
-class CacheLineInfo : public ::CacheLineInfo
-{
-public:
-   CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID, UInt64 curr_time = 0);
-   ~CacheLineInfo();
-   
-   static CacheLineInfo* create(SInt32 cache_level);
-};
+CacheLineInfo* createCacheLineInfo(SInt32 cache_level);
 
 typedef CacheLineInfo PrL1CacheLineInfo;
 
@@ -43,7 +31,7 @@ public:
    void clearCachedLoc(MemComponent::Type cached_loc);
 
    void invalidate();
-   void assign(::CacheLineInfo* cache_line_info);
+   void assign(CacheLineInfo* cache_line_info);
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    void incrUtilization(MemComponent::Type mem_component, CacheLineUtilization& utilization);

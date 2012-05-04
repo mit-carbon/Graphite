@@ -22,6 +22,11 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
    : _memory_manager(memory_manager)
    , _L2_cache_home_lookup(L2_cache_home_lookup)
 {
+   _L1_icache_replacement_policy_obj = 
+      CacheReplacementPolicy::create(L1_icache_replacement_policy, L1_icache_size, L1_icache_associativity, cache_line_size);
+   _L1_dcache_replacement_policy_obj = 
+      CacheReplacementPolicy::create(L1_dcache_replacement_policy, L1_dcache_size, L1_dcache_associativity, cache_line_size);
+
    _L1_icache = new Cache("L1-I",
          PR_L1_SH_L2_MSI,
          Cache::INSTRUCTION_CACHE,
@@ -30,7 +35,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          L1_icache_size,
          L1_icache_associativity, 
          cache_line_size,
-         L1_icache_replacement_policy,
+         _L1_icache_replacement_policy_obj,
          L1_icache_access_delay,
          frequency,
          L1_icache_track_miss_types);
@@ -42,7 +47,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          L1_dcache_size,
          L1_dcache_associativity, 
          cache_line_size,
-         L1_dcache_replacement_policy,
+         _L1_dcache_replacement_policy_obj,
          L1_dcache_access_delay,
          frequency,
          L1_dcache_track_miss_types);
@@ -52,6 +57,8 @@ L1CacheCntlr::~L1CacheCntlr()
 {
    delete _L1_icache;
    delete _L1_dcache;
+   delete _L1_icache_replacement_policy_obj;
+   delete _L1_dcache_replacement_policy_obj;
 }      
 
 bool
@@ -265,7 +272,6 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address, 
 void
 L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr address)
 {
-   assert(mem_component == MemComponent::L1_DCACHE);
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
 

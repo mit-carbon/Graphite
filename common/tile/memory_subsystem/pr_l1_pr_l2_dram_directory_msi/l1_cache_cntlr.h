@@ -18,6 +18,7 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "cache_replacement_policy.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -68,6 +69,8 @@ namespace PrL1PrL2DramDirectoryMSI
       MemoryManager* _memory_manager;
       Cache* _l1_icache;
       Cache* _l1_dcache;
+      CacheReplacementPolicy* _l1_icache_replacement_policy_obj;
+      CacheReplacementPolicy* _l1_dcache_replacement_policy_obj;
       L2CacheCntlr* _l2_cache_cntlr;
 
       Lock _l1_icache_lock;

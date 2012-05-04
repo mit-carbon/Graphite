@@ -5,15 +5,8 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate)
-   : ::CacheLineInfo(tag, cstate)
-{}
-
-CacheLineInfo::~CacheLineInfo()
-{}
-
 CacheLineInfo*
-CacheLineInfo::create(SInt32 cache_level)
+createCacheLineInfo(SInt32 cache_level)
 {
    switch (cache_level)
    {
@@ -67,7 +60,7 @@ PrL2CacheLineInfo::invalidate()
 }
 
 void 
-PrL2CacheLineInfo::assign(::CacheLineInfo* cache_line_info)
+PrL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
    CacheLineInfo::assign(cache_line_info);
    PrL2CacheLineInfo* L2_cache_line_info = dynamic_cast<PrL2CacheLineInfo*>(cache_line_info);

@@ -1,19 +1,10 @@
 #include "cache_line_info.h"
-#include "l2_directory_cfg.h"
 #include "log.h"
 
 namespace PrL1ShL2MSI
 {
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt64 curr_time)
-   : ::CacheLineInfo(tag, cstate, curr_time)
-{}
-
-CacheLineInfo::~CacheLineInfo()
-{}
-
-CacheLineInfo*
-CacheLineInfo::create(SInt32 cache_level)
+CacheLineInfo* createCacheLineInfo(SInt32 cache_level)
 {
    switch (cache_level)
    {
@@ -39,11 +30,12 @@ ShL2CacheLineInfo::~ShL2CacheLineInfo()
 {}
 
 void
-ShL2CacheLineInfo::assign(::CacheLineInfo* cache_line_info)
+ShL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
    CacheLineInfo::assign(cache_line_info);
-   _directory_entry = ((ShL2CacheLineInfo*) cache_line_info)->getDirectoryEntry();
-   _caching_component = ((ShL2CacheLineInfo*) cache_line_info)->getCachingComponent();
+   ShL2CacheLineInfo* L2_cache_line_info = dynamic_cast<ShL2CacheLineInfo*>(cache_line_info);
+   _directory_entry = L2_cache_line_info->getDirectoryEntry();
+   _caching_component = L2_cache_line_info->getCachingComponent();
 }
 
 }

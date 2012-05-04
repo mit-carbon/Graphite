@@ -4,15 +4,7 @@
 namespace ShL1ShL2
 {
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt64 curr_time)
-   : ::CacheLineInfo(tag, cstate, curr_time)
-{}
-
-CacheLineInfo::~CacheLineInfo()
-{}
-
-CacheLineInfo*
-CacheLineInfo::create(SInt32 cache_level)
+CacheLineInfo* createCacheLineInfo(SInt32 cache_level)
 {
    switch (cache_level)
    {

@@ -1,25 +1,13 @@
 #pragma once
 
 #include "../cache/cache_line_info.h"
+#include "cache_level.h"
 #include "directory_entry.h"
 
 namespace PrL1ShL2MSI
 {
 
-enum CacheLevel
-{
-   L1 = 0,
-   L2
-};
-
-class CacheLineInfo : public ::CacheLineInfo
-{
-public:
-   CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID, UInt64 curr_time = 0);
-   ~CacheLineInfo();
-   
-   static CacheLineInfo* create(SInt32 cache_level);
-};
+CacheLineInfo* createCacheLineInfo(SInt32 cache_level);
 
 typedef CacheLineInfo PrL1CacheLineInfo;
 
@@ -29,7 +17,7 @@ public:
    ShL2CacheLineInfo(IntPtr tag = ~0, DirectoryEntry* directory_entry = NULL);
    ~ShL2CacheLineInfo();
 
-   void assign(::CacheLineInfo* cache_line_info);
+   void assign(CacheLineInfo* cache_line_info);
    
    DirectoryEntry* getDirectoryEntry() const
    { return _directory_entry; }

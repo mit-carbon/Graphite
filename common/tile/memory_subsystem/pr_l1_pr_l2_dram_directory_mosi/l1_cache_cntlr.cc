@@ -26,6 +26,11 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
    , _app_thread_sem(app_thread_sem)
    , _sim_thread_sem(sim_thread_sem)
 {
+   _L1_icache_replacement_policy_obj = 
+      CacheReplacementPolicy::create(L1_icache_replacement_policy, L1_icache_size, L1_icache_associativity, cache_line_size);
+   _L1_dcache_replacement_policy_obj = 
+      CacheReplacementPolicy::create(L1_dcache_replacement_policy, L1_dcache_size, L1_dcache_associativity, cache_line_size);
+   
    _L1_icache = new Cache("L1-I",
          PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
          Cache::INSTRUCTION_CACHE,
@@ -34,7 +39,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          L1_icache_size,
          L1_icache_associativity, 
          cache_line_size,
-         L1_icache_replacement_policy,
+         _L1_icache_replacement_policy_obj,
          L1_icache_access_delay,
          frequency,
          L1_icache_track_miss_types);
@@ -46,7 +51,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          L1_dcache_size,
          L1_dcache_associativity, 
          cache_line_size,
-         L1_dcache_replacement_policy,
+         _L1_dcache_replacement_policy_obj,
          L1_dcache_access_delay,
          frequency,
          L1_dcache_track_miss_types);
@@ -56,6 +61,8 @@ L1CacheCntlr::~L1CacheCntlr()
 {
    delete _L1_icache;
    delete _L1_dcache;
+   delete _L1_icache_replacement_policy_obj;
+   delete _L1_dcache_replacement_policy_obj;
 }      
 
 void

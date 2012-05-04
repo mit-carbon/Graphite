@@ -6,15 +6,8 @@
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt64 curr_time)
-   : ::CacheLineInfo(tag, cstate, curr_time)
-{}
-
-CacheLineInfo::~CacheLineInfo()
-{}
-
 CacheLineInfo*
-CacheLineInfo::create(SInt32 cache_level)
+createCacheLineInfo(SInt32 cache_level)
 {
    switch (cache_level)
    {
@@ -78,15 +71,16 @@ PrL2CacheLineInfo::invalidate()
 }
 
 void 
-PrL2CacheLineInfo::assign(::CacheLineInfo* cache_line_info)
+PrL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
    CacheLineInfo::assign(cache_line_info);
-   _cached_loc = ((PrL2CacheLineInfo*) cache_line_info)->getCachedLoc();
+   PrL2CacheLineInfo* L2_cache_line_info = dynamic_cast<PrL2CacheLineInfo*>(cache_line_info);
+   _cached_loc = L2_cache_line_info->getCachedLoc();
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-   AggregateCacheLineUtilization aggregate_utilization = ((PrL2CacheLineInfo*) cache_line_info)->getAggregateUtilization();
+   AggregateCacheLineUtilization aggregate_utilization = L2_cache_line_info->getAggregateUtilization();
    _L1_I_utilization = aggregate_utilization.L1_I;
    _L1_D_utilization = aggregate_utilization.L1_D;
-   AggregateCacheLineLifetime aggregate_lifetime = ((PrL2CacheLineInfo*) cache_line_info)->getAggregateLifetime(0);
+   AggregateCacheLineLifetime aggregate_lifetime = L2_cache_line_info->getAggregateLifetime(0);
    _L1_I_lifetime = aggregate_lifetime.L1_I;
    _L1_D_lifetime = aggregate_lifetime.L1_D;
 #endif

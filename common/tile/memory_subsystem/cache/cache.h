@@ -23,6 +23,7 @@ using std::set;
 // Forwards Decls
 class CacheSet;
 class CacheLineInfo;
+class CacheReplacementPolicy;
 
 class Cache
 {
@@ -32,13 +33,6 @@ public:
    {
       LOAD = 0,
       STORE
-   };
-
-   enum ReplacementPolicy
-   {
-      ROUND_ROBIN = 0,
-      LRU,
-      NUM_REPLACEMENT_POLICIES
    };
 
    enum MissType
@@ -73,7 +67,7 @@ public:
          UInt32 cache_size, 
          UInt32 associativity,
          UInt32 line_size,
-         string replacement_policy,
+         CacheReplacementPolicy* replacement_policy,
          UInt32 access_delay,
          float frequency,
          bool track_miss_types = false);
@@ -167,9 +161,6 @@ private:
    UInt32 getLineOffset(IntPtr address) const;
    IntPtr getAddressFromTag(IntPtr tag) const;
 
-   // Parse Replacement Policy
-   ReplacementPolicy parseReplacementPolicy(string policy);
-   
    // Initialize Counters
    // Hit/miss counters
    void initializeMissCounters();

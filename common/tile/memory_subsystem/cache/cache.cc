@@ -2,10 +2,9 @@
 #include "cache.h"
 #include "cache_set.h"
 #include "cache_line_info.h"
+#include "cache_replacement_policy.h"
 #include "utils.h"
 #include "log.h"
-
-using namespace std;
 
 // Cache class
 // constructors/destructors
@@ -17,7 +16,7 @@ Cache::Cache(string name,
              UInt32 cache_size,
              UInt32 associativity,
              UInt32 line_size,
-             string replacement_policy,
+             CacheReplacementPolicy* replacement_policy,
              UInt32 access_delay,
              float frequency,
              bool track_miss_types)
@@ -36,10 +35,9 @@ Cache::Cache(string name,
    _log_line_size = floorLog2(_line_size);
    
    _sets = new CacheSet*[_num_sets];
-   ReplacementPolicy policy = parseReplacementPolicy(replacement_policy);
    for (UInt32 i = 0; i < _num_sets; i++)
    {
-      _sets[i] = CacheSet::createCacheSet(policy, caching_protocol_type, cache_level, _associativity, _line_size);
+      _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, replacement_policy, _associativity, _line_size);
    }
 
    if (Config::getSingleton()->getEnablePowerModeling())
@@ -473,20 +471,6 @@ IntPtr
 Cache::getAddressFromTag(IntPtr tag) const
 {
    return tag << _log_line_size;
-}
-
-Cache::ReplacementPolicy
-Cache::parseReplacementPolicy(string policy)
-{
-   if (policy == "round_robin")
-      return ROUND_ROBIN;
-   if (policy == "lru")
-      return LRU;
-   else
-   {
-      LOG_PRINT_ERROR("Unrecognized Cache Replacement Policy(%s) for (%s)", policy.c_str(), _name.c_str());
-      return NUM_REPLACEMENT_POLICIES;
-   }
 }
 
 Cache::MissType

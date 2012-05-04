@@ -44,8 +44,8 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
 
 L2CacheCntlr::~L2CacheCntlr()
 {
-   assert(_L2_cache_req_queue_list.size() == 0);
-   assert(_evicted_cache_line_map.size() == 0);
+   LOG_ASSERT_ERROR(_L2_cache_req_queue_list.size() == 0, "Req list size(%u)", _L2_cache_req_queue_list.size());
+   LOG_ASSERT_ERROR(_evicted_cache_line_map.size() == 0, "Evicted cache line map size(%u)", _evicted_cache_line_map.size());
    delete _L2_cache;
    delete _L2_cache_replacement_policy_obj;
 }
@@ -343,7 +343,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
                              requester, msg_modeled);
 
          // Send line to DRAM if dirty
-         if (L2_cache_line_info.getCState() == CacheState::DIRTY)
+         if ((L2_cache_line_info.getCState() == CacheState::DIRTY) && data_buf)
             sendDataToDram(address, data_buf, requester, msg_modeled);
       }
       break;
@@ -351,7 +351,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
    case DirectoryState::UNCACHED:
       {
          // Send line to DRAM if dirty
-         if (L2_cache_line_info.getCState() == CacheState::DIRTY)
+         if ((L2_cache_line_info.getCState() == CacheState::DIRTY) && data_buf)
             sendDataToDram(address, data_buf, requester, msg_modeled);
 
          // Set completed to true

@@ -322,7 +322,9 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 void
 MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 {
-   assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
+   LOG_ASSERT_ERROR((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0),
+                    "Address(%#lx), Type(%u), Sender Component(%u), Receiver Component(%u)",
+                    shmem_msg.getAddress(), shmem_msg.getType(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();

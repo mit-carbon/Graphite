@@ -9,6 +9,7 @@ namespace PrL1ShL2MSI
 #include <map>
 using std::map;
 
+#include "core.h"
 #include "cache.h"
 #include "cache_line_info.h"
 #include "address_home_lookup.h"
@@ -66,7 +67,8 @@ namespace PrL1ShL2MSI
       map<IntPtr,ShL2CacheLineInfo> _evicted_cache_line_map;
 
       // L2 cache operations
-      void getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info);
+      void getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info,
+                            ShmemMsg::Type shmem_msg_type = ShmemMsg::INVALID_MSG_TYPE, bool update_miss_counters = false);
       void setCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info);
       void readCacheLine(IntPtr address, Byte* data_buf);
       void writeCacheLine(IntPtr address, Byte* data_buf);
@@ -75,8 +77,8 @@ namespace PrL1ShL2MSI
       // Process Request to invalidate the sharers of a cache line
       void processNullifyReq(ShmemReq* nullify_req, Byte* data_buf);
       // Process Request from L1-I/L1-D caches
-      void processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf = NULL);
-      void processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf = NULL);
+      void processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool first_call = false);
+      void processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool first_call = false);
       void processInvRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_msg, ShL2CacheLineInfo* L2_cache_line_info);
       void processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_msg, ShL2CacheLineInfo* L2_cache_line_info);
       void processWbRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_msg, ShL2CacheLineInfo* L2_cache_line_info);
@@ -106,7 +108,7 @@ namespace PrL1ShL2MSI
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
-      UInt64 getTime();
+      Core::mem_op_t getMemOpTypeFromShmemMsgType(ShmemMsg::Type shmem_msg_type);
 
       // Dram Home Lookup
       tile_id_t getDramHome(IntPtr address) { return _dram_home_lookup->getHome(address); }

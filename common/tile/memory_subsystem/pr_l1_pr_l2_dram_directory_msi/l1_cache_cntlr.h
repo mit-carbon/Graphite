@@ -19,6 +19,7 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -71,6 +72,8 @@ namespace PrL1PrL2DramDirectoryMSI
       Cache* _l1_dcache;
       CacheReplacementPolicy* _l1_icache_replacement_policy_obj;
       CacheReplacementPolicy* _l1_dcache_replacement_policy_obj;
+      CacheHashFn* _l1_icache_hash_fn_obj;
+      CacheHashFn* _l1_dcache_hash_fn_obj;
       L2CacheCntlr* _l2_cache_cntlr;
 
       Lock _l1_icache_lock;

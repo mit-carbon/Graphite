@@ -22,6 +22,7 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -62,6 +63,7 @@ namespace PrL1PrL2DramDirectoryMSI
       MemoryManager* _memory_manager;
       Cache* _l2_cache;
       CacheReplacementPolicy* _l2_cache_replacement_policy_obj;
+      CacheHashFn* _l2_cache_hash_fn_obj;
       L1CacheCntlr* _l1_cache_cntlr;
       AddressHomeLookup* _dram_directory_home_lookup;
       

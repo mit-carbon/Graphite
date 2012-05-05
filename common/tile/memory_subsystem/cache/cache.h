@@ -15,15 +15,13 @@ using std::set;
 #include "utils.h"
 #include "fixed_types.h"
 #include "caching_protocol_type.h"
-
-#define k_KILO 1024
-#define k_MEGA (k_KILO*k_KILO)
-#define k_GIGA (k_KILO*k_MEGA)
+#include "constants.h"
 
 // Forwards Decls
 class CacheSet;
 class CacheLineInfo;
 class CacheReplacementPolicy;
+class CacheHashFn;
 
 class Cache
 {
@@ -68,6 +66,7 @@ public:
          UInt32 associativity,
          UInt32 line_size,
          CacheReplacementPolicy* replacement_policy,
+         CacheHashFn* hash_fn,
          UInt32 access_delay,
          float frequency,
          bool track_miss_types = false);
@@ -118,6 +117,10 @@ private:
    UInt32 _line_size;
    UInt32 _num_sets;
    UInt32 _log_line_size;
+
+   // Computing replacement policy and hash function
+   CacheReplacementPolicy* _replacement_policy;
+   CacheHashFn* _hash_fn;
    
    // Cache hit/miss counters
    UInt64 _total_cache_accesses;
@@ -183,9 +186,3 @@ private:
    // Update counters that record the state of cache lines
    void updateCacheLineStateCounters(CacheState::Type old_cstate, CacheState::Type new_cstate);
 };
-
-template <class T>
-UInt32 moduloHashFn(T key, UInt32 hash_fn_param, UInt32 num_buckets)
-{
-   return (key >> hash_fn_param) % num_buckets;
-}

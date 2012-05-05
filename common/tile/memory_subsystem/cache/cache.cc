@@ -3,6 +3,7 @@
 #include "cache_set.h"
 #include "cache_line_info.h"
 #include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 #include "utils.h"
 #include "log.h"
 
@@ -17,6 +18,7 @@ Cache::Cache(string name,
              UInt32 associativity,
              UInt32 line_size,
              CacheReplacementPolicy* replacement_policy,
+             CacheHashFn* hash_fn,
              UInt32 access_delay,
              float frequency,
              bool track_miss_types)
@@ -27,6 +29,8 @@ Cache::Cache(string name,
    , _cache_size(k_KILO * cache_size)
    , _associativity(associativity)
    , _line_size(line_size)
+   , _replacement_policy(replacement_policy)
+   , _hash_fn(hash_fn)
    , _power_model(NULL)
    , _area_model(NULL)
    , _track_miss_types(track_miss_types)
@@ -37,7 +41,7 @@ Cache::Cache(string name,
    _sets = new CacheSet*[_num_sets];
    for (UInt32 i = 0; i < _num_sets; i++)
    {
-      _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, replacement_policy, _associativity, _line_size);
+      _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
    if (Config::getSingleton()->getEnablePowerModeling())
@@ -457,8 +461,8 @@ Cache::getTag(IntPtr address) const
 CacheSet*
 Cache::getSet(IntPtr address) const
 {
-   UInt32 set_index = (address >> _log_line_size) & (_num_sets-1);
-   return _sets[set_index];
+   UInt32 set_num = _hash_fn->compute(address);
+   return _sets[set_num];
 }
 
 UInt32

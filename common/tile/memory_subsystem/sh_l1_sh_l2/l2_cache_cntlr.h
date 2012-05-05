@@ -17,6 +17,7 @@ namespace ShL1ShL2
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 namespace ShL1ShL2
 {
@@ -49,6 +50,7 @@ namespace ShL1ShL2
       DramDirectoryCntlr* _dram_directory_cntlr;
       Cache* _l2_cache;
       CacheReplacementPolicy* _l2_cache_replacement_policy_obj;
+      CacheHashFn* _l2_cache_hash_fn_obj;
       
       // Utilities
       tile_id_t getTileId();

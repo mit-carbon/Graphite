@@ -4,6 +4,7 @@
 #include "l2_directory_cfg.h"
 #include "directory_entry.h"
 #include "l2_cache_replacement_policy.h"
+#include "l2_cache_hash_fn.h"
 #include "log.h"
 
 #define TYPE(shmem_req)    (shmem_req->getShmemMsg()->getType())
@@ -26,6 +27,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
 {
    _L2_cache_replacement_policy_obj =
       new L2CacheReplacementPolicy(L2_cache_size, L2_cache_associativity, cache_line_size, _L2_cache_req_queue_list);
+   _L2_cache_hash_fn_obj = new L2CacheHashFn(L2_cache_size, L2_cache_associativity, cache_line_size);
 
    // L2 cache
    _L2_cache = new Cache("L2",
@@ -37,6 +39,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          L2_cache_associativity, 
          cache_line_size, 
          _L2_cache_replacement_policy_obj,
+         _L2_cache_hash_fn_obj,
          L2_cache_access_delay,
          frequency,
          L2_cache_track_miss_types);
@@ -44,10 +47,12 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
 
 L2CacheCntlr::~L2CacheCntlr()
 {
-   LOG_ASSERT_ERROR(_L2_cache_req_queue_list.size() == 0, "Req list size(%u)", _L2_cache_req_queue_list.size());
-   LOG_ASSERT_ERROR(_evicted_cache_line_map.size() == 0, "Evicted cache line map size(%u)", _evicted_cache_line_map.size());
+   // Some eviction requests
+   LOG_ASSERT_ERROR(_L2_cache_req_queue_list.size() == _evicted_cache_line_map.size(),
+                    "Req list size(%u), Evicted cache line map size(%u)", _L2_cache_req_queue_list.size(), _evicted_cache_line_map.size());
    delete _L2_cache;
    delete _L2_cache_replacement_policy_obj;
+   delete _L2_cache_hash_fn_obj;
 }
 
 void

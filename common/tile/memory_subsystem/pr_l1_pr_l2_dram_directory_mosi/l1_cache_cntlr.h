@@ -20,6 +20,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 #include "common_defines.h"
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
@@ -91,6 +92,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       Cache* _L1_dcache;
       CacheReplacementPolicy* _L1_icache_replacement_policy_obj;
       CacheReplacementPolicy* _L1_dcache_replacement_policy_obj;
+      CacheHashFn* _L1_icache_hash_fn_obj;
+      CacheHashFn* _L1_dcache_hash_fn_obj;
       L2CacheCntlr* _L2_cache_cntlr;
 
       Lock _L1_icache_lock;

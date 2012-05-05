@@ -22,6 +22,7 @@ using std::map;
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 #include "common_defines.h"
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
@@ -45,7 +46,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                    string L2_cache_replacement_policy,
                    UInt32 L2_cache_access_delay,
                    bool L2_cache_track_miss_types,
-                   volatile float frequency);
+                   float frequency);
       ~L2CacheCntlr();
 
       Cache* getL2Cache() { return _L2_cache; }
@@ -74,6 +75,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       MemoryManager* _memory_manager;
       Cache* _L2_cache;
       CacheReplacementPolicy* _L2_cache_replacement_policy_obj;
+      CacheHashFn* _L2_cache_hash_fn_obj;
       L1CacheCntlr* _L1_cache_cntlr;
       AddressHomeLookup* _dram_directory_home_lookup;
 

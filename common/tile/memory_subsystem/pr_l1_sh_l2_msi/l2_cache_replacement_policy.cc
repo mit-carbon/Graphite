@@ -39,7 +39,7 @@ L2CacheReplacementPolicy::getReplacementWay(CacheLineInfo** cache_line_info_arra
 
          DirectoryEntry* directory_entry = L2_cache_line_info->getDirectoryEntry();
          if (directory_entry->getNumSharers() < min_num_sharers && 
-             _L2_cache_req_queue_list.count(address) == 0)
+             _L2_cache_req_queue_list.empty(address))
          {
             min_num_sharers = directory_entry->getNumSharers();
             way = i;
@@ -47,6 +47,21 @@ L2CacheReplacementPolicy::getReplacementWay(CacheLineInfo** cache_line_info_arra
       }
    }
 
+   if (way == UINT32_MAX_)
+   {
+      for (UInt32 i = 0; i < _associativity; i++)
+      {
+         ShL2CacheLineInfo* L2_cache_line_info = dynamic_cast<ShL2CacheLineInfo*>(cache_line_info_array[i]);
+         assert(L2_cache_line_info->getCState() != CacheState::INVALID);
+         IntPtr address = getAddressFromTag(L2_cache_line_info->getTag());
+         DirectoryEntry* directory_entry = L2_cache_line_info->getDirectoryEntry();
+         assert(_L2_cache_req_queue_list.count(address) > 0);
+         fprintf(stderr, "i(%u), Address(%#lx), CState(%u), DState(%u), Num Waiters(%u)\n",
+                 i, address, L2_cache_line_info->getCState(),
+                 directory_entry->getDirectoryBlockInfo()->getDState(),
+                 (UInt32) _L2_cache_req_queue_list.count(address));
+      }
+   }
    LOG_ASSERT_ERROR(way != UINT32_MAX_, "Could not find a replacement candidate");
    return way;
 }

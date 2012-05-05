@@ -20,6 +20,7 @@ namespace PrL1ShL2MSI
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 namespace PrL1ShL2MSI
 {
@@ -60,6 +61,8 @@ namespace PrL1ShL2MSI
       Cache* _L1_dcache;
       CacheReplacementPolicy* _L1_icache_replacement_policy_obj;
       CacheReplacementPolicy* _L1_dcache_replacement_policy_obj;
+      CacheHashFn* _L1_icache_hash_fn_obj;
+      CacheHashFn* _L1_dcache_hash_fn_obj;
       AddressHomeLookup* _L2_cache_home_lookup;
 
       // Synchronization between the app and sim threads

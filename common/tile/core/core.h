@@ -40,7 +40,7 @@ public:
       NUM_STATES
    };
 
-   enum LockSignalType
+   enum lock_signal_t
    {
       INVALID_LOCK_SIGNAL = 0,
       MIN_LOCK_SIGNAL,
@@ -51,7 +51,7 @@ public:
       NUM_LOCK_SIGNAL_TYPES = MAX_LOCK_SIGNAL - MIN_LOCK_SIGNAL + 1
    };
 
-   enum MemOpType
+   enum mem_op_t
    {
       INVALID_MEM_OP = 0,
       MIN_MEM_OP,

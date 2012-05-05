@@ -50,20 +50,28 @@ L2CacheCntlr::~L2CacheCntlr()
    // Some eviction requests
    LOG_ASSERT_ERROR(_L2_cache_req_queue_list.size() == _evicted_cache_line_map.size(),
                     "Req list size(%u), Evicted cache line map size(%u)", _L2_cache_req_queue_list.size(), _evicted_cache_line_map.size());
+   // FIXME: Directory Entries are not deleted at the end of simulation
    delete _L2_cache;
    delete _L2_cache_replacement_policy_obj;
    delete _L2_cache_hash_fn_obj;
 }
 
 void
-L2CacheCntlr::getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info)
+L2CacheCntlr::getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info, ShmemMsg::Type shmem_msg_type, bool update_miss_counters)
 {
    map<IntPtr,ShL2CacheLineInfo>::iterator it = _evicted_cache_line_map.find(address);
    if (it == _evicted_cache_line_map.end())
    {
       // Read it from the cache
       _L2_cache->getCacheLineInfo(address, L2_cache_line_info);
-      if (!L2_cache_line_info->isValid())
+      if (update_miss_counters)
+      {
+         bool cache_miss = (L2_cache_line_info->getCState() == CacheState::INVALID);
+         Core::mem_op_t mem_op_type = getMemOpTypeFromShmemMsgType(shmem_msg_type);
+         _L2_cache->updateMissCounters(address, mem_op_type, cache_miss);
+      }
+
+      if (L2_cache_line_info->getCState() == CacheState::INVALID)
       {
          // allocate a cache line with garbage data
          allocateCacheLine(address, L2_cache_line_info);
@@ -71,6 +79,7 @@ L2CacheCntlr::getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_
    }
    else
    {
+      assert(!update_miss_counters);
       // Read it from the evicted cache line map
       L2_cache_line_info->assign(&it->second);
    }
@@ -289,10 +298,10 @@ L2CacheCntlr::processShmemReq(ShmemReq* shmem_req)
    switch (msg_type)
    {
    case ShmemMsg::EX_REQ:
-      processExReqFromL1Cache(shmem_req);
+      processExReqFromL1Cache(shmem_req, NULL, true);
       break;
    case ShmemMsg::SH_REQ:
-      processShReqFromL1Cache(shmem_req);
+      processShReqFromL1Cache(shmem_req, NULL, true);
       break;
    default:
       LOG_PRINT_ERROR("Unrecognized Shmem Msg Type(%u)", TYPE(shmem_req));
@@ -385,7 +394,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
 }
 
 void
-L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
+L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool first_call)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
@@ -394,7 +403,7 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
    bool msg_modeled = shmem_req->getShmemMsg()->isModeled();
 
    ShL2CacheLineInfo L2_cache_line_info;
-   getCacheLineInfo(address, &L2_cache_line_info);
+   getCacheLineInfo(address, &L2_cache_line_info, ShmemMsg::EX_REQ, first_call);
  
    assert(L2_cache_line_info.getCState() != CacheState::INVALID);
 
@@ -508,7 +517,7 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
 }
 
 void
-L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
+L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool first_call)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
@@ -517,7 +526,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf)
    bool msg_modeled = shmem_req->getShmemMsg()->isModeled();
 
    ShL2CacheLineInfo L2_cache_line_info;
-   getCacheLineInfo(address, &L2_cache_line_info);
+   getCacheLineInfo(address, &L2_cache_line_info, ShmemMsg::SH_REQ, first_call);
  
    assert(L2_cache_line_info.getCState() != CacheState::INVALID);
 
@@ -851,12 +860,19 @@ L2CacheCntlr::sendDataToDram(IntPtr address, Byte* data_buf, tile_id_t requester
    getMemoryManager()->sendMsg(getDramHome(address), send_msg);
 }
 
-UInt64
-L2CacheCntlr::getTime()
+Core::mem_op_t
+L2CacheCntlr::getMemOpTypeFromShmemMsgType(ShmemMsg::Type shmem_msg_type)
 {
-   volatile float frequency = getMemoryManager()->getTile()->getCore()->getPerformanceModel()->getFrequency();
-   assert(frequency == 1.0);
-   return (UInt64) (((double) getShmemPerfModel()->getCycleCount()) / frequency);
+   switch (shmem_msg_type)
+   {
+   case ShmemMsg::SH_REQ:
+      return Core::READ;
+   case ShmemMsg::EX_REQ:
+      return Core::WRITE;
+   default:
+      LOG_PRINT_ERROR("Unrecognized Msg(%u)", shmem_msg_type);
+      return Core::INVALID_MEM_OP;                 
+   }
 }
 
 tile_id_t

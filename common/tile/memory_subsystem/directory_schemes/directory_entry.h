@@ -1,16 +1,23 @@
 #pragma once
 
 #include <vector>
+#include <string>
 using std::vector;
+using std::string;
 
 #include "fixed_types.h"
 #include "directory_block_info.h"
+#include "directory_type.h"
 
 class DirectoryEntry
 {
 public:
    DirectoryEntry(SInt32 max_hw_sharers);
    virtual ~DirectoryEntry();
+
+   static DirectoryType parseDirectoryType(string directory_type);
+   static DirectoryEntry* create(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers);
+   static UInt32 getSize(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers);
 
    DirectoryBlockInfo* getDirectoryBlockInfo();
 
@@ -24,15 +31,24 @@ public:
    IntPtr getAddress() { return _address; }
    void setAddress(IntPtr address) { _address = address; }
 
+   virtual bool inBroadcastMode() { return false; }
    virtual bool getSharersList(vector<tile_id_t>& sharers_list) = 0;
    virtual tile_id_t getOneSharer() = 0;
    virtual SInt32 getNumSharers() = 0;
 
    virtual UInt32 getLatency() = 0;
 
+   // Utilization
+   void setUtilization(UInt64 utilization);
+   void getUtilizationVec(vector<UInt64>& utilization_vec);
+   void resetUtilizationVec();
+
 protected:
    IntPtr _address;
    DirectoryBlockInfo* _directory_block_info;
    tile_id_t _owner_id;
    SInt32 _max_hw_sharers;
+
+private:
+   vector<UInt64> _utilization_vec;
 };

@@ -25,14 +25,14 @@ int main (int argc, char *argv[])
    UInt32 read_val_0 = 0;
 
    // Tile 0 - Write value into this address
-   printf("Writing(%u) into address(0x%x)\n", write_val_0, address);
+   printf("Writing(%u) into address(%#lx)\n", write_val_0, address);
    UInt32 num_misses;
    num_misses = (core_0->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &write_val_0, sizeof(write_val_0), true)).first;
    assert(num_misses == 1);
 
    // Tile 0 - Read out the value
    num_misses = (core_0->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &read_val_0, sizeof(read_val_0), true)).first;
-   printf("Read Out(%u) from address(0x%x)\n", read_val_0, address);
+   printf("Read Out(%u) from address(%#lx)\n", read_val_0, address);
    assert(num_misses == 0);
    assert(read_val_0 == 100);
 
@@ -41,20 +41,20 @@ int main (int argc, char *argv[])
 
    // Tile 1 - Read out the value and write something else
    num_misses = (core_1->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &read_val_1, sizeof(read_val_1), true)).first;
-   printf("Read Out(%u) from address(0x%x)\n", read_val_1, address);
+   printf("Read Out(%u) from address(%#lx)\n", read_val_1, address);
    assert(num_misses == 1);
    assert(read_val_1 == 100);
 
    write_val_1 = read_val_1 + 10;
    // Tile 1 - Write read out value + 1
-   printf("Writing(%u) into address(0x%x)\n", write_val_1, address);
+   printf("Writing(%u) into address(%#lx)\n", write_val_1, address);
    num_misses = (core_1->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &write_val_1, sizeof(write_val_1), true)).first;
    assert(num_misses == 1);
    
    // Tile 0 - Read out the value
    num_misses = (core_0->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &read_val_0, sizeof(read_val_0), true)).first;
-   printf("Read Out(%u) from address(0x%x)\n", read_val_0, address);
-   assert(num_misses == 1);
+   printf("Read Out(%u) from address(%#lx)\n", read_val_0, address);
+   LOG_ASSERT_ERROR(num_misses == 1, "num misses(%i)", num_misses);
    assert(read_val_0 == 110);
 
    // Disable Performance Models

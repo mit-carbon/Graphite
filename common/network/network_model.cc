@@ -152,20 +152,10 @@ NetworkModel::processReceivedPacket(NetPacket& pkt)
 tile_id_t
 NetworkModel::getRequester(const NetPacket& packet)
 {
-   tile_id_t requester = INVALID_TILE_ID;
-
    SInt32 network_id = getNetworkId();
-   if ((network_id == STATIC_NETWORK_USER_1) || (network_id == STATIC_NETWORK_USER_2))
-      requester = TILE_ID(packet.sender);
-   else if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
-      requester = getNetwork()->getTile()->getMemoryManager()->getShmemRequester(packet.data);
-   else // (network_id == STATIC_NETWORK_SYSTEM)
-      requester = INVALID_TILE_ID;
-   
-   // LOG_ASSERT_ERROR((requester >= 0) && (requester < (tile_id_t) Config::getSingleton()->getTotalTiles()),
-   //       "requester(%i)", requester);
+   assert((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2));
 
-   return requester;
+   return getNetwork()->getTile()->getMemoryManager()->getShmemRequester(packet.data);
 }
 
 void
@@ -190,10 +180,17 @@ NetworkModel::initializeEventCounters()
 bool
 NetworkModel::isModelEnabled(const NetPacket& pkt)
 {
-   tile_id_t requester = getRequester(pkt);
-   return ( _enabled && 
-            (isApplicationTile(requester)) &&
-            (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
+   SInt32 network_id = getNetworkId();
+   if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
+   {
+      return ( _enabled &&
+               (!isSystemTile(getRequester(pkt))) &&
+               (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
+   }
+   else // USER_1, USER_2, SYSTEM
+   {
+      return _enabled;
+   }
 }
 
 UInt32

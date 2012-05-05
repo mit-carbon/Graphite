@@ -13,7 +13,7 @@ namespace PrL1PrL2DramDirectoryMSI
 }
 
 #include "cache.h"
-#include "pr_l2_cache_line_info.h"
+#include "cache_line_info.h"
 #include "address_home_lookup.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
@@ -21,6 +21,8 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -30,22 +32,21 @@ namespace PrL1PrL2DramDirectoryMSI
       L2CacheCntlr(MemoryManager* memory_manager,
                    L1CacheCntlr* l1_cache_cntlr,
                    AddressHomeLookup* dram_directory_home_lookup,
-                   Semaphore* user_thread_sem,
-                   Semaphore* network_thread_sem,
+                   Semaphore* app_thread_sem,
+                   Semaphore* sim_thread_sem,
                    UInt32 cache_line_size,
                    UInt32 l2_cache_size,
                    UInt32 l2_cache_associativity,
                    string l2_cache_replacement_policy,
                    UInt32 l2_cache_access_delay,
                    bool l2_cache_track_miss_types,
-                   volatile float frequency);
+                   float frequency);
       ~L2CacheCntlr();
 
       Cache* getL2Cache() { return _l2_cache; }
 
       // Handle Request from L1 Cache - This is done for better simulator performance
-      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::component_t req_mem_component, ShmemMsg::msg_t msg_type,
-                                                                IntPtr address, bool modeled);
+      pair<bool,Cache::MissType> processShmemRequestFromL1Cache(MemComponent::Type mem_component, Core::mem_op_t mem_op_type, IntPtr address);
       // Write-through Cache. Hence needs to be written by the APP thread
       void writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length);
 
@@ -61,6 +62,8 @@ namespace PrL1PrL2DramDirectoryMSI
       // Data Members
       MemoryManager* _memory_manager;
       Cache* _l2_cache;
+      CacheReplacementPolicy* _l2_cache_replacement_policy_obj;
+      CacheHashFn* _l2_cache_hash_fn_obj;
       L1CacheCntlr* _l1_cache_cntlr;
       AddressHomeLookup* _dram_directory_home_lookup;
       
@@ -69,29 +72,27 @@ namespace PrL1PrL2DramDirectoryMSI
       UInt64 _outstanding_shmem_msg_time;
       
       Lock _l2_cache_lock;
-      Semaphore* _user_thread_sem;
-      Semaphore* _network_thread_sem;
+      Semaphore* _app_thread_sem;
+      Semaphore* _sim_thread_sem;
 
       // L2 cache operations
-      void getCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info);
-      void setCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info);
-      void invalidateCacheLine(IntPtr address);
       void readCacheLine(IntPtr address, Byte* data_buf);
-      void insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* fill_buf, MemComponent::component_t mem_component);
+      void insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf, MemComponent::Type mem_component);
+      void invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& l2_cache_line_info);
 
       // L1 cache operations
-      void setCacheLineStateInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate);
-      void invalidateCacheLineInL1(MemComponent::component_t mem_component, IntPtr address);
-      void insertCacheLineInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate, Byte* fill_buf);
+      void setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
+      void invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr address);
+      void insertCacheLineInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate, Byte* fill_buf);
 
       // Insert cache line in hierarchy
-      void insertCacheLineInHierarchy(IntPtr address, CacheState::CState cstate, Byte* fill_buf);
+      void insertCacheLineInHierarchy(IntPtr address, CacheState::Type cstate, Byte* fill_buf);
 
       // Process Request from L1 Cache
       void processExReqFromL1Cache(ShmemMsg* shmem_msg);
       void processShReqFromL1Cache(ShmemMsg* shmem_msg);
       // Check if msg from L1 ends in the L2 cache
-      pair<bool,Cache::MissType> shmemRequestStatusInL2Cache(ShmemMsg::msg_t msg_type, IntPtr address, CacheState::CState cstate, bool modeled);
+      pair<bool,Cache::MissType> operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::Type cstate);
 
       // Process Request from Dram Dir
       void processExRepFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
@@ -106,15 +107,15 @@ namespace PrL1PrL2DramDirectoryMSI
       MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
 
-      // Wake up User Thread
-      void wakeUpUserThread();
-      // Wait for User Thread
-      void waitForUserThread();
+      // Wake up App Thread
+      void wakeUpAppThread();
+      // Wait for App Thread
+      void waitForAppThread();
 
       // Dram Directory Home Lookup
       tile_id_t getHome(IntPtr address) { return _dram_directory_home_lookup->getHome(address); }
 
-      MemComponent::component_t acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address);
+      MemComponent::Type acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address);
    };
 
 }

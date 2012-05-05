@@ -15,12 +15,12 @@ class TechParameter;
 class OrionConfig
 {
   public:
-    OrionConfig(const string& cfg_fn_);
+    OrionConfig(const string& cfg_fn_, uint32_t tech_node_);
     OrionConfig(const OrionConfig& orion_cfg_);
     ~OrionConfig();
 
   public:
-    static void allocate(string& orion_cfg_file);
+    static void allocate(string& orion_cfg_file_, uint32_t tech_node_);
     static void release();
     static OrionConfig* getSingleton();
 
@@ -30,6 +30,7 @@ class OrionConfig
     void set_num_vchannel(uint32_t num_vchannel_);
     void set_in_buf_num_set(uint32_t in_buf_num_set_);
     void set_flit_width(uint32_t flit_width_);
+    void set_frequency(float frequency_);
 
     void read_file(const string& filename_);
     void print_config(ostream& out_);
@@ -81,7 +82,7 @@ T OrionConfig::get(const string& key_) const
   it = m_params_map.find(key_);
   if (it == m_params_map.end()) 
   {
-    cerr << key_ << " NOT FOUND!" << endl;
+    fprintf(stderr, "ERROR: Orion: %s NOT FOUND!\n", key_.c_str());
     throw key_not_found(key_);
   }
   return string_as_T<T>(it->second);

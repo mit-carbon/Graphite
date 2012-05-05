@@ -24,8 +24,8 @@ namespace ShL1ShL2
       
       ShmemMsg();
       ShmemMsg(Type msg_type,
-               MemComponent::component_t sender_mem_component,
-               MemComponent::component_t receiver_mem_component,
+               MemComponent::Type sender_mem_component,
+               MemComponent::Type receiver_mem_component,
                tile_id_t requester,
                IntPtr address,
                UInt32 offset,
@@ -45,9 +45,9 @@ namespace ShL1ShL2
       UInt32 getModeledLength() const;
       bool isModeled() const { return true; }
 
-      Type getMsgType() const { return _msg_type; }
-      MemComponent::component_t getSenderMemComponent() const { return _sender_mem_component; }
-      MemComponent::component_t getReceiverMemComponent() const { return _receiver_mem_component; }
+      Type getType() const { return _msg_type; }
+      MemComponent::Type getSenderMemComponent() const { return _sender_mem_component; }
+      MemComponent::Type getReceiverMemComponent() const { return _receiver_mem_component; }
       tile_id_t getRequester() const { return _requester; }
       IntPtr getAddress() const { return _address; }
       UInt32 getOffset() const { return _offset; }
@@ -61,8 +61,8 @@ namespace ShL1ShL2
 
    private:   
       Type _msg_type;
-      MemComponent::component_t _sender_mem_component;
-      MemComponent::component_t _receiver_mem_component;
+      MemComponent::Type _sender_mem_component;
+      MemComponent::Type _receiver_mem_component;
       tile_id_t _requester;
       IntPtr _address;
       UInt32 _offset;

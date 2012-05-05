@@ -83,13 +83,16 @@ void Simulator::start()
    // Get Graphite Home
    char* graphite_home_str = getenv("GRAPHITE_HOME");
    _graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
-   
-   // Orion for network power modeling - create config
-   string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
-   OrionConfig::allocate(orion_cfg_file);
-   // OrionConfig::getSingleton()->print_config(cout);
-
-   // McPAT for cache power and area modeling - allocate object
+  
+   // Orion for network power modeling - create config object
+   if (Config::getSingleton()->getEnablePowerModeling())
+   { 
+      string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
+      OrionConfig::allocate(orion_cfg_file, getCfg()->getInt("general/technology_node"));
+      // OrionConfig::getSingleton()->print_config(cout);
+  }
+  
+   // McPAT for cache power and area modeling
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
       McPATCache::allocate();
@@ -100,7 +103,7 @@ void Simulator::start()
    m_thread_manager = new ThreadManager(m_tile_manager);
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
-   m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
+   m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme"));
    
    // For periodically measuring statistics
    if (m_config_file->getBool("statistics_trace/enabled"))
@@ -110,7 +113,7 @@ void Simulator::start()
       m_statistics_thread->start();
    }
 
-   // Floating Point Support
+   // Save floating-point registers on context switch from user space to pin space
    Fxsupport::allocate();
 
    startMCP();
@@ -187,14 +190,15 @@ Simulator::~Simulator()
    delete m_perf_counter_manager;
    delete m_thread_manager;
    delete m_tile_manager;
+   m_tile_manager = NULL;
    delete m_transport;
 
+   // Release McPAT cache object
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
-   {
       McPATCache::release();
-   }
-   
-   OrionConfig::release();
+   // Release Orion Config object
+   if (Config::getSingleton()->getEnablePowerModeling())
+      OrionConfig::release();
 }
 
 void Simulator::startTimer()
@@ -292,10 +296,3 @@ void Simulator::disablePerformanceModelsInCurrentProcess()
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
       Sim()->getTileManager()->getTileFromIndex(i)->disablePerformanceModels();
 }
-
-void Simulator::resetPerformanceModelsInCurrentProcess()
-{
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
-      Sim()->getTileManager()->getTileFromIndex(i)->resetPerformanceModels();
-}
-

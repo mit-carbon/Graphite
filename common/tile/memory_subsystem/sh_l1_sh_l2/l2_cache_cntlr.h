@@ -11,11 +11,13 @@ namespace ShL1ShL2
 }
 
 #include "cache.h"
-#include "pr_l2_cache_line_info.h"
+#include "cache_line_info.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "cache_replacement_policy.h"
+#include "cache_hash_fn.h"
 
 namespace ShL1ShL2
 {
@@ -29,7 +31,7 @@ namespace ShL1ShL2
                    string l2_cache_replacement_policy,
                    UInt32 l2_cache_access_delay,
                    bool l2_cache_track_miss_types,
-                   volatile float frequency);
+                   float frequency);
       ~L2CacheCntlr();
 
       void setDramDirectoryCntlr(DramDirectoryCntlr* dram_directory_cntlr)
@@ -37,16 +39,18 @@ namespace ShL1ShL2
 
       Cache* getL2Cache() { return _l2_cache; }
 
-      void setCacheLineState(IntPtr address, CacheState::CState cstate);
+      void setCacheLineState(IntPtr address, CacheState::Type cstate);
       void readData(IntPtr address, UInt32 offset, UInt32 size, Byte* data_buf);
       void writeData(IntPtr address, UInt32 offset, UInt32 size, Byte* data_buf);
-      void insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* fill_buf);
+      void insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf);
 
    private:
       // Data Members
       MemoryManager* _memory_manager;
       DramDirectoryCntlr* _dram_directory_cntlr;
       Cache* _l2_cache;
+      CacheReplacementPolicy* _l2_cache_replacement_policy_obj;
+      CacheHashFn* _l2_cache_hash_fn_obj;
       
       // Utilities
       tile_id_t getTileId();

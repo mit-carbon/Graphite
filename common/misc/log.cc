@@ -186,12 +186,11 @@ void Log::discoverCore(tile_id_t *tile_id, bool *sim_thread)
 {
    TileManager *tile_manager;
 
-   if (!Sim() || !(tile_manager = Sim()->getTileManager()))
+   if ( !Sim() || !(tile_manager = Sim()->getTileManager()) )
    {
 
       *tile_id = INVALID_TILE_ID;
       *sim_thread = false;
-      return;
    }
    else
    {

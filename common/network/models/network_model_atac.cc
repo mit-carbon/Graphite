@@ -39,6 +39,8 @@ SInt32 NetworkModelAtac::_num_receive_networks_per_cluster;
 // Global Routing Strategy
 NetworkModelAtac::GlobalRoutingStrategy NetworkModelAtac::_global_routing_strategy;
 SInt32 NetworkModelAtac::_unicast_distance_threshold;
+// Is contention model enabled?
+bool NetworkModelAtac::_contention_model_enabled;
 
 NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
    NetworkModel(net, network_id)
@@ -59,6 +61,9 @@ NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
    // Initialize ANet topology
    initializeANetTopologyParams();
 
+   // Initialize Laser Capability
+   initializeLaserModes();
+
    // Initialize ENet, ONet and BNet parameters
    createANetRouterAndLinkModels();
 }
@@ -67,6 +72,35 @@ NetworkModelAtac::~NetworkModelAtac()
 {
    // Destroy the Link Models
    destroyANetRouterAndLinkModels();
+}
+
+void
+NetworkModelAtac::initializeLaserModes()
+{
+   string laser_modes;
+   try
+   {
+      laser_modes = Sim()->getCfg()->getString("network/atac/laser_modes");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read laser capabilities from the cfg file");
+   }
+
+   vector<string> laser_modes_vec;
+   splitIntoTokens(laser_modes, laser_modes_vec, ",");
+  
+   for (vector<string>::iterator it = laser_modes_vec.begin(); it != laser_modes_vec.end(); it++)
+   {
+      if ((*it) == "idle")
+         _laser_modes.idle = true;
+      else if ((*it) == "unicast")
+         _laser_modes.unicast = true;
+      else if ((*it) == "broadcast")
+         _laser_modes.broadcast = true;
+      else
+         LOG_PRINT_ERROR("Unrecognzied Laser Mode(%s)", (*it).c_str());
+   }
 }
 
 void
@@ -85,19 +119,24 @@ NetworkModelAtac::initializeANetTopologyParams()
       _num_access_points_per_cluster = Sim()->getCfg()->getInt("network/atac/num_optical_access_points_per_cluster");
 
       // Topology
-      _receive_net_type = parseReceiveNetType(Sim()->getCfg()->getString("network/atac/receive_net_type"));
+      _receive_net_type = parseReceiveNetType(Sim()->getCfg()->getString("network/atac/receive_network_type"));
       _num_receive_networks_per_cluster = Sim()->getCfg()->getInt("network/atac/num_receive_networks_per_cluster");
       
       // Routing
       _global_routing_strategy = parseGlobalRoutingStrategy(Sim()->getCfg()->getString("network/atac/global_routing_strategy"));
       _unicast_distance_threshold = Sim()->getCfg()->getInt("network/atac/unicast_distance_threshold");
 
+      // Is contention model enabled?
+      _contention_model_enabled = Sim()->getCfg()->getBool("network/atac/queue_model/enabled");
    }
    catch (...)
    {
-      LOG_PRINT_ERROR("Error reading atac cluster size");
+      LOG_PRINT_ERROR("Error reading atac parameters");
    }
 
+   LOG_ASSERT_ERROR(_num_access_points_per_cluster <= _cluster_size,
+         "Num optical access points per cluster(%i) must be less than or equal to Cluster size(%i)",
+         _num_access_points_per_cluster, _cluster_size);
    LOG_ASSERT_ERROR(isPerfectSquare(num_application_tiles),
          "Num Application Tiles(%i) must be a perfect square", num_application_tiles);
    LOG_ASSERT_ERROR(isPower2(num_application_tiles),
@@ -145,7 +184,6 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    string electrical_link_type;
 
    // Contention Model
-   _contention_model_enabled = false;
    string contention_model_type;
 
    try
@@ -169,7 +207,6 @@ NetworkModelAtac::createANetRouterAndLinkModels()
       // Electrical Link Type
       electrical_link_type = Sim()->getCfg()->getString("network/atac/electrical_link_type");
       
-      _contention_model_enabled = Sim()->getCfg()->getBool("network/atac/queue_model/enabled");
       contention_model_type = Sim()->getCfg()->getString("network/atac/queue_model/type");
    }
    catch (...)
@@ -180,9 +217,9 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    //// Electrical Mesh Router & Link
   
    // Injection Port
-   _injection_router = new NetworkRouterModel(this, 1, 1,
-                                              4, 0, _flit_width,
-                                              _contention_model_enabled, contention_model_type);
+   _injection_router = new RouterModel(this, _frequency, 1, 1,
+                                       4, 0, _flit_width,
+                                       _contention_model_enabled, contention_model_type);
 
    // ENet Router
    _num_enet_router_ports = 5;
@@ -191,17 +228,18 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    if (isAccessPoint(_tile_id))
       num_enet_router_output_ports += 1;
 
-   _enet_router = new NetworkRouterModel(this, _num_enet_router_ports, num_enet_router_output_ports,
-                                          num_flits_per_output_buffer_enet_router, enet_router_delay, _flit_width,
-                                          _contention_model_enabled, contention_model_type);
-   
+   _enet_router = new RouterModel(this, _frequency, _num_enet_router_ports, num_enet_router_output_ports,
+                                  num_flits_per_output_buffer_enet_router, enet_router_delay, _flit_width,
+                                  _contention_model_enabled, contention_model_type);
+  
+   // Idle, Unicast and Broadcast 
    // ENet Link
    volatile double enet_link_length = _tile_width;
    _enet_link_list.resize(num_enet_router_output_ports);
    for (SInt32 i = 0; i < num_enet_router_output_ports; i++)
    {
-      _enet_link_list[i] = ElectricalNetworkLinkModel::create(electrical_link_type, this,
-                                                              _frequency, enet_link_length, _flit_width);
+      _enet_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
+                                                   _frequency, enet_link_length, _flit_width);
       assert(_enet_link_list[i]->getDelay() == 1);
    }
 
@@ -210,23 +248,19 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    {
       // Send Hub Router
       // Performance Model
-      if (_num_access_points_per_cluster > 1)
-      {
-         _send_hub_router = new NetworkRouterModel(this, _num_access_points_per_cluster, 1 /* num_output_ports */,
-                                                   num_flits_per_output_buffer_send_hub_router, send_hub_router_delay, _flit_width,
-                                                   _contention_model_enabled, contention_model_type);
-      }
+      _send_hub_router = new RouterModel(this, _frequency, _num_access_points_per_cluster, 1 /* num_output_ports */,
+                                         num_flits_per_output_buffer_send_hub_router, send_hub_router_delay, _flit_width,
+                                         _contention_model_enabled, contention_model_type);
 
       // Optical Network Link Models
       volatile double waveguide_length = computeOpticalLinkLength();   // In mm
-      _optical_link = new OpticalNetworkLinkModel(this, _num_clusters,
-                                                  _frequency, waveguide_length, _flit_width);
+      _optical_link = new OpticalLinkModel(this, _laser_modes, _num_clusters, _frequency, waveguide_length, _flit_width);
       assert(_optical_link->getDelay() == 3);
 
       // Receive Hub Router Models
-      _receive_hub_router = new NetworkRouterModel(this, _num_clusters, _num_receive_networks_per_cluster,
-                                                   num_flits_per_output_buffer_receive_hub_router, receive_hub_router_delay, _flit_width,
-                                                   _contention_model_enabled, contention_model_type);
+      _receive_hub_router = new RouterModel(this, _frequency, _num_clusters, _num_receive_networks_per_cluster,
+                                            num_flits_per_output_buffer_receive_hub_router, receive_hub_router_delay, _flit_width,
+                                            _contention_model_enabled, contention_model_type);
 
          // Receive Net
       if (_receive_net_type == HTREE) // HTree BNet
@@ -237,8 +271,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
          _htree_link_list.resize(_num_receive_networks_per_cluster);
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
-            _htree_link_list[i] = ElectricalNetworkLinkModel::create(electrical_link_type, this,
-                                                                     _frequency, htree_link_length, _flit_width);
+            _htree_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
+                                                          _frequency, htree_link_length, _flit_width);
             assert(_htree_link_list[i]->getDelay() == 1);
          }
       }
@@ -250,9 +284,9 @@ NetworkModelAtac::createANetRouterAndLinkModels()
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
             // Star Net Router
-            _star_net_router_list[i] = new NetworkRouterModel(this, 1 /* num_input_ports */, _cluster_size,
-                                                              num_flits_per_output_buffer_star_net_router, star_net_router_delay, _flit_width,
-                                                              _contention_model_enabled, contention_model_type);
+            _star_net_router_list[i] = new RouterModel(this, _frequency, 1 /* num_input_ports */, _cluster_size,
+                                                       num_flits_per_output_buffer_star_net_router, star_net_router_delay, _flit_width,
+                                                       _contention_model_enabled, contention_model_type);
 
             // Star Net Link
             vector<tile_id_t> tile_id_list;
@@ -265,8 +299,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
                volatile double star_net_link_length = computeNumHopsOnENet(_tile_id, tile_id_list[j]) * _tile_width;
                if (star_net_link_length == 0)
                   star_net_link_length = 0.1;   // A small quantity
-               _star_net_link_list[i][j] = ElectricalNetworkLinkModel::create(electrical_link_type, this,
-                                                                              _frequency, star_net_link_length, _flit_width);
+               _star_net_link_list[i][j] = new ElectricalLinkModel(this, electrical_link_type,
+                                                                   _frequency, star_net_link_length, _flit_width);
                assert(_star_net_link_list[i][j]->getDelay() == 1);
             }
          }
@@ -294,8 +328,7 @@ NetworkModelAtac::destroyANetRouterAndLinkModels()
    if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
    {
       // Send Hub Router
-      if (_num_access_points_per_cluster > 1)
-         delete _send_hub_router;
+      delete _send_hub_router;
       
       // Optical Link
       delete _optical_link;
@@ -418,27 +451,50 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
 
    else if (pkt.node_type == SEND_HUB)
    {
-      UInt64 zero_load_delay = 0;
-      UInt64 contention_delay = 0;
-
-      if (_num_access_points_per_cluster > 1)
-         _send_hub_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
-
-      if (pkt_receiver == NetPacket::BROADCAST)
-         _optical_link->processPacket(pkt, OpticalNetworkLinkModel::ENDPOINT_ALL, zero_load_delay);
-      else // (pkt_receiver != NetPacket::BROADCAST)
-         _optical_link->processPacket(pkt, 1 /* Send to only 1 endpoint */, zero_load_delay);
-
       if (pkt_receiver == NetPacket::BROADCAST)
       {
-         for (SInt32 i = 0; i < _num_clusters; i++)
+         if (_laser_modes.broadcast)
          {
-            Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, zero_load_delay, contention_delay);
-            next_hops.push(hop);
+            UInt64 zero_load_delay = 0;
+            UInt64 contention_delay = 0;
+
+            _send_hub_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
+            _optical_link->processPacket(pkt, OpticalLinkModel::ENDPOINT_ALL, zero_load_delay);
+            
+            for (SInt32 i = 0; i < _num_clusters; i++)
+            {
+               Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, zero_load_delay, contention_delay);
+               next_hops.push(hop);
+            }
+         }
+         else if (_laser_modes.unicast)
+         {
+            for (SInt32 i = 0 ; i < _num_clusters; i++)
+            {
+               UInt64 zero_load_delay = 0;
+               UInt64 contention_delay = 0;
+
+               _send_hub_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
+               _optical_link->processPacket(pkt, 1 /* send to only 1 endpoint */, zero_load_delay);
+              
+               LOG_PRINT_WARNING("i(%i), contention delay(%llu)", i, contention_delay); 
+               Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, zero_load_delay, contention_delay);
+               next_hops.push(hop);
+            }
+         }
+         else
+         {
+            LOG_PRINT_ERROR("Laser must support either unicast or broadcast modes");
          }
       }
       else // (receiver != NetPacket::BROADCAST)
       {
+         UInt64 zero_load_delay = 0;
+         UInt64 contention_delay = 0;
+
+         _send_hub_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
+         _optical_link->processPacket(pkt, 1 /* send to only 1 endpoint */, zero_load_delay);
+
          Hop hop(pkt, getTileIDWithOpticalHub(getClusterID(pkt_receiver)), RECEIVE_HUB, zero_load_delay, contention_delay);
          next_hops.push(hop);
       }
@@ -469,7 +525,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
       {
          if (pkt_receiver == NetPacket::BROADCAST)
          {
-            _star_net_router_list[receive_net_id]->processPacket(pkt, NetworkRouterModel::OUTPUT_PORT_ALL, zero_load_delay, contention_delay);
+            _star_net_router_list[receive_net_id]->processPacket(pkt, RouterModel::OUTPUT_PORT_ALL, zero_load_delay, contention_delay);
             // For links, compute max_delay
             UInt64 max_link_delay = 0;
             for (SInt32 i = 0; i < _cluster_size; i++)
@@ -873,73 +929,70 @@ NetworkModelAtac::computeProcessToTileMapping()
 void
 NetworkModelAtac::outputEventCountSummary(ostream& out)
 {
-   out << "   Event Counters:" << endl;
+   out << "    Event Counters:" << endl;
 
    if (isApplicationTile(_tile_id))
    {
       // ENet Router
-      out << "    ENet Router Buffer Writes: " << _enet_router->getTotalBufferWrites() << endl;
-      out << "    ENet Router Buffer Reads: " << _enet_router->getTotalBufferReads() << endl;
-      out << "    ENet Router Switch Allocator Requests: " << _enet_router->getTotalSwitchAllocatorRequests() << endl;
-      out << "    ENet Router Crossbar Traversals: " << _enet_router->getTotalCrossbarTraversals(1) << endl;
+      out << "      ENet Router Buffer Writes: " << _enet_router->getTotalBufferWrites() << endl;
+      out << "      ENet Router Buffer Reads: " << _enet_router->getTotalBufferReads() << endl;
+      out << "      ENet Router Switch Allocator Requests: " << _enet_router->getTotalSwitchAllocatorRequests() << endl;
+      out << "      ENet Router Crossbar Traversals: " << _enet_router->getTotalCrossbarTraversals(1) << endl;
       
       // ENet Link
       UInt64 total_enet_link_traversals = 0;
       for (SInt32 i = 0; i < _num_enet_router_ports; i++)
          total_enet_link_traversals += _enet_link_list[i]->getTotalTraversals();
-      out << "    ENet Router To ENet Router Link Traversals: " << total_enet_link_traversals << endl;
+      out << "      ENet Router To ENet Router Link Traversals: " << total_enet_link_traversals << endl;
       
       // Access Point
       if (isAccessPoint(_tile_id))
-         out << "    ENet Router To Send Hub Router Link Traversals: " << _enet_link_list[_num_enet_router_ports]->getTotalTraversals() << endl;
+         out << "      ENet Router To Send Hub Router Link Traversals: " << _enet_link_list[_num_enet_router_ports]->getTotalTraversals() << endl;
       else
-         out << "    ENet Router To Send Hub Router Link Traversals: " << endl;
+         out << "      ENet Router To Send Hub Router Link Traversals: " << endl;
 
       // Send Hub Router
-      if (_num_access_points_per_cluster > 1)
+      if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
-         if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
-         {
-            out << "    Send Hub Router Buffer Writes: " << _send_hub_router->getTotalBufferWrites() << endl;
-            out << "    Send Hub Router Buffer Reads: " << _send_hub_router->getTotalBufferReads() << endl;
-            out << "    Send Hub Router Switch Allocator Requests: " << _send_hub_router->getTotalSwitchAllocatorRequests() << endl;
-            out << "    Send Hub Router Crossbar Traversals: " << _send_hub_router->getTotalCrossbarTraversals(1) << endl;
-         }
-         else
-         {
-            out << "    Send Hub Router Buffer Writes: " << endl;
-            out << "    Send Hub Router Buffer Reads: " << endl;
-            out << "    Send Hub Router Switch Allocator Requests: " << endl;
-            out << "    Send Hub Router Crossbar Traversals: " << endl;
-         }
+         out << "      Send Hub Router Buffer Writes: " << _send_hub_router->getTotalBufferWrites() << endl;
+         out << "      Send Hub Router Buffer Reads: " << _send_hub_router->getTotalBufferReads() << endl;
+         out << "      Send Hub Router Switch Allocator Requests: " << _send_hub_router->getTotalSwitchAllocatorRequests() << endl;
+         out << "      Send Hub Router Crossbar Traversals: " << _send_hub_router->getTotalCrossbarTraversals(1) << endl;
+      }
+      else
+      {
+         out << "      Send Hub Router Buffer Writes: " << endl;
+         out << "      Send Hub Router Buffer Reads: " << endl;
+         out << "      Send Hub Router Switch Allocator Requests: " << endl;
+         out << "      Send Hub Router Crossbar Traversals: " << endl;
       }
 
       // Optical Link
       if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
-         out << "    Optical Link Unicasts: " << _optical_link->getTotalUnicasts() << endl;
-         out << "    Optical Link Broadcasts: " << _optical_link->getTotalBroadcasts() << endl;
+         out << "      Optical Link Unicasts: " << _optical_link->getTotalUnicasts() << endl;
+         out << "      Optical Link Broadcasts: " << _optical_link->getTotalBroadcasts() << endl;
       }
       else
       {
-         out << "    Optical Link Unicasts: " << endl;
-         out << "    Optical Link Broadcasts: " << endl;
+         out << "      Optical Link Unicasts: " << endl;
+         out << "      Optical Link Broadcasts: " << endl;
       }
 
       // Receive Hub Router
       if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
-         out << "    Receive Hub Router Buffer Writes: " << _receive_hub_router->getTotalBufferWrites() << endl;
-         out << "    Receive Hub Router Buffer Reads: " << _receive_hub_router->getTotalBufferReads() << endl;
-         out << "    Receive Hub Router Switch Allocator Requests: " << _receive_hub_router->getTotalSwitchAllocatorRequests() << endl;
-         out << "    Receive Hub Router Crossbar Traversals: " << _receive_hub_router->getTotalCrossbarTraversals(1) << endl;
+         out << "      Receive Hub Router Buffer Writes: " << _receive_hub_router->getTotalBufferWrites() << endl;
+         out << "      Receive Hub Router Buffer Reads: " << _receive_hub_router->getTotalBufferReads() << endl;
+         out << "      Receive Hub Router Switch Allocator Requests: " << _receive_hub_router->getTotalSwitchAllocatorRequests() << endl;
+         out << "      Receive Hub Router Crossbar Traversals: " << _receive_hub_router->getTotalCrossbarTraversals(1) << endl;
       }
       else
       {
-         out << "    Receive Hub Router Buffer Writes: " << endl;
-         out << "    Receive Hub Router Buffer Reads: " << endl;
-         out << "    Receive Hub Router Switch Allocator Requests: " << endl;
-         out << "    Receive Hub Router Crossbar Traversals: " << endl;
+         out << "      Receive Hub Router Buffer Writes: " << endl;
+         out << "      Receive Hub Router Buffer Reads: " << endl;
+         out << "      Receive Hub Router Switch Allocator Requests: " << endl;
+         out << "      Receive Hub Router Crossbar Traversals: " << endl;
       }
      
       // Receive Net
@@ -950,7 +1003,7 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
             UInt64 total_htree_link_traversals = 0;
             for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
                total_htree_link_traversals += _htree_link_list[i]->getTotalTraversals();
-            out << "    HTree Link Traversals: " << total_htree_link_traversals << endl;
+            out << "      HTree Link Traversals: " << total_htree_link_traversals << endl;
          }
          else // (_receive_net_type == STAR)
          {
@@ -972,30 +1025,30 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
                   total_star_net_link_traversals[j] += _star_net_link_list[i][j]->getTotalTraversals();
             }
 
-            out << "    Star Net Router Buffer Writes: " << total_star_net_router_buffer_writes << endl;
-            out << "    Star Net Router Buffer Reads: " << total_star_net_router_buffer_reads << endl;
-            out << "    Star Net Router Switch Allocator Requests: " << total_star_net_router_switch_allocator_requests << endl;
-            out << "    Star Net Router Crossbar Unicasts: " << total_star_net_router_crossbar_unicasts << endl;
-            out << "    Star Net Router Crossbar Broadcasts: " << total_star_net_router_crossbar_broadcasts << endl;
+            out << "      Star Net Router Buffer Writes: " << total_star_net_router_buffer_writes << endl;
+            out << "      Star Net Router Buffer Reads: " << total_star_net_router_buffer_reads << endl;
+            out << "      Star Net Router Switch Allocator Requests: " << total_star_net_router_switch_allocator_requests << endl;
+            out << "      Star Net Router Crossbar Unicasts: " << total_star_net_router_crossbar_unicasts << endl;
+            out << "      Star Net Router Crossbar Broadcasts: " << total_star_net_router_crossbar_broadcasts << endl;
             for (SInt32 j = 0; j < _cluster_size; j++)
-               out << "    Star Net Link Traversals[" << j << "]: " << total_star_net_link_traversals[j] << endl;
+               out << "      Star Net Link Traversals[" << j << "]: " << total_star_net_link_traversals[j] << endl;
          }
       }
       else
       {
          if (_receive_net_type == HTREE)
          {
-            out << "    HTree Link Traversals: " << endl;
+            out << "      HTree Link Traversals: " << endl;
          }
          else // (_receive_net_type == STAR)
          {
-            out << "    Star Net Router Buffer Writes: " << endl;
-            out << "    Star Net Router Buffer Reads: " << endl;
-            out << "    Star Net Router Switch Allocator Requests: " << endl;
-            out << "    Star Net Router Crossbar Unicasts: " << endl;
-            out << "    Star Net Router Crossbar Broadcasts: " << endl;
+            out << "      Star Net Router Buffer Writes: " << endl;
+            out << "      Star Net Router Buffer Reads: " << endl;
+            out << "      Star Net Router Switch Allocator Requests: " << endl;
+            out << "      Star Net Router Crossbar Unicasts: " << endl;
+            out << "      Star Net Router Crossbar Broadcasts: " << endl;
             for (SInt32 j = 0; j < _cluster_size; j++)
-               out << "    Star Net Link Traversals[" << j << "]: " << endl;
+               out << "      Star Net Link Traversals[" << j << "]: " << endl;
          }
       }
    }
@@ -1003,50 +1056,49 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
    else if (isSystemTile(_tile_id))
    {
       // ENet Router
-      out << "    ENet Router Buffer Writes: " << endl;
-      out << "    ENet Router Buffer Reads: " << endl;
-      out << "    ENet Router Switch Allocator Requests: " << endl;
-      out << "    ENet Router Crossbar Traversals: " << endl;
+      out << "      ENet Router Buffer Writes: " << endl;
+      out << "      ENet Router Buffer Reads: " << endl;
+      out << "      ENet Router Switch Allocator Requests: " << endl;
+      out << "      ENet Router Crossbar Traversals: " << endl;
       
       // ENet Link
-      out << "    ENet Router To ENet Router Link Traversals: " << endl;
+      out << "      ENet Router To ENet Router Link Traversals: " << endl;
       
       // Access Point
-      out << "    ENet Router To Send Hub Router Link Traversals: " << endl;
+      out << "      ENet Router To Send Hub Router Link Traversals: " << endl;
 
       // Send Hub Router
-      if (_num_access_points_per_cluster > 1)
-      {
-         out << "    Send Hub Router Buffer Writes: " << endl;
-         out << "    Send Hub Router Buffer Reads: " << endl;
-         out << "    Send Hub Router Switch Allocator Requests: " << endl;
-         out << "    Send Hub Router Crossbar Traversals: " << endl;
-      }
+      out << "      Send Hub Router Buffer Writes: " << endl;
+      out << "      Send Hub Router Buffer Reads: " << endl;
+      out << "      Send Hub Router Switch Allocator Requests: " << endl;
+      out << "      Send Hub Router Crossbar Traversals: " << endl;
 
       // Optical Link
-      out << "    Optical Link Unicasts: " << endl;
-      out << "    Optical Link Broadcasts: " << endl;
+      out << "      Optical Link Unicasts: " << endl;
+      out << "      Optical Link Broadcasts: " << endl;
 
       // Receive Hub Router
-      out << "    Receive Hub Router Buffer Writes: " << endl;
-      out << "    Receive Hub Router Buffer Reads: " << endl;
-      out << "    Receive Hub Router Switch Allocator Requests: " << endl;
-      out << "    Receive Hub Router Crossbar Traversals: " << endl;
+      out << "      Receive Hub Router Buffer Writes: " << endl;
+      out << "      Receive Hub Router Buffer Reads: " << endl;
+      out << "      Receive Hub Router Switch Allocator Requests: " << endl;
+      out << "      Receive Hub Router Crossbar Traversals: " << endl;
      
       // Receive Net
       if (_receive_net_type == HTREE)
       {
-         out << "    HTree Link Traversals: " << endl;
+         out << "      HTree Link Traversals: " << endl;
       }
       else // (_receive_net_type == STAR)
       {
-         out << "    Star Net Router Buffer Writes: " << endl;
-         out << "    Star Net Router Buffer Reads: " << endl;
-         out << "    Star Net Router Switch Allocator Requests: " << endl;
-         out << "    Star Net Router Crossbar Unicasts: " << endl;
-         out << "    Star Net Router Crossbar Broadcasts: " << endl;
+         out << "      Star Net Router Buffer Writes: " << endl;
+         out << "      Star Net Router Buffer Reads: " << endl;
+         out << "      Star Net Router Switch Allocator Requests: " << endl;
+         out << "      Star Net Router Crossbar Unicasts: " << endl;
+         out << "      Star Net Router Crossbar Broadcasts: " << endl;
          for (SInt32 j = 0; j < _cluster_size; j++)
-            out << "    Star Net Link Traversals[" << j << "]: " << endl;
+         {
+            out << "      Star Net Link Traversals[" << j << "]: " << endl;
+         }
       }
    }
 
@@ -1059,60 +1111,56 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
 void
 NetworkModelAtac::outputContentionModelsSummary(ostream& out)
 {
+   out << "    Contention Counters:" << endl;
+
    if (isApplicationTile(_tile_id))
    {
       // ENet Router
-      out << "    Average Contention Delay ENet Router: " << _enet_router->getAverageContentionDelay(0, _num_enet_router_ports-1) << endl;
-      out << "    Average Link Utilization ENet Router: " << _enet_router->getAverageLinkUtilization(0, _num_enet_router_ports-1) << endl;         
-      out << "    Percentage Analytical Models Used ENet Router: " << _enet_router->getPercentAnalyticalModelsUsed(0, _num_enet_router_ports-1) << endl;         
+      out << "      Average Contention Delay ENet Router: " << _enet_router->getAverageContentionDelay(0, _num_enet_router_ports-1) << endl;
+      out << "      Average Link Utilization ENet Router: " << _enet_router->getAverageLinkUtilization(0, _num_enet_router_ports-1) << endl;         
+      out << "      Percentage Analytical Models Used ENet Router: " << _enet_router->getPercentAnalyticalModelsUsed(0, _num_enet_router_ports-1) << endl;         
       // ENet Router To Send Hub Link
       if (isAccessPoint(_tile_id))
       {
-         out << "    Average Contention Delay ENet Router To Send Hub Router Link: " << _enet_router->getAverageContentionDelay(_num_enet_router_ports) << endl;
-         out << "    Average Link Utilization ENet Router To Send Hub Router Link: " << _enet_router->getAverageLinkUtilization(_num_enet_router_ports) << endl;
-         out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << _enet_router->getPercentAnalyticalModelsUsed(_num_enet_router_ports) << endl;
+         out << "      Average Contention Delay ENet Router To Send Hub Router Link: " << _enet_router->getAverageContentionDelay(_num_enet_router_ports) << endl;
+         out << "      Average Link Utilization ENet Router To Send Hub Router Link: " << _enet_router->getAverageLinkUtilization(_num_enet_router_ports) << endl;
+         out << "      Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << _enet_router->getPercentAnalyticalModelsUsed(_num_enet_router_ports) << endl;
       }
       else
       {
-         out << "    Average Contention Delay ENet Router To Send Hub Router Link: " << endl;
-         out << "    Average Link Utilization ENet Router To Send Hub Router Link: " <<  endl;
-         out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << endl;
+         out << "      Average Contention Delay ENet Router To Send Hub Router Link: " << endl;
+         out << "      Average Link Utilization ENet Router To Send Hub Router Link: " <<  endl;
+         out << "      Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << endl;
       }
 
       if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
          // Send Hub Router
-         if (_num_access_points_per_cluster > 1)
-         {
-            out << "    Average Contention Delay Send Hub Router: " << _send_hub_router->getAverageContentionDelay(0) << endl;
-            out << "    Average Link Utilization Send Hub Router: " << _send_hub_router->getAverageLinkUtilization(0) << endl;
-            out << "    Percentage Analytical Models Used Send Hub Router: " << _send_hub_router->getPercentAnalyticalModelsUsed(0) << endl;
-         }
+         out << "      Average Contention Delay Send Hub Router: " << _send_hub_router->getAverageContentionDelay(0) << endl;
+         out << "      Average Link Utilization Send Hub Router: " << _send_hub_router->getAverageLinkUtilization(0) << endl;
+         out << "      Percentage Analytical Models Used Send Hub Router: " << _send_hub_router->getPercentAnalyticalModelsUsed(0) << endl;
 
          // Receive Hub Router
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
-            out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getAverageContentionDelay(i) << endl;
-            out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getAverageLinkUtilization(i) << endl;
-            out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getPercentAnalyticalModelsUsed(i) << endl;
+            out << "      Average Contention Delay Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getAverageContentionDelay(i) << endl;
+            out << "      Average Link Utilization Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getAverageLinkUtilization(i) << endl;
+            out << "      Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << _receive_hub_router->getPercentAnalyticalModelsUsed(i) << endl;
          }
       }
       else // No send/receive hub
       {
          // Send Hub Router
-         if (_num_access_points_per_cluster > 1)
-         {
-            out << "    Average Contention Delay Send Hub Router: " << endl;
-            out << "    Average Link Utilization Send Hub Router: " << endl;
-            out << "    Percentage Analytical Models Used Send Hub Router: " << endl;
-         }
+         out << "      Average Contention Delay Send Hub Router: " << endl;
+         out << "      Average Link Utilization Send Hub Router: " << endl;
+         out << "      Percentage Analytical Models Used Send Hub Router: " << endl;
 
          // Receive Hub Router
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
-            out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: " << endl;
-            out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: " << endl;
-            out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << endl;
+            out << "      Average Contention Delay Receive Hub Router Link[" << i << "]: " << endl;
+            out << "      Average Link Utilization Receive Hub Router Link[" << i << "]: " << endl;
+            out << "      Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << endl;
          }
       }
    }
@@ -1120,27 +1168,25 @@ NetworkModelAtac::outputContentionModelsSummary(ostream& out)
    else if (isSystemTile(_tile_id))
    {
       // ENet Router
-      out << "    Average Contention Delay ENet Router: " << endl;
-      out << "    Average Link Utilization ENet Router: " << endl;
-      out << "    Percentage Analytical Models Used ENet Router: " << endl;
+      out << "      Average Contention Delay ENet Router: " << endl;
+      out << "      Average Link Utilization ENet Router: " << endl;
+      out << "      Percentage Analytical Models Used ENet Router: " << endl;
       // ENet Router to Send Hub Router Link
-      out << "    Average Contention Delay ENet Router To Send Hub Router Link: " << endl;
-      out << "    Average Link Utilization ENet Router To Send Hub Router Link: " << endl;
-      out << "    Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << endl;
+      out << "      Average Contention Delay ENet Router To Send Hub Router Link: " << endl;
+      out << "      Average Link Utilization ENet Router To Send Hub Router Link: " << endl;
+      out << "      Percentage Analytical Models Used ENet Router To Send Hub Router Link: " << endl;
        
       // Send Hub Router
-      if (_num_access_points_per_cluster > 1)
-      {
-         out << "    Average Contention Delay Send Hub Router: " << endl;
-         out << "    Average Link Utilization Send Hub Router: " << endl;
-         out << "    Percentage Analytical Models Used Send Hub Router: " << endl;
-      }
+      out << "      Average Contention Delay Send Hub Router: " << endl;
+      out << "      Average Link Utilization Send Hub Router: " << endl;
+      out << "      Percentage Analytical Models Used Send Hub Router: " << endl;
+      
       // Receive Hub Router
       for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
       {
-         out << "    Average Contention Delay Receive Hub Router Link[" << i << "]: " << endl;
-         out << "    Average Link Utilization Receive Hub Router Link[" << i << "]: " << endl;
-         out << "    Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << endl;
+         out << "      Average Contention Delay Receive Hub Router Link[" << i << "]: " << endl;
+         out << "      Average Link Utilization Receive Hub Router Link[" << i << "]: " << endl;
+         out << "      Percentage Analytical Models Used Receive Hub Router Link[" << i << "]: " << endl;
       }
    }
 

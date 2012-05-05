@@ -68,7 +68,6 @@ public:
 
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
-   virtual void reset() = 0;
 
    static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
    static UInt32 parseNetworkType(string str);

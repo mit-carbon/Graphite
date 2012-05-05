@@ -23,14 +23,12 @@ namespace ShL1ShL2
 
       UInt32 getCacheLineSize() { return _cache_line_size; }
 
-      Cache* getL1ICache() { return _l1_cache_cntlr->getL1ICache(); }
-      Cache* getL1DCache() { return _l1_cache_cntlr->getL1DCache(); }
       Cache* getL2Cache() { return _l2_cache_cntlr->getL2Cache(); }
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cntlr->getDramDirectoryCache(); }
       DramCntlr* getDramCntlr() { return _dram_cntlr; }
       AddressHomeLookup* getAddressHomeLookup() { return _address_home_lookup; }
 
-      bool coreInitiateMemoryAccess(MemComponent::component_t mem_component,
+      bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type,
             IntPtr address, UInt32 offset,
@@ -44,7 +42,6 @@ namespace ShL1ShL2
      
       void enableModels();
       void disableModels();
-      void resetModels();
 
       tile_id_t getShmemRequester(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
@@ -55,7 +52,7 @@ namespace ShL1ShL2
 
       void outputSummary(std::ostream &os);
 
-      void incrCycleCount(MemComponent::component_t mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:
       L1CacheCntlr* _l1_cache_cntlr;

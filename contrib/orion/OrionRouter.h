@@ -18,6 +18,7 @@ class OrionRouter
     );
     //values in cfg file will be modified
     OrionRouter(
+      float frequency_,
       uint32_t num_in_port_,
       uint32_t num_out_port_,
       uint32_t num_vclass_,

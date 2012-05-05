@@ -4,11 +4,9 @@
 #include "packetize.h"
 
 #include "clock_skew_minimization_object.h"
-#include "barrier_sync_client.h"
-#include "barrier_sync_server.h"
-#include "ring_sync_client.h"
-#include "ring_sync_manager.h"
-#include "random_pairs_sync_client.h"
+#include "lax_barrier_sync_client.h"
+#include "lax_barrier_sync_server.h"
+#include "lax_p2p_sync_client.h"
 
 #include "log.h"
 
@@ -23,14 +21,12 @@ void ClockSkewMinimizationClientNetworkCallback(void* obj, NetPacket packet)
 ClockSkewMinimizationObject::Scheme
 ClockSkewMinimizationObject::parseScheme(std::string scheme)
 {
-   if (scheme == "barrier")
-      return BARRIER;
-   else if (scheme == "ring")
-      return RING;
-   else if (scheme == "random_pairs")
-      return RANDOM_PAIRS;
-   else if (scheme == "none")
-      return NONE;
+   if (scheme == "lax")
+      return LAX;
+   else if (scheme == "lax_barrier")
+      return LAX_BARRIER;
+   else if (scheme == "lax_p2p")
+      return LAX_P2P;
    else
    {
       LOG_PRINT_ERROR("Unrecognized clock skew minimization scheme: %s", scheme.c_str());
@@ -45,17 +41,14 @@ ClockSkewMinimizationClient::create(std::string scheme_str, Core* core)
 
    switch (scheme)
    {
-      case BARRIER:
-         return new BarrierSyncClient(core);
-
-      case RING:
-         return new RingSyncClient(core);
-
-      case RANDOM_PAIRS:
-         return new RandomPairsSyncClient(core);
-
-      case NONE:
+      case LAX:
          return (ClockSkewMinimizationClient*) NULL;
+
+      case LAX_BARRIER:
+         return new LaxBarrierSyncClient(core);
+
+      case LAX_P2P:
+         return new LaxP2PSyncClient(core);
 
       default:
          LOG_PRINT_ERROR("Unrecognized scheme: %u", scheme);
@@ -70,16 +63,9 @@ ClockSkewMinimizationManager::create(std::string scheme_str)
 
    switch (scheme)
    {
-      case BARRIER:
-         return (ClockSkewMinimizationManager*) NULL;
-
-      case RING:
-         return new RingSyncManager();
-
-      case RANDOM_PAIRS:
-         return (ClockSkewMinimizationManager*) NULL;
-
-      case NONE:
+      case LAX:
+      case LAX_BARRIER:
+      case LAX_P2P:
          return (ClockSkewMinimizationManager*) NULL;
 
       default:
@@ -95,16 +81,13 @@ ClockSkewMinimizationServer::create(std::string scheme_str, Network& network, Un
 
    switch (scheme)
    {
-      case BARRIER:
-         return new BarrierSyncServer(network, recv_buff);
-
-      case RING:
+      case LAX:
          return (ClockSkewMinimizationServer*) NULL;
 
-      case RANDOM_PAIRS:
-         return (ClockSkewMinimizationServer*) NULL;
+      case LAX_BARRIER:
+         return new LaxBarrierSyncServer(network, recv_buff);
 
-      case NONE:
+      case LAX_P2P:
          return (ClockSkewMinimizationServer*) NULL;
 
       default:

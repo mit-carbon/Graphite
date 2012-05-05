@@ -1,35 +1,26 @@
 #include "address_home_lookup.h"
 #include "log.h"
 
-AddressHomeLookup::AddressHomeLookup(UInt32 ahl_param,
-      vector<tile_id_t>& tile_list,
-      UInt32 cache_block_size):
-   m_ahl_param(ahl_param),
-   m_tile_list(tile_list),
-   m_cache_block_size(cache_block_size)
+AddressHomeLookup::AddressHomeLookup(UInt32 ahl_param, vector<tile_id_t>& tile_list, UInt32 cache_line_size):
+   _ahl_param(ahl_param),
+   _tile_list(tile_list),
+   _cache_line_size(cache_line_size)
 {
-
-   // Each Block Address is as follows:
-   // /////////////////////////////////////////////////////////// //
-   //   block_num               |   block_offset                  //
-   // /////////////////////////////////////////////////////////// //
-
-   LOG_ASSERT_ERROR((1 << m_ahl_param) >= (SInt32) m_cache_block_size,
-         "AHL param(%u) must be >= Cache Block Size(%u)",
-         m_ahl_param, m_cache_block_size);
-   m_total_modules = tile_list.size();
+   LOG_ASSERT_ERROR((1 << _ahl_param) >= (SInt32) _cache_line_size,
+                    "[1 << AHL param](%u) must be >= [Cache Block Size](%u)",
+                    1 << _ahl_param, _cache_line_size);
+   _total_modules = tile_list.size();
 }
 
 AddressHomeLookup::~AddressHomeLookup()
-{
-   // There is no memory to deallocate, so destructor has no function
-}
+{}
 
-tile_id_t AddressHomeLookup::getHome(IntPtr address) const
+tile_id_t
+AddressHomeLookup::getHome(IntPtr address) const
 {
-   SInt32 module_num = (address >> m_ahl_param) % m_total_modules;
-   LOG_ASSERT_ERROR(0 <= module_num && module_num < (SInt32) m_total_modules, "module_num(%i), total_modules(%u)", module_num, m_total_modules);
+   SInt32 module_num = (address >> _ahl_param) % _total_modules;
+   LOG_ASSERT_ERROR(0 <= module_num && module_num < (SInt32) _total_modules, "module_num(%i), total_modules(%u)", module_num, _total_modules);
    
-   LOG_PRINT("address(0x%x), module_num(%i)", address, module_num);
-   return (m_tile_list[module_num]);
+   LOG_PRINT("address(%#lx), module_num(%i)", address, module_num);
+   return (_tile_list[module_num]);
 }

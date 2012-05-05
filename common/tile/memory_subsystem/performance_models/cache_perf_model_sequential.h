@@ -1,46 +1,42 @@
-#ifndef __CACHE_PERF_MODEL_SEQUENTIAL_H__ 
-#define __CACHE_PERF_MODEL_SEQUENTIAL_H__
+#pragma once
 
 #include "cache_perf_model.h"
 
 class CachePerfModelSequential : public CachePerfModel
 {
-   private:
-      bool m_enabled;
+public:
+   CachePerfModelSequential(UInt64 data_array_access_time, UInt64 tag_array_access_time, float core_frequency)
+      : CachePerfModel(data_array_access_time, tag_array_access_time, core_frequency)
+      , _enabled(false)
+   {}
+   ~CachePerfModelSequential() {}
 
-   public:
-      CachePerfModelSequential(UInt64 cache_data_access_delay_in_clock_cycles, 
-            UInt64 cache_tags_access_delay_in_clock_cycles,
-            volatile float core_frequency) : 
-         CachePerfModel(cache_data_access_delay_in_clock_cycles, cache_tags_access_delay_in_clock_cycles, core_frequency),
-         m_enabled(false)
-      {}
-      ~CachePerfModelSequential() {}
+   void enable()     { _enabled = true;  }
+   void disable()    { _enabled = false; }
+   bool isEnabled()  { return _enabled;  }
 
-      void enable() { m_enabled = true; }
-      void disable() { m_enabled = false; }
-      bool isEnabled() { return m_enabled; }
+   UInt64 getLatency(CacheAccess_t access)
+   {
+      if (!_enabled)
+         return 0;
 
-      UInt64 getLatency(CacheAccess_t access)
+      switch(access)
       {
-         if (!m_enabled)
-            return 0;
+      case ACCESS_CACHE_TAGS:
+         return _tag_array_access_time;
 
-         switch(access)
-         {
-            case ACCESS_CACHE_TAGS:
-               return m_cache_tags_access_delay_in_clock_cycles;
+      case ACCESS_CACHE_DATA:
+         return _data_array_access_time;
 
-            case ACCESS_CACHE_DATA:
-               return m_cache_data_access_delay_in_clock_cycles;
+      case ACCESS_CACHE_DATA_AND_TAGS:
+         return _data_array_access_time + _tag_array_access_time;
 
-            case ACCESS_CACHE_DATA_AND_TAGS:
-               return m_cache_data_access_delay_in_clock_cycles + m_cache_tags_access_delay_in_clock_cycles;
-
-            default:
-               return 0;
-         }
+      default:
+         fprintf(stderr, "Unrecognized cache access type(%u)\n", access);
+         return 0;
       }
-};
+   }
 
-#endif /* __CACHE_PERF_MODEL_SEQUENTIAL_H__ */
+private:
+   bool _enabled;
+};

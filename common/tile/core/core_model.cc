@@ -1,8 +1,7 @@
 #include "core_model.h"
 #include "core.h"
-#include "simple_performance_model.h"
-#include "iocoom_performance_model.h"
-#include "magic_performance_model.h"
+#include "simple_core_model.h"
+#include "iocoom_core_model.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "config.h"
@@ -12,17 +11,15 @@
 #include "utils.h"
 
 
-CoreModel* CoreModel::createMainPerfModel(Core* core)
+CoreModel* CoreModel::createMainCoreModel(Core* core)
 {
    volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getCoreId());
    string core_model = Config::getSingleton()->getCoreType(core->getTileId());
 
    if (core_model == "iocoom")
-      return new IOCOOMPerformanceModel(core, frequency);
+      return new IOCOOMCoreModel(core, frequency);
    else if (core_model == "simple")
-      return new SimplePerformanceModel(core, frequency);
-   else if (core_model == "magic")
-      return new MagicPerformanceModel(core, frequency);
+      return new SimpleCoreModel(core, frequency);
    else
    {
       LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
@@ -33,8 +30,9 @@ CoreModel* CoreModel::createMainPerfModel(Core* core)
 // Public Interface
 CoreModel::CoreModel(Core *core, float frequency)
    : m_cycle_count(0)
-   , m_core(core)
+   , m_instruction_count(0)
    , m_frequency(frequency)
+   , m_core(core)
    , m_average_frequency(0.0)
    , m_total_time(0)
    , m_checkpointed_cycle_count(0)
@@ -45,8 +43,8 @@ CoreModel::CoreModel(Core *core, float frequency)
    // Create Branch Predictor
    m_bp = BranchPredictor::create();
 
-   // Initialize Instruction Counters
-   initializeInstructionCounters();
+   // Initialize Pipeline Stall Counters
+   initializePipelineStallCounters();
 }
 
 CoreModel::~CoreModel()
@@ -56,32 +54,27 @@ CoreModel::~CoreModel()
 
 void CoreModel::outputSummary(ostream& os)
 {
-   // Frequency Summary
-   frequencySummary(os);
+   os << "Core Model Summary:" << endl;
+   os << "    Total Instructions: " << m_instruction_count << endl;
+   os << "    Completion Time (in ns): " << (UInt64) ((double) m_cycle_count / m_frequency) << endl;
+   os << "    Average Frequency (in GHz): " << m_average_frequency << endl;
    
-   // Instruction Counter Summary
-   os << "    Recv Instructions: " << m_total_recv_instructions << endl;
-   os << "    Recv Instruction Costs: " << m_total_recv_instruction_costs << endl;
-   os << "    Sync Instructions: " << m_total_sync_instructions << endl;
-   os << "    Sync Instruction Costs: " << m_total_sync_instruction_costs << endl;
+   os << "    Total Recv Instructions: " << m_total_recv_instructions << endl;
+   os << "    Total Sync Instructions: " << m_total_sync_instructions << endl;
+   os << "    Total Memory Stall Time (in ns): " << (UInt64) ((double) m_total_memory_stall_cycles / m_frequency) << endl;
+   os << "    Total Execution Unit Stall Time (in ns): " << (UInt64) ((double) m_total_execution_unit_stall_cycles / m_frequency) << endl;
+   os << "    Total Recv Instruction Stall Time (in ns): " << (UInt64) ((double) m_total_recv_instruction_stall_cycles / m_frequency) << endl;
+   os << "    Total Sync Instruction Stall Time (in ns): " << (UInt64) ((double) m_total_sync_instruction_stall_cycles / m_frequency) << endl;
 
    // Branch Predictor Summary
    if (m_bp)
       m_bp->outputSummary(os);
 }
 
-void CoreModel::frequencySummary(ostream& os)
-{
-   os << "    Completion Time: " \
-      << (UInt64) (((float) m_cycle_count) / m_frequency) \
-      << endl;
-   os << "    Average Frequency: " << m_average_frequency << endl;
-}
-
 void CoreModel::enable()
 {
-   // MCP perf model should never be enabled
-   if (m_core->getTileId() == Config::getSingleton()->getMCPTileNum())
+   // Thread Spawner and MCP performance models should never be enabled
+   if (m_core->getTileId() >= (tile_id_t) Config::getSingleton()->getApplicationTiles())
       return;
 
    m_enabled = true;
@@ -90,37 +83,6 @@ void CoreModel::enable()
 void CoreModel::disable()
 {
    m_enabled = false;
-}
-
-void CoreModel::reset()
-{
-   // Reset Average Frequency & Cycle Count
-   m_average_frequency = 0.0;
-   m_total_time = 0;
-   m_cycle_count = 0;
-   m_checkpointed_cycle_count = 0;
-
-   // Reset Instruction Counters
-   initializeInstructionCounters();
-
-   // Clear BasicBlockQueue
-   while (!m_basic_block_queue.empty())
-   {
-      BasicBlock* bb = m_basic_block_queue.front();
-      if (bb->isDynamic())
-         delete bb;
-      m_basic_block_queue.pop();
-   }
-   m_current_ins_index = 0;
-
-   // Clear Dynamic Instruction Info Queue
-   while (!m_dynamic_info_queue.empty())
-   {
-      m_dynamic_info_queue.pop();
-   }
-
-   // Reset Branch Predictor
-   m_bp->reset();
 }
 
 // This function is called:
@@ -135,6 +97,12 @@ void CoreModel::updateInternalVariablesOnFrequencyChange(volatile float frequenc
    m_checkpointed_cycle_count = (UInt64) (((double) m_cycle_count / old_frequency) * new_frequency);
    m_cycle_count = m_checkpointed_cycle_count;
    m_frequency = new_frequency;
+
+   // Update Pipeline Stall Counters
+   m_total_memory_stall_cycles = (UInt64) (((double) m_total_memory_stall_cycles / old_frequency) * new_frequency);
+   m_total_execution_unit_stall_cycles = (UInt64) (((double) m_total_execution_unit_stall_cycles / old_frequency) * new_frequency);
+   m_total_recv_instruction_stall_cycles = (UInt64) (((double) m_total_recv_instruction_stall_cycles / old_frequency) * new_frequency);
+   m_total_sync_instruction_stall_cycles = (UInt64) (((double) m_total_sync_instruction_stall_cycles / old_frequency) * new_frequency);
 }
 
 // This function is called:
@@ -158,31 +126,36 @@ void CoreModel::recomputeAverageFrequency()
    m_total_time = (UInt64) total_time_taken;
 }
 
-void CoreModel::initializeInstructionCounters()
+void CoreModel::initializePipelineStallCounters()
 {
    m_total_recv_instructions = 0;
-   m_total_recv_instruction_costs = 0;
    m_total_sync_instructions = 0;
-   m_total_sync_instruction_costs = 0;
+   m_total_recv_instruction_stall_cycles = 0;
+   m_total_sync_instruction_stall_cycles = 0;
+   m_total_memory_stall_cycles = 0;
+   m_total_execution_unit_stall_cycles = 0;
 }
 
-void CoreModel::updateInstructionCounters(Instruction* i)
+void CoreModel::updatePipelineStallCounters(Instruction* i, UInt64 memory_stall_cycles, UInt64 execution_unit_stall_cycles)
 {
    switch (i->getType())
    {
       case INST_RECV:
          m_total_recv_instructions ++;
-         m_total_recv_instruction_costs += i->getCost();
+         m_total_recv_instruction_stall_cycles += i->getCost();
          break;
 
       case INST_SYNC:
          m_total_sync_instructions ++;
-         m_total_sync_instruction_costs += i->getCost();
+         m_total_sync_instruction_stall_cycles += i->getCost();
          break;
 
       default:
          break;
    }
+   
+   m_total_memory_stall_cycles += memory_stall_cycles;
+   m_total_execution_unit_stall_cycles += execution_unit_stall_cycles;
 }
 
 void CoreModel::queueDynamicInstruction(Instruction *i)
@@ -192,9 +165,6 @@ void CoreModel::queueDynamicInstruction(Instruction *i)
       delete i;
       return;
    }
-
-   // Update Instruction Counters
-   updateInstructionCounters(i);
 
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);
@@ -211,7 +181,6 @@ void CoreModel::queueBasicBlock(BasicBlock *basic_block)
    m_basic_block_queue.push(basic_block);
 }
 
-//FIXME: this will go in a thread
 void CoreModel::iterate()
 {
    // Because we will sometimes not have info available (we will throw
@@ -224,6 +193,7 @@ void CoreModel::iterate()
 
    while (m_basic_block_queue.size() > 1)
    {
+      LOG_PRINT("Basic Block Queue Size(%lu)", m_basic_block_queue.size());
       BasicBlock *current_bb = m_basic_block_queue.front();
 
       try
@@ -259,6 +229,7 @@ void CoreModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
       return;
 
+   LOG_PRINT("Push Info(%u)", i.type);
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
 }
@@ -273,6 +244,7 @@ void CoreModel::popDynamicInstructionInfo()
                     "Expected some dynamic info to be available.");
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
                     "Dynamic info queue is growing too big.");
+   LOG_PRINT("Pop Info(%u)", m_dynamic_info_queue.front().type);
    m_dynamic_info_queue.pop();
 }
 
@@ -296,5 +268,6 @@ DynamicInstructionInfo& CoreModel::getDynamicInstructionInfo()
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
                     "Dynamic info queue is growing too big.");
 
+   LOG_PRINT("Get Info(%u)", m_dynamic_info_queue.front().type);
    return m_dynamic_info_queue.front();
 }

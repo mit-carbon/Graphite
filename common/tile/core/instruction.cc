@@ -9,22 +9,21 @@
 
 Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
 
-Instruction::Instruction(InstructionType type, OperandList &operands)
+Instruction::Instruction(InstructionType type, UInt64 opcode, OperandList &operands)
    : m_type(type)
-   , m_addr(0)
+   , m_opcode(opcode)
+   , m_address(0)
+   , m_size(0)
    , m_operands(operands)
 {
 }
 
 Instruction::Instruction(InstructionType type)
    : m_type(type)
-   , m_addr(0)
+   , m_opcode(0)
+   , m_address(0)
+   , m_size(0)
 {
-}
-
-InstructionType Instruction::getType()
-{
-    return m_type;
 }
 
 UInt64 Instruction::getCost()
@@ -66,7 +65,7 @@ void Instruction::initializeStaticInstructionModel()
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
    {
        char key_name [1024];
-       snprintf(key_name, 1024, "perf_model/core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
+       snprintf(key_name, 1024, "core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
        UInt32 instruction_cost = Sim()->getCfg()->getInt(key_name, 0);
        m_instruction_costs[i] = instruction_cost;
    }
@@ -91,8 +90,8 @@ UInt64 DynamicInstruction::getCost()
 
 // StringInstruction
 
-StringInstruction::StringInstruction(OperandList &ops)
-   : Instruction(INST_STRING, ops)
+StringInstruction::StringInstruction(UInt64 opcode, OperandList &ops)
+   : Instruction(INST_STRING, opcode, ops)
 {
 }
 
@@ -149,8 +148,8 @@ UInt64 SpawnInstruction::getCost()
 
 // BranchInstruction
 
-BranchInstruction::BranchInstruction(OperandList &l)
-   : Instruction(INST_BRANCH, l)
+BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
+   : Instruction(INST_BRANCH, opcode, l)
 { }
 
 UInt64 BranchInstruction::getCost()
@@ -183,7 +182,7 @@ UInt64 BranchInstruction::getCost()
 void Instruction::print() const
 {
    ostringstream out;
-   out << "Address(0x" << hex << m_addr << dec << "): ";
+   out << "Address(0x" << hex << m_address << dec << ") Size(" << m_size << ") : ";
    for (unsigned int i = 0; i < m_operands.size(); i++)
    {
       const Operand& o = m_operands[i];

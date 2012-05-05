@@ -24,7 +24,6 @@ using namespace std;
 class Tile
 {
    public:
-
       Tile(SInt32 id);
       ~Tile();
 
@@ -49,7 +48,6 @@ class Tile
 
       void enablePerformanceModels();
       void disablePerformanceModels();
-      void resetPerformanceModels();
 
    private:
       tile_id_t m_tile_id;
@@ -57,7 +55,6 @@ class Tile
       Network *m_network;
       Core *m_main_core;
       ShmemPerfModel* m_shmem_perf_model;
-
 };
 
 #endif

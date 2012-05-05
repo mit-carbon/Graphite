@@ -10,8 +10,8 @@ using std::ostream;
 #include "network_model.h"
 #include "fixed_types.h"
 #include "queue_model.h"
-#include "network_router_model.h"
-#include "electrical_network_link_model.h"
+#include "router_model.h"
+#include "electrical_link_model.h"
 
 class NetworkModelEMeshHopByHop : public NetworkModel
 {
@@ -26,8 +26,6 @@ public:
    void outputSummary(std::ostream &out);
 
    static SInt32 computeDistance(tile_id_t sender, tile_id_t receiver);
-
-   void reset() {}
 
 private:
    enum NodeType
@@ -49,16 +47,16 @@ private:
    static SInt32 _mesh_width;
    static SInt32 _mesh_height;
 
+   // Is contention model enabled?
+   static bool _contention_model_enabled;
+
    // Injection Router 
-   NetworkRouterModel* _injection_router;
-   
+   RouterModel* _injection_router;
+
    // Router & Link Parameters
    SInt32 _num_mesh_router_ports;
-   NetworkRouterModel* _mesh_router;
-   vector<ElectricalNetworkLinkModel*> _mesh_link_list;
-
-   // Contention Modeling
-   bool _contention_model_enabled;
+   RouterModel* _mesh_router;
+   vector<ElectricalLinkModel*> _mesh_link_list;
 
    // Routing Function
    void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
@@ -75,5 +73,6 @@ private:
    static tile_id_t computeTileID(SInt32 x, SInt32 y);
 
    void outputEventCountSummary(ostream& out);
+   void outputPowerSummary(ostream& out);
    void outputContentionModelsSummary(ostream& out);
 };

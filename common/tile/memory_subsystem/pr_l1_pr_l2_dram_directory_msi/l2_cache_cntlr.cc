@@ -9,27 +9,35 @@ namespace PrL1PrL2DramDirectoryMSI
 L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            L1CacheCntlr* l1_cache_cntlr,
                            AddressHomeLookup* dram_directory_home_lookup,
-                           Semaphore* user_thread_sem,
-                           Semaphore* network_thread_sem,
+                           Semaphore* app_thread_sem,
+                           Semaphore* sim_thread_sem,
                            UInt32 cache_line_size,
                            UInt32 l2_cache_size,
                            UInt32 l2_cache_associativity,
                            string l2_cache_replacement_policy,
                            UInt32 l2_cache_access_delay,
                            bool l2_cache_track_miss_types,
-                           volatile float frequency)
+                           float frequency)
    : _memory_manager(memory_manager)
    , _l1_cache_cntlr(l1_cache_cntlr)
    , _dram_directory_home_lookup(dram_directory_home_lookup)
-   , _user_thread_sem(user_thread_sem)
-   , _network_thread_sem(network_thread_sem)
+   , _app_thread_sem(app_thread_sem)
+   , _sim_thread_sem(sim_thread_sem)
 {
+   _l2_cache_replacement_policy_obj = 
+      CacheReplacementPolicy::create(l2_cache_replacement_policy, l2_cache_size, l2_cache_associativity, cache_line_size);
+   _l2_cache_hash_fn_obj = new CacheHashFn(l2_cache_size, l2_cache_associativity, cache_line_size);
+   
    _l2_cache = new Cache("L2",
+         PR_L1_PR_L2_DRAM_DIRECTORY_MSI,
+         Cache::UNIFIED_CACHE,
+         L2,
+         Cache::WRITE_BACK,
          l2_cache_size, 
          l2_cache_associativity, 
          cache_line_size, 
-         l2_cache_replacement_policy, 
-         Cache::PR_L2_CACHE,
+         _l2_cache_replacement_policy_obj,
+         _l2_cache_hash_fn_obj,
          l2_cache_access_delay,
          frequency,
          l2_cache_track_miss_types);
@@ -38,24 +46,15 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
 L2CacheCntlr::~L2CacheCntlr()
 {
    delete _l2_cache;
+   delete _l2_cache_replacement_policy_obj;
+   delete _l2_cache_hash_fn_obj;
 }
 
 void
-L2CacheCntlr::getCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info)
+L2CacheCntlr::invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& l2_cache_line_info)
 {
-   _l2_cache->getCacheLineInfo(address, l2_cache_line_info);
-}
-
-void
-L2CacheCntlr::setCacheLineInfo(IntPtr address, PrL2CacheLineInfo* l2_cache_line_info)
-{
-   _l2_cache->setCacheLineInfo(address, l2_cache_line_info);
-}
-
-void
-L2CacheCntlr::invalidateCacheLine(IntPtr address)
-{
-   _l2_cache->invalidateCacheLine(address);
+   l2_cache_line_info.invalidate();
+   _l2_cache->setCacheLineInfo(address, &l2_cache_line_info);
 }
 
 void
@@ -71,7 +70,7 @@ L2CacheCntlr::writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt
 }
 
 void
-L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* fill_buf, MemComponent::component_t mem_component)
+L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf, MemComponent::Type mem_component)
 {
    // Construct meta-data info about l2 cache line
    PrL2CacheLineInfo l2_cache_line_info;
@@ -90,7 +89,7 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* f
 
    if (eviction)
    {
-      LOG_PRINT("Eviction: address(0x%x)", evicted_address);
+      LOG_PRINT("Eviction: address(%#lx)", evicted_address);
       invalidateCacheLineInL1(evicted_cache_line_info.getCachedLoc(), evicted_address);
 
       UInt32 home_node_id = getHome(evicted_address);
@@ -106,7 +105,7 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* f
       else
       {
          LOG_ASSERT_ERROR(evicted_cache_line_info.getCState() == CacheState::SHARED,
-               "evicted_address(0x%x), cache state(%u), cached loc(%u)",
+               "evicted_address(%#lx), cache state(%u), cached loc(%u)",
                evicted_address, evicted_cache_line_info.getCState(), evicted_cache_line_info.getCachedLoc());
          ShmemMsg msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY, getTileId(), evicted_address, eviction_msg_modeled);
          getMemoryManager()->sendMsg(home_node_id, msg);
@@ -115,22 +114,22 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::CState cstate, Byte* f
 }
 
 void
-L2CacheCntlr::setCacheLineStateInL1(MemComponent::component_t mem_component, IntPtr address, CacheState::CState cstate)
+L2CacheCntlr::setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate)
 {
    if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
       _l1_cache_cntlr->setCacheLineState(mem_component, address, cstate);
 }
 
 void
-L2CacheCntlr::invalidateCacheLineInL1(MemComponent::component_t mem_component, IntPtr address)
+L2CacheCntlr::invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr address)
 {
    if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
       _l1_cache_cntlr->invalidateCacheLine(mem_component, address);
 }
 
 void
-L2CacheCntlr::insertCacheLineInL1(MemComponent::component_t mem_component, IntPtr address,
-                                  CacheState::CState cstate, Byte* fill_buf)
+L2CacheCntlr::insertCacheLineInL1(MemComponent::Type mem_component, IntPtr address,
+                                  CacheState::Type cstate, Byte* fill_buf)
 {
    assert(mem_component != MemComponent::INVALID_MEM_COMPONENT);
 
@@ -145,18 +144,18 @@ L2CacheCntlr::insertCacheLineInL1(MemComponent::component_t mem_component, IntPt
       // Clear the Present bit in L2 Cache corresponding to the evicted line
       // Get the cache line info first
       PrL2CacheLineInfo evicted_cache_line_info;
-      getCacheLineInfo(evicted_address, &evicted_cache_line_info);
+      _l2_cache->getCacheLineInfo(evicted_address, &evicted_cache_line_info);
       // Clear the present bit and store the info back
       evicted_cache_line_info.clearCachedLoc(mem_component);
-      setCacheLineInfo(evicted_address, &evicted_cache_line_info);
+      _l2_cache->setCacheLineInfo(evicted_address, &evicted_cache_line_info);
    }
 }
 
 void
-L2CacheCntlr::insertCacheLineInHierarchy(IntPtr address, CacheState::CState cstate, Byte* fill_buf)
+L2CacheCntlr::insertCacheLineInHierarchy(IntPtr address, CacheState::Type cstate, Byte* fill_buf)
 {
    assert(address == _outstanding_shmem_msg.getAddress());
-   MemComponent::component_t mem_component = _outstanding_shmem_msg.getSenderMemComponent();
+   MemComponent::Type mem_component = _outstanding_shmem_msg.getSenderMemComponent();
   
    // Insert Line in the L2 cache
    insertCacheLine(address, cstate, fill_buf, mem_component);
@@ -166,20 +165,20 @@ L2CacheCntlr::insertCacheLineInHierarchy(IntPtr address, CacheState::CState csta
 }
 
 pair<bool,Cache::MissType>
-L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::component_t mem_component, ShmemMsg::msg_t msg_type, IntPtr address, bool modeled)
+L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, Core::mem_op_t mem_op_type, IntPtr address)
 {
-   LOG_PRINT("processShmemRequestFromL1Cache[Mem Component(%u), Msg Type(%u), Address(%#llx)]",
-             mem_component, msg_type, address);
+   LOG_PRINT("processShmemRequestFromL1Cache[Mem Component(%u), Mem Op Type(%u), Address(%#llx)]",
+             mem_component, mem_op_type, address);
 
    PrL2CacheLineInfo l2_cache_line_info;
-   getCacheLineInfo(address, &l2_cache_line_info);
+   _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
 
    // Get the state associated with the address in the L2 cache
-   CacheState::CState cstate = l2_cache_line_info.getCState();
+   CacheState::Type cstate = l2_cache_line_info.getCState();
 
    // Return arguments is a pair
    // (1) Is cache miss? (2) Cache miss type (COLD, CAPACITY, UPGRADE, SHARING)
-   pair<bool,Cache::MissType> shmem_request_status_in_l2_cache = shmemRequestStatusInL2Cache(msg_type, address, cstate, modeled);
+   pair<bool,Cache::MissType> shmem_request_status_in_l2_cache = operationPermissibleinL2Cache(mem_op_type, address, cstate);
    if (!shmem_request_status_in_l2_cache.first)
    {
       Byte data_buf[getCacheLineSize()];
@@ -192,7 +191,7 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::component_t mem_compo
       
       // Set that the cache line in present in the L1 cache in the L2 tags
       l2_cache_line_info.setCachedLoc(mem_component);
-      setCacheLineInfo(address, &l2_cache_line_info);
+      _l2_cache->setCacheLineInfo(address, &l2_cache_line_info);
    }
    
    return shmem_request_status_in_l2_cache;
@@ -202,8 +201,8 @@ void
 L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
 {
    IntPtr address = shmem_msg->getAddress();
-   ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
-   MemComponent::component_t sender_mem_component = shmem_msg->getSenderMemComponent();
+   ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
+   MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
    acquireLock();
 
@@ -242,14 +241,14 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemMsg* shmem_msg)
    IntPtr address = shmem_msg->getAddress();
 
    PrL2CacheLineInfo l2_cache_line_info;
-   getCacheLineInfo(address, &l2_cache_line_info);
-   CacheState::CState cstate = l2_cache_line_info.getCState();
+   _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
+   CacheState::Type cstate = l2_cache_line_info.getCState();
 
    assert((cstate == CacheState::INVALID) || (cstate == CacheState::SHARED));
    if (cstate == CacheState::SHARED)
    {
       // This will clear the 'Present' bit also
-      invalidateCacheLine(address);
+      invalidateCacheLine(address, l2_cache_line_info);
       ShmemMsg msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY, getTileId(), address, shmem_msg->isModeled());
       getMemoryManager()->sendMsg(getHome(address), msg);
    }
@@ -272,11 +271,11 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
-   ShmemMsg::msg_t shmem_msg_type = shmem_msg->getMsgType();
+   ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    IntPtr address = shmem_msg->getAddress();
 
    // Acquire Locks
-   MemComponent::component_t caching_mem_component = acquireL1CacheLock(shmem_msg_type, address);
+   MemComponent::Type caching_mem_component = acquireL1CacheLock(shmem_msg_type, address);
    acquireLock();
 
    switch (shmem_msg_type)
@@ -318,17 +317,14 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
       getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
       // Set the clock of the APP thread to that of the SIM thread
-      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD, 
+      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_APP_THREAD, 
                                          getShmemPerfModel()->getCycleCount());
       
       // There are no more outstanding memory requests
       _outstanding_shmem_msg.setAddress(INVALID_ADDRESS);
       
-      LOG_PRINT("wake up app thread");
-      wakeUpUserThread();
-      LOG_PRINT("wait for app thread");
-      waitForUserThread();
-      LOG_PRINT("done waiting");
+      wakeUpAppThread();
+      waitForAppThread();
    }
 }
 
@@ -358,9 +354,9 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
    IntPtr address = shmem_msg->getAddress();
 
    PrL2CacheLineInfo l2_cache_line_info;
-   getCacheLineInfo(address, &l2_cache_line_info);
+   _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
    
-   CacheState::CState cstate = l2_cache_line_info.getCState();
+   CacheState::Type cstate = l2_cache_line_info.getCState();
 
    if (cstate != CacheState::INVALID)
    {
@@ -374,7 +370,7 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
       // Invalidate the line in L1 Cache
       invalidateCacheLineInL1(l2_cache_line_info.getCachedLoc(), address);
       // Invalidate the line in the L2 cache also
-      invalidateCacheLine(address);
+      invalidateCacheLine(address, l2_cache_line_info);
 
       // Send out INV_REP to DRAM_DIRECTORY
       ShmemMsg msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY, shmem_msg->getRequester(), address, shmem_msg->isModeled());
@@ -393,8 +389,8 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
    IntPtr address = shmem_msg->getAddress();
 
    PrL2CacheLineInfo l2_cache_line_info;
-   getCacheLineInfo(address, &l2_cache_line_info);
-   CacheState::CState cstate = l2_cache_line_info.getCState();
+   _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
+   CacheState::Type cstate = l2_cache_line_info.getCState();
    if (cstate != CacheState::INVALID)
    {
       assert(cstate == CacheState::MODIFIED);
@@ -412,7 +408,7 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
       readCacheLine(address, data_buf);
 
       // Invalidate the line
-      invalidateCacheLine(address);
+      invalidateCacheLine(address, l2_cache_line_info);
 
       // Send FLUSH_REP to DRAM_DIRECTORY
       ShmemMsg msg(ShmemMsg::FLUSH_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY, shmem_msg->getRequester(), address,
@@ -432,8 +428,8 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    IntPtr address = shmem_msg->getAddress();
 
    PrL2CacheLineInfo l2_cache_line_info;
-   getCacheLineInfo(address, &l2_cache_line_info);
-   CacheState::CState cstate = l2_cache_line_info.getCState();
+   _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
+   CacheState::Type cstate = l2_cache_line_info.getCState();
 
    if (cstate != CacheState::INVALID)
    {
@@ -453,7 +449,7 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
       
       // Set the cache line state to SHARED
       l2_cache_line_info.setCState(CacheState::SHARED);
-      setCacheLineInfo(address, &l2_cache_line_info);
+      _l2_cache->setCacheLineInfo(address, &l2_cache_line_info);
 
       // Send WB_REP to DRAM_DIRECTORY
       ShmemMsg msg(ShmemMsg::WB_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY, shmem_msg->getRequester(), address,
@@ -468,36 +464,32 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
 }
 
 pair<bool,Cache::MissType>
-L2CacheCntlr::shmemRequestStatusInL2Cache(ShmemMsg::msg_t shmem_msg_type, IntPtr address, CacheState::CState cstate, bool modeled)
+L2CacheCntlr::operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::Type cstate)
 {
    bool cache_hit = false;
 
-   switch (shmem_msg_type)
+   switch (mem_op_type)
    {
-   case ShmemMsg::EX_REQ:
-      cache_hit = CacheState(cstate).writable();
-      break;
-
-   case ShmemMsg::SH_REQ:
+   case Core::READ:
       cache_hit = CacheState(cstate).readable();
       break;
 
+   case Core::READ_EX:
+   case Core::WRITE:
+      cache_hit = CacheState(cstate).writable();
+      break;
+
    default:
-      LOG_PRINT_ERROR("Unsupported Shmem Msg Type: %u", shmem_msg_type);
+      LOG_PRINT_ERROR("Unsupported Mem Op Type(%u)", mem_op_type);
       break;
    }
 
-   Cache::MissType cache_miss_type = Cache::INVALID_MISS_TYPE;
-   if (modeled)
-   {
-      _l2_cache->updateMissCounters(address, !cache_hit);
-   }
-
+   Cache::MissType cache_miss_type = _l2_cache->updateMissCounters(address, mem_op_type, !cache_hit);
    return make_pair(!cache_hit, cache_miss_type);
 }
 
-MemComponent::component_t
-L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
+MemComponent::Type
+L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address)
 {
    switch (msg_type)
    {
@@ -517,12 +509,12 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::msg_t msg_type, IntPtr address)
          acquireLock();
          
          PrL2CacheLineInfo l2_cache_line_info;
-         getCacheLineInfo(address, &l2_cache_line_info);
-         MemComponent::component_t caching_mem_component = l2_cache_line_info.getCachedLoc();
+         _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
+         MemComponent::Type caching_mem_component = l2_cache_line_info.getCachedLoc();
          
          releaseLock();
 
-         assert(caching_mem_component != MemComponent::L1_ICACHE);
+         // assert(caching_mem_component != MemComponent::L1_ICACHE);
          if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
          {
             _l1_cache_cntlr->acquireLock(caching_mem_component);
@@ -549,15 +541,15 @@ L2CacheCntlr::releaseLock()
 }
 
 void
-L2CacheCntlr::wakeUpUserThread()
+L2CacheCntlr::wakeUpAppThread()
 {
-   _user_thread_sem->signal();
+   _app_thread_sem->signal();
 }
 
 void
-L2CacheCntlr::waitForUserThread()
+L2CacheCntlr::waitForAppThread()
 {
-   _network_thread_sem->wait();
+   _sim_thread_sem->wait();
 }
 
 tile_id_t

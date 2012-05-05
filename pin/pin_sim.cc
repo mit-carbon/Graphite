@@ -165,7 +165,7 @@ void routineCallback(RTN rtn, void *v)
 
 VOID instructionCallback (INS ins, void *v)
 {
-   // Debugging Functions
+   // Debugging Function
    if (Log::getSingleton()->isLoggingEnabled())
    {
       INS_InsertCall(ins, IPOINT_BEFORE,
@@ -175,9 +175,11 @@ VOID instructionCallback (INS ins, void *v)
             IARG_END);
    }
 
-   // Core Performance Modeling
    if (Config::getSingleton()->getEnablePerformanceModeling())
+   {
+      // Core Performance Modeling
       addInstructionModeling(ins);
+   }
 
    // Progress Trace
    addProgressTrace(ins);
@@ -204,6 +206,7 @@ VOID instructionCallback (INS ins, void *v)
    }
    else // Sim()->getConfig()->getSimulationMode() == Config::LITE
    {
+      // Special handling for futex syscall because of internal Pin lock
       if (INS_IsSyscall(ins))
       {
          INS_InsertCall(ins, IPOINT_BEFORE,

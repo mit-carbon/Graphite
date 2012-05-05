@@ -1,24 +1,17 @@
-#ifndef __DIRECTORY_BLOCK_INFO_H__
-#define __DIRECTORY_BLOCK_INFO_H__
+#pragma once
 
 #include "directory_state.h"
 
 class DirectoryBlockInfo
 {
-   private:
-      DirectoryState::dstate_t m_dstate;
+private:
+   DirectoryState::Type _dstate;
 
-   public:
-      DirectoryBlockInfo(
-            DirectoryState::dstate_t dstate = DirectoryState::UNCACHED):
-         m_dstate(dstate)
-      {}
-      ~DirectoryBlockInfo() {}
+public:
+   DirectoryBlockInfo(DirectoryState::Type dstate = DirectoryState::UNCACHED)
+      : _dstate(dstate) {}
+   ~DirectoryBlockInfo() {}
 
-      DirectoryState::dstate_t getDState() { return m_dstate; }
-      void setDState(DirectoryState::dstate_t dstate) { m_dstate = dstate; }
-
-
+   DirectoryState::Type getDState() { return _dstate; }
+   void setDState(DirectoryState::Type dstate) { _dstate = dstate; }
 };
-
-#endif /* __DIRECTORY_BLOCK_INFO_H__ */

@@ -45,7 +45,7 @@ public:
 
    UInt32 getTileIndexFromID(tile_id_t tile_id);
 
-   bool amiUserThread();
+   bool amiAppThread();
    bool amiSimThread();
 
 private:

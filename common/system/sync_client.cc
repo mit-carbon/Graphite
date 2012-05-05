@@ -54,7 +54,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
    // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
+   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(),
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *mux << start_time;
@@ -83,7 +83,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    if (time > start_time)
    {
       // Global Clock to Core Clock
-      UInt64 cycles_elapsed = convertCycleCount(time - start_time, \
+      UInt64 cycles_elapsed = convertCycleCount(time - start_time,
             1.0, m_core->getPerformanceModel()->getFrequency());
 
       m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));

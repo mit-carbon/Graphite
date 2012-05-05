@@ -9,56 +9,23 @@ namespace ShL1ShL2
 L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            AddressHomeLookup* address_home_lookup,
                            UInt32 cache_line_size,
-                           UInt32 l1_icache_size,
-                           UInt32 l1_icache_associativity,
-                           string l1_icache_replacement_policy,
-                           UInt32 l1_icache_access_delay,
-                           bool l1_icache_track_miss_types,
-                           UInt32 l1_dcache_size,
-                           UInt32 l1_dcache_associativity,
-                           string l1_dcache_replacement_policy,
-                           UInt32 l1_dcache_access_delay,
-                           bool l1_dcache_track_miss_types,
-                           volatile float frequency)
+                           float frequency)
    : _memory_manager(memory_manager)
    , _address_home_lookup(address_home_lookup)
    , _outstanding_data_buf(NULL)
-{
-   _l1_icache = new Cache("L1-I",
-         l1_icache_size,
-         l1_icache_associativity, 
-         cache_line_size,
-         l1_icache_replacement_policy,
-         Cache::PR_L1_CACHE,
-         l1_icache_access_delay,
-         frequency,
-         l1_icache_track_miss_types);
-   _l1_dcache = new Cache("L1-D",
-         l1_dcache_size,
-         l1_dcache_associativity, 
-         cache_line_size,
-         l1_dcache_replacement_policy,
-         Cache::PR_L1_CACHE,
-         l1_dcache_access_delay,
-         frequency,
-         l1_icache_track_miss_types);
-}
+{}
 
 L1CacheCntlr::~L1CacheCntlr()
-{
-   delete _l1_icache;
-   delete _l1_dcache;
-}      
+{}      
 
 bool
-L1CacheCntlr::processMemOpFromTile(MemComponent::component_t mem_component,
+L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
                                    Core::lock_signal_t lock_signal,
                                    Core::mem_op_t mem_op_type, 
                                    IntPtr ca_address, UInt32 offset,
                                    Byte* data_buf, UInt32 data_length,
                                    bool modeled)
 {
-   assert(mem_component == MemComponent::L1_DCACHE);
    LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(%#lx)",
              lock_signal, mem_op_type, ca_address);
 
@@ -101,11 +68,11 @@ void
 L1CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    assert(_outstanding_data_buf);
-   if (shmem_msg->getMsgType() == ShmemMsg::READ_REP)
+   if (shmem_msg->getType() == ShmemMsg::READ_REP)
       memcpy(_outstanding_data_buf, shmem_msg->getDataBuf(), shmem_msg->getDataLength());
    _outstanding_data_buf = NULL;
 
-   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_USER_THREAD,
+   getShmemPerfModel()->setCycleCount(ShmemPerfModel::_APP_THREAD,
                                       getShmemPerfModel()->getCycleCount());
 
    wakeUpAppThread();

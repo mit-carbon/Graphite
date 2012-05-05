@@ -79,7 +79,7 @@ DramDirectoryCntlr::processPendingRequests()
 void
 DramDirectoryCntlr::processMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
-   ShmemMsg::Type shmem_msg_type = shmem_msg->getMsgType();
+   ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
 
    switch (shmem_msg_type)
    {
@@ -120,7 +120,7 @@ DramDirectoryCntlr::processReadReqFromL1Cache(tile_id_t sender, ShmemMsg* shmem_
    DirectoryEntry* directory_entry = _dram_directory_cache->getDirectoryEntry(address);
    LOG_ASSERT_ERROR(directory_entry, "Does not handle directory evictions for now");
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
 
    switch (curr_dstate)
    {
@@ -163,7 +163,7 @@ DramDirectoryCntlr::processWriteReqFromL1Cache(tile_id_t sender, ShmemMsg* shmem
    DirectoryEntry* directory_entry = _dram_directory_cache->getDirectoryEntry(address);
    LOG_ASSERT_ERROR(directory_entry, "Does not handle directory evictions for now");
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
 
    switch (curr_dstate)
    {
@@ -203,7 +203,7 @@ DramDirectoryCntlr::handleEvictedCacheLineFromL2Cache(IntPtr address, Byte* data
    DirectoryEntry* directory_entry = _dram_directory_cache->getDirectoryEntry(address);
    assert(directory_entry);
    DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::dstate_t curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_block_info->getDState();
 
    switch (curr_dstate)
    {

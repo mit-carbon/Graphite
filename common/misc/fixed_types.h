@@ -37,5 +37,6 @@ typedef struct {
 #define INVALID_ADDRESS ((IntPtr) -1)
 
 #define UINT64_MAX_ ((UInt64)-1)
+#define UINT32_MAX_ ((UInt32)-1)
 
 #endif

@@ -14,10 +14,10 @@ DramCntlr::DramCntlr(Tile* tile,
    , _cache_line_size(cache_line_size)
 {
    _dram_perf_model = new DramPerfModel(dram_access_cost, 
-         dram_bandwidth,
-         dram_queue_model_enabled,
-         dram_queue_model_type, 
-         cache_line_size);
+                                        dram_bandwidth,
+                                        dram_queue_model_enabled,
+                                        dram_queue_model_type,
+                                        cache_line_size);
 
    _dram_access_count = new AccessCountMap[NUM_ACCESS_TYPES];
 }
@@ -35,12 +35,15 @@ DramCntlr::getDataFromDram(IntPtr address, Byte* data_buf, bool modeled)
 {
    if (_data_map[address] == NULL)
    {
+      LOG_PRINT("Creating new array(%#lx)", address)
       _data_map[address] = new Byte[_cache_line_size];
       memset((void*) _data_map[address], 0x00, _cache_line_size);
+      LOG_PRINT("Created new array(%p)", _data_map[address])
    }
    memcpy((void*) data_buf, (void*) _data_map[address], _cache_line_size);
 
    UInt64 dram_access_latency = modeled ? runDramPerfModel() : 0;
+   LOG_PRINT("Dram Access Latency(%llu)", dram_access_latency);
    getShmemPerfModel()->incrCycleCount(dram_access_latency);
 
    addToDramAccessCount(address, READ);

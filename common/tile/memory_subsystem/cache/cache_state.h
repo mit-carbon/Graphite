@@ -10,18 +10,22 @@ using namespace std;
 class CacheState
 {
 public:
-   enum CState
+   enum Type
    {
       INVALID = 0,
       SHARED,
       OWNED,
       MODIFIED,
-      NUM_CSTATE_STATES
+      DATA_INVALID,
+      CLEAN,
+      DIRTY,
+      NUM_STATES
    };
 
-   CacheState(CState cstate = INVALID) : _cstate(cstate) {}
+   CacheState(Type cstate = INVALID) : _cstate(cstate) {}
    ~CacheState() {}
 
+   // These functions are only called in a private cache
    bool readable()
    {
       return (_cstate == MODIFIED) || (_cstate == OWNED) || (_cstate == SHARED);
@@ -33,5 +37,5 @@ public:
    }
 
 private:
-   CState _cstate;
+   Type _cstate;
 };

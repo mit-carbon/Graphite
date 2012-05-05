@@ -34,7 +34,6 @@
 MAIN_ENV
 
 #include <math.h>
-#include "carbon_user.h"
 
 #include "matrix.h"
 

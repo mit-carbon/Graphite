@@ -10,7 +10,8 @@ public:
    
    bool addSharer(tile_id_t sharer_id);
    void removeSharer(tile_id_t sharer_id, bool reply_expected);
-   
+  
+   bool inBroadcastMode(); 
    bool getSharersList(vector<tile_id_t>& sharers_list);
    SInt32 getNumSharers();
 

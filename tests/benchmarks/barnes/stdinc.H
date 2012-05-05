@@ -39,7 +39,7 @@ typedef FILE *stream;
  * BOOL, TRUE and FALSE: standard names for logical values.
  */
 
-//typedef long bool;
+typedef long bool;
 
 #ifndef TRUE
 
@@ -59,7 +59,7 @@ typedef char byte;
  */
 
 typedef char *string;
-
+
 /*
  * REAL: default type is double; 
  */
@@ -98,7 +98,7 @@ typedef real (*rproc)();
 #define   FOUR_PI   12.56637061435917295385
 #define   HALF_PI    1.57079632679489661923
 #define   FRTHRD_PI  4.18879020478639098462
-
+
 /*
  *  ABS: returns the absolute value of its argument
  *  MAX: returns the argument with the highest value

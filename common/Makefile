@@ -6,7 +6,8 @@ include $(SIM_ROOT)/common/Makefile.common
 SRC_DIRECTORIES = $(DIRECTORIES) \
 			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_msi/	\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_mosi/ \
-			 $(SIM_ROOT)/common/tile/memory_subsystem/sh_l1_sh_l2/
+			 $(SIM_ROOT)/common/tile/memory_subsystem/sh_l1_sh_l2/							\
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_sh_l2_msi/
 
 # Grab all c/c++ files from subdirs
 SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
@@ -28,7 +29,7 @@ $(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
 	ar rcs $@ $(OBJECTS)
 
 $(ORION_LIB):
-	make -C $(SIM_ROOT)/contrib/orion
+	$(MAKE) -C $(SIM_ROOT)/contrib/orion
 
 ifneq ($(CLEAN),)
 clean:

@@ -11,8 +11,8 @@ using namespace std;
 void* thread_func(void*);
 
 IntPtr address = 0x1000;
-int num_threads = 2;
-int num_iterations = 1;
+int num_threads = 100;
+int num_iterations = 100;
 
 carbon_barrier_t barrier;
 
@@ -33,12 +33,13 @@ int main (int argc, char *argv[])
    int val = 0;
    core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val), true);
 
-   for (int i = 0; i < num_threads; i++)
+   for (int i = 0; i < num_threads-1; i++)
    {
-      tid_list[i] = CarbonSpawnThread(thread_func, (void*) i);
+      tid_list[i] = CarbonSpawnThread(thread_func, NULL);
    }
+   thread_func(NULL);
 
-   for (int i = 0; i < num_threads; i++)
+   for (int i = 0; i < num_threads-1; i++)
    {
       CarbonJoinThread(tid_list[i]);
    }

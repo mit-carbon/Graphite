@@ -15,8 +15,6 @@ UInt32 Config::m_knob_total_tiles;
 UInt32 Config::m_knob_num_process;
 bool Config::m_knob_simarch_has_shared_mem;
 std::string Config::m_knob_output_file;
-bool Config::m_knob_enable_dcache_modeling;
-bool Config::m_knob_enable_icache_modeling;
 bool Config::m_knob_enable_performance_modeling;
 bool Config::m_knob_enable_power_modeling;
 bool Config::m_knob_enable_area_modeling;
@@ -45,9 +43,6 @@ Config::Config()
       m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
       m_knob_enable_power_modeling = Sim()->getCfg()->getBool("general/enable_power_modeling");
       m_knob_enable_area_modeling = Sim()->getCfg()->getBool("general/enable_area_modeling");
-      // TODO: these should be removed and queried directly from the cache
-      m_knob_enable_dcache_modeling = Sim()->getCfg()->getBool("general/enable_dcache_modeling");
-      m_knob_enable_icache_modeling = Sim()->getCfg()->getBool("general/enable_icache_modeling");
 
       // Simulation Mode
       m_simulation_mode = parseSimulationMode(Sim()->getCfg()->getString("general/mode"));
@@ -307,16 +302,6 @@ bool Config::isSimulatingSharedMemory() const
    return (bool)m_knob_simarch_has_shared_mem;
 }
 
-bool Config::getEnableDCacheModeling() const
-{
-   return (bool)m_knob_enable_dcache_modeling;
-}
-
-bool Config::getEnableICacheModeling() const
-{
-   return (bool)m_knob_enable_icache_modeling;
-}
-
 bool Config::getEnablePerformanceModeling() const
 {
    return (bool)m_knob_enable_performance_modeling;
@@ -375,18 +360,18 @@ void Config::parseCoreParameters()
 
    const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
    const float DEFAULT_FREQUENCY = 1;
-   const string DEFAULT_CORE_TYPE = "magic";
+   const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
    string core_parameter_tuple_str;
    vector<string> core_parameter_tuple_vec;
    try
    {
-      core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/core/model_list");
+      core_parameter_tuple_str = Sim()->getCfg()->getString("core/model_list");
    }
    catch(...)
    {
-      fprintf(stderr, "ERROR: Could not read perf_model/core/model_list from the cfg file\n");
+      fprintf(stderr, "ERROR: Could not read core/model_list from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 
@@ -417,11 +402,11 @@ void Config::parseCoreParameters()
             switch (param_num)
             {
                case 0:
-                  convertFromString<UInt32>(num_cores, *param_it);
+                  num_cores = convertFromString<UInt32>(*param_it);
                   break;
 
                case 1:
-                  convertFromString<float>(frequency, *param_it);
+                  frequency = convertFromString<float>(*param_it);
                   break;
 
                case 2:

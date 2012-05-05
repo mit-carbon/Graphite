@@ -65,6 +65,12 @@ DirectoryEntryLimitedBroadcast::getNumSharers()
    return _global_enabled ? _num_sharers : _num_tracked_sharers;
 }
 
+bool
+DirectoryEntryLimitedBroadcast::inBroadcastMode()
+{
+   return _global_enabled;
+}
+
 // Return a pair:
 // val.first :- 'True' if all tiles are sharers
 //              'False' if NOT all tiles are sharers

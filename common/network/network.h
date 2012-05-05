@@ -105,7 +105,6 @@ public:
 
    void enableModels();
    void disableModels();
-   void resetModels();
 
    // -- Network Injection/Ejection Rate Trace -- //
    static void openUtilizationTraceFiles();

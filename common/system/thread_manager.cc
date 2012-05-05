@@ -81,7 +81,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
    
-   LOG_PRINT("onThreadStart(Tile: %i Core: %i)", req->destination.tile_id, req->destination.core_type);
+   LOG_PRINT("onThreadStart - Core(%i,%i)\n", req->destination.tile_id, req->destination.core_type);
 
    m_tile_manager->initializeThread(req->destination);
 
@@ -105,8 +105,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    CoreModel *pm = m_tile_manager->getCurrentCore()->getPerformanceModel();
 
    // Global Clock to Tile Clock
-   UInt64 start_cycle_count = convertCycleCount(req->time, \
-         1.0, pm->getFrequency());
+   UInt64 start_cycle_count = convertCycleCount(req->time, 1.0, pm->getFrequency());
    pm->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
 }
 
@@ -124,7 +123,7 @@ void ThreadManager::onThreadExit()
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, m_tile_manager->getCurrentCoreID().tile_id, m_tile_manager->getCurrentCoreID().core_type };
 
-   LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread {%d, %d} at time %llu",
+   LOG_PRINT("onThreadExit -- send message to master ThreadManager; Core(%i,%i) at time %llu",
              core->getCoreId().tile_id, core->getCoreId().core_type,
              core->getPerformanceModel()->getCycleCount());
    Network *net = tile->getNetwork();
@@ -187,7 +186,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    Network *net = core->getNetwork();
 
    // Tile Clock to Global Clock
-   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(),
          core->getPerformanceModel()->getFrequency(), 1.0);
 
    ThreadSpawnRequest req = { MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER,
@@ -210,7 +209,7 @@ SInt32 ThreadManager::spawnThread(thread_func_t func, void *arg)
    core->setState(Core::RUNNING);
 
    core_id_t core_id = *((core_id_t*)pkt.data);
-   LOG_PRINT("Thread spawned on core: {%d, %d}", core_id.tile_id, core_id.core_type);
+   LOG_PRINT("Thread spawned on core(%i,%i)", core_id.tile_id, core_id.core_type);
 
    // Delete the data buffer
    delete [] (Byte*) pkt.data;
@@ -485,7 +484,7 @@ void ThreadManager::terminateThreadSpawners()
    {
       {
          ScopedLock sl(m_thread_spawners_terminated_lock);
-         if (m_thread_spawners_terminated < Config::getSingleton()->getProcessCount())
+         if (m_thread_spawners_terminated == (Config::getSingleton()->getProcessCount()-1))
             break;
       }
       sched_yield();

@@ -182,7 +182,7 @@ void SyncServer::mutexLock(core_id_t core_id)
    UInt64 time;
    m_recv_buffer >> time;
 
-   assert((size_t)mux < m_mutexes.size());
+   LOG_ASSERT_ERROR((size_t)mux < m_mutexes.size(), "mux(%i), total muxes(%u)", mux, m_mutexes.size());
 
    SimMutex *psimmux = &m_mutexes[mux];
 

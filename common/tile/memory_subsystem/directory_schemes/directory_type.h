@@ -1,0 +1,11 @@
+#pragma once
+
+enum DirectoryType
+{
+   FULL_MAP = 0,
+   LIMITED_NO_BROADCAST,
+   LIMITED_BROADCAST,
+   ACKWISE,
+   LIMITLESS,
+   NUM_DIRECTORY_TYPES
+};

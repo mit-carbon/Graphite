@@ -17,7 +17,6 @@
 EXTERN_ENV
 
 #include <stdio.h>
-#include "carbon_user.h"
 
 #include "parameters.h"
 #include "mdvar.h"

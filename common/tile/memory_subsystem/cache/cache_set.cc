@@ -3,14 +3,17 @@
 #include "cache.h"
 #include "log.h"
 
-CacheSet::CacheSet(Cache::Type cache_type, UInt32 associativity, UInt32 line_size)
-   : _associativity(associativity)
+CacheSet::CacheSet(UInt32 set_num, CachingProtocolType caching_protocol_type, SInt32 cache_level,
+                   CacheReplacementPolicy* replacement_policy, UInt32 associativity, UInt32 line_size)
+   : _set_num(set_num)
+   , _replacement_policy(replacement_policy)
+   , _associativity(associativity)
    , _line_size(line_size)
 {
    _cache_line_info_array = new CacheLineInfo*[_associativity];
    for (UInt32 i = 0; i < _associativity; i++)
    {
-      _cache_line_info_array[i] = CacheLineInfo::create(cache_type);
+      _cache_line_info_array[i] = CacheLineInfo::create(caching_protocol_type, cache_level);
    }
    _lines = new char[_associativity * _line_size];
    
@@ -34,7 +37,7 @@ CacheSet::read_line(UInt32 line_index, UInt32 offset, Byte *out_buf, UInt32 byte
    if (out_buf != NULL)
       memcpy((void*) out_buf, &_lines[line_index * _line_size + offset], bytes);
 
-   updateReplacementIndex(line_index);
+   _replacement_policy->update(_cache_line_info_array, _set_num, line_index);
 }
 
 void 
@@ -46,7 +49,7 @@ CacheSet::write_line(UInt32 line_index, UInt32 offset, Byte *in_buf, UInt32 byte
    if (in_buf != NULL)
       memcpy(&_lines[line_index * _line_size + offset], (void*) in_buf, bytes);
 
-   updateReplacementIndex(line_index);
+   _replacement_policy->update(_cache_line_info_array, _set_num, line_index);
 }
 
 CacheLineInfo* 
@@ -70,7 +73,7 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
 {
    // This replacement strategy does not take into account the fact that
    // cache lines can be voluntarily flushed or invalidated due to another write request
-   const UInt32 index = getReplacementIndex();
+   const UInt32 index = _replacement_policy->getReplacementWay(_cache_line_info_array, _set_num);
    assert(index < _associativity);
 
    assert(eviction != NULL);
@@ -85,27 +88,12 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
    else
    {
       *eviction = false;
+      // Get the line info for the purpose of getting the utilization and birth time
+      // FIXME: Should this code be released to the mainline
+      evicted_cache_line_info->assign(_cache_line_info_array[index]);
    }
 
    _cache_line_info_array[index]->assign(inserted_cache_line_info);
    if (fill_buf != NULL)
       memcpy(&_lines[index * _line_size], (void*) fill_buf, _line_size);
-}
-
-CacheSet* 
-CacheSet::createCacheSet(Cache::ReplacementPolicy replacement_policy, Cache::Type cache_type,
-                         UInt32 associativity, UInt32 line_size)
-{
-   switch(replacement_policy)
-   {
-   case Cache::ROUND_ROBIN:
-      return new CacheSetRoundRobin(cache_type, associativity, line_size);
-
-   case Cache::LRU:
-      return new CacheSetLRU(cache_type, associativity, line_size);
-
-   default:
-      LOG_PRINT_ERROR("Unrecognized Cache Replacement Policy: %i", replacement_policy);
-      return (CacheSet*) NULL;
-   }
 }

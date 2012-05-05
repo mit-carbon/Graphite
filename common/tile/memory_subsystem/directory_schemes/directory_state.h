@@ -4,7 +4,7 @@
 class DirectoryState
 {
    public:
-      enum dstate_t
+      enum Type
       {
          UNCACHED = 0,
          SHARED,

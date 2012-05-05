@@ -50,13 +50,10 @@ void replacement_CAPI_message_receive_w_ex (CONTEXT *ctxt);
 void replacementPthreadCreate(CONTEXT *ctxt);
 void replacementPthreadJoin(CONTEXT *ctxt);
 void replacementPthreadExitNull(CONTEXT *ctxt);
-void replacementPthreadBarrierInit(CONTEXT *ctxt);
-void replacementPthreadBarrierWait(CONTEXT *ctxt);
 
 // Enable/Disable Models
 void replacementEnableModels(CONTEXT* ctxt);
 void replacementDisableModels(CONTEXT* ctxt);
-void replacementResetModels(CONTEXT* ctxt);
 
 // Cache Counters
 void replacementResetCacheCounters(CONTEXT *ctxt);

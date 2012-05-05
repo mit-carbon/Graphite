@@ -21,11 +21,11 @@ CacheAreaModel::CacheAreaModel(string type, UInt32 size, UInt32 blocksize,
 void
 CacheAreaModel::outputSummary(ostream& out)
 {
-   out << "    Area: " << _area << endl;
+   out << "    Area (in mm^2): " << _area << endl;
 }
 
 void
 CacheAreaModel::dummyOutputSummary(ostream& out)
 {
-   out << "    Area: NA" << endl;
+   out << "    Area (in mm^2): " << endl;
 }

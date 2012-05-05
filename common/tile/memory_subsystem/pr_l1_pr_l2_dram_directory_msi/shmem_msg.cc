@@ -15,9 +15,9 @@ namespace PrL1PrL2DramDirectoryMSI
       , _modeled(false)
    {}
 
-   ShmemMsg::ShmemMsg(msg_t msg_type,
-         MemComponent::component_t sender_mem_component,
-         MemComponent::component_t receiver_mem_component,
+   ShmemMsg::ShmemMsg(Type msg_type,
+         MemComponent::Type sender_mem_component,
+         MemComponent::Type receiver_mem_component,
          tile_id_t requester,
          IntPtr address,
          bool modeled)
@@ -31,9 +31,9 @@ namespace PrL1PrL2DramDirectoryMSI
       , _modeled(modeled)
    {}
 
-   ShmemMsg::ShmemMsg(msg_t msg_type,
-         MemComponent::component_t sender_mem_component,
-         MemComponent::component_t receiver_mem_component,
+   ShmemMsg::ShmemMsg(Type msg_type,
+         MemComponent::Type sender_mem_component,
+         MemComponent::Type receiver_mem_component,
          tile_id_t requester,
          IntPtr address,
          Byte* data_buf,
@@ -50,7 +50,7 @@ namespace PrL1PrL2DramDirectoryMSI
    {}
 
    ShmemMsg::ShmemMsg(const ShmemMsg* shmem_msg)
-      : _msg_type(shmem_msg->getMsgType())
+      : _msg_type(shmem_msg->getType())
       , _sender_mem_component(shmem_msg->getSenderMemComponent())
       , _receiver_mem_component(shmem_msg->getReceiverMemComponent())
       , _requester(shmem_msg->getRequester())

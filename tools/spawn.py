@@ -19,19 +19,18 @@ l_path = "/afs/csail/group/carbon/tools/pin/pintest/intel64/runtime"
 def spawn_job(machine_list, command, working_dir = os.getcwd()):
 
     procs = {}
-
     # spawn
     for i in range(0,len(machine_list)):
   
         exec_command = "export CARBON_PROCESS_INDEX=" + str(i) + "; " + \
-                       "export LD_LIBRARY_PATH=\"" + l_path + "\"; " + \
+                       "export LD_LIBRARY_PATH=" + l_path + "; " + \
                        command
 
         if (machine_list[i] != "localhost") and (machine_list[i] != r'127.0.0.1'):
             exec_command = exec_command.replace("\"","\\\"")
-            exec_command = "ssh -x " + machine_list[i] + \
-                           " \"cd " + working_dir + "; " + \
-                           exec_command + "\""
+            exec_command = """ssh -x """ + machine_list[i] + \
+                           """ \"/bin/bash -c  \'cd """ + working_dir + """ ; """ + \
+                           exec_command + """ \' \" """
    
         print "[spawn.py] Starting process: " + str(i) + " : " + exec_command
         procs[i] = subprocess.Popen(exec_command, shell=True)

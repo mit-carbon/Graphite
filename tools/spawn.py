@@ -61,6 +61,8 @@ def poll_job(procs):
             if returnCode == 0:
                 returnCode = procs[i].wait()
             else:
+                cmd = "pkill -SIGKILL -P %s" % str(procs[i].pid)
+                os.system(cmd)
                 os.kill(procs[i].pid, signal.SIGKILL)
 
     print "[spawn.py] Exited with return code: %d" % returnCode

@@ -32,16 +32,28 @@ void addMemoryModeling(INS ins)
       }
       if (INS_IsMemoryWrite(ins))
       {
-         IPOINT ipoint = INS_HasFallThrough(ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
-         INS_InsertCall(ins, ipoint,
-               AFUNPTR(lite::handleMemoryWrite),
-               IARG_BOOL, INS_IsAtomicUpdate(ins),
-               IARG_MEMORYWRITE_EA,
-               IARG_MEMORYWRITE_SIZE,
-               IARG_END);
+          INS_InsertCall (ins, IPOINT_BEFORE,
+                  AFUNPTR (lite::MemOpSaveEa),
+                  IARG_MEMORYWRITE_EA,
+                  IARG_RETURN_REGS, REG_INST_G3,
+                  IARG_END);
+
+            IPOINT ipoint = INS_HasFallThrough(ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
+            INS_InsertCall (ins, ipoint,
+                  AFUNPTR (lite::handleMemoryWrite),
+                  IARG_BOOL, INS_IsAtomicUpdate(ins),
+                  IARG_REG_VALUE, REG_INST_G3, 
+                  IARG_MEMORYWRITE_SIZE,
+                  IARG_END);
       }
    }
 }
+
+ADDRINT MemOpSaveEa(ADDRINT ea)
+{
+   return ea;
+}
+
 
 void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_data_size)
 {

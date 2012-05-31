@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "simulator.h"
+#include "version.h"
 #include "log.h"
 #include "lcp.h"
 #include "mcp.h"
@@ -145,6 +146,8 @@ Simulator::~Simulator()
    {
       ofstream os(Config::getSingleton()->getOutputFileName().c_str());
 
+      os << "Graphite " << version  << endl
+         << "" << endl;
       os << "Simulation timers: " << endl
          << "start time\t" << (m_start_time - m_boot_time) << endl
          << "stop time\t" << (m_stop_time - m_boot_time) << endl

@@ -86,6 +86,9 @@ class SyscallServer
 
       // Handling Futexes 
       void futexWait(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);
+#ifdef KERNEL_SQUEEZE
+      void futexWaitClockReal(core_id_t core_id, int *uaddr, int val, int act_val, UInt64 curr_time);
+#endif
       void futexWake(core_id_t core_id, int *uaddr, int val, UInt64 curr_time);
       void futexCmpRequeue(core_id_t core_id, int *uaddr, int val, int *uaddr2, int val3, int act_val, UInt64 curr_time);
 

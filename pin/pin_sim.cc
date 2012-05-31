@@ -218,9 +218,8 @@ VOID instructionCallback (INS ins, void *v)
       }
       else
       {
-         // Emulate(/Rewrite) String, Stack and Memory Operations
-         if (rewriteStringOp (ins));
-         else if (rewriteStackOp (ins));
+         // Emulate(/Rewrite)  Stack and Memory Operations
+         if (rewriteStackOp (ins));
          else rewriteMemOp (ins);
       }
    }

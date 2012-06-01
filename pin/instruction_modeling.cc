@@ -193,16 +193,9 @@ VOID addInstructionModeling(INS ins)
          basic_block->push_back(new ArithInstruction(INST_FMUL, list));
          break;
 
-      case OPCODE_SCASB:
-      case OPCODE_CMPSB:
-         if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
-         {
-            basic_block->push_back(new StringInstruction(list));
-            break;
-         }
-      
       default:
          basic_block->push_back(new GenericInstruction(list));
+         break;
       }
    }
 

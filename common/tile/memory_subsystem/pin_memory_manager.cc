@@ -20,7 +20,6 @@ PinMemoryManager::~PinMemoryManager()
 carbon_reg_t 
 PinMemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, UInt32 op_num, bool is_read)
 {
-   
    assert (op_num < NUM_ACCESS_TYPES);
    char *scratchpad = m_scratchpad [op_num];
 
@@ -31,18 +30,18 @@ PinMemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr siz
 
       if (has_lock_prefix)
       {
-         // FIXME: Now, when we have a LOCK prefix, we do an exclusive READ
+         // When we have a LOCK prefix, we do an exclusive READ
          mem_op_type = Core::READ_EX;
          lock_signal = Core::LOCK;
       }
       else
       {
+         // When we DO NOT have a LOCK prefix, we do a normal READ
          mem_op_type = Core::READ;
          lock_signal = Core::NONE;
       }
        
-      //m_tile->getCurrentCore()->accessMemory (lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
-      m_core->accessMemory (lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
+      m_core->accessMemory(lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
 
    }
    return (carbon_reg_t) scratchpad;
@@ -55,10 +54,7 @@ PinMemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPtr 
 
    Core::lock_signal_t lock_signal = (has_lock_prefix) ? Core::UNLOCK : Core::NONE;
 
-   //m_tile->getCurrentCore()->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
    m_core->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
-   
-   return;
 }
 
 carbon_reg_t 

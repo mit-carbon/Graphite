@@ -16,7 +16,6 @@ class PinMemoryManager
 
    private:
       Core *m_core;
-      //Core *m_core;
 
       // scratchpads are used to implement memory redirection for
       // all memory accesses that do not involve the stack, plus

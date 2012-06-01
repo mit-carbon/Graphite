@@ -90,14 +90,14 @@ void fillOperandListMemOps(OperandList *list, INS ins)
       // mem ops
       else if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins))
       {
-      for (unsigned int i = 0; i < INS_MemoryOperandCount(ins); i++)
-      {
-         if (INS_MemoryOperandIsRead(ins, i))
+         if (INS_IsMemoryRead (ins))
             list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
-         if (INS_MemoryOperandIsWritten(ins, i))
-            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
-      }
 
+         if (INS_HasMemoryRead2 (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::READ));
+
+         if (INS_IsMemoryWrite (ins))
+            list->push_back(Operand(Operand::MEMORY, 0, Operand::WRITE));
       }
    }
    

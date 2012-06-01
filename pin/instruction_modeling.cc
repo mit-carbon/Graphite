@@ -33,17 +33,6 @@ void fillOperandListMemOps(OperandList *list, INS ins)
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
-      // string ops
-      if ((INS_RepPrefix(ins) || INS_RepnePrefix(ins)))
-      {
-         if (INS_Opcode(ins) == XED_ICLASS_SCASB ||
-             INS_Opcode(ins) == XED_ICLASS_CMPSB)
-         {
-            // handled by StringInstruction
-            return;
-         }
-      }
-
       // stack ops
       if (INS_Opcode (ins) == XED_ICLASS_PUSH)
       {

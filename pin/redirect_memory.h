@@ -5,7 +5,6 @@
 #include "core.h"
 #include "pin_memory_manager.h"
 
-bool rewriteStringOp (INS ins);
 bool rewriteStackOp (INS ins);
 void rewriteMemOp (INS ins);
 

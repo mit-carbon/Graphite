@@ -379,53 +379,42 @@ bool rewriteStackOp (INS ins)
 
 void rewriteMemOp (INS ins)
 {
-   if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins))
+   LOG_ASSERT_ERROR(INS_MemoryOperandCount(ins) <= 3, 
+                    "EIP(%#lx): Num Memory Operands(%u) > 3", INS_Address(ins), INS_MemoryOperandCount(ins));
+
+   for (unsigned int i = 0; i < INS_MemoryOperandCount(ins); i++)
    {
-      REG reg = REG_INST_G0;
-      unsigned int num_writes = 0;
+      INS_InsertCall (ins, IPOINT_BEFORE, 
+            AFUNPTR (redirectMemOp),
+            IARG_BOOL, INS_IsAtomicUpdate(ins),
+            IARG_MEMORYOP_EA, i,
+            IARG_MEMORYREAD_SIZE,
+            IARG_UINT32, i,
+            IARG_BOOL, INS_MemoryOperandIsRead(ins, i),
+            IARG_RETURN_REGS, REG(REG_INST_G0+i),
+            IARG_END);
+      
+      INS_RewriteMemoryOperand(ins, i, REG(REG_INST_G0+i));
 
-      for (unsigned int i = 0; i < INS_MemoryOperandCount(ins); i++)
+      if (INS_MemoryOperandIsWritten(ins, i))
       {
-         INS_RewriteMemoryOperand(ins, i, reg);
-
-         INS_InsertCall (ins, IPOINT_BEFORE, 
-               AFUNPTR (redirectMemOp),
-               IARG_BOOL, INS_MemoryOperandIsWritten(ins, i) ? INS_IsAtomicUpdate(ins) : false,
+         INS_InsertCall (ins, IPOINT_BEFORE,
+               AFUNPTR (redirectMemOpSaveEa),
                IARG_MEMORYOP_EA, i,
-
-               IARG_MEMORYREAD_SIZE,
-               IARG_UINT32, i,
-               IARG_UINT32, INS_MemoryOperandIsRead(ins, i),
-               IARG_RETURN_REGS, reg,
-
+               IARG_RETURN_REGS, REG_INST_G3,
                IARG_END);
-         if (INS_MemoryOperandIsWritten(ins, i))
-         {
-            num_writes ++;
-            assert(num_writes <= 1);
 
 
-            INS_InsertCall (ins, IPOINT_BEFORE,
-                  AFUNPTR (redirectMemOpSaveEa),
-                  IARG_MEMORYOP_EA, i,
-                  IARG_RETURN_REGS, REG_INST_G3,
-                  IARG_END);
+         IPOINT ipoint = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
+         assert (ipoint == IPOINT_AFTER);
 
-
-            IPOINT ipoint = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
-
-            assert (ipoint == IPOINT_AFTER);
-
-            INS_InsertCall (ins, ipoint,
-
-                  AFUNPTR (completeMemWrite),
-                  IARG_BOOL, INS_IsAtomicUpdate(ins),
-                  IARG_REG_VALUE, REG_INST_G3, // Is IARG_MEMORYWRITE_EA,
-                  IARG_MEMORYWRITE_SIZE,
-                  IARG_UINT32, i,
-
-                  IARG_END);
-         }
+         INS_InsertCall (ins, ipoint,
+               AFUNPTR (completeMemWrite),
+               IARG_BOOL, INS_IsAtomicUpdate(ins),
+               IARG_REG_VALUE, REG_INST_G3, // Is IARG_MEMORYWRITE_EA,
+               IARG_MEMORYWRITE_SIZE,
+               IARG_UINT32, i,
+               IARG_END);
       }
    }
 }
@@ -595,12 +584,7 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
    }
 }
 
-// FIXME: 
-// Memory accesses with a LOCK prefix made by cores are not handled correctly at the moment
-// Once the memory accesses go through the coherent shared memory system, all LOCK'ed
-// memory accesses from the cores would be handled correctly. 
-
-ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num, UInt32 is_read)
+ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num, bool is_read)
 {
    Core *core = Sim()->getTileManager()->getCurrentCore();
   

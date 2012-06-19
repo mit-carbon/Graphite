@@ -8,6 +8,7 @@ using std::string;
 #include "fixed_types.h"
 #include "directory_block_info.h"
 #include "directory_type.h"
+#include "caching_protocol_type.h"
 
 class DirectoryEntry
 {
@@ -16,7 +17,8 @@ public:
    virtual ~DirectoryEntry();
 
    static DirectoryType parseDirectoryType(string directory_type);
-   static DirectoryEntry* create(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers);
+   static DirectoryEntry* create(CachingProtocolType caching_protocol_type, DirectoryType directory_type,
+                                 SInt32 max_hw_sharers, SInt32 max_num_sharers);
    static UInt32 getSize(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers);
 
    DirectoryBlockInfo* getDirectoryBlockInfo();
@@ -51,4 +53,5 @@ protected:
 
 private:
    vector<UInt64> _utilization_vec;
+   static DirectoryEntry* create(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers);
 };

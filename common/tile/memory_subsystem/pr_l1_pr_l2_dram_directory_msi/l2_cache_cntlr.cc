@@ -116,14 +116,14 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
 void
 L2CacheCntlr::setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate)
 {
-   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (mem_component != MemComponent::INVALID)
       _l1_cache_cntlr->setCacheLineState(mem_component, address, cstate);
 }
 
 void
 L2CacheCntlr::invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr address)
 {
-   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (mem_component != MemComponent::INVALID)
       _l1_cache_cntlr->invalidateCacheLine(mem_component, address);
 }
 
@@ -131,7 +131,7 @@ void
 L2CacheCntlr::insertCacheLineInL1(MemComponent::Type mem_component, IntPtr address,
                                   CacheState::Type cstate, Byte* fill_buf)
 {
-   assert(mem_component != MemComponent::INVALID_MEM_COMPONENT);
+   assert(mem_component != MemComponent::INVALID);
 
    bool eviction;
    IntPtr evicted_address;
@@ -302,7 +302,7 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 
    // Release Locks
    releaseLock();
-   if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (caching_mem_component != MemComponent::INVALID)
       _l1_cache_cntlr->releaseLock(caching_mem_component);
 
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP))
@@ -497,7 +497,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address)
    case ShmemMsg::SH_REP:
       
       assert(_outstanding_shmem_msg.getAddress() == address);
-      assert(_outstanding_shmem_msg.getSenderMemComponent() != MemComponent::INVALID_MEM_COMPONENT);
+      assert(_outstanding_shmem_msg.getSenderMemComponent() != MemComponent::INVALID);
       _l1_cache_cntlr->acquireLock(_outstanding_shmem_msg.getSenderMemComponent());
       return _outstanding_shmem_msg.getSenderMemComponent();
 
@@ -515,7 +515,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address)
          releaseLock();
 
          // assert(caching_mem_component != MemComponent::L1_ICACHE);
-         if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
+         if (caching_mem_component != MemComponent::INVALID)
          {
             _l1_cache_cntlr->acquireLock(caching_mem_component);
          }
@@ -524,7 +524,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address)
 
    default:
       LOG_PRINT_ERROR("Unrecognized Msg Type (%u)", msg_type);
-      return MemComponent::INVALID_MEM_COMPONENT;
+      return MemComponent::INVALID;
    }
 }
 

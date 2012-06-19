@@ -24,6 +24,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
    , _lock_owner(INVALID_TILE_ID)
 {
    _dram_directory_cache = new DirectoryCache(_memory_manager->getTile(),
+                                              SH_L1_SH_L2,
                                               dram_directory_type_str,
                                               dram_directory_total_entries,
                                               dram_directory_associativity,

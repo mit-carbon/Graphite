@@ -8,6 +8,7 @@
 CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt64 curr_time)
    : _tag(tag)
    , _cstate(cstate)
+   , _locked(false)
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    , _birth_time(curr_time)
 #endif
@@ -44,6 +45,7 @@ CacheLineInfo::invalidate()
 {
    _tag = ~0;
    _cstate = CacheState::INVALID;
+   LOG_ASSERT_ERROR(!_locked, "Cannot invalidate cache line with tag(%#lx) when locked", _tag);
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    _utilization = CacheLineUtilization();
    _birth_time = UINT64_MAX_;
@@ -55,6 +57,7 @@ CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
    _tag = cache_line_info->getTag();
    _cstate = cache_line_info->getCState();
+   _locked = cache_line_info->isLocked();
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    _utilization = cache_line_info->getUtilization();
    _birth_time = cache_line_info->getBirthTime();

@@ -58,7 +58,7 @@ namespace PrL1ShL2MSI
       void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
    private:
-      // L1/L2 cache cntlrs and DRAM cntlr
+      // L1/L2 cache cntlrs and DRAM_CNTLR cntlr
       L1CacheCntlr* _L1_cache_cntlr;
       L2CacheCntlr* _L2_cache_cntlr;
       DramCntlr* _dram_cntlr;

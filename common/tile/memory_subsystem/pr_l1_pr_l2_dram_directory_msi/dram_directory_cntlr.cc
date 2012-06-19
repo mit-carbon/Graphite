@@ -15,12 +15,13 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
       UInt32 dram_directory_max_num_sharers,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
-      UInt64 dram_directory_cache_access_delay_in_ns,
+      UInt64 dram_directory_access_delay_in_ns,
       UInt32 num_dram_cntlrs)
    : _memory_manager(memory_manager)
    , _dram_cntlr(dram_cntlr)
 {
    _dram_directory_cache = new DirectoryCache(_memory_manager->getTile(),
+                                              PR_L1_PR_L2_DRAM_DIRECTORY_MSI,
                                               dram_directory_type_str,
                                               dram_directory_total_entries,
                                               dram_directory_associativity,
@@ -28,7 +29,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                               dram_directory_max_hw_sharers,
                                               dram_directory_max_num_sharers,
                                               num_dram_cntlrs,
-                                              dram_directory_cache_access_delay_in_ns);
+                                              dram_directory_access_delay_in_ns);
 
    LOG_PRINT("Instantiated Dram Directory Cache");
 

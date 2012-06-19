@@ -29,6 +29,8 @@ public:
    { return _tag; }
    CacheState::Type getCState() const           
    { return _cstate; }
+   bool isLocked() const
+   { return _locked; }
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    CacheLineUtilization getUtilization() const  
@@ -43,21 +45,26 @@ public:
    { _tag = tag; }
    void setCState(CacheState::Type cstate)      
    { _cstate = cstate; }
+   void lock()
+   { _locked = true; }
+   void unlock()
+   { _locked = false; }
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    void setUtilization(CacheLineUtilization utilization)
    { _utilization = utilization; }
-   void setBirthTime(UInt64 birth_time)
-   { _birth_time = birth_time; }
    void incrReadUtilization()                   
    { _utilization.read ++; }
    void incrWriteUtilization()                  
    { _utilization.write ++; }
+   void setBirthTime(UInt64 birth_time)
+   { _birth_time = birth_time; }
 #endif
 
 private:
    IntPtr _tag;
    CacheState::Type _cstate;
+   bool _locked;
 
 protected:
 #ifdef TRACK_DETAILED_CACHE_COUNTERS

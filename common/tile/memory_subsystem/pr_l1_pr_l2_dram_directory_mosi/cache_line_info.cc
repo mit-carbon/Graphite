@@ -44,24 +44,24 @@ PrL2CacheLineInfo::getCachedLoc()
 void 
 PrL2CacheLineInfo::setCachedLoc(MemComponent::Type cached_loc)
 {
-   assert(cached_loc != MemComponent::INVALID_MEM_COMPONENT);
-   assert(_cached_loc == MemComponent::INVALID_MEM_COMPONENT);
+   assert(cached_loc != MemComponent::INVALID);
+   assert(_cached_loc == MemComponent::INVALID);
    _cached_loc = cached_loc;
 }
 
 void
 PrL2CacheLineInfo::clearCachedLoc(MemComponent::Type cached_loc)
 {
-   assert(cached_loc != MemComponent::INVALID_MEM_COMPONENT);
+   assert(cached_loc != MemComponent::INVALID);
    assert(_cached_loc == cached_loc);
-   _cached_loc = MemComponent::INVALID_MEM_COMPONENT;
+   _cached_loc = MemComponent::INVALID;
 }
 
 void 
 PrL2CacheLineInfo::invalidate()
 {
    CacheLineInfo::invalidate();
-   _cached_loc = MemComponent::INVALID_MEM_COMPONENT;
+   _cached_loc = MemComponent::INVALID;
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    _L1_I_utilization = CacheLineUtilization();
    _L1_D_utilization = CacheLineUtilization();

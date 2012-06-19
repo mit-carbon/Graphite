@@ -3,7 +3,8 @@
 #include "directory_entry.h"
 #include "log.h"
 
-Directory::Directory(DirectoryType directory_type, SInt32 total_entries, SInt32 max_hw_sharers, SInt32 max_num_sharers)
+Directory::Directory(CachingProtocolType caching_protocol_type, DirectoryType directory_type,
+                     SInt32 total_entries, SInt32 max_hw_sharers, SInt32 max_num_sharers)
    : _total_entries(total_entries)
 {
    // Look at the type of directory and create 
@@ -11,7 +12,8 @@ Directory::Directory(DirectoryType directory_type, SInt32 total_entries, SInt32 
   
    for (SInt32 i = 0; i < _total_entries; i++)
    {
-      _directory_entry_list[i] = DirectoryEntry::create(directory_type, max_hw_sharers, max_num_sharers);
+      _directory_entry_list[i] = DirectoryEntry::create(caching_protocol_type, directory_type,
+                                                        max_hw_sharers, max_num_sharers);
    }
 
    // Sharer Stats

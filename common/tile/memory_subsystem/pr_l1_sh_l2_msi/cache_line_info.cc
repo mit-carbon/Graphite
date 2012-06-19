@@ -23,7 +23,7 @@ CacheLineInfo* createCacheLineInfo(SInt32 cache_level)
 ShL2CacheLineInfo::ShL2CacheLineInfo(IntPtr tag, DirectoryEntry* directory_entry)
    : CacheLineInfo(tag, CacheState::INVALID)
    , _directory_entry(directory_entry)
-   , _caching_component(MemComponent::INVALID_MEM_COMPONENT)
+   , _caching_component(MemComponent::INVALID)
 {}
 
 ShL2CacheLineInfo::~ShL2CacheLineInfo()

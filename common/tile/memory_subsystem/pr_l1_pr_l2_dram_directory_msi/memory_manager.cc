@@ -405,7 +405,7 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
          getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
          break;
 
-      case MemComponent::INVALID_MEM_COMPONENT:
+      case MemComponent::INVALID:
          break;
 
       default:

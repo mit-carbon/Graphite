@@ -8,11 +8,13 @@ class DirectoryEntry;
 
 #include "fixed_types.h"
 #include "directory_type.h"
+#include "caching_protocol_type.h"
 
 class Directory
 {
 public:
-   Directory(DirectoryType directory_type, SInt32 total_entries, SInt32 max_hw_sharers, SInt32 max_num_sharers);
+   Directory(CachingProtocolType caching_protocol_type, DirectoryType directory_type,
+             SInt32 total_entries, SInt32 max_hw_sharers, SInt32 max_num_sharers);
    ~Directory();
 
    DirectoryEntry* getDirectoryEntry(SInt32 entry_num);

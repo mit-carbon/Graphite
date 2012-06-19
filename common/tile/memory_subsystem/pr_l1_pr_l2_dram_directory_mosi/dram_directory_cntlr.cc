@@ -15,20 +15,21 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
       UInt32 num_dram_cntlrs,
-      UInt64 dram_directory_cache_access_delay_in_ns)
+      UInt64 dram_directory_access_delay_in_ns)
    : _memory_manager(memory_manager)
    , _dram_cntlr(dram_cntlr)
    , _enabled(false)
 {
    _dram_directory_cache = new DirectoryCache(_memory_manager->getTile(),
-                                               dram_directory_type_str,
-                                               dram_directory_total_entries,
-                                               dram_directory_associativity,
-                                               cache_line_size,
-                                               dram_directory_max_hw_sharers,
-                                               dram_directory_max_num_sharers,
-                                               num_dram_cntlrs,
-                                               dram_directory_cache_access_delay_in_ns);
+                                              PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
+                                              dram_directory_type_str,
+                                              dram_directory_total_entries,
+                                              dram_directory_associativity,
+                                              cache_line_size,
+                                              dram_directory_max_hw_sharers,
+                                              dram_directory_max_num_sharers,
+                                              num_dram_cntlrs,
+                                              dram_directory_access_delay_in_ns);
 
    _dram_directory_req_queue_list = new HashMapQueue<IntPtr,ShmemReq*>();
    _cached_data_list = new DataList(cache_line_size);

@@ -8,8 +8,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 {
    ShmemMsg::ShmemMsg()
       : _msg_type(INVALID_MSG_TYPE)
-      , _sender_mem_component(MemComponent::INVALID_MEM_COMPONENT)
-      , _receiver_mem_component(MemComponent::INVALID_MEM_COMPONENT)
+      , _sender_mem_component(MemComponent::INVALID)
+      , _receiver_mem_component(MemComponent::INVALID)
       , _requester(INVALID_TILE_ID)
       , _single_receiver(INVALID_TILE_ID)
       , _reply_expected(false)

@@ -16,6 +16,7 @@ using namespace std;
 #define DETAILED_TRACKING_ENABLED    1
 
 DirectoryCache::DirectoryCache(Tile* tile,
+                               CachingProtocolType caching_protocol_type,
                                string directory_type_str,
                                UInt32 total_entries,
                                UInt32 associativity,
@@ -25,6 +26,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 num_directories,
                                UInt64 directory_access_delay_in_clock_cycles)
    : _tile(tile)
+   , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
    , _max_num_sharers(max_num_sharers)
    , _total_entries(total_entries)
@@ -43,7 +45,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    _directory_type = DirectoryEntry::parseDirectoryType(directory_type_str);
 
    // Instantiate the directory
-   _directory = new Directory(_directory_type, total_entries, max_hw_sharers, max_num_sharers);
+   _directory = new Directory(caching_protocol_type, _directory_type, total_entries, max_hw_sharers, max_num_sharers);
 
    initializeParameters();
   
@@ -217,7 +219,7 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
       {
          _replaced_directory_entry_list.push_back(replaced_directory_entry);
 
-         DirectoryEntry* directory_entry = DirectoryEntry::create(_directory_type, _max_hw_sharers, _max_num_sharers);
+         DirectoryEntry* directory_entry = DirectoryEntry::create(_caching_protocol_type, _directory_type, _max_hw_sharers, _max_num_sharers);
          directory_entry->setAddress(address);
          _directory->setDirectoryEntry(set_index * _associativity + i, directory_entry);
 

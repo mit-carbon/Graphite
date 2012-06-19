@@ -31,8 +31,8 @@ DramCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       {
          Byte data_buf[_cache_line_size];
          getDataFromDram(address, data_buf, msg_modeled);
-         LOG_PRINT("Finished fetching data from DRAM, sending reply");
-         ShmemMsg dram_reply(ShmemMsg::GET_DATA_REP, MemComponent::DRAM, MemComponent::L2_CACHE,
+         LOG_PRINT("Finished fetching data from DRAM_CNTLR, sending reply");
+         ShmemMsg dram_reply(ShmemMsg::GET_DATA_REP, MemComponent::DRAM_CNTLR, MemComponent::L2_CACHE,
                              requester, false, address,
                              data_buf, _cache_line_size,
                              msg_modeled);

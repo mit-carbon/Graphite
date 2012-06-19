@@ -244,7 +244,7 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
 void
 L2CacheCntlr::setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate)
 {
-   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (mem_component != MemComponent::INVALID)
    {
       _L1_cache_cntlr->setCacheLineState(mem_component, address, cstate);
    }
@@ -257,7 +257,7 @@ L2CacheCntlr::invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr a
 #endif
                                      )
 {
-   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (mem_component != MemComponent::INVALID)
    {
       _L1_cache_cntlr->invalidateCacheLine(mem_component, address
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
@@ -271,7 +271,7 @@ void
 L2CacheCntlr::insertCacheLineInL1(MemComponent::Type mem_component, IntPtr address,
                                   CacheState::Type cstate, Byte* fill_buf)
 {
-   assert(mem_component != MemComponent::INVALID_MEM_COMPONENT);
+   assert(mem_component != MemComponent::INVALID);
 
    bool eviction;
    PrL1CacheLineInfo evicted_cache_line_info;
@@ -436,7 +436,7 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 
    // Release Locks
    releaseLock();
-   if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (caching_mem_component != MemComponent::INVALID)
       _L1_cache_cntlr->releaseLock(caching_mem_component);
 
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP) || (shmem_msg_type == ShmemMsg::UPGRADE_REP))
@@ -511,7 +511,7 @@ L2CacheCntlr::processUpgradeRepFromDramDirectory(tile_id_t sender, ShmemMsg* shm
    MemComponent::Type mem_component = _outstanding_shmem_msg.getSenderMemComponent();
    assert(mem_component == MemComponent::L1_DCACHE);
    
-   if (L2_cache_line_info.getCachedLoc() == MemComponent::INVALID_MEM_COMPONENT)
+   if (L2_cache_line_info.getCachedLoc() == MemComponent::INVALID)
    {
       Byte data_buf[getCacheLineSize()];
       readCacheLine(address, data_buf);
@@ -521,7 +521,7 @@ L2CacheCntlr::processUpgradeRepFromDramDirectory(tile_id_t sender, ShmemMsg* shm
       // Set cached loc
       L2_cache_line_info.setCachedLoc(mem_component);
    }
-   else // (L2_cache_line_info.getCachedLoc() != MemComponent::INVALID_MEM_COMPONENT)
+   else // (L2_cache_line_info.getCachedLoc() != MemComponent::INVALID)
    {
       setCacheLineStateInL1(mem_component, address, CacheState::MODIFIED);
    }
@@ -1021,7 +1021,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type shmem_msg_type, IntPtr address)
    case ShmemMsg::UPGRADE_REP:
       
       assert(_outstanding_shmem_msg.getAddress() == address);
-      assert(_outstanding_shmem_msg.getSenderMemComponent() != MemComponent::INVALID_MEM_COMPONENT);
+      assert(_outstanding_shmem_msg.getSenderMemComponent() != MemComponent::INVALID);
       _L1_cache_cntlr->acquireLock(_outstanding_shmem_msg.getSenderMemComponent());
       return _outstanding_shmem_msg.getSenderMemComponent();
 
@@ -1039,7 +1039,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type shmem_msg_type, IntPtr address)
          
          releaseLock();
 
-         if (caching_mem_component != MemComponent::INVALID_MEM_COMPONENT)
+         if (caching_mem_component != MemComponent::INVALID)
          {
             _L1_cache_cntlr->acquireLock(caching_mem_component);
          }
@@ -1048,7 +1048,7 @@ L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type shmem_msg_type, IntPtr address)
 
    default:
       LOG_PRINT_ERROR("Unrecognized Msg Type (%u)", shmem_msg_type);
-      return MemComponent::INVALID_MEM_COMPONENT;
+      return MemComponent::INVALID;
    }
 }
 

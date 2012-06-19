@@ -325,7 +325,7 @@ void
 L1CacheCntlr::updateAggregateCacheLineUtilization(AggregateCacheLineUtilization& aggregate_utilization,
                                                   MemComponent::Type mem_component, IntPtr address)
 {
-   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (mem_component != MemComponent::INVALID)
    {
       CacheLineUtilization utilization = getCacheLineUtilization(mem_component, address);
       if (mem_component == MemComponent::L1_ICACHE)
@@ -343,7 +343,7 @@ L1CacheCntlr::updateAggregateCacheLineLifetime(AggregateCacheLineLifetime& aggre
 {
    // Currently, L1-I, L1-D and L2 are all in the same frequency domain
    // Assume that the core, L1-I, L1-D and L2 caches are in same frequency domain
-   if (mem_component != MemComponent::INVALID_MEM_COMPONENT)
+   if (mem_component != MemComponent::INVALID)
    {
       UInt64 lifetime = getCacheLineLifetime(mem_component, address, curr_time);
 

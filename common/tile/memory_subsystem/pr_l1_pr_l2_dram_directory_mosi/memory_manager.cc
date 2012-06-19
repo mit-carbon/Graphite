@@ -135,8 +135,8 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
 
    volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
    
-   _user_thread_sem = new Semaphore(0);
-   _network_thread_sem = new Semaphore(0);
+   _app_thread_sem = new Semaphore(0);
+   _sim_thread_sem = new Semaphore(0);
 
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    //if (getTile()->getId() == 0)
@@ -169,8 +169,8 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_dram_controllers, getCacheLineSize());
 
    _L1_cache_cntlr = new L1CacheCntlr(this,
-         _user_thread_sem,
-         _network_thread_sem,
+         _app_thread_sem,
+         _sim_thread_sem,
          getCacheLineSize(),
          L1_icache_size,
          L1_icache_associativity,
@@ -187,8 +187,8 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _L2_cache_cntlr = new L2CacheCntlr(this,
          _L1_cache_cntlr,
          _dram_directory_home_lookup,
-         _user_thread_sem,
-         _network_thread_sem,
+         _app_thread_sem,
+         _sim_thread_sem,
          getCacheLineSize(),
          L2_cache_size,
          L2_cache_associativity,
@@ -222,8 +222,8 @@ MemoryManager::~MemoryManager()
    delete _L1_dcache_perf_model;
    delete _L2_cache_perf_model;
 
-   delete _user_thread_sem;
-   delete _network_thread_sem;
+   delete _app_thread_sem;
+   delete _sim_thread_sem;
    delete _dram_directory_home_lookup;
    delete _L1_cache_cntlr;
    delete _L2_cache_cntlr;
@@ -424,7 +424,7 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
       getShmemPerfModel()->incrCycleCount(_L2_cache_perf_model->getLatency(access_type));
       break;
 
-   case MemComponent::INVALID_MEM_COMPONENT:
+   case MemComponent::INVALID:
       break;
 
    default:

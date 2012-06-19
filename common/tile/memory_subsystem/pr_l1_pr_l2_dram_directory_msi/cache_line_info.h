@@ -16,7 +16,7 @@ class PrL2CacheLineInfo : public CacheLineInfo
 {
 public:
    PrL2CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID,
-                     MemComponent::Type cached_loc = MemComponent::INVALID_MEM_COMPONENT);
+                     MemComponent::Type cached_loc = MemComponent::INVALID);
    ~PrL2CacheLineInfo();
 
    MemComponent::Type getCachedLoc();

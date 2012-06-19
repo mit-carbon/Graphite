@@ -15,11 +15,13 @@ using std::ostream;
 #include "cache_area_model.h"
 #include "directory_entry.h"
 #include "directory_type.h"
+#include "caching_protocol_type.h"
 
 class DirectoryCache
 {
 public:
    DirectoryCache(Tile* tile,
+                  CachingProtocolType caching_protocol_type,
                   string directory_type_str,
                   UInt32 total_entries,
                   UInt32 associativity,
@@ -52,6 +54,7 @@ private:
    map<IntPtr,UInt64> _replaced_address_map;
    vector<UInt64> _set_replacement_histogram;
 
+   CachingProtocolType _caching_protocol_type;
    DirectoryType _directory_type;
    UInt32 _max_hw_sharers;
    UInt32 _max_num_sharers;

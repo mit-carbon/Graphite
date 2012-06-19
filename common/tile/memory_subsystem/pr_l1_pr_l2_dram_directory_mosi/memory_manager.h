@@ -74,8 +74,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       bool _dram_cntlr_present;
 
-      Semaphore* _user_thread_sem;
-      Semaphore* _network_thread_sem;
+      Semaphore* _app_thread_sem;
+      Semaphore* _sim_thread_sem;
 
       UInt32 _cache_line_size;
       bool _enabled;

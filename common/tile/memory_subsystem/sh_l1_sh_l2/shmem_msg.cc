@@ -11,8 +11,8 @@ namespace ShL1ShL2
 
    ShmemMsg::ShmemMsg()
       : _msg_type(INVALID_MSG_TYPE)
-      , _sender_mem_component(MemComponent::INVALID_MEM_COMPONENT)
-      , _receiver_mem_component(MemComponent::INVALID_MEM_COMPONENT)
+      , _sender_mem_component(MemComponent::INVALID)
+      , _receiver_mem_component(MemComponent::INVALID)
       , _requester(INVALID_TILE_ID)
       , _address(INVALID_ADDRESS)
       , _offset(0)

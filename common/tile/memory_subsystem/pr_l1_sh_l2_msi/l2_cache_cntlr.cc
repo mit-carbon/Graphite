@@ -117,7 +117,8 @@ void
 L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info)
 {
    // Create the new directory entry
-   DirectoryEntry* directory_entry = DirectoryEntry::create(L2DirectoryCfg::getDirectoryType(),
+   DirectoryEntry* directory_entry = DirectoryEntry::create(PR_L1_SH_L2_MSI,
+                                                            L2DirectoryCfg::getDirectoryType(),
                                                             L2DirectoryCfg::getMaxHWSharers(),
                                                             L2DirectoryCfg::getMaxNumSharers());
    // Construct meta-data info about L2 cache line
@@ -356,7 +357,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
                              all_tiles_sharers, sharers_list,
                              requester, msg_modeled);
 
-         // Send line to DRAM if dirty
+         // Send line to DRAM_CNTLR if dirty
          if ((L2_cache_line_info.getCState() == CacheState::DIRTY) && data_buf)
             sendDataToDram(address, data_buf, requester, msg_modeled);
       }
@@ -364,7 +365,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
 
    case DirectoryState::UNCACHED:
       {
-         // Send line to DRAM if dirty
+         // Send line to DRAM_CNTLR if dirty
          if ((L2_cache_line_info.getCState() == CacheState::DIRTY) && data_buf)
             sendDataToDram(address, data_buf, requester, msg_modeled);
 
@@ -477,7 +478,7 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             assert(directory_entry->getNumSharers() == 0);
           
             // Set caching component 
-            assert(L2_cache_line_info.getCachingComponent() == MemComponent::INVALID_MEM_COMPONENT);
+            assert(L2_cache_line_info.getCachingComponent() == MemComponent::INVALID);
             L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
 
             // Add the sharer and set that as the owner 
@@ -594,7 +595,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             assert(directory_entry->getNumSharers() == 0);
           
             // Set caching component 
-            assert(L2_cache_line_info.getCachingComponent() == MemComponent::INVALID_MEM_COMPONENT);
+            assert(L2_cache_line_info.getCachingComponent() == MemComponent::INVALID);
             L2_cache_line_info.setCachingComponent(requester_mem_component);
             
             // Modifiy the directory entry contents
@@ -654,7 +655,7 @@ L2CacheCntlr::processInvRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_m
       if (directory_entry->getNumSharers() == 0)
       {
          directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
-         L2_cache_line_info->setCachingComponent(MemComponent::INVALID_MEM_COMPONENT);
+         L2_cache_line_info->setCachingComponent(MemComponent::INVALID);
       }
       break;
 
@@ -698,7 +699,7 @@ L2CacheCntlr::processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem
          directory_entry->removeSharer(sender, false);
          directory_entry->setOwner(INVALID_TILE_ID);
          directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
-         L2_cache_line_info->setCachingComponent(MemComponent::INVALID_MEM_COMPONENT);
+         L2_cache_line_info->setCachingComponent(MemComponent::INVALID);
       }
       break;
 
@@ -844,7 +845,7 @@ L2CacheCntlr::readCacheLineAndSendToL1Cache(ShmemMsg::Type reply_msg_type,
 void
 L2CacheCntlr::fetchDataFromDram(IntPtr address, tile_id_t requester, bool msg_modeled)
 {
-   ShmemMsg fetch_msg(ShmemMsg::GET_DATA_REQ, MemComponent::L2_CACHE, MemComponent::DRAM,
+   ShmemMsg fetch_msg(ShmemMsg::GET_DATA_REQ, MemComponent::L2_CACHE, MemComponent::DRAM_CNTLR,
                       requester, false, address,
                       msg_modeled);
    getMemoryManager()->sendMsg(getDramHome(address), fetch_msg);
@@ -853,7 +854,7 @@ L2CacheCntlr::fetchDataFromDram(IntPtr address, tile_id_t requester, bool msg_mo
 void
 L2CacheCntlr::sendDataToDram(IntPtr address, Byte* data_buf, tile_id_t requester, bool msg_modeled)
 {
-   ShmemMsg send_msg(ShmemMsg::PUT_DATA_REQ, MemComponent::L2_CACHE, MemComponent::DRAM,
+   ShmemMsg send_msg(ShmemMsg::PUT_DATA_REQ, MemComponent::L2_CACHE, MemComponent::DRAM_CNTLR,
                      requester, false, address,
                      data_buf, getCacheLineSize(),
                      msg_modeled);

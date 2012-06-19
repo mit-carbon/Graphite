@@ -2,10 +2,6 @@
 #include <cstring>
 #include "utils.h"
 
-/* ================================================================ */
-/* Utility function definitions */
-/* ================================================================ */
-
 string myDecStr(UInt64 v, UInt32 w)
 {
    ostringstream o;
@@ -45,11 +41,33 @@ bool isPerfectSquare(UInt32 n)
    return (n == (sqrtn * sqrtn)) ? true : false;
 }
 
+// Is even and odd?
 bool isEven(UInt32 n)
 { return ((n%2) == 0); }
 
 bool isOdd(UInt32 n)
 { return !isEven(n); }
+
+// Get and set bits in a UInt32 variable
+UInt32 getBits(UInt32 x, UInt8 high, UInt8 low)
+{
+   UInt8 bits = high-low;
+   return (x >> low) & ((2 << bits) - 1);
+}
+
+void setBits(UInt32& x, UInt8 high, UInt8 low, UInt32 val)
+{
+   UInt8 bits = high-low;
+   UInt32 bitmask = ((2 << bits) - 1) << low;
+   UInt32 valp = (val << low) & bitmask;
+   x = (x & ~bitmask) | valp;
+}
+
+// Converts bits to bytes
+UInt32 convertBitsToBytes(UInt32 num_bits)
+{
+   return ((num_bits % 8) == 0) ? (num_bits/8) : (num_bits/8 + 1);
+}
 
 // Trim the beginning and ending spaces in a string
 string trimSpaces(string& str)

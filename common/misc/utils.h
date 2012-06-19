@@ -46,6 +46,10 @@ bool isPerfectSquare(UInt32 n);
 bool isEven(UInt32 n);
 bool isOdd(UInt32 n);
 
+// Get and set bits in an unsigned int variable (including low, not including high)
+UInt32 getBits(UInt32 x, UInt8 high, UInt8 low);
+void setBits(UInt32 x, UInt8 high, UInt8 low, UInt32 val);
+
 // Max and Min functions
 template <class T>
 T getMin(T v1, T v2)
@@ -93,6 +97,9 @@ string convertToString(const T& t)
    oss << t;
    return oss.str();
 }
+
+// Convert bits to bytes
+UInt32 convertBitsToBytes(UInt32 num_bits);
 
 // Trim the beginning and ending spaces in a string
 

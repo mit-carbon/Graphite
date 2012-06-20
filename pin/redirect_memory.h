@@ -25,7 +25,6 @@ ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size);
 ADDRINT completePopf (ADDRINT esp, ADDRINT size);
 
 ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num, bool is_read);
-
 ADDRINT redirectMemOpSaveEa(ADDRINT ea);
 VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num);
 

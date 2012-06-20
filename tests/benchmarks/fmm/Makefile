@@ -2,8 +2,8 @@ TARGET = fmm
 OBJECTS = box.o construct_grid.o cost_zones.o defs.o fmm.o interactions.o memory.o particle.o partition_grid.o
 APP_FLAGS ?= \< $(CURDIR)/inputs/input.16384
 
-MACROS := ../splash_support/c.m4.null.CARBON
-#MACROS := ../splash_support/c.m4.null.POSIX
+#MACROS := ../splash_support/c.m4.null.CARBON
+MACROS := ../splash_support/c.m4.null.POSIX
 
 include ../../Makefile.tests
 

@@ -130,8 +130,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    CoreModel *pm = m_tile_manager->getCurrentCore()->getPerformanceModel();
 
    // Global Clock to Tile Clock
-   UInt64 start_cycle_count = convertCycleCount(req->time, \
-         1.0, pm->getFrequency());
+   UInt64 start_cycle_count = convertCycleCount(req->time, 1.0, pm->getFrequency());
    pm->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
 }
 
@@ -228,7 +227,7 @@ SInt32 ThreadManager::spawnThread(tile_id_t tile_id, thread_func_t func, void *a
    Network *net = core->getNetwork();
 
    // Tile Clock to Global Clock
-   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
+   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(),
          core->getPerformanceModel()->getFrequency(), 1.0);
    
    core->setState(Core::STALLED);

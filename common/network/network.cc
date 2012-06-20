@@ -91,7 +91,8 @@ void Network::netPullFromTransport()
 
       NetPacket packet(_transport->recv());
 
-      LOG_PRINT("Pull packet : type %i, from {%i, %i}, time %llu", (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.time);
+      LOG_PRINT("Pull packet : type %i, from {%i, %i}, time %llu",
+            (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, (long long unsigned int) packet.time);
       LOG_ASSERT_ERROR(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod,
             "Invalid Packet Sender(%i)", packet.sender);
       LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES,
@@ -103,8 +104,9 @@ void Network::netPullFromTransport()
       
       if (action & NetworkModel::RoutingAction::FORWARD)
       {
-         LOG_PRINT("Forwarding packet : type %i, from {%i, %i}, to {%i, %i}, tile_id %i, time %llu.", 
-               (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
+         LOG_PRINT("Forwarding packet : type %i, from {%i, %i}, to {%i, %i}, tile_id %i, time %llu",
+               (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type,
+               _tile->getId(), (long long unsigned int) packet.time);
          forwardPacket(packet);
       }
       
@@ -143,8 +145,9 @@ void Network::netPullFromTransport()
          // synchronous I/O support
          else
          {
-            LOG_PRINT("Enqueuing packet : type %i, from {%i, %i}, to {%i, %i}, core_id %i, cycle_count %llu", 
-                  (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
+            LOG_PRINT("Enqueuing packet : type %i, from {%i, %i}, to {%i, %i}, core_id %i, cycle_count %llu",
+                  (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type,
+                  _tile->getId(), (long long unsigned int) packet.time);
 
             _netQueueLock.acquire();
             _netQueue.push_back(packet);
@@ -178,12 +181,13 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
 
    for (UInt32 i = 0; i < hopVec.size(); i++)
    {
-      LOG_PRINT("Send packet : type %i, from {%i,%i}, to {%i, %i}, next_hop %i, tile_id %i, time %llu", \
-            (SInt32) buff_pkt->type, \
-            buff_pkt->sender.tile_id, buff_pkt->sender.core_type, \
-            hopVec[i].final_dest.tile_id, hopVec[i].final_dest.core_type, \
-            hopVec[i].next_dest.tile_id, \
-            _tile->getId(), hopVec[i].time);
+      LOG_PRINT("Send packet : type %i, from {%i,%i}, to {%i, %i}, next_hop %i, tile_id %i, time %llu",
+            (SInt32) buff_pkt->type,
+            buff_pkt->sender.tile_id, buff_pkt->sender.core_type,
+            hopVec[i].final_dest.tile_id, hopVec[i].final_dest.core_type,
+            hopVec[i].next_dest.tile_id,
+            _tile->getId(),
+            (long long unsigned int) hopVec[i].time);
 
       buff_pkt->time = hopVec[i].time;
       buff_pkt->receiver = hopVec[i].final_dest;
@@ -212,6 +216,9 @@ SInt32 Network::netSend(NetPacket& packet)
    FloatingPointHandler floating_point_handler;
 
    assert(_tile);
+
+   LOG_PRINT("Sending Packet: type %i, from {%i,%i} to {%i,%i}, cycle count %llu",
+         packet.type, packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, packet.time);
 
    // Convert from core cycle count to network cycle count
    packet.time = convertCycleCount(packet.time,
@@ -281,6 +288,7 @@ class NetRecvIterator
             return INVALID_CORE_ID;
          };
       }
+
       inline Boolean done()
       {
          switch (_mode)
@@ -343,8 +351,8 @@ NetPacket Network::netRecv(const NetMatch &match)
                           : NetRecvIterator(match.types);
 
    core_id_t receiver = match.receiver.tile_id == INVALID_TILE_ID 
-                           ? _tile->getCurrentCore()->getCoreId() 
-                           : match.receiver;
+                        ? _tile->getCurrentCore()->getCoreId() 
+                        : match.receiver;
 
    LOG_ASSERT_ERROR(_tile && _tile->getCore()->getPerformanceModel(),
                     "Tile and/or performance model not initialized.");
@@ -363,8 +371,10 @@ NetPacket Network::netRecv(const NetMatch &match)
       {
          // make sure that this core is the proper destination core for this tile
          if (i->receiver.tile_id != receiver.tile_id || i->receiver.core_type != receiver.core_type)
+         {
             if (i->receiver.tile_id != NetPacket::BROADCAST)
                continue;
+         }
 
          // only find packets that match
          for (sender.reset(); !sender.done(); sender.next())
@@ -453,6 +463,7 @@ NetPacket Network::netRecv(core_id_t src, core_id_t recv, PacketType type)
    match.receiver = recv;
    return netRecv(match);
 }
+
 NetPacket Network::netRecvFrom(core_id_t src, core_id_t recv)
 {
    NetMatch match;

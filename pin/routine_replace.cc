@@ -19,7 +19,7 @@
 // End Memory redirection stuff
 // --------------------------------------
 
-#define CARBON_IARG_END IARG_LAST
+#define CARBON_IARG_END IARG_INVALID
 
 // ---------------------------------------------------------
 // Memory Redirection
@@ -96,8 +96,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // pthread wrappers
    else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
    else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
-   else if (name.find("pthread_barrier_init") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierInit);
-   else if (name.find("pthread_barrier_wait") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadBarrierWait);
    else if (name.find("pthread_exit") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadExitNull);
 
    // For Getting the Simulated Time
@@ -300,6 +298,7 @@ void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
    initialize_replacement_args (ctxt,
          IARG_PTR, &thread_req,
          CARBON_IARG_END);
+   
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    
    CarbonDequeueThreadSpawnReq (&thread_req_buf);
@@ -858,44 +857,6 @@ void replacementPthreadJoin (CONTEXT *ctxt)
 
 void replacementPthreadExitNull (CONTEXT *ctxt)
 {
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementPthreadBarrierInit (CONTEXT *ctxt)
-{
-   pthread_barrier_t *barrier;
-   pthread_barrierattr_t *attributes;
-   UInt32 count;
-
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &barrier,
-         IARG_PTR, &attributes,
-         IARG_UINT32, &count,
-         CARBON_IARG_END);
-
-   //TODO: add support for different attributes and throw warnings for unsupported attrs
-   if (attributes != NULL)
-   {
-      fprintf(stdout, "Warning: pthread_barrier_init() is using unsupported attributes.\n");
-   }
-   
-   CarbonBarrierInit((carbon_barrier_t*) barrier, count);
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementPthreadBarrierWait (CONTEXT *ctxt)
-{
-   pthread_barrier_t *barrier;
-
-   initialize_replacement_args (ctxt,
-         IARG_PTR, &barrier,
-         CARBON_IARG_END);
-
-   CarbonBarrierWait((carbon_barrier_t*) barrier);
-   
    ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
    retFromReplacedRtn (ctxt, ret_val);
 }

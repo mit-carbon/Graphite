@@ -26,7 +26,18 @@ void MagicPerformanceModel::handleInstruction(Instruction *instruction)
 {
    // compute cost
    UInt64 cost = 0;
-
+  
+   if (instruction->getAddress() != 0)
+   { 
+      // Instruction Cache modeling
+      DynamicInstructionInfo &icache_info = getDynamicInstructionInfo();
+      LOG_ASSERT_ERROR(icache_info.type == DynamicInstructionInfo::MEMORY_READ, "Info Expected(%u), Got(%u)",
+                       DynamicInstructionInfo::MEMORY_READ, icache_info.type);
+      // Just add the time taken to access the icache
+      cost += icache_info.memory_info.latency;
+      popDynamicInstructionInfo();
+   }
+   
    const OperandList &ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)
    {

@@ -87,7 +87,7 @@ void print_statistics(FILE *fd, long process_id)
 
     foreach_patch_in_bsp( (void (*)())get_patch_stat,  0, 0 ) ;
 
-    fprintf( fd, "Rasiosity Statistics\n\n" ) ;
+    fprintf( fd, "Radiosity Statistics\n\n" ) ;
 
     fprintf( fd, "    Histogram of interactions/elem\n" ) ;
     fprintf( fd, "\t Interactions  Occurrence\n" ) ;

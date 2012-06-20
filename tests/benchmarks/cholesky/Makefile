@@ -3,8 +3,8 @@ OBJECTS = amal.o assign.o bfac.o bksolve.o block2.o fo.o malloc.o \
        mf.o numLL.o parts.o seg.o solve.o tree.o util.o
 APP_FLAGS ?= -p64 $(CURDIR)/inputs/tk15.O
 
-MACROS := ../splash_support/c.m4.null.CARBON
-# MACROS := ../splash_support/c.m4.null.POSIX
+#MACROS := ../splash_support/c.m4.null.CARBON
+MACROS := ../splash_support/c.m4.null.POSIX
 
 include ../../Makefile.tests
 

@@ -41,6 +41,7 @@
 #include "log.h"
 #include "vm_manager.h"
 #include "instruction_modeling.h"
+#include "instruction_cache_modeling.h"
 #include "progress_trace.h"
 #include "clock_skew_minimization.h"
 #include "handle_threads.h"
@@ -165,27 +166,9 @@ void routineCallback(RTN rtn, void *v)
    }
 }
 
-void showInstructionInfo(INS ins)
-{
-   if (Sim()->getTileManager()->getCurrentTile()->getId() != 0)
-      return;
-
-   printf("\t");
-
-   if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins))
-      printf("* ");
-   else
-      printf("  ");
-//   printf("%d - %s ", INS_Category(ins), CATEGORY_StringShort(INS_Category(ins)).c_str());
-   printf("%x - %s ", INS_Opcode(ins), OPCODE_StringShort(INS_Opcode(ins)).c_str());
-   printf(" %s ", INS_Disassemble(ins).c_str());
-   printf("\n");
-}
-
 VOID instructionCallback (INS ins, void *v)
 {
-   //Debugging Functions
-   //showInstructionInfo(ins);
+   // Debugging Function
    if (Log::getSingleton()->isLoggingEnabled())
    {
       INS_InsertCall(ins, IPOINT_BEFORE,
@@ -195,9 +178,13 @@ VOID instructionCallback (INS ins, void *v)
             IARG_END);
    }
 
-   // Core Performance Modeling
    if (Config::getSingleton()->getEnablePerformanceModeling())
+   {
+      // Core Performance Modeling
       addInstructionModeling(ins);
+      // Add I-cache modeling call
+      addInstructionCacheModeling(ins);
+   }
 
    // Progress Trace
    addProgressTrace(ins);
@@ -225,6 +212,7 @@ VOID instructionCallback (INS ins, void *v)
    }
    else // Sim()->getConfig()->getSimulationMode() == Config::LITE
    {
+      // Special handling for futex syscall because of internal Pin lock
       if (INS_IsSyscall(ins))
       {
          INS_InsertCall(ins, IPOINT_BEFORE,

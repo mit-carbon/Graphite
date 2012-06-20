@@ -27,7 +27,6 @@ using namespace std;
 class Tile
 {
    public:
-
       Tile(SInt32 id);
       ~Tile();
 

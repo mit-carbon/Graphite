@@ -103,7 +103,7 @@ void Simulator::start()
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme","none"));
 
-   //// Floating Point Support
+   // Floating Point Support
    Fxsupport::allocate();
 
    startMCP();
@@ -125,7 +125,7 @@ Simulator::~Simulator()
 
    LOG_PRINT("Simulator dtor starting...");
 
-   if ((m_config.getCurrentProcessNum() == 0) && \
+   if ((m_config.getCurrentProcessNum() == 0) &&
       (m_config.getSimulationMode() == Config::FULL))
       m_thread_manager->terminateThreadSpawners();
 
@@ -172,6 +172,7 @@ Simulator::~Simulator()
    delete m_thread_manager;
    delete m_thread_scheduler;
    delete m_tile_manager;
+   m_tile_manager = NULL;
    delete m_transport;
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())

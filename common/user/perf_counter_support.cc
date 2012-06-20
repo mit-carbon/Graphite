@@ -39,18 +39,21 @@ void CarbonEnableModels()
 
 void CarbonDisableModels()
 {
-   // Acquire & Release a barrier
-   CarbonBarrierWait(&models_barrier);
-
-   if (Sim()->getTileManager()->getCurrentTileIndex() == 0)
+   if (! Sim()->getCfg()->getBool("general/enable_models_at_startup", true))
    {
-      fprintf(stderr, "[[Graphite]] --> [ Disabling Performance and Power Models ]\n");
-      // Disable performance models of cores in this process
-      Simulator::disablePerformanceModelsInCurrentProcess();
-   }
+      // Acquire & Release a barrier
+      CarbonBarrierWait(&models_barrier);
 
-   // Acquire & Release a barrier again
-   CarbonBarrierWait(&models_barrier);
+      if (Sim()->getTileManager()->getCurrentTileIndex() == 0)
+      {
+         fprintf(stderr, "[[Graphite]] --> [ Disabling Performance and Power Models ]\n");
+         // Disable performance models of cores in this process
+         Simulator::disablePerformanceModelsInCurrentProcess();
+      }
+
+      // Acquire & Release a barrier again
+      CarbonBarrierWait(&models_barrier);
+   }
 } 
 
 void CarbonResetModels()

@@ -200,6 +200,7 @@ VOID addInstructionModeling(INS ins)
    }
 
    basic_block->front()->setAddress(INS_Address(ins));
+   basic_block->front()->setSize(INS_Size(ins));
 
    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
 }

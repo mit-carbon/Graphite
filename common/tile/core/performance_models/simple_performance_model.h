@@ -17,6 +17,8 @@ public:
 private:
    void handleInstruction(Instruction *instruction);
    
+   UInt64 modelICache(IntPtr ins_address, UInt32 ins_size);
+   
    UInt64 m_instruction_count;
 };
 

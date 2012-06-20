@@ -82,8 +82,13 @@ public:
 
    void setAddress(IntPtr addr)
    { m_addr = addr; }
-   IntPtr getAddress()
+   IntPtr getAddress() const
    { return m_addr; }
+
+   void setSize(UInt32 size)
+   { m_size = size; }
+   UInt32 getSize() const
+   { return m_size; }
 
    bool isSimpleMemoryLoad() const;
    void print() const;
@@ -95,6 +100,7 @@ private:
    InstructionType m_type;
 
    IntPtr m_addr;
+   UInt32 m_size;
 
 protected:
    OperandList m_operands;

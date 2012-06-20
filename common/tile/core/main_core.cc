@@ -40,7 +40,7 @@ MainCore::~MainCore()
 }
 
 /*
- * accessMemory (lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
+ * accessMemory (lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool push_info)
  *
  * Arguments:
  *   lock_signal :: NONE, LOCK, or UNLOCK
@@ -48,17 +48,17 @@ MainCore::~MainCore()
  *   d_addr :: address of location we want to access (read or write)
  *   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
  *   data_size :: size of data we must read/write
- *   modeled :: says whether it is modeled or not
- *
+ *   push_info :: says whether we need to push the info to the core model
+ *   
  * Return Value:
  *   number of misses :: State the number of cache misses
  */
 pair<UInt32, UInt64>
-MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled)
+MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool push_info)
 {
    if (Config::getSingleton()->isSimulatingSharedMemory() || (Config::getSingleton()->getSimulationMode() == Config::LITE) )
    {
-      pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, modeled);
+      pair<UInt32, UInt64> res = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, d_addr, (Byte*) data_buffer, data_size, push_info);
       return res;
    }
    
@@ -68,17 +68,13 @@ MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d
    }
 }
 
-void
+UInt64
 MainCore::readInstructionMemory(IntPtr address, UInt32 instruction_size)
 {
-   if (!m_core_model->isEnabled())
-      return;
-
-   LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", 
-           address, instruction_size);
+   LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
 
    Byte buf[instruction_size];
-   initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size, true);
+   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second;
 }
 
 pair<UInt32, UInt64>
@@ -87,12 +83,12 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
                                mem_op_t mem_op_type,
                                IntPtr address,
                                Byte* data_buf, UInt32 data_size,
-                               bool modeled,
+                               bool push_info,
                                UInt64 time)
 {
    if (data_size <= 0)
    {
-      if (modeled)
+      if (push_info)
       {
          DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
          m_core_model->pushDynamicInstructionInfo(info);
@@ -159,7 +155,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
                mem_op_type, 
                curr_addr_aligned, curr_offset, 
                curr_data_buffer_head, curr_size,
-               modeled))
+               push_info))
       {
          // If it is a READ or READ_EX operation, 
          // 'initiateSharedMemReq' causes curr_data_buffer_head 
@@ -190,7 +186,7 @@ MainCore::initiateMemoryAccess(MemComponent::component_t mem_component,
    // Calculate the round-trip time
    UInt64 memory_access_latency = final_time - initial_time;
 
-   if (modeled)
+   if (push_info)
    {
       DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
 

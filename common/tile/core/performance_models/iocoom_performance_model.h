@@ -28,6 +28,7 @@ private:
    std::pair<UInt64,UInt64> executeLoad(UInt64 time, const DynamicInstructionInfo &);
    UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
 
+   UInt64 modelICache(IntPtr ins_address, UInt32 ins_size);
    void initializeRegisterScoreboard();
 
    typedef std::vector<UInt64> Scoreboard;

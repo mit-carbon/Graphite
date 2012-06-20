@@ -49,15 +49,9 @@ void IOCOOMPerformanceModel::handleInstruction(Instruction *instruction)
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
 
-   if (instruction->getAddress() != 0)
-   {
-      // Instruction Cache modeling
-      DynamicInstructionInfo &icache_info = getDynamicInstructionInfo();
-      LOG_ASSERT_ERROR(icache_info.type == DynamicInstructionInfo::MEMORY_READ, "Type(%u)", icache_info.type);
-      // Just add the time taken to access the icache - do a better pipeline later
-      m_cycle_count += icache_info.memory_info.latency;
-      popDynamicInstructionInfo();
-   }
+   // Model Instruction Cache Fetch
+   UInt64 instruction_cache_access_latency = modelICache(instruction->getAddress(), instruction->getSize());
+   m_cycle_count += (instruction_cache_access_latency - 1);
 
    UInt64 cost = instruction->getCost();
    
@@ -212,6 +206,11 @@ UInt64 IOCOOMPerformanceModel::executeStore(UInt64 time, const DynamicInstructio
    UInt64 latency = info.memory_info.latency;
 
    return m_store_buffer->executeStore(time, latency, info.memory_info.addr);
+}
+
+UInt64 IOCOOMPerformanceModel::modelICache(IntPtr ins_address, UInt32 ins_size)
+{
+   return getCore()->readInstructionMemory(ins_address, ins_size);
 }
 
 void IOCOOMPerformanceModel::initializeRegisterScoreboard()

@@ -92,9 +92,12 @@ void routineCallback(RTN rtn, void* v)
             IARG_END);
 
       // After main()
-      RTN_InsertCall(rtn, IPOINT_AFTER,
-            AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
-            IARG_END);
+      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      {
+         RTN_InsertCall(rtn, IPOINT_AFTER,
+               AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
+               IARG_END);
+      }
 
       RTN_Close(rtn);
    }

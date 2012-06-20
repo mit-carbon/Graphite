@@ -17,6 +17,7 @@ public:
 private:
    void handleInstruction(Instruction *instruction);
 
+   UInt64 modelICache(IntPtr ins_address, UInt32 ins_size);
    bool isModeled(InstructionType instruction_type);
    
    UInt64 m_instruction_count;

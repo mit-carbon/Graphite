@@ -146,9 +146,7 @@ ShmemMsg::ShmemMsg(const ShmemMsg* shmem_msg)
 }
 
 ShmemMsg::~ShmemMsg()
-{
-   delete _data_buf;
-}
+{}
 
 void
 ShmemMsg::assign(const ShmemMsg* shmem_msg)

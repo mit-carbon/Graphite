@@ -123,7 +123,10 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _cache_line_size = l1_icache_line_size;
 
    float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
-  
+ 
+   // Set Architectual parameters for ShmemMsg
+   ShmemMsg::initializeArchitecturalParameters(_cache_line_size, 48 /* physical address bits */);
+
    // Set classifer type
    Classifier::setType(Sim()->getCfg()->getString("caching_protocol/hybrid_protocol__pp_mosi__ss/classifier_type"));
 
@@ -244,6 +247,7 @@ void
 MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
    core_id_t sender = packet.sender;
+
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
 
@@ -254,10 +258,10 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    LOG_PRINT("Got Shmem Msg: type(%s), address(%#lx), "
              "sender_mem_component(%s), receiver_mem_component(%s), "
-             "sender(%i,%i), receiver(%i,%i)", 
+             "sender(%i), receiver(%i)", 
              ShmemMsg::getName(shmem_msg->getType()).c_str(), shmem_msg->getAddress(),
              MemComponent::getName(sender_mem_component).c_str(), MemComponent::getName(receiver_mem_component).c_str(),
-             sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
+             sender.tile_id, packet.receiver.tile_id);    
 
    switch (receiver_mem_component)
    {
@@ -330,7 +334,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 void
 MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 {
-   assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
+   assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataBufSize() == 0));
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
@@ -355,7 +359,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 void
 MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 {
-   assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
+   assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataBufSize() == 0));
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();

@@ -851,11 +851,11 @@ void SyscallServer::marshallFutexCall(core_id_t core_id)
    // Trigger an assertion if something outside the subset occurs
 
 #ifdef KERNEL_SQUEEZE
-   LOG_ASSERT_ERROR( (op == FUTEX_WAIT)         || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG))             ||
-                     (op == FUTEX_WAKE)         || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG))             ||
-                     (op == FUTEX_WAKE_OP)      || (op == (FUTEX_WAKE_OP | FUTEX_PRIVATE_FLAG))          ||
-                     (op == FUTEX_CMP_REQUEUE)  || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG))      ||
-                     (op == (FUTEX_CLOCK_REALTIME | FUTEX_PRIVATE_FLAG | FUTEX_WAIT_BITSET))
+   LOG_ASSERT_ERROR( (op == FUTEX_WAIT)         ||    (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG))          ||
+                     (op == FUTEX_WAKE)         ||    (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG))          ||
+                     (op == FUTEX_WAKE_OP)      ||    (op == (FUTEX_WAKE_OP | FUTEX_PRIVATE_FLAG))       ||
+                     (op == FUTEX_CMP_REQUEUE)  ||    (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG))   ||
+                     (op == (FUTEX_CLOCK_REALTIME | FUTEX_PRIVATE_FLAG | FUTEX_WAIT_BITSET)),
                      "op = %#x (Valid values are %#x, %#x, %#x, %#x, %#x, %#x, %#x, %#x, %#x)",
                      op,
                      FUTEX_WAIT,          FUTEX_WAIT | FUTEX_PRIVATE_FLAG,

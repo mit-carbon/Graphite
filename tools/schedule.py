@@ -74,7 +74,7 @@ class MakeJob(SpawnJob):
         for i in range(0,len(self.machines)):
             self.sim_flags += " --process_map/process%i=\"%s\"" % (i, self.machines[i])
 
-        PIN_PATH = "/afs/csail/group/carbon/tools/pin/current/intel64/bin/pinbin"
+        PIN_PATH = "/afs/csail/group/carbon/tools/pin/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/intel64/bin/pinbin"
         PIN_LIB = "%s/lib/pin_sim" % spawn.get_sim_root()
 
         if (self.mode == "pin"):

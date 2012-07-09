@@ -33,7 +33,9 @@ def spawn_job(machine_list, command, working_dir = os.getcwd()):
                            exec_command + """ \' \" """
    
         print "[spawn.py] Starting process: " + str(i) + " : " + exec_command
-        procs[i] = subprocess.Popen(exec_command, shell=True)
+        procs[i] = subprocess.Popen(exec_command, shell=True, preexec_fn=os.setsid)
+        #print "[spawn.py] Started process %d" % procs[i].pid
+
 
     return procs
 
@@ -61,9 +63,8 @@ def poll_job(procs):
             if returnCode == 0:
                 returnCode = procs[i].wait()
             else:
-                cmd = "pkill -SIGKILL -P %s" % str(procs[i].pid)
-                os.system(cmd)
-                os.kill(procs[i].pid, signal.SIGKILL)
+                #print "[spawn.py] Killing process:  %d" % procs[i].pid
+                os.killpg(procs[i].pid, signal.SIGKILL)
 
     print "[spawn.py] Exited with return code: %d" % returnCode
 

@@ -11,10 +11,9 @@ void* thread_func(void *threadid);
 void do_a_sim()
 {
 
-   const unsigned int total_cores = 20;
-   const unsigned int numThreads = 18;
-   const unsigned int totalThreads = numThreads * total_cores/2;
-   int threads[totalThreads];
+   const unsigned int total_cores = 6;
+   const unsigned int numThreads = 5;
+   int threads[numThreads+1];
    unsigned int tid;
 
    // Spawn 5 threads on core 1, then move 4 of them to cores 2-5.
@@ -77,7 +76,7 @@ int main(int argc, char **argv)
 void* thread_func(void *threadid)
 {
    printf("(%5d) sleeping...\n", syscall(__NR_gettid));
-   usleep(10000000);
+   usleep(5000000);
    printf("(%5d) done...\n", syscall(__NR_gettid));
    return 0;
 }

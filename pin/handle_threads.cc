@@ -31,16 +31,10 @@ void addYield(INS ins)
    if (!enabled())
       return;
 
-   // Only yield on arithmetic instructions for now, I don't want it to yield
-   // at atomic memory operations.
-   // FIXME
-   switch(INS_Opcode(ins))
+   // Do not yield on branch or memory instructions because we deal with them asynchronously.
+   if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins) || INS_IsBranch(ins))
    {
-      case OPCODE_DIV:
-      case OPCODE_MUL:
-      case OPCODE_FDIV:
-      case OPCODE_FMUL:
-         INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleYield), IARG_END);
-         break;
+      return ;
    }
+   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleYield), IARG_END);
 }

@@ -12,7 +12,7 @@ void do_a_sim()
 {
 
    const unsigned int total_cores = 10;
-   const unsigned int numThreads = 5;
+   const unsigned int numThreads = 3;
    const unsigned int totalThreads = numThreads * total_cores/2;
    int threads[totalThreads];
    unsigned int tid;
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 void* thread_func(void *threadid)
 {
    printf("(%5d) sleeping...\n", syscall(__NR_gettid));
-   usleep(10000000);
+   usleep(1000);
    printf("(%5d) done...\n", syscall(__NR_gettid));
    return 0;
 }

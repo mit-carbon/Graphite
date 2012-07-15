@@ -26,8 +26,10 @@ Classifier::parse(string type)
       return PRIVATE_FIXED;
    else if (type == "remote_fixed")
       return REMOTE_FIXED;
-   else if (type == "random")
-      return RANDOM;
+   else if (type == "random_line_based")
+      return RANDOM_LINE_BASED;
+   else if (type == "random_sharer_based")
+      return RANDOM_SHARER_BASED;
    else if (type == "shared_remote")
       return SHARED_REMOTE;
    else if (type == "shared_read_write_remote")
@@ -50,8 +52,10 @@ Classifier::create(SInt32 max_hw_sharers)
       return new PrivateFixedClassifier();
    case REMOTE_FIXED:
       return new RemoteFixedClassifier();
-   case RANDOM:
-      return new RandomClassifier();
+   case RANDOM_LINE_BASED:
+      return new RandomClassifier(LINE_BASED);
+   case RANDOM_SHARER_BASED:
+      return new RandomClassifier(SHARER_BASED);
    case SHARED_REMOTE:
       return new SharedRemoteClassifier();
    case SHARED_READ_WRITE_REMOTE:

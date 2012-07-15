@@ -14,9 +14,7 @@ public:
    UInt32 compute(IntPtr address);
 
 private:
-   UInt32 _log_num_application_tiles;
    UInt32 _log_num_sets;
-   UInt32 _log_stack_size;
 };
 
 }

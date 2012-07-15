@@ -6,37 +6,42 @@ namespace HybridProtocol_PPMOSI_SS
 
 SharedRemoteClassifier::SharedRemoteClassifier()
    : Classifier()
-   , _saved_mode(INVALID_MODE)
+   , _saved_mode(Mode::PRIVATE)
 {}
 
 SharedRemoteClassifier::~SharedRemoteClassifier()
 {}
 
-Mode
-SharedRemoteClassifier::getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry)
+Mode::Type
+SharedRemoteClassifier::getMode(tile_id_t sharer)
 {
-   return (_saved_mode == INVALID_MODE) ? PRIVATE_MODE : REMOTE_MODE;
+   return _saved_mode;
 }
 
 void
 SharedRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
 {
-   if ((shmem_msg->getType() < ShmemMsg::UNIFIED_READ_REQ) || (shmem_msg->getType() > ShmemMsg::WRITE_UNLOCK_REQ))
+   if (_saved_mode == Mode::REMOTE_LINE)
+      return;
+   
+   if (!IS_DIRECTORY_REQ(shmem_msg->getType()))
       return;
 
    tile_id_t sharer = sender;
-   if (_saved_mode != INVALID_MODE)
+   UInt32 num_sharers = directory_entry->getNumSharers();
+
+   // For new cache lines
+   if (num_sharers == 0)
       return;
 
-   SInt32 num_sharers = directory_entry->getNumSharers();
    LOG_ASSERT_ERROR(num_sharers <= 1, "num_sharers(%i)", num_sharers);
+   
+   // For private cache lines
+   if ( (num_sharers == 1) && (directory_entry->hasSharer(sharer)) )
+      return;
 
-   if (num_sharers == 1)
-   {
-      tile_id_t previous_sharer = directory_entry->getOneSharer();
-      if (previous_sharer != sharer)
-         _saved_mode = REMOTE_MODE;
-   }
+   // Set the line in remote mode
+   _saved_mode = Mode::REMOTE_LINE;
 }
 
 }

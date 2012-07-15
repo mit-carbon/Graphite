@@ -11,6 +11,7 @@
 #include "address_home_lookup.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
+#include "lock.h"
 #include "semaphore.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
@@ -60,11 +61,19 @@ public:
    // Performance Models
    void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
+   // Wait/wake thread for cache-line lock/unlock operations
+   void waitOnThreadForCacheLineUnlock(ShmemPerfModel::ThreadType thread_type, IntPtr address);
+   void wakeUpThreadAfterCacheLineUnlock(ShmemPerfModel::ThreadType thread_type, IntPtr address);
+
    // Synchronize between app and sim threads
-   void wakeUpAppThread();
-   void waitForAppThread();
-   void wakeUpSimThread();
-   void waitForSimThread();
+   void wakeUpAppThread()     { _app_thread_semaphore.signal();   }
+   void waitForAppThread()    { _sim_thread_semaphore.wait();     }
+   void wakeUpSimThread()     { _sim_thread_semaphore.signal();   }
+   void waitForSimThread()    { _app_thread_semaphore.wait();     }
+
+   // Acquire/release locks
+   void acquireLock()      { _lock.acquire();   }
+   void releaseLock()      { _lock.release();   }
 
 private:
    L1CacheCntlr* _l1_cache_cntlr;
@@ -80,8 +89,12 @@ private:
    bool _enabled;
 
    // Synchronize between app and sim threads
-   Semaphore _app_thread_sem;
-   Semaphore _sim_thread_sem;
+   Lock _lock;
+   Semaphore _app_thread_semaphore;
+   Semaphore _sim_thread_semaphore;
+
+   // Address on which thread waiting to be unlocked
+   IntPtr _waiting_address;
 
    // Performance Models
    CachePerfModel* _l1_icache_perf_model;

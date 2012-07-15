@@ -5,7 +5,9 @@
 namespace HybridProtocol_PPMOSI_SS
 {
 
-#define TYPE(req)    (req->getShmemMsg()->getType())
+#define REMOTE(x)          ((x == Mode::REMOTE_LINE)  || (x == Mode::REMOTE_SHARER) )
+#define PRIVATE(x)         (x == Mode::PRIVATE)
+#define TYPE(x)            (x->getShmemMsg()->getType())
 
 DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                        AddressHomeLookup* dram_home_lookup,
@@ -32,14 +34,14 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                    num_directory_slices,
                                    directory_access_delay);
 
-   _directory_req_queue_list = new HashMapQueue<IntPtr,ShmemReq*>();
+   _buffered_req_queue_list = new HashMapQueue<IntPtr,BufferedReq*>();
 
    _directory_type = DirectoryEntry::parseDirectoryType(directory_type);
 }
 
 DramDirectoryCntlr::~DramDirectoryCntlr()
 {
-   delete _directory_req_queue_list;
+   delete _buffered_req_queue_list;
    delete _directory;
 }
 
@@ -48,10 +50,14 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
 
-   // Update mode information
-   DirectoryEntry* directory_entry = _directory->getDirectoryEntry(shmem_msg->getAddress());
-   Classifier* classifier = dynamic_cast<AdaptiveDirectoryEntry*>(directory_entry)->getClassifier();
-   classifier->updateMode(sender, shmem_msg, directory_entry);
+   if (!IS_BLOCKING_REQ(shmem_msg_type))
+   {
+      // Update mode information
+      DirectoryEntry* directory_entry = _directory->getDirectoryEntry(shmem_msg->getAddress());
+      assert(directory_entry);
+      Classifier* classifier = dynamic_cast<AdaptiveDirectoryEntry*>(directory_entry)->getClassifier();
+      classifier->updateMode(sender, shmem_msg, directory_entry);
+   }
 
    switch (shmem_msg_type)
    {
@@ -62,12 +68,15 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          // Add request onto a queue
          IntPtr address = shmem_msg->getAddress();
          UInt64 msg_time = getShmemPerfModel()->getCycleCount();
-         ShmemReq* directory_req = new ShmemReq(shmem_msg, msg_time);
-         _directory_req_queue_list->enqueue(address, directory_req);
+         BufferedReq* buffered_req = new BufferedReq(shmem_msg, msg_time);
+         _buffered_req_queue_list->enqueue(address, buffered_req);
+         LOG_PRINT("Address(%#lx), Requester(%i), ReqType(%s), Count(%u) enqueued",
+                   address, sender, SPELL_SHMSG(shmem_msg->getType()),
+                   (UInt32) _buffered_req_queue_list->count(address));
 
-         if (_directory_req_queue_list->count(address) == 1)
+         if (_buffered_req_queue_list->count(address) == 1)
          {
-            processUnifiedReqFromL2Cache(directory_req, directory_entry);
+            processUnifiedReqFromL2Cache(buffered_req);
          }
       }
       break;
@@ -125,30 +134,37 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 {
    LOG_PRINT("Start processNextReqFromL2Cache(%#lx)", address);
 
-   assert(_directory_req_queue_list->count(address) >= 1);
-   ShmemReq* completed_directory_req = _directory_req_queue_list->dequeue(address);
-   delete completed_directory_req;
+   assert(_buffered_req_queue_list->count(address) >= 1);
+   BufferedReq* completed_buffered_req = _buffered_req_queue_list->dequeue(address);
+   
+   ShmemMsg* completed_directory_req = completed_buffered_req->getShmemMsg();
+   LOG_PRINT("Address(%#lx), Requester(%i), ReqType(%s) dequeued",
+             address, completed_directory_req->getRequester(), SPELL_SHMSG(completed_directory_req->getType()));
 
-   if (!_directory_req_queue_list->empty(address))
+   delete completed_buffered_req;
+
+   if (!_buffered_req_queue_list->empty(address))
    {
       LOG_PRINT("A new shmem req for address(%#lx) found", address);
-      ShmemReq* directory_req = _directory_req_queue_list->front(address);
+      BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
       
       // Update the Shared Mem Cycle Counts
-      directory_req->updateTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(directory_req->getTime());
+      buffered_req->updateTime(getShmemPerfModel()->getCycleCount());
+      getShmemPerfModel()->updateCycleCount(buffered_req->getTime());
 
-      processUnifiedReqFromL2Cache(directory_req);
+      processUnifiedReqFromL2Cache(buffered_req);
    }
 
    LOG_PRINT("End processNextReqFromL2Cache(%#lx)", address);
 }
 
 DirectoryEntry*
-DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
+DramDirectoryCntlr::processDirectoryEntryAllocationReq(BufferedReq* buffered_req)
 {
-   IntPtr address = shmem_req->getShmemMsg()->getAddress();
-   tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
+
+   IntPtr address = directory_req->getAddress();
+   tile_id_t requester = directory_req->getRequester();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
    std::vector<DirectoryEntry*> replacement_candidate_list;
@@ -162,7 +178,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
              ((*replacement_candidate)->getNumSharers() > (*it)->getNumSharers()) 
            )
            &&
-           (_directory_req_queue_list->count((*it)->getAddress()) == 0)
+           (_buffered_req_queue_list->count((*it)->getAddress()) == 0)
          )
       {
          replacement_candidate = it;
@@ -170,7 +186,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
    }
 
    LOG_ASSERT_ERROR(replacement_candidate != replacement_candidate_list.end(),
-         "Cant find a directory entry to be replaced with a non-zero request list");
+                    "Cant find a directory entry to be replaced with a non-zero request list");
 
    IntPtr replaced_address = (*replacement_candidate)->getAddress();
 
@@ -179,46 +195,63 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
 
    bool msg_modeled = ::MemoryManager::isMissTypeModeled(Cache::CAPACITY_MISS);
    ShmemMsg nullify_msg(ShmemMsg::NULLIFY_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::DRAM_DIRECTORY,
-                        replaced_address,
-                        requester, msg_modeled);
+                        replaced_address, requester, msg_modeled);
 
-   ShmemReq* nullify_req = new ShmemReq(&nullify_msg, msg_time);
-   _directory_req_queue_list->enqueue(replaced_address, nullify_req);
+   BufferedReq* nullify_req = new BufferedReq(&nullify_msg, msg_time);
+   _buffered_req_queue_list->enqueue(replaced_address, nullify_req);
 
-   assert(_directory_req_queue_list->count(replaced_address) == 1);
+   assert(_buffered_req_queue_list->count(replaced_address) == 1);
    processNullifyReq(nullify_req);
 
    return directory_entry;
 }
 
 void
-DramDirectoryCntlr::processUnifiedReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry)
+DramDirectoryCntlr::processUnifiedReqFromL2Cache(BufferedReq* buffered_req)
 {
-   IntPtr address = directory_req->getShmemMsg()->getAddress();
-   tile_id_t requester = directory_req->getShmemMsg()->getRequester();
-   ShmemMsg::Type directory_req_type = directory_req->getShmemMsg()->getType();
-
-   // Get directory_entry if NOT aready retrieved
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
+   IntPtr address = directory_req->getAddress();
+   tile_id_t requester = directory_req->getRequester();
+   
+   // Get directory_entry
+   // If cannot find an entry, allocate a new entry by replacing existing one
+   DirectoryEntry* directory_entry = _directory->getDirectoryEntry(address);
    if (!directory_entry)
-      directory_entry = _directory->getDirectoryEntry(address);
+      directory_entry = processDirectoryEntryAllocationReq(buffered_req);
+   
+   // Update classifier state
+   Classifier* classifier = dynamic_cast<AdaptiveDirectoryEntry*>(directory_entry)->getClassifier();
+   classifier->updateMode(requester, directory_req, directory_entry);
+
+   processDirectoryReq(buffered_req, directory_entry);
+}
+
+void
+DramDirectoryCntlr::processDirectoryReq(BufferedReq* buffered_req, DirectoryEntry* directory_entry)
+{
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
+   tile_id_t requester = directory_req->getRequester();
    
    // Get Mode
    Classifier* classifier = dynamic_cast<AdaptiveDirectoryEntry*>(directory_entry)->getClassifier();
-   Mode mode = classifier->getMode(requester, directory_req_type, directory_entry);
+   Mode::Type mode = (requester == getTileID()) ? Mode::PRIVATE : (classifier->getMode(requester));
+   LOG_PRINT("Address(%#lx), Requester(%i), ReqType(%s), Mode(%s), DState(%s) process",
+             directory_req->getAddress(), requester, SPELL_SHMSG(directory_req->getType()), SPELL_MODE(mode),
+             SPELL_DSTATE(directory_entry->getDirectoryBlockInfo()->getDState()));
+   buffered_req->setMode(mode);
 
    switch (mode)
    {
-   case PRIVATE_MODE:
-   case PRIVATE_SHARER_MODE:
-      processPrivateReqFromL2Cache(directory_req, directory_entry);
+   case Mode::PRIVATE:
+      processPrivateReqFromL2Cache(buffered_req, directory_entry);
       break;
 
-   case REMOTE_MODE:
-   case REMOTE_SHARER_MODE:
+   case Mode::REMOTE_LINE:
+   case Mode::REMOTE_SHARER:
       {
-         bool completed = transitionToRemoteMode(directory_req, directory_entry, mode);
+         bool completed = transitionToRemoteMode(buffered_req, directory_entry, mode);
          if (completed)
-            processRemoteAccessReqFromL2Cache(directory_req, directory_entry);
+            processRemoteAccessReqFromL2Cache(buffered_req, directory_entry);
       }
       break;
 
@@ -229,37 +262,43 @@ DramDirectoryCntlr::processUnifiedReqFromL2Cache(ShmemReq* directory_req, Direct
 }
 
 void
-DramDirectoryCntlr::processWriteUnlockReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
+DramDirectoryCntlr::processWriteUnlockReqFromL2Cache(tile_id_t sender, ShmemMsg* directory_req)
 {
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
-   IntPtr address = shmem_msg->getAddress();
-   ShmemReq* directory_req = new ShmemReq(shmem_msg, msg_time);
-
+   IntPtr address = directory_req->getAddress();
    DirectoryEntry* directory_entry = _directory->getDirectoryEntry(address);
-   processRemoteAccessReqFromL2Cache(directory_req, directory_entry);
+   LOG_ASSERT_ERROR(directory_entry, "Cant find directory entry for address(%#lx)", address);
+   LOG_PRINT("Address(%#lx), Requester(%i), ReqType(WRITE_UNLOCK_REQ), Mode(REMOTE_LINE/SHARER), DState(%s) process",
+             address, sender, SPELL_DSTATE(directory_entry->getDirectoryBlockInfo()->getDState()));
+
+   BufferedReq* buffered_req = new BufferedReq(directory_req, getShmemPerfModel()->getCycleCount());
+   processRemoteAccessReqFromL2Cache(buffered_req, directory_entry);
+   delete buffered_req;
 }
 
 bool
-DramDirectoryCntlr::transitionToRemoteMode(ShmemReq* directory_req, DirectoryEntry* directory_entry, Mode mode)
+DramDirectoryCntlr::transitionToRemoteMode(BufferedReq* buffered_req, DirectoryEntry* directory_entry, Mode::Type mode)
 {
-   IntPtr address = directory_req->getShmemMsg()->getAddress();
-   tile_id_t requester = directory_req->getShmemMsg()->getRequester();
-   bool modeled = directory_req->getShmemMsg()->isModeled();
-   ShmemMsg::Type directory_req_type = TYPE(directory_req);
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
+
+   IntPtr address = directory_req->getAddress();
+   tile_id_t requester = directory_req->getRequester();
+   bool modeled = directory_req->isModeled();
+   ShmemMsg::Type directory_req_type = directory_req->getType();
+
    // Allocate remote copy on current tile now
-   tile_id_t remote_location = getTileId();
+   tile_id_t remote_location = getTileID();
 
    switch (directory_req_type)
    {
    case ShmemMsg::UNIFIED_READ_REQ:
-      if (mode == REMOTE_MODE)
-         return allocateExclusiveCacheLine(address, remote_location, REMOTE_MODE, directory_entry, requester, modeled);
-      else // (mode == REMOTE_SHARER_MODE)
-         return allocateSharedCacheLine(address, remote_location, REMOTE_SHARER_MODE, directory_entry, requester, modeled);
+      if (mode == Mode::REMOTE_LINE)
+         return allocateExclusiveCacheLine(address, directory_req_type, remote_location, Mode::REMOTE_LINE, directory_entry, requester, modeled);
+      else // (mode == Mode::REMOTE_SHARER)
+         return allocateSharedCacheLine(address, directory_req_type, remote_location, Mode::REMOTE_SHARER, directory_entry, requester, modeled);
 
    case ShmemMsg::UNIFIED_READ_LOCK_REQ:
    case ShmemMsg::UNIFIED_WRITE_REQ:
-      return allocateExclusiveCacheLine(address, remote_location, mode, directory_entry, requester, modeled);
+      return allocateExclusiveCacheLine(address, directory_req_type, remote_location, mode, directory_entry, requester, modeled);
    
    default:
       LOG_PRINT_ERROR("Unrecognized request from L2 cache(%u)", directory_req_type);
@@ -268,14 +307,11 @@ DramDirectoryCntlr::transitionToRemoteMode(ShmemReq* directory_req, DirectoryEnt
 }
 
 void
-DramDirectoryCntlr::processRemoteAccessReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry)
+DramDirectoryCntlr::processRemoteAccessReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry)
 {
-   IntPtr address = directory_req->getShmemMsg()->getAddress();
-   tile_id_t requester = directory_req->getShmemMsg()->getRequester();
-   bool modeled = directory_req->getShmemMsg()->isModeled();
-   ShmemMsg::Type directory_req_type = TYPE(directory_req);
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
 
-   tile_id_t remote_location = getTileId();
+   ShmemMsg::Type directory_req_type = directory_req->getType();
    ShmemMsg::Type remote_req_type = ShmemMsg::INVALID;
 
    switch (directory_req_type)
@@ -297,9 +333,14 @@ DramDirectoryCntlr::processRemoteAccessReqFromL2Cache(ShmemReq* directory_req, D
       break;
    }
 
+   tile_id_t remote_location = getTileID();
+   buffered_req->setExpectedMsgSender(remote_location);
+   
    ShmemMsg remote_req(remote_req_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
-                       address,
-                       requester, modeled);
+                       directory_req->getAddress(),
+                       directory_req->getOffset(), directory_req->getDataLength(),
+                       directory_req->getDataBuf(), directory_req->getDataBufSize(),
+                       directory_req->getRequester(), directory_req->isModeled());
    getMemoryManager()->sendMsg(remote_location, remote_req);
 }
 
@@ -308,7 +349,6 @@ DramDirectoryCntlr::processRemoteAccessReplyFromL2Cache(tile_id_t sender, ShmemM
 {
    IntPtr address = remote_reply->getAddress();
    tile_id_t requester = remote_reply->getRequester();
-   bool modeled = remote_reply->isModeled();
 
    ShmemMsg::Type remote_reply_type = remote_reply->getType();
    ShmemMsg::Type directory_reply_type = ShmemMsg::INVALID;
@@ -335,38 +375,44 @@ DramDirectoryCntlr::processRemoteAccessReplyFromL2Cache(tile_id_t sender, ShmemM
    ShmemMsg l2_reply(directory_reply_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                      address,
                      remote_reply->getDataBuf(), remote_reply->getDataBufSize(),
-                     requester, modeled);
+                     requester, remote_reply->isModeled());
    getMemoryManager()->sendMsg(requester, l2_reply);
 
-   // Process the next request from L2 cache
-   processNextReqFromL2Cache(address);
+   if (remote_reply_type != ShmemMsg::REMOTE_READ_LOCK_REPLY)
+   {
+      // Process the next request from L2 cache
+      processNextReqFromL2Cache(address);
+   }
 }
 
 void
-DramDirectoryCntlr::processNullifyReq(ShmemReq* directory_req)
+DramDirectoryCntlr::processNullifyReq(BufferedReq* buffered_req)
 {
-   IntPtr address = directory_req->getShmemMsg()->getAddress();
-   tile_id_t requester = directory_req->getShmemMsg()->getRequester();
-   bool modeled = directory_req->getShmemMsg()->isModeled();
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
+
+   IntPtr address = directory_req->getAddress();
+   tile_id_t requester = directory_req->getRequester();
+   bool modeled = directory_req->isModeled();
    
    DirectoryEntry* directory_entry = _directory->getDirectoryEntry(address);
+   LOG_ASSERT_ERROR(directory_entry, "Could not find directory_entry for address(%#lx)", address);
    bool completed = nullifyCacheLine(address, directory_entry, requester, modeled);
    if (completed)
       processNextReqFromL2Cache(address);
 }
 
 void
-DramDirectoryCntlr::processPrivateReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry)
+DramDirectoryCntlr::processPrivateReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry)
 {
-   ShmemMsg::Type directory_req_type = TYPE(directory_req);
+   ShmemMsg::Type directory_req_type = TYPE(buffered_req);
    switch (directory_req_type)
    {
    case ShmemMsg::UNIFIED_READ_REQ:
-      processShReqFromL2Cache(directory_req, directory_entry);
+      processShReqFromL2Cache(buffered_req, directory_entry);
       break;
    case ShmemMsg::UNIFIED_READ_LOCK_REQ:
    case ShmemMsg::UNIFIED_WRITE_REQ:
-      processExReqFromL2Cache(directory_req, directory_entry);
+      processExReqFromL2Cache(buffered_req, directory_entry);
       break;
    default:
       LOG_PRINT_ERROR("Unrecognized req from L2 cache(%u)", directory_req_type);
@@ -376,25 +422,31 @@ DramDirectoryCntlr::processPrivateReqFromL2Cache(ShmemReq* directory_req, Direct
 }
 
 void
-DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry)
+DramDirectoryCntlr::processExReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry)
 {
-   IntPtr address = directory_req->getShmemMsg()->getAddress();
-   tile_id_t requester = directory_req->getShmemMsg()->getRequester();
-   bool modeled = directory_req->getShmemMsg()->isModeled();
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
+
+   IntPtr address = directory_req->getAddress();
+   ShmemMsg::Type directory_req_type = directory_req->getType();
+   tile_id_t requester = directory_req->getRequester();
+   bool modeled = directory_req->isModeled();
    
-   bool completed = allocateSharedCacheLine(address, requester, PRIVATE_MODE, directory_entry, requester, modeled);
+   bool completed = allocateExclusiveCacheLine(address, directory_req_type, requester, Mode::PRIVATE, directory_entry, requester, modeled);
    if (completed)
       processNextReqFromL2Cache(address);
 }
 
 void
-DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry)
+DramDirectoryCntlr::processShReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry)
 {
-   IntPtr address = directory_req->getShmemMsg()->getAddress();
-   tile_id_t requester = directory_req->getShmemMsg()->getRequester();
-   bool modeled = directory_req->getShmemMsg()->isModeled();
+   ShmemMsg* directory_req = buffered_req->getShmemMsg();
+
+   IntPtr address = directory_req->getAddress();
+   ShmemMsg::Type directory_req_type = directory_req->getType();
+   tile_id_t requester = directory_req->getRequester();
+   bool modeled = directory_req->isModeled();
    
-   bool completed = allocateExclusiveCacheLine(address, requester, PRIVATE_MODE, directory_entry, requester, modeled);
+   bool completed = allocateSharedCacheLine(address, directory_req_type, requester, Mode::PRIVATE, directory_entry, requester, modeled);
    if (completed)
       processNextReqFromL2Cache(address);
 }
@@ -407,40 +459,15 @@ DramDirectoryCntlr::nullifyCacheLine(IntPtr address, DirectoryEntry* directory_e
    switch (curr_dstate)
    {
    case DirectoryState::MODIFIED:
-      {
-         ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
-                            address, requester, modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
-         return false;
-      }
-
+   case DirectoryState::EXCLUSIVE:
    case DirectoryState::OWNED:
+   case DirectoryState::SHARED:
       {
-         LOG_ASSERT_ERROR(directory_entry->getOwner() != INVALID_TILE_ID,
-                          "Address(%#lx), State(OWNED), owner(%i)", address, directory_entry->getOwner());
-
-         // FLUSH_REQ to Owner
-         // INV_REQ to all sharers except owner (Also sent to the Owner for sake of convenience)
-         
          vector<tile_id_t> sharers_list;
          bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
          
          sendShmemMsg(ShmemMsg::INV_FLUSH_COMBINED_REQ, address,
-                      directory_entry->getOwner(), all_tiles_sharers, sharers_list,
-                      requester, modeled);
-         return false;
-      }
-
-   case DirectoryState::SHARED:
-      {
-         LOG_ASSERT_ERROR(directory_entry->getOwner() == INVALID_TILE_ID,
-                          "Address(%#lx), State(SHARED), owner(%i)", address, directory_entry->getOwner());
-         
-         vector<tile_id_t> sharers_list;
-         bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
-         
-         sendShmemMsg(ShmemMsg::INV_REQ, address, 
-                      INVALID_TILE_ID, all_tiles_sharers, sharers_list,
+                      directory_entry->getOneSharer(), all_tiles_sharers, sharers_list,
                       requester, modeled);
          return false;
       }
@@ -458,22 +485,30 @@ DramDirectoryCntlr::nullifyCacheLine(IntPtr address, DirectoryEntry* directory_e
 }
 
 bool
-DramDirectoryCntlr::allocateExclusiveCacheLine(IntPtr address, tile_id_t cached_location, Mode mode,
+DramDirectoryCntlr::allocateExclusiveCacheLine(IntPtr address, ShmemMsg::Type directory_req_type, tile_id_t cached_location, Mode::Type mode,
                                                DirectoryEntry* directory_entry, tile_id_t requester, bool modeled)
 {
    DirectoryState::Type curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();
+   BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
+   LOG_PRINT("allocateExclusiveCacheLine: Address(%#lx), DState(%s)", address, SPELL_DSTATE(curr_dstate));
 
    switch (curr_dstate)
    {
    case DirectoryState::MODIFIED:
+   case DirectoryState::EXCLUSIVE:
       {
          if (directory_entry->getOwner() == cached_location)
          {
+            if PRIVATE(mode)
+            {
+               ShmemMsg shmem_msg(ShmemMsg::READY_REPLY, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
+                                  address, requester, modeled);
+               getMemoryManager()->sendMsg(requester, shmem_msg);
+            }
             return true;
          }
          else
          {
-            // FLUSH_REQ to Owner
             ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                                address, requester, modeled);
             getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
@@ -482,67 +517,25 @@ DramDirectoryCntlr::allocateExclusiveCacheLine(IntPtr address, tile_id_t cached_
       }
 
    case DirectoryState::OWNED:
-      {
-         if ((directory_entry->getOwner() == cached_location) && (directory_entry->getNumSharers() == 1))
-         {
-            directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::MODIFIED);
-
-            ShmemMsg::Type l2_reply_type = (mode == PRIVATE_MODE) ? ShmemMsg::ASYNC_UPGRADE_REPLY : ShmemMsg::UPGRADE_REPLY;
-            ShmemMsg shmem_msg(l2_reply_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
-                               address, requester, modeled);
-            getMemoryManager()->sendMsg(cached_location, shmem_msg);
-             
-            return true; 
-         }
-         else
-         {
-            // FLUSH_REQ to Owner
-            // INV_REQ to all sharers except owner (Also sent to the owner for sake of convenience)
-            
-            vector<tile_id_t> sharers_list;
-            bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
-            
-            sendShmemMsg(ShmemMsg::INV_FLUSH_COMBINED_REQ, address, 
-                         directory_entry->getOwner(), all_tiles_sharers, sharers_list,
-                         requester, modeled);
-
-            return false;
-         }
-      }
-
    case DirectoryState::SHARED:
       {
          LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, 
-                          "Address(%#lx), Directory State(SHARED), Num Sharers(%u)",
-                          address, directory_entry->getNumSharers());
+                          "Address(%#lx), Directory State(%s), Num Sharers(%u)",
+                          address, SPELL_DSTATE(curr_dstate), directory_entry->getNumSharers());
          
-         if ((directory_entry->hasSharer(cached_location)) && (directory_entry->getNumSharers() == 1))
-         {
-            directory_entry->setOwner(cached_location);
-            directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::MODIFIED);
-
-            ShmemMsg::Type l2_reply_type = (mode == PRIVATE_MODE) ? ShmemMsg::ASYNC_UPGRADE_REPLY : ShmemMsg::UPGRADE_REPLY;
-            ShmemMsg shmem_msg(l2_reply_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
-                               address, requester, modeled);
-            getMemoryManager()->sendMsg(cached_location, shmem_msg);
-            
-            return true; 
-         }
-         else
-         {
-            // getOneSharer() is a deterministic function
-            // FLUSH_REQ to One Sharer (If present)
-            // INV_REQ to all other sharers
-            
-            vector<tile_id_t> sharers_list;
-            bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
-            
-            sendShmemMsg(ShmemMsg::INV_FLUSH_COMBINED_REQ, address,
-                         directory_entry->getOneSharer(), all_tiles_sharers, sharers_list,
-                         requester, modeled);
-
-            return false;
-         }
+         // getOneSharer() is a deterministic function
+         // FLUSH_REPLY from Owner / One Sharer
+         // INV_REQ from all other sharers
+         
+         vector<tile_id_t> sharers_list;
+         bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+         tile_id_t flush_sharer = (curr_dstate == DirectoryState::OWNED) ?
+                                  directory_entry->getOwner() : directory_entry->getOneSharer();
+         
+         sendShmemMsg(ShmemMsg::INV_FLUSH_COMBINED_REQ, address,
+                      flush_sharer, all_tiles_sharers, sharers_list,
+                      requester, modeled);
+         return false;
       }
 
    case DirectoryState::UNCACHED:
@@ -552,36 +545,49 @@ DramDirectoryCntlr::allocateExclusiveCacheLine(IntPtr address, tile_id_t cached_
                           "Address(%#lx), State(UNCACHED), Num Sharers(%u)",
                           address, directory_entry->getNumSharers());
 
-         bool add_result = addSharer(directory_entry, cached_location);
-         LOG_ASSERT_ERROR(add_result, "Address(%#lx), State(UNCACHED)", address);
-         
-         directory_entry->setOwner(cached_location);
-         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::MODIFIED);
+         ShmemMsg::Type l2_reply_type = REMOTE(mode) ? ShmemMsg::ASYNC_EX_REPLY : ShmemMsg::EX_REPLY;
+         bool data_sent = retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
+         if (data_sent)
+         {
+            bool add_result = directory_entry->addSharer(cached_location);
+            LOG_ASSERT_ERROR(add_result, "Address(%#lx), State(UNCACHED)", address);
+            
+            directory_entry->setOwner(cached_location);
 
-         ShmemMsg::Type l2_reply_type = (mode == PRIVATE_MODE) ? ShmemMsg::ASYNC_EX_REPLY : ShmemMsg::EX_REPLY;
-         return retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
+            bool cache_line_dirty = buffered_req->isCacheLineDirty();
+            DirectoryState::Type new_dstate = (cache_line_dirty) ? DirectoryState::MODIFIED : DirectoryState::EXCLUSIVE;
+            directory_entry->getDirectoryBlockInfo()->setDState(new_dstate);
+         }
+         return data_sent;
       }
 
    default:
-      LOG_PRINT_ERROR("Unsupported Directory State: %u", curr_dstate);
+      LOG_PRINT_ERROR("Unsupported Directory State(%u)", curr_dstate);
       return false;
    }
 }
 
 bool
-DramDirectoryCntlr::allocateSharedCacheLine(IntPtr address, tile_id_t cached_location, Mode mode,
+DramDirectoryCntlr::allocateSharedCacheLine(IntPtr address, ShmemMsg::Type directory_req_type, tile_id_t cached_location, Mode::Type mode,
                                             DirectoryEntry* directory_entry, tile_id_t requester, bool modeled)
 {
+   LOG_ASSERT_ERROR(directory_req_type == ShmemMsg::UNIFIED_READ_REQ, "directory_req_type(%s)", SPELL_SHMSG(directory_req_type));
    DirectoryState::Type curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();
-   ShmemReq* directory_req = _directory_req_queue_list->front(address);
+   BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
 
    switch (curr_dstate)
    {
    case DirectoryState::MODIFIED:
+   case DirectoryState::EXCLUSIVE:
       {
-         if (directory_entry->getOwner() == cached_location)
+         if ((directory_entry->getOwner() == cached_location))
          {
-            assert((mode == REMOTE_MODE) || (mode == REMOTE_SHARER_MODE));
+            if PRIVATE(mode)
+            {
+               ShmemMsg shmem_msg(ShmemMsg::READY_REPLY, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
+                                  address, requester, modeled);
+               getMemoryManager()->sendMsg(requester, shmem_msg);
+            }
             return true;
          }
          else
@@ -590,7 +596,7 @@ DramDirectoryCntlr::allocateSharedCacheLine(IntPtr address, tile_id_t cached_loc
                                address, requester, modeled);
             getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
 
-            directory_req->setExpectedMsgSender(directory_entry->getOwner());
+            buffered_req->setExpectedMsgSender(directory_entry->getOwner());
             return false;
          }
       }
@@ -598,71 +604,95 @@ DramDirectoryCntlr::allocateSharedCacheLine(IntPtr address, tile_id_t cached_loc
    case DirectoryState::OWNED:
    case DirectoryState::SHARED:
       {
-         LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, "Address(%#lx), State(%u), Num Sharers(%u)",
-                          address, curr_dstate, directory_entry->getNumSharers());
+         LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, "Address(%#lx), State(%s), Num Sharers(%u)",
+                          address, SPELL_DSTATE(curr_dstate), directory_entry->getNumSharers());
 
          if (directory_entry->hasSharer(cached_location))
          {
-            assert((mode == REMOTE_MODE) || (mode == REMOTE_SHARER_MODE));
+            if PRIVATE(mode)
+            {
+               ShmemMsg shmem_msg(ShmemMsg::READY_REPLY, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
+                                  address, requester, modeled);
+               getMemoryManager()->sendMsg(requester, shmem_msg);
+            }
             return true;
          }
 
-         bool added = addSharer(directory_entry, cached_location);
-         if (!added)
+         tile_id_t sharer_id = (curr_dstate == DirectoryState::OWNED) ?
+                               directory_entry->getOwner() : directory_entry->getOneSharer();
+
+         bool added = directory_entry->addSharer(cached_location);
+         if (!added)  // Sharer is NOT added
          {
             // Invalidate one sharer
-            tile_id_t sharer_id = directory_entry->getOneSharer();
-
-            LOG_ASSERT_ERROR(sharer_id != INVALID_TILE_ID, "Address(%#lx), SH_REQ, state(%u), sharer(%i)",
-                             address, curr_dstate, sharer_id);
+            LOG_ASSERT_ERROR(sharer_id != INVALID_TILE_ID, "Address(%#lx), State(%s), Sharer(%i)",
+                             address, SPELL_DSTATE(curr_dstate), sharer_id);
 
             // Send a message to the sharer to write back the data and also to invalidate itself
             ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                                address, requester, modeled);
             getMemoryManager()->sendMsg(sharer_id, shmem_msg);
 
-            directory_req->setExpectedMsgSender(sharer_id);
+            buffered_req->setExpectedMsgSender(sharer_id);
             return false;
          }
-         else
+         else  // Sharer is addded
          {
-            // Fetch data from one sharer
-            tile_id_t sharer_id = directory_entry->getOneSharer();
-
-            if ( (!directory_req->lookupData()) && (sharer_id != INVALID_TILE_ID) )
+            if (!buffered_req->lookupData()) // Data NOT present
             {
-               // Remove the added sharer since the request has not been completed
-               removeSharer(directory_entry, cached_location, false);
+               // Remove added sharer
+               directory_entry->removeSharer(cached_location, false);
 
                // Get data from one of the sharers
+               LOG_ASSERT_ERROR(sharer_id != INVALID_TILE_ID, "State(%s), Sharer = INVALID",
+                                SPELL_DSTATE(curr_dstate));
+               
                ShmemMsg shmem_msg(ShmemMsg::WB_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                                   address, requester, modeled);
                getMemoryManager()->sendMsg(sharer_id, shmem_msg);
 
-               directory_req->setExpectedMsgSender(sharer_id);
+               buffered_req->setExpectedMsgSender(sharer_id);
                return false;
             }
-            else
+            else  // Data present
             {
-               ShmemMsg::Type l2_reply_type = (mode == PRIVATE_MODE) ? ShmemMsg::SH_REPLY : ShmemMsg::ASYNC_SH_REPLY;
-               return retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
+               ShmemMsg::Type l2_reply_type = REMOTE(mode) ? ShmemMsg::ASYNC_SH_REPLY : ShmemMsg::SH_REPLY;
+               bool data_sent = retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
+               assert(data_sent);
+               
+               bool cache_line_dirty = buffered_req->isCacheLineDirty();
+               if (cache_line_dirty)
+               {
+                  assert(curr_dstate == DirectoryState::SHARED);
+                  // Dirty status is being handed over to the new sharer
+                  directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::OWNED);
+                  directory_entry->setOwner(cached_location);
+               }
+               return true;
             }
          }
       }
 
    case DirectoryState::UNCACHED:
       {
-         // Modifiy the directory entry contents
-         bool add_result = addSharer(directory_entry, cached_location);
-         LOG_ASSERT_ERROR(add_result, "Address(%#lx), Requester(%i), State(UNCACHED), Num Sharers(%u)",
-                          address, requester, directory_entry->getNumSharers());
-         
-         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::SHARED);
+         // The first sharer, so put in EXCLUSIVE/MODIFIED state
+         ShmemMsg::Type l2_reply_type = REMOTE(mode) ? ShmemMsg::ASYNC_EX_REPLY : ShmemMsg::EX_REPLY;
+         bool data_sent = retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
+         if (data_sent)
+         {         
+            // Modifiy the directory entry contents
+            bool add_result = directory_entry->addSharer(cached_location);
+            LOG_ASSERT_ERROR(add_result, "Address(%#lx), Requester(%i), State(UNCACHED), Num Sharers(%u)",
+                             address, requester, directory_entry->getNumSharers());
+            
+            bool cache_line_dirty = buffered_req->isCacheLineDirty();
+            DirectoryState::Type new_dstate = cache_line_dirty ? DirectoryState::MODIFIED : DirectoryState::EXCLUSIVE;
+            directory_entry->getDirectoryBlockInfo()->setDState(new_dstate);
+            directory_entry->setOwner(cached_location);
+         }
 
-         ShmemMsg::Type l2_reply_type = (mode == PRIVATE_MODE) ? ShmemMsg::SH_REPLY : ShmemMsg::ASYNC_SH_REPLY;
-         return retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
+         return data_sent;
       }
-      break;
 
    default:
       LOG_PRINT_ERROR("Unsupported Directory State: %u", curr_dstate);
@@ -709,19 +739,23 @@ DramDirectoryCntlr::retrieveDataAndSendToL2Cache(IntPtr address, tile_id_t cache
                                                  ShmemMsg::Type reply_type, tile_id_t requester, bool modeled)
 {
    // Get data_buf
-   ShmemReq* directory_req = _directory_req_queue_list->front(address);
-   Byte* data_buf = directory_req->lookupData();
+   BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
+   Byte* data_buf = buffered_req->lookupData();
 
    if (data_buf)
    {
+      bool cache_line_dirty = buffered_req->isCacheLineDirty();
       // I already have the data I need cached
       ShmemMsg directory_reply(reply_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                                address,
                                data_buf, getCacheLineSize(),
+                               cache_line_dirty,
                                requester, modeled);
       getMemoryManager()->sendMsg(cached_location, directory_reply);
+
       // Delete the cached data
-      directory_req->eraseData();
+      buffered_req->eraseData();
+      
       return true;
    }
    else // (data_buf == NULL)
@@ -744,12 +778,22 @@ DramDirectoryCntlr::processInvReplyFromL2Cache(tile_id_t sender, ShmemMsg* shmem
   
    switch (curr_dstate)
    {
+   case DirectoryState::EXCLUSIVE:
+      LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                       "Address(%#lx), State(EXCLUSIVE), sender(%i), owner(%i)",
+                       address, sender, directory_entry->getOwner());
+      assert(!shmem_msg->isReplyExpected());
+      directory_entry->removeSharer(sender, false);
+      directory_entry->setOwner(INVALID_TILE_ID);
+      directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
+      break;
+
    case DirectoryState::OWNED:
-      LOG_ASSERT_ERROR((sender != directory_entry->getOwner()) && (directory_entry->getNumSharers() > 0),
+      LOG_ASSERT_ERROR((sender != directory_entry->getOwner()) && (directory_entry->getNumSharers() > 1),
                        "Address(%#lx), State(OWNED), num sharers(%u), sender(%i), owner(%i)",
                        address, directory_entry->getNumSharers(), sender, directory_entry->getOwner());
 
-      removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
+      directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
       break;
 
    case DirectoryState::SHARED:
@@ -757,7 +801,7 @@ DramDirectoryCntlr::processInvReplyFromL2Cache(tile_id_t sender, ShmemMsg* shmem
                        "Address(%#lx), State(SHARED), num sharers(%u), sender(%i), owner(%i)",
                        address, directory_entry->getNumSharers(), sender, directory_entry->getOwner());
 
-      removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
+      directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
       if (directory_entry->getNumSharers() == 0)
          directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
       break;
@@ -765,17 +809,16 @@ DramDirectoryCntlr::processInvReplyFromL2Cache(tile_id_t sender, ShmemMsg* shmem
    case DirectoryState::MODIFIED:
    case DirectoryState::UNCACHED:
    default:
-      LOG_PRINT_ERROR("Address(%#lx), INV_REP, State(%u), num sharers(%u), owner(%i)",
-            address, curr_dstate, directory_entry->getNumSharers(), directory_entry->getOwner());
+      LOG_PRINT_ERROR("Address(%#lx), INV_REPLY, sender(%i), state(%s), num sharers(%u), owner(%i)",
+                      address, sender, SPELL_DSTATE(curr_dstate), directory_entry->getNumSharers(), directory_entry->getOwner());
       break;
    }
 
-   if (!_directory_req_queue_list->empty(address))
+   if (!_buffered_req_queue_list->empty(address))
    {
       // Get the latest request for the data
-      ShmemReq* directory_req = _directory_req_queue_list->front(address);
-      DirectoryState::Type dstate = directory_entry->getDirectoryBlockInfo()->getDState();
-      restartDirectoryReq(directory_req, dstate, sender, shmem_msg);
+      BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
+      restartDirectoryReqIfReady(buffered_req, directory_entry, sender, shmem_msg);
    }
 }
 
@@ -786,9 +829,7 @@ DramDirectoryCntlr::processFlushReplyFromL2Cache(tile_id_t sender, ShmemMsg* shm
 
    DirectoryEntry* directory_entry = _directory->getDirectoryEntry(address);
    assert(directory_entry);
-
-   DirectoryBlockInfo* directory_block_info = directory_entry->getDirectoryBlockInfo();
-   DirectoryState::Type curr_dstate = directory_block_info->getDState();
+   DirectoryState::Type curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();
    
    LOG_ASSERT_ERROR(curr_dstate != DirectoryState::UNCACHED,
                     "Address(%#lx), State(%u)", address, curr_dstate);
@@ -796,90 +837,86 @@ DramDirectoryCntlr::processFlushReplyFromL2Cache(tile_id_t sender, ShmemMsg* shm
    switch (curr_dstate)
    {
    case DirectoryState::MODIFIED:
-      LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
-                       "Address(%#lx), State(MODIFIED), sender(%i), owner(%i)",
-                       address, sender, directory_entry->getOwner());
+      {
+         LOG_ASSERT_ERROR(shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(NO)");
+         LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                          "Address(%#lx), State(%s), sender(%i), owner(%i)",
+                          address, SPELL_DSTATE(curr_dstate), sender, directory_entry->getOwner());
+         assert(! shmem_msg->isReplyExpected());
+         directory_entry->removeSharer(sender, false);
+         directory_entry->setOwner(INVALID_TILE_ID);
+         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
+      }
+      break;
 
-      assert(! shmem_msg->isReplyExpected());
-      removeSharer(directory_entry, sender, false);
-      directory_entry->setOwner(INVALID_TILE_ID);
-      directory_block_info->setDState(DirectoryState::UNCACHED); 
+   case DirectoryState::EXCLUSIVE:
+      {
+         LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                          "Address(%#lx), State(%s), sender(%i), owner(%i)",
+                          address, SPELL_DSTATE(curr_dstate), sender, directory_entry->getOwner());
+         assert(! shmem_msg->isReplyExpected());
+         directory_entry->removeSharer(sender, false);
+         directory_entry->setOwner(INVALID_TILE_ID);
+         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
+      }
       break;
 
    case DirectoryState::OWNED:
-      LOG_ASSERT_ERROR((directory_entry->getOwner() != INVALID_TILE_ID) && (directory_entry->getNumSharers() > 0),
-                       "Address(%#lx), State(OWNED), owner(%i), num sharers(%u)",
-                       address, directory_entry->getOwner(), directory_entry->getNumSharers());
-      
-      removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
-      if (sender == directory_entry->getOwner())
       {
+         LOG_ASSERT_ERROR(shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(NO)");
+         LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                          "Address(%#lx), State(OWNED), owner(%i), num sharers(%u)",
+                          address, directory_entry->getOwner(), directory_entry->getNumSharers());
+         
+         directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
          directory_entry->setOwner(INVALID_TILE_ID);
-         if (directory_entry->getNumSharers() > 0)
-            directory_block_info->setDState(DirectoryState::SHARED);
-         else
-            directory_block_info->setDState(DirectoryState::UNCACHED);
+         DirectoryState::Type new_dstate = (directory_entry->getNumSharers() > 0) ?
+                                           DirectoryState::SHARED : DirectoryState::UNCACHED;
+         directory_entry->getDirectoryBlockInfo()->setDState(new_dstate);
       }
       break;
 
    case DirectoryState::SHARED:
-      LOG_ASSERT_ERROR((directory_entry->getOwner() == INVALID_TILE_ID) && (directory_entry->getNumSharers() > 0),
-                       "Address(%#lx), State(SHARED), owner(%i), num sharers(%u)",
-                       address, directory_entry->getOwner(), directory_entry->getNumSharers());
+      {
+         LOG_ASSERT_ERROR(!shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(YES)");
+         LOG_ASSERT_ERROR((directory_entry->getOwner() == INVALID_TILE_ID) && (directory_entry->getNumSharers() > 0),
+                          "Address(%#lx), State(SHARED), owner(%i), num sharers(%u)",
+                          address, directory_entry->getOwner(), directory_entry->getNumSharers());
 
-      removeSharer(directory_entry, sender, shmem_msg->isReplyExpected());
-      if (directory_entry->getNumSharers() == 0)
-         directory_block_info->setDState(DirectoryState::UNCACHED);
+         directory_entry->removeSharer(sender, shmem_msg->isReplyExpected());
+         if (directory_entry->getNumSharers() == 0)
+            directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
+      }
       break;
 
    case DirectoryState::UNCACHED:
    default:
-      LOG_PRINT_ERROR("Address(%#lx), FLUSH_REP, State(%u), num sharers(%u), owner(%i)",
-                      address, curr_dstate, directory_entry->getNumSharers(), directory_entry->getOwner());
+      LOG_PRINT_ERROR("Address(%#lx), FLUSH_REPLY, sender(%i), state(%s), num sharers(%u), owner(%i)",
+                      address, sender, SPELL_DSTATE(curr_dstate), directory_entry->getNumSharers(), directory_entry->getOwner());
       break;
    }
 
-   if (!_directory_req_queue_list->empty(address))
+   if (!_buffered_req_queue_list->empty(address))
    {
       // Get the latest request for the data
-      ShmemReq* directory_req = _directory_req_queue_list->front(address);
+      BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
       // First save the data in the buffers in the directory cntlr
-      directory_req->insertData(shmem_msg->getDataBuf(), getCacheLineSize());
+      buffered_req->insertData(shmem_msg->getDataBuf(), getCacheLineSize());
+      buffered_req->setCacheLineDirty(shmem_msg->isCacheLineDirty());
       
-      // Write-back to memory in certain circumstances
-      switch (TYPE(directory_req))
+      // Write-back to memory for nullify requests
+      if (TYPE(buffered_req) == ShmemMsg::NULLIFY_REQ)
       {
-      case ShmemMsg::UNIFIED_READ_REQ:
-         {
-            DirectoryState::Type initial_dstate = curr_dstate;
-            DirectoryState::Type final_dstate = directory_block_info->getDState();
-
-            if ((initial_dstate == DirectoryState::MODIFIED || initial_dstate == DirectoryState::OWNED)
-               && (final_dstate == DirectoryState::SHARED || final_dstate == DirectoryState::UNCACHED))
-            {
-               storeDataInDram(address, shmem_msg->getDataBuf(), shmem_msg->getRequester(), shmem_msg->isModeled());
-            }
-         }
-         break;
-
-      case ShmemMsg::UNIFIED_READ_LOCK_REQ:
-      case ShmemMsg::UNIFIED_WRITE_REQ:
-         break;
-
-      case ShmemMsg::NULLIFY_REQ:
          storeDataInDram(address, shmem_msg->getDataBuf(), shmem_msg->getRequester(), shmem_msg->isModeled());
-         break;
-
-      default:
-         LOG_PRINT_ERROR("Unrecognzied directory req type(%u)", TYPE(directory_req));
-         break;
+         // Delete the cached data
+         buffered_req->eraseData();
       }
 
-      DirectoryState::Type dstate = directory_entry->getDirectoryBlockInfo()->getDState();
-      restartDirectoryReq(directory_req, dstate, sender, shmem_msg);
+      restartDirectoryReqIfReady(buffered_req, directory_entry, sender, shmem_msg);
    }
    else
    {
+      assert(shmem_msg->isCacheLineDirty());
       // This was just an eviction
       // Write Data to Dram
       storeDataInDram(address, shmem_msg->getDataBuf(), shmem_msg->getRequester(), shmem_msg->isModeled());
@@ -893,52 +930,67 @@ DramDirectoryCntlr::processWbReplyFromL2Cache(tile_id_t sender, ShmemMsg* shmem_
 
    DirectoryEntry* directory_entry = _directory->getDirectoryEntry(address);
    assert(directory_entry);
-   
    DirectoryState::Type curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();
 
-   assert(! shmem_msg->isReplyExpected());
+   assert(!shmem_msg->isReplyExpected());
 
    switch (curr_dstate)
    {
    case DirectoryState::MODIFIED:
-      LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
-                       "Address(%#lx), sender(%i), owner(%i)", address, sender, directory_entry->getOwner());
-      LOG_ASSERT_ERROR(_directory_req_queue_list->count(address) > 0,
-                       "Address(%#lx), WB_REP, req queue empty!!", address);
+      {
+         LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                          "Address(%#lx), sender(%i), owner(%i)", address, sender, directory_entry->getOwner());
+         LOG_ASSERT_ERROR(_buffered_req_queue_list->count(address) > 0,
+                          "Address(%#lx), WB_REP, req queue empty!!", address);
 
-      directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::OWNED);
+         LOG_ASSERT_ERROR(shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(NO)");
+         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::OWNED);
+      }
+      break;
+
+   case DirectoryState::EXCLUSIVE:
+      {
+         LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                          "Address(%#lx), sender(%i), owner(%i)", address, sender, directory_entry->getOwner());
+         LOG_ASSERT_ERROR(_buffered_req_queue_list->count(address) > 0,
+                          "Address(%#lx), WB_REP, req queue empty!!", address);
+
+         DirectoryState::Type new_dstate = (shmem_msg->isCacheLineDirty()) ? DirectoryState::OWNED : DirectoryState::SHARED;
+         directory_entry->getDirectoryBlockInfo()->setDState(new_dstate);
+         if (new_dstate == DirectoryState::SHARED)
+            directory_entry->setOwner(INVALID_TILE_ID);
+      }
       break;
 
    case DirectoryState::OWNED:
-      LOG_ASSERT_ERROR(directory_entry->hasSharer(sender),
-                       "Address(%#lx), sender(%i), NOT sharer", address, sender);
-
+      LOG_ASSERT_ERROR(shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(NO)");
+      LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                       "Address(%#lx), sender(%i), NOT owner", address, sender);
       break;
 
    case DirectoryState::SHARED:
+      LOG_ASSERT_ERROR(!shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(YES)");
       LOG_ASSERT_ERROR(directory_entry->getOwner() == INVALID_TILE_ID,
                        "Address(%#lx), State(%u), Owner(%i)", address, directory_entry->getOwner());
       LOG_ASSERT_ERROR(directory_entry->hasSharer(sender),
                        "Address(%#lx), sender(%i), NOT sharer", address, sender);
-
       break;
 
    case DirectoryState::UNCACHED:
    default:
-      LOG_PRINT_ERROR("Address(%#lx), WB_REP, State(%u), num sharers(%u), owner(%i)",
-                      address, curr_dstate, directory_entry->getNumSharers(), directory_entry->getOwner());
+      LOG_PRINT_ERROR("Address(%#lx), WB_REPLY, sender(%i), state(%s), num sharers(%u), owner(%i)",
+                      address, sender, SPELL_DSTATE(curr_dstate), directory_entry->getNumSharers(), directory_entry->getOwner());
       break;
    }
 
-   if (!_directory_req_queue_list->empty(address))
+   if (!_buffered_req_queue_list->empty(address))
    {
       // Get the latest request for the data
-      ShmemReq* directory_req = _directory_req_queue_list->front(address);
+      BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
       // First save the data in one of the buffers in the directory cntlr
-      directory_req->insertData(shmem_msg->getDataBuf(), getCacheLineSize());
+      buffered_req->insertData(shmem_msg->getDataBuf(), getCacheLineSize());
 
-      DirectoryState::Type dstate = directory_entry->getDirectoryBlockInfo()->getDState();
-      restartDirectoryReq(directory_req, dstate, sender, shmem_msg);
+      restartDirectoryReqIfReady(buffered_req, directory_entry, sender, shmem_msg);
    }
    else
    {
@@ -952,14 +1004,14 @@ void
 DramDirectoryCntlr::processDramFetchReply(tile_id_t sender, ShmemMsg* dram_reply)
 {
    IntPtr address = dram_reply->getAddress();
-   LOG_ASSERT_ERROR(!_directory_req_queue_list->empty(address),
+   LOG_ASSERT_ERROR(!_buffered_req_queue_list->empty(address),
                     "Req queue for address(%#lx) empty", address);
-   ShmemReq* directory_req = _directory_req_queue_list->front(address);
-   directory_req->insertData(dram_reply->getDataBuf(), getCacheLineSize());
+   BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
+   buffered_req->insertData(dram_reply->getDataBuf(), getCacheLineSize());
   
    DirectoryEntry* directory_entry = _directory->getDirectoryEntry(address); 
-   DirectoryState::Type dstate = directory_entry->getDirectoryBlockInfo()->getDState();
-   restartDirectoryReq(directory_req, dstate, sender, dram_reply);
+   LOG_ASSERT_ERROR(directory_entry, "Could not find directory_entry for address(%#lx)", address);
+   restartDirectoryReqIfReady(buffered_req, directory_entry, sender, dram_reply);
 }
 
 // Send a message to the memory controller requesting to fetch data from DRAM
@@ -990,40 +1042,27 @@ DramDirectoryCntlr::getDramHome(IntPtr address)
 }
 
 void 
-DramDirectoryCntlr::restartDirectoryReq(ShmemReq* directory_req, DirectoryState::Type dstate,
-                                        tile_id_t last_msg_sender, ShmemMsg* last_msg)
+DramDirectoryCntlr::restartDirectoryReqIfReady(BufferedReq* buffered_req, DirectoryEntry* directory_entry,
+                                               tile_id_t last_msg_sender, ShmemMsg* last_msg)
 {
-   // Update Request & ShmemPerfModel cycle counts
-   directory_req->updateTime(getShmemPerfModel()->getCycleCount());
-   getShmemPerfModel()->updateCycleCount(directory_req->getTime());
+   LOG_PRINT("Restart Directory Req: Address(%#lx)", buffered_req->getShmemMsg()->getAddress());
+   // Update Buffered Request & ShmemPerfModel cycle counts
+   buffered_req->updateTime(getShmemPerfModel()->getCycleCount());
+   getShmemPerfModel()->updateCycleCount(buffered_req->getTime());
 
-   if (directory_req->restartable(dstate, last_msg_sender, last_msg))
+   if (buffered_req->restartable(directory_entry, last_msg_sender, last_msg))
    {
-      ShmemMsg::Type directory_req_type = TYPE(directory_req);
+      ShmemMsg::Type directory_req_type = TYPE(buffered_req);
       switch (directory_req_type)
       {
       case ShmemMsg::NULLIFY_REQ:
-         processNullifyReq(directory_req);
+         processNullifyReq(buffered_req);
          break;
       default:
-         processUnifiedReqFromL2Cache(directory_req);
+         processDirectoryReq(buffered_req, directory_entry);
          break;
       }
    }
-}
-
-bool
-DramDirectoryCntlr::addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id)
-{
-   _directory->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() + 1);
-   return directory_entry->addSharer(sharer_id);
-}
-
-void
-DramDirectoryCntlr::removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected)
-{
-   _directory->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() - 1);
-   directory_entry->removeSharer(sharer_id, reply_expected);
 }
 
 UInt32
@@ -1033,7 +1072,7 @@ DramDirectoryCntlr::getCacheLineSize()
 }
 
 tile_id_t
-DramDirectoryCntlr::getTileId()
+DramDirectoryCntlr::getTileID()
 {
    return _memory_manager->getTile()->getId();
 }

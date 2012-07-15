@@ -8,13 +8,16 @@ UInt32 PredictiveLocalityBasedClassifier::_private_caching_threshold;
 
 PredictiveLocalityBasedClassifier::PredictiveLocalityBasedClassifier()
    : Classifier()
+   , _mode(Mode::PRIVATE)
+   , _utilization(0)
+   , _tracked_sharer(INVALID_TILE_ID)
 {}
 
 PredictiveLocalityBasedClassifier::~PredictiveLocalityBasedClassifier()
 {}
 
-Mode
-PredictiveLocalityBasedClassifier::getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry)
+Mode::Type
+PredictiveLocalityBasedClassifier::getMode(tile_id_t sharer)
 {
    // Use the locality information of one sharer to predict the locality of all other sharers
    return _mode;
@@ -35,14 +38,14 @@ PredictiveLocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_
    case ShmemMsg::UNIFIED_WRITE_REQ:
    case ShmemMsg::WRITE_UNLOCK_REQ:
       _utilization ++;
-      _mode = (_utilization >= _private_caching_threshold) ? PRIVATE_MODE: REMOTE_MODE;
+      _mode = (_utilization >= _private_caching_threshold) ? Mode::PRIVATE: Mode::REMOTE_LINE;
       break;
 
    case ShmemMsg::INV_REPLY:
    case ShmemMsg::WB_REPLY:
    case ShmemMsg::FLUSH_REPLY:
-      _utilization = shmem_msg->getUtilization();
-      _mode = (_utilization >= _private_caching_threshold) ? PRIVATE_MODE: REMOTE_MODE;
+      _utilization = shmem_msg->getCacheLineUtilization();
+      _mode = (_utilization >= _private_caching_threshold) ? Mode::PRIVATE: Mode::REMOTE_LINE;
       break;
 
    default:

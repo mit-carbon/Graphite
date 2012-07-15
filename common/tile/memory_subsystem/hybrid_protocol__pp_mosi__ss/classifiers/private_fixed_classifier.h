@@ -11,8 +11,8 @@ public:
    PrivateFixedClassifier() : Classifier() {}
    ~PrivateFixedClassifier() {}
 
-   Mode getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry)
-   { return PRIVATE_MODE; }
+   Mode::Type getMode(tile_id_t sharer)
+   { return Mode::PRIVATE; }
    void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
    {}
 };

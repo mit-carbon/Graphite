@@ -12,7 +12,7 @@ namespace HybridProtocol_PPMOSI_SS
 #include "directory_cache.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
-#include "shmem_req.h"
+#include "buffered_req.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
 #include "hash_map_queue.h"
@@ -55,7 +55,7 @@ private:
    // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
    DirectoryType _directory_type;
 
-   HashMapQueue<IntPtr,ShmemReq*>* _directory_req_queue_list;
+   HashMapQueue<IntPtr,BufferedReq*>* _buffered_req_queue_list;
 
    bool _enabled;
 
@@ -63,43 +63,41 @@ private:
    UInt32 getCacheLineSize();
    MemoryManager* getMemoryManager()      { return _memory_manager; }
    ShmemPerfModel* getShmemPerfModel();
-   tile_id_t getTileId();
-
-   // Checks if a request from the L2 cache is ready to be processed
-   // It is ready if (1) it is the first in line (or)
-   //                (2) it is an UNLOCK req to a cache line that is locked
-   bool isReady(ShmemReq* directory_req);
+   tile_id_t getTileID();
 
    // Process next req from L2 cache in the order in which they were received
    void processNextReqFromL2Cache(IntPtr address);
  
    // Allocate shared and exclusive cache lines in the L2 cache 
-   bool allocateExclusiveCacheLine(IntPtr address, tile_id_t cached_location, Mode mode,
+   bool allocateExclusiveCacheLine(IntPtr address, ShmemMsg::Type directory_req_type, tile_id_t cached_location, Mode::Type mode,
                                    DirectoryEntry* directory_entry, tile_id_t requester, bool modeled);
-   bool allocateSharedCacheLine(IntPtr address, tile_id_t cached_location, Mode mode,
+   bool allocateSharedCacheLine(IntPtr address, ShmemMsg::Type directory_req_type, tile_id_t cached_location, Mode::Type mode,
                                 DirectoryEntry* directory_entry, tile_id_t requester, bool modeled);
    bool nullifyCacheLine(IntPtr address, DirectoryEntry* directory_entry, tile_id_t requester, bool modeled);
    
    // Req to allocate a directory entry if it is not present for a specific address
    // May involve invalidating all sharers corresponding to the directory entry that is evicted
-   DirectoryEntry* processDirectoryEntryAllocationReq(ShmemReq* shmem_req);
+   DirectoryEntry* processDirectoryEntryAllocationReq(BufferedReq* buffered_req);
 
    // Req to invalidate all the sharers of an address since its directory entry is getting evicted
-   void processNullifyReq(ShmemReq* shmem_req);
+   void processNullifyReq(BufferedReq* buffered_req);
 
    // Process a request to the directory from the L2 cache
    // The protocol type is unknown when the request is made, hence the prefix 'UNIFIED_'
-   void processUnifiedReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry = NULL);
+   void processUnifiedReqFromL2Cache(BufferedReq* buffered_req);
+
+   // Process the request to the directory
+   void processDirectoryReq(BufferedReq* buffered_req, DirectoryEntry* directory_entry);
 
    // Process an L2 cache request for a cache line that is in PR_L1_PR_L2_MOSI directory mode
-   void processPrivateReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry);
+   void processPrivateReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry);
    
    // Process Ex/Sh Req from the L2 cache to a specific cache line
-   void processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry);
-   void processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry* directory_entry);
+   void processExReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry);
+   void processShReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry);
    
    // Process an L2 cache request for a cache line that is in REMOTE_ACCESS mode
-   void processRemoteAccessReqFromL2Cache(ShmemReq* directory_req, DirectoryEntry* directory_entry);
+   void processRemoteAccessReqFromL2Cache(BufferedReq* buffered_req, DirectoryEntry* directory_entry);
    void processRemoteAccessReplyFromL2Cache(tile_id_t sender, ShmemMsg* remote_reply);
 
    // Write unlock request
@@ -120,7 +118,7 @@ private:
    void processDramFetchReply(tile_id_t sender, ShmemMsg* dram_reply);
 
    // Transition to remote mode
-   bool transitionToRemoteMode(ShmemReq* directory_req, DirectoryEntry* directory_entry, Mode mode);
+   bool transitionToRemoteMode(BufferedReq* buffered_req, DirectoryEntry* directory_entry, Mode::Type mode);
 
    void sendShmemMsg(ShmemMsg::Type send_msg_type, IntPtr address,
                      tile_id_t single_receiver, bool all_tiles_sharers, vector<tile_id_t>& sharers_list,
@@ -134,12 +132,8 @@ private:
    tile_id_t getDramHome(IntPtr address);
 
    // Restart the processing of a request after a reply is received from one of the sharers or the remote core
-   void restartDirectoryReq(ShmemReq* directory_req, DirectoryState::Type curr_dstate,
-                            tile_id_t last_msg_sender, ShmemMsg* last_msg);
-   
-   // Add/Remove sharer to/from a directory entry
-   bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);
-   void removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected);
+   void restartDirectoryReqIfReady(BufferedReq* buffered_req, DirectoryEntry* directory_entry,
+                                   tile_id_t last_msg_sender, ShmemMsg* last_msg);
 };
 
 }

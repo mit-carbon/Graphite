@@ -21,10 +21,37 @@ createCacheLineInfo(SInt32 cache_level)
    }
 }
 
+//// Hybrid L1 CacheLineInfo
+HybridL1CacheLineInfo::HybridL1CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt32 utilization)
+   : CacheLineInfo(tag, cstate)
+   , _utilization(utilization)
+{}
+
+HybridL1CacheLineInfo::~HybridL1CacheLineInfo()
+{}
+
+void
+HybridL1CacheLineInfo::invalidate()
+{
+   CacheLineInfo::invalidate();
+   _utilization = 0;
+}
+
+void
+HybridL1CacheLineInfo::assign(CacheLineInfo* cache_line_info)
+{
+   CacheLineInfo::assign(cache_line_info);
+   HybridL1CacheLineInfo* l1_cache_line_info = dynamic_cast<HybridL1CacheLineInfo*>(cache_line_info);
+   _utilization = l1_cache_line_info->getUtilization();
+}
+
 //// Hybrid L2 CacheLineInfo
 
-HybridL2CacheLineInfo::HybridL2CacheLineInfo(IntPtr tag, CacheState::Type cstate, MemComponent::Type cached_loc, UInt64 curr_time)
-   : CacheLineInfo(tag, cstate, curr_time)
+HybridL2CacheLineInfo::HybridL2CacheLineInfo(IntPtr tag, CacheState::Type cstate,
+                                             bool locked, MemComponent::Type cached_loc,
+                                             UInt32 utilization)
+   : HybridL1CacheLineInfo(tag, cstate, utilization)
+   , _locked(locked)
    , _cached_loc(cached_loc)
 {}
 
@@ -56,16 +83,18 @@ HybridL2CacheLineInfo::clearCachedLoc(MemComponent::Type cached_loc)
 void 
 HybridL2CacheLineInfo::invalidate()
 {
-   CacheLineInfo::invalidate();
+   HybridL1CacheLineInfo::invalidate();
+   LOG_ASSERT_ERROR(!_locked, "Cannot invalidate cache line with tag(%#lx) when locked", _tag);
    _cached_loc = MemComponent::INVALID;
 }
 
 void 
 HybridL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
-   CacheLineInfo::assign(cache_line_info);
-   HybridL2CacheLineInfo* L2_cache_line_info = dynamic_cast<HybridL2CacheLineInfo*>(cache_line_info);
-   _cached_loc = L2_cache_line_info->getCachedLoc();
+   HybridL1CacheLineInfo::assign(cache_line_info);
+   HybridL2CacheLineInfo* l2_cache_line_info = dynamic_cast<HybridL2CacheLineInfo*>(cache_line_info);
+   _locked = l2_cache_line_info->isLocked();
+   _cached_loc = l2_cache_line_info->getCachedLoc();
 }
 
 }

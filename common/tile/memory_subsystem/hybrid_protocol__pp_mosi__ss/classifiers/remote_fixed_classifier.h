@@ -11,8 +11,8 @@ public:
    RemoteFixedClassifier() : Classifier() {}
    ~RemoteFixedClassifier() {}
 
-   Mode getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry)
-   { return REMOTE_MODE; }
+   Mode::Type getMode(tile_id_t sharer)
+   { return Mode::REMOTE_LINE; }
    void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
    {}
 };

@@ -21,10 +21,11 @@ LocalityBasedClassifier::~LocalityBasedClassifier()
    delete _mode_vec;
 }
 
-Mode
-LocalityBasedClassifier::getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry)
+Mode::Type
+LocalityBasedClassifier::getMode(tile_id_t sharer)
 {
-   return getMode(sharer);
+   UInt32 mode_type = _mode_vec->get(sharer);
+   return (mode_type == 0) ? Mode::PRIVATE : Mode::REMOTE_SHARER;
 }
 
 void
@@ -43,7 +44,7 @@ LocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, Direc
    case ShmemMsg::INV_REPLY:
    case ShmemMsg::WB_REPLY:
    case ShmemMsg::FLUSH_REPLY:
-      setUtilization(sender, shmem_msg->getUtilization());
+      setUtilization(sender, shmem_msg->getCacheLineUtilization());
       updateMode(sender);
       break;
 
@@ -53,17 +54,10 @@ LocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, Direc
    }
 }
 
-Mode
-LocalityBasedClassifier::getMode(tile_id_t sharer)
-{
-   UInt32 mode_type = _mode_vec->get(sharer);
-   return (mode_type == 0) ? PRIVATE_SHARER_MODE : REMOTE_SHARER_MODE;
-}
-
 void
-LocalityBasedClassifier::setMode(tile_id_t sharer, Mode mode)
+LocalityBasedClassifier::setMode(tile_id_t sharer, Mode::Type mode)
 {
-   UInt32 mode_type = (mode == PRIVATE_SHARER_MODE) ? 0 : 1;
+   UInt32 mode_type = (mode == Mode::PRIVATE) ? 0 : 1;
    _mode_vec->set(sharer, mode_type);
 }
 
@@ -86,12 +80,12 @@ LocalityBasedClassifier::updateMode(tile_id_t sharer)
    if (utilization >= _private_caching_threshold)
    {
       // PRIVATE_SHARER_MODE
-      setMode(sharer, PRIVATE_SHARER_MODE);
+      setMode(sharer, Mode::PRIVATE);
    }
    else // (utilization < _private_caching_threshold)
    {
       // REMOTE_SHARER_MODE
-      setMode(sharer, REMOTE_SHARER_MODE);
+      setMode(sharer, Mode::REMOTE_SHARER);
    }
 }
 
@@ -99,7 +93,7 @@ void
 LocalityBasedClassifier::setPrivateCachingThreshold(UInt32 PCT)
 {
    _private_caching_threshold = PCT;
-   _num_utilization_bits = ceilLog2(PCT);
+   _num_utilization_bits = floorLog2(PCT)+1;
 }
 
 }

@@ -46,7 +46,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
    _l1_dcache = new Cache("L1-D",
          HYBRID_PROTOCOL__PP_MOSI__SS,
          Cache::DATA_CACHE,
-         L2,
+         L1,
          Cache::WRITE_THROUGH,
          l1_dcache_size,
          l1_dcache_associativity, 
@@ -76,57 +76,60 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* l2_cache_cntlr)
 
 bool
 L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
-                                   Core::lock_signal_t lock_signal,
                                    Core::mem_op_t mem_op_type, 
-                                   IntPtr ca_address, UInt32 offset,
-                                   Byte* data_buf, UInt32 data_length,
+                                   Core::lock_signal_t lock_signal,
+                                   IntPtr address, Byte* data_buf,
+                                   UInt32 offset, UInt32 data_length,
                                    bool modeled)
 {
    // It would be great if we had a way to predict the cache coherence protocol by
    // looking at the instruction address (EIP). This would imply that we need a way to roll-back
    // our actions if the prediction was wrong.
-   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(%#lx), offset(%u), data_length(%u)",
-             lock_signal, mem_op_type, ca_address, offset, data_length);
+   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), address(%#lx), offset(%u), data_length(%u)",
+             lock_signal, mem_op_type, address, offset, data_length);
 
-   // Acquire the lock for the L1-I/L1-D cache
-   acquireLock(mem_component);
+   // Acquire the lock for the cache hierarchy on the tile
+   _memory_manager->acquireLock();
 
-   pair<bool,Cache::MissType> l1_cache_status = getMemOpStatusInL1Cache(mem_component, ca_address, mem_op_type);
+   HybridL1CacheLineInfo l1_cache_line_info;
+   pair<bool,Cache::MissType> l1_cache_status = getMemOpStatusInL1Cache(mem_component, address,
+                                                                        mem_op_type, lock_signal, l1_cache_line_info);
    bool l1_cache_hit = !l1_cache_status.first;
    if (l1_cache_hit)
    {
-      accessCache(mem_component, lock_signal, mem_op_type, ca_address, offset, data_buf, data_length);
+      accessCache(mem_component, lock_signal, mem_op_type, address, offset, data_buf, data_length, l1_cache_line_info);
+      _memory_manager->releaseLock();
+      if ( (mem_op_type == Core::WRITE) && (lock_signal == Core::UNLOCK) )
+         _memory_manager->wakeUpThreadAfterCacheLineUnlock(ShmemPerfModel::_SIM_THREAD, address);
       return true;
    }
 
-   _l2_cache_cntlr->processMemOpFromL1Cache(mem_component, lock_signal, mem_op_type, 
-                                            ca_address, offset, data_buf, data_length,
-                                            modeled);
+   bool l2_cache_hit = _l2_cache_cntlr->processMemOpFromL1Cache(mem_component, mem_op_type, lock_signal,
+                                                                address, data_buf, offset, data_length,
+                                                                modeled);
+   _memory_manager->releaseLock();
+
+   // Wait until the data is fetched
+   if (l2_cache_hit)
+   {
+      LOG_ASSERT_ERROR(!( (mem_op_type == Core::WRITE) && (lock_signal == Core::UNLOCK) ), "mem_op_type(WRITE), lock_signal(UNLOCK)");
+   }
+   else // (!l2_cache_hit)
+   {
+      _memory_manager->waitForSimThread();
+   }
    return false;
 }
 
+
 pair<bool,Cache::MissType>
-L1CacheCntlr::getMemOpStatusInL1Cache(MemComponent::Type mem_component, IntPtr address, Core::mem_op_t mem_op_type)
+L1CacheCntlr::getMemOpStatusInL1Cache(MemComponent::Type mem_component, IntPtr address,
+                                      Core::mem_op_t mem_op_type, Core::lock_signal_t lock_signal,
+                                      HybridL1CacheLineInfo& l1_cache_line_info)
 {
    Cache* l1_cache = getL1Cache(mem_component);
-   HybridL1CacheLineInfo l1_cache_line_info;
+   l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
 
-   while (1)
-   {
-      l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
-      bool locked = l1_cache_line_info.isLocked();
-      if (!locked)
-         break;
-
-      // Release lock and wait for sim thread
-      releaseLock(mem_component);
-      _memory_manager->waitForSimThread();
-      // Acquire lock and wake up sim thread
-      acquireLock(mem_component);
-      _memory_manager->wakeUpSimThread();
-   }
-     
-   // Cache line is not locked
    CacheState::Type cstate = l1_cache_line_info.getCState();
    bool cache_hit = true;
    switch (mem_op_type)
@@ -151,55 +154,110 @@ L1CacheCntlr::getMemOpStatusInL1Cache(MemComponent::Type mem_component, IntPtr a
 void
 L1CacheCntlr::accessCache(MemComponent::Type mem_component,
                           Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
-                          IntPtr ca_address, UInt32 offset,
-                          Byte* data_buf, UInt32 data_length)
+                          IntPtr address, UInt32 offset,
+                          Byte* data_buf, UInt32 data_length,
+                          HybridL1CacheLineInfo& l1_cache_line_info)
 {
+   CacheState::Type cstate = l1_cache_line_info.getCState();
    Cache* l1_cache = getL1Cache(mem_component);
+      
    switch (mem_op_type)
    {
    case Core::READ:
-      l1_cache->accessCacheLine(ca_address + offset, Cache::LOAD, data_buf, data_length);
+      l1_cache->accessCacheLine(address + offset, Cache::LOAD, data_buf, data_length);
       break;
 
    case Core::READ_EX:
-      assert (lock_signal == Core::LOCK);
+      LOG_ASSERT_ERROR (lock_signal == Core::LOCK, "lock_signal(%u)", lock_signal);
 
       // Read from the L1 cache and lock the L1 cache line
-      l1_cache->accessCacheLine(ca_address + offset, Cache::LOAD, data_buf, data_length);
-      lockCacheLine(l1_cache, ca_address);
+      l1_cache->accessCacheLine(address + offset, Cache::LOAD, data_buf, data_length);
 
       // Lock the L2 cache line too
-      _l2_cache_cntlr->acquireLock();
-      _l2_cache_cntlr->lockCacheLine(ca_address);
-      _l2_cache_cntlr->releaseLock();
+      _l2_cache_cntlr->lockCacheLine(address);
       break;
 
    case Core::WRITE:
       // Write to the L1 cache and unlock the cache line if the UNLOCK signal is enabled
-      l1_cache->accessCacheLine(ca_address + offset, Cache::STORE, data_buf, data_length);
-      if (lock_signal == Core::UNLOCK)
-         unlockCacheLine(l1_cache, ca_address);
+      l1_cache->accessCacheLine(address + offset, Cache::STORE, data_buf, data_length);
+      if (cstate == CacheState::EXCLUSIVE)
+         l1_cache_line_info.setCState(CacheState::MODIFIED);
       
       // Write-through L1 cache
       // Write the L2 Cache and unlock the cache line if the UNLOCK signal is enabled
-      _l2_cache_cntlr->acquireLock();
-      _l2_cache_cntlr->writeCacheLine(ca_address, data_buf, offset, data_length);
+      _l2_cache_cntlr->writeCacheLine(address, data_buf, offset, data_length);
+      if (cstate == CacheState::EXCLUSIVE)
+         _l2_cache_cntlr->setCacheLineState(address, CacheState::MODIFIED);
       if (lock_signal == Core::UNLOCK)
-         _l2_cache_cntlr->unlockCacheLine(ca_address);
-      _l2_cache_cntlr->releaseLock();
+         _l2_cache_cntlr->unlockCacheLine(address);
       break;
 
    default:
       LOG_PRINT_ERROR("Unsupported Mem Op Type: %u", mem_op_type);
       break;
    }
+   
+   // Increment utilization
+   l1_cache_line_info.incrUtilization();
+   l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
+}
+
+void
+L1CacheCntlr::assertL1CacheReady(Core::mem_op_t mem_op_type, CacheState::Type cstate)
+{
+   switch (mem_op_type)
+   {
+   case Core::READ:
+      LOG_ASSERT_ERROR(CacheState(cstate).readable(), "MemOpType(%s), CState(%s)",
+                       SPELL_MEMOP(mem_op_type), SPELL_CSTATE(cstate));
+      break;
+   case Core::READ_EX:
+   case Core::WRITE:
+      LOG_ASSERT_ERROR(CacheState(cstate).writable(), "MemOpType(%s), CState(%s)",
+                       SPELL_MEMOP(mem_op_type), SPELL_CSTATE(cstate));
+      break;
+   default:
+      LOG_PRINT_ERROR("Unrecgonized mem op type(%s)", SPELL_MEMOP(mem_op_type));
+      break;      
+   }
+}
+
+void
+L1CacheCntlr::processMemOpL1CacheReady(MemComponent::Type mem_component,
+                                       Core::mem_op_t mem_op_type, Core::lock_signal_t lock_signal,
+                                       IntPtr address, Byte* data_buf, UInt32 offset, UInt32 data_length)
+{
+   Cache* l1_cache = getL1Cache(mem_component);
+   HybridL1CacheLineInfo l1_cache_line_info;
+   l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
+
+   // Check if L1 cache is ready
+   assertL1CacheReady(mem_op_type, l1_cache_line_info.getCState());
+   
+   if (mem_op_type == Core::WRITE)
+   {
+      l1_cache->accessCacheLine(address + offset, Cache::STORE, data_buf, data_length);
+      l1_cache_line_info.setCState(CacheState::MODIFIED);
+   }
+   
+   l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
+}
+
+void
+L1CacheCntlr::writeCacheLine(Cache* l1_cache, IntPtr address, Byte* data_buf, UInt32 offset, UInt32 data_length)
+{
+   data_length = (data_length == UINT32_MAX_) ? getCacheLineSize() : data_length;
+   l1_cache->accessCacheLine(address + offset, Cache::STORE, data_buf, data_length);
 }
 
 void
 L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address,
                               CacheState::Type cstate, Byte* fill_buf,
-                              bool* eviction, IntPtr* evicted_address)
+                              bool& eviction, IntPtr& evicted_address, UInt32& evicted_line_utilization)
 {
+   LOG_PRINT("insertCacheLine[Address(%#lx), CState(%s), Fill Buf(%p), MemComponent(%s)] start",
+             address, SPELL_CSTATE(cstate), fill_buf, MemComponent::getName(mem_component).c_str());
+
    Cache* l1_cache = getL1Cache(mem_component);
    assert(l1_cache);
 
@@ -207,7 +265,11 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address,
 
    HybridL1CacheLineInfo l1_cache_line_info(l1_cache->getTag(address), cstate);
    l1_cache->insertCacheLine(address, &l1_cache_line_info, fill_buf,
-                             eviction, evicted_address, &evicted_cache_line_info, NULL);
+                             &eviction, &evicted_address, &evicted_cache_line_info, NULL);
+   evicted_line_utilization = evicted_cache_line_info.getUtilization();
+
+   LOG_PRINT("insertCacheLine[Address(%#lx), CState(%s), Fill Buf(%p), MemComponent(%s)] end",
+             address, SPELL_CSTATE(cstate), fill_buf, MemComponent::getName(mem_component).c_str());
 }
 
 CacheState::Type
@@ -242,50 +304,22 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
 {
    Cache* l1_cache = getL1Cache(mem_component);
    assert(l1_cache);
-   invalidateCacheLine(l1_cache, address);
-}
-
-void
-L1CacheCntlr::invalidateCacheLine(Cache* l1_cache, IntPtr address)
-{
    HybridL1CacheLineInfo l1_cache_line_info;
    l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
+   assert (l1_cache_line_info.isValid());
    l1_cache_line_info.invalidate();
    l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
 }
 
-void
-L1CacheCntlr::lockCacheLine(MemComponent::Type mem_component, IntPtr address)
+UInt32
+L1CacheCntlr::getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address)
 {
    Cache* l1_cache = getL1Cache(mem_component);
    assert(l1_cache);
-   lockCacheLine(l1_cache, address);
-}
 
-void
-L1CacheCntlr::unlockCacheLine(MemComponent::Type mem_component, IntPtr address)
-{
-   Cache* l1_cache = getL1Cache(mem_component);
-   assert(l1_cache);
-   unlockCacheLine(l1_cache, address);
-}
-
-void
-L1CacheCntlr::lockCacheLine(Cache* l1_cache, IntPtr address)
-{
    HybridL1CacheLineInfo l1_cache_line_info;
    l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
-   l1_cache_line_info.lock();
-   l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
-}
-
-void
-L1CacheCntlr::unlockCacheLine(Cache* l1_cache, IntPtr address)
-{
-   HybridL1CacheLineInfo l1_cache_line_info;
-   l1_cache->getCacheLineInfo(address, &l1_cache_line_info);
-   l1_cache_line_info.unlock();
-   l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
+   return l1_cache_line_info.getUtilization();
 }
 
 Cache*
@@ -305,47 +339,8 @@ L1CacheCntlr::getL1Cache(MemComponent::Type mem_component)
    }
 }
 
-void
-L1CacheCntlr::acquireLock(MemComponent::Type mem_component)
-{
-   switch(mem_component)
-   {
-   case MemComponent::L1_ICACHE:
-      _l1_icache_lock.acquire();
-      break;
-   
-   case MemComponent::L1_DCACHE:
-      _l1_dcache_lock.acquire();
-      break;
-   
-   default:
-      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-      break;
-   }
-
-}
-
-void
-L1CacheCntlr::releaseLock(MemComponent::Type mem_component)
-{
-   switch(mem_component)
-   {
-   case MemComponent::L1_ICACHE:
-      _l1_icache_lock.release();
-      break;
-   
-   case MemComponent::L1_DCACHE:
-      _l1_dcache_lock.release();
-      break;
-   
-   default:
-      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-      break;
-   }
-}
-
 tile_id_t
-L1CacheCntlr::getTileId()
+L1CacheCntlr::getTileID()
 {
    return _memory_manager->getTile()->getId();
 }

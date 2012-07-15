@@ -5,6 +5,9 @@
 #include "clock_converter.h"
 #include "network.h"
 #include "network_model_emesh_hop_by_hop.h"
+#include "classifier.h"
+#include "classifiers/locality_based_classifier.h"
+#include "classifiers/predictive_locality_based_classifier.h"
 #include "log.h"
 
 namespace HybridProtocol_PPMOSI_SS
@@ -16,6 +19,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
    , _enabled(false)
+   , _waiting_address(INVALID_ADDRESS)
 {
    // Read Parameters from the Config file
    std::string l1_icache_type;
@@ -127,8 +131,17 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    // Set Architectual parameters for ShmemMsg
    ShmemMsg::initializeArchitecturalParameters(_cache_line_size, 48 /* physical address bits */);
 
-   // Set classifer type
-   Classifier::setType(Sim()->getCfg()->getString("caching_protocol/hybrid_protocol__pp_mosi__ss/classifier_type"));
+   // Set classifer type & parameters
+   Classifier::Type classifier_type = Classifier::parse(Sim()->getCfg()->getString("caching_protocol/hybrid_protocol__pp_mosi__ss/classifier_type"));
+   Classifier::setType(classifier_type);
+   if ( (classifier_type == Classifier::LOCALITY_BASED) || (classifier_type == Classifier::PREDICTIVE_LOCALITY_BASED) )
+   {
+      UInt32 private_caching_threshold = Sim()->getCfg()->getInt("caching_protocol/hybrid_protocol__pp_mosi__ss/private_caching_threshold");
+      if (classifier_type == Classifier::LOCALITY_BASED)
+         LocalityBasedClassifier::setPrivateCachingThreshold(private_caching_threshold);
+      else // (classifier_type == Classifier::PREDICTIVE_LOCALITY_BASED)
+         PredictiveLocalityBasedClassifier::setPrivateCachingThreshold(private_caching_threshold);
+   }
 
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    //if (getTile()->getId() == 0)
@@ -236,10 +249,10 @@ MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                         bool modeled)
 {
    return _l1_cache_cntlr->processMemOpFromCore(mem_component,
-                                                lock_signal,
                                                 mem_op_type,
-                                                address, offset, 
-                                                data_buf, data_length,
+                                                lock_signal,
+                                                address, data_buf,
+                                                offset, data_length,
                                                 modeled);
 }
 
@@ -323,11 +336,9 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    // First delete 'data_buf' if it is present
    // LOG_PRINT("Finished handling Shmem Msg");
 
-   if (shmem_msg->getDataLength() > 0)
-   {
-      assert(shmem_msg->getDataBuf());
+   assert((shmem_msg->getDataBuf() == NULL) == (shmem_msg->getDataBufSize() == 0));
+   if (shmem_msg->getDataBuf())
       delete [] shmem_msg->getDataBuf();
-   }
    delete shmem_msg;
 }
 
@@ -343,7 +354,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
              "sender_mem_component(%s), receiver_mem_component(%s), "
              "requester(%i), sender(%i), receiver(%i)",
              ShmemMsg::getName(shmem_msg.getType()).c_str(), shmem_msg.getAddress(),
-             MemComponent::getName(shmem_msg.getSenderMemComponent()).c_str(), MemComponent::getName(shmem_msg.getReceiverMemComponent()).c_str(),
+             SPELL_MEMCOMP(shmem_msg.getSenderMemComponent()), SPELL_MEMCOMP(shmem_msg.getReceiverMemComponent()),
              shmem_msg.getRequester(), getTile()->getId(), receiver);
 
    LOG_ASSERT_ERROR(receiver != INVALID_TILE_ID, "Receiver is INVALID");
@@ -407,30 +418,6 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
 }
 
 void
-MemoryManager::wakeUpAppThread()
-{
-   _app_thread_sem.signal();
-}
-
-void
-MemoryManager::waitForAppThread()
-{
-   _sim_thread_sem.wait();
-}
-
-void
-MemoryManager::wakeUpSimThread()
-{
-   _sim_thread_sem.signal();
-}
-
-void
-MemoryManager::waitForSimThread()
-{
-   _app_thread_sem.wait();
-}
-
-void
 MemoryManager::enableModels()
 {
    _enabled = true;
@@ -491,6 +478,52 @@ MemoryManager::outputSummary(std::ostream &os)
    else
    {
       DramPerfModel::dummyOutputSummary(os);
+   }
+}
+
+void
+MemoryManager::waitOnThreadForCacheLineUnlock(ShmemPerfModel::ThreadType thread_type, IntPtr address)
+{
+   assert(_waiting_address == INVALID_ADDRESS);
+   // _waiting_address is always cache-line aligned
+   _waiting_address = address;
+
+   // Release lock
+   releaseLock();
+
+   // Wait for app/sim thread
+   if (thread_type == ShmemPerfModel::_APP_THREAD)
+      waitForAppThread();
+   else // (thread_type == ShmemPerfModel::_SIM_THREAD)
+      waitForSimThread();
+   
+   // Acquire lock
+   acquireLock();
+  
+   _waiting_address = INVALID_ADDRESS;
+
+   // Wake up app/sim thread
+   if (thread_type == ShmemPerfModel::_APP_THREAD)
+      wakeUpAppThread();
+   else // (thread_type == ShmemPerfModel::_SIM_THREAD)
+      wakeUpSimThread();
+}
+
+void
+MemoryManager::wakeUpThreadAfterCacheLineUnlock(ShmemPerfModel::ThreadType thread_type, IntPtr address)
+{
+   if (_waiting_address != address)
+      return;
+
+   if (thread_type == ShmemPerfModel::_APP_THREAD)
+   {
+      wakeUpAppThread();
+      waitForAppThread();
+   }
+   else if (thread_type == ShmemPerfModel::_SIM_THREAD)
+   {
+      wakeUpSimThread();
+      waitForSimThread();
    }
 }
 

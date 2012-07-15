@@ -9,16 +9,16 @@ namespace HybridProtocol_PPMOSI_SS
 class RandomClassifier : public Classifier
 {
 public:
-   RandomClassifier() : Classifier() {}
-   ~RandomClassifier() {}
+   RandomClassifier(Granularity granularity);
+   ~RandomClassifier();
 
-   Mode getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry)
-   { return ((bool) _rand_num.next(2)) ? PRIVATE_MODE : REMOTE_MODE; }
-   void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
-   {}
+   Mode::Type getMode(tile_id_t sharer);
+   void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry);
 
 private:
    Random _rand_num;
+   Mode::Type _mode;
+   Granularity _granularity;
 };
 
 }

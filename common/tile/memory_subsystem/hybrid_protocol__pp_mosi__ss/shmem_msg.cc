@@ -21,7 +21,8 @@ ShmemMsg::ShmemMsg()
 ShmemMsg::ShmemMsg(Type type,
                    MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
                    IntPtr address,
-                   tile_id_t requester, bool modeled)
+                   tile_id_t requester, bool modeled,
+                   UInt32 cache_line_utilization)
 {
    initialize();
    _type = type;
@@ -30,6 +31,7 @@ ShmemMsg::ShmemMsg(Type type,
    _address = address;
    _requester = requester;
    _modeled = modeled;
+   _cache_line_utilization = cache_line_utilization;
 }
 
 ShmemMsg::ShmemMsg(Type type,
@@ -47,6 +49,27 @@ ShmemMsg::ShmemMsg(Type type,
    _data_buf_size = data_buf_size;
    _requester = requester;
    _modeled = modeled;
+}
+
+ShmemMsg::ShmemMsg(Type type,
+                   MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
+                   IntPtr address,
+                   Byte* data_buf, UInt32 data_buf_size,
+                   bool cache_line_dirty,
+                   tile_id_t requester, bool modeled,
+                   UInt32 cache_line_utilization)
+{
+   initialize();
+   _type = type;
+   _sender_mem_component = sender_mem_component;
+   _receiver_mem_component = receiver_mem_component;
+   _address = address;
+   _data_buf = data_buf;
+   _data_buf_size = data_buf_size;
+   _cache_line_dirty = cache_line_dirty;
+   _requester = requester;
+   _modeled = modeled;
+   _cache_line_utilization = cache_line_utilization;
 }
 
 ShmemMsg::ShmemMsg(Type type,
@@ -97,26 +120,6 @@ ShmemMsg::ShmemMsg(Type type,
    _sender_mem_component = sender_mem_component;
    _receiver_mem_component = receiver_mem_component;
    _address = address;
-   _single_receiver = single_receiver;
-   _reply_expected = reply_expected;
-   _requester = requester;
-   _modeled = modeled;
-}
-
-ShmemMsg::ShmemMsg(Type type,
-                   MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
-                   IntPtr address,
-                   Byte* data_buf, UInt32 data_buf_size,
-                   tile_id_t single_receiver, bool reply_expected,
-                   tile_id_t requester, bool modeled)
-{
-   initialize();
-   _type = type;
-   _sender_mem_component = sender_mem_component;
-   _receiver_mem_component = receiver_mem_component;
-   _address = address;
-   _data_buf = data_buf;
-   _data_buf_size = data_buf_size;
    _single_receiver = single_receiver;
    _reply_expected = reply_expected;
    _requester = requester;
@@ -134,10 +137,12 @@ ShmemMsg::initialize()
    _data_length = 0;
    _data_buf = NULL;
    _data_buf_size = 0;
+   _cache_line_dirty = false;
    _single_receiver = INVALID_TILE_ID;
    _reply_expected = false;
    _requester = INVALID_TILE_ID;
    _modeled = false;
+   _cache_line_utilization = 0;
 }
 
 ShmemMsg::ShmemMsg(const ShmemMsg* shmem_msg)
@@ -157,17 +162,14 @@ ShmemMsg::assign(const ShmemMsg* shmem_msg)
    _address = shmem_msg->getAddress();
    _offset = shmem_msg->getOffset();
    _data_length = shmem_msg->getDataLength();
+   _data_buf = shmem_msg->getDataBuf();
    _data_buf_size = shmem_msg->getDataBufSize();
-   _data_buf = NULL;
-   if (_data_buf_size > 0)
-   {
-      _data_buf = new Byte[_data_buf_size];
-      memcpy(_data_buf, shmem_msg->getDataBuf(), _data_buf_size);
-   }
+   _cache_line_dirty = shmem_msg->isCacheLineDirty();
    _single_receiver = shmem_msg->getSingleReceiver();
    _reply_expected = shmem_msg->isReplyExpected();
    _requester = shmem_msg->getRequester();
    _modeled = shmem_msg->isModeled();
+   _cache_line_utilization = shmem_msg->getCacheLineUtilization();
 }
 
 ShmemMsg*
@@ -220,8 +222,7 @@ ShmemMsg::getModeledLength()
    case ASYNC_EX_REPLY:
       return convertBitsToBytes(_num_msg_type_bits + _num_physical_address_bits + _cache_line_size * 8);
 
-   case UPGRADE_REPLY:
-   case ASYNC_UPGRADE_REPLY:
+   case READY_REPLY:
       return convertBitsToBytes(_num_msg_type_bits + _num_physical_address_bits);
 
    case INV_REQ:
@@ -282,6 +283,8 @@ ShmemMsg::getName(Type type)
 {
    switch (type)
    {
+   //case INVALID:
+   //   return "INVALID";
    case UNIFIED_READ_REQ:
       return "UNIFIED_READ_REQ";
    case UNIFIED_READ_LOCK_REQ:
@@ -290,24 +293,30 @@ ShmemMsg::getName(Type type)
       return "UNIFIED_WRITE_REQ";
    case WRITE_UNLOCK_REQ:
       return "WRITE_UNLOCK_REQ";
-   case SH_REPLY:
-      return "SH_REPLY";
    case EX_REPLY:
       return "EX_REPLY";
-   case UPGRADE_REPLY:
-      return "UPGRADE_REPLY";
-   case ASYNC_SH_REPLY:
-      return "ASYNC_SH_REPLY";
+   case SH_REPLY:
+      return "SH_REPLY";
+   case READY_REPLY:
+      return "READY_REPLY";
    case ASYNC_EX_REPLY:
       return "ASYNC_EX_REPLY";
-   case ASYNC_UPGRADE_REPLY:
-      return "ASYNC_UPGRADE_REPLY";
+   case ASYNC_SH_REPLY:
+      return "ASYNC_SH_REPLY";
    case INV_REQ:
       return "INV_REQ";
    case FLUSH_REQ:
       return "FLUSH_REQ";
    case WB_REQ:
       return "WB_REQ";
+   case INV_FLUSH_COMBINED_REQ:
+      return "INV_FLUSH_COMBINED_REQ";
+   case INV_REPLY:
+      return "INV_REPLY";
+   case FLUSH_REPLY:
+      return "FLUSH_REPLY";
+   case WB_REPLY:
+      return "WB_REPLY";
    case READ_REPLY:
       return "READ_REPLY";
    case READ_LOCK_REPLY:
@@ -318,6 +327,8 @@ ShmemMsg::getName(Type type)
       return "WRITE_UNLOCK_REPLY";
    case REMOTE_READ_REQ:
       return "REMOTE_READ_REQ";
+   case REMOTE_READ_LOCK_REQ:
+      return "REMOTE_READ_LOCK_REQ";
    case REMOTE_WRITE_REQ:
       return "REMOTE_WRITE_REQ";
    case REMOTE_WRITE_UNLOCK_REQ:

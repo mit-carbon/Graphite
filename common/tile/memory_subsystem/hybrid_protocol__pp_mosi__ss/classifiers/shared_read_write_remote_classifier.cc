@@ -1,3 +1,5 @@
+#include <sstream>
+using std::ostringstream;
 #include "shared_read_write_remote_classifier.h"
 #include "log.h"
 
@@ -6,46 +8,54 @@ namespace HybridProtocol_PPMOSI_SS
 
 SharedReadWriteRemoteClassifier::SharedReadWriteRemoteClassifier()
    : Classifier()
-   , _saved_mode(INVALID_MODE)
+   , _saved_mode(Mode::PRIVATE)
 {}
 
 SharedReadWriteRemoteClassifier::~SharedReadWriteRemoteClassifier()
 {}
 
-Mode
-SharedReadWriteRemoteClassifier::getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry)
+Mode::Type
+SharedReadWriteRemoteClassifier::getMode(tile_id_t sharer)
 {
-   return (_saved_mode == INVALID_MODE) ? PRIVATE_MODE : REMOTE_MODE;
+   return _saved_mode;
 }
 
 void
 SharedReadWriteRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
 {
-   if ((shmem_msg->getType() < ShmemMsg::UNIFIED_READ_REQ) || (shmem_msg->getType() > ShmemMsg::WRITE_UNLOCK_REQ))
+   if (_saved_mode == Mode::REMOTE_LINE)
+      return;
+   
+   if (!IS_DIRECTORY_REQ(shmem_msg->getType()))
       return;
 
    tile_id_t sharer = sender;
+   UInt32 num_sharers = directory_entry->getNumSharers();
+   DirectoryState::Type dstate = directory_entry->getDirectoryBlockInfo()->getDState();
    ShmemMsg::Type req_type = shmem_msg->getType();
-   if (_saved_mode != INVALID_MODE)
+
+   // For new cache lines
+   if (num_sharers == 0)
       return;
 
-   SInt32 num_sharers = directory_entry->getNumSharers();
-   LOG_ASSERT_ERROR(num_sharers <= 1, "num_sharers(%i)", num_sharers);
-   
-   if (num_sharers == 1)
+   // For private cache lines
+   if ( (num_sharers == 1) && (directory_entry->hasSharer(sharer)) )
+      return;
+
+   // If state is MODIFIED or OWNED, there has been a write to it, so return in REMOTE mode
+   if ( (dstate == DirectoryState::MODIFIED) || (dstate == DirectoryState::OWNED) )
    {
-      tile_id_t previous_sharer = directory_entry->getOneSharer();
-      if (previous_sharer != sharer)
-      {
-         // Get state and if MODIFIED, goto REMOTE mode
-         DirectoryState::Type dstate = directory_entry->getDirectoryBlockInfo()->getDState();
-         LOG_ASSERT_ERROR((dstate == DirectoryState::SHARED) || (dstate == DirectoryState::MODIFIED), "dstate(%u)", dstate);
-         if ( (dstate != DirectoryState::SHARED) || (req_type != ShmemMsg::UNIFIED_READ_REQ) )
-         {
-            _saved_mode = PRIVATE_MODE;
-         }
-      }
+      _saved_mode = Mode::REMOTE_LINE;
+      return;
    }
+   
+   // Now, line is in SHARED or EXCLUSIVE state
+   // For read-only cache lines
+   if (req_type == ShmemMsg::UNIFIED_READ_REQ)
+      return;
+
+   // Set the line in remote mode
+   _saved_mode = Mode::REMOTE_LINE;
 }
 
 }

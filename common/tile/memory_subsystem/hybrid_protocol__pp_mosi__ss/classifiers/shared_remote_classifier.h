@@ -11,11 +11,11 @@ public:
    SharedRemoteClassifier();
    ~SharedRemoteClassifier();
 
-   Mode getMode(tile_id_t sharer, ShmemMsg::Type req_type, DirectoryEntry* directory_entry);
+   Mode::Type getMode(tile_id_t sharer);
    void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry);
 
 private:
-   Mode _saved_mode;
+   Mode::Type _saved_mode;
 };
 
 }

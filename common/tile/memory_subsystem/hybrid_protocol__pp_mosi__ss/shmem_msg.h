@@ -28,12 +28,11 @@ public:
       // in response to a Private sharer
       SH_REPLY,
       EX_REPLY,
-      UPGRADE_REPLY,
+      READY_REPLY,
 
       // Asynchronous replies for processing remote requests
       ASYNC_SH_REPLY,
       ASYNC_EX_REPLY,
-      ASYNC_UPGRADE_REPLY,
 
       // These requests/replies sent from the directory-to-L2/L2-to-directory
       // are exclusive to the PrL1PrL2MOSI protocol
@@ -76,21 +75,46 @@ public:
 
    ShmemMsg();
 
+   // READY_REPLY
+   // INV_REQ, FLUSH_REQ, WB_REQ
+   // INV_REPLY
+   // DRAM_FETCH_REQ
    ShmemMsg(Type type,
             MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
             IntPtr address, 
-            tile_id_t requester, bool modeled);
+            tile_id_t requester, bool modeled,
+            UInt32 cache_line_utilization = 0);
+
+   // DRAM_STORE_REQ, DRAM_FETCH_REPLY
    ShmemMsg(Type type,
             MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
             IntPtr address,
             Byte* data_buf, UInt32 data_buf_size,
             tile_id_t requester, bool modeled);
+   // EX_REPLY, SH_REPLY
+   // ASYNC_EX_REPLY, ASYNC_SH_REPLY
+   // FLUSH_REPLY, WB_REPLY
+   ShmemMsg(Type type,
+            MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
+            IntPtr address,
+            Byte* data_buf, UInt32 data_buf_size,
+            bool cache_line_dirty,
+            tile_id_t requester, bool modeled,
+            UInt32 cache_line_utilization = 0);
 
+   // UNIFIED_READ_REQ, UNIFIED_READ_LOCK_REQ
+   // REMOTE_READ_REQ, REMOTE_READ_LOCK_REQ
+   // WRITE_REPLY, WRITE_UNLOCK_REPLY
+   // REMOTE_WRITE_REQ, REMOTE_WRITE_UNLOCK_REQ
    ShmemMsg(Type type,
             MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
             IntPtr address,
             UInt32 offset, UInt32 data_length,
             tile_id_t requester, bool modeled);
+   // UNIFIED_WRITE_REQ, WRITE_UNLOCK_REQ
+   // REMOTE_WRITE_REQ, REMOTE_WRITE_UNLOCK_REQ
+   // READ_REPLY, READ_LOCK_REPLY
+   // REMOTE_READ_REPLY, REMOTE_READ_LOCK_REPLY
    ShmemMsg(Type type,
             MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
             IntPtr address,
@@ -98,15 +122,10 @@ public:
             Byte* data_buf, UInt32 data_buf_size,
             tile_id_t requester, bool modeled);
 
+   // INV_FLUSH_COMBINED_REQ
    ShmemMsg(Type type,
             MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
             IntPtr address,
-            tile_id_t single_receiver, bool reply_expected,
-            tile_id_t requester, bool modeled);
-   ShmemMsg(Type type,
-            MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component,
-            IntPtr address,
-            Byte* data_buf, UInt32 data_buf_size,
             tile_id_t single_receiver, bool reply_expected,
             tile_id_t requester, bool modeled);
    
@@ -133,11 +152,12 @@ public:
    UInt32 getDataLength() const { return _data_length; }
    Byte* getDataBuf() const { return _data_buf; }
    UInt32 getDataBufSize() const { return _data_buf_size; }
+   bool isCacheLineDirty() const { return _cache_line_dirty; }
    tile_id_t getSingleReceiver() const { return _single_receiver; }
    bool isReplyExpected() const { return _reply_expected; }
    tile_id_t getRequester() const { return _requester; }
    bool isModeled() const { return _modeled; }
-   UInt32 getUtilization() const  { return _utilization; }
+   UInt32 getCacheLineUtilization() const  { return _cache_line_utilization; }
 
    void setType(Type type) { _type = type; }
    void setDataBuf(Byte* data_buf) { _data_buf = data_buf; }
@@ -157,11 +177,12 @@ private:
    UInt32 _data_length;
    Byte* _data_buf;
    UInt32 _data_buf_size;
+   bool _cache_line_dirty;
    tile_id_t _single_receiver;
    bool _reply_expected;
    tile_id_t _requester;
    bool _modeled;
-   UInt32 _utilization;
+   UInt32 _cache_line_utilization;
 
    // Static data fields
    static UInt32 _num_msg_type_bits;
@@ -173,5 +194,10 @@ private:
    // Initialize the MSG with default values
    void initialize();
 };
+
+#define SPELL_SHMSG(x)        (ShmemMsg::getName(x).c_str())
+#define IS_BLOCKING_REQ(x)    ((x == ShmemMsg::UNIFIED_READ_REQ)      || \
+                               (x == ShmemMsg::UNIFIED_READ_LOCK_REQ) || \
+                               (x == ShmemMsg::UNIFIED_WRITE_REQ))
 
 }

@@ -44,8 +44,13 @@ LocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, Direc
    case ShmemMsg::INV_REPLY:
    case ShmemMsg::WB_REPLY:
    case ShmemMsg::FLUSH_REPLY:
-      setUtilization(sender, shmem_msg->getCacheLineUtilization());
-      updateMode(sender);
+      {
+         UInt32 utilization = shmem_msg->getCacheLineUtilization();
+         if (utilization > _private_caching_threshold)
+            utilization = _private_caching_threshold;
+         setUtilization(sender, utilization);
+         updateMode(sender);
+      }
       break;
 
    default:

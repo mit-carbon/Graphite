@@ -10,8 +10,8 @@ using namespace std;
 
 void* thread_func(void*);
 
-int num_threads = 4;
-int num_iterations = 1;
+int num_threads = 64;
+int num_iterations = 100;
 
 carbon_barrier_t barrier;
 
@@ -27,11 +27,7 @@ int main (int argc, char *argv[])
 
    carbon_thread_t tid_list[num_threads];
 
-   Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
-
-   int val = 0;
-   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val), true);
-   LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
+   Core* core = Sim()->getTileManager()->getCurrentCore();
 
    for (int i = 0; i < num_threads-1; i++)
    {
@@ -44,18 +40,7 @@ int main (int argc, char *argv[])
       CarbonJoinThread(tid_list[i]);
    }
   
-   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val), true);
-   LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
-   
-   printf("val = %i\n", val);
-   if (val != (num_iterations))
-   {
-      printf("shared_mem_test4 (FAILURE)\n");
-   }
-   else
-   {
-      printf("shared_mem_test4 (SUCCESS)\n");
-   }
+   printf("shared_mem_test4 (SUCCESS)\n");
   
    Simulator::disablePerformanceModelsInCurrentProcess();
    CarbonStopSim();
@@ -64,24 +49,29 @@ int main (int argc, char *argv[])
 
 void* thread_func(void*)
 {
-   Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
+   Core* core = Sim()->getTileManager()->getCurrentCore();
 
    for (int i = 0; i < num_iterations; i++)
    {
-      int val;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val), true);
-      LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
-
-      CarbonBarrierWait(&barrier);
-
       if (core->getTile()->getId() == 0)
       {
-         val ++;
-         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val), true);
+         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &i, sizeof(i));
          LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
       }
       
       CarbonBarrierWait(&barrier);
+
+      int val;
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
+      LOG_PRINT("Core(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
+      if (val != i)
+      {
+         fprintf(stderr, "shared_mem_test4 (FAILURE): Core(%i), Expected(%i), Got(%i)\n",
+                 core->getTile()->getId(), i, val);
+         exit(-1);
+      }
+
+      CarbonBarrierWait(&barrier);      
    }
    return NULL;
 }

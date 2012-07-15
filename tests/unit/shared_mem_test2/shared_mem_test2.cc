@@ -11,7 +11,7 @@ using namespace std;
 void* thread_func(void*);
 
 IntPtr address = 0x1000;
-int num_threads = 100;
+int num_threads = 64;
 int num_iterations = 100;
 
 carbon_barrier_t barrier;
@@ -31,7 +31,9 @@ int main (int argc, char *argv[])
 
    Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
    int val = 0;
-   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val), true);
+   printf("[MAIN] Writing (%i) into address (%#lx)\n", val, address);
+   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val));
+   printf("[MAIN] Writing into address (%#lx) completed\n", address);
 
    for (int i = 0; i < num_threads-1; i++)
    {
@@ -44,16 +46,18 @@ int main (int argc, char *argv[])
       CarbonJoinThread(tid_list[i]);
    }
    
-   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val), true);
+   printf("[MAIN] Reading from address (%#lx)\n", address);
+   core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
+   printf("[MAIN] Reading (%i) from address (%#lx) completed\n", val, address);
    
-   printf("val(%i)\n", val);
    if (val == (num_threads * num_iterations))
    {
       printf("shared_mem_test2 (SUCCESS)\n");
    }
    else
    {
-      printf("shared_mem_test2 (FAILURE)\n");
+      fprintf(stderr, "shared_mem_test2 (FAILURE): Expected(%u), Got(%i)\n", num_threads * num_iterations, val);
+      exit(-1);
    }
   
    // Disable performance models
@@ -69,15 +73,15 @@ void* thread_func(void*)
    // Wait on barrier
    CarbonBarrierWait(&barrier);
 
-   Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
+   Core* core = Sim()->getTileManager()->getCurrentCore();
 
    for (int i = 0; i < num_iterations; i++)
    {
       int val;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address, (Byte*) &val, sizeof(val), true);
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address, (Byte*) &val, sizeof(val));
       
       val += 1;
 
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address, (Byte*) &val, sizeof(val), true);
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address, (Byte*) &val, sizeof(val));
    }
 }

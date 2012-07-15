@@ -10,9 +10,9 @@ using namespace std;
 
 void* thread_func(void*);
 
-int num_addresses = 2;
-int num_threads = 2;
-int num_iterations = 2;
+int num_addresses = 100;
+int num_threads = 64;
+int num_iterations = 10;
 
 carbon_barrier_t barrier;
 IntPtr* address;
@@ -30,7 +30,7 @@ int main (int argc, char *argv[])
    // Init barrier
    CarbonBarrierInit(&barrier, num_threads);
 
-   Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
+   Core* core = Sim()->getTileManager()->getCurrentCore();
 
    address = new IntPtr[num_addresses];
 
@@ -38,15 +38,18 @@ int main (int argc, char *argv[])
    {
       int val = 0;
       address[j] = j << 18;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address[j], (Byte*) &val, sizeof(val), true);
+      printf("[MAIN] Writing (%i) into address (%#lx)\n", val, address[j]);
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address[j], (Byte*) &val, sizeof(val));
+      printf("[MAIN] Writing (%i) into address (%#lx) completed\n", val, address[j]);
    }
 
-   for (int i = 0; i < num_threads; i++)
+   for (int i = 0; i < num_threads-1; i++)
    {
       tid_list[i] = CarbonSpawnThread(thread_func, (void*) i);
    }
+   thread_func(NULL);
 
-   for (int i = 0; i < num_threads; i++)
+   for (int i = 0; i < num_threads-1; i++)
    {
       CarbonJoinThread(tid_list[i]);
    }
@@ -54,12 +57,15 @@ int main (int argc, char *argv[])
    for (int j = 0; j < num_addresses; j++)
    {
       int val;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address[j], (Byte*) &val, sizeof(val), true);
+      printf("[MAIN] Reading from address (%#lx)\n", address[j]);
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address[j], (Byte*) &val, sizeof(val));
+      printf("[MAIN] Read (%i) from address (%#lx)\n", val, address[j]);
       
-      printf("val[%i] = %i\n", j, val);
       if (val != (num_threads * num_iterations))
       {
-         printf("shared_mem_test3 (FAILURE)\n");
+         fprintf(stderr, "shared_mem_test3 (FAILURE): Address(%#lx), Expected(%i), Got(%i)\n",
+                 address[j], num_threads * num_iterations, val);
+         exit(-1);
       }
    }
 
@@ -85,11 +91,11 @@ void* thread_func(void*)
       for (int j = 0; j < num_addresses; j++)
       {
          int val;
-         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address[j], (Byte*) &val, sizeof(val), true);
+         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::LOCK, Core::READ_EX, address[j], (Byte*) &val, sizeof(val));
          
          val += 1;
 
-         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address[j], (Byte*) &val, sizeof(val), true);
+         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::UNLOCK, Core::WRITE, address[j], (Byte*) &val, sizeof(val));
       }
    }
 }

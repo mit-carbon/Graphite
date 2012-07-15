@@ -21,7 +21,7 @@ RandomClassifier::getMode(tile_id_t sharer)
 void
 RandomClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
 {
-   if (IS_DIRECTORY_REQ(shmem_msg->getType()))
+   if (IS_BLOCKING_REQ(shmem_msg->getType()))
    {
       // Set mode to appropriate value
       UInt32 num = _rand_num.next(2);

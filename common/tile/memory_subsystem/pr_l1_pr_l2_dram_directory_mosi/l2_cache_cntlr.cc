@@ -99,8 +99,11 @@ L2CacheCntlr::initializeLifetimeCounters()
 #endif
 
 void
-L2CacheCntlr::invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& L2_cache_line_info,
-                                  CacheLineUtilization& net_cache_line_utilization, UInt64 curr_time)
+L2CacheCntlr::invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& L2_cache_line_info
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+                                  , CacheLineUtilization& net_cache_line_utilization, UInt64 curr_time
+#endif
+                                 )
 {
    L2_cache_line_info.invalidate();
 #ifdef TRACK_DETAILED_CACHE_COUNTERS

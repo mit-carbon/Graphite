@@ -26,7 +26,7 @@ SharedReadWriteRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_ms
    if (_saved_mode == Mode::REMOTE_LINE)
       return;
    
-   if (!IS_DIRECTORY_REQ(shmem_msg->getType()))
+   if (!IS_BLOCKING_REQ(shmem_msg->getType()))
       return;
 
    tile_id_t sharer = sender;

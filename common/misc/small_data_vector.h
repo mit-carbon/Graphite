@@ -12,7 +12,7 @@ public:
    void set(UInt32 idx, UInt32 element);
 
 private:
-   UInt64* _data;
+   UInt32* _data;
    UInt32 _vec_size;
    UInt32 _element_size;
    UInt32 _total_size;

@@ -42,24 +42,16 @@ public:
 
    enum lock_signal_t
    {
-      INVALID_LOCK_SIGNAL = 0,
-      MIN_LOCK_SIGNAL,
-      NONE = MIN_LOCK_SIGNAL,
+      NONE = 0,
       LOCK,
-      UNLOCK,
-      MAX_LOCK_SIGNAL = UNLOCK,
-      NUM_LOCK_SIGNAL_TYPES = MAX_LOCK_SIGNAL - MIN_LOCK_SIGNAL + 1
+      UNLOCK
    };
 
    enum mem_op_t
    {
-      INVALID_MEM_OP = 0,
-      MIN_MEM_OP,
-      READ = MIN_MEM_OP,
+      READ = 0,
       READ_EX,
-      WRITE,
-      MAX_MEM_OP = WRITE,
-      NUM_MEM_OP_TYPES = MAX_MEM_OP - MIN_MEM_OP + 1
+      WRITE
    };
 
    Core(Tile *tile);

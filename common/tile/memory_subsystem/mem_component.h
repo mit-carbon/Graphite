@@ -19,3 +19,5 @@ public:
 
    static string getName(Type type);
 };
+
+#define SPELL_MEMCOMP(x)      (MemComponent::getName(x).c_str())

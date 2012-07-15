@@ -1,58 +1,53 @@
-#ifndef __SHMEM_PERF_MODEL_H__
-#define __SHMEM_PERF_MODEL_H__
+#pragma once
 
 #include <cassert>
 #include <iostream>
+using std::ostream;
 
 #include "lock.h"
 
-using namespace std;
-
 class ShmemPerfModel
 {
-   public:
-      enum Thread_t
-      {
-         _APP_THREAD = 0,
-         _SIM_THREAD,
-         NUM_CORE_THREADS
-      };
+public:
+   enum ThreadType
+   {
+      _APP_THREAD = 0,
+      _SIM_THREAD,
+      NUM_THREAD_TYPES
+   };
 
-   private:
-      UInt64 m_cycle_count[NUM_CORE_THREADS];
-      bool m_enabled;
-      Lock m_shmem_perf_model_lock;
+   ShmemPerfModel();
+   ~ShmemPerfModel();
 
-      UInt64 m_num_memory_accesses;
-      UInt64 m_total_memory_access_latency_in_clock_cycles;
-      UInt64 m_total_memory_access_latency_in_ns;
+   void setCycleCount(ThreadType thread_type, UInt64 count);
 
-      Thread_t getThreadNum();
-      void initializePerformanceCounters();
+   void setCycleCount(UInt64 count)
+   {
+      setCycleCount(getThreadType(), count);
+   }
+   UInt64 getCycleCount();
+   void incrCycleCount(UInt64 count);
+   void updateCycleCount(UInt64 count);
 
-   public:
-      ShmemPerfModel();
-      ~ShmemPerfModel();
+   void incrTotalMemoryAccessLatency(UInt64 shmem_time);
 
-      void setCycleCount(Thread_t thread_num, UInt64 count);
+   void updateInternalVariablesOnFrequencyChange(volatile float core_frequency);
+   
+   void enable()     { _enabled = true;  }
+   void disable()    { _enabled = false; }
+   bool isEnabled()  { return _enabled;  }
 
-      void setCycleCount(UInt64 count)
-      {
-         setCycleCount(getThreadNum(), count);
-      }
-      UInt64 getCycleCount();
-      void incrCycleCount(UInt64 count);
-      void updateCycleCount(UInt64 count);
+   void outputSummary(ostream& out, volatile float core_frequency);
 
-      void incrTotalMemoryAccessLatency(UInt64 shmem_time);
+private:
+   UInt64 _cycle_count[NUM_THREAD_TYPES];
+   bool _enabled;
+   Lock _shmem_perf_model_lock;
 
-      void updateInternalVariablesOnFrequencyChange(volatile float core_frequency);
-      
-      void enable();
-      void disable();
-      bool isEnabled() { return m_enabled; }
+   UInt64 _num_memory_accesses;
+   UInt64 _total_memory_access_latency_in_clock_cycles;
+   UInt64 _total_memory_access_latency_in_ns;
 
-      void outputSummary(ostream& out, volatile float core_frequency);
+   ThreadType getThreadType();
+   void initializePerformanceCounters();
 };
-
-#endif /* __SHMEM_PERF_MODEL_H__ */

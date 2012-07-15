@@ -2,6 +2,9 @@
 
 #include "fixed_types.h"
 
+namespace PrL1PrL2DramDirectoryMOSI
+{
+
 class AggregateCacheLineLifetime
 {
 public:
@@ -22,3 +25,5 @@ public:
       L2 += lifetime.L2;
    }
 };
+
+}

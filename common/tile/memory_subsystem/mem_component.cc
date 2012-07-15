@@ -6,6 +6,8 @@ MemComponent::getName(Type type)
 {
    switch (type)
    {
+   case INVALID:
+      return "INVALID";
    case CORE:
       return "CORE";
    case L1_ICACHE:

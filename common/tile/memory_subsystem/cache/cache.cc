@@ -109,6 +109,8 @@ void
 Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
                        bool* eviction, IntPtr* evicted_address, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf)
 {
+   LOG_PRINT("insertCacheLine[Address(%#lx)] start", inserted_address);
+
    CacheSet* set = getSet(inserted_address);
 
    // Write into the data array
@@ -175,6 +177,8 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
       if (_power_model)
          _power_model->updateDynamicEnergy();
    }
+   
+   LOG_PRINT("insertCacheLine[Address(%#lx)] end", inserted_address);
 }
 
 // Single line cache access at address
@@ -209,7 +213,6 @@ Cache::getCacheLineInfo(IntPtr address)
 
    CacheLineInfo* line_info = set->find(tag);
 
-   LOG_PRINT("Set Ptr(%p), Tag(%#llx), Line Info Ptr(%p)", set, tag, line_info);
    return line_info;
 }
 
@@ -217,7 +220,7 @@ void
 Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
 {
    CacheLineInfo* cache_line_info = getCacheLineInfo(address);
-   assert(cache_line_info);
+   LOG_ASSERT_ERROR(cache_line_info, "Address(%#lx)", address);
 
    // Update exclusive/shared counters
    updateCacheLineStateCounters(cache_line_info->getCState(), updated_cache_line_info->getCState());
@@ -322,6 +325,7 @@ Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache
       }
    }
 
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
    // Update utilization counters
    if (!cache_miss)
    {
@@ -332,6 +336,7 @@ Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache
       else
          line_info->incrWriteUtilization();
    }
+#endif
   
    return miss_type;
 }

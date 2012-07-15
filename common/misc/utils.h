@@ -47,8 +47,22 @@ bool isEven(UInt32 n);
 bool isOdd(UInt32 n);
 
 // Get and set bits in an unsigned int variable (including low, not including high)
-UInt32 getBits(UInt32 x, UInt8 high, UInt8 low);
-void setBits(UInt32 x, UInt8 high, UInt8 low, UInt32 val);
+template <class T>
+T getBits(T x, UInt8 high, UInt8 low)
+{
+   UInt8 bits = high-low;
+   T bitmask = ( ((T)1) << bits) - 1;
+   return (x >> low) & bitmask;
+}
+
+template <class T>
+void setBits(T x, UInt8 high, UInt8 low, T val)
+{
+   UInt8 bits = high-low;
+   T bitmask = (( ((T)1) << bits) - 1) << low;
+   T valp = (val << low) & bitmask;
+   x = (x & ~bitmask) | valp;
+}
 
 // Max and Min functions
 template <class T>
@@ -113,5 +127,10 @@ void parseList(string& list, vector<string>& vec, string delim);
 // Split a line into tokens separated by a list of delimiters
 
 void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters);
+
+// Compute different statistics
+double computeMean(const vector<UInt64>& vec);
+double computeStddev(const vector<UInt64>& vec);
+double computeCoefficientOfVariation(double mean, double stddev);
 
 #endif

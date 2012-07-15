@@ -872,7 +872,7 @@ L2CacheCntlr::getMemOpTypeFromShmemMsgType(ShmemMsg::Type shmem_msg_type)
       return Core::WRITE;
    default:
       LOG_PRINT_ERROR("Unrecognized Msg(%u)", shmem_msg_type);
-      return Core::INVALID_MEM_OP;                 
+      return Core::READ;                 
    }
 }
 

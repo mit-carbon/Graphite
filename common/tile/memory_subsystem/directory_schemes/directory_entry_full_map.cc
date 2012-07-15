@@ -1,4 +1,5 @@
 #include "directory_entry_full_map.h"
+#include "log.h"
 
 using namespace std;
 
@@ -25,7 +26,7 @@ DirectoryEntryFullMap::hasSharer(tile_id_t sharer_id)
 bool
 DirectoryEntryFullMap::addSharer(tile_id_t sharer_id)
 {
-   assert(!_sharers->at(sharer_id));
+   LOG_ASSERT_ERROR(!_sharers->at(sharer_id), "Could not add sharer(%i)", sharer_id);
    _sharers->set(sharer_id);
    return true;;
 }

@@ -123,6 +123,13 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt32 _max_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
       UInt64 _total_sharers_invalidated_by_utilization[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_invalidations;
+      // Sharing Statistics
+      double _utilization_max_stddev;
+      double _utilization_total_stddev;
+      UInt64 _total_stddev_measurements;
+      double _utilization_max_CoV;
+      double _utilization_total_CoV;
+      UInt64 _total_CoV_measurements;
 #endif
 
       UInt32 getCacheLineSize();
@@ -166,6 +173,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Output summary
       void initializeSharerCounters();
+      void initializeSharingStatistics();
       void updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
                                 tile_id_t sender, UInt64 cache_line_utilization);
       void outputSharerCountSummary(ostream& out);

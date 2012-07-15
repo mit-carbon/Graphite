@@ -1,6 +1,7 @@
 #include "dram_directory_cntlr.h"
 #include "log.h"
 #include "memory_manager.h"
+#include "utils.h"
 #include "common_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -633,9 +634,11 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* s
    {
       // Get the latest request for the data
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
-      
+     
+#ifdef TRACK_DETAILED_CACHE_COUNTERS 
       // Update the utilization statistics
       updateCacheLineUtilizationCounters(shmem_req, directory_entry, sender, shmem_msg);
+#endif
 
       restartShmemReq(sender, shmem_req, directory_entry);
    }
@@ -708,9 +711,11 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg*
 
       // Get the latest request for the data
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
-      
+     
+#ifdef TRACK_DETAILED_CACHE_COUNTERS 
       // Update the cache utilization statistics
       updateCacheLineUtilizationCounters(shmem_req, directory_entry, sender, shmem_msg);
+#endif
 
       // Write-back to memory in certain circumstances
       if (shmem_req->getShmemMsg()->getType() == ShmemMsg::SH_REQ)
@@ -787,9 +792,11 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* sh
 
       // Get the latest request for the data
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
-      
+     
+#ifdef TRACK_DETAILED_CACHE_COUNTERS 
       // Update the cache utilization statistics
       updateCacheLineUtilizationCounters(shmem_req, directory_entry, sender, shmem_msg);
+#endif
 
       restartShmemReq(sender, shmem_req, directory_entry);
    }
@@ -906,8 +913,8 @@ DramDirectoryCntlr::initializeEventCounters()
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    initializeSharerCounters();
+   initializeSharingStatistics();
 #endif
-
 }
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
@@ -921,6 +928,18 @@ DramDirectoryCntlr::initializeSharerCounters()
    for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
       _total_sharers_invalidated_by_utilization[i] = 0;
    _total_invalidations = 0;
+}
+
+void
+DramDirectoryCntlr::initializeSharingStatistics()
+{
+   _utilization_max_stddev = 0.0;
+   _utilization_total_stddev = 0.0;
+   _total_stddev_measurements = 0;   
+   
+   _utilization_max_CoV = 0.0;
+   _utilization_total_CoV = 0.0;
+   _total_CoV_measurements = 0;
 }
 
 #endif
@@ -1093,7 +1112,27 @@ DramDirectoryCntlr::updateSharerCounters(const ShmemReq* dir_request, DirectoryE
       // Get utilization vec
       vector<UInt64> utilization_vec;
       directory_entry->getUtilizationVec(utilization_vec);
+
+      vector<UInt64> dup_utilization_vec(utilization_vec);
+      // Increment the utilization of every sharer by 1 to reflect true utilization
+      for (vector<UInt64>::iterator it = dup_utilization_vec.begin(); it != dup_utilization_vec.end(); it++)
+         (*it) ++;
+
+      // Compute the co-efficient of variation of utilization 
+      double mean = computeMean(dup_utilization_vec);
+      double stddev = computeStddev(dup_utilization_vec);
+      double CoV = computeCoefficientOfVariation(mean, stddev);
+
+      if (stddev > _utilization_max_stddev)
+         _utilization_max_stddev = stddev;
+      _utilization_total_stddev += stddev;
+      _total_stddev_measurements ++;
       
+      if (CoV > _utilization_max_CoV)
+         _utilization_max_CoV = CoV;
+      _utilization_total_CoV += CoV;
+      _total_CoV_measurements ++;
+
       // Compute the number of sharers by utilization
       vector<UInt32> num_sharers_by_utilization(MAX_TRACKED_UTILIZATION+1, 0);
       for (vector<UInt64>::iterator it = utilization_vec.begin(); it != utilization_vec.end(); it++)
@@ -1429,6 +1468,15 @@ DramDirectoryCntlr::outputSharerCountSummary(ostream& out)
       out << "      Average-PCT-" << i << ": " << average_sharers_by_PCT[i] << endl;
    }
    out << "    Total Invalidations: " << _total_invalidations << endl;
+
+   // Stddev
+   out << "    Utilization Maximum Stddev: " << _utilization_max_stddev << endl;
+   out << "    Utilization Average Stddev: " << _utilization_total_stddev / _total_stddev_measurements << endl;
+   out << "    Stddev Measurements: " << _total_stddev_measurements << endl;
+   // CoV
+   out << "    Utilization Maximum CoV: " << _utilization_max_CoV << endl;
+   out << "    Utilization Average CoV: " << _utilization_total_CoV / _total_CoV_measurements << endl;
+   out << "    CoV Measurements: " << _total_CoV_measurements << endl;
 }
 
 #endif

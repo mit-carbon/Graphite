@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstring>
+#include <cassert>
 #include "utils.h"
 
 string myDecStr(UInt64 v, UInt32 w)
@@ -47,21 +48,6 @@ bool isEven(UInt32 n)
 
 bool isOdd(UInt32 n)
 { return !isEven(n); }
-
-// Get and set bits in a UInt32 variable
-UInt32 getBits(UInt32 x, UInt8 high, UInt8 low)
-{
-   UInt8 bits = high-low;
-   return (x >> low) & ((2 << bits) - 1);
-}
-
-void setBits(UInt32& x, UInt8 high, UInt8 low, UInt32 val)
-{
-   UInt8 bits = high-low;
-   UInt32 bitmask = ((2 << bits) - 1) << low;
-   UInt32 valp = (val << low) & bitmask;
-   x = (x & ~bitmask) | valp;
-}
 
 // Converts bits to bytes
 UInt32 convertBitsToBytes(UInt32 num_bits)
@@ -175,4 +161,44 @@ void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters
       tokens.push_back((string) token);
       token = strtok_r(NULL, delimiters, &save_ptr);
    }
+}
+
+double computeMean(const vector<UInt64>& vec)
+{
+   double sigma_x = 0.0;
+   for (vector<UInt64>::const_iterator it = vec.begin(); it != vec.end(); it++)
+   {
+      UInt64 element = (*it);
+      sigma_x += ((double) element);
+   }
+
+   size_t n = vec.size();
+   assert(n>0);
+   double mean = (sigma_x / n);
+   return mean;
+}
+
+double computeStddev(const vector<UInt64>& vec)
+{
+   double sigma_x = 0.0;
+   double sigma_x2 = 0.0;
+   for (vector<UInt64>::const_iterator it = vec.begin(); it != vec.end(); it++)
+   {
+      UInt64 element = (*it);
+      sigma_x += ((double) element);
+      sigma_x2 += ((double) (element * element));
+   }
+
+   size_t n = vec.size();
+   assert(n>0);
+   double mean = (sigma_x / n);
+   double variance = (sigma_x2 / n) - (mean * mean);
+   assert(variance >= 0);
+   double stddev = sqrt(variance);
+   return stddev;
+}
+
+double computeCoefficientOfVariation(double mean, double stddev)
+{
+   return stddev / mean;
 }

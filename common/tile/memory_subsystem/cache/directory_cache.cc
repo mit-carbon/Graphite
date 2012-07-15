@@ -272,18 +272,19 @@ DirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 IntPtr
 DirectoryCache::computeSetIndex(IntPtr address)
 {
-   UInt32 num_tile_id_bits = (_log_num_application_tiles <= _log_num_sets) ? _log_num_application_tiles : _log_num_sets;
-   IntPtr tile_id_bits = (address >> _log_stack_size) & ((1 << num_tile_id_bits) - 1);
- 
-   UInt32 log_num_sub_block_bits = _log_num_sets - num_tile_id_bits;
+   LOG_PRINT("Computing Set for address(%#lx), _log_cache_line_size(%u), _log_num_sets(%u), _log_num_directories(%u)",
+             address, _log_cache_line_size, _log_num_sets, _log_num_directories);
 
-   IntPtr sub_block_id = (address >> (_log_cache_line_size + _log_num_directories))
-                         & ((1 << log_num_sub_block_bits) - 1);
+   IntPtr set = 0;
+   for (UInt32 i = _log_cache_line_size + _log_num_directories; (i + _log_num_sets) <= (sizeof(IntPtr)*8); i += _log_num_sets)
+   {
+      IntPtr addr_bits = getBits<IntPtr>(address, i + _log_num_sets, i);
+      set = set ^ addr_bits;
+   }
 
-   IntPtr super_block_id = (address >> (_log_cache_line_size + _log_num_directories + log_num_sub_block_bits))
-                           & ((1 << num_tile_id_bits) - 1);
+   LOG_PRINT("Set(%#x)", (UInt32) set);
 
-   return ((tile_id_bits ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
+   return (UInt32) set;
 }
 
 void

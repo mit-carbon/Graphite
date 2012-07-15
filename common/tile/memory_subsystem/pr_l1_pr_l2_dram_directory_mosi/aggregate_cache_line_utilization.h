@@ -2,6 +2,9 @@
 
 #include "cache_line_utilization.h"
 
+namespace PrL1PrL2DramDirectoryMOSI
+{
+
 class AggregateCacheLineUtilization
 {
 public:
@@ -44,3 +47,5 @@ public:
       return res;
    }
 };
+
+}

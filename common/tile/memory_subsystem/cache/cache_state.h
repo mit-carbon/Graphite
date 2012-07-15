@@ -1,11 +1,9 @@
 #pragma once
 
 #include <string>
-#include <cassert>
+using std::string;
 
 #include "fixed_types.h"
-
-using namespace std;
 
 class CacheState
 {
@@ -15,6 +13,7 @@ public:
       INVALID = 0,
       SHARED,
       OWNED,
+      EXCLUSIVE,
       MODIFIED,
       DATA_INVALID,
       CLEAN,
@@ -28,14 +27,18 @@ public:
    // These functions are only called in a private cache
    bool readable()
    {
-      return (_cstate == MODIFIED) || (_cstate == OWNED) || (_cstate == SHARED);
+      return (_cstate == MODIFIED) || (_cstate == EXCLUSIVE) || (_cstate == OWNED) || (_cstate == SHARED);
    }
    
    bool writable()
    {
-      return (_cstate == MODIFIED);
+      return (_cstate == MODIFIED) || (_cstate == EXCLUSIVE);
    }
+
+   static string getName(Type type);
 
 private:
    Type _cstate;
 };
+
+#define SPELL_CSTATE(x)       (CacheState::getName(x).c_str())

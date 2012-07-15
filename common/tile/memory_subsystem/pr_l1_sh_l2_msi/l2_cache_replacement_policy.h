@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../cache/cache_replacement_policy.h"
 #include "hash_map_queue.h"
 #include "shmem_req.h"

@@ -381,7 +381,7 @@ L2CacheCntlr::processMemOpFromL1Cache(MemComponent::Type mem_component,
    {
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileID());
-     
+
       ShmemMsg::Type directory_req_type = getDirectoryReqType(mem_op_type, lock_signal);
 
       // Set outstanding msg and time at which msg was sent

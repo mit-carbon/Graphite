@@ -19,7 +19,7 @@ RandomClassifier::getMode(tile_id_t sharer)
 }
 
 void
-RandomClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
+RandomClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req)
 {
    if (IS_BLOCKING_REQ(shmem_msg->getType()))
    {

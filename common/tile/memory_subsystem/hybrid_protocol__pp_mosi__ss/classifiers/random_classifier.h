@@ -13,7 +13,7 @@ public:
    ~RandomClassifier();
 
    Mode::Type getMode(tile_id_t sharer);
-   void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry);
+   void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req);
 
 private:
    Random _rand_num;

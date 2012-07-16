@@ -56,7 +56,8 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       DirectoryEntry* directory_entry = _directory->getDirectoryEntry(shmem_msg->getAddress());
       assert(directory_entry);
       Classifier* classifier = dynamic_cast<AdaptiveDirectoryEntry*>(directory_entry)->getClassifier();
-      classifier->updateMode(sender, shmem_msg, directory_entry);
+      BufferedReq* buffered_req = _buffered_req_queue_list->front(shmem_msg->getAddress());
+      classifier->updateMode(sender, shmem_msg, directory_entry, buffered_req);
    }
 
    switch (shmem_msg_type)
@@ -221,7 +222,7 @@ DramDirectoryCntlr::processUnifiedReqFromL2Cache(BufferedReq* buffered_req)
    
    // Update classifier state
    Classifier* classifier = dynamic_cast<AdaptiveDirectoryEntry*>(directory_entry)->getClassifier();
-   classifier->updateMode(requester, directory_req, directory_entry);
+   classifier->updateMode(requester, directory_req, directory_entry, buffered_req);
 
    processDirectoryReq(buffered_req, directory_entry);
 }

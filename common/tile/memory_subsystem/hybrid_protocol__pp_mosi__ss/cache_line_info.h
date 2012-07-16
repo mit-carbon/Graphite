@@ -15,7 +15,7 @@ CacheLineInfo* createCacheLineInfo(SInt32 cache_level);
 class HybridL1CacheLineInfo : public CacheLineInfo
 {
 public:
-   HybridL1CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID, UInt32 utilization = 0);
+   HybridL1CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID);
    ~HybridL1CacheLineInfo();
 
    UInt32 getUtilization() const             { return _utilization;     }
@@ -32,8 +32,7 @@ class HybridL2CacheLineInfo : public HybridL1CacheLineInfo
 {
 public:
    HybridL2CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID,
-                         bool locked = false, MemComponent::Type cached_loc = MemComponent::INVALID,
-                         UInt32 utilization = 0);
+                         bool locked = false, MemComponent::Type cached_loc = MemComponent::INVALID);
    ~HybridL2CacheLineInfo();
 
    void lock()             { _locked = true;  }

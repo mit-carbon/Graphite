@@ -21,7 +21,7 @@ SharedReadWriteRemoteClassifier::getMode(tile_id_t sharer)
 }
 
 void
-SharedReadWriteRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
+SharedReadWriteRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req)
 {
    if (_saved_mode == Mode::REMOTE_LINE)
       return;

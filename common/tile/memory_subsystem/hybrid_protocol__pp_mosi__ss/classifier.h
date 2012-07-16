@@ -7,6 +7,7 @@ using std::string;
 #include "fixed_types.h"
 #include "shmem_msg.h"
 #include "directory_entry.h"
+#include "buffered_req.h"
 
 namespace HybridProtocol_PPMOSI_SS
 {
@@ -42,7 +43,7 @@ public:
    static Classifier* create(SInt32 max_hw_sharers);
 
    virtual Mode::Type getMode(tile_id_t sharer) = 0;
-   virtual void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry) = 0;
+   virtual void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req) = 0;
 
 private:
    static Type _type;

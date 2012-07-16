@@ -112,6 +112,20 @@ string convertToString(const T& t)
    return oss.str();
 }
 
+template <class T>
+string convertToString(const vector<T>& vec)
+{
+   ostringstream oss;
+   for (typename vector<T>::const_iterator it = vec.begin(); it != vec.end(); it++)
+   {
+      T elem = (*it);
+      oss << elem;
+      if ((it + 1) != vec.end())
+         oss << ", ";
+   }
+   return oss.str();
+}
+
 // Convert bits to bytes
 UInt32 convertBitsToBytes(UInt32 num_bits);
 

@@ -24,7 +24,7 @@ PredictiveLocalityBasedClassifier::getMode(tile_id_t sharer)
 }
 
 void
-PredictiveLocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
+PredictiveLocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req)
 {
    if (_tracked_sharer == INVALID_TILE_ID)
       _tracked_sharer = sender;

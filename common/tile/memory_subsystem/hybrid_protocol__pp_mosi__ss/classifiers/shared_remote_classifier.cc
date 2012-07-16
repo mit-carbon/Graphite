@@ -19,7 +19,7 @@ SharedRemoteClassifier::getMode(tile_id_t sharer)
 }
 
 void
-SharedRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
+SharedRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req)
 {
    if (_saved_mode == Mode::REMOTE_LINE)
       return;

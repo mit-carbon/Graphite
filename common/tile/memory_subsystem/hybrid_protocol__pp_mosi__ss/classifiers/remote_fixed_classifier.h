@@ -13,7 +13,7 @@ public:
 
    Mode::Type getMode(tile_id_t sharer)
    { return Mode::REMOTE_LINE; }
-   void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
+   void updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req)
    {}
 };
 

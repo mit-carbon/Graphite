@@ -21,35 +21,61 @@ LocalityBasedClassifier::~LocalityBasedClassifier()
    delete _mode_vec;
 }
 
-Mode::Type
-LocalityBasedClassifier::getMode(tile_id_t sharer)
-{
-   UInt32 mode_type = _mode_vec->get(sharer);
-   return (mode_type == 0) ? Mode::PRIVATE : Mode::REMOTE_SHARER;
-}
-
 void
-LocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry)
+LocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req)
 {
-   switch (shmem_msg->getType())
+   tile_id_t requester = buffered_req ? buffered_req->getShmemMsg()->getRequester() : INVALID_TILE_ID;
+   ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
+   switch (shmem_msg_type)
    {
    case ShmemMsg::UNIFIED_READ_REQ:
    case ShmemMsg::UNIFIED_READ_LOCK_REQ:
    case ShmemMsg::UNIFIED_WRITE_REQ:
    case ShmemMsg::WRITE_UNLOCK_REQ:
-      setUtilization(sender, getUtilization(sender)+1);
-      updateMode(sender);
+      {
+         // REMOTE_SHARER -> PRIVATE transition
+         // Transition can never happen on a WRITE_UNLOCK_REQ to directory (since cache line is locked)
+         // (remote_utilization == _private_caching_threshold) is for a WRITE_UNLOCK_REQ that must really cause a transition
+         Mode::Type mode = getMode(sender);
+         UInt32 remote_utilization = getUtilization(sender);
+         
+         remote_utilization ++;
+         LOG_ASSERT_ERROR(remote_utilization <= (_private_caching_threshold+1), "remote_utilization(%u), _private_caching_threshold(%u)",
+                          remote_utilization, _private_caching_threshold);
+         setUtilization(sender, remote_utilization);
+         if (mode == Mode::REMOTE_SHARER)
+         {
+            // If req is a UNIFIED_READ_LOCK_REQ, switch to PRIVATE mode if utilization = (_private_caching_threshold-1)
+            if ( ( (shmem_msg_type == ShmemMsg::UNIFIED_READ_LOCK_REQ) && (remote_utilization >= (_private_caching_threshold-1)) ) ||
+                 (remote_utilization >= _private_caching_threshold) )
+            {
+               setMode(sender, Mode::PRIVATE);
+            }
+         }
+      }
       break;
 
    case ShmemMsg::INV_REPLY:
-   case ShmemMsg::WB_REPLY:
    case ShmemMsg::FLUSH_REPLY:
       {
-         UInt32 utilization = shmem_msg->getCacheLineUtilization();
-         if (utilization > _private_caching_threshold)
-            utilization = _private_caching_threshold;
-         setUtilization(sender, utilization);
-         updateMode(sender);
+         // PRIVATE -> REMOTE_SHARER transition mostly
+         // REMOTE_SHARER -> PRIVATE transition may occur but is improbable
+         UInt32 private_utilization = shmem_msg->getCacheLineUtilization();
+         UInt32 remote_utilization = getUtilization(sender);
+         UInt32 utilization = private_utilization + remote_utilization;
+         if (sender == requester)
+         {
+            setUtilization(sender, utilization);
+         }
+         else // (sender != requester)
+         {
+            if (utilization >= _private_caching_threshold)
+               setMode(sender, Mode::PRIVATE);
+            else // (utilization < _private_caching_threshold)
+               setMode(sender, Mode::REMOTE_SHARER);
+            // Set utilization to 0
+            setUtilization(sender, 0);
+         }
       }
       break;
 
@@ -57,6 +83,13 @@ LocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, Direc
       // Don't need to do any updates
       break;
    }
+}
+
+Mode::Type
+LocalityBasedClassifier::getMode(tile_id_t sharer)
+{
+   UInt32 mode_type = _mode_vec->get(sharer);
+   return (mode_type == 0) ? Mode::PRIVATE : Mode::REMOTE_SHARER;
 }
 
 void
@@ -75,28 +108,15 @@ LocalityBasedClassifier::getUtilization(tile_id_t sharer)
 void
 LocalityBasedClassifier::setUtilization(tile_id_t sharer, UInt32 utilization)
 {
-   _utilization_vec->set(sharer, utilization);
-}
-
-void
-LocalityBasedClassifier::updateMode(tile_id_t sharer)
-{
-   UInt32 utilization = _utilization_vec->get(sharer);
    if (utilization >= _private_caching_threshold)
-   {
-      // PRIVATE_SHARER_MODE
-      setMode(sharer, Mode::PRIVATE);
-   }
-   else // (utilization < _private_caching_threshold)
-   {
-      // REMOTE_SHARER_MODE
-      setMode(sharer, Mode::REMOTE_SHARER);
-   }
+      utilization = _private_caching_threshold;
+   _utilization_vec->set(sharer, utilization);
 }
 
 void
 LocalityBasedClassifier::setPrivateCachingThreshold(UInt32 PCT)
 {
+   LOG_ASSERT_ERROR(PCT >= 1, "Private Caching Threshold must be >= 1");
    _private_caching_threshold = PCT;
    _num_utilization_bits = floorLog2(PCT)+1;
 }

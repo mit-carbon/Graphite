@@ -22,9 +22,9 @@ createCacheLineInfo(SInt32 cache_level)
 }
 
 //// Hybrid L1 CacheLineInfo
-HybridL1CacheLineInfo::HybridL1CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt32 utilization)
+HybridL1CacheLineInfo::HybridL1CacheLineInfo(IntPtr tag, CacheState::Type cstate)
    : CacheLineInfo(tag, cstate)
-   , _utilization(utilization)
+   , _utilization(0)
 {}
 
 HybridL1CacheLineInfo::~HybridL1CacheLineInfo()
@@ -48,9 +48,8 @@ HybridL1CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 //// Hybrid L2 CacheLineInfo
 
 HybridL2CacheLineInfo::HybridL2CacheLineInfo(IntPtr tag, CacheState::Type cstate,
-                                             bool locked, MemComponent::Type cached_loc,
-                                             UInt32 utilization)
-   : HybridL1CacheLineInfo(tag, cstate, utilization)
+                                             bool locked, MemComponent::Type cached_loc)
+   : HybridL1CacheLineInfo(tag, cstate)
    , _locked(locked)
    , _cached_loc(cached_loc)
 {}

@@ -142,6 +142,16 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    LOG_PRINT("Address(%#lx), Requester(%i), ReqType(%s) dequeued",
              address, completed_directory_req->getRequester(), SPELL_SHMSG(completed_directory_req->getType()));
 
+   if (completed_buffered_req->lookupData())
+   {
+      // Flush the data to DRAM
+      Byte* data_buf = completed_buffered_req->lookupData();
+      assert(completed_buffered_req->isCacheLineDirty());
+      tile_id_t requester = completed_buffered_req->getShmemMsg()->getRequester();
+      bool modeled = completed_buffered_req->getShmemMsg()->isModeled();
+      storeDataInDram(address, data_buf, requester, modeled);
+      completed_buffered_req->eraseData();
+   }
    delete completed_buffered_req;
 
    if (!_buffered_req_queue_list->empty(address))
@@ -680,10 +690,11 @@ DramDirectoryCntlr::allocateSharedCacheLine(IntPtr address, ShmemMsg::Type direc
                bool data_sent = retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
                assert(data_sent);
                
+               LOG_ASSERT_ERROR(curr_dstate == DirectoryState::SHARED, "curr_dstate(%s)", SPELL_DSTATE(curr_dstate));
+               
                bool cache_line_dirty = buffered_req->isCacheLineDirty();
                if (cache_line_dirty)
                {
-                  assert(curr_dstate == DirectoryState::SHARED);
                   // Dirty status is being handed over to the new sharer
                   directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::OWNED);
                   directory_entry->setOwner(cached_location);

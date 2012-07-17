@@ -27,12 +27,13 @@ BufferedReq::BufferedReq(const ShmemMsg* msg, UInt64 time)
 
 BufferedReq::~BufferedReq()
 {
+   LOG_ASSERT_ERROR(!_data_buf, "Data Buf still allocated, MsgType(%s), Requester(%i)",
+                    SPELL_SHMSG(_msg->getType()), _msg->getRequester());
    LOG_PRINT("Dtor: Address(%#lx)", _msg->getAddress());
    assert((_msg->getDataBuf() == NULL) == (_msg->getDataBufSize() == 0));
    if (_msg->getDataBuf())
       delete [] _msg->getDataBuf();
    delete _msg;
-   LOG_ASSERT_ERROR(!_data_buf, "Data Buf still allocated");
 }
 
 void

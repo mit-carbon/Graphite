@@ -1,5 +1,3 @@
-#include <sstream>
-using std::ostringstream;
 #include "shared_read_write_remote_classifier.h"
 #include "log.h"
 
@@ -23,9 +21,22 @@ SharedReadWriteRemoteClassifier::getMode(tile_id_t sharer)
 void
 SharedReadWriteRemoteClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, DirectoryEntry* directory_entry, BufferedReq* buffered_req)
 {
+   // Uni-directional classification change from PRIVATE -> REMOTE_LINE, never reverts back
    if (_saved_mode == Mode::REMOTE_LINE)
       return;
-   
+  
+   // Special code for WB_REPLY
+   if ( (shmem_msg->getType() == ShmemMsg::WB_REPLY) || (shmem_msg->getType() == ShmemMsg::FLUSH_REQ) )
+   {
+      tile_id_t requester = buffered_req ? buffered_req->getShmemMsg()->getRequester() : INVALID_TILE_ID;
+      if ((requester != INVALID_TILE_ID) && shmem_msg->isCacheLineDirty())
+      {
+         LOG_ASSERT_ERROR(requester != sender, "Requester(%i), Sender(%i)", requester, sender);
+         _saved_mode = Mode::REMOTE_LINE;
+      }
+      return;
+   }
+
    if (!IS_BLOCKING_REQ(shmem_msg->getType()))
       return;
 

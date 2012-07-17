@@ -37,12 +37,13 @@ LocalityBasedClassifier::updateMode(tile_id_t sender, ShmemMsg* shmem_msg, Direc
          // Transition can never happen on a WRITE_UNLOCK_REQ to directory (since cache line is locked)
          // (remote_utilization == _private_caching_threshold) is for a WRITE_UNLOCK_REQ that must really cause a transition
          Mode::Type mode = getMode(sender);
-         UInt32 remote_utilization = getUtilization(sender);
          
-         remote_utilization ++;
-         LOG_ASSERT_ERROR(remote_utilization <= (_private_caching_threshold+1), "remote_utilization(%u), _private_caching_threshold(%u)",
+         UInt32 remote_utilization = getUtilization(sender);
+         LOG_ASSERT_ERROR(remote_utilization <= _private_caching_threshold, "remote_utilization(%u), _private_caching_threshold(%u)",
                           remote_utilization, _private_caching_threshold);
+         remote_utilization ++;
          setUtilization(sender, remote_utilization);
+         
          if (mode == Mode::REMOTE_SHARER)
          {
             // If req is a UNIFIED_READ_LOCK_REQ, switch to PRIVATE mode if utilization = (_private_caching_threshold-1)

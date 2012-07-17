@@ -39,7 +39,8 @@ void
 BufferedReq::insertData(Byte* data, UInt32 size)
 {
    LOG_PRINT("Insert: Address(%#lx), Size(%u)", _msg->getAddress(), size);
-   LOG_ASSERT_ERROR(!_data_buf, "Data buf ALREADY allocated");
+   LOG_ASSERT_ERROR(!_data_buf, "Data buf ALREADY allocated, MsgType(%s), Requester(%i)",
+                    SPELL_SHMSG(_msg->getType()), _msg->getRequester());
    _data_buf = new Byte[size];
    memcpy(_data_buf, data, size);
 }

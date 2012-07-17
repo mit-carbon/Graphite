@@ -518,22 +518,41 @@ DramDirectoryCntlr::allocateExclusiveCacheLine(IntPtr address, ShmemMsg::Type di
       }
 
    case DirectoryState::OWNED:
-   case DirectoryState::SHARED:
       {
          LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, 
-                          "Address(%#lx), Directory State(%s), Num Sharers(%u)",
-                          address, SPELL_DSTATE(curr_dstate), directory_entry->getNumSharers());
+                          "Address(%#lx), Directory State(OWNED), Num Sharers(%u)",
+                          address, directory_entry->getNumSharers());
          
-         // getOneSharer() is a deterministic function
-         // FLUSH_REPLY from Owner / One Sharer
+         // FLUSH_REPLY from Owner
          // INV_REQ from all other sharers
          
          vector<tile_id_t> sharers_list;
          bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
-         tile_id_t flush_sharer = (curr_dstate == DirectoryState::OWNED) ?
-                                  directory_entry->getOwner() : directory_entry->getOneSharer();
-         
+         tile_id_t flush_sharer = directory_entry->getOwner();
+         LOG_ASSERT_ERROR(!buffered_req->lookupData(), "Data Buf already allocated for address(%#lx)", address);
+
          sendShmemMsg(ShmemMsg::INV_FLUSH_COMBINED_REQ, address,
+                      flush_sharer, all_tiles_sharers, sharers_list,
+                      requester, modeled);
+         return false;
+      }
+
+   case DirectoryState::SHARED:
+      {
+         LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, 
+                          "Address(%#lx), Directory State(SHARED), Num Sharers(%u)",
+                          address, directory_entry->getNumSharers());
+         
+         // getOneSharer() is a deterministic function
+         // FLUSH_REPLY from One Sharer
+         // INV_REQ from all other sharers
+         
+         vector<tile_id_t> sharers_list;
+         bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+         tile_id_t flush_sharer = buffered_req->lookupData() ? INVALID_TILE_ID : directory_entry->getOneSharer();
+         ShmemMsg::Type invalidate_req_type = buffered_req->lookupData() ? ShmemMsg::INV_REQ : ShmemMsg::INV_FLUSH_COMBINED_REQ;
+         
+         sendShmemMsg(invalidate_req_type, address,
                       flush_sharer, all_tiles_sharers, sharers_list,
                       requester, modeled);
          return false;
@@ -945,7 +964,9 @@ DramDirectoryCntlr::processWbReplyFromL2Cache(tile_id_t sender, ShmemMsg* shmem_
                           "Address(%#lx), WB_REP, req queue empty!!", address);
 
          LOG_ASSERT_ERROR(shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(NO)");
-         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::OWNED);
+         
+         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::SHARED);
+         directory_entry->setOwner(INVALID_TILE_ID);
       }
       break;
 
@@ -956,17 +977,20 @@ DramDirectoryCntlr::processWbReplyFromL2Cache(tile_id_t sender, ShmemMsg* shmem_
          LOG_ASSERT_ERROR(_buffered_req_queue_list->count(address) > 0,
                           "Address(%#lx), WB_REP, req queue empty!!", address);
 
-         DirectoryState::Type new_dstate = (shmem_msg->isCacheLineDirty()) ? DirectoryState::OWNED : DirectoryState::SHARED;
-         directory_entry->getDirectoryBlockInfo()->setDState(new_dstate);
-         if (new_dstate == DirectoryState::SHARED)
-            directory_entry->setOwner(INVALID_TILE_ID);
+         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::SHARED);
+         directory_entry->setOwner(INVALID_TILE_ID);
       }
       break;
 
    case DirectoryState::OWNED:
-      LOG_ASSERT_ERROR(shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(NO)");
-      LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
-                       "Address(%#lx), sender(%i), NOT owner", address, sender);
+      {
+         LOG_ASSERT_ERROR(shmem_msg->isCacheLineDirty(), "Cache-Line-Dirty(NO)");
+         LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
+                          "Address(%#lx), sender(%i), NOT owner", address, sender);
+
+         directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::SHARED);
+         directory_entry->setOwner(INVALID_TILE_ID);
+      }
       break;
 
    case DirectoryState::SHARED:
@@ -990,6 +1014,7 @@ DramDirectoryCntlr::processWbReplyFromL2Cache(tile_id_t sender, ShmemMsg* shmem_
       BufferedReq* buffered_req = _buffered_req_queue_list->front(address);
       // First save the data in one of the buffers in the directory cntlr
       buffered_req->insertData(shmem_msg->getDataBuf(), getCacheLineSize());
+      buffered_req->setCacheLineDirty(shmem_msg->isCacheLineDirty());
 
       restartDirectoryReqIfReady(buffered_req, directory_entry, sender, shmem_msg);
    }

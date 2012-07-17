@@ -20,6 +20,9 @@ private:
    Mode::Type _mode;
    UInt32 _utilization;
    tile_id_t _tracked_sharer;
+
+   UInt32 getUtilization() const;
+   void setUtilization(UInt32 utilization);
 };
 
 }

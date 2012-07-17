@@ -871,13 +871,9 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
       // Get total cache line utilization
       UInt32 cache_line_utilization = getLineUtilizationInCacheHierarchy(address, l2_cache_line_info);
 
-      // MODIFIED -> OWNED, EXCLUSIVE -> SHARED, OWNED -> OWNED, SHARED -> SHARED
+      // MODIFIED, EXCLUSIVE, OWNED, SHARED -> SHARED
       bool cache_line_dirty = ((cstate == CacheState::MODIFIED) || (cstate == CacheState::OWNED));
-      CacheState::Type new_cstate = cstate;
-      if (cstate == CacheState::MODIFIED)
-         new_cstate = CacheState::OWNED;
-      else if (cstate == CacheState::EXCLUSIVE)
-         new_cstate = CacheState::SHARED;
+      CacheState::Type new_cstate = CacheState::SHARED;
       
       // Set the Appropriate Cache State in the L1 cache
       setCacheLineStateInL1(l2_cache_line_info.getCachedLoc(), address, new_cstate);

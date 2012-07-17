@@ -97,6 +97,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
    bool l1_cache_hit = !l1_cache_status.first;
    if (l1_cache_hit)
    {
+      // Incr cycle count
+      getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
       accessCache(mem_component, lock_signal, mem_op_type, address, offset, data_buf, data_length, l1_cache_line_info);
       _memory_manager->releaseLock();
       if ( (mem_op_type == Core::WRITE) && (lock_signal == Core::UNLOCK) )
@@ -104,6 +107,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       return true;
    }
 
+   // Incr cycle count
+   getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
+   
    bool l2_cache_hit = _l2_cache_cntlr->processMemOpFromL1Cache(mem_component, mem_op_type, lock_signal,
                                                                 address, data_buf, offset, data_length,
                                                                 modeled);

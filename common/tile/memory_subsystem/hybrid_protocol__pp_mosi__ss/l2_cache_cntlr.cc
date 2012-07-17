@@ -310,6 +310,11 @@ L2CacheCntlr::processMemOpL2CacheReady(MemComponent::Type mem_component,
                                        IntPtr address, Byte* data_buf, UInt32 offset, UInt32 data_length,
                                        HybridL2CacheLineInfo& l2_cache_line_info)
 {
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   // Update Shared Mem perf counters for access to L1 Cache
+   getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    // Check if L2 cache is indeed ready
    assertL2CacheReady(mem_op_type, l2_cache_line_info.getCState());
    
@@ -379,6 +384,9 @@ L2CacheCntlr::processMemOpFromL1Cache(MemComponent::Type mem_component,
    }
    else
    {
+      // Incr cycle count
+      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileID());
 
@@ -502,9 +510,6 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
       if (!_outstanding_mem_op.isModeled())
          getShmemPerfModel()->setCycleCount(_outstanding_mem_op_time);
 
-      // Increment the clock by the time taken to update the L2 cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
-
       // Set the clock of the APP thread to that of the SIM thread
       getShmemPerfModel()->setCycleCount(ShmemPerfModel::_APP_THREAD,
                                          getShmemPerfModel()->getCycleCount());
@@ -557,6 +562,11 @@ L2CacheCntlr::processRemoteReadReqFromDramDirectory(tile_id_t sender, ShmemMsg* 
    if (!l2_cache_line_info.isValid())
       return;
 
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   // Update Shared Mem perf counters for access to L1 Cache
+   getMemoryManager()->incrCycleCount(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+   
    MemComponent::Type mem_component = l2_cache_line_info.getCachedLoc();
    
    // Read the cache line
@@ -610,6 +620,11 @@ L2CacheCntlr::processRemoteWriteReqFromDramDirectory(tile_id_t sender, ShmemMsg*
    _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
    if (!l2_cache_line_info.isValid())
       return;
+   
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   // Update Shared Mem perf counters for access to L1 Cache
+   getMemoryManager()->incrCycleCount(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
    
    MemComponent::Type mem_component = l2_cache_line_info.getCachedLoc();
    
@@ -667,6 +682,11 @@ L2CacheCntlr::processExReplyFromDramDirectory(tile_id_t sender, ShmemMsg* direct
 
    LOG_PRINT("processExReplyFromDramDirectory[sender(%i), address(%#lx)]", sender, address);
 
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   // Update Shared Mem perf counters for access to L1 Cache
+   getMemoryManager()->incrCycleCount(_outstanding_mem_op.getMemComponent(), CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   
    // Insert Cache Line in L1 and L2 Caches
    CacheState::Type cstate = ((directory_reply->isCacheLineDirty()) || IS_WRITE(mem_op_type))
                              ? CacheState::MODIFIED : CacheState::EXCLUSIVE;
@@ -688,6 +708,11 @@ L2CacheCntlr::processShReplyFromDramDirectory(tile_id_t sender, ShmemMsg* direct
 
    LOG_PRINT("processShReplyFromDramDirectory[sender(%i), address(%#lx)]", sender, address);
 
+   // Update Shared Mem perf counters for access to L2 Cache
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   // Update Shared Mem perf counters for access to L1 Cache
+   getMemoryManager()->incrCycleCount(_outstanding_mem_op.getMemComponent(), CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   
    // Insert Cache Line in L1 and L2 Caches
    CacheState::Type cstate = directory_reply->isCacheLineDirty() ? CacheState::OWNED : CacheState::SHARED;
    insertCacheLineInHierarchy(address, cstate, false, fill_buf);
@@ -724,6 +749,9 @@ L2CacheCntlr::processAsyncExReplyFromDramDirectory(tile_id_t sender, ShmemMsg* d
 
    LOG_PRINT("processAsyncExReplyFromDramDirectory[sender(%i), address(%#lx)]", sender, address);
 
+   // Incr cycle count
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    CacheState::Type cstate = directory_reply->isCacheLineDirty() ? CacheState::MODIFIED : CacheState::EXCLUSIVE;
    insertCacheLine(address, cstate, false, fill_buf, MemComponent::INVALID);
 }
@@ -735,6 +763,9 @@ L2CacheCntlr::processAsyncShReplyFromDramDirectory(tile_id_t sender, ShmemMsg* d
    Byte* fill_buf = directory_reply->getDataBuf();
 
    LOG_PRINT("processAsyncShReplyFromDramDirectory[sender(%i), address(%#lx)]", sender, address);
+
+   // Incr cycle count
+   getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
    CacheState::Type cstate = directory_reply->isCacheLineDirty() ? CacheState::OWNED : CacheState::SHARED;
    insertCacheLine(address, cstate, false, fill_buf, MemComponent::INVALID);

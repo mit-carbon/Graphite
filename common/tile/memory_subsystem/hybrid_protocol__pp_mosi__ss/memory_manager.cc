@@ -394,6 +394,9 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 void
 MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
 {
+   if (!_enabled)
+      return;
+
    switch (mem_component)
    {
    case MemComponent::L1_ICACHE:

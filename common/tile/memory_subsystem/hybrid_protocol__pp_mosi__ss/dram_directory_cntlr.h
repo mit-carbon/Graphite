@@ -65,6 +65,10 @@ private:
    ShmemPerfModel* getShmemPerfModel();
    tile_id_t getTileID();
 
+   // Event counters
+   UInt64 _private_mode_requests;
+   UInt64 _remote_mode_requests;
+   
    // Process next req from L2 cache in the order in which they were received
    void processNextReqFromL2Cache(IntPtr address);
  
@@ -134,6 +138,10 @@ private:
    // Restart the processing of a request after a reply is received from one of the sharers or the remote core
    void restartDirectoryReqIfReady(BufferedReq* buffered_req, DirectoryEntry* directory_entry,
                                    tile_id_t last_msg_sender, ShmemMsg* last_msg);
+
+   // Event counters
+   void initializeModeCounters();
+   void updateModeCounters(Mode::Type mode);
 };
 
 }

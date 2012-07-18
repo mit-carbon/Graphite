@@ -143,6 +143,10 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
          PredictiveLocalityBasedClassifier::setPrivateCachingThreshold(private_caching_threshold);
    }
 
+   std::vector<tile_id_t> application_tile_list;
+   for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getApplicationTiles(); i++)
+      application_tile_list.push_back(i);
+
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    //if (getTile()->getId() == 0)
       //printTileListWithMemoryControllers(tile_list_with_dram_controllers);
@@ -150,7 +154,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    // Create dram directory and dram cntlr home lookups
    UInt32 dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
    UInt32 dram_home_lookup_param = ceilLog2(_cache_line_size);
-   _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_dram_controllers, getCacheLineSize());
+   _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, application_tile_list, getCacheLineSize());
    _dram_home_lookup = new AddressHomeLookup(dram_home_lookup_param, tile_list_with_dram_controllers, getCacheLineSize());
 
    if (find(tile_list_with_dram_controllers.begin(), tile_list_with_dram_controllers.end(), getTile()->getId()) \
@@ -174,7 +178,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
          dram_directory_max_num_sharers,
          dram_directory_max_hw_sharers,
          dram_directory_type_str,
-         tile_list_with_dram_controllers.size(),
+         application_tile_list.size(),
          dram_directory_access_time);
 
    _l1_cache_cntlr = new L1CacheCntlr(this,
@@ -472,6 +476,7 @@ MemoryManager::outputSummary(std::ostream &os)
    _l1_cache_cntlr->getL1DCache()->outputSummary(os);
    _l2_cache_cntlr->getL2Cache()->outputSummary(os);
 
+   _dram_directory_cntlr->outputSummary(os);
    os << "Dram Directory Cache Summary:\n";
    _dram_directory_cntlr->getDramDirectory()->outputSummary(os);
    if (_dram_cntlr_present)

@@ -425,7 +425,7 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
                            shmem_msg->getOffset(), shmem_msg->getDataLength(),
                            shmem_msg->getDataBuf(), shmem_msg->getDataBufSize(),
                            shmem_msg->getRequester(), shmem_msg->isModeled());
-   getMemoryManager()->sendMsg(getDramDirectoryHome(address), send_shmem_msg);
+   getMemoryManager()->sendMsg(_dram_directory_home_lookup->getHome(address), send_shmem_msg);
 }
 
 void
@@ -782,7 +782,7 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
 
    if (cstate != CacheState::INVALID)
    {
-      LOG_ASSERT_ERROR(cstate == CacheState::SHARED, "address(%#lx), cstate(%s)", address, SPELL_CSTATE(cstate));
+      LOG_ASSERT_ERROR(cstate == CacheState::SHARED, "address(%#lx), cstate(%s), sender(%i)", address, SPELL_CSTATE(cstate), sender);
 
       // Update Shared Mem perf counters for access to L2 Cache
       getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);

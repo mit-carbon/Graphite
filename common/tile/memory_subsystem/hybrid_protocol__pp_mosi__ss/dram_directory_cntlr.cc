@@ -37,6 +37,9 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
    _buffered_req_queue_list = new HashMapQueue<IntPtr,BufferedReq*>();
 
    _directory_type = DirectoryEntry::parseDirectoryType(directory_type);
+
+   // Event counters
+   initializeModeCounters();
 }
 
 DramDirectoryCntlr::~DramDirectoryCntlr()
@@ -131,6 +134,33 @@ DramDirectoryCntlr::handleMsgFromDramCntlr(tile_id_t sender, ShmemMsg* dram_repl
 }
 
 void
+DramDirectoryCntlr::outputSummary(ostream& out)
+{
+   out << "Dram Directory Cntlr Summary: " << endl;
+   out << "  Mode Counters: " << endl;
+   out << "    Private: " << _private_mode_requests << endl;
+   out << "    Remote: " << _remote_mode_requests << endl;
+}
+
+void
+DramDirectoryCntlr::initializeModeCounters()
+{
+   _private_mode_requests = 0;
+   _remote_mode_requests = 0;
+}
+
+void
+DramDirectoryCntlr::updateModeCounters(Mode::Type mode)
+{
+   if (!_enabled)
+      return;
+   if (PRIVATE(mode))
+      _private_mode_requests ++;
+   if (REMOTE(mode))
+      _remote_mode_requests ++;
+}
+
+void
 DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 {
    LOG_PRINT("Start processNextReqFromL2Cache(%#lx)", address);
@@ -141,6 +171,10 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    ShmemMsg* completed_directory_req = completed_buffered_req->getShmemMsg();
    LOG_PRINT("Address(%#lx), Requester(%i), ReqType(%s) dequeued",
              address, completed_directory_req->getRequester(), SPELL_SHMSG(completed_directory_req->getType()));
+
+   // Update mode counters
+   Mode::Type mode = completed_buffered_req->getMode();
+   updateModeCounters(mode);
 
    if (completed_buffered_req->lookupData())
    {
@@ -471,14 +505,31 @@ DramDirectoryCntlr::nullifyCacheLine(IntPtr address, DirectoryEntry* directory_e
    {
    case DirectoryState::MODIFIED:
    case DirectoryState::EXCLUSIVE:
+      {
+         ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
+                            address, requester, modeled);
+         getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
+         return false;
+      }
+
    case DirectoryState::OWNED:
-   case DirectoryState::SHARED:
       {
          vector<tile_id_t> sharers_list;
          bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
          
          sendShmemMsg(ShmemMsg::INV_FLUSH_COMBINED_REQ, address,
-                      directory_entry->getOneSharer(), all_tiles_sharers, sharers_list,
+                      directory_entry->getOwner(), all_tiles_sharers, sharers_list,
+                      requester, modeled);
+         return false;
+      }
+
+   case DirectoryState::SHARED:
+      {
+         vector<tile_id_t> sharers_list;
+         bool all_tiles_sharers = directory_entry->getSharersList(sharers_list);
+         
+         sendShmemMsg(ShmemMsg::INV_REQ, address,
+                      INVALID_TILE_ID, all_tiles_sharers, sharers_list,
                       requester, modeled);
          return false;
       }
@@ -938,7 +989,8 @@ DramDirectoryCntlr::processFlushReplyFromL2Cache(tile_id_t sender, ShmemMsg* shm
       // Write-back to memory for nullify requests
       if (TYPE(buffered_req) == ShmemMsg::NULLIFY_REQ)
       {
-         storeDataInDram(address, shmem_msg->getDataBuf(), shmem_msg->getRequester(), shmem_msg->isModeled());
+         if (shmem_msg->isCacheLineDirty())
+            storeDataInDram(address, shmem_msg->getDataBuf(), shmem_msg->getRequester(), shmem_msg->isModeled());
          // Delete the cached data
          buffered_req->eraseData();
       }

@@ -20,6 +20,8 @@ public:
    { return _msg; }
    UInt64 getTime() const
    { return _time; }
+   Mode::Type getMode() const
+   { return _mode; }
    void setExpectedMsgSender(tile_id_t expected_msg_sender)
    { _expected_msg_sender = expected_msg_sender; }
    void setMode(Mode::Type mode)

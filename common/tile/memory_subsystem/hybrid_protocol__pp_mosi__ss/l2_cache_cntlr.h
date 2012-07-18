@@ -136,10 +136,6 @@ private:
    // Get Shmem Msg Type
    ShmemMsg::Type getDirectoryReqType(Core::mem_op_t mem_op_type, Core::lock_signal_t lock_signal);
 
-   // Dram Directory Home Lookup
-   tile_id_t getDramDirectoryHome(IntPtr address)
-   { return _dram_directory_home_lookup->getHome(address); }
-
    // Utilities
    tile_id_t getTileID();
    UInt32 getCacheLineSize();

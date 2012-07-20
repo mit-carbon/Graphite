@@ -52,7 +52,7 @@ sim_flags_fn = -c $(CONFIG_FILE) --general/total_cores=$(1) --general/num_proces
 SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
-launch_fn = $(SIM_ROOT)/tools/spawn.py $(1) $(2) # 1 - NUM_PROCS # 2 - config file
+launch_fn = $(SIM_ROOT)/tools/spawn_master.py $(1) $(2) # 1 - NUM_PROCS # 2 - config file
 
 # Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS))
 run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(5)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(5)) $(VALGRIND) $(2) $(4)))

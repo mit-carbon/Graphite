@@ -8,7 +8,7 @@ import time
 import shutil
 import subprocess
 
-import spawn
+import spawn_master
 
 # Job:
 #  a simple struct to hold data for a job
@@ -50,13 +50,13 @@ class SpawnJob(Job):
         Job.__init__(self, num_machines, command)
 
     def spawn(self):
-        self.pid = spawn.spawn_job(self.machines, self.command)
+        self.pid = spawn_master.spawn_job(self.machines, self.command)
 
     def poll(self):
-        return spawn.poll_job(self.pid)
+        return spawn_master.poll_job(self.pid)
 
     def wait(self):
-        return spawn.wait_job(self.pid)
+        return spawn_master.wait_job(self.pid)
 
 # MakeJob:
 #  a job built around the make system
@@ -75,7 +75,7 @@ class MakeJob(SpawnJob):
             self.sim_flags += " --process_map/process%i=\"%s\"" % (i, self.machines[i])
 
         PIN_PATH = "/afs/csail/group/carbon/tools/pin/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/intel64/bin/pinbin"
-        PIN_LIB = "%s/lib/pin_sim" % spawn.get_sim_root()
+        PIN_LIB = "%s/lib/pin_sim" % spawn_master.get_sim_root()
 
         if (self.mode == "pin"):
             self.command = "%s -mt -t %s %s -- %s" % (PIN_PATH, PIN_LIB, self.sim_flags, self.command)

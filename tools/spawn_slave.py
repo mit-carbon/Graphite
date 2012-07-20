@@ -36,8 +36,6 @@ def wait_job(proc, proc_num):
       # If not, check if some the ssh connection has been killed
       # If connection killed, this becomes a child of the init process
       if (os.getppid() == 1):
-         print "[spawn_slave.py] Killing process: %d" % (proc_num)
-         sys.stdout.flush()
          os.killpg(proc.pid, signal.SIGKILL)
          return -1
       

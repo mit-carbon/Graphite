@@ -986,9 +986,9 @@ DramDirectoryCntlr::processFlushReplyFromL2Cache(tile_id_t sender, ShmemMsg* shm
       buffered_req->insertData(shmem_msg->getDataBuf(), getCacheLineSize());
       buffered_req->setCacheLineDirty(shmem_msg->isCacheLineDirty());
       
-      // Write-back to memory for nullify requests
       if (TYPE(buffered_req) == ShmemMsg::NULLIFY_REQ)
       {
+         // Write-back to memory for nullify requests
          if (shmem_msg->isCacheLineDirty())
             storeDataInDram(address, shmem_msg->getDataBuf(), shmem_msg->getRequester(), shmem_msg->isModeled());
          // Delete the cached data

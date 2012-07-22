@@ -84,8 +84,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
    while(1)
    {
       access_num ++;
-      LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2),
-            "Error: access_num(%u)", access_num);
+      LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2), "access_num(%u)", access_num);
 
       if (lock_signal != Core::UNLOCK)
          acquireLock(mem_component);

@@ -26,9 +26,9 @@ public:
       FLUSH_REP,
       WB_REP,
       // Dram requests
-      GET_DATA_REQ,
-      PUT_DATA_REQ,
-      GET_DATA_REP,
+      DRAM_FETCH_REQ,
+      DRAM_STORE_REQ,
+      DRAM_FETCH_REP,
       // Nullify req
       NULLIFY_REQ,
       MAX_MSG_TYPE = NULLIFY_REQ,

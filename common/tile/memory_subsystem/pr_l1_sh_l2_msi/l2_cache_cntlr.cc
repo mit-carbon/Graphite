@@ -359,7 +359,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
 
          // Send line to DRAM_CNTLR if dirty
          if ((L2_cache_line_info.getCState() == CacheState::DIRTY) && data_buf)
-            sendDataToDram(address, data_buf, requester, msg_modeled);
+            storeDataInDram(address, data_buf, requester, msg_modeled);
       }
       break;
 
@@ -367,7 +367,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
       {
          // Send line to DRAM_CNTLR if dirty
          if ((L2_cache_line_info.getCState() == CacheState::DIRTY) && data_buf)
-            sendDataToDram(address, data_buf, requester, msg_modeled);
+            storeDataInDram(address, data_buf, requester, msg_modeled);
 
          // Set completed to true
          completed = true;
@@ -845,16 +845,16 @@ L2CacheCntlr::readCacheLineAndSendToL1Cache(ShmemMsg::Type reply_msg_type,
 void
 L2CacheCntlr::fetchDataFromDram(IntPtr address, tile_id_t requester, bool msg_modeled)
 {
-   ShmemMsg fetch_msg(ShmemMsg::GET_DATA_REQ, MemComponent::L2_CACHE, MemComponent::DRAM_CNTLR,
+   ShmemMsg fetch_msg(ShmemMsg::DRAM_FETCH_REQ, MemComponent::L2_CACHE, MemComponent::DRAM_CNTLR,
                       requester, false, address,
                       msg_modeled);
    getMemoryManager()->sendMsg(getDramHome(address), fetch_msg);
 }
 
 void
-L2CacheCntlr::sendDataToDram(IntPtr address, Byte* data_buf, tile_id_t requester, bool msg_modeled)
+L2CacheCntlr::storeDataInDram(IntPtr address, Byte* data_buf, tile_id_t requester, bool msg_modeled)
 {
-   ShmemMsg send_msg(ShmemMsg::PUT_DATA_REQ, MemComponent::L2_CACHE, MemComponent::DRAM_CNTLR,
+   ShmemMsg send_msg(ShmemMsg::DRAM_STORE_REQ, MemComponent::L2_CACHE, MemComponent::DRAM_CNTLR,
                      requester, false, address,
                      data_buf, getCacheLineSize(),
                      msg_modeled);

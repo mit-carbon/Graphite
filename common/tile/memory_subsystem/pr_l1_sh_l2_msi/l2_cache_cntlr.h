@@ -99,9 +99,9 @@ namespace PrL1ShL2MSI
                                          IntPtr address, MemComponent::Type requester_mem_component,
                                          Byte* data_buf,
                                          tile_id_t requester, bool msg_modeled);
-      // Fetch/send data from/to DRAM
+      // Fetch/store data from/in DRAM
       void fetchDataFromDram(IntPtr address, tile_id_t requester, bool msg_modeled);
-      void sendDataToDram(IntPtr address, Byte* data_buf, tile_id_t requester, bool msg_modeled);
+      void storeDataInDram(IntPtr address, Byte* data_buf, tile_id_t requester, bool msg_modeled);
 
       // Utilities
       tile_id_t getTileId();

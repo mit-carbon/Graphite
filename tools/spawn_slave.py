@@ -11,6 +11,7 @@ import time
 import signal
 
 import spawn
+from termcolors import *
 
 # spawn_job:
 #  start up a command over an ssh connection on one machine
@@ -18,7 +19,7 @@ import spawn
 def spawn_job(proc_num, command, working_dir):
    exec_command = "cd %s; %s" % (working_dir, command)
 
-   print "[spawn_slave.py] Starting process: %d: %s" % (proc_num, exec_command)
+   print "%s Starting process: %d: %s" % (pslave(), proc_num, exec_command)
    sys.stdout.flush()
    return spawn.spawn_job(proc_num, exec_command)
 
@@ -29,13 +30,14 @@ def wait_job(proc, proc_num):
       # Poll the process and see if it exited
       returnCode = proc.poll()
       if returnCode != None:
-         print "[spawn_slave.py] Process: %d exited with return code: %d" % (proc_num, returnCode)
+         print "%s Process: %d exited with ReturnCode: %d" % (pslave(), proc_num, returnCode)
          sys.stdout.flush()
          return returnCode
       
       # If not, check if some the ssh connection has been killed
       # If connection killed, this becomes a child of the init process
       if (os.getppid() == 1):
+         # DO NOT place a print statement here
          os.killpg(proc.pid, signal.SIGKILL)
          return -1
       
@@ -48,8 +50,14 @@ def get_working_dir(script_name):
    # Get working dir from the script name
    return (os.sep).join(script_name.split(os.sep)[:-2])
 
+# pslave:
+#  print spawn_slave.py preamble
+def pslave():
+    return colorstr('[spawn_slave.py]', 'BOLD')
+
 # main -- if this is used as a standalone script
 if __name__=="__main__":
+  
    working_dir = get_working_dir(sys.argv[0])
    proc_num = int(sys.argv[1])
    command = " ".join(sys.argv[2:])

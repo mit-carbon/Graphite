@@ -1,34 +1,21 @@
 #include "pin_thread.h"
 #include <assert.h>
 
-PinThreadRunner::PinThreadRunner(Thread::ThreadFunc func, void *param)
-   : m_func(func)
-   , m_param(param)
-{
-}
-
-void PinThreadRunner::RunThread(OS_SERVICES::ITHREAD *)
-{
-//   PIN_RegisterNewThread();
-   m_func(m_param);
-}
-
 PinThread::PinThread(ThreadFunc func, void *param)
-   : m_thread_runner(new PinThreadRunner(func, param))
-   , m_thread_p(NULL)
-{
-}
+   : m_thread_p(NULL)
+   , m_func(func)
+   , m_param(param)
+ {
+ }
 
 PinThread::~PinThread()
 {
-   delete m_thread_p;
-   delete m_thread_runner;
 }
 
 void PinThread::run()
 {
-   m_thread_p = OS_SERVICES::ITHREADS::GetSingleton()->Spawn(STACK_SIZE, m_thread_runner);
-   assert(m_thread_p);
+   m_thread_p = PIN_SpawnInternalThread(m_func, m_param, STACK_SIZE, NULL);
+   assert(m_thread_p != INVALID_THREADID);
 }
 
 Thread* Thread::create(ThreadFunc func, void *param)

@@ -115,8 +115,6 @@ void Simulator::start()
    m_lcp_thread->run();
 
    Instruction::initializeStaticInstructionModel();
-
-   m_transport->barrier();
 }
 
 Simulator::~Simulator()

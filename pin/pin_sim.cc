@@ -451,9 +451,6 @@ int main(int argc, char *argv[])
 
    PIN_AddFiniFunction(ApplicationExit, 0);
 
-   //Just in case ... might not be strictly necessary
-   Transport::getSingleton()->barrier();
-
    // Never returns
    LOG_PRINT("Running program...");
    PIN_StartProgram();

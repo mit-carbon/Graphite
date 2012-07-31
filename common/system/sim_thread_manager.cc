@@ -32,9 +32,6 @@ void SimThreadManager::spawnSimThreads()
       m_sim_threads[i].spawn();
    }
 
-   while (m_active_threads < num_sim_threads)
-      sched_yield();
-
    LOG_PRINT("Threads started: %d.", m_active_threads);
 }
 
@@ -59,13 +56,6 @@ void SimThreadManager::quitSimThreads()
       pkt.receiver.core_type = receiver.core_type;
       global_node->send(tile_id, &pkt, pkt.bufferSize());
    }
-
-   LOG_PRINT("Waiting for local sim threads to exit.");
-
-   while (m_active_threads > 0)
-      sched_yield();
-
-   Transport::getSingleton()->barrier();
 
    LOG_PRINT("All threads have exited.");
 }

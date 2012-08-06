@@ -29,20 +29,9 @@ ShmemPerfModel::Thread_t
 ShmemPerfModel::getThreadNum()
 {
    if (Sim()->getTileManager()->amiUserThread())
-   {
-      assert(!Sim()->getTileManager()->amiSimThread());
       return _USER_THREAD;
-   }
-   else if (Sim()->getTileManager()->amiSimThread())
-   {
-      assert(!Sim()->getTileManager()->amiUserThread());
-      return _SIM_THREAD;
-   }
    else
-   {
-      assert(false);
-      return NUM_CORE_THREADS;
-   }
+      return _SIM_THREAD;
 }
 
 void 

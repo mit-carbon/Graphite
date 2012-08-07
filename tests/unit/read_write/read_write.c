@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
    int i = 0;
    while (fgets(read_buf, 10, fp_read) != NULL)
    {
-      printf("%s\n", read_buf);
+      printf("%s", read_buf);
       if (i > 1)
       {
          fprintf(stderr, "TEST FAILED, Read more than 2 lines\n");
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
    i = 0;
    while (fgets(read_buf, 10, fp_write) != NULL)
    {
-      printf("%s\n", read_buf);
+      printf("%s", read_buf);
       if (i > 1)
       {
          fprintf(stderr, "TEST FAILED, Read more than 2 lines\n");

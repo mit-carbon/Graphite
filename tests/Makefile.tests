@@ -35,7 +35,7 @@ endif
 PIN_TOOL?=$(SIM_ROOT)/lib/pin_sim
 
 # PIN_RUN=$(PIN_BIN) -pause_tool 10 -mt -t $(PIN_TOOL)
-PIN_RUN=$(PIN_BIN) -mt -t $(PIN_TOOL)
+PIN_RUN=$(PIN_BIN) -tool_exit_timeout 1 -mt -t $(PIN_TOOL)
 VALGRIND = # valgrind --leak-check=yes
 
 PROCS ?= 1

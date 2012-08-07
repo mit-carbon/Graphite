@@ -29,20 +29,9 @@ ShmemPerfModel::ThreadType
 ShmemPerfModel::getThreadType()
 {
    if (Sim()->getTileManager()->amiAppThread())
-   {
-      assert(!Sim()->getTileManager()->amiSimThread());
       return _APP_THREAD;
-   }
-   else if (Sim()->getTileManager()->amiSimThread())
-   {
-      assert(!Sim()->getTileManager()->amiAppThread());
-      return _SIM_THREAD;
-   }
    else
-   {
-      assert(false);
-      return NUM_THREAD_TYPES;
-   }
+      return _SIM_THREAD;
 }
 
 void 

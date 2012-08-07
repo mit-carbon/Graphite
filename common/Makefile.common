@@ -35,16 +35,13 @@ OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 #KERNEL = SQUEEZE
 KERNEL = LENNY
 
-# OS Services Support
-LD_LIBS += -los-services
 CXXFLAGS += -DKERNEL_$(KERNEL)
 ifeq ($(TARGET_ARCH),ia32)
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include -m32 -DTARGET_IA32
-  LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/ia32 -m32
+  CXXFLAGS += -DTARGET_IA32
+  LD_FLAGS += -m32
 endif 
 ifeq ($(TARGET_ARCH),x86_64)
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include -fPIC -DTARGET_X86_64
-  LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
+  CXXFLAGS += -fPIC -DTARGET_X86_64
 endif
 
 include $(SIM_ROOT)/Makefile.config

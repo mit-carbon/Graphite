@@ -236,8 +236,6 @@ L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::Type mem_component,
       break;
    }
 
-   LOG_PRINT("Cache Hit(%s)", cache_hit ? "true" : "false");
-
    if (access_num == 1)
    {
       // Update the Cache Counters

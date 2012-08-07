@@ -10,7 +10,7 @@ TEST_DIST_LIST = hello_world_app_test_dist simple_app_test_dist \
 	2d_jacobi_shmem_app_test_dist matrix_multiply_shmem_app_test_dist \
 	all_to_all_app_test_dist
 
-regress_apps: $(TEST_APP_LIST)
+regress_apps: $(TEST_APP_LIST) $(TEST_DIST_LIST)
 
 clean:
 	for t in $(patsubst %_app_test,%,$(TEST_APP_LIST)) ; do make -C $(TEST_APPS_DIR)/$$t clean ; done

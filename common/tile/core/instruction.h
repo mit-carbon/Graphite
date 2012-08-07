@@ -78,13 +78,13 @@ public:
 
    InstructionType getType()
    { return m_type; }
-   UInt64 getOpcode()
+   UInt64 getOpcode() const
    { return m_opcode; }
-   IntPtr getAddress()
+   IntPtr getAddress() const
    { return m_address; }
-   UInt32 getSize()
+   UInt32 getSize() const
    { return m_size; }
-   const OperandList& getOperands()
+   const OperandList& getOperands() const
    { return m_operands; }
 
    void setAddress(IntPtr address)
@@ -134,15 +134,6 @@ public:
    JmpInstruction(UInt64 opcode, OperandList &dest)
       : Instruction(INST_JMP, opcode, dest)
    {}
-};
-
-// CMPSB or SCASB instruction
-class StringInstruction : public Instruction
-{
-public:
-   StringInstruction(UInt64 opcode, OperandList &ops);
-
-   UInt64 getCost();
 };
 
 // for operations not associated with the binary -- such as processing

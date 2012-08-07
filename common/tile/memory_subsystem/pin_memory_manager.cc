@@ -18,61 +18,57 @@ PinMemoryManager::~PinMemoryManager()
 {}
 
 carbon_reg_t 
-PinMemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, AccessType access_type)
+PinMemoryManager::redirectMemOp (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, UInt32 op_num, bool is_read)
 {
-   assert (access_type < NUM_ACCESS_TYPES);
-   char *scratchpad = m_scratchpad [access_type];
-   
-   if ((access_type == ACCESS_TYPE_READ) || (access_type == ACCESS_TYPE_READ2))
+   assert (op_num < NUM_ACCESS_TYPES);
+   char *scratchpad = m_scratchpad [op_num];
+
+   if (is_read)
    {
       Core::mem_op_t mem_op_type;
       Core::lock_signal_t lock_signal;
 
       if (has_lock_prefix)
       {
-         // FIXME: Now, when we have a LOCK prefix, we do an exclusive READ
+         // When we have a LOCK prefix, we do an exclusive READ
          mem_op_type = Core::READ_EX;
          lock_signal = Core::LOCK;
       }
       else
       {
+         // When we DO NOT have a LOCK prefix, we do a normal READ
          mem_op_type = Core::READ;
          lock_signal = Core::NONE;
       }
        
-      //m_tile->getCurrentCore()->accessMemory (lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
-      m_core->accessMemory (lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
+      m_core->accessMemory(lock_signal, mem_op_type, tgt_ea, scratchpad, size, true);
 
    }
    return (carbon_reg_t) scratchpad;
 }
 
 void 
-PinMemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, AccessType access_type)
+PinMemoryManager::completeMemWrite (bool has_lock_prefix, IntPtr tgt_ea, IntPtr size, UInt32 op_num)
 {
-   char *scratchpad = m_scratchpad [access_type];
-
+   char *scratchpad = m_scratchpad [op_num];
 
    Core::lock_signal_t lock_signal = (has_lock_prefix) ? Core::UNLOCK : Core::NONE;
 
-   //m_tile->getCurrentCore()->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
    m_core->accessMemory (lock_signal, Core::WRITE, tgt_ea, scratchpad, size, true);
-   
-   return;
 }
 
 carbon_reg_t 
 PinMemoryManager::redirectPushf ( IntPtr tgt_esp, IntPtr size )
 {
    m_saved_esp = tgt_esp;
-   return ((carbon_reg_t) m_scratchpad [ACCESS_TYPE_WRITE]) + size;
+   return ((carbon_reg_t) m_scratchpad [0]) + size;
 }
 
 carbon_reg_t 
 PinMemoryManager::completePushf ( IntPtr esp, IntPtr size )
 {
    m_saved_esp -= size;
-   completeMemWrite (false, (IntPtr) m_saved_esp, size, ACCESS_TYPE_WRITE);
+   completeMemWrite (false, (IntPtr) m_saved_esp, size, 0);
    return m_saved_esp;
 }
 
@@ -80,7 +76,7 @@ carbon_reg_t
 PinMemoryManager::redirectPopf (IntPtr tgt_esp, IntPtr size)
 {
    m_saved_esp = tgt_esp;
-   return redirectMemOp (false, m_saved_esp, size, ACCESS_TYPE_READ);
+   return redirectMemOp (false, m_saved_esp, size, 0, true);
 }
 
 carbon_reg_t 

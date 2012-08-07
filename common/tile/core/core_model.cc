@@ -1,20 +1,19 @@
-#include "core_model.h"
+#include "tile.h"
 #include "core.h"
+#include "core_model.h"
 #include "simple_core_model.h"
 #include "iocoom_core_model.h"
+#include "branch_predictor.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "config.h"
-#include "core.h"
-#include "branch_predictor.h"
 #include "fxsupport.h"
 #include "utils.h"
 
-
-CoreModel* CoreModel::createMainCoreModel(Core* core)
+CoreModel* CoreModel::create(Core* core)
 {
-   volatile float frequency = Config::getSingleton()->getCoreFrequency(core->getCoreId());
-   string core_model = Config::getSingleton()->getCoreType(core->getTileId());
+   float frequency = Config::getSingleton()->getCoreFrequency(core->getCoreId());
+   string core_model = Config::getSingleton()->getCoreType(core->getTile()->getId());
 
    if (core_model == "iocoom")
       return new IOCOOMCoreModel(core, frequency);
@@ -73,11 +72,13 @@ void CoreModel::outputSummary(ostream& os)
 
 void CoreModel::enable()
 {
+   LOG_PRINT("enable() start");
    // Thread Spawner and MCP performance models should never be enabled
-   if (m_core->getTileId() >= (tile_id_t) Config::getSingleton()->getApplicationTiles())
+   if (m_core->getTile()->getId() >= (tile_id_t) Config::getSingleton()->getApplicationTiles())
       return;
 
    m_enabled = true;
+   LOG_PRINT("enable() end");
 }
 
 void CoreModel::disable()

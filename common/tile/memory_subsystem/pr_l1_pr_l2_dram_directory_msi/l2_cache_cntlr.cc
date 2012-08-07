@@ -307,7 +307,9 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP))
    {
-      assert(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCycleCount());
+      LOG_ASSERT_ERROR(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCycleCount(),
+                       "Outstanding msg time(%llu), Curr cycle count(%llu)",
+                       _outstanding_shmem_msg_time, getShmemPerfModel()->getCycleCount());
       
       // Reset the clock to the time the request left the tile is miss type is not modeled
       if (!shmem_msg->isModeled())

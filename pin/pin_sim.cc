@@ -33,6 +33,7 @@
 #include "tile.h"
 #include "syscall_model.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "config_file.hpp"
 #include "handle_args.h"
 #include "thread_start.h"
@@ -42,6 +43,7 @@
 #include "instruction_modeling.h"
 #include "progress_trace.h"
 #include "clock_skew_minimization.h"
+#include "handle_threads.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -96,7 +98,7 @@ VOID printInsInfo(CONTEXT* ctxt)
    ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
    ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
-   LOG_PRINT("eip(%#llx), esp (%#llx)", reg_inst_ptr, reg_stack_ptr);
+   LOG_PRINT("eip(%#lx), esp(%#lx)", reg_inst_ptr, reg_stack_ptr);
 }
 
 void routineCallback(RTN rtn, void *v)
@@ -185,6 +187,8 @@ VOID instructionCallback (INS ins, void *v)
    addProgressTrace(ins);
    // Clock Skew Minimization
    addPeriodicSync(ins);
+   // Scheduling
+   addYield(ins);
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
@@ -198,9 +202,8 @@ VOID instructionCallback (INS ins, void *v)
       }
       else
       {
-         // Emulate(/Rewrite) String, Stack and Memory Operations
-         if (rewriteStringOp (ins));
-         else if (rewriteStackOp (ins));
+         // Emulate(/Rewrite)  Stack and Memory Operations
+         if (rewriteStackOp (ins));
          else rewriteMemOp (ins);
       }
    }
@@ -288,11 +291,12 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             tile_id_t tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
             Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(tile_id));
             
-            Tile *tile = Sim()->getTileManager()->getCurrentTile();
+            //Tile *tile = Sim()->getTileManager()->getCurrentTile();
+            Core *core = Sim()->getTileManager()->getCurrentCore();
 
             // main thread clock is not affected by start-up time of other processes
             //tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-            tile->getNetwork()->netRecv (Sim()->getTileManager()->getMainCoreId(0), SYSTEM_INITIALIZATION_NOTIFY);
+            core->getTile()->getNetwork()->netRecv (Sim()->getTileManager()->getMainCoreId(0), core->getCoreId(), SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, Sim()->getTileManager()->getMainCoreId(tile_id));

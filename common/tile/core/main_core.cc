@@ -5,69 +5,26 @@
 #include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "core_model.h"
-#include "syscall_model.h"
 #include "sync_client.h"
-#include "clock_skew_minimization_object.h"
 #include "simulator.h"
 #include "log.h"
 #include "tile_manager.h"
 
 using namespace std;
 
-MainCore::MainCore(Tile* tile) : Core(tile)
-{
-   m_core_id = tile->getMainCoreId();
-   m_core_model = CoreModel::createMainCoreModel((Core *) this);
-
-   if (Config::getSingleton()->isSimulatingSharedMemory())
-   {
-      m_shmem_perf_model = new ShmemPerfModel();
-      LOG_PRINT("instantiated shared memory performance model");
-
-      m_memory_manager = MemoryManager::createMMU(
-            Sim()->getCfg()->getString("caching_protocol/type"),
-            m_tile, m_tile->getNetwork(), m_shmem_perf_model);
-      LOG_PRINT("instantiated memory manager model");
-
-      m_pin_memory_manager = new PinMemoryManager(this);
-
-      tile->setMemoryManager(m_memory_manager);
-      tile->setShmemPerfModel(m_shmem_perf_model);
-   }
-   else
-   {
-      m_shmem_perf_model = (ShmemPerfModel*) NULL;
-      m_memory_manager = (MemoryManager *) NULL;
-      m_pin_memory_manager = (PinMemoryManager*) NULL;
-
-      LOG_PRINT("No Memory Manager being used for main core");
-   }
-
-   m_syscall_model = new SyscallMdl(m_tile->getNetwork());
-   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme"), this);
-}
+MainCore::MainCore(Tile* tile)
+   : Core(tile, MAIN_CORE_TYPE)
+{}
 
 MainCore::~MainCore()
-{
-   delete m_core_model;
-
-   if (m_clock_skew_minimization_client)
-      delete m_clock_skew_minimization_client;
-   
-   if (Config::getSingleton()->isSimulatingSharedMemory())
-   {
-      delete m_pin_memory_manager;
-      delete m_memory_manager;
-      delete m_shmem_perf_model;
-   }
-}
+{}
 
 // accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
 //
 // Arguments:
 //   lock_signal :: NONE, LOCK, or UNLOCK
 //   mem_op_type :: READ, READ_EX, or WRITE
-//   d_addr :: address of location we want to access (read or write)
+//   address :: address of location we want to access (read or write)
 //   data_buffer :: buffer holding data for WRITE or buffer which must be written on a READ
 //   data_size :: size of data we must read/write
 //   push_info :: says whether memory info must be pushed to the core model
@@ -78,24 +35,16 @@ MainCore::~MainCore()
 pair<UInt32, UInt64>
 MainCore::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
 {
-   if ( Config::getSingleton()->isSimulatingSharedMemory() || (Config::getSingleton()->getSimulationMode() == Config::LITE) )
-   {
-      return initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, address, (Byte*) data_buffer, data_size, push_info);
-   }
-   else
-   {   
-      return nativeMemOp(lock_signal, mem_op_type, address, data_buffer, data_size);
-   }
+   return initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, address, (Byte*) data_buffer, data_size, push_info);
 }
 
 UInt64
 MainCore::readInstructionMemory(IntPtr address, UInt32 instruction_size)
 {
-   LOG_PRINT("Instruction: Address(0x%x), Size(%u), Start READ", 
-           address, instruction_size);
+   LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
 
    Byte buf[instruction_size];
-   return (initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second);
+   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second;
 }
 
 pair<UInt32, UInt64>
@@ -107,6 +56,8 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
                                bool push_info,
                                UInt64 time)
 {
+   LOG_ASSERT_ERROR(Config::getSingleton()->isSimulatingSharedMemory(), "Shared Memory Disabled");
+
    if (data_size <= 0)
    {
       if (push_info)

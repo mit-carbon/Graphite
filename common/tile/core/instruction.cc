@@ -88,44 +88,6 @@ UInt64 DynamicInstruction::getCost()
    return m_cost;
 }
 
-// StringInstruction
-
-StringInstruction::StringInstruction(UInt64 opcode, OperandList &ops)
-   : Instruction(INST_STRING, opcode, ops)
-{
-}
-
-UInt64 StringInstruction::getCost()
-{
-   // dequeue mem ops until we hit the final marker, then check count
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
-   UInt32 count = 0;
-   UInt64 cost = 0;
-   DynamicInstructionInfo* i;
-
-   while (true)
-   {
-      i = &perf->getDynamicInstructionInfo();
-
-      if (i->type == DynamicInstructionInfo::STRING)
-         break;
-
-      LOG_ASSERT_ERROR(i->type == DynamicInstructionInfo::MEMORY_READ,
-                       "Expected memory read in string instruction (or STRING).");
-
-      cost += i->memory_info.latency;
-
-      ++count;
-      perf->popDynamicInstructionInfo();
-   }
-
-   LOG_ASSERT_ERROR(count == i->string_info.num_ops,
-                    "Number of mem ops in queue doesn't match number in string instruction.");
-   perf->popDynamicInstructionInfo();
-
-   return cost;
-}
-
 // SyncInstruction
 
 SyncInstruction::SyncInstruction(UInt64 cost)

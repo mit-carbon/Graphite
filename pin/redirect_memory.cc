@@ -5,8 +5,7 @@
 #include "pin_memory_manager.h"
 #include "core_model.h"
 
-// FIXME
-// Only need this function because some memory accesses are made before cores have
+// FIXME: Only need this function because some memory accesses are made before cores have
 // been initialized. Should not evnentually need this
 
 void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
@@ -16,252 +15,6 @@ void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr 
    Core *core = Sim()->getTileManager()->getCurrentCore();
    LOG_ASSERT_ERROR(core, "Could not find Core object for current thread");
    core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
-}
-
-bool rewriteStringOp (INS ins)
-{
-   if (! (INS_RepPrefix(ins) || INS_RepnePrefix(ins)))
-   {
-      // No REP prefix
-      return false;
-   }
-
-   if (INS_Opcode(ins) == XED_ICLASS_SCASB)
-   {
-      INS_InsertCall(ins, IPOINT_BEFORE,
-            AFUNPTR (emuSCASBIns),
-            IARG_CONTEXT,
-            IARG_ADDRINT, INS_NextAddress(ins),
-            IARG_BOOL, INS_RepPrefix(ins),
-            IARG_END);
-
-      INS_Delete(ins);
-
-      return true;
-   }
-
-   else if (INS_Opcode(ins) == XED_ICLASS_CMPSB)
-   {
-      INS_InsertCall(ins, IPOINT_BEFORE,
-            AFUNPTR (emuCMPSBIns),
-            IARG_CONTEXT,
-            IARG_ADDRINT, INS_NextAddress(ins),
-            IARG_BOOL, INS_RepPrefix(ins),
-            IARG_END);
-
-      INS_Delete(ins);
-      
-      return true;
-   }
-
-   else
-   {
-      // Has a REP or REPNE prefix
-      if (  (INS_Opcode(ins) == XED_ICLASS_MOVSB) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVSW) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVSQ) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVSD_XMM) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVQ) ||
-            (INS_Opcode(ins) == XED_ICLASS_STOSB) ||
-            (INS_Opcode(ins) == XED_ICLASS_STOSW) ||
-            (INS_Opcode(ins) == XED_ICLASS_STOSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_STOSQ) ||
-            (INS_Opcode(ins) == XED_ICLASS_MOVDQU) ||
-            (INS_Opcode(ins) == XED_ICLASS_RET_NEAR) ||
-            (INS_Opcode(ins) == XED_ICLASS_CVTSI2SS) ||
-            (INS_Opcode(ins) == XED_ICLASS_CVTSI2SD) ||
-            (INS_Opcode(ins) == XED_ICLASS_SQRTSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_SQRTSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_MULSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_MULSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_DIVSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_DIVSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_ADDSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_ADDSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_SUBSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_SUBSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_MAXSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_MAXSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_MINSS) ||
-            (INS_Opcode(ins) == XED_ICLASS_MINSD) ||
-            (INS_Opcode(ins) == XED_ICLASS_CMPSD_XMM)
-         )
-      {
-         return false;
-      }
-
-      LOG_ASSERT_ERROR(! (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)), "Ins: %s (0x%x) not currently supported", INS_Disassemble(ins).c_str(), INS_Address (ins));
-      
-      return false;
-   }
-}
-
-
-void emuCMPSBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
-{
-   __attribute(__unused__) ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   LOG_PRINT("REP CMPSB Instruction: EIP(0x%x)", reg_gip);
-
-   assert(has_rep_prefix == true);
-   
-   ADDRINT reg_gcx = PIN_GetContextReg(ctxt, REG_GCX);
-   ADDRINT reg_gsi = PIN_GetContextReg(ctxt, REG_GSI);
-   ADDRINT reg_gdi = PIN_GetContextReg(ctxt, REG_GDI);
-   ADDRINT reg_gflags = PIN_GetContextReg(ctxt, REG_GFLAGS);
-
-   bool direction_flag;
-
-   // Direction Flag
-   if( (reg_gflags & (1 << 10)) == 0 )
-   {
-      // Forward
-      direction_flag = false;
-   }
-   else
-   {
-      // Backward
-      direction_flag = true;
-   }
-
-   bool found = false;
-   UInt32 num_mem_ops = 0;
-
-   while (reg_gcx > 0)
-   {
-      Byte byte_buf1;
-      Byte byte_buf2;
-
-      memOp (Core::NONE, Core::READ, reg_gsi, (char*) &byte_buf1, sizeof(byte_buf1));
-      memOp (Core::NONE, Core::READ, reg_gdi, (char*) &byte_buf2, sizeof(byte_buf2));
-      num_mem_ops += 2;
-
-      // Decrement the counter
-      reg_gcx --;
-      // Increment/Decrement EDI to show that we are moving forward
-      if (!direction_flag) 
-      {
-         reg_gsi ++;
-         reg_gdi ++;
-      }
-      else
-      {
-         reg_gsi --;
-         reg_gdi --;
-      }
-
-      if (byte_buf1 != byte_buf2)
-      {
-         found = true;
-         break;
-      }
-   }
-
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
-   DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
-   perf->pushDynamicInstructionInfo(info);
-
-   if (! found)
-   {
-      // Set the 'zero' flag
-      reg_gflags |= (1 << 6);
-      // reg_gflags |= "Whatever is Zero Flag";
-   }
-   else
-   {
-      // Clear the 'zero' flag
-      reg_gflags &= (~(1 << 6));
-   }
-
-   PIN_SetContextReg(ctxt, REG_INST_PTR, next_gip);
-   PIN_SetContextReg(ctxt, REG_GCX, reg_gcx);
-   PIN_SetContextReg(ctxt, REG_GSI, reg_gsi);
-   PIN_SetContextReg(ctxt, REG_GDI, reg_gdi);
-   PIN_SetContextReg(ctxt, REG_GFLAGS, reg_gflags);
-
-   PIN_ExecuteAt(ctxt);
-
-}
-
-void emuSCASBIns(CONTEXT *ctxt, ADDRINT next_gip, bool has_rep_prefix)
-{
-   __attribute(__unused__) ADDRINT reg_gip = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   LOG_PRINT("REP SCASB Instruction: EIP(0x%x)", reg_gip);
-
-   assert(has_rep_prefix == false);
-   
-   ADDRINT reg_gcx = PIN_GetContextReg(ctxt, REG_GCX);
-   ADDRINT reg_gdi = PIN_GetContextReg(ctxt, REG_GDI);
-   ADDRINT reg_gax = PIN_GetContextReg(ctxt, REG_GAX);
-   ADDRINT reg_gflags = PIN_GetContextReg(ctxt, REG_GFLAGS);
-
-   Byte reg_al = (Byte) (reg_gax & 0xff);
-
-   bool direction_flag;
-
-   // Direction Flag
-   if( (reg_gflags & (1 << 10)) == 0 )
-   {
-      // Forward
-      direction_flag = false;
-   }
-   else
-   {
-      // Backward
-      direction_flag = true;
-   }
-
-   bool found = false;
-   UInt32 num_mem_ops = 0;
-
-   while (reg_gcx > 0)
-   {
-      Byte byte_buf;
-      ++num_mem_ops;
-      memOp (Core::NONE, Core::READ, reg_gdi, (char*) &byte_buf, sizeof(byte_buf));
-
-      // Decrement the counter
-      reg_gcx --;
-      // Increment/Decrement EDI to show that we are moving forward
-      if (!direction_flag)
-      {
-         reg_gdi ++;
-      }
-      else
-      {
-         reg_gdi --;
-      }
-
-      if (byte_buf == reg_al)
-      {
-         found = true;
-         break;
-      }
-   }
-
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
-   DynamicInstructionInfo info = DynamicInstructionInfo::createStringInfo(num_mem_ops);
-   perf->pushDynamicInstructionInfo(info);
-
-   if (found)
-   {
-      // Set the 'zero' flag
-      reg_gflags |= (1 << 6);
-      // reg_gflags |= "Whatever is Zero Flag";
-   }
-   else
-   {
-      // Clear the 'zero' flag
-      reg_gflags &= (~(1 << 6));
-   }
-
-   PIN_SetContextReg(ctxt, REG_INST_PTR, next_gip);
-   PIN_SetContextReg(ctxt, REG_GCX, reg_gcx);
-   PIN_SetContextReg(ctxt, REG_GDI, reg_gdi);
-   PIN_SetContextReg(ctxt, REG_GFLAGS, reg_gflags);
-
-   PIN_ExecuteAt(ctxt);
 }
 
 bool rewriteStackOp (INS ins)
@@ -460,123 +213,42 @@ bool rewriteStackOp (INS ins)
 
 void rewriteMemOp (INS ins)
 {
-   if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins))
+   LOG_ASSERT_ERROR(INS_MemoryOperandCount(ins) <= 3, 
+                    "EIP(%#lx): Num Memory Operands(%u) > 3", INS_Address(ins), INS_MemoryOperandCount(ins));
+
+   for (unsigned int i = 0; i < INS_MemoryOperandCount(ins); i++)
    {
-      if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_READ, REG_INST_G0))
-      {
-         INS_InsertCall (ins, IPOINT_BEFORE, 
-               AFUNPTR (redirectMemOp),
-               IARG_BOOL, INS_IsAtomicUpdate(ins),
-               IARG_MEMORYREAD_EA,
-               IARG_MEMORYREAD_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_READ ,
-               IARG_RETURN_REGS, REG_INST_G0,
-               IARG_END);
-      }
-      else if (INS_IsMemoryRead (ins))
-      {
-         LOG_PRINT_ERROR ("Could not rewrite memory read at ip = 0x%x", INS_Address(ins));
-      }
+      INS_InsertCall (ins, IPOINT_BEFORE, 
+            AFUNPTR (redirectMemOp),
+            IARG_BOOL, INS_IsAtomicUpdate(ins),
+            IARG_MEMORYOP_EA, i,
+            IARG_MEMORYREAD_SIZE,
+            IARG_UINT32, i,
+            IARG_BOOL, INS_MemoryOperandIsRead(ins, i),
+            IARG_RETURN_REGS, REG(REG_INST_G0+i),
+            IARG_END);
+      
+      INS_RewriteMemoryOperand(ins, i, REG(REG_INST_G0+i));
 
-      if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_READ2, REG_INST_G1))
+      if (INS_MemoryOperandIsWritten(ins, i))
       {
-         assert(! INS_IsAtomicUpdate(ins));
-
-         INS_InsertCall (ins, IPOINT_BEFORE, 
-               AFUNPTR (redirectMemOp),
-               IARG_BOOL, false,
-               IARG_MEMORYREAD2_EA,
-               IARG_MEMORYREAD_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_READ2,
-               IARG_RETURN_REGS, REG_INST_G1,
-               IARG_END);
-      }
-      else if (INS_HasMemoryRead2 (ins))
-      {
-         LOG_PRINT_ERROR ("Could not rewrite memory read2 at ip = 0x%x", INS_Address(ins));
-      }
-
-      if (INS_RewriteMemoryAddressingToBaseRegisterOnly (ins, MEMORY_TYPE_WRITE, REG_INST_G2))
-      {
-         assert(! INS_IsAtomicUpdate(ins));
-
          INS_InsertCall (ins, IPOINT_BEFORE,
-               AFUNPTR (redirectMemOpAndCaptureEa),
-               IARG_BOOL, false,
-               IARG_MEMORYWRITE_EA,
-               IARG_MEMORYWRITE_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
-               IARG_RETURN_REGS, REG_INST_G2,
-               IARG_REG_REFERENCE, REG_INST_G3,  /* store IARG_MEMORYWRITE_EA in G3 */
+               AFUNPTR (redirectMemOpSaveEa),
+               IARG_MEMORYOP_EA, i,
+               IARG_RETURN_REGS, REG_INST_G3,
                IARG_END);
+
 
          IPOINT ipoint = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
          assert (ipoint == IPOINT_AFTER);
 
-         INS_InsertCall (ins, ipoint, 
+         INS_InsertCall (ins, ipoint,
                AFUNPTR (completeMemWrite),
-               IARG_BOOL, false,
-               IARG_REG_VALUE, REG_INST_G3,  /* value of IARG_MEMORYWRITE_EA at IPOINT_BEFORE */
+               IARG_BOOL, INS_IsAtomicUpdate(ins),
+               IARG_REG_VALUE, REG_INST_G3, // Is IARG_MEMORYWRITE_EA,
                IARG_MEMORYWRITE_SIZE,
-               IARG_UINT32, PinMemoryManager::ACCESS_TYPE_WRITE,
+               IARG_UINT32, i,
                IARG_END);
-      }
-      else if (INS_IsMemoryWrite (ins))
-      {
-         if (INS_IsMemoryRead (ins))
-         {
-            PinMemoryManager::AccessType access_type = PinMemoryManager::ACCESS_TYPE_WRITE;
-            IPOINT ipoint2 = INS_HasFallThrough (ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
-            assert (ipoint2 == IPOINT_AFTER);
-            
-            UINT32 operand_count = INS_OperandCount (ins);
-            UINT32 num_mem_read_operands = 0;
-
-            for (UINT32 i = 0; i < operand_count; i++)
-            {
-               if (INS_OperandIsMemory (ins, i) && INS_OperandReadAndWriten (ins, i))
-               {
-                  if (num_mem_read_operands == 0)
-                  {
-                     access_type = PinMemoryManager::ACCESS_TYPE_READ;
-                  }
-                  else if (num_mem_read_operands == 1)
-                  {
-                     access_type = PinMemoryManager::ACCESS_TYPE_READ2;
-                  }
-                  else
-                  {
-                     LOG_PRINT_ERROR ("Could not rewrite memory write at ip = 0x%x", INS_Address(ins));
-                  }
-                  num_mem_read_operands++;
-               }
-               else if (INS_OperandIsMemory (ins, i) && INS_OperandRead (ins, i))
-               {
-                  num_mem_read_operands++;
-               }
-            }
-
-            assert (num_mem_read_operands > 0);
-            assert (access_type != PinMemoryManager::ACCESS_TYPE_WRITE);
-
-            INS_InsertCall (ins, IPOINT_BEFORE,
-                  AFUNPTR (captureWriteEa),
-                  IARG_MEMORYWRITE_EA,
-                  IARG_RETURN_REGS, REG_INST_G3,  /* store IARG_MEMORYWRITE_EA in G3 */
-                  IARG_END);
-
-            INS_InsertCall (ins, ipoint2,
-                  AFUNPTR (completeMemWrite),
-                  IARG_BOOL, INS_IsAtomicUpdate(ins),
-                  IARG_REG_VALUE, REG_INST_G3,  /* value of IARG_MEMORYWRITE_EA at IPOINT_BEFORE */
-                  IARG_MEMORYWRITE_SIZE,
-                  IARG_UINT32, access_type,
-                  IARG_END);
-         }
-         else
-         {
-            LOG_PRINT_ERROR ("Could not rewrite memory write at ip = 0x%x", INS_Address(ins));
-         }
       }
    }
 }
@@ -746,12 +418,7 @@ ADDRINT completePopf (ADDRINT esp, ADDRINT size)
    }
 }
 
-// FIXME: 
-// Memory accesses with a LOCK prefix made by cores are not handled correctly at the moment
-// Once the memory accesses go through the coherent shared memory system, all LOCK'ed
-// memory accesses from the cores would be handled correctly. 
-
-ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
+ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num, bool is_read)
 {
    Core *core = Sim()->getTileManager()->getCurrentCore();
   
@@ -760,7 +427,8 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
       PinMemoryManager *mem_manager = core->getPinMemoryManager ();
       assert (mem_manager != NULL);
 
-      return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+      return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num, is_read);
+
    }
    else
    {
@@ -773,24 +441,18 @@ ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMe
    }
 }
 
-ADDRINT redirectMemOpAndCaptureEa (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type, ADDRINT *ea_out)
+ADDRINT redirectMemOpSaveEa(ADDRINT ea)
 {
-   *ea_out = tgt_ea;
-   return redirectMemOp(has_lock_prefix, tgt_ea, size, access_type);
+   return ea;
 }
 
-ADDRINT captureWriteEa (ADDRINT tgt_ea)
-{
-   return tgt_ea;
-}
-
-VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, PinMemoryManager::AccessType access_type)
+VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num)
 {
    Core *core = Sim()->getTileManager()->getCurrentCore();
 
    if (core)
    {
-      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, access_type);
+      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num);
    }
    else
    {

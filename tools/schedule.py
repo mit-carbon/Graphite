@@ -8,7 +8,8 @@ import time
 import shutil
 import subprocess
 
-import spawn
+import spawn_master
+from termcolors import *
 
 # Job:
 #  a simple struct to hold data for a job
@@ -27,6 +28,9 @@ class Job:
     def wait(self):
         pass
 
+    def kill(self):
+        pass
+
 # LocalJob:
 #  just run something locally but consume lots of machines to do so
 class LocalJob(Job):
@@ -42,6 +46,9 @@ class LocalJob(Job):
     def wait(self):
         return self.pid.wait()
 
+    def kill(self):
+        return os.kill(self.pid, signal.SIGKILL)
+
 # SpawnJob:
 #  a job that should be run across several machines using the spawn
 #  infrastructure
@@ -50,13 +57,16 @@ class SpawnJob(Job):
         Job.__init__(self, num_machines, command)
 
     def spawn(self):
-        self.pid = spawn.spawn_job(self.machines, self.command)
+        self.plist = spawn_master.spawn_job(self.machines, self.command)
 
     def poll(self):
-        return spawn.poll_job(self.pid)
+        return spawn_master.poll_job(self.plist)
 
     def wait(self):
-        return spawn.wait_job(self.pid)
+        return spawn_master.wait_job(self.plist)
+
+    def kill(self):
+        return spawn_master.kill_job(self.plist)
 
 # MakeJob:
 #  a job built around the make system
@@ -74,8 +84,8 @@ class MakeJob(SpawnJob):
         for i in range(0,len(self.machines)):
             self.sim_flags += " --process_map/process%i=\"%s\"" % (i, self.machines[i])
 
-        PIN_PATH = "/afs/csail/group/carbon/tools/pin/pin-2.5-22117-gcc.4.0.0-ia32_intel64-linux/intel64/bin/pinbin"
-        PIN_LIB = "%s/lib/pin_sim" % spawn.get_sim_root()
+        PIN_PATH = "/afs/csail/group/carbon/tools/pin/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/intel64/bin/pinbin"
+        PIN_LIB = "%s/lib/pin_sim" % spawn_master.get_sim_root()
 
         if (self.mode == "pin"):
             self.command = "%s -mt -t %s %s -- %s" % (PIN_PATH, PIN_LIB, self.sim_flags, self.command)
@@ -83,8 +93,6 @@ class MakeJob(SpawnJob):
             self.command = "%s %s" % (self.command, self.sim_flags)
 
         self.command += " >& %s/output" % self.sub_dir
-
-        print self.command
 
     def spawn(self):
 
@@ -123,33 +131,48 @@ def schedule(machine_list, jobs):
                 return j
         return
 
-    # main loop
-    while True:
+    try:
+        # main loop
+        while True:
 
-        # spawn another job, if available
-        job = get_job(available, jobs)
+            # spawn another job, if available
+            job = get_job(available, jobs)
 
-        if job != None:
-            job.spawn()
-            running.append(job)
+            if job != None:
+                job.spawn()
+                running.append(job)
 
-        if len(jobs) == 0:
-            break
+            if len(jobs) == 0:
+                break
 
-        # check active jobs
-        terminated = []
-        for i in range(0,len(running)):
-            status = running[i].poll()
-            if status != None:
-                available.extend(running[i].machines)
-                terminated.append(i)
+            # check active jobs
+            terminated = []
+            for i in range(0,len(running)):
+                status = running[i].poll()
+                if status != None:
+                    available.extend(running[i].machines)
+                    terminated.append(i)
 
-        terminated.reverse()
-        for i in terminated:
-            del running[i]
-                
-        time.sleep(0.1)
+            terminated.reverse()
+            for i in terminated:
+                del running[i]
+                    
+            time.sleep(0.1)
 
-    # wait on remaining
-    for j in running:
-        job.wait()
+        # wait on remaining
+        for job in running:
+            job.wait()
+
+    except KeyboardInterrupt:
+
+        # Kill all jobs
+        for job in running:
+            msg = colorstr('Keyboard interrupt. Killing simulation', 'RED')
+            print "%s %s: %s" % (pschedule(), msg, job.command)
+            job.kill()
+
+# pschedule:
+#  print the schedule.py preamble
+def pschedule():
+    return colorstr('[schedule.py]', 'BOLD')
+

@@ -33,17 +33,6 @@ void fillOperandListMemOps(OperandList *list, INS ins)
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
-      // string ops
-      if ((INS_RepPrefix(ins) || INS_RepnePrefix(ins)))
-      {
-         if (INS_Opcode(ins) == XED_ICLASS_SCASB ||
-             INS_Opcode(ins) == XED_ICLASS_CMPSB)
-         {
-            // handled by StringInstruction
-            return;
-         }
-      }
-
       // stack ops
       if (INS_Opcode (ins) == XED_ICLASS_PUSH)
       {
@@ -162,6 +151,7 @@ VOID fillOperandList(OperandList *list, INS ins)
 
 VOID addInstructionModeling(INS ins)
 {
+
    BasicBlock *basic_block = new BasicBlock();
 
    OperandList list;
@@ -202,15 +192,6 @@ VOID addInstructionModeling(INS ins)
       case OPCODE_FMUL:
          basic_block->push_back(new ArithInstruction(INST_FMUL, INS_Opcode(ins), list));
          break;
-
-      case OPCODE_SCASB:
-      case OPCODE_CMPSB:
-         if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
-         {
-            basic_block->push_back(new StringInstruction(INS_Opcode(ins), list));
-            break;
-         }
-      
       default:
          basic_block->push_back(new GenericInstruction(INS_Opcode(ins), list));
       }

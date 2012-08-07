@@ -58,9 +58,11 @@ typedef list<NetPacket> NetQueue;
 
 class NetMatch
 {
-   public:
-      vector<core_id_t> senders;
-      vector<PacketType> types;
+public:
+   NetMatch() {receiver = INVALID_CORE_ID;}
+   vector<core_id_t> senders;
+   vector<PacketType> types;
+   core_id_t receiver;
 };
 
 // -- Network -- //
@@ -99,13 +101,13 @@ public:
 
    SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
    SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-   NetPacket netRecv(core_id_t src, PacketType type);
-   NetPacket netRecvFrom(core_id_t src);
-   NetPacket netRecvType(PacketType type);
+   NetPacket netRecv(core_id_t src, core_id_t recv, PacketType type);
+   NetPacket netRecvFrom(core_id_t src, core_id_t recv);
+   NetPacket netRecvType(PacketType type, core_id_t recv);
 
    void enableModels();
    void disableModels();
-
+   
    // -- Network Injection/Ejection Rate Trace -- //
    static void openUtilizationTraceFiles();
    static void closeUtilizationTraceFiles();
@@ -132,8 +134,8 @@ private:
    ConditionVariable _netQueueCond;
    
    // -- Network Injection/Ejection Rate Trace -- //
-   static bool _utilizationTraceEnabled[NUM_STATIC_NETWORKS];
-   static ofstream _utilizationTraceFiles[NUM_STATIC_NETWORKS];
+   static bool* _utilizationTraceEnabled;
+   static ofstream* _utilizationTraceFiles;
 
    // Is shortCut available through shared memory
    bool _sharedMemoryShortcutEnabled;

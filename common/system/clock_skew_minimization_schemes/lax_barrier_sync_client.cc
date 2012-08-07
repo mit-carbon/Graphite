@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include "tile.h"
 #include "lax_barrier_sync_client.h"
 #include "simulator.h"
 #include "config.h"
@@ -56,7 +57,7 @@ LaxBarrierSyncClient::synchronize(UInt64 cycle_count)
 
       // Receive 'BARRIER_RELEASE' response
       NetPacket recv_pkt;
-      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_RESPONSE_TYPE);
+      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_SYSTEM_RESPONSE_TYPE);
       assert(recv_pkt.length == sizeof(int));
 
       unsigned int dummy;
@@ -64,7 +65,7 @@ LaxBarrierSyncClient::synchronize(UInt64 cycle_count)
       m_recv_buff >> dummy;
       assert(dummy == BARRIER_RELEASE);
 
-      LOG_PRINT("Tile(%i) received SIM_BARRIER_RELEASE", m_core->getTileId());
+      LOG_PRINT("Tile(%i) received SIM_BARRIER_RELEASE", m_core->getTile()->getId());
 
       // Update 'm_next_sync_time'
       m_next_sync_time = ((curr_time / m_barrier_interval) * m_barrier_interval) + m_barrier_interval;

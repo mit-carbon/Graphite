@@ -20,8 +20,8 @@ using namespace std;
 // ugly.
 
 // For getting a periodic summary of network utilization
-bool Network::_utilizationTraceEnabled[NUM_STATIC_NETWORKS];
-ofstream Network::_utilizationTraceFiles[NUM_STATIC_NETWORKS];
+bool* Network::_utilizationTraceEnabled;
+ofstream* Network::_utilizationTraceFiles;
 
 Network::Network(Tile *tile)
       : _tile(tile)
@@ -105,7 +105,7 @@ void Network::netPullFromTransport()
       NetPacket packet(_transport->recv());
 
       LOG_PRINT("Pull packet : type %i, from {%i, %i}, time %llu",
-            (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, (long long unsigned int) packet.time);
+            (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.time);
       LOG_ASSERT_ERROR(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod,
             "Invalid Packet Sender(%i)", packet.sender);
       LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES,
@@ -121,7 +121,7 @@ void Network::netPullFromTransport()
          // Convert from network cycle count to core cycle count
          packet.time = convertCycleCount(packet.time, model->getFrequency(),
                                          _tile->getCore()->getPerformanceModel()->getFrequency());
-          
+         
          // asynchronous I/O support
          NetworkCallback callback = _callbacks[packet.type];
 
@@ -229,10 +229,12 @@ SInt32 Network::netSend(NetPacket& packet)
 
    NetworkModel* model = getNetworkModelFromPacketType(packet.type);
 
+   LOG_PRINT("netSend[Time(%llu)]", packet.time);
+
    // Convert from core cycle count to network cycle count
    packet.time = convertCycleCount(packet.time,
-         _tile->getCore()->getPerformanceModel()->getFrequency(),
-         model->getFrequency());
+                                   _tile->getCore()->getPerformanceModel()->getFrequency(),
+                                   model->getFrequency());
 
    // Send packet as multiple packets if model has not broadcast capability and receiver is ALL
    if ( (TILE_ID(packet.receiver) == NetPacket::BROADCAST) && (!model->hasBroadcastCapability()) )
@@ -270,7 +272,7 @@ class NetRecvIterator
             : _mode(SENDER_VECTOR)
             , _senders(&v)
             , _i(0)
-            , _core_type(MAIN_CORE_TYPE)
+            , _core_type(v.empty() ? MAIN_CORE_TYPE : v[0].core_type)
       {
       }
       NetRecvIterator(const std::vector<PacketType> &v)
@@ -348,7 +350,7 @@ class NetRecvIterator
       };
 
       UInt32 _i;
-      core_type_t _core_type;
+      unsigned int _core_type;
 };
 
 NetPacket Network::netRecv(const NetMatch &match)
@@ -369,6 +371,10 @@ NetPacket Network::netRecv(const NetMatch &match)
                           ? NetRecvIterator((UInt32)NUM_PACKET_TYPES)
                           : NetRecvIterator(match.types);
 
+   core_id_t receiver = match.receiver.tile_id == INVALID_TILE_ID 
+                        ? _tile->getCurrentCore()->getCoreId() 
+                        : match.receiver;
+
    LOG_ASSERT_ERROR(_tile && _tile->getCore()->getPerformanceModel(),
                     "Tile and/or performance model not initialized.");
    UInt64 start_time = _tile->getCore()->getPerformanceModel()->getCycleCount();
@@ -385,7 +391,7 @@ NetPacket Network::netRecv(const NetMatch &match)
             i++)
       {
          // make sure that this core is the proper destination core for this tile
-         if (i->receiver.tile_id != _tile->getId() || i->receiver.core_type != _tile->getCurrentCore()->getCoreType())
+         if (i->receiver.tile_id != receiver.tile_id || i->receiver.core_type != receiver.core_type)
          {
             if (i->receiver.tile_id != NetPacket::BROADCAST)
                continue;
@@ -464,42 +470,45 @@ SInt32 Network::netBroadcast(PacketType type, const void *buf, UInt32 len)
    return netSend((core_id_t) {NetPacket::BROADCAST, -1} , type, buf, len);
 }
 
-NetPacket Network::netRecv(core_id_t src, PacketType type)
+NetPacket Network::netRecv(core_id_t src, core_id_t recv, PacketType type)
 {
    NetMatch match;
    match.senders.push_back(src);
    match.types.push_back(type);
+   match.receiver = recv;
    return netRecv(match);
 }
 
-NetPacket Network::netRecvFrom(core_id_t src)
+NetPacket Network::netRecvFrom(core_id_t src, core_id_t recv)
 {
    NetMatch match;
    match.senders.push_back(src);
+   match.receiver = recv;
    return netRecv(match);
 }
 
-NetPacket Network::netRecvType(PacketType type)
+NetPacket Network::netRecvType(PacketType type, core_id_t recv)
 {
    NetMatch match;
    match.types.push_back(type);
+   match.receiver = recv;
    return netRecv(match);
 }
 
 void Network::enableModels()
 {
+   LOG_PRINT("enableModels(%i) start", getTile()->getId());
    for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
-   {
       _models[i]->enable();
-   }
+   LOG_PRINT("enableModels(%i) end", getTile()->getId());
 }
 
 void Network::disableModels()
 {
+   LOG_PRINT("disableModels(%i) start", getTile()->getId());
    for (int i = 0; i < NUM_STATIC_NETWORKS; i++)
-   {
       _models[i]->disable();
-   }
+   LOG_PRINT("disableModels(%i) end", getTile()->getId());
 }
 
 // Get a Trace of Network Traffic
@@ -507,6 +516,10 @@ void Network::disableModels()
 
 void Network::openUtilizationTraceFiles()
 {
+   // Create the TraceEnabled and TraceFiles array
+   _utilizationTraceEnabled = new bool[NUM_STATIC_NETWORKS];
+   _utilizationTraceFiles = new ofstream[NUM_STATIC_NETWORKS];
+
    // Populate _network_traffic_trace_enabled with the networks for which tracing is enabled 
    computeTraceEnabledNetworks();
 
@@ -569,6 +582,10 @@ void Network::closeUtilizationTraceFiles()
          _utilizationTraceFiles[network_id].close();
       }
    }
+
+   // Delete the TraceFiles and TraceEnabled arrays
+   delete [] _utilizationTraceFiles;
+   delete [] _utilizationTraceEnabled;
 }
 
 void Network::outputUtilizationSummary()

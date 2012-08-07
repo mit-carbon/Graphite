@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-// some forward declarations for cross includes
+// Some forward declarations for cross includes
 class Tile;
 class CoreModel;
 class Network;
@@ -11,8 +11,6 @@ class MemoryManager;
 class SyscallMdl;
 class SyncClient;
 class ClockSkewMinimizationClient;
-
-// FIXME: Move this out of here eventually
 class PinMemoryManager;
 
 #include "mem_component.h"
@@ -54,10 +52,8 @@ public:
       WRITE
    };
 
-   Core(Tile *tile);
+   Core(Tile *tile, core_type_t core_type);
    virtual ~Core();
-
-   static Core *create(Tile* tile, core_type_t core_type = MAIN_CORE_TYPE);
 
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
@@ -74,21 +70,19 @@ public:
    
    virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                              char* data_buffer, UInt32 data_size, bool push_info = false) = 0;
-   pair<UInt32, UInt64> nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size);
 
-   // network accessor since network is private
-   int getTileId();
-   core_id_t getCoreId() { return m_core_id; }
-   Network *getNetwork();
-   Tile *getTile() { return m_tile; }
-   UInt32 getCoreType() { return m_core_id.core_type; }
-   CoreModel *getPerformanceModel() { return m_core_model; }
-   MemoryManager *getMemoryManager() { return m_memory_manager; } 
-   virtual PinMemoryManager *getPinMemoryManager() = 0;
-   virtual SyscallMdl *getSyscallMdl() = 0; 
-   SyncClient *getSyncClient() { return m_sync_client; }
-   virtual ClockSkewMinimizationClient* getClockSkewMinimizationClient() = 0;
-   ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+   core_id_t getCoreId()                     { return m_core_id;                    }
+   UInt32 getCoreType()                      { return m_core_id.core_type;          }
+   Tile *getTile()                           { return m_tile;                       }
+   tile_id_t getTileId()                     { return m_core_id.tile_id;            }
+   CoreModel *getPerformanceModel()          { return m_core_model;                 }
+   SyncClient *getSyncClient()               { return m_sync_client;                }
+   SyscallMdl *getSyscallMdl()               { return m_syscall_model;              }
+   ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
+   PinMemoryManager *getPinMemoryManager()   { return m_pin_memory_manager;         }
+   Network* getNetwork()                     { return m_network;                    }
+   ShmemPerfModel* getShmemPerfModel()       { return m_shmem_perf_model;           }
+   MemoryManager *getMemoryManager()         { return m_memory_manager;             }
 
    State getState();
    void setState(State core_state);
@@ -97,15 +91,18 @@ protected:
    Tile *m_tile;
    core_id_t m_core_id;
    CoreModel *m_core_model;
-   MemoryManager *m_memory_manager;
-   ShmemPerfModel* m_shmem_perf_model;
    SyncClient *m_sync_client;
+   SyscallMdl *m_syscall_model;
+   ClockSkewMinimizationClient *m_clock_skew_minimization_client;
+   Network* m_network;
+   ShmemPerfModel* m_shmem_perf_model;
+   MemoryManager* m_memory_manager;
 
    State m_core_state;
    Lock m_core_state_lock;
 
-   static Lock m_global_core_lock;
-
+   PinMemoryManager *m_pin_memory_manager;
+   
    PacketType getPktTypeFromUserNetType(carbon_network_t net_type);
 };
 

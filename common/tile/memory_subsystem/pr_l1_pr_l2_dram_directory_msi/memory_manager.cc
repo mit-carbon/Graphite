@@ -417,6 +417,7 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
 void
 MemoryManager::enableModels()
 {
+   LOG_PRINT("enableModels() start");
    _enabled = true;
 
    _l1_cache_cntlr->getL1ICache()->enable();
@@ -433,11 +434,13 @@ MemoryManager::enableModels()
       _dram_directory_cntlr->getDramDirectoryCache()->enable();
       _dram_cntlr->getDramPerfModel()->enable();
    }
+   LOG_PRINT("enableModels() end");
 }
 
 void
 MemoryManager::disableModels()
 {
+   LOG_PRINT("disableModels() start");
    _enabled = false;
 
    _l1_cache_cntlr->getL1ICache()->disable();
@@ -454,6 +457,7 @@ MemoryManager::disableModels()
       _dram_directory_cntlr->getDramDirectoryCache()->disable();
       _dram_cntlr->getDramPerfModel()->disable();
    }
+   LOG_PRINT("disableModels() end");
 }
 
 void

@@ -140,6 +140,14 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       marshallUnlinkCall (core_id);
       break;
 
+   case SYS_getcwd:
+      marshallGetCwdCall (core_id);
+      break;
+
+   case SYS_sched_getaffinity:
+      marshallSchedGetAffinityCall (core_id);
+      break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
       break;
@@ -653,6 +661,49 @@ void SyscallServer::marshallRmdirCall(core_id_t core_id)
       delete[] path;
 }
 
+void SyscallServer::marshallGetCwdCall(core_id_t core_id)
+{
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       SIZE               size_t
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       BYTES               int
+       BUFFER              void *
+
+   */
+   char *read_buf = (char *) m_scratch;
+   size_t size;
+
+   assert(m_recv_buff.size() == (sizeof(size)));
+   m_recv_buff >> size;
+
+   if (size > m_SYSCALL_SERVER_MAX_BUFF)
+      read_buf = new char[size];
+
+   // Actually do the read call
+   int bytes = syscall(SYS_getcwd, read_buf, size);
+
+   m_send_buff << bytes;
+   if (bytes != -1)
+      m_send_buff << read_buf;
+
+
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   if (size > m_SYSCALL_SERVER_MAX_BUFF)
+      delete [] read_buf;
+}
+
+
+
 
 void SyscallServer::marshallUnlinkCall(core_id_t core_id)
 {
@@ -696,7 +747,84 @@ void SyscallServer::marshallUnlinkCall(core_id_t core_id)
       delete[] path;
 }
 
-void SyscallServer::marshallFutexCall (core_id_t core_id)
+void SyscallServer::marshallSchedSetAffinityCall(core_id_t core_id)
+{
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+       BUFFER            char[]
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+   */
+
+   pid_t pid;
+   unsigned int cpusetsize;
+   int status;
+
+   m_recv_buff >> pid >> cpusetsize;
+
+
+   char *buf = new char [CPU_ALLOC_SIZE(cpusetsize)];
+   m_recv_buff >> buf;
+   cpu_set_t * mask = CPU_ALLOC(cpusetsize);
+   *mask = *(cpu_set_t *) buf;
+
+   status = Sim()->getThreadManager()->setThreadAffinity(pid, mask);
+
+   m_send_buff << status;
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   CPU_FREE(mask);
+}
+
+
+
+void SyscallServer::marshallSchedGetAffinityCall(core_id_t core_id)
+{
+   /*
+       Receive
+
+       Field               Type
+       -----------------|--------
+       PID               pid_t
+       CPUSETSIZE        unsigned int
+
+       Transmit
+
+       Field               Type
+       -----------------|--------
+       STATUS              int
+       BUFFER              void *
+
+   */
+
+   pid_t pid;
+   unsigned int cpusetsize;
+   int status;
+
+   m_recv_buff >> pid >>cpusetsize;
+   cpu_set_t *mask = CPU_ALLOC(cpusetsize);
+
+   status = Sim()->getThreadManager()->getThreadAffinity(pid, mask);
+
+   m_send_buff << status << mask;
+
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   CPU_FREE(mask);
+}
+
+
+void SyscallServer::marshallFutexCall(core_id_t core_id)
 {
    int *addr1;
    int op;
@@ -720,7 +848,27 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
               addr1, op, val1, timeout, addr2, val3);
 
    // Right now, we handle only a subset of the functionality
-   // Assert the fact that we handle only the subset
+   // Trigger an assertion if something outside the subset occurs
+
+#ifdef KERNEL_SQUEEZE
+   LOG_ASSERT_ERROR( (op == FUTEX_WAIT)         ||    (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG))          ||
+                     (op == FUTEX_WAKE)         ||    (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG))          ||
+                     (op == FUTEX_WAKE_OP)      ||    (op == (FUTEX_WAKE_OP | FUTEX_PRIVATE_FLAG))       ||
+                     (op == FUTEX_CMP_REQUEUE)  ||    (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG))   ||
+                     (op == (FUTEX_CLOCK_REALTIME | FUTEX_PRIVATE_FLAG | FUTEX_WAIT_BITSET)),
+                     "op = %#x (Valid values are %#x, %#x, %#x, %#x, %#x, %#x, %#x, %#x, %#x)",
+                     op,
+                     FUTEX_WAIT,          FUTEX_WAIT | FUTEX_PRIVATE_FLAG,
+                     FUTEX_WAKE,          FUTEX_WAKE | FUTEX_PRIVATE_FLAG,
+                     FUTEX_WAKE_OP,       FUTEX_WAKE_OP | FUTEX_PRIVATE_FLAG,
+                     FUTEX_CMP_REQUEUE,   FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG,
+                     FUTEX_CLOCK_REALTIME | FUTEX_PRIVATE_FLAG | FUTEX_WAIT_BITSET);
+   
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
+   {
+      LOG_ASSERT_ERROR(timeout == NULL, "timeout = %p", timeout);
+   }
+#endif
 
 #ifdef KERNEL_LENNY
    LOG_ASSERT_ERROR( (op == FUTEX_WAIT)         ||    (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG))          ||
@@ -745,6 +893,31 @@ void SyscallServer::marshallFutexCall (core_id_t core_id)
    if (op == FUTEX_WAIT)
    {
       LOG_ASSERT_ERROR(timeout == NULL, "timeout(%p)", timeout);
+   }
+#endif
+
+#ifdef KERNEL_SQUEEZE
+   if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
+   {
+      futexWait(core_id, addr1, val1, curr_time); 
+   }
+   else if ((op == FUTEX_WAKE) || (op == (FUTEX_WAKE | FUTEX_PRIVATE_FLAG)))
+   {
+      futexWake(core_id, addr1, val1, curr_time);
+   }
+   else if ((op == FUTEX_WAKE_OP) || (op == (FUTEX_WAKE_OP | FUTEX_PRIVATE_FLAG)))
+   {
+      int val2 = (long int) timeout;
+      futexWakeOp(core_id, addr1, val1, val2, addr2, val3, curr_time);
+   }
+   else if((op == FUTEX_CMP_REQUEUE) || (op == (FUTEX_CMP_REQUEUE | FUTEX_PRIVATE_FLAG)))
+   {
+      int val2 = (long int) timeout;
+      futexCmpRequeue(core_id, addr1, val1, val2, addr2, val3, curr_time);
+   }
+   else if (op == (FUTEX_CLOCK_REALTIME | FUTEX_PRIVATE_FLAG | FUTEX_WAIT_BITSET))
+   {
+      futexWaitClockReal(core_id, addr1, val1, curr_time); 
    }
 #endif
 
@@ -789,14 +962,13 @@ void SyscallServer::futexWait(core_id_t core_id, int *addr, int val, UInt64 curr
    SimFutex *sim_futex = &m_futexes[(IntPtr) addr];
 
    Core* core = m_network.getTile()->getCore();
-
    int curr_val;
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr, (char*) &curr_val, sizeof(curr_val));
 
    if (val != curr_val)
    {
       m_send_buff.clear();
-      m_send_buff << (int) EWOULDBLOCK;
+      m_send_buff << -(int) EWOULDBLOCK;
       m_send_buff << curr_time;
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
@@ -805,6 +977,29 @@ void SyscallServer::futexWait(core_id_t core_id, int *addr, int val, UInt64 curr
       sim_futex->enqueueWaiter(core_id);
    }
 }
+
+#ifdef KERNEL_SQUEEZE
+void SyscallServer::futexWaitClockReal(core_id_t core_id, int *addr, int val, UInt64 curr_time)
+{
+   LOG_PRINT("Futex Wait");
+   
+   Core* core = m_network.getTile()->getCore();
+   int curr_val;
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr, (char*) &curr_val, sizeof(curr_val));
+
+   if (val != curr_val)
+   {
+      m_send_buff.clear();
+      m_send_buff << -(int) ENOSYS;
+      m_send_buff << curr_time;
+      m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+   }
+   else
+   {
+      LOG_PRINT_ERROR ("FUTEX_CLOCK_REALTIME not supported\n");
+   }
+}
+#endif
 
 void SyscallServer::futexWake(core_id_t core_id, int *addr, int val, UInt64 curr_time)
 {
@@ -987,13 +1182,13 @@ SimFutex::~SimFutex()
 {
    if (!m_waiting.empty())
    {
+      LOG_PRINT_WARNING("Waiting futexes still present at end of simulation");
       while (!m_waiting.empty())
       {
          core_id_t core_id = m_waiting.front();
          m_waiting.pop();
-         fprintf(stderr, "{%i,%i}, ", core_id.tile_id, core_id.core_type);
+         LOG_PRINT_WARNING("Core (%i,%i) waiting", core_id.tile_id, core_id.core_type);
       }
-      // assert(false);
    }
 }
 
@@ -1016,5 +1211,3 @@ core_id_t SimFutex::dequeueWaiter()
       return core_id;
    }
 }
-
-

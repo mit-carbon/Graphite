@@ -24,6 +24,7 @@ class DramPerfModel
 
       UInt32 m_cache_block_size;
 
+
       // Queue Model
       QueueModel* m_queue_model;
       std::string m_queue_model_type;
@@ -35,6 +36,10 @@ class DramPerfModel
       UInt64 m_num_accesses;
       volatile double m_total_access_latency;
       volatile double m_total_queueing_delay;
+
+      // Power
+      volatile double m_total_static_power;
+      volatile double m_dynamic_energy;
 
       void createQueueModels();
       void destroyQueueModels();

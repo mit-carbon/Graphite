@@ -111,7 +111,6 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
    IntPtr syscall_number = PIN_GetSyscallNumber (ctx, syscall_standard);
    
    string core_null = core ? "CORE != NULL" : "CORE == NULL";
-
    LOG_PRINT("syscall_number %d, %s", syscall_number, core_null.c_str());
 
    if (core)
@@ -129,6 +128,9 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||
+            (syscall_number == SYS_getcwd) ||
+            (syscall_number == SYS_sched_setaffinity) ||
+            (syscall_number == SYS_sched_getaffinity) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
@@ -265,7 +267,6 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
          // Let the syscall fall through
       }
 #endif
-
       else
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
@@ -292,6 +293,9 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||
+            (syscall_number == SYS_getcwd) ||
+            (syscall_number == SYS_sched_setaffinity) ||
+            (syscall_number == SYS_sched_getaffinity) ||
 #ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||

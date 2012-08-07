@@ -38,7 +38,7 @@ public:
    void popDynamicInstructionInfo();
    DynamicInstructionInfo& getDynamicInstructionInfo();
 
-   static CoreModel *createMainCoreModel(Core* core);
+   static CoreModel *create(Core* core);
 
    BranchPredictor *getBranchPredictor() { return m_bp; }
 

@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "WordlineUnit.h"
 
 #include "SRAM.h"

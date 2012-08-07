@@ -13,7 +13,7 @@ void addMemoryModeling(INS ins)
       if (INS_IsMemoryRead(ins))
       {
          INS_InsertCall(ins, IPOINT_BEFORE,
-               AFUNPTR(lite::handleMemoryRead),
+               AFUNPTR(handleMemoryRead),
                IARG_BOOL, INS_IsAtomicUpdate(ins),
                IARG_MEMORYREAD_EA,
                IARG_MEMORYREAD_SIZE,
@@ -24,7 +24,7 @@ void addMemoryModeling(INS ins)
          LOG_ASSERT_ERROR(!INS_IsAtomicUpdate(ins), "Atomic Instruction has 2 read operands");
 
          INS_InsertCall(ins, IPOINT_BEFORE,
-               AFUNPTR(lite::handleMemoryRead),
+               AFUNPTR(handleMemoryRead),
                IARG_BOOL, false,
                IARG_MEMORYREAD2_EA,
                IARG_MEMORYREAD_SIZE,
@@ -40,7 +40,7 @@ void addMemoryModeling(INS ins)
 
          IPOINT ipoint = INS_HasFallThrough(ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
          INS_InsertCall(ins, ipoint,
-               AFUNPTR(lite::handleMemoryWrite),
+               AFUNPTR(handleMemoryWrite),
                IARG_BOOL, INS_IsAtomicUpdate(ins),
                IARG_REG_VALUE, REG_INST_G0, /* value of IARG_MEMORYWRITE_EA at IPOINT_BEFORE */
                IARG_MEMORYWRITE_SIZE,

@@ -110,8 +110,11 @@ public:
 
    SInt32 getIndexFromTileID(UInt32 proc_num, tile_id_t tile_id);
    tile_id_t getTileIDFromIndex(UInt32 proc_num, SInt32 index);
+   core_id_t getMainCoreIDFromIndex(UInt32 proc_num, SInt32 index);
    
    UInt32 getNumLocalTiles() { return getNumTilesInProcess(getCurrentProcessNum()); }
+   UInt32 getMaxThreadsPerCore() { return m_max_threads_per_core;}
+   UInt32 getNumCoresPerTile() { return m_num_cores_per_tile;}
 
    // Return the total number of modules in all processes
    UInt32 getTotalTiles();
@@ -178,7 +181,9 @@ private:
    UInt32  m_num_processes;         // Total number of processes (incl myself)
    UInt32  m_total_tiles;           // Total number of tiles in all processes
    UInt32  m_application_tiles;     // Total number of tiles used by the application
+   UInt32  m_num_cores_per_tile;    // Number of cores per tile
    UInt32  m_tile_id_length;        // Number of bytes needed to store a tile_id
+   UInt32  m_max_threads_per_core;
 
    UInt32  m_current_process_num;   // Process number for this process
 
@@ -202,6 +207,7 @@ private:
    static Config *m_singleton;
 
    static UInt32 m_knob_total_tiles;
+   static UInt32 m_knob_max_threads_per_core;
    static UInt32 m_knob_num_process;
    static bool m_knob_simarch_has_shared_mem;
    static std::string m_knob_output_file;

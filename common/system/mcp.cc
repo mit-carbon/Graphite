@@ -10,6 +10,7 @@
 #include "simulator.h"
 #include "syscall.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "perf_counter_manager.h"
 
 using namespace std;
@@ -89,10 +90,10 @@ void MCP::processPacket()
       break;
 
    case MCP_MESSAGE_BARRIER_INIT:
-      m_sync_server.barrierInit(recv_pkt.sender.tile_id);
+      m_sync_server.barrierInit(recv_pkt.sender);
       break;
    case MCP_MESSAGE_BARRIER_WAIT:
-      m_sync_server.barrierWait(recv_pkt.sender.tile_id);
+      m_sync_server.barrierWait(recv_pkt.sender);
       break;
 
    case MCP_MESSAGE_UTILIZATION_UPDATE:
@@ -105,8 +106,43 @@ void MCP::processPacket()
    case MCP_MESSAGE_THREAD_SPAWN_REPLY_FROM_SLAVE:
       Sim()->getThreadManager()->masterSpawnThreadReply((ThreadSpawnRequest*)recv_pkt.data);
       break;
+   case MCP_MESSAGE_THREAD_YIELD_REQUEST:
+      Sim()->getThreadScheduler()->masterYieldThread((ThreadYieldRequest*)recv_pkt.data);
+      break;
+   case MCP_MESSAGE_THREAD_MIGRATE_REQUEST_FROM_REQUESTER:
+      Sim()->getThreadScheduler()->masterMigrateThread( *(SInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                        *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(SInt32)), 
+                                                        *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(SInt32)+sizeof(tile_id_t))); 
+      break;
+   case MCP_MESSAGE_THREAD_SETAFFINITY_REQUEST:
+      Sim()->getThreadScheduler()->masterSchedSetAffinity((ThreadAffinityRequest*)recv_pkt.data);
+      break;
+   case MCP_MESSAGE_THREAD_GETAFFINITY_REQUEST:
+      Sim()->getThreadScheduler()->masterSchedGetAffinity((ThreadAffinityRequest*)recv_pkt.data);
+      break;
+
+    case MCP_MESSAGE_THREAD_SET_PID:
+      Sim()->getThreadManager()->masterSetPid(  *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                *(thread_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
+                                                *(pid_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(thread_id_t)));
+      break;
+
+   case MCP_MESSAGE_QUERY_THREAD_INDEX:
+      Sim()->getThreadManager()->masterQueryThreadIndex( *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                         *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
+                                                         *(thread_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(UInt32)));
+      break;
+   case MCP_MESSAGE_THREAD_START:
+      Sim()->getThreadManager()->masterOnThreadStart( *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                      *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
+                                                      *(SInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(UInt32)));
+
+      break;
    case MCP_MESSAGE_THREAD_EXIT:
-      Sim()->getThreadManager()->masterOnThreadExit(*(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), recv_pkt.time);
+      Sim()->getThreadManager()->masterOnThreadExit(  *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+                                                      *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
+                                                      *(SInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(UInt32)), 
+                                                      recv_pkt.time);
       break;
 
    case MCP_MESSAGE_THREAD_JOIN_REQUEST:
@@ -140,7 +176,6 @@ void MCP::finish()
    LOG_PRINT("Send MCP quit message");
 
    SInt32 msg_type = MCP_MESSAGE_QUIT;
-   //m_network.netSend(Config::getSingleton()->getMCPTileNum(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
    m_network.netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, &msg_type, sizeof(msg_type));
 
    while (!finished())

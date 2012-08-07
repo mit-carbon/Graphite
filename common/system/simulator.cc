@@ -2,12 +2,14 @@
 #include <sstream>
 
 #include "simulator.h"
+#include "version.h"
 #include "log.h"
 #include "lcp.h"
 #include "mcp.h"
 #include "tile.h"
 #include "tile_manager.h"
 #include "thread_manager.h"
+#include "thread_scheduler.h"
 #include "perf_counter_manager.h"
 #include "sim_thread_manager.h"
 #include "clock_skew_minimization_object.h"
@@ -32,6 +34,7 @@ void Simulator::allocate()
 {
    assert(m_singleton == NULL);
    m_singleton = new Simulator();
+   assert(m_singleton);
 }
 
 void Simulator::setConfig(config::Config *cfg)
@@ -61,6 +64,7 @@ Simulator::Simulator()
    , m_transport(NULL)
    , m_tile_manager(NULL)
    , m_thread_manager(NULL)
+   , m_thread_scheduler(NULL)
    , m_perf_counter_manager(NULL)
    , m_sim_thread_manager(NULL)
    , m_clock_skew_minimization_manager(NULL)
@@ -101,6 +105,7 @@ void Simulator::start()
    m_transport = Transport::create();
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);
+   m_thread_scheduler = ThreadScheduler::create(m_thread_manager, m_tile_manager);
    m_perf_counter_manager = new PerfCounterManager(m_thread_manager);
    m_sim_thread_manager = new SimThreadManager();
    m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme"));
@@ -155,6 +160,8 @@ Simulator::~Simulator()
    {
       ofstream os(Config::getSingleton()->getOutputFileName().c_str());
 
+      os << "Graphite " << version  << endl
+         << "" << endl;
       os << "Simulation timers: " << endl
          << "start time\t" << (m_start_time - m_boot_time) << endl
          << "stop time\t" << (m_stop_time - m_boot_time) << endl
@@ -189,6 +196,7 @@ Simulator::~Simulator()
    delete m_sim_thread_manager;
    delete m_perf_counter_manager;
    delete m_thread_manager;
+   delete m_thread_scheduler;
    delete m_tile_manager;
    m_tile_manager = NULL;
    delete m_transport;
@@ -285,9 +293,11 @@ bool Simulator::finished()
 
 void Simulator::enablePerformanceModelsInCurrentProcess()
 {
+   LOG_PRINT("enablePerformanceModelsInCurrentProcess() start");
    Sim()->startTimer();
    for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
       Sim()->getTileManager()->getTileFromIndex(i)->enablePerformanceModels();
+   LOG_PRINT("enablePerformanceModelsInCurrentProcess() end");
 }
 
 void Simulator::disablePerformanceModelsInCurrentProcess()

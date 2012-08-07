@@ -11,6 +11,7 @@ class Transport;
 class TileManager;
 class Thread;
 class ThreadManager;
+class ThreadScheduler;
 class PerfCounterManager;
 class SimThreadManager;
 class ClockSkewMinimizationManager;
@@ -35,6 +36,7 @@ public:
    TileManager *getTileManager() { return m_tile_manager; }
    SimThreadManager *getSimThreadManager() { return m_sim_thread_manager; }
    ThreadManager *getThreadManager() { return m_thread_manager; }
+   ThreadScheduler *getThreadScheduler() { return m_thread_scheduler; }
    PerfCounterManager *getPerfCounterManager() { return m_perf_counter_manager; }
    ClockSkewMinimizationManager *getClockSkewMinimizationManager() { return m_clock_skew_minimization_manager; }
    StatisticsManager *getStatisticsManager() { return m_statistics_manager; } 
@@ -73,6 +75,7 @@ private:
    Transport *m_transport;
    TileManager *m_tile_manager;
    ThreadManager *m_thread_manager;
+   ThreadScheduler *m_thread_scheduler;
    PerfCounterManager *m_perf_counter_manager;
    SimThreadManager *m_sim_thread_manager;
    ClockSkewMinimizationManager *m_clock_skew_minimization_manager;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cache_perf_model.h"
+#include "log.h"
 
 class CachePerfModelParallel : public CachePerfModel
 {
@@ -30,7 +31,7 @@ public:
          return _data_array_access_time;
 
       default:
-         fprintf(stderr, "Unrecognized cache access type(%u)\n", access);
+         LOG_PRINT_ERROR("Unrecognized cache access type(%u)", access);
          return 0;
       }
    }

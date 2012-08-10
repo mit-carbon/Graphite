@@ -12,7 +12,7 @@ NetworkModelMagic::~NetworkModelMagic()
 UInt32
 NetworkModelMagic::computeAction(const NetPacket& pkt)
 {
-   tile_id_t tile_id = getNetwork()->getTile()->getId();
+   __attribute(__unused__) tile_id_t tile_id = getNetwork()->getTile()->getId();
    LOG_ASSERT_ERROR((pkt.receiver.tile_id == NetPacket::BROADCAST) || (pkt.receiver.tile_id == tile_id), \
          "pkt.receiver.tile_id(%i), tile_id(%i)", pkt.receiver.tile_id, tile_id);
 

@@ -55,14 +55,14 @@ McPATCache::~McPATCache()
 void
 McPATCache::getArea(CacheParams* cache_params, CacheArea* cache_area)
 {
-   LOG_PRINT("getArea(%p, %p) enter", cache_params, cache_area)
+   LOG_PRINT("getArea(%p, %p) enter", cache_params, cache_area);
    bool found = false;
    CacheInfo cache_info = findCached(cache_params, found);
    if (found)
       *cache_area = *(cache_info.first);
    else
       *cache_area = *(runMcPAT(cache_params).first);
-   LOG_PRINT("getArea(%p, %p) exit", cache_params, cache_area)
+   LOG_PRINT("getArea(%p, %p) exit", cache_params, cache_area);
 }
 
 void

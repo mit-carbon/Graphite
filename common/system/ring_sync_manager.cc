@@ -16,8 +16,8 @@ RingSyncManager::RingSyncManager():
    _slack(0)
 {
    // Cache the tile pointers corresponding to all the application cores
-   UInt32 num_tiles = Config::getSingleton()->getNumLocalTiles();
-   UInt32 num_app_tiles = (Config::getSingleton()->getCurrentProcessNum() == 0) ? num_tiles - 2 : num_tiles - 1;
+   __attribute(__unused__) UInt32 num_tiles = Config::getSingleton()->getNumLocalTiles();
+   __attribute(__unused__) UInt32 num_app_tiles = (Config::getSingleton()->getCurrentProcessNum() == 0) ? num_tiles - 2 : num_tiles - 1;
 
    Config::TileList tile_list = Config::getSingleton()->getTileListForCurrentProcess();
    Config::TileList::iterator it;

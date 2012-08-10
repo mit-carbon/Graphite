@@ -246,7 +246,9 @@ VOID allocateStackSpace()
    // TODO: Make sure that this is a multiple of the page size 
    
    // mmap() the total amount of memory needed for the stacks
-   LOG_ASSERT_ERROR((mmap((void*) stack_base, stack_size_per_core * num_tiles,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) == (void*) stack_base),
+   __attribute(__unused__) void* mmrtn = mmap((void*) stack_base, stack_size_per_core * num_tiles,  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+   
+   LOG_ASSERT_ERROR((mmrtn == (void*) stack_base),
          "mmap(%p, %u) failed: Cannot allocate stack on host machine", (void*) stack_base, stack_size_per_core * num_tiles);
 }
 

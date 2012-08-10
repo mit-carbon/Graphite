@@ -343,7 +343,7 @@ L2CacheCntlr::processUpgradeRepFromDramDirectory(tile_id_t sender, ShmemMsg* shm
    PrL2CacheBlockInfo* l2_cache_block_info = getCacheBlockInfo(address);
    assert(l2_cache_block_info);
 
-   CacheState::cstate_t curr_cstate = getCacheState(l2_cache_block_info);
+   __attribute(__unused__) CacheState::cstate_t curr_cstate = getCacheState(l2_cache_block_info);
    LOG_ASSERT_ERROR((curr_cstate == CacheState::SHARED) || (curr_cstate == CacheState::OWNED), 
          "Address(%#llx), State(%u)", address, curr_cstate);
 

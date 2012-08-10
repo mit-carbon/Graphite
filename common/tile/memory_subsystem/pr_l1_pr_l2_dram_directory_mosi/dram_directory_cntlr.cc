@@ -366,7 +366,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, bool first_call
                   "Address(0x%x), State(UNCACHED), Num Sharers(%u)",
                   address, directory_entry->getNumSharers());
 
-            bool add_result = directory_entry->addSharer(requester);
+            __attribute(__unused__) bool add_result = directory_entry->addSharer(requester);
             LOG_ASSERT_ERROR(add_result == true,
                   "Address(0x%x), State(UNCACHED)",
                   address);
@@ -481,7 +481,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, bool first_call
                      INVALID_TILE_ID, directory_entry->getNumSharers());
 
             // Modifiy the directory entry contents
-            bool add_result = directory_entry->addSharer(requester);
+            __attribute(__unused__) bool add_result = directory_entry->addSharer(requester);
             LOG_ASSERT_ERROR(add_result == true,
                   "Address(0x%x), Requester(%i), State(UNCACHED), Num Sharers(%u)",
                   address, requester, directory_entry->getNumSharers());
@@ -959,7 +959,7 @@ DramDirectoryCntlr::DataList::insert(IntPtr address, Byte* data)
    if (ret.second == false)
    {
       // There is already some data present
-      SInt32 equal = memcmp(alloc_data, (ret.first)->second, m_block_size);
+      __attribute(__unused__) SInt32 equal = memcmp(alloc_data, (ret.first)->second, m_block_size);
       LOG_ASSERT_ERROR(equal == 0, "Address(0x%x), cached data different from now received data");
       delete [] alloc_data;
    }

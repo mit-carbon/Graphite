@@ -27,7 +27,7 @@ Fxsupport::Fxsupport(tile_id_t num_local_cores):
    for (int i = 0; i < m_num_local_cores; i++)
    {
       // FIXME: I think it is not nice to hard-code these values, esp. 512
-      int status = posix_memalign ((void**) &m_fx_buf[i], 16, 512);
+      __attribute(__unused__) int status = posix_memalign ((void**) &m_fx_buf[i], 16, 512);
       assert (status == 0);
       m_context_saved[i] = false;
    }

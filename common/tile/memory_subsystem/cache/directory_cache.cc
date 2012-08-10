@@ -207,6 +207,9 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
 
    // Should not reach here
    assert(false);
+#ifdef NDEBUG
+   abort();
+#endif
 }
 
 void

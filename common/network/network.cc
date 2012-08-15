@@ -135,6 +135,7 @@ void Network::netPullFromTransport()
 
             callback(_callbackObjs[packet.type], packet);
 
+            // De-allocate packet payload
             if (packet.length > 0)
                delete [] (Byte*) packet.data;
          }
@@ -160,6 +161,10 @@ void Network::netPullFromTransport()
                (SInt32) packet.type, packet.sender.tile_id, packet.sender.core_type,
                packet.receiver.tile_id, packet.receiver.core_type, _tile->getId(), packet.time);
          forwardPacket(packet);
+         
+         // De-allocate packet payload
+         if (packet.length > 0)
+            delete [] (Byte*) packet.data;
       }
    }
    while (_transport->query());
@@ -242,14 +247,14 @@ SInt32 Network::netSend(NetPacket& packet)
       for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
       {
          packet.receiver = CORE_ID(i);
-         SInt32 ret = forwardPacket(packet);
+         __attribute(__unused__) SInt32 ret = forwardPacket(packet);
          LOG_ASSERT_ERROR(ret == (SInt32) packet.length, "ret(%i) != packet.length(%u)", ret, packet.length);
       }
    }
 
    else // (packet.receiver != NetPacket::BROADCAST) || (model->hasBroadcastCapability())
    {
-      SInt32 ret = forwardPacket(packet);
+      __attribute(__unused__) SInt32 ret = forwardPacket(packet);
       LOG_ASSERT_ERROR(ret == (SInt32) packet.length, "ret(%i) != packet.length(%u)", ret, packet.length);
    }
 

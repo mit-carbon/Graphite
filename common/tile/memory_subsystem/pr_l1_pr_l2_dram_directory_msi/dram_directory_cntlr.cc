@@ -284,11 +284,11 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
       break;
 
    case DirectoryState::UNCACHED:
-
+      
       {
          // Modifiy the directory entry contents
-         bool add_result = directory_entry->addSharer(requester);
-         assert(add_result == true);
+         __attribute(__unused__) bool add_result = directory_entry->addSharer(requester);
+         assert(add_result);
          directory_entry->setOwner(requester);
          directory_block_info->setDState(DirectoryState::MODIFIED);
 
@@ -356,8 +356,8 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
    case DirectoryState::UNCACHED:
       {
          // Modifiy the directory entry contents
-         bool add_result = directory_entry->addSharer(requester);
-         assert(add_result == true);
+         __attribute(__unused__) bool add_result = directory_entry->addSharer(requester);
+         assert(add_result);
          directory_block_info->setDState(DirectoryState::SHARED);
 
          retrieveDataAndSendToL2Cache(ShmemMsg::SH_REP, requester, address, cached_data_buf, msg_modeled);

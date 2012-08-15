@@ -607,7 +607,7 @@ void ThreadScheduler::yieldThread()
 
       ThreadYieldRequest * reply = (ThreadYieldRequest*) ((Byte*)pkt.data);
       core_id_t req_core_id      = reply->requester;
-      thread_id_t req_thread_idx = reply->requester_tidx;
+      __attribute(__unused__) thread_id_t req_thread_idx = reply->requester_tidx;
       thread_id_t req_next_tidx  = reply->requester_next_tidx;
 
       assert(req_core_id.tile_id == core_id.tile_id && req_core_id.core_type == core_id.core_type && req_thread_idx == thread_idx);

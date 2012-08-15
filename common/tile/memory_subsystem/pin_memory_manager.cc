@@ -9,7 +9,7 @@ PinMemoryManager::PinMemoryManager(Core* core):
    // MOVDQA
    for (unsigned int i = 0; i < NUM_ACCESS_TYPES; i++)
    {
-      int status = posix_memalign ((void**) &m_scratchpad[i], 4 * sizeof (void*), m_scratchpad_size);
+      __attribute(__unused__) int status = posix_memalign ((void**) &m_scratchpad[i], 4 * sizeof (void*), m_scratchpad_size);
       assert (status == 0);
    }
 }

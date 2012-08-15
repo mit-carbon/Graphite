@@ -52,7 +52,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    float core_frequency = Config::getSingleton()->getCoreFrequency(_tile->getMainCoreId());
    LOG_PRINT("Got Core Frequency");
 
-   // Size of each directory entry (in bits)
+   // Size of each directory entry (in bytes)
    UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_num_sharers)  / 8);
    LOG_PRINT("Got Directory Entry Size");
 
@@ -233,7 +233,8 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    }
 
    // Should not reach here
-   assert(false);
+   LOG_PRINT_ERROR("No directory entry found for replacment");
+   return NULL;
 }
 
 void
@@ -252,7 +253,7 @@ DirectoryCache::invalidateDirectoryEntry(IntPtr address)
    }
 
    // Should not reach here
-   assert(false);
+   LOG_PRINT_ERROR("Address(%#lx) not found for invalidation", address);
 }
 
 void

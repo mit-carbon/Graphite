@@ -391,13 +391,11 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
       {
          // Modifiy the directory entry contents
          LOG_ASSERT_ERROR(directory_entry->getNumSharers() == 0,
-               "Address(0x%x), State(UNCACHED), Num Sharers(%u)",
+               "Address(%#lx), State(UNCACHED), Num Sharers(%u)",
                address, directory_entry->getNumSharers());
 
-         bool add_result = addSharer(directory_entry, requester);
-         LOG_ASSERT_ERROR(add_result == true,
-               "Address(0x%x), State(UNCACHED)",
-               address);
+         __attribute(__unused__) bool add_result = addSharer(directory_entry, requester);
+         LOG_ASSERT_ERROR(add_result, "Address(%#lx), State(UNCACHED)", address);
          
          directory_entry->setOwner(requester);
          directory_block_info->setDState(DirectoryState::MODIFIED);
@@ -508,10 +506,9 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
    case DirectoryState::UNCACHED:
       {
          // Modifiy the directory entry contents
-         bool add_result = addSharer(directory_entry, requester);
-         LOG_ASSERT_ERROR(add_result == true,
-               "Address(0x%x), Requester(%i), State(UNCACHED), Num Sharers(%u)",
-               address, requester, directory_entry->getNumSharers());
+         __attribute(__unused__) bool add_result = addSharer(directory_entry, requester);
+         LOG_ASSERT_ERROR(add_result, "Address(%#lx), Requester(%i), State(UNCACHED), Num Sharers(%u)",
+                          address, requester, directory_entry->getNumSharers());
          
          directory_block_info->setDState(DirectoryState::SHARED);
 
@@ -1609,7 +1606,7 @@ DramDirectoryCntlr::DataList::insert(IntPtr address, Byte* data)
    if (ret.second == false)
    {
       // There is already some data present
-      SInt32 equal = memcmp(alloc_data, (ret.first)->second, _block_size);
+      __attribute(__unused__) SInt32 equal = memcmp(alloc_data, (ret.first)->second, _block_size);
       LOG_ASSERT_ERROR(equal == 0, "Address(0x%x), cached data different from now received data");
       delete [] alloc_data;
    }

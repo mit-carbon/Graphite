@@ -498,7 +498,7 @@ carbon_thread_t emuCarbonSpawnThread(CONTEXT* context,
   
    tile_id_t tid = CarbonSpawnThread(thread_func, arg);
 
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
    LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
 
@@ -528,7 +528,7 @@ int emuPthreadCreate(CONTEXT* context,
 {
    tile_id_t tid = CarbonSpawnThread(thread_func, arg);
   
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
    LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
 
@@ -567,7 +567,7 @@ void emuCarbonJoinThread(CONTEXT* context,
 
    tid_to_thread_ptr_map.erase(it);
 
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
    LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
 
@@ -610,7 +610,7 @@ int emuPthreadJoin(CONTEXT* context,
 
    tid_to_thread_ptr_map.erase(it);
 
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+    __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
    LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
 

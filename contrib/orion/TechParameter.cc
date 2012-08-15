@@ -28,7 +28,7 @@ TechParameter::TechParameter(
       m_tech_node = tech_node;
       break;
     default:
-      fprintf(stderr, "ERROR: Orion: Invalid technology node: %u nm\n", tech_node);
+      cerr << "ERROR: Orion: Invalid technology node: " << tech_node << " nm" << endl;
       exit(EXIT_FAILURE);
   }
 

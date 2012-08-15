@@ -82,7 +82,7 @@ T OrionConfig::get(const string& key_) const
   it = m_params_map.find(key_);
   if (it == m_params_map.end()) 
   {
-    fprintf(stderr, "ERROR: Orion: %s NOT FOUND!\n", key_.c_str());
+    cerr << "ERROR: Orion: " << key_.c_str() << " NOT FOUND!" << endl;
     throw key_not_found(key_);
   }
   return string_as_T<T>(it->second);

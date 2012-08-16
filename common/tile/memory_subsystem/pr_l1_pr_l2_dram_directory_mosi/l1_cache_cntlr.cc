@@ -189,7 +189,6 @@ L1CacheCntlr::accessCache(MemComponent::Type mem_component,
       L1_cache->accessCacheLine(ca_address + offset, Cache::STORE, data_buf, data_length);
       // Write-through cache - Write the L2 Cache also
       _L2_cache_cntlr->acquireLock();
-      _L2_cache_cntlr->assertCacheLineWritable(ca_address);
       _L2_cache_cntlr->writeCacheLine(ca_address, offset, data_buf, data_length);
       _L2_cache_cntlr->releaseLock();
       break;

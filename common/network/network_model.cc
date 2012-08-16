@@ -6,9 +6,7 @@ using namespace std;
 
 #include "network_model_magic.h"
 #include "network_model_emesh_hop_counter.h"
-// #include "network_model_analytical.h"
 #include "network_model_emesh_hop_by_hop.h"
-// #include "network_model_eclos.h"
 #include "network_model_atac.h"
 #include "memory_manager.h"
 #include "simulator.h"
@@ -53,14 +51,8 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
    case NETWORK_EMESH_HOP_COUNTER:
       return new NetworkModelEMeshHopCounter(net, network_id);
 
-//    case NETWORK_ANALYTICAL_MESH:
-//       return new NetworkModelAnalytical(net, network_id);
-
    case NETWORK_EMESH_HOP_BY_HOP:
       return new NetworkModelEMeshHopByHop(net, network_id);
-
-//    case NETWORK_ECLOS:
-//       return new NetworkModelEClos(net, network_id);
 
    case NETWORK_ATAC:
       return new NetworkModelAtac(net, network_id);
@@ -350,21 +342,17 @@ NetworkModel::isTileCountPermissible(UInt32 network_type, SInt32 tile_count)
    {
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
-//       case NETWORK_ANALYTICAL_MESH:
          return true;
 
       case NETWORK_EMESH_HOP_BY_HOP:
          return NetworkModelEMeshHopByHop::isTileCountPermissible(tile_count);
 
-//       case NETWORK_ECLOS:
-//          return NetworkModelEClos::isTileCountPermissible(tile_count);
-
       case NETWORK_ATAC:
          return NetworkModelAtac::isTileCountPermissible(tile_count);
       
       default:
-         fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
-         assert(false);
+         fprintf(stderr, "*ERROR* Unrecognized network type(%u)\n", network_type);
+         abort();
          return false;
    }
 }
@@ -376,8 +364,6 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
    {
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
-//       case NETWORK_ANALYTICAL_MESH:
-//       case NETWORK_ECLOS:
          {
             SInt32 spacing_between_memory_controllers = tile_count / num_memory_controllers;
             vector<tile_id_t> tile_list_with_memory_controllers;
@@ -397,7 +383,8 @@ NetworkModel::computeMemoryControllerPositions(UInt32 network_type, SInt32 num_m
          return NetworkModelAtac::computeMemoryControllerPositions(num_memory_controllers, tile_count);
 
       default:
-         LOG_PRINT_ERROR("Unrecognized network type(%u)", network_type);
+         fprintf(stderr, "*ERROR* Unrecognized network type(%u)\n", network_type);
+         abort();
          return make_pair(false, vector<tile_id_t>());
    }
 }
@@ -409,8 +396,6 @@ NetworkModel::computeProcessToTileMapping(UInt32 network_type)
    {
       case NETWORK_MAGIC:
       case NETWORK_EMESH_HOP_COUNTER:
-//       case NETWORK_ANALYTICAL_MESH:
-//       case NETWORK_ECLOS:
          return make_pair(false, vector<vector<tile_id_t> >());
 
       case NETWORK_EMESH_HOP_BY_HOP:
@@ -420,8 +405,8 @@ NetworkModel::computeProcessToTileMapping(UInt32 network_type)
          return NetworkModelAtac::computeProcessToTileMapping();
 
       default:
-         fprintf(stderr, "Unrecognized network type(%u)\n", network_type);
-         assert(false);
+         fprintf(stderr, "*ERROR* Unrecognized network type(%u)\n", network_type);
+         abort();
          return make_pair(false, vector<vector<tile_id_t> >());
    }
 }

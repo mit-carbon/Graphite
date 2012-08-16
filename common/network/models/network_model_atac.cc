@@ -907,7 +907,7 @@ NetworkModelAtac::computeProcessToTileMapping()
    vector<Config::TileList> process_to_tile_mapping(process_count);
   
    LOG_ASSERT_WARNING(_num_clusters >= process_count,
-        "Number of Clusters(%u) < Total Process in Simulation(%u)",
+        "Number of Clusters(%u) < Total Processes in Simulation(%u)",
         _num_clusters, process_count);
         
    UInt32 process_num = 0;

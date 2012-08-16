@@ -41,6 +41,7 @@ CacheSet::read_line(UInt32 line_index, UInt32 offset, Byte *out_buf, UInt32 byte
       memcpy((void*) out_buf, &_lines[line_index * _line_size + offset], bytes);
    LOG_PRINT("Out Buf(%u)", *((UInt32*) out_buf));
 
+   // Update replacement policy
    _replacement_policy->update(_cache_line_info_array, _set_num, line_index);
 }
 
@@ -53,6 +54,7 @@ CacheSet::write_line(UInt32 line_index, UInt32 offset, Byte *in_buf, UInt32 byte
    if (in_buf != NULL)
       memcpy(&_lines[line_index * _line_size + offset], (void*) in_buf, bytes);
 
+   // Update replacement policy
    _replacement_policy->update(_cache_line_info_array, _set_num, line_index);
 }
 
@@ -105,4 +107,7 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
    _cache_line_info_array[index]->assign(inserted_cache_line_info);
    if (fill_buf != NULL)
       memcpy(&_lines[index * _line_size], (void*) fill_buf, _line_size);
+
+   // Update replacement policy
+   _replacement_policy->update(_cache_line_info_array, _set_num, index);
 }

@@ -82,8 +82,8 @@ NetworkModel::__routePacket(const NetPacket& pkt, queue<Hop>& next_hops)
 {
    ScopedLock sl(_lock);
 
-   tile_id_t pkt_sender = TILE_ID(pkt.sender);
-   tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
+   __attribute(__unused__) tile_id_t pkt_sender = TILE_ID(pkt.sender);
+   __attribute(__unused__) tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
 
    if (pkt.node_type == SEND_TILE)
    {
@@ -99,9 +99,10 @@ NetworkModel::__routePacket(const NetPacket& pkt, queue<Hop>& next_hops)
       }
    }
 
-   assert( isApplicationTile(pkt_sender)                                               &&
-           (isApplicationTile(pkt_receiver) || (pkt_receiver == NetPacket::BROADCAST)) &&
-           (pkt_sender != pkt_receiver) );
+   LOG_ASSERT_ERROR( isApplicationTile(pkt_sender)                                               &&
+                     (isApplicationTile(pkt_receiver) || (pkt_receiver == NetPacket::BROADCAST)) &&
+                     (pkt_sender != pkt_receiver),
+                     "pkt_sender(%i), pkt_receiver(%i)", pkt_sender, pkt_receiver );
 
    // Call the routePacket() of the network model
    routePacket(pkt, next_hops);
@@ -144,8 +145,9 @@ NetworkModel::processReceivedPacket(NetPacket& pkt)
 tile_id_t
 NetworkModel::getRequester(const NetPacket& packet)
 {
-   SInt32 network_id = getNetworkId();
-   assert((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2));
+   __attribute(__unused__) SInt32 network_id = getNetworkId();
+   LOG_ASSERT_ERROR((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2),
+                    "network_id(%i)", network_id);
 
    return getNetwork()->getTile()->getMemoryManager()->getShmemRequester(packet.data);
 }
@@ -234,10 +236,10 @@ NetworkModel::isSystemTile(tile_id_t tile_id)
 void
 NetworkModel::updateSendCounters(const NetPacket& packet)
 {
-   tile_id_t sender = TILE_ID(packet.sender);
+   __attribute(__unused__) tile_id_t sender = TILE_ID(packet.sender);
    tile_id_t receiver = TILE_ID(packet.receiver);
 
-   assert(sender == _tile_id);
+   LOG_ASSERT_ERROR(sender == _tile_id, "sender(%i), tile_id(%i)", sender, _tile_id);
 
    UInt32 packet_length = getModeledLength(packet);
    SInt32 num_flits = computeNumFlits(packet_length);
@@ -259,8 +261,9 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
 void
 NetworkModel::updateReceiveCounters(const NetPacket& packet)
 {
-   tile_id_t receiver = TILE_ID(packet.receiver);
-   assert( (receiver == NetPacket::BROADCAST) || (receiver == _tile_id) );
+   __attribute(__unused__) tile_id_t receiver = TILE_ID(packet.receiver);
+   LOG_ASSERT_ERROR( (receiver == NetPacket::BROADCAST) || (receiver == _tile_id),
+                     "receiver(%i), tile_id(%i)", receiver, _tile_id );
    
    UInt32 packet_length = getModeledLength(packet);
    SInt32 num_flits = computeNumFlits(packet_length);

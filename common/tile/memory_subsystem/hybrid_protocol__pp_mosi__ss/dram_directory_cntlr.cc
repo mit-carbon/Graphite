@@ -168,7 +168,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    assert(_buffered_req_queue_list->count(address) >= 1);
    BufferedReq* completed_buffered_req = _buffered_req_queue_list->dequeue(address);
    
-   ShmemMsg* completed_directory_req = completed_buffered_req->getShmemMsg();
+   __attribute(__unused__) ShmemMsg* completed_directory_req = completed_buffered_req->getShmemMsg();
    LOG_PRINT("Address(%#lx), Requester(%i), ReqType(%s) dequeued",
              address, completed_directory_req->getRequester(), SPELL_SHMSG(completed_directory_req->getType()));
 
@@ -630,7 +630,7 @@ DramDirectoryCntlr::allocateExclusiveCacheLine(IntPtr address, ShmemMsg::Type di
          bool data_sent = retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
          if (data_sent)
          {
-            bool add_result = directory_entry->addSharer(cached_location);
+            __attribute(__unused__) bool add_result = directory_entry->addSharer(cached_location);
             LOG_ASSERT_ERROR(add_result, "Address(%#lx), State(UNCACHED)", address);
             
             directory_entry->setOwner(cached_location);
@@ -738,7 +738,7 @@ DramDirectoryCntlr::allocateSharedCacheLine(IntPtr address, ShmemMsg::Type direc
             else  // Data present
             {
                ShmemMsg::Type l2_reply_type = REMOTE(mode) ? ShmemMsg::ASYNC_SH_REPLY : ShmemMsg::SH_REPLY;
-               bool data_sent = retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
+               __attribute(__unused__) bool data_sent = retrieveDataAndSendToL2Cache(address, cached_location, l2_reply_type, requester, modeled);
                assert(data_sent);
                
                LOG_ASSERT_ERROR(curr_dstate == DirectoryState::SHARED, "curr_dstate(%s)", SPELL_DSTATE(curr_dstate));
@@ -763,7 +763,7 @@ DramDirectoryCntlr::allocateSharedCacheLine(IntPtr address, ShmemMsg::Type direc
          if (data_sent)
          {         
             // Modifiy the directory entry contents
-            bool add_result = directory_entry->addSharer(cached_location);
+            __attribute(__unused__) bool add_result = directory_entry->addSharer(cached_location);
             LOG_ASSERT_ERROR(add_result, "Address(%#lx), Requester(%i), State(UNCACHED), Num Sharers(%u)",
                              address, requester, directory_entry->getNumSharers());
             

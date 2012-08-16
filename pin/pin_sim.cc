@@ -95,8 +95,8 @@ void printRtn (ADDRINT rtn_addr, bool enter)
 
 VOID printInsInfo(CONTEXT* ctxt)
 {
-   ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    LOG_PRINT("eip(%#lx), esp(%#lx)", reg_inst_ptr, reg_stack_ptr);
 }

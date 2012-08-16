@@ -247,7 +247,7 @@ L2CacheCntlr::readDataFromCoreBuffer(ShmemMsg* directory_reply)
    Core::mem_op_t mem_op_type = _outstanding_mem_op.getType();
    Core::lock_signal_t lock_signal = _outstanding_mem_op.getLockSignal();
    LOG_ASSERT_ERROR((mem_op_type != Core::WRITE) || (lock_signal != Core::UNLOCK),
-                    "mem_op_type(WRITE) && lock_signal(UNLOCK)")
+                    "mem_op_type(WRITE) && lock_signal(UNLOCK)");
    if ( (mem_op_type == Core::WRITE) && (lock_signal == Core::NONE) )
    {
       Byte* core_buf = _outstanding_mem_op.getDataBuf();
@@ -529,7 +529,7 @@ L2CacheCntlr::processReadReplyFromDramDirectory(tile_id_t sender, ShmemMsg* dire
    Byte* data_buf = directory_reply->getDataBuf();
 
    // Check that the request is sane
-   Core::mem_op_t mem_op_type = _outstanding_mem_op.getType();
+   __attribute(__unused__) Core::mem_op_t mem_op_type = _outstanding_mem_op.getType();
    LOG_ASSERT_ERROR((mem_op_type == Core::READ) || (mem_op_type == Core::READ_EX),
                     "mem_op_type(%s), address(%#lx), requester(%i), address(%#lx), reply_type(%s)",
                     SPELL_MEMOP(mem_op_type), _outstanding_mem_op.getAddress(),
@@ -547,7 +547,7 @@ void
 L2CacheCntlr::processWriteReplyFromDramDirectory(tile_id_t sender, ShmemMsg* directory_reply)
 {
    // Nothing to do here other than wake up the app thread and return
-   Core::mem_op_t mem_op_type = _outstanding_mem_op.getType();
+   __attribute(__unused__) Core::mem_op_t mem_op_type = _outstanding_mem_op.getType();
    LOG_ASSERT_ERROR(mem_op_type == Core::WRITE, "mem_op_type(%s)", SPELL_MEMOP(mem_op_type));
 }
 
@@ -703,7 +703,7 @@ L2CacheCntlr::processShReplyFromDramDirectory(tile_id_t sender, ShmemMsg* direct
 {
    IntPtr address = directory_reply->getAddress();
    Byte* fill_buf = directory_reply->getDataBuf();
-   Core::mem_op_t mem_op_type = _outstanding_mem_op.getType();
+   __attribute(__unused__) Core::mem_op_t mem_op_type = _outstanding_mem_op.getType();
    LOG_ASSERT_ERROR(mem_op_type == Core::READ, "mem_op_type(%s)", SPELL_MEMOP(mem_op_type));
 
    LOG_PRINT("processShReplyFromDramDirectory[sender(%i), address(%#lx)]", sender, address);
@@ -963,7 +963,7 @@ L2CacheCntlr::getMemOpStatusInL2Cache(MemComponent::Type mem_component, IntPtr a
       _memory_manager->waitOnThreadForCacheLineUnlock(ShmemPerfModel::_SIM_THREAD, address);
       // Re-access the cache once unlocked
       _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
-      bool unlocked = l2_cache_line_info.isValid() && !l2_cache_line_info.isLocked();
+      __attribute(__unused__) bool unlocked = l2_cache_line_info.isValid() && !l2_cache_line_info.isLocked();
       LOG_ASSERT_ERROR(unlocked, "Cache line[Valid(%s), MemComponent(%s), Address(%#lx), MemOp(%u), LockSignal(%u)] still locked",
                        l2_cache_line_info.isValid() ? "TRUE" : "FALSE",
                        SPELL_MEMCOMP(mem_component), address, mem_op_type, lock_signal);
@@ -1055,7 +1055,7 @@ L2CacheCntlr::acquireLock(ShmemMsg::Type msg_type, IntPtr address)
          _memory_manager->acquireLock();
          HybridL2CacheLineInfo l2_cache_line_info;
          _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
-         bool locked = (l2_cache_line_info.isValid() && l2_cache_line_info.isLocked());
+         __attribute(__unused__) bool locked = (l2_cache_line_info.isValid() && l2_cache_line_info.isLocked());
          LOG_ASSERT_ERROR(locked, "Cache Line for [Address(%#lx), REMOTE_WRITE_UNLOCK_REQ] unlocked", address);
       }
       return true;

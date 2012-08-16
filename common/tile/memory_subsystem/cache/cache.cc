@@ -82,8 +82,9 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
    IntPtr tag = getTag(address);
    UInt32 line_offset = getLineOffset(address);
    UInt32 line_index = -1;
-   
-   CacheLineInfo* cache_line_info = set->find(tag, &line_index);
+  
+   // FIXME: This is an expensive operation. Remove if possible 
+   __attribute(__unused__) CacheLineInfo* cache_line_info = set->find(tag, &line_index);
    LOG_ASSERT_ERROR(cache_line_info, "Address(%#lx)", address);
 
    if (access_type == LOAD)

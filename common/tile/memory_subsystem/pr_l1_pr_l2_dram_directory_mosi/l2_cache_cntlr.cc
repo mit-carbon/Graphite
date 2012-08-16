@@ -128,10 +128,12 @@ L2CacheCntlr::writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt
 void
 L2CacheCntlr::assertCacheLineWritable(IntPtr address)
 {
+#ifndef NDEBUG
    PrL2CacheLineInfo L2_cache_line_info;
    _L2_cache->getCacheLineInfo(address, &L2_cache_line_info);
    CacheState::Type L2_cstate = L2_cache_line_info.getCState();
    assert(CacheState(L2_cstate).writable());
+#endif
 }
 
 void

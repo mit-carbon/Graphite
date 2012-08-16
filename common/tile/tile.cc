@@ -101,29 +101,12 @@ Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
    getCore()->getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
 }
 
-Core* Tile::getCore(core_id_t core_id)
-{
-   Core * res = NULL;
-
-   if (this->isMainCore(core_id))
-      res = m_main_core;
-
-   LOG_ASSERT_ERROR(res != NULL, "Invalid core id!");
-   return res;
-}
-
-// This method is used for differentiating different cores if you decide to add different types of cores per tile.
-Core* Tile::getCurrentCore()
-{
-   return getCore();
-}
-
 core_id_t Tile::getMainCoreId()
 {
    return (core_id_t) {m_tile_id, MAIN_CORE_TYPE};
 }
+
 bool Tile::isMainCore(core_id_t core_id)
 {
    return (core_id.core_type == MAIN_CORE_TYPE);
 }
-

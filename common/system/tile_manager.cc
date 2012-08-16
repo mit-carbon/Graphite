@@ -103,7 +103,7 @@ void TileManager::initializeCommId(SInt32 comm_id)
 
    for (UInt32 i = 0; i < num_procs; i++)
    {
-      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY, this->getCurrentCore()->getCoreId());
+      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY, getCurrentCore()->getCoreId());
       LOG_PRINT("Received reply from proc: %d", i);
    }
 
@@ -196,8 +196,8 @@ void TileManager::terminateThread()
 
 core_id_t TileManager::getCurrentCoreID()
 {
-   Tile *tile = getCurrentTile();
-   return tile ? tile->getCurrentCore()->getCoreId() : INVALID_CORE_ID;
+   Core *core = getCurrentCore();
+   return core ? core->getCoreId() : INVALID_CORE_ID;
 }
 
 tile_id_t TileManager::getCurrentTileID()
@@ -270,7 +270,8 @@ UInt32 TileManager::getTileIndexFromID(tile_id_t tile_id)
 
 Core *TileManager::getCurrentCore()
 {
-   return this->getCurrentCore(getCurrentTile());
+   Tile* tile = getCurrentTile();
+   return tile ? tile->getCore() : NULL;
 }
 
 core_id_t TileManager::getMainCoreId(tile_id_t tile_id)
@@ -304,23 +305,9 @@ Core *TileManager::getCoreFromID(core_id_t id)
    }
 
    LOG_ASSERT_ERROR(!tile || idx < Config::getSingleton()->getNumLocalTiles(), "Illegal index in getTileFromID!");
+   LOG_ASSERT_ERROR(id.core_type == MAIN_CORE_TYPE, "id.core_type(%u)", id.core_type);
 
-   return tile->getCore(id);
-}
-
-Core *TileManager::getCurrentCore(Tile *tile)
-{
-   assert(m_thread_type_tls);
-   LOG_ASSERT_ERROR(tile, "Tile doesn't exist in TileManager::getCurrentCore()");
-
-   if (m_thread_type_tls->getInt() == APP_THREAD)
-      return tile->getCore();
-   else
-   {
-      LOG_PRINT_ERROR("Incorrect thread type(%i)!", m_thread_type_tls->getInt());
-      exit(0);
-   }
-      
+   return tile->getCore();
 }
 
 thread_id_t TileManager::getCurrentThreadIndex()

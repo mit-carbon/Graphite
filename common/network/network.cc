@@ -377,7 +377,7 @@ NetPacket Network::netRecv(const NetMatch &match)
                           : NetRecvIterator(match.types);
 
    core_id_t receiver = match.receiver.tile_id == INVALID_TILE_ID 
-                        ? _tile->getCurrentCore()->getCoreId() 
+                        ? _tile->getCore()->getCoreId() 
                         : match.receiver;
 
    LOG_ASSERT_ERROR(_tile && _tile->getCore()->getPerformanceModel(),
@@ -457,10 +457,10 @@ SInt32 Network::netSend(core_id_t dest, PacketType type, const void *buf, UInt32
 {
    NetPacket packet;
    assert(_tile);
-   assert(_tile->getCurrentCore()->getPerformanceModel()); 
-   packet.time = _tile->getCurrentCore()->getPerformanceModel()->getCycleCount();
-   packet.sender.tile_id = _tile->getCurrentCore()->getCoreId().tile_id;
-   packet.sender.core_type = _tile->getCurrentCore()->getCoreId().core_type;
+   assert(_tile->getCore()->getPerformanceModel()); 
+   packet.time = _tile->getCore()->getPerformanceModel()->getCycleCount();
+   packet.sender.tile_id = _tile->getCore()->getCoreId().tile_id;
+   packet.sender.core_type = _tile->getCore()->getCoreId().core_type;
    packet.receiver.tile_id = dest.tile_id;
    packet.receiver.core_type = dest.core_type;
    packet.length = len;

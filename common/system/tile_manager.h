@@ -33,9 +33,7 @@ public:
    Tile *getTileFromID(tile_id_t id);
    Tile *getTileFromIndex(UInt32 index);
 
-   Core* getCurrentCore(Tile *tile);
    Core *getCurrentCore();
-   UInt32 getCurrentCoreIndex();
    Core *getCoreFromID(core_id_t id);
 
    static core_id_t getMainCoreId(tile_id_t tile_id);

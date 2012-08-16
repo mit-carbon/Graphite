@@ -32,17 +32,12 @@ public:
    // network accessor since network is private
    int getId()                         { return m_tile_id; }
    Network *getNetwork()               { return m_network; }
-   Core* getCore(core_id_t core_id);
-   Core* getCurrentCore();
    Core* getCore()                     { return m_main_core; }
    MemoryManager *getMemoryManager()   { return m_memory_manager; }
    ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
    core_id_t getMainCoreId();
    bool isMainCore(core_id_t core_id);
-
-   void setMemoryManager(MemoryManager *memory_manager) { m_memory_manager = memory_manager; }
-   void setShmemPerfModel(ShmemPerfModel *shmem_perf_model) { m_shmem_perf_model = shmem_perf_model; }
 
    void updateInternalVariablesOnFrequencyChange(volatile float frequency);
 

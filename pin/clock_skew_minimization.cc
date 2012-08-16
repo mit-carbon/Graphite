@@ -20,7 +20,7 @@ void handlePeriodicSync()
       return;
    }
 
-   ClockSkewMinimizationClient *client = tile->getCurrentCore()->getClockSkewMinimizationClient();
+   ClockSkewMinimizationClient *client = tile->getCore()->getClockSkewMinimizationClient();
 
    if (client)
       client->synchronize();

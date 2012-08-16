@@ -26,7 +26,7 @@ def spawn_job(machine_list, command, working_dir = os.getcwd()):
             exec_command = "cd %s; %s" % (working_dir, command)
             
             print "%s Starting process: %d: %s" % (pmaster(), i, exec_command)
-            procs[i] = spawn.spawn_job(i, exec_command)
+            procs[i] = spawn.spawn_job(i, exec_command, working_dir)
         else:
             command = command.replace("\"", "\\\"")
             spawn_slave_command = "%s/tools/spawn_slave.py %d \\\"%s\\\"" % (working_dir, i, command)

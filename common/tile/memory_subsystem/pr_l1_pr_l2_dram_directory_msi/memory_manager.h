@@ -56,6 +56,12 @@ namespace PrL1PrL2DramDirectoryMSI
 
       void outputSummary(std::ostream &os);
 
+      // App + Sim thread synchronization
+      void waitForAppThread();
+      void wakeUpAppThread();
+      void waitForSimThread();
+      void wakeUpSimThread();
+
       // Cache line replication trace
       static void openCacheLineReplicationTraceFiles();
       static void closeCacheLineReplicationTraceFiles();
@@ -72,8 +78,10 @@ namespace PrL1PrL2DramDirectoryMSI
 
       bool _dram_cntlr_present;
 
-      Semaphore* _user_thread_sem;
-      Semaphore* _network_thread_sem;
+      // App + Sim thread synchronization
+      Lock _lock;
+      Semaphore _app_thread_sem;
+      Semaphore _sim_thread_sem;
 
       UInt32 _cache_line_size;
       bool _enabled;

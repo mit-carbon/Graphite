@@ -15,7 +15,6 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "shmem_msg.h"
 #include "mem_component.h"
 #include "semaphore.h"
-#include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
@@ -27,8 +26,6 @@ namespace PrL1PrL2DramDirectoryMSI
    {
    public:
       L1CacheCntlr(MemoryManager* memory_manager,
-                   Semaphore* app_thread_sem,
-                   Semaphore* sim_thread_sem,
                    UInt32 cache_line_size,
                    UInt32 l1_icache_size,
                    UInt32 l1_icache_associativity,
@@ -63,9 +60,6 @@ namespace PrL1PrL2DramDirectoryMSI
       void setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
       void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address);
 
-      void acquireLock(MemComponent::Type mem_component);
-      void releaseLock(MemComponent::Type mem_component);
-   
    private:
       MemoryManager* _memory_manager;
       Cache* _l1_icache;
@@ -75,11 +69,6 @@ namespace PrL1PrL2DramDirectoryMSI
       CacheHashFn* _l1_icache_hash_fn_obj;
       CacheHashFn* _l1_dcache_hash_fn_obj;
       L2CacheCntlr* _l2_cache_cntlr;
-
-      Lock _l1_icache_lock;
-      Lock _l1_dcache_lock;
-      Semaphore* _app_thread_sem;
-      Semaphore* _sim_thread_sem;
 
       void accessCache(MemComponent::Type mem_component,
             Core::mem_op_t mem_op_type, 
@@ -97,10 +86,5 @@ namespace PrL1PrL2DramDirectoryMSI
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
-
-      // Wait for Sim Thread
-      void waitForSimThread();
-      // Wake up Sim Thread
-      void wakeUpSimThread();
    };
 }

@@ -138,9 +138,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
 
    volatile float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
   
-   _user_thread_sem = new Semaphore(0);
-   _network_thread_sem = new Semaphore(0);
-   
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    // if (getTile()->getId() == 0)
       // printTileListWithMemoryControllers(tile_list_with_dram_controllers);
@@ -178,8 +175,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    LOG_PRINT("Instantiated Dram Directory Home Lookup");
 
    _l1_cache_cntlr = new L1CacheCntlr(this,
-         _user_thread_sem,
-         _network_thread_sem,
          getCacheLineSize(),
          l1_icache_size,
          l1_icache_associativity,
@@ -198,8 +193,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _l2_cache_cntlr = new L2CacheCntlr(this,
          _l1_cache_cntlr,
          _dram_directory_home_lookup,
-         _user_thread_sem,
-         _network_thread_sem,
          getCacheLineSize(),
          l2_cache_size,
          l2_cache_associativity,
@@ -237,8 +230,6 @@ MemoryManager::~MemoryManager()
    delete _l1_dcache_perf_model;
    delete _l2_cache_perf_model;
 
-   delete _user_thread_sem;
-   delete _network_thread_sem;
    delete _dram_directory_home_lookup;
    delete _l1_cache_cntlr;
    delete _l2_cache_cntlr;
@@ -250,25 +241,30 @@ MemoryManager::~MemoryManager()
 }
 
 bool
-MemoryManager::coreInitiateMemoryAccess(
-      MemComponent::Type mem_component,
-      Core::lock_signal_t lock_signal,
-      Core::mem_op_t mem_op_type,
-      IntPtr address, UInt32 offset,
-      Byte* data_buf, UInt32 data_length,
-      bool modeled)
+MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
+                                        Core::lock_signal_t lock_signal,
+                                        Core::mem_op_t mem_op_type,
+                                        IntPtr address, UInt32 offset,
+                                        Byte* data_buf, UInt32 data_length,
+                                        bool modeled)
 {
-   return _l1_cache_cntlr->processMemOpFromTile(mem_component, 
-         lock_signal, 
-         mem_op_type, 
-         address, offset, 
-         data_buf, data_length,
-         modeled);
+   if (lock_signal != Core::UNLOCK)
+      _lock.acquire();
+   
+   bool ret = _l1_cache_cntlr->processMemOpFromTile(mem_component, lock_signal, mem_op_type, 
+                                                    address, offset, data_buf, data_length, modeled);
+
+   if (lock_signal != Core::LOCK)
+      _lock.release();
+
+   return ret;
 }
 
 void
 MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
+   _lock.acquire();
+
    core_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
@@ -338,6 +334,8 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
       delete [] shmem_msg->getDataBuf();
    }
    delete shmem_msg;
+
+   _lock.release();
 }
 
 void
@@ -481,6 +479,35 @@ MemoryManager::outputSummary(std::ostream &os)
       DirectoryCache::dummyOutputSummary(os, getTile()->getId());
    }
 }
+
+void
+MemoryManager::waitForAppThread()
+{
+   _sim_thread_sem.wait();
+   _lock.acquire();
+}
+
+void
+MemoryManager::wakeUpAppThread()
+{
+   _lock.release();
+   _app_thread_sem.signal();
+}
+
+void
+MemoryManager::waitForSimThread()
+{
+   _lock.release();
+   _app_thread_sem.wait();
+}
+
+void
+MemoryManager::wakeUpSimThread()
+{
+   _lock.acquire();
+   _sim_thread_sem.signal();
+}
+
 
 void
 MemoryManager::openCacheLineReplicationTraceFiles()

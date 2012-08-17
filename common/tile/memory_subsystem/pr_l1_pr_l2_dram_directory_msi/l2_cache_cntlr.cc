@@ -9,8 +9,6 @@ namespace PrL1PrL2DramDirectoryMSI
 L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            L1CacheCntlr* l1_cache_cntlr,
                            AddressHomeLookup* dram_directory_home_lookup,
-                           Semaphore* app_thread_sem,
-                           Semaphore* sim_thread_sem,
                            UInt32 cache_line_size,
                            UInt32 l2_cache_size,
                            UInt32 l2_cache_associativity,
@@ -21,8 +19,6 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
    : _memory_manager(memory_manager)
    , _l1_cache_cntlr(l1_cache_cntlr)
    , _dram_directory_home_lookup(dram_directory_home_lookup)
-   , _app_thread_sem(app_thread_sem)
-   , _sim_thread_sem(sim_thread_sem)
 {
    _l2_cache_replacement_policy_obj = 
       CacheReplacementPolicy::create(l2_cache_replacement_policy, l2_cache_size, l2_cache_associativity, cache_line_size);
@@ -204,8 +200,6 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   acquireLock();
-
    assert(shmem_msg->getDataBuf() == NULL);
    assert(shmem_msg->getDataLength() == 0);
 
@@ -230,8 +224,6 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
          LOG_PRINT_ERROR("Unrecognized shmem msg type (%u)", shmem_msg_type);
          break;
    }
-
-   releaseLock();
 }
 
 void
@@ -272,12 +264,6 @@ void
 L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
-   IntPtr address = shmem_msg->getAddress();
-
-   // Acquire Locks
-   MemComponent::Type caching_mem_component = acquireL1CacheLock(shmem_msg_type, address);
-   acquireLock();
-
    switch (shmem_msg_type)
    {
       case ShmemMsg::EX_REP:
@@ -300,11 +286,6 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
          break;
    }
 
-   // Release Locks
-   releaseLock();
-   if (caching_mem_component != MemComponent::INVALID)
-      _l1_cache_cntlr->releaseLock(caching_mem_component);
-
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP))
    {
       LOG_ASSERT_ERROR(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCycleCount(),
@@ -325,8 +306,8 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
       // There are no more outstanding memory requests
       _outstanding_shmem_msg.setAddress(INVALID_ADDRESS);
       
-      wakeUpAppThread();
-      waitForAppThread();
+      _memory_manager->wakeUpAppThread();
+      _memory_manager->waitForAppThread();
    }
 }
 
@@ -488,70 +469,6 @@ L2CacheCntlr::operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr a
 
    Cache::MissType cache_miss_type = _l2_cache->updateMissCounters(address, mem_op_type, !cache_hit);
    return make_pair(!cache_hit, cache_miss_type);
-}
-
-MemComponent::Type
-L2CacheCntlr::acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address)
-{
-   switch (msg_type)
-   {
-   case ShmemMsg::EX_REP:
-   case ShmemMsg::SH_REP:
-      
-      assert(_outstanding_shmem_msg.getAddress() == address);
-      assert(_outstanding_shmem_msg.getSenderMemComponent() != MemComponent::INVALID);
-      _l1_cache_cntlr->acquireLock(_outstanding_shmem_msg.getSenderMemComponent());
-      return _outstanding_shmem_msg.getSenderMemComponent();
-
-   case ShmemMsg::INV_REQ:
-   case ShmemMsg::FLUSH_REQ:
-   case ShmemMsg::WB_REQ:
-   
-      {
-         acquireLock();
-         
-         PrL2CacheLineInfo l2_cache_line_info;
-         _l2_cache->getCacheLineInfo(address, &l2_cache_line_info);
-         MemComponent::Type caching_mem_component = l2_cache_line_info.getCachedLoc();
-         
-         releaseLock();
-
-         // assert(caching_mem_component != MemComponent::L1_ICACHE);
-         if (caching_mem_component != MemComponent::INVALID)
-         {
-            _l1_cache_cntlr->acquireLock(caching_mem_component);
-         }
-         return caching_mem_component;
-      }
-
-   default:
-      LOG_PRINT_ERROR("Unrecognized Msg Type (%u)", msg_type);
-      return MemComponent::INVALID;
-   }
-}
-
-void
-L2CacheCntlr::acquireLock()
-{
-   _l2_cache_lock.acquire();
-}
-
-void
-L2CacheCntlr::releaseLock()
-{
-   _l2_cache_lock.release();
-}
-
-void
-L2CacheCntlr::wakeUpAppThread()
-{
-   _app_thread_sem->signal();
-}
-
-void
-L2CacheCntlr::waitForAppThread()
-{
-   _sim_thread_sem->wait();
 }
 
 tile_id_t

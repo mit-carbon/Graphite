@@ -16,8 +16,6 @@ using std::map;
 #include "shmem_msg.h"
 #include "shmem_req.h"
 #include "mem_component.h"
-#include "semaphore.h"
-#include "lock.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
@@ -33,8 +31,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       L2CacheCntlr(MemoryManager* memory_manager,
                    L1CacheCntlr* L1_cache_cntlr,
                    AddressHomeLookup* dram_directory_home_lookup,
-                   Semaphore* user_thread_sem,
-                   Semaphore* network_thread_sem,
                    UInt32 cache_line_size,
                    UInt32 L2_cache_size,
                    UInt32 L2_cache_associativity,
@@ -57,9 +53,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       void handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
       // Output summary
       void outputSummary(ostream& out);
-      // Acquiring and Releasing Locks
-      void acquireLock();
-      void releaseLock();
 
       void enable() { _enabled = true; }
       void disable() { _enabled = false; }
@@ -76,11 +69,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Outstanding ShmemReq info
       ShmemMsg _outstanding_shmem_msg;
       UInt64 _outstanding_shmem_msg_time;
-
-      // Synchronization
-      Lock _L2_cache_lock;
-      Semaphore* _app_thread_sem;
-      Semaphore* _sim_thread_sem;
 
       // Is enabled?
       bool _enabled;
@@ -140,16 +128,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       MemoryManager* getMemoryManager()         { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
 
-      // Wake up App Thread
-      void wakeUpAppThread();
-      // Wait for App Thread
-      void waitForAppThread();
-
       // Dram Directory Home Lookup
       tile_id_t getHome(IntPtr address)
       { return _dram_directory_home_lookup->getHome(address); }
-
-      MemComponent::Type acquireL1CacheLock(ShmemMsg::Type msg_type, IntPtr address);
 
       // Performance Counters
       void initializeEvictionCounters();

@@ -7,8 +7,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 {
 
 L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
-                           Semaphore* app_thread_sem,
-                           Semaphore* sim_thread_sem,
                            UInt32 cache_line_size,
                            UInt32 L1_icache_size,
                            UInt32 L1_icache_associativity,
@@ -23,8 +21,6 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            float frequency)
    : _memory_manager(memory_manager)
    , _L2_cache_cntlr(NULL)
-   , _app_thread_sem(app_thread_sem)
-   , _sim_thread_sem(sim_thread_sem)
 {
    _L1_icache_replacement_policy_obj = 
       CacheReplacementPolicy::create(L1_icache_replacement_policy, L1_icache_size, L1_icache_associativity, cache_line_size);
@@ -97,13 +93,10 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2),
             "Error: access_num(%u)", access_num);
 
-      if (lock_signal != Core::UNLOCK)
-         acquireLock(mem_component);
-
       // Wake up the network thread after acquiring the lock
       if (access_num == 2)
       {
-         wakeUpSimThread();
+         _memory_manager->wakeUpSimThread();
       }
 
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num))
@@ -126,8 +119,6 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
          }
 #endif
 
-         if (lock_signal != Core::LOCK)
-            releaseLock(mem_component);
          return L1_cache_hit;
       }
 
@@ -139,16 +130,12 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       if (lock_signal == Core::UNLOCK)
          LOG_PRINT_ERROR("Expected to find address(0x%x) in L1 Cache", ca_address);
 
-      _L2_cache_cntlr->acquireLock();
-
       pair<bool,Cache::MissType> L2_cache_miss_info = _L2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool L2_cache_miss = L2_cache_miss_info.first;
       Cache::MissType L2_cache_miss_type = L2_cache_miss_info.second;
 
       if (!L2_cache_miss)
       {
-         _L2_cache_cntlr->releaseLock();
-         
          // Increment Shared Mem Perf model cycle counts
          // L2 Cache
          getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
@@ -157,16 +144,11 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
-         if (lock_signal != Core::LOCK)
-            releaseLock(mem_component);
          return false;
       }
 
       // Increment shared mem perf model cycle counts
       getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
-      
-      _L2_cache_cntlr->releaseLock();
-      releaseLock(mem_component);
       
       // Send out a request to the network thread for the cache data
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(L2_cache_miss_type) &&
@@ -177,7 +159,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
                          getTileId(), INVALID_TILE_ID, false, ca_address, msg_modeled);
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
-      waitForSimThread();
+      _memory_manager->waitForSimThread();
    }
 
    LOG_PRINT_ERROR("Should not reach here");
@@ -200,9 +182,7 @@ L1CacheCntlr::accessCache(MemComponent::Type mem_component,
    case Core::WRITE:
       L1_cache->accessCacheLine(ca_address + offset, Cache::STORE, data_buf, data_length);
       // Write-through cache - Write the L2 Cache also
-      _L2_cache_cntlr->acquireLock();
       _L2_cache_cntlr->writeCacheLine(ca_address, offset, data_buf, data_length);
-      _L2_cache_cntlr->releaseLock();
       break;
 
    default:
@@ -344,57 +324,6 @@ L1CacheCntlr::getL1Cache(MemComponent::Type mem_component)
       LOG_PRINT_ERROR("Unrecognized Memory Component(%s)", SPELL_MEMCOMP(mem_component));
       return NULL;
    }
-}
-
-void
-L1CacheCntlr::acquireLock(MemComponent::Type mem_component)
-{
-   switch(mem_component)
-   {
-   case MemComponent::L1_ICACHE:
-      _L1_icache_lock.acquire();
-      break;
-   
-   case MemComponent::L1_DCACHE:
-      _L1_dcache_lock.acquire();
-      break;
-   
-   default:
-      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-      break;
-   }
-
-}
-
-void
-L1CacheCntlr::releaseLock(MemComponent::Type mem_component)
-{
-   switch(mem_component)
-   {
-   case MemComponent::L1_ICACHE:
-      _L1_icache_lock.release();
-      break;
-   
-   case MemComponent::L1_DCACHE:
-      _L1_dcache_lock.release();
-      break;
-   
-   default:
-      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-      break;
-   }
-}
-
-void
-L1CacheCntlr::waitForSimThread()
-{
-   _app_thread_sem->wait();
-}
-
-void
-L1CacheCntlr::wakeUpSimThread()
-{
-   _sim_thread_sem->signal();
 }
 
 tile_id_t

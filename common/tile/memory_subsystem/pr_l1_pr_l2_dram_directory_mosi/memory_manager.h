@@ -13,6 +13,7 @@ using std::ofstream;
 #include "address_home_lookup.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
+#include "lock.h"
 #include "semaphore.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
@@ -58,6 +59,12 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void outputSummary(std::ostream &os);
       
+      // App + Sim thread synchronization
+      void waitForAppThread();
+      void wakeUpAppThread();
+      void waitForSimThread();
+      void wakeUpSimThread();
+
       // Cache line replication trace
       static void openCacheLineReplicationTraceFiles();
       static void closeCacheLineReplicationTraceFiles();
@@ -74,8 +81,9 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       bool _dram_cntlr_present;
 
-      Semaphore* _app_thread_sem;
-      Semaphore* _sim_thread_sem;
+      Lock _lock;
+      Semaphore _app_thread_sem;
+      Semaphore _sim_thread_sem;
 
       UInt32 _cache_line_size;
       bool _enabled;

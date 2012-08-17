@@ -135,9 +135,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
 
    volatile float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
    
-   _app_thread_sem = new Semaphore(0);
-   _sim_thread_sem = new Semaphore(0);
-
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    //if (getTile()->getId() == 0)
       //printTileListWithMemoryControllers(tile_list_with_dram_controllers);
@@ -169,8 +166,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_dram_controllers, getCacheLineSize());
 
    _L1_cache_cntlr = new L1CacheCntlr(this,
-         _app_thread_sem,
-         _sim_thread_sem,
          getCacheLineSize(),
          L1_icache_size,
          L1_icache_associativity,
@@ -187,8 +182,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _L2_cache_cntlr = new L2CacheCntlr(this,
          _L1_cache_cntlr,
          _dram_directory_home_lookup,
-         _app_thread_sem,
-         _sim_thread_sem,
          getCacheLineSize(),
          L2_cache_size,
          L2_cache_associativity,
@@ -222,8 +215,6 @@ MemoryManager::~MemoryManager()
    delete _L1_dcache_perf_model;
    delete _L2_cache_perf_model;
 
-   delete _app_thread_sem;
-   delete _sim_thread_sem;
    delete _dram_directory_home_lookup;
    delete _L1_cache_cntlr;
    delete _L2_cache_cntlr;
@@ -235,20 +226,23 @@ MemoryManager::~MemoryManager()
 }
 
 bool
-MemoryManager::coreInitiateMemoryAccess(
-      MemComponent::Type mem_component,
-      Core::lock_signal_t lock_signal,
-      Core::mem_op_t mem_op_type,
-      IntPtr address, UInt32 offset,
-      Byte* data_buf, UInt32 data_length,
-      bool modeled)
+MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
+                                        Core::lock_signal_t lock_signal,
+                                        Core::mem_op_t mem_op_type,
+                                        IntPtr address, UInt32 offset,
+                                        Byte* data_buf, UInt32 data_length,
+                                        bool modeled)
 {
-   return _L1_cache_cntlr->processMemOpFromTile(mem_component, 
-         lock_signal, 
-         mem_op_type, 
-         address, offset, 
-         data_buf, data_length,
-         modeled);
+   if (lock_signal != Core::UNLOCK)
+      _lock.acquire();
+   
+   bool ret = _L1_cache_cntlr->processMemOpFromTile(mem_component, lock_signal, mem_op_type,
+                                                    address, offset, data_buf, data_length, modeled);
+
+   if (lock_signal != Core::LOCK)
+      _lock.release();
+
+   return ret;
 }
 
 void
@@ -258,10 +252,13 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
 
-   getShmemPerfModel()->setCycleCount(msg_time);
-
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
+
+   if (receiver_mem_component != MemComponent::DRAM_DIRECTORY)
+      _lock.acquire();
+
+   getShmemPerfModel()->setCycleCount(msg_time);
 
    LOG_PRINT("Time(%llu), Got Shmem Msg: type(%s), address(%#lx), "
              "sender_mem_component(%s), receiver_mem_component(%s), sender(%i,%i), receiver(%i,%i)", 
@@ -271,46 +268,46 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    switch (receiver_mem_component)
    {
-      case MemComponent::L2_CACHE:
-         switch(sender_mem_component)
-         {
-            case MemComponent::L1_ICACHE:
-            case MemComponent::L1_DCACHE:
-               assert(sender.tile_id == getTile()->getId());
-               _L2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
-               break;
+   case MemComponent::L2_CACHE:
+      switch(sender_mem_component)
+      {
+         case MemComponent::L1_ICACHE:
+         case MemComponent::L1_DCACHE:
+            assert(sender.tile_id == getTile()->getId());
+            _L2_cache_cntlr->handleMsgFromL1Cache(shmem_msg);
+            break;
 
-            case MemComponent::DRAM_DIRECTORY:
-               _L2_cache_cntlr->handleMsgFromDramDirectory(sender.tile_id, shmem_msg);
-               break;
+         case MemComponent::DRAM_DIRECTORY:
+            _L2_cache_cntlr->handleMsgFromDramDirectory(sender.tile_id, shmem_msg);
+            break;
 
-            default:
-               LOG_PRINT_ERROR("Unrecognized sender component(%u)",
-                     sender_mem_component);
-               break;
-         }
-         break;
+         default:
+            LOG_PRINT_ERROR("Unrecognized sender component(%u)",
+                  sender_mem_component);
+            break;
+      }
+      break;
 
-      case MemComponent::DRAM_DIRECTORY:
-         switch(sender_mem_component)
-         {
-            LOG_ASSERT_ERROR(_dram_cntlr_present, "Dram Cntlr NOT present");
+   case MemComponent::DRAM_DIRECTORY:
+      switch(sender_mem_component)
+      {
+         LOG_ASSERT_ERROR(_dram_cntlr_present, "Dram Cntlr NOT present");
 
-            case MemComponent::L2_CACHE:
-               _dram_directory_cntlr->handleMsgFromL2Cache(sender.tile_id, shmem_msg);
-               break;
+         case MemComponent::L2_CACHE:
+            _dram_directory_cntlr->handleMsgFromL2Cache(sender.tile_id, shmem_msg);
+            break;
 
-            default:
-               LOG_PRINT_ERROR("Unrecognized sender component(%u)",
-                     sender_mem_component);
-               break;
-         }
-         break;
+         default:
+            LOG_PRINT_ERROR("Unrecognized sender component(%u)",
+                  sender_mem_component);
+            break;
+      }
+      break;
 
-      default:
-         LOG_PRINT_ERROR("Unrecognized receiver component(%u)",
-               receiver_mem_component);
-         break;
+   default:
+      LOG_PRINT_ERROR("Unrecognized receiver component(%u)",
+            receiver_mem_component);
+      break;
    }
 
    // Delete the allocated Shared Memory Message
@@ -323,6 +320,9 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
       delete [] shmem_msg->getDataBuf();
    }
    delete shmem_msg;
+
+   if (receiver_mem_component != MemComponent::DRAM_DIRECTORY)
+      _lock.release();
 }
 
 void
@@ -507,6 +507,34 @@ MemoryManager::outputSummary(std::ostream &os)
 }
 
 void
+MemoryManager::waitForAppThread()
+{
+   _sim_thread_sem.wait();
+   _lock.acquire();
+}
+
+void
+MemoryManager::wakeUpAppThread()
+{
+   _lock.release();
+   _app_thread_sem.signal();
+}
+
+void
+MemoryManager::waitForSimThread()
+{
+   _lock.release();
+   _app_thread_sem.wait();
+}
+
+void
+MemoryManager::wakeUpSimThread()
+{
+   _lock.acquire();
+   _sim_thread_sem.signal();
+}
+
+void
 MemoryManager::openCacheLineReplicationTraceFiles()
 {
    string output_dir;
@@ -602,16 +630,11 @@ MemoryManager::outputCacheLineReplicationSummary()
    // Replication count
    // For Pr L1, Pr L2 configuration
    vector<UInt64> total_cache_line_replication_count(2*total_tiles+1, 0);
-   // Approximate for Pr L1, Sh L2 configuration
-   vector<UInt64> total_cache_line_replication_count_pr_L1_sh_L2(total_tiles+2, 0); 
    
    // Account for exclusive lines first
    // For Pr L1, Pr L2 configuration
    total_cache_line_replication_count[1] += (total_exclusive_lines_L2_cache - total_exclusive_lines_L1_cache);
    total_cache_line_replication_count[2] += total_exclusive_lines_L1_cache;
-   // Approximate for Pr L1, Sh L2 configuration
-   total_cache_line_replication_count_pr_L1_sh_L2[1] += (total_exclusive_lines_L2_cache - total_exclusive_lines_L1_cache);
-   total_cache_line_replication_count_pr_L1_sh_L2[2] += total_exclusive_lines_L1_cache;
    
    // Subtract out the exclusive lines 
    total_cache_line_sharer_count[1] -= total_exclusive_lines_L2_cache;
@@ -635,18 +658,11 @@ MemoryManager::outputCacheLineReplicationSummary()
       // Approximate For Pr L1, Pr L2 configuration
       total_cache_line_replication_count[num_sharers + degree_low] += num_low;
       total_cache_line_replication_count[num_sharers + degree_high] += num_high;
-      // Approximate for Pr L1, Sh L2 configuration
-      total_cache_line_replication_count_pr_L1_sh_L2[1 + degree_low] += num_low;
-      total_cache_line_replication_count_pr_L1_sh_L2[1 + degree_high] += num_high;
    }
 
    // For Pr L1, Pr L2 configuration
    for (SInt32 i = 1; i <= (2*total_tiles); i++)
       _cache_line_replication_file << total_cache_line_replication_count[i] << ", ";
-   _cache_line_replication_file << endl;
-   // Approximate for Pr L1, Sh L2 configuration
-   for (SInt32 i = 1; i <= (total_tiles+1); i++)
-      _cache_line_replication_file << total_cache_line_replication_count_pr_L1_sh_L2[i] << ", ";
    _cache_line_replication_file << endl;
 
    _cache_line_replication_file << endl;

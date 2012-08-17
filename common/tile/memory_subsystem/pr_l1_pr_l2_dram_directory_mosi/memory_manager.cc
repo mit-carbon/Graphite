@@ -133,7 +133,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _cache_line_size = L1_icache_line_size;
    dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
 
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
+   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
    
    _app_thread_sem = new Semaphore(0);
    _sim_thread_sem = new Semaphore(0);

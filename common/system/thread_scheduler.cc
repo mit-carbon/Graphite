@@ -83,7 +83,7 @@ void ThreadScheduler::onThreadExit()
       // Wait for master to update the next thread
       Network *net = m_tile_manager->getCurrentCore()->getNetwork();
       Core *core = m_tile_manager->getCurrentCore();
-      NetPacket pkt = net->netRecvType(MCP_THREAD_EXIT_REPLY_FROM_MASTER_TYPE, core->getCoreId());
+      NetPacket pkt = net->netRecvType(MCP_THREAD_EXIT_REPLY_FROM_MASTER_TYPE, core->getId());
       LOG_ASSERT_ERROR(pkt.length == sizeof(core_id_t) + sizeof(thread_id_t), "Unexpected reply size.");
 
       core_id_t dst_core_id = *(core_id_t*)((Byte*)pkt.data);
@@ -120,7 +120,7 @@ void ThreadScheduler::masterOnThreadExit(core_id_t core_id, SInt32 thread_idx)
          bool is_thread_new = false;
 
          // Check if the next thread is new, or simply stalled from an earlier yield.
-         if (m_tile_manager->isMainCore(core_id))
+         if (Tile::isMainCore(core_id))
             is_thread_new = thread_state[core_id.tile_id][next_tidx].status == Core::INITIALIZING;
 
          if (is_thread_new)
@@ -166,7 +166,7 @@ void ThreadScheduler::masterScheduleThread(ThreadSpawnRequest *req)
    {
       // If the requesting tile is the destination tile, the calling thread is stalled, but should be set as the
       // running thread because it will resume after the spawn call.
-      if (m_tile_manager->isMainCore(req->requester))
+      if (Tile::isMainCore(req->requester))
          running_thread = thread_state[req->requester.tile_id][req->requester_tidx].thread_id;
    }
    else
@@ -178,7 +178,7 @@ void ThreadScheduler::masterScheduleThread(ThreadSpawnRequest *req)
    }
 
    // Grab the thread states on destination tile and set to initializing.
-   if (m_tile_manager->isMainCore(req->destination)) {
+   if (Tile::isMainCore(req->destination)) {
       LOG_ASSERT_ERROR(thread_state[req->destination.tile_id][req->destination_tidx].status == Core::IDLE, "Spawning a non-idle thread at %i on {%i, %i}", req->destination_tidx, req->destination.tile_id, req->destination.core_type); 
       m_thread_manager->setThreadState(req->destination.tile_id, req->destination_tidx, Core::INITIALIZING);
    }
@@ -242,7 +242,7 @@ void ThreadScheduler::masterStartThread(core_id_t core_id)
 
 void ThreadScheduler::migrateThread(thread_id_t thread_id, tile_id_t tile_id)
 {
-   core_id_t core_id = m_tile_manager->getMainCoreId(tile_id);
+   core_id_t core_id = Tile::getMainCoreId(tile_id);
 
    // Send message to master process to update the waiter queues, the local thread keeps running and DOESN'T wait.
    SInt32 msg[] = { MCP_MESSAGE_THREAD_MIGRATE_REQUEST_FROM_REQUESTER, thread_id, core_id.tile_id, core_id.core_type};
@@ -370,7 +370,7 @@ bool ThreadScheduler::schedSetAffinity(thread_id_t tid, unsigned int cpusetsize,
    Core* core = m_tile_manager->getCurrentCore();
 
    ThreadAffinityRequest req =   {  MCP_MESSAGE_THREAD_SETAFFINITY_REQUEST,
-                                    core->getCoreId(),
+                                    core->getId(),
                                     tid,
                                     (UInt32) cpusetsize,
                                     set
@@ -422,7 +422,7 @@ bool ThreadScheduler::schedGetAffinity(thread_id_t tid, unsigned int cpusetsize,
    Core* core = m_tile_manager->getCurrentCore();
 
    ThreadAffinityRequest req =   {  MCP_MESSAGE_THREAD_GETAFFINITY_REQUEST,
-                                    core->getCoreId(),
+                                    core->getId(),
                                     tid,
                                     (UInt32) cpusetsize,
                                     set
@@ -435,7 +435,7 @@ bool ThreadScheduler::schedGetAffinity(thread_id_t tid, unsigned int cpusetsize,
                 &req,
                 sizeof(req));
 
-   NetPacket pkt = net->netRecvType(MCP_THREAD_GETAFFINITY_REPLY_FROM_MASTER_TYPE, core->getCoreId());
+   NetPacket pkt = net->netRecvType(MCP_THREAD_GETAFFINITY_REPLY_FROM_MASTER_TYPE, core->getId());
    LOG_ASSERT_ERROR(pkt.length == sizeof(req), "Unexpected reply size (got %i expected %i).", pkt.length, sizeof(req));
 
    ThreadAffinityRequest * reply = (ThreadAffinityRequest*) ((Byte*)pkt.data);
@@ -514,7 +514,7 @@ bool ThreadScheduler::masterCheckAffinityAndMigrate(core_id_t core_id, thread_id
          {
             if (CPU_ISSET_S(i, setsize, set) != 0)
             {
-               current_core_id =  m_tile_manager->getMainCoreId(i);
+               current_core_id =  Tile::getMainCoreId(i);
                if (m_thread_manager->isCoreRunning(current_core_id) == INVALID_THREAD_ID)
                {
                   dst_core_id = current_core_id;
@@ -578,7 +578,7 @@ void ThreadScheduler::yieldThread()
 
 
    // Core 0 is not allowed to be multithreaded or yield.
-   if (core_id.tile_id == 0 && m_tile_manager->isMainCore(core_id))
+   if (core_id.tile_id == 0 && Tile::isMainCore(core_id))
       return;
 
    UInt32 current_time = (UInt32) time(NULL);
@@ -601,7 +601,7 @@ void ThreadScheduler::yieldThread()
             &req,
             sizeof(req));
 
-      NetPacket pkt = net->netRecvType(MCP_THREAD_YIELD_REPLY_FROM_MASTER_TYPE, core->getCoreId());
+      NetPacket pkt = net->netRecvType(MCP_THREAD_YIELD_REPLY_FROM_MASTER_TYPE, core->getId());
 
       m_core_lock[core_id.tile_id].acquire();
 
@@ -685,7 +685,7 @@ void ThreadScheduler::masterYieldThread(ThreadYieldRequest* req)
    }
    else
    {
-      if (m_tile_manager->isMainCore(req_core_id))
+      if (Tile::isMainCore(req_core_id))
          is_thread_new = m_thread_manager->isThreadInitializing(req_core_id, m_local_next_tidx[req_core_id.tile_id]);
 
       if (is_thread_new)

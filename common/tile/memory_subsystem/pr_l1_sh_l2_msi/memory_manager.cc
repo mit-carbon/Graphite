@@ -125,7 +125,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    
    _cache_line_size = L1_icache_line_size;
 
-   float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
+   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
    
    UInt32 dram_home_lookup_param = ceilLog2(_cache_line_size);
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();

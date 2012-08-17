@@ -118,7 +118,7 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
       }
 
       LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(%#lx), offset(%u), curr_size(%u), core_id(%i, %i)",
-                curr_addr_aligned, curr_offset, curr_size, getCoreId().tile_id, getCoreId().core_type);
+                curr_addr_aligned, curr_offset, curr_size, getId().tile_id, getId().core_type);
 
       if (!getMemoryManager()->coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type, 
                                                         curr_addr_aligned, curr_offset, 
@@ -135,7 +135,7 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
       }
 
       LOG_PRINT("End InitiateSharedMemReq: ADDR(%#lx), offset(%u), curr_size(%u), core_id(%i,%i)",
-                curr_addr_aligned, curr_offset, curr_size, getCoreId().tile_id, getCoreId().core_type);
+                curr_addr_aligned, curr_offset, curr_size, getId().tile_id, getId().core_type);
 
       // Increment the buffer head
       curr_data_buffer_head += curr_size;

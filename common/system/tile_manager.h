@@ -36,14 +36,10 @@ public:
    Core *getCurrentCore();
    Core *getCoreFromID(core_id_t id);
 
-   static core_id_t getMainCoreId(tile_id_t tile_id);
-
    thread_id_t getCurrentThreadIndex();
    thread_id_t getCurrentThreadId();
 
    void updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id);
-
-   bool isMainCore(core_id_t core_id);
 
    void outputSummary(std::ostream &os);
 

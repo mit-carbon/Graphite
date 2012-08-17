@@ -259,7 +259,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       if (Sim()->getConfig()->getSimulationMode() == Config::LITE)
       {
          LOG_ASSERT_ERROR(curr_process_num == 0, "Lite mode can only be run with 1 process");
-         Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(0));
+         Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(0));
       }
       else // Sim()->getConfig()->getSimulationMode() == Config::FULL
       { 
@@ -268,7 +268,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          
          if (curr_process_num == 0)
          {
-            Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(0));
+            Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(0));
 
             ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
             // 1) Copying over Static Data
@@ -283,23 +283,23 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
             // 2) Copying over initial stack data
             LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
-            copyInitialStackData(reg_esp, Sim()->getTileManager()->getMainCoreId(0));
+            copyInitialStackData(reg_esp, Tile::getMainCoreId(0));
             LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
          }
          else
          {
             tile_id_t tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
-            Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(tile_id));
+            Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(tile_id));
             
             //Tile *tile = Sim()->getTileManager()->getCurrentTile();
             Core *core = Sim()->getTileManager()->getCurrentCore();
 
             // main thread clock is not affected by start-up time of other processes
             //tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-            core->getTile()->getNetwork()->netRecv (Sim()->getTileManager()->getMainCoreId(0), core->getCoreId(), SYSTEM_INITIALIZATION_NOTIFY);
+            core->getTile()->getNetwork()->netRecv (Tile::getMainCoreId(0), core->getId(), SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
-            copyInitialStackData(reg_esp, Sim()->getTileManager()->getMainCoreId(tile_id));
+            copyInitialStackData(reg_esp, Tile::getMainCoreId(tile_id));
             LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
          }
          // Set the current ESP accordingly

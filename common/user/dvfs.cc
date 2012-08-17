@@ -24,5 +24,5 @@ void CarbonSetCoreFrequency(volatile float* frequency)
    // 3) Cache Performance Model
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    tile->updateInternalVariablesOnFrequencyChange(*frequency);
-   Config::getSingleton()->setCoreFrequency(tile->getCore()->getCoreId(), *frequency);
+   Config::getSingleton()->setCoreFrequency(tile->getCore()->getId(), *frequency);
 }

@@ -126,7 +126,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    
    _cache_line_size = l1_icache_line_size;
 
-   float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
+   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
  
    // Set Architectual parameters for ShmemMsg
    ShmemMsg::initializeArchitecturalParameters(_cache_line_size, 48 /* physical address bits */);

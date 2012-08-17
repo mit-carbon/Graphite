@@ -63,7 +63,7 @@ void Tile::outputSummary(std::ostream &os)
    LOG_PRINT("Memory Model Summary");
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      getCore()->getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getCore()->getCoreId()));
+      getCore()->getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getCore()->getId()));
       getCore()->getMemoryManager()->outputSummary(os);
    }
 }
@@ -99,14 +99,4 @@ Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    getCore()->getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
    getCore()->getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
-}
-
-core_id_t Tile::getMainCoreId()
-{
-   return (core_id_t) {m_tile_id, MAIN_CORE_TYPE};
-}
-
-bool Tile::isMainCore(core_id_t core_id)
-{
-   return (core_id.core_type == MAIN_CORE_TYPE);
 }

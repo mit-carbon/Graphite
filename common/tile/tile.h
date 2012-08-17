@@ -36,8 +36,8 @@ public:
    MemoryManager *getMemoryManager()   { return m_memory_manager; }
    ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
-   core_id_t getMainCoreId();
-   bool isMainCore(core_id_t core_id);
+   static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
+   static bool isMainCore(core_id_t core_id)       { return (core_id.core_type == MAIN_CORE_TYPE); }
 
    void updateInternalVariablesOnFrequencyChange(volatile float frequency);
 

@@ -49,7 +49,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
 
    initializeParameters();
   
-   float core_frequency = Config::getSingleton()->getCoreFrequency(_tile->getMainCoreId());
+   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(tile->getId()));
    LOG_PRINT("Got Core Frequency");
 
    // Size of each directory entry (in bytes)

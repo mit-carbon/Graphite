@@ -146,7 +146,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
    LOG_PRINT("Core(%i, %i): Time(%llu), SyncReq[sender(%i), msg_type(%u), time(%llu)]", 
-      _core->getCoreId().tile_id, _core->getCoreId().core_type, curr_time, sync_msg.sender, sync_msg.type, sync_msg.time);
+      _core->getId().tile_id, _core->getId().core_type, curr_time, sync_msg.sender, sync_msg.type, sync_msg.time);
 
    // 3 possible scenarios
    if (curr_time > (sync_msg.time + _slack))
@@ -160,12 +160,12 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       {
          // Goto sleep for a few microseconds
          // Self generate a WAIT msg
-         LOG_PRINT("Core(%i, %i): WAIT: Time(%llu)", _core->getCoreId().tile_id, _core->getCoreId().core_type, curr_time - sync_msg.time);
+         LOG_PRINT("Core(%i, %i): WAIT: Time(%llu)", _core->getId().tile_id, _core->getId().core_type, curr_time - sync_msg.time);
          LOG_ASSERT_ERROR((curr_time - sync_msg.time) < MAX_TIME,
                "[>]: curr_time(%llu), sync_msg[sender(%i, %i), msg_type(%u), time(%llu)]", 
                curr_time, sync_msg.sender.tile_id, sync_msg.sender.core_type, sync_msg.type, sync_msg.time);
 
-         SyncMsg wait_msg(_core->getCoreId(), SyncMsg::WAIT, curr_time - sync_msg.time);
+         SyncMsg wait_msg(_core->getId(), SyncMsg::WAIT, curr_time - sync_msg.time);
          _msg_queue.push_back(wait_msg);
       }
    }
@@ -262,7 +262,7 @@ LaxP2PSyncClient::sendRandomSyncMsg(UInt64 curr_time)
    UnstructuredBuffer send_buf;
    send_buf << (UInt32) SyncMsg::REQ << curr_time;
 
-   _core->getNetwork()->netSend(TileManager::getMainCoreId(receiver), CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+   _core->getNetwork()->netSend(Tile::getMainCoreId(receiver), CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
 }
 
 UInt64

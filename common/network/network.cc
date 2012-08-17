@@ -270,14 +270,12 @@ class NetRecvIterator
             : _mode(INT)
             , _max(i)
             , _i(0)
-            , _core_type(MAIN_CORE_TYPE)
       {
       }
       NetRecvIterator(const std::vector<core_id_t> &v)
             : _mode(SENDER_VECTOR)
             , _senders(&v)
             , _i(0)
-            , _core_type(v.empty() ? MAIN_CORE_TYPE : v[0].core_type)
       {
       }
       NetRecvIterator(const std::vector<PacketType> &v)
@@ -301,14 +299,14 @@ class NetRecvIterator
          };
       }
 
-      inline core_id_t getCoreId()
+      inline core_id_t getId()
       {
          switch (_mode)
          {
+         case INT:
+            return Tile::getMainCoreId(_i);
          case SENDER_VECTOR:
             return (core_id_t)_senders->at(_i);
-         case INT:
-            return Sim()->getTileManager()->getMainCoreId(_i);
          default:
             assert(false);
             return INVALID_CORE_ID;
@@ -355,7 +353,6 @@ class NetRecvIterator
       };
 
       UInt32 _i;
-      unsigned int _core_type;
 };
 
 NetPacket Network::netRecv(const NetMatch &match)
@@ -377,7 +374,7 @@ NetPacket Network::netRecv(const NetMatch &match)
                           : NetRecvIterator(match.types);
 
    core_id_t receiver = match.receiver.tile_id == INVALID_TILE_ID 
-                        ? _tile->getCore()->getCoreId() 
+                        ? _tile->getCore()->getId() 
                         : match.receiver;
 
    LOG_ASSERT_ERROR(_tile && _tile->getCore()->getPerformanceModel(),
@@ -405,7 +402,7 @@ NetPacket Network::netRecv(const NetMatch &match)
          // only find packets that match
          for (sender.reset(); !sender.done() && !found; sender.next())
          {
-            if (i->sender.tile_id != sender.getCoreId().tile_id || i->sender.core_type != sender.getCoreId().core_type)
+            if (i->sender.tile_id != sender.getId().tile_id || i->sender.core_type != sender.getId().core_type)
                continue;
 
             for (type.reset(); !type.done() && !found; type.next())
@@ -459,10 +456,8 @@ SInt32 Network::netSend(core_id_t dest, PacketType type, const void *buf, UInt32
    assert(_tile);
    assert(_tile->getCore()->getPerformanceModel()); 
    packet.time = _tile->getCore()->getPerformanceModel()->getCycleCount();
-   packet.sender.tile_id = _tile->getCore()->getCoreId().tile_id;
-   packet.sender.core_type = _tile->getCore()->getCoreId().core_type;
-   packet.receiver.tile_id = dest.tile_id;
-   packet.receiver.core_type = dest.core_type;
+   packet.sender = _tile->getCore()->getId();
+   packet.receiver = dest;
    packet.length = len;
    packet.type = type;
    packet.data = buf;
@@ -653,8 +648,8 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
    , zero_load_delay(0)
    , contention_delay(0)
 {
-   sender = Sim()->getTileManager()->getMainCoreId(s);
-   receiver = Sim()->getTileManager()->getMainCoreId(r);
+   sender = Tile::getMainCoreId(s);
+   receiver = Tile::getMainCoreId(r);
 }
 
 

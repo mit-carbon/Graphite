@@ -4,6 +4,7 @@
 #include "thread_manager.h"
 #include "tile_manager.h"
 #include "network.h"
+#include "tile.h"
 #include "config.h"
 #include "statistics_thread.h"
 #include "log.h"
@@ -143,7 +144,7 @@ LaxBarrierSyncServer::barrierRelease()
 
                unsigned int reply = LaxBarrierSyncClient::BARRIER_RELEASE;
 
-               m_network.netSend(Sim()->getTileManager()->getMainCoreId(tile_id), MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
+               m_network.netSend(Tile::getMainCoreId(tile_id), MCP_SYSTEM_RESPONSE_TYPE, (char*) &reply, sizeof(reply));
 
                m_barrier_acquire_list[tile_id] = false;
 

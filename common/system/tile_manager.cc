@@ -103,7 +103,7 @@ void TileManager::initializeCommId(SInt32 comm_id)
 
    for (UInt32 i = 0; i < num_procs; i++)
    {
-      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY, getCurrentCore()->getCoreId());
+      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY, getCurrentCore()->getId());
       LOG_PRINT("Received reply from proc: %d", i);
    }
 
@@ -197,7 +197,7 @@ void TileManager::terminateThread()
 core_id_t TileManager::getCurrentCoreID()
 {
    Core *core = getCurrentCore();
-   return core ? core->getCoreId() : INVALID_CORE_ID;
+   return core ? core->getId() : INVALID_CORE_ID;
 }
 
 tile_id_t TileManager::getCurrentTileID()
@@ -272,16 +272,6 @@ Core *TileManager::getCurrentCore()
 {
    Tile* tile = getCurrentTile();
    return tile ? tile->getCore() : NULL;
-}
-
-core_id_t TileManager::getMainCoreId(tile_id_t tile_id)
-{
-   return (core_id_t) {tile_id, MAIN_CORE_TYPE};
-}
-
-bool TileManager::isMainCore(core_id_t core_id) 
-{
-   return getTileFromID(core_id.tile_id)->isMainCore(core_id);
 }
 
 Core *TileManager::getCoreFromID(core_id_t id)

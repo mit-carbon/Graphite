@@ -79,7 +79,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    ShmemMsg::setCacheLineSize(_cache_line_size);
    dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
    
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(getTile()->getMainCoreId());
+   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
    
    _dram_cntlr = new DramCntlr(getTile(),
          dram_latency,

@@ -12,8 +12,8 @@
 
 CoreModel* CoreModel::create(Core* core)
 {
-   float frequency = Config::getSingleton()->getCoreFrequency(core->getCoreId());
-   string core_model = Config::getSingleton()->getCoreType(core->getTile()->getId());
+   float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
+   string core_model = Config::getSingleton()->getCoreType(core->getId().tile_id);
 
    if (core_model == "iocoom")
       return new IOCOOMCoreModel(core, frequency);

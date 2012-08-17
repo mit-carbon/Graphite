@@ -36,7 +36,7 @@ Core::Core(Tile *tile, core_type_t core_type)
 
 Core::~Core()
 {
-   LOG_PRINT("Deleting main core on tile %d", this->getCoreId().tile_id);
+   LOG_PRINT("Deleting core on tile %d", m_core_id.tile_id);
 
    if (m_pin_memory_manager)
       delete m_pin_memory_manager;
@@ -69,13 +69,13 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
 {
    PacketType pkt_type = getPktTypeFromUserNetType(net_type);
 
-   core_id_t sender_core = (core_id_t) {sender, this->getCoreType()};
+   core_id_t sender_core = (core_id_t) {sender, getCoreType()};
 
    NetPacket packet;
    if (sender == CAPI_ENDPOINT_ANY)
-      packet = m_tile->getNetwork()->netRecvType(pkt_type, this->getCoreId());
+      packet = m_tile->getNetwork()->netRecvType(pkt_type, m_core_id);
    else
-      packet = m_tile->getNetwork()->netRecv(sender_core, this->getCoreId(), pkt_type);
+      packet = m_tile->getNetwork()->netRecv(sender_core, m_core_id, pkt_type);
 
    LOG_PRINT("Got packet: from {%i, %i}, to {%i, %i}, type %i, len %i", packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, (SInt32)packet.type, packet.length);
 

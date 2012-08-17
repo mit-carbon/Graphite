@@ -14,7 +14,6 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "cache.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
-#include "semaphore.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"

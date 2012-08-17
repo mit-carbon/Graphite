@@ -7,7 +7,7 @@
 namespace PrL1PrL2DramDirectoryMOSI
 {
    ShmemMsg::ShmemMsg()
-      : _msg_type(INVALID_MSG_TYPE)
+      : _msg_type(INVALID)
       , _sender_mem_component(MemComponent::INVALID)
       , _receiver_mem_component(MemComponent::INVALID)
       , _requester(INVALID_TILE_ID)
@@ -28,8 +28,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                      , IntPtr address
                      , bool modeled
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-                     , UInt64 cache_line_utilization
-                     , UInt64 L2_cache_line_lifetime
+                     , UInt32 cache_line_utilization
 #endif
                      )
       : _msg_type(msg_type)
@@ -44,7 +43,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _modeled(modeled)
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
       , _cache_line_utilization(cache_line_utilization)
-      , _L2_cache_line_lifetime(L2_cache_line_lifetime)
 #endif
    {}
 
@@ -59,8 +57,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                      , UInt32 data_length
                      , bool modeled
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-                     , UInt64 cache_line_utilization
-                     , UInt64 L2_cache_line_lifetime
+                     , UInt32 cache_line_utilization
 #endif
                      )
       : _msg_type(msg_type)
@@ -75,7 +72,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _modeled(modeled)
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
       , _cache_line_utilization(cache_line_utilization)
-      , _L2_cache_line_lifetime(L2_cache_line_lifetime)
 #endif
    {}
 
@@ -102,7 +98,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       _modeled = shmem_msg->isModeled();
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
       _cache_line_utilization = shmem_msg->getCacheLineUtilization();
-      _L2_cache_line_lifetime = shmem_msg->getL2CacheLineLifetime();
 #endif
    }
 
@@ -169,6 +164,45 @@ namespace PrL1PrL2DramDirectoryMOSI
       default:
          LOG_PRINT_ERROR("Unrecognized Msg Type(%u)", _msg_type);
          return 0;
+      }
+   }
+
+   string
+   ShmemMsg::getName(Type type)
+   {
+      switch (type)
+      {
+      case INVALID:
+         return "INVALID";
+      case EX_REQ:
+         return "EX_REQ";
+      case SH_REQ:
+         return "SH_REQ";
+      case INV_REQ:
+         return "INV_REQ";
+      case FLUSH_REQ:
+         return "FLUSH_REQ";
+      case WB_REQ:
+         return "WB_REQ";
+      case INV_FLUSH_COMBINED_REQ:
+         return "INV_FLUSH_COMBINED_REQ";
+      case EX_REP:
+         return "EX_REP";
+      case SH_REP:
+         return "SH_REP";
+      case UPGRADE_REP:
+         return "UPGRADE_REP";
+      case INV_REP:
+         return "INV_REP";
+      case FLUSH_REP:
+         return "FLUSH_REP";
+      case WB_REP:
+         return "WB_REP";
+      case NULLIFY_REQ:
+         return "NULLIFY_REQ";
+      default:
+         LOG_PRINT_ERROR("Unrecognized shmem msg type(%u)", type);
+         return "";
       }
    }
 }

@@ -113,7 +113,19 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
          getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
-                 
+         
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+         if (access_num == 1)
+         {
+            // Incr Utilization
+            PrL1CacheLineInfo L1_cache_line_info;
+            Cache* L1_cache = getL1Cache(mem_component);
+            L1_cache->getCacheLineInfo(ca_address, &L1_cache_line_info);
+            L1_cache_line_info.incrUtilization();
+            L1_cache->setCacheLineInfo(ca_address, &L1_cache_line_info);
+         }
+#endif
+
          if (lock_signal != Core::LOCK)
             releaseLock(mem_component);
          return L1_cache_hit;
@@ -174,8 +186,8 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
 
 void
 L1CacheCntlr::accessCache(MemComponent::Type mem_component,
-      Core::mem_op_t mem_op_type, IntPtr ca_address, UInt32 offset,
-      Byte* data_buf, UInt32 data_length)
+                          Core::mem_op_t mem_op_type, IntPtr ca_address, UInt32 offset,
+                          Byte* data_buf, UInt32 data_length)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    switch (mem_op_type)
@@ -235,13 +247,12 @@ L1CacheCntlr::operationPermissibleinL1Cache(MemComponent::Type mem_component,
 void
 L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component,
                               IntPtr address, CacheState::Type cstate, Byte* fill_buf,
-                              bool* eviction, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evicted_address,
-                              UInt64 curr_time)
+                              bool* eviction, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evicted_address)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
 
-   PrL1CacheLineInfo L1_cache_line_info(L1_cache->getTag(address), cstate, curr_time);
+   PrL1CacheLineInfo L1_cache_line_info(L1_cache->getTag(address), cstate);
 
    L1_cache->insertCacheLine(address, &L1_cache_line_info, fill_buf,
                              eviction, evicted_address, evicted_cache_line_info, NULL);
@@ -275,30 +286,20 @@ L1CacheCntlr::setCacheLineState(MemComponent::Type mem_component, IntPtr address
 }
 
 void
-L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr address
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                                 , CacheLineUtilization& cache_line_utilization, UInt64 curr_time
-#endif
-                                 )
+L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr address)
 {
    Cache* L1_cache = getL1Cache(mem_component);
    assert(L1_cache);
-
-   // fprintf(stderr, "Tile(%i): L1(%u): Invalidate(%#lx) - Time(%llu)\n", getTileId(), mem_component, address, (long long unsigned int) curr_time);
 
    PrL1CacheLineInfo L1_cache_line_info;
    L1_cache->getCacheLineInfo(address, &L1_cache_line_info);
    // Invalidate cache line
    L1_cache_line_info.invalidate();
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   L1_cache_line_info.setUtilization(cache_line_utilization);
-   L1_cache_line_info.setBirthTime(curr_time);
-#endif
    L1_cache->setCacheLineInfo(address, &L1_cache_line_info);
 }
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-CacheLineUtilization
+UInt32
 L1CacheCntlr::getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address)
 {
    Cache* L1_cache = getL1Cache(mem_component);
@@ -307,52 +308,6 @@ L1CacheCntlr::getCacheLineUtilization(MemComponent::Type mem_component, IntPtr a
    PrL1CacheLineInfo L1_cache_line_info;
    L1_cache->getCacheLineInfo(address, &L1_cache_line_info);
    return L1_cache_line_info.getUtilization();
-}
-
-UInt64
-L1CacheCntlr::getCacheLineLifetime(MemComponent::Type mem_component, IntPtr address, UInt64 curr_time)
-{
-   Cache* L1_cache = getL1Cache(mem_component);
-   assert(L1_cache);
-
-   PrL1CacheLineInfo L1_cache_line_info;
-   L1_cache->getCacheLineInfo(address, &L1_cache_line_info);
-   return L1_cache_line_info.getLifetime(curr_time);
-}
-
-void
-L1CacheCntlr::updateAggregateCacheLineUtilization(AggregateCacheLineUtilization& aggregate_utilization,
-                                                  MemComponent::Type mem_component, IntPtr address)
-{
-   if (mem_component != MemComponent::INVALID)
-   {
-      CacheLineUtilization utilization = getCacheLineUtilization(mem_component, address);
-      if (mem_component == MemComponent::L1_ICACHE)
-         aggregate_utilization.L1_I += utilization;
-      else if (mem_component == MemComponent::L1_DCACHE)
-         aggregate_utilization.L1_D += utilization;
-      else
-         LOG_PRINT_ERROR("Unrecognized mem component(%u)", mem_component);
-   }
-}
-
-void
-L1CacheCntlr::updateAggregateCacheLineLifetime(AggregateCacheLineLifetime& aggregate_lifetime,
-                                               MemComponent::Type mem_component, IntPtr address, UInt64 curr_time)
-{
-   // Currently, L1-I, L1-D and L2 are all in the same frequency domain
-   // Assume that the core, L1-I, L1-D and L2 caches are in same frequency domain
-   if (mem_component != MemComponent::INVALID)
-   {
-      UInt64 lifetime = getCacheLineLifetime(mem_component, address, curr_time);
-
-      if (mem_component == MemComponent::L1_ICACHE)
-         aggregate_lifetime.L1_I += lifetime;
-      else if (mem_component == MemComponent::L1_DCACHE)
-         aggregate_lifetime.L1_D += lifetime;
-      else
-         LOG_PRINT_ERROR("Unrecognized mem component(%u)", mem_component);
-   }
 }
 #endif
 
@@ -370,7 +325,7 @@ L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)
 
    default:
       LOG_PRINT_ERROR("Unsupported Mem Op Type(%u)", mem_op_type);
-      return ShmemMsg::INVALID_MSG_TYPE;
+      return ShmemMsg::INVALID;
    }
 }
 
@@ -386,7 +341,7 @@ L1CacheCntlr::getL1Cache(MemComponent::Type mem_component)
       return _L1_dcache;
 
    default:
-      LOG_PRINT_ERROR("Unrecognized Memory Component(%u)", mem_component);
+      LOG_PRINT_ERROR("Unrecognized Memory Component(%s)", SPELL_MEMCOMP(mem_component));
       return NULL;
    }
 }

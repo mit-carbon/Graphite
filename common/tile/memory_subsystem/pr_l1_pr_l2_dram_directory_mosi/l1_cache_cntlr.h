@@ -22,11 +22,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
 
-#include "common_defines.h"
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-#include "aggregate_cache_line_utilization.h"
-#include "aggregate_cache_line_lifetime.h"
-#endif
+#include "utilization_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -64,28 +60,20 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void insertCacheLine(MemComponent::Type mem_component,
                            IntPtr address, CacheState::Type cstate, Byte* data_buf,
-                           bool* eviction_ptr, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evict_address_ptr,
-                           UInt64 curr_time);
+                           bool* eviction_ptr, PrL1CacheLineInfo* evicted_cache_line_info, IntPtr* evict_address_ptr);
 
       CacheState::Type getCacheLineState(MemComponent::Type mem_component, IntPtr address);
       void setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
-      void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                              , CacheLineUtilization& cache_line_utilization, UInt64 curr_time
-#endif
-                              );
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      // Cache line utilization & lifetime
-      void updateAggregateCacheLineUtilization(AggregateCacheLineUtilization& aggregate_utilization,
-                                               MemComponent::Type mem_component, IntPtr address);
-      void updateAggregateCacheLineLifetime(AggregateCacheLineLifetime& aggregate_lifetime,
-                                            MemComponent::Type mem_component, IntPtr address, UInt64 curr_time);
-#endif
+      void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address);
 
       void acquireLock(MemComponent::Type mem_component);
       void releaseLock(MemComponent::Type mem_component);
    
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+      // Get cache line utilization
+      UInt32 getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address);
+#endif
+      
    private:
       MemoryManager* _memory_manager;
       Cache* _L1_icache;
@@ -112,12 +100,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       Cache* getL1Cache(MemComponent::Type mem_component);
       ShmemMsg::Type getShmemMsgType(Core::mem_op_t mem_op_type);
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      // Cache line utilization & lifetime
-      CacheLineUtilization getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address);
-      UInt64 getCacheLineLifetime(MemComponent::Type mem_component, IntPtr address, UInt64 curr_time);
-#endif
-      
       // Utilities
       tile_id_t getTileId();
       UInt32 getCacheLineSize();

@@ -2,7 +2,7 @@
 
 #include "mem_component.h"
 #include "fixed_types.h"
-#include "common_defines.h"
+#include "utilization_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -11,9 +11,8 @@ namespace PrL1PrL2DramDirectoryMOSI
    public:
       enum Type
       {
-         INVALID_MSG_TYPE = 0,
-         MIN_MSG_TYPE,
-         EX_REQ = MIN_MSG_TYPE,
+         INVALID,
+         EX_REQ,
          SH_REQ,
          INV_REQ,
          FLUSH_REQ,
@@ -25,9 +24,7 @@ namespace PrL1PrL2DramDirectoryMOSI
          INV_REP,
          FLUSH_REP,
          WB_REP,
-         NULLIFY_REQ,
-         MAX_MSG_TYPE = NULLIFY_REQ,
-         NUM_MSG_TYPES = MAX_MSG_TYPE - MIN_MSG_TYPE + 1
+         NULLIFY_REQ
       }; 
 
       ShmemMsg();
@@ -40,8 +37,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                , IntPtr address
                , bool modeled
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-               , UInt64 cache_line_utilization = 0
-               , UInt64 L2_cache_line_lifetime = 0
+               , UInt32 cache_line_utilization = 0
 #endif
                );
       ShmemMsg(Type msg_type
@@ -55,8 +51,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                , UInt32 data_length
                , bool modeled
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-               , UInt64 cache_line_utilization = 0
-               , UInt64 L2_cache_line_lifetime = 0
+               , UInt32 cache_line_utilization = 0
 #endif
                );
       ShmemMsg(const ShmemMsg* shmem_msg);
@@ -66,6 +61,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       static ShmemMsg* getShmemMsg(Byte* msg_buf);
       Byte* makeMsgBuf();
       UInt32 getMsgLen();
+
+      // Get the msg type as a string
+      static string getName(Type type);
 
       // Modeled Parameters
       UInt32 getModeledLength();
@@ -81,8 +79,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt32 getDataLength() const                       { return _data_length; }
       bool isModeled() const                             { return _modeled; }
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt64 getCacheLineUtilization() const             { return _cache_line_utilization; }
-      UInt64 getL2CacheLineLifetime() const              { return _L2_cache_line_lifetime; }
+      UInt32 getCacheLineUtilization() const             { return _cache_line_utilization; }
 #endif
 
       void setMsgType(Type msg_type) { _msg_type = msg_type; }
@@ -100,8 +97,10 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt32 _data_length;
       bool _modeled;
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt64 _cache_line_utilization;
-      UInt64 _L2_cache_line_lifetime;
+      UInt32 _cache_line_utilization;
 #endif
    };
+
+   #define SPELL_SHMSG(x)        (ShmemMsg::getName(x).c_str())
+
 }

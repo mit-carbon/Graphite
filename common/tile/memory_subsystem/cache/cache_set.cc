@@ -2,7 +2,6 @@
 #include "cache_set.h"
 #include "cache.h"
 #include "log.h"
-#include "common_defines.h"
 
 CacheSet::CacheSet(UInt32 set_num, CachingProtocolType caching_protocol_type, SInt32 cache_level,
                    CacheReplacementPolicy* replacement_policy, UInt32 associativity, UInt32 line_size)
@@ -98,10 +97,6 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
    {
       *eviction = false;
       // Get the line info for the purpose of getting the utilization and birth time
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      // FIXME: Should this code be released to the mainline
-      evicted_cache_line_info->assign(_cache_line_info_array[index]);
-#endif
    }
 
    _cache_line_info_array[index]->assign(inserted_cache_line_info);

@@ -1,4 +1,3 @@
-#include "common_defines.h"
 #include "shmem_req.h"
 #include "utils.h"
 #include "log.h"

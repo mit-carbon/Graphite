@@ -1,6 +1,5 @@
 #include "cache_line_info.h"
 #include "cache_utils.h"
-#include "common_defines.h"
 #include "log.h"
 
 namespace HybridProtocol_PPMOSI_SS

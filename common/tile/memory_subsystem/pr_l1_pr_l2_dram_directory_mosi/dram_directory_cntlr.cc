@@ -2,7 +2,7 @@
 #include "log.h"
 #include "memory_manager.h"
 #include "utils.h"
-#include "common_defines.h"
+#include "utilization_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -858,14 +858,6 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_exreq_in_shared_state = 0;
    _total_exreq_with_upgrade_replies = 0;
    _total_exreq_in_uncached_state = 0;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-   {
-      _total_exreq_in_modified_state_with_flushrep[i] = 0;
-      _total_exreq_in_shared_state_with_invrep[i] = 0;
-      _total_exreq_in_shared_state_with_flushrep[i] = 0;
-   }
-#endif
    _total_exreq_serialization_time = 0;
    _total_exreq_processing_time = 0;
 
@@ -874,13 +866,6 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_shreq_in_modified_state = 0;
    _total_shreq_in_shared_state = 0;
    _total_shreq_in_uncached_state = 0;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-   {
-      _total_shreq_in_modified_state_with_wbrep[i] = 0;
-      _total_shreq_in_shared_state_with_wbrep[i] = 0;
-   }
-#endif
    _total_shreq_serialization_time = 0;
    _total_shreq_processing_time = 0;
    
@@ -889,14 +874,6 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_nullifyreq_in_modified_state = 0;
    _total_nullifyreq_in_shared_state = 0;
    _total_nullifyreq_in_uncached_state = 0;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-   {
-      _total_nullifyreq_in_modified_state_with_flushrep[i] = 0;
-      _total_nullifyreq_in_shared_state_with_invrep[i] = 0;
-      _total_nullifyreq_in_shared_state_with_flushrep[i] = 0;
-   }
-#endif
    _total_nullifyreq_serialization_time = 0;
    _total_nullifyreq_processing_time = 0;
 
@@ -910,7 +887,6 @@ DramDirectoryCntlr::initializeEventCounters()
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
    initializeSharerCounters();
-   initializeSharingStatistics();
 #endif
 }
 
@@ -926,19 +902,6 @@ DramDirectoryCntlr::initializeSharerCounters()
       _total_sharers_invalidated_by_utilization[i] = 0;
    _total_invalidations = 0;
 }
-
-void
-DramDirectoryCntlr::initializeSharingStatistics()
-{
-   _utilization_max_stddev = 0.0;
-   _utilization_total_stddev = 0.0;
-   _total_stddev_measurements = 0;   
-   
-   _utilization_max_CoV = 0.0;
-   _utilization_total_CoV = 0.0;
-   _total_CoV_measurements = 0;
-}
-
 #endif
 
 void
@@ -1088,10 +1051,9 @@ DramDirectoryCntlr::updateInvalidationLatencyCounters(bool initial_broadcast_mod
 }
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
-
 void
 DramDirectoryCntlr::updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                         tile_id_t sender, UInt64 cache_line_utilization)
+                                         tile_id_t sender, UInt32 cache_line_utilization)
 {
    assert (_enabled);
 
@@ -1114,21 +1076,6 @@ DramDirectoryCntlr::updateSharerCounters(const ShmemReq* dir_request, DirectoryE
       // Increment the utilization of every sharer by 1 to reflect true utilization
       for (vector<UInt64>::iterator it = dup_utilization_vec.begin(); it != dup_utilization_vec.end(); it++)
          (*it) ++;
-
-      // Compute the co-efficient of variation of utilization 
-      double mean = computeMean(dup_utilization_vec);
-      double stddev = computeStddev(dup_utilization_vec);
-      double CoV = computeCoefficientOfVariation(mean, stddev);
-
-      if (stddev > _utilization_max_stddev)
-         _utilization_max_stddev = stddev;
-      _utilization_total_stddev += stddev;
-      _total_stddev_measurements ++;
-      
-      if (CoV > _utilization_max_CoV)
-         _utilization_max_CoV = CoV;
-      _utilization_total_CoV += CoV;
-      _total_CoV_measurements ++;
 
       // Compute the number of sharers by utilization
       vector<UInt32> num_sharers_by_utilization(MAX_TRACKED_UTILIZATION+1, 0);
@@ -1156,7 +1103,6 @@ DramDirectoryCntlr::updateSharerCounters(const ShmemReq* dir_request, DirectoryE
       // Reset utilization vec
       directory_entry->resetUtilizationVec();
    }
-
 }
 
 void
@@ -1169,8 +1115,7 @@ DramDirectoryCntlr::updateCacheLineUtilizationCounters(const ShmemReq* dir_reque
    DirectoryState::Type initial_dstate = dir_request->getInitialDState();
    ShmemMsg::Type dir_request_type = dir_request->getShmemMsg()->getType();
    
-   ShmemMsg::Type local_msg_type = shmem_msg->getType();
-   UInt64 utilization = shmem_msg->getCacheLineUtilization();
+   UInt32 utilization = shmem_msg->getCacheLineUtilization();
 
    // Track utilization only till a particular point
    if (utilization > MAX_TRACKED_UTILIZATION)
@@ -1181,74 +1126,7 @@ DramDirectoryCntlr::updateCacheLineUtilizationCounters(const ShmemReq* dir_reque
    {
       updateSharerCounters(dir_request, directory_entry, shmem_msg->getAddress(), utilization);
    }
-
-   switch (dir_request_type)
-   {
-   case ShmemMsg::EX_REQ:
-      switch (local_msg_type)
-      {
-      case ShmemMsg::INV_REP:
-         assert((initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED));
-         _total_exreq_in_shared_state_with_invrep[utilization] ++;
-         break;
-      case ShmemMsg::FLUSH_REP:
-         if (initial_dstate == DirectoryState::MODIFIED)
-            _total_exreq_in_modified_state_with_flushrep[utilization] ++;
-         else
-            _total_exreq_in_shared_state_with_flushrep[utilization] ++;
-         break;
-      case ShmemMsg::WB_REP:
-      default:
-         LOG_PRINT_ERROR("Unexpected Reply(%u)", local_msg_type);
-         break;
-      }
-      break;
-
-   case ShmemMsg::SH_REQ:
-      switch (local_msg_type)
-      {
-      case ShmemMsg::INV_REP:
-         assert(initial_dstate != DirectoryState::MODIFIED);
-         break;
-      case ShmemMsg::WB_REP:
-      case ShmemMsg::FLUSH_REP:
-         if (initial_dstate == DirectoryState::MODIFIED)
-            _total_shreq_in_modified_state_with_wbrep[utilization] ++;
-         else // (initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED)
-            _total_shreq_in_shared_state_with_wbrep[utilization] ++;
-         break;
-      default:
-         LOG_PRINT_ERROR("Unexpected Reply(%u)", local_msg_type);
-         break;
-      }
-      break;
-
-   case ShmemMsg::NULLIFY_REQ:
-      switch (local_msg_type)
-      {
-      case ShmemMsg::INV_REP:
-         assert((initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED));
-         _total_nullifyreq_in_shared_state_with_invrep[utilization] ++;
-         break;
-      case ShmemMsg::FLUSH_REP:
-         if (initial_dstate == DirectoryState::MODIFIED)
-            _total_nullifyreq_in_modified_state_with_flushrep[utilization] ++;
-         else
-            _total_nullifyreq_in_shared_state_with_flushrep[utilization] ++;
-         break;
-      case ShmemMsg::WB_REP:
-      default:
-         LOG_PRINT_ERROR("Unexpected Reply(%u)", local_msg_type);
-         break;
-      }
-      break;
-
-   default:
-      LOG_PRINT_ERROR("Unrecognized Directory Request Type(%u)", dir_request_type);
-      break;
-   }
 }
-
 #endif
 
 bool
@@ -1281,20 +1159,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - UNCACHED State: " << _total_exreq_in_uncached_state << endl;
       out << "    Exclusive Request - Upgrade Reply: " << _total_exreq_with_upgrade_replies << endl;
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Exclusive Request - MODIFIED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_exreq_in_modified_state_with_flushrep[i] << endl;
-      
-      out << "    Utilization Summary (Exclusive Request - SHARED State - INV Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_exreq_in_shared_state_with_invrep[i] << endl;
-      
-      out << "    Utilization Summary (Exclusive Request - SHARED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_exreq_in_shared_state_with_flushrep[i] << endl;
-#endif
-
       out << "    Average Exclusive Request Serialization Time: " << 1.0 * _total_exreq_serialization_time / _total_exreq << endl;
       out << "    Average Exclusive Request Processing Time: " << 1.0 * _total_exreq_processing_time / _total_exreq << endl;
    }
@@ -1304,20 +1168,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - SHARED State: " << endl;
       out << "    Exclusive Request - UNCACHED State: " << endl;
       out << "    Exclusive Request - Upgrade Reply: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Exclusive Request - MODIFIED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Exclusive Request - SHARED State - INV Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Exclusive Request - SHARED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-#endif
 
       out << "    Average Exclusive Request Serialization Time: " << endl;
       out << "    Average Exclusive Request Processing Time: " << endl;
@@ -1329,16 +1179,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - SHARED State: " << _total_shreq_in_shared_state << endl;
       out << "    Shared Request - UNCACHED State: " << _total_shreq_in_uncached_state << endl;
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Shared Request - MODIFIED State - WB Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_shreq_in_modified_state_with_wbrep[i] << endl;
-      
-      out << "    Utilization Summary (Shared Request - SHARED State - WB Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_shreq_in_shared_state_with_wbrep[i] << endl;
-#endif
-
       out << "    Average Shared Request Serialization Time: " << 1.0 * _total_shreq_serialization_time / _total_shreq << endl;
       out << "    Average Shared Request Processing Time: " << 1.0 * _total_shreq_processing_time / _total_shreq << endl;
    }
@@ -1347,16 +1187,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - MODIFIED State: " << endl;
       out << "    Shared Request - SHARED State: " << endl;
       out << "    Shared Request - UNCACHED State: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Shared Request - MODIFIED State - WB Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Shared Request - SHARED State - WB Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-#endif
 
       out << "    Average Shared Request Serialization Time: " << endl;
       out << "    Average Shared Request Processing Time: " << endl;
@@ -1368,20 +1198,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - SHARED State: " << _total_nullifyreq_in_shared_state << endl;
       out << "    Nullify Request - UNCACHED State: " << _total_nullifyreq_in_uncached_state << endl;
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Nullify Request - MODIFIED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_nullifyreq_in_modified_state_with_flushrep[i] << endl;
-      
-      out << "    Utilization Summary (Nullify Request - SHARED State - INV Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_nullifyreq_in_shared_state_with_invrep[i] << endl;
-      
-      out << "    Utilization Summary (Nullify Request - SHARED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << _total_nullifyreq_in_shared_state_with_flushrep[i] << endl;
-#endif
-
       out << "    Average Nullify Request Serialization Time: " << 1.0 * _total_nullifyreq_serialization_time / _total_nullifyreq << endl;
       out << "    Average Nullify Request Processing Time: " << 1.0 * _total_nullifyreq_processing_time / _total_nullifyreq << endl;
    }
@@ -1390,20 +1206,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - MODIFIED State: " << endl;
       out << "    Nullify Request - SHARED State: " << endl;
       out << "    Nullify Request - UNCACHED State: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Nullify Request - MODIFIED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Nullify Request - SHARED State - INV Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Nullify Request - SHARED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-#endif
 
       out << "    Average Nullify Request Serialization Time: " << endl;
       out << "    Average Nullify Request Processing Time: " << endl;
@@ -1442,6 +1244,50 @@ DramDirectoryCntlr::outputSummary(ostream& out)
 #endif
 }
 
+void
+DramDirectoryCntlr::dummyOutputSummary(ostream& out)
+{
+   out << "Dram Directory Cntlr: " << endl;
+   out << "    Total Requests: " << endl;
+   out << "    Exclusive Requests: " << endl; 
+   out << "    Shared Requests: " << endl;
+   out << "    Nullify Requests: " << endl;
+  
+   out << "    Exclusive Request - MODIFIED State: " << endl;
+   out << "    Exclusive Request - SHARED State: " << endl;
+   out << "    Exclusive Request - UNCACHED State: " << endl;
+   out << "    Exclusive Request - Upgrade Reply: " << endl;
+
+   out << "    Average Exclusive Request Serialization Time: " << endl;
+   out << "    Average Exclusive Request Processing Time: " << endl;
+
+   out << "    Shared Request - MODIFIED State: " << endl;
+   out << "    Shared Request - SHARED State: " << endl;
+   out << "    Shared Request - UNCACHED State: " << endl;
+
+   out << "    Average Shared Request Serialization Time: " << endl;
+   out << "    Average Shared Request Processing Time: " << endl;
+
+   out << "    Nullify Request - MODIFIED State: " << endl;
+   out << "    Nullify Request - SHARED State: " << endl;
+   out << "    Nullify Request - UNCACHED State: " << endl;
+
+   out << "    Average Nullify Request Serialization Time: " << endl;
+   out << "    Average Nullify Request Processing Time: " << endl;
+
+   out << "    Total Invalidation Requests - Unicast Mode: " << endl;
+   out << "    Average Sharers Invalidated - Unicast Mode: " << endl;
+   out << "    Average Invalidation Processing Time - Unicast Mode: " << endl;
+
+   out << "    Total Invalidation Requests - Broadcast Mode: " << endl;
+   out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
+   out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
+
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+   dummyOutputSharerCountSummary(out);
+#endif
+}
+
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
 void
 DramDirectoryCntlr::outputSharerCountSummary(ostream& out)
@@ -1465,103 +1311,7 @@ DramDirectoryCntlr::outputSharerCountSummary(ostream& out)
       out << "      Average-PCT-" << i << ": " << average_sharers_by_PCT[i] << endl;
    }
    out << "    Total Invalidations: " << _total_invalidations << endl;
-
-   // Stddev
-   out << "    Utilization Maximum Stddev: " << _utilization_max_stddev << endl;
-   out << "    Utilization Average Stddev: " << _utilization_total_stddev / _total_stddev_measurements << endl;
-   out << "    Stddev Measurements: " << _total_stddev_measurements << endl;
-   // CoV
-   out << "    Utilization Maximum CoV: " << _utilization_max_CoV << endl;
-   out << "    Utilization Average CoV: " << _utilization_total_CoV / _total_CoV_measurements << endl;
-   out << "    CoV Measurements: " << _total_CoV_measurements << endl;
 }
-
-#endif
-
-void
-DramDirectoryCntlr::dummyOutputSummary(ostream& out)
-{
-   out << "Dram Directory Cntlr: " << endl;
-   out << "    Total Requests: " << endl;
-   out << "    Exclusive Requests: " << endl; 
-   out << "    Shared Requests: " << endl;
-   out << "    Nullify Requests: " << endl;
-  
-   out << "    Exclusive Request - MODIFIED State: " << endl;
-   out << "    Exclusive Request - SHARED State: " << endl;
-   out << "    Exclusive Request - UNCACHED State: " << endl;
-   out << "    Exclusive Request - Upgrade Reply: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Exclusive Request - MODIFIED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Exclusive Request - SHARED State - INV Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Exclusive Request - SHARED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-#endif
-
-   out << "    Average Exclusive Request Serialization Time: " << endl;
-   out << "    Average Exclusive Request Processing Time: " << endl;
-
-   out << "    Shared Request - MODIFIED State: " << endl;
-   out << "    Shared Request - SHARED State: " << endl;
-   out << "    Shared Request - UNCACHED State: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Shared Request - MODIFIED State - WB Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Shared Request - SHARED State - WB Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-#endif
-
-   out << "    Average Shared Request Serialization Time: " << endl;
-   out << "    Average Shared Request Processing Time: " << endl;
-
-   out << "    Nullify Request - MODIFIED State: " << endl;
-   out << "    Nullify Request - SHARED State: " << endl;
-   out << "    Nullify Request - UNCACHED State: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      out << "    Utilization Summary (Nullify Request - MODIFIED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Nullify Request - SHARED State - INV Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-      
-      out << "    Utilization Summary (Nullify Request - SHARED State - FLUSH Rep): " << endl;
-      for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-         out << "      Utilization-" << i << ": " << endl;
-#endif
-
-   out << "    Average Nullify Request Serialization Time: " << endl;
-   out << "    Average Nullify Request Processing Time: " << endl;
-
-   out << "    Total Invalidation Requests - Unicast Mode: " << endl;
-   out << "    Average Sharers Invalidated - Unicast Mode: " << endl;
-   out << "    Average Invalidation Processing Time - Unicast Mode: " << endl;
-
-   out << "    Total Invalidation Requests - Broadcast Mode: " << endl;
-   out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
-   out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   dummyOutputSharerCountSummary(out);
-#endif
-}
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-
 void
 DramDirectoryCntlr::dummyOutputSharerCountSummary(ostream& out)
 {
@@ -1574,7 +1324,6 @@ DramDirectoryCntlr::dummyOutputSharerCountSummary(ostream& out)
    }
    out << "    Total Invalidations: " << endl;
 }
-
 #endif
 
 UInt32

@@ -79,11 +79,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_exreq_in_shared_state;
       UInt64 _total_exreq_with_upgrade_replies;
       UInt64 _total_exreq_in_uncached_state;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt64 _total_exreq_in_modified_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
-      UInt64 _total_exreq_in_shared_state_with_invrep[MAX_TRACKED_UTILIZATION+1];
-      UInt64 _total_exreq_in_shared_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
-#endif
       UInt64 _total_exreq_serialization_time;
       UInt64 _total_exreq_processing_time;
 
@@ -91,10 +86,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_shreq_in_modified_state;
       UInt64 _total_shreq_in_shared_state;
       UInt64 _total_shreq_in_uncached_state;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt64 _total_shreq_in_modified_state_with_wbrep[MAX_TRACKED_UTILIZATION+1];
-      UInt64 _total_shreq_in_shared_state_with_wbrep[MAX_TRACKED_UTILIZATION+1];
-#endif
       UInt64 _total_shreq_serialization_time;
       UInt64 _total_shreq_processing_time;
 
@@ -102,11 +93,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_nullifyreq_in_modified_state;
       UInt64 _total_nullifyreq_in_shared_state;
       UInt64 _total_nullifyreq_in_uncached_state;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt64 _total_nullifyreq_in_modified_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
-      UInt64 _total_nullifyreq_in_shared_state_with_invrep[MAX_TRACKED_UTILIZATION+1];
-      UInt64 _total_nullifyreq_in_shared_state_with_flushrep[MAX_TRACKED_UTILIZATION+1];
-#endif
       UInt64 _total_nullifyreq_serialization_time;
       UInt64 _total_nullifyreq_processing_time;
 
@@ -123,13 +109,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt32 _max_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
       UInt64 _total_sharers_invalidated_by_utilization[MAX_TRACKED_UTILIZATION+1];
       UInt64 _total_invalidations;
-      // Sharing Statistics
-      double _utilization_max_stddev;
-      double _utilization_total_stddev;
-      UInt64 _total_stddev_measurements;
-      double _utilization_max_CoV;
-      double _utilization_total_CoV;
-      UInt64 _total_CoV_measurements;
 #endif
 
       UInt32 getCacheLineSize();
@@ -167,15 +146,14 @@ namespace PrL1PrL2DramDirectoryMOSI
       void removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected);
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
+      void initializeSharerCounters();
       // Cache Line Utilization
       void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
                                               tile_id_t sender, const ShmemMsg* shmem_msg);
-
-      // Output summary
-      void initializeSharerCounters();
-      void initializeSharingStatistics();
       void updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                tile_id_t sender, UInt64 cache_line_utilization);
+                                tile_id_t sender, UInt32 cache_line_utilization);
+      
+      // Output summary
       void outputSharerCountSummary(ostream& out);
       static void dummyOutputSharerCountSummary(ostream& out);
 #endif

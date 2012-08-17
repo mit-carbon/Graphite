@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common_defines.h"
 #include "mem_component.h"
 #include "fixed_types.h"
 

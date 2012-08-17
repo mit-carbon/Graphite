@@ -5,7 +5,6 @@
 #include "cache_line_info.h"
 #include "cache_level.h"
 #include "mem_component.h"
-#include "common_defines.h"
 
 namespace HybridProtocol_PPMOSI_SS
 {

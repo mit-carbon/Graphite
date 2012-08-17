@@ -1,4 +1,3 @@
-#include "common_defines.h"
 #include "shmem_req.h"
 #include "utils.h"
 #include "log.h"
@@ -40,9 +39,7 @@ void
 ShmemReq::updateProcessingFinishTime(UInt64 time)
 {
    if (_processing_finish_time < time)
-   {
       _processing_finish_time = time;
-   }
 }
 
 }

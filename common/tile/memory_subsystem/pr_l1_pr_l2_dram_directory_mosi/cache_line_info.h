@@ -5,25 +5,38 @@
 #include "cache_line_info.h"
 #include "cache_level.h"
 #include "mem_component.h"
-#include "common_defines.h"
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-#include "aggregate_cache_line_utilization.h"
-#include "aggregate_cache_line_lifetime.h"
-#endif
+#include "utilization_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
 
 CacheLineInfo* createCacheLineInfo(SInt32 cache_level);
 
-typedef CacheLineInfo PrL1CacheLineInfo;
+class PrL1CacheLineInfo : public CacheLineInfo
+{
+public:
+   PrL1CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID);
+   ~PrL1CacheLineInfo();
 
-class PrL2CacheLineInfo : public CacheLineInfo
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+   UInt32 getUtilization() const             { return _utilization;     }
+   void incrUtilization(UInt32 count = 1)    { _utilization += count;   }
+#endif
+
+   void invalidate();
+   void assign(CacheLineInfo* cache_line_info);
+   
+private:
+#ifdef TRACK_DETAILED_CACHE_COUNTERS
+   UInt32 _utilization;
+#endif
+};
+
+class PrL2CacheLineInfo : public PrL1CacheLineInfo
 {
 public:
    PrL2CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID,
-                     MemComponent::Type cached_loc = MemComponent::INVALID, UInt64 curr_time = 0);
+                     MemComponent::Type cached_loc = MemComponent::INVALID);
    ~PrL2CacheLineInfo();
 
    MemComponent::Type getCachedLoc();
@@ -33,22 +46,8 @@ public:
    void invalidate();
    void assign(CacheLineInfo* cache_line_info);
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   void incrUtilization(MemComponent::Type mem_component, CacheLineUtilization& utilization);
-   void incrLifetime(MemComponent::Type mem_component, UInt64 lifetime);
-   AggregateCacheLineUtilization getAggregateUtilization();
-   AggregateCacheLineLifetime getAggregateLifetime(UInt64 curr_time);
-#endif
-
 private:
    MemComponent::Type _cached_loc;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   CacheLineUtilization _L1_I_utilization;
-   CacheLineUtilization _L1_D_utilization;
-   UInt64 _L1_I_lifetime;
-   UInt64 _L1_D_lifetime;
-#endif
 };
 
 }

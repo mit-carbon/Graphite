@@ -6,12 +6,9 @@
 #include "hybrid_protocol__pp_mosi__ss/cache_line_info.h"
 #include "log.h"
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt64 curr_time)
+CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate)
    : _tag(tag)
    , _cstate(cstate)
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   , _birth_time(curr_time)
-#endif
 {}
 
 CacheLineInfo::~CacheLineInfo()
@@ -48,10 +45,6 @@ CacheLineInfo::invalidate()
 {
    _tag = ~0;
    _cstate = CacheState::INVALID;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   _utilization = CacheLineUtilization();
-   _birth_time = UINT64_MAX_;
-#endif
 }
 
 void
@@ -59,8 +52,4 @@ CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
    _tag = cache_line_info->getTag();
    _cstate = cache_line_info->getCState();
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   _utilization = cache_line_info->getUtilization();
-   _birth_time = cache_line_info->getBirthTime();
-#endif
 }

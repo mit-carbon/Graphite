@@ -10,7 +10,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include <map>
 using std::map;
 
-#include "common_defines.h"
 #include "cache.h"
 #include "cache_line_info.h"
 #include "address_home_lookup.h"
@@ -24,11 +23,7 @@ using std::map;
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
 
-#include "common_defines.h"
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-#include "aggregate_cache_line_utilization.h"
-#include "aggregate_cache_line_lifetime.h"
-#endif
+#include "utilization_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -100,11 +95,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Utilization counters
       UInt64 _total_cache_operations_by_utilization[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
-      AggregateCacheLineUtilization _utilization_counters[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
-      UInt64 _modified_state_count_by_utilization[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
-      UInt64 _shared_state_count_by_utilization[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
-      // Lifetime counters
-      AggregateCacheLineLifetime _lifetime_counters[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
 #endif
 
       // Eviction Counters
@@ -117,21 +107,13 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_clean_evictions_shreq;
 
       // L2 cache operations
-      void invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& L2_cache_line_info
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                              , CacheLineUtilization& net_cache_line_utilization, UInt64 time
-#endif
-                              );
+      void invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& L2_cache_line_info);
       void readCacheLine(IntPtr address, Byte* data_buf);
       void insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf, MemComponent::Type mem_component);
 
       // L1 cache operations
       void setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
-      void invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr address
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                                  , CacheLineUtilization& net_cache_line_utilization, UInt64 time
-#endif
-                                  );
+      void invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr address);
       void insertCacheLineInL1(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate, Byte* fill_buf);
 
       // Insert cache line in hierarchy
@@ -157,7 +139,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager()         { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
-      UInt64 getTime();
 
       // Wake up App Thread
       void wakeUpAppThread();
@@ -178,12 +159,9 @@ namespace PrL1PrL2DramDirectoryMOSI
 
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
       void initializeUtilizationCounters();
-      void updateUtilizationCounters(CacheOperationType operation, AggregateCacheLineUtilization& aggregate_utilization, CacheState::Type cstate);
+      UInt32 getLineUtilizationInCacheHierarchy(IntPtr address, PrL2CacheLineInfo& l2_cache_line_info);
+      void updateUtilizationCounters(CacheOperationType operation, UInt32 cache_line_utilization);
       void outputUtilizationCountSummary(ostream& out);
-      void initializeLifetimeCounters();
-      void updateLifetimeCounters(CacheOperationType operation, AggregateCacheLineLifetime& aggregate_lifetime, UInt64 cache_line_utilization);
-      void updateLifetimeCounters(CacheOperationType operation, MemComponent::Type mem_component, UInt64 cache_line_lifetime, UInt64 cache_line_utilization);
-      void outputLifetimeCountSummary(ostream& out);
 #endif
    };
 

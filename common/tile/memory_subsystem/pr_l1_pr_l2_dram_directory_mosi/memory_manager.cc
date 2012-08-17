@@ -263,11 +263,11 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   if (_enabled)
-   {
-      LOG_PRINT("Time(%llu), Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
-            msg_time, shmem_msg->getType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
-   }
+   LOG_PRINT("Time(%llu), Got Shmem Msg: type(%s), address(%#lx), "
+             "sender_mem_component(%s), receiver_mem_component(%s), sender(%i,%i), receiver(%i,%i)", 
+             msg_time, SPELL_SHMSG(shmem_msg->getType()), shmem_msg->getAddress(),
+             SPELL_MEMCOMP(sender_mem_component), SPELL_MEMCOMP(receiver_mem_component),
+             sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
 
    switch (receiver_mem_component)
    {
@@ -333,11 +333,11 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
-   {
-      LOG_PRINT("Time(%llu), Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)",
-            msg_time, shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(), shmem_msg.getRequester(), getTile()->getId(), receiver);
-   }
+   LOG_PRINT("Time(%llu), Sending Msg: type(%s), address(%#llx), "
+             "sender_mem_component(%s), receiver_mem_component(%s), requester(%i), sender(%i), receiver(%i)",
+             msg_time, SPELL_SHMSG(shmem_msg.getType()), shmem_msg.getAddress(),
+             SPELL_MEMCOMP(shmem_msg.getSenderMemComponent()), SPELL_MEMCOMP(shmem_msg.getReceiverMemComponent()),
+             shmem_msg.getRequester(), getTile()->getId(), receiver);
 
    PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
 
@@ -358,11 +358,11 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
-   {
-      LOG_PRINT("Time(%llu), Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i)",
-            msg_time, shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(), shmem_msg.getRequester(), getTile()->getId());
-   }
+   LOG_PRINT("Time(%llu), Broadcasting Msg: type(%s), address(%#llx), "
+             "sender_mem_component(%s), receiver_mem_component(%s), requester(%i), sender(%i)",
+             msg_time, SPELL_SHMSG(shmem_msg.getType()), shmem_msg.getAddress(),
+             SPELL_MEMCOMP(shmem_msg.getSenderMemComponent()), SPELL_MEMCOMP(shmem_msg.getReceiverMemComponent()),
+             shmem_msg.getRequester(), getTile()->getId());
 
    PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
 

@@ -21,7 +21,7 @@ def spawn_job(proc_num, command, working_dir):
 
    print "%s Starting process: %d: %s" % (pslave(), proc_num, exec_command)
    sys.stdout.flush()
-   return spawn.spawn_job(proc_num, exec_command)
+   return spawn.spawn_job(proc_num, exec_command, working_dir)
 
 # wait_job:
 #  wait on a job to finish or the ssh connection to be killed

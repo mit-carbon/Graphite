@@ -5,7 +5,6 @@
 #include "directory_entry_limited_no_broadcast.h"
 #include "directory_entry_ackwise.h"
 #include "directory_entry_limitless.h"
-#include "hybrid_protocol__pp_mosi__ss/adaptive_directory_entry.h"
 #include "utils.h"
 #include "log.h"
 
@@ -43,10 +42,7 @@ DirectoryEntry::parseDirectoryType(string directory_type)
 DirectoryEntry*
 DirectoryEntry::create(CachingProtocolType caching_protocol_type, DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers)
 {
-   if (caching_protocol_type == HYBRID_PROTOCOL__PP_MOSI__SS)
-      return HybridProtocol_PPMOSI_SS::createAdaptiveDirectoryEntry(directory_type, max_hw_sharers, max_num_sharers);
-   else
-      return create(directory_type, max_hw_sharers, max_num_sharers);
+   return create(directory_type, max_hw_sharers, max_num_sharers);
 }
 
 DirectoryEntry*

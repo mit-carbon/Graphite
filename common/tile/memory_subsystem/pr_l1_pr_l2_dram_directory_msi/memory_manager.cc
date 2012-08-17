@@ -270,8 +270,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   if (receiver_mem_component != MemComponent::DRAM_DIRECTORY)
-      _lock.acquire();
+   _lock.acquire();
 
    getShmemPerfModel()->setCycleCount(msg_time);
 
@@ -336,8 +335,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    }
    delete shmem_msg;
 
-   if (receiver_mem_component != MemComponent::DRAM_DIRECTORY)
-      _lock.release();
+   _lock.release();
 }
 
 void

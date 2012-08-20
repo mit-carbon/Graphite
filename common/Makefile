@@ -7,10 +7,7 @@ SRC_DIRECTORIES = $(DIRECTORIES) \
 			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_msi/				\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_mosi/ 			\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/sh_l1_sh_l2/										\
-			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_sh_l2_msi/									\
-			 $(SIM_ROOT)/common/tile/memory_subsystem/hybrid_protocol__pp_mosi__ss/					\
-			 $(SIM_ROOT)/common/tile/memory_subsystem/hybrid_protocol__pp_mosi__ss/classifiers	\
-			 $(SIM_ROOT)/common/tile/memory_subsystem/hybrid_protocol__pp_mosi__ss/adaptive_directory_entry
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_sh_l2_msi/
 
 # Grab all c/c++ files from subdirs
 SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \

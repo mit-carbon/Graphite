@@ -51,7 +51,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          l1_dcache_associativity, 
          cache_line_size,
          _l1_dcache_replacement_policy_obj,
-         _l1_icache_hash_fn_obj,
+         _l1_dcache_hash_fn_obj,
          l1_dcache_access_delay,
          frequency,
          l1_icache_track_miss_types);

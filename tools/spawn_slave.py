@@ -16,12 +16,12 @@ from termcolors import *
 # spawn_job:
 #  start up a command over an ssh connection on one machine
 #  returns an object that can be passed to wait_job()
-def spawn_job(proc_num, command, working_dir):
+def spawn_job(proc_num, command, working_dir, graphite_home):
    exec_command = "cd %s; %s" % (working_dir, command)
 
    print "%s Starting process: %d: %s" % (pslave(), proc_num, exec_command)
    sys.stdout.flush()
-   return spawn.spawn_job(proc_num, exec_command, working_dir)
+   return spawn.spawn_job(proc_num, exec_command, graphite_home)
 
 # wait_job:
 #  wait on a job to finish or the ssh connection to be killed
@@ -44,10 +44,9 @@ def wait_job(proc, proc_num):
       # Sleep for 0.5 seconds before checking parent pid or process status again
       time.sleep(0.5)
 
-# get_working_dir:
-#  get the graphite working directory from the script name
-def get_working_dir(script_name):
-   # Get working dir from the script name
+# get_graphite_home:
+#  get the graphite home directory from the script name
+def get_graphite_home(script_name):
    return (os.sep).join(script_name.split(os.sep)[:-2])
 
 # pslave:
@@ -58,9 +57,10 @@ def pslave():
 # main -- if this is used as a standalone script
 if __name__=="__main__":
   
-   working_dir = get_working_dir(sys.argv[0])
-   proc_num = int(sys.argv[1])
-   command = " ".join(sys.argv[2:])
+   proc_num = int(sys.argv[2])
+   command = " ".join(sys.argv[3:])
+   working_dir = sys.argv[1]
+   graphite_home = get_graphite_home(sys.argv[0])
 
-   proc = spawn_job(proc_num, command, working_dir)
+   proc = spawn_job(proc_num, command, working_dir, graphite_home)
    sys.exit(wait_job(proc, proc_num))

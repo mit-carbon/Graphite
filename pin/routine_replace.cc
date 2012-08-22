@@ -816,12 +816,10 @@ void replacementPthreadCreate (CONTEXT *ctxt)
             IARG_PTR, &func_arg,
             CARBON_IARG_END);
 
-      //TODO: add support for different attributes and throw warnings for unsupported attrs
-      
-      if (attributes != NULL)
-      {
-         fprintf(stdout, "Warning: pthread_create() is using unsupported attributes.\n");
-      }
+      // Throw warning message if ((attr)) field is non-NULL
+      // TODO: Add Graphite support for using a non-NULL attribute field
+      LOG_ASSERT_WARNING(attributes == NULL, "pthread_create() is using a non-NULL ((attr)) parameter. "
+                                              "Unsupported currently.");
       
       carbon_thread_t new_thread_id = CarbonSpawnThread(func, func_arg);
       
@@ -846,9 +844,10 @@ void replacementPthreadJoin (CONTEXT *ctxt)
          IARG_PTR, &return_value,
          CARBON_IARG_END);
 
-   //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
-   LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value \
-         to be passed through value_ptr input, which is unsupported");
+   // Throw warning message if ((thread_return)) field is non-NULL
+   // TODO: The return_value needs to be set, but CarbonJoinThread() provides no return value.
+   LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value through the "
+                                             "((thread_return)) parameter. Unsuported currently.");
    
    CarbonJoinThread ((carbon_thread_t) thread_id);
 

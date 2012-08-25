@@ -713,7 +713,31 @@ void ThreadManager::setThreadIndex(thread_id_t thread_id, core_id_t core_id, thr
    m_tid_counter_lock.release();
 }
 
+UInt32 ThreadManager::getNumScheduledThreads(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(m_master, "getNumScheduledThreads() must only be called on master");
 
+   UInt32 num_idle_threads = 0;
+   Config * config = Config::getSingleton();
+
+   // Find a free thread.
+   if (m_tile_manager->isMainCore(core_id))
+   {
+      for (SInt32 j = 0; j < (SInt32) config->getMaxThreadsPerCore(); j++)
+      {
+         if (m_thread_state[core_id.tile_id][j].status == Core::IDLE)
+         {
+            num_idle_threads++;
+         }
+      }
+   }
+   else
+   {
+      LOG_ASSERT_ERROR(false, "Invalid core type!");
+   }
+
+   return config->getMaxThreadsPerCore() - num_idle_threads;
+}
 
 thread_id_t ThreadManager::getIdleThread(core_id_t core_id)
 {
@@ -801,7 +825,6 @@ void ThreadManager::resumeThread(core_id_t core_id, thread_id_t thread_index)
 
 void ThreadManager::resumeThread(tile_id_t tile_id, thread_id_t thread_index)
 {
-   LOG_ASSERT_ERROR(m_thread_state[tile_id][thread_index].status != Core::RUNNING, "resumeThread() called on already running thread %i on main core on tile %i", thread_index, tile_id);
    m_thread_state[tile_id][thread_index].status = Core::RUNNING;
 }
 
@@ -871,6 +894,56 @@ bool ThreadManager::isCoreInitializing(tile_id_t tile_id)
    return is_core_initializing;
 }
 
+bool ThreadManager::isThreadStalled(core_id_t core_id, thread_id_t thread_index)
+{
+   LOG_ASSERT_ERROR(m_master, "isThreadStalled() must only be called on master");
+
+   if (m_tile_manager->isMainCore(core_id))
+      return isThreadStalled(core_id.tile_id, thread_index);
+   else
+   {
+      LOG_ASSERT_ERROR(false, "Invalid core type!");
+      return false;
+   }
+
+}
+
+bool ThreadManager::isThreadStalled(tile_id_t tile_id, thread_id_t thread_index)
+{
+   return (m_thread_state[tile_id][thread_index].status == Core::STALLED);
+}
+
+bool ThreadManager::isCoreStalled(core_id_t core_id)
+{
+   LOG_ASSERT_ERROR(m_master, "isCoreStalled() must only be called on master");
+
+   if (m_tile_manager->isMainCore(core_id))
+      return isCoreStalled(core_id.tile_id);
+   else
+   {
+      LOG_ASSERT_ERROR(false, "Invalid core type!");
+      return false;
+   }
+
+}
+
+bool ThreadManager::isCoreStalled(tile_id_t tile_id)
+{
+   bool is_core_stalled = false;
+   for (SInt32 j = 0; j < (SInt32) m_thread_state[tile_id].size(); j++)
+   {
+      if (this->isThreadStalled(tile_id, j))
+      {
+         is_core_stalled = true;
+         break;
+      }
+   }
+
+   return is_core_stalled;
+}
+
+
+
 bool ThreadManager::areAllCoresRunning()
 {
    LOG_ASSERT_ERROR(m_master, "areAllCoresRunning() should only be called on master.");
@@ -926,7 +999,6 @@ thread_id_t ThreadManager::isCoreRunning(tile_id_t tile_id)
 
 int ThreadManager::setThreadAffinity(pid_t pid, cpu_set_t* set)
 {
-   LOG_PRINT("elau: getting thread affinity for pid %i", pid);
    thread_id_t thread_index = INVALID_THREAD_ID;
    tile_id_t tile_id = INVALID_TILE_ID;
    int res = -1;
@@ -966,7 +1038,6 @@ void ThreadManager::setThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_s
 
 int ThreadManager::getThreadAffinity(pid_t pid, cpu_set_t* set)
 {
-   LOG_PRINT("elau: getting thread affinity for pid %i", pid);
    thread_id_t thread_index = INVALID_THREAD_ID;
    tile_id_t tile_id = INVALID_TILE_ID;
    int res = -1;

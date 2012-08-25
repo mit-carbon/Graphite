@@ -33,6 +33,12 @@ public:
    void onThreadExit();
    void masterOnThreadExit(core_id_t core_id, SInt32 thread_idx);
 
+   void disableThreadMigration(){m_thread_migration_enabled = false;}
+   void enableThreadMigration(){m_thread_migration_enabled = true;}
+   
+   void disablePreemptiveScheduling(){m_thread_preemption_enabled = false; m_thread_migration_enabled = false;}
+   void enablePreemptiveScheduling(){m_thread_preemption_enabled = true; m_thread_migration_enabled = true;}
+
    void migrateThread(thread_id_t thread_id, tile_id_t tile_id);
    void masterMigrateThread(thread_id_t src_thread_id, tile_id_t dst_tile_id, UInt32 dst_core_type);
    void masterMigrateThread(thread_id_t src_thread_idx, core_id_t src_core_id, thread_id_t dst_thread_idx, core_id_t dst_core_id);
@@ -42,7 +48,7 @@ public:
    bool schedGetAffinity(thread_id_t tid, unsigned int cpusetsize, cpu_set_t* set);
    void masterSchedGetAffinity(ThreadAffinityRequest * req);
 
-   void yieldThread();
+   void yieldThread(bool is_pre_emptive = true);
    void masterYieldThread(ThreadYieldRequest* req);
 
    // Implement these functions for different scheduling types.
@@ -75,7 +81,10 @@ protected:
 
    std::vector< std::vector<UInt32> > m_last_start_time;
 
+   bool m_thread_migration_enabled;
+   bool m_thread_preemption_enabled;
    UInt32 m_thread_switch_quantum;
+   bool m_enabled;
 };
 
 #endif // THREAD_SCHEDULER_SERVER_H

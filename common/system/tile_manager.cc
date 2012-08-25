@@ -155,6 +155,9 @@ void TileManager::doInitializeThread(UInt32 tile_index, UInt32 thread_index, SIn
 void TileManager::updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id)
 {
     LOG_PRINT("in updateTLS");
+    int src_thread_idx = m_thread_index_tls->getInt();
+    int src_tile_idx = m_tile_index_tls->getInt();
+
     m_tile_tls->set(m_tiles.at(tile_index));
     m_tile_index_tls->setInt(tile_index);
     m_thread_id_tls->setInt(thread_id);
@@ -162,7 +165,7 @@ void TileManager::updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 threa
     m_thread_type_tls->setInt(APP_THREAD);
     m_initialized_cores.at(tile_index) = true;
 
-    m_initialized_threads[this->getCurrentTileIndex()][this->getCurrentThreadIndex()] = false;
+    m_initialized_threads[src_tile_idx][src_thread_idx] = false;
     m_initialized_threads[tile_index][thread_index] = true;
 
     LOG_ASSERT_ERROR(m_tile_tls->get() == (void*)(m_tiles.at(tile_index)),

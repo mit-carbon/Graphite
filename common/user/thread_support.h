@@ -36,7 +36,8 @@ typedef struct
    thread_id_t requester_next_tidx;  
    core_id_t destination;
    thread_id_t destination_tidx;
-   thread_id_t destination_next_tidx;;  
+   thread_id_t destination_next_tidx;
+   bool is_pre_emptive;
 } ThreadYieldRequest;
 
 typedef struct 

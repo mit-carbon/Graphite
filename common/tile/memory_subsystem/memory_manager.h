@@ -58,8 +58,9 @@ public:
 protected:
    Network* getNetwork() { return _network; }
 
-   vector<tile_id_t> getTileListWithMemoryControllers(void);
+   vector<tile_id_t> getTileListWithMemoryControllers();
    void printTileListWithMemoryControllers(vector<tile_id_t>& tile_list_with_memory_controllers);
+   UInt32 getMaxL2CacheSize(); // Get max L2 cache size (in KB)
 
 private:
    static CachingProtocolType _caching_protocol_type;

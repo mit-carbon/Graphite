@@ -12,10 +12,8 @@ string myDecStr(UInt64 v, UInt32 w)
    return str;
 }
 
-
 bool isPower2(UInt32 n)
 { return ((n & (n - 1)) == 0); }
-
 
 SInt32 floorLog2(UInt32 n)
 {
@@ -31,7 +29,6 @@ SInt32 floorLog2(UInt32 n)
 
    return p;
 }
-
 
 SInt32 ceilLog2(UInt32 n)
 { return floorLog2(n - 1) + 1; }

@@ -289,53 +289,8 @@ DirectoryCache::computeSetIndex(IntPtr address)
 }
 
 void
-DirectoryCache::checkDirectorySize(tile_id_t tile_id)
-{
-   if (tile_id != 0)
-      return;
-
-   UInt32 total_entries = 0;
-   SInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
-   string num_directories_str;
-   UInt64 l2_cache_size = 0;
-   UInt32 cache_line_size = 0;
-   try
-   {
-      total_entries = Sim()->getCfg()->getInt("dram_directory/total_entries");
-      num_directories_str = Sim()->getCfg()->getString("dram/num_controllers");
-      l2_cache_size = (UInt64) Sim()->getCfg()->getInt("l2_cache/" +
-                      Config::getSingleton()->getL2CacheType(tile_id) + "/cache_size");
-      cache_line_size = (UInt64) Sim()->getCfg()->getInt("l2_cache/" +
-                        Config::getSingleton()->getL2CacheType(tile_id) + "/cache_line_size");
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Could not read parameters from cfg file");
-   }
-   
-   SInt32 num_directories = (num_directories_str == "ALL") ? num_application_tiles : convertFromString<UInt32>(num_directories_str);
-
-   UInt64 expected_entries_per_directory = (num_application_tiles * l2_cache_size * 1024 / cache_line_size) / num_directories;
-   // Convert to a power of 2
-   expected_entries_per_directory = UInt64(1) << floorLog2(expected_entries_per_directory);
-
-   if (total_entries < expected_entries_per_directory)
-   {
-      LOG_PRINT_WARNING("Dram Directory under-provisioned, use \"dram_directory/total_entries\" = %u",
-            expected_entries_per_directory);
-   }
-   else if (total_entries > (expected_entries_per_directory * 2))
-   {
-      LOG_PRINT_WARNING("Dram Directory over-provisioned, use \"dram_directory/total_entries\" = %u",
-            (expected_entries_per_directory * 2));
-   }
-}
-
-void
 DirectoryCache::outputSummary(ostream& out)
 {
-   checkDirectorySize(_tile->getId());
-
    out << "    Total Directory Accesses: " << _total_directory_accesses << endl;
    // The power and area model summary
    if (Config::getSingleton()->getEnablePowerModeling())
@@ -417,8 +372,6 @@ DirectoryCache::outputSummary(ostream& out)
 void
 DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 {
-   checkDirectorySize(tile_id);
-
    out << "    Total Directory Cache Accesses: " << endl;
    // The power and area model summary
    if (Config::getSingleton()->getEnablePowerModeling())

@@ -96,6 +96,4 @@ private:
 
    void updateCounters();
    IntPtr computeSetIndex(IntPtr address);
-
-   static void checkDirectorySize(tile_id_t tile_id);
 };

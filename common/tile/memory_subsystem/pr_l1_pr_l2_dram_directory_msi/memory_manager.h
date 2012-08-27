@@ -93,5 +93,8 @@ namespace PrL1PrL2DramDirectoryMSI
       
       // Cache Line Replication
       static ofstream _cache_line_replication_file;
+
+      // Get dram directory total entries
+      UInt32 getDramDirectoryTotalEntries(string total_entries_str, UInt32 associativity, UInt32 num_memory_controllers);
    };
 }

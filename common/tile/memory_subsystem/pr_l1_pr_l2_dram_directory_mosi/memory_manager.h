@@ -102,5 +102,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Get Packet Type for a message
       PacketType getPacketType(MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component);
+
+      // Get dram directory total entries
+      UInt32 getDramDirectoryTotalEntries(string total_entries_str, UInt32 associativity, UInt32 num_memory_controllers);
    };
 }

@@ -3,6 +3,7 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "clock_converter.h"
+#include "utils.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMSI
@@ -49,7 +50,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    std::string l2_cache_perf_model_type;
    bool l2_cache_track_miss_types = false;
 
-   UInt32 dram_directory_total_entries = 0;
+   std::string dram_directory_total_entries_str;
    UInt32 dram_directory_associativity = 0;
    UInt32 dram_directory_max_num_sharers = 0;
    UInt32 dram_directory_max_hw_sharers = 0;
@@ -100,7 +101,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       l2_cache_track_miss_types = Sim()->getCfg()->getBool(l2_cache_type + "/track_miss_types");
 
       // Dram Directory Cache
-      dram_directory_total_entries = Sim()->getCfg()->getInt("dram_directory/total_entries");
+      dram_directory_total_entries_str = Sim()->getCfg()->getString("dram_directory/total_entries");
       dram_directory_associativity = Sim()->getCfg()->getInt("dram_directory/associativity");
       dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
       dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("dram_directory/max_hw_sharers");
@@ -136,14 +137,13 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    _cache_line_size = l1_icache_line_size;
    dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
 
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
+   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
   
-   std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
-   // if (getTile()->getId() == 0)
-      // printTileListWithMemoryControllers(tile_list_with_dram_controllers);
+   std::vector<tile_id_t> tile_list_with_memory_controllers = getTileListWithMemoryControllers();
+   UInt32 num_memory_controllers = tile_list_with_memory_controllers.size();
 
-   if (find(tile_list_with_dram_controllers.begin(), tile_list_with_dram_controllers.end(), getTile()->getId())
-         != tile_list_with_dram_controllers.end())
+   if (find(tile_list_with_memory_controllers.begin(), tile_list_with_memory_controllers.end(), getTile()->getId())
+         != tile_list_with_memory_controllers.end())
    {
       _dram_cntlr_present = true;
 
@@ -156,6 +156,8 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
 
       LOG_PRINT("Instantiated Dram Cntlr");
 
+      UInt32 dram_directory_total_entries = getDramDirectoryTotalEntries(dram_directory_total_entries_str,
+                                                   dram_directory_associativity, num_memory_controllers);
       _dram_directory_cntlr = new DramDirectoryCntlr(this,
             _dram_cntlr,
             dram_directory_total_entries,
@@ -165,12 +167,12 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
             dram_directory_cache_access_time,
-            tile_list_with_dram_controllers.size());
+            num_memory_controllers);
       
       LOG_PRINT("Instantiated Dram Directory Cntlr");
    }
 
-   _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_dram_controllers, getCacheLineSize());
+   _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_memory_controllers, getCacheLineSize());
 
    LOG_PRINT("Instantiated Dram Directory Home Lookup");
 
@@ -384,6 +386,30 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 
    // Delete the Msg Buf
    delete [] msg_buf;
+}
+
+UInt32
+MemoryManager::getDramDirectoryTotalEntries(string total_entries_str, UInt32 associativity, UInt32 num_memory_controllers)
+{
+   // Get dram_directory_total_entries
+   UInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
+   UInt32 total_entries;
+   if (total_entries_str == "auto")
+   {
+      UInt32 max_L2_cache_size = getMaxL2CacheSize();
+      UInt32 num_sets = (UInt32) ceil(2.0 * max_L2_cache_size * 1024 * num_application_tiles /
+                                      (_cache_line_size * associativity * num_memory_controllers));
+      // Round off to the nearest power of 2
+      num_sets = 1 << ceilLog2(num_sets);
+      total_entries = num_sets * associativity;
+   }
+   else // (total_entries_str != "auto")
+   {
+      total_entries = convertFromString<UInt32>(total_entries_str);
+      LOG_ASSERT_ERROR(total_entries != 0, "Could not parse [dram_directory/total_entries] = %s", total_entries_str.c_str());
+   }
+
+   return total_entries;
 }
 
 void

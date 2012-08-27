@@ -38,14 +38,14 @@ PerfCounterManager::resetCacheCounters(SInt32 sender)
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend(Sim()->getTileManager()->getMainCoreId(i), RESET_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
+         net->netSend(Tile::getMainCoreId(i), RESET_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
       }
 
       // Send a message to all worker threads to continue execution
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend(Sim()->getTileManager()->getMainCoreId(i), MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
+         net->netSend(Tile::getMainCoreId(i), MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
       }
 
    }
@@ -72,14 +72,14 @@ PerfCounterManager::disableCacheCounters(SInt32 sender)
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend(Sim()->getTileManager()->getMainCoreId(i), DISABLE_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
+         net->netSend(Tile::getMainCoreId(i), DISABLE_CACHE_COUNTERS, (const void*) &buff, sizeof(buff));
       }
 
       // Send a message to all worker threads to continue execution
       for (UInt32 i = 0; i < num_app_tiles; i++)
       {
          UInt32 buff = 0;
-         net->netSend(Sim()->getTileManager()->getMainCoreId(i), MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
+         net->netSend(Tile::getMainCoreId(i), MCP_RESPONSE_TYPE, (const void*) &buff, sizeof(buff));
       }
 
    }

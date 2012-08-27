@@ -1,33 +1,67 @@
 #pragma once
 
+#include <vector>
+using std::vector;
 #include "shmem_msg.h"
 #include "fixed_types.h"
+#include "directory_state.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
    class ShmemReq
    {
-      private:
-         ShmemMsg* m_shmem_msg;
-         UInt64 m_time;
-         tile_id_t m_tile_id;
+   private:
+      ShmemMsg* _shmem_msg;
+      
+      UInt64 _arrival_time;
+      UInt64 _processing_start_time;
+      UInt64 _processing_finish_time;
+      
+      DirectoryState::Type _initial_dstate;
+      bool _initial_broadcast_mode;
+      tile_id_t _sharer_tile_id;
+      bool _upgrade_reply;
 
-      public:
-         ShmemReq();
-         ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
-         ~ShmemReq();
+   public:
+      ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
+      ~ShmemReq();
 
-         ShmemMsg* getShmemMsg() { return m_shmem_msg; }
-         UInt64 getTime() { return m_time; }
-         tile_id_t getTileId() { return m_tile_id; }
-        
-         void setShmemMsg(ShmemMsg* shmem_msg) { m_shmem_msg = shmem_msg; } 
-         void setTime(UInt64 time) { m_time = time; }
-         void updateTime(UInt64 time)
-         {
-            if (time > m_time)
-               m_time = time;
-         }
-         void setTileId(tile_id_t tile_id) { m_tile_id = tile_id; }
+      ShmemMsg* getShmemMsg() const
+      { return _shmem_msg; }
+      UInt64 getSerializationTime() const
+      { return _processing_start_time - _arrival_time; }
+      UInt64 getProcessingTime() const
+      { return _processing_finish_time - _processing_start_time; }
+      UInt64 getTime() const
+      { return _processing_finish_time; }
+      UInt64 getArrivalTime() const
+      { return _arrival_time; }
+      UInt64 getProcessingStartTime() const
+      { return _processing_start_time; }
+      UInt64 getProcessingFinishTime() const
+      { return _processing_finish_time; }
+     
+      void updateProcessingStartTime(UInt64 time);
+      void updateProcessingFinishTime(UInt64 time);
+
+      DirectoryState::Type getInitialDState() const
+      { return _initial_dstate; }
+      void setInitialDState(DirectoryState::Type dstate)
+      { _initial_dstate = dstate; }
+      
+      bool getInitialBroadcastMode() const
+      { return _initial_broadcast_mode; }
+      void setInitialBroadcastMode(bool in_broadcast_mode)
+      { _initial_broadcast_mode = in_broadcast_mode; }
+
+      tile_id_t getSharerTileId() const
+      { return _sharer_tile_id; }
+      void setSharerTileId(tile_id_t tile_id)
+      { _sharer_tile_id = tile_id; }
+
+      void setUpgradeReply()
+      { _upgrade_reply = true; }
+      bool isUpgradeReply() const
+      { return _upgrade_reply; }
    };
 }

@@ -12,6 +12,9 @@ endif
 # Use these files for auto targets
 .SUFFIXES:  .o .c .h .cc
 
+# Debug information in binary
+DBG = # -ggdb
+
 # Add other CXX Flags
 CXXFLAGS += -g -c \
             -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD

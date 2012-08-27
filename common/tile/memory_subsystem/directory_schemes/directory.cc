@@ -1,125 +1,69 @@
-using namespace std;
-
 #include "simulator.h"
 #include "directory.h"
 #include "directory_entry.h"
-#include "directory_entry_ackwise.h"
-#include "directory_entry_limited_broadcast.h"
-#include "directory_entry_limited_no_broadcast.h"
-#include "directory_entry_limitless.h"
 #include "log.h"
-#include "utils.h"
 
-Directory::Directory(string directory_type_str, UInt32 num_entries, UInt32 max_hw_sharers, UInt32 max_num_sharers):
-   m_num_entries(num_entries),
-   m_max_hw_sharers(max_hw_sharers),
-   m_max_num_sharers(max_num_sharers),
-   m_limitless_software_trap_penalty(0)
+Directory::Directory(CachingProtocolType caching_protocol_type, DirectoryType directory_type,
+                     SInt32 total_entries, SInt32 max_hw_sharers, SInt32 max_num_sharers)
+   : _total_entries(total_entries)
 {
    // Look at the type of directory and create 
-   m_directory_entry_list = new DirectoryEntry*[m_num_entries];
+   _directory_entry_list.resize(_total_entries);
   
-   m_directory_type = parseDirectoryType(directory_type_str);
-   for (UInt32 i = 0; i < m_num_entries; i++)
+   for (SInt32 i = 0; i < _total_entries; i++)
    {
-      m_directory_entry_list[i] = createDirectoryEntry();
+      _directory_entry_list[i] = DirectoryEntry::create(caching_protocol_type, directory_type,
+                                                        max_hw_sharers, max_num_sharers);
    }
+
+   // Sharer Stats
+   initializeSharerStats();
 }
 
 Directory::~Directory()
 {
-   for (UInt32 i = 0; i < m_num_entries; i++)
+   for (SInt32 i = 0; i < _total_entries; i++)
    {
-      delete m_directory_entry_list[i];
+      delete _directory_entry_list[i];
    }
-   delete [] m_directory_entry_list;
 }
 
 DirectoryEntry*
-Directory::getDirectoryEntry(UInt32 entry_num)
+Directory::getDirectoryEntry(SInt32 entry_num)
 {
-   return m_directory_entry_list[entry_num]; 
+   return _directory_entry_list[entry_num]; 
 }
 
-UInt32
-Directory::getDirectoryEntrySize()
+void
+Directory::setDirectoryEntry(SInt32 entry_num, DirectoryEntry* directory_entry)
 {
-   LOG_PRINT("getDirectoryEntrySize(%u)", m_directory_type);
-   switch(m_directory_type)
+   _directory_entry_list[entry_num] = directory_entry;
+}
+
+void
+Directory::initializeSharerStats()
+{
+   _sharer_count_vec.resize(Config::getSingleton()->getTotalTiles()+1, 0);
+}
+
+void
+Directory::updateSharerStats(SInt32 old_sharer_count, SInt32 new_sharer_count)
+{
+   assert(old_sharer_count >= 0 && old_sharer_count < (SInt32) Config::getSingleton()->getTotalTiles());
+   assert(new_sharer_count >= 0 && old_sharer_count < (SInt32) Config::getSingleton()->getTotalTiles());
+   if (old_sharer_count > 0)
    {
-   case FULL_MAP:
-      return m_max_num_sharers;
-   case LIMITED_NO_BROADCAST:
-   case LIMITED_BROADCAST:
-   case ACKWISE:
-      return m_max_hw_sharers * ceilLog2(m_max_num_sharers);
-   default:
-      LOG_PRINT_ERROR("Unrecognized directory type(%u)", m_directory_type);
-      return 0;
+      assert(_sharer_count_vec[old_sharer_count] > 0);
+      _sharer_count_vec[old_sharer_count] --;
+   }
+   if (new_sharer_count > 0)
+   {
+      _sharer_count_vec[new_sharer_count] ++;
    }
 }
 
 void
-Directory::setDirectoryEntry(UInt32 entry_num, DirectoryEntry* directory_entry)
+Directory::getSharerStats(vector<UInt64>& sharer_count_vec)
 {
-   m_directory_entry_list[entry_num] = directory_entry;
-}
-
-Directory::DirectoryType
-Directory::parseDirectoryType(string directory_type_str)
-{
-   if (directory_type_str == "full_map")
-      return FULL_MAP;
-   else if (directory_type_str == "limited_no_broadcast")
-      return LIMITED_NO_BROADCAST;
-   else if (directory_type_str == "limited_broadcast")
-      return LIMITED_BROADCAST;
-   else if (directory_type_str == "ackwise")
-      return ACKWISE;
-   else if (directory_type_str == "limitless")
-      return LIMITLESS;
-   else
-   {
-      LOG_PRINT_ERROR("Unsupported Directory Type: %s", directory_type_str.c_str());
-      return (DirectoryType) -1;
-   }
-}
-
-DirectoryEntry*
-Directory::createDirectoryEntry()
-{
-   switch (m_directory_type)
-   {
-   case FULL_MAP:
-      return new DirectoryEntryLimitedNoBroadcast(m_max_num_sharers, m_max_num_sharers);
-
-   case LIMITED_NO_BROADCAST:
-      return new DirectoryEntryLimitedNoBroadcast(m_max_hw_sharers, m_max_num_sharers);
-
-   case LIMITED_BROADCAST:
-      return new DirectoryEntryLimitedBroadcast(m_max_hw_sharers, m_max_num_sharers);
-
-   case ACKWISE:
-      return new DirectoryEntryAckwise(m_max_hw_sharers, m_max_num_sharers);
-
-   case LIMITLESS:
-      {
-         if (m_limitless_software_trap_penalty == 0)
-         {
-            try
-            {
-               m_limitless_software_trap_penalty = Sim()->getCfg()->getInt("perf_model/dram_directory/limitless/software_trap_penalty");
-            }
-            catch (...)
-            {
-               LOG_PRINT_ERROR("Could not read 'cache_coherence/limitless/software_trap_penalty' from the config file");
-            }
-         }
-         return new DirectoryEntryLimitless(m_max_hw_sharers, m_max_num_sharers, m_limitless_software_trap_penalty);
-      }
-
-   default:
-      LOG_PRINT_ERROR("Unrecognized Directory Type: %u", m_directory_type);
-      return NULL;
-   }
+   sharer_count_vec = _sharer_count_vec;
 }

@@ -26,7 +26,7 @@ MCP::MCP(Network & network)
    , m_clock_skew_minimization_server(NULL)
    , m_network_model_analytical_server(m_network, m_recv_buff)
 {
-   m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), m_network, m_recv_buff);
+   m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme"), m_network, m_recv_buff);
 }
 
 MCP::~MCP()

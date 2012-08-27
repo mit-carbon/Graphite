@@ -39,7 +39,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "carbon_user.h"
 
 MAIN_ENV
 
@@ -356,7 +355,7 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-  // Reset Models
+  // Enable Models
   CarbonEnableModels();
 
   if ((MyNum == 0) || (dostats)) {
@@ -384,6 +383,9 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
     Global->done = mydone;
     Global->rf = myrf;
   }
+  
+  // Disble Models
+  CarbonDisableModels();
 }
 
 

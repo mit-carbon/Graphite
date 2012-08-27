@@ -9,9 +9,10 @@
 
 Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
 
-Instruction::Instruction(InstructionType type, OperandList &operands)
+Instruction::Instruction(InstructionType type, UInt64 opcode, OperandList &operands)
    : m_type(type)
-   , m_addr(0)
+   , m_opcode(opcode)
+   , m_address(0)
    , m_size(0)
    , m_operands(operands)
 {
@@ -19,14 +20,10 @@ Instruction::Instruction(InstructionType type, OperandList &operands)
 
 Instruction::Instruction(InstructionType type)
    : m_type(type)
-   , m_addr(0)
+   , m_opcode(0)
+   , m_address(0)
    , m_size(0)
 {
-}
-
-InstructionType Instruction::getType()
-{
-    return m_type;
 }
 
 UInt64 Instruction::getCost()
@@ -68,7 +65,7 @@ void Instruction::initializeStaticInstructionModel()
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
    {
        char key_name [1024];
-       snprintf(key_name, 1024, "perf_model/core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
+       snprintf(key_name, 1024, "core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
        UInt32 instruction_cost = Sim()->getCfg()->getInt(key_name, 0);
        m_instruction_costs[i] = instruction_cost;
    }
@@ -89,44 +86,6 @@ DynamicInstruction::~DynamicInstruction()
 UInt64 DynamicInstruction::getCost()
 {
    return m_cost;
-}
-
-// StringInstruction
-
-StringInstruction::StringInstruction(OperandList &ops)
-   : Instruction(INST_STRING, ops)
-{
-}
-
-UInt64 StringInstruction::getCost()
-{
-   // dequeue mem ops until we hit the final marker, then check count
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
-   UInt32 count = 0;
-   UInt64 cost = 0;
-   DynamicInstructionInfo* i;
-
-   while (true)
-   {
-      i = &perf->getDynamicInstructionInfo();
-
-      if (i->type == DynamicInstructionInfo::STRING)
-         break;
-
-      LOG_ASSERT_ERROR(i->type == DynamicInstructionInfo::MEMORY_READ,
-                       "Expected memory read in string instruction (or STRING).");
-
-      cost += i->memory_info.latency;
-
-      ++count;
-      perf->popDynamicInstructionInfo();
-   }
-
-   LOG_ASSERT_ERROR(count == i->string_info.num_ops,
-                    "Number of mem ops in queue doesn't match number in string instruction.");
-   perf->popDynamicInstructionInfo();
-
-   return cost;
 }
 
 // SyncInstruction
@@ -151,8 +110,8 @@ UInt64 SpawnInstruction::getCost()
 
 // BranchInstruction
 
-BranchInstruction::BranchInstruction(OperandList &l)
-   : Instruction(INST_BRANCH, l)
+BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
+   : Instruction(INST_BRANCH, opcode, l)
 { }
 
 UInt64 BranchInstruction::getCost()
@@ -185,7 +144,7 @@ UInt64 BranchInstruction::getCost()
 void Instruction::print() const
 {
    ostringstream out;
-   out << "Address(0x" << hex << m_addr << dec << ") Size(" << m_size << ") ; ";
+   out << "Address(0x" << hex << m_address << dec << ") Size(" << m_size << ") : ";
    for (unsigned int i = 0; i < m_operands.size(); i++)
    {
       const Operand& o = m_operands[i];

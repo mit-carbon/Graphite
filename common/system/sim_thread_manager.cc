@@ -5,6 +5,7 @@
 #include "config.h"
 #include "simulator.h"
 #include "tile_manager.h"
+#include "tile.h"
 #include "mcp.h"
 
 SimThreadManager::SimThreadManager()
@@ -51,7 +52,7 @@ void SimThreadManager::quitSimThreads()
    for (UInt32 i = 0; i < num_local_tiles; i++)
    {
       tile_id_t tile_id = tile_list[i];
-      core_id_t receiver = TileManager::getMainCoreId(tile_id);
+      core_id_t receiver = Tile::getMainCoreId(tile_id);
       pkt.receiver.tile_id = receiver.tile_id;
       pkt.receiver.core_type = receiver.core_type;
       global_node->send(tile_id, &pkt, pkt.bufferSize());

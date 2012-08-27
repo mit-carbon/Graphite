@@ -20,7 +20,7 @@ void CarbonInitModels()
 
 void CarbonEnableModels()
 {
-   if (! Sim()->getCfg()->getBool("general/enable_models_at_startup", true))
+   if (Sim()->getCfg()->getBool("general/trigger_models_within_application", false))
    {
       // Acquire & Release a barrier
       CarbonBarrierWait(&models_barrier);
@@ -39,7 +39,7 @@ void CarbonEnableModels()
 
 void CarbonDisableModels()
 {
-   if (! Sim()->getCfg()->getBool("general/enable_models_at_startup", true))
+   if (Sim()->getCfg()->getBool("general/trigger_models_within_application", false))
    {
       // Acquire & Release a barrier
       CarbonBarrierWait(&models_barrier);
@@ -56,24 +56,6 @@ void CarbonDisableModels()
    }
 } 
 
-void CarbonResetModels()
-{
-   FloatingPointHandler floating_point_handler;
-
-   // Acquire & Release a barrier
-   CarbonBarrierWait(&models_barrier);
-
-   if (Sim()->getTileManager()->getCurrentTileIndex() == 0)
-   {
-      fprintf(stderr, "[[Graphite]] --> [ Reset Performance and Power Models ]\n");
-      // Reset performance models of cores in this process
-      Simulator::resetPerformanceModelsInCurrentProcess();
-   }
-
-   // Acquire & Release a barrier again
-   CarbonBarrierWait(&models_barrier);
-} 
-
 void CarbonResetCacheCounters()
 {
    UInt32 msg = MCP_MESSAGE_RESET_CACHE_COUNTERS;
@@ -84,7 +66,7 @@ void CarbonResetCacheCounters()
 
    NetPacket recv_pkt;
    Core *core = Sim()->getTileManager()->getCurrentCore();
-   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), core->getId(), MCP_RESPONSE_TYPE);
    
    assert(recv_pkt.length == sizeof(UInt32));
    delete [](Byte*)recv_pkt.data;
@@ -100,7 +82,7 @@ void CarbonDisableCacheCounters()
 
    NetPacket recv_pkt;
    Core *core = Sim()->getTileManager()->getCurrentCore();
-   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = net->netRecv(Sim()->getConfig()->getMCPCoreId(), core->getId(), MCP_RESPONSE_TYPE);
    
    assert(recv_pkt.length == sizeof(UInt32));
    delete [](Byte*)recv_pkt.data;

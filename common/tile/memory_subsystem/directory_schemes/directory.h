@@ -1,45 +1,34 @@
-#ifndef __DIRECTORY_H__
-#define __DIRECTORY_H__
+#pragma once
 
 #include <string>
+using std::string;
 
-#include "directory_entry.h"
+// Forward Decls
+class DirectoryEntry;
+
 #include "fixed_types.h"
+#include "directory_type.h"
+#include "caching_protocol_type.h"
 
 class Directory
 {
-   public:
-      enum DirectoryType
-      {
-         FULL_MAP = 0,
-         LIMITED_NO_BROADCAST,
-         LIMITED_BROADCAST,
-         ACKWISE,
-         LIMITLESS,
-         NUM_DIRECTORY_TYPES
-      };
+public:
+   Directory(CachingProtocolType caching_protocol_type, DirectoryType directory_type,
+             SInt32 total_entries, SInt32 max_hw_sharers, SInt32 max_num_sharers);
+   ~Directory();
 
-   private:
-      DirectoryType m_directory_type;
-      UInt32 m_num_entries;
-      UInt32 m_max_hw_sharers;
-      UInt32 m_max_num_sharers;
+   DirectoryEntry* getDirectoryEntry(SInt32 entry_num);
+   void setDirectoryEntry(SInt32 entry_num, DirectoryEntry* directory_entry);
+   
+   // Sharer Stats
+   void updateSharerStats(SInt32 old_sharer_count, SInt32 new_sharer_count);
+   void getSharerStats(vector<UInt64>& sharer_count_vec);
 
-      // FIXME: Hack: Get me out of here
-      UInt32 m_limitless_software_trap_penalty;
+private:
+   SInt32 _total_entries;
 
-      DirectoryEntry** m_directory_entry_list;
-
-   public:
-      Directory(std::string directory_type_str, UInt32 num_entries, UInt32 max_hw_sharers, UInt32 max_num_sharers);
-      ~Directory();
-
-      DirectoryEntry* getDirectoryEntry(UInt32 entry_num);
-      UInt32 getDirectoryEntrySize();
-      void setDirectoryEntry(UInt32 entry_num, DirectoryEntry* directory_entry);
-      DirectoryEntry* createDirectoryEntry();
-      
-      static DirectoryType parseDirectoryType(std::string directory_type_str);
+   vector<DirectoryEntry*> _directory_entry_list;
+   vector<UInt64> _sharer_count_vec;
+   
+   void initializeSharerStats();
 };
-
-#endif /* __DIRECTORY_H__ */

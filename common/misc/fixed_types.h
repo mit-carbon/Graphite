@@ -3,13 +3,6 @@
 
 #include <stdint.h>
 
-// Why are we using a C library...
-//#ifdef __cplusplus
-//extern "C++" {
-//#include <utility>
-//}
-//#endif
-
 typedef uint64_t UInt64;
 typedef uint32_t UInt32;
 typedef uint16_t UInt16;
@@ -42,5 +35,7 @@ typedef SInt32 thread_id_t;
 #define INVALID_TILE_ID ((tile_id_t) -1)
 #define INVALID_ADDRESS  ((IntPtr) -1)
 
+#define UINT64_MAX_ ((UInt64)-1)
+#define UINT32_MAX_ ((UInt32)-1)
 
 #endif

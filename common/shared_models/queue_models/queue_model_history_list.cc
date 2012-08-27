@@ -7,8 +7,9 @@
 #include "queue_model_history_list.h"
 #include "log.h"
 
-QueueModelHistoryList::QueueModelHistoryList(UInt64 min_processing_time):
-   _min_processing_time(min_processing_time)
+QueueModelHistoryList::QueueModelHistoryList(UInt64 min_processing_time)
+   : QueueModel(HISTORY_LIST)
+   , _min_processing_time(min_processing_time)
 {
    // Some Hard-Coded values here
    // Assumptions
@@ -27,20 +28,12 @@ QueueModelHistoryList::QueueModelHistoryList(UInt64 min_processing_time):
    _free_interval_list.push_back(std::make_pair<UInt64,UInt64>(0, UINT64_MAX));
    _queue_model_m_g_1 = new QueueModelMG1();
 
-   initializeQueueCounters();
+   _total_requests_using_analytical_model = 0;
 }
 
 QueueModelHistoryList::~QueueModelHistoryList()
 {
    delete _queue_model_m_g_1;
-}
-
-void
-QueueModelHistoryList::initializeQueueCounters()
-{
-   _utilized_cycles = 0;
-   _total_requests = 0;
-   _total_requests_using_analytical_model = 0;
 }
 
 UInt64 
@@ -66,19 +59,12 @@ QueueModelHistoryList::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
       queue_delay = computeUsingHistoryList(pkt_time, processing_time);
    }
 
-   updateQueueUtilization(processing_time);
    _queue_model_m_g_1->updateQueue(pkt_time, processing_time, queue_delay);
    
+   // Update Utilization Counters
+   updateQueueUtilizationCounters(pkt_time, processing_time, queue_delay);
+   
    return queue_delay;
-}
-
-void
-QueueModelHistoryList::updateQueueUtilization(UInt64 processing_time)
-{
-   // Update queue utilization parameter
-   _utilized_cycles += processing_time;
-   // Increment total queue requests
-   _total_requests ++;
 }
 
 UInt64
@@ -157,22 +143,4 @@ QueueModelHistoryList::computeUsingHistoryList(UInt64 pkt_time, UInt64 processin
    LOG_PRINT("HistoryList: pkt_time(%llu), processing_time(%llu), queue_delay(%llu)", pkt_time, processing_time, queue_delay);
 
    return queue_delay;
-}
-
-float
-QueueModelHistoryList::getQueueUtilization()
-{
-   std::pair<UInt64,UInt64> newest_interval = _free_interval_list.back();
-   UInt64 total_cycles = newest_interval.first;
-
-   if (total_cycles == 0)
-   {
-      LOG_ASSERT_ERROR(_utilized_cycles == 0, "_utilized_cycles(%llu), _total_cycles(%llu)",
-            _utilized_cycles, total_cycles);
-      return 0;
-   }
-   else
-   {
-      return ((float) _utilized_cycles / total_cycles);
-   } 
 }

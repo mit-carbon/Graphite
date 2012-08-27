@@ -1,5 +1,4 @@
-#ifndef __CLOCK_SKEW_MINIMIZATION_OBJECT_H__
-#define __CLOCK_SKEW_MINIMIZATION_OBJECT_H__
+#pragma once
 
 #include <string>
 
@@ -13,17 +12,16 @@ class NetPacket;
 
 class ClockSkewMinimizationObject
 {
-   public:
-      enum Scheme
-      {
-         NONE = 0,
-         BARRIER,
-         RING,
-         RANDOM_PAIRS,
-         NUM_SCHEMES
-      };
+public:
+   enum Scheme
+   {
+      LAX = 0,
+      LAX_BARRIER,
+      LAX_P2P,
+      NUM_SCHEMES
+   };
 
-      static Scheme parseScheme(std::string scheme);
+   static Scheme parseScheme(std::string scheme);
 };
  
 void ClockSkewMinimizationClientNetworkCallback(void* obj, NetPacket packet);
@@ -39,9 +37,7 @@ public:
 
    virtual void enable() = 0;
    virtual void disable() = 0;
-   virtual void reset() = 0;
    virtual void synchronize(UInt64 cycle_count = 0) = 0;
-   //virtual void synchronize(UInt64 cycle_count = 0) {printf("synchronize is purely virtual!"); assert(false);}
    virtual void netProcessSyncMsg(const NetPacket& recv_pkt) = 0;
 };
 
@@ -67,8 +63,5 @@ public:
    static ClockSkewMinimizationServer* create(std::string scheme_str, Network& network, UnstructuredBuffer& recv_buff);
 
    virtual void processSyncMsg(core_id_t core_id) = 0;
-   //virtual void processSyncMsg(core_id_t core_id) {printf("processSyncMsg is purely virtual!"); assert(false);}
    virtual void signal() = 0;
 };
-
-#endif /* __CLOCK_SKEW_MINIMIZATION_OBJECT_H__ */

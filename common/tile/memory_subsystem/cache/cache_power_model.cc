@@ -8,7 +8,7 @@ using namespace std;
 #include "log.h"
 
 CachePowerModel::CachePowerModel(string type, UInt32 size, UInt32 blocksize,
-      UInt32 associativity, UInt32 delay, volatile float frequency)
+                                 UInt32 associativity, UInt32 delay, volatile float frequency)
 {
    LOG_ASSERT_ERROR(Config::getSingleton()->getEnablePowerModeling(), "Power Modeling Disabled");
    CacheParams cache_params(type, size, blocksize, associativity, delay, frequency);
@@ -22,13 +22,13 @@ CachePowerModel::CachePowerModel(string type, UInt32 size, UInt32 blocksize,
 void
 CachePowerModel::outputSummary(ostream& out)
 {
-   out << "    Total Dynamic Energy: " << _total_dynamic_energy << endl;
-   out << "    Total Static Power: " << _total_static_power << endl;
+   out << "    Static Power (in W): " << _total_static_power << endl;
+   out << "    Dynamic Energy (in J): " << _total_dynamic_energy << endl;
 }
 
 void
 CachePowerModel::dummyOutputSummary(ostream& out)
 {
-   out << "    Total Dynamic Energy: NA" << endl;
-   out << "    Total Static Power: NA" << endl;
+   out << "    Static Power (in W): " << endl;
+   out << "    Dynamic Energy (in J): " << endl;
 }

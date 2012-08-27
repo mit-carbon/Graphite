@@ -8,7 +8,6 @@ extern "C" {
 void CarbonInitModels(void);
 void CarbonEnableModels(void);
 void CarbonDisableModels(void);
-void CarbonResetModels(void);
 
 void CarbonResetCacheCounters(void);
 void CarbonDisableCacheCounters(void);

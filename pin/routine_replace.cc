@@ -87,7 +87,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // Enable/Disable/Reset Models
    else if (name == "CarbonEnableModels") msg_ptr = AFUNPTR(replacementEnableModels);
    else if (name == "CarbonDisableModels") msg_ptr = AFUNPTR(replacementDisableModels);
-   else if (name == "CarbonResetModels") msg_ptr = AFUNPTR(replacementResetModels);
 
    // Resetting Cache Counters
    else if (name == "CarbonResetCacheCounters") msg_ptr = AFUNPTR(replacementResetCacheCounters);
@@ -123,7 +122,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       RTN_Open (rtn);
 
       // Before main()
-      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      if (! Sim()->getCfg()->getBool("general/trigger_models_within_application",false))
       {
          RTN_InsertCall(rtn, IPOINT_BEFORE,
                AFUNPTR(Simulator::enablePerformanceModelsInCurrentProcess),
@@ -135,7 +134,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
             IARG_END);
 
       // After main()
-      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      if (! Sim()->getCfg()->getBool("general/trigger_models_within_application",false))
       {
          RTN_InsertCall(rtn, IPOINT_AFTER,
                AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
@@ -186,7 +185,7 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getCoreId(), SYSTEM_INITIALIZATION_ACK);
+         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getId(), SYSTEM_INITIALIZATION_ACK);
       }
       
       // Tell the thread spawner for each process that we're done initializing...even though we haven't?
@@ -206,7 +205,7 @@ void replacementMain (CONTEXT *ctxt)
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getCoreId(), SYSTEM_INITIALIZATION_FINI);
+      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getId(), SYSTEM_INITIALIZATION_FINI);
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -817,12 +816,10 @@ void replacementPthreadCreate (CONTEXT *ctxt)
             IARG_PTR, &func_arg,
             CARBON_IARG_END);
 
-      //TODO: add support for different attributes and throw warnings for unsupported attrs
-      
-      if (attributes != NULL)
-      {
-         fprintf(stdout, "Warning: pthread_create() is using unsupported attributes.\n");
-      }
+      // Throw warning message if ((attr)) field is non-NULL
+      // TODO: Add Graphite support for using a non-NULL attribute field
+      LOG_ASSERT_WARNING(attributes == NULL, "pthread_create() is using a non-NULL ((attr)) parameter. "
+                                              "Unsupported currently.");
       
       carbon_thread_t new_thread_id = CarbonSpawnThread(func, func_arg);
       
@@ -847,9 +844,10 @@ void replacementPthreadJoin (CONTEXT *ctxt)
          IARG_PTR, &return_value,
          CARBON_IARG_END);
 
-   //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
-   LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value \
-         to be passed through value_ptr input, which is unsupported");
+   // Throw warning message if ((thread_return)) field is non-NULL
+   // TODO: The return_value needs to be set, but CarbonJoinThread() provides no return value.
+   LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value through the "
+                                             "((thread_return)) parameter. Unsuported currently.");
    
    CarbonJoinThread ((carbon_thread_t) thread_id);
 
@@ -875,14 +873,6 @@ void replacementEnableModels(CONTEXT* ctxt)
 void replacementDisableModels(CONTEXT* ctxt)
 {
    CarbonDisableModels();
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementResetModels(CONTEXT* ctxt)
-{
-   CarbonResetModels();
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);

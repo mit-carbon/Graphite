@@ -1,0 +1,11 @@
+#pragma once
+
+enum CachingProtocolType
+{
+   PR_L1_PR_L2_DRAM_DIRECTORY_MSI = 0,
+   PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
+   PR_L1_SH_L2_MSI,
+   SH_L1_SH_L2,
+   HYBRID_PROTOCOL__PP_MOSI__SS,
+   NUM_CACHING_PROTOCOL_TYPES
+};

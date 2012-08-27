@@ -78,13 +78,6 @@ DramPerfModel::destroyQueueModels()
 }
 
 void
-DramPerfModel::resetQueueModels()
-{
-   destroyQueueModels();
-   createQueueModels();
-}
-
-void
 DramPerfModel::initializePerformanceCounters()
 {
    m_num_accesses = 0;
@@ -93,30 +86,32 @@ DramPerfModel::initializePerformanceCounters()
 }
 
 UInt64 
-DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, tile_id_t requester)
+DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
 {
    // pkt_size is in 'Bytes'
    // m_dram_bandwidth is in 'Bytes per clock cycle'
-   if ((!m_enabled) || 
-         (requester >= (tile_id_t) Config::getSingleton()->getApplicationTiles()))
+   if (!m_enabled) 
    {
+      LOG_PRINT("Not enabled. Return 0");
       return 0;
    }
 
    UInt64 processing_time = (UInt64) ((float) pkt_size/m_dram_bandwidth) + 1;
+   LOG_PRINT("Processing Time(%llu)", processing_time);
 
    // Compute Queue Delay
    UInt64 queue_delay;
    if (m_queue_model)
    {
-      queue_delay = m_queue_model->computeQueueDelay(pkt_time, processing_time, requester);
+      queue_delay = m_queue_model->computeQueueDelay(pkt_time, processing_time);
    }
    else
    {
       queue_delay = 0;
    }
-
+   LOG_PRINT("Queue Delay(%llu)", queue_delay);
    UInt64 access_latency = queue_delay + processing_time + m_dram_access_cost;
+   LOG_PRINT("Access Latency(%llu)", access_latency);
 
 
    // Update Memory Counters
@@ -140,20 +135,13 @@ DramPerfModel::disable()
 }
 
 void
-DramPerfModel::reset()
-{
-   initializePerformanceCounters();
-   resetQueueModels();
-}
-
-void
 DramPerfModel::outputSummary(ostream& out)
 {
-   out << "Dram Perf Model summary: " << endl;
-   out << "    num dram accesses: " << m_num_accesses << endl;
-   out << "    average dram access latency: " << 
+   out << "Dram Performance Model summary: " << endl;
+   out << "    Total Dram Accesses: " << m_num_accesses << endl;
+   out << "    Average Dram Access Latency: " << 
       (float) (m_total_access_latency / m_num_accesses) << endl;
-   out << "    average dram queueing delay: " << 
+   out << "    Average Dram Contention Delay: " << 
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
 
 
@@ -165,10 +153,10 @@ DramPerfModel::outputSummary(ostream& out)
          (float) (m_total_static_power) << endl;
    }
    
-   std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+   std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
    if (m_queue_model && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {
-      out << "  Queue Model:" << endl;
+      out << "    Queue Model:" << endl;
        
       if (queue_model_type == "history_list")
       {  
@@ -176,8 +164,8 @@ DramPerfModel::outputSummary(ostream& out)
          float frac_requests_using_analytical_model = \
             ((float) ((QueueModelHistoryList*) m_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
             ((QueueModelHistoryList*) m_queue_model)->getTotalRequests();
-         out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
-         out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
+         out << "      Queue Utilization(\%): " << queue_utilization * 100 << endl;
+         out << "      Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
       }
       else // (queue_model_type == "history_tree")
       {
@@ -185,8 +173,8 @@ DramPerfModel::outputSummary(ostream& out)
          float frac_requests_using_analytical_model = \
             ((float) ((QueueModelHistoryTree*) m_queue_model)->getTotalRequestsUsingAnalyticalModel()) / \
             ((QueueModelHistoryTree*) m_queue_model)->getTotalRequests();
-         out << "    Queue Utilization(\%): " << queue_utilization * 100 << endl;
-         out << "    Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
+         out << "      Queue Utilization(\%): " << queue_utilization * 100 << endl;
+         out << "      Analytical Model Used(\%): " << frac_requests_using_analytical_model * 100 << endl;
       }
    }
 }
@@ -194,18 +182,17 @@ DramPerfModel::outputSummary(ostream& out)
 void
 DramPerfModel::dummyOutputSummary(ostream& out)
 {
-   out << "Dram Perf Model summary: " << endl;
-   out << "    num dram accesses: NA" << endl;
-   out << "    average dram access latency: NA" << endl;
-   out << "    average dram queueing delay: NA" << endl;
-
+   out << "Dram Performance Model summary: " << endl;
+   out << "    Total Dram Accesses: " << endl;
+   out << "    Average Dram Access Latency: " << endl;
+   out << "    Average Dram Contention Delay: " << endl;
    
-   bool queue_model_enabled = Sim()->getCfg()->getBool("perf_model/dram/queue_model/enabled");
-   std::string queue_model_type = Sim()->getCfg()->getString("perf_model/dram/queue_model/type");
+   bool queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
+   std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
    if (queue_model_enabled && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {
-      out << "  Queue Model:" << endl;
-      out << "    Queue Utilization(\%): NA" << endl;
-      out << "    Analytical Model Used(\%): NA" << endl;
+      out << "    Queue Model:" << endl;
+      out << "      Queue Utilization(\%): " << endl;
+      out << "      Analytical Model Used(\%): " << endl;
    }
 }

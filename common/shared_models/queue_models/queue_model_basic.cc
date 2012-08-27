@@ -4,9 +4,10 @@
 #include "utils.h"
 #include "log.h"
 
-QueueModelBasic::QueueModelBasic():
-   m_queue_time(0),
-   m_moving_average(NULL)
+QueueModelBasic::QueueModelBasic()
+   : QueueModel(BASIC)
+   , _queue_time(0)
+   , _moving_average(NULL)
 {
    bool moving_avg_enabled = false;
    UInt32 moving_avg_window_size = 0;
@@ -24,7 +25,7 @@ QueueModelBasic::QueueModelBasic():
 
    if (moving_avg_enabled)
    {
-      m_moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type_str, moving_avg_window_size);
+      _moving_average = MovingAverage<UInt64>::createAvgType(moving_avg_type_str, moving_avg_window_size);
    }
 }
 
@@ -36,22 +37,25 @@ QueueModelBasic::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile
 {
    // Compute the moving average here
    UInt64 ref_time;
-   if (m_moving_average)
+   if (_moving_average)
    {
-      ref_time = m_moving_average->compute(pkt_time);
+      ref_time = _moving_average->compute(pkt_time);
    }
    else
    {
       ref_time = pkt_time;
    }
 
-   UInt64 queue_delay = (m_queue_time > ref_time) ? (m_queue_time - ref_time) : 0;
+   UInt64 queue_delay = (_queue_time > ref_time) ? (_queue_time - ref_time) : 0;
   
-   LOG_PRINT("Pkt Time(%llu), Ref Time(%llu), Queue Time(%llu), Queue Delay(%llu), Requester(%i)", \
-         pkt_time, ref_time, m_queue_time, queue_delay, requester);
+   LOG_PRINT("Pkt Time(%llu), Ref Time(%llu), Queue Time(%llu), Queue Delay(%llu), Requester(%i)",
+             pkt_time, ref_time, _queue_time, queue_delay, requester);
 
    // Update the Queue Time
-   m_queue_time = getMax<UInt64>(m_queue_time, ref_time) + processing_time;
+   _queue_time = getMax<UInt64>(_queue_time, ref_time) + processing_time;
+
+   // Update Utilization Counters
+   updateQueueUtilizationCounters(ref_time, processing_time, queue_delay);
 
    return queue_delay;
 }

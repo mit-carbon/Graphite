@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+using std::string;
 
 // Forward Decls
 namespace PrL1PrL2DramDirectoryMSI
@@ -9,7 +10,7 @@ namespace PrL1PrL2DramDirectoryMSI
 }
 
 #include "directory_cache.h"
-#include "req_queue_list.h"
+#include "hash_map_queue.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
 #include "shmem_req.h"
@@ -20,52 +21,46 @@ namespace PrL1PrL2DramDirectoryMSI
 {
    class DramDirectoryCntlr
    {
-      private:
-         // Functional Models
-         MemoryManager* m_memory_manager;
-         DirectoryCache* m_dram_directory_cache;
-         ReqQueueList* m_dram_directory_req_queue_list;
-         DramCntlr* m_dram_cntlr;
+   public:
+      DramDirectoryCntlr(MemoryManager* memory_manager,
+            DramCntlr* dram_cntlr,
+            UInt32 dram_directory_total_entries,
+            UInt32 dram_directory_associativity,
+            UInt32 cache_block_size,
+            UInt32 dram_directory_max_num_sharers,
+            UInt32 dram_directory_max_hw_sharers,
+            string dram_directory_type_str,
+            UInt64 dram_directory_access_delay_in_ns,
+            UInt32 num_dram_cntlrs);
+      ~DramDirectoryCntlr();
 
-         UInt32 m_cache_block_size;
-
-         ShmemPerfModel* m_shmem_perf_model;
-
-         UInt32 getCacheBlockSize() { return m_cache_block_size; }
-         MemoryManager* getMemoryManager() { return m_memory_manager; }
-         ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
-
-         // Private Functions
-         DirectoryEntry* processDirectoryEntryAllocationReq(ShmemReq* shmem_req);
-         void processNullifyReq(ShmemReq* shmem_req);
-
-         void processNextReqFromL2Cache(IntPtr address);
-         void processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
-         void processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
-         void retrieveDataAndSendToL2Cache(ShmemMsg::msg_t reply_msg_type, tile_id_t receiver, IntPtr address, Byte* cached_data_buf);
-
-         void processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
-         void processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
-         void processWbRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
-         void sendDataToDram(IntPtr address, tile_id_t requester, Byte* data_buf);
+      void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
       
-      public:
-         DramDirectoryCntlr(MemoryManager* memory_manager,
-               DramCntlr* dram_cntlr,
-               UInt32 dram_directory_total_entries,
-               UInt32 dram_directory_associativity,
-               UInt32 cache_block_size,
-               UInt32 dram_directory_max_num_sharers,
-               UInt32 dram_directory_max_hw_sharers,
-               std::string dram_directory_type_str,
-               UInt64 dram_directory_cache_access_delay_in_ns,
-               UInt32 num_dram_cntlrs,
-               ShmemPerfModel* shmem_perf_model);
-         ~DramDirectoryCntlr();
+      DirectoryCache* getDramDirectoryCache() { return _dram_directory_cache; }
+   
+   private:
+      // Functional Models
+      MemoryManager* _memory_manager;
+      DirectoryCache* _dram_directory_cache;
+      DramCntlr* _dram_cntlr;
+      HashMapQueue<IntPtr,ShmemReq*>* _dram_directory_req_queue_list;
 
-         void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
-         
-         DirectoryCache* getDramDirectoryCache() { return m_dram_directory_cache; }
+      UInt32 getCacheLineSize();
+      MemoryManager* getMemoryManager() { return _memory_manager; }
+      ShmemPerfModel* getShmemPerfModel();
+
+      // Private Functions
+      DirectoryEntry* processDirectoryEntryAllocationReq(ShmemReq* shmem_req);
+      void processNullifyReq(ShmemReq* shmem_req);
+
+      void processNextReqFromL2Cache(IntPtr address);
+      void processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
+      void processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_data_buf = NULL);
+      void retrieveDataAndSendToL2Cache(ShmemMsg::Type reply_msg_type, tile_id_t receiver, IntPtr address, Byte* cached_data_buf, bool msg_modeled);
+
+      void processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+      void processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+      void processWbRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+      void sendDataToDram(IntPtr address, Byte* data_buf, bool msg_modeled);
    };
-
 }

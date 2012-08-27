@@ -15,6 +15,8 @@ class ThreadScheduler;
 class PerfCounterManager;
 class SimThreadManager;
 class ClockSkewMinimizationManager;
+class StatisticsManager;
+class StatisticsThread;
 
 class Simulator
 {
@@ -37,12 +39,13 @@ public:
    ThreadScheduler *getThreadScheduler() { return m_thread_scheduler; }
    PerfCounterManager *getPerfCounterManager() { return m_perf_counter_manager; }
    ClockSkewMinimizationManager *getClockSkewMinimizationManager() { return m_clock_skew_minimization_manager; }
+   StatisticsManager *getStatisticsManager() { return m_statistics_manager; } 
+   StatisticsThread *getStatisticsThread() { return m_statistics_thread; } 
    Config *getConfig() { return &m_config; }
    config::Config *getCfg() { return m_config_file; }
 
    static void enablePerformanceModelsInCurrentProcess();
    static void disablePerformanceModelsInCurrentProcess();
-   static void resetPerformanceModelsInCurrentProcess();
 
    void startTimer();
    void stopTimer();
@@ -76,6 +79,8 @@ private:
    PerfCounterManager *m_perf_counter_manager;
    SimThreadManager *m_sim_thread_manager;
    ClockSkewMinimizationManager *m_clock_skew_minimization_manager;
+   StatisticsManager *m_statistics_manager;
+   StatisticsThread *m_statistics_thread;
 
    static Simulator *m_singleton;
 

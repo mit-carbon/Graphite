@@ -7,6 +7,7 @@
 using namespace std;
 
 #include "directory_cache.h"
+#include "memory_manager.h"
 #include "simulator.h"
 #include "config.h"
 #include "log.h"
@@ -15,95 +16,125 @@ using namespace std;
 #define DETAILED_TRACKING_ENABLED    1
 
 DirectoryCache::DirectoryCache(Tile* tile,
+                               CachingProtocolType caching_protocol_type,
                                string directory_type_str,
                                UInt32 total_entries,
                                UInt32 associativity,
-                               UInt32 cache_block_size,
+                               UInt32 cache_line_size,
                                UInt32 max_hw_sharers,
                                UInt32 max_num_sharers,
-                               UInt32 num_directory_caches,
-                               UInt64 dram_directory_cache_access_delay_in_clock_cycles,
-                               ShmemPerfModel* shmem_perf_model):
-   m_tile(tile),
-   m_total_entries(total_entries),
-   m_associativity(associativity),
-   m_cache_block_size(cache_block_size),
-   m_dram_directory_cache_access_delay_in_clock_cycles(dram_directory_cache_access_delay_in_clock_cycles),
-   m_shmem_perf_model(shmem_perf_model),
-   m_cache_power_model(NULL),
-   m_cache_area_model(NULL),
-   m_total_directory_cache_accesses(0),
-   m_enabled(false)
+                               UInt32 num_directories,
+                               UInt64 directory_access_delay_in_clock_cycles)
+   : _tile(tile)
+   , _caching_protocol_type(caching_protocol_type)
+   , _max_hw_sharers(max_hw_sharers)
+   , _max_num_sharers(max_num_sharers)
+   , _total_entries(total_entries)
+   , _associativity(associativity)
+   , _cache_line_size(cache_line_size)
+   , _num_directories(num_directories)
+   , _directory_access_delay_in_clock_cycles(directory_access_delay_in_clock_cycles)
+   , _power_model(NULL)
+   , _area_model(NULL)
+   , _enabled(false)
 {
    LOG_PRINT("Directory Cache ctor enter");
-   m_num_sets = m_total_entries / m_associativity;
-   
-   // Instantiate the directory
-   m_directory = new Directory(directory_type_str, total_entries, max_hw_sharers, max_num_sharers);
+   _num_sets = _total_entries / _associativity;
+ 
+   // Parse the directory type (full_map, limited_no_broadcast, limited_broadcast, ackwise, limitless) 
+   _directory_type = DirectoryEntry::parseDirectoryType(directory_type_str);
 
-   initializeParameters(num_directory_caches);
+   // Instantiate the directory
+   _directory = new Directory(caching_protocol_type, _directory_type, total_entries, max_hw_sharers, max_num_sharers);
+
+   initializeParameters();
   
-   volatile float core_frequency = Config::getSingleton()->getCoreFrequency(m_tile->getMainCoreId());
+   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(tile->getId()));
    LOG_PRINT("Got Core Frequency");
 
-   // Size of each directory entry (in bits)
-   UInt32 directory_entry_size = m_directory->getDirectoryEntrySize();
+   // Size of each directory entry (in bytes)
+   UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_num_sharers)  / 8);
    LOG_PRINT("Got Directory Entry Size");
 
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      m_cache_power_model = new CachePowerModel("directory", ceil(m_total_entries * directory_entry_size / 8),
-            directory_entry_size, m_associativity, m_dram_directory_cache_access_delay_in_clock_cycles, core_frequency);
+      _power_model = new CachePowerModel("directory", _total_entries * directory_entry_size,
+            directory_entry_size, _associativity, _directory_access_delay_in_clock_cycles, core_frequency);
    }
    if (Config::getSingleton()->getEnableAreaModeling())
    {
-      m_cache_area_model = new CacheAreaModel("directory", ceil(m_total_entries * directory_entry_size / 8),
-            directory_entry_size, m_associativity, m_dram_directory_cache_access_delay_in_clock_cycles, core_frequency);
+      _area_model = new CacheAreaModel("directory", _total_entries * directory_entry_size,
+            directory_entry_size, _associativity, _directory_access_delay_in_clock_cycles, core_frequency);
    }
+
+   initializeEventCounters();
    LOG_PRINT("Directory Cache ctor exit");
 }
 
 DirectoryCache::~DirectoryCache()
 {
-   delete m_directory;
+   delete _directory;
 }
 
 void
-DirectoryCache::initializeParameters(UInt32 num_directory_caches)
+DirectoryCache::initializeParameters()
 {
    LOG_PRINT("initializeParameters() enter");
-   UInt32 num_tiles = Config::getSingleton()->getTotalTiles();
+   UInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
 
-   m_log_num_sets = floorLog2(m_num_sets);
-   m_log_cache_block_size = floorLog2(m_cache_block_size);
+   _log_num_sets = floorLog2(_num_sets);
+   _log_cache_line_size = floorLog2(_cache_line_size);
 
-   m_log_num_tiles = floorLog2(num_tiles);
-   m_log_num_directory_caches = ceilLog2(num_directory_caches); 
+   _log_num_application_tiles = floorLog2(num_application_tiles);
+   _log_num_directories = ceilLog2(_num_directories); 
 
    IntPtr stack_size = boost::lexical_cast<IntPtr> (Sim()->getCfg()->get("stack/stack_size_per_core"));
-   LOG_ASSERT_ERROR(isPower2(stack_size), "stack_size(%#llx) should be a power of 2", stack_size);
-   m_log_stack_size = floorLog2(stack_size);
+   LOG_ASSERT_ERROR(isPower2(stack_size), "stack_size(%#lx) should be a power of 2", stack_size);
+   _log_stack_size = floorLog2(stack_size);
    
 #ifdef DETAILED_TRACKING_ENABLED
-   m_set_specific_address_map.resize(m_num_sets);
-   m_set_replacement_histogram.resize(m_num_sets);
+   _set_specific_address_map.resize(_num_sets);
+   _set_replacement_histogram.resize(_num_sets);
 #endif
    LOG_PRINT("initializeParameters() exit");
+}
+
+void
+DirectoryCache::initializeEventCounters()
+{
+   _total_directory_accesses = 0;
+   _tag_array_reads = 0;
+   _tag_array_writes = 0;
+   _data_array_reads = 0;
+   _data_array_writes = 0;
+}
+
+void
+DirectoryCache::updateCounters()
+{
+   _total_directory_accesses ++;
+   
+   // Update tag and data array reads/writes
+   _tag_array_reads ++;
+   _tag_array_writes ++;
+   _data_array_reads ++;
+   _data_array_writes ++;
+   
+   // Update dynamic energy counters
+   if (Config::getSingleton()->getEnablePowerModeling())
+      _power_model->updateDynamicEnergy();
+      
 }
 
 DirectoryEntry*
 DirectoryCache::getDirectoryEntry(IntPtr address)
 {
-   // Update Performance Model
-   if (getShmemPerfModel())
-      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_delay_in_clock_cycles);
-
-   if (m_enabled)
+   if (_enabled)
    {
-      // Update Event & Dynamic Energy Counters
-      if (Config::getSingleton()->getEnablePowerModeling())
-         m_cache_power_model->updateDynamicEnergy();
-      m_total_directory_cache_accesses ++;
+      // Update Performance Model
+      getShmemPerfModel()->incrCycleCount(_directory_access_delay_in_clock_cycles);
+      // Update event & dynamic energy counters
+      updateCounters();
    }
 
    IntPtr tag;
@@ -113,9 +144,9 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    splitAddress(address, tag, set_index);
    
    // Find the relevant directory entry
-   for (UInt32 i = 0; i < m_associativity; i++)
+   for (UInt32 i = 0; i < _associativity; i++)
    {
-      DirectoryEntry* directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
+      DirectoryEntry* directory_entry = _directory->getDirectoryEntry(set_index * _associativity + i);
 
       if (directory_entry->getAddress() == address)
       {
@@ -127,9 +158,9 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    }
 
    // Find a free directory entry if one does not currently exist
-   for (UInt32 i = 0; i < m_associativity; i++)
+   for (UInt32 i = 0; i < _associativity; i++)
    {
-      DirectoryEntry* directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
+      DirectoryEntry* directory_entry = _directory->getDirectoryEntry(set_index * _associativity + i);
       if (directory_entry->getAddress() == INVALID_ADDRESS)
       {
          // Simple check for now. Make sophisticated later
@@ -138,9 +169,9 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
       }
    }
 
-   // Check in the m_replaced_directory_entry_list
+   // Check in the _replaced_directory_entry_list
    vector<DirectoryEntry*>::iterator it;
-   for (it = m_replaced_directory_entry_list.begin(); it != m_replaced_directory_entry_list.end(); it++)
+   for (it = _replaced_directory_entry_list.begin(); it != _replaced_directory_entry_list.end(); it++)
    {
       if ((*it)->getAddress() == address)
       {
@@ -160,45 +191,41 @@ DirectoryCache::getReplacementCandidates(IntPtr address, vector<DirectoryEntry*>
    UInt32 set_index;
    splitAddress(address, tag, set_index);
 
-   for (UInt32 i = 0; i < m_associativity; i++)
+   for (UInt32 i = 0; i < _associativity; i++)
    {
-      replacement_candidate_list.push_back(m_directory->getDirectoryEntry(set_index * m_associativity + i));
+      replacement_candidate_list.push_back(_directory->getDirectoryEntry(set_index * _associativity + i));
    }
 }
 
 DirectoryEntry*
 DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
 {
-   // Update Performance Model
-   if (getShmemPerfModel())
-      getShmemPerfModel()->incrCycleCount(m_dram_directory_cache_access_delay_in_clock_cycles);
-
-   if (m_enabled)
+   if (_enabled)
    {
-      // Update Event & Dynamic Energy Counters
-      if (Config::getSingleton()->getEnablePowerModeling())
-         m_cache_power_model->updateDynamicEnergy();
-      m_total_directory_cache_accesses ++;
+      // Update Performance Model
+      getShmemPerfModel()->incrCycleCount(_directory_access_delay_in_clock_cycles);
+      // Update event & dynamic energy counters
+      updateCounters();
    }
 
    IntPtr tag;
    UInt32 set_index;
    splitAddress(replaced_address, tag, set_index);
 
-   for (UInt32 i = 0; i < m_associativity; i++)
+   for (UInt32 i = 0; i < _associativity; i++)
    {
-      DirectoryEntry* replaced_directory_entry = m_directory->getDirectoryEntry(set_index * m_associativity + i);
+      DirectoryEntry* replaced_directory_entry = _directory->getDirectoryEntry(set_index * _associativity + i);
       if (replaced_directory_entry->getAddress() == replaced_address)
       {
-         m_replaced_directory_entry_list.push_back(replaced_directory_entry);
+         _replaced_directory_entry_list.push_back(replaced_directory_entry);
 
-         DirectoryEntry* directory_entry = m_directory->createDirectoryEntry();
+         DirectoryEntry* directory_entry = DirectoryEntry::create(_caching_protocol_type, _directory_type, _max_hw_sharers, _max_num_sharers);
          directory_entry->setAddress(address);
-         m_directory->setDirectoryEntry(set_index * m_associativity + i, directory_entry);
+         _directory->setDirectoryEntry(set_index * _associativity + i, directory_entry);
 
 #ifdef DETAILED_TRACKING_ENABLED
-         m_replaced_address_map[replaced_address] ++;
-         m_set_replacement_histogram[set_index] ++;
+         _replaced_address_map[replaced_address] ++;
+         _set_replacement_histogram[set_index] ++;
 #endif
 
          return directory_entry;
@@ -206,105 +233,120 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    }
 
    // Should not reach here
-   assert(false);
-#ifdef NDEBUG
-   abort();
-#endif
+   LOG_PRINT_ERROR("No directory entry found for replacment");
+   return NULL;
 }
 
 void
 DirectoryCache::invalidateDirectoryEntry(IntPtr address)
 {
    vector<DirectoryEntry*>::iterator it;
-   for (it = m_replaced_directory_entry_list.begin(); it != m_replaced_directory_entry_list.end(); it++)
+   for (it = _replaced_directory_entry_list.begin(); it != _replaced_directory_entry_list.end(); it++)
    {
       if ((*it)->getAddress() == address)
       {
          delete (*it);
-         m_replaced_directory_entry_list.erase(it);
+         _replaced_directory_entry_list.erase(it);
 
          return;
       }
    }
 
    // Should not reach here
-   assert(false);
+   LOG_PRINT_ERROR("Address(%#lx) not found for invalidation", address);
 }
 
 void
 DirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 {
-   IntPtr cache_block_address = address >> (m_log_cache_block_size + m_log_num_directory_caches);
+   IntPtr cache_line_address = address >> _log_cache_line_size;
 
-   tag = cache_block_address;
+   tag = cache_line_address;
    set_index = computeSetIndex(address);
   
 #ifdef DETAILED_TRACKING_ENABLED 
-   m_address_map[address] ++;
-   m_set_specific_address_map[set_index][address] ++;
+   _address_map[address] ++;
+   _set_specific_address_map[set_index][address] ++;
 #endif
 }
 
 IntPtr
 DirectoryCache::computeSetIndex(IntPtr address)
 {
-   UInt32 num_tile_id_bits = (m_log_num_tiles <= m_log_num_sets) ? m_log_num_tiles : m_log_num_sets;
-   IntPtr tile_id_bits = (address >> m_log_stack_size) & ((1 << num_tile_id_bits) - 1);
+   LOG_PRINT("Computing Set for address(%#lx), _log_cache_line_size(%u), _log_num_sets(%u), _log_num_directories(%u)",
+             address, _log_cache_line_size, _log_num_sets, _log_num_directories);
 
-   UInt32 log_num_sub_block_bits = m_log_num_sets - num_tile_id_bits;
+   IntPtr set = 0;
+   for (UInt32 i = _log_cache_line_size + _log_num_directories; (i + _log_num_sets) <= (sizeof(IntPtr)*8); i += _log_num_sets)
+   {
+      IntPtr addr_bits = getBits<IntPtr>(address, i + _log_num_sets, i);
+      set = set ^ addr_bits;
+   }
 
-   IntPtr sub_block_id = (address >> (m_log_cache_block_size + m_log_num_directory_caches)) \
-                         & ((1 << log_num_sub_block_bits) - 1);
+   LOG_PRINT("Set(%#x)", (UInt32) set);
 
-   IntPtr super_block_id = (address >> (m_log_cache_block_size + m_log_num_directory_caches + log_num_sub_block_bits)) \
-                           & ((1 << num_tile_id_bits) - 1);
+   return (UInt32) set;
+}
 
-   return ((tile_id_bits ^ super_block_id) << log_num_sub_block_bits) + sub_block_id;
+void
+DirectoryCache::checkDirectorySize(tile_id_t tile_id)
+{
+   if (tile_id != 0)
+      return;
+
+   UInt32 total_entries = 0;
+   SInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
+   string num_directories_str;
+   UInt64 l2_cache_size = 0;
+   UInt32 cache_line_size = 0;
+   try
+   {
+      total_entries = Sim()->getCfg()->getInt("dram_directory/total_entries");
+      num_directories_str = Sim()->getCfg()->getString("dram/num_controllers");
+      l2_cache_size = (UInt64) Sim()->getCfg()->getInt("l2_cache/" +
+                      Config::getSingleton()->getL2CacheType(tile_id) + "/cache_size");
+      cache_line_size = (UInt64) Sim()->getCfg()->getInt("l2_cache/" +
+                        Config::getSingleton()->getL2CacheType(tile_id) + "/cache_line_size");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read parameters from cfg file");
+   }
+   
+   SInt32 num_directories = (num_directories_str == "ALL") ? num_application_tiles : convertFromString<UInt32>(num_directories_str);
+
+   UInt64 expected_entries_per_directory = (num_application_tiles * l2_cache_size * 1024 / cache_line_size) / num_directories;
+   // Convert to a power of 2
+   expected_entries_per_directory = UInt64(1) << floorLog2(expected_entries_per_directory);
+
+   if (total_entries < expected_entries_per_directory)
+   {
+      LOG_PRINT_WARNING("Dram Directory under-provisioned, use \"dram_directory/total_entries\" = %u",
+            expected_entries_per_directory);
+   }
+   else if (total_entries > (expected_entries_per_directory * 2))
+   {
+      LOG_PRINT_WARNING("Dram Directory over-provisioned, use \"dram_directory/total_entries\" = %u",
+            (expected_entries_per_directory * 2));
+   }
 }
 
 void
 DirectoryCache::outputSummary(ostream& out)
 {
-   if (m_tile->getId() == 0)
-   {
-      SInt32 num_tiles = Config::getSingleton()->getTotalTiles();
-      SInt32 num_directory_caches = 0;
-      UInt64 l2_cache_size = 0;
-      try
-      {
-         num_directory_caches = (UInt32) Sim()->getCfg()->getInt("perf_model/dram/num_controllers");
-         l2_cache_size = (UInt64) Sim()->getCfg()->getInt("perf_model/l2_cache/" + \
-               Config::getSingleton()->getL2CacheType(m_tile->getId()) + "/cache_size");
-      }
-      catch (...)
-      {
-         LOG_PRINT_ERROR("Could not read parameters from cfg file");
-      }
-      if (num_directory_caches == -1)
-         num_directory_caches = num_tiles;
+   checkDirectorySize(_tile->getId());
 
-      UInt64 expected_entries_per_directory_cache = (num_tiles * l2_cache_size * 1024 / m_cache_block_size) / num_directory_caches;
-      // Convert to a power of 2
-      expected_entries_per_directory_cache = UInt64(1) << floorLog2(expected_entries_per_directory_cache);
-
-      if (m_total_entries < (expected_entries_per_directory_cache / 2))
-      {
-         LOG_PRINT_WARNING("Dram Directory under-provisioned, use \"perf_model/dram_directory/total_entries\" = %u",
-               (expected_entries_per_directory_cache / 2));
-      }
-      else if (m_total_entries > (expected_entries_per_directory_cache * 2))
-      {
-         LOG_PRINT_WARNING("Dram Directory over-provisioned, use \"perf_model/dram_directory/total_entries\" = %u",
-               (expected_entries_per_directory_cache * 2));
-      }
-   }
-
-   out << "    Total Directory Cache Accesses: " << m_total_directory_cache_accesses << endl;
+   out << "    Total Directory Accesses: " << _total_directory_accesses << endl;
    // The power and area model summary
    if (Config::getSingleton()->getEnablePowerModeling())
-      m_cache_power_model->outputSummary(out);
+      _power_model->outputSummary(out);
    if (Config::getSingleton()->getEnableAreaModeling())
-      m_cache_area_model->outputSummary(out);
+      _area_model->outputSummary(out);
+   out << "    Event Counters: " << endl;
+   out << "      Tag Array Reads: " << _tag_array_reads << endl;
+   out << "      Tag Array Writes: " << _tag_array_writes << endl;
+   out << "      Data Array Reads: " << _data_array_reads << endl;
+   out << "      Data Array Writes: " << _data_array_writes << endl;
 
 #ifdef DETAILED_TRACKING_ENABLED
 
@@ -320,29 +362,29 @@ DirectoryCache::outputSummary(ostream& out)
    UInt64 max_address_evictions = 0;
    IntPtr address_with_max_evictions = INVALID_ADDRESS;
    
-   for (UInt32 i = 0; i < m_num_sets; i++)
+   for (UInt32 i = 0; i < _num_sets; i++)
    {
       // max, min, average set size, set evictions
-      if (m_set_specific_address_map[i].size() > max_set_size)
+      if (_set_specific_address_map[i].size() > max_set_size)
       {
-         max_set_size = m_set_specific_address_map[i].size();
+         max_set_size = _set_specific_address_map[i].size();
          set_index_with_max_size = i;
       }
-      if (m_set_specific_address_map[i].size() < min_set_size)
+      if (_set_specific_address_map[i].size() < min_set_size)
       {
-         min_set_size = m_set_specific_address_map[i].size();
+         min_set_size = _set_specific_address_map[i].size();
          set_index_with_min_size = i;
       }
-      if (m_set_replacement_histogram[i] > max_set_evictions)
+      if (_set_replacement_histogram[i] > max_set_evictions)
       {
-         max_set_evictions = m_set_replacement_histogram[i];
+         max_set_evictions = _set_replacement_histogram[i];
          set_index_with_max_evictions = i;
       }
-      total_evictions += m_set_replacement_histogram[i];
+      total_evictions += _set_replacement_histogram[i];
    }
 
-   for (map<IntPtr,UInt64>::iterator it = m_replaced_address_map.begin(); \
-         it != m_replaced_address_map.end(); it++)
+   for (map<IntPtr,UInt64>::iterator it = _replaced_address_map.begin();
+         it != _replaced_address_map.end(); it++)
    {
       if ((*it).second > max_address_evictions)
       {
@@ -351,52 +393,65 @@ DirectoryCache::outputSummary(ostream& out)
       }
    }
 
-   out << "Dram Directory Cache: " << endl;
    // Total Number of Addresses
    // Max Set Size, Average Set Size, Min Set Size
    // Evictions: Average per set, Max, Address with max evictions
-   out << "    Total Addresses: " << m_address_map.size() << endl;
+   out << "    Detailed Counters: " << endl;
+   out << "      Total Addresses: " << _address_map.size() << endl;
 
-   out << "    Average set size: " << float(m_address_map.size()) / m_num_sets << endl;
-   out << "    Set index with max size: " << set_index_with_max_size << endl;
-   out << "    Max set size: " << max_set_size << endl;
-   out << "    Set index with min size: " << set_index_with_min_size << endl;
-   out << "    Min set size: " << min_set_size << endl;
+   out << "      Average set size: " << float(_address_map.size()) / _num_sets << endl;
+   out << "      Set index with max size: " << set_index_with_max_size << endl;
+   out << "      Max set size: " << max_set_size << endl;
+   out << "      Set index with min size: " << set_index_with_min_size << endl;
+   out << "      Min set size: " << min_set_size << endl;
 
-   out << "    Average evictions per set: " << float(total_evictions) / m_num_sets << endl;
-   out << "    Set index with max evictions: " << set_index_with_max_evictions << endl;
-   out << "    Max set evictions: " << max_set_evictions << endl;
+   out << "      Average evictions per set: " << float(total_evictions) / _num_sets << endl;
+   out << "      Set index with max evictions: " << set_index_with_max_evictions << endl;
+   out << "      Max set evictions: " << max_set_evictions << endl;
    
-   out << "    Address with max evictions: 0x" << hex << address_with_max_evictions << dec << endl;
-   out << "    Max address evictions: " << max_address_evictions << endl;
+   out << "      Address with max evictions: 0x" << hex << address_with_max_evictions << dec << endl;
+   out << "      Max address evictions: " << max_address_evictions << endl;
 #endif
 }
 
 void
-DirectoryCache::dummyOutputSummary(ostream& out)
+DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 {
-   out << "    Total Directory Cache Accesses: NA" << endl;
+   checkDirectorySize(tile_id);
+
+   out << "    Total Directory Cache Accesses: " << endl;
    // The power and area model summary
    if (Config::getSingleton()->getEnablePowerModeling())
       CachePowerModel::dummyOutputSummary(out);
    if (Config::getSingleton()->getEnableAreaModeling())
       CacheAreaModel::dummyOutputSummary(out);
+   out << "    Event Counters: " << endl;
+   out << "      Tag Array Reads: " << endl;
+   out << "      Tag Array Writes: " << endl;
+   out << "      Data Array Reads: " << endl;
+   out << "      Data Array Writes: " << endl;
 
 #ifdef DETAILED_TRACKING_ENABLED
-   out << "Dram Directory Cache: " << endl;
-   out << "    Total Addresses: NA" << endl;
+   out << "    Detailed Counters: " << endl;
+   out << "      Total Addresses: " << endl;
 
-   out << "    Average set size: NA" << endl;
-   out << "    Set index with max size: NA" << endl;
-   out << "    Max set size: NA" << endl;
-   out << "    Set index with min size: NA" << endl;
-   out << "    Min set size: NA" << endl;
+   out << "      Average set size: " << endl;
+   out << "      Set index with max size: " << endl;
+   out << "      Max set size: " << endl;
+   out << "      Set index with min size: " << endl;
+   out << "      Min set size: " << endl;
 
-   out << "    Average evictions per set: NA" << endl;
-   out << "    Set index with max evictions: NA" << endl;
-   out << "    Max set evictions: NA" << endl;
+   out << "      Average evictions per set: " << endl;
+   out << "      Set index with max evictions: " << endl;
+   out << "      Max set evictions: " << endl;
    
-   out << "    Address with max evictions: NA" << endl;
-   out << "    Max address evictions: NA" << endl;
+   out << "      Address with max evictions: " << endl;
+   out << "      Max address evictions: " << endl;
 #endif
+}
+
+ShmemPerfModel*
+DirectoryCache::getShmemPerfModel()
+{
+   return _tile->getMemoryManager()->getShmemPerfModel();
 }

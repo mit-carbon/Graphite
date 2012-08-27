@@ -103,7 +103,7 @@ public:
 
    // Return the number of modules (tiles) in a given process
    UInt32 getNumTilesInProcess(UInt32 proc_num)
-   { 
+   {
       assert (proc_num < m_num_processes); 
       return m_proc_to_tile_list_map[proc_num].size(); 
    }
@@ -119,6 +119,7 @@ public:
    // Return the total number of modules in all processes
    UInt32 getTotalTiles();
    UInt32 getApplicationTiles();
+   bool isApplicationTile(tile_id_t tile_id);
 
    // Return an array of tile numbers for a given process
    //  The returned array will have numMods(proc_num) elements
@@ -220,7 +221,7 @@ private:
 
    static SimulationMode parseSimulationMode(std::string mode);
    static UInt32 computeTileIDLength(UInt32 tile_count);
-   static UInt32 getNearestAcceptableTileCount(UInt32 tile_count);
+   static bool isTileCountPermissible(UInt32 tile_count);
 };
 
 #endif

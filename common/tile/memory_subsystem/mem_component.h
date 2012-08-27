@@ -1,22 +1,23 @@
-#ifndef __MEM_COMPONENT_H__
-#define __MEM_COMPONENT_H__
+#pragma once
+
+#include <string>
+using std::string;
 
 class MemComponent
 {
-   public:
-      enum component_t
-      {
-         INVALID_MEM_COMPONENT = 0,
-         MIN_MEM_COMPONENT,
-         CORE = MIN_MEM_COMPONENT,
-         L1_ICACHE,
-         L1_DCACHE,
-         L2_CACHE,
-         DRAM_DIR,
-         DRAM,
-         MAX_MEM_COMPONENT = DRAM,
-         NUM_MEM_COMPONENTS = MAX_MEM_COMPONENT - MIN_MEM_COMPONENT + 1
-      };
+public:
+   enum Type
+   {
+      INVALID,
+      CORE,
+      L1_ICACHE,
+      L1_DCACHE,
+      L2_CACHE,
+      DRAM_DIRECTORY,
+      DRAM_CNTLR
+   };
+
+   static string getName(Type type);
 };
 
-#endif /* __MEM_COMPONENT_H__ */
+#define SPELL_MEMCOMP(x)      (MemComponent::getName(x).c_str())

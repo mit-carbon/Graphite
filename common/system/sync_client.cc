@@ -38,7 +38,7 @@ void SyncClient::mutexInit(carbon_mutex_t *mux)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(carbon_mutex_t));
 
    *mux = *((carbon_mutex_t*)recv_pkt.data);
@@ -58,7 +58,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
    // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(), \
+   UInt64 start_time = convertCycleCount(m_core->getPerformanceModel()->getCycleCount(),
          m_core->getPerformanceModel()->getFrequency(), 1.0);
 
    m_send_buff << msg_type << *mux << start_time;
@@ -70,7 +70,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    m_core->setState(Core::STALLED);
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
@@ -87,7 +87,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    if (time > start_time)
    {
       // Global Clock to Core Clock
-      UInt64 cycles_elapsed = convertCycleCount(time - start_time, \
+      UInt64 cycles_elapsed = convertCycleCount(time - start_time,
             1.0, m_core->getPerformanceModel()->getFrequency());
 
       m_core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
@@ -117,7 +117,7 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int));
 
    unsigned int dummy;
@@ -148,7 +148,7 @@ void SyncClient::condInit(carbon_cond_t *cond)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(carbon_cond_t));
 
    *cond = *((carbon_cond_t*)recv_pkt.data);
@@ -180,7 +180,7 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    m_core->setState(Core::STALLED);
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
    // Set the CoreState to 'RUNNING'
@@ -227,7 +227,7 @@ void SyncClient::condSignal(carbon_cond_t *cond)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int));
 
    unsigned int dummy;
@@ -259,7 +259,7 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int));
 
    unsigned int dummy;
@@ -290,7 +290,7 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(carbon_barrier_t));
 
    *barrier = *((carbon_barrier_t*)recv_pkt.data);
@@ -327,7 +327,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    m_core->setState(Core::STALLED);
 
    NetPacket recv_pkt;
-   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getCoreId(), MCP_RESPONSE_TYPE);
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
 

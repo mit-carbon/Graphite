@@ -20,12 +20,12 @@
 using namespace std;
 
 TileManager::TileManager()
-      : m_tile_tls(TLS::create())
-      , m_tile_index_tls(TLS::create())
-      , m_thread_id_tls(TLS::create())
-      , m_thread_index_tls(TLS::create())
-      , m_thread_type_tls(TLS::create())
-      , m_num_registered_sim_threads(0)
+   : m_tile_tls(TLS::create())
+   , m_tile_index_tls(TLS::create())
+   , m_thread_id_tls(TLS::create())
+   , m_thread_index_tls(TLS::create())
+   , m_thread_type_tls(TLS::create())
+   , m_num_registered_sim_threads(0)
 {
    LOG_PRINT("Starting TileManager Constructor.");
 
@@ -39,7 +39,6 @@ TileManager::TileManager()
 
    for (UInt32 i = 0; i < num_local_tiles; i++)
    {
-      LOG_PRINT("Tile[%u] == %d", i, local_tiles.at(i));
       m_tiles.push_back(new Tile(local_tiles.at(i)));
       m_initialized_cores.push_back(false);
       m_num_initialized_threads.push_back(0);
@@ -49,8 +48,6 @@ TileManager::TileManager()
          m_initialized_threads[i][j] = false;
    }
 
-   //m_max_threads_per_core = Sim()->getConfig()->getMaxThreadsPerCore();
-
    LOG_PRINT("Finished TileManager Constructor.");
 }
 
@@ -58,12 +55,16 @@ TileManager::~TileManager()
 {
    for (std::vector<Tile *>::iterator i = m_tiles.begin(); i != m_tiles.end(); i++)
       delete *i;
-
    delete m_tile_tls;
+   m_tile_tls = NULL;
    delete m_tile_index_tls;
+   m_tile_index_tls = NULL;
    delete m_thread_id_tls;
+   m_thread_index_tls = NULL;
    delete m_thread_index_tls;
+   m_thread_index_tls = NULL;
    delete m_thread_type_tls;
+   m_thread_type_tls = NULL;
 }
 
 void TileManager::initializeCommId(SInt32 comm_id)
@@ -102,7 +103,7 @@ void TileManager::initializeCommId(SInt32 comm_id)
 
    for (UInt32 i = 0; i < num_procs; i++)
    {
-      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY, this->getCurrentCore()->getCoreId());
+      network->netRecvType(LCP_COMM_ID_UPDATE_REPLY, getCurrentCore()->getId());
       LOG_PRINT("Received reply from proc: %d", i);
    }
 
@@ -139,17 +140,26 @@ void TileManager::initializeThread(core_id_t core_id, thread_id_t thread_index, 
 
 void TileManager::doInitializeThread(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id)
 {
-    LOG_PRINT("in doInitializeThread");
+    LOG_PRINT("doInitializeThread[Tile Index(%u), Thread Index(%u), Thread ID(%i)] start",
+              tile_index, thread_index, thread_id);
     m_tile_tls->set(m_tiles.at(tile_index));
+    LOG_PRINT("Set Tile TLS");
     m_tile_index_tls->setInt(tile_index);
+    LOG_PRINT("Set Tile Index TLS");
     m_thread_id_tls->setInt(thread_id);
+    LOG_PRINT("Set Thread ID TLS");
     m_thread_index_tls->setInt(thread_index);
+    LOG_PRINT("Set Thread Index TLS");
     m_thread_type_tls->setInt(APP_THREAD);
+    LOG_PRINT("Set Thread Type TLS");
     m_initialized_cores.at(tile_index) = true;
+    LOG_PRINT("Set Initialized Cores Index");
     m_initialized_threads[tile_index][thread_index] = true;
-    LOG_PRINT("Initialize app thread : thread index %d tile index %d mapped to tile (id): %p (%d)", thread_index, tile_index, m_tiles.at(tile_index), m_tiles.at(tile_index)->getId());
+    LOG_PRINT("Initialize APP Thread: Thread Index(%d), Tile Index(%i) mapped to Tile ID (%d)",
+              thread_index, tile_index, m_tiles.at(tile_index)->getId());
     LOG_ASSERT_ERROR(m_tile_tls->get() == (void*)(m_tiles.at(tile_index)),
-                     "TLS appears to be broken. %p != %p", m_tile_tls->get(), (void*)(m_tiles.at(tile_index)));
+                     "TLS appears to be broken. %p != %p",
+                     m_tile_tls->get(), (void*)(m_tiles.at(tile_index)));
 }
 
 void TileManager::updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id)
@@ -189,30 +199,24 @@ void TileManager::terminateThread()
 
 core_id_t TileManager::getCurrentCoreID()
 {
-   Tile *tile = getCurrentTile();
-   if (!tile)
-       return INVALID_CORE_ID;
-   else
-       return tile->getCurrentCore()->getCoreId();
+   Core *core = getCurrentCore();
+   return core ? core->getId() : INVALID_CORE_ID;
 }
 
 tile_id_t TileManager::getCurrentTileID()
 {
    Tile *tile = getCurrentTile();
-   if (!tile)
-       return INVALID_TILE_ID;
-   else
-       return tile->getId();
+   return tile ? tile->getId() : INVALID_TILE_ID;
 }
 
 Tile *TileManager::getCurrentTile()
 {
-    return m_tile_tls->getPtr<Tile>();
+    return m_tile_tls ? m_tile_tls->getPtr<Tile>() : NULL;
 }
 
 UInt32 TileManager::getCurrentTileIndex()
 {
-    UInt32 idx = m_tile_index_tls->getInt();
+    UInt32 idx = m_tile_index_tls ? (m_tile_index_tls->getInt()) : -1;
     // LOG_ASSERT_ERROR(idx < m_tiles.size(),
     //       "Invalid tile index, idx(%u) >= m_tiles.size(%u)",
     //       idx, m_tiles.size());
@@ -269,17 +273,8 @@ UInt32 TileManager::getTileIndexFromID(tile_id_t tile_id)
 
 Core *TileManager::getCurrentCore()
 {
-   return this->getCurrentCore(getCurrentTile());
-}
-
-core_id_t TileManager::getMainCoreId(tile_id_t tile_id)
-{
-   return (core_id_t) {tile_id, MAIN_CORE_TYPE};
-}
-
-bool TileManager::isMainCore(core_id_t core_id) 
-{
-   return getTileFromID(core_id.tile_id)->isMainCore(core_id);
+   Tile* tile = getCurrentTile();
+   return tile ? tile->getCore() : NULL;
 }
 
 Core *TileManager::getCoreFromID(core_id_t id)
@@ -303,23 +298,9 @@ Core *TileManager::getCoreFromID(core_id_t id)
    }
 
    LOG_ASSERT_ERROR(!tile || idx < Config::getSingleton()->getNumLocalTiles(), "Illegal index in getTileFromID!");
+   LOG_ASSERT_ERROR(id.core_type == MAIN_CORE_TYPE, "id.core_type(%u)", id.core_type);
 
-   return tile->getCore(id);
-}
-
-Core *TileManager::getCurrentCore(Tile *tile)
-{
-   assert(m_thread_type_tls);
-   LOG_ASSERT_ERROR(tile, "Tile doesn't exist in TileManager::getCurrentCore()");
-
-   if (m_thread_type_tls->getInt() == APP_THREAD)
-      return tile->getCore();
-   else
-   {
-      LOG_PRINT_ERROR("Incorrect thread type(%i)!", m_thread_type_tls->getInt());
-      exit(0);
-   }
-      
+   return tile->getCore();
 }
 
 thread_id_t TileManager::getCurrentThreadIndex()
@@ -362,11 +343,11 @@ tile_id_t TileManager::registerSimThread()
 
 bool TileManager::amiSimThread()
 {
-    return m_thread_type_tls->getInt() == SIM_THREAD;
+    return m_thread_type_tls ? (m_thread_type_tls->getInt() == SIM_THREAD) : false;
 }
 
-bool TileManager::amiUserThread()
+bool TileManager::amiAppThread()
 {
-    return m_thread_type_tls->getInt() == APP_THREAD;
+    return m_thread_type_tls ? (m_thread_type_tls->getInt() == APP_THREAD) : false;
 }
 

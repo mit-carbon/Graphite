@@ -5,6 +5,7 @@ from optparse import OptionParser
 import re
 import os
 import sys
+import time
 
 def findMatch(str, line):
    exp = r"%s = ([-e0-9\.]+)" % str
@@ -32,12 +33,16 @@ def setAttribute(component,name,value):
       if (stat.getAttribute('name') == name):
          stat.setAttribute('value', value)
          return
-   print "** Unrecognized Attribute Name [%s] **" % name
-   sys.exit(-2)
+   print "ERROR: McPAT Cache Parser: Unrecognized Attribute Name (%s)" % (name)
+   sys.exit(-6)
 
-def createMcPATInput(options, mcpat_dir):
+def createMcPATInput(options, mcpat_input_filename):
    # Create a document object
-   dom = parse(mcpat_dir + "/" + options.input_file)
+   try:
+      dom = parse(options.input_file)
+   except IOError:
+      print "ERROR: McPAT Cache Parser: Could not open input file (%s)" % (options.input_file)
+      sys.exit(-3)
 
    clockrate = "%d" % (options.frequency * 1000)
   
@@ -89,17 +94,28 @@ def createMcPATInput(options, mcpat_dir):
       setAttribute(cache, "write_misses", options.write_misses)
    
    else:
-      print "** Unrecognized Cache Type [%s] **" % options.type
-      sys.exit(-1)
+      print "ERROR: McPAT Cache Parser: Unrecognized Cache Type (%s)" % (options.type)
+      sys.exit(-5)
 
-   output_file = open(mcpat_dir + '/.mcpat_input.xml', 'w')
-   dom.writexml(output_file)
-   output_file.close()
+   try:
+      output_file = open(mcpat_input_filename, 'w')
+   except IOError:
+      print "ERROR: McPAT Cache Parser: Could not open intermediate file (%s) for writing" % (mcpat_input_filename)
+      sys.exit(-4)
+   else:
+      dom.writexml(output_file)
+      output_file.close()
 
-def parseMcPATOutput(component, mcpat_dir):
-   file = open(mcpat_dir + '/.mcpat.out')
-   lines = file.readlines()
-   file.close()
+def parseMcPATOutput(component, mcpat_output_filename):
+  
+   try:
+      file = open(mcpat_output_filename)
+   except IOError:
+      print "ERROR: McPAT Cache Parser: Could not open intermediate file (%s) for reading" % (mcpat_output_filename)
+      sys.exit(-4)
+   else:
+      lines = file.readlines()
+      file.close()
 
    area = None
    peak_dynamic_power = None
@@ -133,17 +149,17 @@ def parseMcPATOutput(component, mcpat_dir):
 
 # Parse the Command Line Options
 parser = OptionParser()
-parser.add_option("-t", "--type", dest="type", help="Cache Type (data,directory)")
+parser.add_option("--suffix", dest="suffix", help="Suffix", default="")
+parser.add_option("--type", dest="type", help="Cache Type (data,directory)")
 parser.add_option("--technology-node", dest="technology_node", help="Technology Node (in nm)")
-parser.add_option("-s", "--size", dest="size", type="int", help="Cache Size (in Bytes)")
-parser.add_option("-b", "--blocksize", dest="blocksize", type="int", help="Block Size (in Bytes)")
-parser.add_option("-a", "--associativity", dest="associativity", type="int", help="Associativity")
-parser.add_option("-d", "--delay", dest="delay", type="int", help="Cache Delay")
-parser.add_option("-f", "--frequency", dest="frequency", type="float", help="Frequency (in GHz)")
-parser.add_option("-m", "--mcpat-home", dest="mcpat_home", help="McPAT home directory")
-parser.add_option("-g", "--graphite-home", dest="graphite_home", help="Graphite home directory")
-parser.add_option("-i", "--input-file", dest="input_file", help="Default McPAT input file")
-parser.add_option("-o", "--output-file", dest="output_file", help="Output file")
+parser.add_option("--size", dest="size", type="int", help="Cache Size (in Bytes)")
+parser.add_option("--blocksize", dest="blocksize", type="int", help="Block Size (in Bytes)")
+parser.add_option("--associativity", dest="associativity", type="int", help="Associativity")
+parser.add_option("--delay", dest="delay", type="int", help="Cache Delay")
+parser.add_option("--frequency", dest="frequency", type="float", help="Frequency (in GHz)")
+parser.add_option("--mcpat-home", dest="mcpat_home", help="McPAT home directory")
+parser.add_option("--input-file", dest="input_file", help="Default McPAT input file")
+parser.add_option("--output-file", dest="output_file", help="Output file")
 parser.add_option("--read-accesses", dest="read_accesses", help="Number of Read Accesses", default="0")
 parser.add_option("--write-accesses", dest="write_accesses", help="Number of Write Accesses", default="0")
 parser.add_option("--read-misses", dest="read_misses", help="Number of Read Misses", default="0")
@@ -151,15 +167,25 @@ parser.add_option("--write-misses", dest="write_misses", help="Number of Write M
 parser.add_option("--total-cycles", dest="total_cycles", help="Total Cycles", default="100000")
 (options,args) = parser.parse_args()
 
-# Get McPAT directory inside Graphite
-mcpat_dir = options.graphite_home + "/common/mcpat";
+# Intermediate Files
+mcpat_input_filename = ".mcpat.xml.input.%s" % (options.suffix)
+mcpat_output_filename = ".mcpat.output.%s" % (options.suffix)
 
 # Create McPAT Input File
-createMcPATInput(options, mcpat_dir)
+createMcPATInput(options, mcpat_input_filename)
 
 # Run McPAT
-mcpatCmd = options.mcpat_home + "/mcpat -infile " + mcpat_dir + "/.mcpat_input.xml > " + mcpat_dir + "/.mcpat.out"
-os.system(mcpatCmd)
+mcpat_executable = options.mcpat_home + "/mcpat"
+
+if (os.path.exists(mcpat_executable) == False):
+   print "ERROR: Could not find McPAT executable (%s).\n" \
+         "ERROR: Make sure [general/McPAT_home] is set correctly in carbon_sim.cfg and McPAT is compiled" % (mcpat_executable)
+   sys.exit(-1)
+
+mcpat_cmd = "%s -infile %s > %s" % (mcpat_executable, mcpat_input_filename, mcpat_output_filename)
+if (os.system(mcpat_cmd) != 0):
+   print "ERROR: Could not run McPAT successfully\n"
+   sys.exit(-2)
 
 # Parse McPAT Output
 if (options.type == "data"):
@@ -167,16 +193,24 @@ if (options.type == "data"):
 elif (options.type == "directory"):
    component = "First Level Directory"
 else:
-   print "** Unrecognized Cache Type [%s] **" % options.type
-   sys.exit(-1)
-(area, peak_dynamic_power, subthreshold_leakage_power, gate_leakage_power, runtime_dynamic_power) = parseMcPATOutput(component, mcpat_dir)
+   print "ERROR: McPAT Cache Parser: Unrecognized Cache Type (%s)" % (options.type)
+   sys.exit(-5)
+(area, peak_dynamic_power, subthreshold_leakage_power, gate_leakage_power, runtime_dynamic_power) = parseMcPATOutput(component, mcpat_output_filename)
 
 # Write the Output
-output_file = open(mcpat_dir + "/" + options.output_file, 'w')
-output_str = "%s\n%s\n%s\n%s\n%s" % (area, peak_dynamic_power, subthreshold_leakage_power, gate_leakage_power, runtime_dynamic_power)
-output_file.write(output_str)
-#print output_str
+output_filename = "%s.%s" % (options.output_file, options.suffix)
+try:
+   output_file = open(output_filename, 'w')
+except IOError:
+   print "ERROR: McPAT Cache Parser: Could not open output file (%s)" % (output_filename)
+   sys.exit(-3)
+else:
+   output_str = "%s\n%s\n%s\n%s\n%s" % (area, peak_dynamic_power, subthreshold_leakage_power, gate_leakage_power, runtime_dynamic_power)
+   output_file.write(output_str)
+   output_file.close()
 
 # Remove the Temporary Files
-rmCmd = "rm -f " + mcpat_dir + "/.mcpat_input.xml " + mcpat_dir + "/.mcpat.out"
-os.system(rmCmd)
+rm_cmd = "rm -f %s %s" % (mcpat_input_filename, mcpat_output_filename)
+if (os.system(rm_cmd) != 0):
+   print "ERROR: Could not remove temporary files (%s) and (%s)" % (mcpat_input_filename, mcpat_output_filename)
+   sys.exit(-4)

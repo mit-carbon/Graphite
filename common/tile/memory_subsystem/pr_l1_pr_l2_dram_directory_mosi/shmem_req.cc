@@ -1,27 +1,45 @@
 #include "shmem_req.h"
+#include "utils.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
-   ShmemReq::ShmemReq():
-      m_time(0),
-      m_tile_id(INVALID_TILE_ID)
-   {
-      m_shmem_msg = new ShmemMsg();
-   }
 
-   ShmemReq::ShmemReq(ShmemMsg* shmem_msg, UInt64 time):
-      m_time(time),
-      m_tile_id(INVALID_TILE_ID)
-   {
-      // Make a local copy of the shmem_msg
-      m_shmem_msg = new ShmemMsg(shmem_msg);
-      LOG_ASSERT_ERROR(shmem_msg->getDataBuf() == NULL, 
-            "Shmem Reqs should not have data payloads");
-   }
+ShmemReq::ShmemReq(ShmemMsg* shmem_msg, UInt64 time)
+   : _arrival_time(time)
+   , _processing_start_time(time)
+   , _processing_finish_time(time)
+   , _initial_dstate(DirectoryState::UNCACHED)
+   , _initial_broadcast_mode(false)
+   , _sharer_tile_id(INVALID_TILE_ID)
+   , _upgrade_reply(false)
+{
+   // Make a local copy of the shmem_msg
+   _shmem_msg = new ShmemMsg(shmem_msg);
+   LOG_ASSERT_ERROR(shmem_msg->getDataBuf() == NULL, 
+         "Shmem Reqs should not have data payloads");
+}
 
-   ShmemReq::~ShmemReq()
+ShmemReq::~ShmemReq()
+{
+   delete _shmem_msg;
+}
+
+void
+ShmemReq::updateProcessingStartTime(UInt64 time)
+{
+   if (_processing_start_time < time)
    {
-      delete m_shmem_msg;
+      _processing_start_time = time;
+      _processing_finish_time = time;
    }
+}
+
+void
+ShmemReq::updateProcessingFinishTime(UInt64 time)
+{
+   if (_processing_finish_time < time)
+      _processing_finish_time = time;
+}
+
 }

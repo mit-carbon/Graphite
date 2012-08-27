@@ -5,13 +5,10 @@
 
 // some forward declarations for cross includes
 //class Network;
-//class MemoryManagerBase;
+class MemoryManager;
 class SyscallMdl;
 class SyncClient;
 class ClockSkewMinimizationClient;
-
-// FIXME: Move this out of here eventually
-//class PinMemoryManager;
 
 #include "mem_component.h"
 #include "fixed_types.h"
@@ -26,40 +23,33 @@ using namespace std;
 
 class Tile
 {
-   public:
-      Tile(SInt32 id);
-      ~Tile();
+public:
+   Tile(tile_id_t id);
+   ~Tile();
 
-      void outputSummary(std::ostream &os);
+   void outputSummary(std::ostream &os);
 
-      // network accessor since network is private
-      int getId() { return m_tile_id; }
-      Network *getNetwork() { return m_network; }
-      Core* getCore(core_id_t core_id);
-      Core* getCurrentCore();
-      Core* getCore() {return m_main_core; }
-      MemoryManagerBase *getMemoryManager() { return m_memory_manager; }
-      ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
+   // network accessor since network is private
+   int getId()                         { return m_tile_id; }
+   Network *getNetwork()               { return m_network; }
+   Core* getCore()                     { return m_main_core; }
+   MemoryManager *getMemoryManager()   { return m_memory_manager; }
+   ShmemPerfModel* getShmemPerfModel() { return m_shmem_perf_model; }
 
-      core_id_t getMainCoreId();
-      bool isMainCore(core_id_t core_id);
+   static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
+   static bool isMainCore(core_id_t core_id)       { return (core_id.core_type == MAIN_CORE_TYPE); }
 
-      void setMemoryManager(MemoryManagerBase *memory_manager) { m_memory_manager = memory_manager; }
-      void setShmemPerfModel(ShmemPerfModel *shmem_perf_model) { m_shmem_perf_model = shmem_perf_model; }
+   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
 
-      void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+   void enablePerformanceModels();
+   void disablePerformanceModels();
 
-      void enablePerformanceModels();
-      void disablePerformanceModels();
-      void resetPerformanceModels();
-
-   private:
-      tile_id_t m_tile_id;
-      MemoryManagerBase *m_memory_manager;
-      Network *m_network;
-      Core *m_main_core;
-      ShmemPerfModel* m_shmem_perf_model;
-
+private:
+   tile_id_t m_tile_id;
+   Network *m_network;
+   ShmemPerfModel* m_shmem_perf_model;
+   MemoryManager *m_memory_manager;
+   Core *m_main_core;
 };
 
 #endif

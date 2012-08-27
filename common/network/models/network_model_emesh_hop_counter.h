@@ -1,11 +1,10 @@
-#ifndef NETWORK_MODEL_EMESH_HOP_COUNTER_H
-#define NETWORK_MODEL_EMESH_HOP_COUNTER_H
+#pragma once
 
 #include "network.h"
 #include "network_model.h"
+#include "router_power_model.h"
+#include "electrical_link_power_model.h"
 #include "lock.h"
-#include "electrical_network_link_model.h"
-#include "electrical_network_router_model.h"
 
 class NetworkModelEMeshHopCounter : public NetworkModel
 {
@@ -13,61 +12,39 @@ public:
    NetworkModelEMeshHopCounter(Network *net, SInt32 network_id);
    ~NetworkModelEMeshHopCounter();
 
-   volatile float getFrequency() { return _frequency; }
-   
-   UInt32 computeAction(const NetPacket& pkt);
-   void routePacket(const NetPacket &pkt,
-                    std::vector<Hop> &nextHops);
-   void processReceivedPacket(NetPacket &pkt);
-
+   void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
    void outputSummary(std::ostream &out);
 
-   void reset();
-
 private:
-
-   volatile float _frequency;
-
-   // Topology Parameters
-   UInt64 _hop_latency;
-   UInt32 _num_router_ports;
-   UInt32 _link_width;
-   std::string _link_type;
-   
+   // Topolgy parameters
    SInt32 _mesh_width;
    SInt32 _mesh_height;
+   static const UInt32 _NUM_OUTPUT_DIRECTIONS = 5;
 
-   static UInt32 _NUM_OUTPUT_DIRECTIONS;
+   // Electrical router and link power models
+   RouterPowerModel* _router_power_model;
+   ElectricalLinkPowerModel* _electrical_link_power_model;
+   // Latency parameters
+   UInt64 _hop_latency;
 
-   Lock _lock;
-
-   // Router & Link Models
-   ElectricalNetworkRouterModel* _electrical_router_model;
-   ElectricalNetworkLinkModel* _electrical_link_model;
-
-   // Activity Counters
+   // Event counters
+   UInt64 _buffer_writes;
+   UInt64 _buffer_reads;
    UInt64 _switch_allocator_traversals;
    UInt64 _crossbar_traversals;
    UInt64 _link_traversals;
 
-   // Private Functions
+   // Create/destroy router/link models
+   void createRouterAndLinkModels();
+   void initializeEventCounters();
+   void destroyRouterAndLinkModels();
+   
    void computePosition(tile_id_t tile, SInt32 &x, SInt32 &y);
    SInt32 computeDistance(SInt32 x1, SInt32 y1, SInt32 x2, SInt32 y2);
-
-   UInt64 computeProcessingTime(UInt32 pkt_length);
-
-   void initializePerformanceCounters();
-   void initializeActivityCounters();
-
-   // Power/Energy related
-   void createRouterAndLinkModels();
-   void destroyRouterAndLinkModels();
-
-   void updateDynamicEnergy(const NetPacket& pkt, UInt32 contention, UInt32 num_hops);
-   void outputPowerSummary(std::ostream& out);
-
-   // Flit Width
-   UInt32 getFlitWidth() { return _link_width; }
+   void updateDynamicEnergy(const NetPacket& packet, UInt32 num_hops);
+   void updateEventCounters(UInt32 num_flits, UInt32 num_hops);
+   
+   // Summary
+   void outputPowerSummary(ostream& out);
+   void outputEventCountSummary(ostream& out);
 };
-
-#endif

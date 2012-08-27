@@ -33,9 +33,6 @@ public:
    void onThreadExit();
    void masterOnThreadExit(core_id_t core_id, SInt32 thread_idx);
 
-   void disableThreadMigration(){m_thread_migration_enabled = false;}
-   void enableThreadMigration(){m_thread_migration_enabled = true;}
-   
    void disablePreemptiveScheduling(){m_thread_preemption_enabled = false; m_thread_migration_enabled = false;}
    void enablePreemptiveScheduling(){m_thread_preemption_enabled = true; m_thread_migration_enabled = true;}
 

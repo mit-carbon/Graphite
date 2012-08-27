@@ -6,8 +6,8 @@
 
 static bool enabled()
 {
-   std::string scheme = Sim()->getCfg()->getString("clock_skew_minimization/scheme", "none");
-   return (scheme != "none");
+   std::string scheme = Sim()->getCfg()->getString("clock_skew_minimization/scheme", "lax");
+   return (scheme != "lax");
 }
 
 void handlePeriodicSync()
@@ -20,7 +20,7 @@ void handlePeriodicSync()
       return;
    }
 
-   ClockSkewMinimizationClient *client = tile->getCurrentCore()->getClockSkewMinimizationClient();
+   ClockSkewMinimizationClient *client = tile->getCore()->getClockSkewMinimizationClient();
 
    if (client)
       client->synchronize();

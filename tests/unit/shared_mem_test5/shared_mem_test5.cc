@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
    // Let have 4 application cores for now
    for (core_id_t i = 0; i < total_cores; i++)
    {
-      core[i] = Sim()->getCoreManager()->getCoreFromID(i);
+      core[i] = Sim()->getCoreManager()->getTileFromID(i)->getCore();
       core_val[i] = i * 100;
    }
 

@@ -1,7 +1,6 @@
 #include "cache_line_info.h"
 #include "pr_l1_pr_l2_dram_directory_msi/cache_line_info.h"
 #include "pr_l1_pr_l2_dram_directory_mosi/cache_line_info.h"
-#include "sh_l1_sh_l2/cache_line_info.h"
 #include "pr_l1_sh_l2_msi/cache_line_info.h"
 #include "log.h"
 
@@ -23,9 +22,6 @@ CacheLineInfo::create(CachingProtocolType caching_protocol_type, SInt32 cache_le
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       return PrL1PrL2DramDirectoryMOSI::createCacheLineInfo(cache_level);
-
-   case SH_L1_SH_L2:
-      return ShL1ShL2::createCacheLineInfo(cache_level);
 
    case PR_L1_SH_L2_MSI:
       return PrL1ShL2MSI::createCacheLineInfo(cache_level);

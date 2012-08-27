@@ -5,7 +5,6 @@ using namespace std;
 #include "memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_msi/memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
-#include "sh_l1_sh_l2/memory_manager.h"
 #include "pr_l1_sh_l2_msi/memory_manager.h"
 #include "network_model.h"
 #include "log.h"
@@ -41,9 +40,6 @@ MemoryManager::createMMU(std::string protocol_type,
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile, network, shmem_perf_model);
 
-   case SH_L1_SH_L2:
-      return new ShL1ShL2::MemoryManager(tile, network, shmem_perf_model);
-
    case PR_L1_SH_L2_MSI:
       return new PrL1ShL2MSI::MemoryManager(tile, network, shmem_perf_model);
 
@@ -60,8 +56,6 @@ MemoryManager::parseProtocolType(std::string& protocol_type)
       return PR_L1_PR_L2_DRAM_DIRECTORY_MSI;
    else if (protocol_type == "pr_l1_pr_l2_dram_directory_mosi")
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;
-   else if (protocol_type == "sh_l1_sh_l2")
-      return SH_L1_SH_L2;
    else if (protocol_type == "pr_l1_sh_l2_msi")
       return PR_L1_SH_L2_MSI;
    else
@@ -99,7 +93,6 @@ MemoryManager::openCacheLineReplicationTraceFiles()
       PrL1PrL2DramDirectoryMOSI::MemoryManager::openCacheLineReplicationTraceFiles();
       break;
 
-   case SH_L1_SH_L2:
    case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
@@ -120,7 +113,6 @@ MemoryManager::closeCacheLineReplicationTraceFiles()
       PrL1PrL2DramDirectoryMOSI::MemoryManager::closeCacheLineReplicationTraceFiles();
       break;
 
-   case SH_L1_SH_L2:
    case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
@@ -141,7 +133,6 @@ MemoryManager::outputCacheLineReplicationSummary()
       PrL1PrL2DramDirectoryMOSI::MemoryManager::outputCacheLineReplicationSummary();
       break;
 
-   case SH_L1_SH_L2:
    case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);

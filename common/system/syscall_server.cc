@@ -694,16 +694,11 @@ void SyscallServer::marshallGetCwdCall(core_id_t core_id)
    if (bytes != -1)
       m_send_buff << read_buf;
 
-
-
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    if (size > m_SYSCALL_SERVER_MAX_BUFF)
       delete [] read_buf;
 }
-
-
-
 
 void SyscallServer::marshallUnlinkCall(core_id_t core_id)
 {
@@ -811,7 +806,7 @@ void SyscallServer::marshallSchedGetAffinityCall(core_id_t core_id)
    unsigned int cpusetsize;
    int status;
 
-   m_recv_buff >> pid >>cpusetsize;
+   m_recv_buff >> pid >> cpusetsize;
    cpu_set_t *mask = CPU_ALLOC(cpusetsize);
 
    status = Sim()->getThreadManager()->getThreadAffinity(pid, mask);

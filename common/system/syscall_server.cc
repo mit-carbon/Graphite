@@ -1112,7 +1112,7 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *addr1, int val1, int
    if (val3 != curr_val)
    {
       m_send_buff.clear();
-      m_send_buff << (int) EWOULDBLOCK;
+      m_send_buff << -(int) EWOULDBLOCK;
       m_send_buff << curr_time;
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }

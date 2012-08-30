@@ -65,12 +65,6 @@ namespace PrL1ShL2MSI
       CacheHashFn* _L1_dcache_hash_fn_obj;
       AddressHomeLookup* _L2_cache_home_lookup;
 
-      // Synchronization between the app and sim threads
-      Lock _L1_icache_lock;
-      Lock _L1_dcache_lock;
-      Semaphore _app_thread_sem;
-      Semaphore _sim_thread_sem;
-
       // Outstanding msg info
       UInt64 _outstanding_shmem_msg_time;
       ShmemMsg _outstanding_shmem_msg;
@@ -108,15 +102,5 @@ namespace PrL1ShL2MSI
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
-
-      // Locks since both app and sim threads work on this object
-      void acquireLock(MemComponent::Type mem_component);
-      void releaseLock(MemComponent::Type mem_component);
-      
-      // Synchronization operations between User and sim threads
-      void wakeUpAppThread();
-      void waitForAppThread();
-      void wakeUpSimThread();
-      void waitForSimThread();
    };
 }

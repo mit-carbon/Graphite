@@ -34,9 +34,9 @@ namespace PrL1ShL2MSI
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
       
       bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
-            Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
-            IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
-            bool modeled);
+                                    Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
+                                    IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
+                                    UInt64& curr_time, bool modeled);
 
       void handleMsgFromNetwork(NetPacket& packet);
 
@@ -55,6 +55,12 @@ namespace PrL1ShL2MSI
 
       void outputSummary(std::ostream &os);
       
+      // App + Sim thread synchronization
+      void waitForAppThread();
+      void wakeUpAppThread();
+      void waitForSimThread();
+      void wakeUpSimThread();
+
       void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
    private:
@@ -67,6 +73,11 @@ namespace PrL1ShL2MSI
       // Home Lookups
       AddressHomeLookup* _L2_cache_home_lookup;
       AddressHomeLookup* _dram_home_lookup;
+
+      // App + Sim thread Synchronization
+      Lock _lock;
+      Semaphore _app_thread_sem;
+      Semaphore _sim_thread_sem;
 
       // Performance Models
       CachePerfModel* _L1_icache_perf_model;

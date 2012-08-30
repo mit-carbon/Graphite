@@ -299,10 +299,6 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
       // Increment the clock by the time taken to update the L2 cache
       getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
-      // Set the clock of the APP thread to that of the SIM thread
-      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_APP_THREAD, 
-                                         getShmemPerfModel()->getCycleCount());
-      
       // There are no more outstanding memory requests
       _outstanding_shmem_msg.setAddress(INVALID_ADDRESS);
       

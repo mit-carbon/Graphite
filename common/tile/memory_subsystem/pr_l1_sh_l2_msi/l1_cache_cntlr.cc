@@ -86,13 +86,10 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       access_num ++;
       LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2), "access_num(%u)", access_num);
 
-      if (lock_signal != Core::UNLOCK)
-         acquireLock(mem_component);
-
       // Wake up the sim thread after acquiring the lock
       if (access_num == 2)
       {
-         wakeUpSimThread();
+         _memory_manager->wakeUpSimThread();
       }
 
       pair<bool, Cache::MissType> cache_miss_info = operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num);
@@ -106,8 +103,6 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
-         if (lock_signal != Core::LOCK)
-            releaseLock(mem_component);
          return L1_cache_hit;
       }
 
@@ -120,8 +115,6 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       // The memory request misses in the L1 cache
       L1_cache_hit = false;
 
-      releaseLock(mem_component);
-      
       // Send out a request to the network thread for the cache data
       bool msg_modeled = ::MemoryManager::isMissTypeModeled(cache_miss_type) &&
                          Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
@@ -137,7 +130,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
       // Wait for the sim thread
-      waitForSimThread();
+      _memory_manager->waitForSimThread();
    }
 
    LOG_PRINT_ERROR("Should not reach here");
@@ -305,11 +298,6 @@ void
 L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
-   MemComponent::Type mem_component = shmem_msg->getReceiverMemComponent();
-
-   // Acquire Lock
-   acquireLock(mem_component);
-
    switch (shmem_msg_type)
    {
    case ShmemMsg::EX_REP:
@@ -335,9 +323,6 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       break;
    }
 
-   // Release Locks
-   releaseLock(mem_component);
-
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP) || (shmem_msg_type == ShmemMsg::UPGRADE_REP))
    {
       assert(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCycleCount());
@@ -351,17 +336,14 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          getShmemPerfModel()->setCycleCount(_outstanding_shmem_msg_time);
 
       // Increment the clock by the time taken to update the L1-I/L1-D cache
-      getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
-
-      // Set the clock of the USER thread to that of the SIM thread
-      getShmemPerfModel()->setCycleCount(ShmemPerfModel::_APP_THREAD, getShmemPerfModel()->getCycleCount());
+      getMemoryManager()->incrCycleCount(shmem_msg->getReceiverMemComponent(), CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
       // There are no more outstanding memory requests
       _outstanding_shmem_msg = ShmemMsg();
      
       // Wake up the app thread and wait for it to complete one memory operation 
-      wakeUpAppThread();
-      waitForAppThread();
+      _memory_manager->wakeUpAppThread();
+      _memory_manager->waitForAppThread();
    }
 }
 
@@ -578,69 +560,6 @@ L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)
       LOG_PRINT_ERROR("Unsupported Mem Op Type(%u)", mem_op_type);
       return ShmemMsg::INVALID_MSG_TYPE;
    }
-}
-
-void
-L1CacheCntlr::acquireLock(MemComponent::Type mem_component)
-{
-   switch(mem_component)
-   {
-   case MemComponent::L1_ICACHE:
-      _L1_icache_lock.acquire();
-      break;
-   
-   case MemComponent::L1_DCACHE:
-      _L1_dcache_lock.acquire();
-      break;
-   
-   default:
-      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-      break;
-   }
-
-}
-
-void
-L1CacheCntlr::releaseLock(MemComponent::Type mem_component)
-{
-   switch(mem_component)
-   {
-   case MemComponent::L1_ICACHE:
-      _L1_icache_lock.release();
-      break;
-   
-   case MemComponent::L1_DCACHE:
-      _L1_dcache_lock.release();
-      break;
-   
-   default:
-      LOG_PRINT_ERROR("Unrecognized mem_component(%u)", mem_component);
-      break;
-   }
-}
-
-void
-L1CacheCntlr::waitForSimThread()
-{
-   _app_thread_sem.wait();
-}
-
-void
-L1CacheCntlr::wakeUpAppThread()
-{
-   _app_thread_sem.signal();
-}
-
-void
-L1CacheCntlr::waitForAppThread()
-{
-   _sim_thread_sem.wait();
-}
-
-void
-L1CacheCntlr::wakeUpSimThread()
-{
-   _sim_thread_sem.signal();
 }
 
 tile_id_t

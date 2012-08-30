@@ -58,7 +58,7 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
 {
    LOG_ASSERT_ERROR(Config::getSingleton()->isSimulatingSharedMemory(), "Shared Memory Disabled");
 
-   if (data_size <= 0)
+   if (data_size == 0)
    {
       if (push_info)
       {
@@ -69,11 +69,8 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
    }
 
    // Setting the initial time
-   UInt64 initial_time = time;
-   if (time == 0)
-      initial_time = getPerformanceModel()->getCycleCount();
-
-   getShmemPerfModel()->setCycleCount(initial_time);
+   UInt64 initial_time = (time == 0) ? getShmemPerfModel()->getCycleCount() : time;
+   UInt64 curr_time = initial_time;
 
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), START",
              initial_time, ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
@@ -123,7 +120,7 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
       if (!getMemoryManager()->coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type, 
                                                         curr_addr_aligned, curr_offset, 
                                                         curr_data_buffer_head, curr_size,
-                                                        push_info))
+                                                        curr_time, push_info))
       {
          // If it is a READ or READ_EX operation, 
          // 'initiateSharedMemReq' causes curr_data_buffer_head 
@@ -142,11 +139,11 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
    }
 
    // Get the final cycle time
-   UInt64 final_time = getShmemPerfModel()->getCycleCount();
+   UInt64 final_time = curr_time;
    LOG_ASSERT_ERROR(final_time >= initial_time, "final_time(%llu) < initial_time(%llu)", final_time, initial_time);
    
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), END\n", 
-        final_time, ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
+             final_time, ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
 
    // Calculate the round-trip time
    UInt64 memory_access_latency = final_time - initial_time;

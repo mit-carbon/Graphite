@@ -222,14 +222,22 @@ MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                         Core::mem_op_t mem_op_type,
                                         IntPtr address, UInt32 offset,
                                         Byte* data_buf, UInt32 data_length,
-                                        bool modeled)
+                                        UInt64& curr_time, bool modeled)
 {
-   return _L1_cache_cntlr->processMemOpFromCore(mem_component, 
-                                                lock_signal, 
-                                                mem_op_type,
-                                                address, offset,
-                                                data_buf, data_length,
-                                                modeled);
+   if (lock_signal != Core::UNLOCK)
+      _lock.acquire();
+   
+   getShmemPerfModel()->setCycleCount(curr_time);
+
+   bool ret = _L1_cache_cntlr->processMemOpFromCore(mem_component, lock_signal, mem_op_type,
+                                                    address, offset, data_buf, data_length, modeled);
+   
+   curr_time = getShmemPerfModel()->getCycleCount();
+
+   if (lock_signal != Core::LOCK)
+      _lock.release();
+
+   return ret;
 }
 
 void
@@ -239,10 +247,13 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
    UInt64 msg_time = packet.time;
 
-   getShmemPerfModel()->setCycleCount(msg_time);
-
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
+
+   // Acquire lock
+   _lock.acquire();
+
+   getShmemPerfModel()->setCycleCount(msg_time);
 
    LOG_PRINT("Time(%llu), Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i), modeled(%s)", 
          msg_time, shmem_msg->getType(), shmem_msg->getAddress(),
@@ -312,6 +323,9 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
       delete [] shmem_msg->getDataBuf();
    }
    delete shmem_msg;
+
+   // Release lock
+   _lock.release();
 }
 
 void
@@ -479,6 +493,34 @@ MemoryManager::outputSummary(std::ostream &os)
    {
       DramPerfModel::dummyOutputSummary(os);
    }
+}
+
+void
+MemoryManager::waitForAppThread()
+{
+   _sim_thread_sem.wait();
+   _lock.acquire();
+}
+
+void
+MemoryManager::wakeUpAppThread()
+{
+   _lock.release();
+   _app_thread_sem.signal();
+}
+
+void
+MemoryManager::waitForSimThread()
+{
+   _lock.release();
+   _app_thread_sem.wait();
+}
+
+void
+MemoryManager::wakeUpSimThread()
+{
+   _lock.acquire();
+   _sim_thread_sem.signal();
 }
 
 }

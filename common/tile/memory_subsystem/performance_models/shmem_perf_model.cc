@@ -6,11 +6,10 @@
 #include "tile_manager.h"
 #include "fxsupport.h"
 
-ShmemPerfModel::ShmemPerfModel():
-   _enabled(false)
+ShmemPerfModel::ShmemPerfModel()
+   : _cycle_count(0)
+   , _enabled(false)
 {
-   for (UInt32 i = 0; i < NUM_THREAD_TYPES; i++)
-      _cycle_count[i] = 0;
    initializePerformanceCounters();
 }
 
@@ -25,58 +24,32 @@ ShmemPerfModel::initializePerformanceCounters()
    _total_memory_access_latency_in_ns = 0;
 }
 
-ShmemPerfModel::ThreadType 
-ShmemPerfModel::getThreadType()
-{
-   if (Sim()->getTileManager()->amiAppThread())
-      return _APP_THREAD;
-   else
-      return _SIM_THREAD;
-}
-
 void 
-ShmemPerfModel::setCycleCount(ThreadType thread_type, UInt64 count)
+ShmemPerfModel::setCycleCount(UInt64 count)
 {
-   LOG_PRINT("setCycleCount: thread(%u), count(%llu)", thread_type, count);
-   ScopedLock sl(_shmem_perf_model_lock);
-
-   assert(thread_type < NUM_THREAD_TYPES);
-   _cycle_count[thread_type] = count;
+   LOG_PRINT("setCycleCount: count(%llu)", count);
+   _cycle_count = count;
 }
 
 UInt64
 ShmemPerfModel::getCycleCount()
 {
-   ScopedLock sl(_shmem_perf_model_lock);
-   
-   return _cycle_count[getThreadType()];
+   return _cycle_count;
 }
 
 void
 ShmemPerfModel::updateCycleCount(UInt64 cycle_count)
 {
    LOG_PRINT("updateCycleCount: cycle_count(%llu)", cycle_count);
-   ScopedLock sl(_shmem_perf_model_lock);
-
-   ThreadType thread_type = getThreadType();
-   if (_cycle_count[thread_type] < cycle_count)
-      _cycle_count[thread_type] = cycle_count;
+   if (_cycle_count < cycle_count)
+      _cycle_count = cycle_count;
 }
 
 void
 ShmemPerfModel::incrCycleCount(UInt64 count)
 {
-   ScopedLock sl(_shmem_perf_model_lock);
-
-   ThreadType thread_type = getThreadType();
-   UInt64 i_cycle_count = _cycle_count[thread_type];
-   UInt64 f_cycle_count = i_cycle_count + count;
-
-   LOG_ASSERT_ERROR(f_cycle_count >= i_cycle_count, "f_cycle_count(%llu) < i_cycle_count(%llu)",
-                    f_cycle_count, i_cycle_count);
-
-   LOG_PRINT("Initial(%llu), Final(%llu)", i_cycle_count, f_cycle_count);
-   _cycle_count[thread_type] = f_cycle_count;
+   if (_enabled)
+      _cycle_count += count;
 }
 
 void
@@ -84,8 +57,6 @@ ShmemPerfModel::incrTotalMemoryAccessLatency(UInt64 memory_access_latency)
 {
    if (_enabled)
    {
-      ScopedLock sl(_shmem_perf_model_lock);
-      
       _num_memory_accesses ++;
       _total_memory_access_latency_in_clock_cycles += memory_access_latency;
    }

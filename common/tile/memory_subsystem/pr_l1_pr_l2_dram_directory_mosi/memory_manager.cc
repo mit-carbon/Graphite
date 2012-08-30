@@ -230,13 +230,17 @@ MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                         Core::mem_op_t mem_op_type,
                                         IntPtr address, UInt32 offset,
                                         Byte* data_buf, UInt32 data_length,
-                                        bool modeled)
+                                        UInt64& curr_time, bool modeled)
 {
    if (lock_signal != Core::UNLOCK)
       _lock.acquire();
    
+   getShmemPerfModel()->setCycleCount(curr_time);
+
    bool ret = _L1_cache_cntlr->processMemOpFromTile(mem_component, lock_signal, mem_op_type,
                                                     address, offset, data_buf, data_length, modeled);
+
+   curr_time = getShmemPerfModel()->getCycleCount();
 
    if (lock_signal != Core::LOCK)
       _lock.release();
@@ -254,6 +258,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
+   // Acquire lock
    _lock.acquire();
 
    getShmemPerfModel()->setCycleCount(msg_time);
@@ -319,6 +324,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    }
    delete shmem_msg;
 
+   // Release lock
    _lock.release();
 }
 

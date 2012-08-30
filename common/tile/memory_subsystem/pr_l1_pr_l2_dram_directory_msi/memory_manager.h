@@ -32,11 +32,9 @@ namespace PrL1PrL2DramDirectoryMSI
       AddressHomeLookup* getDramDirectoryHomeLookup() { return _dram_directory_home_lookup; }
 
       bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
-            Core::lock_signal_t lock_signal,
-            Core::mem_op_t mem_op_type,
-            IntPtr address, UInt32 offset,
-            Byte* data_buf, UInt32 data_length,
-            bool modeled);
+                                    Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
+                                    IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
+                                    UInt64& curr_time, bool modeled);
 
       void handleMsgFromNetwork(NetPacket& packet);
 
@@ -74,6 +72,8 @@ namespace PrL1PrL2DramDirectoryMSI
       L2CacheCntlr* _l2_cache_cntlr;
       DramDirectoryCntlr* _dram_directory_cntlr;
       DramCntlr* _dram_cntlr;
+
+      // Home lookups
       AddressHomeLookup* _dram_directory_home_lookup;
 
       bool _dram_cntlr_present;

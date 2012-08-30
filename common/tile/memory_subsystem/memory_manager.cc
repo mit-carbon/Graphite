@@ -227,31 +227,6 @@ MemoryManager::printTileListWithMemoryControllers(vector<tile_id_t>& tile_list_w
    fprintf(stderr, "\n[[Graphite]] --> [ Tile IDs' with memory controllers = (%s) ]\n", (tile_list.str()).c_str());
 }
 
-UInt32
-MemoryManager::getMaxL2CacheSize()
-{
-   UInt32 max_cache_size = 0;
-   Config* cfg = Config::getSingleton();
-   for (tile_id_t i = 0; i < (tile_id_t) cfg->getApplicationTiles(); i++)
-   {
-      string type = cfg->getL2CacheType(i);
-      
-      UInt32 cache_size = 0;
-      try
-      {
-         cache_size = Sim()->getCfg()->getInt("l2_cache/" + type + "/cache_size");
-      }
-      catch (...)
-      {
-         LOG_PRINT_ERROR("Could not parse [l2_cache/%s/cache_size] from cfg file", type.c_str());
-      }
-
-      if (cache_size > max_cache_size)
-         max_cache_size = cache_size;      
-   }
-   return max_cache_size;
-}
-
 void
 MemoryManager::initializeModeledMissTypes()
 {

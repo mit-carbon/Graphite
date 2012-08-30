@@ -56,7 +56,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    UInt32 dram_directory_max_hw_sharers = 0;
    std::string dram_directory_type_str;
    UInt32 dram_directory_home_lookup_param = 0;
-   UInt32 dram_directory_cache_access_time = 0;
+   std::string dram_directory_access_time_str;
 
    volatile float dram_latency = 0.0;
    volatile float per_dram_controller_bandwidth = 0.0;
@@ -106,7 +106,7 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
       dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("dram_directory/max_hw_sharers");
       dram_directory_type_str = Sim()->getCfg()->getString("dram_directory/directory_type");
-      dram_directory_cache_access_time = Sim()->getCfg()->getInt("dram_directory/access_time");
+      dram_directory_access_time_str = Sim()->getCfg()->getString("dram_directory/access_time");
 
       // Dram Cntlr
       dram_latency = Sim()->getCfg()->getFloat("dram/latency");
@@ -156,17 +156,15 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
 
       LOG_PRINT("Instantiated Dram Cntlr");
 
-      UInt32 dram_directory_total_entries = getDramDirectoryTotalEntries(dram_directory_total_entries_str,
-                                                   dram_directory_associativity, num_memory_controllers);
       _dram_directory_cntlr = new DramDirectoryCntlr(this,
             _dram_cntlr,
-            dram_directory_total_entries,
+            dram_directory_total_entries_str,
             dram_directory_associativity,
             getCacheLineSize(),
             dram_directory_max_num_sharers,
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
-            dram_directory_cache_access_time,
+            dram_directory_access_time_str,
             num_memory_controllers);
       
       LOG_PRINT("Instantiated Dram Directory Cntlr");
@@ -386,30 +384,6 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 
    // Delete the Msg Buf
    delete [] msg_buf;
-}
-
-UInt32
-MemoryManager::getDramDirectoryTotalEntries(string total_entries_str, UInt32 associativity, UInt32 num_memory_controllers)
-{
-   // Get dram_directory_total_entries
-   UInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
-   UInt32 total_entries;
-   if (total_entries_str == "auto")
-   {
-      UInt32 max_L2_cache_size = getMaxL2CacheSize();
-      UInt32 num_sets = (UInt32) ceil(2.0 * max_L2_cache_size * 1024 * num_application_tiles /
-                                      (_cache_line_size * associativity * num_memory_controllers));
-      // Round off to the nearest power of 2
-      num_sets = 1 << ceilLog2(num_sets);
-      total_entries = num_sets * associativity;
-   }
-   else // (total_entries_str != "auto")
-   {
-      total_entries = convertFromString<UInt32>(total_entries_str);
-      LOG_ASSERT_ERROR(total_entries != 0, "Could not parse [dram_directory/total_entries] = %s", total_entries_str.c_str());
-   }
-
-   return total_entries;
 }
 
 void

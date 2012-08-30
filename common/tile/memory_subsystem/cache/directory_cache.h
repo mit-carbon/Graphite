@@ -23,13 +23,13 @@ public:
    DirectoryCache(Tile* tile,
                   CachingProtocolType caching_protocol_type,
                   string directory_type_str,
-                  UInt32 total_entries,
+                  string total_entries_str,
                   UInt32 associativity,
                   UInt32 cache_line_size,
                   UInt32 max_hw_sharers,
                   UInt32 max_num_sharers,
-                  UInt32 num_directories,
-                  UInt64 directory_access_delay_in_clock_cycles);
+                  UInt32 num_directory_slices,
+                  string directory_access_time_str);
    ~DirectoryCache();
 
    Directory* getDirectory() { return _directory; }
@@ -63,16 +63,14 @@ private:
 
    UInt32 _num_sets;
    UInt32 _cache_line_size;
-   UInt32 _num_directories;
+   UInt32 _num_directory_slices;
 
    UInt32 _log_num_sets;
    UInt32 _log_cache_line_size;
    UInt32 _log_num_application_tiles;
-   UInt32 _log_num_directories;
+   UInt32 _log_num_directory_slices;
 
-   UInt32 _log_stack_size;
-
-   UInt64 _directory_access_delay_in_clock_cycles;
+   UInt64 _directory_access_time;
 
    // Dram Directory Cache Power and Area Models
    CachePowerModel* _power_model;
@@ -88,7 +86,12 @@ private:
 
    bool _enabled;
 
-   ShmemPerfModel* getShmemPerfModel();
+   // Auto(-matically) determine total number of entries in the directory
+   UInt32 computeDirectoryTotalEntries(string total_entries_str);
+   // Get the max L2 cache size (in KB)
+   UInt32 getMaxL2CacheSize();
+   // Auto(-matically) determine directory access time
+   UInt64 computeDirectoryAccessTime(string directory_access_time_str, UInt32 directory_entry_size);
 
    void initializeParameters();
    void initializeEventCounters();
@@ -96,4 +99,6 @@ private:
 
    void updateCounters();
    IntPtr computeSetIndex(IntPtr address);
+   
+   ShmemPerfModel* getShmemPerfModel();
 };

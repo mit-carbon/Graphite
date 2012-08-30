@@ -24,13 +24,13 @@ namespace PrL1PrL2DramDirectoryMSI
    public:
       DramDirectoryCntlr(MemoryManager* memory_manager,
             DramCntlr* dram_cntlr,
-            UInt32 dram_directory_total_entries,
+            string dram_directory_total_entries_str,
             UInt32 dram_directory_associativity,
             UInt32 cache_block_size,
             UInt32 dram_directory_max_num_sharers,
             UInt32 dram_directory_max_hw_sharers,
             string dram_directory_type_str,
-            UInt64 dram_directory_access_delay_in_ns,
+            string dram_directory_access_time_str,
             UInt32 num_dram_cntlrs);
       ~DramDirectoryCntlr();
 

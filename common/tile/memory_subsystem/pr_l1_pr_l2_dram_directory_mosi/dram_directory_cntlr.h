@@ -24,14 +24,14 @@ namespace PrL1PrL2DramDirectoryMOSI
    public:
       DramDirectoryCntlr(MemoryManager* memory_manager,
                          DramCntlr* dram_cntlr,
-                         UInt32 dram_directory_total_entries,
+                         string dram_directory_total_entries_str,
                          UInt32 dram_directory_associativity,
                          UInt32 cache_block_size,
                          UInt32 dram_directory_max_num_sharers,
                          UInt32 dram_directory_max_hw_sharers,
-                         std::string dram_directory_type_str,
+                         string dram_directory_type_str,
                          UInt32 num_dram_cntlrs,
-                         UInt64 dram_directory_access_delay_in_ns);
+                         string dram_directory_access_time_str);
       ~DramDirectoryCntlr();
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);

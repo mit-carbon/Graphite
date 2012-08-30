@@ -18,34 +18,35 @@ using namespace std;
 DirectoryCache::DirectoryCache(Tile* tile,
                                CachingProtocolType caching_protocol_type,
                                string directory_type_str,
-                               UInt32 total_entries,
+                               string total_entries_str,
                                UInt32 associativity,
                                UInt32 cache_line_size,
                                UInt32 max_hw_sharers,
                                UInt32 max_num_sharers,
-                               UInt32 num_directories,
-                               UInt64 directory_access_delay_in_clock_cycles)
+                               UInt32 num_directory_slices,
+                               string directory_access_time_str)
    : _tile(tile)
    , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
    , _max_num_sharers(max_num_sharers)
-   , _total_entries(total_entries)
    , _associativity(associativity)
    , _cache_line_size(cache_line_size)
-   , _num_directories(num_directories)
-   , _directory_access_delay_in_clock_cycles(directory_access_delay_in_clock_cycles)
+   , _num_directory_slices(num_directory_slices)
    , _power_model(NULL)
    , _area_model(NULL)
    , _enabled(false)
 {
    LOG_PRINT("Directory Cache ctor enter");
-   _num_sets = _total_entries / _associativity;
  
    // Parse the directory type (full_map, limited_no_broadcast, limited_broadcast, ackwise, limitless) 
    _directory_type = DirectoryEntry::parseDirectoryType(directory_type_str);
 
+   // Determine total number of directory entries (either automatically or user specified)
+   _total_entries = computeDirectoryTotalEntries(total_entries_str);
+   _num_sets = _total_entries / _associativity;
+
    // Instantiate the directory
-   _directory = new Directory(caching_protocol_type, _directory_type, total_entries, max_hw_sharers, max_num_sharers);
+   _directory = new Directory(caching_protocol_type, _directory_type, _total_entries, max_hw_sharers, max_num_sharers);
 
    initializeParameters();
   
@@ -53,18 +54,24 @@ DirectoryCache::DirectoryCache(Tile* tile,
    LOG_PRINT("Got Core Frequency");
 
    // Size of each directory entry (in bytes)
-   UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_num_sharers)  / 8);
+   UInt32 max_application_sharers = Config::getSingleton()->getApplicationTiles();
+   UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_application_sharers)  / 8);
    LOG_PRINT("Got Directory Entry Size");
+
+   // Calculate access time based on size of directory entry and total number of entries (or) user specified
+   _directory_access_time = computeDirectoryAccessTime(directory_access_time_str, directory_entry_size);
+  
+   LOG_PRINT("Total Entries(%u), Access Time(%llu), Entry Size(%u)", _total_entries, _directory_access_time, directory_entry_size);
 
    if (Config::getSingleton()->getEnablePowerModeling())
    {
       _power_model = new CachePowerModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_delay_in_clock_cycles, core_frequency);
+            directory_entry_size, _associativity, _directory_access_time, core_frequency);
    }
    if (Config::getSingleton()->getEnableAreaModeling())
    {
       _area_model = new CacheAreaModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_delay_in_clock_cycles, core_frequency);
+            directory_entry_size, _associativity, _directory_access_time, core_frequency);
    }
 
    initializeEventCounters();
@@ -86,12 +93,8 @@ DirectoryCache::initializeParameters()
    _log_cache_line_size = floorLog2(_cache_line_size);
 
    _log_num_application_tiles = floorLog2(num_application_tiles);
-   _log_num_directories = ceilLog2(_num_directories); 
+   _log_num_directory_slices = ceilLog2(_num_directory_slices); 
 
-   IntPtr stack_size = boost::lexical_cast<IntPtr> (Sim()->getCfg()->get("stack/stack_size_per_core"));
-   LOG_ASSERT_ERROR(isPower2(stack_size), "stack_size(%#lx) should be a power of 2", stack_size);
-   _log_stack_size = floorLog2(stack_size);
-   
 #ifdef DETAILED_TRACKING_ENABLED
    _set_specific_address_map.resize(_num_sets);
    _set_replacement_histogram.resize(_num_sets);
@@ -132,7 +135,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCycleCount(_directory_access_delay_in_clock_cycles);
+      getShmemPerfModel()->incrCycleCount(_directory_access_time);
       // Update event & dynamic energy counters
       updateCounters();
    }
@@ -203,7 +206,7 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCycleCount(_directory_access_delay_in_clock_cycles);
+      getShmemPerfModel()->incrCycleCount(_directory_access_time);
       // Update event & dynamic energy counters
       updateCounters();
    }
@@ -270,14 +273,102 @@ DirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 #endif
 }
 
+UInt32
+DirectoryCache::computeDirectoryTotalEntries(string total_entries_str)
+{
+   // Get dram_directory_total_entries
+   UInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
+   UInt32 total_entries;
+   if (total_entries_str == "auto")
+   {
+      UInt32 max_L2_cache_size = getMaxL2CacheSize();  // In KB
+      UInt32 num_sets = (UInt32) ceil(2.0 * max_L2_cache_size * 1024 * num_application_tiles /
+                                      (_cache_line_size * _associativity * _num_directory_slices));
+      // Round-off to the nearest power of 2
+      num_sets = 1 << ceilLog2(num_sets);
+      total_entries = num_sets * _associativity;
+   }
+   else // (total_entries_str != "auto")
+   {
+      total_entries = convertFromString<UInt32>(total_entries_str);
+      LOG_ASSERT_ERROR(total_entries != 0, "Could not parse [dram_directory/total_entries] = %s", total_entries_str.c_str());
+   }
+
+   return total_entries;
+}
+
+UInt32
+DirectoryCache::getMaxL2CacheSize()  // In KB
+{
+   UInt32 max_cache_size = 0;
+   Config* cfg = Config::getSingleton();
+   for (tile_id_t i = 0; i < (tile_id_t) cfg->getApplicationTiles(); i++)
+   {
+      string type = cfg->getL2CacheType(i);
+      
+      UInt32 cache_size = 0;
+      try
+      {
+         cache_size = Sim()->getCfg()->getInt("l2_cache/" + type + "/cache_size");
+      }
+      catch (...)
+      {
+         LOG_PRINT_ERROR("Could not parse [l2_cache/%s/cache_size] from cfg file", type.c_str());
+      }
+
+      if (cache_size > max_cache_size)
+         max_cache_size = cache_size;      
+   }
+   return max_cache_size;
+}
+
+UInt64
+DirectoryCache::computeDirectoryAccessTime(string directory_access_time_str, UInt32 directory_entry_size)
+{
+   // directory_entry_size is specified in bytes
+   // access_time should be computed in cycles
+   // access_time is dependent on technology node and frequency
+   //   (but these two factors will hopefully cancel each other out to a certain extent)
+   
+   if (directory_access_time_str == "auto")
+   {
+      UInt32 directory_size = 1.0 * directory_entry_size * _total_entries / 1024; // in KB
+      
+      if (directory_size <= 16)
+         return 1;
+      else if (directory_size <= 32)
+         return 2;
+      else if (directory_size <= 64)
+         return 4;
+      else if (directory_size <= 128)
+         return 6;
+      else if (directory_size <= 256)
+         return 8;
+      else if (directory_size <= 512)
+         return 10;
+      else if (directory_size <= 1024)
+         return 13;
+      else if (directory_size <= 2048)
+         return 16;
+      else // (directory_size > 2048)
+         return 20;
+   }
+   else // (directory_access_time_str != "auto")
+   {
+      UInt64 directory_access_time = convertFromString<UInt64>(directory_access_time_str);
+      LOG_ASSERT_ERROR(directory_access_time != 0, "Could not parse [dram_directory/access_time] = %s", directory_access_time_str.c_str());
+      return directory_access_time;
+   }
+}
+
 IntPtr
 DirectoryCache::computeSetIndex(IntPtr address)
 {
-   LOG_PRINT("Computing Set for address(%#lx), _log_cache_line_size(%u), _log_num_sets(%u), _log_num_directories(%u)",
-             address, _log_cache_line_size, _log_num_sets, _log_num_directories);
+   LOG_PRINT("Computing Set for address(%#lx), _log_cache_line_size(%u), _log_num_sets(%u), _log_num_directory_slices(%u)",
+             address, _log_cache_line_size, _log_num_sets, _log_num_directory_slices);
 
    IntPtr set = 0;
-   for (UInt32 i = _log_cache_line_size + _log_num_directories; (i + _log_num_sets) <= (sizeof(IntPtr)*8); i += _log_num_sets)
+   for (UInt32 i = _log_cache_line_size + _log_num_directory_slices; (i + _log_num_sets) <= (sizeof(IntPtr)*8); i += _log_num_sets)
    {
       IntPtr addr_bits = getBits<IntPtr>(address, i + _log_num_sets, i);
       set = set ^ addr_bits;

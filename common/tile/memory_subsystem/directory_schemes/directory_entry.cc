@@ -74,7 +74,7 @@ DirectoryEntry::create(DirectoryType directory_type, SInt32 max_hw_sharers, SInt
 UInt32
 DirectoryEntry::getSize(DirectoryType directory_type, SInt32 max_hw_sharers, SInt32 max_num_sharers)
 {
-   LOG_PRINT("DirectoryEntry::getSize(%u)", directory_type);
+   LOG_PRINT("DirectoryEntry::getSize(), Directory Type(%u), Max Num Sharers(%i), Max HW Sharers(%i)", directory_type, max_num_sharers, max_hw_sharers);
    switch(directory_type)
    {
    case FULL_MAP:

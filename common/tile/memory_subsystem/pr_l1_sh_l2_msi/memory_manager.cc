@@ -51,7 +51,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    SInt32 L2_directory_max_num_sharers = 0;
    SInt32 L2_directory_max_hw_sharers = 0;
    std::string L2_directory_type_str;
-   UInt32 L2_directory_access_time = 0;
    
    // Dram
    volatile float dram_latency = 0.0;
@@ -98,7 +97,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
       L2_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
       L2_directory_max_hw_sharers = Sim()->getCfg()->getInt("l2_directory/max_hw_sharers");
       L2_directory_type_str = Sim()->getCfg()->getString("l2_directory/directory_type");
-      L2_directory_access_time = Sim()->getCfg()->getInt("l2_directory/access_time");
 
       // Dram Cntlr
       dram_latency = Sim()->getCfg()->getFloat("dram/latency");

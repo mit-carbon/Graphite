@@ -2,10 +2,11 @@
 
 #include "mem_component.h"
 #include "fixed_types.h"
+#include "../shmem_msg.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
-   class ShmemMsg
+   class ShmemMsg : public ::ShmemMsg
    {
    public:
       enum Type
@@ -76,5 +77,7 @@ namespace PrL1PrL2DramDirectoryMSI
       Byte* _data_buf;
       UInt32 _data_length;
       bool _modeled;
+
+      static const UInt32 _num_msg_type_bits = 4;
    };
 }

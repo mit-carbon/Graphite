@@ -143,8 +143,8 @@ public:
    void updateCommToTileMap(UInt32 comm_id, tile_id_t tile_id);
    UInt32 getTileFromCommId(UInt32 comm_id);
 
-   // Get TileId length
-   UInt32 getTileIDLength()
+   // Get Tile ID length (in bits)
+   UInt32 getTileIDLength() const
    { return m_tile_id_length; }
 
    SimulationMode getSimulationMode()
@@ -182,7 +182,7 @@ private:
    UInt32  m_total_tiles;           // Total number of tiles in all processes
    UInt32  m_application_tiles;     // Total number of tiles used by the application
    UInt32  m_num_cores_per_tile;    // Number of cores per tile
-   UInt32  m_tile_id_length;        // Number of bytes needed to store a tile_id
+   UInt32  m_tile_id_length;        // Number of bits needed to store a tile_id
    UInt32  m_max_threads_per_core;
 
    UInt32  m_current_process_num;   // Process number for this process

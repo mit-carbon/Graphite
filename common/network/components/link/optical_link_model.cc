@@ -53,7 +53,7 @@ OpticalLinkModel::processPacket(const NetPacket& pkt, SInt32 num_endpoints, UInt
    zero_load_delay += _net_link_delay;
   
    // Increment event counters
-   UInt32 pkt_length = _model->getModeledLength(pkt);
+   UInt32 pkt_length = _model->getModeledLength(pkt); // pkt_length is in bits
    SInt32 num_flits = _model->computeNumFlits(pkt_length);
 
    if (num_endpoints == ENDPOINT_ALL)

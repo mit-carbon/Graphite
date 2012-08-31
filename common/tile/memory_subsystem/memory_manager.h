@@ -37,6 +37,7 @@ public:
    virtual void disableModels() = 0;
 
    // Modeling
+   // getModeledLength() returns the length of the msg in bits
    virtual UInt32 getModeledLength(const void* pkt_data) = 0;
    virtual bool isModeled(const void* pkt_data) = 0;
 

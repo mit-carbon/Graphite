@@ -188,7 +188,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
    // We get the entry with the lowest number of sharers
    DirectoryEntry* directory_entry = _dram_directory_cache->replaceDirectoryEntry(replaced_address, address);
 
-   bool msg_modeled = ::MemoryManager::isMissTypeModeled(Cache::CAPACITY_MISS);
+   bool msg_modeled = true;
    ShmemMsg nullify_msg(ShmemMsg::NULLIFY_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::DRAM_DIRECTORY,
          requester, (tile_id_t) INVALID_TILE_ID, false, replaced_address, msg_modeled);
 

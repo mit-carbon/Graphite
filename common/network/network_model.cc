@@ -157,15 +157,15 @@ NetworkModel::initializeEventCounters()
 {
    _total_packets_sent = 0;
    _total_flits_sent = 0;
-   _total_bytes_sent = 0;
+   _total_bits_sent = 0;
    
    _total_packets_broadcasted = 0;
    _total_flits_broadcasted = 0;
-   _total_bytes_broadcasted = 0;
+   _total_bits_broadcasted = 0;
    
    _total_packets_received = 0;
    _total_flits_received = 0;
-   _total_bytes_received = 0;
+   _total_bits_received = 0;
    
    _total_packet_latency = 0;
    _total_contention_delay = 0;
@@ -188,21 +188,19 @@ NetworkModel::isModelEnabled(const NetPacket& pkt)
 }
 
 UInt32
-NetworkModel::getModeledLength(const NetPacket& pkt)
+NetworkModel::getModeledLength(const NetPacket& pkt) // In bits
 {   
    if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
    {
-      // packet_type + sender + receiver + length + shmem_msg.size()
-      // 1 byte for packet_type
+      // sender + receiver + size of shmem_msg
       // log2(core_id) for sender and receiver
-      // 2 bytes for packet length
-      UInt32 metadata_size = 1 + 2 * Config::getSingleton()->getTileIDLength() + 2;
-      UInt32 data_size = getNetwork()->getTile()->getCore()->getMemoryManager()->getModeledLength(pkt.data);
+      UInt32 metadata_size = 2 * Config::getSingleton()->getTileIDLength();
+      UInt32 data_size = getNetwork()->getTile()->getMemoryManager()->getModeledLength(pkt.data);
       return metadata_size + data_size;
    }
    else
    {
-      return pkt.bufferSize();
+      return (pkt.bufferSize() * 8);
    }
 }
 
@@ -212,11 +210,10 @@ NetworkModel::computeNumFlits(UInt32 packet_length)
    if (_flit_width == -1)
       return 0;
 
-   SInt32 num_bits = packet_length * 8;
-   if ( (num_bits % _flit_width) == 0 )
-      return (num_bits / _flit_width);
+   if ( (packet_length % _flit_width) == 0 )
+      return (packet_length / _flit_width);
    else
-      return ( (num_bits / _flit_width) + 1 );
+      return ( (packet_length / _flit_width) + 1 );
 }
 
 bool
@@ -241,19 +238,19 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
 
    LOG_ASSERT_ERROR(sender == _tile_id, "sender(%i), tile_id(%i)", sender, _tile_id);
 
-   UInt32 packet_length = getModeledLength(packet);
+   UInt32 packet_length = getModeledLength(packet); // In bits
    SInt32 num_flits = computeNumFlits(packet_length);
    
    _total_packets_sent ++;
    _total_flits_sent += num_flits;
-   _total_bytes_sent += packet_length;
+   _total_bits_sent += packet_length;
    _total_flits_sent_in_current_interval += num_flits;
 
    if (receiver == NetPacket::BROADCAST)
    {
       _total_packets_broadcasted ++;
       _total_flits_broadcasted += num_flits;
-      _total_bytes_broadcasted += packet_length;
+      _total_bits_broadcasted += packet_length;
       _total_flits_broadcasted_in_current_interval += num_flits;
    }
 }
@@ -265,12 +262,12 @@ NetworkModel::updateReceiveCounters(const NetPacket& packet)
    LOG_ASSERT_ERROR( (receiver == NetPacket::BROADCAST) || (receiver == _tile_id),
                      "receiver(%i), tile_id(%i)", receiver, _tile_id );
    
-   UInt32 packet_length = getModeledLength(packet);
+   UInt32 packet_length = getModeledLength(packet); // In bits
    SInt32 num_flits = computeNumFlits(packet_length);
 
    _total_packets_received ++;
    _total_flits_received += num_flits;
-   _total_bytes_received += packet_length;
+   _total_bits_received += packet_length;
    _total_flits_received_in_current_interval += num_flits;
 
    UInt64 packet_latency = packet.zero_load_delay + packet.contention_delay;
@@ -284,15 +281,15 @@ NetworkModel::outputSummary(ostream& out)
 {
    out << "    Total Packets Sent: " << _total_packets_sent << endl;
    out << "    Total Flits Sent: " << _total_flits_sent << endl;
-   out << "    Total Bytes Sent: " << _total_bytes_sent << endl;
+   out << "    Total Bits Sent: " << _total_bits_sent << endl;
 
    out << "    Total Packets Broadcasted: " << _total_packets_broadcasted << endl;
    out << "    Total Flits Broadcasted: " << _total_flits_broadcasted << endl;
-   out << "    Total Bytes Broadcasted: " << _total_bytes_broadcasted << endl;
+   out << "    Total Bits Broadcasted: " << _total_bits_broadcasted << endl;
 
    out << "    Total Packets Received: " << _total_packets_received << endl;
    out << "    Total Flits Received: " << _total_flits_received << endl;
-   out << "    Total Bytes Received: " << _total_bytes_received << endl;
+   out << "    Total Bits Received: " << _total_bits_received << endl;
 
    if (_total_packets_received > 0)
    {

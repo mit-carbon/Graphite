@@ -94,7 +94,6 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       pair<bool, Cache::MissType> cache_miss_info = operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num);
       bool cache_hit = !cache_miss_info.first;
-      Cache::MissType cache_miss_type = cache_miss_info.second;
       if (cache_hit)
       {
          // Increment Shared Mem Perf model cycle counts
@@ -116,13 +115,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       L1_cache_hit = false;
 
       // Send out a request to the network thread for the cache data
-      bool msg_modeled = ::MemoryManager::isMissTypeModeled(cache_miss_type) &&
-                         Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
-      LOG_PRINT("msg_modeled(%s), miss type modeled(%s), application tile(%s)",
-                msg_modeled ? "TRUE" : "FALSE",
-                ::MemoryManager::isMissTypeModeled(cache_miss_type) ? "TRUE" : "FALSE",
-                Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId()) ? "TRUE" : "FALSE");
-
+      bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
                          getTileId(), false, ca_address,
@@ -243,7 +236,7 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address, 
       LOG_PRINT("evicted address(%#lx)", evicted_address);
 
       UInt32 L2_cache_home = getL2CacheHome(evicted_address);
-      bool msg_modeled = ::MemoryManager::isMissTypeModeled(Cache::CAPACITY_MISS);
+      bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
 
       CacheState::Type evicted_cstate = evicted_cache_line_info.getCState();
       if (evicted_cstate == CacheState::MODIFIED)

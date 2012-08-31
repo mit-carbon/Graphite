@@ -145,7 +145,7 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
       __attribute(__unused__) DirectoryEntry* evicted_directory_entry = evicted_cache_line_info.getDirectoryEntry();
       LOG_ASSERT_ERROR(evicted_directory_entry, "Cant find directory entry for address(%#lx)", evicted_address);
 
-      bool msg_modeled = ::MemoryManager::isMissTypeModeled(Cache::CAPACITY_MISS);
+      bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
       UInt64 eviction_time = getShmemPerfModel()->getCycleCount();
       
       LOG_PRINT("Eviction: Address(%#lx), Cache State(%u), Directory State(%u), Num Sharers(%i)",

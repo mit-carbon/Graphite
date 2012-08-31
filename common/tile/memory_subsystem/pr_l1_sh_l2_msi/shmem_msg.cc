@@ -128,8 +128,7 @@ ShmemMsg::getModeledLength()
    case INV_REP:
    case DRAM_FETCH_REQ:
       // msg_type + address
-      // msg_type - 1 byte
-      return (1 + sizeof(IntPtr));
+      return (_num_msg_type_bits + _num_physical_address_bits);
       
    case EX_REP:
    case SH_REP:
@@ -138,7 +137,7 @@ ShmemMsg::getModeledLength()
    case DRAM_FETCH_REP:
    case DRAM_STORE_REQ:
       // msg_type + address + cache_block
-      return (1 + sizeof(IntPtr) + _data_length);
+      return (_num_msg_type_bits + _num_physical_address_bits + _data_length * 8);
 
    default:
       LOG_PRINT_ERROR("Unrecognized Msg Type(%u)", _msg_type);

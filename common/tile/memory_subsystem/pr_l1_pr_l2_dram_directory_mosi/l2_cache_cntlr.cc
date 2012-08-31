@@ -151,7 +151,7 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
 
       UInt32 home_node_id = getHome(evicted_address);
 
-      bool msg_modeled = ::MemoryManager::isMissTypeModeled(Cache::CAPACITY_MISS);
+      bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
 
       if ((evicted_cstate == CacheState::MODIFIED) || (evicted_cstate == CacheState::OWNED))
       {

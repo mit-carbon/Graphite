@@ -123,7 +123,6 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       // (1) Is cache miss? (2) Cache miss type (COLD, CAPACITY, UPGRADE, SHARING)
       pair<bool,Cache::MissType> l2_cache_miss_info = _l2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool l2_cache_miss = l2_cache_miss_info.first;
-      Cache::MissType l2_cache_miss_type = l2_cache_miss_info.second;
 
       // Is cache hit?
       if (!l2_cache_miss)
@@ -143,13 +142,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
       
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
-      bool msg_modeled = ::MemoryManager::isMissTypeModeled(l2_cache_miss_type) &&
-                         Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
-      LOG_PRINT("msg_modeled(%s), miss type modeled(%s), application tile(%s)",
-                msg_modeled ? "TRUE" : "FALSE",
-                ::MemoryManager::isMissTypeModeled(l2_cache_miss_type) ? "TRUE" : "FALSE",
-                Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId()) ? "TRUE" : "FALSE");
-
+      bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
 
       // Construct the message and send out a request to the SIM thread for the cache data

@@ -82,7 +82,7 @@ public:
 
    // Is Model Enabled
    bool isModelEnabled(const NetPacket& pkt);
-   // Get Modeled Length
+   // Get Modeled Length (in bits)
    UInt32 getModeledLength(const NetPacket& pkt);
    // Compute Number of Flits
    SInt32 computeNumFlits(UInt32 pkt_length);
@@ -137,15 +137,15 @@ private:
    // Event Counters
    UInt64 _total_packets_sent;
    UInt64 _total_flits_sent;
-   UInt64 _total_bytes_sent;
+   UInt64 _total_bits_sent;
 
    UInt64 _total_packets_broadcasted;
    UInt64 _total_flits_broadcasted;
-   UInt64 _total_bytes_broadcasted;
+   UInt64 _total_bits_broadcasted;
 
    UInt64 _total_packets_received;
    UInt64 _total_flits_received;
-   UInt64 _total_bytes_received;
+   UInt64 _total_bits_received;
 
    UInt64 _total_packet_latency;
    UInt64 _total_contention_delay;

@@ -91,7 +91,8 @@ Config::Config()
    // Parse Core Models
    parseCoreParameters();
 
-   m_tile_id_length = computeTileIDLength(m_total_tiles);
+   // Compute Tile ID length in bits
+   m_tile_id_length = computeTileIDLength(m_application_tiles);
 
    GenerateTileMap();
 }
@@ -143,13 +144,9 @@ core_id_t Config::getCurrentThreadSpawnerCoreId()
    return (core_id_t) {getCurrentThreadSpawnerTileNum(), MAIN_CORE_TYPE};
 }
 
-UInt32 Config::computeTileIDLength(UInt32 tile_count)
+UInt32 Config::computeTileIDLength(UInt32 application_tile_count)
 {
-   UInt32 num_bits = ceilLog2(tile_count);
-   if ((num_bits % 8) == 0)
-      return (num_bits / 8);
-   else
-      return (num_bits / 8) + 1;
+   return ceilLog2(application_tile_count);
 }
 
 void Config::GenerateTileMap()

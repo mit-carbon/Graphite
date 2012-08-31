@@ -3,10 +3,11 @@
 #include "mem_component.h"
 #include "fixed_types.h"
 #include "utilization_defines.h"
+#include "../shmem_msg.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
-   class ShmemMsg
+   class ShmemMsg : public ::ShmemMsg
    {
    public:
       enum Type
@@ -99,6 +100,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 #ifdef TRACK_DETAILED_CACHE_COUNTERS
       UInt32 _cache_line_utilization;
 #endif
+
+      static const UInt32 _num_msg_type_bits = 4;
    };
 
    #define SPELL_SHMSG(x)        (ShmemMsg::getName(x).c_str())

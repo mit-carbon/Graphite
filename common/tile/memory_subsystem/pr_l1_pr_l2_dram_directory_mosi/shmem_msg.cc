@@ -147,19 +147,18 @@ namespace PrL1PrL2DramDirectoryMOSI
       case UPGRADE_REP:
       case INV_REP:
          // msg_type + address
-         // msg_type - 1 byte
-         return (1 + sizeof(IntPtr));
+         return (_num_msg_type_bits + _num_physical_address_bits);
          
       case INV_FLUSH_COMBINED_REQ:
          // msg_type + address + single_receiver
-         return (1 + sizeof(IntPtr) + Config::getSingleton()->getTileIDLength());
+         return (_num_msg_type_bits + _num_physical_address_bits + Config::getSingleton()->getTileIDLength());
 
       case EX_REP:
       case SH_REP:
       case FLUSH_REP:
       case WB_REP:
          // msg_type + address + cache_block
-         return (1 + sizeof(IntPtr) + _data_length);
+         return (_num_msg_type_bits + _num_physical_address_bits + _data_length * 8);
 
       default:
          LOG_PRINT_ERROR("Unrecognized Msg Type(%u)", _msg_type);

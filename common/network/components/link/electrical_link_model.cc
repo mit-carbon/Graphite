@@ -35,7 +35,7 @@ ElectricalLinkModel::processPacket(const NetPacket& pkt, UInt64& zero_load_delay
    zero_load_delay += _net_link_delay;
 
    // Update event counters
-   UInt32 pkt_length = _model->getModeledLength(pkt);
+   UInt32 pkt_length = _model->getModeledLength(pkt); // pkt_length is in bits
    SInt32 num_flits = _model->computeNumFlits(pkt_length);
    _total_link_traversals += num_flits;
    

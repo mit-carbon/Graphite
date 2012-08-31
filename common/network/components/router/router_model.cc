@@ -74,7 +74,7 @@ RouterModel::processPacket(const NetPacket& pkt, vector<SInt32>& output_port_lis
    assert( (1 <= (SInt32) output_port_list.size()) && (_num_output_ports >= (SInt32) output_port_list.size()) );
 
    // Supposed to increment both zero_load_delay and contention_delay
-   SInt32 packet_length = _model->getModeledLength(pkt);
+   UInt32 packet_length = _model->getModeledLength(pkt); // packet_length is in bits
    SInt32 num_flits = _model->computeNumFlits(packet_length);
 
    // Add to zero_load_delay

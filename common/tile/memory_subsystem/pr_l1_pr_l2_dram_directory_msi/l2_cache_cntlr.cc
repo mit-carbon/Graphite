@@ -89,7 +89,7 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
       invalidateCacheLineInL1(evicted_cache_line_info.getCachedLoc(), evicted_address);
 
       UInt32 home_node_id = getHome(evicted_address);
-      bool eviction_msg_modeled = getMemoryManager()->isMissTypeModeled(Cache::CAPACITY_MISS);
+      bool eviction_msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
 
       if (evicted_cache_line_info.getCState() == CacheState::MODIFIED)
       {

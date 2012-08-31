@@ -128,12 +128,10 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       L1_cache_hit = false;
 
       if (lock_signal == Core::UNLOCK)
-         LOG_PRINT_ERROR("Expected to find address(0x%x) in L1 Cache", ca_address);
+         LOG_PRINT_ERROR("Expected to find address(%#lx) in L1 Cache", ca_address);
 
       pair<bool,Cache::MissType> L2_cache_miss_info = _L2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool L2_cache_miss = L2_cache_miss_info.first;
-      Cache::MissType L2_cache_miss_type = L2_cache_miss_info.second;
-
       if (!L2_cache_miss)
       {
          // Increment Shared Mem Perf model cycle counts
@@ -151,8 +149,7 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
       getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
       
       // Send out a request to the network thread for the cache data
-      bool msg_modeled = ::MemoryManager::isMissTypeModeled(L2_cache_miss_type) &&
-                         Config::getSingleton()->isApplicationTile(getMemoryManager()->getTile()->getId());
+      bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
 
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE,

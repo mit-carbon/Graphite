@@ -142,16 +142,6 @@ NetworkModel::processReceivedPacket(NetPacket& pkt)
    pkt.zero_load_delay += num_flits;
 }
 
-tile_id_t
-NetworkModel::getRequester(const NetPacket& packet)
-{
-   __attribute(__unused__) SInt32 network_id = getNetworkId();
-   LOG_ASSERT_ERROR((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2),
-                    "network_id(%i)", network_id);
-
-   return getNetwork()->getTile()->getMemoryManager()->getShmemRequester(packet.data);
-}
-
 void
 NetworkModel::initializeEventCounters()
 {
@@ -177,9 +167,7 @@ NetworkModel::isModelEnabled(const NetPacket& pkt)
    SInt32 network_id = getNetworkId();
    if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
    {
-      return ( _enabled &&
-               (!isSystemTile(getRequester(pkt))) &&
-               (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
+      return ( _enabled && (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
    }
    else // USER_1, USER_2, SYSTEM
    {

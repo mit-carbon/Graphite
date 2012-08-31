@@ -165,8 +165,6 @@ private:
    void updateSendCounters(const NetPacket& packet);
    void updateReceiveCounters(const NetPacket& packet);
 
-   // Get Requester of a Packet
-   tile_id_t getRequester(const NetPacket& packet);
    // Initialize Event Counters
    void initializeEventCounters();
    // Trace of Injection/Ejection Rate

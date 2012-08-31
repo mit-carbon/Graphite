@@ -12,16 +12,11 @@ using namespace std;
 // Static Members
 CachingProtocolType MemoryManager::_caching_protocol_type;
 
-bool MemoryManager::_miss_type_modeled[Cache::NUM_MISS_TYPES];
-
 MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
    : _tile(tile)
    , _network(network)
    , _shmem_perf_model(shmem_perf_model)
-{
-   // Miss Type Modeling
-   initializeModeledMissTypes();
-}
+{}
 
 MemoryManager::~MemoryManager()
 {}
@@ -225,35 +220,4 @@ MemoryManager::printTileListWithMemoryControllers(vector<tile_id_t>& tile_list_w
       tile_list << *it << " ";
    }
    fprintf(stderr, "\n[[Graphite]] --> [ Tile IDs' with memory controllers = (%s) ]\n", (tile_list.str()).c_str());
-}
-
-void
-MemoryManager::initializeModeledMissTypes()
-{
-   for (SInt32 i = 0; i < Cache::NUM_MISS_TYPES; i++)
-      _miss_type_modeled[i] = true;
-  
-   string unmodeled_miss_types;
-   try
-   {
-      unmodeled_miss_types = Sim()->getCfg()->getString("caching_protocol/unmodeled_miss_types");
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Could not read caching_protocol/unmodeled_miss_types from the cfg file");
-   }
-
-   vector<string> tokens;
-   splitIntoTokens(unmodeled_miss_types, tokens, " ");
-   for (vector<string>::iterator it = tokens.begin(); it != tokens.end(); it ++)
-   {
-      Cache::MissType miss_type = Cache::parseMissType(*it);
-      _miss_type_modeled[miss_type] = false;
-   }
-}
-
-bool
-MemoryManager::isMissTypeModeled(Cache::MissType cache_miss_type)
-{
-   return _miss_type_modeled[cache_miss_type];
 }

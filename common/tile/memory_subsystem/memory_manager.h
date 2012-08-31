@@ -53,9 +53,6 @@ public:
    static void closeCacheLineReplicationTraceFiles();
    static void outputCacheLineReplicationSummary();
 
-   // Modeling of different miss types
-   static bool isMissTypeModeled(Cache::MissType cache_miss_type);
-
 protected:
    Network* getNetwork() { return _network; }
 
@@ -71,9 +68,4 @@ private:
    void parseMemoryControllerList(string& memory_controller_positions,
                                   vector<tile_id_t>& tile_list_from_cfg_file,
                                   SInt32 application_tile_count);
-
-   // Handling of different miss types
-   static bool _miss_type_modeled[Cache::NUM_MISS_TYPES];
-
-   void initializeModeledMissTypes();
 };

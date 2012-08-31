@@ -45,4 +45,4 @@ vips_parsec:
 	$(COMMAND)
 
 setup_parsec:
-	cd $(PARSEC_MASTER); find parsec-2.1-graphite/ -type d -printf "mkdir -vp '$(PARSEC_TARGET)/%p'\n" -o -type f -printf "ln -s '/afs/csail/group/carbon/benchmarks/parsec/%p' '$(PARSEC_TARGET)/%p'\n" | sh
+	cd $(PARSEC_MASTER); find parsec-2.1-graphite/ -type d  -name .git -prune -o -type d   -printf "mkdir -vp '$(PARSEC_TARGET)/%p'\n" -o -type f -printf "ln -s '/afs/csail/group/carbon/benchmarks/parsec/%p' '$(PARSEC_TARGET)/%p'\n" | sh

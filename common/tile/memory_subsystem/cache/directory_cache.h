@@ -1,11 +1,7 @@
 #pragma once
 
 #include <string>
-#include <map>
-#include <vector>
 using std::string;
-using std::vector;
-using std::map;
 using std::ostream;
 
 #include "tile.h"
@@ -78,11 +74,8 @@ private:
 
    // Counters
    UInt64 _total_directory_accesses;
-   // Tag & Data read/write counters
-   UInt64 _tag_array_reads;
-   UInt64 _tag_array_writes;
-   UInt64 _data_array_reads;
-   UInt64 _data_array_writes;
+   UInt64 _total_evictions;
+   UInt64 _total_back_invalidations;
 
    bool _enabled;
 
@@ -93,7 +86,6 @@ private:
    // Auto(-matically) determine directory access time
    UInt64 computeDirectoryAccessTime(string directory_access_time_str, UInt32 directory_entry_size);
 
-   void initializeParameters();
    void initializeEventCounters();
    void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index);
 

@@ -190,7 +190,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
 
    bool msg_modeled = true;
    ShmemMsg nullify_msg(ShmemMsg::NULLIFY_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::DRAM_DIRECTORY,
-         requester, (tile_id_t) INVALID_TILE_ID, false, replaced_address, msg_modeled);
+                        requester, INVALID_TILE_ID, false, replaced_address, msg_modeled);
 
    ShmemReq* nullify_req = new ShmemReq(&nullify_msg, msg_time);
    _dram_directory_req_queue_list->enqueue(replaced_address, nullify_req);

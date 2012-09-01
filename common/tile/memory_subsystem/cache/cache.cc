@@ -159,7 +159,7 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          // Increment number of evictions and dirty evictions
          _total_evictions ++;
          // Update number of dirty evictions
-         if ( (_write_policy == WRITE_BACK) && (CacheState(evicted_cache_line_info->getCState()).writable()) )
+         if ( (_write_policy == WRITE_BACK) && (CacheState(evicted_cache_line_info->getCState()).dirty()) )
             _total_dirty_evictions ++;
       }
       else // (! (*eviction))

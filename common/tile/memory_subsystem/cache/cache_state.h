@@ -24,15 +24,19 @@ public:
    CacheState(Type cstate = INVALID) : _cstate(cstate) {}
    ~CacheState() {}
 
-   // These functions are only called in a private cache
+   // readable() and writable() functions are only called in a private cache
    bool readable()
    {
       return (_cstate == MODIFIED) || (_cstate == EXCLUSIVE) || (_cstate == OWNED) || (_cstate == SHARED);
    }
-   
    bool writable()
    {
       return (_cstate == MODIFIED) || (_cstate == EXCLUSIVE);
+   }
+
+   bool dirty()
+   {
+      return (_cstate == MODIFIED) || (_cstate == OWNED) || (_cstate == DIRTY);
    }
 
    static string getName(Type type);

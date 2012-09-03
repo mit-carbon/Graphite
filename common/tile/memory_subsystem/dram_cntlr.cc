@@ -50,13 +50,11 @@ DramCntlr::getDataFromDram(IntPtr address, Byte* data_buf, bool modeled)
 void
 DramCntlr::putDataToDram(IntPtr address, Byte* data_buf, bool modeled)
 {
-   if (_data_map[address] == NULL)
-   {
-      LOG_PRINT_ERROR("Data Buffer does not exist");
-   }
+   LOG_ASSERT_ERROR(_data_map[address] != NULL, "Data Buffer does not exist");
+   
    memcpy((void*) _data_map[address], (void*) data_buf, _cache_line_size);
 
-   __attribute__((__unused__)) UInt64 dram_access_latency = modeled ? runDramPerfModel() : 0;
+   __attribute(__unused__) UInt64 dram_access_latency = modeled ? runDramPerfModel() : 0;
    
    addToDramAccessCount(address, WRITE);
 }

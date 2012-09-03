@@ -11,7 +11,6 @@
 #include "syscall.h"
 #include "thread_manager.h"
 #include "thread_scheduler.h"
-#include "perf_counter_manager.h"
 
 using namespace std;
 
@@ -152,14 +151,6 @@ void MCP::processPacket()
    case MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
       assert(m_clock_skew_minimization_server);
       m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender);
-      break;
-
-   case MCP_MESSAGE_RESET_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->resetCacheCounters(recv_pkt.sender.tile_id);
-      break;
-
-   case MCP_MESSAGE_DISABLE_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->disableCacheCounters(recv_pkt.sender.tile_id);
       break;
 
    default:

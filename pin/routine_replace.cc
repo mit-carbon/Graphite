@@ -88,10 +88,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonEnableModels") msg_ptr = AFUNPTR(replacementEnableModels);
    else if (name == "CarbonDisableModels") msg_ptr = AFUNPTR(replacementDisableModels);
 
-   // Resetting Cache Counters
-   else if (name == "CarbonResetCacheCounters") msg_ptr = AFUNPTR(replacementResetCacheCounters);
-   else if (name == "CarbonDisableCacheCounters") msg_ptr = AFUNPTR(replacementDisableCacheCounters);
-
    // pthread wrappers
    else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
    else if (name.find("pthread_join") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadJoin);
@@ -876,22 +872,6 @@ void replacementDisableModels(CONTEXT* ctxt)
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementResetCacheCounters (CONTEXT *ctxt)
-{
-   CarbonResetCacheCounters();
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementDisableCacheCounters (CONTEXT *ctxt)
-{
-   CarbonDisableCacheCounters();
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
 }
 
 void replacementCarbonGetTime(CONTEXT *ctxt)

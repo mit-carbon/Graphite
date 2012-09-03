@@ -71,12 +71,18 @@ public:
    bool isThreadInitializing(tile_id_t tile_id, thread_id_t thread_id);
    bool isThreadInitializing(core_id_t core_id, thread_id_t thread_id);
    
+   bool isThreadStalled(tile_id_t tile_id, thread_id_t thread_id);
+   bool isThreadStalled(core_id_t core_id, thread_id_t thread_id);
+
    bool areAllCoresRunning();
    thread_id_t isCoreRunning(core_id_t core_id);
    thread_id_t isCoreRunning(tile_id_t tile_id);
 
    bool isCoreInitializing(tile_id_t tile_id);
    bool isCoreInitializing(core_id_t core_id);
+
+   bool isCoreStalled(tile_id_t tile_id);
+   bool isCoreStalled(core_id_t core_id);
 
    std::vector< std::vector<ThreadState> > getThreadState() {assert(m_master); return m_thread_state;}
    Core::State getThreadState(tile_id_t tile_id, thread_id_t tidx) {assert(m_master); return m_thread_state[tile_id][tidx].status; }
@@ -124,6 +130,7 @@ private:
    thread_id_t getNewThreadId(core_id_t core_id, thread_id_t thread_index);
    void lookupThreadIndex(thread_id_t thread_id, core_id_t &core_id, thread_id_t &thread_idx);
    void setThreadIndex(thread_id_t thread_id, core_id_t core_id, thread_id_t thread_idx);
+   UInt32 getNumScheduledThreads(core_id_t core_id);
    thread_id_t getIdleThread(core_id_t core_id);
    void masterQueryThreadIndex(tile_id_t req_tile_id, UInt32 req_core_type, thread_id_t thread_id);
 

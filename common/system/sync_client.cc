@@ -7,6 +7,10 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 
+#include "simulator.h"
+#include "thread_scheduler.h"
+#include "thread_manager.h"
+
 #include <iostream>
 
 using namespace std;
@@ -314,6 +318,11 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    LOG_PRINT("barrierWait(): barrier(%u), start_time(%llu)", *barrier, start_time);
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
+   ThreadScheduler * thread_scheduler = Sim()->getThreadScheduler();
+   assert(thread_scheduler);
+
+   thread_scheduler->yieldThread(false);  // Yield thread before waiting on barrier, so other thread in the queue may run; false for non-preemptive yield.
+
    // Set the CoreState to 'STALLED'
    m_core->setState(Core::STALLED);
 
@@ -321,8 +330,13 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_RESPONSE_TYPE);
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
+
+   LOG_PRINT("barrierResponse!: barrier(%u), start_time(%llu)", *barrier, start_time);
+
    // Set the CoreState to 'RUNNING'
    m_core->setState(Core::WAKING_UP);
+
+   thread_scheduler->yieldThread(false);  // False for non-preemptive yield
 
    unsigned int dummy;
    m_recv_buff << make_pair(recv_pkt.data, recv_pkt.length);

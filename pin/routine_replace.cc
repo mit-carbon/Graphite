@@ -847,7 +847,7 @@ void replacementPthreadJoin (CONTEXT *ctxt)
    // Throw warning message if ((thread_return)) field is non-NULL
    // TODO: The return_value needs to be set, but CarbonJoinThread() provides no return value.
    LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value through the "
-                                             "((thread_return)) parameter. Unsuported currently.");
+                                             "((thread_return)) parameter. Unsupported currently.");
    
    CarbonJoinThread ((carbon_thread_t) thread_id);
 

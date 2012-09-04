@@ -69,7 +69,7 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
    }
 
    // Setting the initial time
-   UInt64 initial_time = (time == 0) ? getShmemPerfModel()->getCycleCount() : time;
+   UInt64 initial_time = (time == 0) ? getPerformanceModel()->getCycleCount() : time;
    UInt64 curr_time = initial_time;
 
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), START",

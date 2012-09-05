@@ -177,6 +177,9 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
 void
 L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   // Incr cycle count for every message that comes into the L2 cache
+   _memory_manager->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
    IntPtr address = shmem_msg->getAddress();
@@ -238,6 +241,9 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   // Incr cycle count for every message that comes into the L2 cache
+   _memory_manager->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+
    IntPtr address = shmem_msg->getAddress();
 
    ShL2CacheLineInfo L2_cache_line_info;
@@ -263,6 +269,9 @@ void
 L2CacheCntlr::processNextReqFromL1Cache(IntPtr address)
 {
    LOG_PRINT("Start processNextReqFromL1Cache(%#lx)", address);
+   
+   // Add 1 cycle to denote that we are moving to the next request
+   getShmemPerfModel()->incrCycleCount(1);
 
    assert(_L2_cache_req_queue_list.count(address) >= 1);
    
@@ -753,6 +762,9 @@ L2CacheCntlr::processWbRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_ms
 void
 L2CacheCntlr::restartShmemReq(ShmemReq* shmem_req, ShL2CacheLineInfo* L2_cache_line_info, Byte* data_buf)
 {
+   // Add 1 cycle to denote that we are restarting the request
+   getShmemPerfModel()->incrCycleCount(1);
+
    // Update ShmemReq & ShmemPerfModel internal time
    shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
    getShmemPerfModel()->updateCycleCount(shmem_req->getTime());

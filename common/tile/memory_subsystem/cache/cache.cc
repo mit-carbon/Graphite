@@ -436,8 +436,8 @@ Cache::outputSummary(ostream& out)
       out << "      Sharing Misses: " << _total_sharing_misses << endl;
    }
 
-   // Event Counters Summary
-   out << "    Event Counters:" << endl;
+   // Cache Access Counters Summary
+   out << "    Access Counters:" << endl;
    out << "      Tag Array Reads: " << _tag_array_reads << endl;
    out << "      Tag Array Writes: " << _tag_array_writes << endl;
    out << "      Data Array Reads: " << _data_array_reads << endl;

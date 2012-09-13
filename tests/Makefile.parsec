@@ -31,17 +31,17 @@ DIRECTORY ?= $(if $(findstring $(patsubst %_parsec,%,$@),$(APPS)),apps,kernels)
 COMMAND ?= export GRAPHITE_HOME=$(SIM_ROOT);mkdir -p $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run/output_files; cd $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
 
 freqmine_parsec:
-	$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
+	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	export OMP_NUM_THREADS=64
 	$(COMMAND)
 
 vips_parsec:
-	$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
+	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	export IM_CONCURRENCY=64
 	$(COMMAND)
 
 %_parsec:
-	$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
+	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	$(COMMAND)
 
 setup_parsec:

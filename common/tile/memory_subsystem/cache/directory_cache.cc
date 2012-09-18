@@ -20,9 +20,11 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
    , _max_num_sharers(max_num_sharers)
+   , _total_entries_str(total_entries_str)
    , _associativity(associativity)
    , _cache_line_size(cache_line_size)
    , _num_directory_slices(num_directory_slices)
+   , _directory_access_time_str(directory_access_time_str)
    , _power_model(NULL)
    , _area_model(NULL)
    , _enabled(false)
@@ -33,7 +35,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    _directory_type = DirectoryEntry::parseDirectoryType(directory_type_str);
 
    // Determine total number of directory entries (either automatically or user specified)
-   _total_entries = computeDirectoryTotalEntries(total_entries_str);
+   _total_entries = computeDirectoryTotalEntries();
    _num_sets = _total_entries / _associativity;
 
    // Instantiate the directory
@@ -45,9 +47,10 @@ DirectoryCache::DirectoryCache(Tile* tile,
    // Size of each directory entry (in bytes)
    UInt32 max_application_sharers = Config::getSingleton()->getApplicationTiles();
    UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_application_sharers)  / 8);
+   _directory_size = _total_entries * directory_entry_size;
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
-   _directory_access_time = computeDirectoryAccessTime(directory_access_time_str, directory_entry_size);
+   _directory_access_time = computeDirectoryAccessTime();
   
    LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time);
 
@@ -237,12 +240,12 @@ DirectoryCache::splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index)
 }
 
 UInt32
-DirectoryCache::computeDirectoryTotalEntries(string total_entries_str)
+DirectoryCache::computeDirectoryTotalEntries()
 {
    // Get dram_directory_total_entries
    UInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
    UInt32 total_entries;
-   if (total_entries_str == "auto")
+   if (_total_entries_str == "auto")
    {
       UInt32 max_L2_cache_size = getMaxL2CacheSize();  // In KB
       UInt32 num_sets = (UInt32) ceil(2.0 * max_L2_cache_size * 1024 * num_application_tiles /
@@ -251,10 +254,10 @@ DirectoryCache::computeDirectoryTotalEntries(string total_entries_str)
       num_sets = 1 << ceilLog2(num_sets);
       total_entries = num_sets * _associativity;
    }
-   else // (total_entries_str != "auto")
+   else // (_total_entries_str != "auto")
    {
-      total_entries = convertFromString<UInt32>(total_entries_str);
-      LOG_ASSERT_ERROR(total_entries != 0, "Could not parse [dram_directory/total_entries] = %s", total_entries_str.c_str());
+      total_entries = convertFromString<UInt32>(_total_entries_str);
+      LOG_ASSERT_ERROR(total_entries != 0, "Could not parse [dram_directory/total_entries] = %s", _total_entries_str.c_str());
    }
 
    return total_entries;
@@ -286,40 +289,40 @@ DirectoryCache::getMaxL2CacheSize()  // In KB
 }
 
 UInt64
-DirectoryCache::computeDirectoryAccessTime(string directory_access_time_str, UInt32 directory_entry_size)
+DirectoryCache::computeDirectoryAccessTime()
 {
    // directory_entry_size is specified in bytes
    // access_time should be computed in cycles
    // access_time is dependent on technology node and frequency
    //   (but these two factors will hopefully cancel each other out to a certain extent)
    
-   if (directory_access_time_str == "auto")
+   if (_directory_access_time_str == "auto")
    {
-      UInt32 directory_size = 1.0 * directory_entry_size * _total_entries / 1024; // in KB
+      UInt32 directory_size_in_KB = (UInt32) ceil(1.0 * _directory_size / 1024);
       
-      if (directory_size <= 16)
+      if (directory_size_in_KB <= 16)
          return 1;
-      else if (directory_size <= 32)
+      else if (directory_size_in_KB <= 32)
          return 2;
-      else if (directory_size <= 64)
+      else if (directory_size_in_KB <= 64)
          return 4;
-      else if (directory_size <= 128)
+      else if (directory_size_in_KB <= 128)
          return 6;
-      else if (directory_size <= 256)
+      else if (directory_size_in_KB <= 256)
          return 8;
-      else if (directory_size <= 512)
+      else if (directory_size_in_KB <= 512)
          return 10;
-      else if (directory_size <= 1024)
+      else if (directory_size_in_KB <= 1024)
          return 13;
-      else if (directory_size <= 2048)
+      else if (directory_size_in_KB <= 2048)
          return 16;
-      else // (directory_size > 2048)
+      else // (directory_size_in_KB > 2048)
          return 20;
    }
-   else // (directory_access_time_str != "auto")
+   else // (_directory_access_time_str != "auto")
    {
-      UInt64 directory_access_time = convertFromString<UInt64>(directory_access_time_str);
-      LOG_ASSERT_ERROR(directory_access_time != 0, "Could not parse [dram_directory/access_time] = %s", directory_access_time_str.c_str());
+      UInt64 directory_access_time = convertFromString<UInt64>(_directory_access_time_str);
+      LOG_ASSERT_ERROR(directory_access_time != 0, "Could not parse [dram_directory/access_time] = %s", _directory_access_time_str.c_str());
       return directory_access_time;
    }
 }
@@ -345,7 +348,8 @@ DirectoryCache::computeSetIndex(IntPtr address)
 void
 DirectoryCache::outputSummary(ostream& out)
 {
-   out << "    Total Directory Accesses: " << _total_directory_accesses << endl;
+   printAutogenDirectorySizeAndAccessTime(out);
+   out << "    Total Accesses: " << _total_directory_accesses << endl;
    out << "    Total Evictions: " << _total_evictions << endl;
    out << "    Total Back-Invalidations: " << _total_back_invalidations << endl;
 
@@ -359,7 +363,8 @@ DirectoryCache::outputSummary(ostream& out)
 void
 DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 {
-   out << "    Total Directory Cache Accesses: " << endl;
+   dummyPrintAutogenDirectorySizeAndAccessTime(out);
+   out << "    Total Accesses: " << endl;
    out << "    Total Evictions: " << endl;
    out << "    Total Back-Invalidations: " << endl;
 
@@ -368,6 +373,35 @@ DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
       CachePowerModel::dummyOutputSummary(out);
    if (Config::getSingleton()->getEnableAreaModeling())
       CacheAreaModel::dummyOutputSummary(out);
+}
+
+void
+DirectoryCache::printAutogenDirectorySizeAndAccessTime(ostream& out)
+{
+   if (_total_entries_str == "auto")
+   {
+      out << "    Total Entries [auto-generated]: " << _total_entries << endl;
+      UInt32 directory_size_in_KB = (UInt32) ceil(1.0 * _directory_size / 1024);
+      out << "    Size (in KB) [auto-generated]: " << directory_size_in_KB << endl;
+   }
+   if (_directory_access_time_str == "auto")
+   {
+      out << "    Access Time (in clock cycles) [auto-generated]: " << _directory_access_time << endl;
+   }
+}
+
+void
+DirectoryCache::dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out)
+{
+   if (Sim()->getCfg()->getString("dram_directory/total_entries") == "auto")
+   {
+      out << "    Total Entries [auto-generated]: " << endl;
+      out << "    Size (in KB) [auto-generated]: " << endl;
+   }
+   if (Sim()->getCfg()->getString("dram_directory/access_time") == "auto")
+   {
+      out << "    Access Time (in clock cycles) [auto-generated]: " << endl;
+   }
 }
 
 ShmemPerfModel*

@@ -125,6 +125,8 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_flock) ||
+            (syscall_number == SYS_fchmod) ||
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||
@@ -290,6 +292,8 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_flock) ||
+            (syscall_number == SYS_fchmod) ||
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||

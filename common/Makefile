@@ -17,7 +17,8 @@ OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES)
 
 # Other Libraries that are used by Graphite (Only Orion right now)
 ORION_LIB = $(SIM_ROOT)/contrib/orion/liborion.a
-CONTRIB_LIBS = $(ORION_LIB)
+MCPAT_LIB = $(SIM_ROOT)/contrib/mcpat/libmcpat.a
+CONTRIB_LIBS = $(ORION_LIB) $(MCPAT_LIB)
 
 TARGET=$(SIM_ROOT)/lib/libcarbon_sim.a
 
@@ -30,8 +31,12 @@ $(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
 $(ORION_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/orion
 
+$(MCPAT_LIB):
+	make -C $(SIM_ROOT)/contrib/mcpat
+
 ifneq ($(CLEAN),)
 clean:
 	-rm -f $(TARGET) $(OBJECTS)
 	make -C $(SIM_ROOT)/contrib/orion clean
+	make -C $(SIM_ROOT)/contrib/mcpat clean   
 endif

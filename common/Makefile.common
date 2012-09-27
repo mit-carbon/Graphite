@@ -62,6 +62,8 @@ LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pt
 # Other Libraries in Contrib
 LD_LIBS += -lorion
 LD_FLAGS += -L$(SIM_ROOT)/contrib/orion
+LD_LIBS += -lmcpat
+LD_FLAGS += -L$(SIM_ROOT)/contrib/mcpat
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(PIN_HOME)/intel64/runtime:$(LD_LIBRARY_PATH)

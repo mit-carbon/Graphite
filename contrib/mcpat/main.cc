@@ -53,14 +53,13 @@
 #include "xmlParser.h"
 #include "XML_Parse.h"
 #include "processor.h"
-#include "mcpat_core.h"
-#include "mcpat_cache.h"
 #include "globalvar.h"
 #include "version.h"
-
+#include "mcpat_core_interface.h"
 
 using namespace std;
 
+void graphite_core();
 void print_usage(char * argv0);
 
 //---------------------------------------------------------------------------
@@ -68,52 +67,30 @@ void print_usage(char * argv0);
 //---------------------------------------------------------------------------
 int main(int argc,char *argv[])
 {
-	char * fb ;
-	bool infile_specified     = false;
-	int  plevel               = 2;
    McPAT::opt_for_clk	=true;
-	//cout.precision(10);
 
    // Read in Arguments
-   if (argc <= 1 || argv[1] == string("-h") || argv[1] == string("--help"))
+   if ((argc > 1) && (argv[1] == string("-h") || argv[1] == string("--help")))
 	{
 		print_usage(argv[0]);
 	}
 
 	for (int32_t i = 0; i < argc; i++)
 	{
-		if (argv[i] == string("-infile"))
-		{
-			infile_specified = true;
-			i++;
-			fb = argv[ i];
-		}
-
-		if (argv[i] == string("-print_level"))
-		{
-			i++;
-			plevel = atoi(argv[i]);
-		}
-
 		if (argv[i] == string("-opt_for_clk"))
 		{
 			i++;
          McPAT::opt_for_clk = (bool)atoi(argv[i]);
 		}
 	}
-	if (infile_specified == false)
-	{
-		print_usage(argv[0]);
-	}
-
 
 	cout<<"McPAT (version "<< VER_MAJOR <<"."<< VER_MINOR
 		<< " of " << VER_UPDATE << ") is computing the target processor...\n "<<endl;
 
-	// Create ParseXML Object
+	/*// Create ParseXML Object
    McPAT::ParseXML *p1= new McPAT::ParseXML();
    // Fill ParseXML Object from XML File Argument
-	p1->parse(fb);
+	p1->parse(fb);*/
 
    /*// Create Processor Object
 	Processor proc0(p1);
@@ -131,7 +108,7 @@ int main(int argc,char *argv[])
    // Print Energy from Processor Object
 	proc0.displayEnergy(2, plevel);*/
 
-   // Create McPATCore Object
+   /*// Create McPATCore Object
    McPAT::McPATCore mcpatcore0(p1);
    mcpatcore0.computeEnergy();
    mcpatcore0.computeEnergy();
@@ -143,12 +120,33 @@ int main(int argc,char *argv[])
    mcpatcache0.computeEnergy();
    mcpatcache0.computeEnergy();
    mcpatcache0.computeEnergy();
-   mcpatcache0.displayEnergy(2, plevel);
+   mcpatcache0.displayEnergy(2, plevel);*/
 
-   // Delete ParseXML Object
-	delete p1;
+   /*// Delete ParseXML Object
+	delete p1;*/
+
+   // Run a Dummy Graphite Core
+   graphite_core();
 
 	return 0;
+}
+
+//---------------------------------------------------------------------------
+// Dummy Graphite Core
+//---------------------------------------------------------------------------
+void graphite_core()
+{
+   // Make McPATCoreInterface
+   McPATCoreInterface * m_mcpat_core_interface;
+   m_mcpat_core_interface = new McPATCoreInterface();
+
+   // Use McPATCoreInterface
+   m_mcpat_core_interface->setEventCountersA();
+   m_mcpat_core_interface->computeMcPATCoreEnergy();
+   m_mcpat_core_interface->displayMcPATCoreEnergy();
+
+   // Delete McPATCoreInterface
+   delete m_mcpat_core_interface;
 }
 
 //---------------------------------------------------------------------------

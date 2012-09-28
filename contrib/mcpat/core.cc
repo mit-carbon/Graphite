@@ -3786,14 +3786,16 @@ void Core::computeEnergy(bool is_tdp)
    if (is_tdp)
 	{
       // [graphite] Reset Component power
-      rnu->power.reset();
+      if (coredynp.core_ty==OOO)
+      {
+         rnu->power.reset();
+      }
       ifu->power.reset();
       lsu->power.reset();
       mmu->power.reset();
       exu->power.reset();
 
       // [graphite] Compute Component energy
-      rnu->computeEnergy(is_tdp);
       ifu->computeEnergy(is_tdp);
 		lsu->computeEnergy(is_tdp);
 		mmu->computeEnergy(is_tdp);
@@ -3802,6 +3804,7 @@ void Core::computeEnergy(bool is_tdp)
 		if (coredynp.core_ty==OOO)
 		{
 			num_units = 5.0;
+         rnu->computeEnergy(is_tdp);
 
 			set_pppm(pppm_t, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units);
 			if (rnu->exist)
@@ -3850,7 +3853,6 @@ void Core::computeEnergy(bool is_tdp)
 
 		if (XML->sys.Private_L2)
 		{
-
 			l2cache->computeEnergy(is_tdp);
 			set_pppm(pppm_t,l2cache->cachep.clockRate/clockRate, 1,1,1);
 			//l2cache->power = l2cache->power*pppm_t;
@@ -3860,14 +3862,16 @@ void Core::computeEnergy(bool is_tdp)
 	else
 	{
       // [graphite] Reset Component power
-      rnu->rt_power.reset();
+      if (coredynp.core_ty==OOO)
+      {
+         rnu->rt_power.reset();
+      }
       ifu->rt_power.reset();
       lsu->rt_power.reset();
       mmu->rt_power.reset();
       exu->rt_power.reset();
 
       // [graphite] Compute Component energy
-      rnu->computeEnergy(is_tdp);
       ifu->computeEnergy(is_tdp);
 		lsu->computeEnergy(is_tdp);
 		mmu->computeEnergy(is_tdp);
@@ -3876,6 +3880,7 @@ void Core::computeEnergy(bool is_tdp)
 		if (coredynp.core_ty==OOO)
 		{
 			num_units = 5.0;
+         rnu->computeEnergy(is_tdp);
 
         	set_pppm(pppm_t, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units, coredynp.num_pipelines/num_units);
 			if (rnu->exist)

@@ -1,10 +1,8 @@
 /*****************************************************************************
- * Graphite-McPAT Core Interface
+ * Graphite-McPAT Cache Interface
  ***************************************************************************/
 
 #pragma once
-
-// [graphite]
 
 #include "XML_Parse.h"
 #include "area.h"
@@ -15,37 +13,38 @@
 #include <vector>
 #include "basic_components.h"
 #include "core.h"
+#include "memoryctrl.h"
+#include "router.h"
+#include "sharedcache.h"
+#include "noc.h"
 
 namespace McPAT
 {
 
 //---------------------------------------------------------------------------
-// McPAT Core Class
+// Cache Wrapper Class
 //---------------------------------------------------------------------------
-class McPATCore : public Component
+class CacheWrapper : public Component
 {
   public:
     ParseXML *XML;
-    vector<Core *> cores;
+    SharedCache * cache;
     InputParameter interface_ip;
-    ProcParam procdynp;
-    Component core;
-    int  numCore;
 
-    // Create McPATCore
-    McPATCore(ParseXML *XML_interface);
+    // Create CacheWrapper
+    CacheWrapper(ParseXML *XML_interface);
     // Compute Energy
     void computeEnergy();
-    // Set McPATCore Parameters
+    // Set CacheWrapper Parameters
     void set_proc_param();
-    // Print Energy from McPATCore
+    // Print Energy from CacheWrapper
     void displayEnergy(uint32_t indent = 0,int plevel = 100, bool is_tdp=true);
     // Print Device Type
     void displayDeviceType(int device_type_, uint32_t indent = 0);
     // Print Interconnect Type
     void displayInterconnectType(int interconnect_type_, uint32_t indent = 0);
-    // Delete McPATCore
-    ~McPATCore();
+    // Delete CacheWrapper
+    ~CacheWrapper();
 };
 
 }

@@ -1,8 +1,6 @@
 /*****************************************************************************
- * Graphite-McPAT Cache Interface
+ * Graphite-McPAT Core Interface
  ***************************************************************************/
-
-// [graphite]
 
 #include <string.h>
 #include <iostream>
@@ -19,12 +17,15 @@
 #include "XML_Parse.h"
 #include "processor.h"
 #include "version.h"
-#include "mcpat_cache.h"
+#include "core_wrapper.h"
 
 namespace McPAT
 {
 
-McPATCache::McPATCache(ParseXML *XML_interface)
+//---------------------------------------------------------------------------
+// [graphite] Create CoreWrapper
+//---------------------------------------------------------------------------
+CoreWrapper::CoreWrapper(ParseXML *XML_interface)
 :XML(XML_interface)//TODO: using one global copy may have problems.
 {
   /*
@@ -33,36 +34,30 @@ McPATCache::McPATCache(ParseXML *XML_interface)
    *  thus McPAT only support homogeneous memory controllers.
    */
   int i;
-  double pppm_t[4]    = {1,1,1,1};
   set_proc_param();
-
-  if (procdynp.homoL2)
-     numL2 = procdynp.numL2==0? 0:1;
+  if (procdynp.homoCore)
+     numCore = procdynp.numCore==0? 0:1;
   else
-     numL2 = procdynp.numL2;
+     numCore = procdynp.numCore;
 
-  if (!XML->sys.Private_L2)
+  for (i = 0;i < numCore; i++)
   {
-  if (numL2 >0)
-     for (i = 0;i < numL2; i++)
-     {
-        l2array.push_back(new SharedCache(XML,i, &interface_ip));
-        if (procdynp.homoL2){
-           l2.area.set_area(l2.area.get_area() + l2array[i]->area.get_area()*procdynp.numL2);
-           area.set_area(area.get_area() + l2.area.get_area());//placement and routing overhead is 10%, l2 scales worse than cache 40% is accumulated from 90 to 22nm
+        cores.push_back(new Core(XML,i, &interface_ip));
+        if (procdynp.homoCore){
+           core.area.set_area(core.area.get_area() + cores[i]->area.get_area()*procdynp.numCore);
+           area.set_area(area.get_area() + core.area.get_area());//placement and routing overhead is 10%, core scales worse than cache 40% is accumulated from 90 to 22nm
         }
         else{
-           l2.area.set_area(l2.area.get_area() + l2array[i]->area.get_area());
-           area.set_area(area.get_area() + l2array[i]->area.get_area());//placement and routing overhead is 10%, l2 scales worse than cache 40% is accumulated from 90 to 22nm
+           core.area.set_area(core.area.get_area() + cores[i]->area.get_area());
+           area.set_area(area.get_area() + cores[i]->area.get_area());//placement and routing overhead is 10%, core scales worse than cache 40% is accumulated from 90 to 22nm
         }
-     }
   }
 }
 
 //---------------------------------------------------------------------------
 // [graphite] Compute Energy
 //---------------------------------------------------------------------------
-void McPATCache::computeEnergy()
+void CoreWrapper::computeEnergy()
 {
   /*
    *  placement and routing overhead is 10%, core scales worse than cache 40% is accumulated from 90 to 22nm
@@ -75,55 +70,51 @@ void McPATCache::computeEnergy()
   //--------------------------------------
   // Set Numbers of Components
   //--------------------------------------
-  if (procdynp.homoL2)
-     numL2 = procdynp.numL2==0? 0:1;
+  if (procdynp.homoCore)
+     numCore = procdynp.numCore==0? 0:1;
   else
-     numL2 = procdynp.numL2;
+     numCore = procdynp.numCore;
 
   //--------------------------------------
   // Compute Energy of Components
   //--------------------------------------
 
-  // McPAT Cache
+  // McPAT Core
   power.reset();
   rt_power.reset();
 
-  // L2 Caches
-  l2.power.reset();
-  l2.rt_power.reset();
-  if (!XML->sys.Private_L2)
+  // Cores
+  core.power.reset();
+  core.rt_power.reset();
+  for (i = 0;i < numCore; i++)
   {
-  if (numL2 >0)
-     for (i = 0;i < numL2; i++)
-     {
-        l2array[i]->power.reset();
-        l2array[i]->rt_power.reset();
-        l2array[i]->computeEnergy();
-        l2array[i]->computeEnergy(false);
-        if (procdynp.homoL2){
-           set_pppm(pppm_t,l2array[i]->cachep.clockRate*procdynp.numL2, procdynp.numL2,procdynp.numL2,procdynp.numL2);
-           l2.power = l2.power + l2array[i]->power*pppm_t;
-           set_pppm(pppm_t,1/l2array[i]->cachep.executionTime, procdynp.numL2,procdynp.numL2,procdynp.numL2);
-           l2.rt_power = l2.rt_power + l2array[i]->rt_power*pppm_t;
-           power = power  + l2.power;
-           rt_power = rt_power  + l2.rt_power;
+        cores[i]->power.reset();
+        cores[i]->rt_power.reset();
+        cores[i]->computeEnergy();
+        cores[i]->computeEnergy(false);
+        if (procdynp.homoCore){
+           set_pppm(pppm_t,cores[i]->clockRate*procdynp.numCore, procdynp.numCore,procdynp.numCore,procdynp.numCore);
+           core.power = core.power + cores[i]->power*pppm_t;
+           set_pppm(pppm_t,1/cores[i]->executionTime, procdynp.numCore,procdynp.numCore,procdynp.numCore);
+           core.rt_power = core.rt_power + cores[i]->rt_power*pppm_t;
+           power = power  + core.power;
+           rt_power = rt_power  + core.rt_power;
         }
         else{
-           set_pppm(pppm_t,l2array[i]->cachep.clockRate, 1, 1, 1);
-           l2.power = l2.power + l2array[i]->power*pppm_t;
-           power = power  + l2array[i]->power*pppm_t;;
-           set_pppm(pppm_t,1/l2array[i]->cachep.executionTime, 1, 1, 1);
-           l2.rt_power = l2.rt_power + l2array[i]->rt_power*pppm_t;
-           rt_power = rt_power  + l2array[i]->rt_power*pppm_t;
+           set_pppm(pppm_t,cores[i]->clockRate, 1, 1, 1);
+           core.power = core.power + cores[i]->power*pppm_t;
+           power = power  + cores[i]->power*pppm_t;
+           set_pppm(pppm_t,1/cores[i]->executionTime, 1, 1, 1);
+           core.rt_power = core.rt_power + cores[i]->rt_power*pppm_t;
+           rt_power = rt_power  + cores[i]->rt_power*pppm_t;
         }
-     }
   }
 }
 
 //---------------------------------------------------------------------------
 // Print Device Type
 //---------------------------------------------------------------------------
-void McPATCache::displayDeviceType(int device_type_, uint32_t indent)
+void CoreWrapper::displayDeviceType(int device_type_, uint32_t indent)
 {
    string indent_str(indent, ' ');
 
@@ -155,7 +146,7 @@ void McPATCache::displayDeviceType(int device_type_, uint32_t indent)
 //---------------------------------------------------------------------------
 // Print Interconnect Type
 //---------------------------------------------------------------------------
-void McPATCache::displayInterconnectType(int interconnect_type_, uint32_t indent)
+void CoreWrapper::displayInterconnectType(int interconnect_type_, uint32_t indent)
 {
    string indent_str(indent, ' ');
 
@@ -176,9 +167,9 @@ void McPATCache::displayInterconnectType(int interconnect_type_, uint32_t indent
 }
 
 //---------------------------------------------------------------------------
-// Print Energy from McPAT Cache
+// Print Energy from CoreWrapper
 //---------------------------------------------------------------------------
-void McPATCache::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
+void CoreWrapper::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
 {
    int i;
    bool long_channel = XML->sys.longer_channel_device;
@@ -208,31 +199,25 @@ void McPATCache::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
       cout <<indent_str<<"Core clock Rate(MHz) "<<XML->sys.core[0].clock_rate<<endl;
       cout <<endl;
       cout <<"*****************************************************************************************"<<endl;
-      if (!XML->sys.Private_L2)
-      {
-         if (numL2 >0){
-            cout <<indent_str<<"Total L2s: "<<endl;
-            displayDeviceType(XML->sys.L2[0].device_type,indent);
-            cout << indent_str_next << "Area = " << l2.area.get_area()*1e-6<< " mm^2" << endl;
-            cout << indent_str_next << "Peak Dynamic = " << l2.power.readOp.dynamic << " W" << endl;
-            cout << indent_str_next << "Subthreshold Leakage = "
-            << (long_channel? l2.power.readOp.longer_channel_leakage:l2.power.readOp.leakage) <<" W" << endl;
-            //cout << indent_str_next << "Subthreshold Leakage = " << l2.power.readOp.longer_channel_leakage <<" W" << endl;
-            cout << indent_str_next << "Gate Leakage = " << l2.power.readOp.gate_leakage << " W" << endl;
-            cout << indent_str_next << "Runtime Dynamic = " << l2.rt_power.readOp.dynamic << " W" << endl;
-            cout <<endl;
-         }
+      if (numCore >0){
+      cout <<indent_str<<"Total Cores: "<<XML->sys.number_of_cores << " cores "<<endl;
+      displayDeviceType(XML->sys.device_type,indent);
+      cout << indent_str_next << "Area = " << core.area.get_area()*1e-6<< " mm^2" << endl;
+      cout << indent_str_next << "Peak Dynamic = " << core.power.readOp.dynamic << " W" << endl;
+      cout << indent_str_next << "Subthreshold Leakage = "
+         << (long_channel? core.power.readOp.longer_channel_leakage:core.power.readOp.leakage) <<" W" << endl;
+      //cout << indent_str_next << "Subthreshold Leakage = " << core.power.readOp.longer_channel_leakage <<" W" << endl;
+      cout << indent_str_next << "Gate Leakage = " << core.power.readOp.gate_leakage << " W" << endl;
+      cout << indent_str_next << "Runtime Dynamic = " << core.rt_power.readOp.dynamic << " W" << endl;
+      cout <<endl;
       }
       cout <<"*****************************************************************************************"<<endl;
       if (plevel >1)
       {
-         if (!XML->sys.Private_L2)
+         for (i = 0;i < numCore; i++)
          {
-            for (i = 0;i < numL2; i++)
-            {
-               l2array[i]->displayEnergy(indent+4,is_tdp);
-               cout <<"*****************************************************************************************"<<endl;
-            }
+            cores[i]->displayEnergy(indent+4,plevel,is_tdp);
+            cout <<"*****************************************************************************************"<<endl;
          }
       }
    }
@@ -242,14 +227,14 @@ void McPATCache::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
 }
 
 //---------------------------------------------------------------------------
-// Set McPAT Cache Parameters
+// Set CoreWrapper Parameters
 //---------------------------------------------------------------------------
-void McPATCache::set_proc_param()
+void CoreWrapper::set_proc_param()
 {
    bool debug = false;
 
-   procdynp.homoL2   = bool(debug?1:XML->sys.homogeneous_L2s);
-   procdynp.numL2   = XML->sys.number_of_L2s;
+   procdynp.homoCore = bool(debug?1:XML->sys.homogeneous_cores);
+   procdynp.numCore = XML->sys.number_of_cores;
 
    /* Basic parameters*/
    interface_ip.data_arr_ram_cell_tech_type    = debug?0:XML->sys.device_type;
@@ -328,13 +313,13 @@ void McPATCache::set_proc_param()
 }
 
 //---------------------------------------------------------------------------
-// Delete McPAT Cache
+// Delete CoreWrapper
 //---------------------------------------------------------------------------
-McPATCache::~McPATCache(){
-   while (!l2array.empty())
+CoreWrapper::~CoreWrapper(){
+   while (!cores.empty())
    {
-      delete l2array.back();
-      l2array.pop_back();
+      delete cores.back();
+      cores.pop_back();
    }
 };
 

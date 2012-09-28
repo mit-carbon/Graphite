@@ -2,21 +2,15 @@
  * Graphite-McPAT Core Interface
  ***************************************************************************/
 
-// [graphite]
-
-#ifndef MCPAT_CORE_INTERFACE_H_
-#define MCPAT_CORE_INTERFACE_H_
+#pragma once
 
 #include <stdio.h>
 #include "XML_Parse.h"
-#include "processor.h"
+#include "core_wrapper.h"
 #include <string.h>
 #include <iostream>
 
 using namespace std;
-
-namespace McPAT
-{
 
 //---------------------------------------------------------------------------
 // McPAT Core Interface Data Structures for Area and Power
@@ -104,8 +98,8 @@ public:
    // Execution Time
    double executionTime;
    // McPAT Objects
-   ParseXML  *mcpat_parsexml;
-   Processor *mcpat_processor;
+   McPAT::ParseXML  *mcpat_parsexml;
+   McPAT::CoreWrapper *mcpat_core;
    // McPAT Output Data Structure
    mcpat_core_output mcpat_core_out;
 
@@ -226,7 +220,3 @@ public:
    double m_function_calls;
    double m_context_switches;
 };
-
-}
-
-#endif /* MCPAT_CORE_INTERFACE_H_ */

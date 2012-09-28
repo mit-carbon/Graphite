@@ -52,6 +52,7 @@
 #include "xmlParser.h"
 #include <string>
 #include "XML_Parse.h"
+#include "mcpat_core_interface.h"
 
 using namespace std;
 
@@ -1822,6 +1823,324 @@ void ParseXML::initialize() //Initialize all
 	sys.flashc.type =1;
 	sys.flashc.duty_cycle =1;
 	sys.flashc.total_load_perc=1;
+}
+
+//---------------------------------------------------------------------------
+// Fill ParseXML Data Structures with Niagara 1
+//---------------------------------------------------------------------------
+void ParseXML::setNiagara1()
+{
+   // SYSTEM PARAM
+   sys.number_of_cores=1;//8;
+   sys.number_of_L1Directories=0;//4;
+   sys.number_of_L2Directories=0;
+   sys.number_of_L2s=0;//4;
+   sys.number_of_L3s=0;
+   sys.number_of_NoCs=0;//1;
+   sys.homogeneous_cores=1;
+   sys.homogeneous_L2s=1;
+   sys.homogeneous_L1Directories=1;
+   sys.homogeneous_L2Directories=1;
+   sys.homogeneous_L3s=1;
+   sys.homogeneous_ccs=1;
+   sys.homogeneous_NoCs=1;
+   sys.core_tech_node=90;
+   sys.target_core_clockrate=1200;
+   sys.temperature=380;
+   sys.number_cache_levels=2;
+   sys.interconnect_projection_type=0;
+   sys.device_type=0;
+   sys.longer_channel_device = 1;
+   sys.machine_bits=64; 
+   sys.virtual_address_width=64;
+   sys.physical_address_width=52;
+   sys.virtual_memory_page_size = 4096;
+   // SYSTEM STATS
+   sys.total_cycles=100000;
+   int i;
+   for (i=0; i<=63; i++)
+   {
+      // SYSTEM.CORE PARAM
+      sys.core[i].machine_bits=64;  
+      sys.core[i].virtual_address_width=64;
+      sys.core[i].physical_address_width=52;   
+      sys.core[i].clock_rate=1200;
+      sys.core[i].instruction_length=32;
+      sys.core[i].opcode_width=9;
+      sys.core[i].machine_type=1;
+      sys.core[i].number_hardware_threads=4;
+      sys.core[i].fetch_width=1;
+      sys.core[i].number_instruction_fetch_ports=1;
+      sys.core[i].decode_width=1;
+      sys.core[i].issue_width=1;
+      sys.core[i].commit_width=1;
+      sys.core[i].fp_issue_width=1;
+      sys.core[i].prediction_width=0;
+      sys.core[i].pipelines_per_core[0]=1;
+      sys.core[i].pipelines_per_core[1]=1;
+      sys.core[i].pipeline_depth[0]=6;
+      sys.core[i].pipeline_depth[1]=6;
+      sys.core[i].ALU_per_core=1;
+      sys.core[i].MUL_per_core=1;
+      sys.core[i].FPU_per_core=0.125;
+      sys.core[i].instruction_buffer_size=16;
+      sys.core[i].decoded_stream_buffer_size=16;
+      sys.core[i].instruction_window_scheme=0;
+      sys.core[i].instruction_window_size=16;
+      sys.core[i].fp_instruction_window_size=16;
+      sys.core[i].ROB_size=80;
+      sys.core[i].archi_Regs_IRF_size=32;
+      sys.core[i].archi_Regs_FRF_size=32;
+      sys.core[i].phy_Regs_IRF_size=80;
+      sys.core[i].phy_Regs_FRF_size=80;
+      sys.core[i].rename_scheme=0;
+      sys.core[i].register_windows_size=8;
+      strcpy(sys.core[i].LSU_order,"inorder");
+      sys.core[i].store_buffer_size=32;
+      sys.core[i].load_buffer_size=32;
+      sys.core[i].memory_ports=1;
+      sys.core[i].RAS_size=32;
+      // SYSTEM.CORE STATS
+      sys.core[i].total_instructions=800000;
+      sys.core[i].int_instructions=600000;
+      sys.core[i].fp_instructions=20000;
+      sys.core[i].branch_instructions=0;
+      sys.core[i].branch_mispredictions=0;
+      sys.core[i].load_instructions=100000;
+      sys.core[i].store_instructions=100000;
+      sys.core[i].committed_instructions=800000;
+      sys.core[i].committed_int_instructions=600000;
+      sys.core[i].committed_fp_instructions=20000;
+      sys.core[i].total_cycles=100000;
+      sys.core[i].idle_cycles=0;
+      sys.core[i].busy_cycles=100000;
+      sys.core[i].ROB_reads=263886;
+      sys.core[i].ROB_writes=263886;
+      sys.core[i].rename_accesses=263886;
+      sys.core[i].fp_rename_accesses=263886;
+      sys.core[i].inst_window_reads=263886;
+      sys.core[i].inst_window_writes=263886;
+      sys.core[i].inst_window_wakeup_accesses=263886;
+      sys.core[i].fp_inst_window_reads=263886;
+      sys.core[i].fp_inst_window_writes=263886;
+      sys.core[i].fp_inst_window_wakeup_accesses=263886;
+      sys.core[i].int_regfile_reads=1600000;
+      sys.core[i].float_regfile_reads=40000;
+      sys.core[i].int_regfile_writes=800000;
+      sys.core[i].float_regfile_writes=20000;
+      sys.core[i].function_calls=5;
+      sys.core[i].context_switches=260343;
+      sys.core[i].ialu_accesses=800000;
+      sys.core[i].fpu_accesses=10000;
+      sys.core[i].mul_accesses=100000;
+      sys.core[i].cdb_alu_accesses=1000000;
+      sys.core[i].cdb_mul_accesses=0;
+      sys.core[i].cdb_fpu_accesses=0;
+      // SYSTEM.CORE DUTY CYCLE STATS
+      sys.core[i].pipeline_duty_cycle=0.6;
+      sys.core[i].IFU_duty_cycle = 0.25;
+      sys.core[i].LSU_duty_cycle = 0.25;
+      sys.core[i].MemManU_I_duty_cycle =1;
+      sys.core[i].MemManU_D_duty_cycle =0.25;
+      sys.core[i].ALU_duty_cycle =0.9;
+      sys.core[i].MUL_duty_cycle =0.5;
+      sys.core[i].FPU_duty_cycle =0.4;
+      sys.core[i].ALU_cdb_duty_cycle =0.9;
+      sys.core[i].MUL_cdb_duty_cycle =0.5;
+      sys.core[i].FPU_cdb_duty_cycle =0.4;
+      // SYSTEM.CORE.PREDICTOR PARAM
+      sys.core[i].predictor.local_predictor_size[0]=10;
+      sys.core[i].predictor.local_predictor_size[1]=3;
+      sys.core[i].predictor.local_predictor_entries=1024;
+      sys.core[i].predictor.global_predictor_entries=4096;
+      sys.core[i].predictor.global_predictor_bits=2;
+      sys.core[i].predictor.chooser_predictor_entries=4096;
+      sys.core[i].predictor.chooser_predictor_bits=2;
+      // SYSTEM.CORE.ITLB PARAM
+      sys.core[i].itlb.number_entries=64;
+      // SYSTEM.CORE.ITLB STATS
+      sys.core[i].itlb.total_accesses=800000;
+      sys.core[i].itlb.total_misses=4;
+      sys.core[i].itlb.conflicts=0;
+      // SYSTEM.CORE.ICACHE PARAM
+      sys.core[i].icache.icache_config[0]=16384;
+      sys.core[i].icache.icache_config[1]=32;
+      sys.core[i].icache.icache_config[2]=4;
+      sys.core[i].icache.icache_config[3]=1;
+      sys.core[i].icache.icache_config[4]=1;
+      sys.core[i].icache.icache_config[5]=3;
+      sys.core[i].icache.icache_config[6]=8;
+      sys.core[i].icache.icache_config[7]=0;
+      sys.core[i].icache.buffer_sizes[0]=16;
+      sys.core[i].icache.buffer_sizes[1]=16;
+      sys.core[i].icache.buffer_sizes[2]=16;
+      sys.core[i].icache.buffer_sizes[3]=0;
+      // SYSTEM.CORE.ICACHE STATS
+      sys.core[i].icache.read_accesses=200000;
+      sys.core[i].icache.read_misses=0;
+      sys.core[i].icache.conflicts=0;
+      // SYSTEM.CORE.DTLB PARAM
+      sys.core[i].dtlb.number_entries=64;
+      // SYSTEM.CORE.DTLB STATS
+      sys.core[i].dtlb.total_accesses=200000;
+      sys.core[i].dtlb.total_misses=4;
+      sys.core[i].dtlb.conflicts=0;
+      // SYSTEM.CORE.DCACHE PARAM
+      sys.core[i].dcache.dcache_config[0]=8192;
+      sys.core[i].dcache.dcache_config[1]=16;
+      sys.core[i].dcache.dcache_config[2]=4;
+      sys.core[i].dcache.dcache_config[3]=1;
+      sys.core[i].dcache.dcache_config[4]=1;
+      sys.core[i].dcache.dcache_config[5]=3;
+      sys.core[i].dcache.dcache_config[6]=16;
+      sys.core[i].dcache.dcache_config[7]=0;
+      sys.core[i].dcache.buffer_sizes[0]=16;
+      sys.core[i].dcache.buffer_sizes[1]=16;
+      sys.core[i].dcache.buffer_sizes[2]=16;
+      sys.core[i].dcache.buffer_sizes[3]=16;
+      // SYSTEM.CORE.DCACHE STATS
+      sys.core[i].dcache.read_accesses=200000;
+      sys.core[i].dcache.write_accesses=27276;
+      sys.core[i].dcache.read_misses=1632;
+      sys.core[i].dcache.write_misses=183;
+      sys.core[i].dcache.conflicts=0;
+      // SYSTEM.CORE.BTB PARAM
+      sys.core[i].BTB.BTB_config[0]=8192;
+      sys.core[i].BTB.BTB_config[1]=4;
+      sys.core[i].BTB.BTB_config[2]=2;
+      sys.core[i].BTB.BTB_config[3]=1;
+      sys.core[i].BTB.BTB_config[4]=1;
+      sys.core[i].BTB.BTB_config[5]=3;
+   }
+}
+
+//---------------------------------------------------------------------------
+// Fill ParseXML Architectural Parameters
+//---------------------------------------------------------------------------
+void ParseXML::fillCoreParamsFromMcPATCoreInterface(McPATCoreInterface * mci)
+{
+   // SYSTEM PARAM
+   sys.number_of_cores = 1;
+   sys.number_of_L1Directories = 0;
+   sys.number_of_L2Directories = 0;
+   sys.number_of_L2s = 0;
+   sys.number_of_L3s = 0;
+   sys.number_of_NoCs = 0;
+   sys.mc.number_mcs = 0;
+   sys.homogeneous_cores = 1;
+   sys.core_tech_node = mci->m_core_tech_node;
+   int i;
+   for (i = 0; i <= 63; i++)
+   {
+      sys.core[i].clock_rate = mci->m_clock_rate;
+      // SYSTEM.CORE PARAM
+      // |---- General Parameters
+      //cout << "|---- General Parameters" << endl;
+      sys.core[i].instruction_length = mci->m_instruction_length;
+      sys.core[i].opcode_width = mci->m_opcode_width;
+      sys.core[i].machine_type = mci->m_machine_type;
+      sys.core[i].number_hardware_threads = mci->m_num_hardware_threads;
+      sys.core[i].fetch_width = mci->m_fetch_width;
+      sys.core[i].number_instruction_fetch_ports = mci->m_num_instruction_fetch_ports;
+      sys.core[i].decode_width = mci->m_decode_width;
+      sys.core[i].issue_width = mci->m_issue_width;
+      sys.core[i].commit_width = mci->m_commit_width;
+      sys.core[i].fp_issue_width = mci->m_fp_issue_width;
+      sys.core[i].predictor.prediction_width = mci->m_prediction_width;
+      sys.core[i].pipeline_depth[0] = mci->m_integer_pipeline_depth;
+      sys.core[i].pipeline_depth[1] = mci->m_fp_pipeline_depth;
+      sys.core[i].ALU_per_core = mci->m_ALU_per_core;
+      sys.core[i].MUL_per_core = mci->m_MUL_per_core;
+      sys.core[i].FPU_per_core = mci->m_FPU_per_core;
+      sys.core[i].instruction_buffer_size = mci->m_instruction_buffer_size;
+      sys.core[i].decoded_stream_buffer_size = mci->m_decoded_stream_buffer_size;
+      // |---- Register File
+      //cout << "|---- Register File" << endl;
+      sys.core[i].archi_Regs_IRF_size = mci->m_arch_regs_IRF_size;
+      sys.core[i].archi_Regs_FRF_size = mci->m_arch_regs_FRF_size;
+      sys.core[i].phy_Regs_IRF_size = mci->m_phy_regs_IRF_size;
+      sys.core[i].phy_Regs_FRF_size = mci->m_phy_regs_FRF_size;
+      // |---- Load-Store Unit
+      //cout << "|---- Load-Store Unit" << endl;
+      strcpy(sys.core[i].LSU_order,mci->m_LSU_order.c_str());
+      sys.core[i].store_buffer_size = mci->m_store_buffer_size;
+      sys.core[i].load_buffer_size = mci->m_load_buffer_size;
+      sys.core[i].memory_ports = mci->m_num_memory_ports;
+      sys.core[i].RAS_size = mci->m_RAS_size;      
+      // |---- OoO Core
+      //cout << "|---- OoO Core" << endl;
+      sys.core[i].instruction_window_scheme = mci->m_instruction_window_scheme;
+      sys.core[i].instruction_window_size = mci->m_instruction_window_size;
+      sys.core[i].fp_instruction_window_size = mci->m_fp_instruction_window_size;
+      sys.core[i].ROB_size = mci->m_ROB_size;
+      sys.core[i].rename_scheme = mci->m_rename_scheme;
+      // |---- Register Windows (specific to Sun processors)
+      //cout << "|---- Register Windows" << endl;
+      sys.core[i].register_windows_size = mci->m_register_windows_size;
+   }
+}
+
+//---------------------------------------------------------------------------
+// Fill ParseXML Event Counters
+//---------------------------------------------------------------------------
+void ParseXML::fillCoreStatsFromMcPATCoreInterface(McPATCoreInterface * mci)
+{
+   // SYSTEM STATS
+   sys.total_cycles = mci->m_total_cycles;
+   int i;
+   for (i=0; i<=63; i++)
+   {  
+      // SYSTEM.CORE STATS
+      // |-- Used Event Counters
+      // |---- Instruction Counters
+      //cout << "|---- Instruction Counters" << endl;
+      sys.core[i].total_instructions = mci->m_total_instructions;
+      sys.core[i].int_instructions = mci->m_int_instructions;
+      sys.core[i].fp_instructions = mci->m_fp_instructions;
+      sys.core[i].branch_instructions = mci->m_branch_instructions;
+      sys.core[i].branch_mispredictions = mci->m_branch_mispredictions;
+      sys.core[i].load_instructions = mci->m_load_instructions;
+      sys.core[i].store_instructions = mci->m_store_instructions;
+      sys.core[i].committed_instructions = mci->m_committed_instructions;
+      sys.core[i].committed_instructions = mci->m_committed_int_instructions;
+      sys.core[i].committed_instructions = mci->m_committed_fp_instructions;
+      // |---- Cycle Counters
+      //cout << "|---- Cycle Counters" << endl;
+      sys.core[i].total_cycles = mci->m_total_cycles;
+      sys.core[i].idle_cycles = mci->m_idle_cycles;
+      sys.core[i].busy_cycles = mci->m_busy_cycles;
+      // |---- Reg File Access Counters
+      //cout << "|---- Reg File Access Counters" << endl;
+      sys.core[i].int_regfile_reads = mci->m_int_regfile_reads;
+      sys.core[i].int_regfile_writes = mci->m_int_regfile_writes;
+      sys.core[i].float_regfile_reads = mci->m_fp_regfile_reads;
+      sys.core[i].float_regfile_writes = mci->m_fp_regfile_writes;
+      // |---- Execution Unit Access Counters
+      //cout << "|---- Execution Unit Access Counters" << endl;
+      sys.core[i].ialu_accesses = mci->m_ialu_accesses;
+      sys.core[i].mul_accesses = mci->m_mul_accesses;
+      sys.core[i].fpu_accesses = mci->m_fpu_accesses;
+      sys.core[i].cdb_alu_accesses = mci->m_cdb_alu_accesses;
+      sys.core[i].cdb_mul_accesses = mci->m_cdb_mul_accesses;
+      sys.core[i].cdb_fpu_accesses = mci->m_cdb_fpu_accesses;
+      // |-- Unused Event Counters
+      // |---- OoO Core Event Counters
+      //cout << "|---- OoO Core Event Counters" << endl;
+      sys.core[i].inst_window_reads = mci->m_inst_window_reads;
+      sys.core[i].inst_window_writes = mci->m_inst_window_writes;
+      sys.core[i].inst_window_wakeup_accesses = mci->m_inst_window_wakeup_accesses;
+      sys.core[i].fp_inst_window_reads = mci->m_fp_inst_window_reads;
+      sys.core[i].fp_inst_window_writes = mci->m_fp_inst_window_writes;
+      sys.core[i].fp_inst_window_wakeup_accesses = mci->m_fp_inst_window_wakeup_accesses;
+      sys.core[i].ROB_reads = mci->m_ROB_reads;
+      sys.core[i].ROB_writes = mci->m_ROB_writes;
+      sys.core[i].rename_accesses = mci->m_rename_accesses;
+      sys.core[i].fp_rename_accesses = mci->m_fp_rename_accesses;
+      // |---- Function Calls and Context Switches
+      //cout << "|---- Function Calls and Context Switches" << endl;
+      sys.core[i].function_calls = mci->m_function_calls;
+      sys.core[i].context_switches = mci->m_context_switches;
+   }
 }
 
 }

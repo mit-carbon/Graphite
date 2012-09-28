@@ -2,8 +2,6 @@
  * Graphite-McPAT Core Interface
  ***************************************************************************/
 
-// [graphite]
-
 #include <stdio.h>
 #include "mcpat_core_interface.h"
 #include "XML_Parse.h"
@@ -12,9 +10,6 @@
 #include <iostream>
 
 using namespace std;
-
-namespace McPAT
-{
 
 //---------------------------------------------------------------------------
 // McPAT Core Interface Constructor
@@ -29,7 +24,7 @@ McPATCoreInterface::McPATCoreInterface()
    initializeOutputDataStructure();
 
    // Make a ParseXML Object and Initialize it
-   mcpat_parsexml = new ParseXML();
+   mcpat_parsexml = new McPAT::ParseXML();
 
    // Initialize ParseXML Params and Stats
    mcpat_parsexml->initialize();
@@ -39,7 +34,7 @@ McPATCoreInterface::McPATCoreInterface()
    mcpat_parsexml->fillCoreParamsFromMcPATCoreInterface(this);
 
    // Make a Processor Object from the ParseXML
-   mcpat_processor = new Processor(mcpat_parsexml);
+   mcpat_core = new McPAT::CoreWrapper(mcpat_parsexml);
 }
 
 //---------------------------------------------------------------------------
@@ -48,7 +43,7 @@ McPATCoreInterface::McPATCoreInterface()
 McPATCoreInterface::~McPATCoreInterface()
 {
    delete mcpat_parsexml;
-   delete mcpat_processor;
+   delete mcpat_core;
 }
 
 //---------------------------------------------------------------------------
@@ -261,7 +256,7 @@ void McPATCoreInterface::initializeOutputDataStructure()
    mcpat_core_out.exu.scheu.scheu.gate_leakage           = 0;
    mcpat_core_out.exu.scheu.scheu.dynamic                = 0;
    //          Instruction Window
-   mcpat_             core_out.exu.scheu.int_inst_window.area        = 0;
+   mcpat_core_out.exu.scheu.int_inst_window.area                     = 0;
    mcpat_core_out.exu.scheu.int_inst_window.leakage                  = 0;
    mcpat_core_out.exu.scheu.int_inst_window.longer_channel_leakage   = 0;
    mcpat_core_out.exu.scheu.int_inst_window.gate_leakage             = 0;
@@ -301,162 +296,162 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
    mcpat_parsexml->fillCoreStatsFromMcPATCoreInterface(this);
 
    // Compute Energy from Processor
-   mcpat_processor->computeEnergy();
+   mcpat_core->computeEnergy();
 
    // Execution Time
-   executionTime = (mcpat_processor->cores[0]->coredynp.executionTime);
+   executionTime = (mcpat_core->cores[0]->coredynp.executionTime);
    //cout << "executionTime = " << executionTime << endl;
 
    // Store Energy into Data Structure
    // Core
-   mcpat_core_out.core.area                   = mcpat_processor->cores[0]->area.get_area()*1e-6;                     
-   mcpat_core_out.core.leakage                = mcpat_processor->cores[0]->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.core.longer_channel_leakage = mcpat_processor->cores[0]->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.core.gate_leakage           = mcpat_processor->cores[0]->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.core.dynamic                = mcpat_processor->cores[0]->rt_power.readOp.dynamic;
+   mcpat_core_out.core.area                   = mcpat_core->cores[0]->area.get_area()*1e-6;                     
+   mcpat_core_out.core.leakage                = mcpat_core->cores[0]->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.core.longer_channel_leakage = mcpat_core->cores[0]->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.core.gate_leakage           = mcpat_core->cores[0]->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.core.dynamic                = mcpat_core->cores[0]->rt_power.readOp.dynamic;
    //    Instruction Fetch Unit
-   mcpat_core_out.ifu.ifu.area                   = mcpat_processor->cores[0]->ifu->area.get_area()*1e-6;                     
-   mcpat_core_out.ifu.ifu.leakage                = mcpat_processor->cores[0]->ifu->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.ifu.ifu.longer_channel_leakage = mcpat_processor->cores[0]->ifu->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.ifu.ifu.gate_leakage           = mcpat_processor->cores[0]->ifu->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.ifu.ifu.dynamic                = mcpat_processor->cores[0]->ifu->rt_power.readOp.dynamic;
+   mcpat_core_out.ifu.ifu.area                   = mcpat_core->cores[0]->ifu->area.get_area()*1e-6;                     
+   mcpat_core_out.ifu.ifu.leakage                = mcpat_core->cores[0]->ifu->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.ifu.ifu.longer_channel_leakage = mcpat_core->cores[0]->ifu->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.ifu.ifu.gate_leakage           = mcpat_core->cores[0]->ifu->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.ifu.ifu.dynamic                = mcpat_core->cores[0]->ifu->rt_power.readOp.dynamic;
    //       Instruction Cache
-   mcpat_core_out.ifu.icache.area                   = mcpat_processor->cores[0]->ifu->icache.area.get_area()*1e-6;                     
-   mcpat_core_out.ifu.icache.leakage                = mcpat_processor->cores[0]->ifu->icache.power.readOp.leakage*executionTime;                  
-   mcpat_core_out.ifu.icache.longer_channel_leakage = mcpat_processor->cores[0]->ifu->icache.power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.ifu.icache.gate_leakage           = mcpat_processor->cores[0]->ifu->icache.power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.ifu.icache.dynamic                = mcpat_processor->cores[0]->ifu->icache.rt_power.readOp.dynamic;
+   mcpat_core_out.ifu.icache.area                   = mcpat_core->cores[0]->ifu->icache.area.get_area()*1e-6;                     
+   mcpat_core_out.ifu.icache.leakage                = mcpat_core->cores[0]->ifu->icache.power.readOp.leakage*executionTime;                  
+   mcpat_core_out.ifu.icache.longer_channel_leakage = mcpat_core->cores[0]->ifu->icache.power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.ifu.icache.gate_leakage           = mcpat_core->cores[0]->ifu->icache.power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.ifu.icache.dynamic                = mcpat_core->cores[0]->ifu->icache.rt_power.readOp.dynamic;
    //       Instruction Buffer
-   mcpat_core_out.ifu.IB.area                       = mcpat_processor->cores[0]->ifu->IB->area.get_area()*1e-6;                     
-   mcpat_core_out.ifu.IB.leakage                    = mcpat_processor->cores[0]->ifu->IB->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.ifu.IB.longer_channel_leakage     = mcpat_processor->cores[0]->ifu->IB->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.ifu.IB.gate_leakage               = mcpat_processor->cores[0]->ifu->IB->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.ifu.IB.dynamic                    = mcpat_processor->cores[0]->ifu->IB->rt_power.readOp.dynamic;
+   mcpat_core_out.ifu.IB.area                       = mcpat_core->cores[0]->ifu->IB->area.get_area()*1e-6;                     
+   mcpat_core_out.ifu.IB.leakage                    = mcpat_core->cores[0]->ifu->IB->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.ifu.IB.longer_channel_leakage     = mcpat_core->cores[0]->ifu->IB->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.ifu.IB.gate_leakage               = mcpat_core->cores[0]->ifu->IB->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.ifu.IB.dynamic                    = mcpat_core->cores[0]->ifu->IB->rt_power.readOp.dynamic;
    //       Instruction Decoder
-   mcpat_core_out.ifu.ID.area                       = (mcpat_processor->cores[0]->ifu->ID_inst->area.get_area() +
-         mcpat_processor->cores[0]->ifu->ID_operand->area.get_area() +
-         mcpat_processor->cores[0]->ifu->ID_misc->area.get_area())*
-         mcpat_processor->cores[0]->ifu->coredynp.decodeW*1e-6;                     
-   mcpat_core_out.ifu.ID.leakage                    = (mcpat_processor->cores[0]->ifu->ID_inst->power.readOp.leakage +
-         mcpat_processor->cores[0]->ifu->ID_operand->power.readOp.leakage +
-         mcpat_processor->cores[0]->ifu->ID_misc->power.readOp.leakage);                
-   mcpat_core_out.ifu.ID.longer_channel_leakage     = (mcpat_processor->cores[0]->ifu->ID_inst->power.readOp.longer_channel_leakage +
-         mcpat_processor->cores[0]->ifu->ID_operand->power.readOp.longer_channel_leakage +
-         mcpat_processor->cores[0]->ifu->ID_misc->power.readOp.longer_channel_leakage);   
-   mcpat_core_out.ifu.ID.gate_leakage               = (mcpat_processor->cores[0]->ifu->ID_inst->power.readOp.gate_leakage +
-         mcpat_processor->cores[0]->ifu->ID_operand->power.readOp.gate_leakage +
-         mcpat_processor->cores[0]->ifu->ID_misc->power.readOp.gate_leakage);          
-   mcpat_core_out.ifu.ID.dynamic                    = (mcpat_processor->cores[0]->ifu->ID_inst->rt_power.readOp.dynamic +
-         mcpat_processor->cores[0]->ifu->ID_operand->rt_power.readOp.dynamic +
-         mcpat_processor->cores[0]->ifu->ID_misc->rt_power.readOp.dynamic);
+   mcpat_core_out.ifu.ID.area                       = (mcpat_core->cores[0]->ifu->ID_inst->area.get_area() +
+         mcpat_core->cores[0]->ifu->ID_operand->area.get_area() +
+         mcpat_core->cores[0]->ifu->ID_misc->area.get_area())*
+         mcpat_core->cores[0]->ifu->coredynp.decodeW*1e-6;                     
+   mcpat_core_out.ifu.ID.leakage                    = (mcpat_core->cores[0]->ifu->ID_inst->power.readOp.leakage +
+         mcpat_core->cores[0]->ifu->ID_operand->power.readOp.leakage +
+         mcpat_core->cores[0]->ifu->ID_misc->power.readOp.leakage);                
+   mcpat_core_out.ifu.ID.longer_channel_leakage     = (mcpat_core->cores[0]->ifu->ID_inst->power.readOp.longer_channel_leakage +
+         mcpat_core->cores[0]->ifu->ID_operand->power.readOp.longer_channel_leakage +
+         mcpat_core->cores[0]->ifu->ID_misc->power.readOp.longer_channel_leakage);   
+   mcpat_core_out.ifu.ID.gate_leakage               = (mcpat_core->cores[0]->ifu->ID_inst->power.readOp.gate_leakage +
+         mcpat_core->cores[0]->ifu->ID_operand->power.readOp.gate_leakage +
+         mcpat_core->cores[0]->ifu->ID_misc->power.readOp.gate_leakage);          
+   mcpat_core_out.ifu.ID.dynamic                    = (mcpat_core->cores[0]->ifu->ID_inst->rt_power.readOp.dynamic +
+         mcpat_core->cores[0]->ifu->ID_operand->rt_power.readOp.dynamic +
+         mcpat_core->cores[0]->ifu->ID_misc->rt_power.readOp.dynamic);
    //    Load Store Unit
-   mcpat_core_out.lsu.lsu.area                   = mcpat_processor->cores[0]->lsu->area.get_area()*1e-6;                     
-   mcpat_core_out.lsu.lsu.leakage                = mcpat_processor->cores[0]->lsu->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.lsu.lsu.longer_channel_leakage = mcpat_processor->cores[0]->lsu->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.lsu.lsu.gate_leakage           = mcpat_processor->cores[0]->lsu->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.lsu.lsu.dynamic                = mcpat_processor->cores[0]->lsu->rt_power.readOp.dynamic;
+   mcpat_core_out.lsu.lsu.area                   = mcpat_core->cores[0]->lsu->area.get_area()*1e-6;                     
+   mcpat_core_out.lsu.lsu.leakage                = mcpat_core->cores[0]->lsu->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.lsu.lsu.longer_channel_leakage = mcpat_core->cores[0]->lsu->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.lsu.lsu.gate_leakage           = mcpat_core->cores[0]->lsu->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.lsu.lsu.dynamic                = mcpat_core->cores[0]->lsu->rt_power.readOp.dynamic;
    //       Data Cache
-   mcpat_core_out.lsu.dcache.area                   = mcpat_processor->cores[0]->lsu->dcache.area.get_area()*1e-6;                     
-   mcpat_core_out.lsu.dcache.leakage                = mcpat_processor->cores[0]->lsu->dcache.power.readOp.leakage*executionTime;                  
-   mcpat_core_out.lsu.dcache.longer_channel_leakage = mcpat_processor->cores[0]->lsu->dcache.power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.lsu.dcache.gate_leakage           = mcpat_processor->cores[0]->lsu->dcache.power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.lsu.dcache.dynamic                = mcpat_processor->cores[0]->lsu->dcache.rt_power.readOp.dynamic;
+   mcpat_core_out.lsu.dcache.area                   = mcpat_core->cores[0]->lsu->dcache.area.get_area()*1e-6;                     
+   mcpat_core_out.lsu.dcache.leakage                = mcpat_core->cores[0]->lsu->dcache.power.readOp.leakage*executionTime;                  
+   mcpat_core_out.lsu.dcache.longer_channel_leakage = mcpat_core->cores[0]->lsu->dcache.power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.lsu.dcache.gate_leakage           = mcpat_core->cores[0]->lsu->dcache.power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.lsu.dcache.dynamic                = mcpat_core->cores[0]->lsu->dcache.rt_power.readOp.dynamic;
    //       Load/Store Queue
-   mcpat_core_out.lsu.LSQ.area                      = mcpat_processor->cores[0]->lsu->LSQ->area.get_area()*1e-6;                     
-   mcpat_core_out.lsu.LSQ.leakage                   = mcpat_processor->cores[0]->lsu->LSQ->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.lsu.LSQ.longer_channel_leakage    = mcpat_processor->cores[0]->lsu->LSQ->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.lsu.LSQ.gate_leakage              = mcpat_processor->cores[0]->lsu->LSQ->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.lsu.LSQ.dynamic                   = mcpat_processor->cores[0]->lsu->LSQ->rt_power.readOp.dynamic;
+   mcpat_core_out.lsu.LSQ.area                      = mcpat_core->cores[0]->lsu->LSQ->area.get_area()*1e-6;                     
+   mcpat_core_out.lsu.LSQ.leakage                   = mcpat_core->cores[0]->lsu->LSQ->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.lsu.LSQ.longer_channel_leakage    = mcpat_core->cores[0]->lsu->LSQ->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.lsu.LSQ.gate_leakage              = mcpat_core->cores[0]->lsu->LSQ->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.lsu.LSQ.dynamic                   = mcpat_core->cores[0]->lsu->LSQ->rt_power.readOp.dynamic;
    //    Memory Management Unit
-   mcpat_core_out.mmu.mmu.area                   = mcpat_processor->cores[0]->mmu->area.get_area()*1e-6;                     
-   mcpat_core_out.mmu.mmu.leakage                = mcpat_processor->cores[0]->mmu->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.mmu.mmu.longer_channel_leakage = mcpat_processor->cores[0]->mmu->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.mmu.mmu.gate_leakage           = mcpat_processor->cores[0]->mmu->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.mmu.mmu.dynamic                = mcpat_processor->cores[0]->mmu->rt_power.readOp.dynamic;
+   mcpat_core_out.mmu.mmu.area                   = mcpat_core->cores[0]->mmu->area.get_area()*1e-6;                     
+   mcpat_core_out.mmu.mmu.leakage                = mcpat_core->cores[0]->mmu->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.mmu.mmu.longer_channel_leakage = mcpat_core->cores[0]->mmu->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.mmu.mmu.gate_leakage           = mcpat_core->cores[0]->mmu->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.mmu.mmu.dynamic                = mcpat_core->cores[0]->mmu->rt_power.readOp.dynamic;
    //       Itlb
-   mcpat_core_out.mmu.itlb.area                     = mcpat_processor->cores[0]->mmu->itlb->area.get_area()*1e-6;                     
-   mcpat_core_out.mmu.itlb.leakage                  = mcpat_processor->cores[0]->mmu->itlb->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.mmu.itlb.longer_channel_leakage   = mcpat_processor->cores[0]->mmu->itlb->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.mmu.itlb.gate_leakage             = mcpat_processor->cores[0]->mmu->itlb->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.mmu.itlb.dynamic                  = mcpat_processor->cores[0]->mmu->itlb->rt_power.readOp.dynamic;
+   mcpat_core_out.mmu.itlb.area                     = mcpat_core->cores[0]->mmu->itlb->area.get_area()*1e-6;                     
+   mcpat_core_out.mmu.itlb.leakage                  = mcpat_core->cores[0]->mmu->itlb->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.mmu.itlb.longer_channel_leakage   = mcpat_core->cores[0]->mmu->itlb->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.mmu.itlb.gate_leakage             = mcpat_core->cores[0]->mmu->itlb->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.mmu.itlb.dynamic                  = mcpat_core->cores[0]->mmu->itlb->rt_power.readOp.dynamic;
    //       Dtlb
-   mcpat_core_out.mmu.dtlb.area                     = mcpat_processor->cores[0]->mmu->dtlb->area.get_area()*1e-6;                     
-   mcpat_core_out.mmu.dtlb.leakage                  = mcpat_processor->cores[0]->mmu->dtlb->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.mmu.dtlb.longer_channel_leakage   = mcpat_processor->cores[0]->mmu->dtlb->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.mmu.dtlb.gate_leakage             = mcpat_processor->cores[0]->mmu->dtlb->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.mmu.dtlb.dynamic                  = mcpat_processor->cores[0]->mmu->dtlb->rt_power.readOp.dynamic;
+   mcpat_core_out.mmu.dtlb.area                     = mcpat_core->cores[0]->mmu->dtlb->area.get_area()*1e-6;                     
+   mcpat_core_out.mmu.dtlb.leakage                  = mcpat_core->cores[0]->mmu->dtlb->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.mmu.dtlb.longer_channel_leakage   = mcpat_core->cores[0]->mmu->dtlb->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.mmu.dtlb.gate_leakage             = mcpat_core->cores[0]->mmu->dtlb->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.mmu.dtlb.dynamic                  = mcpat_core->cores[0]->mmu->dtlb->rt_power.readOp.dynamic;
    //    Execution Unit
-   mcpat_core_out.exu.exu.area                   = mcpat_processor->cores[0]->exu->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.exu.leakage                = mcpat_processor->cores[0]->exu->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.exu.longer_channel_leakage = mcpat_processor->cores[0]->exu->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.exu.gate_leakage           = mcpat_processor->cores[0]->exu->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.exu.dynamic                = mcpat_processor->cores[0]->exu->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.exu.area                   = mcpat_core->cores[0]->exu->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.exu.leakage                = mcpat_core->cores[0]->exu->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.exu.longer_channel_leakage = mcpat_core->cores[0]->exu->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.exu.gate_leakage           = mcpat_core->cores[0]->exu->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.exu.dynamic                = mcpat_core->cores[0]->exu->rt_power.readOp.dynamic;
    //       Register Files
-   mcpat_core_out.exu.rfu.rfu.area                        = mcpat_processor->cores[0]->exu->rfu->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.rfu.rfu.leakage                     = mcpat_processor->cores[0]->exu->rfu->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.rfu.rfu.longer_channel_leakage      = mcpat_processor->cores[0]->exu->rfu->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.rfu.rfu.gate_leakage                = mcpat_processor->cores[0]->exu->rfu->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.rfu.rfu.dynamic                     = mcpat_processor->cores[0]->exu->rfu->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.rfu.rfu.area                        = mcpat_core->cores[0]->exu->rfu->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.rfu.rfu.leakage                     = mcpat_core->cores[0]->exu->rfu->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.rfu.rfu.longer_channel_leakage      = mcpat_core->cores[0]->exu->rfu->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.rfu.rfu.gate_leakage                = mcpat_core->cores[0]->exu->rfu->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.rfu.rfu.dynamic                     = mcpat_core->cores[0]->exu->rfu->rt_power.readOp.dynamic;
    //          Integer RF
-   mcpat_core_out.exu.rfu.IRF.area                           = mcpat_processor->cores[0]->exu->rfu->IRF->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.rfu.IRF.leakage                        = mcpat_processor->cores[0]->exu->rfu->IRF->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.rfu.IRF.longer_channel_leakage         = mcpat_processor->cores[0]->exu->rfu->IRF->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.rfu.IRF.gate_leakage                   = mcpat_processor->cores[0]->exu->rfu->IRF->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.rfu.IRF.dynamic                        = mcpat_processor->cores[0]->exu->rfu->IRF->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.rfu.IRF.area                           = mcpat_core->cores[0]->exu->rfu->IRF->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.rfu.IRF.leakage                        = mcpat_core->cores[0]->exu->rfu->IRF->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.rfu.IRF.longer_channel_leakage         = mcpat_core->cores[0]->exu->rfu->IRF->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.rfu.IRF.gate_leakage                   = mcpat_core->cores[0]->exu->rfu->IRF->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.rfu.IRF.dynamic                        = mcpat_core->cores[0]->exu->rfu->IRF->rt_power.readOp.dynamic;
    //          Floating Point RF
-   mcpat_core_out.exu.rfu.FRF.area                           = mcpat_processor->cores[0]->exu->rfu->FRF->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.rfu.FRF.leakage                        = mcpat_processor->cores[0]->exu->rfu->FRF->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.rfu.FRF.longer_channel_leakage         = mcpat_processor->cores[0]->exu->rfu->FRF->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.rfu.FRF.gate_leakage                   = mcpat_processor->cores[0]->exu->rfu->FRF->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.rfu.FRF.dynamic                        = mcpat_processor->cores[0]->exu->rfu->FRF->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.rfu.FRF.area                           = mcpat_core->cores[0]->exu->rfu->FRF->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.rfu.FRF.leakage                        = mcpat_core->cores[0]->exu->rfu->FRF->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.rfu.FRF.longer_channel_leakage         = mcpat_core->cores[0]->exu->rfu->FRF->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.rfu.FRF.gate_leakage                   = mcpat_core->cores[0]->exu->rfu->FRF->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.rfu.FRF.dynamic                        = mcpat_core->cores[0]->exu->rfu->FRF->rt_power.readOp.dynamic;
    //          Register Windows
-   if (mcpat_processor->cores[0]->exu->rfu->RFWIN)
+   if (mcpat_core->cores[0]->exu->rfu->RFWIN)
    {
-      mcpat_core_out.exu.rfu.RFWIN.area                         = mcpat_processor->cores[0]->exu->rfu->RFWIN->area.get_area()*1e-6;                     
-      mcpat_core_out.exu.rfu.RFWIN.leakage                      = mcpat_processor->cores[0]->exu->rfu->RFWIN->power.readOp.leakage*executionTime;                  
-      mcpat_core_out.exu.rfu.RFWIN.longer_channel_leakage       = mcpat_processor->cores[0]->exu->rfu->RFWIN->power.readOp.longer_channel_leakage*executionTime;   
-      mcpat_core_out.exu.rfu.RFWIN.gate_leakage                 = mcpat_processor->cores[0]->exu->rfu->RFWIN->power.readOp.gate_leakage*executionTime;             
-      mcpat_core_out.exu.rfu.RFWIN.dynamic                      = mcpat_processor->cores[0]->exu->rfu->RFWIN->rt_power.readOp.dynamic;
+      mcpat_core_out.exu.rfu.RFWIN.area                         = mcpat_core->cores[0]->exu->rfu->RFWIN->area.get_area()*1e-6;                     
+      mcpat_core_out.exu.rfu.RFWIN.leakage                      = mcpat_core->cores[0]->exu->rfu->RFWIN->power.readOp.leakage*executionTime;                  
+      mcpat_core_out.exu.rfu.RFWIN.longer_channel_leakage       = mcpat_core->cores[0]->exu->rfu->RFWIN->power.readOp.longer_channel_leakage*executionTime;   
+      mcpat_core_out.exu.rfu.RFWIN.gate_leakage                 = mcpat_core->cores[0]->exu->rfu->RFWIN->power.readOp.gate_leakage*executionTime;             
+      mcpat_core_out.exu.rfu.RFWIN.dynamic                      = mcpat_core->cores[0]->exu->rfu->RFWIN->rt_power.readOp.dynamic;
    }
    //       Instruction Scheduler
-   mcpat_core_out.exu.scheu.scheu.area                    = mcpat_processor->cores[0]->exu->scheu->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.scheu.scheu.leakage                 = mcpat_processor->cores[0]->exu->scheu->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.scheu.scheu.longer_channel_leakage  = mcpat_processor->cores[0]->exu->scheu->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.scheu.scheu.gate_leakage            = mcpat_processor->cores[0]->exu->scheu->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.scheu.scheu.dynamic                 = mcpat_processor->cores[0]->exu->scheu->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.scheu.scheu.area                    = mcpat_core->cores[0]->exu->scheu->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.scheu.scheu.leakage                 = mcpat_core->cores[0]->exu->scheu->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.scheu.scheu.longer_channel_leakage  = mcpat_core->cores[0]->exu->scheu->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.scheu.scheu.gate_leakage            = mcpat_core->cores[0]->exu->scheu->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.scheu.scheu.dynamic                 = mcpat_core->cores[0]->exu->scheu->rt_power.readOp.dynamic;
    //          Instruction Window
-   if (mcpat_processor->cores[0]->exu->scheu->int_inst_window)
+   if (mcpat_core->cores[0]->exu->scheu->int_inst_window)
    {
-      mcpat_core_out.exu.scheu.int_inst_window.area                    = mcpat_processor->cores[0]->exu->scheu->int_inst_window->area.get_area()*1e-6;                     
-      mcpat_core_out.exu.scheu.int_inst_window.leakage                 = mcpat_processor->cores[0]->exu->scheu->int_inst_window->power.readOp.leakage*executionTime;                  
-      mcpat_core_out.exu.scheu.int_inst_window.longer_channel_leakage  = mcpat_processor->cores[0]->exu->scheu->int_inst_window->power.readOp.longer_channel_leakage*executionTime;   
-      mcpat_core_out.exu.scheu.int_inst_window.gate_leakage            = mcpat_processor->cores[0]->exu->scheu->int_inst_window->power.readOp.gate_leakage*executionTime;             
-      mcpat_core_out.exu.scheu.int_inst_window.dynamic                 = mcpat_processor->cores[0]->exu->scheu->int_inst_window->rt_power.readOp.dynamic;
+      mcpat_core_out.exu.scheu.int_inst_window.area                    = mcpat_core->cores[0]->exu->scheu->int_inst_window->area.get_area()*1e-6;                     
+      mcpat_core_out.exu.scheu.int_inst_window.leakage                 = mcpat_core->cores[0]->exu->scheu->int_inst_window->power.readOp.leakage*executionTime;                  
+      mcpat_core_out.exu.scheu.int_inst_window.longer_channel_leakage  = mcpat_core->cores[0]->exu->scheu->int_inst_window->power.readOp.longer_channel_leakage*executionTime;   
+      mcpat_core_out.exu.scheu.int_inst_window.gate_leakage            = mcpat_core->cores[0]->exu->scheu->int_inst_window->power.readOp.gate_leakage*executionTime;             
+      mcpat_core_out.exu.scheu.int_inst_window.dynamic                 = mcpat_core->cores[0]->exu->scheu->int_inst_window->rt_power.readOp.dynamic;
    }
    //       Integer ALUs
-   mcpat_core_out.exu.exeu.area                     = mcpat_processor->cores[0]->exu->exeu->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.exeu.leakage                  = mcpat_processor->cores[0]->exu->exeu->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.exeu.longer_channel_leakage   = mcpat_processor->cores[0]->exu->exeu->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.exeu.gate_leakage             = mcpat_processor->cores[0]->exu->exeu->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.exeu.dynamic                  = mcpat_processor->cores[0]->exu->exeu->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.exeu.area                     = mcpat_core->cores[0]->exu->exeu->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.exeu.leakage                  = mcpat_core->cores[0]->exu->exeu->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.exeu.longer_channel_leakage   = mcpat_core->cores[0]->exu->exeu->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.exeu.gate_leakage             = mcpat_core->cores[0]->exu->exeu->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.exeu.dynamic                  = mcpat_core->cores[0]->exu->exeu->rt_power.readOp.dynamic;
    //       Floating Point Units (FPUs)
-   mcpat_core_out.exu.fp_u.area                     = mcpat_processor->cores[0]->exu->fp_u->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.fp_u.leakage                  = mcpat_processor->cores[0]->exu->fp_u->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.fp_u.longer_channel_leakage   = mcpat_processor->cores[0]->exu->fp_u->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.fp_u.gate_leakage             = mcpat_processor->cores[0]->exu->fp_u->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.fp_u.dynamic                  = mcpat_processor->cores[0]->exu->fp_u->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.fp_u.area                     = mcpat_core->cores[0]->exu->fp_u->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.fp_u.leakage                  = mcpat_core->cores[0]->exu->fp_u->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.fp_u.longer_channel_leakage   = mcpat_core->cores[0]->exu->fp_u->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.fp_u.gate_leakage             = mcpat_core->cores[0]->exu->fp_u->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.fp_u.dynamic                  = mcpat_core->cores[0]->exu->fp_u->rt_power.readOp.dynamic;
    //       Complex ALUs (Mul/Div)
-   mcpat_core_out.exu.mul.area                      = mcpat_processor->cores[0]->exu->mul->area.get_area()*1e-6;                     
-   mcpat_core_out.exu.mul.leakage                   = mcpat_processor->cores[0]->exu->mul->power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.mul.longer_channel_leakage    = mcpat_processor->cores[0]->exu->mul->power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.mul.gate_leakage              = mcpat_processor->cores[0]->exu->mul->power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.mul.dynamic                   = mcpat_processor->cores[0]->exu->mul->rt_power.readOp.dynamic;
+   mcpat_core_out.exu.mul.area                      = mcpat_core->cores[0]->exu->mul->area.get_area()*1e-6;                     
+   mcpat_core_out.exu.mul.leakage                   = mcpat_core->cores[0]->exu->mul->power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.mul.longer_channel_leakage    = mcpat_core->cores[0]->exu->mul->power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.mul.gate_leakage              = mcpat_core->cores[0]->exu->mul->power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.mul.dynamic                   = mcpat_core->cores[0]->exu->mul->rt_power.readOp.dynamic;
    //       Results Broadcast Bus
-   mcpat_core_out.exu.bypass.area                   = mcpat_processor->cores[0]->exu->bypass.area.get_area()*1e-6;                     
-   mcpat_core_out.exu.bypass.leakage                = mcpat_processor->cores[0]->exu->bypass.power.readOp.leakage*executionTime;                  
-   mcpat_core_out.exu.bypass.longer_channel_leakage = mcpat_processor->cores[0]->exu->bypass.power.readOp.longer_channel_leakage*executionTime;   
-   mcpat_core_out.exu.bypass.gate_leakage           = mcpat_processor->cores[0]->exu->bypass.power.readOp.gate_leakage*executionTime;             
-   mcpat_core_out.exu.bypass.dynamic                = mcpat_processor->cores[0]->exu->bypass.rt_power.readOp.dynamic;
+   mcpat_core_out.exu.bypass.area                   = mcpat_core->cores[0]->exu->bypass.area.get_area()*1e-6;                     
+   mcpat_core_out.exu.bypass.leakage                = mcpat_core->cores[0]->exu->bypass.power.readOp.leakage*executionTime;                  
+   mcpat_core_out.exu.bypass.longer_channel_leakage = mcpat_core->cores[0]->exu->bypass.power.readOp.longer_channel_leakage*executionTime;   
+   mcpat_core_out.exu.bypass.gate_leakage           = mcpat_core->cores[0]->exu->bypass.power.readOp.gate_leakage*executionTime;             
+   mcpat_core_out.exu.bypass.dynamic                = mcpat_core->cores[0]->exu->bypass.rt_power.readOp.dynamic;
 }
 
 //---------------------------------------------------------------------------
@@ -907,6 +902,4 @@ void McPATCoreInterface::setEventCountersC()
    // |---- Function Calls and Context Switches
    m_function_calls = 5;
    m_context_switches = 260343;
-}
-
 }

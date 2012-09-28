@@ -70,9 +70,7 @@ SRCS  = \
   wire.cc \
   xmlParser.cc \
   core_wrapper.cc \
-  cache_wrapper.cc \
-  mcpat_core_interface.cc \
-  mcpat_cache_interface.cc
+  cache_wrapper.cc
 
 OBJS = $(patsubst %.cc,obj_$(TAG)/%.o,$(SRCS))
 

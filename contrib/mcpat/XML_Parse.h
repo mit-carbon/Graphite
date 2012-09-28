@@ -62,9 +62,6 @@
 #include <iostream>
 using namespace std;
 
-class McPATCoreInterface;
-class McPATCacheInterface;
-
 namespace McPAT
 {
 
@@ -610,16 +607,6 @@ public:
    // Fill ParseXML Data Structures with Niagara 1
    void setNiagara1();
 
-   // Fill ParseXML Architectural Parameters
-   void fillCoreParamsFromMcPATCoreInterface(McPATCoreInterface * mci);
-   // Fill ParseXML Event Counters
-   void fillCoreStatsFromMcPATCoreInterface(McPATCoreInterface * mci);
-   
-   // Fill ParseXML Architectural Parameters
-   void fillCacheParamsFromMcPATCacheInterface(McPATCacheInterface * mci) {}
-   // Fill ParseXML Event Counters
-   void fillCacheStatsFromMcPATCacheInterface(McPATCacheInterface * mci) {}
-
 public:
    // ParseXML Data Structures for Parameters and Statistics
 	root_system sys;
@@ -628,7 +615,3 @@ public:
 }
 
 #endif /* XML_PARSE_H_ */
-
-
-
-

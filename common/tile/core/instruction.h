@@ -7,15 +7,16 @@
 
 enum InstructionType
 {
-   INST_GENERIC,
-   INST_ADD,
-   INST_SUB,
-   INST_MUL,
-   INST_DIV,
-   INST_FADD,
-   INST_FSUB,
+   INST_IALU,
+   INST_IMUL,
+   INST_IDIV,
+   INST_FALU,
    INST_FMUL,
    INST_FDIV,
+   INST_XMM_SS,
+   INST_XMM_SD,
+   INST_XMM_PS,
+   INST_GENERIC,
    INST_JMP,
    INST_DYNAMIC_MISC,
    INST_RECV,
@@ -27,7 +28,7 @@ enum InstructionType
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","dynamic_misc","recv","sync","spawn","string","branch"};
+{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","dynamic_misc","recv","sync","spawn","string","branch"};
 
 class Operand
 {

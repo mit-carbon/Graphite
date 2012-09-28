@@ -66,7 +66,17 @@ void Instruction::initializeStaticInstructionModel()
    {
        char key_name [1024];
        snprintf(key_name, 1024, "core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
-       UInt32 instruction_cost = Sim()->getCfg()->getInt(key_name, 0);
+       UInt32 instruction_cost = 0;
+       
+       try
+       {
+          instruction_cost = Sim()->getCfg()->getInt(key_name);
+       }
+       catch (...)
+       {
+          LOG_PRINT_ERROR("Could not read instruction cost for (%s)", key_name);
+       }
+
        m_instruction_costs[i] = instruction_cost;
    }
 }

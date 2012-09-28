@@ -18,23 +18,27 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
 {
    config::Config *cfg = Sim()->getCfg();
 
+   UInt32 num_load_buffer_entries = 0;
+   UInt32 num_store_buffer_entries = 0;
    try
    {
-      m_store_buffer = new StoreBuffer(cfg->getInt("core/iocoom/num_store_buffer_entries",1));
-      m_load_buffer = new LoadBuffer(cfg->getInt("core/iocoom/num_outstanding_loads",3));
+      num_load_buffer_entries = cfg->getInt("core/iocoom/num_outstanding_loads");
+      num_store_buffer_entries = cfg->getInt("core/iocoom/num_store_buffer_entries");
    }
    catch (...)
    {
       LOG_PRINT_ERROR("Config info not available.");
    }
 
+   m_load_buffer = new LoadBuffer(num_load_buffer_entries);
+   m_store_buffer = new StoreBuffer(num_store_buffer_entries);
+   
    initializeRegisterScoreboard();
    initializeRegisterWaitUnitList();
    
-   // For Power and AreaModeling
-   m_mcpat_core_interface = new McPATCoreInterface(
-                            cfg->getInt("core/iocoom/num_outstanding_loads", 3),
-                            cfg->getInt("core/iocoom/num_store_buffer_entries", 1));
+   // For Power and Area Modeling
+   m_mcpat_core_interface = new McPATCoreInterface(cfg->getInt("general/technology_node", 45),
+                                (UInt32) frequency * 1000, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();
 }
@@ -61,6 +65,14 @@ void IOCOOMCoreModel::initializePipelineStallCounters()
 void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    CoreModel::outputSummary(os);
+
+   // Compute Energy for Total Run (FIXME: Just for debugging)
+   m_mcpat_core_interface->computeMcPATCoreEnergy();
+   
+   m_mcpat_core_interface->displayStats(os);
+   m_mcpat_core_interface->displayParam(os);
+   os << "Core Power Model Summary:" << endl;
+   m_mcpat_core_interface->displayMcPATCoreEnergy(os);
 
 //   os << "    Total Load Buffer Stall Time (in ns): " << (UInt64) ((double) m_total_load_buffer_stall_cycles / m_frequency) << endl;
 //   os << "    Total Store Buffer Stall Time (in ns): " << (UInt64) ((double) m_total_store_buffer_stall_cycles / m_frequency) << endl;

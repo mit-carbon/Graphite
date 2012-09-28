@@ -32,7 +32,7 @@ $(ORION_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/orion
 
 $(MCPAT_LIB):
-	make -C $(SIM_ROOT)/contrib/mcpat
+	$(MAKE) -C $(SIM_ROOT)/contrib/mcpat
 
 ifneq ($(CLEAN),)
 clean:

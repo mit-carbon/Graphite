@@ -24,7 +24,7 @@ McPATCacheInterface::McPATCacheInterface()
    _xml->setNiagara1();
 
    // Fill the ParseXML's Core Params from McPATCacheInterface
-   _xml->fillCacheParamsFromMcPATCacheInterface(this);
+   fillCacheParamsIntoXML();
 
    // Make a Processor Object from the ParseXML
    _cache_wrapper = new McPAT::CacheWrapper(_xml);
@@ -76,7 +76,7 @@ void McPATCacheInterface::initializeOutputDataStructure()
 void McPATCacheInterface::computeEnergy()
 {
    // Fill the ParseXML's Core Event Stats from McPATCacheInterface
-   _xml->fillCacheStatsFromMcPATCacheInterface(this);
+   fillCacheStatsIntoXML();
 
    // Compute Energy from Processor
    _cache_wrapper->computeEnergy();
@@ -133,12 +133,4 @@ void McPATCacheInterface::displayStats()
 {
    // Event Counters
    cout << "  Cache Statistics:" << endl;
-}
-
-//---------------------------------------------------------------------------
-// Set Event Counters
-//---------------------------------------------------------------------------
-void McPATCacheInterface::setEventCounters()
-{
-   // Event Counters
 }

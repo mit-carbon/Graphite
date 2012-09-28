@@ -55,8 +55,9 @@ public:
    // Display Event Counters
    void displayStats();
 
-   // Set Event Counters
-   void setEventCounters();
+   // Initialize XML Object
+   void fillCacheParamsIntoXML();
+   void fillCacheStatsIntoXML();
 
 public:
    // System Parameters

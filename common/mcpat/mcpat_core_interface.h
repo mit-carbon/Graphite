@@ -214,6 +214,8 @@ private:
    double m_function_calls;
    double m_context_switches;
    
+   bool m_enable_area_and_power_modeling;
+
    // Initialize Architectural Parameters
    void initializeArchitecturalParameters(UInt32 technology_node, UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
    // Initialize Event Counters

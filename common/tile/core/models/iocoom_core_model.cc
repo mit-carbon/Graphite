@@ -2,12 +2,11 @@ using namespace std;
 
 #include "core.h"
 #include "iocoom_core_model.h"
-
-#include "log.h"
 #include "dynamic_instruction_info.h"
 #include "config.hpp"
 #include "simulator.h"
 #include "branch_predictor.h"
+#include "log.h"
 
 IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
    : CoreModel(core, frequency)
@@ -36,6 +35,8 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
    initializeRegisterScoreboard();
    initializeRegisterWaitUnitList();
    
+   m_enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
+
    // For Power and Area Modeling
    m_mcpat_core_interface = new McPATCoreInterface(cfg->getInt("general/technology_node", 45),
                                 (UInt32) frequency * 1000, num_load_buffer_entries, num_store_buffer_entries);
@@ -65,14 +66,16 @@ void IOCOOMCoreModel::initializePipelineStallCounters()
 void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    CoreModel::outputSummary(os);
-
-   // Compute Energy for Total Run (FIXME: Just for debugging)
-   m_mcpat_core_interface->computeMcPATCoreEnergy();
    
    m_mcpat_core_interface->displayStats(os);
    m_mcpat_core_interface->displayParam(os);
-   os << "Core Power Model Summary:" << endl;
-   m_mcpat_core_interface->displayMcPATCoreEnergy(os);
+   if (m_enable_area_and_power_modeling)
+   {
+      os << "  Area and Power Model Summary:" << endl;
+      // Compute Energy for Total Run
+      m_mcpat_core_interface->computeMcPATCoreEnergy();
+      m_mcpat_core_interface->displayMcPATCoreEnergy(os);
+   }
 
 //   os << "    Total Load Buffer Stall Time (in ns): " << (UInt64) ((double) m_total_load_buffer_stall_cycles / m_frequency) << endl;
 //   os << "    Total Store Buffer Stall Time (in ns): " << (UInt64) ((double) m_total_store_buffer_stall_cycles / m_frequency) << endl;

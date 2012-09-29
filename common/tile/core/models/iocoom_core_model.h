@@ -107,6 +107,7 @@ private:
    UInt64 m_total_inter_ins_execution_unit_stall_cycles;
    void initializePipelineStallCounters();
 
+   bool m_enable_area_and_power_modeling;
    McPATCoreInterface* m_mcpat_core_interface;
 };
 

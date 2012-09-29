@@ -6,6 +6,7 @@
 #include <string.h>
 #include <iostream>
 #include "mcpat_core_interface.h"
+#include "config.h"
 #include "log.h"
 
 using namespace std;
@@ -19,21 +20,26 @@ McPATCoreInterface::McPATCoreInterface(UInt32 technology_node, UInt32 core_frequ
    initializeArchitecturalParameters(technology_node, core_frequency, load_buffer_size, store_buffer_size);
    // Initialize Event Counters
    initializeEventCounters();
-   // Initialize Output Data Structure
-   initializeOutputDataStructure();
 
-   // Make a ParseXML Object and Initialize it
-   mcpat_parsexml = new McPAT::ParseXML();
+   m_enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
+   if (m_enable_area_and_power_modeling)
+   {
+      // Initialize Output Data Structure
+      initializeOutputDataStructure();
+      
+      // Make a ParseXML Object and Initialize it
+      mcpat_parsexml = new McPAT::ParseXML();
 
-   // Initialize ParseXML Params and Stats
-   mcpat_parsexml->initialize();
-   mcpat_parsexml->setNiagara1();
+      // Initialize ParseXML Params and Stats
+      mcpat_parsexml->initialize();
+      mcpat_parsexml->setNiagara1();
 
-   // Fill the ParseXML's Core Params from McPATCoreInterface
-   fillCoreParamsIntoXML();
+      // Fill the ParseXML's Core Params from McPATCoreInterface
+      fillCoreParamsIntoXML();
 
-   // Make a Processor Object from the ParseXML
-   mcpat_core = new McPAT::CoreWrapper(mcpat_parsexml);
+      // Make a Processor Object from the ParseXML
+      mcpat_core = new McPAT::CoreWrapper(mcpat_parsexml);
+   }
 }
 
 //---------------------------------------------------------------------------
@@ -41,8 +47,11 @@ McPATCoreInterface::McPATCoreInterface(UInt32 technology_node, UInt32 core_frequ
 //---------------------------------------------------------------------------
 McPATCoreInterface::~McPATCoreInterface()
 {
-   delete mcpat_parsexml;
-   delete mcpat_core;
+   if (m_enable_area_and_power_modeling)
+   {
+      delete mcpat_parsexml;
+      delete mcpat_core;
+   }
 }
 
 //---------------------------------------------------------------------------

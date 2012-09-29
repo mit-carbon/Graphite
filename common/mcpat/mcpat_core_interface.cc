@@ -441,7 +441,7 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
    _core_wrapper->computeEnergy();
 
    // Execution Time
-  _execution_time = (_core_wrapper->core->coredynp.executionTime);
+   _execution_time = (_core_wrapper->core->executionTime);
 
    // Store Energy into Data Structure
    // Core
@@ -779,10 +779,8 @@ void McPATCoreInterface::displayStats(std::ostream &os)
 {
    // Event Counters
    os << "  Core Statistics:" << std::endl;
-   os << "    execution_time : " << _execution_time << std::endl;
-   // |-- Used Event Counters
-   // |---- Instruction Counters
    
+   // |---- Instruction Counters
    os << "    total_instructions : " << (UInt64) _total_instructions << std::endl;
    os << "    int_instructions : " << (UInt64) _int_instructions << std::endl;
    os << "    fp_instructions : " << (UInt64) _fp_instructions << std::endl;

@@ -66,9 +66,10 @@ void IOCOOMCoreModel::initializePipelineStallCounters()
 void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    CoreModel::outputSummary(os);
-   
+  
    m_mcpat_core_interface->displayStats(os);
    m_mcpat_core_interface->displayParam(os);
+   
    if (m_enable_area_and_power_modeling)
    {
       os << "  Area and Power Model Summary:" << endl;

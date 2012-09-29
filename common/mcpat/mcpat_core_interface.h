@@ -118,103 +118,103 @@ public:
 
 private:
    // McPAT Objects
-   McPAT::ParseXML  *mcpat_parsexml;
-   McPAT::CoreWrapper *mcpat_core;
+   McPAT::ParseXML* _xml;
+   McPAT::CoreWrapper* _core_wrapper;
    // McPAT Output Data Structure
-   mcpat_core_output mcpat_core_out;
+   mcpat_core_output _mcpat_core_out;
 
    // System Parameters
    // Execution Time
-   double m_execution_time;
+   double _execution_time;
    // |---- General Parameters
-   int m_clock_rate;
-   double m_core_tech_node;
+   int _clock_rate;
+   double _core_tech_node;
    // Architectural Parameters
    // |---- General Parameters
-   int m_instruction_length;
-   int m_opcode_width;
-   int m_machine_type;
-   int m_num_hardware_threads;
-   int m_fetch_width;
-   int m_num_instruction_fetch_ports;
-   int m_decode_width;
-   int m_issue_width;
-   int m_commit_width;
-   int m_fp_issue_width;
-   int m_prediction_width;
-   int m_integer_pipeline_depth;
-   int m_fp_pipeline_depth;
-   int m_ALU_per_core;
-   int m_MUL_per_core;
-   double m_FPU_per_core;
-   int m_instruction_buffer_size;
-   int m_decoded_stream_buffer_size;
+   int _instruction_length;
+   int _opcode_width;
+   int _machine_type;
+   int _num_hardware_threads;
+   int _fetch_width;
+   int _num_instruction_fetch_ports;
+   int _decode_width;
+   int _issue_width;
+   int _commit_width;
+   int _fp_issue_width;
+   int _prediction_width;
+   int _integer_pipeline_depth;
+   int _fp_pipeline_depth;
+   int _ALU_per_core;
+   int _MUL_per_core;
+   double _FPU_per_core;
+   int _instruction_buffer_size;
+   int _decoded_stream_buffer_size;
    // |---- Register File
-   int m_arch_regs_IRF_size;
-   int m_arch_regs_FRF_size;
-   int m_phy_regs_IRF_size;
-   int m_phy_regs_FRF_size;
+   int _arch_regs_IRF_size;
+   int _arch_regs_FRF_size;
+   int _phy_regs_IRF_size;
+   int _phy_regs_FRF_size;
    // |---- Load-Store Unit
-   string m_LSU_order;
-   int m_store_buffer_size;
-   int m_load_buffer_size;
-   int m_num_memory_ports;
-   int m_RAS_size;
+   string _LSU_order;
+   int _store_buffer_size;
+   int _load_buffer_size;
+   int _num_memory_ports;
+   int _RAS_size;
    // |---- OoO Core
-   int m_instruction_window_scheme;
-   int m_instruction_window_size;
-   int m_fp_instruction_window_size;
-   int m_ROB_size;
-   int m_rename_scheme;
+   int _instruction_window_scheme;
+   int _instruction_window_size;
+   int _fp_instruction_window_size;
+   int _ROB_size;
+   int _rename_scheme;
    // |---- Register Windows (specific to Sun processors)
-   int m_register_windows_size;
+   int _register_windows_size;
 
    // Event Counters
    // |-- Used Event Counters
    // |---- Instruction Counters
-   double m_total_instructions;
-   double m_int_instructions;
-   double m_fp_instructions;
-   double m_branch_instructions;
-   double m_branch_mispredictions;
-   double m_load_instructions;
-   double m_store_instructions;
-   double m_committed_instructions;
-   double m_committed_int_instructions;
-   double m_committed_fp_instructions;
+   double _total_instructions;
+   double _int_instructions;
+   double _fp_instructions;
+   double _branch_instructions;
+   double _branch_mispredictions;
+   double _load_instructions;
+   double _store_instructions;
+   double _committed_instructions;
+   double _committed_int_instructions;
+   double _committed_fp_instructions;
    // |---- Cycle Counters
-   double m_total_cycles;
-   double m_idle_cycles;
-   double m_busy_cycles;
+   double _total_cycles;
+   double _idle_cycles;
+   double _busy_cycles;
    // |---- Reg File Access Counters
-   double m_int_regfile_reads;
-   double m_int_regfile_writes;
-   double m_fp_regfile_reads;
-   double m_fp_regfile_writes;
+   double _int_regfile_reads;
+   double _int_regfile_writes;
+   double _fp_regfile_reads;
+   double _fp_regfile_writes;
    // |---- Execution Unit Access Counters
-   double m_ialu_accesses;
-   double m_mul_accesses;
-   double m_fpu_accesses;
-   double m_cdb_alu_accesses;
-   double m_cdb_mul_accesses;
-   double m_cdb_fpu_accesses;
+   double _ialu_accesses;
+   double _mul_accesses;
+   double _fpu_accesses;
+   double _cdb_alu_accesses;
+   double _cdb_mul_accesses;
+   double _cdb_fpu_accesses;
    // |-- Unused Event Counters
    // |---- OoO Core Event Counters
-   double m_inst_window_reads;
-   double m_inst_window_writes;
-   double m_inst_window_wakeup_accesses;
-   double m_fp_inst_window_reads;
-   double m_fp_inst_window_writes;
-   double m_fp_inst_window_wakeup_accesses;
-   double m_ROB_reads;
-   double m_ROB_writes;
-   double m_rename_accesses;
-   double m_fp_rename_accesses;
+   double _inst_window_reads;
+   double _inst_window_writes;
+   double _inst_window_wakeup_accesses;
+   double _fp_inst_window_reads;
+   double _fp_inst_window_writes;
+   double _fp_inst_window_wakeup_accesses;
+   double _ROB_reads;
+   double _ROB_writes;
+   double _rename_accesses;
+   double _fp_rename_accesses;
    // |---- Function Calls and Context Switches
-   double m_function_calls;
-   double m_context_switches;
+   double _function_calls;
+   double _context_switches;
    
-   bool m_enable_area_and_power_modeling;
+   bool _enable_area_and_power_modeling;
 
    // Initialize Architectural Parameters
    void initializeArchitecturalParameters(UInt32 technology_node, UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);

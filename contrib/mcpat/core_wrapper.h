@@ -4,15 +4,9 @@
 
 #pragma once
 
-#include "XML_Parse.h"
-#include "area.h"
-#include "decoder.h"
-#include "parameter.h"
-#include "array.h"
-#include "arbiter.h"
-#include <vector>
 #include "basic_components.h"
 #include "core.h"
+#include "XML_Parse.h"
 
 namespace McPAT
 {
@@ -24,11 +18,8 @@ class CoreWrapper : public Component
 {
   public:
     ParseXML *XML;
-    vector<Core *> cores;
+    Core* core;
     InputParameter interface_ip;
-    ProcParam procdynp;
-    Component core;
-    int  numCore;
 
     // Create CoreWrapper
     CoreWrapper(ParseXML *XML_interface);

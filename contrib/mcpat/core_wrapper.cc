@@ -33,25 +33,8 @@ CoreWrapper::CoreWrapper(ParseXML *XML_interface)
    *  There is no point to have heterogeneous memory controller on chip,
    *  thus McPAT only support homogeneous memory controllers.
    */
-  int i;
   set_proc_param();
-  if (procdynp.homoCore)
-     numCore = procdynp.numCore==0? 0:1;
-  else
-     numCore = procdynp.numCore;
-
-  for (i = 0;i < numCore; i++)
-  {
-        cores.push_back(new Core(XML,i, &interface_ip));
-        if (procdynp.homoCore){
-           core.area.set_area(core.area.get_area() + cores[i]->area.get_area()*procdynp.numCore);
-           area.set_area(area.get_area() + core.area.get_area());//placement and routing overhead is 10%, core scales worse than cache 40% is accumulated from 90 to 22nm
-        }
-        else{
-           core.area.set_area(core.area.get_area() + cores[i]->area.get_area());
-           area.set_area(area.get_area() + cores[i]->area.get_area());//placement and routing overhead is 10%, core scales worse than cache 40% is accumulated from 90 to 22nm
-        }
-  }
+  core = new Core(XML, 0, &interface_ip);
 }
 
 //---------------------------------------------------------------------------
@@ -64,51 +47,15 @@ void CoreWrapper::computeEnergy()
    *  There is no point to have heterogeneous memory controller on chip,
    *  thus McPAT only support homogeneous memory controllers.
    */
-  int i;
-  double pppm_t[4]    = {1,1,1,1};
-
-  //--------------------------------------
-  // Set Numbers of Components
-  //--------------------------------------
-  if (procdynp.homoCore)
-     numCore = procdynp.numCore==0? 0:1;
-  else
-     numCore = procdynp.numCore;
-
   //--------------------------------------
   // Compute Energy of Components
   //--------------------------------------
 
-  // McPAT Core
-  power.reset();
-  rt_power.reset();
-
   // Cores
-  core.power.reset();
-  core.rt_power.reset();
-  for (i = 0;i < numCore; i++)
-  {
-        cores[i]->power.reset();
-        cores[i]->rt_power.reset();
-        cores[i]->computeEnergy();
-        cores[i]->computeEnergy(false);
-        if (procdynp.homoCore){
-           set_pppm(pppm_t,cores[i]->clockRate*procdynp.numCore, procdynp.numCore,procdynp.numCore,procdynp.numCore);
-           core.power = core.power + cores[i]->power*pppm_t;
-           set_pppm(pppm_t,1/cores[i]->executionTime, procdynp.numCore,procdynp.numCore,procdynp.numCore);
-           core.rt_power = core.rt_power + cores[i]->rt_power*pppm_t;
-           power = power  + core.power;
-           rt_power = rt_power  + core.rt_power;
-        }
-        else{
-           set_pppm(pppm_t,cores[i]->clockRate, 1, 1, 1);
-           core.power = core.power + cores[i]->power*pppm_t;
-           power = power  + cores[i]->power*pppm_t;
-           set_pppm(pppm_t,1/cores[i]->executionTime, 1, 1, 1);
-           core.rt_power = core.rt_power + cores[i]->rt_power*pppm_t;
-           rt_power = rt_power  + cores[i]->rt_power*pppm_t;
-        }
-  }
+  core->power.reset();
+  core->rt_power.reset();
+  core->computeEnergy();
+  core->computeEnergy(false);
 }
 
 //---------------------------------------------------------------------------
@@ -171,7 +118,6 @@ void CoreWrapper::displayInterconnectType(int interconnect_type_, uint32_t inden
 //---------------------------------------------------------------------------
 void CoreWrapper::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
 {
-   int i;
    bool long_channel = XML->sys.longer_channel_device;
    string indent_str(indent, ' ');
    string indent_str_next(indent+2, ' ');
@@ -199,30 +145,20 @@ void CoreWrapper::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
       cout <<indent_str<<"Core clock Rate(MHz) "<<XML->sys.core[0].clock_rate<<endl;
       cout <<endl;
       cout <<"*****************************************************************************************"<<endl;
-      if (numCore >0){
-      cout <<indent_str<<"Total Cores: "<<XML->sys.number_of_cores << " cores "<<endl;
       displayDeviceType(XML->sys.device_type,indent);
-      cout << indent_str_next << "Area = " << core.area.get_area()*1e-6<< " mm^2" << endl;
-      cout << indent_str_next << "Peak Dynamic = " << core.power.readOp.dynamic << " W" << endl;
+      cout << indent_str_next << "Area = " << core->area.get_area()*1e-6<< " mm^2" << endl;
+      cout << indent_str_next << "Peak Dynamic = " << core->power.readOp.dynamic * core->clockRate << " W" << endl;
       cout << indent_str_next << "Subthreshold Leakage = "
-         << (long_channel? core.power.readOp.longer_channel_leakage:core.power.readOp.leakage) <<" W" << endl;
-      //cout << indent_str_next << "Subthreshold Leakage = " << core.power.readOp.longer_channel_leakage <<" W" << endl;
-      cout << indent_str_next << "Gate Leakage = " << core.power.readOp.gate_leakage << " W" << endl;
-      cout << indent_str_next << "Runtime Dynamic = " << core.rt_power.readOp.dynamic << " W" << endl;
+         << (long_channel? core->power.readOp.longer_channel_leakage : core->power.readOp.leakage) <<" W" << endl;
+      cout << indent_str_next << "Gate Leakage = " << core->power.readOp.gate_leakage << " W" << endl;
+      cout << indent_str_next << "Runtime Dynamic = " << core->rt_power.readOp.dynamic / core->executionTime << " W" << endl;
       cout <<endl;
-      }
       cout <<"*****************************************************************************************"<<endl;
       if (plevel >1)
       {
-         for (i = 0;i < numCore; i++)
-         {
-            cores[i]->displayEnergy(indent+4,plevel,is_tdp);
-            cout <<"*****************************************************************************************"<<endl;
-         }
+         core->displayEnergy(indent+4,plevel,is_tdp);
+         cout <<"*****************************************************************************************"<<endl;
       }
-   }
-   else
-   {
    }
 }
 
@@ -233,8 +169,8 @@ void CoreWrapper::set_proc_param()
 {
    bool debug = false;
 
-   procdynp.homoCore = bool(debug?1:XML->sys.homogeneous_cores);
-   procdynp.numCore = XML->sys.number_of_cores;
+   assert(XML->sys.homogeneous_cores == 1);
+   assert(XML->sys.number_of_cores == 1);
 
    /* Basic parameters*/
    interface_ip.data_arr_ram_cell_tech_type    = debug?0:XML->sys.device_type;
@@ -316,11 +252,7 @@ void CoreWrapper::set_proc_param()
 // Delete CoreWrapper
 //---------------------------------------------------------------------------
 CoreWrapper::~CoreWrapper(){
-   while (!cores.empty())
-   {
-      delete cores.back();
-      cores.pop_back();
-   }
+   delete core;
 };
 
 }

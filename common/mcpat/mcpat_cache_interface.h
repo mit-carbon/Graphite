@@ -4,9 +4,7 @@
 
 #pragma once
 
-#include "XML_Parse.h"
-#include "cache_wrapper.h"
-#include <iostream>
+#include "contrib/mcpat/mcpat.h"
 
 using namespace std;
 

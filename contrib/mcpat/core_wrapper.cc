@@ -4,18 +4,12 @@
 
 #include <string.h>
 #include <iostream>
-#include <stdio.h>
-#include <algorithm>
-#include <string.h>
-#include <cmath>
-#include <assert.h>
+#include <cassert>
 #include <fstream>
 #include "parameter.h"
 #include "array.h"
 #include "const.h"
 #include "basic_circuit.h"
-#include "XML_Parse.h"
-#include "processor.h"
 #include "version.h"
 #include "core_wrapper.h"
 
@@ -33,7 +27,8 @@ CoreWrapper::CoreWrapper(ParseXML *XML_interface)
    *  There is no point to have heterogeneous memory controller on chip,
    *  thus McPAT only support homogeneous memory controllers.
    */
-  set_proc_param();
+  InputParameter interface_ip;
+  set_proc_param(interface_ip);
   core = new Core(XML, 0, &interface_ip);
 }
 
@@ -165,7 +160,7 @@ void CoreWrapper::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
 //---------------------------------------------------------------------------
 // Set CoreWrapper Parameters
 //---------------------------------------------------------------------------
-void CoreWrapper::set_proc_param()
+void CoreWrapper::set_proc_param(InputParameter& interface_ip)
 {
    bool debug = false;
 

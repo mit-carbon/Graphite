@@ -2,14 +2,9 @@
  * Graphite-McPAT Cache Interface
  ***************************************************************************/
 
-#include <string.h>
 #include <iostream>
-#include <stdio.h>
-#include <algorithm>
-#include <string.h>
 #include <cmath>
-#include <assert.h>
-#include <fstream>
+#include <cassert>
 #include "parameter.h"
 #include "array.h"
 #include "const.h"
@@ -29,12 +24,9 @@ CacheWrapper::CacheWrapper(ParseXML *XML_interface)
    *  There is no point to have heterogeneous memory controller on chip,
    *  thus McPAT only support homogeneous memory controllers.
    */
-  set_proc_param();
-
-  assert(!XML->sys.Private_L2);
-
+  InputParameter interface_ip;
+  set_proc_param(interface_ip);
   cache = new SharedCache(XML, 0, &interface_ip);
-  area.set_area(cache->area.get_area());
   //placement and routing overhead is 10%, l2 scales worse than cache 40% is accumulated from 90 to 22nm
 }
 
@@ -48,25 +40,15 @@ void CacheWrapper::computeEnergy()
    *  There is no point to have heterogeneous memory controller on chip,
    *  thus McPAT only support homogeneous memory controllers.
    */
-  double pppm_t[4]    = {1,1,1,1};
-
   //--------------------------------------
   // Compute Energy of Components
   //--------------------------------------
 
   // Cache
-  power.reset();
-  rt_power.reset();
-        
   cache->power.reset();
   cache->rt_power.reset();
   cache->computeEnergy();
   cache->computeEnergy(false);
-  
-  set_pppm(pppm_t, cache->cachep.clockRate, 1, 1, 1);
-  power = cache->power * pppm_t;
-  set_pppm(pppm_t, 1 / cache->cachep.executionTime, 1, 1, 1);
-  rt_power = cache->rt_power * pppm_t;
 }
 
 //---------------------------------------------------------------------------
@@ -158,12 +140,12 @@ void CacheWrapper::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
       cout <<"*****************************************************************************************"<<endl;
             
       displayDeviceType(XML->sys.L2[0].device_type,indent);
-      cout << indent_str_next << "Area = " << area.get_area()*1e-6<< " mm^2" << endl;
-      cout << indent_str_next << "Peak Dynamic = " << power.readOp.dynamic << " W" << endl;
+      cout << indent_str_next << "Area = " << cache->area.get_area()*1e-6<< " mm^2" << endl;
+      cout << indent_str_next << "Peak Dynamic = " << cache->power.readOp.dynamic * cache->cachep.clockRate << " W" << endl;
       cout << indent_str_next << "Subthreshold Leakage = "
-      << (long_channel ? power.readOp.longer_channel_leakage : power.readOp.leakage) <<" W" << endl;
-      cout << indent_str_next << "Gate Leakage = " << power.readOp.gate_leakage << " W" << endl;
-      cout << indent_str_next << "Runtime Dynamic = " << rt_power.readOp.dynamic << " W" << endl;
+      << (long_channel ? cache->power.readOp.longer_channel_leakage : cache->power.readOp.leakage) <<" W" << endl;
+      cout << indent_str_next << "Gate Leakage = " << cache->power.readOp.gate_leakage << " W" << endl;
+      cout << indent_str_next << "Runtime Dynamic = " << cache->rt_power.readOp.dynamic / cache->cachep.executionTime << " W" << endl;
       cout <<endl;
       
       cout <<"*****************************************************************************************"<<endl;
@@ -181,12 +163,13 @@ void CacheWrapper::displayEnergy(uint32_t indent, int plevel, bool is_tdp)
 //---------------------------------------------------------------------------
 // Set McPAT Cache Parameters
 //---------------------------------------------------------------------------
-void CacheWrapper::set_proc_param()
+void CacheWrapper::set_proc_param(InputParameter& interface_ip)
 {
    bool debug = false;
 
    assert(XML->sys.homogeneous_L2s == 1);
    assert(XML->sys.number_of_L2s == 1);
+   assert(!XML->sys.Private_L2);
 
    /* Basic parameters*/
    interface_ip.data_arr_ram_cell_tech_type    = debug?0:XML->sys.device_type;

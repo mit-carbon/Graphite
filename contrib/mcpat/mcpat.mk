@@ -87,6 +87,4 @@ obj_$(TAG)/%.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	-rm -f *.o $(TARGET)
-
-
+	$(RM) *.o $(TARGET)

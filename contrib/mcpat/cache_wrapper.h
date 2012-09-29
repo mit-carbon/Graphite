@@ -5,38 +5,29 @@
 #pragma once
 
 #include "XML_Parse.h"
-#include "area.h"
-#include "decoder.h"
-#include "parameter.h"
-#include "array.h"
-#include "arbiter.h"
-#include <vector>
-#include "basic_components.h"
-#include "core.h"
-#include "memoryctrl.h"
-#include "router.h"
 #include "sharedcache.h"
-#include "noc.h"
+#include "cacti_interface.h"
 
 namespace McPAT
 {
 
+class InputParameter;
+
 //---------------------------------------------------------------------------
 // Cache Wrapper Class
 //---------------------------------------------------------------------------
-class CacheWrapper : public Component
+class CacheWrapper
 {
   public:
-    ParseXML *XML;
-    SharedCache * cache;
-    InputParameter interface_ip;
+    ParseXML* XML;
+    SharedCache* cache;
 
     // Create CacheWrapper
     CacheWrapper(ParseXML *XML_interface);
     // Compute Energy
     void computeEnergy();
     // Set CacheWrapper Parameters
-    void set_proc_param();
+    void set_proc_param(InputParameter& interface_ip);
     // Print Energy from CacheWrapper
     void displayEnergy(uint32_t indent = 0,int plevel = 100, bool is_tdp=true);
     // Print Device Type

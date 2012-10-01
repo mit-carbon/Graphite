@@ -593,6 +593,35 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
    _mcpat_core_out.exu.bypass.longer_channel_leakage = _core_wrapper->core->exu->bypass.power.readOp.longer_channel_leakage * _execution_time;   
    _mcpat_core_out.exu.bypass.gate_leakage           = _core_wrapper->core->exu->bypass.power.readOp.gate_leakage * _execution_time;             
    _mcpat_core_out.exu.bypass.dynamic                = _core_wrapper->core->exu->bypass.rt_power.readOp.dynamic;
+
+   // Subtract Instruction Cache Area, Energy, and Power
+   // Core
+   _mcpat_core_out.core.area                   = _mcpat_core_out.core.area                   - _mcpat_core_out.ifu.icache.area;
+   _mcpat_core_out.core.leakage                = _mcpat_core_out.core.leakage                - _mcpat_core_out.ifu.icache.leakage;
+   _mcpat_core_out.core.longer_channel_leakage = _mcpat_core_out.core.longer_channel_leakage - _mcpat_core_out.ifu.icache.longer_channel_leakage;
+   _mcpat_core_out.core.gate_leakage           = _mcpat_core_out.core.gate_leakage           - _mcpat_core_out.ifu.icache.gate_leakage;
+   _mcpat_core_out.core.dynamic                = _mcpat_core_out.core.dynamic                - _mcpat_core_out.ifu.icache.dynamic;
+   //    Instruction Fetch Unit
+   _mcpat_core_out.ifu.ifu.area                   = _mcpat_core_out.ifu.ifu.area                   - _mcpat_core_out.ifu.icache.area;
+   _mcpat_core_out.ifu.ifu.leakage                = _mcpat_core_out.ifu.ifu.leakage                - _mcpat_core_out.ifu.icache.leakage;
+   _mcpat_core_out.ifu.ifu.longer_channel_leakage = _mcpat_core_out.ifu.ifu.longer_channel_leakage - _mcpat_core_out.ifu.icache.longer_channel_leakage;
+   _mcpat_core_out.ifu.ifu.gate_leakage           = _mcpat_core_out.ifu.ifu.gate_leakage           - _mcpat_core_out.ifu.icache.gate_leakage;
+   _mcpat_core_out.ifu.ifu.dynamic                = _mcpat_core_out.ifu.ifu.dynamic                - _mcpat_core_out.ifu.icache.dynamic;
+
+   // Subtract Data Cache Area, Energy, and Power
+   // Core
+   _mcpat_core_out.core.area                   = _mcpat_core_out.core.area                   - _mcpat_core_out.lsu.dcache.area;
+   _mcpat_core_out.core.leakage                = _mcpat_core_out.core.leakage                - _mcpat_core_out.lsu.dcache.leakage;
+   _mcpat_core_out.core.longer_channel_leakage = _mcpat_core_out.core.longer_channel_leakage - _mcpat_core_out.lsu.dcache.longer_channel_leakage;
+   _mcpat_core_out.core.gate_leakage           = _mcpat_core_out.core.gate_leakage           - _mcpat_core_out.lsu.dcache.gate_leakage;
+   _mcpat_core_out.core.dynamic                = _mcpat_core_out.core.dynamic                - _mcpat_core_out.lsu.dcache.dynamic;
+   //    Load Store Unit
+   _mcpat_core_out.lsu.lsu.area                   = _mcpat_core_out.lsu.lsu.area                   - _mcpat_core_out.lsu.dcache.area;
+   _mcpat_core_out.lsu.lsu.leakage                = _mcpat_core_out.lsu.lsu.leakage                - _mcpat_core_out.lsu.dcache.leakage;
+   _mcpat_core_out.lsu.lsu.longer_channel_leakage = _mcpat_core_out.lsu.lsu.longer_channel_leakage - _mcpat_core_out.lsu.dcache.longer_channel_leakage;
+   _mcpat_core_out.lsu.lsu.gate_leakage           = _mcpat_core_out.lsu.lsu.gate_leakage           - _mcpat_core_out.lsu.dcache.gate_leakage;
+   _mcpat_core_out.lsu.lsu.dynamic                = _mcpat_core_out.lsu.lsu.dynamic                - _mcpat_core_out.lsu.dcache.dynamic;
+
 }
 
 //---------------------------------------------------------------------------
@@ -619,11 +648,13 @@ void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.ifu.ifu.area << std::endl;               
    os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ifu.gate_leakage + _mcpat_core_out.ifu.ifu.leakage) / _execution_time << std::endl;           
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.ifu.dynamic << std::endl;
+   /*
    //       Instruction Cache
    os << indent8 << "Instruction Cache:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.icache.area << std::endl;               
    os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.icache.gate_leakage + _mcpat_core_out.ifu.icache.leakage) / _execution_time << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.icache.dynamic << std::endl;
+   */
    //       Instruction Buffer
    os << indent8 << "Instruction Buffer:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.IB.area << std::endl;               
@@ -639,11 +670,13 @@ void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.lsu.lsu.area << std::endl;               
    os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.lsu.lsu.gate_leakage + _mcpat_core_out.lsu.lsu.leakage) / _execution_time << std::endl;             
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.lsu.lsu.dynamic << std::endl;
+   /*
    //       Data Cache
    os << indent8 << "Data Cache:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.lsu.dcache.area << std::endl;               
    os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.lsu.dcache.gate_leakage + _mcpat_core_out.lsu.dcache.leakage) / _execution_time << std::endl;            
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.lsu.dcache.dynamic << std::endl;
+   */
    //       Load/Store Queue
    os << indent8 << "Load/Store Queue:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.lsu.LSQ.area << std::endl;               

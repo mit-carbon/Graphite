@@ -44,7 +44,8 @@ Config::Config()
       m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
       m_knob_enable_power_modeling = Sim()->getCfg()->getBool("general/enable_power_modeling");
       m_knob_enable_area_modeling = Sim()->getCfg()->getBool("general/enable_area_modeling");
-      m_knob_max_threads_per_core = Sim()->getCfg()->getInt("general/max_threads_per_core");
+      // WARNING: Do not change this parameter. Hard-coded until multi-threading bug is fixed
+      m_knob_max_threads_per_core = 1; // Sim()->getCfg()->getInt("general/max_threads_per_core");
 
       // Simulation Mode
       m_simulation_mode = parseSimulationMode(Sim()->getCfg()->getString("general/mode"));

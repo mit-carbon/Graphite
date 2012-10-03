@@ -16,7 +16,8 @@
 
 ThreadScheduler* ThreadScheduler::create(ThreadManager *thread_manager, TileManager *tile_manager)
 {
-   std::string scheme = Sim()->getCfg()->getString("thread_scheduling/scheme");
+   // WARNING: Do not change this parameter. Hard-coded until multi-threading bug is fixed
+   std::string scheme = "none"; // Sim()->getCfg()->getString("thread_scheduling/scheme");
    ThreadScheduler* thread_scheduler = NULL;
 
    if (scheme == "round_robin") {
@@ -64,17 +65,10 @@ ThreadScheduler::ThreadScheduler(ThreadManager *thread_manager, TileManager *til
    m_thread_migration_enabled = true;
    m_thread_preemption_enabled = true;
 
-   try
-   {
-      m_thread_switch_quantum = (UInt64) Sim()->getCfg()->getInt("thread_scheduling/quantum"); 
-      std::string scheme = Sim()->getCfg()->getString("thread_scheduling/scheme");
-      m_enabled = (scheme != "none");
-   }
-   catch(...)
-   {
-      LOG_PRINT_ERROR("Error Reading 'thread_scheduling/quantum' from the config file");
-   }
-
+   // WARNING: Do not change this parameter. Hard-coded until multi-threading bug is fixed
+   m_thread_switch_quantum = 100; // (UInt64) Sim()->getCfg()->getInt("thread_scheduling/quantum"); 
+   std::string scheme = "none"; // Sim()->getCfg()->getString("thread_scheduling/scheme");
+   m_enabled = (scheme != "none");
 }
 
 ThreadScheduler::~ThreadScheduler()

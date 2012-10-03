@@ -42,6 +42,8 @@ typedef struct
    mcpat_component_out icache;            // Instruction Cache
    mcpat_component_out IB;                // Instruction Buffer
    mcpat_component_out ID;                // Instruction Decoder
+   mcpat_component_out BPT;               // Branch Prredictor Table
+   mcpat_component_out BTB;               // Branch Target Buffer
 } mcpat_ifu_out;
 typedef struct
 {

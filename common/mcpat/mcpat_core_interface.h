@@ -173,6 +173,7 @@ private:
    // |-- Used Event Counters
    // |---- Instruction Counters
    double _total_instructions;
+   double _generic_instructions;
    double _int_instructions;
    double _fp_instructions;
    double _branch_instructions;

@@ -114,6 +114,7 @@ void McPATCoreInterface::initializeEventCounters()
    // |-- Used Event Counters
    // |---- Instruction Counters
    _total_instructions = 0;
+   _generic_instructions = 0;
    _int_instructions = 0;
    _fp_instructions = 0;
    _branch_instructions = 0;
@@ -302,9 +303,20 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
    McPATInstructionType instruction_type = getMcPATInstructionType(instruction->getType());
    updateInstructionCounters(instruction_type);
 
+   // Execution Unit Accesses
+   // A single instruction can access multiple execution units
+   // FIXME: Find out whether we need the whole instruction for this purpose
+   ExecutionUnitList access_list = getExecutionUnitAccessList(instruction->getType());
+   for (UInt32 i = 0; i < access_list.size(); i++)
+      updateExecutionUnitAccessCounters(access_list[i]);
+
+   // Count access to multiple execution units as additional micro-ops
+   for (UInt32 i = 1; i < access_list.size(); i++)
+      updateInstructionCounters(instruction_type);
+
    // Update Cycle Counters
    updateCycleCounters(cycle_count);
-   
+
    const OperandList& ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)
    {
@@ -320,13 +332,6 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
       if (o.m_type == Operand::REG)
          updateRegFileAccessCounters(o.m_direction, o.m_value);
    }
-
-   // Execution Unit Accesses
-   // A single instruction can access multiple execution units
-   // FIXME: Find out whether we need the whole instruction for this purpose
-   ExecutionUnitList access_list = getExecutionUnitAccessList(instruction->getType());
-   for (UInt32 i = 0; i < access_list.size(); i++)
-      updateExecutionUnitAccessCounters(access_list[i]);
 }
 
 void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruction_type)
@@ -337,6 +342,7 @@ void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruct
    switch (instruction_type)
    {
    case GENERIC_INST:
+      _generic_instructions ++;
       break;
 
    case INTEGER_INST:
@@ -817,6 +823,7 @@ void McPATCoreInterface::displayStats(std::ostream &os)
    
    // |---- Micro-Ops Counters
    os << "    Total Micro-Ops : " << (UInt64) _total_instructions << std::endl;
+   os << "    Generic Micro-Ops : " << (UInt64) _generic_instructions << std::endl;
    os << "    Int Micro-Ops : " << (UInt64) _int_instructions << std::endl;
    os << "    FP Micro-Ops : " << (UInt64) _fp_instructions << std::endl;
    os << "    Branch Micro-Ops : " << (UInt64) _branch_instructions << std::endl;

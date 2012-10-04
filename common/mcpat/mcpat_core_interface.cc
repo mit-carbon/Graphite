@@ -310,11 +310,11 @@ void McPATCoreInterface::initializeOutputDataStructure()
    _mcpat_core_out.exu.bypass.dynamic                  = 0;
 }
 
-void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cycle_count)
+void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 pipeline_stall_cycles_count, UInt64 total_branch_misprediction_count)
 {
    // Get Instruction Type
    McPATInstructionType instruction_type = getMcPATInstructionType(instruction->getType());
-   updateInstructionCounters(instruction_type);
+   updateInstructionCounters(instruction_type, total_branch_misprediction_count);
 
    // Execution Unit Accesses
    // A single instruction can access multiple execution units
@@ -325,10 +325,10 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
 
    // Count access to multiple execution units as additional micro-ops
    for (UInt32 i = 1; i < access_list.size(); i++)
-      updateInstructionCounters(instruction_type);
+      updateInstructionCounters(instruction_type, total_branch_misprediction_count);
 
    // Update Cycle Counters
-   updateCycleCounters(cycle_count);
+   updateCycleCounters(cycle_count, pipeline_stall_cycles_count);
 
    const OperandList& ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)
@@ -337,9 +337,9 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
 
       // Loads/Stores
       if ((o.m_type == Operand::MEMORY) && (o.m_direction == Operand::READ))
-         updateInstructionCounters(LOAD_INST);
+         updateInstructionCounters(LOAD_INST, total_branch_misprediction_count);
       if ((o.m_type == Operand::MEMORY) && (o.m_direction == Operand::WRITE))
-         updateInstructionCounters(STORE_INST);
+         updateInstructionCounters(STORE_INST, total_branch_misprediction_count);
 
       // Reg File Accesses
       if (o.m_type == Operand::REG)
@@ -347,7 +347,7 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
    }
 }
 
-void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruction_type)
+void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruction_type, UInt64 total_branch_misprediction_count)
 {
    _total_instructions ++;
    _committed_instructions ++;
@@ -378,10 +378,7 @@ void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruct
 
    case BRANCH_INST:
       _branch_instructions ++;
-      break;
-
-   case BRANCH_NOT_TAKEN_INST:
-      _branch_mispredictions ++;
+      _branch_mispredictions = total_branch_misprediction_count;
       break;
 
    default:
@@ -441,10 +438,11 @@ void McPATCoreInterface::updateExecutionUnitAccessCounters(ExecutionUnitType uni
    }
 }
 
-void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
+void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count, UInt64 pipeline_stall_cycles_count)
 {
    _total_cycles = cycle_count;
-   _busy_cycles = cycle_count;
+   _idle_cycles += pipeline_stall_cycles_count;
+   _busy_cycles = _total_cycles - _idle_cycles;
    // TODO: Update for idle cycles later
 }
 

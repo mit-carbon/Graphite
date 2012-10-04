@@ -1,5 +1,5 @@
 #include "mem_component.h"
-#include "log.cc"
+#include "log.h"
 
 string
 MemComponent::getName(Type type)

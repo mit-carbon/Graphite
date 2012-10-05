@@ -503,17 +503,17 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
                                                         _core_wrapper->core->ifu->ID_misc->rt_power.readOp.dynamic);
    //       Branch Predictor
    assert(_core_wrapper->core->ifu->coredynp.predictionW > 0);
-   _mcpat_core_out.ifu.BPT.area                      = (_core_wrapper->core->ifu->BPT->area.get_area()) * 1e-6;
-   _mcpat_core_out.ifu.BPT.leakage                   = (_core_wrapper->core->ifu->BPT->power.readOp.leakage) * 1e-6;
-   _mcpat_core_out.ifu.BPT.longer_channel_leakage    = (_core_wrapper->core->ifu->BPT->power.readOp.longer_channel_leakage) * 1e-6;
-   _mcpat_core_out.ifu.BPT.gate_leakage              = (_core_wrapper->core->ifu->BPT->power.readOp.gate_leakage) * 1e-6;
-   _mcpat_core_out.ifu.BPT.dynamic                   = (_core_wrapper->core->ifu->BPT->rt_power.readOp.dynamic) * 1e-6;
+   _mcpat_core_out.ifu.BPT.area                      = _core_wrapper->core->ifu->BPT->area.get_area() * 1e-6;
+   _mcpat_core_out.ifu.BPT.leakage                   = _core_wrapper->core->ifu->BPT->power.readOp.leakage * _execution_time;
+   _mcpat_core_out.ifu.BPT.longer_channel_leakage    = _core_wrapper->core->ifu->BPT->power.readOp.longer_channel_leakage * _execution_time;
+   _mcpat_core_out.ifu.BPT.gate_leakage              = _core_wrapper->core->ifu->BPT->power.readOp.gate_leakage * _execution_time;
+   _mcpat_core_out.ifu.BPT.dynamic                   = _core_wrapper->core->ifu->BPT->rt_power.readOp.dynamic;
    //       Branch Target Buffer
-   _mcpat_core_out.ifu.BTB.area                      = (_core_wrapper->core->ifu->BTB->area.get_area()) * 1e-6;
-   _mcpat_core_out.ifu.BTB.leakage                   = (_core_wrapper->core->ifu->BTB->power.readOp.leakage) * 1e-6;
-   _mcpat_core_out.ifu.BTB.longer_channel_leakage    = (_core_wrapper->core->ifu->BTB->power.readOp.longer_channel_leakage) * 1e-6;
-   _mcpat_core_out.ifu.BTB.gate_leakage              = (_core_wrapper->core->ifu->BTB->power.readOp.gate_leakage) * 1e-6;
-   _mcpat_core_out.ifu.BTB.dynamic                   = (_core_wrapper->core->ifu->BTB->rt_power.readOp.dynamic) * 1e-6;
+   _mcpat_core_out.ifu.BTB.area                      = _core_wrapper->core->ifu->BTB->area.get_area() * 1e-6;
+   _mcpat_core_out.ifu.BTB.leakage                   = _core_wrapper->core->ifu->BTB->power.readOp.leakage * _execution_time;
+   _mcpat_core_out.ifu.BTB.longer_channel_leakage    = _core_wrapper->core->ifu->BTB->power.readOp.longer_channel_leakage * _execution_time;
+   _mcpat_core_out.ifu.BTB.gate_leakage              = _core_wrapper->core->ifu->BTB->power.readOp.gate_leakage * _execution_time;
+   _mcpat_core_out.ifu.BTB.dynamic                   = _core_wrapper->core->ifu->BTB->rt_power.readOp.dynamic;
    
    //    Load Store Unit
    _mcpat_core_out.lsu.lsu.area                   = _core_wrapper->core->lsu->area.get_area()*1e-6;                     

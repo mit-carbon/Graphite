@@ -338,16 +338,12 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // Update Common Pipeline Stall Counters
    updatePipelineStallCounters(instruction, memory_stall_cycles, execution_unit_stall_cycles);
 
-   // Get Pipeline Stall Cycles Counters
-   UInt64 m_pipeline_stall_cycles_count;
-   m_pipeline_stall_cycles_count = memory_stall_cycles + execution_unit_stall_cycles;
-
    // Get Branch Misprediction Count
    UInt64 m_total_branch_misprediction_count;
    m_total_branch_misprediction_count = getBranchPredictor()->getNumIncorrectPredictions();
 
    // Update Event Counters
-   m_mcpat_core_interface->updateEventCounters(instruction, m_cycle_count, m_pipeline_stall_cycles_count, m_total_branch_misprediction_count);
+   m_mcpat_core_interface->updateEventCounters(instruction, m_cycle_count, m_total_branch_misprediction_count);
 }
 
 pair<UInt64,UInt64>

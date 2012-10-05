@@ -310,7 +310,7 @@ void McPATCoreInterface::initializeOutputDataStructure()
    _mcpat_core_out.exu.bypass.dynamic                  = 0;
 }
 
-void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 pipeline_stall_cycles_count, UInt64 total_branch_misprediction_count)
+void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count)
 {
    // Get Instruction Type
    McPATInstructionType instruction_type = getMcPATInstructionType(instruction->getType());
@@ -328,7 +328,7 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
       updateInstructionCounters(instruction_type, total_branch_misprediction_count);
 
    // Update Cycle Counters
-   updateCycleCounters(cycle_count, pipeline_stall_cycles_count);
+   updateCycleCounters(cycle_count);
 
    const OperandList& ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)
@@ -438,11 +438,10 @@ void McPATCoreInterface::updateExecutionUnitAccessCounters(ExecutionUnitType uni
    }
 }
 
-void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count, UInt64 pipeline_stall_cycles_count)
+void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
 {
    _total_cycles = cycle_count;
-   _idle_cycles += pipeline_stall_cycles_count;
-   _busy_cycles = _total_cycles - _idle_cycles;
+   _busy_cycles  = cycle_count;
    // TODO: Update for idle cycles later
 }
 

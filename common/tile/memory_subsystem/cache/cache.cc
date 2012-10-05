@@ -4,6 +4,7 @@
 #include "cache_line_info.h"
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
+#include "mcpat_cache_interface.h"
 #include "utils.h"
 #include "log.h"
 
@@ -29,11 +30,12 @@ Cache::Cache(string name,
    , _cache_size(k_KILO * cache_size)
    , _associativity(associativity)
    , _line_size(line_size)
+   , _frequency(frequency)
+   , _access_delay(access_delay)
    , _replacement_policy(replacement_policy)
    , _hash_fn(hash_fn)
-   , _power_model(NULL)
-   , _area_model(NULL)
    , _track_miss_types(track_miss_types)
+   , _mcpat_cache_interface(NULL)
 {
    _num_sets = _cache_size / (_associativity * _line_size);
    _log_line_size = floorLog2(_line_size);
@@ -44,15 +46,9 @@ Cache::Cache(string name,
       _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
-   if (Config::getSingleton()->getEnablePowerModeling())
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _power_model = new CachePowerModel("data", _cache_size, _line_size,
-            associativity, access_delay, frequency);
-   }
-   if (Config::getSingleton()->getEnableAreaModeling())
-   {
-      _area_model = new CacheAreaModel("data", _cache_size, _line_size,
-            associativity, access_delay, frequency);
+      _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
    }
 
    // Initialize Cache Counters
@@ -99,10 +95,6 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
          _data_array_reads ++;
       else
          _data_array_writes ++;
- 
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy();
    }
 }
 
@@ -173,10 +165,6 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
       // Update tag/data array writes
       _tag_array_writes ++;
       _data_array_writes ++;
-
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy();
    }
    
    LOG_PRINT("insertCacheLine[Address(%#lx)] end", inserted_address);
@@ -198,9 +186,6 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
    {
       // Update tag/data array reads/writes
       _tag_array_reads ++;
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy();
    }
 
    LOG_PRINT("getCacheLineInfo[Address(%#lx), Cache Line Info Ptr(%p)] end", address, cache_line_info);
@@ -237,9 +222,6 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
    {
       // Update tag/data array reads/writes
       _tag_array_writes ++;
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy();
    }
 }
 
@@ -422,10 +404,12 @@ Cache::outputSummary(ostream& out)
    }
    
    // Output Power and Area Summaries
-   if (_power_model)
-      _power_model->outputSummary(out);
-   if (_area_model)
-      _area_model->outputSummary(out);
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
+   {
+      // FIXME: Get total cycles from core model
+      _mcpat_cache_interface->computeEnergy(this, 10000);
+      _mcpat_cache_interface->outputSummary(out);
+   }
 
    // Track miss types
    if (_track_miss_types)

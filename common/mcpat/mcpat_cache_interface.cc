@@ -7,24 +7,16 @@
 //---------------------------------------------------------------------------
 // McPAT Cache Interface Constructor
 //---------------------------------------------------------------------------
-McPATCacheInterface::McPATCacheInterface()
+McPATCacheInterface::McPATCacheInterface(Cache* cache, UInt32 technology_node)
 {
-   // Initialize Architectural Parameters
-   initializeArchitecturalParameters();
-   // Initialize Event Counters
-   initializeEventCounters();
-   // Initialize Output Data Structure
-   initializeOutputDataStructure();
-
    // Make a ParseXML Object and Initialize it
    _xml = new McPAT::ParseXML();
 
    // Initialize ParseXML Params and Stats
    _xml->initialize();
-   _xml->setNiagara1();
 
    // Fill the ParseXML's Core Params from McPATCacheInterface
-   fillCacheParamsIntoXML();
+   fillCacheParamsIntoXML(cache, technology_node);
 
    // Make a Processor Object from the ParseXML
    _cache_wrapper = new McPAT::CacheWrapper(_xml);
@@ -40,97 +32,96 @@ McPATCacheInterface::~McPATCacheInterface()
 }
 
 //---------------------------------------------------------------------------
-// Initialize Architectural Parameters
+// Compute Energy from McPAT
 //---------------------------------------------------------------------------
-void McPATCacheInterface::initializeArchitecturalParameters()
-{
-   // System Parameters
-   _clock_rate = 1000;
-   _tech_node = 45;
-   // Architectural Parameters
-}
-
-//---------------------------------------------------------------------------
-// Initialize Event Counters
-//---------------------------------------------------------------------------
-void McPATCacheInterface::initializeEventCounters()
-{
-   // Event Counters
-}
-
-//---------------------------------------------------------------------------
-// Initialize Output Data Structure
-//---------------------------------------------------------------------------
-void McPATCacheInterface::initializeOutputDataStructure()
-{
-   mcpat_cache_out.area                           = 0;
-   mcpat_cache_out.leakage                        = 0;
-   mcpat_cache_out.longer_channel_leakage         = 0;
-   mcpat_cache_out.gate_leakage                   = 0;
-   mcpat_cache_out.dynamic                        = 0;
-}
-
-//---------------------------------------------------------------------------
-// Compute Energy from McPat
-//---------------------------------------------------------------------------
-void McPATCacheInterface::computeEnergy()
+void McPATCacheInterface::computeEnergy(Cache* cache, UInt64 total_cycles)
 {
    // Fill the ParseXML's Core Event Stats from McPATCacheInterface
-   fillCacheStatsIntoXML();
+   fillCacheStatsIntoXML(cache, total_cycles);
 
    // Compute Energy from Processor
    _cache_wrapper->computeEnergy();
 
-   // Execution Time
-   executionTime = (_cache_wrapper->cache->cachep.executionTime);
-
    // Store Energy into Data Structure
    // Core
-   mcpat_cache_out.area                   = _cache_wrapper->cache->area.get_area()*1e-6;
-   mcpat_cache_out.leakage                = _cache_wrapper->cache->power.readOp.leakage*executionTime;
-   mcpat_cache_out.longer_channel_leakage = _cache_wrapper->cache->power.readOp.longer_channel_leakage*executionTime;
-   mcpat_cache_out.gate_leakage           = _cache_wrapper->cache->power.readOp.gate_leakage*executionTime;
-   mcpat_cache_out.dynamic                = _cache_wrapper->cache->rt_power.readOp.dynamic;
+   _mcpat_cache_out.area                   = _cache_wrapper->cache->area.get_area()*1e-6;
+	bool long_channel                       = _xml->sys.longer_channel_device;
+   double subthreshold_leakage_power       = long_channel ? _cache_wrapper->cache->power.readOp.longer_channel_leakage : _cache_wrapper->cache->power.readOp.leakage;
+   double gate_leakage_power               = _cache_wrapper->cache->power.readOp.gate_leakage;
+   _mcpat_cache_out.leakage_power          = subthreshold_leakage_power + gate_leakage_power;
+   _mcpat_cache_out.dynamic_energy         = _cache_wrapper->cache->rt_power.readOp.dynamic;
 }
 
 //---------------------------------------------------------------------------
 // Display Energy from McPAT
 //---------------------------------------------------------------------------
-void McPATCacheInterface::displayEnergy()
+void McPATCacheInterface::outputSummary(ostream& os)
 {
-   // Test Output from Data Structure
-   int indent = 2;
-   string indent_str(indent, ' ');
-   string indent_str_next(indent+2, ' ');
-   cout <<"*****************************************************************************************"<<endl;
-   cout << endl;
-   cout << "Cache:" << endl;
-   cout << indent_str << "Area = "                   << mcpat_cache_out.area                   << " mm^2" << endl;
-   cout << indent_str << "Leakage = "                << mcpat_cache_out.leakage                << " W" << endl;
-   cout << indent_str << "Longer Channel Leakage = " << mcpat_cache_out.longer_channel_leakage << " W" << endl;
-   cout << indent_str << "Gate Leakage = "           << mcpat_cache_out.gate_leakage           << " W" << endl;
-   cout << indent_str << "Runtime Dynamic = "        << mcpat_cache_out.dynamic                << " J" << endl;
-   cout << endl;
-   cout <<"*****************************************************************************************"<<endl;
+   string indent4(4, ' ');
+   os << indent4 << "Area (in mm^2): "         << _mcpat_cache_out.area << endl;
+   os << indent4 << "Leakage Power (in W): "   << _mcpat_cache_out.leakage_power << endl;
+   os << indent4 << "Dynamic Energy (in J): "  << _mcpat_cache_out.dynamic_energy << endl;
 }
 
-//---------------------------------------------------------------------------
-// Display Architectural Parameters
-//---------------------------------------------------------------------------
-void McPATCacheInterface::displayParam()
+void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node)
 {
-   cout << "  Cache Parameters:" << endl;
-   // System Parameters
-   cout << "    clock_rate : " << _clock_rate << endl;
-   cout << "    tech_node : " << _tech_node << endl;
-   // Architectural Parameters
+   // System parameters
+   _xml->sys.number_of_cores = 0;
+   _xml->sys.number_of_L1Directories = 0;
+   _xml->sys.number_of_L2Directories = 0;
+   _xml->sys.number_of_L2s = 1;
+   _xml->sys.number_of_L3s = 0;
+   _xml->sys.number_of_NoCs = 0;
+   _xml->sys.homogeneous_cores = 1;
+   _xml->sys.homogeneous_L2s = 1;
+   _xml->sys.homogeneous_L1Directories = 1;
+   _xml->sys.homogeneous_L2Directories = 1;
+   _xml->sys.homogeneous_L3s = 1;
+   _xml->sys.homogeneous_ccs = 1;
+   _xml->sys.homogeneous_NoCs = 1;
+   _xml->sys.core_tech_node = technology_node;
+   _xml->sys.target_core_clockrate = cache->_frequency * 1000;
+   _xml->sys.temperature = 380;
+   _xml->sys.number_cache_levels = 2;
+   _xml->sys.interconnect_projection_type = 0;
+   _xml->sys.device_type = 0;    // HP (High Performance)
+   _xml->sys.longer_channel_device = 1;
+   _xml->sys.machine_bits = 64; 
+   _xml->sys.virtual_address_width = 64;
+   _xml->sys.physical_address_width = 52;
+   _xml->sys.virtual_memory_page_size = 4096;
+   _xml->sys.total_cycles = 100000;
+
+   _xml->sys.L2[0].clockrate = cache->_frequency * 1000;       // Frequency (in MHz)
+   _xml->sys.L2[0].ports[0] = 1;                               // Number of read ports
+   _xml->sys.L2[0].ports[1] = 1;                               // Number of write ports
+   _xml->sys.L2[0].ports[2] = 1;                               // Number of read/write ports
+   _xml->sys.L2[0].device_type = 0;                            // Device type (High performance)
+
+   _xml->sys.L2[0].L2_config[0] = cache->_cache_size;          // Cache size (in bytes)
+   _xml->sys.L2[0].L2_config[1] = cache->_line_size;           // Cache line size (in bytes)
+   _xml->sys.L2[0].L2_config[2] = cache->_associativity;       // Cache associativity
+   _xml->sys.L2[0].L2_config[3] = 1;                           // Number of banks = 1
+   _xml->sys.L2[0].L2_config[4] = 1;                           // Throughput = 1 access per cycle
+   _xml->sys.L2[0].L2_config[5] = cache->_access_delay;        // Cache access latency
+   _xml->sys.L2[0].L2_config[6] = cache->_line_size;           // Output width
+   _xml->sys.L2[0].L2_config[7] = 1;                           // Cache policy (initialized from Niagara1.xml)
+
+   _xml->sys.L2[0].buffer_sizes[0] = 4;                        // Miss buffer size
+   _xml->sys.L2[0].buffer_sizes[1] = 4;                        // Fill buffer size
+   _xml->sys.L2[0].buffer_sizes[2] = 4;                        // Prefetch buffer size
+   _xml->sys.L2[0].buffer_sizes[3] = 4;                        // Writeback buffer size
+   
+   _xml->sys.L2[0].conflicts = 0;                              // Initialized from Niagara1.xml
+   _xml->sys.L2[0].duty_cycle = 0.5;                           // Initialized from Niagara1.xml
 }
 
-//---------------------------------------------------------------------------
-// Display Event Counters
-//---------------------------------------------------------------------------
-void McPATCacheInterface::displayStats()
+void McPATCacheInterface::fillCacheStatsIntoXML(Cache* cache, UInt64 total_cycles)
 {
-   // Event Counters
-   cout << "  Cache Statistics:" << endl;
+   _xml->sys.total_cycles = total_cycles;
+
+   _xml->sys.L2[0].read_accesses = cache->_total_read_accesses;
+   _xml->sys.L2[0].write_accesses = cache->_total_write_accesses;
+   _xml->sys.L2[0].read_misses = cache->_total_read_misses;
+   _xml->sys.L2[0].write_misses = cache->_total_write_misses;
 }

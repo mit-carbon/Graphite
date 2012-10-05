@@ -10,8 +10,6 @@ using std::set;
 #include "cache_state.h"
 #include "cache_perf_model.h"
 #include "shmem_perf_model.h"
-#include "cache_power_model.h"
-#include "cache_area_model.h"
 #include "utils.h"
 #include "fixed_types.h"
 #include "caching_protocol_type.h"
@@ -22,6 +20,7 @@ class CacheSet;
 class CacheLineInfo;
 class CacheReplacementPolicy;
 class CacheHashFn;
+class McPATCacheInterface;
 
 class Cache
 {
@@ -87,6 +86,7 @@ public:
    // Get the associativity of the L2 cache
    UInt32 getAssociativity() const
    { return _associativity; }
+
    // Update miss counters - only updated on an access from the core (as opposed from the network)
    MissType updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache_miss);
    // Get cache line state counters
@@ -100,6 +100,9 @@ public:
    void reset()      {}
    
    virtual void outputSummary(ostream& out);
+
+   // Friend class
+   friend class McPATCacheInterface;
 
 private:
    // Is enabled?
@@ -117,11 +120,13 @@ private:
    UInt32 _line_size;
    UInt32 _num_sets;
    UInt32 _log_line_size;
+   volatile float _frequency;
+   UInt32 _access_delay;
 
    // Computing replacement policy and hash function
    CacheReplacementPolicy* _replacement_policy;
    CacheHashFn* _hash_fn;
-   
+
    // Cache hit/miss counters
    UInt64 _total_cache_accesses;
    UInt64 _total_cache_misses;
@@ -152,13 +157,12 @@ private:
    // Cache line state counters - Number of exclusive and shared lines
    vector<UInt64> _cache_line_state_counters;
 
-   // Power and Area Models
-   CachePowerModel* _power_model;
-   CacheAreaModel* _area_model;
-
    // Track miss types ?
    bool _track_miss_types;
   
+   // McPAT interface for modeling area and power
+   McPATCacheInterface* _mcpat_cache_interface;
+   
    // Utilities
    CacheSet* getSet(IntPtr address) const;
    UInt32 getLineOffset(IntPtr address) const;

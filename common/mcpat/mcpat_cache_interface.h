@@ -5,8 +5,7 @@
 #pragma once
 
 #include "contrib/mcpat/mcpat.h"
-
-using namespace std;
+#include "cache.h"
 
 //---------------------------------------------------------------------------
 // McPAT Cache Interface Data Structures for Area and Power
@@ -14,56 +13,32 @@ using namespace std;
 typedef struct
 {
    double area;                           // Area
-   double leakage;                        // Subthreshold Leakage
-   double longer_channel_leakage;         // Subthreshold Leakage
-   double gate_leakage;                   // Gate Leakage
-   double dynamic;                        // Runtime Dynamic
+   double leakage_power;                  // Leakage Power
+   double dynamic_energy;                 // Runtime Dynamic Energy
 } mcpat_cache_output;
 
 class McPATCacheInterface
 {
 public:
-   // Execution Time
-   double executionTime;
+   // McPAT Cache Interface Constructor
+   McPATCacheInterface(Cache* cache, UInt32 technology_node);
+   // McPAT Cache Interface Destructor
+   ~McPATCacheInterface();
+
+   // Compute Energy from McPAT
+   void computeEnergy(Cache* cache, UInt64 total_cycles);
+
+   // Output energy/area summary from McPAT
+   void outputSummary(ostream& os);
+
+private:
    // McPAT Objects
    McPAT::ParseXML* _xml;
    McPAT::CacheWrapper* _cache_wrapper;
    // McPAT Output Data Structure
-   mcpat_cache_output mcpat_cache_out;
-
-   // McPAT Cache Interface Constructor
-   McPATCacheInterface();
-   // McPAT Cache Interface Destructor
-   ~McPATCacheInterface();
-
-   // Initialize Architectural Parameters
-   void initializeArchitecturalParameters();
-   // Initialize Event Counters
-   void initializeEventCounters();
-   // Initialize Output Data Structure
-   void initializeOutputDataStructure();
-
-   // Compute Energy from McPAT
-   void computeEnergy();
-
-   // Display Energy from McPAT
-   void displayEnergy();
-   // Display Architectural Parameters
-   void displayParam();
-   // Display Event Counters
-   void displayStats();
-
+   mcpat_cache_output _mcpat_cache_out;
+   
    // Initialize XML Object
-   void fillCacheParamsIntoXML();
-   void fillCacheStatsIntoXML();
-
-public:
-   // System Parameters
-   // |---- General Parameters
-   int _clock_rate;
-   double _tech_node;
-
-   // Architectural Parameters
-
-   // Event Counters
+   void fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node);
+   void fillCacheStatsIntoXML(Cache* cache, UInt64 total_cycles);
 };

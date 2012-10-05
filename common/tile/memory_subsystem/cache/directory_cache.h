@@ -7,11 +7,11 @@ using std::ostream;
 #include "tile.h"
 #include "directory.h"
 #include "shmem_perf_model.h"
-#include "cache_power_model.h"
-#include "cache_area_model.h"
 #include "directory_entry.h"
 #include "directory_type.h"
 #include "caching_protocol_type.h"
+
+class McPATCacheInterface;
 
 class DirectoryCache
 {
@@ -68,9 +68,8 @@ private:
 
    UInt64 _directory_access_time;
 
-   // Dram Directory Cache Power and Area Models
-   CachePowerModel* _power_model;
-   CacheAreaModel* _area_model;
+   // Dram Directory Cache Power and Area Models (through McPAT)
+   McPATCacheInterface* _mcpat_cache_interface;
 
    // Counters
    UInt64 _total_directory_accesses;

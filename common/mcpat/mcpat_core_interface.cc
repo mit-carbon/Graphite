@@ -659,6 +659,9 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
 //---------------------------------------------------------------------------
 void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)
 {
+   // Get Longer Channel Leakage Boolean
+   bool long_channel = _xml->sys.longer_channel_device;
+   
    // Test Output from Data Structure
    string indent2(2, ' ');
    string indent4(4, ' ');
@@ -671,129 +674,129 @@ void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)
    // Core
    os << indent2 << "Core:" << std::endl;
    os << indent4 << "Area (in mm^2): "              << _mcpat_core_out.core.area << std::endl;               
-   os << indent4 << "Static Power (in W): "      << (_mcpat_core_out.core.gate_leakage + _mcpat_core_out.core.leakage) / _execution_time << std::endl; 
+   os << indent4 << "Static Power (in W): "      << (_mcpat_core_out.core.gate_leakage + (long_channel? _mcpat_core_out.core.longer_channel_leakage:_mcpat_core_out.core.leakage)) / _execution_time << std::endl; 
    os << indent4 << "Dynamic Energy (in J): "    << _mcpat_core_out.core.dynamic << std::endl;
    //    Instruction Fetch Unit
    os << indent4 << "Instruction Fetch Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.ifu.ifu.area << std::endl;               
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ifu.gate_leakage + _mcpat_core_out.ifu.ifu.leakage) / _execution_time << std::endl;           
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ifu.gate_leakage + (long_channel? _mcpat_core_out.ifu.ifu.longer_channel_leakage:_mcpat_core_out.ifu.ifu.leakage)) / _execution_time << std::endl;           
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.ifu.dynamic << std::endl;
    /*
    //       Instruction Cache
    os << indent8 << "Instruction Cache:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.icache.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.icache.gate_leakage + _mcpat_core_out.ifu.icache.leakage) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.icache.gate_leakage + (long_channel? _mcpat_core_out.ifu.icache.longer_channel_leakage:_mcpat_core_out.ifu.icache.leakage)) / _execution_time << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.icache.dynamic << std::endl;
    */
    //       Instruction Buffer
    os << indent8 << "Instruction Buffer:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.IB.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.IB.gate_leakage + _mcpat_core_out.ifu.IB.leakage) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.IB.gate_leakage + (long_channel? _mcpat_core_out.ifu.IB.longer_channel_leakage:_mcpat_core_out.ifu.IB.leakage)) / _execution_time << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.IB.dynamic << std::endl;
    //       Instruction Decoder
    os << indent8 << "Instruction Decoder:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.ID.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ID.gate_leakage + _mcpat_core_out.ifu.ID.leakage) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ID.gate_leakage + (long_channel? _mcpat_core_out.ifu.ID.longer_channel_leakage:_mcpat_core_out.ifu.ID.leakage)) / _execution_time << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.ID.dynamic << std::endl;
    //       Branch Predictor Table
    os << indent8 << "Branch Predictor Table:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.BPT.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BPT.gate_leakage + _mcpat_core_out.ifu.BPT.leakage) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BPT.gate_leakage + (long_channel? _mcpat_core_out.ifu.BPT.longer_channel_leakage:_mcpat_core_out.ifu.BPT.leakage)) / _execution_time << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.BPT.dynamic << std::endl;
    //       Branch Target Buffer
    os << indent8 << "Branch Target Buffer:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.BTB.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BTB.gate_leakage + _mcpat_core_out.ifu.BTB.leakage) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BTB.gate_leakage + (long_channel? _mcpat_core_out.ifu.BTB.longer_channel_leakage:_mcpat_core_out.ifu.BTB.leakage)) / _execution_time << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.BTB.dynamic << std::endl;
 
    //    Load Store Unit
    os << indent4 << "Load Store Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.lsu.lsu.area << std::endl;               
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.lsu.lsu.gate_leakage + _mcpat_core_out.lsu.lsu.leakage) / _execution_time << std::endl;             
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.lsu.lsu.gate_leakage + (long_channel? _mcpat_core_out.lsu.lsu.longer_channel_leakage:_mcpat_core_out.lsu.lsu.leakage)) / _execution_time << std::endl;             
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.lsu.lsu.dynamic << std::endl;
    /*
    //       Data Cache
    os << indent8 << "Data Cache:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.lsu.dcache.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.lsu.dcache.gate_leakage + _mcpat_core_out.lsu.dcache.leakage) / _execution_time << std::endl;            
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.lsu.dcache.gate_leakage + (long_channel? _mcpat_core_out.lsu.dcache.longer_channel_leakage:_mcpat_core_out.lsu.dcache.leakage)) / _execution_time << std::endl;            
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.lsu.dcache.dynamic << std::endl;
    */
    //       Load/Store Queue
    os << indent8 << "Load/Store Queue:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.lsu.LSQ.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.lsu.LSQ.gate_leakage + _mcpat_core_out.lsu.LSQ.leakage) / _execution_time << std::endl;            
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.lsu.LSQ.gate_leakage + (long_channel? _mcpat_core_out.lsu.LSQ.longer_channel_leakage:_mcpat_core_out.lsu.LSQ.leakage)) / _execution_time << std::endl;            
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.lsu.LSQ.dynamic << std::endl;
    //    Memory Management Unit
    os << indent4 << "Memory Management Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.mmu.mmu.area << std::endl;               
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.mmu.mmu.gate_leakage + _mcpat_core_out.mmu.mmu.leakage) / _execution_time << std::endl;            
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.mmu.mmu.gate_leakage + (long_channel? _mcpat_core_out.mmu.mmu.longer_channel_leakage:_mcpat_core_out.mmu.mmu.leakage)) / _execution_time << std::endl;            
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.mmu.mmu.dynamic << std::endl;
    //       Itlb
    os << indent8 << "Itlb:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.mmu.itlb.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.itlb.gate_leakage + _mcpat_core_out.mmu.itlb.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.itlb.gate_leakage + (long_channel? _mcpat_core_out.mmu.itlb.longer_channel_leakage:_mcpat_core_out.mmu.itlb.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.mmu.itlb.dynamic << std::endl;
    //       Dtlb
    os << indent8 << "Dtlb:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.mmu.dtlb.area << std::endl;                            
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.dtlb.gate_leakage + _mcpat_core_out.mmu.dtlb.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.dtlb.gate_leakage + (long_channel? _mcpat_core_out.mmu.dtlb.longer_channel_leakage:_mcpat_core_out.mmu.dtlb.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.mmu.dtlb.dynamic << std::endl;
    //    Execution Unit
    os << indent4 << "Execution Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.exu.exu.area << std::endl;                         
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.exu.exu.gate_leakage + _mcpat_core_out.exu.exu.leakage) / _execution_time << std::endl;
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.exu.exu.gate_leakage + (long_channel? _mcpat_core_out.exu.exu.longer_channel_leakage:_mcpat_core_out.exu.exu.leakage)) / _execution_time << std::endl;
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.exu.dynamic << std::endl;
    //       Register Files
    os << indent8 << "Register Files:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.rfu.rfu.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.rfu.gate_leakage + _mcpat_core_out.exu.rfu.rfu.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.rfu.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.rfu.longer_channel_leakage:_mcpat_core_out.exu.rfu.rfu.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.rfu.rfu.dynamic << std::endl;
    //          Integer RF
    os << indent12 << "Integer RF:" << std::endl;
    os << indent14 << "Area (in mm^2): "              << _mcpat_core_out.exu.rfu.IRF.area << std::endl;                            
-   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.IRF.gate_leakage + _mcpat_core_out.exu.rfu.IRF.leakage) / _execution_time << std::endl;
+   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.IRF.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.IRF.longer_channel_leakage:_mcpat_core_out.exu.rfu.IRF.leakage)) / _execution_time << std::endl;
    os << indent14 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.rfu.IRF.dynamic << std::endl;
    //          Floating Point RF
    os << indent12 << "Floating Point RF:" << std::endl;
    os << indent14 << "Area (in mm^2): "              << _mcpat_core_out.exu.rfu.FRF.area << std::endl;                          
-   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.FRF.gate_leakage + _mcpat_core_out.exu.rfu.FRF.leakage) / _execution_time << std::endl;
+   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.FRF.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.FRF.longer_channel_leakage:_mcpat_core_out.exu.rfu.FRF.leakage)) / _execution_time << std::endl;
    os << indent14 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.rfu.FRF.dynamic << std::endl;
    /*
    //          Register Windows (specific to Sun processors)
    os << indent12 << "Register Windows:" << std::endl;
    os << indent14 << "Area (in mm^2): "              << _mcpat_core_out.exu.rfu.RFWIN.area << std::endl;                          
-   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.RFWIN.gate_leakage + _mcpat_core_out.exu.rfu.RFWIN.leakage) / _execution_time << std::endl;
+   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.RFWIN.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.RFWIN.longer_channel_leakage:_mcpat_core_out.exu.rfu.RFWIN.leakage)) / _execution_time << std::endl;
    os << indent14 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.rfu.RFWIN.dynamic << std::endl;
    //       Instruction Scheduler (OoO)
    os << indent8 << "Instruction Scheduler:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.scheu.scheu.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.scheu.scheu.gate_leakage + _mcpat_core_out.exu.scheu.scheu.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.scheu.scheu.gate_leakage + (long_channel? _mcpat_core_out.exu.scheu.scheu.longer_channel_leakage:_mcpat_core_out.exu.scheu.scheu.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.scheu.scheu.dynamic << std::endl;
    //          Instruction Window (OoO)
    os << indent12 << "Instruction Window:" << std::endl;
    os << indent14 << "Area (in mm^2): "              << _mcpat_core_out.exu.scheu.int_inst_window.area << std::endl;                            
-   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.scheu.int_inst_window.gate_leakage + _mcpat_core_out.exu.scheu.int_inst_window.leakage) / _execution_time << std::endl;
+   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.scheu.int_inst_window.gate_leakage + (long_channel? _mcpat_core_out.exu.scheu.int_inst_window.longer_channel_leakage:_mcpat_core_out.exu.scheu.int_inst_window.leakage)) / _execution_time << std::endl;
    os << indent14 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.scheu.int_inst_window.dynamic << std::endl;
    */
    //       Integer ALUs
    os << indent8 << "Integer ALUs:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.exeu.area << std::endl;                       
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.exeu.gate_leakage + _mcpat_core_out.exu.exeu.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.exeu.gate_leakage + (long_channel? _mcpat_core_out.exu.exeu.longer_channel_leakage:_mcpat_core_out.exu.exeu.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.exeu.dynamic << std::endl;
    //       Floating Point Units (FPUs)
    os << indent8 << "Floating Point Units (FPUs):" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.fp_u.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.fp_u.gate_leakage + _mcpat_core_out.exu.fp_u.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.fp_u.gate_leakage + (long_channel? _mcpat_core_out.exu.fp_u.longer_channel_leakage:_mcpat_core_out.exu.fp_u.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.fp_u.dynamic << std::endl;
    //       Complex ALUs (Mul/Div)
    os << indent8 << "Complex ALUs (Mul/Div):" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.mul.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.mul.gate_leakage + _mcpat_core_out.exu.mul.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.mul.gate_leakage + (long_channel? _mcpat_core_out.exu.mul.longer_channel_leakage:_mcpat_core_out.exu.mul.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.mul.dynamic << std::endl;
    //       Results Broadcast Bus
    os << indent8 << "Results Broadcast Bus:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.bypass.area << std::endl;                       
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.bypass.gate_leakage + _mcpat_core_out.exu.bypass.leakage) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.bypass.gate_leakage + (long_channel? _mcpat_core_out.exu.bypass.longer_channel_leakage:_mcpat_core_out.exu.bypass.leakage)) / _execution_time << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.bypass.dynamic << std::endl;
 }
 

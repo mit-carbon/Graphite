@@ -48,7 +48,7 @@ Cache::Cache(string name,
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
+      // _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
    }
 
    // Initialize Cache Counters
@@ -407,8 +407,8 @@ Cache::outputSummary(ostream& out)
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
       // FIXME: Get total cycles from core model
-      _mcpat_cache_interface->computeEnergy(this, 10000);
-      _mcpat_cache_interface->outputSummary(out);
+      // _mcpat_cache_interface->computeEnergy(this, 10000);
+      // _mcpat_cache_interface->outputSummary(out);
    }
 
    // Track miss types

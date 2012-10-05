@@ -106,7 +106,7 @@ public:
    ~McPATCoreInterface();
 
    // Update Event Counters
-   void updateEventCounters(Instruction* instruction, UInt64 cycle_count);
+   void updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count);
    
    // Compute Energy from McPat
    void computeMcPATCoreEnergy();
@@ -227,7 +227,7 @@ private:
    void initializeOutputDataStructure();
 
    // Update Event Counters
-   void updateInstructionCounters(McPATInstructionType instruction_type);
+   void updateInstructionCounters(McPATInstructionType instruction_type, UInt64 total_branch_misprediction_count);
    void updateRegFileAccessCounters(Operand::Direction operand_direction, UInt32 reg_id);
    void updateExecutionUnitAccessCounters(ExecutionUnitType unit_type);
    void updateCycleCounters(UInt64 cycle_count);

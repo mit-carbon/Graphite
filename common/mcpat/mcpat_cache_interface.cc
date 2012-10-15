@@ -44,12 +44,12 @@ void McPATCacheInterface::computeEnergy(Cache* cache, UInt64 total_cycles)
 
    // Store Energy into Data Structure
    // Core
-   _mcpat_cache_out.area                   = _cache_wrapper->cache->area.get_area()*1e-6;
-	bool long_channel                       = _xml->sys.longer_channel_device;
-   double subthreshold_leakage_power       = long_channel ? _cache_wrapper->cache->power.readOp.longer_channel_leakage : _cache_wrapper->cache->power.readOp.leakage;
-   double gate_leakage_power               = _cache_wrapper->cache->power.readOp.gate_leakage;
-   _mcpat_cache_out.leakage_power          = subthreshold_leakage_power + gate_leakage_power;
-   _mcpat_cache_out.dynamic_energy         = _cache_wrapper->cache->rt_power.readOp.dynamic;
+   _mcpat_cache_out.area               = _cache_wrapper->cache->area.get_area() * 1e-6;
+	bool long_channel                   = _xml->sys.longer_channel_device;
+   double subthreshold_leakage_power   = long_channel ? _cache_wrapper->cache->power.readOp.longer_channel_leakage : _cache_wrapper->cache->power.readOp.leakage;
+   double gate_leakage_power           = _cache_wrapper->cache->power.readOp.gate_leakage;
+   _mcpat_cache_out.leakage_power      = subthreshold_leakage_power + gate_leakage_power;
+   _mcpat_cache_out.dynamic_energy     = _cache_wrapper->cache->rt_power.readOp.dynamic;
 }
 
 //---------------------------------------------------------------------------

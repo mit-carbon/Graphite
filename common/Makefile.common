@@ -38,14 +38,7 @@ DBG = # -ggdb
 KERNEL = SQUEEZE
 #KERNEL = LENNY
 
-CXXFLAGS += -DKERNEL_$(KERNEL)
-ifeq ($(TARGET_ARCH),ia32)
-  CXXFLAGS += -DTARGET_IA32
-  LD_FLAGS += -m32
-endif 
-ifeq ($(TARGET_ARCH),x86_64)
-  CXXFLAGS += -fPIC -DTARGET_X86_64
-endif
+CXXFLAGS += -DKERNEL_$(KERNEL) -fPIC
 
 ifeq ($(BOOST_VERSION),1_38)
 	BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0

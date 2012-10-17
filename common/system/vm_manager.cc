@@ -34,13 +34,7 @@ VMManager::VMManager()
        "Problem with Application Stack: start_data_segment(0x%x), start_stack_segment(0x%x)",
        m_start_data_segment, m_start_stack_segment);
 
-#ifdef TARGET_IA32
-   m_start_dynamic_segment = 0xb0000000;
-#endif
-
-#ifdef TARGET_X86_64
    m_start_dynamic_segment = 0xf000000000;
-#endif
 
    m_end_dynamic_segment = m_start_dynamic_segment;
 
@@ -100,32 +94,6 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
    LOG_PRINT("VMManager: mmap() returned %p", (void*) m_start_dynamic_segment);
    return ((void*) m_start_dynamic_segment);
 }
-
-#ifdef TARGET_IA32
-void *VMManager::mmap2(void *start, size_t length, int prot, int flags, int fd, off_t offset)
-{
-   LOG_PRINT("VMManager: mmap2(start = %p, length = 0x%x, flags = 0x%x)",
-         start, length, (unsigned) flags);
-
-   LOG_ASSERT_ERROR(fd == -1, 
-         "Mmap2() system call, received valid file descriptor. Not currently supported");
-   LOG_ASSERT_ERROR((flags & MAP_ANONYMOUS) == MAP_ANONYMOUS,
-         "Mmap2() system call, MAP_ANONYMOUS should be set in flags");
-   LOG_ASSERT_ERROR((flags & MAP_FIXED) == 0,
-         "Mmap2() system call, MAP_FIXED should NOT be set in flags");
-   LOG_ASSERT_ERROR((flags & MAP_PRIVATE) == MAP_PRIVATE,
-         "Mmap2() system call, MAP_PRIVATE should be set in flags");
-   
-   LOG_ASSERT_ERROR(m_end_stack_segment < (m_start_dynamic_segment - length),
-         "Mmap2() system call: No more memory to allocate! end_stack_segment(0x%x), start_dynamic_segment(0x%x)",
-         m_end_stack_segment, m_start_dynamic_segment - length);
-
-   m_start_dynamic_segment -= length;
-
-   LOG_PRINT("VMManager: mmap2() returned %p", (void*) m_start_dynamic_segment);
-   return ((void*) m_start_dynamic_segment);
-}
-#endif
 
 int VMManager::munmap(void *start, size_t length)
 {

@@ -939,54 +939,6 @@ void replacementCarbonSetCoreFrequency(CONTEXT *ctxt)
 
 void initialize_replacement_args (CONTEXT *ctxt, ...)
 {
-#ifdef TARGET_IA32
-   va_list vl;
-   va_start (vl, ctxt);
-   int type;
-   ADDRINT addr;
-   ADDRINT ptr;
-   ADDRINT buffer;
-   unsigned int count = 0;
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-   assert (core);
-
-   do
-   {
-      type = va_arg (vl, int);
-      addr = PIN_GetContextReg (ctxt, REG_STACK_PTR) + ((count + 1) * sizeof (ADDRINT));
-     
-      core->accessMemory (Core::NONE, Core::READ, addr, (char*) &buffer, sizeof (ADDRINT));
-      switch (type)
-      {
-         case IARG_ADDRINT:
-            ptr = va_arg (vl, ADDRINT);
-            * ((ADDRINT*) ptr) = buffer;
-            count++;
-            break;
-
-         case IARG_PTR:
-            ptr = va_arg (vl, ADDRINT);
-            * ((ADDRINT*) ptr) = buffer;
-            count++;
-            break;
-
-         case IARG_UINT32:
-            ptr = va_arg (vl, ADDRINT);
-            * ((UInt32*) ptr) = (UInt32) buffer;
-            count++;
-            break;
-
-         case CARBON_IARG_END:
-            break;
-
-         default:
-            assert (false);
-            break;
-      }
-   } while (type != CARBON_IARG_END);
-#endif
-
-#ifdef TARGET_X86_64
    va_list vl;
    va_start (vl, ctxt);
    int type;
@@ -1031,7 +983,6 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
             break;
       }
    } while (type != CARBON_IARG_END);
-#endif
 }
 
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val)

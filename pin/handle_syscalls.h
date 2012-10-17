@@ -34,10 +34,7 @@ void modifyGettimeofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard
 void restoreGettimofdayContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void modifyGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
-
-#ifdef TARGET_X86_64
 void modifyArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
 void restoreArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard);
-#endif
 
 #endif /* __HANDLE_SYSCALLS_H__ */

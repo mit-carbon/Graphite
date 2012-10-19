@@ -77,7 +77,6 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       marshallAccessCall(core_id);
       break;
 
-#ifdef TARGET_X86_64
    case SYS_stat:
    case SYS_lstat:
       // Same as stat() except for a link
@@ -88,12 +87,6 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       marshallFstatCall(core_id);
       break;
 
-#endif
-#ifdef TARGET_IA32
-   case SYS_fstat64:
-      marshallFstat64Call(core_id);
-      break;
-#endif
    case SYS_ioctl:
       marshallIoctlCall(core_id);
       break;
@@ -113,12 +106,6 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    case SYS_mmap:
       marshallMmapCall(core_id);
       break;
-
-#ifdef TARGET_IA32
-   case SYS_mmap2:
-      marshallMmap2Call(core_id);
-      break;
-#endif
 
    case SYS_munmap:
       marshallMunmapCall (core_id);
@@ -405,7 +392,6 @@ void SyscallServer::marshallAccessCall(core_id_t core_id)
       delete[] path;
 }
 
-#ifdef TARGET_X86_64
 void SyscallServer::marshallStatCall(IntPtr syscall_number, core_id_t core_id)
 {
    char *path = (char *) m_scratch;
@@ -457,28 +443,6 @@ void SyscallServer::marshallFstatCall(core_id_t core_id)
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    LOG_PRINT("Finished marshallFstatCall(), fd(%i), buf(%p)", fd, &buf);
 }
-#endif
-
-#ifdef TARGET_IA32
-void SyscallServer::marshallFstat64Call(core_id_t core_id)
-{
-   int fd;
-   struct stat64 buf;
-
-   // unpack the data
-   m_recv_buff.get<int>(fd);
-   m_recv_buff >> make_pair(&buf, sizeof(struct stat64));
-
-   // Do the syscall
-   int ret = syscall(SYS_fstat64, fd, &buf);
-
-   // pack the data and send
-   m_send_buff.put<int>(ret);
-   m_send_buff << make_pair(&buf, sizeof(struct stat64));
-
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
-}
-#endif
 
 void SyscallServer::marshallIoctlCall(core_id_t core_id)
 {
@@ -563,31 +527,6 @@ void SyscallServer::marshallMmapCall(core_id_t core_id)
 
    m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 }
-
-#ifdef TARGET_IA32
-void SyscallServer::marshallMmap2Call(core_id_t core_id)
-{
-   void *addr;
-   size_t length;
-   int prot;
-   int flags;
-   int fd;
-   off_t pgoffset;
-
-   m_recv_buff.get(addr);
-   m_recv_buff.get(length);
-   m_recv_buff.get(prot);
-   m_recv_buff.get(flags);
-   m_recv_buff.get(fd);
-   m_recv_buff.get(pgoffset);
-
-   void *start;
-   start = Sim()->getMCP()->getVMManager()->mmap2(addr, length, prot, flags, fd, pgoffset);
-
-   m_send_buff.put(start);
-   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
-}
-#endif
 
 void SyscallServer::marshallMunmapCall (core_id_t core_id)
 {

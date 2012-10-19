@@ -55,21 +55,13 @@ private:
    void marshallCloseCall(core_id_t core_id);
    void marshallLseekCall(core_id_t core_id);
    void marshallAccessCall(core_id_t core_id);
-#ifdef TARGET_X86_64
    void marshallStatCall(IntPtr syscall_number, core_id_t core_id);
    void marshallFstatCall(core_id_t core_id);
-#endif
-#ifdef TARGET_IA32
-   void marshallFstat64Call(core_id_t core_id);
-#endif
    void marshallIoctlCall(core_id_t core_id);
    void marshallGetpidCall(core_id_t core_id);
    void marshallReadaheadCall(core_id_t core_id);
    void marshallPipeCall(core_id_t core_id);
    void marshallMmapCall(core_id_t core_id);
-#ifdef TARGET_IA32
-   void marshallMmap2Call(core_id_t core_id);
-#endif
    void marshallMunmapCall(core_id_t core_id);
    void marshallBrkCall(core_id_t core_id);
    void marshallFutexCall(core_id_t core_id);

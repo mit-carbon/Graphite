@@ -123,13 +123,7 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
    }
 
    // Auxiliary Vector Entry
-#ifdef TARGET_IA32
-   initial_stack_size += sizeof(Elf32_auxv_t);
-#elif TARGET_X86_64
    initial_stack_size += sizeof(Elf64_auxv_t);
-#else
-   LOG_PRINT_ERROR("Unrecognized Architecture Type");
-#endif
 
 
    //////////////////////////////////////////////////////////////////////
@@ -191,13 +185,7 @@ VOID copyInitialStackData(IntPtr& reg_esp, core_id_t core_id)
 
    LOG_PRINT("Copying Auxiliary Vector to Simulated Memory");
   
-#ifdef TARGET_IA32
-   Elf32_auxv_t auxiliary_vector_entry_null;
-#elif TARGET_X86_64
    Elf64_auxv_t auxiliary_vector_entry_null;
-#else
-   LOG_PRINT_ERROR("Unrecognized architecture type");
-#endif
 
    auxiliary_vector_entry_null.a_type = AT_NULL;
    auxiliary_vector_entry_null.a_un.a_val = 0;
@@ -236,7 +224,6 @@ VOID allocateStackSpace()
    __attribute(__unused__) UInt32 num_tiles = Sim()->getConfig()->getNumLocalTiles();
    __attribute(__unused__) UInt32 max_threads_per_core = PinConfig::getSingleton()->getMaxThreadsPerCore();
    __attribute(__unused__) IntPtr stack_base = PinConfig::getSingleton()->getStackLowerLimit();
-
 
    LOG_PRINT("allocateStackSpace: stack_size_per_core = 0x%x", stack_size_per_core);
    LOG_PRINT("allocateStackSpace: num_local_cores = %i", num_tiles);

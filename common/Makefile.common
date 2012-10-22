@@ -19,7 +19,7 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
           $(SIM_ROOT)/common/config/	      									\
           $(SIM_ROOT)/common/system/          									\
           $(SIM_ROOT)/common/system/clock_skew_minimization_schemes		\
-			 $(SIM_ROOT)/common/shared_models/      								\
+				$(SIM_ROOT)/common/shared_models/      							\
           $(SIM_ROOT)/common/shared_models/queue_models/     				\
           $(SIM_ROOT)/common/user/													\
           $(SIM_ROOT)/common/mcpat/													\
@@ -40,15 +40,7 @@ KERNEL = SQUEEZE
 
 CXXFLAGS += -DKERNEL_$(KERNEL) -fPIC
 
-ifeq ($(BOOST_VERSION),1_38)
-	BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0
-	BOOST_SUFFIX = gcc41-mt-1_38
-	export LD_LIBRARY_PATH := $(BOOST_ROOT)/stage/lib:$(LD_LIBRARY_PATH)
-	CXXFLAGS += -I$(BOOST_ROOT)
-	LD_FLAGS += -L$(BOOST_ROOT)/stage/lib
-else
-	BOOST_SUFFIX = mt
-endif
+BOOST_SUFFIX = mt
 
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
 

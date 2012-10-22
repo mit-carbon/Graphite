@@ -9,13 +9,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-#if (BOOST_VERSION==103500)
-# include <boost/spirit/core.hpp>
-using namespace boost::spirit;
-#else
 # include <boost/spirit/include/classic_core.hpp>
 using namespace boost::spirit::classic;
-#endif
 
 namespace config
 {

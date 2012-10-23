@@ -20,15 +20,15 @@ Core::Core(Tile *tile, core_type_t core_type)
    , m_core_state(IDLE)
    , m_pin_memory_manager(NULL)
 {
+   m_network = m_tile->getNetwork();
+   m_shmem_perf_model = m_tile->getShmemPerfModel();
+   m_memory_manager = m_tile->getMemoryManager();
+
    m_core_model = CoreModel::create(this);
    m_sync_client = new SyncClient(this);
    m_syscall_model = new SyscallMdl(tile->getNetwork());
    m_clock_skew_minimization_client =
       ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
- 
-   m_network = m_tile->getNetwork(); 
-   m_shmem_perf_model = m_tile->getShmemPerfModel();
-   m_memory_manager = m_tile->getMemoryManager();
     
    if (Config::getSingleton()->isSimulatingSharedMemory())
       m_pin_memory_manager = new PinMemoryManager(this);

@@ -34,10 +34,10 @@ McPATCacheInterface::~McPATCacheInterface()
 //---------------------------------------------------------------------------
 // Compute Energy from McPAT
 //---------------------------------------------------------------------------
-void McPATCacheInterface::computeEnergy(Cache* cache, UInt64 total_cycles)
+void McPATCacheInterface::computeEnergy(Cache* cache)
 {
    // Fill the ParseXML's Core Event Stats from McPATCacheInterface
-   fillCacheStatsIntoXML(cache, total_cycles);
+   fillCacheStatsIntoXML(cache);
 
    // Compute Energy from Processor
    _cache_wrapper->computeEnergy();
@@ -116,10 +116,8 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
    _xml->sys.L2[0].duty_cycle = 0.5;                           // Initialized from Niagara1.xml
 }
 
-void McPATCacheInterface::fillCacheStatsIntoXML(Cache* cache, UInt64 total_cycles)
+void McPATCacheInterface::fillCacheStatsIntoXML(Cache* cache)
 {
-   _xml->sys.total_cycles = total_cycles;
-
    _xml->sys.L2[0].read_accesses = cache->_total_read_accesses;
    _xml->sys.L2[0].write_accesses = cache->_total_write_accesses;
    _xml->sys.L2[0].read_misses = cache->_total_read_misses;

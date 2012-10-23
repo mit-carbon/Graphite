@@ -26,7 +26,7 @@ public:
    ~McPATCacheInterface();
 
    // Compute Energy from McPAT
-   void computeEnergy(Cache* cache, UInt64 total_cycles);
+   void computeEnergy(Cache* cache);
 
    // Output energy/area summary from McPAT
    void outputSummary(ostream& os);
@@ -40,5 +40,5 @@ private:
    
    // Initialize XML Object
    void fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node);
-   void fillCacheStatsIntoXML(Cache* cache, UInt64 total_cycles);
+   void fillCacheStatsIntoXML(Cache* cache);
 };

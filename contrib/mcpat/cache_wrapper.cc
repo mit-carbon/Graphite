@@ -17,7 +17,7 @@ namespace McPAT
 {
 
 CacheWrapper::CacheWrapper(ParseXML *XML_interface)
-:XML(XML_interface)//TODO: using one global copy may have problems.
+   : XML(XML_interface)
 {
   /*
    *  placement and routing overhead is 10%, core scales worse than cache 40% is accumulated from 90 to 22nm

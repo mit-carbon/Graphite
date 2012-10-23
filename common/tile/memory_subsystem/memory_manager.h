@@ -15,7 +15,7 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet);
 class MemoryManager
 {
 public:
-   MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
+   MemoryManager(Tile* tile);
    virtual ~MemoryManager();
 
    virtual bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
@@ -33,8 +33,8 @@ public:
 
    virtual tile_id_t getShmemRequester(const void* pkt_data) = 0;
 
-   virtual void enableModels() = 0;
-   virtual void disableModels() = 0;
+   virtual void enableModels()   { _shmem_perf_model->enable();   }
+   virtual void disableModels()  { _shmem_perf_model->disable();  }
 
    // Modeling
    // getModeledLength() returns the length of the msg in bits
@@ -42,9 +42,7 @@ public:
    virtual bool isModeled(const void* pkt_data) = 0;
 
    static CachingProtocolType parseProtocolType(std::string& protocol_type);
-   static MemoryManager* createMMU(std::string protocol_type,
-                                       Tile* tile, Network* network,
-                                       ShmemPerfModel* shmem_perf_model);
+   static MemoryManager* createMMU(std::string protocol_type, Tile* tile);
    
    virtual void outputSummary(std::ostream& os) = 0;
 

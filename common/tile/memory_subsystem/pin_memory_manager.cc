@@ -1,4 +1,6 @@
-#include <stdlib.h>
+#include <cstdlib>
+#include <cassert>
+
 #include "pin_memory_manager.h"
 
 PinMemoryManager::PinMemoryManager(Core* core):

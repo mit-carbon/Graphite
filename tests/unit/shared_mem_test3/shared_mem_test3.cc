@@ -1,4 +1,5 @@
 #include "tile.h"
+#include "core.h"
 #include "mem_component.h"
 #include "tile_manager.h"
 #include "simulator.h"

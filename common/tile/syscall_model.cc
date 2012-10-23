@@ -1,11 +1,14 @@
 #include "syscall_model.h"
+#include "message_types.h"
+#include "core_model.h"
 #include "sys/syscall.h"
 #include "transport.h"
 #include "config.h"
 #include "clock_converter.h"
 #include "fxsupport.h"
 
-#include <math.h>
+#include <cmath>
+#include <cstring>
 
 // --------------------------------------------
 // New stuff added with Memory redirection
@@ -40,10 +43,10 @@
 
 using namespace std;
 
-SyscallMdl::SyscallMdl(Network *net)
+SyscallMdl::SyscallMdl(Core *core)
    : m_called_enter(false)
    , m_ret_val(0)
-   , m_network(net)
+   , m_network(core->getTile()->getNetwork())
 {
 }
 
@@ -1185,8 +1188,8 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       UInt64 start_time;
       UInt64 end_time;
 
-      volatile float core_frequency = core->getPerformanceModel()->getFrequency();
-      start_time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), core_frequency, 1.0);
+      volatile float core_frequency = core->getModel()->getFrequency();
+      start_time = convertCycleCount(core->getModel()->getCycleCount(), core_frequency, 1.0);
 
       // Package the arguments for the syscall
       m_send_buff.put(addr1);
@@ -1223,9 +1226,11 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       // Look at common/system/syscall_server.cc for this
       if (end_time > start_time)
       {
-         UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, core_frequency);
-
-         core->getPerformanceModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+         if (core->getModel())
+         {
+            UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, core_frequency);
+            core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+         }
       }
 
       // Delete the data buffer
@@ -1321,7 +1326,7 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
    }
 
    // compute the elapsed time
-   perf_model = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   perf_model = Sim()->getTileManager()->getCurrentCore()->getModel();
    cycles = perf_model->getCycleCount();
    frequency = perf_model->getFrequency();
    elapsed_time = ( 1 / (frequency * 1000000000) ) * cycles;

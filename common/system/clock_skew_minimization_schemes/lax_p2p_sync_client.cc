@@ -1,13 +1,14 @@
 #include "lax_p2p_sync_client.h"
 #include "simulator.h"
+#include "tile_manager.h"
 #include "config.h"
 #include "packetize.h"
 #include "network.h"
+#include "core.h"
+#include "core_model.h"
 #include "fxsupport.h"
 #include "clock_converter.h"
-#include "fxsupport.h"
 #include "log.h"
-#include "tile_manager.h"
 
 UInt64 LaxP2PSyncClient::MAX_TIME = ((UInt64) 1) << 60;
 
@@ -36,12 +37,12 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    _rand_num.seed(1);
 
    // Register Call-back
-   _core->getNetwork()->registerCallback(CLOCK_SKEW_MINIMIZATION, ClockSkewMinimizationClientNetworkCallback, this);
+   _core->getTile()->getNetwork()->registerCallback(CLOCK_SKEW_MINIMIZATION, ClockSkewMinimizationClientNetworkCallback, this);
 }
 
 LaxP2PSyncClient::~LaxP2PSyncClient()
 {
-   _core->getNetwork()->unregisterCallback(CLOCK_SKEW_MINIMIZATION);
+   _core->getTile()->getNetwork()->unregisterCallback(CLOCK_SKEW_MINIMIZATION);
 }
 
 void 
@@ -74,7 +75,7 @@ LaxP2PSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
    SyncMsg sync_msg(recv_pkt.sender, (SyncMsg::MsgType) msg_type, time);
 
    LOG_PRINT("Core(%i,%i), SyncMsg[sender(%i), type(%u), time(%llu)]",
-         _core->getTileId(), sync_msg.sender.tile_id, sync_msg.sender.core_type, sync_msg.type, sync_msg.time);
+         _core->getTile()->getId(), sync_msg.sender.tile_id, sync_msg.sender.core_type, sync_msg.type, sync_msg.time);
 
    LOG_ASSERT_ERROR(time < MAX_TIME, 
          "SyncMsg[sender(%i, %i), msg_type(%u), time(%llu)]",
@@ -121,11 +122,11 @@ LaxP2PSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
       LOG_ASSERT_ERROR(sync_msg.type == SyncMsg::REQ,
             "sync_msg.type(%u)", sync_msg.type);
 
-      LOG_PRINT("Tile(%i) not RUNNING: Sending ACK", _core->getTileId());
+      LOG_PRINT("Tile(%i) not RUNNING: Sending ACK", _core->getTile()->getId());
 
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
-      _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
    }
 
    _lock.release();
@@ -140,8 +141,8 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    // Even if this is an approximate value, this is OK
    
    // Tile Clock to Global clock conversion
-   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(),
-         _core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(),
+         _core->getModel()->getFrequency(), 1.0);
 
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
@@ -154,7 +155,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       // Wait till the other tile reaches this one
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
-      _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
 
       if (!sleeping)
       {
@@ -174,7 +175,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       // Both the cores are in sync (Good)
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
-      _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
    }
    else if (curr_time < (sync_msg.time - _slack))
    {
@@ -185,7 +186,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       // Double up and catch up. Meanwhile, ask the other tile to wait
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) (sync_msg.time - curr_time);
-      _core->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
    }
    else
    {
@@ -209,8 +210,8 @@ LaxP2PSyncClient::synchronize(UInt64 cycle_count)
    if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
-   UInt64 curr_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(),
-         _core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(),
+         _core->getModel()->getFrequency(), 1.0);
 
    assert(curr_time >= _last_sync_time);
 
@@ -219,7 +220,7 @@ LaxP2PSyncClient::synchronize(UInt64 cycle_count)
    if ((curr_time - _last_sync_time) >= _quantum)
    {
       LOG_PRINT("Tile(%i): Starting Synchronization: curr_time(%llu), _last_sync_time(%llu)",
-            _core->getTileId(), curr_time, _last_sync_time);
+            _core->getTile()->getId(), curr_time, _last_sync_time);
 
       _lock.acquire();
 
@@ -252,17 +253,17 @@ LaxP2PSyncClient::sendRandomSyncMsg(UInt64 curr_time)
 
    UInt32 num_app_cores = Config::getSingleton()->getApplicationTiles();
    SInt32 offset = 1 + (SInt32) _rand_num.next((Random::value_t) ((num_app_cores - 1) / 2));
-   tile_id_t receiver = (_core->getTileId() + offset) % num_app_cores;
+   tile_id_t receiver = (_core->getTile()->getId() + offset) % num_app_cores;
 
    LOG_ASSERT_ERROR((receiver >= 0) && (receiver < (tile_id_t) num_app_cores), 
          "receiver(%i)", receiver);
 
-   LOG_PRINT("Tile(%i) Sending SyncReq to %i, curr_time(%llu)", _core->getTileId(), receiver, curr_time);
+   LOG_PRINT("Tile(%i) Sending SyncReq to %i, curr_time(%llu)", _core->getTile()->getId(), receiver, curr_time);
 
    UnstructuredBuffer send_buf;
    send_buf << (UInt32) SyncMsg::REQ << curr_time;
 
-   _core->getNetwork()->netSend(Tile::getMainCoreId(receiver), CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+   _core->getTile()->getNetwork()->netSend(Tile::getMainCoreId(receiver), CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
 }
 
 UInt64
@@ -275,7 +276,7 @@ LaxP2PSyncClient::userProcessSyncMsgList()
    for (it = _msg_queue.begin(); it != _msg_queue.end(); it++)
    {
       LOG_PRINT("Tile(%i) Process Sync Msg List: SyncMsg[sender(%i), type(%u), wait_time(%llu)]", 
-            _core->getTileId(), (*it).sender, (*it).type, (*it).time);
+            _core->getTile()->getId(), (*it).sender, (*it).type, (*it).time);
       
       LOG_ASSERT_ERROR((*it).time < MAX_TIME,
             "sync_msg[sender(%i), msg_type(%u), time(%llu)]",
@@ -302,13 +303,13 @@ LaxP2PSyncClient::gotoSleep(const UInt64 sleep_time)
 
    if (sleep_time > 0)
    {
-      LOG_PRINT("Tile(%i) going to sleep", _core->getTileId());
+      LOG_PRINT("Tile(%i) going to sleep", _core->getTile()->getId());
 
       // Set the CoreState to 'SLEEPING'
       _core->setState(Core::SLEEPING);
 
-      UInt64 elapsed_simulated_time = convertCycleCount(_core->getPerformanceModel()->getCycleCount(),
-            _core->getPerformanceModel()->getFrequency(), 1.0);
+      UInt64 elapsed_simulated_time = convertCycleCount(_core->getModel()->getCycleCount(),
+            _core->getModel()->getFrequency(), 1.0);
 
       UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
 
@@ -333,7 +334,7 @@ LaxP2PSyncClient::gotoSleep(const UInt64 sleep_time)
       // Set the CoreState to 'RUNNING'
       _core->setState(Core::RUNNING);
       
-      LOG_PRINT("Tile(%i) woken up", _core->getTileId());
+      LOG_PRINT("Tile(%i) woken up", _core->getTile()->getId());
    }
 }
 

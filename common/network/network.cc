@@ -1,5 +1,7 @@
+#include <cstring>
 #include "transport.h"
 #include "tile.h"
+#include "core_model.h"
 #include "network.h"
 #include "memory_manager.h"
 #include "simulator.h"
@@ -7,17 +9,12 @@
 #include "clock_converter.h"
 #include "fxsupport.h"
 #include "network_model.h"
+#include "core_model.h"
 #include "statistics_manager.h"
 #include "utils.h"
 #include "log.h"
 
 using namespace std;
-
-// FIXME: Rework netCreateBuf and netExPacket. We don't need to
-// duplicate the sender/receiver info the packet. This should be known
-// by the transport layer and given to us. We also should be more
-// intelligent about the time stamps, right now the method is very
-// ugly.
 
 // For getting a periodic summary of network utilization
 bool* Network::_utilizationTraceEnabled;
@@ -84,10 +81,10 @@ void Network::unregisterCallback(PacketType type)
 
 void Network::outputSummary(std::ostream &out) const
 {
-   out << "Network summary:\n";
+   out << "Network Summary: " << endl;
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      out << "  Network model " << i << ":\n";
+      out << "  Network Model " << i << ": " << endl;
       _models[i]->outputSummary(out);
    }
 }
@@ -120,7 +117,7 @@ void Network::netPullFromTransport()
          
          // Convert from network cycle count to core cycle count
          packet.time = convertCycleCount(packet.time, model->getFrequency(),
-                                         _tile->getCore()->getPerformanceModel()->getFrequency());
+                                         _tile->getCore()->getModel()->getFrequency());
          
          // asynchronous I/O support
          NetworkCallback callback = _callbacks[packet.type];
@@ -238,7 +235,7 @@ SInt32 Network::netSend(NetPacket& packet)
 
    // Convert from core cycle count to network cycle count
    packet.time = convertCycleCount(packet.time,
-                                   _tile->getCore()->getPerformanceModel()->getFrequency(),
+                                   _tile->getCore()->getModel()->getFrequency(),
                                    model->getFrequency());
 
    // Send packet as multiple packets if model has not broadcast capability and receiver is ALL
@@ -377,9 +374,9 @@ NetPacket Network::netRecv(const NetMatch &match)
                         ? _tile->getCore()->getId() 
                         : match.receiver;
 
-   LOG_ASSERT_ERROR(_tile && _tile->getCore()->getPerformanceModel(),
+   LOG_ASSERT_ERROR(_tile && _tile->getCore()->getModel(),
                     "Tile and/or performance model not initialized.");
-   UInt64 start_time = _tile->getCore()->getPerformanceModel()->getCycleCount();
+   UInt64 start_time = _tile->getCore()->getModel()->getCycleCount();
 
    _netQueueLock.acquire();
 
@@ -438,9 +435,13 @@ NetPacket Network::netRecv(const NetMatch &match)
 
    if (packet.time > start_time)
    {
-      LOG_PRINT("Queueing RecvInstruction(%llu)", packet.time - start_time);
-      Instruction *i = new RecvInstruction(packet.time - start_time);
-      _tile->getCore()->getPerformanceModel()->queueDynamicInstruction(i);
+      CoreModel* core_model = _tile->getCore()->getModel();
+      if (core_model)
+      {  
+         LOG_PRINT("Queueing RecvInstruction(%llu)", packet.time - start_time);
+         Instruction *i = new RecvInstruction(packet.time - start_time);
+         core_model->queueDynamicInstruction(i);
+      }
    }
 
    LOG_PRINT("Exiting netRecv : type %i, from {%i,%i}", (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type);
@@ -454,8 +455,8 @@ SInt32 Network::netSend(core_id_t dest, PacketType type, const void *buf, UInt32
 {
    NetPacket packet;
    assert(_tile);
-   assert(_tile->getCore()->getPerformanceModel()); 
-   packet.time = _tile->getCore()->getPerformanceModel()->getCycleCount();
+   assert(_tile->getCore()->getModel()); 
+   packet.time = _tile->getCore()->getModel()->getCycleCount();
    packet.sender = _tile->getCore()->getId();
    packet.receiver = dest;
    packet.length = len;

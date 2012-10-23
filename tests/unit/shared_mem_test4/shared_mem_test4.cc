@@ -1,4 +1,5 @@
 #include "tile.h"
+#include "core.h"
 #include "mem_component.h"
 #include "tile_manager.h"
 #include "simulator.h"
@@ -55,15 +56,15 @@ void* thread_func(void*)
    {
       if (core->getTile()->getId() == 0)
       {
-         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &i, sizeof(i));
-         LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
+         pair<UInt32,UInt64> ret = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &i, sizeof(i));
+         LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), ret.second);
       }
       
       CarbonBarrierWait(&barrier);
 
       int val;
-      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
-      LOG_PRINT("Core(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
+      pair<UInt32,UInt64> ret = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
+      LOG_PRINT("Core(%i): Access Time(%llu)", core->getTile()->getId(), ret.second);
       if (val != i)
       {
          fprintf(stderr, "shared_mem_test4 (FAILURE): Core(%i), Expected(%i), Got(%i)\n",

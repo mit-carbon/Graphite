@@ -2,6 +2,7 @@
 #include "tile_manager.h"
 #include "config.h"
 #include "tile.h"
+#include "core.h"
 #include "carbon_user.h"
 #include "log.h"
 

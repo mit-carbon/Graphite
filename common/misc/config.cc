@@ -15,7 +15,7 @@ UInt32 Config::m_knob_total_tiles;
 UInt32 Config::m_knob_num_process;
 bool Config::m_knob_simarch_has_shared_mem;
 std::string Config::m_knob_output_file;
-bool Config::m_knob_enable_performance_modeling;
+bool Config::m_knob_enable_core_modeling;
 bool Config::m_knob_enable_power_modeling;
 bool Config::m_knob_enable_area_modeling;
 UInt32 Config::m_knob_max_threads_per_core;
@@ -41,7 +41,7 @@ Config::Config()
       m_knob_num_process = Sim()->getCfg()->getInt("general/num_processes");
       m_knob_simarch_has_shared_mem = Sim()->getCfg()->getBool("general/enable_shared_mem");
       m_knob_output_file = Sim()->getCfg()->getString("general/output_file");
-      m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
+      m_knob_enable_core_modeling = Sim()->getCfg()->getBool("general/enable_core_modeling");
       m_knob_enable_power_modeling = Sim()->getCfg()->getBool("general/enable_power_modeling");
       m_knob_enable_area_modeling = Sim()->getCfg()->getBool("general/enable_area_modeling");
       m_knob_max_threads_per_core = Sim()->getCfg()->getInt("general/max_threads_per_core");
@@ -309,9 +309,9 @@ bool Config::isSimulatingSharedMemory() const
    return (bool)m_knob_simarch_has_shared_mem;
 }
 
-bool Config::getEnablePerformanceModeling() const
+bool Config::getEnableCoreModeling() const
 {
-   return (bool)m_knob_enable_performance_modeling;
+   return (bool)m_knob_enable_core_modeling;
 }
 
 bool Config::getEnablePowerModeling() const

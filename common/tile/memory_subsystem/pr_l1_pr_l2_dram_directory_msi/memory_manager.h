@@ -18,7 +18,7 @@ namespace PrL1PrL2DramDirectoryMSI
    class MemoryManager : public ::MemoryManager
    {
    public:
-      MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
+      MemoryManager(Tile* tile);
       ~MemoryManager();
 
       UInt32 getCacheLineSize() { return _cache_line_size; }

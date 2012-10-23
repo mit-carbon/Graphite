@@ -1,6 +1,7 @@
 #include "l1_cache_cntlr.h"
 #include "l2_cache_cntlr.h" 
 #include "memory_manager.h"
+#include "config.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMSI

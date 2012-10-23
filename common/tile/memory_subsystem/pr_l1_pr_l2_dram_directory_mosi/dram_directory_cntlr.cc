@@ -1,8 +1,10 @@
+#include <cstring>
 #include "dram_directory_cntlr.h"
-#include "log.h"
 #include "memory_manager.h"
+#include "config.h"
 #include "utils.h"
 #include "utilization_defines.h"
+#include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {

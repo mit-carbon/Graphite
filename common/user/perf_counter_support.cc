@@ -1,6 +1,7 @@
 #include "perf_counter_support.h"
-#include "tile.h"
 #include "tile_manager.h"
+#include "tile.h"
+#include "core.h"
 #include "simulator.h"
 #include "packet_type.h"
 #include "message_types.h"

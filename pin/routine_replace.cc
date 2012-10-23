@@ -14,6 +14,7 @@
 #include "tile_manager.h"
 #include "redirect_memory.h"
 #include "thread_start.h"
+#include "tile.h"
 #include "network.h"
 #include "packet_type.h"
 // End Memory redirection stuff
@@ -182,16 +183,16 @@ void replacementMain (CONTEXT *ctxt)
       {
          // FIXME: 
          // This whole process should probably happen through the MCP
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
+         core->getTile()->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getId(), SYSTEM_INITIALIZATION_ACK);
+         core->getTile()->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getId(), SYSTEM_INITIALIZATION_ACK);
       }
       
       // Tell the thread spawner for each process that we're done initializing...even though we haven't?
       for (UInt32 i = 1; i < num_processes; i++)
       {
-         core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
+         core->getTile()->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_FINI, NULL, 0);
       }
 
       spawnThreadSpawner(ctxt);
@@ -204,8 +205,8 @@ void replacementMain (CONTEXT *ctxt)
    {
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
-      core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getId(), SYSTEM_INITIALIZATION_FINI);
+      core->getTile()->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
+      core->getTile()->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getId(), SYSTEM_INITIALIZATION_FINI);
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);

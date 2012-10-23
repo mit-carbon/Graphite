@@ -1,28 +1,36 @@
 #include "instruction_modeling.h"
-
 #include "simulator.h"
 #include "core_model.h"
 #include "opcodes.h"
 #include "tile_manager.h"
 #include "tile.h"
+#include "core.h"
+#include "core_model.h"
 
 void handleBasicBlock(BasicBlock *sim_basic_block)
 {
-   CoreModel *prfmdl = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   if (!Sim()->isEnabled())
+      return;
 
-   prfmdl->queueBasicBlock(sim_basic_block);
+   CoreModel *core_model = Sim()->getTileManager()->getCurrentCore()->getModel();
+   assert(core_model);
+   
+   core_model->queueBasicBlock(sim_basic_block);
 
    //FIXME: put this in a thread
-   prfmdl->iterate();
+   core_model->iterate();
 }
 
 void handleBranch(BOOL taken, ADDRINT target)
 {
-   assert(Sim() && Sim()->getTileManager() && Sim()->getTileManager()->getCurrentTile());
-   CoreModel *prfmdl = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   if (!Sim()->isEnabled())
+      return;
+
+   CoreModel *core_model = Sim()->getTileManager()->getCurrentCore()->getModel();
+   assert(core_model);
 
    DynamicInstructionInfo info = DynamicInstructionInfo::createBranchInfo(taken, target);
-   prfmdl->pushDynamicInstructionInfo(info);
+   core_model->pushDynamicInstructionInfo(info);
 }
 
 void fillOperandListMemOps(OperandList *list, INS ins)
@@ -151,7 +159,6 @@ VOID fillOperandList(OperandList *list, INS ins)
 
 VOID addInstructionModeling(INS ins)
 {
-
    BasicBlock *basic_block = new BasicBlock();
 
    OperandList list;
@@ -178,7 +185,7 @@ VOID addInstructionModeling(INS ins)
    // Now handle instructions which have a static cost
    else
    {
-      int inst_opcode = INS_Opcode(ins);
+      OPCODE inst_opcode = INS_Opcode(ins);
       
       // FPU Opcode
       if
@@ -200,7 +207,6 @@ VOID addInstructionModeling(INS ins)
          )
       {
          basic_block->push_back(new ArithInstruction(INST_FMUL, INS_Opcode(ins), list));
-         //cout << "FMUL Opcode: " << INS_Mnemonic(ins) << " [" << INS_Opcode(ins) << "]" << endl;
       }
       else if 
          (
@@ -210,7 +216,6 @@ VOID addInstructionModeling(INS ins)
          )
       {
          basic_block->push_back(new ArithInstruction(INST_FDIV, INS_Opcode(ins), list));
-         //cout << "FDIV Opcode: " << INS_Mnemonic(ins) << " [" << INS_Opcode(ins) << "]" << endl;
       }
  
       // SIMD Instructions

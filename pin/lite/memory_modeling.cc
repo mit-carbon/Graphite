@@ -2,6 +2,7 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
+#include "core.h"
 
 namespace lite
 {

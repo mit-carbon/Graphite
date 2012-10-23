@@ -5,6 +5,7 @@
 #include "directory_entry.h"
 #include "l2_cache_replacement_policy.h"
 #include "l2_cache_hash_fn.h"
+#include "config.h"
 #include "log.h"
 
 #define TYPE(shmem_req)    (shmem_req->getShmemMsg()->getType())

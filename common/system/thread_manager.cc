@@ -1,4 +1,5 @@
 #include <sys/syscall.h>
+#include <cassert>
 #include "thread_manager.h"
 #include "thread_scheduler.h"
 #include "tile_manager.h"
@@ -12,6 +13,7 @@
 #include "message_types.h"
 #include "tile.h"
 #include "core.h"
+#include "core_model.h"
 #include "thread.h"
 #include "packetize.h"
 #include "clock_converter.h"
@@ -127,11 +129,13 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
                 msg,
                 sizeof(SInt32) + sizeof(core_id_t) + sizeof(thread_id_t));
 
-   CoreModel *pm = m_tile_manager->getCurrentCore()->getPerformanceModel();
-
-   // Global Clock to Tile Clock
-   UInt64 start_cycle_count = convertCycleCount(req->time, 1.0, pm->getFrequency());
-   pm->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
+   CoreModel *core_model = m_tile_manager->getCurrentCore()->getModel();
+   if (core_model)
+   {
+      // Global Clock to Tile Clock
+      UInt64 start_cycle_count = convertCycleCount(req->time, 1.0, core_model->getFrequency());
+      core_model->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
+   }
 }
 
 void ThreadManager::masterOnThreadStart(tile_id_t tile_id, UInt32 core_type, SInt32 thread_idx)
@@ -159,11 +163,11 @@ void ThreadManager::onThreadExit()
    LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread %i on {%d, %d} at time %llu",
              thread_idx,
              core->getId().tile_id, core->getId().core_type,
-             core->getPerformanceModel()->getCycleCount());
+             core->getModel()->getCycleCount());
    Network *net = tile->getNetwork();
 
    // Recompute Average Frequency
-   core->getPerformanceModel()->recomputeAverageFrequency();
+   core->getModel()->recomputeAverageFrequency();
 
    // update global thread state
    net->netSend(Config::getSingleton()->getMCPCoreId(),
@@ -227,8 +231,8 @@ SInt32 ThreadManager::spawnThread(tile_id_t tile_id, thread_func_t func, void *a
    Network *net = core->getTile()->getNetwork();
 
    // Tile Clock to Global Clock
-   UInt64 global_cycle_count = convertCycleCount(core->getPerformanceModel()->getCycleCount(),
-         core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 global_cycle_count = convertCycleCount(core->getModel()->getCycleCount(),
+         core->getModel()->getFrequency(), 1.0);
    
    core->setState(Core::STALLED);
 

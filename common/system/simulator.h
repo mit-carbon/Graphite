@@ -44,14 +44,19 @@ public:
    Config *getConfig() { return &m_config; }
    config::Config *getCfg() { return m_config_file; }
 
-   static void enablePerformanceModelsInCurrentProcess();
-   static void disablePerformanceModelsInCurrentProcess();
-
    void startTimer();
    void stopTimer();
    bool finished();
 
    std::string getGraphiteHome() { return _graphite_home; }
+   
+   void enableModels();
+   void disableModels();
+
+   bool isEnabled() const { return m_enabled; }
+
+   static void enablePerformanceModelsInCurrentProcess();
+   static void disablePerformanceModelsInCurrentProcess();
 
 private:
 
@@ -95,6 +100,8 @@ private:
    static config::Config *m_config_file;
 
    std::string _graphite_home;
+
+   bool m_enabled;
 };
 
 __attribute__((unused)) static Simulator *Sim()

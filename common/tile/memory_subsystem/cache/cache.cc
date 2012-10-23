@@ -48,7 +48,7 @@ Cache::Cache(string name,
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      // _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
+      _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
    }
 
    // Initialize Cache Counters
@@ -370,8 +370,12 @@ Cache::getCacheLineStateCounters(vector<UInt64>& cache_line_state_counters) cons
 void
 Cache::outputSummary(ostream& out)
 {
+   // completion_time is expressed in nanoseconds
+   // UInt64 total_cycles = frequency * completion_time;
+   UInt64 total_cycles = 1000;
+
    // Cache Miss Summary
-   out << "  Cache " << _name << ":\n";
+   out << "  Cache " << _name << ": "<< endl;
    out << "    Cache Accesses: " << _total_cache_accesses << endl;
    out << "    Cache Misses: " << _total_cache_misses << endl;
    if (_total_cache_accesses > 0)
@@ -406,9 +410,8 @@ Cache::outputSummary(ostream& out)
    // Output Power and Area Summaries
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      // FIXME: Get total cycles from core model
-      // _mcpat_cache_interface->computeEnergy(this, 10000);
-      // _mcpat_cache_interface->outputSummary(out);
+      _mcpat_cache_interface->computeEnergy(this, total_cycles);
+      _mcpat_cache_interface->outputSummary(out);
    }
 
    // Track miss types

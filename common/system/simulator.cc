@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <sstream>
 
 #include "simulator.h"
@@ -7,6 +7,7 @@
 #include "lcp.h"
 #include "mcp.h"
 #include "tile.h"
+#include "instruction.h"
 #include "tile_manager.h"
 #include "thread_manager.h"
 #include "thread_scheduler.h"
@@ -74,6 +75,7 @@ Simulator::Simulator()
    , m_start_time(0)
    , m_stop_time(0)
    , m_shutdown_time(0)
+   , m_enabled(false)
 {
 }
 
@@ -279,18 +281,28 @@ bool Simulator::finished()
    return m_finished;
 }
 
+void Simulator::enableModels()
+{
+   startTimer();
+   m_enabled = true;
+   for (UInt32 i = 0; i < m_config.getNumLocalTiles(); i++)
+      m_tile_manager->getTileFromIndex(i)->enableModels();
+}
+
+void Simulator::disableModels()
+{
+   stopTimer();
+   m_enabled = false;
+   for (UInt32 i = 0; i < m_config.getNumLocalTiles(); i++)
+      m_tile_manager->getTileFromIndex(i)->disableModels();
+}
+
 void Simulator::enablePerformanceModelsInCurrentProcess()
 {
-   LOG_PRINT("enablePerformanceModelsInCurrentProcess() start");
-   Sim()->startTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
-      Sim()->getTileManager()->getTileFromIndex(i)->enablePerformanceModels();
-   LOG_PRINT("enablePerformanceModelsInCurrentProcess() end");
+   Sim()->enableModels();
 }
 
 void Simulator::disablePerformanceModelsInCurrentProcess()
 {
-   Sim()->stopTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
-      Sim()->getTileManager()->getTileFromIndex(i)->disablePerformanceModels();
+   Sim()->disableModels();
 }

@@ -13,7 +13,7 @@
 CoreModel* CoreModel::create(Core* core)
 {
    float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
-   string core_model = Config::getSingleton()->getCoreType(core->getId().tile_id);
+   string core_model = Config::getSingleton()->getCoreType(core->getTile()->getId());
 
    if (core_model == "iocoom")
       return new IOCOOMCoreModel(core, frequency);
@@ -21,7 +21,7 @@ CoreModel* CoreModel::create(Core* core)
       return new SimpleCoreModel(core, frequency);
    else
    {
-      LOG_PRINT_ERROR("Invalid perf model type: %s", core_model.c_str());
+      LOG_PRINT_ERROR("Invalid core model type: %s", core_model.c_str());
       return NULL;
    }
 }
@@ -53,7 +53,7 @@ CoreModel::~CoreModel()
 
 void CoreModel::outputSummary(ostream& os)
 {
-   os << "Core Model Summary:" << endl;
+   os << "Core Summary:" << endl;
    os << "    Total Instructions: " << m_instruction_count << endl;
    os << "    Completion Time (in ns): " << (UInt64) ((double) m_cycle_count / m_frequency) << endl;
    os << "    Average Frequency (in GHz): " << m_average_frequency << endl;
@@ -72,13 +72,11 @@ void CoreModel::outputSummary(ostream& os)
 
 void CoreModel::enable()
 {
-   LOG_PRINT("enable() start");
    // Thread Spawner and MCP performance models should never be enabled
    if (m_core->getTile()->getId() >= (tile_id_t) Config::getSingleton()->getApplicationTiles())
       return;
 
    m_enabled = true;
-   LOG_PRINT("enable() end");
 }
 
 void CoreModel::disable()
@@ -161,7 +159,7 @@ void CoreModel::updatePipelineStallCounters(Instruction* i, UInt64 memory_stall_
 
 void CoreModel::queueDynamicInstruction(Instruction *i)
 {
-   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled)
    {
       delete i;
       return;
@@ -175,7 +173,7 @@ void CoreModel::queueDynamicInstruction(Instruction *i)
 
 void CoreModel::queueBasicBlock(BasicBlock *basic_block)
 {
-   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled)
       return;
 
    ScopedLock sl(m_basic_block_queue_lock);
@@ -227,17 +225,16 @@ void CoreModel::iterate()
 
 void CoreModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
 {
-   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled)
       return;
 
-   LOG_PRINT("Push Info(%u)", i.type);
    ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
 }
 
 void CoreModel::popDynamicInstructionInfo()
 {
-   if (!m_enabled || !Config::getSingleton()->getEnablePerformanceModeling())
+   if (!m_enabled)
       return;
 
    ScopedLock sl(m_dynamic_info_queue_lock);

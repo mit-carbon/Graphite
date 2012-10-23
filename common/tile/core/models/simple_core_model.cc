@@ -91,7 +91,7 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 
    if (instruction->isDynamic())
    {
-      assert(memory_stall_cycles == 0);
+      LOG_ASSERT_ERROR(memory_stall_cycles == 0, "memory_stall_cycles(%llu)", memory_stall_cycles);
       m_cycle_count += cost;
    }
    else // Static Instruction

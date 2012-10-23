@@ -12,8 +12,8 @@ namespace PrL1PrL2DramDirectoryMSI
 // Static variables
 ofstream MemoryManager::_cache_line_replication_file;
 
-MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
-   : ::MemoryManager(tile, network, shmem_perf_model)
+MemoryManager::MemoryManager(Tile* tile)
+   : ::MemoryManager(tile)
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
@@ -278,11 +278,9 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 
    getShmemPerfModel()->setCycleCount(msg_time);
 
-   if (_enabled)
-   {
-      LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
-            shmem_msg->getType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
-   }
+   LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
+             shmem_msg->getType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component,
+             sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
 
    switch (receiver_mem_component)
    {
@@ -350,12 +348,9 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
-   {
-      LOG_PRINT("Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)",
-                shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
-                shmem_msg.getRequester(), getTile()->getId(), receiver);
-   }
+   LOG_PRINT("Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)",
+             shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
+             shmem_msg.getRequester(), getTile()->getId(), receiver);
 
    NetPacket packet(msg_time, SHARED_MEM_1,
          getTile()->getId(), receiver,
@@ -374,12 +369,9 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
-   {
-      LOG_PRINT("Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i)",
-                shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
-                shmem_msg.getRequester(), getTile()->getId());
-   }
+   LOG_PRINT("Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i)",
+             shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
+             shmem_msg.getRequester(), getTile()->getId());
 
    NetPacket packet(msg_time, SHARED_MEM_1,
          getTile()->getId(), NetPacket::BROADCAST,
@@ -419,7 +411,6 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
 void
 MemoryManager::enableModels()
 {
-   LOG_PRINT("enableModels() start");
    _enabled = true;
 
    _l1_cache_cntlr->getL1ICache()->enable();
@@ -436,13 +427,13 @@ MemoryManager::enableModels()
       _dram_directory_cntlr->getDramDirectoryCache()->enable();
       _dram_cntlr->getDramPerfModel()->enable();
    }
-   LOG_PRINT("enableModels() end");
+
+   ::MemoryManager::enableModels();
 }
 
 void
 MemoryManager::disableModels()
 {
-   LOG_PRINT("disableModels() start");
    _enabled = false;
 
    _l1_cache_cntlr->getL1ICache()->disable();
@@ -459,7 +450,8 @@ MemoryManager::disableModels()
       _dram_directory_cntlr->getDramDirectoryCache()->disable();
       _dram_cntlr->getDramPerfModel()->disable();
    }
-   LOG_PRINT("disableModels() end");
+
+   ::MemoryManager::disableModels();
 }
 
 void

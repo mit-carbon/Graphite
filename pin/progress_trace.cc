@@ -1,14 +1,15 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <vector>
-
 using std::vector;
 
 #include "pin.H"
+#include "progress_trace.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
-#include "progress_trace.h"
+#include "core.h"
+#include "core_model.h"
 
 static UInt64 applicationStartTime;
 static TLS_KEY threadCounterKey;
@@ -55,7 +56,7 @@ static VOID traceProgress()
    UInt64* counter_ptr = (UInt64*) PIN_GetThreadData(threadCounterKey);
    UInt64 counter = *counter_ptr;
 
-   CoreModel *pm = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   CoreModel *pm = Sim()->getTileManager()->getCurrentCore()->getModel();
 
    UInt64 cycles = pm->getCycleCount();
 

@@ -162,7 +162,7 @@ public:
 
    // Knobs
    bool isSimulatingSharedMemory() const;
-   bool getEnablePerformanceModeling() const;
+   bool getEnableCoreModeling() const;
    bool getEnablePowerModeling() const;
    bool getEnableAreaModeling() const;
 
@@ -211,7 +211,7 @@ private:
    static UInt32 m_knob_num_process;
    static bool m_knob_simarch_has_shared_mem;
    static std::string m_knob_output_file;
-   static bool m_knob_enable_performance_modeling;
+   static bool m_knob_enable_core_modeling;
    static bool m_knob_enable_power_modeling;
    static bool m_knob_enable_area_modeling;
 

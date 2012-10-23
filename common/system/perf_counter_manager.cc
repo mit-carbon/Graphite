@@ -1,3 +1,4 @@
+#include <cassert>
 #include "tile.h"
 #include "tile_manager.h"
 #include "perf_counter_manager.h"

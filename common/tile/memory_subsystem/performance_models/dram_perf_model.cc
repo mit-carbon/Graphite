@@ -145,12 +145,10 @@ DramPerfModel::outputSummary(ostream& out)
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
 
 
-   if(Config::getSingleton()->getEnablePowerModeling())
+   if (Config::getSingleton()->getEnablePowerModeling())
    {
-      out << "    total dynamic energy: " <<
-         (float) (m_dynamic_energy * m_num_accesses) << endl;
-      out << "    total static power: " <<
-         (float) (m_total_static_power) << endl;
+      out << "    Static Power (in W): " << (float) (m_total_static_power) << endl;
+      out << "    Dynamic Energy (in J): " << (float) (m_dynamic_energy * m_num_accesses) << endl;
    }
    
    std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
@@ -186,6 +184,12 @@ DramPerfModel::dummyOutputSummary(ostream& out)
    out << "    Total Dram Accesses: " << endl;
    out << "    Average Dram Access Latency (in ns): " << endl;
    out << "    Average Dram Contention Delay (in ns): " << endl;
+   
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      out << "    Static Power (in W): " << endl;
+      out << "    Dynamic Energy (in J): " << endl;
+   }
    
    bool queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
    std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");

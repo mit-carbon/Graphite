@@ -203,7 +203,7 @@ Simulator::~Simulator()
       McPATCache::release();
    // Release Orion Config object
    if (Config::getSingleton()->getEnablePowerModeling())
-      DSENTInterface::release();
+      dsent_contrib::DSENTInterface::release();
 }
 
 void Simulator::startTimer()

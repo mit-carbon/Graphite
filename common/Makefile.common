@@ -45,8 +45,8 @@ BOOST_SUFFIX = mt
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
 
 # Other Libraries in Contrib
-LD_LIBS += -lorion
-LD_FLAGS += -L$(SIM_ROOT)/contrib/orion
+LD_LIBS += -ldsent_contrib
+LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(PIN_HOME)/intel64/runtime:$(LD_LIBRARY_PATH)

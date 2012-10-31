@@ -6,8 +6,6 @@
 class RouterPowerModel
 {
 
-using dsent_contrib::DSENTRouter;
-
 public:
 
    RouterPowerModel(float frequency, UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_port_buffer, UInt32 flit_width);
@@ -50,7 +48,7 @@ private:
    UInt32 _num_flits_per_port_buffer;
    UInt32 _flit_width;
 
-   DSENTRouter* _dsent_router;
+   dsent_contrib::DSENTRouter* _dsent_router;
 
    volatile double _total_dynamic_energy_buffer;
    volatile double _total_dynamic_energy_crossbar;

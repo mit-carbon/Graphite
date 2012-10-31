@@ -1,6 +1,7 @@
 # object files
 *.d
 *.o
+*.lo
 *.pyc
 
 # emacs temp files

@@ -6,14 +6,12 @@
 class ElectricalLinkPowerModel : public LinkPowerModel
 {
 
-using dsent_contrib::DSENTElectricalLink;
-
 public:
-   ElectricalLinkPowerModel(string link_type, float link_frequency, double link_length, UInt32 link_width);
+   ElectricalLinkPowerModel(std::string link_type, float link_frequency, double link_length, UInt32 link_width);
    ~ElectricalLinkPowerModel();
 
    void updateDynamicEnergy(UInt32 num_flits);
 
 private:
-   DSENTElectricalLink* _dsent_link;
+   dsent_contrib::DSENTElectricalLink* _dsent_link;
 };

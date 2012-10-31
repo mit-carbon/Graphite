@@ -16,7 +16,7 @@
 #include "statistics_manager.h"
 #include "statistics_thread.h"
 #include "fxsupport.h"
-#include "contrib/orion/orion.h"
+#include "contrib/dsent/dsent_contrib.h"
 #include "mcpat_cache.h"
 
 Simulator *Simulator::m_singleton;
@@ -91,9 +91,8 @@ void Simulator::start()
    // Orion for network power modeling - create config object
    if (Config::getSingleton()->getEnablePowerModeling())
    { 
-      string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
-      OrionConfig::allocate(orion_cfg_file, getCfg()->getInt("general/technology_node"));
-      // OrionConfig::getSingleton()->print_config(cout);
+      string dsent_path = _graphite_home + "/contrib/dsent";
+      dsent_contrib::DSENTInterface::allocate(dsent_path, getCfg()->getInt("general/technology_node"));
   }
   
    // McPAT for cache power and area modeling
@@ -204,7 +203,7 @@ Simulator::~Simulator()
       McPATCache::release();
    // Release Orion Config object
    if (Config::getSingleton()->getEnablePowerModeling())
-      OrionConfig::release();
+      DSENTInterface::release();
 }
 
 void Simulator::startTimer()

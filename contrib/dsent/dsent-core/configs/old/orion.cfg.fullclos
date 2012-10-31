@@ -1,0 +1,70 @@
+
+# Some configuration options
+IsPerformTimingOptimization = FALSE
+
+# Instance
+ModelName = ElectricalClos
+
+# Query string used to choose what will be output by Orion
+QueryString = 
+Energy>>ElectricalClos->InputToIngressLink:Send@0;
+Energy>>ElectricalClos->IngressToMiddleLink:Send@0;
+Energy>>ElectricalClos->MiddleToEgressLink:Send@0;
+Energy>>ElectricalClos->EgressToOutputLink:Send@0;
+Energy>>ElectricalClos->IngressRouter:ReadBuffer@0;
+Energy>>ElectricalClos->IngressRouter:WriteBuffer@0;
+Energy>>ElectricalClos->IngressRouter:ArbitrateSwitch->ArbitrateStage1@0;
+Energy>>ElectricalClos->IngressRouter:ArbitrateSwitch->ArbitrateStage2@0;
+Energy>>ElectricalClos->IngressRouter:TraverseCrossbar->Multicast1@0;
+Energy>>ElectricalClos->IngressRouter:TraverseCrossbar->Multicast32@0;
+Energy>>ElectricalClos->MiddleRouter:ReadBuffer@0;
+Energy>>ElectricalClos->MiddleRouter:WriteBuffer@0;
+Energy>>ElectricalClos->MiddleRouter:ArbitrateSwitch->ArbitrateStage1@0;
+Energy>>ElectricalClos->MiddleRouter:ArbitrateSwitch->ArbitrateStage2@0;
+Energy>>ElectricalClos->MiddleRouter:TraverseCrossbar->Multicast1@0;
+Energy>>ElectricalClos->MiddleRouter:TraverseCrossbar->Multicast32@0;
+Energy>>ElectricalClos->EgressRouter:ReadBuffer@0;
+Energy>>ElectricalClos->EgressRouter:WriteBuffer@0;
+Energy>>ElectricalClos->EgressRouter:ArbitrateSwitch->ArbitrateStage1@0;
+Energy>>ElectricalClos->EgressRouter:ArbitrateSwitch->ArbitrateStage2@0;
+Energy>>ElectricalClos->EgressRouter:TraverseCrossbar->Multicast1@0;
+Energy>>ElectricalClos->EgressRouter:TraverseCrossbar->Multicast32@0;
+NddPower>>ElectricalClos:Leakage@0;
+Area>>ElectricalClos:Active@0;
+Area>>ElectricalClos:GlobalWire@0;
+
+# Orion Configurations
+
+# Technology file (see models in tech/models)
+ElectricalTechModelFilename     = F:/Work/orion/orion3.0/tech/tech_models/SOI45LVT.model
+PhotonicTechModelFilename       = F:/Work/orion/orion3.0/tech/tech_models/Photonics.model
+
+# Mesh parameters
+ClockFrequency              = 1e9
+NumberInputSites            = 1024
+NumberOutputSites           = 1024
+NumberBitsPerFlit           = 64
+NumberIngressRouters        = 32
+NumberMiddleRouters         = 32
+NumberEgressRouters         = 32
+
+# Router-specific parameters
+Router->NumberVirtualNetworks                       = 1
+Router->NumberVirtualChannelsPerVirtualNetwork      = 1
+Router->NumberBuffersPerVirtualChannel              = [4]
+Router->InputPort->BufferModel                      = DFFRAM
+Router->CrossbarModel                               = MultiplexerCrossbar
+Router->SwitchAllocator->ArbiterModel               = MatrixArbiter
+Router->ClockTreeModel                              = BroadcastHTree
+Router->ClockTree->NumberLevels                     = 6
+Router->ClockTree->WireLayer                        = Intermediate
+Router->ClockTree->WireWidthMultiplier              = 1.0
+
+# Electrical Link-specific parameters
+Link->WireLayer             = Global
+Link->WireWidthMultiplier   = 1.0
+Link->WireSpacingMultiplier = 1.0
+
+# Physical organization properties
+InputSitePitch              = 1e-3
+OutputSitePitch             = 1e-3

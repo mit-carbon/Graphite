@@ -1,0 +1,91 @@
+TODO List before releasing DSENT:
+
+===============================================================================
+Chen
+===============================================================================
+*DONE* 1. 
+----------
+Fix several parts of the photonic models that had to be hacked in order to
+generate the plots in the paper.
+
+*DONE* receiver model
+*DONE* modulator model
+*DONE* thermal tuning model (left curve fit to matlab models as a TODO)
+
+*DONE* 2.
+----------
+Cleanup photonics model that was hacked in to do evaluations for paper
+figures. Allow modulator/laser power balance flag to be set using config file
+
+*DONE* 3.
+----------
+Remove features that we don't want to release quite yet or are unfinished
+
+*DONE* unfinished lib file dumps
+*DONE* unit tests
+*DONE* ATAC network
+
+*DONE* 4.
+----------
+Tech file cleanup and consistency checks for 65, 45, 32, 22, and 11
+
+===============================================================================
+Owen
+===============================================================================
+*DONE* 1.
+----------
+Add functions that prints the hierarchy of the model,
+gets called via a command-line flag
+
+Something like this (takes a similar string as query format):
+dsent -cfg configs/dsent.cfg.pclos -printInstHier PhotonicClos@5
+dsent -cfg configs/dsent.cfg.pclos -printAreaHier PhotonicClos->IngressRouter:Active@3
+dsent -cfg configs/dsent.cfg.pclos -printEventHier PhotonicClos->IngressRouter:UnicastAvg@1
+dsent -cfg configs/dsent.cfg.pclos -printNddPowerHier PhotonicClos->IngressToMiddleLink:Laser@2
+etc.
+
+*DONE* Final design: use QueryString
+InstHier>>Router@2
+AreaHier>>Router->InputPort@2
+AreaHier>>Router->InputPort:Active@2
+EventHier>>..
+NddPowerHier>>..
+
+2.
+----------
+Documentation for running DSENT so that it is easy for people who are familiar
+with the Orion 2.0 interface to figure out how to use the Query interface of DSENT.
+Maybe some information concerning how to edit a model will be useful as well
+
+*DONE* add calculator that can do simple programming
+
+3.
+----------
+General interface code cleanup including
+cleanup of the provided configuration files (i.e. make the naming consistent,
+query reasonable things, etc.)
+
+4.
+----------
+Add interconnect capacitance model for the router crossbar like what was done
+in the oracle copy
+
+*DONE*
+
+===============================================================================
+Optional Things
+===============================================================================
+
+1.
+----------
+Uniquify returned result instances (instead of referencing static ones).
+Right now DSENT will give the wrong value if two events "use" the same model
+with different transition probabilities
+
+2.
+----------
+Release and write documentation for the Matlab plotting scripts
+
+
+
+

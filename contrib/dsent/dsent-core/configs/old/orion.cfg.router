@@ -1,0 +1,108 @@
+
+###############################################################################
+# DSENT Configurations
+###############################################################################
+
+# Instance
+ModelName = Router
+
+# Query string used to choose what will be output by DSENT
+QueryString = \
+    Energy>>Router:WriteBuffer@0 \
+    Energy>>Router:ReadBuffer@0 \
+    Energy>>Router:TraverseCrossbar->Multicast1@0 \
+    Energy>>Router:ArbitrateSwitch->ArbitrateStage1@0 \
+    Energy>>Router:ArbitrateSwitch->ArbitrateStage2@0 \
+    NddPower>>Router:Leakage@1 \
+    Area>>Router:Active@0 \
+    NddPowerHier>>Router@0 \
+    EventHier>>Router@0 \
+#    Parameter>>Router@1
+#    InstHier>>Router@2
+#    AreaHier>>Router->InputPort@2
+#    AreaHier>>Router->InputPort:Active@2
+#    EventHier>>Router@2
+#    EventHier>>Router:WriteBuffer@2
+#    EventHier>>Router->InputPort:Idle@2
+
+
+# Injection rate (# flits per cycle per port), assuming that the router is not
+# saturated
+InjectionRate = 0.3
+# Evaluation string
+EvaluateString = \
+    ejection_rate   = $(NumberInputPorts) * $(InjectionRate) / $(NumberOutputPorts); \
+    buf_rd_dynamic  = $(Energy>>Router:ReadBuffer) * $(Frequency); \
+    buf_wr_dynamic  = $(Energy>>Router:WriteBuffer) * $(Frequency); \
+    buf_static      = $(NddPower>>Router->InputPort:Leakage); \
+    xbar_dynamic    = $(Energy>>Router:TraverseCrossbar->Multicast1) * $(Frequency); \
+    xbar_static     = $(NddPower>>Router->Crossbar:Leakage); \
+    sa_dynamic      = ($(Energy>>Router:ArbitrateSwitch->ArbitrateStage1) + $(Energy>>Router:ArbitrateSwitch->ArbitrateStage2)) * $(Frequency); \
+    sa_static       = $(NddPower>>Router->SwitchAllocator:Leakage); \
+    clock_dynamic   = $(Energy>>Router:DistributeClock) * $(Frequency); \
+    clock_static    = $(NddPower>>Router->ClockTree:Leakage); \
+    print "Buffer:"; \
+    print "    Dynamic power: " buf_wr_dynamic * $(InjectionRate) * $(NumberInputPorts) + buf_rd_dynamic * ejection_rate * $(NumberOutputPorts); \
+    print "    Leakage power: " buf_static; \
+    print "Crossbar:"; \
+    print "    Dynamic power: " xbar_dynamic * ejection_rate * $(NumberOutputPorts); \
+    print "    Leakage power: " xbar_static; \
+    print "Switch allocator:"; \
+    print "    Dynamic power: " sa_dynamic * ejection_rate * $(NumberOutputPorts); \
+    print "    Leakage power: " sa_static; \
+    print "Clock:"; \
+    print "    Dynamic power: " clock_dynamic; \
+    print "    Leakage power: " clock_static; \
+
+# Technology file (see other models in tech/models)
+ElectricalTechModelFilename = tech/tech_models/Bulk45LVT.model
+
+# Perform timing optimization
+IsPerformTimingOptimization = true
+TimingOptimization->StartNetNames = [CK]
+IsReportTiming = true
+ReportTiming->StartNetNames = [CK]
+# Operating frequency (Hz)
+Frequency = 1.0e9
+
+###############################################################################
+# Parameters for routers
+###############################################################################
+
+# Number of input ports
+NumberInputPorts = 5
+# Number of output ports
+NumberOutputPorts = 5
+# Flit width (bit)
+NumberBitsPerFlit = 32
+
+# Number of virtual networks
+NumberVirtualNetworks = 1
+# Number of virtual channels per virtual network
+NumberVirtualChannelsPerVirtualNetwork = [1]
+# Number of buffers per virtual channel
+NumberBuffersPerVirtualChannel = [4]
+
+# InputPort 
+# buffer model
+InputPort->BufferModel = DFFRAM
+
+# Crossbar
+# crossbar model
+CrossbarModel = MultiplexerCrossbar
+
+# Switch allocator
+# arbiter model
+SwitchAllocator->ArbiterModel = MatrixArbiter
+
+# Clock tree
+# clock tree model
+ClockTreeModel = BroadcastHTree
+# number of levels
+ClockTree->NumberLevels = 5
+# wire layer
+ClockTree->WireLayer = Intermediate
+# wire width multiplier
+ClockTree->WireWidthMultiplier = 1.0
+
+

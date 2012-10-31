@@ -1,0 +1,55 @@
+
+# Some configuration options
+IsPerformTimingOptimization = FALSE
+
+# Instance
+ModelName = ElectricalMesh
+
+# Query string used to choose what will be output by Orion
+QueryString = 
+Energy>>ElectricalMesh->RouterToSiteLink:Send@0;
+Energy>>ElectricalMesh->RouterToRouterLink:Send@0;
+Energy>>ElectricalMesh->MeshRouter:ReadBuffer@0;
+Energy>>ElectricalMesh->MeshRouter:WriteBuffer@0;
+Energy>>ElectricalMesh->MeshRouter:ArbitrateSwitch->ArbitrateStage1@0;
+Energy>>ElectricalMesh->MeshRouter:ArbitrateSwitch->ArbitrateStage2@0;
+Energy>>ElectricalMesh->MeshRouter:TraverseCrossbar->Multicast1@0;
+Energy>>ElectricalMesh->MeshRouter:TraverseCrossbar->Multicast2@0;
+Energy>>ElectricalMesh->MeshRouter:TraverseCrossbar->Multicast3@0;
+Energy>>ElectricalMesh->MeshRouter:TraverseCrossbar->Multicast4@0;
+Energy>>ElectricalMesh->MeshRouter:TraverseCrossbar->Multicast5@0;
+NddPower>>ElectricalMesh:Leakage@0;
+Area>>ElectricalMesh:Active@0;
+Area>>ElectricalMesh:GlobalWire@0;
+
+# Orion Configurations
+
+# Technology file (see models in tech/models)
+ElectricalTechModelFilename     = F:/Work/orion/orion3.0/tech/tech_models/SOI45LVT.model
+PhotonicTechModelFilename       = F:/Work/orion/orion3.0/tech/tech_models/Photonics.model
+
+# Mesh parameters
+ClockFrequency              = 1e9
+NumberSites                 = 1024
+NumberBitsPerFlit           = 64
+NumberSitesPerRouter        = 1
+
+# Router-specific parameters
+Router->NumberVirtualNetworks                       = 1
+Router->NumberVirtualChannelsPerVirtualNetwork      = 1
+Router->NumberBuffersPerVirtualChannel              = [4]
+Router->InputPort->BufferModel                      = DFFRAM
+Router->CrossbarModel                               = MultiplexerCrossbar
+Router->SwitchAllocator->ArbiterModel               = MatrixArbiter
+Router->ClockTreeModel                              = BroadcastHTree
+Router->ClockTree->NumberLevels                     = 6
+Router->ClockTree->WireLayer                        = Intermediate
+Router->ClockTree->WireWidthMultiplier              = 1.0
+
+# Electrical Link-specific parameters
+Link->WireLayer             = Global
+Link->WireWidthMultiplier   = 1.0
+Link->WireSpacingMultiplier = 1.0
+
+# Physical organization properties
+SitePitch           = 1e-3

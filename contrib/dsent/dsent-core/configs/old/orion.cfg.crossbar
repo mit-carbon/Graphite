@@ -1,0 +1,32 @@
+
+# Instance
+ModelName = MultiplexerCrossbar
+# Query string used to choose what will be output by Orion
+QueryString = NddPower>>MultiplexerCrossbar:Leakage@0 Area>>MultiplexerCrossbar:Active@0
+
+# Orion Configurations
+
+# Technology file (see models in tech/models)
+#ElectricalTechModelFilename = tech/tech_models/SOI11LVT.model
+#ElectricalTechModelFilename = tech/tech_models/Bulk65LVT.model
+ElectricalTechModelFilename = tech/tech_models/SOI45LVT.model
+#ElectricalTechModelFilename = unit_test/test_dummy.model
+PhotonicTechModelFilename = tech/tech_models/Photonics.model
+
+# Perform timing optimization
+IsPerformTimingOptimization = true
+TimingOptimization->StartNetNames = [*]
+# Operating frequency (Hz)
+Frequency = 2e9
+
+############
+# Parameters for multiplexer crossbar
+############
+
+# Number of input ports
+NumberInputs = 4
+# Number of output ports
+NumberOutputs = 4
+# Flit width (bit)
+NumberBits = 64
+

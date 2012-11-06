@@ -15,7 +15,7 @@ SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
 # Convert the .c and .cc's in to .o's
 OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 
-# Other Libraries that are used by Graphite (Only Orion right now)
+# Other Libraries that are used by Graphite
 DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
 CONTRIB_LIBS = $(DSENT_LIB)
 
@@ -32,6 +32,6 @@ $(DSENT_LIB):
 
 ifneq ($(CLEAN),)
 clean:
-	-rm -f $(TARGET) $(OBJECTS)
-	make -C $(SIM_ROOT)/contrib/orion clean
+	$(RM) $(TARGET) $(OBJECTS)
+	make -C $(SIM_ROOT)/contrib/dsent clean
 endif

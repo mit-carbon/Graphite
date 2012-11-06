@@ -105,5 +105,5 @@ $(LIB_PIN_SIM):
 
 ifneq ($(CLEAN),)
 clean:
-	-rm -f *.o *.d $(TARGET)
+	$(RM) *.o *.d $(TARGET)
 endif

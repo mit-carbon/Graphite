@@ -6,7 +6,7 @@ using namespace dsent_contrib;
 ElectricalLinkPowerModel::ElectricalLinkPowerModel(string link_type, float link_frequency, double link_length, UInt32 link_width)
    : LinkPowerModel(link_frequency, link_length, link_width)
 {
-   LOG_ASSERT_ERROR(link_type == "electrical_repeated", "Orion only supports electrical_repeated link models currently");
+   LOG_ASSERT_ERROR(link_type == "electrical_repeated", "DSENT only supports electrical_repeated link models currently");
    // DSENT expects link length to be in meters(m)
    _dsent_link = new DSENTElectricalLink(link_frequency, link_length / 1000, link_width, DSENTInterface::getSingleton());
 

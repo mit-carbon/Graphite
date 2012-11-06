@@ -88,7 +88,7 @@ void Simulator::start()
    char* graphite_home_str = getenv("GRAPHITE_HOME");
    _graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
   
-   // Orion for network power modeling - create config object
+   // DSENT for network power modeling - create config object
    if (Config::getSingleton()->getEnablePowerModeling())
    { 
       string dsent_path = _graphite_home + "/contrib/dsent";
@@ -201,7 +201,7 @@ Simulator::~Simulator()
    // Release McPAT cache object
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
       McPATCache::release();
-   // Release Orion Config object
+   // Release DSENT interface object
    if (Config::getSingleton()->getEnablePowerModeling())
       dsent_contrib::DSENTInterface::release();
 }

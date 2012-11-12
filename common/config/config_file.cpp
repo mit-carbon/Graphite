@@ -16,7 +16,11 @@
 #include "config_file.hpp"
 #include "config_exceptions.hpp"
 
+#if (BOOST_VERSION==103500)
+using namespace boost::spirit;
+#else
 using namespace boost::spirit::classic;
+#endif
 
 namespace config
 {

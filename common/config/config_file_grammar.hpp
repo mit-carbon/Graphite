@@ -5,12 +5,21 @@
 // #define BOOST_SPIRIT_DEBUG        // define this for debug output
 
 #include <boost/version.hpp>
+#if (BOOST_VERSION==103500)
+# include <boost/spirit/core.hpp>
+# include <boost/spirit/tree/parse_tree.hpp>
+# include <boost/spirit/tree/ast.hpp>
+# include <boost/spirit/utility/confix.hpp>
+# include <boost/spirit/utility/escape_char.hpp>
+# include <boost/spirit/utility/chset.hpp>
+#else
 # include <boost/spirit/include/classic_core.hpp>
 # include <boost/spirit/include/classic_parse_tree.hpp>
 # include <boost/spirit/include/classic_ast.hpp>
 # include <boost/spirit/include/classic_confix.hpp>
 # include <boost/spirit/include/classic_escape_char.hpp>
 # include <boost/spirit/include/classic_chset.hpp>
+#endif
 
 #include <iostream>
 
@@ -22,7 +31,11 @@
 
 namespace config
 {
+#if (BOOST_VERSION==103500)
+    using namespace boost::spirit;
+#else
     using namespace boost::spirit::classic;
+#endif
 
     enum RuleID { defaultID, sectionID, keyNameID, keyValueID, keyID, sectionNameID, stringID, configID };
 

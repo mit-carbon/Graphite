@@ -149,8 +149,8 @@ void ThreadManager::onThreadExit()
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   Tile* tile = m_tile_manager->getCurrentTile();
    Core* core = m_tile_manager->getCurrentCore();
+   Tile* tile = core->getTile();
    thread_id_t thread_idx = m_tile_manager->getCurrentThreadIndex();
 
    // send message to master process to update thread state
@@ -158,7 +158,7 @@ void ThreadManager::onThreadExit()
 
    LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread %i on {%d, %d} at time %llu",
              thread_idx,
-             core->getId().tile_id, core->getId().core_type,
+             tile->getId(), core->getId().core_type,
              core->getPerformanceModel()->getCycleCount());
    Network *net = tile->getNetwork();
 
@@ -175,6 +175,13 @@ void ThreadManager::onThreadExit()
 
    // Set the CoreState to 'IDLE'
    core->setState(Core::IDLE);
+
+   // Terminate thread spawners if thread '0'
+   if ((tile->getId() == 0) && (Sim()->getConfig()->getSimulationMode() == Config::FULL))
+   {
+      assert(Sim()->getConfig()->getCurrentProcessNum() == 0);
+      terminateThreadSpawners();
+   }
 
    // terminate thread locally so we are ready for new thread requests on that tile
    m_tile_manager->terminateThread();

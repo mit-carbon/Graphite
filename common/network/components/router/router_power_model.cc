@@ -70,10 +70,9 @@ RouterPowerModel::updateDynamicEnergyCrossbar(UInt32 num_flits)
 }
 
 void
-RouterPowerModel::updateDynamicEnergySwitchAllocator(UInt32 num_requests, UInt32 num_packets)
+RouterPowerModel::updateDynamicEnergySwitchAllocator(UInt32 num_requests_per_packet, UInt32 num_packets)
 {
-   // I don't know what the difference is between num_requests and num_packets
-   volatile double dynamic_energy_switch_allocator = _dsent_router->calc_dynamic_energy_sa(num_requests);
+   volatile double dynamic_energy_switch_allocator = _dsent_router->calc_dynamic_energy_sa(num_requests_per_packet);
    _total_dynamic_energy_switch_allocator += (num_packets * dynamic_energy_switch_allocator);
 }
 

@@ -16,7 +16,7 @@ public:
    void updateDynamicEnergyBufferWrite(UInt32 num_flits);
    void updateDynamicEnergyBufferRead(UInt32 num_flits);
    void updateDynamicEnergyCrossbar(UInt32 num_flits);
-   void updateDynamicEnergySwitchAllocator(UInt32 num_requests, UInt32 num_packets);
+   void updateDynamicEnergySwitchAllocator(UInt32 num_requests_per_packet, UInt32 num_packets);
    void updateDynamicEnergyClock(UInt32 num_events);
 
    // Get Dynamic Energy

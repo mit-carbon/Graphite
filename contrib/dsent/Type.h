@@ -2,6 +2,7 @@
 #define __TYPE_H__
 
 #include <string>
+#include <vector>
 #include "dsent-core/libutil/String.h"
 
 namespace dsent_contrib
@@ -10,6 +11,8 @@ namespace dsent_contrib
     using std::string;
     // I love Strings
     using LibUtil::String;
+    // Vectors too
+    using std::vector;
 }
 
 #endif

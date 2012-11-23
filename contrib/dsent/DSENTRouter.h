@@ -29,7 +29,7 @@ namespace dsent_contrib
             inline double calc_dynamic_energy_buf_write(double num_req_) const { return (num_req_ * m_dynamic_energy_buf_write_); }
             inline double calc_dynamic_energy_buf_read(double num_req_) const { return (num_req_ * m_dynamic_energy_buf_read_); }
             inline double calc_dynamic_energy_sa(double num_req_) const { return (num_req_ * m_dynamic_energy_sa_); }
-            inline double calc_dynamic_energy_xbar(double num_req_) const { return (num_req_ * m_dynamic_energy_xbar_); }
+            inline double calc_dynamic_energy_xbar(double num_req_, unsigned int multicast_idx) const { return (num_req_ * m_dynamic_energy_xbar_->at(multicast_idx)); }
             inline double calc_dynamic_energy_clock(double num_events_) const { return (num_events_ * m_dynamic_energy_clock_); }
 
             // Get static energy components
@@ -57,8 +57,8 @@ namespace dsent_contrib
             double m_dynamic_energy_buf_write_;
             double m_dynamic_energy_buf_read_;
             double m_dynamic_energy_sa_;
-            double m_dynamic_energy_xbar_;
             double m_dynamic_energy_clock_;
+            vector<double>* m_dynamic_energy_xbar_;
         
             // Static power components
             double m_static_power_buf_;

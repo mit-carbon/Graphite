@@ -23,6 +23,9 @@ public:
    // Event counters
    UInt64 getTotalTraversals() { return _total_link_traversals; }
 
+   // Energy Models
+   ElectricalLinkPowerModel* getPowerModel() { return _power_model; }
+
 private:
    ElectricalLinkPowerModel* _power_model;
    

@@ -66,21 +66,13 @@ class SyscallMdl
       IntPtr marshallCloseCall(syscall_args_t &args);
       IntPtr marshallLseekCall(syscall_args_t &args);
       IntPtr marshallAccessCall(syscall_args_t &args);
-#ifdef TARGET_X86_64
       IntPtr marshallStatCall(syscall_args_t &args);
       IntPtr marshallFstatCall(syscall_args_t &args);
-#endif
-#ifdef TARGET_IA32
-      IntPtr marshallFstat64Call(syscall_args_t &args);
-#endif
       IntPtr marshallIoctlCall(syscall_args_t &args);
       IntPtr marshallGetpidCall(syscall_args_t &args);
       IntPtr marshallReadaheadCall(syscall_args_t &args);
       IntPtr marshallPipeCall(syscall_args_t &args);
       IntPtr marshallMmapCall(syscall_args_t &args);
-#ifdef TARGET_IA32
-      IntPtr marshallMmap2Call(syscall_args_t &args);
-#endif
       IntPtr marshallMunmapCall(syscall_args_t &args);
       IntPtr marshallBrkCall(syscall_args_t &args);
       IntPtr marshallFutexCall(syscall_args_t &args);

@@ -1,0 +1,14 @@
+
+*.lo
+
+libdsent_contrib.a
+dsent-core/.lib
+dsent-core/libdsent.a
+dsent-core/.libs
+dsent-core/libdsent.la
+
+dsent-core/libutil/.lib
+dsent-core/libutil/libutil.a
+dsent-core/libutil/.libs
+dsent-core/libutil/libutil.la
+

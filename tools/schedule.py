@@ -92,7 +92,7 @@ class MakeJob(SpawnJob):
         elif (self.mode == "standalone"):
             self.command = "%s %s" % (self.command, self.sim_flags)
 
-        self.command += " >& %s/output" % self.sub_dir
+        self.command += " > %s/output 2>&1" % self.sub_dir
 
     def spawn(self):
 

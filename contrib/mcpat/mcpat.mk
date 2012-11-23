@@ -9,8 +9,6 @@ endif
 
 SIM_ROOT ?= $(CURDIR)/../../
 
-include $(SIM_ROOT)/Makefile.config
-
 LIBS = 
 INCS = -lm
 
@@ -20,20 +18,12 @@ ifeq ($(TAG),dbg)
 else
   DBG = -Wall
   OPT = -O3 -msse2 -mfpmath=sse -DNTHREADS=$(NTHREADS) -Icacti
-  #OPT = -O0 -DNTHREADS=$(NTHREADS)
 endif
 
 #CXXFLAGS = -Wall -Wno-unknown-pragmas -Winline $(DBG) $(OPT) 
 CXXFLAGS = -Wno-unknown-pragmas $(DBG) $(OPT) 
-
-ifeq ($(TARGET_ARCH),ia32)
-  CXX = g++ -m32
-  CC  = gcc -m32
-endif 
-ifeq ($(TARGET_ARCH),x86_64)
-  CXX = g++ -fPIC
-  CC  = gcc -fPIC
-endif
+CXX = g++ -fPIC
+CC  = gcc -fPIC
 
 VPATH = cacti
 
@@ -79,9 +69,6 @@ all: obj_$(TAG)/$(TARGET)
 
 obj_$(TAG)/$(TARGET) : $(OBJS)
 	ar rcs $@ $^
-
-#obj_$(TAG)/%.o : %.cc
-#	$(CXX) -c $(CXXFLAGS) $(INCS) -o $@ $<
 
 obj_$(TAG)/%.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@

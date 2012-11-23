@@ -56,8 +56,11 @@ private:
    DirectoryType _directory_type;
    UInt32 _max_hw_sharers;
    UInt32 _max_num_sharers;
+
+   string _total_entries_str;
    UInt32 _total_entries;
    UInt32 _associativity;
+   UInt32 _directory_size; // In bytes
 
    UInt32 _num_sets;
    UInt32 _cache_line_size;
@@ -68,6 +71,7 @@ private:
    UInt32 _log_num_application_tiles;
    UInt32 _log_num_directory_slices;
 
+   string _directory_access_time_str;
    UInt64 _directory_access_time;
 
    // Dram Directory Cache Power and Area Models (through McPAT)
@@ -81,17 +85,21 @@ private:
    bool _enabled;
 
    // Auto(-matically) determine total number of entries in the directory
-   UInt32 computeDirectoryTotalEntries(string total_entries_str);
+   UInt32 computeDirectoryTotalEntries();
    // Get the max L2 cache size (in KB)
    UInt32 getMaxL2CacheSize();
    // Auto(-matically) determine directory access time
-   UInt64 computeDirectoryAccessTime(string directory_access_time_str, UInt32 directory_entry_size);
+   UInt64 computeDirectoryAccessTime();
 
    void initializeEventCounters();
    void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index);
 
    void updateCounters();
    IntPtr computeSetIndex(IntPtr address);
-   
+  
+   // Output auto-generated directory size and access time
+   void printAutogenDirectorySizeAndAccessTime(ostream& out);
+   static void dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out);
+
    ShmemPerfModel* getShmemPerfModel();
 };

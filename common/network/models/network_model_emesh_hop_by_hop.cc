@@ -500,8 +500,15 @@ NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out)
    out << "    Energy Counters:" << endl;
    if (isApplicationTile(_tile_id))
    {
-      out << "      Static Power (in W): " << _mesh_router->getPowerModel()->getStaticPower() << endl;
-      out << "      Dynamic Energy (in J): " << _mesh_router->getPowerModel()->getDynamicEnergy() << endl;
+      double static_power = _mesh_router->getPowerModel()->getStaticPower();
+      double dynamic_energy = _mesh_router->getPowerModel()->getDynamicEnergy();
+      for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
+      {
+         static_power += _mesh_link_list[i]->getPowerModel()->getStaticPower();
+         dynamic_energy += _mesh_link_list[i]->getPowerModel()->getDynamicEnergy();
+      }
+      out << "      Static Power (in W): " << static_power << endl;
+      out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
    }
    else if (isSystemTile(_tile_id))
    {

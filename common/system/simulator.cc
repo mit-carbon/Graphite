@@ -17,7 +17,7 @@
 #include "statistics_manager.h"
 #include "statistics_thread.h"
 #include "fxsupport.h"
-#include "contrib/orion/orion.h"
+#include "contrib/dsent/dsent_contrib.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -89,12 +89,11 @@ void Simulator::start()
    char* graphite_home_str = getenv("GRAPHITE_HOME");
    _graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
   
-   // Orion for network power modeling - create config object
+   // DSENT for network power modeling - create config object
    if (Config::getSingleton()->getEnablePowerModeling())
    { 
-      string orion_cfg_file = _graphite_home + "/contrib/orion/orion.cfg";
-      OrionConfig::allocate(orion_cfg_file, getCfg()->getInt("general/technology_node"));
-      // OrionConfig::getSingleton()->print_config(cout);
+      string dsent_path = _graphite_home + "/contrib/dsent";
+      dsent_contrib::DSENTInterface::allocate(dsent_path, getCfg()->getInt("general/technology_node"));
   }
   
    m_transport = Transport::create();
@@ -132,9 +131,6 @@ Simulator::~Simulator()
    m_shutdown_time = getTime();
 
    LOG_PRINT("Simulator dtor starting...");
-
-   if ((m_config.getCurrentProcessNum() == 0) && (m_config.getSimulationMode() == Config::FULL))
-      m_thread_manager->terminateThreadSpawners();
 
    broadcastFinish();
 
@@ -194,9 +190,9 @@ Simulator::~Simulator()
    m_tile_manager = NULL;
    delete m_transport;
 
-   // Release Orion Config object
+   // Release DSENT interface object
    if (Config::getSingleton()->getEnablePowerModeling())
-      OrionConfig::release();
+      dsent_contrib::DSENTInterface::release();
 }
 
 void Simulator::startTimer()

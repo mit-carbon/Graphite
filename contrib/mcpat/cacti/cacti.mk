@@ -7,7 +7,6 @@ ifndef NTHREADS
   NTHREADS = 8
 endif
 
-
 LIBS = 
 INCS = -lm
 
@@ -38,9 +37,6 @@ all: obj_$(TAG)/$(TARGET)
 
 obj_$(TAG)/$(TARGET) : $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(INCS) $(CXXFLAGS) $(LIBS) -pthread
-
-#obj_$(TAG)/%.o : %.cc
-#	$(CXX) -c $(CXXFLAGS) $(INCS) -o $@ $<
 
 obj_$(TAG)/%.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@

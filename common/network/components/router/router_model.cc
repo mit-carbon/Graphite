@@ -101,7 +101,7 @@ RouterModel::processPacket(const NetPacket& pkt, vector<SInt32>& output_port_lis
 
    // Update Dynamic Energy Counters
    if (Config::getSingleton()->getEnablePowerModeling())
-     _power_model->updateDynamicEnergy(num_flits);
+      _power_model->updateDynamicEnergy(num_flits, 1, output_port_list.size());
 }
 
 void

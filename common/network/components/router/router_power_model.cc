@@ -32,8 +32,12 @@ RouterPowerModel::initializeCounters()
 }
 
 void
-RouterPowerModel::updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets)
+RouterPowerModel::updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets, UInt32 multicast_idx)
 {
+   LOG_ASSERT_ERROR(multicast_idx >= 1 && multicast_idx <= _num_output_ports,
+                    "Multicast idx should be between >= 1 (and) <= %u. Now, it is %u",
+                    _num_output_ports, multicast_idx);
+
    UInt32 contention = ceil((1.0*_num_input_ports)/2);
 
    // Buffer write
@@ -43,7 +47,7 @@ RouterPowerModel::updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets)
    // Buffer read
    updateDynamicEnergyBufferRead(num_flits);
    // Crossbar
-   updateDynamicEnergyCrossbar(num_flits);
+   updateDynamicEnergyCrossbar(num_flits, multicast_idx);
    // Clock - pretty much always on...not sure how to add the context of these variables
    updateDynamicEnergyClock(3 * num_flits + num_packets);
 }
@@ -63,7 +67,7 @@ RouterPowerModel::updateDynamicEnergyBufferRead(UInt32 num_flits)
 }
 
 void
-RouterPowerModel::updateDynamicEnergyCrossbar(UInt32 num_flits)
+RouterPowerModel::updateDynamicEnergyCrossbar(UInt32 num_flits, UInt32 multicast_idx)
 {
    volatile double dynamic_energy_crossbar = _dsent_router->calc_dynamic_energy_xbar(num_flits);
    _total_dynamic_energy_crossbar += dynamic_energy_crossbar;

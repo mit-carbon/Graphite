@@ -5,20 +5,13 @@
 
 class RouterPowerModel
 {
-
 public:
-
    RouterPowerModel(float frequency, UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_port_buffer, UInt32 flit_width);
    ~RouterPowerModel();
 
    // Update Dynamic Energy
-   void updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets = 1);
-   void updateDynamicEnergyBufferWrite(UInt32 num_flits);
-   void updateDynamicEnergyBufferRead(UInt32 num_flits);
-   void updateDynamicEnergyCrossbar(UInt32 num_flits);
-   void updateDynamicEnergySwitchAllocator(UInt32 num_requests_per_packet, UInt32 num_packets);
-   void updateDynamicEnergyClock(UInt32 num_events);
-
+   void updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets, UInt32 multicast_idx = 1);
+   
    // Get Dynamic Energy
    volatile double getDynamicEnergy()
    {  
@@ -56,4 +49,10 @@ private:
    volatile double _total_dynamic_energy_clock;
 
    void initializeCounters();
+   
+   void updateDynamicEnergyBufferWrite(UInt32 num_flits);
+   void updateDynamicEnergyBufferRead(UInt32 num_flits);
+   void updateDynamicEnergyCrossbar(UInt32 num_flits, UInt32 multicast_idx);
+   void updateDynamicEnergySwitchAllocator(UInt32 num_requests_per_packet, UInt32 num_packets);
+   void updateDynamicEnergyClock(UInt32 num_events);
 };

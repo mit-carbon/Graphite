@@ -822,14 +822,6 @@ void SyscallServer::marshallFutexCall(core_id_t core_id)
    }
 #endif
 
-#ifdef KERNEL_ETCH
-   LOG_ASSERT_ERROR(((op == FUTEX_WAIT) || (op == FUTEX_WAKE)), "op = %#x", op);
-   if (op == FUTEX_WAIT)
-   {
-      LOG_ASSERT_ERROR(timeout == NULL, "timeout(%p)", timeout);
-   }
-#endif
-
 #ifdef KERNEL_SQUEEZE
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
@@ -875,18 +867,6 @@ void SyscallServer::marshallFutexCall(core_id_t core_id)
       futexCmpRequeue(core_id, addr1, val1, val2, addr2, val3, curr_time);
    }
 #endif
-   
-#ifdef KERNEL_ETCH
-   if (op == FUTEX_WAIT)
-   {
-      futexWait(core_id, addr1, val1, curr_time); 
-   }
-   else if (op == FUTEX_WAKE)
-   {
-      futexWake(core_id, addr1, val1, curr_time);
-   }
-#endif
-
 }
 
 // -- Futex related functions --

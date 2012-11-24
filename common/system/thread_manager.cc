@@ -146,9 +146,6 @@ void ThreadManager::onThreadExit()
    if (m_tile_manager->getCurrentTileID() == -1)
       return;
  
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-
    Core* core = m_tile_manager->getCurrentCore();
    Tile* tile = core->getTile();
    thread_id_t thread_idx = m_tile_manager->getCurrentThreadIndex();

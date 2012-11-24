@@ -114,19 +114,6 @@ def load_process_list_from_file(config_filename):
 
     return process_list
 
-# get GRAPHITE_HOME from environment variable, or use pwd
-def get_graphite_home():
-
-    graphite_home = os.environ.get('GRAPHITE_HOME')
-
-    if graphite_home == None:
-        cwd = os.getcwd()
-        warning_msg = "GRAPHITE_HOME undefined. Setting GRAPHITE_HOME to %s" % (cwd)
-        print "\n%s %s" % (pmaster(), pWARNING(warning_msg))
-        return cwd
-
-    return graphite_home
-
 # pmaster:
 #  print spawn_master.py preamble
 def pmaster():
@@ -145,7 +132,7 @@ if __name__=="__main__":
     procs = spawn_job(process_list[0:num_procs],
                       command,
                       working_dir,
-                      get_graphite_home())
+                      spawn.get_graphite_home())
 
     try:
         sys.exit(wait_job(procs))

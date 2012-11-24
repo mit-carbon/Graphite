@@ -128,126 +128,126 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
 
    switch (syscall_number)
    {
-      case SYS_open:
-            m_called_enter = true;
-            m_ret_val = marshallOpenCall(args);
-            break;
-      
-      case SYS_read:
-            m_called_enter = true;
-            m_ret_val = marshallReadCall(args);
-            break;
+   case SYS_open:
+      m_called_enter = true;
+      m_ret_val = marshallOpenCall(args);
+      break;
+   
+   case SYS_read:
+      m_called_enter = true;
+      m_ret_val = marshallReadCall(args);
+      break;
 
-      case SYS_write:
-            m_called_enter = true;
-            m_ret_val = marshallWriteCall(args);
-            break;
+   case SYS_write:
+      m_called_enter = true;
+      m_ret_val = marshallWriteCall(args);
+      break;
 
-      case SYS_writev:
-            m_called_enter = true;
-            m_ret_val = marshallWritevCall(args);
-            break;
+   case SYS_writev:
+      m_called_enter = true;
+      m_ret_val = marshallWritevCall(args);
+      break;
 
-      case SYS_close:
-            m_called_enter = true;
-            m_ret_val = marshallCloseCall(args);
-            break;
+   case SYS_close:
+      m_called_enter = true;
+      m_ret_val = marshallCloseCall(args);
+      break;
 
-      case SYS_lseek:
-            m_called_enter = true;
-            m_ret_val = marshallLseekCall(args);
-            break;
+   case SYS_lseek:
+      m_called_enter = true;
+      m_ret_val = marshallLseekCall(args);
+      break;
 
-      case SYS_access:
-            m_called_enter = true;
-            m_ret_val = marshallAccessCall(args);
-            break;
-     
-      case SYS_stat:
-      case SYS_lstat:
-         // Same as stat() except that it stats a link
-         m_called_enter = true;
-         m_ret_val = marshallStatCall(args);
-         break;
+   case SYS_access:
+      m_called_enter = true;
+      m_ret_val = marshallAccessCall(args);
+      break;
+  
+   case SYS_stat:
+   case SYS_lstat:
+      // Same as stat() except that it stats a link
+      m_called_enter = true;
+      m_ret_val = marshallStatCall(args);
+      break;
 
-      case SYS_fstat:
-         m_called_enter = true;
-         m_ret_val = marshallFstatCall(args);
-         break;
+   case SYS_fstat:
+      m_called_enter = true;
+      m_ret_val = marshallFstatCall(args);
+      break;
 
-      case SYS_ioctl:
-         m_called_enter = true;
-         m_ret_val = marshallIoctlCall(args);
-         break;
+   case SYS_ioctl:
+      m_called_enter = true;
+      m_ret_val = marshallIoctlCall(args);
+      break;
 
-      case SYS_getpid:
-         m_called_enter = true;
-         m_ret_val = marshallGetpidCall (args);
-         break;
+   case SYS_getpid:
+      m_called_enter = true;
+      m_ret_val = marshallGetpidCall (args);
+      break;
 
-      case SYS_readahead:
-         m_called_enter = true;
-         m_ret_val = marshallReadaheadCall (args);
-         break;
+   case SYS_readahead:
+      m_called_enter = true;
+      m_ret_val = marshallReadaheadCall (args);
+      break;
 
-      case SYS_pipe:
-         m_called_enter = true;
-         m_ret_val = marshallPipeCall (args);
-         break;
+   case SYS_pipe:
+      m_called_enter = true;
+      m_ret_val = marshallPipeCall (args);
+      break;
 
-      case SYS_mmap:
-         m_called_enter = true;
-         m_ret_val = marshallMmapCall (args);
-         break;
+   case SYS_mmap:
+      m_called_enter = true;
+      m_ret_val = marshallMmapCall (args);
+      break;
 
-      case SYS_munmap:
-         m_called_enter = true;
-         m_ret_val = marshallMunmapCall (args);
-         break;
+   case SYS_munmap:
+      m_called_enter = true;
+      m_ret_val = marshallMunmapCall (args);
+      break;
 
-      case SYS_brk:
-         m_called_enter = true;
-         m_ret_val = marshallBrkCall (args);
-         break;
+   case SYS_brk:
+      m_called_enter = true;
+      m_ret_val = marshallBrkCall (args);
+      break;
 
-      case SYS_futex:
-         m_called_enter = true;
-         m_ret_val = marshallFutexCall (args);
-         break;
+   case SYS_futex:
+      m_called_enter = true;
+      m_ret_val = marshallFutexCall (args);
+      break;
 
-      case SYS_rmdir:
-         m_called_enter = true;
-         m_ret_val = marshallRmdirCall(args);
-         break;
+   case SYS_rmdir:
+      m_called_enter = true;
+      m_ret_val = marshallRmdirCall(args);
+      break;
 
-      case SYS_unlink:
-         m_called_enter = true;
-         m_ret_val = marshallUnlinkCall(args);
-         break;
+   case SYS_unlink:
+      m_called_enter = true;
+      m_ret_val = marshallUnlinkCall(args);
+      break;
 
-      case SYS_clock_gettime:
-         m_called_enter = true;
-         m_ret_val = handleClockGettimeCall(args);
-         break;
+   case SYS_clock_gettime:
+      m_called_enter = true;
+      m_ret_val = handleClockGettimeCall(args);
+      break;
 
-      case SYS_getcwd:
-         m_called_enter = true;
-         m_ret_val = marshallGetCwdCall(args);
-         break;
+   case SYS_getcwd:
+      m_called_enter = true;
+      m_ret_val = marshallGetCwdCall(args);
+      break;
 
-      case SYS_sched_setaffinity:
-         m_called_enter = true;
-         m_ret_val = marshallSchedSetAffinityCall(args);
-         break;
+   case SYS_sched_setaffinity:
+      m_called_enter = true;
+      m_ret_val = marshallSchedSetAffinityCall(args);
+      break;
 
-      case SYS_sched_getaffinity:
-         m_called_enter = true;
-         m_ret_val = marshallSchedGetAffinityCall(args);
-         break;
+   case SYS_sched_getaffinity:
+      m_called_enter = true;
+      m_ret_val = marshallSchedGetAffinityCall(args);
+      break;
 
-      case -1:
-      default:
-         break;
+   case -1:
+   default:
+      break;
    }
 
    LOG_PRINT("Syscall finished");

@@ -45,7 +45,7 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    IntPtr syscall_number;
    m_recv_buff >> syscall_number;
 
-   LOG_PRINT("Syscall: %d from core(%i, %i)", syscall_number, core_id.tile_id, core_id.core_type);
+   LOG_PRINT("Syscall: %i from core(%i, %i)", syscall_number, core_id.tile_id, core_id.core_type);
 
    switch (syscall_number)
    {

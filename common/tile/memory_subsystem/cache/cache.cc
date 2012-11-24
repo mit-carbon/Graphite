@@ -76,6 +76,8 @@ Cache::~Cache()
 void
 Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32 num_bytes)
 {
+   LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) start",
+             address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
    assert((buf == NULL) == (num_bytes == 0));
 
    CacheSet* set = getSet(address);
@@ -104,13 +106,15 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
       if (_power_model)
          _power_model->updateDynamicEnergy();
    }
+   LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) end",
+             address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
 }
 
 void
 Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
                        bool* eviction, IntPtr* evicted_address, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf)
 {
-   LOG_PRINT("insertCacheLine[Address(%#lx)] start", inserted_address);
+   LOG_PRINT("insertCacheLine: Address(%#lx) start", inserted_address);
 
    CacheSet* set = getSet(inserted_address);
 
@@ -179,14 +183,14 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          _power_model->updateDynamicEnergy();
    }
    
-   LOG_PRINT("insertCacheLine[Address(%#lx)] end", inserted_address);
+   LOG_PRINT("insertCacheLine: Address(%#lx) end", inserted_address);
 }
 
 // Single line cache access at address
 void
 Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
 {
-   LOG_PRINT("getCacheLineInfo[Address(%#lx), Cache Line Info Ptr(%p)] start", address, cache_line_info);
+   LOG_PRINT("getCacheLineInfo: Address(%#lx) start", address);
 
    CacheLineInfo* line_info = getCacheLineInfo(address);
 
@@ -203,7 +207,7 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
          _power_model->updateDynamicEnergy();
    }
 
-   LOG_PRINT("getCacheLineInfo[Address(%#lx), Cache Line Info Ptr(%p)] end", address, cache_line_info);
+   LOG_PRINT("getCacheLineInfo: Address(%#lx) end", address);
 }
 
 CacheLineInfo*
@@ -220,6 +224,7 @@ Cache::getCacheLineInfo(IntPtr address)
 void
 Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
 {
+   LOG_PRINT("setCacheLineInfo: Address(%#lx) start", address);
    CacheLineInfo* cache_line_info = getCacheLineInfo(address);
    LOG_ASSERT_ERROR(cache_line_info, "Address(%#lx)", address);
 
@@ -241,6 +246,7 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
       if (_power_model)
          _power_model->updateDynamicEnergy();
    }
+   LOG_PRINT("setCacheLineInfo: Address(%#lx) end", address);
 }
 
 void

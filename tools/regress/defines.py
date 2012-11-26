@@ -3,8 +3,10 @@
 # job info
 # Do not use 'localhost' or '127.0.0.1', use the machine name
 machines = [
-    "cagnode15",
-    "cagnode1"
+    "cagnode6",
+    "cagnode7",
+    "cagnode8",
+    "cagnode9"
     ]
 
 results_dir = "./tools/regress/simulation_results"

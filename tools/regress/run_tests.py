@@ -6,21 +6,7 @@ import os
 sys.path.append("./tools/")
 
 from schedule import *
-
-# job info
-# Do not use 'localhost' or '127.0.0.1', use the machine name
-machines = [
-    "cagnode15",
-    "cagnode1"
-    ]
-
-results_dir = "./tools/regress/simulation_results"
-
-benchmarks = ["radix", "fft"]
-commands = [
-            "./tests/benchmarks/radix/radix -p64",
-            "./tests/benchmarks/fft/fft -p64 -m16"
-           ]
+from defines import *
 
 #benchmarks = ["fft", "radix", "lu_contiguous", "lu_non_contiguous", "cholesky", "barnes", "fmm", "ocean_contiguous", "ocean_non_contiguous", "water-nsquared", "water-spatial", "raytrace", "volrend", "radiosity"]
 #commands = ["./tests/benchmarks/fft/fft -p64 -m16",
@@ -40,15 +26,16 @@ commands = [
 
 jobs = []
 
-for benchmark, command in zip(benchmarks, commands):
+for benchmark in benchmark_list:
    make_cmd = "make -C tests/benchmarks/%s clean && make %s_bench_test BUILD_MODE=build" % (benchmark, benchmark)
    os.system(make_cmd)
  
 # Generate jobs
-for benchmark, command in zip(benchmarks, commands):
-   sim_flags = "-c carbon_sim.cfg --general/total_cores=64 --general/enable_shared_mem=true --general/trigger_models_within_application=true"
-   sub_dir = "%s" % (benchmark)
-   jobs.append(MakeJob(1, command, results_dir, sub_dir, sim_flags, "pin"))
+for benchmark, command in zip(benchmark_list, command_list):
+   for num_machines in num_machines_list:
+      sim_flags = "-c carbon_sim.cfg --general/total_cores=64 --general/enable_shared_mem=true --general/trigger_models_within_application=true"
+      sub_dir = "%s" % (benchmark)
+      jobs.append(MakeJob(num_machines, command, results_dir, sub_dir, sim_flags, "pin"))
 
 # Make results directory
 try:
@@ -57,4 +44,4 @@ except OSError:
     pass
 
 # Go!
-#schedule(machines, jobs)
+schedule(machines, jobs)

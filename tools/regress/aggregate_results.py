@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import numpy
+from defines import *
 
 def parseEventCounters(event, eventCounterInfo):
    for counterInfo in eventCounterInfo:
@@ -30,10 +31,6 @@ def formatTime(time):
 
 def geomean(num_list):
    return numpy.product(num_list) ** (1.0 / len(num_list))
-
-results_dir = "./tools/regress/simulation_results"
-benchmarks = ["fft", "radix", "lu_contiguous", "lu_non_contiguous", "cholesky", "barnes", "fmm", "ocean_contiguous", "ocean_non_contiguous", "water-nsquared", "water-spatial", "raytrace", "volrend", "radiosity"]
-num_machines_list = [1,2]
 
 # Print a summary of the regression tests
 summary_file = open("./tools/regress/summary.log", 'w')

@@ -73,7 +73,7 @@ target_time = rowSearch("Core Model Summary", "Completion Time \(in ns\)")[0]
 # Host Time
 host_time = getTime("shutdown time")
 host_initialization_time = getTime("start time")
-host_working_time = getTime("stop time") - getTime("start time")
+host_working_time = getTime("shutdown time") - getTime("start time")
 host_shutdown_time = getTime("shutdown time") - getTime("stop time")
 
 # Write event counters to a file

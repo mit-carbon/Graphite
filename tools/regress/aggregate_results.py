@@ -26,7 +26,7 @@ def formatTime(time):
       else:
          hours = minutes / 60
          minutes = minutes % 60
-         return "%dd %dm %ds" % (hours, minutes, seconds)
+         return "%dh %dm %ds" % (hours, minutes, seconds)
 
 
 def geomean(num_list):
@@ -45,14 +45,14 @@ summary_file.write("%s | %s | %s |  %s |  %s |\n" % ('Benchmarks'.center(23), '#
 summary_file.write("_" * 100)
 summary_file.write("\n\n")
 for num_machines in num_machines_list:
-   for benchmark in benchmarks:
-      cmd = "\n./tools/parse_output.py --input-file %s/%s/sim.out --stats-file %s/%s/stats.out --num-cores 64" \
-            % (results_dir, benchmark, results_dir, benchmark)
+   for benchmark in benchmark_list:
+      cmd = "\n./tools/parse_output.py --input-file %s/%s-%i/sim.out --stats-file %s/%s-%i/stats.out --num-cores 64" \
+            % (results_dir, benchmark, num_machines, results_dir, benchmark, num_machines)
       print cmd
       ret = os.system(cmd)
 
       if (ret == 0):
-         eventCounterInfo = open("%s/%s/stats.out" % (results_dir, benchmark), 'r').readlines()
+         eventCounterInfo = open("%s/%s-%i/stats.out" % (results_dir, benchmark, num_machines), 'r').readlines()
 
          total_target_instructions = parseEventCounters("Target-Instructions", eventCounterInfo)
          host_time = parseEventCounters("Host-Time", eventCounterInfo)                                # In micro-seconds

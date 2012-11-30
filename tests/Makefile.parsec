@@ -1,13 +1,13 @@
 PARSEC_MASTER=/afs/csail/group/carbon/benchmarks/parsec
 PARSEC_TARGET=$(SIM_ROOT)/tests/parsec
-PARSEC_HOME=$(PARSEC_TARGET)/parsec-2.1-graphite
+PARSEC_HOME=$(PARSEC_TARGET)/parsec-3.0-graphite
 
 APPS = blackscholes bodytrack facesim ferret fluidanimate freqmine raytrace swaptions vips x264
 KERNELS = canneal dedup streamcluster
 
 ## APPS
 
-blackscholes_flags ?= 64 in_4K.txt prices.txt                                                   # Use CORES=65
+blackscholes_flags ?= 64 in_16K.txt prices.txt                                                   # Use CORES=65
 bodytrack_flags ?= sequenceB_1 4 1 5 1 0 1
 facesim_flags ?=
 ferret_flags ?= corel lsh queries 10 20 15 output.txt
@@ -45,4 +45,4 @@ vips_parsec:
 	$(COMMAND)
 
 setup_parsec:
-	cd $(PARSEC_MASTER); find parsec-2.1-graphite/ -type d  -name .git -prune -o -type d   -printf "mkdir -vp '$(PARSEC_TARGET)/%p'\n" -o -type f -printf "ln -s '/afs/csail/group/carbon/benchmarks/parsec/%p' '$(PARSEC_TARGET)/%p'\n" | sh
+	cd $(PARSEC_MASTER); find parsec-3.0-graphite/ -type d  -name .git -prune -o -type d   -printf "mkdir -vp '$(PARSEC_TARGET)/%p'\n" -o -type f -printf "ln -s '/afs/csail/group/carbon/benchmarks/parsec/%p' '$(PARSEC_TARGET)/%p'\n" | sh

@@ -142,15 +142,15 @@ void TileManager::doInitializeThread(UInt32 tile_index, UInt32 thread_index, SIn
 {
     LOG_PRINT("doInitializeThread[Tile Index(%u), Thread Index(%u), Thread ID(%i)] start",
               tile_index, thread_index, thread_id);
-    m_tile_tls->set(m_tiles.at(tile_index));
+    m_tile_tls->insert(m_tiles.at(tile_index));
     LOG_PRINT("Set Tile TLS");
-    m_tile_index_tls->setInt(tile_index);
+    m_tile_index_tls->insertInt(tile_index);
     LOG_PRINT("Set Tile Index TLS");
-    m_thread_id_tls->setInt(thread_id);
+    m_thread_id_tls->insertInt(thread_id);
     LOG_PRINT("Set Thread ID TLS");
-    m_thread_index_tls->setInt(thread_index);
+    m_thread_index_tls->insertInt(thread_index);
     LOG_PRINT("Set Thread Index TLS");
-    m_thread_type_tls->setInt(APP_THREAD);
+    m_thread_type_tls->insertInt(APP_THREAD);
     LOG_PRINT("Set Thread Type TLS");
     m_initialized_cores.at(tile_index) = true;
     LOG_PRINT("Set Initialized Cores Index");
@@ -193,8 +193,11 @@ void TileManager::terminateThread()
 
    m_initialized_threads[tile_index][thread_index] = false;
 
-   m_tile_tls->set(NULL);
-   m_tile_index_tls->setInt(-1);
+   m_tile_tls->erase();
+   m_tile_index_tls->erase();
+   m_thread_id_tls->erase();
+   m_thread_index_tls->erase();
+   m_thread_type_tls->erase();
 }
 
 core_id_t TileManager::getCurrentCoreID()
@@ -211,15 +214,18 @@ tile_id_t TileManager::getCurrentTileID()
 
 Tile *TileManager::getCurrentTile()
 {
-    return m_tile_tls ? m_tile_tls->getPtr<Tile>() : NULL;
+    return m_tile_tls ? m_tile_tls->get<Tile>() : NULL;
+}
+
+Core *TileManager::getCurrentCore()
+{
+   Tile* tile = getCurrentTile();
+   return tile ? tile->getCore() : NULL;
 }
 
 UInt32 TileManager::getCurrentTileIndex()
 {
     UInt32 idx = m_tile_index_tls ? (m_tile_index_tls->getInt()) : -1;
-    // LOG_ASSERT_ERROR(idx < m_tiles.size(),
-    //       "Invalid tile index, idx(%u) >= m_tiles.size(%u)",
-    //       idx, m_tiles.size());
     return idx;
 }
 
@@ -269,12 +275,6 @@ UInt32 TileManager::getTileIndexFromID(tile_id_t tile_id)
 
    LOG_ASSERT_ERROR(false, "Tile lookup failed for tile id: %d!", tile_id);
    return INVALID_TILE_ID;
-}
-
-Core *TileManager::getCurrentCore()
-{
-   Tile* tile = getCurrentTile();
-   return tile ? tile->getCore() : NULL;
 }
 
 Core *TileManager::getCoreFromID(core_id_t id)
@@ -332,9 +332,9 @@ tile_id_t TileManager::registerSimThread()
 
     Tile *tile = m_tiles.at(m_num_registered_sim_threads);
 
-    m_tile_tls->set(tile);
-    m_tile_index_tls->setInt(m_num_registered_sim_threads);
-    m_thread_type_tls->setInt(SIM_THREAD);
+    m_tile_tls->insert(tile);
+    m_tile_index_tls->insertInt(m_num_registered_sim_threads);
+    m_thread_type_tls->insertInt(SIM_THREAD);
 
     ++m_num_registered_sim_threads;
 

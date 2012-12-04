@@ -7,106 +7,138 @@
 #include "utils.h"
 #include "log.h"
 
+using namespace dsent_contrib;
+using std::string;
+
 OpticalLinkPowerModel::OpticalLinkPowerModel(LaserModes& laser_modes, UInt32 num_receivers_per_wavelength,
                                              float link_frequency, double waveguide_length, UInt32 link_width)
    : LinkPowerModel(link_frequency, waveguide_length, link_width)
    , _laser_modes(laser_modes)
    , _num_receivers_per_wavelength(num_receivers_per_wavelength)
 {
+
+   // Tuning strategy and laser type read from config file
+   string carbon_tuning_strategy;
+   string carbon_laser_type;
+
    try
    {
-      // Ring Tuning and Laser Power
-      _ring_tuning_power = Sim()->getCfg()->getFloat("link_model/optical/power/ring_tuning_power");
-      _laser_power_per_receiver = Sim()->getCfg()->getFloat("link_model/optical/power/laser_power_per_receiver");
-      
-      // Static Power parameters
-      _electrical_tx_static_power = Sim()->getCfg()->getFloat("link_model/optical/power/static/electrical_tx_power");
-      _electrical_rx_static_power = Sim()->getCfg()->getFloat("link_model/optical/power/static/electrical_rx_power");
-
-      // Dynamic Power parameters
-      _electrical_tx_dynamic_energy = Sim()->getCfg()->getFloat("link_model/optical/power/dynamic/electrical_tx_energy");
-      _electrical_rx_dynamic_energy = Sim()->getCfg()->getFloat("link_model/optical/power/dynamic/electrical_rx_energy");
+      // Read ring and laser tuning strategies
+      carbon_laser_type = Sim()->getCfg()->getString("link_model/optical/power/ring_tuning_strategy");
+      carbon_tuning_strategy = Sim()->getCfg()->getString("link_model/optical/power/laser_type");
    }
    catch (...)
    {
-      LOG_PRINT_ERROR("Could not read optical link parameters from the cfg file");
+      LOG_PRINT_ERROR("Could not read laser type and/or tuning strategy from the cfg file. Defaulting to athermal rings and a standard laser");
+     
+      carbon_tuning_strategy = "athermal";
+      carbon_laser_type = "standard";
    }
 
-   // Ring Tuning Power
-   double total_static_ring_tuning_power_select_link = _ring_tuning_power * ceilLog2(_num_receivers_per_wavelength) *
-                                                       _num_receivers_per_wavelength;
-   double total_static_ring_tuning_power_data_link = _ring_tuning_power * _link_width * _num_receivers_per_wavelength;
-   _total_static_ring_tuning_power = total_static_ring_tuning_power_select_link + total_static_ring_tuning_power_data_link;
-
-   // Laser Power
-   double total_static_laser_power_select_link = 0.0;
-   double total_static_laser_power_data_link = 0.0;
-   if (!_laser_modes.idle)
-   {
-      total_static_laser_power_select_link = _laser_power_per_receiver * ceilLog2(_num_receivers_per_wavelength) *
-                                             _num_receivers_per_wavelength;
-      total_static_laser_power_data_link = _link_width * _laser_power_per_receiver * _num_receivers_per_wavelength;
-   }
-   _total_static_laser_power = total_static_laser_power_select_link + total_static_laser_power_data_link;
-
-   // Electrical Static Tx Power
-   double total_static_power_tx_select_link = _electrical_tx_static_power * ceilLog2(_num_receivers_per_wavelength);
-   double total_static_power_tx_data_link = _electrical_tx_static_power * _link_width;
-   _total_static_power_tx = total_static_power_tx_select_link + total_static_power_tx_data_link;
-
-   // Electrical Static Tx Power
-   double total_static_power_rx_select_link = _electrical_rx_static_power * ceilLog2(_num_receivers_per_wavelength) *
-                                              _num_receivers_per_wavelength;
-   double total_static_power_rx_data_link = _electrical_rx_static_power * _link_width * _num_receivers_per_wavelength;
-   _total_static_power_rx = total_static_power_rx_select_link + total_static_power_rx_data_link;
+   // Map to dsent tuning strategy
+   string dsent_tuning_strategy = getDSENTTuningStrategy(carbon_tuning_strategy);
+   string dsent_laser_type = getDSENTLaserType(carbon_laser_type);
    
-   // Total Static Power  
-   _total_static_power = _total_static_laser_power + _total_static_ring_tuning_power +
-                         _total_static_power_tx + _total_static_power_rx;
+   // The maximum number of simultaneous readers on an SWMR link
+   unsigned int max_readers = 0;
+   if (laser_modes.broadcast) max_readers = num_receivers_per_wavelength;
+   else if (laser_modes.unicast) max_readers = 1;
+   
+   // Create a link
+   _dsent_link = new DSENTOpticalLink(
+            link_frequency,                 // Core data rate (Right now, no serdes is assumed)
+            link_frequency,                 // Link data rate (Right now, no serdes is assumed)
+            waveguide_length / 1e3,         // Link length, convert to meters (m)
+            num_receivers_per_wavelength,   // Number of readers
+            max_readers,                    // Maximum number of simultaneous readers
+            link_width,                     // Core flit width
+            dsent_tuning_strategy,          // Ring tuning strategy
+            dsent_laser_type,               // Laser type
+            DSENTInterface::getSingleton()
+        );
+   
+   // Create separate select network if necessary for the given configuration
+   unsigned int select_link_width = (laser_modes.unicast) ? ceilLog2(num_receivers_per_wavelength) : 0;
+   if (select_link_width > 0)
+   {
+      _dsent_sel = new DSENTOpticalLink(
+                link_frequency,                 // Core data rate (Right now, no serdes is assumed)
+                link_frequency,                 // Link data rate (Right now, no serdes is assumed)
+                waveguide_length / 1e3,         // Link length, convert to meters (m)
+                num_receivers_per_wavelength,   // Number of readers
+                num_receivers_per_wavelength,   // Maximum number of simultaneous readers
+                select_link_width,              // Core flit width
+                dsent_tuning_strategy,          // Ring tuning strategy
+                dsent_laser_type,               // Laser type
+                DSENTInterface::getSingleton()
+            );
+      _sel_link = true;
+   }
+   else _sel_link = false;
+        
+   // Static Power
+   _static_power_leakage = _dsent_link->get_static_power_leakage();
+   _static_power_laser = _dsent_link->get_static_power_laser();
+   _static_power_heating = _dsent_link->get_static_power_heating();   
+   if (_sel_link)
+   {
+      _static_power_leakage += _dsent_sel->get_static_power_leakage();
+      _static_power_leakage += _dsent_sel->get_static_power_laser();
+      _static_power_leakage += _dsent_sel->get_static_power_heating();
+   }
 
    // Initialize dynamic energy counters
    initializeDynamicEnergyCounters();
 }
 
 OpticalLinkPowerModel::~OpticalLinkPowerModel()
-{}
+{
+    delete _dsent_link;
+    if (_sel_link) delete _dsent_sel;
+}
 
 void
 OpticalLinkPowerModel::initializeDynamicEnergyCounters()
 {
-   _total_dynamic_laser_energy = 0.0;
-   _total_dynamic_energy_tx = 0.0;
-   _total_dynamic_energy_rx = 0.0;
+   _total_dynamic_energy = 0.0;
 }
 
 void
 OpticalLinkPowerModel::updateDynamicEnergy(UInt32 num_flits, SInt32 num_endpoints)
+{    
+    // Some assertion checks based on ability of the laser
+    // No support for arbitrary multicasts
+    assert((num_endpoints == 1) || (num_endpoints == (signed int) _num_receivers_per_wavelength) || (num_endpoints == OpticalLinkModel::ENDPOINT_ALL));
+    // If I want to send to more than 1 endpoint, broadcast better be supported
+    assert((num_endpoints == 1) || (_laser_modes.broadcast));
+    // If I am sending to one endpoint, I better be able to unicast (unless there is only 1 endpoint)
+    assert((_num_receivers_per_wavelength == 1) || (num_endpoints > 1) || (_laser_modes.unicast));
+
+    // Add dynamic energies
+    _total_dynamic_energy += _dsent_link->calc_dynamic_energy(num_flits, num_endpoints);
+    // Select network only needed during unicasts
+    if (_sel_link && (num_endpoints == 1))
+        _total_dynamic_energy += _dsent_sel->calc_dynamic_energy(num_flits, _num_receivers_per_wavelength);
+}
+
+const string
+OpticalLinkPowerModel::getDSENTTuningStrategy(const string& carbon_tuning_strategy) const
 {
-   SInt32 num_receivers = ((num_endpoints == OpticalLinkModel::ENDPOINT_ALL) || (!_laser_modes.unicast)) ? _num_receivers_per_wavelength : 1;
-  
-   volatile double laser_energy_select_link = 0.0;
-   volatile double laser_energy_data_link = 0.0;
-   if (_laser_modes.idle)
-   {
-      laser_energy_select_link = _laser_power_per_receiver * ceilLog2(_num_receivers_per_wavelength) *
-                                 _num_receivers_per_wavelength / (_frequency * 1e9); 
-      laser_energy_data_link = _laser_power_per_receiver * num_flits * _link_width * num_receivers / (_frequency * 1e9);
-   }
-   volatile double laser_energy = laser_energy_select_link + laser_energy_data_link;
-   _total_dynamic_laser_energy += laser_energy;
+   if (carbon_tuning_strategy == "athermal") return "AthermalWithTrim";
+   else if (carbon_tuning_strategy == "full_thermal") return "FullThermal";
+   else if (carbon_tuning_strategy == "thermal_reshuffle") return "ThermalWithBitReshuffle";
+   else if (carbon_tuning_strategy == "electrical_assist") return "ElectricalAssistWithBitReshuffle";
 
-   UInt32 num_bit_flips_select_link = ceilLog2(_num_receivers_per_wavelength) / 2;
-   UInt32 num_bit_flips_data_link = _link_width / 2;
-   
-   volatile double tx_energy_select_link = _electrical_tx_dynamic_energy * num_bit_flips_select_link;
-   volatile double tx_energy_data_link = _electrical_tx_dynamic_energy * num_flits * num_bit_flips_data_link;
-   volatile double tx_energy = tx_energy_select_link + tx_energy_data_link;
-   _total_dynamic_energy_tx += tx_energy;
+   LOG_PRINT_ERROR("Unknown tuning strategy. Defaulting to athermal.");     
+   return "AthermalWithTrim";
+}
 
-   volatile double rx_energy_select_link = _electrical_rx_dynamic_energy * num_bit_flips_select_link * _num_receivers_per_wavelength;
-   volatile double rx_energy_data_link = _electrical_rx_dynamic_energy * num_flits * num_bit_flips_data_link * num_receivers;
-   volatile double rx_energy = rx_energy_select_link + rx_energy_data_link;
-   _total_dynamic_energy_rx += rx_energy;
+const string
+OpticalLinkPowerModel::getDSENTLaserType(const string& carbon_laser_type) const
+{
+   if (carbon_laser_type == "standard") return "Standard";
+   else if (carbon_laser_type == "throttled") return "Throttled";
 
-   _total_dynamic_energy += (laser_energy + tx_energy + rx_energy);
+   LOG_PRINT_ERROR("Unknown laser type. Defaulting to standard.");
+   return "Standard";
 }

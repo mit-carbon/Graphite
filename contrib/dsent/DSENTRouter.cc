@@ -20,7 +20,7 @@ namespace dsent_contrib
             unsigned int num_buffers_,
             unsigned int flit_width_,
             const DSENTInterface* dsent_interface_
-            )
+        )
     {
         assert(frequency_ > 0);
         assert((num_in_port_ == num_in_port_) && (num_in_port_ != 0));
@@ -52,7 +52,7 @@ namespace dsent_contrib
             unsigned int num_buffers_,
             unsigned int flit_width_,
             const DSENTInterface* dsent_interface_
-            )
+        )
     {
         // Create DSENT evaluate
         vector<String> eval = vector<String>();

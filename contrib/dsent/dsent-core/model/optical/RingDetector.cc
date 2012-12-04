@@ -170,10 +170,10 @@ namespace DSENT
             // Sum up cap switched for the sampler
             double c_sampler = c_gate_sampler + c_drain_sampler;
             double c_rslatch = c_gate_rslatch + c_drain_rslatch;
-            // Average cap switched 
-            // Sampler is differential, one side will always switch (R or S in the latch) regardless of probability
-            double avg_cap = c_sampler + c_rslatch * in_trans.getProbability0() * in_trans.getProbability1();
-
+            // Average cap switched per each piece of data
+            // Sampler is differential, one side will always switch (R_bar or S_bar) regardless of probability
+            double avg_cap = c_sampler * in_trans.getFrequencyMultiplier() + c_rslatch * in_trans.getNumberTransitions01();
+            
             // Get parameters corresponding to a unit-inverter
             double unit_leak_0 = getTechModel()->getStdCellLib()->getStdCellCache()->get("INV_X1->Leakage->!A");
             double unit_leak_1 = getTechModel()->getStdCellLib()->getStdCellCache()->get("INV_X1->Leakage->A");        

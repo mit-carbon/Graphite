@@ -3,7 +3,7 @@
 
 #include "DSENTInterface.h"
 #include "DSENTElectricalLink.h"
-// #include "DSENTOpticalLink.h"
+#include "DSENTOpticalLink.h"
 #include "DSENTRouter.h"
 
 #endif

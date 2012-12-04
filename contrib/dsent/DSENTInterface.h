@@ -43,8 +43,9 @@ namespace dsent_contrib
             inline const String& get_el_link_cfg_file_path() const { return m_el_link_cfg_file_path_; }
             inline const String& get_op_link_cfg_file_path() const { return m_op_link_cfg_file_path_; }
             inline const String& get_router_cfg_file_path() const { return m_router_cfg_file_path_; }
-            // Get the name of the technology parameters
-            inline const String& get_tech_file_path() const { return m_tech_file_path_; }
+            // Get the file name of the technology parameters
+            inline const String& get_elec_tech_file_path() const { return m_elec_tech_file_path_; }
+            inline const String& get_phot_tech_file_path() const { return m_phot_tech_file_path_; }
 
             // Run DSENT with some specified arguments, returning outputs
             std::vector<String> run_dsent(const String& cfg_file_path_, const std::vector<String>& evals_, const std::vector<Overwrite>& overwrites_) const;
@@ -55,7 +56,8 @@ namespace dsent_contrib
             String m_op_link_cfg_file_path_;
             String m_router_cfg_file_path_;
             // Tech file paths
-            String m_tech_file_path_;
+            String m_elec_tech_file_path_;
+            String m_phot_tech_file_path_;
 
         private:        
             // Singleton

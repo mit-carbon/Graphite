@@ -48,9 +48,13 @@ public:
    {
       int tid = syscall(SYS_gettid);
       
+      Entry* entry = _buckets[tid % HASH_SIZE];
+      if (entry && (entry->key == tid))
+         return entry->value;
+
       ScopedLock sl(_locks[tid % HASH_SIZE]);
       
-      Entry* entry = _buckets[tid % HASH_SIZE];
+      entry = _buckets[tid % HASH_SIZE];
 
       while (entry)
       {

@@ -40,12 +40,13 @@ APP_FLAGS ?=
 BUILD_MODE ?= # Set to build to not run anything
 MODE ?= pin # Set to 'pin' to use pin
 CONFIG_FILE ?= $(SIM_ROOT)/carbon_sim.cfg
+OUTPUT_DIR ?= $(SIM_ROOT)/output_files
 OUTPUT_FILE ?= sim.out
 APP_SPECIFIC_CXX_FLAGS ?= 
 
 # Use: $(call sim_flags_fn, $(1-CORES), $(2-PROCS))
-sim_flags_fn = -c $(CONFIG_FILE) --general/total_cores=$(1) --general/num_processes=$(2) --general/enable_shared_mem=$(3) --general/output_file=$(4)
-SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM),$(OUTPUT_FILE))
+sim_flags_fn = -c $(CONFIG_FILE) --general/total_cores=$(1) --general/num_processes=$(2) --general/enable_shared_mem=$(3) --general/output_dir=$(4) --general/output_file=$(5)
+SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM),$(OUTPUT_DIR),$(OUTPUT_FILE))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
 launch_fn = $(SIM_ROOT)/tools/spawn_master.py $(1) $(2) # 1 - NUM_PROCS # 2 - config file

@@ -120,6 +120,8 @@ OpticalLinkModel::processPacket(const NetPacket& pkt, SInt32 num_endpoints, UInt
    }
    else if (num_endpoints == 1)
    {
+      // If unicast mode is present, use only laser energy for unicast
+      // If unicast mode is NOT present, use laser energy for broadcast
       if (_laser_modes.unicast)
       {
          _total_link_unicasts += num_flits;

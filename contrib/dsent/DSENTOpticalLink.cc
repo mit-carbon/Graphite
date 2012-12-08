@@ -70,7 +70,7 @@ namespace dsent_contrib
 
         // Create evaluate String    
         // Dynamic power component
-        for (unsigned int multicast = 1; multicast <= num_readers_; ++multicast)
+        for (unsigned int multicast = 1; multicast <= max_readers_; ++multicast)
             eval.push_back( "$(Energy>>SWMRLink:MulticastFlit" + (String) multicast + ")");
 
         // Static power components
@@ -92,19 +92,19 @@ namespace dsent_contrib
         outputs = dsent_interface_->run_dsent(dsent_interface_->get_op_link_cfg_file_path(), eval, overwrites);
 
         // Check to make sure we get the expected number of outputs
-        assert(outputs.size() == 3 + num_readers_);
+        assert(outputs.size() == 3 + max_readers_);
 
         // Store outputs
         // Dynamic energy components
         // Multicast energies (add a 0 for a multicast to 0 readers)
         m_dynamic_energy_->push_back(0.0);
-        for (unsigned int multicast = 1; multicast <= num_readers_; ++multicast)
+        for (unsigned int multicast = 1; multicast <= max_readers_; ++multicast)
             m_dynamic_energy_->push_back(outputs[multicast - 1]);
 
         // Static power components
-        m_static_power_leakage_ = outputs[0 + num_readers_];
-        m_static_power_laser_ = outputs[1 + num_readers_];
-        m_static_power_heating_ = outputs[2 + num_readers_];
+        m_static_power_leakage_ = outputs[0 + max_readers_];
+        m_static_power_laser_ = outputs[1 + max_readers_];
+        m_static_power_heating_ = outputs[2 + max_readers_];
 
         return;
     }

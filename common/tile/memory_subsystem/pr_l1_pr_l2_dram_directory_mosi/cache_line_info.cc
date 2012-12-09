@@ -1,6 +1,5 @@
 #include "cache_line_info.h"
 #include "cache_utils.h"
-#include "utilization_defines.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -21,40 +20,10 @@ createCacheLineInfo(SInt32 cache_level)
    }
 }
 
-//// Pr L1 CacheLineInfo
-PrL1CacheLineInfo::PrL1CacheLineInfo(IntPtr tag, CacheState::Type cstate)
-   : CacheLineInfo(tag, cstate)
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   , _utilization(0)
-#endif
-{}
-
-PrL1CacheLineInfo::~PrL1CacheLineInfo()
-{}
-
-void
-PrL1CacheLineInfo::invalidate()
-{
-   CacheLineInfo::invalidate();
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   _utilization = 0;
-#endif
-}
-
-void
-PrL1CacheLineInfo::assign(CacheLineInfo* cache_line_info)
-{
-   CacheLineInfo::assign(cache_line_info);
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   PrL1CacheLineInfo* l1_cache_line_info = dynamic_cast<PrL1CacheLineInfo*>(cache_line_info);
-   _utilization = l1_cache_line_info->getUtilization();
-#endif
-}
-
 //// PrL2 CacheLineInfo
 
 PrL2CacheLineInfo::PrL2CacheLineInfo(IntPtr tag, CacheState::Type cstate, MemComponent::Type cached_loc)
-   : PrL1CacheLineInfo(tag, cstate)
+   : CacheLineInfo(tag, cstate)
    , _cached_loc(cached_loc)
 {}
 

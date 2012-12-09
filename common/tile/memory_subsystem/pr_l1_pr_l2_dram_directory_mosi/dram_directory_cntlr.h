@@ -104,13 +104,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_sharers_invalidated_broadcast_mode;
       UInt64 _total_invalidation_processing_time_broadcast_mode;
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      // Computing sharer count vs private copy threshold
-      UInt32 _max_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
-      UInt64 _total_sharers_invalidated_by_utilization[MAX_TRACKED_UTILIZATION+1];
-      UInt64 _total_invalidations;
-#endif
-
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager() { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
@@ -144,18 +137,5 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Add/Remove Sharer
       bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);
       void removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected);
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      void initializeSharerCounters();
-      // Cache Line Utilization
-      void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                              tile_id_t sender, const ShmemMsg* shmem_msg);
-      void updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                tile_id_t sender, UInt32 cache_line_utilization);
-      
-      // Output summary
-      void outputSharerCountSummary(ostream& out);
-      static void dummyOutputSharerCountSummary(ostream& out);
-#endif
    };
 }

@@ -2,7 +2,6 @@
 #include "log.h"
 #include "memory_manager.h"
 #include "utils.h"
-#include "utilization_defines.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -631,12 +630,6 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* s
    {
       // Get the latest request for the data
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
-     
-#ifdef TRACK_DETAILED_CACHE_COUNTERS 
-      // Update the utilization statistics
-      updateCacheLineUtilizationCounters(shmem_req, directory_entry, sender, shmem_msg);
-#endif
-
       restartShmemReq(sender, shmem_req, directory_entry);
    }
 }
@@ -709,11 +702,6 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg*
       // Get the latest request for the data
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
      
-#ifdef TRACK_DETAILED_CACHE_COUNTERS 
-      // Update the cache utilization statistics
-      updateCacheLineUtilizationCounters(shmem_req, directory_entry, sender, shmem_msg);
-#endif
-
       // Write-back to memory in certain circumstances
       if (shmem_req->getShmemMsg()->getType() == ShmemMsg::SH_REQ)
       {
@@ -789,12 +777,6 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* sh
 
       // Get the latest request for the data
       ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
-     
-#ifdef TRACK_DETAILED_CACHE_COUNTERS 
-      // Update the cache utilization statistics
-      updateCacheLineUtilizationCounters(shmem_req, directory_entry, sender, shmem_msg);
-#endif
-
       restartShmemReq(sender, shmem_req, directory_entry);
    }
    else
@@ -884,25 +866,7 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_sharers_invalidated_broadcast_mode = 0;
    _total_invalidation_processing_time_unicast_mode = 0;
    _total_invalidation_processing_time_broadcast_mode = 0;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   initializeSharerCounters();
-#endif
 }
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-
-void
-DramDirectoryCntlr::initializeSharerCounters()
-{
-   // Sharer count vs private copy threshold
-   for (UInt32 i = 1; i <= MAX_PRIVATE_COPY_THRESHOLD; i++)
-      _max_sharers_by_PCT[i] = 0;
-   for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-      _total_sharers_invalidated_by_utilization[i] = 0;
-   _total_invalidations = 0;
-}
-#endif
 
 void
 DramDirectoryCntlr::updateShmemReqEventCounters(ShmemReq* shmem_req, DirectoryEntry* directory_entry)
@@ -1050,85 +1014,6 @@ DramDirectoryCntlr::updateInvalidationLatencyCounters(bool initial_broadcast_mod
       _total_invalidation_processing_time_unicast_mode += invalidation_processing_time;
 }
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-void
-DramDirectoryCntlr::updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                         tile_id_t sender, UInt32 cache_line_utilization)
-{
-   assert (_enabled);
-
-   directory_entry->setUtilization(cache_line_utilization);
-
-   // Every sharer replies with an acknowledgement
-   _total_sharers_invalidated_by_utilization[cache_line_utilization] ++;
-
-   // Check if last FlushRep/InvRep has come in
-   if ((directory_entry->getDirectoryBlockInfo())->getDState() == DirectoryState::UNCACHED)
-   {
-      // Exreq/Nullifyreq handling is complete
-      _total_invalidations ++;
-
-      // Get utilization vec
-      vector<UInt64> utilization_vec;
-      directory_entry->getUtilizationVec(utilization_vec);
-
-      vector<UInt64> dup_utilization_vec(utilization_vec);
-      // Increment the utilization of every sharer by 1 to reflect true utilization
-      for (vector<UInt64>::iterator it = dup_utilization_vec.begin(); it != dup_utilization_vec.end(); it++)
-         (*it) ++;
-
-      // Compute the number of sharers by utilization
-      vector<UInt32> num_sharers_by_utilization(MAX_TRACKED_UTILIZATION+1, 0);
-      for (vector<UInt64>::iterator it = utilization_vec.begin(); it != utilization_vec.end(); it++)
-      {
-         UInt64 utilization = (*it);
-         assert(utilization <= MAX_TRACKED_UTILIZATION);
-         num_sharers_by_utilization[utilization] ++;
-      }
-      
-      // Compute the cumulative distribution
-      vector<UInt32> total_sharers_by_PCT(MAX_PRIVATE_COPY_THRESHOLD+1, 0);
-      total_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD] = num_sharers_by_utilization[MAX_TRACKED_UTILIZATION];
-      for (SInt32 i = MAX_TRACKED_UTILIZATION - 1; i >= 0; i--)
-      {
-         total_sharers_by_PCT[i+1] = total_sharers_by_PCT[i+2] + num_sharers_by_utilization[i];
-      }
-      
-      // Compute the max number of sharers with a paricular private copy threshold
-      for (UInt32 i = 1; i <= MAX_PRIVATE_COPY_THRESHOLD; i++)
-      {
-         _max_sharers_by_PCT[i] = max<UInt32>(_max_sharers_by_PCT[i], total_sharers_by_PCT[i]);
-      }
-
-      // Reset utilization vec
-      directory_entry->resetUtilizationVec();
-   }
-}
-
-void
-DramDirectoryCntlr::updateCacheLineUtilizationCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                                       tile_id_t sender, const ShmemMsg* shmem_msg)
-{
-   if (!_enabled)
-      return;
-
-   DirectoryState::Type initial_dstate = dir_request->getInitialDState();
-   ShmemMsg::Type dir_request_type = dir_request->getShmemMsg()->getType();
-   
-   UInt32 utilization = shmem_msg->getCacheLineUtilization();
-
-   // Track utilization only till a particular point
-   if (utilization > MAX_TRACKED_UTILIZATION)
-      utilization = MAX_TRACKED_UTILIZATION;
-
-   if ( ((dir_request_type == ShmemMsg::EX_REQ) || (dir_request_type == ShmemMsg::NULLIFY_REQ)) &&
-        ((initial_dstate == DirectoryState::OWNED) || (initial_dstate == DirectoryState::SHARED)) )
-   {
-      updateSharerCounters(dir_request, directory_entry, shmem_msg->getAddress(), utilization);
-   }
-}
-#endif
-
 bool
 DramDirectoryCntlr::addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id)
 {
@@ -1238,10 +1123,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
       out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
    }
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   outputSharerCountSummary(out);
-#endif
 }
 
 void
@@ -1282,49 +1163,7 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Total Invalidation Requests - Broadcast Mode: " << endl;
    out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
    out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   dummyOutputSharerCountSummary(out);
-#endif
 }
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-void
-DramDirectoryCntlr::outputSharerCountSummary(ostream& out)
-{
-   vector<UInt64> total_sharers_by_PCT(MAX_PRIVATE_COPY_THRESHOLD+1, 0);
-   vector<float> average_sharers_by_PCT(MAX_PRIVATE_COPY_THRESHOLD+1, 0.0);
-   assert(MAX_PRIVATE_COPY_THRESHOLD == (MAX_TRACKED_UTILIZATION + 1));
-
-   // First calculate average sharer count
-   total_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD] = _total_sharers_invalidated_by_utilization[MAX_TRACKED_UTILIZATION];
-   for (SInt32 i = MAX_TRACKED_UTILIZATION-1; i >= 0; i--)
-      total_sharers_by_PCT[i+1] = total_sharers_by_PCT[i+2] + _total_sharers_invalidated_by_utilization[i]; 
-   for (UInt32 i = 1; i <= MAX_PRIVATE_COPY_THRESHOLD; i++)
-      average_sharers_by_PCT[i] = ((float) total_sharers_by_PCT[i]) / _total_invalidations;
-
-   // Max sharer count by private copy threshold
-   out << "    Sharer Count by Private Copy Threshold: " << endl;
-   for (UInt32 i = 1; i <= MAX_PRIVATE_COPY_THRESHOLD; i++)
-   {
-      out << "      Maximum-PCT-" << i << ": " << _max_sharers_by_PCT[i] << endl;
-      out << "      Average-PCT-" << i << ": " << average_sharers_by_PCT[i] << endl;
-   }
-   out << "    Total Invalidations: " << _total_invalidations << endl;
-}
-void
-DramDirectoryCntlr::dummyOutputSharerCountSummary(ostream& out)
-{
-   // Max sharer count by private copy threshold
-   out << "    Sharer Count by Private Copy Threshold: " << endl;
-   for (UInt32 i = 1; i <= MAX_PRIVATE_COPY_THRESHOLD; i++)
-   {
-      out << "      Maximum-PCT-" << i << ": " << endl;
-      out << "      Average-PCT-" << i << ": " << endl;
-   }
-   out << "    Total Invalidations: " << endl;
-}
-#endif
 
 UInt32
 DramDirectoryCntlr::getCacheLineSize()

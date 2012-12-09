@@ -34,8 +34,8 @@ OpticalLinkPowerModel::OpticalLinkPowerModel(OpticalLinkModel::LaserModes laser_
              link_width, dsent_tuning_strategy.c_str(), dsent_laser_type.c_str());
    // Create a link
    _dsent_data_link = new DSENTOpticalLink(
-            link_frequency,                 // Core data rate (Right now, no serdes is assumed)
-            link_frequency,                 // Link data rate (Right now, no serdes is assumed)
+            link_frequency * 1e9,           // Core data rate, convert to Hz (Right now, no serdes is assumed)
+            link_frequency * 1e9,           // Link data rate, convert to Hz (Right now, no serdes is assumed)
             waveguide_length / 1e3,         // Link length, convert to meters (m)
             _num_readers_per_wavelength,    // Number of readers on the wavelength
             max_simultaneous_readers,       // Maximum number of simultaneous readers
@@ -57,8 +57,8 @@ OpticalLinkPowerModel::OpticalLinkPowerModel(OpticalLinkModel::LaserModes laser_
                 select_link_width, dsent_tuning_strategy.c_str(), dsent_laser_type.c_str());
       
       _dsent_select_link = new DSENTOpticalLink(
-                link_frequency,                 // Core data rate (Right now, no serdes is assumed)
-                link_frequency,                 // Link data rate (Right now, no serdes is assumed)
+                link_frequency * 1e9,           // Core data rate, convert to Hz (Right now, no serdes is assumed)
+                link_frequency * 1e9,           // Link data rate, convert to Hz (Right now, no serdes is assumed)
                 waveguide_length / 1e3,         // Link length, convert to meters (m)
                 _num_readers_per_wavelength,    // Number of readers
                 _num_readers_per_wavelength,    // Maximum number of simultaneous readers
@@ -80,6 +80,8 @@ OpticalLinkPowerModel::OpticalLinkPowerModel(OpticalLinkModel::LaserModes laser_
    _static_power_leakage = _dsent_data_link->get_static_power_leakage();
    _static_power_laser = _dsent_data_link->get_static_power_laser();
    _static_power_heating = _dsent_data_link->get_static_power_heating();   
+   _dsent_data_link->print();
+   _dsent_select_link->print();
    if (_select_link_enabled)
    {
       _static_power_leakage += _dsent_select_link->get_static_power_leakage();

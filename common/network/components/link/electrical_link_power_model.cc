@@ -8,7 +8,8 @@ ElectricalLinkPowerModel::ElectricalLinkPowerModel(string link_type, float link_
 {
    LOG_ASSERT_ERROR(link_type == "electrical_repeated", "DSENT only supports electrical_repeated link models currently");
    // DSENT expects link length to be in meters(m)
-   _dsent_link = new DSENTElectricalLink(link_frequency, link_length / 1000, link_width, DSENTInterface::getSingleton());
+   // DSENT expects link frequency to be in hertz (Hz)
+   _dsent_link = new DSENTElectricalLink(link_frequency * 1e9, link_length / 1000, link_width, DSENTInterface::getSingleton());
 
    // Static Power
    _total_static_power = _dsent_link->get_static_power();

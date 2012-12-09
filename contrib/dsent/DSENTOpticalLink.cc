@@ -85,7 +85,7 @@ namespace dsent_contrib
         overwrites.push_back(DSENTInterface::Overwrite("NumberReaders", String(num_readers_)));
         overwrites.push_back(DSENTInterface::Overwrite("MaxReaders", String(max_readers_))); 
         overwrites.push_back(DSENTInterface::Overwrite("NumberBits", String(core_flit_width_))); 
-        overwrites.push_back(DSENTInterface::Overwrite("TuningStrategy", String(tuning_strategy_))); 
+        overwrites.push_back(DSENTInterface::Overwrite("RingTuningMethod", String(tuning_strategy_))); 
         overwrites.push_back(DSENTInterface::Overwrite("LaserType", String(laser_type_))); 
 
         // Run DSENT

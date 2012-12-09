@@ -27,7 +27,7 @@ streamcluster_flags ?= 10 20 32 4096 4096 1000 none output.txt 64               
 include tests/Makefile.tests
 
 DIRECTORY ?= $(if $(findstring $(patsubst %_parsec,%,$@),$(APPS)),apps,kernels)
-COMMAND ?= export GRAPHITE_HOME=$(SIM_ROOT); cd $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
+COMMAND ?= export GRAPHITE_HOME=$(SIM_ROOT); mkdir -p $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; cd $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE))
 
 freqmine_parsec:
 	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite

@@ -73,7 +73,7 @@ class SpawnJob(Job):
 #  a job built around the make system
 class MakeJob(SpawnJob):
 
-    def __init__(self, num_machines, command, results_dir="./output_files", sub_dir="", sim_flags="", mode="pin"):
+    def __init__(self, num_machines, command, results_dir, sub_dir, sim_flags, mode="pin"):
         SpawnJob.__init__(self, num_machines, command)
         self.results_dir = results_dir
         self.sub_dir = "%s/%s" % (results_dir, sub_dir)

@@ -13,7 +13,6 @@
 pin.log
 pintool.log
 sim.out
-output_files
 
 # misc
 lib/libcarbon_sim.a

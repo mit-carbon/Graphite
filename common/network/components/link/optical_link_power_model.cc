@@ -80,8 +80,6 @@ OpticalLinkPowerModel::OpticalLinkPowerModel(OpticalLinkModel::LaserModes laser_
    _static_power_leakage = _dsent_data_link->get_static_power_leakage();
    _static_power_laser = _dsent_data_link->get_static_power_laser();
    _static_power_heating = _dsent_data_link->get_static_power_heating();   
-   _dsent_data_link->print();
-   _dsent_select_link->print();
    if (_select_link_enabled)
    {
       _static_power_leakage += _dsent_select_link->get_static_power_leakage();

@@ -4,7 +4,7 @@ import sys
 import os
 import re
 import numpy
-from defines import *
+from config import *
 
 def parseEventCounters(event, eventCounterInfo):
    for counterInfo in eventCounterInfo:

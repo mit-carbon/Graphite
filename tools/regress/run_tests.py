@@ -6,7 +6,7 @@ import os
 sys.path.append("./tools/")
 
 from schedule import *
-from defines import *
+from config import *
 
 jobs = []
 
@@ -21,11 +21,17 @@ for benchmark, command in zip(benchmark_list, command_list):
       sub_dir = "%s-%i" % (benchmark, num_machines)
       jobs.append(MakeJob(num_machines, command, results_dir, sub_dir, sim_flags, "pin"))
 
-# Make results directory
+# Remove the results directory
 try:
-    os.makedirs(results_dir)
+   shutil.rmtree(results_dir)
 except OSError:
-    pass
+   pass
+   
+# Create results directory
+try:
+   os.makedirs(results_dir)
+except OSError:
+   pass
 
 # Go!
 schedule(machines, jobs)

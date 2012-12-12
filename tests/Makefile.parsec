@@ -1,6 +1,5 @@
-PARSEC_MASTER=/afs/csail/group/carbon/benchmarks/parsec
-PARSEC_TARGET=$(SIM_ROOT)/tests/parsec
-PARSEC_HOME=$(PARSEC_TARGET)/parsec-3.0-graphite
+PARSEC_MASTER=/afs/csail/group/carbon/benchmarks/parsec/parsec-3.0-graphite
+PARSEC_HOME=$(SIM_ROOT)/tests/parsec/parsec-3.0
 
 APPS = blackscholes bodytrack facesim ferret fluidanimate freqmine raytrace swaptions vips x264
 KERNELS = canneal dedup streamcluster
@@ -44,4 +43,4 @@ vips_parsec: create_output_dir
 	$(COMMAND)
 
 setup_parsec:
-	cd $(PARSEC_MASTER); find parsec-3.0-graphite/ -type d  -name .git -prune -o -type d   -printf "mkdir -vp '$(PARSEC_TARGET)/%p'\n" -o -type f -printf "ln -s '/afs/csail/group/carbon/benchmarks/parsec/%p' '$(PARSEC_TARGET)/%p'\n" | sh
+	cd $(PARSEC_MASTER); find -type d  -name .git -prune -o -type d   -printf "mkdir -vp '$(PARSEC_HOME)/%p'\n" -o -type f -printf "ln -s '$(PARSEC_MASTER)/%p' '$(PARSEC_HOME)/%p'\n" | sh

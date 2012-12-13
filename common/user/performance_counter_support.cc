@@ -1,4 +1,5 @@
-#include "perf_counter_support.h"
+#include "performance_counter_support.h"
+#include "performance_counter_manager.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
@@ -7,7 +8,6 @@
 #include "transport.h"
 #include "packetize.h"
 #include "message_types.h"
-#include "performance_counter_manager.h"
 #include "log.h"
 
 void CarbonEnableModels()

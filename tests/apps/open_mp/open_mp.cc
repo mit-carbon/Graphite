@@ -2,9 +2,13 @@
 #include <stdio.h>
 
 #include "omp.h"
+#include "carbon_user.h"
 
 int main( int argc, char *argv[])
 {
+   // Enable power & performance models
+   CarbonEnableModels();
+
    int nthreads, tid;
 
    #pragma omp parallel private(tid,nthreads) num_threads(2)
@@ -20,6 +24,9 @@ int main( int argc, char *argv[])
          fflush(NULL);
       }
    }
+
+   // Disable power & performance models
+   CarbonDisableModels();
 
    return 0;
 }

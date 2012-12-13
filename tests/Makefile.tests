@@ -61,11 +61,11 @@ all: $(TARGET) create_output_dir
 	$(RUN)
 
 create_output_dir:
-	rm -f $(SIM_ROOT)/results/current
 	mkdir -p $(OUTPUT_DIR_ABS_PATH)
 	echo "$(RUN)" > $(OUTPUT_DIR_ABS_PATH)/command
 	cp $(CONFIG_FILE_ABS_PATH) $(OUTPUT_DIR_ABS_PATH)/carbon_sim.cfg
-	ln -s $(OUTPUT_DIR_ABS_PATH) $(SIM_ROOT)/results/current
+	rm -f $(SIM_ROOT)/results/latest
+	ln -s $(OUTPUT_DIR_ABS_PATH) $(SIM_ROOT)/results/latest
 
 # Compiler flags
 LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join -L$(SIM_ROOT)/lib

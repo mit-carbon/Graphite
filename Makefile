@@ -27,6 +27,7 @@ clean:
 	$(MAKE) -C tests/benchmarks clean
 
 clean_output_dirs:
-	rm -rf $(SIM_ROOT)/results/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9] $(SIM_ROOT)/results/current
+	rm -f $(SIM_ROOT)/results/latest
+	rm -rf $(SIM_ROOT)/results/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9]
 
 regress_quick: regress_unit regress_apps

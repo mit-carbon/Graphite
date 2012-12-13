@@ -1,16 +1,16 @@
-PARSEC_MASTER=/afs/csail/group/carbon/benchmarks/parsec/parsec-3.0-graphite
-PARSEC_HOME=$(SIM_ROOT)/tests/parsec/parsec-3.0
+PARSEC_HOME=/afs/csail/group/carbon/benchmarks/parsec/parsec-3.0-graphite
+PARSEC_LOCAL=$(SIM_ROOT)/tests/parsec/parsec-3.0
 
 APPS = blackscholes bodytrack facesim ferret fluidanimate freqmine raytrace swaptions vips x264
 KERNELS = canneal dedup streamcluster
 
 ## APPS
 
-blackscholes_flags ?= 64 in_16K.txt prices.txt                                                   # Use CORES=65
+blackscholes_flags ?= 64 in_16K.txt prices.txt                    
 bodytrack_flags ?= sequenceB_1 4 1 5 1 0 1
 facesim_flags ?=
 ferret_flags ?= corel lsh queries 10 20 15 output.txt
-fluidanimate_flags ?=  64 5 in_100K.fluid out.fluid                                             # Use CORES=65
+fluidanimate_flags ?=  64 5 in_100K.fluid out.fluid
 freqmine_flags ?= kosarak_500k.dat 410
 raytrace_flags ?=
 swaptions_flags ?= -ns 32 -sm 20000 -nt 32                                                                      
@@ -19,28 +19,28 @@ x264_flags ?= --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-p
 
 # KERNELS
 
-canneal_flags ?= 64 15000 2000 200000.nets 64                                                           # Use CORES=65
+canneal_flags ?= 64 15000 2000 200000.nets 64
 dedup_flags ?= -c -p -f -t 21 -i media.dat -o output.dat.ddp
-streamcluster_flags ?= 10 20 32 4096 4096 1000 none output.txt 64               # Use CORES=65
+streamcluster_flags ?= 10 20 32 4096 4096 1000 none output.txt 64
 
 include tests/Makefile.tests
 
 DIRECTORY ?= $(if $(findstring $(patsubst %_parsec,%,$@),$(APPS)),apps,kernels)
-COMMAND ?= export GRAPHITE_HOME=$(SIM_ROOT); mkdir -p $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; cd $(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_HOME)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE_ABS_PATH))
+COMMAND ?= export GRAPHITE_HOME=$(SIM_ROOT); mkdir -p $(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; cd $(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE_ABS_PATH))
 
 freqmine_parsec: create_output_dir
-	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
+	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_LOCAL)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	export OMP_NUM_THREADS=64
 	$(COMMAND)
 
 vips_parsec: create_output_dir
-	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
+	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_LOCAL)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	export IM_CONCURRENCY=64
 	$(COMMAND)
 
 %_parsec: create_output_dir
-	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_HOME)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
+	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_LOCAL)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	$(COMMAND)
 
 setup_parsec:
-	cd $(PARSEC_MASTER); find -type d  -name .git -prune -o -type d   -printf "mkdir -vp '$(PARSEC_HOME)/%p'\n" -o -type f -printf "ln -s '$(PARSEC_MASTER)/%p' '$(PARSEC_HOME)/%p'\n" | sh
+	cd $(PARSEC_HOME); find -type d  -name .git -prune -o -type d   -printf "mkdir -vp '$(PARSEC_LOCAL)/%p'\n" -o -type f -printf "ln -s '$(PARSEC_HOME)/%p' '$(PARSEC_LOCAL)/%p'\n" | sh

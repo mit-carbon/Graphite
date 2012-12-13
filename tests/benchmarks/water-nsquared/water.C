@@ -246,10 +246,18 @@ int main(int argc, char **argv)
 
     /* spawn helper processes, each getting its unique process id */
     CLOCK(gl->computestart);
+  
+    // Enable Models at the start of parallel execution
+    CarbonEnableModels();
+
     CREATE(WorkStart, NumProcs);
 
     /* macro to make main process wait for all others to finish */
     WAIT_FOR_END(NumProcs);
+  
+    // Disable Models at the end of parallel execution
+    CarbonDisableModels();
+
     CLOCK(gl->computeend);
 
     printf("COMPUTESTART (after initialization) = %lu\n",gl->computestart);

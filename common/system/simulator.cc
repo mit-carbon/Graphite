@@ -75,6 +75,7 @@ Simulator::Simulator()
    , m_start_time(0)
    , m_stop_time(0)
    , m_shutdown_time(0)
+   , m_enabled(false)
 {
 }
 
@@ -86,12 +87,12 @@ void Simulator::start()
 
    // Get Graphite Home
    char* graphite_home_str = getenv("GRAPHITE_HOME");
-   _graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
+   m_graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
   
    // DSENT for network power modeling - create config object
    if (Config::getSingleton()->getEnablePowerModeling())
    { 
-      string dsent_path = _graphite_home + "/contrib/dsent";
+      string dsent_path = m_graphite_home + "/contrib/dsent";
       dsent_contrib::DSENTInterface::allocate(dsent_path, getCfg()->getInt("general/technology_node"));
   }
   
@@ -285,18 +286,28 @@ bool Simulator::finished()
    return m_finished;
 }
 
+void Simulator::enableModels()
+{
+   startTimer();
+   m_enabled = true;
+   for (UInt32 i = 0; i < m_config.getNumLocalTiles(); i++)
+      m_tile_manager->getTileFromIndex(i)->enablePerformanceModels();
+}
+
+void Simulator::disableModels()
+{
+   stopTimer();
+   m_enabled = false;
+   for (UInt32 i = 0; i < m_config.getNumLocalTiles(); i++)
+      m_tile_manager->getTileFromIndex(i)->disablePerformanceModels();
+}
+
 void Simulator::enablePerformanceModelsInCurrentProcess()
 {
-   LOG_PRINT("enablePerformanceModelsInCurrentProcess() start");
-   Sim()->startTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
-      Sim()->getTileManager()->getTileFromIndex(i)->enablePerformanceModels();
-   LOG_PRINT("enablePerformanceModelsInCurrentProcess() end");
+   Sim()->enableModels();
 }
 
 void Simulator::disablePerformanceModelsInCurrentProcess()
 {
-   Sim()->stopTimer();
-   for (UInt32 i = 0; i < Sim()->getConfig()->getNumLocalTiles(); i++)
-      Sim()->getTileManager()->getTileFromIndex(i)->disablePerformanceModels();
+   Sim()->disableModels();
 }

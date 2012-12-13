@@ -4,31 +4,13 @@
 #include "config.h"
 #include "log.h"
 
-carbon_barrier_t models_barrier;
-
-void CarbonInitModels() 
-{
-   // Initialize the barrier for Carbon[Enable/Disable/Reset]Models
-   if (Config::getSingleton()->getCurrentProcessNum() == 0)
-      CarbonBarrierInit(&models_barrier, Config::getSingleton()->getApplicationTiles());
-}
-
 void CarbonEnableModels()
 {
    if (Sim()->getCfg()->getBool("general/trigger_models_within_application", false))
    {
-      // Acquire & Release a barrier
-      CarbonBarrierWait(&models_barrier);
-
-      if (Sim()->getTileManager()->getCurrentTileIndex() == 0)
-      {
-         fprintf(stderr, "[[Graphite]] --> [ Enabling Performance and Power Models ]\n");
-         // Enable the models of the cores in the current process
-         Simulator::enablePerformanceModelsInCurrentProcess();
-      }
-
-      // Acquire & Release a barrier again
-      CarbonBarrierWait(&models_barrier);
+      fprintf(stderr, "[[Graphite]] --> [ Enabling Performance and Power Models ]\n");
+      // Enable the models of the cores in the current process
+      Simulator::enablePerformanceModelsInCurrentProcess();
    }
 }
 
@@ -36,17 +18,8 @@ void CarbonDisableModels()
 {
    if (Sim()->getCfg()->getBool("general/trigger_models_within_application", false))
    {
-      // Acquire & Release a barrier
-      CarbonBarrierWait(&models_barrier);
-
-      if (Sim()->getTileManager()->getCurrentTileIndex() == 0)
-      {
-         fprintf(stderr, "[[Graphite]] --> [ Disabling Performance and Power Models ]\n");
-         // Disable performance models of cores in this process
-         Simulator::disablePerformanceModelsInCurrentProcess();
-      }
-
-      // Acquire & Release a barrier again
-      CarbonBarrierWait(&models_barrier);
+      fprintf(stderr, "[[Graphite]] --> [ Disabling Performance and Power Models ]\n");
+      // Disable performance models of cores in this process
+      Simulator::disablePerformanceModelsInCurrentProcess();
    }
 } 

@@ -213,8 +213,14 @@ int main(int argc, char *argv[])
     PrintA();
   }
 
+  // Enable Models at the start of parallel execution
+  CarbonEnableModels();
+
   CREATE(SlaveStart, P);
   WAIT_FOR_END(P);
+
+  // Disable Models at the end of parallel execution
+  CarbonDisableModels();
 
   if (doprint) {
     printf("\nMatrix after decomposition:\n");
@@ -355,8 +361,6 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-  // Enable Models
-  CarbonEnableModels();
 
   if ((MyNum == 0) || (dostats)) {
     CLOCK(myrs);
@@ -383,9 +387,6 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
     Global->done = mydone;
     Global->rf = myrf;
   }
-  
-  // Disble Models
-  CarbonDisableModels();
 }
 
 

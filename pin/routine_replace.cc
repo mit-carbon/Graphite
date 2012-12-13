@@ -125,10 +125,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
                IARG_END);
       }
 
-      RTN_InsertCall(rtn, IPOINT_BEFORE,
-            AFUNPTR(CarbonInitModels),
-            IARG_END);
-
       // After main()
       if (! Sim()->getCfg()->getBool("general/trigger_models_within_application",false))
       {

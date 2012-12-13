@@ -702,8 +702,6 @@ eof(double) +
 	 }
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-         // Reset Models
-         CarbonEnableModels();
        }
 
        slave2(procid,firstrow,lastrow,numrows,firstcol,lastcol,numcols);
@@ -831,8 +829,5 @@ eof(double) +
     CLOCK(t1);
     gp[procid].total_time = t1-gp[procid].total_time;
   }
-
-  // Disable Models at the end of parallel execution
-  CarbonDisableModels();
 }
 

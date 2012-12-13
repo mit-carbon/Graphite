@@ -5,7 +5,6 @@
 extern "C" {
 #endif
 
-void CarbonInitModels(void);
 void CarbonEnableModels(void);
 void CarbonDisableModels(void);
 

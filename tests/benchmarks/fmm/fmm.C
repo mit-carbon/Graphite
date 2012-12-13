@@ -141,13 +141,14 @@ main (int argc, char *argv[])
    InitExpTables();
    CreateDistribution(Cluster, Model);
 
-/*   for (i = 1; i < Number_Of_Processors; i++) {
-      CREATE(ParallelExecute);
-   }
-   ParallelExecute();
-   WAIT_FOR_END(Number_Of_Processors - 1);*/
+   // Enable Models at the start of parallel execution
+   CarbonEnableModels();
+
    CREATE(ParallelExecute, Number_Of_Processors);
    WAIT_FOR_END(Number_Of_Processors);
+
+   // Disable Models at the end of parallel execution
+   CarbonDisableModels();
 
    printf("Finished FMM\n");
    PrintTimes();
@@ -217,8 +218,6 @@ ParallelExecute ()
       if (MY_TIME_STEP == 2) {
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-         // Enable Models
-         CarbonEnableModels();
       }
 
       if (MY_TIME_STEP == 2) {
@@ -258,9 +257,6 @@ ParallelExecute ()
    }
    Local[my_id].init_done_times = local_init_done;
    BARRIER(G_Memory->synch, Number_Of_Processors);
-
-   // Disable Models
-   CarbonDisableModels();
 }
 
 

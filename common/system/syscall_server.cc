@@ -135,6 +135,10 @@ void SyscallServer::handleSyscall(core_id_t core_id)
       marshallSchedGetAffinityCall (core_id);
       break;
 
+   case SYS_exit_group:
+      marshallExitGroupCall (core_id);
+      break;
+
    default:
       LOG_ASSERT_ERROR(false, "Unhandled syscall number: %i from %i", (int)syscall_number, core_id);
       break;
@@ -757,6 +761,20 @@ void SyscallServer::marshallSchedGetAffinityCall(core_id_t core_id)
    CPU_FREE(mask);
 }
 
+void SyscallServer::marshallExitGroupCall(core_id_t core_id)
+{
+   UInt64 curr_time;
+   m_recv_buff >> curr_time;
+
+   for (FutexMap::iterator it = m_futexes.begin(); it != m_futexes.end(); it++)
+   {
+      int* addr = (int*) (*it).first;
+      __futexWake(addr, Config::getSingleton()->getTotalTiles(), curr_time);
+   }
+   // Send reply to the requester
+   m_send_buff.clear();
+   m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+}
 
 void SyscallServer::marshallFutexCall(core_id_t core_id)
 {

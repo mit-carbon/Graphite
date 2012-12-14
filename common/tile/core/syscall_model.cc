@@ -248,7 +248,11 @@ IntPtr SyscallMdl::runEnter(IntPtr syscall_number, syscall_args_t &args)
       m_ret_val = marshallSchedGetAffinityCall(args);
       break;
 
-   case -1:
+   case SYS_exit_group:
+      m_called_enter = true;
+      m_ret_val = marshallExitGroupCall(args);
+      break;
+
    default:
       break;
    }
@@ -1223,7 +1227,6 @@ IntPtr SyscallMdl::marshallGetCwdCall(syscall_args_t &args)
       assert(strlen((const char*) read_buf) + 1 == (unsigned int) bytes);
    
       // Write the data to memory
-      Core* core = Sim()->getTileManager()->getCurrentCore();
       core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) buf, read_buf, bytes);
    }
    else
@@ -1282,8 +1285,8 @@ IntPtr SyscallMdl::marshallSchedSetAffinityCall(syscall_args_t &args)
    delete [] write_buf;
 
    return status;
-
 }
+
 IntPtr SyscallMdl::marshallSchedGetAffinityCall(syscall_args_t &args)
 {
    /*
@@ -1333,6 +1336,27 @@ IntPtr SyscallMdl::marshallSchedGetAffinityCall(syscall_args_t &args)
    delete [] read_buf;
 
    return status;
+}
+
+IntPtr SyscallMdl::marshallExitGroupCall(syscall_args_t &args)
+{
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
+   Core *core = Sim()->getTileManager()->getCurrentCore();
+   LOG_ASSERT_ERROR(core, "Core = ((NULL))");
+
+   volatile float core_frequency = core->getPerformanceModel()->getFrequency();
+   UInt64 start_time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), core_frequency, 1.0);
+
+   m_send_buff << start_time;
+   m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+
+   NetPacket recv_pkt;
+   recv_pkt = m_network->netRecv(Config::getSingleton()->getMCPCoreId(), core->getId(), MCP_RESPONSE_TYPE);
+   
+   delete [] (Byte*) recv_pkt.data;
+   return 0;
 }
 
 // Helper functions

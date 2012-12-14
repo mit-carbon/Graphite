@@ -6,14 +6,7 @@
 #include <limits.h>
 
 Semaphore::Semaphore(int count)
-      : _count(count)
-      , _numWaiting(0)
-      , _futx(0)
-{
-}
-
-Semaphore::Semaphore()
-   : _count(0)
+   : _count(count)
    , _numWaiting(0)
    , _futx(0)
 {

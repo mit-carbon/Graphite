@@ -31,7 +31,6 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <limits.h>
-#include "carbon_user.h"
 
 #include "tiffio.h"
 
@@ -93,11 +92,12 @@ int main(int argc, char *argv[])
 
   Frame();
 
-/*  if (num_nodes > 1)
-    WAIT_FOR_END(num_nodes-1);*/
   if (num_nodes > 1)
     WAIT_FOR_END(num_nodes);
   
+  // Disable Models at the end of parallel execution
+  CarbonDisableModels();
+
   MAIN_END;
 }
 
@@ -224,6 +224,9 @@ void Frame()
   printf("\nRendering...\n");
   printf("node\tframe\ttime\titime\trays\thrays\tsamples trilirped\n");
 
+  // Enable Models at the start of parallel execution
+  CarbonEnableModels();
+
   CREATE(Render_Loop, num_nodes);
 }
 
@@ -251,8 +254,6 @@ void Render_Loop()
 /*  POSSIBLE ENHANCEMENT:  Here's where one might bind the process to a
     processor, if one wanted to.
 */
-  // Reset Models Here
-  CarbonEnableModels();
 
   inv_num_nodes = 1.0/(float)num_nodes;
   image_partition = ROUNDUP(image_length*inv_num_nodes);

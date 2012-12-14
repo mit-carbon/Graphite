@@ -64,9 +64,6 @@ config::ConfigFile *cfg;
 
 // clone stuff
 extern int *parent_tidptr;
-#ifdef TARGET_IA32
-extern struct user_desc *newtls;
-#endif
 extern int *child_tidptr;
 
 extern PIN_LOCK clone_memory_update_lock;
@@ -259,7 +256,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
       if (Sim()->getConfig()->getSimulationMode() == Config::LITE)
       {
          LOG_ASSERT_ERROR(curr_process_num == 0, "Lite mode can only be run with 1 process");
-         Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(0));
+         Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(0));
       }
       else // Sim()->getConfig()->getSimulationMode() == Config::FULL
       { 
@@ -268,7 +265,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          
          if (curr_process_num == 0)
          {
-            Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(0));
+            Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(0));
 
             ADDRINT reg_eip = PIN_GetContextReg(ctxt, REG_INST_PTR);
             // 1) Copying over Static Data
@@ -283,23 +280,23 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
             // 2) Copying over initial stack data
             LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
-            copyInitialStackData(reg_esp, Sim()->getTileManager()->getMainCoreId(0));
+            copyInitialStackData(reg_esp, Tile::getMainCoreId(0));
             LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
          }
          else
          {
             tile_id_t tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
-            Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(tile_id));
+            Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(tile_id));
             
             //Tile *tile = Sim()->getTileManager()->getCurrentTile();
             Core *core = Sim()->getTileManager()->getCurrentCore();
 
             // main thread clock is not affected by start-up time of other processes
             //tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-            core->getTile()->getNetwork()->netRecv (Sim()->getTileManager()->getMainCoreId(0), core->getCoreId(), SYSTEM_INITIALIZATION_NOTIFY);
+            core->getTile()->getNetwork()->netRecv (Tile::getMainCoreId(0), core->getId(), SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
-            copyInitialStackData(reg_esp, Sim()->getTileManager()->getMainCoreId(tile_id));
+            copyInitialStackData(reg_esp, Tile::getMainCoreId(tile_id));
             LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
          }
          // Set the current ESP accordingly
@@ -354,18 +351,9 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             Sim()->getThreadManager()->onThreadStart(req);
          }
 
-#ifdef TARGET_IA32 
-         // Restore the clone syscall arguments
-         PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
-         PIN_SetContextReg (ctxt, REG_GSI, (ADDRINT) newtls);
-         PIN_SetContextReg (ctxt, REG_GDI, (ADDRINT) child_tidptr);
-#endif
-
-#ifdef TARGET_X86_64
          // Restore the clone syscall arguments
          PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
          PIN_SetContextReg (ctxt, LEVEL_BASE::REG_R10, (ADDRINT) child_tidptr);
-#endif
 
          __attribute(__unused__) Tile *tile = Sim()->getTileManager()->getCurrentTile();
          LOG_ASSERT_ERROR(tile, "tile(NULL)");
@@ -450,9 +438,6 @@ int main(int argc, char *argv[])
    initProgressTrace();
 
    PIN_AddFiniFunction(ApplicationExit, 0);
-
-   //Just in case ... might not be strictly necessary
-   Transport::getSingleton()->barrier();
 
    // Never returns
    LOG_PRINT("Running program...");

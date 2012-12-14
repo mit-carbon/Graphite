@@ -343,7 +343,7 @@ IntervalTree::removeFromTree(Node* node)
       // Node has both children
       // Find Successor of node
       Node* successor_node = findMinKeyNode(node->right);
-      Node* removed_node = removeFromTree(successor_node);
+      __attribute(__unused__) Node* removed_node = removeFromTree(successor_node);
       assert(removed_node == successor_node);
 
       // Swap Node & Successor Node Parameters

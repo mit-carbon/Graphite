@@ -444,8 +444,15 @@ int main(int argc, char *argv[])
      printf("                       MULTIGRID OUTPUTS\n");
    }
 
+   // Enable Models at the start of parallel execution
+   CarbonEnableModels();
+
    CREATE(slave, nprocs);
    WAIT_FOR_END(nprocs);
+  
+   // Disable Models at the end of parallel execution
+   CarbonDisableModels();
+
    CLOCK(computeend)
 
    printf("\n");

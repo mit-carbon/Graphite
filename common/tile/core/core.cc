@@ -5,7 +5,7 @@
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "network_types.h"
-#include "memory_manager_base.h"
+#include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "clock_skew_minimization_object.h"
 #include "core_model.h"
@@ -14,31 +14,38 @@
 
 using namespace std;
 
-Lock Core::m_global_core_lock;
-
-Core * Core::create(Tile* tile, core_type_t core_type)
+Core::Core(Tile *tile, core_type_t core_type)
+   : m_tile(tile)
+   , m_core_id((core_id_t) {tile->getId(), core_type})
+   , m_core_state(IDLE)
+   , m_pin_memory_manager(NULL)
 {
-   return new MainCore(tile); 
-}
+   m_network = m_tile->getNetwork();
+   m_shmem_perf_model = m_tile->getShmemPerfModel();
+   m_memory_manager = m_tile->getMemoryManager();
 
-Core::Core(Tile *tile)
-{
-   m_tile = tile;
-   m_core_state = IDLE;
+   m_core_model = CoreModel::create(this);
    m_sync_client = new SyncClient(this);
-
    m_syscall_model = new SyscallMdl(tile->getNetwork());
-   m_clock_skew_minimization_client = ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
+   m_clock_skew_minimization_client =
+      ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
+    
+   if (Config::getSingleton()->isSimulatingSharedMemory())
+      m_pin_memory_manager = new PinMemoryManager(this);
 }
 
 Core::~Core()
 {
-   LOG_PRINT("Deleting main core on tile %d", this->getCoreId().tile_id);
+   LOG_PRINT("Deleting core on tile %d", m_core_id.tile_id);
+
+   if (m_pin_memory_manager)
+      delete m_pin_memory_manager;
 
    if (m_clock_skew_minimization_client)
       delete m_clock_skew_minimization_client;
-
+   delete m_syscall_model;
    delete m_sync_client;
+   delete m_core_model;
 }
 
 int Core::coreSendW(int sender, int receiver, char* buffer, int size, carbon_network_t net_type)
@@ -62,13 +69,13 @@ int Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_net
 {
    PacketType pkt_type = getPktTypeFromUserNetType(net_type);
 
-   core_id_t sender_core = (core_id_t) {sender, this->getCoreType()};
+   core_id_t sender_core = (core_id_t) {sender, getCoreType()};
 
    NetPacket packet;
    if (sender == CAPI_ENDPOINT_ANY)
-      packet = m_tile->getNetwork()->netRecvType(pkt_type, this->getCoreId());
+      packet = m_tile->getNetwork()->netRecvType(pkt_type, m_core_id);
    else
-      packet = m_tile->getNetwork()->netRecv(sender_core, this->getCoreId(), pkt_type);
+      packet = m_tile->getNetwork()->netRecv(sender_core, m_core_id, pkt_type);
 
    LOG_PRINT("Got packet: from {%i, %i}, to {%i, %i}, type %i, len %i", packet.sender.tile_id, packet.sender.core_type, packet.receiver.tile_id, packet.receiver.core_type, (SInt32)packet.type, packet.length);
 
@@ -99,49 +106,6 @@ PacketType Core::getPktTypeFromUserNetType(carbon_network_t net_type)
    }
 }
 
-pair<UInt32, UInt64>
-Core::nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size)
-{
-   if (data_size <= 0)
-   {
-      return make_pair<UInt32, UInt64>(0,0);
-   }
-
-   if (lock_signal == LOCK)
-   {
-      assert(mem_op_type == READ_EX);
-      m_global_core_lock.acquire();
-   }
-
-   if ( (mem_op_type == READ) || (mem_op_type == READ_EX) )
-   {
-      memcpy ((void*) data_buffer, (void*) d_addr, (size_t) data_size);
-   }
-   else if (mem_op_type == WRITE)
-   {
-      memcpy ((void*) d_addr, (void*) data_buffer, (size_t) data_size);
-   }
-
-   if (lock_signal == UNLOCK)
-   {
-      assert(mem_op_type == WRITE);
-      m_global_core_lock.release();
-   }
-
-   return make_pair<UInt32, UInt64>(0,0);
-}
-
-
-int Core::getTileId() 
-{ 
-   return m_tile->getId(); 
-}
-
-Network* Core::getNetwork() 
-{ 
-   return m_tile->getNetwork(); 
-}
-
 Core::State 
 Core::getState()
 {
@@ -154,14 +118,4 @@ Core::setState(State core_state)
 {
    ScopedLock scoped_lock(m_core_state_lock);
    m_core_state = core_state;
-}
-
-MemoryManagerBase* Core::getMemoryManager() 
-{ 
-   return m_tile->getMemoryManager(); 
-} 
-
-ShmemPerfModel* Core::getShmemPerfModel() 
-{ 
-   return m_tile->getShmemPerfModel(); 
 }

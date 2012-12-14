@@ -51,7 +51,6 @@
 #include <asm/prctl.h>
 #include <sys/prctl.h>
 
-// FIXME
 // -----------------------------------
 // Clone stuff
 #include <sched.h>
@@ -59,9 +58,6 @@
 // FIXME: 
 // These really should be in a class instead of being globals like this
 int *parent_tidptr = NULL;
-#ifdef TARGET_IA32
-struct user_desc *newtls = NULL;
-#endif
 int *child_tidptr = NULL;
 
 PIN_LOCK clone_memory_update_lock;
@@ -77,16 +73,6 @@ VOID handleFutexSyscall(CONTEXT *ctx)
 
    SyscallMdl::syscall_args_t args;
 
-#ifdef TARGET_IA32
-   args.arg0 = PIN_GetContextReg (ctx, REG_GBX);
-   args.arg1 = PIN_GetContextReg (ctx, REG_GCX);
-   args.arg2 = PIN_GetContextReg (ctx, REG_GDX);
-   args.arg3 = PIN_GetContextReg (ctx, REG_GSI);
-   args.arg4 = PIN_GetContextReg (ctx, REG_GDI);
-   args.arg5 = PIN_GetContextReg (ctx, REG_GBP);
-#endif
-
-#ifdef TARGET_X86_64
    // FIXME: The LEVEL_BASE:: ugliness is required by the fact that REG_R8 etc 
    // are also defined in /usr/include/sys/ucontext.h
    args.arg0 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_GDI);
@@ -95,7 +81,6 @@ VOID handleFutexSyscall(CONTEXT *ctx)
    args.arg3 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_R10); 
    args.arg4 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_R8);
    args.arg5 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_R9);
-#endif
    Core *core = Sim()->getTileManager()->getCurrentCore();
    
    string core_null = core ? "CORE != NULL" : "CORE == NULL";
@@ -125,28 +110,22 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_flock) ||
+            (syscall_number == SYS_fchmod) ||
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||
             (syscall_number == SYS_getcwd) ||
             (syscall_number == SYS_sched_setaffinity) ||
             (syscall_number == SYS_sched_getaffinity) ||
-#ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
             (syscall_number == SYS_lstat) ||
-#endif
-#ifdef TARGET_IA32
-            (syscall_number == SYS_fstat64) ||
-#endif
             (syscall_number == SYS_ioctl) ||
             (syscall_number == SYS_getpid) ||
             (syscall_number == SYS_readahead) ||
             (syscall_number == SYS_pipe) ||
             (syscall_number == SYS_brk) ||
-#ifdef TARGET_IA32
-            (syscall_number == SYS_mmap2) ||
-#endif
             (syscall_number == SYS_mmap) ||
             (syscall_number == SYS_munmap))
       {
@@ -220,14 +199,6 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
          modifyGettimeofdayContext (ctx, syscall_standard);
       }
 
-#ifdef TARGET_IA32
-      else if (syscall_number == SYS_ugetrlimit)
-      {
-         modifyGetrlimitContext (ctx, syscall_standard);
-      }
-#endif
-
-#ifdef TARGET_X86_64
       else if (syscall_number == SYS_arch_prctl)
       {
          modifyArch_prctlContext (ctx, syscall_standard);
@@ -237,7 +208,6 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
       {
          modifyGetrlimitContext (ctx, syscall_standard);
       }
-#endif
       
       // Syscalls encountered on lenny systems
       else if (syscall_number == SYS_set_robust_list)
@@ -257,16 +227,6 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD s
          // Let the syscall fall through
       }
 
-#ifdef TARGET_IA32
-      else if ( (syscall_number == SYS_geteuid32) ||
-            (syscall_number == SYS_getuid32) ||
-            (syscall_number == SYS_getegid32) ||
-            (syscall_number == SYS_getgid32) ||
-            (syscall_number == SYS_sigreturn) )
-      {
-         // Let the syscall fall through
-      }
-#endif
       else
       {
          SyscallMdl::syscall_args_t args = syscallArgs (ctx, syscall_standard);
@@ -290,28 +250,22 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
             (syscall_number == SYS_close) ||
             (syscall_number == SYS_lseek) ||
             (syscall_number == SYS_access) ||
+            (syscall_number == SYS_flock) ||
+            (syscall_number == SYS_fchmod) ||
             (syscall_number == SYS_rmdir) ||
             (syscall_number == SYS_unlink) ||
             (syscall_number == SYS_clock_gettime) ||
             (syscall_number == SYS_getcwd) ||
             (syscall_number == SYS_sched_setaffinity) ||
             (syscall_number == SYS_sched_getaffinity) ||
-#ifdef TARGET_X86_64
             (syscall_number == SYS_stat) ||
             (syscall_number == SYS_fstat) ||
             (syscall_number == SYS_lstat) ||
-#endif
-#ifdef TARGET_IA32
-            (syscall_number == SYS_fstat64) ||
-#endif
             (syscall_number == SYS_ioctl) ||
             (syscall_number == SYS_getpid) ||
             (syscall_number == SYS_readahead) ||
             (syscall_number == SYS_pipe) ||
             (syscall_number == SYS_brk) ||
-#ifdef TARGET_IA32
-            (syscall_number == SYS_mmap2) ||
-#endif
             (syscall_number == SYS_mmap) ||
             (syscall_number == SYS_munmap) ||
             (syscall_number == SYS_futex))
@@ -383,14 +337,6 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
          restoreGettimofdayContext (ctx, syscall_standard);
       }
      
-#ifdef TARGET_IA32
-      else if (syscall_number == SYS_ugetrlimit)
-      {
-         restoreGetrlimitContext (ctx, syscall_standard);
-      }
-#endif
-
-#ifdef TARGET_X86_64
       else if (syscall_number == SYS_arch_prctl)
       {
          restoreArch_prctlContext (ctx, syscall_standard);
@@ -400,7 +346,6 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
       {
          restoreGetrlimitContext (ctx, syscall_standard);
       }
-#endif
       
       // Syscalls entered on lenny systems
       else if (syscall_number == SYS_set_robust_list)
@@ -416,16 +361,6 @@ void syscallExitRunModel(THREADID threadIndex, CONTEXT *ctx, SYSCALL_STANDARD sy
       {
          // Let the syscall fall through
       }
-
-#ifdef TARGET_IA32
-      else if ( (syscall_number == SYS_geteuid32) ||
-            (syscall_number == SYS_getuid32) ||
-            (syscall_number == SYS_getegid32) ||
-            (syscall_number == SYS_getgid32) )
-      {
-         // Let the syscall fall through
-      }
-#endif
 
       else
       {
@@ -714,15 +649,7 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
             (IntPtr) args.arg0, (IntPtr) args.arg1, (IntPtr) args.arg2, (IntPtr) args.arg3, (IntPtr) args.arg4);
 
       parent_tidptr = (int*) args.arg2;
-
-#ifdef TARGET_IA32
-      newtls = (struct user_desc*) args.arg3;
-      child_tidptr = (int*) args.arg4;
-#endif
-
-#ifdef TARGET_X86_64
       child_tidptr = (int*) args.arg3;
-#endif
 
       // Get the lock so that the parent can update simulated memory
       // with values returned by the clone syscall before the child 
@@ -735,28 +662,11 @@ void modifyCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr_arg);
       }
 
-#ifdef TARGET_IA32
-      if (newtls)
-      {
-         struct user_desc *newtls_arg = (struct user_desc*) core->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) newtls, sizeof (struct user_desc));
-         PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls_arg);
-      }
-      
-      if (child_tidptr)
-      {
-         int *child_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (4, (IntPtr) child_tidptr, sizeof (int));
-         PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr_arg);
-      }
-
-#endif
-
-#ifdef TARGET_X86_64
       if (child_tidptr)
       {
          int *child_tidptr_arg = (int*) core->getSyscallMdl()->copyArgToBuffer (3, (IntPtr) child_tidptr, sizeof (int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) child_tidptr_arg);
       }
-#endif
    }
 }
 
@@ -774,27 +684,11 @@ void restoreCloneContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
          PIN_SetSyscallArgument (ctxt, syscall_standard, 2, (ADDRINT) parent_tidptr);
       }
 
-#ifdef TARGET_IA32
-      if (newtls)
-      {
-         core->getSyscallMdl()->copyArgFromBuffer (3, (IntPtr) newtls, sizeof(struct user_desc));
-         PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) newtls);
-      }
-
-      if (child_tidptr)
-      {
-         core->getSyscallMdl()->copyArgFromBuffer (4, (IntPtr) child_tidptr, sizeof(int));
-         PIN_SetSyscallArgument (ctxt, syscall_standard, 4, (ADDRINT) child_tidptr);
-      }
-#endif
-
-#ifdef TARGET_X86_64
       if (child_tidptr)
       {
          core->getSyscallMdl()->copyArgFromBuffer (3, (IntPtr) child_tidptr, sizeof(int));
          PIN_SetSyscallArgument (ctxt, syscall_standard, 3, (ADDRINT) child_tidptr);
       }
-#endif
 
       // Release the lock now that we have copied all results to simulated memory
       ReleaseLock (&clone_memory_update_lock);
@@ -923,8 +817,6 @@ void restoreGetrlimitContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
    }
 }
 
-#ifdef TARGET_X86_64
-
 void modifyArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {
    Core *core = Sim()->getTileManager()->getCurrentCore();
@@ -960,8 +852,6 @@ void restoreArch_prctlContext (CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
       }
    }
 }
-
-#endif
 
 SyscallMdl::syscall_args_t syscallArgs(CONTEXT *ctxt, SYSCALL_STANDARD syscall_standard)
 {

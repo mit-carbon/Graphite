@@ -1,8 +1,7 @@
+#include <cmath>
+#include <cstring>
+#include <cassert>
 #include "utils.h"
-
-/* ================================================================ */
-/* Utility function definitions */
-/* ================================================================ */
 
 string myDecStr(UInt64 v, UInt32 w)
 {
@@ -13,10 +12,8 @@ string myDecStr(UInt64 v, UInt32 w)
    return str;
 }
 
-
 bool isPower2(UInt32 n)
 { return ((n & (n - 1)) == 0); }
-
 
 SInt32 floorLog2(UInt32 n)
 {
@@ -33,9 +30,27 @@ SInt32 floorLog2(UInt32 n)
    return p;
 }
 
-
 SInt32 ceilLog2(UInt32 n)
 { return floorLog2(n - 1) + 1; }
+
+bool isPerfectSquare(UInt32 n)
+{ 
+   UInt32 sqrtn = (UInt32) floor(sqrt((float) n));
+   return (n == (sqrtn * sqrtn)) ? true : false;
+}
+
+// Is even and odd?
+bool isEven(UInt32 n)
+{ return ((n%2) == 0); }
+
+bool isOdd(UInt32 n)
+{ return !isEven(n); }
+
+// Converts bits to bytes
+UInt32 convertBitsToBytes(UInt32 num_bits)
+{
+   return ((num_bits % 8) == 0) ? (num_bits/8) : (num_bits/8 + 1);
+}
 
 // Trim the beginning and ending spaces in a string
 string trimSpaces(string& str)
@@ -129,4 +144,58 @@ void parseList(string& list, vector<string>& vec, string delim)
       fprintf(stderr, "Unsupported Number of delimiters(%s)\n", delim.c_str());
       exit(EXIT_FAILURE);
    }
+}
+
+void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters)
+{
+   char character_set[line.length() + 1];
+   strncpy(character_set, line.c_str(), line.length() + 1);
+
+   char* save_ptr;
+   char* token = strtok_r(character_set, delimiters, &save_ptr);
+   while (token != NULL)
+   {
+      tokens.push_back((string) token);
+      token = strtok_r(NULL, delimiters, &save_ptr);
+   }
+}
+
+double computeMean(const vector<UInt64>& vec)
+{
+   double sigma_x = 0.0;
+   for (vector<UInt64>::const_iterator it = vec.begin(); it != vec.end(); it++)
+   {
+      UInt64 element = (*it);
+      sigma_x += ((double) element);
+   }
+
+   size_t n = vec.size();
+   assert(n>0);
+   double mean = (sigma_x / n);
+   return mean;
+}
+
+double computeStddev(const vector<UInt64>& vec)
+{
+   double sigma_x = 0.0;
+   double sigma_x2 = 0.0;
+   for (vector<UInt64>::const_iterator it = vec.begin(); it != vec.end(); it++)
+   {
+      UInt64 element = (*it);
+      sigma_x += ((double) element);
+      sigma_x2 += ((double) (element * element));
+   }
+
+   size_t n = vec.size();
+   assert(n>0);
+   double mean = (sigma_x / n);
+   double variance = (sigma_x2 / n) - (mean * mean);
+   assert(variance >= 0);
+   double stddev = sqrt(variance);
+   return stddev;
+}
+
+double computeCoefficientOfVariation(double mean, double stddev)
+{
+   return stddev / mean;
 }

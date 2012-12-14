@@ -103,7 +103,7 @@ public:
 
    // Return the number of modules (tiles) in a given process
    UInt32 getNumTilesInProcess(UInt32 proc_num)
-   { 
+   {
       assert (proc_num < m_num_processes); 
       return m_proc_to_tile_list_map[proc_num].size(); 
    }
@@ -119,6 +119,7 @@ public:
    // Return the total number of modules in all processes
    UInt32 getTotalTiles();
    UInt32 getApplicationTiles();
+   bool isApplicationTile(tile_id_t tile_id);
 
    // Return an array of tile numbers for a given process
    //  The returned array will have numMods(proc_num) elements
@@ -142,8 +143,8 @@ public:
    void updateCommToTileMap(UInt32 comm_id, tile_id_t tile_id);
    UInt32 getTileFromCommId(UInt32 comm_id);
 
-   // Get TileId length
-   UInt32 getTileIDLength()
+   // Get Tile ID length (in bits)
+   UInt32 getTileIDLength() const
    { return m_tile_id_length; }
 
    SimulationMode getSimulationMode()
@@ -181,7 +182,7 @@ private:
    UInt32  m_total_tiles;           // Total number of tiles in all processes
    UInt32  m_application_tiles;     // Total number of tiles used by the application
    UInt32  m_num_cores_per_tile;    // Number of cores per tile
-   UInt32  m_tile_id_length;        // Number of bytes needed to store a tile_id
+   UInt32  m_tile_id_length;        // Number of bits needed to store a tile_id
    UInt32  m_max_threads_per_core;
 
    UInt32  m_current_process_num;   // Process number for this process
@@ -220,7 +221,7 @@ private:
 
    static SimulationMode parseSimulationMode(std::string mode);
    static UInt32 computeTileIDLength(UInt32 tile_count);
-   static UInt32 getNearestAcceptableTileCount(UInt32 tile_count);
+   static bool isTileCountPermissible(UInt32 tile_count);
 };
 
 #endif

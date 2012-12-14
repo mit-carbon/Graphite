@@ -48,20 +48,6 @@ void routineCallback(RTN rtn, void* v)
             IARG_END);
    }
 
-   // Reset Models
-   if (rtn_name == "CarbonResetModels")
-   {
-      PROTO proto = PROTO_Allocate(PIN_PARG(void),
-            CALLINGSTD_DEFAULT,
-            "CarbonResetModels",
-            PIN_PARG_END());
-
-      RTN_ReplaceSignature(rtn,
-            AFUNPTR(CarbonResetModels),
-            IARG_PROTOTYPE, proto,
-            IARG_END);
-   }
-
    // _start
    if (rtn_name == "_start")
    {
@@ -80,19 +66,15 @@ void routineCallback(RTN rtn, void* v)
       RTN_Open(rtn);
 
       // Before main()
-      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      if (! Sim()->getCfg()->getBool("general/trigger_models_within_application", false))
       {
          RTN_InsertCall(rtn, IPOINT_BEFORE,
                AFUNPTR(Simulator::enablePerformanceModelsInCurrentProcess),
                IARG_END);
       }
 
-      RTN_InsertCall(rtn, IPOINT_BEFORE,
-            AFUNPTR(CarbonInitModels),
-            IARG_END);
-
       // After main()
-      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      if (! Sim()->getCfg()->getBool("general/trigger_models_within_application", false))
       {
          RTN_InsertCall(rtn, IPOINT_AFTER,
                AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
@@ -512,7 +494,7 @@ carbon_thread_t emuCarbonSpawnThread(CONTEXT* context,
   
    tile_id_t tid = CarbonSpawnThread(thread_func, arg);
 
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
    LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
 
@@ -542,7 +524,7 @@ int emuPthreadCreate(CONTEXT* context,
 {
    tile_id_t tid = CarbonSpawnThread(thread_func, arg);
   
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
    LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
 
@@ -581,7 +563,7 @@ void emuCarbonJoinThread(CONTEXT* context,
 
    tid_to_thread_ptr_map.erase(it);
 
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
    LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
 
@@ -624,7 +606,7 @@ int emuPthreadJoin(CONTEXT* context,
 
    tid_to_thread_ptr_map.erase(it);
 
-   IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+    __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
    LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
 

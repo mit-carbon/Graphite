@@ -5,123 +5,80 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "carbon_user.h"
 #include "capi.h"
 #include "sync_api.h"
 
-#define DEBUG 1
-// #define FULL_DEBUG 1
-// #define USE_INT 1
-
-#ifdef FULL_DEBUG
-#define DEBUG 1
-#endif
-
-#ifdef USE_INT
-typedef SInt32 DType;
-#else
-typedef float DType;
-#endif
-
-#define NUM_ITERS 50
+#define NUM_ITERS 100
 #define SWAP(a,b,t)  (((t) = (a)), ((a) = (b)), ((b) = (t)))
 
 // Global Variables
-DType* g_old_array;
-DType* g_new_array;
-SInt32 g_num_cores;
-SInt32 g_size;
+float* _old_array;
+float* _new_array;
+SInt32 _num_threads;
+SInt32 _size;
 
 carbon_barrier_t jacobi_barrier;
-
-#ifdef DEBUG
-pthread_mutex_t print_lock;
-#endif
 
 // Function Declarations
 void* threadMain(void*);
 void printArray(SInt32);
 
-SInt32 wait_some()
-{
-   SInt32 j = 0;
-   for (UInt32 i = 0; i < 2000; i++)
-   {
-      j += i;
-   }
-   return j;
-}
-
 int main(int argc, char *argv[])
 {
    CarbonStartSim(argc, argv);
-/*    if (argc != 3) { */
-/*       fprintf(stderr, "[Usage]: ./jacobi <Number of Threads> <Number of Array Elements per Thread>\n"); */
-/*       exit(-1); */
-/*    } */
-
-   g_num_cores = atoi(argv[1]);
-   int num_array_elements_per_core = atoi (argv[2]);
-   
-   g_size = g_num_cores * num_array_elements_per_core;
-
-   fprintf (stderr, "Number of Cores = %d\n", g_num_cores);
-   fprintf (stderr, "Size of the array = %d\n", g_size);
-
-   g_old_array = (DType *) malloc((g_size+2) * sizeof(DType));
-   g_new_array = (DType *) malloc((g_size+2) * sizeof(DType));
-
-   for (SInt32 i = 0; i < g_size+2; i++)
+   if (argc != 3)
    {
-      g_old_array[i] = 0;
-      g_new_array[i] = 0;
+      fprintf(stderr, "[Usage]: ./jacobi <Number of Threads> <Number of Array Elements per Thread>\n");
+      exit(EXIT_FAILURE);
    }
-   g_old_array[0] = 32768;
-   g_new_array[0] = 32768;
 
-#ifdef DEBUG
-   pthread_mutex_init(&print_lock, NULL);
-#endif
+   _num_threads = atoi(argv[1]);
+   int num_array_elements_per_core = atoi(argv[2]);
+   
+   _size = _num_threads * num_array_elements_per_core;
+
+   fprintf (stderr, "\nStarting (jacobi)\n");
+   fprintf (stderr, "Number of Cores = %d\n", _num_threads);
+   fprintf (stderr, "Size of the array = %d\n", _size);
+
+   _old_array = (float *) malloc((_size+2) * sizeof(float));
+   _new_array = (float *) malloc((_size+2) * sizeof(float));
+
+   for (SInt32 i = 0; i < _size+2; i++)
+   {
+      _old_array[i] = 0;
+      _new_array[i] = 0;
+   }
+   _old_array[0] = INT_MAX;
+   _new_array[0] = INT_MAX;
 
    // Initialize the barrier
-   CarbonBarrierInit(&jacobi_barrier, g_num_cores);
+   CarbonBarrierInit(&jacobi_barrier, _num_threads);
    
-   carbon_thread_t threads[g_num_cores-1];
+   carbon_thread_t threads[_num_threads];
 
-#ifdef DEBUG
-   pthread_mutex_lock(&print_lock);
-   fprintf(stderr, "Creating Threads\n");
-   pthread_mutex_unlock(&print_lock);
-#endif
-
-   for (SInt32 i = 0; i < g_num_cores-1; i++)
+   for (SInt32 i = 1; i < _num_threads; i++)
    {
-#ifdef FULL_DEBUG
-      pthread_mutex_lock(&print_lock);
-      fprintf(stderr, "Creating Thread: %d\n", i);
-      pthread_mutex_unlock(&print_lock);
-#endif
-
       threads[i] = CarbonSpawnThread(threadMain, (void*) i);
-      if (threads[i] < 0) {
-         // fprintf(stderr, "ERROR spawning thread %d! Error code: %s\n",
-         //       i, strerror(ret));         
+      if (threads[i] < 0)
+      {
          fprintf(stderr, "ERROR spawning thread %d!\n", i);         
-         exit(-1);
+         exit(EXIT_FAILURE);
       }
    }
+   threadMain((void*) 0);
 
-   threadMain((void*) g_num_cores-1);
-
-   for (SInt32 i = 0; i < g_num_cores-1; i++)
+   for (SInt32 i = 1; i < _num_threads; i++)
    {
       CarbonJoinThread(threads[i]);
    }
 
    printArray(NUM_ITERS);
 
-   fprintf(stderr, "Done. Exiting...\n");
+   fprintf(stderr, "Done (jacobi). Exiting...\n\n");
    CarbonStopSim();
    return (0);
 }
@@ -130,88 +87,39 @@ void* threadMain(void *threadid)
 {
    SInt32 tid = (SInt32) threadid;
 
-   if (tid == 0)
-   {
-#ifdef FULL_DEBUG
-      pthread_mutex_lock(&print_lock);
-      printArray(-1);
-      pthread_mutex_unlock(&print_lock);
-#endif
-   }
-
-#ifdef FULL_DEBUG
-   pthread_mutex_lock(&print_lock);
-   fprintf(stderr, "Thread [ %d ]: Waiting for barrier\n", tid);
-   pthread_mutex_unlock(&print_lock);
-#endif
-
    CarbonBarrierWait(&jacobi_barrier);
 
-#ifdef FULL_DEBUG
-   pthread_mutex_lock(&print_lock);
-   fprintf(stderr, "Thread [ %d ]: Finished barrier\n", tid);
-   pthread_mutex_unlock(&print_lock);
-#endif
-
-   SInt32 start_index = ((g_size/g_num_cores) * tid) + 1;
-   SInt32 end_index = ((g_size/g_num_cores) * (tid + 1)) + 1;
-
-#ifdef FULL_DEBUG
-   pthread_mutex_lock(&print_lock);
-   fprintf(stderr, "Thread [ %d ]: Start Index = %d\n", tid, start_index);
-   fprintf(stderr, "Thread [ %d ]: End Index = %d\n", tid,  end_index);
-   pthread_mutex_unlock(&print_lock);
-#endif
+   SInt32 start_index = ((_size/_num_threads) * tid) + 1;
+   SInt32 end_index = ((_size/_num_threads) * (tid + 1)) + 1;
 
    for (SInt32 k = 0; k < NUM_ITERS; k++)
    {
       for (SInt32 i = start_index; i < end_index; i++)
       {
-         g_new_array[i] = (g_old_array[i-1] + g_old_array[i+1]) / 2;
+         _new_array[i] = (_old_array[i-1] + _old_array[i+1]) / 2;
       }
 
       CarbonBarrierWait(&jacobi_barrier);
 
       if (tid == 0)
       {
-         DType* temp;
-         SWAP(g_old_array, g_new_array, temp);
-
-#ifdef FULL_DEBUG
-         pthread_mutex_lock(&print_lock);
-         printArray(k);
-         pthread_mutex_unlock(&print_lock);
-#endif
+         float* temp;
+         SWAP(_old_array, _new_array, temp);
       }
 
       CarbonBarrierWait(&jacobi_barrier);
 
    }
 
-   return 0;
-
+   return NULL;
 }
 
 void printArray(SInt32 iter)
 {
 
    fprintf(stderr, "Contents of Array after iteration: %d\n", iter);
-   for (SInt32 i = 0; i < g_size+2; i++)
-   {
-#ifdef USE_INT
-      fprintf(stderr, "%d, ", g_old_array[i]);
-#else
-      fprintf(stderr, "%f, ", g_old_array[i]);
-      UInt32 float_rep = *((UInt32*) &g_old_array[i]);
-      // fprintf(stderr, "0x%x } , ", float_rep);
-      // float_rep = float_rep & 0x7fc00000;
-      if ( (float_rep & 0x7f800000) == 0x7f800000) {
-         fprintf(stderr, "\n\nEncountered a NaN : 0x%x !!!\n\n", float_rep);
-         assert (false);
-         exit(-1);
-      }
-#endif
-   }
-   fprintf(stderr, "\n\n");
+   for (SInt32 i = 0; i < _size+2; i++)
+      fprintf(stderr, "%f, ", _old_array[i]);
+   fprintf(stderr, "\n");
 
 }

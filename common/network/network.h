@@ -2,38 +2,42 @@
 #define NETWORK_H
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <list>
+using std::ostream;
+using std::ofstream;
+using std::vector;
+using std::list;
+
 #include "packet_type.h"
 #include "fixed_types.h"
 #include "cond.h"
 #include "semaphore.h"
 #include "transport.h"
-#include "network_model.h"
-
-// TODO: Do we need to support multicast to some (but not all)
-// destinations?
 
 class Tile;
 class Network;
+class NetworkModel;
 
 // -- Network Packets -- //
 
 class NetPacket
 {
 public:
-   UInt64 start_time;
    UInt64 time;
    PacketType type;
    
    core_id_t sender;
    core_id_t receiver;
 
-   // This field may be used by specific network models in whatever way they please
-   UInt32 specific;
+   SInt32 node_type;
    
    UInt32 length;
    const void *data;
+
+   UInt64 zero_load_delay;
+   UInt64 contention_delay;
 
    NetPacket();
    explicit NetPacket(Byte*);
@@ -48,17 +52,17 @@ public:
    static const SInt32 BROADCAST = 0xDEADBABE;
 };
 
-typedef std::list<NetPacket> NetQueue;
+typedef list<NetPacket> NetQueue;
 
 // -- Network Matches -- //
 
 class NetMatch
 {
-   public:
-      NetMatch() {receiver = INVALID_CORE_ID;}
-      std::vector<core_id_t> senders;
-      std::vector<PacketType> types;
-      core_id_t receiver;
+public:
+   NetMatch() {receiver = INVALID_CORE_ID;}
+   vector<core_id_t> senders;
+   vector<PacketType> types;
+   core_id_t receiver;
 };
 
 // -- Network -- //
@@ -68,67 +72,78 @@ class NetMatch
 
 class Network
 {
-   public:
-      // -- Ctor, housekeeping, etc. -- //
-      Network(Tile *tile);
-      ~Network();
+public:
+   // -- Ctor, housekeeping, etc. -- //
+   Network(Tile *tile);
+   ~Network();
 
-      Tile *getTile() const { return _tile; }
-      Transport::Node *getTransport() const { return _transport; }
+   Tile *getTile() const { return _tile; }
+   Transport::Node *getTransport() const { return _transport; }
 
-      typedef void (*NetworkCallback)(void*, NetPacket);
+   typedef void (*NetworkCallback)(void*, NetPacket);
 
-      void registerCallback(PacketType type,
-                            NetworkCallback callback,
-                            void *obj);
+   void registerCallback(PacketType type,
+                         NetworkCallback callback,
+                         void *obj);
 
-      void unregisterCallback(PacketType type);
+   void unregisterCallback(PacketType type);
 
-      void outputSummary(std::ostream &out) const;
+   void outputSummary(ostream &out) const;
 
-      void netPullFromTransport();
+   void netPullFromTransport();
 
-      // -- Main interface -- //
+   // -- Main interface -- //
 
-      SInt32 netSend(NetPacket& packet);
-      NetPacket netRecv(const NetMatch &match);
+   SInt32 netSend(NetPacket& packet);
+   NetPacket netRecv(const NetMatch &match);
 
-      // -- Wrappers -- //
+   // -- Wrappers -- //
 
-      SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
-      SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
-      NetPacket netRecv(core_id_t src, core_id_t recv, PacketType type);
-      NetPacket netRecvFrom(core_id_t src, core_id_t recv);
-      NetPacket netRecvType(PacketType type, core_id_t recv);
+   SInt32 netSend(core_id_t dest, PacketType type, const void *buf, UInt32 len);
+   SInt32 netBroadcast(PacketType type, const void *buf, UInt32 len);
+   NetPacket netRecv(core_id_t src, core_id_t recv, PacketType type);
+   NetPacket netRecvFrom(core_id_t src, core_id_t recv);
+   NetPacket netRecvType(PacketType type, core_id_t recv);
 
-      void enableModels();
-      void disableModels();
-      void resetModels();
+   void enableModels();
+   void disableModels();
+   
+   // -- Network Injection/Ejection Rate Trace -- //
+   static void openUtilizationTraceFiles();
+   static void closeUtilizationTraceFiles();
+   static void outputUtilizationSummary();
 
-      // -- Network Models -- //
-      NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
+   // -- Network Models -- //
+   NetworkModel* getNetworkModel(SInt32 network_id) { return _models[network_id]; }
+   NetworkModel* getNetworkModelFromPacketType(PacketType packet_type);
 
-      // Modeling
-      UInt32 getModeledLength(const NetPacket& pkt);
+private:
+   NetworkModel * _models[NUM_STATIC_NETWORKS];
 
-   private:
-      NetworkModel * _models[NUM_STATIC_NETWORKS];
+   NetworkCallback *_callbacks;
+   void **_callbackObjs;
 
-      NetworkCallback *_callbacks;
-      void **_callbackObjs;
+   Tile *_tile;
+   Transport::Node *_transport;
 
-      Tile *_tile;
-      Transport::Node *_transport;
+   SInt32 _tid;
+   SInt32 _numMod;
 
-      SInt32 _tid;
-      SInt32 _numMod;
+   NetQueue _netQueue;
+   Lock _netQueueLock;
+   ConditionVariable _netQueueCond;
+   
+   // -- Network Injection/Ejection Rate Trace -- //
+   static bool* _utilizationTraceEnabled;
+   static ofstream* _utilizationTraceFiles;
 
-      NetQueue _netQueue;
-      Lock _netQueueLock;
-      ConditionVariable _netQueueCond;
-      Semaphore _netQueueSem;
+   // Is shortCut available through shared memory
+   bool _sharedMemoryShortcutEnabled;
 
-      SInt32 forwardPacket(const NetPacket& packet);
+   SInt32 forwardPacket(const NetPacket& packet);
+   
+   // -- Network Injection/Ejection Rate Trace -- //
+   static void computeTraceEnabledNetworks();
 };
 
 #endif // NETWORK_H

@@ -1,5 +1,4 @@
-#ifndef __DRAM_PERF_MODEL_H__
-#define __DRAM_PERF_MODEL_H__
+#pragma once
 
 #include "queue_model.h"
 #include "fixed_types.h"
@@ -44,7 +43,6 @@ class DramPerfModel
 
       void createQueueModels();
       void destroyQueueModels();
-      void resetQueueModels();
       void initializePerformanceCounters();
 
    public:
@@ -56,15 +54,12 @@ class DramPerfModel
 
       ~DramPerfModel();
 
-      UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size, tile_id_t requester);
+      UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size);
       void enable();
       void disable();
-      void reset();
 
       UInt64 getTotalAccesses() { return m_num_accesses; }
       void outputSummary(ostream& out);
 
       static void dummyOutputSummary(ostream& out);
 };
-
-#endif /* __DRAM_PERF_MODEL_H__ */

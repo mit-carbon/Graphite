@@ -1,5 +1,4 @@
-#ifndef __ADDRESS_HOME_LOOKUP_H__
-#define __ADDRESS_HOME_LOOKUP_H__
+#pragma once
 
 #include <vector>
 using namespace std;
@@ -21,18 +20,14 @@ using namespace std;
 
 class AddressHomeLookup
 {
-   public:
-      AddressHomeLookup(UInt32 ahl_param,
-            vector<tile_id_t>& tile_list,
-            UInt32 cache_block_size);
-      ~AddressHomeLookup();
-      tile_id_t getHome(IntPtr address) const;
+public:
+   AddressHomeLookup(UInt32 ahl_param, vector<tile_id_t>& tile_list, UInt32 cache_line_size);
+   ~AddressHomeLookup();
+   tile_id_t getHome(IntPtr address) const;
 
-   private:
-      UInt32 m_ahl_param;
-      vector<tile_id_t> m_tile_list;
-      UInt32 m_total_modules;
-      UInt32 m_cache_block_size;
+private:
+   UInt32 _ahl_param;
+   vector<tile_id_t> _tile_list;
+   UInt32 _total_modules;
+   UInt32 _cache_line_size;
 };
-
-#endif /* __ADDRESS_HOME_LOOKUP_H__ */

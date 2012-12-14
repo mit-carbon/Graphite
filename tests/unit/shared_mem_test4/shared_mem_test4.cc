@@ -10,8 +10,8 @@ using namespace std;
 
 void* thread_func(void*);
 
-int num_threads = 2;
-int num_iterations = 1;
+int num_threads = 64;
+int num_iterations = 100;
 
 carbon_barrier_t barrier;
 
@@ -19,65 +19,59 @@ IntPtr address = 0x1000;
 
 int main (int argc, char *argv[])
 {
-   CarbonStartSim(argc, argv);
    printf("Starting (shared_mem_test4)\n");
+   CarbonStartSim(argc, argv);
+   Simulator::enablePerformanceModelsInCurrentProcess();
 
    CarbonBarrierInit(&barrier, num_threads);
 
    carbon_thread_t tid_list[num_threads];
 
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   Core* core = Sim()->getTileManager()->getCurrentCore();
 
-   int val = 0;
-   tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val));
-   LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
-
-   for (int i = 0; i < num_threads; i++)
+   for (int i = 0; i < num_threads-1; i++)
    {
-      tid_list[i] = CarbonSpawnThread(thread_func, (void*) i);
+      tid_list[i] = CarbonSpawnThread(thread_func, NULL);
    }
+   thread_func(NULL);
 
-   for (int i = 0; i < num_threads; i++)
+   for (int i = 0; i < num_threads-1; i++)
    {
       CarbonJoinThread(tid_list[i]);
    }
   
-   tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
-   LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
-   
-   printf("val = %i\n", val);
-   if (val != (num_iterations))
-   {
-      printf("shared_mem_test4 (FAILURE)\n");
-   }
-   else
-   {
-      printf("shared_mem_test4 (SUCCESS)\n");
-   }
+   printf("shared_mem_test4 (SUCCESS)\n");
   
+   Simulator::disablePerformanceModelsInCurrentProcess();
    CarbonStopSim();
    return 0;
 }
 
-void* thread_func(void* threadid)
+void* thread_func(void*)
 {
-   long tid = (long) threadid;
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   Core* core = Sim()->getTileManager()->getCurrentCore();
 
    for (int i = 0; i < num_iterations; i++)
    {
-      int val;
-      tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
-      LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
-
-      CarbonBarrierWait(&barrier); 
-
-      if (tid == 0)
+      if (core->getTile()->getId() == 0)
       {
-         val ++;
-         tile->getCurrentCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &val, sizeof(val));
-         LOG_PRINT("Tile(%i): Access Time(%llu)", tile->getId(), tile->getShmemPerfModel()->getCycleCount());
+         core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &i, sizeof(i));
+         LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
       }
+      
+      CarbonBarrierWait(&barrier);
+
+      int val;
+      core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
+      LOG_PRINT("Core(%i): Access Time(%llu)", core->getTile()->getId(), core->getShmemPerfModel()->getCycleCount());
+      if (val != i)
+      {
+         fprintf(stderr, "shared_mem_test4 (FAILURE): Core(%i), Expected(%i), Got(%i)\n",
+                 core->getTile()->getId(), i, val);
+         exit(-1);
+      }
+
+      CarbonBarrierWait(&barrier);      
    }
    return NULL;
 }

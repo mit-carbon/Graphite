@@ -3,19 +3,15 @@
 
 #include <string.h>
 
-// some forward declarations for cross includes
+// Some forward declarations for cross includes
 class Tile;
 class CoreModel;
 class Network;
-class MemoryManagerBase;
+class MemoryManager;
 class SyscallMdl;
 class SyncClient;
 class ClockSkewMinimizationClient;
-
-// FIXME: Move this out of here eventually
 class PinMemoryManager;
-
-
 
 #include "mem_component.h"
 #include "fixed_types.h"
@@ -30,96 +26,84 @@ using namespace std;
 
 class Core
 {
-   public:
-      enum State
-      {
-         RUNNING = 0,
-         INITIALIZING,
-         STALLED,
-         SLEEPING,
-         WAKING_UP,
-         IDLE,
-         NUM_STATES
-      };
+public:
+   enum State
+   {
+      RUNNING = 0,
+      INITIALIZING,
+      STALLED,
+      SLEEPING,
+      WAKING_UP,
+      IDLE,
+      NUM_STATES
+   };
 
-      enum lock_signal_t
-      {
-         INVALID_LOCK_SIGNAL = 0,
-         MIN_LOCK_SIGNAL,
-         NONE = MIN_LOCK_SIGNAL,
-         LOCK,
-         UNLOCK,
-         MAX_LOCK_SIGNAL = UNLOCK,
-         NUM_LOCK_SIGNAL_TYPES = MAX_LOCK_SIGNAL - MIN_LOCK_SIGNAL + 1
-      };
+   enum lock_signal_t
+   {
+      NONE = 0,
+      LOCK,
+      UNLOCK
+   };
 
-      enum mem_op_t
-      {
-         INVALID_MEM_OP = 0,
-         MIN_MEM_OP,
-         READ = MIN_MEM_OP,
-         READ_EX,
-         WRITE,
-         MAX_MEM_OP = WRITE,
-         NUM_MEM_OP_TYPES = MAX_MEM_OP - MIN_MEM_OP + 1
-      };
+   enum mem_op_t
+   {
+      READ = 0,
+      READ_EX,
+      WRITE
+   };
 
-      Core(Tile *tile);
-      virtual ~Core();
+   Core(Tile *tile, core_type_t core_type);
+   virtual ~Core();
 
-      static Core *create(Tile* tile, core_type_t core_type = MAIN_CORE_TYPE);
+   int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
+   int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
+   
+   virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size) = 0;
 
-      int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
-      int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
-     
-      virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size) = 0;
+   virtual pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::Type mem_component,
+                                                     lock_signal_t lock_signal,
+                                                     mem_op_t mem_op_type,
+                                                     IntPtr address,
+                                                     Byte* data_buf, UInt32 data_size,
+                                                     bool push_info = false,
+                                                     UInt64 time = 0) = 0;
+   
+   virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
+                                             char* data_buffer, UInt32 data_size, bool push_info = false) = 0;
 
-      virtual pair<UInt32, UInt64> initiateMemoryAccess(
-            MemComponent::component_t mem_component,
-            lock_signal_t lock_signal, 
-            mem_op_t mem_op_type, 
-            IntPtr address, 
-            Byte* data_buf, UInt32 data_size,
-            bool modeled = false,
-            UInt64 time = 0) = 0;
-      
-      virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size, bool modeled = false) = 0;
-      pair<UInt32, UInt64> nativeMemOp(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr d_addr, char* data_buffer, UInt32 data_size);
+   core_id_t getId()                         { return m_core_id; }
+   Tile *getTile()                           { return m_tile; }
+   tile_id_t getTileId()                     { return m_core_id.tile_id; }
+   UInt32 getCoreType()                      { return m_core_id.core_type; }
+   CoreModel *getPerformanceModel()          { return m_core_model; }
+   SyncClient *getSyncClient()               { return m_sync_client; }
+   SyscallMdl *getSyscallMdl()               { return m_syscall_model; }
+   ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
+   PinMemoryManager *getPinMemoryManager()   { return m_pin_memory_manager; }
+   Network* getNetwork()                     { return m_network; }
+   ShmemPerfModel* getShmemPerfModel()       { return m_shmem_perf_model; }
+   MemoryManager *getMemoryManager()         { return m_memory_manager; }
 
-      // network accessor since network is private
-      int getTileId();
-      core_id_t getCoreId() { return m_core_id; }
-      Network *getNetwork();
-      Tile *getTile() { return m_tile; }
-      UInt32 getCoreType() { return m_core_id.core_type; }
-      CoreModel *getPerformanceModel() { return m_core_model; }
-      MemoryManagerBase *getMemoryManager();
-      virtual PinMemoryManager *getPinMemoryManager() = 0;
-      SyncClient *getSyncClient() { return m_sync_client; }
-      ShmemPerfModel* getShmemPerfModel();
+   State getState();
+   void setState(State core_state);
 
-      ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
-      SyscallMdl *getSyscallMdl() { return m_syscall_model; }
+protected:
+   Tile *m_tile;
+   core_id_t m_core_id;
+   CoreModel *m_core_model;
+   SyncClient *m_sync_client;
+   SyscallMdl *m_syscall_model;
+   ClockSkewMinimizationClient *m_clock_skew_minimization_client;
+   Network* m_network;
+   ShmemPerfModel* m_shmem_perf_model;
+   MemoryManager* m_memory_manager;
 
-      State getState();
-      void setState(State core_state);
+   State m_core_state;
+   Lock m_core_state_lock;
 
-   protected:
-
-      Tile *m_tile;
-      CoreModel *m_core_model;
-      SyncClient *m_sync_client;
-      ClockSkewMinimizationClient *m_clock_skew_minimization_client;
-      SyscallMdl *m_syscall_model;
-
-      State m_core_state;
-      Lock m_core_state_lock;
-
-      static Lock m_global_core_lock;
-
-      PacketType getPktTypeFromUserNetType(carbon_network_t net_type);
-
-      core_id_t m_core_id;
+   PinMemoryManager *m_pin_memory_manager;
+   
+   PacketType getPktTypeFromUserNetType(carbon_network_t net_type);
 };
 
 #endif

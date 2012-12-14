@@ -12,6 +12,8 @@ clean:
 	for t in $(patsubst %_bench_test,%,$(TEST_BENCH_LIST)) ; do make -C $(TEST_BENCH_DIR)/$$t clean ; done
 
 %_bench_test_dist:
+	date
 	$(MAKE) -C $(TEST_BENCH_DIR)/$(patsubst %_bench_test_dist,%,$@) PROCS=4; if [ $$? -ne 0 ] ; then echo "TEST: $@ FAILED" ; else echo "TEST: $@ PASSED" ; true ; fi
 %_bench_test:
+	date
 	$(MAKE) -C $(TEST_BENCH_DIR)/$(patsubst %_bench_test,%,$@); if [ $$? -ne 0 ] ; then echo "TEST: $@ FAILED" ; else echo "TEST: $@ PASSED" ; true ; fi

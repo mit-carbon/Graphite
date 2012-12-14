@@ -8,7 +8,7 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/directory_schemes/	\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/performance_models/	\
 			 $(SIM_ROOT)/common/tile/core/      									\
-			 $(SIM_ROOT)/common/tile/core/performance_models/					\
+			 $(SIM_ROOT)/common/tile/core/models/									\
 			 $(SIM_ROOT)/common/tile/core/branch_predictors/	            \
           $(SIM_ROOT)/common/network/         									\
 			 $(SIM_ROOT)/common/network/models	 									\
@@ -18,8 +18,9 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
           $(SIM_ROOT)/common/misc/            									\
           $(SIM_ROOT)/common/config/	      									\
           $(SIM_ROOT)/common/system/          									\
-          $(SIM_ROOT)/common/shared_models/      							\
-          $(SIM_ROOT)/common/shared_models/queue_models/     			\
+          $(SIM_ROOT)/common/system/clock_skew_minimization_schemes		\
+				$(SIM_ROOT)/common/shared_models/      							\
+          $(SIM_ROOT)/common/shared_models/queue_models/     				\
           $(SIM_ROOT)/common/user/													\
           $(SIM_ROOT)/common/mcpat/													\
 			 $(SIM_ROOT)/																	\
@@ -31,45 +32,28 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 OS_SERVICES_ROOT = $(SIM_ROOT)/os-services-25032-gcc.4.0.0-linux-ia32_intel64
 
-#KERNEL = SQUEEZE
-KERNEL = LENNY
+# Debug information in binary
+DBG = # -ggdb
 
-# OS Services Support
-LD_LIBS += -los-services
-CXXFLAGS += -DKERNEL_$(KERNEL)
-ifeq ($(TARGET_ARCH),ia32)
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include -m32 -DTARGET_IA32
-  LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/ia32 -m32
-endif 
-ifeq ($(TARGET_ARCH),x86_64)
-  CXXFLAGS += -I$(OS_SERVICES_ROOT)/include -fPIC -DTARGET_X86_64
-  LD_FLAGS += -los-services -L $(OS_SERVICES_ROOT)/intel64
-endif
+KERNEL = SQUEEZE
+#KERNEL = LENNY
 
-include $(SIM_ROOT)/Makefile.config
+CXXFLAGS += -DKERNEL_$(KERNEL) -fPIC
 
-ifeq ($(BOOST_VERSION),1_38)
-	BOOST_ROOT = /afs/csail/group/carbon/tools/boost_1_38_0
-	BOOST_SUFFIX = gcc41-mt-1_38
-	export LD_LIBRARY_PATH := $(BOOST_ROOT)/stage/lib:$(LD_LIBRARY_PATH)
-	CXXFLAGS += -I$(BOOST_ROOT)
-	LD_FLAGS += -L$(BOOST_ROOT)/stage/lib
-else
-	BOOST_SUFFIX = mt
-endif
+BOOST_SUFFIX = mt
 
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
 
 # Other Libraries in Contrib
-LD_LIBS += -lorion
-LD_FLAGS += -L$(SIM_ROOT)/contrib/orion
+LD_LIBS += -ldsent_contrib
+LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(PIN_HOME)/intel64/runtime:$(LD_LIBRARY_PATH)
 
 # Include paths
 CXXFLAGS+=-c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
-          -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas -O2 -MMD
+          -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas $(DBG) -O2 -MMD
 
 # Build rules for dependency generation
 %.d: %.cpp

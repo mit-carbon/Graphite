@@ -4,9 +4,9 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 include $(SIM_ROOT)/common/Makefile.common
 
 SRC_DIRECTORIES = $(DIRECTORIES) \
-			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_msi/	\
-			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_mosi/ \
-			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l1_pr_l2_dram_directory_msi/
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_msi/				\
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_pr_l2_dram_directory_mosi/ 			\
+			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_sh_l2_msi/
 
 # Grab all c/c++ files from subdirs
 SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
@@ -15,9 +15,9 @@ SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
 # Convert the .c and .cc's in to .o's
 OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 
-# Other Libraries that are used by Graphite (Only Orion right now)
-ORION_LIB = $(SIM_ROOT)/contrib/orion/liborion.a
-CONTRIB_LIBS = $(ORION_LIB)
+# Other Libraries that are used by Graphite
+DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
+CONTRIB_LIBS = $(DSENT_LIB)
 
 TARGET=$(SIM_ROOT)/lib/libcarbon_sim.a
 
@@ -27,11 +27,11 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
 	ar rcs $@ $(OBJECTS)
 
-$(ORION_LIB):
-	make -C $(SIM_ROOT)/contrib/orion
+$(DSENT_LIB):
+	$(MAKE) -C $(SIM_ROOT)/contrib/dsent
 
 ifneq ($(CLEAN),)
 clean:
-	-rm -f $(TARGET) $(OBJECTS)
-	make -C $(SIM_ROOT)/contrib/orion clean
+	$(RM) $(TARGET) $(OBJECTS)
+	make -C $(SIM_ROOT)/contrib/dsent clean
 endif

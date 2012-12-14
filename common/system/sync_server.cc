@@ -3,6 +3,7 @@
 #include "simulator.h"
 #include "thread_manager.h"
 #include "tile_manager.h"
+#include "thread_scheduler.h"
 
 using namespace std;
 
@@ -147,11 +148,18 @@ void SimBarrier::wait(core_id_t core_id, UInt64 time, WakeupList &woken_list)
    {
       woken_list = m_waiting;
 
+      vector<bool> resumed_tiles(woken_list.size(), false);
       for (WakeupList::iterator i = woken_list.begin(); i != woken_list.end(); i++)
       {
+         // Skip duplicates (when more than one thread is on a core, we just resume the first one)
          // Resuming all the threads stalled at the barrier
-         Sim()->getThreadManager()->resumeThread(*i);
+         if (!resumed_tiles[i->tile_id])
+         {
+            resumed_tiles[i->tile_id] = true;
+            Sim()->getThreadManager()->resumeThread(*i);
+         }
       }
+
       m_waiting.clear();
    }
 }
@@ -182,7 +190,7 @@ void SyncServer::mutexLock(core_id_t core_id)
    UInt64 time;
    m_recv_buffer >> time;
 
-   assert((size_t)mux < m_mutexes.size());
+   LOG_ASSERT_ERROR((size_t)mux < m_mutexes.size(), "mux(%i), total muxes(%u)", mux, m_mutexes.size());
 
    SimMutex *psimmux = &m_mutexes[mux];
 

@@ -1,17 +1,22 @@
-#ifndef __DIRECTORY_STATE_H__
-#define __DIRECTORY_STATE_H__
+#pragma once
+
+#include "string"
+using std::string;
 
 class DirectoryState
 {
-   public:
-      enum dstate_t
-      {
-         UNCACHED = 0,
-         SHARED,
-         OWNED,
-         MODIFIED,
-         NUM_DIRECTORY_STATES
-      };
+public:
+   enum Type
+   {
+      UNCACHED = 0,
+      SHARED,
+      OWNED,
+      EXCLUSIVE,
+      MODIFIED,
+      NUM_DIRECTORY_STATES
+   };
+
+   static string getName(Type type);
 };
 
-#endif /* __DIRECTORY_STATE_H__ */
+#define SPELL_DSTATE(x)    (DirectoryState::getName(x).c_str())

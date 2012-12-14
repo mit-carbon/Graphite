@@ -17,19 +17,19 @@ from termcolors import *
 # spawn_job:
 #  start up a command across multiple machines
 #  returns an object that can be passed to poll_job()
-def spawn_job(machine_list, command, working_dir = os.getcwd()):
+def spawn_job(machine_list, command, working_dir, graphite_home):
     
     procs = {}
     # spawn
     for i in range(0, len(machine_list)):
         if (machine_list[i] == "localhost") or (machine_list[i] == r'127.0.0.1'):
-            exec_command = "cd %s; %s" % (working_dir, command)
+            exec_command = "%s" % (command)
             
             print "%s Starting process: %d: %s" % (pmaster(), i, exec_command)
-            procs[i] = spawn.spawn_job(i, exec_command)
+            procs[i] = spawn.spawn_job(i, exec_command, graphite_home)
         else:
             command = command.replace("\"", "\\\"")
-            spawn_slave_command = "%s/tools/spawn_slave.py %d \\\"%s\\\"" % (working_dir, i, command)
+            spawn_slave_command = "%s/tools/spawn_slave.py %s %d \\\"%s\\\"" % (graphite_home, working_dir, i, command)
             exec_command = "ssh -x %s \"%s\"" % (machine_list[i], spawn_slave_command)
    
             print "%s Starting process: %d: %s" % (pmaster(), i, exec_command)
@@ -114,19 +114,6 @@ def load_process_list_from_file(config_filename):
 
     return process_list
 
-# get sim root from environment variable, or use pwd
-def get_sim_root():
-
-    sim_root = os.environ.get('GRAPHITE_HOME')
-
-    if sim_root == None:
-        pwd = os.environ.get('PWD')
-        warning_msg = "GRAPHITE_HOME undefined. Setting GRAPHITE_HOME to %s" % (pwd)
-        print "\n%s %s" % (pmaster(), pWARNING(warning_msg))
-        return pwd
-
-    return sim_root
-
 # pmaster:
 #  print spawn_master.py preamble
 def pmaster():
@@ -138,12 +125,14 @@ if __name__=="__main__":
     num_procs = int(sys.argv[1])
     config_filename = sys.argv[2]
     command = " ".join(sys.argv[3:])
+    working_dir = os.getcwd()
 
     process_list = load_process_list_from_file(config_filename)
 
     procs = spawn_job(process_list[0:num_procs],
                       command,
-                      get_sim_root())
+                      working_dir,
+                      spawn.get_graphite_home())
 
     try:
         sys.exit(wait_job(procs))

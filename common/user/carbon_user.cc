@@ -21,11 +21,6 @@ tile_id_t CarbonGetTileId()
    return Sim()->getTileManager()->getCurrentTileID();
 }
 
-//core_id_t CarbonGetCoreId()
-//{
-   //return Sim()->getTileManager()->getCurrentCoreID();
-//}
-
 int CarbonStartSim(int argc, char **argv)
 {
    string_vec args;
@@ -50,7 +45,7 @@ int CarbonStartSim(int argc, char **argv)
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {
       // Main process
-      Sim()->getTileManager()->initializeThread(Sim()->getTileManager()->getMainCoreId(0));
+      Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(0));
    
       CarbonSpawnThreadSpawner();
 

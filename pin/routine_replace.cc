@@ -87,11 +87,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // Enable/Disable/Reset Models
    else if (name == "CarbonEnableModels") msg_ptr = AFUNPTR(replacementEnableModels);
    else if (name == "CarbonDisableModels") msg_ptr = AFUNPTR(replacementDisableModels);
-   else if (name == "CarbonResetModels") msg_ptr = AFUNPTR(replacementResetModels);
-
-   // Resetting Cache Counters
-   else if (name == "CarbonResetCacheCounters") msg_ptr = AFUNPTR(replacementResetCacheCounters);
-   else if (name == "CarbonDisableCacheCounters") msg_ptr = AFUNPTR(replacementDisableCacheCounters);
 
    // pthread wrappers
    else if (name.find("pthread_create") != std::string::npos) msg_ptr = AFUNPTR(replacementPthreadCreate);
@@ -123,19 +118,15 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
       RTN_Open (rtn);
 
       // Before main()
-      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      if (! Sim()->getCfg()->getBool("general/trigger_models_within_application",false))
       {
          RTN_InsertCall(rtn, IPOINT_BEFORE,
                AFUNPTR(Simulator::enablePerformanceModelsInCurrentProcess),
                IARG_END);
       }
 
-      RTN_InsertCall(rtn, IPOINT_BEFORE,
-            AFUNPTR(CarbonInitModels),
-            IARG_END);
-
       // After main()
-      if (Sim()->getCfg()->getBool("general/enable_models_at_startup",true))
+      if (! Sim()->getCfg()->getBool("general/trigger_models_within_application",false))
       {
          RTN_InsertCall(rtn, IPOINT_AFTER,
                AFUNPTR(Simulator::disablePerformanceModelsInCurrentProcess),
@@ -186,7 +177,7 @@ void replacementMain (CONTEXT *ctxt)
          core->getNetwork()->netSend (Sim()->getConfig()->getThreadSpawnerCoreId(i), SYSTEM_INITIALIZATION_NOTIFY, NULL, 0);
 
          // main thread clock is not affected by start-up time of other processes
-         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getCoreId(), SYSTEM_INITIALIZATION_ACK);
+         core->getNetwork()->netRecv (Sim()->getConfig()->getThreadSpawnerCoreId(i), core->getId(), SYSTEM_INITIALIZATION_ACK);
       }
       
       // Tell the thread spawner for each process that we're done initializing...even though we haven't?
@@ -206,7 +197,7 @@ void replacementMain (CONTEXT *ctxt)
       // This whole process should probably happen through the MCP
       Core *core = Sim()->getTileManager()->getCurrentCore();
       core->getNetwork()->netSend (Sim()->getConfig()->getMainThreadCoreId(), SYSTEM_INITIALIZATION_ACK, NULL, 0);
-      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getCoreId(), SYSTEM_INITIALIZATION_FINI);
+      core->getNetwork()->netRecv (Sim()->getConfig()->getMainThreadCoreId(), core->getId(), SYSTEM_INITIALIZATION_FINI);
 
       int res;
       ADDRINT reg_eip = PIN_GetContextReg (ctxt, REG_INST_PTR);
@@ -817,12 +808,10 @@ void replacementPthreadCreate (CONTEXT *ctxt)
             IARG_PTR, &func_arg,
             CARBON_IARG_END);
 
-      //TODO: add support for different attributes and throw warnings for unsupported attrs
-      
-      if (attributes != NULL)
-      {
-         fprintf(stdout, "Warning: pthread_create() is using unsupported attributes.\n");
-      }
+      // Throw warning message if ((attr)) field is non-NULL
+      // TODO: Add Graphite support for using a non-NULL attribute field
+      LOG_ASSERT_WARNING(attributes == NULL, "pthread_create() is using a non-NULL ((attr)) parameter. "
+                                              "Unsupported currently.");
       
       carbon_thread_t new_thread_id = CarbonSpawnThread(func, func_arg);
       
@@ -847,9 +836,10 @@ void replacementPthreadJoin (CONTEXT *ctxt)
          IARG_PTR, &return_value,
          CARBON_IARG_END);
 
-   //TODO: the return_value needs to be set, but CarbonJoinThread() provides no return value.
-   LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value \
-         to be passed through value_ptr input, which is unsupported");
+   // Throw warning message if ((thread_return)) field is non-NULL
+   // TODO: The return_value needs to be set, but CarbonJoinThread() provides no return value.
+   LOG_ASSERT_WARNING (return_value == NULL, "pthread_join() is expecting a return value through the "
+                                             "((thread_return)) parameter. Unsupported currently.");
    
    CarbonJoinThread ((carbon_thread_t) thread_id);
 
@@ -878,30 +868,6 @@ void replacementDisableModels(CONTEXT* ctxt)
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementResetModels(CONTEXT* ctxt)
-{
-   CarbonResetModels();
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementResetCacheCounters (CONTEXT *ctxt)
-{
-   CarbonResetCacheCounters();
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
-}
-
-void replacementDisableCacheCounters (CONTEXT *ctxt)
-{
-   CarbonDisableCacheCounters();
-   
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   retFromReplacedRtn (ctxt, ret_val);
 }
 
 void replacementCarbonGetTime(CONTEXT *ctxt)
@@ -949,54 +915,6 @@ void replacementCarbonSetCoreFrequency(CONTEXT *ctxt)
 
 void initialize_replacement_args (CONTEXT *ctxt, ...)
 {
-#ifdef TARGET_IA32
-   va_list vl;
-   va_start (vl, ctxt);
-   int type;
-   ADDRINT addr;
-   ADDRINT ptr;
-   ADDRINT buffer;
-   unsigned int count = 0;
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-   assert (core);
-
-   do
-   {
-      type = va_arg (vl, int);
-      addr = PIN_GetContextReg (ctxt, REG_STACK_PTR) + ((count + 1) * sizeof (ADDRINT));
-     
-      core->accessMemory (Core::NONE, Core::READ, addr, (char*) &buffer, sizeof (ADDRINT));
-      switch (type)
-      {
-         case IARG_ADDRINT:
-            ptr = va_arg (vl, ADDRINT);
-            * ((ADDRINT*) ptr) = buffer;
-            count++;
-            break;
-
-         case IARG_PTR:
-            ptr = va_arg (vl, ADDRINT);
-            * ((ADDRINT*) ptr) = buffer;
-            count++;
-            break;
-
-         case IARG_UINT32:
-            ptr = va_arg (vl, ADDRINT);
-            * ((UInt32*) ptr) = (UInt32) buffer;
-            count++;
-            break;
-
-         case CARBON_IARG_END:
-            break;
-
-         default:
-            assert (false);
-            break;
-      }
-   } while (type != CARBON_IARG_END);
-#endif
-
-#ifdef TARGET_X86_64
    va_list vl;
    va_start (vl, ctxt);
    int type;
@@ -1041,7 +959,6 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
             break;
       }
    } while (type != CARBON_IARG_END);
-#endif
 }
 
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val)

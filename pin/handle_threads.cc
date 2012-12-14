@@ -7,7 +7,8 @@
 
 static bool enabled()
 {
-   std::string scheme = Sim()->getCfg()->getString("thread_scheduling/scheme", "none");
+   // WARNING: Do not change this parameter. Hard-coded until multi-threading bug is fixed
+   std::string scheme = "none"; // Sim()->getCfg()->getString("thread_scheduling/scheme", "none");
    return (scheme != "none");
 }
 

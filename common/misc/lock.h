@@ -1,5 +1,4 @@
-#ifndef LOCK_H
-#define LOCK_H
+#pragma once
 
 #include <pthread.h>
 
@@ -33,5 +32,3 @@ public:
       _lock.release();
    }
 };
-
-#endif // LOCK_H

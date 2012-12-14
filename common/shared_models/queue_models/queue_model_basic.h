@@ -1,5 +1,4 @@
-#ifndef __QUEUE_MODEL_BASIC_H__
-#define __QUEUE_MODEL_BASIC_H__
+#pragma once
 
 #include "queue_model.h"
 #include "moving_average.h"
@@ -14,8 +13,6 @@ public:
    UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester = INVALID_TILE_ID);
 
 private:
-   UInt64 m_queue_time;
-   MovingAverage<UInt64>* m_moving_average;
+   UInt64 _queue_time;
+   MovingAverage<UInt64>* _moving_average;
 };
-
-#endif /* __QUEUE_MODEL_BASIC_H__ */

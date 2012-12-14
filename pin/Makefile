@@ -12,6 +12,9 @@ endif
 # Use these files for auto targets
 .SUFFIXES:  .o .c .h .cc
 
+# Debug information in binary
+DBG = # -ggdb
+
 # Add other CXX Flags
 CXXFLAGS += -g -c \
             -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD
@@ -19,12 +22,7 @@ CXXFLAGS += -g -c \
 # Use the pin flags for building
 include $(SIM_ROOT)/Makefile.config
 
-ifeq ($(TARGET_ARCH),ia32)
-	TARGET = ia32
-endif
-ifeq ($(TARGET_ARCH),x86_64)
-	TARGET = ia32e
-endif
+TARGET = ia32e
 
 PIN_KIT = $(PIN_HOME)
 include $(PIN_HOME)/source/tools/makefile.gnu.config

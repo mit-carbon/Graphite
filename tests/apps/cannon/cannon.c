@@ -18,7 +18,7 @@
 
 #include "carbon_user.h"
 
-#define DEBUG 1
+// #define DEBUG 1
 // #define SEQUENTIAL 1
 
 #define ITERATIONS 1
@@ -360,12 +360,9 @@ void* cannon(void *threadid)
       == 0);
    worker_send_ack(tid, num_threads);
 
-   CAPI_return_t recv_ret = CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char*)&blockSize, sizeof(blockSize));
-   if (recv_ret != 0)
-   {
-      fprintf(stderr, "recv_ret(%i), num_threads(%u)\n", recv_ret, num_threads);
-      exit(EXIT_FAILURE);
-   }
+   assert(
+      CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char*)&blockSize, sizeof(blockSize))
+      == 0);
    worker_send_ack(tid, num_threads);
 
    assert(
@@ -384,6 +381,9 @@ void* cannon(void *threadid)
       CAPI_message_receive_w((CAPI_endpoint_t)num_threads, (CAPI_endpoint_t)tid, (char*)&debug_lock, sizeof(debug_lock))
       == 0);
    worker_send_ack(tid, num_threads);
+
+   debug_printf(&debug_lock, "Thread(%i): numThreads(%u), blockSize(%u), sqrtNumProcs(%u), initializationBarrier(%i), debugLock(%i)\n",
+                             tid, num_threads, blockSize, sqrtNumProcs, initialization_barrier, debug_lock);
 
    debug_printf(&debug_lock, "Thread %i starting to retrieve initial data\n", tid);
 

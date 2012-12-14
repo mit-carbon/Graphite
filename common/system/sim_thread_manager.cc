@@ -5,6 +5,7 @@
 #include "config.h"
 #include "simulator.h"
 #include "tile_manager.h"
+#include "tile.h"
 #include "mcp.h"
 
 SimThreadManager::SimThreadManager()
@@ -32,9 +33,6 @@ void SimThreadManager::spawnSimThreads()
       m_sim_threads[i].spawn();
    }
 
-   while (m_active_threads < num_sim_threads)
-      sched_yield();
-
    LOG_PRINT("Threads started: %d.", m_active_threads);
 }
 
@@ -54,18 +52,11 @@ void SimThreadManager::quitSimThreads()
    for (UInt32 i = 0; i < num_local_tiles; i++)
    {
       tile_id_t tile_id = tile_list[i];
-      core_id_t receiver = TileManager::getMainCoreId(tile_id);
+      core_id_t receiver = Tile::getMainCoreId(tile_id);
       pkt.receiver.tile_id = receiver.tile_id;
       pkt.receiver.core_type = receiver.core_type;
       global_node->send(tile_id, &pkt, pkt.bufferSize());
    }
-
-   LOG_PRINT("Waiting for local sim threads to exit.");
-
-   while (m_active_threads > 0)
-      sched_yield();
-
-   Transport::getSingleton()->barrier();
 
    LOG_PRINT("All threads have exited.");
 }

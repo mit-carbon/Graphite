@@ -20,6 +20,7 @@ OrionRouter::OrionRouter(
 }
 
 OrionRouter::OrionRouter(
+  float frequency_,
   uint32_t num_in_port_,
   uint32_t num_out_port_,
   uint32_t num_vclass_,
@@ -29,6 +30,7 @@ OrionRouter::OrionRouter(
   OrionConfig* orion_cfg_ptr_
 )
 {
+  assert(frequency_ > 0);
   assert((num_in_port_ == num_in_port_) && (num_in_port_ != 0));
   assert((num_out_port_ == num_out_port_) && (num_out_port_ != 0));
   assert((num_vclass_ == num_vclass_) && (num_vclass_ != 0));
@@ -36,6 +38,7 @@ OrionRouter::OrionRouter(
   assert(in_buf_num_set_ == in_buf_num_set_);
   assert((flit_width_ == flit_width_) && (flit_width_ != 0));
 
+  orion_cfg_ptr_->set_frequency(frequency_);
   orion_cfg_ptr_->set_num_in_port(num_in_port_);
   orion_cfg_ptr_->set_num_out_port(num_out_port_);
   orion_cfg_ptr_->set_num_vclass(num_vclass_);

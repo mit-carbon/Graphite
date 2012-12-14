@@ -44,7 +44,8 @@ Config::Config()
       m_knob_enable_performance_modeling = Sim()->getCfg()->getBool("general/enable_performance_modeling");
       m_knob_enable_power_modeling = Sim()->getCfg()->getBool("general/enable_power_modeling");
       m_knob_enable_area_modeling = Sim()->getCfg()->getBool("general/enable_area_modeling");
-      m_knob_max_threads_per_core = Sim()->getCfg()->getInt("general/max_threads_per_core");
+      // WARNING: Do not change this parameter. Hard-coded until multi-threading bug is fixed
+      m_knob_max_threads_per_core = 1; // Sim()->getCfg()->getInt("general/max_threads_per_core");
 
       // Simulation Mode
       m_simulation_mode = parseSimulationMode(Sim()->getCfg()->getString("general/mode"));
@@ -83,13 +84,16 @@ Config::Config()
    // Parse Network Models - Need to be done here to initialize the network models 
    parseNetworkParameters();
 
-   // Adjust the number of tiles corresponding to the network model we use
-   m_total_tiles = getNearestAcceptableTileCount(m_total_tiles);
+   // Check if any of the on-chip networks have restrictions on the tile_count
+   // If those restrictions are not met, quit
+   if (!isTileCountPermissible(m_application_tiles))
+      exit(-1);
 
    // Parse Core Models
    parseCoreParameters();
 
-   m_tile_id_length = computeTileIDLength(m_total_tiles);
+   // Compute Tile ID length in bits
+   m_tile_id_length = computeTileIDLength(m_application_tiles);
 
    GenerateTileMap();
 }
@@ -108,6 +112,11 @@ UInt32 Config::getTotalTiles()
 UInt32 Config::getApplicationTiles()
 {
    return m_application_tiles;
+}
+
+bool Config::isApplicationTile(tile_id_t tile_id)
+{
+   return ((tile_id >= 0) && (tile_id < (tile_id_t) getApplicationTiles()));
 }
 
 tile_id_t Config::getThreadSpawnerTileNum(UInt32 proc_num)
@@ -136,13 +145,9 @@ core_id_t Config::getCurrentThreadSpawnerCoreId()
    return (core_id_t) {getCurrentThreadSpawnerTileNum(), MAIN_CORE_TYPE};
 }
 
-UInt32 Config::computeTileIDLength(UInt32 tile_count)
+UInt32 Config::computeTileIDLength(UInt32 application_tile_count)
 {
-   UInt32 num_bits = ceilLog2(tile_count);
-   if ((num_bits % 8) == 0)
-      return (num_bits / 8);
-   else
-      return (num_bits / 8) + 1;
+   return ceilLog2(application_tile_count);
 }
 
 void Config::GenerateTileMap()
@@ -198,6 +203,7 @@ Config::computeProcessToTileMapping()
          switch(network_model)
          {
             case NETWORK_EMESH_HOP_BY_HOP:
+            case NETWORK_ATAC:
                return process_to_tile_mapping_struct.second;
                break;
 
@@ -362,18 +368,18 @@ void Config::parseCoreParameters()
 
    const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
    const float DEFAULT_FREQUENCY = 1;
-   const string DEFAULT_CORE_TYPE = "magic";
+   const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
    string core_parameter_tuple_str;
    vector<string> core_parameter_tuple_vec;
    try
    {
-      core_parameter_tuple_str = Sim()->getCfg()->getString("perf_model/core/model_list");
+      core_parameter_tuple_str = Sim()->getCfg()->getString("core/model_list");
    }
    catch(...)
    {
-      fprintf(stderr, "Could not read perf_model/core/model_list from the cfg file\n");
+      fprintf(stderr, "ERROR: Could not read core/model_list from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 
@@ -381,7 +387,7 @@ void Config::parseCoreParameters()
 
    parseList(core_parameter_tuple_str, core_parameter_tuple_vec, "<>");
    
-   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin(); \
+   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin();
          tuple_it != core_parameter_tuple_vec.end(); tuple_it++)
    {
       // Initializing using default values
@@ -396,7 +402,7 @@ void Config::parseCoreParameters()
       parseList(*tuple_it, core_parameter_tuple, ",");
      
       SInt32 param_num = 0; 
-      for (vector<string>::iterator param_it = core_parameter_tuple.begin(); \
+      for (vector<string>::iterator param_it = core_parameter_tuple.begin();
             param_it != core_parameter_tuple.end(); param_it ++)
       {
          if (*param_it != "default")
@@ -404,11 +410,11 @@ void Config::parseCoreParameters()
             switch (param_num)
             {
                case 0:
-                  convertFromString<UInt32>(num_cores, *param_it);
+                  num_cores = convertFromString<UInt32>(*param_it);
                   break;
 
                case 1:
-                  convertFromString<float>(frequency, *param_it);
+                  frequency = convertFromString<float>(*param_it);
                   break;
 
                case 2:
@@ -439,7 +445,7 @@ void Config::parseCoreParameters()
       // Append these values to an internal list
       for (UInt32 i = num_initialized_cores; i < num_initialized_cores + num_cores; i++)
       {
-         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency, \
+         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency,
                   l1_icache_type, l1_dcache_type, l2_cache_type));
       }
       num_initialized_cores += num_cores;
@@ -462,7 +468,7 @@ void Config::parseCoreParameters()
    // MCP, thread spawner and misc cores
    for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
-      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY, \
+      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY,
                DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
    }
 }
@@ -484,7 +490,7 @@ void Config::parseNetworkParameters()
    }
    catch (...)
    {
-      fprintf(stderr, "Unable to read network parameters from the cfg file\n");
+      fprintf(stderr, "ERROR: Unable to read network parameters from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 
@@ -573,32 +579,17 @@ string Config::getNetworkType(SInt32 network_id)
    return m_network_parameters_vec[network_id].getType();
 }
 
-UInt32 Config::getNearestAcceptableTileCount(UInt32 tile_count)
+bool Config::isTileCountPermissible(UInt32 tile_count)
 {
-   UInt32 nearest_acceptable_tile_count = 0;
-   
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
-      pair<bool,SInt32> tile_count_constraints = NetworkModel::computeTileCountConstraints(network_model, (SInt32) tile_count);
-      if (tile_count_constraints.first)
+      bool permissible = NetworkModel::isTileCountPermissible(network_model, (SInt32) tile_count);
+      if (!permissible)
       {
-         // Network Model has tile count constraints
-         if ((nearest_acceptable_tile_count != 0) && 
-             (tile_count_constraints.second != (SInt32) nearest_acceptable_tile_count))
-         {
-            fprintf(stderr, "Problem using the network models specified in the configuration file\n");
-            exit(EXIT_FAILURE);
-         }
-         else
-         {
-            nearest_acceptable_tile_count = tile_count_constraints.second;
-         }
+         fprintf(stderr, "ERROR: Problem using the network models specified in the cfg file\n");
+         return false;
       }
    }
-
-   if (nearest_acceptable_tile_count == 0)
-      nearest_acceptable_tile_count = tile_count;
-
-   return nearest_acceptable_tile_count;
+   return true;
 }

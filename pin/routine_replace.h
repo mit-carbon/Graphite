@@ -57,7 +57,6 @@ void replacementPthreadExitNull(CONTEXT *ctxt);
 // Enable/Disable Models
 void replacementEnableModels(CONTEXT* ctxt);
 void replacementDisableModels(CONTEXT* ctxt);
-void replacementResetModels(CONTEXT* ctxt);
 
 // Cache Counters
 void replacementResetCacheCounters(CONTEXT *ctxt);

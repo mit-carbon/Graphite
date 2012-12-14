@@ -8,6 +8,7 @@ import time
 import shutil
 import subprocess
 
+import spawn
 import spawn_master
 from termcolors import *
 
@@ -57,7 +58,7 @@ class SpawnJob(Job):
         Job.__init__(self, num_machines, command)
 
     def spawn(self):
-        self.plist = spawn_master.spawn_job(self.machines, self.command)
+        self.plist = spawn_master.spawn_job(self.machines, self.command, os.getcwd(), os.getcwd())
 
     def poll(self):
         return spawn_master.poll_job(self.plist)
@@ -72,7 +73,7 @@ class SpawnJob(Job):
 #  a job built around the make system
 class MakeJob(SpawnJob):
 
-    def __init__(self, num_machines, command, results_dir="./output_files", sub_dir="", sim_flags="", mode="pin"):
+    def __init__(self, num_machines, command, results_dir, sub_dir, sim_flags, mode="pin"):
         SpawnJob.__init__(self, num_machines, command)
         self.results_dir = results_dir
         self.sub_dir = "%s/%s" % (results_dir, sub_dir)
@@ -80,19 +81,19 @@ class MakeJob(SpawnJob):
         self.mode = mode
 
     def make_pin_command(self):
-        self.sim_flags += " --general/output_dir=\"%s\" --general/num_processes=%d" % (self.sub_dir, len(self.machines))
+        self.sim_flags += " --general/output_dir=%s --general/num_processes=%d" % (self.sub_dir, len(self.machines))
         for i in range(0,len(self.machines)):
-            self.sim_flags += " --process_map/process%i=\"%s\"" % (i, self.machines[i])
-
-        PIN_PATH = "/afs/csail/group/carbon/tools/pin/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/intel64/bin/pinbin"
-        PIN_LIB = "%s/lib/pin_sim" % spawn_master.get_sim_root()
+            self.sim_flags += " --process_map/process%i=%s" % (i, self.machines[i])
 
         if (self.mode == "pin"):
-            self.command = "%s -mt -t %s %s -- %s" % (PIN_PATH, PIN_LIB, self.sim_flags, self.command)
+            graphite_home = spawn.get_graphite_home()
+            PIN_PATH = "%s/intel64/bin/pinbin" % spawn.get_pin_home(graphite_home)
+            PIN_LIB = "%s/lib/pin_sim" % (graphite_home)
+            self.command = "%s -tool_exit_timeout 1 -mt -t %s %s -- %s" % (PIN_PATH, PIN_LIB, self.sim_flags, self.command)
         elif (self.mode == "standalone"):
             self.command = "%s %s" % (self.command, self.sim_flags)
 
-        self.command += " >& %s/output" % self.sub_dir
+        self.command += " > %s/output 2>&1" % self.sub_dir
 
     def spawn(self):
 

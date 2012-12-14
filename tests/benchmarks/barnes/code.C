@@ -70,7 +70,6 @@ MAIN_ENV
 #define global  /* nada */
 
 #include "stdinc.h"
-#include "carbon_user.h"
 
 string defv[] = {                 /* DEFAULT PARAMETER VALUES              */
     /* file names for input/output                                         */
@@ -269,9 +268,14 @@ int main (int argc, string argv[])
 
    printf("COMPUTESTART  = %12lu\n",Global->computestart);
 
-   CREATE(SlaveStart, NPROC);
+   // Enable Models at the start of parallel execution
+   CarbonEnableModels();
 
+   CREATE(SlaveStart, NPROC);
    WAIT_FOR_END(NPROC);
+
+   // Disable Models at the end of parallel execution
+   CarbonDisableModels();
 
    CLOCK(Global->computeend);
 
@@ -448,9 +452,6 @@ void SlaveStart()
 //      printtree(Global->G_root);
 //      printf("Going to next step!!!\n");
    }
-
-   // Disable Models when threads are joining
-   CarbonDisableModels();
 }
 
 
@@ -626,8 +627,6 @@ void stepsystem(long ProcessId)
     if (Local[ProcessId].nstep == 2) {
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-        // Enable Models
-        CarbonEnableModels();
     }
 
     if ((ProcessId == 0) && (Local[ProcessId].nstep >= 2)) {

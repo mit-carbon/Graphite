@@ -24,8 +24,8 @@ Wire::Wire(
 
   if (m_tech_param_ptr->get_tech_node() > 90)
   {
-    cerr << "ERROR: Wire model only support tech node <= 90" << endl;
-    exit(1);
+    cerr << "ERROR: Orion: Wire model only support technology node <= 90" << endl;
+    exit(EXIT_FAILURE);
   }
 
   init();

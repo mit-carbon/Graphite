@@ -34,7 +34,6 @@
 MAIN_ENV
 
 #include <math.h>
-#include "carbon_user.h"
 
 #include "matrix.h"
 
@@ -253,8 +252,14 @@ int main(int argc, char *argv[])
   ComputeRemainingFO();
   ComputeReceivedFO();
 
+  // Enable Models at the start of parallel execution
+  CarbonEnableModels();
+
   CREATE(Go, P);
   WAIT_FOR_END(P);
+
+  // Disable Models at the end of parallel execution
+  CarbonDisableModels();
 
   printf("%.0f operations for factorization\n", work_tree[M.n]);
 
@@ -342,9 +347,6 @@ void Go()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-  // Reset Models
-  CarbonEnableModels();
-
   if ((MyNum == 0) || (do_stats)) {
     CLOCK(lc->rs);
   }

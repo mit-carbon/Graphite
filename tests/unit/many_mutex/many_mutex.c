@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #include "capi.h"
-#include "sync.h"
+#include "sync_api.h"
 
 carbon_mutex_t my_mux1;
 carbon_mutex_t my_mux2;
@@ -28,8 +28,6 @@ void* test_many_mutex(void * threadid);
 
 int main(int argc, char* argv[])  // main begins
 {
-   CarbonStartSim();
-
    // Read in the command line arguments
    const unsigned int numThreads = 5;
 
@@ -56,57 +54,36 @@ int main(int argc, char* argv[])  // main begins
    for (unsigned int i = 0; i < numThreads; i++)
       pthread_join(threads[i], NULL);
 
-   printf("Quitting syscall server!\n");
-
 #ifdef DEBUG
    printf("This is the function main ending\n");
 #endif
-   pthread_exit(NULL);
-
+   
+   return 0;
 } // main ends
-
-int wait_some()
-{
-   int j = 0;
-   for (unsigned int i = 0; i < 200000; i++)
-   {
-      j += i;
-   }
-   return j;
-}
 
 void* test_many_mutex(void *threadid)
 {
    // Declare local variables
-   int tid, i;
-   CAPI_return_t rtnVal;
-
-   rtnVal = CAPI_Initialize((int)threadid);
-
-   // Initialize local variables
-   CAPI_rank(&tid);
-
-   if (tid != (int)threadid)
-      fprintf(stderr, "TestManyMutex(%d != %d): tid didn't match threadid.\n", tid, (int)threadid);
+   int tid = (int) threadid;
 
    // Thread starts here
 
    // FIXME: This should be in the main thread or something.
-   if ((int)threadid == 0)
+   if (tid == 0)
    {
-      fprintf(stderr, "TestManyMutex(%d): Initting barrier.\n", (int)threadid);
+      fprintf(stderr, "TestManyMutex(%d): Initting barrier.\n", (int)tid);
       // FIXME: shouldn't be hardcoding the barrier count here
       CarbonMutexInit(&my_mux1);
       CarbonMutexInit(&my_mux2);
       CarbonMutexInit(&my_mux3);
-      fprintf(stderr, "TestManyMutex(%d): Barrier Initialized.\n", (int)threadid);
+      fprintf(stderr, "TestManyMutex(%d): Barrier Initialized.\n", (int)tid);
    }
    else
    {
       sleep(1);
    }
 
-   for (i = 0; i < 1000; i++)
+   for (int i = 0; i < 1000; i++)
    {
       CarbonMutexLock(&my_mux1);
       CarbonMutexLock(&my_mux2);
@@ -118,6 +95,5 @@ void* test_many_mutex(void *threadid)
       CarbonMutexUnlock(&my_mux1);
    }
 
-   CarbonStopSim();
+   return NULL;
 }
-

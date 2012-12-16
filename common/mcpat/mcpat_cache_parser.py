@@ -51,9 +51,9 @@ def createMcPATInput(options, mcpat_input_filename):
    setAttribute(core, "clock_rate", clockrate)
    system_comp = getArchComponent(dom,'system')
    setAttribute(system_comp, "core_tech_node", options.technology_node)
-   setAttribute(system_comp, "total_cycles", "0")
+   setAttribute(system_comp, "total_cycles", "1000")
    setAttribute(system_comp, "idle_cycles", "0")
-   setAttribute(system_comp, "busy_cycles", "0")
+   setAttribute(system_comp, "busy_cycles", "1000")
    
    # Some Default Args
    buffer_size = 8
@@ -120,6 +120,8 @@ def parseMcPATOutput(component, mcpat_output_filename):
    area = None
    subthreshold_leakage_power = None
    gate_leakage_power = None
+   peak_dynamic_power = None
+   runtime_dynamic_power = None
    tag_array_read_energy = None
    tag_array_write_energy = None
    data_array_read_energy = None
@@ -134,6 +136,10 @@ def parseMcPATOutput(component, mcpat_output_filename):
             subthreshold_leakage_power = findMatch("Subthreshold Leakage", line)
          if (gate_leakage_power == None):
             gate_leakage_power = findMatch("Gate Leakage", line)
+         if (peak_dynamic_power == None):
+            peak_dynamic_power = findMatch("Peak Dynamic", line)
+         if (runtime_dynamic_power == None):
+            runtime_dynamic_power = findMatch("Runtime Dynamic", line)
          if (tag_array_read_energy == None):
             tag_array_read_energy = findMatch("Tag Array Read Energy", line)
          if (tag_array_write_energy == None):
@@ -149,7 +155,7 @@ def parseMcPATOutput(component, mcpat_output_filename):
       if re.match(component_str, line):
          reached = True
 
-   return (area, subthreshold_leakage_power, gate_leakage_power, tag_array_read_energy, tag_array_write_energy, data_array_read_energy, data_array_write_energy)
+   return (area, subthreshold_leakage_power, gate_leakage_power, peak_dynamic_power, runtime_dynamic_power, tag_array_read_energy, tag_array_write_energy, data_array_read_energy, data_array_write_energy)
          
 # Main Program Starts Here
 
@@ -196,7 +202,7 @@ elif (options.type == "directory"):
 else:
    print "ERROR: McPAT Cache Parser: Unrecognized Cache Type (%s)" % (options.type)
    sys.exit(-5)
-(area, subthreshold_leakage_power, gate_leakage_power, tag_array_read_energy, tag_array_write_energy, data_array_read_energy, data_array_write_energy) = parseMcPATOutput(component, mcpat_output_filename)
+(area, subthreshold_leakage_power, gate_leakage_power, peak_dynamic_power, runtime_dynamic_power, tag_array_read_energy, tag_array_write_energy, data_array_read_energy, data_array_write_energy) = parseMcPATOutput(component, mcpat_output_filename)
 
 # Write the Output
 output_filename = "%s.%s" % (options.output_file, options.suffix)

@@ -155,12 +155,6 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
 
    mcpat_output.close();
 
-   // cerr << cache_area->_area << ", " 
-   //      << cache_power->_subthreshold_leakage_power << ", " << cache_power->_gate_leakage_power << ", "
-   //      << cache_power->_tag_array_read_energy << ", " << cache_power->_tag_array_write_energy << ", "
-   //      << cache_power->_data_array_read_energy << ", " << cache_power->_data_array_write_energy << ", "
-   //      << endl;
-  
    // Remove the output file
    ostringstream rm_cmd;
    rm_cmd << "rm -f " << mcpat_output_filename.str();

@@ -5,14 +5,14 @@
 
 class CacheAreaModel
 {
-   public:
-      CacheAreaModel(std::string type, UInt32 size, UInt32 blocksize,
-            UInt32 associativity, UInt32 delay, volatile float frequency);
-      ~CacheAreaModel() {}
+public:
+   CacheAreaModel(std::string type, UInt32 size, UInt32 blocksize,
+         UInt32 associativity, UInt32 delay, volatile float frequency);
+   ~CacheAreaModel() {}
 
-      void outputSummary(std::ostream& out);
-      static void dummyOutputSummary(std::ostream& out);
+   void outputSummary(std::ostream& out);
+   static void dummyOutputSummary(std::ostream& out);
 
-   private:
-      volatile double _area;
+private:
+   volatile double _area;
 };

@@ -104,11 +104,8 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
    CacheArea* cache_area = new CacheArea();
    CachePower* cache_power = new CachePower();
  
-   UInt32 num_read_accesses = 100000;
-   UInt64 total_cycles = 100000;
-
    SInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node", 0);
-   assert(technology_node != 0);
+   LOG_ASSERT_ERROR(technology_node != 0, "Please specify non-zero technology node");
 
    // Get Global and Local (process-specific) McPAT directories
    string mcpat_dir = Sim()->getGraphiteHome() + "/common/mcpat";
@@ -136,9 +133,7 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
              << " --frequency " << cache_params->_frequency
              << " --input-file " << mcpat_dir << "/default_input.xml" 
              << " --output-file " << mcpat_dir << "/mcpat.out"
-             << " --suffix " << suffix.str()
-             << " --read-accesses " << num_read_accesses
-             << " --total-cycles " << total_cycles;
+             << " --suffix " << suffix.str();
    ret = system((mcpat_cmd.str()).c_str());
    if (ret != 0)
       LOG_PRINT_ERROR("McPAT failed");
@@ -150,21 +145,21 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
 
    mcpat_output >> cache_area->_area;
    
-   __attribute(__unused__) double peak_dynamic_power;
-   mcpat_output >> peak_dynamic_power;
-   
    mcpat_output >> cache_power->_subthreshold_leakage_power;
    mcpat_output >> cache_power->_gate_leakage_power;
    
-   double runtime_dynamic_power;
-   mcpat_output >> runtime_dynamic_power;
-   cache_power->_dynamic_energy = (runtime_dynamic_power / ((double)num_read_accesses)) *
-                                  (((double)total_cycles) / (1e9 * cache_params->_frequency));
+   mcpat_output >> cache_power->_tag_array_read_energy;
+   mcpat_output >> cache_power->_tag_array_write_energy;
+   mcpat_output >> cache_power->_data_array_read_energy;
+   mcpat_output >> cache_power->_data_array_write_energy;
 
    mcpat_output.close();
 
-   // cerr << cache_area->_area << ", " << cache_power->_subthreshold_leakage_power << ", "
-   //      << cache_power->_gate_leakage_power << ", " << cache_power->_dynamic_energy << endl;
+   // cerr << cache_area->_area << ", " 
+   //      << cache_power->_subthreshold_leakage_power << ", " << cache_power->_gate_leakage_power << ", "
+   //      << cache_power->_tag_array_read_energy << ", " << cache_power->_tag_array_write_energy << ", "
+   //      << cache_power->_data_array_read_energy << ", " << cache_power->_data_array_write_energy << ", "
+   //      << endl;
   
    // Remove the output file
    ostringstream rm_cmd;

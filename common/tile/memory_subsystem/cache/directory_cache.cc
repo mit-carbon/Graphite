@@ -94,7 +94,7 @@ DirectoryCache::updateCounters()
    
    // Update dynamic energy counters
    if (Config::getSingleton()->getEnablePowerModeling())
-      _power_model->updateDynamicEnergy();
+      _power_model->updateDynamicEnergy(Cache::DATA_ARRAY_READ);
       
 }
 

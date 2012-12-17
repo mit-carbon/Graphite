@@ -48,6 +48,8 @@ def createMcPATInput(options, mcpat_input_filename):
   
    # Common Attributes
    system_comp = getArchComponent(dom,'system')
+   # Temperature used by McPAT (in K). This is the same default temperature used by DSENT
+   setAttribute(system_comp, "temperature", "340")
    setAttribute(system_comp, "core_tech_node", options.technology_node)
    setAttribute(system_comp, "target_core_clockrate", clockrate)
    setAttribute(system_comp, "total_cycles", "1000")

@@ -56,7 +56,11 @@ def createMcPATInput(options, mcpat_input_filename):
    setAttribute(system_comp, "busy_cycles", "1000")
    
    # Some Default Args
+   # Buffer size for miss buffer, fill buffer, prefetch buffer, write-back buffer
    buffer_size = 8
+   # 0 - High performance, 1 - Low standby power, 2 - Low operating power
+   device_type = "0"
+   
    if (options.type == "directory"):
       directory = getArchComponent(dom,'L1Directory0')
 
@@ -70,7 +74,8 @@ def createMcPATInput(options, mcpat_input_filename):
       setAttribute(directory, "buffer_sizes", buffer_sizes)
       setAttribute(directory, "clockrate", clockrate)
       setAttribute(directory, "ports", ports)
-      
+      setAttribute(directory, "device_type", device_type)
+     
       setAttribute(directory, "read_accesses", "0")
       setAttribute(directory, "write_accesses", "0")
       setAttribute(directory, "read_misses", "0")
@@ -87,6 +92,7 @@ def createMcPATInput(options, mcpat_input_filename):
       setAttribute(cache, "buffer_sizes", buffer_sizes)
       setAttribute(cache, "clockrate", clockrate)
       setAttribute(cache, "ports", ports)
+      setAttribute(cache, "device_type", device_type)
 
       setAttribute(cache, "read_accesses", "0")
       setAttribute(cache, "write_accesses", "0")

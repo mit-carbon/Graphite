@@ -47,10 +47,9 @@ def createMcPATInput(options, mcpat_input_filename):
    clockrate = "%d" % (options.frequency * 1000)
   
    # Common Attributes
-   core = getArchComponent(dom,'core0')
-   setAttribute(core, "clock_rate", clockrate)
    system_comp = getArchComponent(dom,'system')
    setAttribute(system_comp, "core_tech_node", options.technology_node)
+   setAttribute(system_comp, "target_core_clockrate", clockrate)
    setAttribute(system_comp, "total_cycles", "1000")
    setAttribute(system_comp, "idle_cycles", "0")
    setAttribute(system_comp, "busy_cycles", "1000")
@@ -62,6 +61,7 @@ def createMcPATInput(options, mcpat_input_filename):
    device_type = "0"
    
    if (options.type == "directory"):
+      setAttribute(system_comp, "number_of_L1Directories", "1")
       directory = getArchComponent(dom,'L1Directory0')
 
       Directory_type = "1"
@@ -82,6 +82,7 @@ def createMcPATInput(options, mcpat_input_filename):
       setAttribute(directory, "write_misses", "0")
 
    elif (options.type == "data"):
+      setAttribute(system_comp, "number_of_L2s", "1")
       cache = getArchComponent(dom,'L20')
       
       L2_config = "%d,%d,%d,%d,%d,%d,%d,%d" % (options.size, options.blocksize, options.associativity, 1, 1, options.delay, options.blocksize, 1)

@@ -94,8 +94,12 @@ DirectoryCache::updateCounters()
    
    // Update dynamic energy counters
    if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      _power_model->updateDynamicEnergy(Cache::TAG_ARRAY_READ);
+      _power_model->updateDynamicEnergy(Cache::TAG_ARRAY_WRITE);
       _power_model->updateDynamicEnergy(Cache::DATA_ARRAY_READ);
-      
+      _power_model->updateDynamicEnergy(Cache::DATA_ARRAY_WRITE);
+   }   
 }
 
 DirectoryEntry*

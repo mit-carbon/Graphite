@@ -27,6 +27,11 @@ public:
 
    virtual void handleMsgFromNetwork(NetPacket& packet) = 0;
 
+   // Update internal variables when frequency is changed
+   // Variables that need to be updated include all variables that are expressed in terms of cycles
+   //  e.g., total memory access latency, packet arrival time, etc.
+   virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency) = 0;
+
    Tile* getTile()   { return _tile; }
    virtual UInt32 getCacheLineSize() = 0;
    ShmemPerfModel* getShmemPerfModel() { return _shmem_perf_model; }

@@ -328,6 +328,15 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    _lock.release();
 }
 
+// Update internal variables when frequency is changed
+// Variables that need to be updated include all variables that are expressed in terms of cycles
+//  e.g., total memory access latency, packet arrival time, etc.
+void
+MemoryManager::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _dram_directory_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+}      
+
 void
 MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 {

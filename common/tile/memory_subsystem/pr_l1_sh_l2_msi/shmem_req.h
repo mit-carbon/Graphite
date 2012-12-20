@@ -18,8 +18,9 @@ public:
    { return _shmem_msg; }
    UInt64 getTime() const
    { return _time; }
-   void updateTime(UInt64 time)
-   { if (time > _time) _time = time; }
+   void updateTime(UInt64 time);
+
+   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
 
 private:
    ShmemMsg* _shmem_msg;

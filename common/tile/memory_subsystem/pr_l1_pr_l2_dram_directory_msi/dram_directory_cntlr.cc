@@ -89,6 +89,25 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    }
 }
 
+// Update internal variables when frequency is changed
+// Variables that need to be updated include all variables that are expressed in terms of cycles
+//  e.g., total memory access latency, packet arrival time, etc.
+void
+DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   HashMapQueue<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_queue_list->begin();
+   for ( ; it1 != _dram_directory_req_queue_list->end(); it1++)
+   {
+      list<ShmemReq*>& shmem_req_list = (*it1).second;
+      list<ShmemReq*>::iterator it2 = shmem_req_list.begin();
+      for ( ; it2 != shmem_req_list.end(); it2++)
+      {
+         ShmemReq* shmem_req = (*it2);
+         shmem_req->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+      }
+   }
+}
+
 void
 DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 {

@@ -1,6 +1,7 @@
 #include "dram_directory_cntlr.h"
 #include "log.h"
 #include "memory_manager.h"
+#include "clock_converter.h"
 #include "utils.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -104,6 +105,37 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       LOG_PRINT_ERROR("Unrecognized Shmem Msg Type: %u", shmem_msg_type);
       break;
    }
+}
+
+// Update internal variables when frequency is changed
+// Variables that need to be updated include all variables that are expressed in terms of cycles
+//  e.g., total memory access latency, packet arrival time, etc.
+void
+DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   HashMapQueue<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_queue_list->begin();
+   for ( ; it1 != _dram_directory_req_queue_list->end(); it1++)
+   {
+      list<ShmemReq*>& shmem_req_list = (*it1).second;
+      list<ShmemReq*>::iterator it2 = shmem_req_list.begin();
+      for ( ; it2 != shmem_req_list.end(); it2++)
+      {
+         ShmemReq* shmem_req = (*it2);
+         shmem_req->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+      }
+   }
+
+   // Update performance counters on frequency change
+   _total_exreq_serialization_time = convertCycleCount(_total_exreq_serialization_time, old_frequency, new_frequency);
+   _total_exreq_processing_time = convertCycleCount(_total_exreq_processing_time, old_frequency, new_frequency);
+   _total_shreq_serialization_time = convertCycleCount(_total_shreq_serialization_time, old_frequency, new_frequency);
+   _total_shreq_processing_time = convertCycleCount(_total_shreq_processing_time, old_frequency, new_frequency);
+   _total_nullifyreq_serialization_time = convertCycleCount(_total_nullifyreq_serialization_time, old_frequency, new_frequency);
+   _total_nullifyreq_processing_time = convertCycleCount(_total_nullifyreq_processing_time, old_frequency, new_frequency);
+   _total_invalidation_processing_time_unicast_mode = convertCycleCount(_total_invalidation_processing_time_unicast_mode,
+                                                                        old_frequency, new_frequency);
+   _total_invalidation_processing_time_broadcast_mode = convertCycleCount(_total_invalidation_processing_time_broadcast_mode,
+                                                                          old_frequency, new_frequency);
 }
 
 void
@@ -1037,6 +1069,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    out << "    Shared Requests: " << _total_shreq << endl;
    out << "    Nullify Requests: " << _total_nullifyreq << endl;
 
+   float frequency = _memory_manager->getTile()->getCore()->getPerformanceModel()->getFrequency();
    if (_total_exreq > 0)
    {
       out << "    Exclusive Request - MODIFIED State: " << _total_exreq_in_modified_state << endl;
@@ -1044,8 +1077,10 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - UNCACHED State: " << _total_exreq_in_uncached_state << endl;
       out << "    Exclusive Request - Upgrade Reply: " << _total_exreq_with_upgrade_replies << endl;
 
-      out << "    Average Exclusive Request Serialization Time: " << 1.0 * _total_exreq_serialization_time / _total_exreq << endl;
-      out << "    Average Exclusive Request Processing Time: " << 1.0 * _total_exreq_processing_time / _total_exreq << endl;
+      out << "    Average Exclusive Request Serialization Time (in ns): "
+          << 1.0 * _total_exreq_serialization_time / (frequency * _total_exreq) << endl;
+      out << "    Average Exclusive Request Processing Time (in ns): "
+          << 1.0 * _total_exreq_processing_time / (frequency * _total_exreq) << endl;
    }
    else
    {
@@ -1054,8 +1089,8 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - UNCACHED State: " << endl;
       out << "    Exclusive Request - Upgrade Reply: " << endl;
 
-      out << "    Average Exclusive Request Serialization Time: " << endl;
-      out << "    Average Exclusive Request Processing Time: " << endl;
+      out << "    Average Exclusive Request Serialization Time (in ns): " << endl;
+      out << "    Average Exclusive Request Processing Time (in ns): " << endl;
    }
 
    if (_total_shreq > 0)
@@ -1064,8 +1099,10 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - SHARED State: " << _total_shreq_in_shared_state << endl;
       out << "    Shared Request - UNCACHED State: " << _total_shreq_in_uncached_state << endl;
 
-      out << "    Average Shared Request Serialization Time: " << 1.0 * _total_shreq_serialization_time / _total_shreq << endl;
-      out << "    Average Shared Request Processing Time: " << 1.0 * _total_shreq_processing_time / _total_shreq << endl;
+      out << "    Average Shared Request Serialization Time (in ns): "
+          << 1.0 * _total_shreq_serialization_time / (frequency * _total_shreq) << endl;
+      out << "    Average Shared Request Processing Time (in ns): "
+          << 1.0 * _total_shreq_processing_time / (frequency * _total_shreq) << endl;
    }
    else
    {
@@ -1073,8 +1110,8 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - SHARED State: " << endl;
       out << "    Shared Request - UNCACHED State: " << endl;
 
-      out << "    Average Shared Request Serialization Time: " << endl;
-      out << "    Average Shared Request Processing Time: " << endl;
+      out << "    Average Shared Request Serialization Time (in ns): " << endl;
+      out << "    Average Shared Request Processing Time (in ns): " << endl;
    }
 
    if (_total_nullifyreq > 0)
@@ -1083,8 +1120,10 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - SHARED State: " << _total_nullifyreq_in_shared_state << endl;
       out << "    Nullify Request - UNCACHED State: " << _total_nullifyreq_in_uncached_state << endl;
 
-      out << "    Average Nullify Request Serialization Time: " << 1.0 * _total_nullifyreq_serialization_time / _total_nullifyreq << endl;
-      out << "    Average Nullify Request Processing Time: " << 1.0 * _total_nullifyreq_processing_time / _total_nullifyreq << endl;
+      out << "    Average Nullify Request Serialization Time (in ns): "
+          << 1.0 * _total_nullifyreq_serialization_time / (frequency * _total_nullifyreq) << endl;
+      out << "    Average Nullify Request Processing Time (in ns): "
+          << 1.0 * _total_nullifyreq_processing_time / (frequency * _total_nullifyreq) << endl;
    }
    else
    {
@@ -1092,8 +1131,8 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - SHARED State: " << endl;
       out << "    Nullify Request - UNCACHED State: " << endl;
 
-      out << "    Average Nullify Request Serialization Time: " << endl;
-      out << "    Average Nullify Request Processing Time: " << endl;
+      out << "    Average Nullify Request Serialization Time (in ns): " << endl;
+      out << "    Average Nullify Request Processing Time (in ns): " << endl;
    }
 
    out << "    Total Invalidation Requests - Unicast Mode: " << _total_invalidations_unicast_mode << endl;
@@ -1101,13 +1140,13 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    {
       out << "    Average Sharers Invalidated - Unicast Mode: "
           << 1.0 * _total_sharers_invalidated_unicast_mode / _total_invalidations_unicast_mode << endl;
-      out << "    Average Invalidation Processing Time - Unicast Mode: "
-          << 1.0 * _total_invalidation_processing_time_unicast_mode / _total_invalidations_unicast_mode << endl;
+      out << "    Average Invalidation Processing Time - Unicast Mode (in ns): "
+          << 1.0 * _total_invalidation_processing_time_unicast_mode / (frequency * _total_invalidations_unicast_mode) << endl;
    }
    else
    {
       out << "    Average Sharers Invalidated - Unicast Mode: " << endl;
-      out << "    Average Invalidation Processing Time - Unicast Mode: " << endl;
+      out << "    Average Invalidation Processing Time - Unicast Mode (in ns): " << endl;
    }
 
    out << "    Total Invalidation Requests - Broadcast Mode: " << _total_invalidations_broadcast_mode << endl;
@@ -1115,13 +1154,13 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    {
       out << "    Average Sharers Invalidated - Broadcast Mode: "
          << 1.0 * _total_sharers_invalidated_broadcast_mode / _total_invalidations_broadcast_mode << endl;
-      out << "    Average Invalidation Processing Time - Broadcast Mode: "
-         << 1.0 * _total_invalidation_processing_time_broadcast_mode / _total_invalidations_broadcast_mode << endl;
+      out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): "
+         << 1.0 * _total_invalidation_processing_time_broadcast_mode / (frequency * _total_invalidations_broadcast_mode) << endl;
    }
    else
    {
       out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
-      out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
+      out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): " << endl;
    }
 }
 
@@ -1139,30 +1178,30 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Exclusive Request - UNCACHED State: " << endl;
    out << "    Exclusive Request - Upgrade Reply: " << endl;
 
-   out << "    Average Exclusive Request Serialization Time: " << endl;
-   out << "    Average Exclusive Request Processing Time: " << endl;
+   out << "    Average Exclusive Request Serialization Time (in ns): " << endl;
+   out << "    Average Exclusive Request Processing Time (in ns): " << endl;
 
    out << "    Shared Request - MODIFIED State: " << endl;
    out << "    Shared Request - SHARED State: " << endl;
    out << "    Shared Request - UNCACHED State: " << endl;
 
-   out << "    Average Shared Request Serialization Time: " << endl;
-   out << "    Average Shared Request Processing Time: " << endl;
+   out << "    Average Shared Request Serialization Time (in ns): " << endl;
+   out << "    Average Shared Request Processing Time (in ns): " << endl;
 
    out << "    Nullify Request - MODIFIED State: " << endl;
    out << "    Nullify Request - SHARED State: " << endl;
    out << "    Nullify Request - UNCACHED State: " << endl;
 
-   out << "    Average Nullify Request Serialization Time: " << endl;
-   out << "    Average Nullify Request Processing Time: " << endl;
+   out << "    Average Nullify Request Serialization Time (in ns): " << endl;
+   out << "    Average Nullify Request Processing Time (in ns): " << endl;
 
    out << "    Total Invalidation Requests - Unicast Mode: " << endl;
    out << "    Average Sharers Invalidated - Unicast Mode: " << endl;
-   out << "    Average Invalidation Processing Time - Unicast Mode: " << endl;
+   out << "    Average Invalidation Processing Time - Unicast Mode (in ns): " << endl;
 
    out << "    Total Invalidation Requests - Broadcast Mode: " << endl;
    out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
-   out << "    Average Invalidation Processing Time - Broadcast Mode: " << endl;
+   out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): " << endl;
 }
 
 UInt32

@@ -40,6 +40,11 @@ namespace PrL1ShL2MSI
 
       void handleMsgFromNetwork(NetPacket& packet);
 
+      // Update internal variables when frequency is changed
+      // Variables that need to be updated include all variables that are expressed in terms of cycles
+      //  e.g., total memory access latency, packet arrival time, etc.
+      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+      
       void sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg);
       void broadcastMsg(ShmemMsg& shmem_msg);
     

@@ -1,5 +1,6 @@
 #include "shmem_req.h"
 #include "utils.h"
+#include "clock_converter.h"
 #include "log.h"
 
 namespace PrL1ShL2MSI
@@ -16,6 +17,19 @@ ShmemReq::ShmemReq(ShmemMsg* shmem_msg, UInt64 time)
 ShmemReq::~ShmemReq()
 {
    delete _shmem_msg;
+}
+
+void
+ShmemReq::updateTime(UInt64 time)
+{
+   if (_time < time)
+      _time = time;
+}
+
+void
+ShmemReq::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _time = convertCycleCount(_time, old_frequency, new_frequency);
 }
 
 }

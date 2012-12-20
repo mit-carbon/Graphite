@@ -7,7 +7,7 @@ using std::list;
 using std::make_pair;
 
 template<typename K, typename V>
-class HashMapQueue
+class HashMapList
 {
 public:
    void enqueue(K key, V value);
@@ -26,7 +26,7 @@ private:
 };
 
 template <typename K, typename V>
-void HashMapQueue<K,V>::enqueue(K key, V value)
+void HashMapList<K,V>::enqueue(K key, V value)
 {
    // Get the iterator
    typename map<K, list<V> >::iterator it = _hash_map_list.find(key);
@@ -47,7 +47,7 @@ void HashMapQueue<K,V>::enqueue(K key, V value)
 }
 
 template <typename K, typename V>
-V HashMapQueue<K,V>::dequeue(K key)
+V HashMapList<K,V>::dequeue(K key)
 {
    // The hash table cannot be empty for that key
    typename map<K, list<V> >::iterator it = _hash_map_list.find(key);
@@ -68,7 +68,7 @@ V HashMapQueue<K,V>::dequeue(K key)
 }
 
 template <typename K, typename V>
-V HashMapQueue<K,V>::front(K key) const
+V HashMapList<K,V>::front(K key) const
 {
    // The hash table cannot be empty for that key
    typename map<K, list<V> >::const_iterator it = _hash_map_list.find(key);
@@ -81,7 +81,7 @@ V HashMapQueue<K,V>::front(K key) const
 }
 
 template <typename K, typename V>
-size_t HashMapQueue<K,V>::count(K key) const
+size_t HashMapList<K,V>::count(K key) const
 {
    // Get the iterator
    typename map<K, list<V> >::const_iterator it = _hash_map_list.find(key);
@@ -100,7 +100,7 @@ size_t HashMapQueue<K,V>::count(K key) const
 }
 
 template <typename K, typename V>
-bool HashMapQueue<K,V>::empty(K key) const
+bool HashMapList<K,V>::empty(K key) const
 {
    // Get the iterator
    typename map<K, list<V> >::const_iterator it = _hash_map_list.find(key);
@@ -118,7 +118,7 @@ bool HashMapQueue<K,V>::empty(K key) const
 }
 
 template <typename K, typename V>
-size_t HashMapQueue<K,V>::size() const
+size_t HashMapList<K,V>::size() const
 {
    return _hash_map_list.size();
 }

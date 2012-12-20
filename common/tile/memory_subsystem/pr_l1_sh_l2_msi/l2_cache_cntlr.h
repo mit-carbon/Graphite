@@ -17,7 +17,7 @@ using std::map;
 #include "shmem_req.h"
 #include "mem_component.h"
 #include "fixed_types.h"
-#include "hash_map_queue.h"
+#include "hash_map_list.h"
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
@@ -65,7 +65,7 @@ namespace PrL1ShL2MSI
       bool _enabled;
 
       // Req list into the L2 cache
-      HashMapQueue<IntPtr,ShmemReq*> _L2_cache_req_queue_list;
+      HashMapList<IntPtr,ShmemReq*> _L2_cache_req_list;
       // Evicted cache line map
       map<IntPtr,ShL2CacheLineInfo> _evicted_cache_line_map;
 

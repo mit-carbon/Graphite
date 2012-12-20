@@ -32,7 +32,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                               num_dram_cntlrs,
                                               dram_directory_access_time_str);
 
-   _dram_directory_req_queue_list = new HashMapQueue<IntPtr,ShmemReq*>();
+   _dram_directory_req_list = new HashMapList<IntPtr,ShmemReq*>();
    _cached_data_list = new DataList(cache_line_size);
 
    _directory_type = DirectoryEntry::parseDirectoryType(dram_directory_type_str);
@@ -44,7 +44,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
 DramDirectoryCntlr::~DramDirectoryCntlr()
 {
    delete _dram_directory_cache;
-   delete _dram_directory_req_queue_list;
+   delete _dram_directory_req_list;
 }
 
 void
@@ -63,9 +63,9 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          
          // Add request onto a queue
          ShmemReq* shmem_req = new ShmemReq(shmem_msg, msg_time);
-         _dram_directory_req_queue_list->enqueue(address, shmem_req);
+         _dram_directory_req_list->enqueue(address, shmem_req);
 
-         if (_dram_directory_req_queue_list->count(address) == 1)
+         if (_dram_directory_req_list->count(address) == 1)
          {
             // The req is processed immediately
             shmem_req->updateProcessingStartTime(msg_time);
@@ -113,8 +113,8 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   HashMapQueue<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_queue_list->begin();
-   for ( ; it1 != _dram_directory_req_queue_list->end(); it1++)
+   HashMapList<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_list->begin();
+   for ( ; it1 != _dram_directory_req_list->end(); it1++)
    {
       list<ShmemReq*>& shmem_req_list = (*it1).second;
       list<ShmemReq*>::iterator it2 = shmem_req_list.begin();
@@ -143,10 +143,10 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 {
    LOG_PRINT("Start processNextReqFromL2Cache(%#lx)", address);
 
-   assert(_dram_directory_req_queue_list->count(address) >= 1);
+   assert(_dram_directory_req_list->count(address) >= 1);
    
    // Get the completed shmem req
-   ShmemReq* completed_shmem_req = _dram_directory_req_queue_list->dequeue(address);
+   ShmemReq* completed_shmem_req = _dram_directory_req_list->dequeue(address);
 
    // Update Finish time
    completed_shmem_req->updateProcessingFinishTime(getShmemPerfModel()->getCycleCount());
@@ -160,10 +160,10 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    // No longer should any data be cached for this address
    assert(_cached_data_list->lookup(address) == NULL);
 
-   if (!_dram_directory_req_queue_list->empty(address))
+   if (!_dram_directory_req_list->empty(address))
    {
       LOG_PRINT("A new shmem req for address(%#lx) found", address);
-      ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
+      ShmemReq* shmem_req = _dram_directory_req_list->front(address);
 
       // Update the Shared Mem Cycle Counts appropriately
       shmem_req->updateProcessingStartTime(getShmemPerfModel()->getCycleCount());
@@ -204,7 +204,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
              ((*replacement_candidate)->getNumSharers() > (*it)->getNumSharers()) 
            )
            &&
-           (_dram_directory_req_queue_list->count((*it)->getAddress()) == 0)
+           (_dram_directory_req_list->count((*it)->getAddress()) == 0)
          )
       {
          replacement_candidate = it;
@@ -224,9 +224,9 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
                         requester, INVALID_TILE_ID, false, replaced_address, msg_modeled);
 
    ShmemReq* nullify_req = new ShmemReq(&nullify_msg, msg_time);
-   _dram_directory_req_queue_list->enqueue(replaced_address, nullify_req);
+   _dram_directory_req_list->enqueue(replaced_address, nullify_req);
 
-   assert(_dram_directory_req_queue_list->count(replaced_address) == 1);
+   assert(_dram_directory_req_list->count(replaced_address) == 1);
    processNullifyReq(nullify_req, (DirectoryEntry*) NULL, true);
 
    return directory_entry;
@@ -658,10 +658,10 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, const ShmemMsg* s
       break;
    }
 
-   if (_dram_directory_req_queue_list->count(address) > 0)
+   if (_dram_directory_req_list->count(address) > 0)
    {
       // Get the latest request for the data
-      ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
+      ShmemReq* shmem_req = _dram_directory_req_list->front(address);
       restartShmemReq(sender, shmem_req, directory_entry);
    }
 }
@@ -726,13 +726,13 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, const ShmemMsg*
       break;
    }
 
-   if (_dram_directory_req_queue_list->count(address) > 0)
+   if (_dram_directory_req_list->count(address) > 0)
    {
       // First save the data in one of the buffers in the directory cntlr
       _cached_data_list->insert(address, shmem_msg->getDataBuf());
 
       // Get the latest request for the data
-      ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
+      ShmemReq* shmem_req = _dram_directory_req_list->front(address);
      
       // Write-back to memory in certain circumstances
       if (shmem_req->getShmemMsg()->getType() == ShmemMsg::SH_REQ)
@@ -775,7 +775,7 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* sh
    case DirectoryState::MODIFIED:
       LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
             "Address(%#lx), sender(%i), owner(%i)", address, sender, directory_entry->getOwner());
-      LOG_ASSERT_ERROR(_dram_directory_req_queue_list->count(address) > 0,
+      LOG_ASSERT_ERROR(_dram_directory_req_list->count(address) > 0,
             "Address(%#lx), WB_REP, req queue empty!!", address);
 
       directory_block_info->setDState(DirectoryState::OWNED);
@@ -802,13 +802,13 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, const ShmemMsg* sh
       break;
    }
 
-   if (_dram_directory_req_queue_list->count(address) > 0)
+   if (_dram_directory_req_list->count(address) > 0)
    {
       // First save the data in one of the buffers in the directory cntlr
       _cached_data_list->insert(address, shmem_msg->getDataBuf());
 
       // Get the latest request for the data
-      ShmemReq* shmem_req = _dram_directory_req_queue_list->front(address);
+      ShmemReq* shmem_req = _dram_directory_req_list->front(address);
       restartShmemReq(sender, shmem_req, directory_entry);
    }
    else

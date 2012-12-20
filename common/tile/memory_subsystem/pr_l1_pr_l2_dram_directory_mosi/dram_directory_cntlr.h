@@ -10,7 +10,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 }
 
 #include "directory_cache.h"
-#include "hash_map_queue.h"
+#include "hash_map_list.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
 #include "shmem_req.h"
@@ -71,7 +71,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
       DirectoryType _directory_type;
 
-      HashMapQueue<IntPtr,ShmemReq*>* _dram_directory_req_queue_list;
+      HashMapList<IntPtr,ShmemReq*>* _dram_directory_req_list;
       DataList* _cached_data_list;
 
       bool _enabled;

@@ -1,5 +1,4 @@
 #include "l2_cache_replacement_policy.h"
-#include "hash_map_queue.h"
 #include "utils.h"
 #include "config.h"
 #include "cache_line_info.h"
@@ -9,9 +8,9 @@ namespace PrL1ShL2MSI
 {
 
 L2CacheReplacementPolicy::L2CacheReplacementPolicy(UInt32 cache_size, UInt32 associativity, UInt32 cache_line_size,
-                                                   HashMapQueue<IntPtr,ShmemReq*>& L2_cache_req_queue_list)
+                                                   HashMapList<IntPtr,ShmemReq*>& L2_cache_req_list)
    : CacheReplacementPolicy(cache_size, associativity, cache_line_size)
-   , _L2_cache_req_queue_list(L2_cache_req_queue_list)
+   , _L2_cache_req_list(L2_cache_req_list)
 {
    _log_cache_line_size = floorLog2(cache_line_size);
 }
@@ -39,7 +38,7 @@ L2CacheReplacementPolicy::getReplacementWay(CacheLineInfo** cache_line_info_arra
 
          DirectoryEntry* directory_entry = L2_cache_line_info->getDirectoryEntry();
          if (directory_entry->getNumSharers() < min_num_sharers && 
-             _L2_cache_req_queue_list.empty(address))
+             _L2_cache_req_list.empty(address))
          {
             min_num_sharers = directory_entry->getNumSharers();
             way = i;
@@ -55,11 +54,11 @@ L2CacheReplacementPolicy::getReplacementWay(CacheLineInfo** cache_line_info_arra
          assert(L2_cache_line_info->getCState() != CacheState::INVALID);
          IntPtr address = getAddressFromTag(L2_cache_line_info->getTag());
          DirectoryEntry* directory_entry = L2_cache_line_info->getDirectoryEntry();
-         assert(_L2_cache_req_queue_list.count(address) > 0);
+         assert(_L2_cache_req_list.count(address) > 0);
          fprintf(stderr, "i(%u), Address(%#lx), CState(%u), DState(%u), Num Waiters(%u)\n",
                  i, address, L2_cache_line_info->getCState(),
                  directory_entry->getDirectoryBlockInfo()->getDState(),
-                 (UInt32) _L2_cache_req_queue_list.count(address));
+                 (UInt32) _L2_cache_req_list.count(address));
       }
    }
    LOG_ASSERT_ERROR(way != UINT32_MAX_, "Could not find a replacement candidate");

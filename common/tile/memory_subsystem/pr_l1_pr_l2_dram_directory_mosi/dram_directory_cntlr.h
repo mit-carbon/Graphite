@@ -1,7 +1,9 @@
 #pragma once
 
+#include <map>
 #include <string>
-using namespace std;
+using std::map;
+using std::string;
 
 // Forward Decls
 namespace PrL1PrL2DramDirectoryMOSI
@@ -50,17 +52,16 @@ namespace PrL1PrL2DramDirectoryMOSI
    private:
       class DataList
       {
-      private:
-         UInt32 _block_size;
-         std::map<IntPtr, Byte*> _data_list;
-
       public:
-         DataList(UInt32 block_size);
+         DataList();
          ~DataList();
          
-         void insert(IntPtr address, Byte* data);
+         void insert(IntPtr address, Byte* data, UInt32 size);
          Byte* lookup(IntPtr address);
          void erase(IntPtr address);
+      
+      private:
+         map<IntPtr, Byte*> _data_list;
       };
 
       // Functional Models
@@ -71,8 +72,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
       DirectoryType _directory_type;
 
-      HashMapList<IntPtr,ShmemReq*>* _dram_directory_req_list;
-      DataList* _cached_data_list;
+      HashMapList<IntPtr,ShmemReq*> _dram_directory_req_list;
+      DataList _cached_data_list;
 
       bool _enabled;
 

@@ -6,6 +6,7 @@ This is the python script that is responsible for spawning a simulation
 
 import sys
 import os
+import commands
 import subprocess
 
 from termcolors import *
@@ -23,10 +24,7 @@ def get_graphite_home():
 
 # get PIN_HOME from Makefile.config
 def get_pin_home(graphite_home):
-    p = subprocess.Popen(("grep" , "-w", "PIN_HOME", graphite_home + "/Makefile.config"), stdout = subprocess.PIPE)
-    lbl = p.communicate()[0]
-    lpath = lbl.split('=')[1]
-    return lpath.strip();
+    return commands.getoutput("grep '^\s*PIN_HOME' %s/Makefile.config | sed 's/^\s*PIN_HOME\s*=\s*\(.*\)/\\1/'" % (graphite_home))
 
 # spawn_job:
 #  start up a command on one machine

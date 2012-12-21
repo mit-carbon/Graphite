@@ -1,11 +1,11 @@
-#include "dvfs.h"
+#include "dynamic_frequency_scaling.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
 #include "core_model.h"
 #include "fxsupport.h"
 
-void CarbonGetCoreFrequency(volatile float* frequency)
+void CarbonGetTileFrequency(volatile float* frequency)
 {
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
@@ -13,7 +13,7 @@ void CarbonGetCoreFrequency(volatile float* frequency)
    *frequency = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel()->getFrequency();
 }
 
-void CarbonSetCoreFrequency(volatile float* frequency)
+void CarbonSetTileFrequency(volatile float* frequency)
 {
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;

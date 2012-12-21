@@ -445,30 +445,30 @@ void routineCallback(RTN rtn, void* v)
    }
 
    // Frequency Scaling Functions
-   else if (rtn_name == "CarbonGetCoreFrequency")
+   else if (rtn_name == "CarbonGetTileFrequency")
    {
       PROTO proto = PROTO_Allocate(PIN_PARG(void),
             CALLINGSTD_DEFAULT,
-            "CarbonGetCoreFrequency",
+            "CarbonGetTileFrequency",
             PIN_PARG(float*),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
-            AFUNPTR(CarbonGetCoreFrequency),
+            AFUNPTR(CarbonGetTileFrequency),
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
    }
-   else if (rtn_name == "CarbonSetCoreFrequency")
+   else if (rtn_name == "CarbonSetTileFrequency")
    {
       PROTO proto = PROTO_Allocate(PIN_PARG(void),
             CALLINGSTD_DEFAULT,
-            "CarbonSetCoreFrequency",
+            "CarbonSetTileFrequency",
             PIN_PARG(float*),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
-            AFUNPTR(CarbonSetCoreFrequency),
+            AFUNPTR(CarbonSetTileFrequency),
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);

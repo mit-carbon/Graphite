@@ -26,7 +26,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
    , _enabled(false)
 {
    _L2_cache_replacement_policy_obj =
-      new L2CacheReplacementPolicy(L2_cache_size, L2_cache_associativity, cache_line_size, _L2_cache_req_list);
+      new L2CacheReplacementPolicy(L2_cache_size, L2_cache_associativity, cache_line_size, _L2_cache_req_queue);
    _L2_cache_hash_fn_obj = new L2CacheHashFn(L2_cache_size, L2_cache_associativity, cache_line_size);
 
    // L2 cache
@@ -48,8 +48,8 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
 L2CacheCntlr::~L2CacheCntlr()
 {
    // Some eviction requests
-   LOG_ASSERT_ERROR(_L2_cache_req_list.size() == _evicted_cache_line_map.size(),
-                    "Req list size(%u), Evicted cache line map size(%u)", _L2_cache_req_list.size(), _evicted_cache_line_map.size());
+   LOG_ASSERT_ERROR(_L2_cache_req_queue.size() == _evicted_cache_line_map.size(),
+                    "Req list size(%u), Evicted cache line map size(%u)", _L2_cache_req_queue.size(), _evicted_cache_line_map.size());
    // FIXME: Directory Entries are not deleted at the end of simulation
    delete _L2_cache;
    delete _L2_cache_replacement_policy_obj;
@@ -138,7 +138,7 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
    if (eviction)
    {
       assert(evicted_cache_line_info.isValid());
-      LOG_ASSERT_ERROR(_L2_cache_req_list.empty(evicted_address),
+      LOG_ASSERT_ERROR(_L2_cache_req_queue.empty(evicted_address),
                        "Address(%#lx) is already being processed", evicted_address);
       LOG_ASSERT_ERROR(evicted_cache_line_info.getCState() == CacheState::CLEAN || evicted_cache_line_info.getCState() == CacheState::DIRTY,
                        "Cache Line State(%u)", evicted_cache_line_info.getCState());
@@ -159,7 +159,7 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
       // Create a new ShmemReq for removing the sharers of the evicted cache line
       ShmemReq* nullify_req = new ShmemReq(&nullify_msg, eviction_time);
       // Insert the nullify_req into the set of requests to be processed
-      _L2_cache_req_list.enqueue(evicted_address, nullify_req);
+      _L2_cache_req_queue.enqueue(evicted_address, nullify_req);
       
       // Insert the evicted cache line info into the evicted cache line map for future reference
       _evicted_cache_line_map.insert(make_pair(evicted_address, evicted_cache_line_info));
@@ -188,9 +188,9 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    {
       // Add request onto a queue
       ShmemReq* shmem_req = new ShmemReq(shmem_msg, msg_time);
-      _L2_cache_req_list.enqueue(address, shmem_req);
+      _L2_cache_req_queue.enqueue(address, shmem_req);
 
-      if (_L2_cache_req_list.count(address) == 1)
+      if (_L2_cache_req_queue.count(address) == 1)
       {
          // Process the request
          processShmemReq(shmem_req);
@@ -225,9 +225,9 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       setCacheLineInfo(address, &L2_cache_line_info);
 
       // Get the latest request for the data (if any) and process it
-      if (!_L2_cache_req_list.empty(address))
+      if (!_L2_cache_req_queue.empty(address))
       {
-         ShmemReq* shmem_req = _L2_cache_req_list.front(address);
+         ShmemReq* shmem_req = _L2_cache_req_queue.front(address);
          restartShmemReq(shmem_req, &L2_cache_line_info, shmem_msg->getDataBuf());
       }
    }
@@ -250,7 +250,7 @@ L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
    getCacheLineInfo(address, &L2_cache_line_info);
 
    // Write the data into the L2 cache if it is a SH_REQ
-   ShmemReq* shmem_req = _L2_cache_req_list.front(address);
+   ShmemReq* shmem_req = _L2_cache_req_queue.front(address);
    if (TYPE(shmem_req) == ShmemMsg::SH_REQ)
       writeCacheLine(address, shmem_msg->getDataBuf());
    else
@@ -271,8 +271,8 @@ L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   HashMapList<IntPtr,ShmemReq*>::iterator it1 = _L2_cache_req_list.begin();
-   for ( ; it1 != _L2_cache_req_list.end(); it1++)
+   HashMapList<IntPtr,ShmemReq*>::iterator it1 = _L2_cache_req_queue.begin();
+   for ( ; it1 != _L2_cache_req_queue.end(); it1++)
    {
       list<ShmemReq*>& shmem_req_list = (*it1).second;
       list<ShmemReq*>::iterator it2 = shmem_req_list.begin();
@@ -292,18 +292,18 @@ L2CacheCntlr::processNextReqFromL1Cache(IntPtr address)
    // Add 1 cycle to denote that we are moving to the next request
    getShmemPerfModel()->incrCycleCount(1);
 
-   assert(_L2_cache_req_list.count(address) >= 1);
+   assert(_L2_cache_req_queue.count(address) >= 1);
    
    // Get the completed shmem req
-   ShmemReq* completed_shmem_req = _L2_cache_req_list.dequeue(address);
+   ShmemReq* completed_shmem_req = _L2_cache_req_queue.dequeue(address);
 
    // Delete the completed shmem req
    delete completed_shmem_req;
 
-   if (!_L2_cache_req_list.empty(address))
+   if (!_L2_cache_req_queue.empty(address))
    {
       LOG_PRINT("A new shmem req for address(%#lx) found", address);
-      ShmemReq* shmem_req = _L2_cache_req_list.front(address);
+      ShmemReq* shmem_req = _L2_cache_req_queue.front(address);
 
       // Update the Shared Mem Cycle Counts appropriately
       shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
@@ -714,7 +714,7 @@ L2CacheCntlr::processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem
          assert(!shmem_msg->isReplyExpected());
 
          // Write the line to the L2 cache if there is no request (or a SH_REQ)
-         ShmemReq* shmem_req = _L2_cache_req_list.front(address);
+         ShmemReq* shmem_req = _L2_cache_req_queue.front(address);
          if ( (shmem_req == NULL) || (TYPE(shmem_req) == ShmemMsg::SH_REQ) )
          {
             writeCacheLine(address, shmem_msg->getDataBuf());
@@ -756,7 +756,7 @@ L2CacheCntlr::processWbRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_ms
       {
          LOG_ASSERT_ERROR(sender == directory_entry->getOwner(),
                           "Address(%#lx), sender(%i), owner(%i)", address, sender, directory_entry->getOwner());
-         LOG_ASSERT_ERROR(!_L2_cache_req_list.empty(address),
+         LOG_ASSERT_ERROR(!_L2_cache_req_queue.empty(address),
                           "Address(%#lx), WB_REP, req queue empty!!", address);
 
          // Write the data into the L2 cache and mark the cache line dirty

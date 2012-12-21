@@ -72,7 +72,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
       DirectoryType _directory_type;
 
-      HashMapList<IntPtr,ShmemReq*> _dram_directory_req_list;
+      HashMapList<IntPtr,ShmemReq*> _dram_directory_req_queue;
       DataList _cached_data_list;
 
       bool _enabled;

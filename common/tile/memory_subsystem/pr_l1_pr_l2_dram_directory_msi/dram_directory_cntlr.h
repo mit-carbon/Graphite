@@ -46,7 +46,7 @@ namespace PrL1PrL2DramDirectoryMSI
       MemoryManager* _memory_manager;
       DirectoryCache* _dram_directory_cache;
       DramCntlr* _dram_cntlr;
-      HashMapList<IntPtr,ShmemReq*> _dram_directory_req_list;
+      HashMapList<IntPtr,ShmemReq*> _dram_directory_req_queue;
 
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager() { return _memory_manager; }

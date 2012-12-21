@@ -117,10 +117,10 @@ MainCore::initiateMemoryAccess(MemComponent::Type mem_component,
       LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(%#lx), offset(%u), curr_size(%u), core_id(%i, %i)",
                 curr_addr_aligned, curr_offset, curr_size, getId().tile_id, getId().core_type);
 
-      if (!getMemoryManager()->coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type, 
-                                                        curr_addr_aligned, curr_offset, 
-                                                        curr_data_buffer_head, curr_size,
-                                                        curr_time, push_info))
+      if (!getMemoryManager()->__coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type, 
+                                                          curr_addr_aligned, curr_offset, 
+                                                          curr_data_buffer_head, curr_size,
+                                                          curr_time, push_info))
       {
          // If it is a READ or READ_EX operation, 
          // 'initiateSharedMemReq' causes curr_data_buffer_head 

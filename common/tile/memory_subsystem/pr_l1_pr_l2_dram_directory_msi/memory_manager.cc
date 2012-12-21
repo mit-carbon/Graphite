@@ -17,7 +17,6 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
-   , _enabled(false)
 {
    // Read Parameters from the Config file
    std::string l1_icache_type;
@@ -214,17 +213,10 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
          l2_cache_data_access_time, l2_cache_tags_access_time, core_frequency);
 
    LOG_PRINT("Instantiated Cache Performance Models");
-
-   // Register Call-backs
-   getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
-   getNetwork()->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
 }
 
 MemoryManager::~MemoryManager()
 {
-   getNetwork()->unregisterCallback(SHARED_MEM_1);
-   getNetwork()->unregisterCallback(SHARED_MEM_2);
-
    // Delete the Models
    delete _l1_icache_perf_model;
    delete _l1_dcache_perf_model;
@@ -246,22 +238,11 @@ MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                         Core::mem_op_t mem_op_type,
                                         IntPtr address, UInt32 offset,
                                         Byte* data_buf, UInt32 data_length,
-                                        UInt64& curr_time, bool modeled)
+                                        bool modeled)
 {
-   if (lock_signal != Core::UNLOCK)
-      _lock.acquire();
-  
-   getShmemPerfModel()->setCycleCount(curr_time);
-
-   bool ret = _l1_cache_cntlr->processMemOpFromTile(mem_component, lock_signal, mem_op_type, 
-                                                    address, offset, data_buf, data_length, modeled);
-
-   curr_time = getShmemPerfModel()->getCycleCount();
-
-   if (lock_signal != Core::LOCK)
-      _lock.release();
-
-   return ret;
+   return _l1_cache_cntlr->processMemOpFromTile(mem_component, lock_signal, mem_op_type, 
+                                                address, offset, data_buf, data_length,
+                                                modeled);
 }
 
 void
@@ -269,20 +250,13 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
    core_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
-   UInt64 msg_time = packet.time;
 
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   _lock.acquire();
-
-   getShmemPerfModel()->setCycleCount(msg_time);
-
-   if (_enabled)
-   {
-      LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
-            shmem_msg->getType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component, sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
-   }
+   LOG_PRINT("Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
+             shmem_msg->getType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component,
+             sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
 
    switch (receiver_mem_component)
    {
@@ -338,8 +312,6 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
       delete [] shmem_msg->getDataBuf();
    }
    delete shmem_msg;
-
-   _lock.release();
 }
 
 // Update internal variables when frequency is changed
@@ -359,12 +331,9 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
-   {
-      LOG_PRINT("Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)",
-                shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
-                shmem_msg.getRequester(), getTile()->getId(), receiver);
-   }
+   LOG_PRINT("Sending Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)",
+             shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
+             shmem_msg.getRequester(), getTile()->getId(), receiver);
 
    NetPacket packet(msg_time, SHARED_MEM_1,
          getTile()->getId(), receiver,
@@ -383,12 +352,9 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   if (_enabled)
-   {
-      LOG_PRINT("Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i)",
-                shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
-                shmem_msg.getRequester(), getTile()->getId());
-   }
+   LOG_PRINT("Broadcasting Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i)",
+             shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
+             shmem_msg.getRequester(), getTile()->getId());
 
    NetPacket packet(msg_time, SHARED_MEM_1,
          getTile()->getId(), NetPacket::BROADCAST,
@@ -404,24 +370,24 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
 {
    switch (mem_component)
    {
-      case MemComponent::L1_ICACHE:
-         getShmemPerfModel()->incrCycleCount(_l1_icache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L1_ICACHE:
+      getShmemPerfModel()->incrCycleCount(_l1_icache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::L1_DCACHE:
-         getShmemPerfModel()->incrCycleCount(_l1_dcache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L1_DCACHE:
+      getShmemPerfModel()->incrCycleCount(_l1_dcache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::L2_CACHE:
-         getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L2_CACHE:
+      getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::INVALID:
-         break;
+   case MemComponent::INVALID:
+      break;
 
-      default:
-         LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
-         break;
+   default:
+      LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
+      break;
    }
 }
 
@@ -429,8 +395,6 @@ void
 MemoryManager::enableModels()
 {
    LOG_PRINT("enableModels() start");
-   _enabled = true;
-
    _l1_cache_cntlr->getL1ICache()->enable();
    _l1_icache_perf_model->enable();
    
@@ -445,6 +409,8 @@ MemoryManager::enableModels()
       _dram_directory_cntlr->getDramDirectoryCache()->enable();
       _dram_cntlr->getDramPerfModel()->enable();
    }
+
+   ::MemoryManager::enableModels();
    LOG_PRINT("enableModels() end");
 }
 
@@ -452,8 +418,6 @@ void
 MemoryManager::disableModels()
 {
    LOG_PRINT("disableModels() start");
-   _enabled = false;
-
    _l1_cache_cntlr->getL1ICache()->disable();
    _l1_icache_perf_model->disable();
 
@@ -468,6 +432,8 @@ MemoryManager::disableModels()
       _dram_directory_cntlr->getDramDirectoryCache()->disable();
       _dram_cntlr->getDramPerfModel()->disable();
    }
+
+   ::MemoryManager::disableModels();
    LOG_PRINT("disableModels() end");
 }
 
@@ -491,34 +457,8 @@ MemoryManager::outputSummary(std::ostream &os)
       os << "Dram Directory Cache Summary:\n";
       DirectoryCache::dummyOutputSummary(os, getTile()->getId());
    }
-}
 
-void
-MemoryManager::waitForAppThread()
-{
-   _sim_thread_sem.wait();
-   _lock.acquire();
-}
-
-void
-MemoryManager::wakeUpAppThread()
-{
-   _lock.release();
-   _app_thread_sem.signal();
-}
-
-void
-MemoryManager::waitForSimThread()
-{
-   _lock.release();
-   _app_thread_sem.wait();
-}
-
-void
-MemoryManager::wakeUpSimThread()
-{
-   _lock.acquire();
-   _sim_thread_sem.signal();
+   ::MemoryManager::outputSummary(os);
 }
 
 void

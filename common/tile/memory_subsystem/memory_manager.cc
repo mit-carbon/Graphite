@@ -1,5 +1,3 @@
-using namespace std;
-
 #include "simulator.h"
 #include "config.h"
 #include "memory_manager.h"
@@ -16,14 +14,22 @@ MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem
    : _tile(tile)
    , _network(network)
    , _shmem_perf_model(shmem_perf_model)
-{}
+   , _enabled(false)
+{
+   // Register call-backs
+   _network->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
+   _network->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
+}
 
 MemoryManager::~MemoryManager()
-{}
+{
+   _network->unregisterCallback(SHARED_MEM_1);
+   _network->unregisterCallback(SHARED_MEM_2);
+}
 
 MemoryManager* 
 MemoryManager::createMMU(std::string protocol_type,
-      Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
+                         Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
 {
    _caching_protocol_type = parseProtocolType(protocol_type);
 
@@ -61,18 +67,86 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet)
 {
    MemoryManager *mm = (MemoryManager*) obj;
    assert(mm != NULL);
+   mm->__handleMsgFromNetwork(packet);
+}
+
+bool
+MemoryManager::__coreInitiateMemoryAccess(MemComponent::Type mem_component,
+                                          Core::lock_signal_t lock_signal,
+                                          Core::mem_op_t mem_op_type,
+                                          IntPtr address, UInt32 offset,
+                                          Byte* data_buf, UInt32 data_length,
+                                          UInt64& curr_time, bool modeled)
+{
+   if (lock_signal != Core::UNLOCK)
+      _lock.acquire();
+   
+   _shmem_perf_model->setCycleCount(curr_time);
+
+   bool ret = coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type,
+                                       address, offset, data_buf, data_length, modeled);
+
+   curr_time = _shmem_perf_model->getCycleCount();
+
+   if (lock_signal != Core::LOCK)
+      _lock.release();
+
+   return ret;
+}
+
+void
+MemoryManager::__handleMsgFromNetwork(NetPacket& packet)
+{
+   _lock.acquire();
+
+   _shmem_perf_model->setCycleCount(packet.time);
 
    switch (packet.type)
    {
    case SHARED_MEM_1:
    case SHARED_MEM_2:
-      mm->handleMsgFromNetwork(packet);
+      handleMsgFromNetwork(packet);
       break;
 
    default:
-      LOG_PRINT_ERROR("Got unrecognized packet type(%u)", packet.type);
+      LOG_PRINT_ERROR("Unrecognized packet type (%u)", packet.type);
       break;
    }
+
+   _lock.release();
+}
+
+void
+MemoryManager::outputSummary(ostream& out)
+{
+}
+
+void
+MemoryManager::waitForAppThread()
+{
+   _sim_thread_sem.wait();
+   _lock.acquire();
+}
+
+void
+MemoryManager::wakeUpAppThread()
+{
+   _lock.release();
+   _app_thread_sem.signal();
+}
+
+void
+MemoryManager::waitForSimThread()
+{
+   _lock.release();
+   _app_thread_sem.wait();
+}
+
+void
+MemoryManager::wakeUpSimThread()
+{
+   _lock.acquire();
+   _sim_thread_sem.signal();
 }
 
 void

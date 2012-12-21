@@ -18,14 +18,12 @@ public:
    MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
    virtual ~MemoryManager();
 
-   virtual bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
-                                         Core::lock_signal_t lock_signal,
-                                         Core::mem_op_t mem_op_type,
-                                         IntPtr address, UInt32 offset,
-                                         Byte* data_buf, UInt32 data_length,
-                                         UInt64& curr_time, bool modeled) = 0;
+   bool __coreInitiateMemoryAccess(MemComponent::Type mem_component,
+                                   Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
+                                   IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
+                                   UInt64& curr_time, bool modeled);
 
-   virtual void handleMsgFromNetwork(NetPacket& packet) = 0;
+   void __handleMsgFromNetwork(NetPacket& packet);
 
    // Update internal variables when frequency is changed
    // Variables that need to be updated include all variables that are expressed in terms of cycles
@@ -33,13 +31,20 @@ public:
    virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency) = 0;
 
    Tile* getTile()   { return _tile; }
-   virtual UInt32 getCacheLineSize() = 0;
    ShmemPerfModel* getShmemPerfModel() { return _shmem_perf_model; }
+   virtual UInt32 getCacheLineSize() = 0;
+
+   // App + Sim thread synchronization
+   void waitForAppThread();
+   void wakeUpAppThread();
+   void waitForSimThread();
+   void wakeUpSimThread();
 
    virtual tile_id_t getShmemRequester(const void* pkt_data) = 0;
 
-   virtual void enableModels() = 0;
-   virtual void disableModels() = 0;
+   virtual void enableModels()   { _enabled = true;  }
+   virtual void disableModels()  { _enabled = false; }
+   bool isEnabled()              { return _enabled;  }
 
    // Modeling
    // getModeledLength() returns the length of the msg in bits
@@ -48,8 +53,7 @@ public:
 
    static CachingProtocolType parseProtocolType(std::string& protocol_type);
    static MemoryManager* createMMU(std::string protocol_type,
-                                       Tile* tile, Network* network,
-                                       ShmemPerfModel* shmem_perf_model);
+                                   Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model);
    
    virtual void outputSummary(std::ostream& os) = 0;
 
@@ -69,6 +73,20 @@ private:
    Tile* _tile;
    Network* _network;
    ShmemPerfModel* _shmem_perf_model;
+   
+   // App + Sim thread Synchronization
+   Lock _lock;
+   Semaphore _app_thread_sem;
+   Semaphore _sim_thread_sem;
+
+   // Enabled
+   bool _enabled;
+
+   virtual bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
+                                         Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
+                                         IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
+                                         bool modeled) = 0;
+   virtual void handleMsgFromNetwork(NetPacket& packet) = 0;
    
    void parseMemoryControllerList(string& memory_controller_positions,
                                   vector<tile_id_t>& tile_list_from_cfg_file,

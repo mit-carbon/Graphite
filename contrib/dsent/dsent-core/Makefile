@@ -1,6 +1,7 @@
 
 # Define the directories that will be compiled
-DIRS_TO_COMPILE := util tech io \
+DIRS_TO_COMPILE := libutil \
+                   util tech io \
                    model model/timing_graph \
                    model/std_cells \
                    model/electrical \
@@ -11,43 +12,30 @@ DIRS_TO_COMPILE := util tech io \
                    model/network/ATAC
 
 DIRS = $(patsubst %,$(CURDIR)/%,$(DIRS_TO_COMPILE))
-
 SRCS = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.cc))
+OBJS = $(SRCS:%.cc=%.o) $(CURDIR)/DSENT.o
 
-OBJS = $(SRCS:%.cc=%.lo)
+INC_FLAGS   = -I$(CURDIR)
+DEBUG_FLAGS = -g
+OPT_FLAGS   = -O2 -fPIC
+WARN_FLAGS  = -pedantic -Wall -W
+CXX_FLAGS   = $(DEBUG_FLAGS) $(OPT_FLAGS) $(WARN_FLAGS) $(INC_FLAGS)
 
-DEF_FLAGS = 
-INCLUDE_FLAGS = -I$(CURDIR)
-OPT_FLAGS = -O2 -g -fPIC
-WARN_FLAGS = -pedantic -Wall -W #-Wextra -Werror -Wno-write-strings
-CXXFLAGS = $(OPT_FLAGS) $(WARN_FLAGS) $(INCLUDE_FLAGS) $(DEF_FLAGS)
+LD_LIBS     =
+LD_FLAGS    =
 
-LD_LIBS += -lutil
-LD_FLAGS += -Llibutil
+TARGET = dsent.exe
 
-# Other libraries used 
-LIB_UTIL = $(CURDIR)/libutil/libutil.la
+all: $(TARGET)
 
-TARGET_LIB = $(CURDIR)/libdsent.la
-TARGET_EXE = $(CURDIR)/dsent
+$(TARGET): main.o $(OBJS) 
+	$(CXX) $(CXX_FLAGS) $(LD_FLAGS) $(OBJS) main.o DSENT.o -o $(TARGET) $(LD_LIBS) 
 
-all: $(TARGET_EXE)
-
-$(TARGET_EXE): main.lo DSENT.lo $(LIB_UTIL) $(OBJS) 
-	libtool --mode=link $(CXX) $(CXXFLAGS) $(LD_FLAGS) $(OBJS) main.lo DSENT.lo -o $(TARGET_EXE) $(LD_LIBS) 
-
-static_lib: DSENT.lo $(LIB_UTIL) $(OBJS)
-	libtool --mode=link $(CXX) -static $(CXXFLAGS) -o $(TARGET_LIB) DSENT.lo $(OBJS) $(LIB_UTIL)
+object: $(OBJS)
 
 # For general c++ compilation
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-%.lo: %.cc
-	libtool --mode=compile $(CXX) -static -no-suppress $(CXXFLAGS) -c $< -o $@
-
-$(LIB_UTIL):
-	$(MAKE) -C $(CURDIR)/libutil static_lib TARGET_LIB=$(LIB_UTIL)
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
 %/created:
 	mkdir -p $(dir $@)
@@ -55,6 +43,5 @@ $(LIB_UTIL):
 
 .phony: clean
 clean:
-	libtool --mode=clean $(RM) -rf main.lo DSENT.lo $(OBJS) $(TARGET_LIB) $(TARGET_EXE)
-	$(MAKE) -C $(CURDIR)/libutil clean
+	-$(RM) $(OBJS) $(TARGET)
 

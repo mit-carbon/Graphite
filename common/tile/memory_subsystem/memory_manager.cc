@@ -10,12 +10,13 @@
 // Static Members
 CachingProtocolType MemoryManager::_caching_protocol_type;
 
-MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
+MemoryManager::MemoryManager(Tile* tile)
    : _tile(tile)
-   , _network(network)
-   , _shmem_perf_model(shmem_perf_model)
    , _enabled(false)
 {
+   _network = _tile->getNetwork();
+   _shmem_perf_model = new ShmemPerfModel();
+   
    // Register call-backs
    _network->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
    _network->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
@@ -28,21 +29,20 @@ MemoryManager::~MemoryManager()
 }
 
 MemoryManager* 
-MemoryManager::createMMU(std::string protocol_type,
-                         Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
+MemoryManager::createMMU(std::string protocol_type, Tile* tile)
 {
    _caching_protocol_type = parseProtocolType(protocol_type);
 
    switch (_caching_protocol_type)
    {
    case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile, network, shmem_perf_model);
+      return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile);
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
-      return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile, network, shmem_perf_model);
+      return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile);
 
    case PR_L1_SH_L2_MSI:
-      return new PrL1ShL2MSI::MemoryManager(tile, network, shmem_perf_model);
+      return new PrL1ShL2MSI::MemoryManager(tile);
 
    default:
       LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
@@ -114,6 +114,20 @@ MemoryManager::__handleMsgFromNetwork(NetPacket& packet)
    }
 
    _lock.release();
+}
+
+void
+MemoryManager::enableModels()
+{
+   _enabled = true;
+   _shmem_perf_model->enable();
+}
+
+void
+MemoryManager::disableModels()
+{
+   _enabled = false;
+   _shmem_perf_model->disable();
 }
 
 void

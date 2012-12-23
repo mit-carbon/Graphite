@@ -10,8 +10,8 @@
 namespace PrL1ShL2MSI
 {
 
-MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
-   : ::MemoryManager(tile, network, shmem_perf_model)
+MemoryManager::MemoryManager(Tile* tile)
+   : ::MemoryManager(tile)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
 {

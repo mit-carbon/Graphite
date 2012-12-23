@@ -6,11 +6,11 @@
 #include "thread_manager.h"
 #include "tile_manager.h"
 #include "tile.h"
+#include "core_model.h"
 #include "clock_converter.h"
 #include "config_file.hpp"
 #include "handle_args.h"
 #include "fxsupport.h"
-
 #include "carbon_user.h"
 #include "thread_support_private.h"
 
@@ -80,8 +80,7 @@ UInt64 CarbonGetTime()
    FloatingPointHandler floating_point_handler;
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
-   UInt64 time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), \
-         core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 time = convertCycleCount(core->getModel()->getCycleCount(), core->getModel()->getFrequency(), 1.0);
 
    return time;
 }

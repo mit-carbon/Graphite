@@ -1,3 +1,4 @@
+#include <cassert>
 #include <sys/syscall.h>
 #include <time.h>
 #include "round_robin_thread_scheduler.h"

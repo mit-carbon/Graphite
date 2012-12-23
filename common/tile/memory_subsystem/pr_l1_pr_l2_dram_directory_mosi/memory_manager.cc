@@ -13,8 +13,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 // Static variables
 ofstream MemoryManager::_cache_line_replication_file;
 
-MemoryManager::MemoryManager(Tile* tile, Network* network, ShmemPerfModel* shmem_perf_model)
-   : ::MemoryManager(tile, network, shmem_perf_model)
+MemoryManager::MemoryManager(Tile* tile)
+   : ::MemoryManager(tile)
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)

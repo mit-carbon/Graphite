@@ -162,7 +162,7 @@ void routineCallback(RTN rtn, void *v)
    }
 }
 
-VOID instructionCallback (INS ins, void *v)
+VOID instructionCallback(INS ins, void *v)
 {
    // Debugging Function
    if (Log::getSingleton()->isLoggingEnabled())
@@ -174,7 +174,7 @@ VOID instructionCallback (INS ins, void *v)
             IARG_END);
    }
 
-   if (Config::getSingleton()->getEnablePerformanceModeling())
+   if (Config::getSingleton()->getEnableCoreModeling())
    {
       // Core Performance Modeling
       addInstructionModeling(ins);

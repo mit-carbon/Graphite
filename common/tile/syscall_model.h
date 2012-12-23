@@ -3,11 +3,10 @@
 
 #include <iostream>
 
-#include "message_types.h"
 #include "packetize.h"
-#include "transport.h"
 #include "network.h"
 #include "fixed_types.h"
+#include "core.h"
 
 class SyscallMdl
 {
@@ -22,7 +21,7 @@ class SyscallMdl
           IntPtr arg5;
       };
 
-      SyscallMdl(Network *net);
+      SyscallMdl(Core *core);
 
       IntPtr runExit(IntPtr old_return);
       IntPtr runEnter(IntPtr syscall_number, syscall_args_t &args);

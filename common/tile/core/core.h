@@ -1,13 +1,13 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include <string.h>
+#include <iostream>
+using std::ostream;
+using std::pair;
 
 // Some forward declarations for cross includes
 class Tile;
 class CoreModel;
-class Network;
-class MemoryManager;
 class SyscallMdl;
 class SyncClient;
 class ClockSkewMinimizationClient;
@@ -15,14 +15,8 @@ class PinMemoryManager;
 
 #include "mem_component.h"
 #include "fixed_types.h"
-#include "config.h"
-#include "core_model.h"
-#include "shmem_perf_model.h"
 #include "capi.h"
 #include "packet_type.h"
-
-
-using namespace std;
 
 class Core
 {
@@ -58,52 +52,52 @@ public:
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    
-   virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size) = 0;
+   virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size);
 
    virtual pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::Type mem_component,
-                                                     lock_signal_t lock_signal,
-                                                     mem_op_t mem_op_type,
-                                                     IntPtr address,
-                                                     Byte* data_buf, UInt32 data_size,
-                                                     bool push_info = false,
-                                                     UInt64 time = 0) = 0;
+                                                     lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
+                                                     Byte* data_buf, UInt32 data_size, bool push_info = false,
+                                                     UInt64 time = 0);
    
    virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
-                                             char* data_buffer, UInt32 data_size, bool push_info = false) = 0;
+                                             char* data_buffer, UInt32 data_size, bool push_info = false);
 
-   core_id_t getId()                         { return m_core_id; }
-   Tile *getTile()                           { return m_tile; }
-   tile_id_t getTileId()                     { return m_core_id.tile_id; }
-   UInt32 getCoreType()                      { return m_core_id.core_type; }
-   CoreModel *getPerformanceModel()          { return m_core_model; }
-   SyncClient *getSyncClient()               { return m_sync_client; }
-   SyscallMdl *getSyscallMdl()               { return m_syscall_model; }
-   ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return m_clock_skew_minimization_client; }
-   PinMemoryManager *getPinMemoryManager()   { return m_pin_memory_manager; }
-   Network* getNetwork()                     { return m_network; }
-   ShmemPerfModel* getShmemPerfModel()       { return m_shmem_perf_model; }
-   MemoryManager *getMemoryManager()         { return m_memory_manager; }
+   core_id_t getId()                         { return _id; }
+   Tile *getTile()                           { return _tile; }
+   CoreModel *getModel()                     { return _core_model; }
+   SyncClient *getSyncClient()               { return _sync_client; }
+   SyscallMdl *getSyscallMdl()               { return _syscall_model; }
+   ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return _clock_skew_minimization_client; }
+   PinMemoryManager *getPinMemoryManager()   { return _pin_memory_manager; }
 
-   State getState();
-   void setState(State core_state);
+   State getState()                          { return _state; }
+   void setState(State state)                { _state = state; }
+  
+   void outputSummary(ostream& os);
+
+   void enableModels();
+   void disableModels();
+
+   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
 
 protected:
-   Tile *m_tile;
-   core_id_t m_core_id;
-   CoreModel *m_core_model;
-   SyncClient *m_sync_client;
-   SyscallMdl *m_syscall_model;
-   ClockSkewMinimizationClient *m_clock_skew_minimization_client;
-   Network* m_network;
-   ShmemPerfModel* m_shmem_perf_model;
-   MemoryManager* m_memory_manager;
+   core_id_t _id;
+   Tile *_tile;
+   CoreModel *_core_model;
+   SyncClient *_sync_client;
+   SyscallMdl *_syscall_model;
+   ClockSkewMinimizationClient *_clock_skew_minimization_client;
+   State _state;
+   PinMemoryManager *_pin_memory_manager;
+   bool _enabled;
 
-   State m_core_state;
-   Lock m_core_state_lock;
+   UInt64 _num_memory_accesses;
+   UInt64 _total_memory_access_latency_in_clock_cycles;
+   UInt64 _total_memory_access_latency_in_ns;
 
-   PinMemoryManager *m_pin_memory_manager;
-   
-   PacketType getPktTypeFromUserNetType(carbon_network_t net_type);
+   void initializeMemoryAccessLatencyCounters();
+   void incrTotalMemoryAccessLatency(UInt64 memory_access_latency);
+   PacketType getPacketTypeFromUserNetType(carbon_network_t net_type);
 };
 
 #endif

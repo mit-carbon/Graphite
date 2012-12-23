@@ -49,7 +49,7 @@ public:
    bool finished();
 
    std::string getGraphiteHome() { return m_graphite_home; }
-
+   
    void enableModels();
    void disableModels();
 

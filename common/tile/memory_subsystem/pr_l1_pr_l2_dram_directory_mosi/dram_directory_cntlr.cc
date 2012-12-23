@@ -1,8 +1,11 @@
+#include <cstring>
 #include "dram_directory_cntlr.h"
-#include "log.h"
 #include "memory_manager.h"
+#include "core_model.h"
 #include "clock_converter.h"
 #include "utils.h"
+#include "config.h"
+#include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -1065,7 +1068,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    out << "    Shared Requests: " << _total_shreq << endl;
    out << "    Nullify Requests: " << _total_nullifyreq << endl;
 
-   float frequency = _memory_manager->getTile()->getCore()->getPerformanceModel()->getFrequency();
+   float frequency = _memory_manager->getTile()->getCore()->getModel()->getFrequency();
    if (_total_exreq > 0)
    {
       out << "    Exclusive Request - MODIFIED State: " << _total_exreq_in_modified_state << endl;

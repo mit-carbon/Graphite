@@ -2,6 +2,7 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
+#include "core.h"
 #include "core_model.h"
 #include "fxsupport.h"
 
@@ -10,7 +11,7 @@ void CarbonGetTileFrequency(volatile float* frequency)
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   *frequency = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel()->getFrequency();
+   *frequency = Sim()->getTileManager()->getCurrentCore()->getModel()->getFrequency();
 }
 
 void CarbonSetTileFrequency(volatile float* frequency)

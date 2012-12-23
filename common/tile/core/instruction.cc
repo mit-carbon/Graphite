@@ -2,6 +2,7 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
+#include "core.h"
 #include "core_model.h"
 #include "branch_predictor.h"
 
@@ -103,7 +104,7 @@ SpawnInstruction::SpawnInstruction(UInt64 time)
 
 UInt64 SpawnInstruction::getCost()
 {
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getModel();
    perf->setCycleCount(m_time);
    throw CoreModel::AbortInstructionException(); // exit out of handleInstruction
 }
@@ -116,7 +117,7 @@ BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
 
 UInt64 BranchInstruction::getCost()
 {
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getPerformanceModel();
+   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getModel();
    BranchPredictor *bp = perf->getBranchPredictor();
 
    DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();

@@ -1,102 +1,68 @@
 #include "tile.h"
-#include "tile_manager.h"
 #include "network.h"
 #include "network_model.h"
-#include "syscall_model.h"
-#include "sync_client.h"
 #include "network_types.h"
 #include "memory_manager.h"
-#include "pin_memory_manager.h"
-#include "clock_skew_minimization_object.h"
-#include "core_model.h"
 #include "main_core.h"
-#include "core.h"
 #include "simulator.h"
 #include "log.h"
 
-using namespace std;
-
 Tile::Tile(tile_id_t id)
-   : m_tile_id(id)
-   , m_shmem_perf_model(NULL)
-   , m_memory_manager(NULL)
+   : _id(id)
+   , _memory_manager(NULL)
 {
-   LOG_PRINT("Tile ctor for: %d", id);
+   LOG_PRINT("Tile ctor for (%i)", _id);
 
-   m_network = new Network(this);
-
+   _network = new Network(this);
+   _core = new MainCore(this);
+   
    if (Config::getSingleton()->isSimulatingSharedMemory())
-   {
-      m_shmem_perf_model = new ShmemPerfModel();
-      LOG_PRINT("instantiated shared memory performance model");
-
-      m_memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"),
-                                                  this, this->getNetwork(), m_shmem_perf_model);
-      LOG_PRINT("instantiated memory manager model");
-   }
-
-   m_main_core = new MainCore(this);
+      _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
 }
 
 Tile::~Tile()
 {
-   delete m_main_core;
-   if (Config::getSingleton()->isSimulatingSharedMemory())
-   {
-      delete m_memory_manager;
-      delete m_shmem_perf_model;
-   }
-   delete m_network;
+   if (_memory_manager)
+      delete _memory_manager;
+   delete _core;
+   delete _network;
 }
 
-void Tile::outputSummary(std::ostream &os)
+void Tile::outputSummary(ostream &os)
 {
-   os << "Tile Summary:\n";
-   LOG_PRINT("Core Performance Model Summary");
-   if (Config::getSingleton()->getEnablePerformanceModeling())
-   {
-      getCore()->getPerformanceModel()->outputSummary(os);
-   }
+   LOG_PRINT("Core Summary");
+   _core->outputSummary(os);
+
    LOG_PRINT("Network Summary");
-   getNetwork()->outputSummary(os);
+   _network->outputSummary(os);
 
-   LOG_PRINT("Memory Model Summary");
-   if (Config::getSingleton()->isSimulatingSharedMemory())
-   {
-      getCore()->getShmemPerfModel()->outputSummary(os, Config::getSingleton()->getCoreFrequency(getCore()->getId()));
-      getCore()->getMemoryManager()->outputSummary(os);
-   }
+   LOG_PRINT("Memory Subsystem Summary");
+   if (_memory_manager)
+      _memory_manager->outputSummary(os);
 }
 
-void Tile::enablePerformanceModels()
+void Tile::enableModels()
 {
-   LOG_PRINT("enablePerformanceModels(%i) start", m_tile_id);
-   if (getCore()->getClockSkewMinimizationClient())
-      getCore()->getClockSkewMinimizationClient()->enable();
-
-   getNetwork()->enableModels();
-   getCore()->getShmemPerfModel()->enable();
-   getCore()->getMemoryManager()->enableModels();
-   getCore()->getPerformanceModel()->enable();
-   LOG_PRINT("enablePerformanceModels(%i) end", m_tile_id);
+   LOG_PRINT("enableModels(%i) start", _id);
+   _network->enableModels();
+   _core->enableModels();
+   if (_memory_manager)
+      _memory_manager->enableModels();
+   LOG_PRINT("enableModels(%i) end", _id);
 }
 
-void Tile::disablePerformanceModels()
+void Tile::disableModels()
 {
-   LOG_PRINT("disablePerformanceModels(%i) start", m_tile_id);
-   if (getCore()->getClockSkewMinimizationClient())
-      getCore()->getClockSkewMinimizationClient()->disable();
-
-   getNetwork()->disableModels();
-   getCore()->getShmemPerfModel()->disable();
-   getCore()->getMemoryManager()->disableModels();
-   getCore()->getPerformanceModel()->disable();
-   LOG_PRINT("disablePerformanceModels(%i) end", m_tile_id);
+   LOG_PRINT("disableModels(%i) start", _id);
+   _network->disableModels();
+   _core->disableModels();
+   if (_memory_manager)
+      _memory_manager->disableModels();
+   LOG_PRINT("disableModels(%i) end", _id);
 }
 
 void
 Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
-   getCore()->getPerformanceModel()->updateInternalVariablesOnFrequencyChange(frequency);
-   getCore()->getShmemPerfModel()->updateInternalVariablesOnFrequencyChange(frequency);
+   _core->updateInternalVariablesOnFrequencyChange(frequency);
 }

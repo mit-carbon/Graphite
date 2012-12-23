@@ -40,10 +40,10 @@ LaxBarrierSyncClient::synchronize(UInt64 cycle_count)
    FloatingPointHandler floating_point_handler;
 
    if (cycle_count == 0)
-      cycle_count = m_core->getPerformanceModel()->getCycleCount();
+      cycle_count = m_core->getModel()->getCycleCount();
 
    // Convert from tile clock to global clock
-   UInt64 curr_time = convertCycleCount(cycle_count, m_core->getPerformanceModel()->getFrequency(), 1.0);
+   UInt64 curr_time = convertCycleCount(cycle_count, m_core->getModel()->getFrequency(), 1.0);
 
    if (curr_time >= m_next_sync_time)
    {
@@ -51,13 +51,13 @@ LaxBarrierSyncClient::synchronize(UInt64 cycle_count)
       int msg_type = MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION;
 
       m_send_buff << msg_type << curr_time;
-      m_core->getNetwork()->netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      m_core->getTile()->getNetwork()->netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
       LOG_PRINT("Core(%i, %i), curr_time(%llu), m_next_sync_time(%llu) sent SIM_BARRIER_WAIT", m_core->getId().tile_id, m_core->getId().core_type, curr_time, m_next_sync_time);
 
       // Receive 'BARRIER_RELEASE' response
       NetPacket recv_pkt;
-      recv_pkt = m_core->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_SYSTEM_RESPONSE_TYPE);
+      recv_pkt = m_core->getTile()->getNetwork()->netRecv(Config::getSingleton()->getMCPCoreId(), m_core->getId(), MCP_SYSTEM_RESPONSE_TYPE);
       assert(recv_pkt.length == sizeof(int));
 
       unsigned int dummy;

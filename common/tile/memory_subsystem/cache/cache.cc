@@ -404,7 +404,7 @@ void
 Cache::outputSummary(ostream& out)
 {
    // Cache Miss Summary
-   out << "  Cache " << _name << ":\n";
+   out << "  Cache " << _name << ": "<< endl;
    out << "    Cache Accesses: " << _total_cache_accesses << endl;
    out << "    Cache Misses: " << _total_cache_misses << endl;
    if (_total_cache_accesses > 0)

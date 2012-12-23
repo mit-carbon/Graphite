@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <sstream>
 
 #include "simulator.h"
@@ -7,6 +7,7 @@
 #include "lcp.h"
 #include "mcp.h"
 #include "tile.h"
+#include "instruction.h"
 #include "tile_manager.h"
 #include "thread_manager.h"
 #include "thread_scheduler.h"
@@ -291,7 +292,7 @@ void Simulator::enableModels()
    startTimer();
    m_enabled = true;
    for (UInt32 i = 0; i < m_config.getNumLocalTiles(); i++)
-      m_tile_manager->getTileFromIndex(i)->enablePerformanceModels();
+      m_tile_manager->getTileFromIndex(i)->enableModels();
 }
 
 void Simulator::disableModels()
@@ -299,7 +300,7 @@ void Simulator::disableModels()
    stopTimer();
    m_enabled = false;
    for (UInt32 i = 0; i < m_config.getNumLocalTiles(); i++)
-      m_tile_manager->getTileFromIndex(i)->disablePerformanceModels();
+      m_tile_manager->getTileFromIndex(i)->disableModels();
 }
 
 void Simulator::enablePerformanceModelsInCurrentProcess()

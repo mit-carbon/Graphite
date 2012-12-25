@@ -120,8 +120,8 @@ void MCP::processPacket()
       Sim()->getThreadScheduler()->masterSchedGetAffinity((ThreadAffinityRequest*)recv_pkt.data);
       break;
 
-    case MCP_MESSAGE_THREAD_SET_PID:
-      Sim()->getThreadManager()->masterSetPid(  *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+   case MCP_MESSAGE_THREAD_SET_OS_TID:
+      Sim()->getThreadManager()->masterSetOSTid(*(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
                                                 *(thread_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
                                                 *(pid_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(thread_id_t)));
       break;

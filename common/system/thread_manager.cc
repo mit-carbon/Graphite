@@ -115,8 +115,8 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 
    assert(m_tile_manager->getCurrentCore()->getState() == Core::IDLE || m_tile_manager->getCurrentCore()->getState() == Core::STALLED);
 
-   // Set PID of this thread
-   this->setPid(req->destination, req->destination_tidx, syscall(__NR_gettid));
+   // Set OS-TID (operating system - thread ID) of this thread
+   setOSTid(req->destination, req->destination_tidx, syscall(SYS_gettid));
 
    // Set the CoreState to 'RUNNING'
    m_tile_manager->getCurrentCore()->setState(Core::RUNNING);
@@ -630,9 +630,9 @@ void ThreadManager::setPid(core_id_t core_id, thread_id_t thread_idx, pid_t pid)
    m_tid_map_lock.release();
 }
 
-void ThreadManager::masterSetPid(tile_id_t tile_id, thread_id_t thread_idx, pid_t pid)
+void ThreadManager::masterSetOSTid(tile_id_t tile_id, thread_id_t thread_idx, pid_t os_tid)
 {
-   m_thread_state[tile_id][thread_idx].pid = pid;
+   m_thread_state[tile_id][thread_idx].os_tid = os_tid;
 }
 
 
@@ -998,7 +998,7 @@ thread_id_t ThreadManager::isCoreRunning(tile_id_t tile_id)
    return thread_index;
 }
 
-int ThreadManager::setThreadAffinity(pid_t pid, cpu_set_t* set)
+int ThreadManager::setThreadAffinity(pid_t os_tid, cpu_set_t* set)
 {
    thread_id_t thread_index = INVALID_THREAD_ID;
    tile_id_t tile_id = INVALID_TILE_ID;
@@ -1008,7 +1008,7 @@ int ThreadManager::setThreadAffinity(pid_t pid, cpu_set_t* set)
    {
       for (SInt32 j = 0; j < (SInt32) m_thread_state[i].size(); j++)
       {
-         if (m_thread_state[i][j].pid == pid)
+         if (m_thread_state[i][j].os_tid == os_tid)
          {
             if(thread_index == INVALID_THREAD_ID)
             {
@@ -1016,7 +1016,7 @@ int ThreadManager::setThreadAffinity(pid_t pid, cpu_set_t* set)
                thread_index = j;
             }
             else
-               LOG_PRINT_ERROR("Two threads %i on %i and %i on %i have the same pid %i!", thread_index, tile_id, j, i, pid);
+               LOG_PRINT_ERROR("Two threads %i on %i and %i on %i have the same os_tid %i!", thread_index, tile_id, j, i, os_tid);
          }
       }
    }
@@ -1037,7 +1037,7 @@ void ThreadManager::setThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_s
    CPU_OR_S(CPU_ALLOC_SIZE(Config::getSingleton()->getTotalTiles()), m_thread_state[tile_id][tidx].cpu_set, set, set);
 }
 
-int ThreadManager::getThreadAffinity(pid_t pid, cpu_set_t* set)
+int ThreadManager::getThreadAffinity(pid_t os_tid, cpu_set_t* set)
 {
    thread_id_t thread_index = INVALID_THREAD_ID;
    tile_id_t tile_id = INVALID_TILE_ID;
@@ -1047,7 +1047,7 @@ int ThreadManager::getThreadAffinity(pid_t pid, cpu_set_t* set)
    {
       for (SInt32 j = 0; j < (SInt32) m_thread_state[i].size(); j++)
       {
-         if (m_thread_state[i][j].pid == pid)
+         if (m_thread_state[i][j].os_tid == os_tid)
          {
             if(thread_index == INVALID_THREAD_ID)
             {
@@ -1055,7 +1055,7 @@ int ThreadManager::getThreadAffinity(pid_t pid, cpu_set_t* set)
                thread_index = j;
             }
             else
-               LOG_PRINT_ERROR("Two threads %i on %i and %i on %i have the same pid %i!", thread_index, tile_id, j, i, pid);
+               LOG_PRINT_ERROR("Two threads %i on %i and %i on %i have the same os_tid %i!", thread_index, tile_id, j, i, os_tid);
          }
       }
    }

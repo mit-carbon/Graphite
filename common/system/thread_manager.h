@@ -26,7 +26,7 @@ public:
       core_id_t waiter_core;
       thread_id_t waiter_tid;
       thread_id_t thread_id;
-      pid_t pid;
+      pid_t os_tid;
       cpu_set_t * cpu_set;
 
       ThreadState()
@@ -97,8 +97,8 @@ public:
    int getThreadAffinity(pid_t pid, cpu_set_t* set);
    void getThreadAffinity(tile_id_t tile_id, thread_id_t tidx, cpu_set_t* set);
 
-   void setPid(core_id_t core_id, thread_id_t thread_idx, pid_t pid);
-   void masterSetPid(tile_id_t tile_id, thread_id_t thread_idx, pid_t pid);
+   void setOSTid(core_id_t core_id, thread_id_t thread_idx, pid_t pid);
+   void masterSetOSTid(tile_id_t tile_id, thread_id_t thread_idx, pid_t pid);
    void queryThreadIndex(thread_id_t thread_id, core_id_t &core_id, thread_id_t &thread_idx, thread_id_t &next_tidx);
 
    friend class ThreadScheduler;

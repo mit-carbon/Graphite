@@ -979,6 +979,8 @@ void SyscallServer::futexWakeOp(core_id_t core_id, int *addr1, int val1, int val
    }
    
    // Write the newval into addr2
+   if (Config::getSingleton()->getSimulationMode() == Config::LITE)
+      *addr2 = newval;
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) addr2, (char*) &newval, sizeof(newval));
 
    // Wake upto val1 threads waiting on the first futex

@@ -703,7 +703,7 @@ void ThreadScheduler::yieldThread(bool is_pre_emptive)
 
          // Set PID of this thread
          m_tile_manager->updateTLS(dst_core_id.tile_id, dst_thread_idx, m_tile_manager->getCurrentThreadId());
-         m_thread_manager->setPid(dst_core_id, dst_thread_idx, syscall(__NR_gettid));
+         m_thread_manager->setOSTid(dst_core_id, dst_thread_idx, syscall(SYS_gettid));
 
          // If no threads are scheduled, then schedule this thread next.
          if(dst_next_tidx == INVALID_THREAD_ID)

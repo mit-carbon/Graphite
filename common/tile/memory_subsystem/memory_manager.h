@@ -25,30 +25,31 @@ public:
 
    void __handleMsgFromNetwork(NetPacket& packet);
 
+   virtual void outputSummary(std::ostream& os);
+
    // Update internal variables when frequency is changed
    // Variables that need to be updated include all variables that are expressed in terms of cycles
    //  e.g., total memory access latency, packet arrival time, etc.
    virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency) = 0;
 
-   Tile* getTile()   { return _tile; }
-   ShmemPerfModel* getShmemPerfModel() { return _shmem_perf_model; }
+   Tile* getTile()                        { return _tile; }
+   ShmemPerfModel* getShmemPerfModel()    { return _shmem_perf_model; }
    virtual UInt32 getCacheLineSize() = 0;
 
+   virtual void enableModels();
+   virtual void disableModels();
+   bool isEnabled()                       { return _enabled;  }
+   
    // App + Sim thread synchronization
+   void acquireLock()                     { _lock.acquire(); }
+   void releaseLock()                     { _lock.release(); }
+
    void waitForAppThread();
    void wakeUpAppThread();
    void waitForSimThread();
    void wakeUpSimThread();
 
    virtual tile_id_t getShmemRequester(const void* pkt_data) = 0;
-
-   virtual void enableModels();
-   virtual void disableModels();
-   bool isEnabled()  { return _enabled;  }
-   
-   virtual void outputSummary(std::ostream& os);
-
-   // Modeling
    // getModeledLength() returns the length of the msg in bits
    virtual UInt32 getModeledLength(const void* pkt_data) = 0;
    virtual bool isModeled(const void* pkt_data) = 0;

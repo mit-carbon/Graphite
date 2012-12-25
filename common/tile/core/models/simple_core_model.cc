@@ -2,6 +2,7 @@
 #include "log.h"
 #include "simple_core_model.h"
 #include "branch_predictor.h"
+#include "clock_converter.h"
 
 using std::endl;
 
@@ -30,17 +31,14 @@ void SimpleCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total L1-D Cache Write Stall Time (in ns): " << (UInt64) ((double) m_total_l1dcache_write_stall_cycles / m_frequency) << endl;
 }
 
-void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   volatile float old_frequency = m_frequency;
-   volatile float new_frequency = frequency;
-
    // Update Pipeline stall counters due to memory
-   m_total_l1icache_stall_cycles = (UInt64) (((double) m_total_l1icache_stall_cycles / old_frequency) * new_frequency);
-   m_total_l1dcache_read_stall_cycles = (UInt64) (((double) m_total_l1dcache_read_stall_cycles / old_frequency) * new_frequency);
-   m_total_l1dcache_write_stall_cycles = (UInt64) (((double) m_total_l1dcache_write_stall_cycles / old_frequency) * new_frequency);
+   m_total_l1icache_stall_cycles = convertCycleCount(m_total_l1icache_stall_cycles, old_frequency, new_frequency);
+   m_total_l1dcache_read_stall_cycles = convertCycleCount(m_total_l1dcache_read_stall_cycles, old_frequency, new_frequency);
+   m_total_l1dcache_write_stall_cycles = convertCycleCount(m_total_l1dcache_write_stall_cycles, old_frequency, new_frequency);
 
-   CoreModel::updateInternalVariablesOnFrequencyChange(frequency);
+   CoreModel::updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
 
 void SimpleCoreModel::handleInstruction(Instruction *instruction)

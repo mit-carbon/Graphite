@@ -3,13 +3,14 @@
 #include "core.h"
 #include "tile.h"
 #include "core_model.h"
+#include "simulator.h"
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "network_types.h"
 #include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "clock_skew_minimization_object.h"
-#include "simulator.h"
+#include "clock_converter.h"
 #include "config.h"
 #include "log.h"
 
@@ -249,13 +250,13 @@ Core::outputSummary(ostream& os)
    if (_core_model)
       _core_model->outputSummary(os);
    
-   _total_memory_access_latency_in_ns +=
-      (UInt64) (ceil(1.0 * _total_memory_access_latency_in_clock_cycles / _core_model->getFrequency()));
+   float frequency = _core_model->getFrequency();
+   UInt64 total_memory_access_latency_in_ns = convertCycleCount(_total_memory_access_latency, frequency, 1.0);
    
    os << "Shared Memory Model summary: " << endl;
    os << "    Total Memory Accesses: " << _num_memory_accesses << endl;
    os << "    Average Memory Access Latency (in ns): " << 
-      (1.0 * _total_memory_access_latency_in_ns / _num_memory_accesses) << endl;
+      (1.0 * total_memory_access_latency_in_ns / _num_memory_accesses) << endl;
    
 }
 
@@ -280,22 +281,19 @@ Core::disableModels()
 }
 
 void
-Core::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+Core::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
    if (_core_model)
-      _core_model->updateInternalVariablesOnFrequencyChange(frequency);
+      _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 
-   _total_memory_access_latency_in_ns +=
-      (UInt64) (ceil(1.0 * _total_memory_access_latency_in_clock_cycles / frequency));
-   _total_memory_access_latency_in_clock_cycles = 0;
+   _total_memory_access_latency = convertCycleCount(_total_memory_access_latency, old_frequency, new_frequency);
 }
 
 void
 Core::initializeMemoryAccessLatencyCounters()
 {
    _num_memory_accesses = 0;
-   _total_memory_access_latency_in_clock_cycles = 0;
-   _total_memory_access_latency_in_ns = 0;
+   _total_memory_access_latency = 0;
 }
 
 void
@@ -304,6 +302,6 @@ Core::incrTotalMemoryAccessLatency(UInt64 memory_access_latency)
    if (_enabled)
    {
       _num_memory_accesses ++;
-      _total_memory_access_latency_in_clock_cycles += memory_access_latency;
+      _total_memory_access_latency += memory_access_latency;
    }
 }

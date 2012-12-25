@@ -27,10 +27,13 @@ public:
    static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
    static bool isMainCore(core_id_t core_id)       { return (core_id.core_type == MAIN_CORE_TYPE); }
 
-   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
 
    void enableModels();
    void disableModels();
+
+   void acquireLock();
+   void releaseLock();
 
 private:
    tile_id_t _id;

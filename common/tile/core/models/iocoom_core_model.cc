@@ -8,6 +8,7 @@ using namespace std;
 #include "config.hpp"
 #include "simulator.h"
 #include "branch_predictor.h"
+#include "clock_converter.h"
 
 IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
    : CoreModel(core, frequency)
@@ -72,22 +73,19 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << (UInt64) ((double) m_total_inter_ins_execution_unit_stall_cycles / m_frequency) << endl;
 }
 
-void IOCOOMCoreModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+void IOCOOMCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   volatile float old_frequency = m_frequency;
-   volatile float new_frequency = frequency;
-
    // Update Pipeline stall counters due to memory
-   m_total_load_buffer_stall_cycles = (UInt64) (((double) m_total_load_buffer_stall_cycles / old_frequency) * new_frequency);
-   m_total_store_buffer_stall_cycles = (UInt64) (((double) m_total_store_buffer_stall_cycles / old_frequency) * new_frequency);
-   m_total_l1icache_stall_cycles = (UInt64) (((double) m_total_l1icache_stall_cycles / old_frequency) * new_frequency);
-   m_total_intra_ins_l1dcache_read_stall_cycles = (UInt64) (((double) m_total_intra_ins_l1dcache_read_stall_cycles / old_frequency) * new_frequency);
-   m_total_inter_ins_l1dcache_read_stall_cycles = (UInt64) (((double) m_total_inter_ins_l1dcache_read_stall_cycles / old_frequency) * new_frequency);
-   m_total_l1dcache_write_stall_cycles = (UInt64) (((double) m_total_l1dcache_write_stall_cycles / old_frequency) * new_frequency);
-   m_total_intra_ins_execution_unit_stall_cycles = (UInt64) (((double) m_total_intra_ins_execution_unit_stall_cycles / old_frequency) * new_frequency);
-   m_total_inter_ins_execution_unit_stall_cycles = (UInt64) (((double) m_total_inter_ins_execution_unit_stall_cycles / old_frequency) * new_frequency);
+   m_total_load_buffer_stall_cycles = convertCycleCount(m_total_load_buffer_stall_cycles, old_frequency, new_frequency);
+   m_total_store_buffer_stall_cycles = convertCycleCount(m_total_store_buffer_stall_cycles, old_frequency, new_frequency);
+   m_total_l1icache_stall_cycles = convertCycleCount(m_total_l1icache_stall_cycles, old_frequency, new_frequency);
+   m_total_intra_ins_l1dcache_read_stall_cycles = convertCycleCount(m_total_intra_ins_l1dcache_read_stall_cycles, old_frequency, new_frequency);
+   m_total_inter_ins_l1dcache_read_stall_cycles = convertCycleCount(m_total_inter_ins_l1dcache_read_stall_cycles, old_frequency, new_frequency);
+   m_total_l1dcache_write_stall_cycles = convertCycleCount(m_total_l1dcache_write_stall_cycles, old_frequency, new_frequency);
+   m_total_intra_ins_execution_unit_stall_cycles = convertCycleCount(m_total_intra_ins_execution_unit_stall_cycles, old_frequency, new_frequency);
+   m_total_inter_ins_execution_unit_stall_cycles = convertCycleCount(m_total_inter_ins_execution_unit_stall_cycles, old_frequency, new_frequency);
 
-   CoreModel::updateInternalVariablesOnFrequencyChange(frequency);
+   CoreModel::updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
 
 void IOCOOMCoreModel::handleInstruction(Instruction *instruction)

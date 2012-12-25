@@ -11,7 +11,8 @@ void CarbonGetTileFrequency(volatile float* frequency)
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
 
-   *frequency = Sim()->getTileManager()->getCurrentCore()->getModel()->getFrequency();
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   *frequency = tile->getCore()->getModel()->getFrequency();
 }
 
 void CarbonSetTileFrequency(volatile float* frequency)
@@ -20,10 +21,14 @@ void CarbonSetTileFrequency(volatile float* frequency)
    FloatingPointHandler floating_point_handler;
 
    // Stuff to change
-   // 1) Tile Performance Model
-   // 2) Shared Memory Performance Model
-   // 3) Cache Performance Model
+   // 1) Core Model
+   // 2) Memory Subsystem Model
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   tile->updateInternalVariablesOnFrequencyChange(*frequency);
+   tile->acquireLock();
+   volatile float old_frequency = tile->getCore()->getModel()->getFrequency();
+   volatile float new_frequency = *frequency;
+   tile->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   tile->getCore()->getModel()->setFrequency(new_frequency);
+   tile->releaseLock();
    Config::getSingleton()->setCoreFrequency(tile->getCore()->getId(), *frequency);
 }

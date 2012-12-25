@@ -164,7 +164,8 @@ void ThreadManager::onThreadExit()
    Network *net = tile->getNetwork();
 
    // Recompute Average Frequency
-   core->getModel()->recomputeAverageFrequency();
+   CoreModel* core_model = core->getModel();
+   core_model->recomputeAverageFrequency(core_model->getFrequency());
 
    // update global thread state
    net->netSend(Config::getSingleton()->getMCPCoreId(),

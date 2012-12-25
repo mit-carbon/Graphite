@@ -27,11 +27,12 @@ public:
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
-   volatile float getFrequency() { return m_frequency; }
-   virtual void updateInternalVariablesOnFrequencyChange(volatile float frequency);
-   void recomputeAverageFrequency(); 
+   volatile float getFrequency()                   { return m_frequency; }
+   void setFrequency(volatile float frequency)     { m_frequency = frequency; }
+   virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+   void recomputeAverageFrequency(float frequency); 
 
-   UInt64 getCycleCount() { return m_cycle_count; }
+   UInt64 getCycleCount()                          { return m_cycle_count; }
    void setCycleCount(UInt64 cycle_count);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);

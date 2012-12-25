@@ -17,6 +17,7 @@ class PinMemoryManager;
 #include "fixed_types.h"
 #include "capi.h"
 #include "packet_type.h"
+#include "lock.h"
 
 class Core
 {
@@ -75,12 +76,15 @@ public:
   
    void outputSummary(ostream& os);
 
+   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+
    void enableModels();
    void disableModels();
 
-   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+   void acquireLock()                        { _lock.acquire(); }
+   void releaseLock()                        { _lock.release(); }
 
-protected:
+private:
    core_id_t _id;
    Tile *_tile;
    CoreModel *_core_model;
@@ -91,9 +95,10 @@ protected:
    PinMemoryManager *_pin_memory_manager;
    bool _enabled;
 
+   Lock _lock;
+
    UInt64 _num_memory_accesses;
-   UInt64 _total_memory_access_latency_in_clock_cycles;
-   UInt64 _total_memory_access_latency_in_ns;
+   UInt64 _total_memory_access_latency;   // In clock-cycles
 
    void initializeMemoryAccessLatencyCounters();
    void incrTotalMemoryAccessLatency(UInt64 memory_access_latency);

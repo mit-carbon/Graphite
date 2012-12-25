@@ -62,7 +62,22 @@ void Tile::disableModels()
 }
 
 void
-Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+Tile::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _core->updateInternalVariablesOnFrequencyChange(frequency);
+   _core->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   _memory_manager->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+}
+
+void
+Tile::acquireLock()
+{
+   _core->acquireLock();
+   _memory_manager->acquireLock();
+}
+
+void
+Tile::releaseLock()
+{
+   _memory_manager->releaseLock();
+   _core->releaseLock();
 }

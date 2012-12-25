@@ -19,7 +19,7 @@ typedef UInt8 Boolean;
 typedef uintptr_t IntPtr;
 
 typedef uintptr_t carbon_reg_t;
-typedef enum core_type_t { MAIN_CORE_TYPE = 0} core_type_t;
+typedef enum { MAIN_CORE_TYPE = 0 } core_type_t;
 
 // Carbon core types
 typedef struct core_id_t {

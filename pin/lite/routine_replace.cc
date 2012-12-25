@@ -14,7 +14,7 @@ using namespace std;
 namespace lite
 {
 
-multimap<tile_id_t, pthread_t*> tid_to_thread_ptr_map;
+map<carbon_thread_t, pthread_t> _carbon_thread_id_to_posix_thread_id_map;
 
 void routineCallback(RTN rtn, void* v)
 {
@@ -145,6 +145,7 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(lite::emuPthreadCreate),
             IARG_PROTOTYPE, proto,
             IARG_CONTEXT,
+            IARG_ORIG_FUNCPTR,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
@@ -180,6 +181,7 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(lite::emuPthreadJoin),
             IARG_PROTOTYPE, proto,
             IARG_CONTEXT,
+            IARG_ORIG_FUNCPTR,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_END);
@@ -492,19 +494,19 @@ carbon_thread_t emuCarbonSpawnThread(CONTEXT* context,
 {
    LOG_PRINT("Entering emuCarbonSpawnThread(%p, %p)", thread_func, arg);
   
-   tile_id_t tid = CarbonSpawnThread(thread_func, arg);
+   carbon_thread_t carbon_thread_id = CarbonSpawnThread(thread_func, arg);
 
-   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
-   AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
-   LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
+   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   AFUNPTR pthread_create_func_ptr = getFunptr(context, "pthread_create");
+   LOG_ASSERT_ERROR(pthread_create_func_ptr, "Could not find pthread_create at instruction(%#lx)", reg_inst_ptr);
 
    int ret;
-   pthread_t* thread_ptr = new pthread_t;
+   pthread_t posix_thread_id;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),
          CALLINGSTD_DEFAULT,
-         pthread_create_func,
+         pthread_create_func_ptr,
          PIN_PARG(int), &ret,
-         PIN_PARG(pthread_t*), thread_ptr,
+         PIN_PARG(pthread_t*), &posix_thread_id,
          PIN_PARG(pthread_attr_t*), NULL,
          PIN_PARG(void* (*)(void*)), thread_func,
          PIN_PARG(void*), arg,
@@ -513,27 +515,23 @@ carbon_thread_t emuCarbonSpawnThread(CONTEXT* context,
    LOG_ASSERT_ERROR(ret == 0, "pthread_create() returned(%i)", ret);
    
    // FIXME: Figure out if we need to put a lock
-   tid_to_thread_ptr_map.insert(make_pair<tile_id_t, pthread_t*>(tid, thread_ptr));
+   _carbon_thread_id_to_posix_thread_id_map.insert(make_pair<carbon_thread_t, pthread_t>(carbon_thread_id, posix_thread_id));
    
-   return tid;
+   return carbon_thread_id;
 }
 
-int emuPthreadCreate(CONTEXT* context,
-      pthread_t* thread_ptr, pthread_attr_t* attr,
+int emuPthreadCreate(CONTEXT* context, AFUNPTR pthread_create_func_ptr,
+      pthread_t* posix_thread_ptr, pthread_attr_t* attr,
       thread_func_t thread_func, void* arg)
 {
-   tile_id_t tid = CarbonSpawnThread(thread_func, arg);
+   carbon_thread_t carbon_thread_id = CarbonSpawnThread(thread_func, arg);
   
-   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
-   AFUNPTR pthread_create_func = getFunptr(context, "pthread_create");
-   LOG_ASSERT_ERROR(pthread_create_func != NULL, "Could not find pthread_create at instruction(%#llx)", reg_inst_ptr);
-
    int ret;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),
          CALLINGSTD_DEFAULT,
-         pthread_create_func,
+         pthread_create_func_ptr,
          PIN_PARG(int), &ret,
-         PIN_PARG(pthread_t*), thread_ptr,
+         PIN_PARG(pthread_t*), posix_thread_ptr,
          PIN_PARG(pthread_attr_t*), attr,
          PIN_PARG(void* (*)(void*)), thread_func,
          PIN_PARG(void*), arg,
@@ -541,85 +539,73 @@ int emuPthreadCreate(CONTEXT* context,
 
    LOG_ASSERT_ERROR(ret == 0, "pthread_create() returned(%i)", ret);
 
-   tid_to_thread_ptr_map.insert(make_pair<tile_id_t, pthread_t*>(tid, thread_ptr));
+   // FIXME: Figure out if we need to put a lock
+   _carbon_thread_id_to_posix_thread_id_map.insert(make_pair<carbon_thread_t, pthread_t>(carbon_thread_id, *posix_thread_ptr));
 
    return ret;
 }
 
 void emuCarbonJoinThread(CONTEXT* context,
-      carbon_thread_t tid)
+      carbon_thread_t carbon_thread_id)
 {
-   multimap<tile_id_t, pthread_t*>::iterator it;
-   
-   it = tid_to_thread_ptr_map.find(tid);
-   LOG_ASSERT_ERROR(it != tid_to_thread_ptr_map.end(),
-         "Cant find thread_ptr for tid(%i)", tid);
-   
-   pthread_t* thread_ptr = it->second;
+   map<carbon_thread_t, pthread_t>::iterator it;   
+   it = _carbon_thread_id_to_posix_thread_id_map.find(carbon_thread_id);
 
-   LOG_PRINT("Starting emuCarbonJoinThread: Thread_ptr(%p), tid(%i)", thread_ptr, tid);
+   LOG_ASSERT_ERROR(it != _carbon_thread_id_to_posix_thread_id_map.end(),
+                    "Cant find pthread ID for carbon thread ID(%i)", carbon_thread_id);
    
-   CarbonJoinThread(tid);
+   pthread_t posix_thread_id = it->second;
 
-   tid_to_thread_ptr_map.erase(it);
+   _carbon_thread_id_to_posix_thread_id_map.erase(it);
+   
+   // Do thread cleanup functions in Graphite
+   CarbonJoinThread(carbon_thread_id);
 
-   __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
-   AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
-   LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
+   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   AFUNPTR pthread_join_func_ptr = getFunptr(context, "pthread_join");
+   LOG_ASSERT_ERROR(pthread_join_func_ptr != NULL, "Could not find pthread_join at instruction(%#lx)", reg_inst_ptr);
 
    int ret;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),
          CALLINGSTD_DEFAULT,
-         pthread_join_func,
+         pthread_join_func_ptr,
          PIN_PARG(int), &ret,
-         PIN_PARG(pthread_t), *thread_ptr,
+         PIN_PARG(pthread_t), posix_thread_id,
          PIN_PARG(void**), NULL,
          PIN_PARG_END());
 
    LOG_ASSERT_ERROR(ret == 0, "pthread_join() returned(%i)", ret);
-   
-   LOG_PRINT("Finished emuCarbonJoinThread: Thread_ptr(%p), tid(%i)", thread_ptr, tid);
-   
-   // Delete the thread descriptor
-   delete thread_ptr;
 }
 
-int emuPthreadJoin(CONTEXT* context,
-      pthread_t thread, void** thead_return)
+int emuPthreadJoin(CONTEXT* context, AFUNPTR pthread_join_func_ptr,
+      pthread_t posix_thread_id, void** thread_return)
 {
-   tile_id_t tid = INVALID_TILE_ID;
+   carbon_thread_t carbon_thread_id = INVALID_THREAD_ID;
 
-   multimap<tile_id_t, pthread_t*>::iterator it;
-   for (it = tid_to_thread_ptr_map.begin(); it != tid_to_thread_ptr_map.end(); it++)
+   map<carbon_thread_t, pthread_t>::iterator it = _carbon_thread_id_to_posix_thread_id_map.begin();
+   for ( ; it != _carbon_thread_id_to_posix_thread_id_map.end(); it++)
    {
-      if (pthread_equal(*(it->second), thread) != 0)
+      if (pthread_equal(it->second, posix_thread_id) != 0)
       {
-         tid = it->first;
+         carbon_thread_id = it->first;
          break;
       }
    }
-   LOG_ASSERT_ERROR(tid != INVALID_TILE_ID, "Could not find core_id");
-  
-   LOG_PRINT("Joining Thread_ptr(%p), tid(%i)", &thread, tid);
+   LOG_ASSERT_ERROR(carbon_thread_id != INVALID_THREAD_ID, "Could not find carbon thread id");
 
-   CarbonJoinThread(tid);
+   // Complete the thread cleanup functions in Graphite
+   CarbonJoinThread(carbon_thread_id);
 
-   tid_to_thread_ptr_map.erase(it);
-
-    __attribute(__unused__) IntPtr reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
-   AFUNPTR pthread_join_func = getFunptr(context, "pthread_join");
-   LOG_ASSERT_ERROR(pthread_join_func != NULL, "Could not find pthread_join at instruction(%#llx)", reg_inst_ptr);
+   _carbon_thread_id_to_posix_thread_id_map.erase(it);
 
    int ret;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),
          CALLINGSTD_DEFAULT,
-         pthread_join_func,
+         pthread_join_func_ptr,
          PIN_PARG(int), &ret,
-         PIN_PARG(pthread_t), thread,
-         PIN_PARG(void**), thead_return,
+         PIN_PARG(pthread_t), posix_thread_id,
+         PIN_PARG(void**), thread_return,
          PIN_PARG_END());
-
-   // LOG_ASSERT_ERROR(ret == 0, "pthread_join() returned(%i)", ret);
 
    // We dont need to delete the thread descriptor
 

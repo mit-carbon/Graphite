@@ -65,10 +65,10 @@ print "Parsing simulation output file: %s" % (options.input_file)
 num_cores = options.num_cores
 
 # Total Instructions
-target_instructions = sum(rowSearch("Core Model Summary", "Total Instructions"))
+target_instructions = sum(rowSearch("Core Summary", "Total Instructions"))
 
 # Completion Time - In nanoseconds
-target_time = rowSearch("Core Model Summary", "Completion Time \(in ns\)")[0]
+target_time = rowSearch("Core Summary", "Completion Time \(in ns\)")[0]
 
 # Host Time
 host_time = getTime("shutdown time")

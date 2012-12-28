@@ -68,7 +68,7 @@ DramCntlr::runDramPerfModel()
    UInt64 pkt_cycle_count = getShmemPerfModel()->getCycleCount();
    UInt64 pkt_size = (UInt64) _cache_line_size;
 
-   float tile_frequency = _tile->getCore()->getModel()->getFrequency();
+   float tile_frequency = _tile->getFrequency();
    UInt64 pkt_time = convertCycleCount(pkt_cycle_count, tile_frequency, 1.0);
 
    UInt64 dram_access_latency = _dram_perf_model->getAccessLatency(pkt_time, pkt_size);

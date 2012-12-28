@@ -15,7 +15,7 @@ using std::string;
 class IOCOOMCoreModel : public CoreModel
 {
 public:
-   IOCOOMCoreModel(Core* core, float frequency);
+   IOCOOMCoreModel(Core* core);
    ~IOCOOMCoreModel();
 
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);

@@ -15,7 +15,8 @@ for benchmark in benchmark_list:
    os.system(make_cmd)
  
 # Generate jobs
-for benchmark, command in zip(benchmark_list, command_list):
+for benchmark in benchmark_list:
+   command = command_map[benchmark]
    for num_machines in num_machines_list:
       sim_flags = "-c carbon_sim.cfg --general/total_cores=64 --general/enable_shared_mem=true --general/trigger_models_within_application=true"
       sub_dir = "%s-%i" % (benchmark, num_machines)

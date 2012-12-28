@@ -1068,7 +1068,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    out << "    Shared Requests: " << _total_shreq << endl;
    out << "    Nullify Requests: " << _total_nullifyreq << endl;
 
-   float frequency = _memory_manager->getTile()->getCore()->getModel()->getFrequency();
+   float frequency = _memory_manager->getTile()->getFrequency();
    if (_total_exreq > 0)
    {
       out << "    Exclusive Request - MODIFIED State: " << _total_exreq_in_modified_state << endl;

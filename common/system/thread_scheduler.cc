@@ -700,7 +700,7 @@ void ThreadScheduler::yieldThread(bool is_pre_emptive)
          m_core_lock[dst_core_id.tile_id].acquire();
 
          // Set OS TID of this thread
-         m_tile_manager->updateTLS(dst_core_id.tile_id, dst_thread_idx, m_tile_manager->getCurrentThreadId());
+         m_tile_manager->updateTLS(dst_core_id.tile_id, dst_thread_idx, m_tile_manager->getCurrentThreadID());
          m_thread_manager->setOSTid(dst_core_id, dst_thread_idx, syscall(SYS_gettid));
 
          // If no threads are scheduled, then schedule this thread next.

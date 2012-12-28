@@ -41,8 +41,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
    // Instantiate the directory
    _directory = new Directory(caching_protocol_type, _directory_type, _total_entries, max_hw_sharers, max_num_sharers);
 
-   // Get core frequency
-   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(tile->getId()));
+   // Get frequency
+   float frequency = _tile->getFrequency();
 
    // Size of each directory entry (in bytes)
    UInt32 max_application_sharers = Config::getSingleton()->getApplicationTiles();
@@ -57,12 +57,12 @@ DirectoryCache::DirectoryCache(Tile* tile,
    if (Config::getSingleton()->getEnablePowerModeling())
    {
       _power_model = new CachePowerModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_time, core_frequency);
+            directory_entry_size, _associativity, _directory_access_time, frequency);
    }
    if (Config::getSingleton()->getEnableAreaModeling())
    {
       _area_model = new CacheAreaModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_time, core_frequency);
+            directory_entry_size, _associativity, _directory_access_time, frequency);
    }
 
    _log_num_sets = floorLog2(_num_sets);

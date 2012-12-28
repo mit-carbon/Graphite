@@ -43,7 +43,7 @@ LaxBarrierSyncClient::synchronize(UInt64 cycle_count)
       cycle_count = m_core->getModel()->getCycleCount();
 
    // Convert from tile clock to global clock
-   UInt64 curr_time = convertCycleCount(cycle_count, m_core->getModel()->getFrequency(), 1.0);
+   UInt64 curr_time = convertCycleCount(cycle_count, m_core->getTile()->getFrequency(), 1.0);
 
    if (curr_time >= m_next_sync_time)
    {

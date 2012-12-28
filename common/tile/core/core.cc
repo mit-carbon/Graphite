@@ -250,7 +250,7 @@ Core::outputSummary(ostream& os)
    if (_core_model)
       _core_model->outputSummary(os);
    
-   float frequency = _core_model->getFrequency();
+   float frequency = _tile->getFrequency();
    UInt64 total_memory_access_latency_in_ns = convertCycleCount(_total_memory_access_latency, frequency, 1.0);
    
    os << "Shared Memory Model summary: " << endl;

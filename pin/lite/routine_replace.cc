@@ -15,6 +15,7 @@ namespace lite
 {
 
 map<carbon_thread_t, pthread_t> _carbon_thread_id_to_posix_thread_id_map;
+Lock _map_lock;
 
 void routineCallback(RTN rtn, void* v)
 {
@@ -513,10 +514,11 @@ carbon_thread_t emuCarbonSpawnThread(CONTEXT* context,
          PIN_PARG_END());
 
    LOG_ASSERT_ERROR(ret == 0, "pthread_create() returned(%i)", ret);
-   
-   // FIXME: Figure out if we need to put a lock
+
+   _map_lock.acquire();   
    _carbon_thread_id_to_posix_thread_id_map.insert(make_pair<carbon_thread_t, pthread_t>(carbon_thread_id, posix_thread_id));
-   
+   _map_lock.release();
+
    return carbon_thread_id;
 }
 
@@ -539,8 +541,9 @@ int emuPthreadCreate(CONTEXT* context, AFUNPTR pthread_create_func_ptr,
 
    LOG_ASSERT_ERROR(ret == 0, "pthread_create() returned(%i)", ret);
 
-   // FIXME: Figure out if we need to put a lock
+   _map_lock.acquire();
    _carbon_thread_id_to_posix_thread_id_map.insert(make_pair<carbon_thread_t, pthread_t>(carbon_thread_id, *posix_thread_ptr));
+   _map_lock.release();
 
    return ret;
 }
@@ -548,6 +551,8 @@ int emuPthreadCreate(CONTEXT* context, AFUNPTR pthread_create_func_ptr,
 void emuCarbonJoinThread(CONTEXT* context,
       carbon_thread_t carbon_thread_id)
 {
+   _map_lock.acquire();
+
    map<carbon_thread_t, pthread_t>::iterator it;   
    it = _carbon_thread_id_to_posix_thread_id_map.find(carbon_thread_id);
 
@@ -558,6 +563,8 @@ void emuCarbonJoinThread(CONTEXT* context,
 
    _carbon_thread_id_to_posix_thread_id_map.erase(it);
    
+   _map_lock.release();
+
    // Do thread cleanup functions in Graphite
    CarbonJoinThread(carbon_thread_id);
 
@@ -580,6 +587,8 @@ void emuCarbonJoinThread(CONTEXT* context,
 int emuPthreadJoin(CONTEXT* context, AFUNPTR pthread_join_func_ptr,
       pthread_t posix_thread_id, void** thread_return)
 {
+   _map_lock.acquire();
+
    carbon_thread_t carbon_thread_id = INVALID_THREAD_ID;
 
    map<carbon_thread_t, pthread_t>::iterator it = _carbon_thread_id_to_posix_thread_id_map.begin();
@@ -593,10 +602,12 @@ int emuPthreadJoin(CONTEXT* context, AFUNPTR pthread_join_func_ptr,
    }
    LOG_ASSERT_ERROR(carbon_thread_id != INVALID_THREAD_ID, "Could not find carbon thread id");
 
+   _carbon_thread_id_to_posix_thread_id_map.erase(it);
+
+   _map_lock.release();
+
    // Complete the thread cleanup functions in Graphite
    CarbonJoinThread(carbon_thread_id);
-
-   _carbon_thread_id_to_posix_thread_id_map.erase(it);
 
    int ret;
    PIN_CallApplicationFunction(context, PIN_ThreadId(),

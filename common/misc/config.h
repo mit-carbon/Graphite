@@ -21,47 +21,46 @@
 class Config
 {
 public:
-   class CoreParameters
+   class TileParameters
    {
-      private:
-         std::string m_type;
-         volatile float m_frequency;
-         std::string m_l1_icache_type;
-         std::string m_l1_dcache_type;
-         std::string m_l2_cache_type;
+   public:
+      TileParameters(std::string core_type, volatile float frequency, std::string l1_icache_type, std::string l1_dcache_type, std::string l2_cache_type):
+         m_core_type(core_type),
+         m_frequency(frequency),
+         m_l1_icache_type(l1_icache_type),
+         m_l1_dcache_type(l1_dcache_type),
+         m_l2_cache_type(l2_cache_type)
+      {}
+      ~TileParameters() {}
 
-      public:
-         CoreParameters(std::string type, volatile float frequency, std::string l1_icache_type, std::string l1_dcache_type, std::string l2_cache_type):
-            m_type(type),
-            m_frequency(frequency),
-            m_l1_icache_type(l1_icache_type),
-            m_l1_dcache_type(l1_dcache_type),
-            m_l2_cache_type(l2_cache_type)
-         {}
-         ~CoreParameters() {}
-
-         volatile float getFrequency() { return m_frequency; }
-         void setFrequency(volatile float frequency) { m_frequency = frequency; }
-         std::string getType() { return m_type; }
-         std::string getL1ICacheType() { return m_l1_icache_type; }
-         std::string getL1DCacheType() { return m_l1_dcache_type; }
-         std::string getL2CacheType() { return m_l2_cache_type; }
+      std::string getCoreType() { return m_core_type; }
+      volatile float getFrequency() { return m_frequency; }
+      std::string getL1ICacheType() { return m_l1_icache_type; }
+      std::string getL1DCacheType() { return m_l1_dcache_type; }
+      std::string getL2CacheType() { return m_l2_cache_type; }
+   
+   private:
+      std::string m_core_type;
+      volatile float m_frequency;
+      std::string m_l1_icache_type;
+      std::string m_l1_dcache_type;
+      std::string m_l2_cache_type;
    };
 
    class NetworkParameters
    {
-      private:
-         std::string m_type;
-         volatile float m_frequency;
+   public:
+      NetworkParameters(std::string type, volatile float frequency):
+         m_type(type), m_frequency(frequency)
+      {}
+      ~NetworkParameters() {}
 
-      public:
-         NetworkParameters(std::string type, volatile float frequency):
-            m_type(type), m_frequency(frequency)
-         {}
-         ~NetworkParameters() {}
-
-         volatile float getFrequency() { return m_frequency; }
-         std::string getType() { return m_type; }
+      std::string getType() { return m_type; }
+      volatile float getFrequency() { return m_frequency; }
+   
+   private:
+      std::string m_type;
+      volatile float m_frequency;
    };
 
    enum SimulationMode
@@ -152,11 +151,10 @@ public:
 
    // Tile & Network Parameters
    std::string getCoreType(tile_id_t tile_id);
+   volatile float getTileFrequency(tile_id_t tile_id);
    std::string getL1ICacheType(tile_id_t tile_id);
    std::string getL1DCacheType(tile_id_t tile_id);
    std::string getL2CacheType(tile_id_t tile_id);
-   volatile float getCoreFrequency(core_id_t core_id);
-   void setCoreFrequency(core_id_t core_id, volatile float frequency);
 
    std::string getNetworkType(SInt32 network_id);
 
@@ -187,7 +185,7 @@ private:
 
    UInt32  m_current_process_num;   // Process number for this process
 
-   std::vector<CoreParameters> m_core_parameters_vec;         // Vector holding main tile parameters
+   std::vector<TileParameters> m_tile_parameters_vec;         // Vector holding main tile parameters
    std::vector<NetworkParameters> m_network_parameters_vec;   // Vector holding network parameters
 
    // This data structure keeps track of which tiles are in each process.
@@ -216,7 +214,7 @@ private:
    static bool m_knob_enable_area_modeling;
 
    // Get Tile & Network Parameters
-   void parseCoreParameters();
+   void parseTileParameters();
    void parseNetworkParameters();
 
    static SimulationMode parseSimulationMode(std::string mode);

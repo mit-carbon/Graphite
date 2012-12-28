@@ -1021,8 +1021,8 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       UInt64 start_time;
       UInt64 end_time;
 
-      volatile float core_frequency = core->getModel()->getFrequency();
-      start_time = convertCycleCount(core->getModel()->getCycleCount(), core_frequency, 1.0);
+      volatile float frequency = core->getTile()->getFrequency();
+      start_time = convertCycleCount(core->getModel()->getCycleCount(), frequency, 1.0);
 
       // Package the arguments for the syscall
       m_send_buff.put(addr1);
@@ -1061,7 +1061,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       {
          if (core->getModel())
          {
-            UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, core_frequency);
+            UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, frequency);
             core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
          }
       }
@@ -1158,16 +1158,16 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
      return -1;
    }
 
+   Core* core = Sim()->getTileManager()->getCurrentCore();
    // compute the elapsed time
-   perf_model = Sim()->getTileManager()->getCurrentCore()->getModel();
+   perf_model = core->getModel();
    cycles = perf_model->getCycleCount();
-   frequency = perf_model->getFrequency();
+   frequency = core->getTile()->getFrequency();
    elapsed_time = ( 1 / (frequency * 1000000000) ) * cycles;
    temp_ts.tv_sec = (time_t) floor(elapsed_time);
    temp_ts.tv_nsec = (long) ((elapsed_time - floor(elapsed_time))* 1000000000.0);
 
    // Write the data to memory
-   Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) ts, (char*) (&temp_ts), sizeof(temp_ts));
    
    LOG_PRINT("clock_gettime called: cycles=%lu, frequency=%lf, elapse=%1.9lf, secs=%ld, nsecs=%ld\n",

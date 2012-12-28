@@ -13,6 +13,7 @@ Tile::Tile(tile_id_t id)
 {
    LOG_PRINT("Tile ctor for (%i)", _id);
 
+   _frequency = Config::getSingleton()->getTileFrequency(_id);
    _network = new Network(this);
    _core = new MainCore(this);
    

@@ -309,7 +309,7 @@ thread_id_t TileManager::getCurrentThreadIndex()
    return m_thread_index_tls->getInt();
 }
 
-thread_id_t TileManager::getCurrentThreadId()
+thread_id_t TileManager::getCurrentThreadID()
 {
    assert(m_thread_id_tls);
    return m_thread_id_tls->getInt();

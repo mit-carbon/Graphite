@@ -37,7 +37,7 @@ public:
    Core *getCoreFromID(core_id_t id);
 
    thread_id_t getCurrentThreadIndex();
-   thread_id_t getCurrentThreadId();
+   thread_id_t getCurrentThreadID();
 
    void updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id);
 

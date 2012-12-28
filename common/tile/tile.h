@@ -27,6 +27,9 @@ public:
    static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
    static bool isMainCore(core_id_t core_id)       { return (core_id.core_type == MAIN_CORE_TYPE); }
 
+   float getFrequency() const          { return _frequency; }
+   void setFrequency(float frequency)  { _frequency = frequency; }
+
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
 
    void enableModels();
@@ -40,6 +43,8 @@ private:
    Network* _network;
    Core* _core;
    MemoryManager* _memory_manager;
+
+   volatile float _frequency;
 };
 
 #endif

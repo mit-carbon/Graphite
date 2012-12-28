@@ -141,8 +141,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    // Even if this is an approximate value, this is OK
    
    // Tile Clock to Global clock conversion
-   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(),
-         _core->getModel()->getFrequency(), 1.0);
+   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(), _core->getTile()->getFrequency(), 1.0);
 
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
@@ -210,8 +209,7 @@ LaxP2PSyncClient::synchronize(UInt64 cycle_count)
    if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
-   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(),
-         _core->getModel()->getFrequency(), 1.0);
+   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(), _core->getTile()->getFrequency(), 1.0);
 
    assert(curr_time >= _last_sync_time);
 
@@ -308,8 +306,7 @@ LaxP2PSyncClient::gotoSleep(const UInt64 sleep_time)
       // Set the CoreState to 'SLEEPING'
       _core->setState(Core::SLEEPING);
 
-      UInt64 elapsed_simulated_time = convertCycleCount(_core->getModel()->getCycleCount(),
-            _core->getModel()->getFrequency(), 1.0);
+      UInt64 elapsed_simulated_time = convertCycleCount(_core->getModel()->getCycleCount(), _core->getTile()->getFrequency(), 1.0);
 
       UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
 

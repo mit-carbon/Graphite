@@ -122,7 +122,7 @@ MemoryManager::MemoryManager(Tile* tile)
    
    _cache_line_size = L1_icache_line_size;
 
-   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
+   float frequency = getTile()->getFrequency();
    
    UInt32 dram_home_lookup_param = ceilLog2(_cache_line_size);
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
@@ -166,7 +166,7 @@ MemoryManager::MemoryManager(Tile* tile)
          L1_dcache_replacement_policy,
          L1_dcache_data_access_time,
          L1_dcache_track_miss_types,
-         core_frequency);
+         frequency);
    
    // Instantiate L2 cache cntlr
    _L2_cache_cntlr = new L2CacheCntlr(this,
@@ -177,15 +177,15 @@ MemoryManager::MemoryManager(Tile* tile)
          L2_cache_replacement_policy,
          L2_cache_data_access_time,
          L2_cache_track_miss_types,
-         core_frequency);
+         frequency);
 
    // Create Cache Performance Models
    _L1_icache_perf_model = CachePerfModel::create(L1_icache_perf_model_type,
-         L1_icache_data_access_time, L1_icache_tags_access_time, core_frequency);
+         L1_icache_data_access_time, L1_icache_tags_access_time, frequency);
    _L1_dcache_perf_model = CachePerfModel::create(L1_dcache_perf_model_type,
-         L1_dcache_data_access_time, L1_dcache_tags_access_time, core_frequency);
+         L1_dcache_data_access_time, L1_dcache_tags_access_time, frequency);
    _L2_cache_perf_model = CachePerfModel::create(L2_cache_perf_model_type,
-         L2_cache_data_access_time, L2_cache_tags_access_time, core_frequency);
+         L2_cache_data_access_time, L2_cache_tags_access_time, frequency);
 }
 
 MemoryManager::~MemoryManager()

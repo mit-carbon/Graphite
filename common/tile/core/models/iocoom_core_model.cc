@@ -10,12 +10,12 @@ using namespace std;
 #include "branch_predictor.h"
 #include "clock_converter.h"
 
-IOCOOMCoreModel::IOCOOMCoreModel(Core *core, float frequency)
-   : CoreModel(core, frequency)
+IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
+   : CoreModel(core)
    , m_register_scoreboard(512)
    , m_register_wait_unit_list(512)
-   , m_store_buffer(0)
-   , m_load_buffer(0)
+   , m_store_buffer(NULL)
+   , m_load_buffer(NULL)
 {
    config::Config *cfg = Sim()->getCfg();
 
@@ -63,14 +63,15 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    CoreModel::outputSummary(os);
 
-//   os << "    Total Load Buffer Stall Time (in ns): " << (UInt64) ((double) m_total_load_buffer_stall_cycles / m_frequency) << endl;
-//   os << "    Total Store Buffer Stall Time (in ns): " << (UInt64) ((double) m_total_store_buffer_stall_cycles / m_frequency) << endl;
-//   os << "    Total L1-I Cache Stall Time (in ns): " << (UInt64) ((double) m_total_l1icache_stall_cycles / m_frequency) << endl;
-//   os << "    Total Intra Ins L1-D Cache Read Stall Time (in ns): " << (UInt64) ((double) m_total_intra_ins_l1dcache_read_stall_cycles / m_frequency) << endl;
-//   os << "    Total Inter Ins L1-D Cache Read Stall Time (in ns): " << (UInt64) ((double) m_total_inter_ins_l1dcache_read_stall_cycles / m_frequency) << endl;
-//   os << "    Total L1-D Cache Write Stall Time (in ns): " << (UInt64) ((double) m_total_l1dcache_write_stall_cycles / m_frequency) << endl;
-//   os << "    Total Intra Ins Execution Unit Stall Time (in ns): " << (UInt64) ((double) m_total_intra_ins_execution_unit_stall_cycles / m_frequency) << endl;
-//   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << (UInt64) ((double) m_total_inter_ins_execution_unit_stall_cycles / m_frequency) << endl;
+//   float frequency = m_core->getTile()->getFrequency();
+//   os << "    Total Load Buffer Stall Time (in ns): " << convertCycleCount(m_total_load_buffer_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total Store Buffer Stall Time (in ns): " << convertCycleCount(m_total_store_buffer_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total L1-I Cache Stall Time (in ns): " << convertCycleCount(m_total_l1icache_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total Intra Ins L1-D Cache Read Stall Time (in ns): " << convertCycleCount(m_total_intra_ins_l1dcache_read_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total Inter Ins L1-D Cache Read Stall Time (in ns): " << convertCycleCount(m_total_inter_ins_l1dcache_read_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total L1-D Cache Write Stall Time (in ns): " << convertCycleCount(m_total_l1dcache_write_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total Intra Ins Execution Unit Stall Time (in ns): " << convertCycleCount(m_total_intra_ins_execution_unit_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << convertCycleCount(m_total_inter_ins_execution_unit_stall_cycles, frequency, 1.0) << endl;
 }
 
 void IOCOOMCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
@@ -349,7 +350,7 @@ UInt64 IOCOOMCoreModel::executeStore(UInt64 time, const DynamicInstructionInfo &
 
 UInt64 IOCOOMCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)
 {
-   return getCore()->readInstructionMemory(ins_address, ins_size);
+   return m_core->readInstructionMemory(ins_address, ins_size);
 }
 
 void IOCOOMCoreModel::initializeRegisterScoreboard()

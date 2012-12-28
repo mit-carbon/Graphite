@@ -13,13 +13,12 @@
 
 CoreModel* CoreModel::create(Core* core)
 {
-   float frequency = Config::getSingleton()->getCoreFrequency(core->getId());
    string core_model = Config::getSingleton()->getCoreType(core->getTile()->getId());
 
    if (core_model == "iocoom")
-      return new IOCOOMCoreModel(core, frequency);
+      return new IOCOOMCoreModel(core);
    else if (core_model == "simple")
-      return new SimpleCoreModel(core, frequency);
+      return new SimpleCoreModel(core);
    else
    {
       LOG_PRINT_ERROR("Invalid core model type: %s", core_model.c_str());
@@ -28,11 +27,10 @@ CoreModel* CoreModel::create(Core* core)
 }
 
 // Public Interface
-CoreModel::CoreModel(Core *core, float frequency)
-   : m_cycle_count(0)
+CoreModel::CoreModel(Core *core)
+   : m_core(core)
+   , m_cycle_count(0)
    , m_instruction_count(0)
-   , m_frequency(frequency)
-   , m_core(core)
    , m_average_frequency(0.0)
    , m_total_time(0)
    , m_checkpointed_cycle_count(0)
@@ -54,17 +52,19 @@ CoreModel::~CoreModel()
 
 void CoreModel::outputSummary(ostream& os)
 {
+   float frequency = m_core->getTile()->getFrequency();
+
    os << "Core Summary:" << endl;
    os << "    Total Instructions: " << m_instruction_count << endl;
-   os << "    Completion Time (in ns): " << convertCycleCount(m_cycle_count, m_frequency, 1.0) << endl;
+   os << "    Completion Time (in ns): " << convertCycleCount(m_cycle_count, frequency, 1.0) << endl;
    os << "    Average Frequency (in GHz): " << m_average_frequency << endl;
    
    os << "    Total Recv Instructions: " << m_total_recv_instructions << endl;
    os << "    Total Sync Instructions: " << m_total_sync_instructions << endl;
-   os << "    Total Memory Stall Time (in ns): " << convertCycleCount(m_total_memory_stall_cycles, m_frequency, 1.0) << endl;
-   os << "    Total Execution Unit Stall Time (in ns): " << convertCycleCount(m_total_execution_unit_stall_cycles, m_frequency, 1.0) << endl;
-   os << "    Total Recv Instruction Stall Time (in ns): " << convertCycleCount(m_total_recv_instruction_stall_cycles, m_frequency, 1.0) << endl;
-   os << "    Total Sync Instruction Stall Time (in ns): " << convertCycleCount(m_total_sync_instruction_stall_cycles, m_frequency, 1.0) << endl;
+   os << "    Total Memory Stall Time (in ns): " << convertCycleCount(m_total_memory_stall_cycles, frequency, 1.0) << endl;
+   os << "    Total Execution Unit Stall Time (in ns): " << convertCycleCount(m_total_execution_unit_stall_cycles, frequency, 1.0) << endl;
+   os << "    Total Recv Instruction Stall Time (in ns): " << convertCycleCount(m_total_recv_instruction_stall_cycles, frequency, 1.0) << endl;
+   os << "    Total Sync Instruction Stall Time (in ns): " << convertCycleCount(m_total_sync_instruction_stall_cycles, frequency, 1.0) << endl;
 
    // Branch Predictor Summary
    if (m_bp)

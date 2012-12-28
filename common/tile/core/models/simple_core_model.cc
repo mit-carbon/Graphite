@@ -6,8 +6,8 @@
 
 using std::endl;
 
-SimpleCoreModel::SimpleCoreModel(Core *core, float frequency)
-    : CoreModel(core, frequency)
+SimpleCoreModel::SimpleCoreModel(Core *core)
+    : CoreModel(core)
 {
    initializePipelineStallCounters();
 }
@@ -25,10 +25,11 @@ void SimpleCoreModel::initializePipelineStallCounters()
 void SimpleCoreModel::outputSummary(std::ostream &os)
 {
    CoreModel::outputSummary(os);
-   
-//   os << "    Total L1-I Cache Stall Time (in ns): " << (UInt64) ((double) m_total_l1icache_stall_cycles / m_frequency) << endl;
-//   os << "    Total L1-D Cache Read Stall Time (in ns): " << (UInt64) ((double) m_total_l1dcache_read_stall_cycles / m_frequency) << endl;
-//   os << "    Total L1-D Cache Write Stall Time (in ns): " << (UInt64) ((double) m_total_l1dcache_write_stall_cycles / m_frequency) << endl;
+  
+//   float frequency = m_core->getTile()->getFrequency(); 
+//   os << "    Total L1-I Cache Stall Time (in ns): " << convertCycleCount(m_total_l1icache_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total L1-D Cache Read Stall Time (in ns): " << convertCycleCount(m_total_l1dcache_read_stall_cycles, frequency, 1.0) << endl;
+//   os << "    Total L1-D Cache Write Stall Time (in ns): " << convertCycleCount(m_total_l1dcache_write_stall_cycles, frequency, 1.0) << endl;
 }
 
 void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
@@ -107,5 +108,5 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 
 UInt64 SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)
 {
-   return getCore()->readInstructionMemory(ins_address, ins_size);
+   return m_core->readInstructionMemory(ins_address, ins_size);
 }

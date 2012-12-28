@@ -117,7 +117,7 @@ void Network::netPullFromTransport()
          
          // Convert from network cycle count to core cycle count
          packet.time = convertCycleCount(packet.time, model->getFrequency(),
-                                         _tile->getCore()->getModel()->getFrequency());
+                                         _tile->getFrequency());
          
          // asynchronous I/O support
          NetworkCallback callback = _callbacks[packet.type];
@@ -241,7 +241,7 @@ SInt32 Network::netSend(NetPacket& packet)
 
    // Convert from core cycle count to network cycle count
    packet.time = convertCycleCount(packet.time,
-                                   _tile->getCore()->getModel()->getFrequency(),
+                                   _tile->getFrequency(),
                                    model->getFrequency());
 
    // Send packet as multiple packets if model has not broadcast capability and receiver is ALL

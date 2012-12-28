@@ -6,7 +6,7 @@
 class SimpleCoreModel : public CoreModel
 {
 public:
-   SimpleCoreModel(Core *core, float frequency);
+   SimpleCoreModel(Core *core);
    ~SimpleCoreModel();
 
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);

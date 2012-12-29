@@ -266,20 +266,9 @@ void replacementThreadExitNull (CONTEXT *ctxt)
 
 void replacementGetTileId (CONTEXT *ctxt)
 {
-   ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   CarbonGetTileId ();
-
+   ADDRINT ret_val = (ADDRINT) CarbonGetTileId();
    retFromReplacedRtn (ctxt, ret_val);
 }
-
-//void replacementGetCoreId (CONTEXT *ctxt)
-//{
-   //ADDRINT ret_val = PIN_GetContextReg (ctxt, REG_GAX);
-   //CarbonGetCoreId ();
-
-   //retFromReplacedRtn (ctxt, ret_val);
-//}
-
 
 void replacementDequeueThreadSpawnRequest (CONTEXT *ctxt)
 {

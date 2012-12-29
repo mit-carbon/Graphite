@@ -113,6 +113,20 @@ void routineCallback(RTN rtn, void* v)
             IARG_END);
    }
 
+   // Get Tile ID
+   else if (rtn_name == "CarbonGetTileId")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(void),
+            CALLINGSTD_DEFAULT,
+            "CarbonGetTileId",
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonGetTileId),
+            IARG_PROTOTYPE, proto,
+            IARG_END);
+   }
+
    // Thread Creation
    else if (rtn_name == "CarbonSpawnThread")
    {

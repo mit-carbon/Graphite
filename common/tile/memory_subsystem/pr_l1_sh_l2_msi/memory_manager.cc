@@ -308,6 +308,7 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 void
 MemoryManager::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
+   _L1_cache_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
    _L2_cache_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
 

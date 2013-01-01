@@ -1,16 +1,21 @@
 #include <pthread.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 #include "carbon_user.h"
 
 int num_threads;
 int num_iterations;
 float min_frequency;
 float max_frequency;
+pthread_barrier_t global_barrier;
 
 void *do_work(void*)
 {
    SInt32 tile_id = CarbonGetTileId();
+
+   // Wait for all threads to be spawned
+   pthread_barrier_wait(&global_barrier);
 
    // Initialize the random number generator
    struct drand48_data rand_buf;
@@ -20,7 +25,10 @@ void *do_work(void*)
       double res;
       drand48_r(&rand_buf, &res);
       float frequency = min_frequency + (max_frequency - min_frequency) * res;
-      printf("Setting frequency to (%.2f) on tile (%i) iteration (%i)\n", frequency, tile_id, i);
+      
+      int a = (int) floor(frequency);
+      int b = (int) floor( (frequency - floor(frequency)) * 100 );
+      printf("Setting frequency to (%i.%i) on tile (%i) iteration (%i)\n", a, b, tile_id, i);
 
       CarbonSetTileFrequency(&frequency);
 
@@ -44,6 +52,9 @@ int main(int argc, char *argv[])
    min_frequency = atof(argv[3]);
    max_frequency = atof(argv[4]);
 
+   // Initialize barrier
+   pthread_barrier_init(&global_barrier, NULL, num_threads);
+
 	pthread_t worker[num_threads];
 
 	for (int i=1; i<num_threads; i++)
@@ -61,6 +72,9 @@ int main(int argc, char *argv[])
    {
 		pthread_join(worker[i], NULL);
 	}
+
+   // Destroy barrier
+   pthread_barrier_destroy(&global_barrier);
 
 	return 0;
 }

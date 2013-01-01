@@ -115,9 +115,6 @@ void Network::netPullFromTransport()
          // I have accepted the packet - process the received packet
          model->__processReceivedPacket(packet);
          
-         // Convert from network cycle count to core cycle count
-         packet.time = convertCycleCount(packet.time, model->getFrequency(), _tile->getFrequency());
-         
          // asynchronous I/O support
          NetworkCallback callback = _callbacks[packet.type];
 
@@ -435,6 +432,10 @@ NetPacket Network::netRecv(const NetMatch &match)
 
    _netQueueLock.release();
 
+   // Convert packet time into tile frequency domain
+   NetworkModel* model = getNetworkModelFromPacketType(packet.type);
+   packet.time = convertCycleCount(packet.time, model->getFrequency(), _tile->getFrequency());
+         
    LOG_PRINT("netRecv: Started waiting at %llu, Got packet at %llu", start_time, packet.time);
 
    if (packet.time > start_time)

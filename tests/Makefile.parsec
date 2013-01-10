@@ -20,7 +20,7 @@ x264_flags ?= --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-p
 # KERNELS
 
 canneal_flags ?= 64 15000 2000 200000.nets 64
-dedup_flags ?= -c -p -f -t 21 -i media.dat -o output.dat.ddp
+dedup_flags ?= -c -p -t 16 -i media.dat -o output.dat.ddp
 streamcluster_flags ?= 10 20 32 4096 4096 1000 none output.txt 64
 
 include tests/Makefile.tests

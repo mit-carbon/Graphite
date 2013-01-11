@@ -23,7 +23,6 @@ MCP::MCP(Network & network)
    , m_syscall_server(m_network, m_send_buff, m_recv_buff, m_MCP_SERVER_MAX_BUFF, m_scratch)
    , m_sync_server(m_network, m_recv_buff)
    , m_clock_skew_minimization_server(NULL)
-   , m_network_model_analytical_server(m_network, m_recv_buff)
 {
    m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme"), m_network, m_recv_buff);
 }
@@ -93,10 +92,6 @@ void MCP::processPacket()
       break;
    case MCP_MESSAGE_BARRIER_WAIT:
       m_sync_server.barrierWait(recv_pkt.sender);
-      break;
-
-   case MCP_MESSAGE_UTILIZATION_UPDATE:
-      m_network_model_analytical_server.update(recv_pkt.sender.tile_id);
       break;
 
    case MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:

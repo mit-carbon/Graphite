@@ -5,6 +5,7 @@
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
 #include "pr_l1_sh_l2_msi/memory_manager.h"
 #include "network_model.h"
+#include "clock_converter.h"
 #include "log.h"
 
 // Static Members
@@ -98,6 +99,10 @@ void
 MemoryManager::__handleMsgFromNetwork(NetPacket& packet)
 {
    _lock.acquire();
+
+   // Convert from the network frequency domain to tile frequency domain
+   NetworkModel* network_model = _network->getNetworkModelFromPacketType(packet.type);
+   packet.time = convertCycleCount(packet.time, network_model->getFrequency(), _tile->getFrequency());
 
    _shmem_perf_model->setCycleCount(packet.time);
 

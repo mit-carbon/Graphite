@@ -9,7 +9,6 @@
 #include "sync_server.h"
 #include "clock_skew_minimization_object.h"
 #include "fixed_types.h"
-#include "network_model_analytical_server.h"
 #include "thread.h"
 
 class MCP : public Runnable
@@ -38,7 +37,6 @@ class MCP : public Runnable
       SyscallServer m_syscall_server;
       SyncServer m_sync_server;
       ClockSkewMinimizationServer* m_clock_skew_minimization_server;
-      NetworkModelAnalyticalServer m_network_model_analytical_server;
 };
 
 #endif

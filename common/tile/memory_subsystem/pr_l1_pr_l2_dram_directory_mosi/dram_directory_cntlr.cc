@@ -1048,14 +1048,16 @@ DramDirectoryCntlr::updateInvalidationLatencyCounters(bool initial_broadcast_mod
 bool
 DramDirectoryCntlr::addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id)
 {
-   _dram_directory_cache->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() + 1);
+   if (_directory_type == FULL_MAP)
+      _dram_directory_cache->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() + 1);
    return directory_entry->addSharer(sharer_id);
 }
 
 void
 DramDirectoryCntlr::removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected)
 {
-   _dram_directory_cache->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() - 1);
+   if (_directory_type == FULL_MAP)
+      _dram_directory_cache->getDirectory()->updateSharerStats(directory_entry->getNumSharers(), directory_entry->getNumSharers() - 1);
    directory_entry->removeSharer(sharer_id, reply_expected);
 }
 

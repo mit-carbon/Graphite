@@ -28,6 +28,7 @@ public:
 
 private:
    SInt32 _total_entries;
+   DirectoryType _directory_type;
 
    vector<DirectoryEntry*> _directory_entry_list;
    vector<UInt64> _sharer_count_vec;

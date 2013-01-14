@@ -497,6 +497,8 @@ MemoryManager::outputSummary(std::ostream &os)
 void
 MemoryManager::openCacheLineReplicationTraceFiles()
 {
+   checkDramDirectoryType();
+   
    string output_dir;
    try
    {
@@ -504,7 +506,7 @@ MemoryManager::openCacheLineReplicationTraceFiles()
    }
    catch (...)
    {
-      LOG_PRINT_ERROR("Could not read general/output_dir from the cfg file");
+      LOG_PRINT_ERROR("Could not read [general/output_dir] from the cfg file");
    }
 
    string filename = output_dir + "/cache_line_replication.dat";
@@ -514,12 +516,16 @@ MemoryManager::openCacheLineReplicationTraceFiles()
 void
 MemoryManager::closeCacheLineReplicationTraceFiles()
 {
+   checkDramDirectoryType();
+
    _cache_line_replication_file.close();
 }
 
 void
 MemoryManager::outputCacheLineReplicationSummary()
 {
+   checkDramDirectoryType();
+
    // Static Function to Compute the Time Varying Replication Index of a Cache Line
    // Go through the set of all caches and directories and get the
    // number of times each cache line is replicated
@@ -626,6 +632,24 @@ MemoryManager::outputCacheLineReplicationSummary()
    _cache_line_replication_file << endl;
 
    _cache_line_replication_file << endl;
+}
+
+void
+MemoryManager::checkDramDirectoryType()
+{
+   string dram_directory_type;
+   try
+   {
+      dram_directory_type = Sim()->getCfg()->getString("dram_directory/directory_type");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read [dram_directory/type] from the cfg file");
+   }
+
+   LOG_ASSERT_ERROR(dram_directory_type == "full_map",
+         "DRAM Directory type should be FULL_MAP for cache_line_replication to be measured, now (%s)",
+         dram_directory_type.c_str());
 }
 
 }

@@ -52,11 +52,6 @@ namespace PrL1PrL2DramDirectoryMSI
 
       void outputSummary(std::ostream &os);
 
-      // Cache line replication trace
-      static void openCacheLineReplicationTraceFiles();
-      static void closeCacheLineReplicationTraceFiles();
-      static void outputCacheLineReplicationSummary();
-      
       void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:
@@ -76,9 +71,6 @@ namespace PrL1PrL2DramDirectoryMSI
       CachePerfModel* _l1_icache_perf_model;
       CachePerfModel* _l1_dcache_perf_model;
       CachePerfModel* _l2_cache_perf_model;
-      
-      // Cache Line Replication
-      static ofstream _cache_line_replication_file;
       
       bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                     Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,

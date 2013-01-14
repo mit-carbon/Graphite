@@ -173,15 +173,10 @@ MemoryManager::openCacheLineReplicationTraceFiles()
 {
    switch (_caching_protocol_type)
    {
-   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      PrL1PrL2DramDirectoryMSI::MemoryManager::openCacheLineReplicationTraceFiles();
-      break;
-
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       PrL1PrL2DramDirectoryMOSI::MemoryManager::openCacheLineReplicationTraceFiles();
       break;
 
-   case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
       break;
@@ -193,15 +188,10 @@ MemoryManager::closeCacheLineReplicationTraceFiles()
 {
    switch (_caching_protocol_type)
    {
-   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      PrL1PrL2DramDirectoryMSI::MemoryManager::closeCacheLineReplicationTraceFiles();
-      break;
-
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       PrL1PrL2DramDirectoryMOSI::MemoryManager::closeCacheLineReplicationTraceFiles();
       break;
 
-   case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
       break;
@@ -213,15 +203,10 @@ MemoryManager::outputCacheLineReplicationSummary()
 {
    switch (_caching_protocol_type)
    {
-   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      PrL1PrL2DramDirectoryMSI::MemoryManager::outputCacheLineReplicationSummary();
-      break;
-
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       PrL1PrL2DramDirectoryMOSI::MemoryManager::outputCacheLineReplicationSummary();
       break;
 
-   case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
       break;

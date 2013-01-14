@@ -9,9 +9,6 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-// Static variables
-ofstream MemoryManager::_cache_line_replication_file;
-
 MemoryManager::MemoryManager(Tile* tile)
    : ::MemoryManager(tile)
    , _dram_directory_cntlr(NULL)
@@ -121,11 +118,8 @@ MemoryManager::MemoryManager(Tile* tile)
       LOG_PRINT_ERROR("Error reading memory system parameters from the config file");
    }
 
-   if (getTile()->getId() == 0)
-   {
-      LOG_ASSERT_ERROR(directory_type != "limited_broadcast",
-            "Limited Broadcast directory scheme CANNOT be used with the MSI protocol.");
-   }
+   LOG_ASSERT_ERROR(directory_type != "limited_broadcast",
+         "limited_broadcast directory scheme CANNOT be used with the pr_l1_pr_l2_dram_directory_msi protocol.");
 
    // Check if all cache line sizes are the same
    LOG_ASSERT_ERROR((l1_icache_line_size == l1_dcache_line_size) && (l1_dcache_line_size == l2_cache_line_size),
@@ -458,140 +452,6 @@ MemoryManager::outputSummary(std::ostream &os)
    }
 
    ::MemoryManager::outputSummary(os);
-}
-
-void
-MemoryManager::openCacheLineReplicationTraceFiles()
-{
-   string output_dir;
-   try
-   {
-      output_dir = Sim()->getCfg()->getString("general/output_dir");
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Could not read general/output_dir from the cfg file");
-   }
-
-   string filename = output_dir + "/cache_line_replication.dat";
-   _cache_line_replication_file.open(filename.c_str());
-}
-
-void
-MemoryManager::closeCacheLineReplicationTraceFiles()
-{
-   _cache_line_replication_file.close();
-}
-
-void
-MemoryManager::outputCacheLineReplicationSummary()
-{
-   // Static Function to Compute the Time Varying Replication Index of a Cache Line
-   // Go through the set of all caches and directories and get the
-   // number of times each cache line is replicated
-
-   SInt32 total_tiles = (SInt32) Config::getSingleton()->getTotalTiles();
-   
-   UInt64 total_exclusive_lines_l1_cache = 0;
-   UInt64 total_shared_lines_l1_cache = 0;
-   UInt64 total_exclusive_lines_l2_cache = 0;
-   UInt64 total_shared_lines_l2_cache = 0;
-   UInt64 total_cache_lines_l2_cache = 0;
-   vector<UInt64> total_cache_line_sharer_count(total_tiles+1, 0);
-   
-   for (SInt32 tile_id = 0; tile_id < total_tiles; tile_id ++)
-   {
-      // Tile Ptr
-      Tile* tile = Sim()->getTileManager()->getTileFromID(tile_id);
-      assert(tile);
-      MemoryManager* memory_manager = (MemoryManager*) tile->getMemoryManager();
-      Cache* l1_icache = memory_manager->getL1ICache();
-      Cache* l1_dcache = memory_manager->getL1DCache();
-      Cache* l2_cache = memory_manager->getL2Cache();
-      Directory* directory = (Directory*) NULL;
-      if (memory_manager->isDramCntlrPresent())
-         directory = memory_manager->getDramDirectoryCache()->getDirectory();
-   
-      // Get total lines in L1 caches & L2 cache
-      vector<UInt64> _l1_icache_line_state_counters;
-      vector<UInt64> _l1_dcache_line_state_counters;
-      vector<UInt64> _l2_cache_line_state_counters;
-      l1_icache->getCacheLineStateCounters(_l1_icache_line_state_counters);
-      l1_dcache->getCacheLineStateCounters(_l1_dcache_line_state_counters);
-      l2_cache->getCacheLineStateCounters(_l2_cache_line_state_counters);
-
-      UInt64 num_exclusive_lines_l1_icache = _l1_icache_line_state_counters[CacheState::MODIFIED];
-      UInt64 num_shared_lines_l1_icache = _l1_icache_line_state_counters[CacheState::SHARED];
-      UInt64 num_exclusive_lines_l1_dcache = _l1_dcache_line_state_counters[CacheState::MODIFIED];
-      UInt64 num_shared_lines_l1_dcache = _l1_dcache_line_state_counters[CacheState::SHARED];
-      UInt64 num_exclusive_lines_l2_cache = _l2_cache_line_state_counters[CacheState::MODIFIED];
-      UInt64 num_shared_lines_l2_cache = _l2_cache_line_state_counters[CacheState::SHARED];
-
-      // Get total
-      total_exclusive_lines_l1_cache += (num_exclusive_lines_l1_icache + num_exclusive_lines_l1_dcache);
-      total_shared_lines_l1_cache += (num_shared_lines_l1_icache + num_shared_lines_l1_dcache);
-      total_exclusive_lines_l2_cache += num_exclusive_lines_l2_cache;
-      total_shared_lines_l2_cache += num_shared_lines_l2_cache;
-
-      if (directory)
-      {
-         vector<UInt64> cache_line_sharer_count;
-         directory->getSharerStats(cache_line_sharer_count);
-         for (SInt32 num_sharers = 1; num_sharers <= total_tiles; num_sharers ++)
-         {
-            total_cache_line_sharer_count[num_sharers] += cache_line_sharer_count[num_sharers];
-            total_cache_lines_l2_cache += cache_line_sharer_count[num_sharers];
-         }
-      }
-   }
-
-   // Write to file
-   // L1 cache, L2 cache
-   _cache_line_replication_file << total_exclusive_lines_l1_cache << ", " << total_shared_lines_l1_cache << ", " << endl;
-   _cache_line_replication_file << total_exclusive_lines_l2_cache << ", " << total_shared_lines_l2_cache << ", " << endl;
-   for (SInt32 i = 1; i <= total_tiles; i++)
-      _cache_line_replication_file << total_cache_line_sharer_count[i] << ", ";
-   _cache_line_replication_file << endl;
-   
-   // Replication count
-   // For Pr L1, Pr L2 configuration
-   vector<UInt64> total_cache_line_replication_count(2*total_tiles+1, 0);
-   
-   // Account for exclusive lines first
-   // For Pr L1, Pr L2 configuration
-   total_cache_line_replication_count[1] += (total_exclusive_lines_l2_cache - total_exclusive_lines_l1_cache);
-   total_cache_line_replication_count[2] += total_exclusive_lines_l1_cache;
-   
-   // Subtract out the exclusive lines 
-   total_cache_line_sharer_count[1] -= total_exclusive_lines_l2_cache;
-
-   double shared_lines_ratio = 1.0 * total_shared_lines_l1_cache / total_shared_lines_l2_cache;
-   
-   // Accout for shared lines next
-   for (SInt32 num_sharers = 1; num_sharers <= total_tiles; num_sharers ++)
-   {
-      UInt64 num_cache_lines = total_cache_line_sharer_count[num_sharers];
-      SInt32 degree_l2 = num_sharers;
-      double degree_l1 = shared_lines_ratio * degree_l2;
-      
-      // Some lines are replicated in floor(degree_l1) L1 cache slices
-      // while some lines are replicated in ceil(degree_l1) L1 cache caches
-      UInt64 num_low = (UInt64) (num_cache_lines * (ceil(degree_l1) - degree_l1));
-      SInt32 degree_low = (SInt32) floor(degree_l1);
-      UInt64 num_high = num_cache_lines - num_low;
-      SInt32 degree_high = (SInt32) ceil(degree_l1);
-
-      // Approximate For Pr L1, Pr L2 configuration
-      total_cache_line_replication_count[num_sharers + degree_low] += num_low;
-      total_cache_line_replication_count[num_sharers + degree_high] += num_high;
-   }
-
-   // For Pr L1, Pr L2 configuration
-   for (SInt32 i = 1; i <= (2*total_tiles); i++)
-      _cache_line_replication_file << total_cache_line_replication_count[i] << ", ";
-   _cache_line_replication_file << endl;
-
-   _cache_line_replication_file << endl;
 }
 
 }

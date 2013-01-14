@@ -96,6 +96,9 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void handleMsgFromNetwork(NetPacket& packet);
 
+      // Check dram directory type
+      static void checkDramDirectoryType();
+
       // Get Packet Type for a message
       PacketType getPacketType(MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component);
    };

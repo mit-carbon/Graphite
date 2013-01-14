@@ -5,18 +5,25 @@ echo "[BLDCONF] Editing gcc.bldconf with correct paths for CC_HOME and BINUTIL_H
 patch -p1 < setup_parsec_2.1/gcc_bldconf.patch
 
 # Populate the PARSEC directories with the build configuration needed
-# for Graphite. The configuration is derived from gcc-hooks because
-# we would like to have the option to simulate just the parallel
-# portion of the benchmark. This command just creates the relevant
-# files, the actual compiler and linker flags are put in later
-echo "[BLDCONF] Populating PARSEC directories with graphite.bldconf"
-./bin/bldconfadd -n graphite -s gcc-hooks -f
+# for building the tools (yasm,cmake,libtool). The configuration is
+# derived from gcc because we do not need Graphite-specific flags
+# for building tools
+echo "[BLDCONF] Populating PARSEC directories with graphite.bldconf extending gcc.bldconf"
+./bin/bldconfadd -n graphite -s gcc -f
 
 # Build the tools (yasm,cmake,libtool). These tools are built in
 # advance so that they need not be built during the time of
 # building & running the benchmarks.
 echo "[BUILD] Building tools (yasm, cmake, libtool)"
 ./bin/parsecmgmt -a build -p tools -c graphite
+
+# Populate the PARSEC directories with the build configuration needed
+# for Graphite. The configuration is derived from gcc-hooks because
+# we would like to have the option to simulate just the parallel
+# portion of the benchmark. This command just creates the relevant
+# files, the actual compiler and linker flags are put in later
+echo "[BLDCONF] Populating PARSEC directories with graphite.bldconf extending gcc-hooks.bldconf"
+./bin/bldconfadd -n graphite -s gcc-hooks -f
 
 # Apply changes to graphite.bldconf for the Graphite-specific
 # compiler and linker flags
